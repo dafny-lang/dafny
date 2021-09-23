@@ -44,10 +44,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       ).ToList();
     }
 
-    public DafnyDocument? CloseDocument(TextDocumentIdentifier documentId) {
+    public async Task<DafnyDocument?> CloseDocumentAsync(TextDocumentIdentifier documentId) {
       if (_documents.Remove(documentId.Uri, out var databaseEntry)) {
         databaseEntry.CancelPendingUpdates();
-        return databaseEntry.Document.Result;
+        return await databaseEntry.Document;
       }
       return null;
     }
@@ -60,9 +60,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         Task.Run(() => _documentLoader.LoadAsync(document, VerifyOnLoad, CancellationToken.None)),
         new CancellationTokenSource()
       );
-      if (!_documents.TryAdd(document.Uri, databaseEntry)) {
-        throw new InvalidOperationException($"the document {document.Uri} was already loaded");
-      }
+      _documents.Add(document.Uri, databaseEntry);
       return await databaseEntry.Document;
     }
 
@@ -101,7 +99,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         document.SymbolTable.Resolved
           ? Task.Run(() => _documentLoader.LoadAsync(document.Text, VerifyOnSave, cancellationSource.Token))
           : databaseEntry.Document,
-        new CancellationTokenSource()
+        cancellationSource
       );
       _documents[documentId.Uri] = updatedEntry;
       return await updatedEntry.Document;
@@ -109,12 +107,20 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public bool TryGetDocument(TextDocumentIdentifier documentId, [NotNullWhen(true)] out DafnyDocument? document) {
       // TODO make asynchronous? Requires refactoring of all unit tests.
-      if (_documents.TryGetValue(documentId.Uri, out var databaseEntry)) {
-        document = databaseEntry.Document.Result;
-        return true;
+      if (!_documents.TryGetValue(documentId.Uri, out var databaseEntry)) {
+        document = null;
+        return false;
       }
-      document = null;
-      return false;
+      document = databaseEntry.Document.Result;
+      return true;
+    }
+
+    public async Task<DafnyDocument?> GetDocumentAsync(TextDocumentIdentifier documentId) {
+      // TODO make asynchronous? Requires refactoring of all unit tests.
+      if (_documents.TryGetValue(documentId.Uri, out var databaseEntry)) {
+        return await databaseEntry.Document;
+      }
+      return null;
     }
 
     private record DocumentEntry(int? Version, Task<DafnyDocument> Document, CancellationTokenSource CancellationSource) {

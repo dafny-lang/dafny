@@ -38,13 +38,13 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       return Task.FromException<CompletionItem>(new InvalidOperationException("method not implemented"));
     }
 
-    public override Task<CompletionList> Handle(CompletionParams request, CancellationToken cancellationToken) {
-      DafnyDocument? document;
-      if (!_documents.TryGetDocument(request.TextDocument, out document)) {
+    public async override Task<CompletionList> Handle(CompletionParams request, CancellationToken cancellationToken) {
+      var document = await _documents.GetDocumentAsync(request.TextDocument);
+      if (document == null) {
         _logger.LogWarning("location requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
-        return Task.FromResult(new CompletionList());
+        return new CompletionList();
       }
-      return Task.FromResult(new CompletionProcessor(_symbolGuesser, document, request, cancellationToken).Process());
+      return new CompletionProcessor(_symbolGuesser, document, request, cancellationToken).Process();
     }
 
     private class CompletionProcessor {

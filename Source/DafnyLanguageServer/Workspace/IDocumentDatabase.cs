@@ -1,5 +1,6 @@
 ﻿using Microsoft.Dafny.LanguageServer.Language;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
@@ -14,7 +15,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// </summary>
     /// <param name="documentId">The ID of the document to close.</param>
     /// <returns>The closed dafny document, <c>null</c> if no such document was opened.</returns>
-    DafnyDocument? CloseDocument(TextDocumentIdentifier documentId);
+    Task<DafnyDocument?> CloseDocumentAsync(TextDocumentIdentifier documentId);
 
     /// <summary>
     /// Loads (or updates if newer) the specified document into the database.
@@ -59,6 +60,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// <param name="documentId">The ID of the document to resolve.</param>
     /// <param name="document">An instance of the managed document, <c>null</c> if the specified document was not found.</param>
     /// <returns><c>true</c> if the document was resolved successfully, <c>false</c> otherwise.</returns>
+    [Obsolete("Use GetDocumentAsync instead")]
     bool TryGetDocument(TextDocumentIdentifier documentId, [NotNullWhen(true)] out DafnyDocument? document);
+
+    /// <summary>
+    /// Tries to resolve a document with the specified identifier.
+    /// </summary>
+    /// <param name="documentId">The ID of the document to resolve.</param>
+    /// <returns>An instance of the managed document, <c>null</c> if the specified document was not found.</param>
+    Task<DafnyDocument?> GetDocumentAsync(TextDocumentIdentifier documentId);
   }
 }

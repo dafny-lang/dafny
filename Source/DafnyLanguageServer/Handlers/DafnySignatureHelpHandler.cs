@@ -29,13 +29,13 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       };
     }
 
-    public override Task<SignatureHelp?> Handle(SignatureHelpParams request, CancellationToken cancellationToken) {
-      DafnyDocument? document;
-      if (!_documents.TryGetDocument(request.TextDocument, out document)) {
+    public async override Task<SignatureHelp?> Handle(SignatureHelpParams request, CancellationToken cancellationToken) {
+      var document = await _documents.GetDocumentAsync(request.TextDocument);
+      if (document == null) {
         _logger.LogWarning("location requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
-        return Task.FromResult<SignatureHelp?>(null);
+        return null;
       }
-      return Task.FromResult(new SignatureHelpProcessor(_symbolGuesser, document, request, cancellationToken).Process());
+      return new SignatureHelpProcessor(_symbolGuesser, document, request, cancellationToken).Process();
     }
 
     private class SignatureHelpProcessor {

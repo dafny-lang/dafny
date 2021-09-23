@@ -7,6 +7,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Client.Capabilities;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server.Capabilities;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -41,38 +42,48 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       return new TextDocumentAttributes(uri, LanguageId);
     }
 
-    public override async Task<Unit> Handle(DidOpenTextDocumentParams notification, CancellationToken cancellationToken) {
+    public override Task<Unit> Handle(DidOpenTextDocumentParams notification, CancellationToken cancellationToken) {
       _logger.LogTrace("received open notification {DocumentUri}", notification.TextDocument.Uri);
-      var document = await _documents.LoadDocumentAsync(notification.TextDocument, cancellationToken);
-      _diagnosticPublisher.PublishDiagnostics(document);
-      return Unit.Value;
+      _documents.LoadDocumentAsync(notification.TextDocument, cancellationToken)
+        .ContinueWith(PublishDiagnostics);
+      return Task.FromResult(Unit.Value);
     }
 
     public override Task<Unit> Handle(DidCloseTextDocumentParams notification, CancellationToken cancellationToken) {
       _logger.LogTrace("received close notification {DocumentUri}", notification.TextDocument.Uri);
-      var document = _documents.CloseDocument(notification.TextDocument);
-      if (document != null) {
-        _diagnosticPublisher.HideDiagnostics(document);
-      }
+      _documents.CloseDocumentAsync(notification.TextDocument)
+        .ContinueWith(HideDiagnostics);
       return Unit.Task;
     }
 
     public override async Task<Unit> Handle(DidChangeTextDocumentParams notification, CancellationToken cancellationToken) {
       _logger.LogTrace("received change notification {DocumentUri}", notification.TextDocument.Uri);
-      var document = await _documents.UpdateDocumentAsync(notification, cancellationToken);
-      if (document != null) {
-        _diagnosticPublisher.PublishDiagnostics(document);
-      }
+      _documents.UpdateDocumentAsync(notification, cancellationToken)
+        .ContinueWith(PublishDiagnostics);
       return Unit.Value;
     }
 
     public override async Task<Unit> Handle(DidSaveTextDocumentParams notification, CancellationToken cancellationToken) {
       _logger.LogTrace("received save notification {DocumentUri}", notification.TextDocument.Uri);
-      var document = await _documents.SaveDocumentAsync(notification.TextDocument, cancellationToken);
-      if (document != null) {
-        _diagnosticPublisher.PublishDiagnostics(document);
-      }
+      _documents.SaveDocumentAsync(notification.TextDocument, cancellationToken)
+        .ContinueWith(PublishDiagnostics);
       return Unit.Value;
+    }
+
+    private async Task PublishDiagnostics(Task<DafnyDocument> document) {
+      try {
+        _diagnosticPublisher.PublishDiagnostics(await document);
+      } catch (Exception e) {
+        _logger.LogError(e, "error handling document event");
+      }
+    }
+
+    private async Task HideDiagnostics(Task<DafnyDocument> document) {
+      try {
+        _diagnosticPublisher.HideDiagnostics(await document);
+      } catch (Exception e) {
+        _logger.LogError(e, "error handling document event");
+      }
     }
   }
 }
