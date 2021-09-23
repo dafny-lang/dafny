@@ -87,7 +87,7 @@ ResolutionErrors.dfy(626,9): Error: a lemma is not allowed to use 'new'
 ResolutionErrors.dfy(635,16): Error: only ghost methods can be called from this context
 ResolutionErrors.dfy(642,15): Error: only ghost methods can be called from this context
 ResolutionErrors.dfy(652,17): Error: a hint is not allowed to use 'new'
-ResolutionErrors.dfy(667,14): Error: new allocation not supported in forall statements
+ResolutionErrors.dfy(667,14): Error: new allocation not supported in aggregate assignments
 ResolutionErrors.dfy(674,14): Error: a forall statement is not allowed to use 'new'
 ResolutionErrors.dfy(674,11): Error: assignment to array element is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
 ResolutionErrors.dfy(690,26): Error: second argument to "in" must be a set, multiset, or sequence with elements of type int, or a map with domain int (instead got bool)

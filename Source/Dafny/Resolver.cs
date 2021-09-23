@@ -13494,7 +13494,7 @@ namespace Microsoft.Dafny {
         var rhs = s.Rhs;  // ExprRhs and HavocRhs are fine, but TypeRhs is not
         if (rhs is TypeRhs) {
           if (kind == ForallStmt.BodyKind.Assign) {
-            reporter.Error(MessageSource.Resolver, rhs.Tok, "new allocation not supported in forall statements");
+            reporter.Error(MessageSource.Resolver, rhs.Tok, "new allocation not supported in aggregate assignments");
           } else {
             // "new" is not allowed in ghost contexts, but this is checked as part of the general GhostInterest checks
           }

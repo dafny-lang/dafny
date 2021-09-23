@@ -2,7 +2,7 @@ ParallelResolveErrors.dfy(10,6): Error: LHS of assignment must denote a mutable 
 ParallelResolveErrors.dfy(15,6): Error: body of forall statement is attempting to update a variable declared outside the forall statement
 ParallelResolveErrors.dfy(32,6): Error: body of forall statement is attempting to update a variable declared outside the forall statement
 ParallelResolveErrors.dfy(33,6): Error: body of forall statement is attempting to update a variable declared outside the forall statement
-ParallelResolveErrors.dfy(45,15): Error: new allocation not supported in forall statements
+ParallelResolveErrors.dfy(45,15): Error: new allocation not supported in aggregate assignments
 ParallelResolveErrors.dfy(52,19): Error: trying to break out of more loop levels than there are enclosing loops
 ParallelResolveErrors.dfy(58,18): Error: return statement is not allowed inside a forall statement
 ParallelResolveErrors.dfy(65,21): Error: trying to break out of more loop levels than there are enclosing loops
