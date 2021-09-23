@@ -35,7 +35,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       DafnyDocument? newDocument;
       try {
         newDocument = await _documentLoader.LoadAsync(mergedItem, Verify, cancellationToken);
-      } catch(System.OperationCanceledException) {
+      } catch (System.OperationCanceledException) {
         _logger.LogTrace("document loading canceled, applying migration");
         newDocument = oldDocument;
       }

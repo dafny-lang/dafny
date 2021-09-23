@@ -101,7 +101,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           var outcome = ExecutionEngine.InferAndVerify(program, statistics, uniqueId, error => { }, uniqueId);
           return DafnyDriver.IsBoogieVerified(outcome, statistics);
         } catch (Exception e) when (e is not OperationCanceledException) {
-          if(!cancellationToken.IsCancellationRequested) {
+          if (!cancellationToken.IsCancellationRequested) {
             throw;
           }
           // It appears that Boogie disposes resources that are still in use upon cancellation.

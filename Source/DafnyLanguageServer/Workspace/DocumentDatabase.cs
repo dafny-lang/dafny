@@ -69,15 +69,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       if (!_documents.TryGetValue(documentUri, out var databaseEntry)) {
         throw new ArgumentException($"the document {documentUri} was not loaded before");
       }
-      if (documentChange.TextDocument.Version < databaseEntry.Version) {
+      if (documentChange.TextDocument.Version != databaseEntry.Version + 1) {
         throw new InvalidOperationException($"the updates of document {documentUri} are out-of-order");
       }
       databaseEntry.CancelPendingUpdates();
       var cancellationSource = new CancellationTokenSource();
       var updatedEntry = new DocumentEntry(
         documentChange.TextDocument.Version,
-        // Do not allow cancelling the initial load.
-        // TODO Allow cancelling when the document is closed.
         Task.Run(async () => await _documentUpdater.ApplyChangesAsync(await databaseEntry.Document, documentChange, cancellationSource.Token)),
         cancellationSource
       );
