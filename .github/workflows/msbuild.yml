@@ -113,6 +113,7 @@ jobs:
       with:
         path: dafny
         submodules: true
+    - run: rm Test/libraries/lit.site.cfg
     - name: Create release
       run: |
         python dafny/Scripts/package.py 0.0.0-CI --os ${{ matrix.os_for_build }} --skip_manual=true --trial=true --github_secret=${{ secrets.GITHUB_TOKEN }} --out=CI.zip
