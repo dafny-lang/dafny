@@ -18,12 +18,15 @@ LabeledAssertsResolution.dfy(123,6): Error: an assert-by body is not allowed to 
 LabeledAssertsResolution.dfy(137,8): Error: assignment to non-ghost variable is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
 LabeledAssertsResolution.dfy(137,6): Error: an assert-by body is not allowed to update a variable it doesn't declare
 LabeledAssertsResolution.dfy(168,16): Error: in an assert-by body, calls are allowed only to lemmas
+LabeledAssertsResolution.dfy(170,10): Error: an assert-by body is not allowed to make heap updates
 LabeledAssertsResolution.dfy(171,13): Error: assignment to array element is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
 LabeledAssertsResolution.dfy(172,15): Error: assignment to array element is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
 LabeledAssertsResolution.dfy(173,8): Error: a modify statement is not allowed in an assert-by body
+LabeledAssertsResolution.dfy(175,8): Error: an assert-by body is not allowed to make heap updates
 LabeledAssertsResolution.dfy(176,11): Error: assignment to array element is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
 LabeledAssertsResolution.dfy(177,13): Error: assignment to array element is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
 LabeledAssertsResolution.dfy(178,6): Error: a modify statement is not allowed in an assert-by body
+LabeledAssertsResolution.dfy(185,12): Error: a hint is not allowed to make heap updates
 LabeledAssertsResolution.dfy(186,15): Error: assignment to array element is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
 LabeledAssertsResolution.dfy(187,17): Error: assignment to array element is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
 LabeledAssertsResolution.dfy(188,10): Error: a modify statement is not allowed in a hint
@@ -31,20 +34,11 @@ LabeledAssertsResolution.dfy(193,18): Error: in a hint, calls are allowed only t
 LabeledAssertsResolution.dfy(167,8): Error: an assert-by body is not allowed to update a variable it doesn't declare
 LabeledAssertsResolution.dfy(168,8): Error: an assert-by body is not allowed to update a variable it doesn't declare
 LabeledAssertsResolution.dfy(169,8): Error: an assert-by body is not allowed to update a variable it doesn't declare
-LabeledAssertsResolution.dfy(170,10): Error: an assert-by body is not allowed to update heap locations
-LabeledAssertsResolution.dfy(171,9): Error: an assert-by body is not allowed to update heap locations
-LabeledAssertsResolution.dfy(172,9): Error: an assert-by body is not allowed to update heap locations
-LabeledAssertsResolution.dfy(175,8): Error: an assert-by body is not allowed to update heap locations
-LabeledAssertsResolution.dfy(176,7): Error: an assert-by body is not allowed to update heap locations
-LabeledAssertsResolution.dfy(177,7): Error: an assert-by body is not allowed to update heap locations
 LabeledAssertsResolution.dfy(201,18): Error: a hint is not allowed to update a variable it doesn't declare
 LabeledAssertsResolution.dfy(202,18): Error: a hint is not allowed to update a variable it doesn't declare
 LabeledAssertsResolution.dfy(197,12): Error: an assert-by body is not allowed to update a variable it doesn't declare
 LabeledAssertsResolution.dfy(198,12): Error: an assert-by body is not allowed to update a variable it doesn't declare
 LabeledAssertsResolution.dfy(183,10): Error: a hint is not allowed to update a variable it doesn't declare
-LabeledAssertsResolution.dfy(185,12): Error: a hint is not allowed to update heap locations
-LabeledAssertsResolution.dfy(186,11): Error: a hint is not allowed to update heap locations
-LabeledAssertsResolution.dfy(187,11): Error: a hint is not allowed to update heap locations
 LabeledAssertsResolution.dfy(193,10): Error: a hint is not allowed to update a variable it doesn't declare
 LabeledAssertsResolution.dfy(217,8): Error: an assert-by body is not allowed to update a variable it doesn't declare
 LabeledAssertsResolution.dfy(218,8): Error: an assert-by body is not allowed to update a variable it doesn't declare
@@ -59,10 +53,6 @@ LabeledAssertsResolution.dfy(235,10): Error: return statement is not allowed ins
 LabeledAssertsResolution.dfy(320,6): Error: yield statement is not allowed inside a forall statement
 LabeledAssertsResolution.dfy(281,6): Error: body of forall statement is attempting to update a variable declared outside the forall statement
 LabeledAssertsResolution.dfy(282,6): Error: body of forall statement is attempting to update a variable declared outside the forall statement
-LabeledAssertsResolution.dfy(283,8): Error: the body of the enclosing forall statement is not allowed to update heap locations
-LabeledAssertsResolution.dfy(284,7): Error: the body of the enclosing forall statement is not allowed to update heap locations
-LabeledAssertsResolution.dfy(285,7): Error: the body of the enclosing forall statement is not allowed to update heap locations
-LabeledAssertsResolution.dfy(286,6): Error: body of forall statement is not allowed to use a modify statement
 LabeledAssertsResolution.dfy(299,8): Warning: the conclusion of the body of this forall statement will not be known outside the forall statement; consider using an 'ensures' clause
 LabeledAssertsResolution.dfy(300,10): Error: body of forall statement is attempting to update a variable declared outside the forall statement
 LabeledAssertsResolution.dfy(301,10): Error: body of forall statement is attempting to update a variable declared outside the forall statement
@@ -78,4 +68,8 @@ LabeledAssertsResolution.dfy(357,8): Error: return statement is allowed only in 
 LabeledAssertsResolution.dfy(372,8): Error: return statement is allowed only in method
 LabeledAssertsResolution.dfy(364,10): Error: return statement is allowed only in method
 LabeledAssertsResolution.dfy(379,10): Error: return statement is allowed only in method
-79 resolution/type errors detected in LabeledAssertsResolution.dfy
+LabeledAssertsResolution.dfy(403,8): Error: a forall statement is not allowed to make heap updates
+LabeledAssertsResolution.dfy(404,11): Error: assignment to array element is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
+LabeledAssertsResolution.dfy(405,13): Error: assignment to array element is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
+LabeledAssertsResolution.dfy(406,6): Error: a modify statement is not allowed in a forall statement
+73 resolution/type errors detected in LabeledAssertsResolution.dfy

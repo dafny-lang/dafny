@@ -82,18 +82,6 @@ ghost method Modify3() {
   assert false; // error: assuming the body-less modify statement allocates a Cell does not lead to any contradiction
 }
 
-lemma Modify4() {
-  // The following "modify" statement is rather useless, since there's nothing a body for this "modify"
-  // statement could do--a lemma is not allowed to allocate anything. If the verifier knew this fact, it
-  // would realize that the subsequent assumption is "false", and thus it would be able to prove that
-  // the assertion is unreachable. However, handling this special case in the verifier just for the purpose
-  // of supporting this useless statement ain't worth it. Thus, the verifier will generate an error for
-  // the assertion below.
-  modify {};
-  assume exists c: Cell :: P(c) && fresh(c);
-  assert false; // error: the verifier doesn't know this statement cannot be reached
-}
-
 method ModifyBody0(w: CellWrapper)
   modifies w
 {

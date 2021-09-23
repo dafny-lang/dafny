@@ -327,8 +327,8 @@ module Lemmas {
 
 module GhostMethodVersusLemma {
   class Marker { }
-
   class Cell {
+    var data: int
     ghost var m: Marker?
   }
 
@@ -407,8 +407,8 @@ module GhostMethodVersusLemma {
     modify S { // error: not allowed modify statement in lemma context
     }
     var c := new Cell; // error: 'new' not allowed in lemma context
+    c.m := null; // error: lemma is not allowed to make heap updates
   }
-
   ghost method Modify1() {
     assert true by {
       var i := 0;
@@ -548,5 +548,152 @@ module GhostMethodVersusLemma {
       200_000;
     }
   }
+
+  method Modify5(n: nat, ghost b: bool)
+    requires n != 0
+  {
+    var a := new int[n];
+    var cell := new Cell;
+    var S := {cell};
+
+    a[0] := 0;
+    forall i | 0 <= i < n {
+      a[i] := i;
+    }
+
+    cell.data := 0;
+    forall c | c in S {
+      c.data := 0;
+    }
+
+    cell.m := null;
+    forall c | c in S {
+      c.m := null;
+    }
+
+    if b {
+      a[0] := 0; // error: ghost context cannot assign to non-ghost heap location
+      forall i | 0 <= i < n {
+        a[i] := i; // error: ghost context cannot assign to non-ghost heap location
+      }
+
+      cell.data := 0; // error: ghost context cannot assign to non-ghost heap location
+      forall c | c in S {
+        c.data := 0; // error: ghost context cannot assign to non-ghost heap location
+      }
+
+      cell.m := null;
+      forall c | c in S {
+        c.m := null;
+      }
+    }
+
+    calc {
+      2016;
+    < {
+        a[0] := 0; // error: cannot assign to heap in this lemma context
+        forall i | 0 <= i < n { // error: cannot do aggregate heap update in this lemma context
+          a[i] := i;
+        }
+
+        cell.data := 0; // error: a lemma context cannot update heap locations
+        forall c | c in S { // error: cannot do aggregate heap update in this lemma context
+          c.data := 0;
+        }
+
+        cell.m := null; // error: a lemma context cannot update heap locations
+        forall c | c in S { // error: cannot do aggregate heap update in this lemma context
+          c.m := null;
+        }
+      }
+      2020;
+    }
+
+    assert true by {
+      a[0] := 0; // error: cannot assign to heap in this lemma context
+      forall i | 0 <= i < n { // error: cannot do aggregate heap update in this lemma context
+        a[i] := i;
+      }
+
+      cell.data := 0; // error: a lemma context cannot update heap locations
+      forall c | c in S { // error: cannot do aggregate heap update in this lemma context
+        c.data := 0;
+      }
+
+      cell.m := null; // error: a lemma context cannot update heap locations
+      forall c | c in S { // error: cannot do aggregate heap update in this lemma context
+        c.m := null;
+      }
+    }
+
+    forall j | 0 <= j < n
+      ensures IsBig(j) ==> IsBig(j + 1)
+    {
+      a[0] := 0; // error: cannot assign to heap in this lemma context
+      forall i | 0 <= i < n { // error: cannot do aggregate heap update in this lemma context
+        a[i] := i;
+      }
+
+      cell.data := 0; // error: a lemma context cannot update heap locations
+      forall c | c in S { // error: cannot do aggregate heap update in this lemma context
+        c.data := 0;
+      }
+
+      cell.m := null; // error: a lemma context cannot update heap locations
+      forall c | c in S { // error: cannot do aggregate heap update in this lemma context
+        c.m := null;
+      }
+    }
+  }
 }
 
+// --------------- assignments ------------------------------
+
+module Assignments {
+  class Cell { }
+  class Point {
+    constructor XY()
+    ghost constructor Polar()
+  }
+
+  method M0(n: nat, init: int -> int) {
+    var c, pt0, pt1, arr;
+    c := new Cell;
+    pt0 := new Point.XY();
+    pt1 := new Point.Polar(); // error: cannot use ghost constructor to assign compiled variable
+    arr := new int[n];
+    arr := new int[] [n];
+    arr := new int[10](init);
+  }
+
+  method M1(ghost n: nat, ghost init: int -> int) {
+    ghost var c, pt0, pt1;
+    var arr;
+    c := new Cell;
+    pt0 := new Point.XY(); // error: cannot use non-ghost constructor to assign ghost variable
+    pt1 := new Point.Polar();
+    arr := new int[n]; // error: cannot use ghost in RHS
+    arr := new int[] [n]; // error: cannot use ghost RHS display
+    arr := new int[10](init); // error: cannot use ghost RHS initializer
+  }
+
+  ghost method M2(n: nat, init: int -> int) {
+    var c, pt0, pt1, arr;
+    c := new Cell;
+    pt0 := new Point.XY(); // error: cannot use non-ghost constructor in ghost context
+    pt1 := new Point.Polar();
+    arr := new int[n];
+    arr := new int[] [n];
+    arr := new int[10](init);
+  }
+
+  lemma M3(n: nat, init: int -> int) {
+    var c, pt0, pt1, arr;
+    c := new Cell; // error: cannot use 'new' in lemma context
+    pt0 := new Point.XY(); // error (x2): cannot use 'new' in lemma context (and cannot call constructor)
+    pt1 := new Point.Polar(); // error (x2): cannot use 'new' in lemma context (and cannot call constructor)
+    arr := new int[n]; // error: cannot use 'new' in lemma context
+    arr := new int[] [n]; // error: cannot use 'new' in lemma context
+    arr := new int[10](init); // error: cannot use 'new' in lemma context
+  }
+}

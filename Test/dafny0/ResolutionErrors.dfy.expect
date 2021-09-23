@@ -66,7 +66,7 @@ ResolutionErrors.dfy(416,8): Error: arguments must have comparable types (got bo
 ResolutionErrors.dfy(420,8): Error: arguments must have comparable types (got bool and int)
 ResolutionErrors.dfy(420,8): Error: arguments must have comparable types (got bool and int)
 ResolutionErrors.dfy(454,13): Error: in a hint, calls are allowed only to lemmas
-ResolutionErrors.dfy(456,10): Error: a hint is not allowed to update heap locations
+ResolutionErrors.dfy(456,10): Error: a hint is not allowed to make heap updates
 ResolutionErrors.dfy(458,10): Error: a hint is not allowed to update a variable it doesn't declare
 ResolutionErrors.dfy(479,4): Error: More than one anonymous constructor
 ResolutionErrors.dfy(485,8): Error: when allocating an object of type 'Y', one of its constructor methods must be called
@@ -88,7 +88,8 @@ ResolutionErrors.dfy(635,16): Error: only ghost methods can be called from this 
 ResolutionErrors.dfy(642,15): Error: only ghost methods can be called from this context
 ResolutionErrors.dfy(652,17): Error: a hint is not allowed to use 'new'
 ResolutionErrors.dfy(667,14): Error: new allocation not supported in forall statements
-ResolutionErrors.dfy(674,7): Error: the body of the enclosing forall statement is not allowed to update heap locations
+ResolutionErrors.dfy(674,14): Error: a forall statement is not allowed to use 'new'
+ResolutionErrors.dfy(674,11): Error: assignment to array element is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
 ResolutionErrors.dfy(690,26): Error: second argument to "in" must be a set, multiset, or sequence with elements of type int, or a map with domain int (instead got bool)
 ResolutionErrors.dfy(685,18): Error: second argument to "in" must be a set, multiset, or sequence with elements of type int, or a map with domain int (instead got ?)
 ResolutionErrors.dfy(702,13): Error: lemmas are not allowed to have modifies clauses
@@ -211,16 +212,14 @@ ResolutionErrors.dfy(1436,15): Error: type of left argument to + (int) must agre
 ResolutionErrors.dfy(1436,15): Error: type of right argument to + (int) must agree with the result type (bool)
 ResolutionErrors.dfy(1436,15): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
 ResolutionErrors.dfy(1479,20): Error: in a hint, calls are allowed only to lemmas
-ResolutionErrors.dfy(1501,10): Error: a hint is not allowed to update heap locations
-ResolutionErrors.dfy(1502,10): Error: a hint is not allowed to update heap locations
 ResolutionErrors.dfy(1488,24): Error: in a hint, calls are allowed only to lemmas
 ResolutionErrors.dfy(1501,18): Error: assignment to non-ghost field is not allowed in this context, because this is a ghost function
+ResolutionErrors.dfy(1502,10): Error: a hint is not allowed to make heap updates
 ResolutionErrors.dfy(1503,20): Error: in a hint, calls are allowed only to lemmas
 ResolutionErrors.dfy(1506,21): Error: a loop in a hint is not allowed to use 'modifies' clauses
-ResolutionErrors.dfy(1530,10): Error: a hint is not allowed to update heap locations
-ResolutionErrors.dfy(1531,10): Error: a hint is not allowed to update heap locations
 ResolutionErrors.dfy(1523,24): Error: in a hint, calls are allowed only to lemmas
 ResolutionErrors.dfy(1530,18): Error: assignment to non-ghost field is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
+ResolutionErrors.dfy(1531,10): Error: a hint is not allowed to make heap updates
 ResolutionErrors.dfy(1532,11): Error: in a hint, calls are allowed only to lemmas
 ResolutionErrors.dfy(1535,21): Error: a loop in a hint is not allowed to use 'modifies' clauses
 ResolutionErrors.dfy(1452,29): Error: in a hint, calls are allowed only to lemmas
@@ -584,4 +583,4 @@ ResolutionErrors.dfy(3617,10): Error: a reads-clause expression must denote an o
 ResolutionErrors.dfy(3626,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got int -> int)
 ResolutionErrors.dfy(3631,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got set<object> -> int)
 ResolutionErrors.dfy(3633,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got bool -> map<object, object>)
-581 resolution/type errors detected in ResolutionErrors.dfy
+580 resolution/type errors detected in ResolutionErrors.dfy

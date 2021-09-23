@@ -8639,7 +8639,9 @@ namespace Microsoft.Dafny {
         } else if (stmt is ForallStmt) {
           var s = (ForallStmt)stmt;
           s.IsGhost = mustBeErasable || s.Kind != ForallStmt.BodyKind.Assign || resolver.UsesSpecFeatures(s.Range);
-          if (s.Body != null) {
+          if (proofContext != null && s.Kind == ForallStmt.BodyKind.Assign) {
+            Error(s, $"{proofContext} is not allowed to perform an aggregate heap update");
+          } else if (s.Body != null) {
             Visit(s.Body, s.IsGhost, s.Kind == ForallStmt.BodyKind.Assign ? proofContext : "a forall statement");
           }
           s.IsGhost = s.IsGhost || s.Body == null || s.Body.IsGhost;
@@ -8730,6 +8732,9 @@ namespace Microsoft.Dafny {
         var gk = AssignStmt.LhsIsToGhost_Which(lhs);
         if (gk == AssignStmt.NonGhostKind.IsGhost) {
           s.IsGhost = true;
+          if (proofContext != null && !(lhs is IdentifierExpr)) {
+            Error(lhs.tok, $"{proofContext} is not allowed to make heap updates");
+          }
           if (s.Rhs is TypeRhs tRhs && tRhs.InitCall != null) {
             Visit(tRhs.InitCall, true, proofContext);
           }
@@ -13542,17 +13547,8 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is ForallStmt) {
         var s = (ForallStmt)stmt;
-        switch (s.Kind) {
-          case ForallStmt.BodyKind.Assign:
-            reporter.Error(MessageSource.Resolver, stmt, "a forall statement with heap updates is not allowed inside the body of another forall statement");
-            break;
-          case ForallStmt.BodyKind.Call:
-          case ForallStmt.BodyKind.Proof:
-            // these are fine, since they don't update any non-local state
-            break;
-          default:
-            Contract.Assert(false);  // unexpected kind
-            break;
+        if (s.Body != null) {
+          CheckForallStatementBodyRestrictions(s.Body, kind);
         }
 
       } else if (stmt is CalcStmt) {
@@ -13574,13 +13570,8 @@ namespace Microsoft.Dafny {
     }
 
     void CheckForallStatementBodyLhs(IToken tok, Expression lhs, ForallStmt.BodyKind kind) {
-      var idExpr = lhs as IdentifierExpr;
-      if (idExpr != null) {
-        if (scope.ContainsDecl(idExpr.Var)) {
-          reporter.Error(MessageSource.Resolver, tok, "body of forall statement is attempting to update a variable declared outside the forall statement");
-        }
-      } else if (kind != ForallStmt.BodyKind.Assign) {
-        reporter.Error(MessageSource.Resolver, tok, "the body of the enclosing forall statement is not allowed to update heap locations");
+      if (lhs is IdentifierExpr idExpr && scope.ContainsDecl(idExpr.Var)) {
+        reporter.Error(MessageSource.Resolver, tok, "body of forall statement is attempting to update a variable declared outside the forall statement");
       }
     }
 
@@ -13673,17 +13664,8 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is ForallStmt) {
         var s = (ForallStmt)stmt;
-        switch (s.Kind) {
-          case ForallStmt.BodyKind.Assign:
-            reporter.Error(MessageSource.Resolver, stmt, "a forall statement with heap updates is not allowed inside {0}", where);
-            break;
-          case ForallStmt.BodyKind.Call:
-          case ForallStmt.BodyKind.Proof:
-            // these are fine, since they don't update any non-local state
-            break;
-          default:
-            Contract.Assert(false);  // unexpected kind
-            break;
+        if (s.Body != null) {
+          CheckHintRestrictions(s.Body, localsAllowedInUpdates, where);
         }
 
       } else if (stmt is CalcStmt) {
@@ -13708,9 +13690,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(localsAllowedInUpdates != null);
       Contract.Requires(where != null);
       var idExpr = lhs as IdentifierExpr;
-      if (idExpr == null) {
-        reporter.Error(MessageSource.Resolver, tok, "{0} is not allowed to update heap locations", where);
-      } else if (!localsAllowedInUpdates.Contains(idExpr.Var)) {
+      if (idExpr != null && !localsAllowedInUpdates.Contains(idExpr.Var)) {
         reporter.Error(MessageSource.Resolver, tok, "{0} is not allowed to update a variable it doesn't declare", where);
       }
     }

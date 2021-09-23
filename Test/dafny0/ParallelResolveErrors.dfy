@@ -54,16 +54,16 @@ method M0(IS: set<int>)
   forall (i | 0 <= i < 20) {
     ca[i] := new C;  // error: new allocation not allowed
   }
-  forall (i | 0 <= i < 20)
-    ensures true;
-  {
-    var c := new C;  // error: 'new' not allowed in ghost context
-    var d := new C.Init_ModifyNothing();  // error: 'new' not allowed in ghost context
-    var e := new C.Init_ModifyThis();  // error: 'new' not allowed in ghost context
-    var f := new C.Init_ModifyStuff(e);  // error: 'new' not allowed in ghost context
-    c.Init_ModifyStuff(d);  // error: not allowed to call method with modifies clause in ghost context
-    c.NonGhostMethod();  // error: only allowed to call ghost methods (because of possible 'print' statements, sigh)
-  }
+
+
+
+
+
+
+
+
+
+
 }
 
 method M1() {
@@ -98,36 +98,73 @@ method M1() {
   }
 }
 
-method M2() {
-  var a := new int[100];
-  forall (x | 0 <= x < 100)
-    ensures true;
-  {
-    a[x] :| assume a[x] > 0;  // error: not allowed to update heap location in a proof-forall statement
-  }
-}
 
-method M3(c: C)
-  requires c != null;
-{
-  forall x {
-    c.GhostMethodWithModifies(x);  // error: not allowed to call method with nonempty modifies clause
-  }
-  forall x
-    ensures true;
-  {
-    c.GhostMethodWithModifies(x);  // error: not allowed to call method with nonempty modifies clause
-  }
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 }
 module AnotherModule {
   class C {
-    var data: int;
-    ghost var gdata: int;
+    var data: int
+    ghost var gdata: int
     ghost method Init_ModifyThis() modifies this;
     {
       data := 6;  // error: assignment to a non-ghost field
       gdata := 7;
+    }
+
+    ghost method Init_ModifyNothing() { }
+    ghost method Init_ModifyStuff(c: C) modifies this, c; { }
+    method NonGhostMethod() { print "hello\n"; }
+    ghost method GhostMethodWithModifies(x: int) modifies this; { gdata := gdata + x; }
+  }
+  method TestNew() {
+    forall i | 0 <= i < 20
+      ensures true
+    {
+      var c := new C;  // error: 'new' not allowed in proof context
+      var d := new C.Init_ModifyNothing();  // error (x2): 'new' not allowed in ghost context
+      var e := new C.Init_ModifyThis();  // error (x2): 'new' not allowed in ghost context
+      var f := new C.Init_ModifyStuff(e);  // error (x2): 'new' not allowed in ghost context
+      c.Init_ModifyStuff(d);  // error: not allowed to call method with modifies clause in ghost context
+      c.NonGhostMethod();  // error: only allowed to call ghost methods (because of possible 'print' statements, sigh)
+    }
+  }
+
+  method M2() {
+    var a := new int[100];
+    forall (x | 0 <= x < 100)
+      ensures true;
+    {
+      a[x] :| assume a[x] > 0;  // error: not allowed to update heap location in a proof-forall statement
+    }
+  }
+
+  method M3(c: C) {
+    forall x {
+      c.GhostMethodWithModifies(x);  // error: not allowed to call method with nonempty modifies clause
+    }
+    forall x
+      ensures true;
+    {
+      c.GhostMethodWithModifies(x);  // error: not allowed to call method with nonempty modifies clause
     }
   }
 }

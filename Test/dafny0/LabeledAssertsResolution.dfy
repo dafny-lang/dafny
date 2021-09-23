@@ -280,10 +280,10 @@ module ForallStmtTests {
       var y := 9;
       x := 6;  // error: x is declared outside forall statement
       x := Six();  // error: x is declared outside forall statement
-      c.data := 20.0;  // error: proof-forall statement cannot modify heap locations
-      a[0] := 20.0;  // error: proof-forall statement cannot modify heap locations
-      m[0,0] := 20.0;  // error: proof-forall statement cannot modify heap locations
-      modify c;  // error: proof-forall cannot modify heap locations
+
+
+
+
     }
   }
 
@@ -380,4 +380,46 @@ module OddExpressionChecks {
         }
         2;
       ww + 7
+}
+
+module MoreGhostTests {
+  class C {
+    ghost var data: real
+  }
+
+  ghost method Six() returns (x: int) {
+    x := 6;
+  }
+
+  method Forall(c: C, a: array<real>, m: array2<real>) {
+    ghost var x := 5;
+
+    forall f | 0 <= f < 82
+      ensures f < 100
+    {
+      var y := 9;
+
+
+      c.data := 20.0;  // error: proof-forall statement cannot modify heap locations
+      a[0] := 20.0;  // error: proof-forall statement cannot modify heap locations
+      m[0,0] := 20.0;  // error: proof-forall statement cannot modify heap locations
+      modify c;  // error: proof-forall cannot modify heap locations
+    }
+  }
+
+  method Nested(c: C, a: array<real>, m: array2<real>) {
+    ghost var x := 5;
+
+    forall f | 0 <= f < 82
+      ensures f < 100
+    {
+      var y := 9;
+      assert 2 < 4 by {
+        var w := 18;
+        forall u | 0 <= u < w {
+
+        }
+      }
+    }
+  }
 }
