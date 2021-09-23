@@ -8570,7 +8570,7 @@ namespace Microsoft.Dafny {
         } else if (stmt is WhileStmt) {
           var s = (WhileStmt)stmt;
           if (proofContext != null && s.Mod.Expressions != null && s.Mod.Expressions.Count != 0) {
-            resolver.reporter.Error(MessageSource.Resolver, s.Mod.Expressions[0].tok, $"a loop in {proofContext} is not allowed to use 'modifies' clauses");
+            Error(s.Mod.Expressions[0].tok, $"a loop in {proofContext} is not allowed to use 'modifies' clauses");
           }
 
           s.IsGhost = mustBeErasable || (s.Guard != null && resolver.UsesSpecFeatures(s.Guard));
@@ -8593,7 +8593,7 @@ namespace Microsoft.Dafny {
         } else if (stmt is AlternativeLoopStmt) {
           var s = (AlternativeLoopStmt)stmt;
           if (proofContext != null && s.Mod.Expressions != null && s.Mod.Expressions.Count != 0) {
-            resolver.reporter.Error(MessageSource.Resolver, s.Mod.Expressions[0].tok, $"a loop in {proofContext} is not allowed to use 'modifies' clauses");
+            Error(s.Mod.Expressions[0].tok, $"a loop in {proofContext} is not allowed to use 'modifies' clauses");
           }
 
           s.IsGhost = mustBeErasable || s.Alternatives.Exists(alt => resolver.UsesSpecFeatures(alt.Guard));
@@ -8612,7 +8612,7 @@ namespace Microsoft.Dafny {
         } else if (stmt is ForLoopStmt) {
           var s = (ForLoopStmt)stmt;
           if (proofContext != null && s.Mod.Expressions != null && s.Mod.Expressions.Count != 0) {
-            resolver.reporter.Error(MessageSource.Resolver, s.Mod.Expressions[0].tok, $"a loop in {proofContext} is not allowed to use 'modifies' clauses");
+            Error(s.Mod.Expressions[0].tok, $"a loop in {proofContext} is not allowed to use 'modifies' clauses");
           }
 
           s.IsGhost = mustBeErasable || resolver.UsesSpecFeatures(s.Start) || (s.End != null && resolver.UsesSpecFeatures(s.End));
@@ -8657,7 +8657,7 @@ namespace Microsoft.Dafny {
         } else if (stmt is ModifyStmt) {
           var s = (ModifyStmt)stmt;
           if (proofContext != null) {
-            resolver.reporter.Error(MessageSource.Resolver, stmt, $"a modify statement is not allowed in {proofContext}");
+            Error(stmt, $"a modify statement is not allowed in {proofContext}");
           }
 
           s.IsGhost = mustBeErasable;
@@ -13659,16 +13659,12 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is OneBodyLoopStmt) {
         var s = (OneBodyLoopStmt)stmt;
-        if (s.Mod.Expressions != null && s.Mod.Expressions.Count != 0) {
-        }
         if (s.Body != null) {
           CheckHintRestrictions(s.Body, localsAllowedInUpdates, where);
         }
 
       } else if (stmt is AlternativeLoopStmt) {
         var s = (AlternativeLoopStmt)stmt;
-        if (s.Mod.Expressions != null && s.Mod.Expressions.Count != 0) {
-        }
         foreach (var alt in s.Alternatives) {
           foreach (var ss in alt.Body) {
             CheckHintRestrictions(ss, localsAllowedInUpdates, where);
