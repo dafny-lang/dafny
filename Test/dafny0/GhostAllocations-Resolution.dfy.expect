@@ -73,4 +73,17 @@ GhostAllocations-Resolution.dfy(509,17): Error: a forall statement is not allowe
 GhostAllocations-Resolution.dfy(509,27): Error: in a forall statement, calls are allowed only to lemmas
 GhostAllocations-Resolution.dfy(510,23): Error: a forall statement is not allowed to use 'new'
 GhostAllocations-Resolution.dfy(510,33): Error: in a forall statement, calls are allowed only to lemmas
-75 resolution/type errors detected in GhostAllocations-Resolution.dfy
+GhostAllocations-Resolution.dfy(521,21): Error: a loop in a hint is not allowed to use 'modifies' clauses
+GhostAllocations-Resolution.dfy(526,21): Error: a loop in a hint is not allowed to use 'modifies' clauses
+GhostAllocations-Resolution.dfy(531,21): Error: a loop in a hint is not allowed to use 'modifies' clauses
+GhostAllocations-Resolution.dfy(535,10): Error: a modify statement is not allowed in a hint
+GhostAllocations-Resolution.dfy(536,10): Error: a modify statement is not allowed in a hint
+GhostAllocations-Resolution.dfy(539,24): Error: in a hint, calls are allowed only to lemmas
+GhostAllocations-Resolution.dfy(540,26): Error: in a hint, calls are allowed only to lemmas
+GhostAllocations-Resolution.dfy(541,33): Error: in a hint, calls are allowed only to lemmas
+GhostAllocations-Resolution.dfy(544,19): Error: a hint is not allowed to use 'new'
+GhostAllocations-Resolution.dfy(545,21): Error: a hint is not allowed to use 'new'
+GhostAllocations-Resolution.dfy(545,31): Error: in a hint, calls are allowed only to lemmas
+GhostAllocations-Resolution.dfy(546,27): Error: a hint is not allowed to use 'new'
+GhostAllocations-Resolution.dfy(546,37): Error: in a hint, calls are allowed only to lemmas
+88 resolution/type errors detected in GhostAllocations-Resolution.dfy
