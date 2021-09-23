@@ -143,4 +143,12 @@ module AnotherModule {
       c.GhostMethodWithModifies(x);  // error: not allowed to call method with nonempty modifies clause
     }
   }
+
+  method AggregatePrinting() {
+    forall i | 0 <= i < 1000
+      ensures true
+    {
+      print "here we go\n"; // error: cannot print in ghost context
+    }
+  }
 }

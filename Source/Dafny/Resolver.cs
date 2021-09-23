@@ -13464,7 +13464,7 @@ namespace Microsoft.Dafny {
           CheckForallStatementBodyRestrictions(ss, kind);
         }
       } else if (stmt is PrintStmt) {
-        reporter.Error(MessageSource.Resolver, stmt, "print statement is not allowed inside a forall statement");
+        // not allowed, but checked in GhostInterest
       } else if (stmt is BreakStmt) {
         // this case is checked already in the first pass through the forall-statement body, by doing so from an empty set of labeled statements and resetting the loop-stack
       } else if (stmt is ReturnStmt) {

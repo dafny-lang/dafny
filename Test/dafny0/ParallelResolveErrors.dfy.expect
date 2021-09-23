@@ -23,4 +23,5 @@ ParallelResolveErrors.dfy(123,22): Error: in a forall statement, calls are allow
 ParallelResolveErrors.dfy(132,7): Error: cannot assign to array element in a ghost context
 ParallelResolveErrors.dfy(138,31): Error: in a forall statement, calls are allowed only to lemmas
 ParallelResolveErrors.dfy(143,31): Error: in a forall statement, calls are allowed only to lemmas
-25 resolution/type errors detected in ParallelResolveErrors.dfy
+ParallelResolveErrors.dfy(151,6): Error: print statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+26 resolution/type errors detected in ParallelResolveErrors.dfy
