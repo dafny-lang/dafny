@@ -240,7 +240,7 @@ module GhostConstructors1 {
       print "bye\n"; // error: cannot use print in ghost context
     }
 
-    ghost constructor CalcBeforeNew() {
+    ghost constructor CalcInInitializationPhase() {
       var c0 := new Cell; // fine here
       var g0 := new G(5); // fine here
       calc {
@@ -504,6 +504,10 @@ module GhostMethodVersusLemma {
       PlainGhostMethod(); // error: cannot call ghost method from here
       GhostMethodWithModifies(c); // error: cannot call ghost method from here
       Lemma(); // fine
+
+      var c := new Cell; // error: 'new' not allowed in lemma context
+      var pt0 := new Point.XY(0.0, 0.0); // error: 'new' not allowed in lemma context
+      ghost var pt1 := new Point.Polar(0.0, 1.0); // error: 'new' not allowed in lemma context
     }
   }
 }

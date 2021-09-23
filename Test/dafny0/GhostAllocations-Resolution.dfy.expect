@@ -25,24 +25,24 @@ GhostAllocations-Resolution.dfy(236,10): Error: assignment to non-ghost field is
 GhostAllocations-Resolution.dfy(237,6): Error: print statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
 GhostAllocations-Resolution.dfy(239,8): Error: assignment to non-ghost field is not allowed in this context, because this is a ghost constructor
 GhostAllocations-Resolution.dfy(240,6): Error: print statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
-GhostAllocations-Resolution.dfy(249,22): Error: in a hint, calls are allowed only to lemmas
-GhostAllocations-Resolution.dfy(255,18): Error: in an assert-by body, calls are allowed only to lemmas
 GhostAllocations-Resolution.dfy(248,22): Error: a hint is not allowed to use 'new'
 GhostAllocations-Resolution.dfy(249,22): Error: a hint is not allowed to use 'new'
+GhostAllocations-Resolution.dfy(249,22): Error: in a hint, calls are allowed only to lemmas
 GhostAllocations-Resolution.dfy(254,18): Error: an assert-by body is not allowed to use 'new'
 GhostAllocations-Resolution.dfy(255,18): Error: an assert-by body is not allowed to use 'new'
+GhostAllocations-Resolution.dfy(255,18): Error: in an assert-by body, calls are allowed only to lemmas
 GhostAllocations-Resolution.dfy(274,11): Error: assignment to non-ghost field is not allowed in this context, because this is a ghost method
 GhostAllocations-Resolution.dfy(285,11): Error: ghost variables are allowed only in specification contexts
-GhostAllocations-Resolution.dfy(303,13): Error: 'new' is not allowed in lemma contexts
-GhostAllocations-Resolution.dfy(304,13): Error: 'new' is not allowed in lemma contexts
-GhostAllocations-Resolution.dfy(308,15): Error: 'new' is not allowed in lemma contexts
+GhostAllocations-Resolution.dfy(303,13): Error: a lemma is not allowed to use 'new'
+GhostAllocations-Resolution.dfy(304,13): Error: a lemma is not allowed to use 'new'
+GhostAllocations-Resolution.dfy(308,15): Error: a lemma is not allowed to use 'new'
 GhostAllocations-Resolution.dfy(308,25): Error: in a lemma, calls are allowed only to lemmas
-GhostAllocations-Resolution.dfy(309,15): Error: 'new' is not allowed in lemma contexts
+GhostAllocations-Resolution.dfy(309,15): Error: a lemma is not allowed to use 'new'
 GhostAllocations-Resolution.dfy(309,25): Error: in a lemma, calls are allowed only to lemmas
-GhostAllocations-Resolution.dfy(313,13): Error: 'new' is not allowed in lemma contexts
-GhostAllocations-Resolution.dfy(314,13): Error: 'new' is not allowed in lemma contexts
-GhostAllocations-Resolution.dfy(318,13): Error: 'new' is not allowed in lemma contexts
-GhostAllocations-Resolution.dfy(322,13): Error: 'new' is not allowed in lemma contexts
+GhostAllocations-Resolution.dfy(313,13): Error: a lemma is not allowed to use 'new'
+GhostAllocations-Resolution.dfy(314,13): Error: a lemma is not allowed to use 'new'
+GhostAllocations-Resolution.dfy(318,13): Error: a twostate lemma is not allowed to use 'new'
+GhostAllocations-Resolution.dfy(322,13): Error: a greatest lemma is not allowed to use 'new'
 GhostAllocations-Resolution.dfy(349,15): Error: in a statement expression, calls are allowed only to lemmas
 GhostAllocations-Resolution.dfy(361,7): Error: in an assert-by body, calls are allowed only to lemmas
 GhostAllocations-Resolution.dfy(369,5): Error: in a lemma, calls are allowed only to lemmas
@@ -53,7 +53,7 @@ GhostAllocations-Resolution.dfy(397,15): Error: a loop in a lemma is not allowed
 GhostAllocations-Resolution.dfy(402,15): Error: a loop in a lemma is not allowed to use 'modifies' clauses
 GhostAllocations-Resolution.dfy(406,4): Error: a modify statement is not allowed in a lemma
 GhostAllocations-Resolution.dfy(407,4): Error: a modify statement is not allowed in a lemma
-GhostAllocations-Resolution.dfy(409,13): Error: 'new' is not allowed in lemma contexts
+GhostAllocations-Resolution.dfy(409,13): Error: a lemma is not allowed to use 'new'
 GhostAllocations-Resolution.dfy(416,17): Error: a loop in an assert-by body is not allowed to use 'modifies' clauses
 GhostAllocations-Resolution.dfy(421,17): Error: a loop in an assert-by body is not allowed to use 'modifies' clauses
 GhostAllocations-Resolution.dfy(426,17): Error: a loop in an assert-by body is not allowed to use 'modifies' clauses
@@ -68,4 +68,9 @@ GhostAllocations-Resolution.dfy(500,6): Error: a modify statement is not allowed
 GhostAllocations-Resolution.dfy(503,20): Error: in a forall statement, calls are allowed only to lemmas
 GhostAllocations-Resolution.dfy(504,22): Error: in a forall statement, calls are allowed only to lemmas
 GhostAllocations-Resolution.dfy(505,29): Error: in a forall statement, calls are allowed only to lemmas
-70 resolution/type errors detected in GhostAllocations-Resolution.dfy
+GhostAllocations-Resolution.dfy(508,15): Error: a forall statement is not allowed to use 'new'
+GhostAllocations-Resolution.dfy(509,17): Error: a forall statement is not allowed to use 'new'
+GhostAllocations-Resolution.dfy(509,27): Error: in a forall statement, calls are allowed only to lemmas
+GhostAllocations-Resolution.dfy(510,23): Error: a forall statement is not allowed to use 'new'
+GhostAllocations-Resolution.dfy(510,33): Error: in a forall statement, calls are allowed only to lemmas
+75 resolution/type errors detected in GhostAllocations-Resolution.dfy

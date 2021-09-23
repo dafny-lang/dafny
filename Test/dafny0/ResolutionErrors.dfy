@@ -613,7 +613,7 @@ module NonInferredType {
   }
 }
 
-// ------------ Here are some tests that ghost contexts don't allocate objects -------------
+// ------------ Here are some tests that lemma contexts don't allocate objects -------------
 
 module GhostAllocationTests {
   class G { }
@@ -642,37 +642,37 @@ module GhostAllocationTests {
       var y := new GIter();  // error: 'new' not allowed in ghost contexts (and a non-ghost method is not allowed to be called here either)
     }
   }
-
-  method GhostNew3(n: nat)
-  {
+}
+module MoreGhostAllocationTests {
+  class G { }
+  method GhostNew3(n: nat) {
     var g := new G;
     calc {
       5;
-      { var y := new G; }  // error: 'new' not allowed in ghost contexts
+      { var y := new G; }  // error: 'new' not allowed in lemma contexts
       2 + 3;
     }
   }
-
   ghost method GhostNew4(g: G)
-    modifies g;
+    modifies g
   {
   }
 }
 
-module NewForall {
+module NewForallAssign {
   class G { }
-  method NewForallTest(n: nat)
-  {
+  method NewForallTest(n: nat) {
     var a := new G[n];
     forall i | 0 <= i < n {
       a[i] := new G;  // error: 'new' is currently not supported in forall statements
-    }
-    forall i | 0 <= i < n
-      ensures true;  // this makes the whole 'forall' statement into a ghost statement
-    {
-      a[i] := new G;  // error: 'new' not allowed in ghost contexts, and proof-forall cannot update state
-    }
-  }
+  } }
+}
+module NewForallProof {
+  class G { }
+  method NewForallTest(n: nat) { var a := new G[n];
+    forall i | 0 <= i < n ensures true { // this makes the whole 'forall' statement into a ghost statement
+      a[i] := new G;  // error: proof-forall cannot update state (and 'new' not allowed in ghost contexts, but that's checked at a later stage)
+  } }
 }
 
 // ------------------------- underspecified types ------------------------------

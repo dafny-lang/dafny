@@ -8702,6 +8702,7 @@ namespace Microsoft.Dafny {
 
       private void CheckAssignStmt(AssignStmt s, bool mustBeErasable, [CanBeNull] string proofContext) {
         Contract.Requires(s != null);
+        Contract.Requires(mustBeErasable || proofContext == null); 
 
         var lhs = s.Lhs.Resolved;
 
@@ -8722,16 +8723,15 @@ namespace Microsoft.Dafny {
           }
         }
 
+        if (proofContext != null && s.Rhs is TypeRhs) {
+          Error(s.Rhs.Tok, $"{proofContext} is not allowed to use 'new'");
+        }
+        
         var gk = AssignStmt.LhsIsToGhost_Which(lhs);
         if (gk == AssignStmt.NonGhostKind.IsGhost) {
           s.IsGhost = true;
-          if (s.Rhs is TypeRhs tRhs) {
-            if (codeContext is Method m && m.IsLemmaLike) {
-              Error(s.Rhs.Tok, "'new' is not allowed in lemma contexts");
-            }
-            if (tRhs.InitCall != null) {
-              Visit(tRhs.InitCall, true, proofContext);
-            }
+          if (s.Rhs is TypeRhs tRhs && tRhs.InitCall != null) {
+            Visit(tRhs.InitCall, true, proofContext);
           }
         } else if (gk == AssignStmt.NonGhostKind.Variable && codeContext.IsGhost) {
           // cool
@@ -13491,7 +13491,7 @@ namespace Microsoft.Dafny {
           if (kind == ForallStmt.BodyKind.Assign) {
             reporter.Error(MessageSource.Resolver, rhs.Tok, "new allocation not supported in forall statements");
           } else {
-            reporter.Error(MessageSource.Resolver, rhs.Tok, "new allocation not allowed in ghost context");
+            // "new" is not allowed in ghost contexts, but this is checked as part of the general GhostInterest checks
           }
         }
       } else if (stmt is CallStmt) {
@@ -13615,9 +13615,6 @@ namespace Microsoft.Dafny {
       } else if (stmt is AssignStmt) {
         var s = (AssignStmt)stmt;
         CheckHintLhs(s.Lhs.tok, s.Lhs.Resolved, localsAllowedInUpdates, where);
-        if (s.Rhs is TypeRhs) {
-          reporter.Error(MessageSource.Resolver, s.Rhs.Tok, $"{where} is not allowed to use 'new'");
-        }
       } else if (stmt is CallStmt) {
         var s = (CallStmt)stmt;
         foreach (var lhs in s.Lhs) {
