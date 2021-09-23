@@ -13482,7 +13482,7 @@ namespace Microsoft.Dafny {
           CheckForallStatementBodyRestrictions(s.Update, kind);
         }
       } else if (stmt is VarDeclPattern) {
-        // Are we fine?
+        // fine
       } else if (stmt is AssignStmt) {
         var s = (AssignStmt)stmt;
         CheckForallStatementBodyLhs(s.Lhs.tok, s.Lhs.Resolved, kind);
@@ -13499,20 +13499,10 @@ namespace Microsoft.Dafny {
         foreach (var lhs in s.Lhs) {
           CheckForallStatementBodyLhs(lhs.tok, lhs, kind);
         }
-        if (s.Method.Mod.Expressions.Count != 0) {
-          reporter.Error(MessageSource.Resolver, stmt, "the body of the enclosing forall statement is not allowed to update heap locations, so any call must be to a method with an empty modifies clause");
-        }
-        if (!s.Method.IsGhost) {
-          // The reason for this restriction is that the compiler is going to omit the forall statement altogether--it has
-          // no effect.  However, print effects are not documented, so to make sure that the compiler does not omit a call to
-          // a method that prints something, all calls to non-ghost methods are disallowed.  (Note, if this restriction
-          // is somehow lifted in the future, then it is still necessary to enforce s.Method.Mod.Expressions.Count != 0 for
-          // calls to non-ghost methods.)
-          reporter.Error(MessageSource.Resolver, s, "the body of the enclosing forall statement is not allowed to call non-ghost methods");
-        }
 
       } else if (stmt is ModifyStmt) {
-        reporter.Error(MessageSource.Resolver, stmt, "body of forall statement is not allowed to use a modify statement");
+        // forbidden in forall statements, but this is checked as part of the general GhostInterest checks
+
       } else if (stmt is BlockStmt) {
         var s = (BlockStmt)stmt;
         scope.PushMarker();

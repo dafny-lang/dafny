@@ -456,5 +456,55 @@ module GhostMethodVersusLemma {
     }
     var c := new Cell;
   }
+
+  predicate IsBig(x: int) {
+    100 <= x
+  }
+
+  method OrdinaryMethod()
+
+  ghost method PlainGhostMethod()
+
+  ghost method GhostMethodWithModifies(c: Cell)
+    modifies c
+
+  lemma Lemma()
+
+  class Point {
+    constructor XY(x: real, y: real)
+    ghost constructor Polar(theta: real, mag: real)
+  }
+  
+  method Modify3() {
+    var c := new Cell;
+    forall i
+      ensures IsBig(i) ==> IsBig(i + 1)
+    {
+      var i := 0;
+      while i < 10
+        modifies {} // error: not allowed modifies clause in lemma context
+      {
+        i := i + 1;
+      }
+      while
+        modifies {} // error: not allowed modifies clause in lemma context
+      {
+        case i < 20 => i := i + 1;
+      }
+      for j := 0 to 100
+        modifies {} // error: not allowed modifies clause in lemma context
+      {
+      }
+      ghost var S: set<object> := {};
+      modify S; // error: not allowed modify statement in lemma context
+      modify S { // error: not allowed modify statement in lemma context
+      }
+
+      OrdinaryMethod(); // error: cannot call non-ghost method from here
+      PlainGhostMethod(); // error: cannot call ghost method from here
+      GhostMethodWithModifies(c); // error: cannot call ghost method from here
+      Lemma(); // fine
+    }
+  }
 }
 

@@ -60,4 +60,12 @@ GhostAllocations-Resolution.dfy(426,17): Error: a loop in an assert-by body is n
 GhostAllocations-Resolution.dfy(430,6): Error: a modify statement is not allowed in an assert-by body
 GhostAllocations-Resolution.dfy(431,6): Error: a modify statement is not allowed in an assert-by body
 GhostAllocations-Resolution.dfy(433,15): Error: an assert-by body is not allowed to use 'new'
-62 resolution/type errors detected in GhostAllocations-Resolution.dfy
+GhostAllocations-Resolution.dfy(485,17): Error: a loop in a forall statement is not allowed to use 'modifies' clauses
+GhostAllocations-Resolution.dfy(490,17): Error: a loop in a forall statement is not allowed to use 'modifies' clauses
+GhostAllocations-Resolution.dfy(495,17): Error: a loop in a forall statement is not allowed to use 'modifies' clauses
+GhostAllocations-Resolution.dfy(499,6): Error: a modify statement is not allowed in a forall statement
+GhostAllocations-Resolution.dfy(500,6): Error: a modify statement is not allowed in a forall statement
+GhostAllocations-Resolution.dfy(503,20): Error: in a forall statement, calls are allowed only to lemmas
+GhostAllocations-Resolution.dfy(504,22): Error: in a forall statement, calls are allowed only to lemmas
+GhostAllocations-Resolution.dfy(505,29): Error: in a forall statement, calls are allowed only to lemmas
+70 resolution/type errors detected in GhostAllocations-Resolution.dfy
