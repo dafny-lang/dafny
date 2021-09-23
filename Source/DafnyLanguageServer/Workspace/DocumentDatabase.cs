@@ -91,6 +91,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       if (!VerifyOnSave) {
         return document;
       }
+      databaseEntry.CancelPendingUpdates();
       var cancellationSource = new CancellationTokenSource();
       var updatedEntry = new DocumentEntry(
         document.Version,
