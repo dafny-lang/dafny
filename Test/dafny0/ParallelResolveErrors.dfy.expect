@@ -24,4 +24,7 @@ ParallelResolveErrors.dfy(132,7): Error: cannot assign to array element in a gho
 ParallelResolveErrors.dfy(138,31): Error: in a forall statement, calls are allowed only to lemmas
 ParallelResolveErrors.dfy(143,31): Error: in a forall statement, calls are allowed only to lemmas
 ParallelResolveErrors.dfy(151,6): Error: print statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
-26 resolution/type errors detected in ParallelResolveErrors.dfy
+ParallelResolveErrors.dfy(163,6): Error: body of forall statement is attempting to update a variable declared outside the forall statement
+ParallelResolveErrors.dfy(165,6): Error: body of forall statement is attempting to update a variable declared outside the forall statement
+ParallelResolveErrors.dfy(167,6): Error: body of forall statement is attempting to update a variable declared outside the forall statement
+29 resolution/type errors detected in ParallelResolveErrors.dfy

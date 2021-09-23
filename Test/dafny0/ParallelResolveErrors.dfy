@@ -152,3 +152,21 @@ module AnotherModule {
     }
   }
 }
+
+module UpdatesInOuterScope {
+  method M() {
+    var x := 0;
+    forall i | 0 <= i < 100
+      ensures true
+    {
+      // AssignStmt
+      x := 10;
+      // AssignSuchThatStmt
+      x :| x == 10;
+      // CallStmt
+      x := P();
+    }
+  }
+
+  method P() returns (x: int)
+}

@@ -13474,7 +13474,7 @@ namespace Microsoft.Dafny {
       } else if (stmt is AssignSuchThatStmt) {
         var s = (AssignSuchThatStmt)stmt;
         foreach (var lhs in s.Lhss) {
-          CheckForallStatementBodyLhs(lhs.tok, lhs.Resolved, kind);
+          CheckForallStatementBodyLhs(lhs);
         }
       } else if (stmt is UpdateStmt) {
         var s = (UpdateStmt)stmt;
@@ -13490,7 +13490,7 @@ namespace Microsoft.Dafny {
         // fine
       } else if (stmt is AssignStmt) {
         var s = (AssignStmt)stmt;
-        CheckForallStatementBodyLhs(s.Lhs.tok, s.Lhs.Resolved, kind);
+        CheckForallStatementBodyLhs(s.Lhs);
         var rhs = s.Rhs;  // ExprRhs and HavocRhs are fine, but TypeRhs is not
         if (rhs is TypeRhs) {
           if (kind == ForallStmt.BodyKind.Assign) {
@@ -13502,7 +13502,7 @@ namespace Microsoft.Dafny {
       } else if (stmt is CallStmt) {
         var s = (CallStmt)stmt;
         foreach (var lhs in s.Lhs) {
-          CheckForallStatementBodyLhs(lhs.tok, lhs, kind);
+          CheckForallStatementBodyLhs(lhs);
         }
 
       } else if (stmt is ModifyStmt) {
@@ -13569,9 +13569,10 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void CheckForallStatementBodyLhs(IToken tok, Expression lhs, ForallStmt.BodyKind kind) {
+    void CheckForallStatementBodyLhs(Expression lhs) {
+      lhs = lhs.Resolved;
       if (lhs is IdentifierExpr idExpr && scope.ContainsDecl(idExpr.Var)) {
-        reporter.Error(MessageSource.Resolver, tok, "body of forall statement is attempting to update a variable declared outside the forall statement");
+        reporter.Error(MessageSource.Resolver, lhs.tok, "body of forall statement is attempting to update a variable declared outside the forall statement");
       }
     }
 
