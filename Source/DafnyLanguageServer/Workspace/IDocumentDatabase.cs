@@ -1,8 +1,6 @@
 ﻿using Microsoft.Dafny.LanguageServer.Language;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
-using System.Diagnostics.CodeAnalysis;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
@@ -27,7 +25,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// If there was a newer existing text document already loaded, it will be returned instead.
     /// </returns>
     /// <exception cref="OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
     Task<DafnyDocument> LoadDocumentAsync(TextDocumentItem document);
 
     /// <summary>
@@ -41,7 +38,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// In the case that the update was sent for an unloaded document, <c>null</c> will be returned.
     /// </returns>
     /// <exception cref="OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
     Task<DafnyDocument?> UpdateDocumentAsync(DidChangeTextDocumentParams documentChange);
 
     /// <summary>
@@ -51,7 +47,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// 
     /// <returns>The saved document.</returns>
     /// <exception cref="OperationCanceledException">Thrown when the cancellation was requested before completione.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
     Task<DafnyDocument?> SaveDocumentAsync(TextDocumentIdentifier documentId);
 
     /// <summary>
@@ -60,7 +55,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// <param name="documentId">The ID of the document to resolve.</param>
     /// <returns>An instance of the managed document, <c>null</c> if the specified document was not found.</param>
     /// <exception cref="OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
     Task<DafnyDocument?> GetDocumentAsync(TextDocumentIdentifier documentId);
   }
 }
