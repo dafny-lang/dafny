@@ -34,7 +34,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// Updates a document with the specified changes.
     /// </summary>
     /// <param name="documentChange">The change request containing the actual changes.</param>
-    /// <param name="cancellationToken">A token to cancel the update operation before its completion.</param>
+    /// 
     /// <returns>
     /// The newly generated dafny document if the merge was applied (i.e., the change was newer).
     /// If there was a newer existing text document already loaded, it will be returned instead.
@@ -42,17 +42,17 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// </returns>
     /// <exception cref="OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
     /// <exception cref="ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
-    Task<DafnyDocument?> UpdateDocumentAsync(DidChangeTextDocumentParams documentChange, CancellationToken cancellationToken);
+    Task<DafnyDocument?> UpdateDocumentAsync(DidChangeTextDocumentParams documentChange);
 
     /// <summary>
     /// Notifies the document database that the given document was saved.
     /// </summary>
     /// <param name="documentId">The ID of the document that was saved.</param>
-    /// <param name="cancellationToken">A token to cancel the save operation before its completion.</param>
+    /// 
     /// <returns>The saved document.</returns>
-    /// <exception cref="OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
+    /// <exception cref="OperationCanceledException">Thrown when the cancellation was requested before completione.</exception>
     /// <exception cref="ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
-    Task<DafnyDocument?> SaveDocumentAsync(TextDocumentIdentifier documentId, CancellationToken cancellationToken);
+    Task<DafnyDocument?> SaveDocumentAsync(TextDocumentIdentifier documentId);
 
     /// <summary>
     /// Tries to resolve a document with the specified identifier.

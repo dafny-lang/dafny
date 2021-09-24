@@ -64,7 +64,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return await databaseEntry.Document;
     }
 
-    public async Task<DafnyDocument?> UpdateDocumentAsync(DidChangeTextDocumentParams documentChange, CancellationToken cancellationToken) {
+    public async Task<DafnyDocument?> UpdateDocumentAsync(DidChangeTextDocumentParams documentChange) {
       var documentUri = documentChange.TextDocument.Uri;
       if (!_documents.TryGetValue(documentUri, out var databaseEntry)) {
         throw new ArgumentException($"the document {documentUri} was not loaded before");
@@ -83,7 +83,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return await updatedEntry.Document;
     }
 
-    public async Task<DafnyDocument?> SaveDocumentAsync(TextDocumentIdentifier documentId, CancellationToken cancellationToken) {
+    public async Task<DafnyDocument?> SaveDocumentAsync(TextDocumentIdentifier documentId) {
       if (!_documents.TryGetValue(documentId.Uri, out var databaseEntry)) {
         return null;
       }

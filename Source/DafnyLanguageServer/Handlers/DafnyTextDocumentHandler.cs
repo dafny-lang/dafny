@@ -58,14 +58,14 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     public override Task<Unit> Handle(DidChangeTextDocumentParams notification, CancellationToken cancellationToken) {
       _logger.LogTrace("received change notification {DocumentUri}", notification.TextDocument.Uri);
-      _documents.UpdateDocumentAsync(notification, cancellationToken)
+      _documents.UpdateDocumentAsync(notification)
         .ContinueWith(PublishDiagnostics);
       return Unit.Task;
     }
 
     public override Task<Unit> Handle(DidSaveTextDocumentParams notification, CancellationToken cancellationToken) {
       _logger.LogTrace("received save notification {DocumentUri}", notification.TextDocument.Uri);
-      _documents.SaveDocumentAsync(notification.TextDocument, cancellationToken)
+      _documents.SaveDocumentAsync(notification.TextDocument)
         .ContinueWith(PublishDiagnostics);
       return Unit.Task;
     }
