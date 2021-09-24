@@ -80,7 +80,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     private async Task PublishDiagnosticsAsync(Task<DafnyDocument?> documentTask) {
       try {
         var document = await documentTask;
-        if(document != null) {
+        if (document != null) {
           _diagnosticPublisher.PublishDiagnostics(document);
         } else {
           _logger.LogWarning("had to publish diagnostics for an unavailable document");
