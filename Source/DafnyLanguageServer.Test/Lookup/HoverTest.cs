@@ -36,7 +36,7 @@ method CallDoIt() returns () {
   var x := DoIt();
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var hover = await RequestHover(documentItem, (4, 14));
       Assert.IsNotNull(hover);
       var markup = hover.Contents.MarkupContent;
@@ -52,7 +52,7 @@ method DoIt() {
   var y := x.Length;
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var hover = await RequestHover(documentItem, (2, 14));
       Assert.IsNotNull(hover);
       var markup = hover.Contents.MarkupContent;
@@ -71,7 +71,7 @@ method DoIt() returns (x: int) {
   return a.GetX();
 }".TrimStart();
       var documentItem = CreateTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Lookup/TestFiles/test.dfy"));
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var hover = await RequestHover(documentItem, (4, 13));
       Assert.IsNotNull(hover);
       var markup = hover.Contents.MarkupContent;
@@ -86,7 +86,7 @@ method DoIt() returns (x: int) {
   return GetX();
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var hover = await RequestHover(documentItem, (1, 12));
       Assert.IsNull(hover);
     }
@@ -103,7 +103,7 @@ class Test {
   }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var hover = await RequestHover(documentItem, (5, 10));
       Assert.IsNotNull(hover);
       var markup = hover.Contents.MarkupContent;
@@ -123,7 +123,7 @@ class Test {
   }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var hover = await RequestHover(documentItem, (5, 15));
       Assert.IsNotNull(hover);
       var markup = hover.Contents.MarkupContent;
@@ -146,7 +146,7 @@ class Test {
   }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var hover = await RequestHover(documentItem, (7, 12));
       Assert.IsNotNull(hover);
       var markup = hover.Contents.MarkupContent;
@@ -169,7 +169,7 @@ class Test {
   }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var hover = await RequestHover(documentItem, (8, 10));
       Assert.IsNotNull(hover);
       var markup = hover.Contents.MarkupContent;
@@ -192,7 +192,7 @@ class B {
   }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var hover = await RequestHover(documentItem, (5, 9));
       Assert.IsNotNull(hover);
       var markup = hover.Contents.MarkupContent;
@@ -215,7 +215,7 @@ class B {
   }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var hover = await RequestHover(documentItem, (8, 13));
       Assert.IsNotNull(hover);
       var markup = hover.Contents.MarkupContent;
@@ -232,7 +232,7 @@ class A {
 
 method DoIt(a: A) {}".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var hover = await RequestHover(documentItem, (4, 15));
       Assert.IsNotNull(hover);
       var markup = hover.Contents.MarkupContent;
@@ -246,7 +246,7 @@ method DoIt(a: A) {}".TrimStart();
 trait Base {}
 class Sub extends Base {}".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var hover = await RequestHover(documentItem, (1, 19));
       Assert.IsNotNull(hover);
       var markup = hover.Contents.MarkupContent;
