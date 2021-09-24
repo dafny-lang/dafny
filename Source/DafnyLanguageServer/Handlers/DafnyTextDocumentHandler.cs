@@ -16,6 +16,13 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
   /// LSP Synchronization handler for document based events, such as change, open, close and save.
   /// The documents are managed using an implementaiton of <see cref="IDocumentDatabase"/>.
   /// </summary>
+  /// <remarks>
+  /// The <see cref="CancellationToken"/> of all requests is not used here. The reason for this is because document changes are applied in the
+  /// background to allow the request to complete immediately. This feature allows new document changes to be received an cancel any
+  /// outstanding document changes.
+  /// However, the cancellation token is marked as cancelled upon request completion. If it was used for the background processing, it would
+  /// break the background processing if used.
+  /// </remarks>
   public class DafnyTextDocumentHandler : TextDocumentSyncHandlerBase {
     private const string LanguageId = "dafny";
 
