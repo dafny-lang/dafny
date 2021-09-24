@@ -26,8 +26,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// A dafny document representing the loaded text document.
     /// If there was a newer existing text document already loaded, it will be returned instead.
     /// </returns>
-    /// <exception cref="System.OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
-    /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
+    /// <exception cref="OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
     Task<DafnyDocument> LoadDocumentAsync(TextDocumentItem document, CancellationToken cancellationToken);
 
     /// <summary>
@@ -40,8 +40,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// If there was a newer existing text document already loaded, it will be returned instead.
     /// In the case that the update was sent for an unloaded document, <c>null</c> will be returned.
     /// </returns>
-    /// <exception cref="System.OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
-    /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
+    /// <exception cref="OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
     Task<DafnyDocument?> UpdateDocumentAsync(DidChangeTextDocumentParams documentChange, CancellationToken cancellationToken);
 
     /// <summary>
@@ -50,8 +50,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// <param name="documentId">The ID of the document that was saved.</param>
     /// <param name="cancellationToken">A token to cancel the save operation before its completion.</param>
     /// <returns>The saved document.</returns>
-    /// <exception cref="System.OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
-    /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
+    /// <exception cref="OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
     Task<DafnyDocument?> SaveDocumentAsync(TextDocumentIdentifier documentId, CancellationToken cancellationToken);
 
     /// <summary>
@@ -68,6 +68,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// </summary>
     /// <param name="documentId">The ID of the document to resolve.</param>
     /// <returns>An instance of the managed document, <c>null</c> if the specified document was not found.</param>
+    /// <exception cref="OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
     Task<DafnyDocument?> GetDocumentAsync(TextDocumentIdentifier documentId);
   }
 }
