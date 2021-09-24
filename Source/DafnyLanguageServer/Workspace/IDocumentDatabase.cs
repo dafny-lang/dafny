@@ -19,7 +19,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// Loads (or updates if newer) the specified document into the database.
     /// </summary>
     /// <param name="document">The document to load.</param>
-    /// 
     /// <returns>
     /// A dafny document representing the loaded text document.
     /// If there was a newer existing text document already loaded, it will be returned instead.
@@ -31,7 +30,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// Updates a document with the specified changes.
     /// </summary>
     /// <param name="documentChange">The change request containing the actual changes.</param>
-    /// 
     /// <returns>
     /// The newly generated dafny document if the merge was applied (i.e., the change was newer).
     /// If there was a newer existing text document already loaded, it will be returned instead.
@@ -44,7 +42,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// Notifies the document database that the given document was saved.
     /// </summary>
     /// <param name="documentId">The ID of the document that was saved.</param>
-    /// 
     /// <returns>The saved document.</returns>
     /// <exception cref="OperationCanceledException">Thrown when the cancellation was requested before completione.</exception>
     Task<DafnyDocument?> SaveDocumentAsync(TextDocumentIdentifier documentId);
