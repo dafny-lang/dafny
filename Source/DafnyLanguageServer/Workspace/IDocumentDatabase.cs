@@ -58,15 +58,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// Tries to resolve a document with the specified identifier.
     /// </summary>
     /// <param name="documentId">The ID of the document to resolve.</param>
-    /// <param name="document">An instance of the managed document, <c>null</c> if the specified document was not found.</param>
-    /// <returns><c>true</c> if the document was resolved successfully, <c>false</c> otherwise.</returns>
-    [Obsolete("Use GetDocumentAsync instead")]
-    bool TryGetDocument(TextDocumentIdentifier documentId, [NotNullWhen(true)] out DafnyDocument? document);
-
-    /// <summary>
-    /// Tries to resolve a document with the specified identifier.
-    /// </summary>
-    /// <param name="documentId">The ID of the document to resolve.</param>
     /// <returns>An instance of the managed document, <c>null</c> if the specified document was not found.</param>
     /// <exception cref="OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
     /// <exception cref="ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>

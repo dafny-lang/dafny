@@ -46,13 +46,14 @@ class B {
   function GetX()
 }";
       var documentItem = CreateTestDocument(source);
-      Client.OpenDocument(documentItem);
+      await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
         documentItem,
         new Range((3, 0), (4, 1)),
         change
       );
-      Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var document));
+      var document = await Documents.GetDocumentAsync(documentItem.Uri);
+      Assert.IsNotNull(document);
       Assert.IsFalse(document.SymbolTable.Resolved);
       Assert.IsTrue(TryFindSymbolDeclarationByName(document, "A", out var location));
       Assert.AreEqual(new Range((0, 6), (0, 7)), location.Name);
@@ -73,13 +74,14 @@ class C {
 
       var change = "";
       var documentItem = CreateTestDocument(source);
-      Client.OpenDocument(documentItem);
+      await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
         documentItem,
         new Range((3, 0), (4, 0)),
         change
       );
-      Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var document));
+      var document = await Documents.GetDocumentAsync(documentItem.Uri);
+      Assert.IsNotNull(document);
       Assert.IsFalse(document.SymbolTable.Resolved);
       Assert.IsTrue(TryFindSymbolDeclarationByName(document, "A", out var location));
       Assert.AreEqual(new Range((0, 6), (0, 7)), location.Name);
@@ -105,13 +107,14 @@ class B {
   function GetX()
 }";
       var documentItem = CreateTestDocument(source);
-      Client.OpenDocument(documentItem);
+      await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
         documentItem,
         new Range((3, 0), (4, 1)),
         change
       );
-      Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var document));
+      var document = await Documents.GetDocumentAsync(documentItem.Uri);
+      Assert.IsNotNull(document);
       Assert.IsFalse(document.SymbolTable.Resolved);
       Assert.IsTrue(TryFindSymbolDeclarationByName(document, "C", out var location));
       Assert.AreEqual(new Range((10, 6), (10, 7)), location.Name);
@@ -132,13 +135,14 @@ class C {
 
       var change = "";
       var documentItem = CreateTestDocument(source);
-      Client.OpenDocument(documentItem);
+      await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
         documentItem,
         new Range((3, 0), (4, 0)),
         change
       );
-      Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var document));
+      var document = await Documents.GetDocumentAsync(documentItem.Uri);
+      Assert.IsNotNull(document);
       Assert.IsFalse(document.SymbolTable.Resolved);
       Assert.IsTrue(TryFindSymbolDeclarationByName(document, "C", out var location));
       Assert.AreEqual(new Range((5, 6), (5, 7)), location.Name);
@@ -158,13 +162,14 @@ class A {
 
       var change = "string reads thi";
       var documentItem = CreateTestDocument(source);
-      Client.OpenDocument(documentItem);
+      await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
         documentItem,
         new Range((3, 19), (3, 22)),
         change
       );
-      Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var document));
+      var document = await Documents.GetDocumentAsync(documentItem.Uri);
+      Assert.IsNotNull(document);
       Assert.IsFalse(document.SymbolTable.Resolved);
       Assert.IsTrue(TryFindSymbolDeclarationByName(document, "GetX", out var location));
       Assert.AreEqual(new Range((3, 11), (3, 15)), location.Name);
@@ -182,13 +187,14 @@ class A {
 
   function GetY()";
       var documentItem = CreateTestDocument(source);
-      Client.OpenDocument(documentItem);
+      await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
         documentItem,
         new Range((1, 2), (1, 13)),
         change
       );
-      Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var document));
+      var document = await Documents.GetDocumentAsync(documentItem.Uri);
+      Assert.IsNotNull(document);
       Assert.IsFalse(document.SymbolTable.Resolved);
       Assert.IsTrue(TryFindSymbolDeclarationByName(document, "A", out var location));
       Assert.AreEqual(new Range((0, 6), (0, 7)), location.Name);
@@ -200,13 +206,14 @@ class A {
       var source = "class A { var x: int; }";
       var change = "var y: int; function GetY()";
       var documentItem = CreateTestDocument(source);
-      Client.OpenDocument(documentItem);
+      await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
         documentItem,
         new Range((0, 10), (0, 21)),
         change
       );
-      Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var document));
+      var document = await Documents.GetDocumentAsync(documentItem.Uri);
+      Assert.IsNotNull(document);
       Assert.IsFalse(document.SymbolTable.Resolved);
       Assert.IsTrue(TryFindSymbolDeclarationByName(document, "A", out var location));
       Assert.AreEqual(new Range((0, 6), (0, 7)), location.Name);
@@ -224,13 +231,14 @@ class A {
 
   function GetY()";
       var documentItem = CreateTestDocument(source);
-      Client.OpenDocument(documentItem);
+      await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
         documentItem,
         new Range((1, 2), (1, 13)),
         change
       );
-      Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var document));
+      var document = await Documents.GetDocumentAsync(documentItem.Uri);
+      Assert.IsNotNull(document);
       Assert.IsFalse(document.SymbolTable.Resolved);
       Assert.IsFalse(TryFindSymbolDeclarationByName(document, "x", out var _));
     }
@@ -246,7 +254,7 @@ class B {
 }".TrimStart();
 
       var documentItem = CreateTestDocument(source);
-      Client.OpenDocument(documentItem);
+      await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangesAndWaitCompletionAsync(
         documentItem,
         new TextDocumentContentChangeEvent {
@@ -262,7 +270,8 @@ class A {
 }".TrimStart()
         }
       );
-      Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var document));
+      var document = await Documents.GetDocumentAsync(documentItem.Uri);
+      Assert.IsNotNull(document);
       Assert.IsFalse(document.SymbolTable.Resolved);
       Assert.IsTrue(TryFindSymbolDeclarationByName(document, "B", out var bLocation));
       Assert.AreEqual(new Range((4, 6), (4, 7)), bLocation.Name);
