@@ -53,12 +53,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public async Task<DafnyDocument> LoadDocumentAsync(TextDocumentItem document, CancellationToken cancellationToken) {
+      var cancellationSource = new CancellationTokenSource();
       var databaseEntry = new DocumentEntry(
         document.Version,
-        // Do not allow cancelling the initial load.
-        // TODO Allow cancelling when the document is closed.
-        Task.Run(() => _documentLoader.LoadAsync(document, VerifyOnLoad, CancellationToken.None)),
-        new CancellationTokenSource()
+        Task.Run(() => _documentLoader.LoadAsync(document, VerifyOnLoad, cancellationSource.Token)),
+        cancellationSource
       );
       _documents.Add(document.Uri, databaseEntry);
       return await databaseEntry.Document;
