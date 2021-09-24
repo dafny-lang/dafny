@@ -85,7 +85,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         } else {
           _logger.LogWarning("had to publish diagnostics for an unavailable document");
         }
-      } catch(OperationCanceledException) {
+      } catch (OperationCanceledException) {
         // cancellation is expected to happen
       } catch (Exception e) {
         _logger.LogError(e, "error handling document event");
