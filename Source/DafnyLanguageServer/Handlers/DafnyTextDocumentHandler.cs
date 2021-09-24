@@ -52,42 +52,39 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     public override Task<Unit> Handle(DidOpenTextDocumentParams notification, CancellationToken cancellationToken) {
       _logger.LogTrace("received open notification {DocumentUri}", notification.TextDocument.Uri);
       _documents.LoadDocumentAsync(notification.TextDocument)
-        .ContinueWith(PublishDiagnostics);
+        .ContinueWith(PublishDiagnosticsAsync);
       return Unit.Task;
     }
 
     public override Task<Unit> Handle(DidCloseTextDocumentParams notification, CancellationToken cancellationToken) {
       _logger.LogTrace("received close notification {DocumentUri}", notification.TextDocument.Uri);
       _documents.CloseDocumentAsync(notification.TextDocument)
-        .ContinueWith(HideDiagnostics);
+        .ContinueWith(_ => _diagnosticPublisher.HideDiagnostics(notification.TextDocument));
       return Unit.Task;
     }
 
     public override Task<Unit> Handle(DidChangeTextDocumentParams notification, CancellationToken cancellationToken) {
       _logger.LogTrace("received change notification {DocumentUri}", notification.TextDocument.Uri);
       _documents.UpdateDocumentAsync(notification)
-        .ContinueWith(PublishDiagnostics);
+        .ContinueWith(PublishDiagnosticsAsync);
       return Unit.Task;
     }
 
     public override Task<Unit> Handle(DidSaveTextDocumentParams notification, CancellationToken cancellationToken) {
       _logger.LogTrace("received save notification {DocumentUri}", notification.TextDocument.Uri);
       _documents.SaveDocumentAsync(notification.TextDocument)
-        .ContinueWith(PublishDiagnostics);
+        .ContinueWith(PublishDiagnosticsAsync);
       return Unit.Task;
     }
 
-    private async Task PublishDiagnostics(Task<DafnyDocument> document) {
+    private async Task PublishDiagnosticsAsync(Task<DafnyDocument?> documentTask) {
       try {
-        _diagnosticPublisher.PublishDiagnostics(await document);
-      } catch (Exception e) when (e is not OperationCanceledException) {
-        _logger.LogError(e, "error handling document event");
-      }
-    }
-
-    private async Task HideDiagnostics(Task<DafnyDocument> document) {
-      try {
-        _diagnosticPublisher.HideDiagnostics(await document);
+        var document = await documentTask;
+        if(document != null) {
+          _diagnosticPublisher.PublishDiagnostics(document);
+        } else {
+          _logger.LogWarning("had to publish diagnostics for an unavailable document");
+        }
       } catch (Exception e) when (e is not OperationCanceledException) {
         _logger.LogError(e, "error handling document event");
       }

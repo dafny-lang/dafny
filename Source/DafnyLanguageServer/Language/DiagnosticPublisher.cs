@@ -17,10 +17,9 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       _languageServer.TextDocument.PublishDiagnostics(ToPublishDiagnostics(document));
     }
 
-    public void HideDiagnostics(DafnyDocument document) {
+    public void HideDiagnostics(TextDocumentIdentifier documentId) {
       _languageServer.TextDocument.PublishDiagnostics(new PublishDiagnosticsParams {
-        Uri = document.Uri,
-        Version = document.Version,
+        Uri = documentId.Uri,
         Diagnostics = new Container<Diagnostic>()
       });
     }

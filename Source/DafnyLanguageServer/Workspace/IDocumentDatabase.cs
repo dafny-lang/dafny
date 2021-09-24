@@ -12,8 +12,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// Closes the document with the specified ID.
     /// </summary>
     /// <param name="documentId">The ID of the document to close.</param>
-    /// <returns>The closed dafny document, <c>null</c> if no such document was opened.</returns>
-    Task<DafnyDocument?> CloseDocumentAsync(TextDocumentIdentifier documentId);
+    /// <returns><c>true</c> if the document was present in the database.</returns>
+    /// <remarks>
+    /// The task represents any outstanding work of the document. It should be awaited to ensure
+    /// that no processing occurs after the document is closed.
+    /// </remarks>
+    Task<bool> CloseDocumentAsync(TextDocumentIdentifier documentId);
 
     /// <summary>
     /// Loads (or updates if newer) the specified document into the database.
@@ -23,7 +27,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// A dafny document representing the loaded text document.
     /// If there was a newer existing text document already loaded, it will be returned instead.
     /// </returns>
-    /// <exception cref="OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
+    /// <exception cref="OperationCanceledException">
+    /// Thrown if a document change/save/close happened before the document was fully loaded.
+    /// </exception>
     Task<DafnyDocument> LoadDocumentAsync(TextDocumentItem document);
 
     /// <summary>
@@ -35,7 +41,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// If there was a newer existing text document already loaded, it will be returned instead.
     /// In the case that the update was sent for an unloaded document, <c>null</c> will be returned.
     /// </returns>
-    /// <exception cref="OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
+    /// <exception cref="OperationCanceledException">
+    /// Thrown if a document change/save/close happened before this document update was fully applied.
+    /// </exception>
     Task<DafnyDocument?> UpdateDocumentAsync(DidChangeTextDocumentParams documentChange);
 
     /// <summary>
@@ -43,7 +51,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// </summary>
     /// <param name="documentId">The ID of the document that was saved.</param>
     /// <returns>The saved document.</returns>
-    /// <exception cref="OperationCanceledException">Thrown when the cancellation was requested before completione.</exception>
+    /// <exception cref="OperationCanceledException">
+    /// Thrown if a document change/save/close happened before this document save event was fully processed.
+    /// </exception>
     Task<DafnyDocument?> SaveDocumentAsync(TextDocumentIdentifier documentId);
 
     /// <summary>
@@ -51,7 +61,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// </summary>
     /// <param name="documentId">The ID of the document to resolve.</param>
     /// <returns>An instance of the managed document, <c>null</c> if the specified document was not found.</param>
-    /// <exception cref="OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
+    /// <exception cref="OperationCanceledException">
+    /// Thrown if a document change/save/close happened before the requested document version was fully processed.
+    /// </exception>
     Task<DafnyDocument?> GetDocumentAsync(TextDocumentIdentifier documentId);
   }
 }

@@ -5,7 +5,6 @@ using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -44,12 +43,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       ).ToList();
     }
 
-    public async Task<DafnyDocument?> CloseDocumentAsync(TextDocumentIdentifier documentId) {
-      if (_documents.Remove(documentId.Uri, out var databaseEntry)) {
-        databaseEntry.CancelPendingUpdates();
-        return await databaseEntry.Document;
+    public async Task<bool> CloseDocumentAsync(TextDocumentIdentifier documentId) {
+      if(_documents.Remove(documentId.Uri, out var databaseEntry)) {
+        await databaseEntry.Document;
+        return true;
       }
-      return null;
+      return false;
     }
 
     public async Task<DafnyDocument> LoadDocumentAsync(TextDocumentItem document) {
@@ -101,16 +100,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       );
       _documents[documentId.Uri] = updatedEntry;
       return await updatedEntry.Document;
-    }
-
-    public bool TryGetDocument(TextDocumentIdentifier documentId, [NotNullWhen(true)] out DafnyDocument? document) {
-      // TODO make asynchronous? Requires refactoring of all unit tests.
-      if (!_documents.TryGetValue(documentId.Uri, out var databaseEntry)) {
-        document = null;
-        return false;
-      }
-      document = databaseEntry.Document.Result;
-      return true;
     }
 
     public async Task<DafnyDocument?> GetDocumentAsync(TextDocumentIdentifier documentId) {
