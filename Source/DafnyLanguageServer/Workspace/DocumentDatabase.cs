@@ -52,7 +52,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return null;
     }
 
-    public async Task<DafnyDocument> LoadDocumentAsync(TextDocumentItem document, CancellationToken cancellationToken) {
+    public async Task<DafnyDocument> LoadDocumentAsync(TextDocumentItem document) {
       var cancellationSource = new CancellationTokenSource();
       var databaseEntry = new DocumentEntry(
         document.Version,

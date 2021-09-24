@@ -21,14 +21,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// Loads (or updates if newer) the specified document into the database.
     /// </summary>
     /// <param name="document">The document to load.</param>
-    /// <param name="cancellationToken">A token to cancel the update operation before its completion.</param>
+    /// 
     /// <returns>
     /// A dafny document representing the loaded text document.
     /// If there was a newer existing text document already loaded, it will be returned instead.
     /// </returns>
     /// <exception cref="OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
     /// <exception cref="ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
-    Task<DafnyDocument> LoadDocumentAsync(TextDocumentItem document, CancellationToken cancellationToken);
+    Task<DafnyDocument> LoadDocumentAsync(TextDocumentItem document);
 
     /// <summary>
     /// Updates a document with the specified changes.
