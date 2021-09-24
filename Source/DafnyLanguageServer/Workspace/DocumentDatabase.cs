@@ -55,6 +55,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var cancellationSource = new CancellationTokenSource();
       var databaseEntry = new DocumentEntry(
         document.Version,
+        // TODO adapt the cancellation logic here. We need a placeholder document to support changes.
         Task.Run(() => _documentLoader.LoadAsync(document, VerifyOnLoad, cancellationSource.Token)),
         cancellationSource
       );
@@ -63,6 +64,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public async Task<DafnyDocument?> UpdateDocumentAsync(DidChangeTextDocumentParams documentChange) {
+      // TODO We have a different behavior from LoadDocumentAsync in terms of cancellation.
+      // The cancellation of the load bubbles up to the task object representing the object.
+      // The cancellation of a change does not, the document moves into the migrated state. Decide
+      // which behavior should be adapted for both.
       var documentUri = documentChange.TextDocument.Uri;
       if (!_documents.TryGetValue(documentUri, out var databaseEntry)) {
         throw new ArgumentException($"the document {documentUri} was not loaded before");
