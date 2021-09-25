@@ -13584,15 +13584,10 @@ namespace Microsoft.Dafny {
       Contract.Requires(stmt != null);
       Contract.Requires(localsAllowedInUpdates != null);
       Contract.Requires(where != null);
-      if (stmt is PredicateStmt) {
-        // cool
-      } else if (stmt is PrintStmt) {
-        // not allowed in ghost context
-      } else if (stmt is RevealStmt) {
-        var s = (RevealStmt)stmt;
-        foreach (var ss in s.ResolvedStatements) {
-          CheckHintRestrictions(ss, localsAllowedInUpdates, where);
-        }
+
+      if (stmt is AssertStmt || stmt is ForallStmt || stmt is CalcStmt || stmt is ModifyStmt) {
+        // don't recurse, since CheckHintRestrictions will be called on that assert-by separately
+        return;
       } else if (stmt is BreakStmt) {
         // already checked while resolving hints
       } else if (stmt is ReturnStmt) {
@@ -13612,76 +13607,18 @@ namespace Microsoft.Dafny {
         foreach (var lhs in s.Lhs) {
           CheckHintLhs(lhs.tok, lhs.Resolved, localsAllowedInUpdates, where);
         }
-      } else if (stmt is UpdateStmt) {
-        var s = (UpdateStmt)stmt;
-        foreach (var ss in s.ResolvedStatements) {
-          CheckHintRestrictions(ss, localsAllowedInUpdates, where);
-        }
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
         s.Locals.Iter(local => localsAllowedInUpdates.Add(local));
-        if (s.Update != null) {
-          CheckHintRestrictions(s.Update, localsAllowedInUpdates, where);
-        }
-      } else if (stmt is VarDeclPattern) {
-        // fine
       } else if (stmt is ModifyStmt) {
         // no further complaints (note, ghost interests have already checked for 'modify' statements)
       } else if (stmt is BlockStmt) {
-        var s = (BlockStmt)stmt;
-        var newScopeForLocals = new HashSet<LocalVariable>(localsAllowedInUpdates);
-        foreach (var ss in s.Body) {
-          CheckHintRestrictions(ss, newScopeForLocals, where);
-        }
-
-      } else if (stmt is IfStmt) {
-        var s = (IfStmt)stmt;
-        CheckHintRestrictions(s.Thn, localsAllowedInUpdates, where);
-        if (s.Els != null) {
-          CheckHintRestrictions(s.Els, localsAllowedInUpdates, where);
-        }
-
-      } else if (stmt is AlternativeStmt) {
-        var s = (AlternativeStmt)stmt;
-        foreach (var alt in s.Alternatives) {
-          foreach (var ss in alt.Body) {
-            CheckHintRestrictions(ss, localsAllowedInUpdates, where);
-          }
-        }
-
-      } else if (stmt is OneBodyLoopStmt) {
-        var s = (OneBodyLoopStmt)stmt;
-        if (s.Body != null) {
-          CheckHintRestrictions(s.Body, localsAllowedInUpdates, where);
-        }
-
-      } else if (stmt is AlternativeLoopStmt) {
-        var s = (AlternativeLoopStmt)stmt;
-        foreach (var alt in s.Alternatives) {
-          foreach (var ss in alt.Body) {
-            CheckHintRestrictions(ss, localsAllowedInUpdates, where);
-          }
-        }
-
-      } else if (stmt is ForallStmt) {
-        var s = (ForallStmt)stmt;
-        if (s.Body != null) {
-          CheckHintRestrictions(s.Body, localsAllowedInUpdates, where);
-        }
-
-      } else if (stmt is CalcStmt) {
-        // cool
-
-      } else if (stmt is MatchStmt) {
-        var s = (MatchStmt)stmt;
-        foreach (var kase in s.Cases) {
-          foreach (var ss in kase.Body) {
-            CheckHintRestrictions(ss, localsAllowedInUpdates, where);
-          }
-        }
-
-      } else {
-        Contract.Assert(false); throw new cce.UnreachableException();
+        localsAllowedInUpdates = new HashSet<LocalVariable>(localsAllowedInUpdates);
+        // use this new set for the recursive calls
+      }
+      
+      foreach (var ss in stmt.SubStatements) {
+        CheckHintRestrictions(ss, localsAllowedInUpdates, where);
       }
     }
 
@@ -13690,8 +13627,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(lhs != null);
       Contract.Requires(localsAllowedInUpdates != null);
       Contract.Requires(where != null);
-      var idExpr = lhs as IdentifierExpr;
-      if (idExpr != null && !localsAllowedInUpdates.Contains(idExpr.Var)) {
+      lhs = lhs.Resolved;
+      if (lhs is IdentifierExpr idExpr && !localsAllowedInUpdates.Contains(idExpr.Var)) {
         reporter.Error(MessageSource.Resolver, tok, "{0} is not allowed to update a variable it doesn't declare", where);
       }
     }
