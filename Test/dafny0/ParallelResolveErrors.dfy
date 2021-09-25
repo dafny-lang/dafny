@@ -1,11 +1,13 @@
 // RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
+
 module Basics {
   method M() {
     var k := 0;
     forall i | 0 <= i < 20 {
       k := k + i;  // error: not allowed to assign to local k, since k is not declared inside forall block
     }
+
     forall i | 0 <= i < 20
       ensures true
     {
@@ -25,6 +27,7 @@ module Basics {
     }
   }
 }
+
 module Misc {
   class C { }
 
@@ -51,12 +54,6 @@ module Misc {
       assert i < 100;
       if i == 17 { break; }  // error: nothing to break out of
     }
-
-
-
-
-
-
 
     var m := 0;
     label OutsideLoop:
@@ -169,6 +166,16 @@ module UpdatesInOuterScope {
   }
 
   method P() returns (x: int)
+}
+
+module MoreReturn {
+  method M() {
+    forall i | 0 <= i < 20
+      ensures true
+    {
+      if i == 8 { return; }  // error: return not allowed inside forall block
+    }
+  }
 }
 
 // ---------- return inside modify statement
@@ -308,16 +315,6 @@ module ModifyStmtBreak2 {
           }
         }
       }
-    }
-  }
-}
-
-module X {
-  method M() {
-    forall i | 0 <= i < 20
-      ensures true
-    {
-      if i == 8 { return; }  // error: return not allowed inside forall block
     }
   }
 }
