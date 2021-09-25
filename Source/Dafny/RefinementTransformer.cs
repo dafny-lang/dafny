@@ -1069,7 +1069,7 @@ namespace Microsoft.Dafny {
                 if (oldModifyStmt.Body == null && skel.Body == null) {
                   mbody = null;
                 } else if (oldModifyStmt.Body == null) {
-                  mbody = skel.Body;
+                  mbody = MergeBlockStmt(skel.Body, new BlockStmt(oldModifyStmt.Tok, oldModifyStmt.EndTok, new List<Statement>()));
                 } else if (skel.Body == null) {
                   reporter.Error(MessageSource.RefinementTransformer, cur.Tok, "modify template must have a body if the inherited modify statement does");
                   mbody = null;
@@ -1351,7 +1351,18 @@ namespace Microsoft.Dafny {
 
       var invs = cOld.Invariants.ConvertAll(refinementCloner.CloneAttributedExpr);
       invs.AddRange(cNew.Invariants);
-      var r = new RefinedWhileStmt(cNew.Tok, cNew.EndTok, guard, invs, decr, refinementCloner.CloneSpecFrameExpr(cOld.Mod), MergeBlockStmt(cNew.Body, cOld.Body));
+      BlockStmt newBody;
+      if (cOld.Body == null && cNew.Body == null) {
+        newBody = null;
+      } else if (cOld.Body == null) {
+        newBody = MergeBlockStmt(cNew.Body, new BlockStmt(cOld.Tok, cOld.EndTok, new List<Statement>()));
+      } else if (cNew.Body == null) {
+        reporter.Error(MessageSource.RefinementTransformer, cNew.Tok, "while template must have a body if the inherited while statement does");
+        newBody = null;
+      } else {
+        newBody = MergeBlockStmt(cNew.Body, cOld.Body);
+      }
+      var r = new RefinedWhileStmt(cNew.Tok, cNew.EndTok, guard, invs, decr, refinementCloner.CloneSpecFrameExpr(cOld.Mod), newBody);
       return r;
     }
 
