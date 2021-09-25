@@ -33,7 +33,6 @@ ForLoops-Resolution.dfy(457,10): Error: assignment to non-ghost field is not all
 ForLoops-Resolution.dfy(479,8): Error: assignment to non-ghost variable is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
 ForLoops-Resolution.dfy(490,16): Error: return statement is not allowed in this context (because it is guarded by a specification-only expression)
 ForLoops-Resolution.dfy(503,6): Error: return statement is not allowed in this context (because it is guarded by a specification-only expression)
-ForLoops-Resolution.dfy(490,16): Error: return statement is not allowed inside a hint
 ForLoops-Resolution.dfy(510,4): Error: a ghost loop must be terminating; make the end-expression specific or add a 'decreases' clause
 ForLoops-Resolution.dfy(517,4): Error: 'decreases *' is not allowed on ghost loops
-35 resolution/type errors detected in ForLoops-Resolution.dfy
+34 resolution/type errors detected in ForLoops-Resolution.dfy

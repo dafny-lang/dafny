@@ -12,8 +12,6 @@ LabeledAssertsResolution.dfy(94,17): Error: no label 'XYZ' in scope at this time
 LabeledAssertsResolution.dfy(115,14): Error: unresolved identifier: reveal_X
 LabeledAssertsResolution.dfy(246,10): Error: yield statement is not allowed in this context (because it is guarded by a specification-only expression)
 LabeledAssertsResolution.dfy(251,6): Error: yield statement is not allowed in this context (because it is guarded by a specification-only expression)
-LabeledAssertsResolution.dfy(246,10): Error: yield statement is not allowed inside a hint
-LabeledAssertsResolution.dfy(251,6): Error: yield statement is not allowed inside an assert-by body
 LabeledAssertsResolution.dfy(125,6): Error: an assert-by body is not allowed to update a variable it doesn't declare
 LabeledAssertsResolution.dfy(139,8): Error: assignment to non-ghost variable is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
 LabeledAssertsResolution.dfy(139,6): Error: an assert-by body is not allowed to update a variable it doesn't declare
@@ -42,17 +40,12 @@ LabeledAssertsResolution.dfy(185,10): Error: a hint is not allowed to update a v
 LabeledAssertsResolution.dfy(195,10): Error: a hint is not allowed to update a variable it doesn't declare
 LabeledAssertsResolution.dfy(219,8): Error: an assert-by body is not allowed to update a variable it doesn't declare
 LabeledAssertsResolution.dfy(220,8): Error: an assert-by body is not allowed to update a variable it doesn't declare
-LabeledAssertsResolution.dfy(222,31): Error: return statement is not allowed inside a hint
 LabeledAssertsResolution.dfy(222,31): Error: return statement is not allowed in this context (because it is guarded by a specification-only expression)
-LabeledAssertsResolution.dfy(223,43): Error: return statement is not allowed inside a hint
 LabeledAssertsResolution.dfy(223,43): Error: return statement is not allowed in this context (because it is guarded by a specification-only expression)
 LabeledAssertsResolution.dfy(232,14): Error: return statement is not allowed in this context (because it is guarded by a specification-only expression)
 LabeledAssertsResolution.dfy(237,10): Error: return statement is not allowed in this context (because it is guarded by a specification-only expression)
-LabeledAssertsResolution.dfy(232,14): Error: return statement is not allowed inside a hint
-LabeledAssertsResolution.dfy(237,10): Error: return statement is not allowed inside an assert-by body
 LabeledAssertsResolution.dfy(297,8): Warning: the conclusion of the body of this forall statement will not be known outside the forall statement; consider using an 'ensures' clause
 LabeledAssertsResolution.dfy(318,6): Error: yield statement is not allowed in this context (because it is guarded by a specification-only expression)
-LabeledAssertsResolution.dfy(318,6): Error: yield statement is not allowed inside a forall statement
 LabeledAssertsResolution.dfy(284,14): Error: in a forall statement, calls are allowed only to lemmas
 LabeledAssertsResolution.dfy(283,6): Error: a forall statement is not allowed to update a variable it doesn't declare
 LabeledAssertsResolution.dfy(284,6): Error: a forall statement is not allowed to update a variable it doesn't declare
@@ -60,7 +53,6 @@ LabeledAssertsResolution.dfy(298,10): Error: a forall statement is not allowed t
 LabeledAssertsResolution.dfy(299,10): Error: a forall statement is not allowed to update a variable it doesn't declare
 LabeledAssertsResolution.dfy(300,10): Error: a forall statement is not allowed to update a variable it doesn't declare
 LabeledAssertsResolution.dfy(310,6): Error: return statement is not allowed in this context (because it is guarded by a specification-only expression)
-LabeledAssertsResolution.dfy(310,6): Error: return statement is not allowed inside a forall statement
 LabeledAssertsResolution.dfy(329,14): Error: trying to break out of more loop levels than there are enclosing loops
 LabeledAssertsResolution.dfy(331,14): Error: break label is undefined or not in scope: A
 LabeledAssertsResolution.dfy(336,10): Error: trying to break out of more loop levels than there are enclosing loops
@@ -75,4 +67,4 @@ LabeledAssertsResolution.dfy(399,8): Error: a forall statement is not allowed to
 LabeledAssertsResolution.dfy(400,11): Error: assignment to array element is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
 LabeledAssertsResolution.dfy(401,13): Error: assignment to array element is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
 LabeledAssertsResolution.dfy(402,6): Error: a modify statement is not allowed in a forall statement
-76 resolution/type errors detected in LabeledAssertsResolution.dfy
+68 resolution/type errors detected in LabeledAssertsResolution.dfy

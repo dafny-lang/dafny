@@ -6958,14 +6958,14 @@ namespace Microsoft.Dafny {
       protected override void VisitOneStmt(Statement stmt) {
         if (stmt is CalcStmt calc) {
           foreach (var h in calc.Hints) {
-            resolver.CheckHintRestrictions(h, new HashSet<LocalVariable>(), "a hint");
+            resolver.CheckLocalityUpdates(h, new HashSet<LocalVariable>(), "a hint");
           }
         } else if (stmt is AssertStmt astmt && astmt.Proof != null) {
-          resolver.CheckHintRestrictions(astmt.Proof, new HashSet<LocalVariable>(), "an assert-by body");
+          resolver.CheckLocalityUpdates(astmt.Proof, new HashSet<LocalVariable>(), "an assert-by body");
         } else if (stmt is ModifyStmt ms && ms.Body != null) {
-          resolver.CheckHintRestrictions(ms.Body, new HashSet<LocalVariable>(), "a modify statement");
+          resolver.CheckLocalityUpdates(ms.Body, new HashSet<LocalVariable>(), "a modify statement");
         } else if (stmt is ForallStmt forall && forall.Body != null) {
-          resolver.CheckHintRestrictions(forall.Body, new HashSet<LocalVariable>(), "a forall statement");
+          resolver.CheckLocalityUpdates(forall.Body, new HashSet<LocalVariable>(), "a forall statement");
         }
       }
     }
@@ -13464,10 +13464,12 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Check that a statment is a valid hint for a calculation.
-    /// ToDo: generalize the part for compound statements to take a delegate?
+    /// Check that "stmt" is a valid statment for the body of an assert-by, forall, modify,
+    /// or calc-hint statement. In particular, check that the local variables assigned in
+    /// the bodies of these statements are declared in the statements, not in some enclosing
+    /// context. 
     /// </summary>
-    public void CheckHintRestrictions(Statement stmt, ISet<LocalVariable> localsAllowedInUpdates, string where) {
+    public void CheckLocalityUpdates(Statement stmt, ISet<LocalVariable> localsAllowedInUpdates, string where) {
       Contract.Requires(stmt != null);
       Contract.Requires(localsAllowedInUpdates != null);
       Contract.Requires(where != null);
@@ -13475,24 +13477,18 @@ namespace Microsoft.Dafny {
       if (stmt is AssertStmt || stmt is ForallStmt || stmt is CalcStmt || stmt is ModifyStmt) {
         // don't recurse, since CheckHintRestrictions will be called on that assert-by separately
         return;
-      } else if (stmt is BreakStmt) {
-        // already checked while resolving hints
-      } else if (stmt is ReturnStmt) {
-        reporter.Error(MessageSource.Resolver, stmt, "return statement is not allowed inside {0}", where);
-      } else if (stmt is YieldStmt) {
-        reporter.Error(MessageSource.Resolver, stmt, "yield statement is not allowed inside {0}", where);
       } else if (stmt is AssignSuchThatStmt) {
         var s = (AssignSuchThatStmt)stmt;
         foreach (var lhs in s.Lhss) {
-          CheckHintLhs(lhs.tok, lhs.Resolved, localsAllowedInUpdates, where);
+          CheckLocalityUpdatesLhs(lhs, localsAllowedInUpdates, @where);
         }
       } else if (stmt is AssignStmt) {
         var s = (AssignStmt)stmt;
-        CheckHintLhs(s.Lhs.tok, s.Lhs.Resolved, localsAllowedInUpdates, where);
+        CheckLocalityUpdatesLhs(s.Lhs, localsAllowedInUpdates, @where);
       } else if (stmt is CallStmt) {
         var s = (CallStmt)stmt;
         foreach (var lhs in s.Lhs) {
-          CheckHintLhs(lhs.tok, lhs.Resolved, localsAllowedInUpdates, where);
+          CheckLocalityUpdatesLhs(lhs, localsAllowedInUpdates, @where);
         }
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
@@ -13505,18 +13501,18 @@ namespace Microsoft.Dafny {
       }
       
       foreach (var ss in stmt.SubStatements) {
-        CheckHintRestrictions(ss, localsAllowedInUpdates, where);
+        CheckLocalityUpdates(ss, localsAllowedInUpdates, where);
       }
     }
 
-    void CheckHintLhs(IToken tok, Expression lhs, ISet<LocalVariable> localsAllowedInUpdates, string where) {
-      Contract.Requires(tok != null);
+    void CheckLocalityUpdatesLhs(Expression lhs, ISet<LocalVariable> localsAllowedInUpdates, string @where) {
       Contract.Requires(lhs != null);
       Contract.Requires(localsAllowedInUpdates != null);
       Contract.Requires(where != null);
+
       lhs = lhs.Resolved;
       if (lhs is IdentifierExpr idExpr && !localsAllowedInUpdates.Contains(idExpr.Var)) {
-        reporter.Error(MessageSource.Resolver, tok, "{0} is not allowed to update a variable it doesn't declare", where);
+        reporter.Error(MessageSource.Resolver, lhs.tok, "{0} is not allowed to update a variable it doesn't declare", where);
       }
     }
 
