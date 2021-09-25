@@ -6,12 +6,6 @@
 // RUN: %diff "%s.expect" "%t"
 
 abstract module M0 {
-  class Cell {
-    var data: int
-    constructor (d: int)
-      ensures data == d
-    { data := d; }
-  }
   class Counter {
     ghost var N: int
     ghost var Repr: set<object>
@@ -51,6 +45,13 @@ abstract module M0 {
 }
 
 module M1 refines M0 {
+  class Cell {
+    var data: int
+    constructor (d: int)
+      ensures data == d
+    { data := d; }
+  }
+
   class Counter ... {
     var c: Cell
     var d: Cell

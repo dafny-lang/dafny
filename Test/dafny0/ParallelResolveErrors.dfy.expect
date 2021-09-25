@@ -29,13 +29,8 @@ ParallelResolveErrors.dfy(160,6): Error: a forall statement is not allowed to up
 ParallelResolveErrors.dfy(162,6): Error: a forall statement is not allowed to update a variable it doesn't declare
 ParallelResolveErrors.dfy(164,6): Error: a forall statement is not allowed to update a variable it doesn't declare
 ParallelResolveErrors.dfy(176,18): Error: return statement is not allowed in this context (because it is guarded by a specification-only expression)
-ParallelResolveErrors.dfy(214,6): Error: return statement is not allowed inside a modify statement
-ParallelResolveErrors.dfy(231,10): Error: return statement is not allowed inside a modify statement
-ParallelResolveErrors.dfy(234,10): Error: a modify statement is not allowed to update a variable it doesn't declare
-ParallelResolveErrors.dfy(244,12): Error: return statement is not allowed inside a modify statement
-ParallelResolveErrors.dfy(247,12): Error: a modify statement is not allowed to update a variable it doesn't declare
-ParallelResolveErrors.dfy(284,10): Error: trying to break out of more loop levels than there are enclosing loops
-ParallelResolveErrors.dfy(286,10): Error: break label is undefined or not in scope: L
-ParallelResolveErrors.dfy(304,10): Error: trying to break out of more loop levels than there are enclosing loops
-ParallelResolveErrors.dfy(306,10): Error: break label is undefined or not in scope: Outer
-40 resolution/type errors detected in ParallelResolveErrors.dfy
+ParallelResolveErrors.dfy(237,10): Error: break statement in skeleton is not allowed to break outside the skeleton fragment
+ParallelResolveErrors.dfy(239,10): Error: break statement in skeleton is not allowed to break outside the skeleton fragment
+ParallelResolveErrors.dfy(253,10): Error: break statement in skeleton is not allowed to break outside the skeleton fragment
+ParallelResolveErrors.dfy(255,10): Error: break statement in skeleton is not allowed to break outside the skeleton fragment
+35 resolution/type errors detected in ParallelResolveErrors.dfy

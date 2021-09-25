@@ -6962,8 +6962,6 @@ namespace Microsoft.Dafny {
           }
         } else if (stmt is AssertStmt astmt && astmt.Proof != null) {
           resolver.CheckLocalityUpdates(astmt.Proof, new HashSet<LocalVariable>(), "an assert-by body");
-        } else if (stmt is ModifyStmt ms && ms.Body != null) {
-          resolver.CheckLocalityUpdates(ms.Body, new HashSet<LocalVariable>(), "a modify statement");
         } else if (stmt is ForallStmt forall && forall.Body != null) {
           resolver.CheckLocalityUpdates(forall.Body, new HashSet<LocalVariable>(), "a forall statement");
         }
@@ -11418,13 +11416,7 @@ namespace Microsoft.Dafny {
           ResolveFrameExpression(fe, FrameExpressionUse.Modifies, codeContext);
         }
         if (s.Body != null) {
-          var prevLblStmts = enclosingStatementLabels;
-          var prevLoopStack = loopStack;
-          enclosingStatementLabels = new Scope<Statement>();
-          loopStack = new List<Statement>();
           ResolveBlockStatement(s.Body, codeContext);
-          enclosingStatementLabels = prevLblStmts;
-          loopStack = prevLoopStack;
         }
 
       } else if (stmt is CalcStmt) {
@@ -13464,7 +13456,7 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Check that "stmt" is a valid statment for the body of an assert-by, forall, modify,
+    /// Check that "stmt" is a valid statment for the body of an assert-by, forall,
     /// or calc-hint statement. In particular, check that the local variables assigned in
     /// the bodies of these statements are declared in the statements, not in some enclosing
     /// context. 

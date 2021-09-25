@@ -178,81 +178,34 @@ module MoreReturn {
   }
 }
 
-// ---------- return inside modify statement
+// ---------- refinement of modify statements
 
-module ModifyStmtReturn0 {
+module NoRefinement {
   class Cell {
     var data: int
   }
 
-  method M(c: Cell)
-    modifies c
-    ensures c.data == 10
-  {
-    modify c;
-    c.data := 10;
-  }
-
   method W(c: Cell)
-    modifies c
-    ensures c.data == 10
   {
+    var c := new Cell;
     var i := 0;
+    label L:
     while i < 10
       invariant i == 0 || c.data == 10
     {
-      modify c;
+      modify c {
+        if * {
+          break; // fine
+        } else if * {
+          break L; // fine
+        }
+        c.data := 9;
+      }
       c.data := 10;
       i := i + 1;
     }
   }
 }
-
-module ModifyStmtReturn1 refines ModifyStmtReturn0 {
-  method M... {
-    modify ... {
-      return; // error: a "return" here would cause a problem with the refinement
-    }
-    ...;
-  }
-}
-
-module ModifyStmtReturn2 {
-  class C { }
-
-  method M(a: int, b: int) {
-    var c := new C;
-    var x := 0;
-    label Outer:
-    for i := 0 to 100 {
-      modify c {
-        var y := 0;
-        if i == a {
-          return; // error: return not allowed inside "modify"
-        } else {
-          y := y + x;
-          x := x + 2; // error: not allowed to modify variable declared outside "modify" statement
-        }
-
-        label Inner:
-        for j := 0 to i {
-          if 5 * i == a {
-            break;
-          } else if 5 * i == b {
-            break Inner;
-          } else if 5 * i == a + b {
-            return; // error: return is not allowed here either
-          } else {
-            y := y + x;
-            x := x + 2; // error: not allowed to modify variable declared outside "modify" statement
-          }
-        }
-      }
-    }
-  }
-}
-
-// ---------- break inside modify statement
 
 module ModifyStmtBreak0 {
   class Cell {
@@ -291,30 +244,18 @@ module ModifyStmtBreak1 refines ModifyStmtBreak0 {
   }
 }
 
-module ModifyStmtBreak2 {
-  class C { }
-
-  method M(a: int, b: int) {
-    var c := new C;
-    label Outer:
-    for i := 0 to 100 {
-      modify c {
-        var y := 0;
-        if i == a {
-          break; // error: break to outside "modify" is not allowed
-        } else if i == b {
-          break Outer; // error: break to outside "modify" is not allowed
-        }
-
-        label Inner:
-        for j := 0 to i {
-          if 5 * i == a {
-            break;
-          } else if 5 * i == b {
-            break Inner;
-          }
+module ModifyStmtBreak1' refines ModifyStmtBreak0 {
+  method W... {
+    ...;
+    while ... {
+      modify c { // note, this is a new "modify" statement, not a refinement of the one above
+        if * {
+          break; // error: this is still not allowed, since it skips the rest of the loop body
+        } else {
+          break L; // error: ditto
         }
       }
+      ...; // (the previous "modify c;" statement is included here)
     }
   }
 }
