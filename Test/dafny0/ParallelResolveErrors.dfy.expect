@@ -27,4 +27,13 @@ ParallelResolveErrors.dfy(151,6): Error: print statement is not allowed in this 
 ParallelResolveErrors.dfy(163,6): Error: body of forall statement is attempting to update a variable declared outside the forall statement
 ParallelResolveErrors.dfy(165,6): Error: body of forall statement is attempting to update a variable declared outside the forall statement
 ParallelResolveErrors.dfy(167,6): Error: body of forall statement is attempting to update a variable declared outside the forall statement
-29 resolution/type errors detected in ParallelResolveErrors.dfy
+ParallelResolveErrors.dfy(207,6): Error: return statement is not allowed inside a modify statement
+ParallelResolveErrors.dfy(224,10): Error: return statement is not allowed inside a modify statement
+ParallelResolveErrors.dfy(227,10): Error: a modify statement is not allowed to update a variable it doesn't declare
+ParallelResolveErrors.dfy(237,12): Error: return statement is not allowed inside a modify statement
+ParallelResolveErrors.dfy(240,12): Error: a modify statement is not allowed to update a variable it doesn't declare
+ParallelResolveErrors.dfy(277,10): Error: trying to break out of more loop levels than there are enclosing loops
+ParallelResolveErrors.dfy(279,10): Error: break label is undefined or not in scope: L
+ParallelResolveErrors.dfy(297,10): Error: trying to break out of more loop levels than there are enclosing loops
+ParallelResolveErrors.dfy(299,10): Error: break label is undefined or not in scope: Outer
+38 resolution/type errors detected in ParallelResolveErrors.dfy

@@ -181,4 +181,3 @@ class ModifyBody {
     assert xx == x;  // fine, because the modify body trumps the modify frame
   }
 }
-

@@ -96,10 +96,10 @@ method ModifyBody0(w: CellWrapper)
 method ModifyBody1(w: CellWrapper)
   modifies w
 {
-  var c: Cell;
-  modify {} {
-    c := new Cell;
+  modify w`c {
+    var c := new Cell;
     c.data := 15;
+    w.c := c;
   }
   assert fresh(c);
   assert false; // error

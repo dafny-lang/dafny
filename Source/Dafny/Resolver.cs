@@ -6956,13 +6956,14 @@ namespace Microsoft.Dafny {
       }
 
       protected override void VisitOneStmt(Statement stmt) {
-        if (stmt is CalcStmt) {
-          var s = (CalcStmt)stmt;
-          foreach (var h in s.Hints) {
+        if (stmt is CalcStmt calc) {
+          foreach (var h in calc.Hints) {
             resolver.CheckHintRestrictions(h, new HashSet<LocalVariable>(), "a hint");
           }
         } else if (stmt is AssertStmt astmt && astmt.Proof != null) {
           resolver.CheckHintRestrictions(astmt.Proof, new HashSet<LocalVariable>(), "an assert-by body");
+        } else if (stmt is ModifyStmt ms && ms.Body != null) {
+          resolver.CheckHintRestrictions(ms.Body, new HashSet<LocalVariable>(), "a modify statement");
         }
       }
     }
@@ -11412,7 +11413,13 @@ namespace Microsoft.Dafny {
           ResolveFrameExpression(fe, FrameExpressionUse.Modifies, codeContext);
         }
         if (s.Body != null) {
+          var prevLblStmts = enclosingStatementLabels;
+          var prevLoopStack = loopStack;
+          enclosingStatementLabels = new Scope<Statement>();
+          loopStack = new List<Statement>();
           ResolveBlockStatement(s.Body, codeContext);
+          enclosingStatementLabels = prevLblStmts;
+          loopStack = prevLoopStack;
         }
 
       } else if (stmt is CalcStmt) {
