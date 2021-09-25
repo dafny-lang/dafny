@@ -1,20 +1,11 @@
 // RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
-
-module Misc {
-  class C { }
-
-  method M0(IS: set<int>)
-  {
-    forall i | 0 <= i < 20 {
-      i := i + 1;  // error: not allowed to assign to bound variable
-    }
-
+module Basics {
+  method M() {
     var k := 0;
     forall i | 0 <= i < 20 {
       k := k + i;  // error: not allowed to assign to local k, since k is not declared inside forall block
     }
-
     forall i | 0 <= i < 20
       ensures true
     {
@@ -31,6 +22,15 @@ module Misc {
       x := x + 1;
       y := 18;  // error: assigning to a (ghost) variable inside a ghost forall block
       z := 20;  // error: assigning to a (non-ghost) variable inside a ghost forall block
+    }
+  }
+}
+module Misc {
+  class C { }
+
+  method M0(IS: set<int>) {
+    forall i | 0 <= i < 20 {
+      i := i + 1;  // error: not allowed to assign to bound variable
     }
 
     forall i | 0 <= i
@@ -52,11 +52,11 @@ module Misc {
       if i == 17 { break; }  // error: nothing to break out of
     }
 
-    forall i | 0 <= i < 20
-      ensures true
-    {
-      if i == 8 { return; }  // error: return not allowed inside forall block
-    }
+
+
+
+
+
 
     var m := 0;
     label OutsideLoop:
@@ -155,7 +155,7 @@ module AnotherModule {
 
 module UpdatesInOuterScope {
   method M() {
-    var x := 0;
+    ghost var x := 0;
     forall i | 0 <= i < 100
       ensures true
     {
@@ -308,6 +308,16 @@ module ModifyStmtBreak2 {
           }
         }
       }
+    }
+  }
+}
+
+module X {
+  method M() {
+    forall i | 0 <= i < 20
+      ensures true
+    {
+      if i == 8 { return; }  // error: return not allowed inside forall block
     }
   }
 }

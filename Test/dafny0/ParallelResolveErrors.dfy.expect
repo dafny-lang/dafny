@@ -1,10 +1,10 @@
-ParallelResolveErrors.dfy(10,6): Error: LHS of assignment must denote a mutable variable
-ParallelResolveErrors.dfy(15,6): Error: body of forall statement is attempting to update a variable declared outside the forall statement
-ParallelResolveErrors.dfy(32,6): Error: body of forall statement is attempting to update a variable declared outside the forall statement
-ParallelResolveErrors.dfy(33,6): Error: body of forall statement is attempting to update a variable declared outside the forall statement
+ParallelResolveErrors.dfy(24,8): Error: assignment to non-ghost variable is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
+ParallelResolveErrors.dfy(7,6): Error: a forall statement is not allowed to update a variable it doesn't declare
+ParallelResolveErrors.dfy(23,6): Error: a forall statement is not allowed to update a variable it doesn't declare
+ParallelResolveErrors.dfy(24,6): Error: a forall statement is not allowed to update a variable it doesn't declare
+ParallelResolveErrors.dfy(33,6): Error: LHS of assignment must denote a mutable variable
 ParallelResolveErrors.dfy(45,15): Error: new allocation not supported in aggregate assignments
 ParallelResolveErrors.dfy(52,19): Error: trying to break out of more loop levels than there are enclosing loops
-ParallelResolveErrors.dfy(58,18): Error: return statement is not allowed inside a forall statement
 ParallelResolveErrors.dfy(65,21): Error: trying to break out of more loop levels than there are enclosing loops
 ParallelResolveErrors.dfy(66,20): Error: trying to break out of more loop levels than there are enclosing loops
 ParallelResolveErrors.dfy(67,20): Error: break label is undefined or not in scope: OutsideLoop
@@ -24,9 +24,10 @@ ParallelResolveErrors.dfy(132,7): Error: cannot assign to array element in a gho
 ParallelResolveErrors.dfy(138,31): Error: in a forall statement, calls are allowed only to lemmas
 ParallelResolveErrors.dfy(143,31): Error: in a forall statement, calls are allowed only to lemmas
 ParallelResolveErrors.dfy(151,6): Error: print statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
-ParallelResolveErrors.dfy(163,6): Error: body of forall statement is attempting to update a variable declared outside the forall statement
-ParallelResolveErrors.dfy(165,6): Error: body of forall statement is attempting to update a variable declared outside the forall statement
-ParallelResolveErrors.dfy(167,6): Error: body of forall statement is attempting to update a variable declared outside the forall statement
+ParallelResolveErrors.dfy(167,12): Error: in a forall statement, calls are allowed only to lemmas
+ParallelResolveErrors.dfy(163,6): Error: a forall statement is not allowed to update a variable it doesn't declare
+ParallelResolveErrors.dfy(165,6): Error: a forall statement is not allowed to update a variable it doesn't declare
+ParallelResolveErrors.dfy(167,6): Error: a forall statement is not allowed to update a variable it doesn't declare
 ParallelResolveErrors.dfy(207,6): Error: return statement is not allowed inside a modify statement
 ParallelResolveErrors.dfy(224,10): Error: return statement is not allowed inside a modify statement
 ParallelResolveErrors.dfy(227,10): Error: a modify statement is not allowed to update a variable it doesn't declare
@@ -36,4 +37,6 @@ ParallelResolveErrors.dfy(277,10): Error: trying to break out of more loop level
 ParallelResolveErrors.dfy(279,10): Error: break label is undefined or not in scope: L
 ParallelResolveErrors.dfy(297,10): Error: trying to break out of more loop levels than there are enclosing loops
 ParallelResolveErrors.dfy(299,10): Error: break label is undefined or not in scope: Outer
-38 resolution/type errors detected in ParallelResolveErrors.dfy
+ParallelResolveErrors.dfy(320,18): Error: return statement is not allowed in this context (because it is guarded by a specification-only expression)
+ParallelResolveErrors.dfy(320,18): Error: return statement is not allowed inside a forall statement
+41 resolution/type errors detected in ParallelResolveErrors.dfy

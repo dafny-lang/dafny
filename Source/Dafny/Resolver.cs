@@ -6964,6 +6964,8 @@ namespace Microsoft.Dafny {
           resolver.CheckHintRestrictions(astmt.Proof, new HashSet<LocalVariable>(), "an assert-by body");
         } else if (stmt is ModifyStmt ms && ms.Body != null) {
           resolver.CheckHintRestrictions(ms.Body, new HashSet<LocalVariable>(), "a modify statement");
+        } else if (stmt is ForallStmt forall && forall.Body != null) {
+          resolver.CheckHintRestrictions(forall.Body, new HashSet<LocalVariable>(), "a forall statement");
         }
       }
     }
@@ -11368,6 +11370,12 @@ namespace Microsoft.Dafny {
             Statement s0 = s.S0;
             if (s0 is AssignStmt) {
               s.Kind = ForallStmt.BodyKind.Assign;
+
+              var rhs = ((AssignStmt)s0).Rhs;
+              if (rhs is TypeRhs) {
+                reporter.Error(MessageSource.Resolver, rhs.Tok, "new allocation not supported in aggregate assignments");
+              }
+
             } else if (s0 is CallStmt) {
               s.Kind = ForallStmt.BodyKind.Call;
               var call = (CallStmt)s.S0;
@@ -11394,9 +11402,6 @@ namespace Microsoft.Dafny {
                 reporter.Warning(MessageSource.Resolver, s.Tok, "the conclusion of the body of this forall statement will not be known outside the forall statement; consider using an 'ensures' clause");
               }
             }
-          }
-          if (s.Body != null) {
-            CheckForallStatementBodyRestrictions(s.Body, s.Kind);
           }
 
           if (s.ForallExpressions != null) {
@@ -13456,131 +13461,6 @@ namespace Microsoft.Dafny {
       }
       ResolveStatement(stmt, codeContext);
       enclosingStatementLabels.PopMarker();
-    }
-
-    /// <summary>
-    /// This method performs some additional checks on the body "stmt" of a forall statement of kind "kind".
-    /// </summary>
-    public void CheckForallStatementBodyRestrictions(Statement stmt, ForallStmt.BodyKind kind) {
-      Contract.Requires(stmt != null);
-      if (stmt is PredicateStmt) {
-        // cool
-      } else if (stmt is RevealStmt) {
-        var s = (RevealStmt)stmt;
-        foreach (var ss in s.ResolvedStatements) {
-          CheckForallStatementBodyRestrictions(ss, kind);
-        }
-      } else if (stmt is PrintStmt) {
-        // not allowed, but checked in GhostInterest
-      } else if (stmt is BreakStmt) {
-        // this case is checked already in the first pass through the forall-statement body, by doing so from an empty set of labeled statements and resetting the loop-stack
-      } else if (stmt is ReturnStmt) {
-        reporter.Error(MessageSource.Resolver, stmt, "return statement is not allowed inside a forall statement");
-      } else if (stmt is YieldStmt) {
-        reporter.Error(MessageSource.Resolver, stmt, "yield statement is not allowed inside a forall statement");
-      } else if (stmt is AssignSuchThatStmt) {
-        var s = (AssignSuchThatStmt)stmt;
-        foreach (var lhs in s.Lhss) {
-          CheckForallStatementBodyLhs(lhs);
-        }
-      } else if (stmt is UpdateStmt) {
-        var s = (UpdateStmt)stmt;
-        foreach (var ss in s.ResolvedStatements) {
-          CheckForallStatementBodyRestrictions(ss, kind);
-        }
-      } else if (stmt is VarDeclStmt) {
-        var s = (VarDeclStmt)stmt;
-        if (s.Update != null) {
-          CheckForallStatementBodyRestrictions(s.Update, kind);
-        }
-      } else if (stmt is VarDeclPattern) {
-        // fine
-      } else if (stmt is AssignStmt) {
-        var s = (AssignStmt)stmt;
-        CheckForallStatementBodyLhs(s.Lhs);
-        var rhs = s.Rhs;  // ExprRhs and HavocRhs are fine, but TypeRhs is not
-        if (rhs is TypeRhs) {
-          if (kind == ForallStmt.BodyKind.Assign) {
-            reporter.Error(MessageSource.Resolver, rhs.Tok, "new allocation not supported in aggregate assignments");
-          } else {
-            // "new" is not allowed in ghost contexts, but this is checked as part of the general GhostInterest checks
-          }
-        }
-      } else if (stmt is CallStmt) {
-        var s = (CallStmt)stmt;
-        foreach (var lhs in s.Lhs) {
-          CheckForallStatementBodyLhs(lhs);
-        }
-
-      } else if (stmt is ModifyStmt) {
-        // forbidden in forall statements, but this is checked as part of the general GhostInterest checks
-
-      } else if (stmt is BlockStmt) {
-        var s = (BlockStmt)stmt;
-        scope.PushMarker();
-        foreach (var ss in s.Body) {
-          CheckForallStatementBodyRestrictions(ss, kind);
-        }
-        scope.PopMarker();
-
-      } else if (stmt is IfStmt) {
-        var s = (IfStmt)stmt;
-        CheckForallStatementBodyRestrictions(s.Thn, kind);
-        if (s.Els != null) {
-          CheckForallStatementBodyRestrictions(s.Els, kind);
-        }
-
-      } else if (stmt is AlternativeStmt) {
-        var s = (AlternativeStmt)stmt;
-        foreach (var alt in s.Alternatives) {
-          foreach (var ss in alt.Body) {
-            CheckForallStatementBodyRestrictions(ss, kind);
-          }
-        }
-
-      } else if (stmt is OneBodyLoopStmt) {
-        var s = (OneBodyLoopStmt)stmt;
-        if (s.Body != null) {
-          CheckForallStatementBodyRestrictions(s.Body, kind);
-        }
-
-      } else if (stmt is AlternativeLoopStmt) {
-        var s = (AlternativeLoopStmt)stmt;
-        foreach (var alt in s.Alternatives) {
-          foreach (var ss in alt.Body) {
-            CheckForallStatementBodyRestrictions(ss, kind);
-          }
-        }
-
-      } else if (stmt is ForallStmt) {
-        var s = (ForallStmt)stmt;
-        if (s.Body != null) {
-          CheckForallStatementBodyRestrictions(s.Body, kind);
-        }
-
-      } else if (stmt is CalcStmt) {
-        // cool
-      } else if (stmt is ConcreteSyntaxStatement) {
-        var s = (ConcreteSyntaxStatement)stmt;
-        CheckForallStatementBodyRestrictions(s.ResolvedStatement, kind);
-      } else if (stmt is MatchStmt) {
-        var s = (MatchStmt)stmt;
-        foreach (var kase in s.Cases) {
-          foreach (var ss in kase.Body) {
-            CheckForallStatementBodyRestrictions(ss, kind);
-          }
-        }
-
-      } else {
-        Contract.Assert(false); throw new cce.UnreachableException();
-      }
-    }
-
-    void CheckForallStatementBodyLhs(Expression lhs) {
-      lhs = lhs.Resolved;
-      if (lhs is IdentifierExpr idExpr && scope.ContainsDecl(idExpr.Var)) {
-        reporter.Error(MessageSource.Resolver, lhs.tok, "body of forall statement is attempting to update a variable declared outside the forall statement");
-      }
     }
 
     /// <summary>
