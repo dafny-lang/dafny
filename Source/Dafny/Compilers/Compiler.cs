@@ -4158,7 +4158,7 @@ namespace Microsoft.Dafny {
           BoundVar bv = arguments[m];
           // FormalType f0 = ((Dt_Ctor0)source._D).a0;
           var sw = DeclareLocalVar(IdName(bv), bv.Type, bv.Tok, w);
-          EmitDestructor(source, arg, k, ctor, sourceType.TypeArgs, bv.Type, sw);
+          EmitDestructor(source, arg, k, ctor, SelectNonGhost(sourceType.ResolvedClass, sourceType.TypeArgs), bv.Type, sw);
           k++;
         }
       }

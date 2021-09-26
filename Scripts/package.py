@@ -131,19 +131,19 @@ class Release:
             "-f", "net5.0",
             "-o", self.buildDirectory,
             "-r", self.target,
-            "-c", "Checked"])
+            "-c", "Release"])
         run(["dotnet", "publish", path.join(SOURCE_DIRECTORY, "DafnyServer", "DafnyServer.csproj"),
             "--nologo",
             "-f", "net5.0",
             "-o", self.buildDirectory,
             "-r", self.target,
-            "-c", "Checked"])
+            "-c", "Release"])
         run(["dotnet", "publish", path.join(SOURCE_DIRECTORY, "DafnyDriver", "DafnyDriver.csproj"),
             "--nologo",
             "-f", "net5.0",
             "-o", self.buildDirectory,
             "-r", self.target,
-            "-c", "Checked"])
+            "-c", "Release"])
 
     def pack(self):
         try:
