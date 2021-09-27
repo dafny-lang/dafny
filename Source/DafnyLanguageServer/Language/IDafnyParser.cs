@@ -1,7 +1,5 @@
-﻿using Microsoft.Dafny;
-using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+﻿using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
@@ -20,6 +18,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// <returns>The parsed document represented as a dafny program.</returns>
     /// <exception cref="System.OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
-    Task<Microsoft.Dafny.Program> ParseAsync(TextDocumentItem textDocument, ErrorReporter errorReporter, CancellationToken cancellationToken);
+    Dafny.Program Parse(TextDocumentItem textDocument, ErrorReporter errorReporter, CancellationToken cancellationToken);
   }
 }

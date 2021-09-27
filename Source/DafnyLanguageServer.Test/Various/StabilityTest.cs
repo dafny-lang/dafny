@@ -42,5 +42,19 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var _));
     }
+
+    [TestMethod]
+    [Timeout(MaxTestExecutionTimeMs)]
+    public async Task StrongNestingDoesNotCauseStackOverlfow() {
+      // Without a sufficiently large stack, the following code causes a stack overflow:
+      // https://github.com/dafny-lang/dafny/issues/1447
+      const string source = @"
+method NestedExpression() {
+  assert var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; true;
+}";
+      var documentItem = CreateTestDocument(source);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var _));
+    }
   }
 }
