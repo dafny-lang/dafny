@@ -2718,7 +2718,7 @@ namespace Microsoft.Dafny {
 
     public string FullName {
       get {
-        if (ResolvedClass != null && ResolvedClass.EnclosingModuleDefinition != null && !ResolvedClass.EnclosingModuleDefinition.IsDefaultModule) {
+        if (ResolvedClass?.EnclosingModuleDefinition?.IsDefaultModule == false) {
           return ResolvedClass.EnclosingModuleDefinition.Name + "." + Name;
         } else {
           return Name;
