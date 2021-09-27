@@ -50,9 +50,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
       try {
         await task;
         Assert.Fail("document load was not cancelled");
-      } catch(Exception e) {
+      } catch (Exception e) {
         Assert.IsInstanceOfType(e, typeof(OperationCanceledException));
         Assert.IsTrue(task.IsCanceled);
+        Assert.IsFalse(task.IsFaulted);
       }
     }
 
@@ -66,6 +67,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
         Assert.Fail("document load did not fail");
       } catch (Exception e) {
         Assert.IsNotInstanceOfType(e, typeof(OperationCanceledException));
+        Assert.IsFalse(task.IsCanceled);
         Assert.IsTrue(task.IsFaulted);
       }
     }
