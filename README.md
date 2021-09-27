@@ -19,8 +19,9 @@ You can ask questions about Dafny on [Stack Overflow](https://stackoverflow.com/
 
 # Try Dafny
 
-The easiest way to get started with Dafny is to use [rise4fun](http://rise4fun.com/dafny), where you can write and verify Dafny programs without having install anything. On [rise4fun](http://rise4fun.com/dafny), you will also find the online Dafny tutorial.
-It is also easy to [install Dafny on your own machine](https://github.com/dafny-lang/dafny/wiki/INSTALL) in VS Code, which gives you a much better user experience than in the web browser.
+The easiest way to try out Dafny is to [download](https://github.com/dafny-lang/dafny/releases) it
+to run it on your machine as you follow along with the [Dafny tutorial](https://dafny-lang.github.io/dafny/OnlineTutorial/guide).
+It is also easy to [install Dafny on your own machine in VS Code](https://github.com/dafny-lang/dafny/wiki/INSTALL).
 
 # Setup
 
@@ -37,7 +38,7 @@ Here are some ways to get started with Dafny:
   - Lecture 2: [Binary search](https://youtu.be/-_tx3lk7yn4) (21:14)
   - Lecture 3: [Dutch National Flag algorithm](https://youtu.be/dQC5m-GZYbk) (20:33)
 * New overview article: [Accessible Software Verification with Dafny](https://www.computer.org/csdl/mags/so/2017/06/mso2017060094-abs.html), IEEE Software, Nov/Dec 2017
-* [Online tutorial](http://rise4fun.com/Dafny/tutorial/guide), focusing mostly on simple imperative programs
+* [Online tutorial](https://dafny-lang.github.io/dafny/OnlineTutorial/guide), focusing mostly on simple imperative programs
 * [3-page tutorial notes](http://leino.science/papers/krml233.pdf) with examples (ICSE 2013)
 * Dafny [Quick Reference](https://dafny-lang.github.io/dafny/QuickReference)
 * Language reference for the [Dafny type system](http://leino.science/papers/krml243.html), which also describes available expressions for each type
