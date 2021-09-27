@@ -3014,15 +3014,12 @@ ExtendedPattern<.out ExtendedPattern pat.>
       [ ExtendedPattern<out pat>           (. arguments.Add(pat); .)
       { "," ExtendedPattern<out pat>       (. arguments.Add(pat); .)
       }]
-    ")"                                    (. if (arguments.Count == 1) {
-                                                SemErr(t, "parentheses are not allowed around a pattern");
-                                              } else {
-                                                // make sure the tuple type exists
-                                                theBuiltIns.TupleType(id, arguments.Count, true);
-                                                //use the TupleTypeCtors
-                                                string ctor = BuiltIns.TupleTypeCtorNamePrefix + arguments.Count;
-                                                pat = new IdPattern(id, ctor, arguments);
-                                               } .)
+    ")"                                    (. // make sure the tuple type exists
+                                              theBuiltIns.TupleType(id, arguments.Count, true);
+                                              //use the TupleTypeCtors
+                                              string ctor = BuiltIns.TupleTypeCtorName(arguments.Count);
+                                              pat = new IdPattern(id, ctor, arguments);
+                                           .)
   | IF(IsIdentParen())
     Ident<out id>                          (. arguments = new List<ExtendedPattern>(); .)
     "("
@@ -3899,7 +3896,7 @@ ParensExpression<out Expression e>
        var argumentGhostness = ghostness.ToList();
        // make sure the corresponding tuple type exists
        var tmp = theBuiltIns.TupleType(x, args.Count, true, argumentGhostness);
-       e = new DatatypeValue(x, BuiltIns.TupleTypeName(argumentGhostness), BuiltIns.TupleTypeCtorNamePrefix + args.Count, args);
+       e = new DatatypeValue(x, BuiltIns.TupleTypeName(argumentGhostness), BuiltIns.TupleTypeCtorName(args.Count), args);
      }
   .)
   .
@@ -4213,7 +4210,7 @@ CasePattern<.out CasePattern<BoundVar> pat.>
         }
       ]
     ")"                                (. // Parse parenthesis without an identifier as a built in tuple type.
-                                          string ctor = BuiltIns.TupleTypeCtorNamePrefix + arguments.Count;  //use the TupleTypeCtors
+                                          string ctor = BuiltIns.TupleTypeCtorName(arguments.Count);  //use the TupleTypeCtors
                                           pat = new CasePattern<BoundVar>(id, ctor, arguments);
                                        .)
   | IdentTypeOptional<out bv>          (. // This could be a BoundVar of a parameter-less constructor and we may not know until resolution.
@@ -4256,7 +4253,7 @@ CasePatternLocal<.out CasePattern<LocalVariable> pat, bool isGhost.>
         }
       ]
     ")"                                (. // Parse parenthesis without an identifier as a built in tuple type.
-                                          string ctor = BuiltIns.TupleTypeCtorNamePrefix + arguments.Count;  //use the TupleTypeCtors
+                                          string ctor = BuiltIns.TupleTypeCtorName(arguments.Count);  //use the TupleTypeCtors
                                           pat = new CasePattern<LocalVariable>(id, ctor, arguments);
                                        .)
   | LocalIdentTypeOptional<out local, isGhost>
