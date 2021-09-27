@@ -65,7 +65,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         if (parseErrors != 0) {
           _logger.LogDebug("encountered {ErrorCount} errors while parsing {DocumentUri}", parseErrors, document.Uri);
         }
-        if (!TryParseIncludesOfModule(module, builtIns, errorReporter)) {
+        if (!TryParseIncludesOfModule(module, builtIns, errorReporter, cancellationToken)) {
           _logger.LogDebug("encountered error while parsing the includes of {DocumentUri}", document.Uri);
         }
         // The file system path is used as the program's name to identify the entry document. See PathExtensions
@@ -82,7 +82,12 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
     // TODO The following methods are based on the ones from DafnyPipeline/DafnyMain.cs.
     //      It could be convenient to adapt them in the main-repo so location info could be extracted.
-    public bool TryParseIncludesOfModule(ModuleDecl module, BuiltIns builtIns, ErrorReporter errorReporter) {
+    private bool TryParseIncludesOfModule(
+      ModuleDecl module,
+      BuiltIns builtIns,
+      ErrorReporter errorReporter,
+      CancellationToken cancellationToken
+    ) {
       var errors = new Errors(errorReporter);
       // Issue #40:
       // A HashSet must not be used here since equals treats A included by B not equal to A included by C.
@@ -93,6 +98,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
       bool newIncludeParsed = true;
       while (newIncludeParsed) {
+        cancellationToken.ThrowIfCancellationRequested();
         newIncludeParsed = false;
         // Parser.Parse appears to modify the include list; thus, we create a copy to avoid concurrent modifications.
         var moduleIncludes = new List<Include>(((LiteralModuleDecl)module).ModuleDef.Includes);
