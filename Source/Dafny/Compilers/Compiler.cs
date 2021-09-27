@@ -3539,10 +3539,14 @@ namespace Microsoft.Dafny {
           EmitDecrementVar(varName, wr);
         }
       }
+      
+      copyInstrWriters.Push(wr.Fork());
       ConcreteSyntaxTree guardWriter;
       var wBody = EmitIf(out guardWriter, false, wr);
       TrExpr(constraint, guardWriter, inLetExprBody);
       EmitBreak(doneLabel, wBody);
+      copyInstrWriters.Pop();
+
       // Java compiler throws unreachable error when absurd statement is written after unbounded for-loop, so we don't write it then.
       EmitAbsurd(string.Format("assign-such-that search produced no value (line {0})", debuginfoLine), wrOuter, needIterLimit);
     }
@@ -4257,7 +4261,7 @@ namespace Microsoft.Dafny {
           // copy variable to a temp since
           //   - C# doesn't allow out param in letExpr body, and
           //   - Java doesn't allow any non-final variable in letExpr body.
-          var name = string.Format("_pat_let_tv{0}", GetUniqueAstNumber(e));
+          var name = FreshId("_pat_let_tv");
           wr.Write(name);
           DeclareLocalVar(name, null, null, false, IdName(e.Var), copyInstrWriters.Peek(), e.Type);
         } else {
