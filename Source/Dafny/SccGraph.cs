@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
 
 namespace Microsoft.Dafny {
 
@@ -21,6 +22,7 @@ namespace Microsoft.Dafny {
 
       public Vertex SccRepresentative;  // null if not computed
 
+      public int Height; // valid only for SCC representatives; indicates how many SCCs are [indirect] predecessors of this one
       public int SccId;  // valid only for SCC representatives; indicates position of this representative vertex in the graph's topological sort
       // the following field is used during the computation of SCCs and of reachability
       public VisitedStatus Visited;
@@ -36,6 +38,15 @@ namespace Microsoft.Dafny {
       public void AddSuccessor(Vertex v) {
         Contract.Requires(v != null);
         Successors.Add(v);
+      }
+    }
+
+    private void ComputeSCCHeights() {
+      foreach (var vertex in topologicallySortedRepresentatives) {
+        var successorSCCs = vertex.SccMembers.SelectMany(v => v.Successors.Select(s => s.SccRepresentative)).Distinct();
+        foreach (var successor in successorSCCs) {
+          successor.Height = Math.Max(vertex.Height + 1, successor.Height);
+        }
       }
     }
 
@@ -92,6 +103,7 @@ namespace Microsoft.Dafny {
           v.SccMembers = new List<Vertex>();
           v.SccMembers.Add(v);
           v.SccId = topologicallySortedRepresentatives.Count;
+          v.Height = 0;
           topologicallySortedRepresentatives.Add(v);
         }
       }
@@ -130,6 +142,13 @@ namespace Microsoft.Dafny {
       return GetSCCRepr(n).N;
     }
 
+    /// <summary>
+    /// Idempotently adds 'n' as a vertex.
+    /// </summary>
+    public int GetSCCRepresentativeHeight(Node n) {
+      return GetSCCRepr(n).Height;
+    }
+    
     /// <summary>
     /// Idempotently adds 'n' as a vertex.  Then, returns the number of SCCs before the SCC of 'n' in the
     /// topologically sorting of SCCs.
@@ -219,6 +238,8 @@ namespace Microsoft.Dafny {
       }
       Contract.Assert(cnt == vertices.Count);  // sanity check that everything has been visited
 
+      ComputeSCCHeights();
+      
       sccComputed = true;
     }
 
