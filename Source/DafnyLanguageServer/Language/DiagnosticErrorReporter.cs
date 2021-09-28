@@ -27,37 +27,42 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     }
 
     public void ReportBoogieError(ErrorInformation error) {
-      var tok = error.Tok;
-      var relatedInformation = new List<DiagnosticRelatedInformation>() { };
-      foreach (var auxErrorInfo in error.Aux) {
-        if (auxErrorInfo.Category == "Related location") {
-          relatedInformation.Add(new DiagnosticRelatedInformation() {
-            Message = auxErrorInfo.Msg,
-            Location = new Location() {
-              Range = auxErrorInfo.Tok.GetLspRange(),
-
-              // During parsing, we store absolute paths to make reconstructing the Uri easier
-              // https://github.com/dafny-lang/dafny/blob/06b498ee73c74660c61042bb752207df13930376/Source/DafnyLanguageServer/Language/DafnyLangParser.cs#L59 
-              Uri = auxErrorInfo.Tok.GetDocumentUri()
-            }
-          });
+      var relatedInformation = new List<DiagnosticRelatedInformation>();
+      foreach (var auxiliaryInformation in error.Aux) {
+        if (auxiliaryInformation.Category == "Related location") {
+          relatedInformation.Add(CreateDiagnosticRelatedInformationFor(auxiliaryInformation));
         } else {
           // The execution trace is an additional auxiliary which identifies itself with
           // line=0 and character=0. These positions cause errors when exposing them, Furthermore,
           // the execution trace message appears to not have any interesting information.
-          if (auxErrorInfo.Tok.line > 0) {
-            Info(verifierMessageSource, auxErrorInfo.Tok, auxErrorInfo.Msg);
+          if (auxiliaryInformation.Tok.line > 0) {
+            Info(verifierMessageSource, auxiliaryInformation.Tok, auxiliaryInformation.Msg);
           }
         }
       }
-      var item = new Diagnostic {
-        Severity = DiagnosticSeverity.Error,
-        Message = error.Msg,
-        Range = tok.GetLspRange(),
-        RelatedInformation = relatedInformation,
-        Source = verifierMessageSource.ToString()
+      AddDiagnosticForFile(
+        new Diagnostic {
+          Severity = DiagnosticSeverity.Error,
+          Message = error.Msg,
+          Range = error.Tok.GetLspRange(),
+          RelatedInformation = relatedInformation,
+          Source = verifierMessageSource.ToString()
+        },
+        GetDocumentUriOrDefault(error.Tok)
+      );
+    }
+
+    private static DiagnosticRelatedInformation CreateDiagnosticRelatedInformationFor(ErrorInformation.AuxErrorInfo auxiliaryInformation) {
+      return new DiagnosticRelatedInformation {
+        Message = auxiliaryInformation.Msg,
+        Location = new Location {
+          Range = auxiliaryInformation.Tok.GetLspRange(),
+
+          // During parsing, we store absolute paths to make reconstructing the Uri easier
+          // https://github.com/dafny-lang/dafny/blob/06b498ee73c74660c61042bb752207df13930376/Source/DafnyLanguageServer/Language/DafnyLangParser.cs#L59 
+          Uri = auxiliaryInformation.Tok.GetDocumentUri()
+        }
       };
-      AddDiagnosticForFile(item, GetDocumentUriOrDefault(tok));
     }
 
     public override bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg) {
