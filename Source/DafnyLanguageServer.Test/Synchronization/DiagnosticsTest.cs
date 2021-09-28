@@ -562,6 +562,44 @@ method Multiply(x: int, y: int) returns (product: int)
       Assert.AreEqual(DiagnosticSeverity.Error, saveDiagnostics[0].Severity);
     }
 
+    [TestMethod]
+    public async Task OpeningDocumentWithVerificationErrorReportsDiagnosticsWithVerificationErrorsAndNestedRelatedLocations() {
+      var source = @"
+class Test {
+    var a: nat
+    var b: nat
+    var c: nat
+
+    predicate Valid()
+        reads this
+    {
+        && a < b
+        && b < c
+    }
+
+    method Foo()
+        requires Valid()
+        ensures Valid()
+        modifies this
+    {
+        c := 10;
+    }
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      _client.OpenDocument(documentItem);
+      var report = await _diagnosticReceiver.AwaitNextPublishDiagnostics(CancellationToken);
+      var diagnostics = report.Diagnostics.ToArray();
+      Assert.AreEqual(1, diagnostics.Length);
+      Assert.AreEqual("Other", diagnostics[0].Source);
+      Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
+      var relatedInformation = diagnostics[0].RelatedInformation.ToArray();
+      Assert.AreEqual(2, relatedInformation.Length);
+      Assert.AreEqual("This is the postcondition that might not hold.", relatedInformation[0].Message);
+      Assert.AreEqual(new Range((14, 16), (14, 21)), relatedInformation[0].Location.Range);
+      Assert.AreEqual("Related location", relatedInformation[1].Message);
+      Assert.AreEqual(new Range((9, 13), (9, 14)), relatedInformation[1].Location.Range);
+    }
+
     public class TestDiagnosticReceiver {
       private readonly SemaphoreSlim _availableDiagnostics = new(0);
       private readonly ConcurrentQueue<PublishDiagnosticsParams> _diagnostics = new();
