@@ -2700,7 +2700,7 @@ namespace Microsoft.Dafny {
       var initWr = EmitCoercionIfNecessary(fromType, toType, expr.tok, wr);
       TrExpr(expr.Initializer, initWr, inLetExprBody);
       wr.Write(")");
-      if (((ArrowType)rawFromType).Result.IsCharType) {
+      if (fromType.Result.IsCharType) {
         wr.Write(".SetString()");
       }
     }
