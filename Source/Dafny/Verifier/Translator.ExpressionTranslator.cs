@@ -242,7 +242,7 @@ namespace Microsoft.Dafny {
         // free requires fh == FunctionContextHeight;
         var module = m.EnclosingModule;
         Boogie.Expr context =
-          Boogie.Expr.Eq(Boogie.Expr.Literal(module.CallGraph.GetSCCRepresentativeId(m)), FunctionContextHeight());
+          Boogie.Expr.Eq(Boogie.Expr.Literal(module.CallGraph.GetSCCRepresentativeHeight(m)), FunctionContextHeight());
         return context;
       }
 

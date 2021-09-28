@@ -204,7 +204,7 @@ namespace Microsoft.Dafny {
         var SCCs = module.CallGraph.TopologicallySortedComponents();
         SCCs.Reverse();
         foreach (var clbl in SCCs) {
-          Indent(indent); wr.WriteLine(" * SCC at height {0}:", module.CallGraph.GetSCCRepresentativeId(clbl));
+          Indent(indent); wr.WriteLine(" * SCC at height {0}:", module.CallGraph.GetSCCRepresentativeHeight(clbl));
           var r = module.CallGraph.GetSCC(clbl);
           foreach (var m in r) {
             Indent(indent);
