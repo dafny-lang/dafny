@@ -32,7 +32,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       var relatedInformation = new List<DiagnosticRelatedInformation>();
       foreach (var auxiliaryInformation in error.Aux) {
         if (auxiliaryInformation.Category == RelatedLocationCategory) {
-          relatedInformation.AddRange(CreateDiagnosticRelatedInformationFor(auxiliaryInformation.Msg, auxiliaryInformation.Tok));
+          relatedInformation.AddRange(CreateDiagnosticRelatedInformationFor(auxiliaryInformation.Tok, auxiliaryInformation.Msg));
         } else {
           // The execution trace is an additional auxiliary which identifies itself with
           // line=0 and character=0. These positions cause errors when exposing them, Furthermore,
@@ -54,13 +54,13 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       );
     }
 
-    private static IEnumerable<DiagnosticRelatedInformation> CreateDiagnosticRelatedInformationFor(string message, IToken token) {
+    private static IEnumerable<DiagnosticRelatedInformation> CreateDiagnosticRelatedInformationFor(IToken token, string message) {
       yield return new DiagnosticRelatedInformation {
         Message = message,
         Location = CreateLocation(token)
       };
       if (token is NestedToken nestedToken) {
-        foreach (var nestedInformation in CreateDiagnosticRelatedInformationFor(RelatedLocationMessage, nestedToken.Inner)) {
+        foreach (var nestedInformation in CreateDiagnosticRelatedInformationFor(nestedToken.Inner, RelatedLocationMessage)) {
           yield return nestedInformation;
         }
       }
