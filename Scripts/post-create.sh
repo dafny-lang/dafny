@@ -11,7 +11,7 @@ done
 DAFNY_ROOT="$( cd -P "$( dirname $( dirname "$SOURCE" ))" && pwd )"
 
 cd $DAFNY_ROOT
-pre-commit install
+# pre-commit install
 npm install bignumber.js 
 cd $DAFNY_ROOT/Binaries
 ln -s /opt/z3/z3-4.8.5-x64-ubuntu-16.04/ z3
