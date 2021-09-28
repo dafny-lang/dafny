@@ -1,8 +1,7 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Microsoft.Dafny.LanguageServer.Util;
+using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
-using System.IO;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   /// <summary>
@@ -20,11 +19,11 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       _logger = logger;
     }
 
-    public async Task<CompilationUnit> ResolveSymbolsAsync(TextDocumentItem textDocument, Dafny.Program program, CancellationToken cancellationToken) {
+    public CompilationUnit ResolveSymbols(TextDocumentItem textDocument, Dafny.Program program, CancellationToken cancellationToken) {
       // TODO The resolution requires mutual exclusion since it sets static variables of classes like Microsoft.Dafny.Type.
       //      Although, the variables are marked "ThreadStatic" - thus it might not be necessary. But there might be
       //      other classes as well.
-      await _resolverMutex.WaitAsync(cancellationToken);
+      _resolverMutex.Wait(cancellationToken);
       try {
         if (!RunDafnyResolver(textDocument, program)) {
           // We cannot proceeed without a successful resolution. Due to the contracts in dafny-lang, we cannot
@@ -196,7 +195,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
       public override void VisitUnknown(object node, Boogie.IToken token) {
         _logger.LogDebug("encountered unknown syntax node of type {NodeType} in {Filename}@({Line},{Column})",
-          node.GetType(), Path.GetFileName(token.filename), token.line, token.col);
+          node.GetType(), token.GetDocumentFileName(), token.line, token.col);
       }
 
       public override void Visit(BlockStmt blockStatement) {

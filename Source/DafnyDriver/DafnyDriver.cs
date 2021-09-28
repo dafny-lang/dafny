@@ -11,6 +11,7 @@
 //---------------------------------------------------------------------------------------------
 
 using System.Security;
+using DafnyTestGeneration;
 
 namespace Microsoft.Dafny {
   using System;
@@ -206,6 +207,13 @@ namespace Microsoft.Dafny {
         ExecutionEngine.printer.ErrorWriteLine(Console.Out, "*** Error: The command-line contains no .dfy files");
         return CommandLineArgumentsResult.PREPROCESSING_ERROR;
       }
+
+      if (dafnyFiles.Count > 1 &&
+          DafnyOptions.O.TestGenOptions.Mode != TestGenerationOptions.Modes.None) {
+        ExecutionEngine.printer.ErrorWriteLine(Console.Out,
+          "*** Error: Only one .dfy file can be specified for testing");
+        return CommandLineArgumentsResult.PREPROCESSING_ERROR;
+      }
       return CommandLineArgumentsResult.OK;
     }
 
@@ -215,6 +223,21 @@ namespace Microsoft.Dafny {
       var dafnyFileNames = DafnyFile.fileNames(dafnyFiles);
 
       ExitValue exitValue = ExitValue.SUCCESS;
+      if (DafnyOptions.O.TestGenOptions.WarnDeadCode) {
+        foreach (var line in DafnyTestGeneration.Main
+          .GetDeadCodeStatistics(dafnyFileNames[0])) {
+          Console.WriteLine(line);
+        }
+        return exitValue;
+      }
+      if (DafnyOptions.O.TestGenOptions.Mode != TestGenerationOptions.Modes.None) {
+        foreach (var line in DafnyTestGeneration.Main
+          .GetTestClassForProgram(dafnyFileNames[0])) {
+          Console.WriteLine(line);
+        }
+        return exitValue;
+      }
+
       if (CommandLineOptions.Clo.VerifySeparately && 1 < dafnyFiles.Count) {
         foreach (var f in dafnyFiles) {
           Console.WriteLine();
@@ -314,7 +337,16 @@ namespace Microsoft.Dafny {
       bplFilename = BoogieProgramSuffix(bplFilename, moduleName);
       stats = null;
       oc = BoogiePipelineWithRerun(boogieProgram, bplFilename, out stats, 1 < Dafny.DafnyOptions.Clo.VerifySnapshots ? programId : null);
-      return (oc == PipelineOutcome.Done || oc == PipelineOutcome.VerificationCompleted) && stats.ErrorCount == 0 && stats.InconclusiveCount == 0 && stats.TimeoutCount == 0 && stats.OutOfResourceCount == 0 && stats.OutOfMemoryCount == 0;
+      return IsBoogieVerified(oc, stats);
+    }
+
+    public static bool IsBoogieVerified(PipelineOutcome outcome, PipelineStatistics statistics) {
+      return (outcome == PipelineOutcome.Done || outcome == PipelineOutcome.VerificationCompleted)
+        && statistics.ErrorCount == 0
+        && statistics.InconclusiveCount == 0
+        && statistics.TimeoutCount == 0
+        && statistics.OutOfResourceCount == 0
+        && statistics.OutOfMemoryCount == 0;
     }
 
     public static bool Boogie(string baseName, IEnumerable<Tuple<string, Bpl.Program>> boogiePrograms, string programId, out Dictionary<string, PipelineStatistics> statss, out PipelineOutcome oc) {

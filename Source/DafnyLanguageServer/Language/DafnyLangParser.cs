@@ -1,10 +1,10 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Microsoft.Dafny.LanguageServer.Util;
+using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
@@ -46,8 +46,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
     }
 
-    public async Task<Dafny.Program> ParseAsync(TextDocumentItem document, ErrorReporter errorReporter, CancellationToken cancellationToken) {
-      await _mutex.WaitAsync(cancellationToken);
+    public Dafny.Program Parse(TextDocumentItem document, ErrorReporter errorReporter, CancellationToken cancellationToken) {
+      _mutex.Wait(cancellationToken);
       try {
         // Ensure that the statically kept scopes are empty when parsing a new document.
         Type.ResetScopes();
@@ -55,9 +55,9 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         var builtIns = new BuiltIns();
         var parseErrors = Parser.Parse(
           document.Text,
-          document.Uri.GetFileSystemPath(),
+          document.GetFilePath(),
           // We use the full path as filename so we can better re-construct the DocumentUri for the definition lookup.
-          document.Uri.GetFileSystemPath(),
+          document.GetFilePath(),
           module,
           builtIns,
           errorReporter
@@ -68,8 +68,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         if (!TryParseIncludesOfModule(module, builtIns, errorReporter)) {
           _logger.LogDebug("encountered error while parsing the includes of {DocumentUri}", document.Uri);
         }
-        // TODO Remove PoC workaround: the file system path is used as a program name to
-        return new Dafny.Program(document.Uri.GetFileSystemPath(), module, builtIns, errorReporter);
+        // The file system path is used as the program's name to identify the entry document. See PathExtensions
+        return new Dafny.Program(document.GetFilePath(), module, builtIns, errorReporter);
       }
       finally {
         _mutex.Release();

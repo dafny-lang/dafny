@@ -1,4 +1,5 @@
 ﻿using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
+using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.Extensions.Configuration;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -12,6 +13,7 @@ using System.Threading.Tasks;
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
   [TestClass]
   public class VerificationNotificationTest : DafnyLanguageServerTestBase {
+    private const int MaxTestExecutionTimeMs = 10000;
     private ILanguageClient _client;
     private TestNotificationReceiver _notificationReceiver;
     private IDictionary<string, string> _configuration;
@@ -34,7 +36,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
         : new ConfigurationBuilder().AddInMemoryCollection(_configuration).Build();
     }
 
-    [TestMethod, Timeout(5000)]
+    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
     public async Task DocumentWithParserErrorsSendsParsingFailedStatus() {
       var source = @"
 method Abs(x: int) returns (y: int)
@@ -56,7 +58,7 @@ method Abs(x: int) returns (y: int)
       Assert.AreEqual(CompilationStatus.ParsingFailed, queueRemainder.Status);
     }
 
-    [TestMethod, Timeout(5000)]
+    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
     public async Task DocumentWithResolverErrorsSendsResolutionFailedStatus() {
       var source = @"
 method Abs(x: int) returns (y: int)
@@ -78,7 +80,7 @@ method Abs(x: int) returns (y: int)
       Assert.AreEqual(CompilationStatus.ResolutionFailed, queueRemainder.Status);
     }
 
-    [TestMethod, Timeout(5000)]
+    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
     public async Task DocumentWithoutErrorsSendsCompilationSucceededVerificationStartedAndVerificationSucceededStatuses() {
       var source = @"
 method Abs(x: int) returns (y: int)
@@ -106,7 +108,7 @@ method Abs(x: int) returns (y: int)
       Assert.AreEqual(CompilationStatus.VerificationSucceeded, completed.Status);
     }
 
-    [TestMethod, Timeout(5000)]
+    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
     public async Task DocumentWithOnlyVerifierErrorsSendsCompilationSucceededVerificationStartedAndVerificationFailedStatuses() {
       var source = @"
 method Abs(x: int) returns (y: int)
@@ -115,6 +117,75 @@ method Abs(x: int) returns (y: int)
   return x;
 }
 ".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      _client.OpenDocument(documentItem);
+      var compilation = await _notificationReceiver.AwaitNextCompilationStatusAsync(CancellationToken);
+      Assert.AreEqual(documentItem.Uri, compilation.Uri);
+      Assert.AreEqual(documentItem.Version, compilation.Version);
+      Assert.AreEqual(CompilationStatus.CompilationSucceeded, compilation.Status);
+      var started = await _notificationReceiver.AwaitNextCompilationStatusAsync(CancellationToken);
+      Assert.AreEqual(documentItem.Uri, started.Uri);
+      Assert.AreEqual(documentItem.Version, started.Version);
+      Assert.AreEqual(CompilationStatus.VerificationStarted, started.Status);
+      var completed = await _notificationReceiver.AwaitNextCompilationStatusAsync(CancellationToken);
+      Assert.AreEqual(documentItem.Uri, completed.Uri);
+      Assert.AreEqual(documentItem.Version, completed.Version);
+      Assert.AreEqual(CompilationStatus.VerificationFailed, completed.Status);
+    }
+
+    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    public async Task DocumentWithOnlyCodedVerifierTimeoutSendsCompilationSucceededVerificationStartedAndVerificationFailedStatuses() {
+      var source = @"
+lemma {:timeLimit 3} SquareRoot2NotRational(p: nat, q: nat)
+  requires p > 0 && q > 0
+  ensures (p * p) !=  2 * (q * q)
+{ 
+  if (p * p) ==  2 * (q * q) {
+    calc == {
+      (2 * q - p) * (2 * q - p);
+      4 * q * q + p * p - 4 * p * q;
+      {assert 2 * q * q == p * p;}
+      2 * q * q + 2 * p * p - 4 * p * q;
+      2 * (p - q) * (p - q);
+    }
+  }
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      _client.OpenDocument(documentItem);
+      var compilation = await _notificationReceiver.AwaitNextCompilationStatusAsync(CancellationToken);
+      Assert.AreEqual(documentItem.Uri, compilation.Uri);
+      Assert.AreEqual(documentItem.Version, compilation.Version);
+      Assert.AreEqual(CompilationStatus.CompilationSucceeded, compilation.Status);
+      var started = await _notificationReceiver.AwaitNextCompilationStatusAsync(CancellationToken);
+      Assert.AreEqual(documentItem.Uri, started.Uri);
+      Assert.AreEqual(documentItem.Version, started.Version);
+      Assert.AreEqual(CompilationStatus.VerificationStarted, started.Status);
+      var completed = await _notificationReceiver.AwaitNextCompilationStatusAsync(CancellationToken);
+      Assert.AreEqual(documentItem.Uri, completed.Uri);
+      Assert.AreEqual(documentItem.Version, completed.Version);
+      Assert.AreEqual(CompilationStatus.VerificationFailed, completed.Status);
+    }
+
+    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    public async Task DocumentWithOnlyConfiguredVerifierTimeoutSendsCompilationSucceededVerificationStartedAndVerificationFailedStatuses() {
+      var source = @"
+lemma SquareRoot2NotRational(p: nat, q: nat)
+  requires p > 0 && q > 0
+  ensures (p * p) !=  2 * (q * q)
+{ 
+  if (p * p) ==  2 * (q * q) {
+    calc == {
+      (2 * q - p) * (2 * q - p);
+      4 * q * q + p * p - 4 * p * q;
+      {assert 2 * q * q == p * p;}
+      2 * q * q + 2 * p * p - 4 * p * q;
+      2 * (p - q) * (p - q);
+    }
+  }
+}".TrimStart();
+      await SetUp(new Dictionary<string, string>() {
+        { $"{VerifierOptions.Section}:{nameof(VerifierOptions.TimeLimit)}", "3" }
+      });
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
       var compilation = await _notificationReceiver.AwaitNextCompilationStatusAsync(CancellationToken);

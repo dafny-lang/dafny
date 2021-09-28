@@ -20,4 +20,8 @@
     </PackageReference>
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Dafny\DafnyPipeline.csproj" />
+  </ItemGroup>
+
 </Project>

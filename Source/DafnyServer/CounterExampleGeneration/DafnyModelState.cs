@@ -8,6 +8,10 @@ using Microsoft.Boogie;
 
 namespace DafnyServer.CounterExampleGeneration {
 
+  /// <summary>
+  /// Represents a state in a `DafnyModel` and captures the values of all
+  /// variables at a particular point in the code.
+  /// </summary>
   public class DafnyModelState {
 
     internal readonly DafnyModel Model;

@@ -163,7 +163,6 @@ method M(heap: object)
             result.AppendLine(line.Text);
             break;
         }
-
       }
 
       return result.ToString();
@@ -173,7 +172,7 @@ method M(heap: object)
       var testAssemblyPath = Assembly.GetAssembly(typeof(VerificationStability)).GetAssemblyLocation();
       var parts = testAssemblyPath.Split(Path.DirectorySeparatorChar);
       // This way of finding the repository root is not reliable, we should instead reference the DafnyPipeline assembly and run Dafny in the same process as the unit tests.
-      var sourceIndex = Array.FindIndex(parts, e => e == "Source");
+      var sourceIndex = Array.FindLastIndex(parts, e => e == "Source");
       dafnyDirectory = Path.Combine(Path.GetPathRoot(testAssemblyPath)!, Path.Combine(parts.Take(sourceIndex).ToArray()));
       Console.WriteLine("dafnyDirectory: " + dafnyDirectory);
       Console.WriteLine("DafnyDriverProjectFile: " + DafnyDriverProjectFile);
@@ -186,9 +185,7 @@ method M(heap: object)
 
     string GetBoogie(string dafnyProgram, string optionalFileName = null) {
       string fileName = optionalFileName ?? Path.GetTempFileName() + ".dfy";
-      var writer = File.CreateText(fileName);
-      writer.Write(dafnyProgram);
-      writer.Flush();
+      File.WriteAllText(fileName, dafnyProgram);
       var processStartInfo = new ProcessStartInfo {
         FileName = "dotnet",
         Arguments = $"{DefaultDafnyArgs} /compile:0 /env:0 /print:- {fileName}",
@@ -196,7 +193,7 @@ method M(heap: object)
         RedirectStandardError = true,
         UseShellExecute = false
       };
-      var dafnyProcess = Process.Start(processStartInfo);
+      using var dafnyProcess = Process.Start(processStartInfo);
       var result = dafnyProcess.StandardOutput.ReadToEnd();
       dafnyProcess.WaitForExit();
 

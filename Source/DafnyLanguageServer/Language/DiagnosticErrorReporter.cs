@@ -1,50 +1,79 @@
-using System;
-using System.Collections.Generic;
 using Microsoft.Boogie;
+using Microsoft.Dafny.LanguageServer.Util;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using System;
+using System.Collections.Generic;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   public class DiagnosticErrorReporter : ErrorReporter {
     private const MessageSource verifierMessageSource = MessageSource.Other;
-    private readonly Dictionary<string, List<Diagnostic>> diagnostics = new();
+    private const string RelatedLocationCategory = "Related location";
+    private const string RelatedLocationMessage = RelatedLocationCategory;
+
+    private readonly DocumentUri entryDocumentUri;
+    private readonly Dictionary<DocumentUri, List<Diagnostic>> diagnostics = new();
     private readonly Dictionary<DiagnosticSeverity, int> counts = new();
 
-    public IReadOnlyDictionary<string, List<Diagnostic>> Diagnostics => diagnostics;
+    public IReadOnlyDictionary<DocumentUri, List<Diagnostic>> Diagnostics => diagnostics;
+
+    /// <summary>
+    /// Creates a new instance with the given uri of the entry document.
+    /// </summary>
+    /// <param name="entryDocumentUri">The entry document's uri.</param>
+    /// <remarks>
+    /// The uri of the entry document is necessary to report general compiler errors as part of this document.
+    /// </remarks>
+    public DiagnosticErrorReporter(DocumentUri entryDocumentUri) {
+      this.entryDocumentUri = entryDocumentUri;
+    }
 
     public void ReportBoogieError(ErrorInformation error) {
-      var tok = error.Tok;
-      var relatedInformation = new List<DiagnosticRelatedInformation>() { };
-      foreach (var auxErrorInfo in error.Aux) {
-        if (auxErrorInfo.Category == "Related location") {
-          relatedInformation.Add(new DiagnosticRelatedInformation() {
-            Message = auxErrorInfo.Msg,
-            Location = new Location() {
-              Range = auxErrorInfo.Tok.GetLspRange(),
-
-              // During parsing, we store absolute paths to make reconstructing the Uri easier
-              // https://github.com/dafny-lang/dafny/blob/06b498ee73c74660c61042bb752207df13930376/Source/DafnyLanguageServer/Language/DafnyLangParser.cs#L59 
-              Uri = DocumentUri.FromFileSystemPath(auxErrorInfo.Tok.filename)
-            }
-          });
+      var relatedInformation = new List<DiagnosticRelatedInformation>();
+      foreach (var auxiliaryInformation in error.Aux) {
+        if (auxiliaryInformation.Category == RelatedLocationCategory) {
+          relatedInformation.AddRange(CreateDiagnosticRelatedInformationFor(auxiliaryInformation.Tok, auxiliaryInformation.Msg));
         } else {
           // The execution trace is an additional auxiliary which identifies itself with
           // line=0 and character=0. These positions cause errors when exposing them, Furthermore,
           // the execution trace message appears to not have any interesting information.
-          if (auxErrorInfo.Tok.line > 0) {
-            Info(verifierMessageSource, auxErrorInfo.Tok, auxErrorInfo.Msg);
+          if (auxiliaryInformation.Tok.line > 0) {
+            Info(verifierMessageSource, auxiliaryInformation.Tok, auxiliaryInformation.Msg);
           }
-
         }
       }
-      var item = new Diagnostic {
-        Severity = DiagnosticSeverity.Error,
-        Message = error.Msg,
-        Range = tok.GetLspRange(),
-        RelatedInformation = relatedInformation,
-        Source = verifierMessageSource.ToString()
+      AddDiagnosticForFile(
+        new Diagnostic {
+          Severity = DiagnosticSeverity.Error,
+          Message = error.Msg,
+          Range = error.Tok.GetLspRange(),
+          RelatedInformation = relatedInformation,
+          Source = verifierMessageSource.ToString()
+        },
+        GetDocumentUriOrDefault(error.Tok)
+      );
+    }
+
+    private static IEnumerable<DiagnosticRelatedInformation> CreateDiagnosticRelatedInformationFor(IToken token, string message) {
+      yield return new DiagnosticRelatedInformation {
+        Message = message,
+        Location = CreateLocation(token)
       };
-      AddDiagnosticForFile(item, tok.filename);
+      if (token is NestedToken nestedToken) {
+        foreach (var nestedInformation in CreateDiagnosticRelatedInformationFor(nestedToken.Inner, RelatedLocationMessage)) {
+          yield return nestedInformation;
+        }
+      }
+    }
+
+    private static Location CreateLocation(IToken token) {
+      return new Location {
+        Range = token.GetLspRange(),
+
+        // During parsing, we store absolute paths to make reconstructing the Uri easier
+        // https://github.com/dafny-lang/dafny/blob/06b498ee73c74660c61042bb752207df13930376/Source/DafnyLanguageServer/Language/DafnyLangParser.cs#L59 
+        Uri = token.GetDocumentUri()
+      };
     }
 
     public override bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg) {
@@ -58,8 +87,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         Range = tok.GetLspRange(),
         Source = source.ToString()
       };
-      string filename = tok.filename;
-      AddDiagnosticForFile(item, filename);
+      AddDiagnosticForFile(item, GetDocumentUriOrDefault(tok));
       return true;
     }
 
@@ -67,12 +95,11 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       if (counts.TryGetValue(ToSeverity(level), out var count)) {
         return count;
       }
-
       return 0;
     }
 
-    private void AddDiagnosticForFile(Diagnostic item, string filename) {
-      var fileDiagnostics = diagnostics.GetOrCreate(filename, () => new List<Diagnostic>());
+    private void AddDiagnosticForFile(Diagnostic item, DocumentUri documentUri) {
+      var fileDiagnostics = diagnostics.GetOrCreate(documentUri, () => new List<Diagnostic>());
 
       var severity = item.Severity!.Value; // All our diagnostics have a severity.
       counts.TryGetValue(severity, out var count);
@@ -80,11 +107,17 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       fileDiagnostics.Add(item);
     }
 
+    private DocumentUri GetDocumentUriOrDefault(IToken token) {
+      return token.filename == null
+        ? entryDocumentUri
+        : token.GetDocumentUri();
+    }
+
     private static DiagnosticSeverity ToSeverity(ErrorLevel level) {
       return level switch {
         ErrorLevel.Error => DiagnosticSeverity.Error,
         ErrorLevel.Warning => DiagnosticSeverity.Warning,
-        ErrorLevel.Info => DiagnosticSeverity.Information,
+        ErrorLevel.Info => DiagnosticSeverity.Hint,
         _ => throw new ArgumentException($"unknown error level {level}", nameof(level))
       };
     }

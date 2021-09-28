@@ -2417,9 +2417,11 @@ namespace Microsoft.Dafny {
         return SimpleLvalue(wr => {
           wr = EmitCoercionIfNecessary(dtor.Type, expectedType, Bpl.Token.NoToken, wr);
           if (dtor.EnclosingClass is TupleTypeDecl) {
+            Contract.Assert(dtor.CorrespondingFormals.Count == 1);
+            var formal = dtor.CorrespondingFormals[0];
             wr.Write("(*(");
             obj(wr);
-            wr.Write(").IndexInt({0}))", dtor.Name);
+            wr.Write(").IndexInt({0}))", formal.NameForCompilation);
           } else {
             obj(wr);
             wr.Write(".{0}()", FormatDatatypeDestructorName(dtor.CompileName));
