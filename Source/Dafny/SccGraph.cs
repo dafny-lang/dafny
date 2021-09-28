@@ -22,7 +22,7 @@ namespace Microsoft.Dafny {
 
       public Vertex SccRepresentative;  // null if not computed
 
-      public int Height; // valid only for SCC representatives; indicates how many SCCs are [indirect] predecessors of this one
+      public int SccPredecessorCount; // valid only for SCC representatives; indicates how many SCCs are [indirect] predecessors of this one
       public int SccId;  // valid only for SCC representatives; indicates position of this representative vertex in the graph's topological sort
       // the following field is used during the computation of SCCs and of reachability
       public VisitedStatus Visited;
@@ -41,11 +41,15 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private void ComputeSCCHeights() {
+    private void ComputeSccPredecessorCounts() {
+      foreach (var vertex in topologicallySortedRepresentatives) {
+        vertex.SccPredecessorCount = 0;
+      }
+
       foreach (var vertex in topologicallySortedRepresentatives) {
         var successorSCCs = vertex.SccMembers.SelectMany(v => v.Successors.Select(s => s.SccRepresentative)).Distinct();
         foreach (var successor in successorSCCs) {
-          successor.Height = Math.Max(vertex.Height + 1, successor.Height);
+          successor.SccPredecessorCount = Math.Max(vertex.SccPredecessorCount + 1, successor.SccPredecessorCount);
         }
       }
     }
@@ -103,7 +107,7 @@ namespace Microsoft.Dafny {
           v.SccMembers = new List<Vertex>();
           v.SccMembers.Add(v);
           v.SccId = topologicallySortedRepresentatives.Count;
-          v.Height = 0;
+          v.SccPredecessorCount = 0;
           topologicallySortedRepresentatives.Add(v);
         }
       }
@@ -146,7 +150,7 @@ namespace Microsoft.Dafny {
     /// Idempotently adds 'n' as a vertex.
     /// </summary>
     public int GetSCCRepresentativePredecessorCount(Node n) {
-      return GetSCCRepr(n).Height;
+      return GetSCCRepr(n).SccPredecessorCount;
     }
     
     /// <summary>
@@ -238,7 +242,7 @@ namespace Microsoft.Dafny {
       }
       Contract.Assert(cnt == vertices.Count);  // sanity check that everything has been visited
 
-      ComputeSCCHeights();
+      ComputeSccPredecessorCounts();
       
       sccComputed = true;
     }
