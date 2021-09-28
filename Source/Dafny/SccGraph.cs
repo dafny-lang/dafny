@@ -145,7 +145,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Idempotently adds 'n' as a vertex.
     /// </summary>
-    public int GetSCCRepresentativeHeight(Node n) {
+    public int GetSCCRepresentativePredecessorCount(Node n) {
       return GetSCCRepr(n).Height;
     }
     
