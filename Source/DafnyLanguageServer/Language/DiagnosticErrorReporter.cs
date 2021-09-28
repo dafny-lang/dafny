@@ -59,7 +59,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         Message = message,
         Location = CreateLocation(token)
       };
-      if(token is NestedToken nestedToken) {
+      if (token is NestedToken nestedToken) {
         foreach (var nestedInformation in CreateDiagnosticRelatedInformationFor(RelatedLocationMessage, nestedToken.Inner)) {
           yield return nestedInformation;
         }
