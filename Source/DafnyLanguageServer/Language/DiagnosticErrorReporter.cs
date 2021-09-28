@@ -8,6 +8,8 @@ using System.Collections.Generic;
 namespace Microsoft.Dafny.LanguageServer.Language {
   public class DiagnosticErrorReporter : ErrorReporter {
     private const MessageSource verifierMessageSource = MessageSource.Other;
+    private const string RelatedLocationCategory = "Related location";
+    private const string RelatedLocationMessage = RelatedLocationCategory;
 
     private readonly DocumentUri entryDocumentUri;
     private readonly Dictionary<DocumentUri, List<Diagnostic>> diagnostics = new();
@@ -29,8 +31,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     public void ReportBoogieError(ErrorInformation error) {
       var relatedInformation = new List<DiagnosticRelatedInformation>();
       foreach (var auxiliaryInformation in error.Aux) {
-        if (auxiliaryInformation.Category == "Related location") {
-          relatedInformation.Add(CreateDiagnosticRelatedInformationFor(auxiliaryInformation));
+        if (auxiliaryInformation.Category == RelatedLocationCategory) {
+          relatedInformation.AddRange(CreateDiagnosticRelatedInformationFor(auxiliaryInformation.Msg, auxiliaryInformation.Tok));
         } else {
           // The execution trace is an additional auxiliary which identifies itself with
           // line=0 and character=0. These positions cause errors when exposing them, Furthermore,
@@ -52,16 +54,25 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       );
     }
 
-    private static DiagnosticRelatedInformation CreateDiagnosticRelatedInformationFor(ErrorInformation.AuxErrorInfo auxiliaryInformation) {
-      return new DiagnosticRelatedInformation {
-        Message = auxiliaryInformation.Msg,
-        Location = new Location {
-          Range = auxiliaryInformation.Tok.GetLspRange(),
-
-          // During parsing, we store absolute paths to make reconstructing the Uri easier
-          // https://github.com/dafny-lang/dafny/blob/06b498ee73c74660c61042bb752207df13930376/Source/DafnyLanguageServer/Language/DafnyLangParser.cs#L59 
-          Uri = auxiliaryInformation.Tok.GetDocumentUri()
+    private static IEnumerable<DiagnosticRelatedInformation> CreateDiagnosticRelatedInformationFor(string message, IToken token) {
+      yield return new DiagnosticRelatedInformation {
+        Message = message,
+        Location = CreateLocation(token)
+      };
+      if(token is NestedToken nestedToken) {
+        foreach (var nestedInformation in CreateDiagnosticRelatedInformationFor(RelatedLocationMessage, nestedToken.Inner)) {
+          yield return nestedInformation;
         }
+      }
+    }
+
+    private static Location CreateLocation(IToken token) {
+      return new Location {
+        Range = token.GetLspRange(),
+
+        // During parsing, we store absolute paths to make reconstructing the Uri easier
+        // https://github.com/dafny-lang/dafny/blob/06b498ee73c74660c61042bb752207df13930376/Source/DafnyLanguageServer/Language/DafnyLangParser.cs#L59 
+        Uri = token.GetDocumentUri()
       };
     }
 
