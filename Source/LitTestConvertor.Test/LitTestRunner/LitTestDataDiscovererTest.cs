@@ -9,7 +9,7 @@ using XUnitExtensions;
 namespace LitTestConvertor.Test.LitTestRunner {
   public class LitTestDataDiscovererTest {
 
-    MethodInfo GetMethodInfo(Action<CLITestCase> a) {
+    MethodInfo GetMethodInfo(Action<LitTestCommand> a) {
       return a.Method;
     }
 

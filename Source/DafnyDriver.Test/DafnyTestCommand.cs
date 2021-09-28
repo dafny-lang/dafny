@@ -12,7 +12,7 @@ namespace DafnyDriver.Test {
    * Specialization of CLITestCase that mainly exists to support a much more
    * concise definition of ToString().
    */
-  public class DafnyTestCase : CLITestCase, IFileTheoryRowData {
+  public class DafnyTestCommand : LitTestCommand, IFileTheoryRowData {
 
     private static readonly Assembly dafnyDriverAssembly = Assembly.GetAssembly(typeof(Microsoft.Dafny.DafnyDriver));
 
@@ -58,7 +58,7 @@ namespace DafnyDriver.Test {
     private Dictionary<string, object> DafnyOptions = new();
     private List<string> OtherFiles = new();
 
-    public DafnyTestCase(string basePath, string fullSourcePath, Dictionary<string, object> dafnyOptions, List<string> otherFiles,
+    public DafnyTestCommand(string basePath, string fullSourcePath, Dictionary<string, object> dafnyOptions, List<string> otherFiles,
                          Expectation expected, bool invokeDirectly)
       : base(dafnyDriverAssembly, OptionsToFullArguments(fullSourcePath, dafnyOptions, otherFiles), new string[] { "PATH", "HOME" }, expected, invokeDirectly) {
       BasePath = basePath;
@@ -70,7 +70,7 @@ namespace DafnyDriver.Test {
       OtherFiles = otherFiles;
     }
 
-    public DafnyTestCase() {
+    public DafnyTestCommand() {
 
     }
 

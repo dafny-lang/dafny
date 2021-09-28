@@ -27,10 +27,10 @@ namespace LitTestConverter {
     private int invalidCount = 0;
 
     public void ConvertLitTest(string basePath, string filePath, bool invokeDirectly) {
-      IEnumerable<CLITestCase> testSpec;
+      IEnumerable<LitTestCommand> testSpec;
       IEnumerable<string> testContent;
       if (filePath.Contains("/Inputs/")) {
-        testSpec = Enumerable.Empty<CLITestCase>();
+        testSpec = Enumerable.Empty<LitTestCommand>();
         testContent = File.ReadAllLines(filePath);
       } else {
         (testSpec, testContent) = ConvertLitCommands(basePath, filePath, invokeDirectly, File.ReadAllLines(filePath));
@@ -54,7 +54,7 @@ namespace LitTestConverter {
       }
     }
 
-    public (IEnumerable<CLITestCase> spec, IEnumerable<string> content) ConvertLitCommands(string basePath, string filePath, bool invokeDirectly, IEnumerable<string> lines) {
+    public (IEnumerable<LitTestCommand> spec, IEnumerable<string> content) ConvertLitCommands(string basePath, string filePath, bool invokeDirectly, IEnumerable<string> lines) {
       var litCommands = lines.Select(ExtractLitCommand).TakeWhile(c => c != null).ToList();
       if (!litCommands.Any()) {
         throw new ArgumentException("No lit commands found");
@@ -68,7 +68,7 @@ namespace LitTestConverter {
 
       if (litCommands.Count == 1 && litCommands.Single().StartsWith("echo")) {
         // This is an idiom for Dafny files used elsewhere
-        return (Enumerable.Empty<CLITestCase>(), testContent);
+        return (Enumerable.Empty<LitTestCommand>(), testContent);
       }
 
       if (!litCommands[^1].Equals("%diff \"%s.expect\" \"%t\"")) {
@@ -76,7 +76,7 @@ namespace LitTestConverter {
       }
       litCommands.RemoveAt(litCommands.Count - 1);
 
-      List<CLITestCase> testConfigs = litCommands.Select(c => ParseDafnyCommandArguments(basePath, filePath, invokeDirectly, c)).ToList();
+      List<LitTestCommand> testConfigs = litCommands.Select(c => ParseDafnyCommandArguments(basePath, filePath, invokeDirectly, c)).ToList();
 
       if (testConfigs.Count == 1) {
         return (testConfigs, testContent);
@@ -97,7 +97,7 @@ namespace LitTestConverter {
       return line.Substring(LIT_COMMAND_PREFIX.Length).Trim();
     }
 
-    private CLITestCase ParseDafnyCommandArguments(string basePath, string filePath, bool invokeDirectly, string dafnyCommand) {
+    private LitTestCommand ParseDafnyCommandArguments(string basePath, string filePath, bool invokeDirectly, string dafnyCommand) {
       List<string> otherFiles = new();
       Dictionary<string, object> dafnyArguments = new();
 
@@ -137,9 +137,7 @@ namespace LitTestConverter {
         }
       }
 
-      var expected = new CLITestCase.Expectation(0, filePath + ".expect", null);
-
-      return new DafnyTestCase(basePath, filePath, dafnyArguments, otherFiles, expected, invokeDirectly);
+      return new DafnyTestCommand(basePath, filePath, dafnyArguments, otherFiles, expected, invokeDirectly);
     }
 
     private static (string, string) ParseDafnyArgument(string argument) {

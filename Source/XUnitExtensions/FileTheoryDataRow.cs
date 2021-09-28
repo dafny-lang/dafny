@@ -35,7 +35,5 @@ namespace XUnitExtensions {
       Traits = info.GetValue<Dictionary<string, List<string>>>(nameof(Traits));
       data = info.GetValue<object[]>(nameof(data));
     }
-
-
   }
 }

@@ -14,6 +14,7 @@
         <PackageReference Include="Xunit.SkippableFact" Version="1.4.8" />
         <PackageReference Include="YamlDotNet" Version="8.1.2" />
         <ProjectReference Include="..\DafnyDriver\DafnyDriver.csproj" />
+        <ProjectReference Include="..\DafnyServer\DafnyServer.csproj" />
         <ProjectReference Include="..\XUnitExtensions\XUnitExtensions.csproj" />
     </ItemGroup>
 

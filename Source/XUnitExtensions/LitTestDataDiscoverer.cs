@@ -9,8 +9,6 @@ using XUnitExtensions;
 namespace DafnyDriver.Test {
   public class LitTestDataDiscoverer : FileDataDiscoverer {
 
-    private readonly LitTestConverter.LitTestConvertor convertor = new();
-
     public override bool SupportsDiscoveryEnumeration(IAttributeInfo dataAttribute, IMethodInfo testMethod) {
       return true;
     }
@@ -23,8 +21,7 @@ namespace DafnyDriver.Test {
         return testCases.Select(testCase => new[] { testCase });
       } catch (Exception e) {
         var shortPath = fileName[(basePath.Length + 1)..];
-        var dummyTestCase = new DafnyTestCase(basePath, fileName, new(), new(), null, false);
-        var skippedCase = new FileTheoryDataRow(dummyTestCase) {
+        var skippedCase = new FileTheoryDataRow(shortPath) {
           SourceInformation = new SourceInformation() { FileName = fileName, LineNumber = 0},
           TestDisplayName = shortPath,
           Skip = $"Exception: {e}"
