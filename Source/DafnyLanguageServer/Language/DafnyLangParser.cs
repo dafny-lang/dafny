@@ -46,34 +46,53 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
     }
 
+    public Dafny.Program CreateUnparsed(TextDocumentItem document, ErrorReporter errorReporter, CancellationToken cancellationToken) {
+      _mutex.Wait(cancellationToken);
+      try {
+        return NewDafnyProgram(document, errorReporter);
+      }
+      finally {
+        _mutex.Release();
+      }
+    }
+
     public Dafny.Program Parse(TextDocumentItem document, ErrorReporter errorReporter, CancellationToken cancellationToken) {
       _mutex.Wait(cancellationToken);
       try {
-        // Ensure that the statically kept scopes are empty when parsing a new document.
-        Type.ResetScopes();
-        var module = new LiteralModuleDecl(new DefaultModuleDecl(), null);
-        var builtIns = new BuiltIns();
+        var program = NewDafnyProgram(document, errorReporter);
         var parseErrors = Parser.Parse(
           document.Text,
           document.GetFilePath(),
           // We use the full path as filename so we can better re-construct the DocumentUri for the definition lookup.
           document.GetFilePath(),
-          module,
-          builtIns,
+          program.DefaultModule,
+          program.BuiltIns,
           errorReporter
         );
         if (parseErrors != 0) {
           _logger.LogDebug("encountered {ErrorCount} errors while parsing {DocumentUri}", parseErrors, document.Uri);
         }
-        if (!TryParseIncludesOfModule(module, builtIns, errorReporter, cancellationToken)) {
+        if (!TryParseIncludesOfModule(program.DefaultModule, program.BuiltIns, errorReporter, cancellationToken)) {
           _logger.LogDebug("encountered error while parsing the includes of {DocumentUri}", document.Uri);
         }
-        // The file system path is used as the program's name to identify the entry document. See PathExtensions
-        return new Dafny.Program(document.GetFilePath(), module, builtIns, errorReporter);
+        return program;
       }
       finally {
         _mutex.Release();
       }
+    }
+
+    private Dafny.Program NewDafnyProgram(TextDocumentItem document, ErrorReporter errorReporter) {
+      // Ensure that the statically kept scopes are empty when parsing a new document.
+      Type.ResetScopes();
+      return new Dafny.Program(
+        // The file system path is used as the program's name to identify the entry document. See PathExtensions
+        document.GetFilePath(),
+        new LiteralModuleDecl(new DefaultModuleDecl(), null),
+        // BuiltIns cannot be initialized without Type.ResetScopes() before.
+        new BuiltIns(),
+        errorReporter
+      );
     }
 
     public void Dispose() {
