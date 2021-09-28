@@ -65,7 +65,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private async Task<DafnyDocument> LoadAsync(TextDocumentItem document, CancellationToken cancellationToken) {
       try {
         return await _documentLoader.LoadAsync(document, VerifyOnLoad, cancellationToken);
-      } catch(OperationCanceledException) {
+      } catch (OperationCanceledException) {
         // We do not allow cancelling the load of the place document. Otherwise, other components
         // start to have to check for nullability in later stages such as change request processors.
         return _documentLoader.CreateUnloaded(document, CancellationToken.None);

@@ -3,7 +3,6 @@ using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
-using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
@@ -72,14 +71,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     private void Run() {
       foreach (var request in loadRequests.GetConsumingEnumerable()) {
-        try {
-          var document = LoadInternal(request);
-          request.Document.SetResult(document);
-        } catch (OperationCanceledException e) {
-          request.Document.SetCanceled(e.CancellationToken);
-        } catch (Exception e) {
-          request.Document.SetException(e);
-        }
+        var document = LoadInternal(request);
+        request.Document.SetResult(document);
       }
     }
 
