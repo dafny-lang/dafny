@@ -25,27 +25,25 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public async Task<DafnyDocument> ApplyChangesAsync(DafnyDocument oldDocument, DidChangeTextDocumentParams documentChange, CancellationToken cancellationToken) {
       var changeProcessor = new ChangeProcessor(_logger, oldDocument, documentChange.ContentChanges);
-      var mergedItem = new TextDocumentItem {
-        LanguageId = oldDocument.Text.LanguageId,
-        Uri = oldDocument.Uri,
+      var mergedText = oldDocument.Text with {
         Version = documentChange.TextDocument.Version,
         Text = changeProcessor.MigrateText()
       };
       try {
-        var newDocument = await _documentLoader.LoadAsync(mergedItem, Verify, cancellationToken);
+        var newDocument = await _documentLoader.LoadAsync(mergedText, Verify, cancellationToken);
         if (newDocument.SymbolTable.Resolved) {
           return newDocument;
         }
-        return MigrateDocument(mergedItem, newDocument, changeProcessor);
+        return MigrateDocument(mergedText, newDocument, changeProcessor);
       } catch (System.OperationCanceledException) {
         _logger.LogTrace("document loading canceled, applying migration");
-        return MigrateDocument(mergedItem, oldDocument, changeProcessor);
+        return MigrateDocument(mergedText, oldDocument, changeProcessor);
       }
     }
 
-    private static DafnyDocument MigrateDocument(TextDocumentItem mergedItem, DafnyDocument document, ChangeProcessor changeProcessor) {
+    private static DafnyDocument MigrateDocument(TextDocumentItem mergedText, DafnyDocument document, ChangeProcessor changeProcessor) {
       return new DafnyDocument(
-        mergedItem,
+        mergedText,
         document.Errors,
         document.Program,
         changeProcessor.MigrateSymbolTable(),
