@@ -3,6 +3,7 @@ using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
@@ -54,6 +55,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return loader;
     }
 
+    public DafnyDocument CreateUnloaded(TextDocumentItem textDocument, CancellationToken cancellationToken) {
+      var errorReporter = new DiagnosticErrorReporter(textDocument.Uri);
+      return CreateDocumentWithEmptySymbolTable(
+        textDocument,
+        errorReporter,
+        parser.CreateUnparsed(textDocument, errorReporter, cancellationToken)
+      );
+    }
+
     public async Task<DafnyDocument> LoadAsync(TextDocumentItem textDocument, bool verify, CancellationToken cancellationToken) {
       var request = new LoadRequest(textDocument, verify, cancellationToken);
       loadRequests.Add(request, cancellationToken);
@@ -62,8 +72,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     private void Run() {
       foreach (var request in loadRequests.GetConsumingEnumerable()) {
-        var document = LoadInternal(request);
-        request.Document.SetResult(document);
+        try {
+          var document = LoadInternal(request);
+          request.Document.SetResult(document);
+        } catch (OperationCanceledException e) {
+          request.Document.SetCanceled(e.CancellationToken);
+        } catch (Exception e) {
+          request.Document.SetException(e);
+        }
       }
     }
 
@@ -73,7 +89,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var program = parser.Parse(textDocument, errorReporter, cancellationToken);
       if (errorReporter.HasErrors) {
         notificationPublisher.SendStatusNotification(textDocument, CompilationStatus.ParsingFailed);
-        return CreateDocumentWithParserErrors(textDocument, errorReporter, program);
+        return CreateDocumentWithEmptySymbolTable(textDocument, errorReporter, program);
       }
       var compilationUnit = symbolResolver.ResolveSymbols(textDocument, program, cancellationToken);
       var symbolTable = symbolTableFactory.CreateFrom(program, compilationUnit, cancellationToken);
@@ -88,7 +104,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return new DafnyDocument(textDocument, errorReporter, program, symbolTable, serializedCounterExamples);
     }
 
-    private static DafnyDocument CreateDocumentWithParserErrors(TextDocumentItem textDocument, DiagnosticErrorReporter errorReporter, Dafny.Program program) {
+    private static DafnyDocument CreateDocumentWithEmptySymbolTable(TextDocumentItem textDocument, DiagnosticErrorReporter errorReporter, Dafny.Program program) {
       return new DafnyDocument(
         textDocument,
         errorReporter,

@@ -23,7 +23,6 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     }
 
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
-    [Ignore("Requires that the initial load creates a placeholder document if canceled")]
     public async Task ChangeDocumentRightAfterOpeningCancelsLoad() {
       var source = @"
 method Multiply(x: int, y: int) returns (product: int)

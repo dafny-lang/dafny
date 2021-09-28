@@ -27,9 +27,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// A dafny document representing the loaded text document.
     /// If there was a newer existing text document already loaded, it will be returned instead.
     /// </returns>
-    /// <exception cref="OperationCanceledException">
-    /// Thrown if a document change/save/close happened before the document was fully loaded.
-    /// </exception>
     Task<DafnyDocument> LoadDocumentAsync(TextDocumentItem document);
 
     /// <summary>
@@ -41,9 +38,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// If there was a newer existing text document already loaded, it will be returned instead.
     /// In the case that the update was sent for an unloaded document, <c>null</c> will be returned.
     /// </returns>
-    /// <exception cref="OperationCanceledException">
-    /// Thrown if a document change/save/close happened before this document update was fully applied.
-    /// </exception>
     Task<DafnyDocument?> UpdateDocumentAsync(DidChangeTextDocumentParams documentChange);
 
     /// <summary>
