@@ -41,15 +41,15 @@ method SomeMethod2(methodFormal: int) returns (result: bool)
 
       var regularBoogie = GetBoogieText(program);
       var renamedBoogie = GetBoogieText(renamedProgram);
-      var separate = SortedLines(regularBoogie + renamedBoogie);
+      var separate = UniqueLines(regularBoogie + renamedBoogie);
       var combinedBoogie = GetBoogieText(program + renamedProgram);
-      var together = SortedLines(combinedBoogie);
+      var together = UniqueLines(combinedBoogie);
 
       var uniqueLines = separate.Union(together).Except(separate.Intersect(together)).ToList();
       Assert.Equal(Enumerable.Empty<string>(), uniqueLines);
     }
 
-    ISet<string> SortedLines(string input) {
+    ISet<string> UniqueLines(string input) {
       return input.Split('\n').ToHashSet();
     }
 
