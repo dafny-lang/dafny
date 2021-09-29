@@ -17,23 +17,23 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// Only delta updates are supported and the API is not thread-safe.
   /// </remarks>
   public class DocumentDatabase : IDocumentDatabase {
-    private readonly DocumentOptions _options;
-    private readonly Dictionary<DocumentUri, DocumentEntry> _documents = new();
-    private readonly ITextDocumentLoader _documentLoader;
-    private readonly IDocumentUpdater _documentUpdater;
+    private readonly DocumentOptions options;
+    private readonly Dictionary<DocumentUri, DocumentEntry> documents = new();
+    private readonly ITextDocumentLoader documentLoader;
+    private readonly IDocumentUpdater documentUpdater;
 
-    private bool VerifyOnLoad => _options.Verify == AutoVerification.OnChange;
-    private bool VerifyOnSave => _options.Verify == AutoVerification.OnSave;
+    private bool VerifyOnLoad => options.Verify == AutoVerification.OnChange;
+    private bool VerifyOnSave => options.Verify == AutoVerification.OnSave;
 
     public DocumentDatabase(
       IOptions<DocumentOptions> options,
       ITextDocumentLoader documentLoader,
       IDocumentUpdater documentUpdater
     ) {
-      _options = options.Value;
-      _documentLoader = documentLoader;
-      _documentUpdater = documentUpdater;
-      CommandLineOptions.Clo.ProverOptions = GetProverOptions(_options);
+      this.options = options.Value;
+      this.documentLoader = documentLoader;
+      this.documentUpdater = documentUpdater;
+      CommandLineOptions.Clo.ProverOptions = GetProverOptions(this.options);
     }
 
     private static List<string> GetProverOptions(DocumentOptions options) {
@@ -44,7 +44,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public async Task<bool> CloseDocumentAsync(TextDocumentIdentifier documentId) {
-      if (_documents.Remove(documentId.Uri, out var databaseEntry)) {
+      if (documents.Remove(documentId.Uri, out var databaseEntry)) {
         await databaseEntry.Document;
         return true;
       }
@@ -58,23 +58,23 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         Task.Run(() => LoadAsync(document, cancellationSource.Token)),
         cancellationSource
       );
-      _documents.Add(document.Uri, databaseEntry);
+      documents.Add(document.Uri, databaseEntry);
       return await databaseEntry.Document;
     }
 
     private async Task<DafnyDocument> LoadAsync(TextDocumentItem document, CancellationToken cancellationToken) {
       try {
-        return await _documentLoader.LoadAsync(document, VerifyOnLoad, cancellationToken);
+        return await documentLoader.LoadAsync(document, VerifyOnLoad, cancellationToken);
       } catch (OperationCanceledException) {
         // We do not allow cancelling the load of the place document. Otherwise, other components
         // start to have to check for nullability in later stages such as change request processors.
-        return _documentLoader.CreateUnloaded(document, CancellationToken.None);
+        return documentLoader.CreateUnloaded(document, CancellationToken.None);
       }
     }
 
     public async Task<DafnyDocument> UpdateDocumentAsync(DidChangeTextDocumentParams documentChange) {
       var documentUri = documentChange.TextDocument.Uri;
-      if (!_documents.TryGetValue(documentUri, out var databaseEntry)) {
+      if (!documents.TryGetValue(documentUri, out var databaseEntry)) {
         throw new ArgumentException($"the document {documentUri} was not loaded before");
       }
       if (documentChange.TextDocument.Version != databaseEntry.Version + 1) {
@@ -84,15 +84,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var cancellationSource = new CancellationTokenSource();
       var updatedEntry = new DocumentEntry(
         documentChange.TextDocument.Version,
-        Task.Run(async () => await _documentUpdater.ApplyChangesAsync(await databaseEntry.Document, documentChange, cancellationSource.Token)),
+        Task.Run(async () => await documentUpdater.ApplyChangesAsync(await databaseEntry.Document, documentChange, cancellationSource.Token)),
         cancellationSource
       );
-      _documents[documentUri] = updatedEntry;
+      documents[documentUri] = updatedEntry;
       return await updatedEntry.Document;
     }
 
     public async Task<DafnyDocument> SaveDocumentAsync(TextDocumentIdentifier documentId) {
-      if (!_documents.TryGetValue(documentId.Uri, out var databaseEntry)) {
+      if (!documents.TryGetValue(documentId.Uri, out var databaseEntry)) {
         throw new ArgumentException($"the document {documentId.Uri} was not loaded before");
       }
       var document = await databaseEntry.Document;
@@ -104,17 +104,17 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var updatedEntry = new DocumentEntry(
         document.Version,
         document.SymbolTable.Resolved
-          ? Task.Run(() => _documentLoader.LoadAsync(document.Text, VerifyOnSave, cancellationSource.Token))
+          ? Task.Run(() => documentLoader.LoadAsync(document.Text, VerifyOnSave, cancellationSource.Token))
           : databaseEntry.Document,
         cancellationSource
       );
-      _documents[documentId.Uri] = updatedEntry;
+      documents[documentId.Uri] = updatedEntry;
       return await updatedEntry.Document;
     }
 
     public async Task<DafnyDocument?> GetDocumentAsync(TextDocumentIdentifier documentId) {
       // TODO make asynchronous? Requires refactoring of all unit tests.
-      if (_documents.TryGetValue(documentId.Uri, out var databaseEntry)) {
+      if (documents.TryGetValue(documentId.Uri, out var databaseEntry)) {
         return await databaseEntry.Document;
       }
       return null;
