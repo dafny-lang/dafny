@@ -66,7 +66,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       try {
         return await documentLoader.LoadAsync(document, VerifyOnLoad, cancellationToken);
       } catch (OperationCanceledException) {
-        // We do not allow cancelling the load of the place document. Otherwise, other components
+        // We do not allow cancelling the load of the placeholder document. Otherwise, other components
         // start to have to check for nullability in later stages such as change request processors.
         return documentLoader.CreateUnloaded(document, CancellationToken.None);
       }
@@ -113,7 +113,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public async Task<DafnyDocument?> GetDocumentAsync(TextDocumentIdentifier documentId) {
-      // TODO make asynchronous? Requires refactoring of all unit tests.
       if (documents.TryGetValue(documentId.Uri, out var databaseEntry)) {
         return await databaseEntry.Document;
       }

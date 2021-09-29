@@ -82,7 +82,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
     }
 
-    private Dafny.Program NewDafnyProgram(TextDocumentItem document, ErrorReporter errorReporter) {
+    private static Dafny.Program NewDafnyProgram(TextDocumentItem document, ErrorReporter errorReporter) {
       // Ensure that the statically kept scopes are empty when parsing a new document.
       Type.ResetScopes();
       return new Dafny.Program(
