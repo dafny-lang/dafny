@@ -11,6 +11,10 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 
+// Justification: The handler must not await document loads. Errors are handled within RunAndPublishDiagnosticsAsync.
+#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
+#pragma warning disable VSTHRD110 // Observe result of async calls
+
 namespace Microsoft.Dafny.LanguageServer.Handlers {
   /// <summary>
   /// LSP Synchronization handler for document based events, such as change, open, close and save.
@@ -51,45 +55,48 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     public override Task<Unit> Handle(DidOpenTextDocumentParams notification, CancellationToken cancellationToken) {
       _logger.LogTrace("received open notification {DocumentUri}", notification.TextDocument.Uri);
-      _documents.LoadDocumentAsync(notification.TextDocument)
-        .ContinueWith(PublishDiagnosticsAsync);
+      RunAndPublishDiagnosticsAsync(() => _documents.LoadDocumentAsync(notification.TextDocument));
       return Unit.Task;
     }
 
     public override Task<Unit> Handle(DidCloseTextDocumentParams notification, CancellationToken cancellationToken) {
       _logger.LogTrace("received close notification {DocumentUri}", notification.TextDocument.Uri);
-      _documents.CloseDocumentAsync(notification.TextDocument)
-        .ContinueWith(_ => _diagnosticPublisher.HideDiagnostics(notification.TextDocument));
+      CloseDocumentAndHideDiagnosticsAsync(notification.TextDocument);
       return Unit.Task;
     }
 
     public override Task<Unit> Handle(DidChangeTextDocumentParams notification, CancellationToken cancellationToken) {
       _logger.LogTrace("received change notification {DocumentUri}", notification.TextDocument.Uri);
-      _documents.UpdateDocumentAsync(notification)
-        .ContinueWith(PublishDiagnosticsAsync);
+      RunAndPublishDiagnosticsAsync(() => _documents.UpdateDocumentAsync(notification));
       return Unit.Task;
     }
 
     public override Task<Unit> Handle(DidSaveTextDocumentParams notification, CancellationToken cancellationToken) {
       _logger.LogTrace("received save notification {DocumentUri}", notification.TextDocument.Uri);
-      _documents.SaveDocumentAsync(notification.TextDocument)
-        .ContinueWith(PublishDiagnosticsAsync);
+      RunAndPublishDiagnosticsAsync(() => _documents.SaveDocumentAsync(notification.TextDocument));
       return Unit.Task;
     }
 
-    private async Task PublishDiagnosticsAsync(Task<DafnyDocument?> documentTask) {
+    private async Task RunAndPublishDiagnosticsAsync(Func<Task<DafnyDocument?>> documentAction) {
       try {
-        var document = await documentTask;
+        var document = await documentAction();
         if (document != null) {
           _diagnosticPublisher.PublishDiagnostics(document);
         } else {
           _logger.LogWarning("had to publish diagnostics for an unavailable document");
         }
-      } catch (OperationCanceledException) {
-        // cancellation is expected to happen
       } catch (Exception e) {
-        _logger.LogError(e, "error handling document event");
+        _logger.LogError(e, "error while handling document event");
       }
+    }
+
+    private async Task CloseDocumentAndHideDiagnosticsAsync(TextDocumentIdentifier documentId) {
+      try {
+        await _documents.CloseDocumentAsync(documentId);
+      } catch (Exception e) {
+        _logger.LogError(e, "error while closing the document");
+      }
+      _diagnosticPublisher.HideDiagnostics(documentId);
     }
   }
 }
