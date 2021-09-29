@@ -147,7 +147,7 @@ method Multiply(x: int, y: int) returns (product: int)
         _client.OpenDocument(documentItem);
         loadingDocuments.Add(documentItem);
       }
-      for(int i = 0; i < documentsToLoadConcurrently; i++) {
+      for (int i = 0; i < documentsToLoadConcurrently; i++) {
         var report = await _diagnosticReceiver.AwaitNextPublishDiagnostics(CancellationToken);
         Assert.AreEqual(0, report.Diagnostics.Count());
       }
