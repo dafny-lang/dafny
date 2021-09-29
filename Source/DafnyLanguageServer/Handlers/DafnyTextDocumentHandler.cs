@@ -30,16 +30,16 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
   public class DafnyTextDocumentHandler : TextDocumentSyncHandlerBase {
     private const string LanguageId = "dafny";
 
-    private readonly ILogger _logger;
-    private readonly IDocumentDatabase _documents;
-    private readonly IDiagnosticPublisher _diagnosticPublisher;
+    private readonly ILogger logger;
+    private readonly IDocumentDatabase documents;
+    private readonly IDiagnosticPublisher diagnosticPublisher;
 
     public DafnyTextDocumentHandler(
-        ILogger<DafnyTextDocumentHandler> logger, IDocumentDatabase documents, IDiagnosticPublisher diagnosticPublisher
+      ILogger<DafnyTextDocumentHandler> logger, IDocumentDatabase documents, IDiagnosticPublisher diagnosticPublisher
     ) {
-      _logger = logger;
-      _documents = documents;
-      _diagnosticPublisher = diagnosticPublisher;
+      this.logger = logger;
+      this.documents = documents;
+      this.diagnosticPublisher = diagnosticPublisher;
     }
 
     protected override TextDocumentSyncRegistrationOptions CreateRegistrationOptions(SynchronizationCapability capability, ClientCapabilities clientCapabilities) {
@@ -54,26 +54,26 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     }
 
     public override Task<Unit> Handle(DidOpenTextDocumentParams notification, CancellationToken cancellationToken) {
-      _logger.LogTrace("received open notification {DocumentUri}", notification.TextDocument.Uri);
-      RunAndPublishDiagnosticsAsync(() => _documents.LoadDocumentAsync(notification.TextDocument));
+      logger.LogTrace("received open notification {DocumentUri}", notification.TextDocument.Uri);
+      RunAndPublishDiagnosticsAsync(() => documents.LoadDocumentAsync(notification.TextDocument));
       return Unit.Task;
     }
 
     public override Task<Unit> Handle(DidCloseTextDocumentParams notification, CancellationToken cancellationToken) {
-      _logger.LogTrace("received close notification {DocumentUri}", notification.TextDocument.Uri);
+      logger.LogTrace("received close notification {DocumentUri}", notification.TextDocument.Uri);
       CloseDocumentAndHideDiagnosticsAsync(notification.TextDocument);
       return Unit.Task;
     }
 
     public override Task<Unit> Handle(DidChangeTextDocumentParams notification, CancellationToken cancellationToken) {
-      _logger.LogTrace("received change notification {DocumentUri}", notification.TextDocument.Uri);
-      RunAndPublishDiagnosticsAsync(() => _documents.UpdateDocumentAsync(notification));
+      logger.LogTrace("received change notification {DocumentUri}", notification.TextDocument.Uri);
+      RunAndPublishDiagnosticsAsync(() => documents.UpdateDocumentAsync(notification));
       return Unit.Task;
     }
 
     public override Task<Unit> Handle(DidSaveTextDocumentParams notification, CancellationToken cancellationToken) {
-      _logger.LogTrace("received save notification {DocumentUri}", notification.TextDocument.Uri);
-      RunAndPublishDiagnosticsAsync(() => _documents.SaveDocumentAsync(notification.TextDocument));
+      logger.LogTrace("received save notification {DocumentUri}", notification.TextDocument.Uri);
+      RunAndPublishDiagnosticsAsync(() => documents.SaveDocumentAsync(notification.TextDocument));
       return Unit.Task;
     }
 
@@ -81,22 +81,22 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       try {
         var document = await documentAction();
         if (document != null) {
-          _diagnosticPublisher.PublishDiagnostics(document);
+          diagnosticPublisher.PublishDiagnostics(document);
         } else {
-          _logger.LogWarning("had to publish diagnostics for an unavailable document");
+          logger.LogWarning("had to publish diagnostics for an unavailable document");
         }
       } catch (Exception e) {
-        _logger.LogError(e, "error while handling document event");
+        logger.LogError(e, "error while handling document event");
       }
     }
 
     private async Task CloseDocumentAndHideDiagnosticsAsync(TextDocumentIdentifier documentId) {
       try {
-        await _documents.CloseDocumentAsync(documentId);
+        await documents.CloseDocumentAsync(documentId);
       } catch (Exception e) {
-        _logger.LogError(e, "error while closing the document");
+        logger.LogError(e, "error while closing the document");
       }
-      _diagnosticPublisher.HideDiagnostics(documentId);
+      diagnosticPublisher.HideDiagnostics(documentId);
     }
   }
 }
