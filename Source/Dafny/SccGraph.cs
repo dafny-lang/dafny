@@ -49,7 +49,7 @@ namespace Microsoft.Dafny {
       foreach (var vertex in topologicallySortedRepresentatives) {
         var successorSCCs = vertex.SccMembers.SelectMany(v => v.Successors.Select(s => s.SccRepresentative)).Distinct();
         foreach (var successor in successorSCCs) {
-          successor.SccPredecessorCount = Math.Max(vertex.SccPredecessorCount + 1, successor.SccPredecessorCount);
+          vertex.SccPredecessorCount = Math.Max(vertex.SccPredecessorCount, successor.SccPredecessorCount + 1);
         }
       }
     }
