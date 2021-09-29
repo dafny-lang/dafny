@@ -5547,15 +5547,7 @@ namespace Microsoft.Dafny {
       DefineFrame(iter.tok, iteratorFrame, builder, localVariables, null);
       builder.Add(CaptureState(iter.tok, false, "initial state"));
     }
-
-    Bpl.Cmd CaptureState(IToken tok, bool isEndToken, string/*?*/ additionalInfo) {
-      Contract.Requires(tok != null);
-      Contract.Ensures(Contract.Result<Bpl.Cmd>() != null);
-      var col = tok.col + (isEndToken ? tok.val.Length : 0);
-      string description = String.Format("{0}{1}", ErrorReporter.TokenToString(tok), additionalInfo == null ? "" : (": " + additionalInfo));
-      QKeyValue kv = new QKeyValue(tok, "captureState", new List<object>() { description }, null);
-      return TrAssumeCmd(tok, Bpl.Expr.True, kv);
-    }
+    
     Bpl.Cmd CaptureState(Statement stmt) {
       Contract.Requires(stmt != null);
       Contract.Ensures(Contract.Result<Bpl.Cmd>() != null);
@@ -10719,11 +10711,6 @@ namespace Microsoft.Dafny {
 
 
     delegate Bpl.Expr ExpressionConverter(Dictionary<IVariable, Expression> substMap, ExpressionTranslator etran);
-
-    Bpl.AssumeCmd TrAssumeCmd(IToken tok, Bpl.Expr expr, Bpl.QKeyValue attributes = null) {
-      var lit = RemoveLit(expr);
-      return attributes == null ? new Bpl.AssumeCmd(tok, lit) : new Bpl.AssumeCmd(tok, lit, attributes);
-    }
 
     Bpl.AssertCmd TrAssertCmd(IToken tok, Bpl.Expr expr, Bpl.QKeyValue attributes = null) {
       var lit = RemoveLit(expr);

@@ -809,8 +809,8 @@ namespace Microsoft.Dafny {
           Boogie.Type typ;
           var oe0 = e0;
           var oe1 = e1;
-          var lit0 = translator.GetLit(e0);
-          var lit1 = translator.GetLit(e1);
+          var lit0 = Translator.GetLit(e0);
+          var lit1 = Translator.GetLit(e1);
           bool liftLit = translator.IsLit(e0) && translator.IsLit(e1);
           // NOTE(namin): We usually avoid keeping literals, because their presence might mess up triggers that do not expect them.
           //              Still for equality-related operations, it's useful to keep them instead of lifting them, so that they can be propagated.
@@ -1400,9 +1400,9 @@ namespace Microsoft.Dafny {
 
         } else if (expr is ITEExpr) {
           ITEExpr e = (ITEExpr)expr;
-          var g = translator.RemoveLit(TrExpr(e.Test));
-          var thn = translator.RemoveLit(TrExpr(e.Thn));
-          var els = translator.RemoveLit(TrExpr(e.Els));
+          var g = Translator.RemoveLit(TrExpr(e.Test));
+          var thn = Translator.RemoveLit(TrExpr(e.Thn));
+          var els = Translator.RemoveLit(TrExpr(e.Els));
           return new NAryExpr(expr.tok, new IfThenElse(expr.tok), new List<Boogie.Expr> { g, thn, els });
         } else if (expr is MatchExpr) {
           var e = (MatchExpr)expr;
@@ -1932,7 +1932,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
               parms.Add(s);
             } else {
               var e = TrExpr(arg);
-              e = translator.RemoveLit(e);
+              e = Translator.RemoveLit(e);
               parms.Add(e);
             }
           }

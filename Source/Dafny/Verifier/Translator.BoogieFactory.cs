@@ -169,7 +169,7 @@ namespace Microsoft.Dafny {
       return Lit(expr, expr.Type);
     }
 
-    Bpl.Expr GetLit(Bpl.Expr expr) {
+    private static Bpl.Expr GetLit(Bpl.Expr expr) {
       if (expr is Bpl.NAryExpr) {
         Bpl.NAryExpr app = (Bpl.NAryExpr)expr;
         switch (app.Fun.FunctionName) {
@@ -184,7 +184,21 @@ namespace Microsoft.Dafny {
       return null;
     }
 
-    Bpl.Expr RemoveLit(Bpl.Expr expr) {
+    static Bpl.Cmd CaptureState(Bpl.IToken tok, bool isEndToken, string/*?*/ additionalInfo) {
+      Contract.Requires(tok != null);
+      Contract.Ensures(Contract.Result<Bpl.Cmd>() != null);
+      var col = tok.col + (isEndToken ? tok.val.Length : 0);
+      string description = String.Format("{0}{1}", ErrorReporter.TokenToString(tok), additionalInfo == null ? "" : (": " + additionalInfo));
+      Bpl.QKeyValue kv = new Bpl.QKeyValue(tok, "captureState", new List<object>() { description }, null);
+      return TrAssumeCmd(tok, Bpl.Expr.True, kv);
+    }
+
+    static Bpl.AssumeCmd TrAssumeCmd(Bpl.IToken tok, Bpl.Expr expr, Bpl.QKeyValue attributes = null) {
+      var lit = RemoveLit(expr);
+      return attributes == null ? new Bpl.AssumeCmd(tok, lit) : new Bpl.AssumeCmd(tok, lit, attributes);
+    }
+
+    static Bpl.Expr RemoveLit(Bpl.Expr expr) {
       return GetLit(expr) ?? expr;
     }
 
