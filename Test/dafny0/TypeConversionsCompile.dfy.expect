@@ -3,7 +3,7 @@
 /*
 module _System {
   /* CALL GRAPH for module _System:
-   * SCC at height 2:
+   * SCC at height 1:
    *   RotateRight
    * SCC at height 1:
    *   RotateLeft
@@ -100,29 +100,29 @@ module _System {
 */
 
 /* CALL GRAPH for module _module:
- * SCC at height 12:
- *   Main
- * SCC at height 11:
- *   OrdinalTests
- * SCC at height 10:
- *   array
- * SCC at height 9:
- *   int64
- * SCC at height 8:
- *   Abundance
- * SCC at height 7:
- *   Difficult
- * SCC at height 6:
- *   PrintExpected
- * SCC at height 5:
- *   Print
- * SCC at height 4:
- *   string
  * SCC at height 3:
- *   SmallReal
- * SCC at height 2:
- *   EvenInt
+ *   Main
  * SCC at height 1:
+ *   OrdinalTests
+ * SCC at height 0:
+ *   array
+ * SCC at height 0:
+ *   int64
+ * SCC at height 0:
+ *   Abundance
+ * SCC at height 2:
+ *   Difficult
+ * SCC at height 1:
+ *   PrintExpected
+ * SCC at height 1:
+ *   Print
+ * SCC at height 0:
+ *   string
+ * SCC at height 0:
+ *   SmallReal
+ * SCC at height 0:
+ *   EvenInt
+ * SCC at height 0:
  *   Handful
  * SCC at height 0:
  *   nat
