@@ -38,26 +38,22 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// If there was a newer existing text document already loaded, it will be returned instead.
     /// In the case that the update was sent for an unloaded document, <c>null</c> will be returned.
     /// </returns>
-    Task<DafnyDocument?> UpdateDocumentAsync(DidChangeTextDocumentParams documentChange);
+    /// <exception cref="ArgumentException">Thrown if the specified document does not exist.</exception>
+    Task<DafnyDocument> UpdateDocumentAsync(DidChangeTextDocumentParams documentChange);
 
     /// <summary>
     /// Notifies the document database that the given document was saved.
     /// </summary>
     /// <param name="documentId">The ID of the document that was saved.</param>
     /// <returns>The saved document.</returns>
-    /// <exception cref="OperationCanceledException">
-    /// Thrown if a document change/save/close happened before this document save event was fully processed.
-    /// </exception>
-    Task<DafnyDocument?> SaveDocumentAsync(TextDocumentIdentifier documentId);
+    /// <exception cref="ArgumentException">Thrown if the specified document does not exist.</exception>
+    Task<DafnyDocument> SaveDocumentAsync(TextDocumentIdentifier documentId);
 
     /// <summary>
     /// Tries to resolve a document with the specified identifier.
     /// </summary>
     /// <param name="documentId">The ID of the document to resolve.</param>
     /// <returns>An instance of the managed document, <c>null</c> if the specified document was not found.</param>
-    /// <exception cref="OperationCanceledException">
-    /// Thrown if a document change/save/close happened before the requested document version was fully processed.
-    /// </exception>
     Task<DafnyDocument?> GetDocumentAsync(TextDocumentIdentifier documentId);
   }
 }

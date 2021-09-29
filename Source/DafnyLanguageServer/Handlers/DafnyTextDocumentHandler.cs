@@ -77,14 +77,10 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       return Unit.Task;
     }
 
-    private async Task RunAndPublishDiagnosticsAsync(Func<Task<DafnyDocument?>> documentAction) {
+    private async Task RunAndPublishDiagnosticsAsync(Func<Task<DafnyDocument>> documentAction) {
       try {
         var document = await documentAction();
-        if (document != null) {
-          diagnosticPublisher.PublishDiagnostics(document);
-        } else {
-          logger.LogWarning("had to publish diagnostics for an unavailable document");
-        }
+        diagnosticPublisher.PublishDiagnostics(document);
       } catch (Exception e) {
         logger.LogError(e, "error while handling document event");
       }
