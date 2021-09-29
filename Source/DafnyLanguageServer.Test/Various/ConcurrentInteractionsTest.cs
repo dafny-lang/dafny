@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
   [TestClass]
   public class ConcurrentInteractionsTest : DafnyLanguageServerTestBase {
-    private const int MaxTestExecutionTimeMs = 10000;
+    private const int MaxTestExecutionTimeMs = 60_000;
 
     private ILanguageClient _client;
     private TestDiagnosticReceiver _diagnosticReceiver;
@@ -121,7 +121,7 @@ lemma {:timeLimit 3} SquareRoot2NotRational(p: nat, q: nat)
       Assert.AreEqual(0, diagnostics.Length);
     }
 
-    [TestMethod]
+    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
     public async Task CanLoadMultipleDocumentsConcurrently() {
       // The current implementation of DafnyLangParser, DafnyLangSymbolResolver, and DafnyProgramVerifier are only mutual
       // exclusive to themselves. This "stress test" ensures that loading multiple documents at once is possible.
