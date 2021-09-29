@@ -14,25 +14,18 @@ namespace DafnyDriver.Test {
     }
 
     protected override IEnumerable<object[]> FileData(IAttributeInfo attributeInfo, IMethodInfo testMethod, string fileName) {
-      var invokeDirectly = attributeInfo.GetNamedArgument<bool>(nameof(LitTestDataAttribute.InvokeCliDirectly));
       var basePath = GetBasePath(attributeInfo, testMethod);
-      try {
-        var (testCases, _) = convertor.ConvertLitCommands(basePath, fileName, invokeDirectly, File.ReadLines(fileName));
-        return testCases.Select(testCase => new[] { testCase });
-      } catch (Exception e) {
-        var shortPath = fileName[(basePath.Length + 1)..];
-        var skippedCase = new FileTheoryDataRow(shortPath) {
-          SourceInformation = new SourceInformation() { FileName = fileName, LineNumber = 0},
-          TestDisplayName = shortPath,
-          Skip = $"Exception: {e}"
-        };
-        return new[] { new[] { skippedCase } };
-      }
+      var shortPath = fileName[(basePath.Length + 1)..];
+      var row = new FileTheoryDataRow(fileName) {
+        SourceInformation = new SourceInformation() { FileName = fileName, LineNumber = 0},
+        TestDisplayName = shortPath,
+      };
+      return new[] { new[] { row } };
     }
   }
 }
 
 [DataDiscoverer("DafnyDriver.Test.LitTestDataDiscoverer", "LitTestConvertor.Test")]
 public class LitTestDataAttribute : FileDataAttribute {
-  public bool InvokeCliDirectly { get; set; }
+  
 }
