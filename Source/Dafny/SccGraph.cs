@@ -152,7 +152,7 @@ namespace Microsoft.Dafny {
     public int GetSCCRepresentativePredecessorCount(Node n) {
       return GetSCCRepr(n).SccPredecessorCount;
     }
-    
+
     /// <summary>
     /// Idempotently adds 'n' as a vertex.  Then, returns the number of SCCs before the SCC of 'n' in the
     /// topologically sorting of SCCs.
@@ -243,7 +243,7 @@ namespace Microsoft.Dafny {
       Contract.Assert(cnt == vertices.Count);  // sanity check that everything has been visited
 
       ComputeSccPredecessorCounts();
-      
+
       sccComputed = true;
     }
 
