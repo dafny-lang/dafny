@@ -103,11 +103,17 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var cancellationSource = new CancellationTokenSource();
       var updatedEntry = new DocumentEntry(
         document.Version,
-        Task.Run(() => documentLoader.LoadAsync(document.Text, VerifyOnSave, cancellationSource.Token)),
+        RequiresOnSaveVerification(document)
+          ? Task.Run(() => documentLoader.LoadAsync(document.Text, VerifyOnSave, cancellationSource.Token))
+          : databaseEntry.Document,
         cancellationSource
       );
       documents[documentId.Uri] = updatedEntry;
       return await updatedEntry.Document;
+    }
+
+    private static bool RequiresOnSaveVerification(DafnyDocument document) {
+      return document.LoadCanceled || document.SymbolTable.Resolved;
     }
 
     public async Task<DafnyDocument?> GetDocumentAsync(TextDocumentIdentifier documentId) {

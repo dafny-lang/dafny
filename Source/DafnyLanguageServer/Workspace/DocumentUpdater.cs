@@ -34,20 +34,21 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         if (newDocument.SymbolTable.Resolved) {
           return newDocument;
         }
-        return MigrateDocument(mergedText, newDocument, changeProcessor);
+        return MigrateDocument(mergedText, newDocument, changeProcessor, false);
       } catch (System.OperationCanceledException) {
         _logger.LogTrace("document loading canceled, applying migration");
-        return MigrateDocument(mergedText, oldDocument, changeProcessor);
+        return MigrateDocument(mergedText, oldDocument, changeProcessor, true);
       }
     }
 
-    private static DafnyDocument MigrateDocument(TextDocumentItem mergedText, DafnyDocument document, ChangeProcessor changeProcessor) {
+    private static DafnyDocument MigrateDocument(TextDocumentItem mergedText, DafnyDocument document, ChangeProcessor changeProcessor, bool loadCanceled) {
       return new DafnyDocument(
         mergedText,
         document.Errors,
         document.Program,
         changeProcessor.MigrateSymbolTable(),
-        serializedCounterExamples: null
+        serializedCounterExamples: null,
+        loadCanceled
       );
     }
 
