@@ -4,6 +4,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -118,6 +119,38 @@ lemma {:timeLimit 3} SquareRoot2NotRational(p: nat, q: nat)
       var report = await _diagnosticReceiver.AwaitNextPublishDiagnostics(CancellationToken);
       var diagnostics = report.Diagnostics.ToArray();
       Assert.AreEqual(0, diagnostics.Length);
+    }
+
+    [TestMethod]
+    public async Task CanLoadMultipleDocumentsConcurrently() {
+      int documentsToLoadConcurrently = 100;
+      var source = @"
+method Multiply(x: int, y: int) returns (product: int)
+  requires y >= 0 && x >= 0
+  decreases y
+  ensures product == x * y && product >= 0
+{
+  if y == 0 {
+    product := 0;
+  } else {
+    var step := Multiply(x, y - 1);
+    product := x + step;
+  }
+}".TrimStart();
+      // The current implementation of DafnyLangParser, DafnyLangSymbolResolver, and DafnyProgramVerifier are only mutual
+      // exclusive to themselves. This "stress test" ensures that loading multiple documents at once is possible.
+      // To be more specific, this test should ensure that there is no state discarded/overriden between the three steps within
+      // the Dafny Compiler itself.
+      var loadingDocuments = new List<TextDocumentItem>();
+      for (int i = 0; i < documentsToLoadConcurrently; i++) {
+        var documentItem = CreateTestDocument(source, $"test_{i}.dfy");
+        _client.OpenDocument(documentItem);
+        loadingDocuments.Add(documentItem);
+      }
+      for(int i = 0; i < documentsToLoadConcurrently; i++) {
+        var report = await _diagnosticReceiver.AwaitNextPublishDiagnostics(CancellationToken);
+        Assert.AreEqual(0, report.Diagnostics.Count());
+      }
     }
 
     public class TestDiagnosticReceiver {
