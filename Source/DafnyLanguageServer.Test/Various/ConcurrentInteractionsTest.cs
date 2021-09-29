@@ -123,6 +123,10 @@ lemma {:timeLimit 3} SquareRoot2NotRational(p: nat, q: nat)
 
     [TestMethod]
     public async Task CanLoadMultipleDocumentsConcurrently() {
+      // The current implementation of DafnyLangParser, DafnyLangSymbolResolver, and DafnyProgramVerifier are only mutual
+      // exclusive to themselves. This "stress test" ensures that loading multiple documents at once is possible.
+      // To be more specific, this test should ensure that there is no state discarded/overriden between the three steps within
+      // the Dafny Compiler itself.
       int documentsToLoadConcurrently = 100;
       var source = @"
 method Multiply(x: int, y: int) returns (product: int)
@@ -137,10 +141,6 @@ method Multiply(x: int, y: int) returns (product: int)
     product := x + step;
   }
 }".TrimStart();
-      // The current implementation of DafnyLangParser, DafnyLangSymbolResolver, and DafnyProgramVerifier are only mutual
-      // exclusive to themselves. This "stress test" ensures that loading multiple documents at once is possible.
-      // To be more specific, this test should ensure that there is no state discarded/overriden between the three steps within
-      // the Dafny Compiler itself.
       var loadingDocuments = new List<TextDocumentItem>();
       for (int i = 0; i < documentsToLoadConcurrently; i++) {
         var documentItem = CreateTestDocument(source, $"test_{i}.dfy");
