@@ -5547,7 +5547,7 @@ namespace Microsoft.Dafny {
       DefineFrame(iter.tok, iteratorFrame, builder, localVariables, null);
       builder.Add(CaptureState(iter.tok, false, "initial state"));
     }
-    
+
     Bpl.Cmd CaptureState(Statement stmt) {
       Contract.Requires(stmt != null);
       Contract.Ensures(Contract.Result<Bpl.Cmd>() != null);

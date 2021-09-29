@@ -9,7 +9,7 @@ using BoogieProgram = Microsoft.Boogie.Program;
 using Parser = Microsoft.Dafny.Parser;
 
 namespace DafnyPipeline.Test {
-  
+
   public class IntraMethodVerificationStability {
     [Fact]
     public void NoUniqueLinesWhenConcatenatingUnrelatedPrograms() {
@@ -24,7 +24,7 @@ method SomeMethod(methodFormal: int) returns (result: bool)
   result := methodFormal == 3;
 }}
 ";
-      
+
       var renamedProgram = $@"
 datatype Friends2 = Agnes2 | Agatha2 | Jermaine2
 
@@ -77,6 +77,6 @@ method SomeMethod2(methodFormal: int) returns (result: bool)
       return boogiePrograms;
     }
   }
-  
-  
+
+
 }
