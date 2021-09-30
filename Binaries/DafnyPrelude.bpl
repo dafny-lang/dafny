@@ -86,15 +86,15 @@ function TagFamily(Ty): TyTagFamily;
 // ---------------------------------------------------------------
 // -- Literals ---------------------------------------------------
 // ---------------------------------------------------------------
-function {:identity} Lit<T>(x: T): T { x }
+function {:exclude_dep} {:identity} Lit<T>(x: T): T { x }
 axiom (forall<T> x: T :: { $Box(Lit(x)) } $Box(Lit(x)) == Lit($Box(x)) );
 
 // Specialize Lit to concrete types.
 // These aren't logically required, but on some examples improve
 // verification speed
-function {:identity} LitInt(x: int): int { x }
+function {:exclude_dep} {:identity} LitInt(x: int): int { x }
 axiom (forall x: int :: { $Box(LitInt(x)) } $Box(LitInt(x)) == Lit($Box(x)) );
-function {:identity} LitReal(x: real): real { x }
+function {:exclude_dep} {:identity} LitReal(x: real): real { x }
 axiom (forall x: real :: { $Box(LitReal(x)) } $Box(LitReal(x)) == Lit($Box(x)) );
 
 // ---------------------------------------------------------------
@@ -446,8 +446,8 @@ axiom (forall o: ORDINAL, m,n: int ::
 // ---------------------------------------------------------------
 
 // used to make sure function axioms are not used while their consistency is being checked
-const $ModuleContextHeight: int;
-const $FunctionContextHeight: int;
+const {:exclude_dep} $ModuleContextHeight: int;
+const {:exclude_dep} $FunctionContextHeight: int;
 
 // ---------------------------------------------------------------
 // -- Layers of function encodings -------------------------------
@@ -456,7 +456,7 @@ const $FunctionContextHeight: int;
 type LayerType;
 const $LZ: LayerType;
 function $LS(LayerType): LayerType;
-function AsFuelBottom(LayerType) : LayerType;
+function {:exclude_dep} AsFuelBottom(LayerType) : LayerType;
 
 function AtLayer<A>([LayerType]A, LayerType): A;
 axiom (forall<A> f : [LayerType]A, ly : LayerType :: { AtLayer(f,ly) } AtLayer(f,ly) == f[ly]);
