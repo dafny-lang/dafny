@@ -1,5 +1,4 @@
-﻿using Microsoft.Dafny;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using AstElement = System.Object;
 
@@ -26,6 +25,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     private ISymbol? GetTypeSymbol(UserDefinedType userDefinedType) {
       return userDefinedType.ResolvedClass switch {
         NonNullTypeDecl nonNullTypeDeclaration => GetSymbolByDeclaration(nonNullTypeDeclaration.Class),
+        IndDatatypeDecl dataTypeDeclaration => GetSymbolByDeclaration(dataTypeDeclaration),
         _ => null
       };
     }

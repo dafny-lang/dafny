@@ -270,5 +270,27 @@ datatype SomeType = SomeType {
       Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
       Assert.AreEqual("```dafny\nx: int\n```", markup.Value);
     }
+
+    [TestMethod]
+    public async Task HoveringMethodInvocationOfDataTypeReturnsMethodSignature() {
+      var source = @"
+datatype SomeType = SomeType {
+  method AssertEqual(x: int, y: int) {
+    assert x == y;
+  }
+}
+
+method Main() {
+  var instance: SomeType;
+  instance.AssertEqual(1, 2);
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      client.OpenDocument(documentItem);
+      var hover = await RequestHover(documentItem, (8, 12));
+      Assert.IsNotNull(hover);
+      var markup = hover.Contents.MarkupContent;
+      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
+      Assert.AreEqual("```dafny\nmethod SomeType.AssertEqual(x: int, y: int) returns ()\n```", markup.Value);
+    }
   }
 }
