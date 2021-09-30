@@ -1,8 +1,6 @@
 ﻿using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
-using System.Collections;
-using System.Collections.Generic;
 using System.Threading;
 
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
@@ -14,18 +12,18 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   /// this resolver serializes all invocations.
   /// </remarks>
   public class DafnyLangSymbolResolver : ISymbolResolver {
-    private readonly ILogger _logger;
-    private readonly SemaphoreSlim _resolverMutex = new(1);
+    private readonly ILogger logger;
+    private readonly SemaphoreSlim resolverMutex = new(1);
 
     public DafnyLangSymbolResolver(ILogger<DafnyLangSymbolResolver> logger) {
-      _logger = logger;
+      this.logger = logger;
     }
 
     public CompilationUnit ResolveSymbols(TextDocumentItem textDocument, Dafny.Program program, CancellationToken cancellationToken) {
       // TODO The resolution requires mutual exclusion since it sets static variables of classes like Microsoft.Dafny.Type.
       //      Although, the variables are marked "ThreadStatic" - thus it might not be necessary. But there might be
       //      other classes as well.
-      _resolverMutex.Wait(cancellationToken);
+      resolverMutex.Wait(cancellationToken);
       try {
         if (!RunDafnyResolver(textDocument, program)) {
           // We cannot proceeed without a successful resolution. Due to the contracts in dafny-lang, we cannot
@@ -36,9 +34,9 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         }
       }
       finally {
-        _resolverMutex.Release();
+        resolverMutex.Release();
       }
-      return new SymbolDeclarationResolver(_logger, cancellationToken).ProcessProgram(program);
+      return new SymbolDeclarationResolver(logger, cancellationToken).ProcessProgram(program);
     }
 
     private bool RunDafnyResolver(TextDocumentItem document, Dafny.Program program) {
@@ -46,23 +44,23 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       resolver.ResolveProgram(program);
       int resolverErrors = program.reporter.ErrorCount;
       if (resolverErrors > 0) {
-        _logger.LogDebug("encountered {ErrorCount} errors while resolving {DocumentUri}", resolverErrors, document.Uri);
+        logger.LogDebug("encountered {ErrorCount} errors while resolving {DocumentUri}", resolverErrors, document.Uri);
         return false;
       }
       return true;
     }
 
     private class SymbolDeclarationResolver {
-      private readonly ILogger _logger;
-      private readonly CancellationToken _cancellationToken;
+      private readonly ILogger logger;
+      private readonly CancellationToken cancellationToken;
 
       public SymbolDeclarationResolver(ILogger logger, CancellationToken cancellationToken) {
-        _logger = logger;
-        _cancellationToken = cancellationToken;
+        this.logger = logger;
+        this.cancellationToken = cancellationToken;
       }
 
       public CompilationUnit ProcessProgram(Dafny.Program program) {
-        _cancellationToken.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
         var compilationUnit = new CompilationUnit(program);
         // program.CompileModules would probably more suitable here, since we want the symbols of the System module as well.
         // However, it appears that the AST of program.CompileModules does not hold the correct location of the nodes - at least of the declarations.
@@ -74,7 +72,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       }
 
       private ModuleSymbol ProcessModule(Symbol scope, ModuleDefinition moduleDefinition) {
-        _cancellationToken.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
         var moduleSymbol = new ModuleSymbol(scope, moduleDefinition);
         foreach (var declaration in moduleDefinition.TopLevelDecls) {
           var topLevelSymbol = ProcessTopLevelDeclaration(moduleSymbol, declaration);
@@ -86,7 +84,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       }
 
       private Symbol? ProcessTopLevelDeclaration(ModuleSymbol moduleSymbol, TopLevelDecl topLevelDeclaration) {
-        _cancellationToken.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
         switch (topLevelDeclaration) {
           case ClassDecl classDeclaration:
             return ProcessClass(moduleSymbol, classDeclaration);
@@ -97,25 +95,25 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           case DatatypeDecl dataTypeDeclaration:
             return ProcessDataType(moduleSymbol, dataTypeDeclaration);
           default:
-            _logger.LogDebug("encountered unknown top level declaration {Name} of type {Type}", topLevelDeclaration.Name, topLevelDeclaration.GetType());
+            logger.LogDebug("encountered unknown top level declaration {Name} of type {Type}", topLevelDeclaration.Name, topLevelDeclaration.GetType());
             return null;
         }
       }
 
       private ClassSymbol ProcessClass(Symbol scope, ClassDecl classDeclaration) {
-        _cancellationToken.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
         var classSymbol = new ClassSymbol(scope, classDeclaration);
         ProcessAndAddAllMembers(classSymbol, classDeclaration);
         return classSymbol;
       }
 
       private ValueTypeSymbol ProcessValueType(Symbol scope, ValuetypeDecl valueTypeDecarlation) {
-        _cancellationToken.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
         return new ValueTypeSymbol(scope, valueTypeDecarlation);
       }
 
       private DataTypeSymbol ProcessDataType(Symbol scope, DatatypeDecl dataTypeDeclaration) {
-        _cancellationToken.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
         var dataTypeSymbol = new DataTypeSymbol(scope, dataTypeDeclaration);
         ProcessAndAddAllMembers(dataTypeSymbol, dataTypeDeclaration);
         return dataTypeSymbol;
@@ -134,7 +132,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       }
 
       private Symbol? ProcessTypeMember(Symbol scope, MemberDecl memberDeclaration) {
-        _cancellationToken.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
         switch (memberDeclaration) {
           case Function function:
             return ProcessFunction(scope, function);
@@ -146,13 +144,13 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           default:
             // TODO The last missing member is AmbiguousMemberDecl which is created by the resolver.
             //      When is this class exactly used?
-            _logger.LogDebug("encountered unknown member declaration {DeclarationType}", memberDeclaration.GetType());
+            logger.LogDebug("encountered unknown member declaration {DeclarationType}", memberDeclaration.GetType());
             return null;
         }
       }
 
       private FunctionSymbol ProcessFunction(Symbol scope, Function function) {
-        _cancellationToken.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
         var functionSymbol = new FunctionSymbol(scope, function);
         foreach (var parameter in function.Formals) {
           functionSymbol.Parameters.Add(ProcessFormal(scope, parameter));
@@ -161,7 +159,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       }
 
       private MethodSymbol ProcessMethod(Symbol scope, Method method) {
-        _cancellationToken.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
         var methodSymbol = new MethodSymbol(scope, method);
         foreach (var parameter in method.Ins) {
           methodSymbol.Parameters.Add(ProcessFormal(scope, parameter));
@@ -178,31 +176,31 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           return;
         }
         var rootBlock = new ScopeSymbol(methodSymbol, blockStatement);
-        var localVisitor = new LocalVariableDeclarationVisitor(_logger, rootBlock);
+        var localVisitor = new LocalVariableDeclarationVisitor(logger, rootBlock);
         localVisitor.Resolve(blockStatement);
         methodSymbol.Block = rootBlock;
       }
 
       private FieldSymbol ProcessField(Symbol scope, Field field) {
-        _cancellationToken.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
         return new FieldSymbol(scope, field);
       }
 
       private VariableSymbol ProcessFormal(Symbol scope, Formal formal) {
-        _cancellationToken.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
         return new VariableSymbol(scope, formal);
       }
     }
 
     private class LocalVariableDeclarationVisitor : SyntaxTreeVisitor {
-      private readonly ILogger _logger;
+      private readonly ILogger logger;
 
-      private ScopeSymbol _block;
+      private ScopeSymbol block;
 
       public LocalVariableDeclarationVisitor(ILogger logger, ScopeSymbol rootBlock) {
         // TODO support cancellation
-        _logger = logger;
-        _block = rootBlock;
+        this.logger = logger;
+        block = rootBlock;
       }
 
       public void Resolve(BlockStmt blockStatement) {
@@ -211,20 +209,20 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       }
 
       public override void VisitUnknown(object node, Boogie.IToken token) {
-        _logger.LogDebug("encountered unknown syntax node of type {NodeType} in {Filename}@({Line},{Column})",
+        logger.LogDebug("encountered unknown syntax node of type {NodeType} in {Filename}@({Line},{Column})",
           node.GetType(), token.GetDocumentFileName(), token.line, token.col);
       }
 
       public override void Visit(BlockStmt blockStatement) {
-        var oldBlock = _block;
-        _block = new ScopeSymbol(_block, blockStatement);
-        oldBlock.Symbols.Add(_block);
+        var oldBlock = block;
+        block = new ScopeSymbol(block, blockStatement);
+        oldBlock.Symbols.Add(block);
         base.Visit(blockStatement);
-        _block = oldBlock;
+        block = oldBlock;
       }
 
       public override void Visit(LocalVariable localVariable) {
-        _block.Symbols.Add(new VariableSymbol(_block, localVariable));
+        block.Symbols.Add(new VariableSymbol(block, localVariable));
       }
     }
   }
