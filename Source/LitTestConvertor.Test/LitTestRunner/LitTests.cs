@@ -12,12 +12,12 @@ namespace LitTestConvertor.Test.LitTestRunner {
     
     private static readonly LitTestConfiguration CONFIG = new () {
       MainMethodSubstitutions = new Dictionary<string, (Assembly, string[])> {
-        { "%baredafny", (typeof(Microsoft.Dafny.DafnyDriver).Assembly, Array.Empty<string>()) },
-        { "%dafny", (typeof(Microsoft.Dafny.DafnyDriver).Assembly, new [] { 
+        { "%baredafny", (typeof(DafnyDriver).Assembly, Array.Empty<string>()) },
+        { "%dafny", (typeof(DafnyDriver).Assembly, new [] { 
           "/countVerificationErrors:0",
 
           // We do not want absolute or relative paths in error messages, just the basename of the file
-          "/useBaseNameForFileName:yes",
+          "/useBaseNameForFileName",
 
           // We do not want output such as "Compiled program written to Foo.cs"
           // from the compilers, since that changes with the target language
@@ -34,6 +34,8 @@ namespace LitTestConvertor.Test.LitTestRunner {
       Substitions = new Dictionary<string, string> {
         { "%diff", "diff" }
       },
+      
+      PassthroughEnvironmentVariables = new []{ "PATH", "HOME" },
     };
     
     [FileTheory]

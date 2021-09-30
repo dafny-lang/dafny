@@ -14,26 +14,17 @@ namespace XUnitExtensions {
 
     public static ILitCommand Parse(Assembly assembly, IEnumerable<string> arguments, LitTestConfiguration config) {
       var result = new MainMethodLitCommand {
-        Assembly = assembly
+        Assembly = assembly,
       };
 
-      var argumentsList = arguments.ToList();
-      var redirectIndex = argumentsList.IndexOf(">");
-      if (redirectIndex >= 0) {
-        result.OutputFile = argumentsList[redirectIndex + 1];
-        argumentsList.RemoveRange(redirectIndex, 2);
-      }
-      var redirectAppendIndex = argumentsList.IndexOf(">>");
-      if (redirectAppendIndex >= 0) {
-        result.OutputFile = argumentsList[redirectAppendIndex + 1];
-        result.AppendOutput = true;
-        argumentsList.RemoveRange(redirectAppendIndex, 2);
-      }
-
+      IEnumerable<string> args;
+      (args, result.OutputFile, result.AppendOutput) = ILitCommand.ExtractOutputFile(arguments);
+      result.Arguments = args.ToArray();
+      
       return config.InvokeMainMethodsDirectly ? result : result.ToShellCommand(config);
     }
 
-    public (int, string) Execute() {
+    public (int, string, string) Execute() {
       StringBuilder redirectedErr = new();
 
       if (OutputFile != null) {
@@ -43,15 +34,12 @@ namespace XUnitExtensions {
 
       var exitCode = (int)Assembly.EntryPoint!.Invoke(null, new object[] { Arguments });
       
-      return (exitCode, redirectedErr.ToString());
+      return (exitCode, "", redirectedErr.ToString());
     }
 
     public ILitCommand ToShellCommand(LitTestConfiguration config) {
       var shellArguments = new[] { Assembly.Location }.Concat(Arguments);
-      if (OutputFile != null) {
-        shellArguments = shellArguments.Append(AppendOutput ? ">>" : ">").Append(OutputFile);
-      }
-      return new ShellLitCommand("dotnet", shellArguments, config.PassthroughEnvironmentVariables);
+      return new ShellLitCommand("dotnet", shellArguments, OutputFile, AppendOutput, config.PassthroughEnvironmentVariables);
     }
     
     public override string ToString() {

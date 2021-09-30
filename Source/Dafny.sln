@@ -20,8 +20,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DafnyDriver.Test", "DafnyDriver.Test\DafnyDriver.Test.csproj", "{08A3665B-9854-4CF6-BF5F-C532DA39A043}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LitTestConverter", "LitTestConverter\LitTestConverter.csproj", "{2EA7D80A-B179-4352-BDF2-8A1599F8685A}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LitTestConvertor.Test", "LitTestConvertor.Test\LitTestConvertor.Test.csproj", "{A4BC2C77-3A48-4917-AA22-41978DFFE24E}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DafnyLanguageServer", "DafnyLanguageServer\DafnyLanguageServer.csproj", "{CD05D26C-C672-4F43-835E-7A3E1741E4D8}"
@@ -166,30 +164,6 @@ Global
 		{08A3665B-9854-4CF6-BF5F-C532DA39A043}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{08A3665B-9854-4CF6-BF5F-C532DA39A043}.Release|x86.ActiveCfg = Release|Any CPU
 		{08A3665B-9854-4CF6-BF5F-C532DA39A043}.Release|x86.Build.0 = Release|Any CPU
-		{2EA7D80A-B179-4352-BDF2-8A1599F8685A}.Checked|.NET.ActiveCfg = Debug|Any CPU
-		{2EA7D80A-B179-4352-BDF2-8A1599F8685A}.Checked|.NET.Build.0 = Debug|Any CPU
-		{2EA7D80A-B179-4352-BDF2-8A1599F8685A}.Checked|Any CPU.ActiveCfg = Debug|Any CPU
-		{2EA7D80A-B179-4352-BDF2-8A1599F8685A}.Checked|Any CPU.Build.0 = Debug|Any CPU
-		{2EA7D80A-B179-4352-BDF2-8A1599F8685A}.Checked|Mixed Platforms.ActiveCfg = Debug|Any CPU
-		{2EA7D80A-B179-4352-BDF2-8A1599F8685A}.Checked|Mixed Platforms.Build.0 = Debug|Any CPU
-		{2EA7D80A-B179-4352-BDF2-8A1599F8685A}.Checked|x86.ActiveCfg = Debug|Any CPU
-		{2EA7D80A-B179-4352-BDF2-8A1599F8685A}.Checked|x86.Build.0 = Debug|Any CPU
-		{2EA7D80A-B179-4352-BDF2-8A1599F8685A}.Debug|.NET.ActiveCfg = Debug|Any CPU
-		{2EA7D80A-B179-4352-BDF2-8A1599F8685A}.Debug|.NET.Build.0 = Debug|Any CPU
-		{2EA7D80A-B179-4352-BDF2-8A1599F8685A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{2EA7D80A-B179-4352-BDF2-8A1599F8685A}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{2EA7D80A-B179-4352-BDF2-8A1599F8685A}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
-		{2EA7D80A-B179-4352-BDF2-8A1599F8685A}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
-		{2EA7D80A-B179-4352-BDF2-8A1599F8685A}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{2EA7D80A-B179-4352-BDF2-8A1599F8685A}.Debug|x86.Build.0 = Debug|Any CPU
-		{2EA7D80A-B179-4352-BDF2-8A1599F8685A}.Release|.NET.ActiveCfg = Release|Any CPU
-		{2EA7D80A-B179-4352-BDF2-8A1599F8685A}.Release|.NET.Build.0 = Release|Any CPU
-		{2EA7D80A-B179-4352-BDF2-8A1599F8685A}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{2EA7D80A-B179-4352-BDF2-8A1599F8685A}.Release|Any CPU.Build.0 = Release|Any CPU
-		{2EA7D80A-B179-4352-BDF2-8A1599F8685A}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
-		{2EA7D80A-B179-4352-BDF2-8A1599F8685A}.Release|Mixed Platforms.Build.0 = Release|Any CPU
-		{2EA7D80A-B179-4352-BDF2-8A1599F8685A}.Release|x86.ActiveCfg = Release|Any CPU
-		{2EA7D80A-B179-4352-BDF2-8A1599F8685A}.Release|x86.Build.0 = Release|Any CPU
 		{CD05D26C-C672-4F43-835E-7A3E1741E4D8}.Checked|.NET.ActiveCfg = Debug|Any CPU
 		{CD05D26C-C672-4F43-835E-7A3E1741E4D8}.Checked|.NET.Build.0 = Debug|Any CPU
 		{CD05D26C-C672-4F43-835E-7A3E1741E4D8}.Checked|Any CPU.ActiveCfg = Debug|Any CPU

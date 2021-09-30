@@ -6,7 +6,7 @@ using Xunit.Abstractions;
 using Xunit.Sdk;
 using XUnitExtensions;
 
-namespace DafnyDriver.Test {
+namespace XUnitExtensions {
   public class LitTestDataDiscoverer : FileDataDiscoverer {
 
     public override bool SupportsDiscoveryEnumeration(IAttributeInfo dataAttribute, IMethodInfo testMethod) {
@@ -25,7 +25,7 @@ namespace DafnyDriver.Test {
   }
 }
 
-[DataDiscoverer("DafnyDriver.Test.LitTestDataDiscoverer", "LitTestConvertor.Test")]
+[DataDiscoverer("XUnitExtensions.LitTestDataDiscoverer", "XUnitExtensions")]
 public class LitTestDataAttribute : FileDataAttribute {
   
 }

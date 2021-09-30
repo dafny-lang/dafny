@@ -1,51 +1,72 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text;
 
 namespace XUnitExtensions {
   public class ShellLitCommand : ILitCommand {
-    private string ShellCommand;
-    private string[] Arguments;
-    private string[] PassthroughEnvironmentVariables;
+    private string shellCommand;
+    private string[] arguments;
+    private string outputFile;
+    private bool appendOutput;
+    private string[] passthroughEnvironmentVariables;
 
-    public ShellLitCommand(string shellCommand, IEnumerable<string> arguments, IEnumerable<string> passthroughEnvironmentVariables) {
-      ShellCommand = shellCommand;
-      Arguments = arguments.ToArray();
-      PassthroughEnvironmentVariables = passthroughEnvironmentVariables.ToArray();
+    public ShellLitCommand(string shellCommand, IEnumerable<string> arguments, string outputFile, bool appendOutput, IEnumerable<string> passthroughEnvironmentVariables) {
+      this.shellCommand = shellCommand;
+      this.arguments = arguments.ToArray();
+      this.outputFile = outputFile;
+      this.appendOutput = appendOutput;
+      this.passthroughEnvironmentVariables = passthroughEnvironmentVariables.ToArray();
     }
-    
-    public (int, string) Execute() {
+
+    public static ILitCommand Parse(string shellCommand, IEnumerable<string> arguments, LitTestConfiguration config) {
+      var (args, outputFile, appendOutput) = ILitCommand.ExtractOutputFile(arguments);
+      return new ShellLitCommand(shellCommand, args, outputFile, appendOutput, config.PassthroughEnvironmentVariables);
+    }
+
+    public (int, string, string) Execute() {
       using var process = new Process();
 
-      process.StartInfo.FileName = ShellCommand;
-      foreach (var argument in Arguments) {
+      process.StartInfo.FileName = shellCommand;
+      foreach (var argument in arguments) {
         process.StartInfo.Arguments += " " + argument;
       }
 
+      // We avoid setting the current directory so that we maintain parity with
+      // MainMethodLitCommand, which can't change the current directory.
+      
       process.StartInfo.UseShellExecute = false;
-      // process.StartInfo.RedirectStandardOutput = true;
+      process.StartInfo.RedirectStandardOutput = true;
       process.StartInfo.RedirectStandardError = true;
       process.StartInfo.CreateNoWindow = true;
 
       process.StartInfo.EnvironmentVariables.Clear();
-      foreach (var passthrough in PassthroughEnvironmentVariables) {
+      foreach (var passthrough in passthroughEnvironmentVariables) {
         process.StartInfo.EnvironmentVariables.Add(passthrough, Environment.GetEnvironmentVariable(passthrough));
       }
 
       process.Start();
+      string output = process.StandardOutput.ReadToEnd();
+      if (outputFile != null) {
+        if (appendOutput) {
+          File.AppendAllText(outputFile, output);
+        } else {
+          File.WriteAllText(outputFile, output);
+        }
+      }
       string error = process.StandardError.ReadToEnd();
       process.WaitForExit();
 
-      return (process.ExitCode, error);
+      return (process.ExitCode, output, error);
     }
     
     public override string ToString() {
       var builder = new StringBuilder();
-      builder.Append(ShellCommand);
+      builder.Append(shellCommand);
       builder.Append(' ');
-      builder.AppendJoin(" ", Arguments);
+      builder.AppendJoin(" ", arguments);
       return builder.ToString();
     }
   }
