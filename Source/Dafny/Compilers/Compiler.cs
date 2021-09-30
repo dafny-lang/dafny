@@ -230,10 +230,29 @@ namespace Microsoft.Dafny {
 
       foreach (var ta in typeArgs) {
         if (useAllTypeArgs || NeedsTypeDescriptor(ta.Formal)) {
+          var actual = SimplifyType(ta.Actual);
           wr.Write("{0}{1}", prefix, TypeDescriptor(ta.Actual, wr, tok));
           prefix = ", ";
         }
       }
+    }
+
+    /// <summary>
+    /// Recursively change any ghost component with just 1 non-ghost component into that component.
+    /// </summary>
+    protected Type SimplifyType(Type ty) {
+      Contract.Requires(ty != null);
+
+      if (ty.NormalizeExpandKeepConstraints() is UserDefinedType udt) {
+        if (udt.ResolvedClass is TupleTypeDecl tupleTypeDecl && tupleTypeDecl.NonGhostDims == 1) {
+          // optimize singleton tuple into its argument
+          var nonGhostComponent = tupleTypeDecl.ArgumentGhostness.IndexOf(false);
+          Contract.Assert(0 <= nonGhostComponent && nonGhostComponent < tupleTypeDecl.Dims); // since .NonGhostDims == 1
+          return SimplifyType(udt.TypeArgs[nonGhostComponent]);
+        }
+        // TODO: simplify each type argument of "udt"
+      }
+      return ty;
     }
 
     /// <summary>
