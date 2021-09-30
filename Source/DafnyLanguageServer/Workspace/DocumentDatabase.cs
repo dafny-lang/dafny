@@ -91,25 +91,35 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return await updatedEntry.Document;
     }
 
-    public async Task<DafnyDocument> SaveDocumentAsync(TextDocumentIdentifier documentId) {
+    public Task<DafnyDocument> SaveDocumentAsync(TextDocumentIdentifier documentId) {
       if (!documents.TryGetValue(documentId.Uri, out var databaseEntry)) {
-        throw new ArgumentException($"the document {documentId.Uri} was not loaded before");
+        return Task.FromException<DafnyDocument>(new ArgumentException($"the document {documentId.Uri} was not loaded before"));
       }
-      var document = await databaseEntry.Document;
       if (!VerifyOnSave) {
+        return databaseEntry.Document;
+      }
+      return VerifyDocumentIfRequiredAsync(databaseEntry);
+    }
+
+    private async Task<DafnyDocument> VerifyDocumentIfRequiredAsync(DocumentEntry databaseEntry) {
+      databaseEntry.CancelPendingUpdates();
+      var document = await databaseEntry.Document;
+      if (!RequiresOnSaveVerification(document)) {
         return document;
       }
-      databaseEntry.CancelPendingUpdates();
+      var updatedEntry = VerifyDocument(document);
+      documents[document.Uri] = updatedEntry;
+      return await updatedEntry.Document;
+    }
+
+    private DocumentEntry VerifyDocument(DafnyDocument document) {
       var cancellationSource = new CancellationTokenSource();
       var updatedEntry = new DocumentEntry(
         document.Version,
-        RequiresOnSaveVerification(document)
-          ? Task.Run(() => documentLoader.LoadAsync(document.Text, VerifyOnSave, cancellationSource.Token))
-          : databaseEntry.Document,
+        Task.Run(() => documentLoader.LoadAsync(document.Text, VerifyOnSave, cancellationSource.Token)),
         cancellationSource
       );
-      documents[documentId.Uri] = updatedEntry;
-      return await updatedEntry.Document;
+      return updatedEntry;
     }
 
     private static bool RequiresOnSaveVerification(DafnyDocument document) {
