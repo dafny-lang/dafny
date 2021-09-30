@@ -51,7 +51,7 @@
     }
 
     public virtual void Visit(DatatypeDecl dataTypeDeclaration) {
-      foreach(var member in dataTypeDeclaration.Members) {
+      foreach (var member in dataTypeDeclaration.Members) {
         Visit(member);
       }
     }
