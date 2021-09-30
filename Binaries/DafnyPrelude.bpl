@@ -456,7 +456,7 @@ const {:exclude_dep} $FunctionContextHeight: int;
 type LayerType;
 const $LZ: LayerType;
 function $LS(LayerType): LayerType;
-function AsFuelBottom(LayerType) : LayerType;
+function {:exclude_dep} AsFuelBottom(LayerType) : LayerType;
 
 function AtLayer<A>([LayerType]A, LayerType): A;
 axiom (forall<A> f : [LayerType]A, ly : LayerType :: { AtLayer(f,ly) } AtLayer(f,ly) == f[ly]);

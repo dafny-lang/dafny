@@ -169,7 +169,7 @@ namespace Microsoft.Dafny {
       return Lit(expr, expr.Type);
     }
 
-    Bpl.Expr GetLit(Bpl.Expr expr) {
+    static Bpl.Expr GetLit(Bpl.Expr expr) {
       if (expr is Bpl.NAryExpr) {
         Bpl.NAryExpr app = (Bpl.NAryExpr)expr;
         switch (app.Fun.FunctionName) {
@@ -184,7 +184,7 @@ namespace Microsoft.Dafny {
       return null;
     }
 
-    Bpl.Expr RemoveLit(Bpl.Expr expr) {
+    static Bpl.Expr RemoveLit(Bpl.Expr expr) {
       return GetLit(expr) ?? expr;
     }
 
@@ -860,6 +860,20 @@ namespace Microsoft.Dafny {
       Bpl.Expr e;
       fvars.Add(BplFormalVar(name, ty, incoming, out e));
       return e;
+    }
+
+    static Bpl.AssumeCmd TrAssumeCmd(Bpl.IToken tok, Bpl.Expr expr, Bpl.QKeyValue attributes = null) {
+      var lit = RemoveLit(expr);
+      return attributes == null ? new Bpl.AssumeCmd(tok, lit) : new Bpl.AssumeCmd(tok, lit, attributes);
+    }
+
+    static Bpl.AssertCmd TrAssertCmd(Bpl.IToken tok, Bpl.Expr expr, Bpl.QKeyValue attributes = null) {
+      var lit = RemoveLit(expr);
+      return attributes == null ? new Bpl.AssertCmd(tok, lit) : new Bpl.AssertCmd(tok, lit, attributes);
+    }
+
+    public Bpl.QKeyValue ExcludeDep(Bpl.QKeyValue next = null) {
+      return new Bpl.QKeyValue(Bpl.Token.NoToken, "exclude_dep", new List<object>(), next);
     }
   }
 }
