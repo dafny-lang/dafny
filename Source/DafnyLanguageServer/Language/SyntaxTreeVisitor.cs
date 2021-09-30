@@ -30,8 +30,10 @@
         case ClassDecl classDeclaration:
           Visit(classDeclaration);
           break;
-        case ModuleDecl moduleDeclaration:
         case DatatypeDecl dataTypeDeclaration:
+          Visit(dataTypeDeclaration);
+          break;
+        case ModuleDecl moduleDeclaration:
         case ValuetypeDecl valueTypeDeclaration:
         case OpaqueTypeDecl opaqueTypeDeclaration:
         case NewtypeDecl newTypeDeclaration:
@@ -44,6 +46,12 @@
 
     public virtual void Visit(ClassDecl classDeclaration) {
       foreach (var member in classDeclaration.Members) {
+        Visit(member);
+      }
+    }
+
+    public virtual void Visit(DatatypeDecl dataTypeDeclaration) {
+      foreach(var member in dataTypeDeclaration.Members) {
         Visit(member);
       }
     }

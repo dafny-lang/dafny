@@ -2,10 +2,8 @@
 using MediatR;
 using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Extensions.Logging;
-using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading;
 using AstElement = System.Object;
@@ -90,11 +88,19 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       }
 
       public override void Visit(ClassDecl classDeclaration) {
+        VisitTopLevelDeclarationWithMembers(classDeclaration, () => base.Visit(classDeclaration));
+      }
+
+      public override void Visit(DatatypeDecl datatypeDeclaration) {
+        VisitTopLevelDeclarationWithMembers(datatypeDeclaration, () => base.Visit(datatypeDeclaration));
+      }
+
+      private void VisitTopLevelDeclarationWithMembers(TopLevelDeclWithMembers declaration, System.Action visit) {
         _cancellationToken.ThrowIfCancellationRequested();
-        foreach (var parentTrait in classDeclaration.ParentTraits) {
+        foreach (var parentTrait in declaration.ParentTraits) {
           RegisterTypeDesignator(_currentScope, parentTrait);
         }
-        ProcessNestedScope(classDeclaration, classDeclaration.tok, () => base.Visit(classDeclaration));
+        ProcessNestedScope(declaration, declaration.tok, visit);
       }
 
       public override void Visit(Method method) {
@@ -240,14 +246,22 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       }
 
       public Unit Visit(ClassSymbol classSymbol) {
+        return VisitTypeSymbol(classSymbol);
+      }
+
+      public Unit Visit(DataTypeSymbol datatypeSymbol) {
+        return VisitTypeSymbol(datatypeSymbol);
+      }
+
+      private Unit VisitTypeSymbol<TNode>(TypeWithMembersSymbolBase<TNode> typeSymbol) where TNode : TopLevelDeclWithMembers {
         _cancellationToken.ThrowIfCancellationRequested();
         RegisterLocation(
-          classSymbol,
-          classSymbol.Declaration.tok,
-          classSymbol.Declaration.tok.GetLspRange(),
-          new Range(classSymbol.Declaration.tok.GetLspPosition(), classSymbol.Declaration.BodyEndTok.GetLspPosition())
+          typeSymbol,
+          typeSymbol.Declaration.tok,
+          typeSymbol.Declaration.tok.GetLspRange(),
+          new Range(typeSymbol.Declaration.tok.GetLspPosition(), typeSymbol.Declaration.BodyEndTok.GetLspPosition())
         );
-        VisitChildren(classSymbol);
+        VisitChildren(typeSymbol);
         return Unit.Value;
       }
 

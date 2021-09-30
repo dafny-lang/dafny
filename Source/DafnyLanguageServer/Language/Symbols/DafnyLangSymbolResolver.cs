@@ -1,6 +1,8 @@
 ﻿using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using System.Collections;
+using System.Collections.Generic;
 using System.Threading;
 
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
@@ -92,6 +94,8 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
             return ProcessModule(moduleSymbol, literalModuleDeclaration.ModuleDef);
           case ValuetypeDecl valueTypeDeclaration:
             return ProcessValueType(moduleSymbol, valueTypeDeclaration);
+          case DatatypeDecl dataTypeDeclaration:
+            return ProcessDataType(moduleSymbol, dataTypeDeclaration);
           default:
             _logger.LogDebug("encountered unknown top level declaration {Name} of type {Type}", topLevelDeclaration.Name, topLevelDeclaration.GetType());
             return null;
@@ -101,13 +105,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       private ClassSymbol ProcessClass(Symbol scope, ClassDecl classDeclaration) {
         _cancellationToken.ThrowIfCancellationRequested();
         var classSymbol = new ClassSymbol(scope, classDeclaration);
-        foreach (var member in classDeclaration.Members) {
-          var memberSymbol = ProcessClassMember(classSymbol, member);
-          if (memberSymbol != null) {
-            // TODO When respecting all possible class members, this should never be null.
-            classSymbol.Members.Add(memberSymbol);
-          }
-        }
+        ProcessAndAddAllMembers(classSymbol, classDeclaration);
         return classSymbol;
       }
 
@@ -116,7 +114,26 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         return new ValueTypeSymbol(scope, valueTypeDecarlation);
       }
 
-      private Symbol? ProcessClassMember(ClassSymbol scope, MemberDecl memberDeclaration) {
+      private DataTypeSymbol ProcessDataType(Symbol scope, DatatypeDecl dataTypeDeclaration) {
+        _cancellationToken.ThrowIfCancellationRequested();
+        var dataTypeSymbol = new DataTypeSymbol(scope, dataTypeDeclaration);
+        ProcessAndAddAllMembers(dataTypeSymbol, dataTypeDeclaration);
+        return dataTypeSymbol;
+      }
+
+      private void ProcessAndAddAllMembers<TSymbol, TNode>(TSymbol containingType, TNode declaration)
+        where TSymbol : TypeWithMembersSymbolBase<TNode>
+        where TNode : TopLevelDeclWithMembers {
+        foreach (var member in declaration.Members) {
+          var memberSymbol = ProcessTypeMember(containingType, member);
+          if (memberSymbol != null) {
+            // TODO When respecting all possible class members, this should never be null.
+            containingType.Members.Add(memberSymbol);
+          }
+        }
+      }
+
+      private Symbol? ProcessTypeMember(Symbol scope, MemberDecl memberDeclaration) {
         _cancellationToken.ThrowIfCancellationRequested();
         switch (memberDeclaration) {
           case Function function:
@@ -129,7 +146,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           default:
             // TODO The last missing member is AmbiguousMemberDecl which is created by the resolver.
             //      When is this class exactly used?
-            _logger.LogDebug("encountered unknown class member declaration {DeclarationType}", memberDeclaration.GetType());
+            _logger.LogDebug("encountered unknown member declaration {DeclarationType}", memberDeclaration.GetType());
             return null;
         }
       }
