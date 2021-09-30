@@ -31,6 +31,7 @@ method Main() {
   TestMatchDestructions();
   var sss := TestSingletons();
   print sss.1, "\n"; // 1213
+  MoreSingletonTests();
 }
 
 method TestDestructors() {
@@ -117,3 +118,54 @@ function method Singleton2(): (ghost real, ghost (), int, ghost char) {
 }
 
 const SingletonConst := (12, ghost 13)
+
+type SX = (ghost int, int, ghost int)
+type SX2 = (SX, ghost real)
+datatype SX3 = SX3(a: SX, ghost b: real)
+
+method MoreSingletonTests() {
+  var r := (ghost 2, 3, ghost 4);
+  print r, "\n"; // 3
+  var arr := new SX[20];
+  arr[3] := (ghost 200, 100, ghost 400);
+  PrintOneSx(arr[3]); // 100
+  print arr[0], " ", arr[3], "\n"; // 0 100
+  UpdateArray(arr, (ghost 99, 9, ghost 999));
+  print arr[1], " ", arr[2], "\n"; // 0 9
+  UpdateSxArray(arr, (ghost 99, 19, ghost 999));
+  print arr[4], " ", arr[5], "\n"; // 0 19
+
+  var sx2 := (arr[5], ghost 2.0);
+  print sx2, "\n"; // 19
+  var arr2 := new SX2[20];
+  UpdateArray(arr2, ((ghost 5, 15, ghost 25), ghost 3.0));
+  print arr2[1], " ", arr2[2], "\n"; // 0 15
+
+  var sx3 := SX3(arr[2], 4.0);
+  print sx3, "\n"; // SX3(9)
+  var arr3 := new SX3[20];
+  UpdateArray(arr3, sx3);
+  print arr3[1], " ", arr3[2], "\n"; // SX3(0) SX3(9)
+}
+
+method PrintOneSx(g: SX) {
+  print g, "\n";
+}
+
+method UpdateArray<T(0)>(arr: array<T>, t: T)
+  requires 10 <= arr.Length
+  modifies arr
+{
+  var tt: T;
+  arr[1] := tt;
+  arr[2] := t;
+}
+
+method UpdateSxArray(arr: array<SX>, t: SX)
+  requires 10 <= arr.Length
+  modifies arr
+{
+  var tt: SX;
+  arr[4] := tt;
+  arr[5] := t;
+}
