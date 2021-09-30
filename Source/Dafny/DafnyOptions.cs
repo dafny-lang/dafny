@@ -17,6 +17,7 @@ namespace Microsoft.Dafny {
     public DafnyOptions(ErrorReporter errorReporter = null)
       : base("Dafny", "Dafny program verifier") {
       this.errorReporter = errorReporter;
+      this.PruneFunctionsAndAxioms = true;
     }
 
     public override string VersionNumber {
