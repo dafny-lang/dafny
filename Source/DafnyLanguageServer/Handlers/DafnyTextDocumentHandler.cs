@@ -15,6 +15,9 @@ using System.Threading.Tasks;
 #pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
 #pragma warning disable VSTHRD110 // Observe result of async calls
 
+// Justification: The task is launched within the same class
+#pragma warning disable VSTHRD003 // Avoid awaiting foreign Tasks
+
 namespace Microsoft.Dafny.LanguageServer.Handlers {
   /// <summary>
   /// LSP Synchronization handler for document based events, such as change, open, close and save.
@@ -55,7 +58,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     public override Task<Unit> Handle(DidOpenTextDocumentParams notification, CancellationToken cancellationToken) {
       logger.LogTrace("received open notification {DocumentUri}", notification.TextDocument.Uri);
-      RunAndPublishDiagnosticsAsync(() => documents.LoadDocumentAsync(notification.TextDocument));
+      HandleUpdateAndPublishDiagnosticsAsync(documents.LoadDocumentAsync(notification.TextDocument));
       return Unit.Task;
     }
 
@@ -67,19 +70,19 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     public override Task<Unit> Handle(DidChangeTextDocumentParams notification, CancellationToken cancellationToken) {
       logger.LogTrace("received change notification {DocumentUri}", notification.TextDocument.Uri);
-      RunAndPublishDiagnosticsAsync(() => documents.UpdateDocumentAsync(notification));
+      HandleUpdateAndPublishDiagnosticsAsync(documents.UpdateDocumentAsync(notification));
       return Unit.Task;
     }
 
     public override Task<Unit> Handle(DidSaveTextDocumentParams notification, CancellationToken cancellationToken) {
       logger.LogTrace("received save notification {DocumentUri}", notification.TextDocument.Uri);
-      RunAndPublishDiagnosticsAsync(() => documents.SaveDocumentAsync(notification.TextDocument));
+      HandleUpdateAndPublishDiagnosticsAsync(documents.SaveDocumentAsync(notification.TextDocument));
       return Unit.Task;
     }
 
-    private async Task RunAndPublishDiagnosticsAsync(Func<Task<DafnyDocument>> documentAction) {
+    private async Task HandleUpdateAndPublishDiagnosticsAsync(Task<DafnyDocument> documentAction) {
       try {
-        var document = await documentAction();
+        var document = await documentAction;
         diagnosticPublisher.PublishDiagnostics(document);
       } catch (Exception e) {
         logger.LogError(e, "error while handling document event");
