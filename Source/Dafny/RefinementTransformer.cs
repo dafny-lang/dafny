@@ -1454,8 +1454,7 @@ namespace Microsoft.Dafny {
       } else {
         newBody = MergeBlockStmt(cNew.Body, cOld.Body);
       }
-      var r = new RefinedWhileStmt(cNew.Tok, cNew.EndTok, guard, invs, decr, refinementCloner.CloneSpecFrameExpr(cOld.Mod), newBody);
-      return r;
+      return new RefinedWhileStmt(cNew.Tok, cNew.EndTok, guard, invs, decr, refinementCloner.CloneSpecFrameExpr(cOld.Mod), newBody);
     }
 
     Statement MergeElse(Statement skeleton, Statement oldStmt) {

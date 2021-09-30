@@ -1652,7 +1652,6 @@ namespace Microsoft.Dafny {
                : "");
     }
 
-    [System.Diagnostics.Contracts.Pure]
     private static bool EquivIfPresent<T1, T2>(Dictionary<T1, T2> dic, T1 key, T2 val)
       where T2 : class {
       T2 val2;
@@ -8492,9 +8491,9 @@ namespace Microsoft.Dafny {
               Error(s, "only ghost methods can be called from this context");
             }
           } else {
-            // check in-parameters
             int j;
             if (!callee.IsGhost) {
+              // check in-parameters
               resolver.CheckIsCompilable(s.Receiver, codeContext);
               j = 0;
               foreach (var e in s.Args) {
