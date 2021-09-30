@@ -69,7 +69,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           if (currentMemberAccess == 0) {
             if (currentDesignatorName == "this") {
               // This actually the type, but TryGetTypeOf respects the case that the symbol itself is already a type.
-              currentDesignator = GetEnclosingClass(enclosingSymbol);
+              currentDesignator = GetEnclosingType(enclosingSymbol);
             } else {
               currentDesignator = GetAccessedSymbolOfEnclosingScopes(enclosingSymbol, currentDesignatorName);
             }
@@ -94,12 +94,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return symbol;
       }
 
-      private ClassSymbol? GetEnclosingClass(ISymbol scope) {
+      private TypeWithMembersSymbolBase? GetEnclosingType(ISymbol scope) {
         _cancellationToken.ThrowIfCancellationRequested();
-        if (scope is ClassSymbol classSymbol) {
-          return classSymbol;
+        if (scope is TypeWithMembersSymbolBase typeSymbol) {
+          return typeSymbol;
         }
-        return scope.Scope == null ? null : GetEnclosingClass(scope.Scope);
+        return scope.Scope == null ? null : GetEnclosingType(scope.Scope);
       }
 
       private ISymbol? FindSymbolWithName(ISymbol containingSymbol, string name) {

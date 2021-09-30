@@ -119,9 +119,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         return dataTypeSymbol;
       }
 
-      private void ProcessAndAddAllMembers<TSymbol, TNode>(TSymbol containingType, TNode declaration)
-        where TSymbol : TypeWithMembersSymbolBase<TNode>
-        where TNode : TopLevelDeclWithMembers {
+      private void ProcessAndAddAllMembers<TNode>(TypeWithMembersSymbolBase containingType, TNode declaration) where TNode : TopLevelDeclWithMembers {
         foreach (var member in declaration.Members) {
           var memberSymbol = ProcessTypeMember(containingType, member);
           if (memberSymbol != null) {
