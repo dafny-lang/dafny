@@ -174,3 +174,8 @@ function {:opaque} B(): int
   A()
 }
 
+function HasInconsistency(): int
+  ensures HasInconsistency() == 5; // error: this result value is not what the postcondition specification says
+{
+  6
+}
