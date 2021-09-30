@@ -9,7 +9,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
     public override IEnumerable<ISymbol> Children => Members;
 
-    protected TypeWithMembersSymbolBase(ISymbol? scope, string name) : base(scope, name) {}
+    protected TypeWithMembersSymbolBase(ISymbol? scope, string name) : base(scope, name) { }
 
     public abstract string GetDetailText(CancellationToken cancellationToken);
   }
