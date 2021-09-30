@@ -12,42 +12,46 @@ using System.Threading.Tasks;
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
   [TestClass]
   public class ConcurrentInteractionsTest : DafnyLanguageServerTestBase {
+    // Implementation note: These tests assume that no diagnostics are published
+    // when a document (re-load) was canceled (DafnyDocument.LoadCanceled).
     private const int MaxTestExecutionTimeMs = 60_000;
 
-    private ILanguageClient _client;
-    private TestDiagnosticReceiver _diagnosticReceiver;
+    private ILanguageClient client;
+    private TestDiagnosticReceiver diagnosticReceiver;
 
     [TestInitialize]
     public async Task SetUp() {
-      _diagnosticReceiver = new TestDiagnosticReceiver();
-      _client = await InitializeClient(options => options.OnPublishDiagnostics(_diagnosticReceiver.DiagnosticReceived));
+      diagnosticReceiver = new TestDiagnosticReceiver();
+      client = await InitializeClient(options => options.OnPublishDiagnostics(diagnosticReceiver.DiagnosticReceived));
     }
 
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
     public async Task ChangeDocumentRightAfterOpeningCancelsLoad() {
       var source = @"
-method Multiply(x: int, y: int) returns (product: int)
-  requires y >= 0 && x >= 0
-  decreases y
-  ensures product == x * y && product >= 0
-{
-  if y == 0 {
-    product := 0;
-  } else {
-    var step := Multiply(x, y - 1);
-    product := x + step;
+lemma {:timeLimit 3} SquareRoot2NotRational(p: nat, q: nat)
+  requires p > 0 && q > 0
+  ensures (p * p) !=  2 * (q * q)
+{ 
+  if (p * p) ==  2 * (q * q) {
+    calc == {
+      (2 * q - p) * (2 * q - p);
+      4 * q * q + p * p - 4 * p * q;
+      {assert 2 * q * q == p * p;}
+      2 * q * q + 2 * p * p - 4 * p * q;
+      2 * (p - q) * (p - q);
+    }
   }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
-      _client.DidChangeTextDocument(new DidChangeTextDocumentParams {
+      client.OpenDocument(documentItem);
+      client.DidChangeTextDocument(new DidChangeTextDocumentParams {
         TextDocument = new OptionalVersionedTextDocumentIdentifier {
           Uri = documentItem.Uri,
           Version = documentItem.Version + 1
         },
         ContentChanges = new[] {
           new TextDocumentContentChangeEvent {
-            Range = new Range((0, 53), (0, 54)),
+            Range = new Range((13, 0), (13, 1)),
             Text = ""
           }
         }
@@ -55,9 +59,9 @@ method Multiply(x: int, y: int) returns (product: int)
 
       // The initial document does not have issues. If the load was succesfully canceled, we should
       // receive diagnostics with a parser error.
-      var report = await _diagnosticReceiver.AwaitNextPublishDiagnostics(CancellationToken);
+      var report = await diagnosticReceiver.AwaitNextPublishDiagnostics(CancellationToken);
       var diagnostics = report.Diagnostics.ToArray();
-      Assert.AreEqual(0, diagnostics.Length);
+      Assert.AreEqual(1, diagnostics.Length);
     }
 
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
@@ -77,12 +81,12 @@ lemma {:timeLimit 3} SquareRoot2NotRational(p: nat, q: nat)
     }
   }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var initialLoadReport = await _diagnosticReceiver.AwaitNextPublishDiagnostics(CancellationToken);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var initialLoadReport = await diagnosticReceiver.AwaitNextPublishDiagnostics(CancellationToken);
       var initialLoadDiagnostics = initialLoadReport.Diagnostics.ToArray();
       Assert.AreEqual(1, initialLoadDiagnostics.Length);
 
-      _client.DidChangeTextDocument(new DidChangeTextDocumentParams {
+      client.DidChangeTextDocument(new DidChangeTextDocumentParams {
         TextDocument = new OptionalVersionedTextDocumentIdentifier {
           Uri = documentItem.Uri,
           Version = documentItem.Version + 1
@@ -95,7 +99,7 @@ lemma {:timeLimit 3} SquareRoot2NotRational(p: nat, q: nat)
         }
       });
 
-      _client.DidChangeTextDocument(new DidChangeTextDocumentParams {
+      client.DidChangeTextDocument(new DidChangeTextDocumentParams {
         TextDocument = new OptionalVersionedTextDocumentIdentifier {
           Uri = documentItem.Uri,
           Version = documentItem.Version + 2
@@ -109,16 +113,19 @@ lemma {:timeLimit 3} SquareRoot2NotRational(p: nat, q: nat)
       });
 
       // The diagnostics of the initial document are already awaited. The original document contains a syntactic error.
-      // The first change fixes the error. Therefore, if it was canceled by the second change, it should
-      // report the same diagnostics as the initial document (migrated state).
+      // The first change fixes the error. Therefore, if it was canceled by the second change, it should not report
+      // any diagnostics.
       // The second change replaces the complete document with a correct one. Mind that the original document
       // was chosen because of the exceptionally long time it requires to verify.
-      var intermediateReport = await _diagnosticReceiver.AwaitNextPublishDiagnostics(CancellationToken);
-      var intermediateDiagnostics = intermediateReport.Diagnostics.ToArray();
-      Assert.AreEqual(1, intermediateDiagnostics.Length);
-      var report = await _diagnosticReceiver.AwaitNextPublishDiagnostics(CancellationToken);
+      var report = await diagnosticReceiver.AwaitNextPublishDiagnostics(CancellationToken);
       var diagnostics = report.Diagnostics.ToArray();
       Assert.AreEqual(0, diagnostics.Length);
+
+      // This change is to ensure that no diagnostics are remaining in the report queue.
+      var verificationDocumentItem = CreateTestDocument("class X {}", "verification.dfy");
+      await client.OpenDocumentAndWaitAsync(verificationDocumentItem, CancellationToken);
+      var verificationReport = await diagnosticReceiver.AwaitNextPublishDiagnostics(CancellationToken);
+      Assert.AreEqual(verificationDocumentItem.Uri, verificationReport.Uri);
     }
 
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
@@ -144,27 +151,27 @@ method Multiply(x: int, y: int) returns (product: int)
       var loadingDocuments = new List<TextDocumentItem>();
       for (int i = 0; i < documentsToLoadConcurrently; i++) {
         var documentItem = CreateTestDocument(source, $"test_{i}.dfy");
-        _client.OpenDocument(documentItem);
+        client.OpenDocument(documentItem);
         loadingDocuments.Add(documentItem);
       }
       for (int i = 0; i < documentsToLoadConcurrently; i++) {
-        var report = await _diagnosticReceiver.AwaitNextPublishDiagnostics(CancellationToken);
+        var report = await diagnosticReceiver.AwaitNextPublishDiagnostics(CancellationToken);
         Assert.AreEqual(0, report.Diagnostics.Count());
       }
     }
 
     public class TestDiagnosticReceiver {
-      private readonly SemaphoreSlim _availableDiagnostics = new(0);
-      private readonly ConcurrentQueue<PublishDiagnosticsParams> _diagnostics = new();
+      private readonly SemaphoreSlim availableDiagnostics = new(0);
+      private readonly ConcurrentQueue<PublishDiagnosticsParams> diagnosticsQueue = new();
 
       public void DiagnosticReceived(PublishDiagnosticsParams request) {
-        _diagnostics.Enqueue(request);
-        _availableDiagnostics.Release();
+        diagnosticsQueue.Enqueue(request);
+        availableDiagnostics.Release();
       }
 
       public async Task<PublishDiagnosticsParams> AwaitNextPublishDiagnostics(CancellationToken cancellationToken) {
-        await _availableDiagnostics.WaitAsync(cancellationToken);
-        if (_diagnostics.TryDequeue(out var diagnostics)) {
+        await availableDiagnostics.WaitAsync(cancellationToken);
+        if (diagnosticsQueue.TryDequeue(out var diagnostics)) {
           return diagnostics;
         }
         throw new System.InvalidOperationException("got a signal for a received diagnostic but it was not present in the queue");
