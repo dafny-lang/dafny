@@ -98,7 +98,11 @@ namespace Microsoft.Dafny {
     public void Warning(MessageSource source, IToken tok, string msg) {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
-      Message(source, ErrorLevel.Warning, tok, msg);
+      if (DafnyOptions.O.WarningsAsErrors) {
+        Error(source, tok, msg);
+      } else {
+        Message(source, ErrorLevel.Warning, tok, msg);
+      }
     }
 
     public void Deprecated(MessageSource source, IToken tok, string msg, params object[] args) {
