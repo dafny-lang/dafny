@@ -34,7 +34,11 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     }
 
     public string GetDetailText(CancellationToken cancellationToken) {
-      return $"{Declaration.WhatKind} {TypePrefix}{Declaration.Name}({Declaration.Ins.AsCommaSeperatedText()}) returns ({Declaration.Outs.AsCommaSeperatedText()})";
+      var signatureWithoutReturn = $"{Declaration.WhatKind} {TypePrefix}{Declaration.Name}({Declaration.Ins.AsCommaSeperatedText()})";
+      if (Declaration.Outs.Count == 0) {
+        return signatureWithoutReturn;
+      }
+      return $"{signatureWithoutReturn} returns ({Declaration.Outs.AsCommaSeperatedText()})";
     }
 
     public override TResult Accept<TResult>(ISymbolVisitor<TResult> visitor) {

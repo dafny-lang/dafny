@@ -290,7 +290,7 @@ method Main() {
       Assert.IsNotNull(hover);
       var markup = hover.Contents.MarkupContent;
       Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
-      Assert.AreEqual("```dafny\nmethod SomeType.AssertEqual(x: int, y: int) returns ()\n```", markup.Value);
+      Assert.AreEqual("```dafny\nmethod SomeType.AssertEqual(x: int, y: int)\n```", markup.Value);
     }
   }
 }
