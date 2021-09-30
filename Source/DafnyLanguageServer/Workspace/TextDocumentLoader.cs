@@ -109,13 +109,19 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return new DafnyDocument(textDocument, errorReporter, program, symbolTable, serializedCounterExamples);
     }
 
-    private static DafnyDocument CreateDocumentWithEmptySymbolTable(TextDocumentItem textDocument, DiagnosticErrorReporter errorReporter, Dafny.Program program, bool loadCanceled) {
+    private static DafnyDocument CreateDocumentWithEmptySymbolTable(
+      TextDocumentItem textDocument,
+      DiagnosticErrorReporter errorReporter,
+      Dafny.Program program,
+      bool loadCanceled
+    ) {
       return new DafnyDocument(
         textDocument,
         errorReporter,
         program,
         CreateEmptySymbolTable(program),
-        serializedCounterExamples: null
+        serializedCounterExamples: null,
+        loadCanceled
       );
     }
 
