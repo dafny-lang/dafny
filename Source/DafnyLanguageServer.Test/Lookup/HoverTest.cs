@@ -253,5 +253,22 @@ class Sub extends Base {}".TrimStart();
       Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
       Assert.AreEqual("```dafny\ntrait Base\n```", markup.Value);
     }
+
+    [TestMethod]
+    public async Task HoveringParameterDesignatorOfMethodInsideDataTypeReturnsTheParameterType() {
+      var source = @"
+datatype SomeType = SomeType {
+  method AssertEqual(x: int, y: int) {
+    assert x == y;
+  }
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      _client.OpenDocument(documentItem);
+      var hover = await RequestHover(documentItem, (2, 11));
+      Assert.IsNotNull(hover);
+      var markup = hover.Contents.MarkupContent;
+      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
+      Assert.AreEqual("```dafny\nx: int\n```", markup.Value);
+    }
   }
 }
