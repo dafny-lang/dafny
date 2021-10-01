@@ -60,11 +60,11 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       }
 
       public CompilationUnit ProcessProgram(Dafny.Program program) {
-        cancellationToken.ThrowIfCancellationRequested();
         var compilationUnit = new CompilationUnit(program);
         // program.CompileModules would probably more suitable here, since we want the symbols of the System module as well.
         // However, it appears that the AST of program.CompileModules does not hold the correct location of the nodes - at least of the declarations.
         foreach (var module in program.Modules()) {
+          cancellationToken.ThrowIfCancellationRequested();
           compilationUnit.Modules.Add(ProcessModule(compilationUnit, module));
         }
         compilationUnit.Modules.Add(ProcessModule(compilationUnit, program.BuiltIns.SystemModule));
@@ -72,9 +72,9 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       }
 
       private ModuleSymbol ProcessModule(Symbol scope, ModuleDefinition moduleDefinition) {
-        cancellationToken.ThrowIfCancellationRequested();
         var moduleSymbol = new ModuleSymbol(scope, moduleDefinition);
         foreach (var declaration in moduleDefinition.TopLevelDecls) {
+          cancellationToken.ThrowIfCancellationRequested();
           var topLevelSymbol = ProcessTopLevelDeclaration(moduleSymbol, declaration);
           if (topLevelSymbol != null) {
             moduleSymbol.Declarations.Add(topLevelSymbol);
@@ -84,7 +84,6 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       }
 
       private Symbol? ProcessTopLevelDeclaration(ModuleSymbol moduleSymbol, TopLevelDecl topLevelDeclaration) {
-        cancellationToken.ThrowIfCancellationRequested();
         switch (topLevelDeclaration) {
           case ClassDecl classDeclaration:
             return ProcessClass(moduleSymbol, classDeclaration);
@@ -101,26 +100,24 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       }
 
       private ClassSymbol ProcessClass(Symbol scope, ClassDecl classDeclaration) {
-        cancellationToken.ThrowIfCancellationRequested();
         var classSymbol = new ClassSymbol(scope, classDeclaration);
         ProcessAndAddAllMembers(classSymbol, classDeclaration);
         return classSymbol;
       }
 
       private ValueTypeSymbol ProcessValueType(Symbol scope, ValuetypeDecl valueTypeDecarlation) {
-        cancellationToken.ThrowIfCancellationRequested();
         return new ValueTypeSymbol(scope, valueTypeDecarlation);
       }
 
       private DataTypeSymbol ProcessDataType(Symbol scope, DatatypeDecl dataTypeDeclaration) {
-        cancellationToken.ThrowIfCancellationRequested();
         var dataTypeSymbol = new DataTypeSymbol(scope, dataTypeDeclaration);
         ProcessAndAddAllMembers(dataTypeSymbol, dataTypeDeclaration);
         return dataTypeSymbol;
       }
 
-      private void ProcessAndAddAllMembers<TNode>(TypeWithMembersSymbolBase containingType, TNode declaration) where TNode : TopLevelDeclWithMembers {
+      private void ProcessAndAddAllMembers(TypeWithMembersSymbolBase containingType, TopLevelDeclWithMembers declaration) {
         foreach (var member in declaration.Members) {
+          cancellationToken.ThrowIfCancellationRequested();
           var memberSymbol = ProcessTypeMember(containingType, member);
           if (memberSymbol != null) {
             // TODO When respecting all possible class members, this should never be null.
@@ -148,21 +145,22 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       }
 
       private FunctionSymbol ProcessFunction(Symbol scope, Function function) {
-        cancellationToken.ThrowIfCancellationRequested();
         var functionSymbol = new FunctionSymbol(scope, function);
         foreach (var parameter in function.Formals) {
+          cancellationToken.ThrowIfCancellationRequested();
           functionSymbol.Parameters.Add(ProcessFormal(scope, parameter));
         }
         return functionSymbol;
       }
 
       private MethodSymbol ProcessMethod(Symbol scope, Method method) {
-        cancellationToken.ThrowIfCancellationRequested();
         var methodSymbol = new MethodSymbol(scope, method);
         foreach (var parameter in method.Ins) {
+          cancellationToken.ThrowIfCancellationRequested();
           methodSymbol.Parameters.Add(ProcessFormal(scope, parameter));
         }
         foreach (var result in method.Outs) {
+          cancellationToken.ThrowIfCancellationRequested();
           methodSymbol.Returns.Add(ProcessFormal(scope, result));
         }
         ProcessAndRegisterMethodBody(methodSymbol, method.Body);
@@ -180,12 +178,10 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       }
 
       private FieldSymbol ProcessField(Symbol scope, Field field) {
-        cancellationToken.ThrowIfCancellationRequested();
         return new FieldSymbol(scope, field);
       }
 
       private VariableSymbol ProcessFormal(Symbol scope, Formal formal) {
-        cancellationToken.ThrowIfCancellationRequested();
         return new VariableSymbol(scope, formal);
       }
     }
