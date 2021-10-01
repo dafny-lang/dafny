@@ -60,7 +60,7 @@ method Main() {
   //
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       ApplyChanges(
         documentItem,
         new TextDocumentContentChangeEvent {
@@ -89,7 +89,7 @@ method Main() {
   //
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       ApplyChanges(
         documentItem,
         new TextDocumentContentChangeEvent {
@@ -113,7 +113,7 @@ method Main() {
   //
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       ApplyChanges(
         documentItem,
         new TextDocumentContentChangeEvent {
@@ -154,7 +154,7 @@ module Mod {
   }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       ApplyChanges(
         documentItem,
         new TextDocumentContentChangeEvent {
@@ -203,7 +203,7 @@ class B {
   }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       ApplyChanges(
         documentItem,
         new TextDocumentContentChangeEvent {

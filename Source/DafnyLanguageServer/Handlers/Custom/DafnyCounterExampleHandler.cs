@@ -1,4 +1,5 @@
-﻿using Microsoft.Boogie;
+﻿using DafnyServer.CounterExampleGeneration;
+using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
@@ -10,7 +11,6 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using DafnyServer.CounterExampleGeneration;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
   public class DafnyCounterExampleHandler : ICounterExampleHandler {
@@ -22,13 +22,13 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
       _documents = documents;
     }
 
-    public Task<CounterExampleList> Handle(CounterExampleParams request, CancellationToken cancellationToken) {
-      DafnyDocument? document;
-      if (!_documents.TryGetDocument(request.TextDocument, out document)) {
+    public async Task<CounterExampleList> Handle(CounterExampleParams request, CancellationToken cancellationToken) {
+      var document = await _documents.GetDocumentAsync(request.TextDocument);
+      if (document == null) {
         _logger.LogWarning("counter-examples requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
-        return Task.FromResult(new CounterExampleList());
+        return new CounterExampleList();
       }
-      return Task.FromResult(new CounterExampleLoader(_logger, document, cancellationToken, request.CounterExampleDepth).GetCounterExamples());
+      return new CounterExampleLoader(_logger, document, cancellationToken, request.CounterExampleDepth).GetCounterExamples();
     }
 
     private class CounterExampleLoader {
