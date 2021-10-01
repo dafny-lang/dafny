@@ -215,7 +215,7 @@ class B {
   }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      await cclient.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var hover = await RequestHover(documentItem, (8, 13));
       Assert.IsNotNull(hover);
       var markup = hover.Contents.MarkupContent;
