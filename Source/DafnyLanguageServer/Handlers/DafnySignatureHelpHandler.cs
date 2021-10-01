@@ -52,8 +52,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       }
 
       public SignatureHelp? Process() {
-        ISymbol? symbol;
-        if (!symbolGuesser.TryGetSymbolBefore(document, GetOpenParenthesePosition(), cancellationToken, out symbol)) {
+        if (!symbolGuesser.TryGetSymbolBefore(document, GetOpenParenthesePosition(), cancellationToken, out var symbol)) {
           return null;
         }
         return CreateSignatureHelp(symbol);

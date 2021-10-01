@@ -32,8 +32,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         logger.LogWarning("location requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
         return new LocationOrLocationLinks();
       }
-      ILocalizableSymbol? symbol;
-      if (!document.SymbolTable.TryGetSymbolAt(request.Position, out symbol)) {
+      if (!document.SymbolTable.TryGetSymbolAt(request.Position, out var symbol)) {
         logger.LogDebug("no symbol was found at {Position} in {Document}", request.Position, request.TextDocument);
         return new LocationOrLocationLinks();
       }

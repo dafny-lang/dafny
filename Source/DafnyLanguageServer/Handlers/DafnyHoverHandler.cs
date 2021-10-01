@@ -31,9 +31,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         logger.LogWarning("the document {Document} is not loaded", request.TextDocument);
         return null;
       }
-
-      ILocalizableSymbol? symbol;
-      if (!document.SymbolTable.TryGetSymbolAt(request.Position, out symbol)) {
+      if (!document.SymbolTable.TryGetSymbolAt(request.Position, out var symbol)) {
         logger.LogDebug("no symbol was found at {Position} in {Document}", request.Position, request.TextDocument);
         return null;
       }
