@@ -34,8 +34,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         if (newDocument.SymbolTable.Resolved) {
           return newDocument;
         }
+        // The document loader failed to create a new symbol table. Since we'd still like to provide
+        // features such as code completion and lookup, we re-locate the previously resolved symbols
+        // according to the change.
         return MigrateDocument(mergedText, newDocument, changeProcessor, false);
       } catch (System.OperationCanceledException) {
+        // The document load was canceled before it could complete. We migrate the document
+        // to re-locate symbols that were resolved previously.
         _logger.LogTrace("document loading canceled, applying migration");
         return MigrateDocument(mergedText, oldDocument, changeProcessor, true);
       }
