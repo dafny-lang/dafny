@@ -9,15 +9,15 @@ using System.Threading.Tasks;
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
   [TestClass]
   public class HoverTest : DafnyLanguageServerTestBase {
-    private ILanguageClient _client;
+    private ILanguageClient client;
 
     [TestInitialize]
     public async Task SetUp() {
-      _client = await InitializeClient();
+      client = await InitializeClient();
     }
 
     private Task<Hover> RequestHover(TextDocumentItem documentItem, Position position) {
-      return _client.RequestHover(
+      return client.RequestHover(
         new HoverParams {
           TextDocument = documentItem.Uri,
           Position = position
@@ -36,7 +36,7 @@ method CallDoIt() returns () {
   var x := DoIt();
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      client.OpenDocument(documentItem);
       var hover = await RequestHover(documentItem, (4, 14));
       Assert.IsNotNull(hover);
       var markup = hover.Contents.MarkupContent;
@@ -52,7 +52,7 @@ method DoIt() {
   var y := x.Length;
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      client.OpenDocument(documentItem);
       var hover = await RequestHover(documentItem, (2, 14));
       Assert.IsNotNull(hover);
       var markup = hover.Contents.MarkupContent;
@@ -71,7 +71,7 @@ method DoIt() returns (x: int) {
   return a.GetX();
 }".TrimStart();
       var documentItem = CreateTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Lookup/TestFiles/test.dfy"));
-      _client.OpenDocument(documentItem);
+      client.OpenDocument(documentItem);
       var hover = await RequestHover(documentItem, (4, 13));
       Assert.IsNotNull(hover);
       var markup = hover.Contents.MarkupContent;
@@ -86,7 +86,7 @@ method DoIt() returns (x: int) {
   return GetX();
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      client.OpenDocument(documentItem);
       var hover = await RequestHover(documentItem, (1, 12));
       Assert.IsNull(hover);
     }
@@ -103,7 +103,7 @@ class Test {
   }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      client.OpenDocument(documentItem);
       var hover = await RequestHover(documentItem, (5, 10));
       Assert.IsNotNull(hover);
       var markup = hover.Contents.MarkupContent;
@@ -123,7 +123,7 @@ class Test {
   }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      client.OpenDocument(documentItem);
       var hover = await RequestHover(documentItem, (5, 15));
       Assert.IsNotNull(hover);
       var markup = hover.Contents.MarkupContent;
@@ -146,7 +146,7 @@ class Test {
   }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      client.OpenDocument(documentItem);
       var hover = await RequestHover(documentItem, (7, 12));
       Assert.IsNotNull(hover);
       var markup = hover.Contents.MarkupContent;
@@ -169,7 +169,7 @@ class Test {
   }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      client.OpenDocument(documentItem);
       var hover = await RequestHover(documentItem, (8, 10));
       Assert.IsNotNull(hover);
       var markup = hover.Contents.MarkupContent;
@@ -192,7 +192,7 @@ class B {
   }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      client.OpenDocument(documentItem);
       var hover = await RequestHover(documentItem, (5, 9));
       Assert.IsNotNull(hover);
       var markup = hover.Contents.MarkupContent;
@@ -215,7 +215,7 @@ class B {
   }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      client.OpenDocument(documentItem);
       var hover = await RequestHover(documentItem, (8, 13));
       Assert.IsNotNull(hover);
       var markup = hover.Contents.MarkupContent;
@@ -232,7 +232,7 @@ class A {
 
 method DoIt(a: A) {}".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      client.OpenDocument(documentItem);
       var hover = await RequestHover(documentItem, (4, 15));
       Assert.IsNotNull(hover);
       var markup = hover.Contents.MarkupContent;
@@ -246,12 +246,51 @@ method DoIt(a: A) {}".TrimStart();
 trait Base {}
 class Sub extends Base {}".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      client.OpenDocument(documentItem);
       var hover = await RequestHover(documentItem, (1, 19));
       Assert.IsNotNull(hover);
       var markup = hover.Contents.MarkupContent;
       Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
       Assert.AreEqual("```dafny\ntrait Base\n```", markup.Value);
+    }
+
+    [TestMethod]
+    public async Task HoveringParameterDesignatorOfMethodInsideDataTypeReturnsTheParameterType() {
+      var source = @"
+datatype SomeType = SomeType {
+  method AssertEqual(x: int, y: int) {
+    assert x == y;
+  }
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      client.OpenDocument(documentItem);
+      var hover = await RequestHover(documentItem, (2, 11));
+      Assert.IsNotNull(hover);
+      var markup = hover.Contents.MarkupContent;
+      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
+      Assert.AreEqual("```dafny\nx: int\n```", markup.Value);
+    }
+
+    [TestMethod]
+    public async Task HoveringMethodInvocationOfDataTypeReturnsMethodSignature() {
+      var source = @"
+datatype SomeType = SomeType {
+  method AssertEqual(x: int, y: int) {
+    assert x == y;
+  }
+}
+
+method Main() {
+  var instance: SomeType;
+  instance.AssertEqual(1, 2);
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      client.OpenDocument(documentItem);
+      var hover = await RequestHover(documentItem, (8, 12));
+      Assert.IsNotNull(hover);
+      var markup = hover.Contents.MarkupContent;
+      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
+      Assert.AreEqual("```dafny\nmethod SomeType.AssertEqual(x: int, y: int)\n```", markup.Value);
     }
   }
 }

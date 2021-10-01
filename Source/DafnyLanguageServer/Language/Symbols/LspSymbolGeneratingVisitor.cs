@@ -40,6 +40,10 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       return CreateSymbolsOfEntryDocument(classSymbol, classSymbol.Declaration.tok, SymbolKind.Class);
     }
 
+    public IEnumerable<DocumentSymbol> Visit(DataTypeSymbol dataTypeSymbol) {
+      return CreateSymbolsOfEntryDocument(dataTypeSymbol, dataTypeSymbol.Declaration.tok, SymbolKind.Class);
+    }
+
     public IEnumerable<DocumentSymbol> Visit(ValueTypeSymbol valueTypeSymbol) {
       return CreateSymbolsOfEntryDocument(valueTypeSymbol, valueTypeSymbol.Declaration.tok, SymbolKind.Struct);
     }
