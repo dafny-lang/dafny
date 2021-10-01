@@ -14,7 +14,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
   [TestClass]
   public class StabilityTest : DafnyLanguageServerTestBase {
     private const int MaxTestExecutionTimeMs = 60000;
-    
+
     private ILanguageClient client;
 
     private async Task<TextDocumentItem> CreateTextDocumentFromFileAsync(string fileName) {
