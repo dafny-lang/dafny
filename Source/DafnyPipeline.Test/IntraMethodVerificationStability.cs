@@ -46,7 +46,7 @@ method SomeMethod2(methodFormal: int) returns (result: bool)
       var together = UniqueNonCommentLines(combinedBoogie);
 
       var uniqueLines = separate.Union(together).Except(separate.Intersect(together)).ToList();
-      Assert.True(uniqueLines.Count <= 3);
+      Assert.Equal(Enumerable.Empty<string>(), uniqueLines);
     }
 
     ISet<string> UniqueNonCommentLines(string input) {

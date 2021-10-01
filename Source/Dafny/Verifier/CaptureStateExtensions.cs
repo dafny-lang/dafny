@@ -1,13 +1,10 @@
-
-using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using Bpl = Microsoft.Boogie;
 
-namespace Microsoft.Dafny
-{
+namespace Microsoft.Dafny {
   static class CaptureStateExtensions {
-    
+
     public static void AddCaptureState(this BoogieStmtListBuilder builder, Statement statement) {
       if (DafnyOptions.O.ModelViewFile != null) {
         builder.Add(CaptureState(statement));
