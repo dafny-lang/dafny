@@ -18,7 +18,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   /// this verifier serializes all invocations.
   /// </remarks>
   public class DafnyProgramVerifier : IProgramVerifier {
-    private static readonly object initializationSyncObject = new();
+    private static readonly object InitializationSyncObject = new();
     private static bool initialized;
 
     private readonly ILogger logger;
@@ -38,7 +38,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// <param name="options">Settings for the verifier.</param>
     /// <returns>A safely created dafny verifier instance.</returns>
     public static DafnyProgramVerifier Create(ILogger<DafnyProgramVerifier> logger, IOptions<VerifierOptions> options) {
-      lock (initializationSyncObject) {
+      lock (InitializationSyncObject) {
         if (!initialized) {
           // TODO This may be subject to change. See Microsoft.Boogie.Counterexample
           //      A dash means write to the textwriter instead of a file.

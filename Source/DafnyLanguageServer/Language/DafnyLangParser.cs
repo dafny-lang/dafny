@@ -16,7 +16,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   /// this parser serializes all invocations.
   /// </remarks>
   public sealed class DafnyLangParser : IDafnyParser, IDisposable {
-    private static readonly object initializationSyncObject = new();
+    private static readonly object InitializationSyncObject = new();
     private static bool initialized;
 
     private readonly ILogger logger;
@@ -33,7 +33,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// <param name="logger">A logger instance that may be used by this parser instance.</param>
     /// <returns>A safely created dafny parser instance.</returns>
     public static DafnyLangParser Create(ILogger<DafnyLangParser> logger) {
-      lock (initializationSyncObject) {
+      lock (InitializationSyncObject) {
         if (!initialized) {
           // TODO no error reporter is supplied at this time since it appears that there is not any usage inside dafny.
           DafnyOptions.Install(new DafnyOptions());

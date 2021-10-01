@@ -32,8 +32,8 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
     }
 
     private class CounterExampleLoader {
-      private const string initialStateName = "<initial>";
-      private static readonly Regex statePositionRegex = new(
+      private const string InitialStateName = "<initial>";
+      private static readonly Regex StatePositionRegex = new(
         @".*\.dfy\((?<line>\d+),(?<character>\d+)\)",
         RegexOptions.IgnoreCase | RegexOptions.Singleline
       );
@@ -81,7 +81,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
       }
 
       private static bool IsInitialState(DafnyModelState state) {
-        return state.ShortenedStateName.Equals(initialStateName);
+        return state.ShortenedStateName.Equals(InitialStateName);
       }
 
       private CounterExampleItem GetCounterExample(DafnyModelState state) {
@@ -92,7 +92,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
       }
 
       private static Position GetPositionFromInitialState(DafnyModelState state) {
-        var match = statePositionRegex.Match(state.ShortenedStateName);
+        var match = StatePositionRegex.Match(state.ShortenedStateName);
         if (!match.Success) {
           throw new ArgumentException($"state does not contain position: {state.ShortenedStateName}");
         }

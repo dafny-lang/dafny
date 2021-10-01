@@ -14,7 +14,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
   /// LSP Synchronization handler for symbol based events, i.e. the client requests the symbols of the specified document.
   /// </summary>
   public class DafnyDocumentSymbolHandler : DocumentSymbolHandlerBase {
-    private static readonly SymbolInformationOrDocumentSymbol[] emptySymbols = Array.Empty<SymbolInformationOrDocumentSymbol>();
+    private static readonly SymbolInformationOrDocumentSymbol[] EmptySymbols = Array.Empty<SymbolInformationOrDocumentSymbol>();
 
     private readonly ILogger logger;
     private readonly IDocumentDatabase documents;
@@ -34,7 +34,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       var document = await documents.GetDocumentAsync(request.TextDocument);
       if (document == null) {
         logger.LogWarning("symbols requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
-        return emptySymbols;
+        return EmptySymbols;
       }
       var visitor = new LspSymbolGeneratingVisitor(document.SymbolTable, cancellationToken);
       var symbols = visitor.Visit(document.SymbolTable.CompilationUnit)
