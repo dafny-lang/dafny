@@ -71,7 +71,7 @@ method DoIt() returns (x: int) {
   return a.GetX();
 }".TrimStart();
       var documentItem = CreateTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Lookup/TestFiles/test.dfy"));
-      await cclient.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var hover = await RequestHover(documentItem, (4, 13));
       Assert.IsNotNull(hover);
       var markup = hover.Contents.MarkupContent;
@@ -86,7 +86,7 @@ method DoIt() returns (x: int) {
   return GetX();
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      await cclient.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var hover = await RequestHover(documentItem, (1, 12));
       Assert.IsNull(hover);
     }
