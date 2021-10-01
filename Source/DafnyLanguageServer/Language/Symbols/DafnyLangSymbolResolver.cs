@@ -105,7 +105,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         return classSymbol;
       }
 
-      private ValueTypeSymbol ProcessValueType(Symbol scope, ValuetypeDecl valueTypeDecarlation) {
+      private static ValueTypeSymbol ProcessValueType(Symbol scope, ValuetypeDecl valueTypeDecarlation) {
         return new ValueTypeSymbol(scope, valueTypeDecarlation);
       }
 
@@ -177,11 +177,11 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         methodSymbol.Block = rootBlock;
       }
 
-      private FieldSymbol ProcessField(Symbol scope, Field field) {
+      private static FieldSymbol ProcessField(Symbol scope, Field field) {
         return new FieldSymbol(scope, field);
       }
 
-      private VariableSymbol ProcessFormal(Symbol scope, Formal formal) {
+      private static VariableSymbol ProcessFormal(Symbol scope, Formal formal) {
         return new VariableSymbol(scope, formal);
       }
     }
