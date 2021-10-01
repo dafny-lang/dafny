@@ -15,8 +15,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
     public void PublishDiagnostics(DafnyDocument document) {
       if (document.LoadCanceled) {
-        // Since VSCode correctly shifts the error locations, the error locations are not shifted by
-        // by the DocumentUpdater; thus, we do not republish the errors when the document (re-)load was canceled.
+        // We leave the responsibility to shift the error locations to the LSP clients.
+        // Therefore, we do not republish the errors when the document (re-)load was canceled.
         return;
       }
       _languageServer.TextDocument.PublishDiagnostics(ToPublishDiagnostics(document));
