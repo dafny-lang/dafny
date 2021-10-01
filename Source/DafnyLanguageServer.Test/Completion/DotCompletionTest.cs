@@ -53,7 +53,7 @@ class A {
   }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       ApplyChanges(
         documentItem,
         new TextDocumentContentChangeEvent {
@@ -81,7 +81,7 @@ class A {
   }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       ApplyChanges(
         documentItem,
         new TextDocumentContentChangeEvent {
@@ -105,7 +105,7 @@ class A {
   }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       ApplyChanges(
         documentItem,
         new TextDocumentContentChangeEvent {
@@ -129,7 +129,7 @@ class A {
   }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       ApplyChanges(
         documentItem,
         new TextDocumentContentChangeEvent {
@@ -149,7 +149,7 @@ method DoIt() {
   var x := new int[10];
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       ApplyChanges(
         documentItem,
         new TextDocumentContentChangeEvent {
@@ -182,7 +182,7 @@ class B {
   constructor() { }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       ApplyChanges(
         documentItem,
         new TextDocumentContentChangeEvent {
@@ -215,7 +215,7 @@ class B {
   constructor() { }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       ApplyChanges(
         documentItem,
         new TextDocumentContentChangeEvent {
@@ -270,7 +270,7 @@ class X {
   constructor() { }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       ApplyChanges(
         documentItem,
         new TextDocumentContentChangeEvent {

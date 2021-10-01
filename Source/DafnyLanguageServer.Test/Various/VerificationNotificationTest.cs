@@ -46,7 +46,7 @@ method Abs(x: int) returns (y: int)
 }
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var started = await _notificationReceiver.AwaitNextCompilationStatusAsync(CancellationToken);
       Assert.AreEqual(documentItem.Uri, started.Uri);
       Assert.AreEqual(documentItem.Version, started.Version);
@@ -68,7 +68,7 @@ method Abs(x: int) returns (y: int)
 }
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var started = await _notificationReceiver.AwaitNextCompilationStatusAsync(CancellationToken);
       Assert.AreEqual(documentItem.Uri, started.Uri);
       Assert.AreEqual(documentItem.Version, started.Version);
@@ -93,7 +93,7 @@ method Abs(x: int) returns (y: int)
 }
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var compilation = await _notificationReceiver.AwaitNextCompilationStatusAsync(CancellationToken);
       Assert.AreEqual(documentItem.Uri, compilation.Uri);
       Assert.AreEqual(documentItem.Version, compilation.Version);
@@ -118,7 +118,7 @@ method Abs(x: int) returns (y: int)
 }
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var compilation = await _notificationReceiver.AwaitNextCompilationStatusAsync(CancellationToken);
       Assert.AreEqual(documentItem.Uri, compilation.Uri);
       Assert.AreEqual(documentItem.Version, compilation.Version);
@@ -151,7 +151,7 @@ lemma {:timeLimit 3} SquareRoot2NotRational(p: nat, q: nat)
   }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var compilation = await _notificationReceiver.AwaitNextCompilationStatusAsync(CancellationToken);
       Assert.AreEqual(documentItem.Uri, compilation.Uri);
       Assert.AreEqual(documentItem.Version, compilation.Version);
@@ -187,7 +187,7 @@ lemma SquareRoot2NotRational(p: nat, q: nat)
         { $"{VerifierOptions.Section}:{nameof(VerifierOptions.TimeLimit)}", "3" }
       });
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var compilation = await _notificationReceiver.AwaitNextCompilationStatusAsync(CancellationToken);
       Assert.AreEqual(documentItem.Uri, compilation.Uri);
       Assert.AreEqual(documentItem.Version, compilation.Version);
