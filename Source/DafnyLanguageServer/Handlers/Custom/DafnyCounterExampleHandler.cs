@@ -28,7 +28,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
         logger.LogWarning("counter-examples requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
         return new CounterExampleList();
       }
-      return new CounterExampleLoader(logger, document, cancellationToken, request.CounterExampleDepth).GetCounterExamples();
+      return new CounterExampleLoader(logger, document, request.CounterExampleDepth, cancellationToken).GetCounterExamples();
     }
 
     private class CounterExampleLoader {
@@ -43,11 +43,11 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
       private readonly CancellationToken cancellationToken;
       private readonly int counterExampleDepth;
 
-      public CounterExampleLoader(ILogger logger, DafnyDocument document, CancellationToken cancellationToken, int depth) {
+      public CounterExampleLoader(ILogger logger, DafnyDocument document, int counterExampleDepth, CancellationToken cancellationToken) {
         this.logger = logger;
         this.document = document;
         this.cancellationToken = cancellationToken;
-        counterExampleDepth = depth;
+        this.counterExampleDepth = counterExampleDepth;
       }
 
       public CounterExampleList GetCounterExamples() {
