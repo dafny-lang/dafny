@@ -39,6 +39,7 @@ namespace Microsoft.Dafny {
         sink = boogieProgram;
         predef = FindPredefinedDecls(boogieProgram);
       }
+      bvFuncs = new HashSet<string>();
     }
 
     public void SetReporter(ErrorReporter reporter) {
@@ -151,6 +152,7 @@ namespace Microsoft.Dafny {
 
 
     private Bpl.Program sink;
+    private HashSet<string> bvFuncs;
     private VisibilityScope currentScope;
     private VisibilityScope verificationScope;
 
@@ -849,6 +851,32 @@ namespace Microsoft.Dafny {
       sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, new Bpl.ForallExpr(tok, bvs, tr, isAllocBv)));
     }
 
+    private Bpl.Function AddBitvectorBuiltin(int w, string namePrefix, string smtFunctionName, bool binary = true, Bpl.Type resultType = null, bool bodyForBv0 = false) {
+      Contract.Requires(0 <= w);
+      Contract.Requires(namePrefix != null);
+      Contract.Requires(smtFunctionName != null);
+      if (w == 0) {
+        return null; // don't need the smt function for w = 0
+      }
+
+      var tok = Token.NoToken;
+      var t = BplBvType(w);
+      List<Bpl.Variable> args;
+      if (binary) {
+        var a0 = BplFormalVar(null, t, true);
+        var a1 = BplFormalVar(null, t, true);
+        args = new List<Variable>() { a0, a1 };
+      } else {
+        var a0 = BplFormalVar(null, t, true);
+        args = new List<Variable>() { a0 };
+      }
+      var r = BplFormalVar(null, resultType ?? t, false);
+      Bpl.QKeyValue attr = new Bpl.QKeyValue(tok, "bvbuiltin", new List<object>() { smtFunctionName }, null);
+      var func = new Bpl.Function(tok, namePrefix + w, new List<TypeVariable>(), args, r, null, attr);
+      sink.AddTopLevelDeclaration(func);
+      return func;
+    }
+
     /// <summary>
     /// Declare and add to the sink a Boogie function named "namePrefix + w".
     /// If "binary", then the function takes two arguments; otherwise, it takes one.  Arguments have the type
@@ -865,10 +893,16 @@ namespace Microsoft.Dafny {
     private void AddBitvectorFunction(int w, string namePrefix, string smtFunctionName, bool binary = true, Bpl.Type resultType = null, bool bodyForBv0 = false) {
       Contract.Requires(0 <= w);
       Contract.Requires(namePrefix != null);
-      Contract.Requires(smtFunctionName != null);
+      if (!DafnyOptions.O.UseBvSynonyms && w > 0) {
+        AddBitvectorBuiltin(w, namePrefix, smtFunctionName, binary, resultType, bodyForBv0);
+        return;
+      }
+
+      var smtFunc = AddBitvectorBuiltin(w, "smt_" + namePrefix, smtFunctionName, binary, resultType, bodyForBv0);
       var tok = Token.NoToken;
       var t = BplBvType(w);
       List<Bpl.Variable> args;
+
       if (binary) {
         var a0 = BplFormalVar(null, t, true);
         var a1 = BplFormalVar(null, t, true);
@@ -878,27 +912,46 @@ namespace Microsoft.Dafny {
         args = new List<Variable>() { a0 };
       }
       var r = BplFormalVar(null, resultType ?? t, false);
-      Bpl.QKeyValue attr;
-      if (w == 0) {
-        attr = InlineAttribute(tok);
-      } else {
-        attr = new Bpl.QKeyValue(tok, "bvbuiltin", new List<object>() { smtFunctionName }, null);
-      }
-      var func = new Bpl.Function(tok, namePrefix + w, new List<TypeVariable>(), args, r, null, attr);
-      if (w == 0) {
+      var func = new Bpl.Function(tok, namePrefix + w, new List<TypeVariable>(), args, r, null, w == 0 ? InlineAttribute(tok) : null);
+      if (w == 0) { // if w == 0 then the function has a body
         if (resultType != null) {
           func.Body = Bpl.Expr.Literal(bodyForBv0);
         } else {
           func.Body = BplBvLiteralExpr(tok, BaseTypes.BigNum.ZERO, w);
         }
+      } else {  // otherwise we add an axiom for equating it to a buiilt-in smt function
+        if (binary) {
+          var b1Var = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "b1", BplBvType(w)));
+          var b2Var = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "b2", BplBvType(w)));
+          var b1 = new Bpl.IdentifierExpr(tok, b1Var);
+          var b2 = new Bpl.IdentifierExpr(tok, b2Var);
+          var bvfunc = FunctionCall(tok, namePrefix + w, resultType ?? t, b1, b2);
+          var smt_bvfunc = FunctionCall(tok, smtFunc.Name, resultType ?? t, b1, b2);
+          var body = Bpl.Expr.Eq(bvfunc, smt_bvfunc);
+          var ax = new Bpl.ForallExpr(tok, new List<Variable>() { b1Var, b2Var }, BplTrigger(bvfunc), body);
+          sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, ax));
+        } else {
+          var bVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "b", BplBvType(w)));
+          var b = new Bpl.IdentifierExpr(tok, bVar);
+          var bvfunc = FunctionCall(tok, namePrefix + w, resultType ?? t, b);
+          var smt_bvfunc = FunctionCall(tok, smtFunc.Name, resultType ?? t, b);
+          var body = Bpl.Expr.Eq(bvfunc, smt_bvfunc);
+          var ax = new Bpl.ForallExpr(tok, new List<Variable>() { bVar }, BplTrigger(bvfunc), body);
+          sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, ax));
+        }
       }
+
       sink.AddTopLevelDeclaration(func);
     }
 
-    private void AddBitvectorShiftFunction(int w, string namePrefix, string smtFunctionName) {
+    private Bpl.Function AddBitvectorShiftBuiltin(int w, string namePrefix, string smtFunctionName) {
       Contract.Requires(0 <= w);
       Contract.Requires(namePrefix != null);
       Contract.Requires(smtFunctionName != null);
+      if (w == 0) {
+        return null;
+      }
+
       var tok = Token.NoToken;
       var t = BplBvType(w);
       List<Bpl.Variable> args;
@@ -906,17 +959,90 @@ namespace Microsoft.Dafny {
       var a1 = BplFormalVar(null, t, true);
       args = new List<Variable>() { a0, a1 };
       var r = BplFormalVar(null, t, false);
-      Bpl.QKeyValue attr;
-      if (w == 0) {
-        attr = InlineAttribute(tok);
-      } else {
-        attr = new Bpl.QKeyValue(tok, "bvbuiltin", new List<object>() { smtFunctionName }, null);
-      }
+      Bpl.QKeyValue attr = new Bpl.QKeyValue(tok, "bvbuiltin", new List<object>() { smtFunctionName }, null);
       var func = new Bpl.Function(tok, namePrefix + w, new List<TypeVariable>(), args, r, null, attr);
+      sink.AddTopLevelDeclaration(func);
+      return func;
+    }
+
+    private void AddBitvectorShiftFunction(int w, string namePrefix, string smtFunctionName) {
+      Contract.Requires(0 <= w);
+      Contract.Requires(namePrefix != null);
+
+      if (!DafnyOptions.O.UseBvSynonyms && w > 0) {
+        AddBitvectorShiftBuiltin(w, namePrefix, smtFunctionName);
+        return;
+      }
+
+      var smtFunc = AddBitvectorShiftBuiltin(w, "smt_" + namePrefix, smtFunctionName);
+      var tok = Token.NoToken;
+      var t = BplBvType(w);
+      var a0 = BplFormalVar(null, t, true);
+      var a1 = BplFormalVar(null, t, true);
+      var args = new List<Variable>() { a0, a1 };
+      var r = BplFormalVar(null, t, false);
+      var func = new Bpl.Function(tok, namePrefix + w, new List<TypeVariable>(), args, r, null, w == 0 ? InlineAttribute(tok) : null);
       if (w == 0) {
         func.Body = BplBvLiteralExpr(tok, BaseTypes.BigNum.ZERO, w);
+      } else {
+        var b1Var = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "b1", BplBvType(w)));
+        var b2Var = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "b2", BplBvType(w)));
+        var b1 = new Bpl.IdentifierExpr(tok, b1Var);
+        var b2 = new Bpl.IdentifierExpr(tok, b2Var);
+        var bvshift = FunctionCall(tok, namePrefix + w, t, b1, b2);
+        var smt_bvshift = FunctionCall(tok, smtFunc.Name, t, b1, b2);
+        var body = Bpl.Expr.Eq(bvshift, smt_bvshift);
+        var ax = new Bpl.ForallExpr(tok, new List<Variable>() { b1Var, b2Var }, BplTrigger(bvshift), body);
+        sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, ax));
       }
       sink.AddTopLevelDeclaration(func);
+    }
+
+    private string BvBvFunctionName(int fromWidth, int toWidth) {
+      return $"bv{fromWidth}_to_bv{toWidth}";
+    }
+
+    private string BvBvConversionFunc(int fromWidth, int toWidth) {
+      Contract.Requires(0 <= fromWidth);
+      Contract.Requires(0 <= toWidth);
+      Contract.Requires(fromWidth != toWidth);
+
+      string bvbvName = BvBvFunctionName(fromWidth, toWidth);
+      if (bvFuncs.Contains(bvbvName)) {
+        return bvbvName;
+      }
+      var tok = Token.NoToken;
+      var func = new Bpl.Function(tok, bvbvName, new List<TypeVariable>(),
+        new List<Variable>() { BplFormalVar(null, BplBvType(fromWidth), true) }, BplFormalVar(null, BplBvType(toWidth), false),
+        null, null);
+      sink.AddTopLevelDeclaration(func);
+
+      var bVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "b", BplBvType(fromWidth)));
+      var b = new Bpl.IdentifierExpr(tok, bVar);
+      var bvconvert = FunctionCall(tok, bvbvName, BplBvType(toWidth), b);
+      Bpl.Expr actualConversion;
+      if (fromWidth < toWidth) {
+        var zeros = BplBvLiteralExpr(tok, BaseTypes.BigNum.ZERO, toWidth - fromWidth);
+        if (fromWidth == 0) {
+          actualConversion = zeros;
+        } else {
+          var concat = new Bpl.BvConcatExpr(tok, zeros, b);
+          // There's a bug in Boogie that causes a warning to be emitted if a BvConcatExpr is passed as the argument
+          // to $Box, which takes a type argument.  The bug can apparently be worked around by giving an explicit
+          // (but otherwise redundant) type conversion.
+          actualConversion = Bpl.Expr.CoerceType(tok, concat, BplBvType(toWidth));
+        }
+      } else if (toWidth == 0) {
+        actualConversion = BplBvLiteralExpr(tok, BaseTypes.BigNum.ZERO, toWidth);
+      } else {
+        Contract.Assert(fromWidth > toWidth);
+        actualConversion = new Bpl.BvExtractExpr(tok, b, toWidth, 0);
+      }
+      var body = Bpl.Expr.Eq(bvconvert, actualConversion);
+      var ax = new Bpl.ForallExpr(tok, new List<Variable>() { bVar }, BplTrigger(bvconvert), body);
+      sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, ax));
+      bvFuncs.Add(bvbvName);
+      return bvbvName;
     }
 
     private void AddBitvectorNatConversionFunction(int w) {
@@ -931,17 +1057,19 @@ namespace Microsoft.Dafny {
       // function {:inline} nat_to_bv0(int) : Bv0 { ZERO }
       if (w == 0) {
         attr = InlineAttribute(tok);
+        func = new Bpl.Function(tok, "nat_to_bv" + w, new List<TypeVariable>(),
+          new List<Variable>() { BplFormalVar(null, Bpl.Type.Int, true) }, BplFormalVar(null, bv, false),
+          null, attr);
+        func.Body = BplBvLiteralExpr(tok, BaseTypes.BigNum.ZERO, w);
+        sink.AddTopLevelDeclaration(func);
       } else {
         var smt_int2bv = string.Format("(_ int2bv {0})", w);
         attr = new Bpl.QKeyValue(tok, "bvbuiltin", new List<object>() { smt_int2bv }, null);  // SMT-LIB 2 calls this function nat2bv, but Z3 apparently calls it int2bv
+        func = new Bpl.Function(tok, "nat_to_bv" + w, new List<TypeVariable>(),
+          new List<Variable>() { BplFormalVar(null, Bpl.Type.Int, true) }, BplFormalVar(null, bv, false),
+          null, attr);
+        sink.AddTopLevelDeclaration(func);
       }
-      func = new Bpl.Function(tok, "nat_to_bv" + w, new List<TypeVariable>(),
-        new List<Variable>() { BplFormalVar(null, Bpl.Type.Int, true) }, BplFormalVar(null, bv, false),
-        null, attr);
-      if (w == 0) {
-        func.Body = BplBvLiteralExpr(tok, BaseTypes.BigNum.ZERO, w);
-      }
-      sink.AddTopLevelDeclaration(func);
 
       if (w == 0) {
         // function {:inline} nat_from_bv0_smt(Bv0) : int { 0 }
@@ -952,30 +1080,36 @@ namespace Microsoft.Dafny {
         func.Body = Bpl.Expr.Literal(0);
         sink.AddTopLevelDeclaration(func);
       } else {
-        // function {:bvbuiltin "bv2int"} smt_nat_from_bv67(bv67) : int;
-        attr = new Bpl.QKeyValue(tok, "bvbuiltin", new List<object>() { "bv2int" }, null);  // SMT-LIB 2 calls this function bv2nat, but Z3 apparently calls it bv2int
-        var smtFunc = new Bpl.Function(tok, "smt_nat_from_bv" + w, new List<TypeVariable>(),
-          new List<Variable>() { BplFormalVar(null, bv, true) }, BplFormalVar(null, Bpl.Type.Int, false),
-          null, attr);
-        sink.AddTopLevelDeclaration(smtFunc);
+        if (DafnyOptions.O.UseBvSynonyms) {
+          // function {:bvbuiltin "bv2int"} smt_nat_from_bv67(bv67) : int;
+          attr = new Bpl.QKeyValue(tok, "bvbuiltin", new List<object>() { "bv2int" }, null);  // SMT-LIB 2 calls this function bv2nat, but Z3 apparently calls it bv2int
+          var smtFunc = new Bpl.Function(tok, "smt_nat_from_bv" + w, new List<TypeVariable>(),
+            new List<Variable>() { BplFormalVar(null, bv, true) }, BplFormalVar(null, Bpl.Type.Int, false),
+            null, attr);
+          sink.AddTopLevelDeclaration(smtFunc);
+          // axiom (forall b: bv67 :: { nat_from_bv67(b) }
+          //          0 <= nat_from_bv67(b) && nat_from_bv67(b) < 0x8_0000_0000_0000_0000 &&
+          //          nat_from_bv67(b) == smt_nat_from_bv67(b));
+          var bVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "b", BplBvType(w)));
+          var b = new Bpl.IdentifierExpr(tok, bVar);
+          var bv2nat = FunctionCall(tok, "nat_from_bv" + w, Bpl.Type.Int, b);
+          var smt_bv2nat = FunctionCall(tok, "smt_nat_from_bv" + w, Bpl.Type.Int, b);
+          var body = BplAnd(BplAnd(
+            Bpl.Expr.Le(Bpl.Expr.Literal(0), bv2nat),
+            Bpl.Expr.Lt(bv2nat, Bpl.Expr.Literal(BaseTypes.BigNum.FromBigInt(BigInteger.One << w)))),
+            Bpl.Expr.Eq(bv2nat, smt_bv2nat));
+          var ax = new Bpl.ForallExpr(tok, new List<Variable>() { bVar }, BplTrigger(bv2nat), body);
+          sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, ax));
+          attr = null;
+        } else {
+          attr = new Bpl.QKeyValue(tok, "bvbuiltin", new List<object>() { "bv2int" }, null);
+        }
+
         // function nat_from_bv67(bv67) : int;
         func = new Bpl.Function(tok, "nat_from_bv" + w, new List<TypeVariable>(),
           new List<Variable>() { BplFormalVar(null, bv, true) }, BplFormalVar(null, Bpl.Type.Int, false),
-          null, null);
+          null, attr);
         sink.AddTopLevelDeclaration(func);
-        // axiom (forall b: bv67 :: { nat_from_bv67(b) }
-        //          0 <= nat_from_bv67(b) && nat_from_bv67(b) < 0x8_0000_0000_0000_0000 &&
-        //          nat_from_bv67(b) == smt_nat_from_bv67(b));
-        var bVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "b", BplBvType(w)));
-        var b = new Bpl.IdentifierExpr(tok, bVar);
-        var bv2nat = FunctionCall(tok, "nat_from_bv" + w, Bpl.Type.Int, b);
-        var smt_bv2nat = FunctionCall(tok, "smt_nat_from_bv" + w, Bpl.Type.Int, b);
-        var body = BplAnd(BplAnd(
-          Bpl.Expr.Le(Bpl.Expr.Literal(0), bv2nat),
-          Bpl.Expr.Lt(bv2nat, Bpl.Expr.Literal(BaseTypes.BigNum.FromBigInt(BigInteger.One << w)))),
-          Bpl.Expr.Eq(bv2nat, smt_bv2nat));
-        var ax = new Bpl.ForallExpr(tok, new List<Variable>() { bVar }, BplTrigger(bv2nat), body);
-        sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, ax));
       }
     }
 
@@ -8231,21 +8365,9 @@ namespace Microsoft.Dafny {
           var toWidth = toType.AsBitVectorType.Width;
           if (fromWidth == toWidth) {
             // no conversion
-          } else if (fromWidth < toWidth) {
-            var zeros = BplBvLiteralExpr(tok, BaseTypes.BigNum.ZERO, toWidth - fromWidth);
-            if (fromWidth == 0) {
-              r = zeros;
-            } else {
-              var concat = new Bpl.BvConcatExpr(tok, zeros, r);
-              // There's a bug in Boogie that causes a warning to be emitted if a BvConcatExpr is passed as the argument
-              // to $Box, which takes a type argument.  The bug can apparently be worked around by giving an explicit
-              // (and other redudant) type conversion.
-              r = Bpl.Expr.CoerceType(tok, concat, BplBvType(toWidth));
-            }
-          } else if (toWidth == 0) {
-            r = BplBvLiteralExpr(tok, BaseTypes.BigNum.ZERO, toWidth);
           } else {
-            r = new Bpl.BvExtractExpr(tok, r, toWidth, 0);
+            var funcName = BvBvConversionFunc(fromWidth, toWidth);
+            r = FunctionCall(tok, funcName, null, r);
           }
         } else if (toType.IsNumericBased(Type.NumericPersuasion.Int)) {
           r = FunctionCall(tok, "nat_from_bv" + fromWidth, Bpl.Type.Int, r);

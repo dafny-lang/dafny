@@ -96,6 +96,7 @@ namespace Microsoft.Dafny {
     public IncludesModes PrintIncludesMode = IncludesModes.None;
     public int OptimizeResolution = 2;
     public bool UseRuntimeLib = false;
+    public bool UseBvSynonyms = false;
     public bool DisableScopes = false;
     public int Allocated = 3;
     public bool UseStdin = false;
@@ -367,6 +368,14 @@ namespace Microsoft.Dafny {
 
         case "useRuntimeLib": {
             UseRuntimeLib = true;
+            return true;
+          }
+
+        case "useBvSynonyms": {
+            int ubs = 0;
+            if (ps.GetNumericArgument(ref ubs, 2)) {
+              UseBvSynonyms = ubs == 1;
+            }
             return true;
           }
 
@@ -828,6 +837,10 @@ $@"
 /separateModuleOutput
     Output verification results for each module separately, rather than
     aggregating them after they are all finished.
+/useBvSynonyms:<n>
+    0 (default) - Directly call bit-vector functions given by Z3
+    1 -  Use synonyms for Z3's bit-vector functions; synonyms enable Z3 to reason
+         about bit-vectors in an uninterpreted way
 /useRuntimeLib
     Refer to pre-built DafnyRuntime.dll in compiled assembly rather
     than including DafnyRuntime.cs verbatim.
