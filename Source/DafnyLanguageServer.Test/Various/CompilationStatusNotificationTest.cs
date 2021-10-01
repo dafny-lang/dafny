@@ -12,11 +12,11 @@ using System.Threading.Tasks;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
   [TestClass]
-  public class VerificationNotificationTest : DafnyLanguageServerTestBase {
+  public class CompilationStatusNotificationTest : DafnyLanguageServerTestBase {
     private const int MaxTestExecutionTimeMs = 10000;
 
     private ILanguageClient client;
-    private TestNotificationReceiver notificationReceiver;
+    private TestCompilationStatusReceiver notificationReceiver;
     private IDictionary<string, string> configuration;
 
     [TestInitialize]
@@ -24,7 +24,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     public async Task SetUp(IDictionary<string, string> configuration) {
       this.configuration = configuration;
-      notificationReceiver = new TestNotificationReceiver();
+      notificationReceiver = new TestCompilationStatusReceiver();
       client = await InitializeClient(options => {
         options
           .AddHandler(DafnyRequestNames.CompilationStatus, NotificationHandler.For<CompilationStatusParams>(notificationReceiver.StatusReceived));
@@ -203,7 +203,7 @@ lemma SquareRoot2NotRational(p: nat, q: nat)
       Assert.AreEqual(CompilationStatus.VerificationFailed, completed.Status);
     }
 
-    public class TestNotificationReceiver {
+    public class TestCompilationStatusReceiver {
       private readonly SemaphoreSlim availableStatuses = new(0);
       private readonly ConcurrentQueue<CompilationStatusParams> compilationStatuses = new();
 
