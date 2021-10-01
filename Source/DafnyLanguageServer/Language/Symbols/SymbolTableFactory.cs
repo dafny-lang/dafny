@@ -215,12 +215,12 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     }
 
     private class SymbolDeclarationLocationVisitor : ISymbolVisitor<Unit> {
-      private readonly CancellationToken _cancellationToken;
+      private readonly CancellationToken cancellationToken;
 
       public IDictionary<ISymbol, SymbolLocation> Locations { get; } = new Dictionary<ISymbol, SymbolLocation>();
 
       public SymbolDeclarationLocationVisitor(CancellationToken cancellationToken) {
-        _cancellationToken = cancellationToken;
+        this.cancellationToken = cancellationToken;
       }
 
       public Unit Visit(ISymbol symbol) {
@@ -234,7 +234,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       }
 
       public Unit Visit(ModuleSymbol moduleSymbol) {
-        _cancellationToken.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
         RegisterLocation(
           moduleSymbol,
           moduleSymbol.Declaration.tok,
@@ -254,7 +254,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       }
 
       private Unit VisitTypeSymbol<TNode>(TypeWithMembersSymbolBase<TNode> typeSymbol) where TNode : TopLevelDeclWithMembers {
-        _cancellationToken.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
         RegisterLocation(
           typeSymbol,
           typeSymbol.Declaration.tok,
@@ -266,7 +266,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       }
 
       public Unit Visit(ValueTypeSymbol valueTypeSymbol) {
-        _cancellationToken.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
         RegisterLocation(
           valueTypeSymbol,
           valueTypeSymbol.Declaration.tok,
@@ -278,7 +278,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       }
 
       public Unit Visit(FieldSymbol fieldSymbol) {
-        _cancellationToken.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
         RegisterLocation(
           fieldSymbol,
           fieldSymbol.Declaration.tok,
@@ -292,7 +292,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       }
 
       public Unit Visit(FunctionSymbol functionSymbol) {
-        _cancellationToken.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
         RegisterLocation(
           functionSymbol,
           functionSymbol.Declaration.tok,
@@ -304,7 +304,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       }
 
       public Unit Visit(MethodSymbol methodSymbol) {
-        _cancellationToken.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
         RegisterLocation(
           methodSymbol,
           methodSymbol.Declaration.tok,
@@ -316,7 +316,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       }
 
       public Unit Visit(VariableSymbol variableSymbol) {
-        _cancellationToken.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
         RegisterLocation(
           variableSymbol,
           variableSymbol.Declaration.Tok,
@@ -328,7 +328,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       }
 
       public Unit Visit(ScopeSymbol scopeSymbol) {
-        _cancellationToken.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
         RegisterLocation(
           scopeSymbol,
           scopeSymbol.Declaration.Tok,

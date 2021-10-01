@@ -12,14 +12,14 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
   public class DafnySignatureHelpHandler : SignatureHelpHandlerBase {
     // TODO this is a very basic implementation that only displays the signature when typing an opening parenthese.
     //      It should be enriched to show information about the actual parameter depending on the cursor's position.
-    private readonly ILogger _logger;
-    private readonly IDocumentDatabase _documents;
-    private readonly ISymbolGuesser _symbolGuesser;
+    private readonly ILogger logger;
+    private readonly IDocumentDatabase documents;
+    private readonly ISymbolGuesser symbolGuesser;
 
     public DafnySignatureHelpHandler(ILogger<DafnySignatureHelpHandler> logger, IDocumentDatabase documents, ISymbolGuesser symbolGuesser) {
-      _logger = logger;
-      _documents = documents;
-      _symbolGuesser = symbolGuesser;
+      this.logger = logger;
+      this.documents = documents;
+      this.symbolGuesser = symbolGuesser;
     }
 
     protected override SignatureHelpRegistrationOptions CreateRegistrationOptions(SignatureHelpCapability capability, ClientCapabilities clientCapabilities) {
@@ -30,37 +30,37 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     }
 
     public async override Task<SignatureHelp?> Handle(SignatureHelpParams request, CancellationToken cancellationToken) {
-      var document = await _documents.GetDocumentAsync(request.TextDocument);
+      var document = await documents.GetDocumentAsync(request.TextDocument);
       if (document == null) {
-        _logger.LogWarning("location requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
+        logger.LogWarning("location requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
         return null;
       }
-      return new SignatureHelpProcessor(_symbolGuesser, document, request, cancellationToken).Process();
+      return new SignatureHelpProcessor(symbolGuesser, document, request, cancellationToken).Process();
     }
 
     private class SignatureHelpProcessor {
-      private readonly ISymbolGuesser _symbolGuesser;
-      private readonly DafnyDocument _document;
-      private readonly SignatureHelpParams _request;
-      private readonly CancellationToken _cancellationToken;
+      private readonly ISymbolGuesser symbolGuesser;
+      private readonly DafnyDocument document;
+      private readonly SignatureHelpParams request;
+      private readonly CancellationToken cancellationToken;
 
       public SignatureHelpProcessor(ISymbolGuesser symbolGuesser, DafnyDocument document, SignatureHelpParams request, CancellationToken cancellationToken) {
-        _symbolGuesser = symbolGuesser;
-        _document = document;
-        _request = request;
-        _cancellationToken = cancellationToken;
+        this.symbolGuesser = symbolGuesser;
+        this.document = document;
+        this.request = request;
+        this.cancellationToken = cancellationToken;
       }
 
       public SignatureHelp? Process() {
         ISymbol? symbol;
-        if (!_symbolGuesser.TryGetSymbolBefore(_document, GetOpenParenthesePosition(), _cancellationToken, out symbol)) {
+        if (!symbolGuesser.TryGetSymbolBefore(document, GetOpenParenthesePosition(), cancellationToken, out symbol)) {
           return null;
         }
         return CreateSignatureHelp(symbol);
       }
 
       private Position GetOpenParenthesePosition() {
-        return new Position(_request.Position.Line, _request.Position.Character - 1);
+        return new Position(request.Position.Line, request.Position.Character - 1);
       }
 
       private SignatureHelp? CreateSignatureHelp(ISymbol symbol) {
@@ -82,7 +82,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           Label = symbol.Name,
           Documentation = new MarkupContent {
             Kind = MarkupKind.Markdown,
-            Value = $"```dafny\n{symbol.GetDetailText(_cancellationToken)}\n```"
+            Value = $"```dafny\n{symbol.GetDetailText(cancellationToken)}\n```"
           },
         };
       }

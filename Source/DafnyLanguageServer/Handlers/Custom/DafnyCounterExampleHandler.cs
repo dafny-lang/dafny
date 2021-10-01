@@ -14,21 +14,21 @@ using System.Threading.Tasks;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
   public class DafnyCounterExampleHandler : ICounterExampleHandler {
-    private readonly ILogger _logger;
-    private readonly IDocumentDatabase _documents;
+    private readonly ILogger logger;
+    private readonly IDocumentDatabase documents;
 
     public DafnyCounterExampleHandler(ILogger<DafnyCounterExampleHandler> logger, IDocumentDatabase documents) {
-      _logger = logger;
-      _documents = documents;
+      this.logger = logger;
+      this.documents = documents;
     }
 
     public async Task<CounterExampleList> Handle(CounterExampleParams request, CancellationToken cancellationToken) {
-      var document = await _documents.GetDocumentAsync(request.TextDocument);
+      var document = await documents.GetDocumentAsync(request.TextDocument);
       if (document == null) {
-        _logger.LogWarning("counter-examples requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
+        logger.LogWarning("counter-examples requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
         return new CounterExampleList();
       }
-      return new CounterExampleLoader(_logger, document, cancellationToken, request.CounterExampleDepth).GetCounterExamples();
+      return new CounterExampleLoader(logger, document, cancellationToken, request.CounterExampleDepth).GetCounterExamples();
     }
 
     private class CounterExampleLoader {

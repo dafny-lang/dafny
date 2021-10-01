@@ -10,12 +10,12 @@ using System.Threading.Tasks;
 namespace Microsoft.Dafny.LanguageServer.Handlers {
   public class DafnyHoverHandler : HoverHandlerBase {
     // TODO add the range of the name to the hover.
-    private readonly ILogger _logger;
-    private readonly IDocumentDatabase _documents;
+    private readonly ILogger logger;
+    private readonly IDocumentDatabase documents;
 
     public DafnyHoverHandler(ILogger<DafnyHoverHandler> logger, IDocumentDatabase documents) {
-      _logger = logger;
-      _documents = documents;
+      this.logger = logger;
+      this.documents = documents;
     }
 
     protected override HoverRegistrationOptions CreateRegistrationOptions(HoverCapability capability, ClientCapabilities clientCapabilities) {
@@ -25,16 +25,16 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     }
 
     public async override Task<Hover?> Handle(HoverParams request, CancellationToken cancellationToken) {
-      _logger.LogTrace("received hover request for {Document}", request.TextDocument);
-      var document = await _documents.GetDocumentAsync(request.TextDocument);
+      logger.LogTrace("received hover request for {Document}", request.TextDocument);
+      var document = await documents.GetDocumentAsync(request.TextDocument);
       if (document == null) {
-        _logger.LogWarning("the document {Document} is not loaded", request.TextDocument);
+        logger.LogWarning("the document {Document} is not loaded", request.TextDocument);
         return null;
       }
 
       ILocalizableSymbol? symbol;
       if (!document.SymbolTable.TryGetSymbolAt(request.Position, out symbol)) {
-        _logger.LogDebug("no symbol was found at {Position} in {Document}", request.Position, request.TextDocument);
+        logger.LogDebug("no symbol was found at {Position} in {Document}", request.Position, request.TextDocument);
         return null;
       }
       return CreateHover(symbol, cancellationToken);
