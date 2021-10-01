@@ -102,6 +102,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private async Task<DafnyDocument> VerifyDocumentIfRequiredAsync(DocumentEntry databaseEntry) {
+      // The verification of a document is currently tied to a document load (see DocumentLoader.LoadAsync).
+      // Therefore, we cancel any pending document load process and re-load it here with the verification.
+      // In the future, the verification should be separated from the document load to have better
+      // control over it.
       databaseEntry.CancelPendingUpdates();
       var document = await databaseEntry.Document;
       if (!RequiresOnSaveVerification(document)) {
