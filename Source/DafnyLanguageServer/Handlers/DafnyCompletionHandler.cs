@@ -77,9 +77,8 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       private CompletionList CreateDotCompletionList() {
         IEnumerable<ISymbol> members;
         if (_symbolGuesser.TryGetTypeBefore(_document, GetDotPosition(), _cancellationToken, out var typeSymbol)) {
-          // TODO Introduce a specialized symbol interface for types. At this time, the most types are treated as a UserDefinedType => class.
-          if (typeSymbol is ClassSymbol classSymbol) {
-            members = classSymbol.Members;
+          if (typeSymbol is TypeWithMembersSymbolBase typeWithMembersSymbol) {
+            members = typeWithMembersSymbol.Members;
           } else {
             // TODO This should never happen at this time.
             throw new InvalidOperationException($"received a type symbol of type {typeSymbol.GetType()}, but expected a ClassSymbol");
@@ -118,7 +117,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
       private static CompletionItemKind GetCompletionKind(ISymbol symbol) {
         return symbol switch {
-          ClassSymbol _ => CompletionItemKind.Class,
+          TypeWithMembersSymbolBase _ => CompletionItemKind.Class,
           MethodSymbol _ => CompletionItemKind.Method,
           FunctionSymbol _ => CompletionItemKind.Function,
           VariableSymbol _ => CompletionItemKind.Variable,
