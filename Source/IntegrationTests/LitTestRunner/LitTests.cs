@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -9,7 +8,7 @@ using XUnitExtensions;
 
 [assembly: TestCollectionOrderer("XUnitExtensions.TestCollectionShardFilter", "XUnitExtensions")]
 
-namespace LitTestConvertor.Test.LitTestRunner {
+namespace IntegrationTests.LitTestRunner {
   public class LitTests {
 
     private static readonly Assembly dafnyDriverAssembly = typeof(DafnyDriver).Assembly;
@@ -41,7 +40,7 @@ namespace LitTestConvertor.Test.LitTestRunner {
         { "%dafny", (args, config) => 
           MainWithArguments(dafnyDriverAssembly, defaultDafnyArguments.Concat(args), config, true) },
         { "%server", (args, config) => 
-          MainWithArguments(dafnyDriverAssembly, args, config, false) },
+          MainWithArguments(dafnyServerAssembly, args, config, false) },
       },
       
       // TODO: speed this up by using AssertWithDiff

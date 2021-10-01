@@ -20,6 +20,12 @@
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\DafnyDriver\DafnyDriver.csproj" />
+        <ProjectReference Include="..\DafnyServer\DafnyServer.csproj" />
+        <ProjectReference Include="..\XUnitExtensions\XUnitExtensions.csproj" />
+    </ItemGroup>
+    
+    <ItemGroup>
         <Content Include="TestFiles\*.dfy" CopyToOutputDirectory="PreserveNewest" />
         <Content Include="..\..\Test\**\*.*" LinkBase="TestFiles\LitTests\LitTest">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

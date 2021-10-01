@@ -4,7 +4,7 @@ using System.Reflection;
 using Xunit;
 using XUnitExtensions;
 
-namespace LitTestConvertor.Test {
+namespace IntegrationTests.LitTestRunner {
   public class ConvertingFromLitToXunit {
 
     [Fact]
