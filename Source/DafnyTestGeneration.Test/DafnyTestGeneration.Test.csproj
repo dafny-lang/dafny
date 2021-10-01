@@ -17,10 +17,4 @@
         <ProjectReference Include="..\DafnyTestGeneration\DafnyTestGeneration.csproj" />
     </ItemGroup>
 
-    <ItemGroup>
-        <None Include="..\..\Binaries\DafnyPrelude.bpl" Link="DafnyPrelude.bpl">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </None>
-    </ItemGroup>
-
 </Project>
