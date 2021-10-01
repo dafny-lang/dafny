@@ -116,7 +116,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     /// <param name="type">The type of the symbol, or <c>null</c> if the type could not be resolved. If <paramref name="symbol"/> is already a type, it is returned.</param>
     /// <returns><c>true</c> if the type was successfully resolved, otherwise <c>false</c>.</returns>
     public bool TryGetTypeOf(ISymbol symbol, [NotNullWhen(true)] out ISymbol? type) {
-      if (symbol is ClassSymbol) {
+      if (symbol is TypeWithMembersSymbolBase) {
         // TODO other type symbols should be supported in the future.
         type = symbol;
         return true;
