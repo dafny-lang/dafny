@@ -76,7 +76,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return mergedText;
       }
 
-      private string ApplyTextChange(string previousText, TextDocumentContentChangeEvent change) {
+      private static string ApplyTextChange(string previousText, TextDocumentContentChangeEvent change) {
         if (change.Range == null) {
           throw new System.InvalidOperationException("the range of the change must not be null");
         }
@@ -107,7 +107,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         );
       }
 
-      private IIntervalTree<Position, ILocalizableSymbol> ApplyLookupTreeChange(
+      private static IIntervalTree<Position, ILocalizableSymbol> ApplyLookupTreeChange(
           IIntervalTree<Position, ILocalizableSymbol> previousLookupTree, Range changeRange, Position afterChangeEndOffset
       ) {
         var migratedLookupTree = new IntervalTree<Position, ILocalizableSymbol>();
@@ -125,7 +125,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return migratedLookupTree;
       }
 
-      private Position GetPositionAtEndOfAppliedChange(Range changeRange, string changeText) {
+      private static Position GetPositionAtEndOfAppliedChange(Range changeRange, string changeText) {
         var changeStart = changeRange.Start;
         var changeEof = changeText.GetEofPosition();
         var characterOffset = changeEof.Character;
