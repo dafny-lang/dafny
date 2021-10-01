@@ -22,7 +22,7 @@ namespace Microsoft.Dafny {
         builder.Add(CaptureState(tok, isEndToken, additionalInfo));
       }
     }
-    
+
     private static Bpl.Cmd CaptureState(Bpl.IToken tok, bool isEndToken, string/*?*/ additionalInfo) {
       Contract.Requires(tok != null);
       Contract.Ensures(Contract.Result<Bpl.Cmd>() != null);
