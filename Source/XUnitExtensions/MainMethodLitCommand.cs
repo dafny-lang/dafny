@@ -9,26 +9,21 @@ namespace XUnitExtensions {
   public class MainMethodLitCommand : ILitCommand {
     public Assembly Assembly { get; protected set; }
     public string[] Arguments { get; protected set; }
-    public string OutputFile { get; protected set; }
-    public bool AppendOutput { get; protected set; }
 
-    public static ILitCommand Parse(Assembly assembly, IEnumerable<string> arguments, LitTestConfiguration config) {
+    public static ILitCommand Parse(Assembly assembly, IEnumerable<string> arguments, LitTestConfiguration config, bool invokeDirectly) {
       var result = new MainMethodLitCommand {
         Assembly = assembly,
+        Arguments = arguments.ToArray()
       };
 
-      IEnumerable<string> args;
-      (args, result.OutputFile, result.AppendOutput) = ILitCommand.ExtractOutputFile(arguments);
-      result.Arguments = args.ToArray();
-      
-      return config.InvokeMainMethodsDirectly ? result : result.ToShellCommand(config);
+      return invokeDirectly ? result : result.ToShellCommand(config);
     }
 
-    public (int, string, string) Execute() {
+    public (int, string, string) Execute(TextWriter outputWriter) {
       StringBuilder redirectedErr = new();
 
-      if (OutputFile != null) {
-        Console.SetOut(new StreamWriter(OutputFile, append: AppendOutput));
+      if (outputWriter != null) {
+        Console.SetOut(outputWriter);
       }
       Console.SetError(new StringWriter(redirectedErr));
 
@@ -39,23 +34,14 @@ namespace XUnitExtensions {
 
     public ILitCommand ToShellCommand(LitTestConfiguration config) {
       var shellArguments = new[] { Assembly.Location }.Concat(Arguments);
-      return new ShellLitCommand("dotnet", shellArguments, OutputFile, AppendOutput, config.PassthroughEnvironmentVariables);
+      return new ShellLitCommand("dotnet", shellArguments, config.PassthroughEnvironmentVariables);
     }
     
     public override string ToString() {
       var builder = new StringBuilder();
-      builder.Append(Assembly);
+      builder.Append(Assembly.EntryPoint);
       builder.Append(' ');
       builder.AppendJoin(" ", Arguments);
-      if (OutputFile != null) {
-        if (AppendOutput) {
-          builder.Append(" >> ");
-        } else {
-          builder.Append(" > ");
-        }
-        builder.Append(OutputFile);
-      }
-
       return builder.ToString();
     }
   }
