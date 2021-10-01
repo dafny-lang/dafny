@@ -7,6 +7,7 @@ using Microsoft.Dafny;
 using Xunit;
 using BoogieProgram = Microsoft.Boogie.Program;
 using Parser = Microsoft.Dafny.Parser;
+using Type = System.Type;
 
 namespace DafnyPipeline.Test {
 
@@ -67,6 +68,7 @@ method SomeMethod2(methodFormal: int) returns (result: bool)
     IEnumerable<BoogieProgram> GetBoogie(string dafnyProgramText) {
       var module = new LiteralModuleDecl(new DefaultModuleDecl(), null);
       var fullFilePath = "foo";
+      Microsoft.Dafny.Type.ResetScopes();
       var builtIns = new BuiltIns();
       var errorReporter = new ConsoleErrorReporter();
       var parseResult = Parser.Parse(dafnyProgramText, fullFilePath, "foo", module, builtIns, errorReporter);
