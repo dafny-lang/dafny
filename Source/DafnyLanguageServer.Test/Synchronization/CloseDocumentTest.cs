@@ -8,18 +8,18 @@ using System.Threading.Tasks;
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   [TestClass]
   public class CloseDocumentTest : DafnyLanguageServerTestBase {
-    private ILanguageClient _client;
+    private ILanguageClient client;
 
     [TestInitialize]
     public async Task SetUp() {
-      _client = await InitializeClient();
+      client = await InitializeClient();
     }
 
     private Task CloseDocumentAndWaitAsync(TextDocumentItem documentItem) {
-      _client.DidCloseTextDocument(new DidCloseTextDocumentParams {
+      client.DidCloseTextDocument(new DidCloseTextDocumentParams {
         TextDocument = documentItem
       });
-      return _client.WaitForNotificationCompletionAsync(documentItem.Uri, CancellationToken);
+      return client.WaitForNotificationCompletionAsync(documentItem.Uri, CancellationToken);
     }
 
     [TestMethod]
@@ -29,7 +29,7 @@ function GetConstant(): int {
   1
 }".Trim();
       var documentItem = CreateTestDocument(source);
-      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await CloseDocumentAndWaitAsync(documentItem);
       Assert.IsNull(await Documents.GetDocumentAsync(documentItem.Uri));
     }

@@ -160,7 +160,7 @@ method Multiply(x: int, y: int) returns (product: int)
       }
     }
 
-    public class TestDiagnosticReceiver {
+    private class TestDiagnosticReceiver {
       private readonly SemaphoreSlim availableDiagnostics = new(0);
       private readonly ConcurrentQueue<PublishDiagnosticsParams> diagnosticsQueue = new();
 

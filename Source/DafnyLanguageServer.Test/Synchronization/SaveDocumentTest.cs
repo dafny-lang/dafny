@@ -10,21 +10,21 @@ using System.Threading.Tasks;
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   [TestClass]
   public class SaveDocumentTest : DafnyLanguageServerTestBase {
-    private ILanguageClient _client;
-    private IDictionary<string, string> _configuration;
+    private ILanguageClient client;
+    private IDictionary<string, string> configuration;
 
     [TestInitialize]
     public Task SetUp() => SetUp(null);
 
     public async Task SetUp(IDictionary<string, string> configuration) {
-      _configuration = configuration;
-      _client = await InitializeClient();
+      this.configuration = configuration;
+      client = await InitializeClient();
     }
 
     protected override IConfiguration CreateConfiguration() {
-      return _configuration == null
+      return configuration == null
         ? base.CreateConfiguration()
-        : new ConfigurationBuilder().AddInMemoryCollection(_configuration).Build();
+        : new ConfigurationBuilder().AddInMemoryCollection(configuration).Build();
     }
 
     [TestMethod]
@@ -34,10 +34,10 @@ function GetConstant(): int {
   1
 }".Trim();
       var documentItem = CreateTestDocument(source);
-      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var openedDocument = await Documents.GetDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(openedDocument);
-      await _client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
+      await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
       var savedDocument = await Documents.GetDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(savedDocument);
       Assert.AreSame(openedDocument, savedDocument);
@@ -53,10 +53,10 @@ function GetConstant(): int {
         { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.Never) }
       });
       var documentItem = CreateTestDocument(source);
-      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var openedDocument = await Documents.GetDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(openedDocument);
-      await _client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
+      await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
       var savedDocument = await Documents.GetDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(savedDocument);
       Assert.AreSame(openedDocument, savedDocument);
@@ -72,10 +72,10 @@ function GetConstant() int {
         { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.OnSave) }
       });
       var documentItem = CreateTestDocument(source);
-      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var openedDocument = await Documents.GetDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(openedDocument);
-      await _client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
+      await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
       var savedDocument = await Documents.GetDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(savedDocument);
       Assert.AreSame(openedDocument, savedDocument);
@@ -91,10 +91,10 @@ function GetConstant(): int {
         { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.OnSave) }
       });
       var documentItem = CreateTestDocument(source);
-      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var openedDocument = await Documents.GetDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(openedDocument);
-      await _client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
+      await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
       var savedDocument = await Documents.GetDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(savedDocument);
       Assert.AreSame(openedDocument, savedDocument);
@@ -110,10 +110,10 @@ function GetConstant(): int {
         { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.OnSave) }
       });
       var documentItem = CreateTestDocument(source);
-      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var openedDocument = await Documents.GetDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(openedDocument);
-      await _client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
+      await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
       var savedDocument = await Documents.GetDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(savedDocument);
       Assert.AreNotSame(openedDocument, savedDocument);
@@ -129,8 +129,8 @@ method DoIt() {
         { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.OnSave) }
       });
       var documentItem = CreateTestDocument(source);
-      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      await _client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
       var document = await Documents.GetDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
       Assert.AreEqual(1, document.Errors.ErrorCount);
