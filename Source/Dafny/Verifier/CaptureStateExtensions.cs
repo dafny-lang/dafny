@@ -6,7 +6,7 @@ namespace Microsoft.Dafny {
   static class CaptureStateExtensions {
 
     public static void AddCaptureState(this BoogieStmtListBuilder builder, Statement statement) {
-      if (DafnyOptions.O.ModelViewFile != null) {
+      if (DafnyOptions.O.ModelViewFile != null || DafnyOptions.O.TestGenOptions.WarnDeadCode) {
         builder.Add(CaptureState(statement));
       }
     }
@@ -18,7 +18,7 @@ namespace Microsoft.Dafny {
     }
 
     public static void AddCaptureState(this BoogieStmtListBuilder builder, Bpl.IToken tok, bool isEndToken, string /*?*/ additionalInfo) {
-      if (DafnyOptions.O.ModelViewFile != null) {
+      if (DafnyOptions.O.ModelViewFile != null || DafnyOptions.O.TestGenOptions.WarnDeadCode) {
         builder.Add(CaptureState(tok, isEndToken, additionalInfo));
       }
     }
