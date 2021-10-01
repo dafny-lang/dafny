@@ -1,5 +1,4 @@
-﻿using Microsoft.Dafny.LanguageServer.Language;
-using Microsoft.Dafny.LanguageServer.Language.Symbols;
+﻿using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client.Capabilities;
@@ -31,17 +30,17 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       };
     }
 
-    public override Task<SymbolInformationOrDocumentSymbolContainer> Handle(DocumentSymbolParams request, CancellationToken cancellationToken) {
-      DafnyDocument? document;
-      if (!_documents.TryGetDocument(request.TextDocument, out document)) {
+    public async override Task<SymbolInformationOrDocumentSymbolContainer> Handle(DocumentSymbolParams request, CancellationToken cancellationToken) {
+      var document = await _documents.GetDocumentAsync(request.TextDocument);
+      if (document == null) {
         _logger.LogWarning("symbols requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
-        return Task.FromResult<SymbolInformationOrDocumentSymbolContainer>(_emptySymbols);
+        return _emptySymbols;
       }
       var visitor = new LspSymbolGeneratingVisitor(document.SymbolTable, cancellationToken);
       var symbols = visitor.Visit(document.SymbolTable.CompilationUnit)
         .Select(symbol => new SymbolInformationOrDocumentSymbol(symbol))
         .ToArray();
-      return Task.FromResult<SymbolInformationOrDocumentSymbolContainer>(symbols);
+      return symbols;
     }
   }
 }

@@ -14,13 +14,17 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     }
 
     public void PublishDiagnostics(DafnyDocument document) {
+      if (document.LoadCanceled) {
+        // We leave the responsibility to shift the error locations to the LSP clients.
+        // Therefore, we do not republish the errors when the document (re-)load was canceled.
+        return;
+      }
       _languageServer.TextDocument.PublishDiagnostics(ToPublishDiagnostics(document));
     }
 
-    public void HideDiagnostics(DafnyDocument document) {
+    public void HideDiagnostics(TextDocumentIdentifier documentId) {
       _languageServer.TextDocument.PublishDiagnostics(new PublishDiagnosticsParams {
-        Uri = document.Uri,
-        Version = document.Version,
+        Uri = documentId.Uri,
         Diagnostics = new Container<Diagnostic>()
       });
     }

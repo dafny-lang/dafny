@@ -14,8 +14,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// <param name="oldDocument">The document that should be altered with the given changes.</param>
     /// <param name="documentChange">A collection of successive changes. That is, each change represents a delta to the previous change.</param>
     /// <param name="cancellationToken">A token to cancel the update operation before its completion.</param>
-    /// <returns>The updated dafny document.</returns>
-    /// <exception cref="System.OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
+    /// <returns>The updated dafny document. If a cancellation was requested before completion, the given document will be migrated.</returns>
     /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
     Task<DafnyDocument> ApplyChangesAsync(DafnyDocument oldDocument, DidChangeTextDocumentParams documentChange, CancellationToken cancellationToken);
   }

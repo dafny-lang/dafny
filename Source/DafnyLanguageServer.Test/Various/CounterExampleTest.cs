@@ -36,7 +36,7 @@ method Abs(x: int) returns (y: int)
 }
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(1, counterExamples.Length);
       Assert.AreEqual((2, 0), counterExamples[0].Position);
@@ -54,7 +54,7 @@ method Abs(x: int) returns (y: int)
 }
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(3, counterExamples.Length);
       Assert.AreEqual((2, 0), counterExamples[0].Position);
@@ -78,7 +78,7 @@ method Abs(x: int) returns (y: int)
 }
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(0, counterExamples.Length);
     }
@@ -97,7 +97,7 @@ method Negate(a: int) returns (b: int)
 }
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri))
         .OrderBy(counterExample => counterExample.Position)
         .ToArray();
@@ -117,7 +117,7 @@ method a(r:real) {
 }
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(1, counterExamples.Length);
       Assert.AreEqual(1, counterExamples[0].Variables.Count);
@@ -133,7 +133,7 @@ method a(r:real) {
 }
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(1, counterExamples.Length);
       Assert.AreEqual(1, counterExamples[0].Variables.Count);
@@ -152,7 +152,7 @@ method a(v:Value) {
 }
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(1, counterExamples.Length);
       Assert.AreEqual(1, counterExamples[0].Variables.Count);
@@ -171,7 +171,7 @@ method a(v:Value) {
 }
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(1, counterExamples.Length);
       Assert.AreEqual(1, counterExamples[0].Variables.Count);
@@ -190,7 +190,7 @@ method IsSelfReferring(n:Node) {
 }
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(1, counterExamples.Length);
       Assert.AreEqual(1, counterExamples[0].Variables.Count);
@@ -209,7 +209,7 @@ method IsSelfRecursive(n:Node) {
 }
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(1, counterExamples.Length);
       Assert.AreEqual(2, counterExamples[0].Variables.Count);
@@ -228,7 +228,7 @@ method IsSelfRecursive(n:Node) {
 }
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(1, counterExamples.Length);
       Assert.AreEqual(1, counterExamples[0].Variables.Count);
@@ -254,7 +254,7 @@ class BankAccountUnsafe {
 }
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(2, counterExamples.Length);
       Assert.AreEqual(2, counterExamples[0].Variables.Count);
@@ -275,7 +275,7 @@ method a(c:char) {
 }
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(1, counterExamples.Length);
       Assert.AreEqual(1, counterExamples[0].Variables.Count);
@@ -291,7 +291,7 @@ method a(c:char) {
 }
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(1, counterExamples.Length);
       Assert.AreEqual(1, counterExamples[0].Variables.Count);
@@ -309,7 +309,7 @@ method a(b:B) {
 }
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(1, counterExamples.Length);
       Assert.AreEqual(1, counterExamples[0].Variables.Count);
@@ -326,7 +326,7 @@ method destructorNameTest(a:A) {
 }
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(1, counterExamples.Length);
       Assert.AreEqual(1, counterExamples[0].Variables.Count);
@@ -344,7 +344,7 @@ method T_datatype0_1(h0:Hand, h1:Hand)
 }
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(1, counterExamples.Length);
       Assert.AreEqual(2, counterExamples[0].Variables.Count);
@@ -363,7 +363,7 @@ method T_datatype0_1(h:Hand)  {
 }
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(1, counterExamples.Length);
       Assert.AreEqual(1, counterExamples[0].Variables.Count);
@@ -380,7 +380,7 @@ method m (a:A) requires !a.B_?{
 }
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(1, counterExamples.Length);
       Assert.AreEqual(1, counterExamples[0].Variables.Count);
@@ -398,7 +398,7 @@ method m(a:A<bool>) requires a == One(false) || a == One(true) {
 }
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(1, counterExamples.Length);
       Assert.AreEqual(1, counterExamples[0].Variables.Count);
@@ -417,7 +417,7 @@ method listHasSingleElement(list:List<bool>)
 }
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(1, counterExamples.Length);
       Assert.AreEqual(2, counterExamples[0].Variables.Count);
@@ -436,7 +436,7 @@ method listHasSingleElement(list:List<int>)
 }
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(1, counterExamples.Length);
       Assert.AreEqual(2, counterExamples[0].Variables.Count);
@@ -455,7 +455,7 @@ method listHasSingleElement(list:List<real>)
 }
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(1, counterExamples.Length);
       Assert.AreEqual(2, counterExamples[0].Variables.Count);
@@ -471,7 +471,7 @@ method a(arr:array<int>) requires arr.Length == 2 {
 }
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(1, counterExamples.Length);
       Assert.AreEqual(1, counterExamples[0].Variables.Count);
@@ -487,7 +487,7 @@ method a(s:seq<int>) requires |s| == 1 {
 }
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(1, counterExamples.Length);
       Assert.AreEqual(1, counterExamples[0].Variables.Count);
@@ -503,7 +503,7 @@ method a(s:seq<bv5>) requires |s| == 2 {
 }
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(1, counterExamples.Length);
       Assert.AreEqual(1, counterExamples[0].Variables.Count);
@@ -519,7 +519,7 @@ method a(bv:bv7) {
 }
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(1, counterExamples.Length);
       Assert.AreEqual(1, counterExamples[0].Variables.Count);
@@ -535,7 +535,7 @@ method a(b:bv2) {
 }
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(1, counterExamples.Length);
       Assert.AreEqual(1, counterExamples[0].Variables.Count);
@@ -551,7 +551,7 @@ method m(a:bv1, b:bv1) {
 }
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(1, counterExamples.Length);
       Assert.AreEqual(2, counterExamples[0].Variables.Count);
@@ -572,7 +572,7 @@ method a(v:Value) {
 }
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(1, counterExamples.Length);
       Assert.AreEqual(1, counterExamples[0].Variables.Count);
@@ -588,7 +588,7 @@ method a(s:set<seq<set<array<int>>>>) requires |s| <= 1{
 }
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(1, counterExamples.Length);
       Assert.IsTrue(counterExamples[0].Variables.ContainsKey("s:set<seq<set<_System.array<int>>>>"));
@@ -603,7 +603,7 @@ method m(a:array3<int>) requires a.Length0 == 4 requires a.Length1 == 5 requires
 }
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(1, counterExamples.Length);
       Assert.AreEqual(1, counterExamples[0].Variables.Count);
@@ -619,7 +619,7 @@ method test(x:array<int>, y:array<int>)   {
 }
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(1, counterExamples.Length);
       Assert.AreEqual(2, counterExamples[0].Variables.Count);
@@ -639,7 +639,7 @@ method a(s1:set<char>, s2:set<char>) {
 }
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(4, counterExamples.Length);
       Assert.AreEqual(5, counterExamples[2].Variables.Count);
@@ -673,7 +673,7 @@ method test() {
   assert 6 !in s;
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(2, counterExamples.Length);
       Assert.AreEqual(1, counterExamples[1].Variables.Count);
@@ -689,7 +689,7 @@ method test() {
 
 "    }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(1, counterExamples.Length);
       Assert.AreEqual(1, counterExamples[0].Variables.Count);
@@ -704,7 +704,7 @@ method test() {
 "    var s2:string := s1[1 := c];" +
 "    assert s2[0] != 'a' || s2[1] !='d' || s2[2] != 'c';}".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(2, counterExamples.Length);
       Assert.AreEqual(3, counterExamples[1].Variables.Count);
@@ -724,7 +724,7 @@ method test() {
   assert 6 !in s;
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(2, counterExamples.Length);
       Assert.AreEqual(1, counterExamples[1].Variables.Count);
@@ -740,7 +740,7 @@ method a(s1:string, s2:string) requires |s1| == 1 && |s2| == 1 {
     assert sCat[0] != 'a' || sCat[1] != 'b';
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(2, counterExamples.Length);
       Assert.AreEqual(3, counterExamples[1].Variables.Count);
@@ -760,7 +760,7 @@ method a(multiplier:int) {
     assert s[2] != 6;
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(2, counterExamples.Length);
       Assert.AreEqual(4, counterExamples[1].Variables.Count);
@@ -778,7 +778,7 @@ method a(s:seq<char>) requires |s| == 5 {
     assert sSub[0] != 'a' || sSub[1] != 'b';
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(2, counterExamples.Length);
       Assert.AreEqual(2, counterExamples[1].Variables.Count);
@@ -796,7 +796,7 @@ method a(s:seq<char>) requires |s| == 5 {
     assert sSub[0] != 'a' || sSub[1] != 'b' || sSub[2] != 'c';
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(2, counterExamples.Length);
       Assert.AreEqual(2, counterExamples[1].Variables.Count);
@@ -814,7 +814,7 @@ method a(s:seq<char>) requires |s| == 5 {
     assert sSub[0] != 'a' || sSub[1] != 'b' || sSub[2] != 'c';
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(2, counterExamples.Length);
       Assert.AreEqual(2, counterExamples[1].Variables.Count);
@@ -832,7 +832,7 @@ method test(m:set<int>) {
   assert 6 !in m;
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(2, counterExamples.Length);
     }
@@ -845,7 +845,7 @@ method test() {
   assert m[3];
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(2, counterExamples.Length);
       Assert.AreEqual(1, counterExamples[1].Variables.Count);
@@ -863,7 +863,7 @@ method test(value:int) {
   assert b && m[3] <= 0;
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(4, counterExamples.Length);
       Assert.AreEqual(2, counterExamples[1].Variables.Count);
@@ -889,7 +889,7 @@ method T_map1(m:map<int,int>, key:int, val:int)
   assert m'.Values == m.Values - {m[key]} + {val};
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(3, counterExamples.Length);
       Assert.AreEqual(4, counterExamples[2].Variables.Count);
@@ -912,7 +912,7 @@ method T_map0(m:map<int,int>, key:int, val:int)
     assert m.Values + {val} == m'.Values;
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(2, counterExamples.Length);
       Assert.AreEqual(4, counterExamples[1].Variables.Count);
@@ -936,7 +936,7 @@ method test(m:map<int,char>) {
  assert (25 !in keys);
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(2, counterExamples.Length);
       Assert.AreEqual(2, counterExamples[1].Variables.Count);
@@ -954,7 +954,7 @@ method test(m:map<int,char>) {
        assert ('c' !in values);
       }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(2, counterExamples.Length);
       Assert.AreEqual(2, counterExamples[1].Variables.Count);
@@ -978,7 +978,7 @@ module Mo_dule_ {
    }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(1, counterExamples.Length);
       Assert.AreEqual(1, counterExamples[0].Variables.Count);
