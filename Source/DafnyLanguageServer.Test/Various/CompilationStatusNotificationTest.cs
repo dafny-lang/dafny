@@ -1,11 +1,11 @@
 ﻿using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
+using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.Extensions.Configuration;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.JsonRpc;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,7 +16,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     private const int MaxTestExecutionTimeMs = 10000;
 
     private ILanguageClient client;
-    private TestCompilationStatusReceiver notificationReceiver;
+    private TestNotificationReceiver<CompilationStatusParams> notificationReceiver;
     private IDictionary<string, string> configuration;
 
     [TestInitialize]
@@ -24,10 +24,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     public async Task SetUp(IDictionary<string, string> configuration) {
       this.configuration = configuration;
-      notificationReceiver = new TestCompilationStatusReceiver();
+      notificationReceiver = new();
       client = await InitializeClient(options => {
         options
-          .AddHandler(DafnyRequestNames.CompilationStatus, NotificationHandler.For<CompilationStatusParams>(notificationReceiver.StatusReceived));
+          .AddHandler(DafnyRequestNames.CompilationStatus, NotificationHandler.For<CompilationStatusParams>(notificationReceiver.NotificationReceived));
       });
     }
 
@@ -48,14 +48,14 @@ method Abs(x: int) returns (y: int)
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var started = await notificationReceiver.AwaitNextCompilationStatusAsync(CancellationToken);
+      var started = await notificationReceiver.AwaitNextNotificationAsync(CancellationToken);
       Assert.AreEqual(documentItem.Uri, started.Uri);
       Assert.AreEqual(documentItem.Version, started.Version);
       Assert.AreEqual(CompilationStatus.ParsingFailed, started.Status);
 
       // We re-send the same erroneous document again to check that we don't have a CompilationSucceeded event queued.
       client.OpenDocument(CreateTestDocument(source, "Test2.dfy"));
-      var queueRemainder = await notificationReceiver.AwaitNextCompilationStatusAsync(CancellationToken);
+      var queueRemainder = await notificationReceiver.AwaitNextNotificationAsync(CancellationToken);
       Assert.AreEqual(CompilationStatus.ParsingFailed, queueRemainder.Status);
     }
 
@@ -70,14 +70,14 @@ method Abs(x: int) returns (y: int)
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var started = await notificationReceiver.AwaitNextCompilationStatusAsync(CancellationToken);
+      var started = await notificationReceiver.AwaitNextNotificationAsync(CancellationToken);
       Assert.AreEqual(documentItem.Uri, started.Uri);
       Assert.AreEqual(documentItem.Version, started.Version);
       Assert.AreEqual(CompilationStatus.ResolutionFailed, started.Status);
 
       // We re-send the same erroneous document again to check that we don't have a CompilationSucceeded event queued.
       client.OpenDocument(CreateTestDocument(source, "Test2.dfy"));
-      var queueRemainder = await notificationReceiver.AwaitNextCompilationStatusAsync(CancellationToken);
+      var queueRemainder = await notificationReceiver.AwaitNextNotificationAsync(CancellationToken);
       Assert.AreEqual(CompilationStatus.ResolutionFailed, queueRemainder.Status);
     }
 
@@ -95,15 +95,15 @@ method Abs(x: int) returns (y: int)
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var compilation = await notificationReceiver.AwaitNextCompilationStatusAsync(CancellationToken);
+      var compilation = await notificationReceiver.AwaitNextNotificationAsync(CancellationToken);
       Assert.AreEqual(documentItem.Uri, compilation.Uri);
       Assert.AreEqual(documentItem.Version, compilation.Version);
       Assert.AreEqual(CompilationStatus.CompilationSucceeded, compilation.Status);
-      var started = await notificationReceiver.AwaitNextCompilationStatusAsync(CancellationToken);
+      var started = await notificationReceiver.AwaitNextNotificationAsync(CancellationToken);
       Assert.AreEqual(documentItem.Uri, started.Uri);
       Assert.AreEqual(documentItem.Version, started.Version);
       Assert.AreEqual(CompilationStatus.VerificationStarted, started.Status);
-      var completed = await notificationReceiver.AwaitNextCompilationStatusAsync(CancellationToken);
+      var completed = await notificationReceiver.AwaitNextNotificationAsync(CancellationToken);
       Assert.AreEqual(documentItem.Uri, completed.Uri);
       Assert.AreEqual(documentItem.Version, completed.Version);
       Assert.AreEqual(CompilationStatus.VerificationSucceeded, completed.Status);
@@ -120,15 +120,15 @@ method Abs(x: int) returns (y: int)
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var compilation = await notificationReceiver.AwaitNextCompilationStatusAsync(CancellationToken);
+      var compilation = await notificationReceiver.AwaitNextNotificationAsync(CancellationToken);
       Assert.AreEqual(documentItem.Uri, compilation.Uri);
       Assert.AreEqual(documentItem.Version, compilation.Version);
       Assert.AreEqual(CompilationStatus.CompilationSucceeded, compilation.Status);
-      var started = await notificationReceiver.AwaitNextCompilationStatusAsync(CancellationToken);
+      var started = await notificationReceiver.AwaitNextNotificationAsync(CancellationToken);
       Assert.AreEqual(documentItem.Uri, started.Uri);
       Assert.AreEqual(documentItem.Version, started.Version);
       Assert.AreEqual(CompilationStatus.VerificationStarted, started.Status);
-      var completed = await notificationReceiver.AwaitNextCompilationStatusAsync(CancellationToken);
+      var completed = await notificationReceiver.AwaitNextNotificationAsync(CancellationToken);
       Assert.AreEqual(documentItem.Uri, completed.Uri);
       Assert.AreEqual(documentItem.Version, completed.Version);
       Assert.AreEqual(CompilationStatus.VerificationFailed, completed.Status);
@@ -153,15 +153,15 @@ lemma {:timeLimit 3} SquareRoot2NotRational(p: nat, q: nat)
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var compilation = await notificationReceiver.AwaitNextCompilationStatusAsync(CancellationToken);
+      var compilation = await notificationReceiver.AwaitNextNotificationAsync(CancellationToken);
       Assert.AreEqual(documentItem.Uri, compilation.Uri);
       Assert.AreEqual(documentItem.Version, compilation.Version);
       Assert.AreEqual(CompilationStatus.CompilationSucceeded, compilation.Status);
-      var started = await notificationReceiver.AwaitNextCompilationStatusAsync(CancellationToken);
+      var started = await notificationReceiver.AwaitNextNotificationAsync(CancellationToken);
       Assert.AreEqual(documentItem.Uri, started.Uri);
       Assert.AreEqual(documentItem.Version, started.Version);
       Assert.AreEqual(CompilationStatus.VerificationStarted, started.Status);
-      var completed = await notificationReceiver.AwaitNextCompilationStatusAsync(CancellationToken);
+      var completed = await notificationReceiver.AwaitNextNotificationAsync(CancellationToken);
       Assert.AreEqual(documentItem.Uri, completed.Uri);
       Assert.AreEqual(documentItem.Version, completed.Version);
       Assert.AreEqual(CompilationStatus.VerificationFailed, completed.Status);
@@ -189,36 +189,18 @@ lemma SquareRoot2NotRational(p: nat, q: nat)
       });
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var compilation = await notificationReceiver.AwaitNextCompilationStatusAsync(CancellationToken);
+      var compilation = await notificationReceiver.AwaitNextNotificationAsync(CancellationToken);
       Assert.AreEqual(documentItem.Uri, compilation.Uri);
       Assert.AreEqual(documentItem.Version, compilation.Version);
       Assert.AreEqual(CompilationStatus.CompilationSucceeded, compilation.Status);
-      var started = await notificationReceiver.AwaitNextCompilationStatusAsync(CancellationToken);
+      var started = await notificationReceiver.AwaitNextNotificationAsync(CancellationToken);
       Assert.AreEqual(documentItem.Uri, started.Uri);
       Assert.AreEqual(documentItem.Version, started.Version);
       Assert.AreEqual(CompilationStatus.VerificationStarted, started.Status);
-      var completed = await notificationReceiver.AwaitNextCompilationStatusAsync(CancellationToken);
+      var completed = await notificationReceiver.AwaitNextNotificationAsync(CancellationToken);
       Assert.AreEqual(documentItem.Uri, completed.Uri);
       Assert.AreEqual(documentItem.Version, completed.Version);
       Assert.AreEqual(CompilationStatus.VerificationFailed, completed.Status);
-    }
-
-    public class TestCompilationStatusReceiver {
-      private readonly SemaphoreSlim availableStatuses = new(0);
-      private readonly ConcurrentQueue<CompilationStatusParams> compilationStatuses = new();
-
-      public void StatusReceived(CompilationStatusParams request) {
-        compilationStatuses.Enqueue(request);
-        availableStatuses.Release();
-      }
-
-      public async Task<CompilationStatusParams> AwaitNextCompilationStatusAsync(CancellationToken cancellationToken) {
-        await availableStatuses.WaitAsync(cancellationToken);
-        if (compilationStatuses.TryDequeue(out var diagnostics)) {
-          return diagnostics;
-        }
-        throw new System.InvalidOperationException("got a signal for a received diagnostic but it was not present in the queue");
-      }
     }
   }
 }
