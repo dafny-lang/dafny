@@ -51,7 +51,7 @@ method Multiply(x: int, y: int) returns (product: int)
   }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var report = await _diagnosticReceiver.AwaitNextPublishDiagnostics(CancellationToken);
       var diagnostics = report.Diagnostics.ToArray();
       Assert.AreEqual(0, diagnostics.Length);
@@ -73,7 +73,7 @@ method Multiply(x: int, y: int) returns (product: int
   }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var report = await _diagnosticReceiver.AwaitNextPublishDiagnostics(CancellationToken);
       var diagnostics = report.Diagnostics.ToArray();
       Assert.AreEqual(1, diagnostics.Length);
@@ -97,7 +97,7 @@ method Multiply(x: int, y: int) returns (product: int)
   }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var report = await _diagnosticReceiver.AwaitNextPublishDiagnostics(CancellationToken);
       var diagnostics = report.Diagnostics.ToArray();
       Assert.AreEqual(1, diagnostics.Length);
@@ -121,7 +121,7 @@ method Multiply(x: int, y: int) returns (product: int)
   }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var report = await _diagnosticReceiver.AwaitNextPublishDiagnostics(CancellationToken);
       var diagnostics = report.Diagnostics.ToArray();
       Assert.AreEqual(2, diagnostics.Length);
@@ -147,7 +147,7 @@ method Multiply(x: int, y: int) returns (product: int)
   }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var report = await _diagnosticReceiver.AwaitNextPublishDiagnostics(CancellationToken);
       var diagnostics = report.Diagnostics.ToArray();
       Assert.AreEqual(1, diagnostics.Length);
@@ -174,7 +174,7 @@ method Multiply(x: int, y: int) returns (product: int)
         { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.Never) }
       });
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var report = await _diagnosticReceiver.AwaitNextPublishDiagnostics(CancellationToken);
       var diagnostics = report.Diagnostics.ToArray();
       Assert.AreEqual(0, diagnostics.Length);
@@ -195,7 +195,7 @@ method Multiply(x: int, y: int) returns (product: int)
   }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var report = await _diagnosticReceiver.AwaitNextPublishDiagnostics(CancellationToken);
       var diagnostics = report.Diagnostics.ToArray();
       Assert.AreEqual(2, diagnostics.Length);
@@ -225,7 +225,7 @@ method Multiply(x: int, y: int) returns (product: int)
   }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var reportAfterOpening = await _diagnosticReceiver.AwaitNextPublishDiagnostics(CancellationToken);
       var diagnosticsAfterOpening = reportAfterOpening.Diagnostics.ToArray();
       Assert.AreEqual(0, diagnosticsAfterOpening.Length);
@@ -269,7 +269,7 @@ method Multiply(x: int, y: int) returns (product: int)
         { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.Never) }
       });
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var reportAfterOpening = await _diagnosticReceiver.AwaitNextPublishDiagnostics(CancellationToken);
       var diagnosticsAfterOpening = reportAfterOpening.Diagnostics.ToArray();
       Assert.AreEqual(0, diagnosticsAfterOpening.Length);
@@ -310,7 +310,7 @@ method Multiply(x: int, y: int) returns (product: int)
   }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var reportAfterOpening = await _diagnosticReceiver.AwaitNextPublishDiagnostics(CancellationToken);
       var diagnosticsAfterOpening = reportAfterOpening.Diagnostics.ToArray();
       Assert.AreEqual(0, diagnosticsAfterOpening.Length);
@@ -354,7 +354,7 @@ method Multiply(x: int, y: int) returns (product: int)
         { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.Never) }
       });
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var reportAfterOpening = await _diagnosticReceiver.AwaitNextPublishDiagnostics(CancellationToken);
       var diagnosticsAfterOpening = reportAfterOpening.Diagnostics.ToArray();
       Assert.AreEqual(0, diagnosticsAfterOpening.Length);
@@ -393,7 +393,7 @@ method Multiply(x: int, y: int) returns (product: int)
   }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var reportAfterOpening = await _diagnosticReceiver.AwaitNextPublishDiagnostics(CancellationToken);
       var diagnosticsAfterOpening = reportAfterOpening.Diagnostics.ToArray();
       Assert.AreEqual(0, diagnosticsAfterOpening.Length);
@@ -441,7 +441,7 @@ method Multiply(x: int, y: int) returns (product: int
   }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await _diagnosticReceiver.AwaitNextPublishDiagnostics(CancellationToken);
       _client.DidCloseTextDocument(new DidCloseTextDocumentParams { TextDocument = documentItem });
       var report = await _diagnosticReceiver.AwaitNextPublishDiagnostics(CancellationToken);
@@ -453,7 +453,7 @@ method Multiply(x: int, y: int) returns (product: int
     public async Task OpeningDocumentThatIncludesNonExistantDocumentReportsParserErrorAtInclude() {
       var source = "include \"doesNotExist.dfy\"";
       var documentItem = CreateTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles/test.dfy"));
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var report = await _diagnosticReceiver.AwaitNextPublishDiagnostics(CancellationToken);
       var diagnostics = report.Diagnostics.ToArray();
       Assert.AreEqual(1, diagnostics.Length);
@@ -466,7 +466,7 @@ method Multiply(x: int, y: int) returns (product: int
     public async Task OpeningDocumentThatIncludesDocumentWithSyntaxErrorsReportsParserErrorAtInclude() {
       var source = "include \"syntaxError.dfy\"";
       var documentItem = CreateTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles/test.dfy"));
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var report = await _diagnosticReceiver.AwaitNextPublishDiagnostics(CancellationToken);
       var diagnostics = report.Diagnostics.ToArray();
       Assert.AreEqual(1, diagnostics.Length);
@@ -479,7 +479,7 @@ method Multiply(x: int, y: int) returns (product: int
     public async Task OpeningDocumentThatIncludesDocumentWithSemanticErrorsReportsResolverErrorAtInclude() {
       var source = "include \"syntaxError.dfy\"";
       var documentItem = CreateTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles/test.dfy"));
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var report = await _diagnosticReceiver.AwaitNextPublishDiagnostics(CancellationToken);
       var diagnostics = report.Diagnostics.ToArray();
       Assert.AreEqual(1, diagnostics.Length);
@@ -492,7 +492,7 @@ method Multiply(x: int, y: int) returns (product: int
     public async Task OpeningDocumentWithSemanticErrorsInIncludeReportsResolverErrorAtIncludeStatement() {
       var source = "include \"semanticError.dfy\"";
       var documentItem = CreateTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles/test.dfy"));
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var report = await _diagnosticReceiver.AwaitNextPublishDiagnostics(CancellationToken);
       var diagnostics = report.Diagnostics.ToArray();
       Assert.AreEqual(1, diagnostics.Length);
@@ -517,7 +517,7 @@ method Multiply(x: int, y: int) returns (product: int)
   }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var changeReport = await _diagnosticReceiver.AwaitNextPublishDiagnostics(CancellationToken);
       var changeDiagnostics = changeReport.Diagnostics.ToArray();
       Assert.AreEqual(1, changeDiagnostics.Length);
@@ -550,7 +550,7 @@ method Multiply(x: int, y: int) returns (product: int)
         { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.OnSave) }
       });
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var changeReport = await _diagnosticReceiver.AwaitNextPublishDiagnostics(CancellationToken);
       var changeDiagnostics = changeReport.Diagnostics.ToArray();
       Assert.AreEqual(0, changeDiagnostics.Length);

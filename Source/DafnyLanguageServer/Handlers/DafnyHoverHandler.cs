@@ -1,5 +1,4 @@
-﻿using Microsoft.Dafny.LanguageServer.Language;
-using Microsoft.Dafny.LanguageServer.Language.Symbols;
+﻿using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client.Capabilities;
@@ -25,20 +24,20 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       };
     }
 
-    public override Task<Hover?> Handle(HoverParams request, CancellationToken cancellationToken) {
+    public async override Task<Hover?> Handle(HoverParams request, CancellationToken cancellationToken) {
       _logger.LogTrace("received hover request for {Document}", request.TextDocument);
-      DafnyDocument? textDocument;
-      if (!_documents.TryGetDocument(request.TextDocument, out textDocument)) {
+      var document = await _documents.GetDocumentAsync(request.TextDocument);
+      if (document == null) {
         _logger.LogWarning("the document {Document} is not loaded", request.TextDocument);
-        return Task.FromResult<Hover?>(null);
+        return null;
       }
 
       ILocalizableSymbol? symbol;
-      if (!textDocument.SymbolTable.TryGetSymbolAt(request.Position, out symbol)) {
+      if (!document.SymbolTable.TryGetSymbolAt(request.Position, out symbol)) {
         _logger.LogDebug("no symbol was found at {Position} in {Document}", request.Position, request.TextDocument);
-        return Task.FromResult<Hover?>(null);
+        return null;
       }
-      return Task.FromResult<Hover?>(CreateHover(symbol, cancellationToken));
+      return CreateHover(symbol, cancellationToken);
     }
 
     private static Hover CreateHover(ILocalizableSymbol symbol, CancellationToken cancellationToken) {

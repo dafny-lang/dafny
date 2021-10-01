@@ -96,9 +96,19 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       //      synchronization is completed.
       var uniqueId = Guid.NewGuid().ToString();
       using (cancellationToken.Register(() => CancelVerification(uniqueId))) {
-        var statistics = new PipelineStatistics();
-        var outcome = ExecutionEngine.InferAndVerify(program, statistics, uniqueId, error => { }, uniqueId);
-        return DafnyDriver.IsBoogieVerified(outcome, statistics);
+        try {
+          var statistics = new PipelineStatistics();
+          var outcome = ExecutionEngine.InferAndVerify(program, statistics, uniqueId, error => { }, uniqueId);
+          return DafnyDriver.IsBoogieVerified(outcome, statistics);
+        } catch (Exception e) when (e is not OperationCanceledException) {
+          if (!cancellationToken.IsCancellationRequested) {
+            throw;
+          }
+          // It appears that Boogie disposes resources that are still in use upon cancellation.
+          // Therefore, we log this error and proceed with the cancellation.
+          _logger.LogDebug(e, "boogie error occured when cancelling the verification");
+          throw new OperationCanceledException(cancellationToken);
+        }
       }
     }
 
