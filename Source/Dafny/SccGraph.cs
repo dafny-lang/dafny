@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
 
 namespace Microsoft.Dafny {
 
@@ -21,6 +22,7 @@ namespace Microsoft.Dafny {
 
       public Vertex SccRepresentative;  // null if not computed
 
+      public int SccPredecessorCount; // valid only for SCC representatives; indicates how many SCCs are [indirect] predecessors of this one
       public int SccId;  // valid only for SCC representatives; indicates position of this representative vertex in the graph's topological sort
       // the following field is used during the computation of SCCs and of reachability
       public VisitedStatus Visited;
@@ -36,6 +38,21 @@ namespace Microsoft.Dafny {
       public void AddSuccessor(Vertex v) {
         Contract.Requires(v != null);
         Successors.Add(v);
+      }
+    }
+
+    private void ComputeSccPredecessorCounts() {
+      foreach (var vertex in topologicallySortedRepresentatives) {
+        vertex.SccPredecessorCount = 0;
+      }
+
+      foreach (var vertex in topologicallySortedRepresentatives) {
+        var successorSccs = vertex.SccMembers.SelectMany(v => v.Successors.Select(s => s.SccRepresentative)).Distinct();
+        foreach (var successor in successorSccs) {
+          if (successor != vertex) {
+            vertex.SccPredecessorCount = Math.Max(vertex.SccPredecessorCount, successor.SccPredecessorCount + 1);
+          }
+        }
       }
     }
 
@@ -92,6 +109,7 @@ namespace Microsoft.Dafny {
           v.SccMembers = new List<Vertex>();
           v.SccMembers.Add(v);
           v.SccId = topologicallySortedRepresentatives.Count;
+          v.SccPredecessorCount = 0;
           topologicallySortedRepresentatives.Add(v);
         }
       }
@@ -128,6 +146,13 @@ namespace Microsoft.Dafny {
     /// </summary>
     public Node GetSCCRepresentative(Node n) {
       return GetSCCRepr(n).N;
+    }
+
+    /// <summary>
+    /// Idempotently adds 'n' as a vertex.
+    /// </summary>
+    public int GetSCCRepresentativePredecessorCount(Node n) {
+      return GetSCCRepr(n).SccPredecessorCount;
     }
 
     /// <summary>
@@ -218,6 +243,8 @@ namespace Microsoft.Dafny {
         }
       }
       Contract.Assert(cnt == vertices.Count);  // sanity check that everything has been visited
+
+      ComputeSccPredecessorCounts();
 
       sccComputed = true;
     }
