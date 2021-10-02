@@ -9,22 +9,22 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   /// Visitor responsible to generate the LSP symbol representation.
   /// </summary>
   public class LspSymbolGeneratingVisitor : ISymbolVisitor<IEnumerable<DocumentSymbol>> {
-    private readonly SymbolTable _symbolTable;
-    private readonly CancellationToken _cancellationToken;
+    private readonly SymbolTable symbolTable;
+    private readonly CancellationToken cancellationToken;
 
     public LspSymbolGeneratingVisitor(SymbolTable symbolTable, CancellationToken cancellationToken) {
-      _symbolTable = symbolTable;
-      _cancellationToken = cancellationToken;
+      this.symbolTable = symbolTable;
+      this.cancellationToken = cancellationToken;
     }
 
     private bool IsPartOfEntryDocument(Boogie.IToken token) {
       // Tokens with line=0 usually represent a default/implicit class/module/etc. We do not want
       // to show these in the symbol listing.
-      return token.line != 0 && _symbolTable.CompilationUnit.Program.IsPartOfEntryDocument(token);
+      return token.line != 0 && symbolTable.CompilationUnit.Program.IsPartOfEntryDocument(token);
     }
 
     public IEnumerable<DocumentSymbol> Visit(ISymbol symbol) {
-      _cancellationToken.ThrowIfCancellationRequested();
+      cancellationToken.ThrowIfCancellationRequested();
       return symbol.Accept(this);
     }
 
@@ -76,10 +76,10 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       var documentSymbol = new DocumentSymbol {
         Name = symbol.Name,
         Kind = kind,
-        Detail = symbol.GetDetailText(_cancellationToken),
+        Detail = symbol.GetDetailText(cancellationToken),
         Children = children.ToArray()
       };
-      if (_symbolTable.TryGetLocationOf(symbol, out var location)) {
+      if (symbolTable.TryGetLocationOf(symbol, out var location)) {
         documentSymbol = documentSymbol with {
           Range = location.Declaration,
           SelectionRange = location.Name

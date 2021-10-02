@@ -11,26 +11,26 @@ using System.Threading.Tasks;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   public class DocumentUpdater : IDocumentUpdater {
-    private readonly ILogger _logger;
-    private readonly DocumentOptions _options;
-    private readonly ITextDocumentLoader _documentLoader;
+    private readonly ILogger logger;
+    private readonly DocumentOptions options;
+    private readonly ITextDocumentLoader documentLoader;
 
-    private bool Verify => _options.Verify == AutoVerification.OnChange;
+    private bool Verify => options.Verify == AutoVerification.OnChange;
 
     public DocumentUpdater(ILogger<DocumentUpdater> logger, IOptions<DocumentOptions> options, ITextDocumentLoader documentLoader) {
-      _logger = logger;
-      _options = options.Value;
-      _documentLoader = documentLoader;
+      this.logger = logger;
+      this.options = options.Value;
+      this.documentLoader = documentLoader;
     }
 
     public async Task<DafnyDocument> ApplyChangesAsync(DafnyDocument oldDocument, DidChangeTextDocumentParams documentChange, CancellationToken cancellationToken) {
-      var changeProcessor = new ChangeProcessor(_logger, oldDocument, documentChange.ContentChanges);
+      var changeProcessor = new ChangeProcessor(logger, oldDocument, documentChange.ContentChanges);
       var mergedText = oldDocument.Text with {
         Version = documentChange.TextDocument.Version,
         Text = changeProcessor.MigrateText()
       };
       try {
-        var newDocument = await _documentLoader.LoadAsync(mergedText, Verify, cancellationToken);
+        var newDocument = await documentLoader.LoadAsync(mergedText, Verify, cancellationToken);
         if (newDocument.SymbolTable.Resolved) {
           return newDocument;
         }
@@ -41,7 +41,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       } catch (System.OperationCanceledException) {
         // The document load was canceled before it could complete. We migrate the document
         // to re-locate symbols that were resolved previously.
-        _logger.LogTrace("document loading canceled, applying migration");
+        logger.LogTrace("document loading canceled, applying migration");
         return MigrateDocument(mergedText, oldDocument, changeProcessor, true);
       }
     }
@@ -58,25 +58,25 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private class ChangeProcessor {
-      private readonly ILogger _logger;
-      private readonly DafnyDocument _originalDocument;
-      private readonly Container<TextDocumentContentChangeEvent> _contentChanges;
+      private readonly ILogger logger;
+      private readonly DafnyDocument originalDocument;
+      private readonly Container<TextDocumentContentChangeEvent> contentChanges;
 
       public ChangeProcessor(ILogger logger, DafnyDocument originalDocument, Container<TextDocumentContentChangeEvent> contentChanges) {
-        _logger = logger;
-        _originalDocument = originalDocument;
-        _contentChanges = contentChanges;
+        this.logger = logger;
+        this.originalDocument = originalDocument;
+        this.contentChanges = contentChanges;
       }
 
       public string MigrateText() {
-        var mergedText = _originalDocument.Text.Text;
-        foreach (var change in _contentChanges) {
+        var mergedText = originalDocument.Text.Text;
+        foreach (var change in contentChanges) {
           mergedText = ApplyTextChange(mergedText, change);
         }
         return mergedText;
       }
 
-      private string ApplyTextChange(string previousText, TextDocumentContentChangeEvent change) {
+      private static string ApplyTextChange(string previousText, TextDocumentContentChangeEvent change) {
         if (change.Range == null) {
           throw new System.InvalidOperationException("the range of the change must not be null");
         }
@@ -86,9 +86,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       public SymbolTable MigrateSymbolTable() {
-        var migratedLookupTree = _originalDocument.SymbolTable.LookupTree;
-        var migratedDeclarations = _originalDocument.SymbolTable.Locations;
-        foreach (var change in _contentChanges) {
+        var migratedLookupTree = originalDocument.SymbolTable.LookupTree;
+        var migratedDeclarations = originalDocument.SymbolTable.Locations;
+        foreach (var change in contentChanges) {
           if (change.Range == null) {
             throw new System.InvalidOperationException("the range of the change must not be null");
           }
@@ -96,18 +96,18 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           migratedLookupTree = ApplyLookupTreeChange(migratedLookupTree, change.Range, afterChangeEndOffset);
           migratedDeclarations = ApplyDeclarationsChange(migratedDeclarations, change.Range, afterChangeEndOffset);
         }
-        _logger.LogTrace("migrated the lookup tree, lookup before={SymbolsBefore}, after={SymbolsAfter}",
-          _originalDocument.SymbolTable.LookupTree.Count, migratedLookupTree.Count);
+        logger.LogTrace("migrated the lookup tree, lookup before={SymbolsBefore}, after={SymbolsAfter}",
+          originalDocument.SymbolTable.LookupTree.Count, migratedLookupTree.Count);
         return new SymbolTable(
-          _originalDocument.SymbolTable.CompilationUnit,
-          _originalDocument.SymbolTable.Declarations,
+          originalDocument.SymbolTable.CompilationUnit,
+          originalDocument.SymbolTable.Declarations,
           migratedDeclarations,
           migratedLookupTree,
           false
         );
       }
 
-      private IIntervalTree<Position, ILocalizableSymbol> ApplyLookupTreeChange(
+      private static IIntervalTree<Position, ILocalizableSymbol> ApplyLookupTreeChange(
           IIntervalTree<Position, ILocalizableSymbol> previousLookupTree, Range changeRange, Position afterChangeEndOffset
       ) {
         var migratedLookupTree = new IntervalTree<Position, ILocalizableSymbol>();
@@ -125,7 +125,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return migratedLookupTree;
       }
 
-      private Position GetPositionAtEndOfAppliedChange(Range changeRange, string changeText) {
+      private static Position GetPositionAtEndOfAppliedChange(Range changeRange, string changeText) {
         var changeStart = changeRange.Start;
         var changeEof = changeText.GetEofPosition();
         var characterOffset = changeEof.Character;
@@ -158,7 +158,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       ) {
         var migratedDeclarations = new Dictionary<ISymbol, SymbolLocation>();
         foreach (var (symbol, location) in previousDeclarations) {
-          if (!_originalDocument.IsDocument(location.Uri)) {
+          if (!originalDocument.IsDocument(location.Uri)) {
             migratedDeclarations.Add(symbol, location);
             continue;
           }

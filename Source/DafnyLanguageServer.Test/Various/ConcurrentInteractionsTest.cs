@@ -1,9 +1,9 @@
 ﻿using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
+using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -17,12 +17,12 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     private const int MaxTestExecutionTimeMs = 60_000;
 
     private ILanguageClient client;
-    private TestDiagnosticReceiver diagnosticReceiver;
+    private TestNotificationReceiver<PublishDiagnosticsParams> diagnosticReceiver;
 
     [TestInitialize]
     public async Task SetUp() {
-      diagnosticReceiver = new TestDiagnosticReceiver();
-      client = await InitializeClient(options => options.OnPublishDiagnostics(diagnosticReceiver.DiagnosticReceived));
+      diagnosticReceiver = new();
+      client = await InitializeClient(options => options.OnPublishDiagnostics(diagnosticReceiver.NotificationReceived));
     }
 
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
@@ -59,7 +59,7 @@ lemma {:timeLimit 3} SquareRoot2NotRational(p: nat, q: nat)
 
       // The initial document does not have issues. If the load was succesfully canceled, we should
       // receive diagnostics with a parser error.
-      var report = await diagnosticReceiver.AwaitNextPublishDiagnostics(CancellationToken);
+      var report = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
       var diagnostics = report.Diagnostics.ToArray();
       Assert.AreEqual(1, diagnostics.Length);
     }
@@ -82,7 +82,7 @@ lemma {:timeLimit 3} SquareRoot2NotRational(p: nat, q: nat)
   }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var initialLoadReport = await diagnosticReceiver.AwaitNextPublishDiagnostics(CancellationToken);
+      var initialLoadReport = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
       var initialLoadDiagnostics = initialLoadReport.Diagnostics.ToArray();
       Assert.AreEqual(1, initialLoadDiagnostics.Length);
 
@@ -117,14 +117,14 @@ lemma {:timeLimit 3} SquareRoot2NotRational(p: nat, q: nat)
       // any diagnostics.
       // The second change replaces the complete document with a correct one. Mind that the original document
       // was chosen because of the exceptionally long time it requires to verify.
-      var report = await diagnosticReceiver.AwaitNextPublishDiagnostics(CancellationToken);
+      var report = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
       var diagnostics = report.Diagnostics.ToArray();
       Assert.AreEqual(0, diagnostics.Length);
 
       // This change is to ensure that no diagnostics are remaining in the report queue.
       var verificationDocumentItem = CreateTestDocument("class X {}", "verification.dfy");
       await client.OpenDocumentAndWaitAsync(verificationDocumentItem, CancellationToken);
-      var verificationReport = await diagnosticReceiver.AwaitNextPublishDiagnostics(CancellationToken);
+      var verificationReport = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
       Assert.AreEqual(verificationDocumentItem.Uri, verificationReport.Uri);
     }
 
@@ -155,26 +155,8 @@ method Multiply(x: int, y: int) returns (product: int)
         loadingDocuments.Add(documentItem);
       }
       for (int i = 0; i < documentsToLoadConcurrently; i++) {
-        var report = await diagnosticReceiver.AwaitNextPublishDiagnostics(CancellationToken);
+        var report = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
         Assert.AreEqual(0, report.Diagnostics.Count());
-      }
-    }
-
-    public class TestDiagnosticReceiver {
-      private readonly SemaphoreSlim availableDiagnostics = new(0);
-      private readonly ConcurrentQueue<PublishDiagnosticsParams> diagnosticsQueue = new();
-
-      public void DiagnosticReceived(PublishDiagnosticsParams request) {
-        diagnosticsQueue.Enqueue(request);
-        availableDiagnostics.Release();
-      }
-
-      public async Task<PublishDiagnosticsParams> AwaitNextPublishDiagnostics(CancellationToken cancellationToken) {
-        await availableDiagnostics.WaitAsync(cancellationToken);
-        if (diagnosticsQueue.TryDequeue(out var diagnostics)) {
-          return diagnostics;
-        }
-        throw new System.InvalidOperationException("got a signal for a received diagnostic but it was not present in the queue");
       }
     }
   }
