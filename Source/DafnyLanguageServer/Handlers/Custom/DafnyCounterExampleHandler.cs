@@ -14,26 +14,26 @@ using System.Threading.Tasks;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
   public class DafnyCounterExampleHandler : ICounterExampleHandler {
-    private readonly ILogger _logger;
-    private readonly IDocumentDatabase _documents;
+    private readonly ILogger logger;
+    private readonly IDocumentDatabase documents;
 
     public DafnyCounterExampleHandler(ILogger<DafnyCounterExampleHandler> logger, IDocumentDatabase documents) {
-      _logger = logger;
-      _documents = documents;
+      this.logger = logger;
+      this.documents = documents;
     }
 
     public async Task<CounterExampleList> Handle(CounterExampleParams request, CancellationToken cancellationToken) {
-      var document = await _documents.GetDocumentAsync(request.TextDocument);
+      var document = await documents.GetDocumentAsync(request.TextDocument);
       if (document == null) {
-        _logger.LogWarning("counter-examples requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
+        logger.LogWarning("counter-examples requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
         return new CounterExampleList();
       }
-      return new CounterExampleLoader(_logger, document, cancellationToken, request.CounterExampleDepth).GetCounterExamples();
+      return new CounterExampleLoader(logger, document, request.CounterExampleDepth, cancellationToken).GetCounterExamples();
     }
 
     private class CounterExampleLoader {
-      private const string initialStateName = "<initial>";
-      private static readonly Regex statePositionRegex = new(
+      private const string InitialStateName = "<initial>";
+      private static readonly Regex StatePositionRegex = new(
         @".*\.dfy\((?<line>\d+),(?<character>\d+)\)",
         RegexOptions.IgnoreCase | RegexOptions.Singleline
       );
@@ -43,11 +43,11 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
       private readonly CancellationToken cancellationToken;
       private readonly int counterExampleDepth;
 
-      public CounterExampleLoader(ILogger logger, DafnyDocument document, CancellationToken cancellationToken, int depth) {
+      public CounterExampleLoader(ILogger logger, DafnyDocument document, int counterExampleDepth, CancellationToken cancellationToken) {
         this.logger = logger;
         this.document = document;
         this.cancellationToken = cancellationToken;
-        counterExampleDepth = depth;
+        this.counterExampleDepth = counterExampleDepth;
       }
 
       public CounterExampleList GetCounterExamples() {
@@ -81,7 +81,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
       }
 
       private static bool IsInitialState(DafnyModelState state) {
-        return state.ShortenedStateName.Equals(initialStateName);
+        return state.ShortenedStateName.Equals(InitialStateName);
       }
 
       private CounterExampleItem GetCounterExample(DafnyModelState state) {
@@ -92,7 +92,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
       }
 
       private static Position GetPositionFromInitialState(DafnyModelState state) {
-        var match = statePositionRegex.Match(state.ShortenedStateName);
+        var match = StatePositionRegex.Match(state.ShortenedStateName);
         if (!match.Success) {
           throw new ArgumentException($"state does not contain position: {state.ShortenedStateName}");
         }

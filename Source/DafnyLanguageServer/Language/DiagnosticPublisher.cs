@@ -7,10 +7,10 @@ using System.Linq;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   public class DiagnosticPublisher : IDiagnosticPublisher {
-    private readonly ILanguageServerFacade _languageServer;
+    private readonly ILanguageServerFacade languageServer;
 
     public DiagnosticPublisher(ILanguageServerFacade languageServer) {
-      _languageServer = languageServer;
+      this.languageServer = languageServer;
     }
 
     public void PublishDiagnostics(DafnyDocument document) {
@@ -19,11 +19,11 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         // Therefore, we do not republish the errors when the document (re-)load was canceled.
         return;
       }
-      _languageServer.TextDocument.PublishDiagnostics(ToPublishDiagnostics(document));
+      languageServer.TextDocument.PublishDiagnostics(ToPublishDiagnostics(document));
     }
 
     public void HideDiagnostics(TextDocumentIdentifier documentId) {
-      _languageServer.TextDocument.PublishDiagnostics(new PublishDiagnosticsParams {
+      languageServer.TextDocument.PublishDiagnostics(new PublishDiagnosticsParams {
         Uri = documentId.Uri,
         Diagnostics = new Container<Diagnostic>()
       });

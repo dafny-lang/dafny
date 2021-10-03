@@ -14,14 +14,14 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
   /// LSP Synchronization handler for symbol based events, i.e. the client requests the symbols of the specified document.
   /// </summary>
   public class DafnyDocumentSymbolHandler : DocumentSymbolHandlerBase {
-    private static readonly SymbolInformationOrDocumentSymbol[] _emptySymbols = Array.Empty<SymbolInformationOrDocumentSymbol>();
+    private static readonly SymbolInformationOrDocumentSymbol[] EmptySymbols = Array.Empty<SymbolInformationOrDocumentSymbol>();
 
-    private readonly ILogger _logger;
-    private readonly IDocumentDatabase _documents;
+    private readonly ILogger logger;
+    private readonly IDocumentDatabase documents;
 
     public DafnyDocumentSymbolHandler(ILogger<DafnyDocumentSymbolHandler> logger, IDocumentDatabase documents) {
-      _logger = logger;
-      _documents = documents;
+      this.logger = logger;
+      this.documents = documents;
     }
 
     protected override DocumentSymbolRegistrationOptions CreateRegistrationOptions(DocumentSymbolCapability capability, ClientCapabilities clientCapabilities) {
@@ -31,10 +31,10 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     }
 
     public async override Task<SymbolInformationOrDocumentSymbolContainer> Handle(DocumentSymbolParams request, CancellationToken cancellationToken) {
-      var document = await _documents.GetDocumentAsync(request.TextDocument);
+      var document = await documents.GetDocumentAsync(request.TextDocument);
       if (document == null) {
-        _logger.LogWarning("symbols requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
-        return _emptySymbols;
+        logger.LogWarning("symbols requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
+        return EmptySymbols;
       }
       var visitor = new LspSymbolGeneratingVisitor(document.SymbolTable, cancellationToken);
       var symbols = visitor.Visit(document.SymbolTable.CompilationUnit)

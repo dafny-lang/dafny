@@ -16,14 +16,14 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   /// this parser serializes all invocations.
   /// </remarks>
   public sealed class DafnyLangParser : IDafnyParser, IDisposable {
-    private static readonly object _initializationSyncObject = new();
-    private static bool _initialized;
+    private static readonly object InitializationSyncObject = new();
+    private static bool initialized;
 
-    private readonly ILogger _logger;
-    private readonly SemaphoreSlim _mutex = new(1);
+    private readonly ILogger logger;
+    private readonly SemaphoreSlim mutex = new(1);
 
     private DafnyLangParser(ILogger<DafnyLangParser> logger) {
-      _logger = logger;
+      this.logger = logger;
     }
 
     /// <summary>
@@ -33,13 +33,13 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// <param name="logger">A logger instance that may be used by this parser instance.</param>
     /// <returns>A safely created dafny parser instance.</returns>
     public static DafnyLangParser Create(ILogger<DafnyLangParser> logger) {
-      lock (_initializationSyncObject) {
-        if (!_initialized) {
+      lock (InitializationSyncObject) {
+        if (!initialized) {
           // TODO no error reporter is supplied at this time since it appears that there is not any usage inside dafny.
           DafnyOptions.Install(new DafnyOptions());
           DafnyOptions.Clo.ApplyDefaultOptions();
           DafnyOptions.O.PrintIncludesMode = DafnyOptions.IncludesModes.None;
-          _initialized = true;
+          initialized = true;
         }
         logger.LogTrace("initialized the dafny pipeline...");
         return new DafnyLangParser(logger);
@@ -47,17 +47,17 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     }
 
     public Dafny.Program CreateUnparsed(TextDocumentItem document, ErrorReporter errorReporter, CancellationToken cancellationToken) {
-      _mutex.Wait(cancellationToken);
+      mutex.Wait(cancellationToken);
       try {
         return NewDafnyProgram(document, errorReporter);
       }
       finally {
-        _mutex.Release();
+        mutex.Release();
       }
     }
 
     public Dafny.Program Parse(TextDocumentItem document, ErrorReporter errorReporter, CancellationToken cancellationToken) {
-      _mutex.Wait(cancellationToken);
+      mutex.Wait(cancellationToken);
       try {
         var program = NewDafnyProgram(document, errorReporter);
         var parseErrors = Parser.Parse(
@@ -70,15 +70,15 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           errorReporter
         );
         if (parseErrors != 0) {
-          _logger.LogDebug("encountered {ErrorCount} errors while parsing {DocumentUri}", parseErrors, document.Uri);
+          logger.LogDebug("encountered {ErrorCount} errors while parsing {DocumentUri}", parseErrors, document.Uri);
         }
         if (!TryParseIncludesOfModule(program.DefaultModule, program.BuiltIns, errorReporter, cancellationToken)) {
-          _logger.LogDebug("encountered error while parsing the includes of {DocumentUri}", document.Uri);
+          logger.LogDebug("encountered error while parsing the includes of {DocumentUri}", document.Uri);
         }
         return program;
       }
       finally {
-        _mutex.Release();
+        mutex.Release();
       }
     }
 
@@ -96,7 +96,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     }
 
     public void Dispose() {
-      _mutex.Dispose();
+      mutex.Dispose();
     }
 
     // TODO The following methods are based on the ones from DafnyPipeline/DafnyMain.cs.
@@ -155,11 +155,11 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         }
       } catch (IllegalDafnyFile e) {
         errorReporter.Error(MessageSource.Parser, include.tok, $"Include of file {include.includedFilename} failed.");
-        _logger.LogDebug(e, "encountered include of illegal dafny file {Filename}", include.includedFilename);
+        logger.LogDebug(e, "encountered include of illegal dafny file {Filename}", include.includedFilename);
         return false;
       } catch (IOException e) {
         errorReporter.Error(MessageSource.Parser, include.tok, $"Unable to open the include {include.includedFilename}.");
-        _logger.LogDebug(e, "could not open file {Filename}", include.includedFilename);
+        logger.LogDebug(e, "could not open file {Filename}", include.includedFilename);
         return false;
       }
       return true;
