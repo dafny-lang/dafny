@@ -21,10 +21,10 @@ jobs:
       with:
         path: dafny
     - name: Restore tools
-      working-directory: dafny/Source
+      working-directory: dafny
       run: dotnet tool restore
     - name: Check code style
-      working-directory: dafny/Source
+      working-directory: dafny
       run: dotnet tool run dotnet-format -w --check Dafny.sln --exclude Dafny/Scanner.cs --exclude Dafny/Parser.cs
     - name: Get XML
       id: boogieVersion
