@@ -25,7 +25,7 @@ jobs:
       run: dotnet tool restore
     - name: Check code style
       working-directory: dafny
-      run: dotnet tool run dotnet-format -w --check Dafny.sln --exclude Dafny/Scanner.cs --exclude Dafny/Parser.cs
+      run: dotnet tool run dotnet-format -w --check Source/Dafny.sln --exclude Dafny/Scanner.cs --exclude Dafny/Parser.cs
     - name: Get XML
       id: boogieVersion
       uses: QwerMike/xpath-action@v1
