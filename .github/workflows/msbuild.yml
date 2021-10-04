@@ -3,8 +3,8 @@ name: Build and Test
 on:
   push:
     branches: [ master ]
-#  pull_request:
-#    branches: [ master ]
+  pull_request:
+    branches: [ master ]
 
 env:
   dotnet-version: 5.0.x # SDK Version for building Dafny; x will use the latest version of the 5.0 channel
@@ -126,5 +126,5 @@ jobs:
         unzip dafny/Package/CI.zip -d unzippedRelease
     - name: Run lit tests
       run: |
-        ## lit in this context needs the executables specified
-        lit --time-tests -v --num-shards=5 --run-shard=${{ matrix.shard }} --param executable=$PWD/unzippedRelease/dafny/dafny --param serverExecutable=$PWD/unzippedRelease/dafny/DafnyServer dafny/Test
+        # TODO: Configure $dafny to point to the released version we just create
+        XUNIT_SHARD=${{ matrix.shard }} XUNIT_SHARD_COUNT=5 dotnet test dafny/Source/IntegrationTests/IntegrationTests.csproj 
