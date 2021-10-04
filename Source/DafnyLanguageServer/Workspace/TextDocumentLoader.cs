@@ -124,7 +124,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return new DafnyDocument(
         textDocument,
         errorReporter,
-        new List<Diagnostic>(),
+        Array.Empty<Diagnostic>(),
         program,
         CreateEmptySymbolTable(program),
         SerializedCounterExamples: null,

@@ -19,25 +19,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         .Concat(GetGhostsForDesignators(symbolTable, cancellationToken));
     }
 
-    private IEnumerable<Diagnostic> GetGhostsForDesignators(SymbolTable symbolTable, CancellationToken cancellationToken) {
-      if(!options.FadeDeclarations) {
-        yield break;
-      }
-      foreach (var entry in symbolTable.LookupTree) {
-        cancellationToken.ThrowIfCancellationRequested();
-        var range = new Range(entry.From, entry.To);
-        var symbol = entry.Value;
-        switch (symbol) {
-          case VariableSymbol variable when IsGhostOfEntryDocument(variable, symbolTable):
-            yield return CreateVariableDiagnostic(range);
-            break;
-          case FunctionSymbol function when IsGhostOfEntryDocument(function, symbolTable):
-            yield return CreateFunctionDiagnostic(range);
-            break;
-        }
-      }
-    }
-
     private IEnumerable<Diagnostic> GetGhostsForDeclarations(SymbolTable symbolTable, CancellationToken cancellationToken) {
       if (!options.FadeDeclarations) {
         yield break;
@@ -49,20 +30,52 @@ namespace Microsoft.Dafny.LanguageServer.Language {
             yield return CreateVariableDiagnostic(variable.Declaration.Tok.GetLspRange());
             break;
           case FunctionSymbol function when IsGhostOfEntryDocument(function, symbolTable):
-            yield return CreateFunctionDiagnostic(new Range(function.Declaration.tok.GetLspPosition(), function.Declaration.BodyEndTok.GetLspPosition()));
+            yield return CreateFunctionDiagnostic(GetDeclarationRange(function));
             break;
         }
       }
     }
 
+    private static Range GetDeclarationRange(FunctionSymbol function) {
+      var bodyEndPosition = function.Declaration.BodyEndTok.GetLspPosition();
+      return new Range(
+        function.Declaration.tok.GetLspPosition(),
+        (bodyEndPosition.Line, bodyEndPosition.Character + 1)
+      );
+    }
+
     private static bool IsGhostOfEntryDocument(VariableSymbol variable, SymbolTable symbolTable) {
       return variable.Declaration.IsGhost
-        && symbolTable.CompilationUnit.Program.IsPartOfEntryDocument(variable.Declaration.Tok);
+        && IsPartOfEntryDocumentAndNoMetadata(variable.Declaration.Tok, symbolTable);
     }
 
     private static bool IsGhostOfEntryDocument(FunctionSymbol function, SymbolTable symbolTable) {
       return function.Declaration.IsGhost
-        && symbolTable.CompilationUnit.Program.IsPartOfEntryDocument(function.Declaration.tok);
+        && IsPartOfEntryDocumentAndNoMetadata(function.Declaration.tok, symbolTable);
+    }
+
+    private static bool IsPartOfEntryDocumentAndNoMetadata(Boogie.IToken token, SymbolTable symbolTable) {
+      return token.line > 0
+        && symbolTable.CompilationUnit.Program.IsPartOfEntryDocument(token);
+    }
+
+    private IEnumerable<Diagnostic> GetGhostsForDesignators(SymbolTable symbolTable, CancellationToken cancellationToken) {
+      if (!options.FadeDesignators) {
+        yield break;
+      }
+      foreach (var entry in symbolTable.LookupTree) {
+        cancellationToken.ThrowIfCancellationRequested();
+        var range = new Range(entry.From, entry.To);
+        var symbol = entry.Value;
+        switch (symbol) {
+          case VariableSymbol variable when variable.Declaration.IsGhost:
+            yield return CreateVariableDiagnostic(range);
+            break;
+          case FunctionSymbol function when function.Declaration.IsGhost:
+            yield return CreateFunctionDiagnostic(range);
+            break;
+        }
+      }
     }
 
     private static Diagnostic CreateFunctionDiagnostic(Range range) {
