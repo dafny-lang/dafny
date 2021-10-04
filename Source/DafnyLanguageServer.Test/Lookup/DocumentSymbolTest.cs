@@ -43,7 +43,7 @@ class Y {
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      
+
       var classSymbol = (await RequestDocumentSymbol(documentItem).AsTask()).Single().DocumentSymbol;
       var classChildren = classSymbol.Children.ToArray();
       Assert.AreEqual("Y", classSymbol.Name);
