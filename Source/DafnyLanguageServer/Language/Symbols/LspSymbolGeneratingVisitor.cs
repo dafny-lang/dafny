@@ -76,7 +76,6 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       var documentSymbol = new DocumentSymbol {
         Name = symbol.Name,
         Kind = kind,
-        Detail = symbol.GetDetailText(cancellationToken),
         Children = children.ToArray()
       };
       if (symbolTable.TryGetLocationOf(symbol, out var location)) {
