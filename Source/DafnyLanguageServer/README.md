@@ -67,11 +67,15 @@ Options provided through the command line have higher priority than the options 
 ### Ghost Diagnostics
 
 ```sh
-# Fade out the declaration of ghost variables and functions
+# Fade out the declaration of functions
 # Default: false (do not fade out)
 --ghost:fadeDeclarations=false
 
 # Fade out the designators of ghost variables and functions
 # Default: false (do not fade out)
 --ghost:fadeDesignators=false
+
+# Fade out ghost statements
+# Default: false (do not fade out)
+--ghost:fadeStatements=false
 ```
