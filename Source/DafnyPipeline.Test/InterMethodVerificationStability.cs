@@ -10,7 +10,7 @@ using Microsoft.VisualStudio.TestPlatform.PlatformAbstractions;
 using Xunit;
 
 namespace DafnyPipeline.Test {
-  public class VerificationStability {
+  public class InterMethodVerificationStability {
     [Fact]
     public void CreatingBoogieVariableNameCollisionsHasExpectedDiff() {
       var beforeChange = @"
@@ -163,17 +163,16 @@ method M(heap: object)
             result.AppendLine(line.Text);
             break;
         }
-
       }
 
       return result.ToString();
     }
 
-    static VerificationStability() {
-      var testAssemblyPath = Assembly.GetAssembly(typeof(VerificationStability)).GetAssemblyLocation();
+    static InterMethodVerificationStability() {
+      var testAssemblyPath = Assembly.GetAssembly(typeof(InterMethodVerificationStability)).GetAssemblyLocation();
       var parts = testAssemblyPath.Split(Path.DirectorySeparatorChar);
       // This way of finding the repository root is not reliable, we should instead reference the DafnyPipeline assembly and run Dafny in the same process as the unit tests.
-      var sourceIndex = Array.FindIndex(parts, e => e == "Source");
+      var sourceIndex = Array.FindLastIndex(parts, e => e == "Source");
       dafnyDirectory = Path.Combine(Path.GetPathRoot(testAssemblyPath)!, Path.Combine(parts.Take(sourceIndex).ToArray()));
       Console.WriteLine("dafnyDirectory: " + dafnyDirectory);
       Console.WriteLine("DafnyDriverProjectFile: " + DafnyDriverProjectFile);

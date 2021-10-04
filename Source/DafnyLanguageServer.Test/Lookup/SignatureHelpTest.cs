@@ -12,10 +12,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
     // At this time, the main logic happens within ISymbolGuesser since we have to primarily work
     // with migrated symbol tables. Therefore, we apply modifications prior requesting signature help
     // just like a user would do.
-    private ILanguageClient _client;
+    private ILanguageClient client;
 
     private void ApplyChanges(TextDocumentItem documentItem, params TextDocumentContentChangeEvent[] changes) {
-      _client.DidChangeTextDocument(new DidChangeTextDocumentParams {
+      client.DidChangeTextDocument(new DidChangeTextDocumentParams {
         TextDocument = new OptionalVersionedTextDocumentIdentifier {
           Uri = documentItem.Uri,
           Version = documentItem.Version + 1
@@ -26,7 +26,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
 
     private Task<SignatureHelp> RequestSignatureHelpAsync(TextDocumentItem documentItem, Position position) {
       // TODO at this time we do not set the context since it appears that's also the case when used within VSCode.
-      return _client.RequestSignatureHelp(
+      return client.RequestSignatureHelp(
         new SignatureHelpParams {
           TextDocument = documentItem.Uri,
           Position = position
@@ -37,7 +37,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
 
     [TestInitialize]
     public async Task SetUp() {
-      _client = await InitializeClient();
+      client = await InitializeClient();
     }
 
     [TestMethod]
@@ -60,7 +60,7 @@ method Main() {
   //
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       ApplyChanges(
         documentItem,
         new TextDocumentContentChangeEvent {
@@ -89,7 +89,7 @@ method Main() {
   //
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       ApplyChanges(
         documentItem,
         new TextDocumentContentChangeEvent {
@@ -113,7 +113,7 @@ method Main() {
   //
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       ApplyChanges(
         documentItem,
         new TextDocumentContentChangeEvent {
@@ -154,7 +154,7 @@ module Mod {
   }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       ApplyChanges(
         documentItem,
         new TextDocumentContentChangeEvent {
@@ -203,7 +203,7 @@ class B {
   }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       ApplyChanges(
         documentItem,
         new TextDocumentContentChangeEvent {

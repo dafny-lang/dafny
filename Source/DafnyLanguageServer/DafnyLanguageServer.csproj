@@ -16,12 +16,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Boogie.ExecutionEngine" Version="2.9.3" />
     <PackageReference Include="Microsoft.Extensions.Configuration.CommandLine" Version="5.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="5.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="5.0.0" />
-    <PackageReference Include="OmniSharp.Extensions.LanguageServer" Version="0.19.2" />
-    <PackageReference Include="RangeTree" Version="3.0.0" />
+    <PackageReference Include="OmniSharp.Extensions.LanguageServer" Version="0.19.5" />
+    <PackageReference Include="RangeTree" Version="3.0.1" />
     <PackageReference Include="Serilog" Version="2.10.0" />
     <PackageReference Include="Serilog.Extensions.Logging" Version="3.0.1" />
     <PackageReference Include="Serilog.Settings.Configuration" Version="3.1.0" />
@@ -35,6 +34,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\DafnyDriver\DafnyDriver.csproj" />
     <ProjectReference Include="..\DafnyServer\DafnyServer.csproj" />
     <ProjectReference Include="..\Dafny\DafnyPipeline.csproj" />
   </ItemGroup>

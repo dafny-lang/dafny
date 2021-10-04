@@ -79,6 +79,8 @@ namespace DafnyServer.CounterExampleGeneration {
       if (parent == null) {
         Name = name;
       } else {
+        // TODO: a case can be made for refactoring this so that the indices
+        // are model-wide rather than state-wide
         Name = "@" + state.VarIndex++;
         parent.AddChild(name, this);
       }
@@ -148,6 +150,7 @@ namespace DafnyServer.CounterExampleGeneration {
   /// the same DafnyModelState as some other variable.
   /// </summary>
   public class DuplicateVariable : DafnyModelVariable {
+
     public readonly DafnyModelVariable Original;
 
     internal DuplicateVariable(DafnyModelState state, DafnyModelVariable original, string newName, DafnyModelVariable parent)

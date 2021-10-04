@@ -21,13 +21,14 @@ function GetConstant2(): int {
 
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
-      Client.OpenDocument(documentItem);
+      await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
         documentItem,
         new Range((0, 0), (0, 0)),
         change
       );
-      Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var document));
+      var document = await Documents.GetDocumentAsync(documentItem.Uri);
+      Assert.IsNotNull(document);
       Assert.IsTrue(document.SymbolTable.Resolved);
       Assert.AreEqual(2, document.SymbolTable.Locations.Keys.OfType<FunctionSymbol>().Count());
     }
@@ -45,13 +46,14 @@ function GetConstant2(): int {
 
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
-      Client.OpenDocument(documentItem);
+      await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
         documentItem,
         new Range((0, 0), (0, 0)),
         change
       );
-      Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var document));
+      var document = await Documents.GetDocumentAsync(documentItem.Uri);
+      Assert.IsNotNull(document);
       Assert.IsFalse(document.SymbolTable.Resolved);
     }
 
@@ -65,13 +67,14 @@ function GetConstant(): int {
 ".TrimStart();
       var change = "function GetConstant2(): int {";
       var documentItem = CreateTestDocument(source);
-      Client.OpenDocument(documentItem);
+      await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
         documentItem,
         new Range((4, 0), (4, 0)),
         change
       );
-      Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var document));
+      var document = await Documents.GetDocumentAsync(documentItem.Uri);
+      Assert.IsNotNull(document);
       Assert.IsFalse(document.SymbolTable.Resolved);
     }
 
@@ -88,13 +91,14 @@ method GetIt(x: int) returns (y: int) {
     y := GetIt(x - 1);
   }";
       var documentItem = CreateTestDocument(source);
-      Client.OpenDocument(documentItem);
+      await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(
         documentItem,
         new Range((1, 0), (1, 11)),
         change
       );
-      Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var document));
+      var document = await Documents.GetDocumentAsync(documentItem.Uri);
+      Assert.IsNotNull(document);
       Assert.IsTrue(document.SymbolTable.Resolved);
       Assert.AreEqual(1, document.SymbolTable.Locations.Keys.OfType<MethodSymbol>().Count());
     }
