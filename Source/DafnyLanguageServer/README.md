@@ -63,3 +63,15 @@ Options provided through the command line have higher priority than the options 
 # Default: 0 (use half of the available virtual cores).
 --verifier:vcscores=0
 ```
+
+### Ghost Diagnostics
+
+```sh
+# Fade out the declaration of ghost variables and functions
+# Default: false (do not fade out)
+--ghost:fadeDeclarations=false
+
+# Fade out the designators of ghost variables and functions
+# Default: false (do not fade out)
+--ghost:fadeDesignators=false
+```
