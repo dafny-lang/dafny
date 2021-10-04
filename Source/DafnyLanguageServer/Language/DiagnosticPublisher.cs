@@ -36,9 +36,9 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     private static IEnumerable<Diagnostic> GetDiagnostics(DafnyDocument document) {
       // Only report errors of the entry-document.
       if (document.Errors.Diagnostics.TryGetValue(document.GetFilePath(), out var diagnostics)) {
-        return diagnostics;
+        return diagnostics.Concat(document.GhostDiagnostics);
       }
-      return Enumerable.Empty<Diagnostic>();
+      return document.GhostDiagnostics;
     }
   }
 }

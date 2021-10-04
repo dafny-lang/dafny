@@ -1,6 +1,7 @@
 ﻿using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using System.Collections.Generic;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
@@ -26,15 +27,22 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// </summary>
     public string? SerializedCounterExamples { get; }
 
+    /// <summary>
+    /// Gets the ghost diagnostics for this document.
+    /// </summary>
+    public IReadOnlyList<Diagnostic> GhostDiagnostics { get; }
+
     public DafnyDocument(
       TextDocumentItem textDocument,
       DiagnosticErrorReporter errors,
+      IReadOnlyList<Diagnostic> ghostDiagnostics,
       Dafny.Program program,
       SymbolTable symbolTable,
       string? serializedCounterExamples,
       bool loadCanceled = false
     ) {
       Text = textDocument;
+      GhostDiagnostics = ghostDiagnostics;
       Errors = errors;
       Program = program;
       SymbolTable = symbolTable;

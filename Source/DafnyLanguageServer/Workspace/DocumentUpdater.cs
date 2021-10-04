@@ -50,6 +50,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return new DafnyDocument(
         mergedText,
         document.Errors,
+        document.GhostDiagnostics,
         document.Program,
         changeProcessor.MigrateSymbolTable(),
         serializedCounterExamples: null,

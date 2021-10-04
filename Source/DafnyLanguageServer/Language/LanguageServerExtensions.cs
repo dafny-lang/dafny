@@ -24,10 +24,12 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     private static IServiceCollection WithDafnyLanguage(this IServiceCollection services, IConfiguration configuration) {
       return services
         .Configure<VerifierOptions>(configuration.GetSection(VerifierOptions.Section))
+        .Configure<GhostOptions>(configuration.GetSection(GhostOptions.Section))
         .AddSingleton<IDafnyParser>(serviceProvider => DafnyLangParser.Create(serviceProvider.GetRequiredService<ILogger<DafnyLangParser>>()))
         .AddSingleton<ISymbolResolver, DafnyLangSymbolResolver>()
         .AddSingleton<IProgramVerifier>(CreateVerifier)
         .AddSingleton<ISymbolTableFactory, SymbolTableFactory>()
+        .AddSingleton<IGhostStateDiagnosticCollector, GhostStateDiagnosticCollector>()
         .AddSingleton<IDiagnosticPublisher, DiagnosticPublisher>();
     }
 
