@@ -19,7 +19,11 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         // Therefore, we do not republish the errors when the document (re-)load was canceled.
         return;
       }
-      languageServer.TextDocument.PublishDiagnostics(ToPublishDiagnostics(document));
+      languageServer.TextDocument.PublishDiagnostics(new PublishDiagnosticsParams {
+        Uri = document.Uri,
+        Version = document.Version,
+        Diagnostics = GetDiagnostics(document).ToArray(),
+      });
     }
 
     public void HideDiagnostics(TextDocumentIdentifier documentId) {
@@ -27,14 +31,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         Uri = documentId.Uri,
         Diagnostics = new Container<Diagnostic>()
       });
-    }
-
-    private static PublishDiagnosticsParams ToPublishDiagnostics(DafnyDocument document) {
-      return new() {
-        Uri = document.Uri,
-        Version = document.Version,
-        Diagnostics = GetDiagnostics(document).ToArray(),
-      };
     }
 
     private static IEnumerable<Diagnostic> GetDiagnostics(DafnyDocument document) {
