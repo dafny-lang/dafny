@@ -38,7 +38,7 @@ namespace IntegrationTests.LitTestRunner {
         { "%baredafny", (args, config) => 
           MainWithArguments(dafnyDriverAssembly, args, config, false) },
         { "%dafny", (args, config) => 
-          MainWithArguments(dafnyDriverAssembly, defaultDafnyArguments.Concat(args), config, true) },
+          MainWithArguments(dafnyDriverAssembly, defaultDafnyArguments.Concat(args), config, false) },
         { "%server", (args, config) => 
           MainWithArguments(dafnyServerAssembly, args, config, false) },
       },
