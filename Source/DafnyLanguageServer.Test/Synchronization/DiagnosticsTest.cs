@@ -665,37 +665,7 @@ method Multiply(x: int, y: int) returns (product: int)
     }
 
     [TestMethod]
-    public async Task OpeningFlawlessDocumentWithGhostFadeDeclarationsFadesVariableDeclaration() {
-      var source = @"
-method Multiply(x: int, y: int) returns (product: int)
-  requires y >= 0 && x >= 0
-  decreases y
-  ensures product == x * y && product >= 0
-{
-  ghost var z := 0;
-  if y == 0 {
-    product := 0;
-  } else {
-    var step := Multiply(x, y - 1);
-    product := x + step;
-  }
-  z := -1;
-}".TrimStart();
-      await SetUp(new Dictionary<string, string>() {
-        { $"{GhostOptions.Section}:{nameof(GhostOptions.FadeDeclarations)}", "true" }
-      });
-      var documentItem = CreateTestDocument(source);
-      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var report = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
-      var diagnostics = report.Diagnostics.ToArray();
-      Assert.AreEqual(1, diagnostics.Length);
-      Assert.AreEqual("Ghost variable", diagnostics[0].Message);
-      Assert.AreEqual(DiagnosticTag.Unnecessary, diagnostics[0].Tags.Single());
-      Assert.AreEqual(new Range((5, 12), (5, 13)), diagnostics[0].Range);
-    }
-
-    [TestMethod]
-    public async Task OpeningFlawlessDocumentWithGhostFadeDesignatorsFadesVariableUsage() {
+    public async Task OpeningFlawlessDocumentWithGhostFadeDesignatorsFadesVariableName() {
       var source = @"
 method Multiply(x: int, y: int) returns (product: int)
   requires y >= 0 && x >= 0
@@ -718,10 +688,46 @@ method Multiply(x: int, y: int) returns (product: int)
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var report = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
       var diagnostics = report.Diagnostics.ToArray();
-      Assert.AreEqual(1, diagnostics.Length);
+      Assert.AreEqual(2, diagnostics.Length);
       Assert.AreEqual("Ghost variable", diagnostics[0].Message);
       Assert.AreEqual(DiagnosticTag.Unnecessary, diagnostics[0].Tags.Single());
-      Assert.AreEqual(new Range((12, 2), (12, 3)), diagnostics[0].Range);
+      Assert.AreEqual(new Range((5, 12), (5, 13)), diagnostics[0].Range);
+      Assert.AreEqual("Ghost variable", diagnostics[1].Message);
+      Assert.AreEqual(DiagnosticTag.Unnecessary, diagnostics[1].Tags.Single());
+      Assert.AreEqual(new Range((12, 2), (12, 3)), diagnostics[1].Range);
+    }
+
+    [TestMethod]
+    public async Task OpeningFlawlessDocumentWithGhostFadeStatementsFadesGhostVariableDeclarationsAndAssignments() {
+      var source = @"
+method Multiply(x: int, y: int) returns (product: int)
+  requires y >= 0 && x >= 0
+  decreases y
+  ensures product == x * y && product >= 0
+{
+  ghost var z := 0;
+  if y == 0 {
+    product := 0;
+  } else {
+    var step := Multiply(x, y - 1);
+    product := x + step;
+  }
+  z := -1;
+}".TrimStart();
+      await SetUp(new Dictionary<string, string>() {
+        { $"{GhostOptions.Section}:{nameof(GhostOptions.FadeStatements)}", "true" }
+      });
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var report = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
+      var diagnostics = report.Diagnostics.ToArray();
+      Assert.AreEqual(2, diagnostics.Length);
+      Assert.AreEqual("Ghost statement", diagnostics[0].Message);
+      Assert.AreEqual(DiagnosticTag.Unnecessary, diagnostics[0].Tags.Single());
+      Assert.AreEqual(new Range((5, 2), (5, 18)), diagnostics[0].Range);
+      Assert.AreEqual("Ghost statement", diagnostics[1].Message);
+      Assert.AreEqual(DiagnosticTag.Unnecessary, diagnostics[1].Tags.Single());
+      Assert.AreEqual(new Range((12, 4), (12, 9)), diagnostics[1].Range);
     }
   }
 }
