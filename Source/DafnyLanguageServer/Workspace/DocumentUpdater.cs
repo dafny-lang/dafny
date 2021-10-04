@@ -53,7 +53,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         document.GhostDiagnostics,
         document.Program,
         changeProcessor.MigrateSymbolTable(),
-        serializedCounterExamples: null,
+        SerializedCounterExamples: null,
         loadCanceled
       );
     }

@@ -7,48 +7,26 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
   /// Internal representation of a dafny document.
   /// </summary>
-  public class DafnyDocument {
-    public TextDocumentItem Text { get; }
+  /// <param name="Text">The text document represented by this dafny document.</param>
+  /// <param name="Errors">The error reporter used when parsing/resolving/verifiying the dafny program.</param>
+  /// <param name="GhostDiagnostics">The ghost state diagnostics of the document.</param>
+  /// <param name="Program">The compiled dafny program.</param>
+  /// <param name="SerializedCounterExamples">
+  /// Gets the serialized models of the counter examples if the verifier reported issues.
+  /// <c>null</c> if there are no verification errors.
+  /// </param>
+  /// <param name="LoadCanceled"><c>true</c> if the document load was canceled for this document.</param>
+  public record DafnyDocument(
+    TextDocumentItem Text,
+    DiagnosticErrorReporter Errors,
+    IReadOnlyList<Diagnostic> GhostDiagnostics,
+    Dafny.Program Program,
+    SymbolTable SymbolTable,
+    string? SerializedCounterExamples,
+    bool LoadCanceled = false
+  ) {
     public DocumentUri Uri => Text.Uri;
     public int Version => Text.Version!.Value;
-
-    public Dafny.Program Program { get; }
-    public DiagnosticErrorReporter Errors { get; }
-    public SymbolTable SymbolTable { get; }
-
-    /// <summary>
-    /// <c>true</c> if the document load was canceled for this document.
-    /// </summary>
-    public bool LoadCanceled { get; }
-
-    /// <summary>
-    /// Gets the serialized models of the counter examples if the verifier reported issues.
-    /// <c>null</c> if there are no verification errors.
-    /// </summary>
-    public string? SerializedCounterExamples { get; }
-
-    /// <summary>
-    /// Gets the ghost diagnostics for this document.
-    /// </summary>
-    public IReadOnlyList<Diagnostic> GhostDiagnostics { get; }
-
-    public DafnyDocument(
-      TextDocumentItem textDocument,
-      DiagnosticErrorReporter errors,
-      IReadOnlyList<Diagnostic> ghostDiagnostics,
-      Dafny.Program program,
-      SymbolTable symbolTable,
-      string? serializedCounterExamples,
-      bool loadCanceled = false
-    ) {
-      Text = textDocument;
-      GhostDiagnostics = ghostDiagnostics;
-      Errors = errors;
-      Program = program;
-      SymbolTable = symbolTable;
-      SerializedCounterExamples = serializedCounterExamples;
-      LoadCanceled = loadCanceled;
-    }
 
     /// <summary>
     /// Checks if the given document uri is pointing to this dafny document.

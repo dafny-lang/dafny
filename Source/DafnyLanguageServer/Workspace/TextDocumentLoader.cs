@@ -127,7 +127,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         new List<Diagnostic>(),
         program,
         CreateEmptySymbolTable(program),
-        serializedCounterExamples: null,
+        SerializedCounterExamples: null,
         loadCanceled
       );
     }
