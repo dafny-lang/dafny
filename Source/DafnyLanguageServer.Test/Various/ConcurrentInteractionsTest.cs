@@ -28,7 +28,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
     public async Task ChangeDocumentRightAfterOpeningCancelsLoad() {
       var source = @"
-lemma {:timeLimit 3} SquareRoot2NotRational(p: nat, q: nat)
+lemma SquareRoot2NotRational(p: nat, q: nat)
   requires p > 0 && q > 0
   ensures (p * p) !=  2 * (q * q)
 { 
@@ -67,7 +67,7 @@ lemma {:timeLimit 3} SquareRoot2NotRational(p: nat, q: nat)
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
     public async Task ChangeDocumentCancelsPreviousChange() {
       var source = @"
-lemma {:timeLimit 3} SquareRoot2NotRational(p: nat, q: nat)
+lemma SquareRoot2NotRational(p: nat, q: nat)
   requires p > 0 && q > 0
   ensures (p * p) !=  2 * (q * q)
 { 
