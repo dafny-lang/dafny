@@ -33,11 +33,11 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       return new() {
         Uri = document.Uri,
         Version = document.Version,
-        Diagnostics = ToDiagnostics(document).ToArray(),
+        Diagnostics = GetDiagnostics(document).ToArray(),
       };
     }
 
-    private static IEnumerable<Diagnostic> ToDiagnostics(DafnyDocument document) {
+    private static IEnumerable<Diagnostic> GetDiagnostics(DafnyDocument document) {
       // Only report errors of the entry-document.
       if (document.Errors.Diagnostics.TryGetValue(document.GetFilePath(), out var diagnostics)) {
         return diagnostics;
