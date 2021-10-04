@@ -46,16 +46,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
     }
 
-    private static DafnyDocument MigrateDocument(TextDocumentItem mergedText, DafnyDocument document, ChangeProcessor changeProcessor, bool loadCanceled) {
-      return new DafnyDocument(
-        mergedText,
-        document.Errors,
-        document.GhostDiagnostics,
-        document.Program,
-        changeProcessor.MigrateSymbolTable(),
-        SerializedCounterExamples: null,
-        loadCanceled
-      );
+    private static DafnyDocument MigrateDocument(TextDocumentItem mergedText, DafnyDocument oldDocument, ChangeProcessor changeProcessor, bool loadCanceled) {
+      return oldDocument with {
+        Text = mergedText,
+        SymbolTable = changeProcessor.MigrateSymbolTable(),
+        SerializedCounterExamples = null,
+        LoadCanceled = loadCanceled
+      };
     }
 
     private class ChangeProcessor {
