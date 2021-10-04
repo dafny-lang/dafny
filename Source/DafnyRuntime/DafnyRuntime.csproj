@@ -20,6 +20,9 @@
     <Compile Update="DafnyRuntime.cs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Compile>
+    <Content Include="DafnyRuntime.js" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="DafnyRuntime.go" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="DafnyRuntime.h" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>
