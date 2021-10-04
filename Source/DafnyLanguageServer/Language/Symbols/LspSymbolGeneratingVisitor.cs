@@ -70,7 +70,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
     private IEnumerable<DocumentSymbol> CreateSymbolsOfEntryDocument(ILocalizableSymbol symbol, Boogie.IToken token, SymbolKind kind) {
       var children = symbol.Children.SelectMany(Visit);
-      if (!IsPartOfEntryDocument(token)) {
+      if (!IsPartOfEntryDocument(token) || token.line == 0) {
         return children;
       }
       var documentSymbol = new DocumentSymbol {
