@@ -34,7 +34,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       cancellationSource.CancelAfter(MaxRequestExecutionTimeMs);
     }
 
-    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    [TestMethod, Timeout(MaxTestExecutionTimeMs), Ignore("Disabled due to instability since the verification cannot always be canceled.")]
     public async Task ChangeDocumentRightAfterOpeningCancelsLoad() {
       var source = @"
 lemma {:timeLimit 10} SquareRoot2NotRational(p: nat, q: nat)
