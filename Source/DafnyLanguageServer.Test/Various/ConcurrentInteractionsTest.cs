@@ -15,7 +15,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     // Implementation note: These tests assume that no diagnostics are published
     // when a document (re-load) was canceled (DafnyDocument.LoadCanceled).
     private const int MaxTestExecutionTimeMs = 240_000;
-    private const int MaxRequestExecutionTimeMs = 200_000;
+    private const int MaxRequestExecutionTimeMs = 180_000;
 
     private ILanguageClient client;
     private TestNotificationReceiver<PublishDiagnosticsParams> diagnosticReceiver;
@@ -37,7 +37,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
     public async Task ChangeDocumentRightAfterOpeningCancelsLoad() {
       var source = @"
-lemma SquareRoot2NotRational(p: nat, q: nat)
+lemma {:timeLimit 10} SquareRoot2NotRational(p: nat, q: nat)
   requires p > 0 && q > 0
   ensures (p * p) !=  2 * (q * q)
 { 
@@ -76,7 +76,7 @@ lemma SquareRoot2NotRational(p: nat, q: nat)
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
     public async Task ChangeDocumentCancelsPreviousChange() {
       var source = @"
-lemma SquareRoot2NotRational(p: nat, q: nat)
+lemma {:timeLimit 10} SquareRoot2NotRational(p: nat, q: nat)
   requires p > 0 && q > 0
   ensures (p * p) !=  2 * (q * q)
 { 
