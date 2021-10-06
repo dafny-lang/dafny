@@ -21,7 +21,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     // We do not use the LanguageServerTestBase.cancellationToken here because it has a timeout.
     // Since these tests are slow, we do not use the timeout here.
-    private CancellationToken cancellationToken = CancellationToken.None;
+    private CancellationToken cancellationTokenWithoutTimeout = CancellationToken.None;
 
     [TestInitialize]
     public async Task SetUp() {
@@ -48,7 +48,7 @@ lemma SquareRoot2NotRational(p: nat, q: nat)
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       client.OpenDocument(documentItem);
-      client.DidChangeTextDocument(new DidChangeTextDocumentParams {
+      await client.ChangeDocumentAndWaitAsync(new DidChangeTextDocumentParams {
         TextDocument = new OptionalVersionedTextDocumentIdentifier {
           Uri = documentItem.Uri,
           Version = documentItem.Version + 1
@@ -59,11 +59,11 @@ lemma SquareRoot2NotRational(p: nat, q: nat)
             Text = ""
           }
         }
-      });
+      }, cancellationTokenWithoutTimeout);
 
       // The initial document does not have issues. If the load was succesfully canceled, we should
       // receive diagnostics with a parser error.
-      var report = await diagnosticReceiver.AwaitNextNotificationAsync(cancellationToken);
+      var report = await diagnosticReceiver.AwaitNextNotificationAsync(cancellationTokenWithoutTimeout);
       var diagnostics = report.Diagnostics.ToArray();
       Assert.AreEqual(1, diagnostics.Length);
     }
@@ -85,8 +85,8 @@ lemma SquareRoot2NotRational(p: nat, q: nat)
     }
   }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      await client.OpenDocumentAndWaitAsync(documentItem, cancellationToken);
-      var initialLoadReport = await diagnosticReceiver.AwaitNextNotificationAsync(cancellationToken);
+      await client.OpenDocumentAndWaitAsync(documentItem, cancellationTokenWithoutTimeout);
+      var initialLoadReport = await diagnosticReceiver.AwaitNextNotificationAsync(cancellationTokenWithoutTimeout);
       var initialLoadDiagnostics = initialLoadReport.Diagnostics.ToArray();
       Assert.AreEqual(1, initialLoadDiagnostics.Length);
 
@@ -103,7 +103,7 @@ lemma SquareRoot2NotRational(p: nat, q: nat)
         }
       });
 
-      client.DidChangeTextDocument(new DidChangeTextDocumentParams {
+      await client.ChangeDocumentAndWaitAsync(new DidChangeTextDocumentParams {
         TextDocument = new OptionalVersionedTextDocumentIdentifier {
           Uri = documentItem.Uri,
           Version = documentItem.Version + 2
@@ -114,21 +114,21 @@ lemma SquareRoot2NotRational(p: nat, q: nat)
             Text = "function GetConstant(): int { 1 }"
           }
         }
-      });
+      }, cancellationTokenWithoutTimeout);
 
       // The diagnostics of the initial document are already awaited. The original document contains a syntactic error.
       // The first change fixes the error. Therefore, if it was canceled by the second change, it should not report
       // any diagnostics.
       // The second change replaces the complete document with a correct one. Mind that the original document
       // was chosen because of the exceptionally long time it requires to verify.
-      var report = await diagnosticReceiver.AwaitNextNotificationAsync(cancellationToken);
+      var report = await diagnosticReceiver.AwaitNextNotificationAsync(cancellationTokenWithoutTimeout);
       var diagnostics = report.Diagnostics.ToArray();
       Assert.AreEqual(0, diagnostics.Length);
 
       // This change is to ensure that no diagnostics are remaining in the report queue.
       var verificationDocumentItem = CreateTestDocument("class X {}", "verification.dfy");
-      await client.OpenDocumentAndWaitAsync(verificationDocumentItem, cancellationToken);
-      var verificationReport = await diagnosticReceiver.AwaitNextNotificationAsync(cancellationToken);
+      await client.OpenDocumentAndWaitAsync(verificationDocumentItem, cancellationTokenWithoutTimeout);
+      var verificationReport = await diagnosticReceiver.AwaitNextNotificationAsync(cancellationTokenWithoutTimeout);
       Assert.AreEqual(verificationDocumentItem.Uri, verificationReport.Uri);
     }
 
@@ -159,7 +159,7 @@ method Multiply(x: int, y: int) returns (product: int)
         loadingDocuments.Add(documentItem);
       }
       for (int i = 0; i < documentsToLoadConcurrently; i++) {
-        var report = await diagnosticReceiver.AwaitNextNotificationAsync(cancellationToken);
+        var report = await diagnosticReceiver.AwaitNextNotificationAsync(cancellationTokenWithoutTimeout);
         Assert.AreEqual(0, report.Diagnostics.Count());
       }
     }
