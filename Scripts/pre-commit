@@ -1,0 +1,31 @@
+#!/bin/sh
+
+if git rev-parse --verify HEAD >/dev/null 2>&1
+then
+        against=HEAD
+else
+        # Initial commit: diff against an empty tree object
+        against=$(git hash-object -t tree /dev/null)
+fi
+
+#Run dotnet-format on the changed dafny sources
+dotnet_format=$(git diff --cached --name-only --diff-filter=ACMR -z $against | grep -a '^Source.*.cs$' | xargs -0 dotnet tool run dotnet-format --folder -w --include)
+
+#Abort on fail (likely no dotnet-format)
+if (( $? > 0 ));
+then
+        exit 1
+fi
+
+#Eval dotnet-format output
+if (( $(echo "$dotnet_format" | wc -l) > 2));
+then
+        cat <<\EOF
+Error: Staged file(s) violate the formatting rules.
+
+Fortunately, we took the liberty to fix that.
+
+All that is left to do, is to *add the changes* and recommit.
+EOF
+        exit 1
+fi
