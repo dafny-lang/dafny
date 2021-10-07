@@ -6,7 +6,7 @@ LabeledAssertsResolution.dfy(19,10): Error: label shadows a dominating label
 LabeledAssertsResolution.dfy(25,24): Error: assert label shadows a dominating label
 LabeledAssertsResolution.dfy(27,11): Error: assert label shadows a dominating label
 LabeledAssertsResolution.dfy(33,22): Error: assert label shadows a dominating label
-LabeledAssertsResolution.dfy(72,4): Error: break label is undefined or not in scope: ABC
+LabeledAssertsResolution.dfy(72,10): Error: break label is undefined or not in scope: ABC
 LabeledAssertsResolution.dfy(80,15): Error: unresolved identifier: reveal_C
 LabeledAssertsResolution.dfy(93,15): Error: no label 'XYZ' in scope at this time
 LabeledAssertsResolution.dfy(113,12): Error: unresolved identifier: reveal_X
@@ -67,11 +67,11 @@ LabeledAssertsResolution.dfy(301,10): Error: body of forall statement is attempt
 LabeledAssertsResolution.dfy(302,10): Error: body of forall statement is attempting to update a variable declared outside the forall statement
 LabeledAssertsResolution.dfy(312,6): Error: return statement is not allowed inside a forall statement
 LabeledAssertsResolution.dfy(331,14): Error: trying to break out of more loop levels than there are enclosing loops
-LabeledAssertsResolution.dfy(333,14): Error: break label is undefined or not in scope: A
+LabeledAssertsResolution.dfy(333,20): Error: break label is undefined or not in scope: A
 LabeledAssertsResolution.dfy(338,10): Error: trying to break out of more loop levels than there are enclosing loops
-LabeledAssertsResolution.dfy(339,10): Error: break label is undefined or not in scope: A
+LabeledAssertsResolution.dfy(339,16): Error: break label is undefined or not in scope: A
 LabeledAssertsResolution.dfy(345,10): Error: trying to break out of more loop levels than there are enclosing loops
-LabeledAssertsResolution.dfy(346,10): Error: break label is undefined or not in scope: A
+LabeledAssertsResolution.dfy(346,16): Error: break label is undefined or not in scope: A
 LabeledAssertsResolution.dfy(357,8): Error: return statement is allowed only in method
 LabeledAssertsResolution.dfy(372,8): Error: return statement is allowed only in method
 LabeledAssertsResolution.dfy(364,10): Error: return statement is allowed only in method
