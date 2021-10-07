@@ -16,6 +16,11 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     public SymbolTable SymbolTable { get; }
 
     /// <summary>
+    /// <c>true</c> if the document load was canceled for this document.
+    /// </summary>
+    public bool LoadCanceled { get; }
+
+    /// <summary>
     /// Gets the serialized models of the counter examples if the verifier reported issues.
     /// <c>null</c> if there are no verification errors.
     /// </summary>
@@ -26,22 +31,15 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       DiagnosticErrorReporter errors,
       Dafny.Program program,
       SymbolTable symbolTable,
-      string? serializedCounterExamples
+      string? serializedCounterExamples,
+      bool loadCanceled = false
     ) {
       Text = textDocument;
       Errors = errors;
       Program = program;
       SymbolTable = symbolTable;
       SerializedCounterExamples = serializedCounterExamples;
-    }
-
-    /// <summary>
-    /// Checks if the specified token is part of this document.
-    /// </summary>
-    /// <param name="token">The token to check.</param>
-    /// <returns><c>true</c> if the given token belongs to this document.</returns>
-    public bool IsPartOf(Boogie.IToken token) {
-      return Program.IsPartOfEntryDocument(token);
+      LoadCanceled = loadCanceled;
     }
 
     /// <summary>

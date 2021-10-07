@@ -1,0 +1,27 @@
+public class __default {
+
+public static void main(String[] args) throws Exception {
+  Method[] methods = __default.class.getDeclaredMethods();
+  Arrays.sort(methods, Comparator.comparing(Method::getName));
+  for (Method method: methods) {
+    if (!method.getName().startsWith("test"))
+      continue;
+    Object result = method.invoke(null, mockParameters(method));
+    String resultString = result == null ? "null" : result.toString();
+    System.out.println(method.getName() + " " + resultString);
+  }
+}
+
+
+public static Object[] mockParameters(Method method) {
+  Object[] parameters = null;;
+  try {
+    Class<?>[] types = method.getParameterTypes();
+    parameters = new Object[types.length];
+    for (int i = 0; i < types.length; i++)
+      parameters[i] = types[i].getConstructor().newInstance();
+  } catch (Exception e) {
+    e.printStackTrace();
+  }
+  return parameters;
+}

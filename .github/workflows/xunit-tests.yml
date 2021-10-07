@@ -8,15 +8,33 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-16.04
+    runs-on: ${{matrix.os}}
+    name: ${{matrix.suffix}}
     strategy:
       fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-18.04
+            suffix: ubuntu-18.04
+            z3: z3-4.8.5-x64-ubuntu-16.04
+            chmod: true
+            coverage: true
+          - os: windows-2019
+            suffix: win
+            z3: z3-4.8.5-x64-win
+            chmod: false
+            coverage: false
+          - os: macos-10.15
+            suffix: osx-10.14.1
+            z3: z3-4.8.5-x64-osx-10.14.2
+            chmod: true
+            coverage: false
     env:
       testPath1: Source/DafnyLanguageServer.Test/bin/Debug/net5.0
       testPath2: Source/DafnyPipeline.Test/bin/Debug/net5.0
+      testPath3: Source/DafnyTestGeneration.Test/bin/Debug/net5.0
       solutionPath: Source/Dafny.sln
       z3BaseUri: https://github.com/Z3Prover/z3/releases/download/Z3-4.8.5
-      z3: z3-4.8.5-x64-ubuntu-16.04
     steps:
     - uses: actions/checkout@v2
       with:
@@ -32,14 +50,17 @@ jobs:
     - name: Load Z3
       shell: pwsh
       run: |
-        Invoke-WebRequest ${{env.z3BaseUri}}/${{env.z3}}.zip -OutFile z3.zip
+        Invoke-WebRequest ${{env.z3BaseUri}}/${{matrix.z3}}.zip -OutFile z3.zip
         Expand-Archive z3.zip .
         Remove-Item z3.zip
-        Copy-Item ${{env.z3}} ${{env.testPath1}}/z3 -Recurse
-        Copy-Item ${{env.z3}} ${{env.testPath2}}/z3 -Recurse
+        Copy-Item ${{matrix.z3}} ${{env.testPath1}}/z3 -Recurse
+        Copy-Item ${{matrix.z3}} ${{env.testPath2}}/z3 -Recurse
+        Copy-Item ${{matrix.z3}} ${{env.testPath3}}/z3 -Recurse
     - name: Set Z3 Permissions
+      if: ${{matrix.chmod}}
       run: | 
         chmod +x ${{env.testPath1}}/z3/bin/z3
         chmod +x ${{env.testPath2}}/z3/bin/z3
+        chmod +x ${{env.testPath3}}/z3/bin/z3
     - name: Run Tests
-      run: dotnet test --no-restore --verbosity normal Source/Dafny.sln
+      run: dotnet test --no-restore --verbosity normal ${{env.solutionPath}}

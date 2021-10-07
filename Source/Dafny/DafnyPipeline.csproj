@@ -34,4 +34,10 @@
   <ItemGroup>
     <Compile Include="..\version.cs" />
   </ItemGroup>
+
+  <ItemGroup>
+    <None Update="DafnyPrelude.bpl">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 </Project>

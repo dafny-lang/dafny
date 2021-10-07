@@ -1,4 +1,5 @@
-﻿using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+﻿using Microsoft.Dafny.LanguageServer.Util;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -8,22 +9,22 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   /// Visitor responsible to generate the LSP symbol representation.
   /// </summary>
   public class LspSymbolGeneratingVisitor : ISymbolVisitor<IEnumerable<DocumentSymbol>> {
-    private readonly SymbolTable _symbolTable;
-    private readonly CancellationToken _cancellationToken;
+    private readonly SymbolTable symbolTable;
+    private readonly CancellationToken cancellationToken;
 
     public LspSymbolGeneratingVisitor(SymbolTable symbolTable, CancellationToken cancellationToken) {
-      _symbolTable = symbolTable;
-      _cancellationToken = cancellationToken;
+      this.symbolTable = symbolTable;
+      this.cancellationToken = cancellationToken;
     }
 
     private bool IsPartOfEntryDocument(Boogie.IToken token) {
       // Tokens with line=0 usually represent a default/implicit class/module/etc. We do not want
       // to show these in the symbol listing.
-      return token.line != 0 && _symbolTable.CompilationUnit.Program.IsPartOfEntryDocument(token);
+      return token.line != 0 && symbolTable.CompilationUnit.Program.IsPartOfEntryDocument(token);
     }
 
     public IEnumerable<DocumentSymbol> Visit(ISymbol symbol) {
-      _cancellationToken.ThrowIfCancellationRequested();
+      cancellationToken.ThrowIfCancellationRequested();
       return symbol.Accept(this);
     }
 
@@ -37,6 +38,10 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
     public IEnumerable<DocumentSymbol> Visit(ClassSymbol classSymbol) {
       return CreateSymbolsOfEntryDocument(classSymbol, classSymbol.Declaration.tok, SymbolKind.Class);
+    }
+
+    public IEnumerable<DocumentSymbol> Visit(DataTypeSymbol dataTypeSymbol) {
+      return CreateSymbolsOfEntryDocument(dataTypeSymbol, dataTypeSymbol.Declaration.tok, SymbolKind.Class);
     }
 
     public IEnumerable<DocumentSymbol> Visit(ValueTypeSymbol valueTypeSymbol) {
@@ -65,16 +70,16 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
     private IEnumerable<DocumentSymbol> CreateSymbolsOfEntryDocument(ILocalizableSymbol symbol, Boogie.IToken token, SymbolKind kind) {
       var children = symbol.Children.SelectMany(Visit);
-      if(!IsPartOfEntryDocument(token)) {
+      if (!IsPartOfEntryDocument(token)) {
         return children;
       }
       var documentSymbol = new DocumentSymbol {
         Name = symbol.Name,
         Kind = kind,
-        Detail = symbol.GetDetailText(_cancellationToken),
+        Detail = symbol.GetDetailText(cancellationToken),
         Children = children.ToArray()
       };
-      if(_symbolTable.TryGetLocationOf(symbol, out var location)) {
+      if (symbolTable.TryGetLocationOf(symbol, out var location)) {
         documentSymbol = documentSymbol with {
           Range = location.Declaration,
           SelectionRange = location.Name

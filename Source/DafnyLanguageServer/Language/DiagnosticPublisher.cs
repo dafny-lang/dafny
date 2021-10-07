@@ -1,26 +1,30 @@
-﻿using OmniSharp.Extensions.LanguageServer.Protocol.Document;
+﻿using Microsoft.Dafny.LanguageServer.Util;
+using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   public class DiagnosticPublisher : IDiagnosticPublisher {
-    private readonly ILanguageServerFacade _languageServer;
+    private readonly ILanguageServerFacade languageServer;
 
     public DiagnosticPublisher(ILanguageServerFacade languageServer) {
-      _languageServer = languageServer;
+      this.languageServer = languageServer;
     }
 
     public void PublishDiagnostics(DafnyDocument document) {
-      _languageServer.TextDocument.PublishDiagnostics(ToPublishDiagnostics(document));
+      if (document.LoadCanceled) {
+        // We leave the responsibility to shift the error locations to the LSP clients.
+        // Therefore, we do not republish the errors when the document (re-)load was canceled.
+        return;
+      }
+      languageServer.TextDocument.PublishDiagnostics(ToPublishDiagnostics(document));
     }
 
-    public void HideDiagnostics(DafnyDocument document) {
-      _languageServer.TextDocument.PublishDiagnostics(new PublishDiagnosticsParams {
-        Uri = document.Uri,
-        Version = document.Version,
+    public void HideDiagnostics(TextDocumentIdentifier documentId) {
+      languageServer.TextDocument.PublishDiagnostics(new PublishDiagnosticsParams {
+        Uri = documentId.Uri,
         Diagnostics = new Container<Diagnostic>()
       });
     }
@@ -34,15 +38,11 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     }
 
     private static IEnumerable<Diagnostic> ToDiagnostics(DafnyDocument document) {
-      foreach (var entry in document.Errors.Diagnostics) {
-        // Skip errors from included files.
-        if (document.Uri.Path == entry.Key) {
-          return entry.Value;
-        }
+      // Only report errors of the entry-document.
+      if (document.Errors.Diagnostics.TryGetValue(document.GetFilePath(), out var diagnostics)) {
+        return diagnostics;
       }
-      
       return Enumerable.Empty<Diagnostic>();
     }
-
   }
 }

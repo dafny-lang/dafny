@@ -26,14 +26,13 @@ namespace Microsoft.Dafny {
     public MessageSource source;
   }
 
-  public abstract class ErrorReporter
-  {
+  public abstract class ErrorReporter {
     public bool ErrorsOnly { get; set; }
 
-    public bool HasErrors => ErrorCount > 0;    
+    public bool HasErrors => ErrorCount > 0;
     public int ErrorCount => Count(ErrorLevel.Error);
 
-    
+
     public abstract bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg);
 
     public void Error(MessageSource source, IToken tok, string msg) {
@@ -42,7 +41,7 @@ namespace Microsoft.Dafny {
       // if the tok is IncludeToken, we need to indicate to the including file
       // that there are errors in the included file.
       if (tok is IncludeToken) {
-        IncludeToken includeToken = (IncludeToken) tok;
+        IncludeToken includeToken = (IncludeToken)tok;
         Include include = includeToken.Include;
         if (!include.ErrorReported) {
           Message(source, ErrorLevel.Error, include.tok, "the included file " + tok.filename + " contains error(s)");
@@ -53,7 +52,7 @@ namespace Microsoft.Dafny {
     }
 
     public abstract int Count(ErrorLevel level);
-    
+
     // This method required by the Parser
     internal void Error(MessageSource source, string filename, int line, int col, string msg) {
       var tok = new Token(line, col);
@@ -99,7 +98,11 @@ namespace Microsoft.Dafny {
     public void Warning(MessageSource source, IToken tok, string msg) {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
-      Message(source, ErrorLevel.Warning, tok, msg);
+      if (DafnyOptions.O.WarningsAsErrors) {
+        Error(source, tok, msg);
+      } else {
+        Message(source, ErrorLevel.Warning, tok, msg);
+      }
     }
 
     public void Deprecated(MessageSource source, IToken tok, string msg, params object[] args) {
@@ -149,8 +152,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public abstract class BatchErrorReporter : ErrorReporter
-  {
+  public abstract class BatchErrorReporter : ErrorReporter {
     private readonly Dictionary<ErrorLevel, List<ErrorMessage>> allMessages;
 
     protected BatchErrorReporter() {
@@ -207,7 +209,7 @@ namespace Microsoft.Dafny {
   }
 
   public class ErrorReporterSink : ErrorReporter {
-    public ErrorReporterSink() {}
+    public ErrorReporterSink() { }
 
     public override bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg) {
       return false;

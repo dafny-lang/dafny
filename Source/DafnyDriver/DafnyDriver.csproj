@@ -7,6 +7,7 @@
       <DefineConstants>TRACE</DefineConstants>
       <TargetFramework>net5.0</TargetFramework>
       <OutputPath>..\..\Binaries\</OutputPath>
+      <ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net5.0|AnyCPU'">
@@ -15,6 +16,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Dafny\DafnyPipeline.csproj" />
+    <ProjectReference Include="..\DafnyTestGeneration\DafnyTestGeneration.csproj" />
   </ItemGroup>
 
   <ItemGroup>

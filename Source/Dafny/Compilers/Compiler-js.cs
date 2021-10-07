@@ -635,8 +635,7 @@ namespace Microsoft.Dafny {
       return w;
     }
 
-    protected override ConcreteSyntaxTree EmitMethodReturns(Method m, ConcreteSyntaxTree wr)
-    {
+    protected override ConcreteSyntaxTree EmitMethodReturns(Method m, ConcreteSyntaxTree wr) {
       var beforeReturnBlock = wr.Fork(0);
       EmitReturn(m.Outs, wr);
       return beforeReturnBlock;
@@ -1317,7 +1316,7 @@ namespace Microsoft.Dafny {
       } else {
         wr.Write("\"");
         for (var i = 0; i < n; i++) {
-          if (str[i] == '\"' && i+1 < n && str[i+1] == '\"') {
+          if (str[i] == '\"' && i + 1 < n && str[i + 1] == '\"') {
             wr.Write("\\\"");
             i++;
           } else if (str[i] == '\\') {
@@ -1569,7 +1568,9 @@ namespace Microsoft.Dafny {
     protected override ILvalue EmitMemberSelect(Action<ConcreteSyntaxTree> obj, Type objType, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap,
       Type expectedType, string/*?*/ additionalCustomParameter, bool internalAccess = false) {
       if (member is DatatypeDestructor dtor && dtor.EnclosingClass is TupleTypeDecl) {
-        return SuffixLvalue(obj, "[{0}]", dtor.Name);
+        Contract.Assert(dtor.CorrespondingFormals.Count == 1);
+        var formal = dtor.CorrespondingFormals[0];
+        return SuffixLvalue(obj, "[{0}]", formal.NameForCompilation);
       } else if (member is SpecialField sf && !(member is ConstantField)) {
         string compiledName, preStr, postStr;
         GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, objType, out compiledName, out preStr, out postStr);
@@ -1992,7 +1993,7 @@ namespace Microsoft.Dafny {
             // change that would render this translation incorrect.
             Contract.Assert(resultType.AsBitVectorType.Width == 0);
             opString = "+";  // 0 + 0 == 0 == 0 << 0
-             convertE1_to_int = true;
+            convertE1_to_int = true;
           } else {
             staticCallString = "_dafny.ShiftLeft";
             truncateResult = true; convertE1_to_int = true;
@@ -2006,7 +2007,7 @@ namespace Microsoft.Dafny {
             // change that would render this translation incorrect.
             Contract.Assert(resultType.AsBitVectorType.Width == 0);
             opString = "+";  // 0 + 0 == 0 == 0 << 0
-             convertE1_to_int = true;
+            convertE1_to_int = true;
           } else {
             staticCallString = "_dafny.ShiftRight";
             truncateResult = true; convertE1_to_int = true;
@@ -2177,7 +2178,7 @@ namespace Microsoft.Dafny {
             MemberSelectExpr m = e.E.Resolved as MemberSelectExpr;
             if (literal != null) {
               // Optimize constant to avoid intermediate BigInteger
-              wr.Write("(" + literal  + ")");
+              wr.Write("(" + literal + ")");
             } else if (u != null && u.Op == UnaryOpExpr.Opcode.Cardinality) {
               // Optimize .Count to avoid intermediate BigInteger
               TrParenExpr(u.E, wr, inLetExprBody);

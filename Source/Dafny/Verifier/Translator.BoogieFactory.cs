@@ -5,10 +5,8 @@ using System.Diagnostics.Contracts;
 using Bpl = Microsoft.Boogie;
 using static Microsoft.Dafny.Util;
 
-namespace Microsoft.Dafny
-{
-  partial class Translator
-  {
+namespace Microsoft.Dafny {
+  partial class Translator {
     public Bpl.Type BplBvType(int width) {
       Contract.Requires(0 <= width);
       if (width == 0) {
@@ -46,8 +44,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    enum BuiltinFunction
-    {
+    enum BuiltinFunction {
       Lit,
       LitInt,
       LitReal,
@@ -152,7 +149,7 @@ namespace Microsoft.Dafny
 
       AtLayer
     }
-    
+
     Bpl.Expr Lit(Bpl.Expr expr, Bpl.Type typ) {
       Contract.Requires(expr != null);
       Contract.Requires(typ != null);
@@ -172,7 +169,7 @@ namespace Microsoft.Dafny
       return Lit(expr, expr.Type);
     }
 
-    Bpl.Expr GetLit(Bpl.Expr expr) {
+    private static Bpl.Expr GetLit(Bpl.Expr expr) {
       if (expr is Bpl.NAryExpr) {
         Bpl.NAryExpr app = (Bpl.NAryExpr)expr;
         switch (app.Fun.FunctionName) {
@@ -187,7 +184,21 @@ namespace Microsoft.Dafny
       return null;
     }
 
-    Bpl.Expr RemoveLit(Bpl.Expr expr) {
+    static Bpl.Cmd CaptureState(Bpl.IToken tok, bool isEndToken, string/*?*/ additionalInfo) {
+      Contract.Requires(tok != null);
+      Contract.Ensures(Contract.Result<Bpl.Cmd>() != null);
+      var col = tok.col + (isEndToken ? tok.val.Length : 0);
+      string description = String.Format("{0}{1}", ErrorReporter.TokenToString(tok), additionalInfo == null ? "" : (": " + additionalInfo));
+      Bpl.QKeyValue kv = new Bpl.QKeyValue(tok, "captureState", new List<object>() { description }, null);
+      return TrAssumeCmd(tok, Bpl.Expr.True, kv);
+    }
+
+    static Bpl.AssumeCmd TrAssumeCmd(Bpl.IToken tok, Bpl.Expr expr, Bpl.QKeyValue attributes = null) {
+      var lit = RemoveLit(expr);
+      return attributes == null ? new Bpl.AssumeCmd(tok, lit) : new Bpl.AssumeCmd(tok, lit, attributes);
+    }
+
+    static Bpl.Expr RemoveLit(Bpl.Expr expr) {
       return GetLit(expr) ?? expr;
     }
 
@@ -201,8 +212,7 @@ namespace Microsoft.Dafny
     }
 
     // The "typeInstantiation" argument is passed in to help construct the result type of the function.
-    Bpl.NAryExpr FunctionCall(Bpl.IToken tok, BuiltinFunction f, Bpl.Type typeInstantiation, params Bpl.Expr[] args)
-    {
+    Bpl.NAryExpr FunctionCall(Bpl.IToken tok, BuiltinFunction f, Bpl.Type typeInstantiation, params Bpl.Expr[] args) {
       Contract.Requires(tok != null);
       Contract.Requires(args != null);
       Contract.Requires(predef != null);
@@ -265,11 +275,11 @@ namespace Microsoft.Dafny
           Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "Set#Card", Bpl.Type.Int, args);
         case BuiltinFunction.SetEmpty: {
-          Contract.Assert(args.Length == 0);
-          Contract.Assert(typeInstantiation != null);
-          Bpl.Type resultType = predef.SetType(tok, true, typeInstantiation);
-          return Bpl.Expr.CoerceType(tok, FunctionCall(tok, "Set#Empty", resultType, args), resultType);
-        }
+            Contract.Assert(args.Length == 0);
+            Contract.Assert(typeInstantiation != null);
+            Bpl.Type resultType = predef.SetType(tok, true, typeInstantiation);
+            return Bpl.Expr.CoerceType(tok, FunctionCall(tok, "Set#Empty", resultType, args), resultType);
+          }
         case BuiltinFunction.SetUnionOne:
           Contract.Assert(args.Length == 2);
           Contract.Assert(typeInstantiation != null);
@@ -388,11 +398,11 @@ namespace Microsoft.Dafny
           Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "Seq#Length", Bpl.Type.Int, args);
         case BuiltinFunction.SeqEmpty: {
-          Contract.Assert(args.Length == 0);
-          Contract.Assert(typeInstantiation != null);
-          Bpl.Type resultType = predef.SeqType(tok, typeInstantiation);
-          return Bpl.Expr.CoerceType(tok, FunctionCall(tok, "Seq#Empty", resultType, args), resultType);
-        }
+            Contract.Assert(args.Length == 0);
+            Contract.Assert(typeInstantiation != null);
+            Bpl.Type resultType = predef.SeqType(tok, typeInstantiation);
+            return Bpl.Expr.CoerceType(tok, FunctionCall(tok, "Seq#Empty", resultType, args), resultType);
+          }
         case BuiltinFunction.SeqBuild:
           Contract.Assert(args.Length == 2);
           Contract.Assert(typeInstantiation != null);
@@ -549,7 +559,7 @@ namespace Microsoft.Dafny
         case BuiltinFunction.FieldOfDecl:
           Contract.Assert(args.Length == 2);
           Contract.Assert(typeInstantiation != null);
-          return FunctionCall(tok, "FieldOfDecl", predef.FieldName(tok, typeInstantiation) , args);
+          return FunctionCall(tok, "FieldOfDecl", predef.FieldName(tok, typeInstantiation), args);
         case BuiltinFunction.FDim:
           Contract.Assert(args.Length == 1);
           Contract.Assert(typeInstantiation != null);
@@ -587,8 +597,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    static Bpl.NAryExpr FunctionCall(Bpl.IToken tok, string function, Bpl.Type returnType, params Bpl.Expr[] args)
-    {
+    static Bpl.NAryExpr FunctionCall(Bpl.IToken tok, string function, Bpl.Type returnType, params Bpl.Expr[] args) {
       Contract.Requires(tok != null);
       Contract.Requires(function != null);
       Contract.Requires(returnType != null);
@@ -598,8 +607,7 @@ namespace Microsoft.Dafny
       return new Bpl.NAryExpr(tok, new Bpl.FunctionCall(new Bpl.IdentifierExpr(tok, function, returnType)), new List<Bpl.Expr>(args));
     }
 
-    static Bpl.NAryExpr FunctionCall(Bpl.IToken tok, string function, Bpl.Type returnType, List<Bpl.Expr> args)
-    {
+    static Bpl.NAryExpr FunctionCall(Bpl.IToken tok, string function, Bpl.Type returnType, List<Bpl.Expr> args) {
       Contract.Requires(tok != null);
       Contract.Requires(function != null);
       Contract.Requires(returnType != null);
@@ -655,7 +663,7 @@ namespace Microsoft.Dafny
       }
       return new Bpl.NAryExpr(tok, new Bpl.FunctionCall(new Bpl.IdentifierExpr(tok, name, Bpl.Type.Int)), new List<Bpl.Expr> { arr });
     }
-    
+
     static Bpl.Expr BplForall(IEnumerable<Bpl.Variable> args_in, Bpl.Expr body) {
       Contract.Requires(args_in != null);
       Contract.Requires(body != null);
@@ -687,8 +695,7 @@ namespace Microsoft.Dafny
     }
 
     static Bpl.Expr BplForall(Bpl.IToken tok, List<Bpl.TypeVariable> typeParams,
-      List<Bpl.Variable> formals, Bpl.QKeyValue kv, Bpl.Trigger triggers, Bpl.Expr body, bool immutable = false)
-    {
+      List<Bpl.Variable> formals, Bpl.QKeyValue kv, Bpl.Trigger triggers, Bpl.Expr body, bool immutable = false) {
       return (typeParams.Count == 0 && formals.Count == 0) ? body
         : new Bpl.ForallExpr(tok, typeParams, formals, kv, triggers, body, immutable);
     }
@@ -798,7 +805,7 @@ namespace Microsoft.Dafny
       Contract.Requires(tok != null);
       Contract.Requires(e != null);
 
-      var exprs = new List<Bpl.Expr> {e};
+      var exprs = new List<Bpl.Expr> { e };
       if (ePrime != null) {
         exprs.Add(ePrime);
       }

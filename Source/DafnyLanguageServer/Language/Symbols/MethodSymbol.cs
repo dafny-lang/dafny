@@ -25,7 +25,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     /// </summary>
     public ScopeSymbol? Block { get; set; }
 
-    private IEnumerable<ISymbol> BlockAsEnumerable => Block != null ? new [] { Block } : Enumerable.Empty<ISymbol>();
+    private IEnumerable<ISymbol> BlockAsEnumerable => Block != null ? new[] { Block } : Enumerable.Empty<ISymbol>();
 
     public override IEnumerable<ISymbol> Children => BlockAsEnumerable.Concat(Parameters).Concat(Returns);
 
@@ -34,7 +34,11 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     }
 
     public string GetDetailText(CancellationToken cancellationToken) {
-      return $"{Declaration.WhatKind} {ClassPrefix}{Declaration.Name}({Declaration.Ins.AsCommaSeperatedText()}) returns ({Declaration.Outs.AsCommaSeperatedText()})";
+      var signatureWithoutReturn = $"{Declaration.WhatKind} {TypePrefix}{Declaration.Name}({Declaration.Ins.AsCommaSeperatedText()})";
+      if (Declaration.Outs.Count == 0) {
+        return signatureWithoutReturn;
+      }
+      return $"{signatureWithoutReturn} returns ({Declaration.Outs.AsCommaSeperatedText()})";
     }
 
     public override TResult Accept<TResult>(ISymbolVisitor<TResult> visitor) {

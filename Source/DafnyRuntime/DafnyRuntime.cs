@@ -14,14 +14,12 @@ namespace DafnyAssembly {
   }
 }
 
-namespace Dafny
-{
+namespace Dafny {
   using System.Collections.Generic;
   using System.Collections.Immutable;
   using System.Linq;
 
-  public interface ISet<out T>
-  {
+  public interface ISet<out T> {
     int Count { get; }
     long LongCount { get; }
     IEnumerable<T> Elements { get; }
@@ -31,8 +29,7 @@ namespace Dafny
     ISet<U> DowncastClone<U>(Func<T, U> converter);
   }
 
-  public class Set<T> : ISet<T>
-  {
+  public class Set<T> : ISet<T> {
     readonly ImmutableHashSet<T> setImpl;
     readonly bool containsNull;
     Set(ImmutableHashSet<T> d, bool containsNull) {
@@ -258,8 +255,7 @@ namespace Dafny
     }
   }
 
-  public interface IMultiSet<out T>
-  {
+  public interface IMultiSet<out T> {
     bool IsEmpty { get; }
     int Count { get; }
     long LongCount { get; }
@@ -272,8 +268,7 @@ namespace Dafny
     IMultiSet<U> DowncastClone<U>(Func<T, U> converter);
   }
 
-  public class MultiSet<T> : IMultiSet<T>
-  {
+  public class MultiSet<T> : IMultiSet<T> {
     readonly ImmutableDictionary<T, BigInteger> dict;
     readonly BigInteger occurrencesOfNull;  // stupidly, a Dictionary in .NET cannot use "null" as a key
     MultiSet(ImmutableDictionary<T, BigInteger>.Builder d, BigInteger occurrencesOfNull) {
@@ -578,8 +573,7 @@ namespace Dafny
     }
   }
 
-  public interface IMap<out U, out V>
-  {
+  public interface IMap<out U, out V> {
     int Count { get; }
     long LongCount { get; }
     ISet<U> Keys { get; }
@@ -593,8 +587,7 @@ namespace Dafny
     IMap<UU, VV> DowncastClone<UU, VV>(Func<U, UU> keyConverter, Func<V, VV> valueConverter);
   }
 
-  public class Map<U, V> : IMap<U, V>
-  {
+  public class Map<U, V> : IMap<U, V> {
     readonly ImmutableDictionary<U, V> dict;
     readonly bool hasNullKey;  // true when "null" is a key of the Map
     readonly V nullValue;  // if "hasNullKey", the value that "null" maps to
@@ -847,8 +840,7 @@ namespace Dafny
     ISequence<U> DowncastClone<U>(Func<T, U> converter);
   }
 
-  public abstract class Sequence<T> : ISequence<T>
-  {
+  public abstract class Sequence<T> : ISequence<T> {
     public static readonly ISequence<T> Empty = new ArraySequence<T>(new T[0]);
 
     private static readonly TypeDescriptor<ISequence<T>> _TYPE = new Dafny.TypeDescriptor<ISequence<T>>(Empty);
@@ -924,7 +916,7 @@ namespace Dafny
     // Make Count a public abstract instead of LongCount, since the "array size is limited to a total of 4 billion
     // elements, and to a maximum index of 0X7FEFFFFF". Therefore, as a protection, limit this to int32.
     // https://docs.microsoft.com/en-us/dotnet/api/system.array
-    public abstract int Count  { get; }
+    public abstract int Count { get; }
     public long LongCount {
       get { return Count; }
     }
@@ -933,8 +925,7 @@ namespace Dafny
     // that resolve this.
     protected abstract ImmutableArray<T> ImmutableElements { get; }
 
-    public T[] Elements
-    {
+    public T[] Elements {
       get { return ImmutableElements.ToArray(); }
     }
     public IEnumerable<T> UniqueElements {
@@ -1036,8 +1027,7 @@ namespace Dafny
     public ISequence<T> Take(BigInteger n) {
       return Take((long)n);
     }
-    public ISequence<T> Drop(long m)
-    {
+    public ISequence<T> Drop(long m) {
       int startingElement = checked((int)m);
       if (startingElement == 0)
         return this;
@@ -1058,7 +1048,7 @@ namespace Dafny
       if (lo == 0 && hi == ImmutableElements.Length) {
         return this;
       }
-      int startingIndex = checked((int) lo);
+      int startingIndex = checked((int)lo);
       int endingIndex = checked((int)hi);
       var length = endingIndex - startingIndex;
       T[] tmp = new T[length];
@@ -1101,8 +1091,7 @@ namespace Dafny
     }
 
     protected override ImmutableArray<T> ImmutableElements {
-      get
-      {
+      get {
         return elmts;
       }
     }
@@ -1168,13 +1157,11 @@ namespace Dafny
     }
   }
 
-  public interface IPair<out A, out B>
-  {
+  public interface IPair<out A, out B> {
     A Car { get; }
     B Cdr { get; }
   }
-  public class Pair<A, B> : IPair<A, B>
-  {
+  public class Pair<A, B> : IPair<A, B> {
     private A car;
     private B cdr;
     public A Car { get { return car; } }
@@ -1185,8 +1172,7 @@ namespace Dafny
     }
   }
 
-  public class TypeDescriptor<T>
-  {
+  public class TypeDescriptor<T> {
     private readonly T initValue;
     public TypeDescriptor(T initValue) {
       this.initValue = initValue;
@@ -1196,8 +1182,7 @@ namespace Dafny
     }
   }
 
-  public partial class Helpers
-  {
+  public partial class Helpers {
     public static int GetHashCode<G>(G g) {
       return g == null ? 1001 : g.GetHashCode();
     }
@@ -1268,14 +1253,14 @@ namespace Dafny
     }
     public static IEnumerable<BigInteger> AllIntegers() {
       yield return new BigInteger(0);
-      for (var j = new BigInteger(1);; j++) {
+      for (var j = new BigInteger(1); ; j++) {
         yield return j;
         yield return -j;
       }
     }
     public static IEnumerable<BigInteger> IntegerRange(Nullable<BigInteger> lo, Nullable<BigInteger> hi) {
       if (lo == null) {
-        for (var j = (BigInteger)hi; true; ) {
+        for (var j = (BigInteger)hi; true;) {
           j--;
           yield return j;
         }
@@ -1415,12 +1400,11 @@ namespace Dafny
     // In .NET version 4.5, it is possible to mark a method with "AggressiveInlining", which says to inline the
     // method if possible.  Method "ExpressionSequence" would be a good candidate for it:
     // [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static U ExpressionSequence<T, U>(T t, U u)
-    {
+    public static U ExpressionSequence<T, U>(T t, U u) {
       return u;
     }
 
-    public static U Let<T, U>(T t, Func<T,U> f) {
+    public static U Let<T, U>(T t, Func<T, U> f) {
       return f(t);
     }
 
@@ -1452,8 +1436,7 @@ namespace Dafny
     }
   }
 
-  public struct BigRational
-  {
+  public struct BigRational {
     public static readonly BigRational ZERO = new BigRational(0);
 
     // We need to deal with the special case "num == 0 && den == 0", because
@@ -1618,15 +1601,13 @@ namespace Dafny
   }
 
   public class HaltException : Exception {
-    public HaltException(object message) : base(message.ToString())
-    {
+    public HaltException(object message) : base(message.ToString()) {
     }
   }
 }
 
-namespace @_System
-{
-  public class Tuple2<T0,T1> {
+namespace @_System {
+  public class Tuple2<T0, T1> {
     public readonly T0 _0;
     public readonly T1 _1;
     public Tuple2(T0 _0, T1 _1) {
@@ -1634,7 +1615,7 @@ namespace @_System
       this._1 = _1;
     }
     public override bool Equals(object other) {
-      var oth = other as _System.Tuple2<T0,T1>;
+      var oth = other as _System.Tuple2<T0, T1>;
       return oth != null && object.Equals(this._0, oth._0) && object.Equals(this._1, oth._1);
     }
     public override int GetHashCode() {
@@ -1642,7 +1623,7 @@ namespace @_System
       hash = ((hash << 5) + hash) + 0;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._0));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._1));
-      return (int) hash;
+      return (int)hash;
     }
     public override string ToString() {
       string s = "";
@@ -1653,14 +1634,14 @@ namespace @_System
       s += ")";
       return s;
     }
-    public static Tuple2<T0,T1> Default(T0 _default_T0, T1 _default_T1) {
+    public static Tuple2<T0, T1> Default(T0 _default_T0, T1 _default_T1) {
       return create(_default_T0, _default_T1);
     }
     public static Dafny.TypeDescriptor<_System.Tuple2<T0, T1>> _TypeDescriptor(Dafny.TypeDescriptor<T0> _td_T0, Dafny.TypeDescriptor<T1> _td_T1) {
       return new Dafny.TypeDescriptor<_System.Tuple2<T0, T1>>(_System.Tuple2<T0, T1>.Default(_td_T0.Default(), _td_T1.Default()));
     }
-    public static Tuple2<T0,T1> create(T0 _0, T1 _1) {
-      return new Tuple2<T0,T1>(_0, _1);
+    public static Tuple2<T0, T1> create(T0 _0, T1 _1) {
+      return new Tuple2<T0, T1>(_0, _1);
     }
     public bool is____hMake2 { get { return true; } }
     public T0 dtor__0 {

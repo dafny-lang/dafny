@@ -89,21 +89,21 @@ namespace Microsoft.Dafny {
 
   public class Main {
 
-      public static void MaybePrintProgram(Program program, string filename, bool afterResolver) {
-        if (filename == null) {
-          return;
-        }
-
-        var tw = filename == "-" ? Console.Out : new StreamWriter(filename);
-        var pr = new Printer(tw, DafnyOptions.O.PrintMode);
-        pr.PrintProgram(program, afterResolver);
+    public static void MaybePrintProgram(Program program, string filename, bool afterResolver) {
+      if (filename == null) {
+        return;
       }
+
+      var tw = filename == "-" ? Console.Out : new StreamWriter(filename);
+      var pr = new Printer(tw, DafnyOptions.O.PrintMode);
+      pr.PrintProgram(program, afterResolver);
+    }
 
     /// <summary>
     /// Returns null on success, or an error string otherwise.
     /// </summary>
     public static string ParseCheck(IList<DafnyFile/*!*/>/*!*/ files, string/*!*/ programName, ErrorReporter reporter, out Program program)
-      //modifies Bpl.CommandLineOptions.Clo.XmlSink.*;
+    //modifies Bpl.CommandLineOptions.Clo.XmlSink.*;
     {
       string err = Parse(files, programName, reporter, out program);
       if (err != null) {
@@ -113,21 +113,19 @@ namespace Microsoft.Dafny {
       return Resolve(program, reporter);
     }
 
-    public static string Parse(IList<DafnyFile> files, string programName, ErrorReporter reporter, out Program program)
-    {
+    public static string Parse(IList<DafnyFile> files, string programName, ErrorReporter reporter, out Program program) {
       Contract.Requires(programName != null);
       Contract.Requires(files != null);
       program = null;
       ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDecl(), null);
       BuiltIns builtIns = new BuiltIns();
 
-      foreach (DafnyFile dafnyFile in files){
+      foreach (DafnyFile dafnyFile in files) {
         Contract.Assert(dafnyFile != null);
         if (Bpl.CommandLineOptions.Clo.XmlSink != null && Bpl.CommandLineOptions.Clo.XmlSink.IsOpen && !dafnyFile.UseStdin) {
           Bpl.CommandLineOptions.Clo.XmlSink.WriteFileFragment(dafnyFile.FilePath);
         }
-        if (Bpl.CommandLineOptions.Clo.Trace)
-        {
+        if (Bpl.CommandLineOptions.Clo.Trace) {
           Console.WriteLine("Parsing " + dafnyFile.FilePath);
         }
 
@@ -157,8 +155,7 @@ namespace Microsoft.Dafny {
       return null; // success
     }
 
-    public static string Resolve(Program program, ErrorReporter reporter)
-    {
+    public static string Resolve(Program program, ErrorReporter reporter) {
       if (Bpl.CommandLineOptions.Clo.NoResolve || Bpl.CommandLineOptions.Clo.NoTypecheck) { return null; }
 
       Dafny.Resolver r = new Dafny.Resolver(program);
@@ -202,8 +199,7 @@ namespace Microsoft.Dafny {
 
         foreach (Include include in newFilesToInclude) {
           DafnyFile file;
-          try {file = new DafnyFile(include.includedFilename);}
-          catch (IllegalDafnyFile){
+          try { file = new DafnyFile(include.includedFilename); } catch (IllegalDafnyFile) {
             return (String.Format("Include of file \"{0}\" failed.", include.includedFilename));
           }
           string ret = ParseFile(file, include, module, builtIns, errs, false);

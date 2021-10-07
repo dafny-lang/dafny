@@ -6,7 +6,51 @@ on:
   pull_request:
     branches: [ master ]
 
+env:
+  dotnet-version: 5.0.x # SDK Version for building Dafny; x will use the latest version of the 5.0 channel
 jobs:
+  singletons:
+    runs-on: ubuntu-18.04
+    steps:
+    - name: Setup dotnet 5.0
+      uses: actions/setup-dotnet@v1.7.2
+      with:
+        dotnet-version: ${{env.dotnet-version}}
+    - name: Checkout Dafny
+      uses: actions/checkout@v2
+      with:
+        path: dafny
+    - name: Restore tools
+      working-directory: dafny
+      run: dotnet tool restore
+    - name: Check code style
+      working-directory: dafny
+      run: dotnet tool run dotnet-format -w --check Source/Dafny.sln --exclude Dafny/Scanner.cs --exclude Dafny/Parser.cs
+    - name: Get XML
+      id: boogieVersion
+      uses: QwerMike/xpath-action@v1
+      with:
+        filename: 'dafny/Source/Directory.Build.props'
+        expression: "//PackageReference[@Include='Boogie.ExecutionEngine']/@Version"
+
+    - uses: actions-ecosystem/action-regex-match@v2
+      id: regex-match
+      with:
+        text: ${{ steps.boogieVersion.outputs.result }}
+        regex: ' Version="([\d\.]+)"'
+    - name: Attempt custom Boogie patch
+      working-directory: dafny
+      run: git apply customBoogie.patch
+    - name: Checkout Boogie
+      uses: actions/checkout@v2
+      with:
+        repository: boogie-org/boogie
+        path: boogie
+        ref: v${{ steps.regex-match.outputs.group1 }}
+    - name: Build Dafny with local Boogie
+      working-directory: dafny
+      run: dotnet build Source/Dafny.sln
+      
   build:
     runs-on: ${{ matrix.os }}
 
@@ -15,20 +59,20 @@ jobs:
         ## Windows jobs fail on some lit tests and sometimes fail even to
         ## setup a work environment (e.g. dotnet installation)
         ##os: [ubuntu-latest]
-        ##os: [ubuntu-latest, windows-latest, ubuntu-16.04]
+        ##os: [ubuntu-latest, windows-latest, ubuntu-18.04]
         ##os: [ubuntu-latest, macos-latest]
         os: [
              ubuntu-latest,
              macos-latest,
            ##  windows-latest,
-             ubuntu-16.04,
+             ubuntu-18.04,
             ]
         ## Size of the following array must match --num-shards in lit command
         shard: [1, 2, 3, 4, 5]
         include:
         - os:                  'ubuntu-latest'
           os_for_build:        'ubuntu'
-        - os:                  'ubuntu-16.04'
+        - os:                  'ubuntu-18.04'
           os_for_build:        'ubuntu'
         - os:                  'macos-latest'
           os_for_build:        'osx'
@@ -44,13 +88,13 @@ jobs:
     - name: Setup dotnet 5.0
       uses: actions/setup-dotnet@v1.7.2
       with:
-        dotnet-version: '5.0.x' # SDK Version for building Dafny; x will use the latest version of the 5.0 channel
-    - name: C++ for ubuntu 16.04
-      if: matrix.os == 'ubuntu-16.04'
+        dotnet-version: ${{env.dotnet-version}}
+    - name: C++ for ubuntu 18.04
+      if: matrix.os == 'ubuntu-18.04'
       run: |
         sudo apt-get install -y build-essential
-    - name: Choose the right C++ for ubuntu 16.04
-      if: matrix.os == 'ubuntu-16.04'
+    - name: Choose the right C++ for ubuntu 18.04
+      if: matrix.os == 'ubuntu-18.04'
       run: |
         sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 60
     - uses: actions/setup-python@v1
@@ -67,8 +111,9 @@ jobs:
     - name: Checkout Dafny
       uses: actions/checkout@v2
       with:
-        submodules: recursive
         path: dafny
+        submodules: true
+    - run: rm dafny/Test/libraries/lit.site.cfg # we remove the lit configuration file in the library repo (a git submodule) to prevent override
     - name: Create release
       run: |
         python dafny/Scripts/package.py 0.0.0-CI --os ${{ matrix.os_for_build }} --skip_manual=true --trial=true --github_secret=${{ secrets.GITHUB_TOKEN }} --out=CI.zip
