@@ -47,8 +47,6 @@ Z3_INTERESTING_FILES = ["LICENSE.txt", "bin/*"]
 ## On unix systems, which Dafny files should be marked as executable? (Glob syntax; Z3's permissions are preserved)
 UNIX_EXECUTABLES = ["dafny", "dafny-server"]
 
-ETCs = ["DafnyPrelude.bpl", "DafnyRuntime.js", "DafnyRuntime.go", "DafnyRuntime.jar", "DafnyRuntime.h"]
-
 # Constants
 
 THIS_FILE = path.realpath(__file__)
@@ -166,7 +164,7 @@ class Release:
                 lowercaseDafny = path.join(self.buildDirectory, "dafny")
                 shutil.move(uppercaseDafny, lowercaseDafny)
                 os.chmod(lowercaseDafny, stat.S_IEXEC| os.lstat(lowercaseDafny).st_mode)
-            paths = pathsInDirectory(self.buildDirectory) + list(map(lambda etc: path.join(BINARIES_DIRECTORY, etc), ETCs)) + OTHERS
+            paths = pathsInDirectory(self.buildDirectory) + OTHERS
             for fpath in paths:
                 if os.path.isdir(fpath):
                     continue
