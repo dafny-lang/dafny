@@ -1278,6 +1278,10 @@ func (mset MultiSet) Union(mset2 MultiSet) MultiSet {
 
   elts := make([]msetElt, 0, len(mset.elts)+len(mset2.elts))
   for _, e := range mset.elts {
+    if e.count.Cmp(Zero) == 0 {
+      // e.value in mset2 will be added in the next separate for loop
+      continue
+    }
     m := mset2.Multiplicity(e.value)
     elts = append(elts, msetElt{e.value, e.count.Plus(m)})
   }
@@ -1335,7 +1339,7 @@ func (mset MultiSet) IsDisjointFrom(mset2 MultiSet) bool {
   }
 
   for _, e := range mset.elts {
-    if mset2.Contains(e.value) {
+    if (e.count.Cmp(Zero) != 0) && mset2.Contains(e.value) {
       return false
     }
   }
@@ -1346,11 +1350,13 @@ func (mset MultiSet) IsDisjointFrom(mset2 MultiSet) bool {
 // Equals returns whether two multisets have the same values with the same
 // multiplicities.
 func (mset MultiSet) Equals(mset2 MultiSet) bool {
-  return mset.isRelated(
-    mset2,
-    func(x, y int) bool { return x == y },
-    func(isProper bool) bool { return true },
-  )
+  for _, e := range mset.elts {
+    m := mset2.Multiplicity(e.value)
+    if e.count.Cmp(m) != 0 {
+      return false
+    }
+  }
+  return mset.CardinalityInt() == mset2.CardinalityInt()
 }
 
 // EqualsGeneric implements the EqualsGeneric interface.
@@ -1362,46 +1368,19 @@ func (mset MultiSet) EqualsGeneric(other interface{}) bool {
 // IsSubsetOf returns whether one multiset has a subset of the elements of the
 // other, with lesser or equal multiplicities.
 func (mset MultiSet) IsSubsetOf(mset2 MultiSet) bool {
-  return mset.isRelated(
-    mset2,
-    func(x, y int) bool { return x <= y },
-    func(isProper bool) bool { return true },
-  )
+  for _, e := range mset.elts {
+    m := mset2.Multiplicity(e.value)
+    if e.count.Cmp(m) > 0 {
+      return false
+    }
+  }
+  return true
 }
 
 // IsProperSubsetOf returns whether one multiset has a proper subset of the
 // elements of the other, with strictly lesser multiplicities.
 func (mset MultiSet) IsProperSubsetOf(mset2 MultiSet) bool {
-  return mset.isRelated(
-    mset2,
-    func(x, y int) bool { return x <= y },
-    func(isProper bool) bool { return isProper },
-  )
-}
-
-func (mset MultiSet) isRelated(
-  mset2 MultiSet,
-  r func(int, int) bool,
-  properCheck func(bool) bool,
-) bool {
-  msetLen := len(mset.elts)
-  mset2Len := len(mset2.elts)
-  if !r(msetLen, mset2Len) {
-    return false
-  }
-  isProper := msetLen < mset2Len
-  for _, e := range mset.elts {
-    m := mset2.Multiplicity(e.value)
-    cmp := e.count.Cmp(m)
-    if !r(cmp, 0) {
-      return false
-    }
-    if cmp != 0 {
-      isProper = true
-    }
-  }
-
-  return properCheck(isProper)
+  return mset.IsSubsetOf(mset2) && mset.CardinalityInt() < mset2.CardinalityInt()
 }
 
 func (mset MultiSet) String() string {
