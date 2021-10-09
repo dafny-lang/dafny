@@ -86,6 +86,17 @@ namespace DafnyTestGeneration {
       dafnyInfo ??= new DafnyInfo(program);
       var modifications = GetModifications(program).ToList();
 
+      if (DafnyOptions.O.TestGenOptions.PrintBoogieFile != null) {
+        for (var i = modifications.Count - 1; i >= 0; i--) {
+          //Console.Write(modifications[i].ToString());
+
+          string filename = DafnyOptions.O.TestGenOptions.PrintBoogieFile;
+
+          var tw = filename == "-" ? Console.Out : new StreamWriter(filename);
+          tw.Write(modifications[i].ToString());
+        }
+      }
+
       // Generate tests based on counterexamples produced from modifications
       var testMethods = new ConcurrentBag<TestMethod>();
       for (var i = modifications.Count - 1; i >= 0; i--) {
