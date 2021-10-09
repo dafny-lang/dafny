@@ -45,6 +45,8 @@ jobs:
         dotnet-version: 5.0.x
     - name: Install dependencies
       run: dotnet restore ${{env.solutionPath}}
+    - name: Build Java runtime
+      run: make --quiet runtime
     - name: Build
       run: dotnet build --no-restore ${{env.solutionPath}}
     - name: Load Z3
@@ -62,8 +64,6 @@ jobs:
         chmod +x ${{env.testPath1}}/z3/bin/z3
         chmod +x ${{env.testPath2}}/z3/bin/z3
         chmod +x ${{env.testPath3}}/z3/bin/z3
-    - name: Build Java runtime
-      run: make --quiet runtime
     - name: Run DafnyLanguageServer Tests
       run: dotnet test --no-restore --verbosity normal Source/DafnyLanguageServer.Test
     - name: Run DafnyPipeline Tests
