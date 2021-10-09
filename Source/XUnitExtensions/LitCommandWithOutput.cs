@@ -22,7 +22,7 @@ namespace XUnitExtensions {
       var builder = new StringBuilder();
       builder.Append(command);
       if (outputFile != null) {
-        builder.Append(append ? " >> " : ">");
+        builder.Append(append ? " >> " : " > ");
         builder.Append(outputFile);
       }
       return builder.ToString();

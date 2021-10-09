@@ -20,6 +20,8 @@ namespace XUnitExtensions {
         { "%s", fileName },
         { "%t", Path.Join("Output", $"{fileName}.tmp")}
       });
+
+      Directory.CreateDirectory(Path.Join(Path.GetDirectoryName(filePath), "Output"));
       
       var commands = Read(filePath, config);
       foreach (var command in commands) {
