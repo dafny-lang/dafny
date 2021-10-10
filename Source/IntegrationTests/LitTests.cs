@@ -8,7 +8,7 @@ using XUnitExtensions;
 
 [assembly: TestCollectionOrderer("XUnitExtensions.TestCollectionShardFilter", "XUnitExtensions")]
 
-namespace IntegrationTests.LitTestRunner {
+namespace IntegrationTests {
   public class LitTests {
 
     private static readonly Assembly dafnyDriverAssembly = typeof(DafnyDriver).Assembly;
