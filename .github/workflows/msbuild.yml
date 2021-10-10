@@ -124,7 +124,6 @@ jobs:
     - if: runner.os != 'Windows'
       run: |
         unzip dafny/Package/CI.zip -d unzippedRelease
-    - name: Run lit tests
+    - name: Run integration tests
       run: |
-        # TODO: Configure $dafny to point to the released version we just create
-        XUNIT_SHARD=${{ matrix.shard }} XUNIT_SHARD_COUNT=5 dotnet test dafny/Source/IntegrationTests/IntegrationTests.csproj 
+        XUNIT_SHARD=${{ matrix.shard }} XUNIT_SHARD_COUNT=5 DAFNY_EXECUTABLE=$PWD/unzippedRelease/dafny/dafny DAFNY_SERVER_EXECUTABLE=$PWD/unzippedRelease/dafny/dafnyServer dotnet test dafny/Source/IntegrationTests/IntegrationTests.csproj 

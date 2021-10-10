@@ -29,7 +29,6 @@ namespace IntegrationTests {
     };
     
     private static ILitCommand MainWithArguments(Assembly assembly, IEnumerable<string> arguments, LitTestConfiguration config, bool invokeDirectly) {
-      
       return MainMethodLitCommand.Parse(assembly, arguments, config, invokeDirectly);
     }
 
@@ -50,6 +49,21 @@ namespace IntegrationTests {
       
       PassthroughEnvironmentVariables = new []{ "PATH", "HOME" },
     };
+
+    static LitTests() {
+      var dafnyExecutable = Environment.GetEnvironmentVariable("DAFNY_EXECUTABLE");
+      if (dafnyExecutable != null) {
+        CONFIG.Commands["%baredafny"] = (args, config) =>
+          new ShellLitCommand(dafnyExecutable, args, config.PassthroughEnvironmentVariables);
+        CONFIG.Commands["%dafny"] = (args, config) =>
+          new ShellLitCommand(dafnyExecutable, defaultDafnyArguments.Concat(args), config.PassthroughEnvironmentVariables);
+      }
+      var dafnyServerExecutable = Environment.GetEnvironmentVariable("DAFNY_SERVER_EXECUTABLE");
+      if (dafnyServerExecutable != null) {
+        CONFIG.Commands["%server"] = (args, config) =>
+          new ShellLitCommand(dafnyServerExecutable, args, config.PassthroughEnvironmentVariables);
+      } 
+    }
     
     [FileTheory]
     [LitTestData(Extension = ".dfy")]
