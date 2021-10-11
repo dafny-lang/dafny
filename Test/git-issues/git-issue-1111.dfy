@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 /env:0 /dprint:- "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 module Foo {
     class A {
 
@@ -16,30 +19,3 @@ module Foo {
         var o := new A(1, 2);
     }
 }
-
-/*
-public class A {
-  public A() {
-    this._a = java.math.BigInteger.ZERO;
-    this._b = java.math.BigInteger.ZERO;
-  }
-  public void __ctor(java.math.BigInteger k, java.math.BigInteger j)
-  {
-    (this)._a = k;
-    (this)._b = j;
-  }
-  public java.math.BigInteger _a;
-  public java.math.BigInteger a()
-  {
-    return this._a;
-  }
-  public java.math.BigInteger _b;
-  public java.math.BigInteger b()
-  {
-    return this._b;
-  }
-  private static final dafny.TypeDescriptor<A> _TYPE = dafny.TypeDescriptor.referenceWithInitializer(A.class, () -> (A) null);
-  public static dafny.TypeDescriptor<A> _typeDescriptor() {
-    return (dafny.TypeDescriptor<A>) (dafny.TypeDescriptor<?>) _TYPE;
-  }
-*/
