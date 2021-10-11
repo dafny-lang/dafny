@@ -89,7 +89,7 @@ module U.V.W {
 /*
 module _System {
   /* CALL GRAPH for module _System:
-   * SCC at height 2:
+   * SCC at height 1:
    *   RotateRight
    * SCC at height 1:
    *   RotateLeft
@@ -218,9 +218,9 @@ module Outer {
 
   module A {
     /* CALL GRAPH for module A:
-     * SCC at height 2:
-     *   a
      * SCC at height 1:
+     *   a
+     * SCC at height 0:
      *   c
      * SCC at height 0:
      *   b
@@ -341,13 +341,13 @@ module U {
 
   module V {
     /* CALL GRAPH for module V:
-     * SCC at height 4:
-     *   Test
-     * SCC at height 3:
-     *   string
      * SCC at height 2:
-     *   x2
+     *   Test
+     * SCC at height 0:
+     *   string
      * SCC at height 1:
+     *   x2
+     * SCC at height 0:
      *   x0
      * SCC at height 0:
      *   x1

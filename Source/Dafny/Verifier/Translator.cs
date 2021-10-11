@@ -2953,7 +2953,7 @@ namespace Microsoft.Dafny {
       // useViaContext: (mh != ModuleContextHeight || fh != FunctionContextHeight)
       var mod = f.EnclosingClass.EnclosingModuleDefinition;
       Bpl.Expr useViaContext = !InVerificationScope(f) ? Bpl.Expr.True :
-        (Bpl.Expr)Bpl.Expr.Neq(Bpl.Expr.Literal(mod.CallGraph.GetSCCRepresentativeId(f)), etran.FunctionContextHeight());
+        (Bpl.Expr)Bpl.Expr.Neq(Bpl.Expr.Literal(mod.CallGraph.GetSCCRepresentativePredecessorCount(f)), etran.FunctionContextHeight());
       // useViaCanCall: f#canCall(args)
       Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName + "#canCall", Bpl.Type.Bool);
       Bpl.Expr useViaCanCall = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(canCallFuncID), Concat(tyargs, args));
@@ -3001,7 +3001,7 @@ namespace Microsoft.Dafny {
 
       if (InVerificationScope(f)) {
         return
-          Bpl.Expr.Le(Bpl.Expr.Literal(module.CallGraph.GetSCCRepresentativeId(f)), etran.FunctionContextHeight());
+          Bpl.Expr.Le(Bpl.Expr.Literal(module.CallGraph.GetSCCRepresentativePredecessorCount(f)), etran.FunctionContextHeight());
       } else {
         return Bpl.Expr.True;
       }
@@ -3231,7 +3231,7 @@ namespace Microsoft.Dafny {
       // useViaContext: (mh != ModuleContextHeight || fh != FunctionContextHeight)
       ModuleDefinition mod = f.EnclosingClass.EnclosingModuleDefinition;
       Bpl.Expr useViaContext = !InVerificationScope(f) ? (Bpl.Expr)Bpl.Expr.True :
-        Bpl.Expr.Neq(Bpl.Expr.Literal(mod.CallGraph.GetSCCRepresentativeId(f)), etran.FunctionContextHeight());
+        Bpl.Expr.Neq(Bpl.Expr.Literal(mod.CallGraph.GetSCCRepresentativePredecessorCount(f)), etran.FunctionContextHeight());
       // ante := (useViaContext && typeAnte && pre)
       ante = BplAnd(useViaContext, BplAnd(ante, pre));
 
@@ -3410,7 +3410,7 @@ namespace Microsoft.Dafny {
       // useViaContext: (mh != ModuleContextHeight || fh != FunctionContextHeight)
       ModuleDefinition mod = f.EnclosingClass.EnclosingModuleDefinition;
       Bpl.Expr useViaContext = !InVerificationScope(overridingFunction) ? (Bpl.Expr)Bpl.Expr.True :
-        Bpl.Expr.Neq(Bpl.Expr.Literal(mod.CallGraph.GetSCCRepresentativeId(overridingFunction)), etran.FunctionContextHeight());
+        Bpl.Expr.Neq(Bpl.Expr.Literal(mod.CallGraph.GetSCCRepresentativePredecessorCount(overridingFunction)), etran.FunctionContextHeight());
 
       Bpl.Expr funcAppl;
       {
@@ -4040,7 +4040,7 @@ namespace Microsoft.Dafny {
         AddWellformednessCheck(cf);
         if (InVerificationScope(cf)) {
           var etran = new ExpressionTranslator(this, predef, f.tok);
-          heightAntecedent = Bpl.Expr.Lt(Bpl.Expr.Literal(cf.EnclosingModule.CallGraph.GetSCCRepresentativeId(cf)), etran.FunctionContextHeight());
+          heightAntecedent = Bpl.Expr.Lt(Bpl.Expr.Literal(cf.EnclosingModule.CallGraph.GetSCCRepresentativePredecessorCount(cf)), etran.FunctionContextHeight());
         }
       }
 
@@ -5548,14 +5548,6 @@ namespace Microsoft.Dafny {
       builder.Add(CaptureState(iter.tok, false, "initial state"));
     }
 
-    Bpl.Cmd CaptureState(IToken tok, bool isEndToken, string/*?*/ additionalInfo) {
-      Contract.Requires(tok != null);
-      Contract.Ensures(Contract.Result<Bpl.Cmd>() != null);
-      var col = tok.col + (isEndToken ? tok.val.Length : 0);
-      string description = String.Format("{0}{1}", ErrorReporter.TokenToString(tok), additionalInfo == null ? "" : (": " + additionalInfo));
-      QKeyValue kv = new QKeyValue(tok, "captureState", new List<object>() { description }, null);
-      return TrAssumeCmd(tok, Bpl.Expr.True, kv);
-    }
     Bpl.Cmd CaptureState(Statement stmt) {
       Contract.Requires(stmt != null);
       Contract.Ensures(Contract.Result<Bpl.Cmd>() != null);
@@ -5936,7 +5928,7 @@ namespace Microsoft.Dafny {
       // check that postconditions hold
       var ens = new List<Bpl.Ensures>();
       foreach (AttributedExpression p in f.Ens) {
-        var functionHeight = currentModule.CallGraph.GetSCCRepresentativeId(f);
+        var functionHeight = currentModule.CallGraph.GetSCCRepresentativePredecessorCount(f);
         var splits = new List<SplitExprInfo>();
         bool splitHappened /*we actually don't care*/ = TrSplitExpr(p.E, splits, true, functionHeight, true, true, etran);
         string errorMessage = CustomErrorMessage(p.Attributes);
@@ -6220,7 +6212,7 @@ namespace Microsoft.Dafny {
       } else if (decl.WitnessKind == SubsetTypeDecl.WKind.CompiledZero) {
         var witness = Zero(decl.tok, decl.Var.Type);
         var errMsg = "cannot find witness that shows type is inhabited";
-        var hintMsg = "; try giving a hint through a 'witness' or 'ghost witness' clause, or use 'ghost *' to treat as a possibly empty type";
+        var hintMsg = "; try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type";
         if (witness == null) {
           witnessCheckBuilder.Add(Assert(decl.tok, Bpl.Expr.False, $"{errMsg}{hintMsg}"));
         } else {
@@ -10720,11 +10712,6 @@ namespace Microsoft.Dafny {
 
     delegate Bpl.Expr ExpressionConverter(Dictionary<IVariable, Expression> substMap, ExpressionTranslator etran);
 
-    Bpl.AssumeCmd TrAssumeCmd(IToken tok, Bpl.Expr expr, Bpl.QKeyValue attributes = null) {
-      var lit = RemoveLit(expr);
-      return attributes == null ? new Bpl.AssumeCmd(tok, lit) : new Bpl.AssumeCmd(tok, lit, attributes);
-    }
-
     Bpl.AssertCmd TrAssertCmd(IToken tok, Bpl.Expr expr, Bpl.QKeyValue attributes = null) {
       var lit = RemoveLit(expr);
       return attributes == null ? new Bpl.AssertCmd(tok, lit) : new Bpl.AssertCmd(tok, lit, attributes);
@@ -13150,7 +13137,7 @@ namespace Microsoft.Dafny {
         var f = fexp.Function;
         Contract.Assert(f != null);  // filled in during resolution
         var module = f.EnclosingClass.EnclosingModuleDefinition;
-        var functionHeight = module.CallGraph.GetSCCRepresentativeId(f);
+        var functionHeight = module.CallGraph.GetSCCRepresentativePredecessorCount(f);
 
         if (functionHeight < heightLimit && f.Body != null && RevealedInScope(f) && !(f.Body.Resolved is MatchExpr)) {
           if (RefinementToken.IsInherited(fexp.tok, currentModule) &&

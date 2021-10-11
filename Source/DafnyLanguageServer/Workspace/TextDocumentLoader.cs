@@ -55,6 +55,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return loader;
     }
 
+    public DafnyDocument CreateUnloaded(TextDocumentItem textDocument, CancellationToken cancellationToken) {
+      var errorReporter = new DiagnosticErrorReporter(textDocument.Uri);
+      return CreateDocumentWithEmptySymbolTable(
+        textDocument,
+        errorReporter,
+        parser.CreateUnparsed(textDocument, errorReporter, cancellationToken),
+        loadCanceled: true
+      );
+    }
+
     public async Task<DafnyDocument> LoadAsync(TextDocumentItem textDocument, bool verify, CancellationToken cancellationToken) {
       var request = new LoadRequest(textDocument, verify, cancellationToken);
       loadRequests.Add(request, cancellationToken);
@@ -84,7 +94,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var program = parser.Parse(textDocument, errorReporter, cancellationToken);
       if (errorReporter.HasErrors) {
         notificationPublisher.SendStatusNotification(textDocument, CompilationStatus.ParsingFailed);
-        return CreateDocumentWithParserErrors(textDocument, errorReporter, program);
+        return CreateDocumentWithEmptySymbolTable(textDocument, errorReporter, program, loadCanceled: false);
       }
       var compilationUnit = symbolResolver.ResolveSymbols(textDocument, program, cancellationToken);
       var symbolTable = symbolTableFactory.CreateFrom(program, compilationUnit, cancellationToken);
@@ -99,13 +109,19 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return new DafnyDocument(textDocument, errorReporter, program, symbolTable, serializedCounterExamples);
     }
 
-    private static DafnyDocument CreateDocumentWithParserErrors(TextDocumentItem textDocument, DiagnosticErrorReporter errorReporter, Dafny.Program program) {
+    private static DafnyDocument CreateDocumentWithEmptySymbolTable(
+      TextDocumentItem textDocument,
+      DiagnosticErrorReporter errorReporter,
+      Dafny.Program program,
+      bool loadCanceled
+    ) {
       return new DafnyDocument(
         textDocument,
         errorReporter,
         program,
         CreateEmptySymbolTable(program),
-        serializedCounterExamples: null
+        serializedCounterExamples: null,
+        loadCanceled
       );
     }
 

@@ -9,11 +9,11 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
   public class MultiFileTest : DafnyLanguageServerTestBase {
     private static readonly string TestFilePath = Path.Combine(Directory.GetCurrentDirectory(), "Various", "TestFiles", "testFile.dfy");
 
-    private ILanguageClient _client;
+    private ILanguageClient client;
 
     [TestInitialize]
     public async Task SetUp() {
-      _client = await InitializeClient();
+      client = await InitializeClient();
     }
 
     // https://github.com/dafny-lang/language-server-csharp/issues/40
@@ -27,8 +27,9 @@ method Test() {
   assert true;
 }";
       var documentItem = CreateTestDocument(source, TestFilePath);
-      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      Assert.IsTrue(Documents.TryGetDocument(documentItem, out var document));
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var document = await Documents.GetDocumentAsync(documentItem.Uri);
+      Assert.IsNotNull(document);
       Assert.IsTrue(!document.Errors.HasErrors);
     }
 
@@ -43,8 +44,9 @@ method Test() {
   assert false;
 }";
       var documentItem = CreateTestDocument(source, TestFilePath);
-      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      Assert.IsTrue(Documents.TryGetDocument(documentItem, out var document));
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var document = await Documents.GetDocumentAsync(documentItem.Uri);
+      Assert.IsNotNull(document);
       Assert.AreEqual(1, document.Errors.ErrorCount);
     }
   }
