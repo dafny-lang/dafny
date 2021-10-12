@@ -19,7 +19,7 @@ You can ask questions about Dafny on [Stack Overflow](https://stackoverflow.com/
 
 # Try Dafny
 
-The easiest way to get started with Dafny is to use [rise4fun](http://rise4fun.com/dafny), where you can write and verify Dafny programs without having install anything. On [rise4fun](http://rise4fun.com/dafny), you will also find the online Dafny tutorial.
+The easiest way to get started with Dafny is to use [rise4fun](http://rise4fun.com/dafny), where you can write and verify Dafny programs without having install anything. On [rise4fun](http://rise4fun.com/dafny), you will also find the online Dafny tutorial. Assuming you have a [Github](https://github.com/join) or [GitLab](https://gitlab.com/users/sign_in) account, you can also open the [tutorial](https://gitpod.io/#https://github.com/dafny-lang/dafny/) - with the more advanced Dafny VSCode extension [(see extension)](https://github.com/DafnyVSCode/Dafny-VSCode) - in your [browser](https://gitpod.io/#https://github.com/dafny-lang/dafny/).
 It is also easy to [install Dafny on your own machine](https://github.com/dafny-lang/dafny/wiki/INSTALL) in VS Code, which gives you a much better user experience than in the web browser.
 
 # Setup

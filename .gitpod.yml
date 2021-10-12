@@ -1,0 +1,11 @@
+image: lemmster/gitpod-dafny:latest
+  
+vscode:
+  extensions:
+    - correctnessLab.dafny-vscode@0.17.1:y0vNEkuQw4SUFvPIFxLkEA==
+ 
+tasks:
+  - init: git config --global alias.slog 'log --pretty=oneline --abbrev-commit'
+  - init: git config --global alias.co checkout
+  - command: gp open Docs/OnlineTutorial/guide.md
+  - command: gp open Docs/OnlineTutorial/guide.dfy
