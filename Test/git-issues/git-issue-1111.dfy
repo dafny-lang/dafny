@@ -1,4 +1,4 @@
-// RUN: %dafny /compileTarget:java /env:0 "%s" > "%t"
+// RUN: %dafny /compileTarget:java "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module Foo {
