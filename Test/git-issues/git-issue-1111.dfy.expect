@@ -1,0 +1,9 @@
+
+Dafny program verifier finished with 1 verified, 0 errors
+Wrote textual form of target program to git-issue-1111-java/git_issue_1111.java
+Additional target code written to git-issue-1111-java/Foo_Compile/A.java
+Additional target code written to git-issue-1111-java/Foo_Compile/__default.java
+Additional target code written to git-issue-1111-java/_System/nat.java
+Additional target code written to git-issue-1111-java/dafny/Tuple0.java
+
+Process finished with exit code 0.
