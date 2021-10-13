@@ -33,7 +33,10 @@ namespace XUnitExtensions {
         } catch (Exception e) {
           throw new Exception($"Exception thrown while executing command: {command}", e);
         }
-        Assert.True(exitCode == 0, $"Command failed with output:\n{output}\nError:\n{error}");
+
+        if (exitCode != 0) {
+          throw new Exception($"Command returned non-zero exit code ({exitCode}): {command}\nOutput:\n{output}\nError:\n{error}");
+        }
       }
     }
   }
