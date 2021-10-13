@@ -874,7 +874,7 @@ $@"
     Treat warnings as errors.
 /extractCounterExample
     If verification fails, report a detailed counterexample for the first
-    failing assertion. Must specify the /mv option and pass 
+    failing assertion. Requires specifying the /mv option and passing
     O:model_compress=false and O:model.completion=true options to the prover.
 {TestGenOptions.Help}
 
