@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using Microsoft.Dafny;
 using Xunit;
+using Xunit.Abstractions;
 using XUnitExtensions;
 
 [assembly: TestCollectionOrderer("XUnitExtensions.TestCollectionShardFilter", "XUnitExtensions")]
@@ -67,10 +68,16 @@ namespace IntegrationTests {
       } 
     }
     
+    private readonly ITestOutputHelper output;
+
+    public LitTests(ITestOutputHelper output) {
+      this.output = output;
+    }
+    
     [FileTheory]
     [LitTestData(Extension = ".dfy")]
     public void LitTest(string path) {
-      LitTestCase.Run(path, CONFIG);
+      LitTestCase.Run(path, CONFIG, output);
     }
   }
 }

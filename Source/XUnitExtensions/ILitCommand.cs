@@ -56,7 +56,13 @@ namespace XUnitExtensions {
       if (s.StartsWith("-") || s.StartsWith("/")) {
         return s;
       }
-      return Path.Join(basePath, s);
+
+      var absolutePath = Path.Join(basePath, s);
+      if (File.Exists(absolutePath)) {
+        return absolutePath;
+      }
+      
+      return s;
     }
     
     public static (IEnumerable<string>, string, bool) ExtractOutputFile(IEnumerable<string> arguments) {

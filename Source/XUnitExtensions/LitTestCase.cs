@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace XUnitExtensions {
   public class LitTestCase {
@@ -14,14 +15,16 @@ namespace XUnitExtensions {
         .Where(c => c != null);
     }
     
-    public static void Run(string filePath, LitTestConfiguration config) {
+    public static void Run(string filePath, LitTestConfiguration config, ITestOutputHelper outputHelper) {
       string fileName = Path.GetFileName(filePath);
+      string directory = Path.GetDirectoryName(filePath);
       config = config.WithSubstitutions(new Dictionary<string, string> {
-        { "%s", fileName },
-        { "%t", Path.Join("Output", $"{fileName}.tmp")}
+        { "%s", filePath },
+        { "%S", directory },
+        { "%t", Path.Join(directory, "Output", $"{fileName}.tmp")}
       });
 
-      Directory.CreateDirectory(Path.Join(Path.GetDirectoryName(filePath), "Output"));
+      Directory.CreateDirectory(Path.Join(directory, "Output"));
       
       var commands = Read(filePath, config);
       foreach (var command in commands) {
@@ -29,6 +32,7 @@ namespace XUnitExtensions {
         string output;
         string error;
         try {
+          outputHelper.WriteLine($"Executing command: {command}");
           (exitCode, output, error) = command.Execute();
         } catch (Exception e) {
           throw new Exception($"Exception thrown while executing command: {command}", e);
