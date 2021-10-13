@@ -302,7 +302,7 @@ namespace Microsoft.Dafny {
       }
       return exitValue;
     }
-    
+
     /// <summary>
     /// Extract the counterexample corresponding to the first failing
     /// assertion and print it to the console

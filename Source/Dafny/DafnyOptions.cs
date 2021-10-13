@@ -416,7 +416,7 @@ namespace Microsoft.Dafny {
         case "warningsAsErrors":
           WarningsAsErrors = true;
           return true;
-        
+
         case "extractCounterExample":
           ExtractCounterExample = true;
           return true;

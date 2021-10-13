@@ -80,7 +80,7 @@ namespace DafnyServer.CounterExampleGeneration {
         States.Add(sn);
       }
     }
-    
+
     /// <summary>
     /// Extract and parse the first Dafny model recorded in the model view file.
     /// </summary>

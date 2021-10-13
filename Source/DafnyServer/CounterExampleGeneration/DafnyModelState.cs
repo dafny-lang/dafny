@@ -24,9 +24,9 @@ namespace DafnyServer.CounterExampleGeneration {
     // the same element.
     private readonly Dictionary<Model.Element, DafnyModelVariable> varMap;
     private readonly Dictionary<string, int> varNamesMap;
-    
+
     private const string InitialStateName = "<initial>";
-    private static Regex statePositionRegex = new (
+    private static Regex statePositionRegex = new(
       @".*\((?<line>\d+),(?<character>\d+)\)",
       RegexOptions.IgnoreCase | RegexOptions.Singleline
     );
@@ -113,7 +113,7 @@ namespace DafnyServer.CounterExampleGeneration {
       }
       return int.Parse(match.Groups["line"].Value);
     }
-    
+
     public int GetCharId() {
       var match = statePositionRegex.Match(ShortenedStateName);
       if (!match.Success) {
