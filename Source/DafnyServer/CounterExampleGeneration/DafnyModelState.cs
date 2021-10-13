@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Microsoft.Boogie;
 
 namespace DafnyServer.CounterExampleGeneration {
@@ -23,6 +24,12 @@ namespace DafnyServer.CounterExampleGeneration {
     // the same element.
     private readonly Dictionary<Model.Element, DafnyModelVariable> varMap;
     private readonly Dictionary<string, int> varNamesMap;
+    
+    private const string InitialStateName = "<initial>";
+    private static Regex statePositionRegex = new (
+      @".*\((?<line>\d+),(?<character>\d+)\)",
+      RegexOptions.IgnoreCase | RegexOptions.Singleline
+    );
 
     public DafnyModelState(DafnyModel model, Model.CapturedState state) {
       Model = model;
@@ -96,6 +103,24 @@ namespace DafnyServer.CounterExampleGeneration {
     public string FullStateName => State.Name;
 
     public string ShortenedStateName => ShortenName(State.Name, 20);
+
+    public bool IsInitialState => FullStateName.Equals(InitialStateName);
+
+    public int GetLineId() {
+      var match = statePositionRegex.Match(ShortenedStateName);
+      if (!match.Success) {
+        throw new ArgumentException($"state does not contain position: {ShortenedStateName}");
+      }
+      return int.Parse(match.Groups["line"].Value);
+    }
+    
+    public int GetCharId() {
+      var match = statePositionRegex.Match(ShortenedStateName);
+      if (!match.Success) {
+        throw new ArgumentException($"state does not contain position: {ShortenedStateName}");
+      }
+      return int.Parse(match.Groups["character"].Value);
+    }
 
     /// <summary>
     /// Initialize the vars list, which stores all variables relevant to
