@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using Microsoft.Dafny;
@@ -44,7 +45,8 @@ namespace IntegrationTests {
       
       // TODO: speed this up by using AssertWithDiff
       Substitions = new Dictionary<string, string> {
-        { "%diff", "diff" }
+        { "%diff", "diff" },
+        { "%refmanexamples", Path.Join("examples") }
       },
       
       PassthroughEnvironmentVariables = new []{ "PATH", "HOME" },

@@ -26,8 +26,10 @@
     </ItemGroup>
     
     <ItemGroup>
-        <Content Include="TestFiles\*.dfy" CopyToOutputDirectory="PreserveNewest" />
         <Content Include="..\..\Test\**\*.*" LinkBase="TestFiles\LitTests\LitTest">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+        <Content Include="..\..\docs\DafnyRef\examples\**\*.*" LinkBase="TestFiles\LitTests\LitTest\refman\examples">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
         <Content Include="..\..\node_modules\**\*.*" LinkBase="TestFiles\LitTests\LitTest\node_modules">
