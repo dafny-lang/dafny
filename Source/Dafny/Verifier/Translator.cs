@@ -2433,7 +2433,7 @@ namespace Microsoft.Dafny {
             }
           }
         }
-        comment = "user-defined postconditions 1";
+        comment = "user-defined postconditions";
         foreach (var p in iter.Ensures) {
           foreach (var s in TrSplitExprForMethodSpec(p.E, etran, kind)) {
             if (kind == MethodTranslationKind.Implementation && RefinementToken.IsInherited(s.E.tok, currentModule)) {
@@ -9708,13 +9708,11 @@ namespace Microsoft.Dafny {
             }
           }
         }
-        int counter_i = 0;
-        comment = "user-defined postconditions 2";
+        comment = "user-defined postconditions";
         foreach (var p in m.Ens) {
-          counter_i++;
           string errorMessage = CustomErrorMessage(p.Attributes);
-          AddEnsures(ens, Ensures(p.E.tok, true, CanCallAssumption(p.E, etran), errorMessage, comment + counter_i));
-          //comment = null;
+          AddEnsures(ens, Ensures(p.E.tok, true, CanCallAssumption(p.E, etran), errorMessage, comment));
+          comment = null;
           foreach (var s in TrSplitExprForMethodSpec(p.E, etran, kind)) {
             var post = s.E;
             if (kind == MethodTranslationKind.Implementation && RefinementToken.IsInherited(s.E.tok, currentModule)) {
@@ -9726,7 +9724,7 @@ namespace Microsoft.Dafny {
             } else if (s.IsOnlyChecked && !bodyKind) {
               // don't include in split
             } else {
-              AddEnsures(ens, Ensures(s.E.tok, s.IsOnlyFree, post, errorMessage, "original null comment"));
+              AddEnsures(ens, Ensures(s.E.tok, s.IsOnlyFree, post, errorMessage, null));
             }
           }
         }
