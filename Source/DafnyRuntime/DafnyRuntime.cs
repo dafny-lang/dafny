@@ -5,12 +5,16 @@
 //
 //-----------------------------------------------------------------------------
 
-#if ISDAFNYRUNTIMELIB
-using System; // for Func
-using System.Numerics;
-#endif
+// #if ISDAFNYRUNTIMELIB
+// using System; // for Func
+// using System.Numerics;
+// #endif
 
 namespace DafnyAssembly {
+#if ISDAFNYRUNTIMELIB
+  using System; // for Func
+  using System.Numerics;
+#endif
   [AttributeUsage(AttributeTargets.Assembly)]
   public class DafnySourceAttribute : Attribute {
     public readonly string dafnySourceText;
