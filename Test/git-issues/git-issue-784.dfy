@@ -3,8 +3,7 @@
 // RUN: %dafny /noVerify /compile:4 /compileTarget:js "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /compileTarget:go "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
-// RUN: sed -e 'sx\\x/x' < "%t" > "%t"2
-// RUN: %diff "%s.expect" "%t"2
+// RUN: %diff "%s.expect" "%t"
 
 datatype List<T> = Nil | Cons(T, List<T>) {
   function method App(ys: List<T>): List<T> {
