@@ -889,7 +889,7 @@ class MutexGuardU32 extends OwnedObject {
   }
 
   // MutexGuardU32
-  constructor(ghost universe: Universe, ghost running: Thread, ghost scope: Lifetime, mutex: Mutex, ghost mutexScope: Lifetime)
+  constructor {:timeLimitMultiplier 3} (ghost universe: Universe, ghost running: Thread, ghost scope: Lifetime, mutex: Mutex, ghost mutexScope: Lifetime)
     requires universe.globalInv() && { running, scope, mutex, mutexScope } <= universe.content
     requires scope.owner == running && mutexScope.owner == running && scope != mutexScope
     requires universe.outlives(mutex.lifetime, mutexScope) && universe.outlives(mutexScope, scope) && scope.unused();
