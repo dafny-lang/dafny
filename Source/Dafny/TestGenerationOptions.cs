@@ -15,6 +15,7 @@ namespace Microsoft.Dafny {
     [CanBeNull] public string TargetMethod = null;
     public uint? SeqLengthLimit = null;
     public uint TestInlineDepth = 0;
+    public string PrintBoogieFile = null;
 
     public override TestGenerationOptions TestGenOptions => null;
 
@@ -26,6 +27,12 @@ namespace Microsoft.Dafny {
         case "warnDeadCode":
           WarnDeadCode = true;
           Mode = Modes.Block;
+          return true;
+
+        case "generateTestBoogie":
+          if (ps.ConfirmArgumentCount(1)) {
+            PrintBoogieFile = args[ps.i];
+          }
           return true;
 
         case "generateTestMode":
