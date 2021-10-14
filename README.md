@@ -19,9 +19,9 @@ You can ask questions about Dafny on [Stack Overflow](https://stackoverflow.com/
 
 # Try Dafny
 
-The easiest way to try out Dafny is to [download](https://github.com/dafny-lang/dafny/releases) it
-to run it on your machine as you follow along with the [Dafny tutorial](https://dafny-lang.github.io/dafny/OnlineTutorial/guide).
-It is also easy to [install Dafny on your own machine in VS Code](https://github.com/dafny-lang/dafny/wiki/INSTALL).
+The easiest way to try out Dafny is to [install Dafny on your own machine in Visual Studio Code](https://github.com/dafny-lang/dafny/wiki/INSTALL#visual-studio-code)
+and follow along with the [Dafny tutorial](https://dafny-lang.github.io/dafny/OnlineTutorial/guide).
+You can also [download and install](https://github.com/dafny-lang/dafny/wiki/INSTALL#install-the-binaries) the Dafny CLI if you prefer to work from the command line.
 
 # Setup
 
