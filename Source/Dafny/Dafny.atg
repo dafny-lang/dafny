@@ -2475,9 +2475,9 @@ BreakStmt<out Statement/*!*/ s>
 = "break"                 (. IToken x = t;
                              IToken id = null;
                              int breakCount = 1;
-                             String label = null;
+                             IToken label = null;
                           .)
-  ( LabelName<out id>     (. label = id.val; .)
+  ( LabelName<out id>     (. label = id; .)
   | { "break"             (. breakCount++; .)
     }
   )

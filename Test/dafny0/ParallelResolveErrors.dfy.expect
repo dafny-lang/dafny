@@ -7,9 +7,9 @@ ParallelResolveErrors.dfy(48,15): Error: new allocation not supported in aggrega
 ParallelResolveErrors.dfy(55,19): Error: trying to break out of more loop levels than there are enclosing loops
 ParallelResolveErrors.dfy(62,21): Error: trying to break out of more loop levels than there are enclosing loops
 ParallelResolveErrors.dfy(63,20): Error: trying to break out of more loop levels than there are enclosing loops
-ParallelResolveErrors.dfy(64,20): Error: break label is undefined or not in scope: OutsideLoop
+ParallelResolveErrors.dfy(64,26): Error: break label is undefined or not in scope: OutsideLoop
 ParallelResolveErrors.dfy(73,24): Error: trying to break out of more loop levels than there are enclosing loops
-ParallelResolveErrors.dfy(74,24): Error: break label is undefined or not in scope: OutsideLoop
+ParallelResolveErrors.dfy(74,30): Error: break label is undefined or not in scope: OutsideLoop
 ParallelResolveErrors.dfy(91,11): Error: assignment to non-ghost field is not allowed in this context, because this is a ghost method
 ParallelResolveErrors.dfy(115,15): Error: a forall statement is not allowed to use 'new'
 ParallelResolveErrors.dfy(116,15): Error: a forall statement is not allowed to use 'new'

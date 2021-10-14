@@ -7078,7 +7078,7 @@ namespace Microsoft.Dafny {
   }
 
   public class BreakStmt : Statement {
-    public readonly string TargetLabel;
+    public readonly IToken TargetLabel;
     public readonly int BreakCount;
     public Statement TargetStmt;  // filled in during resolution
     [ContractInvariantMethod]
@@ -7086,7 +7086,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(TargetLabel != null || 1 <= BreakCount);
     }
 
-    public BreakStmt(IToken tok, IToken endTok, string targetLabel)
+    public BreakStmt(IToken tok, IToken endTok, IToken targetLabel)
       : base(tok, endTok) {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);

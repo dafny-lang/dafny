@@ -19,11 +19,11 @@ ForLoops-Resolution.dfy(204,4): Warning: note, this loop has no body (loop frame
 ForLoops-Resolution.dfy(210,4): Warning: note, this loop has no body (loop frame: i, $Heap)
 ForLoops-Resolution.dfy(243,8): Error: trying to break out of more loop levels than there are enclosing loops
 ForLoops-Resolution.dfy(256,10): Error: trying to break out of more loop levels than there are enclosing loops
-ForLoops-Resolution.dfy(297,10): Error: break label is undefined or not in scope: D
-ForLoops-Resolution.dfy(299,10): Error: break label is undefined or not in scope: XYZ
-ForLoops-Resolution.dfy(321,12): Error: break label is undefined or not in scope: D
+ForLoops-Resolution.dfy(297,16): Error: break label is undefined or not in scope: D
+ForLoops-Resolution.dfy(299,16): Error: break label is undefined or not in scope: XYZ
+ForLoops-Resolution.dfy(321,18): Error: break label is undefined or not in scope: D
 ForLoops-Resolution.dfy(332,11): Error: unresolved identifier: i
-ForLoops-Resolution.dfy(353,18): Error: break label is undefined or not in scope: A
+ForLoops-Resolution.dfy(353,24): Error: break label is undefined or not in scope: A
 ForLoops-Resolution.dfy(355,18): Error: trying to break out of more loop levels than there are enclosing loops
 ForLoops-Resolution.dfy(390,10): Error: assignment to non-ghost field is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
 ForLoops-Resolution.dfy(412,10): Error: assignment to non-ghost field is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression

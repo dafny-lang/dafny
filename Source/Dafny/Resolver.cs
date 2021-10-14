@@ -10964,9 +10964,9 @@ namespace Microsoft.Dafny {
       } else if (stmt is BreakStmt) {
         var s = (BreakStmt)stmt;
         if (s.TargetLabel != null) {
-          Statement target = enclosingStatementLabels.Find(s.TargetLabel);
+          Statement target = enclosingStatementLabels.Find(s.TargetLabel.val);
           if (target == null) {
-            reporter.Error(MessageSource.Resolver, s, "break label is undefined or not in scope: {0}", s.TargetLabel);
+            reporter.Error(MessageSource.Resolver, s.TargetLabel, "break label is undefined or not in scope: {0}", s.TargetLabel.val);
           } else {
             s.TargetStmt = target;
           }

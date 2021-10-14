@@ -3,7 +3,7 @@
 /*
 module _System {
   /* CALL GRAPH for module _System:
-   * SCC at height 2:
+   * SCC at height 1:
    *   RotateRight
    * SCC at height 1:
    *   RotateLeft
@@ -120,9 +120,9 @@ module _System {
 
 module M0 {
   /* CALL GRAPH for module M0:
-   * SCC at height 2:
-   *   Cl.M
    * SCC at height 1:
+   *   Cl.M
+   * SCC at height 0:
    *   Tr.F
    * SCC at height 0:
    *   Tr
@@ -179,9 +179,9 @@ module M1 {
 
 module M2 {
   /* CALL GRAPH for module M2:
-   * SCC at height 2:
-   *   M
    * SCC at height 1:
+   *   M
+   * SCC at height 0:
    *   Tr.F
    * SCC at height 0:
    *   Cl
@@ -212,9 +212,9 @@ module M2 {
 
 module P0 {
   /* CALL GRAPH for module P0:
-   * SCC at height 2:
-   *   Cl.M
    * SCC at height 1:
+   *   Cl.M
+   * SCC at height 0:
    *   TrX.F
    * SCC at height 0:
    *   Tr
@@ -281,9 +281,9 @@ module P1 {
 
 module P2 {
   /* CALL GRAPH for module P2:
-   * SCC at height 2:
-   *   M
    * SCC at height 1:
+   *   M
+   * SCC at height 0:
    *   TrX.F
    * SCC at height 0:
    *   Cl

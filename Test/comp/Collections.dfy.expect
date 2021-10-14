@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 27 verified, 0 errors
+Dafny program verifier finished with 28 verified, 0 errors
 
 Dafny program verifier did not attempt verification
 Sets: {} {17, 82} {12, 17}
@@ -30,6 +30,14 @@ Multisets: multiset{} multiset{17, 17, 82, 82} multiset{12, 17}
   membership: false true true
   update: multiset{17, 17} multiset{17, 17, 82, 82} multiset{12, 17, 17}
   multiplicity: 0 2 1
+Test zero multiplicity:
+  printing: multiset{multiset{}, multiset{42}} multiset{12}
+  union: 1 1 1 1
+  membership: false false
+  equality: false false
+  subset: true true true true false
+  strict subset: true false false true false
+  disjoint: true true true true
 Sequences: [] [17, 82, 17, 82] [12, 17]
   cardinality: 0 4 2
   update: [42, 82, 17, 82] [42, 17]
@@ -149,6 +157,14 @@ Multisets: multiset{} multiset{17, 17, 82, 82} multiset{12, 17}
   membership: false true true
   update: multiset{17, 17} multiset{17, 17, 82, 82} multiset{12, 17, 17}
   multiplicity: 0 2 1
+Test zero multiplicity:
+  printing: multiset{multiset{}, multiset{42}} multiset{12}
+  union: 1 1 1 1
+  membership: false false
+  equality: false false
+  subset: true true true true false
+  strict subset: true false false true false
+  disjoint: true true true true
 Sequences: [] [17, 82, 17, 82] [12, 17]
   cardinality: 0 4 2
   update: [42, 82, 17, 82] [42, 17]
@@ -268,6 +284,14 @@ Multisets: multiset{} multiset{17, 17, 82, 82} multiset{12, 17}
   membership: false true true
   update: multiset{17, 17} multiset{17, 17, 82, 82} multiset{12, 17, 17}
   multiplicity: 0 2 1
+Test zero multiplicity:
+  printing: multiset{multiset{}, multiset{42}} multiset{12}
+  union: 1 1 1 1
+  membership: false false
+  equality: false false
+  subset: true true true true false
+  strict subset: true false false true false
+  disjoint: true true true true
 Sequences: [] [17, 82, 17, 82] [12, 17]
   cardinality: 0 4 2
   update: [42, 82, 17, 82] [42, 17]
@@ -387,6 +411,14 @@ Multisets: multiset{} multiset{17, 17, 82, 82} multiset{17, 12}
   membership: false true true
   update: multiset{17, 17} multiset{17, 17, 82, 82} multiset{17, 17, 12}
   multiplicity: 0 2 1
+Test zero multiplicity:
+  printing: multiset{multiset{}, multiset{42}} multiset{12}
+  union: 1 1 1 1
+  membership: false false
+  equality: false false
+  subset: true true true true false
+  strict subset: true false false true false
+  disjoint: true true true true
 Sequences: [] [17, 82, 17, 82] [12, 17]
   cardinality: 0 4 2
   update: [42, 82, 17, 82] [42, 17]

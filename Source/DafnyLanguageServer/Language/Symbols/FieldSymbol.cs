@@ -11,7 +11,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
     public string GetDetailText(CancellationToken cancellationToken) {
       var prefix = Declaration.IsMutable ? "var" : "const";
-      return $"{prefix} {ClassPrefix}{Declaration.Name}: {Declaration.Type}";
+      return $"{prefix} {TypePrefix}{Declaration.Name}: {Declaration.Type}";
     }
 
     public override TResult Accept<TResult>(ISymbolVisitor<TResult> visitor) {
