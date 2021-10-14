@@ -12990,7 +12990,7 @@ namespace Microsoft.Dafny {
         var lhsResolved = s.Lhss[0].Resolved;
         // Make a new unresolved expression
         if (lhsResolved is MemberSelectExpr lexr) {
-          Expression id = makeTemp("recv", s, codeContext, lexr.Obj);
+          Expression id = lexr.Obj is ThisExpr ? lexr.Obj : makeTemp("recv", s, codeContext, lexr.Obj);
           var lex = lhsExtract as ExprDotName; // might be just a NameSegment
           lhsExtract = new ExprDotName(lexr.tok, id, lexr.MemberName, lex == null ? null : lex.OptTypeArguments);
         } else if (lhsResolved is SeqSelectExpr lseq) {
