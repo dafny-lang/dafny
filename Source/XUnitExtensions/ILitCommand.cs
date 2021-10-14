@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 
 namespace XUnitExtensions {
   public interface ILitCommand {
@@ -24,8 +25,7 @@ namespace XUnitExtensions {
       }
       line = line[LIT_COMMAND_PREFIX.Length..].Trim();
       
-      // TODO: Probably need to handle escaping too
-      var pieces = line.Split((char[])null, StringSplitOptions.RemoveEmptyEntries).Select(StripQuotes).ToArray();
+      var pieces = ParseArguments(line);
       var commandSymbol = pieces[0];
       var basePath = Path.GetDirectoryName(fileName);
       var (rawArguments, outputFile, appendOutput) = ILitCommand.ExtractOutputFile(pieces[1..]);
@@ -45,13 +45,29 @@ namespace XUnitExtensions {
       return new LitCommandWithOutput(new ShellLitCommand(commandSymbol, arguments, config.PassthroughEnvironmentVariables), outputFile, appendOutput);
     }
 
-    private static string StripQuotes(string s) {
-      if (s.Length >= 2 && s[0] == '"' && s[^1] == '"') {
-        return s[1..^1];
+    private static string[] ParseArguments(string line) {
+      var arguments = new List<string>();
+      var argument = new StringBuilder();
+      var quoted = false;
+      for (int i = 0; i < line.Length; i++) {
+        var c = line[i];
+        if (c == '"') {
+          quoted = !quoted;
+        } else if (Char.IsWhiteSpace(c) && !quoted) {
+          arguments.Add(argument.ToString());
+          argument.Clear();
+        } else {
+          argument.Append(c);
+        }
       }
-      return s;
-    }
 
+      if (argument.Length != 0) {
+        arguments.Add(argument.ToString());
+      }
+      
+      return arguments.ToArray();
+    }
+    
     public static string MakeFilePathsAbsolute(string basePath, string s) {
       if (s.StartsWith("-") || s.StartsWith("/")) {
         return s;
