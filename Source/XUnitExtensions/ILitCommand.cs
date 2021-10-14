@@ -11,15 +11,19 @@ namespace XUnitExtensions {
     
     private const string COMMENT_PREFIX = "//";
     private const string LIT_COMMAND_PREFIX = "RUN:";
+    private const string LIT_XFAIL = "XFAIL: *";
 
-    public (int, string, string) Execute(TextWriter outputWriter);
+    public (int, string, string) Execute(TextReader inputReader, TextWriter outputWriter);
     
-    public static LitCommandWithOutput Parse(string fileName, string line, LitTestConfiguration config) {
+    public static ILitCommand Parse(string fileName, string line, LitTestConfiguration config) {
       if (!line.StartsWith(COMMENT_PREFIX)) {
         return null;
       }
       line = line[COMMENT_PREFIX.Length..].Trim();
 
+      if (line.Equals(LIT_XFAIL)) {
+        return new XFailCommand();
+      }
       if (!line.StartsWith(LIT_COMMAND_PREFIX)) {
         return null;
       }
@@ -28,7 +32,10 @@ namespace XUnitExtensions {
       var pieces = ParseArguments(line);
       var commandSymbol = pieces[0];
       var basePath = Path.GetDirectoryName(fileName);
-      var (rawArguments, outputFile, appendOutput) = ILitCommand.ExtractOutputFile(pieces[1..]);
+      var (rawArguments, inputFile, outputFile, appendOutput) = ILitCommand.ExtractRedirections(pieces[1..]);
+      if (inputFile != null) {
+        inputFile = MakeFilePathsAbsolute(basePath, config.ApplySubstitutions(inputFile));
+      }
       if (outputFile != null) {
         outputFile = MakeFilePathsAbsolute(basePath, config.ApplySubstitutions(outputFile));
       }
@@ -37,12 +44,14 @@ namespace XUnitExtensions {
         .Select(arg => MakeFilePathsAbsolute(basePath, arg));
       
       if (config.Commands.TryGetValue(commandSymbol, out var command)) {
-        return new LitCommandWithOutput(command(arguments, config), outputFile, appendOutput);
+        return new LitCommandWithOutput(command(arguments, config), inputFile, outputFile, appendOutput);
       }
 
       commandSymbol = config.ApplySubstitutions(commandSymbol);
 
-      return new LitCommandWithOutput(new ShellLitCommand(commandSymbol, arguments, config.PassthroughEnvironmentVariables), outputFile, appendOutput);
+      return new LitCommandWithOutput(
+        new ShellLitCommand(commandSymbol, arguments, config.PassthroughEnvironmentVariables), 
+        inputFile, outputFile, appendOutput);
     }
 
     private static string[] ParseArguments(string line) {
@@ -81,21 +90,28 @@ namespace XUnitExtensions {
       return s;
     }
     
-    public static (IEnumerable<string>, string, bool) ExtractOutputFile(IEnumerable<string> arguments) {
+    public static (IEnumerable<string>, string, string, bool) ExtractRedirections(IEnumerable<string> arguments) {
       var argumentsList = arguments.ToList();
-      var redirectIndex = argumentsList.IndexOf(">");
-      if (redirectIndex >= 0) {
-        var outputFile = argumentsList[redirectIndex + 1];
-        argumentsList.RemoveRange(redirectIndex, 2);
-        return (argumentsList, outputFile, false);
+      string inputFile = null;
+      string outputFile = null;
+      bool appendOutput = false;
+      var redirectInIndex = argumentsList.IndexOf("<");
+      if (redirectInIndex >= 0) {
+        inputFile = argumentsList[redirectInIndex + 1];
+        argumentsList.RemoveRange(redirectInIndex, 2);
+      }
+      var redirectOutIndex = argumentsList.IndexOf(">");
+      if (redirectOutIndex >= 0) {
+        outputFile = argumentsList[redirectOutIndex + 1];
+        argumentsList.RemoveRange(redirectOutIndex, 2);
       }
       var redirectAppendIndex = argumentsList.IndexOf(">>");
       if (redirectAppendIndex >= 0) {
-        var outputFile = argumentsList[redirectAppendIndex + 1];
+        outputFile = argumentsList[redirectAppendIndex + 1];
+        appendOutput = true;
         argumentsList.RemoveRange(redirectAppendIndex, 2);
-        return (argumentsList, outputFile, true);
       }
-      return (argumentsList, null, false);
+      return (argumentsList, inputFile, outputFile, appendOutput);
     }
   }
 }

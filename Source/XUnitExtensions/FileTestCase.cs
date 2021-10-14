@@ -9,7 +9,10 @@ using Xunit.Sdk;
 
 namespace XUnitExtensions {
   public class FileTestCase : LongLivedMarshalByRefObject, IXunitTestCase {
-
+    // This could use SkippableFactDiscoverer.GetSkippableExceptionNames(IAttributeInfo)
+    // but it doesn't seem to be worth the complexity here yet.
+    private static readonly string[] skippingExceptionNames = { typeof(SkipException).FullName };
+    
     protected XunitTestCase innerTestCase;
 
     public string DisplayName { get; protected set; }
@@ -21,7 +24,7 @@ namespace XUnitExtensions {
       var testClassWithCollection = new TestClass(collection, testMethod.TestClass.Class);
       var testMethodWithCollection = new TestMethod(testClassWithCollection, testMethod.Method);
       
-      innerTestCase = new XunitTestCase(diagnosticMessageSink, TestMethodDisplay.Method, TestMethodDisplayOptions.All,
+      innerTestCase = new SkippableFactTestCase(skippingExceptionNames, diagnosticMessageSink, TestMethodDisplay.Method, TestMethodDisplayOptions.All,
         testMethodWithCollection, data.GetData());
       if (data.Traits != null) {
         foreach(var (key, value) in data.Traits) {

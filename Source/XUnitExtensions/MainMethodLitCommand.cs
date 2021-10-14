@@ -19,9 +19,12 @@ namespace XUnitExtensions {
       return invokeDirectly ? result : result.ToShellCommand(config);
     }
 
-    public (int, string, string) Execute(TextWriter outputWriter) {
+    public (int, string, string) Execute(TextReader inputReader, TextWriter outputWriter) {
       StringBuilder redirectedErr = new();
 
+      if (inputReader != null) {
+        Console.SetIn(inputReader);
+      }
       if (outputWriter != null) {
         Console.SetOut(outputWriter);
       }

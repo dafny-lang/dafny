@@ -17,7 +17,7 @@ namespace XUnitExtensions {
       this.passthroughEnvironmentVariables = passthroughEnvironmentVariables.ToArray();
     }
 
-    public (int, string, string) Execute(TextWriter outputWriter) {
+    public (int, string, string) Execute(TextReader inputReader, TextWriter outputWriter) {
       using var process = new Process();
 
       process.StartInfo.FileName = shellCommand;
@@ -29,6 +29,7 @@ namespace XUnitExtensions {
       // MainMethodLitCommand, which can't change the current directory.
       
       process.StartInfo.UseShellExecute = false;
+      process.StartInfo.RedirectStandardInput = true;
       process.StartInfo.RedirectStandardOutput = true;
       process.StartInfo.RedirectStandardError = true;
       process.StartInfo.CreateNoWindow = true;
@@ -39,6 +40,11 @@ namespace XUnitExtensions {
       }
 
       process.Start();
+      if (inputReader != null) {
+        string input = inputReader.ReadToEnd();
+        process.StandardInput.Write(input);
+        process.StandardInput.Close();
+      }
       string output = process.StandardOutput.ReadToEnd();
       outputWriter?.Write(output);
       outputWriter?.Flush();
