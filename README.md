@@ -23,11 +23,6 @@ The easiest way to try out Dafny is to [install Dafny on your own machine in Vis
 and follow along with the [Dafny tutorial](https://dafny-lang.github.io/dafny/OnlineTutorial/guide).
 You can also [download and install](https://github.com/dafny-lang/dafny/wiki/INSTALL#install-the-binaries) the Dafny CLI if you prefer to work from the command line.
 
-# Setup
-
-See [installation instructions](https://github.com/dafny-lang/dafny/wiki/INSTALL) on the wiki
-and instructions for installing the [Dafny mode for Emacs](https://github.com/boogie-org/boogie-friends).
-
 # Read more
 
 Here are some ways to get started with Dafny:
