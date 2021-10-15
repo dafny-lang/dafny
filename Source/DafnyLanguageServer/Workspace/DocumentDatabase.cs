@@ -61,7 +61,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return false;
     }
 
-    public async Task<DafnyDocument> LoadDocumentAsync(TextDocumentItem document) {
+    public async Task<DafnyDocument> OpenDocumentAsync(TextDocumentItem document) {
       var cancellationSource = new CancellationTokenSource();
       var databaseEntry = new DocumentEntry(
         document.Version,
