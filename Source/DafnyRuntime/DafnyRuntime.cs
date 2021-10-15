@@ -4,12 +4,15 @@
 // SPDX-License-Identifier: MIT
 //
 //-----------------------------------------------------------------------------
-#if ISDAFNYRUNTIMELIB
-using System; // for Func
-using System.Numerics;
-#endif
+
+// #if ISDAFNYRUNTIMELIB
+// using System; // for Func
+// using System.Numerics;
+// #endif
 
 namespace DafnyAssembly {
+  using System; // for Func
+  using System.Numerics;
   [AttributeUsage(AttributeTargets.Assembly)]
   public class DafnySourceAttribute : Attribute {
     public readonly string dafnySourceText;
@@ -18,6 +21,8 @@ namespace DafnyAssembly {
 }
 
 namespace Dafny {
+  using System; // for Func
+  using System.Numerics;
   using System.Collections.Generic;
   using System.Collections.Immutable;
   using System.Linq;
@@ -67,6 +72,7 @@ namespace Dafny {
       }
 
       return new Set<T>(d.ToImmutable(), containsNull);
+
     }
     public static ISet<T> FromCollectionPlusOne(IEnumerable<T> values, T oneMoreValue) {
       var d = ImmutableHashSet<T>.Empty.ToBuilder();
@@ -85,6 +91,7 @@ namespace Dafny {
       }
       return new Set<T>(d.ToImmutable(), containsNull);
     }
+
     public ISet<U> DowncastClone<U>(Func<T, U> converter) {
       if (this is ISet<U> th) {
         return th;
@@ -94,9 +101,11 @@ namespace Dafny {
           var u = converter(t);
           d.Add(u);
         }
+
         return new Set<U>(d.ToImmutable(), this.containsNull);
       }
     }
+
     public int Count {
       get { return this.setImpl.Count + (containsNull ? 1 : 0); }
     }
