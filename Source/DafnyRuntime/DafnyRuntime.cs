@@ -4,7 +4,6 @@
 // SPDX-License-Identifier: MIT
 //
 //-----------------------------------------------------------------------------
-
 #if ISDAFNYRUNTIMELIB
 using System; // for Func
 using System.Numerics;
