@@ -5,11 +5,6 @@
 //
 //-----------------------------------------------------------------------------
 
-// #if ISDAFNYRUNTIMELIB
-// using System; // for Func
-// using System.Numerics;
-// #endif
-
 namespace DafnyAssembly {
   using System; // for Func
   using System.Numerics;
@@ -72,8 +67,8 @@ namespace Dafny {
       }
 
       return new Set<T>(d.ToImmutable(), containsNull);
-
     }
+
     public static ISet<T> FromCollectionPlusOne(IEnumerable<T> values, T oneMoreValue) {
       var d = ImmutableHashSet<T>.Empty.ToBuilder();
       var containsNull = false;
@@ -82,12 +77,14 @@ namespace Dafny {
       } else {
         d.Add(oneMoreValue);
       }
+
       foreach (T t in values) {
         if (t == null) {
           containsNull = true;
         } else {
           d.Add(t);
         }
+
       }
       return new Set<T>(d.ToImmutable(), containsNull);
     }
@@ -109,9 +106,11 @@ namespace Dafny {
     public int Count {
       get { return this.setImpl.Count + (containsNull ? 1 : 0); }
     }
+
     public long LongCount {
       get { return this.setImpl.Count + (containsNull ? 1 : 0); }
     }
+
     public IEnumerable<T> Elements {
       get {
         if (containsNull) {
