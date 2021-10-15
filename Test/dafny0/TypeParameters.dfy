@@ -247,7 +247,7 @@ predicate Subset<T(!new)>(xs: List, ys: List)
 {
   forall x :: InList(x, xs) ==> InList(x, ys)
 }
-ghost method ListLemma_T(xs: List, ys: List)
+ghost method ListLemma_T<T(!new)>(xs: List, ys: List)
   requires forall x :: InList(x, xs) ==> InList(x, ys)
 {
   assert Subset(xs, ys);

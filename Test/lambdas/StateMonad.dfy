@@ -154,6 +154,18 @@ module State refines Monad {
                     match g(a) case State(h1) =>
                       h1(newState));
         ==
+	{ /* OS: Added for PM */
+             FunEq(s =>
+                      match (match h(s) case (a, newState) => match f(a) case State(g2) => g2(newState))
+                      case (a, newState) =>
+                        match g(a) case State(h1) =>
+                          h1(newState),
+		  s => match h(s) case (a, newState) =>
+                    match f(a) case State(g2) =>
+                      match g2(newState) case (b, newState2) =>
+                          match g(b) case State(h1) =>
+                            h1(newState2));
+           }
           State(s =>
                   match h(s) case (a, newState) =>
                     match f(a) case State(g2) =>
@@ -197,7 +209,22 @@ module State refines Monad {
                                   match g(a2) case State(g2) => g2(newState2)))
                   case State(g3) =>
                     g3(newState));
-      ==
+      == { /* OS: Added for PM */
+            FunEq(s => match h(s) case (a, newState) =>
+                    match (match f(a) case State(h2) =>
+                            State(s =>
+                                  match h2(s) case (a2, newState2) =>
+                                    match g(a2) case State(g2) => g2(newState2)))
+                    case State(g3) =>
+                      g3(newState),
+		   s =>
+                match h(s) case (a, newState) =>
+                  match f(a) case State(h2) =>
+                      match State(s => match h2(s) case (a2, newState2) =>
+                                        match g(a2) case State(g2) => g2(newState2))
+                      case State(g3) =>
+                        g3(newState));
+         }
         State(s =>
                 match h(s) case (a, newState) =>
                   match f(a) case State(h2) =>

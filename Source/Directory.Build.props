@@ -1,0 +1,13 @@
+<Project>
+
+  <!-- Target framework -->
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+  </PropertyGroup>
+
+  <!-- Boogie dependency -->
+  <ItemGroup>
+    <PackageReference Include="Boogie.ExecutionEngine" Version="2.9.3" />
+  </ItemGroup>
+
+</Project>

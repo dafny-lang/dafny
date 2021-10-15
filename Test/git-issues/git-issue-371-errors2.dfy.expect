@@ -1,0 +1,3 @@
+git-issue-371-errors2.dfy(28,17): Error: module K does not exist (position 1 in path MB.K)
+git-issue-371-errors2.dfy(29,12): Error: module K does not exist (position 1 in path MB.K)
+2 resolution/type errors detected in git-issue-371-errors2.dfy

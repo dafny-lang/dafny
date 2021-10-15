@@ -1,0 +1,12 @@
+TraitsExtendingTraits.dfy(23,8): Error: trait definitions contain a cycle: A -> B -> A
+TraitsExtendingTraits.dfy(26,8): Error: trait definitions contain a cycle: SelfLoop -> SelfLoop
+TraitsExtendingTraits.dfy(28,8): Error: trait definitions contain a cycle: K -> M -> L -> K
+TraitsExtendingTraits.dfy(56,8): Error: trait 'X' inherits a member named 'karljohan' from both traits 'A' and 'D'
+TraitsExtendingTraits.dfy(56,8): Error: trait 'X' inherits a member named 'svamp' from both traits 'C' and 'D'
+TraitsExtendingTraits.dfy(56,8): Error: trait 'X' inherits a member named 'data' from both traits 'A' and 'B'
+TraitsExtendingTraits.dfy(56,8): Error: trait 'X' inherits a member named 'fluga' from both traits 'C' and 'B'
+TraitsExtendingTraits.dfy(59,8): Error: class 'J' inherits a member named 'sopp' from both traits 'Y' and 'B'
+TraitsExtendingTraits.dfy(64,8): Error: class 'K' inherits a member named 'sopp' from both traits 'B' and 'Y'
+TraitsExtendingTraits.dfy(66,8): Error: class 'L' inherits a member named 'sopp' from both traits 'Y' and 'B'
+TraitsExtendingTraits.dfy(95,8): Error: class 'TwoOverrides' inherits a member named 'M' from both traits 'Left2' and 'Right2'
+11 resolution/type errors detected in TraitsExtendingTraits.dfy

@@ -65,8 +65,11 @@ method Botch1(x: int)
 // ------ modules ------------------------------------------------
 
 module A_Visibility {
+  export
+    provides C, C.P
+
   class C {
-    protected static predicate P(x: int)
+    static predicate P(x: int)
       ensures P(x) ==> -10 <= x;
     {
       0 <= x
@@ -99,9 +102,9 @@ module B_Visibility {
 // ------ qualified type names ----------------------------------
 
 module Q_Imp {
-  class Node { }
+  class Node { constructor () { } }
   class Klassy {
-    method Init()
+    constructor Init()
   }
 }
 
@@ -110,8 +113,8 @@ module Q_M {
   method MyMethod(root: Q.Node, S: set<Q.Node>)
     requires root in S;
   {
-    var i := new Q.Node;
-    var j := new Q.Node;
+    var i := new Q.Node();
+    var j := new Q.Node();
     assert i != j;  // fine
     var q := new Q.Klassy.Init();
   }
@@ -139,12 +142,12 @@ abstract module Regression {
 module ModuleContainTraitAndClass {
   export X
     reveals g0
-    provides Trait, Class
+    reveals Trait, Class
     reveals Trait.s0, Trait.t0, Trait.t1
     reveals Class.r0, Class.c0, Class.c1
   export Y
     provides g0
-    provides Trait, Class
+    reveals Trait, Class
     provides Trait.s0, Trait.t0, Trait.t1
     provides Class.r0, Class.c0, Class.c1
 

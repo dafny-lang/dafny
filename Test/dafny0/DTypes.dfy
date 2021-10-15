@@ -28,7 +28,7 @@ class C {
   method A1(a: CP?<int,C>)
   {
     var x: object? := a;
-    assert (forall b: CP?<int,Stack> {:nowarn} :: x == b ==> b == null);  // follows from type antecedents
+    assert forall b: CP?<int,Stack> {:nowarn} :: x == b ==> b == null;  // follows from type antecedents
   }
 
   var a2x: set<CP?<C,Node>>;
@@ -103,7 +103,7 @@ class DatatypeInduction<T(!new)> {
   method Theorem0(tree: Tree<T>)
     ensures 1 <= LeafCount(tree)
   {
-    assert (forall t: Tree<T> :: 1 <= LeafCount(t));
+    assert forall t: Tree<T> {:induction} :: 1 <= LeafCount(t);
   }
 
   // also make sure it works for an instantiated generic datatype
@@ -111,25 +111,25 @@ class DatatypeInduction<T(!new)> {
     ensures 1 <= LeafCount(bt)
     ensures 1 <= LeafCount(it)
   {
-    assert (forall t: Tree<bool> :: 1 <= LeafCount(t));
-    assert (forall t: Tree<int> :: 1 <= LeafCount(t));
+    assert forall t: Tree<bool> {:induction} :: 1 <= LeafCount(t);
+    assert forall t: Tree<int> {:induction} :: 1 <= LeafCount(t);
   }
 
   method NotATheorem0(tree: Tree<T>)
     ensures LeafCount(tree) % 2 == 1
   {
-    assert (forall t: Tree<T> :: LeafCount(t) % 2 == 1);  // error: fails for Branch case
+    assert forall t: Tree<T> {:induction} :: LeafCount(t) % 2 == 1;  // error: fails for Branch case
   }
 
   method NotATheorem1(tree: Tree<T>)
     ensures 2 <= LeafCount(tree)
   {
-    assert (forall t: Tree<T> :: 2 <= LeafCount(t));  // error: fails for Leaf case
+    assert forall t: Tree<T> {:induction} :: 2 <= LeafCount(t);  // error: fails for Leaf case
   }
 
   function Predicate(): bool
   {
-    (forall t: Tree<T> :: 2 <= LeafCount(t))
+    forall t: Tree<T> {:induction} :: 2 <= LeafCount(t)
   }
 
   method NotATheorem2()

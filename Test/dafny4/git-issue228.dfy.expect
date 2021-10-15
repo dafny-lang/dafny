@@ -54,11 +54,7 @@ method SubsetTypes(a: Subset_NegIsOdd, b: Subset_NegIsOdd, x: Subset_Byte, z: Su
   var d1 := x * x * z;
 }
 git-issue228.dfy(42,15): Error: result of operation might violate newtype constraint for 'NegIsOdd'
-Execution trace:
-    (0,0): anon0
 git-issue228.dfy(48,15): Error: result of operation might violate newtype constraint for 'Byte'
-Execution trace:
-    (0,0): anon0
 
 Dafny program verifier finished with 8 verified, 2 errors
 // git-issue228.dfy
@@ -66,16 +62,16 @@ Dafny program verifier finished with 8 verified, 2 errors
 /*
 module _System {
   /* CALL GRAPH for module _System:
-   * SCC at height 2:
+   * SCC at height 1:
    *   RotateRight
    * SCC at height 1:
    *   RotateLeft
    * SCC at height 0:
    *   nat
    */
-  type string(==) = seq<char>
+  type string(==,0) = seq<char>
 
-  type {:axiom} nat(==) = x: int
+  type {:axiom} nat(==,0) = x: int
     | 0 <= x
 
   trait {:compile false} object { }
@@ -89,6 +85,22 @@ module _System {
   /*-- non-null type
   type {:axiom} array(==)<arg> = c: array?<arg> | c != null /*special witness*/
   */
+
+  class {:compile false} /*_#Func1*/ -T0 ~> +R {
+    function requires(x0: T0): bool
+      reads reads(x0)
+
+    function reads(x0: T0): set<object?>
+      reads reads(x0)
+  }
+
+  type {:compile false} /*_#PartialFunc1*/ -T0 --> +R = f: T0 ~> R
+    | forall x0: T0 :: f.reads(x0) == {}
+    /*special witness*/
+
+  type {:compile false} /*_#TotalFunc1*/ -T0 -> +R = f: T0 --> R
+    | forall x0: T0 :: f.requires(x0)
+    /*special witness*/
 
   class {:compile false} /*_#Func0*/ () ~> +R {
     function requires(): bool
@@ -107,22 +119,6 @@ module _System {
     /*special witness*/
 
   datatype {:compile false} /*_tuple#2*/ (+T0, +T1) = _#Make2(0: T0, 1: T1)
-
-  class {:compile false} /*_#Func1*/ -T0 ~> +R {
-    function requires(x0: T0): bool
-      reads reads(x0)
-
-    function reads(x0: T0): set<object?>
-      reads reads(x0)
-  }
-
-  type {:compile false} /*_#PartialFunc1*/ -T0 --> +R = f: T0 ~> R
-    | forall x0: T0 :: f.reads(x0) == {}
-    /*special witness*/
-
-  type {:compile false} /*_#TotalFunc1*/ -T0 -> +R = f: T0 --> R
-    | forall x0: T0 :: f.requires(x0)
-    /*special witness*/
 
   type bool { }
 
@@ -163,21 +159,21 @@ module _System {
 */
 
 /* CALL GRAPH for module _module:
- * SCC at height 9:
+ * SCC at height 0:
  *   Sets
- * SCC at height 8:
+ * SCC at height 0:
  *   Sequences
- * SCC at height 7:
+ * SCC at height 1:
  *   SubsetTypes
- * SCC at height 6:
+ * SCC at height 0:
  *   Subset_Byte
- * SCC at height 5:
+ * SCC at height 0:
  *   Subset_NegIsOdd
- * SCC at height 4:
+ * SCC at height 1:
  *   ConstrainedIntermediateExpressions
- * SCC at height 3:
+ * SCC at height 0:
  *   Byte
- * SCC at height 2:
+ * SCC at height 0:
  *   NegIsOdd
  * SCC at height 1:
  *   Numerics
@@ -242,10 +238,6 @@ method SubsetTypes(a: Subset_NegIsOdd, b: Subset_NegIsOdd, x: Subset_Byte, z: Su
   var d1: int := x * x * z;
 }
 git-issue228.dfy(42,15): Error: result of operation might violate newtype constraint for 'NegIsOdd'
-Execution trace:
-    (0,0): anon0
 git-issue228.dfy(48,15): Error: result of operation might violate newtype constraint for 'Byte'
-Execution trace:
-    (0,0): anon0
 
 Dafny program verifier finished with 8 verified, 2 errors

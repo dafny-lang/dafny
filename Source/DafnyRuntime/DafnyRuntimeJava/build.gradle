@@ -6,7 +6,7 @@ plugins {
 repositories {
     mavenLocal()
     maven {
-        url = 'http://repo.maven.apache.org/maven2'
+        url = 'https://repo.maven.apache.org/maven2'
     }
 }
 
@@ -15,11 +15,11 @@ dependencies {
 }
 
 group = 'dafny.lang'
-version = '1'
 sourceCompatibility = '1.8'
 
 tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
+    options.compilerArgs += ['-Xlint:unchecked']
 }
 
 test {
@@ -27,8 +27,16 @@ test {
 }
 
 task copyJarToBinaries {
-    copy {
-        from 'build/libs/DafnyRuntime-1.jar'
+    dependsOn build
+    doLast {
+      copy {
+        from 'build/libs/DafnyRuntime.jar'
         into '../../../Binaries'
+      }
     }
 }
+
+clean {
+    delete '../../../Binaries/DafnyRuntime.jar'
+}
+

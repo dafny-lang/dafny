@@ -1,62 +1,37 @@
 Maps.dfy(200,11): Warning: /!\ No terms found to trigger on.
 Maps.dfy(78,7): Error: element may not be in domain
-Execution trace:
-    (0,0): anon0
 Maps.dfy(128,17): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 Maps.dfy(220,36): Error: key expressions may be referring to the same value
-Execution trace:
-    (0,0): anon0
-    (0,0): anon41_Then
-    (0,0): anon42_Then
-    (0,0): anon43_Then
-    (0,0): anon44_Then
-    (0,0): anon45_Then
 Maps.dfy(226,36): Error: key expressions may be referring to the same value
-Execution trace:
-    (0,0): anon0
-    (0,0): anon56_Then
-    (0,0): anon57_Then
-    (0,0): anon58_Then
-    (0,0): anon59_Then
-    (0,0): anon60_Then
 Maps.dfy(232,37): Error: key expressions may be referring to the same value
-Execution trace:
-    (0,0): anon0
-    (0,0): anon17_Then
-    (0,0): anon18_Then
-    (0,0): anon19_Then
-    (0,0): anon20_Then
-    (0,0): anon21_Then
 Maps.dfy(234,24): Error: key expressions may be referring to the same value
-Execution trace:
-    (0,0): anon0
-    (0,0): anon17_Else
-    (0,0): anon22_Then
-    (0,0): anon23_Then
-    (0,0): anon24_Then
 Maps.dfy(241,41): Error: possible violation of function precondition
 Maps.dfy(215,13): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon17_Then
-    (0,0): anon18_Then
-    (0,0): anon19_Then
 Maps.dfy(243,36): Error: possible violation of function precondition
 Maps.dfy(215,13): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon20_Then
-    (0,0): anon21_Then
-    (0,0): anon22_Then
 Maps.dfy(243,37): Error: key expressions may be referring to the same value
-Execution trace:
-    (0,0): anon0
-    (0,0): anon20_Then
-    (0,0): anon21_Then
-    (0,0): anon22_Then
-    (0,0): anon23_Then
-    (0,0): anon24_Then
+Maps.dfy(264,54): Error: assertion violation
+Maps.dfy(309,11): Error: index out of range
+Maps.dfy(311,16): Error: value does not satisfy the subset constraints of 'nat'
+Maps.dfy(317,11): Error: value does not satisfy the subset constraints of 'nat'
+Maps.dfy(319,16): Error: new number of occurrences might be negative
+Maps.dfy(328,11): Error: value does not satisfy the subset constraints of 'nat'
+Maps.dfy(330,17): Error: value does not satisfy the subset constraints of 'nat'
+Maps.dfy(339,11): Error: index out of range
+Maps.dfy(341,16): Error: value of expression (of type 'Elem?') is not known to be an instance of type 'Elem', because it may be null
+Maps.dfy(347,11): Error: value of expression (of type 'Elem?') is not known to be an instance of type 'Elem', because it may be null
+Maps.dfy(349,16): Error: new number of occurrences might be negative
+Maps.dfy(358,11): Error: value of expression (of type 'Elem?') is not known to be an instance of type 'Elem', because it may be null
+Maps.dfy(360,16): Error: value of expression (of type 'Elem?') is not known to be an instance of type 'Elem', because it may be null
+Maps.dfy(424,13): Error: assertion violation
+Maps.dfy(429,17): Error: assertion violation
+Maps.dfy(430,13): Error: assertion violation
+Maps.dfy(442,13): Error: assertion violation
+Maps.dfy(447,17): Error: assertion violation
+Maps.dfy(448,13): Error: assertion violation
+Maps.dfy(520,18): Error: assertion violation
+Maps.dfy(525,20): Error: assertion violation
+Maps.dfy(562,2): Error: decreases expression might not decrease
+Maps.dfy(576,2): Error: decreases expression might not decrease
 
-Dafny program verifier finished with 20 verified, 9 errors
+Dafny program verifier finished with 49 verified, 32 errors

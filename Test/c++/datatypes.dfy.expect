@@ -1,0 +1,17 @@
+
+Dafny program verifier finished with 12 verified, 0 errors
+Case A: 42
+Case B: 1
+This is expected
+42
+1
+Got some:32
+Example1s are equal
+Example4s are equal
+Example1s are not equal
+Example4s are equal
+Example1s are not equal
+Example4s are not equal
+42
+330
+3

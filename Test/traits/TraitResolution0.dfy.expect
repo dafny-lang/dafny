@@ -1,0 +1,320 @@
+// TraitResolution0.dfy
+
+/*
+module _System {
+  /* CALL GRAPH for module _System:
+   * SCC at height 1:
+   *   RotateRight
+   * SCC at height 1:
+   *   RotateLeft
+   * SCC at height 0:
+   *   nat
+   */
+  type string(==,0) = seq<char>
+
+  type {:axiom} nat(==,0) = x: int
+    | 0 <= x
+
+  trait {:compile false} object { }
+  /*-- non-null type
+  type {:axiom} object(==) = c: object? | c != null /*special witness*/
+  */
+
+  class {:compile false} array<arg> {
+    var Length: int  // immutable
+  }
+  /*-- non-null type
+  type {:axiom} array(==)<arg> = c: array?<arg> | c != null /*special witness*/
+  */
+
+  class {:compile false} /*_#Func1*/ -T0 ~> +R {
+    function requires(x0: T0): bool
+      reads reads(x0)
+
+    function reads(x0: T0): set<object?>
+      reads reads(x0)
+  }
+
+  type {:compile false} /*_#PartialFunc1*/ -T0 --> +R = f: T0 ~> R
+    | forall x0: T0 :: f.reads(x0) == {}
+    /*special witness*/
+
+  type {:compile false} /*_#TotalFunc1*/ -T0 -> +R = f: T0 --> R
+    | forall x0: T0 :: f.requires(x0)
+    /*special witness*/
+
+  class {:compile false} /*_#Func0*/ () ~> +R {
+    function requires(): bool
+      reads reads()
+
+    function reads(): set<object?>
+      reads reads()
+  }
+
+  type {:compile false} /*_#PartialFunc0*/ () --> +R = f: () ~> R
+    | f.reads() == {}
+    /*special witness*/
+
+  type {:compile false} /*_#TotalFunc0*/ () -> +R = f: () --> R
+    | f.requires()
+    /*special witness*/
+
+  datatype {:compile false} /*_tuple#2*/ (+T0, +T1) = _#Make2(0: T0, 1: T1)
+
+  class {:compile false} /*_#Func2*/ (-T0, -T1) ~> +R {
+    function requires(x0: T0, x1: T1): bool
+      reads reads(x0, x1)
+
+    function reads(x0: T0, x1: T1): set<object?>
+      reads reads(x0, x1)
+  }
+
+  type {:compile false} /*_#PartialFunc2*/ (-T0, -T1) --> +R = f: (T0, T1) ~> R
+    | forall x0: T0, x1: T1 :: f.reads(x0, x1) == {}
+    /*special witness*/
+
+  type {:compile false} /*_#TotalFunc2*/ (-T0, -T1) -> +R = f: (T0, T1) --> R
+    | forall x0: T0, x1: T1 :: f.requires(x0, x1)
+    /*special witness*/
+
+  type bool { }
+
+  type int { }
+
+  type real {
+    var Floor: int  // immutable
+  }
+
+  type ORDINAL {
+    var IsLimit: bool  // immutable
+    var IsSucc: bool  // immutable
+    var Offset: int  // immutable
+    var IsNat: bool  // immutable
+  }
+
+  type _bv {
+    function method RotateLeft(w: nat): selftype
+
+    function method RotateRight(w: nat): selftype
+  }
+
+  type map<T, U> {
+    var Keys: set<T>  // immutable
+    var Values: set<U>  // immutable
+    var Items: set<(T, U)>  // immutable
+  }
+
+  type imap<T, U> {
+    var Keys: iset<T>  // immutable
+    var Values: iset<U>  // immutable
+    var Items: iset<(T, U)>  // immutable
+  }
+
+  datatype /*_tuple#0*/ () = _#Make0
+}
+// bitvector types in use: bv10
+*/
+
+/* CALL GRAPH for module _module:
+ */
+
+module M0 {
+  /* CALL GRAPH for module M0:
+   * SCC at height 1:
+   *   Cl.M
+   * SCC at height 0:
+   *   Tr.F
+   * SCC at height 0:
+   *   Tr
+   */
+  trait Tr<X> {
+    function F(x: X): int
+    {
+      15
+    }
+  }
+  /*-- non-null type
+  type {:axiom} Tr(==)<X> = c: Tr?<X> | c != null /*special witness*/
+  */
+
+  class Cl<Y> extends Tr<Y> {
+    lemma M()
+    {
+      ghost var v: Cl<Y> := this;
+      ghost var u: Tr<Y> := this;
+      ghost var f: Y -> int := v.F;
+      ghost var g: Y -> int := this.F;
+    }
+  }
+  /*-- non-null type
+  type {:axiom} Cl(==)<Y> = c: Cl?<Y> | c != null /*special witness*/
+  */
+}
+
+module M1 {
+  /* CALL GRAPH for module M1:
+   * SCC at height 1:
+   *   M
+   * SCC at height 0:
+   *   Cl
+   */
+  trait Tr<X(0)> {
+    var w: X
+  }
+  /*-- non-null type
+  type {:axiom} Tr(==)<X(0)> = c: Tr?<X> | c != null /*special witness*/
+  */
+
+  class Cl<Y(0)> extends Tr<(Y, Y)> { }
+  /*-- non-null type
+  type {:axiom} Cl(==)<Y(0)> = c: Cl?<Y> | c != null /*special witness*/
+  */
+
+  lemma M(c: Cl<int>)
+    decreases c
+  {
+    ghost var x: (int, int) := c.w;
+  }
+}
+
+module M2 {
+  /* CALL GRAPH for module M2:
+   * SCC at height 1:
+   *   M
+   * SCC at height 0:
+   *   Tr.F
+   * SCC at height 0:
+   *   Cl
+   */
+  trait Tr<X, W> {
+    function method F(x: X, w: W): bv10
+    {
+      15
+    }
+  }
+  /*-- non-null type
+  type {:axiom} Tr(==)<X, W> = c: Tr?<X, W> | c != null /*special witness*/
+  */
+
+  class Cl<Y> extends Tr<(Y, Y), real> { }
+  /*-- non-null type
+  type {:axiom} Cl(==)<Y> = c: Cl?<Y> | c != null /*special witness*/
+  */
+
+  lemma M(c: Cl<int>)
+    decreases c
+  {
+    ghost var aa: (int, int);
+    ghost var bb: real;
+    ghost var u: bv10 := c.F(aa, bb);
+  }
+}
+
+module P0 {
+  /* CALL GRAPH for module P0:
+   * SCC at height 1:
+   *   Cl.M
+   * SCC at height 0:
+   *   TrX.F
+   * SCC at height 0:
+   *   Tr
+   */
+  trait TrX<X> {
+    function F(x: X): int
+    {
+      15
+    }
+  }
+  /*-- non-null type
+  type {:axiom} TrX(==)<X> = c: TrX?<X> | c != null /*special witness*/
+  */
+
+  trait Tr<X> extends TrX<X> { }
+  /*-- non-null type
+  type {:axiom} Tr(==)<X> = c: Tr?<X> | c != null /*special witness*/
+  */
+
+  class Cl<Y> extends Tr<Y> {
+    lemma M()
+    {
+      ghost var v: Cl<Y> := this;
+      ghost var u: Tr<Y> := this;
+      ghost var f: Y -> int := v.F;
+      ghost var g: Y -> int := this.F;
+    }
+  }
+  /*-- non-null type
+  type {:axiom} Cl(==)<Y> = c: Cl?<Y> | c != null /*special witness*/
+  */
+}
+
+module P1 {
+  /* CALL GRAPH for module P1:
+   * SCC at height 1:
+   *   M
+   * SCC at height 0:
+   *   Cl
+   */
+  trait TrX<X(0)> {
+    var w: X
+  }
+  /*-- non-null type
+  type {:axiom} TrX(==)<X(0)> = c: TrX?<X> | c != null /*special witness*/
+  */
+
+  trait Tr<X(0)> extends TrX<X> { }
+  /*-- non-null type
+  type {:axiom} Tr(==)<X(0)> = c: Tr?<X> | c != null /*special witness*/
+  */
+
+  class Cl<Y(0)> extends Tr<(Y, Y)> { }
+  /*-- non-null type
+  type {:axiom} Cl(==)<Y(0)> = c: Cl?<Y> | c != null /*special witness*/
+  */
+
+  lemma M(c: Cl<int>)
+    decreases c
+  {
+    ghost var x: (int, int) := c.w;
+  }
+}
+
+module P2 {
+  /* CALL GRAPH for module P2:
+   * SCC at height 1:
+   *   M
+   * SCC at height 0:
+   *   TrX.F
+   * SCC at height 0:
+   *   Cl
+   */
+  trait TrX<X, W> {
+    function method F(x: X, w: W): bv10
+    {
+      15
+    }
+  }
+  /*-- non-null type
+  type {:axiom} TrX(==)<X, W> = c: TrX?<X, W> | c != null /*special witness*/
+  */
+
+  trait Tr<X, W> extends TrX<X, W> { }
+  /*-- non-null type
+  type {:axiom} Tr(==)<X, W> = c: Tr?<X, W> | c != null /*special witness*/
+  */
+
+  class Cl<Y> extends Tr<(Y, Y), real> { }
+  /*-- non-null type
+  type {:axiom} Cl(==)<Y> = c: Cl?<Y> | c != null /*special witness*/
+  */
+
+  lemma M(c: Cl<int>)
+    decreases c
+  {
+    ghost var aa: (int, int);
+    ghost var bb: real;
+    ghost var u: bv10 := c.F(aa, bb);
+  }
+}
+
+Dafny program verifier finished with 6 verified, 0 errors

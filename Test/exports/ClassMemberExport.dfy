@@ -2,8 +2,8 @@
 // RUN: %diff "%s.expect" "%t"
 
 module A {
-   export Spec provides T, AClass, AClass.f, AClass.Init
-   export Body reveals T, AClass
+   export Spec reveals AClass provides T, AClass.f, AClass.Init
+   export Body reveals T, AClass provides AClass.Init, AClass.f, AClass.g
 
    type T = int
    class AClass {

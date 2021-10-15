@@ -1,6 +1,8 @@
 //-----------------------------------------------------------------------------
 //
 // Copyright (C) Microsoft Corporation.  All Rights Reserved.
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
 //
 //-----------------------------------------------------------------------------
 using System;
@@ -10,18 +12,27 @@ using System.Diagnostics.Contracts;
 using Bpl = Microsoft.Boogie;
 using System.Reflection;
 using DafnyAssembly;
-using Mono.Cecil;
 
 namespace Microsoft.Dafny {
 
   public class IllegalDafnyFile : Exception { }
 
   public class DafnyFile {
+    public bool UseStdin { get; private set; }
     public string FilePath { get; private set; }
+    public string CanonicalPath { get; private set; }
     public string BaseName { get; private set; }
     public bool isPrecompiled { get; private set; }
     public string SourceFileName { get; private set; }
 
+    // Returns a canonical string for the given file path, namely one which is the same
+    // for all paths to a given file and different otherwise. The best we can do is to
+    // make the path absolute -- detecting case and canoncializing symbolic and hard
+    // links are difficult across file systems (which may mount parts of other filesystems,
+    // with different characteristics) and is not supported by .Net libraries
+    public static string Canonicalize(String filePath) {
+      return Path.GetFullPath(filePath);
+    }
     public static List<string> fileNames(IList<DafnyFile> dafnyFiles) {
       var sourceFiles = new List<string>();
       foreach (DafnyFile f in dafnyFiles) {
@@ -29,25 +40,35 @@ namespace Microsoft.Dafny {
       }
       return sourceFiles;
     }
-
-    public DafnyFile(string filePath) {
+    public DafnyFile(string filePath, bool useStdin = false) {
+      UseStdin = useStdin;
       FilePath = filePath;
       BaseName = Path.GetFileName(filePath);
 
-      var extension = Path.GetExtension(filePath);
+      var extension = useStdin ? ".dfy" : Path.GetExtension(filePath);
       if (extension != null) { extension = extension.ToLower(); }
+
+      // Normalizing symbolic links appears to be not
+      // supported in .Net APIs, because it is very difficult in general
+      // So we will just use the absolute path, lowercased for all file systems.
+      // cf. IncludeComparer.CompareTo
+      CanonicalPath = Canonicalize(filePath);
+
+      if (!useStdin && !Path.IsPathRooted(filePath)) {
+        filePath = Path.GetFullPath(filePath);
+      }
 
       if (extension == ".dfy" || extension == ".dfyi") {
         isPrecompiled = false;
         SourceFileName = filePath;
       } else if (extension == ".dll") {
         isPrecompiled = true;
-        var asm = AssemblyDefinition.ReadAssembly(filePath);
+        var asm = Assembly.LoadFile(filePath);
         string sourceText = null;
         foreach (var adata in asm.CustomAttributes) {
           if (adata.Constructor.DeclaringType.Name == "DafnySourceAttribute") {
             foreach (var args in adata.ConstructorArguments) {
-              if (args.Type.FullName == "System.String") {
+              if (args.ArgumentType.FullName == "System.String") {
                 sourceText = (string)args.Value;
               }
             }
@@ -68,25 +89,21 @@ namespace Microsoft.Dafny {
 
   public class Main {
 
-      public static void MaybePrintProgram(Program program, string filename, bool afterResolver)
-      {
-          if (filename != null) {
-              TextWriter tw;
-              if (filename == "-") {
-                  tw = System.Console.Out;
-              } else {
-                  tw = new System.IO.StreamWriter(filename);
-              }
-              Printer pr = new Printer(tw, DafnyOptions.O.PrintMode);
-              pr.PrintProgram(program, afterResolver);
-          }
+    public static void MaybePrintProgram(Program program, string filename, bool afterResolver) {
+      if (filename == null) {
+        return;
       }
+
+      var tw = filename == "-" ? Console.Out : new StreamWriter(filename);
+      var pr = new Printer(tw, DafnyOptions.O.PrintMode);
+      pr.PrintProgram(program, afterResolver);
+    }
 
     /// <summary>
     /// Returns null on success, or an error string otherwise.
     /// </summary>
     public static string ParseCheck(IList<DafnyFile/*!*/>/*!*/ files, string/*!*/ programName, ErrorReporter reporter, out Program program)
-      //modifies Bpl.CommandLineOptions.Clo.XmlSink.*;
+    //modifies Bpl.CommandLineOptions.Clo.XmlSink.*;
     {
       string err = Parse(files, programName, reporter, out program);
       if (err != null) {
@@ -96,20 +113,19 @@ namespace Microsoft.Dafny {
       return Resolve(program, reporter);
     }
 
-    public static string Parse(IList<DafnyFile> files, string programName, ErrorReporter reporter, out Program program)
-    {
+    public static string Parse(IList<DafnyFile> files, string programName, ErrorReporter reporter, out Program program) {
       Contract.Requires(programName != null);
       Contract.Requires(files != null);
       program = null;
       ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDecl(), null);
       BuiltIns builtIns = new BuiltIns();
-      foreach (DafnyFile dafnyFile in files){
+
+      foreach (DafnyFile dafnyFile in files) {
         Contract.Assert(dafnyFile != null);
-        if (Bpl.CommandLineOptions.Clo.XmlSink != null && Bpl.CommandLineOptions.Clo.XmlSink.IsOpen) {
+        if (Bpl.CommandLineOptions.Clo.XmlSink != null && Bpl.CommandLineOptions.Clo.XmlSink.IsOpen && !dafnyFile.UseStdin) {
           Bpl.CommandLineOptions.Clo.XmlSink.WriteFileFragment(dafnyFile.FilePath);
         }
-        if (Bpl.CommandLineOptions.Clo.Trace)
-        {
+        if (Bpl.CommandLineOptions.Clo.Trace) {
           Console.WriteLine("Parsing " + dafnyFile.FilePath);
         }
 
@@ -139,8 +155,7 @@ namespace Microsoft.Dafny {
       return null; // success
     }
 
-    public static string Resolve(Program program, ErrorReporter reporter)
-    {
+    public static string Resolve(Program program, ErrorReporter reporter) {
       if (Bpl.CommandLineOptions.Clo.NoResolve || Bpl.CommandLineOptions.Clo.NoTypecheck) { return null; }
 
       Dafny.Resolver r = new Dafny.Resolver(program);
@@ -157,7 +172,7 @@ namespace Microsoft.Dafny {
     // Lower-case file names before comparing them, since Windows uses case-insensitive file names
     private class IncludeComparer : IComparer<Include> {
       public int Compare(Include x, Include y) {
-        return x.includedFullPath.ToLower().CompareTo(y.includedFullPath.ToLower());
+        return x.CompareTo(y);
       }
     }
 
@@ -165,7 +180,7 @@ namespace Microsoft.Dafny {
       SortedSet<Include> includes = new SortedSet<Include>(new IncludeComparer());
       DependencyMap dmap = new DependencyMap();
       foreach (string fileName in excludeFiles) {
-        includes.Add(new Include(null, null, fileName, Path.GetFullPath(fileName)));
+        includes.Add(new Include(null, null, fileName));
       }
       dmap.AddIncludes(includes);
       bool newlyIncluded;
@@ -184,8 +199,7 @@ namespace Microsoft.Dafny {
 
         foreach (Include include in newFilesToInclude) {
           DafnyFile file;
-          try {file = new DafnyFile(include.includedFilename);}
-          catch (IllegalDafnyFile){
+          try { file = new DafnyFile(include.includedFilename); } catch (IllegalDafnyFile) {
             return (String.Format("Include of file \"{0}\" failed.", include.includedFilename));
           }
           string ret = ParseFile(file, include, module, builtIns, errs, false);
@@ -206,7 +220,7 @@ namespace Microsoft.Dafny {
     private static string ParseFile(DafnyFile dafnyFile, Include include, ModuleDecl module, BuiltIns builtIns, Errors errs, bool verifyThisFile = true, bool compileThisFile = true) {
       var fn = DafnyOptions.Clo.UseBaseNameForFileName ? Path.GetFileName(dafnyFile.FilePath) : dafnyFile.FilePath;
       try {
-        int errorCount = Dafny.Parser.Parse(dafnyFile.SourceFileName, include, module, builtIns, errs, verifyThisFile, compileThisFile);
+        int errorCount = Dafny.Parser.Parse(dafnyFile.UseStdin, dafnyFile.SourceFileName, include, module, builtIns, errs, verifyThisFile, compileThisFile);
         if (errorCount != 0) {
           return string.Format("{0} parse errors detected in {1}", errorCount, fn);
         }

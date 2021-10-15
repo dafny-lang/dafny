@@ -142,7 +142,7 @@ module MorePlusTests {
     var q := [false];
     var qq := q + q;
     var p := map[false := 17];
-    var pp := p + p;  // error: map is not plussable
+    var pp := p + p;
     var n: C := null;
     var nn := n + n;  // error: references types are not plussable
     var c := new C;
@@ -176,16 +176,14 @@ module References {
     r := c;  // error
   }
 
-  method M2() returns (c: C, r: R)
+  method M2() returns (c: C, r: R, o: object)
   {
-    var o: object;
-    c := o;  // error
+    c := o;  // OK for type resolution, but must be proved
   }
 
-  method M3() returns (c: C, r: R)
+  method M3() returns (c: C, r: R, o: object)
   {
-    var o: object;
-    r := o;  // error
+    r := o;  // OK for type resolution, but must be proved
   }
 }
 
@@ -418,19 +416,45 @@ module LetPatterns {
 
 module Arrays_and_SubsetTypes {
   method M()
+  {
+    var a: array<nat>;
+    var b: array<int>;
+    if * {
+      a := new nat[100];
+      b := new nat[100]; // ERROR
+    } else if * {
+      a := new int[100]; // ERROR
+      b := new int[100];
+    } else if * {
+      a := b;  // ERROR
+    } else if * {
+      b := a;  // ERROR
+    } else if * {
+      var n := new nat[100];  // array<nat>
+      if * {
+        a := n;
+      } else {
+        b := n; // A verification error
+      }
+    }
+  }
+}
+
+module Arrays_and_SubsetTypesOK {
+  method M()
   { // Type-wise, all of the following are allowed (but the verifier will complain):
     var a: array<nat>;
     var b: array<int>;
     if * {
       a := new nat[100];
-      b := new nat[100];
+      b := new nat[100]; // Error
     } else if * {
-      a := new int[100];
+      a := new int[100]; // Error
       b := new int[100];
     } else if * {
-      a := b;
+      a := b;            // Error
     } else if * {
-      b := a;
+      b := a;            // Error
     } else if * {
       var n := new nat[100];  // array<nat>
       if * {
@@ -440,4 +464,66 @@ module Arrays_and_SubsetTypes {
       }
     }
   }
+}
+
+module TypeArgumentPrintTests {
+  trait Tr<X> { }
+
+  class Cl<Y> extends Tr<Y> {
+    lemma M() {
+      var u: Tr := this;  // should print as "var u: Tr<Y> := this;"
+      var v: Tr<Y> := this;  // should print as "var v: Tr<Y> := this;"
+    }
+  }
+
+  // -----
+  class A<X> {
+    static function method F(x: X): int { 15 }
+  }
+
+  class B<Y> {
+    function method H(y: Y, b: bool): int {
+      if b then
+        A.F(y)  // should print as A<Y>.F(y)
+      else
+        A<Y>.F(y)  // should print as A<Y>.F(y)
+    }
+  }
+}
+
+module PrettyPrintingBindingPowers {
+  newtype MyInt = u: int | u != 193
+
+  method M(m: map<int, real>, n: map<int, real>, a: set<int>, b: set<int>, c: set<int>) returns (r: map<int, real>)
+  {
+    r := m - b - c;
+    r := m - b + n;
+    r := (m - b) + n;  // unnecessary parentheses
+    r := m - (b + c);
+    r := m + n - (b + c);
+    r := m + (n - (b + c));
+    r := m + (n - b) - c;
+    r := m + (m + n) + m;
+    r := (((m + m) + n) + m);  // unnecessary parentheses
+  }
+
+  method P() returns (x: int, u: MyInt, s: set<int>, e: seq<int>, m: map<int, int>)
+  {
+    x := x + (x + x);  // unnecessary parentheses
+    u := u + (u + u);
+    s := s + (s + s);
+    e := e + (e + e);
+    m := m + (m + m);
+  }
+}
+
+module SameSCC {
+  // all of these should be in the same SCC
+  type G0 = G1
+  type G1 = G2
+  type G2 = G3<int>
+  type G3<X> = (X, G4)
+  type G4 = G5
+  datatype G5 = G5(G6)
+  codatatype G6 = G6(array<G0>)
 }

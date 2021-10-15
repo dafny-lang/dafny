@@ -1,0 +1,4 @@
+git-issue-327err.dfy(28,15): Error: module X does not exist (position 1 in path A.X)
+git-issue-327err.dfy(44,17): Error: module AAA does not exist (position 2 in path E.S.AAA) because of previous error
+git-issue-327err.dfy(47,15): Error: module Y does not exist (position 1 in path H.Y)
+3 resolution/type errors detected in git-issue-327err.dfy

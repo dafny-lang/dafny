@@ -5,7 +5,7 @@ module A {
 	export A reveals f provides h
 	export E1 provides f reveals g
 	export E2 extends A, E1 reveals T
-  export Friend extends A reveals g, T
+  export Friend extends A reveals g, T provides T.l
 	export Fruit reveals Data
 
   method h() {}
@@ -106,8 +106,8 @@ module I {
 
 module J {
   module X {
-    // providing a class provides the types C and C? and also provides the info about whether or not the class has a constructor
-    export provides C, D
+    // revealing a class provides the types C and C? and also provides the info about whether or not the class has a constructor
+    export reveals C, D
     class C {
       constructor Init() { }
     }
@@ -124,7 +124,7 @@ module J {
       var c: X.C;
       c := new X.C;  // error: must call a constructor
       c := new X.C.Init();  // error: alas, no constructor is visible
-      var d := new X.D;  // fine, since it is known that X.D has no constructor
+      var d := new X.D;  // error: even though D has no constructor, the absence of imported constructor does not let us conclude there aren't any
     }
   }
 }
@@ -132,7 +132,7 @@ module J {
 module K {
   module Y {
     export
-      provides C, C.Valid, C.Init, C.Print, C.G
+      reveals C provides C.Valid, C.Init, C.Print, C.G
 
     class C {
       predicate Valid() { true }
@@ -152,8 +152,8 @@ module K {
 module L {
   module Z {
     export
-      provides C, C.Init, C.Print
-      reveals C.Valid, C.G
+      provides C.Init, C.Print
+      reveals C, C.Valid, C.G
 
     class C {
       predicate Valid() { true }
@@ -173,8 +173,8 @@ module L {
 module M {
   module W {
     export
-      provides C, C.Valid, C.Print, C.G
-      provides C._ctor  // this is how one names the "anonymous" constructor
+      provides C.Valid, C.Print, C.G
+      reveals C  // by revealing a class, the anonymous constructor (if any) is also provided
 
     class C {
       predicate Valid() { true }
@@ -249,7 +249,7 @@ module ModuleName5 {
   const e := 2.7
   import X = ModuleName4`X  // fine, because export names are in a different name space than other module contents
   datatype Dt = Make(pi: int)
-  const X := Make(10)  // fine, because name of const comes lexically "before" names of imports
+  const X := Make(10)  // X is duplicate here and as local name of (aliased) module
   method Test() {
     assert X.pi == 10;  // X.pi refers to member pi of const X, not to the imported ModuleName4.pi
   }
@@ -266,4 +266,20 @@ module ModuleName8 {
   export X reveals e  // error: duplicate name of export set
   const pi: int
   const e: int
+}
+
+module ExportCycle0 {
+  export extends A // error: export cycle
+  export A extends B
+  export B extends ExportCycle0
+}
+
+module ExportCycle1 {
+  export A extends B // error: export cycle
+    provides X
+  export B extends C
+    reveals X
+  export C extends A
+    provides X
+  type X = int
 }

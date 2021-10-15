@@ -1,0 +1,10 @@
+git-issue-981.dfy(37,9): Error: to redeclare and refine declaration 'E' from module 'AAA', you must use the refining (`...`) notation
+git-issue-981.dfy(39,9): Error: to redeclare and refine declaration 'M' from module 'AAA', you must use the refining (`...`) notation
+git-issue-981.dfy(45,12): Error: no export set 'AA' in module 'AA'
+git-issue-981.dfy(48,20): Error: AA must be an export of BB to be extended
+git-issue-981.dfy(62,19): Error: K must be an export of B to be extended
+git-issue-981.dfy(63,19): Error: D must be an export of B to be extended
+git-issue-981.dfy(76,13): Error: unresolved identifier: b
+git-issue-981.dfy(79,13): Error: unresolved identifier: b
+git-issue-981.dfy(90,9): Error: Duplicate member name: F
+9 resolution/type errors detected in git-issue-981.dfy

@@ -1,0 +1,19 @@
+AndOrAmbiguity.dfy(9,17): Error: Ambiguous use of && and ||. Use parentheses to disambiguate.
+AndOrAmbiguity.dfy(12,17): Error: Ambiguous use of && and ||. Use parentheses to disambiguate.
+AndOrAmbiguity.dfy(15,15): Error: Ambiguous use of && and ||. Use parentheses to disambiguate.
+AndOrAmbiguity.dfy(18,15): Error: Ambiguous use of && and ||. Use parentheses to disambiguate.
+AndOrAmbiguity.dfy(21,20): Error: Ambiguous use of && and ||. Use parentheses to disambiguate.
+AndOrAmbiguity.dfy(24,20): Error: Ambiguous use of && and ||. Use parentheses to disambiguate.
+AndOrAmbiguity.dfy(29,18): Error: Ambiguous use of ==> and <==. Use parentheses to disambiguate.
+AndOrAmbiguity.dfy(32,24): Error: Ambiguous use of ==> and <==. Use parentheses to disambiguate.
+AndOrAmbiguity.dfy(35,18): Error: Ambiguous use of ==> and <==. Use parentheses to disambiguate.
+AndOrAmbiguity.dfy(38,24): Error: Ambiguous use of ==> and <==. Use parentheses to disambiguate.
+AndOrAmbiguity.dfy(43,16): Error: Ambiguous use of &, |, ^. Use parentheses to disambiguate.
+AndOrAmbiguity.dfy(46,16): Error: Ambiguous use of &, |, ^. Use parentheses to disambiguate.
+AndOrAmbiguity.dfy(49,16): Error: Ambiguous use of &, |, ^. Use parentheses to disambiguate.
+AndOrAmbiguity.dfy(52,16): Error: Ambiguous use of &, |, ^. Use parentheses to disambiguate.
+AndOrAmbiguity.dfy(55,16): Error: Ambiguous use of &, |, ^. Use parentheses to disambiguate.
+AndOrAmbiguity.dfy(58,16): Error: Ambiguous use of &, |, ^. Use parentheses to disambiguate.
+AndOrAmbiguity.dfy(63,17): Error: Ambiguous use of && and ||. Use parentheses to disambiguate.
+AndOrAmbiguity.dfy(63,20): Error: this symbol not expected in Dafny
+18 parse errors detected in AndOrAmbiguity.dfy

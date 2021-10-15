@@ -3,16 +3,16 @@
 /*
 module _System {
   /* CALL GRAPH for module _System:
-   * SCC at height 2:
+   * SCC at height 1:
    *   RotateRight
    * SCC at height 1:
    *   RotateLeft
    * SCC at height 0:
    *   nat
    */
-  type string(==) = seq<char>
+  type string(==,0) = seq<char>
 
-  type {:axiom} nat(==) = x: int
+  type {:axiom} nat(==,0) = x: int
     | 0 <= x
 
   trait {:compile false} object { }
@@ -26,6 +26,22 @@ module _System {
   /*-- non-null type
   type {:axiom} array(==)<arg> = c: array?<arg> | c != null /*special witness*/
   */
+
+  class {:compile false} /*_#Func1*/ -T0 ~> +R {
+    function requires(x0: T0): bool
+      reads reads(x0)
+
+    function reads(x0: T0): set<object?>
+      reads reads(x0)
+  }
+
+  type {:compile false} /*_#PartialFunc1*/ -T0 --> +R = f: T0 ~> R
+    | forall x0: T0 :: f.reads(x0) == {}
+    /*special witness*/
+
+  type {:compile false} /*_#TotalFunc1*/ -T0 -> +R = f: T0 --> R
+    | forall x0: T0 :: f.requires(x0)
+    /*special witness*/
 
   class {:compile false} /*_#Func0*/ () ~> +R {
     function requires(): bool
@@ -60,22 +76,6 @@ module _System {
     /*special witness*/
 
   datatype {:compile false} /*_tuple#2*/ (+T0, +T1) = _#Make2(0: T0, 1: T1)
-
-  class {:compile false} /*_#Func1*/ -T0 ~> +R {
-    function requires(x0: T0): bool
-      reads reads(x0)
-
-    function reads(x0: T0): set<object?>
-      reads reads(x0)
-  }
-
-  type {:compile false} /*_#PartialFunc1*/ -T0 --> +R = f: T0 ~> R
-    | forall x0: T0 :: f.reads(x0) == {}
-    /*special witness*/
-
-  type {:compile false} /*_#TotalFunc1*/ -T0 -> +R = f: T0 --> R
-    | forall x0: T0 :: f.requires(x0)
-    /*special witness*/
 
   type bool { }
 
@@ -116,51 +116,51 @@ module _System {
 */
 
 /* CALL GRAPH for module _module:
- * SCC at height 23:
+ * SCC at height 0:
  *   TestActualRotate
- * SCC at height 22:
+ * SCC at height 0:
  *   TestActualShifting
- * SCC at height 21:
+ * SCC at height 0:
  *   R
- * SCC at height 20:
+ * SCC at height 0:
  *   Q
- * SCC at height 19:
+ * SCC at height 0:
  *   P
- * SCC at height 18:
+ * SCC at height 0:
  *   N4
- * SCC at height 17:
+ * SCC at height 0:
  *   N3
- * SCC at height 16:
+ * SCC at height 0:
  *   N2
- * SCC at height 15:
+ * SCC at height 0:
  *   N1
- * SCC at height 14:
+ * SCC at height 0:
  *   N0
- * SCC at height 13:
+ * SCC at height 0:
  *   M
- * SCC at height 12:
- *   Rotate
- * SCC at height 11:
- *   Shifts6
- * SCC at height 10:
- *   Shifts5
- * SCC at height 9:
- *   Shifts4
- * SCC at height 8:
- *   Shifts3
- * SCC at height 7:
- *   Shifts2
- * SCC at height 6:
- *   Shifts1
- * SCC at height 5:
- *   Shifts0
- * SCC at height 4:
- *   PQ
- * SCC at height 3:
- *   Handful
- * SCC at height 2:
- *   SmallReal
  * SCC at height 1:
+ *   Rotate
+ * SCC at height 2:
+ *   Shifts6
+ * SCC at height 2:
+ *   Shifts5
+ * SCC at height 2:
+ *   Shifts4
+ * SCC at height 2:
+ *   Shifts3
+ * SCC at height 2:
+ *   Shifts2
+ * SCC at height 2:
+ *   Shifts1
+ * SCC at height 2:
+ *   Shifts0
+ * SCC at height 1:
+ *   PQ
+ * SCC at height 0:
+ *   Handful
+ * SCC at height 0:
+ *   SmallReal
+ * SCC at height 0:
  *   EvenInt
  * SCC at height 0:
  *   nat
@@ -440,120 +440,34 @@ method TestActualRotate()
   assert a == a.RotateLeft(3).RotateRight(3);
 }
 BitvectorsMore.dfy(13,9): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
 BitvectorsMore.dfy(17,13): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
 BitvectorsMore.dfy(21,13): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
 BitvectorsMore.dfy(25,13): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
 BitvectorsMore.dfy(30,15): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
 BitvectorsMore.dfy(32,15): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Else
 BitvectorsMore.dfy(104,34): Error: shift amount must be non-negative
-Execution trace:
-    (0,0): anon0
-    (0,0): anon9_Then
 BitvectorsMore.dfy(105,35): Error: shift amount must not exceed the width of the result (67)
-Execution trace:
-    (0,0): anon0
-    (0,0): anon10_Then
 BitvectorsMore.dfy(107,34): Error: shift amount must not exceed the width of the result (67)
-Execution trace:
-    (0,0): anon0
-    (0,0): anon13_Then
 BitvectorsMore.dfy(108,34): Error: shift amount must not exceed the width of the result (67)
-Execution trace:
-    (0,0): anon0
-    (0,0): anon14_Then
 BitvectorsMore.dfy(115,39): Error: shift amount must be non-negative
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Then
 BitvectorsMore.dfy(116,39): Error: shift amount must not exceed the width of the result (67)
-Execution trace:
-    (0,0): anon0
-    (0,0): anon8_Then
 BitvectorsMore.dfy(124,28): Error: shift amount must not exceed the width of the result (67)
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Then
 BitvectorsMore.dfy(125,28): Error: shift amount must not exceed the width of the result (67)
-Execution trace:
-    (0,0): anon0
-    (0,0): anon8_Then
 BitvectorsMore.dfy(135,24): Error: shift amount must not exceed the width of the result (32)
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Then
 BitvectorsMore.dfy(136,24): Error: shift amount must not exceed the width of the result (32)
-Execution trace:
-    (0,0): anon0
-    (0,0): anon8_Then
 BitvectorsMore.dfy(137,24): Error: shift amount must not exceed the width of the result (32)
-Execution trace:
-    (0,0): anon0
-    (0,0): anon9_Then
 BitvectorsMore.dfy(146,32): Error: shift amount must not exceed the width of the result (7)
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Then
 BitvectorsMore.dfy(147,32): Error: shift amount must not exceed the width of the result (7)
-Execution trace:
-    (0,0): anon0
-    (0,0): anon8_Then
 BitvectorsMore.dfy(148,32): Error: shift amount must not exceed the width of the result (7)
-Execution trace:
-    (0,0): anon0
-    (0,0): anon9_Then
 BitvectorsMore.dfy(157,26): Error: shift amount must not exceed the width of the result (2)
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Then
 BitvectorsMore.dfy(158,26): Error: shift amount must not exceed the width of the result (2)
-Execution trace:
-    (0,0): anon0
-    (0,0): anon8_Then
 BitvectorsMore.dfy(159,26): Error: shift amount must not exceed the width of the result (2)
-Execution trace:
-    (0,0): anon0
-    (0,0): anon9_Then
 BitvectorsMore.dfy(160,26): Error: shift amount must not exceed the width of the result (2)
-Execution trace:
-    (0,0): anon0
-    (0,0): anon10_Then
 BitvectorsMore.dfy(168,30): Error: shift amount must not exceed the width of the result (0)
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Then
 BitvectorsMore.dfy(169,30): Error: shift amount must not exceed the width of the result (0)
-Execution trace:
-    (0,0): anon0
-    (0,0): anon8_Then
 BitvectorsMore.dfy(170,30): Error: shift amount must not exceed the width of the result (0)
-Execution trace:
-    (0,0): anon0
-    (0,0): anon9_Then
 BitvectorsMore.dfy(171,30): Error: shift amount must not exceed the width of the result (0)
-Execution trace:
-    (0,0): anon0
-    (0,0): anon10_Then
 BitvectorsMore.dfy(193,26): Error: shift amount must not exceed the width of the result (5)
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Then
 BitvectorsMore.dfy(194,26): Error: shift amount must not exceed the width of the result (5)
-Execution trace:
-    (0,0): anon0
-    (0,0): anon5_Then
 
 Dafny program verifier finished with 9 verified, 30 errors

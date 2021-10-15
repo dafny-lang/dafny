@@ -1,0 +1,2 @@
+git-issue-327cir2.dfy(6,7): Error: module definition contains a cycle (note: parent modules implicitly depend on submodules): module D -> import E -> module E -> import D -> module D
+1 resolution/type errors detected in git-issue-327cir2.dfy

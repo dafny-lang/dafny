@@ -248,3 +248,391 @@ function UnboxTest(s: seq<seq<int>>) : map<seq<int>, seq<int>>
 {
   map i: int | 0 <= i < |s| :: s[i] := s[i] // fine, make sure unboxing doesn't unwrap the int from the nested seq<int> on the LHS
 }
+
+// ---------- test that general maps can be used in proofs ----------
+
+method GeneralMaps4(s: set<real>, twelve: real) {
+  var c0 := map n,p | n in s && p in s :: n := twelve;
+  assert 2.0 in s ==> c0[2.0] == twelve;
+}
+
+method GeneralMaps5(u: seq<int>) {
+  var c1 := map i: int | 0 <= i < |u| :: u[i] := u[i] + 100;
+  if * {
+    assert 7 < |u| && 101 < u[7] < 103 ==> c1[102] == 202;
+  } else {
+    assert 7 < |u| && 2101 < u[7] < 2103 ==> c1[2102] == 2200;  // error
+  }
+}
+
+predicate method Thirteen(x: int) { x == 13 }
+predicate method Odd(y: int) { y % 2 == 1 }
+
+method GeneralMaps6() {
+  var c2 := map x,y | 12 <= x < y < 17 && Thirteen(x) && Odd(y) :: x := y;
+  assert Thirteen(13) && Odd(15);
+  assert c2[13] == 15;
+}
+
+method GeneralMaps7() {
+  var c3 := map i: int | 0 <= i < 100 && Thirteen(i) :: 5 := i;
+  assert Thirteen(13);
+  assert c3[5] == 13;
+}
+
+predicate method P8(x: int) { true }
+
+method GeneralMaps8() {
+  ghost var c4 := map x: int | true :: P8(x) := 6;
+  assert P8(177);
+  assert c4[true] == 6;
+  assert false !in c4.Keys;
+}
+
+method GeneralMaps8'() {
+  ghost var c4 := map x: int | P8(x) :: true := 6;
+  assert P8(177);
+  assert c4[true] == 6;
+  assert false !in c4.Keys;
+}
+
+method GeneralMaps8''() {
+  ghost var c4 := map x: int | 0 <= x < 10 && Thirteen(x) :: true := 6;
+  assert c4 == map[];
+}
+
+// ---------- update tests for seq, multiset, map ----------
+
+method UpdateValiditySeq() {
+  var s: seq<nat> := [4, 4, 4, 4, 4];
+  if * {
+    s := s[10 := 4];  // error: index out of range
+  } else {
+    s := s[1 := -5];  // error: given value is not a nat
+  }
+}
+method UpdateValidityMultiset() {
+  var s: multiset<nat>;
+  if * {
+    s := s[-2 := 5];  // error: element value is not a nat
+  } else {
+    s := s[2 := -5];  // error: new number of occurrences is negative
+  }
+}
+method UpdateValidityMap(mm: map<int, int>)
+  requires forall k :: k in mm.Keys ==> 0 <= k
+  requires forall k :: k in mm.Keys ==> 0 <= mm[k]
+{
+  var m: map<nat, nat> := mm;  // conversion justified by precondition
+  if * {
+    m := m[-2 := 10];  // error: key is not a nat
+  } else {
+    m := m[10 := -2];  // error: value is not a nat
+  }
+}
+
+class Elem { }
+
+method UpdateValiditySeqNull(d: Elem?, e: Elem) {
+  var s: seq<Elem> := [e, e, e, e, e];
+  if * {
+    s := s[10 := e];  // error: index out of range
+  } else {
+    s := s[1 := d];  // error: given value is not a Elem
+  }
+}
+method UpdateValidityMultisetNull(d: Elem?, e: Elem) {
+  var s: multiset<Elem>;
+  if * {
+    s := s[d := 5];  // error: element value is not a Elem
+  } else {
+    s := s[e := -5];  // error: new number of occurrences is negative
+  }
+}
+method UpdateValidityMapNull(mm: map<Elem?, Elem?>, d: Elem?, e: Elem)
+  requires forall k :: k in mm.Keys ==> k != null
+  requires forall k :: k in mm.Keys ==> mm[k] != null
+{
+  var m: map<Elem, Elem> := mm;  // conversion justified by precondition
+  if * {
+    m := m[d := e];  // error: key is not a Elem
+  } else {
+    m := m[e := d];  // error: value is not a Elem
+  }
+}
+
+// ---------- map union and map subtraction ----------
+
+method TestMapSubtraction(m: map<int, real>, s: set<int>, x: int, y: int)
+  requires x in m.Keys && x in s
+  requires y in m.Keys && y !in s
+{
+  var xx, yy := m[x], m[y];
+  var m' := m - s;
+  assert x !in m'.Keys;
+  assert y in m'.Keys;
+  assert m'[y] == yy;
+  assert m'.Keys <= m.Keys;
+  assert m'.Keys == m.Keys - s;
+}
+
+method TestIMapSubtraction(m: imap<int, real>, s: set<int>, x: int, y: int)
+  requires x in m.Keys && x in s
+  requires y in m.Keys && y !in s
+{
+  var xx, yy := m[x], m[y];
+  var m' := m - s;
+  assert x !in m'.Keys;
+  assert y in m'.Keys;
+  assert m'[y] == yy;
+  assert m'.Keys <= m.Keys;
+  assert m'.Keys == m.Keys - iset u | u in s;
+}
+
+method TestMapUnion(m0: map<int, real>, m1: map<int, real>, m2: map<int, real>, x: int, y: int, z: int)
+  requires x in m0.Keys && y in m1.Keys && z in m2.Keys
+{
+  var xx, yy, zz := m0[x], m1[y], m2[z];
+  var m := m0 + m1 + m2;
+  assert x in m.Keys && y in m.Keys && z in m.Keys;
+  assert m[x] == xx || x in m1.Keys || x in m2.Keys;
+  assert m[y] == yy || y in m2.Keys;
+  assert m[z] == zz;
+  assert forall u :: u in m.Keys <==> u in m0.Keys + m1.Keys + m2.Keys;
+}
+
+method TestIMapUnion(m0: imap<int, real>, m1: imap<int, real>, m2: imap<int, real>, x: int, y: int, z: int)
+  requires x in m0.Keys && y in m1.Keys && z in m2.Keys
+{
+  var xx, yy, zz := m0[x], m1[y], m2[z];
+  var m := m0 + m1 + m2;
+  assert x in m.Keys && y in m.Keys && z in m.Keys;
+  assert m[x] == xx || x in m1.Keys || x in m2.Keys;
+  assert m[y] == yy || y in m2.Keys;
+  assert m[z] == zz;
+  assert forall u :: u in m.Keys <==> u in m0.Keys + m1.Keys + m2.Keys;
+}
+
+method FailingMapOperations(m: map<int, real>, n: map<int, real>, s: set<int>, x: int, y: int)
+  requires x in m.Keys && y in n.Keys
+{
+  var xx, yy := m[x], n[y];
+  if * {
+    var m' := m - s;
+    assert x in m'.Keys ==> m'[x] == xx;
+    assert x !in m'.Keys ==> x in s;
+    assert x in m'.Keys;  // error: no reason to think this
+  } else {
+    var m' := m + n;
+    assert m'[y] == n[y];
+    assert x !in n.Keys ==> m'[x] == m[x];
+    assert m'[x] == m[x];  // error: no reason to think this
+    assert y in m.Keys;  // error: no reason to think this
+  }
+}
+
+method FailingIMapOperations(m: imap<int, real>, n: imap<int, real>, s: set<int>, x: int, y: int)
+  requires x in m.Keys && y in n.Keys
+{
+  var xx, yy := m[x], n[y];
+  if * {
+    var m' := m - s;
+    assert x in m'.Keys ==> m'[x] == xx;
+    assert x !in m'.Keys ==> x in s;
+    assert x in m'.Keys;  // error: no reason to think this
+  } else {
+    var m' := m + n;
+    assert m'[y] == n[y];
+    assert x !in n.Keys ==> m'[x] == m[x];
+    assert m'[x] == m[x];  // error: no reason to think this
+    assert y in m.Keys;  // error: no reason to think this
+  }
+}
+
+class MyClass { }
+type Range = bv3
+
+method CommonUseCase0(m: map<MyClass, Range>) returns (s: nat)
+{
+  s := 0;
+  var m := m;
+  while m != map[]
+    decreases m.Keys
+  {
+    var k :| k in m.Keys;
+    var v := m[k];
+    s := s + v as int;
+    m := m - {k};
+  }
+}
+
+method CommonUseCase1(m: map<MyClass, Range>) returns (s: nat)
+{
+  s := 0;
+  var m := m;
+  while m != map[]
+    decreases m.Keys
+  {
+    var kv :| kv in m.Items;
+    var (k, v) := kv;
+    s := s + v as int;
+    m := m - {k};
+  }
+}
+
+method CommonUseCase2(m: map<MyClass, Range>) returns (s: nat)
+{
+  s := 0;
+  var m := m;
+  while m != map[]
+    decreases m.Keys
+  {
+    var k, v :| (k, v) in m.Items;
+    s := s + v as int;
+    m := m - {k};
+  }
+}
+
+// Here follow a number of map properties that should be verifiable
+// independent of each other. Several of these require the appropriate
+// $Is type axioms to be present in the translation.
+
+method TestMapPropertyNonempty(m: map<MyClass, Range>)
+  requires m != map[]
+{
+  if
+  case true =>
+    assert |m| != 0;
+  case true =>
+    assert m.Keys != {};
+  case true =>
+    assert m.Values != {};
+  case true =>
+    assert m.Items != {};
+}
+
+method TestMapPropertyCardinality0(m: map<MyClass, Range>) {
+  assert |m| == |m.Keys|;
+}
+
+method TestMapPropertyCardinality1(m: map<MyClass, Range>) {
+  assert |m.Values| <= |m.Keys|;
+  assert |m.Keys| == |m.Values|;  // error: this may not be true
+}
+
+method TestMapPropertyCardinality2(m: map<MyClass, Range>) {
+  assert |m.Values| <= |m.Items|;
+  assert |m.Values| == |m.Items|;  // error: this may not be true
+}
+
+method TestMapPropertyCardinality3(m: map<MyClass, Range>) {
+  assert |m.Items| == |m|;
+}
+
+method TestMapPropertyMembership0(m: map<MyClass, Range>)
+  requires |m.Values| != 0 || |m.Items| != 0
+{
+  assert exists k :: k in m.Keys;
+}
+
+method TestMapPropertyMembership1(m: map<MyClass, Range>)
+  requires |m.Items| != 0 || |m.Keys| != 0
+{assert m.Values != {};
+  assert exists v :: v in m.Values;
+}
+
+method TestMapPropertyMembership2(m: map<MyClass, Range>)
+  requires |m.Keys| != 0 || |m.Values| != 0
+{
+  assert exists kv :: kv in m.Items;
+}
+
+method TestMapPropertyMembership3(m: map<MyClass, Range>)
+  requires |m.Keys| != 0 || |m.Values| != 0
+{
+  assert exists k, v :: (k, v) in m.Items;
+}
+
+// ---- Same things but for imap
+
+method IMapCommonUseCase0(m: imap<MyClass, Range>) returns (s: nat)
+{
+  s := 0;
+  var m := m;
+  while m != imap[]  // error: cannot prove termination
+    decreases m.Keys
+  {
+    var k :| k in m.Keys;
+    var v := m[k];
+    s := s + v as int;
+    m := m - {k};
+  }
+}
+
+method IMapCommonUseCase1(m: imap<MyClass, Range>) returns (s: nat)
+{
+  s := 0;
+  var m := m;
+  while m != imap[]  // error: cannot prove termination
+    decreases m.Keys
+  {
+    var kv :| kv in m.Items;
+    var (k, v) := kv;
+    s := s + v as int;
+    m := m - {k};
+  }
+}
+
+method IMapCommonUseCase2(m: imap<MyClass, Range>) returns (s: nat)
+  decreases *
+{
+  s := 0;
+  var m := m;
+  while m != imap[]
+    decreases *  // let's do it differently from previous two test methods
+  {
+    var k, v :| (k, v) in m.Items;
+    s := s + v as int;
+    m := m - {k};
+  }
+}
+
+// Here follow a number of imap properties that should be verifiable
+// independent of each other. Several of these require the appropriate
+// $Is type axioms to be present in the translation.
+
+method TestIMapPropertyNonempty(m: imap<MyClass, Range>)
+  requires m != imap[]
+{
+  if
+  case true =>
+    assert m.Keys != iset{};
+  case true =>
+    assert m.Values != iset{};
+  case true =>
+    assert m.Items != iset{};
+}
+
+method TestIMapPropertyMembership0(m: imap<MyClass, Range>)
+  requires m.Values != iset{} || m.Items != iset{}
+{
+  assert exists k :: k in m.Keys;
+}
+
+method TestIMapPropertyMembership1(m: imap<MyClass, Range>)
+  requires m.Items != iset{} || m.Keys != iset{}
+{
+  assert exists v :: v in m.Values;
+}
+
+method TestIMapPropertyMembership2(m: imap<MyClass, Range>)
+  requires m.Keys != iset{} || m.Values != iset{}
+{
+  assert exists kv :: kv in m.Items;
+}
+
+method TestIMapPropertyMembership3(m: imap<MyClass, Range>)
+  requires m.Keys != iset{} || m.Values != iset{}
+{
+  assert exists k, v :: (k, v) in m.Items;
+}

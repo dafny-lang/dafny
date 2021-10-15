@@ -141,3 +141,12 @@ class DynamicFramesIdiom {
                   // predicate can also be invoked in a state where its body will evaluate to false
   }
 }
+
+class ReadsTestsInsideLetSuchThat {
+  var y: int
+
+  function F(): int {
+    var yy :| yy == this.y;  // error: F does not have permission to read this.y
+    yy
+  }
+}

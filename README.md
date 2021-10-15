@@ -1,15 +1,17 @@
-[![Build Status](https://codebuild.us-west-2.amazonaws.com/badges?uuid=eyJlbmNyeXB0ZWREYXRhIjoibzVYWnF6ci9FK0lnQVpYdStXQ2d6ZCt4WFRFd1JFSnlWbkIyUWc1R25QT3RuOHRNZFNsbVJQSlg5dENHOExiSzNaQ085U1hDU2xKY1J2cUYrUG8wK3RnPSIsIml2UGFyYW1ldGVyU3BlYyI6IlVZWkQ4YzlGVmJCcHpQZ2IiLCJtYXRlcmlhbFNldFNlcmlhbCI6MX0%3D&branch=master) ![Gitter](https://badges.gitter.im/dafny-lang/community.svg)](https://gitter.im/dafny-lang/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+[![Build and Test](https://github.com/dafny-lang/dafny/workflows/Build%20and%20Test/badge.svg)](https://github.com/dafny-lang/dafny/actions?query=workflow%3A%22Build+and+Test%22) [![Gitter](https://badges.gitter.im/dafny-lang/community.svg)](https://gitter.im/dafny-lang/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
 ![Dafny](dafny-banner.png)
 
-Dafny is a programming language with a program verifier. As you type in your program, the verifier constantly looks over your shoulders and flags any errors. Dafny is currently spread across 3 sites:
+Dafny is a programming language with a program verifier. As you type in your program, the verifier constantly looks over your shoulders and flags any errors. This github site contains these materials:
 
-* This site, including
-    * sources
-    * [binary downloads](https://github.com/dafny-lang/dafny/releases) for Windows, Mac, GNU/Linux, and FreeBSD
-    * the [issue tracker](https://github.com/dafny-lang/dafny/issues) (old issues are on [codeplex](https://dafny.codeplex.com/workitem/list/basic))
-    * the wiki, including [frequently asked questions](https://github.com/dafny-lang/dafny/wiki/FAQ)
-* The [Rise4fun site](http://rise4fun.com/dafny), including a tutorial, where you can verify Dafny programs in your web browser.
+* sources
+* [binary downloads](https://github.com/dafny-lang/dafny/releases) for Windows, Mac, GNU/Linux, and FreeBSD
+* the [issue tracker](https://github.com/dafny-lang/dafny/issues)
+* the wiki, including [frequently asked questions](https://github.com/dafny-lang/dafny/wiki/FAQ)
+
+Documentation about the dafny language and tools is located
+[here](https://dafny-lang.github.io/dafny).
+A reference manual is available both [online](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef) and as [pdf](https://github.com/dafny-lang/dafny/blob/master/docs/DafnyRef/out/DafnyRef.pdf). (A LaTeX version can be produced if needed.)
 
 # Community
 
@@ -37,10 +39,11 @@ Here are some ways to get started with Dafny:
 * New overview article: [Accessible Software Verification with Dafny](https://www.computer.org/csdl/mags/so/2017/06/mso2017060094-abs.html), IEEE Software, Nov/Dec 2017
 * [Online tutorial](http://rise4fun.com/Dafny/tutorial/guide), focusing mostly on simple imperative programs
 * [3-page tutorial notes](http://leino.science/papers/krml233.pdf) with examples (ICSE 2013)
-* Dafny [Quick Reference](http://research.microsoft.com/en-us/projects/dafny/reference.aspx)
+* Dafny [Quick Reference](https://dafny-lang.github.io/dafny/QuickReference)
 * Language reference for the [Dafny type system](http://leino.science/papers/krml243.html), which also describes available expressions for each type
 * [Cheatsheet](https://docs.google.com/document/d/1kz5_yqzhrEyXII96eCF1YoHZhnb_6dzv-K3u79bMMis/edit?pref=2&pli=1): basic Dafny syntax on two pages
-* Dafny Reference Manual [[html](https://github.com/dafny-lang/dafny/blob/master/Docs/DafnyRef/out/DafnyRef.html)] [[pdf](https://github.com/dafny-lang/dafny/blob/master/Docs/DafnyRef/out/DafnyRef.pdf)]
+* Dafny Reference Manual [[html](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef)] [[pdf](https://github.com/dafny-lang/dafny/blob/master/docs/DafnyRef/out/DafnyRef.pdf)]
+* [Dafny libraries](https://github.com/dafny-lang/libraries), a standard library of useful Dafny functions and lemmas
 * [Dafny Power User](http://leino.science/dafny-power-user)
 * Videos at [Verification Corner](https://www.youtube.com/channel/UCP2eLEql4tROYmIYm5mA27A)
 
@@ -73,10 +76,6 @@ Then run
     $ pre-commit install
 
 This will install pre-commit hooks in your .git/hooks directory.
-
-# Code of Conduct
-
-This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/). For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
 
 # License
 

@@ -6,7 +6,7 @@ method Main()
   TestReals();
 }
 
-// This method produces a zero-initialized value
+// This method produces an auto-initialized value
 method Init<T(0)>() returns (t: T)
 {
 }

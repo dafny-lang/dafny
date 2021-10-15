@@ -3,16 +3,16 @@
 /*
 module _System {
   /* CALL GRAPH for module _System:
-   * SCC at height 2:
+   * SCC at height 1:
    *   RotateRight
    * SCC at height 1:
    *   RotateLeft
    * SCC at height 0:
    *   nat
    */
-  type string(==) = seq<char>
+  type string(==,0) = seq<char>
 
-  type {:axiom} nat(==) = x: int
+  type {:axiom} nat(==,0) = x: int
     | 0 <= x
 
   trait {:compile false} object { }
@@ -26,6 +26,22 @@ module _System {
   /*-- non-null type
   type {:axiom} array(==)<arg> = c: array?<arg> | c != null /*special witness*/
   */
+
+  class {:compile false} /*_#Func1*/ -T0 ~> +R {
+    function requires(x0: T0): bool
+      reads reads(x0)
+
+    function reads(x0: T0): set<object?>
+      reads reads(x0)
+  }
+
+  type {:compile false} /*_#PartialFunc1*/ -T0 --> +R = f: T0 ~> R
+    | forall x0: T0 :: f.reads(x0) == {}
+    /*special witness*/
+
+  type {:compile false} /*_#TotalFunc1*/ -T0 -> +R = f: T0 --> R
+    | forall x0: T0 :: f.requires(x0)
+    /*special witness*/
 
   class {:compile false} /*_#Func0*/ () ~> +R {
     function requires(): bool
@@ -44,22 +60,6 @@ module _System {
     /*special witness*/
 
   datatype {:compile false} /*_tuple#2*/ (+T0, +T1) = _#Make2(0: T0, 1: T1)
-
-  class {:compile false} /*_#Func1*/ -T0 ~> +R {
-    function requires(x0: T0): bool
-      reads reads(x0)
-
-    function reads(x0: T0): set<object?>
-      reads reads(x0)
-  }
-
-  type {:compile false} /*_#PartialFunc1*/ -T0 --> +R = f: T0 ~> R
-    | forall x0: T0 :: f.reads(x0) == {}
-    /*special witness*/
-
-  type {:compile false} /*_#TotalFunc1*/ -T0 -> +R = f: T0 --> R
-    | forall x0: T0 :: f.requires(x0)
-    /*special witness*/
 
   type bool { }
 
@@ -100,27 +100,29 @@ module _System {
 */
 
 /* CALL GRAPH for module _module:
- * SCC at height 11:
- *   Main
- * SCC at height 10:
- *   OrdinalTests
- * SCC at height 9:
- *   array
- * SCC at height 8:
- *   int64
- * SCC at height 7:
- *   Abundance
- * SCC at height 6:
- *   Difficult
- * SCC at height 5:
- *   PrintExpected
- * SCC at height 4:
- *   Print
  * SCC at height 3:
- *   SmallReal
- * SCC at height 2:
- *   EvenInt
+ *   Main
  * SCC at height 1:
+ *   OrdinalTests
+ * SCC at height 0:
+ *   array
+ * SCC at height 0:
+ *   int64
+ * SCC at height 0:
+ *   Abundance
+ * SCC at height 2:
+ *   Difficult
+ * SCC at height 1:
+ *   PrintExpected
+ * SCC at height 1:
+ *   Print
+ * SCC at height 0:
+ *   string
+ * SCC at height 0:
+ *   SmallReal
+ * SCC at height 0:
+ *   EvenInt
+ * SCC at height 0:
  *   Handful
  * SCC at height 0:
  *   nat

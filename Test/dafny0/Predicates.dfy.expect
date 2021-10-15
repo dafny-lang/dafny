@@ -1,29 +1,7 @@
-Predicates.dfy[B](21,4): Error BP5003: A postcondition might not hold on this return path.
-Predicates.dfy[B](20,14): Related location: This is the postcondition that might not hold.
-Predicates.dfy(31,8): Related location
-Execution trace:
-    (0,0): anon0
-Predicates.dfy(88,15): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-Predicates.dfy(92,13): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-Predicates.dfy[Tricky_Full](126,4): Error BP5003: A postcondition might not hold on this return path.
-Predicates.dfy[Tricky_Full](125,14): Related location: This is the postcondition that might not hold.
-Predicates.dfy(136,6): Related location
-Predicates.dfy[Tricky_Full](116,8): Related location
-Execution trace:
-    (0,0): anon0
-Predicates.dfy(164,4): Error BP5003: A postcondition might not hold on this return path.
-Predicates.dfy(163,14): Related location: This is the postcondition that might not hold.
-Predicates.dfy(163,45): Related location
-Execution trace:
-    (0,0): anon0
-Predicates.dfy[Q1](154,4): Error BP5003: A postcondition might not hold on this return path.
-Predicates.dfy[Q1](153,14): Related location: This is the postcondition that might not hold.
-Predicates.dfy[Q1](153,48): Related location
-Execution trace:
-    (0,0): anon0
+Predicates.dfy(62,15): Error: assertion violation
+Predicates.dfy(66,13): Error: assertion violation
+Predicates.dfy(105,4): Error: A postcondition might not hold on this return path.
+Predicates.dfy(104,14): Related location: This is the postcondition that might not hold.
+Predicates.dfy(104,45): Related location
 
-Dafny program verifier finished with 29 verified, 6 errors
+Dafny program verifier finished with 21 verified, 3 errors

@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+
+# find the source directory for this script even if it's been symlinked [issue #185]
+# from https://stackoverflow.com/questions/59895/
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "$SOURCE" ]; do
+    DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+    SOURCE="$(readlink "$SOURCE")"
+    [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+done
+DAFNY_ROOT="$( cd -P "$( dirname $( dirname "$SOURCE" ))" && pwd )"
+
+MY_OS=$(uname -s)
+if [ "${MY_OS:0:5}" == "MINGW" ] || [ "${MY_OS:0:6}" == "CYGWIN" ]; then
+    DAFNYSERVER_EXE_NAME="DafnyServer.exe"
+else
+    DAFNYSERVER_EXE_NAME="DafnyServer.dll"
+fi
+DAFNYSERVER="$DAFNY_ROOT/Binaries/$DAFNYSERVER_EXE_NAME"
+if [[ ! -e "$DAFNYSERVER" ]]; then
+    echo "Error: $DAFNYSERVER_EXE_NAME not found at $DAFNY_ROOT."
+    exit 1
+fi
+
+if [ "${MY_OS:0:5}" == "MINGW" ] || [ "${MY_OS:0:6}" == "CYGWIN" ]; then
+    "$DAFNY" "$@"
+else
+    DOTNET=$(type -p dotnet)
+    if [[ ! -x "$DOTNET" ]]; then
+        echo "Error: Dafny requires .NET Core to run on non-Windows systems."
+        exit 1
+    fi
+    "$DOTNET" "$DAFNYSERVER" "$@"
+fi

@@ -1,4 +1,4 @@
-// RUN: %dafny /ironDafny /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %dafny /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module A {

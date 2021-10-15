@@ -1,0 +1,10 @@
+
+Dafny program verifier finished with 0 verified, 0 errors
+TraitCompileErrors.dfy(7,27): Error: Function StaticMembers_Compile.Tr.Func has no body
+TraitCompileErrors.dfy(8,18): Error: Method StaticMembers_Compile.Tr.Method has no body
+TraitCompileErrors.dfy(9,29): Error: Function StaticMembers_Compile.Tr.TwoF has no body
+TraitCompileErrors.dfy(10,26): Error: Method StaticMembers_Compile.Tr.TwoL has no body
+TraitCompileErrors.dfy(11,27): Error: Function StaticMembers_Compile.Tr.P has no body
+TraitCompileErrors.dfy(12,30): Error: Function StaticMembers_Compile.Tr.Q has no body
+TraitCompileErrors.dfy(13,23): Error: Method StaticMembers_Compile.Tr.IL has no body
+TraitCompileErrors.dfy(14,26): Error: Method StaticMembers_Compile.Tr.CL has no body

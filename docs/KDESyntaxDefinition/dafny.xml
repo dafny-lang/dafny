@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE language SYSTEM "language.dtd">
+
+<!-- This a KDE syntax definition file for the dafny language, used by the Rouge syntax highligher
+     when creating highlighted dafny code examples in pandoc-generated pdf files, in particular
+     the Dafny Reference Manual.
+     https://docs.kde.org/trunk5/en/applications/katepart/highlight.html
+-->
+
+<language name="dafny" version="3" kateversion="5.0" section="Sources" extensions="*.dfy" author="Robin Salkeld, David Cok" license="MIT">
+
+  <highlighting>
+    <list name="keywords">
+      <item>abstract</item>
+      <item>allocated</item>
+      <item>as</item>
+      <item>assert</item>
+      <item>assume</item>
+      <item>break</item>
+      <item>by</item>
+      <item>calc</item>
+      <item>case</item>
+      <item>class</item>
+      <item>codatatype</item>
+      <item>colemma</item>
+      <item>const</item>
+      <item>constructor</item>
+      <item>copredicate</item>
+      <item>datatype</item>
+      <item>default</item>
+      <item>else</item>
+      <item>exists</item>
+      <item>expect</item>
+      <item>export</item>
+      <item>extends</item>
+      <item>false</item>
+      <item>forall</item>
+      <item>free</item>
+      <item>fresh</item>
+      <item>function</item>
+      <item>ghost</item>
+      <item>if</item>
+      <item>import</item>
+      <item>in</item>
+      <item>include</item>
+      <item>inductive</item>
+      <item>iterator</item>
+      <item>label</item>
+      <item>lemma</item>
+      <item>match</item>
+      <item>method</item>
+      <item>modify</item>
+      <item>module</item>
+      <item>new</item>
+      <item>newtype</item>
+      <item>null</item>
+      <item>old</item>
+      <item>opened</item>
+      <item>predicate</item>
+      <item>print</item>
+      <item>protected</item>
+      <item>provides</item>
+      <item>refines</item>
+      <item>return</item>
+      <item>returns</item>
+      <item>reveals</item>
+      <item>static</item>
+      <item>then</item>
+      <item>this</item>
+      <item>trait</item>
+      <item>true</item>
+      <item>twostate</item>
+      <item>type</item>
+      <item>unchanged</item>
+      <item>var</item>
+      <item>where</item>
+      <item>while</item>
+      <item>yield</item>
+      <item>yields</item>
+    </list>
+    <!-- type names that start a generic type are part of a RegExpr below -->
+    <list name="types">
+      <item>bool</item>
+      <item>char</item>
+      <item>int</item>
+      <item>nat</item>
+      <item>object</item>
+      <item>object?</item>
+      <item>real</item>
+      <item>string</item>
+      <item>ORDINAL</item>
+    </list>
+
+    <list name="verification keywords">
+      <item>decreases</item>
+      <item>ensures</item>
+      <item>invariant</item>
+      <item>modifies</item>
+      <item>provides</item>
+      <item>reads</item>
+      <item>requires</item>
+      <item>reveals</item>
+    </list>
+
+    <contexts>
+      <context name="Normal" attribute="Normal Text" lineEndContext="#stay">
+         <!-- NOTE: THE ORDER OF REGEXPR RULES MATTERS:  the first match wins.
+              This fact can be used to simplify later rules,
+              at the risk of introducing errors if the rules are reordered.  -->
+
+        <!-- Either an entire attribute if it has no expressions, or just the opening and attribute name,
+             so that the expressions get their own coloring -->
+        <RegExpr attribute="Attribute" String="\{:\s*[a-zA-Z0-9_'?]+(?:\s+\})?" />
+
+        <!-- Complicated set of rules to distinguish builtin types and identifiers -->
+        <RegExpr attribute="Ident" String="(?:bool|char|int|nat|real|string)[a-zA-Z0-9_'?]+" />
+        <RegExpr attribute="Ident" String="(?:object[?])[a-zA-Z0-9_'][a-zA-Z0-9_'?]*" />
+        <keyword attribute="Types" String="types" context="#stay" />
+        <RegExpr attribute="Types" String="(?:bv(0|[1-9]\d*))(?![a-zA-Z0-9_'?])"/>
+        <RegExpr attribute="Types" String="array(?:1\d+|[2-9]\d*)?[?]?(?![a-zA-Z0-9_'?])"/>
+        <RegExpr attribute="Types" String="(?:seq|set|iset|map|imap|multiset)(?:\s*&lt;)" context="TypeParameters" />
+        <RegExpr attribute="Types" String="(?:seq|set|iset|map|imap|multiset)(?![a-zA-Z_'?0-9])" context="#stay" />
+
+        <!-- Digit sequence ending in _ is an error -->
+        <RegExpr attribute="Error" String="[0-9]+(?:_[0-9]+)*_(?![0-9])" />
+        <RegExpr attribute="BaseN" String="0x[0-9a-fA-F]+(?:_[0-9a-fA-F]+)*" />
+        <RegExpr attribute="Decimal" String="[0-9]+(?:_[0-9]+)*" />
+        <RegExpr attribute="Float" String="[0-9]+(?:_[0-9]+)*\.[0-9]+(?:_[0-9]+)*" />
+
+        <!-- Complicated set of rules to distinguish characters and identifiers -->
+        <!--      Normal quoted character, not followed by an further ident-characters, e.g. 'a' -->
+        <RegExpr attribute="Char" String="\'[^\\]\'(?![a-zA-Z0-9'_?])" />
+        <!--      Escape characters, not followed by any further ident-characters, e.g. '\n' -->
+        <RegExpr attribute="Char" String="\'\\[0ntr'&quot;\\]\'(?![a-zA-Z0-9'_?])" />
+        <!--      Unicode characters, not followed by any further ident-characters, e.g. '\u5555' -->
+        <RegExpr attribute="Char" String="\'\\u[0-9A-Fa-f]{4}\'(?![a-zA-Z0-9'_?])" />
+        <!--      Malformed unicode is an identifier, e.g. '\u2222X' '\u222' '\u222Z' -->
+        <RegExpr attribute="Ident" String="\'\\u[0-9A-Fa-f]{4}[^\']+\'" />
+        <RegExpr attribute="Ident" String="\'\\u[0-9A-Fa-f]{0,3}[^'0-9A-Fa-f]*\'" />
+        <!--      Malformed regular escape is an identifier, e.g. '\Z' -->
+        <RegExpr attribute="Ident" String="\'\\[^0rnt\\'&quot;]\'" />
+
+        <!-- Comments must be before operators -->
+        <Detect2Chars attribute="Comment" char="/" char1="/" context="SingleLineComment" />
+        <Detect2Chars attribute="Comment" char="/" char1="*" context="MultiLineComment" />
+
+        <!-- operators, error chars and punctuation -->
+        <RegExpr attribute="Operators" String="!in(?![0-9a-zA-Z_'?])" />
+        <RegExpr attribute="Operators" String="in(?![0-9a-zA-Z_'?])" />
+        <RegExpr attribute="Operators" String="(?:\+|-|\*|/|%|&lt;(?:=(?:=(?:&gt;)?)?)?|&gt;(?:=)?|=&gt;|==[&gt;#]|!=[#]?|&amp;&amp;|\|\||![!]?|[~]|#|\.\.|:)" />
+        <RegExpr attribute="Error" String="(?:\$)" />
+
+        <RegExpr attribute="Punctuation" String="(?:;|\(|\)|\[|\]|\{|\}|,|\.|:[=|]|`|\|)" />
+
+        <!-- Openings for quoted and verbatim strings -->
+        <DetectChar attribute="String" char="&quot;" context="Quoted String" />
+        <Detect2Chars attribute="VerbatimString" char="@" char1="&quot;" context="Verbatim String" />
+        <!-- @ followed by id is a old expression -->
+        <RegExpr attribute="Punctuation" String="@(?=[ \t]*[_a-zA-Z'?])" />
+        <!-- Standalone @ is a error -->
+        <RegExpr attribute="Error" String="@" />
+
+        <!-- Order of these rules matters; the following three should be after all those above -->
+        <keyword attribute="Assertions" String="verification keywords" context="#stay" />
+        <keyword attribute="Keyword" String="keywords" context="#stay" />
+        <!-- Anything that is not an ident is already matched -->
+        <RegExpr attribute="Ident" String="[a-zA-Z0-9_'?][a-zA-Z0-9_'?]*" />
+
+      </context>
+
+      <context name="TypeParameters" attribute="Types" lineEndContext="#stay">
+        <keyword attribute="Types" String="types" context="#stay" />
+        <RegExpr attribute="Types" String="bv[1-9]\d*(?![a-zA-Z0-9_'?])" context="#stay" />
+        <RegExpr attribute="Types" String="array(?:1\d|[2-9])\d*[?]?(?![a-zA-Z0-9_'?])" context="#stay"/>
+        <RegExpr attribute="Types" String="(?:seq|set|iset|map|imap|multiset)\s*&lt;" context="TypeParameters" />
+        <RegExpr attribute="Types" String="[a-zA-Z_'?][a-zA-Z0-9_'?]*" context="#stay" />
+        <RegExpr attribute="Types" String="\s+" context="#stay" />
+        <RegExpr attribute="Types" String=",(?!\s*[,&gt;])" context="#stay" />
+        <RegExpr attribute="Error" String=",(?=\s*[,&gt;])" context="#stay" />
+        <RegExpr attribute="Types" String="&gt;" context="#pop" />
+        <RegExpr attribute="Error" String="[^a-zA-Z_'?]" />
+      </context>
+
+      <context name="Quoted String" attribute="String" lineEndContext="#pop">
+        <!-- string holds anything other than a double-quote or backslash -->
+        <RegExpr attribute="String" String="[^&quot;\\]+" />
+        <!-- standard 7 escape characters -->
+        <RegExpr attribute="String" String="\\[0nrt'&quot;\\]" />
+        <!-- unicode characters -->
+        <RegExpr attribute="String" String="\\u[0-9A-Fa-f]{4}" />
+        <!-- badly formed unicode character -->
+        <RegExpr attribute="Error" String="\\u[0-9A-Fa-f]{0,3}(?![0-9A_Fa-f])" />
+        <!-- badly formed escape -->
+        <RegExpr attribute="Error" String="\\[^u0rnt\\'&quot;]" />
+        <!-- unescaped quote ends string -->
+        <DetectChar attribute="String" char="&quot;" context="#pop" />
+      </context>
+
+      <context name="Verbatim String" attribute="VerbatimString" lineEndContext="#stay">
+        <!-- content holds all non-quote characters -->
+        <RegExpr attribute="VerbatimString" String="[^&quot;]+" context="#stay" />
+        <!-- two double-quote chars allowed -->
+        <Detect2Chars attribute="VerbatimString" char="&quot;" char1="&quot;" context="#stay" />
+        <!-- single double-quote char ends verbatim string -->
+        <DetectChar attribute="VerbatimString" char="&quot;" context="#pop" />
+      </context>
+
+      <context name="SingleLineComment" attribute="Comment" lineEndContext="#pop"/>
+      <context name="MultiLineComment" attribute="Comment" lineEndContext="#stay">
+        <Detect2Chars attribute="Comment" context="MultiLineComment" char="/" char1="*"/>
+        <Detect2Chars attribute="Comment" context="#pop" char="*" char1="/"/>
+      </context>
+      <context name="Documentation" attribute="Comment" lineEndContext="#pop" />
+    </contexts>
+
+    <itemDatas>
+      <itemData name="Normal Text" defStyleNum="dsNormal" />
+
+      <itemData name="Keyword" defStyleNum="dsKeyword" />
+      <itemData name="Types" defStyleNum="dsDataType" />
+      <itemData name="Assertions" defStyleNum="dsOthers" />
+
+      <itemData name="Decimal" defStyleNum="dsDecVal" />
+      <itemData name="BaseN" defStyleNum="dsBaseN" />
+      <itemData name="Float" defStyleNum="dsFloat" />
+      <itemData name="Char" defStyleNum="dsChar" />
+      <itemData name="String" defStyleNum="dsString" />
+      <itemData name="VerbatimString" defStyleNum="dsVerbatimString" />
+      <itemData name="Attribute" defStyleNum="dsAttribute" />
+      <itemData name="Operators" defStyleNum="dsOperator" />
+      <itemData name="Punctuation" defStyleNum="dsSpecialChar" />
+
+      <itemData name="Comment" defStyleNum="dsComment" />
+      <itemData name="Error" defStyleNum="dsError" />
+      <itemData name="Ident" defStyleNum="dsVariable" />
+    </itemDatas>
+  </highlighting>
+
+  <general>
+    <comments>
+      <comment name="singleLine" start="//" />
+      <comment name="multiLine" start="/*" end="*/" />
+    </comments>
+    <keywords casesensitive="1" />
+  </general>
+</language>

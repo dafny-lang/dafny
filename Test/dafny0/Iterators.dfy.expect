@@ -1,103 +1,44 @@
 Iterators.dfy(251,9): Error: failure to decrease termination measure
-Execution trace:
-    (0,0): anon0
-    (0,0): anon5_Else
-    (0,0): anon6_Else
 Iterators.dfy(274,9): Error: failure to decrease termination measure
-Execution trace:
-    (0,0): anon0
-    (0,0): anon5_Else
-    (0,0): anon6_Else
 Iterators.dfy(284,31): Error: failure to decrease termination measure
-Execution trace:
-    (0,0): anon0
 Iterators.dfy(296,9): Error: cannot prove termination; try supplying a decreases clause
-Execution trace:
-    (0,0): anon0
-    (0,0): anon5_Else
-    (0,0): anon6_Else
 Iterators.dfy(317,9): Error: cannot prove termination; try supplying a decreases clause
-Execution trace:
-    (0,0): anon0
-    (0,0): anon5_Else
-    (0,0): anon6_Else
 Iterators.dfy(326,31): Error: cannot prove termination; try supplying a decreases clause
-Execution trace:
-    (0,0): anon0
 Iterators.dfy(343,9): Error: failure to decrease termination measure
-Execution trace:
-    (0,0): anon0
-    (0,0): anon5_Else
-    (0,0): anon6_Else
 Iterators.dfy(353,31): Error: cannot prove termination; try supplying a decreases clause
-Execution trace:
-    (0,0): anon0
 Iterators.dfy(370,9): Error: failure to decrease termination measure
-Execution trace:
-    (0,0): anon0
-    (0,0): anon5_Else
-    (0,0): anon6_Else
 Iterators.dfy(103,21): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 Iterators.dfy(106,13): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Then
-    (0,0): anon3
 Iterators.dfy(177,27): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon15_Then
 Iterators.dfy(208,6): Error: an assignment to _new is only allowed to shrink the set
-Execution trace:
-    (0,0): anon0
-    Iterators.dfy(197,3): anon16_LoopHead
-    (0,0): anon16_LoopBody
-    Iterators.dfy(197,3): anon17_Else
-    Iterators.dfy(197,3): anon19_Else
-    (0,0): anon20_Then
 Iterators.dfy(212,20): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    Iterators.dfy(197,3): anon16_LoopHead
-    (0,0): anon16_LoopBody
-    Iterators.dfy(197,3): anon17_Else
-    Iterators.dfy(197,3): anon19_Else
-    (0,0): anon21_Then
-Iterators.dfy(40,21): Error BP5002: A precondition for this call might not hold.
+Iterators.dfy(436,18): Error: This loop invariant might not be maintained by the loop.
+Iterators.dfy(436,18): Related message: loop invariant violation
+Iterators.dfy(437,23): Error: This loop invariant might not be maintained by the loop.
+Iterators.dfy(437,23): Related message: loop invariant violation
+Iterators.dfy(438,23): Error: This loop invariant might not be maintained by the loop.
+Iterators.dfy(438,23): Related message: loop invariant violation
+Iterators.dfy(459,16): Error: This loop invariant might not be maintained by the loop.
+Iterators.dfy(459,16): Related message: loop invariant violation
+Iterators.dfy(460,21): Error: This loop invariant might not be maintained by the loop.
+Iterators.dfy(460,21): Related message: loop invariant violation
+Iterators.dfy(461,21): Error: This loop invariant might not be maintained by the loop.
+Iterators.dfy(461,21): Related message: loop invariant violation
+Iterators.dfy(470,4): Error: possible violation of yield-ensures condition
+Iterators.dfy(451,21): Related location
+Iterators.dfy(40,21): Error: A precondition for this call might not hold.
 Iterators.dfy(4,9): Related location: This is the precondition that might not hold.
-Execution trace:
-    (0,0): anon0
-    (0,0): anon35_Then
-    (0,0): anon2
-    (0,0): anon36_Then
-    (0,0): anon5
-    (0,0): anon37_Then
 Iterators.dfy(89,13): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 Iterators.dfy(119,15): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Else
 Iterators.dfy(150,15): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
-Iterators.dfy(155,23): Error BP5002: A precondition for this call might not hold.
+Iterators.dfy(155,23): Error: A precondition for this call might not hold.
 Iterators.dfy(125,9): Related location: This is the precondition that might not hold.
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Then
-    (0,0): anon3
 Iterators.dfy(234,20): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    Iterators.dfy(225,3): anon14_LoopHead
-    (0,0): anon14_LoopBody
-    Iterators.dfy(225,3): anon15_Else
-    Iterators.dfy(225,3): anon18_Else
-    (0,0): anon19_Else
+Iterators.dfy(413,16): Error: This loop invariant might not be maintained by the loop.
+Iterators.dfy(413,16): Related message: loop invariant violation
+Iterators.dfy(414,21): Error: This loop invariant might not be maintained by the loop.
+Iterators.dfy(414,21): Related message: loop invariant violation
+Iterators.dfy(415,21): Error: This loop invariant might not be maintained by the loop.
+Iterators.dfy(415,21): Related message: loop invariant violation
 
-Dafny program verifier finished with 30 verified, 20 errors
+Dafny program verifier finished with 35 verified, 30 errors

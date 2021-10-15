@@ -1,1 +1,5 @@
- error : Tests_Compile.__default.FailingTest_CheckForFailureForXunit [FAIL]
+     _module.__default.FailingTest_CheckForFailureForXunit [FAIL]
+     _module.__default.FailingTestUsingExpectWithMessage [FAIL]
+     _module.__default.FailingTestUsingExpect [FAIL]
+     _module.__default.FailingTestUsingNoLHSAssignOrHalt [FAIL]
+     _module.__default.FailingTestUsingAssignOrHalt [FAIL]

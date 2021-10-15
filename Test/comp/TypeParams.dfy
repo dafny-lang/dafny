@@ -23,6 +23,7 @@ method Main() {
   Tp();
   TraitClass();
   Direct();
+  Regressions();
 }
 
 method Standard<T(0)>() {
@@ -32,7 +33,8 @@ method Standard<T(0)>() {
   var e: Color := Gimmie();
   var f: real := Gimmie();
   var g: T := Gimmie();
-  print a, " ", b, " ", c, " ", d, " ", e, " ", f, " ", g, "\n";
+  var h: DtZ<Color> := Gimmie();
+  print a, " ", b, " ", c, " ", d, " ", e, " ", f, " ", g, " ", h, "\n";
 
   // nullable reference types
   var x0: object? := Gimmie();
@@ -74,6 +76,8 @@ method Tp() {
 }
 
 datatype Dt<G> = D0(G) | D1(G)
+
+datatype DtZ<G(0)> = DZ0(G)
 
 class Cl<X(==,0),Y(0),Z> {
   var x: X
@@ -190,4 +194,16 @@ method Direct() {
   print m0, "\n";
   print m1, "\n";
   print m2, "\n";
+}
+
+class TypeParamWithDefault<G(0)> {
+  const g: G
+  method M() returns (h: G) {
+  }
+}
+method Regressions() {
+  var k := new TypeParamWithDefault<int>;
+  var x := k.g;
+  var y := k.M();
+  print x, " ", y, "\n";
 }

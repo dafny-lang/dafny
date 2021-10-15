@@ -120,7 +120,7 @@ class List<T(0)>
   }
 
   constructor Init()
-    ensures IsList() && Contents == [] && fresh(Repr - {this})
+    ensures IsList() && Contents == [] && fresh(Repr)
   {
     var h: LLNode<T> := new LLNode<T>;
     h.next := null;

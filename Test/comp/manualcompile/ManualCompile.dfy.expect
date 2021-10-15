@@ -1,0 +1,26 @@
+
+Dafny program verifier finished with 0 verified, 0 errors
+Wrote textual form of target program to ManualCompile.cs
+hello, Dafny
+
+Dafny program verifier finished with 0 verified, 0 errors
+Wrote textual form of target program to ManualCompile.js
+hello, Dafny
+
+Dafny program verifier finished with 0 verified, 0 errors
+Wrote textual form of target program to ManualCompile-go/src/ManualCompile.go
+Additional target code written to ManualCompile-go/src/dafny/dafny.go
+Additional target code written to ManualCompile-go/src/System_/System_.go
+hello, Dafny
+
+Dafny program verifier finished with 0 verified, 0 errors
+Wrote textual form of target program to ManualCompile-java/ManualCompile.java
+Additional target code written to ManualCompile-java/_System/nat.java
+Additional target code written to ManualCompile-java/_System/__default.java
+Additional target code written to ManualCompile-java/dafny/Tuple0.java
+hello, Dafny
+
+Dafny program verifier finished with 0 verified, 0 errors
+Wrote textual form of target program to ManualCompile.cpp
+Additional target code written to ManualCompile.h
+hello, Dafny

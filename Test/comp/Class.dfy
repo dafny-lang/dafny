@@ -39,6 +39,8 @@ class MyTraitInstance extends MyTrait {
     a := 101 + x;
     b := 201 + x;
   }
+
+  static method SetTraitField(m : MyTrait) modifies m { m.a := N(); }
 }
 
 method CallEm(c: MyClass, t: MyTrait, i: MyTraitInstance)
@@ -108,6 +110,9 @@ method CallEm(c: MyClass, t: MyTrait, i: MyTraitInstance)
   print MyTraitInstance.G(), " ";
   u := MyTraitInstance.N();
   print u, "\n";
+
+  MyTraitInstance.SetTraitField(i);
+  print i.a, "\n";
 }
 
 method Main() {

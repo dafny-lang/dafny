@@ -95,9 +95,9 @@ ghost method GhM()
 
 ghost lemma GhL()  // error: a lemma is not allowed to be declared "ghost" -- it is already ghost
 
-ghost inductive lemma GhIL()  // error: a lemma is not allowed to be declared "ghost" -- it is already ghost
+ghost least lemma GhIL()  // error: a lemma is not allowed to be declared "ghost" -- it is already ghost
 
-ghost colemma GhCL()  // error: a lemma is not allowed to be declared "ghost" -- it is already ghost
+ghost greatest lemma GhCL()  // error: a lemma is not allowed to be declared "ghost" -- it is already ghost
 
 ghost twostate lemma GhL2()  // error: a lemma is not allowed to be declared "ghost" -- it is already ghost
 
@@ -116,10 +116,10 @@ ghost method GM(ghost x: int)  // error: formal not allowed to be declared "ghos
 lemma L(ghost x: int)  // error: formal not allowed to be declared "ghost" here -- a lemma is already ghost
   returns (ghost y: int)  // error: ditto
 
-inductive lemma IL(ghost x: int)  // error: formal not allowed to be declared "ghost" here -- a lemma is already ghost
-  returns (ghost y: int)  // error: ditto (actually, inductive lemmas are not allowed out-parameters at all)
+least lemma IL(ghost x: int)  // error: formal not allowed to be declared "ghost" here -- a lemma is already ghost
+  returns (ghost y: int)  // error: ditto (actually, least lemmas are not allowed out-parameters at all)
 
-colemma CoL(ghost x: int)  // error: formal not allowed to be declared "ghost" here -- a lemma is already ghost
+greatest lemma CoL(ghost x: int)  // error: formal not allowed to be declared "ghost" here -- a lemma is already ghost
   returns (ghost y: int)  // error: ditto (actually, co-lemmas are not allowed out-parameters at all)
 
 twostate lemma L2(ghost x: int)  // error: formal not allowed to be declared "ghost" here -- a lemma is already ghost
@@ -134,10 +134,10 @@ function F(ghost x: int): int  // error: formal not allowed to be declared "ghos
 function method FM(ghost x: int): int
 predicate P(ghost x: int)  // error: formal not allowed to be declared "ghost" here -- a predicate is already ghost
 
-inductive predicate IP(ghost x: int)  // error: formal not allowed to be declared "ghost" here
-                                      // -- an inductive predicate is already ghost
-copredicate CoP(ghost x: int)  // error: formal not allowed to be declared "ghost" here
-                                      // -- a copredicate is already ghost
+least predicate IP(ghost x: int)  // error: formal not allowed to be declared "ghost" here
+                                      // -- a least predicate is already ghost
+greatest predicate CoP(ghost x: int)  // error: formal not allowed to be declared "ghost" here
+                                      // -- a greatest predicate is already ghost
 
 twostate function F2(ghost x: int): int  // error: formal not allowed to be declared "ghost" here -- a function is already ghost
 twostate predicate P2(ghost x: int)  // error: formal not allowed to be declared "ghost" here -- a predicate is already ghost
@@ -165,4 +165,26 @@ datatype Dt<A> = Blue | Bucket(diameter: real) | Business(trendy: bool, a: A)
 newtype Pos = x | 0 < x witness 1
 {
   var x: int  // error: mutable fields not allowed in newtypes
+}
+type Opaque {
+  var x: int  // error: mutable field not allowed in opaque type
+}
+
+// ------------------------- nameonly parameters ------------------------------
+
+module NameOnlyParameters {
+  // name-less datatype fields
+  datatype D =
+    | D0(int, nameonly int) // error: nameonly modifier must be followed by parameter name
+    | D1(int, nameonly int, real) // error: nameonly modifier must be followed by parameter name
+    | D2(int, nameonly x: int)
+  // named function results
+  function F(nameonly y: int): int
+  function G(y: int): (nameonly r: int) // error: 'nameonly' unexpected here
+  // out-parameters
+  method M(nameonly x: int) returns (y: int)
+  method N(x: int) returns (nameonly y: int) // error: 'nameonly' not allowed here
+  // yield-parameters
+  iterator Iter0(nameonly x: int) yields (y: int)
+  iterator Iter0(x: int) yields (nameonly y: int) // error: 'nameonly' not allowed here
 }

@@ -1,8 +1,8 @@
-//RUN: %dafny /dafnyVerify:0 /compile:0 /env:0 /rprint:"%t.dfy" "%s"
-//RUN: %dafny /dafnyVerify:0 /compile:0 /env:0 /printMode:DllEmbed /rprint:"%t1.dfy" "%t.dfy"
-//RUN: %dafny /env:0 /compile:3 /printMode:DllEmbed /rprint:"%t2.dfy" "%t1.dfy" > "%t"
-//RUN: %diff "%t1.dfy" "%t2.dfy"
-//RUN: %diff "%s.expect" "%t"
+// RUN: %dafny /dafnyVerify:0 /compile:0 /env:0 /rprint:"%t.dfy" "%s"
+// RUN: %dafny /dafnyVerify:0 /compile:0 /env:0 /printMode:DllEmbed /rprint:"%t1.dfy" "%t.dfy"
+// RUN: %dafny /env:0 /compile:3 /printMode:DllEmbed /rprint:"%t2.dfy" "%t1.dfy" > "%t"
+// RUN: %diff "%t1.dfy" "%t2.dfy"
+// RUN: %diff "%s.expect" "%t"
 
 datatype List<T> = Nil | Cons(car: T, cdr: List)
 

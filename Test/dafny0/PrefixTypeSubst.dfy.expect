@@ -3,16 +3,16 @@
 /*
 module _System {
   /* CALL GRAPH for module _System:
-   * SCC at height 2:
+   * SCC at height 1:
    *   RotateRight
    * SCC at height 1:
    *   RotateLeft
    * SCC at height 0:
    *   nat
    */
-  type string(==) = seq<char>
+  type string(==,0) = seq<char>
 
-  type {:axiom} nat(==) = x: int
+  type {:axiom} nat(==,0) = x: int
     | 0 <= x
 
   trait {:compile false} object { }
@@ -26,6 +26,22 @@ module _System {
   /*-- non-null type
   type {:axiom} array(==)<arg> = c: array?<arg> | c != null /*special witness*/
   */
+
+  class {:compile false} /*_#Func1*/ -T0 ~> +R {
+    function requires(x0: T0): bool
+      reads reads(x0)
+
+    function reads(x0: T0): set<object?>
+      reads reads(x0)
+  }
+
+  type {:compile false} /*_#PartialFunc1*/ -T0 --> +R = f: T0 ~> R
+    | forall x0: T0 :: f.reads(x0) == {}
+    /*special witness*/
+
+  type {:compile false} /*_#TotalFunc1*/ -T0 -> +R = f: T0 --> R
+    | forall x0: T0 :: f.requires(x0)
+    /*special witness*/
 
   class {:compile false} /*_#Func0*/ () ~> +R {
     function requires(): bool
@@ -75,22 +91,6 @@ module _System {
     | forall x0: T0, x1: T1, x2: T2 :: f.requires(x0, x1, x2)
     /*special witness*/
 
-  class {:compile false} /*_#Func1*/ -T0 ~> +R {
-    function requires(x0: T0): bool
-      reads reads(x0)
-
-    function reads(x0: T0): set<object?>
-      reads reads(x0)
-  }
-
-  type {:compile false} /*_#PartialFunc1*/ -T0 --> +R = f: T0 ~> R
-    | forall x0: T0 :: f.reads(x0) == {}
-    /*special witness*/
-
-  type {:compile false} /*_#TotalFunc1*/ -T0 -> +R = f: T0 --> R
-    | forall x0: T0 :: f.requires(x0)
-    /*special witness*/
-
   datatype {:compile false} /*_tuple#2*/ (+T0, +T1) = _#Make2(0: T0, 1: T1)
 
   type bool { }
@@ -132,81 +132,81 @@ module _System {
 */
 
 /* CALL GRAPH for module _module:
- * SCC at height 37:
+ * SCC at height 2:
  *   RstRst10#
- * SCC at height 36:
+ * SCC at height 1:
  *   RstRst10
- * SCC at height 35:
+ * SCC at height 2:
  *   RstRst9
  *   RstRst9#
- * SCC at height 34:
+ * SCC at height 2:
  *   RstRst8
  *   RstRst8#
- * SCC at height 33:
+ * SCC at height 4:
  *   RstRst7#
- * SCC at height 32:
+ * SCC at height 3:
  *   RstRst7
- * SCC at height 31:
+ * SCC at height 2:
  *   RstRst6
  *   RstRst6#
- * SCC at height 30:
+ * SCC at height 2:
  *   RstRst5
  *   RstRst5#
- * SCC at height 29:
- *   RstRst4#
- * SCC at height 28:
- *   RstRst4
- * SCC at height 27:
- *   RstRst3#
- * SCC at height 26:
- *   RstRst3
- * SCC at height 25:
- *   RstRst2#
- * SCC at height 24:
- *   RstRst2
- * SCC at height 23:
- *   RstRst1#
- * SCC at height 22:
- *   RstRst1
- * SCC at height 21:
- *   RstRst0#
- * SCC at height 20:
- *   RstRst0
- * SCC at height 19:
- *   O#
- * SCC at height 18:
- *   O
- * SCC at height 17:
- *   N#
- * SCC at height 16:
- *   N
- * SCC at height 15:
- *   MyClass
- * SCC at height 14:
- *   MyClass.M#
- * SCC at height 13:
- *   MyClass.M
- * SCC at height 12:
- *   MyClass.L#
- * SCC at height 11:
- *   MyClass.L
- * SCC at height 10:
- *   MyClass.RST_Nat#
- * SCC at height 9:
- *   nat
- * SCC at height 8:
- *   MyClass.RST_Nat
- * SCC at height 7:
- *   MyClass.RST#
- * SCC at height 6:
- *   MyClass.RST
- * SCC at height 5:
- *   MyClass.S#
- * SCC at height 4:
- *   MyClass.S
- * SCC at height 3:
- *   MyClass.R#
  * SCC at height 2:
+ *   RstRst4#
+ * SCC at height 1:
+ *   RstRst4
+ * SCC at height 2:
+ *   RstRst3#
+ * SCC at height 1:
+ *   RstRst3
+ * SCC at height 2:
+ *   RstRst2#
+ * SCC at height 1:
+ *   RstRst2
+ * SCC at height 2:
+ *   RstRst1#
+ * SCC at height 1:
+ *   RstRst1
+ * SCC at height 2:
+ *   RstRst0#
+ * SCC at height 1:
+ *   RstRst0
+ * SCC at height 2:
+ *   O#
+ * SCC at height 1:
+ *   O
+ * SCC at height 2:
+ *   N#
+ * SCC at height 1:
+ *   N
+ * SCC at height 0:
+ *   MyClass
+ * SCC at height 3:
+ *   MyClass.M#
+ * SCC at height 2:
+ *   MyClass.M
+ * SCC at height 2:
+ *   MyClass.L#
+ * SCC at height 1:
+ *   MyClass.L
+ * SCC at height 1:
+ *   MyClass.RST_Nat#
+ * SCC at height 0:
+ *   nat
+ * SCC at height 0:
+ *   MyClass.RST_Nat
+ * SCC at height 1:
+ *   MyClass.RST#
+ * SCC at height 0:
+ *   MyClass.RST
+ * SCC at height 1:
+ *   MyClass.S#
+ * SCC at height 0:
+ *   MyClass.S
+ * SCC at height 1:
+ *   MyClass.R#
+ * SCC at height 0:
  *   MyClass.R
  * SCC at height 1:
  *   MyClass.P#
@@ -214,7 +214,7 @@ module _System {
  *   MyClass.P
  */
 class MyClass<A, B> {
-  copredicate P<X, Y>(x: X, y: Y)
+  greatest predicate P<X, Y>(x: X, y: Y)
   {
     P(x, y)
   }
@@ -226,7 +226,7 @@ class MyClass<A, B> {
   }
   ***/
 
-  copredicate R<T>()
+  greatest predicate R<T>()
   {
     R<T>()
   }
@@ -238,7 +238,7 @@ class MyClass<A, B> {
   }
   ***/
 
-  static copredicate S<Q>()
+  static greatest predicate S<Q>()
   {
     S<Q>()
   }
@@ -250,7 +250,7 @@ class MyClass<A, B> {
   }
   ***/
 
-  static copredicate RST<QQ>()
+  static greatest predicate RST<QQ>()
   {
     MyClass<B, A>.RST<QQ>()
   }
@@ -262,7 +262,7 @@ class MyClass<A, B> {
   }
   ***/
 
-  static copredicate RST_Nat<QQ>[nat]()
+  static greatest predicate RST_Nat<QQ>[nat]()
   {
     MyClass<B, A>.RST_Nat<QQ>()
   }
@@ -274,7 +274,7 @@ class MyClass<A, B> {
   }
   ***/
 
-  colemma L<U, V>(u: U, v: V)
+  greatest lemma L<U, V>(u: U, v: V)
     ensures P(u, v)
   {
     L(u, v);
@@ -296,7 +296,7 @@ class MyClass<A, B> {
   }
   ***/
 
-  colemma M<W>()
+  greatest lemma M<W>()
     ensures R<char>()
   {
     M<W>();
@@ -324,7 +324,7 @@ class MyClass<A, B> {
 type {:axiom} MyClass(==)<A, B> = c: MyClass?<A, B> | c != null /*special witness*/
 */
 
-colemma N<D0, D1, D2>(o: MyClass<D0, D1>)
+greatest lemma N<D0, D1, D2>(o: MyClass<D0, D1>)
   ensures o.R<D2>()
 {
   N<D0, D1, D2>(o);
@@ -346,7 +346,7 @@ lemma /*{:_induction _k}*/ N#<D0, D1, D2>[_k: ORDINAL](o: MyClass<D0, D1>)
 }
 ***/
 
-colemma O<D0, D1, D2>()
+greatest lemma O<D0, D1, D2>()
   ensures MyClass<D0, D1>.S<D2>()
 {
   O<D0, D1, D2>();
@@ -368,7 +368,7 @@ lemma /*{:_induction _k}*/ O#<D0, D1, D2>[_k: ORDINAL]()
 }
 ***/
 
-colemma {:induction false} RstRst0<alpha, gamma>()
+greatest lemma {:induction false} RstRst0<alpha, gamma>()
   ensures MyClass<alpha, char>.RST<gamma>()
 {
   RstRst0<int, gamma>();
@@ -390,7 +390,7 @@ lemma {:induction false} RstRst0#<alpha, gamma>[_k: ORDINAL]()
 }
 ***/
 
-colemma {:induction false} RstRst1<alpha, gamma>()
+greatest lemma {:induction false} RstRst1<alpha, gamma>()
   ensures MyClass<alpha, char>.RST<gamma>()
 {
   RstRst1<int, int>();
@@ -412,7 +412,7 @@ lemma {:induction false} RstRst1#<alpha, gamma>[_k: ORDINAL]()
 }
 ***/
 
-colemma {:induction false} RstRst2<alpha, gamma>()
+greatest lemma {:induction false} RstRst2<alpha, gamma>()
   ensures MyClass<alpha, char>.RST<gamma>()
 {
   RstRst2<alpha, gamma>();
@@ -434,7 +434,7 @@ lemma {:induction false} RstRst2#<alpha, gamma>[_k: ORDINAL]()
 }
 ***/
 
-colemma {:induction false} RstRst3<alpha, beta, gamma>()
+greatest lemma {:induction false} RstRst3<alpha, beta, gamma>()
   ensures MyClass<alpha, beta>.RST<gamma>()
 {
   RstRst3<alpha, beta, gamma>();
@@ -456,7 +456,7 @@ lemma {:induction false} RstRst3#<alpha, beta, gamma>[_k: ORDINAL]()
 }
 ***/
 
-colemma {:induction false} RstRst4<alpha, beta, gamma>()
+greatest lemma {:induction false} RstRst4<alpha, beta, gamma>()
   ensures MyClass<alpha, beta>.RST<gamma>()
 {
   RstRst4<beta, alpha, gamma>();
@@ -478,7 +478,7 @@ lemma {:induction false} RstRst4#<alpha, beta, gamma>[_k: ORDINAL]()
 }
 ***/
 
-colemma {:induction false} RstRst5<alpha, gamma>()
+greatest lemma {:induction false} RstRst5<alpha, gamma>()
   ensures MyClass<alpha, char>.RST<gamma>()
 {
   if 2 <= _k.Offset {
@@ -508,7 +508,7 @@ lemma {:induction false} RstRst5#<alpha, gamma>[_k: ORDINAL]()
 }
 ***/
 
-colemma {:induction false} RstRst6<alpha, beta, gamma>()
+greatest lemma {:induction false} RstRst6<alpha, beta, gamma>()
   ensures MyClass<alpha, beta>.RST<gamma>()
 {
   if
@@ -538,7 +538,7 @@ lemma {:induction false} RstRst6#<alpha, beta, gamma>[_k: ORDINAL]()
 }
 ***/
 
-colemma RstRst7<alpha, beta, gamma>()
+greatest lemma RstRst7<alpha, beta, gamma>()
   ensures MyClass<alpha, beta>.RST<gamma>()
 {
   if _k != 1 && _k.Offset == 1 {
@@ -566,7 +566,7 @@ lemma /*{:_induction _k}*/ RstRst7#<alpha, beta, gamma>[_k: ORDINAL]()
 }
 ***/
 
-colemma {:induction false} RstRst8<alpha, gamma>[nat]()
+greatest lemma {:induction false} RstRst8<alpha, gamma>[nat]()
   ensures MyClass<alpha, char>.RST_Nat<gamma>()
 {
   if 2 <= _k {
@@ -586,7 +586,7 @@ lemma {:induction false} RstRst8#<alpha, gamma>[_k: nat]()
 }
 ***/
 
-colemma {:induction false} RstRst9<alpha, beta, gamma>[nat]()
+greatest lemma {:induction false} RstRst9<alpha, beta, gamma>[nat]()
   ensures MyClass<alpha, beta>.RST_Nat<gamma>()
 {
   if 2 <= _k {
@@ -606,7 +606,7 @@ lemma {:induction false} RstRst9#<alpha, beta, gamma>[_k: nat]()
 }
 ***/
 
-colemma RstRst10<alpha, beta, gamma>[nat]()
+greatest lemma RstRst10<alpha, beta, gamma>[nat]()
   ensures MyClass<alpha, beta>.RST_Nat<gamma>()
 {
 }
@@ -619,36 +619,20 @@ lemma /*{:_induction _k}*/ RstRst10#<alpha, beta, gamma>[_k: nat]()
   }
 }
 ***/
-PrefixTypeSubst.dfy(52,0): Error BP5003: A postcondition might not hold on this return path.
+PrefixTypeSubst.dfy(52,0): Error: A postcondition might not hold on this return path.
 PrefixTypeSubst.dfy(51,30): Related location: This is the postcondition that might not hold.
 PrefixTypeSubst.dfy(19,17): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
-PrefixTypeSubst.dfy(58,0): Error BP5003: A postcondition might not hold on this return path.
+PrefixTypeSubst.dfy(58,0): Error: A postcondition might not hold on this return path.
 PrefixTypeSubst.dfy(57,30): Related location: This is the postcondition that might not hold.
 PrefixTypeSubst.dfy(19,17): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
-PrefixTypeSubst.dfy(64,0): Error BP5003: A postcondition might not hold on this return path.
+PrefixTypeSubst.dfy(64,0): Error: A postcondition might not hold on this return path.
 PrefixTypeSubst.dfy(63,30): Related location: This is the postcondition that might not hold.
 PrefixTypeSubst.dfy(19,17): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
-PrefixTypeSubst.dfy(70,0): Error BP5003: A postcondition might not hold on this return path.
+PrefixTypeSubst.dfy(70,0): Error: A postcondition might not hold on this return path.
 PrefixTypeSubst.dfy(69,30): Related location: This is the postcondition that might not hold.
 PrefixTypeSubst.dfy(19,17): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
-PrefixTypeSubst.dfy(85,9): Error BP5003: A postcondition might not hold on this return path.
+PrefixTypeSubst.dfy(85,9): Error: A postcondition might not hold on this return path.
 PrefixTypeSubst.dfy(81,30): Related location: This is the postcondition that might not hold.
 PrefixTypeSubst.dfy(19,17): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon5_Then
-    (0,0): anon6_Else
 
 Dafny program verifier finished with 16 verified, 5 errors

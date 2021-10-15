@@ -284,3 +284,214 @@ module BigOrdinals {
   newtype MyOrdinal = ORDINAL  // error: cannot use ORDINAL here
   newtype MyOrdinal' = o: ORDINAL | true  // error: cannot use ORDINAL here
 }
+
+module Cycle0 {
+  type X = x: int | P(x) // error: recursive constraint dependency
+
+  predicate P(y: int) {
+    M();
+    true
+  }
+
+  lemma M() {
+    var x: X;
+  }
+}
+
+module Cycle1 {
+  // regression: the following type synonym once foiled the recursive-constraint-dependency checking
+  type X = Y
+  type Y = x: int | P(x) // error: recursive constraint dependency
+
+  predicate P(y: int) {
+    M();
+    true
+  }
+
+  lemma M() {
+    var x: X;
+  }
+}
+
+module Cycle2 {
+  newtype X = x: int | P(x) // error: recursive constraint dependency
+
+  predicate P(y: int) {
+    M();
+    true
+  }
+
+  lemma M() {
+    var x: X;
+  }
+}
+
+module Cycle3 {
+  // regression: the following type synonym once foiled the recursive-constraint-dependency checking
+  type X = Y
+  newtype Y = x: int | P(x) // error: recursive constraint dependency
+
+  predicate P(y: int) {
+    M();
+    true
+  }
+
+  lemma M() {
+    var x: X;
+  }
+}
+
+// ----- more tests of declaration dependencies
+
+module LongerCycle0 {
+  type G0 = G1
+  type G1 = G2
+  type G2 = G3<int>
+  type G3<X> = p: (X, G5) | true witness * // error: recursive constraint dependency
+  datatype G5 = G5(G6)
+  codatatype G6 = G6(array<G0>)
+}
+
+module LongerCycle1 {
+  type G0 = G1
+  type G1 = G2
+  type G2 = G3<int>
+  type G3<X> = (X, G4)
+  newtype G4 = x | 0 <= x < 5 && forall r :: P(r) ==> P(r) // error: recursive constraint dependency
+  predicate P(r: G5)
+  datatype G5 = G5(G6)
+  codatatype G6 = G6(array<G0>)
+}
+
+// ----- regression
+
+module CycleUnsoundnessRegression {
+  type X = Y
+  type Y = x: int | P(x) witness (M(); 2) // error: recursive constraint dependency
+
+  predicate P(y: int) {
+    false
+  }
+
+  lemma M()
+    ensures false
+  {
+    var x: X;
+    assert P(x);
+  }
+}
+
+// ----- cycle through function-by-method's
+
+module FunctionByMethod {
+  // --- constraints
+
+  newtype NT0 = x: int | P0(x)  // error: recursive dependency
+  predicate P0(x: int) {
+    x as NT0 == 3
+  } by method {
+    return x == 3;
+  }
+
+  newtype NT1 = x: int | P1(x)
+  predicate P1(x: int) {
+    x == 3
+  } by method {
+    return x as NT1 == 3;
+  }
+
+  type ST0 = x: int | Q0(x)  // error: recursive dependency
+  predicate Q0(x: int) {
+    x as ST0 == 3
+  } by method {
+    return x == 3;
+  }
+
+  type ST1 = x: int | Q1(x)
+  predicate Q1(x: int) {
+    x == 3
+  } by method {
+    return x as ST1 == 3;
+  }
+
+  // witnesses
+
+  newtype NW0 = x: int | true ghost witness NWitness0()  // error: recursive dependency
+  function NWitness0(): int {
+    150 + (0 as NW0 as int)
+  } by method {
+    return 150;
+  }
+
+  newtype NW1 = x: int | true ghost witness NWitness1()
+  function NWitness1(): int {
+    150
+  } by method {
+    return 150 + (0 as NW1 as int);
+  }
+
+  newtype NW2 = x: int | true witness NWitness2()  // error: recursive dependency
+  function NWitness2(): int {
+    150 + (0 as NW2 as int)
+  } by method {
+    return 150;
+  }
+
+  newtype NW3 = x: int | true witness NWitness3()  // error: recursive dependency
+  function NWitness3(): int {
+    150
+  } by method {
+    return 150 + (0 as NW3 as int);
+  }
+
+  type SW0 = x: int | true ghost witness SWitness0()  // error: recursive dependency
+  function SWitness0(): int {
+    150 + (0 as SW0 as int)
+  } by method {
+    return 150;
+  }
+
+  type SW1 = x: int | true ghost witness SWitness1()
+  function SWitness1(): int {
+    150
+  } by method {
+    return 150 + (0 as SW1 as int);
+  }
+
+  type SW2 = x: int | true witness SWitness2()  // error: recursive dependency
+  function SWitness2(): int {
+    150 + (0 as SW2 as int)
+  } by method {
+    return 150;
+  }
+
+  type SW3 = x: int | true witness SWitness3()  // error: recursive dependency
+  function SWitness3(): int {
+    150
+  } by method {
+    return 150 + (0 as SW3 as int);
+  }
+
+  // constants
+
+  ghost const c0 := R0()  // error: recursive dependency
+  function R0(): int {
+    2 + c0
+  } by method {
+    return 2;
+  }
+
+  const c1 := R1()  // error: recursive dependency
+  function R1(): int {
+    2 + c1
+  } by method {
+    return 2;
+  }
+
+  const c2 := R2()  // error: recursive dependency
+  function R2(): int {
+    2
+  } by method {
+    return 2 + c2;
+  }
+}

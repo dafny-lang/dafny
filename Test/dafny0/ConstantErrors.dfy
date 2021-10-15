@@ -9,8 +9,8 @@ module A' {
   const one:int := 1
   const three:int := 3
   const four:int := three + one
-  const five:int := six - one  // error: cycle five -> six
-  const six: int := five + one  // error: cycle five -> six
+  const five:int := six - one  // error: cycle between five, six
+  const six: int := five + one
 }
 
 module B {  // non-static const's
@@ -107,8 +107,8 @@ module F {
 
 module G {
   const a: int := c  // error: cyclic dependency between a, b, and c
-  const b := G(a)  // error: ditto
-  const c := F(b)  // error: ditto
+  const b := G(a)
+  const c := F(b)
   function method G(x: int): int { x + 2 }
   function method F(x: int): int { 2 * x }
 
@@ -252,7 +252,7 @@ module S {
 }
 
 module T refines S {
-  class MyClass {
+  class MyClass ... {
     const a: int  // error: cannot change a "var" to a "const"
     var b: int  // error: cannot change a "const" to a "var"
     const u: real  // error: cannot change from static to non-static
@@ -265,4 +265,21 @@ module T refines S {
   ghost const x: int  // this ghostified field inherits the RHS from above
   const y: int  // error: there must be more of a change to allow a re-declaration
   const z := 2.7  // error: bad type for the RHS
+}
+
+// ---------- assign-such-that --------
+
+module AssignSuchThat {
+  method Duplicate() {
+    var x: int;
+    x, x :| true;  // error: duplicate LHS
+  }
+
+  class MyClass {
+    const c: int
+
+    method M() {
+      c :| assume true;  // error: c is not mutable
+    }
+  }
 }

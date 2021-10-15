@@ -1,8 +1,8 @@
-TypeTests.dfy(9,17): Error: type mismatch for argument 0 (function expects C, got D)
-TypeTests.dfy(9,20): Error: type mismatch for argument 1 (function expects D, got C)
-TypeTests.dfy(10,15): Error: type mismatch for argument 0 (function expects C, got int)
-TypeTests.dfy(10,18): Error: type mismatch for argument 1 (function expects D, got int)
-TypeTests.dfy(16,16): Error: incorrect type of method in-parameter (expected int, got bool)
+TypeTests.dfy(9,14): Error: incorrect type of function argument 0 (expected C, found D)
+TypeTests.dfy(9,14): Error: incorrect type of function argument 1 (expected D, found C)
+TypeTests.dfy(10,14): Error: incorrect type of function argument 0 (expected C, found int)
+TypeTests.dfy(10,14): Error: incorrect type of function argument 1 (expected D, found int)
+TypeTests.dfy(16,16): Error: incorrect type of method in-parameter (expected int, found bool)
 TypeTests.dfy(16,16): Error: incorrect type of method out-parameter 1 (expected C, got int)
 TypeTests.dfy(17,12): Error: incorrect type of method out-parameter 1 (expected C, got int)
 TypeTests.dfy(45,6): Error: Duplicate local-variable name: z
@@ -26,8 +26,17 @@ TypeTests.dfy(23,9): Error: because of cyclic dependencies among constructor arg
 TypeTests.dfy(169,7): Error: non-ghost variable cannot be assigned a value that depends on a ghost
 TypeTests.dfy(179,6): Error: cannot assign to non-ghost variable in a ghost context
 TypeTests.dfy(180,9): Error: cannot assign to non-ghost variable in a ghost context
-TypeTests.dfy(198,15): Error: incorrect type of datatype constructor argument (found int -> int, expected int -> Dt<int>) (covariant type parameter 1 would require int <: Dt<int>)
-TypeTests.dfy(204,15): Error: incorrect type of datatype constructor argument (found Dt<?> -> Dt<?>, expected ? -> Dt<?>) (contravariance for type parameter0 expects ? <: Dt<?>)
-TypeTests.dfy(211,11): Error: type mismatch for argument (function expects ?, got set<?>)
+TypeTests.dfy(198,10): Error: incorrect type of datatype constructor argument (expected int -> Dt<int>, found int -> int) (covariant type parameter 1 would require int <: Dt<int>)
+TypeTests.dfy(204,10): Error: incorrect type of datatype constructor argument (expected ? -> Dt<?>, found Dt<?> -> Dt<?>) (contravariance for type parameter0 expects ? <: Dt<?>)
+TypeTests.dfy(211,10): Error: incorrect type of function argument (expected ?, found set<?>)
 TypeTests.dfy(222,9): Error: Assignment to array element is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
-32 resolution/type errors detected in TypeTests.dfy
+TypeTests.dfy(229,11): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'A' can be constructed
+TypeTests.dfy(230,11): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'B' can be constructed
+TypeTests.dfy(232,11): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'Cycle' can be constructed
+TypeTests.dfy(237,20): Error: using the type being defined ('A') here violates strict positivity, that is, it would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
+TypeTests.dfy(238,20): Error: using the type being defined ('B') here violates strict positivity, that is, it would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
+TypeTests.dfy(243,20): Error: using the type being defined ('E') here violates strict positivity, that is, it would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
+TypeTests.dfy(244,20): Error: using the type being defined ('F') here violates strict positivity, that is, it would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
+TypeTests.dfy(245,20): Error: using the type being defined ('G') here violates strict positivity, that is, it would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
+TypeTests.dfy(250,7): Error: recursive constraint dependency involving a subset type: CycW -> W -> CycleW -> CycW
+41 resolution/type errors detected in TypeTests.dfy

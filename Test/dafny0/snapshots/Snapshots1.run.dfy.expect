@@ -11,7 +11,5 @@ Processing command (at Snapshots1.v1.dfy(3,4)) assert (forall<alpha> $o: ref, $f
 Processing command (at Snapshots1.v1.dfy(4,10)) assert false;
   >>> DoNothingToAssert
 Snapshots1.v1.dfy(4,9): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 
 Dafny program verifier finished with 0 verified, 1 error

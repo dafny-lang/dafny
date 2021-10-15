@@ -45,7 +45,7 @@ class A {
   {}
 
   twostate lemma L4(new a: A)
-    requires allocated(a)
+    requires old(allocated(a))
     requires unchanged(a)
   {
     assert a.f == old(a.f);
@@ -85,19 +85,20 @@ class Node {
   ghost var Repr: set<Node>
   predicate Valid()
     reads this, Repr
+    ensures Valid() ==> this in Repr
   {
     this in Repr && (forall o :: o in Repr ==> allocated(o)) &&
     (next != null ==> next in Repr && next.Repr <= Repr && this !in next.Repr && next.Valid())
   }
   constructor (y: int)
-    ensures Valid() && fresh(Repr - {this})
+    ensures Valid() && fresh(Repr)
   {
     x, next := y, null;
     Repr := {this};
   }
   constructor Prepend(y: int, nxt: Node)
     requires nxt.Valid()
-    ensures Valid() && fresh(Repr - {this} - nxt.Repr)
+    ensures Valid() && fresh(Repr - nxt.Repr)
   {
     x, next := y, nxt;
     Repr := {this} + nxt.Repr;
@@ -122,7 +123,7 @@ class Node {
   }
 
   twostate lemma M_Lemma(node: Node)
-    requires old(Valid())
+    requires old(Valid()) && old(allocated(Repr))
     requires old(node.x) <= node.x && old((node.next, node.Repr)) == (node.next, node.Repr)
     requires unchanged(old(Repr) - {node})
     ensures Valid() && old(Sum()) <= Sum()
@@ -198,7 +199,7 @@ class {:autocontracts} NodeAuto {
   }
   constructor {:autocontracts false} Prepend(y: int, nxt: NodeAuto)
     requires nxt.Valid() && allocated(nxt.Repr);
-    ensures Valid() && fresh(Repr - {this} - nxt.Repr)
+    ensures Valid() && fresh(Repr - nxt.Repr)
   {
     x, next := y, nxt;
     Repr := {this} + nxt.Repr;
@@ -210,6 +211,7 @@ class {:autocontracts} NodeAuto {
   }
 
   method M(node: NodeAuto)
+    requires allocated(Repr)
     modifies node
   {
     var s := Sum();
@@ -220,7 +222,7 @@ class {:autocontracts} NodeAuto {
 
   twostate lemma M_Lemma(node: NodeAuto)
     requires old(node.x) <= node.x && old((node.next, node.Repr)) == (node.next, node.Repr)
-    requires unchanged(old(Repr) - {node})
+    requires old(allocated(Repr)) && unchanged(old(Repr) - {node})
     ensures Valid() && old(Sum()) <= Sum()
     decreases Repr
   {

@@ -58,13 +58,13 @@ class CF {
 
   predicate method G()
 
-  copredicate Co()
+  greatest predicate Co()
 
-  protected function H(): int
+  function H(): int
 
-  static protected function method I(): real
+  static function method I(): real
 
-  static protected predicate method J()
+  static predicate method J()
 }
 
 module A {
@@ -101,9 +101,9 @@ lemma M(x: int)
 {
 }
 
-colemma M'(x': int)
+greatest lemma M'(x': int)
   ensures true
 {
 }
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier did not attempt verification

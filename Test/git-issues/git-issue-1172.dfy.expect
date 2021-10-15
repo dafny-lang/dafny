@@ -1,0 +1,36 @@
+git-issue-1172.dfy(9,12): Error: A '*' expression is not allowed here
+git-issue-1172.dfy(16,12): Error: A '*' expression is not allowed here
+git-issue-1172.dfy(23,12): Error: A '*' expression is not allowed here
+git-issue-1172.dfy(30,12): Error: A '*' expression is not allowed here
+git-issue-1172.dfy(37,12): Error: A '*' expression is not allowed here
+git-issue-1172.dfy(44,12): Error: A '*' expression is not allowed here
+git-issue-1172.dfy(51,12): Error: A '*' expression is not allowed here
+git-issue-1172.dfy(80,26): Error: 'decreases' clauses are meaningless for least and greatest predicates, so they are not allowed
+git-issue-1172.dfy(86,29): Error: 'decreases' clauses are meaningless for least and greatest predicates, so they are not allowed
+git-issue-1172.dfy(111,18): Error: A 'decreases' clause that contains '*' is not allowed to contain any other expressions
+git-issue-1172.dfy(114,18): Error: A 'decreases' clause that contains '*' is not allowed to contain any other expressions
+git-issue-1172.dfy(118,12): Error: A 'decreases' clause that contains '*' is not allowed to contain any other expressions
+git-issue-1172.dfy(122,15): Error: A 'decreases' clause that contains '*' is not allowed to contain any other expressions
+git-issue-1172.dfy(125,18): Error: A 'decreases' clause that contains '*' is not allowed to contain any other expressions
+git-issue-1172.dfy(128,21): Error: A 'decreases' clause that contains '*' is not allowed to contain any other expressions
+git-issue-1172.dfy(132,12): Error: A 'decreases' clause that contains '*' is not allowed to contain any other expressions
+git-issue-1172.dfy(133,12): Error: A 'decreases' clause that contains '*' is not allowed to contain any other expressions
+git-issue-1172.dfy(134,12): Error: A 'decreases' clause that contains '*' is not allowed to contain any other expressions
+git-issue-1172.dfy(135,12): Error: A 'decreases' clause that contains '*' is not allowed to contain any other expressions
+git-issue-1172.dfy(140,17): Error: A 'decreases' clause that contains '*' is not allowed to contain any other expressions
+git-issue-1172.dfy(145,17): Error: A 'decreases' clause that contains '*' is not allowed to contain any other expressions
+git-issue-1172.dfy(151,14): Error: A 'decreases' clause that contains '*' is not allowed to contain any other expressions
+git-issue-1172.dfy(152,14): Error: A 'decreases' clause that contains '*' is not allowed to contain any other expressions
+git-issue-1172.dfy(157,17): Error: A 'decreases' clause that contains '*' is not allowed to contain any other expressions
+git-issue-1172.dfy(158,17): Error: A 'decreases' clause that contains '*' is not allowed to contain any other expressions
+git-issue-1172.dfy(165,14): Error: A 'reads' clause that contains '*' is not allowed to contain any other expressions
+git-issue-1172.dfy(168,14): Error: A 'reads' clause that contains '*' is not allowed to contain any other expressions
+git-issue-1172.dfy(172,8): Error: A 'reads' clause that contains '*' is not allowed to contain any other expressions
+git-issue-1172.dfy(176,11): Error: A 'reads' clause that contains '*' is not allowed to contain any other expressions
+git-issue-1172.dfy(179,14): Error: A 'reads' clause that contains '*' is not allowed to contain any other expressions
+git-issue-1172.dfy(182,17): Error: A 'reads' clause that contains '*' is not allowed to contain any other expressions
+git-issue-1172.dfy(186,8): Error: A 'reads' clause that contains '*' is not allowed to contain any other expressions
+git-issue-1172.dfy(187,8): Error: A 'reads' clause that contains '*' is not allowed to contain any other expressions
+git-issue-1172.dfy(188,8): Error: A 'reads' clause that contains '*' is not allowed to contain any other expressions
+git-issue-1172.dfy(189,8): Error: A 'reads' clause that contains '*' is not allowed to contain any other expressions
+35 parse errors detected in git-issue-1172.dfy

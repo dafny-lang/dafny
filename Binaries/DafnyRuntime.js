@@ -1,3 +1,6 @@
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
+
 const BigNumber = require('bignumber.js');
 BigNumber.config({ MODULO_MODE: BigNumber.EUCLID })
 let _dafny = (function() {
@@ -29,20 +32,20 @@ let _dafny = (function() {
   $module.NewObject = function() {
     return { _tname: "object" };
   }
+  $module.InstanceOfTrait = function(obj, trait) {
+    return obj._parentTraits !== undefined && obj._parentTraits().includes(trait);
+  }
   $module.Rtd_bool = class {
     static get Default() { return false; }
   }
   $module.Rtd_char = class {
-    static get Default() { return '\0'; }
+    static get Default() { return 'D'; }  // See CharType.DefaultValue in Dafny source code
   }
   $module.Rtd_int = class {
     static get Default() { return BigNumber(0); }
   }
-  $module.Rtd_bv_Native = class {
+  $module.Rtd_number = class {
     static get Default() { return 0; }
-  }
-  $module.Rtd_bv_NonNative = class {
-    static get Default() { return BigNumber(0); }
   }
   $module.Rtd_ref = class {
     static get Default() { return null; }
@@ -70,6 +73,9 @@ let _dafny = (function() {
         }
       }
       return true;
+    }
+    static Default(...values) {
+      return Tuple.of(...values);
     }
     static Rtd(...rtdArgs) {
       return {
@@ -310,7 +316,7 @@ let _dafny = (function() {
       }
     }
     contains(k) {
-      return this.findIndex(k) < this.length;
+      return !this.get(k).isZero();
     }
     add(k, n) {
       let i = this.findIndex(k);
@@ -340,8 +346,6 @@ let _dafny = (function() {
     equals(other) {
       if (this === other) {
         return true;
-      } else if (this.length !== other.length) {
-        return false;
       }
       for (let e of this) {
         let [k, n] = e;
@@ -350,7 +354,7 @@ let _dafny = (function() {
           return false;
         }
       }
-      return true;
+      return this.cardinality().isEqualTo(other.cardinality());
     }
     get Elements() {
       return this.Elements_();
@@ -370,7 +374,9 @@ let _dafny = (function() {
     *UniqueElements_() {
       for (let e of this) {
         let [k, n] = e;
-        yield k;
+        if (!n.isZero()) {
+          yield k;
+        }
       }
     }
     Union(that) {
@@ -421,12 +427,9 @@ let _dafny = (function() {
     }
     IsDisjointFrom(that) {
       let intersection = this.Intersect(that);
-      return intersection.length === 0;
+      return intersection.cardinality().isZero();
     }
     IsSubsetOf(that) {
-      if (that.length < this.length) {
-        return false;
-      }
       for (let e of this) {
         let [k, n] = e;
         let m = that.get(k);
@@ -437,20 +440,7 @@ let _dafny = (function() {
       return true;
     }
     IsProperSubsetOf(that) {
-      if (that.length < this.length) {
-        return false;
-      }
-      let proper = this.length < that.length;
-      for (let e of this) {
-        let [k, n] = e;
-        let m = that.get(k);
-        if (!n.isLessThanOrEqualTo(m)) {
-          return false;
-        } else if (!proper && n.isLessThan(m)) {
-          proper = true;
-        }
-      }
-      return proper;
+      return this.IsSubsetOf(that) && this.cardinality().isLessThan(that.cardinality());
     }
   }
   $module.Seq = class Seq extends Array {
@@ -466,10 +456,16 @@ let _dafny = (function() {
     toString() {
       return "[" + arrayElementsToString(this) + "]";
     }
-    update(i, v) {
-      let t = this.slice();
-      t[i] = v;
-      return t;
+    static update(s, i, v) {
+      if (typeof s === "string") {
+        let p = s.slice(0, i);
+        let q = s.slice(i.toNumber() + 1);
+        return p.concat(v, q);
+      } else {
+        let t = s.slice();
+        t[i] = v;
+        return t;
+      }
     }
     equals(other) {
       if (this === other) {
@@ -520,6 +516,9 @@ let _dafny = (function() {
         r.push(...b);
         return r;
       }
+    }
+    static JoinIfPossible(x) {
+      try { return x.join(""); } catch(_error) { return x; }
     }
     static IsPrefixOf(a, b) {
       if (b.length < a.length) {
@@ -623,6 +622,30 @@ let _dafny = (function() {
         s.push(_dafny.Tuple.of(k, v));
       }
       return s;
+    }
+    Merge(that) {
+      let m = that.slice();
+      for (let e of this) {
+        let [k, v] = e;
+        let i = m.findIndex(k);
+        if (i == m.length) {
+          m[i] = [k, v];
+        }
+      }
+      return m;
+    }
+    Subtract(keys) {
+      if (this.length === 0 || keys.length === 0) {
+        return this;
+      }
+      let m = new Map();
+      for (let e of this) {
+        let [k, v] = e;
+        if (!keys.contains(k)) {
+          m[m.length] = e;
+        }
+      }
+      return m;
     }
   }
   $module.newArray = function(initValue, ...dims) {
@@ -839,7 +862,7 @@ let _dafny = (function() {
       // c = ((-a) % bp)
       // -a: bp - c if c > 0
       // -a: 0 if c == 0
-      let c = (-1) % bp;
+      let c = (-a) % bp;
       return c === 0 ? c : bp - c;
     }
   }
@@ -964,6 +987,22 @@ let _dafny = (function() {
   }
   $module.SingleValue = function*(v) {
     yield v;
+  }
+  $module.HaltException = class HaltException extends Error {
+    constructor(message) {
+      super(message)
+    }
+  }
+  $module.HandleHaltExceptions = function(f) {
+    try {
+      f()
+    } catch (e) {
+      if (e instanceof _dafny.HaltException) {
+        process.stdout.write("[Program halted] " + e.message + "\n")
+      } else {
+        throw e
+      }
+    }
   }
   return $module;
 

@@ -7,9 +7,9 @@ module MyModule {
   export
     provides F, FunctionG, Y  // error: not a member ("FunctionG")
     provides Undeniable, YourClass.M  // error: not a class ("YourClass")
-    provides Datatype.Ctor  // error: not a class ("Datatype")
+    provides Datatype.UndefinedFunction  // error: not a member ("UndefinedFunction")
   export Alt
-    provides MyClass.SomeMethod, MyClass.UndefinedMethod, MyClass.x  // error: member not found in class ("UndefinedMethod")
+    provides MyClass.SomeMethod, MyClass.UndefinedMethod, MyClass.x  // error: not a member ("UndefinedMethod")
   export Another
     reveals MyClass.SomeMethod  // error: cannot be revealed ("SomeMethod")
     provides Alt  // error: cannot be exported ("Alt")

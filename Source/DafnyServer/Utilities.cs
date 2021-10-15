@@ -1,3 +1,6 @@
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
+
 using System;
 using System.IO;
 using System.Text;
@@ -45,7 +48,7 @@ namespace Microsoft.Dafny {
 
     internal static void ApplyArgs(string[] args, ErrorReporter reporter) {
       Dafny.DafnyOptions.Install(new Dafny.DafnyOptions(reporter));
-      Dafny.DafnyOptions.O.ProverKillTime = 10; //This is just a default; it can be overriden
+      Dafny.DafnyOptions.O.TimeLimit = 10; //This is just a default; it can be overriden
       DafnyOptions.O.VerifySnapshots = 3;
 
       if (CommandLineOptions.Clo.Parse(args)) {

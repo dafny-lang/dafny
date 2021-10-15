@@ -1,2 +1,2 @@
-Regression20.dfy(6,12): Error: Undeclared top-level type or type parameter: bv (did you forget to qualify a name or declare a module import 'opened?')
+Regression20.dfy(6,12): Error: Undeclared top-level type or type parameter: bv (did you forget to qualify a name or declare a module import 'opened'?)
 1 resolution/type errors detected in Regression20.dfy

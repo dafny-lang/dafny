@@ -1,5 +1,7 @@
 
-Dafny program verifier finished with 19 verified, 0 errors
+Dafny program verifier finished with 56 verified, 0 errors
+
+Dafny program verifier did not attempt verification
 0
 0
 3
@@ -42,6 +44,16 @@ g Q 2
 8 1 -31
 0 0 0
 0 0 0
+uint8:  10:1 0:231
+uint16: 2848:7 0:65511
+uint32: 186737707:10 0:4294967271
+uint64: 802032351030850069:4 0:18446744073709551591
+via real: 7:12 -8:1 -7:12 8:1
+int:      7:12 -8:1 -7:12 8:1 -12:0 12:0
+int8:     7:12 -8:1 -7:12 8:1 -12:0 12:0
+int16:    7:12 -8:1 -7:12 8:1 -12:0 12:0
+int32:    7:12 -8:1 -7:12 8:1 -12:0 12:0
+int64:    7:12 -8:1 -7:12 8:1 -12:0 12:0
 0.2
 35.2 27.2 -27.2
 124.8 -124.8
@@ -79,13 +91,25 @@ true false
 int:
 -42	 <0 Y <=0 Y ==0 N !=0 Y >0 N >=0 N 0< N 0<= N 0== N 0!= Y 0> Y 0>= Y
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
+0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
 23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
 MyNumber:
 -42	 <0 Y <=0 Y ==0 N !=0 Y >0 N >=0 N 0< N 0<= N 0== N 0!= Y 0> Y 0>= Y
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
+0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
 23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
+120 120.0 120 120 120 x
+120 120.0 120 120 120 x
+120 120
+120 120.0 120 120 120 x
+120 120.0 120 120 120 x
+120 120
+false true false true
+true false true false
+false true false true
+true false true false
 
-Dafny program verifier finished with 19 verified, 0 errors
+Dafny program verifier did not attempt verification
 0
 0
 3
@@ -128,6 +152,16 @@ g Q 2
 8 1 -31
 0 0 0
 0 0 0
+uint8:  10:1 0:231
+uint16: 2848:7 0:65511
+uint32: 186737707:10 0:4294967271
+uint64: 802032351030850069:4 0:18446744073709551591
+via real: 7:12 -8:1 -7:12 8:1
+int:      7:12 -8:1 -7:12 8:1 -12:0 12:0
+int8:     7:12 -8:1 -7:12 8:1 -12:0 12:0
+int16:    7:12 -8:1 -7:12 8:1 -12:0 12:0
+int32:    7:12 -8:1 -7:12 8:1 -12:0 12:0
+int64:    7:12 -8:1 -7:12 8:1 -12:0 12:0
 0.2
 35.2 27.2 -27.2
 124.8 -124.8
@@ -165,13 +199,25 @@ true false
 int:
 -42	 <0 Y <=0 Y ==0 N !=0 Y >0 N >=0 N 0< N 0<= N 0== N 0!= Y 0> Y 0>= Y
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
+0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
 23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
 MyNumber:
 -42	 <0 Y <=0 Y ==0 N !=0 Y >0 N >=0 N 0< N 0<= N 0== N 0!= Y 0> Y 0>= Y
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
+0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
 23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
+120 120.0 120 120 120 x
+120 120.0 120 120 120 x
+120 120
+120 120.0 120 120 120 x
+120 120.0 120 120 120 x
+120 120
+false true false true
+true false true false
+false true false true
+true false true false
 
-Dafny program verifier finished with 19 verified, 0 errors
+Dafny program verifier did not attempt verification
 0
 0
 3
@@ -214,6 +260,16 @@ g Q 2
 8 1 -31
 0 0 0
 0 0 0
+uint8:  10:1 0:231
+uint16: 2848:7 0:65511
+uint32: 186737707:10 0:4294967271
+uint64: 802032351030850069:4 0:18446744073709551591
+via real: 7:12 -8:1 -7:12 8:1
+int:      7:12 -8:1 -7:12 8:1 -12:0 12:0
+int8:     7:12 -8:1 -7:12 8:1 -12:0 12:0
+int16:    7:12 -8:1 -7:12 8:1 -12:0 12:0
+int32:    7:12 -8:1 -7:12 8:1 -12:0 12:0
+int64:    7:12 -8:1 -7:12 8:1 -12:0 12:0
 0.2
 35.2 27.2 -27.2
 124.8 -124.8
@@ -251,13 +307,25 @@ true false
 int:
 -42	 <0 Y <=0 Y ==0 N !=0 Y >0 N >=0 N 0< N 0<= N 0== N 0!= Y 0> Y 0>= Y
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
+0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
 23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
 MyNumber:
 -42	 <0 Y <=0 Y ==0 N !=0 Y >0 N >=0 N 0< N 0<= N 0== N 0!= Y 0> Y 0>= Y
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
+0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
 23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
+120 120.0 120 120 120 x
+120 120.0 120 120 120 x
+120 120
+120 120.0 120 120 120 x
+120 120.0 120 120 120 x
+120 120
+false true false true
+true false true false
+false true false true
+true false true false
 
-Dafny program verifier finished with 19 verified, 0 errors
+Dafny program verifier did not attempt verification
 0
 0
 3
@@ -300,6 +368,16 @@ g Q 2
 8 1 -31
 0 0 0
 0 0 0
+uint8:  10:1 0:231
+uint16: 2848:7 0:65511
+uint32: 186737707:10 0:4294967271
+uint64: 802032351030850069:4 0:18446744073709551591
+via real: 7:12 -8:1 -7:12 8:1
+int:      7:12 -8:1 -7:12 8:1 -12:0 12:0
+int8:     7:12 -8:1 -7:12 8:1 -12:0 12:0
+int16:    7:12 -8:1 -7:12 8:1 -12:0 12:0
+int32:    7:12 -8:1 -7:12 8:1 -12:0 12:0
+int64:    7:12 -8:1 -7:12 8:1 -12:0 12:0
 0.2
 35.2 27.2 -27.2
 124.8 -124.8
@@ -337,8 +415,20 @@ true false
 int:
 -42	 <0 Y <=0 Y ==0 N !=0 Y >0 N >=0 N 0< N 0<= N 0== N 0!= Y 0> Y 0>= Y
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
+0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
 23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
 MyNumber:
 -42	 <0 Y <=0 Y ==0 N !=0 Y >0 N >=0 N 0< N 0<= N 0== N 0!= Y 0> Y 0>= Y
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
+0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
 23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
+120 120.0 120 120 120 x
+120 120.0 120 120 120 x
+120 120
+120 120.0 120 120 120 x
+120 120.0 120 120 120 x
+120 120
+false true false true
+true false true false
+false true false true
+true false true false

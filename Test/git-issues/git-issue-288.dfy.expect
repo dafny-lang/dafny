@@ -1,0 +1,2 @@
+git-issue-288.dfy(9,7): Error: a type synonym (T) is not allowed to replace a type synonym from the refined module (A), even if it denotes the same type
+1 resolution/type errors detected in git-issue-288.dfy

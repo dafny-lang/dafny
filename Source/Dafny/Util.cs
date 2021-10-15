@@ -1,37 +1,50 @@
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Diagnostics.Contracts;
-
+using JetBrains.Annotations;
 using Microsoft.Boogie;
 
 
 namespace Microsoft.Dafny {
-  public class Util
-  {
-    public static string Comma(IEnumerable<string> l) {
+  public static class Util {
+
+    public static string Comma(this IEnumerable<string> l) {
       return Comma(l, s => s);
     }
 
-    public static string Comma<T>(IEnumerable<T> l, Func<T, string> f) {
-      return Comma(",", l, f);
+    public static string Comma<T>(this IEnumerable<T> l, Func<T, string> f) {
+      return Comma(", ", l, (element, index) => f(element));
     }
 
-    public static string Comma<T>(string comma, IEnumerable<T> l, Func<T,string> f) {
+    public static string Comma<T>(this IEnumerable<T> l, Func<T, int, string> f) {
+      return Comma(", ", l, f);
+    }
+
+    public static string Comma<T>(string comma, IEnumerable<T> l, Func<T, string> f) {
+      return Comma(comma, l, (element, index) => f(element));
+    }
+
+    public static string Comma<T>(string comma, IEnumerable<T> l, Func<T, int, string> f) {
       Contract.Requires(comma != null);
       string res = "";
       string c = "";
-      foreach(var t in l) {
-        res += c + f(t);
+      int index = 0;
+      foreach (var t in l) {
+        res += c + f(t, index);
         c = comma;
+        index++;
       }
       return res;
     }
 
     public static string Comma(int count, Func<int, string> f) {
       Contract.Requires(0 <= count);
-      return Comma(",", count, f);
+      return Comma(", ", count, f);
     }
 
     public static string Comma(string comma, int count, Func<int, string> f) {
@@ -46,19 +59,12 @@ namespace Microsoft.Dafny {
       return res;
     }
 
-    public static string Repeat(string str, int times) {
-      Contract.Requires(times >= 0);
-      Contract.Requires(str != null);
-
-      var ans = "";
-      for (var i = 0; i < times; i++) {
-        ans += str;
-      }
-      return ans;
+    public static string Plural(int n) {
+      Contract.Requires(0 <= n);
+      return n == 1 ? "" : "s";
     }
 
-    public static List<B> Map<A, B>(IEnumerable<A> xs, Func<A, B> f)
-    {
+    public static List<B> Map<A, B>(IEnumerable<A> xs, Func<A, B> f) {
       List<B> ys = new List<B>();
       foreach (A x in xs) {
         ys.Add(f(x));
@@ -88,16 +94,26 @@ namespace Microsoft.Dafny {
       return cpy;
     }
 
-    public static Dictionary<A,B> Dict<A,B>(IEnumerable<A> xs, IEnumerable<B> ys) {
-      return Dict<A,B>(xs.Zip(ys));
+    public static Dictionary<A, B> Dict<A, B>(IEnumerable<A> xs, IEnumerable<B> ys) {
+      return Dict<A, B>(LinqExtender.Zip(xs, ys));
     }
 
-    public static Dictionary<A,B> Dict<A,B>(IEnumerable<Tuple<A,B>> xys) {
-      Dictionary<A,B> res = new Dictionary<A,B>();
+    public static Dictionary<A, B> Dict<A, B>(IEnumerable<Tuple<A, B>> xys) {
+      Dictionary<A, B> res = new Dictionary<A, B>();
       foreach (var p in xys) {
         res[p.Item1] = p.Item2;
       }
       return res;
+    }
+
+    public static void AddToDict<A, B>(Dictionary<A, B> dict, List<A> xs, List<B> ys) {
+      Contract.Requires(dict != null);
+      Contract.Requires(xs != null);
+      Contract.Requires(ys != null);
+      Contract.Requires(xs.Count == ys.Count);
+      for (var i = 0; i < xs.Count; i++) {
+        dict.Add(xs[i], ys[i]);
+      }
     }
 
     /// <summary>
@@ -214,14 +230,14 @@ namespace Microsoft.Dafny {
       Contract.Requires(errors != null);
       if (performThisDeprecationCheck) {
         if (fe.E is ThisExpr) {
-          errors.Deprecated(fe.E.tok, "Dafny's constructors no longer need 'this' to be listed in modifies clauses");
+          errors.Deprecated(fe.E.tok, "constructors no longer need 'this' to be listed in modifies clauses");
           return;
         } else if (fe.E is SetDisplayExpr) {
           var s = (SetDisplayExpr)fe.E;
           var deprecated = s.Elements.FindAll(e => e is ThisExpr);
           if (deprecated.Count != 0) {
             foreach (var e in deprecated) {
-              errors.Deprecated(e.tok, "Dafny's constructors no longer need 'this' to be listed in modifies clauses");
+              errors.Deprecated(e.tok, "constructors no longer need 'this' to be listed in modifies clauses");
             }
             s.Elements.RemoveAll(e => e is ThisExpr);
             if (s.Elements.Count == 0) {
@@ -285,12 +301,22 @@ namespace Microsoft.Dafny {
 
       foreach (var vertex in functionCallGraph.GetVertices()) {
         var func = vertex.N;
-        Console.Write("{0},{1}=", func.CompileName, func.EnclosingClass.Module.CompileName);
+        Console.Write("{0},{1}=", func.CompileName, func.EnclosingClass.EnclosingModuleDefinition.CompileName);
         foreach (var callee in vertex.Successors) {
           Console.Write("{0} ", callee.N.CompileName);
         }
         Console.Write("\n");
       }
+    }
+
+    public static V GetOrCreate<K, V>(this IDictionary<K, V> dictionary, K key, Func<V> createValue) {
+      if (dictionary.TryGetValue(key, out var result)) {
+        return result;
+      }
+
+      result = createValue();
+      dictionary[key] = result;
+      return result;
     }
 
     /// <summary>
@@ -382,8 +408,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class DependencyMap
-  {
+  public class DependencyMap {
     private Dictionary<string, SortedSet<string>> dependencies;
 
     public DependencyMap() {
@@ -395,9 +420,9 @@ namespace Microsoft.Dafny {
       string key = include.includerFilename == null ? "roots" : include.includerFilename;
       bool found = dependencies.TryGetValue(key, out existingDependencies);
       if (found) {
-        existingDependencies.Add(include.includedFullPath);
+        existingDependencies.Add(include.canonicalPath);
       } else {
-        dependencies[key] = new SortedSet<string>() { include.includedFullPath };
+        dependencies[key] = new SortedSet<string>() { include.canonicalPath };
       }
     }
 
@@ -424,6 +449,20 @@ namespace Microsoft.Dafny {
       foreach (string leaf in leaves) {
         System.Console.WriteLine(leaf);
       }
+    }
+  }
+
+  class IEnumerableComparer<T> : IEqualityComparer<IEnumerable<T>> {
+    public bool Equals(IEnumerable<T> x, IEnumerable<T> y) {
+      return x.SequenceEqual(y);
+    }
+
+    public int GetHashCode(IEnumerable<T> obj) {
+      var hash = new HashCode();
+      foreach (T t in obj) {
+        hash.Add(t);
+      }
+      return hash.ToHashCode();
     }
   }
 }

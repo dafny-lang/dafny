@@ -1,66 +1,17 @@
 Twostate-Functions.dfy(11,27): Error: receiver must be allocated in the state in which its fields are accessed
-Execution trace:
-    (0,0): anon0
 Twostate-Functions.dfy(18,12): Error: receiver must be allocated in the state in which its fields are accessed
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 Twostate-Functions.dfy(23,8): Error: insufficient reads clause to read field
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 Twostate-Functions.dfy(66,17): Error: assertion violation
 Twostate-Functions.dfy(54,14): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Then
-    (0,0): anon2
-    (0,0): anon8_Then
-    (0,0): anon4
-    (0,0): anon9_Then
 Twostate-Functions.dfy(68,15): Error: assertion violation
 Twostate-Functions.dfy(54,14): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Then
-    (0,0): anon2
-    (0,0): anon8_Then
-    (0,0): anon4
-    (0,0): anon9_Else
 Twostate-Functions.dfy(92,24): Error: argument ('u') must be allocated in the two-state function's previous state
-Execution trace:
-    (0,0): anon0
 Twostate-Functions.dfy(97,40): Error: argument 1 ('x') must be allocated in the two-state function's previous state
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Else
-    (0,0): anon8_Else
 Twostate-Functions.dfy(129,25): Error: receiver must be allocated in the state in which its fields are accessed
-Execution trace:
-    (0,0): anon0
-    (0,0): anon13_Then
-    (0,0): anon4
-    (0,0): anon15_Then
-    (0,0): anon8
 Twostate-Functions.dfy(147,12): Error: receiver must be allocated in the state in which its fields are accessed
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 Twostate-Functions.dfy(164,15): Error: argument ('d') must be allocated in the two-state function's previous state
-Execution trace:
-    (0,0): anon0
-    (0,0): anon5_Then
 Twostate-Functions.dfy(167,13): Error: possible violation of function precondition
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Then
 Twostate-Functions.dfy(183,15): Error: argument ('d') must be allocated in the two-state function's previous state
-Execution trace:
-    (0,0): anon0
-    (0,0): anon5_Then
 Twostate-Functions.dfy(186,13): Error: possible violation of function precondition
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Then
 
 Dafny program verifier finished with 19 verified, 13 errors

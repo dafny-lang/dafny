@@ -3,16 +3,16 @@
 /*
 module _System {
   /* CALL GRAPH for module _System:
-   * SCC at height 2:
+   * SCC at height 1:
    *   RotateRight
    * SCC at height 1:
    *   RotateLeft
    * SCC at height 0:
    *   nat
    */
-  type string(==) = seq<char>
+  type string(==,0) = seq<char>
 
-  type {:axiom} nat(==) = x: int
+  type {:axiom} nat(==,0) = x: int
     | 0 <= x
 
   trait {:compile false} object { }
@@ -26,6 +26,22 @@ module _System {
   /*-- non-null type
   type {:axiom} array(==)<arg> = c: array?<arg> | c != null /*special witness*/
   */
+
+  class {:compile false} /*_#Func1*/ -T0 ~> +R {
+    function requires(x0: T0): bool
+      reads reads(x0)
+
+    function reads(x0: T0): set<object?>
+      reads reads(x0)
+  }
+
+  type {:compile false} /*_#PartialFunc1*/ -T0 --> +R = f: T0 ~> R
+    | forall x0: T0 :: f.reads(x0) == {}
+    /*special witness*/
+
+  type {:compile false} /*_#TotalFunc1*/ -T0 -> +R = f: T0 --> R
+    | forall x0: T0 :: f.requires(x0)
+    /*special witness*/
 
   class {:compile false} /*_#Func0*/ () ~> +R {
     function requires(): bool
@@ -44,22 +60,6 @@ module _System {
     /*special witness*/
 
   datatype {:compile false} /*_tuple#2*/ (+T0, +T1) = _#Make2(0: T0, 1: T1)
-
-  class {:compile false} /*_#Func1*/ -T0 ~> +R {
-    function requires(x0: T0): bool
-      reads reads(x0)
-
-    function reads(x0: T0): set<object?>
-      reads reads(x0)
-  }
-
-  type {:compile false} /*_#PartialFunc1*/ -T0 --> +R = f: T0 ~> R
-    | forall x0: T0 :: f.reads(x0) == {}
-    /*special witness*/
-
-  type {:compile false} /*_#TotalFunc1*/ -T0 -> +R = f: T0 --> R
-    | forall x0: T0 :: f.requires(x0)
-    /*special witness*/
 
   type bool { }
 
@@ -104,25 +104,25 @@ module _System {
 
 module OneModule {
   /* CALL GRAPH for module OneModule:
-   * SCC at height 10:
-   *   C.NoBody
-   * SCC at height 9:
-   *   C.TL
-   * SCC at height 8:
-   *   C.L
-   * SCC at height 7:
-   *   C.Query
-   * SCC at height 6:
-   *   C.Mutating
-   * SCC at height 5:
-   *   C.P
-   * SCC at height 4:
-   *   C._ctor
-   * SCC at height 3:
-   *   C.F
    * SCC at height 2:
-   *   C.Valid
+   *   C.NoBody
+   * SCC at height 2:
+   *   C.TL
+   * SCC at height 2:
+   *   C.L
+   * SCC at height 2:
+   *   C.Query
+   * SCC at height 2:
+   *   C.Mutating
+   * SCC at height 2:
+   *   C.P
+   * SCC at height 2:
+   *   C._ctor
+   * SCC at height 2:
+   *   C.F
    * SCC at height 1:
+   *   C.Valid
+   * SCC at height 0:
    *   D.Valid
    * SCC at height 0:
    *   nat
@@ -132,6 +132,7 @@ module OneModule {
 
     predicate Valid()
       reads this, Repr
+      ensures Valid() ==> this in Repr
       decreases Repr + {this}
     {
       this in Repr &&
@@ -150,8 +151,9 @@ module OneModule {
     var {:autocontracts false} ee: D?
     var arr: array?<C?>
 
-    protected predicate Valid()
+    predicate Valid()
       reads this, Repr
+      ensures Valid() ==> this in Repr
       decreases Repr + {this}
     {
       this in Repr &&
@@ -173,7 +175,7 @@ module OneModule {
 
     constructor ()
       ensures Valid()
-      ensures fresh(Repr - {this})
+      ensures fresh(Repr)
     {
       data := 0;
       new;
@@ -257,21 +259,21 @@ module OneModule {
 
 module N0 {
   /* CALL GRAPH for module N0:
-   * SCC at height 9:
+   * SCC at height 1:
    *   C.B
-   * SCC at height 8:
+   * SCC at height 1:
    *   C.A
-   * SCC at height 7:
+   * SCC at height 1:
    *   C.C
-   * SCC at height 6:
+   * SCC at height 1:
    *   C.M
-   * SCC at height 5:
+   * SCC at height 1:
    *   C.L
-   * SCC at height 4:
+   * SCC at height 1:
    *   C.K
-   * SCC at height 3:
+   * SCC at height 1:
    *   C.Z
-   * SCC at height 2:
+   * SCC at height 1:
    *   C.Y
    * SCC at height 1:
    *   C.X
@@ -281,15 +283,15 @@ module N0 {
   class {:autocontracts} C {
     constructor X()
       ensures Valid()
-      ensures fresh(Repr - {this})
+      ensures fresh(Repr)
 
     constructor Y()
       ensures Valid()
-      ensures fresh(Repr - {this})
+      ensures fresh(Repr)
 
     constructor Z()
       ensures Valid()
-      ensures fresh(Repr - {this})
+      ensures fresh(Repr)
     {
       new;
       Repr := {this};
@@ -317,6 +319,7 @@ module N0 {
 
     predicate Valid()
       reads this, Repr
+      ensures Valid() ==> this in Repr
       decreases Repr + {this}
     {
       this in Repr &&
@@ -350,41 +353,41 @@ module N0 {
 
 module N1 refines N0 {
   /* CALL GRAPH for module N1:
-   * SCC at height 9:
+   * SCC at height 1:
    *   C.M
-   * SCC at height 8:
+   * SCC at height 1:
    *   C.L
-   * SCC at height 7:
+   * SCC at height 1:
    *   C.K
-   * SCC at height 6:
+   * SCC at height 1:
    *   C.C
-   * SCC at height 5:
+   * SCC at height 1:
    *   C.B
-   * SCC at height 4:
+   * SCC at height 1:
    *   C.A
-   * SCC at height 3:
+   * SCC at height 1:
    *   C.Z
-   * SCC at height 2:
+   * SCC at height 1:
    *   C.Y
    * SCC at height 1:
    *   C.X
    * SCC at height 0:
    *   C.Valid
    */
-  class {:autocontracts} C {
+  class {:autocontracts} C ...  {
     constructor X()
       ensures Valid()
-      ensures fresh(Repr - {this})
+      ensures fresh(Repr)
 
     constructor Y()
       ensures Valid()
-      ensures fresh(Repr - {this})
+      ensures fresh(Repr)
     {
     }
 
     constructor Z()
       ensures Valid()
-      ensures fresh(Repr - {this})
+      ensures fresh(Repr)
     {
       new;
       Repr := {this};
@@ -433,6 +436,7 @@ module N1 refines N0 {
 
     predicate Valid()
       reads this, Repr
+      ensures Valid() ==> this in Repr
       decreases Repr + {this}
     {
       this in Repr &&
@@ -449,41 +453,41 @@ module N1 refines N0 {
 
 module N2 refines N1 {
   /* CALL GRAPH for module N2:
-   * SCC at height 9:
+   * SCC at height 1:
    *   C.M
-   * SCC at height 8:
+   * SCC at height 1:
    *   C.L
-   * SCC at height 7:
+   * SCC at height 1:
    *   C.K
-   * SCC at height 6:
+   * SCC at height 1:
    *   C.C
-   * SCC at height 5:
+   * SCC at height 1:
    *   C.B
-   * SCC at height 4:
+   * SCC at height 1:
    *   C.A
-   * SCC at height 3:
+   * SCC at height 1:
    *   C.Z
-   * SCC at height 2:
+   * SCC at height 1:
    *   C.Y
    * SCC at height 1:
    *   C.X
    * SCC at height 0:
    *   C.Valid
    */
-  class {:autocontracts} C {
+  class {:autocontracts} C ...  {
     constructor X()
       ensures Valid()
-      ensures fresh(Repr - {this})
+      ensures fresh(Repr)
 
     constructor Y()
       ensures Valid()
-      ensures fresh(Repr - {this})
+      ensures fresh(Repr)
     {
     }
 
     constructor Z()
       ensures Valid()
-      ensures fresh(Repr - {this})
+      ensures fresh(Repr)
     {
       new;
       Repr := {this};
@@ -532,6 +536,7 @@ module N2 refines N1 {
 
     predicate Valid()
       reads this, Repr
+      ensures Valid() ==> this in Repr
       decreases Repr + {this}
     {
       this in Repr &&
@@ -545,103 +550,30 @@ module N2 refines N1 {
   type {:axiom} C(==) = c: C? | c != null /*special witness*/
   */
 }
-AutoContracts.dfy(17,4): Error BP5003: A postcondition might not hold on this return path.
+AutoContracts.dfy(17,4): Error: A postcondition might not hold on this return path.
 AutoContracts.dfy(17,4): Related location: This is the postcondition that might not hold.
-AutoContracts.dfy(12,24): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon17_Then
-    (0,0): anon18_Then
-    (0,0): anon3
-    (0,0): anon19_Else
-    (0,0): anon20_Then
-    AutoContracts.dfy(17,5): anon21_Else
-    (0,0): anon9
-    (0,0): anon22_Then
-    (0,0): anon23_Then
-    (0,0): anon14
-    (0,0): anon24_Then
-AutoContracts.dfy(17,4): Error BP5003: A postcondition might not hold on this return path.
+AutoContracts.dfy(12,14): Related location
+AutoContracts.dfy(17,4): Error: A postcondition might not hold on this return path.
 AutoContracts.dfy(17,4): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
-    (0,0): anon17_Then
-    (0,0): anon18_Then
-    (0,0): anon3
-    (0,0): anon19_Else
-    (0,0): anon20_Then
-    AutoContracts.dfy(17,5): anon21_Else
-    (0,0): anon9
-    (0,0): anon22_Then
-    (0,0): anon23_Then
-    (0,0): anon14
-    (0,0): anon24_Then
-AutoContracts.dfy(17,4): Error BP5003: A postcondition might not hold on this return path.
+AutoContracts.dfy(17,4): Error: A postcondition might not hold on this return path.
 AutoContracts.dfy(17,4): Related location: This is the postcondition that might not hold.
-AutoContracts.dfy(12,24): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon17_Then
-    (0,0): anon18_Then
-    (0,0): anon3
-    (0,0): anon19_Else
-    (0,0): anon20_Then
-    AutoContracts.dfy(17,5): anon21_Else
-    (0,0): anon9
-    (0,0): anon22_Then
-    (0,0): anon23_Then
-    (0,0): anon14
-    (0,0): anon24_Then
-AutoContracts.dfy(17,4): Error BP5003: A postcondition might not hold on this return path.
+AutoContracts.dfy(12,14): Related location
+AutoContracts.dfy(17,4): Error: A postcondition might not hold on this return path.
 AutoContracts.dfy(17,4): Related location: This is the postcondition that might not hold.
-AutoContracts.dfy(12,24): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon17_Then
-    AutoContracts.dfy(17,5): anon18_Else
-    (0,0): anon3
-    (0,0): anon19_Then
-    (0,0): anon20_Then
-    (0,0): anon21_Then
-    (0,0): anon9
-    (0,0): anon22_Then
-    (0,0): anon23_Then
-    (0,0): anon14
-    (0,0): anon24_Then
-AutoContracts.dfy(17,4): Error BP5003: A postcondition might not hold on this return path.
+AutoContracts.dfy(12,14): Related location
+AutoContracts.dfy(17,4): Error: A postcondition might not hold on this return path.
 AutoContracts.dfy(17,4): Related location: This is the postcondition that might not hold.
-AutoContracts.dfy(12,24): Related location
+AutoContracts.dfy(12,14): Related location
 AutoContracts.dfy(5,25): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon17_Then
-    AutoContracts.dfy(17,5): anon18_Else
-    (0,0): anon3
-    (0,0): anon19_Then
-    (0,0): anon20_Then
-    (0,0): anon21_Then
-    (0,0): anon9
-    (0,0): anon22_Then
-    (0,0): anon23_Then
-    (0,0): anon14
-    (0,0): anon24_Then
-AutoContracts.dfy(50,4): Error BP5003: A postcondition might not hold on this return path.
+AutoContracts.dfy(50,4): Error: A postcondition might not hold on this return path.
 AutoContracts.dfy(49,24): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
-AutoContracts.dfy(79,21): Error BP5003: A postcondition might not hold on this return path.
+AutoContracts.dfy(79,21): Error: A postcondition might not hold on this return path.
 AutoContracts.dfy(60,16): Related location: This is the postcondition that might not hold.
 AutoContracts.dfy[N1](65,14): Related location
-Execution trace:
-    (0,0): anon0
-AutoContracts.dfy(79,21): Error BP5003: A postcondition might not hold on this return path.
+AutoContracts.dfy(79,21): Error: A postcondition might not hold on this return path.
 AutoContracts.dfy(60,16): Related location: This is the postcondition that might not hold.
 AutoContracts.dfy[N1](65,14): Related location
-Execution trace:
-    (0,0): anon0
-AutoContracts.dfy(79,21): Error BP5003: A postcondition might not hold on this return path.
+AutoContracts.dfy(79,21): Error: A postcondition might not hold on this return path.
 AutoContracts.dfy(60,16): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
 
 Dafny program verifier finished with 37 verified, 9 errors

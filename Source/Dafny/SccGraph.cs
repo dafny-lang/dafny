@@ -1,25 +1,28 @@
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
 
 namespace Microsoft.Dafny {
 
-  public class Graph<Node> where Node : class
-  {
+  public class Graph<Node> where Node : class {
     public enum VisitedStatus { Unvisited, OnStack, Visited }
     public class Vertex {
       public readonly Node N;
       public readonly List<Vertex/*!*/>/*!*/ Successors = new List<Vertex/*!*/>();
       public List<Vertex/*!*/> SccMembers;  // non-null only for the representative of the SCC
       [ContractInvariantMethod]
-      void ObjectInvariant()
-      {
+      void ObjectInvariant() {
         Contract.Invariant(cce.NonNullElements(Successors));
-        Contract.Invariant(SccMembers==null || cce.NonNullElements(SccMembers));
+        Contract.Invariant(SccMembers == null || cce.NonNullElements(SccMembers));
       }
 
       public Vertex SccRepresentative;  // null if not computed
 
+      public int SccPredecessorCount; // valid only for SCC representatives; indicates how many SCCs are [indirect] predecessors of this one
       public int SccId;  // valid only for SCC representatives; indicates position of this representative vertex in the graph's topological sort
       // the following field is used during the computation of SCCs and of reachability
       public VisitedStatus Visited;
@@ -38,13 +41,27 @@ namespace Microsoft.Dafny {
       }
     }
 
+    private void ComputeSccPredecessorCounts() {
+      foreach (var vertex in topologicallySortedRepresentatives) {
+        vertex.SccPredecessorCount = 0;
+      }
+
+      foreach (var vertex in topologicallySortedRepresentatives) {
+        var successorSccs = vertex.SccMembers.SelectMany(v => v.Successors.Select(s => s.SccRepresentative)).Distinct();
+        foreach (var successor in successorSccs) {
+          if (successor != vertex) {
+            vertex.SccPredecessorCount = Math.Max(vertex.SccPredecessorCount, successor.SccPredecessorCount + 1);
+          }
+        }
+      }
+    }
+
 
     [ContractInvariantMethod]
-    void ObjectInvariant()
-    {
-      Contract.Invariant(vertices!=null);
+    void ObjectInvariant() {
+      Contract.Invariant(vertices != null);
       Contract.Invariant(cce.NonNullElements(vertices.Values));
-      Contract.Invariant(topologicallySortedRepresentatives==null || cce.NonNullElements(topologicallySortedRepresentatives));
+      Contract.Invariant(topologicallySortedRepresentatives == null || cce.NonNullElements(topologicallySortedRepresentatives));
       Contract.Invariant(!sccComputed || topologicallySortedRepresentatives != null);
     }
 
@@ -61,10 +78,10 @@ namespace Microsoft.Dafny {
     }
     int generation = 0;
 
-    public Graph()
-    {
+    public Graph() {
     }
 
+    [Pure]
     public IEnumerable<Vertex> GetVertices() {
       return vertices.Values;
     }
@@ -92,6 +109,7 @@ namespace Microsoft.Dafny {
           v.SccMembers = new List<Vertex>();
           v.SccMembers.Add(v);
           v.SccId = topologicallySortedRepresentatives.Count;
+          v.SccPredecessorCount = 0;
           topologicallySortedRepresentatives.Add(v);
         }
       }
@@ -131,6 +149,13 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
+    /// Idempotently adds 'n' as a vertex.
+    /// </summary>
+    public int GetSCCRepresentativePredecessorCount(Node n) {
+      return GetSCCRepr(n).SccPredecessorCount;
+    }
+
+    /// <summary>
     /// Idempotently adds 'n' as a vertex.  Then, returns the number of SCCs before the SCC of 'n' in the
     /// topologically sorting of SCCs.
     /// </summary>
@@ -165,7 +190,8 @@ namespace Microsoft.Dafny {
     /// Idempotently adds 'n' as a vertex and then returns the set of Node's in the strongly connected component
     /// that contains 'n'.
     /// </summary>
-    public List<Node> GetSCC(Node n) {Contract.Ensures(cce.NonNullElements(Contract.Result<List<Node>>()));
+    public List<Node> GetSCC(Node n) {
+      Contract.Ensures(cce.NonNullElements(Contract.Result<List<Node>>()));
       Vertex v = GetVertex(n);
       ComputeSCCs();
       Vertex repr = v.SccRepresentative;
@@ -181,7 +207,7 @@ namespace Microsoft.Dafny {
     /// Idempotently adds 'n' as a vertex and then returns the size of the set of Node's in the strongly connected component
     /// that contains 'n'.
     /// </summary>
-    public int GetSCCSize(Node n){
+    public int GetSCCSize(Node n) {
       Contract.Ensures(1 <= Contract.Result<int>());
 
       Vertex v = GetVertex(n);
@@ -198,8 +224,7 @@ namespace Microsoft.Dafny {
     /// As a side effect, this method may change the Visited, DfNumber, and LowLink fields
     /// of the vertices.
     /// </summary>
-    void ComputeSCCs()
-    {
+    void ComputeSCCs() {
       Contract.Ensures(sccComputed);
 
       if (sccComputed) { return; }  // check if already computed
@@ -219,13 +244,15 @@ namespace Microsoft.Dafny {
       }
       Contract.Assert(cnt == vertices.Count);  // sanity check that everything has been visited
 
+      ComputeSccPredecessorCounts();
+
       sccComputed = true;
     }
 
     /// <summary>
     /// This is the 'SearchC' procedure from the Aho, Hopcroft, and Ullman book 'The Design and Analysis of Computer Algorithms'.
     /// </summary>
-    void SearchC(Vertex/*!*/ v, Stack<Vertex/*!*/>/*!*/ stack, ref int cnt){
+    void SearchC(Vertex/*!*/ v, Stack<Vertex/*!*/>/*!*/ stack, ref int cnt) {
       Contract.Requires(v != null);
       Contract.Requires(cce.NonNullElements(stack));
       Contract.Requires(v.Visited == VisitedStatus.Unvisited);
@@ -366,8 +393,7 @@ namespace Microsoft.Dafny {
     /// w on the stack followed by the vertices (in reverse order) in the returned list, where
     /// w is the first vertex in the list returned.
     /// </summary>
-    List<Vertex/*!*/> CycleSearch(Vertex v)
-    {
+    List<Vertex/*!*/> CycleSearch(Vertex v) {
       Contract.Requires(v != null);
       Contract.Requires(v.Visited == VisitedStatus.Unvisited);
       Contract.Ensures(v.Visited != VisitedStatus.Unvisited);
@@ -436,7 +462,7 @@ namespace Microsoft.Dafny {
         return false;
       } else {
         source.Gen = generation;
-        return Contract.Exists(source.Successors,succ=> ReachSearch(succ, sink));
+        return Contract.Exists(source.Successors, succ => ReachSearch(succ, sink));
       }
     }
   }

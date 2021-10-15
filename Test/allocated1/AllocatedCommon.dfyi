@@ -71,11 +71,11 @@ lemma LGood(c:C, d:D, a:array<C>, s:set<C>)
 lemma LCall() returns(c:C)
 
 lemma LBad(c:C, d:D, a:array<C>, s:set<C>)
-  returns(r:C)
+  returns(r:C?)
 
 
 {
-  var l:C;
+  var l:C?;
   // each of the following lines fails:
   assert true by { assert allocated(c); }
   assert true by { assert allocated(d); }
@@ -93,8 +93,8 @@ lemma LBad(c:C, d:D, a:array<C>, s:set<C>)
   assert allocated(c);
   assert allocated(d);
   assert allocated(a);
-  assert allocated(l);
-  assert allocated(r);
+  assert l == null || allocated(l);
+  assert r == null || allocated(r);
   l := LCall(); assert allocated(l);
 }
 
@@ -107,11 +107,11 @@ ghost method GGood(c:C, d:D, a:array<C>, s:set<C>)
 }
 
 ghost method GBad(c:C, d:D, a:array<C>, s:set<C>)
-  returns(r:C)
+  returns(r:C?)
 
 
 {
-  var l:C;
+  var l:C?;
   // each of the following lines fails:
   assert true by { assert allocated(c); }
   assert true by { assert allocated(d); }
@@ -129,8 +129,8 @@ ghost method GBad(c:C, d:D, a:array<C>, s:set<C>)
   assert allocated(c);
   assert allocated(d);
   assert allocated(a);
-  assert allocated(l);
-  assert allocated(r);
+  assert l == null || allocated(l);
+  assert r == null || allocated(r);
   l := LCall(); assert allocated(l);
 }
 
@@ -172,7 +172,7 @@ method MBad(c:C, ghost gc:C, d:D, ghost gd:D, a:array<C>, ghost ga:array<C>, s:s
   returns(r:C?, ghost gr:C?)
 {
   var l:C;
-  ghost var gl:C;
+  ghost var gl:C?;
   // each of the following lines fails:
   assert true by { assert allocated(gc); }
   assert true by { assert allocated(gd); }
@@ -194,7 +194,7 @@ method MBad(c:C, ghost gc:C, d:D, ghost gd:D, a:array<C>, ghost ga:array<C>, s:s
   assert allocated(gc);
   assert allocated(gd);
   assert allocated(ga);
-  assert allocated(gl);
+  assert gl == null || allocated(gl);
   assert allocated(gr);
   gl := LCall(); assert allocated(gl);
   l, gl := MCall(); assert allocated(gl);

@@ -1,3 +1,6 @@
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
+
 package dafny;
 
 import java.lang.reflect.InvocationTargetException;
@@ -10,6 +13,7 @@ import java.util.function.*;
 import java.util.ArrayList;
 import java.lang.Iterable;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public class Helpers {
@@ -29,45 +33,6 @@ public class Helpers {
 
     public static <T, U> U Let(T t, Function<T, U> f) {
         return f.apply(t);
-    }
-
-    public static Object getDefault(String s) {
-        if (s == null || s.startsWith("interface "))
-            return null;
-        try {
-            if (!s.startsWith("class ")){
-                Object o = Class.forName(s).newInstance();
-                if(o.toString().contains("@"))
-                    return null;
-                else
-                    return o;
-            }
-            if (s.startsWith("class [")) {
-                return null;
-            }
-            switch (s) {
-                case "class java.math.BigInteger":
-                    return BigInteger.ZERO;
-                case "class java.lang.Boolean":
-                    return new Boolean(false);
-                case "class java.math.BigDecimal":
-                    return new BigDecimal(0);
-                case "class java.lang.Character":
-                    return 'D';
-                case "class dafny.DafnySequence":
-                    return DafnySequence.<Object> empty();
-                default:
-                    String xs = s.substring(6);
-                    Object o = Class.forName(xs).newInstance();
-                    if(o.toString().contains("@"))
-                        return null;
-                    else
-                        return o;
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
     }
 
     /* Returns Iterable in range [lo, hi-1] if lo and hi are both not null.
@@ -128,33 +93,12 @@ public class Helpers {
         };
     }
 
-    public static Character createCharacter(UByte t) {
-        assert 0 <= t.intValue() && t.intValue() <= 65535;
-        return new Character((char)t.intValue());
+    public static Iterable<Boolean> AllBooleans() {
+        return () -> IntStream.range(0, 2).<Boolean>mapToObj(i -> i == 1).iterator();
     }
 
-    public static Character createCharacter(UInt t) {
-        assert 0 <= t.value() && t.value() <= 65535;
-        return new Character((char)t.value());
-    }
-
-    public static Character createCharacter(ULong t) {
-        assert 0 <= t.value() && t.value() <= 65535;
-        return new Character((char)t.value());
-    }
-
-    public static Character createCharacter(long t) {
-        assert 0 <= t && t <= 65535;
-        return new Character((char)t);
-    }
-
-    public static Class getClassUnsafe(String s) {
-        try {
-            return Class.forName(s);
-        }
-        catch(ClassNotFoundException e) {
-            throw new RuntimeException("Class " + s + " not found.");
-        }
+    public static Iterable<Character> AllChars() {
+        return () -> IntStream.range(0, 0x1000).<Character>mapToObj(i -> Character.valueOf((char)i)).iterator();
     }
 
     public static <G> String toString(G g) {
@@ -162,6 +106,105 @@ public class Helpers {
             return "null";
         } else {
             return g.toString();
+        }
+    }
+
+    public static int toInt(BigInteger i) {
+        return i.intValue();
+    }
+
+    public static void outOfRange(String msg) {
+        throw new dafny.DafnyHaltException(msg);
+    }
+
+    public static int toIntChecked(BigInteger i, String msg) {
+        int r = i.intValue();
+        if (!BigInteger.valueOf(r).equals(i)) {
+          msg = (msg != null ? msg : "value out of range for a 32-bit int") + ": " + i;
+          outOfRange(msg);
+        }
+        return r;
+    }
+
+    public static int toIntChecked(long i, String msg) {
+        int r = (int)i;
+        if (r != i) {
+          msg = (msg != null ? msg : "value out of range for a 32-bit int") + ": " + i;
+          outOfRange(msg);
+        }
+        return r;
+    }
+
+    public static int unsignedToIntChecked(byte i) {
+        int r = unsignedToInt(i);
+        return r;
+    }
+
+    public static int unsignedToIntChecked(short i) {
+        int r = unsignedToInt(i);
+        return r;
+    }
+
+    public static int unsignedToIntChecked(long i, String msg) {
+        int r = unsignedToInt(i);
+        if (r != i) {
+          msg = (msg != null ? msg : "value out of range for a 32-bit int") + ": " + i;
+          outOfRange(msg);
+        }
+        return r;
+    }
+
+    public static int toInt(int i) {
+        return i;
+    }
+
+    public static int toInt(long l) {
+        return (int) l;
+    }
+
+    public static int unsignedToInt(byte x) {
+        return ((int)x) & 0xFF;
+    }
+
+    public static int unsignedToInt(short x) {
+        return ((int)x) & 0xFFFF;
+    }
+
+    public static int unsignedToInt(long x) {
+        return (int)x;
+    }
+
+    private final static BigInteger ULONG_LIMIT = new BigInteger("18446744073709551616");  // 0x1_0000_0000_0000_0000
+
+    public static BigInteger unsignedLongToBigInteger(long l) {
+        if (0 <= l) {
+            return BigInteger.valueOf(l);
+        } else {
+            return BigInteger.valueOf(l).add(ULONG_LIMIT);
+        }
+    }
+
+    public static byte divideUnsignedByte(byte a, byte b) {
+        return (byte)Integer.divideUnsigned(((int)a) & 0xFF, ((int)b) & 0xFF);
+    }
+
+    public static short divideUnsignedShort(short a, short b) {
+        return (short)Integer.divideUnsigned(((int)a) & 0xFFFF, ((int)b) & 0xFFFF);
+    }
+
+    public static byte remainderUnsignedByte(byte a, byte b) {
+        return (byte)Integer.remainderUnsigned(((int)a) & 0xFF, ((int)b) & 0xFF);
+    }
+
+    public static short remainderUnsignedShort(short a, short b) {
+        return (short)Integer.remainderUnsigned(((int)a) & 0xFFFF, ((int)b) & 0xFFFF);
+    }
+
+    public static void withHaltHandling(Runnable runnable) {
+        try {
+            runnable.run();
+        } catch (DafnyHaltException e) {
+            System.err.println("[Program halted] " + e.getMessage());
         }
     }
 }

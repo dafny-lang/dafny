@@ -54,7 +54,7 @@ predicate EVEN(n: nat)
 }
 
 // The binomial function is defined like in the Pascal triangle.
-// "binom(a, b)" is also knows as "a choose b".
+// "binom(a, b)" is also known as "a choose b".
 function binom(a: nat, b: nat): nat
 {
   if b == 0 then 1
@@ -166,17 +166,20 @@ lemma BitSet_Clauses(n: nat)
 // The following gives an induction principle for any two-argument
 // predicate "P" that satisfies the 5 listed properties.
 // (This lemma is not actually used in this proof of the Lucas theorem.)
-lemma INDUCTION_EVEN_ODD(P: (nat, nat) -> bool, a: nat, b: nat)
+lemma INDUCTION_EVEN_ODD(P: (nat, nat) -> bool, A: nat, B: nat)
   requires P(0, 0)
   requires forall a: nat, b: nat :: P(a, b) ==> P(2*a, 2*b)
   requires forall a: nat, b: nat :: P(a, b) ==> P(2*a, 2*b + 1)
   requires forall a: nat, b: nat :: P(a, b) ==> P(2*a + 1, 2*b)
   requires forall a: nat, b: nat :: P(a, b) ==> P(2*a + 1, 2*b + 1)
-  ensures P(a, b)
+  ensures P(A, B)
 {
-  if a == 0 && b == 0 {
+  if A == 0 && B == 0 {
   } else {
-    INDUCTION_EVEN_ODD(P, a / 2, b / 2);
+    var a, b := A / 2, B / 2;
+    assert A == 2*a || A == 2*a + 1;
+    assert B == 2*b || B == 2*b + 1;
+    INDUCTION_EVEN_ODD(P, a, b);
   }
 }
 

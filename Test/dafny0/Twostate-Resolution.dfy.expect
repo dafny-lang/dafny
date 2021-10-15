@@ -209,8 +209,8 @@ module H {
 
   function Fu(): int
   {
-    var p: () -> bool := P;
-    var q: () -> bool := YY.Sp;
+    ghost var p: () -> bool := P;
+    ghost var q: () -> bool := YY.Sp;
     if P() then
       5
     else
@@ -266,7 +266,8 @@ module J {
   {
     assert P();
     b := P();
-    var p': () -> bool := P;
+    var p': () -> bool;
+    p' := P;
   }
 }
 
@@ -323,6 +324,283 @@ module TraitsAndOldParameters {
     twostate lemma N(c: C, new d: C)
   }
 }
+
+module PrintTest {
+  type Odd = x
+    | var rr := 2; x % rr == 1
+    witness var ww := 2; ww + 7
+
+  newtype NewOdd = x
+    | var rr := 2; x % rr == 1
+    witness var ww := 2; ww + 7
+
+  type Even = x
+    | var rr := 2; x % rr == 0
+    ghost witness var ww := 2; ww + 8
+
+  newtype NewEven = x
+    | var rr := 2; x % rr == 0
+    ghost witness var ww := 2; ww + 8
+
+  function method Five(): int
+  {
+    5
+  }
+
+  function Six(): int
+  {
+    6
+  }
+
+  function method Ten(): int
+  {
+    var f := Five();
+    ghost var s := Six();
+    assert s == 6;
+    f + f
+  }
+
+  function method TenAgain(): int
+  {
+    var ten := var f := Five(); ghost var s := Six(); assert s == 6; f + f;
+    ten
+  }
+
+  function TenOnceMore(): int
+  {
+    var ten := var f := Five(); ghost var s := Six(); assert s == 6; f + f;
+    ten
+  }
+
+  function Eleven(): int
+  {
+    var f, s := Five(), Six();
+    f + s
+  }
+
+  function Twelve(): int
+  {
+    var s, t := Six(), Six();
+    s + t
+  }
+
+  function method Twenty(): int
+  {
+    var x :| x == 10;
+    x + x
+  }
+
+  function method TwentyOne(): int
+  {
+    ghost var x :| x == 10 && Yes(x);
+    assert x + x + 1 == 21;
+    21
+  }
+
+  predicate Yes(x: int)
+  {
+    true
+  }
+}
+
+module TwoStateAt {
+  class Cell {
+    var data: int
+
+    constructor (x: int)
+      ensures data == x
+    {
+      data := x;
+    }
+
+    static twostate function Sum<Y>(c: Cell, y: Y): int
+      reads c
+    {
+      c.Plus<Y>(y)
+    }
+
+    twostate function Plus<Y>(y: Y): int
+      reads this
+    {
+      SP<Y>(this, y)
+    }
+
+    twostate lemma LL<Y>(y: Y)
+      ensures old(data) < data
+    {
+      var g := data;
+      IdentityLemma<Y>(this, y);
+      Cell.IdentityLemma<int>(this, 0);
+      this.IdentityLemma<Y>(this, y);
+      assert data == g;
+    }
+
+    static twostate lemma IdentityLemma<Y>(c: Cell, y: Y)
+    {
+      assert old(c.data) == c.data;
+    }
+
+    function method G(): int
+    {
+      32
+    }
+
+    lemma Theorem()
+    {
+    }
+  }
+
+  twostate function SP<Y>(c: Cell, y: Y): int
+    reads c
+  {
+    old(c.data) + c.data
+  }
+
+  function F(): int
+  {
+    9
+  }
+
+  method Test<Y>(c: Cell, b: bool, y: Y)
+    requires c.data == 2
+    modifies c
+  {
+    assert c.Plus(0) == 4;
+    c.data := c.data + 3;
+    label Five:
+    assert Cell.Sum(c, y) == 7;
+    assert Cell.Sum<int>@Five(c, 0) == 10;
+    assert Cell.Sum@Five(c, 0) == 10;
+    assert Cell.Sum<Y>@Five(c, y) == 10;
+    assert Cell.Sum@Five(c, y) == 10;
+    c.data := c.data + 1;
+    assert SP<bv3>(c, 0) == 8;
+    assert SP<Y>@DoesNotExist(c, y) == 11;
+    if b {
+      label OnlyB:
+      c.data := c.data + 10;
+    } else {
+      c.data := c.data + 20;
+    }
+    label PostIf:
+    assert c.Plus<Y>@OnlyB(y) == 16 || c.Plus<int>@Five(0) == 26;
+    assert b ==> Cell.Sum@PostIf(c, y) == 32;
+    ghost var z := F@Five();
+  }
+
+  twostate lemma TwoLemma<Y>(c: Cell, y: Y)
+    requires 2 * old(c.data) <= Cell.Sum<Y>(c, y)
+    ensures old(c.data) <= SP<int>(c, 0) == SP<Y>(c, y) == c.Plus(0)
+  {
+  }
+
+  method CallLemmas<Y>(c: Cell, b: bool, y: Y)
+    modifies c
+  {
+    c.data := c.data + 1;
+    label OneMore:
+    if -1 <= old(c.data) {
+      TwoLemma<Y>(c, y);
+    }
+    c.data := c.data + 4;
+    label FiveMore:
+    TwoLemma<int>@OneMore(c, 0);
+    if b {
+      c.data := c.data - 10;
+      TwoLemma<Y>@FiveMore(c, y);
+    } else {
+      c.data := c.data + 2;
+      TwoLemma<int>@After(c, 0);
+    }
+    c.LL(y);
+    c.LL<Y>(y);
+    c.LL<bv3>(0);
+    label After:
+    var g := c.G@FiveMore();
+    c.Theorem@OneMore();
+  }
+
+  method ExprAt(c: Cell, f: int -> int, g: int -> int, b: bool)
+  {
+    label L:
+    var plus := c.Plus<int>;
+    var xL := plus@L(0);
+  }
+
+  twostate lemma ReturnSomething(c: Cell) returns (x: int, d: Cell)
+  {
+    d := c;
+  }
+
+  method CallTwo(c: Cell)
+    modifies c
+  {
+    c.data := 16;
+    label L:
+    var x, d := ReturnSomething@L(c);
+  }
+
+  function {:opaque} OrdinaryOpaque(): int
+  {
+    12
+  }
+
+  method UseOrdinaryOpaque()
+  {
+    label L:
+    reveal OrdinaryOpaque();
+    reveal OrdinaryOpaque;
+    reveal OrdinaryOpaque@K();
+    reveal OrdinaryOpaque@L();
+  }
+
+  function FuncUseOrdinaryOpaque(): int
+  {
+    reveal OrdinaryOpaque();
+    reveal OrdinaryOpaque;
+    reveal OrdinaryOpaque@K();
+    10
+  }
+
+  twostate function {:opaque} Opaque(): int
+  {
+    12
+  }
+
+  method UseOpaque()
+  {
+    label L:
+    reveal Opaque();
+    reveal Opaque;
+    reveal Opaque@K();
+    reveal Opaque@L();
+  }
+
+  function FuncUseOpaque(): int
+  {
+    reveal Opaque();
+    reveal Opaque;
+    reveal Opaque@K();
+    10
+  }
+
+  twostate function TwoFuncUseOpaque(): int
+  {
+    reveal Opaque();
+    reveal Opaque;
+    reveal Opaque@K();
+    10
+  }
+
+  twostate lemma EasyTwo()
+    ensures true
+
+  function CallEasy(): int
+  {
+    EasyTwo();
+    9
+  }
+}
 Twostate-Resolution.dfy(13,15): Error: twostate lemmas are not allowed to have modifies clauses
 Twostate-Resolution.dfy(25,15): Error: unchanged expressions are not allowed in this context
 Twostate-Resolution.dfy(28,15): Error: unchanged expressions are not allowed in this context
@@ -355,15 +633,37 @@ Twostate-Resolution.dfy(165,31): Error: two-state function ('P') can only be cal
 Twostate-Resolution.dfy(166,34): Error: two-state function ('Sp') can only be called in a two-state context
 Twostate-Resolution.dfy(167,7): Error: two-state function ('P') can only be called in a two-state context
 Twostate-Resolution.dfy(218,6): Error: two-state lemmas can only be used in two-state contexts
-Twostate-Resolution.dfy(229,9): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
-Twostate-Resolution.dfy(230,26): Error: ghost fields are allowed only in specification contexts
+Twostate-Resolution.dfy(229,9): Error: a call to a twostate predicate is allowed only in specification contexts
+Twostate-Resolution.dfy(230,30): Error: ghost fields are allowed only in specification contexts
 Twostate-Resolution.dfy(242,26): Error: two-state function ('F') can only be called in a two-state context
 Twostate-Resolution.dfy(243,27): Error: two-state lemmas can only be used in two-state contexts
 Twostate-Resolution.dfy(244,26): Error: unchanged expressions are not allowed in this context
 Twostate-Resolution.dfy(246,26): Error: fresh expressions are not allowed in this context
 Twostate-Resolution.dfy(248,26): Error: old expressions are not allowed in this context
-Twostate-Resolution.dfy(264,29): Error: parameter 'c' of function A cannot be changed, compared to the corresponding function in the module it overrides, from new to non-new
-Twostate-Resolution.dfy(265,25): Error: parameter 'c' of function B cannot be changed, compared to the corresponding function in the module it overrides, from non-new to new
-Twostate-Resolution.dfy(267,25): Error: in-parameter 'c' of method L cannot be changed, compared to the corresponding method in the module it overrides, from new to non-new
-Twostate-Resolution.dfy(268,21): Error: in-parameter 'c' of method M cannot be changed, compared to the corresponding method in the module it overrides, from non-new to new
-43 resolution/type errors detected in Twostate-Resolution.dfy
+Twostate-Resolution.dfy(264,29): Error: parameter 'c' of function A cannot be changed, compared to in the overridden function, from new to non-new
+Twostate-Resolution.dfy(265,25): Error: parameter 'c' of function B cannot be changed, compared to in the overridden function, from non-new to new
+Twostate-Resolution.dfy(267,25): Error: in-parameter 'c' of method L cannot be changed, compared to in the overridden method, from new to non-new
+Twostate-Resolution.dfy(268,21): Error: in-parameter 'c' of method M cannot be changed, compared to in the overridden method, from non-new to new
+Twostate-Resolution.dfy(405,17): Error: no label 'DoesNotExist' in scope at this time
+Twostate-Resolution.dfy(415,21): Error: no label 'OnlyB' in scope at this time
+Twostate-Resolution.dfy(418,21): Error: an @-label can only be applied to a two-state function
+Twostate-Resolution.dfy(445,20): Error: no label 'After' in scope at this time
+Twostate-Resolution.dfy(452,17): Error: an @-label can only be applied to a two-state function
+Twostate-Resolution.dfy(453,14): Error: an @-label can only be applied to a two-state lemma
+Twostate-Resolution.dfy(459,19): Error: an @-label can only be applied to a two-state function
+Twostate-Resolution.dfy(481,11): Error: expression is not allowed to invoke a lemma (reveal_OrdinaryOpaque)
+Twostate-Resolution.dfy(482,26): Error: no label 'K' in scope at this time
+Twostate-Resolution.dfy(483,26): Error: an @-label can only be applied to a two-state lemma
+Twostate-Resolution.dfy(487,11): Error: expression is not allowed to invoke a lemma (reveal_OrdinaryOpaque)
+Twostate-Resolution.dfy(488,26): Error: no label 'K' in scope at this time
+Twostate-Resolution.dfy(495,11): Error: expression is not allowed to invoke a twostate lemma (reveal_Opaque)
+Twostate-Resolution.dfy(496,18): Error: no label 'K' in scope at this time
+Twostate-Resolution.dfy(497,19): Error: to reveal a two-state function, do not list any parameters or @-labels
+Twostate-Resolution.dfy(500,17): Error: a two-state function can only be revealed in a two-state context
+Twostate-Resolution.dfy(501,11): Error: expression is not allowed to invoke a twostate lemma (reveal_Opaque)
+Twostate-Resolution.dfy(502,18): Error: no label 'K' in scope at this time
+Twostate-Resolution.dfy(502,19): Error: a two-state function can only be revealed in a two-state context
+Twostate-Resolution.dfy(507,11): Error: expression is not allowed to invoke a twostate lemma (reveal_Opaque)
+Twostate-Resolution.dfy(508,18): Error: no label 'K' in scope at this time
+Twostate-Resolution.dfy(515,11): Error: two-state lemmas can only be used in two-state contexts
+65 resolution/type errors detected in Twostate-Resolution.dfy

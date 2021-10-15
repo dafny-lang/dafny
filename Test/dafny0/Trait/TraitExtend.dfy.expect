@@ -1,3 +1,0 @@
-TraitExtend.dfy(40,21): Error: wrong number of arguments to function application (function 'Mul' expects 3, got 2)
-TraitExtend.dfy(41,21): Error: wrong number of arguments to function application (function 'Plus' expects 2, got 3)
-2 resolution/type errors detected in TraitExtend.dfy

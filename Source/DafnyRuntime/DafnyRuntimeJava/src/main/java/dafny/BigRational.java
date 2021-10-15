@@ -1,3 +1,6 @@
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
+
 package dafny;
 
 import java.math.BigInteger;
@@ -125,6 +128,12 @@ public class BigRational {
             dd = a.den.multiply(yy);
         }
         return new Tuple3<>(aa, bb, dd);
+    }
+
+    public BigRational reduce() {
+        BigInteger gcd = num.abs().gcd(den);
+        if (gcd.equals(BigInteger.ONE)) return this;
+        return new BigRational(num.divide(gcd), den.divide(gcd));
     }
 
     public int compareTo(BigRational that) {

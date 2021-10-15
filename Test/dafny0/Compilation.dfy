@@ -102,22 +102,23 @@ abstract module S {
 }
 
 module T refines S {
-  class C {
+  class C ... {
+    constructor () { }
     method m() {
       print "in T.C.m()";
     }
   }
 }
 module A {
-   import X : T
-   import Y : T
+   import X = T
+   import Y = T
    import Z = T
    method run() {
-     var x := new X.C;
+     var x := new X.C();
      x.m();
-     var y := new Y.C;
+     var y := new Y.C();
      y.m();
-     var z := new Z.C;
+     var z := new Z.C();
      z.m();
    }
 }
@@ -137,11 +138,11 @@ module T1 refines S1 {
     var x := 3;
   }
 }
-module A1 {
+abstract module A1 {
    import X : T1
    method run() {
      X.do();
-     var x := new X.B.C;
+     var x := new X.B.C();
      x.m();
    }
 }
@@ -155,12 +156,13 @@ module M {
     A
   }
   class public {
+    constructor() { }
     var private: int const namespace: int const fallthrough: int const try: int
   }
 }
 
 method Caller() {
-  var p := new M.public;
+  var p := new M.public();
   var x := p.private + p.namespace + p.fallthrough + p.try;
 }
 
@@ -232,7 +234,7 @@ module GhostLetExpr {
         ghost var z := bb + F();
         ghost var t0 := var y := z; z + 3;
         ghost var t1 := ghost var y := z; z + 3;
-        var t2 := ghost var y := z; aa + 3;
+        var t2; t2 := ghost var y := z; aa + 3;
     }
   }
 
@@ -361,12 +363,12 @@ class DigitUnderscore_Names_Functions_and_Methods {
     p.567(100);
   }
 
-  inductive predicate 500(y: int)
+  least predicate 500(y: int)
   {
     y == 0 || this.500(y-1)
   }
 
-  inductive lemma 5_0_0(y: int)
+  least lemma 5_0_0(y: int)
     requires this.500(y)
     ensures 0 <= y
   {

@@ -370,3 +370,68 @@ module CanCallRegressionTests {
     }
   }
 }
+
+// ---------------------------------- Lit of let RHS
+
+module LitLet {
+  function method Gauss(n: nat): nat {
+    if n == 0 then 0 else n + Gauss(n - 1)
+  }
+
+  method M0() {
+    assert Gauss(12) == 78;
+  }
+  method M1() {
+    assert Gauss(20 - 8) == 78;
+  }
+  method M2() {
+    var twenty := 20;
+    var eight := 8;
+    assert Gauss(twenty - eight) == 78;  // error: Lit doesn't get this case
+  }
+  method M3() {
+    var twelve :=
+      var twenty := 20;
+      var eight := 8;
+      twenty - eight;
+    assert Gauss(twelve) == 78;
+  }
+
+  method P(a: nat, b: nat)
+    requires a == 20 && b == 8
+  {
+    assert Gauss(a - b) == 78;  // error: Lit doesn't get this case
+  }
+
+  // ---
+
+  datatype Nat = O | S(pred: Nat)
+
+  function plus(n: Nat, m: Nat) : Nat {
+    match n
+    case O => m
+    case S(n') => S(plus(n', m))
+  }
+
+  function mult(n: Nat, m: Nat) : Nat {
+    if n.O? then O else
+      var n' := n.pred;
+      plus(m, mult(n', m))
+  }
+
+  function factorial(n: Nat): Nat {
+    match n
+    case O => S(O)
+    case S(n') => mult(n, factorial(n'))
+  }
+
+  lemma Test() {
+    var n2 := S(S(O));
+    var n3 := S(n2);
+    var n5 := S(S(n3));
+    var n10 := plus(n5, n5);
+    var n12 := S(S(n10));
+
+    assert factorial(n5) == mult(n10, n12);
+  }
+}

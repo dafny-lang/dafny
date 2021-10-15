@@ -1,0 +1,45 @@
+#! /bin/bash
+
+## Installation and setup for Dafny sources on Mac
+## Requires brew is used for package installations
+
+if [ "$1" == "" ]; then
+  echo "First argument must not exist and will be the root directory"
+  exit 1
+fi
+if [ -e "$1" ]; then
+  echo "First argument must be a non-existent directory"
+  exit 1
+fi
+
+brew install --cask dotnet
+## For compilation
+brew install --cask oracle-jdk-javadoc
+brew install gradle
+brew install golang
+brew install node
+## For testing with lit
+brew install python3
+## To build DafnyRef.pdf
+brew install --cask basictex
+brew install pandoc
+eval "$(/usr/libexec/path_helper)"
+sudo tlmgr update --self
+sudo tlmgr install framed tcolorbox environ trimspaces
+
+mkdir -p $1
+cd $1
+git clone https://github.com/dafny-lang/dafny.git --recurse-submodules
+dotnet build dafny/Source/Dafny.sln
+
+cd dafny
+pip install git+git://github.com/pre-commit/pre-commit.git@d56fdca618197c68937387292de0dcc19224068d
+git config --global init.templateDir ~/.git-template
+pre-commit init-templatedir ~/.git-template
+make runtime
+make z3-mac
+make refman
+
+npm install -g bignumber.js
+pip3 install lit OutputCheck
+lit Test

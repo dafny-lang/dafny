@@ -481,12 +481,12 @@ module MiscAgain {
     }
     method Test() {
       var i := new Y(5);
-      i := new Y._ctor(7);  // but, in fact, it is also possible to use the underlying name
+      i := new Y(7);
       i := new Y;  // error: the class has a constructor, so one must be used
       var s := new Luci.Init(5);
       s := new Luci.FromArray(null);
       s := new Luci(false);
-      s := new Luci._ctor(false);
+      s := new Luci(true);
       s := new Luci.M();  // error: there is a constructor, so one must be called
       s := new Luci;  // error: there is a constructor, so one must be called
       var l := new Lamb;
@@ -803,7 +803,7 @@ module GhostLetExpr {
     var x;
     var g := G(x, y);
     ghost var h := ghost var ta := F(); 5;
-    var j := var tb := F(); 5;  // error: allowed only if 'tb' were ghost
+    var j; j := var tb := F(); 5;  // fine (tb is ghost, j is not, but RHS body doesn't depend on tb)
     assert h == j;
   }
 
@@ -824,7 +824,7 @@ module GhostLetExpr {
         ghost var z := aa + F();
         ghost var t0 := var y := z; z + 3;
         ghost var t1 := ghost var y := z + bb; y + z + 3;
-        var t2 := ghost var y := z; y + 3;  // error: 'y' can only be used in ghost contexts
+        var t2; t2 := ghost var y := z; y + 3;  // t2 is not ghost - error
     }
   }
 
@@ -833,7 +833,7 @@ module GhostLetExpr {
     if e then
       G(5, F())
     else
-      var xyz := F();  // error: 'xyz' needs to be declared ghost to allow this
+      var xyz := F();  // fine, because 'xyz' becomes ghost automatically
       G(5, xyz)
   }
 }
@@ -1069,7 +1069,7 @@ module CycleError5 {
   datatype Dt<T> = Make(T)
 }
 module CycleError6 {
-  type A = Dt<Dt<A>>  // error: cycle A -> Dt<Dt<A>> -> Dt<A> -> A
+  type A = Dt<Dt<A>>  // error: cycle A -> A
   datatype Dt<T> = Make(T)
 }
 
@@ -1160,9 +1160,9 @@ module ObjectSetComprehensions {
   function method B() : set<object> { set o : object | true :: o }  // error: a function is not allowed to depend on the allocated state
 
   // outside functions, the comprehension is permitted, but it cannot be compiled
-  lemma C() { var x := set o : object | true :: o; }
+  lemma C() { var x; x := set o : object | true :: o; }
 
-  method D() { var x := set o : object | true :: o; }  // error: not (easily) compilable
+  method D() { var x; x := set o : object | true :: o; }  // error: not (easily) compilable
 }
 
 // ------ regression test for type checking of integer division -----
@@ -1503,7 +1503,7 @@ module GhostTests {
         { SideEffect(); }  // error: cannot call (ghost) method with a modifies clause
         { var x := 8;
           while x != 0
-            modifies this;  // error: cannot use a modifies clause on a loop
+            modifies this  // error: cannot use a modifies clause on a loop inside a hint
           {
             x := x - 1;
           }
@@ -1532,7 +1532,7 @@ module GhostTests {
         { M(); }  // error: cannot call (ghost) method with a modifies clause
         { var x := 8;
           while x != 0
-            modifies this;  // error: cannot use a modifies clause on a loop
+            modifies this  // error: cannot use a modifies clause on a loop inside a hint
           {
             x := x - 1;
           }
@@ -1597,7 +1597,7 @@ module BadGhostTransfer {
   datatype DTD_List = DTD_Nil | DTD_Cons(Car: int, Cdr: DTD_List, ghost g: int)
 
   method DatatypeDestructors_Ghost(d: DTD_List) {
-    var g1 := d.g;  // error: cannot use ghost member in non-ghost code
+    var g1; g1 := d.g;  // error: cannot use ghost member in non-ghost code
   }
   method AssignSuchThatFromGhost()
   {
@@ -1636,7 +1636,7 @@ module MoreGhostPrintAttempts {
 module MoreLetSuchThatExpr {
   method LetSuchThat_Ghost(ghost z: int, n: nat)
   {
-    var x := var y :| y < z; y;  // error: contraint depend on ghost (z)
+    var x; x := var y :| y < z; y;  // error: contraint depend on ghost (z)
   }
 }
 
@@ -1777,11 +1777,11 @@ module TypeConversions {
   method M() returns (x: int, n: nat, o: object, j: J, c: C) {
     n := x as nat;  // yes, this is allowed now
     o := j;
-    j := o;  // error: cannot assign 'object' to 'J'
-    j := o as J;  // error: not allowed to convert to 'J'
+    j := o;  // OK for type resolution, but must be proved
+    j := o as J;  // yes, this is allowed now
     j := c;
-    c := j;  // error: cannot assign J' to 'C'
-    c := j as C;  // error: not allowed to convert to 'C'
+    c := j;  // OK for type resolution, but must be proved
+    c := j as C;  // yes, this is allowed now
     var oo := o as realint;  // error: there's no such type as "realint" (this once used to crash Dafny)
   }
 }
@@ -1796,10 +1796,10 @@ module Regression_NewType {
 // --------------------- regression
 
 module PrefixGeneratorDuplicates {
-  copredicate P()
-  copredicate P()  // error: duplicate name (this once crashed Dafny)
-  colemma L()
-  colemma L()  // error: duplicate name (this once crashed Dafny)
+  greatest predicate P()
+  greatest predicate P()  // error: duplicate name (this once crashed Dafny)
+  greatest lemma L()
+  greatest lemma L()  // error: duplicate name (this once crashed Dafny)
 }
 
 // ------------------- unary TLA+ style predicates -------------------
@@ -1912,11 +1912,11 @@ module ReturnBeforeNew {
   }
 }
 
-// ---------------- required zero initialization -----------------------
+// ---------------- required auto-initialization -----------------------
 
 module ZI {
   // the following are different syntactic ways of saying that the type
-  // must support zero initialization
+  // must support auto-initialization
   type ZA(0)
   type ZB(==)(0)
   type ZC(0)(==)
@@ -1932,15 +1932,15 @@ module ZI {
     P(c);
     P(d);
     P(e);
-    P(f);  // error: type of argument is expected to support zero initialization
+    P(f);  // error: type of argument is expected to support auto-initialization
     P(g);
-    P(y);  // error: type of argument is expected to support zero initialization
+    P(y);  // error: type of argument is expected to support auto-initialization
   }
 
   datatype List<T> = Nil | Cons(T, List<T>)
   method M1<G,H(0)>(xs: List<G>, ys: List<H>) {
-    P(xs);  // yay, type of argument does support zero initialization
-    P(ys);  // yay, type of argument does support zero initialization
+    P(xs);  // yay, type of argument does support auto-initialization
+    P(ys);  // yay, type of argument does support auto-initialization
   }
 
   class Cls {
@@ -1951,75 +1951,85 @@ module ZI {
     P(c);
   }
 
-  newtype byte = x: int | 0 <= x < 256  // supports zero initialization
-  newtype MyInt = int  // supports zero initialization
-  newtype SixOrMore = x | 6 <= x witness 6
-  newtype AnotherSixOrMore = s: SixOrMore | true witness 6
-  newtype MySixOrMore = x: MyInt | 6 <= x witness 6
+  newtype byte = x: int | 0 <= x < 256  // supports auto-initialization
+  newtype MyInt = int  // supports auto-initialization
+  newtype SixOrMore = x | 6 <= x ghost witness 6
+  newtype AnotherSixOrMore = s: SixOrMore | true ghost witness 6
+  newtype MySixOrMore = x: MyInt | 6 <= x ghost witness 6
   // The resolver uses the presence/absence of a "witness" clause to figure out if the type
-  // supports zero initialization.  This can be inaccurate.  If the type does not have a
+  // supports auto-initialization.  This can be inaccurate.  If the type does not have a
   // "witness" clause, some type replacements may slip by the resolver, but will then be
   // caught by the verifier when the witness test is performed (because the witness test
-  // uses a zero value in the absence of a "witness" clause).  Regrettably, if a "witness"
-  // clause is supplied unnecessarily (perhaps to be explicit about the witness in the
-  // program text), then the resolver will treat the type as if it does not support
-  // zero initialization, and hence some good programs will be rejected by the resolver.
-  newtype UnclearA = x: int | true witness 0  // actually supports zero initialization, but has a "witness" clause
-  newtype UnclearB = x | 6 <= x  // "witness" clause omitted; type does not actually support zero initialization
+  // uses a zero value in the absence of a "witness" clause).
+  // A "ghost witness" clause tells the resolver that the type does not support
+  // auto-initialization, but only ghost auto-initialzation.
+
+  newtype UnclearA = x: int | true ghost witness 0  // actually supports auto-initialization, but has a "ghost witness" clause
+  newtype UnclearB = x | x == 6 && x < 4  // "witness" clause omitted; type does not actually support auto-initialization
 
   method M3(a: byte, b: MyInt, c: SixOrMore, d: AnotherSixOrMore, e: MySixOrMore,
             ua: UnclearA, ub: UnclearB) {
     P(a);
     P(b);
-    P(c);  // error: type of argument is expected to support zero initialization
-    P(d);  // error: type of argument is expected to support zero initialization
-    P(e);  // error: type of argument is expected to support zero initialization
-    P(ua);  // error: as far as the resolver can tell, type of argument does not support zero initialization
+    P(c);  // error: type of argument is expected to support auto-initialization
+    P(d);  // error: type of argument is expected to support auto-initialization
+    P(e);  // error: type of argument is expected to support auto-initialization
+    P(ua);  // error: as far as the resolver can tell, type of argument does not support auto-initialization
     P(ub);  // fine, as far as the resolver can tell (but this would be caught later by the verifier)
   }
 
-  type Sbyte = x: int | 0 <= x < 256  // supports zero initialization
-  type SMyInt = int  // supports zero initialization
-  type SSixOrMore = x | 6 <= x witness 6
-  type SAnotherSixOrMore = s: SSixOrMore | true witness 6
-  type SMySixOrMore = x: SMyInt | 6 <= x witness 6
-  type SUnclearA = x: int | true witness 0  // see note about for UnclearA
+  type Sbyte = x: int | 0 <= x < 256  // supports auto-initialization
+  type SMyInt = int  // supports auto-initialization
+  type SSixOrMore = x | 6 <= x ghost witness 6
+  type SAnotherSixOrMore = s: SSixOrMore | true ghost witness 6
+  type SMySixOrMore = x: SMyInt | 6 <= x ghost witness 6
+  type SUnclearA = x: int | true ghost witness 0  // see note about for UnclearA
   type SUnclearB = x | 6 <= x  // see note about for UnclearB
 
   method M4(a: Sbyte, b: SMyInt, c: SSixOrMore, d: SAnotherSixOrMore, e: SMySixOrMore,
             sua: SUnclearA, sub: SUnclearB) {
     P<Sbyte>(a);
     P<SMyInt>(b);
-    P<SSixOrMore>(c);  // error: type of argument is expected to support zero initialization
-    P<SAnotherSixOrMore>(d);  // error: type of argument is expected to support zero initialization
-    P<SMySixOrMore>(e);  // error: type of argument is expected to support zero initialization
-    P<SUnclearA>(sua);  // error: as far as the resolver can tell, type of argument does not support zero initialization
+    P<SSixOrMore>(c);  // error: type of argument is expected to support auto-initialization
+    P<SAnotherSixOrMore>(d);  // error: type of argument is expected to support auto-initialization
+    P<SMySixOrMore>(e);  // error: type of argument is expected to support auto-initialization
+    P<SUnclearA>(sua);  // error: as far as the resolver can tell, type of argument does not support auto-initialization
     P<SUnclearB>(sub);  // fine, as far as the resolver can tell (but this would be caught later by the verifier)
   }
 }
-
 abstract module ZI_RefinementAbstract {
-  type A
-  type A'
-  type B(0)
-  type B'(0)
-
-  type Mxx(0)
-  type Mx_
-  type M_x(0)
-  type M__
+  type A0
+  type A1
+  type A2
+  type A3
+  type B0(0)
+  type B1(0)
+  type B2(0)
+  type B3(0)
+  type C0(00)
+  type C1(00)
+  type C2(00)
+  type C3(00)
 
   method Delta<Q(0),W,E(0),R>()
 }
-
 module ZI_RefinementConcrete0 refines ZI_RefinementAbstract {
-  newtype Six = x | 6 <= x witness 6  // does not support zero initialization
-  type A = int
-  type A' = Six
-  type B = int
-  type B' = Six  // error: RHS is expected to support zero initialization
+  newtype Kuusi = x | 6 <= x witness 6  // supports auto-initialization
+  newtype Six = x | 6 <= x ghost witness 6  // does not support auto-initialization
+  newtype Sesis = x | 6 <= x witness *  // possibly empty
+  type A0 = int
+  type A1 = Kuusi
+  type A2 = Six
+  type A3 = Sesis
+  type B0 = int
+  type B1 = Kuusi
+  type B2 = Six  // error: RHS is expected to support auto-initialization
+  type B3 = Sesis  // error: RHS is expected to support auto-initialization
+  type C0 = int
+  type C1 = Kuusi
+  type C2 = Six
+  type C3 = Sesis  // error: RHS is expected to be nonempty
 }
-
 module ZI_ExportSource {
   export
     reveals RGB
@@ -2034,19 +2044,24 @@ module ZI_RefinementConcrete1 refines ZI_RefinementAbstract {
   method P<G(0)>(g: G)
   method M(m: Z.RGB, n: Z.XYZ) {
     P(m);
-    P(n);  // error: Z.XYZ is not known to support zero initialization
+    P(n);  // error: Z.XYZ is not known to support auto-initialization
   }
 
-  type Mxx  // error: not allowed to change zero-initialization setting
-  type Mx_
-  type M_x(0)
-  type M__(0)  // error: not allowed to change zero-initialization setting
+  type A0
+  type A1(0)   // error: not allowed to change auto-initialization setting
+  type A2(00)  // error: not allowed to change nonempty setting
+  type B0      // error: not allowed to change auto-initialization setting
+  type B1(0)
+  type B2(00)  // error: not allowed to change auto-initialization setting
+  type C0      // error: not allowed to change nonempty setting
+  type C1(0)   // error: not allowed to change auto-initialization setting
+  type C2(00)
 
   method Delta<
-    Q,  // error: not allowed to change zero-initialization setting
+    Q,  // error: not allowed to change auto-initialization setting
     W,
     E(0),
-    R(0)>()  // error: not allowed to change zero-initialization setting
+    R(0)>()  // error: not allowed to change auto-initialization setting
 }
 
 // ----- constructor-less classes with need for initialization -----
@@ -2070,24 +2085,24 @@ module ConstructorlessClasses {
     print "real: ", c.c, "\n";
   }
 
-  codatatype Co = CoEnd | Suc(Co)
-
+  codatatype Co<X> = Suc(Co<seq<X>>)  // does not know a known compilable value
+  codatatype Co2 = CoEnd | CoSuc(Co2)
   trait Trait {
-    var co: Co  // has no known initializer
+    var co: Co<int>  // has no known initializer
   }
   class Class extends Trait {  // error: must have constructor, because of inherited field "co"
   }
 
   class CoClass0 {  // error: must have constructor
-    const co: Co
+    const co: Co<int>
   }
 
   class CoClass1 {  // fine
-    const co: Co := CoEnd
+    const co: Co2 := CoEnd
   }
 
   trait CoTrait {
-    const co: Co := CoEnd
+    const co: Co2 := CoEnd
   }
   class CoClass2 extends CoTrait {  // fine
   }
@@ -2239,7 +2254,7 @@ module UninterpretedModuleLevelConst {
 
   class MyClass { }
   const Y: MyClass  // error: the type of a non-ghost static const must have a known (non-ghost) initializer
-  ghost const Y': MyClass  // fine, Y' is ghost
+  ghost const Y': MyClass  // error: the type of a ghost static const must be known to be nonempty
 
   class AnotherClass {  // fine, the class itself is not required to have a constructor, because the bad fields are static
     static const k := 18
@@ -2265,10 +2280,10 @@ module UninterpretedModuleLevelConst {
   }
 
   trait GhostTr {
-    ghost const w: MyClass  // ghost, so no prob
+    ghost const w: MyClass  // the responsibility to initialize "w" lies with any class that implements "GhostTr"
   }
-  class GhostCl extends GhostTr {
-    ghost const z: MyClass  // ghost, so no prob
+  class GhostCl extends GhostTr {  // error: w and z need initialization, so GhostCl must have a constructor
+    ghost const z: MyClass
   }
 }
 
@@ -2458,7 +2473,7 @@ module AbstemiousCompliance {
 }
 
 module BigOrdinalRestrictionsExtremePred {
-  inductive predicate Test() {
+  least predicate Test() {
     var st: set<ORDINAL> := {};  // error: cannot use ORDINAL as type argument
     var p: (int, ORDINAL) := (0,0);  // error: cannot use ORDINAL as type argument
     var o: ORDINAL := 0;  // okay
@@ -2594,25 +2609,45 @@ module LabelDomination {
   class MyClass {
     var x: int
     method LabelNotInScope_Old(y: int) {
+      label GoodLabel:
       if y < 5 {
         label Treasure:
         assert true;
       }
       assert old(x) == old@Treasure(x);  // error: no label Treasure in scope
       assert 10 == old@WonderfulLabel(x);  // error: no label WonderfulLabel in scope
+      assert old(x) == old@GoodLabel(x);
+      assert old(x) == old@FutureLabel(x);  // error: no label FutureLabel in scope
+      label FutureLabel: {}
     }
     method LabelNotInScope_Unchanged(y: int) {
+      label GoodLabel:
       if y < 5 {
         label Treasure:
         assert true;
       }
       assert unchanged@Treasure(`x);  // error: no label Treasure in scope
       assert unchanged@WonderfulLabel(this);  // error: no label WonderfulLabel in scope
+      assert unchanged@GoodLabel(this);
+      assert unchanged@FutureLabel(this);  // error: no label FutureLabel in scope
+      label FutureLabel: {}
+    }
+    method LabelNotInScope_Fresh(y: int, c: MyClass) {
+      label GoodLabel:
+      if y < 5 {
+        label Treasure:
+        assert true;
+      }
+      assert fresh@Treasure(c);  // error: no label Treasure in scope
+      assert fresh@WonderfulLabel(c);  // error: no label WonderfulLabel in scope
+      assert fresh@GoodLabel(c);
+      assert fresh@FutureLabel(c);  // error: no label FutureLabel in scope
+      label FutureLabel: {}
     }
   }
 }
 
-// ----- bad use of types without zero initializers -----
+// ----- bad use of types without auto-initializers -----
 
 module Initialization {
   datatype Yt<Y> = MakeYt(x: int, y: Y)
@@ -2634,7 +2669,7 @@ module Initialization {
   method TypeParamViolation() returns (e: Yt<Even>, o: Yt<Odd>, g: Yt<GW>)
   {
     e := GimmieOne<Yt<Even>>();
-    o := GimmieOne<Yt<Odd>>();  // error: cannot pass Yt<Odd> to a (0)-parameter
+    o := GimmieOne<Yt<Odd>>();
     g := GimmieOne<Yt<GW>>();  // error: cannot pass Yt<GW> to a (0)-parameter
   }
 }
@@ -2873,5 +2908,730 @@ module MapDisjointnessNoMore {
   method M<X,Y>(a: map, b: map) {
     assert a !! b;  // error: !! is (no longer) support on maps
     assert a.Keys !! b.Keys;  // instead, this is the way to do it
+  }
+}
+
+// --------------- expect statements ------------------------------
+
+module ExpectStatements {
+
+  function UnsafeDivide(a: int, b: int): int {
+    expect b != 0;  // expect statement is not allowed in this context
+    a / b
+  }
+
+  method M() {
+    ghost var g := 5;
+    expect forall i : int :: i == i;  // error: quantifiers in non-ghost contexts must be compilable
+    expect false, if g == 5 then "boom" else "splat"; // error: ghost variables are allowed only in specification contexts
+  }
+}
+
+// --------------- type-parameter scopes ------------------------------
+
+module TypeParameterScopes {
+  class C<X> {
+    function method G(): X
+    method M<X>(f: X) {
+      var h: X := f;
+      var k: X := G();  // error: this is the wrong X
+    }
+    function method F<X>(f: X): int {
+      var h: X := f;
+      var k: X := G();  // error: this is the wrong X
+      10
+    }
+  }
+}
+
+// --------------- type of function members (regression tests) ------------------------------
+
+module TypeOfFunctionMember {
+  function Fo<X>(x: X): int
+
+  lemma M() {
+    // Both of the following once crashed the type checker
+    var rd := Fo<real>.reads;
+    var rq := Fo<real>.requires;
+  }
+}
+
+// --------------- update operations ------------------------------
+
+module CollectionUpdates {
+  // Update operations on collections must have the right types, modulo subset types.
+  // For verification errors, see Maps.dfy.
+  trait Trait { }
+  class Elem extends Trait { }
+
+  method UpdateValiditySeq(d: Trait, e: Elem) {
+    var s: seq<Elem> := [e, e, e, e, e];
+    s := s[1 := d];  // error: d is not an Elem (and is not a subset type of it, either)
+  }
+  method UpdateValidityMultiset(d: Trait) {
+    var s: multiset<Elem>;
+    s := s[d := 5];  // error: element value is not a Elem
+  }
+  method UpdateValidityMap(d: Trait, e: Elem) {
+    var m: map<Elem, Elem>;
+    if * {
+      m := m[d := e];  // error: key is not a Elem
+    } else {
+      m := m[e := d];  // error: value is not a Elem
+    }
+  }
+}
+
+// --------------- update operations ------------------------------
+
+module MoreAutoInitAndNonempty {
+  type A(0)
+  type B(00)
+  type C
+
+  method Q<F(0)>(f: F)
+  method P<G(00)>(g: G)
+  method R<H>(h: H)
+
+  function method FQ<F(0)>(f: F): int
+  function method FP<G(00)>(g: G): int
+  function method FR<H>(h: H): int
+
+  method M<X(0), Y(00), Z>(x: X, y: Y, z: Z)
+  {
+    Q(x);
+    P(x);
+    R(x);
+    Q(y);  // error: auto-init mismatch
+    P(y);
+    R(y);
+    Q(z);  // error: auto-init mismatch
+    P(z);  // error: auto-init mismatch
+    R(z);
+  }
+
+  method N<X(0), Y(00), Z>(x: X, y: Y, z: Z) returns (u: int)
+  {
+    u := FQ(x);
+    u := FP(x);
+    u := FR(x);
+    u := FQ(y);  // error: auto-init mismatch
+    u := FP(y);
+    u := FR(y);
+    u := FQ(z);  // error: auto-init mismatch
+    u := FP(z);  // error: auto-init mismatch
+    u := FR(z);
+  }
+}
+
+// --------------- ghost function error messages ------------------------------
+
+module GhostFunctionErrorMessages {
+  function GhostFunction(): int
+  predicate GhostPredicate()
+  least predicate LeastPredicate()
+  greatest predicate GreatestPredicate()
+  twostate function TwoFunction(): int
+  twostate predicate TwoPredicate()
+
+  method GhostsUsedInCompiledContexts() {
+    var x, b;
+    x := GhostFunction(); // error
+    b := GhostPredicate(); // error
+    b := LeastPredicate(); // error
+    b := GreatestPredicate(); // error
+    x := TwoFunction(); // error
+    b := TwoPredicate(); // error
+  }
+}
+
+module TypeParameterCount {
+  function F0(): int
+  function F1<A>(): int
+  function F2<A, B>(): int
+  method M0()
+  method M1<A>()
+  method M2<A, B>()
+
+  method TestFunction() {
+    var x;
+    x := F0();
+    x := F1();  // type argument inferred
+    x := F2();  // type arguments inferred
+    x := F0<int>();  // error: wrong number of type parameters
+    x := F1<int>();
+    x := F2<int>();  // error: wrong number of type parameters
+    x := F0<int, real>();  // error: wrong number of type parameters
+    x := F1<int, real>();  // error: wrong number of type parameters
+    x := F2<int, real>();
+  }
+
+  method TestMethods() {
+    M0();
+    M1();  // type argument inferred
+    M2();  // type arguments inferred
+    M0<int>();  // error: wrong number of type parameters
+    M1<int>();
+    M2<int>();  // error: wrong number of type parameters
+    M0<int, real>();  // error: wrong number of type parameters
+    M1<int, real>();  // error: wrong number of type parameters
+    M2<int, real>();
+  }
+}
+
+module AutoGhostRegressions {
+  datatype Quad<T, U> = Quad(0: T, 1: T, ghost 2: U, ghost 3: U)
+
+  method Test() {
+    var q := Quad(20, 30, 40, 50);
+    print q, "\n";
+
+    var Quad(a, b, c, d) := q;
+    print c, "\n";  // error: c is ghost (this was once not handled correctly)
+
+    match q {
+      case Quad(r, s, t, u) =>
+        print t, "\n";  // error: t is ghost
+    }
+
+    ghost var p := Quad(20, 30, 40, 50);
+    var Quad(a', b', c', d') := p;
+    print a', "\n";  // error: a' is ghost
+    print c', "\n";  // error: c' is ghost
+  }
+
+  datatype NoEquality = NoEquality(ghost u: int)
+  newtype NT = x | var s: set<NoEquality> := {}; |s| <= x  // fine, since constraint is a ghost context
+  type ST = x | var s: set<NoEquality> := {}; |s| <= x  // fine, since constraint is a ghost context
+}
+
+module TypeCharacteristicsInGhostCode {
+  function method MustBeNonempty<T(00)>(): int { 5 }
+  function method MustBeAutoInit<T(0)>(): int { 5 }
+  function method MustSupportEquality<T(==)>(): int { 5 }
+  function method NoReferences<T(!new)>(): int { 5 }
+
+  type PossiblyEmpty = x: int | true witness *
+  type Nonempty = x: int | true ghost witness 0
+  datatype NoEquality = NoEquality(ghost u: int)
+  class Class { }
+  type Good = bool
+
+  method TestCompiled<Z>()
+  {
+    var w;
+
+    w := MustBeNonempty<PossiblyEmpty>();  // error
+    w := MustBeNonempty<Nonempty>();
+    w := MustBeNonempty<NoEquality>();
+    w := MustBeNonempty<Class?>();
+    w := MustBeNonempty<Good>();
+    w := MustBeNonempty<Z>();  // error (a hint is given)
+
+    w := MustBeAutoInit<PossiblyEmpty>();  // error
+    w := MustBeAutoInit<Nonempty>();  // error
+    w := MustBeAutoInit<NoEquality>();
+    w := MustBeAutoInit<Class?>();
+    w := MustBeAutoInit<Good>();
+    w := MustBeAutoInit<Z>();  // error (a hint is given)
+
+    w := MustSupportEquality<PossiblyEmpty>();
+    w := MustSupportEquality<Nonempty>();
+    w := MustSupportEquality<NoEquality>();  // error
+    w := MustSupportEquality<Class?>();
+    w := MustSupportEquality<Good>();
+    w := MustSupportEquality<Z>();  // error (a hint is given)
+
+    w := NoReferences<PossiblyEmpty>();
+    w := NoReferences<Nonempty>();
+    w := NoReferences<NoEquality>();
+    w := NoReferences<Class?>();  // error
+    w := NoReferences<Good>();
+    w := NoReferences<Z>();  // error (a hint is given)
+  }
+
+  method TestGhost()
+  {
+    ghost var w;
+
+    w := MustBeNonempty<PossiblyEmpty>();  // error
+    w := MustBeNonempty<Nonempty>();
+    w := MustBeNonempty<NoEquality>();
+    w := MustBeNonempty<Class?>();
+    w := MustBeNonempty<Good>();
+
+    w := MustBeAutoInit<PossiblyEmpty>();  // error
+    w := MustBeAutoInit<Nonempty>();  // fine, because the call appears in a ghost context
+    w := MustBeAutoInit<NoEquality>();
+    w := MustBeAutoInit<Class?>();
+    w := MustBeAutoInit<Good>();
+
+    w := MustSupportEquality<PossiblyEmpty>();
+    w := MustSupportEquality<Nonempty>();
+    w := MustSupportEquality<NoEquality>();
+    w := MustSupportEquality<Class?>();
+    w := MustSupportEquality<Good>();
+
+    w := NoReferences<PossiblyEmpty>();
+    w := NoReferences<Nonempty>();
+    w := NoReferences<NoEquality>();
+    w := NoReferences<Class?>();  // error
+    w := NoReferences<Good>();
+  }
+
+  function method FF(a: bool, ghost b: bool): int { 5 }
+  method MM(a: bool, ghost b: bool) { }
+  function method GetInt<T(==)>(): int { 2 }
+  method GhostContexts<T>(x: T, y: T) {
+    var r;
+    r := FF(x == y, true);  // error: T must support equality
+    r := FF(true, x == y);  // no problem, since this is a ghost context
+    MM(x == y, true);  // error: T must support equality
+    MM(true, x == y);  // no problem, since this is a ghost context
+
+    r := FF(GetInt<NoEquality>() == 0, true);  // error: type argument must support equality
+    r := FF(true, GetInt<NoEquality>() == 0);  // okay, since this is a ghost context
+    MM(GetInt<NoEquality>() == 0, true);  // error: type argument must support equality
+    MM(true, GetInt<NoEquality>() == 0);  // okay, since this is a ghost context
+
+    var q0 := Quad(GetInt<NoEquality>() == 0, true, true, true);  // error: type argument must support equality
+    var q1 := Quad(true, true, GetInt<NoEquality>() == 0, true);  // fine, since in a ghost context
+  }
+
+  datatype Quad<T, U> = Quad(0: T, 1: T, ghost 2: U, ghost 3: U)
+  datatype QuadEq<T(==), U(==)> = QuadEq(0: T, 1: T, ghost 2: U, ghost 3: U)
+
+  method VarDecls<T>(x: T, y: T) {
+    var a := x == y;  // error: this requires T to support equality
+    ghost var b := x == y;  // fine
+
+    var q := Quad(x, y, x, y);
+    var Quad(k, l, m, n) := q;  // k,l are compiled; m,n are ghost
+    var c := k == l;  // error: this requires T to support equality
+    var d := m == n;  // fine, since d is implicitly ghost
+    d, c, d := m == n, k == l, m == n;  // error: "k == l" requires T to support equality
+
+    var q' := QuadEq([x], [x], [0], [0]);  // error: seq<T> requires T to support equality
+    var q'' := QuadEq([0], [0], [x], [x]); // error: seq<T> requires T to support equality
+  }
+
+  newtype NT = x | var s: set<NoEquality> := {}; |s| <= x  // fine, since constraint is a ghost context
+  type ST = x | var s: set<NoEquality> := {}; |s| <= x  // fine, since constraint is a ghost context
+
+  method LetVarDecls<T>(x: T, y: T) {
+    var lhs;
+    lhs :=
+      var a := x == y;  // error: this requires T to support equality
+      0;
+    lhs :=
+      ghost var b := x == y;  // fine
+      0;
+
+    var q := Quad(x, y, x, y);
+    var Quad(k, l, m, n) := q;  // k,l are compiled; m,n are ghost
+    lhs :=
+      var c := k == l;  // error: this requires T to support equality
+      0;
+    lhs :=
+      var d := m == n;  // fine, since d is implicitly ghost
+      0;
+
+    ghost var ghostLhs;
+    ghostLhs :=
+      var a := x == y;  // fine
+      0;
+    ghostLhs :=
+      ghost var b := x == y;  // fine
+      0;
+  }
+
+  datatype DatatypeHasMembersToo = Abc | Def {
+    method Test() {
+      var w;
+      w := MustBeNonempty<PossiblyEmpty>();  // error
+      w := MustBeAutoInit<PossiblyEmpty>();  // error
+      w := MustBeAutoInit<Nonempty>();  // error
+      w := MustSupportEquality<NoEquality>();  // error
+      w := NoReferences<Class?>();  // error
+    }
+  }
+
+  newtype NewtypeHasMembersToo = x: int | x == MustBeNonempty<PossiblyEmpty>()  // error: constraint has bad type instantiation
+    witness MustBeNonempty<PossiblyEmpty>()  // error: witness expression has bad type instantiation
+  {
+    method Test() {
+      var w;
+      w := MustBeNonempty<PossiblyEmpty>();  // error
+      w := MustBeAutoInit<PossiblyEmpty>();  // error
+      w := MustBeAutoInit<Nonempty>();  // error
+      w := MustSupportEquality<NoEquality>();  // error
+      w := NoReferences<Class?>();  // error
+    }
+  }
+
+  type SubsetTypeHasExpressionToo = x: int | x == MustBeNonempty<PossiblyEmpty>()  // error: constraint has bad type instantiation
+    witness MustBeNonempty<PossiblyEmpty>()  // error: witness expression has bad type instantiation
+
+  newtype NT_CompiledWitness = x | 0 <= x
+    witness MustSupportEquality<NoEquality>()  // error
+  newtype NT_GhostWitness = x | 0 <= x
+    ghost witness MustSupportEquality<NoEquality>()  // fine, since it's ghost
+  type ST_CompiledWitness = x | 0 <= x
+    witness MustSupportEquality<NoEquality>()  // error
+  type ST_GhostWitness = x | 0 <= x
+    ghost witness MustSupportEquality<NoEquality>()  // fine, since it's ghost
+
+  trait
+    {:MyAttribute MustSupportEquality<NoEquality>(), MustBeNonempty<PossiblyEmpty>()}  // error: about MustBeNonempty (no prob with (==))
+    MyTrait
+  {
+    const x := (CallMyLemma(MustSupportEquality<NoEquality>(), MustBeNonempty<PossiblyEmpty>()); 23)  // error: about MustBeNonempty (no prob with (==))
+  }
+  lemma CallMyLemma(x: int, y: int)
+}
+
+module MoreAutoGhostTests {
+  datatype Quad<T, U> = Quad(0: T, 1: T, ghost 2: U, ghost 3: U)
+
+  method SomeLetVarsAreGhost0(q: Quad<int, int>) returns (r: int) {
+    r :=
+      var Quad(k, l, m, n) := q;  // k,l are compiled; m,n are ghost
+      k + l;
+  }
+
+  method SomeLetVarsAreGhost1(q: Quad<int, int>) returns (r: int) {
+    r :=
+      var Quad(k, l, m, n) := q;  // k,l are compiled; m,n are ghost
+      m;  // error: m is ghost
+  }
+
+  method AssignSuchThat(ghost m: int) {
+    var d :| d == m;  // error: LHS is not inferred to be ghost for :|
+  }
+
+  function method LetSuchThat(ghost m: int): int {
+    var d :| d == m;  // error: LHS is not inferred to be ghost for :|
+    0
+  }
+}
+
+module RelaxedAutoInitChecking {
+  // In a ghost context, the (==) is never relevant. Therefore, checking of adherence to (==) for
+  // type arguments is suppressed in ghost contexts.
+  // Similarly, in a ghost context, there's no difference between (0) and (00). Therefore, a
+  // formal parameter that expects (0) can take either a (0) or a (00) in a ghost context.
+
+  function method MustBeNonempty<T(00)>(): int { 5 }
+  function method MustBeAutoInit<T(0)>(): int { 5 }
+  function method MustSupportEquality<T(==)>(): int { 5 }
+  function method NoReferences<T(!new)>(): int { 5 }
+
+  type PossiblyEmpty = x: int | true witness *
+  type Nonempty = x: int | true ghost witness 0
+  datatype NoEquality = NoEquality(ghost u: int)
+  class Class { }
+  type Good = bool
+
+  method M(compiledValue: int, ghost ghostValue: int)
+
+  method TestCompiled()
+  {
+    M(MustBeNonempty<PossiblyEmpty>(), 0);  // error
+    M(MustBeNonempty<Nonempty>(), 0);
+    M(MustBeNonempty<NoEquality>(), 0);
+    M(MustBeNonempty<Class?>(), 0);
+    M(MustBeNonempty<Good>(), 0);
+
+    M(MustBeAutoInit<PossiblyEmpty>(), 0);  // error
+    M(MustBeAutoInit<Nonempty>(), 0);  // error
+    M(MustBeAutoInit<NoEquality>(), 0);
+    M(MustBeAutoInit<Class?>(), 0);
+    M(MustBeAutoInit<Good>(), 0);
+
+    M(MustSupportEquality<PossiblyEmpty>(), 0);
+    M(MustSupportEquality<Nonempty>(), 0);
+    M(MustSupportEquality<NoEquality>(), 0);  // error
+    M(MustSupportEquality<Class?>(), 0);
+    M(MustSupportEquality<Good>(), 0);
+
+    M(NoReferences<PossiblyEmpty>(), 0);
+    M(NoReferences<Nonempty>(), 0);
+    M(NoReferences<NoEquality>(), 0);
+    M(NoReferences<Class?>(), 0);  // error
+    M(NoReferences<Good>(), 0);
+  }
+
+  method TestGhost()
+  {
+    M(0, MustBeNonempty<PossiblyEmpty>());  // error
+    M(0, MustBeNonempty<Nonempty>());
+    M(0, MustBeNonempty<NoEquality>());
+    M(0, MustBeNonempty<Class?>());
+    M(0, MustBeNonempty<Good>());
+
+    M(0, MustBeAutoInit<PossiblyEmpty>());  // error
+    M(0, MustBeAutoInit<Nonempty>());  // this is fine in a ghost context
+    M(0, MustBeAutoInit<NoEquality>());
+    M(0, MustBeAutoInit<Class?>());
+    M(0, MustBeAutoInit<Good>());
+
+    M(0, MustSupportEquality<PossiblyEmpty>());
+    M(0, MustSupportEquality<Nonempty>());
+    M(0, MustSupportEquality<NoEquality>());  // this is fine in a ghost context
+    M(0, MustSupportEquality<Class?>());
+    M(0, MustSupportEquality<Good>());
+
+    M(0, NoReferences<PossiblyEmpty>());
+    M(0, NoReferences<Nonempty>());
+    M(0, NoReferences<NoEquality>());
+    M(0, NoReferences<Class?>());  // error
+    M(0, NoReferences<Good>());
+  }
+}
+
+// --------------- let-such-that ghost regressions ------------------------------
+
+module LetSuchThatGhost {
+  predicate True<T>(t: T) { true }
+
+  function method F<T>(s: set<T>): int
+    requires s != {}
+  {
+    // once, the RHS for p was (bogusly) considered ghost, which made p ghost,
+    // which made this body illegal
+    var p :=
+      var e :| e in s;
+      true;
+    if p then 6 else 8
+  }
+
+  function method G<T>(s: set<T>): int
+    requires s != {}
+  {
+    // again, e and p are both non-ghost
+    var p :=
+      var e :| e in s;
+      e == e;
+    if p then 6 else 8
+  }
+
+  function method H<T>(s: set<T>): int
+    requires s != {}
+  {
+    // here, e is ghost, but p is still not
+    var p :=
+      var e :| e in s && True(e);
+      true;
+    if p then 6 else 8
+  }
+
+  function method I<T>(s: set<T>): int
+    requires s != {}
+  {
+    // here, e is ghost, and therefore so is p
+    var p :=
+      var e :| e in s && True(e);
+      e == e;
+    if p then 6 else 8  // error: p is ghost
+  }
+}
+
+// --------------- hint restrictions in non-while loops ------------------------------
+
+module HintRestrictionsOtherLoops {
+  class C {
+    function F(): int
+    {
+      calc {
+        6;
+        { var x := 8;
+          while
+            modifies this  // error: cannot use a modifies clause on a loop inside a hint
+          {
+            case x != 0 => x := x - 1;
+          }
+        }
+        6;
+        { for i := 0 to 8
+            modifies this  // error: cannot use a modifies clause on a loop inside a hint
+          {
+          }
+        }
+        6;
+      }
+      5
+    }
+  }
+}
+
+// --------------- regressions: types of arguments to fresh, unchanged, modifies, reads ------------------------------
+
+module FrameTypes {
+  // ----- fresh takes an expression as its argument
+
+  method FreshArgumentType0(
+    o: object,
+    s: set<object>, ss: iset<object>,
+    q: seq<object>,
+    ms: multiset<object>,
+    mp: map<object, int>, mp2: map<int, object>,
+    im: imap<object, object>)
+  {
+    ghost var b;
+    b := fresh(o);
+    b := fresh(s);
+    b := fresh(ss);
+    b := fresh(q);
+    b := fresh(ms); // error: wrong argument type for fresh
+    b := fresh(mp); // error: wrong argument type for fresh
+    b := fresh(mp2); // error: wrong argument type for fresh
+    b := fresh(im); // error: wrong argument type for fresh
+  }
+
+  method FreshArgumentType1(x: int, s: set<bool>, ss: iset<bv8>, q: seq<int>) {
+    ghost var b;
+    b := fresh(x); // error: wrong argument type for fresh
+    b := fresh(s); // error: wrong argument type for fresh
+    b := fresh(ss); // error: wrong argument type for fresh
+    b := fresh(q); // error: wrong argument type for fresh
+  }
+
+  method FreshArgumentType2(f: int -> int, g: int -> object, h: int -> set<object>, i: int -> iset<object>, j: int -> seq<object>, k: set<object> -> int) {
+    ghost var b;
+    b := fresh(f); // error: wrong argument type for fresh
+    b := fresh(g); // error: wrong argument type for fresh
+    b := fresh(h); // error: wrong argument type for fresh
+    b := fresh(j); // error: wrong argument type for fresh
+    b := fresh(k); // error: wrong argument type for fresh
+  }
+
+  // ----- unchanged, modifies, and reads take frame expressions as their arguments
+
+  method UnchangedArgumentType0(
+    o: object,
+    s: set<object>, ss: iset<object>,
+    q: seq<object>,
+    ms: multiset<object>,
+    mp: map<object, int>, mp2: map<int, object>,
+    im: imap<object, object>)
+  {
+    ghost var b;
+    b := unchanged(o);
+    b := unchanged(s);
+    b := unchanged(ss);
+    b := unchanged(q);
+    b := unchanged(ms);
+    b := unchanged(mp); // error: wrong argument type for unchanged
+    b := unchanged(mp2); // error: wrong argument type for unchanged
+    b := unchanged(im); // error: wrong argument type for unchanged
+  }
+
+  method UnchangedArgumentType1(x: int, s: set<bool>, ss: iset<bv8>, q: seq<int>) {
+    ghost var b;
+    b := unchanged(x); // error: wrong argument type for unchanged
+    b := unchanged(s); // error: wrong argument type for unchanged
+    b := unchanged(ss); // error: wrong argument type for unchanged
+    b := unchanged(q); // error: wrong argument type for unchanged
+  }
+
+  method UnchangedArgumentType2(
+    f: int -> int,
+    g: int -> object, h: int -> set<object>, i: int -> iset<object>, j: int -> seq<object>, k: set<object> -> int,
+    l: bool -> multiset<object>, m: bool -> map<object, object>)
+  {
+    ghost var b;
+    b := unchanged(f); // error: wrong argument type for unchanged
+    b := unchanged(g); // error: wrong argument type for unchanged
+    b := unchanged(h); // error: wrong argument type for unchanged
+    b := unchanged(i); // error: wrong argument type for unchanged
+    b := unchanged(j); // error: wrong argument type for unchanged
+    b := unchanged(k); // error: wrong argument type for unchanged
+    b := unchanged(l); // error: wrong argument type for unchanged
+    b := unchanged(m); // error: wrong argument type for unchanged
+  }
+
+  method ModifiesArgumentType0(
+    o: object,
+    s: set<object>, ss: iset<object>,
+    q: seq<object>,
+    ms: multiset<object>,
+    mp: map<object, int>, mp2: map<int, object>,
+    im: imap<object, object>)
+    modifies o
+    modifies s
+    modifies ss
+    modifies q
+    modifies ms
+    modifies mp // error: wrong argument type for modifies
+    modifies mp2 // error: wrong argument type for modifies
+    modifies im // error: wrong argument type for modifies
+  {
+  }
+
+  method ModifiesArgumentType1(x: int, s: set<bool>, ss: iset<bv8>, q: seq<int>)
+    modifies x // error: wrong argument type for modifies
+    modifies s // error: wrong argument type for modifies
+    modifies ss // error: wrong argument type for modifies
+    modifies q // error: wrong argument type for modifies
+  {
+  }
+
+  method ModifiesArgumentType2(
+    f: int -> int,
+    g: int -> object, h: int -> set<object>, i: int -> iset<object>, j: int -> seq<object>, k: set<object> -> int,
+    l: bool -> multiset<object>, m: bool -> map<object, object>)
+    modifies f // error: wrong argument type for modifies
+    modifies g // error: wrong argument type for modifies
+    modifies h // error: wrong argument type for modifies
+    modifies i // error: wrong argument type for modifies
+    modifies j // error: wrong argument type for modifies
+    modifies k // error: wrong argument type for modifies
+    modifies l // error: wrong argument type for modifies
+    modifies m // error: wrong argument type for modifies
+  {
+  }
+
+  predicate ReadsArgumentType0(
+    o: object,
+    s: set<object>, ss: iset<object>,
+    q: seq<object>,
+    ms: multiset<object>,
+    mp: map<object, int>, mp2: map<int, object>,
+    im: imap<object, object>)
+    reads o
+    reads s
+    reads ss
+    reads q
+    reads ms
+    reads mp // error: wrong argument type for reads
+    reads mp2 // error: wrong argument type for reads
+    reads im // error: wrong argument type for reads
+  {
+    true
+  }
+
+  predicate ReadsArgumentType1(x: int, s: set<bool>, ss: iset<bv8>, q: seq<int>)
+    reads x // error: wrong argument type for reads
+    reads s // error: wrong argument type for reads
+    reads ss // error: wrong argument type for reads
+    reads q // error: wrong argument type for reads
+  {
+    true
+  }
+
+  predicate ReadsArgumentType2(
+    f: int -> int,
+    g: int -> object, h: int -> set<object>, i: int -> iset<object>, j: int -> seq<object>, k: set<object> -> int,
+    l: bool -> multiset<object>, m: bool -> map<object, object>)
+    reads f // error: wrong argument type for reads
+    reads g
+    reads h
+    reads i
+    reads j
+    reads k // error: wrong argument type for reads
+    reads l
+    reads m // error: wrong argument type for reads
+  {
+    true
   }
 }

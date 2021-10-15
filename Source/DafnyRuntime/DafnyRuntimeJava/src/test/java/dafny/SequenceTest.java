@@ -1,5 +1,6 @@
 package dafny;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -13,23 +14,24 @@ import org.junit.jupiter.api.Test;
 
 class SequenceTest {
 
-  Integer[] testSequenceArr = new Integer[]{1, 3, 2, 4, 2, 4, 6, 5, 4, 1, 7};
-  Integer[] testSequencePreArr = new Integer[]{1, 3, 2, 4, 2, 4};
-  Integer[] testSequenceNPreArr = new Integer[]{1, 3, 2, 4, 2, 5};
-  Integer[] testSequenceNPre2Arr = new Integer[]{1, 3, 2, 4, 2, 4, 6, 5, 4, 1, 7, 3};
-  Integer[] testSequenceSubArr = new Integer[]{2, 4, 6, 5};
-  Integer[] testSequenceTakeArr = new Integer[]{1, 3, 2, 4, 2};
-  Integer[] testSequenceDropArr = new Integer[]{4, 6, 5, 4, 1, 7};
-  Integer[] testSequenceEmptyArr = new Integer[]{};
-  DafnySequence<Integer> testSequence = DafnySequence.fromArray(testSequenceArr);
-  DafnySequence<Integer> testSequencePre = DafnySequence.fromArray(testSequencePreArr);
-  DafnySequence<Integer> testSequenceNPre = DafnySequence.fromArray(testSequenceNPreArr);
-  DafnySequence<Integer> testSequenceNPre2 = DafnySequence.fromArray(testSequenceNPre2Arr);
-  DafnySequence<Integer> testSequenceSub = DafnySequence.fromArray(testSequenceSubArr);
-  DafnySequence<Integer> testSequenceDrop = DafnySequence.fromArray(testSequenceDropArr);
-  DafnySequence<Integer> testSequenceTake = DafnySequence.fromArray(testSequenceTakeArr);
-  DafnySequence<Integer> testSequenceEmpty = DafnySequence.fromArray(testSequenceEmptyArr);
-  DafnySequence<Integer> testCopy = DafnySequence.fromArray(testSequenceArr);
+  int[] testSequenceArr = new int[]{1, 3, 2, 4, 2, 4, 6, 5, 4, 1, 7};
+  int[] testSequencePreArr = new int[]{1, 3, 2, 4, 2, 4};
+  int[] testSequenceNPreArr = new int[]{1, 3, 2, 4, 2, 5};
+  int[] testSequenceNPre2Arr = new int[]{1, 3, 2, 4, 2, 4, 6, 5, 4, 1, 7, 3};
+  int[] testSequenceSubArr = new int[]{2, 4, 6, 5};
+  int[] testSequenceTakeArr = new int[]{1, 3, 2, 4, 2};
+  int[] testSequenceDropArr = new int[]{4, 6, 5, 4, 1, 7};
+  int[] testSequenceEmptyArr = new int[]{};
+  DafnySequence<? extends Integer> testSequence = DafnySequence.of(testSequenceArr);
+  DafnySequence<? extends Integer> testSequencePre = DafnySequence.of(testSequencePreArr);
+  DafnySequence<? extends Integer> testSequenceNPre = DafnySequence.of(testSequenceNPreArr);
+  DafnySequence<? extends Integer> testSequenceNPre2 = DafnySequence.of(testSequenceNPre2Arr);
+  DafnySequence<? extends Integer> testSequenceSub = DafnySequence.of(testSequenceSubArr);
+  DafnySequence<? extends Integer> testSequenceDrop = DafnySequence.of(testSequenceDropArr);
+  DafnySequence<? extends Integer> testSequenceTake = DafnySequence.of(testSequenceTakeArr);
+  DafnySequence<? extends Integer> testSequenceEmpty = DafnySequence.of(testSequenceEmptyArr);
+  DafnySequence<? extends Integer> testCopy = DafnySequence.of(testSequenceArr);
+  DafnySequence<? extends Integer> testWrappedSequence = DafnySequence.unsafeWrapRawArray(TypeDescriptor.INT, testSequenceArr);
 
   @Test
   void testSequencePrefix() {
@@ -51,13 +53,13 @@ class SequenceTest {
 
   @Test
   void testSequenceConcatenate() {
-    DafnySequence<Integer> fatty = testSequence.concatenate(testSequencePre);
-    assertEquals(fatty.length(), testSequencePre.length() + testSequence.length());
+    DafnySequence<? extends Integer> c = (DafnySequence<? extends Integer>)DafnySequence.<Integer>concatenate(testSequence, testSequencePre);
+    assertEquals(c.length(), testSequencePre.length() + testSequence.length());
     for (int i = 0; i < testSequence.length(); i++) {
-      assertEquals(fatty.select(i), testSequence.select(i));
+      assertEquals(c.select(i), testSequence.select(i));
     }
     for (int i = 0; i < testSequencePre.length(); i++) {
-      assertEquals(fatty.select(i + testSequence.length()), testSequencePre.select(i));
+      assertEquals(c.select(i + testSequence.length()), testSequencePre.select(i));
     }
   }
 
@@ -71,10 +73,10 @@ class SequenceTest {
 
   @Test
   void testSequenceUpdate() {
-    DafnySequence<Integer> temp;
+    DafnySequence<? extends Integer> temp;
     temp = testSequence.update(5, 5);
-    DafnySequence<Integer> testUpdate = DafnySequence
-        .fromArray(new Integer[]{1, 3, 2, 4, 2, 5, 6, 5, 4, 1, 7});
+    DafnySequence<? extends Integer> testUpdate = DafnySequence
+        .of(1, 3, 2, 4, 2, 5, 6, 5, 4, 1, 7);
     assertEquals(temp, testUpdate);
     assertEquals(testSequence, testCopy);
   }
@@ -103,14 +105,14 @@ class SequenceTest {
   @Test
   void testSequenceMultisetConversion() {
     DafnyMultiset<Integer> m = new DafnyMultiset<>();
-    m = m.update(1, BigInteger.valueOf(2));
-    m = m.update(2, BigInteger.valueOf(2));
-    m = m.update(3, BigInteger.valueOf(1));
-    m = m.update(4, BigInteger.valueOf(3));
-    m = m.update(5, BigInteger.valueOf(1));
-    m = m.update(6, BigInteger.valueOf(1));
-    m = m.update(7, BigInteger.valueOf(1));
-    DafnyMultiset<Integer> c = testSequence.asDafnyMultiset();
+    m = DafnyMultiset.<Integer>update(m, 1, BigInteger.valueOf(2));
+    m = DafnyMultiset.<Integer>update(m, 2, BigInteger.valueOf(2));
+    m = DafnyMultiset.<Integer>update(m, 3, BigInteger.valueOf(1));
+    m = DafnyMultiset.<Integer>update(m, 4, BigInteger.valueOf(3));
+    m = DafnyMultiset.<Integer>update(m, 5, BigInteger.valueOf(1));
+    m = DafnyMultiset.<Integer>update(m, 6, BigInteger.valueOf(1));
+    m = DafnyMultiset.<Integer>update(m, 7, BigInteger.valueOf(1));
+    DafnyMultiset<? extends Integer> c = testSequence.asDafnyMultiset();
     assertEquals(m, c);
 
   }
@@ -121,8 +123,8 @@ class SequenceTest {
     l.add(5);
     l.add(0);
     l.add(6);
-    DafnySequence<DafnySequence<Integer>> sliced = testSequence.slice(l);
-    Iterator<DafnySequence<Integer>> it = sliced.iterator();
+    DafnySequence<? extends DafnySequence<? extends Integer>> sliced = testSequence.slice(l);
+    Iterator<? extends DafnySequence<? extends Integer>> it = sliced.iterator();
     assertEquals(it.next(), testSequenceTake);
     assertEquals(it.next(), testSequenceEmpty);
     assertEquals(it.next(), testSequenceDrop);
@@ -140,10 +142,11 @@ class SequenceTest {
   @SuppressWarnings("all")
   void testNullFailures() {
     List<Integer> l = null;
-    assertThrows(AssertionError.class, () -> DafnySequence.fromList(l));
+    assertThrows(AssertionError.class, () -> DafnySequence.fromList(TypeDescriptor.INT, l));
     assertThrows(AssertionError.class, () -> testSequence.isPrefixOf(null));
     assertThrows(AssertionError.class, () -> testSequence.contains(null));
-    assertThrows(AssertionError.class, () -> testSequence.concatenate(null));
+    assertThrows(AssertionError.class, () -> DafnySequence.<Integer>concatenate(testSequence, null));
+    assertThrows(AssertionError.class, () -> DafnySequence.<Integer>concatenate(null, testSequence));
     assertThrows(AssertionError.class, () -> testSequence.update(1, null));
     assertThrows(AssertionError.class, () -> testSequence.slice(null));
     assertThrows(AssertionError.class, () -> {
@@ -173,8 +176,25 @@ class SequenceTest {
   @Test
   void testNullMembers() {
     Integer[] testNulls = new Integer[]{3, null, 2};
-    DafnySequence<Integer> testNull = DafnySequence.fromArray(testNulls);
-    assertThrows(AssertionError.class, () -> testNull.update(0, null));
-    assertEquals(testNull, DafnySequence.fromArray(new Integer[]{3, null, 2}));
+    assertThrows(NullPointerException.class, () -> DafnySequence.of(TypeDescriptor.INT, testNulls));
+  }
+
+  @Test
+  void testArrayConversion() {
+    assertEquals(testSequence, testWrappedSequence);
+    int[] convertedArr = (int[]) testSequence.toRawArray();
+    assertArrayEquals(convertedArr, testSequenceArr);
+
+    byte[] byteArr = new byte[testSequenceArr.length];
+    for (int i = 0; i < testSequenceArr.length; i++) {
+      byteArr[i] = (byte) testSequenceArr[i];
+    }
+
+    DafnySequence<Byte> testByteSequence = DafnySequence.fromBytes(byteArr);
+    DafnySequence<Byte> testWrappedByteSequence = DafnySequence.unsafeWrapBytes(byteArr);
+    assertEquals(testByteSequence, testWrappedByteSequence);
+
+    byte[] convertedByteArr = DafnySequence.toByteArray(testByteSequence);
+    assertArrayEquals(byteArr, convertedByteArr);
   }
 }

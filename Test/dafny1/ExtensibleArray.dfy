@@ -12,6 +12,7 @@ class ExtensibleArray<T> {
 
   predicate Valid()
     reads this, Repr
+    ensures Valid() ==> this in Repr
   {
     // shape of data structure
     this in Repr && null !in Repr &&
@@ -39,7 +40,7 @@ class ExtensibleArray<T> {
   }
 
   constructor Init()
-    ensures Valid() && fresh(Repr - {this})
+    ensures Valid() && fresh(Repr)
     ensures Contents == []
   {
     elements := null;

@@ -1,0 +1,21 @@
+Since json files cannot have comments, here are notes on the Dafny theme categories:
+
+   "text-color"     default color for non-matched text -- null means black
+   "background-color"  color of the background behind the code -- here a light gray
+   "Other"          specification keyword, e.g. requires
+   "Attribute"      attributes, e.g. {:MyAttribute }
+   "String"         standard quoted string, e.g. "abc\n\u2222"
+   "Operator"       standard prefix and infix operators, e.g. + - == ==> in !in .. :
+   "SpecialChar"    non-operator symbols, e.g. ( ) :: etc.
+   "Error"          an error token, e.g. a stand-alone @ or $
+   "BaseN"          hex constants
+   "Variable"       identifiers, e.g. abc 'a 'a'a '\u' array1
+   "VerbatimString" a Dafny verbatim string e.g. @"x" @x"y""z\"
+   "Char"           a single-quoted character, e.g. 'a' '\n' '\u3333'
+   "DataType"       built-in data types, e.g. int seq
+   "Float"          a decimal number, e.g. 1_2.3_4
+   "Comment"        single and multi-line comments, e.g. /* comment */
+   "DecVal"         a natural number, e.g. 123_456
+   "Keyword"        reserved words that are not specification keywords or types, e.g. while
+
+

@@ -1,0 +1,41 @@
+
+Dafny program verifier finished with 9 verified, 0 errors
+Identity: This is expected
+ValuesIdentity: This is expected
+KeyMembership: This is expected
+Value1: This is expected
+Value2: This is expected
+Update Inequality: This is expected
+Update Immutable 1: This is expected
+Update Immutable 2: This is expected
+Update Result: This is expected
+Update Others: This is expected
+Keys equal: This is expected
+Keys membership 1: This is expected
+Keys membership 2: This is expected
+Keys membership 3: This is expected
+Keys membership 4: This is expected
+3 2 4
+70 52 66
+8 67 67
+4 4 3
+1 0 1 0
+1 0 0 0
+0 0 1
+0 0 0 1
+0 20 4
+198 20 4
+0 2 0
+1 1 1 0
+0 20 4
+198 20 4
+0 2 0
+0 0 1
+0 1 1 1
+jack wendy NULL
+jack NULL NULL
+ronald ronald 0
+1 1 1 0
+jack wendy NULL
+jack NULL NULL
+ronald ronald 0
