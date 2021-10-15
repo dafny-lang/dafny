@@ -24,7 +24,7 @@ namespace Microsoft.Dafny
 
         public override string TargetLanguage => "PHP";
 
-        protected override void EmitHeader(Program program, TargetWriter wr)
+        protected override void EmitHeader(Program program, ConcreteSyntaxTree wr)
         {
             wr.WriteLine("<?php");
             wr.WriteLine("declare(strict_types=1);"); // Weak-typing in PHP is bad.
@@ -42,20 +42,20 @@ namespace Microsoft.Dafny
             return IdProtect("$" + v.CompileName);
         }
 
-        public override void EmitCallToMain(Method mainMethod, TargetWriter wr)
+        public override void EmitCallToMain(Method mainMethod, ConcreteSyntaxTree wr)
         {
             wr.WriteLine("namespace {");
             wr.WriteLine("\t\\{0}::{1}();", this.PhpifyNamespaces(mainMethod.EnclosingClass.FullCompileName), IdName(mainMethod));
             wr.WriteLine("}");
         }
 
-        protected override BlockTargetWriter CreateStaticMain(IClassWriter cw)
+        protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw)
         {
             var wr = (cw as PhpCompiler.ClassWriter).MethodWriter;
             return wr.NewBlock("public static function main()");
         }
 
-        protected override TargetWriter CreateModule(string moduleName, bool isDefault, bool isExtern, string/*?*/ libraryName, TargetWriter wr)
+        protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern, string/*?*/ libraryName, ConcreteSyntaxTree wr)
         {
             var namespaced = this.PhpifyNamespaces(moduleName);
             var w = wr.NewBigBlock("namespace " + namespaced + "", "// end of module " + namespaced);
@@ -64,7 +64,7 @@ namespace Microsoft.Dafny
 
         protected override string GetHelperModuleName() => "_dafny";
 
-        protected override IClassWriter CreateClass(string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr)
+        protected override IClassWriter CreateClass(string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, ConcreteSyntaxTree wr)
         {
             var w = wr.NewBlock(string.Format("class {0}" + (isExtern ? " extends {0}" : ""), name), "");
             w.Write("public function __construct(");
@@ -91,17 +91,17 @@ namespace Microsoft.Dafny
             return new ClassWriter(this, methodWriter, fieldWriter);
         }
 
-        protected override IClassWriter CreateTrait(string name, bool isExtern, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr)
+        protected override IClassWriter CreateTrait(string name, bool isExtern, List<Type>/*?*/ superClasses, Bpl.IToken tok, ConcreteSyntaxTree wr)
         {
             throw new NotImplementedException("This is not currently implemented in the PHP compiler.");
         }
 
-        protected override BlockTargetWriter CreateIterator(IteratorDecl iter, TargetWriter wr)
+        protected override ConcreteSyntaxTree CreateIterator(IteratorDecl iter, ConcreteSyntaxTree wr)
         {
             throw new NotImplementedException("This is not currently implemented in the PHP compiler.");
         }
 
-        protected override IClassWriter/*?*/ DeclareDatatype(DatatypeDecl dt, TargetWriter wr) 
+        protected override IClassWriter/*?*/ DeclareDatatype(DatatypeDecl dt, ConcreteSyntaxTree wr) 
         {
             if (dt is TupleTypeDecl)
             {
@@ -111,12 +111,12 @@ namespace Microsoft.Dafny
             throw new NotImplementedException("This is not currently implemented in the PHP compiler.");
         }
         
-        protected override IClassWriter DeclareNewtype(NewtypeDecl nt, TargetWriter wr)
+        protected override IClassWriter DeclareNewtype(NewtypeDecl nt, ConcreteSyntaxTree wr)
         {
             throw new NotImplementedException("This is not currently implemented in the PHP compiler.");
         }
 
-        protected override void DeclareSubsetType(SubsetTypeDecl sst, TargetWriter wr)
+        protected override void DeclareSubsetType(SubsetTypeDecl sst, ConcreteSyntaxTree wr)
         {
             var cw = CreateClass(IdName(sst), sst.TypeArgs, wr) as PhpCompiler.ClassWriter;
             var w = cw.MethodWriter;
@@ -150,10 +150,10 @@ namespace Microsoft.Dafny
         protected class ClassWriter : IClassWriter
         {
             public readonly PhpCompiler Compiler;
-            public readonly BlockTargetWriter MethodWriter;
-            public readonly BlockTargetWriter FieldWriter;
+            public readonly ConcreteSyntaxTree MethodWriter;
+            public readonly ConcreteSyntaxTree FieldWriter;
 
-            public ClassWriter(PhpCompiler compiler, BlockTargetWriter methodWriter, BlockTargetWriter fieldWriter)
+            public ClassWriter(PhpCompiler compiler, ConcreteSyntaxTree methodWriter, ConcreteSyntaxTree fieldWriter)
             {
                 Contract.Requires(compiler != null);
                 Contract.Requires(methodWriter != null);
@@ -163,19 +163,19 @@ namespace Microsoft.Dafny
                 this.FieldWriter = fieldWriter;
             }
 
-            public BlockTargetWriter/*?*/ CreateMethod(Method m, bool createBody)
+            public ConcreteSyntaxTree/*?*/ CreateMethod(Method m, bool createBody)
             {
                 return Compiler.CreateMethod(m, createBody, MethodWriter);
             }
-            public BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter>/*?*/ typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member)
+            public ConcreteSyntaxTree/*?*/ CreateFunction(string name, List<TypeParameter>/*?*/ typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member)
             {
                 return Compiler.CreateFunction(name, typeArgs, formals, resultType, tok, isStatic, createBody, member, MethodWriter);
             }
-            public BlockTargetWriter/*?*/ CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member)
+            public ConcreteSyntaxTree/*?*/ CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member)
             {
                 return Compiler.CreateGetter(name, resultType, tok, isStatic, createBody, MethodWriter);
             }
-            public BlockTargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, out TargetWriter setterWriter)
+            public ConcreteSyntaxTree/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, out ConcreteSyntaxTree setterWriter)
             {
                 return Compiler.CreateGetterSetter(name, resultType, tok, isStatic, createBody, out setterWriter, MethodWriter);
             }
@@ -187,7 +187,7 @@ namespace Microsoft.Dafny
             public void Finish() { }
         }
 
-        protected BlockTargetWriter/*?*/ CreateMethod(Method m, bool createBody, TargetWriter wr)
+        protected ConcreteSyntaxTree/*?*/ CreateMethod(Method m, bool createBody, ConcreteSyntaxTree wr)
         {
             if (!createBody)
             {
@@ -214,13 +214,13 @@ namespace Microsoft.Dafny
             {
                 w = w.NewBlock("/* TAIL_CALL_START: */ while (true)");
             }
-            var r = new TargetWriter(w.IndentLevel);
+            var r = new ConcreteSyntaxTree(w.IndentLevel);
             EmitReturn(m.Outs, r);
             w.BodySuffix = r.ToString();
             return w;
         }
 
-        protected BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter>/*?*/ typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, TargetWriter wr)
+        protected ConcreteSyntaxTree/*?*/ CreateFunction(string name, List<TypeParameter>/*?*/ typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, ConcreteSyntaxTree wr)
         {
             if (!createBody)
             {
@@ -245,7 +245,7 @@ namespace Microsoft.Dafny
             return w;
         }
 
-        int WriteRuntimeTypeDescriptorsFormals(List<TypeParameter> typeParams, bool useAllTypeArgs, TargetWriter wr, string prefix = "")
+        int WriteRuntimeTypeDescriptorsFormals(List<TypeParameter> typeParams, bool useAllTypeArgs, ConcreteSyntaxTree wr, string prefix = "")
         {
             Contract.Requires(typeParams != null);
             Contract.Requires(wr != null);
@@ -263,7 +263,7 @@ namespace Microsoft.Dafny
             return c;
         }
 
-        protected override int EmitRuntimeTypeDescriptorsActuals(List<Type> typeArgs, List<TypeParameter> formals, Bpl.IToken tok, bool useAllTypeArgs, TargetWriter wr)
+        protected override int EmitRuntimeTypeDescriptorsActuals(List<Type> typeArgs, List<TypeParameter> formals, Bpl.IToken tok, bool useAllTypeArgs, ConcreteSyntaxTree wr)
         {
             throw new NotImplementedException("This is not currently implemented in the PHP compiler.");
         }
@@ -273,7 +273,7 @@ namespace Microsoft.Dafny
             throw new NotImplementedException("This is not currently implemented in the PHP compiler.");
         }
 
-        protected BlockTargetWriter/*?*/ CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, TargetWriter wr)
+        protected ConcreteSyntaxTree/*?*/ CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, ConcreteSyntaxTree wr)
         {
             if (createBody)
             {
@@ -291,7 +291,7 @@ namespace Microsoft.Dafny
             }
         }
 
-        protected BlockTargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, out TargetWriter setterWriter, TargetWriter wr)
+        protected ConcreteSyntaxTree/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, out ConcreteSyntaxTree setterWriter, ConcreteSyntaxTree wr)
         {
             if (createBody)
             {
@@ -319,7 +319,7 @@ namespace Microsoft.Dafny
             }
         }
 
-        protected override void EmitJumpToTailCallStart(TargetWriter wr)
+        protected override void EmitJumpToTailCallStart(ConcreteSyntaxTree wr)
         {
             //            wr.WriteLine("continue TAIL_CALL_START;");
         }
@@ -528,7 +528,7 @@ namespace Microsoft.Dafny
             {
                 var dt = (DatatypeDecl)cl;
                 var s = dt is TupleTypeDecl ? "_dafny.Tuple" : FullTypeName(udt);
-                var w = new TargetWriter();
+                var w = new ConcreteSyntaxTree();
                 w.Write("{0}.Rtd(", s);
                 List<TypeParameter> usedTypeFormals;
                 List<Type> usedTypeArgs;
@@ -559,7 +559,7 @@ namespace Microsoft.Dafny
 
         // ----- Declarations -------------------------------------------------------------
 
-        protected void DeclareField(string name, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, TargetWriter wr)
+        protected void DeclareField(string name, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, ConcreteSyntaxTree wr)
         {
             if (isStatic)
             {
@@ -585,7 +585,7 @@ namespace Microsoft.Dafny
             }
         }
 
-        protected override void DeclareLocalVar(string name, Type/*?*/ type, Bpl.IToken/*?*/ tok, bool leaveRoomForRhs, string/*?*/ rhs, TargetWriter wr)
+        protected override void DeclareLocalVar(string name, Type/*?*/ type, Bpl.IToken/*?*/ tok, bool leaveRoomForRhs, string/*?*/ rhs, ConcreteSyntaxTree wr)
         {
             if (type != null)
             {
@@ -607,7 +607,7 @@ namespace Microsoft.Dafny
             }
         }
 
-        protected override TargetWriter DeclareLocalVar(string name, Type/*?*/ type, Bpl.IToken/*?*/ tok, TargetWriter wr)
+        protected override ConcreteSyntaxTree DeclareLocalVar(string name, Type/*?*/ type, Bpl.IToken/*?*/ tok, ConcreteSyntaxTree wr)
         {
             wr.Write("{0} = ", name);
             var w = wr.Fork();
@@ -617,17 +617,17 @@ namespace Microsoft.Dafny
 
         protected override bool UseReturnStyleOuts(Method m, int nonGhostOutCount) => true;
 
-        protected override void DeclareOutCollector(string collectorVarName, TargetWriter wr)
+        protected override void DeclareOutCollector(string collectorVarName, ConcreteSyntaxTree wr)
         {
             wr.Write("{0} = ", collectorVarName);
         }
 
-        protected override void DeclareLocalOutVar(string name, Type type, Bpl.IToken tok, string rhs, bool useReturnStyleOuts, TargetWriter wr)
+        protected override void DeclareLocalOutVar(string name, Type type, Bpl.IToken tok, string rhs, bool useReturnStyleOuts, ConcreteSyntaxTree wr)
         {
             DeclareLocalVar(name, type, tok, false, rhs, wr);
         }
 
-        protected override void EmitOutParameterSplits(string outCollector, List<string> actualOutParamNames, TargetWriter wr)
+        protected override void EmitOutParameterSplits(string outCollector, List<string> actualOutParamNames, ConcreteSyntaxTree wr)
         {
             if (actualOutParamNames.Count == 1)
             {
@@ -654,7 +654,7 @@ namespace Microsoft.Dafny
 
         // ----- Statements -------------------------------------------------------------
 
-        protected override void EmitPrintStmt(TargetWriter wr, Expression arg)
+        protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg)
         {
             // wr.Write("echo _dafny.toString(");
             wr.Write("echo ");
@@ -662,7 +662,7 @@ namespace Microsoft.Dafny
             wr.WriteLine(";");
         }
 
-        protected override void EmitReturn(List<Formal> outParams, TargetWriter wr)
+        protected override void EmitReturn(List<Formal> outParams, ConcreteSyntaxTree wr)
         {
             outParams = outParams.Where(f => !f.IsGhost).ToList();
             if (outParams.Count == 0)
@@ -679,12 +679,12 @@ namespace Microsoft.Dafny
             }
         }
 
-        protected override TargetWriter CreateLabeledCode(string label, TargetWriter wr)
+        protected override ConcreteSyntaxTree CreateLabeledCode(string label, ConcreteSyntaxTree wr)
         {
             return wr.NewNamedBlock("L{0}:", label);
         }
 
-        protected override void EmitBreak(string/*?*/ label, TargetWriter wr)
+        protected override void EmitBreak(string/*?*/ label, ConcreteSyntaxTree wr)
         {
             if (label == null)
             {
@@ -696,12 +696,12 @@ namespace Microsoft.Dafny
             }
         }
 
-        protected override void EmitYield(TargetWriter wr)
+        protected override void EmitYield(ConcreteSyntaxTree wr)
         {
             wr.WriteLine("yield null;");
         }
 
-        protected override void EmitAbsurd(string/*?*/ message, TargetWriter wr)
+        protected override void EmitAbsurd(string/*?*/ message, ConcreteSyntaxTree wr)
         {
             if (message == null)
             {
@@ -710,22 +710,22 @@ namespace Microsoft.Dafny
             wr.WriteLine("throw new Error(\"{0}\");", message);
         }
 
-        protected override BlockTargetWriter CreateForLoop(string indexVar, string bound, TargetWriter wr)
+        protected override ConcreteSyntaxTree CreateForLoop(string indexVar, string bound, ConcreteSyntaxTree wr)
         {
             return wr.NewNamedBlock("for (${0} = 0; ${0} < ${1}; ++${0})", indexVar, bound);
         }
 
-        protected override BlockTargetWriter CreateDoublingForLoop(string indexVar, int start, TargetWriter wr)
+        protected override ConcreteSyntaxTree CreateDoublingForLoop(string indexVar, int start, ConcreteSyntaxTree wr)
         {
             throw new NotImplementedException("This is not currently implemented in the PHP compiler.");
         }
 
-        protected override void EmitIncrementVar(string varName, TargetWriter wr)
+        protected override void EmitIncrementVar(string varName, ConcreteSyntaxTree wr)
         {
             wr.WriteLine("${0} = {0}->plus(1);", varName);
         }
 
-        protected override void EmitDecrementVar(string varName, TargetWriter wr)
+        protected override void EmitDecrementVar(string varName, ConcreteSyntaxTree wr)
         {
             wr.WriteLine("${0} = {0}->minus(1);", varName);
         }
@@ -735,7 +735,7 @@ namespace Microsoft.Dafny
             throw new NotImplementedException("This is not currently implemented in the PHP compiler.");
         }
 
-        protected override BlockTargetWriter CreateForeachLoop(string boundVar, Type/*?*/ boundVarType, out TargetWriter collectionWriter, TargetWriter wr, string/*?*/ altBoundVarName = null, Type/*?*/ altVarType = null, Bpl.IToken/*?*/ tok = null)
+        protected override ConcreteSyntaxTree CreateForeachLoop(string boundVar, Type/*?*/ boundVarType, out ConcreteSyntaxTree collectionWriter, ConcreteSyntaxTree wr, string/*?*/ altBoundVarName = null, Type/*?*/ altVarType = null, Bpl.IToken/*?*/ tok = null)
         {
             wr.Write("for (${0} of $", boundVar);
             collectionWriter = wr.Fork();
@@ -755,7 +755,7 @@ namespace Microsoft.Dafny
 
         // ----- Expressions -------------------------------------------------------------
 
-        protected override void EmitNew(Type type, Bpl.IToken tok, CallStmt/*?*/ initCall, TargetWriter wr)
+        protected override void EmitNew(Type type, Bpl.IToken tok, CallStmt/*?*/ initCall, ConcreteSyntaxTree wr)
         {
             var cl = (type.NormalizeExpand() as UserDefinedType)?.ResolvedClass;
             if (cl != null && cl.Name == "object")
@@ -770,7 +770,7 @@ namespace Microsoft.Dafny
             }
         }
 
-        protected override void EmitNewArray(Type elmtType, Bpl.IToken tok, List<Expression> dimensions, bool mustInitialize, TargetWriter wr)
+        protected override void EmitNewArray(Type elmtType, Bpl.IToken tok, List<Expression> dimensions, bool mustInitialize, ConcreteSyntaxTree wr)
         {
             var initValue = mustInitialize ? DefaultValue(elmtType, wr, tok) : null;
             if (dimensions.Count == 1)
@@ -888,12 +888,12 @@ namespace Microsoft.Dafny
             }
         }
 
-        protected override TargetWriter EmitBitvectorTruncation(BitvectorType bvType, bool surroundByUnchecked, TargetWriter wr)
+        protected override ConcreteSyntaxTree EmitBitvectorTruncation(BitvectorType bvType, bool surroundByUnchecked, ConcreteSyntaxTree wr)
         {
             throw new NotImplementedException("This is not currently implemented in the PHP compiler.");
         }
 
-        protected override void EmitRotate(Expression e0, Expression e1, bool isRotateLeft, TargetWriter wr, bool inLetExprBody, FCE_Arg_Translator tr)
+        protected override void EmitRotate(Expression e0, Expression e1, bool isRotateLeft, ConcreteSyntaxTree wr, bool inLetExprBody, FCE_Arg_Translator tr)
         {
             string nativeName = null, literalSuffix = null;
             bool needsCast = false;
@@ -914,17 +914,17 @@ namespace Microsoft.Dafny
             }
         }
 
-        protected override void EmitEmptyTupleList(string tupleTypeArgs, TargetWriter wr)
+        protected override void EmitEmptyTupleList(string tupleTypeArgs, ConcreteSyntaxTree wr)
         {
             wr.Write("[]", tupleTypeArgs);
         }
 
-        protected override TargetWriter EmitAddTupleToList(string ingredients, string tupleTypeArgs, TargetWriter wr)
+        protected override ConcreteSyntaxTree EmitAddTupleToList(string ingredients, string tupleTypeArgs, ConcreteSyntaxTree wr)
         {
             throw new NotImplementedException("This is not currently implemented in the PHP compiler.");
         }
 
-        protected override void EmitTupleSelect(string prefix, int i, TargetWriter wr)
+        protected override void EmitTupleSelect(string prefix, int i, ConcreteSyntaxTree wr)
         {
             wr.Write("{0}[{1}]", prefix, i);
         }
@@ -1010,18 +1010,18 @@ namespace Microsoft.Dafny
             }
         }
 
-        protected override void EmitThis(TargetWriter wr)
+        protected override void EmitThis(ConcreteSyntaxTree wr)
         {
             wr.Write("$_this");
         }
 
-        protected override void EmitDatatypeValue(DatatypeValue dtv, string arguments, TargetWriter wr)
+        protected override void EmitDatatypeValue(DatatypeValue dtv, string arguments, ConcreteSyntaxTree wr)
         {
             var dt = dtv.Ctor.EnclosingDatatype;
             EmitDatatypeValue(dt, dtv.Ctor, dtv.IsCoCall, arguments, wr);
         }
 
-        void EmitDatatypeValue(DatatypeDecl dt, DatatypeCtor ctor, bool isCoCall, string arguments, TargetWriter wr)
+        void EmitDatatypeValue(DatatypeDecl dt, DatatypeCtor ctor, bool isCoCall, string arguments, ConcreteSyntaxTree wr)
         {
             throw new NotImplementedException("This is not currently implemented in the PHP compiler.");
         }
@@ -1031,17 +1031,17 @@ namespace Microsoft.Dafny
             throw new NotImplementedException("This is not currently implemented in the PHP compiler.");
         }
 
-        protected override TargetWriter EmitMemberSelect(MemberDecl member, bool isLValue, Type expectedType, TargetWriter wr)
+        protected override ConcreteSyntaxTree EmitMemberSelect(MemberDecl member, bool isLValue, Type expectedType, ConcreteSyntaxTree wr)
         {
             throw new NotImplementedException("This is not currently implemented in the PHP compiler.");
         }
 
-        protected override TargetWriter EmitArraySelect(List<string> indices, Type elmtType, TargetWriter wr)
+        protected override ConcreteSyntaxTree EmitArraySelect(List<string> indices, Type elmtType, ConcreteSyntaxTree wr)
         {
             throw new NotImplementedException("This is not currently implemented in the PHP compiler.");
         }
 
-        protected override TargetWriter EmitArraySelect(List<Expression> indices, Type elmtType, bool inLetExprBody, TargetWriter wr)
+        protected override ConcreteSyntaxTree EmitArraySelect(List<Expression> indices, Type elmtType, bool inLetExprBody, ConcreteSyntaxTree wr)
         {
             throw new NotImplementedException("This is not currently implemented in the PHP compiler.");
         }
@@ -1051,57 +1051,57 @@ namespace Microsoft.Dafny
             throw new NotImplementedException("This is not currently implemented in the PHP compiler.");
         }
 
-        protected override void EmitExprAsInt(Expression expr, bool inLetExprBody, TargetWriter wr)
+        protected override void EmitExprAsInt(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr)
         {
             throw new NotImplementedException("This is not currently implemented in the PHP compiler.");
         }
 
-        protected override void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody, TargetWriter wr)
+        protected override void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody, ConcreteSyntaxTree wr)
         {
             throw new NotImplementedException("This is not currently implemented in the PHP compiler.");
         }
 
-        protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value, bool inLetExprBody, TargetWriter wr, bool nativeIndex = false)
+        protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value, bool inLetExprBody, ConcreteSyntaxTree wr, bool nativeIndex = false)
         {
             throw new NotImplementedException("This is not currently implemented in the PHP compiler.");
         }
 
-        protected override void EmitSeqSelectRange(Expression source, Expression/*?*/ lo, Expression/*?*/ hi, bool fromArray, bool inLetExprBody, TargetWriter wr)
+        protected override void EmitSeqSelectRange(Expression source, Expression/*?*/ lo, Expression/*?*/ hi, bool fromArray, bool inLetExprBody, ConcreteSyntaxTree wr)
         {
             throw new NotImplementedException("This is not currently implemented in the PHP compiler.");
         }
 
-        protected override void EmitSeqConstructionExpr(SeqConstructionExpr expr, bool inLetExprBody, TargetWriter wr)
+        protected override void EmitSeqConstructionExpr(SeqConstructionExpr expr, bool inLetExprBody, ConcreteSyntaxTree wr)
         {
             throw new NotImplementedException("This is not currently implemented in the PHP compiler.");
         }
 
-        protected override void EmitMultiSetFormingExpr(MultiSetFormingExpr expr, bool inLetExprBody, TargetWriter wr)
+        protected override void EmitMultiSetFormingExpr(MultiSetFormingExpr expr, bool inLetExprBody, ConcreteSyntaxTree wr)
         {
             throw new NotImplementedException("This is not currently implemented in the PHP compiler.");
         }
 
-        protected override void EmitApplyExpr(Type functionType, Bpl.IToken tok, Expression function, List<Expression> arguments, bool inLetExprBody, TargetWriter wr)
+        protected override void EmitApplyExpr(Type functionType, Bpl.IToken tok, Expression function, List<Expression> arguments, bool inLetExprBody, ConcreteSyntaxTree wr)
         {
             throw new NotImplementedException("This is not currently implemented in the PHP compiler.");
         }
 
-        protected override TargetWriter EmitBetaRedex(List<string> boundVars, List<Expression> arguments, string typeArgs, List<Type> boundTypes, Type resultType, Bpl.IToken tok, bool inLetExprBody, TargetWriter wr)
+        protected override ConcreteSyntaxTree EmitBetaRedex(List<string> boundVars, List<Expression> arguments, string typeArgs, List<Type> boundTypes, Type resultType, Bpl.IToken tok, bool inLetExprBody, ConcreteSyntaxTree wr)
         {
             throw new NotImplementedException("This is not currently implemented in the PHP compiler.");
         }
 
-        protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, TargetWriter wr)
+        protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr)
         {
             throw new NotImplementedException("This is not currently implemented in the PHP compiler.");
         }
 
-        protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames, Type resultType, TargetWriter wr, bool untyped = false)
+        protected override ConcreteSyntaxTree CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames, Type resultType, ConcreteSyntaxTree wr, bool untyped = false)
         {
             throw new NotImplementedException("This is not currently implemented in the PHP compiler.");
         }
 
-        protected override TargetWriter CreateIIFE_ExprBody(Expression source, bool inLetExprBody, Type sourceType, Bpl.IToken sourceTok, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr)
+        protected override ConcreteSyntaxTree CreateIIFE_ExprBody(Expression source, bool inLetExprBody, Type sourceType, Bpl.IToken sourceTok, Type resultType, Bpl.IToken resultTok, string bvName, ConcreteSyntaxTree wr)
         {
             var w = wr.NewExprBlock("function ({0})", bvName);
             w.Write("return ");
@@ -1110,22 +1110,22 @@ namespace Microsoft.Dafny
             return w;
         }
 
-        protected override TargetWriter CreateIIFE_ExprBody(string source, Type sourceType, Bpl.IToken sourceTok, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr)
+        protected override ConcreteSyntaxTree CreateIIFE_ExprBody(string source, Type sourceType, Bpl.IToken sourceTok, Type resultType, Bpl.IToken resultTok, string bvName, ConcreteSyntaxTree wr)
         {
             throw new NotImplementedException("This is not currently implemented in the PHP compiler.");
         }
 
-        protected override BlockTargetWriter CreateIIFE0(Type resultType, Bpl.IToken resultTok, TargetWriter wr)
+        protected override ConcreteSyntaxTree CreateIIFE0(Type resultType, Bpl.IToken resultTok, ConcreteSyntaxTree wr)
         {
             throw new NotImplementedException("This is not currently implemented in the PHP compiler.");
         }
 
-        protected override BlockTargetWriter CreateIIFE1(int source, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr)
+        protected override ConcreteSyntaxTree CreateIIFE1(int source, Type resultType, Bpl.IToken resultTok, string bvName, ConcreteSyntaxTree wr)
         {
             throw new NotImplementedException("This is not currently implemented in the PHP compiler.");
         }
 
-        protected override void EmitUnaryExpr(ResolvedUnaryOp op, Expression expr, bool inLetExprBody, TargetWriter wr)
+        protected override void EmitUnaryExpr(ResolvedUnaryOp op, Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr)
         {
             throw new NotImplementedException("This is not currently implemented in the PHP compiler.");
         }
@@ -1151,48 +1151,48 @@ namespace Microsoft.Dafny
             throw new NotImplementedException("This is not currently implemented in the PHP compiler.");
         }
 
-        protected override void EmitIsZero(string varName, TargetWriter wr)
+        protected override void EmitIsZero(string varName, ConcreteSyntaxTree wr)
         {
             throw new NotImplementedException("This is not currently implemented in the PHP compiler.");
         }
 
-        protected override void EmitConversionExpr(ConversionExpr e, bool inLetExprBody, TargetWriter wr)
+        protected override void EmitConversionExpr(ConversionExpr e, bool inLetExprBody, ConcreteSyntaxTree wr)
         {
             throw new NotImplementedException("This is not currently implemented in the PHP compiler.");
         }
 
-        protected override void EmitCollectionDisplay(CollectionType ct, Bpl.IToken tok, List<Expression> elements, bool inLetExprBody, TargetWriter wr)
+        protected override void EmitCollectionDisplay(CollectionType ct, Bpl.IToken tok, List<Expression> elements, bool inLetExprBody, ConcreteSyntaxTree wr)
         {
             throw new NotImplementedException("This is not currently implemented in the PHP compiler.");
         }
 
-        protected override void EmitMapDisplay(MapType mt, Bpl.IToken tok, List<ExpressionPair> elements, bool inLetExprBody, TargetWriter wr)
+        protected override void EmitMapDisplay(MapType mt, Bpl.IToken tok, List<ExpressionPair> elements, bool inLetExprBody, ConcreteSyntaxTree wr)
         {
             throw new NotImplementedException("This is not currently implemented in the PHP compiler.");
         }
 
-        protected override void EmitCollectionBuilder_New(CollectionType ct, Bpl.IToken tok, TargetWriter wr)
+        protected override void EmitCollectionBuilder_New(CollectionType ct, Bpl.IToken tok, ConcreteSyntaxTree wr)
         {
             throw new NotImplementedException("This is not currently implemented in the PHP compiler.");
         }
 
-        protected override void EmitCollectionBuilder_Add(CollectionType ct, string collName, Expression elmt, bool inLetExprBody, TargetWriter wr)
+        protected override void EmitCollectionBuilder_Add(CollectionType ct, string collName, Expression elmt, bool inLetExprBody, ConcreteSyntaxTree wr)
         {
             throw new NotImplementedException("This is not currently implemented in the PHP compiler.");
         }
 
-        protected override TargetWriter EmitMapBuilder_Add(MapType mt, Bpl.IToken tok, string collName, Expression term, bool inLetExprBody, TargetWriter wr)
+        protected override ConcreteSyntaxTree EmitMapBuilder_Add(MapType mt, Bpl.IToken tok, string collName, Expression term, bool inLetExprBody, ConcreteSyntaxTree wr)
         {
             throw new NotImplementedException("This is not currently implemented in the PHP compiler.");
         }
 
-        protected override string GetCollectionBuilder_Build(CollectionType ct, Bpl.IToken tok, string collName, TargetWriter wr)
+        protected override string GetCollectionBuilder_Build(CollectionType ct, Bpl.IToken tok, string collName, ConcreteSyntaxTree wr)
         {
             // collections are built in place
             return collName;
         }
 
-        protected override void EmitSingleValueGenerator(Expression e, bool inLetExprBody, string type, TargetWriter wr)
+        protected override void EmitSingleValueGenerator(Expression e, bool inLetExprBody, string type, ConcreteSyntaxTree wr)
         {
             TrParenExpr("$_dafny->SingleValue", e, wr, inLetExprBody);
         }
