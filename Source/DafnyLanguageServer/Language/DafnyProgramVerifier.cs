@@ -6,6 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
@@ -58,8 +59,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         : Convert.ToInt32(options.VcsCores);
     }
 
-    public VerificationResult Verify(Dafny.Program program, CancellationToken cancellationToken) {
-      mutex.Wait(cancellationToken);
+    public async Task<VerificationResult> VerifyAsync(Dafny.Program program, CancellationToken cancellationToken) {
+      await mutex.WaitAsync(cancellationToken);
       try {
         // The printer is responsible for two things: It logs boogie errors and captures the counter example model.
         var errorReporter = (DiagnosticErrorReporter)program.reporter;

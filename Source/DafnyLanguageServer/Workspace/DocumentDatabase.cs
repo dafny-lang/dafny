@@ -94,12 +94,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       if (!verify || document.Errors.HasErrors) {
         return document;
       }
-      return Verify(document, cancellationToken);
+      return await VerifyAsync(document, cancellationToken);
     }
 
-    private DafnyDocument Verify(DafnyDocument document, CancellationToken cancellationToken) {
+    private async Task<DafnyDocument> VerifyAsync(DafnyDocument document, CancellationToken cancellationToken) {
       notificationPublisher.SendStatusNotification(document.Text, CompilationStatus.VerificationStarted);
-      var verificationResult = programVerifier.Verify(document.Program, cancellationToken);
+      var verificationResult = await programVerifier.VerifyAsync(document.Program, cancellationToken);
       var compilationStatusAfterVerification = verificationResult.Verified
         ? CompilationStatus.VerificationSucceeded
         : CompilationStatus.VerificationFailed;
@@ -173,7 +173,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var cancellationSource = new CancellationTokenSource();
       var updatedEntry = new DocumentEntry(
         document.Version,
-        Task.Run(() => Verify(document, cancellationSource.Token)),
+        Task.Run(() => VerifyAsync(document, cancellationSource.Token)),
         cancellationSource
       );
       documents[document.Uri] = updatedEntry;
