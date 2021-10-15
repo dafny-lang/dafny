@@ -16,17 +16,17 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
       var mergedText = originalText;
       foreach (var change in changes) {
         cancellationToken.ThrowIfCancellationRequested();
-        mergedText = ApplyTextChange(mergedText, change);
+        mergedText = ApplyTextChange(mergedText, change, cancellationToken);
       }
       return mergedText;
     }
 
-    private static string ApplyTextChange(string text, TextDocumentContentChangeEvent change) {
+    private static string ApplyTextChange(string text, TextDocumentContentChangeEvent change, CancellationToken cancellationToken) {
       if (change.Range == null) {
         throw new InvalidOperationException("the range of the change must not be null");
       }
-      int absoluteStart = change.Range.Start.ToAbsolutePosition(text);
-      int absoluteEnd = change.Range.End.ToAbsolutePosition(text);
+      int absoluteStart = change.Range.Start.ToAbsolutePosition(text, cancellationToken);
+      int absoluteEnd = change.Range.End.ToAbsolutePosition(text, cancellationToken);
       return text[..absoluteStart] + change.Text + text[absoluteEnd..];
     }
   }
