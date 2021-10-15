@@ -10,42 +10,42 @@ using System.Threading;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   public class SymbolGuesser : ISymbolGuesser {
-    private readonly ILogger _logger;
+    private readonly ILogger logger;
 
     public SymbolGuesser(ILogger<SymbolGuesser> logger) {
-      _logger = logger;
+      this.logger = logger;
     }
 
     public bool TryGetSymbolBefore(DafnyDocument document, Position position, CancellationToken cancellationToken, [NotNullWhen(true)] out ISymbol? symbol) {
-      (symbol, _) = new Guesser(_logger, document, cancellationToken).GetSymbolAndItsTypeBefore(position);
+      (symbol, _) = new Guesser(logger, document, cancellationToken).GetSymbolAndItsTypeBefore(position);
       return symbol != null;
     }
 
     public bool TryGetTypeBefore(DafnyDocument document, Position position, CancellationToken cancellationToken, [NotNullWhen(true)] out ISymbol? typeSymbol) {
-      (_, typeSymbol) = new Guesser(_logger, document, cancellationToken).GetSymbolAndItsTypeBefore(position);
+      (_, typeSymbol) = new Guesser(logger, document, cancellationToken).GetSymbolAndItsTypeBefore(position);
       return typeSymbol != null;
     }
 
     private class Guesser {
-      private readonly ILogger _logger;
-      private readonly DafnyDocument _document;
-      private readonly CancellationToken _cancellationToken;
+      private readonly ILogger logger;
+      private readonly DafnyDocument document;
+      private readonly CancellationToken cancellationToken;
 
       public Guesser(ILogger logger, DafnyDocument document, CancellationToken cancellationToken) {
-        _logger = logger;
-        _document = document;
-        _cancellationToken = cancellationToken;
+        this.logger = logger;
+        this.document = document;
+        this.cancellationToken = cancellationToken;
       }
 
       public (ISymbol? Designator, ISymbol? Type) GetSymbolAndItsTypeBefore(Position requestPosition) {
         var position = GetLinePositionBefore(requestPosition);
         if (position == null) {
-          _logger.LogTrace("the request position {Position} is at the beginning of the line, no chance to find a symbol there", requestPosition);
+          logger.LogTrace("the request position {Position} is at the beginning of the line, no chance to find a symbol there", requestPosition);
           return (null, null);
         }
         var memberAccesses = GetMemberAccessChainEndingAt(position);
         if (memberAccesses.Length == 0) {
-          _logger.LogDebug("could not resolve the member access chain in front of of {Position}", requestPosition);
+          logger.LogDebug("could not resolve the member access chain in front of of {Position}", requestPosition);
           return (null, null);
         }
         return GetSymbolAndTypeOfLastMember(position, memberAccesses);
@@ -60,24 +60,24 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       private (ISymbol? Designator, ISymbol? Type) GetSymbolAndTypeOfLastMember(Position position, string[] memberAccessChain) {
-        var enclosingSymbol = _document.SymbolTable.GetEnclosingSymbol(position, _cancellationToken);
+        var enclosingSymbol = document.SymbolTable.GetEnclosingSymbol(position, cancellationToken);
         ISymbol? currentDesignator = null;
         ISymbol? currentDesignatorType = null;
         for (int currentMemberAccess = 0; currentMemberAccess < memberAccessChain.Length; currentMemberAccess++) {
-          _cancellationToken.ThrowIfCancellationRequested();
+          cancellationToken.ThrowIfCancellationRequested();
           var currentDesignatorName = memberAccessChain[currentMemberAccess];
           if (currentMemberAccess == 0) {
             if (currentDesignatorName == "this") {
               // This actually the type, but TryGetTypeOf respects the case that the symbol itself is already a type.
-              currentDesignator = GetEnclosingClass(enclosingSymbol);
+              currentDesignator = GetEnclosingType(enclosingSymbol);
             } else {
               currentDesignator = GetAccessedSymbolOfEnclosingScopes(enclosingSymbol, currentDesignatorName);
             }
           } else {
             currentDesignator = FindSymbolWithName(currentDesignatorType!, currentDesignatorName);
           }
-          if (currentDesignator == null || !_document.SymbolTable.TryGetTypeOf(currentDesignator, out currentDesignatorType)) {
-            _logger.LogDebug("could not resolve the type of the designator {MemberName} of the member access chain '{Chain}'",
+          if (currentDesignator == null || !document.SymbolTable.TryGetTypeOf(currentDesignator, out currentDesignatorType)) {
+            logger.LogDebug("could not resolve the type of the designator {MemberName} of the member access chain '{Chain}'",
               currentMemberAccess, memberAccessChain);
             return (currentDesignator, null);
           }
@@ -86,7 +86,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       private ISymbol? GetAccessedSymbolOfEnclosingScopes(ISymbol scope, string name) {
-        _cancellationToken.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
         var symbol = FindSymbolWithName(scope, name);
         if (symbol == null && scope.Scope != null) {
           return GetAccessedSymbolOfEnclosingScopes(scope.Scope, name);
@@ -94,12 +94,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return symbol;
       }
 
-      private ClassSymbol? GetEnclosingClass(ISymbol scope) {
-        _cancellationToken.ThrowIfCancellationRequested();
-        if (scope is ClassSymbol classSymbol) {
-          return classSymbol;
+      private TypeWithMembersSymbolBase? GetEnclosingType(ISymbol scope) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (scope is TypeWithMembersSymbolBase typeSymbol) {
+          return typeSymbol;
         }
-        return scope.Scope == null ? null : GetEnclosingClass(scope.Scope);
+        return scope.Scope == null ? null : GetEnclosingType(scope.Scope);
       }
 
       private ISymbol? FindSymbolWithName(ISymbol containingSymbol, string name) {
@@ -117,15 +117,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         // }
         // TODO This only works as long as Dafny does not support overloading.
         return containingSymbol.Children
-          .WithCancellation(_cancellationToken)
+          .WithCancellation(cancellationToken)
           .Where(child => child.Name == name)
           .FirstOrDefault();
       }
 
       private string[] GetMemberAccessChainEndingAt(Position position) {
-        var text = _document.Text.Text;
-        var absolutePosition = position.ToAbsolutePosition(text, _cancellationToken);
-        return new MemberAccessChainResolver(text, absolutePosition, _cancellationToken).ResolveFromBehind().Reverse().ToArray();
+        var text = document.Text.Text;
+        var absolutePosition = position.ToAbsolutePosition(text, cancellationToken);
+        return new MemberAccessChainResolver(text, absolutePosition, cancellationToken).ResolveFromBehind().Reverse().ToArray();
       }
     }
 
@@ -137,17 +137,18 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     // TODO A small refinement might be to ensure that the first character is a nondigit character. However, this is probably not necessary
     //      for this use-case.
     private class MemberAccessChainResolver {
-      private readonly string _text;
-      private int _position;
-      private readonly CancellationToken _cancellationToken;
+      private readonly string text;
+      private readonly CancellationToken cancellationToken;
 
-      private bool IsWhitespace => char.IsWhiteSpace(_text[_position]);
-      private bool IsAtNewStatement => _text[_position] == ';' || _text[_position] == '}' || _text[_position] == '{';
-      private bool IsMemberAccessOperator => _text[_position] == '.';
+      private int position;
+
+      private bool IsWhitespace => char.IsWhiteSpace(text[position]);
+      private bool IsAtNewStatement => text[position] == ';' || text[position] == '}' || text[position] == '{';
+      private bool IsMemberAccessOperator => text[position] == '.';
 
       private bool IsIdentifierCharacter {
         get {
-          char character = _text[_position];
+          char character = text[position];
           return char.IsLetterOrDigit(character)
             || character == '_'
             || character == '\''
@@ -156,14 +157,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       public MemberAccessChainResolver(string text, int endPosition, CancellationToken cancellationToken) {
-        _text = text;
-        _position = endPosition;
-        _cancellationToken = cancellationToken;
+        this.text = text;
+        position = endPosition;
+        this.cancellationToken = cancellationToken;
       }
 
       public IEnumerable<string> ResolveFromBehind() {
-        while (_position >= 0) {
-          _cancellationToken.ThrowIfCancellationRequested();
+        while (position >= 0) {
+          cancellationToken.ThrowIfCancellationRequested();
           SkipWhitespaces();
           if (IsAtNewStatement) {
             yield break;
@@ -176,7 +177,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           }
           SkipWhitespaces();
           if (IsMemberAccessOperator) {
-            _position--;
+            position--;
           } else {
             yield break;
           }
@@ -184,19 +185,19 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       private void SkipWhitespaces() {
-        while (_position >= 0 && IsWhitespace) {
-          _cancellationToken.ThrowIfCancellationRequested();
-          _position--;
+        while (position >= 0 && IsWhitespace) {
+          cancellationToken.ThrowIfCancellationRequested();
+          position--;
         }
       }
 
       private string ReadIdentifier() {
-        int identifierEnd = _position + 1;
-        while (_position >= 0 && IsIdentifierCharacter) {
-          _cancellationToken.ThrowIfCancellationRequested();
-          _position--;
+        int identifierEnd = position + 1;
+        while (position >= 0 && IsIdentifierCharacter) {
+          cancellationToken.ThrowIfCancellationRequested();
+          position--;
         }
-        return _text[(_position + 1)..identifierEnd];
+        return text[(position + 1)..identifierEnd];
       }
     }
   }
