@@ -34,9 +34,9 @@ namespace XUnitExtensions {
         errorFile = config.ApplySubstitutions(argumentsList[redirectErrorIndex + 1]);
         argumentsList.RemoveRange(redirectErrorIndex, 2);
       }
-      
+
       var arguments = argumentsList.Select(config.ApplySubstitutions);
-      
+
       if (config.Commands.TryGetValue(commandSymbol, out var command)) {
         return new LitCommandWithRedirection(command(arguments, config), inputFile, outputFile, appendOutput, errorFile);
       }
@@ -44,10 +44,10 @@ namespace XUnitExtensions {
       commandSymbol = config.ApplySubstitutions(commandSymbol);
 
       return new LitCommandWithRedirection(
-        new ShellLitCommand(commandSymbol, arguments, config.PassthroughEnvironmentVariables), 
+        new ShellLitCommand(commandSymbol, arguments, config.PassthroughEnvironmentVariables),
         inputFile, outputFile, appendOutput, errorFile);
     }
-    
+
     private ILitCommand command;
     private string inputFile;
     private string outputFile;

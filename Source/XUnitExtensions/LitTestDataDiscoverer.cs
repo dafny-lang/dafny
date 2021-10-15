@@ -17,7 +17,7 @@ namespace XUnitExtensions {
       var basePath = GetBasePath(attributeInfo, testMethod);
       var shortPath = fileName[(basePath.Length + 1)..];
       var row = new FileTheoryDataRow(fileName) {
-        SourceInformation = new SourceInformation() { FileName = fileName, LineNumber = 0},
+        SourceInformation = new SourceInformation() { FileName = fileName, LineNumber = 0 },
         TestDisplayName = shortPath,
       };
       return new[] { new[] { row } };
@@ -27,5 +27,5 @@ namespace XUnitExtensions {
 
 [DataDiscoverer("XUnitExtensions.LitTestDataDiscoverer", "XUnitExtensions")]
 public class LitTestDataAttribute : FileDataAttribute {
-  
+
 }

@@ -8,13 +8,13 @@ using System.Text;
 
 namespace XUnitExtensions {
   public interface ILitCommand {
-    
+
     private const string COMMENT_PREFIX = "//";
     private const string LIT_COMMAND_PREFIX = "RUN:";
     private const string LIT_XFAIL = "XFAIL: *";
 
     public (int, string, string) Execute(TextReader inputReader, TextWriter outputWriter, TextWriter errorWriter);
-    
+
     public static ILitCommand Parse(string fileName, string line, LitTestConfiguration config) {
       if (!line.StartsWith(COMMENT_PREFIX)) {
         return null;
@@ -28,7 +28,7 @@ namespace XUnitExtensions {
         return null;
       }
       line = line[LIT_COMMAND_PREFIX.Length..].Trim();
-      
+
       var tokens = Tokenize(line);
       return ParseRunCommand(tokens, config);
     }
@@ -43,7 +43,7 @@ namespace XUnitExtensions {
       }
       return LitCommandWithRedirection.Parse(tokens, config);
     }
-    
+
     private static string[] Tokenize(string line) {
       var arguments = new List<string>();
       var argument = new StringBuilder();
@@ -66,7 +66,7 @@ namespace XUnitExtensions {
       if (argument.Length != 0) {
         arguments.Add(argument.ToString());
       }
-      
+
       return arguments.ToArray();
     }
   }

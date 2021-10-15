@@ -21,7 +21,7 @@ namespace XUnitExtensions {
       if (dataRow.Length == 1 && dataRow[0] is IFileTheoryRowData theoryRowData) {
         return new[] { new FileTestCase(DiagnosticMessageSink, testMethod, theoryRowData) };
       }
-      
+
       return base.CreateTestCasesForDataRow(discoveryOptions, testMethod, theoryAttribute, dataRow);
     }
   }

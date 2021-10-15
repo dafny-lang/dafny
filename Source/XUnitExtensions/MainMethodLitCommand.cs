@@ -29,9 +29,9 @@ namespace XUnitExtensions {
       if (errorWriter != null) {
         Console.SetError(errorWriter);
       }
-      
+
       var exitCode = (int)Assembly.EntryPoint!.Invoke(null, new object[] { Arguments });
-      
+
       return (exitCode, "", "");
     }
 
@@ -39,7 +39,7 @@ namespace XUnitExtensions {
       var shellArguments = new[] { Assembly.Location }.Concat(Arguments);
       return new ShellLitCommand("dotnet", shellArguments, config.PassthroughEnvironmentVariables);
     }
-    
+
     public override string ToString() {
       var builder = new StringBuilder();
       builder.Append(Assembly.EntryPoint);

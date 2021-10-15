@@ -5,11 +5,11 @@ using System.Reflection;
 using Xunit.Abstractions;
 
 namespace XUnitExtensions {
-  
+
   // TODO: Make safely immutable
   public class LitTestConfiguration {
     public Dictionary<string, string> Substitions { get; set; }
-    
+
     public Dictionary<string, Func<IEnumerable<string>, LitTestConfiguration, ILitCommand>> Commands { get; set; }
 
     public IEnumerable<string> PassthroughEnvironmentVariables { get; set; }

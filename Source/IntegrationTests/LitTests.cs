@@ -32,21 +32,21 @@ namespace IntegrationTests {
       // Set a default time limit, to catch cases where verification time runs off the rails
       "/timeLimit:300"
     };
-    
+
     private static ILitCommand MainWithArguments(Assembly assembly, IEnumerable<string> arguments, LitTestConfiguration config, bool invokeDirectly) {
       return MainMethodLitCommand.Parse(assembly, arguments, config, invokeDirectly);
     }
 
-    private static readonly LitTestConfiguration CONFIG = new () {
+    private static readonly LitTestConfiguration CONFIG = new() {
       Commands = new Dictionary<string, Func<IEnumerable<string>, LitTestConfiguration, ILitCommand>> {
-        { "%baredafny", (args, config) => 
+        { "%baredafny", (args, config) =>
           MainWithArguments(dafnyDriverAssembly, args, config, false) },
-        { "%dafny", (args, config) => 
+        { "%dafny", (args, config) =>
           MainWithArguments(dafnyDriverAssembly, defaultDafnyArguments.Concat(args), config, false) },
-        { "%server", (args, config) => 
+        { "%server", (args, config) =>
           MainWithArguments(dafnyServerAssembly, args, config, false) },
       },
-      
+
       Substitions = new Dictionary<string, string> {
         // TODO: speed this up by using AssertWithDiff
         { "%diff", "diff" },
@@ -54,8 +54,8 @@ namespace IntegrationTests {
         { "%z3", Path.Join("z3", "bin", "z3") },
         { "%refmanexamples", Path.Join("TestFiles", "LitTests", "LitTest", "refman", "examples") }
       },
-      
-      PassthroughEnvironmentVariables = new []{ "PATH", "HOME" },
+
+      PassthroughEnvironmentVariables = new[] { "PATH", "HOME" },
     };
 
     static LitTests() {
@@ -71,13 +71,13 @@ namespace IntegrationTests {
         CONFIG.Substitions["%z3"] = Path.Join(dafnyReleaseDir, "z3", "bin", "z3");
       }
     }
-    
+
     private readonly ITestOutputHelper output;
 
     public LitTests(ITestOutputHelper output) {
       this.output = output;
     }
-    
+
     [FileTheory]
     [LitTestData(Extension = ".dfy")]
     public void LitTest(string path) {

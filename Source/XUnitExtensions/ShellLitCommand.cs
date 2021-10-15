@@ -27,7 +27,7 @@ namespace XUnitExtensions {
 
       // We avoid setting the current directory so that we maintain parity with
       // MainMethodLitCommand, which can't change the current directory.
-      
+
       process.StartInfo.UseShellExecute = false;
       process.StartInfo.RedirectStandardInput = true;
       process.StartInfo.RedirectStandardOutput = true;
@@ -55,7 +55,7 @@ namespace XUnitExtensions {
 
       return (process.ExitCode, output, error);
     }
-    
+
     public override string ToString() {
       var builder = new StringBuilder();
       builder.Append(shellCommand);

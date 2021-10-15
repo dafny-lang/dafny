@@ -11,7 +11,7 @@ namespace XUnitExtensions {
     /// of the test method is ussed.
     /// </summary>
     ISourceInformation? SourceInformation { get; }
-    
+
     /// <summary>
     /// Gets the reason for skipping this row of data; if <c>null</c> is returned, then the data
     /// row isn't skipped.

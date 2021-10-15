@@ -12,7 +12,7 @@ namespace XUnitExtensions {
     // This could use SkippableFactDiscoverer.GetSkippableExceptionNames(IAttributeInfo)
     // but it doesn't seem to be worth the complexity here yet.
     private static readonly string[] skippingExceptionNames = { typeof(SkipException).FullName };
-    
+
     protected XunitTestCase innerTestCase;
 
     public string DisplayName { get; protected set; }
@@ -23,11 +23,11 @@ namespace XUnitExtensions {
         (ITypeInfo)null, "Test collection for " + data.TestDisplayName);
       var testClassWithCollection = new TestClass(collection, testMethod.TestClass.Class);
       var testMethodWithCollection = new TestMethod(testClassWithCollection, testMethod.Method);
-      
+
       innerTestCase = new SkippableFactTestCase(skippingExceptionNames, diagnosticMessageSink, TestMethodDisplay.Method, TestMethodDisplayOptions.All,
         testMethodWithCollection, data.GetData());
       if (data.Traits != null) {
-        foreach(var (key, value) in data.Traits) {
+        foreach (var (key, value) in data.Traits) {
           innerTestCase.Traits.Add(key, value);
         }
       }
@@ -51,7 +51,7 @@ namespace XUnitExtensions {
       info.AddValue(nameof(DisplayName), DisplayName);
       info.AddValue(nameof(SkipReason), SkipReason);
     }
-    
+
     public ISourceInformation SourceInformation {
       get => innerTestCase.SourceInformation;
       set => innerTestCase.SourceInformation = value;
@@ -64,7 +64,7 @@ namespace XUnitExtensions {
     public Exception InitializationException => innerTestCase.InitializationException;
     public IMethodInfo Method => innerTestCase.Method;
     public int Timeout => innerTestCase.Timeout;
-    
+
     public async Task<RunSummary> RunAsync(IMessageSink diagnosticMessageSink, IMessageBus messageBus, object[] constructorArguments,
       ExceptionAggregator aggregator, CancellationTokenSource cancellationTokenSource) {
 

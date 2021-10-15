@@ -12,7 +12,7 @@ namespace XUnitExtensions {
     private string filePath;
     private IEnumerable<ILitCommand> commands;
     private bool expectFailure;
-    
+
     public static LitTestCase Read(string filePath, LitTestConfiguration config) {
       var commands = File.ReadAllLines(filePath)
         .Select(line => ILitCommand.Parse(filePath, line, config))
@@ -20,7 +20,7 @@ namespace XUnitExtensions {
       var xfail = commands.Any(c => c is XFailCommand);
       return new LitTestCase(filePath, commands, xfail);
     }
-    
+
     public static void Run(string filePath, LitTestConfiguration config, ITestOutputHelper outputHelper) {
       string fileName = Path.GetFileName(filePath);
       string directory = Path.GetDirectoryName(filePath);
@@ -39,10 +39,10 @@ namespace XUnitExtensions {
       this.commands = commands;
       this.expectFailure = expectFailure;
     }
-    
+
     public void Execute(ITestOutputHelper outputHelper) {
       Directory.CreateDirectory(Path.Join(Path.GetDirectoryName(filePath), "Output"));
-      
+
       foreach (var command in commands) {
         int exitCode;
         string output;
@@ -59,12 +59,12 @@ namespace XUnitExtensions {
             throw new SkipException($"Command returned non-zero exit code ({exitCode}): {command}\nOutput:\n{output}\nError:\n{error}");
           }
         }
-        
+
         if (exitCode != 0) {
           throw new Exception($"Command returned non-zero exit code ({exitCode}): {command}\nOutput:\n{output}\nError:\n{error}");
         }
       }
-      
+
       if (expectFailure) {
         throw new Exception($"Test case passed but expected to fail: {filePath}");
       }
