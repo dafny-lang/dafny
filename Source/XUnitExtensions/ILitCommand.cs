@@ -82,10 +82,10 @@ namespace XUnitExtensions {
         return s;
       }
 
-      var absolutePath = Path.Join(basePath, s);
-      if (File.Exists(absolutePath)) {
-        return absolutePath;
-      }
+      // var absolutePath = Path.Join(basePath, s);
+      // if (File.Exists(absolutePath)) {
+      //   return absolutePath;
+      // }
       
       return s;
     }

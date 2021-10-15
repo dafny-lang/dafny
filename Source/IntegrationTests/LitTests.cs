@@ -44,9 +44,10 @@ namespace IntegrationTests {
           MainWithArguments(dafnyServerAssembly, args, config, false) },
       },
       
-      // TODO: speed this up by using AssertWithDiff
       Substitions = new Dictionary<string, string> {
+        // TODO: speed this up by using AssertWithDiff
         { "%diff", "diff" },
+        { "%binaries", "." },
         { "%refmanexamples", Path.Join("examples") }
       },
       
@@ -54,6 +55,7 @@ namespace IntegrationTests {
     };
 
     static LitTests() {
+      // TODO: Just use a single DAFNY_RELEASE variable and override %binaries as well
       var dafnyExecutable = Environment.GetEnvironmentVariable("DAFNY_EXECUTABLE");
       if (dafnyExecutable != null) {
         CONFIG.Commands["%baredafny"] = (args, config) =>
