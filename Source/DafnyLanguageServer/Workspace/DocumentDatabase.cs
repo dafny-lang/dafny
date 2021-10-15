@@ -1,6 +1,7 @@
 ﻿using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
+using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OmniSharp.Extensions.LanguageServer.Protocol;
@@ -25,8 +26,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private readonly ITextDocumentLoader documentLoader;
     private readonly ITextChangeProcessor textChangeProcessor;
     private readonly ISymbolTableRelocator symbolTableRelocator;
+    private readonly IProgramVerifier programVerifier;
+    private readonly ICompilationStatusNotificationPublisher notificationPublisher;
 
-    private bool VerifyOnLoad => options.Verify == AutoVerification.OnChange;
+    private bool VerifyOnOpen => options.Verify == AutoVerification.OnChange;
     private bool VerifyOnChange => options.Verify == AutoVerification.OnChange;
     private bool VerifyOnSave => options.Verify == AutoVerification.OnSave;
 
@@ -35,13 +38,17 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       IOptions<DocumentOptions> options,
       ITextDocumentLoader documentLoader,
       ITextChangeProcessor textChangeProcessor,
-      ISymbolTableRelocator symbolTableRelocator
+      ISymbolTableRelocator symbolTableRelocator,
+      IProgramVerifier programVerifier,
+      ICompilationStatusNotificationPublisher notificationPublisher
     ) {
       this.logger = logger;
       this.options = options.Value;
       this.documentLoader = documentLoader;
       this.textChangeProcessor = textChangeProcessor;
       this.symbolTableRelocator = symbolTableRelocator;
+      this.programVerifier = programVerifier;
+      this.notificationPublisher = notificationPublisher;
       CommandLineOptions.Clo.ProverOptions = GetProverOptions(this.options);
     }
 
@@ -65,20 +72,20 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var cancellationSource = new CancellationTokenSource();
       var databaseEntry = new DocumentEntry(
         document.Version,
-        Task.Run(() => LoadAsync(document, cancellationSource.Token)),
+        Task.Run(() => OpenAndVerifyAsync(document, cancellationSource.Token)),
         cancellationSource
       );
       documents.Add(document.Uri, databaseEntry);
       return await databaseEntry.Document;
     }
 
-    private async Task<DafnyDocument> LoadAsync(TextDocumentItem document, CancellationToken cancellationToken) {
+    private async Task<DafnyDocument> OpenAndVerifyAsync(TextDocumentItem textDocument, CancellationToken cancellationToken) {
       try {
-        return await documentLoader.LoadAsync(document, VerifyOnLoad, cancellationToken);
+        return await LoadAndVerifyAsync(textDocument, VerifyOnOpen, cancellationToken);
       } catch (OperationCanceledException) {
         // We do not allow cancelling the load of the placeholder document. Otherwise, other components
         // start to have to check for nullability in later stages such as change request processors.
-        return documentLoader.CreateUnloaded(document, CancellationToken.None);
+        return documentLoader.CreateUnloaded(textDocument, CancellationToken.None);
       }
     }
 
@@ -105,7 +112,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       // We do not pass the cancellation token to the text change processor because the text has to be kept in sync with the LSP client.
       var updatedText = textChangeProcessor.ApplyChange(oldDocument.Text, documentChange, CancellationToken.None);
       try {
-        var newDocument = await documentLoader.LoadAsync(updatedText, VerifyOnChange, cancellationToken);
+        var newDocument = await LoadAndVerifyAsync(updatedText, VerifyOnChange, cancellationToken);
         if (newDocument.SymbolTable.Resolved) {
           return newDocument;
         }
@@ -138,12 +145,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return VerifyDocumentIfRequiredAsync(databaseEntry);
     }
 
+    private static bool RequiresOnSaveVerification(DafnyDocument document) {
+      return document.LoadCanceled || document.SymbolTable.Resolved;
+    }
+
     private async Task<DafnyDocument> VerifyDocumentIfRequiredAsync(DocumentEntry databaseEntry) {
-      // The verification of a document is currently tied to a document load (see DocumentLoader.LoadAsync).
-      // Therefore, we cancel any pending document load process and re-load it here with the verification.
-      // In the future, the verification should be separated from the document load to have better
-      // control over it.
-      databaseEntry.CancelPendingUpdates();
       var document = await databaseEntry.Document;
       if (!RequiresOnSaveVerification(document)) {
         return document;
@@ -157,14 +163,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var cancellationSource = new CancellationTokenSource();
       var updatedEntry = new DocumentEntry(
         document.Version,
-        Task.Run(() => documentLoader.LoadAsync(document.Text, VerifyOnSave, cancellationSource.Token)),
+        Task.Run(() => Verify(document, cancellationSource.Token)),
         cancellationSource
       );
       return updatedEntry;
-    }
-
-    private static bool RequiresOnSaveVerification(DafnyDocument document) {
-      return document.LoadCanceled || document.SymbolTable.Resolved;
     }
 
     public async Task<DafnyDocument?> GetDocumentAsync(TextDocumentIdentifier documentId) {
@@ -172,6 +174,26 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return await databaseEntry.Document;
       }
       return null;
+    }
+
+    private async Task<DafnyDocument> LoadAndVerifyAsync(TextDocumentItem textDocument, bool verify, CancellationToken cancellationToken) {
+      var document = await documentLoader.LoadAsync(textDocument, cancellationToken);
+      if (!verify || document.Errors.HasErrors) {
+        return document;
+      }
+      return Verify(document, cancellationToken);
+    }
+
+    private DafnyDocument Verify(DafnyDocument document, CancellationToken cancellationToken) {
+      notificationPublisher.SendStatusNotification(document.Text, CompilationStatus.VerificationStarted);
+      var verificationResult = programVerifier.Verify(document.Program, cancellationToken);
+      var compilationStatusAfterVerification = verificationResult.Verified
+        ? CompilationStatus.VerificationSucceeded
+        : CompilationStatus.VerificationFailed;
+      notificationPublisher.SendStatusNotification(document.Text, compilationStatusAfterVerification);
+      return document with {
+        SerializedCounterExamples = verificationResult.SerializedCounterExamples
+      };
     }
 
     private record DocumentEntry(int? Version, Task<DafnyDocument> Document, CancellationTokenSource CancellationSource) {

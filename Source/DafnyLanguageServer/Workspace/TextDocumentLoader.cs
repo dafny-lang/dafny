@@ -23,7 +23,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     private readonly IDafnyParser parser;
     private readonly ISymbolResolver symbolResolver;
-    private readonly IProgramVerifier verifier;
     private readonly ISymbolTableFactory symbolTableFactory;
     private readonly ICompilationStatusNotificationPublisher notificationPublisher;
     private readonly BlockingCollection<LoadRequest> loadRequests = new();
@@ -31,13 +30,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private TextDocumentLoader(
       IDafnyParser parser,
       ISymbolResolver symbolResolver,
-      IProgramVerifier verifier,
       ISymbolTableFactory symbolTableFactory,
       ICompilationStatusNotificationPublisher notificationPublisher
     ) {
       this.parser = parser;
       this.symbolResolver = symbolResolver;
-      this.verifier = verifier;
       this.symbolTableFactory = symbolTableFactory;
       this.notificationPublisher = notificationPublisher;
     }
@@ -45,11 +42,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public static TextDocumentLoader Create(
       IDafnyParser parser,
       ISymbolResolver symbolResolver,
-      IProgramVerifier verifier,
       ISymbolTableFactory symbolTableFactory,
       ICompilationStatusNotificationPublisher notificationPublisher
     ) {
-      var loader = new TextDocumentLoader(parser, symbolResolver, verifier, symbolTableFactory, notificationPublisher);
+      var loader = new TextDocumentLoader(parser, symbolResolver, symbolTableFactory, notificationPublisher);
       var loadThread = new Thread(loader.Run, MaxStackSize) { IsBackground = true };
       loadThread.Start();
       return loader;
@@ -65,8 +61,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       );
     }
 
-    public async Task<DafnyDocument> LoadAsync(TextDocumentItem textDocument, bool verify, CancellationToken cancellationToken) {
-      var request = new LoadRequest(textDocument, verify, cancellationToken);
+    public async Task<DafnyDocument> LoadAsync(TextDocumentItem textDocument, CancellationToken cancellationToken) {
+      var request = new LoadRequest(textDocument, cancellationToken);
       loadRequests.Add(request, cancellationToken);
       return await request.Document.Task;
     }
@@ -89,7 +85,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private DafnyDocument LoadInternal(LoadRequest loadRequest) {
-      var (textDocument, verify, cancellationToken) = loadRequest;
+      var (textDocument, cancellationToken) = loadRequest;
       var errorReporter = new DiagnosticErrorReporter(textDocument.Uri);
       var program = parser.Parse(textDocument, errorReporter, cancellationToken);
       if (errorReporter.HasErrors) {
@@ -98,15 +94,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
       var compilationUnit = symbolResolver.ResolveSymbols(textDocument, program, cancellationToken);
       var symbolTable = symbolTableFactory.CreateFrom(program, compilationUnit, cancellationToken);
-      string? serializedCounterExamples;
       if (errorReporter.HasErrors) {
         notificationPublisher.SendStatusNotification(textDocument, CompilationStatus.ResolutionFailed);
-        serializedCounterExamples = null;
       } else {
         notificationPublisher.SendStatusNotification(textDocument, CompilationStatus.CompilationSucceeded);
-        serializedCounterExamples = VerifyIfEnabled(textDocument, program, verify, cancellationToken);
       }
-      return new DafnyDocument(textDocument, errorReporter, program, symbolTable, serializedCounterExamples);
+      return new DafnyDocument(textDocument, errorReporter, program, symbolTable, SerializedCounterExamples: null);
     }
 
     private static DafnyDocument CreateDocumentWithEmptySymbolTable(
@@ -135,20 +128,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       );
     }
 
-    private string? VerifyIfEnabled(TextDocumentItem textDocument, Dafny.Program program, bool verify, CancellationToken cancellationToken) {
-      if (!verify) {
-        return null;
-      }
-      notificationPublisher.SendStatusNotification(textDocument, CompilationStatus.VerificationStarted);
-      var verificationResult = verifier.Verify(program, cancellationToken);
-      var compilationStatusAfterVerification = verificationResult.Verified
-        ? CompilationStatus.VerificationSucceeded
-        : CompilationStatus.VerificationFailed;
-      notificationPublisher.SendStatusNotification(textDocument, compilationStatusAfterVerification);
-      return verificationResult.SerializedCounterExamples;
-    }
-
-    private record LoadRequest(TextDocumentItem TextDocument, bool Verify, CancellationToken CancellationToken) {
+    private record LoadRequest(TextDocumentItem TextDocument, CancellationToken CancellationToken) {
       public TaskCompletionSource<DafnyDocument> Document { get; } = new();
     }
   }

@@ -13,7 +13,6 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
   public class TextDocumentLoaderTest {
     private Mock<IDafnyParser> parser;
     private Mock<ISymbolResolver> symbolResolver;
-    private Mock<IProgramVerifier> verifier;
     private Mock<ISymbolTableFactory> symbolTableFactory;
     private Mock<ICompilationStatusNotificationPublisher> notificationPublisher;
     private TextDocumentLoader textDocumentLoader;
@@ -22,13 +21,11 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
     public void SetUp() {
       parser = new();
       symbolResolver = new();
-      verifier = new();
       symbolTableFactory = new();
       notificationPublisher = new();
       textDocumentLoader = TextDocumentLoader.Create(
         parser.Object,
         symbolResolver.Object,
-        verifier.Object,
         symbolTableFactory.Object,
         notificationPublisher.Object
       );
@@ -46,7 +43,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
     public async Task LoadReturnsCanceledTaskIfOperationIsCanceled() {
       parser.Setup(p => p.Parse(It.IsAny<TextDocumentItem>(), It.IsAny<ErrorReporter>(), It.IsAny<CancellationToken>()))
         .Throws<OperationCanceledException>();
-      var task = textDocumentLoader.LoadAsync(CreateTestDocument(), true, default);
+      var task = textDocumentLoader.LoadAsync(CreateTestDocument(), default);
       try {
         await task;
         Assert.Fail("document load was not cancelled");
@@ -61,7 +58,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
     public async Task LoadReturnsFaultedTaskIfAnyExceptionOccured() {
       parser.Setup(p => p.Parse(It.IsAny<TextDocumentItem>(), It.IsAny<ErrorReporter>(), It.IsAny<CancellationToken>()))
         .Throws<InvalidOperationException>();
-      var task = textDocumentLoader.LoadAsync(CreateTestDocument(), true, default);
+      var task = textDocumentLoader.LoadAsync(CreateTestDocument(), default);
       try {
         await task;
         Assert.Fail("document load did not fail");
