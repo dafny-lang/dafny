@@ -11,9 +11,7 @@ function method ParseBar(s: string): Result<Bar, string> {
 class Foo {
   const bar: Bar
 
-  constructor (
-    barLike: string
-  )
+  constructor (barLike: string)
     requires ParseBar(barLike).Success?
   {
      // Before (this) was assigned to a temporary variable.
@@ -31,13 +29,15 @@ class Wrapper {
 }
 
 class Foo2 {
-  var leftWrapper: Wrapper;
-  var rightWrapper: Wrapper;
-  var currentWrapper: Wrapper;
-  var isCurrentWrapperLeft: bool;
-  ghost var Repr: set<object>;
+  var leftWrapper: Wrapper
+  var rightWrapper: Wrapper
+  var currentWrapper: Wrapper
+  var isCurrentWrapperLeft: bool
+  ghost var Repr: set<object>
 
-  constructor () ensures Valid() && fresh(Repr - {this}) && isCurrentWrapperLeft {
+  constructor ()
+    ensures Valid() && fresh(Repr - {this}) && isCurrentWrapperLeft
+  {
     leftWrapper := new Wrapper();
     rightWrapper := new Wrapper();
     currentWrapper := leftWrapper;
@@ -45,7 +45,9 @@ class Foo2 {
     Repr := {this, leftWrapper, rightWrapper};
   }
 
-  predicate Valid() reads this {
+  predicate Valid()
+    reads this
+  {
     (if isCurrentWrapperLeft then
       currentWrapper == leftWrapper
     else currentWrapper == rightWrapper) &&
@@ -74,12 +76,13 @@ class Foo2 {
   }
 
   method update() returns (r: Result<string, string>)
-      requires Valid()
-      ensures Valid()
-      ensures old(isCurrentWrapperLeft) ==> r == Success("Assigned everything")
-      ensures old(isCurrentWrapperLeft) ==> leftWrapper.arg == "left"
-      ensures old(isCurrentWrapperLeft) ==> currentWrapper == rightWrapper
-      modifies Repr {
+    requires Valid()
+    ensures Valid()
+    ensures old(isCurrentWrapperLeft) ==> r == Success("Assigned everything")
+    ensures old(isCurrentWrapperLeft) ==> leftWrapper.arg == "left"
+    ensures old(isCurrentWrapperLeft) ==> currentWrapper == rightWrapper
+    modifies Repr
+  {
     currentWrapper.arg :- getNextValue();
     // currentWrapper becomes rightWrapper after getNextValue, but leftWrapper.arg receives the new value
     r := Success("Assigned everything");
