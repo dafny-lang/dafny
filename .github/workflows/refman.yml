@@ -29,6 +29,9 @@ jobs:
       with:
         submodules: recursive
         path: dafny
+    - name: Build Java runtime
+      working-directory: dafny
+      run: make --quiet runtime
     - name: Build Dafny
       run: dotnet build dafny/Source/Dafny.sln
     - name: Install latex pandoc - Linux
