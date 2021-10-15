@@ -1,5 +1,7 @@
 ﻿using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
+using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -17,22 +19,29 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// Only delta updates are supported and the API is not thread-safe.
   /// </remarks>
   public class DocumentDatabase : IDocumentDatabase {
+    private readonly ILogger logger;
     private readonly DocumentOptions options;
     private readonly Dictionary<DocumentUri, DocumentEntry> documents = new();
     private readonly ITextDocumentLoader documentLoader;
-    private readonly IDocumentUpdater documentUpdater;
+    private readonly ITextChangeProcessor textChangeProcessor;
+    private readonly ISymbolTableRelocator symbolTableRelocator;
 
     private bool VerifyOnLoad => options.Verify == AutoVerification.OnChange;
+    private bool VerifyOnChange => options.Verify == AutoVerification.OnChange;
     private bool VerifyOnSave => options.Verify == AutoVerification.OnSave;
 
     public DocumentDatabase(
+      ILogger<DocumentDatabase> logger,
       IOptions<DocumentOptions> options,
       ITextDocumentLoader documentLoader,
-      IDocumentUpdater documentUpdater
+      ITextChangeProcessor textChangeProcessor,
+      ISymbolTableRelocator symbolTableRelocator
     ) {
+      this.logger = logger;
       this.options = options.Value;
       this.documentLoader = documentLoader;
-      this.documentUpdater = documentUpdater;
+      this.textChangeProcessor = textChangeProcessor;
+      this.symbolTableRelocator = symbolTableRelocator;
       CommandLineOptions.Clo.ProverOptions = GetProverOptions(this.options);
     }
 
@@ -85,11 +94,38 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var cancellationSource = new CancellationTokenSource();
       var updatedEntry = new DocumentEntry(
         documentChange.TextDocument.Version,
-        Task.Run(async () => await documentUpdater.ApplyChangesAsync(await databaseEntry.Document, documentChange, cancellationSource.Token)),
+        Task.Run(async () => await ApplyChangesAsync(await databaseEntry.Document, documentChange, cancellationSource.Token)),
         cancellationSource
       );
       documents[documentUri] = updatedEntry;
       return await updatedEntry.Document;
+    }
+
+    private async Task<DafnyDocument> ApplyChangesAsync(DafnyDocument oldDocument, DidChangeTextDocumentParams documentChange, CancellationToken cancellationToken) {
+      // We do not pass the cancellation token to the text change processor because the text has to be kept in sync with the LSP client.
+      var updatedText = textChangeProcessor.ApplyChange(oldDocument.Text, documentChange, CancellationToken.None);
+      try {
+        var newDocument = await documentLoader.LoadAsync(updatedText, VerifyOnChange, cancellationToken);
+        if (newDocument.SymbolTable.Resolved) {
+          return newDocument;
+        }
+        // The document loader failed to create a new symbol table. Since we'd still like to provide
+        // features such as code completion and lookup, we re-locate the previously resolved symbols
+        // according to the change.
+        return newDocument with {
+          SymbolTable = symbolTableRelocator.Relocate(oldDocument.SymbolTable, documentChange, CancellationToken.None)
+        };
+      } catch (OperationCanceledException) {
+        // The document load was canceled before it could complete. We migrate the document
+        // to re-locate symbols that were resolved previously.
+        logger.LogTrace("document loading canceled, applying migration");
+        return oldDocument with {
+          Text = updatedText,
+          SymbolTable = symbolTableRelocator.Relocate(oldDocument.SymbolTable, documentChange, CancellationToken.None),
+          SerializedCounterExamples = null,
+          LoadCanceled = true
+        };
+      }
     }
 
     public Task<DafnyDocument> SaveDocumentAsync(TextDocumentIdentifier documentId) {
