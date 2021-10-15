@@ -9,14 +9,18 @@ namespace XUnitExtensions {
       this.lhs = lhs;
       this.rhs = rhs;
     }
-    
+
     public (int, string, string) Execute(TextReader inputReader, TextWriter outputWriter) {
       var (exitCode, output, error) = lhs.Execute(inputReader, outputWriter);
       if (exitCode == 0) {
         return (exitCode, output, error);
-      } else {
-        return rhs.Execute(inputReader, outputWriter);
       }
+
+      return rhs.Execute(inputReader, outputWriter);
+    }
+
+    public override string ToString() {
+      return $"{lhs} || {rhs}";
     }
   }
 }
