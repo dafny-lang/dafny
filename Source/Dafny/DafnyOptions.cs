@@ -61,7 +61,7 @@ namespace Microsoft.Dafny {
     public List<string> DafnyPrintExportedViews = new List<string>();
     public bool Compile = true;
     [Flags]
-    public enum CompilationTarget { Csharp = 1, JavaScript = 2, Go = 4, Java = 8, Cpp = 16, Php = 32 }
+    public enum CompilationTarget { Csharp = 1, JavaScript = 2, Go = 4, Java = 8, Cpp = 16, Php = 32, Python = 64 }
     public CompilationTarget CompileTarget = CompilationTarget.Csharp;
     public bool CompileVerbose = true;
     public string DafnyPrintCompiledFile = null;
@@ -174,6 +174,8 @@ namespace Microsoft.Dafny {
               CompileTarget = CompilationTarget.Cpp;
             } else if (args[ps.i].Equals("php")) {
               CompileTarget = CompilationTarget.Php;
+            } else if (args[ps.i].Equals("python")) {
+              CompileTarget = CompilationTarget.Python;
             } else {
               throw new Exception("Invalid value for compileTarget");
             }
