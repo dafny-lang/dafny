@@ -1,6 +1,9 @@
+//-----------------------------------------------------------------------------
+//
 // Copyright by the contributors to the Dafny Project
 // SPDX-License-Identifier: MIT
-
+//
+//-----------------------------------------------------------------------------
 #if ISDAFNYRUNTIMELIB
 using System; // for Func
 using System.Numerics;
@@ -1083,6 +1086,7 @@ namespace Dafny {
       return Subsequence((long)lo, (long)hi);
     }
   }
+
   internal class ArraySequence<T> : Sequence<T> {
     private readonly ImmutableArray<T> elmts;
 
@@ -1104,6 +1108,7 @@ namespace Dafny {
       }
     }
   }
+
   internal class ConcatSequence<T> : Sequence<T> {
     // INVARIANT: Either left != null, right != null, and elmts's underlying array == null or
     // left == null, right == null, and elmts's underlying array != null
@@ -1164,6 +1169,7 @@ namespace Dafny {
     A Car { get; }
     B Cdr { get; }
   }
+
   public class Pair<A, B> : IPair<A, B> {
     private A car;
     private B cdr;
