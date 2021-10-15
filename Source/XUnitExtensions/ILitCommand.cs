@@ -29,40 +29,33 @@ namespace XUnitExtensions {
       }
       line = line[LIT_COMMAND_PREFIX.Length..].Trim();
       
-      var pieces = ParseArguments(line);
-      var commandSymbol = pieces[0];
-      var basePath = Path.GetDirectoryName(fileName);
-      var (rawArguments, inputFile, outputFile, appendOutput) = ILitCommand.ExtractRedirections(pieces[1..]);
-      if (inputFile != null) {
-        inputFile = MakeFilePathsAbsolute(basePath, config.ApplySubstitutions(inputFile));
-      }
-      if (outputFile != null) {
-        outputFile = MakeFilePathsAbsolute(basePath, config.ApplySubstitutions(outputFile));
-      }
-      var arguments = rawArguments
-        .Select(config.ApplySubstitutions)
-        .Select(arg => MakeFilePathsAbsolute(basePath, arg));
-      
-      if (config.Commands.TryGetValue(commandSymbol, out var command)) {
-        return new LitCommandWithOutput(command(arguments, config), inputFile, outputFile, appendOutput);
-      }
-
-      commandSymbol = config.ApplySubstitutions(commandSymbol);
-
-      return new LitCommandWithOutput(
-        new ShellLitCommand(commandSymbol, arguments, config.PassthroughEnvironmentVariables), 
-        inputFile, outputFile, appendOutput);
+      var tokens = Tokenize(line);
+      return ParseRunCommand(tokens, config);
     }
 
-    private static string[] ParseArguments(string line) {
+    public static ILitCommand ParseRunCommand(string[] tokens, LitTestConfiguration config) {
+      // Just supporting || for now since it's a precise way to ignore an exit code
+      var seqOperatorIndex = Array.IndexOf(tokens, "||");
+      if (seqOperatorIndex >= 0) {
+        var lhs = LitCommandWithRedirection.Parse(tokens[0..seqOperatorIndex], config);
+        var rhs = ParseRunCommand(tokens[(seqOperatorIndex + 1)..], config);
+        return new OrCommand(lhs, rhs);
+      }
+      return LitCommandWithRedirection.Parse(tokens, config);
+    }
+    
+    private static string[] Tokenize(string line) {
       var arguments = new List<string>();
       var argument = new StringBuilder();
-      var quoted = false;
+      var singleQuoted = false;
+      var doubleQuoted = false;
       for (int i = 0; i < line.Length; i++) {
         var c = line[i];
-        if (c == '"') {
-          quoted = !quoted;
-        } else if (Char.IsWhiteSpace(c) && !quoted) {
+        if (c == '\'') {
+          singleQuoted = !singleQuoted;
+        } else if (c == '"') {
+          doubleQuoted = !doubleQuoted;
+        } else if (Char.IsWhiteSpace(c) && !(singleQuoted || doubleQuoted)) {
           arguments.Add(argument.ToString());
           argument.Clear();
         } else {
@@ -75,43 +68,6 @@ namespace XUnitExtensions {
       }
       
       return arguments.ToArray();
-    }
-    
-    public static string MakeFilePathsAbsolute(string basePath, string s) {
-      if (s.StartsWith("-") || s.StartsWith("/")) {
-        return s;
-      }
-
-      // var absolutePath = Path.Join(basePath, s);
-      // if (File.Exists(absolutePath)) {
-      //   return absolutePath;
-      // }
-      
-      return s;
-    }
-    
-    public static (IEnumerable<string>, string, string, bool) ExtractRedirections(IEnumerable<string> arguments) {
-      var argumentsList = arguments.ToList();
-      string inputFile = null;
-      string outputFile = null;
-      bool appendOutput = false;
-      var redirectInIndex = argumentsList.IndexOf("<");
-      if (redirectInIndex >= 0) {
-        inputFile = argumentsList[redirectInIndex + 1];
-        argumentsList.RemoveRange(redirectInIndex, 2);
-      }
-      var redirectOutIndex = argumentsList.IndexOf(">");
-      if (redirectOutIndex >= 0) {
-        outputFile = argumentsList[redirectOutIndex + 1];
-        argumentsList.RemoveRange(redirectOutIndex, 2);
-      }
-      var redirectAppendIndex = argumentsList.IndexOf(">>");
-      if (redirectAppendIndex >= 0) {
-        outputFile = argumentsList[redirectAppendIndex + 1];
-        appendOutput = true;
-        argumentsList.RemoveRange(redirectAppendIndex, 2);
-      }
-      return (argumentsList, inputFile, outputFile, appendOutput);
     }
   }
 }

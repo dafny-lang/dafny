@@ -51,6 +51,7 @@ namespace IntegrationTests {
         // TODO: speed this up by using AssertWithDiff
         { "%diff", "diff" },
         { "%binaries", "." },
+        { "%z3", "z3/bin/z3" },
         { "%refmanexamples", Path.Join("TestFiles", "LitTests", "LitTest", "refman", "examples") }
       },
       
