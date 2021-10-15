@@ -65,19 +65,23 @@ namespace XUnitExtensions {
     public IMethodInfo Method => innerTestCase.Method;
     public int Timeout => innerTestCase.Timeout;
     
-    public Task<RunSummary> RunAsync(IMessageSink diagnosticMessageSink, IMessageBus messageBus, object[] constructorArguments,
+    public async Task<RunSummary> RunAsync(IMessageSink diagnosticMessageSink, IMessageBus messageBus, object[] constructorArguments,
       ExceptionAggregator aggregator, CancellationTokenSource cancellationTokenSource) {
 
-      return new XunitTestCaseRunner(
+      var messageBusInterceptor = new SkippableTestMessageBus(messageBus, skippingExceptionNames);
+      RunSummary result = await new XunitTestCaseRunner(
         this,
         DisplayName,
         SkipReason,
         constructorArguments,
         TestMethodArguments,
-        messageBus,
+        messageBusInterceptor,
         aggregator,
         cancellationTokenSource
       ).RunAsync();
+      result.Failed -= messageBusInterceptor.SkippedCount;
+      result.Skipped += messageBusInterceptor.SkippedCount;
+      return result;
     }
   }
 }
