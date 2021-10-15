@@ -2,6 +2,7 @@
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Util;
+using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -13,36 +14,41 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   public class DocumentUpdater : IDocumentUpdater {
     private readonly ILogger logger;
     private readonly DocumentOptions options;
+    private readonly ITextChangeProcessor textChangeProcessor;
     private readonly ITextDocumentLoader documentLoader;
 
     private bool Verify => options.Verify == AutoVerification.OnChange;
 
-    public DocumentUpdater(ILogger<DocumentUpdater> logger, IOptions<DocumentOptions> options, ITextDocumentLoader documentLoader) {
+    public DocumentUpdater(
+      ILogger<DocumentUpdater> logger,
+      IOptions<DocumentOptions> options,
+      ITextChangeProcessor textChangeProcessor,
+      ITextDocumentLoader documentLoader
+    ) {
       this.logger = logger;
+      this.textChangeProcessor = textChangeProcessor;
       this.options = options.Value;
       this.documentLoader = documentLoader;
     }
 
     public async Task<DafnyDocument> ApplyChangesAsync(DafnyDocument oldDocument, DidChangeTextDocumentParams documentChange, CancellationToken cancellationToken) {
+      // We do not pass the cancellation token to the text change processor because the text has to be kept in sync with the LSP client.
+      var updatedText = textChangeProcessor.ApplyChange(oldDocument.Text, documentChange, CancellationToken.None);
       var changeProcessor = new ChangeProcessor(logger, oldDocument, documentChange.ContentChanges);
-      var mergedText = oldDocument.Text with {
-        Version = documentChange.TextDocument.Version,
-        Text = changeProcessor.MigrateText()
-      };
       try {
-        var newDocument = await documentLoader.LoadAsync(mergedText, Verify, cancellationToken);
+        var newDocument = await documentLoader.LoadAsync(updatedText, Verify, cancellationToken);
         if (newDocument.SymbolTable.Resolved) {
           return newDocument;
         }
         // The document loader failed to create a new symbol table. Since we'd still like to provide
         // features such as code completion and lookup, we re-locate the previously resolved symbols
         // according to the change.
-        return MigrateDocument(mergedText, newDocument, changeProcessor, false);
+        return MigrateDocument(updatedText, newDocument, changeProcessor, false);
       } catch (System.OperationCanceledException) {
         // The document load was canceled before it could complete. We migrate the document
         // to re-locate symbols that were resolved previously.
         logger.LogTrace("document loading canceled, applying migration");
-        return MigrateDocument(mergedText, oldDocument, changeProcessor, true);
+        return MigrateDocument(updatedText, oldDocument, changeProcessor, true);
       }
     }
 
@@ -66,23 +72,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         this.logger = logger;
         this.originalDocument = originalDocument;
         this.contentChanges = contentChanges;
-      }
-
-      public string MigrateText() {
-        var mergedText = originalDocument.Text.Text;
-        foreach (var change in contentChanges) {
-          mergedText = ApplyTextChange(mergedText, change);
-        }
-        return mergedText;
-      }
-
-      private static string ApplyTextChange(string previousText, TextDocumentContentChangeEvent change) {
-        if (change.Range == null) {
-          throw new System.InvalidOperationException("the range of the change must not be null");
-        }
-        int absoluteStart = change.Range.Start.ToAbsolutePosition(previousText);
-        int absoluteEnd = change.Range.End.ToAbsolutePosition(previousText);
-        return previousText[..absoluteStart] + change.Text + previousText[absoluteEnd..];
       }
 
       public SymbolTable MigrateSymbolTable() {
