@@ -40,6 +40,7 @@ namespace Dafny {
       this.setImpl = d;
       this.containsNull = containsNull;
     }
+
     public static readonly ISet<T> Empty = new Set<T>(ImmutableHashSet<T>.Empty, false);
 
     private static readonly TypeDescriptor<ISet<T>> _TYPE = new Dafny.TypeDescriptor<ISet<T>>(Empty);
@@ -54,6 +55,7 @@ namespace Dafny {
     public static Set<T> FromISet(ISet<T> s) {
       return s as Set<T> ?? FromCollection(s.Elements);
     }
+
     public static Set<T> FromCollection(IEnumerable<T> values) {
       var d = ImmutableHashSet<T>.Empty.ToBuilder();
       var containsNull = false;
@@ -64,6 +66,7 @@ namespace Dafny {
           d.Add(t);
         }
       }
+
       return new Set<T>(d.ToImmutable(), containsNull);
     }
 
