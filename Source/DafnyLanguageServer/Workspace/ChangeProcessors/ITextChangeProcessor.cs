@@ -14,6 +14,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
     /// <param name="documentChange">The document change to apply.</param>
     /// <param name="cancellationToken">A token to stop the update prior completion.</param>
     /// <returns>The updated text document.</returns>
+    /// <exception cref="System.OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
+    /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
     TextDocumentItem ApplyChange(TextDocumentItem originalTextDocument, DidChangeTextDocumentParams documentChange, CancellationToken cancellationToken = default);
   }
 }
