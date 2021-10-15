@@ -51,7 +51,7 @@ namespace IntegrationTests {
         // TODO: speed this up by using AssertWithDiff
         { "%diff", "diff" },
         { "%binaries", "." },
-        { "%refmanexamples", Path.Join("examples") }
+        { "%refmanexamples", Path.Join("TestFiles", "LitTests", "LitTest", "refman", "examples") }
       },
       
       PassthroughEnvironmentVariables = new []{ "PATH", "HOME" },
