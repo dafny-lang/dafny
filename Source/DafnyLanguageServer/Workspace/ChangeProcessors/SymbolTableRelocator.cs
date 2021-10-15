@@ -14,7 +14,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
       this.logger = logger;
     }
 
-    public SymbolTable Relocate(SymbolTable originalSymbolTable, DidChangeTextDocumentParams changes, CancellationToken cancellationToken = default) {
+    public SymbolTable Relocate(SymbolTable originalSymbolTable, DidChangeTextDocumentParams changes, CancellationToken cancellationToken) {
       return new ChangeProcessor(logger, originalSymbolTable, changes.ContentChanges, cancellationToken).MigrateSymbolTable();
     }
 
