@@ -27,7 +27,10 @@ namespace IntegrationTests {
       "/compileVerbose:0",
 
       // Hide Boogie execution traces since they are meaningless for Dafny programs
-      "/errorTrace:0"
+      "/errorTrace:0",
+      
+      // Set a default time limit, to catch cases where verification time runs off the rails
+      "/timeLimit:300"
     };
     
     private static ILitCommand MainWithArguments(Assembly assembly, IEnumerable<string> arguments, LitTestConfiguration config, bool invokeDirectly) {
