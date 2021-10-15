@@ -89,6 +89,26 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
     }
 
+    private async Task<DafnyDocument> LoadAndVerifyAsync(TextDocumentItem textDocument, bool verify, CancellationToken cancellationToken) {
+      var document = await documentLoader.LoadAsync(textDocument, cancellationToken);
+      if (!verify || document.Errors.HasErrors) {
+        return document;
+      }
+      return Verify(document, cancellationToken);
+    }
+
+    private DafnyDocument Verify(DafnyDocument document, CancellationToken cancellationToken) {
+      notificationPublisher.SendStatusNotification(document.Text, CompilationStatus.VerificationStarted);
+      var verificationResult = programVerifier.Verify(document.Program, cancellationToken);
+      var compilationStatusAfterVerification = verificationResult.Verified
+        ? CompilationStatus.VerificationSucceeded
+        : CompilationStatus.VerificationFailed;
+      notificationPublisher.SendStatusNotification(document.Text, compilationStatusAfterVerification);
+      return document with {
+        SerializedCounterExamples = verificationResult.SerializedCounterExamples
+      };
+    }
+
     public async Task<DafnyDocument> UpdateDocumentAsync(DidChangeTextDocumentParams documentChange) {
       var documentUri = documentChange.TextDocument.Uri;
       if (!documents.TryGetValue(documentUri, out var databaseEntry)) {
@@ -145,28 +165,23 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return VerifyDocumentIfRequiredAsync(databaseEntry);
     }
 
-    private static bool RequiresOnSaveVerification(DafnyDocument document) {
-      return document.LoadCanceled || document.SymbolTable.Resolved;
-    }
-
     private async Task<DafnyDocument> VerifyDocumentIfRequiredAsync(DocumentEntry databaseEntry) {
       var document = await databaseEntry.Document;
       if (!RequiresOnSaveVerification(document)) {
         return document;
       }
-      var updatedEntry = VerifyDocument(document);
-      documents[document.Uri] = updatedEntry;
-      return await updatedEntry.Document;
-    }
-
-    private DocumentEntry VerifyDocument(DafnyDocument document) {
       var cancellationSource = new CancellationTokenSource();
       var updatedEntry = new DocumentEntry(
         document.Version,
         Task.Run(() => Verify(document, cancellationSource.Token)),
         cancellationSource
       );
-      return updatedEntry;
+      documents[document.Uri] = updatedEntry;
+      return await updatedEntry.Document;
+    }
+
+    private static bool RequiresOnSaveVerification(DafnyDocument document) {
+      return document.LoadCanceled || document.SymbolTable.Resolved;
     }
 
     public async Task<DafnyDocument?> GetDocumentAsync(TextDocumentIdentifier documentId) {
@@ -174,26 +189,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return await databaseEntry.Document;
       }
       return null;
-    }
-
-    private async Task<DafnyDocument> LoadAndVerifyAsync(TextDocumentItem textDocument, bool verify, CancellationToken cancellationToken) {
-      var document = await documentLoader.LoadAsync(textDocument, cancellationToken);
-      if (!verify || document.Errors.HasErrors) {
-        return document;
-      }
-      return Verify(document, cancellationToken);
-    }
-
-    private DafnyDocument Verify(DafnyDocument document, CancellationToken cancellationToken) {
-      notificationPublisher.SendStatusNotification(document.Text, CompilationStatus.VerificationStarted);
-      var verificationResult = programVerifier.Verify(document.Program, cancellationToken);
-      var compilationStatusAfterVerification = verificationResult.Verified
-        ? CompilationStatus.VerificationSucceeded
-        : CompilationStatus.VerificationFailed;
-      notificationPublisher.SendStatusNotification(document.Text, compilationStatusAfterVerification);
-      return document with {
-        SerializedCounterExamples = verificationResult.SerializedCounterExamples
-      };
     }
 
     private record DocumentEntry(int? Version, Task<DafnyDocument> Document, CancellationTokenSource CancellationSource) {
