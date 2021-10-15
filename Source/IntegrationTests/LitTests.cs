@@ -51,7 +51,7 @@ namespace IntegrationTests {
         // TODO: speed this up by using AssertWithDiff
         { "%diff", "diff" },
         { "%binaries", "." },
-        { "%z3", "z3/bin/z3" },
+        { "%z3", Path.Join("z3", "bin", "z3") },
         { "%refmanexamples", Path.Join("TestFiles", "LitTests", "LitTest", "refman", "examples") }
       },
       
@@ -60,18 +60,16 @@ namespace IntegrationTests {
 
     static LitTests() {
       // TODO: Just use a single DAFNY_RELEASE variable and override %binaries as well
-      var dafnyExecutable = Environment.GetEnvironmentVariable("DAFNY_EXECUTABLE");
-      if (dafnyExecutable != null) {
+      var dafnyReleaseDir = Environment.GetEnvironmentVariable("DAFNY_RELEASE");
+      if (dafnyReleaseDir != null) {
         CONFIG.Commands["%baredafny"] = (args, config) =>
-          new ShellLitCommand(dafnyExecutable, args, config.PassthroughEnvironmentVariables);
+          new ShellLitCommand(Path.Join(dafnyReleaseDir, "dafny"), args, config.PassthroughEnvironmentVariables);
         CONFIG.Commands["%dafny"] = (args, config) =>
-          new ShellLitCommand(dafnyExecutable, defaultDafnyArguments.Concat(args), config.PassthroughEnvironmentVariables);
-      }
-      var dafnyServerExecutable = Environment.GetEnvironmentVariable("DAFNY_SERVER_EXECUTABLE");
-      if (dafnyServerExecutable != null) {
+          new ShellLitCommand(Path.Join(dafnyReleaseDir, "dafny"), defaultDafnyArguments.Concat(args), config.PassthroughEnvironmentVariables);
         CONFIG.Commands["%server"] = (args, config) =>
-          new ShellLitCommand(dafnyServerExecutable, args, config.PassthroughEnvironmentVariables);
-      } 
+          new ShellLitCommand(Path.Join(dafnyReleaseDir, "DafnyServer"), args, config.PassthroughEnvironmentVariables);
+        CONFIG.Substitions["%z3"] = Path.Join(dafnyReleaseDir, "z3", "bin", "z3");
+      }
     }
     
     private readonly ITestOutputHelper output;
