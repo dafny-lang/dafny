@@ -6,41 +6,25 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
   /// Internal representation of a dafny document.
   /// </summary>
-  public class DafnyDocument {
-    public TextDocumentItem Text { get; }
+  /// <param name="Text">The text document represented by this dafny document.</param>
+  /// <param name="Errors">The diagnostics to report.</param>
+  /// <param name="Program">The compiled Dafny program.</param>
+  /// <param name="SymbolTable">The symbol table for the symbol lookups.</param>
+  /// <param name="SerializedCounterExamples">
+  /// The serialized models of the counter examples if the verifier reported issues.
+  /// <c>null</c> if there are no verification errors or no verification was run.
+  /// </param>
+  /// <param name="LoadCanceled"><c>true</c> if the document load was canceled for this document.</param>
+  public record DafnyDocument(
+    TextDocumentItem Text,
+    DiagnosticErrorReporter Errors,
+    Dafny.Program Program,
+    SymbolTable SymbolTable,
+    string? SerializedCounterExamples,
+    bool LoadCanceled = false
+  ) {
     public DocumentUri Uri => Text.Uri;
     public int Version => Text.Version!.Value;
-
-    public Dafny.Program Program { get; }
-    public DiagnosticErrorReporter Errors { get; }
-    public SymbolTable SymbolTable { get; }
-
-    /// <summary>
-    /// <c>true</c> if the document load was canceled for this document.
-    /// </summary>
-    public bool LoadCanceled { get; }
-
-    /// <summary>
-    /// Gets the serialized models of the counter examples if the verifier reported issues.
-    /// <c>null</c> if there are no verification errors.
-    /// </summary>
-    public string? SerializedCounterExamples { get; }
-
-    public DafnyDocument(
-      TextDocumentItem textDocument,
-      DiagnosticErrorReporter errors,
-      Dafny.Program program,
-      SymbolTable symbolTable,
-      string? serializedCounterExamples,
-      bool loadCanceled = false
-    ) {
-      Text = textDocument;
-      Errors = errors;
-      Program = program;
-      SymbolTable = symbolTable;
-      SerializedCounterExamples = serializedCounterExamples;
-      LoadCanceled = loadCanceled;
-    }
 
     /// <summary>
     /// Checks if the given document uri is pointing to this dafny document.

@@ -120,7 +120,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         errorReporter,
         program,
         CreateEmptySymbolTable(program),
-        serializedCounterExamples: null,
+        SerializedCounterExamples: null,
         loadCanceled
       );
     }
