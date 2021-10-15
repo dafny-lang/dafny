@@ -49,7 +49,7 @@ namespace XUnitExtensions {
         string error;
         try {
           outputHelper.WriteLine($"Executing command: {command}");
-          (exitCode, output, error) = command.Execute(null, null);
+          (exitCode, output, error) = command.Execute(null, null, null);
         } catch (Exception e) {
           throw new Exception($"Exception thrown while executing command: {command}", e);
         }

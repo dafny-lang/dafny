@@ -17,7 +17,7 @@ namespace XUnitExtensions {
       this.passthroughEnvironmentVariables = passthroughEnvironmentVariables.ToArray();
     }
 
-    public (int, string, string) Execute(TextReader inputReader, TextWriter outputWriter) {
+    public (int, string, string) Execute(TextReader inputReader, TextWriter outputWriter, TextWriter errorWriter) {
       using var process = new Process();
 
       process.StartInfo.FileName = shellCommand;
@@ -49,6 +49,8 @@ namespace XUnitExtensions {
       outputWriter?.Write(output);
       outputWriter?.Flush();
       string error = process.StandardError.ReadToEnd();
+      errorWriter?.Write(error);
+      errorWriter?.Flush();
       process.WaitForExit();
 
       return (process.ExitCode, output, error);

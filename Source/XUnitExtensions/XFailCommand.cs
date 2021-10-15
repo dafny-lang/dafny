@@ -5,7 +5,7 @@ namespace XUnitExtensions {
 
     public XFailCommand() {}
     
-    public (int, string, string) Execute(TextReader inputReader, TextWriter outputWriter) {
+    public (int, string, string) Execute(TextReader inputReader, TextWriter outputWriter, TextWriter errorWriter) {
       return (0, "", "");
     }
   }

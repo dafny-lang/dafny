@@ -10,13 +10,12 @@ namespace XUnitExtensions {
       this.rhs = rhs;
     }
 
-    public (int, string, string) Execute(TextReader inputReader, TextWriter outputWriter) {
-      var (exitCode, output, error) = lhs.Execute(inputReader, outputWriter);
+    public (int, string, string) Execute(TextReader inputReader, TextWriter outputWriter, TextWriter errorWriter) {
+      var (exitCode, output, error) = lhs.Execute(inputReader, outputWriter, errorWriter);
       if (exitCode == 0) {
         return (exitCode, output, error);
       }
-
-      return rhs.Execute(inputReader, outputWriter);
+      return rhs.Execute(inputReader, outputWriter, errorWriter);
     }
 
     public override string ToString() {

@@ -13,7 +13,7 @@ namespace XUnitExtensions {
     private const string LIT_COMMAND_PREFIX = "RUN:";
     private const string LIT_XFAIL = "XFAIL: *";
 
-    public (int, string, string) Execute(TextReader inputReader, TextWriter outputWriter);
+    public (int, string, string) Execute(TextReader inputReader, TextWriter outputWriter, TextWriter errorWriter);
     
     public static ILitCommand Parse(string fileName, string line, LitTestConfiguration config) {
       if (!line.StartsWith(COMMENT_PREFIX)) {

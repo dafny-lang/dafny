@@ -19,20 +19,20 @@ namespace XUnitExtensions {
       return invokeDirectly ? result : result.ToShellCommand(config);
     }
 
-    public (int, string, string) Execute(TextReader inputReader, TextWriter outputWriter) {
-      StringBuilder redirectedErr = new();
-
+    public (int, string, string) Execute(TextReader inputReader, TextWriter outputWriter, TextWriter errorWriter) {
       if (inputReader != null) {
         Console.SetIn(inputReader);
       }
       if (outputWriter != null) {
         Console.SetOut(outputWriter);
       }
-      Console.SetError(new StringWriter(redirectedErr));
-
+      if (errorWriter != null) {
+        Console.SetError(errorWriter);
+      }
+      
       var exitCode = (int)Assembly.EntryPoint!.Invoke(null, new object[] { Arguments });
       
-      return (exitCode, "", redirectedErr.ToString());
+      return (exitCode, "", "");
     }
 
     public ILitCommand ToShellCommand(LitTestConfiguration config) {

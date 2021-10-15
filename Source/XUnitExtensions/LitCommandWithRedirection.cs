@@ -8,67 +8,65 @@ namespace XUnitExtensions {
 
     public static LitCommandWithRedirection Parse(string[] tokens, LitTestConfiguration config) {
       var commandSymbol = tokens[0];
-      var (rawArguments, inputFile, outputFile, appendOutput) = ExtractRedirections(tokens[1..]);
-      if (inputFile != null) {
-        inputFile = config.ApplySubstitutions(inputFile);
+      var argumentsList = tokens[1..].ToList();
+      string inputFile = null;
+      string outputFile = null;
+      bool appendOutput = false;
+      string errorFile = null;
+      var redirectInIndex = argumentsList.IndexOf("<");
+      if (redirectInIndex >= 0) {
+        inputFile = config.ApplySubstitutions(argumentsList[redirectInIndex + 1]);
+        argumentsList.RemoveRange(redirectInIndex, 2);
       }
-      if (outputFile != null) {
-        outputFile = config.ApplySubstitutions(outputFile);
+      var redirectOutIndex = argumentsList.IndexOf(">");
+      if (redirectOutIndex >= 0) {
+        outputFile = config.ApplySubstitutions(argumentsList[redirectOutIndex + 1]);
+        argumentsList.RemoveRange(redirectOutIndex, 2);
       }
-
-      var arguments = rawArguments.Select(config.ApplySubstitutions);
+      var redirectAppendIndex = argumentsList.IndexOf(">>");
+      if (redirectAppendIndex >= 0) {
+        outputFile = config.ApplySubstitutions(argumentsList[redirectAppendIndex + 1]);
+        appendOutput = true;
+        argumentsList.RemoveRange(redirectAppendIndex, 2);
+      }
+      var redirectErrorIndex = argumentsList.IndexOf("2>");
+      if (redirectErrorIndex >= 0) {
+        errorFile = config.ApplySubstitutions(argumentsList[redirectErrorIndex + 1]);
+        argumentsList.RemoveRange(redirectErrorIndex, 2);
+      }
+      
+      var arguments = argumentsList.Select(config.ApplySubstitutions);
       
       if (config.Commands.TryGetValue(commandSymbol, out var command)) {
-        return new LitCommandWithRedirection(command(arguments, config), inputFile, outputFile, appendOutput);
+        return new LitCommandWithRedirection(command(arguments, config), inputFile, outputFile, appendOutput, errorFile);
       }
 
       commandSymbol = config.ApplySubstitutions(commandSymbol);
 
       return new LitCommandWithRedirection(
         new ShellLitCommand(commandSymbol, arguments, config.PassthroughEnvironmentVariables), 
-        inputFile, outputFile, appendOutput);
-    }
-    
-    public static (IEnumerable<string>, string, string, bool) ExtractRedirections(IEnumerable<string> arguments) {
-      var argumentsList = arguments.ToList();
-      string inputFile = null;
-      string outputFile = null;
-      bool appendOutput = false;
-      var redirectInIndex = argumentsList.IndexOf("<");
-      if (redirectInIndex >= 0) {
-        inputFile = argumentsList[redirectInIndex + 1];
-        argumentsList.RemoveRange(redirectInIndex, 2);
-      }
-      var redirectOutIndex = argumentsList.IndexOf(">");
-      if (redirectOutIndex >= 0) {
-        outputFile = argumentsList[redirectOutIndex + 1];
-        argumentsList.RemoveRange(redirectOutIndex, 2);
-      }
-      var redirectAppendIndex = argumentsList.IndexOf(">>");
-      if (redirectAppendIndex >= 0) {
-        outputFile = argumentsList[redirectAppendIndex + 1];
-        appendOutput = true;
-        argumentsList.RemoveRange(redirectAppendIndex, 2);
-      }
-      return (argumentsList, inputFile, outputFile, appendOutput);
+        inputFile, outputFile, appendOutput, errorFile);
     }
     
     private ILitCommand command;
     private string inputFile;
     private string outputFile;
     private bool append;
+    private string errorFile;
 
-    public LitCommandWithRedirection(ILitCommand command, string inputFile, string outputFile, bool append) {
+    public LitCommandWithRedirection(ILitCommand command, string inputFile, string outputFile, bool append, string errorFile) {
       this.command = command;
       this.inputFile = inputFile;
       this.outputFile = outputFile;
       this.append = append;
+      this.errorFile = errorFile;
     }
 
-    public (int, string, string) Execute(TextReader inReader, TextWriter outWriter) {
+    public (int, string, string) Execute(TextReader inReader, TextWriter outWriter, TextWriter errWriter) {
       var inputReader = inputFile != null ? new StreamReader(inputFile) : null;
       var outputWriter = outputFile != null ? new StreamWriter(outputFile, append) : null;
-      return command.Execute(inputReader, outputWriter);
+      var errorWriter = errorFile != null ? new StreamWriter(errorFile, false) : null;
+      return command.Execute(inputReader, outputWriter, errorWriter);
     }
 
     public override string ToString() {
