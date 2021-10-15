@@ -99,7 +99,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       } else {
         notificationPublisher.SendStatusNotification(textDocument, CompilationStatus.CompilationSucceeded);
       }
-      return new DafnyDocument(textDocument, errorReporter, program, symbolTable, SerializedCounterExamples: null);
+      return new DafnyDocument(textDocument, errorReporter, program, symbolTable);
     }
 
     private static DafnyDocument CreateDocumentWithEmptySymbolTable(
@@ -113,7 +113,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         errorReporter,
         program,
         CreateEmptySymbolTable(program),
-        SerializedCounterExamples: null,
         loadCanceled
       );
     }

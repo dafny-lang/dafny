@@ -10,21 +10,22 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   /// <param name="Errors">The diagnostics to report.</param>
   /// <param name="Program">The compiled Dafny program.</param>
   /// <param name="SymbolTable">The symbol table for the symbol lookups.</param>
-  /// <param name="SerializedCounterExamples">
-  /// The serialized models of the counter examples if the verifier reported issues.
-  /// <c>null</c> if there are no verification errors or no verification was run.
-  /// </param>
   /// <param name="LoadCanceled"><c>true</c> if the document load was canceled for this document.</param>
   public record DafnyDocument(
     TextDocumentItem Text,
     DiagnosticErrorReporter Errors,
     Dafny.Program Program,
     SymbolTable SymbolTable,
-    string? SerializedCounterExamples,
     bool LoadCanceled = false
   ) {
     public DocumentUri Uri => Text.Uri;
     public int Version => Text.Version!.Value;
+
+    /// <summary>
+    /// Gets the serialized models of the counter examples if the verifier reported issues.
+    /// <c>null</c> if there are no verification errors or no verification was run.
+    /// </summary>
+    public string? SerializedCounterExamples { get; init; }
 
     /// <summary>
     /// Checks if the given document uri is pointing to this dafny document.
