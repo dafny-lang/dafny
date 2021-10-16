@@ -4,7 +4,6 @@
 // SPDX-License-Identifier: MIT
 //
 //-----------------------------------------------------------------------------
-
 namespace DafnyAssembly {
   using System; // for Func
   using System.Numerics;
@@ -84,7 +83,6 @@ namespace Dafny {
         } else {
           d.Add(t);
         }
-
       }
 
       return new Set<T>(d.ToImmutable(), containsNull);
