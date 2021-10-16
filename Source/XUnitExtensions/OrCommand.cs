@@ -1,4 +1,5 @@
 using System.IO;
+using Xunit.Abstractions;
 
 namespace XUnitExtensions {
   public class OrCommand : ILitCommand {
@@ -10,12 +11,12 @@ namespace XUnitExtensions {
       this.rhs = rhs;
     }
 
-    public (int, string, string) Execute(TextReader inputReader, TextWriter outputWriter, TextWriter errorWriter) {
-      var (exitCode, output, error) = lhs.Execute(inputReader, outputWriter, errorWriter);
+    public (int, string, string) Execute(ITestOutputHelper outputHelper, TextReader inputReader, TextWriter outputWriter, TextWriter errorWriter) {
+      var (exitCode, output, error) = lhs.Execute(outputHelper, inputReader, outputWriter, errorWriter);
       if (exitCode == 0) {
         return (exitCode, output, error);
       }
-      return rhs.Execute(inputReader, outputWriter, errorWriter);
+      return rhs.Execute(outputHelper, inputReader, outputWriter, errorWriter);
     }
 
     public override string ToString() {

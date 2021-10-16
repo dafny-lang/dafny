@@ -50,7 +50,7 @@ namespace IntegrationTests {
       Substitions = new Dictionary<string, string> {
         // TODO: speed this up by using AssertWithDiff
         { "%diff", "diff" },
-        { "%binaries", "." },
+        { "%binaryDir", "." },
         { "%z3", Path.Join("z3", "bin", "z3") },
         { "%refmanexamples", Path.Join("TestFiles", "LitTests", "LitTest", "refman", "examples") }
       },
@@ -59,15 +59,14 @@ namespace IntegrationTests {
     };
 
     static LitTests() {
-      // TODO: Just use a single DAFNY_RELEASE variable and override %binaries as well
       var dafnyReleaseDir = Environment.GetEnvironmentVariable("DAFNY_RELEASE");
       if (dafnyReleaseDir != null) {
         CONFIG.Commands["%baredafny"] = (args, config) =>
-          new ShellLitCommand(Path.Join(dafnyReleaseDir, "dafny"), args, config.PassthroughEnvironmentVariables);
+          new ShellLitCommand(config, Path.Join(dafnyReleaseDir, "dafny"), args, config.PassthroughEnvironmentVariables);
         CONFIG.Commands["%dafny"] = (args, config) =>
-          new ShellLitCommand(Path.Join(dafnyReleaseDir, "dafny"), defaultDafnyArguments.Concat(args), config.PassthroughEnvironmentVariables);
+          new ShellLitCommand(config, Path.Join(dafnyReleaseDir, "dafny"), defaultDafnyArguments.Concat(args), config.PassthroughEnvironmentVariables);
         CONFIG.Commands["%server"] = (args, config) =>
-          new ShellLitCommand(Path.Join(dafnyReleaseDir, "DafnyServer"), args, config.PassthroughEnvironmentVariables);
+          new ShellLitCommand(config, Path.Join(dafnyReleaseDir, "DafnyServer"), args, config.PassthroughEnvironmentVariables);
         CONFIG.Substitions["%z3"] = Path.Join(dafnyReleaseDir, "z3", "bin", "z3");
       }
     }

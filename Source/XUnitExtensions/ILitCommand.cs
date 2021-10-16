@@ -5,6 +5,10 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using Microsoft.Extensions.FileSystemGlobbing;
+using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
+using Xunit;
+using Xunit.Abstractions;
 
 namespace XUnitExtensions {
   public interface ILitCommand {
@@ -13,8 +17,27 @@ namespace XUnitExtensions {
     private const string LIT_COMMAND_PREFIX = "RUN:";
     private const string LIT_XFAIL = "XFAIL: *";
 
-    public (int, string, string) Execute(TextReader inputReader, TextWriter outputWriter, TextWriter errorWriter);
+    public (int, string, string) Execute(ITestOutputHelper outputHelper, TextReader inputReader, TextWriter outputWriter, TextWriter errorWriter);
 
+    public void ExecuteWithExpectation(ITestOutputHelper outputHelper, TextReader inputReader, TextWriter outputWriter, TextWriter errorWriter, bool expectFailure = false) {
+      try {
+        outputHelper.WriteLine($"Executing command: {this}");
+        var (exitCode, output, error) = Execute(outputHelper, inputReader, outputWriter, errorWriter);
+        
+        if (expectFailure) {
+          if (exitCode != 0) {
+            throw new SkipException($"Command returned non-zero exit code ({exitCode}): {this}\nOutput:\n{output}\nError:\n{error}");
+          }
+        }
+
+        if (exitCode != 0) {
+          throw new Exception($"Command returned non-zero exit code ({exitCode}): {this}\nOutput:\n{output}\nError:\n{error}");
+        }
+      } catch (Exception e) {
+        throw new Exception($"Exception thrown while executing command: {this}", e);
+      }
+    }
+    
     public static ILitCommand Parse(string fileName, string line, LitTestConfiguration config) {
       if (!line.StartsWith(COMMENT_PREFIX)) {
         return null;
@@ -53,6 +76,7 @@ namespace XUnitExtensions {
         var c = line[i];
         if (c == '\'') {
           singleQuoted = !singleQuoted;
+          argument.Append(c);
         } else if (c == '"') {
           doubleQuoted = !doubleQuoted;
         } else if (Char.IsWhiteSpace(c) && !(singleQuoted || doubleQuoted)) {
@@ -68,6 +92,26 @@ namespace XUnitExtensions {
       }
 
       return arguments.ToArray();
+    }
+    
+    protected static IEnumerable<string> ExpandGlobsAndBackticks(string chunk, LitTestConfiguration config, ITestOutputHelper outputHelper) {
+      if (chunk.Contains('*') || chunk.Contains('?')) {
+        var matcher = new Matcher();
+        matcher.AddInclude(chunk);
+        var result = matcher.Execute(new DirectoryInfoWrapper(new DirectoryInfo(".")));
+        return result.Files.Select(f => f.Path);
+      }
+
+      var firstTickIndex = chunk.IndexOf('`');
+      if (firstTickIndex >= 0) {
+        var secondTickIndex = chunk.IndexOf('`', firstTickIndex + 1);
+        var toParse = chunk[(firstTickIndex + 1)..(secondTickIndex)];
+        ILitCommand command = LitCommandWithRedirection.Parse(Tokenize(toParse), config);
+        var output = new StringBuilder();
+        command.ExecuteWithExpectation(outputHelper, null, new StringWriter(output), null);
+        return new[] { chunk[..firstTickIndex] + output + chunk[(secondTickIndex + 1)..] };
+      }
+      return new[] { chunk };
     }
   }
 }

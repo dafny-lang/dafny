@@ -4,24 +4,29 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
+using Xunit.Abstractions;
 
 namespace XUnitExtensions {
   public class ShellLitCommand : ILitCommand {
+    private LitTestConfiguration config;
     private string shellCommand;
     private string[] arguments;
     private string[] passthroughEnvironmentVariables;
 
-    public ShellLitCommand(string shellCommand, IEnumerable<string> arguments, IEnumerable<string> passthroughEnvironmentVariables) {
+    public ShellLitCommand(LitTestConfiguration config, string shellCommand, IEnumerable<string> arguments, IEnumerable<string> passthroughEnvironmentVariables) {
+      this.config = config;
       this.shellCommand = shellCommand;
       this.arguments = arguments.ToArray();
       this.passthroughEnvironmentVariables = passthroughEnvironmentVariables.ToArray();
     }
 
-    public (int, string, string) Execute(TextReader inputReader, TextWriter outputWriter, TextWriter errorWriter) {
+    public (int, string, string) Execute(ITestOutputHelper outputHelper, TextReader inputReader, TextWriter outputWriter, TextWriter errorWriter) {
       using var process = new Process();
 
+      var expandedArguments = arguments.SelectMany(arg => ILitCommand.ExpandGlobsAndBackticks(arg, config, outputHelper));
+      
       process.StartInfo.FileName = shellCommand;
-      foreach (var argument in arguments) {
+      foreach (var argument in expandedArguments) {
         process.StartInfo.Arguments += " " + argument;
       }
 

@@ -23,7 +23,7 @@ namespace XUnitExtensions {
 
     public static void Run(string filePath, LitTestConfiguration config, ITestOutputHelper outputHelper) {
       string fileName = Path.GetFileName(filePath);
-      string directory = Path.GetDirectoryName(filePath);
+      string directory = Path.GetFullPath(Path.GetDirectoryName(filePath));
       config = config.WithSubstitutions(new Dictionary<string, string> {
         { "%s", filePath },
         { "%S", directory },
@@ -49,7 +49,7 @@ namespace XUnitExtensions {
         string error;
         try {
           outputHelper.WriteLine($"Executing command: {command}");
-          (exitCode, output, error) = command.Execute(null, null, null);
+          (exitCode, output, error) = command.Execute(outputHelper, null, null, null);
         } catch (Exception e) {
           throw new Exception($"Exception thrown while executing command: {command}", e);
         }

@@ -8,7 +8,7 @@
 // RUN: %S/CompileRunQuietly >> "%t"
 
 // RUN: %dafny /compileTarget:java "%s" >> "%t"
-// RUN: java -cp %binaries/DafnyRuntime.jar:%S/CompileRunQuietly-java CompileRunQuietly >> "%t"
+// RUN: java -cp %binaryDir/DafnyRuntime.jar:%S/CompileRunQuietly-java CompileRunQuietly >> "%t"
 
 // RUN: %dafny /compileTarget:cpp "%s" >> "%t"
 // RUN: CompileRunQuietly.exe >> "%t"

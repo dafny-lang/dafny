@@ -8,7 +8,7 @@
 // RUN: %S/CompileAndThenRun >> "%t"
 
 // RUN: %dafny /compileVerbose:1 /compileTarget:java "%s" >> "%t"
-// RUN: java -cp %binaries/DafnyRuntime.jar:%S/CompileAndThenRun-java CompileAndThenRun >> "%t"
+// RUN: java -cp %binaryDir/DafnyRuntime.jar:%S/CompileAndThenRun-java CompileAndThenRun >> "%t"
 
 // RUN: %dafny /compileVerbose:1 /compileTarget:cpp "%s" >> "%t"
 // RUN: CompileAndThenRun.exe >> "%t"
