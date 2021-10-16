@@ -4,7 +4,6 @@
 // SPDX-License-Identifier: MIT
 //
 //-----------------------------------------------------------------------------
-
 namespace DafnyAssembly {
   using System; // for Func
   using System.Numerics;
@@ -84,8 +83,8 @@ namespace Dafny {
         } else {
           d.Add(t);
         }
-
       }
+
       return new Set<T>(d.ToImmutable(), containsNull);
     }
 
@@ -116,6 +115,7 @@ namespace Dafny {
         if (containsNull) {
           yield return default(T);
         }
+
         foreach (var t in this.setImpl) {
           yield return t;
         }
@@ -140,16 +140,19 @@ namespace Dafny {
           if (containsNull) {
             yield return new Set<T>(ihs, true);
           }
+
           // "add 1" to "which", as if doing a carry chain.  For every digit changed, change the membership of the corresponding element in "s".
           int i = 0;
           for (; i < n && which[i]; i++) {
             which[i] = false;
             s.Remove(elmts[i]);
           }
+
           if (i == n) {
             // we have cycled through all the subsets
             break;
           }
+
           which[i] = true;
           s.Add(elmts[i]);
         }
@@ -161,11 +164,13 @@ namespace Dafny {
       } else if (this == other) {
         return true;
       }
+
       foreach (var elmt in Elements) {
         if (!other.Contains(elmt)) {
           return false;
         }
       }
+
       return true;
     }
     public override bool Equals(object other) {
