@@ -80,13 +80,16 @@ namespace XUnitExtensions {
         } else if (c == '"') {
           doubleQuoted = !doubleQuoted;
         } else if (Char.IsWhiteSpace(c) && !(singleQuoted || doubleQuoted)) {
-          if (hasGlobCharacters) {
-            arguments.AddRange(ExpandGlobs(argument.ToString()));
-          } else {
-            arguments.Add(argument.ToString());
+          if (argument.Length != 0) {
+            if (hasGlobCharacters) {
+              arguments.AddRange(ExpandGlobs(argument.ToString()));
+            } else {
+              arguments.Add(argument.ToString());
+            }
+
+            argument.Clear();
+            hasGlobCharacters = false;
           }
-          argument.Clear();
-          hasGlobCharacters = false;
         } else {
           if (c is '*' or '?' && !singleQuoted) {
             hasGlobCharacters = true;

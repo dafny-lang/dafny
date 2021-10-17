@@ -7,6 +7,8 @@ using Xunit.Abstractions;
 namespace XUnitExtensions {
   public class TestCollectionShardFilter : ITestCollectionOrderer {
     public IEnumerable<ITestCollection> OrderTestCollections(IEnumerable<ITestCollection> testCollections) {
+      var sorted = testCollections.OrderBy(c => c.DisplayName);
+      
       // Select the requested fraction of the test collections if using the XUNIT_SHARD[_COUNT] environment variables.
       var shardEnvVar = Environment.GetEnvironmentVariable("XUNIT_SHARD");
       var numShardsEnvVar = Environment.GetEnvironmentVariable("XUNIT_SHARD_COUNT");
@@ -27,13 +29,15 @@ namespace XUnitExtensions {
             "XUNIT_SHARD must be at least 1 and at most XUNIT_SHARD_COUNT.");
         }
 
-        var testCaseList = testCollections.ToList();
+        // We need the total number of collections to select the shard anyway,
+        // so there's no point in trying to stick to IEnumerable operations.
+        var testCaseList = sorted.ToList();
         var shardStart = (shard - 1) * testCaseList.Count / numShards;
         var shardEnd = shard * testCaseList.Count / numShards;
         return testCaseList.GetRange(shardStart, shardEnd - shardStart);
       }
 
-      return testCollections;
+      return sorted;
     }
   }
 }
