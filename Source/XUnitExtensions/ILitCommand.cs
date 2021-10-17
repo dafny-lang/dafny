@@ -19,25 +19,6 @@ namespace XUnitExtensions {
 
     public (int, string, string) Execute(ITestOutputHelper outputHelper, TextReader inputReader, TextWriter outputWriter, TextWriter errorWriter);
 
-    public void ExecuteWithExpectation(ITestOutputHelper outputHelper, TextReader inputReader, TextWriter outputWriter, TextWriter errorWriter, bool expectFailure = false) {
-      try {
-        outputHelper.WriteLine($"Executing command: {this}");
-        var (exitCode, output, error) = Execute(outputHelper, inputReader, outputWriter, errorWriter);
-        
-        if (expectFailure) {
-          if (exitCode != 0) {
-            throw new SkipException($"Command returned non-zero exit code ({exitCode}): {this}\nOutput:\n{output}\nError:\n{error}");
-          }
-        }
-
-        if (exitCode != 0) {
-          throw new Exception($"Command returned non-zero exit code ({exitCode}): {this}\nOutput:\n{output}\nError:\n{error}");
-        }
-      } catch (Exception e) {
-        throw new Exception($"Exception thrown while executing command: {this}", e);
-      }
-    }
-    
     public static ILitCommand Parse(string fileName, string line, LitTestConfiguration config) {
       if (!line.StartsWith(COMMENT_PREFIX)) {
         return null;

@@ -44,7 +44,25 @@ namespace XUnitExtensions {
       Directory.CreateDirectory(Path.Join(Path.GetDirectoryName(filePath), "Output"));
 
       foreach (var command in commands) {
-        command.ExecuteWithExpectation(outputHelper, null, null, null, expectFailure);
+        int exitCode;
+        string output;
+        string error;
+        try {
+          outputHelper.WriteLine($"Executing command: {command}");
+          (exitCode, output, error) = command.Execute(outputHelper, null, null, null);
+        } catch (Exception e) {
+          throw new Exception($"Exception thrown while executing command: {command}", e);
+        }
+
+        if (expectFailure) {
+          if (exitCode != 0) {
+            throw new SkipException($"Command returned non-zero exit code ({exitCode}): {command}\nOutput:\n{output}\nError:\n{error}");
+          }
+        }
+
+        if (exitCode != 0) {
+          throw new Exception($"Command returned non-zero exit code ({exitCode}): {command}\nOutput:\n{output}\nError:\n{error}");
+        }
       }
 
       if (expectFailure) {
