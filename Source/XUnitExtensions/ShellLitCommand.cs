@@ -22,12 +22,10 @@ namespace XUnitExtensions {
 
     public (int, string, string) Execute(ITestOutputHelper outputHelper, TextReader inputReader, TextWriter outputWriter, TextWriter errorWriter) {
       using var process = new Process();
-
-      var expandedArguments = arguments.SelectMany(arg => ILitCommand.ExpandGlobsAndBackticks(arg, config, outputHelper));
       
       process.StartInfo.FileName = shellCommand;
-      foreach (var argument in expandedArguments) {
-        process.StartInfo.Arguments += " " + argument;
+      foreach (var argument in arguments) {
+        process.StartInfo.ArgumentList.Add(argument);
       }
 
       // We avoid setting the current directory so that we maintain parity with

@@ -72,46 +72,45 @@ namespace XUnitExtensions {
       var argument = new StringBuilder();
       var singleQuoted = false;
       var doubleQuoted = false;
+      var hasGlobCharacters = false;
       for (int i = 0; i < line.Length; i++) {
         var c = line[i];
         if (c == '\'') {
           singleQuoted = !singleQuoted;
-          argument.Append(c);
         } else if (c == '"') {
           doubleQuoted = !doubleQuoted;
         } else if (Char.IsWhiteSpace(c) && !(singleQuoted || doubleQuoted)) {
-          arguments.Add(argument.ToString());
+          if (hasGlobCharacters) {
+            arguments.AddRange(ExpandGlobs(argument.ToString()));
+          } else {
+            arguments.Add(argument.ToString());
+          }
           argument.Clear();
+          hasGlobCharacters = false;
         } else {
+          if (c is '*' or '?' && !singleQuoted) {
+            hasGlobCharacters = true;
+          }
           argument.Append(c);
         }
       }
 
       if (argument.Length != 0) {
-        arguments.Add(argument.ToString());
+        if (hasGlobCharacters) {
+          arguments.AddRange(ExpandGlobs(argument.ToString()));
+        } else {
+          arguments.Add(argument.ToString());
+        }
       }
 
       return arguments.ToArray();
     }
     
-    protected static IEnumerable<string> ExpandGlobsAndBackticks(string chunk, LitTestConfiguration config, ITestOutputHelper outputHelper) {
-      if (chunk.Contains('*') || chunk.Contains('?')) {
-        var matcher = new Matcher();
-        matcher.AddInclude(chunk);
-        var result = matcher.Execute(new DirectoryInfoWrapper(new DirectoryInfo(".")));
-        return result.Files.Select(f => f.Path);
-      }
-
-      var firstTickIndex = chunk.IndexOf('`');
-      if (firstTickIndex >= 0) {
-        var secondTickIndex = chunk.IndexOf('`', firstTickIndex + 1);
-        var toParse = chunk[(firstTickIndex + 1)..(secondTickIndex)];
-        ILitCommand command = LitCommandWithRedirection.Parse(Tokenize(toParse), config);
-        var output = new StringBuilder();
-        command.ExecuteWithExpectation(outputHelper, null, new StringWriter(output), null);
-        return new[] { chunk[..firstTickIndex] + output + chunk[(secondTickIndex + 1)..] };
-      }
-      return new[] { chunk };
+    protected static IEnumerable<string> ExpandGlobs(string chunk ) {
+      var matcher = new Matcher();
+      matcher.AddInclude(chunk);
+      var result = matcher.Execute(new DirectoryInfoWrapper(new DirectoryInfo(".")));
+      return result.Files.Select(f => f.Path);
     }
   }
 }

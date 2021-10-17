@@ -6,8 +6,8 @@
 // RUN: %dafny /compileTarget:java /out:%t-tests.dfy %t-tests.dfy
 
 // Adding reflection code that allows running the tests:
-// RUN: perl -pe 's/import M_Compile.*;/`cat %S/import.txt`/ge' -i %t-tests-java/TestGenerationUnitTests_Compile/__default.java
-// RUN: perl -pe 's/public class __default \{/`cat %S/reflectionCode.txt`/ge' -i %t-tests-java/TestGenerationUnitTests_Compile/__default.java
+// RUN: perl -pe 's|import M_Compile.*;|`cat %S/import.txt`|ge' -i %t-tests-java/TestGenerationUnitTests_Compile/__default.java
+// RUN: perl -pe 's|public class __default \{|`cat %S/reflectionCode.txt`|ge' -i %t-tests-java/TestGenerationUnitTests_Compile/__default.java
 
 // Compiling to bytecode and running the tests
 // RUN: javac -cp %t-tests-java:%binaryDir/DafnyRuntime.jar %t-tests-java/TestGenerationUnitTests_Compile/__default.java
