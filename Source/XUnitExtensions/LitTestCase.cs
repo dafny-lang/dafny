@@ -61,7 +61,6 @@ namespace XUnitExtensions {
         try {
           outputHelper.WriteLine($"Executing command: {command}");
           (exitCode, output, error) = command.Execute(outputHelper, null, null, null);
-          outputHelper.WriteLine($"Exit code: {exitCode}\n{output}\nError:\n{error}");
         } catch (Exception e) {
           throw new Exception($"Exception thrown while executing command: {command}", e);
         }
