@@ -30,11 +30,15 @@ namespace XUnitExtensions {
 
     public static void Run(string filePath, LitTestConfiguration config, ITestOutputHelper outputHelper) {
       string fileName = Path.GetFileName(filePath);
-      string directory = Path.GetFullPath(Path.GetDirectoryName(filePath));
+      string? directory = Path.GetDirectoryName(filePath);
+      if (directory == null) {
+        throw new ArgumentException("Couldn't get directory name for path: {}");
+      }
+      string fullDirectoryPath = Path.GetFullPath(directory);
       config = config.WithSubstitutions(new Dictionary<string, string> {
         { "%s", filePath },
-        { "%S", directory },
-        { "%t", Path.Join(directory, "Output", $"{fileName}.tmp")}
+        { "%S", fullDirectoryPath },
+        { "%t", Path.Join(fullDirectoryPath, "Output", $"{fileName}.tmp")}
       });
 
       var testCase = Read(filePath, config);
@@ -57,6 +61,7 @@ namespace XUnitExtensions {
         try {
           outputHelper.WriteLine($"Executing command: {command}");
           (exitCode, output, error) = command.Execute(outputHelper, null, null, null);
+          outputHelper.WriteLine($"Exit code: {exitCode}\n{output}\nError:\n{error}");
         } catch (Exception e) {
           throw new Exception($"Exception thrown while executing command: {command}", e);
         }

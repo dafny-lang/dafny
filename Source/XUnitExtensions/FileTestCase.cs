@@ -15,8 +15,8 @@ namespace XUnitExtensions {
 
     protected XunitTestCase innerTestCase;
 
-    public string DisplayName { get; protected set; }
-    public string SkipReason { get; protected set; }
+    public string? DisplayName { get; protected set; }
+    public string? SkipReason { get; protected set; }
 
     public FileTestCase(IMessageSink diagnosticMessageSink, ITestMethod testMethod, IFileTheoryRowData data) {
       var collection = new TestCollection(testMethod.TestClass.TestCollection.TestAssembly,

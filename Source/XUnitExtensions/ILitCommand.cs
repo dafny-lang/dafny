@@ -18,9 +18,9 @@ namespace XUnitExtensions {
     private const string LIT_UNSUPPORTED = "UNSUPPORTED";
     private const string LIT_XFAIL_ALL = "XFAIL: *";
 
-    public (int, string, string) Execute(ITestOutputHelper outputHelper, TextReader inputReader, TextWriter outputWriter, TextWriter errorWriter);
+    public (int, string, string) Execute(ITestOutputHelper outputHelper, TextReader? inputReader, TextWriter? outputWriter, TextWriter? errorWriter);
 
-    public static ILitCommand Parse(string fileName, string line, LitTestConfiguration config) {
+    public static ILitCommand? Parse(string fileName, string line, LitTestConfiguration config) {
       if (!line.StartsWith(COMMENT_PREFIX)) {
         return null;
       }

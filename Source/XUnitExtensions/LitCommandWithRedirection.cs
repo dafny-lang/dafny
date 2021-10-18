@@ -13,10 +13,10 @@ namespace XUnitExtensions {
     public static LitCommandWithRedirection Parse(string[] tokens, LitTestConfiguration config) {
       var commandSymbol = tokens[0];
       var argumentsList = tokens[1..].ToList();
-      string inputFile = null;
-      string outputFile = null;
-      bool appendOutput = false;
-      string errorFile = null;
+      string? inputFile = null;
+      string? outputFile = null;
+      var appendOutput = false;
+      string? errorFile = null;
       var redirectInIndex = argumentsList.IndexOf("<");
       if (redirectInIndex >= 0) {
         inputFile = config.ApplySubstitutions(argumentsList[redirectInIndex + 1]);
@@ -52,13 +52,13 @@ namespace XUnitExtensions {
         inputFile, outputFile, appendOutput, errorFile);
     }
 
-    private ILitCommand command;
-    private string inputFile;
-    private string outputFile;
-    private bool append;
-    private string errorFile;
+    private readonly ILitCommand command;
+    private readonly string? inputFile;
+    private readonly string? outputFile;
+    private readonly bool append;
+    private readonly string? errorFile;
 
-    public LitCommandWithRedirection(ILitCommand command, string inputFile, string outputFile, bool append, string errorFile) {
+    public LitCommandWithRedirection(ILitCommand command, string? inputFile, string? outputFile, bool append, string? errorFile) {
       this.command = command;
       this.inputFile = inputFile;
       this.outputFile = outputFile;
@@ -66,7 +66,7 @@ namespace XUnitExtensions {
       this.errorFile = errorFile;
     }
 
-    public (int, string, string) Execute(ITestOutputHelper outputHelper, TextReader inReader, TextWriter outWriter, TextWriter errWriter) {
+    public (int, string, string) Execute(ITestOutputHelper outputHelper, TextReader? inReader, TextWriter? outWriter, TextWriter? errWriter) {
       var inputReader = inputFile != null ? new StreamReader(inputFile) : null;
       var outputWriter = outputFile != null ? new StreamWriter(outputFile, append) : null;
       var errorWriter = errorFile != null ? new StreamWriter(errorFile, false) : null;

@@ -4,7 +4,7 @@ using Xunit.Abstractions;
 namespace XUnitExtensions {
   public class FileTheoryDataRow : IXunitSerializable, IFileTheoryRowData {
 
-    object?[] data;
+    private object?[] data;
 
     public FileTheoryDataRow() {
 
