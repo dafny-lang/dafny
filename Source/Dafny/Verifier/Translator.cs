@@ -6212,7 +6212,7 @@ namespace Microsoft.Dafny {
       } else if (decl.WitnessKind == SubsetTypeDecl.WKind.CompiledZero) {
         var witness = Zero(decl.tok, decl.Var.Type);
         var errMsg = "cannot find witness that shows type is inhabited";
-        var hintMsg = "; try giving a hint through a 'witness' or 'ghost witness' clause, or use 'ghost *' to treat as a possibly empty type";
+        var hintMsg = "; try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type";
         if (witness == null) {
           witnessCheckBuilder.Add(Assert(decl.tok, Bpl.Expr.False, $"{errMsg}{hintMsg}"));
         } else {

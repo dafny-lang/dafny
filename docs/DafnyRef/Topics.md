@@ -520,10 +520,8 @@ and HOL [@Krauss:PhD].
 ## 23.5. Functions in Dafny
 
 In this section, I explain with examples the support in
-Dafny[^fn-on-da-web] for well-founded functions, extreme predicates,
+Dafny for well-founded functions, extreme predicates,
 and proofs regarding these.
-
-[^fn-on-da-web]: Dafny is open source at [dafny.codeplex.com](http://dafny.codeplex.com) and can also be used online at [rise4fun.com/dafny](http://rise4fun.com/dafny).
 
 ### 23.5.1. Well-founded Functions in Dafny
 
