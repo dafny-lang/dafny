@@ -29,12 +29,7 @@ namespace XUnitExtensions {
             "XUNIT_SHARD must be at least 1 and at most XUNIT_SHARD_COUNT.");
         }
 
-        // We need the total number of collections to select the shard anyway,
-        // so there's no point in trying to stick to IEnumerable operations.
-        var testCaseList = sorted.ToList();
-        var shardStart = (shard - 1) * testCaseList.Count / numShards;
-        var shardEnd = shard * testCaseList.Count / numShards;
-        return testCaseList.GetRange(shardStart, shardEnd - shardStart);
+        return sorted.Where((_, index) => index % numShards == shard);
       }
 
       return sorted;
