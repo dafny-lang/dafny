@@ -12,13 +12,8 @@ jobs:
     steps:
         # You may pin to the exact commit or the version.
         # uses: beemojs/conventional-pr-action@3906bbefe6d208fd42d77ffbb65f4e5468209889
-        uses: beemojs/conventional-pr-action@v2.1.2
-        with:
-          # Auto-install dependencies and the conventional changelog config package.
-          auto-install: true # default
-          # Name of conventional changelog config preset.
-          config-preset: beemo # default
-          # Version of conventional changelog config package to install.
-          config-version: latest # default
-          # Squash merges require multiple commits for the PR title to be preserved.
-          require-multiple-commits: false # default
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+      - uses: beemojs/conventional-pr-action@v2.1.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
