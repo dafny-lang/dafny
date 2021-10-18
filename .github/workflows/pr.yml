@@ -1,6 +1,11 @@
 name: PR
 
-on: pull_request
+on:
+  pull_request:
+    types:
+      - opened
+      - edited
+      - synchronize
 
 jobs:
   conventional:
@@ -10,10 +15,8 @@ jobs:
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-        # You may pin to the exact commit or the version.
-        # uses: beemojs/conventional-pr-action@3906bbefe6d208fd42d77ffbb65f4e5468209889
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
-      - uses: beemojs/conventional-pr-action@v2.1.2
+      # Please look up the latest version from
+      # https://github.com/amannn/action-semantic-pull-request/releases
+      - uses: amannn/action-semantic-pull-request@v3.4.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
