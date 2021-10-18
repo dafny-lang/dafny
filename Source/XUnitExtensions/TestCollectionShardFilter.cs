@@ -29,7 +29,7 @@ namespace XUnitExtensions {
             "XUNIT_SHARD must be at least 1 and at most XUNIT_SHARD_COUNT.");
         }
 
-        return sorted.Where((_, index) => index % numShards == shard);
+        return sorted.Where((_, index) => index % numShards == shard - 1);
       }
 
       return sorted;
