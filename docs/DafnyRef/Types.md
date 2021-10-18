@@ -1810,7 +1810,7 @@ be applied to them.
 For an example, see the `FibProperty` lemma in
 [Section 23.5.2](#sec-proofs-in-dafny).
 
-See [the Dafny Lemmas tutorial](http://rise4fun.com/Dafny/tutorial/Lemmas)
+See [the Dafny Lemmas tutorial](../OnlineTutorial/Lemmas)
 for more examples and hints for using lemmas.
 
 ### 13.3.4. Two-state lemmas and functions {#sec-two-state}
