@@ -1,5 +1,5 @@
 // RUN: %dafny /out:Output/DafnyMain.cs TestAttribute.dfy /compile:0 /spillTargetCode:3 /noVerify
-// RUN: dotnet test -v:q -noLogo %S 2> %t.raw || true
+// RUN: dotnet test -v:q -noLogo %S 2> %t.raw
 // Remove the timestamp prefixes on the expected errors
 // RUN: sed 's/[^]]*\]//' "%t".raw > "%t"
 // RUN: %diff "%s.expect" "%t"
