@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using Microsoft.Dafny;
 using Xunit;
 using Xunit.Abstractions;
@@ -68,6 +69,16 @@ namespace IntegrationTests {
         CONFIG.Commands["%server"] = (args, config) =>
           new ShellLitCommand(config, Path.Join(dafnyReleaseDir, "DafnyServer"), args, config.PassthroughEnvironmentVariables);
         CONFIG.Substitions["%z3"] = Path.Join(dafnyReleaseDir, "z3", "bin", "z3");
+      }
+      
+      if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
+        CONFIG.Features = new[] { "ubuntu", "posix" };
+      } else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+        CONFIG.Features = new[] { "windows" };
+      } else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
+        CONFIG.Features = new[] { "macosx", "posix" };
+      } else {
+        throw new Exception($"Unsupported OS: {RuntimeInformation.OSDescription}");
       }
     }
 

@@ -13,6 +13,8 @@ namespace XUnitExtensions {
     public Dictionary<string, Func<IEnumerable<string>, LitTestConfiguration, ILitCommand>> Commands { get; set; }
 
     public IEnumerable<string> PassthroughEnvironmentVariables { get; set; }
+    
+    public string[] Features { get; set; }
 
     public string ApplySubstitutions(string s) {
       foreach (var (key, value) in Substitions) {
@@ -25,7 +27,8 @@ namespace XUnitExtensions {
       return new LitTestConfiguration {
         Substitions = Substitions.Concat(more).ToDictionary(pair => pair.Key, pair => pair.Value),
         Commands = Commands,
-        PassthroughEnvironmentVariables = PassthroughEnvironmentVariables
+        PassthroughEnvironmentVariables = PassthroughEnvironmentVariables,
+        Features = Features
       };
     }
   }

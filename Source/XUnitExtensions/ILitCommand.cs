@@ -15,7 +15,8 @@ namespace XUnitExtensions {
 
     private const string COMMENT_PREFIX = "//";
     private const string LIT_COMMAND_PREFIX = "RUN:";
-    private const string LIT_XFAIL = "XFAIL: *";
+    private const string LIT_UNSUPPORTED = "UNSUPPORTED";
+    private const string LIT_XFAIL_ALL = "XFAIL: *";
 
     public (int, string, string) Execute(ITestOutputHelper outputHelper, TextReader inputReader, TextWriter outputWriter, TextWriter errorWriter);
 
@@ -25,8 +26,11 @@ namespace XUnitExtensions {
       }
       line = line[COMMENT_PREFIX.Length..].Trim();
 
-      if (line.Equals(LIT_XFAIL)) {
+      if (line.Equals(LIT_XFAIL_ALL)) {
         return new XFailCommand();
+      }
+      if (line.StartsWith(LIT_UNSUPPORTED)) {
+        return UnsupportedCommand.Parse(line[LIT_UNSUPPORTED.Length..].Trim());
       }
       if (!line.StartsWith(LIT_COMMAND_PREFIX)) {
         return null;

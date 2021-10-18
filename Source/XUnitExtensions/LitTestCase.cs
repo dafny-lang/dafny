@@ -18,6 +18,13 @@ namespace XUnitExtensions {
         .Select(line => ILitCommand.Parse(filePath, line, config))
         .Where(c => c != null);
       var xfail = commands.Any(c => c is XFailCommand);
+      foreach (var unsupported in commands.OfType<UnsupportedCommand>()) {
+        foreach (var feature in config.Features) {
+          if (unsupported.Features.Contains(feature)) {
+            throw new SkipException($"Test case not supported: {feature}");
+          }
+        }
+      }
       return new LitTestCase(filePath, commands, xfail);
     }
 
