@@ -76,7 +76,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       try {
         return await LoadAndVerifyAsync(textDocument, VerifyOnOpen, cancellationToken);
       } catch (OperationCanceledException) {
-        // We do not allow cancelling the load of the placeholder document. Otherwise, other components
+        // We do not allow canceling the load of the placeholder document. Otherwise, other components
         // start to have to check for nullability in later stages such as change request processors.
         return documentLoader.CreateUnloaded(textDocument, CancellationToken.None);
       }

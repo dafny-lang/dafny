@@ -217,8 +217,8 @@ method Abs(x: int) returns (y: int)
         { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.OnSave) }
       });
 
-      // We load two documents. If verification is not executed, we should receive each compilations status twice without
-      // any verification status inbetween.
+      // We load two documents. If no verification is executed, we should receive each
+      // compilation status twice without any verification status inbetween.
       var documentItem1 = CreateTestDocument(source, "test_1.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem1, CancellationToken);
       var documentItem2 = CreateTestDocument(source, "test_2dfy");
@@ -276,8 +276,8 @@ method Abs(x: int) returns (y: int)
         { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.Never) }
       });
 
-      // We load and save two documents. If verification is not executed, we should receive each compilations status twice without
-      // any verification status inbetween.
+      // We load two and save two documents. If no verification is executed, we should receive each
+      // compilation status twice without any verification status inbetween.
       var documentItem1 = CreateTestDocument(source, "test_1.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem1, CancellationToken);
       await client.SaveDocumentAndWaitAsync(documentItem1, CancellationToken);
