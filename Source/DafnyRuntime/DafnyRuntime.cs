@@ -4,9 +4,13 @@
 // SPDX-License-Identifier: MIT
 //
 //-----------------------------------------------------------------------------
+
+#if ISDAFNYRUNTIMELIB
+using System; // for Func
+using System.Numerics;
+#endif
+
 namespace DafnyAssembly {
-  using System; // for Func
-  using System.Numerics;
   [AttributeUsage(AttributeTargets.Assembly)]
   public class DafnySourceAttribute : Attribute {
     public readonly string dafnySourceText;
@@ -15,8 +19,6 @@ namespace DafnyAssembly {
 }
 
 namespace Dafny {
-  using System; // for Func
-  using System.Numerics;
   using System.Collections.Generic;
   using System.Collections.Immutable;
   using System.Linq;
