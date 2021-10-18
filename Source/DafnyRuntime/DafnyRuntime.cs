@@ -4,19 +4,24 @@
 // SPDX-License-Identifier: MIT
 //
 //-----------------------------------------------------------------------------
+#if ISDAFNYRUNTIMELIB
+using System; // for Func
+using System.Numerics;
+#endif
+
 namespace DafnyAssembly {
-  using System; // for Func
-  using System.Numerics;
+
   [AttributeUsage(AttributeTargets.Assembly)]
   public class DafnySourceAttribute : Attribute {
     public readonly string dafnySourceText;
-    public DafnySourceAttribute(string txt) { dafnySourceText = txt; }
+
+    public DafnySourceAttribute(string txt) {
+      dafnySourceText = txt;
+    }
   }
 }
 
 namespace Dafny {
-  using System; // for Func
-  using System.Numerics;
   using System.Collections.Generic;
   using System.Collections.Immutable;
   using System.Linq;
@@ -34,6 +39,7 @@ namespace Dafny {
   public class Set<T> : ISet<T> {
     readonly ImmutableHashSet<T> setImpl;
     readonly bool containsNull;
+
     Set(ImmutableHashSet<T> d, bool containsNull) {
       this.setImpl = d;
       this.containsNull = containsNull;
@@ -42,6 +48,7 @@ namespace Dafny {
     public static readonly ISet<T> Empty = new Set<T>(ImmutableHashSet<T>.Empty, false);
 
     private static readonly TypeDescriptor<ISet<T>> _TYPE = new Dafny.TypeDescriptor<ISet<T>>(Empty);
+
     public static TypeDescriptor<ISet<T>> _TypeDescriptor() {
       return _TYPE;
     }
@@ -234,47 +241,60 @@ namespace Dafny {
 
       return s + "}";
     }
+
     public static bool IsProperSubsetOf(ISet<T> th, ISet<T> other) {
       return th.Count < other.Count && IsSubsetOf(th, other);
     }
+
     public static bool IsSubsetOf(ISet<T> th, ISet<T> other) {
       if (other.Count < th.Count) {
         return false;
       }
+
       foreach (T t in th.Elements) {
         if (!other.Contains(t)) {
           return false;
         }
       }
+
       return true;
     }
+
     public static bool IsDisjointFrom(ISet<T> th, ISet<T> other) {
       ISet<T> a, b;
       if (th.Count < other.Count) {
-        a = th; b = other;
+        a = th;
+        b = other;
       } else {
-        a = other; b = th;
+        a = other;
+        b = th;
       }
+
       foreach (T t in a.Elements) {
         if (b.Contains(t)) {
           return false;
         }
       }
+
       return true;
     }
+
     public bool Contains<G>(G t) {
       return t == null ? containsNull : t is T && this.setImpl.Contains((T)(object)t);
     }
+
     public static ISet<T> Union(ISet<T> th, ISet<T> other) {
       var a = FromISet(th);
       var b = FromISet(other);
       return new Set<T>(a.setImpl.Union(b.setImpl), a.containsNull || b.containsNull);
     }
+
     public static ISet<T> Intersect(ISet<T> th, ISet<T> other) {
       var a = FromISet(th);
       var b = FromISet(other);
       return new Set<T>(a.setImpl.Intersect(b.setImpl), a.containsNull && b.containsNull);
     }
+
     public static ISet<T> Difference(ISet<T> th, ISet<T> other) {
       var a = FromISet(th);
       var b = FromISet(other);
@@ -297,14 +317,18 @@ namespace Dafny {
 
   public class MultiSet<T> : IMultiSet<T> {
     readonly ImmutableDictionary<T, BigInteger> dict;
-    readonly BigInteger occurrencesOfNull;  // stupidly, a Dictionary in .NET cannot use "null" as a key
+    readonly BigInteger occurrencesOfNull; // stupidly, a Dictionary in .NET cannot use "null" as a key
+
     MultiSet(ImmutableDictionary<T, BigInteger>.Builder d, BigInteger occurrencesOfNull) {
       dict = d.ToImmutable();
       this.occurrencesOfNull = occurrencesOfNull;
     }
-    public static readonly MultiSet<T> Empty = new MultiSet<T>(ImmutableDictionary<T, BigInteger>.Empty.ToBuilder(), BigInteger.Zero);
+
+    public static readonly MultiSet<T> Empty =
+      new MultiSet<T>(ImmutableDictionary<T, BigInteger>.Empty.ToBuilder(), BigInteger.Zero);
 
     private static readonly TypeDescriptor<IMultiSet<T>> _TYPE = new Dafny.TypeDescriptor<IMultiSet<T>>(Empty);
+
     public static TypeDescriptor<IMultiSet<T>> _TypeDescriptor() {
       return _TYPE;
     }
@@ -312,6 +336,7 @@ namespace Dafny {
     public static MultiSet<T> FromIMultiSet(IMultiSet<T> s) {
       return s as MultiSet<T> ?? FromCollection(s.Elements);
     }
+
     public static MultiSet<T> FromElements(params T[] values) {
       var d = ImmutableDictionary<T, BigInteger>.Empty.ToBuilder();
       var occurrencesOfNull = BigInteger.Zero;
@@ -323,9 +348,11 @@ namespace Dafny {
           if (!d.TryGetValue(t, out i)) {
             i = BigInteger.Zero;
           }
+
           d[t] = i + 1;
         }
       }
+
       return new MultiSet<T>(d, occurrencesOfNull);
     }
 
@@ -370,6 +397,7 @@ namespace Dafny {
       return new MultiSet<T>(d,
         occurrencesOfNull);
     }
+
     public static MultiSet<T> FromSet(ISet<T> values) {
       var d = ImmutableDictionary<T, BigInteger>.Empty.ToBuilder();
       var containsNull = false;
@@ -380,8 +408,10 @@ namespace Dafny {
           d[t] = BigInteger.One;
         }
       }
+
       return new MultiSet<T>(d, containsNull ? BigInteger.One : BigInteger.Zero);
     }
+
     public IMultiSet<U> DowncastClone<U>(Func<T, U> converter) {
       if (this is IMultiSet<U> th) {
         return th;
@@ -391,6 +421,7 @@ namespace Dafny {
           var k = converter(item.Key);
           d.Add(k, item.Value);
         }
+
         return new MultiSet<U>(d, this.occurrencesOfNull);
       }
     }
@@ -398,10 +429,12 @@ namespace Dafny {
     public bool Equals(IMultiSet<T> other) {
       return IsSubsetOf(this, other) && IsSubsetOf(other, this);
     }
+
     public override bool Equals(object other) {
       if (other is IMultiSet<T>) {
         return Equals((IMultiSet<T>)other);
       }
+
       var th = this as IMultiSet<object>;
       var oth = other as IMultiSet<object>;
       if (th != null && oth != null) {
@@ -428,13 +461,16 @@ namespace Dafny {
         key = (key << 3) | (key >> 29) ^ occurrencesOfNull.GetHashCode();
         hashCode = hashCode * (key + 3);
       }
+
       foreach (var kv in dict) {
         var key = Dafny.Helpers.GetHashCode(kv.Key);
         key = (key << 3) | (key >> 29) ^ kv.Value.GetHashCode();
         hashCode = hashCode * (key + 3);
       }
+
       return hashCode;
     }
+
     public override string ToString() {
       var s = "multiset{";
       var sep = "";
@@ -442,6 +478,7 @@ namespace Dafny {
         s += sep + Dafny.Helpers.ToString(default(T));
         sep = ", ";
       }
+
       foreach (var kv in dict) {
         var t = Dafny.Helpers.ToString(kv.Key);
         for (var i = BigInteger.Zero; i < kv.Value; i++) {
@@ -449,17 +486,21 @@ namespace Dafny {
           sep = ", ";
         }
       }
+
       return s + "}";
     }
+
     public static bool IsProperSubsetOf(IMultiSet<T> th, IMultiSet<T> other) {
       return th.Count < other.Count && IsSubsetOf(th, other);
     }
+
     public static bool IsSubsetOf(IMultiSet<T> th, IMultiSet<T> other) {
       var a = FromIMultiSet(th);
       var b = FromIMultiSet(other);
       if (b.occurrencesOfNull < a.occurrencesOfNull) {
         return false;
       }
+
       foreach (T t in a.dict.Keys) {
         if (b.dict.ContainsKey(t)) {
           if (b.dict[t] < a.dict[t]) {
@@ -471,24 +512,29 @@ namespace Dafny {
           }
         }
       }
+
       return true;
     }
+
     public static bool IsDisjointFrom(IMultiSet<T> th, IMultiSet<T> other) {
       foreach (T t in th.UniqueElements) {
         if (other.Contains(t)) {
           return false;
         }
       }
+
       return true;
     }
 
     public bool Contains<G>(G t) {
       return Select(t) != 0;
     }
+
     public BigInteger Select<G>(G t) {
       if (t == null) {
         return occurrencesOfNull;
       }
+
       BigInteger m;
       if (t is T && dict.TryGetValue((T)(object)t, out m)) {
         return m;
@@ -496,6 +542,7 @@ namespace Dafny {
         return BigInteger.Zero;
       }
     }
+
     public IMultiSet<T> Update<G>(G t, BigInteger i) {
       if (Select(t) == i) {
         return this;
@@ -508,12 +555,14 @@ namespace Dafny {
         return new MultiSet<T>(r, occurrencesOfNull);
       }
     }
+
     public static IMultiSet<T> Union(IMultiSet<T> th, IMultiSet<T> other) {
       if (th.IsEmpty) {
         return other;
       } else if (other.IsEmpty) {
         return th;
       }
+
       var a = FromIMultiSet(th);
       var b = FromIMultiSet(other);
       var r = ImmutableDictionary<T, BigInteger>.Empty.ToBuilder();
@@ -522,23 +571,29 @@ namespace Dafny {
         if (!r.TryGetValue(t, out i)) {
           i = BigInteger.Zero;
         }
+
         r[t] = i + a.dict[t];
       }
+
       foreach (T t in b.dict.Keys) {
         BigInteger i;
         if (!r.TryGetValue(t, out i)) {
           i = BigInteger.Zero;
         }
+
         r[t] = i + b.dict[t];
       }
+
       return new MultiSet<T>(r, a.occurrencesOfNull + b.occurrencesOfNull);
     }
+
     public static IMultiSet<T> Intersect(IMultiSet<T> th, IMultiSet<T> other) {
       if (th.IsEmpty) {
         return th;
       } else if (other.IsEmpty) {
         return other;
       }
+
       var a = FromIMultiSet(th);
       var b = FromIMultiSet(other);
       var r = ImmutableDictionary<T, BigInteger>.Empty.ToBuilder();
@@ -547,12 +602,16 @@ namespace Dafny {
           r.Add(t, a.dict[t] < b.dict[t] ? a.dict[t] : b.dict[t]);
         }
       }
+
       return new MultiSet<T>(r, a.occurrencesOfNull < b.occurrencesOfNull ? a.occurrencesOfNull : b.occurrencesOfNull);
     }
-    public static IMultiSet<T> Difference(IMultiSet<T> th, IMultiSet<T> other) { // \result == this - other
+
+    public static IMultiSet<T> Difference(IMultiSet<T> th, IMultiSet<T> other) {
+      // \result == this - other
       if (other.IsEmpty) {
         return th;
       }
+
       var a = FromIMultiSet(th);
       var b = FromIMultiSet(other);
       var r = ImmutableDictionary<T, BigInteger>.Empty.ToBuilder();
@@ -563,23 +622,30 @@ namespace Dafny {
           r.Add(t, a.dict[t] - b.dict[t]);
         }
       }
-      return new MultiSet<T>(r, b.occurrencesOfNull < a.occurrencesOfNull ? a.occurrencesOfNull - b.occurrencesOfNull : BigInteger.Zero);
+
+      return new MultiSet<T>(r,
+        b.occurrencesOfNull < a.occurrencesOfNull ? a.occurrencesOfNull - b.occurrencesOfNull : BigInteger.Zero);
     }
 
-    public bool IsEmpty { get { return occurrencesOfNull == 0 && dict.IsEmpty; } }
+    public bool IsEmpty {
+      get { return occurrencesOfNull == 0 && dict.IsEmpty; }
+    }
 
     public int Count {
       get { return (int)ElementCount(); }
     }
+
     public long LongCount {
       get { return (long)ElementCount(); }
     }
+
     private BigInteger ElementCount() {
       // This is inefficient
       var c = occurrencesOfNull;
       foreach (var item in dict) {
         c += item.Value;
       }
+
       return c;
     }
 
@@ -588,6 +654,7 @@ namespace Dafny {
         for (var i = BigInteger.Zero; i < occurrencesOfNull; i++) {
           yield return default(T);
         }
+
         foreach (var item in dict) {
           for (var i = BigInteger.Zero; i < item.Value; i++) {
             yield return item.Key;
@@ -601,6 +668,7 @@ namespace Dafny {
         if (!occurrencesOfNull.IsZero) {
           yield return default(T);
         }
+
         foreach (var key in dict.Keys) {
           if (dict[key] != 0) {
             yield return key;
@@ -617,24 +685,28 @@ namespace Dafny {
     ISet<V> Values { get; }
     IEnumerable<IPair<U, V>> ItemEnumerable { get; }
     bool Contains<G>(G t);
+
     /// <summary>
     /// Returns "true" iff "this is IMap<object, object>" and "this" equals "other".
     /// </summary>
     bool EqualsObjObj(IMap<object, object> other);
+
     IMap<UU, VV> DowncastClone<UU, VV>(Func<U, UU> keyConverter, Func<V, VV> valueConverter);
   }
 
   public class Map<U, V> : IMap<U, V> {
     readonly ImmutableDictionary<U, V> dict;
-    readonly bool hasNullKey;  // true when "null" is a key of the Map
-    readonly V nullValue;  // if "hasNullKey", the value that "null" maps to
+    readonly bool hasNullKey; // true when "null" is a key of the Map
+    readonly V nullValue; // if "hasNullKey", the value that "null" maps to
 
     private Map(ImmutableDictionary<U, V>.Builder d, bool hasNullKey, V nullValue) {
       dict = d.ToImmutable();
       this.hasNullKey = hasNullKey;
       this.nullValue = nullValue;
     }
-    public static readonly Map<U, V> Empty = new Map<U, V>(ImmutableDictionary<U, V>.Empty.ToBuilder(), false, default(V));
+
+    public static readonly Map<U, V> Empty =
+      new Map<U, V>(ImmutableDictionary<U, V>.Empty.ToBuilder(), false, default(V));
 
     private Map(ImmutableDictionary<U, V> d, bool hasNullKey, V nullValue) {
       dict = d;
@@ -643,6 +715,7 @@ namespace Dafny {
     }
 
     private static readonly TypeDescriptor<IMap<U, V>> _TYPE = new Dafny.TypeDescriptor<IMap<U, V>>(Empty);
+
     public static TypeDescriptor<IMap<U, V>> _TypeDescriptor() {
       return _TYPE;
     }
@@ -659,8 +732,10 @@ namespace Dafny {
           d[p.Car] = p.Cdr;
         }
       }
+
       return new Map<U, V>(d, hasNullKey, nullValue);
     }
+
     public static Map<U, V> FromCollection(IEnumerable<IPair<U, V>> values) {
       var d = ImmutableDictionary<U, V>.Empty.ToBuilder();
       var hasNullKey = false;
@@ -673,11 +748,14 @@ namespace Dafny {
           d[p.Car] = p.Cdr;
         }
       }
+
       return new Map<U, V>(d, hasNullKey, nullValue);
     }
+
     public static Map<U, V> FromIMap(IMap<U, V> m) {
       return m as Map<U, V> ?? FromCollection(m.ItemEnumerable);
     }
+
     public IMap<UU, VV> DowncastClone<UU, VV>(Func<U, UU> keyConverter, Func<V, VV> valueConverter) {
       if (this is IMap<UU, VV> th) {
         return th;
@@ -688,12 +766,15 @@ namespace Dafny {
           var v = valueConverter(item.Value);
           d.Add(k, v);
         }
+
         return new Map<UU, VV>(d, this.hasNullKey, (VV)(object)this.nullValue);
       }
     }
+
     public int Count {
       get { return dict.Count + (hasNullKey ? 1 : 0); }
     }
+
     public long LongCount {
       get { return dict.Count + (hasNullKey ? 1 : 0); }
     }
@@ -704,43 +785,52 @@ namespace Dafny {
       } else if (this == other) {
         return true;
       }
+
       if (hasNullKey) {
         if (!other.Contains(default(U)) || !object.Equals(nullValue, Select(other, default(U)))) {
           return false;
         }
       }
+
       foreach (var item in dict) {
         if (!other.Contains(item.Key) || !object.Equals(item.Value, Select(other, item.Key))) {
           return false;
         }
       }
+
       return true;
     }
+
     public bool EqualsObjObj(IMap<object, object> other) {
       if (!(this is IMap<object, object>) || other == null || LongCount != other.LongCount) {
         return false;
       } else if (this == other) {
         return true;
       }
+
       var oth = Map<object, object>.FromIMap(other);
       if (hasNullKey) {
         if (!oth.Contains(default(U)) || !object.Equals(nullValue, Map<object, object>.Select(oth, default(U)))) {
           return false;
         }
       }
+
       foreach (var item in dict) {
         if (!other.Contains(item.Key) || !object.Equals(item.Value, Map<object, object>.Select(oth, item.Key))) {
           return false;
         }
       }
+
       return true;
     }
+
     public override bool Equals(object other) {
       // See comment in Set.Equals
       var m = other as IMap<U, V>;
       if (m != null) {
         return Equals(m);
       }
+
       var imapoo = other as IMap<object, object>;
       if (imapoo != null) {
         return EqualsObjObj(imapoo);
@@ -756,13 +846,16 @@ namespace Dafny {
         key = (key << 3) | (key >> 29) ^ Dafny.Helpers.GetHashCode(nullValue);
         hashCode = hashCode * (key + 3);
       }
+
       foreach (var kv in dict) {
         var key = Dafny.Helpers.GetHashCode(kv.Key);
         key = (key << 3) | (key >> 29) ^ Dafny.Helpers.GetHashCode(kv.Value);
         hashCode = hashCode * (key + 3);
       }
+
       return hashCode;
     }
+
     public override string ToString() {
       var s = "map[";
       var sep = "";
@@ -770,20 +863,25 @@ namespace Dafny {
         s += sep + Dafny.Helpers.ToString(default(U)) + " := " + Dafny.Helpers.ToString(nullValue);
         sep = ", ";
       }
+
       foreach (var kv in dict) {
         s += sep + Dafny.Helpers.ToString(kv.Key) + " := " + Dafny.Helpers.ToString(kv.Value);
         sep = ", ";
       }
+
       return s + "]";
     }
+
     public bool Contains<G>(G u) {
       return u == null ? hasNullKey : u is U && dict.ContainsKey((U)(object)u);
     }
+
     public static V Select(IMap<U, V> th, U index) {
       // the following will throw an exception if "index" in not a key of the map
       var m = FromIMap(th);
       return index == null && m.hasNullKey ? m.nullValue : m.dict[index];
     }
+
     public static IMap<U, V> Update(IMap<U, V> th, U index, V val) {
       var m = FromIMap(th);
       var d = m.dict.ToBuilder();
@@ -817,6 +915,7 @@ namespace Dafny {
         }
       }
     }
+
     public ISet<V> Values {
       get {
         if (hasNullKey) {
@@ -832,6 +931,7 @@ namespace Dafny {
         if (hasNullKey) {
           yield return new Pair<U, V>(default(U), nullValue);
         }
+
         foreach (KeyValuePair<U, V> kvp in dict) {
           yield return new Pair<U, V>(kvp.Key, kvp.Value);
         }
@@ -843,6 +943,7 @@ namespace Dafny {
       foreach (var item in m.ItemEnumerable) {
         result.Add(_System.Tuple2<U, V>.create(item.Car, item.Cdr));
       }
+
       return Dafny.Set<_System.Tuple2<U, V>>.FromCollection(result);
     }
   }
@@ -881,6 +982,7 @@ namespace Dafny {
     public static readonly ISequence<T> Empty = new ArraySequence<T>(new T[0]);
 
     private static readonly TypeDescriptor<ISequence<T>> _TYPE = new Dafny.TypeDescriptor<ISequence<T>>(Empty);
+
     public static TypeDescriptor<ISequence<T>> _TypeDescriptor() {
       return _TYPE;
     }
@@ -891,17 +993,22 @@ namespace Dafny {
       for (int i = 0; i < len; i++) {
         values[i] = init(new BigInteger(i));
       }
+
       return new ArraySequence<T>(values);
     }
+
     public static ISequence<T> FromArray(T[] values) {
       return new ArraySequence<T>(values);
     }
+
     public static ISequence<T> FromElements(params T[] values) {
       return new ArraySequence<T>(values);
     }
+
     public static ISequence<char> FromString(string s) {
       return new ArraySequence<char>(s.ToCharArray());
     }
+
     public ISequence<U> DowncastClone<U>(Func<T, U> converter) {
       if (this is ISequence<U> th) {
         return th;
@@ -911,52 +1018,66 @@ namespace Dafny {
           var val = converter(this.Select(i));
           values[i] = val;
         }
+
         return new ArraySequence<U>(values);
       }
     }
+
     public static ISequence<T> Update(ISequence<T> sequence, long index, T t) {
       T[] tmp = (T[])sequence.Elements.Clone();
       tmp[index] = t;
       return new ArraySequence<T>(tmp);
     }
+
     public static ISequence<T> Update(ISequence<T> sequence, ulong index, T t) {
       return Update(sequence, (long)index, t);
     }
+
     public static ISequence<T> Update(ISequence<T> sequence, BigInteger index, T t) {
       return Update(sequence, (long)index, t);
     }
+
     public static bool EqualUntil(ISequence<T> left, ISequence<T> right, int n) {
       T[] leftElmts = left.Elements, rightElmts = right.Elements;
       for (int i = 0; i < n; i++) {
         if (!object.Equals(leftElmts[i], rightElmts[i]))
           return false;
       }
+
       return true;
     }
+
     public static bool IsPrefixOf(ISequence<T> left, ISequence<T> right) {
       int n = left.Elements.Length;
       return n <= right.Elements.Length && EqualUntil(left, right, n);
     }
+
     public static bool IsProperPrefixOf(ISequence<T> left, ISequence<T> right) {
       int n = left.Elements.Length;
       return n < right.Elements.Length && EqualUntil(left, right, n);
     }
+
     public static ISequence<T> Concat(ISequence<T> left, ISequence<T> right) {
       if (left.Count == 0) {
         return right;
       }
+
       if (right.Count == 0) {
         return left;
       }
+
       return new ConcatSequence<T>(left, right);
     }
+
     // Make Count a public abstract instead of LongCount, since the "array size is limited to a total of 4 billion
     // elements, and to a maximum index of 0X7FEFFFFF". Therefore, as a protection, limit this to int32.
     // https://docs.microsoft.com/en-us/dotnet/api/system.array
     public abstract int Count { get; }
+
     public long LongCount {
       get { return Count; }
     }
+
     // ImmutableElements cannot be public in the interface since ImmutableArray<T> leads to a
     // "covariant type T occurs in invariant position" error. There do not appear to be interfaces for ImmutableArray<T>
     // that resolve this.
@@ -965,6 +1086,7 @@ namespace Dafny {
     public T[] Elements {
       get { return ImmutableElements.ToArray(); }
     }
+
     public IEnumerable<T> UniqueElements {
       get {
         var st = Set<T>.FromCollection(ImmutableElements);
@@ -975,26 +1097,33 @@ namespace Dafny {
     public T Select(ulong index) {
       return ImmutableElements[checked((int)index)];
     }
+
     public T Select(long index) {
       return ImmutableElements[checked((int)index)];
     }
+
     public T Select(uint index) {
       return ImmutableElements[checked((int)index)];
     }
+
     public T Select(int index) {
       return ImmutableElements[index];
     }
+
     public T Select(BigInteger index) {
       return ImmutableElements[(int)index];
     }
+
     public bool Equals(ISequence<T> other) {
       int n = ImmutableElements.Length;
       return n == other.Elements.Length && EqualUntil(this, other, n);
     }
+
     public override bool Equals(object other) {
       if (other is ISequence<T>) {
         return Equals((ISequence<T>)other);
       }
+
       var th = this as ISequence<object>;
       var oth = other as ISequence<object>;
       if (th != null && oth != null) {
@@ -1004,6 +1133,7 @@ namespace Dafny {
         return false;
       }
     }
+
     public bool EqualsAux(ISequence<object> other) {
       var s = other as ISequence<T>;
       if (s != null) {
@@ -1012,6 +1142,7 @@ namespace Dafny {
         return false;
       }
     }
+
     public override int GetHashCode() {
       ImmutableArray<T> elmts = ImmutableElements;
       // https://devblogs.microsoft.com/dotnet/please-welcome-immutablearrayt/
@@ -1021,8 +1152,10 @@ namespace Dafny {
       for (var i = 0; i < elmts.Length; i++) {
         hashCode = (hashCode << 3) | (hashCode >> 29) ^ Dafny.Helpers.GetHashCode(elmts[i]);
       }
+
       return hashCode;
     }
+
     public override string ToString() {
       // This is required because (ImmutableElements is ImmutableArray<char>) is not a valid type check
       var typeCheckTmp = new T[0];
@@ -1032,6 +1165,7 @@ namespace Dafny {
         foreach (var t in elmts) {
           s += t.ToString();
         }
+
         return s;
       } else {
         var s = "[";
@@ -1040,16 +1174,20 @@ namespace Dafny {
           s += sep + Dafny.Helpers.ToString(t);
           sep = ", ";
         }
+
         return s + "]";
       }
     }
+
     public bool Contains<G>(G g) {
       if (g == null || g is T) {
         var t = (T)(object)g;
         return ImmutableElements.Contains(t);
       }
+
       return false;
     }
+
     public ISequence<T> Take(long m) {
       if (ImmutableElements.Length == m)
         return this;
@@ -1058,12 +1196,15 @@ namespace Dafny {
       ImmutableElements.CopyTo(0, tmp, 0, length);
       return new ArraySequence<T>(tmp);
     }
+
     public ISequence<T> Take(ulong n) {
       return Take((long)n);
     }
+
     public ISequence<T> Take(BigInteger n) {
       return Take((long)n);
     }
+
     public ISequence<T> Drop(long m) {
       int startingElement = checked((int)m);
       if (startingElement == 0)
@@ -1073,18 +1214,22 @@ namespace Dafny {
       ImmutableElements.CopyTo(startingElement, tmp, 0, length);
       return new ArraySequence<T>(tmp);
     }
+
     public ISequence<T> Drop(ulong n) {
       return Drop((long)n);
     }
+
     public ISequence<T> Drop(BigInteger n) {
       if (n.IsZero)
         return this;
       return Drop((long)n);
     }
+
     public ISequence<T> Subsequence(long lo, long hi) {
       if (lo == 0 && hi == ImmutableElements.Length) {
         return this;
       }
+
       int startingIndex = checked((int)lo);
       int endingIndex = checked((int)hi);
       var length = endingIndex - startingIndex;
@@ -1092,27 +1237,35 @@ namespace Dafny {
       ImmutableElements.CopyTo(startingIndex, tmp, 0, length);
       return new ArraySequence<T>(tmp);
     }
+
     public ISequence<T> Subsequence(long lo, ulong hi) {
       return Subsequence(lo, (long)hi);
     }
+
     public ISequence<T> Subsequence(long lo, BigInteger hi) {
       return Subsequence(lo, (long)hi);
     }
+
     public ISequence<T> Subsequence(ulong lo, long hi) {
       return Subsequence((long)lo, hi);
     }
+
     public ISequence<T> Subsequence(ulong lo, ulong hi) {
       return Subsequence((long)lo, (long)hi);
     }
+
     public ISequence<T> Subsequence(ulong lo, BigInteger hi) {
       return Subsequence((long)lo, (long)hi);
     }
+
     public ISequence<T> Subsequence(BigInteger lo, long hi) {
       return Subsequence((long)lo, hi);
     }
+
     public ISequence<T> Subsequence(BigInteger lo, ulong hi) {
       return Subsequence((long)lo, (long)hi);
     }
+
     public ISequence<T> Subsequence(BigInteger lo, BigInteger hi) {
       return Subsequence((long)lo, (long)hi);
     }
@@ -1124,19 +1277,17 @@ namespace Dafny {
     internal ArraySequence(ImmutableArray<T> ee) {
       elmts = ee;
     }
+
     internal ArraySequence(T[] ee) {
       elmts = ImmutableArray.Create<T>(ee);
     }
 
     protected override ImmutableArray<T> ImmutableElements {
-      get {
-        return elmts;
-      }
+      get { return elmts; }
     }
+
     public override int Count {
-      get {
-        return elmts.Length;
-      }
+      get { return elmts.Length; }
     }
   }
 
@@ -1164,14 +1315,13 @@ namespace Dafny {
           left = null;
           right = null;
         }
+
         return elmts;
       }
     }
 
     public override int Count {
-      get {
-        return count;
-      }
+      get { return count; }
     }
 
     private ImmutableArray<T> ComputeElements() {
@@ -1192,6 +1342,7 @@ namespace Dafny {
           ansBuilder.AddRange(array);
         }
       }
+
       return ansBuilder.ToImmutable();
     }
   }
@@ -1204,8 +1355,15 @@ namespace Dafny {
   public class Pair<A, B> : IPair<A, B> {
     private A car;
     private B cdr;
-    public A Car { get { return car; } }
-    public B Cdr { get { return cdr; } }
+
+    public A Car {
+      get { return car; }
+    }
+
+    public B Cdr {
+      get { return cdr; }
+    }
+
     public Pair(A a, B b) {
       this.car = a;
       this.cdr = b;
@@ -1214,9 +1372,11 @@ namespace Dafny {
 
   public class TypeDescriptor<T> {
     private readonly T initValue;
+
     public TypeDescriptor(T initValue) {
       this.initValue = initValue;
     }
+
     public T Default() {
       return initValue;
     }
@@ -1232,15 +1392,19 @@ namespace Dafny {
         if (msg == null) msg = "value out of range for a 32-bit int";
         throw new HaltException(msg + ": " + i);
       }
+
       return (int)i;
     }
+
     public static int ToIntChecked(long i, string msg) {
       if (i > Int32.MaxValue || i < Int32.MinValue) {
         if (msg == null) msg = "value out of range for a 32-bit int";
         throw new HaltException(msg + ": " + i);
       }
+
       return (int)i;
     }
+
     public static int ToIntChecked(int i, string msg) {
       return i;
     }
@@ -1249,17 +1413,21 @@ namespace Dafny {
       if (g == null) {
         return "null";
       } else if (g is bool) {
-        return (bool)(object)g ? "true" : "false";  // capitalize boolean literals like in Dafny
+        return (bool)(object)g ? "true" : "false"; // capitalize boolean literals like in Dafny
       } else {
         return g.ToString();
       }
     }
+
     public static void Print<G>(G g) {
       System.Console.Write(ToString(g));
     }
 
     public static readonly TypeDescriptor<bool> BOOL = new TypeDescriptor<bool>(false);
-    public static readonly TypeDescriptor<char> CHAR = new TypeDescriptor<char>('D');  // See CharType.DefaultValue in Dafny source code
+
+    public static readonly TypeDescriptor<char>
+      CHAR = new TypeDescriptor<char>('D'); // See CharType.DefaultValue in Dafny source code
+
     public static readonly TypeDescriptor<BigInteger> INT = new TypeDescriptor<BigInteger>(BigInteger.Zero);
     public static readonly TypeDescriptor<BigRational> REAL = new TypeDescriptor<BigRational>(BigRational.ZERO);
     public static readonly TypeDescriptor<byte> UINT8 = new TypeDescriptor<byte>(0);
@@ -1277,20 +1445,26 @@ namespace Dafny {
 
     public static bool Quantifier<T>(IEnumerable<T> vals, bool frall, System.Predicate<T> pred) {
       foreach (var u in vals) {
-        if (pred(u) != frall) { return !frall; }
+        if (pred(u) != frall) {
+          return !frall;
+        }
       }
+
       return frall;
     }
+
     // Enumerating other collections
     public static IEnumerable<bool> AllBooleans() {
       yield return false;
       yield return true;
     }
+
     public static IEnumerable<char> AllChars() {
       for (int i = 0; i < 0x10000; i++) {
         yield return (char)i;
       }
     }
+
     public static IEnumerable<BigInteger> AllIntegers() {
       yield return new BigInteger(0);
       for (var j = new BigInteger(1); ; j++) {
@@ -1298,6 +1472,7 @@ namespace Dafny {
         yield return -j;
       }
     }
+
     public static IEnumerable<BigInteger> IntegerRange(Nullable<BigInteger> lo, Nullable<BigInteger> hi) {
       if (lo == null) {
         for (var j = (BigInteger)hi; true;) {
@@ -1314,17 +1489,21 @@ namespace Dafny {
         }
       }
     }
+
     public static IEnumerable<T> SingleValue<T>(T e) {
       yield return e;
     }
+
     // pre: b != 0
     // post: result == a/b, as defined by Euclidean Division (http://en.wikipedia.org/wiki/Modulo_operation)
     public static sbyte EuclideanDivision_sbyte(sbyte a, sbyte b) {
       return (sbyte)EuclideanDivision_int(a, b);
     }
+
     public static short EuclideanDivision_short(short a, short b) {
       return (short)EuclideanDivision_int(a, b);
     }
+
     public static int EuclideanDivision_int(int a, int b) {
       if (0 <= a) {
         if (0 <= b) {
@@ -1344,6 +1523,7 @@ namespace Dafny {
         }
       }
     }
+
     public static long EuclideanDivision_long(long a, long b) {
       if (0 <= a) {
         if (0 <= b) {
@@ -1363,6 +1543,7 @@ namespace Dafny {
         }
       }
     }
+
     public static BigInteger EuclideanDivision(BigInteger a, BigInteger b) {
       if (0 <= a.Sign) {
         if (0 <= b.Sign) {
@@ -1382,14 +1563,17 @@ namespace Dafny {
         }
       }
     }
+
     // pre: b != 0
     // post: result == a%b, as defined by Euclidean Division (http://en.wikipedia.org/wiki/Modulo_operation)
     public static sbyte EuclideanModulus_sbyte(sbyte a, sbyte b) {
       return (sbyte)EuclideanModulus_int(a, b);
     }
+
     public static short EuclideanModulus_short(short a, short b) {
       return (short)EuclideanModulus_int(a, b);
     }
+
     public static int EuclideanModulus_int(int a, int b) {
       uint bp = (0 <= b) ? (uint)b : (uint)(unchecked(-b));
       if (0 <= a) {
@@ -1403,6 +1587,7 @@ namespace Dafny {
         return (int)(c == 0 ? c : bp - c);
       }
     }
+
     public static long EuclideanModulus_long(long a, long b) {
       ulong bp = (0 <= b) ? (ulong)b : (ulong)(unchecked(-b));
       if (0 <= a) {
@@ -1416,6 +1601,7 @@ namespace Dafny {
         return (long)(c == 0 ? c : bp - c);
       }
     }
+
     public static BigInteger EuclideanModulus(BigInteger a, BigInteger b) {
       var bp = BigInteger.Abs(b);
       if (0 <= a.Sign) {
@@ -1437,6 +1623,7 @@ namespace Dafny {
     public static Sequence<T> SeqFromArray<T>(T[] array) {
       return new ArraySequence<T>((T[])array.Clone());
     }
+
     // In .NET version 4.5, it is possible to mark a method with "AggressiveInlining", which says to inline the
     // method if possible.  Method "ExpressionSequence" would be a good candidate for it:
     // [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -1465,14 +1652,17 @@ namespace Dafny {
     public static bool IsLimit(BigInteger ord) {
       return ord == 0;
     }
+
     public static bool IsSucc(BigInteger ord) {
       return 0 < ord;
     }
+
     public static BigInteger Offset(BigInteger ord) {
       return ord;
     }
+
     public static bool IsNat(BigInteger ord) {
-      return true;  // at run time, every ORDINAL is a natural number
+      return true; // at run time, every ORDINAL is a natural number
     }
   }
 
@@ -1482,7 +1672,8 @@ namespace Dafny {
     // We need to deal with the special case "num == 0 && den == 0", because
     // that's what C#'s default struct constructor will produce for BigRational. :(
     // To deal with it, we ignore "den" when "num" is 0.
-    BigInteger num, den;  // invariant 1 <= den || (num == 0 && den == 0)
+    BigInteger num, den; // invariant 1 <= den || (num == 0 && den == 0)
+
     public override string ToString() {
       int log10;
       if (num.IsZero || den.IsOne) {
@@ -1491,10 +1682,13 @@ namespace Dafny {
         string sign;
         string digits;
         if (num.Sign < 0) {
-          sign = "-"; digits = (-num).ToString();
+          sign = "-";
+          digits = (-num).ToString();
         } else {
-          sign = ""; digits = num.ToString();
+          sign = "";
+          digits = num.ToString();
         }
+
         if (log10 < digits.Length) {
           var n = digits.Length - log10;
           return string.Format("{0}{1}.{2}", sign, digits.Substring(0, n), digits.Substring(n));
@@ -1505,12 +1699,15 @@ namespace Dafny {
         return string.Format("({0}.0 / {1}.0)", num, den);
       }
     }
+
     public bool IsPowerOf10(BigInteger x, out int log10) {
       log10 = 0;
       if (x.IsZero) {
         return false;
       }
-      while (true) {  // invariant: x != 0 && x * 10^log10 == old(x)
+
+      while (true) {
+        // invariant: x != 0 && x * 10^log10 == old(x)
         if (x.IsOne) {
           return true;
         } else if (x % 10 == 0) {
@@ -1521,15 +1718,18 @@ namespace Dafny {
         }
       }
     }
+
     public BigRational(int n) {
       num = new BigInteger(n);
       den = BigInteger.One;
     }
+
     public BigRational(BigInteger n, BigInteger d) {
       // requires 1 <= d
       num = n;
       den = d;
     }
+
     public BigInteger ToBigInteger() {
       if (num.IsZero || den.IsOne) {
         return num;
@@ -1539,10 +1739,12 @@ namespace Dafny {
         return (num - den + 1) / den;
       }
     }
+
     /// <summary>
     /// Returns values such that aa/dd == a and bb/dd == b.
     /// </summary>
-    private static void Normalize(BigRational a, BigRational b, out BigInteger aa, out BigInteger bb, out BigInteger dd) {
+    private static void Normalize(BigRational a, BigRational b, out BigInteger aa, out BigInteger bb,
+      out BigInteger dd) {
       if (a.num.IsZero) {
         aa = a.num;
         bb = b.num;
@@ -1561,6 +1763,7 @@ namespace Dafny {
         dd = a.den * yy;
       }
     }
+
     public int CompareTo(BigRational that) {
       // simple things first
       int asign = this.num.Sign;
@@ -1574,18 +1777,20 @@ namespace Dafny {
       } else if (bsign <= 0 && 0 < asign) {
         return 1;
       }
+
       BigInteger aa, bb, dd;
       Normalize(this, that, out aa, out bb, out dd);
       return aa.CompareTo(bb);
     }
+
     public int Sign {
-      get {
-        return num.Sign;
-      }
+      get { return num.Sign; }
     }
+
     public override int GetHashCode() {
       return num.GetHashCode() + 29 * den.GetHashCode();
     }
+
     public override bool Equals(object obj) {
       if (obj is BigRational) {
         return this == (BigRational)obj;
@@ -1593,40 +1798,51 @@ namespace Dafny {
         return false;
       }
     }
+
     public static bool operator ==(BigRational a, BigRational b) {
       return a.CompareTo(b) == 0;
     }
+
     public static bool operator !=(BigRational a, BigRational b) {
       return a.CompareTo(b) != 0;
     }
+
     public static bool operator >(BigRational a, BigRational b) {
       return a.CompareTo(b) > 0;
     }
+
     public static bool operator >=(BigRational a, BigRational b) {
       return a.CompareTo(b) >= 0;
     }
+
     public static bool operator <(BigRational a, BigRational b) {
       return a.CompareTo(b) < 0;
     }
+
     public static bool operator <=(BigRational a, BigRational b) {
       return a.CompareTo(b) <= 0;
     }
+
     public static BigRational operator +(BigRational a, BigRational b) {
       BigInteger aa, bb, dd;
       Normalize(a, b, out aa, out bb, out dd);
       return new BigRational(aa + bb, dd);
     }
+
     public static BigRational operator -(BigRational a, BigRational b) {
       BigInteger aa, bb, dd;
       Normalize(a, b, out aa, out bb, out dd);
       return new BigRational(aa - bb, dd);
     }
+
     public static BigRational operator -(BigRational a) {
       return new BigRational(-a.num, a.den);
     }
+
     public static BigRational operator *(BigRational a, BigRational b) {
       return new BigRational(a.num * b.num, a.den * b.den);
     }
+
     public static BigRational operator /(BigRational a, BigRational b) {
       // Compute the reciprocal of b
       BigRational bReciprocal;
@@ -1636,6 +1852,7 @@ namespace Dafny {
         // this is the case b.num < 0
         bReciprocal = new BigRational(-b.den, -b.num);
       }
+
       return a * bReciprocal;
     }
   }
@@ -1650,14 +1867,17 @@ namespace @_System {
   public class Tuple2<T0, T1> {
     public readonly T0 _0;
     public readonly T1 _1;
+
     public Tuple2(T0 _0, T1 _1) {
       this._0 = _0;
       this._1 = _1;
     }
+
     public override bool Equals(object other) {
       var oth = other as _System.Tuple2<T0, T1>;
       return oth != null && object.Equals(this._0, oth._0) && object.Equals(this._1, oth._1);
     }
+
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
@@ -1665,6 +1885,7 @@ namespace @_System {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._1));
       return (int)hash;
     }
+
     public override string ToString() {
       string s = "";
       s += "(";
@@ -1674,26 +1895,31 @@ namespace @_System {
       s += ")";
       return s;
     }
+
     public static Tuple2<T0, T1> Default(T0 _default_T0, T1 _default_T1) {
       return create(_default_T0, _default_T1);
     }
-    public static Dafny.TypeDescriptor<_System.Tuple2<T0, T1>> _TypeDescriptor(Dafny.TypeDescriptor<T0> _td_T0, Dafny.TypeDescriptor<T1> _td_T1) {
-      return new Dafny.TypeDescriptor<_System.Tuple2<T0, T1>>(_System.Tuple2<T0, T1>.Default(_td_T0.Default(), _td_T1.Default()));
+
+    public static Dafny.TypeDescriptor<_System.Tuple2<T0, T1>> _TypeDescriptor(Dafny.TypeDescriptor<T0> _td_T0,
+      Dafny.TypeDescriptor<T1> _td_T1) {
+      return new Dafny.TypeDescriptor<_System.Tuple2<T0, T1>>(
+        _System.Tuple2<T0, T1>.Default(_td_T0.Default(), _td_T1.Default()));
     }
+
     public static Tuple2<T0, T1> create(T0 _0, T1 _1) {
       return new Tuple2<T0, T1>(_0, _1);
     }
-    public bool is____hMake2 { get { return true; } }
-    public T0 dtor__0 {
-      get {
-        return this._0;
-      }
+
+    public bool is____hMake2 {
+      get { return true; }
     }
+
+    public T0 dtor__0 {
+      get { return this._0; }
+    }
+
     public T1 dtor__1 {
-      get {
-        return this._1;
-      }
+      get { return this._1; }
     }
   }
-
 } // end of namespace _System
