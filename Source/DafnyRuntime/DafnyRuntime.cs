@@ -158,6 +158,7 @@ namespace Dafny {
         }
       }
     }
+
     public bool Equals(ISet<T> other) {
       if (other == null || Count != other.Count) {
         return false;
@@ -173,10 +174,12 @@ namespace Dafny {
 
       return true;
     }
+
     public override bool Equals(object other) {
       if (other is ISet<T>) {
         return Equals((ISet<T>)other);
       }
+
       var th = this as ISet<object>;
       var oth = other as ISet<object>;
       if (th != null && oth != null) {
@@ -208,11 +211,14 @@ namespace Dafny {
       if (containsNull) {
         hashCode = hashCode * (Dafny.Helpers.GetHashCode(default(T)) + 3);
       }
+
       foreach (var t in this.setImpl) {
         hashCode = hashCode * (Dafny.Helpers.GetHashCode(t) + 3);
       }
+
       return hashCode;
     }
+
     public override string ToString() {
       var s = "{";
       var sep = "";
@@ -220,10 +226,12 @@ namespace Dafny {
         s += sep + Dafny.Helpers.ToString(default(T));
         sep = ", ";
       }
+
       foreach (var t in this.setImpl) {
         s += sep + Dafny.Helpers.ToString(t);
         sep = ", ";
       }
+
       return s + "}";
     }
     public static bool IsProperSubsetOf(ISet<T> th, ISet<T> other) {
@@ -320,6 +328,7 @@ namespace Dafny {
       }
       return new MultiSet<T>(d, occurrencesOfNull);
     }
+
     public static MultiSet<T> FromCollection(IEnumerable<T> values) {
       var d = ImmutableDictionary<T, BigInteger>.Empty.ToBuilder();
       var occurrencesOfNull = BigInteger.Zero;
@@ -328,14 +337,19 @@ namespace Dafny {
           occurrencesOfNull++;
         } else {
           BigInteger i;
-          if (!d.TryGetValue(t, out i)) {
+          if (!d.TryGetValue(t,
+            out i)) {
             i = BigInteger.Zero;
           }
+
           d[t] = i + 1;
         }
       }
-      return new MultiSet<T>(d, occurrencesOfNull);
+
+      return new MultiSet<T>(d,
+        occurrencesOfNull);
     }
+
     public static MultiSet<T> FromSeq(ISequence<T> values) {
       var d = ImmutableDictionary<T, BigInteger>.Empty.ToBuilder();
       var occurrencesOfNull = BigInteger.Zero;
@@ -344,13 +358,17 @@ namespace Dafny {
           occurrencesOfNull++;
         } else {
           BigInteger i;
-          if (!d.TryGetValue(t, out i)) {
+          if (!d.TryGetValue(t,
+            out i)) {
             i = BigInteger.Zero;
           }
+
           d[t] = i + 1;
         }
       }
-      return new MultiSet<T>(d, occurrencesOfNull);
+
+      return new MultiSet<T>(d,
+        occurrencesOfNull);
     }
     public static MultiSet<T> FromSet(ISet<T> values) {
       var d = ImmutableDictionary<T, BigInteger>.Empty.ToBuilder();
