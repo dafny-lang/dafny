@@ -1,7 +1,6 @@
 ﻿using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
-using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OmniSharp.Extensions.LanguageServer.Protocol;
@@ -26,8 +25,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private readonly ITextDocumentLoader documentLoader;
     private readonly ITextChangeProcessor textChangeProcessor;
     private readonly ISymbolTableRelocator symbolTableRelocator;
-    private readonly IProgramVerifier programVerifier;
-    private readonly ICompilationStatusNotificationPublisher notificationPublisher;
 
     private bool VerifyOnOpen => options.Verify == AutoVerification.OnChange;
     private bool VerifyOnChange => options.Verify == AutoVerification.OnChange;
@@ -38,17 +35,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       IOptions<DocumentOptions> options,
       ITextDocumentLoader documentLoader,
       ITextChangeProcessor textChangeProcessor,
-      ISymbolTableRelocator symbolTableRelocator,
-      IProgramVerifier programVerifier,
-      ICompilationStatusNotificationPublisher notificationPublisher
+      ISymbolTableRelocator symbolTableRelocator
     ) {
       this.logger = logger;
       this.options = options.Value;
       this.documentLoader = documentLoader;
       this.textChangeProcessor = textChangeProcessor;
       this.symbolTableRelocator = symbolTableRelocator;
-      this.programVerifier = programVerifier;
-      this.notificationPublisher = notificationPublisher;
       CommandLineOptions.Clo.ProverOptions = GetProverOptions(this.options);
     }
 
@@ -94,19 +87,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       if (!verify || document.Errors.HasErrors) {
         return document;
       }
-      return await VerifyAsync(document, cancellationToken);
-    }
-
-    private async Task<DafnyDocument> VerifyAsync(DafnyDocument document, CancellationToken cancellationToken) {
-      notificationPublisher.SendStatusNotification(document.Text, CompilationStatus.VerificationStarted);
-      var verificationResult = await programVerifier.VerifyAsync(document.Program, cancellationToken);
-      var compilationStatusAfterVerification = verificationResult.Verified
-        ? CompilationStatus.VerificationSucceeded
-        : CompilationStatus.VerificationFailed;
-      notificationPublisher.SendStatusNotification(document.Text, compilationStatusAfterVerification);
-      return document with {
-        SerializedCounterExamples = verificationResult.SerializedCounterExamples
-      };
+      return await documentLoader.VerifyAsync(document, cancellationToken);
     }
 
     public async Task<DafnyDocument> UpdateDocumentAsync(DidChangeTextDocumentParams documentChange) {
@@ -173,7 +154,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var cancellationSource = new CancellationTokenSource();
       var updatedEntry = new DocumentEntry(
         document.Version,
-        Task.Run(() => VerifyAsync(document, cancellationSource.Token)),
+        Task.Run(() => documentLoader.VerifyAsync(document, cancellationSource.Token)),
         cancellationSource
       );
       documents[document.Uri] = updatedEntry;

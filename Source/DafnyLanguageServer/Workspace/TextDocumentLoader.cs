@@ -11,8 +11,9 @@ using System.Threading.Tasks;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
-  /// Text document loader implementation that offloads the whole procedure on one dedicated
-  /// thread with a stack size of 256MB.
+  /// Text document loader implementation that offloads the whole load procedure on one dedicated
+  /// thread with a stack size of 256MB. Since only one thread is used, document loading is implicitely synchronized.
+  /// The verification runs on the calling thread.
   /// </summary>
   /// <remarks>
   /// The increased stack size is necessary to solve the issue https://github.com/dafny-lang/dafny/issues/1447.
@@ -24,17 +25,20 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private readonly IDafnyParser parser;
     private readonly ISymbolResolver symbolResolver;
     private readonly ISymbolTableFactory symbolTableFactory;
+    private readonly IProgramVerifier verifier;
     private readonly ICompilationStatusNotificationPublisher notificationPublisher;
     private readonly BlockingCollection<LoadRequest> loadRequests = new();
 
     private TextDocumentLoader(
       IDafnyParser parser,
       ISymbolResolver symbolResolver,
+      IProgramVerifier verifier,
       ISymbolTableFactory symbolTableFactory,
       ICompilationStatusNotificationPublisher notificationPublisher
     ) {
       this.parser = parser;
       this.symbolResolver = symbolResolver;
+      this.verifier = verifier;
       this.symbolTableFactory = symbolTableFactory;
       this.notificationPublisher = notificationPublisher;
     }
@@ -42,10 +46,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public static TextDocumentLoader Create(
       IDafnyParser parser,
       ISymbolResolver symbolResolver,
+      IProgramVerifier verifier,
       ISymbolTableFactory symbolTableFactory,
       ICompilationStatusNotificationPublisher notificationPublisher
     ) {
-      var loader = new TextDocumentLoader(parser, symbolResolver, symbolTableFactory, notificationPublisher);
+      var loader = new TextDocumentLoader(parser, symbolResolver, verifier, symbolTableFactory, notificationPublisher);
       var loadThread = new Thread(loader.Run, MaxStackSize) { IsBackground = true };
       loadThread.Start();
       return loader;
@@ -125,6 +130,18 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         new IntervalTree<Position, ILocalizableSymbol>(),
         symbolsResolved: false
       );
+    }
+
+    public async Task<DafnyDocument> VerifyAsync(DafnyDocument document, CancellationToken cancellationToken) {
+      notificationPublisher.SendStatusNotification(document.Text, CompilationStatus.VerificationStarted);
+      var verificationResult = await verifier.VerifyAsync(document.Program, cancellationToken);
+      var compilationStatusAfterVerification = verificationResult.Verified
+        ? CompilationStatus.VerificationSucceeded
+        : CompilationStatus.VerificationFailed;
+      notificationPublisher.SendStatusNotification(document.Text, compilationStatusAfterVerification);
+      return document with {
+        SerializedCounterExamples = verificationResult.SerializedCounterExamples
+      };
     }
 
     private record LoadRequest(TextDocumentItem TextDocument, CancellationToken CancellationToken) {

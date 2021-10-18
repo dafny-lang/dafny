@@ -30,5 +30,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// <exception cref="System.OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
     Task<DafnyDocument> LoadAsync(TextDocumentItem textDocument, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Verifies the given document.
+    /// </summary>
+    /// <param name="document">The document to verify.</param>
+    /// <param name="cancellationToken">A token to cancel the verification before its completion.</param>
+    /// <returns>A new document instance including the verification results.</returns>
+    /// <exception cref="System.OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
+    /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
+    Task<DafnyDocument> VerifyAsync(DafnyDocument document, CancellationToken cancellationToken);
   }
 }

@@ -13,6 +13,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
   public class TextDocumentLoaderTest {
     private Mock<IDafnyParser> parser;
     private Mock<ISymbolResolver> symbolResolver;
+    private Mock<IProgramVerifier> verifier;
     private Mock<ISymbolTableFactory> symbolTableFactory;
     private Mock<ICompilationStatusNotificationPublisher> notificationPublisher;
     private TextDocumentLoader textDocumentLoader;
@@ -21,11 +22,13 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
     public void SetUp() {
       parser = new();
       symbolResolver = new();
+      verifier = new();
       symbolTableFactory = new();
       notificationPublisher = new();
       textDocumentLoader = TextDocumentLoader.Create(
         parser.Object,
         symbolResolver.Object,
+        verifier.Object,
         symbolTableFactory.Object,
         notificationPublisher.Object
       );
