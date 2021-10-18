@@ -126,4 +126,4 @@ jobs:
         unzip dafny/Package/CI.zip -d unzippedRelease
     - name: Run integration tests
       run: |
-        XUNIT_SHARD=${{ matrix.shard }} XUNIT_SHARD_COUNT=5 DAFNY_RELEASE=$PWD/unzippedRelease/dafny dotnet test -v:n dafny/Source/IntegrationTests/IntegrationTests.csproj --filter DisplayName~TestAttribute.dfy 
+        XUNIT_SHARD=${{ matrix.shard }} XUNIT_SHARD_COUNT=5 DAFNY_RELEASE=$PWD/unzippedRelease/dafny dotnet test -v:n dafny/Source/IntegrationTests/IntegrationTests.csproj
