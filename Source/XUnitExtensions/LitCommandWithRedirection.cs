@@ -76,9 +76,17 @@ namespace XUnitExtensions {
     public override string ToString() {
       var builder = new StringBuilder();
       builder.Append(command);
+      if (inputFile != null) {
+        builder.Append(" < ");
+        builder.Append(inputFile);
+      }
       if (outputFile != null) {
         builder.Append(append ? " >> " : " > ");
         builder.Append(outputFile);
+      }
+      if (errorFile != null) {
+        builder.Append(" 2> ");
+        builder.Append(errorFile);
       }
       return builder.ToString();
     }
