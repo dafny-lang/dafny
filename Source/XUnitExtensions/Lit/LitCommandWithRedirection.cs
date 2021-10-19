@@ -7,7 +7,7 @@ using Microsoft.Extensions.FileSystemGlobbing;
 using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
 using Xunit.Abstractions;
 
-namespace XUnitExtensions {
+namespace XUnitExtensions.Lit {
   public class LitCommandWithRedirection : ILitCommand {
 
     public static LitCommandWithRedirection Parse(string[] tokens, LitTestConfiguration config) {

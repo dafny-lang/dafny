@@ -6,7 +6,7 @@ using Xunit.Abstractions;
 using Xunit.Sdk;
 using XUnitExtensions;
 
-namespace XUnitExtensions {
+namespace XUnitExtensions.Lit {
   public class LitTestDataDiscoverer : FileDataDiscoverer {
 
     public override bool SupportsDiscoveryEnumeration(IAttributeInfo dataAttribute, IMethodInfo testMethod) {

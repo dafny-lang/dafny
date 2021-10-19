@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using Xunit.Abstractions;
 
-namespace XUnitExtensions {
+namespace XUnitExtensions.Lit {
   public class ShellLitCommand : ILitCommand {
     private LitTestConfiguration config;
     private string shellCommand;

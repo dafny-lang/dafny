@@ -4,7 +4,7 @@ using System.Linq;
 using System.Reflection;
 using Xunit.Abstractions;
 
-namespace XUnitExtensions {
+namespace XUnitExtensions.Lit {
 
   // TODO: Make safely immutable
   public class LitTestConfiguration {

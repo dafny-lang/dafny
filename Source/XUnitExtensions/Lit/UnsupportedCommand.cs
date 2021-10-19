@@ -5,7 +5,7 @@ using System.IO;
 using System.Linq;
 using Xunit.Abstractions;
 
-namespace XUnitExtensions {
+namespace XUnitExtensions.Lit {
   public class UnsupportedCommand : ILitCommand {
 
     public static UnsupportedCommand Parse(string line) {

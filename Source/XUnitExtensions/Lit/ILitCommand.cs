@@ -10,7 +10,7 @@ using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace XUnitExtensions {
+namespace XUnitExtensions.Lit {
   public interface ILitCommand {
 
     private const string COMMENT_PREFIX = "//";

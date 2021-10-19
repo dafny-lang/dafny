@@ -8,6 +8,7 @@ using Microsoft.Dafny;
 using Xunit;
 using Xunit.Abstractions;
 using XUnitExtensions;
+using XUnitExtensions.Lit;
 
 [assembly: TestCollectionOrderer("XUnitExtensions.TestCollectionShardFilter", "XUnitExtensions")]
 

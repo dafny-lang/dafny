@@ -1,7 +1,7 @@
 using System.IO;
 using Xunit.Abstractions;
 
-namespace XUnitExtensions {
+namespace XUnitExtensions.Lit {
   public class XFailCommand : ILitCommand {
 
     public XFailCommand() { }

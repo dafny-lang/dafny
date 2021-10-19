@@ -6,7 +6,7 @@ using System.Reflection;
 using System.Text;
 using Xunit.Abstractions;
 
-namespace XUnitExtensions {
+namespace XUnitExtensions.Lit {
   public class MainMethodLitCommand : ILitCommand {
     public LitTestConfiguration Config { get; protected set; }
     public Assembly Assembly { get; protected set; }
