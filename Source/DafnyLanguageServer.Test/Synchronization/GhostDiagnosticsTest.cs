@@ -64,7 +64,6 @@ method Multiply(x: int, y: int) returns (product: int)
       var diagnostics = report.Diagnostics.ToArray();
       Assert.AreEqual(1, diagnostics.Length);
       Assert.AreEqual("Ghost function", diagnostics[0].Message);
-      Assert.AreEqual(DiagnosticTag.Unnecessary, diagnostics[0].Tags.Single());
       Assert.AreEqual(new Range((0, 9), (2, 1)), diagnostics[0].Range);
     }
 
