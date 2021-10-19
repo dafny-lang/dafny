@@ -29,8 +29,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         .AddSingleton<ISymbolResolver, DafnyLangSymbolResolver>()
         .AddSingleton<IProgramVerifier>(CreateVerifier)
         .AddSingleton<ISymbolTableFactory, SymbolTableFactory>()
-        .AddSingleton<IGhostStateDiagnosticCollector, GhostStateDiagnosticCollector>()
-        .AddSingleton<IDiagnosticPublisher, DiagnosticPublisher>();
+        .AddSingleton<IGhostStateDiagnosticCollector, GhostStateDiagnosticCollector>();
     }
 
     private static DafnyProgramVerifier CreateVerifier(IServiceProvider serviceProvider) {

@@ -5,7 +5,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Server;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Microsoft.Dafny.LanguageServer.Language {
+namespace Microsoft.Dafny.LanguageServer.Workspace {
   public class DiagnosticPublisher : IDiagnosticPublisher {
     private readonly ILanguageServerFacade languageServer;
 

@@ -1,6 +1,7 @@
-﻿using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+﻿using Microsoft.Dafny.LanguageServer.Language;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
-namespace Microsoft.Dafny.LanguageServer.Language {
+namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
   /// Implementations of this interface are responsible to publish the diagnostics
   /// of a <see cref="DafnyDocument"/> to the LSP client.
