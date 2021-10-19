@@ -27,7 +27,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private readonly ISymbolTableFactory symbolTableFactory;
     private readonly IProgramVerifier verifier;
     private readonly ICompilationStatusNotificationPublisher notificationPublisher;
-    private readonly BlockingCollection<LoadRequest> loadRequests = new();
+    private readonly BlockingCollection<Request> requestQueue = new();
 
     private TextDocumentLoader(
       IDafnyParser parser,
@@ -68,18 +68,22 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public async Task<DafnyDocument> LoadAsync(TextDocumentItem textDocument, CancellationToken cancellationToken) {
       var request = new LoadRequest(textDocument, cancellationToken);
-      loadRequests.Add(request, cancellationToken);
+      requestQueue.Add(request, cancellationToken);
       return await request.Document.Task;
     }
 
     private void Run() {
-      foreach (var request in loadRequests.GetConsumingEnumerable()) {
+      foreach (var request in requestQueue.GetConsumingEnumerable()) {
         if (request.CancellationToken.IsCancellationRequested) {
           request.Document.SetCanceled(request.CancellationToken);
           continue;
         }
         try {
-          var document = LoadInternal(request);
+          var document = request switch {
+            LoadRequest loadRequest => LoadInternal(loadRequest),
+            VerifyRequest verifyRequest => VerifyInternal(verifyRequest),
+            _ => throw new ArgumentException($"invalid request type ${request.GetType()}")
+          };
           request.Document.SetResult(document);
         } catch (OperationCanceledException e) {
           request.Document.SetCanceled(e.CancellationToken);
@@ -133,8 +137,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public async Task<DafnyDocument> VerifyAsync(DafnyDocument document, CancellationToken cancellationToken) {
+      var request = new VerifyRequest(document, cancellationToken);
+      requestQueue.Add(request, cancellationToken);
+      return await request.Document.Task;
+    }
+
+    private DafnyDocument VerifyInternal(VerifyRequest verifyRequest) {
+      var (document, cancellationToken) = verifyRequest;
       notificationPublisher.SendStatusNotification(document.Text, CompilationStatus.VerificationStarted);
-      var verificationResult = await verifier.VerifyAsync(document.Program, cancellationToken);
+      var verificationResult = verifier.Verify(document.Program, cancellationToken);
       var compilationStatusAfterVerification = verificationResult.Verified
         ? CompilationStatus.VerificationSucceeded
         : CompilationStatus.VerificationFailed;
@@ -144,8 +155,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       };
     }
 
-    private record LoadRequest(TextDocumentItem TextDocument, CancellationToken CancellationToken) {
+    private record Request(CancellationToken CancellationToken) {
       public TaskCompletionSource<DafnyDocument> Document { get; } = new();
     }
+
+    private record LoadRequest(TextDocumentItem TextDocument, CancellationToken CancellationToken) : Request(CancellationToken);
+
+    private record VerifyRequest(DafnyDocument OriginalDocument, CancellationToken CancellationToken) : Request(CancellationToken);
   }
 }
