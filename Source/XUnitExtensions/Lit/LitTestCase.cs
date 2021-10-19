@@ -9,14 +9,15 @@ using Xunit.Abstractions;
 namespace XUnitExtensions.Lit {
   public class LitTestCase {
 
-    private string filePath;
-    private IEnumerable<ILitCommand> commands;
-    private bool expectFailure;
+    private readonly string filePath;
+    private readonly IEnumerable<ILitCommand> commands;
+    private readonly bool expectFailure;
 
     public static LitTestCase Read(string filePath, LitTestConfiguration config) {
       var commands = File.ReadAllLines(filePath)
         .Select(line => ILitCommand.Parse(filePath, line, config))
-        .Where(c => c != null);
+        .Where(c => c != null)
+        .ToArray();
       var xfail = commands.Any(c => c is XFailCommand);
       foreach (var unsupported in commands.OfType<UnsupportedCommand>()) {
         foreach (var feature in config.Features) {

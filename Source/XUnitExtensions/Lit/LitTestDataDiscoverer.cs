@@ -25,7 +25,7 @@ namespace XUnitExtensions.Lit {
   }
 }
 
-[DataDiscoverer("XUnitExtensions.LitTestDataDiscoverer", "XUnitExtensions")]
+[DataDiscoverer("XUnitExtensions.Lit.LitTestDataDiscoverer", "XUnitExtensions")]
 public class LitTestDataAttribute : FileDataAttribute {
 
 }

@@ -47,11 +47,11 @@ namespace IntegrationTests {
           MainWithArguments(dafnyDriverAssembly, defaultDafnyArguments.Concat(args), config, false) },
         { "%server", (args, config) =>
           MainWithArguments(dafnyServerAssembly, args, config, false) },
+        { "%diff", (args, config) =>
+          DiffCommand.Parse(args.ToArray()) },
       },
 
       Substitions = new Dictionary<string, string> {
-        // TODO: speed this up by using AssertWithDiff
-        { "%diff", "diff" },
         { "%binaryDir", "." },
         { "%z3", Path.Join("z3", "bin", "z3") },
         { "%refmanexamples", Path.Join("TestFiles", "LitTests", "LitTest", "refman", "examples") }
