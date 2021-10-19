@@ -8,7 +8,7 @@ namespace XUnitExtensions {
   public class TestCollectionShardFilter : ITestCollectionOrderer {
     public IEnumerable<ITestCollection> OrderTestCollections(IEnumerable<ITestCollection> testCollections) {
       var sorted = testCollections.OrderBy(c => c.DisplayName);
-      
+
       // Select the requested fraction of the test collections if using the XUNIT_SHARD[_COUNT] environment variables.
       var shardEnvVar = Environment.GetEnvironmentVariable("XUNIT_SHARD");
       var numShardsEnvVar = Environment.GetEnvironmentVariable("XUNIT_SHARD_COUNT");

@@ -70,7 +70,7 @@ namespace IntegrationTests {
           new ShellLitCommand(config, Path.Join(dafnyReleaseDir, "DafnyServer"), args, config.PassthroughEnvironmentVariables);
         CONFIG.Substitions["%z3"] = Path.Join(dafnyReleaseDir, "z3", "bin", "z3");
       }
-      
+
       if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
         CONFIG.Features = new[] { "ubuntu", "posix" };
       } else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
@@ -93,7 +93,7 @@ namespace IntegrationTests {
     public void LitTest(string path) {
       LitTestCase.Run(path, CONFIG, output);
     }
-    
+
     [FileTheory]
     [LitTestData(Path = "TestFiles/LitTests/LitTest", Extension = ".transcript")]
     public void DafnyServerTest(string path) {

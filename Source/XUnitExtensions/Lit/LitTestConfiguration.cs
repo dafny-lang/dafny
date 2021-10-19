@@ -13,7 +13,7 @@ namespace XUnitExtensions.Lit {
     public Dictionary<string, Func<IEnumerable<string>, LitTestConfiguration, ILitCommand>> Commands { get; set; }
 
     public IEnumerable<string> PassthroughEnvironmentVariables { get; set; }
-    
+
     public string[] Features { get; set; }
 
     public string ApplySubstitutions(string s) {

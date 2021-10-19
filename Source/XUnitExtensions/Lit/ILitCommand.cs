@@ -19,7 +19,7 @@ namespace XUnitExtensions.Lit {
       CommandClasses.Add("UNSUPPORTED:", typeof(UnsupportedCommand));
       CommandClasses.Add("XFAIL:", typeof(XFailCommand));
     }
-    
+
     public static ILitCommand? Parse(string line, LitTestConfiguration config) {
       foreach (var (keyword, type) in CommandClasses) {
         var index = line.IndexOf(keyword);
@@ -73,14 +73,14 @@ namespace XUnitExtensions.Lit {
 
       return arguments.ToArray();
     }
-    
-    protected static IEnumerable<string> ExpandGlobs(string chunk ) {
+
+    protected static IEnumerable<string> ExpandGlobs(string chunk) {
       var matcher = new Matcher();
       matcher.AddInclude(chunk);
       var result = matcher.Execute(new DirectoryInfoWrapper(new DirectoryInfo(".")));
       return result.Files.Select(f => f.Path);
     }
-    
+
     public (int, string, string) Execute(ITestOutputHelper outputHelper, TextReader? inputReader, TextWriter? outputWriter, TextWriter? errorWriter);
   }
 }

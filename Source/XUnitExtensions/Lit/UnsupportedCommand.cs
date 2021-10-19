@@ -12,13 +12,13 @@ namespace XUnitExtensions.Lit {
       var features = line.Split(",", StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim());
       return new UnsupportedCommand(features);
     }
-    
+
     public IEnumerable<string> Features { get; }
 
     public UnsupportedCommand(IEnumerable<string> features) {
       Features = features;
     }
-    
+
     public (int, string, string) Execute(ITestOutputHelper outputHelper, TextReader? inputReader, TextWriter? outputWriter, TextWriter? errorWriter) {
       return (0, "", "");
     }

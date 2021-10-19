@@ -22,7 +22,7 @@ namespace XUnitExtensions.Lit {
 
     public (int, string, string) Execute(ITestOutputHelper outputHelper, TextReader? inputReader, TextWriter? outputWriter, TextWriter? errorWriter) {
       using var process = new Process();
-      
+
       process.StartInfo.FileName = shellCommand;
       foreach (var argument in arguments) {
         process.StartInfo.ArgumentList.Add(argument);
