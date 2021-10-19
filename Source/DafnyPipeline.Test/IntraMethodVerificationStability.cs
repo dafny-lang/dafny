@@ -10,7 +10,9 @@ using Parser = Microsoft.Dafny.Parser;
 using Type = System.Type;
 
 namespace DafnyPipeline.Test {
-
+  // Main.Resolve has static shared state (TypeConstraint.ErrorsToBeReported for example)
+  // so we can't execute tests that use it in parallel.
+  [Collection("Singleton Test Collection - Resolution")]
   public class IntraMethodVerificationStability {
     [Fact]
     public void NoUniqueLinesWhenConcatenatingUnrelatedPrograms() {

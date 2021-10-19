@@ -316,7 +316,7 @@ let _dafny = (function() {
       }
     }
     contains(k) {
-      return this.findIndex(k) < this.length;
+      return !this.get(k).isZero();
     }
     add(k, n) {
       let i = this.findIndex(k);
@@ -346,8 +346,6 @@ let _dafny = (function() {
     equals(other) {
       if (this === other) {
         return true;
-      } else if (this.length !== other.length) {
-        return false;
       }
       for (let e of this) {
         let [k, n] = e;
@@ -356,7 +354,7 @@ let _dafny = (function() {
           return false;
         }
       }
-      return true;
+      return this.cardinality().isEqualTo(other.cardinality());
     }
     get Elements() {
       return this.Elements_();
@@ -376,7 +374,9 @@ let _dafny = (function() {
     *UniqueElements_() {
       for (let e of this) {
         let [k, n] = e;
-        yield k;
+        if (!n.isZero()) {
+          yield k;
+        }
       }
     }
     Union(that) {
@@ -427,12 +427,9 @@ let _dafny = (function() {
     }
     IsDisjointFrom(that) {
       let intersection = this.Intersect(that);
-      return intersection.length === 0;
+      return intersection.cardinality().isZero();
     }
     IsSubsetOf(that) {
-      if (that.length < this.length) {
-        return false;
-      }
       for (let e of this) {
         let [k, n] = e;
         let m = that.get(k);
@@ -443,20 +440,7 @@ let _dafny = (function() {
       return true;
     }
     IsProperSubsetOf(that) {
-      if (that.length < this.length) {
-        return false;
-      }
-      let proper = this.length < that.length;
-      for (let e of this) {
-        let [k, n] = e;
-        let m = that.get(k);
-        if (!n.isLessThanOrEqualTo(m)) {
-          return false;
-        } else if (!proper && n.isLessThan(m)) {
-          proper = true;
-        }
-      }
-      return proper;
+      return this.IsSubsetOf(that) && this.cardinality().isLessThan(that.cardinality());
     }
   }
   $module.Seq = class Seq extends Array {

@@ -995,7 +995,7 @@ the loop. This information is provided by a ``LoopSpec``. A
 ``LoopSpec`` provides information about invariants, termination, and
 what the loop modifies.
 For additional tutorial information see [@KoenigLeino:MOD2011] or the
-[online Dafny tutorial](http://rise4fun.com/Dafny/tutorial/Guide).
+[online Dafny tutorial](../OnlineTutorial/guide).
 
 ### 19.14.1. Loop Invariants
 

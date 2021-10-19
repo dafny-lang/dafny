@@ -10,6 +10,9 @@ using Microsoft.VisualStudio.TestPlatform.PlatformAbstractions;
 using Xunit;
 
 namespace DafnyPipeline.Test {
+  // Main.Resolve has static shared state (TypeConstraint.ErrorsToBeReported for example)
+  // so we can't execute tests that use it in parallel.
+  [Collection("Singleton Test Collection - Resolution")]
   public class InterMethodVerificationStability {
     [Fact]
     public void CreatingBoogieVariableNameCollisionsHasExpectedDiff() {

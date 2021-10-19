@@ -52,7 +52,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest {
         .AddFilter("OmniSharp", LogLevel.Warning);
     }
 
-    protected TextDocumentItem CreateTestDocument(string source, string filePath = "test.dfy", int version = 1) {
+    protected static TextDocumentItem CreateTestDocument(string source, string filePath = "test.dfy", int version = 1) {
       return new TextDocumentItem {
         LanguageId = LanguageId,
         Text = source,
@@ -61,7 +61,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest {
       };
     }
 
-    protected void OpenDocument(ILanguageClient client, TextDocumentItem document) {
+    protected static void OpenDocument(ILanguageClient client, TextDocumentItem document) {
       client.DidOpenTextDocument(new DidOpenTextDocumentParams {
         TextDocument = document
       });

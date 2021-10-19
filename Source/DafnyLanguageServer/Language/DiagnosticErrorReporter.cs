@@ -7,7 +7,7 @@ using System.Collections.Generic;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   public class DiagnosticErrorReporter : ErrorReporter {
-    private const MessageSource verifierMessageSource = MessageSource.Other;
+    private const MessageSource VerifierMessageSource = MessageSource.Other;
     private const string RelatedLocationCategory = "Related location";
     private const string RelatedLocationMessage = RelatedLocationCategory;
 
@@ -38,7 +38,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           // line=0 and character=0. These positions cause errors when exposing them, Furthermore,
           // the execution trace message appears to not have any interesting information.
           if (auxiliaryInformation.Tok.line > 0) {
-            Info(verifierMessageSource, auxiliaryInformation.Tok, auxiliaryInformation.Msg);
+            Info(VerifierMessageSource, auxiliaryInformation.Tok, auxiliaryInformation.Msg);
           }
         }
       }
@@ -48,7 +48,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           Message = error.Msg,
           Range = error.Tok.GetLspRange(),
           RelatedInformation = relatedInformation,
-          Source = verifierMessageSource.ToString()
+          Source = VerifierMessageSource.ToString()
         },
         GetDocumentUriOrDefault(error.Tok)
       );

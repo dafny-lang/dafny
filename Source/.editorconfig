@@ -24,6 +24,7 @@ csharp_new_line_before_else = false
 
 #### Naming rules
 
+##### Private mutable fields
 dotnet_naming_rule.private_members.symbols  = private_fields
 dotnet_naming_rule.private_members.style    = private
 dotnet_naming_rule.private_members.severity = suggestion
@@ -31,5 +32,28 @@ dotnet_naming_rule.private_members.severity = suggestion
 dotnet_naming_symbols.private_fields.applicable_kinds           = field
 dotnet_naming_symbols.private_fields.applicable_accessibilities = private
 
-dotnet_naming_style.private.capitalization = camel_case
+dotnet_naming_style.private.capitalization  = camel_case
 dotnet_naming_style.private.required_prefix = 
+
+
+##### Constants
+dotnet_naming_rule.constant_members.symbols  = constant_fields
+dotnet_naming_rule.constant_members.style    = constant
+dotnet_naming_rule.constant_members.severity = suggestion
+
+dotnet_naming_symbols.constant_fields.applicable_kinds   = field
+dotnet_naming_symbols.constant_fields.required_modifiers = const
+
+dotnet_naming_style.constant.capitalization  = pascal_case
+dotnet_naming_style.constant.required_prefix = 
+
+##### static readonly fields
+dotnet_naming_rule.static_readonly_members.symbols  = static_readonly_fields
+dotnet_naming_rule.static_readonly_members.style    = static_readonly
+dotnet_naming_rule.static_readonly_members.severity = suggestion
+
+dotnet_naming_symbols.static_readonly_fields.applicable_kinds   = field
+dotnet_naming_symbols.static_readonly_fields.required_modifiers = static,readonly
+
+dotnet_naming_style.static_readonly.capitalization  = pascal_case
+dotnet_naming_style.static_readonly.required_prefix = 

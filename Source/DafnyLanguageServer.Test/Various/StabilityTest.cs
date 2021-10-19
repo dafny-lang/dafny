@@ -13,8 +13,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
   /// </summary>
   [TestClass]
   public class StabilityTest : DafnyLanguageServerTestBase {
-    private ILanguageClient _client;
     private const int MaxTestExecutionTimeMs = 60000;
+
+    private ILanguageClient client;
 
     private async Task<TextDocumentItem> CreateTextDocumentFromFileAsync(string fileName) {
       var filePath = Path.Combine("Various", "TestFiles", fileName);
@@ -24,14 +25,14 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     [TestInitialize]
     public async Task SetUp() {
-      _client = await InitializeClient();
+      client = await InitializeClient();
     }
 
     [TestMethod]
     [Timeout(MaxTestExecutionTimeMs)]
     public async Task GhcMergeSort() {
       var documentItem = await CreateTextDocumentFromFileAsync("GHC-MergeSort.dfy");
-      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       Assert.IsNotNull(await Documents.GetDocumentAsync(documentItem.Uri));
     }
 
@@ -39,7 +40,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     [Timeout(MaxTestExecutionTimeMs)]
     public async Task GenericSort() {
       var documentItem = await CreateTextDocumentFromFileAsync("GenericSort.dfy");
-      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       Assert.IsNotNull(await Documents.GetDocumentAsync(documentItem.Uri));
     }
 
@@ -53,7 +54,7 @@ method NestedExpression() {
   assert var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; var three := 3; true;
 }";
       var documentItem = CreateTestDocument(source);
-      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       Assert.IsNotNull(await Documents.GetDocumentAsync(documentItem.Uri));
     }
   }
