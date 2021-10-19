@@ -49,7 +49,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
     public async Task LoadReturnsCanceledTaskIfOperationIsCanceled() {
       parser.Setup(p => p.Parse(It.IsAny<TextDocumentItem>(), It.IsAny<ErrorReporter>(), It.IsAny<CancellationToken>()))
         .Throws<OperationCanceledException>();
-      var task = textDocumentLoader.LoadAsync(CreateTestDocument(), true, default);
+      var task = textDocumentLoader.LoadAsync(CreateTestDocument(), default);
       try {
         await task;
         Assert.Fail("document load was not cancelled");
@@ -64,7 +64,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
     public async Task LoadReturnsFaultedTaskIfAnyExceptionOccured() {
       parser.Setup(p => p.Parse(It.IsAny<TextDocumentItem>(), It.IsAny<ErrorReporter>(), It.IsAny<CancellationToken>()))
         .Throws<InvalidOperationException>();
-      var task = textDocumentLoader.LoadAsync(CreateTestDocument(), true, default);
+      var task = textDocumentLoader.LoadAsync(CreateTestDocument(), default);
       try {
         await task;
         Assert.Fail("document load did not fail");
