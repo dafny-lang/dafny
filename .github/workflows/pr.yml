@@ -16,6 +16,5 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       - uses: wow-actions/semantic-pull-requests@v1.0.0
-
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
