@@ -24,10 +24,10 @@ namespace XUnitExtensions {
     public override IEnumerable<object[]> GetData(MethodInfo testMethod) {
       var matcher = new Matcher();
 
-      foreach(var include in Includes) {
+      foreach (var include in Includes) {
         matcher.AddInclude(include);
       }
-      foreach(var exclude in Excludes) {
+      foreach (var exclude in Excludes) {
         matcher.AddExclude(exclude);
       }
 
@@ -44,7 +44,7 @@ namespace XUnitExtensions {
           TestDisplayName = file.Stem,
         };
         return new[] { row };
-      }); 
+      });
     }
   }
 }
