@@ -204,7 +204,7 @@ namespace Microsoft.Dafny {
         var SCCs = module.CallGraph.TopologicallySortedComponents();
         SCCs.Reverse();
         foreach (var clbl in SCCs) {
-          Indent(indent); wr.WriteLine(" * SCC at height {0}:", module.CallGraph.GetSCCRepresentativeId(clbl));
+          Indent(indent); wr.WriteLine(" * SCC at height {0}:", module.CallGraph.GetSCCRepresentativePredecessorCount(clbl));
           var r = module.CallGraph.GetSCC(clbl);
           foreach (var m in r) {
             Indent(indent);
@@ -374,9 +374,14 @@ namespace Microsoft.Dafny {
               wr.Write(dd.ResolvedHash);
               wr.Write("*/");
             }
-            wr.Write(" {0} ", dd.Name);
-            wr.Write("= {0}", dd.TargetQId.ToString());
-            if (dd.Exports.Count > 0) {
+            wr.Write(" {0}", dd.Name);
+            if (dd.Name != dd.TargetQId.ToString()) {
+              wr.Write(" = {0}", dd.TargetQId.ToString());
+            }
+            if (dd.Exports.Count == 1) {
+              wr.Write("`{0}", dd.Exports[0].val);
+            }
+            if (dd.Exports.Count > 1) {
               wr.Write("`{{{0}}}", Util.Comma(dd.Exports, id => id.val));
             }
             wr.WriteLine();

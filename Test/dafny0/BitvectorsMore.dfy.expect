@@ -3,7 +3,7 @@
 /*
 module _System {
   /* CALL GRAPH for module _System:
-   * SCC at height 2:
+   * SCC at height 1:
    *   RotateRight
    * SCC at height 1:
    *   RotateLeft
@@ -116,51 +116,51 @@ module _System {
 */
 
 /* CALL GRAPH for module _module:
- * SCC at height 23:
+ * SCC at height 0:
  *   TestActualRotate
- * SCC at height 22:
+ * SCC at height 0:
  *   TestActualShifting
- * SCC at height 21:
+ * SCC at height 0:
  *   R
- * SCC at height 20:
+ * SCC at height 0:
  *   Q
- * SCC at height 19:
+ * SCC at height 0:
  *   P
- * SCC at height 18:
+ * SCC at height 0:
  *   N4
- * SCC at height 17:
+ * SCC at height 0:
  *   N3
- * SCC at height 16:
+ * SCC at height 0:
  *   N2
- * SCC at height 15:
+ * SCC at height 0:
  *   N1
- * SCC at height 14:
+ * SCC at height 0:
  *   N0
- * SCC at height 13:
+ * SCC at height 0:
  *   M
- * SCC at height 12:
- *   Rotate
- * SCC at height 11:
- *   Shifts6
- * SCC at height 10:
- *   Shifts5
- * SCC at height 9:
- *   Shifts4
- * SCC at height 8:
- *   Shifts3
- * SCC at height 7:
- *   Shifts2
- * SCC at height 6:
- *   Shifts1
- * SCC at height 5:
- *   Shifts0
- * SCC at height 4:
- *   PQ
- * SCC at height 3:
- *   Handful
- * SCC at height 2:
- *   SmallReal
  * SCC at height 1:
+ *   Rotate
+ * SCC at height 2:
+ *   Shifts6
+ * SCC at height 2:
+ *   Shifts5
+ * SCC at height 2:
+ *   Shifts4
+ * SCC at height 2:
+ *   Shifts3
+ * SCC at height 2:
+ *   Shifts2
+ * SCC at height 2:
+ *   Shifts1
+ * SCC at height 2:
+ *   Shifts0
+ * SCC at height 1:
+ *   PQ
+ * SCC at height 0:
+ *   Handful
+ * SCC at height 0:
+ *   SmallReal
+ * SCC at height 0:
  *   EvenInt
  * SCC at height 0:
  *   nat

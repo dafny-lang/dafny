@@ -2953,7 +2953,7 @@ namespace Microsoft.Dafny {
       // useViaContext: (mh != ModuleContextHeight || fh != FunctionContextHeight)
       var mod = f.EnclosingClass.EnclosingModuleDefinition;
       Bpl.Expr useViaContext = !InVerificationScope(f) ? Bpl.Expr.True :
-        (Bpl.Expr)Bpl.Expr.Neq(Bpl.Expr.Literal(mod.CallGraph.GetSCCRepresentativeId(f)), etran.FunctionContextHeight());
+        (Bpl.Expr)Bpl.Expr.Neq(Bpl.Expr.Literal(mod.CallGraph.GetSCCRepresentativePredecessorCount(f)), etran.FunctionContextHeight());
       // useViaCanCall: f#canCall(args)
       Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName + "#canCall", Bpl.Type.Bool);
       Bpl.Expr useViaCanCall = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(canCallFuncID), Concat(tyargs, args));
@@ -3001,7 +3001,7 @@ namespace Microsoft.Dafny {
 
       if (InVerificationScope(f)) {
         return
-          Bpl.Expr.Le(Bpl.Expr.Literal(module.CallGraph.GetSCCRepresentativeId(f)), etran.FunctionContextHeight());
+          Bpl.Expr.Le(Bpl.Expr.Literal(module.CallGraph.GetSCCRepresentativePredecessorCount(f)), etran.FunctionContextHeight());
       } else {
         return Bpl.Expr.True;
       }
@@ -3231,7 +3231,7 @@ namespace Microsoft.Dafny {
       // useViaContext: (mh != ModuleContextHeight || fh != FunctionContextHeight)
       ModuleDefinition mod = f.EnclosingClass.EnclosingModuleDefinition;
       Bpl.Expr useViaContext = !InVerificationScope(f) ? (Bpl.Expr)Bpl.Expr.True :
-        Bpl.Expr.Neq(Bpl.Expr.Literal(mod.CallGraph.GetSCCRepresentativeId(f)), etran.FunctionContextHeight());
+        Bpl.Expr.Neq(Bpl.Expr.Literal(mod.CallGraph.GetSCCRepresentativePredecessorCount(f)), etran.FunctionContextHeight());
       // ante := (useViaContext && typeAnte && pre)
       ante = BplAnd(useViaContext, BplAnd(ante, pre));
 
@@ -3410,7 +3410,7 @@ namespace Microsoft.Dafny {
       // useViaContext: (mh != ModuleContextHeight || fh != FunctionContextHeight)
       ModuleDefinition mod = f.EnclosingClass.EnclosingModuleDefinition;
       Bpl.Expr useViaContext = !InVerificationScope(overridingFunction) ? (Bpl.Expr)Bpl.Expr.True :
-        Bpl.Expr.Neq(Bpl.Expr.Literal(mod.CallGraph.GetSCCRepresentativeId(overridingFunction)), etran.FunctionContextHeight());
+        Bpl.Expr.Neq(Bpl.Expr.Literal(mod.CallGraph.GetSCCRepresentativePredecessorCount(overridingFunction)), etran.FunctionContextHeight());
 
       Bpl.Expr funcAppl;
       {
@@ -4040,7 +4040,7 @@ namespace Microsoft.Dafny {
         AddWellformednessCheck(cf);
         if (InVerificationScope(cf)) {
           var etran = new ExpressionTranslator(this, predef, f.tok);
-          heightAntecedent = Bpl.Expr.Lt(Bpl.Expr.Literal(cf.EnclosingModule.CallGraph.GetSCCRepresentativeId(cf)), etran.FunctionContextHeight());
+          heightAntecedent = Bpl.Expr.Lt(Bpl.Expr.Literal(cf.EnclosingModule.CallGraph.GetSCCRepresentativePredecessorCount(cf)), etran.FunctionContextHeight());
         }
       }
 
@@ -4506,7 +4506,7 @@ namespace Microsoft.Dafny {
         // mark the end of the modifles/out-parameter havocking with a CaptureState; make its location be the first ensures clause, if any (and just
         // omit the CaptureState if there's no ensures clause)
         if (m.Ens.Count != 0) {
-          builder.Add(CaptureState(m.Ens[0].E.tok, false, "post-state"));
+          builder.AddCaptureState(m.Ens[0].E.tok, false, "post-state");
         }
 
         // check wellformedness of postconditions
@@ -5522,11 +5522,11 @@ namespace Microsoft.Dafny {
       // set up the information used to verify the method's modifies clause
       DefineFrame(m.tok, m.Mod.Expressions, builder, localVariables, null);
       if (wellformednessProc) {
-        builder.Add(CaptureState(m.tok, false, "initial state"));
+        builder.AddCaptureState(m.tok, false, "initial state");
       } else {
         Contract.Assert(m.Body != null);  // follows from precondition and the if guard
         // use the position immediately after the open-curly-brace of the body
-        builder.Add(CaptureState(m.Body.Tok, true, "initial state"));
+        builder.AddCaptureState(m.Body.Tok, true, "initial state");
       }
     }
 
@@ -5545,21 +5545,7 @@ namespace Microsoft.Dafny {
       iteratorFrame.Add(new FrameExpression(iter.tok, th, null));
       iteratorFrame.AddRange(iter.Modifies.Expressions);
       DefineFrame(iter.tok, iteratorFrame, builder, localVariables, null);
-      builder.Add(CaptureState(iter.tok, false, "initial state"));
-    }
-
-    Bpl.Cmd CaptureState(IToken tok, bool isEndToken, string/*?*/ additionalInfo) {
-      Contract.Requires(tok != null);
-      Contract.Ensures(Contract.Result<Bpl.Cmd>() != null);
-      var col = tok.col + (isEndToken ? tok.val.Length : 0);
-      string description = String.Format("{0}{1}", ErrorReporter.TokenToString(tok), additionalInfo == null ? "" : (": " + additionalInfo));
-      QKeyValue kv = new QKeyValue(tok, "captureState", new List<object>() { description }, null);
-      return TrAssumeCmd(tok, Bpl.Expr.True, kv);
-    }
-    Bpl.Cmd CaptureState(Statement stmt) {
-      Contract.Requires(stmt != null);
-      Contract.Ensures(Contract.Result<Bpl.Cmd>() != null);
-      return CaptureState(stmt.EndTok, true, null);
+      builder.AddCaptureState(iter.tok, false, "initial state");
     }
 
     void DefineFrame(IToken/*!*/ tok, List<FrameExpression/*!*/>/*!*/ frameClause,
@@ -5936,7 +5922,7 @@ namespace Microsoft.Dafny {
       // check that postconditions hold
       var ens = new List<Bpl.Ensures>();
       foreach (AttributedExpression p in f.Ens) {
-        var functionHeight = currentModule.CallGraph.GetSCCRepresentativeId(f);
+        var functionHeight = currentModule.CallGraph.GetSCCRepresentativePredecessorCount(f);
         var splits = new List<SplitExprInfo>();
         bool splitHappened /*we actually don't care*/ = TrSplitExpr(p.E, splits, true, functionHeight, true, true, etran);
         string errorMessage = CustomErrorMessage(p.Attributes);
@@ -5970,7 +5956,7 @@ namespace Microsoft.Dafny {
         builder.Add(Bpl.Cmd.SimpleAssign(f.tok, heap, etran.HeapExpr));
         etran = ordinaryEtran;  // we no longer need the special heap names
       }
-      builder.Add(CaptureState(f.tok, false, "initial state"));
+      builder.AddCaptureState(f.tok, false, "initial state");
 
       DefineFrame(f.tok, f.Reads, builder, locals, null);
       InitializeFuelConstant(f.tok, builder, etran);
@@ -6174,7 +6160,7 @@ namespace Microsoft.Dafny {
       var locals = new List<Variable>();
       var builder = new BoogieStmtListBuilder(this);
       builder.Add(new CommentCmd(string.Format("AddWellformednessCheck for {0} {1}", decl.WhatKind, decl)));
-      builder.Add(CaptureState(decl.tok, false, "initial state"));
+      builder.AddCaptureState(decl.tok, false, "initial state");
       isAllocContext = new IsAllocContext(true);
 
       DefineFrame(decl.tok, new List<FrameExpression>(), builder, locals, null);
@@ -6220,7 +6206,7 @@ namespace Microsoft.Dafny {
       } else if (decl.WitnessKind == SubsetTypeDecl.WKind.CompiledZero) {
         var witness = Zero(decl.tok, decl.Var.Type);
         var errMsg = "cannot find witness that shows type is inhabited";
-        var hintMsg = "; try giving a hint through a 'witness' or 'ghost witness' clause, or use 'ghost *' to treat as a possibly empty type";
+        var hintMsg = "; try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type";
         if (witness == null) {
           witnessCheckBuilder.Add(Assert(decl.tok, Bpl.Expr.False, $"{errMsg}{hintMsg}"));
         } else {
@@ -6326,7 +6312,7 @@ namespace Microsoft.Dafny {
       var locals = new List<Variable>();
       var builder = new BoogieStmtListBuilder(this);
       builder.Add(new CommentCmd(string.Format("AddWellformednessCheck for {0} {1}", decl.WhatKind, decl)));
-      builder.Add(CaptureState(decl.tok, false, "initial state"));
+      builder.AddCaptureState(decl.tok, false, "initial state");
       isAllocContext = new IsAllocContext(true);
 
       DefineFrame(decl.tok, new List<FrameExpression>(), builder, locals, null);
@@ -6397,7 +6383,7 @@ namespace Microsoft.Dafny {
       var locals = new List<Variable>();
       var builder = new BoogieStmtListBuilder(this);
       builder.Add(new CommentCmd(string.Format("AddWellformednessCheck for datatype constructor {0}", ctor)));
-      builder.Add(CaptureState(ctor.tok, false, "initial state"));
+      builder.AddCaptureState(ctor.tok, false, "initial state");
       isAllocContext = new IsAllocContext(true);
 
       DefineFrame(ctor.tok, new List<FrameExpression>(), builder, locals, null);
@@ -13154,7 +13140,7 @@ namespace Microsoft.Dafny {
         var f = fexp.Function;
         Contract.Assert(f != null);  // filled in during resolution
         var module = f.EnclosingClass.EnclosingModuleDefinition;
-        var functionHeight = module.CallGraph.GetSCCRepresentativeId(f);
+        var functionHeight = module.CallGraph.GetSCCRepresentativePredecessorCount(f);
 
         if (functionHeight < heightLimit && f.Body != null && RevealedInScope(f) && !(f.Body.Resolved is MatchExpr)) {
           if (RefinementToken.IsInherited(fexp.tok, currentModule) &&

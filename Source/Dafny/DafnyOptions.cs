@@ -100,6 +100,7 @@ namespace Microsoft.Dafny {
     public int Allocated = 3;
     public bool UseStdin = false;
     public bool ShowSnippets = false;
+    public bool WarningsAsErrors = false;
     [CanBeNull] private TestGenerationOptions testGenOptions = null;
 
     public virtual TestGenerationOptions TestGenOptions =>
@@ -410,6 +411,10 @@ namespace Microsoft.Dafny {
             }
             return true;
           }
+
+        case "warningsAsErrors":
+          WarningsAsErrors = true;
+          return true;
       }
 
       // Unless this is an option for test generation, defer to superclass
@@ -860,6 +865,8 @@ $@"
     or type definitions during translation.
 /stdin
     Read standard input and treat it as an input .dfy file.
+/warningsAsErrors
+    Treat warnings as errors.
 {TestGenOptions.Help}
 
 Dafny generally accepts Boogie options and passes these on to Boogie. However,

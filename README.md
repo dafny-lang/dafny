@@ -19,13 +19,9 @@ You can ask questions about Dafny on [Stack Overflow](https://stackoverflow.com/
 
 # Try Dafny
 
-The easiest way to get started with Dafny is to use [rise4fun](http://rise4fun.com/dafny), where you can write and verify Dafny programs without having install anything. On [rise4fun](http://rise4fun.com/dafny), you will also find the online Dafny tutorial.
-It is also easy to [install Dafny on your own machine](https://github.com/dafny-lang/dafny/wiki/INSTALL) in VS Code, which gives you a much better user experience than in the web browser.
-
-# Setup
-
-See [installation instructions](https://github.com/dafny-lang/dafny/wiki/INSTALL) on the wiki
-and instructions for installing the [Dafny mode for Emacs](https://github.com/boogie-org/boogie-friends).
+The easiest way to try out Dafny is to [install Dafny on your own machine in Visual Studio Code](https://github.com/dafny-lang/dafny/wiki/INSTALL#visual-studio-code)
+and follow along with the [Dafny tutorial](https://dafny-lang.github.io/dafny/OnlineTutorial/guide).
+You can also [download and install](https://github.com/dafny-lang/dafny/wiki/INSTALL#install-the-binaries) the Dafny CLI if you prefer to work from the command line.
 
 # Read more
 
@@ -37,12 +33,13 @@ Here are some ways to get started with Dafny:
   - Lecture 2: [Binary search](https://youtu.be/-_tx3lk7yn4) (21:14)
   - Lecture 3: [Dutch National Flag algorithm](https://youtu.be/dQC5m-GZYbk) (20:33)
 * New overview article: [Accessible Software Verification with Dafny](https://www.computer.org/csdl/mags/so/2017/06/mso2017060094-abs.html), IEEE Software, Nov/Dec 2017
-* [Online tutorial](http://rise4fun.com/Dafny/tutorial/guide), focusing mostly on simple imperative programs
+* [Online tutorial](https://dafny-lang.github.io/dafny/OnlineTutorial/guide), focusing mostly on simple imperative programs
 * [3-page tutorial notes](http://leino.science/papers/krml233.pdf) with examples (ICSE 2013)
 * Dafny [Quick Reference](https://dafny-lang.github.io/dafny/QuickReference)
 * Language reference for the [Dafny type system](http://leino.science/papers/krml243.html), which also describes available expressions for each type
 * [Cheatsheet](https://docs.google.com/document/d/1kz5_yqzhrEyXII96eCF1YoHZhnb_6dzv-K3u79bMMis/edit?pref=2&pli=1): basic Dafny syntax on two pages
 * Dafny Reference Manual [[html](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef)] [[pdf](https://github.com/dafny-lang/dafny/blob/master/docs/DafnyRef/out/DafnyRef.pdf)]
+* [Dafny libraries](https://github.com/dafny-lang/libraries), a standard library of useful Dafny functions and lemmas
 * [Dafny Power User](http://leino.science/dafny-power-user)
 * Videos at [Verification Corner](https://www.youtube.com/channel/UCP2eLEql4tROYmIYm5mA27A)
 

@@ -10,7 +10,10 @@ using Microsoft.VisualStudio.TestPlatform.PlatformAbstractions;
 using Xunit;
 
 namespace DafnyPipeline.Test {
-  public class VerificationStability {
+  // Main.Resolve has static shared state (TypeConstraint.ErrorsToBeReported for example)
+  // so we can't execute tests that use it in parallel.
+  [Collection("Singleton Test Collection - Resolution")]
+  public class InterMethodVerificationStability {
     [Fact]
     public void CreatingBoogieVariableNameCollisionsHasExpectedDiff() {
       var beforeChange = @"
@@ -168,8 +171,8 @@ method M(heap: object)
       return result.ToString();
     }
 
-    static VerificationStability() {
-      var testAssemblyPath = Assembly.GetAssembly(typeof(VerificationStability)).GetAssemblyLocation();
+    static InterMethodVerificationStability() {
+      var testAssemblyPath = Assembly.GetAssembly(typeof(InterMethodVerificationStability)).GetAssemblyLocation();
       var parts = testAssemblyPath.Split(Path.DirectorySeparatorChar);
       // This way of finding the repository root is not reliable, we should instead reference the DafnyPipeline assembly and run Dafny in the same process as the unit tests.
       var sourceIndex = Array.FindLastIndex(parts, e => e == "Source");

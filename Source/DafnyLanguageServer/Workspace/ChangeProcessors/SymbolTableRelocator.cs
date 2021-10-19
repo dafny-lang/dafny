@@ -1,98 +1,58 @@
 ﻿using IntervalTree;
-using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Threading;
-using System.Threading.Tasks;
 
-namespace Microsoft.Dafny.LanguageServer.Workspace {
-  public class DocumentUpdater : IDocumentUpdater {
-    private readonly ILogger _logger;
-    private readonly DocumentOptions _options;
-    private readonly ITextDocumentLoader _documentLoader;
+namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
+  public class SymbolTableRelocator : ISymbolTableRelocator {
+    private readonly ILogger logger;
 
-    private bool Verify => _options.Verify == AutoVerification.OnChange;
-
-    public DocumentUpdater(ILogger<DocumentUpdater> logger, IOptions<DocumentOptions> options, ITextDocumentLoader documentLoader) {
-      _logger = logger;
-      _options = options.Value;
-      _documentLoader = documentLoader;
+    public SymbolTableRelocator(ILogger<SymbolTableRelocator> logger) {
+      this.logger = logger;
     }
 
-    public async Task<DafnyDocument> ApplyChangesAsync(DafnyDocument oldDocument, DidChangeTextDocumentParams documentChange, CancellationToken cancellationToken) {
-      var changeProcessor = new ChangeProcessor(_logger, oldDocument, documentChange.ContentChanges, cancellationToken);
-      var mergedItem = new TextDocumentItem {
-        LanguageId = oldDocument.Text.LanguageId,
-        Uri = oldDocument.Uri,
-        Version = documentChange.TextDocument.Version,
-        Text = changeProcessor.MigrateText()
-      };
-      var loadedDocument = await _documentLoader.LoadAsync(mergedItem, Verify, cancellationToken);
-      if (!loadedDocument.SymbolTable.Resolved) {
-        return new DafnyDocument(
-          loadedDocument.Text,
-          loadedDocument.Errors,
-          loadedDocument.Program,
-          changeProcessor.MigrateSymbolTable(),
-          // TODO migrate counterexamples?
-          null
-        );
-      }
-      return loadedDocument;
+    public SymbolTable Relocate(SymbolTable originalSymbolTable, DidChangeTextDocumentParams changes, CancellationToken cancellationToken) {
+      return new ChangeProcessor(logger, originalSymbolTable, changes.ContentChanges, cancellationToken).MigrateSymbolTable();
     }
 
     private class ChangeProcessor {
-      private readonly ILogger _logger;
-      private readonly DafnyDocument _originalDocument;
-      private readonly Container<TextDocumentContentChangeEvent> _contentChanges;
-      private readonly CancellationToken _cancellationToken;
+      private readonly ILogger logger;
+      private readonly SymbolTable originalSymbolTable;
+      private readonly Container<TextDocumentContentChangeEvent> contentChanges;
+      private readonly CancellationToken cancellationToken;
 
-      public ChangeProcessor(ILogger logger, DafnyDocument originalDocument, Container<TextDocumentContentChangeEvent> contentChanges, CancellationToken cancellationToken) {
-        _logger = logger;
-        _originalDocument = originalDocument;
-        _contentChanges = contentChanges;
-        _cancellationToken = cancellationToken;
-      }
-
-      public string MigrateText() {
-        var mergedText = _originalDocument.Text.Text;
-        foreach (var change in _contentChanges) {
-          _cancellationToken.ThrowIfCancellationRequested();
-          mergedText = ApplyTextChange(mergedText, change);
-        }
-        return mergedText;
-      }
-
-      private string ApplyTextChange(string previousText, TextDocumentContentChangeEvent change) {
-        if (change.Range == null) {
-          throw new System.InvalidOperationException("the range of the change must not be null");
-        }
-        int absoluteStart = change.Range.Start.ToAbsolutePosition(previousText, _cancellationToken);
-        int absoluteEnd = change.Range.End.ToAbsolutePosition(previousText, _cancellationToken);
-        return previousText[..absoluteStart] + change.Text + previousText[absoluteEnd..];
+      public ChangeProcessor(
+        ILogger logger,
+        SymbolTable originalSymbolTable,
+        Container<TextDocumentContentChangeEvent> contentChanges,
+        CancellationToken cancellationToken
+      ) {
+        this.logger = logger;
+        this.originalSymbolTable = originalSymbolTable;
+        this.contentChanges = contentChanges;
+        this.cancellationToken = cancellationToken;
       }
 
       public SymbolTable MigrateSymbolTable() {
-        var migratedLookupTree = _originalDocument.SymbolTable.LookupTree;
-        var migratedDeclarations = _originalDocument.SymbolTable.Locations;
-        foreach (var change in _contentChanges) {
+        var migratedLookupTree = originalSymbolTable.LookupTree;
+        var migratedDeclarations = originalSymbolTable.Locations;
+        foreach (var change in contentChanges) {
+          cancellationToken.ThrowIfCancellationRequested();
           if (change.Range == null) {
             throw new System.InvalidOperationException("the range of the change must not be null");
           }
-          _cancellationToken.ThrowIfCancellationRequested();
           var afterChangeEndOffset = GetPositionAtEndOfAppliedChange(change.Range, change.Text);
           migratedLookupTree = ApplyLookupTreeChange(migratedLookupTree, change.Range, afterChangeEndOffset);
           migratedDeclarations = ApplyDeclarationsChange(migratedDeclarations, change.Range, afterChangeEndOffset);
         }
-        _logger.LogTrace("migrated the lookup tree, lookup before={SymbolsBefore}, after={SymbolsAfter}",
-          _originalDocument.SymbolTable.LookupTree.Count, migratedLookupTree.Count);
+        logger.LogTrace("migrated the lookup tree, lookup before={SymbolsBefore}, after={SymbolsAfter}",
+          originalSymbolTable.LookupTree.Count, migratedLookupTree.Count);
         return new SymbolTable(
-          _originalDocument.SymbolTable.CompilationUnit,
-          _originalDocument.SymbolTable.Declarations,
+          originalSymbolTable.CompilationUnit,
+          originalSymbolTable.Declarations,
           migratedDeclarations,
           migratedLookupTree,
           false
@@ -100,11 +60,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       private IIntervalTree<Position, ILocalizableSymbol> ApplyLookupTreeChange(
-          IIntervalTree<Position, ILocalizableSymbol> previousLookupTree, Range changeRange, Position afterChangeEndOffset
+        IIntervalTree<Position, ILocalizableSymbol> previousLookupTree,
+        Range changeRange,
+        Position afterChangeEndOffset
       ) {
         var migratedLookupTree = new IntervalTree<Position, ILocalizableSymbol>();
         foreach (var entry in previousLookupTree) {
-          _cancellationToken.ThrowIfCancellationRequested();
+          cancellationToken.ThrowIfCancellationRequested();
           if (IsPositionBeforeChange(changeRange, entry.To)) {
             migratedLookupTree.Add(entry.From, entry.To, entry.Value);
           }
@@ -118,9 +80,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return migratedLookupTree;
       }
 
-      private Position GetPositionAtEndOfAppliedChange(Range changeRange, string changeText) {
+      private static Position GetPositionAtEndOfAppliedChange(Range changeRange, string changeText) {
         var changeStart = changeRange.Start;
-        var changeEof = changeText.GetEofPosition(_cancellationToken);
+        var changeEof = changeText.GetEofPosition();
         var characterOffset = changeEof.Character;
         if (changeEof.Line == 0) {
           characterOffset = changeStart.Character + changeEof.Character;
@@ -147,12 +109,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       private IDictionary<ISymbol, SymbolLocation> ApplyDeclarationsChange(
-          IDictionary<ISymbol, SymbolLocation> previousDeclarations, Range changeRange, Position afterChangeEndOffset
+        IDictionary<ISymbol, SymbolLocation> previousDeclarations,
+        Range changeRange,
+        Position afterChangeEndOffset
       ) {
         var migratedDeclarations = new Dictionary<ISymbol, SymbolLocation>();
         foreach (var (symbol, location) in previousDeclarations) {
-          _cancellationToken.ThrowIfCancellationRequested();
-          if (!_originalDocument.IsDocument(location.Uri)) {
+          cancellationToken.ThrowIfCancellationRequested();
+          if (!originalSymbolTable.CompilationUnit.Program.IsEntryDocument(location.Uri)) {
             migratedDeclarations.Add(symbol, location);
             continue;
           }

@@ -13,9 +13,9 @@ ParallelResolveErrors.dfy(72,19): Error: trying to break out of more loop levels
 ParallelResolveErrors.dfy(76,18): Error: return statement is not allowed inside a forall statement
 ParallelResolveErrors.dfy(83,21): Error: trying to break out of more loop levels than there are enclosing loops
 ParallelResolveErrors.dfy(84,20): Error: trying to break out of more loop levels than there are enclosing loops
-ParallelResolveErrors.dfy(85,20): Error: break label is undefined or not in scope: OutsideLoop
+ParallelResolveErrors.dfy(85,26): Error: break label is undefined or not in scope: OutsideLoop
 ParallelResolveErrors.dfy(94,24): Error: trying to break out of more loop levels than there are enclosing loops
-ParallelResolveErrors.dfy(95,24): Error: break label is undefined or not in scope: OutsideLoop
+ParallelResolveErrors.dfy(95,30): Error: break label is undefined or not in scope: OutsideLoop
 ParallelResolveErrors.dfy(106,5): Error: the body of the enclosing forall statement is not allowed to update heap locations
 ParallelResolveErrors.dfy(114,29): Error: the body of the enclosing forall statement is not allowed to update heap locations, so any call must be to a method with an empty modifies clause
 ParallelResolveErrors.dfy(119,29): Error: the body of the enclosing forall statement is not allowed to update heap locations, so any call must be to a method with an empty modifies clause
