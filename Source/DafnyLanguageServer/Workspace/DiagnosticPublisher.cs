@@ -1,7 +1,5 @@
-﻿using Microsoft.Dafny.LanguageServer.Language;
-using Microsoft.Dafny.LanguageServer.Util;
+﻿using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
-using Microsoft.Extensions.Options;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server;
@@ -10,11 +8,9 @@ using System.Linq;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   public class DiagnosticPublisher : IDiagnosticPublisher {
-    private readonly GhostOptions options;
     private readonly ILanguageServerFacade languageServer;
 
-    public DiagnosticPublisher(IOptions<GhostOptions> options, ILanguageServerFacade languageServer) {
-      this.options = options.Value;
+    public DiagnosticPublisher(ILanguageServerFacade languageServer) {
       this.languageServer = languageServer;
     }
 
@@ -37,9 +33,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private void PublishGhostDiagnostics(DafnyDocument document) {
-      if (!options.FadeEnabled) {
-        return;
-      }
       languageServer.TextDocument.SendNotification(new GhostDiagnosticsParams {
         Uri = document.Uri,
         Version = document.Version,

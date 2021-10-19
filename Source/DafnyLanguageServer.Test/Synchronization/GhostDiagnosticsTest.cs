@@ -36,6 +36,32 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
     }
 
     [TestMethod]
+    public async Task OpeningFlawlessDocumentWithoutGhostFadeDoesNotFadeAnything() {
+      var source = @"
+function Product(x: nat, y: nat): nat {
+  x * y
+}
+
+method Multiply(x: int, y: int) returns (product: int)
+  requires y >= 0 && x >= 0
+  decreases y
+  ensures product == Product(x, y) && product >= 0
+{
+  if y == 0 {
+    product := 0;
+  } else {
+    var step := Multiply(x, y - 1);
+    product := x + step;
+  }
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var report = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
+      var diagnostics = report.Diagnostics.ToArray();
+      Assert.AreEqual(0, diagnostics.Length);
+    }
+
+    [TestMethod]
     public async Task OpeningFlawlessDocumentWithGhostFadeDeclarationsFadesFunctionDeclaration() {
       var source = @"
 function Product(x: nat, y: nat): nat {
