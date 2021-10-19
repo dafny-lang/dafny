@@ -140,7 +140,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       private static Diagnostic CreateDiagnostic(Range range, string message) {
         return new Diagnostic {
           Range = range,
-          Tags = new[] { DiagnosticTag.Unnecessary },
           Message = message,
           Severity = DiagnosticSeverity.Hint
         };

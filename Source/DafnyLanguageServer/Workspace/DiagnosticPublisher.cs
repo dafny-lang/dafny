@@ -1,4 +1,7 @@
-﻿using Microsoft.Dafny.LanguageServer.Util;
+﻿using Microsoft.Dafny.LanguageServer.Language;
+using Microsoft.Dafny.LanguageServer.Util;
+using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
+using Microsoft.Extensions.Options;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server;
@@ -7,9 +10,11 @@ using System.Linq;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   public class DiagnosticPublisher : IDiagnosticPublisher {
+    private readonly GhostOptions options;
     private readonly ILanguageServerFacade languageServer;
 
-    public DiagnosticPublisher(ILanguageServerFacade languageServer) {
+    public DiagnosticPublisher(IOptions<GhostOptions> options, ILanguageServerFacade languageServer) {
+      this.options = options.Value;
       this.languageServer = languageServer;
     }
 
@@ -19,10 +24,26 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         // Therefore, we do not republish the errors when the document (re-)load was canceled.
         return;
       }
+      PublishDocumentDiagnostics(document);
+      PublishGhostDiagnostics(document);
+    }
+
+    private void PublishDocumentDiagnostics(DafnyDocument document) {
       languageServer.TextDocument.PublishDiagnostics(new PublishDiagnosticsParams {
         Uri = document.Uri,
         Version = document.Version,
         Diagnostics = GetDiagnostics(document).ToArray(),
+      });
+    }
+
+    private void PublishGhostDiagnostics(DafnyDocument document) {
+      if (!options.FadeEnabled) {
+        return;
+      }
+      languageServer.TextDocument.SendNotification(new GhostDiagnosticsParams {
+        Uri = document.Uri,
+        Version = document.Version,
+        Diagnostics = document.GhostDiagnostics.ToArray(),
       });
     }
 
@@ -36,9 +57,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private static IEnumerable<Diagnostic> GetDiagnostics(DafnyDocument document) {
       // Only report errors of the entry-document.
       if (document.Errors.Diagnostics.TryGetValue(document.GetFilePath(), out var diagnostics)) {
-        return diagnostics.Concat(document.GhostDiagnostics);
+        return diagnostics;
       }
-      return document.GhostDiagnostics;
+      return Enumerable.Empty<Diagnostic>();
     }
   }
 }
