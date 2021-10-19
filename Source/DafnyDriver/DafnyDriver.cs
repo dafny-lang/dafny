@@ -313,8 +313,7 @@ namespace Microsoft.Dafny {
       var model = DafnyModel.ExtractModel(File.ReadAllText(modelViewFile));
       Console.WriteLine("Counterexample for first failing assertion: ");
       foreach (var state in model.States.Where(state => !state.IsInitialState)) {
-        Console.WriteLine($"Line {state.GetLineId()} " +
-                          $"character {state.GetCharId()}: ");
+        Console.WriteLine(state.FullStateName + ":");
         var vars = state.ExpandedVariableSet(-1);
         foreach (var variable in vars) {
           Console.WriteLine($"\t{variable.ShortName} : " +
