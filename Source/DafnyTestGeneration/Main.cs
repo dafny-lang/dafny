@@ -27,8 +27,7 @@ namespace DafnyTestGeneration {
       // Generate tests based on counterexamples produced from modifications
       for (var i = modifications.Count - 1; i >= 0; i--) {
         modifications[i].GetCounterExampleLog();
-        var deadStates = ((BlockBasedModification)modifications[i])
-          .GetKnownDeadStates();
+        var deadStates = ((BlockBasedModification)modifications[i]).GetKnownDeadStates();
         if (deadStates.Count != 0) {
           foreach (var capturedState in deadStates) {
             yield return $"Code at {capturedState} is potentially unreachable.";
@@ -36,8 +35,7 @@ namespace DafnyTestGeneration {
           blocksReached--;
           allDeadStates.UnionWith(deadStates);
         }
-        allStates.UnionWith(((BlockBasedModification)modifications[i])
-          .GetAllStates());
+        allStates.UnionWith(((BlockBasedModification)modifications[i]).GetAllStates());
       }
 
       yield return $"Out of {modifications.Count} basic blocks " +

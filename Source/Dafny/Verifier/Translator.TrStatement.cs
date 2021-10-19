@@ -221,7 +221,7 @@ namespace Microsoft.Dafny {
           builder.Add(TrAssumeCmd(stmt.Tok, yeEtran.TrExpr(p.E)));
         }
         YieldHavoc(iter.tok, iter, builder, etran);
-        builder.Add(CaptureState(s));
+        builder.AddCaptureState(s);
 
       } else if (stmt is AssignSuchThatStmt) {
         var s = (AssignSuchThatStmt)stmt;
@@ -314,7 +314,7 @@ namespace Microsoft.Dafny {
 
         // End by doing the assume
         builder.Add(TrAssumeCmd(s.Tok, etran.TrExpr(s.Expr)));
-        builder.Add(CaptureState(s));  // just do one capture state--here, at the very end (that is, don't do one before the assume)
+        builder.AddCaptureState(s);  // just do one capture state--here, at the very end (that is, don't do one before the assume)
 
       } else if (stmt is UpdateStmt) {
         var s = (UpdateStmt)stmt;
@@ -351,7 +351,7 @@ namespace Microsoft.Dafny {
           for (int i = 0; i < lhss.Count; i++) {
             lhsBuilder[i](finalRhss[i], s.Rhss[i] is HavocRhs, builder, etran);
           }
-          builder.Add(CaptureState(s));
+          builder.AddCaptureState(s);
         }
 
       } else if (stmt is AssignOrReturnStmt) {
@@ -610,7 +610,7 @@ namespace Microsoft.Dafny {
           TrStmt(s.Body, builder, locals, updatedFrameEtran);
           CurrentIdGenerator.Pop();
         }
-        builder.Add(CaptureState(stmt));
+        builder.AddCaptureState(stmt);
 
       } else if (stmt is ForallStmt) {
         var s = (ForallStmt)stmt;
@@ -630,7 +630,7 @@ namespace Microsoft.Dafny {
             TrForallAssign(s, s0, definedness, updater, locals, etran);
             // All done, so put the two pieces together
             builder.Add(new Bpl.IfCmd(s.Tok, null, definedness.Collect(s.Tok), null, updater.Collect(s.Tok)));
-            builder.Add(CaptureState(stmt));
+            builder.AddCaptureState(stmt);
           }
 
         } else if (s.Kind == ForallStmt.BodyKind.Call) {
@@ -651,7 +651,7 @@ namespace Microsoft.Dafny {
               // All done, so put the two pieces together
               builder.Add(new Bpl.IfCmd(s.Tok, null, definedness.Collect(s.Tok), null, exporter.Collect(s.Tok)));
             }
-            builder.Add(CaptureState(stmt));
+            builder.AddCaptureState(stmt);
           }
 
         } else if (s.Kind == ForallStmt.BodyKind.Proof) {
@@ -662,7 +662,7 @@ namespace Microsoft.Dafny {
           TrForallProof(s, definedness, exporter, locals, etran);
           // All done, so put the two pieces together
           builder.Add(new Bpl.IfCmd(s.Tok, null, definedness.Collect(s.Tok), null, exporter.Collect(s.Tok)));
-          builder.Add(CaptureState(stmt));
+          builder.AddCaptureState(stmt);
 
         } else {
           Contract.Assert(false);  // unexpected kind
@@ -1002,7 +1002,7 @@ namespace Microsoft.Dafny {
 
       var rhss = new List<AssignmentRhs>() { rhs };
       ProcessRhss(lhsBuilder, bLhss, lhss, rhss, builder, locals, etran);
-      builder.Add(CaptureState(stmt));
+      builder.AddCaptureState(stmt);
     }
 
     void TrForallAssign(ForallStmt s, AssignStmt s0,
@@ -1838,7 +1838,7 @@ namespace Microsoft.Dafny {
       }
 
       var loopBodyBuilder = new BoogieStmtListBuilder(this);
-      loopBodyBuilder.Add(CaptureState(s.Tok, true, "after some loop iterations"));
+      loopBodyBuilder.AddCaptureState(s.Tok, true, "after some loop iterations");
 
       // As the first thing inside the loop, generate:  if (!w) { CheckWellformed(inv); assume false; }
       invDefinednessBuilder.Add(TrAssumeCmd(s.Tok, Bpl.Expr.False));
@@ -2062,7 +2062,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(initHeap != null);
         RecordNewObjectsIn_New(s.Tok, iter, initHeap, (Bpl.IdentifierExpr/*TODO: this cast is dubious*/)etran.HeapExpr, builder, locals, etran);
       }
-      builder.Add(CaptureState(s));
+      builder.AddCaptureState(s);
     }
 
     void ProcessCallStmt(IToken tok,
