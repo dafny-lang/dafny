@@ -874,8 +874,8 @@ $@"
     Treat warnings as errors.
 /extractCounterExample
     If verification fails, report a detailed counterexample for the first
-    failing assertion. Requires specifying the /mv option and passing
-    O:model_compress=false and O:model.completion=true options to the prover.
+    failing assertion. Requires specifying the /mv option as well as
+    /proverOpt:0:model_compress=false and /proverOpt:0:model.completion=true.
 {TestGenOptions.Help}
 
 Dafny generally accepts Boogie options and passes these on to Boogie. However,
