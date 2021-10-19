@@ -14,7 +14,6 @@ using System.Threading.Tasks;
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   [TestClass]
   public class GhostDiagnosticsTest : DafnyLanguageServerTestBase {
-    // TODO test locations as well?
     private ILanguageClient client;
     private TestNotificationReceiver<GhostDiagnosticsParams> diagnosticReceiver;
     private IDictionary<string, string> configuration;
