@@ -58,7 +58,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     public override Task<Unit> Handle(DidOpenTextDocumentParams notification, CancellationToken cancellationToken) {
       logger.LogTrace("received open notification {DocumentUri}", notification.TextDocument.Uri);
-      HandleUpdateAndPublishDiagnosticsAsync(documents.LoadDocumentAsync(notification.TextDocument));
+      HandleUpdateAndPublishDiagnosticsAsync(documents.OpenDocumentAsync(notification.TextDocument));
       return Unit.Task;
     }
 

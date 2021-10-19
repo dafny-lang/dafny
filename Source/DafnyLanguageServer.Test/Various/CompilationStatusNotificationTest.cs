@@ -1,6 +1,7 @@
 ﻿using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Language;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.Extensions.Configuration;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -201,6 +202,98 @@ lemma SquareRoot2NotRational(p: nat, q: nat)
       Assert.AreEqual(documentItem.Uri, completed.Uri);
       Assert.AreEqual(documentItem.Version, completed.Version);
       Assert.AreEqual(CompilationStatus.VerificationFailed, completed.Status);
+    }
+
+    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    public async Task DocumentLoadWithOnSaveVerificationDoesNotSendVerificationStatuses() {
+      var source = @"
+method Abs(x: int) returns (y: int)
+    ensures y >= 0
+{
+  return x;
+}
+".TrimStart();
+      await SetUp(new Dictionary<string, string>() {
+        { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.OnSave) }
+      });
+
+      // We load two documents. If no verification is executed, we should receive each
+      // compilation status twice without any verification status inbetween.
+      var documentItem1 = CreateTestDocument(source, "test_1.dfy");
+      await client.OpenDocumentAndWaitAsync(documentItem1, CancellationToken);
+      var documentItem2 = CreateTestDocument(source, "test_2dfy");
+      await client.OpenDocumentAndWaitAsync(documentItem2, CancellationToken);
+
+      var compilation1 = await notificationReceiver.AwaitNextNotificationAsync(CancellationToken);
+      Assert.AreEqual(documentItem1.Uri, compilation1.Uri);
+      Assert.AreEqual(documentItem1.Version, compilation1.Version);
+      Assert.AreEqual(CompilationStatus.CompilationSucceeded, compilation1.Status);
+
+      var compilation2 = await notificationReceiver.AwaitNextNotificationAsync(CancellationToken);
+      Assert.AreEqual(documentItem2.Uri, compilation2.Uri);
+      Assert.AreEqual(documentItem2.Version, compilation2.Version);
+      Assert.AreEqual(CompilationStatus.CompilationSucceeded, compilation2.Status);
+    }
+
+    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    public async Task DocumentSaveWithOnSaveVerificationSendsVerificationStatuses() {
+      var source = @"
+method Abs(x: int) returns (y: int)
+    ensures y >= 0
+{
+  return x;
+}
+".TrimStart();
+      await SetUp(new Dictionary<string, string>() {
+        { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.OnSave) }
+      });
+
+      var documentItem = CreateTestDocument(source, "test_1.dfy");
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
+
+      bool verificationStartedReceived = false;
+      bool verificationFailedReceived = false;
+      while (!verificationStartedReceived || !verificationFailedReceived) {
+        var notification = await notificationReceiver.AwaitNextNotificationAsync(CancellationToken);
+        Assert.AreEqual(documentItem.Uri, notification.Uri);
+        Assert.AreEqual(documentItem.Version, notification.Version);
+        verificationStartedReceived = verificationStartedReceived || notification.Status == CompilationStatus.VerificationStarted;
+        verificationFailedReceived = verificationFailedReceived || notification.Status == CompilationStatus.VerificationFailed;
+      }
+    }
+
+    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    public async Task DocumentLoadAndSaveWithNeverVerifySendsNoVerificationStatuses() {
+      var source = @"
+method Abs(x: int) returns (y: int)
+    ensures y >= 0
+{
+  return x;
+}
+".TrimStart();
+      await SetUp(new Dictionary<string, string>() {
+        { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.Never) }
+      });
+
+      // We load two and save two documents. If no verification is executed, we should receive each
+      // compilation status twice without any verification status inbetween.
+      var documentItem1 = CreateTestDocument(source, "test_1.dfy");
+      await client.OpenDocumentAndWaitAsync(documentItem1, CancellationToken);
+      await client.SaveDocumentAndWaitAsync(documentItem1, CancellationToken);
+      var documentItem2 = CreateTestDocument(source, "test_2dfy");
+      await client.OpenDocumentAndWaitAsync(documentItem2, CancellationToken);
+      await client.SaveDocumentAndWaitAsync(documentItem2, CancellationToken);
+
+      var compilation1 = await notificationReceiver.AwaitNextNotificationAsync(CancellationToken);
+      Assert.AreEqual(documentItem1.Uri, compilation1.Uri);
+      Assert.AreEqual(documentItem1.Version, compilation1.Version);
+      Assert.AreEqual(CompilationStatus.CompilationSucceeded, compilation1.Status);
+
+      var compilation2 = await notificationReceiver.AwaitNextNotificationAsync(CancellationToken);
+      Assert.AreEqual(documentItem2.Uri, compilation2.Uri);
+      Assert.AreEqual(documentItem2.Version, compilation2.Version);
+      Assert.AreEqual(CompilationStatus.CompilationSucceeded, compilation2.Status);
     }
   }
 }
