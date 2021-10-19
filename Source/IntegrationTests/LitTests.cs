@@ -90,7 +90,7 @@ namespace IntegrationTests {
 
     [FileTheory]
     [FileData(Includes = new[] { "**/*.dfy", "**/*.transcript" },
-              Excludes = new[] { "**/Inputs/**/*" })]
+              Excludes = new[] { "**/Inputs/**/*", "refman/examples/**/*" })]
     public void LitTest(string path) {
       LitTestCase.Run(path, CONFIG, output);
     }
