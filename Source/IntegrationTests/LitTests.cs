@@ -47,11 +47,10 @@ namespace IntegrationTests {
           MainWithArguments(dafnyDriverAssembly, defaultDafnyArguments.Concat(args), config, false) },
         { "%server", (args, config) =>
           MainWithArguments(dafnyServerAssembly, args, config, false) },
-        { "%diff", (args, config) =>
-          DiffCommand.Parse(args.ToArray()) },
       },
 
       Substitions = new Dictionary<string, string> {
+        { "%diff", "diff" },
         { "%binaryDir", "." },
         { "%z3", Path.Join("z3", "bin", "z3") },
         { "%refmanexamples", Path.Join("TestFiles", "LitTests", "LitTest", "refman", "examples") }
@@ -92,6 +91,12 @@ namespace IntegrationTests {
     [FileTheory]
     [LitTestData(Extension = ".dfy")]
     public void LitTest(string path) {
+      LitTestCase.Run(path, CONFIG, output);
+    }
+    
+    [FileTheory]
+    [LitTestData(Path = "TestFiles/LitTests/LitTest", Extension = ".transcript")]
+    public void DafnyServerTest(string path) {
       LitTestCase.Run(path, CONFIG, output);
     }
   }

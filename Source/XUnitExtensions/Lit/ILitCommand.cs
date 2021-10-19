@@ -13,46 +13,26 @@ using Xunit.Abstractions;
 namespace XUnitExtensions.Lit {
   public interface ILitCommand {
 
-    private const string COMMENT_PREFIX = "//";
-    private const string LIT_COMMAND_PREFIX = "RUN:";
-    private const string LIT_UNSUPPORTED = "UNSUPPORTED";
-    private const string LIT_XFAIL_ALL = "XFAIL: *";
-
-    public (int, string, string) Execute(ITestOutputHelper outputHelper, TextReader? inputReader, TextWriter? outputWriter, TextWriter? errorWriter);
-
-    public static ILitCommand? Parse(string fileName, string line, LitTestConfiguration config) {
-      if (!line.StartsWith(COMMENT_PREFIX)) {
-        return null;
+    private static readonly Dictionary<string, Type> CommandClasses = new();
+    static ILitCommand() {
+      CommandClasses.Add("RUN:", typeof(RunCommand));
+      CommandClasses.Add("UNSUPPORTED:", typeof(UnsupportedCommand));
+      CommandClasses.Add("XFAIL:", typeof(XFailCommand));
+    }
+    
+    public static ILitCommand? Parse(string line, LitTestConfiguration config) {
+      foreach (var (keyword, type) in CommandClasses) {
+        var index = line.IndexOf(keyword);
+        if (index >= 0) {
+          var arguments = line[(index + keyword.Length)..].Trim();
+          var parseMethod = type.GetMethod("Parse", new[] { typeof(string), typeof(LitTestConfiguration) });
+          return (ILitCommand)parseMethod!.Invoke(null, new object[] { arguments, config });
+        }
       }
-      line = line[COMMENT_PREFIX.Length..].Trim();
-
-      if (line.Equals(LIT_XFAIL_ALL)) {
-        return new XFailCommand();
-      }
-      if (line.StartsWith(LIT_UNSUPPORTED)) {
-        return UnsupportedCommand.Parse(line[LIT_UNSUPPORTED.Length..].Trim());
-      }
-      if (!line.StartsWith(LIT_COMMAND_PREFIX)) {
-        return null;
-      }
-      line = line[LIT_COMMAND_PREFIX.Length..].Trim();
-
-      var tokens = Tokenize(line);
-      return ParseRunCommand(tokens, config);
+      return null;
     }
 
-    public static ILitCommand ParseRunCommand(string[] tokens, LitTestConfiguration config) {
-      // Just supporting || for now since it's a precise way to ignore an exit code
-      var seqOperatorIndex = Array.IndexOf(tokens, "||");
-      if (seqOperatorIndex >= 0) {
-        var lhs = LitCommandWithRedirection.Parse(tokens[0..seqOperatorIndex], config);
-        var rhs = ParseRunCommand(tokens[(seqOperatorIndex + 1)..], config);
-        return new OrCommand(lhs, rhs);
-      }
-      return LitCommandWithRedirection.Parse(tokens, config);
-    }
-
-    private static string[] Tokenize(string line) {
+    public static string[] Tokenize(string line) {
       var arguments = new List<string>();
       var argument = new StringBuilder();
       var singleQuoted = false;
@@ -100,5 +80,7 @@ namespace XUnitExtensions.Lit {
       var result = matcher.Execute(new DirectoryInfoWrapper(new DirectoryInfo(".")));
       return result.Files.Select(f => f.Path);
     }
+    
+    public (int, string, string) Execute(ITestOutputHelper outputHelper, TextReader? inputReader, TextWriter? outputWriter, TextWriter? errorWriter);
   }
 }

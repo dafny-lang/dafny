@@ -8,15 +8,15 @@ using Xunit.Abstractions;
 namespace XUnitExtensions.Lit {
   public class UnsupportedCommand : ILitCommand {
 
-    public static UnsupportedCommand Parse(string line) {
+    public static UnsupportedCommand Parse(string line, LitTestConfiguration config) {
       var features = line.Split(",", StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim());
       return new UnsupportedCommand(features);
     }
     
-    public IEnumerable<string> Features { get; protected set; }
+    public IEnumerable<string> Features { get; }
 
     public UnsupportedCommand(IEnumerable<string> features) {
-      this.Features = features;
+      Features = features;
     }
     
     public (int, string, string) Execute(ITestOutputHelper outputHelper, TextReader? inputReader, TextWriter? outputWriter, TextWriter? errorWriter) {
