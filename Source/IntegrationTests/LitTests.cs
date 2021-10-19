@@ -89,14 +89,9 @@ namespace IntegrationTests {
     }
 
     [FileTheory]
-    [LitTestData(Extension = ".dfy")]
+    [FileData(Includes = new [] { "**/*.dfy", "**/*.transcript" },
+              Excludes = new [] { "**/Inputs/**/*" })]
     public void LitTest(string path) {
-      LitTestCase.Run(path, CONFIG, output);
-    }
-
-    [FileTheory]
-    [LitTestData(Path = "TestFiles/LitTests/LitTest", Extension = ".transcript")]
-    public void DafnyServerTest(string path) {
       LitTestCase.Run(path, CONFIG, output);
     }
   }

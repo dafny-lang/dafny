@@ -68,6 +68,8 @@ namespace XUnitExtensions {
     public async Task<RunSummary> RunAsync(IMessageSink diagnosticMessageSink, IMessageBus messageBus, object[] constructorArguments,
       ExceptionAggregator aggregator, CancellationTokenSource cancellationTokenSource) {
 
+      // This is the same thing SkippableFactTestCase.RunAsync does.
+      // support for dynamic test skipping is much cleaner in xUnit 3.
       var messageBusInterceptor = new SkippableTestMessageBus(messageBus, skippingExceptionNames);
       RunSummary result = await new XunitTestCaseRunner(
         this,
