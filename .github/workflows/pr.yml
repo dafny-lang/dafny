@@ -9,14 +9,13 @@ on:
 
 jobs:
   conventional:
-    name: Conventional PR
+    name: Semantic Pull Requests
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Please look up the latest version from
-      # https://github.com/amannn/action-semantic-pull-request/releases
-      - uses: amannn/action-semantic-pull-request@v3.4.2
+      - uses: wow-actions/semantic-pull-requests@v1.0.0
+
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
