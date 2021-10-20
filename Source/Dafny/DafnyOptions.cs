@@ -604,7 +604,7 @@ namespace Microsoft.Dafny {
         var proverPath = proverPathOption.Substring(pp.Length);
         // Boogie will perform the ultimate test to see if "proverPath" is real--it will attempt to run it.
         // However, by at least checking if the file exists, we can produce a better error message in common scenarios.
-        if (!File.Exists(proverPath)) {
+        if (!File.Exists(prdriveroverPath)) {
           throw new Bpl.ProverException($"Requested prover not found: '{proverPath}'");
         }
       } else {

@@ -710,6 +710,9 @@ namespace Microsoft.Dafny {
         case DafnyOptions.CompilationTarget.Cpp:
           compiler = new Dafny.CppCompiler(dafnyProgram.reporter, otherFileNames);
           break;
+        case DafnyOptions.CompilationTarget.Php:
+          compiler = new Dafny.PhpCompiler(dafnyProgram.reporter);
+          break;
       }
 
       var hasMain = compiler.HasMain(dafnyProgram, out var mainMethod);
