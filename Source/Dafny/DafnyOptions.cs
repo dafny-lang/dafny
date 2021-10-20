@@ -57,7 +57,6 @@ namespace Microsoft.Dafny {
     public enum PrintModes { Everything, DllEmbed, NoIncludes, NoGhost };
     public PrintModes PrintMode = PrintModes.Everything;  // Default to printing everything
     public bool DafnyVerify = true;
-    public bool VerifyVerbose = true;
     public string DafnyPrintResolvedFile = null;
     public List<string> DafnyPrintExportedViews = new List<string>();
     public bool Compile = true;

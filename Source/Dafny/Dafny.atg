@@ -878,7 +878,7 @@ Dafny
 		   var fileName = DafnyOptions.Clo.UseBaseNameForFileName 
                    ? Path.GetFileName(scanner.FullFilename) 
                    : Path.GetRelativePath(Directory.GetCurrentDirectory(), scanner.FullFilename);
-           errors.Warning(defaultModule.tok, "File contains no code: " + fileName);
+		   errors.Warning(defaultModule.tok, "File contains no code: " + fileName);
 		 }
      DefaultClassDecl defaultClass = null;
      foreach (TopLevelDecl topleveldecl in defaultModule.TopLevelDecls) {

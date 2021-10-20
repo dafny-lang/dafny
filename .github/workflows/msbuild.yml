@@ -47,6 +47,8 @@ jobs:
         repository: boogie-org/boogie
         path: boogie
         ref: v${{ steps.regex-match.outputs.group1 }}
+    - name: Build Java runtime
+      run: make --quiet runtime
     - name: Build Dafny with local Boogie
       working-directory: dafny
       run: dotnet build Source/Dafny.sln
