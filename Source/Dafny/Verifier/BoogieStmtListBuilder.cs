@@ -2,7 +2,7 @@ using Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
   internal class BoogieStmtListBuilder {
-    public Boogie.StmtListBuilder builder;
+    public StmtListBuilder builder;
     public Translator tran;
 
     public BoogieStmtListBuilder(Translator tran) {
