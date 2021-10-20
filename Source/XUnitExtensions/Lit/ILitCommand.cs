@@ -26,7 +26,7 @@ namespace XUnitExtensions.Lit {
         if (index >= 0) {
           var arguments = line[(index + keyword.Length)..].Trim();
           var parseMethod = type.GetMethod("Parse", new[] { typeof(string), typeof(LitTestConfiguration) });
-          return (ILitCommand)parseMethod!.Invoke(null, new object[] { arguments, config });
+          return (ILitCommand)parseMethod!.Invoke(null, new object[] { arguments, config })!;
         }
       }
       return null;

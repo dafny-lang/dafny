@@ -11,27 +11,25 @@ using Xunit.Sdk;
 namespace XUnitExtensions {
   public class FileDataAttribute : DataAttribute {
     public string? Directory { get; set; }
-    public string[] Includes { get; set; }
-    public string[] Excludes { get; set; }
-
-    protected string GetBasePath(MethodInfo testMethod) {
-      if (Directory != null) {
-        return Directory;
-      }
-      return Path.Combine("TestFiles", testMethod.DeclaringType.Name, testMethod.Name);
-    }
+    public string[]? Includes { get; set; }
+    public string[]? Excludes { get; set; }
 
     public override IEnumerable<object[]> GetData(MethodInfo testMethod) {
       var matcher = new Matcher();
 
-      foreach (var include in Includes) {
-        matcher.AddInclude(include);
-      }
-      foreach (var exclude in Excludes) {
-        matcher.AddExclude(exclude);
+      if (Includes != null) {
+        foreach (var include in Includes) {
+          matcher.AddInclude(include);
+        }
       }
 
-      var basePath = GetBasePath(testMethod);
+      if (Excludes != null) {
+        foreach(var exclude in Excludes) {
+          matcher.AddExclude(exclude);
+        }
+      }
+
+      var basePath = Directory ?? Path.Combine("TestFiles", testMethod.DeclaringType!.Name, testMethod.Name);
       var result = matcher.Execute(new DirectoryInfoWrapper(new DirectoryInfo(basePath)));
       if (!result.HasMatches) {
         throw new ArgumentException("No matching files found: " + this);

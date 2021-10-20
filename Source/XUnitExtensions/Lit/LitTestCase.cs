@@ -14,9 +14,10 @@ namespace XUnitExtensions.Lit {
     private readonly bool expectFailure;
 
     public static LitTestCase Read(string filePath, LitTestConfiguration config) {
-      var commands = File.ReadAllLines(filePath)
+      ILitCommand[] commands = File.ReadAllLines(filePath)
         .Select(line => ILitCommand.Parse(line, config))
         .Where(c => c != null)
+        .Select(e => e!)
         .ToArray();
       if (commands.Length == 0) {
         throw new ArgumentException($"No lit commands found in test file: {filePath}");

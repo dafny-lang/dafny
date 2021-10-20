@@ -8,13 +8,11 @@ using Xunit.Abstractions;
 
 namespace XUnitExtensions.Lit {
   public class MainMethodLitCommand : ILitCommand {
-    public LitTestConfiguration Config { get; protected set; }
     public Assembly Assembly { get; protected set; }
     public string[] Arguments { get; protected set; }
 
     public static ILitCommand Parse(Assembly assembly, IEnumerable<string> arguments, LitTestConfiguration config, bool invokeDirectly) {
       var result = new MainMethodLitCommand {
-        Config = config,
         Assembly = assembly,
         Arguments = arguments.ToArray()
       };
@@ -33,7 +31,7 @@ namespace XUnitExtensions.Lit {
         Console.SetError(errorWriter);
       }
 
-      var exitCode = (int)Assembly.EntryPoint!.Invoke(null, new object[] { Arguments });
+      var exitCode = (int)Assembly.EntryPoint!.Invoke(null, new object[] { Arguments })!;
 
       return (exitCode, "", "");
     }

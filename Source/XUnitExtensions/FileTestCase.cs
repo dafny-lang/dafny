@@ -11,7 +11,7 @@ namespace XUnitExtensions {
   public class FileTestCase : LongLivedMarshalByRefObject, IXunitTestCase {
     // This could use SkippableFactDiscoverer.GetSkippableExceptionNames(IAttributeInfo)
     // but it doesn't seem to be worth the complexity here yet.
-    private static readonly string[] skippingExceptionNames = { typeof(SkipException).FullName };
+    private static readonly string[] skippingExceptionNames = { typeof(SkipException).FullName! };
 
     protected XunitTestCase innerTestCase;
 
@@ -20,7 +20,7 @@ namespace XUnitExtensions {
 
     public FileTestCase(IMessageSink diagnosticMessageSink, ITestMethod testMethod, IFileTheoryRowData data) {
       var collection = new TestCollection(testMethod.TestClass.TestCollection.TestAssembly,
-        (ITypeInfo)null, "Test collection for " + data.TestDisplayName);
+        testMethod.TestClass.Class, "Test collection for " + data.TestDisplayName);
       var testClassWithCollection = new TestClass(collection, testMethod.TestClass.Class);
       var testMethodWithCollection = new TestMethod(testClassWithCollection, testMethod.Method);
 

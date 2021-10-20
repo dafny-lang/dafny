@@ -4,13 +4,13 @@ using Xunit.Abstractions;
 namespace XUnitExtensions {
   public class FileTheoryDataRow : IXunitSerializable, IFileTheoryRowData {
 
-    private object?[] data;
+    private object[]? data;
 
     public FileTheoryDataRow() {
 
     }
 
-    public FileTheoryDataRow(params object?[] data) {
+    public FileTheoryDataRow(params object[] data) {
       this.data = data;
     }
 
@@ -18,7 +18,7 @@ namespace XUnitExtensions {
     public string? Skip { get; set; }
     public string? TestDisplayName { get; set; }
     public Dictionary<string, List<string>>? Traits { get; set; }
-    public object?[] GetData() => data;
+    public object?[] GetData() => data!;
 
     public void Serialize(IXunitSerializationInfo info) {
       info.AddValue(nameof(SourceInformation), SourceInformation);
