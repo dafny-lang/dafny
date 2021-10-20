@@ -30,7 +30,6 @@ Package/
 
 Source/*/bin/
 Source/*/obj/
-Source/*/bin_core/
 Source/*/obj_core/
 Source/packages
 
