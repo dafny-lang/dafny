@@ -23,6 +23,28 @@
     <Content Include="DafnyRuntime.js" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="DafnyRuntime.go" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="DafnyRuntime.h" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="DafnyRuntimeJava\build\libs\DafnyRuntime.jar" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+
+  <ItemGroup>
+    <DafnyRuntimeJavaInputFile Include="./DafnyRuntimeJava/**/*.*" />
+    <DafnyRuntimeJavaInputFile Remove="./DafnyRuntimeJava/build/**/*.*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="DafnyRuntimeJava\build\libs" />
+  </ItemGroup>
+  <PropertyGroup>
+    <DafnyRuntimeJar>DafnyRuntimeJava/build/libs/DafnyRuntime.jar</DafnyRuntimeJar>
+  </PropertyGroup>
+  <Target Name="BuildDafnyRuntimeJar" AfterTargets="ResolveReferences" BeforeTargets="CoreCompile" Inputs="$(MSBuildProjectFile);@(DafnyRuntimeJavaInputFile)" Outputs="$(DafnyRuntimeJar)">
+    
+    <Message Text="Compiling DafnyRuntimeJava to $(DafnyRuntimeJar)..." Importance="high" />
+    <Exec WorkingDirectory="DafnyRuntimeJava" Command="./gradlew -q clean build" />
+    <ItemGroup>
+      <!-- Register the generated file to be deleted when cleaning -->
+      <FileWrites Include="$(DafnyRuntimeJar)" />
+    </ItemGroup>
+  </Target>
 
 </Project>

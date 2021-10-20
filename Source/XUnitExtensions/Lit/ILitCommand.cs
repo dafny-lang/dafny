@@ -1,32 +1,28 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Text;
 using Microsoft.Extensions.FileSystemGlobbing;
 using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
-using Xunit;
 using Xunit.Abstractions;
 
 namespace XUnitExtensions.Lit {
   public interface ILitCommand {
 
-    private static readonly Dictionary<string, Type> CommandClasses = new();
+    private static readonly Dictionary<string, Func<string, LitTestConfiguration, ILitCommand>> CommandParsers = new();
     static ILitCommand() {
-      CommandClasses.Add("RUN:", typeof(RunCommand));
-      CommandClasses.Add("UNSUPPORTED:", typeof(UnsupportedCommand));
-      CommandClasses.Add("XFAIL:", typeof(XFailCommand));
+      CommandParsers.Add("RUN:", RunCommand.Parse);
+      CommandParsers.Add("UNSUPPORTED:", UnsupportedCommand.Parse);
+      CommandParsers.Add("XFAIL:", XFailCommand.Parse);
     }
 
     public static ILitCommand? Parse(string line, LitTestConfiguration config) {
-      foreach (var (keyword, type) in CommandClasses) {
+      foreach (var (keyword, parser) in CommandParsers) {
         var index = line.IndexOf(keyword);
         if (index >= 0) {
           var arguments = line[(index + keyword.Length)..].Trim();
-          var parseMethod = type.GetMethod("Parse", new[] { typeof(string), typeof(LitTestConfiguration) });
-          return (ILitCommand)parseMethod!.Invoke(null, new object[] { arguments, config })!;
+          return parser(arguments, config);
         }
       }
       return null;
