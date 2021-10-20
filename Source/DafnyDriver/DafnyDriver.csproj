@@ -17,6 +17,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Dafny\DafnyPipeline.csproj" />
     <ProjectReference Include="..\DafnyTestGeneration\DafnyTestGeneration.csproj" />
+    <ProjectReference Include="..\DafnyServer\DafnyServer.csproj" />
   </ItemGroup>
 
   <ItemGroup>
