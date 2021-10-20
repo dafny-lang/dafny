@@ -24,7 +24,7 @@ namespace XUnitExtensions {
       }
 
       if (Excludes != null) {
-        foreach(var exclude in Excludes) {
+        foreach (var exclude in Excludes) {
           matcher.AddExclude(exclude);
         }
       }
