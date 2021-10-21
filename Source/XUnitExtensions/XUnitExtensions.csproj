@@ -4,6 +4,7 @@
         <TargetFramework>net5.0</TargetFramework>
         <IsPackable>false</IsPackable>
         <Nullable>enable</Nullable>
+        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     </PropertyGroup>
 
     <ItemGroup>

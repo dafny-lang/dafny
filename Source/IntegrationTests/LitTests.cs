@@ -15,10 +15,10 @@ using XUnitExtensions.Lit;
 namespace IntegrationTests {
   public class LitTests {
 
-    private static readonly Assembly dafnyDriverAssembly = typeof(DafnyDriver).Assembly;
-    private static readonly Assembly dafnyServerAssembly = typeof(Server).Assembly;
+    private static readonly Assembly DafnyDriverAssembly = typeof(DafnyDriver).Assembly;
+    private static readonly Assembly DafnyServerAssembly = typeof(Server).Assembly;
 
-    private static readonly string[] defaultDafnyArguments = new[] {
+    private static readonly string[] DefaultDafnyArguments = new[] {
       "/countVerificationErrors:0",
 
       // We do not want absolute or relative paths in error messages, just the basename of the file
@@ -51,13 +51,13 @@ namespace IntegrationTests {
       var commands = new Dictionary<string, Func<IEnumerable<string>, LitTestConfiguration, ILitCommand>> {
         {
           "%baredafny", (args, config) =>
-            MainWithArguments(dafnyDriverAssembly, args, config, false)
+            MainWithArguments(DafnyDriverAssembly, args, config, false)
         }, {
           "%dafny", (args, config) =>
-            MainWithArguments(dafnyDriverAssembly, defaultDafnyArguments.Concat(args), config, false)
+            MainWithArguments(DafnyDriverAssembly, DefaultDafnyArguments.Concat(args), config, false)
         }, {
           "%server", (args, config) =>
-            MainWithArguments(dafnyServerAssembly, args, config, false)
+            MainWithArguments(DafnyServerAssembly, args, config, false)
         }
       };
 
@@ -79,7 +79,7 @@ namespace IntegrationTests {
         commands["%baredafny"] = (args, config) =>
           new ShellLitCommand(config, Path.Join(dafnyReleaseDir, "dafny"), args, config.PassthroughEnvironmentVariables);
         commands["%dafny"] = (args, config) =>
-          new ShellLitCommand(config, Path.Join(dafnyReleaseDir, "dafny"), defaultDafnyArguments.Concat(args), config.PassthroughEnvironmentVariables);
+          new ShellLitCommand(config, Path.Join(dafnyReleaseDir, "dafny"), DefaultDafnyArguments.Concat(args), config.PassthroughEnvironmentVariables);
         commands["%server"] = (args, config) =>
           new ShellLitCommand(config, Path.Join(dafnyReleaseDir, "DafnyServer"), args, config.PassthroughEnvironmentVariables);
         substitutions["%z3"] = Path.Join(dafnyReleaseDir, "z3", "bin", "z3");

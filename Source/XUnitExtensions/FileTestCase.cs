@@ -13,28 +13,32 @@ namespace XUnitExtensions {
     // but it doesn't seem to be worth the complexity here yet.
     private static readonly string[] skippingExceptionNames = { typeof(SkipException).FullName! };
 
-    protected XunitTestCase innerTestCase;
+    // Only nullable for the sake of the deserialization constructor
+    private XunitTestCase? innerTestCase;
 
     public string? DisplayName { get; protected set; }
     public string? SkipReason { get; protected set; }
 
-    public FileTestCase(IMessageSink diagnosticMessageSink, ITestMethod testMethod, IFileTheoryRowData data) {
+    public FileTestCase(IMessageSink diagnosticMessageSink, ITestMethod testMethod, IFileTheoryRowData rowData) {
       var collection = new TestCollection(testMethod.TestClass.TestCollection.TestAssembly,
-        testMethod.TestClass.Class, "Test collection for " + data.TestDisplayName);
+        testMethod.TestClass.Class, "Test collection for " + rowData.TestDisplayName);
       var testClassWithCollection = new TestClass(collection, testMethod.TestClass.Class);
       var testMethodWithCollection = new TestMethod(testClassWithCollection, testMethod.Method);
 
+      // This unsafe cast is necessary because the signature of the constructor we're passing arguments to
+      // is wrong: the type should be object?[] because arbitrary test method arguments can absolutely be null!
+      object[] data = (object[])rowData.GetData();
       innerTestCase = new SkippableFactTestCase(skippingExceptionNames, diagnosticMessageSink, TestMethodDisplay.Method, TestMethodDisplayOptions.All,
-        testMethodWithCollection, data.GetData());
-      if (data.Traits != null) {
-        foreach (var (key, value) in data.Traits) {
+        testMethodWithCollection, data);
+      if (rowData.Traits != null) {
+        foreach (var (key, value) in rowData.Traits) {
           innerTestCase.Traits.Add(key, value);
         }
       }
 
-      innerTestCase.SourceInformation = data.SourceInformation;
-      DisplayName = data.TestDisplayName;
-      SkipReason = data.Skip;
+      innerTestCase.SourceInformation = rowData.SourceInformation;
+      DisplayName = rowData.TestDisplayName;
+      SkipReason = rowData.Skip;
     }
 
     [Obsolete("Called by the de-serializer", error: true)]
@@ -53,17 +57,17 @@ namespace XUnitExtensions {
     }
 
     public ISourceInformation SourceInformation {
-      get => innerTestCase.SourceInformation;
-      set => innerTestCase.SourceInformation = value;
+      get => innerTestCase!.SourceInformation;
+      set => innerTestCase!.SourceInformation = value;
     }
 
-    public ITestMethod TestMethod => innerTestCase.TestMethod;
-    public object[] TestMethodArguments => innerTestCase.TestMethodArguments;
-    public Dictionary<string, List<string>> Traits => innerTestCase.Traits;
-    public string UniqueID => innerTestCase.UniqueID;
-    public Exception InitializationException => innerTestCase.InitializationException;
-    public IMethodInfo Method => innerTestCase.Method;
-    public int Timeout => innerTestCase.Timeout;
+    public ITestMethod TestMethod => innerTestCase!.TestMethod;
+    public object[] TestMethodArguments => innerTestCase!.TestMethodArguments;
+    public Dictionary<string, List<string>> Traits => innerTestCase!.Traits;
+    public string UniqueID => innerTestCase!.UniqueID;
+    public Exception InitializationException => innerTestCase!.InitializationException;
+    public IMethodInfo Method => innerTestCase!.Method;
+    public int Timeout => innerTestCase!.Timeout;
 
     public async Task<RunSummary> RunAsync(IMessageSink diagnosticMessageSink, IMessageBus messageBus, object[] constructorArguments,
       ExceptionAggregator aggregator, CancellationTokenSource cancellationTokenSource) {
