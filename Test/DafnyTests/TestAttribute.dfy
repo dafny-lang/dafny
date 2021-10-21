@@ -74,7 +74,6 @@ method {:test} PassingTestThatReturnsAFailureIncompatibleValue() returns (i:int)
 
 class Value {
     var i:int;
-    
     // A constructor that can cause an exception in the target language if used in a context not verified by Dafny
     constructor(i:int) requires i != 0 {
         this.i := 0/i;
