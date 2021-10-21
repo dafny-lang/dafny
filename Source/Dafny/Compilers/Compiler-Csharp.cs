@@ -1370,7 +1370,7 @@ namespace Microsoft.Dafny {
         }
         cw.InstanceMemberWriter.WriteLine(";");
       } else {
-        cw.InstanceMemberWriter.Write($"{publik} {typeName} {name};");
+        cw.InstanceMemberWriter.WriteLine($"{publik} {typeName} {name};");
         if (rhs != null) {
           cw.CtorBodyWriter.WriteLine($"this.{name} = {rhs};");
         }
