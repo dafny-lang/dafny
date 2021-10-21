@@ -2877,9 +2877,6 @@ namespace Microsoft.Dafny {
         return;
       }
 
-      // TODO: The resolver needs to check the assumptions about the declaration
-      // (i.e. must be public and static, must return a "result type", etc.)
-
       var formals = new List<Formal>();
       var firstReturnIsFailureCompatible = false;
       var returnTypesCount = 0;
