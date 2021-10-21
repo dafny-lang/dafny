@@ -68,11 +68,20 @@ method {:test} FailingTestUsingNoLHSAssignOrHalt() {
   :- expect FailUnless(false);
 }
 
-method {:test} PassingTestThatReturnsAValue() returns (i:int) {
+method {:test} PassingTestThatReturnsAFailureIncompatibleValue() returns (i:int) {
  return 0;
 }
 
-method {:test} PassingTestThatUsesMocks(v:VoidOutcome) {
- expect v.IsFailure || !v.IsFailure;
+class Value {
+    var i:int;
+    
+    // A constructor that can cause an exception in the target language if used in a context not verified by Dafny
+    constructor(i:int) requires i != 0 {
+        this.i := 0/i;
+    }
+}
+
+method {:test} PassingTestThatUsesMocks(v:Value) modifies v {
+    v.i := 0;
 }
 

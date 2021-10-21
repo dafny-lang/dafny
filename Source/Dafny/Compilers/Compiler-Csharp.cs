@@ -2881,18 +2881,23 @@ namespace Microsoft.Dafny {
       // (i.e. must be public and static, must return a "result type", etc.)
 
       var formals = new List<Formal>();
-      var returnTypes = new List<Type>();
+      var firstReturnIsFailureCompatible = false;
+      var returnTypesCount = 0;
 
       if (decl is Function func) {
         formals.AddRange(func.Formals);
-        returnTypes.Add(func.ResultType);
+        returnTypesCount = 1;
+        firstReturnIsFailureCompatible =
+          func.ResultType?.AsTopLevelTypeWithMembers?.Members?.Any(m => m.Name == "IsFailure") ?? false;
       } else if (decl is Method method) {
         formals.AddRange(method.Ins);
-        returnTypes.AddRange(method.Outs.ConvertAll(o => o.Type));
+        returnTypesCount = method.Outs.Count;
+        if (returnTypesCount > 0) {
+          firstReturnIsFailureCompatible =
+            method.Outs[0].Type?.AsTopLevelTypeWithMembers?.Members?.Any(m => m.Name == "IsFailure") ?? false;
+        }
       }
 
-      var firstReturnIsFailureCompatible = returnTypes.First().AsTopLevelTypeWithMembers.Members.Any(m =>
-        m.Name == "IsFailure");
       wr.WriteLine("[Xunit.Fact]");
       if (!firstReturnIsFailureCompatible && formals.Count == 0) {
         return;
@@ -2903,12 +2908,14 @@ namespace Microsoft.Dafny {
         var typeName = TypeName(formals[i].Type, new ConcreteSyntaxTree(), formals[i].tok);
         wr.WriteLine("var p{0} = FormatterServices.GetUninitializedObject(typeof({1})) as {1};", i, typeName);
       }
-      var returnsString = string.Join(",", Enumerable.Range(0, returnTypes.Count).Select(i => $"r{i}"));
       var formalsString = string.Join(",", Enumerable.Range(0, formals.Count).Select(i => $"p{i}"));
-      wr.WriteLine("var {0} = {1}({2});", returnsString, name, formalsString);
 
       if (firstReturnIsFailureCompatible) {
+        var returnsString = string.Join(",", Enumerable.Range(0, returnTypesCount).Select(i => $"r{i}"));
+        wr.WriteLine("var {0} = {1}({2});", returnsString, name, formalsString);
         wr.WriteLine("Xunit.Assert.False(r0.IsFailure(), \"Dafny test failed: \" + r0);");
+      } else {
+        wr.WriteLine("{0}({1});", name, formalsString);
       }
     }
 
