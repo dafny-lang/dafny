@@ -84,7 +84,7 @@ namespace IntegrationTests {
           new ShellLitCommand(config, Path.Join(dafnyReleaseDir, "DafnyServer"), args, config.PassthroughEnvironmentVariables);
         substitutions["%z3"] = Path.Join(dafnyReleaseDir, "z3", "bin", "z3");
       }
-      
+
       Config = new LitTestConfiguration(substitutions, commands, features, passthroughEnvironmentVariables);
     }
 
