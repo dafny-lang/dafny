@@ -72,6 +72,7 @@ namespace Microsoft.Dafny {
       wr.WriteLine();
       wr.WriteLine("using System;");
       wr.WriteLine("using System.Numerics;");
+      wr.WriteLine("using System.Runtime.Serialization;");
       EmitDafnySourceAttribute(program, wr);
       if (!DafnyOptions.O.UseRuntimeLib) {
         ReadRuntimeSystem("DafnyRuntime.cs", wr);
@@ -1369,7 +1370,7 @@ namespace Microsoft.Dafny {
         }
         cw.InstanceMemberWriter.WriteLine(";");
       } else {
-        cw.InstanceMemberWriter.WriteLine($"{publik} {typeName} {name};");
+        cw.InstanceMemberWriter.Write($"{publik} {typeName} {name};");
         if (rhs != null) {
           cw.CtorBodyWriter.WriteLine($"this.{name} = {rhs};");
         }
@@ -2872,23 +2873,42 @@ namespace Microsoft.Dafny {
     }
 
     private void AddTestCheckerIfNeeded(string name, Declaration decl, ConcreteSyntaxTree wr) {
-      if (Attributes.Contains(decl.Attributes, "test")) {
-        // TODO: The resolver needs to check the assumptions about the declaration
-        // (i.e. must be public and static, must return a "result type", etc.)
-        bool hasReturnValue = false;
-        if (decl is Function) {
-          hasReturnValue = true;
-        } else if (decl is Method) {
-          var method = (Method)decl;
-          hasReturnValue = method.Outs.Count > 1;
-        }
+      if (!Attributes.Contains(decl.Attributes, "test")) {
+        return;
+      }
 
-        wr.WriteLine("[Xunit.Fact]");
-        if (hasReturnValue) {
-          wr = wr.NewNamedBlock("public static void {0}_CheckForFailureForXunit()", name);
-          wr.WriteLine("var result = {0}();", name);
-          wr.WriteLine("Xunit.Assert.False(result.IsFailure(), \"Dafny test failed: \" + result);");
-        }
+      // TODO: The resolver needs to check the assumptions about the declaration
+      // (i.e. must be public and static, must return a "result type", etc.)
+
+      var formals = new List<Formal>();
+      var returnTypes = new List<Type>();
+
+      if (decl is Function func) {
+        formals.AddRange(func.Formals);
+        returnTypes.Add(func.ResultType);
+      } else if (decl is Method method) {
+        formals.AddRange(method.Ins);
+        returnTypes.AddRange(method.Outs.ConvertAll(o => o.Type));
+      }
+
+      var firstReturnIsFailureCompatible = returnTypes.First().AsTopLevelTypeWithMembers.Members.Any(m =>
+        m.Name == "IsFailure");
+      wr.WriteLine("[Xunit.Fact]");
+      if (!firstReturnIsFailureCompatible && formals.Count == 0) {
+        return;
+      }
+
+      wr = wr.NewNamedBlock("public static void {0}_CheckForFailureForXunit()", name);
+      for (var i = 0; i < formals.Count; i++) {
+        var typeName = TypeName(formals[i].Type, new ConcreteSyntaxTree(), formals[i].tok);
+        wr.WriteLine("var p{0} = FormatterServices.GetUninitializedObject(typeof({1})) as {1};", i, typeName);
+      }
+      var returnsString = string.Join(",", Enumerable.Range(0, returnTypes.Count).Select(i => $"r{i}"));
+      var formalsString = string.Join(",", Enumerable.Range(0, formals.Count).Select(i => $"p{i}"));
+      wr.WriteLine("var {0} = {1}({2});", returnsString, name, formalsString);
+
+      if (firstReturnIsFailureCompatible) {
+        wr.WriteLine("Xunit.Assert.False(r0.IsFailure(), \"Dafny test failed: \" + r0);");
       }
     }
 

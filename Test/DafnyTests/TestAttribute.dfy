@@ -67,3 +67,12 @@ method {:test} PassingTestUsingNoLHSAssignOrHalt() {
 method {:test} FailingTestUsingNoLHSAssignOrHalt() {
   :- expect FailUnless(false);
 }
+
+method {:test} PassingTestThatReturnsAValue() returns (i:int) {
+ return 0;
+}
+
+method {:test} PassingTestThatUsesMocks(v:VoidOutcome) {
+ expect v.IsFailure || !v.IsFailure;
+}
+
