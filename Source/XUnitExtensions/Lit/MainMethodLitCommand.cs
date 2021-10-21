@@ -8,15 +8,16 @@ using Xunit.Abstractions;
 
 namespace XUnitExtensions.Lit {
   public class MainMethodLitCommand : ILitCommand {
-    public Assembly Assembly { get; protected set; }
-    public string[] Arguments { get; protected set; }
+    private readonly Assembly assembly;
+    private readonly string[] arguments;
+
+    private MainMethodLitCommand(Assembly assembly, string[] arguments) {
+      this.assembly = assembly;
+      this.arguments = arguments;
+    }
 
     public static ILitCommand Parse(Assembly assembly, IEnumerable<string> arguments, LitTestConfiguration config, bool invokeDirectly) {
-      var result = new MainMethodLitCommand {
-        Assembly = assembly,
-        Arguments = arguments.ToArray()
-      };
-
+      var result = new MainMethodLitCommand(assembly, arguments.ToArray());
       return invokeDirectly ? result : result.ToShellCommand(config);
     }
 
@@ -31,21 +32,21 @@ namespace XUnitExtensions.Lit {
         Console.SetError(errorWriter);
       }
 
-      var exitCode = (int)Assembly.EntryPoint!.Invoke(null, new object[] { Arguments })!;
+      var exitCode = (int)assembly.EntryPoint!.Invoke(null, new object[] { arguments })!;
 
       return (exitCode, "", "");
     }
 
     public ILitCommand ToShellCommand(LitTestConfiguration config) {
-      var shellArguments = new[] { Assembly.Location }.Concat(Arguments);
+      var shellArguments = new[] { assembly.Location }.Concat(arguments);
       return new ShellLitCommand(config, "dotnet", shellArguments, config.PassthroughEnvironmentVariables);
     }
 
     public override string ToString() {
       var builder = new StringBuilder();
-      builder.Append(Assembly.EntryPoint);
+      builder.Append(assembly.EntryPoint);
       builder.Append(' ');
-      builder.AppendJoin(" ", Arguments);
+      builder.AppendJoin(" ", arguments);
       return builder.ToString();
     }
   }
