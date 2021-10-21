@@ -54,7 +54,7 @@ method test_next_weekday()
   // into compiled code.  If you want to compile code for next_weekday, so
   // that you can use it in a print statement, change "function" to
   // "function method" in the declaration of next_weekday.)  To try this
-  // out on rise4fun.com/dafny:  (0) comment out (or fix!) the assert above
+  // out:  (0) comment out (or fix!) the assert above
   // so that the program will verify, (1) fill in a body of the uninterpreted
   // function f on line 396 below (any body will do; for example, uncomment
   // line 400), and (2) change the name of this method to Main().

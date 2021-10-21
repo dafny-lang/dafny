@@ -184,18 +184,14 @@ namespace Microsoft.Dafny {
       return null;
     }
 
-    static Bpl.Cmd CaptureState(Bpl.IToken tok, bool isEndToken, string/*?*/ additionalInfo) {
-      Contract.Requires(tok != null);
-      Contract.Ensures(Contract.Result<Bpl.Cmd>() != null);
-      var col = tok.col + (isEndToken ? tok.val.Length : 0);
-      string description = String.Format("{0}{1}", ErrorReporter.TokenToString(tok), additionalInfo == null ? "" : (": " + additionalInfo));
-      Bpl.QKeyValue kv = new Bpl.QKeyValue(tok, "captureState", new List<object>() { description }, null);
-      return TrAssumeCmd(tok, Bpl.Expr.True, kv);
-    }
-
-    static Bpl.AssumeCmd TrAssumeCmd(Bpl.IToken tok, Bpl.Expr expr, Bpl.QKeyValue attributes = null) {
-      var lit = RemoveLit(expr);
-      return attributes == null ? new Bpl.AssumeCmd(tok, lit) : new Bpl.AssumeCmd(tok, lit, attributes);
+    public static Bpl.AssumeCmd TrAssumeCmd(Bpl.IToken tok, Bpl.Expr expr, Bpl.QKeyValue attributes = null) {
+      // It may be that "expr" is a Lit expression. It might seem we don't need a Lit expression
+      // around the boolean expression that is being assumed. However, we keep it. For one,
+      // it doesn't change the semantics of the assume command. More importantly, leaving
+      // a Lit around the expression is useful to avoid sending an "assume false;" to Boogie--since
+      // Boogie looks especially for "assume false;" commands and processes them in such a way
+      // that loops no longer are loops (which is confusing for Dafny users).
+      return attributes == null ? new Bpl.AssumeCmd(tok, expr) : new Bpl.AssumeCmd(tok, expr, attributes);
     }
 
     static Bpl.Expr RemoveLit(Bpl.Expr expr) {
