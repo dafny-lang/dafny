@@ -34,7 +34,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     /// </summary>
     public bool Resolved { get; }
 
-    private readonly DafnyLangTypeResolver _typeResolver;
+    private readonly DafnyLangTypeResolver typeResolver;
 
     public SymbolTable(
         CompilationUnit compilationUnit,
@@ -48,7 +48,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       Locations = locations;
       LookupTree = lookupTree;
       Resolved = symbolsResolved;
-      _typeResolver = new DafnyLangTypeResolver(declarations);
+      typeResolver = new DafnyLangTypeResolver(declarations);
 
       // TODO IntervalTree goes out of sync after any change and "fixes" its state upon the first query. Replace it with another implementation that can be queried without potential side-effects.
       LookupTree.Query(new Position(0, 0));
@@ -116,7 +116,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     /// <param name="type">The type of the symbol, or <c>null</c> if the type could not be resolved. If <paramref name="symbol"/> is already a type, it is returned.</param>
     /// <returns><c>true</c> if the type was successfully resolved, otherwise <c>false</c>.</returns>
     public bool TryGetTypeOf(ISymbol symbol, [NotNullWhen(true)] out ISymbol? type) {
-      if (symbol is ClassSymbol) {
+      if (symbol is TypeWithMembersSymbolBase) {
         // TODO other type symbols should be supported in the future.
         type = symbol;
         return true;
@@ -130,7 +130,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         type = null;
         return false;
       }
-      return _typeResolver.TryGetTypeSymbol(dafnyType, out type);
+      return typeResolver.TryGetTypeSymbol(dafnyType, out type);
     }
   }
 }

@@ -424,8 +424,14 @@ namespace Dafny {
         return false;
       }
       foreach (T t in a.dict.Keys) {
-        if (!b.dict.ContainsKey(t) || b.dict[t] < a.dict[t]) {
-          return false;
+        if (b.dict.ContainsKey(t)) {
+          if (b.dict[t] < a.dict[t]) {
+            return false;
+          }
+        } else {
+          if (a.dict[t] != BigInteger.Zero) {
+            return false;
+          }
         }
       }
       return true;
@@ -440,7 +446,7 @@ namespace Dafny {
     }
 
     public bool Contains<G>(G t) {
-      return t == null ? occurrencesOfNull > 0 : t is T && dict.ContainsKey((T)(object)t);
+      return Select(t) != 0;
     }
     public BigInteger Select<G>(G t) {
       if (t == null) {
@@ -559,7 +565,9 @@ namespace Dafny {
           yield return default(T);
         }
         foreach (var key in dict.Keys) {
-          yield return key;
+          if (dict[key] != 0) {
+            yield return key;
+          }
         }
       }
     }

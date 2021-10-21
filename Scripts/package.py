@@ -47,7 +47,7 @@ Z3_INTERESTING_FILES = ["LICENSE.txt", "bin/*"]
 ## On unix systems, which Dafny files should be marked as executable? (Glob syntax; Z3's permissions are preserved)
 UNIX_EXECUTABLES = ["dafny", "dafny-server"]
 
-ETCs = ["DafnyPrelude.bpl", "DafnyRuntime.js", "DafnyRuntime.go", "DafnyRuntime.jar", "DafnyRuntime.h"]
+ETCs = ["DafnyRuntime.js", "DafnyRuntime.go", "DafnyRuntime.jar", "DafnyRuntime.h"]
 
 # Constants
 
@@ -131,19 +131,19 @@ class Release:
             "-f", "net5.0",
             "-o", self.buildDirectory,
             "-r", self.target,
-            "-c", "Checked"])
+            "-c", "Release"])
         run(["dotnet", "publish", path.join(SOURCE_DIRECTORY, "DafnyServer", "DafnyServer.csproj"),
             "--nologo",
             "-f", "net5.0",
             "-o", self.buildDirectory,
             "-r", self.target,
-            "-c", "Checked"])
+            "-c", "Release"])
         run(["dotnet", "publish", path.join(SOURCE_DIRECTORY, "DafnyDriver", "DafnyDriver.csproj"),
             "--nologo",
             "-f", "net5.0",
             "-o", self.buildDirectory,
             "-r", self.target,
-            "-c", "Checked"])
+            "-c", "Release"])
 
     def pack(self):
         try:

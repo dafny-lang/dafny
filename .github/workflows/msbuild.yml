@@ -21,11 +21,11 @@ jobs:
       with:
         path: dafny
     - name: Restore tools
-      working-directory: dafny/Source
+      working-directory: dafny
       run: dotnet tool restore
     - name: Check code style
-      working-directory: dafny/Source
-      run: dotnet tool run dotnet-format -w --check Dafny.sln
+      working-directory: dafny
+      run: dotnet tool run dotnet-format -w --check Source/Dafny.sln --exclude Dafny/Scanner.cs --exclude Dafny/Parser.cs
     - name: Get XML
       id: boogieVersion
       uses: QwerMike/xpath-action@v1
@@ -112,6 +112,8 @@ jobs:
       uses: actions/checkout@v2
       with:
         path: dafny
+        submodules: true
+    - run: rm dafny/Test/libraries/lit.site.cfg # we remove the lit configuration file in the library repo (a git submodule) to prevent override
     - name: Create release
       run: |
         python dafny/Scripts/package.py 0.0.0-CI --os ${{ matrix.os_for_build }} --skip_manual=true --trial=true --github_secret=${{ secrets.GITHUB_TOKEN }} --out=CI.zip

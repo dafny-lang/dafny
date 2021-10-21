@@ -16,6 +16,11 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     public SymbolTable SymbolTable { get; }
 
     /// <summary>
+    /// <c>true</c> if the document load was canceled for this document.
+    /// </summary>
+    public bool LoadCanceled { get; }
+
+    /// <summary>
     /// Gets the serialized models of the counter examples if the verifier reported issues.
     /// <c>null</c> if there are no verification errors.
     /// </summary>
@@ -26,13 +31,15 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       DiagnosticErrorReporter errors,
       Dafny.Program program,
       SymbolTable symbolTable,
-      string? serializedCounterExamples
+      string? serializedCounterExamples,
+      bool loadCanceled = false
     ) {
       Text = textDocument;
       Errors = errors;
       Program = program;
       SymbolTable = symbolTable;
       SerializedCounterExamples = serializedCounterExamples;
+      LoadCanceled = loadCanceled;
     }
 
     /// <summary>

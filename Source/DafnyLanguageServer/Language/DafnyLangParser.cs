@@ -16,14 +16,14 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   /// this parser serializes all invocations.
   /// </remarks>
   public sealed class DafnyLangParser : IDafnyParser, IDisposable {
-    private static readonly object _initializationSyncObject = new();
-    private static bool _initialized;
+    private static readonly object InitializationSyncObject = new();
+    private static bool initialized;
 
-    private readonly ILogger _logger;
-    private readonly SemaphoreSlim _mutex = new(1);
+    private readonly ILogger logger;
+    private readonly SemaphoreSlim mutex = new(1);
 
     private DafnyLangParser(ILogger<DafnyLangParser> logger) {
-      _logger = logger;
+      this.logger = logger;
     }
 
     /// <summary>
@@ -33,56 +33,80 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// <param name="logger">A logger instance that may be used by this parser instance.</param>
     /// <returns>A safely created dafny parser instance.</returns>
     public static DafnyLangParser Create(ILogger<DafnyLangParser> logger) {
-      lock (_initializationSyncObject) {
-        if (!_initialized) {
+      lock (InitializationSyncObject) {
+        if (!initialized) {
           // TODO no error reporter is supplied at this time since it appears that there is not any usage inside dafny.
           DafnyOptions.Install(new DafnyOptions());
           DafnyOptions.Clo.ApplyDefaultOptions();
           DafnyOptions.O.PrintIncludesMode = DafnyOptions.IncludesModes.None;
-          _initialized = true;
+          initialized = true;
         }
         logger.LogTrace("initialized the dafny pipeline...");
         return new DafnyLangParser(logger);
       }
     }
 
-    public Dafny.Program Parse(TextDocumentItem document, ErrorReporter errorReporter, CancellationToken cancellationToken) {
-      _mutex.Wait(cancellationToken);
+    public Dafny.Program CreateUnparsed(TextDocumentItem document, ErrorReporter errorReporter, CancellationToken cancellationToken) {
+      mutex.Wait(cancellationToken);
       try {
-        // Ensure that the statically kept scopes are empty when parsing a new document.
-        Type.ResetScopes();
-        var module = new LiteralModuleDecl(new DefaultModuleDecl(), null);
-        var builtIns = new BuiltIns();
+        return NewDafnyProgram(document, errorReporter);
+      }
+      finally {
+        mutex.Release();
+      }
+    }
+
+    public Dafny.Program Parse(TextDocumentItem document, ErrorReporter errorReporter, CancellationToken cancellationToken) {
+      mutex.Wait(cancellationToken);
+      try {
+        var program = NewDafnyProgram(document, errorReporter);
         var parseErrors = Parser.Parse(
           document.Text,
           document.GetFilePath(),
           // We use the full path as filename so we can better re-construct the DocumentUri for the definition lookup.
           document.GetFilePath(),
-          module,
-          builtIns,
+          program.DefaultModule,
+          program.BuiltIns,
           errorReporter
         );
         if (parseErrors != 0) {
-          _logger.LogDebug("encountered {ErrorCount} errors while parsing {DocumentUri}", parseErrors, document.Uri);
+          logger.LogDebug("encountered {ErrorCount} errors while parsing {DocumentUri}", parseErrors, document.Uri);
         }
-        if (!TryParseIncludesOfModule(module, builtIns, errorReporter)) {
-          _logger.LogDebug("encountered error while parsing the includes of {DocumentUri}", document.Uri);
+        if (!TryParseIncludesOfModule(program.DefaultModule, program.BuiltIns, errorReporter, cancellationToken)) {
+          logger.LogDebug("encountered error while parsing the includes of {DocumentUri}", document.Uri);
         }
-        // The file system path is used as the program's name to identify the entry document. See PathExtensions
-        return new Dafny.Program(document.GetFilePath(), module, builtIns, errorReporter);
+        return program;
       }
       finally {
-        _mutex.Release();
+        mutex.Release();
       }
     }
 
+    private static Dafny.Program NewDafnyProgram(TextDocumentItem document, ErrorReporter errorReporter) {
+      // Ensure that the statically kept scopes are empty when parsing a new document.
+      Type.ResetScopes();
+      return new Dafny.Program(
+        // The file system path is used as the program's name to identify the entry document. See PathExtensions
+        document.GetFilePath(),
+        new LiteralModuleDecl(new DefaultModuleDecl(), null),
+        // BuiltIns cannot be initialized without Type.ResetScopes() before.
+        new BuiltIns(),
+        errorReporter
+      );
+    }
+
     public void Dispose() {
-      _mutex.Dispose();
+      mutex.Dispose();
     }
 
     // TODO The following methods are based on the ones from DafnyPipeline/DafnyMain.cs.
     //      It could be convenient to adapt them in the main-repo so location info could be extracted.
-    public bool TryParseIncludesOfModule(ModuleDecl module, BuiltIns builtIns, ErrorReporter errorReporter) {
+    private bool TryParseIncludesOfModule(
+      ModuleDecl module,
+      BuiltIns builtIns,
+      ErrorReporter errorReporter,
+      CancellationToken cancellationToken
+    ) {
       var errors = new Errors(errorReporter);
       // Issue #40:
       // A HashSet must not be used here since equals treats A included by B not equal to A included by C.
@@ -93,6 +117,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
       bool newIncludeParsed = true;
       while (newIncludeParsed) {
+        cancellationToken.ThrowIfCancellationRequested();
         newIncludeParsed = false;
         // Parser.Parse appears to modify the include list; thus, we create a copy to avoid concurrent modifications.
         var moduleIncludes = new List<Include>(((LiteralModuleDecl)module).ModuleDef.Includes);
@@ -130,11 +155,11 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         }
       } catch (IllegalDafnyFile e) {
         errorReporter.Error(MessageSource.Parser, include.tok, $"Include of file {include.includedFilename} failed.");
-        _logger.LogDebug(e, "encountered include of illegal dafny file {Filename}", include.includedFilename);
+        logger.LogDebug(e, "encountered include of illegal dafny file {Filename}", include.includedFilename);
         return false;
       } catch (IOException e) {
         errorReporter.Error(MessageSource.Parser, include.tok, $"Unable to open the include {include.includedFilename}.");
-        _logger.LogDebug(e, "could not open file {Filename}", include.includedFilename);
+        logger.LogDebug(e, "could not open file {Filename}", include.includedFilename);
         return false;
       }
       return true;
