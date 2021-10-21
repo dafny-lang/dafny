@@ -27,7 +27,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// A dafny document representing the loaded text document.
     /// If there was a newer existing text document already loaded, it will be returned instead.
     /// </returns>
-    Task<DafnyDocument> LoadDocumentAsync(TextDocumentItem document);
+    Task<DafnyDocument> OpenDocumentAsync(TextDocumentItem document);
 
     /// <summary>
     /// Updates a document with the specified changes.
