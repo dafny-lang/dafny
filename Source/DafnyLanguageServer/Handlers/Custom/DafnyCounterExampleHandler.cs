@@ -4,7 +4,6 @@ using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -76,39 +75,19 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
         return model.States
           .WithCancellation(cancellationToken)
           .OfType<DafnyModelState>()
-          .Where(state => !IsInitialState(state))
+          .Where(state => !state.IsInitialState)
           .Select(GetCounterExample);
       }
 
-      private static bool IsInitialState(DafnyModelState state) {
-        return state.ShortenedStateName.Equals(InitialStateName);
-      }
-
       private CounterExampleItem GetCounterExample(DafnyModelState state) {
+        HashSet<DafnyModelVariable> vars = state.ExpandedVariableSet(counterExampleDepth);
         return new(
-          GetPositionFromInitialState(state),
-          GetVariablesFromState(state, counterExampleDepth)
-        );
-      }
-
-      private static Position GetPositionFromInitialState(DafnyModelState state) {
-        var match = StatePositionRegex.Match(state.ShortenedStateName);
-        if (!match.Success) {
-          throw new ArgumentException($"state does not contain position: {state.ShortenedStateName}");
-        }
-        // Note: lines in a model start with 1, characters/columns with 0.
-        return new Position(
-          int.Parse(match.Groups["line"].Value) - 1,
-          int.Parse(match.Groups["character"].Value)
-        );
-      }
-
-      private IDictionary<string, string> GetVariablesFromState(DafnyModelState state, int maxDepth) {
-        HashSet<DafnyModelVariable> vars = state.ExpandedVariableSet(maxDepth);
-        return vars.WithCancellation(cancellationToken).ToDictionary(
+          new Position(state.GetLineId() - 1, state.GetCharId()),
+          vars.WithCancellation(cancellationToken).ToDictionary(
             variable => variable.ShortName + ":" + variable.Type.InDafnyFormat(),
             variable => variable.Value
-          );
+          )
+        );
       }
     }
   }
