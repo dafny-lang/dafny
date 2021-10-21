@@ -39,47 +39,53 @@ namespace IntegrationTests {
       return MainMethodLitCommand.Parse(assembly, arguments, config, invokeDirectly);
     }
 
-    private static readonly LitTestConfiguration CONFIG = new() {
-      Commands = new Dictionary<string, Func<IEnumerable<string>, LitTestConfiguration, ILitCommand>> {
-        { "%baredafny", (args, config) =>
-          MainWithArguments(dafnyDriverAssembly, args, config, false) },
-        { "%dafny", (args, config) =>
-          MainWithArguments(dafnyDriverAssembly, defaultDafnyArguments.Concat(args), config, false) },
-        { "%server", (args, config) =>
-          MainWithArguments(dafnyServerAssembly, args, config, false) },
-      },
-
-      Substitions = new Dictionary<string, string> {
+    private static readonly LitTestConfiguration Config;
+    static LitTests() {
+      var substitutions = new Dictionary<string, string> {
         { "%diff", "diff" },
         { "%binaryDir", "." },
         { "%z3", Path.Join("z3", "bin", "z3") },
         { "%refmanexamples", Path.Join("TestFiles", "LitTests", "LitTest", "refman", "examples") }
-      },
+      };
 
-      PassthroughEnvironmentVariables = new[] { "PATH", "HOME" },
-    };
+      var commands = new Dictionary<string, Func<IEnumerable<string>, LitTestConfiguration, ILitCommand>> {
+        {
+          "%baredafny", (args, config) =>
+            MainWithArguments(dafnyDriverAssembly, args, config, false)
+        }, {
+          "%dafny", (args, config) =>
+            MainWithArguments(dafnyDriverAssembly, defaultDafnyArguments.Concat(args), config, false)
+        }, {
+          "%server", (args, config) =>
+            MainWithArguments(dafnyServerAssembly, args, config, false)
+        }
+      };
 
-    static LitTests() {
-      var dafnyReleaseDir = Environment.GetEnvironmentVariable("DAFNY_RELEASE");
-      if (dafnyReleaseDir != null) {
-        CONFIG.Commands["%baredafny"] = (args, config) =>
-          new ShellLitCommand(config, Path.Join(dafnyReleaseDir, "dafny"), args, config.PassthroughEnvironmentVariables);
-        CONFIG.Commands["%dafny"] = (args, config) =>
-          new ShellLitCommand(config, Path.Join(dafnyReleaseDir, "dafny"), defaultDafnyArguments.Concat(args), config.PassthroughEnvironmentVariables);
-        CONFIG.Commands["%server"] = (args, config) =>
-          new ShellLitCommand(config, Path.Join(dafnyReleaseDir, "DafnyServer"), args, config.PassthroughEnvironmentVariables);
-        CONFIG.Substitions["%z3"] = Path.Join(dafnyReleaseDir, "z3", "bin", "z3");
-      }
+      var passthroughEnvironmentVariables = new[] { "PATH", "HOME" };
 
+      string[] features;
       if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
-        CONFIG.Features = new[] { "ubuntu", "posix" };
+        features = new[] { "ubuntu", "posix" };
       } else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-        CONFIG.Features = new[] { "windows" };
+        features = new[] { "windows" };
       } else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
-        CONFIG.Features = new[] { "macosx", "posix" };
+        features = new[] { "macosx", "posix" };
       } else {
         throw new Exception($"Unsupported OS: {RuntimeInformation.OSDescription}");
       }
+
+      var dafnyReleaseDir = Environment.GetEnvironmentVariable("DAFNY_RELEASE");
+      if (dafnyReleaseDir != null) {
+        commands["%baredafny"] = (args, config) =>
+          new ShellLitCommand(config, Path.Join(dafnyReleaseDir, "dafny"), args, config.PassthroughEnvironmentVariables);
+        commands["%dafny"] = (args, config) =>
+          new ShellLitCommand(config, Path.Join(dafnyReleaseDir, "dafny"), defaultDafnyArguments.Concat(args), config.PassthroughEnvironmentVariables);
+        commands["%server"] = (args, config) =>
+          new ShellLitCommand(config, Path.Join(dafnyReleaseDir, "DafnyServer"), args, config.PassthroughEnvironmentVariables);
+        substitutions["%z3"] = Path.Join(dafnyReleaseDir, "z3", "bin", "z3");
+      }
+      
+      Config = new LitTestConfiguration(substitutions, commands, features, passthroughEnvironmentVariables);
     }
 
     private readonly ITestOutputHelper output;
@@ -90,9 +96,9 @@ namespace IntegrationTests {
 
     [FileTheory]
     [FileData(Includes = new[] { "**/*.dfy", "**/*.transcript" },
-              Excludes = new[] { "**/Inputs/**/*", "refman/examples/**/*" })]
+              Excludes = new[] { "**/Inputs/**/*", "**/Output/**/*", "refman/examples/**/*" })]
     public void LitTest(string path) {
-      LitTestCase.Run(path, CONFIG, output);
+      LitTestCase.Run(path, Config, output);
     }
   }
 }

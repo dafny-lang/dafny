@@ -8,13 +8,23 @@ namespace XUnitExtensions.Lit {
 
   // TODO: Make safely immutable
   public class LitTestConfiguration {
-    public Dictionary<string, string> Substitions { get; set; }
+    public readonly Dictionary<string, string> Substitions;
 
-    public Dictionary<string, Func<IEnumerable<string>, LitTestConfiguration, ILitCommand>> Commands { get; set; }
+    public readonly Dictionary<string, Func<IEnumerable<string>, LitTestConfiguration, ILitCommand>> Commands;
 
-    public IEnumerable<string> PassthroughEnvironmentVariables { get; set; }
+    public readonly string[] Features;
 
-    public string[] Features { get; set; }
+    public readonly IEnumerable<string> PassthroughEnvironmentVariables;
+
+    public LitTestConfiguration(Dictionary<string, string> substitions,
+            Dictionary<string, Func<IEnumerable<string>, LitTestConfiguration, ILitCommand>> commands,
+            string[] features,
+            IEnumerable<string> passthroughEnvironmentVariables) {
+      Substitions = substitions;
+      Commands = commands;
+      Features = features;
+      PassthroughEnvironmentVariables = passthroughEnvironmentVariables;
+    }
 
     public string ApplySubstitutions(string s) {
       foreach (var (key, value) in Substitions) {
@@ -24,12 +34,12 @@ namespace XUnitExtensions.Lit {
     }
 
     public LitTestConfiguration WithSubstitutions(Dictionary<string, string> more) {
-      return new LitTestConfiguration {
-        Substitions = Substitions.Concat(more).ToDictionary(pair => pair.Key, pair => pair.Value),
-        Commands = Commands,
-        PassthroughEnvironmentVariables = PassthroughEnvironmentVariables,
-        Features = Features
-      };
+      return new LitTestConfiguration(
+        Substitions.Concat(more).ToDictionary(pair => pair.Key, pair => pair.Value),
+        Commands,
+        Features,
+        PassthroughEnvironmentVariables
+      );
     }
   }
 }
