@@ -1,5 +1,6 @@
 ﻿using IntervalTree;
 using MediatR;
+using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -77,7 +78,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         this.cancellationToken = cancellationToken;
       }
 
-      public override void VisitUnknown(object node, Boogie.IToken token) {
+      public override void VisitUnknown(object node, IToken token) {
         logger.LogDebug("encountered unknown syntax node of type {NodeType} in {Filename}@({Line},{Column})",
           node.GetType(), token.GetDocumentFileName(), token.line, token.col);
       }
@@ -283,9 +284,8 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           fieldSymbol,
           fieldSymbol.Declaration.tok,
           fieldSymbol.Declaration.tok.GetLspRange(),
+          // BodyEndToken always returns Token.NoToken
           fieldSymbol.Declaration.tok.GetLspRange()
-        // TODO BodyEndToken returns a token with location (0, 0)
-        //new Range(fieldSymbol.Declaration.tok.GetLspPosition(), fieldSymbol.Declaration.BodyEndTok.GetLspPosition())
         );
         VisitChildren(fieldSymbol);
         return Unit.Value;
@@ -293,14 +293,11 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
       public Unit Visit(FunctionSymbol functionSymbol) {
         cancellationToken.ThrowIfCancellationRequested();
-        var declarationRange = functionSymbol.Declaration.Body == null
-          ? functionSymbol.Declaration.tok.GetLspRange()
-          : new Range(functionSymbol.Declaration.tok.GetLspPosition(), functionSymbol.Declaration.BodyEndTok.GetLspPosition());
         RegisterLocation(
           functionSymbol,
           functionSymbol.Declaration.tok,
           functionSymbol.Declaration.tok.GetLspRange(),
-          declarationRange
+          GetBodyRange(functionSymbol.Declaration)
         );
         VisitChildren(functionSymbol);
         return Unit.Value;
@@ -308,17 +305,20 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
       public Unit Visit(MethodSymbol methodSymbol) {
         cancellationToken.ThrowIfCancellationRequested();
-        var declarationRange = methodSymbol.Declaration.Body == null
-          ? methodSymbol.Declaration.tok.GetLspRange()
-          : new Range(methodSymbol.Declaration.tok.GetLspPosition(), methodSymbol.Declaration.BodyEndTok.GetLspPosition());
         RegisterLocation(
           methodSymbol,
           methodSymbol.Declaration.tok,
           methodSymbol.Declaration.tok.GetLspRange(),
-          declarationRange
+          GetBodyRange(methodSymbol.Declaration)
         );
         VisitChildren(methodSymbol);
         return Unit.Value;
+      }
+
+      private static Range GetBodyRange(Declaration declaration) {
+        return declaration.BodyEndTok == Token.NoToken
+          ? declaration.tok.GetLspRange()
+          : new Range(declaration.tok.GetLspPosition(), declaration.BodyEndTok.GetLspPosition());
       }
 
       public Unit Visit(VariableSymbol variableSymbol) {
@@ -351,7 +351,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         }
       }
 
-      private void RegisterLocation(ISymbol symbol, Boogie.IToken token, Range name, Range declaration) {
+      private void RegisterLocation(ISymbol symbol, IToken token, Range name, Range declaration) {
         if (token.filename != null) {
           // The filename is null if we have a default or System based symbol. This is also reflected by the ranges being usually -1.
           Locations.Add(symbol, new SymbolLocation(token.GetDocumentUri(), name, declaration));
