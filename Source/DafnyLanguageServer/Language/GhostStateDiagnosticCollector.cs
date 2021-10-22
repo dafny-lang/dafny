@@ -1,4 +1,5 @@
-﻿using Microsoft.Dafny.LanguageServer.Language.Symbols;
+﻿using Microsoft.Boogie;
+using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Extensions.Options;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -25,50 +26,86 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     }
 
     public IEnumerable<Diagnostic> GetGhostStateDiagnostics(SymbolTable symbolTable, CancellationToken cancellationToken) {
-      if (!options.MarkEnabled) {
+      if (!options.MarkStatements) {
         return Enumerable.Empty<Diagnostic>();
       }
-      var visitor = new GhostStateSyntaxTreeVisitor(options, symbolTable.CompilationUnit.Program, cancellationToken);
+      var visitor = new GhostStateSyntaxTreeVisitor(symbolTable.CompilationUnit.Program, cancellationToken);
       visitor.Visit(symbolTable.CompilationUnit.Program);
       return visitor.GhostDiagnostics;
     }
 
     private class GhostStateSyntaxTreeVisitor : SyntaxTreeVisitor {
-      private readonly GhostOptions options;
       private readonly Dafny.Program program;
       private readonly CancellationToken cancellationToken;
 
       public List<Diagnostic> GhostDiagnostics { get; } = new();
 
-      public GhostStateSyntaxTreeVisitor(GhostOptions options, Dafny.Program program, CancellationToken cancellationToken) {
-        this.options = options;
+      public GhostStateSyntaxTreeVisitor(Dafny.Program program, CancellationToken cancellationToken) {
         this.program = program;
         this.cancellationToken = cancellationToken;
       }
 
-      public override void VisitUnknown(object node, Boogie.IToken token) { }
+      public override void VisitUnknown(object node, IToken token) { }
 
       public override void Visit(Statement statement) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (options.MarkStatements && statement.IsGhost && IsPartOfEntryDocumentAndNoMetadata(statement.Tok)) {
-          GhostDiagnostics.Add(CreateDiagnostic(
-            new Range(statement.Tok.GetLspPosition(), statement.EndTok.GetLspPosition()),
-            GhostStatementMessage
-          ));
+        if(IsGhostStatementToMark(statement)) {
+          GhostDiagnostics.Add(CreateGhostDiagnostic(GetRange(statement)));
         } else {
           base.Visit(statement);
         }
       }
 
+      private bool IsGhostStatementToMark(Statement statement) {
+        return statement.IsGhost
+          && IsPartOfEntryDocumentAndNoMetadata(statement.Tok);
+      }
 
-      private bool IsPartOfEntryDocumentAndNoMetadata(Boogie.IToken token) {
+
+      private bool IsPartOfEntryDocumentAndNoMetadata(IToken token) {
         return token.line > 0 && program.IsPartOfEntryDocument(token);
       }
 
-      private static Diagnostic CreateDiagnostic(Range range, string message) {
+      private static Range GetRange(Statement statement) {
+        return statement switch {
+          UpdateStmt updateStatement => GetRange(updateStatement),
+          _ => CreateRange(statement.Tok, statement.EndTok)
+        };
+      }
+
+      private static Range GetRange(UpdateStmt updateStatement) {
+        IToken startToken;
+        if (updateStatement.Lhss.Count > 0) {
+          startToken = updateStatement.Lhss[0].tok;
+        } else if (updateStatement.ResolvedStatements.Count > 0) {
+          // This branch handles the case where the UpdateStmt consists of an CallStmt without of left hand side.
+          // otherwise, we'd only mark parentheses and the semi-colon of the CallStmt. 
+          startToken = GetStartTokenFromResolvedStatement(updateStatement.ResolvedStatements[0]);
+        } else {
+          startToken = updateStatement.Tok;
+        }
+        return CreateRange(startToken, updateStatement.EndTok);
+      }
+
+      private static IToken GetStartTokenFromResolvedStatement(Statement resolvedStatement) {
+        return resolvedStatement switch {
+          CallStmt callStatement => callStatement.MethodSelect.tok,
+          _ => resolvedStatement.Tok
+        };
+      }
+
+      private static Range CreateRange(IToken startToken, IToken endToken) {
+        var endPosition = endToken.GetLspPosition();
+        return new Range(
+          startToken.GetLspPosition(),
+          endPosition with { Character = endPosition.Character + 1 }
+        );
+      }
+
+      private static Diagnostic CreateGhostDiagnostic(Range range) {
         return new Diagnostic {
           Range = range,
-          Message = message,
+          Message = GhostStatementMessage,
           Severity = DiagnosticSeverity.Hint
         };
       }

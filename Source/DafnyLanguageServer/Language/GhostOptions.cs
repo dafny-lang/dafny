@@ -12,10 +12,5 @@
     /// Gets or sets whether the statements of ghost states should be marked.
     /// </summary>
     public bool MarkStatements { get; set; }
-
-    /// <summary>
-    /// Gets whether any of the mark options is enabled.
-    /// </summary>
-    public bool MarkEnabled => MarkStatements;
   }
 }
