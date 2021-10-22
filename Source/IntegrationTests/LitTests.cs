@@ -15,6 +15,11 @@ using XUnitExtensions.Lit;
 namespace IntegrationTests {
   public class LitTests {
 
+    // Change this to true in order to debug the execution of commands like %dafny.
+    // This is false by default because the main dafny CLI implementation currently has shared static state, which
+    // causes errors when invoking the CLI in the same process on multiple inputs in sequence, much less in parallel.
+    private const bool InvokeMainMethodsDirectly = false;
+
     private static readonly Assembly DafnyDriverAssembly = typeof(DafnyDriver).Assembly;
     private static readonly Assembly DafnyServerAssembly = typeof(Server).Assembly;
 
@@ -51,13 +56,13 @@ namespace IntegrationTests {
       var commands = new Dictionary<string, Func<IEnumerable<string>, LitTestConfiguration, ILitCommand>> {
         {
           "%baredafny", (args, config) =>
-            MainWithArguments(DafnyDriverAssembly, args, config, false)
+            MainWithArguments(DafnyDriverAssembly, args, config, InvokeMainMethodsDirectly)
         }, {
           "%dafny", (args, config) =>
-            MainWithArguments(DafnyDriverAssembly, DefaultDafnyArguments.Concat(args), config, false)
+            MainWithArguments(DafnyDriverAssembly, DefaultDafnyArguments.Concat(args), config, InvokeMainMethodsDirectly)
         }, {
           "%server", (args, config) =>
-            MainWithArguments(DafnyServerAssembly, args, config, false)
+            MainWithArguments(DafnyServerAssembly, args, config, InvokeMainMethodsDirectly)
         }
       };
 
