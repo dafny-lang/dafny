@@ -26,16 +26,6 @@ test {
     useJUnitPlatform()
 }
 
-task copyJarToBinaries {
-    dependsOn build
-    doLast {
-      copy {
-        from 'build/libs/DafnyRuntime.jar'
-        into '../../../Binaries'
-      }
-    }
-}
-
 clean {
     delete '../../../Binaries/DafnyRuntime.jar'
 }

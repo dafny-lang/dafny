@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:1 /compileTarget:cs "%s" git-issue-1229-extern.cs > "%t"
+// RUN: %dafny /compile:1 /compileTarget:cs "%s" %S/git-issue-1229-extern.cs > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module {:extern "MyModule2"} MyModule2 {
