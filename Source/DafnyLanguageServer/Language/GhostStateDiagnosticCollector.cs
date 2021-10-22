@@ -25,7 +25,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     }
 
     public IEnumerable<Diagnostic> GetGhostStateDiagnostics(SymbolTable symbolTable, CancellationToken cancellationToken) {
-      if (!options.FadeEnabled) {
+      if (!options.MarkEnabled) {
         return Enumerable.Empty<Diagnostic>();
       }
       var visitor = new GhostStateSyntaxTreeVisitor(options, symbolTable.CompilationUnit.Program, cancellationToken);
@@ -50,7 +50,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
       public override void Visit(Statement statement) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (options.FadeStatements && statement.IsGhost && IsPartOfEntryDocumentAndNoMetadata(statement.Tok)) {
+        if (options.MarkStatements && statement.IsGhost && IsPartOfEntryDocumentAndNoMetadata(statement.Tok)) {
           GhostDiagnostics.Add(CreateDiagnostic(
             new Range(statement.Tok.GetLspPosition(), statement.EndTok.GetLspPosition()),
             GhostStatementMessage

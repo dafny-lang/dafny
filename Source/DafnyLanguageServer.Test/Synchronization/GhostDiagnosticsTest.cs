@@ -36,7 +36,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
     }
 
     [TestMethod]
-    public async Task OpeningFlawlessDocumentWithoutGhostFadeDoesNotFadeAnything() {
+    public async Task OpeningFlawlessDocumentWithoutGhostMarkDoesNotMarkAnything() {
       var source = @"
 function Product(x: nat, y: nat): nat {
   x * y
@@ -62,69 +62,7 @@ method Multiply(x: int, y: int) returns (product: int)
     }
 
     [TestMethod]
-    public async Task OpeningFlawlessDocumentWithGhostFadeDeclarationsFadesFunctionDeclaration() {
-      var source = @"
-function Product(x: nat, y: nat): nat {
-  x * y
-}
-
-method Multiply(x: int, y: int) returns (product: int)
-  requires y >= 0 && x >= 0
-  decreases y
-  ensures product == Product(x, y) && product >= 0
-{
-  if y == 0 {
-    product := 0;
-  } else {
-    var step := Multiply(x, y - 1);
-    product := x + step;
-  }
-}".TrimStart();
-      await SetUp(new Dictionary<string, string>() {
-        { $"{GhostOptions.Section}:{nameof(GhostOptions.FadeDeclarations)}", "true" }
-      });
-      var documentItem = CreateTestDocument(source);
-      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var report = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
-      var diagnostics = report.Diagnostics.ToArray();
-      Assert.AreEqual(1, diagnostics.Length);
-      Assert.AreEqual("Ghost function", diagnostics[0].Message);
-      Assert.AreEqual(new Range((0, 9), (2, 1)), diagnostics[0].Range);
-    }
-
-    [TestMethod]
-    public async Task OpeningFlawlessDocumentWithGhostFadeDesignatorsFadesFunctionCall() {
-      var source = @"
-function Product(x: nat, y: nat): nat {
-  x * y
-}
-
-method Multiply(x: int, y: int) returns (product: int)
-  requires y >= 0 && x >= 0
-  decreases y
-  ensures product == Product(x, y) && product >= 0
-{
-  if y == 0 {
-    product := 0;
-  } else {
-    var step := Multiply(x, y - 1);
-    product := x + step;
-  }
-}".TrimStart();
-      await SetUp(new Dictionary<string, string>() {
-        { $"{GhostOptions.Section}:{nameof(GhostOptions.FadeDesignators)}", "true" }
-      });
-      var documentItem = CreateTestDocument(source);
-      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var report = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
-      var diagnostics = report.Diagnostics.ToArray();
-      Assert.AreEqual(1, diagnostics.Length);
-      Assert.AreEqual("Ghost function", diagnostics[0].Message);
-      Assert.AreEqual(new Range((7, 21), (7, 28)), diagnostics[0].Range);
-    }
-
-    [TestMethod]
-    public async Task OpeningFlawlessDocumentWithGhostFadeDesignatorsFadesVariableName() {
+    public async Task OpeningFlawlessDocumentWithGhostMarkStatementsMarksGhostVariableDeclarationsAndAssignments() {
       var source = @"
 method Multiply(x: int, y: int) returns (product: int)
   requires y >= 0 && x >= 0
@@ -141,38 +79,7 @@ method Multiply(x: int, y: int) returns (product: int)
   z := -1;
 }".TrimStart();
       await SetUp(new Dictionary<string, string>() {
-        { $"{GhostOptions.Section}:{nameof(GhostOptions.FadeDesignators)}", "true" }
-      });
-      var documentItem = CreateTestDocument(source);
-      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var report = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
-      var diagnostics = report.Diagnostics.ToArray();
-      Assert.AreEqual(2, diagnostics.Length);
-      Assert.AreEqual("Ghost variable", diagnostics[0].Message);
-      Assert.AreEqual(new Range((5, 12), (5, 13)), diagnostics[0].Range);
-      Assert.AreEqual("Ghost variable", diagnostics[1].Message);
-      Assert.AreEqual(new Range((12, 2), (12, 3)), diagnostics[1].Range);
-    }
-
-    [TestMethod]
-    public async Task OpeningFlawlessDocumentWithGhostFadeStatementsFadesGhostVariableDeclarationsAndAssignments() {
-      var source = @"
-method Multiply(x: int, y: int) returns (product: int)
-  requires y >= 0 && x >= 0
-  decreases y
-  ensures product == x * y && product >= 0
-{
-  ghost var z := 0;
-  if y == 0 {
-    product := 0;
-  } else {
-    var step := Multiply(x, y - 1);
-    product := x + step;
-  }
-  z := -1;
-}".TrimStart();
-      await SetUp(new Dictionary<string, string>() {
-        { $"{GhostOptions.Section}:{nameof(GhostOptions.FadeStatements)}", "true" }
+        { $"{GhostOptions.Section}:{nameof(GhostOptions.MarkStatements)}", "true" }
       });
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);

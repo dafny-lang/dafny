@@ -9,13 +9,13 @@
     public const string Section = "Ghost";
 
     /// <summary>
-    /// Gets or sets whether the statements of ghost states should be faded out.
+    /// Gets or sets whether the statements of ghost states should be marked.
     /// </summary>
-    public bool FadeStatements { get; set; }
+    public bool MarkStatements { get; set; }
 
     /// <summary>
-    /// Gets whether any of the fade options is enabled.
+    /// Gets whether any of the mark options is enabled.
     /// </summary>
-    public bool FadeEnabled => FadeStatements;
+    public bool MarkEnabled => MarkStatements;
   }
 }
