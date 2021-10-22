@@ -9,16 +9,6 @@
     public const string Section = "Ghost";
 
     /// <summary>
-    /// Gets or sets whether designators to ghost states should be faded out.
-    /// </summary>
-    public bool FadeDesignators { get; set; }
-
-    /// <summary>
-    /// Gets or sets whether the declarations of ghost states should be faded out.
-    /// </summary>
-    public bool FadeDeclarations { get; set; }
-
-    /// <summary>
     /// Gets or sets whether the statements of ghost states should be faded out.
     /// </summary>
     public bool FadeStatements { get; set; }
@@ -26,6 +16,6 @@
     /// <summary>
     /// Gets whether any of the fade options is enabled.
     /// </summary>
-    public bool FadeEnabled => FadeStatements || FadeDeclarations || FadeDesignators;
+    public bool FadeEnabled => FadeStatements;
   }
 }
