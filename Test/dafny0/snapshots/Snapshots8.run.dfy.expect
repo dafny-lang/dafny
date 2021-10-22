@@ -16,7 +16,7 @@ Snapshots8.v0.dfy(13,12): Related location: This is the postcondition that might
 Processing command (at Snapshots8.v0.dfy(23,12)) assert u#0 != 53;
   >>> DoNothingToAssert
 Snapshots8.v0.dfy(23,11): Error: assertion violation
-Processing command (at Snapshots8.v0.dfy(28,10)) assert true;
+Processing command (at Snapshots8.v0.dfy(28,10)) assert Lit(true);
   >>> DoNothingToAssert
 
 Dafny program verifier finished with 1 verified, 4 errors
@@ -37,7 +37,7 @@ Snapshots8.v1.dfy(5,16): Error: assertion violation
 Snapshots8.v1.dfy(6,7): Error: A precondition for this call might not hold.
 Snapshots8.v1.dfy(12,20): Related location: This is the precondition that might not hold.
 Snapshots8.v1.dfy(7,11): Error: assertion violation
-Processing command (at Snapshots8.v1.dfy(23,12)) assert true;
+Processing command (at Snapshots8.v1.dfy(23,12)) assert Lit(true);
   >>> DoNothingToAssert
 Processing command (at Snapshots8.v1.dfy(19,13)) assert LitInt(2) <= z#0;
   >>> DoNothingToAssert
