@@ -49,7 +49,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
       public override void Visit(Statement statement) {
         cancellationToken.ThrowIfCancellationRequested();
-        if(IsGhostStatementToMark(statement)) {
+        if (IsGhostStatementToMark(statement)) {
           GhostDiagnostics.Add(CreateGhostDiagnostic(GetRange(statement)));
         } else {
           base.Visit(statement);
