@@ -98,7 +98,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         var endPosition = endToken.GetLspPosition();
         return new Range(
           startToken.GetLspPosition(),
-          endPosition with { Character = endPosition.Character + 1 }
+          endPosition with { Character = endPosition.Character + endToken.val.Length }
         );
       }
 
