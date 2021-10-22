@@ -297,7 +297,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           functionSymbol,
           functionSymbol.Declaration.tok,
           functionSymbol.Declaration.tok.GetLspRange(),
-          GetBodyRange(functionSymbol.Declaration)
+          GetDeclarationRange(functionSymbol.Declaration)
         );
         VisitChildren(functionSymbol);
         return Unit.Value;
@@ -309,13 +309,13 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           methodSymbol,
           methodSymbol.Declaration.tok,
           methodSymbol.Declaration.tok.GetLspRange(),
-          GetBodyRange(methodSymbol.Declaration)
+          GetDeclarationRange(methodSymbol.Declaration)
         );
         VisitChildren(methodSymbol);
         return Unit.Value;
       }
 
-      private static Range GetBodyRange(Declaration declaration) {
+      private static Range GetDeclarationRange(Declaration declaration) {
         return declaration.BodyEndTok == Token.NoToken
           ? declaration.tok.GetLspRange()
           : new Range(declaration.tok.GetLspPosition(), declaration.BodyEndTok.GetLspPosition());
