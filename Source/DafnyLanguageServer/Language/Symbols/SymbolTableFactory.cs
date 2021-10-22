@@ -308,11 +308,14 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
       public Unit Visit(MethodSymbol methodSymbol) {
         cancellationToken.ThrowIfCancellationRequested();
+        var declarationRange = methodSymbol.Declaration.Body == null
+          ? methodSymbol.Declaration.tok.GetLspRange()
+          : new Range(methodSymbol.Declaration.tok.GetLspPosition(), methodSymbol.Declaration.BodyEndTok.GetLspPosition());
         RegisterLocation(
           methodSymbol,
           methodSymbol.Declaration.tok,
           methodSymbol.Declaration.tok.GetLspRange(),
-          new Range(methodSymbol.Declaration.tok.GetLspPosition(), methodSymbol.Declaration.BodyEndTok.GetLspPosition())
+          declarationRange
         );
         VisitChildren(methodSymbol);
         return Unit.Value;
