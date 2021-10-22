@@ -58,6 +58,9 @@ class C {
 
   lemma MyLemma()
 }".TrimStart();
+      await SetUp(new Dictionary<string, string>() {
+        { $"{GhostOptions.Section}:{nameof(GhostOptions.MarkStatements)}", "false" }
+      });
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var report = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);

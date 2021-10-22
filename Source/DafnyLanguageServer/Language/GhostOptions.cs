@@ -11,6 +11,6 @@
     /// <summary>
     /// Gets or sets whether the statements of ghost states should be marked.
     /// </summary>
-    public bool MarkStatements { get; set; }
+    public bool MarkStatements { get; set; } = true;
   }
 }
