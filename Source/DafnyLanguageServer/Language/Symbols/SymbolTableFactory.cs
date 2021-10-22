@@ -293,11 +293,14 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
       public Unit Visit(FunctionSymbol functionSymbol) {
         cancellationToken.ThrowIfCancellationRequested();
+        var declarationRange = functionSymbol.Declaration.Body == null
+          ? functionSymbol.Declaration.tok.GetLspRange()
+          : new Range(functionSymbol.Declaration.tok.GetLspPosition(), functionSymbol.Declaration.BodyEndTok.GetLspPosition());
         RegisterLocation(
           functionSymbol,
           functionSymbol.Declaration.tok,
           functionSymbol.Declaration.tok.GetLspRange(),
-          new Range(functionSymbol.Declaration.tok.GetLspPosition(), functionSymbol.Declaration.BodyEndTok.GetLspPosition())
+          declarationRange
         );
         VisitChildren(functionSymbol);
         return Unit.Value;
