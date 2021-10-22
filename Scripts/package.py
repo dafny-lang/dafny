@@ -141,6 +141,12 @@ class Release:
             "-o", self.buildDirectory,
             "-r", self.target,
             "-c", "Release"])
+        run(["dotnet", "publish", path.join(SOURCE_DIRECTORY, "DafnyRuntime", "DafnyRuntime.csproj"),
+             "--nologo",
+             "-f", "net5.0",
+             "-o", self.buildDirectory,
+             "-r", self.target,
+             "-c", "Release"])
 
     def pack(self):
         try:
