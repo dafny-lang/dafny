@@ -68,6 +68,6 @@ Options provided through the command line have higher priority than the options 
 
 ```sh
 # Mark ghost statements
-# Default: false (do not fade out)
---ghost:markStatements=false
+# Default: true (mark the statements)
+--ghost:markStatements=true
 ```
