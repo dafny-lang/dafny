@@ -185,22 +185,13 @@ namespace Microsoft.Dafny {
     }
 
     public static Bpl.AssumeCmd TrAssumeCmd(Bpl.IToken tok, Bpl.Expr expr, Bpl.QKeyValue attributes = null) {
-      // If "expr" has the form "Lit(e)", change it to just "e" unless "e" is the literal "false".
       var litArgument = GetLit(expr);
-      if (litArgument != null) {
-        if (litArgument is Bpl.LiteralExpr literalExpr && !literalExpr.asBool) {
-          // We're looking at "Lit(false)". We leave the Lit brackets in this expression. Leaving
-          // a Lit around the expression is useful to avoid sending an "assume false;" to Boogie--since
-          // Boogie looks especially for "assume false;" commands and processes them in such a way
-          // that loops no longer are loops (which is confusing for Dafny users).
-        } else {
-          // To clean up the formula a little, we remove the Lit brackets in the remaining cases.
-          // Note: It would be nicer to keep them in this situation, too, since that would save us from
-          // doing any preprocessing before the "return" statement below. Alas, some brittle tests
-          // stopped verifying with this little change. Therefore, we continue (what had started years
-          // ago) to remove the Lit brackets except in the Lit(false) case above.
-          expr = litArgument;
-        }
+      if (litArgument is Bpl.LiteralExpr literalExpr && literalExpr.asBool) {
+        // In most cases, we leave any Lit brackets that "expr" may have. In the past, these brackets
+        // had always been removed here. Alas, some brittle test cases stopped verifying if we
+        // keep "assume Lit(true)" instead of simplifying it to "assume true". Therefore, as a
+        // special case, we remove the Lit brackets from the literal "true".
+        expr = litArgument;
       }
       return attributes == null ? new Bpl.AssumeCmd(tok, expr) : new Bpl.AssumeCmd(tok, expr, attributes);
     }
