@@ -45,10 +45,17 @@ namespace Microsoft.Dafny {
 
       ErrorReporter reporter = new ConsoleErrorReporter();
       ExecutionEngine.printer = new DafnyConsolePrinter(); // For boogie errors
-
+      
       DafnyOptions.Install(new DafnyOptions(reporter));
 
       CommandLineArgumentsResult cliArgumentsResult = ProcessCommandLineArguments(args, out var dafnyFiles, out var otherFiles);
+      
+      ProfilingOutputPrinter profilingPrinter = null;
+      if (DafnyOptions.O.ProfileVerification) {
+        profilingPrinter = new(ExecutionEngine.printer);
+        ExecutionEngine.printer = profilingPrinter;
+      }
+
       ExitValue exitValue;
       switch (cliArgumentsResult) {
         case CommandLineArgumentsResult.OK:
@@ -64,6 +71,10 @@ namespace Microsoft.Dafny {
           throw new ArgumentOutOfRangeException();
       }
 
+      if (DafnyOptions.O.ProfileVerification) {
+        profilingPrinter?.PrintProfilingSummary();
+      }
+      
       if (CommandLineOptions.Clo.XmlSink != null) {
         CommandLineOptions.Clo.XmlSink.Close();
       }

@@ -103,6 +103,7 @@ namespace Microsoft.Dafny {
     public bool WarningsAsErrors = false;
     [CanBeNull] private TestGenerationOptions testGenOptions = null;
     public bool ExtractCounterExample = false;
+    public bool ProfileVerification = false;
 
     public virtual TestGenerationOptions TestGenOptions =>
       testGenOptions ??= new TestGenerationOptions();
@@ -419,6 +420,10 @@ namespace Microsoft.Dafny {
 
         case "extractCounterExample":
           ExtractCounterExample = true;
+          return true;
+        
+        case "profileVerification":
+          ProfileVerification = true;
           return true;
       }
 
