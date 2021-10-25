@@ -1,8 +1,12 @@
 // RUN: %dafny /compile:3 /rprint:"%t.rprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
+function method nonGhostPredicate(x: int): bool {
+  x % 2 == 0
+}
+
 datatype Cell = Cell(x: int)
-type EvenCell = c: Cell | c.x % 2 == 0 witness Cell(0)
+type EvenCell = c: Cell | nonGhostPredicate(c.x) witness Cell(0)
 
 function method doubleEvenCell(c: EvenCell): int
 {
