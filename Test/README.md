@@ -28,7 +28,7 @@ the `dotnet test` command and other supported options.
 ## Executing Tests from JetBrains Rider
 
 You will likely find it more convenient to run tests from an IDE such as
-[JetBrains Rider](https://github.com/dafny-lang/dafny/wiki/JetBrains-Rider-FAQ), with a proper JDK installed like JDK 8
+[JetBrains Rider](https://github.com/dafny-lang/dafny/wiki/JetBrains-Rider-FAQ), with a proper JDK installed like JDK 8.
 
 Assuming you have loaded the `Dafny.sln` solution in Rider, you can execute all the integration tests
 by right-clicking on the `IntegrationTests` package and selecting `Run Unit Tests`.
@@ -47,14 +47,14 @@ immediately cancel it just to populate the tree for this purpose.
 ## Debugging Tests
 
 The xUnit test runner supports executing commands such as `%dafny` by directly invoking the main entry point
-of the corresponding C# package (i.e. [`DafnyDriver`](../DafnyDriver)), which makes running the debugger against
+of the corresponding C# package (i.e. [`DafnyDriver`](../Source/DafnyDriver)), which makes running the debugger against
 a particular test much more convenient. By default this is disabled and the runner creates a separate dafny process
-just as lit does, however. This is because the main CLI implementation currently has shared static state, which
+just as LIT does, however. This is because the main CLI implementation currently has shared static state, which
 causes errors when invoking the CLI in the same process on multiple inputs in sequence, much less in parallel.
 Future changes will address this so that the in-process Main invocation can be used instead, however,
 which will likely improve performance but more importantly allow us to measure code coverage of the test suite.
 
 To debug a single test, change the value of the `InvokeMainMethodsDirectly` boolean constant in the
-[LitTests class](../IntegrationTests/ListTests.cs) to `true`, and then right-click the test you wish to debug and select
-`Debug Selected Unit Tests`. You will see exception if the test you are running makes multiple calls to commands like `%dafny`,
+[LitTests class](../Source/IntegrationTests/LitTests.cs) to `true`, and then right-click the test you wish to debug and select
+`Debug Selected Unit Tests`. You will see `exception` if the test you are running makes multiple calls to commands like `%dafny`,
 so you may wish to remove the calls you are not interested in first, e.g. if you are debugging an issue with a specific compiler.
