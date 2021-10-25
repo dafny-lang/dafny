@@ -1,6 +1,6 @@
 Processing command (at Snapshots0.v0.dfy(3,6)) assert (forall<alpha> $o: ref, $f: Field alpha :: false ==> $_Frame[$o, $f]);
   >>> DoNothingToAssert
-Processing command (at Snapshots0.v0.dfy(4,10)) assert false;
+Processing command (at Snapshots0.v0.dfy(4,10)) assert Lit(false);
   >>> DoNothingToAssert
 
 Dafny program verifier finished with 1 verified, 0 errors
@@ -11,7 +11,7 @@ Processing command (at Snapshots0.v1.dfy(3,6)) assert (forall<alpha> $o: ref, $f
   >>> MarkAsFullyVerified
 Processing command (at <unknown location>) a##cached##0 := a##cached##0 && ##extracted_function##1(call0old#AT#$Heap, $Heap);
   >>> AssumeNegationOfAssumptionVariable
-Processing command (at Snapshots0.v1.dfy(4,10)) assert false;
+Processing command (at Snapshots0.v1.dfy(4,10)) assert Lit(false);
   >>> MarkAsPartiallyVerified
 Snapshots0.v1.dfy(4,9): Error: assertion violation
 
