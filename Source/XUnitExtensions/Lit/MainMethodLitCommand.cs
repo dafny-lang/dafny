@@ -34,6 +34,10 @@ namespace XUnitExtensions.Lit {
 
       var exitCode = (int)assembly.EntryPoint!.Invoke(null, new object[] { arguments })!;
 
+      inputReader?.Close();
+      outputWriter?.Close();
+      errorWriter?.Close();
+      
       return (exitCode, "", "");
     }
 
