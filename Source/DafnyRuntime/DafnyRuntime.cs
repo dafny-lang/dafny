@@ -1,5 +1,9 @@
+//-----------------------------------------------------------------------------
+//
 // Copyright by the contributors to the Dafny Project
 // SPDX-License-Identifier: MIT
+//
+//-----------------------------------------------------------------------------
 
 #if ISDAFNYRUNTIMELIB
 using System; // for Func
@@ -36,6 +40,7 @@ namespace Dafny {
       this.setImpl = d;
       this.containsNull = containsNull;
     }
+
     public static readonly ISet<T> Empty = new Set<T>(ImmutableHashSet<T>.Empty, false);
 
     private static readonly TypeDescriptor<ISet<T>> _TYPE = new Dafny.TypeDescriptor<ISet<T>>(Empty);
@@ -50,6 +55,7 @@ namespace Dafny {
     public static Set<T> FromISet(ISet<T> s) {
       return s as Set<T> ?? FromCollection(s.Elements);
     }
+
     public static Set<T> FromCollection(IEnumerable<T> values) {
       var d = ImmutableHashSet<T>.Empty.ToBuilder();
       var containsNull = false;
@@ -60,8 +66,10 @@ namespace Dafny {
           d.Add(t);
         }
       }
+
       return new Set<T>(d.ToImmutable(), containsNull);
     }
+
     public static ISet<T> FromCollectionPlusOne(IEnumerable<T> values, T oneMoreValue) {
       var d = ImmutableHashSet<T>.Empty.ToBuilder();
       var containsNull = false;
@@ -70,6 +78,7 @@ namespace Dafny {
       } else {
         d.Add(oneMoreValue);
       }
+
       foreach (T t in values) {
         if (t == null) {
           containsNull = true;
@@ -77,8 +86,10 @@ namespace Dafny {
           d.Add(t);
         }
       }
+
       return new Set<T>(d.ToImmutable(), containsNull);
     }
+
     public ISet<U> DowncastClone<U>(Func<T, U> converter) {
       if (this is ISet<U> th) {
         return th;
@@ -88,20 +99,25 @@ namespace Dafny {
           var u = converter(t);
           d.Add(u);
         }
+
         return new Set<U>(d.ToImmutable(), this.containsNull);
       }
     }
+
     public int Count {
       get { return this.setImpl.Count + (containsNull ? 1 : 0); }
     }
+
     public long LongCount {
       get { return this.setImpl.Count + (containsNull ? 1 : 0); }
     }
+
     public IEnumerable<T> Elements {
       get {
         if (containsNull) {
           yield return default(T);
         }
+
         foreach (var t in this.setImpl) {
           yield return t;
         }
@@ -126,38 +142,46 @@ namespace Dafny {
           if (containsNull) {
             yield return new Set<T>(ihs, true);
           }
+
           // "add 1" to "which", as if doing a carry chain.  For every digit changed, change the membership of the corresponding element in "s".
           int i = 0;
           for (; i < n && which[i]; i++) {
             which[i] = false;
             s.Remove(elmts[i]);
           }
+
           if (i == n) {
             // we have cycled through all the subsets
             break;
           }
+
           which[i] = true;
           s.Add(elmts[i]);
         }
       }
     }
+
     public bool Equals(ISet<T> other) {
       if (other == null || Count != other.Count) {
         return false;
       } else if (this == other) {
         return true;
       }
+
       foreach (var elmt in Elements) {
         if (!other.Contains(elmt)) {
           return false;
         }
       }
+
       return true;
     }
+
     public override bool Equals(object other) {
       if (other is ISet<T>) {
         return Equals((ISet<T>)other);
       }
+
       var th = this as ISet<object>;
       var oth = other as ISet<object>;
       if (th != null && oth != null) {
@@ -189,11 +213,14 @@ namespace Dafny {
       if (containsNull) {
         hashCode = hashCode * (Dafny.Helpers.GetHashCode(default(T)) + 3);
       }
+
       foreach (var t in this.setImpl) {
         hashCode = hashCode * (Dafny.Helpers.GetHashCode(t) + 3);
       }
+
       return hashCode;
     }
+
     public override string ToString() {
       var s = "{";
       var sep = "";
@@ -201,10 +228,12 @@ namespace Dafny {
         s += sep + Dafny.Helpers.ToString(default(T));
         sep = ", ";
       }
+
       foreach (var t in this.setImpl) {
         s += sep + Dafny.Helpers.ToString(t);
         sep = ", ";
       }
+
       return s + "}";
     }
     public static bool IsProperSubsetOf(ISet<T> th, ISet<T> other) {
@@ -301,6 +330,7 @@ namespace Dafny {
       }
       return new MultiSet<T>(d, occurrencesOfNull);
     }
+
     public static MultiSet<T> FromCollection(IEnumerable<T> values) {
       var d = ImmutableDictionary<T, BigInteger>.Empty.ToBuilder();
       var occurrencesOfNull = BigInteger.Zero;
@@ -309,14 +339,19 @@ namespace Dafny {
           occurrencesOfNull++;
         } else {
           BigInteger i;
-          if (!d.TryGetValue(t, out i)) {
+          if (!d.TryGetValue(t,
+            out i)) {
             i = BigInteger.Zero;
           }
+
           d[t] = i + 1;
         }
       }
-      return new MultiSet<T>(d, occurrencesOfNull);
+
+      return new MultiSet<T>(d,
+        occurrencesOfNull);
     }
+
     public static MultiSet<T> FromSeq(ISequence<T> values) {
       var d = ImmutableDictionary<T, BigInteger>.Empty.ToBuilder();
       var occurrencesOfNull = BigInteger.Zero;
@@ -325,13 +360,17 @@ namespace Dafny {
           occurrencesOfNull++;
         } else {
           BigInteger i;
-          if (!d.TryGetValue(t, out i)) {
+          if (!d.TryGetValue(t,
+            out i)) {
             i = BigInteger.Zero;
           }
+
           d[t] = i + 1;
         }
       }
-      return new MultiSet<T>(d, occurrencesOfNull);
+
+      return new MultiSet<T>(d,
+        occurrencesOfNull);
     }
     public static MultiSet<T> FromSet(ISet<T> values) {
       var d = ImmutableDictionary<T, BigInteger>.Empty.ToBuilder();
@@ -1080,6 +1119,7 @@ namespace Dafny {
       return Subsequence((long)lo, (long)hi);
     }
   }
+
   internal class ArraySequence<T> : Sequence<T> {
     private readonly ImmutableArray<T> elmts;
 
@@ -1101,6 +1141,7 @@ namespace Dafny {
       }
     }
   }
+
   internal class ConcatSequence<T> : Sequence<T> {
     // INVARIANT: Either left != null, right != null, and elmts's underlying array == null or
     // left == null, right == null, and elmts's underlying array != null
@@ -1161,6 +1202,7 @@ namespace Dafny {
     A Car { get; }
     B Cdr { get; }
   }
+
   public class Pair<A, B> : IPair<A, B> {
     private A car;
     private B cdr;

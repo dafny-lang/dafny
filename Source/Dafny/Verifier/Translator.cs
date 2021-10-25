@@ -4506,7 +4506,7 @@ namespace Microsoft.Dafny {
         // mark the end of the modifles/out-parameter havocking with a CaptureState; make its location be the first ensures clause, if any (and just
         // omit the CaptureState if there's no ensures clause)
         if (m.Ens.Count != 0) {
-          builder.Add(CaptureState(m.Ens[0].E.tok, false, "post-state"));
+          builder.AddCaptureState(m.Ens[0].E.tok, false, "post-state");
         }
 
         // check wellformedness of postconditions
@@ -5522,11 +5522,11 @@ namespace Microsoft.Dafny {
       // set up the information used to verify the method's modifies clause
       DefineFrame(m.tok, m.Mod.Expressions, builder, localVariables, null);
       if (wellformednessProc) {
-        builder.Add(CaptureState(m.tok, false, "initial state"));
+        builder.AddCaptureState(m.tok, false, "initial state");
       } else {
         Contract.Assert(m.Body != null);  // follows from precondition and the if guard
         // use the position immediately after the open-curly-brace of the body
-        builder.Add(CaptureState(m.Body.Tok, true, "initial state"));
+        builder.AddCaptureState(m.Body.Tok, true, "initial state");
       }
     }
 
@@ -5545,13 +5545,7 @@ namespace Microsoft.Dafny {
       iteratorFrame.Add(new FrameExpression(iter.tok, th, null));
       iteratorFrame.AddRange(iter.Modifies.Expressions);
       DefineFrame(iter.tok, iteratorFrame, builder, localVariables, null);
-      builder.Add(CaptureState(iter.tok, false, "initial state"));
-    }
-
-    Bpl.Cmd CaptureState(Statement stmt) {
-      Contract.Requires(stmt != null);
-      Contract.Ensures(Contract.Result<Bpl.Cmd>() != null);
-      return CaptureState(stmt.EndTok, true, null);
+      builder.AddCaptureState(iter.tok, false, "initial state");
     }
 
     void DefineFrame(IToken/*!*/ tok, List<FrameExpression/*!*/>/*!*/ frameClause,
@@ -5962,7 +5956,7 @@ namespace Microsoft.Dafny {
         builder.Add(Bpl.Cmd.SimpleAssign(f.tok, heap, etran.HeapExpr));
         etran = ordinaryEtran;  // we no longer need the special heap names
       }
-      builder.Add(CaptureState(f.tok, false, "initial state"));
+      builder.AddCaptureState(f.tok, false, "initial state");
 
       DefineFrame(f.tok, f.Reads, builder, locals, null);
       InitializeFuelConstant(f.tok, builder, etran);
@@ -6166,7 +6160,7 @@ namespace Microsoft.Dafny {
       var locals = new List<Variable>();
       var builder = new BoogieStmtListBuilder(this);
       builder.Add(new CommentCmd(string.Format("AddWellformednessCheck for {0} {1}", decl.WhatKind, decl)));
-      builder.Add(CaptureState(decl.tok, false, "initial state"));
+      builder.AddCaptureState(decl.tok, false, "initial state");
       isAllocContext = new IsAllocContext(true);
 
       DefineFrame(decl.tok, new List<FrameExpression>(), builder, locals, null);
@@ -6318,7 +6312,7 @@ namespace Microsoft.Dafny {
       var locals = new List<Variable>();
       var builder = new BoogieStmtListBuilder(this);
       builder.Add(new CommentCmd(string.Format("AddWellformednessCheck for {0} {1}", decl.WhatKind, decl)));
-      builder.Add(CaptureState(decl.tok, false, "initial state"));
+      builder.AddCaptureState(decl.tok, false, "initial state");
       isAllocContext = new IsAllocContext(true);
 
       DefineFrame(decl.tok, new List<FrameExpression>(), builder, locals, null);
@@ -6389,7 +6383,7 @@ namespace Microsoft.Dafny {
       var locals = new List<Variable>();
       var builder = new BoogieStmtListBuilder(this);
       builder.Add(new CommentCmd(string.Format("AddWellformednessCheck for datatype constructor {0}", ctor)));
-      builder.Add(CaptureState(ctor.tok, false, "initial state"));
+      builder.AddCaptureState(ctor.tok, false, "initial state");
       isAllocContext = new IsAllocContext(true);
 
       DefineFrame(ctor.tok, new List<FrameExpression>(), builder, locals, null);
@@ -10231,6 +10225,15 @@ namespace Microsoft.Dafny {
       return Assert(tok, condition, errorMessage, tok);
     }
 
+    Bpl.PredicateCmd Assert(Bpl.IToken tok, Bpl.Expr condition, string errorMessage, Bpl.QKeyValue kv) {
+      Contract.Requires(tok != null);
+      Contract.Requires(errorMessage != null);
+      Contract.Requires(condition != null);
+      Contract.Ensures(Contract.Result<Bpl.PredicateCmd>() != null);
+
+      return Assert(tok, condition, errorMessage, tok, kv);
+    }
+
     Bpl.PredicateCmd Assert(Bpl.IToken tok, Bpl.Expr condition, string errorMessage, Bpl.IToken refinesToken, Bpl.QKeyValue kv = null) {
       Contract.Requires(tok != null);
       Contract.Requires(condition != null);
@@ -10243,13 +10246,14 @@ namespace Microsoft.Dafny {
       } else {
         var cmd = TrAssertCmd(ForceCheckToken.Unwrap(tok), condition, kv);
         cmd.ErrorData = "Error: " + errorMessage;
-        this.assertionCount++;
         return cmd;
       }
     }
+
     Bpl.PredicateCmd AssertNS(Bpl.IToken tok, Bpl.Expr condition, string errorMessage) {
       return AssertNS(tok, condition, errorMessage, tok, null);
     }
+
     Bpl.PredicateCmd AssertNS(Bpl.IToken tok, Bpl.Expr condition, string errorMessage, Bpl.IToken refinesTok, Bpl.QKeyValue kv) {
       Contract.Requires(tok != null);
       Contract.Requires(errorMessage != null);
@@ -10264,22 +10268,6 @@ namespace Microsoft.Dafny {
         var args = new List<object>();
         args.Add(Bpl.Expr.Literal(0));
         Bpl.AssertCmd cmd = TrAssertCmd(tok, condition, new Bpl.QKeyValue(tok, "subsumption", args, kv));
-        cmd.ErrorData = "Error: " + errorMessage;
-        return cmd;
-      }
-    }
-
-    Bpl.PredicateCmd Assert(Bpl.IToken tok, Bpl.Expr condition, string errorMessage, Bpl.QKeyValue kv) {
-      Contract.Requires(tok != null);
-      Contract.Requires(errorMessage != null);
-      Contract.Requires(condition != null);
-      Contract.Ensures(Contract.Result<Bpl.PredicateCmd>() != null);
-
-      if (assertAsAssume || (RefinementToken.IsInherited(tok, currentModule) && (codeContext == null || !codeContext.MustReverify))) {
-        // produce an assume instead
-        return TrAssumeCmd(tok, condition, kv);
-      } else {
-        var cmd = TrAssertCmd(ForceCheckToken.Unwrap(tok), condition, kv);
         cmd.ErrorData = "Error: " + errorMessage;
         return cmd;
       }
@@ -10713,8 +10701,13 @@ namespace Microsoft.Dafny {
     delegate Bpl.Expr ExpressionConverter(Dictionary<IVariable, Expression> substMap, ExpressionTranslator etran);
 
     Bpl.AssertCmd TrAssertCmd(IToken tok, Bpl.Expr expr, Bpl.QKeyValue attributes = null) {
-      var lit = RemoveLit(expr);
-      return attributes == null ? new Bpl.AssertCmd(tok, lit) : new Bpl.AssertCmd(tok, lit, attributes);
+      // It may be that "expr" is a Lit expression. It might seem we don't need a Lit expression
+      // around the boolean expression that is being asserted. However, we keep it. For one,
+      // it doesn't change the semantics of the assert command. More importantly, leaving
+      // a Lit around the expression is useful to avoid sending an "assert false;" to Boogie--since
+      // Boogie looks especially for "assert false;" commands and processes them in such a way
+      // that loops no longer are loops (which is confusing for Dafny users).
+      return attributes == null ? new Bpl.AssertCmd(tok, expr) : new Bpl.AssertCmd(tok, expr, attributes);
     }
 
     delegate void BodyTranslator(BoogieStmtListBuilder builder, ExpressionTranslator etr);

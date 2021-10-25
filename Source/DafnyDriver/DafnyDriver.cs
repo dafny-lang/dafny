@@ -11,6 +11,7 @@
 //---------------------------------------------------------------------------------------------
 
 using System.Security;
+using DafnyServer.CounterExampleGeneration;
 using DafnyTestGeneration;
 
 namespace Microsoft.Dafny {
@@ -214,6 +215,12 @@ namespace Microsoft.Dafny {
           "*** Error: Only one .dfy file can be specified for testing");
         return CommandLineArgumentsResult.PREPROCESSING_ERROR;
       }
+
+      if (DafnyOptions.O.ExtractCounterExample && DafnyOptions.O.ModelViewFile == null) {
+        ExecutionEngine.printer.ErrorWriteLine(Console.Out,
+          "*** Error: ModelView file must be specified when attempting counterexample extraction");
+        return CommandLineArgumentsResult.PREPROCESSING_ERROR;
+      }
       return CommandLineArgumentsResult.OK;
     }
 
@@ -290,7 +297,30 @@ namespace Microsoft.Dafny {
       if (err == null && dafnyProgram != null && DafnyOptions.O.PrintFunctionCallGraph) {
         Util.PrintFunctionCallGraph(dafnyProgram);
       }
+      if (dafnyProgram != null && DafnyOptions.O.ExtractCounterExample && exitValue == ExitValue.VERIFICATION_ERROR) {
+        PrintCounterexample(DafnyOptions.O.ModelViewFile);
+      }
       return exitValue;
+    }
+
+    /// <summary>
+    /// Extract the counterexample corresponding to the first failing
+    /// assertion and print it to the console
+    /// </summary>
+    /// <param name="modelViewFile"> Name of the file from which to read
+    /// the counterexample </param> 
+    private static void PrintCounterexample(string modelViewFile) {
+      var model = DafnyModel.ExtractModel(File.ReadAllText(modelViewFile));
+      Console.WriteLine("Counterexample for first failing assertion: ");
+      foreach (var state in model.States.Where(state => !state.IsInitialState)) {
+        Console.WriteLine(state.FullStateName + ":");
+        var vars = state.ExpandedVariableSet(-1);
+        foreach (var variable in vars) {
+          Console.WriteLine($"\t{variable.ShortName} : " +
+                            $"{variable.Type.InDafnyFormat()} = " +
+                            $"{variable.Value}");
+        }
+      }
     }
 
     private static string BoogieProgramSuffix(string printFile, string suffix) {

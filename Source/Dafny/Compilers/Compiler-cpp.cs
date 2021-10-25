@@ -2387,8 +2387,7 @@ namespace Microsoft.Dafny {
         CreateNoWindow = true,
         UseShellExecute = false,
         RedirectStandardOutput = true,
-        RedirectStandardError = true,
-        WorkingDirectory = Path.GetDirectoryName(Path.GetFullPath(targetFilename))
+        RedirectStandardError = true
       };
       var proc = Process.Start(psi);
       while (!proc.StandardOutput.EndOfStream) {
@@ -2408,14 +2407,11 @@ namespace Microsoft.Dafny {
     public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string targetFilename, ReadOnlyCollection<string> otherFileNames,
       object compilationResult, TextWriter outputWriter) {
       var exeName = ComputeExeName(targetFilename);
-      var dir = Path.GetDirectoryName(Path.GetFullPath(targetFilename));
-      var exePath = Path.Combine(dir, exeName);
-      var psi = new ProcessStartInfo(exePath) {
+      var psi = new ProcessStartInfo(exeName) {
         CreateNoWindow = true,
         UseShellExecute = false,
         RedirectStandardOutput = true,
         RedirectStandardError = true,
-        WorkingDirectory = dir
       };
       var proc = Process.Start(psi);
       while (!proc.StandardOutput.EndOfStream) {

@@ -35,7 +35,7 @@ namespace DafnyTestGeneration {
       DafnyInfo = dafnyInfo;
       var typeNames = ExtractPrintedInfo(log, "Types | ");
       var argumentNames = ExtractPrintedInfo(log, "Impl | ");
-      var dafnyModel = ExtractModel(log);
+      var dafnyModel = DafnyModel.ExtractModel(log);
       MethodName = Utils.GetDafnyMethodName(argumentNames.First());
       argumentNames.RemoveAt(0);
       RegisterReservedValues(dafnyModel.Model);
@@ -312,19 +312,6 @@ namespace DafnyTestGeneration {
       }
 
       return new List<string>();
-    }
-
-    /// <summary>
-    /// Extract and parse the first Dafny model recorded in the log file.
-    /// </summary>
-    private static DafnyModel ExtractModel(string log) {
-      const string begin = "*** MODEL";
-      const string end = "*** END_MODEL";
-      var beginIndex = log.IndexOf(begin, StringComparison.Ordinal);
-      var endIndex = log.IndexOf(end, StringComparison.Ordinal);
-      var modelString = log.Substring(beginIndex, endIndex + end.Length - beginIndex);
-      var model = Model.ParseModels(new StringReader(modelString)).First();
-      return new DafnyModel(model);
     }
 
     /// <summary>  Return the test method as a list of lines of code </summary>
