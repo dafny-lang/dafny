@@ -9,7 +9,7 @@ namespace XUnitExtensions.Lit {
 
     private readonly string expectedPath;
     private readonly string actualPath;
-    
+
     private DiffCommand(string expectedPath, string actualPath) {
       this.expectedPath = expectedPath;
       this.actualPath = actualPath;
@@ -23,7 +23,7 @@ namespace XUnitExtensions.Lit {
       var actualPath = args[1];
       return new DiffCommand(expectedPath, actualPath);
     }
-    
+
     public (int, string, string) Execute(ITestOutputHelper outputHelper, TextReader? inputReader, TextWriter? outputWriter, TextWriter? errorWriter) {
       var expected = File.ReadAllText(expectedPath);
       var actual = File.ReadAllText(actualPath);
