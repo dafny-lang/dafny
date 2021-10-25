@@ -28,7 +28,7 @@ the `dotnet test` command and other supported options.
 ## Executing Tests from JetBrains Rider
 
 You will likely find it more convenient to run tests from an IDE such as
-[JetBrains Rider](https://github.com/dafny-lang/dafny/wiki/JetBrains-Rider-FAQ).
+[JetBrains Rider](https://github.com/dafny-lang/dafny/wiki/JetBrains-Rider-FAQ), with a proper JDK installed like JDK 8
 
 Assuming you have loaded the `Dafny.sln` solution in Rider, you can execute all the integration tests
 by right-clicking on the `IntegrationTests` package and selecting `Run Unit Tests`.
