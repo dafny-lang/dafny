@@ -56,5 +56,5 @@ which will likely improve performance but more importantly allow us to measure c
 
 To debug a single test, change the value of the `InvokeMainMethodsDirectly` boolean constant in the
 [LitTests class](../Source/IntegrationTests/LitTests.cs) to `true`, and then right-click the test you wish to debug and select
-`Debug Selected Unit Tests`. You will see `exception` if the test you are running makes multiple calls to commands like `%dafny`,
+`Debug Selected Unit Tests`. You will see exceptions if the test you are running makes multiple calls to commands like `%dafny`,
 so you may wish to remove the calls you are not interested in first, e.g. if you are debugging an issue with a specific compiler.
