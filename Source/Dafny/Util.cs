@@ -729,7 +729,7 @@ namespace Microsoft.Dafny {
     /// that is allowed only in specification contexts.
     /// Requires 'expr' to be a successfully resolved expression.
     /// </summary>
-    bool UsesSpecFeatures(Expression expr) {
+    public static bool UsesSpecFeatures(Expression expr) {
       Contract.Requires(expr != null);
       Contract.Requires(expr.WasResolved());  // this check approximates the requirement that "expr" be resolved
 
@@ -880,13 +880,13 @@ namespace Microsoft.Dafny {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
     }
-    void MakeGhostAsNeeded(List<CasePattern<BoundVar>> lhss) {
+    static void MakeGhostAsNeeded(List<CasePattern<BoundVar>> lhss) {
       foreach (CasePattern<BoundVar> lhs in lhss) {
         MakeGhostAsNeeded(lhs);
       }
     }
 
-    void MakeGhostAsNeeded(CasePattern<BoundVar> lhs) {
+    static void MakeGhostAsNeeded(CasePattern<BoundVar> lhs) {
       if (lhs.Ctor != null && lhs.Arguments != null) {
         for (int i = 0; i < lhs.Arguments.Count && i < lhs.Ctor.Destructors.Count; i++) {
           MakeGhostAsNeeded(lhs.Arguments[i], lhs.Ctor.Destructors[i]);
@@ -894,7 +894,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void MakeGhostAsNeeded(CasePattern<BoundVar> arg, DatatypeDestructor d) {
+    static void MakeGhostAsNeeded(CasePattern<BoundVar> arg, DatatypeDestructor d) {
       if (arg.Expr is IdentifierExpr ie && ie.Var is BoundVar bv) {
         if (d.IsGhost) bv.MakeGhost();
       }

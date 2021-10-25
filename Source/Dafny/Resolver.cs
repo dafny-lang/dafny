@@ -8515,7 +8515,7 @@ namespace Microsoft.Dafny {
               if (rhs.ArrayDimensions != null) {
                 rhs.ArrayDimensions.ForEach(ee => ExpressionTester.CheckIsCompilable(resolver, ee, codeContext));
                 if (rhs.ElementInit != null) {
-                  resolver.CheckIsCompilable(rhs.ElementInit, codeContext);
+                  ExpressionTester.CheckIsCompilable(resolver, rhs.ElementInit, codeContext);
                 }
                 if (rhs.InitDisplay != null) {
                   rhs.InitDisplay.ForEach(ee => ExpressionTester.CheckIsCompilable(resolver, ee, codeContext));
