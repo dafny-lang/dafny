@@ -58,7 +58,9 @@ namespace IntegrationTests {
         }, {
           "%server", (args, config) =>
             MainWithArguments(DafnyServerAssembly, args, config, false)
-        }
+        }, {
+          "%diff", (args, config) => DiffCommand.Parse(args.ToArray())
+        },
       };
 
       var passthroughEnvironmentVariables = new[] { "PATH", "HOME" };
