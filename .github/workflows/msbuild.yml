@@ -129,7 +129,7 @@ jobs:
       env:
         XUNIT_SHARD: ${{ matrix.shard }}
         XUNIT_SHARD_COUNT: 5
-        DAFNY_RELEASE: ${{ github.workspace }}\unzippedRelease\Dafny.exe
+        DAFNY_RELEASE: ${{ github.workspace }}\unzippedRelease
       run: |
         dotnet test -v:n dafny/Source/IntegrationTests/IntegrationTests.csproj
     - name: Run integration tests
@@ -137,6 +137,6 @@ jobs:
       env:
         XUNIT_SHARD: ${{ matrix.shard }}
         XUNIT_SHARD_COUNT: 5
-        DAFNY_RELEASE: ${{ github.workspace }}/unzippedRelease/dafny
+        DAFNY_RELEASE: ${{ github.workspace }}/unzippedRelease
       run: |
         dotnet test -v:n dafny/Source/IntegrationTests/IntegrationTests.csproj
