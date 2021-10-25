@@ -1,7 +1,7 @@
 # Dafny Integration Tests
 
 The tests in this directory are run using the [IntegrationTests](../Source/IntegrationTests) project,
-which uses the xUnit-based LIT test runner from the [XUnitExtensions](../XUnitExtensions) package 
+which uses the xUnit-based LIT test runner from the [XUnitExtensions](../Source/XUnitExtensions) package 
 rather than the LLVM `lit` CLI.
 
 ## Executing Tests from the Command Line
