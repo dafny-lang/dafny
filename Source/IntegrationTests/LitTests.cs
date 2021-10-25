@@ -84,7 +84,7 @@ namespace IntegrationTests {
       var dafnyReleaseDir = Environment.GetEnvironmentVariable("DAFNY_RELEASE");
       if (dafnyReleaseDir != null) {
         var dafnyCLIName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "Dafny.exe" : "dafny";
-        var dafnyServerCLIName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "DafnyServer.exe" : "dafny-server";
+        var dafnyServerCLIName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "DafnyServer.exe" : "DafnyServer";
         
         commands["%baredafny"] = (args, config) =>
           new ShellLitCommand(config, Path.Join(dafnyReleaseDir, dafnyCLIName), args, config.PassthroughEnvironmentVariables);
