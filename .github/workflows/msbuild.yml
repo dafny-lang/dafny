@@ -125,9 +125,18 @@ jobs:
       run: |
         unzip dafny/Package/CI.zip -d unzippedRelease
     - name: Run integration tests
+      if: runner.os == 'Windows'
       env:
         XUNIT_SHARD: ${{ matrix.shard }}
         XUNIT_SHARD_COUNT: 5
-        DAFNY_RELEASE: unzippedRelease/dafny
+        DAFNY_RELEASE: ${{ github.workspace }}\unzippedRelease\Dafny.exe
+      run: |
+        dotnet test -v:n dafny/Source/IntegrationTests/IntegrationTests.csproj
+    - name: Run integration tests
+      if: runner.os != 'Windows'
+      env:
+        XUNIT_SHARD: ${{ matrix.shard }}
+        XUNIT_SHARD_COUNT: 5
+        DAFNY_RELEASE: ${{ github.workspace }}/unzippedRelease/dafny
       run: |
         dotnet test -v:n dafny/Source/IntegrationTests/IntegrationTests.csproj
