@@ -117,7 +117,7 @@ namespace IntegrationTests {
     public void LitTest(string path) {
       LitTestCase.Run(path, Config, output);
     }
-    
+
     [Fact]
     public void AssertEqualWithDiffIgnoresCarriageReturns() {
       AssertWithDiff.Equal("a\rb", "a\r\nb");
