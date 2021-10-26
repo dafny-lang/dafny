@@ -15,6 +15,5 @@ method Main() {
   var y := z.Keys;
   var b: bool := forall c :: c in y ==> doubleEvenCell(c) > 0;
   assert b;
-  //print(b);
 }
 

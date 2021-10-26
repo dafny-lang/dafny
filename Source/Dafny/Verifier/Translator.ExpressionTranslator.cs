@@ -1292,8 +1292,22 @@ namespace Microsoft.Dafny {
           Boogie.Expr y = new Boogie.IdentifierExpr(expr.tok, yVar);
           Boogie.Expr lbody;
           if (e.TermIsSimple) {
-            // lambda y: BoxType :: CorrectType(y) && R[xs := yUnboxed]
             var bv = e.BoundVars[0];
+            // lambda y: BoxType :: CorrectType(y) && R[xs := yUnboxed]
+            var assumedType = bv.Type;
+            if (e.Type is SetType setType) {
+              if (setType.Arg is UserDefinedType udt) {
+                if (udt.ResolvedClass is SubsetTypeDecl stdc) {
+                  if (stdc.ConstraintIsCompilable) {
+                    // Ok the filtering will be performed by the compiler, we can assume the subset type.
+                  } else {
+                    // TODO: Substitue type parameters when computing assumedType + create test case
+                    assumedType = stdc.Rhs;
+                    // We need to verify that the bound proves the type.
+                  }
+                }
+              }
+            }
             Boogie.Expr typeAntecedent = translator.MkIsBox(new Boogie.IdentifierExpr(expr.tok, yVar), bv.Type);
             if (freeOfAlloc != null && !freeOfAlloc[0]) {
               var isAlloc = translator.MkIsAlloc(new Boogie.IdentifierExpr(expr.tok, yVar), bv.Type, HeapExpr);

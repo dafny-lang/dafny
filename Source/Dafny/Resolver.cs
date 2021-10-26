@@ -2677,6 +2677,12 @@ namespace Microsoft.Dafny {
           if (!CheckTypeInference_Visitor.IsDetermined(dd.Rhs.NormalizeExpand())) {
             reporter.Error(MessageSource.Resolver, dd.tok, "subset type's base type is not fully determined; add an explicit type for '{0}'", dd.Var.Name);
           }
+          dd.ConstraintIsCompilable = ExpressionTester.CheckIsCompilable(this, dd.Constraint, new CodeContextWrapper(dd, true));
+          if (!dd.ConstraintIsCompilable) {
+            reporter.Error(MessageSource.Resolver, dd.Constraint.tok,
+              "subset type's constraint must be compilable, until Dafny moves constraints handling to the verifier.");
+          }
+
           scope.PopMarker();
           allTypeParameters.PopMarker();
         }
@@ -6637,14 +6643,6 @@ namespace Microsoft.Dafny {
           } else if (e is SetComprehension setComprehension) {
             what = "set comprehension";
             whereToLookForBounds = setComprehension.Range;
-            var setType = setComprehension.Type as SetType;
-            var argType = setType.Arg;
-            if (argType is UserDefinedType userDefinedType) {
-              if (userDefinedType.ResolvedClass is SubsetTypeDecl subsetTypeDecl) {
-                subsetTypeDecl.ConstraintIsCompilable =
-                    ExpressionTester.CheckIsCompilable(null, subsetTypeDecl.Constraint, codeContext);
-              }
-            }
           } else if (e is MapComprehension) {
             what = "map comprehension";
             whereToLookForBounds = e.Range;

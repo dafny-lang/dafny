@@ -4611,6 +4611,7 @@ namespace Microsoft.Dafny {
           var native = AsNativeType(e.BoundVars[i].Type);
           ConcreteSyntaxTree newWBody = CreateLambda(new List<Type> { bv.Type }, e.tok, new List<string> { IdName(bv) }, Type.Bool, wBody, untyped: true);
           newWBody = EmitReturnExpr(newWBody);
+          // TODO: Here we should emit the guard for the exists and forall expressions.
           wBody.Write(')');
           wBody = newWBody;
         }
@@ -4643,30 +4644,16 @@ namespace Microsoft.Dafny {
         EmitSetBuilder_New(wr, setComprehension, collectionName);
         var n = setComprehension.BoundVars.Count;
         Contract.Assert(setComprehension.Bounds.Count == n);
-        for (var i = 0; i < n; i++) {
+        int i;
+        for (i = 0; i < n; i++) {
           var bound = setComprehension.Bounds[i];
           var bv = setComprehension.BoundVars[i];
           ConcreteSyntaxTree collectionWriter;
           var tmpVar = idGenerator.FreshId("_compr_");
           wr = CreateForeachLoop(tmpVar, GetCollectionEnumerationType(bound, bv), IdName(bv), bv.Type, true, bv.tok, out collectionWriter, wr);
-          if (bv.Type is UserDefinedType userDefinedType) {
-            // TODO: What about types built with subset types? And subset types that have type parameters?
-            // var  s = {List(Cell(1)), List(Cell(2), Cell(4)), List(Cell(2), Cell(3))};
-            // set x: List<EvenCell> | x in s
-            if (userDefinedType.ResolvedClass is SubsetTypeDecl subsetTypeDecl) {
-              if (subsetTypeDecl.Constraint != null && subsetTypeDecl.ConstraintIsCompilable) {
-                var bvIdentifier = new IdentifierExpr(setComprehension.tok, bv);
-                wr = EmitIf(out var guardWriterInner, false, wr);
-                var subContract = new Substituter(null,
-                  new Dictionary<IVariable, Expression>() {
-                    {subsetTypeDecl.Var, bvIdentifier}
-                  },
-                  null);
-                var contraintInContext = subContract.Substitute(subsetTypeDecl.Constraint);
-                TrExpr(contraintInContext, guardWriterInner, inLetExprBody);
-              }
-            }
-          }
+          // var  s = {List(Cell(1)), List(Cell(2), Cell(4)), List(Cell(2), Cell(3))};
+          // set x: List<EvenCell> | x in s 
+          wr = MaybeInjectSubsetConstraint(wr, inLetExprBody, bv, setComprehension);
           CompileCollection(bound, bv, inLetExprBody, true, null, collectionWriter);
         }
         ConcreteSyntaxTree guardWriter;
@@ -4712,6 +4699,7 @@ namespace Microsoft.Dafny {
           ConcreteSyntaxTree collectionWriter;
           var tmpVar = idGenerator.FreshId("_compr_");
           wr = CreateForeachLoop(tmpVar, GetCollectionEnumerationType(bound, bv), IdName(bv), bv.Type, true, bv.tok, out collectionWriter, wr);
+          wr = MaybeInjectSubsetConstraint(wr, inLetExprBody, bv, e);
           CompileCollection(bound, bv, inLetExprBody, true, null, collectionWriter);
         }
         ConcreteSyntaxTree guardWriter;
@@ -4751,6 +4739,45 @@ namespace Microsoft.Dafny {
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
+    }
+
+    private ConcreteSyntaxTree MaybeInjectSubsetConstraint(ConcreteSyntaxTree wr, bool inLetExprBody, BoundVar bv,
+      Expression e) {
+      int i;
+      if (bv.Type is UserDefinedType
+        {
+          TypeArgs: var typeArgs,
+          ResolvedClass:
+        var subsetTypeDecl and
+        SubsetTypeDecl
+        {
+          TypeArgs: var typeParametersArgs,
+          Var: var var,
+          ConstraintIsCompilable: true,
+          Constraint: var constraint
+        }
+        }) {
+        var bvIdentifier = new IdentifierExpr(e.tok, bv);
+        wr = EmitIf(out var guardWriterInner, false, wr);
+        var typeParameters = new Dictionary<TypeParameter, Type> { };
+        for (i = 0; i < typeParametersArgs.Count(); i++) {
+          typeParameters[typeParametersArgs[i]] = typeArgs[i];
+        }
+
+        var subContract = new Substituter(null,
+          new Dictionary<IVariable, Expression>()
+          {
+            {var, bvIdentifier}
+          },
+          new Dictionary<TypeParameter, Type>(
+            typeParameters
+          )
+        );
+        var constraintInContext = subContract.Substitute(constraint);
+        TrExpr(constraintInContext, guardWriterInner, inLetExprBody);
+      }
+
+      return wr;
     }
 
     protected ConcreteSyntaxTree CaptureFreeVariables(Expression expr, bool captureOnlyAsRequiredByTargetLanguage, out Substituter su, bool inLetExprBody, ConcreteSyntaxTree wr) {
