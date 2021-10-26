@@ -37,7 +37,7 @@ namespace XUnitExtensions.Lit {
       inputReader?.Close();
       outputWriter?.Close();
       errorWriter?.Close();
-      
+
       return (exitCode, "", "");
     }
 

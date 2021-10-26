@@ -35,16 +35,18 @@ namespace IntegrationTests {
 
       // Hide Boogie execution traces since they are meaningless for Dafny programs
       "/errorTrace:0",
-      
+
       // Set a default time limit, to catch cases where verification time runs off the rails
       "/timeLimit:300"
     };
 
-    private static ILitCommand MainWithArguments(Assembly assembly, IEnumerable<string> arguments, LitTestConfiguration config, bool invokeDirectly) {
+    private static ILitCommand MainWithArguments(Assembly assembly, IEnumerable<string> arguments,
+      LitTestConfiguration config, bool invokeDirectly) {
       return MainMethodLitCommand.Parse(assembly, arguments, config, invokeDirectly);
     }
 
     private static readonly LitTestConfiguration Config;
+
     static LitTests() {
       var substitutions = new Dictionary<string, string> {
         { "%diff", "diff" },
@@ -59,7 +61,8 @@ namespace IntegrationTests {
             MainWithArguments(DafnyDriverAssembly, args, config, InvokeMainMethodsDirectly)
         }, {
           "%dafny", (args, config) =>
-            MainWithArguments(DafnyDriverAssembly, DefaultDafnyArguments.Concat(args), config, InvokeMainMethodsDirectly)
+            MainWithArguments(DafnyDriverAssembly, DefaultDafnyArguments.Concat(args), config,
+              InvokeMainMethodsDirectly)
         }, {
           "%server", (args, config) =>
             MainWithArguments(DafnyServerAssembly, args, config, InvokeMainMethodsDirectly)
@@ -84,14 +87,18 @@ namespace IntegrationTests {
       var dafnyReleaseDir = Environment.GetEnvironmentVariable("DAFNY_RELEASE");
       if (dafnyReleaseDir != null) {
         var dafnyCLIName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "Dafny.exe" : "dafny";
-        var dafnyServerCLIName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "DafnyServer.exe" : "DafnyServer";
-        
+        var dafnyServerCLIName =
+          RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "DafnyServer.exe" : "DafnyServer";
+
         commands["%baredafny"] = (args, config) =>
-          new ShellLitCommand(config, Path.Join(dafnyReleaseDir, dafnyCLIName), args, config.PassthroughEnvironmentVariables);
+          new ShellLitCommand(config, Path.Join(dafnyReleaseDir, dafnyCLIName), args,
+            config.PassthroughEnvironmentVariables);
         commands["%dafny"] = (args, config) =>
-          new ShellLitCommand(config, Path.Join(dafnyReleaseDir, dafnyCLIName), DefaultDafnyArguments.Concat(args), config.PassthroughEnvironmentVariables);
+          new ShellLitCommand(config, Path.Join(dafnyReleaseDir, dafnyCLIName), DefaultDafnyArguments.Concat(args),
+            config.PassthroughEnvironmentVariables);
         commands["%server"] = (args, config) =>
-          new ShellLitCommand(config, Path.Join(dafnyReleaseDir, dafnyServerCLIName), args, config.PassthroughEnvironmentVariables);
+          new ShellLitCommand(config, Path.Join(dafnyReleaseDir, dafnyServerCLIName), args,
+            config.PassthroughEnvironmentVariables);
         substitutions["%z3"] = Path.Join(dafnyReleaseDir, "z3", "bin", "z3");
       }
 
@@ -109,6 +116,11 @@ namespace IntegrationTests {
               Excludes = new[] { "**/Inputs/**/*", "**/Output/**/*", "refman/examples/**/*" })]
     public void LitTest(string path) {
       LitTestCase.Run(path, Config, output);
+    }
+    
+    [Fact]
+    public void AssertEqualWithDiffIgnoresCarriageReturns() {
+      AssertWithDiff.Equal("a\rb", "a\r\nb");
     }
   }
 }
