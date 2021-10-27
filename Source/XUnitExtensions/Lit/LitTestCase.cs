@@ -37,7 +37,7 @@ namespace XUnitExtensions.Lit {
       string fileName = Path.GetFileName(filePath);
       string? directory = Path.GetDirectoryName(filePath);
       if (directory == null) {
-        throw new ArgumentException("Couldn't get directory name for path: {}");
+        throw new ArgumentException($"Couldn't get directory name for path: {filePath}");
       }
       string fullDirectoryPath = Path.GetFullPath(directory);
       config = config.WithSubstitutions(new Dictionary<string, string> {
@@ -58,7 +58,9 @@ namespace XUnitExtensions.Lit {
 
     public void Execute(ITestOutputHelper outputHelper) {
       Directory.CreateDirectory(Path.Join(Path.GetDirectoryName(filePath), "Output"));
-
+      // For debugging. Only printed on failure in case the true cause is buried in an earlier command.
+      List<(string, string)> results = new ();
+      
       foreach (var command in commands) {
         int exitCode;
         string output;
@@ -77,8 +79,16 @@ namespace XUnitExtensions.Lit {
         }
 
         if (exitCode != 0) {
+          // TODO: sloppy, don't commit without cleaning up
+          outputHelper.WriteLine("Previous command results:");
+          foreach (var (prevOutput, prevError) in results) {
+            outputHelper.WriteLine($"Output:\n{prevOutput}");
+            outputHelper.WriteLine($"Error:\n{error}");
+          }
           throw new Exception($"Command returned non-zero exit code ({exitCode}): {command}\nOutput:\n{output}\nError:\n{error}");
         }
+
+        results.Add((output, error));
       }
 
       if (expectFailure) {
