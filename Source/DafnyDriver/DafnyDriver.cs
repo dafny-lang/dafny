@@ -51,7 +51,7 @@ namespace Microsoft.Dafny {
       CommandLineArgumentsResult cliArgumentsResult = ProcessCommandLineArguments(args, out var dafnyFiles, out var otherFiles);
       
       ProfilingOutputPrinter profilingPrinter = null;
-      if (DafnyOptions.O.ProfileVerification) {
+      if (DafnyOptions.O.VerificationLoggerConfig != null) {
         profilingPrinter = new(ExecutionEngine.printer);
         ExecutionEngine.printer = profilingPrinter;
       }
@@ -71,8 +71,8 @@ namespace Microsoft.Dafny {
           throw new ArgumentOutOfRangeException();
       }
 
-      if (DafnyOptions.O.ProfileVerification) {
-        profilingPrinter?.PrintProfilingSummary();
+      if (DafnyOptions.O.VerificationLoggerConfig != null) {
+        profilingPrinter?.PrintProfilingSummaryToConsole();
       }
       
       if (CommandLineOptions.Clo.XmlSink != null) {

@@ -103,7 +103,7 @@ namespace Microsoft.Dafny {
     public bool WarningsAsErrors = false;
     [CanBeNull] private TestGenerationOptions testGenOptions = null;
     public bool ExtractCounterExample = false;
-    public bool ProfileVerification = false;
+    public string VerificationLoggerConfig = null;
 
     public virtual TestGenerationOptions TestGenOptions =>
       testGenOptions ??= new TestGenerationOptions();
@@ -422,8 +422,15 @@ namespace Microsoft.Dafny {
           ExtractCounterExample = true;
           return true;
         
-        case "profileVerification":
-          ProfileVerification = true;
+        case "verificationLogger":
+          if (ps.ConfirmArgumentCount(1)) {
+            if (args[ps.i].Equals("console")) {
+              VerificationLoggerConfig = args[ps.i];
+            } else {
+              throw new Exception("Invalid value for verificationLogger");
+            }
+            Trace = true;
+          }
           return true;
       }
 

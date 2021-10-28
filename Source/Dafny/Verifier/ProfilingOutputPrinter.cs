@@ -4,21 +4,30 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading;
 using Microsoft.Boogie;
+using Microsoft.VisualStudio.TestPlatform.Common;
+using Microsoft.VisualStudio.TestPlatform.CrossPlatEngine;
+using Microsoft.VisualStudio.TestPlatform.Extensions.TrxLogger;
+using Microsoft.VisualStudio.TestPlatform.ObjectModel;
+using Microsoft.VisualStudio.TestPlatform.ObjectModel.Client;
+using Microsoft.VisualStudio.TestPlatform.ObjectModel.Logging;
 
 namespace Microsoft.Dafny {
   public class ProfilingOutputPrinter : OutputPrinter {
     private readonly OutputPrinter wrapped;
-    private readonly Dictionary<string, long?> verificationTimes = new();
+    private readonly Dictionary<string, decimal?> verificationTimes = new();
     private string currentlyVerifying = null;
-    private Stopwatch sw = new();
     
     public ProfilingOutputPrinter(OutputPrinter wrapped) {
+      if (!DafnyOptions.O.Trace) {
+        throw new ThreadStateException("Profiling requires the /trace option");
+      }
       this.wrapped = wrapped;
     }
 
-    public Dictionary<string, long?> GetVerificationTimes() {
-      return new Dictionary<string, long?>(verificationTimes);
+    public Dictionary<string, decimal?> GetVerificationTimes() {
+      return new Dictionary<string, decimal?>(verificationTimes);
     }
     
     public void ErrorWriteLine(TextWriter tw, string s) {
@@ -34,10 +43,8 @@ namespace Microsoft.Dafny {
     }
 
     public void Inform(string s, TextWriter tw) {
-      wrapped.Inform(s, tw);
-      
       string pattern = @"^Verifying (?<TaskName>\w+)\$\$(?<CallableName>[\w\.]+) \.\.\.$";
-      string resultPattern = @"^(?<Result>[a-zA-Z ]+)$";
+      string resultPattern = @"^  \[(?<Time>.*) s, (?<VCCount>.*) proof obligations\]  (?<Result>[a-zA-Z ]+)$";
       foreach (Match match in Regex.Matches(s, pattern)){
         GroupCollection groups = match.Groups;
         var callableName = groups["CallableName"].ToString();
@@ -49,28 +56,23 @@ namespace Microsoft.Dafny {
         } else {
           currentlyVerifying = $"{callableName} (Implementation)";
         }
-        sw.Start();
       }
       foreach (Match match in Regex.Matches(s, resultPattern)){
-        GroupCollection groups = match.Groups;
-        string result = groups["Result"].ToString();
+        var groups = match.Groups;
+        var result = groups["Result"].ToString();
+        var time = decimal.Parse(groups["Time"].ToString());
+        var vcCount = int.Parse(groups["VCCount"].ToString());
         if (currentlyVerifying != null) {
-          if (sw.IsRunning) {
-            sw.Stop();
-          }
-
           if (result == "timed out") {
             verificationTimes.Add(currentlyVerifying, -1);
-          } else if (DafnyOptions.O.TimeLimit > 0 && sw.ElapsedMilliseconds > DafnyOptions.O.TimeLimit * 1000) {
+          } else if (DafnyOptions.O.TimeLimit > 0 && time > DafnyOptions.O.TimeLimit) {
             verificationTimes.Add(currentlyVerifying, -1);
           } else {
-            verificationTimes.Add(currentlyVerifying, sw.ElapsedMilliseconds);
+            verificationTimes.Add(currentlyVerifying, time);
           }
 
           currentlyVerifying = null;
         }
-
-        sw.Reset();
       }
     }
 
@@ -86,10 +88,42 @@ namespace Microsoft.Dafny {
       wrapped.ReportBplError(tok, message, error, tw, category);
     }
 
-    public void PrintProfilingSummary() {
-      foreach (var pair in verificationTimes.OrderByDescending(pair => pair.Value)) {
+    public void PrintProfilingSummaryToConsole() {
+      foreach(var pair in verificationTimes.OrderByDescending(pair => pair.Value)) {
         Console.WriteLine($"{pair.Key}: {pair.Value}");
       }
+    }
+    
+    public void PrintProfilingSummary() {
+      var testEngine = new TestEngine();
+      testEngine.GetExtensionManager();
+      var loggerManager = testEngine.GetLoggerManager(new RequestData());
+      var runSettings = $@"
+      <RunSettings>
+        <LoggerRunSettings>
+          <Loggers>
+            <Logger friendlyName=""trx"" enabled=""True"">
+              <Configuration>
+                <Verbosity>normal</Verbosity>
+              </Configuration>
+            </Logger>
+          </Loggers>
+        </LoggerRunSettings>
+      </RunSettings>
+      ";
+      loggerManager.Initialize(runSettings);
+      
+      List<TestResult> testResults = new();
+      foreach (var pair in verificationTimes.OrderByDescending(pair => pair.Value)) {
+        var testCase = new TestCase();
+        testCase.DisplayName = pair.Key;
+        var result = new TestResult(testCase);
+        result.Duration = new TimeSpan((int)(pair.Value * 1000));
+        testResults.Add(result);
+      }
+      
+      var statsChange = new TestRunChangedEventArgs(new TestRunStatistics(), testResults, Array.Empty<TestCase>());
+      loggerManager.HandleTestRunStatsChange(statsChange);
     }
   }
 }
