@@ -19,16 +19,16 @@ jobs:
             z3: z3-4.8.5-x64-ubuntu-16.04
             chmod: true
             coverage: true
-          - os: windows-2019
-            suffix: win
-            z3: z3-4.8.5-x64-win
-            chmod: false
-            coverage: false
-          - os: macos-10.15
-            suffix: osx-10.14.1
-            z3: z3-4.8.5-x64-osx-10.14.2
-            chmod: true
-            coverage: false
+#          - os: windows-2019
+#            suffix: win
+#            z3: z3-4.8.5-x64-win
+#            chmod: false
+#            coverage: false
+#          - os: macos-10.15
+#            suffix: osx-10.14.1
+#            z3: z3-4.8.5-x64-osx-10.14.2
+#            chmod: true
+#            coverage: false
     env:
       solutionPath: Source/Dafny.sln
       z3BaseUri: https://github.com/Z3Prover/z3/releases/download/Z3-4.8.5
@@ -57,10 +57,10 @@ jobs:
       run: dotnet build --no-restore ${{env.solutionPath}}
     - name: Run DafnyLanguageServer Tests
       run: dotnet test --no-restore --verbosity normal --logger junit Source/DafnyLanguageServer.Test
-#    - name: Run DafnyPipeline Tests
-#      run: dotnet test --no-restore --verbosity normal --logger junit Source/DafnyPipeline.Test
-#    - name: Run DafnyTestGeneration Tests
-#      run: dotnet test --no-restore --verbosity normal --logger junit Source/DafnyTestGeneration.Test
+    - name: Run DafnyPipeline Tests
+      run: dotnet test --no-restore --verbosity normal --logger junit Source/DafnyPipeline.Test
+    - name: Run DafnyTestGeneration Tests
+      run: dotnet test --no-restore --verbosity normal --logger junit Source/DafnyTestGeneration.Test
     - name: Upload Unit Test Results
       if: always()
       uses: actions/upload-artifact@v2
@@ -68,8 +68,8 @@ jobs:
         name: Unit Test Results
         path: |
           Source/DafnyLanguageServer.Test/TestResults/TestResults.xml
-#          Source/DafnyPipeline.Test/TestResults/TestResults.xml
-#          Source/DafnyTestGeneration.Test/TestResults/TestResults.xml
+          Source/DafnyPipeline.Test/TestResults/TestResults.xml
+          Source/DafnyTestGeneration.Test/TestResults/TestResults.xml
 
   publish-test-results:
     name: "Publish Unit Tests Results"
