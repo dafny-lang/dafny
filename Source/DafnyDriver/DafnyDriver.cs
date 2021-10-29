@@ -72,7 +72,7 @@ namespace Microsoft.Dafny {
       }
 
       if (DafnyOptions.O.VerificationLoggerConfig != null) {
-        profilingPrinter?.PrintProfilingSummaryToConsole();
+        profilingPrinter?.PrintProfilingSummary();
       }
       
       if (CommandLineOptions.Clo.XmlSink != null) {

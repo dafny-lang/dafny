@@ -95,9 +95,6 @@ namespace Microsoft.Dafny {
     }
     
     public void PrintProfilingSummary() {
-      var testEngine = new TestEngine();
-      testEngine.GetExtensionManager();
-      var loggerManager = testEngine.GetLoggerManager(new RequestData());
       var runSettings = $@"
       <RunSettings>
         <LoggerRunSettings>
@@ -111,6 +108,12 @@ namespace Microsoft.Dafny {
         </LoggerRunSettings>
       </RunSettings>
       ";
+      var testEngine = new TestEngine();
+      var requestData = new RequestData();
+      var sources = new[] { "/Users/salkeldr/Documents/GitHub/dafny/Binaries" };
+      var discoveryCriteria = new DiscoveryCriteria(sources, 1000, runSettings);
+      testEngine.GetDiscoveryManager(requestData, null, discoveryCriteria);
+      var loggerManager = testEngine.GetLoggerManager(new RequestData());
       loggerManager.Initialize(runSettings);
       
       List<TestResult> testResults = new();
