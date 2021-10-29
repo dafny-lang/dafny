@@ -138,5 +138,29 @@ class Y {
       Assert.AreEqual(SymbolKind.Variable, localVariableSymbol.Kind);
       Assert.AreEqual(0, localVariableSymbol.Children.Count());
     }
+
+    [TestMethod]
+    public async Task CanResolveSymbolsForMethodsWithoutBody() {
+      var source = "method DoIt()";
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+
+      var methodSymbol = (await RequestDocumentSymbol(documentItem).AsTask()).Single().DocumentSymbol;
+      Assert.AreEqual("DoIt", methodSymbol.Name);
+      Assert.AreEqual(new Range((0, 7), (0, 11)), methodSymbol.Range);
+      Assert.AreEqual(SymbolKind.Method, methodSymbol.Kind);
+    }
+
+    [TestMethod]
+    public async Task CanResolveSymbolsForFunctionWithoutBody() {
+      var source = "function ConstOne(): int";
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+
+      var methodSymbol = (await RequestDocumentSymbol(documentItem).AsTask()).Single().DocumentSymbol;
+      Assert.AreEqual("ConstOne", methodSymbol.Name);
+      Assert.AreEqual(new Range((0, 9), (0, 17)), methodSymbol.Range);
+      Assert.AreEqual(SymbolKind.Function, methodSymbol.Kind);
+    }
   }
 }
