@@ -95,6 +95,8 @@ namespace Microsoft.Dafny {
     }
     
     public void PrintProfilingSummary() {
+      var logger = new TestLogger();
+      
       var runSettings = $@"
       <RunSettings>
         <LoggerRunSettings>

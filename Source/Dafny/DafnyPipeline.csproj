@@ -22,6 +22,7 @@
 
   <ItemGroup>
       <PackageReference Include="JetBrains.Annotations" Version="2021.1.0" />
+      <PackageReference Include="JunitXml.TestLogger" Version="3.0.98" />
       <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="3.7.0" />
       <PackageReference Include="Microsoft.TestPlatform.Extensions.TrxLogger" Version="17.0.0" />
       <PackageReference Include="Microsoft.TestPlatform.TestHost" Version="16.11.0" />
