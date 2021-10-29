@@ -78,12 +78,10 @@ jobs:
     if: always()
 
     steps:
-      - name: Download Artifacts
-        uses: actions/download-artifact@v2
+      - uses: dorny/test-reporter@v1
+        if: always()
         with:
-          path: artifacts
-
-      - name: Publish Unit Test Results
-        uses: EnricoMi/publish-unit-test-result-action@v1
-        with:
-          files: artifacts/**/*.xml
+          artifact: Unit Test Results (.*)
+          name: JEST Tests            # Name of the check run which will be created
+          path: '**/TestResults.xml'    # Path to test results
+          reporter: jest-junit        # Format of test results
