@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using DafnyServer.CounterExampleGeneration;
+using DafnyServer.CounterexampleGeneration;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
 using Action = System.Action;
