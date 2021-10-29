@@ -6,12 +6,6 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using Microsoft.Boogie;
-using Microsoft.VisualStudio.TestPlatform.Common;
-using Microsoft.VisualStudio.TestPlatform.CrossPlatEngine;
-using Microsoft.VisualStudio.TestPlatform.Extensions.TrxLogger;
-using Microsoft.VisualStudio.TestPlatform.ObjectModel;
-using Microsoft.VisualStudio.TestPlatform.ObjectModel.Client;
-using Microsoft.VisualStudio.TestPlatform.ObjectModel.Logging;
 
 namespace Microsoft.Dafny {
   public class ProfilingOutputPrinter : OutputPrinter {
@@ -95,40 +89,40 @@ namespace Microsoft.Dafny {
     }
     
     public void PrintProfilingSummary() {
-      var logger = new TestLogger();
-      
-      var runSettings = $@"
-      <RunSettings>
-        <LoggerRunSettings>
-          <Loggers>
-            <Logger friendlyName=""trx"" enabled=""True"">
-              <Configuration>
-                <Verbosity>normal</Verbosity>
-              </Configuration>
-            </Logger>
-          </Loggers>
-        </LoggerRunSettings>
-      </RunSettings>
-      ";
-      var testEngine = new TestEngine();
-      var requestData = new RequestData();
-      var sources = new[] { "/Users/salkeldr/Documents/GitHub/dafny/Binaries" };
-      var discoveryCriteria = new DiscoveryCriteria(sources, 1000, runSettings);
-      testEngine.GetDiscoveryManager(requestData, null, discoveryCriteria);
-      var loggerManager = testEngine.GetLoggerManager(new RequestData());
-      loggerManager.Initialize(runSettings);
-      
-      List<TestResult> testResults = new();
-      foreach (var pair in verificationTimes.OrderByDescending(pair => pair.Value)) {
-        var testCase = new TestCase();
-        testCase.DisplayName = pair.Key;
-        var result = new TestResult(testCase);
-        result.Duration = new TimeSpan((int)(pair.Value * 1000));
-        testResults.Add(result);
-      }
-      
-      var statsChange = new TestRunChangedEventArgs(new TestRunStatistics(), testResults, Array.Empty<TestCase>());
-      loggerManager.HandleTestRunStatsChange(statsChange);
+      // var logger = new TestLogger();
+      //
+      // var runSettings = $@"
+      // <RunSettings>
+      //   <LoggerRunSettings>
+      //     <Loggers>
+      //       <Logger friendlyName=""trx"" enabled=""True"">
+      //         <Configuration>
+      //           <Verbosity>normal</Verbosity>
+      //         </Configuration>
+      //       </Logger>
+      //     </Loggers>
+      //   </LoggerRunSettings>
+      // </RunSettings>
+      // ";
+      // var testEngine = new TestEngine();
+      // var requestData = new RequestData();
+      // var sources = new[] { "/Users/salkeldr/Documents/GitHub/dafny/Binaries" };
+      // var discoveryCriteria = new DiscoveryCriteria(sources, 1000, runSettings);
+      // testEngine.GetDiscoveryManager(requestData, null, discoveryCriteria);
+      // var loggerManager = testEngine.GetLoggerManager(new RequestData());
+      // loggerManager.Initialize(runSettings);
+      //
+      // List<TestResult> testResults = new();
+      // foreach (var pair in verificationTimes.OrderByDescending(pair => pair.Value)) {
+      //   var testCase = new TestCase();
+      //   testCase.DisplayName = pair.Key;
+      //   var result = new TestResult(testCase);
+      //   result.Duration = new TimeSpan((int)(pair.Value * 1000));
+      //   testResults.Add(result);
+      // }
+      //
+      // var statsChange = new TestRunChangedEventArgs(new TestRunStatistics(), testResults, Array.Empty<TestCase>());
+      // loggerManager.HandleTestRunStatsChange(statsChange);
     }
   }
 }
