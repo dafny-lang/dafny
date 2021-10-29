@@ -56,11 +56,11 @@ jobs:
     - name: Build
       run: dotnet build --no-restore ${{env.solutionPath}}
     - name: Run DafnyLanguageServer Tests
-      run: dotnet test --no-restore --verbosity normal --logger "junit;LogFilePath=DafnyLanguageServer.Test.TestResults.xml" Source/DafnyLanguageServer.Test
+      run: dotnet test --no-restore --verbosity normal --logger "junit;LogFilePath=DafnyLanguageServer-Test-TestResults.xml" Source/DafnyLanguageServer.Test
     - name: Run DafnyPipeline Tests
-      run: dotnet test --no-restore --verbosity normal --logger "junit;LogFilePath=DafnyPipeline.Test.TestResults.xml" Source/DafnyPipeline.Test
+      run: dotnet test --no-restore --verbosity normal --logger "junit;LogFilePath=DafnyPipeline-Test-TestResults.xml" Source/DafnyPipeline.Test
     - name: Run DafnyTestGeneration Tests
-      run: dotnet test --no-restore --verbosity normal --logger "junit;LogFilePath=DafnyTestGeneration.Test.TestResults.xml" Source/DafnyTestGeneration.Test
+      run: dotnet test --no-restore --verbosity normal --logger "junit;LogFilePath=DafnyTestGeneration-Test-TestResults.xml" Source/DafnyTestGeneration.Test
     - name: Upload Unit Test Results
       if: always()
       uses: actions/upload-artifact@v2
