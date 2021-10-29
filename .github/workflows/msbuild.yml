@@ -53,7 +53,7 @@ jobs:
       
   build:
     runs-on: ${{ matrix.os }}
-    if: never() # TODO: temporary
+    if: ${{ false }} # TODO: temporary
     strategy:
       matrix:
         ## Windows jobs fail on some lit tests and sometimes fail even to
