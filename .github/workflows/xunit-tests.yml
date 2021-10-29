@@ -81,7 +81,7 @@ jobs:
       - uses: dorny/test-reporter@v1
         if: always()
         with:
-          artifact: Unit Test Results (.*)
+          artifact: /Unit Test Results (.*)/
           name: JEST Tests            # Name of the check run which will be created
           path: '**/TestResults.xml'    # Path to test results
           reporter: jest-junit        # Format of test results
