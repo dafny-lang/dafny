@@ -65,7 +65,7 @@ jobs:
       if: always()
       uses: actions/upload-artifact@v2
       with:
-        name: Unit Test Results
+        name: unit-test-results
         path: |
           Source/DafnyLanguageServer.Test/TestResults/TestResults.xml
           Source/DafnyPipeline.Test/TestResults/TestResults.xml
@@ -81,7 +81,7 @@ jobs:
       - uses: dorny/test-reporter@v1
         if: always()
         with:
-          artifact: Unit Test Results
-          name: Unit Tests - $1         # Name of the check run which will be created
+          artifact: unit-test-results
+          name: Unit Test Results       # Name of the check run which will be created
           path: '**/TestResults.xml'    # Path to test results
           reporter: jest-junit          # Format of test results
