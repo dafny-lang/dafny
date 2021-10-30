@@ -64,11 +64,7 @@ jobs:
     - uses: actions/upload-artifact@v2
       with:
         name: unit-test-results-${{ matrix.os }}
-        path: |
-          Source/DafnyLanguageServer.Test/TestResults/*.xml
-          Source/DafnyPipeline.Test/TestResults/*.xml
-          Source/DafnyTestGeneration.Test/TestResults/*.xml
-
+        path: Source/*/TestResults/*.xml
 
   publish-test-results:
     name: "Download and Publish Unit Tests Results"
