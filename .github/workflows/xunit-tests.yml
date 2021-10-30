@@ -64,7 +64,7 @@ jobs:
     - uses: actions/upload-artifact@v2
       with:
         name: unit-test-results-${{ matrix.os }}
-        path: Source/*/TestResults/*.xml
+        path: Source/*/TestResults/*.trx
 
   publish-test-results:
     name: "Download and Publish Unit Tests Results"
