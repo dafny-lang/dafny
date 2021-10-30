@@ -19,16 +19,16 @@ jobs:
             z3: z3-4.8.5-x64-ubuntu-16.04
             chmod: true
             coverage: true
-#          - os: windows-2019
-#            suffix: win
-#            z3: z3-4.8.5-x64-win
-#            chmod: false
-#            coverage: false
-#          - os: macos-10.15
-#            suffix: osx-10.14.1
-#            z3: z3-4.8.5-x64-osx-10.14.2
-#            chmod: true
-#            coverage: false
+          - os: windows-2019
+            suffix: win
+            z3: z3-4.8.5-x64-win
+            chmod: false
+            coverage: false
+          - os: macos-10.15
+            suffix: osx-10.14.1
+            z3: z3-4.8.5-x64-osx-10.14.2
+            chmod: true
+            coverage: false
     env:
       solutionPath: Source/Dafny.sln
       z3BaseUri: https://github.com/Z3Prover/z3/releases/download/Z3-4.8.5
@@ -61,10 +61,23 @@ jobs:
       run: dotnet test --no-restore --verbosity normal --logger trx Source/DafnyPipeline.Test
     - name: Run DafnyTestGeneration Tests
       run: dotnet test --no-restore --verbosity normal --logger trx Source/DafnyTestGeneration.Test
-    - name: "Publish Unit Tests Results"
-      uses: dorny/test-reporter@v1
-      if: always()
-      with:
-        name: Unit Test Results       # Name of the check run which will be created
-        path: '**/*.trx'              # Path to test results
-        reporter: dotnet-trx          # Format of test results
+    
+  publish-test-results:
+    name: "Download and Publish Unit Tests Results"
+    needs: build
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Download Artifacts
+        uses: actions/download-artifact@v2
+        with:
+          path: artifacts
+
+      - name: Publish Unit Tests Results
+        uses: dorny/test-reporter@v1
+        with:
+          name: Unit Test Results
+          path: 'artifacts/**/*.trx'
+          reporter: dotnet-trx
+  
