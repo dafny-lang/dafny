@@ -56,15 +56,15 @@ jobs:
     - name: Build
       run: dotnet build --no-restore ${{env.solutionPath}}
     - name: Run DafnyLanguageServer Tests
-      run: dotnet test --no-restore --verbosity normal --logger junit Source/DafnyLanguageServer.Test
+      run: dotnet test --no-restore --verbosity normal --logger trx Source/DafnyLanguageServer.Test
     - name: Run DafnyPipeline Tests
-      run: dotnet test --no-restore --verbosity normal --logger junit Source/DafnyPipeline.Test
+      run: dotnet test --no-restore --verbosity normal --logger trx Source/DafnyPipeline.Test
     - name: Run DafnyTestGeneration Tests
-      run: dotnet test --no-restore --verbosity normal --logger junit Source/DafnyTestGeneration.Test
+      run: dotnet test --no-restore --verbosity normal --logger trx Source/DafnyTestGeneration.Test
     - name: "Publish Unit Tests Results"
       uses: dorny/test-reporter@v1
       if: always()
       with:
         name: Unit Test Results       # Name of the check run which will be created
-        path: '**/TestResults.xml'    # Path to test results
-        reporter: jest-junit          # Format of test results
+        path: '**/*.trx'              # Path to test results
+        reporter: dotnet-trx          # Format of test results
