@@ -82,6 +82,10 @@ jobs:
         with:
           path: artifacts
 
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      
       - name: Publish Unit Tests Results
         uses: dorny/test-reporter@v1
         with:
