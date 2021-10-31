@@ -6,8 +6,12 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using Microsoft.Boogie;
+using Microsoft.VisualStudio.TestPlatform.ObjectModel.Client;
 
 namespace Microsoft.Dafny {
+  class LocalTestLoggerEvents : TestLoggerEvents {
+    
+  }
   public class ProfilingOutputPrinter : OutputPrinter {
     private readonly OutputPrinter wrapped;
     private readonly Dictionary<string, decimal?> verificationTimes = new();
