@@ -85,7 +85,8 @@ jobs:
       - name: Publish Unit Tests Results
         uses: dorny/test-reporter@v1
         with:
-          name: Unit Test Results
-          path: 'artifacts/**/*.trx'
+          artifact: /unit-test-results-(.*)/
+          name: Unit Test Results - $1
+          path: '**/*.trx'
           reporter: dotnet-trx
   
