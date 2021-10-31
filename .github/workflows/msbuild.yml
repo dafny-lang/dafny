@@ -126,4 +126,32 @@ jobs:
         unzip dafny/Package/CI.zip -d unzippedRelease
     - name: Run integration tests
       run: |
-        XUNIT_SHARD=${{ matrix.shard }} XUNIT_SHARD_COUNT=5 DAFNY_RELEASE=$PWD/unzippedRelease/dafny dotnet test -v:n dafny/Source/IntegrationTests/IntegrationTests.csproj
+        XUNIT_SHARD=${{ matrix.shard }} XUNIT_SHARD_COUNT=5 DAFNY_RELEASE=$PWD/unzippedRelease/dafny dotnet test -v:n --logger trx dafny/Source/IntegrationTests/IntegrationTests.csproj
+    - uses: actions/upload-artifact@v2
+      with:
+        name: integration-test-results-${{ matrix.os }}
+        path: dafny/Source/IntegrationTests/TestResults/*.trx
+
+  publish-test-results:
+    name: "Download and Publish Integration Tests Results"
+    needs: build
+    runs-on: ubuntu-latest
+    if: always()
+  
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+  
+      - name: Download Artifacts
+        uses: actions/download-artifact@v2
+        with:
+          path: artifacts
+  
+      - name: Publish Integration Tests Results
+        uses: dorny/test-reporter@v1
+        with:
+          name: Integration Test Results
+          path: 'artifacts/**/*.trx'
+          reporter: dotnet-trx
+    
