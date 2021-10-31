@@ -127,6 +127,7 @@ jobs:
       run: |
         XUNIT_SHARD=${{ matrix.shard }} XUNIT_SHARD_COUNT=5 DAFNY_RELEASE=$PWD/unzippedRelease/dafny dotnet test -v:n --logger trx dafny/Source/IntegrationTests/IntegrationTests.csproj
     - uses: actions/upload-artifact@v2
+      if: always()
       with:
         name: integration-test-results-${{ matrix.os }}
         path: dafny/Source/IntegrationTests/TestResults/*.trx

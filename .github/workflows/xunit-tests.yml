@@ -62,6 +62,7 @@ jobs:
     - name: Run DafnyTestGeneration Tests
       run: dotnet test --no-restore --verbosity normal --logger trx Source/DafnyTestGeneration.Test
     - uses: actions/upload-artifact@v2
+      if: always()
       with:
         name: unit-test-results-${{ matrix.os }}
         path: Source/*/TestResults/*.trx
