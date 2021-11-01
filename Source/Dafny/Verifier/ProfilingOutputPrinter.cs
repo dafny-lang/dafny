@@ -6,28 +6,30 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using Microsoft.Boogie;
+using Microsoft.VisualStudio.TestPlatform.Extensions.TrxLogger;
+using Microsoft.VisualStudio.TestPlatform.ObjectModel;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel.Client;
+using Microsoft.VisualStudio.TestPlatform.ObjectModel.Logging;
 
 namespace Microsoft.Dafny {
-  class LocalTestLoggerEvents : TestLoggerEvents {
-    
-  }
   public class ProfilingOutputPrinter : OutputPrinter {
     private readonly OutputPrinter wrapped;
-    private readonly Dictionary<string, decimal?> verificationTimes = new();
+    private readonly LocalTestLoggerEvents events;
     private string currentlyVerifying = null;
-    
+
     public ProfilingOutputPrinter(OutputPrinter wrapped) {
       if (!DafnyOptions.O.Trace) {
         throw new ThreadStateException("Profiling requires the /trace option");
       }
       this.wrapped = wrapped;
+      events = new LocalTestLoggerEvents();
+      var logger = new TrxLogger();
+      logger.Initialize(events, new Dictionary<string, string> {
+        ["TestRunDirectory"] = Constants.DefaultResultsDirectory
+      });
+      events.EnableEvents();
     }
 
-    public Dictionary<string, decimal?> GetVerificationTimes() {
-      return new Dictionary<string, decimal?>(verificationTimes);
-    }
-    
     public void ErrorWriteLine(TextWriter tw, string s) {
       wrapped.ErrorWriteLine(tw, s);
     }
@@ -43,7 +45,7 @@ namespace Microsoft.Dafny {
     public void Inform(string s, TextWriter tw) {
       string pattern = @"^Verifying (?<TaskName>\w+)\$\$(?<CallableName>[\w\.]+) \.\.\.$";
       string resultPattern = @"^  \[(?<Time>.*) s, (?<VCCount>.*) proof obligations\]  (?<Result>[a-zA-Z ]+)$";
-      foreach (Match match in Regex.Matches(s, pattern)){
+      foreach (Match match in Regex.Matches(s, pattern)) {
         GroupCollection groups = match.Groups;
         var callableName = groups["CallableName"].ToString();
         var taskName = groups["TaskName"].ToString();
@@ -55,22 +57,44 @@ namespace Microsoft.Dafny {
           currentlyVerifying = $"{callableName} (Implementation)";
         }
       }
-      foreach (Match match in Regex.Matches(s, resultPattern)){
+      foreach (Match match in Regex.Matches(s, resultPattern)) {
         var groups = match.Groups;
         var result = groups["Result"].ToString();
         var time = decimal.Parse(groups["Time"].ToString());
         var vcCount = int.Parse(groups["VCCount"].ToString());
         if (currentlyVerifying != null) {
-          if (result == "timed out") {
-            verificationTimes.Add(currentlyVerifying, -1);
-          } else if (DafnyOptions.O.TimeLimit > 0 && time > DafnyOptions.O.TimeLimit) {
-            verificationTimes.Add(currentlyVerifying, -1);
+          var testCase = new TestCase {
+            FullyQualifiedName = currentlyVerifying,
+            ExecutorUri = new Uri("executor://dafny/something/something"),
+            Source = "lol.dfy"
+          };
+
+          var testResult = new TestResult(testCase) {
+            Duration = TimeSpan.FromMilliseconds((long)(time * 1000))
+          };
+
+          if (DafnyOptions.O.TimeLimit > 0 && time > DafnyOptions.O.TimeLimit) {
+            testResult.Outcome = TestOutcome.Failed;
+            testResult.ErrorMessage = "timed out";
           } else {
-            verificationTimes.Add(currentlyVerifying, time);
+            testResult.Outcome = OutcomeForResult(result);
+            if (testResult.Outcome != TestOutcome.Passed) {
+              testResult.ErrorMessage = result;
+            }
           }
+          
+          events.RaiseTestResult(new TestResultEventArgs(testResult));
 
           currentlyVerifying = null;
         }
+      }
+    }
+
+    private TestOutcome OutcomeForResult(string result) {
+      if (result == "verified") {
+        return TestOutcome.Passed;
+      } else {
+        return TestOutcome.Failed;
       }
     }
 
@@ -86,47 +110,11 @@ namespace Microsoft.Dafny {
       wrapped.ReportBplError(tok, message, error, tw, category);
     }
 
-    public void PrintProfilingSummaryToConsole() {
-      foreach(var pair in verificationTimes.OrderByDescending(pair => pair.Value)) {
-        Console.WriteLine($"{pair.Key}: {pair.Value}");
-      }
-    }
-    
-    public void PrintProfilingSummary() {
-      // var logger = new TestLogger();
-      //
-      // var runSettings = $@"
-      // <RunSettings>
-      //   <LoggerRunSettings>
-      //     <Loggers>
-      //       <Logger friendlyName=""trx"" enabled=""True"">
-      //         <Configuration>
-      //           <Verbosity>normal</Verbosity>
-      //         </Configuration>
-      //       </Logger>
-      //     </Loggers>
-      //   </LoggerRunSettings>
-      // </RunSettings>
-      // ";
-      // var testEngine = new TestEngine();
-      // var requestData = new RequestData();
-      // var sources = new[] { "/Users/salkeldr/Documents/GitHub/dafny/Binaries" };
-      // var discoveryCriteria = new DiscoveryCriteria(sources, 1000, runSettings);
-      // testEngine.GetDiscoveryManager(requestData, null, discoveryCriteria);
-      // var loggerManager = testEngine.GetLoggerManager(new RequestData());
-      // loggerManager.Initialize(runSettings);
-      //
-      // List<TestResult> testResults = new();
-      // foreach (var pair in verificationTimes.OrderByDescending(pair => pair.Value)) {
-      //   var testCase = new TestCase();
-      //   testCase.DisplayName = pair.Key;
-      //   var result = new TestResult(testCase);
-      //   result.Duration = new TimeSpan((int)(pair.Value * 1000));
-      //   testResults.Add(result);
-      // }
-      //
-      // var statsChange = new TestRunChangedEventArgs(new TestRunStatistics(), testResults, Array.Empty<TestCase>());
-      // loggerManager.HandleTestRunStatsChange(statsChange);
+    public void Dispose() {
+      events.RaiseTestRunComplete(new TestRunCompleteEventArgs(
+        new TestRunStatistics(),
+        false, false, null, null, new TimeSpan()
+      ));
     }
   }
 }

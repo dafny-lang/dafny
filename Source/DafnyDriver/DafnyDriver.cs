@@ -52,7 +52,7 @@ namespace Microsoft.Dafny {
       
       ProfilingOutputPrinter profilingPrinter = null;
       if (DafnyOptions.O.VerificationLoggerConfig != null) {
-        profilingPrinter = new(ExecutionEngine.printer);
+        profilingPrinter = new ProfilingOutputPrinter(ExecutionEngine.printer);
         ExecutionEngine.printer = profilingPrinter;
       }
 
@@ -71,9 +71,7 @@ namespace Microsoft.Dafny {
           throw new ArgumentOutOfRangeException();
       }
 
-      if (DafnyOptions.O.VerificationLoggerConfig != null) {
-        profilingPrinter?.PrintProfilingSummary();
-      }
+      profilingPrinter?.Dispose();
       
       if (CommandLineOptions.Clo.XmlSink != null) {
         CommandLineOptions.Clo.XmlSink.Close();
