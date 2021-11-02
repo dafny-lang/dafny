@@ -9,6 +9,9 @@ using Microsoft.Dafny;
 using Xunit;
 
 namespace DafnyPipeline.Test {
+  // Main.Resolve has static shared state (TypeConstraint.ErrorsToBeReported for example)
+  // so we can't execute tests that use it in parallel.
+  [Collection("Singleton Test Collection - Resolution")]
   public class Issue1355 {
     [Fact]
     public void Test() {

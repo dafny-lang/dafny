@@ -5,7 +5,7 @@ module Outer {
 
   module C {
 
-    import D = D
+    import D
     const c := 2 + D.d
   }
   method Test()
@@ -40,9 +40,9 @@ method Main()
 
 module Outer.A {
 
-  import B = B
+  import B
 
-  import C = C
+  import C
   const a := B.b + C.c
 }
 
@@ -54,11 +54,31 @@ module Outer.D {
   const d := 3
 }
 
+module Outer.E {
+
+  export
+    provides F
+
+
+  module F {
+
+    export G
+
+  }
+}
+
+module Outer.H {
+
+  import E
+
+  import F = E.F`G
+}
+
 module XY.X {
 
   module M {
 
-    import Y = Y
+    import Y
     const n := Y.m - 5
   }
   const m := 20
@@ -208,7 +228,7 @@ module Outer {
      *   d
      */
 
-    import D = D
+    import D
     const c: int := 2 + D.d
   }
   method Test()
@@ -226,9 +246,9 @@ module Outer {
      *   b
      */
 
-    import B = B
+    import B
 
-    import C = C
+    import C
     const a: int := B.b + C.c
   }
 
@@ -246,6 +266,42 @@ module Outer {
      *   d
      */
     const d: int := 3
+  }
+
+  module E {
+    /* CALL GRAPH for module E:
+     */
+
+    export
+      provides F
+      /*----- exported view:
+
+        module F {
+          /* CALL GRAPH for module F:
+           */
+
+          export G
+
+        }
+      -----*/
+
+
+    module F {
+      /* CALL GRAPH for module F:
+       */
+
+      export G
+
+    }
+  }
+
+  module H {
+    /* CALL GRAPH for module H:
+     */
+
+    import E
+
+    import F = E.F`G
   }
 }
 
@@ -275,7 +331,7 @@ module XY {
        *   m
        */
 
-      import Y = Y
+      import Y
       const n: int := Y.m - 5
     }
     const m: int := 20

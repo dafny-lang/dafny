@@ -63,11 +63,11 @@ SubsetTypes.dfy(318,18): Error: value does not satisfy the subset constraints of
 SubsetTypes.dfy(323,20): Error: value does not satisfy the subset constraints of 'nat'
 SubsetTypes.dfy(329,18): Error: result of operation might violate newtype constraint for 'Nat'
 SubsetTypes.dfy(335,20): Error: result of operation might violate newtype constraint for 'Nat'
-SubsetTypes.dfy(340,7): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'ghost *' to treat as a possibly empty type
+SubsetTypes.dfy(340,7): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
 SubsetTypes.dfy(341,18): Error: value does not satisfy the subset constraints of 'Nat'
-SubsetTypes.dfy(345,10): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'ghost *' to treat as a possibly empty type
+SubsetTypes.dfy(345,10): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
 SubsetTypes.dfy(346,18): Error: result of operation might violate newtype constraint for 'Nat'
-SubsetTypes.dfy(350,7): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'ghost *' to treat as a possibly empty type
+SubsetTypes.dfy(350,7): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
 SubsetTypes.dfy(358,21): Error: possible division by zero
 SubsetTypes.dfy(363,23): Error: possible division by zero
 SubsetTypes.dfy(375,19): Error: value does not satisfy the subset constraints of 'X'
@@ -81,7 +81,7 @@ SubsetTypes.dfy(392,28): Error: value does not satisfy the subset constraints of
 SubsetTypes.dfy(394,28): Error: value does not satisfy the subset constraints of 'int ~> nat'
 SubsetTypes.dfy(396,26): Error: value does not satisfy the subset constraints of 'int ~> X'
 SubsetTypes.dfy(399,9): Error: value does not satisfy the subset constraints of 'nat'
-SubsetTypes.dfy(409,7): Error: cannot find witness that shows type is inhabited (only tried 'D'); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'ghost *' to treat as a possibly empty type
-SubsetTypes.dfy(411,7): Error: cannot find witness that shows type is inhabited (only tried 'D'); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'ghost *' to treat as a possibly empty type
+SubsetTypes.dfy(409,7): Error: cannot find witness that shows type is inhabited (only tried 'D'); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
+SubsetTypes.dfy(411,7): Error: cannot find witness that shows type is inhabited (only tried 'D'); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
 
 Dafny program verifier finished with 13 verified, 85 errors

@@ -184,18 +184,16 @@ namespace Microsoft.Dafny {
       return null;
     }
 
-    static Bpl.Cmd CaptureState(Bpl.IToken tok, bool isEndToken, string/*?*/ additionalInfo) {
-      Contract.Requires(tok != null);
-      Contract.Ensures(Contract.Result<Bpl.Cmd>() != null);
-      var col = tok.col + (isEndToken ? tok.val.Length : 0);
-      string description = String.Format("{0}{1}", ErrorReporter.TokenToString(tok), additionalInfo == null ? "" : (": " + additionalInfo));
-      Bpl.QKeyValue kv = new Bpl.QKeyValue(tok, "captureState", new List<object>() { description }, null);
-      return TrAssumeCmd(tok, Bpl.Expr.True, kv);
-    }
-
-    static Bpl.AssumeCmd TrAssumeCmd(Bpl.IToken tok, Bpl.Expr expr, Bpl.QKeyValue attributes = null) {
-      var lit = RemoveLit(expr);
-      return attributes == null ? new Bpl.AssumeCmd(tok, lit) : new Bpl.AssumeCmd(tok, lit, attributes);
+    public static Bpl.AssumeCmd TrAssumeCmd(Bpl.IToken tok, Bpl.Expr expr, Bpl.QKeyValue attributes = null) {
+      var litArgument = GetLit(expr);
+      if (litArgument is Bpl.LiteralExpr literalExpr && literalExpr.asBool) {
+        // In most cases, we leave any Lit brackets that "expr" may have. In the past, these brackets
+        // had always been removed here. Alas, some brittle test cases stopped verifying if we
+        // keep "assume Lit(true)" instead of simplifying it to "assume true". Therefore, as a
+        // special case, we remove the Lit brackets from the literal "true".
+        expr = litArgument;
+      }
+      return attributes == null ? new Bpl.AssumeCmd(tok, expr) : new Bpl.AssumeCmd(tok, expr, attributes);
     }
 
     static Bpl.Expr RemoveLit(Bpl.Expr expr) {

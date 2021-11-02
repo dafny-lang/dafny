@@ -7,6 +7,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DafnyRuntime", "DafnyRuntim
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DafnyPipeline", "Dafny\DafnyPipeline.csproj", "{45FFD363-CFE0-4ABC-984F-7EB58C8BEDE5}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DafnyPipeline.Test", "DafnyPipeline.Test\DafnyPipeline.Test.csproj", "{FA2A3A73-3035-497B-B9D7-B6BC4888A058}"
+EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DafnyDriver", "DafnyDriver\DafnyDriver.csproj", "{4B74F970-8FEB-46A1-BD14-FBF2B5D5F285}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DafnyServer", "DafnyServer\DafnyServer.csproj", "{71208DB9-31D6-4071-838B-8D44A37CF0F1}"
@@ -16,11 +18,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		version.cs = version.cs
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IntegrationTests", "IntegrationTests\IntegrationTests.csproj", "{A4BC2C77-3A48-4917-AA22-41978DFFE24E}"
+EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DafnyLanguageServer", "DafnyLanguageServer\DafnyLanguageServer.csproj", "{CD05D26C-C672-4F43-835E-7A3E1741E4D8}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DafnyLanguageServer.Test", "DafnyLanguageServer.Test\DafnyLanguageServer.Test.csproj", "{320C02A3-D3E6-4AC7-A7E2-170AF86A6EEC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DafnyPipeline.Test", "DafnyPipeline.Test\DafnyPipeline.Test.csproj", "{FA2A3A73-3035-497B-B9D7-B6BC4888A058}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XUnitExtensions", "XUnitExtensions\XUnitExtensions.csproj", "{43731A57-DBA9-43AC-BC83-A9211DA7EB77}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DafnyTestGeneration", "DafnyTestGeneration\DafnyTestGeneration.csproj", "{229E0F23-2B99-4331-8BD8-C2EBCB7C9DAC}"
 EndProject
@@ -60,6 +64,14 @@ Global
 		{FA2A3A73-3035-497B-B9D7-B6BC4888A058}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FA2A3A73-3035-497B-B9D7-B6BC4888A058}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FA2A3A73-3035-497B-B9D7-B6BC4888A058}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A4BC2C77-3A48-4917-AA22-41978DFFE24E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A4BC2C77-3A48-4917-AA22-41978DFFE24E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{896E7F24-FD59-4B34-A1BF-41978DFFE24E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{896E7F24-FD59-4B34-A1BF-41978DFFE24E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{43731A57-DBA9-43AC-BC83-A9211DA7EB77}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{43731A57-DBA9-43AC-BC83-A9211DA7EB77}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{43731A57-DBA9-43AC-BC83-A9211DA7EB77}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{43731A57-DBA9-43AC-BC83-A9211DA7EB77}.Release|Any CPU.Build.0 = Release|Any CPU
 		{229E0F23-2B99-4331-8BD8-C2EBCB7C9DAC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{229E0F23-2B99-4331-8BD8-C2EBCB7C9DAC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{229E0F23-2B99-4331-8BD8-C2EBCB7C9DAC}.Release|Any CPU.ActiveCfg = Release|Any CPU
