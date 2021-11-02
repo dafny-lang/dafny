@@ -102,7 +102,7 @@ namespace Microsoft.Dafny {
     public bool ShowSnippets = false;
     public bool WarningsAsErrors = false;
     [CanBeNull] private TestGenerationOptions testGenOptions = null;
-    public bool ExtractCounterExample = false;
+    public bool ExtractCounterexample = false;
     public string VerificationLoggerConfig = null;
     // Working around the fact that xmlFilename is private
     public string BoogieXmlFilename = null;
@@ -420,8 +420,8 @@ namespace Microsoft.Dafny {
           WarningsAsErrors = true;
           return true;
 
-        case "extractCounterExample":
-          ExtractCounterExample = true;
+        case "extractCounterexample":
+          ExtractCounterexample = true;
           return true;
 
         case "verificationLogger":
@@ -893,7 +893,7 @@ $@"
     Read standard input and treat it as an input .dfy file.
 /warningsAsErrors
     Treat warnings as errors.
-/extractCounterExample
+/extractCounterexample
     If verification fails, report a detailed counterexample for the first
     failing assertion. Requires specifying the /mv option as well as
     /proverOpt:0:model_compress=false and /proverOpt:0:model.completion=true.
