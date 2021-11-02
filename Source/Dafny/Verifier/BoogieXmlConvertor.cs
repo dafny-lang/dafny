@@ -15,7 +15,7 @@ using Microsoft.VisualStudio.TestPlatform.ObjectModel.Client;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel.Logging;
 
 namespace DafnyPipeline.Verifier {
-  
+
   /// <summary>
   /// Utility to parse the XML format produced by Boogie's /xml option and emit the
   /// results therein as test logger events, allowing us to deliver verification results
@@ -29,7 +29,7 @@ namespace DafnyPipeline.Verifier {
       if (loggerConfig != "trx") {
         throw new ArgumentException($"Unsupported verification logger config: {loggerConfig}");
       }
-      
+
       var events = new LocalTestLoggerEvents();
       var logger = new TrxLogger();
       // Provide just enough configuration for the TRX logger to work
@@ -80,7 +80,7 @@ namespace DafnyPipeline.Verifier {
       var endTime = conclusionNode.Attribute("endTime")!.Value;
       var duration = float.Parse(conclusionNode.Attribute("duration")!.Value);
       var outcome = conclusionNode.Attribute("outcome")!.Value;
-          
+
       var testCase = new TestCase {
         FullyQualifiedName = name,
         ExecutorUri = new Uri("executor://dafny/something/something"),

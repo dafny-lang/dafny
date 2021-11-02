@@ -388,7 +388,7 @@ namespace DafnyPipeline.Verifier {
       int size = 0;
 
       if (args.Result.Messages.Count != 0) {
-        foreach(TestResultMessage msg in args.Result.Messages) {
+        foreach (TestResultMessage msg in args.Result.Messages) {
           if (!string.IsNullOrEmpty(msg.Text))
             size += msg.Text.Length;
         }
@@ -418,6 +418,6 @@ namespace DafnyPipeline.Verifier {
 
       return value;
     }
-#endregion
+    #endregion
   }
 }

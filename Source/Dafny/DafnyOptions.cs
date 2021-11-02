@@ -104,7 +104,7 @@ namespace Microsoft.Dafny {
     [CanBeNull] private TestGenerationOptions testGenOptions = null;
     public bool ExtractCounterExample = false;
     public string VerificationLoggerConfig = null;
-    public string BoogieXmlFilename = null; 
+    public string BoogieXmlFilename = null;
 
     public virtual TestGenerationOptions TestGenOptions =>
       testGenOptions ??= new TestGenerationOptions();
@@ -422,7 +422,7 @@ namespace Microsoft.Dafny {
         case "extractCounterExample":
           ExtractCounterExample = true;
           return true;
-        
+
         case "verificationLogger":
           if (ps.ConfirmArgumentCount(1)) {
             if (args[ps.i].Equals("trx")) {
@@ -448,7 +448,7 @@ namespace Microsoft.Dafny {
         BoogieXmlFilename = Path.GetTempFileName();
         XmlSink = new Bpl.XmlSink(BoogieXmlFilename);
       }
-      
+
       // expand macros in filenames, now that LogPrefix is fully determined
       ExpandFilename(ref DafnyPrelude, LogPrefix, FileTimestamp);
       ExpandFilename(ref DafnyPrintFile, LogPrefix, FileTimestamp);
