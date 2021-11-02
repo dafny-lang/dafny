@@ -8704,7 +8704,7 @@ namespace Microsoft.Dafny {
 
       private void CheckAssignStmt(AssignStmt s, bool mustBeErasable, [CanBeNull] string proofContext) {
         Contract.Requires(s != null);
-        Contract.Requires(mustBeErasable || proofContext == null); 
+        Contract.Requires(mustBeErasable || proofContext == null);
 
         var lhs = s.Lhs.Resolved;
 
@@ -8728,7 +8728,7 @@ namespace Microsoft.Dafny {
         if (proofContext != null && s.Rhs is TypeRhs) {
           Error(s.Rhs.Tok, $"{proofContext} is not allowed to use 'new'");
         }
-        
+
         var gk = AssignStmt.LhsIsToGhost_Which(lhs);
         if (gk == AssignStmt.NonGhostKind.IsGhost) {
           s.IsGhost = true;
@@ -13490,7 +13490,7 @@ namespace Microsoft.Dafny {
         localsAllowedInUpdates = new HashSet<LocalVariable>(localsAllowedInUpdates);
         // use this new set for the recursive calls
       }
-      
+
       foreach (var ss in stmt.SubStatements) {
         CheckLocalityUpdates(ss, localsAllowedInUpdates, where);
       }
