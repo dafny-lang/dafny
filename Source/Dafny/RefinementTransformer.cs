@@ -1161,6 +1161,9 @@ namespace Microsoft.Dafny {
                 if (oldModifyStmt.Body == null && skel.Body == null) {
                   mbody = null;
                 } else if (oldModifyStmt.Body == null) {
+                  // Note, it is important to call MergeBlockStmt here (rather than just setting "mbody" to "skel.Body"), even
+                  // though we're passing in an empty block as its second argument. The reason for this is that MergeBlockStmt
+                  // also sets ".ReverifyPost" to "true" for any "return" statements.
                   mbody = MergeBlockStmt(skel.Body, new BlockStmt(oldModifyStmt.Tok, oldModifyStmt.EndTok, new List<Statement>()));
                 } else if (skel.Body == null) {
                   reporter.Error(MessageSource.RefinementTransformer, cur.Tok, "modify template must have a body if the inherited modify statement does");
