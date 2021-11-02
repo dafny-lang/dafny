@@ -13,12 +13,11 @@ function method doubleEvenCell(c: EvenCell): int
    if c.x % 2 == 1 then 1/0 else c.x * 2
 }
 
+// No need for the subset constraint to be compilable.
 method Main() {
-  var x: set<Cell> := { Cell(1), Cell(2), Cell(3), Cell(4) };
-  var y := set c: EvenCell | c in x;
-  var z: map<EvenCell, nat> := map c: EvenCell | c in x :: c.x;
-  var b: bool := forall c :: c in y ==> doubleEvenCell(c) > 0;
-  assert b;
-  print(b);
+  var a: EvenCell := Cell(2);
+  if doubleEvenCell(a) > 0 {
+    print "ok";
+  }
 }
 

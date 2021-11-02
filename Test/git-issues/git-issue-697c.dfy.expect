@@ -1,3 +1,7 @@
+git-issue-697c.dfy(18,15): Error: subset type's constraint is not compilable, hence it cannot yet be used as the type of a bound variable in set comprehension. The next error will explain why the constraint is not compilable.
 git-issue-697c.dfy(9,26): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
-git-issue-697c.dfy(9,40): Error: subset type's constraint must be compilable, until Dafny moves constraints handling to the verifier.
-2 resolution/type errors detected in git-issue-697c.dfy
+git-issue-697c.dfy(19,35): Error: subset type's constraint is not compilable, hence it cannot yet be used as the type of a bound variable in map comprehension. The next error will explain why the constraint is not compilable.
+git-issue-697c.dfy(9,26): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
+git-issue-697c.dfy(20,24): Error: subset type's constraint is not compilable, hence it cannot yet be used as the type of a bound variable in quantifier. The next error will explain why the constraint is not compilable.
+git-issue-697c.dfy(9,26): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
+6 resolution/type errors detected in git-issue-697c.dfy

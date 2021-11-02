@@ -2677,11 +2677,7 @@ namespace Microsoft.Dafny {
           if (!CheckTypeInference_Visitor.IsDetermined(dd.Rhs.NormalizeExpand())) {
             reporter.Error(MessageSource.Resolver, dd.tok, "subset type's base type is not fully determined; add an explicit type for '{0}'", dd.Var.Name);
           }
-          dd.ConstraintIsCompilable = ExpressionTester.CheckIsCompilable(this, dd.Constraint, new CodeContextWrapper(dd, true));
-          if (!dd.ConstraintIsCompilable) {
-            reporter.Error(MessageSource.Resolver, dd.Constraint.tok,
-              "subset type's constraint must be compilable, until Dafny moves constraints handling to the verifier.");
-          }
+          dd.ConstraintIsCompilable = ExpressionTester.CheckIsCompilable(null, dd.Constraint, new CodeContextWrapper(dd, true));
 
           scope.PopMarker();
           allTypeParameters.PopMarker();
@@ -6648,6 +6644,22 @@ namespace Microsoft.Dafny {
             whereToLookForBounds = e.Range;
           } else {
             Contract.Assume(e is LambdaExpr);  // otherwise, unexpected ComprehensionExpr
+          }
+          foreach (var boundVar in e.BoundVars) {
+            if (boundVar.Type is UserDefinedType
+              {
+                ResolvedClass: var subsetTypeDecl and SubsetTypeDecl
+                {
+                  Constraint: var constraint,
+                  ConstraintIsCompilable: false
+                }
+              }
+            ) {
+              // Explicitely report the error
+              this.resolver.getReporter().Error(MessageSource.Resolver, boundVar.tok,
+                "subset type's constraint is not compilable, hence it cannot yet be used as the type of a bound variable in " + what + ". The next error will explain why the constraint is not compilable.");
+              ExpressionTester.CheckIsCompilable(this.resolver, constraint, new CodeContextWrapper((subsetTypeDecl as SubsetTypeDecl), true));
+            }
           }
           if (whereToLookForBounds != null) {
             e.Bounds = DiscoverBestBounds_MultipleVars_AllowReordering(e.BoundVars, whereToLookForBounds, polarity, ComprehensionExpr.BoundedPool.PoolVirtues.None);
