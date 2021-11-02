@@ -10,10 +10,8 @@
 //       - main program for taking a Dafny program and verifying it
 //---------------------------------------------------------------------------------------------
 
-using System.Security;
 using DafnyPipeline.Verifier;
 using DafnyServer.CounterExampleGeneration;
-using DafnyTestGeneration;
 
 namespace Microsoft.Dafny {
   using System;
@@ -50,7 +48,6 @@ namespace Microsoft.Dafny {
       DafnyOptions.Install(new DafnyOptions(reporter));
 
       CommandLineArgumentsResult cliArgumentsResult = ProcessCommandLineArguments(args, out var dafnyFiles, out var otherFiles);
-
       ExitValue exitValue;
       switch (cliArgumentsResult) {
         case CommandLineArgumentsResult.OK:
@@ -226,7 +223,6 @@ namespace Microsoft.Dafny {
           "*** Error: ModelView file must be specified when attempting counterexample extraction");
         return CommandLineArgumentsResult.PREPROCESSING_ERROR;
       }
-
       return CommandLineArgumentsResult.OK;
     }
 

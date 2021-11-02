@@ -104,6 +104,7 @@ namespace Microsoft.Dafny {
     [CanBeNull] private TestGenerationOptions testGenOptions = null;
     public bool ExtractCounterExample = false;
     public string VerificationLoggerConfig = null;
+    // Working around the fact that xmlFilename is private
     public string BoogieXmlFilename = null;
 
     public virtual TestGenerationOptions TestGenOptions =>
