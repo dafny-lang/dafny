@@ -73,18 +73,16 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       if (!IsPartOfEntryDocument(token)) {
         return children;
       }
+      if (!symbolTable.TryGetLocationOf(symbol, out var location)) {
+        return Enumerable.Empty<DocumentSymbol>();
+      }
       var documentSymbol = new DocumentSymbol {
         Name = symbol.Name,
         Kind = kind,
-        Detail = symbol.GetDetailText(cancellationToken),
-        Children = children.ToArray()
+        Children = children.ToArray(),
+        Range = location.Declaration,
+        SelectionRange = location.Name
       };
-      if (symbolTable.TryGetLocationOf(symbol, out var location)) {
-        documentSymbol = documentSymbol with {
-          Range = location.Declaration,
-          SelectionRange = location.Name
-        };
-      }
       return new[] { documentSymbol };
     }
   }

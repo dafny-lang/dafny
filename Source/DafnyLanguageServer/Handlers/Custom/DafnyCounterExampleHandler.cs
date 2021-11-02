@@ -1,4 +1,4 @@
-﻿using DafnyServer.CounterExampleGeneration;
+﻿using DafnyServer.CounterexampleGeneration;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace;

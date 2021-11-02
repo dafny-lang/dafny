@@ -28,16 +28,9 @@
   </ItemGroup>
 
   <ItemGroup>
-      <ProjectReference Include="..\DafnyRuntime\DafnyRuntime.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Compile Include="..\version.cs" />
   </ItemGroup>
-
   <ItemGroup>
-    <None Update="DafnyPrelude.bpl">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
+    <Content Include="DafnyPrelude.bpl" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

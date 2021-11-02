@@ -11,7 +11,6 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using Bpl = Microsoft.Boogie;
 using System.Reflection;
-using DafnyAssembly;
 
 namespace Microsoft.Dafny {
 

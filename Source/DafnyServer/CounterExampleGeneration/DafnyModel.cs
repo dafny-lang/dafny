@@ -9,7 +9,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.Boogie;
 
-namespace DafnyServer.CounterExampleGeneration {
+namespace DafnyServer.CounterexampleGeneration {
 
   /// <summary>
   /// a wrapper around Boogie's Model class that
