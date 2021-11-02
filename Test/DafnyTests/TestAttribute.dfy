@@ -68,19 +68,29 @@ method {:test} FailingTestUsingNoLHSAssignOrHalt() {
   :- expect FailUnless(false);
 }
 
-method {:test} PassingTestThatReturnsAFailureIncompatibleValue() returns (i:int) {
- return 0;
-}
-
-class Value {
-    var i:int;
-    // A constructor that can cause an exception in the target language if used in a context not verified by Dafny
-    constructor(i:int) requires i != 0 {
-        this.i := 0/i;
+class Even {
+    var value:int;
+    function method IsValid():bool reads this {
+        this.value % 2 == 0
+    }
+    constructor (value:int) 
+        requires value % 2 == 0
+        ensures this.IsValid()
+    {
+        this.value := value;
     }
 }
 
-method {:test} PassingTestThatUsesMocks(v:Value) modifies v {
-    v.i := 0;
+method {:extern} {:mock} mockEven() returns (e:Even) ensures fresh(e)
+
+method {:test} PassingTestUsingMocks() {
+    var e:Even := mockEven();
+    e.value := 4;
+    expect(e.IsValid());
 }
 
+method {:test} FailingTestUsingMocks() {
+    var e:Even := mockEven();
+    e.value := 5;
+    expect(e.IsValid());
+}

@@ -72,7 +72,6 @@ namespace Microsoft.Dafny {
       wr.WriteLine();
       wr.WriteLine("using System;");
       wr.WriteLine("using System.Numerics;");
-      wr.WriteLine("using System.Runtime.Serialization;");
       EmitDafnySourceAttribute(program, wr);
       if (!DafnyOptions.O.UseRuntimeLib) {
         ReadRuntimeSystem("DafnyRuntime.cs", wr);
@@ -824,6 +823,10 @@ namespace Microsoft.Dafny {
         return Compiler.CreateMethod(m, typeArgs, createBody, Writer(m.IsStatic, createBody, m), forBodyInheritance, lookasideBody);
       }
 
+      public ConcreteSyntaxTree CreateMockMethod(Method m) {
+        return Compiler.CreateMockMethod(m, Writer(m.IsStatic, true, m));
+      }
+
       public ConcreteSyntaxTree /*?*/ CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, bool forBodyInheritance, bool lookasideBody) {
         return Compiler.CreateFunction(name, typeArgs, formals, resultType, tok, isStatic, createBody, member, Writer(isStatic, createBody, member), forBodyInheritance, lookasideBody);
       }
@@ -873,6 +876,15 @@ namespace Microsoft.Dafny {
       }
 
       return block;
+    }
+
+    protected ConcreteSyntaxTree/*?*/ CreateMockMethod(Method m, ConcreteSyntaxTree wr) {
+      var keywords = Keywords(true, true, false);
+      var returnType = GetTargetReturnTypeReplacement(m, wr);
+      wr.FormatLine($"{keywords}{returnType} {IdName(m)}() {{");
+      wr.FormatLine($"return new {returnType}();");
+      wr.FormatLine($"}}");
+      return wr;
     }
 
     static string Keywords(bool isPublic = false, bool isStatic = false, bool isExtern = false) {
@@ -2877,17 +2889,14 @@ namespace Microsoft.Dafny {
         return;
       }
 
-      var formals = new List<Formal>();
       var firstReturnIsFailureCompatible = false;
       var returnTypesCount = 0;
 
       if (decl is Function func) {
-        formals.AddRange(func.Formals);
         returnTypesCount = 1;
         firstReturnIsFailureCompatible =
           func.ResultType?.AsTopLevelTypeWithMembers?.Members?.Any(m => m.Name == "IsFailure") ?? false;
       } else if (decl is Method method) {
-        formals.AddRange(method.Ins);
         returnTypesCount = method.Outs.Count;
         if (returnTypesCount > 0) {
           firstReturnIsFailureCompatible =
@@ -2896,24 +2905,15 @@ namespace Microsoft.Dafny {
       }
 
       wr.WriteLine("[Xunit.Fact]");
-      if (!firstReturnIsFailureCompatible && formals.Count == 0) {
+      if (!firstReturnIsFailureCompatible) {
         return;
       }
 
       wr = wr.NewNamedBlock("public static void {0}_CheckForFailureForXunit()", name);
-      for (var i = 0; i < formals.Count; i++) {
-        var typeName = TypeName(formals[i].Type, new ConcreteSyntaxTree(), formals[i].tok);
-        wr.WriteLine("var p{0} = FormatterServices.GetUninitializedObject(typeof({1})) as {1};", i, typeName);
-      }
-      var formalsString = string.Join(",", Enumerable.Range(0, formals.Count).Select(i => $"p{i}"));
+      var returnsString = string.Join(",", Enumerable.Range(0, returnTypesCount).Select(i => $"r{i}"));
+      wr.WriteLine("var {0} = {1}();", returnsString, name);
+      wr.WriteLine("Xunit.Assert.False(r0.IsFailure(), \"Dafny test failed: \" + r0);");
 
-      if (firstReturnIsFailureCompatible) {
-        var returnsString = string.Join(",", Enumerable.Range(0, returnTypesCount).Select(i => $"r{i}"));
-        wr.WriteLine("var {0} = {1}({2});", returnsString, name, formalsString);
-        wr.WriteLine("Xunit.Assert.False(r0.IsFailure(), \"Dafny test failed: \" + r0);");
-      } else {
-        wr.WriteLine("{0}({1});", name, formalsString);
-      }
     }
 
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
