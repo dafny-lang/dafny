@@ -44,15 +44,15 @@ method SomeMethod2(methodFormal: int) returns (result: bool)
 
       var regularBoogie = GetBoogieText(program);
       var renamedBoogie = GetBoogieText(renamedProgram);
-      var separate = UniqueLines(regularBoogie + renamedBoogie);
+      var separate = UniqueNonCommentLines(regularBoogie + renamedBoogie);
       var combinedBoogie = GetBoogieText(program + renamedProgram);
-      var together = UniqueLines(combinedBoogie);
+      var together = UniqueNonCommentLines(combinedBoogie);
 
       var uniqueLines = separate.Union(together).Except(separate.Intersect(together)).ToList();
-      Assert.True(uniqueLines.Count <= 3);
+      Assert.Equal(Enumerable.Empty<string>(), uniqueLines);
     }
 
-    ISet<string> UniqueLines(string input) {
+    ISet<string> UniqueNonCommentLines(string input) {
       return input.Split('\n').Where(line => !line.TrimStart().StartsWith("//")).ToHashSet();
     }
 
