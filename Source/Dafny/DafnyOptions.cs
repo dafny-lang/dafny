@@ -430,8 +430,6 @@ namespace Microsoft.Dafny {
             } else {
               throw new Exception("Invalid value for verificationLogger");
             }
-            BoogieXmlFilename = Path.GetTempFileName();
-            XmlSink = new Bpl.XmlSink(BoogieXmlFilename);
           }
           return true;
       }
@@ -443,6 +441,14 @@ namespace Microsoft.Dafny {
     public override void ApplyDefaultOptions() {
       base.ApplyDefaultOptions();
 
+      if (VerificationLoggerConfig != null) {
+        if (XmlSink != null) {
+          throw new Exception("The /verificationLogger and /xml options cannot be used at the same time.");
+        }
+        BoogieXmlFilename = Path.GetTempFileName();
+        XmlSink = new Bpl.XmlSink(BoogieXmlFilename);
+      }
+      
       // expand macros in filenames, now that LogPrefix is fully determined
       ExpandFilename(ref DafnyPrelude, LogPrefix, FileTimestamp);
       ExpandFilename(ref DafnyPrintFile, LogPrefix, FileTimestamp);

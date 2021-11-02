@@ -11,6 +11,7 @@
 //---------------------------------------------------------------------------------------------
 
 using System.Security;
+using DafnyPipeline.Verifier;
 using DafnyServer.CounterExampleGeneration;
 using DafnyTestGeneration;
 
@@ -68,7 +69,7 @@ namespace Microsoft.Dafny {
       if (CommandLineOptions.Clo.XmlSink != null) {
         CommandLineOptions.Clo.XmlSink.Close();
         if (DafnyOptions.O.VerificationLoggerConfig != null) {
-          BoogieXml.RaiseTestLoggerEvents(DafnyOptions.O.BoogieXmlFilename, DafnyOptions.O.VerificationLoggerConfig);
+          BoogieXmlConvertor.RaiseTestLoggerEvents(DafnyOptions.O.BoogieXmlFilename, DafnyOptions.O.VerificationLoggerConfig);
         }
       }
       if (CommandLineOptions.Clo.Wait) {
@@ -225,6 +226,7 @@ namespace Microsoft.Dafny {
           "*** Error: ModelView file must be specified when attempting counterexample extraction");
         return CommandLineArgumentsResult.PREPROCESSING_ERROR;
       }
+
       return CommandLineArgumentsResult.OK;
     }
 
