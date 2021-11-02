@@ -50,12 +50,6 @@ namespace Microsoft.Dafny {
 
       CommandLineArgumentsResult cliArgumentsResult = ProcessCommandLineArguments(args, out var dafnyFiles, out var otherFiles);
       
-      ProfilingOutputPrinter profilingPrinter = null;
-      if (DafnyOptions.O.VerificationLoggerConfig != null) {
-        profilingPrinter = new ProfilingOutputPrinter(ExecutionEngine.printer);
-        ExecutionEngine.printer = profilingPrinter;
-      }
-
       ExitValue exitValue;
       switch (cliArgumentsResult) {
         case CommandLineArgumentsResult.OK:
@@ -70,11 +64,12 @@ namespace Microsoft.Dafny {
         default:
           throw new ArgumentOutOfRangeException();
       }
-
-      profilingPrinter?.Dispose();
       
       if (CommandLineOptions.Clo.XmlSink != null) {
         CommandLineOptions.Clo.XmlSink.Close();
+        if (DafnyOptions.O.VerificationLoggerConfig != null) {
+          BoogieXml.RaiseTestLoggerEvents(DafnyOptions.O.BoogieXmlFilename, DafnyOptions.O.VerificationLoggerConfig);
+        }
       }
       if (CommandLineOptions.Clo.Wait) {
         Console.WriteLine("Press Enter to exit.");

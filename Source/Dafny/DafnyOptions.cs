@@ -104,6 +104,7 @@ namespace Microsoft.Dafny {
     [CanBeNull] private TestGenerationOptions testGenOptions = null;
     public bool ExtractCounterExample = false;
     public string VerificationLoggerConfig = null;
+    public string BoogieXmlFilename = null; 
 
     public virtual TestGenerationOptions TestGenOptions =>
       testGenOptions ??= new TestGenerationOptions();
@@ -424,12 +425,13 @@ namespace Microsoft.Dafny {
         
         case "verificationLogger":
           if (ps.ConfirmArgumentCount(1)) {
-            if (args[ps.i].Equals("console")) {
+            if (args[ps.i].Equals("trx")) {
               VerificationLoggerConfig = args[ps.i];
             } else {
               throw new Exception("Invalid value for verificationLogger");
             }
-            Trace = true;
+            BoogieXmlFilename = Path.GetTempFileName();
+            XmlSink = new Bpl.XmlSink(BoogieXmlFilename);
           }
           return true;
       }
