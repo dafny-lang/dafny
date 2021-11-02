@@ -4610,8 +4610,7 @@ namespace Microsoft.Dafny {
           wBody.Write(", {0}, ", expr is ForallExpr ? "true" : "false");
           var native = AsNativeType(e.BoundVars[i].Type);
           ConcreteSyntaxTree newWBody = CreateLambda(new List<Type> { bv.Type }, e.tok, new List<string> { IdName(bv) }, Type.Bool, wBody, untyped: true);
-          newWBody = EmitReturnExpr(newWBody);
-          // TODO: Here we should emit the guard for the exists and forall expressions.
+          newWBody = MaybeInjectSubsetConstraint(newWBody, inLetExprBody, e.BoundVars[i], e, true, e is ForallExpr);
           wBody.Write(')');
           wBody = newWBody;
         }
@@ -4742,7 +4741,7 @@ namespace Microsoft.Dafny {
     }
 
     private ConcreteSyntaxTree MaybeInjectSubsetConstraint(ConcreteSyntaxTree wr, bool inLetExprBody, BoundVar bv,
-      Expression e) {
+      Expression e, bool isReturning = false, bool elseReturnValue = false) {
       int i;
       if (bv.Type is UserDefinedType
         {
@@ -4758,12 +4757,10 @@ namespace Microsoft.Dafny {
         }
         }) {
         var bvIdentifier = new IdentifierExpr(e.tok, bv);
-        wr = EmitIf(out var guardWriterInner, false, wr);
         var typeParameters = new Dictionary<TypeParameter, Type> { };
         for (i = 0; i < typeParametersArgs.Count(); i++) {
           typeParameters[typeParametersArgs[i]] = typeArgs[i];
         }
-
         var subContract = new Substituter(null,
           new Dictionary<IVariable, Expression>()
           {
@@ -4774,7 +4771,14 @@ namespace Microsoft.Dafny {
           )
         );
         var constraintInContext = subContract.Substitute(constraint);
-        TrExpr(constraintInContext, guardWriterInner, inLetExprBody);
+        var thenWriter = EmitIf(out var guardWriter, isReturning, wr);
+        TrExpr(constraintInContext, guardWriter, inLetExprBody);
+        if (isReturning) {
+          wr = EmitReturnExpr(wr);
+          TrExpr(new LiteralExpr(e.tok, elseReturnValue), wr, inLetExprBody);
+          thenWriter = EmitReturnExpr(thenWriter);
+        }
+        wr = thenWriter;
       }
 
       return wr;
