@@ -1713,7 +1713,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
                                          SemErr(t, "constructors are allowed only in classes");
                                        }
                                        caption = "constructor";
-                                       allowed = AllowedDeclModifiers.None;
+                                       allowed = AllowedDeclModifiers.Ghost;
                                     .)
   )                                 (. keywordToken = t;
                                        CheckDeclModifiers(dmod, caption, allowed); .)
@@ -1731,7 +1731,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
     [ GenericParameters<typeArgs, false> ]
     [ KType<ref kType>              (. if (!(isGreatestLemma || isLeastLemma)) { SemErr(t, "type of _k can only be specified for least and greatest lemmas"); } .)
     ]
-    (. var isCompilable = (isPlainOlMethod && !dmod.IsGhost) || isConstructor; .)
+    (. var isCompilable = (isPlainOlMethod || isConstructor) && !dmod.IsGhost; .)
     Formals<true, isCompilable, isTwoStateLemma, ins>
     [ "returns"                                 (. if (isConstructor) { SemErr(t, "constructors cannot have out-parameters"); } .)
       Formals<false, isCompilable, false, outs>
@@ -1748,7 +1748,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
   ]
   (. IToken tok = id;
      if (isConstructor) {
-       m = new Constructor(tok, hasName ? id.val : "_ctor", typeArgs, ins,
+       m = new Constructor(tok, hasName ? id.val : "_ctor", dmod.IsGhost, typeArgs, ins,
                            req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), (DividedBlockStmt)body, attrs, signatureEllipsis);
      } else if (isLeastLemma) {
        m = new LeastLemma(tok, id.val, dmod.IsStatic, kType, typeArgs, ins, outs,

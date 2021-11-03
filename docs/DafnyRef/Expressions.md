@@ -518,7 +518,26 @@ type `nat -> T` where `T` is the array element type:
 ```dafny
 var a := new int[5](i => i*i);
 ```
-TODO: what about multi-dimensional arrays
+
+To allocate a multi-dimensional array, simply give the sizes of
+each dimension. For example,
+```dafny
+var m := new real[640, 480];
+```
+allocates a 640-by-480 two-dimensional array of `real`s. The initialization
+portion cannot give a display of elements like in the one-dimensional
+case, but it can use an initialization function. A function used to initialize
+a n-dimensional array requires a function from n `nat`s to a `T`, where `T`
+is element type of the array. Here is an example:
+```dafny
+var diag := new int[30, 30]((i, j) => if i == j then 1 else 0);
+```
+
+Array allocation is permitted in ghost contexts. If any expression
+used to specify a dimension or initialization value is ghost, then the
+`new` allocation can only be used in ghost contexts. Because the
+elements of an array are non-ghost, an array allocated in a ghost
+context in effect cannot be changed after initialization.
 
 ## 20.17. Object Allocation
 ````grammar
@@ -589,7 +608,16 @@ AllocatedExpression_ =
   "allocated" "(" Expression(allowLemma: true, allowLambda: true) ")"
 ````
 
-TO BE WRITTEN -- allocated predicate
+For any expression `e`, the expression `allocated(e)` evaluates to `true`
+in a state if the value of `e` is available in that state, meaning that
+it could in principle have been the value of a variable in that state.
+This can be useful when, for example, `allocated(e)` is evaluated in an
+`old` state. For instance, if `d` is a local variable holding a datatype value
+`Cons(r, Nil)` where `r` is an object that was allocated in the enclosing
+method, then `old(allocated(d))` is `false`.
+
+If the expression `e` is of a reference type, then `!old(allocated(e))`
+is the same as `fresh(e)`.
 
 ## 20.23. Unchanged Expressions {#sec-unchanged-expression}
 

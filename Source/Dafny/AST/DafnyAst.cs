@@ -4276,6 +4276,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(this.TypeArgs.Count == typeArgs.Count);
       return new List<Type>();
     }
+
+    public bool AllowsAllocation => true;
   }
 
   public abstract class TopLevelDeclWithMembers : TopLevelDecl {
@@ -4850,6 +4852,7 @@ namespace Microsoft.Dafny {
     /// the property will get the value "true".  This is so that a useful error message can be provided.
     /// </summary>
     bool InferredDecreases { get; set; }
+    bool AllowsAllocation { get; }
   }
 
   /// <summary>
@@ -4873,6 +4876,8 @@ namespace Microsoft.Dafny {
       get => cwInner.InferredDecreases;
       set { cwInner.InferredDecreases = value; }
     }
+
+    public bool AllowsAllocation => cwInner.AllowsAllocation;
   }
 
   public class DontUseICallable : ICallable {
@@ -4891,6 +4896,7 @@ namespace Microsoft.Dafny {
       get { throw new cce.UnreachableException(); }
       set { throw new cce.UnreachableException(); }
     }
+    public bool AllowsAllocation => throw new cce.UnreachableException();
   }
   /// <summary>
   /// An IMethodCodeContext is a Method or IteratorDecl.
@@ -4916,6 +4922,7 @@ namespace Microsoft.Dafny {
     bool ICodeContext.MustReverify { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
     public string FullSanitizedName { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
     public bool AllowsNontermination { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
+    public bool AllowsAllocation => true;
   }
 
   public class IteratorDecl : ClassDecl, IMethodCodeContext {
@@ -5403,6 +5410,7 @@ namespace Microsoft.Dafny {
       get { throw new cce.UnreachableException(); }
       set { throw new cce.UnreachableException(); }
     }
+    public bool AllowsAllocation => true;
   }
 
   public class OpaqueTypeDecl : TopLevelDeclWithMembers, TypeParameter.ParentType, RevealableTypeDecl {
@@ -6147,6 +6155,7 @@ namespace Microsoft.Dafny {
     public Function OverriddenFunction;
     public Function Original => OverriddenFunction == null ? this : OverriddenFunction.Original;
     public override bool IsOverrideThatAddsBody => base.IsOverrideThatAddsBody && Body != null;
+    public bool AllowsAllocation => true;
 
     public bool containsQuantifier;
     public bool ContainsQuantifier {
@@ -6561,6 +6570,8 @@ namespace Microsoft.Dafny {
       get { return _inferredDecr; }
     }
 
+    public virtual bool AllowsAllocation => true;
+
     ModuleDefinition ICodeContext.EnclosingModule {
       get {
         Contract.Assert(this.EnclosingClass != null);  // this getter is supposed to be called only after signature-resolution is complete
@@ -6590,7 +6601,7 @@ namespace Microsoft.Dafny {
       get {
         // Lemma from included files do not need to be resolved and translated
         // so we return emptyBody. This is to speed up resolvor and translator.
-        if (methodBody != null && (this is Lemma || this is TwoStateLemma) && this.tok is IncludeToken && !DafnyOptions.O.VerifyAllModules) {
+        if (methodBody != null && IsLemmaLike && this.tok is IncludeToken && !DafnyOptions.O.VerifyAllModules) {
           return Method.emptyBody;
         } else {
           return methodBody;
@@ -6600,6 +6611,8 @@ namespace Microsoft.Dafny {
         methodBody = value;
       }
     }
+
+    public bool IsLemmaLike => this is Lemma || this is TwoStateLemma || this is ExtremeLemma || this is PrefixLemma;
 
     public BlockStmt BodyForRefinement {
       // For refinement, we still need to merge in the body
@@ -6624,6 +6637,8 @@ namespace Microsoft.Dafny {
                  Attributes attributes, IToken signatureEllipsis)
       : base(tok, name, hasStaticKeyword, true, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, signatureEllipsis) {
     }
+
+    public override bool AllowsAllocation => false;
   }
 
   public class TwoStateLemma : Method {
@@ -6649,6 +6664,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(ens != null);
       Contract.Requires(decreases != null);
     }
+
+    public override bool AllowsAllocation => false;
   }
 
   public class Constructor : Method {
@@ -6676,6 +6693,7 @@ namespace Microsoft.Dafny {
       }
     }
     public Constructor(IToken tok, string name,
+                  bool isGhost,
                   List<TypeParameter> typeArgs,
                   List<Formal> ins,
                   List<AttributedExpression> req, [Captured] Specification<FrameExpression> mod,
@@ -6683,7 +6701,7 @@ namespace Microsoft.Dafny {
                   Specification<Expression> decreases,
                   DividedBlockStmt body,
                   Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, false, false, typeArgs, ins, new List<Formal>(), req, mod, ens, decreases, body, attributes, signatureEllipsis) {
+      : base(tok, name, false, isGhost, typeArgs, ins, new List<Formal>(), req, mod, ens, decreases, body, attributes, signatureEllipsis) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(cce.NonNullElements(typeArgs));
@@ -6719,6 +6737,8 @@ namespace Microsoft.Dafny {
       K = k;
       ExtremeLemma = extremeLemma;
     }
+
+    public override bool AllowsAllocation => false;
   }
 
   public abstract class ExtremeLemma : Method {
@@ -6751,6 +6771,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(decreases != null);
       TypeOfK = typeOfK;
     }
+
+    public override bool AllowsAllocation => false;
   }
 
   public class LeastLemma : ExtremeLemma {

@@ -271,7 +271,7 @@ newtype T = int {
 function method F(x: int, ghost y: int): int { 5 }
 function G(x: int): int { 5 }
 method M(x: int, ghost y: int) { }
-ghost method N(x: int) { }
+lemma N(x: int) { }
 
 datatype Dt = Dt(x: int, ghost y: int)
 
