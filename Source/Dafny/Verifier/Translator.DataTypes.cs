@@ -17,369 +17,10 @@ namespace Microsoft.Dafny {
       Contract.Requires(sink != null && predef != null);
 
       foreach (DatatypeCtor ctor in dt.Ctors) {
-        // Add:  function #dt.ctor(tyVars, paramTypes) returns (DatatypeType);
-
-        List<Bpl.Variable> argTypes = new List<Bpl.Variable>();
-        foreach (Formal arg in ctor.Formals) {
-          Bpl.Variable a = new Bpl.Formal(arg.tok, new Bpl.TypedIdent(arg.tok, Bpl.TypedIdent.NoName, TrType(arg.Type)), true);
-          argTypes.Add(a);
-        }
-        Bpl.Variable resType = new Bpl.Formal(ctor.tok, new Bpl.TypedIdent(ctor.tok, Bpl.TypedIdent.NoName, predef.DatatypeType), false);
-        Bpl.Function fn;
-        if (dt is TupleTypeDecl ttd && ttd.Dims == 2 && ttd.NonGhostDims == 2) {
-          fn = predef.Tuple2Constructor;
-        } else {
-          fn = new Bpl.Function(ctor.tok, ctor.FullName, argTypes, resType, "Constructor function declaration");
-          sink.AddTopLevelDeclaration(fn);
-        }
-        if (InsertChecksums) {
-          InsertChecksum(dt, fn);
-        }
-
-
-
-        {
-          // Add:  const unique ##dt.ctor: DtCtorId;
-          var definitionAxioms = new List<Axiom>();
-          Bpl.Constant constructorId = new Bpl.Constant(ctor.tok, new Bpl.TypedIdent(ctor.tok, "#" + ctor.FullName, predef.DtCtorId), true, 
-            definitionAxioms: definitionAxioms);
-          Bpl.Expr constructorIdReference = new Bpl.IdentifierExpr(ctor.tok, constructorId);
-          var constructorIdentifierAxiom = CreateConstructorIdentifierAxiom(ctor, constructorIdReference);
-          definitionAxioms.Add(constructorIdentifierAxiom);
-          sink.AddTopLevelDeclaration(constructorId);
-          sink.AddTopLevelDeclaration(constructorIdentifierAxiom);
-
-          {
-            // Add:  function dt.ctor?(this: DatatypeType): bool { DatatypeCtorId(this) == ##dt.ctor }
-            fn = GetReadonlyField(ctor.QueryField);
-            sink.AddTopLevelDeclaration(fn);
-
-            // and here comes the associated axiom:
-
-            Bpl.Expr th; var thVar = BplBoundVar("d", predef.DatatypeType, out th);
-            var queryPredicate = FunctionCall(ctor.tok, fn.Name, Bpl.Type.Bool, th);
-            var ctorId = FunctionCall(ctor.tok, BuiltinFunction.DatatypeCtorId, null, th);
-            var rhs = Bpl.Expr.Eq(ctorId, constructorIdReference);
-            var body = Bpl.Expr.Iff(queryPredicate, rhs);
-            var tr = BplTrigger(queryPredicate);
-            var ax = BplForall(thVar, tr, body);
-            sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, ax, "Questionmark and identifier"));
-          }
-
-          // check well-formedness of any default-value expressions
-          AddWellformednessCheck(ctor);
-        }
-
-
-        {
-          // Add:  axiom (forall d: DatatypeType :: dt.ctor?(d) ==> (exists params :: d == #dt.ctor(params));
-          List<Bpl.Variable> bvs;
-          List<Bpl.Expr> args;
-          CreateBoundVariables(ctor.Formals, out bvs, out args);
-          Bpl.Expr rhs = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
-          Bpl.Expr dId; var dBv = BplBoundVar("d", predef.DatatypeType, out dId);
-          Bpl.Expr q = Bpl.Expr.Eq(dId, rhs);
-          if (bvs.Count != 0) {
-            q = new Bpl.ExistsExpr(ctor.tok, bvs, null/*always in a Skolemization context*/, q);
-          }
-          Bpl.Expr dtq = FunctionCall(ctor.tok, ctor.QueryField.FullSanitizedName, Bpl.Type.Bool, dId);
-          var trigger = BplTrigger(dtq);
-          q = BplForall(dBv, trigger, BplImp(dtq, q));
-          sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q, "Constructor questionmark has arguments"));
-        }
-
-        MapM(Bools, is_alloc => {
-          /*
-            (forall x0 : C0, ..., xn : Cn, G : Ty •
-              { $Is(C(x0,...,xn), T(G)) }
-              $Is(C(x0,...,xn), T(G)) <==>
-              $Is[Box](x0, C0(G)) && ... && $Is[Box](xn, Cn(G)));
-            (forall x0 : C0, ..., xn : Cn, G : Ty, H : Heap •
-                { $IsAlloc(C(G, x0,...,xn), T(G), H) }
-                IsGoodHeap(H) ==>
-                   ($IsAlloc(C(G, x0,...,xn), T(G), H) <==>
-                    $IsAlloc[Box](x0, C0(G), H) && ... && $IsAlloc[Box](xn, Cn(G), H)));
-          */
-          List<Bpl.Expr> tyexprs;
-          var tyvars = MkTyParamBinders(dt.TypeArgs, out tyexprs);
-          List<Bpl.Variable> bvs;
-          List<Bpl.Expr> args;
-          CreateBoundVariables(ctor.Formals, out bvs, out args);
-          Bpl.Expr h;
-          var hVar = BplBoundVar("$h", predef.HeapType, out h);
-          Bpl.Expr conj = Bpl.Expr.True;
-          for (var i = 0; i < ctor.Formals.Count; i++) {
-            var arg = ctor.Formals[i];
-            if (is_alloc) {
-              if (CommonHeapUse || (NonGhostsUseHeap && !arg.IsGhost)) {
-                conj = BplAnd(conj, MkIsAlloc(args[i], arg.Type, h));
-              }
-            } else {
-              conj = BplAnd(conj, MkIs(args[i], arg.Type));
-            }
-          }
-          var c_params = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
-          var c_ty = ClassTyCon((TopLevelDecl)dt, tyexprs);
-          bvs.InsertRange(0, tyvars);
-          if (!is_alloc) {
-            var c_is = MkIs(c_params, c_ty);
-            sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok,
-                BplForall(bvs, BplTrigger(c_is), BplIff(c_is, conj)),
-                "Constructor $Is"));
-          } else if (is_alloc && (CommonHeapUse || NonGhostsUseHeap)) {
-            var isGoodHeap = FunctionCall(ctor.tok, BuiltinFunction.IsGoodHeap, null, h);
-            var c_alloc = MkIsAlloc(c_params, c_ty, h);
-            bvs.Add(hVar);
-            sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok,
-                BplForall(bvs, BplTrigger(c_alloc),
-                               BplImp(isGoodHeap, BplIff(c_alloc, conj))),
-                "Constructor $IsAlloc"));
-          }
-          if (is_alloc && CommonHeapUse && !AlwaysUseHeap) {
-            for (int i = 0; i < ctor.Formals.Count; i++) {
-              var arg = ctor.Formals[i];
-              var dtor = GetReadonlyField(ctor.Destructors[i]);
-              /* (forall d : DatatypeType, G : Ty, H : Heap •
-                     { $IsAlloc[Box](Dtor(d), D(G), H) }
-                     IsGoodHeap(H) &&
-                     C?(d) &&
-                     (exists G' : Ty :: $IsAlloc(d, T(G,G'), H))
-                     ==>
-                         $IsAlloc[Box](Dtor(d), D(G), H))
-               */
-              Bpl.Expr dId; var dBv = BplBoundVar("d", predef.DatatypeType, out dId);
-              var isGoodHeap = FunctionCall(ctor.tok, BuiltinFunction.IsGoodHeap, null, h);
-              Bpl.Expr dtq = FunctionCall(ctor.tok, ctor.QueryField.FullSanitizedName, Bpl.Type.Bool, dId);
-              var c_alloc = MkIsAlloc(dId, c_ty, h);
-              var dtorD = FunctionCall(ctor.tok, dtor.Name, TrType(arg.Type), dId);
-              var d_alloc = MkIsAlloc(dtorD, arg.Type, h);
-
-              // split tyvars into G,G' where G are the type variables that are used in the type of the destructor
-              var freeTypeVars = new HashSet<TypeParameter>();
-              ComputeFreeTypeVariables_All(arg.Type, freeTypeVars);
-              var tyvarsG = new List<Bpl.Variable>();
-              var tyvarsGprime = new List<Bpl.Variable>();
-              Contract.Assert(dt.TypeArgs.Count == tyvars.Count);
-              for (int j = 0; j < dt.TypeArgs.Count; j++) {
-                var tv = tyvars[j];
-                if (freeTypeVars.Contains(dt.TypeArgs[j])) {
-                  tyvarsG.Add(tv);
-                } else {
-                  tyvarsGprime.Add(tv);
-                }
-              }
-
-              bvs = new List<Bpl.Variable>();
-              bvs.Add(dBv);
-              bvs.AddRange(tyvarsG);
-              bvs.Add(hVar);
-              if (tyvarsGprime.Count != 0) {
-                c_alloc = new Bpl.ExistsExpr(ctor.tok, tyvarsGprime, BplTrigger(c_alloc), c_alloc);
-              }
-              sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok,
-                  BplForall(bvs, BplTrigger(d_alloc),
-                                 BplImp(BplAnd(isGoodHeap, BplAnd(dtq, c_alloc)), d_alloc)),
-                  "Destructor $IsAlloc"));
-            }
-          }
-        });
-
-        if (dt is IndDatatypeDecl) {
-          // Add Lit axiom:
-          // axiom (forall p0, ..., pn :: #dt.ctor(Lit(p0), ..., Lit(pn)) == Lit(#dt.ctor(p0, .., pn)));
-          List<Bpl.Variable> bvs;
-          List<Bpl.Expr> args;
-          CreateBoundVariables(ctor.Formals, out bvs, out args);
-          var litargs = new List<Bpl.Expr>();
-          foreach (Bpl.Expr arg in args) {
-            litargs.Add(Lit(arg));
-          }
-          Bpl.Expr lhs = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, litargs);
-          Bpl.Expr rhs = Lit(FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args), predef.DatatypeType);
-          Bpl.Expr q = BplForall(bvs, BplTrigger(lhs), Bpl.Expr.Eq(lhs, rhs));
-          sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q, "Constructor literal"));
-        }
-
-        // Injectivity axioms for normal arguments
-        for (int i = 0; i < ctor.Formals.Count; i++) {
-          var arg = ctor.Formals[i];
-          // function ##dt.ctor#i(DatatypeType) returns (Ti);
-          var sf = ctor.Destructors[i];
-          Contract.Assert(sf != null);
-          fn = GetReadonlyField(sf);
-          if (fn == predef.Tuple2Destructors0 || fn == predef.Tuple2Destructors1) {
-            // the two destructors for 2-tuples are predefined in Prelude for use
-            // by the Map#Items axiom
-          } else if (sf.EnclosingCtors[0] != ctor) {
-            // this special field, which comes from a shared destructor, is being declared in a different iteration of this loop
-          } else {
-            sink.AddTopLevelDeclaration(fn);
-          }
-          // axiom (forall params :: ##dt.ctor#i(#dt.ctor(params)) == params_i);
-          List<Bpl.Variable> bvs;
-          List<Bpl.Expr> args;
-          CreateBoundVariables(ctor.Formals, out bvs, out args);
-          var inner = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
-          var outer = FunctionCall(ctor.tok, fn.Name, TrType(arg.Type), inner);
-          var q = BplForall(bvs, BplTrigger(inner), Bpl.Expr.Eq(outer, args[i]));
-          sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q, "Constructor injectivity"));
-
-          if (dt is IndDatatypeDecl) {
-            var argType = arg.Type.NormalizeExpandKeepConstraints();  // TODO: keep constraints -- really?  Write a test case
-            if (argType.IsDatatype || argType.IsTypeParameter) {
-              // for datatype:             axiom (forall params :: {#dt.ctor(params)} DtRank(params_i) < DtRank(#dt.ctor(params)));
-              // for type-parameter type:  axiom (forall params :: {#dt.ctor(params)} BoxRank(params_i) < DtRank(#dt.ctor(params)));
-              CreateBoundVariables(ctor.Formals, out bvs, out args);
-              Bpl.Expr lhs = FunctionCall(ctor.tok, arg.Type.IsDatatype ? BuiltinFunction.DtRank : BuiltinFunction.BoxRank, null, args[i]);
-              /* CHECK
-              Bpl.Expr lhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null,
-                argType.IsDatatype ? args[i] : FunctionCall(ctor.tok, BuiltinFunction.Unbox, predef.DatatypeType, args[i]));
-              */
-              Bpl.Expr ct = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
-              var rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ct);
-              var trigger = BplTrigger(ct);
-              q = new Bpl.ForallExpr(ctor.tok, bvs, trigger, Bpl.Expr.Lt(lhs, rhs));
-              sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q, "Inductive rank"));
-            } else if (argType is SeqType) {
-              // axiom (forall params, i: int {#dt.ctor(params)} :: 0 <= i && i < |arg| ==> DtRank(arg[i]) < DtRank(#dt.ctor(params)));
-              // that is:
-              // axiom (forall params, i: int {#dt.ctor(params)} :: 0 <= i && i < |arg| ==> DtRank(Unbox(Seq#Index(arg,i))) < DtRank(#dt.ctor(params)));
-              {
-                CreateBoundVariables(ctor.Formals, out bvs, out args);
-                Bpl.Variable iVar = new Bpl.BoundVariable(arg.tok, new Bpl.TypedIdent(arg.tok, "i", Bpl.Type.Int));
-                bvs.Add(iVar);
-                Bpl.IdentifierExpr ie = new Bpl.IdentifierExpr(arg.tok, iVar);
-                Bpl.Expr ante = Bpl.Expr.And(
-                  Bpl.Expr.Le(Bpl.Expr.Literal(0), ie),
-                  Bpl.Expr.Lt(ie, FunctionCall(arg.tok, BuiltinFunction.SeqLength, null, args[i])));
-                var seqIndex = FunctionCall(arg.tok, BuiltinFunction.SeqIndex, predef.DatatypeType, args[i], ie);
-                Bpl.Expr lhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null,
-                  FunctionCall(arg.tok, BuiltinFunction.Unbox, predef.DatatypeType, seqIndex));
-                var ct = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
-                var rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ct);
-                q = new Bpl.ForallExpr(ctor.tok, bvs, new Trigger(lhs.tok, true, new List<Bpl.Expr> { seqIndex, ct }), Bpl.Expr.Imp(ante, Bpl.Expr.Lt(lhs, rhs)));
-                sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q, "Inductive seq element rank"));
-              }
-
-              // axiom (forall params {#dt.ctor(params)} :: SeqRank(arg) < DtRank(#dt.ctor(params)));
-              {
-                CreateBoundVariables(ctor.Formals, out bvs, out args);
-                var lhs = FunctionCall(ctor.tok, BuiltinFunction.SeqRank, null, args[i]);
-                var ct = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
-                var rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ct);
-                var trigger = BplTrigger(ct);
-                q = new Bpl.ForallExpr(ctor.tok, bvs, trigger, Bpl.Expr.Lt(lhs, rhs));
-                sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q, "Inductive seq rank"));
-              }
-            } else if (argType is SetType) {
-              // axiom (forall params, d: Datatype {arg[d], #dt.ctor(params)}  :: arg[d] ==> DtRank(d) < DtRank(#dt.ctor(params)));
-              // that is:
-              // axiom (forall params, d: Datatype {arg[Box(d)], #dt.ctor(params)} :: arg[Box(d)] ==> DtRank(d) < DtRank(#dt.ctor(params)));
-              CreateBoundVariables(ctor.Formals, out bvs, out args);
-              Bpl.Variable dVar = new Bpl.BoundVariable(arg.tok, new Bpl.TypedIdent(arg.tok, "d", predef.DatatypeType));
-              bvs.Add(dVar);
-              Bpl.IdentifierExpr ie = new Bpl.IdentifierExpr(arg.tok, dVar);
-              Bpl.Expr inSet = Bpl.Expr.SelectTok(arg.tok, args[i], FunctionCall(arg.tok, BuiltinFunction.Box, null, ie));
-              Bpl.Expr lhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ie);
-              var ct = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
-              var rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ct);
-              var trigger = new Bpl.Trigger(ctor.tok, true, new List<Bpl.Expr> { inSet, ct });
-              q = new Bpl.ForallExpr(ctor.tok, bvs, trigger, Bpl.Expr.Imp(inSet, Bpl.Expr.Lt(lhs, rhs)));
-              sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q, "Inductive set element rank"));
-            } else if (argType is MultiSetType) {
-              // axiom (forall params, d: Datatype {arg[d], #dt.ctor(params)} :: 0 < arg[d] ==> DtRank(d) < DtRank(#dt.ctor(params)));
-              // that is:
-              // axiom (forall params, d: Datatype {arg[Box(d)], #dt.ctor(params)} :: 0 < arg[Box(d)] ==> DtRank(d) < DtRank(#dt.ctor(params)));
-              CreateBoundVariables(ctor.Formals, out bvs, out args);
-              Bpl.Variable dVar = new Bpl.BoundVariable(arg.tok, new Bpl.TypedIdent(arg.tok, "d", predef.DatatypeType));
-              bvs.Add(dVar);
-              Bpl.IdentifierExpr ie = new Bpl.IdentifierExpr(arg.tok, dVar);
-              var inMultiset = Bpl.Expr.SelectTok(arg.tok, args[i], FunctionCall(arg.tok, BuiltinFunction.Box, null, ie));
-              Bpl.Expr ante = Bpl.Expr.Gt(inMultiset, Bpl.Expr.Literal(0));
-              Bpl.Expr lhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ie);
-              var ct = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
-              var rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ct);
-              var trigger = new Bpl.Trigger(ctor.tok, true, new List<Bpl.Expr> { inMultiset, ct });
-              q = new Bpl.ForallExpr(ctor.tok, bvs, trigger, Bpl.Expr.Imp(ante, Bpl.Expr.Lt(lhs, rhs)));
-              sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q, "Inductive multiset element rank"));
-            } else if (argType is MapType) {
-              var finite = ((MapType)argType).Finite;
-              {
-                // axiom (forall params, d: DatatypeType
-                //   { Map#Domain(arg)[$Box(d)], #dt.ctor(params) }
-                //   Map#Domain(arg)[$Box(d)] ==> DtRank(d) < DtRank(#dt.ctor(params)));
-                CreateBoundVariables(ctor.Formals, out bvs, out args);
-                var dVar = new Bpl.BoundVariable(arg.tok, new Bpl.TypedIdent(arg.tok, "d", predef.DatatypeType));
-                bvs.Add(dVar);
-                var ie = new Bpl.IdentifierExpr(arg.tok, dVar);
-                var f = finite ? BuiltinFunction.MapDomain : BuiltinFunction.IMapDomain;
-                var domain = FunctionCall(arg.tok, f, predef.MapType(arg.tok, finite, predef.BoxType, predef.BoxType), args[i]);
-                var inDomain = Bpl.Expr.SelectTok(arg.tok, domain, FunctionCall(arg.tok, BuiltinFunction.Box, null, ie));
-                var lhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ie);
-                var ct = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
-                var rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ct);
-                var trigger = new Bpl.Trigger(ctor.tok, true, new List<Bpl.Expr> { inDomain, ct });
-                q = new Bpl.ForallExpr(ctor.tok, bvs, trigger, Bpl.Expr.Imp(inDomain, Bpl.Expr.Lt(lhs, rhs)));
-                sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q, "Inductive map key rank"));
-              }
-              {
-                // axiom(forall params, bx: Box ::
-                //   { Map#Elements(arg)[bx], #dt.ctor(params) }
-                //   Map#Domain(arg)[bx] ==> DtRank($Unbox(Map#Elements(arg)[bx]): DatatypeType) < DtRank(#dt.ctor(params)));
-                CreateBoundVariables(ctor.Formals, out bvs, out args);
-                var bxVar = new Bpl.BoundVariable(arg.tok, new Bpl.TypedIdent(arg.tok, "bx", predef.BoxType));
-                bvs.Add(bxVar);
-                var ie = new Bpl.IdentifierExpr(arg.tok, bxVar);
-                var f = finite ? BuiltinFunction.MapDomain : BuiltinFunction.IMapDomain;
-                var domain = FunctionCall(arg.tok, f, predef.MapType(arg.tok, finite, predef.BoxType, predef.BoxType), args[i]);
-                var inDomain = Bpl.Expr.SelectTok(arg.tok, domain, ie);
-                var ef = finite ? BuiltinFunction.MapElements : BuiltinFunction.IMapElements;
-                var element = FunctionCall(arg.tok, ef, predef.MapType(arg.tok, finite, predef.BoxType, predef.BoxType), args[i]);
-                var elmt = Bpl.Expr.SelectTok(arg.tok, element, ie);
-                var unboxElmt = FunctionCall(arg.tok, BuiltinFunction.Unbox, predef.DatatypeType, elmt);
-                var lhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, unboxElmt);
-                var ct = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
-                var rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ct);
-                var trigger = new Bpl.Trigger(ctor.tok, true, new List<Bpl.Expr> { inDomain, ct });
-                q = new Bpl.ForallExpr(ctor.tok, bvs, trigger, Bpl.Expr.Imp(inDomain, Bpl.Expr.Lt(lhs, rhs)));
-                sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q, "Inductive map value rank"));
-              }
-            }
-          }
-        }
+        AddDataTypeConstructor(dt, ctor);
       }
 
-      {
-        // Add:
-        //   function $IsA#Dt(G: Ty,d: DatatypeType): bool {
-        //     Dt.Ctor0?(G, d) || Dt.Ctor1?(G, d) || ...
-        //   }
-        var cases_dBv = new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, Bpl.TypedIdent.NoName, predef.DatatypeType), true);
-        var cases_resType = new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
-        var cases_fn = new Bpl.Function(dt.tok, "$IsA#" + dt.FullSanitizedName,
-                                        new List<Variable> { cases_dBv },
-                                        cases_resType,
-                                        "Depth-one case-split function");
-
-        if (InsertChecksums) {
-          InsertChecksum(dt, cases_fn);
-        }
-
-        sink.AddTopLevelDeclaration(cases_fn);
-        // and here comes the actual axiom:
-        {
-          Bpl.Expr d;
-          var dVar = BplBoundVar("d", predef.DatatypeType, out d);
-          var lhs = FunctionCall(dt.tok, cases_fn.Name, Bpl.Type.Bool, d);
-          Bpl.Expr cases_body = Bpl.Expr.False;
-          foreach (DatatypeCtor ctor in dt.Ctors) {
-            var disj = FunctionCall(ctor.tok, ctor.QueryField.FullSanitizedName, Bpl.Type.Bool, d);
-            cases_body = BplOr(cases_body, disj);
-          }
-          var ax = BplForall(new List<Variable> { dVar }, BplTrigger(lhs), BplImp(lhs, cases_body));
-          sink.AddTopLevelDeclaration(new Bpl.Axiom(dt.tok, ax, "Depth-one case-split axiom"));
-        }
-      }
+      AddDepthOneCaseSplitFunction(dt);
 
       // The axiom above ($IsA#Dt(d) <==> Dt.Ctor0?(d) || Dt.Ctor1?(d)) gets triggered only with $IsA#Dt(d).  The $IsA#Dt(d)
       // predicate is generated only where the translation inserts it; in other words, the user cannot write any assertion
@@ -666,6 +307,393 @@ namespace Microsoft.Dafny {
           sink.AddTopLevelDeclaration(new Axiom(dt.tok,
             BplForall(vars, trigger, BplImp(BplAnd(equal, kIsValid), PEq)), "Prefix equality shortcut"));
         });
+      }
+    }
+
+    private void AddDepthOneCaseSplitFunction(DatatypeDecl dt)
+    {
+      // Add:
+      //   function $IsA#Dt(G: Ty,d: DatatypeType): bool {
+      //     Dt.Ctor0?(G, d) || Dt.Ctor1?(G, d) || ...
+      //   }
+      var cases_dBv = new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, Bpl.TypedIdent.NoName, predef.DatatypeType), true);
+      var cases_resType = new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
+      var cases_fn = new Bpl.Function(dt.tok, "$IsA#" + dt.FullSanitizedName,
+        new List<Variable> { cases_dBv },
+        cases_resType,
+        "Depth-one case-split function");
+
+      if (InsertChecksums) {
+        InsertChecksum(dt, cases_fn);
+      }
+
+      sink.AddTopLevelDeclaration(cases_fn);
+      // and here comes the actual axiom:
+      {
+        Bpl.Expr d;
+        var dVar = BplBoundVar("d", predef.DatatypeType, out d);
+        var lhs = FunctionCall(dt.tok, cases_fn.Name, Bpl.Type.Bool, d);
+        Bpl.Expr cases_body = Bpl.Expr.False;
+        foreach (DatatypeCtor ctor in dt.Ctors) {
+          var disj = FunctionCall(ctor.tok, ctor.QueryField.FullSanitizedName, Bpl.Type.Bool, d);
+          cases_body = BplOr(cases_body, disj);
+        }
+
+        var ax = BplForall(new List<Variable> { dVar }, BplTrigger(lhs), BplImp(lhs, cases_body));
+        sink.AddTopLevelDeclaration(new Bpl.Axiom(dt.tok, ax, "Depth-one case-split axiom"));
+      }
+    }
+
+    private void AddDataTypeConstructor(DatatypeDecl dt, DatatypeCtor ctor)
+    {
+      // Add:  function #dt.ctor(tyVars, paramTypes) returns (DatatypeType);
+
+      List<Bpl.Variable> argTypes = new List<Bpl.Variable>();
+      foreach (Formal arg in ctor.Formals) {
+        Bpl.Variable a = new Bpl.Formal(arg.tok, new Bpl.TypedIdent(arg.tok, Bpl.TypedIdent.NoName, TrType(arg.Type)),
+          true);
+        argTypes.Add(a);
+      }
+
+      Bpl.Variable resType = new Bpl.Formal(ctor.tok,
+        new Bpl.TypedIdent(ctor.tok, Bpl.TypedIdent.NoName, predef.DatatypeType), false);
+      Bpl.Function fn;
+      if (dt is TupleTypeDecl ttd && ttd.Dims == 2 && ttd.NonGhostDims == 2) {
+        fn = predef.Tuple2Constructor;
+      } else {
+        fn = new Bpl.Function(ctor.tok, ctor.FullName, argTypes, resType, "Constructor function declaration");
+        sink.AddTopLevelDeclaration(fn);
+      }
+
+      if (InsertChecksums) {
+        InsertChecksum(dt, fn);
+      }
+
+
+      {
+        // Add:  const unique ##dt.ctor: DtCtorId;
+        var definitionAxioms = new List<Axiom>();
+        Bpl.Constant constructorId = new Bpl.Constant(ctor.tok,
+          new Bpl.TypedIdent(ctor.tok, "#" + ctor.FullName, predef.DtCtorId), true,
+          definitionAxioms: definitionAxioms);
+        Bpl.Expr constructorIdReference = new Bpl.IdentifierExpr(ctor.tok, constructorId);
+        var constructorIdentifierAxiom = CreateConstructorIdentifierAxiom(ctor, constructorIdReference);
+        definitionAxioms.Add(constructorIdentifierAxiom);
+        sink.AddTopLevelDeclaration(constructorId);
+        sink.AddTopLevelDeclaration(constructorIdentifierAxiom);
+
+        {
+          // Add:  function dt.ctor?(this: DatatypeType): bool { DatatypeCtorId(this) == ##dt.ctor }
+          fn = GetReadonlyField(ctor.QueryField);
+          sink.AddTopLevelDeclaration(fn);
+
+          // and here comes the associated axiom:
+
+          Bpl.Expr th;
+          var thVar = BplBoundVar("d", predef.DatatypeType, out th);
+          var queryPredicate = FunctionCall(ctor.tok, fn.Name, Bpl.Type.Bool, th);
+          var ctorId = FunctionCall(ctor.tok, BuiltinFunction.DatatypeCtorId, null, th);
+          var rhs = Bpl.Expr.Eq(ctorId, constructorIdReference);
+          var body = Bpl.Expr.Iff(queryPredicate, rhs);
+          var tr = BplTrigger(queryPredicate);
+          var ax = BplForall(thVar, tr, body);
+          sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, ax, "Questionmark and identifier"));
+        }
+
+        // check well-formedness of any default-value expressions
+        AddWellformednessCheck(ctor);
+      }
+
+
+      {
+        // Add:  axiom (forall d: DatatypeType :: dt.ctor?(d) ==> (exists params :: d == #dt.ctor(params));
+        List<Bpl.Variable> bvs;
+        List<Bpl.Expr> args;
+        CreateBoundVariables(ctor.Formals, out bvs, out args);
+        Bpl.Expr rhs = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
+        Bpl.Expr dId;
+        var dBv = BplBoundVar("d", predef.DatatypeType, out dId);
+        Bpl.Expr q = Bpl.Expr.Eq(dId, rhs);
+        if (bvs.Count != 0) {
+          q = new Bpl.ExistsExpr(ctor.tok, bvs, null /*always in a Skolemization context*/, q);
+        }
+
+        Bpl.Expr dtq = FunctionCall(ctor.tok, ctor.QueryField.FullSanitizedName, Bpl.Type.Bool, dId);
+        var trigger = BplTrigger(dtq);
+        q = BplForall(dBv, trigger, BplImp(dtq, q));
+        sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q, "Constructor questionmark has arguments"));
+      }
+
+      MapM(Bools, is_alloc =>
+      {
+        /*
+            (forall x0 : C0, ..., xn : Cn, G : Ty •
+              { $Is(C(x0,...,xn), T(G)) }
+              $Is(C(x0,...,xn), T(G)) <==>
+              $Is[Box](x0, C0(G)) && ... && $Is[Box](xn, Cn(G)));
+            (forall x0 : C0, ..., xn : Cn, G : Ty, H : Heap •
+                { $IsAlloc(C(G, x0,...,xn), T(G), H) }
+                IsGoodHeap(H) ==>
+                   ($IsAlloc(C(G, x0,...,xn), T(G), H) <==>
+                    $IsAlloc[Box](x0, C0(G), H) && ... && $IsAlloc[Box](xn, Cn(G), H)));
+          */
+        List<Bpl.Expr> tyexprs;
+        var tyvars = MkTyParamBinders(dt.TypeArgs, out tyexprs);
+        List<Bpl.Variable> bvs;
+        List<Bpl.Expr> args;
+        CreateBoundVariables(ctor.Formals, out bvs, out args);
+        Bpl.Expr h;
+        var hVar = BplBoundVar("$h", predef.HeapType, out h);
+        Bpl.Expr conj = Bpl.Expr.True;
+        for (var i = 0; i < ctor.Formals.Count; i++) {
+          var arg = ctor.Formals[i];
+          if (is_alloc) {
+            if (CommonHeapUse || (NonGhostsUseHeap && !arg.IsGhost)) {
+              conj = BplAnd(conj, MkIsAlloc(args[i], arg.Type, h));
+            }
+          } else {
+            conj = BplAnd(conj, MkIs(args[i], arg.Type));
+          }
+        }
+
+        var c_params = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
+        var c_ty = ClassTyCon((TopLevelDecl)dt, tyexprs);
+        bvs.InsertRange(0, tyvars);
+        if (!is_alloc) {
+          var c_is = MkIs(c_params, c_ty);
+          sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok,
+            BplForall(bvs, BplTrigger(c_is), BplIff(c_is, conj)),
+            "Constructor $Is"));
+        } else if (is_alloc && (CommonHeapUse || NonGhostsUseHeap)) {
+          var isGoodHeap = FunctionCall(ctor.tok, BuiltinFunction.IsGoodHeap, null, h);
+          var c_alloc = MkIsAlloc(c_params, c_ty, h);
+          bvs.Add(hVar);
+          sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok,
+            BplForall(bvs, BplTrigger(c_alloc),
+              BplImp(isGoodHeap, BplIff(c_alloc, conj))),
+            "Constructor $IsAlloc"));
+        }
+
+        if (is_alloc && CommonHeapUse && !AlwaysUseHeap) {
+          for (int i = 0; i < ctor.Formals.Count; i++) {
+            var arg = ctor.Formals[i];
+            var dtor = GetReadonlyField(ctor.Destructors[i]);
+            /* (forall d : DatatypeType, G : Ty, H : Heap •
+                     { $IsAlloc[Box](Dtor(d), D(G), H) }
+                     IsGoodHeap(H) &&
+                     C?(d) &&
+                     (exists G' : Ty :: $IsAlloc(d, T(G,G'), H))
+                     ==>
+                         $IsAlloc[Box](Dtor(d), D(G), H))
+               */
+            Bpl.Expr dId;
+            var dBv = BplBoundVar("d", predef.DatatypeType, out dId);
+            var isGoodHeap = FunctionCall(ctor.tok, BuiltinFunction.IsGoodHeap, null, h);
+            Bpl.Expr dtq = FunctionCall(ctor.tok, ctor.QueryField.FullSanitizedName, Bpl.Type.Bool, dId);
+            var c_alloc = MkIsAlloc(dId, c_ty, h);
+            var dtorD = FunctionCall(ctor.tok, dtor.Name, TrType(arg.Type), dId);
+            var d_alloc = MkIsAlloc(dtorD, arg.Type, h);
+
+            // split tyvars into G,G' where G are the type variables that are used in the type of the destructor
+            var freeTypeVars = new HashSet<TypeParameter>();
+            ComputeFreeTypeVariables_All(arg.Type, freeTypeVars);
+            var tyvarsG = new List<Bpl.Variable>();
+            var tyvarsGprime = new List<Bpl.Variable>();
+            Contract.Assert(dt.TypeArgs.Count == tyvars.Count);
+            for (int j = 0; j < dt.TypeArgs.Count; j++) {
+              var tv = tyvars[j];
+              if (freeTypeVars.Contains(dt.TypeArgs[j])) {
+                tyvarsG.Add(tv);
+              } else {
+                tyvarsGprime.Add(tv);
+              }
+            }
+
+            bvs = new List<Bpl.Variable>();
+            bvs.Add(dBv);
+            bvs.AddRange(tyvarsG);
+            bvs.Add(hVar);
+            if (tyvarsGprime.Count != 0) {
+              c_alloc = new Bpl.ExistsExpr(ctor.tok, tyvarsGprime, BplTrigger(c_alloc), c_alloc);
+            }
+
+            sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok,
+              BplForall(bvs, BplTrigger(d_alloc),
+                BplImp(BplAnd(isGoodHeap, BplAnd(dtq, c_alloc)), d_alloc)),
+              "Destructor $IsAlloc"));
+          }
+        }
+      });
+
+      if (dt is IndDatatypeDecl) {
+        // Add Lit axiom:
+        // axiom (forall p0, ..., pn :: #dt.ctor(Lit(p0), ..., Lit(pn)) == Lit(#dt.ctor(p0, .., pn)));
+        List<Bpl.Variable> bvs;
+        List<Bpl.Expr> args;
+        CreateBoundVariables(ctor.Formals, out bvs, out args);
+        var litargs = new List<Bpl.Expr>();
+        foreach (Bpl.Expr arg in args) {
+          litargs.Add(Lit(arg));
+        }
+
+        Bpl.Expr lhs = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, litargs);
+        Bpl.Expr rhs = Lit(FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args), predef.DatatypeType);
+        Bpl.Expr q = BplForall(bvs, BplTrigger(lhs), Bpl.Expr.Eq(lhs, rhs));
+        sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q, "Constructor literal"));
+      }
+
+      // Injectivity axioms for normal arguments
+      for (int i = 0; i < ctor.Formals.Count; i++) {
+        var arg = ctor.Formals[i];
+        // function ##dt.ctor#i(DatatypeType) returns (Ti);
+        var sf = ctor.Destructors[i];
+        Contract.Assert(sf != null);
+        fn = GetReadonlyField(sf);
+        if (fn == predef.Tuple2Destructors0 || fn == predef.Tuple2Destructors1) {
+          // the two destructors for 2-tuples are predefined in Prelude for use
+          // by the Map#Items axiom
+        } else if (sf.EnclosingCtors[0] != ctor) {
+          // this special field, which comes from a shared destructor, is being declared in a different iteration of this loop
+        } else {
+          sink.AddTopLevelDeclaration(fn);
+        }
+
+        // axiom (forall params :: ##dt.ctor#i(#dt.ctor(params)) == params_i);
+        List<Bpl.Variable> bvs;
+        List<Bpl.Expr> args;
+        CreateBoundVariables(ctor.Formals, out bvs, out args);
+        var inner = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
+        var outer = FunctionCall(ctor.tok, fn.Name, TrType(arg.Type), inner);
+        var q = BplForall(bvs, BplTrigger(inner), Bpl.Expr.Eq(outer, args[i]));
+        sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q, "Constructor injectivity"));
+
+        if (dt is IndDatatypeDecl) {
+          var argType = arg.Type.NormalizeExpandKeepConstraints(); // TODO: keep constraints -- really?  Write a test case
+          if (argType.IsDatatype || argType.IsTypeParameter) {
+            // for datatype:             axiom (forall params :: {#dt.ctor(params)} DtRank(params_i) < DtRank(#dt.ctor(params)));
+            // for type-parameter type:  axiom (forall params :: {#dt.ctor(params)} BoxRank(params_i) < DtRank(#dt.ctor(params)));
+            CreateBoundVariables(ctor.Formals, out bvs, out args);
+            Bpl.Expr lhs = FunctionCall(ctor.tok, arg.Type.IsDatatype ? BuiltinFunction.DtRank : BuiltinFunction.BoxRank,
+              null, args[i]);
+            /* CHECK
+              Bpl.Expr lhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null,
+                argType.IsDatatype ? args[i] : FunctionCall(ctor.tok, BuiltinFunction.Unbox, predef.DatatypeType, args[i]));
+              */
+            Bpl.Expr ct = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
+            var rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ct);
+            var trigger = BplTrigger(ct);
+            q = new Bpl.ForallExpr(ctor.tok, bvs, trigger, Bpl.Expr.Lt(lhs, rhs));
+            sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q, "Inductive rank"));
+          } else if (argType is SeqType) {
+            // axiom (forall params, i: int {#dt.ctor(params)} :: 0 <= i && i < |arg| ==> DtRank(arg[i]) < DtRank(#dt.ctor(params)));
+            // that is:
+            // axiom (forall params, i: int {#dt.ctor(params)} :: 0 <= i && i < |arg| ==> DtRank(Unbox(Seq#Index(arg,i))) < DtRank(#dt.ctor(params)));
+            {
+              CreateBoundVariables(ctor.Formals, out bvs, out args);
+              Bpl.Variable iVar = new Bpl.BoundVariable(arg.tok, new Bpl.TypedIdent(arg.tok, "i", Bpl.Type.Int));
+              bvs.Add(iVar);
+              Bpl.IdentifierExpr ie = new Bpl.IdentifierExpr(arg.tok, iVar);
+              Bpl.Expr ante = Bpl.Expr.And(
+                Bpl.Expr.Le(Bpl.Expr.Literal(0), ie),
+                Bpl.Expr.Lt(ie, FunctionCall(arg.tok, BuiltinFunction.SeqLength, null, args[i])));
+              var seqIndex = FunctionCall(arg.tok, BuiltinFunction.SeqIndex, predef.DatatypeType, args[i], ie);
+              Bpl.Expr lhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null,
+                FunctionCall(arg.tok, BuiltinFunction.Unbox, predef.DatatypeType, seqIndex));
+              var ct = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
+              var rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ct);
+              q = new Bpl.ForallExpr(ctor.tok, bvs, new Trigger(lhs.tok, true, new List<Bpl.Expr> { seqIndex, ct }),
+                Bpl.Expr.Imp(ante, Bpl.Expr.Lt(lhs, rhs)));
+              sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q, "Inductive seq element rank"));
+            }
+
+            // axiom (forall params {#dt.ctor(params)} :: SeqRank(arg) < DtRank(#dt.ctor(params)));
+            {
+              CreateBoundVariables(ctor.Formals, out bvs, out args);
+              var lhs = FunctionCall(ctor.tok, BuiltinFunction.SeqRank, null, args[i]);
+              var ct = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
+              var rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ct);
+              var trigger = BplTrigger(ct);
+              q = new Bpl.ForallExpr(ctor.tok, bvs, trigger, Bpl.Expr.Lt(lhs, rhs));
+              sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q, "Inductive seq rank"));
+            }
+          } else if (argType is SetType) {
+            // axiom (forall params, d: Datatype {arg[d], #dt.ctor(params)}  :: arg[d] ==> DtRank(d) < DtRank(#dt.ctor(params)));
+            // that is:
+            // axiom (forall params, d: Datatype {arg[Box(d)], #dt.ctor(params)} :: arg[Box(d)] ==> DtRank(d) < DtRank(#dt.ctor(params)));
+            CreateBoundVariables(ctor.Formals, out bvs, out args);
+            Bpl.Variable dVar = new Bpl.BoundVariable(arg.tok, new Bpl.TypedIdent(arg.tok, "d", predef.DatatypeType));
+            bvs.Add(dVar);
+            Bpl.IdentifierExpr ie = new Bpl.IdentifierExpr(arg.tok, dVar);
+            Bpl.Expr inSet = Bpl.Expr.SelectTok(arg.tok, args[i], FunctionCall(arg.tok, BuiltinFunction.Box, null, ie));
+            Bpl.Expr lhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ie);
+            var ct = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
+            var rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ct);
+            var trigger = new Bpl.Trigger(ctor.tok, true, new List<Bpl.Expr> { inSet, ct });
+            q = new Bpl.ForallExpr(ctor.tok, bvs, trigger, Bpl.Expr.Imp(inSet, Bpl.Expr.Lt(lhs, rhs)));
+            sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q, "Inductive set element rank"));
+          } else if (argType is MultiSetType) {
+            // axiom (forall params, d: Datatype {arg[d], #dt.ctor(params)} :: 0 < arg[d] ==> DtRank(d) < DtRank(#dt.ctor(params)));
+            // that is:
+            // axiom (forall params, d: Datatype {arg[Box(d)], #dt.ctor(params)} :: 0 < arg[Box(d)] ==> DtRank(d) < DtRank(#dt.ctor(params)));
+            CreateBoundVariables(ctor.Formals, out bvs, out args);
+            Bpl.Variable dVar = new Bpl.BoundVariable(arg.tok, new Bpl.TypedIdent(arg.tok, "d", predef.DatatypeType));
+            bvs.Add(dVar);
+            Bpl.IdentifierExpr ie = new Bpl.IdentifierExpr(arg.tok, dVar);
+            var inMultiset = Bpl.Expr.SelectTok(arg.tok, args[i], FunctionCall(arg.tok, BuiltinFunction.Box, null, ie));
+            Bpl.Expr ante = Bpl.Expr.Gt(inMultiset, Bpl.Expr.Literal(0));
+            Bpl.Expr lhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ie);
+            var ct = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
+            var rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ct);
+            var trigger = new Bpl.Trigger(ctor.tok, true, new List<Bpl.Expr> { inMultiset, ct });
+            q = new Bpl.ForallExpr(ctor.tok, bvs, trigger, Bpl.Expr.Imp(ante, Bpl.Expr.Lt(lhs, rhs)));
+            sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q, "Inductive multiset element rank"));
+          } else if (argType is MapType) {
+            var finite = ((MapType)argType).Finite;
+            {
+              // axiom (forall params, d: DatatypeType
+              //   { Map#Domain(arg)[$Box(d)], #dt.ctor(params) }
+              //   Map#Domain(arg)[$Box(d)] ==> DtRank(d) < DtRank(#dt.ctor(params)));
+              CreateBoundVariables(ctor.Formals, out bvs, out args);
+              var dVar = new Bpl.BoundVariable(arg.tok, new Bpl.TypedIdent(arg.tok, "d", predef.DatatypeType));
+              bvs.Add(dVar);
+              var ie = new Bpl.IdentifierExpr(arg.tok, dVar);
+              var f = finite ? BuiltinFunction.MapDomain : BuiltinFunction.IMapDomain;
+              var domain = FunctionCall(arg.tok, f, predef.MapType(arg.tok, finite, predef.BoxType, predef.BoxType),
+                args[i]);
+              var inDomain = Bpl.Expr.SelectTok(arg.tok, domain, FunctionCall(arg.tok, BuiltinFunction.Box, null, ie));
+              var lhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ie);
+              var ct = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
+              var rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ct);
+              var trigger = new Bpl.Trigger(ctor.tok, true, new List<Bpl.Expr> { inDomain, ct });
+              q = new Bpl.ForallExpr(ctor.tok, bvs, trigger, Bpl.Expr.Imp(inDomain, Bpl.Expr.Lt(lhs, rhs)));
+              sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q, "Inductive map key rank"));
+            }
+            {
+              // axiom(forall params, bx: Box ::
+              //   { Map#Elements(arg)[bx], #dt.ctor(params) }
+              //   Map#Domain(arg)[bx] ==> DtRank($Unbox(Map#Elements(arg)[bx]): DatatypeType) < DtRank(#dt.ctor(params)));
+              CreateBoundVariables(ctor.Formals, out bvs, out args);
+              var bxVar = new Bpl.BoundVariable(arg.tok, new Bpl.TypedIdent(arg.tok, "bx", predef.BoxType));
+              bvs.Add(bxVar);
+              var ie = new Bpl.IdentifierExpr(arg.tok, bxVar);
+              var f = finite ? BuiltinFunction.MapDomain : BuiltinFunction.IMapDomain;
+              var domain = FunctionCall(arg.tok, f, predef.MapType(arg.tok, finite, predef.BoxType, predef.BoxType),
+                args[i]);
+              var inDomain = Bpl.Expr.SelectTok(arg.tok, domain, ie);
+              var ef = finite ? BuiltinFunction.MapElements : BuiltinFunction.IMapElements;
+              var element = FunctionCall(arg.tok, ef, predef.MapType(arg.tok, finite, predef.BoxType, predef.BoxType),
+                args[i]);
+              var elmt = Bpl.Expr.SelectTok(arg.tok, element, ie);
+              var unboxElmt = FunctionCall(arg.tok, BuiltinFunction.Unbox, predef.DatatypeType, elmt);
+              var lhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, unboxElmt);
+              var ct = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
+              var rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ct);
+              var trigger = new Bpl.Trigger(ctor.tok, true, new List<Bpl.Expr> { inDomain, ct });
+              q = new Bpl.ForallExpr(ctor.tok, bvs, trigger, Bpl.Expr.Imp(inDomain, Bpl.Expr.Lt(lhs, rhs)));
+              sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q, "Inductive map value rank"));
+            }
+          }
+        }
       }
     }
 
