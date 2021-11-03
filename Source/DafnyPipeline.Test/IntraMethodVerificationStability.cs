@@ -109,9 +109,9 @@ method SomeMethod2(methodFormal: int) returns (result: bool)
     public void NoUniqueLinesWhenConcatenatingUnrelatedPrograms() {
       DafnyOptions.Install(new DafnyOptions());
 
-      var regularboogie = GetBoogie(originalProgram).ToList();
+      var regularBoogie = GetBoogie(originalProgram).ToList();
       var renamedBoogie = GetBoogie(renamedProgram).ToList();
-      var regularBoogieText = GetBoogieText(regularboogie);
+      var regularBoogieText = GetBoogieText(regularBoogie);
       var renamedBoogieText = GetBoogieText(renamedBoogie);
       var separate = UniqueNonCommentLines(regularBoogieText + renamedBoogieText);
       var combinedBoogie = GetBoogieText(GetBoogie(originalProgram + renamedProgram));
@@ -132,7 +132,6 @@ method SomeMethod2(methodFormal: int) returns (result: bool)
 
       DafnyOptions.Install(new DafnyOptions());
       CommandLineOptions.Clo.Parse(new [] {""});
-      CommandLineOptions.Clo.PruneFunctionsAndAxioms = true;
       CommandLineOptions.Clo.ProcsToCheck.Add("*SomeMethod");
       ExecutionEngine.printer = new ConsolePrinter(); // For boogie errors
 
@@ -189,7 +188,12 @@ method SomeMethod2(methodFormal: int) returns (result: bool)
       var dafnyProgram = new Microsoft.Dafny.Program(fullFilePath, module, builtIns, errorReporter);
       Main.Resolve(dafnyProgram, errorReporter);
       Assert.Equal(0, errorReporter.ErrorCount);
-      var boogiePrograms = Translator.Translate(dafnyProgram, errorReporter).Select(t => t.Item2);
+      var boogiePrograms = Translator.Translate(dafnyProgram, errorReporter).Select(t => t.Item2).ToList();
+      var programTexts = boogiePrograms.Select(b => {
+        var stringWriter = new StringWriter();
+        b.Emit(new TokenTextWriter(stringWriter));
+        return stringWriter.ToString();
+      }).ToList();
       return boogiePrograms;
     }
   }
