@@ -10,7 +10,6 @@
 //       - main program for taking a Dafny program and verifying it
 //---------------------------------------------------------------------------------------------
 
-using DafnyPipeline.Verifier;
 using DafnyServer.CounterexampleGeneration;
 
 namespace Microsoft.Dafny {

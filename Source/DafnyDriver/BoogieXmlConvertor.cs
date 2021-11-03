@@ -14,7 +14,7 @@ using Microsoft.VisualStudio.TestPlatform.ObjectModel;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel.Client;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel.Logging;
 
-namespace DafnyPipeline.Verifier {
+namespace Microsoft.Dafny {
 
   /// <summary>
   /// Utility to parse the XML format produced by Boogie's /xml option and emit the

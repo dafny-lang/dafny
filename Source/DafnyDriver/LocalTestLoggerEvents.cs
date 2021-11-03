@@ -7,7 +7,7 @@ using Microsoft.VisualStudio.TestPlatform.ObjectModel.Client;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel.Logging;
 using Microsoft.VisualStudio.TestPlatform.Utilities;
 
-namespace DafnyPipeline.Verifier {
+namespace Microsoft.Dafny {
 
   /// <summary>
   /// Simple implementation of TestLoggerEvents in order to drive test results loggers.
