@@ -17,7 +17,7 @@ lemma test()
     var (x, y) := foo();
 }
 
-function method foo2() : (int,int)
+compiled function foo2() : (int,int)
 {
     (5, 10)
 }

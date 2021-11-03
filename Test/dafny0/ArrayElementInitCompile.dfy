@@ -30,7 +30,7 @@ method SingleValued(d: int) returns (a: array<int>)
   a := new int[8](_ => d);
 }
 
-function method F(x: int): char
+compiled function F(x: int): char
 {
   if x % 2 == 0 then 'O' else '.'
 }

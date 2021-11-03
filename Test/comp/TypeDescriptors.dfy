@@ -23,7 +23,7 @@ method MethodChar(s: string, ch: char) {
   print s, ": ", PrCh(ch), " ", PrCh(zero), "\n";
 }
 
-function method PrCh(ch: char): string {
+compiled function PrCh(ch: char): string {
   if ch == '\0' then "'\\0'"
   else if ch == 'D' then "'D'"
   else if ch == 'r' then "'r'"
@@ -132,19 +132,19 @@ datatype Record<Compiled(0), Ghost, Unused> =
   | ComplicatedAlternative(Record<Compiled, Ghost, Unused>)
 
 codatatype Stream<B> = More(B, Stream<B>)
-function method Up(x: int): Stream<int> {
+compiled function Up(x: int): Stream<int> {
   More(x, Up(x + 1))
 }
 
 trait Trait<T> { }
 class Class<A, B> extends Trait<seq<A>> { }
 
-function method IntBoolFunction(x: int): bool
+compiled function IntBoolFunction(x: int): bool
 { x % 2 == 0 }
-function method IntBoolFunctionPartial(x: int): bool
+compiled function IntBoolFunctionPartial(x: int): bool
   requires x < 67
 { x % 2 == 0 }
-function method IntBoolFunctionReads(a: array?<int>): bool
+compiled function IntBoolFunctionReads(a: array?<int>): bool
   requires a != null
   reads a
 { true }

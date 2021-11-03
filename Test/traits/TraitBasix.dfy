@@ -16,13 +16,13 @@ module m1
   {
     var x: int
 
-    function method Twice(): int
+    compiled function Twice(): int
       reads this
     {
       x + x
     }
 
-    function method F(z: int): int
+    compiled function F(z: int): int
       reads this
 
 
@@ -69,7 +69,7 @@ module m1
 
   class I0Child extends I2  //errors, body-less methods/functions in the parent have not implemented here
   {
-    function method F(z: int): int
+    compiled function F(z: int): int
       reads this
     {
        z
@@ -121,13 +121,13 @@ module MoreTests {
   {
     var x: int
 
-    function method Twice(): int
+    compiled function Twice(): int
       reads this
     {
       x + x
     }
 
-    function method F(z: int): int
+    compiled function F(z: int): int
       reads this
 
 

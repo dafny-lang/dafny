@@ -23,7 +23,7 @@ class MyClass2 {
   var x: int
   const c := F() // Error
 
-  function method F(): int
+  compiled function F(): int
     reads this
   {
     x

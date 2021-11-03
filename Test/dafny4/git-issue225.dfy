@@ -78,7 +78,7 @@ module DirectUse {
     method Print() { print "hello\n"; }
     lemma Lemma()
     datatype Record = Record(x: int)
-    function method F(): int
+    compiled function F(): int
     function G(): int
     const c: int
     ghost const d: int

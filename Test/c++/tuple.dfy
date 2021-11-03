@@ -8,15 +8,15 @@ method ReturnTuple() returns (x:(uint32,uint32))
   return (1, 2);
 }
 
-function method EmptyTuple() : () {
+compiled function EmptyTuple() : () {
   ()
 }
 
-function method GetEmptyTuple() : () {
+compiled function GetEmptyTuple() : () {
   EmptyTuple()
 }
 
-function method Test() : (bool, bool) {
+compiled function Test() : (bool, bool) {
   (false, true)
 }
 

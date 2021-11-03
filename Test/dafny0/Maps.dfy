@@ -195,7 +195,7 @@ method m15(b: set<A>)
   assert aa !in m;
 }
 
-function method Plus(x: int, y: int): int { x + y }  // a symbol to appear in trigger
+compiled function Plus(x: int, y: int): int { x + y }  // a symbol to appear in trigger
 method GeneralMaps0() {
   var m := map x | 2 <= x < 6 :: x+1;
   assert 5 in m.Keys;
@@ -211,9 +211,9 @@ method GeneralMaps0() {
   assert (6,8) in m.Items;
 }
 
-function method f(x: int): int  // uninterpreted function
+compiled function f(x: int): int  // uninterpreted function
   requires 0 <= x
-function method g(x: int): int  // uninterpreted function
+compiled function g(x: int): int  // uninterpreted function
 
 method GeneralMaps1() {
   if * {
@@ -265,8 +265,8 @@ method GeneralMaps5(u: seq<int>) {
   }
 }
 
-predicate method Thirteen(x: int) { x == 13 }
-predicate method Odd(y: int) { y % 2 == 1 }
+compiled predicate Thirteen(x: int) { x == 13 }
+compiled predicate Odd(y: int) { y % 2 == 1 }
 
 method GeneralMaps6() {
   var c2 := map x,y | 12 <= x < y < 17 && Thirteen(x) && Odd(y) :: x := y;
@@ -280,7 +280,7 @@ method GeneralMaps7() {
   assert c3[5] == 13;
 }
 
-predicate method P8(x: int) { true }
+compiled predicate P8(x: int) { true }
 
 method GeneralMaps8() {
   ghost var c4 := map x: int | true :: P8(x) := 6;

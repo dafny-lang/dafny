@@ -11,97 +11,97 @@ class MyClass<T> {
   }
   // But try to make it a non-ghost function, and Dafny will object because it cannot compile the
   // body into code that will terminate.
-  function method NonGhostF(): bool
+  compiled function NonGhostF(): bool
   {
     forall n :: 2 <= n ==> exists d :: n < d && d < 2*n  // error: can't figure out how to compile
   }
   // Add an upper bound to n and things are cool again.
-  function method NonGhostF_Bounded(): bool
+  compiled function NonGhostF_Bounded(): bool
   {
     forall n :: 2 <= n && n < 1000 ==> exists d :: n < d && d < 2*n
   }
   // Although the heuristics applied are syntactic, they do see through the structure of the boolean
   // operators ==>, &&, ||, and !.  Hence, the following three variations of the previous function can
   // also be compiled.
-  function method NonGhostF_Or(): bool
+  compiled function NonGhostF_Or(): bool
   {
     forall n :: !(2 <= n && n < 1000) || exists d :: n < d && d < 2*n
   }
-  function method NonGhostF_ImpliesImplies(): bool
+  compiled function NonGhostF_ImpliesImplies(): bool
   {
     forall n :: 2 <= n ==> n < 1000 ==> exists d :: n < d && d < 2*n
   }
-  function method NonGhostF_Shunting(): bool
+  compiled function NonGhostF_Shunting(): bool
   {
     forall n :: 2 <= n ==> 1000 <= n || exists d :: n < d && d < 2*n
   }
 
-  function method GoodRange(): bool
+  compiled function GoodRange(): bool
   {
     (forall n | 2 <= n :: 1000 <= n || (exists d | n < d :: d < 2*n)) &&
     (exists K: nat | K < 100 :: true)
   }
-  function method BadRangeForall(): bool
+  compiled function BadRangeForall(): bool
   {
     forall n | n <= 2 :: 1000 <= n || n % 2 == 0  // error: cannot bound range for n
   }
-  function method BadRangeExists(): bool
+  compiled function BadRangeExists(): bool
   {
     exists d | d < 1000 :: d < 2000  // error: cannot bound range for d
   }
-  function method WhatAboutThis(): bool
+  compiled function WhatAboutThis(): bool
   {
     forall n :: 2 <= n && (forall M | M == 1000 :: n < M) ==> n % 2 == 0  // error: heuristics don't get this one for n
   }
 
   // Here are more tests
 
-  function method F(a: array<T>): bool
+  compiled function F(a: array<T>): bool
     reads a;
   {
     (exists i :: 0 <= i && i < a.Length / 2 && (forall j :: i <= j && j < a.Length ==> a[i] == a[j]))
   }
 
-  function method G0(a: seq<T>): bool
+  compiled function G0(a: seq<T>): bool
   {
     (exists t :: t in a && (forall u :: u in a ==> u == t))
   }
-  function method G1(a: seq<T>): bool
+  compiled function G1(a: seq<T>): bool
   {
     (exists ti :: 0 <= ti && ti < |a| && (forall ui :: 0 <= ui && ui < |a| ==> a[ui] == a[ti]))
   }
 
   // Figuring out the following bounds requires understanding transitivity. Very cool!
-  function method IsSorted0(s: seq<int>): bool
+  compiled function IsSorted0(s: seq<int>): bool
   {
     (forall i, j :: 0 <= i && i < j && j < |s| ==> s[i] <= s[j])
   }
-  function method IsSorted1(s: seq<int>): bool
+  compiled function IsSorted1(s: seq<int>): bool
   {
     (forall j, i :: 0 <= i && i < j && j < |s| ==> s[i] <= s[j])
   }
   // It also works with the redundant conjunct i < |s|
-  function method IsSorted2(s: seq<int>): bool
+  compiled function IsSorted2(s: seq<int>): bool
   {
     (forall i, j :: 0 <= i && i < |s| && i < j && j < |s| ==> s[i] <= s[j])
   }
   // It also works if you switch the order of i and j, here with another redundant conjunct
-  function method IsSorted3(s: seq<int>): bool
+  compiled function IsSorted3(s: seq<int>): bool
   {
     (forall j, i :: 0 <= i && i < |s| && i < j && j < |s| ==> s[i] <= s[j])
   }
-  function method IsSorted4(s: seq<int>): bool
+  compiled function IsSorted4(s: seq<int>): bool
   {
     (forall j, i  :: 0 <= i && 0 < j && i < j && j < |s| ==> s[i] <= s[j])
   }
 
   // The heuristics look at bound variables in the order given as well as in
   // the reverse order.
-  function method Order0(S: seq<set<int>>): bool
+  compiled function Order0(S: seq<set<int>>): bool
   {
     (forall i, j :: 0 <= i && i < |S| && j in S[i] ==> 0 <= j)
   }
-  function method Order1(S: seq<set<int>>): bool
+  compiled function Order1(S: seq<set<int>>): bool
   {
     (forall j, i :: 0 <= i && i < |S| && j in S[i] ==> 0 <= j)
   }
@@ -114,11 +114,11 @@ class MyClass<T> {
     q := (exists y :: y*y in s);  // error: can't figure out how to compile
   }
   // And if expressions.
-  function method Select_Good(S: set<int>, a: T, b: T): T
+  compiled function Select_Good(S: set<int>, a: T, b: T): T
   {
     if (forall x :: x in S ==> 0 <= x && x < 100) then a else b
   }
-  function method Select_Bad(S: set<int>, a: T, b: T): T
+  compiled function Select_Bad(S: set<int>, a: T, b: T): T
   {
     if (forall x :: x*x in S ==> 0 <= x && x < 100) then a else b  // error: can't figure out how to compile
   }
@@ -162,20 +162,20 @@ module DependencyOnAllAllocatedObjects {
   {
     forall c: SomeClass :: true  // error: not allowed to depend on which objects are allocated
   }
-  function method AllObjects20(): bool
+  compiled function AllObjects20(): bool
   {
     forall c: SomeClass :: c.f == 0  // error: not allowed to depend on which objects are allocated
   }
-  function method AllObjects21(): bool
+  compiled function AllObjects21(): bool
   {
     forall c: SomeClass :: true  // error: not allowed to depend on which objects are allocated
   }
-  function method AllObjects30(): bool
+  compiled function AllObjects30(): bool
     reads *;
   {
     forall c: SomeClass :: c.f == 0  // error: not allowed to depend on which objects are allocated
   }
-  function method AllObjects31(): bool
+  compiled function AllObjects31(): bool
     reads *;
   {
     forall c: SomeClass :: true  // error: not allowed to depend on which objects are allocated

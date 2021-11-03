@@ -32,7 +32,7 @@ module M1 {
 
 module M2 {
   trait Tr<X, W> {
-    function method F(x: X, w: W): bv10 { 15 }
+    compiled function F(x: X, w: W): bv10 { 15 }
   }
 
   class Cl<Y> extends Tr<(Y,Y), real> {
@@ -82,7 +82,7 @@ module P1 {
 
 module P2 {
   trait TrX<X, W> {
-    function method F(x: X, w: W): bv10 { 15 }
+    compiled function F(x: X, w: W): bv10 { 15 }
   }
 
   trait Tr<X, W> extends TrX<X, W> {

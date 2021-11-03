@@ -165,7 +165,7 @@ function f(s:set<int>):int
 
 // -------------- optional curly-brace syntax
 
-predicate method AltSyntaxP(x: int) { true }
+compiled predicate AltSyntaxP(x: int) { true }
 datatype Color = Red | Green | Blue
 
 method AltSyntax0(x: int, y: int, c: Color) returns (z: int) {

@@ -317,18 +317,18 @@ module TestModule8 {
         datatype CRequest = CRequest(client:EndPoint, seqno:uint64, request:CAppMessage) | CRequestNoOp()
 
         type EndPoint
-        function method EndPoint_grammar() : G { GUint64 }
-        function method CRequest_grammar() : G { GTaggedUnion([ GTuple([EndPoint_grammar(), GUint64, CAppMessage_grammar()]), GUint64]) }
+        compiled function EndPoint_grammar() : G { GUint64 }
+        compiled function CRequest_grammar() : G { GTaggedUnion([ GTuple([EndPoint_grammar(), GUint64, CAppMessage_grammar()]), GUint64]) }
 
-        function method parse_EndPoint(val:V) : EndPoint
+        compiled function parse_EndPoint(val:V) : EndPoint
             requires ValInGrammar(val, EndPoint_grammar());
 
         type CAppMessage
-        function method CAppMessage_grammar() : G { GTaggedUnion([GUint64, GUint64, GUint64]) }
-        function method parse_AppMessage(val:V) : CAppMessage
+        compiled function CAppMessage_grammar() : G { GTaggedUnion([GUint64, GUint64, GUint64]) }
+        compiled function parse_AppMessage(val:V) : CAppMessage
             requires ValInGrammar(val, CAppMessage_grammar());
 
-        function method {:fuel ValInGrammar,1} parse_Request1(val:V) : CRequest
+        compiled function {:fuel ValInGrammar,1} parse_Request1(val:V) : CRequest
             requires ValInGrammar(val, CRequest_grammar());
         {
             if val.c == 0 then
@@ -338,7 +338,7 @@ module TestModule8 {
                 CRequestNoOp()
         }
 
-        function method parse_Request2(val:V) : CRequest
+        compiled function parse_Request2(val:V) : CRequest
             requires ValInGrammar(val, CRequest_grammar());
         {
             if val.c == 0 then
@@ -348,7 +348,7 @@ module TestModule8 {
                 CRequestNoOp()
         }
 
-        function method {:fuel ValInGrammar,3} parse_Request3(val:V) : CRequest
+        compiled function {:fuel ValInGrammar,3} parse_Request3(val:V) : CRequest
             requires ValInGrammar(val, CRequest_grammar());
         {
             if val.c == 0 then

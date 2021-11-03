@@ -8,7 +8,7 @@ class C<U(==)> {
     y := x;
   }
 
-  function method F<X(==)>(x: X, u: U): bool
+  compiled function F<X(==)>(x: X, u: U): bool
   {
     x == x && u == u
   }

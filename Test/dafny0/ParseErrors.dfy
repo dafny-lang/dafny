@@ -131,7 +131,7 @@ class C {
 }
 
 function F(ghost x: int): int  // error: formal not allowed to be declared "ghost" here -- a function is already ghost
-function method FM(ghost x: int): int
+compiled function FM(ghost x: int): int
 predicate P(ghost x: int)  // error: formal not allowed to be declared "ghost" here -- a predicate is already ghost
 
 least predicate IP(ghost x: int)  // error: formal not allowed to be declared "ghost" here

@@ -9,7 +9,7 @@ function TwinPrimes(): (int, int) {
   (41, 43)
 }
 
-function method TwinPrimesM(): (int, int) {
+compiled function TwinPrimesM(): (int, int) {
   (41, 43)
 }
 

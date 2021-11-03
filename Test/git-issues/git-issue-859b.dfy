@@ -8,14 +8,14 @@ datatype FailureCompatible = Make {
 }
 
 datatype FailureCompatible2 = Make {
-  predicate method IsFailure() { true }
-  function method PropagateFailure(): real { 12.0 }
+  compiled predicate IsFailure() { true }
+  compiled function PropagateFailure(): real { 12.0 }
   ghost method Extract() returns (r: real) { }
 }
 
 datatype FailureCompatible3 = Make {
-  predicate method IsFailure() { true }
-  function method PropagateFailure(): real { 12.0 }
+  compiled predicate IsFailure() { true }
+  compiled function PropagateFailure(): real { 12.0 }
   method Extract() returns (r: real) { }
 }
 

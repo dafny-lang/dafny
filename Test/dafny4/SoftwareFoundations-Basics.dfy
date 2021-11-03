@@ -17,8 +17,8 @@ datatype day =
   | sunday
 
 // See method test_next_weekday() below for an explanation of why this function
-// is declared a non-ghost (by "function method").
-function method next_weekday (d:day) : day
+// is declared a non-ghost (by "compiled function").
+compiled function next_weekday (d:day) : day
 {
   match d
   case monday    => tuesday
@@ -53,7 +53,7 @@ method test_next_weekday()
   // default, functions in Dafny of "ghost", which means they don't turn
   // into compiled code.  If you want to compile code for next_weekday, so
   // that you can use it in a print statement, change "function" to
-  // "function method" in the declaration of next_weekday.)  To try this
+  // "compiled function" in the declaration of next_weekday.)  To try this
   // out:  (0) comment out (or fix!) the assert above
   // so that the program will verify, (1) fill in a body of the uninterpreted
   // function f on line 396 below (any body will do; for example, uncomment

@@ -118,7 +118,7 @@ ghost method ExpressionsInGhostMethod() {
     5;
 }
 
-function method CompiledFunction(): int {
+compiled function CompiledFunction(): int {
   assume false;  // error
   calc {
     100;
@@ -166,7 +166,7 @@ ghost method SpecificationOfGhostMethod()
 {
 }
 
-function method SpecificationOfCompiledFunction(): int
+compiled function SpecificationOfCompiledFunction(): int
   requires assume false; true  // error
   reads assume false; {}  // error
   ensures assume false; true  // error
@@ -196,7 +196,7 @@ ghost method SpecificationOfGhostMethodWithoutBody()  // error: has no body
   ensures assume false; true  // error
   decreases assume false; 5  // error
 
-function method SpecificationOfCompiledFunctionWithoutBody(): int  // error: has no body
+compiled function SpecificationOfCompiledFunctionWithoutBody(): int  // error: has no body
   requires assume false; true  // error
   reads assume false; {}  // error
   ensures assume false; true  // error
@@ -268,7 +268,7 @@ newtype T = int {
 
 // --------------------------------------------------
 
-function method F(x: int, ghost y: int): int { 5 }
+compiled function F(x: int, ghost y: int): int { 5 }
 function G(x: int): int { 5 }
 method M(x: int, ghost y: int) { }
 lemma N(x: int) { }
@@ -292,7 +292,7 @@ ghost method GhostMethodCaller() {
   ghost var e := Dt(assume false; 5, assume false; 6);  // error (x2)
 }
 
-function method CompiledFunctionCaller(): int {
+compiled function CompiledFunctionCaller(): int {
   var a := F(assume false; 5, assume false; 6);  // error (x2)
   ghost var b := G(assume false; 5);  // error
   N(assume false; 5);  // error

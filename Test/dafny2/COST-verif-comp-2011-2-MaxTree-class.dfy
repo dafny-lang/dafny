@@ -90,7 +90,7 @@ class Tree {
       Contents == left.Contents + [value] + right.Contents))
   }
 
-  function method IsEmpty(): bool
+  compiled function IsEmpty(): bool
     requires Valid();
     reads this, Repr;
     ensures IsEmpty() <==> Contents == [];

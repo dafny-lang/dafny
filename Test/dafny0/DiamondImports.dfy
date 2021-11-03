@@ -4,7 +4,7 @@
 module ImportByName {
   module A {
     type T(0)
-    function method P(): T
+    compiled function P(): T
     method M(t: T)
   }
 
@@ -59,7 +59,7 @@ module ImportByName {
 module ImportOpened {
   module A {
     type T(0)
-    function method P(): T
+    compiled function P(): T
     method M(t: T)
   }
 

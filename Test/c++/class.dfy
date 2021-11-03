@@ -23,8 +23,8 @@ class MyClass {
     ar := new uint32[5];
   }
 
-  function method F(): uint32 { 8 }
-  static function method G(): uint32 { 9 }
+  compiled function F(): uint32 { 8 }
+  static compiled function G(): uint32 { 9 }
   method M() returns (r: uint32) { r := 69; }
   static method N() returns (r: uint32) { return 70; }
 

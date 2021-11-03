@@ -1,7 +1,7 @@
 // RUN: %dafny /print:"%t.print" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-function method Const<A,B>(a : A) : B -> A {
+compiled function Const<A,B>(a : A) : B -> A {
   b => a
 }
 

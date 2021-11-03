@@ -5,19 +5,19 @@ trait t
 {
   var f: int;
 
-  function method Plus (x:int, y:int) : int
+  compiled function Plus (x:int, y:int) : int
     requires x>y;
   {
     x + y
   }
 
-  function method Mul (x:int, y:int, z:int) : int
+  compiled function Mul (x:int, y:int, z:int) : int
     requires x>y;
   {
     x * y * z
   }
 
-  //function method BodyLess1() : int
+  //compiled function BodyLess1() : int
 
   static method GetPhoneNumber (code:int, n:int) returns (z:int)
   {

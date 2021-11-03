@@ -1,33 +1,33 @@
 // RUN: %dafny "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-function method MkId<A>() : A -> A {
+compiled function MkId<A>() : A -> A {
   x => x
 }
 
-function method IntId() : int ~> int {
+compiled function IntId() : int ~> int {
   y => y
 }
 
-function method DivZero() : int ~> int
+compiled function DivZero() : int ~> int
 {
   z => 5 / z  // div by zero
 }
 
-function method DivZeroWithReq() : int ~> int
+compiled function DivZeroWithReq() : int ~> int
 {
   (z) requires z != 0 => 5 / z
 }
 
-function method DivZero2() : (int, int) ~> int {
+compiled function DivZero2() : (int, int) ~> int {
   (x, y) requires y != 0 => x / y
 }
 
-function method DivZero3() : int ~> int {
+compiled function DivZero3() : int ~> int {
   z => z / 0   // div by zero
 }
 
-function method Shadow() : int ~> real ~> real {
+compiled function Shadow() : int ~> real ~> real {
   x => x => x
 }
 
@@ -49,7 +49,7 @@ method Main() {
   print divvy(2,0); // precond violation
 }
 
-function method succ(x : int) : int
+compiled function succ(x : int) : int
   requires x > 0
 {
   x + 1
@@ -61,7 +61,7 @@ method Main2() {
   assert suc(-1) == 0; // precond violation
 }
 
-function method Id<A>(x : A) : A {
+compiled function Id<A>(x : A) : A {
   x
 }
 

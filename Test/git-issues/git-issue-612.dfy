@@ -3,6 +3,6 @@
 
 datatype D = D
 {
-  function method {:extern Foo} Foo() : bool
+  compiled function {:extern Foo} Foo() : bool
 }
 

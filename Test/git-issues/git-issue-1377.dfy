@@ -6,38 +6,38 @@ class Cell {
 }
 
 trait Trait {
-  function method baz(): Cell
-  function method xyz(): nat
+  compiled function baz(): Cell
+  compiled function xyz(): nat
 
   method M0(n: nat) returns (n': int)
   method M1(n: int) returns (n': nat)
-  function method F0(n: nat): int
-  function method F1(n: int): nat
-  function method G(x: nat): nat
+  compiled function F0(n: nat): int
+  compiled function F1(n: int): nat
+  compiled function G(x: nat): nat
 }
 
 class Class extends Trait {
   constructor () {}
   // regression: the next two method declarations were once allowed
-  function method baz(): Cell? { // error: baz() should not be allowed to widen the result type
+  compiled function baz(): Cell? { // error: baz() should not be allowed to widen the result type
     null
   }
-  function method xyz(): int { // error: xyz() should not be allowed to widen the result type
+  compiled function xyz(): int { // error: xyz() should not be allowed to widen the result type
     -4
   }
 
-  function method baz'(c: Cell): Cell {
+  compiled function baz'(c: Cell): Cell {
     c
   }
-  function method xyz'(): nat {
+  compiled function xyz'(): nat {
     15
   }
 
   method M0(n: int) returns (n': nat) { n' := 0; } // error (x2): cannot change parameter types in override
   method M1(n: nat) returns (n': int) { n' := 0; } // error (x2): cannot change parameter types in override
-  function method F0(n: int): nat { 0 } // error (x2): cannot change parameter/result types in override
-  function method F1(n: nat): int { 0 } // error (x2): cannot change parameter/result types in override
-  function method G(x: NatSym): NatSym
+  compiled function F0(n: int): nat { 0 } // error (x2): cannot change parameter/result types in override
+  compiled function F1(n: nat): int { 0 } // error (x2): cannot change parameter/result types in override
+  compiled function G(x: NatSym): NatSym
 }
 
 type NatSym = nat

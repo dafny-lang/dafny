@@ -4,7 +4,7 @@
 
 datatype Option<T> = None | Some(get: T)
 
-function method Unreachable<R>(): R
+compiled function Unreachable<R>(): R
     requires false
 {
     var o: Option<R> := None;
@@ -13,9 +13,9 @@ function method Unreachable<R>(): R
 }
 
 trait NatOutcome {
-    predicate method IsFailure()
-    function method PropagateFailure(): NatOutcome requires IsFailure()
-    function method Extract(): nat requires !IsFailure()
+    compiled predicate IsFailure()
+    compiled function PropagateFailure(): NatOutcome requires IsFailure()
+    compiled function Extract(): nat requires !IsFailure()
 }
 
 class NatSuccess extends NatOutcome {
@@ -23,13 +23,13 @@ class NatSuccess extends NatOutcome {
     constructor(value: nat) {
         this.value := value;
     }
-    predicate method IsFailure() {
+    compiled predicate IsFailure() {
         false
     }
-    function method PropagateFailure(): NatOutcome requires IsFailure() {
+    compiled function PropagateFailure(): NatOutcome requires IsFailure() {
         Unreachable<NatOutcome>()
     }
-    function method Extract(): nat requires !IsFailure() {
+    compiled function Extract(): nat requires !IsFailure() {
         value
     }
 }
@@ -39,13 +39,13 @@ class NatFailure extends NatOutcome {
     constructor(error: string) {
         this.error := error;
     }
-    predicate method IsFailure() {
+    compiled predicate IsFailure() {
         true
     }
-    function method PropagateFailure(): NatOutcome requires IsFailure() {
+    compiled function PropagateFailure(): NatOutcome requires IsFailure() {
         this
     }
-    function method Extract(): nat requires !IsFailure() {
+    compiled function Extract(): nat requires !IsFailure() {
         Unreachable<nat>()
     }
 }

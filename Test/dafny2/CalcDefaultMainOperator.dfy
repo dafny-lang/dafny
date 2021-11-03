@@ -58,17 +58,17 @@ lemma TestMultiset(Empty: multiset<int>, Nonempty: multiset<int>)
 
 // Print test for /rprint. Note, this same class is tested with /dprint in Test/dafny0/Twostate-Resolution.dfy.
 module PrintTest {
-  function method Five(): int { 5 }
+  compiled function Five(): int { 5 }
   function Six(): int { 6 }
 
-  function method Ten(): int {
+  compiled function Ten(): int {
     var f := Five();
     ghost var s := Six();
     assert s == 6;
     f + f
   }
 
-  function method TenAgain(): int {
+  compiled function TenAgain(): int {
     var ten :=
       var f := Five();
       ghost var s := Six();
@@ -96,12 +96,12 @@ module PrintTest {
     s + t
   }
 
-  function method Twenty(): int {
+  compiled function Twenty(): int {
     var x :| x == 10;
     x + x
   }
 
-  function method TwentyOne(): int {
+  compiled function TwentyOne(): int {
     ghost var x :| x == 10 && Yes(x);
     assert x + x + 1 == 21;
     21

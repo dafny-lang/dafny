@@ -2,8 +2,8 @@
 // RUN: %diff "%s.expect" "%t"
 
 datatype D = D(ghost v:nat)
-function method p():D { ghost var v:nat :| true; D(v) }
+compiled function p():D { ghost var v:nat :| true; D(v) }
 
 datatype G = G(v:nat)
-function method q():G { var v:nat :| true; G(v) }
+compiled function q():G { var v:nat :| true; G(v) }
 

@@ -18,7 +18,7 @@ datatype Term = S | K | Apply(car: Term, cdr: Term)
 //     Value = K | S | (K Value) | (S Value) | ((S Value) Value)
 // The following predicate says whether or not a given term is a value.
 
-function method IsValue(t: Term): bool
+compiled function IsValue(t: Term): bool
   ensures IsValue(t) && t.Apply? ==> IsValue(t.car) && IsValue(t.cdr);
 {
   match t
@@ -96,7 +96,7 @@ function EvalExpr(C: Context, t: Term): Term
 // ignored, since it is, after all, just a consequence of the body
 // of Step.
 
-function method Step(t: Term): Term
+compiled function Step(t: Term): Term
   ensures !ContainsS(t) ==>
              !ContainsS(Step(t)) &&
              (Step(t) == t || TermSize(Step(t)) < TermSize(t));
@@ -142,7 +142,7 @@ function method Step(t: Term): Term
 // Like Step, FindAndStep has a postcondition, and it is also included to
 // support Verification Task 2.
 
-function method FindAndStep(t: Term): Term
+compiled function FindAndStep(t: Term): Term
   ensures !ContainsS(t) ==>
              !ContainsS(FindAndStep(t)) &&
              (FindAndStep(t) == t || TermSize(FindAndStep(t)) < TermSize(t));
@@ -330,7 +330,7 @@ method reduction(t: Term) returns (r: Term)
 // do not contain S.  The following function formalizes what it means for a term
 // to contain S:
 
-function method ContainsS(t: Term): bool
+compiled function ContainsS(t: Term): bool
 {
   match t
   case S => true
@@ -429,7 +429,7 @@ function TerminatingReduction(t: Term): Term
 // family of terms that contain only Apply and K.  Hence, we can establish, as a
 // postcondition of the function, that ks(n) does not contain S.
 
-function method ks(n: nat): Term
+compiled function ks(n: nat): Term
   ensures !ContainsS(ks(n));
 {
   if n == 0 then K else Apply(ks(n-1), K)

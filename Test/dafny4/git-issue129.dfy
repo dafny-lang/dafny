@@ -1,7 +1,7 @@
 // RUN: %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-function method Foo(): (int, int)
+compiled function Foo(): (int, int)
 {
     (1, 2)
 }
@@ -14,7 +14,7 @@ method Bar()
 
 datatype Point = Point(x: int, y: int)
 
-function method FooPoint(): Point
+compiled function FooPoint(): Point
 {
     Point(1, 2)
 }

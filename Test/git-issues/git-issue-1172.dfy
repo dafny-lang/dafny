@@ -11,7 +11,7 @@ function F(): int
   F()
 }
 
-function method G(): int
+compiled function G(): int
   ensures false
   decreases *  // error: this is not allowed on a function
 {

@@ -181,8 +181,8 @@ module ConsistencyErrors {
   export WhatIsKnownAboutRevealedClass1
     reveals Trait
     reveals Convert, Convert?
-  function method Convert(x: Trait): object { x }
-  function method Convert?(x: Trait?): object? { x }
+  compiled function Convert(x: Trait): object { x }
+  compiled function Convert?(x: Trait?): object? { x }
 }
 
 module GoodExports {
@@ -481,8 +481,8 @@ module StarLookupErrors {
     provides C.FromInt
 
   datatype B = X | Y {
-    function method F(): int { if X? then 0 else 1 }
-    function method G(): int { 5 }
+    compiled function F(): int { if X? then 0 else 1 }
+    compiled function G(): int { 5 }
   }
   class C {
     var u: int
@@ -517,8 +517,8 @@ module StarConsistencyErrors {
     reveals B.G
 
   datatype B = X | Y {
-    function method F(): int { if X? then 0 else 1 }
-    function method G(): int { 5 }
+    compiled function F(): int { if X? then 0 else 1 }
+    compiled function G(): int { 5 }
   }
   class C {
     var u: int
@@ -541,8 +541,8 @@ module StarsGood {
     reveals E
 
   datatype B = X | Y {
-    function method F(): int { if X? then 0 else 1 }
-    function method G(): int { 5 }
+    compiled function F(): int { if X? then 0 else 1 }
+    compiled function G(): int { 5 }
   }
   class C {
     var u: int

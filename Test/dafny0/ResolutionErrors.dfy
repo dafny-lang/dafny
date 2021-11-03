@@ -40,8 +40,8 @@ module Misc {
 
   class Global {
     var X: int;
-    function method F(x: int): int { x }
-    static function method G(x: int): int { x }
+    compiled function F(x: int): int { x }
+    static compiled function G(x: int): int { x }
     method M(x: int) returns (r: int)
     {
       r := x + X;
@@ -136,10 +136,10 @@ module HereAreMoreGhostTests {
     function F(x: int, y: int): int {
       y
     }
-    function method G(x: int, ghost y: int): int {
+    compiled function G(x: int, ghost y: int): int {
       y  // error: cannot return a ghost from a non-ghost function
     }
-    function method H(dt: GhostDt): int {
+    compiled function H(dt: GhostDt): int {
       match dt
       case Nil(gg) =>  gg  // error: cannot return a ghost from a non-ghost function
       case Cons(dd, tt, gg) =>  dd + gg  // error: ditto
@@ -810,7 +810,7 @@ module GhostLetExpr {
   function F(): int
   { 5 }
 
-  function method G(x: int, ghost y: int): int
+  compiled function G(x: int, ghost y: int): int
   {
     assert y == x;
     y  // error: not allowed in non-ghost context
@@ -828,7 +828,7 @@ module GhostLetExpr {
     }
   }
 
-  function method FM(e: bool): int
+  compiled function FM(e: bool): int
   {
     if e then
       G(5, F())
@@ -1157,7 +1157,7 @@ module ObjectSetComprehensions {
   // the following set comprehensions are known to be finite
   function A() : set<object> { set o : object | true :: o }  // error: a function is not allowed to depend on the allocated state
 
-  function method B() : set<object> { set o : object | true :: o }  // error: a function is not allowed to depend on the allocated state
+  compiled function B() : set<object> { set o : object | true :: o }  // error: a function is not allowed to depend on the allocated state
 
   // outside functions, the comprehension is permitted, but it cannot be compiled
   lemma C() { var x; x := set o : object | true :: o; }
@@ -1219,7 +1219,7 @@ module NonInferredTypeVariables {
     var f: CT;
   }
 
-  predicate method P<PT>(x: int)
+  compiled predicate P<PT>(x: int)
   {
     x < 100
   }
@@ -1726,7 +1726,7 @@ module LoopResolutionTests {
 }
 
 module UnderspecifiedTypesInAttributes {
-  function method P<T>(x: T): int
+  compiled function P<T>(x: T): int
   method M() {
     var {:myattr var u :| true; 6} v: int;  // error: type of u is underspecified
     var j {:myattr var u :| true; 6} :| 0 <= j < 100;  // error: type of u is underspecified
@@ -2337,8 +2337,8 @@ module ConstGhostRhs {
 }
 
 module Regression15 {
-  predicate method F(i: int, j: int) { true }
-  function method S(i: int): set<int> { {i} }
+  compiled predicate F(i: int, j: int) { true }
+  compiled function S(i: int): set<int> { {i} }
   method M0() returns (b: bool) {
     b := forall i, j | j <= i <= 100 && i <= j < 100 :: true;  // error: this bogus cyclic dependency was once allowed
   }
@@ -2357,7 +2357,7 @@ module AllocDepend0 {
 }
 module AllocDepend1 {
   class Class { }
-  predicate method P(x: int) {
+  compiled predicate P(x: int) {
     x < 5 || {} == set c: Class | true  // error: function not allowed to depend on alloc
   }
 }
@@ -2372,7 +2372,7 @@ module AllocDepend2 {
 }
 module AllocDepend3 {
   class Klass { }
-  predicate method P(x: int) {
+  compiled predicate P(x: int) {
     x < 5 || exists k: Klass :: allocated(k)  // error: function not allowed to depend on alloc
   }
 }
@@ -2387,7 +2387,7 @@ module AllocDepend4 {
 }
 module AllocDepend5 {
   class Xlass { }
-  predicate method P(x: int) {
+  compiled predicate P(x: int) {
     x < 5 || var k: Xlass? := null; allocated(k)  // error: function not allowed to depend on alloc
   }
 }
@@ -2753,7 +2753,7 @@ module ExistsImpliesWarning {
 module GhostReceiverTests {
   class C {
     function F(x: int): int { 3 }
-    function method G(x: int): int { 4 }
+    compiled function G(x: int): int { 4 }
     lemma L(x: int) { }
     method M(x: int) { }
   }
@@ -2931,12 +2931,12 @@ module ExpectStatements {
 
 module TypeParameterScopes {
   class C<X> {
-    function method G(): X
+    compiled function G(): X
     method M<X>(f: X) {
       var h: X := f;
       var k: X := G();  // error: this is the wrong X
     }
-    function method F<X>(f: X): int {
+    compiled function F<X>(f: X): int {
       var h: X := f;
       var k: X := G();  // error: this is the wrong X
       10
@@ -2993,9 +2993,9 @@ module MoreAutoInitAndNonempty {
   method P<G(00)>(g: G)
   method R<H>(h: H)
 
-  function method FQ<F(0)>(f: F): int
-  function method FP<G(00)>(g: G): int
-  function method FR<H>(h: H): int
+  compiled function FQ<F(0)>(f: F): int
+  compiled function FP<G(00)>(g: G): int
+  compiled function FR<H>(h: H): int
 
   method M<X(0), Y(00), Z>(x: X, y: Y, z: Z)
   {
@@ -3106,10 +3106,10 @@ module AutoGhostRegressions {
 }
 
 module TypeCharacteristicsInGhostCode {
-  function method MustBeNonempty<T(00)>(): int { 5 }
-  function method MustBeAutoInit<T(0)>(): int { 5 }
-  function method MustSupportEquality<T(==)>(): int { 5 }
-  function method NoReferences<T(!new)>(): int { 5 }
+  compiled function MustBeNonempty<T(00)>(): int { 5 }
+  compiled function MustBeAutoInit<T(0)>(): int { 5 }
+  compiled function MustSupportEquality<T(==)>(): int { 5 }
+  compiled function NoReferences<T(!new)>(): int { 5 }
 
   type PossiblyEmpty = x: int | true witness *
   type Nonempty = x: int | true ghost witness 0
@@ -3179,9 +3179,9 @@ module TypeCharacteristicsInGhostCode {
     w := NoReferences<Good>();
   }
 
-  function method FF(a: bool, ghost b: bool): int { 5 }
+  compiled function FF(a: bool, ghost b: bool): int { 5 }
   method MM(a: bool, ghost b: bool) { }
-  function method GetInt<T(==)>(): int { 2 }
+  compiled function GetInt<T(==)>(): int { 2 }
   method GhostContexts<T>(x: T, y: T) {
     var r;
     r := FF(x == y, true);  // error: T must support equality
@@ -3309,7 +3309,7 @@ module MoreAutoGhostTests {
     var d :| d == m;  // error: LHS is not inferred to be ghost for :|
   }
 
-  function method LetSuchThat(ghost m: int): int {
+  compiled function LetSuchThat(ghost m: int): int {
     var d :| d == m;  // error: LHS is not inferred to be ghost for :|
     0
   }
@@ -3321,10 +3321,10 @@ module RelaxedAutoInitChecking {
   // Similarly, in a ghost context, there's no difference between (0) and (00). Therefore, a
   // formal parameter that expects (0) can take either a (0) or a (00) in a ghost context.
 
-  function method MustBeNonempty<T(00)>(): int { 5 }
-  function method MustBeAutoInit<T(0)>(): int { 5 }
-  function method MustSupportEquality<T(==)>(): int { 5 }
-  function method NoReferences<T(!new)>(): int { 5 }
+  compiled function MustBeNonempty<T(00)>(): int { 5 }
+  compiled function MustBeAutoInit<T(0)>(): int { 5 }
+  compiled function MustSupportEquality<T(==)>(): int { 5 }
+  compiled function NoReferences<T(!new)>(): int { 5 }
 
   type PossiblyEmpty = x: int | true witness *
   type Nonempty = x: int | true ghost witness 0
@@ -3394,7 +3394,7 @@ module RelaxedAutoInitChecking {
 module LetSuchThatGhost {
   predicate True<T>(t: T) { true }
 
-  function method F<T>(s: set<T>): int
+  compiled function F<T>(s: set<T>): int
     requires s != {}
   {
     // once, the RHS for p was (bogusly) considered ghost, which made p ghost,
@@ -3405,7 +3405,7 @@ module LetSuchThatGhost {
     if p then 6 else 8
   }
 
-  function method G<T>(s: set<T>): int
+  compiled function G<T>(s: set<T>): int
     requires s != {}
   {
     // again, e and p are both non-ghost
@@ -3415,7 +3415,7 @@ module LetSuchThatGhost {
     if p then 6 else 8
   }
 
-  function method H<T>(s: set<T>): int
+  compiled function H<T>(s: set<T>): int
     requires s != {}
   {
     // here, e is ghost, but p is still not
@@ -3425,7 +3425,7 @@ module LetSuchThatGhost {
     if p then 6 else 8
   }
 
-  function method I<T>(s: set<T>): int
+  compiled function I<T>(s: set<T>): int
     requires s != {}
   {
     // here, e is ghost, and therefore so is p

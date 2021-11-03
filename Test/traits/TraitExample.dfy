@@ -6,7 +6,7 @@ trait Automobile {
   predicate Valid()
     reads this, Repr
     ensures Valid() ==> this in Repr
-  function method Brand(): string
+  compiled function Brand(): string
   var position: int
   method Drive()
     requires Valid()
@@ -28,7 +28,7 @@ class Fiat extends Automobile {
   {
     position, Repr := pos, {this};
   }
-  function method Brand(): string {
+  compiled function Brand(): string {
     "Fiat"
   }
   method Drive()
@@ -58,7 +58,7 @@ class Volvo extends Automobile {
     odometer := new Odometer();
     Repr := Repr + {odometer};
   }
-  function method Brand(): string {
+  compiled function Brand(): string {
     "Volvo"
   }
   method Drive()
@@ -110,7 +110,7 @@ class Catacar extends Automobile {
     Repr := {this} + fiat.Repr + volvo.Repr;
     position := volvo.position;
   }
-  function method Brand(): string {
+  compiled function Brand(): string {
     "Catacar"
   }
   method Drive()

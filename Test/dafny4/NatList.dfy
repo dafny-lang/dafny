@@ -21,21 +21,21 @@ method Main() {
   ConvertAndPrint(ns, -12);
 }
 
-function method Sum(ns: List<nat>): nat
+compiled function Sum(ns: List<nat>): nat
 {
   match ns
   case Nil => 0
   case Cons(n, tail) => n + Sum(tail)
 }
 
-function method Append<T>(xs: List<T>, ys: List<T>): List<T>
+compiled function Append<T>(xs: List<T>, ys: List<T>): List<T>
 {
   match xs
   case Nil => ys
   case Cons(t, tail) => Cons(t, Append(tail, ys))
 }
 
-function method Negate(xs: List<int>): List<int>
+compiled function Negate(xs: List<int>): List<int>
 {
   match xs
   case Nil => Nil

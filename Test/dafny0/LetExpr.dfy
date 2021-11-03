@@ -19,7 +19,7 @@ method M2()
   assert var f := 54; var f := f + 1; f == 55;
 }
 
-function method Fib(n: nat): nat
+compiled function Fib(n: nat): nat
 {
   if n < 2 then n else Fib(n-1) + Fib(n-2)
 }
@@ -249,7 +249,7 @@ method Q(list: List<int>, anotherList: List<int>)
 
 datatype Tuple<T,U> = Pair(0: T, 1: U)
 
-function method Together(x: int, y: bool): Tuple<int, bool>
+compiled function Together(x: int, y: bool): Tuple<int, bool>
 {
   Pair(x, y)
 }
@@ -272,7 +272,7 @@ method Mountain() returns (z: int, t: nat)
   assert 0 <= z;
 }
 
-function method Rainbow<X>(tup: Tuple<X, int>): int
+compiled function Rainbow<X>(tup: Tuple<X, int>): int
   ensures 0 <= Rainbow(tup);
 {
   var Pair(left, right) := tup; right*right
@@ -295,7 +295,7 @@ method Friendly(n: nat) returns (ghost c: int)
   }
 }
 
-function method F_good(d: Tuple<
+compiled function F_good(d: Tuple<
                              Tuple<bool, int>,
                              Tuple< Tuple<int,int>, Tuple<bool,bool> >>): int
   requires 0 <= d.1.0.1 < 100;
@@ -304,7 +304,7 @@ function method F_good(d: Tuple<
   assert q < 200;
   p.1 + if b0 then x + y0 else x + y1
 }
-function method F_bad(d: Tuple<
+compiled function F_bad(d: Tuple<
                             Tuple<bool, int>,
                             Tuple< Tuple<int,int>, Tuple<bool,bool> >>): int
 {
@@ -359,7 +359,7 @@ module CanCallRegressionTests {
   class C {
     var x: int
 
-    function method Id(c: C): C { c }
+    compiled function Id(c: C): C { c }
 
     method M()
     {
@@ -374,7 +374,7 @@ module CanCallRegressionTests {
 // ---------------------------------- Lit of let RHS
 
 module LitLet {
-  function method Gauss(n: nat): nat {
+  compiled function Gauss(n: nat): nat {
     if n == 0 then 0 else n + Gauss(n - 1)
   }
 

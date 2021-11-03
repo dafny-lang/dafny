@@ -47,7 +47,7 @@ module M1 {
       0
   }
 
-  function method G(p: object): int
+  compiled function G(p: object): int
     requires p in set o: object | allocated(o)  // error (see F)
     ensures p in set o: object | allocated(o)  // error (see F)
     reads set o: object | allocated(o)  // error (see F)
@@ -61,7 +61,7 @@ module M1 {
 }
 
 module M2 {
-  function method G(p: object): int
+  compiled function G(p: object): int
 
   method M0() returns (ghost r: int, s: int)
     requires null in set o: object? | allocated(o)  // allowed

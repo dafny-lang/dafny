@@ -13,7 +13,7 @@ function f(x:int) : int
 
 abstract module Abstract
 {
-  function method inc(x:int) :int
+  compiled function inc(x:int) :int
     ensures inc(x) > x;
 
   method M(x: int) returns (r: int)
@@ -24,5 +24,5 @@ abstract module Abstract
     assert r % 3 == 0;  // error
   }
 
-  function method G(x: int): int
+  compiled function G(x: int): int
 }

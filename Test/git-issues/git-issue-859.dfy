@@ -6,8 +6,8 @@
 // RUN: %diff "%s.expect" "%t"
 
 datatype FailureCompatible = Make {
-  predicate method IsFailure() { true }
-  function method PropagateFailure(): int { 12 }
+  compiled predicate IsFailure() { true }
+  compiled function PropagateFailure(): int { 12 }
   method Extract() returns (r: real) { }
 }
 

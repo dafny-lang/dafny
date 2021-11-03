@@ -3,7 +3,7 @@
 
 // Celebrity example, inspired by the Rodin tutorial
 
-predicate method Knows<X>(a: X, b: X)
+compiled predicate Knows<X>(a: X, b: X)
   requires a != b  // forbid asking about the reflexive case
 
 predicate IsCelebrity<Y>(c: Y, people: set<Y>)

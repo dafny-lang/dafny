@@ -3,7 +3,7 @@
 
 abstract module TotalOrder {
   type T // the type to be compared
-  predicate method Leq(a: T, b: T) // Leq(a,b) iff a <= b
+  compiled predicate Leq(a: T, b: T) // Leq(a,b) iff a <= b
   // Three properties of total orders.  Here, they are given as unproved
   // lemmas, that is, as axioms.
   lemma Antisymmetry(a: T, b: T)
@@ -95,7 +95,7 @@ module IntOrder refines TotalOrder {
   // (If there were type synonyms, we could perhaps have written just "type T = int".)
   datatype T = Int(i: int)
   // Define the ordering on these integers
-  predicate method Leq ...
+  compiled predicate Leq ...
     ensures Leq(a, b) ==> a.i <= b.i
   {
     a.i <= b.i
@@ -111,7 +111,7 @@ module IntOrder refines TotalOrder {
 // Lexiographic ordering of pairs of integers
 module IntLexOrder refines TotalOrder {
   datatype T = Int(i: int, j: int)
-  predicate method Leq ... {
+  compiled predicate Leq ... {
     if a.i < b.i then true
     else if a.i == b.i then a.j <= b.j
     else false
@@ -154,7 +154,7 @@ module intOrder refines TotalOrder {
   // Instantiate type T with a datatype wrapper around an integer.
   type T = int
   // Define the ordering on these integers
-  predicate method Leq ...
+  compiled predicate Leq ...
     ensures Leq(a, b) ==> a <= b
   {
     a <= b

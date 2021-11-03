@@ -6,13 +6,13 @@ datatype NatOutcome =
 | NatSuccess(value: nat)
 | NatFailure(error: string)
 {
-    predicate method IsFailure() {
+    compiled predicate IsFailure() {
         this.NatFailure?
     }
-    function method PropagateFailure(): NatOutcome requires IsFailure() {
+    compiled function PropagateFailure(): NatOutcome requires IsFailure() {
         this
     }
-    function method Extract(): nat requires !IsFailure() {
+    compiled function Extract(): nat requires !IsFailure() {
         this.value
     }
 }

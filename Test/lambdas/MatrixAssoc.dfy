@@ -28,19 +28,19 @@ lemma Same(a: Matrix, b: Matrix)
 }
 
 /** Σ f(i) where i ranges from 0 to less than n */
-function method Sum_n(f: Index -> int, n: nat): int
+compiled function Sum_n(f: Index -> int, n: nat): int
     requires n <= N
 {
     if n == 0 then 0 else f(n - 1) + Sum_n(f, n - 1)
 }
 
 /** Σ f(i) where i ranges from 0 to less than N */
-function method Sum(f: Index -> int): int {
+compiled function Sum(f: Index -> int): int {
     Sum_n(f, N)
 }
 
 /** Matrix multiplication */
-function method mult(a: Matrix, b: Matrix): Matrix
+compiled function mult(a: Matrix, b: Matrix): Matrix
 {
     ((x: Index) => (y: Index) =>
         Sum((k: Index) => a(x)(k) * b(k)(y)))

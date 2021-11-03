@@ -60,7 +60,7 @@ method M1(j: int) returns (n: nat)
 
 function SpecOnly(): bool { true }
 
-function method FuncMeth(): int {
+compiled function FuncMeth(): int {
   assert SpecOnly();  // this call is allowed, because the .Guard of a
                       // PredicateExpr is not included in compilation
   15

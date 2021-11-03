@@ -59,7 +59,7 @@ method SubSets() {
   print S, "\n";
 }
 
-predicate method P(r: set<char>) { true }
+compiled predicate P(r: set<char>) { true }
 
 // -------------------------------------------------------------------------------------------
 

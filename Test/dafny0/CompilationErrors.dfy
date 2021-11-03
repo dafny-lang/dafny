@@ -16,7 +16,7 @@ class TestClass {
 }
 
 function F(): int  // compile error: body-less ghost function
-function method H(): int  // compile error: body-less function method
+compiled function H(): int  // compile error: body-less compiled function
 
 lemma Lemma() {
   assume false;  // compile error: assume

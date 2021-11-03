@@ -104,7 +104,7 @@ class Node {
     Repr := {this} + nxt.Repr;
   }
 
-  function method Sum(): int
+  compiled function Sum(): int
     requires Valid()
     reads Repr
   {
@@ -205,7 +205,7 @@ class {:autocontracts} NodeAuto {
     Repr := {this} + nxt.Repr;
   }
 
-  function method Sum(): int
+  compiled function Sum(): int
   {
     if next == null then x else x + next.Sum()
   }

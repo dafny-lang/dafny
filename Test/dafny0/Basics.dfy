@@ -222,7 +222,7 @@ method SwapEm(a: int, b: int) returns (x: int, y: int)
   x, y := b, a;
 }
 
-function method abs(a:int): int
+compiled function abs(a:int): int
 {
    if a <= 0 then -a else a
 }

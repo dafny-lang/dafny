@@ -32,7 +32,7 @@ method stuff_that_works(p: pair)
 
 type subString = x: seq<char> | 0 <= |x| < 0x8000_0000
 
-function method foo(s: subString): subString { "0" }
+compiled function foo(s: subString): subString { "0" }
 
 method goo(s: subString) returns (eq: bool)
 {

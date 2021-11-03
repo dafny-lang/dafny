@@ -32,10 +32,10 @@ method GoodMethodRhs(x: int) returns (r: Result)
 }
 
 datatype Status = Okay | Error(description: string) {
-  predicate method IsFailure() {
+  compiled predicate IsFailure() {
     Error?
   }
-  function method PropagateFailure(): Status
+  compiled function PropagateFailure(): Status
     requires Error?
   {
     this
@@ -43,23 +43,23 @@ datatype Status = Okay | Error(description: string) {
 }
 
 datatype Result = Success(value: int) | Exception(description: string) {
-  predicate method IsFailure() {
+  compiled predicate IsFailure() {
     Exception?
   }
-  function method PropagateFailure(): Result
+  compiled function PropagateFailure(): Result
     requires Exception?
   {
     this
   }
-  function method Extract(): int
+  compiled function Extract(): int
     requires Success?
   {
     value
   }
 }
 
-function method Find(x: int): Status
+compiled function Find(x: int): Status
 method Mind(x: int) returns (s: Status)
 
-function method Hind(x: int): Result
+compiled function Hind(x: int): Result
 method Tind(x: int) returns (s: Result)

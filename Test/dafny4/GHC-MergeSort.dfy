@@ -21,7 +21,7 @@ function length(xs: List): nat
 }
 
 // returns xs-backwards followed-by acc
-function method reverse(xs: List, acc: List): List
+compiled function reverse(xs: List, acc: List): List
 {
   match xs
   case Nil => acc
@@ -70,19 +70,19 @@ function flatten(x: List<List>): List
 
 // Everything is parametric in G and key
 type G
-function method key(g: G): int
+compiled function key(g: G): int
 
-predicate method Below(a: G, b: G)
+compiled predicate Below(a: G, b: G)
 {
   key(a) <= key(b)
 }
 
-function method sort(xs: List<G>): List<G>
+compiled function sort(xs: List<G>): List<G>
 {
   mergeAll(sequences(xs))
 }
 
-function method sequences(xs: List<G>): List<List<G>>
+compiled function sequences(xs: List<G>): List<List<G>>
   ensures sequences(xs) != Nil;
   decreases xs, 0;
 {
@@ -94,7 +94,7 @@ function method sequences(xs: List<G>): List<List<G>>
     case Cons(b, zs) => if !Below(a, b) then descending(b, Cons(a, Nil), zs) else ascending(b, Cons(a, Nil), zs)
 }
 
-function method descending(a: G, xs: List<G>, ys: List<G>): List<List<G>>
+compiled function descending(a: G, xs: List<G>, ys: List<G>): List<List<G>>
   ensures descending(a, xs, ys) != Nil;
   decreases ys;
 {
@@ -104,7 +104,7 @@ function method descending(a: G, xs: List<G>, ys: List<G>): List<List<G>>
     Cons(Cons(a, xs), sequences(ys))
 }
 
-function method ascending(a: G, xs: List<G>, ys: List<G>): List<List<G>>
+compiled function ascending(a: G, xs: List<G>, ys: List<G>): List<List<G>>
   ensures ascending(a, xs, ys) != Nil;
   decreases ys;
 {
@@ -114,7 +114,7 @@ function method ascending(a: G, xs: List<G>, ys: List<G>): List<List<G>>
     Cons(reverse(Cons(a, xs), Nil), sequences(ys))
 }
 
-function method mergeAll(x: List<List<G>>): List<G>
+compiled function mergeAll(x: List<List<G>>): List<G>
   requires x != Nil;
   decreases length(x);
 {
@@ -124,7 +124,7 @@ function method mergeAll(x: List<List<G>>): List<G>
     mergeAll(mergePairs(x))
 }
 
-function method mergePairs(x: List<List<G>>): List<List<G>>
+compiled function mergePairs(x: List<List<G>>): List<List<G>>
   ensures length(mergePairs(x)) <= length(x);
   ensures x.Cons? && x.tail.Cons? ==> length(mergePairs(x)) < length(x);
   ensures x != Nil ==> mergePairs(x) != Nil;
@@ -135,7 +135,7 @@ function method mergePairs(x: List<List<G>>): List<List<G>>
     x
 }
 
-function method merge(xs: List<G>, ys: List<G>): List<G>
+compiled function merge(xs: List<G>, ys: List<G>): List<G>
 {
   match xs
   case Nil => ys

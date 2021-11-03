@@ -53,7 +53,7 @@ method Match(xs: List<int>) returns (r: int)
   }
 }
 
-function method CaseExpr(r: List<int>): List<int>
+compiled function CaseExpr(r: List<int>): List<int>
 {
   match r {
     case Nil => Nil

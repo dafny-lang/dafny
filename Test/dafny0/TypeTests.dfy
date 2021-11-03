@@ -143,7 +143,7 @@ method K() {
   Expl_Module.E<nat>.N(0, 0);
 }
 method Expl_M<T>(x: T) returns (y: T)
-function method Expl_F<T>(x: T): T
+compiled function Expl_F<T>(x: T): T
 class Expl_Class<T> {
   method Init<U>(t: T, u: U)
   static method DoIt<U>(t: T, u: U)
@@ -204,7 +204,7 @@ module ProxyCycles {
     dt := Ctor(f);  // error: cannot infer a type for f
   }
 
-  function method F<X>(x: X): set<X>
+  compiled function F<X>(x: X): set<X>
   method N()
   {
     var x;
@@ -248,5 +248,5 @@ module OtherCycles1 {
 module OtherCycles2 {
   datatype CycleW = CycleW(CycW)
   type CycW = c: CycleW | true witness W()  // error: dependency cycle W -> CycW -> CycleW
-  function method W(): CycleW
+  compiled function W(): CycleW
 }

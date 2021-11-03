@@ -7,8 +7,8 @@ module A {
 
    type T = int
    class AClass {
-     function method f(): T { 0 }
-     function method g(): int { f() }
+     compiled function f(): T { 0 }
+     compiled function g(): int { f() }
      constructor Init() { }
    }
 }

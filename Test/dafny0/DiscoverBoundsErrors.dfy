@@ -13,12 +13,12 @@ method Main()
   b := forall r': NR :: true ==> Q(r' as real);  // error: cannot find finite range
 }
 
-predicate method P(x: int)
+compiled predicate P(x: int)
 {
   x == 157
 }
 
-predicate method Q(r: real)
+compiled predicate Q(r: real)
 {
   r / 2.0 <= r
 }
@@ -58,7 +58,7 @@ class K {
   var u: int
 }
 
-function method Max(ks: set<K>): int
+compiled function Max(ks: set<K>): int
   requires ks != {}
   reads ks
 {

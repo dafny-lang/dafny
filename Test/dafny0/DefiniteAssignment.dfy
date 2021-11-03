@@ -64,7 +64,7 @@ method M1<G>(x: int, a: G, b: G) returns (y: G, z: G)
 
 class C { var u: int }
 
-function method F(): C
+compiled function F(): C
 
 type NonNullC = c: C? | c != null witness F()
 
@@ -221,7 +221,7 @@ method Loop<G>(a: G, b: G, n: nat, k: int) returns (g: G)
 
 // ----- multiple returns, LHS patterns, and underscores -----
 
-function method Two<T>(t: T): (T, T)
+compiled function Two<T>(t: T): (T, T)
 {
   (t, t)
 }

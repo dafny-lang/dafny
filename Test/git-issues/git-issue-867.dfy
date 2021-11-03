@@ -3,7 +3,7 @@
 
 // The following compiled function was always handled correctly:
 
-function method PickOne0(s: set<int>): int
+compiled function PickOne0(s: set<int>): int
   requires s != {}
 {
   var u :| u in s;  // error: u is not picked uniquely
@@ -14,7 +14,7 @@ function method PickOne0(s: set<int>): int
 // wasn't checked properly for compile restrictions. In other words, the
 // outer let expression had masked any such errors in its body.
 
-function method PickOne1(s: set<int>): int
+compiled function PickOne1(s: set<int>): int
   requires s != {}
 {
   var w := 10;
@@ -22,7 +22,7 @@ function method PickOne1(s: set<int>): int
   u
 }
 
-function method PickOne2(s: set<int>): int
+compiled function PickOne2(s: set<int>): int
   requires s != {}
 {
   var w :| w == 10;
@@ -39,7 +39,7 @@ module M0 {
       (forall x :: x in t ==> x in q)
   }
 
-  function method fSetToSeq<T>(t: set<T>): (r: seq<T>)
+  compiled function fSetToSeq<T>(t: set<T>): (r: seq<T>)
     ensures setIsSeq(t, r)
   {
     var inner := t;
@@ -80,7 +80,7 @@ module M1 {
       (forall x :: x in t ==> x in q)
   }
 
-  function method fSetToSeq(t: set): (r: seq)
+  compiled function fSetToSeq(t: set): (r: seq)
     ensures setIsSeq(t, r)
    {
     var notUsed := t;

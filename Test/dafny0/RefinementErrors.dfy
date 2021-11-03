@@ -11,7 +11,7 @@ module A {
     var abc: bool;
     var xyz: bool;
 
-    function method F<A,B,C>(x: int, y: A, z: set<C>, b: bool): B
+    compiled function F<A,B,C>(x: int, y: A, z: set<C>, b: bool): B
 
     function G(): int  // uninterpreted for now
     function H(): int  // uninterpreted for now
@@ -34,7 +34,7 @@ module B refines A {
     predicate abc()  // error: cannot replace a field with a predicate
     var xyz: bool;  // error: ...or even with another field
 
-    function F   // error: cannot replace a "function method" with a "function"
+    function F   // error: cannot replace a "compiled function" with a "function"
         <C,A,B>  // error: different list of type parameters
         (x: int, y: A, z: seq<C>,  // error: different type of parameter z
          k: bool)  // error: different parameter name
@@ -54,8 +54,8 @@ module B refines A {
 
 module BB refines B {
   class C ... {
-    function method G(): int  // error: allowed to make a function into a function method
-    function method H(): int  // ...unless this is where the function body is given
+    compiled function G(): int  // error: allowed to make a function into a compiled function
+    compiled function H(): int  // ...unless this is where the function body is given
     { 10 }
   }
 }

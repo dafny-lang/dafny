@@ -71,7 +71,7 @@ module PrettyPrinting {
       y.Floor as real == y
     }
 
-    function method MF(y: real, ghost g: int): char
+    compiled function MF(y: real, ghost g: int): char
     {
       'G'
     }
@@ -272,17 +272,17 @@ module TraitsAndOldParameters {
 
 // Print test for /dprint. Note, this same class is tested with /rprint in Test/dafny2/CalcDefaultMainOperator.dfy.
 module PrintTest {
-  function method Five(): int { 5 }
+  compiled function Five(): int { 5 }
   function Six(): int { 6 }
 
-  function method Ten(): int {
+  compiled function Ten(): int {
     var f := Five();
     ghost var s := Six();
     assert s == 6;
     f + f
   }
 
-  function method TenAgain(): int {
+  compiled function TenAgain(): int {
     var ten :=
       var f := Five();
       ghost var s := Six();
@@ -310,12 +310,12 @@ module PrintTest {
     s + t
   }
 
-  function method Twenty(): int {
+  compiled function Twenty(): int {
     var x :| x == 10;
     x + x
   }
 
-  function method TwentyOne(): int {
+  compiled function TwentyOne(): int {
     ghost var x :| x == 10 && Yes(x);
     assert x + x + 1 == 21;
     21
@@ -375,7 +375,7 @@ module TwoStateAt {
       assert old(c.data) == c.data;
     }
 
-    function method G(): int { 32 }
+    compiled function G(): int { 32 }
     lemma Theorem() { }
   }
 

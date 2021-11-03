@@ -68,11 +68,11 @@ greatest lemma M'(x': int)
 
 class CF {
   static function F(): int
-  predicate method G()
+  compiled predicate G()
   greatest predicate Co()
   function H(): int
-  static function method I(): real
-  static predicate method J()
+  static compiled function I(): real
+  static compiled predicate J()
 }
 
 // test printing of various if statements, including with omitted guards

@@ -21,21 +21,21 @@ method Main() {
 
 datatype List<T> = Nil | Cons(T, List<T>)
 
-function method length(xs: List): nat
+compiled function length(xs: List): nat
 {
   match xs
   case Nil => 0
   case Cons(_, tail) => 1 + length(tail)
 }
 
-function method SeqToList(s: seq): List
+compiled function SeqToList(s: seq): List
 {
   if s == [] then Nil else Cons(s[0], SeqToList(s[1..]))
 }
 
 // ----- foldr ----------
 
-function method foldr<A,B>(f: (A,B) -> B, b: B, xs: List<A>): B
+compiled function foldr<A,B>(f: (A,B) -> B, b: B, xs: List<A>): B
 {
   match xs
   case Nil => b
@@ -93,7 +93,7 @@ method FoldR_Use(xs: List<int>)
 
 // The (inv,stp) method of proof above is general, in the sense that it can be instantiated with (inv,stp).
 // For a particular function, like F23, one can also prove a lemma about foldr directly.
-function method F23(a: int, b: int): int {
+compiled function F23(a: int, b: int): int {
   2*a + 3*b
 }
 
@@ -140,7 +140,7 @@ lemma FoldingIncR(xs: List<int>)
 
 // ----- foldl ----------
 
-function method foldl<A,B>(f: (B,A) -> B, b: B, xs: List<A>): B
+compiled function foldl<A,B>(f: (B,A) -> B, b: B, xs: List<A>): B
 {
   match xs
   case Nil => b
@@ -216,7 +216,7 @@ lemma FoldL_Property_inv_f<A,B>(inv: (B,List<A>) -> bool, f: (B,A) -> B, b: B, x
 }
 
 // And as in the case of foldr, one can also use a specialized lemma for a particular function to be folded.
-function method F32(b: int, a: int): int
+compiled function F32(b: int, a: int): int
 {
   3*b + 2*a
 }

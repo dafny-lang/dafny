@@ -92,7 +92,7 @@ module ByMethodRecursion {
   } by method {
     return Id(x, n); // error: failure to prove termination
   }
-  function method Id(x: int, n: nat): int {
+  compiled function Id(x: int, n: nat): int {
     if n == 0 then x else G(x, n - 1)
   }
 
@@ -102,7 +102,7 @@ module ByMethodRecursion {
     return H(x, n); // error: failure to prove termination
   }
 
-  function method I(x: int, n: nat): int {
+  compiled function I(x: int, n: nat): int {
     if n == 0 then x else J(x, n - 1)
   }
   function J(x: int, n: nat): int {
@@ -111,7 +111,7 @@ module ByMethodRecursion {
     return I(x, n); // error: failure to prove termination
   }
 
-  function method I'(x: int, n: nat): int
+  compiled function I'(x: int, n: nat): int
     decreases x, n, 3
   {
     if n == 0 then x else J'(x, n - 1)

@@ -35,7 +35,7 @@ module Export {
       5
     }
 
-    function method G(): int {
+    compiled function G(): int {
       5
     }
 
@@ -131,7 +131,7 @@ module BadExtremeRecursion {
   least predicate R1() {
     H1'() == 5 // error: R1 is in same recursive cluster as H1
   }
-  function method H1'(): int {
+  compiled function H1'(): int {
     if H1() < 100 then 5 else 3 // in a compiled context, this calls the method part of H1
   }
   function H1(): int {
@@ -146,7 +146,7 @@ module BadExtremeRecursion {
   least predicate R2() {
     H2'() == 5 // error: R2 is in same recursive cluster as H2
   }
-  function method H2'(): int {
+  compiled function H2'(): int {
     if H2() < 100 then 5 else 3 // in a compiled context, this calls the method part of H2
   }
   function H2(): int {

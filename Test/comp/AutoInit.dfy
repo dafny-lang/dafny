@@ -16,7 +16,7 @@ class WClass<W> {
   constructor Make(w: W) {
     strm := Generate(w);
   }
-  static function method Generate(w: W): Stream<W> {
+  static compiled function Generate(w: W): Stream<W> {
     Next(w, Generate(w))
   }
 }
@@ -33,7 +33,7 @@ class Class {
   }
 }
 
-predicate method Same<A(==)>(a0: A, a1: A) {
+compiled predicate Same<A(==)>(a0: A, a1: A) {
   a0 == a1
 }
 
@@ -194,7 +194,7 @@ module NilRegression {
   method Gimmie<R(0)>() returns (r: R) { }
   method Gimmie2<R(0), S(0)>() returns (r: R, s: S) { }
 
-  function method Id<X>(x: X): X { x }
+  compiled function Id<X>(x: X): X { x }
 
   method NilRegression3() {
     // test out-parameters of methods

@@ -7,7 +7,7 @@
 
 datatype Record = Record(a: int, ghost b: int)
 
-function method TwinPrimes(): Record {
+compiled function TwinPrimes(): Record {
   Record(41, 43)
 }
 

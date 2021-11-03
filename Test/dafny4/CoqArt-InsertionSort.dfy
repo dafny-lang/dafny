@@ -95,7 +95,7 @@ lemma equiv_perm(a: int, b: int, l: List<int>, l': List<int>)
 }
 
 // insertion of z into l at the right place (assuming l is sorted)
-function method aux(z: int, l: List<int>): List<int>
+compiled function aux(z: int, l: List<int>): List<int>
 {
   match l
   case Nil => Cons(z, Nil)
@@ -167,7 +167,7 @@ lemma existence_proof(l: List<int>)
 }
 
 // to get a compilable function in Dafny
-function method Sort(l: List<int>): List<int>
+compiled function Sort(l: List<int>): List<int>
   ensures equiv(l, Sort(l)) && sorted(Sort(l));
 {
   match l

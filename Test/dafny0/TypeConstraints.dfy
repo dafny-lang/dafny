@@ -4,7 +4,7 @@ module Tests {
 class CC {
   var f: nat
   var g: int
-  function method F(): nat
+  compiled function F(): nat
   method M() {
     var a := f;  // nat
     var b := g;  // int
@@ -478,11 +478,11 @@ module TypeArgumentPrintTests {
 
   // -----
   class A<X> {
-    static function method F(x: X): int { 15 }
+    static compiled function F(x: X): int { 15 }
   }
 
   class B<Y> {
-    function method H(y: Y, b: bool): int {
+    compiled function H(y: Y, b: bool): int {
       if b then
         A.F(y)  // should print as A<Y>.F(y)
       else

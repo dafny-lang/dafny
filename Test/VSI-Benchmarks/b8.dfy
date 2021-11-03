@@ -20,11 +20,11 @@ class Queue<T> {
     requires 0 < |contents|
     modifies this
     ensures contents == old(contents)[1..] && x == old(contents)[0]
-  function method Head(): T
+  compiled function Head(): T
     requires 0 < |contents|
     reads this
   { contents[0] }
-  function method Get(i: int): T
+  compiled function Get(i: int): T
     requires 0 <= i < |contents|
     reads this
   { contents[i] }

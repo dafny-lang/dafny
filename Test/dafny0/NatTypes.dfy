@@ -76,7 +76,7 @@ method HenEric<T>(i: int, t0: T, t1: T) returns (r: T) {
   r := t1;
 }
 
-function method FenEric<T>(t0: T, t1: T): T
+compiled function FenEric<T>(t0: T, t1: T): T
 {
   t1
 }
@@ -117,7 +117,7 @@ class GenEric<T> {
   }
 }
 
-function method GE<T>(d: GenEric?<T>): bool { true }
+compiled function GE<T>(d: GenEric?<T>): bool { true }
 
 method TestGenEric() {
   var ge;
@@ -127,7 +127,7 @@ method TestGenEric() {
   }
 }
 
-function method Sum(list: List<object>): nat
+compiled function Sum(list: List<object>): nat
 {
   match list
   case Nil => 0

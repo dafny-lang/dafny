@@ -75,7 +75,7 @@ class SoWellformed {
 class StatementTwoShoes {
   var x: int
   var s: StatementTwoShoes?
-  function method F(b: int): StatementTwoShoes?
+  compiled function F(b: int): StatementTwoShoes?
     requires 0 <= b;
     reads this;
   {
@@ -186,7 +186,7 @@ class StatementTwoShoes {
   }
 
   function G(w: int): int { 5 }
-  function method H(x: int): int { -x }
+  compiled function H(x: int): int { -x }
 
   method W(x: int)
   {

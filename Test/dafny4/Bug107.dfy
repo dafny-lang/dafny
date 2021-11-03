@@ -7,7 +7,7 @@ method Main()
 	print(f(4));
 }
 
-function method Inc(x: int): int
+compiled function Inc(x: int): int
 {
   x + 2
 }

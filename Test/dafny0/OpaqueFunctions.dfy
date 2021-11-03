@@ -292,30 +292,30 @@ function {:opaque} zero<A>(): int { 0 }
 module TypeMembers {
   trait Tr {
     const fav: bool
-    predicate method {:opaque} IsFavorite() {
+    compiled predicate {:opaque} IsFavorite() {
       fav
     }
-    static predicate method {:opaque} IsFive(x: int) {
+    static compiled predicate {:opaque} IsFive(x: int) {
       x == 5
     }
   }
 
   datatype Color = Carrot | Pumpkin
   {
-    predicate method {:opaque} IsFavorite() {
+    compiled predicate {:opaque} IsFavorite() {
       this == Pumpkin
     }
-    static predicate method {:opaque} IsFive(x: int) {
+    static compiled predicate {:opaque} IsFive(x: int) {
       x == 5
     }
   }
 
   newtype Small = x | 30 <= x < 40 witness 30
   {
-    predicate method {:opaque} IsFavorite() {
+    compiled predicate {:opaque} IsFavorite() {
       this == 34
     }
-    static predicate method {:opaque} IsFive(x: int) {
+    static compiled predicate {:opaque} IsFive(x: int) {
       x == 5
     }
   }

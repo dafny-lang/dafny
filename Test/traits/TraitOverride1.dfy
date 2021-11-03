@@ -3,26 +3,26 @@
 
 trait T1
 {
-  function method Plus (x:int, y:int) : int
+  compiled function Plus (x:int, y:int) : int
     requires x>y
   {
     x + y
   }
 
-  function method bb(x:int):int
+  compiled function bb(x:int):int
     requires x>10
 
-  function method BodyLess1(a:int) : int
+  compiled function BodyLess1(a:int) : int
     requires a > 0
 
-  function method dd(a:int) : int
+  compiled function dd(a:int) : int
 
   method Testing()
 }
 
 class C1 extends T1
 {
-  function method dd(x:int):int
+  compiled function dd(x:int):int
   {
     2
   }
@@ -33,12 +33,12 @@ class C1 extends T1
     x := bb(x);
   }
 
-  function method bb(x:int):int
+  compiled function bb(x:int):int
     requires x >10
   {
     x
   }
-  function method BodyLess1(bda:int) : int
+  compiled function BodyLess1(bda:int) : int
     requires bda > -10
   {
     2
@@ -54,7 +54,7 @@ class C1 extends T1
 
 trait T2
 {
-  function method F(x: int): int
+  compiled function F(x: int): int
     requires x < 100
     ensures F(x) < 100
 
@@ -65,7 +65,7 @@ trait T2
 
 class C2 extends T2
 {
-  function method F(x: int): int
+  compiled function F(x: int): int
     requires x < 100
     ensures F(x) < 100
   {
@@ -83,8 +83,8 @@ class C2 extends T2
 
 trait T3
 {
-  function method F(y: int): int
-  function method G(y: int): int { 12 }
+  compiled function F(y: int): int
+  compiled function G(y: int): int { 12 }
   method M(y: int)
   method N(y: int) {
     var a:int := 100;
@@ -93,11 +93,11 @@ trait T3
 }
 class C3 extends T3
 {
-  function method NewFunc (a:int, b:int) : int
+  compiled function NewFunc (a:int, b:int) : int
   {
     a + b
   }
-  function method F(y: int): int { 20 }
+  compiled function F(y: int): int { 20 }
   method M(y: int) {
     var a:int := 100;
     assert a==100;
@@ -125,7 +125,7 @@ class c extends t
 
 trait TT
 {
-  static function method M(a:int, b:int) : int
+  static compiled function M(a:int, b:int) : int
     ensures M(a,b) == a + b
   {
     a + b
@@ -143,9 +143,9 @@ class CC extends TT
 
 trait T4
 {
-  function method F(y: int): int
+  compiled function F(y: int): int
 
-  function method G(y: int): int
+  compiled function G(y: int): int
   {
     100
   }
@@ -166,7 +166,7 @@ trait T4
 
 class C4 extends T4
 {
-  function method F(y: int): int
+  compiled function F(y: int): int
   {
     200
   }

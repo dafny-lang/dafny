@@ -1,7 +1,7 @@
 // RUN: %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-predicate method P()
+compiled predicate P()
 
 method TestMapMethod(s0: set<int>, s1: set<int>) {
   var m;

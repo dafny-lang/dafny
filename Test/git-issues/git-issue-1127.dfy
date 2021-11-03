@@ -3,7 +3,7 @@
 
 // -----
 
-function method Func<T(00)>(): int {
+compiled function Func<T(00)>(): int {
   5
 }
 

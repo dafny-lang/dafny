@@ -10,7 +10,7 @@ method Main() {
 }
 
 // Here is the definition of the Ackermann function:
-function method Ack(m: nat, n: nat): nat
+compiled function Ack(m: nat, n: nat): nat
 {
   if m == 0 then
     n + 1

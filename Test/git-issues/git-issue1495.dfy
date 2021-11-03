@@ -4,7 +4,7 @@ include "../libraries/src/Wrappers.dfy"
 import opened Wrappers
 
 datatype Bar = Bar(i: string)
-function method ParseBar(s: string): Result<Bar, string> {
+compiled function ParseBar(s: string): Result<Bar, string> {
    Success(Bar(s))
 }
 

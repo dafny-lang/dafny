@@ -7,10 +7,10 @@
 
 datatype Result<T> = Success(value: T) | Failure(error: string)
 {
-  predicate method IsFailure() {
+  compiled predicate IsFailure() {
     Failure?
   }
-  function method PropagateFailure<U>(): Result<U>
+  compiled function PropagateFailure<U>(): Result<U>
     requires Failure?
   {
     Failure(this.error)

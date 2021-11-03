@@ -22,9 +22,9 @@ method Main() {
   NewtypeRangeRegression.Test();
 }
 
-predicate method Thirteen(x: int) { x == 13 }
-predicate method Even(y: int) { y % 2 == 1 }
-function method FourMore(x: int): int { x + 4 }
+compiled predicate Thirteen(x: int) { x == 13 }
+compiled predicate Even(y: int) { y % 2 == 1 }
+compiled function FourMore(x: int): int { x + 4 }
 
 method AssignSuchThat() {
   var x, y;
@@ -290,7 +290,7 @@ method SetComprehension2() {
 
 datatype Color = Red | Green | Blue
 
-predicate method True<G>(g: G) { true }
+compiled predicate True<G>(g: G) { true }
 
 method SetComprehension3() {
   var s: set<bool> := {false, true};
@@ -480,7 +480,7 @@ module ObjectTests {
     print GenEqual(o', p'), " ", GenEqual(p', p'), "\n"; // true true
   }
 
-  predicate method GenEqual<X(==)>(x: X, y: X) {
+  compiled predicate GenEqual<X(==)>(x: X, y: X) {
     x == y
   }
 

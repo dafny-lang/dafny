@@ -53,7 +53,7 @@ module MemberCall {
 
 module HomegrownNonNullType {
   class C { var u: int }
-  function method F(): C
+  compiled function F(): C
   type MyNonNullC = c: C? | c != null witness F()
 
   method M(c: MyNonNullC)
@@ -97,7 +97,7 @@ module NullLiterals {
 }
 
 module XJ {
-  predicate method Z(z: real) { z == 3.14 }
+  compiled predicate Z(z: real) { z == 3.14 }
   class Cell { var data: int }
   method D(k: int, seven: Cell)
     requires seven.data == 7

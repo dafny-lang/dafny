@@ -34,20 +34,20 @@ method Main() {
   TestModule();
 }
 
-function method Up(m: nat, n: nat): List
+compiled function Up(m: nat, n: nat): List
   requires m <= n
   decreases n - m
 {
   if m == n then Nil else Cons(m, Up(m+1, n))
 }
 
-function method Sum(xs: List): int {
+compiled function Sum(xs: List): int {
   match xs  // top-level match expression
   case Nil => 0
   case Cons(x, tail) => x + Sum(tail)
 }
 
-function method SumAgain(xs: List): int {
+compiled function SumAgain(xs: List): int {
   var r := match xs  // let expression; non-top-level match expression
     case Nil => 0
     case Cons(x, tail) => x + SumAgain(tail);
@@ -76,7 +76,7 @@ method CoDt() {
 
 codatatype Stream = Next(shead: int, stail: Stream)
 
-function method CoUp(n: int, b: bool): Stream
+compiled function CoUp(n: int, b: bool): Stream
 {
   if b then
     CoUp(n, false)  // recursive, not co-recursive, call
@@ -84,18 +84,18 @@ function method CoUp(n: int, b: bool): Stream
     Next(n, CoUp(n+1, true))  // CoUp is co-recursive call
 }
 
-function method ToList(s: Stream, n: nat): List
+compiled function ToList(s: Stream, n: nat): List
 {
   if n == 0 then Nil else Cons(s.shead, ToList(s.stail, n-1))
 }
 
 datatype Berry = Smultron | Jordgubb | Hjortron | Hallon
-predicate method IsRed(b: Berry) {
+compiled predicate IsRed(b: Berry) {
   b != Berry.Hjortron
 }
 
 codatatype CoBerry = Smultron | Jordgubb | Hjortron | Hallon  // no reason for this to be a co-datatype, but, hey, why not
-predicate method IsCoRed(b: CoBerry) {
+compiled predicate IsCoRed(b: CoBerry) {
   b == CoBerry.Hjortron
 }
 
@@ -110,7 +110,7 @@ method AllBerry() {
 
 codatatype NatPlus = Succ(NatPlus) | Zero
 
-function method Inf(): NatPlus {
+compiled function Inf(): NatPlus {
   Succ(Inf())
 }
 

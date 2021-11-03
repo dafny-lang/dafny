@@ -26,11 +26,11 @@ module ExampleA {
 
 module ExampleA_Compiled {
   trait C {
-    predicate method F()
+    compiled predicate F()
       ensures false
   }
 
-  predicate method BadCompiled()
+  compiled predicate BadCompiled()
     ensures false
   {
     // regression: the verifier used to verify the next line (though the compiler then complained it didn't know how to generate code)

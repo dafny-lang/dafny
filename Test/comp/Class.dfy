@@ -16,8 +16,8 @@ class MyClass {
     b := 200 + x;
   }
 
-  function method F(): int { 8 }
-  static function method G(): int { 9 }
+  compiled function F(): int { 8 }
+  static compiled function G(): int { 9 }
   method M() returns (r: int) { r := 69; }
   static method N() returns (r: int) { return 70; }
 }
@@ -29,8 +29,8 @@ trait MyTrait {
   static const d: int
   static const e := 18
 
-  function method F(): int { 8 }
-  static function method G(): int { 9 }
+  compiled function F(): int { 8 }
+  static compiled function G(): int { 9 }
   method M() returns (r: int) { r := 69; }
   static method N() returns (r: int) { return 70; }
 }
@@ -161,7 +161,7 @@ module DependentStaticConsts {
 }
 
 newtype NewtypeWithMethods = x | 0 <= x < 42 {
-  function method double() : int {
+  compiled function double() : int {
     this as int * 2
   }
 

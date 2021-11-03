@@ -5,7 +5,7 @@ class BreadthFirstSearch<Vertex(==)>
 {
   // The following function is left uninterpreted (for the purpose of the
   // verification problem, it can be thought of as a parameter to the class)
-  function method Succ(x: Vertex): set<Vertex>
+  compiled function Succ(x: Vertex): set<Vertex>
 
   // This is the definition of what it means to be a path "p" from vertex
   // "source" to vertex "dest"

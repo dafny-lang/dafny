@@ -460,7 +460,7 @@ class AttributeTests {
     r := false;
   }
 
-  function method m2() : bool
+  compiled function m2() : bool
   {
     true
   }
@@ -673,7 +673,7 @@ method AssignSuchThat9() returns (q: QuiteFinite)
 
 // ----------- let-such-that expressions ------------------------
 
-function method LetSuchThat_P(x: int): bool
+compiled function LetSuchThat_P(x: int): bool
 
 method LetSuchThat0(ghost g: int)
   requires LetSuchThat_P(g)

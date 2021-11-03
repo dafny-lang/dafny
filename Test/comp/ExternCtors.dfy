@@ -15,7 +15,7 @@ module {:extern "Library"} Library {
   class {:extern} Class {
     constructor {:extern} (n: int)
     static method {:extern} SayHi()
-    function method {:extern} Get() : int
+    compiled function {:extern} Get() : int
     method Print() {
       print "My value is ", Get(), "\n";
     }

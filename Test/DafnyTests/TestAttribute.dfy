@@ -7,7 +7,7 @@
 include "../exceptions/VoidOutcomeDt.dfy"
 include "../exceptions/NatOutcomeDt.dfy"
 
-function method SafeDivide(a: nat, b: nat): NatOutcome {
+compiled function SafeDivide(a: nat, b: nat): NatOutcome {
   if b == 0 then
     NatFailure("Divide by zero")
   else
@@ -27,11 +27,11 @@ method FailUnless(p: bool) returns (r: VoidOutcome) ensures r.VoidSuccess? ==> p
   }
 }
 
-function method {:test} PassingTest(): VoidOutcome {
+compiled function {:test} PassingTest(): VoidOutcome {
   VoidSuccess
 }
 
-function method {:test} FailingTest(): VoidOutcome {
+compiled function {:test} FailingTest(): VoidOutcome {
   VoidFailure("Whoopsie")
 }
 

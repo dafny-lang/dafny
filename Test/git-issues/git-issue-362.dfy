@@ -1,7 +1,7 @@
 // RUN: %dafny "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-function method IsLetter(c: char): bool { 'A' <= c <= 'Z' }
+compiled function IsLetter(c: char): bool { 'A' <= c <= 'Z' }
 type Letter = c: char | IsLetter(c) witness 'A'
 function Test(c: Letter): Letter {
   var r := c + 1 as char;

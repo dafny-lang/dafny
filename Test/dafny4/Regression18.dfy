@@ -11,7 +11,7 @@ module B {
   type T = A.X
   type NewT = t: T | Pred(t) witness Witness()
   predicate Pred(t: T)
-  function method Witness(): T
+  compiled function Witness(): T
     ensures Pred(Witness())
 
   method Bad(x: T) returns (tt: NewT) {

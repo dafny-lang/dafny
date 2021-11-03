@@ -6,13 +6,13 @@ datatype Outcome<T> =
 | Success(value: T)
 | Failure(error: string)
 {
-    predicate method IsFailure() {
+    compiled predicate IsFailure() {
         this.Failure?
     }
-    function method PropagateFailure<U>(): Outcome<U> requires IsFailure() {
+    compiled function PropagateFailure<U>(): Outcome<U> requires IsFailure() {
         Failure(this.error)
     }
-    function method Extract(): T requires !IsFailure() {
+    compiled function Extract(): T requires !IsFailure() {
         this.value
     }
 }

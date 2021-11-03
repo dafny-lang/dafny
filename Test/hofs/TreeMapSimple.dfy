@@ -31,7 +31,7 @@ predicate PreY<A,B>(f: A --> B, s: set<A>) {
   forall x :: x in s ==> f.requires(x)
 }
 
-function method MapY<A,B>(xs: List<A>, f: A --> B): List<B>
+compiled function MapY<A,B>(xs: List<A>, f: A --> B): List<B>
   requires PreY(f, ListData(xs))
   decreases xs
 {
@@ -40,7 +40,7 @@ function method MapY<A,B>(xs: List<A>, f: A --> B): List<B>
   case Cons(x, xs) => Cons(f(x), MapY(xs, f))
 }
 
-function method TreeMapY<A,B>(t0: Tree<A>, f: A --> B): Tree<B>
+compiled function TreeMapY<A,B>(t0: Tree<A>, f: A --> B): Tree<B>
   requires PreY(f, TreeData(t0))
   decreases t0
 {
@@ -63,7 +63,7 @@ predicate PreZ<A,B>(f: A ~> B, s: set<A>)
   forall x :: x in s ==> f.requires(x)
 }
 
-function method MapZ<A,B>(xs: List<A>, f: A ~> B): List<B>
+compiled function MapZ<A,B>(xs: List<A>, f: A ~> B): List<B>
   requires PreZ(f, ListData(xs))
   reads PreZ.reads(f, ListData(xs))
   decreases xs
@@ -73,7 +73,7 @@ function method MapZ<A,B>(xs: List<A>, f: A ~> B): List<B>
   case Cons(x, xs) => Cons(f(x), MapZ(xs, f))
 }
 
-function method TreeMapZ<A,B>(t0: Tree<A>, f: A ~> B): Tree<B>
+compiled function TreeMapZ<A,B>(t0: Tree<A>, f: A ~> B): Tree<B>
   requires PreZ(f, TreeData(t0))
   reads PreZ.reads(f, TreeData(t0))
   decreases t0

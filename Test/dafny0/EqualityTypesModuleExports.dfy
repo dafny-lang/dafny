@@ -19,7 +19,7 @@ module AAA {
   }
 
   class MyClass<GG,HH(==)> {
-    function method Fib<X>(n: int, xs: set<X>): int  // this should infer X to be (==)
+    compiled function Fib<X>(n: int, xs: set<X>): int  // this should infer X to be (==)
     {
       if n < 2 then n else Fib(n-2, xs) + Fib(n-1, xs)
     }
@@ -297,7 +297,7 @@ module ExportEquality0 {
 
   type ExportedType(==)<A> = PrivateType<A>  // error: because PrivateType<A> supports equality only if A does
   datatype PrivateType<A> = None | Make(a: A)
-  function method Empty(): ExportedType
+  compiled function Empty(): ExportedType
 }
 
 module ExportEquality1 {
@@ -305,7 +305,7 @@ module ExportEquality1 {
 
   type ExportedType(==)<A> = PrivateType<A>
   datatype PrivateType<A> = None | Make(a: int)  // this does not make use of A
-  function method Empty(): ExportedType
+  compiled function Empty(): ExportedType
 }
 
 module ExportEquality2 {
@@ -313,7 +313,7 @@ module ExportEquality2 {
 
   type ExportedType(==)<A(==)> = PrivateType<A>
   datatype PrivateType<A> = None | Make(a: A)
-  function method Empty(): ExportedType
+  compiled function Empty(): ExportedType
 }
 module Client2 {
   import EE = ExportEquality2
@@ -328,11 +328,11 @@ module ExportEquality3 {
 
   type ExportedType(==)<A(==)> = PrivateType<A>
   datatype PrivateType<A> = None | Make(a: A)
-  function method Empty(): ExportedType
+  compiled function Empty(): ExportedType
   {
     None
   }
-  predicate method IsEmpty(t: ExportedType)
+  compiled predicate IsEmpty(t: ExportedType)
     ensures IsEmpty(t) <==> t == Empty()
   {
     t == None
@@ -341,19 +341,19 @@ module ExportEquality3 {
 
 module CompareWithNullaryCtor {
   datatype List<A> = Nil | Cons(head: A, tail: List)
-  predicate method MyEquals_Bad<A>(xs: List, ys: List)
+  compiled predicate MyEquals_Bad<A>(xs: List, ys: List)
   {
     xs == ys  // error: List<A> supports equality only if A does
   }
-  predicate method MyEquals_Good<A(==)>(xs: List, ys: List)
+  compiled predicate MyEquals_Good<A(==)>(xs: List, ys: List)
   {
     xs == ys
   }
-  predicate method IsNil<A>(xs: List)
+  compiled predicate IsNil<A>(xs: List)
   {
     xs == Nil
   }
-  predicate method IsNil'<A>(xs: List)
+  compiled predicate IsNil'<A>(xs: List)
   {
     xs.Nil?
   }

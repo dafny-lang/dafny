@@ -3,7 +3,7 @@
 
 
 class C {
-  static function method Static() : bool
+  static compiled function Static() : bool
   {
     true
   }
@@ -47,7 +47,7 @@ method U(t : T)
 
 class MyClass {
   var data: int
-	function method F(): int
+	compiled function F(): int
 	  reads this
 	{
 	  data

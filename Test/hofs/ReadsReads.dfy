@@ -111,7 +111,7 @@ module ReadsAll {
     f(0) + f(1) + f(2)
   }
 
-  function method B(f: int ~> int) : int
+  compiled function B(f: int ~> int) : int
     reads set x,o | o in f.reads(x) :: o  // note, with "set o,x ..." instead, Dafny complains (this is perhaps less than ideal)
     requires forall x :: f.requires(x)
   {
@@ -125,7 +125,7 @@ module ReadsAll {
     f(0) + f(1) + f(2)
   }
 
-  function method D(f: int ~> int) : int
+  compiled function D(f: int ~> int) : int
     reads f.reads
     requires forall x :: f.requires(x)
   {

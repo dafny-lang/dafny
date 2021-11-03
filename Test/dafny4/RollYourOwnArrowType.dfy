@@ -24,21 +24,21 @@ function GhostEffectlessArrowWitness<A, B(00)>(a: A): B
 }
 
 
-function method Twice(f: EffectlessArrow<int,int>, x: int): int
+compiled function Twice(f: EffectlessArrow<int,int>, x: int): int
   requires forall x :: f.requires(x)
 {
   var y := f(x);
   f(y)
 }
 
-function method Twice'(f: EffectlessArrow<int,int>, x: int): int
+compiled function Twice'(f: EffectlessArrow<int,int>, x: int): int
   reads f.reads
   requires forall x :: f.requires(x)
 {
   f(f(x))
 }
 
-function method Twice''(f: EffectlessArrow<int,int>, x: int): int
+compiled function Twice''(f: EffectlessArrow<int,int>, x: int): int
   reads f.reads
   requires forall x :: f.requires(x)
 {
@@ -46,14 +46,14 @@ function method Twice''(f: EffectlessArrow<int,int>, x: int): int
   f(f(x))
 }
 
-function method TwoTimes(f: int ~> int, x: int): int
+compiled function TwoTimes(f: int ~> int, x: int): int
   requires forall x :: f.reads(x) == {}
   requires forall x :: f.requires(x)
 {
   f(f(x))
 }
 
-function method Inc(x: int): int
+compiled function Inc(x: int): int
 {
   x + 1
 }

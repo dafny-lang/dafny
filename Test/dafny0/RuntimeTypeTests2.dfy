@@ -3,7 +3,7 @@
 
 // The errors in this file are produced by the compiler
 
-predicate method ItWasReal(r: real)
+compiled predicate ItWasReal(r: real)
 {
   r == 44.1985
 }

@@ -8,7 +8,7 @@ method M() returns (x: int) {
   x := var y := 50; y;  // non-top-level let
 }
 
-function method F(): int {
+compiled function F(): int {
   var r := 58; r  // top-level let
 }
 
@@ -32,7 +32,7 @@ method Main() {
 
 datatype Tree = Leaf | Node(Tree, val: int, Tree)
 
-function method Sum(t: Tree): int {
+compiled function Sum(t: Tree): int {
   if t == Leaf then  // equality on datatypes
     0
   else

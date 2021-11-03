@@ -10,7 +10,7 @@ module Actuals {
     r := a + 2 * b;
   }
 
-  function method F(a: int, b: int, c: int): int
+  compiled function F(a: int, b: int, c: int): int
   {
     a + 2 * b + 3 * c
   }
@@ -52,7 +52,7 @@ module Actuals {
 }
 
 module Termination {
-  function method R(n: nat := R(0)): nat { n } // error: default value cannot make recursive call
+  compiled function R(n: nat := R(0)): nat { n } // error: default value cannot make recursive call
 }
 
 module TwoState {
@@ -69,7 +69,7 @@ module TwoState {
 }
 
 module A {
-  function method F(x: int := 5): (r: int)
+  compiled function F(x: int := 5): (r: int)
     ensures r == x
   method M(x: int := 5) returns (r: int)
     ensures r == x
@@ -81,10 +81,10 @@ module A {
 }
 
 module B refines A {
-  function method F(x: int): int { x }
+  compiled function F(x: int): int { x }
   method M(x: int) returns (r: int) { r := x; }
 
-  function method F'(x: int := 6): int { x }
+  compiled function F'(x: int := 6): int { x }
   method M'(x: int := 6) returns (r: int) ensures r == x { r := x; }
 
   lemma Lemma1()
@@ -171,8 +171,8 @@ module Wellformedness {
 
   datatype Dt = Dt(x: int := 8, y: int := 10 / x) // error: division by zero (reported twice)
 
-  function method Int(): int
-  function method Nat(): int
+  compiled function Int(): int
+  compiled function Nat(): int
     ensures 0 <= Nat()
 
   function SubrangeF0(x: nat := Int()): int // error: Int() may not be a "nat"
@@ -307,7 +307,7 @@ module ReadsAndDecreases {
     c.O(x)
   }
 
-  function method J(): int
+  compiled function J(): int
   lemma AboutJ()
     ensures J() != 0
   method Jx(x: int := AboutJ(); 2 / J()) // lemma ensures no div-by-zero
@@ -436,7 +436,7 @@ module TerminationCheck_datatype {
   datatype Q = Q(x: int := Q(5).x)
 
   datatype R = R(x: int := F()) // error: mutual recursion not allowed in default values
-  function method F(): int {
+  compiled function F(): int {
     R().x
   }
 
@@ -458,7 +458,7 @@ module TerminationCheck_tricky {
     assert s.x == -3;
     assert 0 <= Id(s).x;
   }
-  function method Id(s: S): S
+  compiled function Id(s: S): S
     ensures 0 <= Id(s).x
   {
     var n: nat := s.x;

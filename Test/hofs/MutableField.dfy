@@ -3,7 +3,7 @@
 
 
 class C {
-  function method f(x : int) : int { x }
+  compiled function f(x : int) : int { x }
 
   var g : int -> int;
 

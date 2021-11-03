@@ -45,78 +45,78 @@ method PrintList<T>(msg: string, s: List<T>) {
   print "\n";
 }
 
-function method plus1(x: int): int { x + 1 }
-function method plus(x: int, y: int): int { x + y }
+compiled function plus1(x: int): int { x + 1 }
+compiled function plus(x: int, y: int): int { x + y }
 
 datatype List<T> = Nil | ListCons(head: T, tail: List<T>)
 codatatype Stream<T> = Cons(head: T, tail: Stream<T>)
 
-function method ones(): Stream<int>
+compiled function ones(): Stream<int>
 {
   Cons(1, ones())
 }
 
-function method from(n: int): Stream<int>
+compiled function from(n: int): Stream<int>
 {
   Cons(n, from(n+1))
 }
 
-function method Map<T,U>(f: T -> U, s: Stream<T>): Stream<U>
+compiled function Map<T,U>(f: T -> U, s: Stream<T>): Stream<U>
 {
   Cons(f(s.head), Map(f, s.tail))
 }
 
-function method squares(): Stream<int>
+compiled function squares(): Stream<int>
 {
   Map(x => x*x, from(0))
 }
 
-function method take(n: nat, s: Stream): List
+compiled function take(n: nat, s: Stream): List
 {
   if n == 0 then Nil else ListCons(s.head, take(n-1, s.tail))
 }
 
-function method {:abstemious} zip<T,U>(a: Stream<T>, b: Stream<U>): Stream<(T,U)>
+compiled function {:abstemious} zip<T,U>(a: Stream<T>, b: Stream<U>): Stream<(T,U)>
 {
   Cons((a.head, b.head), zip(a.tail, b.tail))
 }
 
-function method {:abstemious} addPair(a: Stream<(int,int)>): Stream<int>
+compiled function {:abstemious} addPair(a: Stream<(int,int)>): Stream<int>
 {
   Cons(a.head.0 + a.head.1, addPair(a.tail))
 }
 
-function method fib(): Stream<int>
+compiled function fib(): Stream<int>
 {
   Cons(0, Cons(1, addPair(zip(fib(), fib().tail))))
 }
 
-function method {:abstemious} add(a: Stream<int>, b: Stream<int>): Stream<int>
+compiled function {:abstemious} add(a: Stream<int>, b: Stream<int>): Stream<int>
 {
   Cons(a.head + b.head, add(a.tail, b.tail))
 }
 
-function method Fib(): Stream<int>
+compiled function Fib(): Stream<int>
 {
   Cons(0, Cons(1, add(Fib(), Fib().tail)))
 }
 
-function method Fib0(): Stream<int>
+compiled function Fib0(): Stream<int>
 {
   Cons(0, Fib1())
 }
 
-function method Fib1(): Stream<int>
+compiled function Fib1(): Stream<int>
 {
   Cons(1, add(Fib0(), Fib1()))
 }
 
-function method OhOnes(): Stream<int>
+compiled function OhOnes(): Stream<int>
 {
   Cons(0, Cons(1, OhOnes().tail))
 }
 
-function method {:abstemious}
+compiled function {:abstemious}
   Combine<T>(f: (T,T) -> T, a: Stream, b: Stream): Stream
 {
   Cons(f(a.head, b.head), Combine(f, a.tail, b.tail))

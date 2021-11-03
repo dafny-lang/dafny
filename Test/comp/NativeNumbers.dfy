@@ -292,7 +292,7 @@ method ZeroComparisonTests() {
   print "\n";
 }
 
-function method YN(b : bool) : string {
+compiled function YN(b : bool) : string {
   if b then "Y" else "N"
 }
 

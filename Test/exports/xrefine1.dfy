@@ -24,7 +24,7 @@ module HostImpl {
 
     type HostT = int
 
-    function method foo(h:HostT) : P.ProtoT
+    compiled function foo(h:HostT) : P.ProtoT
     {
         h > 0
     }

@@ -5,21 +5,21 @@ trait T1
 {
   var f: int
 
-  function method Plus(x:int, y:int) : int
+  compiled function Plus(x:int, y:int) : int
     requires x>y
   {
     x + y
   }
 
-  function method Mul(x:int, y:int, z:int) : int
+  compiled function Mul(x:int, y:int, z:int) : int
     requires x>y
   {
     x * y * z
   }
 
-  function method BodyLess1() : int
+  compiled function BodyLess1() : int
 
-  function method BodyLess2(a:int, b:int) : int
+  compiled function BodyLess2(a:int, b:int) : int
 
   static method GetPhoneNumber(code:int, n:int) returns (z:int)
   {
@@ -45,18 +45,18 @@ class C1 extends T1
     z := Plus(x,y) + Mul(x,y,1);
   }
 
-  function method BodyLess1(i:int) : int //error, overriding function has too many parameters
+  compiled function BodyLess1(i:int) : int //error, overriding function has too many parameters
   {
     12
   }
 
-  function method Mul(x:int, y:int, z:int) : int //error, can not override implemented methods
+  compiled function Mul(x:int, y:int, z:int) : int //error, can not override implemented methods
     requires x>y
   {
     x * y * z
   }
 
-  function method BodyLess2(a:int, b:int) : int
+  compiled function BodyLess2(a:int, b:int) : int
   {
     a+b
   }

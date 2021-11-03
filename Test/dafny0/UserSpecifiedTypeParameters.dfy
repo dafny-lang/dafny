@@ -37,7 +37,7 @@ module M0 {
 
 module M1 {
   class C0 {
-    function method F(x: bool, y: bool): () { () }
+    compiled function F(x: bool, y: bool): () { () }
     method M0(a: int, b: int, c: int, d: int) {
       var u := F( a < b , (c > (d)) );
       var v := F( a < b , c > d );
@@ -47,8 +47,8 @@ module M1 {
     }
   }
   class C1 {
-    function method F(x: int): () { () }
-    function method a<T,U>(x: int): int { x }
+    compiled function F(x: int): () { () }
+    compiled function a<T,U>(x: int): int { x }
     method M<b, c>(d: int) {
       var u;
       u := F( a < b , c > (d) );

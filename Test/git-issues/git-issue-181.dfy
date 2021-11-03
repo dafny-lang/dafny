@@ -32,11 +32,11 @@ function gx<T>(t: T): T {
   t
 }
 
-function method gg<T(==)>(t: T): T {
+compiled function gg<T(==)>(t: T): T {
   t
 }
 
-function method ggx<T>(t: T): T {
+compiled function ggx<T>(t: T): T {
   t
 }
 

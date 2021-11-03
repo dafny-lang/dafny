@@ -97,7 +97,7 @@ module YY {
 module Misc {
 class ClassG {
   method T() { }
-  function method TFunc(): int { 10 }
+  compiled function TFunc(): int { 10 }
   method V(y: MyClassY) {
     y.M();
   }

@@ -28,7 +28,7 @@ class IntSet {
     Contents := {};
   }
 
-  function method Find(x: int): bool
+  compiled function Find(x: int): bool
     requires Valid()
     reads Repr
     ensures Find(x) <==> x in Contents
@@ -143,7 +143,7 @@ class Node {
     Repr := {this};
   }
 
-  function method Find(x: int): bool
+  compiled function Find(x: int): bool
     requires Valid()
     reads Repr
     ensures Find(x) <==> x in Contents

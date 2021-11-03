@@ -3,9 +3,9 @@
 
 module A {
   datatype Result<T> = Success(value: T) | Failure {
-    predicate method IsFailure() { Failure? }
-    function method PropagateFailure(): Result<T> { this }
-    function method Extract(): int { 5 }
+    compiled predicate IsFailure() { Failure? }
+    compiled function PropagateFailure(): Result<T> { this }
+    compiled function Extract(): int { 5 }
   }
 
   method P() returns (ret: Result<real>)

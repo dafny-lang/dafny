@@ -3,7 +3,7 @@
 
 datatype Tree = Leaf | Node(x: int, left: Tree, right: Tree)
 
-function method Insert(t: Tree, y: int): Tree
+compiled function Insert(t: Tree, y: int): Tree
 {
   match t
   case Leaf => Node(y, Leaf, Leaf)

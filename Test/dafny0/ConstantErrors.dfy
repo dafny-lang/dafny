@@ -16,7 +16,7 @@ module A' {
 module B {  // non-static const's
   class Class {
     const a: int := 10
-    static function method G(): int
+    static compiled function G(): int
     {
       a  // error: "a" is an instance field, but G() is static
     }
@@ -27,7 +27,7 @@ module C {  // ghost const's
   ghost const x: int := 10
   class Class {
     ghost const y: int := 20
-    function method F(): int
+    compiled function F(): int
     {
       x +  // error: "x" is ghost
       y  // error: "y" is ghost
@@ -109,8 +109,8 @@ module G {
   const a: int := c  // error: cyclic dependency between a, b, and c
   const b := G(a)
   const c := F(b)
-  function method G(x: int): int { x + 2 }
-  function method F(x: int): int { 2 * x }
+  compiled function G(x: int): int { x + 2 }
+  compiled function F(x: int): int { 2 * x }
 
   ghost const x: int := H(10)  // error: cyclic dependency between x and H
   function H(y: int): int { y + x }
@@ -179,7 +179,7 @@ module N {
   // here comes a long recursive definition of the constraints
   newtype A = x: int | Cmp(x, b)  // error: recursive dependency: A, b, MakeC, C, D, E, f, G, H, I, j, K, L, M, n, MakeA
   const b := var c := MakeC(); if c == c then 5 else 7
-  function method MakeC(): C
+  compiled function MakeC(): C
   type C = D
   datatype D = Ctor(E)
   type E = x: int | f(x)
@@ -200,7 +200,7 @@ module N {
   datatype L = LCtor((M, real))
   type M = x: int | x < n
   const n := var o: (bv5, A) := (2, MakeA()); 300
-  function method MakeA(): A
+  compiled function MakeA(): A
 }
 
 module O {

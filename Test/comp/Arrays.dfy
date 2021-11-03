@@ -299,7 +299,7 @@ class Cell<T> {
     crr := arr;
     mat := new T[15, 15]((_, _) => t);
   }
-  function method FArray(): array<T>
+  compiled function FArray(): array<T>
     reads this
   {
     arr

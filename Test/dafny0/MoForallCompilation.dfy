@@ -83,7 +83,7 @@ method Transpose<T(0)>(m: array2<T>) returns (m0: array2<T>, m1: array2<T>, m2: 
   }
 }
 
-predicate method MatrixEqual<T(==)>(m: array2, m': array2)
+compiled predicate MatrixEqual<T(==)>(m: array2, m': array2)
   reads m, m'
 {
   (m.Length0, m.Length1) == (m'.Length0, m'.Length1) &&
@@ -153,7 +153,7 @@ class Node {
     print "\n";
   }
 
-  predicate method StartsWith(that: Node?)
+  compiled predicate StartsWith(that: Node?)
     requires Valid() && (that != null ==> that.Valid())
     reads Repr, if that == null then {} else that.Repr
     decreases Repr

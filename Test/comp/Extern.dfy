@@ -40,10 +40,10 @@ module {:extern "Library"} Library {
     static method {:extern} P()
     method IM() { print "Extern instance method says: "; IP(); }
     method {:extern} IP()
-    static function method F() : int { 1000 + G() }
-    static function method {:extern} G() : int
-    function method IF() : int { 2000 + IG() }
-    function method {:extern} IG() : int
+    static compiled function F() : int { 1000 + G() }
+    static compiled function {:extern} G() : int
+    compiled function IF() : int { 2000 + IG() }
+    compiled function {:extern} IG() : int
   }
   class {:extern} AllExtern {
     static function Seven(): int { 7 }

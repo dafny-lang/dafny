@@ -21,7 +21,7 @@ lemma L2(x:int)
 
 // are in strictly increasing order
 
-predicate method Increasing(s: seq<int>, n: nat)
+compiled predicate Increasing(s: seq<int>, n: nat)
   requires n <= |s|
 {
   n < 2 ||

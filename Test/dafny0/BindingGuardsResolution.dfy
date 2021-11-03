@@ -119,7 +119,7 @@ module TypesNotFullyDetermined {
 
 module Ghost {
   predicate P(x: int)  // note, P is ghost
-  predicate method R(x: int)
+  compiled predicate R(x: int)
   method M7() returns (z: int, b: bool)
   {
     if * {

@@ -11,7 +11,7 @@ module A {
   function getCT2() : T { CT2 }
 
   class AClass {
-     function method getCT1(): T { CT1 }
+     compiled function getCT1(): T { CT1 }
      constructor Init() {}
   }
 

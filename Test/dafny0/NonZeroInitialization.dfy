@@ -26,7 +26,7 @@ newtype YetAnotherNewSix = NewSix
 
 // Now with some type parameters
 datatype List<G> = Nil | Cons(G, List<G>)
-function method Length(xs: List): nat
+compiled function Length(xs: List): nat
 {
   match xs
   case Nil => 0

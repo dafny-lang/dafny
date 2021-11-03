@@ -1,7 +1,7 @@
 // RUN: %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-predicate method prop()
+compiled predicate prop()
 ensures prop; // OOPS! Forgot () after prop
 {
 true
