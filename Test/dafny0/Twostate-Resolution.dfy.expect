@@ -67,7 +67,7 @@ module PrettyPrinting {
       y.Floor as real == y
     }
 
-    function method MF(y: real, ghost g: int): char
+    compiled function MF(y: real, ghost g: int): char
     {
       'G'
     }
@@ -342,7 +342,7 @@ module PrintTest {
     | var rr := 2; x % rr == 0
     ghost witness var ww := 2; ww + 8
 
-  function method Five(): int
+  compiled function Five(): int
   {
     5
   }
@@ -352,7 +352,7 @@ module PrintTest {
     6
   }
 
-  function method Ten(): int
+  compiled function Ten(): int
   {
     var f := Five();
     ghost var s := Six();
@@ -360,7 +360,7 @@ module PrintTest {
     f + f
   }
 
-  function method TenAgain(): int
+  compiled function TenAgain(): int
   {
     var ten := var f := Five(); ghost var s := Six(); assert s == 6; f + f;
     ten
@@ -384,13 +384,13 @@ module PrintTest {
     s + t
   }
 
-  function method Twenty(): int
+  compiled function Twenty(): int
   {
     var x :| x == 10;
     x + x
   }
 
-  function method TwentyOne(): int
+  compiled function TwentyOne(): int
   {
     ghost var x :| x == 10 && Yes(x);
     assert x + x + 1 == 21;
@@ -440,7 +440,7 @@ module TwoStateAt {
       assert old(c.data) == c.data;
     }
 
-    function method G(): int
+    compiled function G(): int
     {
       32
     }

@@ -109,9 +109,9 @@ module _System {
   }
 
   type _bv {
-    function method RotateLeft(w: nat): selftype
+    compiled function RotateLeft(w: nat): selftype
 
-    function method RotateRight(w: nat): selftype
+    compiled function RotateRight(w: nat): selftype
   }
 
   type map<T, U> {

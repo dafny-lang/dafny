@@ -66,15 +66,15 @@ class C {
 class CF {
   static function F(): int
 
-  predicate method G()
+  compiled predicate G()
 
   greatest predicate Co()
 
   function H(): int
 
-  static function method I(): real
+  static compiled function I(): real
 
-  static predicate method J()
+  static compiled predicate J()
 }
 
 module A {

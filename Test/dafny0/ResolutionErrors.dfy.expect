@@ -20,7 +20,7 @@ ResolutionErrors.dfy(64,9): Error: unresolved identifier: N
 ResolutionErrors.dfy(67,10): Error: non-function expression (of type int) is called with parameters
 ResolutionErrors.dfy(68,16): Error: member 'z' does not exist in non-null type 'Global'
 ResolutionErrors.dfy(116,11): Error: ghost variables are allowed only in specification contexts
-ResolutionErrors.dfy(117,11): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
+ResolutionErrors.dfy(117,11): Error: function calls are allowed only in specification contexts (consider declaring the function as 'compiled function')
 ResolutionErrors.dfy(121,13): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(122,12): Error: actual out-parameter is required to be a ghost variable
 ResolutionErrors.dfy(129,17): Error: ghost variables are allowed only in specification contexts
@@ -414,14 +414,14 @@ ResolutionErrors.dfy(2712,11): Error: name of type (Cache) is used as a variable
 ResolutionErrors.dfy(2712,17): Error: incorrect type for selection into ? (got X)
 ResolutionErrors.dfy(2720,13): Warning: the quantifier has the form 'exists x :: A ==> B', which most often is a typo for 'exists x :: A && B'; if you think otherwise, rewrite as 'exists x :: (A ==> B)' or 'exists x :: !A || B' to suppress this warning
 ResolutionErrors.dfy(2730,13): Warning: the quantifier has the form 'exists x :: A ==> B', which most often is a typo for 'exists x :: A && B'; if you think otherwise, rewrite as 'exists x :: (A ==> B)' or 'exists x :: !A || B' to suppress this warning
-ResolutionErrors.dfy(2763,13): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
-ResolutionErrors.dfy(2764,13): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
+ResolutionErrors.dfy(2763,13): Error: function calls are allowed only in specification contexts (consider declaring the function as 'compiled function')
+ResolutionErrors.dfy(2764,13): Error: function calls are allowed only in specification contexts (consider declaring the function as 'compiled function')
 ResolutionErrors.dfy(2766,11): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(2787,4): Error: ghost variables are allowed only in specification contexts
-ResolutionErrors.dfy(2797,15): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
-ResolutionErrors.dfy(2798,22): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
-ResolutionErrors.dfy(2804,15): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
-ResolutionErrors.dfy(2805,22): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
+ResolutionErrors.dfy(2797,15): Error: function calls are allowed only in specification contexts (consider declaring the function as 'compiled function')
+ResolutionErrors.dfy(2798,22): Error: function calls are allowed only in specification contexts (consider declaring the function as 'compiled function')
+ResolutionErrors.dfy(2804,15): Error: function calls are allowed only in specification contexts (consider declaring the function as 'compiled function')
+ResolutionErrors.dfy(2805,22): Error: function calls are allowed only in specification contexts (consider declaring the function as 'compiled function')
 ResolutionErrors.dfy(2822,23): Error: type of left argument to * (int) must agree with the result type (bool)
 ResolutionErrors.dfy(2822,23): Error: type of * must be of a numeric type, bitvector type, or a set-like type (instead got bool)
 ResolutionErrors.dfy(2821,13): Error: not resolving module 'V' because there were errors in resolving its nested module 'W'
@@ -456,8 +456,8 @@ ResolutionErrors.dfy(3009,5): Error: type parameter (G) passed to method P must 
 ResolutionErrors.dfy(3018,9): Error: type parameter (F) passed to function FQ must support auto-initialization (got Y) (perhaps try declaring type parameter 'Y' on line 3013 as 'Y(0)', which says it can only be instantiated with a type that supports auto-initialization)
 ResolutionErrors.dfy(3021,9): Error: type parameter (F) passed to function FQ must support auto-initialization (got Z) (perhaps try declaring type parameter 'Z' on line 3013 as 'Z(0)', which says it can only be instantiated with a type that supports auto-initialization)
 ResolutionErrors.dfy(3022,9): Error: type parameter (G) passed to function FP must support nonempty (got Z) (perhaps try declaring type parameter 'Z' on line 3013 as 'Z(00)', which says it can only be instantiated with a nonempty type)
-ResolutionErrors.dfy(3039,9): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
-ResolutionErrors.dfy(3040,9): Error: predicate calls are allowed only in specification contexts (consider declaring the predicate a 'predicate method')
+ResolutionErrors.dfy(3039,9): Error: function calls are allowed only in specification contexts (consider declaring the function as 'compiled function')
+ResolutionErrors.dfy(3040,9): Error: predicate calls are allowed only in specification contexts (consider declaring the predicate as 'compiled predicate')
 ResolutionErrors.dfy(3041,9): Error: a call to a least predicate is allowed only in specification contexts
 ResolutionErrors.dfy(3042,9): Error: a call to a greatest predicate is allowed only in specification contexts
 ResolutionErrors.dfy(3043,9): Error: a call to a twostate function is allowed only in specification contexts

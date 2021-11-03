@@ -168,7 +168,7 @@ function f(s: set<int>): int
     0
 }
 
-predicate method AltSyntaxP(x: int)
+compiled predicate AltSyntaxP(x: int)
 {
   true
 }

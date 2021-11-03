@@ -115,9 +115,9 @@ module _System {
   }
 
   type _bv {
-    function method RotateLeft(w: nat): selftype
+    compiled function RotateLeft(w: nat): selftype
 
-    function method RotateRight(w: nat): selftype
+    compiled function RotateRight(w: nat): selftype
   }
 
   type map<T, U> {
@@ -157,7 +157,7 @@ module Tests {
     var f: nat
     var g: int
 
-    function method F(): nat
+    compiled function F(): nat
 
     method M()
     {
@@ -863,7 +863,7 @@ module TypeArgumentPrintTests {
   */
 
   class A<X> {
-    static function method F(x: X): int
+    static compiled function F(x: X): int
     {
       15
     }
@@ -873,7 +873,7 @@ module TypeArgumentPrintTests {
   */
 
   class B<Y> {
-    function method H(y: Y, b: bool): int
+    compiled function H(y: Y, b: bool): int
     {
       if b then
         A<Y>.F(y)

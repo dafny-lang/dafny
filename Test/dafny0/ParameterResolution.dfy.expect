@@ -33,8 +33,8 @@ ParameterResolution.dfy(101,89): Error: ghost variables are allowed only in spec
 ParameterResolution.dfy(104,27): Error: ghost variables are allowed only in specification contexts
 ParameterResolution.dfy(109,32): Error: ghost variables are allowed only in specification contexts
 ParameterResolution.dfy(79,22): Error: ghost variables are allowed only in specification contexts
-ParameterResolution.dfy(86,52): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
-ParameterResolution.dfy(88,58): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
+ParameterResolution.dfy(86,52): Error: function calls are allowed only in specification contexts (consider declaring the function as 'compiled function')
+ParameterResolution.dfy(88,58): Error: function calls are allowed only in specification contexts (consider declaring the function as 'compiled function')
 ParameterResolution.dfy(95,89): Error: ghost variables are allowed only in specification contexts
 ParameterResolution.dfy(97,89): Error: ghost variables are allowed only in specification contexts
 ParameterResolution.dfy(127,14): Error: wrong number of arguments (function 'N' expects 1, got 0)
