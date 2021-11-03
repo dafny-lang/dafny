@@ -7310,9 +7310,11 @@ namespace Microsoft.Dafny {
       Helper((argExprs, args, inner) => {
         Bpl.Expr body = Bpl.Expr.True;
 
+        List<Axiom> tagConstantAxioms = null;
         if (!td.EnclosingModuleDefinition.IsFacade) {
           var tagName = "Tag" + inner_name;
-          var tag = new Bpl.Constant(tok, new Bpl.TypedIdent(tok, tagName, predef.TyTag), true);
+          tagConstantAxioms = new();
+          var tag = new Bpl.Constant(tok, new Bpl.TypedIdent(tok, tagName, predef.TyTag), true, definitionAxioms: tagConstantAxioms);
           sink.AddTopLevelDeclaration(tag);
           body = Bpl.Expr.Eq(FunctionCall(tok, "Tag", predef.TyTag, inner), new Bpl.IdentifierExpr(tok, tag));
         }
@@ -7324,7 +7326,9 @@ namespace Microsoft.Dafny {
         body = BplAnd(body, Bpl.Expr.Eq(FunctionCall(tok, "TagFamily", predef.TyTagFamily, inner), new Bpl.IdentifierExpr(tok, tagFamily)));
 
         var qq = BplForall(args, BplTrigger(inner), body);
-        sink.AddTopLevelDeclaration(new Axiom(tok, qq, name + " Tag"));
+        var tagAxiom = new Axiom(tok, qq, name + " Tag");
+        sink.AddTopLevelDeclaration(tagAxiom);
+        tagConstantAxioms?.Add(tagAxiom);
       });
 
       // Create the injectivity axiom and its function
