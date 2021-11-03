@@ -1,7 +1,7 @@
 // RUN: %dafny /compile:3 /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-// This file contains tests for messags about various deprecated features.
+// This file contains tests for messages about various deprecated features.
 // As those features go away completely, so can the corresponding tests.
 
 method Main() {
@@ -35,3 +35,9 @@ colemma CoLemma()  // deprecation warning: "colemma" has been renamed to "greate
 // ----------
 
 protected predicate ProtectedPredicate() { true }  // deprecation warning: "protected" is no longer supported
+
+// ----------
+
+function method F(): int { 5 } // "function method" is now "compiled function", but there's no warning with /deprecation:1
+
+predicate method P() { true } // "predicate method" is now "compiled predicate", but there's no warning with /deprecation:1

@@ -6242,7 +6242,7 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Note, functions are "ghost" by default; a non-ghost function is called a "function method".
+    /// Note, functions are "ghost" by default; a non-ghost function is called a "compiled function".
     /// </summary>
     public Function(IToken tok, string name, bool hasStaticKeyword, bool isGhost,
       List<TypeParameter> typeArgs, List<Formal> formals, Formal result, Type resultType,

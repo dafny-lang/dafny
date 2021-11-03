@@ -5440,7 +5440,7 @@ namespace Microsoft.Dafny {
       byte[] data;
       using (var writer = new System.IO.StringWriter()) {
         var printer = new Printer(writer);
-        writer.Write(f.IsGhost ? "function" : "function method");
+        writer.Write(f.IsGhost ? "function" : "compiled function");
         printer.PrintAttributes(f.Attributes);
         printer.PrintFormals(f.Formals, f);
         writer.Write(": ");

@@ -16904,9 +16904,9 @@ namespace Microsoft.Dafny {
             if (e.Function is TwoStateFunction || e.Function is ExtremePredicate || e.Function is PrefixPredicate) {
               msg = $"a call to a {e.Function.WhatKind} is allowed only in specification contexts";
             } else if (e.Function is Predicate) {
-              msg = "predicate calls are allowed only in specification contexts (consider declaring the predicate a 'predicate method')";
+              msg = "predicate calls are allowed only in specification contexts (consider declaring the predicate as 'compiled predicate')";
             } else {
-              msg = "function calls are allowed only in specification contexts (consider declaring the function a 'function method')";
+              msg = "function calls are allowed only in specification contexts (consider declaring the function as 'compiled function')";
             }
             reporter.Error(MessageSource.Resolver, expr, msg);
             return;

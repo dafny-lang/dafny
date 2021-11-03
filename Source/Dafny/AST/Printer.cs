@@ -850,8 +850,8 @@ namespace Microsoft.Dafny {
       var isPredicate = f is Predicate || f is PrefixPredicate;
       Indent(indent);
       string k = isPredicate ? "predicate" : f.WhatKind;
+      if (!f.IsGhost && f.ByMethodBody == null) { k = "compiled " + k; }
       if (f.HasStaticKeyword) { k = "static " + k; }
-      if (!f.IsGhost && f.ByMethodBody == null) { k += " method"; }
       PrintClassMethodHelper(k, f.Attributes, f.Name, f.TypeArgs);
       if (f.SignatureIsOmitted) {
         wr.Write(" ...");

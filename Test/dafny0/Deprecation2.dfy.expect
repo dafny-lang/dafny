@@ -1,0 +1,16 @@
+Deprecation2.dfy(15,15): Warning: deprecated style: a semi-colon is not needed here
+Deprecation2.dfy(16,14): Warning: deprecated style: a semi-colon is not needed here
+Deprecation2.dfy(19,17): Warning: deprecated style: a semi-colon is not needed here
+Deprecation2.dfy(20,17): Warning: deprecated style: a semi-colon is not needed here
+Deprecation2.dfy(21,16): Warning: deprecated style: a semi-colon is not needed here
+Deprecation2.dfy(22,15): Warning: deprecated style: a semi-colon is not needed here
+Deprecation2.dfy(26,29): Warning: deprecated style: a semi-colon is not needed here
+Deprecation2.dfy(34,17): Warning: deprecated style: a semi-colon is not needed here
+Deprecation2.dfy(35,14): Warning: deprecated style: a semi-colon is not needed here
+Deprecation2.dfy(36,16): Warning: deprecated style: a semi-colon is not needed here
+Deprecation2.dfy(37,15): Warning: deprecated style: a semi-colon is not needed here
+Deprecation2.dfy(45,9): Warning: the old keyword phrase 'function method' has been renamed to the keyword phrase 'compiled function'
+Deprecation2.dfy(47,10): Warning: the old keyword phrase 'predicate method' has been renamed to the keyword phrase 'compiled predicate'
+
+Dafny program verifier finished with 2 verified, 0 errors
+yet here we are
