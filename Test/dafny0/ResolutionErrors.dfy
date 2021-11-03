@@ -613,16 +613,16 @@ module NonInferredType {
   }
 }
 
-// ------------ Here are some tests that ghost contexts don't allocate objects -------------
+// ------------ Here are some tests that lemma contexts don't allocate objects -------------
 
 module GhostAllocationTests {
   class G { }
   iterator GIter() { }
-
-  ghost method GhostNew0()
+  class H { constructor () }
+  lemma GhostNew0()
     ensures exists o: G :: fresh(o);
   {
-    var p := new G;  // error: ghost context is not allowed to allocate state
+    var p := new G;  // error: lemma context is not allowed to allocate state
     p := new G;  // error: ditto
   }
 
@@ -632,7 +632,7 @@ module GhostAllocationTests {
       z, t := 5, new G;  // fine
     }
     if n < g {
-      var zz, tt := 5, new G;  // error: 'new' not allowed in ghost contexts
+      var tt := new H();  // error: 'new' not allowed in ghost contexts
     }
   }
 
@@ -642,37 +642,37 @@ module GhostAllocationTests {
       var y := new GIter();  // error: 'new' not allowed in ghost contexts (and a non-ghost method is not allowed to be called here either)
     }
   }
-
-  method GhostNew3(n: nat)
-  {
+}
+module MoreGhostAllocationTests {
+  class G { }
+  method GhostNew3(n: nat) {
     var g := new G;
     calc {
       5;
-      { var y := new G; }  // error: 'new' not allowed in ghost contexts
+      { var y := new G; }  // error: 'new' not allowed in lemma contexts
       2 + 3;
     }
   }
-
   ghost method GhostNew4(g: G)
-    modifies g;
+    modifies g
   {
   }
 }
 
-module NewForall {
+module NewForallAssign {
   class G { }
-  method NewForallTest(n: nat)
-  {
+  method NewForallTest(n: nat) {
     var a := new G[n];
     forall i | 0 <= i < n {
       a[i] := new G;  // error: 'new' is currently not supported in forall statements
-    }
-    forall i | 0 <= i < n
-      ensures true;  // this makes the whole 'forall' statement into a ghost statement
-    {
-      a[i] := new G;  // error: 'new' not allowed in ghost contexts, and proof-forall cannot update state
-    }
-  }
+  } }
+}
+module NewForallProof {
+  class G { }
+  method NewForallTest(n: nat) { var a := new G[n];
+    forall i | 0 <= i < n ensures true { // this makes the whole 'forall' statement into a ghost statement
+      a[i] := new G;  // error: proof-forall cannot update state (and 'new' not allowed in ghost contexts, but that's checked at a later stage)
+  } }
 }
 
 // ------------------------- underspecified types ------------------------------
@@ -780,20 +780,20 @@ module StatementsInExpressions {
       }
       5;
     }
+  }
+}
 
-    ghost method MyLemma()
-    ghost method MyGhostMethod()
-      modifies this;
-    method OrdinaryMethod()
-    ghost method OutParamMethod() returns (y: int)
+module StmtExprOutParams {
 
-    function UseLemma(): int
-    {
-      MyLemma();
-      MyGhostMethod();   // error: modifi2es state
-      OutParamMethod();  // error: has out-parameters
-      10
-    }
+  lemma MyLemma()
+
+  lemma OutParamLemma() returns (y: int)
+
+  function UseLemma(): int
+  {
+    MyLemma();
+    OutParamLemma(); // error: has out-parameters
+    10
   }
 }
 
@@ -930,22 +930,22 @@ module LhsLvalue {
     var c := new MyRecord[29];
 
     mySeq[0] := 5;  // error: cannot assign to a sequence element
-    mySeq[0] := MyLemma();  // error: ditto
+    mySeq[0] := MyMethod();  // error: ditto
     a[0] := 5;
-    a[0] := MyLemma();
+    a[0] := MyMethod();
     b[20, 18] := 5;
-    b[20, 18] := MyLemma();
+    b[20, 18] := MyMethod();
     c[25].x := 5;  // error: cannot assign to a destructor
-    c[25].x := MyLemma();  // error: ditto
+    c[25].x := MyMethod();  // error: ditto
     mySeq[0..4] := 5;  // error: cannot assign to a range
-    mySeq[0..4] := MyLemma();  // error: ditto
+    mySeq[0..4] := MyMethod();  // error: ditto
     a[0..4] := 5;  // error: cannot assign to a range
-    a[0..4] := MyLemma();  // error: ditto
+    a[0..4] := MyMethod();  // error: ditto
   }
 
   datatype MyRecord = Make(x: int, y: int)
 
-  method MyLemma() returns (w: int)
+  method MyMethod() returns (w: int)
 }
 
 // ------------------- dirty loops -------------------
@@ -1547,16 +1547,16 @@ module GhostTests {
       }
       5;
     }
-    ghost method MyLemma()
-    ghost method MyGhostMethod()
-      modifies this;
-    method OrdinaryMethod()
-    ghost method OutParamMethod() returns (y: int)
-
+  }
+}
+module CallsInStmtExpr {
+  class MyClass {
+    lemma MyLemma()
+    ghost method MyEffectlessGhostMethod()
     function UseLemma(): int
     {
+      MyEffectlessGhostMethod(); // error: cannot call ghost methods (only lemmas) from this context
       MyLemma();
-      OrdinaryMethod();  // error: not a ghost
       10
     }
   }

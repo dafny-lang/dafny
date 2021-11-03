@@ -1492,33 +1492,34 @@ the field `x` is shadowed by the declaration of the local variable `x`.
 There is no semantic difference between qualified and
 unqualified accesses to the same receiver and member.
 
-A `C` instance is created using `new`, for example:
+A `C` instance is created using `new`. There are three forms of `new`,
+depending on whether or not the class declares any _constructors_
+(see [Section 13.3.2](#sec-constructor-methods)):
+
 ```dafny
 c := new C;
+c := new C.Init(args);
+c := new C(args);
 ```
 
-Note that `new` simply allocates a `C` object and returns a reference
-to it; the initial values of its fields are arbitrary values of their
-respective types.  Therefore, it is common to invoke a method, known
-as an _initialization method_, immediately after creation, for
-example:
+For a class with no constructors, the first two forms can be used.
+The first form simply allocates a new instance of a `C` object, initializing
+its fields to values of their respective types (and initializing each `const` field
+with a RHS to its specified value). The second form additionally invokes
+an _initialization method_ (here, named `Init`) on the newly allocated object
+and the given arguments. It is therefore a shorthand for
 ```dafny
 c := new C;
-c.InitFromList(xs, 3);
+c.Init(args);
 ```
-When an initialization method has no out-parameters and modifies no
-more than `this`, then the two statements above can be combined into
-one:
-```dafny
-c := new C.InitFromList(xs, 3);
-```
-Note that a class can contain several initialization methods, that
-these methods can be invoked at any time, not just as part of a `new`,
-and that `new` does not require that an initialization method be
-invoked at creation.
+An initialization method is an ordinary method that has no out-parameters and
+that modifies no more than `this`.
 
-A class can declare special initializing methods called _constructor methods_.
-See [Section 13.3](#sec-method-declarations).
+For a class that declares one or more constructors, the second and third forms
+of `new` can be used. For such a class, the second form invokes the indicated
+constructor (here, named `Init`), which allocates and initializes the object.
+The third form is the same as the second, but invokes the _anonymous constructor_
+of the class (that is, a constructor declared with the empty-string name).
 
 ## 13.1. Field Declarations
 ````grammar
@@ -1711,57 +1712,79 @@ abstract under the following circumstances:
 Note that when there is no body, Dafny assumes that the *ensures*
 clauses are true without proof. (TODO: `:extern` attribute?)
 
-### 13.3.2. Constructors
+### 13.3.2. Constructors {#sec-constructor-methods}
 To write structured object-oriented programs, one often relies on
 objects being constructed only in certain ways.  For this purpose, Dafny
-provides _constructor (method)s_, which are a restricted form of
-initialization methods.
+provides _constructor (method)s_.
 A constructor is declared with the keyword
-`constructor` instead of `method`; constructors are only permitted in classes.
+`constructor` instead of `method`; constructors are permitted only in classes.
+A constructor is allowed to be declared as `ghost`, in which case it
+can only be used in ghost contexts.
 
-A constructor
-can only be called at the time an object is allocated (see
-object-creation examples below); for a class that contains one or
-more constructors, object creation must be done in conjunction with a
-call to a constructor.
-
-When a class contains a
+A constructor can only be called at the time an object is allocated (see
+object-creation examples below). Moreover, when a class contains a
 constructor, every call to `new` for a class must be accompanied
-by a call to one of its constructors.  Moreover, a constructor
-cannot be called at other times, only during object creation.  Other
-than these restrictions, there is no semantic difference between using
-ordinary initialization methods and using constructors. Classes may
+by a call to one of its constructors. A class may
 declare no constructors or one or more constructors.
 
 #### 13.3.2.1. Classes with no explicit constructors
 
-A class that declares no constructors has a default constructor created
-for it. This constructor is called with the syntax
+For a class that declares no constructors, an instance of the class is
+created with
 ```dafny
 c := new C;
 ```
-This constructor simply initializes the fields of the class.
-The declaration of a const field may include an initializer, that is, a right-hand side (RHS) that specifies the constant's value.
-The RHS of a const field may depend on other constant fields, but circular dependencies are not allowed.
+This allocates an object and initializes its fields to values of their
+respective types (and initializes each `const` field with a RHS to its specified
+value). The RHS of a `const` field may depend on other `const` or `var` fields,
+but circular dependencies are not allowed.
 
-This constructor sets each class field to an arbitrary value
-of the field's type if the field declaration has no initializer
-and to the value of the initializer expression if it does declare an initializer.
-For the purposes of proving Dafny programs
-correct, assigning an arbitrary initial value means that the program must
-be correct for any initial value. Compiled, executable versions of the program
-may use a specific initial value
-(for example, but not necessarily, a zero-equivalent or a declared _witness_ value for the type).
+This simple form of `new` is allowed only if the class declares no constructors,
+which is not possible to determine in every scope.
+It is easy to determine whether or not a class declares any constructors if the
+class is declared in the same module that performs the `new`. If the class is
+declared in a different module and that module exports a constructor, then it is
+also clear that the class has a constructor (and thus this simple form of `new`
+cannot be used). (Note that an export set that `reveals` a class `C` also exports
+the anonymous constructor of `C`, if any.)
+But if the module that declares `C` does not export any constructors
+for `C`, then callers outside the module do not know whether or not `C` has a
+constructor. Therefore, this simple form of `new` is allowed only for classes that
+are declared in the same module as the use of `new`.
+
+The simple `new C` is allowed in ghost contexts. Also, unlike the forms of `new`
+that call a constructor or initialization method, it can be used in a simultaneous
+assignment; for example
+```dafny
+c, d, e := new C, new C, 15;
+```
+is legal.
+
+As a shorthand for writing
+```dafny
+c := new C;
+c.Init(args);
+```
+where `Init` is an initialization method (see the top of Section [#sec-class-types]),
+one can write
+```dafny
+c := new C.Init(args);
+```
+but it is more typical in such a case to declare a constructor for the class.
+
+(The syntactic support for initialization methods is provided for historical
+reasons. It may be deprecated in some future version of Dafny. In most cases,
+a constructor is to be preferred.)
 
 #### 13.3.2.2. Classes with one or more constructors
 
-When one or more constructors are explicitly declared, they are named,
-which promotes using names like `InitFromList` above.
-Constructors must have distinct names, even if their signatures are different.
-Many classes have just
-one constructor or have a typical constructor.  Therefore, Dafny
-allows one _anonymous constructor_, that is, a constructor whose name
-is essentially an empty string.  For example:
+Like other class members, constructors have names. And like other members,
+their names must be distinct, even if their signatures are different.
+Being able to name constructors promotes names like `InitFromList` or
+`InitFromSet` (or just `FromList` and `FromSet`).
+Unlike other members, one constructor is allowed to be _anonymous_;
+in other words, an _anonymous constructor_ is a constructor whose name is
+essentially the empty string.  For example:
 ```dafny
 class Item {
   constructor I(xy: int) // ...
@@ -1792,10 +1815,15 @@ a program may use `this`
  - as the entire RHS of an assignment to a field of `this`,
  - and as a member of a set on the RHS that is being assigned to a field of `this`.
 
-Furthermore, `const` fields may only be assigned to in an initialization phase
-(and may be assigned to more than once)
-of their enclosing class, and then only if they do not already have an initialization
-value in their declaration.
+A `const` field with a RHS is not allowed to be assigned anywhere else.
+A `const` field without a RHS may be assigned only in constructors, and more precisely
+only in the initialization phase of constructors. During this phase, a `const` field
+may be assigned more than once; whatever value the `const` field has at the end of the
+initialization phase is the value it will have forever thereafter.
+
+For a constructor declared as `ghost`, the initialization phase is allowed to assign
+both ghost and non-ghost fields. For such an object, values of non-ghost fields at
+the end of the initialization phase are in effect no longer changeable.
 
 There are no restrictions on expressions or statements in the post-initialization phase.
 

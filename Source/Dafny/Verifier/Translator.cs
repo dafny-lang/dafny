@@ -2444,7 +2444,7 @@ namespace Microsoft.Dafny {
             }
           }
         }
-        foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(iter.tok, iter.Modifies.Expressions, false, etran.Old, etran, etran.Old)) {
+        foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(iter.tok, iter.Modifies.Expressions, false, iter.AllowsAllocation, etran.Old, etran, etran.Old)) {
           ens.Add(Ensures(tri.tok, tri.IsFree, tri.Expr, tri.ErrorMessage, tri.Comment));
         }
       }
@@ -4487,7 +4487,7 @@ namespace Microsoft.Dafny {
           // play havoc with the heap according to the modifies clause
           builder.Add(new Bpl.HavocCmd(m.tok, new List<Bpl.IdentifierExpr> { (Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr }));
           // assume the usual two-state boilerplate information
-          foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(m.tok, m.Mod.Expressions, m.IsGhost, etran.Old, etran, etran.Old)) {
+          foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(m.tok, m.Mod.Expressions, m.IsGhost, m.AllowsAllocation, etran.Old, etran, etran.Old)) {
             if (tri.IsFree) {
               builder.Add(TrAssumeCmd(m.tok, tri.Expr));
             }
@@ -4579,12 +4579,12 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void AddDefiniteAssignmentTrackerSurrogate(Field field, TopLevelDeclWithMembers enclosingClass, List<Variable> localVariables) {
+    void AddDefiniteAssignmentTrackerSurrogate(Field field, TopLevelDeclWithMembers enclosingClass, List<Variable> localVariables, bool forceGhostVar) {
       Contract.Requires(field != null);
       Contract.Requires(localVariables != null);
 
       var type = Resolver.SubstType(field.Type, enclosingClass.ParentFormalTypeParametersToActuals);
-      if (!NeedsDefiniteAssignmentTracker(field.IsGhost, type)) {
+      if (!NeedsDefiniteAssignmentTracker(field.IsGhost || forceGhostVar, type)) {
         return;
       }
       var nm = SurrogateName(field);
@@ -5079,17 +5079,6 @@ namespace Microsoft.Dafny {
       return typeMap;
     }
 
-    private void HavocFunctionFrameLocations(Function f, BoogieStmtListBuilder builder, ExpressionTranslator etran, List<Variable> localVariables) {
-      // play havoc with the heap according to the modifies clause
-      builder.Add(new Bpl.HavocCmd(f.tok, new List<Bpl.IdentifierExpr> { (Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr }));
-      // assume the usual two-state boilerplate information
-      foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(f.tok, f.Reads, f.IsGhost, etran.Old, etran, etran.Old)) {
-        if (tri.IsFree) {
-          builder.Add(TrAssumeCmd(f.tok, tri.Expr));
-        }
-      }
-    }
-
     private void AddFunctionOverrideSubsetChk(Function func, BoogieStmtListBuilder builder, ExpressionTranslator etran, List<Variable> localVariables, Dictionary<IVariable, Expression> substMap) {
       //getting framePrime
       List<FrameExpression> traitFrameExps = new List<FrameExpression>();
@@ -5239,7 +5228,7 @@ namespace Microsoft.Dafny {
       // play havoc with the heap according to the modifies clause
       builder.Add(new Bpl.HavocCmd(m.tok, new List<Bpl.IdentifierExpr> { (Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr }));
       // assume the usual two-state boilerplate information
-      foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(m.tok, m.Mod.Expressions, m.IsGhost, etran.Old, etran, etran.Old)) {
+      foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(m.tok, m.Mod.Expressions, m.IsGhost, m.AllowsAllocation, etran.Old, etran, etran.Old)) {
         if (tri.IsFree) {
           builder.Add(TrAssumeCmd(m.tok, tri.Expr));
         }
@@ -9718,7 +9707,7 @@ namespace Microsoft.Dafny {
           var fresh = Bpl.Expr.Not(etran.Old.IsAlloced(m.tok, new Bpl.IdentifierExpr(m.tok, "this", TrReceiverType(m))));
           AddEnsures(ens, Ensures(m.tok, false, fresh, null, "constructor allocates the object"));
         }
-        foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(m.tok, m.Mod.Expressions, m.IsGhost, ordinaryEtran.Old, ordinaryEtran, ordinaryEtran.Old)) {
+        foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(m.tok, m.Mod.Expressions, m.IsGhost, m.AllowsAllocation, ordinaryEtran.Old, ordinaryEtran, ordinaryEtran.Old)) {
           AddEnsures(ens, Ensures(tri.tok, tri.IsFree, tri.Expr, tri.ErrorMessage, tri.Comment));
         }
 
@@ -9899,7 +9888,8 @@ namespace Microsoft.Dafny {
     ///  S2. the post-state of the two-state interval
     /// This method assumes that etranPre denotes S1, etran denotes S2, and that etranMod denotes S0.
     /// </summary>
-    List<BoilerplateTriple/*!*/>/*!*/ GetTwoStateBoilerplate(IToken/*!*/ tok, List<FrameExpression/*!*/>/*!*/ modifiesClause, bool isGhostContext,
+    List<BoilerplateTriple/*!*/>/*!*/ GetTwoStateBoilerplate(IToken/*!*/ tok,
+      List<FrameExpression/*!*/>/*!*/ modifiesClause, bool isGhostContext, bool canAllocate,
       ExpressionTranslator/*!*/ etranPre, ExpressionTranslator/*!*/ etran, ExpressionTranslator/*!*/ etranMod) {
       Contract.Requires(tok != null);
       Contract.Requires(modifiesClause != null);
@@ -9908,16 +9898,16 @@ namespace Microsoft.Dafny {
       Contract.Ensures(cce.NonNullElements(Contract.Result<List<BoilerplateTriple>>()));
 
       var boilerplate = new List<BoilerplateTriple>();
-      if (isGhostContext && modifiesClause.Count == 0) {
+      if (!canAllocate && modifiesClause.Count == 0) {
         // plain and simple:  S1 == S2
         boilerplate.Add(new BoilerplateTriple(tok, true, Bpl.Expr.Eq(etranPre.HeapExpr, etran.HeapExpr), null, "frame condition"));
       } else {
         bool fieldGranularity = true;
         bool objectGranularity = !fieldGranularity;
         // the frame condition, which is free since it is checked with every heap update and call
-        boilerplate.Add(new BoilerplateTriple(tok, true, FrameCondition(tok, modifiesClause, isGhostContext, Resolver.FrameExpressionUse.Modifies, etranPre, etran, etranMod, objectGranularity), null, "frame condition: object granularity"));
+        boilerplate.Add(new BoilerplateTriple(tok, true, FrameCondition(tok, modifiesClause, canAllocate, Resolver.FrameExpressionUse.Modifies, etranPre, etran, etranMod, objectGranularity), null, "frame condition: object granularity"));
         if (modifiesClause.Exists(fe => fe.FieldName != null)) {
-          boilerplate.Add(new BoilerplateTriple(tok, true, FrameCondition(tok, modifiesClause, isGhostContext, Resolver.FrameExpressionUse.Modifies, etranPre, etran, etranMod, fieldGranularity), null, "frame condition: field granularity"));
+          boilerplate.Add(new BoilerplateTriple(tok, true, FrameCondition(tok, modifiesClause, canAllocate, Resolver.FrameExpressionUse.Modifies, etranPre, etran, etranMod, fieldGranularity), null, "frame condition: field granularity"));
         }
         // HeapSucc(S1, S2) or HeapSuccGhost(S1, S2)
         Bpl.Expr heapSucc = HeapSucc(etranPre.HeapExpr, etran.HeapExpr, isGhostContext);
@@ -9940,7 +9930,7 @@ namespace Microsoft.Dafny {
     ///      if it's in the frame, then it is unchanged,
     ///      and if it has a field designation, then furthermore 'alloc' is unchanged
     /// </summary>
-    Bpl.Expr/*!*/ FrameCondition(IToken/*!*/ tok, List<FrameExpression/*!*/>/*!*/ frame, bool isGhostContext, Resolver.FrameExpressionUse use,
+    Bpl.Expr/*!*/ FrameCondition(IToken/*!*/ tok, List<FrameExpression/*!*/>/*!*/ frame, bool canAllocate, Resolver.FrameExpressionUse use,
       ExpressionTranslator/*!*/ etranPre, ExpressionTranslator/*!*/ etran, ExpressionTranslator/*!*/ etranMod, bool fieldGranularity) {
       Contract.Requires(tok != null);
       Contract.Requires(etran != null);
@@ -9956,7 +9946,7 @@ namespace Microsoft.Dafny {
       //  (forall<alpha> o: ref, f: Field alpha :: { $Heap[o][f] }
       //      o != null
       // #if use==Modifies
-      //      && old($Heap)[o][alloc]                     // include only in non-ghost contexts
+      //      && old($Heap)[o][alloc]                     // include only in contexts that can allocate
       // #endif
       //      ==>
       // #if use==Modifies
@@ -9976,7 +9966,7 @@ namespace Microsoft.Dafny {
       //  (forall o: ref :: { $Heap[o] }
       //      o != null
       // #if use==Modifies
-      //      && old($Heap)[o][alloc]                     // include only in non-ghost contexts
+      //      && old($Heap)[o][alloc]                     // include only in contexts that can allocate
       // #endif
       //      ==>
       // #if use==Modifies
@@ -10014,7 +10004,7 @@ namespace Microsoft.Dafny {
       }
 
       Bpl.Expr ante = Bpl.Expr.Neq(o, predef.Null);
-      if (!isGhostContext && use == Resolver.FrameExpressionUse.Modifies) {
+      if (canAllocate && use == Resolver.FrameExpressionUse.Modifies) {
         ante = Bpl.Expr.And(ante, etranMod.IsAlloced(tok, o));
       }
       var eq = Bpl.Expr.Eq(heapOF, preHeapOF);
