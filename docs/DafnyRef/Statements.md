@@ -255,8 +255,8 @@ This is a language feature somewhat analogous to exceptions in other languages.
 An update-with-failure statement uses _failure-compatible_ types.
 A failure-compatible type is a type that has the following members (each with no in-parameters and one out-parameter):
 
- * a function method `IsFailure()` that returns a `bool`
- * an optional function method `PropagateFailure()` that returns a value assignable to the first out-parameter of the caller
+ * a compiled function `IsFailure()` that returns a `bool`
+ * an optional compiled function `PropagateFailure()` that returns a value assignable to the first out-parameter of the caller
  * an optional method or function `Extract()`
 
 A failure-compatible type with an `Extract` member is called _value-carrying_.

@@ -85,7 +85,7 @@ module.
 ```dafny
 module Mod {
   module Helpers {
-    function method addOne(n: nat): nat {
+    compiled function addOne(n: nat): nat {
       n + 1
     }
   }
@@ -481,7 +481,7 @@ refinement of `B` can be used safely. For example, if we start with:
 
 ```dafny
 module Interface {
-  function method addSome(n: nat): nat
+  compiled function addSome(n: nat): nat
     ensures addSome(n) > n
 }
 abstract module Mod {
@@ -499,7 +499,7 @@ Interface module.
 
 ```dafny
 module Implementation {
-  function method addSome(n: nat): nat
+  compiled function addSome(n: nat): nat
     ensures addSome(n) == n + 1
   {
     n + 1

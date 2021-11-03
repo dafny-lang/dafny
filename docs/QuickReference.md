@@ -135,7 +135,7 @@ function Factorial(n: int): int
 says that the result of `Factorial` is always positive, which Dafny verifies inductively from the function body.
 To refer to the function's result in the postcondition, use the name of the function itself, as shown in the example.
 
-By default, a function is ghost, and cannot be called from executable (non-ghost) code. To make it non-ghost, replace the keyword `function` with the keyword phrase `function method`.
+By default, a function is ghost, and cannot be called from executable (non-ghost) code. To make it non-ghost, replace the keyword `function` with the keyword phrase `compiled function`.
 A function that returns a boolean can be declared with the keyword `predicate` and then eliding the colon and return type.
 
 If a function or method is declared as a member of a type (like a `class`), then it has an implicit receiver parameter, `this`.

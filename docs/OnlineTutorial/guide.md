@@ -800,15 +800,15 @@ annotations, they can only appear in annotations. One cannot write:
 as this is not an annotation. Functions are never part of
 the final compiled program, they are just tools to help us verify our code.
 Sometimes it is convenient to use a function in real code, so one can define a
-`function method`, which can be called from real code. Note
-that there are restrictions on what functions can be function methods (See the
+`compiled function`, which can be called from real code. Note
+that there are restrictions on what functions can be compiled functions (See the
 reference for details).
 
 **Exercise 5.**
   *Change your test method from Exercise 4 to capture the value of
   `max` to a variable, and then do the checks from Exercise 4 using
   the variable. Dafny will reject this program because you are calling
-  `max` from real code. Fix this problem using a `function method`.*
+  `max` from real code. Fix this problem using a `compiled function`.*
 
 ``` {.editonly}
 function max(a: int, b: int): int
@@ -830,7 +830,7 @@ function max(a: int, b: int): int { ... }
   method `Abs` to make use of `abs`. After confirming the method still
   verifies, change the body of `Abs` to also use `abs`. (After doing
   this, you will realize there is not much point in having a method
-  that does exactly the same thing as a function method.)*
+  that does exactly the same thing as a compiled function.)*
 
 ``` {.editonly}
 function abs(x: int): int
@@ -869,7 +869,7 @@ function fib(n: nat): nat
 Here we use `nat`s, the type of
 natural numbers (non-negative integers), which is often more convenient than
 annotating everything to be non-negative. It turns out that we could make this
-function a function method if we wanted to. But this would be extremely slow,
+function a compiled function if we wanted to. But this would be extremely slow,
 as this version of calculating the Fibonacci numbers has exponential
 complexity. There are much better ways to calculate the Fibonacci function. But
 this function is still useful, as we can have Dafny prove that a fast version

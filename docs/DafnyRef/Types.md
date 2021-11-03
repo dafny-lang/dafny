@@ -1938,13 +1938,13 @@ TO BE WRITTEN - unchanged predicate
 
 ````grammar
 FunctionDecl(isWithinAbstractModule) =
-  ( [ "twostate" ] "function" [ "method" ] { Attribute }
+  ( [ "twostate" | "compiled" ] "function" { Attribute }
     MethodFunctionName
     FunctionSignatureOrEllipsis_(allowGhostKeyword:
                                            ("method" present),
                                  allowNewKeyword:
                                            "twostate" present)
-  | "predicate" [ "method" ] { Attribute }
+  | [ "twostate" | "compiled" ] "predicate" { Attribute }
     MethodFunctionName
     PredicateSignatureOrEllipsis_(allowGhostKeyword:
                                            ("method" present),
@@ -2033,8 +2033,8 @@ expression can have a print effect.
 ### 13.4.1. Functions
 
 In the above productions, `allowGhostKeyword` is true if the optional
-`method` keyword was specified. This allows some of the
-formal parameters of a function method to be specified as `ghost`.
+`compiled` keyword was specified. This allows some of the
+formal parameters of a compiled function to be specified as `ghost`.
 
 See [Section 5.3](#sec-function-specification) for a description of ``FunctionSpec``.
 
@@ -2100,7 +2100,11 @@ function Factorial(n: int): (f: int)
 
 By default, a function is `ghost`, and cannot be called from non-ghost
 code. To make it non-ghost, replace the keyword `function` with the two
-keywords "`function method`".
+keywords "`compiled function`".
+(The keyword phrases `compiled function` and `compiled predicate` used
+to be called `function method` and `predicate method`, respectively.
+For backward compatibility, the old keyword phrases are still supported
+as synonyms for the new ones.)
 
 Like methods, functions can be either _instance_ (which they are be default) or
 _static_ (when the function declaration contains the keyword `static`).
@@ -2329,7 +2333,7 @@ As an example, the following trait represents movable geometric shapes:
 ```dafny
 trait Shape
 {
-  function method Width(): real
+  compiled function Width(): real
     reads this
   method Move(dx: real, dy: real)
     modifies this
@@ -2349,7 +2353,7 @@ that each extend `Shape`:
 class UnitSquare extends Shape
 {
   var x: real, y: real
-  function method Width(): real {  // note the empty reads clause
+  compiled function Width(): real {  // note the empty reads clause
     1.0
   }
   method Move(dx: real, dy: real)
@@ -2362,7 +2366,7 @@ class UnitSquare extends Shape
 class LowerRightTriangle extends Shape
 {
   var xNW: real, yNW: real, xSE: real, ySE: real
-  function method Width(): real
+  compiled function Width(): real
     reads this
   {
     xSE - xNW

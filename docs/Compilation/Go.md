@@ -385,7 +385,7 @@ assertions.
 For example:
 
 ```dafny
-function method Head<A>(xs: seq<A>): A requires |xs| > 0 {
+compiled function Head<A>(xs: seq<A>): A requires |xs| > 0 {
     xs[0]
 }
 ```

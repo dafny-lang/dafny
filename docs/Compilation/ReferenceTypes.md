@@ -29,9 +29,9 @@ For the purpose of compilation, there are eight kinds of member declarations:
 * Immutable fields with a right-hand side (RHS):
   `const d: X := E`
 * Body-less functions:
-  `function method F<U>(x: X): Y`
+  `compiled function F<U>(x: X): Y`
 * Functions with an implementation:
-  `function method G<U>(x: X): Y { E }`
+  `compiled function G<U>(x: X): Y { E }`
 * Body-less methods:
   `method M<U>(x: X) returns (y: Y)`
 * Methods with an implementation:
@@ -84,8 +84,8 @@ Consider a trait declared as
       var a: X
       const c: X
       const d: X := E
-      function method F<U>(x: X): Y
-      function method G<U>(x: X): Y { E }
+      compiled function F<U>(x: X): Y
+      compiled function G<U>(x: X): Y { E }
       method M<U>(x: X) returns (y: Y)
       method N<U>(x: X) returns (y: Y) { S }
     }
@@ -96,19 +96,19 @@ A trait gets compiled into one interface and one "companion" class. Using a
 Dafny-like syntax, the target of the compilation is:
 
     interface Trait<V> {
-      function method a(): X
+      compiled function a(): X
       method set_a(value: X)
-      function method c(): X
-      function method d(): X
-      function method F<U>(rtdU: RTD, x: X): Y
-      function method G<U>(rtdU: RTD, x: X): Y
+      compiled function c(): X
+      compiled function d(): X
+      compiled function F<U>(rtdU: RTD, x: X): Y
+      compiled function G<U>(rtdU: RTD, x: X): Y
       method M<U>(rtdU: RTD, x: X) returns (y: Y)
       method N<U>(rtdU: RTD, x: X) returns (y: Y)
     }
 
     class Companion_Trait<V> {
-      static function method d(rtdV: RTD, _this: Trait<V>) { E }
-      static function method G<U>(rtdV: RTD, rtdU: RTD, _this: Trait<V>, x: X): Y { E }
+      static compiled function d(rtdV: RTD, _this: Trait<V>) { E }
+      static compiled function G<U>(rtdV: RTD, rtdU: RTD, _this: Trait<V>, x: X): Y { E }
       static method N<U>(rtdV: RTD, rtdU: RTD, _this: Trait<V>, x: X) returns (y: Y) { S }
     }
 
@@ -149,15 +149,15 @@ parameters.
       property a: X { get; set; }
       property c: X { get; }
       property d: X { get; }
-      function method F<U>(x: X): Y
-      function method G<U>(x: X): Y
+      compiled function F<U>(x: X): Y
+      compiled function G<U>(x: X): Y
       method M<U>(x: X) returns (y: Y)
       method N<U>(x: X) returns (y: Y)
     }
 
     class Companion_Trait<V> {
-      static function method d(_this: Trait<V>) { E }
-      static function method G<U>(_this: Trait<V>, x: X): Y { E }
+      static compiled function d(_this: Trait<V>) { E }
+      static compiled function G<U>(_this: Trait<V>, x: X): Y { E }
       static method N<U>(_this: Trait<V>, x: X) returns (y: Y) { S }
     }
 
@@ -167,19 +167,19 @@ A static method in Java cannot use the type parameters of the enclosing class. T
 the companion class for Java instead adds these type parameter to the method.
 
     interface Trait<V> {
-      function method a(): X
+      compiled function a(): X
       method set_a(value: X)
-      function method c(): X
-      function method d(): X
-      function method F<U>(rtdU: RTD, x: X): Y
-      function method G<U>(rtdU: RTD, x: X): Y
+      compiled function c(): X
+      compiled function d(): X
+      compiled function F<U>(rtdU: RTD, x: X): Y
+      compiled function G<U>(rtdU: RTD, x: X): Y
       method M<U>(rtdU: RTD, x: X) returns (y: Y)
       method N<U>(rtdU: RTD, x: X) returns (y: Y)
     }
 
     class Companion_Trait {
-      static function method d<V>(rtdV: RTD, _this: Trait<V>) { E }
-      static function method G<V, U>(rtdV: RTD, rtdU: RTD, _this: Trait<V>, x: X): Y { E }
+      static compiled function d<V>(rtdV: RTD, _this: Trait<V>) { E }
+      static compiled function G<V, U>(rtdV: RTD, rtdU: RTD, _this: Trait<V>, x: X): Y { E }
       static method N<V, U>(rtdV: RTD, rtdU: RTD, _this: Trait<V>, x: X) returns (y: Y) { S }
     }
 
@@ -198,8 +198,8 @@ parameters. However, compilation still generates type descriptors.
 The result is thus organized as follows:
 
     class Trait {
-      static function method d(rtdV, _this) { E }
-      static function method G(rtdV, rtdU, _this, x) { E }
+      static compiled function d(rtdV, _this) { E }
+      static compiled function G(rtdV, rtdU, _this, x) { E }
       static method N(rtdV, rtdU, _this, x) { S }
     }
 
@@ -211,19 +211,19 @@ as described in a later section.
 Go has no type parameters, so those are replaced by the empty interface type.
 
     interface Trait {
-      function method a(): X
+      compiled function a(): X
       method set_a(value: X)
-      function method c(): X
-      function method d(): X
-      function method F(rtdU: RTD, x: X): Y
-      function method G(rtdU: RTD, x: X): Y
+      compiled function c(): X
+      compiled function d(): X
+      compiled function F(rtdU: RTD, x: X): Y
+      compiled function G(rtdU: RTD, x: X): Y
       method M(rtdU: RTD, x: X) returns (y: Y)
       method N(rtdU: RTD, x: X) returns (y: Y)
     }
 
     class Companion_Trait {
-      static function method d(_this: Trait) { E }
-      static function method G(rtdV: RTD, rtdU: RTD, _this: Trait, x: X): Y { E }
+      static compiled function d(_this: Trait) { E }
+      static compiled function G(rtdV: RTD, rtdU: RTD, _this: Trait, x: X): Y { E }
       static method N(rtdV: RTD, rtdU: RTD, _this: Trait, x: X) returns (y: Y) { S }
     }
 
@@ -236,7 +236,7 @@ Consider a class declared as
       var a: X
       const c: X
       const d: X := E
-      function method G<U>(x: X): Y { E }
+      compiled function G<U>(x: X): Y { E }
       method N<U>(x: X) returns (y: Y) { S }
     }
 
@@ -250,9 +250,9 @@ the compilation is:
       var _rtdV: RTD
       var a: X
       var _c: X
-      function method c(): X { _c }
-      function method d(): X { E }
-      function method G<U>(rtdU: RTD, x: X): Y { E }
+      compiled function c(): X { _c }
+      compiled function d(): X { E }
+      compiled function G<U>(rtdU: RTD, x: X): Y { E }
       method N<U>(rtdU: RTD, x: X) returns (y: Y) { S }
     }
 
@@ -295,7 +295,7 @@ The functions for retrieving `c` and `d` are declared as getter properties.
       var _c: X
       property c: X { get { _c } }
       property d: X { get { E } }
-      function method G<U>(x: X): Y { E }
+      compiled function G<U>(x: X): Y { E }
       method N<U>(x: X) returns (y: Y) { S }
     }
 
@@ -305,9 +305,9 @@ The functions for retrieving `c` and `d` are declared as getter properties.
       var _rtdV: RTD
       var a: X
       var _c: X
-      function method c(): X { _c }
-      function method d(): X { E }
-      function method G<U>(rtdU: RTD, x: X): Y { E }
+      compiled function c(): X { _c }
+      compiled function d(): X { E }
+      compiled function G<U>(rtdU: RTD, x: X): Y { E }
       method N<U>(rtdU: RTD, x: X) returns (y: Y) { S }
     }
 
@@ -325,7 +325,7 @@ declarations:
       var _c
       property c { get { _c } }
       property d { get { E } }
-      function method G(rtdU, x) { E }
+      compiled function G(rtdU, x) { E }
       method N(rtdU, x) { S }
     }
 
@@ -338,9 +338,9 @@ descriptors.
       var _rtdV: RTD
       var a: X
       var _c: X
-      function method c(): X { _c }
-      function method d(): X { E }
-      function method G(rtdU: RTD, x: X): Y { E }
+      compiled function c(): X { _c }
+      compiled function d(): X { E }
+      compiled function G(rtdU: RTD, x: X): Y { E }
       method N(rtdU: RTD, x: X) returns (y: Y) { S }
     }
 
@@ -356,19 +356,19 @@ them implementations.
       var a: X
       const c: X
       const d := c
-      function method F<U>(x: X): X
-      function method G<U>(x: X): X { E }
+      compiled function F<U>(x: X): X
+      compiled function G<U>(x: X): X { E }
       method M<U>(x: X) returns (y: X)
       method N<U>(x: X) returns (y: X) { S }
     }
 
     trait Trait<V> extends Parent<W> {
-      function method F<U>(x: X): Y { E }
+      compiled function F<U>(x: X): Y { E }
       method M<U>(x: X) returns (y: Y) { S }
     }
 
     class Class<V> extends Parent<W> {
-      function method F<U>(x: X): Y { E }
+      compiled function F<U>(x: X): Y { E }
       method M<U>(x: X) returns (y: Y) { S }
     }
 
@@ -378,7 +378,7 @@ The compilation of `Trait` is as follows:
     }
 
     class Companion_Trait<V> {
-      static function method F<U>(rtdV: RTD, rtdU: RTD, _this: Trait<V>, x: X): Y { E }
+      static compiled function F<U>(rtdV: RTD, rtdU: RTD, _this: Trait<V>, x: X): Y { E }
       static method N<U>(rtdV: RTD, rtdU: RTD, _this: Trait<V>, x: X) returns (y: Y) { S }
     }
 
@@ -393,19 +393,19 @@ The compilation of `Class` is as follows:
       var _rtdV: RTD
 
       var _a: X
-      function method a(): X { _a }
+      compiled function a(): X { _a }
       method set_a(value: X) { _a := value; }
 
       var _c: X
-      function method c(): X { _c }
+      compiled function c(): X { _c }
 
-      function method d(): X {
+      compiled function d(): X {
         Companion_Parent<W>.d(W(_rtdV), this)
       }
 
-      function method F<U>(rtdU: RTD, x: X): Y { E }
+      compiled function F<U>(rtdU: RTD, x: X): Y { E }
 
-      function method G<U>(rtdU: RTD, x: X): Y {
+      compiled function G<U>(rtdU: RTD, x: X): Y {
         Companion_Parent<W>.G(W(_rtdV), rtdU, this, x)
       }
 
@@ -467,22 +467,22 @@ the type `W`. The Dafny-like `as` notation shows upcasts and downcasts.
       var _rtdV: RTD
 
       var _a: WX
-      function method a(): X { _a as X }
+      compiled function a(): X { _a as X }
       method set_a(value: X) { _a := value as WX; }
 
       var _c: WX
-      function method c(): X { _c as X }
+      compiled function c(): X { _c as X }
 
-      function method d(): X {
+      compiled function d(): X {
         Companion_Parent.d(W(_rtdV), this) as X
       }
 
-      function method F(rtdU: RTD, x: X): Y {
+      compiled function F(rtdU: RTD, x: X): Y {
         var x: WX := x;
         E as Y
       }
 
-      function method G(rtdU: RTD, x: X): Y {
+      compiled function G(rtdU: RTD, x: X): Y {
         Companion_Parent.G(W(_rtdV), rtdU, this, x as WX) as WY
       }
 
@@ -567,11 +567,11 @@ keyword `constructor` and the bulk of the work is done in a method:
       var _rtdV: RTD
 
       var _a: X
-      function method a(): X { _a }
+      compiled function a(): X { _a }
       method set_a(value: X) { _a := value; }
 
       var _c: X
-      function method c(): X { _c }
+      compiled function c(): X { _c }
 
       var k: X
 
@@ -634,11 +634,11 @@ field declarations.
       var _rtdV: RTD
 
       var _a: X
-      function method a(): X { _a }
+      compiled function a(): X { _a }
       method set_a(value: X) { _a := value; }
 
       var _c: X
-      function method c(): X { _c }
+      compiled function c(): X { _c }
       method set_c(value: X) { _c := value; }
 
       var k: X

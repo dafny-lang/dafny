@@ -282,10 +282,10 @@ The `function`, `method`, `predicate`, and `lemma` definitions should have the f
 
 ```dafny
 // YES
-function method Foo<int>(i: int): int
+compiled function Foo<int>(i: int): int
 
 // NO
-function method Foo<int> (i : int) : int // unnecessary whitespace
+compiled function Foo<int> (i : int) : int // unnecessary whitespace
 ```
 
 Avoid too little or too much whitespace that reduces the overall readability.

@@ -88,7 +88,7 @@ name prefixing them. They are also available in the methods and functions of the
 ``` {.edit}
 module Mod {
   module Helpers {
-    function method addOne(n: nat): nat {
+    compiled function addOne(n: nat): nat {
       n + 1
     }
   }
@@ -106,7 +106,7 @@ export sets, as we will see in the following section. So adding
 ``` {.editonly}
 module Mod {
   module Helpers {
-    function method addOne(n: nat): nat {
+    compiled function addOne(n: nat): nat {
       n + 1
     }
   }
@@ -136,7 +136,7 @@ defined outside of `Mod`, then we could import it:
 
 ``` {.editonly}
 module Helpers {
-  function method addOne(n: nat): nat
+  compiled function addOne(n: nat): nat
   {
     n + 1
   }
@@ -178,7 +178,7 @@ module Helpers {
   export Spec provides addOne, addOne_result
   export Body reveals addOne
   export extends Spec
-  function method addOne(n: nat): nat
+  compiled function addOne(n: nat): nat
   {
     n + 1
   }
@@ -197,7 +197,7 @@ module Helpers {
   export Spec provides addOne, addOne_result
   export Body reveals addOne
   export extends Spec
-  function method addOne(n: nat): nat
+  compiled function addOne(n: nat): nat
   {
     n + 1
   }
@@ -377,7 +377,7 @@ example, we could write the previous `addOne` example as:
 
 ``` {.editonly}
 module Helpers {
-  function method addOne(n: nat): nat
+  compiled function addOne(n: nat): nat
   {
     n + 1
   }
@@ -406,7 +406,7 @@ present however, so you can always use the name that was bound to get to anythin
 
 ``` {.editonly}
 module Helpers {
-  function method addOne(n: nat): nat
+  compiled function addOne(n: nat): nat
   {
     n + 1
   }
@@ -454,7 +454,7 @@ is defined, any refinement of `B` can be used safely. For example, if we start w
 
 ``` {.edit}
 abstract module Interface {
-  function method addSome(n: nat): nat
+  compiled function addSome(n: nat): nat
     ensures addSome(n) > n
 }
 abstract module Mod {
@@ -470,7 +470,7 @@ so this is actually a refinement of the `Interface` module.
 
 ``` {.edit}
 module Implementation refines Interface {
-  function method addSome(n: nat): nat
+  compiled function addSome(n: nat): nat
     ensures addSome(n) == n + 1
   {
     n + 1
@@ -482,7 +482,7 @@ We can then substitute `Implementation` for `A` in a new module, by declaring a 
 
 ``` {.editonly}
 abstract module Interface {
-  function method addSome(n: nat): nat
+  compiled function addSome(n: nat): nat
     ensures addSome(n) > n
 }
 abstract module Mod {
@@ -492,7 +492,7 @@ abstract module Mod {
   }
 }
 module Implementation refines Interface {
-  function method addSome(n: nat): nat
+  compiled function addSome(n: nat): nat
     ensures addSome(n) == n + 1
   {
     n + 1
