@@ -1,8 +1,8 @@
 diff --git a/Source/Dafny.sln b/Source/Dafny.sln
-index 3cc1738d..789c04ca 100644
+index 36bb4d93..7194b644 100644
 --- a/Source/Dafny.sln
 +++ b/Source/Dafny.sln
-@@ -30,6 +30,30 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DafnyTestGeneration", "Dafn
+@@ -30,6 +30,34 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DafnyTestGeneration", "Dafn
  EndProject
  Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DafnyTestGeneration.Test", "DafnyTestGeneration.Test\DafnyTestGeneration.Test.csproj", "{896E7F24-FD59-4B34-A1BF-53C51DDBC9E9}"
  EndProject
@@ -30,10 +30,14 @@ index 3cc1738d..789c04ca 100644
 +EndProject
 +Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SMTLib", "..\..\boogie\Source\Provers\SMTLib\SMTLib.csproj", "{0EC245EE-54DD-4AE3-9C2E-34E67EE28B9F}"
 +EndProject
++Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VCExpr", "..\..\boogie\Source\VCExpr\VCExpr.csproj", "{E760E37E-0257-4C96-89C4-722F85BABDBB}"
++EndProject
++Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VCGeneration", "..\..\boogie\Source\VCGeneration\VCGeneration.csproj", "{1EE372AA-4FF9-47FB-9C04-18CBF219F6E8}"
++EndProject
  Global
  	GlobalSection(SolutionConfigurationPlatforms) = preSolution
  		Debug|Any CPU = Debug|Any CPU
-@@ -80,6 +104,64 @@ Global
+@@ -80,6 +108,72 @@ Global
  		{896E7F24-FD59-4B34-A1BF-53C51DDBC9E9}.Debug|Any CPU.Build.0 = Debug|Any CPU
  		{896E7F24-FD59-4B34-A1BF-53C51DDBC9E9}.Release|Any CPU.ActiveCfg = Release|Any CPU
  		{896E7F24-FD59-4B34-A1BF-53C51DDBC9E9}.Release|Any CPU.Build.0 = Release|Any CPU
@@ -95,10 +99,18 @@ index 3cc1738d..789c04ca 100644
 +		{0EC245EE-54DD-4AE3-9C2E-34E67EE28B9F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 +		{0EC245EE-54DD-4AE3-9C2E-34E67EE28B9F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 +		{0EC245EE-54DD-4AE3-9C2E-34E67EE28B9F}.Release|Any CPU.Build.0 = Release|Any CPU
++		{E760E37E-0257-4C96-89C4-722F85BABDBB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
++		{E760E37E-0257-4C96-89C4-722F85BABDBB}.Debug|Any CPU.Build.0 = Debug|Any CPU
++		{E760E37E-0257-4C96-89C4-722F85BABDBB}.Release|Any CPU.ActiveCfg = Release|Any CPU
++		{E760E37E-0257-4C96-89C4-722F85BABDBB}.Release|Any CPU.Build.0 = Release|Any CPU
++		{1EE372AA-4FF9-47FB-9C04-18CBF219F6E8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
++		{1EE372AA-4FF9-47FB-9C04-18CBF219F6E8}.Debug|Any CPU.Build.0 = Debug|Any CPU
++		{1EE372AA-4FF9-47FB-9C04-18CBF219F6E8}.Release|Any CPU.ActiveCfg = Release|Any CPU
++		{1EE372AA-4FF9-47FB-9C04-18CBF219F6E8}.Release|Any CPU.Build.0 = Release|Any CPU
  	EndGlobalSection
  	GlobalSection(SolutionProperties) = preSolution
  		HideSolutionNode = FALSE
-@@ -75,4 +157,17 @@ Global
+@@ -87,4 +181,19 @@ Global
  	GlobalSection(ExtensibilityGlobals) = postSolution
  		SolutionGuid = {280F572B-D27A-4613-998F-00B6FFE01187}
  	EndGlobalSection
@@ -114,10 +126,12 @@ index 3cc1738d..789c04ca 100644
 +		{D97C23B6-FB4A-4450-930E-58EC83D308A0} = {60332269-9C5D-465E-8582-01F9B738BD90}
 +		{0EDC0584-3567-43B7-AE36-1DAB91ABB2DE} = {60332269-9C5D-465E-8582-01F9B738BD90}
 +		{0EC245EE-54DD-4AE3-9C2E-34E67EE28B9F} = {60332269-9C5D-465E-8582-01F9B738BD90}
++		{E760E37E-0257-4C96-89C4-722F85BABDBB} = {60332269-9C5D-465E-8582-01F9B738BD90}
++		{1EE372AA-4FF9-47FB-9C04-18CBF219F6E8} = {60332269-9C5D-465E-8582-01F9B738BD90}
 +	EndGlobalSection
  EndGlobal
 diff --git a/Source/Directory.Build.props b/Source/Directory.Build.props
-index 4934fa8d..64a5a976 100644
+index 30e67936..64a5a976 100644
 --- a/Source/Directory.Build.props
 +++ b/Source/Directory.Build.props
 @@ -7,7 +7,7 @@
