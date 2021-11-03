@@ -8737,11 +8737,11 @@ namespace Microsoft.Dafny {
           } else if (s.Rhs is TypeRhs tRhs) {
             if (tRhs.InitCall != null && tRhs.InitCall.Method.IsGhost) {
               autoGhostIdExpr.Var.MakeGhost();
-            } else if (tRhs.ArrayDimensions != null && tRhs.ArrayDimensions.Exists(resolver.UsesSpecFeatures)) {
+            } else if (tRhs.ArrayDimensions != null && tRhs.ArrayDimensions.Exists(ExpressionTester.UsesSpecFeatures)) {
               autoGhostIdExpr.Var.MakeGhost();
-            } else if (tRhs.ElementInit != null && resolver.UsesSpecFeatures(tRhs.ElementInit)) {
+            } else if (tRhs.ElementInit != null && ExpressionTester.UsesSpecFeatures(tRhs.ElementInit)) {
               autoGhostIdExpr.Var.MakeGhost();
-            } else if (tRhs.InitDisplay != null && tRhs.InitDisplay.Any(resolver.UsesSpecFeatures)) {
+            } else if (tRhs.InitDisplay != null && tRhs.InitDisplay.Any(ExpressionTester.UsesSpecFeatures)) {
               autoGhostIdExpr.Var.MakeGhost();
             }
           }
