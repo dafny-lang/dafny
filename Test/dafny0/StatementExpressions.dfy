@@ -1,7 +1,7 @@
 // RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-ghost method M(n: nat) //returns (y: nat)
+lemma M(n: nat) //returns (y: nat)
 {
   var y := F(n, 0);
 }
@@ -15,7 +15,7 @@ function F(n: nat, p: int): nat
   n
 }
 
-ghost method MM(n: nat) returns (y: nat)
+lemma MM(n: nat) returns (y: nat)
   decreases n, 0;
 {
   if n != 0 {
@@ -33,7 +33,7 @@ function FF(n: nat): nat
   n
 }
 
-ghost method P(n: nat)
+lemma P(n: nat)
 {
   if n != 0 {
     var y :=
@@ -46,7 +46,7 @@ ghost method P(n: nat)
     assert y == 100;
   }
 }
-ghost method Q(n: nat)
+lemma Q(n: nat)
 {
   if n != 0 {
     var y :=

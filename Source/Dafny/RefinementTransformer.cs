@@ -51,6 +51,95 @@ namespace Microsoft.Dafny {
     }
   }
 
+  /// <summary>
+  /// The "RefinementTransformer" is responsible for transforming a refining module (that is,
+  /// a module defined as "module Y refines X") according to the body of this module and
+  /// the module used as a starting point for the refinement (here, "X"). In a nutshell,
+  /// there are four kinds of transformations.
+  /// 
+  ///   0. "Y" can fill in some definitions that "X" omitted. For example, if "X" defines
+  ///      an opaque type "type T", then "Y" can define "T" to be a particular type, like
+  ///      "type T = int". As another example, if "X" omits the body of a function, then
+  ///      "Y" can give it a body.
+  /// 
+  ///   1. "Y" can add definitions. For example, it can declare new types and it can add
+  ///      members to existing types.
+  ///  
+  ///   2. "Y" can superimpose statements on an existing method body. The format for this
+  ///      is something that confuses most people. One reason for the common confusion is
+  ///      that in many other language situations, it's the original ("X") that says what
+  ///      parts can be replaced. Here, it the refining module ("Y") that decides where to
+  ///      "squeeze in" new statements. For example, if a method body in "X" is
+  /// 
+  ///          var i := 0;
+  ///          while i != 10 {
+  ///            i := i + 1;
+  ///          }
+  /// 
+  ///      then the refining module can write
+  ///
+  ///          var j := 0;
+  ///          ...;
+  ///          while ...
+  ///            invariant j == 2 * i
+  ///          {
+  ///            j := j + 2;
+  ///          }
+  ///
+  ///      Note, the two occurrences of "..." above are concrete syntax in Dafny.
+  ///
+  ///      In the RefinementTransformer methods below, the former usually goes by some name like
+  ///      "oldStmt", whereas the latter has some name like "skeleton". (Again, this can be confusing,
+  ///      because a "skeleton" (or "template") is something you *add* things to, whereas here it is
+  ///      description for *how* to add something to the "oldStmt".)
+  ///
+  ///      The result of combining the "oldStmt" and the "skeleton" is called the "Merge" of
+  ///      the two. For the example above, the merge is:
+  /// 
+  ///          var j := 0;
+  ///          var i := 0;
+  ///          while i != 10
+  ///            invariant j == 2 * i
+  ///          {
+  ///            j := j + 2;
+  ///            i := i + 1;
+  ///          }
+  ///
+  ///      The IDE adds hover text that shows what each "...;" or "}" in the "skeleton" expands
+  ///      to.
+  ///
+  ///      Roughly speaking, the new program text that is being superimposed on the old is
+  ///      allowed to add local variables and assignments to those (like "j" in the example above).
+  ///      It is also allowed to add some forms of assertions (like the "invariant" in the
+  ///      example). It cannot add statements that change the control flow, except that it
+  ///      is allowed to add "return;" statements. Finally, in addition to these superimpositions,
+  ///      there's a small number of refinement changes it can make. For example, it can reduce
+  ///      nondeterminism in certain ways; e.g., it can change a statement "r :| 0 <= r <= 100;"
+  ///      into "r := 38;". As another example of a refinement, it change change an "assume"
+  ///      into an "assert" (by writing "assert ...;").
+  ///
+  ///      The rules about what kinds of superimpositions the language can allow has as its
+  ///      guiding principle the idea that the verifier should not need to reverify anything that
+  ///      was already verified in module "X". In some special cases, a superimposition needs
+  ///      some condition to be verified (for example, an added "return;" statement causes the
+  ///      postcondition to be reverified, but only at the point of the "return;"), so the verifier
+  ///      adds the necessary additional checks.
+  ///  
+  ///   3. Some modifiers and other decorations may be changed. For example, a "ghost var"
+  ///      field can be changed to a "var" field, and vice versa. It may seem odd that a
+  ///      refinement is allowed to change these (and in either direction!), but it's fine
+  ///      as long as it doesn't affect what the verifier does. The entire merged module is
+  ///      passed through Resolution, which catches any errors that these small changes
+  ///      may bring about. For example, it will give an error for an assignment "a := b;"
+  ///      if "a" and "b" were both compiled variables in "X" and "b" has been changed to be
+  ///      a ghost variable in "Y".
+  ///
+  /// For more information about the refinement features in Dafny, see
+  ///
+  ///      "Programming Language Features for Refinement"
+  ///      Jason Koenig and K. Rustan M. Leino.
+  ///      In EPTCS, 2016. (Post-workshop proceedings of REFINE 2015.) 
+  /// </summary>
   public class RefinementTransformer : IRewriter {
     Cloner rawCloner; // This cloner just gives exactly the same thing back.
     RefinementCloner refinementCloner; // This cloner wraps things in a RefinementToken
@@ -492,7 +581,7 @@ namespace Microsoft.Dafny {
 
       if (m is Constructor) {
         var dividedBody = (DividedBlockStmt)newBody ?? refinementCloner.CloneDividedBlockStmt((DividedBlockStmt)m.BodyForRefinement);
-        return new Constructor(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, tps, ins,
+        return new Constructor(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.IsGhost, tps, ins,
           req, mod, ens, decreases, dividedBody, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null);
       }
       var body = newBody ?? refinementCloner.CloneBlockStmt(m.BodyForRefinement);
@@ -852,6 +941,9 @@ namespace Microsoft.Dafny {
       return t.ToString() == u.ToString();
     }
 
+    /// <summary>
+    /// This method merges the statement "oldStmt" into the template "skeleton".
+    /// </summary>
     BlockStmt MergeBlockStmt(BlockStmt skeleton, BlockStmt oldStmt) {
       Contract.Requires(skeleton != null);
       Contract.Requires(oldStmt != null);
@@ -1069,7 +1161,10 @@ namespace Microsoft.Dafny {
                 if (oldModifyStmt.Body == null && skel.Body == null) {
                   mbody = null;
                 } else if (oldModifyStmt.Body == null) {
-                  mbody = skel.Body;
+                  // Note, it is important to call MergeBlockStmt here (rather than just setting "mbody" to "skel.Body"), even
+                  // though we're passing in an empty block as its second argument. The reason for this is that MergeBlockStmt
+                  // also sets ".ReverifyPost" to "true" for any "return" statements.
+                  mbody = MergeBlockStmt(skel.Body, new BlockStmt(oldModifyStmt.Tok, oldModifyStmt.EndTok, new List<Statement>()));
                 } else if (skel.Body == null) {
                   reporter.Error(MessageSource.RefinementTransformer, cur.Tok, "modify template must have a body if the inherited modify statement does");
                   mbody = null;
@@ -1351,8 +1446,18 @@ namespace Microsoft.Dafny {
 
       var invs = cOld.Invariants.ConvertAll(refinementCloner.CloneAttributedExpr);
       invs.AddRange(cNew.Invariants);
-      var r = new RefinedWhileStmt(cNew.Tok, cNew.EndTok, guard, invs, decr, refinementCloner.CloneSpecFrameExpr(cOld.Mod), MergeBlockStmt(cNew.Body, cOld.Body));
-      return r;
+      BlockStmt newBody;
+      if (cOld.Body == null && cNew.Body == null) {
+        newBody = null;
+      } else if (cOld.Body == null) {
+        newBody = MergeBlockStmt(cNew.Body, new BlockStmt(cOld.Tok, cOld.EndTok, new List<Statement>()));
+      } else if (cNew.Body == null) {
+        reporter.Error(MessageSource.RefinementTransformer, cNew.Tok, "while template must have a body if the inherited while statement does");
+        newBody = null;
+      } else {
+        newBody = MergeBlockStmt(cNew.Body, cOld.Body);
+      }
+      return new RefinedWhileStmt(cNew.Tok, cNew.EndTok, guard, invs, decr, refinementCloner.CloneSpecFrameExpr(cOld.Mod), newBody);
     }
 
     Statement MergeElse(Statement skeleton, Statement oldStmt) {

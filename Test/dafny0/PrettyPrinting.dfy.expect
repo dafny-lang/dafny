@@ -121,6 +121,14 @@ module ByMethod {
     return -j;
   }
 }
+
+module GhostConstructors {
+  class C {
+    constructor X()
+
+    ghost constructor Y()
+  }
+}
 PrettyPrinting.dfy(10,4): Warning: note, this loop has no body
 PrettyPrinting.dfy(11,4): Warning: note, this loop has no body
 PrettyPrinting.dfy(14,4): Warning: note, this loop has no body

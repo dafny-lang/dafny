@@ -60,7 +60,7 @@ DefaultParameters.dfy(387,29): Error: value does not satisfy the subset constrai
 DefaultParameters.dfy(416,28): Error: default-value expression is not allowed to involve recursive or mutually recursive calls
 DefaultParameters.dfy(417,23): Error: default-value expression is not allowed to involve recursive or mutually recursive calls
 DefaultParameters.dfy(418,24): Error: cannot prove termination; try supplying a decreases clause
-DefaultParameters.dfy(419,28): Error: cannot prove termination; try supplying a decreases clause
+DefaultParameters.dfy(419,21): Error: cannot prove termination; try supplying a decreases clause
 DefaultParameters.dfy(438,27): Error: default-value expression is not allowed to involve recursive or mutually recursive calls
 DefaultParameters.dfy(443,28): Error: default-value expression is not allowed to involve recursive or mutually recursive calls
 DefaultParameters.dfy(447,5): Error: cannot prove termination; try supplying a decreases clause

@@ -413,3 +413,42 @@ module Regression {
   method N() returns (e: E<Class>) {
   }
 }
+
+module AdditionalTests {
+  type GGG(00)
+
+  method DefiniteAssignmentLocal0() returns (r: GGG) {
+    var g: GGG;
+    r := g; // error: g is subject to definite-assignment rules and cannot be used unless first initialized
+  }
+
+  method DefiniteAssignmentLocal1(a: bool, ghost b: bool) returns (ghost r: GGG, r': GGG) {
+    var g: GGG;
+    if a {
+      r := g; // error: g is subject to definite-assignment rules and cannot be used unless first initialized (despite being assigned to a ghost)
+      r' := g; // this is an error, but it is masked by the error on the previous line
+    } else {
+      if b {
+        var h: GGG;
+        h := g; // error: g is subject to definite-assignment rules and cannot be used unless first initialized (despite being assigned to a ghost)
+      }
+    }
+  } // error: r' may not have been assigned
+
+  ghost method DefiniteAssignmentLocal2() returns (r: GGG) {
+    var g: GGG; // no initialization needed, since we're in a ghost context
+    r := g;
+  }
+
+  method DefiniteAssignmentOut0() returns (r: GGG) {
+  } // error: g is subject to definite-assignment rules and cannot be used unless first initialized
+
+  method DefiniteAssignmentOut1() returns (ghost r: GGG) {
+  } // no initialization needed, since the out-parameter is ghost
+
+  ghost method DefiniteAssignmentOut2() returns (r: GGG) {
+  } // no initialization needed, since we're in a ghost context
+
+  lemma DefiniteAssignmentOut3() returns (r: GGG) {
+  } // no initialization needed, since we're in a ghost context
+}

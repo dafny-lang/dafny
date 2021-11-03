@@ -9,6 +9,11 @@ DefiniteAssignment.dfy(370,11): Error: field 'y', which is subject to definite-a
 DefiniteAssignment.dfy(377,6): Error: field 'y', which is subject to definite-assignment rules, might not have been defined at this point in the constructor body
 DefiniteAssignment.dfy(382,4): Error: field 'y', which is subject to definite-assignment rules, might not have been defined at this point in the constructor body
 DefiniteAssignment.dfy(387,4): Error: field 'x', which is subject to definite-assignment rules, might not have been defined at this point in the constructor body
+DefiniteAssignment.dfy(422,9): Error: variable 'g', which is subject to definite-assignment rules, might be used before it has been assigned
+DefiniteAssignment.dfy(428,11): Error: variable 'g', which is subject to definite-assignment rules, might be used before it has been assigned
+DefiniteAssignment.dfy(433,13): Error: variable 'g', which is subject to definite-assignment rules, might be used before it has been assigned
+DefiniteAssignment.dfy(436,2): Error: out-parameter 'r'', which is subject to definite-assignment rules, might not have been defined at this return point
+DefiniteAssignment.dfy(444,2): Error: out-parameter 'r', which is subject to definite-assignment rules, might not have been defined at this return point
 DefiniteAssignment.dfy(11,9): Error: field 'y', which is subject to definite-assignment rules, might be used before it has been assigned
 DefiniteAssignment.dfy(13,4): Error: field 'oxA', which is subject to definite-assignment rules, might not have been defined at this point in the constructor body
 DefiniteAssignment.dfy(13,4): Error: field 'oxB', which is subject to definite-assignment rules, might not have been defined at this point in the constructor body
@@ -40,4 +45,4 @@ DefiniteAssignment.dfy(143,8): Error: variable 'w', which is subject to definite
 DefiniteAssignment.dfy(237,12): Error: variable 'a', which is subject to definite-assignment rules, might be used before it has been assigned
 DefiniteAssignment.dfy(238,12): Error: variable 'b', which is subject to definite-assignment rules, might be used before it has been assigned
 
-Dafny program verifier finished with 12 verified, 41 errors
+Dafny program verifier finished with 12 verified, 46 errors
