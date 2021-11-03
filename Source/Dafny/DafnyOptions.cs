@@ -897,6 +897,12 @@ $@"
     If verification fails, report a detailed counterexample for the first
     failing assertion. Requires specifying the /mv option as well as
     /proverOpt:0:model_compress=false and /proverOpt:0:model.completion=true.
+/verificationLogger:<configuration string>
+    Logs verification results to the given test result logger.
+    The only currently supported value is ""trx"", the XML-based format
+    commonly used for test results for .NET languages.
+    The exact mapping of verification concepts to the TRX format is
+    experimental and subject to change!
 {TestGenOptions.Help}
 
 Dafny generally accepts Boogie options and passes these on to Boogie. However,

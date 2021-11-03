@@ -83,7 +83,7 @@ namespace Microsoft.Dafny {
 
       var testCase = new TestCase {
         FullyQualifiedName = name,
-        ExecutorUri = new Uri("executor://dafny/something/something"),
+        ExecutorUri = new Uri("executor://dafnyverifier/v1"),
         Source = currentFileFragment
       };
 
