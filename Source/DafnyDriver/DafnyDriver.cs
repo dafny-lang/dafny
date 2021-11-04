@@ -10,9 +10,7 @@
 //       - main program for taking a Dafny program and verifying it
 //---------------------------------------------------------------------------------------------
 
-using System.Security;
 using DafnyServer.CounterexampleGeneration;
-using DafnyTestGeneration;
 
 namespace Microsoft.Dafny {
   using System;
@@ -66,6 +64,9 @@ namespace Microsoft.Dafny {
 
       if (CommandLineOptions.Clo.XmlSink != null) {
         CommandLineOptions.Clo.XmlSink.Close();
+        if (DafnyOptions.O.VerificationLoggerConfig != null) {
+          BoogieXmlConvertor.RaiseTestLoggerEvents(DafnyOptions.O.BoogieXmlFilename, DafnyOptions.O.VerificationLoggerConfig);
+        }
       }
       if (CommandLineOptions.Clo.Wait) {
         Console.WriteLine("Press Enter to exit.");
