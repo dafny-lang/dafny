@@ -14,6 +14,9 @@ namespace Microsoft.Dafny {
   /// Copied and modified (to remove the parent TestSessionMessageLogger reference)
   /// from the internal but MIT-licensed version from inside VSTest:
   /// https://github.com/microsoft/vstest/blob/main/src/Microsoft.TestPlatform.Common/Logging/InternalTestLoggerEvents.cs
+  ///
+  /// Since this class is copied and modified from existing source, I haven't made any effort
+  /// to align coding styles or clean up anything, for the sake of simplicity. 
   /// </summary>
   public class LocalTestLoggerEvents : TestLoggerEvents, IDisposable {
     #region Fields

@@ -137,7 +137,7 @@ namespace Microsoft.Dafny {
             } else if (args[ps.i].Equals("DllEmbed")) {
               PrintMode = PrintModes.DllEmbed;
             } else {
-              throw new Exception("Invalid value for printMode");
+              InvalidArgumentError(name, ps);
             }
           }
           return true;
@@ -179,7 +179,7 @@ namespace Microsoft.Dafny {
             } else if (args[ps.i].Equals("php")) {
               CompileTarget = CompilationTarget.Php;
             } else {
-              throw new Exception("Invalid value for compileTarget");
+              InvalidArgumentError(name, ps);
             }
           }
           return true;
@@ -388,7 +388,7 @@ namespace Microsoft.Dafny {
             } else if (args[ps.i].Equals("Transitive")) {
               PrintIncludesMode = IncludesModes.Transitive;
             } else {
-              throw new Exception("Invalid value for includesMode");
+              InvalidArgumentError(name, ps);
             }
 
             if (PrintIncludesMode == IncludesModes.Immediate || PrintIncludesMode == IncludesModes.Transitive) {
@@ -410,7 +410,7 @@ namespace Microsoft.Dafny {
               } else if (args[ps.i].Equals("1")) {
                 ShowSnippets = true;
               } else {
-                throw new Exception("Invalid value for showSnippets");
+                InvalidArgumentError(name, ps);
               }
             }
             return true;
@@ -426,10 +426,10 @@ namespace Microsoft.Dafny {
 
         case "verificationLogger":
           if (ps.ConfirmArgumentCount(1)) {
-            if (args[ps.i].Equals("trx")) {
+            if (args[ps.i] == "trx") {
               VerificationLoggerConfig = args[ps.i];
             } else {
-              throw new Exception("Invalid value for verificationLogger");
+              InvalidArgumentError(name, ps);
             }
           }
           return true;
@@ -439,6 +439,10 @@ namespace Microsoft.Dafny {
       return TestGenOptions.ParseOption(name, ps) || base.ParseOption(name, ps);
     }
 
+    protected void InvalidArgumentError(string name, CommandLineParseState ps) {
+      ps.Error("Invalid argument \"{0}\" to option {1}", ps.args[ps.i], name);
+    }
+    
     public override void ApplyDefaultOptions() {
       base.ApplyDefaultOptions();
 
