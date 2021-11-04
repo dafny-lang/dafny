@@ -442,7 +442,7 @@ namespace Microsoft.Dafny {
     protected void InvalidArgumentError(string name, CommandLineParseState ps) {
       ps.Error("Invalid argument \"{0}\" to option {1}", ps.args[ps.i], name);
     }
-    
+
     public override void ApplyDefaultOptions() {
       base.ApplyDefaultOptions();
 
