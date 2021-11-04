@@ -9,6 +9,6 @@ OpaqueTypeWithMembers.dfy(139,15): Error: possible violation of function precond
 OpaqueTypeWithMembers.dfy(120,13): Related location
 OpaqueTypeWithMembers.dfy(141,16): Error: possible violation of function precondition
 OpaqueTypeWithMembers.dfy(115,13): Related location
-OpaqueTypeWithMembers.dfy(113,35): Related location
+OpaqueTypeWithMembers.dfy(113,37): Related location
 
 Dafny program verifier finished with 17 verified, 9 errors
