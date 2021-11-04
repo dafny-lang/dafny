@@ -531,6 +531,7 @@ bool IsGenericInstantiation(bool inExpressionContext) {
     case _greatest:
     case _inductive:
     case _twostate:
+    case _compiled:
     case _lemma:
     case _copredicate:
     case _ghost:

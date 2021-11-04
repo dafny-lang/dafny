@@ -12,7 +12,7 @@ type NonGhost_EffectlessArrow<!A(!new), B> = f: A ~> B
 
 // The following compilable function, which is used in the witness clause above, can never
 // be implemented, because there is no way to produce a B (for any B) in compiled code.
-function method EffectlessArrowWitness<A, B>(a: A): B
+compiled function EffectlessArrowWitness<A, B>(a: A): B
 
 type EffectlessArrow<!A(!new), B(00)> = f: A ~> B
   | forall a :: f.reads(a) == {}
@@ -177,4 +177,65 @@ method Total_to_Any(tot: int -> int) returns (f: int ~> int)
   ensures forall x :: f.reads(x) == {} && f.requires(x)
 {
   f := tot;
+}
+
+// -------- regression tests for parser --------
+
+module ParserRegressions {
+  predicate True<X, Y>(x: X, y: Y) {
+    true
+  }
+
+  type Arrow0<!A, !B> = p: (A, B) -> bool | true
+    // In the following line, the parser should recognize the "<A, B>" as a type instantiation.
+    // To do that, it may need to look at the symbol past the ">".
+    ghost witness True<A, B>
+
+  compiled predicate P() {
+    true
+  }
+
+  type Arrow1<!A, !B> = p: (A, B) -> bool | true
+    // In the following line, the parser should recognize the "<A, B>" as a type instantiation.
+    // To do that, it may need to look at the symbol past the ">".
+    ghost witness True<A, B>
+
+  least predicate LeastPredicate() {
+    true
+  }
+
+  type Arrow2<!A, !B> = p: (A, B) -> bool | true
+    // In the following line, the parser should recognize the "<A, B>" as a type instantiation.
+    // To do that, it may need to look at the symbol past the ">".
+    ghost witness True<A, B>
+
+  greatest predicate GreatestPredicate() {
+    true
+  }
+
+  type AA = int
+  type BB = int
+
+  class Class {
+    predicate P<X, Y>(x: X, y: Y) {
+      true
+    }
+
+    // In the following line, the parser should recognize the "<A, B>" as a type instantiation.
+    // To do that, it may need to look at the symbol past the ">".
+    ghost const Yeah: bool := P<AA, BB> == P<AA, BB>
+
+    static predicate StaticPredicate() {
+      true
+    }
+  }
+
+  type Arrow4<!A, !B> = p: (A, B) -> bool | true
+    // In the following line, the parser should recognize the "<A, B>" as a type instantiation.
+    // To do that, it may need to look at the symbol past the ">".
+    ghost witness True<A, B>
+
+  twostate predicate TwostatePredicate() {
+    true
+  }
 }
