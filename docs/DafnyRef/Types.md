@@ -1278,6 +1278,51 @@ function Fib(n: int): int
 }
 ```
 
+### 11.3.2 Non-null types
+
+Every class, trait, and iterator declaration `C` gives rise to two types.
+
+One type has the name `C?` (that is, the name of the class, trait,
+or iterator declaration with a `?` character appended to the end).
+The values of `C?` are the references to `C` objects, and also
+the value `null`.
+In other words, `C?` is the type of _possibly null_ references
+(aka, _nullable_ references) to `C` objects.
+
+The other type has the name `C` (that is, the same name as the
+class, trait, or iterator declaration).
+Its values are the references to `C` objects, and does not contain
+the value `null`.
+In other words, `C` is the type of _non-null_ references to `C`
+objects.
+
+The type `C` is a subset type of `C?`:
+``` dafny
+type C = c: C? | c != null
+```
+(It may be natural to think of the type `C?` as the union of
+type `C` and the value `null`, but, technically, Dafny defines
+`C` as a subset type with base type `C?`.)
+
+From being a subset type, we get that `C` is a subtype of `C?`.
+Moreover, if a class or trait `C` extends a trait `B`, then
+type `C` is a subtype of `B` and type `C?` is a subtype of `B?`.
+
+Every possibly-null reference type is a subtype of the
+built-in possibly-null trait type `object?`, and
+every non-null reference type is a subtype of the
+built-in non-null trait type `object`. (And, from the fact
+that `object` is a subset type of `object?`, we also have that
+`object` is a subtype of `object?`.)
+
+Arrays are references and array types also come in these two flavors.
+For example,
+`array?` and `array2?` are possibly-null (1- and 2-dimensional) array types, and
+`array` and `array2` are their respective non-null types.
+
+Note that `?` is not an operator. Instead, it is simply the last
+character of the name of these various possibly-null types.
+
 
 <!--PDF NEWPAGE-->
 # 12. Newtypes {#sec-newtypes}
