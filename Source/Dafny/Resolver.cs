@@ -6645,7 +6645,7 @@ namespace Microsoft.Dafny {
           } else {
             Contract.Assume(e is LambdaExpr);  // otherwise, unexpected ComprehensionExpr
           }
-          if (what != null) {
+          if (!codeContext.IsGhost && what != null) {
             foreach (var boundVar in e.BoundVars) {
               if (boundVar.Type is UserDefinedType
                 {
@@ -6658,7 +6658,7 @@ namespace Microsoft.Dafny {
               ) {
                 // Explicitely report the error
                 this.resolver.getReporter().Error(MessageSource.Resolver, boundVar.tok,
-                  "subset type's constraint is not compilable, hence it cannot yet be used as the type of a bound variable in " + what + ". The next error will explain why the constraint is not compilable.");
+                  boundVar.Type + " is a subset type and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in " + what + ". The next error will explain why the constraint is not compilable.");
                 ExpressionTester.CheckIsCompilable(this.resolver, constraint, new CodeContextWrapper((subsetTypeDecl as SubsetTypeDecl), true));
               }
             }
