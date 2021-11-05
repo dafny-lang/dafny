@@ -1207,7 +1207,6 @@ may be given members such as constants, methods or functions.
 
 
 ## 11.3. Subset types {#sec-subset-types}
-TO BE WRITTEN: add `-->` (subset of `~>`), `->` (subset of `-->`), non-null types subset of nullable types
 
 ````grammar
 SubsetTypeDecl_ =
@@ -1322,6 +1321,65 @@ For example,
 
 Note that `?` is not an operator. Instead, it is simply the last
 character of the name of these various possibly-null types.
+
+### 11.3.2 Arrow subset types: `-->` and `->` {#sec-arrow-subset-types}
+
+For a list of types `TT` and a type `U`, the values of the arrow type `(TT) ~> U`
+are functions from `TT` to `U. This includes functions that may read the
+heap and functions that are not defined on all inputs. It is not common
+to need this generality (and working with such general functions is
+difficult). Therefore, Dafny defines two subset types that are more common
+(and much easier to work with).
+
+The type `(TT) --> U` denotes the subset of `(TT) ~> U` where the functions
+do not read the (mutable parts of the) heap.
+Values of type `(TT) --> U` are called _partial functions_,
+and the subset type `(TT) --> U` is called the _partial arrow type_.
+(As a mnemonic to help you remember that this is the partial arrow, you may
+think of the little gap between the two hyphens in `-->` as showing a broken
+arrow.)
+
+The built-in partial arrow type is defined as follows (here shown
+for arrows with arity 1):
+``` dafny
+type A --> B = f: A ~> B | forall a :: f.reads(a) == {}
+```
+(except that what is shown here left of the `=` is not legal Dafny syntax).
+That is, the partial arrow type is defined as those functions `f`
+whose reads frame is empty for all inputs.
+More precisely, taking variance into account, the partial arrow type
+is defined as
+``` dafny
+type -A --> +B = f: A ~> B | forall a :: f.reads(a) == {}
+```
+
+The type `(TT) -> U` is, in turn, a subset type of `(TT) --> U`, adding the
+restriction that the functions must not impose any precondition. That is,
+values of type `(TT) -> U` are _total functions_, and the subset type
+`(TT) -> U` is called the _total arrow type_.
+
+The built-in total arrow type is defined as follows (here shown
+for arrows with arity 1):
+``` dafny
+type -A -> +B = f: A --> B | forall a :: f.requires(a)
+```
+That is, the total arrow type is defined as those partial functions `f`
+whose precondition evaluates to `true` for all inputs.
+
+Among these types, the most commonly used are the total arrow types.
+They are also the easiest to work with. Because they are common, they
+have the simplest syntax (`->`).
+
+Note, informally, we tend to speak of all three of these types as arrow types,
+even though, technically, the `~>` types are the arrow types and the
+`-->` and `->` types are subset types thereof. The one place where you may need to
+remember that `-->` and `->` are subset types is in some error messages.
+For example, if you try to assign a partial function to a variable whose
+type is a total arrow type and the verifier is not able to prove that the
+partial function really is total, then you'll get an error say the subset-type
+constraint may not be satisfied.
+
+For more information about arrow types, see [Section 17](#sec-arrow-types).
 
 
 <!--PDF NEWPAGE-->
@@ -2831,18 +2889,47 @@ ArrowType_ = ( DomainType_ "~>" Type
              )
 ````
 
-Functions are first-class values in Dafny.  Function types have the form
-`(T) -> U` where `T` is a comma-delimited list of types and `U` is a
-type.  `T` is called the function's _domain type(s)_ and `U` is its
+Functions are first-class values in Dafny. The types of function values
+are called _arrow types_ (aka, _function types_).
+Arrow types have the form `(TT) ~> U` where `TT` is a (possibly empty)
+comma-delimited list of types and `U` is a type.
+`TT` is called the function's _domain type(s)_ and `U` is its
 _range type_.  For example, the type of a function
+```dafny
+function F(x: int, arr: array<bool>): real
+  requires x < 1000
+  reads arr
+```
+is `(int, array<bool>) ~> real`.
+
+As seen in the example above, the functions that are values of a type
+`(TT) ~> U` can have a precondition (as indicated by the `requires` clause)
+and can read values in the heap (as indicated by the `reads` clause).
+As described in [Section 11.3.2](#sec-arrow-subset-types),
+the subset type `(TT) --> U` denotes partial (but heap-independent) functions
+and the subset type `(TT) -> U` denotes total functions.
+
+A function declared without a `reads` clause is known by the type
+checker to be a partial function. For example, the type of
+```dafny
+function F(x: int, b: bool): real
+  requires x < 1000
+```
+is `(int, bool) --> real`.
+Similarly, a function declared with neither a `reads` clause nor a
+`requires` clause is known by the type checker to be a total function.
+For example, the type of
 ```dafny
 function F(x: int, b: bool): real
 ```
-is `(int, bool) -> real`.  Parameters are not allowed to be ghost.
+is `(int, bool) -> real`.
+In addition to functions declared by name, Dafny also supports anonymous
+functions by means of _lambda expressions_ (see [Section 20.13](#sec-lambda-expressions)).
 
 To simplify the appearance of the basic case where a function's
 domain consists of a list of exactly one non-function, non-tuple type, the parentheses around
-the domain type can be dropped in this case, as in `T -> U`.
+the domain type can be dropped in this case. For example, you may
+write just `T -> U` for a total arrow type.
 This innocent simplification requires additional explanation in the
 case where that one type is a tuple type, since tuple types are also
 written with enclosing parentheses.
@@ -2861,9 +2948,11 @@ function Z(unit: ()): real
 ```
 have types `() -> real` and `(()) -> real`, respectively.
 
-The function arrow, `->`, is right associative, so `A -> B -> C` means
-`A -> (B -> C)`.  The other association requires explicit parentheses:
-`(A -> B) -> C`.
+The function arrows are right associative.
+For example, `A -> B -> C` means `A -> (B -> C)`, whereas
+the other association requires explicit parentheses: `(A -> B) -> C`.
+As another example, `A -> B --> C ~> D` means
+`A -> (B --> (C ~> D))`.
 
 Note that the receiver parameter of a named function is not part of
 the type.  Rather, it is used when looking up the function and can
@@ -2879,6 +2968,28 @@ whereas it would have been incorrect to have written something like:
 var f': (C, int, bool) -> real := F;  // not correct
 ```
 
+The arrow types themselves do not divide its parameters into ghost
+versus non-ghost. Instead, a function used as a first-class value is
+considered to be ghost if either the function or any of its arguments
+is ghost. The following example program illustrates:
+``` dafny
+function method F(x: int, ghost y: int): int
+{
+  x
+}
+
+method Example() {
+  ghost var f: (int, int) -> int;
+  var g: (int, int) -> int;
+  var h: (int) -> int;
+  var x: int;
+  f := F;
+  x := F(20, 30);
+  g := F; // error: tries to assign ghost to non-ghost
+  h := F; // error: wrong arity (and also tries to assign ghost to non-ghost)
+}
+```
+
 In addition to its type signature, each function value has three properties,
 described next.
 
@@ -2887,34 +2998,37 @@ ever depends on the _entire_ heap, however.  A property of the
 function is its declared upper bound on the set of heap locations it
 depends on for a given input.  This lets the verifier figure out that
 certain heap modifications have no effect on the value returned by a
-certain function.  For a function `f: T -> U` and a value `t` of type
+certain function.  For a function `f: T ~> U` and a value `t` of type
 `T`, the dependency set is denoted `f.reads(t)` and has type
 `set<object>`.
 
 The second property of functions stems from the fact that every function
 is potentially _partial_. In other words, a property of a function is its
-_precondition_. For a function `f: T -> U`, the precondition of `f` for a
+_precondition_. For a function `f: T ~> U`, the precondition of `f` for a
 parameter value `t` of type `T` is denoted `f.requires(t)` and has type
 `bool`.
 
 The third property of a function is more obvious---the function's
-body.  For a function `f: T -> U`, the value that the function yields
+body.  For a function `f: T ~> U`, the value that the function yields
 for an input `t` of type `T` is denoted `f(t)` and has type `U`.
 
 Note that `f.reads` and `f.requires` are themselves functions.
-Suppose `f` has type `T -> U` and `t` has type `T`.  Then, `f.reads`
-is a function of type `T -> set<object>` whose `reads` and `requires`
+Suppose `f` has type `T ~> U` and `t` has type `T`.  Then, `f.reads`
+is a function of type `T ~> set<object?>` whose `reads` and `requires`
 properties are:
 ```dafny
 f.reads.reads(t) == f.reads(t)
 f.reads.requires(t) == true
 ```
-`f.requires` is a function of type `T -> bool` whose `reads` and
+`f.requires` is a function of type `T ~> bool` whose `reads` and
 `requires` properties are:
 ```dafny
 f.requires.reads(t) == f.reads(t)
 f.requires.requires(t) == true
 ```
+In these examples, if `f` instead had type `T --> U` or `T -> U`,
+then the type of `f.reads` is `T -> set<object?>` and the type
+of `f.requires` is `T -> bool`.
 
 Dafny also supports anonymous functions by means of
 _lambda expressions_. See [Section 20.13](#sec-lambda-expressions).
