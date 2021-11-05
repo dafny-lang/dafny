@@ -1,9 +1,9 @@
 # 6. Types {#sec-types}
 ````grammar
-Type = DomainType_ | FunctionType_
+Type = DomainType_ | ArrowType_
 ````
-A Dafny type is a domain type (i.e., a type that can be the domain of a
-function type) optionally followed by an arrow and a range type.
+A Dafny type is a domain type (i.e., a type that can be the domain of an
+arrow type) optionally followed by an arrow and a range type.
 
 ````grammar
 DomainType_ =
@@ -513,7 +513,7 @@ is a method whose type parameter is restricted to equality-supporting
 types when used in a non-ghost context.
 Again, note that _all_ types support equality in _ghost_
 contexts; the difference is only for non-ghost (that is, compiled)
-code.  Co-inductive datatypes, function types, and inductive
+code.  Co-inductive datatypes, arrow types, and inductive
 datatypes with ghost parameters are examples of types that are not
 equality supporting.
 
@@ -2769,10 +2769,13 @@ design of asynchronous methods evolves.
 -->
 
 <!--PDF NEWPAGE-->
-# 17. Function types
+# 17. Arrow types {#sec-arrow-types}
 
 ````grammar
-FunctionType_ = DomainType_ "->" Type
+ArrowType_ = ( DomainType_ "~>" Type
+             | DomainType_ "-->" Type
+             | DomainType_ "->" Type
+             )
 ````
 
 Functions are first-class values in Dafny.  Function types have the form
@@ -2925,7 +2928,7 @@ its parameters.
 
 The values of inductive datatypes can be seen as finite trees where
 the leaves are values of basic types, numeric types, reference types,
-co-inductive datatypes, or function types.  Indeed, values of
+co-inductive datatypes, or arrow types.  Indeed, values of
 inductive datatypes can be compared using Dafny's well-founded
 `<` ordering.
 
