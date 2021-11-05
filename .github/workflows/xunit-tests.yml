@@ -66,27 +66,3 @@ jobs:
       with:
         name: unit-test-results-${{ matrix.os }}
         path: Source/*/TestResults/*.trx
-
-  publish-test-results:
-    name: "Download and Publish Unit Tests Results"
-    needs: build
-    runs-on: ubuntu-latest
-    if: always()
-
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          submodules: recursive
-
-      - name: Download Artifacts
-        uses: actions/download-artifact@v2
-        with:
-          path: artifacts
-
-      - name: Publish Unit Tests Results
-        uses: dorny/test-reporter@v1
-        with:
-          name: Unit Test Results
-          path: 'artifacts/**/*.trx'
-          reporter: dotnet-trx
-  
