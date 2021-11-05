@@ -10,6 +10,7 @@
 //       - main program for taking a Dafny program and verifying it
 //---------------------------------------------------------------------------------------------
 
+using System.Runtime.InteropServices;
 using System.Security;
 using DafnyServer.CounterExampleGeneration;
 using DafnyTestGeneration;
@@ -642,6 +643,10 @@ namespace Microsoft.Dafny {
       WriteFile(targetFilename, targetProgramText, callToMain);
 
       string relativeTarget = Path.Combine(targetBaseDir, targetBaseName);
+      if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+        // To satisfy the tests that assume a '/' instead of a '\'
+        relativeTarget = relativeTarget.Replace('\\', '/');
+      }
       if (targetProgramHasErrors) {
         // Something went wrong during compilation (e.g., the compiler may have found an "assume" statement).
         // As a courtesy, we're still printing the text of the generated target program. We print a message regardless
