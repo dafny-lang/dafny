@@ -5,6 +5,7 @@ name: Test Release Downloads
 on:
   release:
     types: [ published ]
+  workflow_dispatch: // For manual testing through the Actions UI
 
 jobs:
   build:
@@ -16,14 +17,14 @@ jobs:
         os: [ ubuntu-latest, ubuntu-18.04, macos-latest, windows-latest ]
         include:
         - os:  'ubuntu-latest'
-          osn: 'ubuntu-18.04'
+          osn: 'ubuntu-16.04'
         - os:  'ubuntu-18.04'
-          osn: 'ubuntu-18.04'
+          osn: 'ubuntu-16.04'
         - os:  'macos-latest'
           osn: 'osx'
         - os:  'windows-latest'
           osn: 'win'
-          ver: '3.2.0'
+          ver: '3.3.0'
     # There is no hosted environment for Unbuntu 14.04 or for debian
 
     # Java is installed by default, but we need to select 1.8
