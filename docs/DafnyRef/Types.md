@@ -479,8 +479,9 @@ cluttered (described in [Section 23.2](#sec-type-inference)).
 
 It is sometimes necessary to restrict type parameters so that
 they can only be instantiated by certain families of types, that is,
-by types that have certain properties. The following subsections
-describe the restrictions Dafny supports.
+by types that have certain properties. These properties are known as
+_type characteristics_. The following subsections
+describe the type characteristics that Dafny supports.
 
 In some cases, type inference will infer that a type-parameter
 must be restricted in a particular way, in which case Dafny
@@ -517,35 +518,65 @@ equality supporting.
 
 ### 8.1.2. Auto-initializable types: `T(0)`
 
-All Dafny variables of a given type hold a legal value of that type;
-if no explicit initialization is given, then an arbitrary value is
+At every access of a variable `x` of a type `T`, Dafny ensures that
+`x` holds a legal value of type `T`.
+If no explicit initialization is given, then an arbitrary value is
 assumed by the verifier and supplied by the compiler,
- that is, the variable is _auto-initialized_.
-During verification, this means that any subsequent uses of that
-variable must hold for any value.
+that is, the variable is _auto-initialized_.
 For example,
 ```dafny
 method m() {
-  var n: nat; // Initialized to arbitrary value
+  var n: nat; // Auto-initialized to an arbitrary value of type `nat`
   assert n >= 0; // true, regardless of the value of n
   var i: int;
   assert i >= 0; // possibly false, arbitrary ints may be negative
 }
 ```
 
-For some types, the compiler can choose an initial value, but for others
-it does not.
-Variables and fields of a type that the compiler does not auto-initialize
+For some types (known as _auto-init types_), the compiler can choose an
+initial value, but for others it does not.
+Variables and fields whose type the compiler does not auto-initialize
 are subject to _definite-assignment_ rules. These ensure that the program
 explicitly assigns a value to a variable before it is used.
 For more details see [Section 23.6](#sec-definite-assignment) and the `-definiteAssignment` command-line option.
 
-The `(0)` suffix indicates that the type must be one that the compiler knows
-how to auto-initialize, if the type is used to declare a non-ghost variable.
+Dafny supports auto-init as a type characteristic.
+To restrict a type parameter to auto-init types, mark it with the
+`(0)` suffix. For example,
+``` dafny
+method AutoInitExamples<A(0), X>() returns (a: A, x: X)
+{
+  // 'a' does not require an explicit initialization, since A is auto-init
+  // error: out-parameter 'x' has not been given a value
+}
+```
+In this example, an error is reported because out-parameter `x` has not
+been assigned---since nothing is known about type `X`, variables of
+type `X` are subject to definite-assignment rules. In contrast, since
+type parameter `A` is declared to be restricted to auto-init types,
+the program does not need to explicitly assign any value to the
+out-parameter `a`.
 
-### 8.1.3. Non-empty types: `T(00)`
+### 8.1.3. Nonempty types: `T(00)`
 
-TODO
+Auto-init types are important in compiled contexts. In ghost contexts, it
+may still be important to know that a type is nonempty. Dafny supports
+a type characteristic for nonempty types, written with the suffix `(00)`.
+For example,
+``` dafny
+method NonemptyExamples<B(00), X>() returns (b: B, ghost g: B, ghost h: X)
+{
+  // error: non-ghost out-parameter 'b' has not been given a value
+  // ghost out-parameter 'g' is fine, since its type is nonempty
+  // error: 'h' has not been given a value
+}
+```
+Because of `B`'s nonempty type characteric, ghost parameter `g` does not
+need to be explicitly assigned. However, Dafny reports an error for the
+non-ghost `b`, since `B` is not an auto-init type, and reports an error
+for `h`, since the type `X` could be empty.
+
+Note that every auto-init type is nonempty.
 
 ### 8.1.4. Non-heap based: `T(!new)`
 
@@ -1059,7 +1090,7 @@ with arrays where parallel assigment is needed:
 
 ### 10.5.2. Sets
 There is no intrinsic order to the elements of a set. Nevertheless, we can
-extract an arbitrary element of a non-empty set, performing an iteration
+extract an arbitrary element of a nonempty set, performing an iteration
 as follows:
 ```dafny
 // s is a set<int>
