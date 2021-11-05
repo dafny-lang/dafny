@@ -1246,9 +1246,17 @@ are never allowed, even if the value assigned is a value of the target
 type.  For such assignments, an explicit conversion must be used, see
 [Section 20.10](#sec-as-expression).)
 
-Dafny supports a built-in subset type, namely the type `nat`,
-whose base type is `int`. Type `nat`
-designates the non-negative subrange of `int`.  A simple example that
+Dafny builds in three families of subset types, as described next.
+
+### 11.3.1 Type`nat`
+
+The built-in type `nat`, which represents the non-negative integers
+(that is, the natural numbers), is a subset type:
+``` dafny
+type nat = n: int | 0 <= n
+```
+
+A simple example that
 puts subset type `nat` to good use is the standard Fibonacci
 function:
 ```dafny
@@ -1266,7 +1274,7 @@ function Fib(n: int): int
   requires 0 <= n  // the function argument must be non-negative
   ensures 0 <= Fib(n)  // the function result is non-negative
 {
-  if n < 2 then n else Fib(n-2) + Fib(n-1)
+  if n < 2 then n else Fib(n - 2) + Fib(n - 1)
 }
 ```
 
