@@ -40,6 +40,8 @@ jobs:
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: 5.0.x
+    - name: Remove proxies
+      run: unset ALL_PROXY
     - name: Install dependencies
       run: dotnet restore ${{env.solutionPath}}
     - name: Load Z3
