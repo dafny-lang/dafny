@@ -1,8 +1,19 @@
 [![Build and Test](https://github.com/dafny-lang/dafny/workflows/Build%20and%20Test/badge.svg)](https://github.com/dafny-lang/dafny/actions?query=workflow%3A%22Build+and+Test%22) [![Gitter](https://badges.gitter.im/dafny-lang/community.svg)](https://gitter.im/dafny-lang/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
+Dafny is a **programming language with a program verifier**. As you type in your program, the verifier constantly looks over your shoulders, flags any errors, shows you counterexamples, and congratulates you when your code matches your specifications.
+
+![vs-code-dafny-2 0 0-demo](https://user-images.githubusercontent.com/3601079/140799975-f3ac0925-10d9-4c14-b1a9-cd449854c6ae.gif)
+
+Dafny provides an **incredible agility in production environments**.
+It integrates well into existing workflow environments because it **compiles to C#, Java, JavaScript and Go**. Developers can write **guaranteed bug-free code**, prove and push optimizations **directly in production** with an assurance equivalent to a mathematically proved theorem, meaning no need to write all test cases with the fear of missing a corner test, and no more rollbacks.
+
+Dafny has support for common programming concepts such as [classes and inheritance](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-class-types), [datatypes and pattern matching](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#181-inductive-datatypes) that can have methods, [lazily unbounded datatypes](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#182-co-inductive-datatypes), [subset types e.g. for bounded integers](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-subset-types), [lambdas](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-lambda-expressions), [immutable and mutable data structures](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-collection-types)...
+
+Dafny also offers an extensive arsenal for mathematical proofs, such as [unbounded and bounded quantifiers](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-forall-statement), [proof hint structures](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#1923-calc-statement), [pre-, post-condition, termination conditions, loop invariants and read/write specifications](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#51-specification-clauses).
+
 ![Dafny](dafny-banner.png)
 
-Dafny is a programming language with a program verifier. As you type in your program, the verifier constantly looks over your shoulders and flags any errors. This github site contains these materials:
+This github site contains these materials:
 
 * sources
 * [binary downloads](https://github.com/dafny-lang/dafny/releases) for Windows, Mac, GNU/Linux, and FreeBSD
