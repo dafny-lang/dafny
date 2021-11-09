@@ -8,7 +8,6 @@ using Xunit.Abstractions;
 
 namespace XUnitExtensions.Lit {
   public class LitTestCase {
-
     private readonly string filePath;
     private readonly IEnumerable<ILitCommand> commands;
     private readonly bool expectFailure;
@@ -22,6 +21,7 @@ namespace XUnitExtensions.Lit {
       if (commands.Length == 0) {
         throw new ArgumentException($"No lit commands found in test file: {filePath}");
       }
+
       var xfail = commands.Any(c => c is XFailCommand);
       foreach (var unsupported in commands.OfType<UnsupportedCommand>()) {
         foreach (var feature in config.Features) {
@@ -30,6 +30,7 @@ namespace XUnitExtensions.Lit {
           }
         }
       }
+
       return new LitTestCase(filePath, commands, xfail);
     }
 
@@ -39,11 +40,12 @@ namespace XUnitExtensions.Lit {
       if (directory == null) {
         throw new ArgumentException($"Couldn't get directory name for path: {filePath}");
       }
+
       string fullDirectoryPath = Path.GetFullPath(directory);
       config = config.WithSubstitutions(new Dictionary<string, string> {
-        { "%s", filePath },
-        { "%S", fullDirectoryPath },
-        { "%t", Path.Join(fullDirectoryPath, "Output", $"{fileName}.tmp")}
+        {"%s", filePath},
+        {"%S", fullDirectoryPath},
+        {"%t", Path.Join(fullDirectoryPath, "Output", $"{fileName}.tmp")}
       });
 
       var testCase = Read(filePath, config);
@@ -59,8 +61,8 @@ namespace XUnitExtensions.Lit {
     public void Execute(ITestOutputHelper outputHelper) {
       Directory.CreateDirectory(Path.Join(Path.GetDirectoryName(filePath), "Output"));
       // For debugging. Only printed on failure in case the true cause is buried in an earlier command.
-      List<(string, string)> results = new ();
-      
+      List<(string, string)> results = new();
+
       foreach (var command in commands) {
         int exitCode;
         string output;
@@ -74,7 +76,8 @@ namespace XUnitExtensions.Lit {
 
         if (expectFailure) {
           if (exitCode != 0) {
-            throw new SkipException($"Command returned non-zero exit code ({exitCode}): {command}\nOutput:\n{output}\nError:\n{error}");
+            throw new SkipException(
+              $"Command returned non-zero exit code ({exitCode}): {command}\nOutput:\n{output}\nError:\n{error}");
           }
         }
 
@@ -85,7 +88,9 @@ namespace XUnitExtensions.Lit {
             outputHelper.WriteLine($"Output:\n{prevOutput}");
             outputHelper.WriteLine($"Error:\n{error}");
           }
-          throw new Exception($"Command returned non-zero exit code ({exitCode}): {command}\nOutput:\n{output}\nError:\n{error}");
+
+          throw new Exception(
+            $"Command returned non-zero exit code ({exitCode}): {command}\nOutput:\n{output}\nError:\n{error}");
         }
 
         results.Add((output, error));
