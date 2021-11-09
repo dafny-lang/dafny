@@ -1,6 +1,5 @@
 using System.Diagnostics.Contracts;
 using System.Text;
-
 namespace Microsoft.Dafny {
   public static class ConcreteSyntaxTreeUtils {
     public static string Repeat(string template, int times, string separator = "") {
@@ -43,10 +42,11 @@ namespace Microsoft.Dafny {
       return result;
     }
     public static ConcreteSyntaxTree ExprBlock(out ConcreteSyntaxTree body, string header = "", string footer = "") {
-      return Block(out body, header, footer, BraceStyle.Space, BraceStyle.Nothing);
+      return Block(out body, header: header, footer: footer, open: BraceStyle.Space, close: BraceStyle.Nothing);
     }
 
-    public static ConcreteSyntaxTree Block(out ConcreteSyntaxTree body, string header = "", string footer = "",
+    public static ConcreteSyntaxTree Block(out ConcreteSyntaxTree body, string header = "",
+      string footer = "",
       BraceStyle open = BraceStyle.Space,
       BraceStyle close = BraceStyle.Newline) {
       var outer = new ConcreteSyntaxTree();
@@ -55,15 +55,29 @@ namespace Microsoft.Dafny {
       switch (open) {
         case BraceStyle.Space:
           outer.Write(" ");
+          outer.WriteLine("{");
           break;
         case BraceStyle.Newline:
           outer.WriteLine();
+          outer.WriteLine("{");
+          break;
+        case BraceStyle.Pindent:
+          outer.WriteLine();
+          PythonCompiler.indent += 1;
           break;
       }
 
-      outer.WriteLine("{");
-      body = outer.Fork(1);
-      outer.Write("}");
+
+      body = outer.Fork((open == BraceStyle.Pindent) ? PythonCompiler.indent : 1);
+
+      switch (close) {
+        case BraceStyle.Space:
+          outer.WriteLine("}");
+          break;
+        case BraceStyle.Newline:
+          outer.WriteLine("}");
+          break;
+      }
 
       if (footer != "") {
         outer.Write(footer);
@@ -74,6 +88,10 @@ namespace Microsoft.Dafny {
           break;
         case BraceStyle.Newline:
           outer.WriteLine();
+          break;
+        case BraceStyle.Pindent:
+          outer.WriteLine();
+          PythonCompiler.indent -= 1;
           break;
       }
       return outer;
