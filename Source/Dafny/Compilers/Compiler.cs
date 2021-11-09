@@ -1550,7 +1550,7 @@ namespace Microsoft.Dafny {
       decls.AddRange(consts);
     }
 
-    public static bool NeedsCustomReceiver(MemberDecl member) {
+    public virtual bool NeedsCustomReceiver(MemberDecl member) {
       Contract.Requires(member != null);
       if (!member.IsStatic && member.EnclosingClass is NewtypeDecl) {
         return true;
