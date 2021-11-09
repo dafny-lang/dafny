@@ -4779,6 +4779,8 @@ namespace Microsoft.Dafny {
           thenWriter = EmitReturnExpr(thenWriter);
         }
         wr = thenWriter;
+      } else if (isReturning) {
+        wr = EmitReturnExpr(wr);
       }
 
       return wr;
