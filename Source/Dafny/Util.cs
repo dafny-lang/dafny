@@ -581,22 +581,14 @@ namespace Microsoft.Dafny {
           case BinaryExpr.ResolvedOpcode.RankLt:
             reporter?.Error(MessageSource.Resolver, binaryExpr, "rank comparisons are allowed only in specification and ghost contexts");
             return false;
-          default:
-            break;
         }
-
-        return true;
       } else if (expr is TernaryExpr ternaryExpr) {
         switch (ternaryExpr.Op) {
           case TernaryExpr.Opcode.PrefixEqOp:
           case TernaryExpr.Opcode.PrefixNeqOp:
             reporter?.Error(MessageSource.Resolver, ternaryExpr, "prefix equalities are allowed only in specification and ghost contexts");
             return false;
-          default:
-            break;
         }
-
-        return true;
       } else if (expr is LetExpr letExpr) {
         if (letExpr.Exact) {
           Contract.Assert(letExpr.LHSs.Count == letExpr.RHSs.Count);
