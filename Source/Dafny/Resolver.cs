@@ -6776,7 +6776,7 @@ namespace Microsoft.Dafny {
               "a type test to '{0}' must be from a compatible type (got '{1}')", e.ToType, fromType);
           } else if (!e.ToType.IsRefType) {
             resolver.reporter.Error(MessageSource.Resolver, e.tok,
-              "a non-trivial type test is allowed only for reference types (got '{0}')", e.ToType);
+              "a non-trivial type test is allowed only for reference types (tried to test if '{1}' is a '{0}')", e.ToType, fromType);
           }
         } else if (CheckTypeIsDetermined(expr.tok, expr.Type, "expression")) {
           if (expr is BinaryExpr) {
