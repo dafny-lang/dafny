@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.Boogie;
 
-namespace DafnyServer.CounterExampleGeneration {
+namespace DafnyServer.CounterexampleGeneration {
 
   /// <summary>
   /// A static class for generating instance of DafnyModelvariable and its

@@ -98,8 +98,8 @@ module Mojul1 {
     Z();
     W();  // error: not allowed to make co-recursive call to non-greatest lemma
   }
-  ghost method Z() { }
-  ghost method W() { M(); }
+  lemma Z() { }
+  lemma W() { M(); }
 
   greatest lemma G() { H(); }
   greatest lemma H() { G#[10](); }  // fine for greatest lemma/prefix-lemma

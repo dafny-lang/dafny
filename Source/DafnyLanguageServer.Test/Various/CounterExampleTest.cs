@@ -6,7 +6,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using DafnyServer.CounterExampleGeneration;
+using DafnyServer.CounterexampleGeneration;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
   [TestClass]
