@@ -29,7 +29,7 @@ TypeTests.dfy(180,9): Error: cannot assign to non-ghost variable in a ghost cont
 TypeTests.dfy(198,10): Error: incorrect type of datatype constructor argument (expected int -> Dt<int>, found int -> int) (covariant type parameter 1 would require int <: Dt<int>)
 TypeTests.dfy(204,10): Error: incorrect type of datatype constructor argument (expected ? -> Dt<?>, found Dt<?> -> Dt<?>) (contravariance for type parameter0 expects ? <: Dt<?>)
 TypeTests.dfy(211,10): Error: incorrect type of function argument (expected ?, found set<?>)
-TypeTests.dfy(222,9): Error: Assignment to array element is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+TypeTests.dfy(222,9): Error: assignment to array element is not allowed in this context, because this is a ghost method
 TypeTests.dfy(229,11): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'A' can be constructed
 TypeTests.dfy(230,11): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'B' can be constructed
 TypeTests.dfy(232,11): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'Cycle' can be constructed

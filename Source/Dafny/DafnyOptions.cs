@@ -102,7 +102,10 @@ namespace Microsoft.Dafny {
     public bool ShowSnippets = false;
     public bool WarningsAsErrors = false;
     [CanBeNull] private TestGenerationOptions testGenOptions = null;
-    public bool ExtractCounterExample = false;
+    public bool ExtractCounterexample = false;
+    public string VerificationLoggerConfig = null;
+    // Working around the fact that xmlFilename is private
+    public string BoogieXmlFilename = null;
 
     public virtual TestGenerationOptions TestGenOptions =>
       testGenOptions ??= new TestGenerationOptions();
@@ -134,7 +137,7 @@ namespace Microsoft.Dafny {
             } else if (args[ps.i].Equals("DllEmbed")) {
               PrintMode = PrintModes.DllEmbed;
             } else {
-              throw new Exception("Invalid value for printMode");
+              InvalidArgumentError(name, ps);
             }
           }
           return true;
@@ -176,7 +179,7 @@ namespace Microsoft.Dafny {
             } else if (args[ps.i].Equals("php")) {
               CompileTarget = CompilationTarget.Php;
             } else {
-              throw new Exception("Invalid value for compileTarget");
+              InvalidArgumentError(name, ps);
             }
           }
           return true;
@@ -385,7 +388,7 @@ namespace Microsoft.Dafny {
             } else if (args[ps.i].Equals("Transitive")) {
               PrintIncludesMode = IncludesModes.Transitive;
             } else {
-              throw new Exception("Invalid value for includesMode");
+              InvalidArgumentError(name, ps);
             }
 
             if (PrintIncludesMode == IncludesModes.Immediate || PrintIncludesMode == IncludesModes.Transitive) {
@@ -407,7 +410,7 @@ namespace Microsoft.Dafny {
               } else if (args[ps.i].Equals("1")) {
                 ShowSnippets = true;
               } else {
-                throw new Exception("Invalid value for showSnippets");
+                InvalidArgumentError(name, ps);
               }
             }
             return true;
@@ -417,8 +420,18 @@ namespace Microsoft.Dafny {
           WarningsAsErrors = true;
           return true;
 
-        case "extractCounterExample":
-          ExtractCounterExample = true;
+        case "extractCounterexample":
+          ExtractCounterexample = true;
+          return true;
+
+        case "verificationLogger":
+          if (ps.ConfirmArgumentCount(1)) {
+            if (args[ps.i] == "trx") {
+              VerificationLoggerConfig = args[ps.i];
+            } else {
+              InvalidArgumentError(name, ps);
+            }
+          }
           return true;
       }
 
@@ -426,8 +439,20 @@ namespace Microsoft.Dafny {
       return TestGenOptions.ParseOption(name, ps) || base.ParseOption(name, ps);
     }
 
+    protected void InvalidArgumentError(string name, CommandLineParseState ps) {
+      ps.Error("Invalid argument \"{0}\" to option {1}", ps.args[ps.i], name);
+    }
+
     public override void ApplyDefaultOptions() {
       base.ApplyDefaultOptions();
+
+      if (VerificationLoggerConfig != null) {
+        if (XmlSink != null) {
+          throw new Exception("The /verificationLogger and /xml options cannot be used at the same time.");
+        }
+        BoogieXmlFilename = Path.GetTempFileName();
+        XmlSink = new Bpl.XmlSink(BoogieXmlFilename);
+      }
 
       // expand macros in filenames, now that LogPrefix is fully determined
       ExpandFilename(ref DafnyPrelude, LogPrefix, FileTimestamp);
@@ -872,10 +897,16 @@ $@"
     Read standard input and treat it as an input .dfy file.
 /warningsAsErrors
     Treat warnings as errors.
-/extractCounterExample
+/extractCounterexample
     If verification fails, report a detailed counterexample for the first
     failing assertion. Requires specifying the /mv option as well as
     /proverOpt:0:model_compress=false and /proverOpt:0:model.completion=true.
+/verificationLogger:<configuration string>
+    Logs verification results to the given test result logger.
+    The only currently supported value is ""trx"", the XML-based format
+    commonly used for test results for .NET languages.
+    The exact mapping of verification concepts to the TRX format is
+    experimental and subject to change!
 {TestGenOptions.Help}
 
 Dafny generally accepts Boogie options and passes these on to Boogie. However,

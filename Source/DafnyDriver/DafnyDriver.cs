@@ -10,9 +10,7 @@
 //       - main program for taking a Dafny program and verifying it
 //---------------------------------------------------------------------------------------------
 
-using System.Security;
-using DafnyServer.CounterExampleGeneration;
-using DafnyTestGeneration;
+using DafnyServer.CounterexampleGeneration;
 
 namespace Microsoft.Dafny {
   using System;
@@ -66,6 +64,9 @@ namespace Microsoft.Dafny {
 
       if (CommandLineOptions.Clo.XmlSink != null) {
         CommandLineOptions.Clo.XmlSink.Close();
+        if (DafnyOptions.O.VerificationLoggerConfig != null) {
+          BoogieXmlConvertor.RaiseTestLoggerEvents(DafnyOptions.O.BoogieXmlFilename, DafnyOptions.O.VerificationLoggerConfig);
+        }
       }
       if (CommandLineOptions.Clo.Wait) {
         Console.WriteLine("Press Enter to exit.");
@@ -216,7 +217,7 @@ namespace Microsoft.Dafny {
         return CommandLineArgumentsResult.PREPROCESSING_ERROR;
       }
 
-      if (DafnyOptions.O.ExtractCounterExample && DafnyOptions.O.ModelViewFile == null) {
+      if (DafnyOptions.O.ExtractCounterexample && DafnyOptions.O.ModelViewFile == null) {
         ExecutionEngine.printer.ErrorWriteLine(Console.Out,
           "*** Error: ModelView file must be specified when attempting counterexample extraction");
         return CommandLineArgumentsResult.PREPROCESSING_ERROR;
@@ -297,7 +298,7 @@ namespace Microsoft.Dafny {
       if (err == null && dafnyProgram != null && DafnyOptions.O.PrintFunctionCallGraph) {
         Util.PrintFunctionCallGraph(dafnyProgram);
       }
-      if (dafnyProgram != null && DafnyOptions.O.ExtractCounterExample && exitValue == ExitValue.VERIFICATION_ERROR) {
+      if (dafnyProgram != null && DafnyOptions.O.ExtractCounterexample && exitValue == ExitValue.VERIFICATION_ERROR) {
         PrintCounterexample(DafnyOptions.O.ModelViewFile);
       }
       return exitValue;

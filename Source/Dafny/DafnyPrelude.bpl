@@ -514,7 +514,7 @@ const unique alloc: Field bool;
 const unique allocName: NameFamily;
 axiom FDim(alloc) == 0 &&
   DeclName(alloc) == allocName &&
-  !$IsGhostField(alloc);  // treat as non-ghost field, because it cannot be changed by ghost code
+  $IsGhostField(alloc);  // treat as ghost field, since it is allowed to be changed by ghost code
 
 // ---------------------------------------------------------------
 // -- Arrays -----------------------------------------------------
