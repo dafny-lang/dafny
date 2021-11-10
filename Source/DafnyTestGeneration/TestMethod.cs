@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
-using DafnyServer.CounterExampleGeneration;
+using DafnyServer.CounterexampleGeneration;
 using Microsoft.Boogie;
 
 namespace DafnyTestGeneration {

@@ -6,7 +6,7 @@ class C {
   var n: nat
   var st: set<object>
 
-  ghost method CLemma(k: int)
+  lemma CLemma(k: int)
     requires k != -23
     ensures data < k  // magic, isn't it (or bogus, some would say)
 }
@@ -203,10 +203,10 @@ method OmittedRange() {
 
 class TwoState_C { ghost var data: int }
 
-// It is not possible to achieve this postcondition in a ghost method, because ghost
-// contexts are not allowed to allocate state.  Callers of this ghost method will know
+// It is not possible to achieve this postcondition in a lemma, because lemma
+// contexts are not allowed to allocate state.  Callers of this lemma will know
 // that the postcondition is tantamount to 'false'.
-ghost method TwoState0(y: int)
+lemma TwoState0(y: int)
   ensures exists o: TwoState_C {:nowarn} :: allocated(o) && fresh(o)
 
 method TwoState_Main0() {

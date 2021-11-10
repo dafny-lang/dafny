@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Diagnostics.Contracts;
+using JetBrains.Annotations;
 using Microsoft.BaseTypes;
 using Microsoft.Boogie;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -1651,7 +1652,6 @@ namespace Microsoft.Dafny {
                : "");
     }
 
-    [Pure]
     private static bool EquivIfPresent<T1, T2>(Dictionary<T1, T2> dic, T1 key, T2 val)
       where T2 : class {
       T2 val2;
@@ -1999,7 +1999,7 @@ namespace Microsoft.Dafny {
           // saying is that the Method/Predicate does not take any type parameters over and beyond what the enclosing type (namely, the
           // iterator type) does.
           // --- here comes the constructor
-          var init = new Constructor(iter.tok, "_ctor", new List<TypeParameter>(), iter.Ins,
+          var init = new Constructor(iter.tok, "_ctor", false, new List<TypeParameter>(), iter.Ins,
             new List<AttributedExpression>(),
             new Specification<FrameExpression>(new List<FrameExpression>(), null),
             new List<AttributedExpression>(),
@@ -2824,7 +2824,7 @@ namespace Microsoft.Dafny {
             if (iter.Body != null) {
               CheckTypeInference(iter.Body, iter);
               if (prevErrCnt == reporter.Count(ErrorLevel.Error)) {
-                ComputeGhostInterest(iter.Body, false, iter);
+                ComputeGhostInterest(iter.Body, false, null, iter);
                 CheckExpression(iter.Body, this, iter);
               }
             }
@@ -3507,7 +3507,7 @@ namespace Microsoft.Dafny {
             var m = (Method)member;
             ResolveParameterDefaultValues_Pass1(m.Ins, m);
             if (m.Body != null) {
-              ComputeGhostInterest(m.Body, m.IsGhost, m);
+              ComputeGhostInterest(m.Body, m.IsGhost, m.IsLemmaLike ? "a " + m.WhatKind : null, m);
               CheckExpression(m.Body, this, m);
               DetermineTailRecursion(m);
             }
@@ -3524,7 +3524,7 @@ namespace Microsoft.Dafny {
             } else {
               var m = f.ByMethodDecl;
               Contract.Assert(m != null && !m.IsGhost);
-              ComputeGhostInterest(m.Body, false, m);
+              ComputeGhostInterest(m.Body, false, null, m);
               CheckExpression(m.Body, this, m);
               DetermineTailRecursion(m);
             }
@@ -6743,7 +6743,7 @@ namespace Microsoft.Dafny {
               "a type test to '{0}' must be from a compatible type (got '{1}')", e.ToType, fromType);
           } else if (!e.ToType.IsRefType) {
             resolver.reporter.Error(MessageSource.Resolver, e.tok,
-              "a non-trivial type test is allowed only for reference types (got '{0}')", e.ToType);
+              "a non-trivial type test is allowed only for reference types (tried to test if '{1}' is a '{0}')", e.ToType, fromType);
           }
         } else if (CheckTypeIsDetermined(expr.tok, expr.Type, "expression")) {
           if (expr is BinaryExpr) {
@@ -6943,7 +6943,7 @@ namespace Microsoft.Dafny {
       protected override void VisitOneExpr(Expression expr) {
         if (expr is StmtExpr) {
           var e = (StmtExpr)expr;
-          resolver.ComputeGhostInterest(e.S, true, CodeContext);
+          resolver.ComputeGhostInterest(e.S, true, "a statement expression", CodeContext);
         } else if (expr is LetExpr) {
           var e = (LetExpr)expr;
           if (CodeContext.IsGhost) {
@@ -6955,13 +6955,14 @@ namespace Microsoft.Dafny {
       }
 
       protected override void VisitOneStmt(Statement stmt) {
-        if (stmt is CalcStmt) {
-          var s = (CalcStmt)stmt;
-          foreach (var h in s.Hints) {
-            resolver.CheckHintRestrictions(h, new HashSet<LocalVariable>(), "a hint");
+        if (stmt is CalcStmt calc) {
+          foreach (var h in calc.Hints) {
+            resolver.CheckLocalityUpdates(h, new HashSet<LocalVariable>(), "a hint");
           }
         } else if (stmt is AssertStmt astmt && astmt.Proof != null) {
-          resolver.CheckHintRestrictions(astmt.Proof, new HashSet<LocalVariable>(), "an assert-by body");
+          resolver.CheckLocalityUpdates(astmt.Proof, new HashSet<LocalVariable>(), "an assert-by body");
+        } else if (stmt is ForallStmt forall && forall.Body != null) {
+          resolver.CheckLocalityUpdates(forall.Body, new HashSet<LocalVariable>(), "a forall statement");
         }
       }
     }
@@ -8290,20 +8291,22 @@ namespace Microsoft.Dafny {
     // ----- ComputeGhostInterest ---------------------------------------------------------------------------
     // ------------------------------------------------------------------------------------------------------
     #region ComputeGhostInterest
-    public void ComputeGhostInterest(Statement stmt, bool mustBeErasable, ICodeContext codeContext) {
+    public void ComputeGhostInterest(Statement stmt, bool mustBeErasable, [CanBeNull] string proofContext, ICodeContext codeContext) {
       Contract.Requires(stmt != null);
       Contract.Requires(codeContext != null);
-      var visitor = new GhostInterest_Visitor(codeContext, this);
-      visitor.Visit(stmt, mustBeErasable);
+      var visitor = new GhostInterest_Visitor(codeContext, this, false);
+      visitor.Visit(stmt, mustBeErasable, proofContext);
     }
     class GhostInterest_Visitor {
       readonly ICodeContext codeContext;
       readonly Resolver resolver;
-      public GhostInterest_Visitor(ICodeContext codeContext, Resolver resolver) {
+      private readonly bool inConstructorInitializationPhase;
+      public GhostInterest_Visitor(ICodeContext codeContext, Resolver resolver, bool inConstructorInitializationPhase) {
         Contract.Requires(codeContext != null);
         Contract.Requires(resolver != null);
         this.codeContext = codeContext;
         this.resolver = resolver;
+        this.inConstructorInitializationPhase = inConstructorInitializationPhase;
       }
       protected void Error(Statement stmt, string msg, params object[] msgArgs) {
         Contract.Requires(stmt != null);
@@ -8324,11 +8327,18 @@ namespace Microsoft.Dafny {
         resolver.reporter.Error(MessageSource.Resolver, tok, msg, msgArgs);
       }
       /// <summary>
+      /// There are three kinds of contexts for statements.
+      ///   - compiled contexts, where the statement must be compilable
+      ///     -- !mustBeErasable && proofContext == null
+      ///   - ghost contexts that allow the allocation of new object
+      ///     -- mustBeErasable && proofContext == null
+      ///   - lemma/proof contexts, which are ghost and are not allowed to allocate new objects
+      ///     -- mustBeErasable && proofContext != null
+      /// 
       /// This method does three things, in order:
       /// 0. Sets .IsGhost to "true" if the statement is ghost.  This often depends on some guard of the statement
       ///    (like the guard of an "if" statement) or the LHS of the statement (if it is an assignment).
       ///    Note, if "mustBeErasable", then the statement is already in a ghost context.
-      ///    statement itself is ghost) or and the statement assigns to a non-ghost field
       /// 1. Determines if the statement and all its subparts are legal under its computed .IsGhost setting.
       /// 2. ``Upgrades'' .IsGhost to "true" if, after investigation of the substatements of the statement, it
       ///    turns out that the statement can be erased during compilation.
@@ -8341,16 +8351,22 @@ namespace Microsoft.Dafny {
       /// * The method called by a StmtExpr must be ghost; however, this is checked elsewhere.  For
       ///   this reason, it is not necessary to visit all subexpressions, unless the subexpression
       ///   matter for the ghost checking/recording of "stmt".
+      ///
+      /// If "proofContext" is non-null, then this method also checks that "stmt" does not allocate
+      /// memory or modify the heap, either directly or indirectly using a statement like "modify", a loop with
+      /// an explicit "modifies" clause, or a call to a method that may allocate memory or modify the heap.
+      /// The "proofContext" string is something that can be printed as part of an error message.
       /// </summary>
-      public void Visit(Statement stmt, bool mustBeErasable) {
+      public void Visit(Statement stmt, bool mustBeErasable, [CanBeNull] string proofContext) {
         Contract.Requires(stmt != null);
-        Contract.Assume(!codeContext.IsGhost || mustBeErasable);  // (this is really a precondition) codeContext.IsGhost ==> mustBeErasable
+        Contract.Assume(!codeContext.IsGhost || mustBeErasable); // (this is really a precondition) codeContext.IsGhost ==> mustBeErasable
+        Contract.Assume(mustBeErasable || proofContext == null); // (this is really a precondition) !mustBeErasable ==> proofContext == null 
 
         if (stmt is AssertStmt || stmt is AssumeStmt) {
           stmt.IsGhost = true;
           var assertStmt = stmt as AssertStmt;
           if (assertStmt != null && assertStmt.Proof != null) {
-            Visit(assertStmt.Proof, true);
+            Visit(assertStmt.Proof, true, "an assert-by body");
           }
 
         } else if (stmt is ExpectStmt) {
@@ -8375,7 +8391,7 @@ namespace Microsoft.Dafny {
 
         } else if (stmt is RevealStmt) {
           var s = (RevealStmt)stmt;
-          s.ResolvedStatements.Iter(ss => Visit(ss, mustBeErasable));
+          s.ResolvedStatements.Iter(ss => Visit(ss, true, "a reveal statement"));
           s.IsGhost = s.ResolvedStatements.All(ss => ss.IsGhost);
         } else if (stmt is BreakStmt) {
           var s = (BreakStmt)stmt;
@@ -8392,7 +8408,7 @@ namespace Microsoft.Dafny {
             Error(stmt, "{0} statement is not allowed in this context (because it is guarded by a specification-only expression)", kind);
           }
           if (s.hiddenUpdate != null) {
-            Visit(s.hiddenUpdate, mustBeErasable);
+            Visit(s.hiddenUpdate, mustBeErasable, proofContext);
           }
 
         } else if (stmt is AssignSuchThatStmt) {
@@ -8416,12 +8432,12 @@ namespace Microsoft.Dafny {
 
         } else if (stmt is UpdateStmt) {
           var s = (UpdateStmt)stmt;
-          s.ResolvedStatements.Iter(ss => Visit(ss, mustBeErasable));
+          s.ResolvedStatements.Iter(ss => Visit(ss, mustBeErasable, proofContext));
           s.IsGhost = s.ResolvedStatements.All(ss => ss.IsGhost);
 
         } else if (stmt is AssignOrReturnStmt) {
           var s = (AssignOrReturnStmt)stmt;
-          s.ResolvedStatements.Iter(ss => Visit(ss, mustBeErasable));
+          s.ResolvedStatements.Iter(ss => Visit(ss, mustBeErasable, proofContext));
           s.IsGhost = s.ResolvedStatements.All(ss => ss.IsGhost);
 
         } else if (stmt is VarDeclStmt) {
@@ -8433,7 +8449,7 @@ namespace Microsoft.Dafny {
             }
           }
           if (s.Update != null) {
-            Visit(s.Update, mustBeErasable);
+            Visit(s.Update, mustBeErasable, proofContext);
           }
           s.IsGhost = (s.Update == null || s.Update.IsGhost) && s.Locals.All(v => v.IsGhost);
 
@@ -8461,77 +8477,23 @@ namespace Microsoft.Dafny {
 
         } else if (stmt is AssignStmt) {
           var s = (AssignStmt)stmt;
-          var lhs = s.Lhs.Resolved;
-
-          // Make an auto-ghost variable a ghost if the RHS is a ghost
-          if (lhs.Resolved is AutoGhostIdentifierExpr && s.Rhs is ExprRhs) {
-            var rhs = (ExprRhs)s.Rhs;
-            if (resolver.UsesSpecFeatures(rhs.Expr)) {
-              var autoGhostIdExpr = (AutoGhostIdentifierExpr)lhs.Resolved;
-              autoGhostIdExpr.Var.MakeGhost();
-            }
-          }
-
-          var gk = AssignStmt.LhsIsToGhost_Which(lhs);
-          if (gk == AssignStmt.NonGhostKind.IsGhost) {
-            s.IsGhost = true;
-            if (s.Rhs is TypeRhs) {
-              Error(s.Rhs.Tok, "'new' is not allowed in ghost contexts");
-            }
-          } else if (gk == AssignStmt.NonGhostKind.Variable && codeContext.IsGhost) {
-            // cool
-          } else if (mustBeErasable) {
-            Error(stmt, "Assignment to {0} is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)",
-              AssignStmt.NonGhostKind_To_String(gk));
-          } else {
-            if (gk == AssignStmt.NonGhostKind.Field) {
-              var mse = (MemberSelectExpr)lhs;
-              resolver.CheckIsCompilable(mse.Obj, codeContext);
-            } else if (gk == AssignStmt.NonGhostKind.ArrayElement) {
-              resolver.CheckIsCompilable(lhs, codeContext);
-            }
-
-            if (s.Rhs is ExprRhs) {
-              var rhs = (ExprRhs)s.Rhs;
-              if (!AssignStmt.LhsIsToGhost(lhs)) {
-                resolver.CheckIsCompilable(rhs.Expr, codeContext);
-              }
-            } else if (s.Rhs is HavocRhs) {
-              // cool
-            } else {
-              var rhs = (TypeRhs)s.Rhs;
-              if (rhs.ArrayDimensions != null) {
-                rhs.ArrayDimensions.ForEach(ee => resolver.CheckIsCompilable(ee, codeContext));
-                if (rhs.ElementInit != null) {
-                  resolver.CheckIsCompilable(rhs.ElementInit, codeContext);
-                }
-                if (rhs.InitDisplay != null) {
-                  rhs.InitDisplay.ForEach(ee => resolver.CheckIsCompilable(ee, codeContext));
-                }
-              }
-              if (rhs.InitCall != null) {
-                for (var i = 0; i < rhs.InitCall.Args.Count; i++) {
-                  if (!rhs.InitCall.Method.Ins[i].IsGhost) {
-                    resolver.CheckIsCompilable(rhs.InitCall.Args[i], codeContext);
-                  }
-                }
-              }
-            }
-          }
+          CheckAssignStmt(s, mustBeErasable, proofContext);
 
         } else if (stmt is CallStmt) {
           var s = (CallStmt)stmt;
           var callee = s.Method;
           Contract.Assert(callee != null);  // follows from the invariant of CallStmt
           s.IsGhost = callee.IsGhost;
-          // check in-parameters
-          if (mustBeErasable) {
+          if (proofContext != null && !callee.IsLemmaLike) {
+            Error(s, $"in {proofContext}, calls are allowed only to lemmas");
+          } else if (mustBeErasable) {
             if (!s.IsGhost) {
               Error(s, "only ghost methods can be called from this context");
             }
           } else {
             int j;
             if (!callee.IsGhost) {
+              // check in-parameters
               resolver.CheckIsCompilable(s.Receiver, codeContext);
               j = 0;
               foreach (var e in s.Args) {
@@ -8574,7 +8536,13 @@ namespace Microsoft.Dafny {
         } else if (stmt is BlockStmt) {
           var s = (BlockStmt)stmt;
           s.IsGhost = mustBeErasable;  // set .IsGhost before descending into substatements (since substatements may do a 'break' out of this block)
-          s.Body.Iter(ss => Visit(ss, mustBeErasable));
+          if (s is DividedBlockStmt ds) {
+            var giv = new GhostInterest_Visitor(this.codeContext, this.resolver, true);
+            ds.BodyInit.Iter(ss => giv.Visit(ss, mustBeErasable, proofContext));
+            ds.BodyProper.Iter(ss => Visit(ss, mustBeErasable, proofContext));
+          } else {
+            s.Body.Iter(ss => Visit(ss, mustBeErasable, proofContext));
+          }
           s.IsGhost = s.IsGhost || s.Body.All(ss => ss.IsGhost);  // mark the block statement as ghost if all its substatements are ghost
 
         } else if (stmt is IfStmt) {
@@ -8583,9 +8551,9 @@ namespace Microsoft.Dafny {
           if (!mustBeErasable && s.IsGhost) {
             resolver.reporter.Info(MessageSource.Resolver, s.Tok, "ghost if");
           }
-          Visit(s.Thn, s.IsGhost);
+          Visit(s.Thn, s.IsGhost, proofContext);
           if (s.Els != null) {
-            Visit(s.Els, s.IsGhost);
+            Visit(s.Els, s.IsGhost, proofContext);
           }
           // if both branches were all ghost, then we can mark the enclosing statement as ghost as well
           s.IsGhost = s.IsGhost || (s.Thn.IsGhost && (s.Els == null || s.Els.IsGhost));
@@ -8596,11 +8564,15 @@ namespace Microsoft.Dafny {
           if (!mustBeErasable && s.IsGhost) {
             resolver.reporter.Info(MessageSource.Resolver, s.Tok, "ghost if");
           }
-          s.Alternatives.Iter(alt => alt.Body.Iter(ss => Visit(ss, s.IsGhost)));
+          s.Alternatives.Iter(alt => alt.Body.Iter(ss => Visit(ss, s.IsGhost, proofContext)));
           s.IsGhost = s.IsGhost || s.Alternatives.All(alt => alt.Body.All(ss => ss.IsGhost));
 
         } else if (stmt is WhileStmt) {
           var s = (WhileStmt)stmt;
+          if (proofContext != null && s.Mod.Expressions != null && s.Mod.Expressions.Count != 0) {
+            Error(s.Mod.Expressions[0].tok, $"a loop in {proofContext} is not allowed to use 'modifies' clauses");
+          }
+
           s.IsGhost = mustBeErasable || (s.Guard != null && resolver.UsesSpecFeatures(s.Guard));
           if (!mustBeErasable && s.IsGhost) {
             resolver.reporter.Info(MessageSource.Resolver, s.Tok, "ghost while");
@@ -8612,7 +8584,7 @@ namespace Microsoft.Dafny {
             s.Mod.Expressions.Iter(resolver.DisallowNonGhostFieldSpecifiers);
           }
           if (s.Body != null) {
-            Visit(s.Body, s.IsGhost);
+            Visit(s.Body, s.IsGhost, proofContext);
             if (s.Body.IsGhost && !s.Decreases.Expressions.Exists(e => e is WildcardExpr)) {
               s.IsGhost = true;
             }
@@ -8620,6 +8592,10 @@ namespace Microsoft.Dafny {
 
         } else if (stmt is AlternativeLoopStmt) {
           var s = (AlternativeLoopStmt)stmt;
+          if (proofContext != null && s.Mod.Expressions != null && s.Mod.Expressions.Count != 0) {
+            Error(s.Mod.Expressions[0].tok, $"a loop in {proofContext} is not allowed to use 'modifies' clauses");
+          }
+
           s.IsGhost = mustBeErasable || s.Alternatives.Exists(alt => resolver.UsesSpecFeatures(alt.Guard));
           if (!mustBeErasable && s.IsGhost) {
             resolver.reporter.Info(MessageSource.Resolver, s.Tok, "ghost while");
@@ -8630,11 +8606,15 @@ namespace Microsoft.Dafny {
           if (s.IsGhost && s.Mod.Expressions != null) {
             s.Mod.Expressions.Iter(resolver.DisallowNonGhostFieldSpecifiers);
           }
-          s.Alternatives.Iter(alt => alt.Body.Iter(ss => Visit(ss, s.IsGhost)));
+          s.Alternatives.Iter(alt => alt.Body.Iter(ss => Visit(ss, s.IsGhost, proofContext)));
           s.IsGhost = s.IsGhost || (!s.Decreases.Expressions.Exists(e => e is WildcardExpr) && s.Alternatives.All(alt => alt.Body.All(ss => ss.IsGhost)));
 
         } else if (stmt is ForLoopStmt) {
           var s = (ForLoopStmt)stmt;
+          if (proofContext != null && s.Mod.Expressions != null && s.Mod.Expressions.Count != 0) {
+            Error(s.Mod.Expressions[0].tok, $"a loop in {proofContext} is not allowed to use 'modifies' clauses");
+          }
+
           s.IsGhost = mustBeErasable || resolver.UsesSpecFeatures(s.Start) || (s.End != null && resolver.UsesSpecFeatures(s.End));
           if (!mustBeErasable && s.IsGhost) {
             resolver.reporter.Info(MessageSource.Resolver, s.Tok, "ghost for-loop");
@@ -8650,7 +8630,7 @@ namespace Microsoft.Dafny {
             s.Mod.Expressions.Iter(resolver.DisallowNonGhostFieldSpecifiers);
           }
           if (s.Body != null) {
-            Visit(s.Body, s.IsGhost);
+            Visit(s.Body, s.IsGhost, proofContext);
             if (s.Body.IsGhost) {
               s.IsGhost = true;
             }
@@ -8659,8 +8639,10 @@ namespace Microsoft.Dafny {
         } else if (stmt is ForallStmt) {
           var s = (ForallStmt)stmt;
           s.IsGhost = mustBeErasable || s.Kind != ForallStmt.BodyKind.Assign || resolver.UsesSpecFeatures(s.Range);
-          if (s.Body != null) {
-            Visit(s.Body, s.IsGhost);
+          if (proofContext != null && s.Kind == ForallStmt.BodyKind.Assign) {
+            Error(s, $"{proofContext} is not allowed to perform an aggregate heap update");
+          } else if (s.Body != null) {
+            Visit(s.Body, s.IsGhost, s.Kind == ForallStmt.BodyKind.Assign ? proofContext : "a forall statement");
           }
           s.IsGhost = s.IsGhost || s.Body == null || s.Body.IsGhost;
 
@@ -8676,19 +8658,23 @@ namespace Microsoft.Dafny {
 
         } else if (stmt is ModifyStmt) {
           var s = (ModifyStmt)stmt;
+          if (proofContext != null) {
+            Error(stmt, $"a modify statement is not allowed in {proofContext}");
+          }
+
           s.IsGhost = mustBeErasable;
           if (s.IsGhost) {
             s.Mod.Expressions.Iter(resolver.DisallowNonGhostFieldSpecifiers);
           }
           if (s.Body != null) {
-            Visit(s.Body, mustBeErasable);
+            Visit(s.Body, mustBeErasable, proofContext);
           }
 
         } else if (stmt is CalcStmt) {
           var s = (CalcStmt)stmt;
           s.IsGhost = true;
           foreach (var h in s.Hints) {
-            Visit(h, true);
+            Visit(h, true, "a hint");
           }
 
         } else if (stmt is MatchStmt) {
@@ -8697,22 +8683,114 @@ namespace Microsoft.Dafny {
           if (!mustBeErasable && s.IsGhost) {
             resolver.reporter.Info(MessageSource.Resolver, s.Tok, "ghost match");
           }
-          s.Cases.Iter(kase => kase.Body.Iter(ss => Visit(ss, s.IsGhost)));
+          s.Cases.Iter(kase => kase.Body.Iter(ss => Visit(ss, s.IsGhost, proofContext)));
           s.IsGhost = s.IsGhost || s.Cases.All(kase => kase.Body.All(ss => ss.IsGhost));
         } else if (stmt is ConcreteSyntaxStatement) {
           var s = (ConcreteSyntaxStatement)stmt;
-          Visit(s.ResolvedStatement, mustBeErasable);
+          Visit(s.ResolvedStatement, mustBeErasable, proofContext);
           s.IsGhost = s.IsGhost || s.ResolvedStatement.IsGhost;
         } else if (stmt is SkeletonStatement) {
           var s = (SkeletonStatement)stmt;
           s.IsGhost = mustBeErasable;
           if (s.S != null) {
-            Visit(s.S, mustBeErasable);
+            Visit(s.S, mustBeErasable, proofContext);
             s.IsGhost = s.IsGhost || s.S.IsGhost;
           }
 
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();
+        }
+      }
+
+      private void CheckAssignStmt(AssignStmt s, bool mustBeErasable, [CanBeNull] string proofContext) {
+        Contract.Requires(s != null);
+        Contract.Requires(mustBeErasable || proofContext == null);
+
+        var lhs = s.Lhs.Resolved;
+
+        // Make an auto-ghost variable a ghost if the RHS is a ghost
+        if (lhs.Resolved is AutoGhostIdentifierExpr autoGhostIdExpr) {
+          if (s.Rhs is ExprRhs eRhs && resolver.UsesSpecFeatures(eRhs.Expr)) {
+            autoGhostIdExpr.Var.MakeGhost();
+          } else if (s.Rhs is TypeRhs tRhs) {
+            if (tRhs.InitCall != null && tRhs.InitCall.Method.IsGhost) {
+              autoGhostIdExpr.Var.MakeGhost();
+            } else if (tRhs.ArrayDimensions != null && tRhs.ArrayDimensions.Exists(resolver.UsesSpecFeatures)) {
+              autoGhostIdExpr.Var.MakeGhost();
+            } else if (tRhs.ElementInit != null && resolver.UsesSpecFeatures(tRhs.ElementInit)) {
+              autoGhostIdExpr.Var.MakeGhost();
+            } else if (tRhs.InitDisplay != null && tRhs.InitDisplay.Any(resolver.UsesSpecFeatures)) {
+              autoGhostIdExpr.Var.MakeGhost();
+            }
+          }
+        }
+
+        if (proofContext != null && s.Rhs is TypeRhs) {
+          Error(s.Rhs.Tok, $"{proofContext} is not allowed to use 'new'");
+        }
+
+        var gk = AssignStmt.LhsIsToGhost_Which(lhs);
+        if (gk == AssignStmt.NonGhostKind.IsGhost) {
+          s.IsGhost = true;
+          if (proofContext != null && !(lhs is IdentifierExpr)) {
+            Error(lhs.tok, $"{proofContext} is not allowed to make heap updates");
+          }
+          if (s.Rhs is TypeRhs tRhs && tRhs.InitCall != null) {
+            Visit(tRhs.InitCall, true, proofContext);
+          }
+        } else if (gk == AssignStmt.NonGhostKind.Variable && codeContext.IsGhost) {
+          // cool
+        } else if (mustBeErasable) {
+          if (inConstructorInitializationPhase && codeContext is Constructor && codeContext.IsGhost && lhs is MemberSelectExpr mse &&
+              mse.Obj.Resolved is ThisExpr) {
+            // in this first division (before "new;") of a ghost constructor, allow assignment to non-ghost field of the object being constructed
+          } else {
+            string reason;
+            if (codeContext.IsGhost) {
+              reason = string.Format("this is a ghost {0}", codeContext is MemberDecl member ? member.WhatKind : "context");
+            } else {
+              reason = "the statement is in a ghost context; e.g., it may be guarded by a specification-only expression";
+            }
+            Error(s, $"assignment to {AssignStmt.NonGhostKind_To_String(gk)} is not allowed in this context, because {reason}");
+          }
+        } else {
+          if (gk == AssignStmt.NonGhostKind.Field) {
+            var mse = (MemberSelectExpr)lhs;
+            resolver.CheckIsCompilable(mse.Obj, codeContext);
+          } else if (gk == AssignStmt.NonGhostKind.ArrayElement) {
+            resolver.CheckIsCompilable(lhs, codeContext);
+          }
+
+          if (s.Rhs is ExprRhs) {
+            var rhs = (ExprRhs)s.Rhs;
+            if (!AssignStmt.LhsIsToGhost(lhs)) {
+              resolver.CheckIsCompilable(rhs.Expr, codeContext);
+            }
+          } else if (s.Rhs is HavocRhs) {
+            // cool
+          } else {
+            var rhs = (TypeRhs)s.Rhs;
+            if (rhs.ArrayDimensions != null) {
+              rhs.ArrayDimensions.ForEach(ee => resolver.CheckIsCompilable(ee, codeContext));
+              if (rhs.ElementInit != null) {
+                resolver.CheckIsCompilable(rhs.ElementInit, codeContext);
+              }
+              if (rhs.InitDisplay != null) {
+                rhs.InitDisplay.ForEach(ee => resolver.CheckIsCompilable(ee, codeContext));
+              }
+            }
+            if (rhs.InitCall != null) {
+              var callee = rhs.InitCall.Method;
+              if (callee.IsGhost) {
+                Error(rhs.InitCall, "the result of a ghost constructor can only be assigned to a ghost variable");
+              }
+              for (var i = 0; i < rhs.InitCall.Args.Count; i++) {
+                if (!callee.Ins[i].IsGhost) {
+                  resolver.CheckIsCompilable(rhs.InitCall.Args[i], codeContext);
+                }
+              }
+            }
+          }
         }
       }
     }
@@ -10128,7 +10206,7 @@ namespace Microsoft.Dafny {
         ResolveAttributes(m.Mod.Attributes, null, new ResolveOpts(m, false));
         foreach (FrameExpression fe in m.Mod.Expressions) {
           ResolveFrameExpression(fe, FrameExpressionUse.Modifies, m);
-          if (m is Lemma || m is TwoStateLemma || m is ExtremeLemma) {
+          if (m.IsLemmaLike) {
             reporter.Error(MessageSource.Resolver, fe.tok, "{0}s are not allowed to have modifies clauses", m.WhatKind);
           } else if (m.IsGhost) {
             DisallowNonGhostFieldSpecifiers(fe);
@@ -11289,6 +11367,12 @@ namespace Microsoft.Dafny {
             Statement s0 = s.S0;
             if (s0 is AssignStmt) {
               s.Kind = ForallStmt.BodyKind.Assign;
+
+              var rhs = ((AssignStmt)s0).Rhs;
+              if (rhs is TypeRhs) {
+                reporter.Error(MessageSource.Resolver, rhs.Tok, "new allocation not supported in aggregate assignments");
+              }
+
             } else if (s0 is CallStmt) {
               s.Kind = ForallStmt.BodyKind.Call;
               var call = (CallStmt)s.S0;
@@ -11315,9 +11399,6 @@ namespace Microsoft.Dafny {
                 reporter.Warning(MessageSource.Resolver, s.Tok, "the conclusion of the body of this forall statement will not be known outside the forall statement; consider using an 'ensures' clause");
               }
             }
-          }
-          if (s.Body != null) {
-            CheckForallStatementBodyRestrictions(s.Body, s.Kind);
           }
 
           if (s.ForallExpressions != null) {
@@ -13374,290 +13455,55 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// This method performs some additional checks on the body "stmt" of a forall statement of kind "kind".
+    /// Check that "stmt" is a valid statment for the body of an assert-by, forall,
+    /// or calc-hint statement. In particular, check that the local variables assigned in
+    /// the bodies of these statements are declared in the statements, not in some enclosing
+    /// context. 
     /// </summary>
-    public void CheckForallStatementBodyRestrictions(Statement stmt, ForallStmt.BodyKind kind) {
-      Contract.Requires(stmt != null);
-      if (stmt is PredicateStmt) {
-        // cool
-      } else if (stmt is RevealStmt) {
-        var s = (RevealStmt)stmt;
-        foreach (var ss in s.ResolvedStatements) {
-          CheckForallStatementBodyRestrictions(ss, kind);
-        }
-      } else if (stmt is PrintStmt) {
-        reporter.Error(MessageSource.Resolver, stmt, "print statement is not allowed inside a forall statement");
-      } else if (stmt is BreakStmt) {
-        // this case is checked already in the first pass through the forall-statement body, by doing so from an empty set of labeled statements and resetting the loop-stack
-      } else if (stmt is ReturnStmt) {
-        reporter.Error(MessageSource.Resolver, stmt, "return statement is not allowed inside a forall statement");
-      } else if (stmt is YieldStmt) {
-        reporter.Error(MessageSource.Resolver, stmt, "yield statement is not allowed inside a forall statement");
-      } else if (stmt is AssignSuchThatStmt) {
-        var s = (AssignSuchThatStmt)stmt;
-        foreach (var lhs in s.Lhss) {
-          CheckForallStatementBodyLhs(lhs.tok, lhs.Resolved, kind);
-        }
-      } else if (stmt is UpdateStmt) {
-        var s = (UpdateStmt)stmt;
-        foreach (var ss in s.ResolvedStatements) {
-          CheckForallStatementBodyRestrictions(ss, kind);
-        }
-      } else if (stmt is VarDeclStmt) {
-        var s = (VarDeclStmt)stmt;
-        if (s.Update != null) {
-          CheckForallStatementBodyRestrictions(s.Update, kind);
-        }
-      } else if (stmt is VarDeclPattern) {
-        // Are we fine?
-      } else if (stmt is AssignStmt) {
-        var s = (AssignStmt)stmt;
-        CheckForallStatementBodyLhs(s.Lhs.tok, s.Lhs.Resolved, kind);
-        var rhs = s.Rhs;  // ExprRhs and HavocRhs are fine, but TypeRhs is not
-        if (rhs is TypeRhs) {
-          if (kind == ForallStmt.BodyKind.Assign) {
-            reporter.Error(MessageSource.Resolver, rhs.Tok, "new allocation not supported in forall statements");
-          } else {
-            reporter.Error(MessageSource.Resolver, rhs.Tok, "new allocation not allowed in ghost context");
-          }
-        }
-      } else if (stmt is CallStmt) {
-        var s = (CallStmt)stmt;
-        foreach (var lhs in s.Lhs) {
-          CheckForallStatementBodyLhs(lhs.tok, lhs, kind);
-        }
-        if (s.Method.Mod.Expressions.Count != 0) {
-          reporter.Error(MessageSource.Resolver, stmt, "the body of the enclosing forall statement is not allowed to update heap locations, so any call must be to a method with an empty modifies clause");
-        }
-        if (!s.Method.IsGhost) {
-          // The reason for this restriction is that the compiler is going to omit the forall statement altogether--it has
-          // no effect.  However, print effects are not documented, so to make sure that the compiler does not omit a call to
-          // a method that prints something, all calls to non-ghost methods are disallowed.  (Note, if this restriction
-          // is somehow lifted in the future, then it is still necessary to enforce s.Method.Mod.Expressions.Count != 0 for
-          // calls to non-ghost methods.)
-          reporter.Error(MessageSource.Resolver, s, "the body of the enclosing forall statement is not allowed to call non-ghost methods");
-        }
-
-      } else if (stmt is ModifyStmt) {
-        reporter.Error(MessageSource.Resolver, stmt, "body of forall statement is not allowed to use a modify statement");
-      } else if (stmt is BlockStmt) {
-        var s = (BlockStmt)stmt;
-        scope.PushMarker();
-        foreach (var ss in s.Body) {
-          CheckForallStatementBodyRestrictions(ss, kind);
-        }
-        scope.PopMarker();
-
-      } else if (stmt is IfStmt) {
-        var s = (IfStmt)stmt;
-        CheckForallStatementBodyRestrictions(s.Thn, kind);
-        if (s.Els != null) {
-          CheckForallStatementBodyRestrictions(s.Els, kind);
-        }
-
-      } else if (stmt is AlternativeStmt) {
-        var s = (AlternativeStmt)stmt;
-        foreach (var alt in s.Alternatives) {
-          foreach (var ss in alt.Body) {
-            CheckForallStatementBodyRestrictions(ss, kind);
-          }
-        }
-
-      } else if (stmt is OneBodyLoopStmt) {
-        var s = (OneBodyLoopStmt)stmt;
-        if (s.Body != null) {
-          CheckForallStatementBodyRestrictions(s.Body, kind);
-        }
-
-      } else if (stmt is AlternativeLoopStmt) {
-        var s = (AlternativeLoopStmt)stmt;
-        foreach (var alt in s.Alternatives) {
-          foreach (var ss in alt.Body) {
-            CheckForallStatementBodyRestrictions(ss, kind);
-          }
-        }
-
-      } else if (stmt is ForallStmt) {
-        var s = (ForallStmt)stmt;
-        switch (s.Kind) {
-          case ForallStmt.BodyKind.Assign:
-            reporter.Error(MessageSource.Resolver, stmt, "a forall statement with heap updates is not allowed inside the body of another forall statement");
-            break;
-          case ForallStmt.BodyKind.Call:
-          case ForallStmt.BodyKind.Proof:
-            // these are fine, since they don't update any non-local state
-            break;
-          default:
-            Contract.Assert(false);  // unexpected kind
-            break;
-        }
-
-      } else if (stmt is CalcStmt) {
-        // cool
-      } else if (stmt is ConcreteSyntaxStatement) {
-        var s = (ConcreteSyntaxStatement)stmt;
-        CheckForallStatementBodyRestrictions(s.ResolvedStatement, kind);
-      } else if (stmt is MatchStmt) {
-        var s = (MatchStmt)stmt;
-        foreach (var kase in s.Cases) {
-          foreach (var ss in kase.Body) {
-            CheckForallStatementBodyRestrictions(ss, kind);
-          }
-        }
-
-      } else {
-        Contract.Assert(false); throw new cce.UnreachableException();
-      }
-    }
-
-    void CheckForallStatementBodyLhs(IToken tok, Expression lhs, ForallStmt.BodyKind kind) {
-      var idExpr = lhs as IdentifierExpr;
-      if (idExpr != null) {
-        if (scope.ContainsDecl(idExpr.Var)) {
-          reporter.Error(MessageSource.Resolver, tok, "body of forall statement is attempting to update a variable declared outside the forall statement");
-        }
-      } else if (kind != ForallStmt.BodyKind.Assign) {
-        reporter.Error(MessageSource.Resolver, tok, "the body of the enclosing forall statement is not allowed to update heap locations");
-      }
-    }
-
-    /// <summary>
-    /// Check that a statment is a valid hint for a calculation.
-    /// ToDo: generalize the part for compound statements to take a delegate?
-    /// </summary>
-    public void CheckHintRestrictions(Statement stmt, ISet<LocalVariable> localsAllowedInUpdates, string where) {
+    public void CheckLocalityUpdates(Statement stmt, ISet<LocalVariable> localsAllowedInUpdates, string where) {
       Contract.Requires(stmt != null);
       Contract.Requires(localsAllowedInUpdates != null);
       Contract.Requires(where != null);
-      if (stmt is PredicateStmt) {
-        // cool
-      } else if (stmt is PrintStmt) {
-        // not allowed in ghost context
-      } else if (stmt is RevealStmt) {
-        var s = (RevealStmt)stmt;
-        foreach (var ss in s.ResolvedStatements) {
-          CheckHintRestrictions(ss, localsAllowedInUpdates, where);
-        }
-      } else if (stmt is BreakStmt) {
-        // already checked while resolving hints
-      } else if (stmt is ReturnStmt) {
-        reporter.Error(MessageSource.Resolver, stmt, "return statement is not allowed inside {0}", where);
-      } else if (stmt is YieldStmt) {
-        reporter.Error(MessageSource.Resolver, stmt, "yield statement is not allowed inside {0}", where);
+
+      if (stmt is AssertStmt || stmt is ForallStmt || stmt is CalcStmt || stmt is ModifyStmt) {
+        // don't recurse, since CheckHintRestrictions will be called on that assert-by separately
+        return;
       } else if (stmt is AssignSuchThatStmt) {
         var s = (AssignSuchThatStmt)stmt;
         foreach (var lhs in s.Lhss) {
-          CheckHintLhs(lhs.tok, lhs.Resolved, localsAllowedInUpdates, where);
+          CheckLocalityUpdatesLhs(lhs, localsAllowedInUpdates, @where);
         }
       } else if (stmt is AssignStmt) {
         var s = (AssignStmt)stmt;
-        CheckHintLhs(s.Lhs.tok, s.Lhs.Resolved, localsAllowedInUpdates, where);
+        CheckLocalityUpdatesLhs(s.Lhs, localsAllowedInUpdates, @where);
       } else if (stmt is CallStmt) {
         var s = (CallStmt)stmt;
-        if (s.Method.Mod.Expressions.Count != 0) {
-          reporter.Error(MessageSource.Resolver, stmt, "calls to methods with side-effects are not allowed inside {0}", where);
-        }
         foreach (var lhs in s.Lhs) {
-          CheckHintLhs(lhs.tok, lhs.Resolved, localsAllowedInUpdates, where);
-        }
-      } else if (stmt is UpdateStmt) {
-        var s = (UpdateStmt)stmt;
-        foreach (var ss in s.ResolvedStatements) {
-          CheckHintRestrictions(ss, localsAllowedInUpdates, where);
+          CheckLocalityUpdatesLhs(lhs, localsAllowedInUpdates, @where);
         }
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
         s.Locals.Iter(local => localsAllowedInUpdates.Add(local));
-        if (s.Update != null) {
-          CheckHintRestrictions(s.Update, localsAllowedInUpdates, where);
-        }
-      } else if (stmt is VarDeclPattern) {
-        // Are we fine?
       } else if (stmt is ModifyStmt) {
-        reporter.Error(MessageSource.Resolver, stmt, "modify statements are not allowed inside {0}", where);
+        // no further complaints (note, ghost interests have already checked for 'modify' statements)
       } else if (stmt is BlockStmt) {
-        var s = (BlockStmt)stmt;
-        var newScopeForLocals = new HashSet<LocalVariable>(localsAllowedInUpdates);
-        foreach (var ss in s.Body) {
-          CheckHintRestrictions(ss, newScopeForLocals, where);
-        }
+        localsAllowedInUpdates = new HashSet<LocalVariable>(localsAllowedInUpdates);
+        // use this new set for the recursive calls
+      }
 
-      } else if (stmt is IfStmt) {
-        var s = (IfStmt)stmt;
-        CheckHintRestrictions(s.Thn, localsAllowedInUpdates, where);
-        if (s.Els != null) {
-          CheckHintRestrictions(s.Els, localsAllowedInUpdates, where);
-        }
-
-      } else if (stmt is AlternativeStmt) {
-        var s = (AlternativeStmt)stmt;
-        foreach (var alt in s.Alternatives) {
-          foreach (var ss in alt.Body) {
-            CheckHintRestrictions(ss, localsAllowedInUpdates, where);
-          }
-        }
-
-      } else if (stmt is OneBodyLoopStmt) {
-        var s = (OneBodyLoopStmt)stmt;
-        if (s.Mod.Expressions != null && s.Mod.Expressions.Count != 0) {
-          reporter.Error(MessageSource.Resolver, s.Mod.Expressions[0].tok, "a loop statement used inside {0} is not allowed to have a modifies clause", where);
-        }
-        if (s.Body != null) {
-          CheckHintRestrictions(s.Body, localsAllowedInUpdates, where);
-        }
-
-      } else if (stmt is AlternativeLoopStmt) {
-        var s = (AlternativeLoopStmt)stmt;
-        if (s.Mod.Expressions != null && s.Mod.Expressions.Count != 0) {
-          reporter.Error(MessageSource.Resolver, s.Mod.Expressions[0].tok, "a loop statement used inside {0} is not allowed to have a modifies clause", where);
-        }
-        foreach (var alt in s.Alternatives) {
-          foreach (var ss in alt.Body) {
-            CheckHintRestrictions(ss, localsAllowedInUpdates, where);
-          }
-        }
-
-      } else if (stmt is ForallStmt) {
-        var s = (ForallStmt)stmt;
-        switch (s.Kind) {
-          case ForallStmt.BodyKind.Assign:
-            reporter.Error(MessageSource.Resolver, stmt, "a forall statement with heap updates is not allowed inside {0}", where);
-            break;
-          case ForallStmt.BodyKind.Call:
-          case ForallStmt.BodyKind.Proof:
-            // these are fine, since they don't update any non-local state
-            break;
-          default:
-            Contract.Assert(false);  // unexpected kind
-            break;
-        }
-
-      } else if (stmt is CalcStmt) {
-        // cool
-
-      } else if (stmt is MatchStmt) {
-        var s = (MatchStmt)stmt;
-        foreach (var kase in s.Cases) {
-          foreach (var ss in kase.Body) {
-            CheckHintRestrictions(ss, localsAllowedInUpdates, where);
-          }
-        }
-
-      } else {
-        Contract.Assert(false); throw new cce.UnreachableException();
+      foreach (var ss in stmt.SubStatements) {
+        CheckLocalityUpdates(ss, localsAllowedInUpdates, where);
       }
     }
 
-    void CheckHintLhs(IToken tok, Expression lhs, ISet<LocalVariable> localsAllowedInUpdates, string where) {
-      Contract.Requires(tok != null);
+    void CheckLocalityUpdatesLhs(Expression lhs, ISet<LocalVariable> localsAllowedInUpdates, string @where) {
       Contract.Requires(lhs != null);
       Contract.Requires(localsAllowedInUpdates != null);
       Contract.Requires(where != null);
-      var idExpr = lhs as IdentifierExpr;
-      if (idExpr == null) {
-        reporter.Error(MessageSource.Resolver, tok, "{0} is not allowed to update heap locations", where);
-      } else if (!localsAllowedInUpdates.Contains(idExpr.Var)) {
-        reporter.Error(MessageSource.Resolver, tok, "{0} is not allowed to update a variable it doesn't declare", where);
+
+      lhs = lhs.Resolved;
+      if (lhs is IdentifierExpr idExpr && !localsAllowedInUpdates.Contains(idExpr.Var)) {
+        reporter.Error(MessageSource.Resolver, lhs.tok, "{0} is not allowed to update a variable it doesn't declare", where);
       }
     }
 
@@ -15304,9 +15150,7 @@ namespace Microsoft.Dafny {
           var r = e.S as UpdateStmt;
           if (r != null && r.ResolvedStatements.Count == 1) {
             var call = r.ResolvedStatements[0] as CallStmt;
-            if (call.Method.Mod.Expressions.Count != 0) {
-              reporter.Error(MessageSource.Resolver, call, "calls to methods with side-effects are not allowed inside a statement expression");
-            } else if (call.Method is TwoStateLemma && !opts.twoState) {
+            if (call.Method is TwoStateLemma && !opts.twoState) {
               reporter.Error(MessageSource.Resolver, call, "two-state lemmas can only be used in two-state contexts");
             }
           }

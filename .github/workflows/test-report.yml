@@ -1,0 +1,29 @@
+name: 'Test Report'
+on:
+  workflow_run:
+    workflows: ['Run XUnit tests', 'Build and Test']
+    types:
+      - completed
+jobs:
+  report:
+    name: "Download and Publish Test Results"
+    needs: build
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Download Artifacts
+        uses: actions/download-artifact@v2
+        with:
+          path: artifacts
+
+      - name: Publish Test Results
+        uses: dorny/test-reporter@v1
+        with:
+          name: Test Results
+          path: 'artifacts/**/*.trx'
+          reporter: dotnet-trx
