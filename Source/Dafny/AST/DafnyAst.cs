@@ -11203,12 +11203,11 @@ namespace Microsoft.Dafny {
       }
       public static List<VT> MissingBounds<VT>(List<VT> vars, List<BoundedPool> bounds, PoolVirtues requiredVirtues = PoolVirtues.None) where VT : IVariable {
         Contract.Requires(vars != null);
-        Contract.Requires(bounds != null);
-        Contract.Requires(vars.Count == bounds.Count);
+        Contract.Requires(bounds == null || vars.Count == bounds.Count);
         Contract.Ensures(Contract.Result<List<VT>>() != null);
         var missing = new List<VT>();
         for (var i = 0; i < vars.Count; i++) {
-          if (bounds[i] == null || (bounds[i].Virtues & requiredVirtues) != requiredVirtues) {
+          if (bounds == null || bounds[i] == null || (bounds[i].Virtues & requiredVirtues) != requiredVirtues) {
             missing.Add(vars[i]);
           }
         }

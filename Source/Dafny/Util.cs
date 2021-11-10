@@ -483,7 +483,7 @@ namespace Microsoft.Dafny {
 
     // Static call to CheckIsCompilable
     public static bool CheckIsCompilable(Resolver resolver, Expression expr, ICodeContext codeContext) {
-      return new ExpressionTester(resolver, true).CheckIsCompilable(expr, codeContext);
+      return new ExpressionTester(resolver, resolver != null).CheckIsCompilable(expr, codeContext);
     }
 
     /// <summary>
