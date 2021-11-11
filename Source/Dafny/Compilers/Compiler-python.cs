@@ -10,21 +10,22 @@ using Microsoft.Boogie;
 namespace Microsoft.Dafny {
   public class PythonCompiler : Compiler {
 
-    public static int indent = 0;
-
     public PythonCompiler(ErrorReporter reporter) : base(reporter) {
     }
 
     public override string TargetLanguage => "Python";
 
+    const string DafnySetClass = "_dafny.Set";
+    const string DafnyMultiSetClass = "_dafny.MultiSet";
+    const string DafnySeqClass = "_dafny.Seq";
+    const string DafnyMapClass = "_dafny.Map";
+
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
       Coverage.EmitSetup(wr);
-      //AddIndent(wr, indent);
       wr.WriteLine("Main()");
     }
     protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw) {
       var wr = (cw as PythonCompiler.ClassWriter).MethodWriter;
-      //AddIndent(wr,indent);
       return wr.WriteLine("def Main():");
     }
 
@@ -40,7 +41,7 @@ namespace Microsoft.Dafny {
     protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string fullPrintName, List<TypeParameter> typeParameters,
       TopLevelDecl cls, List<Type> superClasses, IToken tok, ConcreteSyntaxTree wr) {
 
-      var w = wr;
+      var w = wr.WriteLine("class {0}:", moduleName);
 
       var methodWriter = w.NewBlock(open: BraceStyle.Pindent, close: BraceStyle.Pindent);
       ConcreteSyntaxTree fieldWriter = w.NewBlock(open: BraceStyle.Pindent, close: BraceStyle.Pindent);
@@ -226,14 +227,9 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {
-      //AddIndent(wr,indent);
       wr.Write("print(");
       EmitToString(wr, arg);
       wr.WriteLine(")");
-    }
-
-    private void AddIndent(ConcreteSyntaxTree wr, int i) {
-      wr.Write(new string(' ', indent));
     }
 
     private void EmitToString(ConcreteSyntaxTree wr, Expression arg) {
