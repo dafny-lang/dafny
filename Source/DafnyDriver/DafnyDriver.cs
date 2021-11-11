@@ -594,6 +594,10 @@ namespace Microsoft.Dafny {
         case DafnyOptions.CompilationTarget.Cpp:
           targetExtension = "cpp";
           break;
+        case DafnyOptions.CompilationTarget.Python:
+          targetExtension = "py";
+          targetBaseDir = baseName + "-python";
+          break;
         default:
           Contract.Assert(false);
           throw new cce.UnreachableException();
