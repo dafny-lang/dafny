@@ -63,12 +63,11 @@ namespace Microsoft.Dafny {
           break;
         case BraceStyle.Pindent:
           outer.WriteLine();
-          PythonCompiler.indent += 1;
           break;
       }
 
 
-      body = outer.Fork((open == BraceStyle.Pindent) ? PythonCompiler.indent : 1);
+      body = outer.Fork(1);
 
       switch (close) {
         case BraceStyle.Space:
@@ -91,7 +90,6 @@ namespace Microsoft.Dafny {
           break;
         case BraceStyle.Pindent:
           outer.WriteLine();
-          PythonCompiler.indent -= 1;
           break;
       }
       return outer;
