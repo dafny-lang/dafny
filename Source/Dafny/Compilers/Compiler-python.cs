@@ -482,6 +482,8 @@ namespace Microsoft.Dafny {
     protected override void EmitSingleValueGenerator(Expression e, bool inLetExprBody, string type, ConcreteSyntaxTree wr) {
       throw new NotImplementedException();
     }
+
+    public override bool TextualTargetIsExecutable => true;
     public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
       bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
       compilationResult = null;
@@ -506,7 +508,7 @@ namespace Microsoft.Dafny {
       TextWriter outputWriter) {
       Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
 
-      var psi = new ProcessStartInfo("node", "") {
+      var psi = new ProcessStartInfo("python", "") {
         CreateNoWindow = true,
         UseShellExecute = false,
         RedirectStandardInput = true,
