@@ -53,32 +53,42 @@ axiom (forall t, u: Ty :: { TIMap(t,u) } Inv1_TIMap(TIMap(t,u)) == u);
 
 // -- Type Tags --
 type TyTag;
-function Tag(Ty) : TyTag;
+function {:exclude_dep} Tag(Ty) : TyTag;
 
-const unique TagBool     : TyTag;
-const unique TagChar     : TyTag;
-const unique TagInt      : TyTag;
-const unique TagReal     : TyTag;
-const unique TagORDINAL  : TyTag;
-const unique TagSet      : TyTag;
-const unique TagISet     : TyTag;
-const unique TagMultiSet : TyTag;
-const unique TagSeq      : TyTag;
-const unique TagMap      : TyTag;
-const unique TagIMap     : TyTag;
+const unique TagBool     : TyTag uses {
+    axiom Tag(TBool) == TagBool;
+}
+const unique TagChar     : TyTag uses {
+    axiom Tag(TChar) == TagChar;
+}
+const unique TagInt      : TyTag uses {
+    axiom Tag(TInt) == TagInt;
+}
+const unique TagReal     : TyTag uses {
+    axiom Tag(TReal) == TagReal;
+}
+const unique TagORDINAL  : TyTag uses {
+    axiom Tag(TORDINAL) == TagORDINAL;
+}
+const unique TagSet      : TyTag uses {
+    axiom (forall t: Ty    :: { TSet(t) }      Tag(TSet(t))      == TagSet);
+}
+const unique TagISet     : TyTag uses {
+    axiom (forall t: Ty    :: { TISet(t) }     Tag(TISet(t))     == TagISet);
+}
+const unique TagMultiSet : TyTag uses {
+    axiom (forall t: Ty    :: { TMultiSet(t) } Tag(TMultiSet(t)) == TagMultiSet);
+}
+const unique TagSeq      : TyTag uses {
+    axiom (forall t: Ty    :: { TSeq(t) }      Tag(TSeq(t))      == TagSeq);
+}
+const unique TagMap      : TyTag uses {
+    axiom (forall t, u: Ty :: { TMap(t,u) }    Tag(TMap(t,u))    == TagMap);
+}
+const unique TagIMap     : TyTag uses {    
+    axiom (forall t, u: Ty :: { TIMap(t,u) }   Tag(TIMap(t,u))   == TagIMap);
+}
 const unique TagClass    : TyTag;
-
-axiom Tag(TBool) == TagBool;
-axiom Tag(TChar) == TagChar;
-axiom Tag(TInt) == TagInt;
-axiom Tag(TReal) == TagReal;
-axiom Tag(TORDINAL) == TagORDINAL;
-axiom (forall t: Ty    :: { TSet(t) }      Tag(TSet(t))      == TagSet);
-axiom (forall t: Ty    :: { TISet(t) }     Tag(TISet(t))     == TagISet);
-axiom (forall t: Ty    :: { TMultiSet(t) } Tag(TMultiSet(t)) == TagMultiSet);
-axiom (forall t: Ty    :: { TSeq(t) }      Tag(TSeq(t))      == TagSeq);
-axiom (forall t, u: Ty :: { TMap(t,u) }    Tag(TMap(t,u))    == TagMap);
-axiom (forall t, u: Ty :: { TIMap(t,u) }   Tag(TIMap(t,u))   == TagIMap);
 
 type TyTagFamily;
 function {:exclude_dep} TagFamily(Ty): TyTagFamily;
