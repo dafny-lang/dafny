@@ -2913,9 +2913,6 @@ namespace Microsoft.Dafny {
       // * Verify that subset constraints are compilable if necessary
       // ----------------------------------------------------------------------------
 
-      // Verifies that, in all compiled places, subset types in comprehensions have a compilable constraint
-      new SubsetConstraintGhostChecker(this).Traverse(declarations);
-
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         // fill in the postconditions and bodies of prefix lemmas
         foreach (var com in ModuleDefinition.AllExtremeLemmas(declarations)) {
@@ -3505,6 +3502,8 @@ namespace Microsoft.Dafny {
           }
         }
       }
+      // Verifies that, in all compiled places, subset types in comprehensions have a compilable constraint
+      new SubsetConstraintGhostChecker(this).Traverse(declarations);
     }
 
     private void CheckIsOkayWithoutRHS(ConstantField f) {
@@ -18308,9 +18307,9 @@ namespace Microsoft.Dafny {
       // We want to recurse only on the by method, not on the sub expressions of the function
       if (!memberDecl.IsGhost) return ok;
       if (memberDecl is Function f) {
-        if (Traverse(f.ByMethodDecl, "ByMethodDecl", f)) return stop;
-        if (f.ByMethodDecl.Body != f.ByMethodBody) {
-          if (Traverse(f.ByMethodBody, "ByMethodBody", f)) return stop;
+        if (f.ByMethodDecl != null && Traverse(f.ByMethodDecl, "ByMethodDecl", f)) return stop;
+        if (f.ByMethodDecl == null || f.ByMethodDecl.Body != f.ByMethodBody) {
+          if (f.ByMethodBody != null && Traverse(f.ByMethodBody, "ByMethodBody", f)) return stop;
         }
       }
       return skip;
@@ -18318,13 +18317,13 @@ namespace Microsoft.Dafny {
 
     public override bool Traverse(Expression expr, [CanBeNull] string field, [CanBeNull] object parent) {
       // Since we skipped ghost code, the code has to be compiled here. 
-      if (expr is not QuantifierExpr e) {
+      if (expr is not ComprehensionExpr e) {
         return base.Traverse(expr, field, parent);
       }
 
       string what;
       if (e is ForallExpr) {
-        what = "forall expressions";
+        what = "forall expression";
       } else if (e is ExistsExpr) {
         what = "exists expression";
       } else if (e is SetComprehension) {
@@ -18332,7 +18331,7 @@ namespace Microsoft.Dafny {
       } else if (e is MapComprehension) {
         what = "map comprehension";
       } else {
-        what = "quantifier";
+        what = "comprehension";
       }
       foreach (var boundVar in e.BoundVars) {
         if (boundVar.Type is UserDefinedType

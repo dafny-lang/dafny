@@ -515,7 +515,13 @@ namespace Microsoft.Dafny {
     }
 
     public bool Traverse(List<TopLevelDecl> topLevelDecls) {
-      return topLevelDecls.Any(Traverse);
+      foreach (var topLevelDecl in topLevelDecls) {
+        if (Traverse(topLevelDecl)) {
+          return true;
+        }
+      }
+
+      return false;
     }
 
     public bool Traverse(ModuleDecl moduleDecl) {
@@ -549,7 +555,7 @@ namespace Microsoft.Dafny {
     }
 
     public bool Traverse(TopLevelDecl topd) {
-      var d = topd is ClassDecl classDecl ? classDecl.NonNullTypeDecl : topd;
+      var d = topd is ClassDecl classDecl && classDecl.NonNullTypeDecl != null ? classDecl.NonNullTypeDecl : topd;
 
       if (d is TopLevelDeclWithMembers tdm) {
         // ClassDecl, DatatypeDecl, OpaqueTypeDecl, NewtypeDecl 
@@ -624,7 +630,7 @@ namespace Microsoft.Dafny {
         if (f.Formals.Any(Traverse)) {
           return true;
         }
-        if (f.Result.DefaultValue != null && Traverse(f.Result.DefaultValue, "Result.DefaultValue", f)) {
+        if (f.Result != null && f.Result.DefaultValue != null && Traverse(f.Result.DefaultValue, "Result.DefaultValue", f)) {
           return true;
         }
         if (f.Req.Any(e => Traverse(e.E, "Req.E", f))) {
@@ -640,9 +646,9 @@ namespace Microsoft.Dafny {
           return true;
         }
         if (Traverse(f.Body, "Body", f)) return true;
-        if (Traverse(f.ByMethodDecl, "ByMethodDecl", f)) return true;
-        if (f.ByMethodDecl.Body != f.ByMethodBody) {
-          if (Traverse(f.ByMethodBody, "ByMethodBody", f)) return true;
+        if (f.ByMethodDecl != null && Traverse(f.ByMethodDecl, "ByMethodDecl", f)) return true;
+        if (f.ByMethodDecl == null || f.ByMethodDecl.Body != f.ByMethodBody) {
+          if (f.ByMethodBody != null && Traverse(f.ByMethodBody, "ByMethodBody", f)) return true;
         }
       } else if (memberDeclaration is Method m) {
         // For example, default value of formals is non-ghost
