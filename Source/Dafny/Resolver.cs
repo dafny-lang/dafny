@@ -18298,14 +18298,14 @@ namespace Microsoft.Dafny {
     }
 
     protected override ContinuationStatus OnEnter(Statement stmt, string field, object parent) {
-      return stmt.IsGhost ? skip : ok;
+      return stmt != null && stmt.IsGhost ? skip : ok;
     }
 
     protected override ContinuationStatus OnEnter(MemberDecl memberDecl, string field, object parent) {
       // Includes functions and methods as well.
       // Ghost functions can have a compiled implementation.
       // We want to recurse only on the by method, not on the sub expressions of the function
-      if (!memberDecl.IsGhost) return ok;
+      if (memberDecl == null || !memberDecl.IsGhost) return ok;
       if (memberDecl is Function f) {
         if (f.ByMethodDecl != null && Traverse(f.ByMethodDecl, "ByMethodDecl", f)) return stop;
         if (f.ByMethodDecl == null || f.ByMethodDecl.Body != f.ByMethodBody) {
@@ -18316,6 +18316,7 @@ namespace Microsoft.Dafny {
     }
 
     public override bool Traverse(Expression expr, [CanBeNull] string field, [CanBeNull] object parent) {
+      if (expr == null) return false;
       // Since we skipped ghost code, the code has to be compiled here. 
       if (expr is not ComprehensionExpr e) {
         return base.Traverse(expr, field, parent);

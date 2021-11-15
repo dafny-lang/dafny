@@ -507,14 +507,17 @@ namespace Microsoft.Dafny {
 
     // Traverse methods retun true to interrupt.
     public bool Traverse(Program program) {
+      if (program == null) return false;
       return program.Modules().Any(Traverse);
     }
 
     public bool Traverse(ModuleDefinition moduleDefinition) {
+      if (moduleDefinition == null) return false;
       return Traverse(moduleDefinition.TopLevelDecls);
     }
 
     public bool Traverse(List<TopLevelDecl> topLevelDecls) {
+      if (topLevelDecls == null) return false;
       foreach (var topLevelDecl in topLevelDecls) {
         if (Traverse(topLevelDecl)) {
           return true;
@@ -525,6 +528,7 @@ namespace Microsoft.Dafny {
     }
 
     public bool Traverse(ModuleDecl moduleDecl) {
+      if (moduleDecl == null) return false;
       if (moduleDecl is LiteralModuleDecl l) {
         return Traverse(l.ModuleDef);
       } else if (moduleDecl is AbstractModuleDecl a) {
@@ -539,6 +543,7 @@ namespace Microsoft.Dafny {
     }
 
     public bool Traverse(Formal formal) {
+      if (formal == null) return false;
       if (formal.DefaultValue != null && Traverse(formal.DefaultValue, "DefaultValue", formal)) {
         return true;
       }
@@ -547,6 +552,7 @@ namespace Microsoft.Dafny {
     }
 
     public bool Traverse(DatatypeCtor ctor) {
+      if (ctor == null) return false;
       if (ctor.Formals.Any(Traverse)) {
         return true;
       }
@@ -555,6 +561,7 @@ namespace Microsoft.Dafny {
     }
 
     public bool Traverse(TopLevelDecl topd) {
+      if (topd == null) return false;
       var d = topd is ClassDecl classDecl && classDecl.NonNullTypeDecl != null ? classDecl.NonNullTypeDecl : topd;
 
       if (d is TopLevelDeclWithMembers tdm) {
@@ -620,6 +627,7 @@ namespace Microsoft.Dafny {
     }
 
     public bool Traverse(MemberDecl memberDeclaration, [CanBeNull] string field, [CanBeNull] object parent) {
+      if (memberDeclaration == null) return false;
       var enterResult = OnEnter(memberDeclaration, field, parent);
       if (enterResult is stop or skip) return enterResult == stop;
       if (memberDeclaration is Field fi) {
@@ -675,6 +683,7 @@ namespace Microsoft.Dafny {
     }
 
     public virtual bool Traverse(Statement stmt, [CanBeNull] string field, [CanBeNull] object parent) {
+      if (stmt == null) return false;
       var enterResult = OnEnter(stmt, field, parent);
       if (enterResult is stop or skip) return enterResult == stop;
       return stmt.SubStatements.Any(subStmt => Traverse(subStmt, "SubStatements", stmt)) ||
@@ -683,6 +692,7 @@ namespace Microsoft.Dafny {
     }
 
     public virtual bool Traverse(Expression expr, [CanBeNull] string field, [CanBeNull] object parent) {
+      if (expr == null) return false;
       var enterResult = OnEnter(expr, field, parent);
       if (enterResult is stop or skip) return enterResult == stop;
       return expr.SubExpressions.Any(subExpr => Traverse(subExpr, "SubExpression", expr)) ||
