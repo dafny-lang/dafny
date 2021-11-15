@@ -2900,7 +2900,21 @@ namespace Microsoft.Dafny {
 
       // ---------------------------------- Pass 2 ----------------------------------
       // This pass fills in various additional information.
+      // * Subset type in comprehensions have a compilable constraint 
+      // * Postconditions and bodies of prefix lemmas
+      // * Compute postconditions and statement body of prefix lemmas
+      // * Perform the stratosphere check on inductive datatypes, and compute to what extent the inductive datatypes require equality support
+      // * Set the SccRepr field of codatatypes
+      // * Perform the guardedness check on co-datatypes
+      // * Do datatypes and type synonyms until a fixpoint is reached, same for functions and methods	
+      // * Check that functions claiming to be abstemious really are
+      // * Check that all == and != operators in non-ghost contexts are applied to equality-supporting types.
+      // * Extreme predicate recursivity checks
+      // * Verify that subset constraints are compilable if necessary
       // ----------------------------------------------------------------------------
+
+      // Verifies that, in all compiled places, subset types in comprehensions have a compilable constraint
+      new SubsetConstraintGhostChecker(this).Traverse(declarations);
 
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         // fill in the postconditions and bodies of prefix lemmas
@@ -6645,32 +6659,6 @@ namespace Microsoft.Dafny {
             whereToLookForBounds = e.Range;
           } else {
             Contract.Assume(e is LambdaExpr);  // otherwise, unexpected ComprehensionExpr
-          }
-          if (!codeContext.IsGhost && what != null) {
-            foreach (var boundVar in e.BoundVars) {
-              if (boundVar.Type is UserDefinedType
-                {
-                  ResolvedClass: SubsetTypeDecl
-                  {
-                    Constraint: var constraint,
-                    ConstraintIsCompilable: false and var constraintIsCompilable
-                  } and var subsetTypeDecl
-                }
-              ) {
-                if (!subsetTypeDecl.CheckedIfConstraintIsCompilable) {
-                  // Builtin types were never resolved.
-                  constraintIsCompilable = ExpressionTester.CheckIsCompilable(null, constraint, new CodeContextWrapper(subsetTypeDecl, true));
-                  subsetTypeDecl.CheckedIfConstraintIsCompilable = true;
-                  subsetTypeDecl.ConstraintIsCompilable = constraintIsCompilable;
-                }
-                if (!constraintIsCompilable) {
-                  // Explicitely report the error
-                  this.resolver.getReporter().Error(MessageSource.Resolver, boundVar.tok,
-                    boundVar.Type + " is a subset type and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in " + what + ". The next error will explain why the constraint is not compilable.");
-                  ExpressionTester.CheckIsCompilable(this.resolver, constraint, new CodeContextWrapper(subsetTypeDecl, true));
-                }
-              }
-            }
           }
           if (whereToLookForBounds != null) {
             e.Bounds = DiscoverBestBounds_MultipleVars_AllowReordering(e.BoundVars, whereToLookForBounds, polarity, ComprehensionExpr.BoundedPool.PoolVirtues.None);
@@ -18297,6 +18285,80 @@ namespace Microsoft.Dafny {
 
     public bool ContainsDecl(Thing t) {
       return things.Exists(thing => thing == t);
+    }
+  }
+
+
+  // Looks for every non-ghost comprehensions, and if they are using a subset type,
+  // check that the subset constraint is compilable. If it is not compilable, raises an error.
+  public class SubsetConstraintGhostChecker : ProgramTraverser {
+    public Resolver resolver;
+
+    public SubsetConstraintGhostChecker(Resolver resolver) {
+      this.resolver = resolver;
+    }
+
+    protected override ContinuationStatus OnEnter(Statement stmt, string field, object parent) {
+      return stmt.IsGhost ? skip : ok;
+    }
+
+    protected override ContinuationStatus OnEnter(MemberDecl memberDecl, string field, object parent) {
+      // Includes functions and methods as well.
+      // Ghost functions can have a compiled implementation.
+      // We want to recurse only on the by method, not on the sub expressions of the function
+      if (!memberDecl.IsGhost) return ok;
+      if (memberDecl is Function f) {
+        if (Traverse(f.ByMethodDecl, "ByMethodDecl", f)) return stop;
+        if (f.ByMethodDecl.Body != f.ByMethodBody) {
+          if (Traverse(f.ByMethodBody, "ByMethodBody", f)) return stop;
+        }
+      }
+      return skip;
+    }
+
+    public override bool Traverse(Expression expr, [CanBeNull] string field, [CanBeNull] object parent) {
+      // Since we skipped ghost code, the code has to be compiled here. 
+      if (expr is not QuantifierExpr e) {
+        return base.Traverse(expr, field, parent);
+      }
+
+      string what;
+      if (e is ForallExpr) {
+        what = "forall expressions";
+      } else if (e is ExistsExpr) {
+        what = "exists expression";
+      } else if (e is SetComprehension) {
+        what = "set comprehension";
+      } else if (e is MapComprehension) {
+        what = "map comprehension";
+      } else {
+        what = "quantifier";
+      }
+      foreach (var boundVar in e.BoundVars) {
+        if (boundVar.Type is UserDefinedType
+          {
+            ResolvedClass: SubsetTypeDecl
+            {
+              Constraint: var constraint,
+              ConstraintIsCompilable: false and var constraintIsCompilable
+            } and var subsetTypeDecl
+          }
+        ) {
+          if (!subsetTypeDecl.CheckedIfConstraintIsCompilable) {
+            // Builtin types were never resolved.
+            constraintIsCompilable = ExpressionTester.CheckIsCompilable(null, constraint, new CodeContextWrapper(subsetTypeDecl, true));
+            subsetTypeDecl.CheckedIfConstraintIsCompilable = true;
+            subsetTypeDecl.ConstraintIsCompilable = constraintIsCompilable;
+          }
+          if (!constraintIsCompilable) {
+            // Explicitely report the error
+            this.resolver.getReporter().Error(MessageSource.Resolver, boundVar.tok,
+              boundVar.Type + " is a subset type and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in " + what + ". The next error will explain why the constraint is not compilable.");
+            ExpressionTester.CheckIsCompilable(this.resolver, constraint, new CodeContextWrapper(subsetTypeDecl, true));
+          }
+        }
+      }
+      return base.Traverse(e, field, parent);
     }
   }
 }
