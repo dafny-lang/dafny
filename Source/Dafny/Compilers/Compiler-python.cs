@@ -21,12 +21,13 @@ namespace Microsoft.Dafny {
     const string DafnyMapClass = "_dafny.Map";
 
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
-      Coverage.EmitSetup(wr);
-      wr.WriteLine("Main()");
+      var className = TransformToClassName(baseName);
+      wr.WriteLine("new_instance = {0}()", className);
+      wr.WriteLine("new_instance.Main()");
     }
     protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw) {
       var wr = (cw as PythonCompiler.ClassWriter).MethodWriter;
-      return wr.WriteLine("def Main():");
+      return wr.WriteLine("def Main(args = None):");
     }
 
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern, string libraryName,
@@ -40,8 +41,8 @@ namespace Microsoft.Dafny {
 
     protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string fullPrintName, List<TypeParameter> typeParameters,
       TopLevelDecl cls, List<Type> superClasses, IToken tok, ConcreteSyntaxTree wr) {
-
-      var w = wr.WriteLine("class {0}:", moduleName);
+      var className = fullPrintName;
+      var w = wr.WriteLine("class {0}:", className);
 
       var methodWriter = w.NewBlock(open: BraceStyle.Pindent, close: BraceStyle.Pindent);
       ConcreteSyntaxTree fieldWriter = w.NewBlock(open: BraceStyle.Pindent, close: BraceStyle.Pindent);
@@ -330,6 +331,7 @@ namespace Microsoft.Dafny {
     protected override ConcreteSyntaxTree EmitAddTupleToList(string ingredients, string tupleTypeArgs, ConcreteSyntaxTree wr) {
       throw new NotImplementedException();
     }
+
 
     protected override void EmitTupleSelect(string prefix, int i, ConcreteSyntaxTree wr) {
       throw new NotImplementedException();
