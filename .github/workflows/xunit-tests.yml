@@ -56,8 +56,13 @@ jobs:
     - name: Build
       run: dotnet build --no-restore ${{env.solutionPath}}
     - name: Run DafnyLanguageServer Tests
-      run: dotnet test --no-restore --verbosity normal Source/DafnyLanguageServer.Test
+      run: dotnet test --no-restore --verbosity normal --logger trx Source/DafnyLanguageServer.Test
     - name: Run DafnyPipeline Tests
-      run: dotnet test --no-restore --verbosity normal Source/DafnyPipeline.Test
+      run: dotnet test --no-restore --verbosity normal --logger trx Source/DafnyPipeline.Test
     - name: Run DafnyTestGeneration Tests
-      run: dotnet test --no-restore --verbosity normal Source/DafnyTestGeneration.Test
+      run: dotnet test --no-restore --verbosity normal --logger trx Source/DafnyTestGeneration.Test
+    - uses: actions/upload-artifact@v2
+      if: always()
+      with:
+        name: unit-test-results-${{ matrix.os }}
+        path: Source/*/TestResults/*.trx
