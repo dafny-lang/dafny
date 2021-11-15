@@ -1,5 +1,9 @@
 using System;
 using System.Collections.Generic;
+using Microsoft.Boogie;
+
+namespace Microsoft.Dafny {
+  public class PythonCompiler : Compiler {
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
@@ -14,6 +18,9 @@ namespace Microsoft.Dafny {
     }
 
     public override string TargetLanguage => "Python";
+    
+    protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter wr) {
+      throw new NotImplementedException();
 
     const string DafnySetClass = "_dafny.Set";
     const string DafnyMultiSetClass = "_dafny.MultiSet";
@@ -32,6 +39,7 @@ namespace Microsoft.Dafny {
 
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern, string libraryName,
       ConcreteSyntaxTree wr) {
+      throw new NotImplementedException();
       return wr;
     }
 
@@ -41,6 +49,9 @@ namespace Microsoft.Dafny {
 
     protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string fullPrintName, List<TypeParameter> typeParameters,
       TopLevelDecl cls, List<Type> superClasses, IToken tok, ConcreteSyntaxTree wr) {
+
+      throw new NotImplementedException();
+
       var className = fullPrintName;
       var w = wr.WriteLine("class {0}:", className);
 
@@ -60,6 +71,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override IClassWriter DeclareDatatype(DatatypeDecl dt, ConcreteSyntaxTree wr) {
+      throw new NotImplementedException();
 
       return null;
 
@@ -72,6 +84,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, ConcreteSyntaxTree wr) {
+      throw new NotImplementedException();
 
       var udt = UserDefinedType.FromTopLevelDecl(sst.tok, sst);
       string d;
@@ -195,6 +208,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variance, List<Type> typeArgs, ConcreteSyntaxTree wr, IToken tok) {
+      throw new NotImplementedException();
       string s = IdProtect(fullCompileName);
       return s;
     }
@@ -228,6 +242,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {
+      throw new NotImplementedException();
       wr.Write("print(");
       EmitToString(wr, arg);
       wr.WriteLine(")");
@@ -306,6 +321,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitLiteralExpr(ConcreteSyntaxTree wr, LiteralExpr e) {
+      throw new NotImplementedException();
       if (e.Value is bool value) {
         wr.Write(value ? "True" : "False");
       }
@@ -331,13 +347,12 @@ namespace Microsoft.Dafny {
     protected override ConcreteSyntaxTree EmitAddTupleToList(string ingredients, string tupleTypeArgs, ConcreteSyntaxTree wr) {
       throw new NotImplementedException();
     }
-
-
     protected override void EmitTupleSelect(string prefix, int i, ConcreteSyntaxTree wr) {
       throw new NotImplementedException();
     }
 
     protected override string FullTypeName(UserDefinedType udt, MemberDecl member = null) {
+      throw new NotImplementedException();
       if (udt is ArrowType) {
         return ArrowType.Arrow_FullCompileName;
       }
@@ -484,7 +499,6 @@ namespace Microsoft.Dafny {
     protected override void EmitSingleValueGenerator(Expression e, bool inLetExprBody, string type, ConcreteSyntaxTree wr) {
       throw new NotImplementedException();
     }
-
     public override bool TextualTargetIsExecutable => true;
     public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
       bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
