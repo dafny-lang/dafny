@@ -53,7 +53,6 @@ jobs:
       
   build:
     runs-on: ${{ matrix.os }}
-
     strategy:
       matrix:
         ## Windows jobs fail on some lit tests and sometimes fail even to
@@ -126,4 +125,9 @@ jobs:
         unzip dafny/Package/CI.zip -d unzippedRelease
     - name: Run integration tests
       run: |
-        XUNIT_SHARD=${{ matrix.shard }} XUNIT_SHARD_COUNT=5 DAFNY_RELEASE=$PWD/unzippedRelease/dafny dotnet test -v:n dafny/Source/IntegrationTests/IntegrationTests.csproj
+        XUNIT_SHARD=${{ matrix.shard }} XUNIT_SHARD_COUNT=5 DAFNY_RELEASE=$PWD/unzippedRelease/dafny dotnet test -v:n --logger trx dafny/Source/IntegrationTests/IntegrationTests.csproj
+    - uses: actions/upload-artifact@v2
+      if: always()
+      with:
+        name: integration-test-results-${{ matrix.os }}
+        path: dafny/Source/IntegrationTests/TestResults/*.trx
