@@ -770,7 +770,7 @@ namespace Microsoft.Dafny {
           isCompilable = CheckIsCompilable(callExpr.Receiver, codeContext);
           for (var i = 0; i < callExpr.Function.Formals.Count; i++) {
             if (!callExpr.Function.Formals[i].IsGhost) {
-              isCompilable = isCompilable && CheckIsCompilable(callExpr.Args[i], codeContext);
+              isCompilable = CheckIsCompilable(callExpr.Args[i], codeContext) && isCompilable;
             }
           }
         }
@@ -782,7 +782,7 @@ namespace Microsoft.Dafny {
         // note that if resolution is successful, then |e.Arguments| == |e.Ctor.Formals|
         for (int i = 0; i < value.Arguments.Count; i++) {
           if (!value.Ctor.Formals[i].IsGhost) {
-            isCompilable = isCompilable && CheckIsCompilable(value.Arguments[i], codeContext);
+            isCompilable = CheckIsCompilable(value.Arguments[i], codeContext) && isCompilable;
           }
         }
         return isCompilable;
@@ -840,18 +840,18 @@ namespace Microsoft.Dafny {
             }
 
             if (!lhs.Vars.All(bv => bv.IsGhost)) {
-              isCompilable = isCompilable && CheckIsCompilable(ee, codeContext);
+              isCompilable = CheckIsCompilable(ee, codeContext) && isCompilable;
             }
             i++;
           }
-          isCompilable = isCompilable && CheckIsCompilable(letExpr.Body, codeContext);
+          isCompilable = CheckIsCompilable(letExpr.Body, codeContext) && isCompilable;
         } else {
           Contract.Assert(letExpr.RHSs.Count == 1);
           var lhsVarsAreAllGhost = letExpr.BoundVars.All(bv => bv.IsGhost);
           if (!lhsVarsAreAllGhost) {
-            isCompilable = isCompilable && CheckIsCompilable(letExpr.RHSs[0], codeContext);
+            isCompilable = CheckIsCompilable(letExpr.RHSs[0], codeContext) && isCompilable;
           }
-          isCompilable = isCompilable && CheckIsCompilable(letExpr.Body, codeContext);
+          isCompilable = CheckIsCompilable(letExpr.Body, codeContext) && isCompilable;
 
           // fill in bounds for this to-be-compiled let-such-that expression
           Contract.Assert(letExpr.RHSs.Count == 1);  // if we got this far, the resolver will have checked this condition successfully
@@ -885,9 +885,9 @@ namespace Microsoft.Dafny {
         }
         // don't recurse down any attributes
         if (comprehensionExpr.Range != null) {
-          isCompilable = isCompilable && CheckIsCompilable(comprehensionExpr.Range, codeContext);
+          isCompilable = CheckIsCompilable(comprehensionExpr.Range, codeContext) && isCompilable;
         }
-        isCompilable = isCompilable && CheckIsCompilable(comprehensionExpr.Term, codeContext);
+        isCompilable = CheckIsCompilable(comprehensionExpr.Term, codeContext) && isCompilable;
         return isCompilable;
 
       } else if (expr is ChainingExpression chainingExpression) {
@@ -897,7 +897,7 @@ namespace Microsoft.Dafny {
       }
 
       foreach (var ee in expr.SubExpressions) {
-        isCompilable = isCompilable && CheckIsCompilable(ee, codeContext);
+        isCompilable = CheckIsCompilable(ee, codeContext) && isCompilable;
       }
 
       return isCompilable;
