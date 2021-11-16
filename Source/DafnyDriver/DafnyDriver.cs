@@ -10,8 +10,7 @@
 //       - main program for taking a Dafny program and verifying it
 //---------------------------------------------------------------------------------------------
 
-using System.Security;
-using DafnyTestGeneration;
+using DafnyServer.CounterexampleGeneration;
 
 namespace Microsoft.Dafny {
   using System;
@@ -65,6 +64,9 @@ namespace Microsoft.Dafny {
 
       if (CommandLineOptions.Clo.XmlSink != null) {
         CommandLineOptions.Clo.XmlSink.Close();
+        if (DafnyOptions.O.VerificationLoggerConfig != null) {
+          BoogieXmlConvertor.RaiseTestLoggerEvents(DafnyOptions.O.BoogieXmlFilename, DafnyOptions.O.VerificationLoggerConfig);
+        }
       }
       if (CommandLineOptions.Clo.Wait) {
         Console.WriteLine("Press Enter to exit.");
@@ -214,6 +216,12 @@ namespace Microsoft.Dafny {
           "*** Error: Only one .dfy file can be specified for testing");
         return CommandLineArgumentsResult.PREPROCESSING_ERROR;
       }
+
+      if (DafnyOptions.O.ExtractCounterexample && DafnyOptions.O.ModelViewFile == null) {
+        ExecutionEngine.printer.ErrorWriteLine(Console.Out,
+          "*** Error: ModelView file must be specified when attempting counterexample extraction");
+        return CommandLineArgumentsResult.PREPROCESSING_ERROR;
+      }
       return CommandLineArgumentsResult.OK;
     }
 
@@ -290,7 +298,30 @@ namespace Microsoft.Dafny {
       if (err == null && dafnyProgram != null && DafnyOptions.O.PrintFunctionCallGraph) {
         Util.PrintFunctionCallGraph(dafnyProgram);
       }
+      if (dafnyProgram != null && DafnyOptions.O.ExtractCounterexample && exitValue == ExitValue.VERIFICATION_ERROR) {
+        PrintCounterexample(DafnyOptions.O.ModelViewFile);
+      }
       return exitValue;
+    }
+
+    /// <summary>
+    /// Extract the counterexample corresponding to the first failing
+    /// assertion and print it to the console
+    /// </summary>
+    /// <param name="modelViewFile"> Name of the file from which to read
+    /// the counterexample </param> 
+    private static void PrintCounterexample(string modelViewFile) {
+      var model = DafnyModel.ExtractModel(File.ReadAllText(modelViewFile));
+      Console.WriteLine("Counterexample for first failing assertion: ");
+      foreach (var state in model.States.Where(state => !state.IsInitialState)) {
+        Console.WriteLine(state.FullStateName + ":");
+        var vars = state.ExpandedVariableSet(-1);
+        foreach (var variable in vars) {
+          Console.WriteLine($"\t{variable.ShortName} : " +
+                            $"{variable.Type.InDafnyFormat()} = " +
+                            $"{variable.Value}");
+        }
+      }
     }
 
     private static string BoogieProgramSuffix(string printFile, string suffix) {

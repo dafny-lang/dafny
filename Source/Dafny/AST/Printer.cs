@@ -374,9 +374,14 @@ namespace Microsoft.Dafny {
               wr.Write(dd.ResolvedHash);
               wr.Write("*/");
             }
-            wr.Write(" {0} ", dd.Name);
-            wr.Write("= {0}", dd.TargetQId.ToString());
-            if (dd.Exports.Count > 0) {
+            wr.Write(" {0}", dd.Name);
+            if (dd.Name != dd.TargetQId.ToString()) {
+              wr.Write(" = {0}", dd.TargetQId.ToString());
+            }
+            if (dd.Exports.Count == 1) {
+              wr.Write("`{0}", dd.Exports[0].val);
+            }
+            if (dd.Exports.Count > 1) {
               wr.Write("`{{{0}}}", Util.Comma(dd.Exports, id => id.val));
             }
             wr.WriteLine();
@@ -928,7 +933,7 @@ namespace Microsoft.Dafny {
         method is TwoStateLemma ? "twostate lemma" :
         "method";
       if (method.HasStaticKeyword) { k = "static " + k; }
-      if (method.IsGhost && !(method is Lemma) && !(method is PrefixLemma) && !(method is TwoStateLemma) && !(method is ExtremeLemma)) {
+      if (method.IsGhost && !method.IsLemmaLike) {
         k = "ghost " + k;
       }
       string nm = method is Constructor && !((Constructor)method).HasName ? "" : method.Name;

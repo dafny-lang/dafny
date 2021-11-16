@@ -4,11 +4,12 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.Boogie;
 
-namespace DafnyServer.CounterExampleGeneration {
+namespace DafnyServer.CounterexampleGeneration {
 
   /// <summary>
   /// a wrapper around Boogie's Model class that
@@ -78,6 +79,19 @@ namespace DafnyServer.CounterExampleGeneration {
         var sn = new DafnyModelState(this, s);
         States.Add(sn);
       }
+    }
+
+    /// <summary>
+    /// Extract and parse the first Dafny model recorded in the model view file.
+    /// </summary>
+    public static DafnyModel ExtractModel(string mv) {
+      const string begin = "*** MODEL";
+      const string end = "*** END_MODEL";
+      var beginIndex = mv.IndexOf(begin, StringComparison.Ordinal);
+      var endIndex = mv.IndexOf(end, StringComparison.Ordinal);
+      var modelString = mv.Substring(beginIndex, endIndex + end.Length - beginIndex);
+      var model = Model.ParseModels(new StringReader(modelString)).First();
+      return new DafnyModel(model);
     }
 
     /// <summary>

@@ -117,7 +117,7 @@ lemma Complete(n: int, lowDigit: int, base: int) returns (digits: seq<int>)
   }
 }
 
-ghost method inc(a: seq<int>, lowDigit: int, base: int) returns (b: seq<int>)
+lemma inc(a: seq<int>, lowDigit: int, base: int) returns (b: seq<int>)
   requires IsSkewNumber(a, lowDigit, base)
   requires eval(a, base) == 0 ==> 1 < lowDigit + base
   ensures IsSkewNumber(b, lowDigit, base) && eval(b, base) == eval(a, base) + 1
@@ -157,7 +157,7 @@ ghost method inc(a: seq<int>, lowDigit: int, base: int) returns (b: seq<int>)
   }
 }
 
-ghost method dec(a: seq<int>, lowDigit: int, base: int) returns (b: seq<int>)
+lemma dec(a: seq<int>, lowDigit: int, base: int) returns (b: seq<int>)
   requires IsSkewNumber(a, lowDigit, base)
   requires eval(a, base) == 0 ==> lowDigit < 0
   ensures IsSkewNumber(b, lowDigit, base) && eval(b, base) == eval(a, base) - 1

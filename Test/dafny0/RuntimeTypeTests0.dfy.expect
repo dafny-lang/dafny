@@ -12,8 +12,8 @@ map[7 := _module.Class0] and map[7 := _module.Class0]
 [_module.Class0, _module.Class0] and [_module.Class0, _module.Class0]
 
 Dafny program verifier did not attempt verification
-RuntimeTypeTests0.dfy(43,9): Error: compilation does not support trait types as a type parameter (got 'object'); consider introducing a ghost
-RuntimeTypeTests0.dfy(52,9): Error: compilation does not support trait types as a type parameter (got 'object'); consider introducing a ghost
+RuntimeTypeTests0.dfy(42,9): Error: compilation does not support trait types as a type parameter (got 'object'); consider introducing a ghost
+RuntimeTypeTests0.dfy(51,9): Error: compilation does not support trait types as a type parameter (got 'object'); consider introducing a ghost
 Wrote textual form of partial target program to RuntimeTypeTests0-java/RuntimeTypeTests0.java
 
 Dafny program verifier did not attempt verification

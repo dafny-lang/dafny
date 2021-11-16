@@ -415,7 +415,7 @@ namespace Microsoft.Dafny {
             var resolved = (MemberSelectExpr)lexpr;
             string target = EmitAssignmentLhs(resolved.Obj, wr);
             var typeArgs = TypeArgumentInstantiation.ListFromMember(resolved.Member, null, resolved.TypeApplication_JustMember);
-            ILvalue newLhs = EmitMemberSelect(w => w.Write(target), resolved.Obj.Type, resolved.Member, typeArgs, resolved.TypeArgumentSubstitutionsWithParents(), resolved.Type);
+            ILvalue newLhs = EmitMemberSelect(w => w.Write(target), resolved.Obj.Type, resolved.Member, typeArgs, resolved.TypeArgumentSubstitutionsWithParents(), resolved.Type, internalAccess: enclosingMethod is Constructor);
             lhssn.Add(newLhs);
           } else if (lexpr is SeqSelectExpr) {
             var seqExpr = (SeqSelectExpr)lexpr;
