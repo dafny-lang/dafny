@@ -18334,27 +18334,38 @@ namespace Microsoft.Dafny {
       } else {
         what = "comprehension";
       }
-      foreach (var boundVar in e.BoundVars) {
-        if (boundVar.Type is UserDefinedType
-          {
-            ResolvedClass: SubsetTypeDecl
+
+      if (what != "comprehension") { // should not apply for functions
+        foreach (var boundVar in e.BoundVars) {
+          if (boundVar.Type is UserDefinedType
             {
-              Constraint: var constraint,
-              ConstraintIsCompilable: false and var constraintIsCompilable
-            } and var subsetTypeDecl
-          }
-        ) {
-          if (!subsetTypeDecl.CheckedIfConstraintIsCompilable) {
-            // Builtin types were never resolved.
-            constraintIsCompilable = ExpressionTester.CheckIsCompilable(null, constraint, new CodeContextWrapper(subsetTypeDecl, true));
-            subsetTypeDecl.CheckedIfConstraintIsCompilable = true;
-            subsetTypeDecl.ConstraintIsCompilable = constraintIsCompilable;
-          }
-          if (!constraintIsCompilable) {
-            // Explicitely report the error
-            this.resolver.getReporter().Error(MessageSource.Resolver, boundVar.tok,
-              boundVar.Type + " is a subset type and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in " + what + ". The next error will explain why the constraint is not compilable.");
-            ExpressionTester.CheckIsCompilable(this.resolver, constraint, new CodeContextWrapper(subsetTypeDecl, true));
+              ResolvedClass: SubsetTypeDecl
+              {
+                Constraint: var constraint,
+                ConstraintIsCompilable: false and var constraintIsCompilable
+              } and var subsetTypeDecl
+            }
+          ) {
+            if (!subsetTypeDecl.CheckedIfConstraintIsCompilable) {
+              // Builtin types were never resolved.
+              constraintIsCompilable =
+                ExpressionTester.CheckIsCompilable(null, constraint, new CodeContextWrapper(subsetTypeDecl, true));
+              subsetTypeDecl.CheckedIfConstraintIsCompilable = true;
+              subsetTypeDecl.ConstraintIsCompilable = constraintIsCompilable;
+            }
+
+            if (!constraintIsCompilable) {
+              // Explicitely report the error
+              var showProvenance = constraint.tok.line != 0;
+              this.resolver.getReporter().Error(MessageSource.Resolver, boundVar.tok,
+                boundVar.Type +
+                " is a subset type and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in " +
+                what + "." +
+                (showProvenance ? " The next error will explain why the constraint is not compilable." : ""));
+              if (showProvenance)
+                ExpressionTester.CheckIsCompilable(this.resolver, constraint,
+                  new CodeContextWrapper(subsetTypeDecl, true));
+            }
           }
         }
       }
