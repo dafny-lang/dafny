@@ -11,7 +11,7 @@
 // RUN: java -cp %binaryDir/DafnyRuntime.jar:%S/CompileRunQuietly-java CompileRunQuietly >> "%t"
 
 // RUN: %dafny /compileTarget:cpp "%s" >> "%t"
-// RUN: ls %S
+// RUN: ls %S 1>&2
 // RUN: %S/CompileRunQuietly.exe >> "%t"
 
  // RUN: %diff "%s.expect" "%t"
