@@ -4774,6 +4774,7 @@ namespace Microsoft.Dafny {
         var thenWriter = EmitIf(out var guardWriter, isReturning, wr);
         TrExpr(constraintInContext, guardWriter, inLetExprBody);
         if (isReturning) {
+          wr = wr.NewBlock("", null, BraceStyle.Nothing);
           wr = EmitReturnExpr(wr);
           TrExpr(new LiteralExpr(e.tok, elseReturnValue), wr, inLetExprBody);
           thenWriter = EmitReturnExpr(thenWriter);
