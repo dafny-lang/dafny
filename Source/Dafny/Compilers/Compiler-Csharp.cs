@@ -360,9 +360,9 @@ namespace Microsoft.Dafny {
       var nonGhostTypeArgs = SelectNonGhost(dt, dt.TypeArgs);
       var DtT_TypeArgs = TypeParameters(nonGhostTypeArgs);
       var DtT_protected = IdName(dt) + DtT_TypeArgs;
-      var IDtT_protected = "I" + dt.CompileName + DtT_TypeArgs;
+      var IDtT_protected = "_I" + dt.CompileName + DtT_TypeArgs;
 
-      var inter = wr.NewNamedBlock($"public interface I{dt.CompileName}{TypeParameters(nonGhostTypeArgs, true)}");
+      var inter = wr.NewNamedBlock($"public interface _I{dt.CompileName}{TypeParameters(nonGhostTypeArgs, true)}");
 
       foreach (var member in dt.Members) {
         if (member.IsGhost) continue;
@@ -582,7 +582,7 @@ namespace Microsoft.Dafny {
         //   public override string ToString() { return _Get().ToString(); }
         // }
         var w = wrx.NewNamedBlock($"public class {dt.CompileName}__Lazy{typeParams} : {IdName(dt)}{typeParams}");
-        var ICompileName = "I" + dt.CompileName;
+        var ICompileName = "_I" + dt.CompileName;
         w.WriteLine($"public {NeedsNew(dt, "Computer")}delegate {ICompileName}{typeParams} Computer();");
         w.WriteLine($"{NeedsNew(dt, "c")}Computer c;");
         w.WriteLine($"{NeedsNew(dt, "d")}{ICompileName}{typeParams} d;");
@@ -654,7 +654,7 @@ namespace Microsoft.Dafny {
 
       if (dt is CoDatatypeDecl) {
         string typeParams = TypeParameters(nonGhostTypeArgs);
-        wr.WriteLine($"public override I{dt.CompileName}{typeParams} _Get() {{ return this; }}");
+        wr.WriteLine($"public override _I{dt.CompileName}{typeParams} _Get() {{ return this; }}");
       }
 
       // Equals method
@@ -2011,9 +2011,9 @@ namespace Microsoft.Dafny {
       bool compileIt = true;
       if ((cl is IndDatatypeDecl || cl is CoDatatypeDecl) && !ignoreInterface && (!Attributes.ContainsBool(cl.Attributes, "compile", ref compileIt) || compileIt) && (member is null || !NeedsCustomReceiver(member))) {
         if (cl.EnclosingModuleDefinition.IsDefaultModule) {
-          return "I" + cl.CompileName;
+          return "_I" + cl.CompileName;
         }
-        return IdProtect(cl.EnclosingModuleDefinition.CompileName) + ".I" + cl.CompileName;
+        return IdProtect(cl.EnclosingModuleDefinition.CompileName) + "._I" + cl.CompileName;
       }
 
       if (cl.EnclosingModuleDefinition.IsDefaultModule) {
