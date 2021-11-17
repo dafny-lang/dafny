@@ -128,7 +128,7 @@ One caveat is that they always need braces around the
 branches, even if the branch only contains a single statement (compound or
 otherwise). Here the `if` statement checks whether `x` is less than
 zero, using the familiar comparison operator syntax, and returns the absolute value as
-appropriate. (Other comparison operators are `<=`, `>`, `<=`, `!=`
+appropriate. (Other comparison operators are `<=`, `>`, `>=`, `!=`
 and `==`, with the expected meaning. See the reference
 for more on operators.)
 
