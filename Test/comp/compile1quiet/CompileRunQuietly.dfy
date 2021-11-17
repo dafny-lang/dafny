@@ -7,11 +7,11 @@
 // RUN: %dafny /compileTarget:go /out:%S/CompileRunQuietly "%s" >> "%t"
 // RUN: %S/CompileRunQuietly >> "%t"
 
-// RUN: %dafny /compileTarget:java /out:%S/CompileRunQuietly-java "%s" >> "%t"
+// RUN: %dafny /compileTarget:java /out:%S/CompileRunQuietly "%s" >> "%t"
 // RUN: java -cp %binaryDir/DafnyRuntime.jar:%S/CompileRunQuietly-java CompileRunQuietly >> "%t"
 
 // RUN: %dafny /compileTarget:cpp "%s" >> "%t"
-// RUN: CompileRunQuietly.exe >> "%t"
+// RUN: %S/CompileRunQuietly.exe >> "%t"
 
 // RUN: %diff "%s.expect" "%t"
 
