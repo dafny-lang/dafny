@@ -2407,7 +2407,7 @@ namespace Microsoft.Dafny {
     public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string targetFilename, ReadOnlyCollection<string> otherFileNames,
       object compilationResult, TextWriter outputWriter) {
       var exeName = ComputeExeName(targetFilename);
-      var psi = new ProcessStartInfo(exeName) {
+      var psi = new ProcessStartInfo($"{Path.GetDirectoryName(Path.GetFullPath(targetFilename))}/{exeName}") {
         CreateNoWindow = true,
         UseShellExecute = false,
         RedirectStandardOutput = true,
