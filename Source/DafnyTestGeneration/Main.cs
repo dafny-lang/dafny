@@ -111,9 +111,9 @@ namespace DafnyTestGeneration {
         yield break;
       }
       var dafnyInfo = new DafnyInfo(program);
-      var rawName = sourceFile.Split("/").Last().Split(".").First();
+      var rawName = sourceFile.Split(new[] { '/', '\\' }).Last().Split(".").First();
 
-      yield return $"include \"{sourceFile}\"";
+      yield return $"include \"{sourceFile.Replace("\\", "\\\\")}\"";
       yield return $"module {rawName}UnitTests {{";
       foreach (var module in dafnyInfo.ToImport) {
         yield return $"import {module}";
