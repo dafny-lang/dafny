@@ -2381,7 +2381,7 @@ namespace Microsoft.Dafny {
       if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
         warnings += " -Wno-unused-but-set-variable";
       }
-      var args = warnings + $" -g -std=c++17 -I {codebase} -o {exeName} {targetFilename}";
+      var args = warnings + $" -g -std=c++17 -I {codebase} -o {Path.GetDirectoryName(Path.GetFullPath(targetFilename))}/{exeName} {targetFilename}";
       compilationResult = null;
       var psi = new ProcessStartInfo("g++", args) {
         CreateNoWindow = true,
