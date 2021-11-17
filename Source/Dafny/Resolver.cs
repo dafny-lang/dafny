@@ -10019,7 +10019,7 @@ namespace Microsoft.Dafny {
         foreach (TypeParameter p in f.TypeArgs) {
           if (p.SupportsEquality) {
             reporter.Warning(MessageSource.Resolver, p.tok,
-              $"type parameter {p.Name} of ghost {f.WhatKind} {f.Name} is declared (==), which is unnecessary because the {f.WhatKind} doesn’t contain any compiled code");
+              $"type parameter {p.Name} of ghost {f.WhatKind} {f.Name} is declared (==), which is unnecessary because the {f.WhatKind} doesn't contain any compiled code");
           }
         }
       }
@@ -10180,7 +10180,7 @@ namespace Microsoft.Dafny {
           foreach (TypeParameter p in m.TypeArgs) {
             if (p.SupportsEquality) {
               reporter.Warning(MessageSource.Resolver, p.tok,
-                $"type parameter {p.Name} of ghost {m.WhatKind} {m.Name} is declared (==), which is unnecessary because the {m.WhatKind} doesn’t contain any compiled code");
+                $"type parameter {p.Name} of ghost {m.WhatKind} {m.Name} is declared (==), which is unnecessary because the {m.WhatKind} doesn't contain any compiled code");
             }
           }
         }
