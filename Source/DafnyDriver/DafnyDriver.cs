@@ -601,7 +601,7 @@ namespace Microsoft.Dafny {
       private Func<string, string> DeleteDot = p => p == "." ? "" : p;
       public string RelativeDirectory => DeleteDot(Path.GetRelativePath(Directory, Path.GetDirectoryName(Filename)));
       public string RelativeFilename => DeleteDot(Path.GetRelativePath(Directory, Filename));
-      public string SourceDirectory => DeleteDot(Path.GetDirectoryName(Filename));
+      public string SourceDirectory => Path.GetDirectoryName(Filename);
     }
 
     private static TargetPaths GenerateLocations(Compiler compiler, string dafnyProgramName) {
