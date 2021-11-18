@@ -656,6 +656,7 @@ namespace Microsoft.Dafny {
 
       WriteFile(paths.Filename, targetProgramText, callToMain);
 
+      var relativeTarget = paths.RelativeFilename;
       if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
         // To satisfy the tests that assume a '/' instead of a '\'
         relativeTarget = relativeTarget.Replace('\\', '/');
@@ -664,9 +665,9 @@ namespace Microsoft.Dafny {
         // Something went wrong during compilation (e.g., the compiler may have found an "assume" statement).
         // As a courtesy, we're still printing the text of the generated target program. We print a message regardless
         // of the CompileVerbose settings.
-        outputWriter.WriteLine("Wrote textual form of partial target program to {0}", paths.RelativeFilename);
+        outputWriter.WriteLine("Wrote textual form of partial target program to {0}", relativeTarget);
       } else if (DafnyOptions.O.CompileVerbose) {
-        outputWriter.WriteLine("Wrote textual form of target program to {0}", paths.RelativeFilename);
+        outputWriter.WriteLine("Wrote textual form of target program to {0}", relativeTarget);
       }
 
       foreach (var entry in otherFiles) {
