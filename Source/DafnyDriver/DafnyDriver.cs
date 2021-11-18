@@ -660,7 +660,7 @@ namespace Microsoft.Dafny {
         var filename = entry.Key;
         WriteFile(Path.Combine(targetDir, filename), entry.Value);
         if (DafnyOptions.O.CompileVerbose) {
-          outputWriter.WriteLine("Additional target code written to {0}", Path.Combine(targetBaseDir, filename));
+          outputWriter.WriteLine("Additional target code written to {0}", Path.Combine(targetBaseDir, filename).Replace("\\", "/"));
         }
       }
 
