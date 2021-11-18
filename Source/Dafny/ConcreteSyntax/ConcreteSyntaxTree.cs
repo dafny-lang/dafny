@@ -6,10 +6,14 @@ using System.Linq;
 using JetBrains.Annotations;
 
 namespace Microsoft.Dafny {
-  public enum BraceStyle { Nothing, Space, Newline }
+  public enum BraceStyle {
+    Nothing,
+    Space,
+    Newline,
+    Pindent
+  }
 
   public class ConcreteSyntaxTree : ICanRender {
-
     public ConcreteSyntaxTree(int relativeIndent = 0) {
       RelativeIndentLevel = relativeIndent;
     }
@@ -73,21 +77,21 @@ namespace Microsoft.Dafny {
     }
 
     static string anchorUUID = "20e34a49-f40b-4547-ba7a-3a1955826af2";
+
     public ConcreteSyntaxTree Format(FormattableString input) {
       var anchorValues = new List<ConcreteSyntaxTree>();
       // Because template strings are difficult to process, we use the existing string.Format to do the processing
       // and we insert anchors to identify where the ConcreteSyntaxTree values are.
       // Template string processing logic can be found here: https://github.com/dotnet/runtime/blob/ae5ee8f02d6fc99469e1f194be45b5f649c2da1a/src/libraries/System.Private.CoreLib/src/System/Text/ValueStringBuilder.AppendFormat.cs#L60
-      var formatArguments = Enumerable.Range(0, input.ArgumentCount).
-        Select(index => {
-          object argument = input.GetArgument(index)!;
-          if (argument is ConcreteSyntaxTree treeArg) {
-            anchorValues.Add(treeArg);
-            return $"{anchorUUID}{anchorValues.Count - 1}";
-          }
+      var formatArguments = Enumerable.Range(0, input.ArgumentCount).Select(index => {
+        object argument = input.GetArgument(index)!;
+        if (argument is ConcreteSyntaxTree treeArg) {
+          anchorValues.Add(treeArg);
+          return $"{anchorUUID}{anchorValues.Count - 1}";
+        }
 
-          return argument;
-        }).ToArray();
+        return argument;
+      }).ToArray();
 
       var anchorString = string.Format(input.Format, formatArguments);
       for (int argIndex = 0; argIndex < anchorValues.Count; argIndex++) {
@@ -96,6 +100,7 @@ namespace Microsoft.Dafny {
         Write(split[0]);
         Append(anchorValues[argIndex]);
       }
+
       if (anchorString != "") {
         Write(anchorString);
       }
@@ -122,7 +127,8 @@ namespace Microsoft.Dafny {
       BraceStyle open = BraceStyle.Space,
       BraceStyle close = BraceStyle.Newline) {
       Contract.Requires(header != null);
-      Append(ConcreteSyntaxTreeUtils.Block(out ConcreteSyntaxTree result, header, footer, open, close));
+      Append(ConcreteSyntaxTreeUtils.Block(out ConcreteSyntaxTree result, header: header, footer: footer, open: open,
+        close: close));
       return result;
     }
 
@@ -138,7 +144,7 @@ namespace Microsoft.Dafny {
       return NewBigExprBlock(string.Format(headerFormat, headerArgs), null);
     }
 
-    public ConcreteSyntaxTree NewBigExprBlock(string header = "", string/*?*/ footer = "") {
+    public ConcreteSyntaxTree NewBigExprBlock(string header = "", string /*?*/ footer = "") {
       return NewBlock(header, footer, BraceStyle.Space, BraceStyle.Nothing);
     }
 
@@ -159,6 +165,7 @@ namespace Microsoft.Dafny {
         sw.WriteLine("#file {0}", ftw.Filename);
         ftw.Render(sw, 0, new WriterState(), files);
       }
+
       return sw.ToString();
     }
 
