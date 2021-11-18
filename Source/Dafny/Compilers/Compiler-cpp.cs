@@ -2364,7 +2364,7 @@ namespace Microsoft.Dafny {
 
     // ----- Target compilation and execution -------------------------------------------------------------
     private string ComputeExeName(string targetFilename) {
-      return Path.GetFileNameWithoutExtension(targetFilename) + ".exe";
+      return Path.ChangeExtension(Path.GetFullPath(targetFilename), "exe");
     }
 
     public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
@@ -2373,7 +2373,6 @@ namespace Microsoft.Dafny {
       Contract.Assert(assemblyLocation != null);
       var codebase = System.IO.Path.GetDirectoryName(assemblyLocation);
       Contract.Assert(codebase != null);
-      var exeName = ComputeExeName(targetFilename);
       var warnings = "-Wall -Wextra -Wpedantic -Wno-unused-variable -Wno-deprecated-copy";
       if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
         warnings += " -Wno-unknown-warning-option";
@@ -2381,7 +2380,7 @@ namespace Microsoft.Dafny {
       if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
         warnings += " -Wno-unused-but-set-variable";
       }
-      var args = warnings + $" -g -std=c++17 -I {codebase} -o {exeName} {targetFilename}";
+      var args = warnings + $" -g -std=c++17 -I {codebase} -o {ComputeExeName(targetFilename)} {targetFilename}";
       compilationResult = null;
       var psi = new ProcessStartInfo("g++", args) {
         CreateNoWindow = true,
@@ -2406,8 +2405,7 @@ namespace Microsoft.Dafny {
 
     public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string targetFilename, ReadOnlyCollection<string> otherFileNames,
       object compilationResult, TextWriter outputWriter) {
-      var exeName = ComputeExeName(targetFilename);
-      var psi = new ProcessStartInfo(exeName) {
+      var psi = new ProcessStartInfo(ComputeExeName(targetFilename)) {
         CreateNoWindow = true,
         UseShellExecute = false,
         RedirectStandardOutput = true,
