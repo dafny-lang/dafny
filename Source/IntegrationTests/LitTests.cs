@@ -78,6 +78,19 @@ namespace IntegrationTests {
         features = new[] { "ubuntu", "posix" };
       } else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
         features = new[] { "windows" };
+        // Uncomment the following if it is needed for new tests.
+        //string path = System.Reflection.Assembly.GetExecutingAssembly().Location;
+        //var directory = System.IO.Path.GetDirectoryName(path);
+        //Environment.SetEnvironmentVariable("DOTNET_CLI_HOME", directory);
+        //if (directory != null) Directory.SetCurrentDirectory(directory);
+        /*Environment.SetEnvironmentVariable("HOME",
+          Environment.GetEnvironmentVariable(("HOMEDRIVE")) + Environment.GetEnvironmentVariable(("HOMEPATH")));
+        */
+        passthroughEnvironmentVariables = passthroughEnvironmentVariables
+           .Concat(new[] {
+             //"DOTNET_CLI_HOME",
+             "APPDATA", "ProgramFiles", "ProgramFiles(x86)", "SystemRoot", "USERPROFILE"
+           }).ToArray();
       } else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
         features = new[] { "macosx", "posix" };
       } else {
