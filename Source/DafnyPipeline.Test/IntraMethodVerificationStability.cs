@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -8,7 +7,6 @@ using Xunit;
 using Xunit.Abstractions;
 using BoogieProgram = Microsoft.Boogie.Program;
 using Parser = Microsoft.Dafny.Parser;
-using Type = System.Type;
 
 namespace DafnyPipeline.Test {
   // Main.Resolve has static shared state (TypeConstraint.ErrorsToBeReported for example)
@@ -154,7 +152,7 @@ method SomeMethod2(methodFormal: int) returns (result: bool)
       testOutputHelper.WriteLine("proverLog: " + temp1);
       CommandLineOptions.Clo.ProverLogFilePath = temp1;
       foreach (var boogieProgram in boogiePrograms) {
-        Main.BoogieOnce("", "", boogieProgram, "programId", out var stats, out var outcome);
+        Main.BoogieOnce("", "", boogieProgram, "programId", out _, out var outcome);
         testOutputHelper.WriteLine("outcome: " + outcome);
         foreach (var proverFile in Directory.GetFiles(directory)) {
           yield return File.ReadAllText(proverFile);
@@ -188,13 +186,7 @@ method SomeMethod2(methodFormal: int) returns (result: bool)
       var dafnyProgram = new Microsoft.Dafny.Program(fullFilePath, module, builtIns, errorReporter);
       Main.Resolve(dafnyProgram, errorReporter);
       Assert.Equal(0, errorReporter.ErrorCount);
-      var boogiePrograms = Translator.Translate(dafnyProgram, errorReporter).Select(t => t.Item2).ToList();
-      var programTexts = boogiePrograms.Select(b => {
-        var stringWriter = new StringWriter();
-        b.Emit(new TokenTextWriter(stringWriter));
-        return stringWriter.ToString();
-      }).ToList();
-      return boogiePrograms;
+      return Translator.Translate(dafnyProgram, errorReporter).Select(t => t.Item2).ToList();
     }
   }
 
