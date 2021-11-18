@@ -44,6 +44,8 @@ namespace XUnitExtensions.Lit {
       string fullDirectoryPath = Path.GetFullPath(directory);
       config = config.WithSubstitutions(new Dictionary<string, string> {
         {"%s", filePath},
+        // For class path separators
+        {".jar:%S", ".jar" + Path.PathSeparator + fullDirectoryPath},
         {"%S", fullDirectoryPath},
         {"%t", Path.Join(fullDirectoryPath, "Output", $"{fileName}.tmp")}
       });
@@ -68,7 +70,8 @@ namespace XUnitExtensions.Lit {
         string output;
         string error;
         try {
-          outputHelper.WriteLine($"Executing command: {command}");
+          var commandStr = $"{command}";
+          outputHelper.WriteLine($"Executing command: {commandStr}");
           (exitCode, output, error) = command.Execute(outputHelper, null, null, null);
         } catch (Exception e) {
           throw new Exception($"Exception thrown while executing command: {command}", e);
