@@ -1,5 +1,5 @@
 // RUN: %dafny /compileVerbose:1 /compileTarget:cs "%s" > "%t"
-// RUN: dotnet CompileAndThenRun.dll >> "%t"
+// RUN: dotnet %S/CompileAndThenRun.dll >> "%t"
 
 // RUN: %dafny /compileVerbose:1 /compileTarget:js "%s" >> "%t"
 // RUN: node %S/CompileAndThenRun.js >> "%t"
