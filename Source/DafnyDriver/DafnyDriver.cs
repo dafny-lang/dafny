@@ -604,7 +604,7 @@ namespace Microsoft.Dafny {
       public string SourceDirectory => Path.GetDirectoryName(Filename);
     }
 
-    private static TargetPaths GenerateLocations(Compiler compiler, string dafnyProgramName) {
+    private static TargetPaths GenerateTargetPaths(Compiler compiler, string dafnyProgramName) {
       string targetExtension;
       string baseName = Path.GetFileNameWithoutExtension(dafnyProgramName);
       string targetBaseDir = "";
@@ -761,7 +761,7 @@ namespace Microsoft.Dafny {
       compiler.Coverage.WriteLegendFile();
 
       // blurt out the code to a file, if requested, or if other target-language files were specified on the command line.
-      var paths = GenerateLocations(compiler, dafnyProgramName);
+      var paths = GenerateTargetPaths(compiler, dafnyProgramName);
       if (DafnyOptions.O.SpillTargetCode > 0 || otherFileNames.Count > 0 || (invokeCompiler && !compiler.SupportsInMemoryCompilation) ||
           (invokeCompiler && compiler.TextualTargetIsExecutable && !DafnyOptions.O.RunAfterCompile)) {
         WriteDafnyProgramToFiles(paths, targetProgramHasErrors, targetProgramText, callToMain, otherFiles, outputWriter);
