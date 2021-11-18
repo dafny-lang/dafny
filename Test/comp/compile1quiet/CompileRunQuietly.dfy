@@ -1,5 +1,5 @@
 // RUN: %dafny /compileTarget:cs "%s" > "%t"
-// RUN: dotnet CompileRunQuietly.dll >> "%t"
+// RUN: dotnet %S/CompileRunQuietly.dll >> "%t"
 
 // RUN: %dafny /compileTarget:js "%s" >> "%t"
 // RUN: node %S/CompileRunQuietly.js >> "%t"
