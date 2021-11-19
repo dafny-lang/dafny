@@ -321,30 +321,48 @@ namespace Microsoft.Dafny {
       Contract.Requires(dt != null);
       Contract.Requires(wr != null);
 
-      // public abstract class Dt<T> {  // for record types: drop "abstract"
+      // public interface _IDt<T> { // T has variance modifier
+      //   _IDt<T> _Get();  // for co-datatypes
+      //
+      //   bool is_Ctor0 { get; }
+      //   ...
+      //
+      //   T0 dtor_Dtor0 { get; }
+      //   ...
+      //
+      //   // Members that don't violate C# variance restrictions
+      // }
+      //
+      // public abstract class Dt<T> : _IDt<T> {  // for record types: drop "abstract"
       //   public Dt() { }
       //   #if TypeArgs.Count == 0
-      //     private static Dt<T> theDefault = ...;
-      //     public static Dt<T> Default(values...) {
+      //     private static _IDt<T> theDefault = ...;
+      //     public static _IDt<T> Default() {
       //       return theDefault;
       //     }
       //   #else
-      //     public static Dt<T> Default(values...) {
+      //     public static _IDt<T> Default(values...) {
       //       return ...;
       //     }
       //   #endif
-      //   public static TypeDescriptor<Dt<T>> _TypeDescriptor(typeDescriptors...) {
-      //     return new TypeDescriptor<Dt<T>>(Default(typeDescriptors...));
+      //   public static TypeDescriptor<_IDt<T>> _TypeDescriptor(typeDescriptors...) {
+      //     return new TypeDescriptor<_IDt<T>>(Default(typeDescriptors...));
       //   }
-      //   public abstract Dt<T> _Get();  // for co-datatypes
+      //   public abstract _IDt<T> _Get();  // for co-datatypes
       //
-      //   public static create_Ctor0(field0, field1, ...) {  // for record types: create
-      //     return new Dt_Ctor0(field0, field1, ...);        // for record types: new Dt
+      //   public static _IDt<T> create_Ctor0(field0, field1, ...) {  // for record types: create
+      //     return new Dt_Ctor0(field0, field1, ...);                // for record types: new Dt
       //   }
       //   ...
       //
       //   public bool is_Ctor0 { get { return this is Dt_Ctor0; } }  // for record types: return true
       //   ...
+      //
+      //   // if the datatype HasFinitePossibleValues
+      //   public static System.Collections.Generic.IEnumerable<_IDt<T>> AllSingletonConstructors { get {
+      //     yield return _IDt<T>.create_Ctor0();
+      //     ...
+      //   }}
       //
       //   public T0 dtor_Dtor0 { get {
       //       var d = this;         // for inductive datatypes
@@ -362,18 +380,8 @@ namespace Microsoft.Dafny {
       var DtT_protected = IdName(dt) + DtT_TypeArgs;
       var IDtT_protected = "_I" + dt.CompileName + DtT_TypeArgs;
 
+      // ContreteSyntaxTree for the interface
       var inter = wr.NewNamedBlock($"public interface _I{dt.CompileName}{TypeParameters(nonGhostTypeArgs, true)}");
-
-      foreach (var member in dt.Members) {
-        if (member.IsGhost || member.IsStatic) continue;
-        if (member is Function fn && !NeedsCustomReceiver(member)) {
-          CreateFunction(IdName(fn), CombineAllTypeArguments(fn), fn.Formals, fn.ResultType, fn.tok, fn.IsStatic, false, fn, inter, false, false);
-        } else if (member is Method m && !NeedsCustomReceiver(member)) {
-          CreateMethod(m, CombineAllTypeArguments(m), false, inter, false, false);
-        } else if (member is ConstantField c) {
-          CreateFunctionOrGetter(c, IdName(c), dt, false, false, false, new ClassWriter(this, inter, null));
-        }
-      }
 
       // from here on, write everything into the new block created here:
       var btw = wr.NewNamedBlock("public{0} class {1} : {2}", dt.IsRecordType ? "" : " abstract", DtT_protected, IDtT_protected);
@@ -504,6 +512,17 @@ namespace Microsoft.Dafny {
         }
       }
 
+      foreach (var member in dt.Members) {
+        if (member.IsGhost || member.IsStatic) continue;
+        if (member is Function fn && !NeedsCustomReceiver(member)) {
+          CreateFunction(IdName(fn), CombineAllTypeArguments(fn), fn.Formals, fn.ResultType, fn.tok, fn.IsStatic, false, fn, inter, false, false);
+        } else if (member is Method m && !NeedsCustomReceiver(member)) {
+          CreateMethod(m, CombineAllTypeArguments(m), false, inter, false, false);
+        } else if (member is ConstantField c) {
+          CreateFunctionOrGetter(c, IdName(c), dt, false, false, false, new ClassWriter(this, inter, null));
+        }
+      }
+
       return new ClassWriter(this, btw, null);
     }
 
@@ -522,6 +541,7 @@ namespace Microsoft.Dafny {
       if (!member.IsStatic && member.EnclosingClass is NewtypeDecl) {
         return true;
       }
+      //Dafny and C# have different ideas about variance, so not every member can be in the interface
       if (!member.IsStatic && member.EnclosingClass is IndDatatypeDecl d) {
         if (member is Function f) {
           foreach (var tp in d.TypeArgs) {
@@ -556,11 +576,11 @@ namespace Microsoft.Dafny {
       string typeParams = TypeParameters(nonGhostTypeArgs);
       if (dt is CoDatatypeDecl) {
         // public class Dt__Lazy<T> : Dt<T> {
-        //   public delegate Dt<T> Computer();
+        //   public delegate _IDt<T> Computer();
         //   Computer c;
-        //   Dt<T> d;
+        //   _IDt<T> d;
         //   public Dt__Lazy(Computer c) { this.c = c; }
-        //   public override Dt<T> _Get() { if (c != null) { d = c(); c = null; } return d; }
+        //   public override _IDt<T> _Get() { if (c != null) { d = c(); c = null; } return d; }
         //   public override string ToString() { return _Get().ToString(); }
         // }
         var w = wrx.NewNamedBlock($"public class {dt.CompileName}__Lazy{typeParams} : {IdName(dt)}{typeParams}");
@@ -1281,7 +1301,7 @@ namespace Microsoft.Dafny {
       return s;
     }
 
-    protected override string TypeName_Companion(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok, MemberDecl /*?*/ member) {
+    protected override string TypeName_Companion(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok, MemberDecl/*?*/ member) {
       type = UserDefinedType.UpcastToMemberEnclosingType(type, member);
       if (type is UserDefinedType udt) {
         var name = udt.ResolvedClass is TraitDecl ? udt.FullCompanionCompileName : FullTypeName(udt, member, true);
@@ -1986,6 +2006,7 @@ namespace Microsoft.Dafny {
         return IdProtect(udt.CompileName);
       }
 
+      //Use the interface if applicable (not handwritten, or incompatible variance)
       bool compileIt = true;
       if ((cl is IndDatatypeDecl || cl is CoDatatypeDecl)
           && !ignoreInterface
