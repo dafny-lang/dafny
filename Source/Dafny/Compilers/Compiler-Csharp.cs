@@ -365,34 +365,15 @@ namespace Microsoft.Dafny {
       var inter = wr.NewNamedBlock($"public interface _I{dt.CompileName}{TypeParameters(nonGhostTypeArgs, true)}");
 
       foreach (var member in dt.Members) {
-        if (member.IsGhost) continue;
-        if (member is Function fn && !NeedsCustomReceiver(member) && !fn.IsStatic) {
-          // var free = fn.ResultType.TypeArgs.Where(e => e.IsTypeParameter && !dt.TypeArgs.Contains(e.AsTypeParameter)).ToList();
-          // var name = TypeName_UDT(IdName(fn), free.ConvertAll(tp => tp.AsTypeParameter.Variance), free, inter, fn.tok);
-          // inter.Write($"{TypeName(fn.ResultType, inter, fn.tok)} {name}(");
-          // WriteFormals("", fn.Formals, inter);
-          // inter.WriteLine(");");
-          CreateFunction(IdName(fn), CombineAllTypeArguments(fn), fn.Formals, fn.ResultType, fn.tok, fn.IsStatic, false,
-            fn, inter, false, false);
-        } else if (member is Method m && !NeedsCustomReceiver(member) && !m.IsStatic) {
-          // var free = m.Outs.Where(e => e.IsTypeParameter && !dt.TypeArgs.Contains(e.AsTypeParameter)).ToList();
-          // var name = TypeName_UDT(IdName(fn), free.ConvertAll(tp => tp.AsTypeParameter.Variance), free, inter, fn.tok);
-          // inter.Write($"{TypeName(fn.ResultType, inter, fn.tok)} {name}(");
-          // WriteFormals("", fn.Formals, inter);
+        if (member.IsGhost || member.IsStatic) continue;
+        if (member is Function fn && !NeedsCustomReceiver(member)) {
+          CreateFunction(IdName(fn), CombineAllTypeArguments(fn), fn.Formals, fn.ResultType, fn.tok, fn.IsStatic, false, fn, inter, false, false);
+        } else if (member is Method m && !NeedsCustomReceiver(member)) {
           CreateMethod(m, CombineAllTypeArguments(m), false, inter, false, false);
-          // inter.WriteLine(");");
-        } else if (member is ConstantField c && !c.IsStatic) {
-          // var typeArgs = CombineAllTypeArguments(c);
-          // var lookasideBody = false;
-          // var typeParameters = TypeParameters(TypeArgumentInstantiation.ToFormals(ForTypeParameters(typeArgs, member, lookasideBody)));
-          // var parameters = GetFunctionParameters(c.Ins, c, typeArgs, lookasideBody, false);
-          // inter.WriteLine($"{TypeName(c.Type, inter, c.Tok)} {IdName(c)}{typeParameters}({parameters});");
-          // CreateGetter
+        } else if (member is ConstantField c) {
           CreateFunctionOrGetter(c, IdName(c), dt, false, false, false, new ClassWriter(this, inter, null));
         }
       }
-      // inter.WriteLine("Hi!");
-
 
       // from here on, write everything into the new block created here:
       var btw = wr.NewNamedBlock("public{0} class {1} : {2}", dt.IsRecordType ? "" : " abstract", DtT_protected, IDtT_protected);
@@ -424,7 +405,7 @@ namespace Microsoft.Dafny {
         wCo.Format($"new {dt.CompileName}__Lazy{DtT_TypeArgs}(() => {{ return {wDefault}; }})");
       }
 
-      wDefault.Write($"{DtT_protected}.{DtCreateName(groundingCtor)}");
+      wDefault.Write(DtCreateName(groundingCtor));
       var nonGhostFormals = groundingCtor.Formals.Where(f => !f.IsGhost);
       wDefault.Write($"({nonGhostFormals.Comma(f => DefaultValue(f.Type, wDefault, f.tok))})");
 
@@ -449,12 +430,14 @@ namespace Microsoft.Dafny {
         // omit the is_ property for tuples, since it cannot be used syntactically in the language
       } else {
         foreach (var ctor in dt.Ctors) {
+          // bool is_Ctor0 { get; }
+          inter.WriteLine($"bool is_{ctor.CompileName} {{ get; }}");
+
           var returnValue = dt.IsRecordType
             // public bool is_Ctor0 { get { return true; } }
             ? "true"
             // public bool is_Ctor0 { get { return this is Dt_Ctor0; } }
             : $"this is {dt.CompileName}_{ctor.CompileName}{DtT_TypeArgs}";
-          inter.WriteLine($"bool is_{ctor.CompileName} {{ get; }}");
           wr.WriteLine($"public bool is_{ctor.CompileName} {{ get {{ return {returnValue}; }} }}");
         }
       }
@@ -476,7 +459,7 @@ namespace Microsoft.Dafny {
           if (dtor.EnclosingCtors[0] == ctor) {
             var arg = dtor.CorrespondingFormals[0];
             if (!arg.IsGhost && arg.HasName) {
-              //populate interface
+              //   T0 dtor_Dtor0 { get; }
               inter.WriteLine($"{TypeName(arg.Type, wr, arg.tok)} dtor_{arg.CompileName} {{ get; }}");
 
               //   public T0 dtor_Dtor0 { get {
@@ -541,7 +524,6 @@ namespace Microsoft.Dafny {
       }
       if (!member.IsStatic && member.EnclosingClass is IndDatatypeDecl d) {
         if (member is Function f) {
-          // return true;
           foreach (var tp in d.TypeArgs) {
             switch (tp.Variance) {
               //Can only be in output
@@ -1139,8 +1121,7 @@ namespace Microsoft.Dafny {
             return TypeName(instantiatedTypeParameter, wr, tok, member);
           }
         }
-        // FullTypeName_I
-        var s = FullTypeName(udt, member); //Regex.Replace("", @"(\.)(?!.*\1)", ".I");
+        var s = FullTypeName(udt, member);
         var cl = udt.ResolvedClass;
         bool isHandle = true;
         if (cl != null && Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
@@ -1276,7 +1257,7 @@ namespace Microsoft.Dafny {
           return $"({TypeName(xType, wr, udt.tok)})null";
         }
       } else if (cl is DatatypeDecl dt) {
-        var s = FullTypeName_I(udt, ignoreInterface: true);
+        var s = FullTypeName(udt, ignoreInterface: true);
         var nonGhostTypeArgs = SelectNonGhost(dt, udt.TypeArgs);
         if (nonGhostTypeArgs.Count != 0) {
           s += "<" + TypeNames(nonGhostTypeArgs, wr, udt.tok) + ">";
@@ -1300,14 +1281,11 @@ namespace Microsoft.Dafny {
       return s;
     }
 
-    protected override string TypeName_Companion(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok,
-      MemberDecl /*?*/ member) {
+    protected override string TypeName_Companion(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok, MemberDecl /*?*/ member) {
       type = UserDefinedType.UpcastToMemberEnclosingType(type, member);
       if (type is UserDefinedType udt) {
-        if (udt.ResolvedClass is TraitDecl) {
-          return TypeName_UDT(udt.FullCompanionCompileName, udt, wr, tok);
-        }
-        return TypeName_UDT(FullTypeName_I(udt, member, true), udt, wr, tok);
+        var name = udt.ResolvedClass is TraitDecl ? udt.FullCompanionCompileName : FullTypeName(udt, member, true);
+        return TypeName_UDT(name, udt, wr, tok);
       } else {
         return TypeName(type, wr, tok, member);
       }
@@ -1390,7 +1368,7 @@ namespace Microsoft.Dafny {
           }
         }
 
-        return AddTypeDescriptorArgs(FullTypeName_I(udt, ignoreInterface: true), udt, relevantTypeArgs, wr, tok);
+        return AddTypeDescriptorArgs(FullTypeName(udt, ignoreInterface: true), udt, relevantTypeArgs, wr, tok);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();
       }
@@ -1993,9 +1971,9 @@ namespace Microsoft.Dafny {
     }
 
     protected override string FullTypeName(UserDefinedType udt, MemberDecl /*?*/ member = null) {
-      return FullTypeName_I(udt, member);
+      return FullTypeName(udt, member);
     }
-    private string FullTypeName_I(UserDefinedType udt, MemberDecl/*?*/ member = null, bool ignoreInterface = false) {
+    private string FullTypeName(UserDefinedType udt, MemberDecl/*?*/ member = null, bool ignoreInterface = false) {
       Contract.Assume(udt != null);  // precondition; this ought to be declared as a Requires in the superclass
       if (udt is ArrowType) {
         return ArrowType.Arrow_FullCompileName;
@@ -2009,11 +1987,12 @@ namespace Microsoft.Dafny {
       }
 
       bool compileIt = true;
-      if ((cl is IndDatatypeDecl || cl is CoDatatypeDecl) && !ignoreInterface && (!Attributes.ContainsBool(cl.Attributes, "compile", ref compileIt) || compileIt) && (member is null || !NeedsCustomReceiver(member))) {
-        if (cl.EnclosingModuleDefinition.IsDefaultModule) {
-          return "_I" + cl.CompileName;
-        }
-        return IdProtect(cl.EnclosingModuleDefinition.CompileName) + "._I" + cl.CompileName;
+      if ((cl is IndDatatypeDecl || cl is CoDatatypeDecl)
+          && !ignoreInterface
+          && (!Attributes.ContainsBool(cl.Attributes, "compile", ref compileIt) || compileIt)
+          && (member is null || !NeedsCustomReceiver(member))) {
+        var prefix = cl.EnclosingModuleDefinition.IsDefaultModule ? "" : IdProtect(cl.EnclosingModuleDefinition.CompileName) + ".";
+        return prefix + "_I" + cl.CompileName;
       }
 
       if (cl.EnclosingModuleDefinition.IsDefaultModule) {
@@ -2023,7 +2002,6 @@ namespace Microsoft.Dafny {
       if (cl.IsExtern(out _, out _)) {
         return cl.EnclosingModuleDefinition.CompileName + "." + cl.CompileName;
       }
-
       return IdProtect(cl.EnclosingModuleDefinition.CompileName) + "." + IdProtect(cl.CompileName);
     }
 
@@ -2033,19 +2011,15 @@ namespace Microsoft.Dafny {
         enclosingFunction != null && enclosingFunction.IsTailRecursive ||
         enclosingFunction != null && NeedsCustomReceiver(enclosingFunction) ||
         thisContext is NewtypeDecl ||
-        thisContext is TraitDecl
-        ;
+        thisContext is TraitDecl;
       wr.Write(custom ? "_this" : "this");
     }
 
     protected override void EmitDatatypeValue(DatatypeValue dtv, string arguments, ConcreteSyntaxTree wr) {
       var dt = dtv.Ctor.EnclosingDatatype;
-      bool compileIt = true;
-      bool defined = Attributes.ContainsBool(dt.Attributes, "compile", ref compileIt);
-      var dtName =
-          (dt.EnclosingModuleDefinition.IsDefaultModule ? "" : IdProtect(dt.EnclosingModuleDefinition.CompileName) + ".")
-        + ((!defined || compileIt) ? "" : "")
-        + IdProtect(dt.CompileName);
+      var dtName = "";
+      if (!dt.EnclosingModuleDefinition.IsDefaultModule) dtName += IdProtect(dt.EnclosingModuleDefinition.CompileName) + ".";
+      dtName += IdProtect(dt.CompileName);
 
       var nonGhostInferredTypeArgs = SelectNonGhost(dt, dtv.InferredTypeArgs);
       var typeParams = nonGhostInferredTypeArgs.Count == 0 ? "" : $"<{TypeNames(nonGhostInferredTypeArgs, wr, dtv.tok)}>";
