@@ -84,10 +84,11 @@ namespace IntegrationTests {
         Environment.SetEnvironmentVariable("DOTNET_CLI_HOME", directory);
         if (directory != null) Directory.SetCurrentDirectory(directory);
         Environment.SetEnvironmentVariable("HOME",
-          Environment.GetEnvironmentVariable(("HOMEDRIVE")) + Environment.GetEnvironmentVariable(("HOMEPATH")));
+          Environment.GetEnvironmentVariable("HOMEDRIVE") + Environment.GetEnvironmentVariable("HOMEPATH"));
         passthroughEnvironmentVariables = passthroughEnvironmentVariables
            .Concat(new[] {
              "DOTNET_CLI_HOME",
+             "HOMEDRIVE", "HOMEPATH",
              "APPDATA", "ProgramFiles", "ProgramFiles(x86)", "SystemRoot", "USERPROFILE"
            }).ToArray();
       } else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
