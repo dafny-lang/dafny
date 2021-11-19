@@ -63,7 +63,11 @@ namespace Microsoft.Dafny {
             currentFileFragment = child.Attribute("name")!.Value;
             break;
           case "method":
-            testResults.Add(ToTestResult(child, currentFileFragment));
+            if (DafnyOptions.O.VcsSplitOnEveryAssert) {
+              testResults.AddRange(ReadSplitsAsTestResults(child, currentFileFragment));
+            } else {
+              testResults.Add(ToTestResult(child, currentFileFragment));
+            }
             break;
         }
       }
@@ -71,13 +75,23 @@ namespace Microsoft.Dafny {
       return testResults;
     }
 
+    private static IEnumerable<TestResult> ReadSplitsAsTestResults(XElement method, string currentFileFragment) {
+      foreach (var child in method.Nodes().OfType<XElement>()) {
+        switch (child.Name.LocalName) {
+          case "split":
+            yield return ToTestResult(child, currentFileFragment);
+            break;
+        }
+      }
+    }
+    
     private static TestResult ToTestResult(XElement node, string currentFileFragment) {
       var name = node.Attribute("name")!.Value;
       var startTime = node.Attribute("startTime")!.Value;
       var conclusionNode = node.Nodes()
                                        .OfType<XElement>()
                                        .Single(n => n.Name.LocalName == "conclusion");
-      var endTime = conclusionNode.Attribute("endTime")!.Value;
+      var endTime = conclusionNode.Attribute("endTime")?.Value;
       var duration = float.Parse(conclusionNode.Attribute("duration")!.Value);
       var outcome = conclusionNode.Attribute("outcome")!.Value;
 
@@ -89,9 +103,11 @@ namespace Microsoft.Dafny {
 
       var testResult = new TestResult(testCase) {
         StartTime = DateTimeOffset.Parse(startTime),
-        EndTime = DateTimeOffset.Parse(endTime),
         Duration = TimeSpan.FromMilliseconds((long)(duration * 1000))
       };
+      if (endTime != null) {
+        testResult.EndTime = DateTimeOffset.Parse(endTime);
+      }
 
       if (outcome == "correct") {
         testResult.Outcome = TestOutcome.Passed;
