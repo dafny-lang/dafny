@@ -63,11 +63,7 @@ namespace Microsoft.Dafny {
             currentFileFragment = child.Attribute("name")!.Value;
             break;
           case "method":
-            if (DafnyOptions.O.VcsSplitOnEveryAssert) {
-              testResults.AddRange(ReadSplitsAsTestResults(child, currentFileFragment));
-            } else {
-              testResults.Add(ToTestResult(child, currentFileFragment));
-            }
+            testResults.AddRange(TestResultsForMethod(child, currentFileFragment));
             break;
         }
       }
@@ -75,14 +71,12 @@ namespace Microsoft.Dafny {
       return testResults;
     }
 
-    private static IEnumerable<TestResult> ReadSplitsAsTestResults(XElement method, string currentFileFragment) {
-      foreach (var child in method.Nodes().OfType<XElement>()) {
-        switch (child.Name.LocalName) {
-          case "split":
-            yield return ToTestResult(child, currentFileFragment);
-            break;
-        }
-      }
+    private static IEnumerable<TestResult> TestResultsForMethod(XElement method, string currentFileFragment) {
+      // Only report the top level method result if there was no splitting
+      var childSplits = method.Nodes().OfType<XElement>().Where(child => child.Name.LocalName == "split").ToList();
+      return childSplits.Count > 1
+        ? childSplits.Select(childSplit => ToTestResult(childSplit, currentFileFragment)) 
+        : new[] { ToTestResult(method, currentFileFragment) };
     }
     
     private static TestResult ToTestResult(XElement node, string currentFileFragment) {
@@ -109,7 +103,7 @@ namespace Microsoft.Dafny {
         testResult.EndTime = DateTimeOffset.Parse(endTime);
       }
 
-      if (outcome == "correct") {
+      if (outcome is "correct" or "valid") {
         testResult.Outcome = TestOutcome.Passed;
       } else {
         testResult.Outcome = TestOutcome.Failed;
