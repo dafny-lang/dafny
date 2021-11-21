@@ -129,7 +129,7 @@ method Invariant() {
 }
 
 method Contravariant() {
-  var a: Con<X> := Con();
+  var a: Con<X> := Con();  // compilation error: compilation does not support trait types as a type parameter; consider introducing a ghost
   var b: Con<Int>;
   b := a;
   print a, " and ", b, "\n";
@@ -168,7 +168,7 @@ method CInvariant() {
 }
 
 method CContravariant() {
-  var a: CCon<X> := CCon();
+  var a: CCon<X> := CCon(); // compilation error: compilation does not support trait types as a type parameter; consider introducing a ghost
   var b: CCon<Int>;
   b := a;
   print a, " and ", b, "\n";
