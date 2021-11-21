@@ -149,19 +149,19 @@ namespace Microsoft.Dafny {
         return "";
       }
 
-      Func<TypeParameter, string> print = targ => {
+      Func<TypeParameter, string> printTypeArgument = tArg => {
         if (addVariance) {
-          switch (targ.Variance) {
+          switch (tArg.Variance) {
             case TypeParameter.TPVariance.Co:
-              return $"out {IdName(targ)}";
+              return $"out {IdName(tArg)}";
             case TypeParameter.TPVariance.Contra:
-              return $"in {IdName(targ)}";
+              return $"in {IdName(tArg)}";
           }
         }
-        return IdName(targ);
+        return IdName(tArg);
       };
 
-      return $"<{targs.Comma(print)}>";
+      return $"<{targs.Comma(printTypeArgument)}>";
     }
 
     protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string /*?*/ fullPrintName,
@@ -374,6 +374,8 @@ namespace Microsoft.Dafny {
       //       return ((DT_Ctor(n-1))d).Dtor0;  // for record types: drop cast
       //    }}
       //   ...
+      //
+      //   // Implementations of all members, but possibly (variance) rewritten to be static.
       // }
       var nonGhostTypeArgs = SelectNonGhost(dt, dt.TypeArgs);
       var DtT_TypeArgs = TypeParameters(nonGhostTypeArgs);
@@ -381,7 +383,7 @@ namespace Microsoft.Dafny {
       var IDtT_protected = "_I" + dt.CompileName + DtT_TypeArgs;
 
       // ContreteSyntaxTree for the interface
-      var inter = wr.NewNamedBlock($"public interface _I{dt.CompileName}{TypeParameters(nonGhostTypeArgs, true)}");
+      var interfaceTree = wr.NewNamedBlock($"public interface _I{dt.CompileName}{TypeParameters(nonGhostTypeArgs, true)}");
 
       // from here on, write everything into the new block created here:
       var btw = wr.NewNamedBlock("public{0} class {1} : {2}", dt.IsRecordType ? "" : " abstract", DtT_protected, IDtT_protected);
@@ -420,7 +422,7 @@ namespace Microsoft.Dafny {
       EmitTypeDescriptorMethod(dt, wr);
 
       if (dt is CoDatatypeDecl) {
-        inter.WriteLine($"{IDtT_protected} _Get();");
+        interfaceTree.WriteLine($"{IDtT_protected} _Get();");
         wr.WriteLine($"public abstract {IDtT_protected} _Get();");
       }
 
@@ -438,8 +440,7 @@ namespace Microsoft.Dafny {
         // omit the is_ property for tuples, since it cannot be used syntactically in the language
       } else {
         foreach (var ctor in dt.Ctors) {
-          // bool is_Ctor0 { get; }
-          inter.WriteLine($"bool is_{ctor.CompileName} {{ get; }}");
+          interfaceTree.WriteLine($"bool is_{ctor.CompileName} {{ get; }}");
 
           var returnValue = dt.IsRecordType
             // public bool is_Ctor0 { get { return true; } }
@@ -461,14 +462,22 @@ namespace Microsoft.Dafny {
         }
       }
 
-      // destructors
+      CompileDatatypeDestructorsAndAddToInterface(dt, wr, interfaceTree, DtT_TypeArgs);
+
+      CompileDatatypeInterfaceMembers(dt, interfaceTree);
+
+      return new ClassWriter(this, btw, null);
+    }
+
+    private void CompileDatatypeDestructorsAndAddToInterface(DatatypeDecl dt, ConcreteSyntaxTree wr,
+      ConcreteSyntaxTree interfaceTree, string DtT_TypeArgs) {
       foreach (var ctor in dt.Ctors) {
         foreach (var dtor in ctor.Destructors) {
           if (dtor.EnclosingCtors[0] == ctor) {
             var arg = dtor.CorrespondingFormals[0];
             if (!arg.IsGhost && arg.HasName) {
               //   T0 dtor_Dtor0 { get; }
-              inter.WriteLine($"{TypeName(arg.Type, wr, arg.tok)} dtor_{arg.CompileName} {{ get; }}");
+              interfaceTree.WriteLine($"{TypeName(arg.Type, wr, arg.tok)} dtor_{arg.CompileName} {{ get; }}");
 
               //   public T0 dtor_Dtor0 { get {
               //       var d = this;         // for inductive datatypes
@@ -511,19 +520,20 @@ namespace Microsoft.Dafny {
           }
         }
       }
+    }
 
+    private void CompileDatatypeInterfaceMembers(DatatypeDecl dt, ConcreteSyntaxTree interfaceTree) {
       foreach (var member in dt.Members) {
         if (member.IsGhost || member.IsStatic) continue;
         if (member is Function fn && !NeedsCustomReceiver(member)) {
-          CreateFunction(IdName(fn), CombineAllTypeArguments(fn), fn.Formals, fn.ResultType, fn.tok, fn.IsStatic, false, fn, inter, false, false);
+          CreateFunction(IdName(fn), CombineAllTypeArguments(fn), fn.Formals, fn.ResultType, fn.tok, fn.IsStatic,
+            false, fn, interfaceTree, false, false);
         } else if (member is Method m && !NeedsCustomReceiver(member)) {
-          CreateMethod(m, CombineAllTypeArguments(m), false, inter, false, false);
+          CreateMethod(m, CombineAllTypeArguments(m), false, interfaceTree, false, false);
         } else if (member is ConstantField c && !NeedsCustomReceiver(member)) {
-          CreateFunctionOrGetter(c, IdName(c), dt, false, false, false, new ClassWriter(this, inter, null));
+          CreateFunctionOrGetter(c, IdName(c), dt, false, false, false, new ClassWriter(this, interfaceTree, null));
         }
       }
-
-      return new ClassWriter(this, btw, null);
     }
 
     string NeedsNew(TopLevelDeclWithMembers ty, string memberName) {
@@ -538,15 +548,12 @@ namespace Microsoft.Dafny {
 
     public override bool NeedsCustomReceiver(MemberDecl member) {
       Contract.Requires(member != null);
-      if (!member.IsStatic && member.EnclosingClass is NewtypeDecl) {
-        return true;
-      }
       //Dafny and C# have different ideas about variance, so not every member can be in the interface
       if (!member.IsStatic && (member.EnclosingClass is IndDatatypeDecl || member.EnclosingClass is CoDatatypeDecl)) {
         DatatypeDecl d = member.EnclosingClass is IndDatatypeDecl ind ? ind : member.EnclosingClass as CoDatatypeDecl;
         foreach (var tp in d.TypeArgs) {
           Predicate<Type> InvalidType = ty => ty.AsTypeParameter != null && ty.AsTypeParameter.Equals(tp)
-                                               || ty.TypeArgs.Exists(a => a.AsTypeParameter.Equals(tp));
+                                              || ty.TypeArgs.Exists(a => a.AsTypeParameter.Equals(tp));
           Predicate<Formal> InvalidFormal = f => !f.IsGhost && InvalidType(f.SyntacticType);
           switch (tp.Variance) {
             //Can only be in output
@@ -562,15 +569,9 @@ namespace Microsoft.Dafny {
               break;
           }
         }
-      } else if (!member.IsStatic && member.EnclosingClass is TraitDecl) {
-        if (member is ConstantField cf && cf.Rhs != null) {
-          return true;
-        } else if (member is Function f && f.Body != null) {
-          return true;
-        } else if (member is Method m && m.Body != null) {
-          return true;
-        }
       }
+
+      base.NeedsCustomReceiver(member);
       return false;
     }
 
