@@ -518,7 +518,7 @@ namespace Microsoft.Dafny {
           CreateFunction(IdName(fn), CombineAllTypeArguments(fn), fn.Formals, fn.ResultType, fn.tok, fn.IsStatic, false, fn, inter, false, false);
         } else if (member is Method m && !NeedsCustomReceiver(member)) {
           CreateMethod(m, CombineAllTypeArguments(m), false, inter, false, false);
-        } else if (member is ConstantField c) {
+        } else if (member is ConstantField c && !NeedsCustomReceiver(member)) {
           CreateFunctionOrGetter(c, IdName(c), dt, false, false, false, new ClassWriter(this, inter, null));
         }
       }
@@ -542,19 +542,24 @@ namespace Microsoft.Dafny {
         return true;
       }
       //Dafny and C# have different ideas about variance, so not every member can be in the interface
-      if (!member.IsStatic && member.EnclosingClass is IndDatatypeDecl d) {
-        if (member is Function f) {
-          foreach (var tp in d.TypeArgs) {
-            switch (tp.Variance) {
-              //Can only be in output
-              case TypeParameter.TPVariance.Co:
-                if (f.Formals.Exists(f => f.Type.AsTypeParameter.Equals(tp))) return true;
-                break;
-              //Can only be in input
-              case TypeParameter.TPVariance.Contra:
-                if (f.ResultType.AsTypeParameter.Equals(tp)) return true;
-                break;
-            }
+      if (!member.IsStatic && (member.EnclosingClass is IndDatatypeDecl || member.EnclosingClass is CoDatatypeDecl)) {
+        DatatypeDecl d = member.EnclosingClass is IndDatatypeDecl ind ? ind : member.EnclosingClass as CoDatatypeDecl;
+        foreach (var tp in d.TypeArgs) {
+          Predicate<Type> InvalidType = ty => ty.AsTypeParameter != null && ty.AsTypeParameter.Equals(tp)
+                                               || ty.TypeArgs.Exists(a => a.AsTypeParameter.Equals(tp));
+          Predicate<Formal> InvalidFormal = f => !f.IsGhost && InvalidType(f.SyntacticType);
+          switch (tp.Variance) {
+            //Can only be in output
+            case TypeParameter.TPVariance.Co:
+              if (member is Function f && f.Formals.Exists(InvalidFormal)) return true;
+              if (member is Method m && m.Ins.Exists(InvalidFormal)) return true;
+              break;
+            //Can only be in input
+            case TypeParameter.TPVariance.Contra:
+              if (member is Function fn && InvalidType(fn.ResultType)) return true;
+              if (member is Method me && me.Outs.Exists(InvalidFormal)) return true;
+              if (member is ConstantField c && InvalidType(c.Type)) return true;
+              break;
           }
         }
       } else if (!member.IsStatic && member.EnclosingClass is TraitDecl) {
@@ -2181,8 +2186,8 @@ namespace Microsoft.Dafny {
             }
           });
         } else if (NeedsCustomReceiver(member) && !(member.EnclosingClass is TraitDecl)) {
-          // instance const in a newtype
-          Contract.Assert(typeArgs.Count == 0);
+          // instance const in a newtype or belongs to a datatype
+          Contract.Assert(typeArgs.Count == 0 || member.EnclosingClass is IndDatatypeDecl || member.EnclosingClass is CoDatatypeDecl);
           return SimpleLvalue(w => {
             w.Write("{0}.{1}(", TypeName_Companion(objType, w, member.tok, member), IdName(member));
             obj(w);

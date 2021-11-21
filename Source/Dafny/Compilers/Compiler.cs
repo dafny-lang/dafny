@@ -643,7 +643,7 @@ namespace Microsoft.Dafny {
             okay = IsTargetSupertype(to.TypeArgs[i], from.TypeArgs[i], true);
           } else if (formalTypeParameters == null || formalTypeParameters[i].Variance == TypeParameter.TPVariance.Co) {
             okay = IsTargetSupertype(to.TypeArgs[i], from.TypeArgs[i]);
-          } else if (formalTypeParameters[i].Variance == TypeParameter.TPVariance.Co) {
+          } else if (formalTypeParameters[i].Variance == TypeParameter.TPVariance.Contra) {
             okay = IsTargetSupertype(from.TypeArgs[i], to.TypeArgs[i]);
           } else {
             okay = IsTargetSupertype(to.TypeArgs[i], from.TypeArgs[i], true);
