@@ -558,14 +558,14 @@ namespace Microsoft.Dafny {
           switch (tp.Variance) {
             //Can only be in output
             case TypeParameter.TPVariance.Co:
-              if (member is Function f && f.Formals.Exists(InvalidFormal)) return true;
-              if (member is Method m && m.Ins.Exists(InvalidFormal)) return true;
+              if (member is Function f && f.Formals.Exists(InvalidFormal)
+                  || member is Method m && m.Ins.Exists(InvalidFormal)) return true;
               break;
             //Can only be in input
             case TypeParameter.TPVariance.Contra:
-              if (member is Function fn && InvalidType(fn.ResultType)) return true;
-              if (member is Method me && me.Outs.Exists(InvalidFormal)) return true;
-              if (member is ConstantField c && InvalidType(c.Type)) return true;
+              if (member is Function fn && InvalidType(fn.ResultType)
+                  || member is Method me && me.Outs.Exists(InvalidFormal)
+                  || member is ConstantField c && InvalidType(c.Type)) return true;
               break;
           }
         }
