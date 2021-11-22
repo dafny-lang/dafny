@@ -90,6 +90,8 @@ jobs:
       uses: actions/setup-dotnet@v1.7.2
       with:
         dotnet-version: ${{env.dotnet-version}}
+    - name: Install Test framework
+      run: dotnet add package Microsoft.NET.Test.Sdk --version 16.0.0
     - name: C++ for ubuntu 18.04
       if: matrix.os == 'ubuntu-18.04'
       run: |
