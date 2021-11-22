@@ -41,6 +41,9 @@ jobs:
       with:
         dotnet-version: 5.0.x
     - name: Install Test framework
+      if: runner.os == 'Windows'
+      shell: pwsh
+      working-directory: dafny
       run: dotnet add package Microsoft.NET.Test.Sdk --version 16.0.0
     - name: Install dependencies
       run: dotnet restore ${{env.solutionPath}}
