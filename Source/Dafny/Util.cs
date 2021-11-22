@@ -708,7 +708,7 @@ namespace Microsoft.Dafny {
     public ExpressionTester(Resolver resolver = null, bool reportErrors = false) {
       Contract.Requires(reportErrors == false || resolver != null);
       if (resolver != null) {
-        this.reporter = resolver.getReporter();
+        this.reporter = resolver.Reporter;
         this.resolver = resolver;
       }
 
@@ -1122,7 +1122,9 @@ namespace Microsoft.Dafny {
 
     static void MakeGhostAsNeeded(CasePattern<BoundVar> arg, DatatypeDestructor d) {
       if (arg.Expr is IdentifierExpr ie && ie.Var is BoundVar bv) {
-        if (d.IsGhost) bv.MakeGhost();
+        if (d.IsGhost) {
+          bv.MakeGhost();
+        }
       }
       if (arg.Ctor != null) {
         MakeGhostAsNeeded(arg);

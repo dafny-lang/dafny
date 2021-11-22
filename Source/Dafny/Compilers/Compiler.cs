@@ -4616,7 +4616,8 @@ namespace Microsoft.Dafny {
         }
         TrExpr(logicalBody, wBody, true);
 
-      } else if (expr is SetComprehension setComprehension) {
+      } else if (expr is SetComprehension) {
+        var e = (SetComprehension)expr;
         // For "set i,j,k,l | R(i,j,k,l) :: Term(i,j,k,l)" where the term has type "G", emit something like:
         // ((System.Func<Set<G>>)(() => {
         //   var _coll = new List<G>();
@@ -4633,33 +4634,32 @@ namespace Microsoft.Dafny {
         //   }
         //   return Dafny.Set<G>.FromCollection(_coll);
         // }))()
-        wr = CaptureFreeVariables(setComprehension, true, out var su, inLetExprBody, wr);
-        setComprehension = (SetComprehension)su.Substitute(setComprehension);
+        wr = CaptureFreeVariables(e, true, out var su, inLetExprBody, wr);
+        e = (SetComprehension)su.Substitute(e);
 
-        Contract.Assert(setComprehension.Bounds != null);  // the resolver would have insisted on finding bounds
+        Contract.Assert(e.Bounds != null);  // the resolver would have insisted on finding bounds
         var collectionName = idGenerator.FreshId("_coll");
-        var bwr = CreateIIFE0(setComprehension.Type.AsSetType, setComprehension.tok, wr);
+        var bwr = CreateIIFE0(e.Type.AsSetType, e.tok, wr);
         wr = bwr;
-        EmitSetBuilder_New(wr, setComprehension, collectionName);
-        var n = setComprehension.BoundVars.Count;
-        Contract.Assert(setComprehension.Bounds.Count == n);
-        int i;
-        for (i = 0; i < n; i++) {
-          var bound = setComprehension.Bounds[i];
-          var bv = setComprehension.BoundVars[i];
+        EmitSetBuilder_New(wr, e, collectionName);
+        var n = e.BoundVars.Count;
+        Contract.Assert(e.Bounds.Count == n);
+        for (var i = 0; i < n; i++) {
+          var bound = e.Bounds[i];
+          var bv = e.BoundVars[i];
           ConcreteSyntaxTree collectionWriter;
           var tmpVar = idGenerator.FreshId("_compr_");
           wr = CreateForeachLoop(tmpVar, GetCollectionEnumerationType(bound, bv), IdName(bv), bv.Type, true, bv.tok, out collectionWriter, wr);
           // var  s = {List(Cell(1)), List(Cell(2), Cell(4)), List(Cell(2), Cell(3))};
           // set x: List<EvenCell> | x in s 
-          wr = MaybeInjectSubsetConstraint(wr, inLetExprBody, bv, setComprehension);
+          wr = MaybeInjectSubsetConstraint(wr, inLetExprBody, bv, e);
           CompileCollection(bound, bv, inLetExprBody, true, null, collectionWriter);
         }
         ConcreteSyntaxTree guardWriter;
         var thn = EmitIf(out guardWriter, false, wr);
-        TrExpr(setComprehension.Range, guardWriter, inLetExprBody);
-        EmitSetBuilder_Add(setComprehension.Type.AsSetType, collectionName, setComprehension.Term, inLetExprBody, thn);
-        var s = GetCollectionBuilder_Build(setComprehension.Type.AsSetType, setComprehension.tok, collectionName, wr);
+        TrExpr(e.Range, guardWriter, inLetExprBody);
+        EmitSetBuilder_Add(e.Type.AsSetType, collectionName, e.Term, inLetExprBody, thn);
+        var s = GetCollectionBuilder_Build(e.Type.AsSetType, e.tok, collectionName, wr);
         EmitReturnExpr(s, bwr);
 
       } else if (expr is MapComprehension) {
@@ -4742,23 +4742,21 @@ namespace Microsoft.Dafny {
 
     private ConcreteSyntaxTree MaybeInjectSubsetConstraint(ConcreteSyntaxTree wr, bool inLetExprBody, BoundVar bv,
       Expression e, bool isReturning = false, bool elseReturnValue = false) {
-      int i;
-      if (bv.Type is UserDefinedType
+      if (bv.Type.NormalizeExpand(true) is UserDefinedType
         {
           TypeArgs: var typeArgs,
           ResolvedClass:
-        var subsetTypeDecl and
-        SubsetTypeDecl
-        {
-          TypeArgs: var typeParametersArgs,
-          Var: var var,
-          ConstraintIsCompilable: true,
-          Constraint: var constraint
-        }
+          SubsetTypeDecl
+          {
+            TypeArgs: var typeParametersArgs,
+            Var: var var,
+            ConstraintIsCompilable: true,
+            Constraint: var constraint
+          }
         }) {
         var bvIdentifier = new IdentifierExpr(e.tok, bv);
         var typeParameters = new Dictionary<TypeParameter, Type> { };
-        for (i = 0; i < typeParametersArgs.Count(); i++) {
+        for (var i = 0; i < typeParametersArgs.Count(); i++) {
           typeParameters[typeParametersArgs[i]] = typeArgs[i];
         }
         var subContract = new Substituter(null,

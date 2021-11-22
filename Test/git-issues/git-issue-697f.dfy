@@ -10,7 +10,7 @@ type EvenCell = c: Cell | ghostPredicate(c.x) witness Cell(0)
 
 function method doubleEvenCell(c: EvenCell): int
 {
-   if c.x % 2 == 1 then 1/0 else c.x * 2
+  if c.x % 2 == 1 then 1/0 else c.x * 2
 }
 
 // No need for the subset constraint to be compilable.

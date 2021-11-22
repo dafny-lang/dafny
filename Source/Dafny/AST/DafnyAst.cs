@@ -1141,6 +1141,14 @@ namespace Microsoft.Dafny {
         return udt?.ResolvedClass as TraitDecl;
       }
     }
+
+    public SubsetTypeDecl /*?*/ AsSubsetType {
+      get {
+        var std = NormalizeExpand(true) as UserDefinedType;
+        return std?.ResolvedClass as SubsetTypeDecl;
+      }
+    }
+
     public bool IsArrayType {
       get {
         return AsArrayType != null;
@@ -5703,8 +5711,8 @@ namespace Microsoft.Dafny {
     public enum WKind { CompiledZero, Compiled, Ghost, OptOut, Special }
     public readonly SubsetTypeDecl.WKind WitnessKind;
     public readonly Expression/*?*/ Witness;  // non-null iff WitnessKind is Compiled or Ghost
-    public bool ConstraintIsCompilable = false; // Will be resolved later.
-    public bool CheckedIfConstraintIsCompilable = false; // Will be resolved later.
+    public bool ConstraintIsCompilable; // Will be filled in by the Resolver
+    public bool CheckedIfConstraintIsCompilable = false; // Set to true lazily by the Resolver when the Resolver fills in "ConstraintIsCompilable".
     public SubsetTypeDecl(IToken tok, string name, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, ModuleDefinition module,
       BoundVar id, Expression constraint, WKind witnessKind, Expression witness,
       Attributes attributes)

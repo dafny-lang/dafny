@@ -1361,14 +1361,15 @@ namespace Microsoft.Dafny {
           e.UpdateTerm(allReqsSatisfiedAndTerm);
           reporter.Info(MessageSource.Rewriter, e.tok, "autoreq added (" + Printer.ExtendedExprToString(allReqsSatisfied) + ") &&");
         }
-      } else if (expr is SetComprehension setComprehension) {
+      } else if (expr is SetComprehension) {
+        var e = (SetComprehension)expr;
         // Translate "set xs | R :: T"
 
         // See LetExpr for issues with the e.Range
         //reqs.AddRange(generateAutoReqs(e.Range));
-        var auto_reqs = generateAutoReqs(setComprehension.Term);
+        var auto_reqs = generateAutoReqs(e.Term);
         if (auto_reqs.Count > 0) {
-          reqs.Add(Expression.CreateQuantifier(new ForallExpr(setComprehension.tok, new List<TypeParameter>(), setComprehension.BoundVars, setComprehension.Range, andify(setComprehension.Term.tok, auto_reqs), setComprehension.Attributes), true));
+          reqs.Add(Expression.CreateQuantifier(new ForallExpr(e.tok, new List<TypeParameter>(), e.BoundVars, e.Range, andify(e.Term.tok, auto_reqs), e.Attributes), true));
         }
       } else if (expr is MapComprehension) {
         var e = (MapComprehension)expr;

@@ -23,9 +23,7 @@ namespace Microsoft.Dafny {
     ErrorReporter reporter;
     ModuleSignature moduleInfo = null;
 
-    public ErrorReporter getReporter() {
-      return reporter;
-    }
+    public ErrorReporter Reporter => reporter;
 
     private bool RevealedInScope(Declaration d) {
       Contract.Requires(d != null);
@@ -18305,11 +18303,11 @@ namespace Microsoft.Dafny {
       // Includes functions and methods as well.
       // Ghost functions can have a compiled implementation.
       // We want to recurse only on the by method, not on the sub expressions of the function
-      if (memberDecl == null || !memberDecl.IsGhost) return ok;
+      if (memberDecl == null || !memberDecl.IsGhost) { return ok; }
       if (memberDecl is Function f) {
-        if (f.ByMethodDecl != null && Traverse(f.ByMethodDecl, "ByMethodDecl", f)) return stop;
+        if (f.ByMethodDecl != null && Traverse(f.ByMethodDecl, "ByMethodDecl", f)) { return stop; }
         if (f.ByMethodDecl == null || f.ByMethodDecl.Body != f.ByMethodBody) {
-          if (f.ByMethodBody != null && Traverse(f.ByMethodBody, "ByMethodBody", f)) return stop;
+          if (f.ByMethodBody != null && Traverse(f.ByMethodBody, "ByMethodBody", f)) { return stop; }
         }
       }
       return skip;
@@ -18337,14 +18335,11 @@ namespace Microsoft.Dafny {
 
       if (what != "comprehension") { // should not apply for functions
         foreach (var boundVar in e.BoundVars) {
-          if (boundVar.Type is UserDefinedType
-            {
-              ResolvedClass: SubsetTypeDecl
-              {
-                Constraint: var constraint,
-                ConstraintIsCompilable: false and var constraintIsCompilable
-              } and var subsetTypeDecl
-            }
+          if (boundVar.Type.AsSubsetType is
+          {
+            Constraint: var constraint,
+            ConstraintIsCompilable: false and var constraintIsCompilable
+          } and var subsetTypeDecl
           ) {
             if (!subsetTypeDecl.CheckedIfConstraintIsCompilable) {
               // Builtin types were never resolved.
@@ -18355,16 +18350,15 @@ namespace Microsoft.Dafny {
             }
 
             if (!constraintIsCompilable) {
-              // Explicitely report the error
+              // Explicitly report the error
               var showProvenance = constraint.tok.line != 0;
-              this.resolver.getReporter().Error(MessageSource.Resolver, boundVar.tok,
-                boundVar.Type +
-                " is a subset type and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in " +
-                what + "." +
+              this.resolver.Reporter.Error(MessageSource.Resolver, boundVar.tok,
+                $"{boundVar.Type} is a subset type and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in {what}." +
                 (showProvenance ? " The next error will explain why the constraint is not compilable." : ""));
-              if (showProvenance)
+              if (showProvenance) {
                 ExpressionTester.CheckIsCompilable(this.resolver, constraint,
                   new CodeContextWrapper(subsetTypeDecl, true));
+              }
             }
           }
         }
