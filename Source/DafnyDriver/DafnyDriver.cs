@@ -642,7 +642,7 @@ namespace Microsoft.Dafny {
 
       string targetFilename = Path.Combine(targetDir, targetBaseName);
 
-      return new TargetPaths(Directory: Path.GetDirectoryName(dafnyProgramName), Filename: targetFilename);
+      return new TargetPaths(Directory: Path.GetDirectoryName(Path.GetFullPath(dafnyProgramName)), Filename: Path.GetFullPath(targetFilename));
     }
 
     static void WriteDafnyProgramToFiles(TargetPaths paths, bool targetProgramHasErrors, string targetProgramText,
