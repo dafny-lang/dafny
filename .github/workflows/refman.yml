@@ -28,7 +28,7 @@ jobs:
       if: runner.os == 'Windows'
       shell: pwsh
       working-directory: dafny
-      run: dotnet add package Microsoft.NET.Test.Sdk --version 16.0.0
+      run: dotnet add dafny package Microsoft.NET.Test.Sdk --version 16.0.0
     - name: Checkout Dafny
       uses: actions/checkout@v2
       with:

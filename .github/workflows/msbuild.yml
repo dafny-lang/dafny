@@ -24,7 +24,7 @@ jobs:
       if: runner.os == 'Windows'
       shell: pwsh
       working-directory: dafny
-      run: dotnet add package Microsoft.NET.Test.Sdk --version 16.0.0
+      run: dotnet add dafny package Microsoft.NET.Test.Sdk --version 16.0.0
     - name: Restore tools
       working-directory: dafny
       run: dotnet tool restore
@@ -121,7 +121,7 @@ jobs:
       if: runner.os == 'Windows'
       shell: pwsh
       working-directory: dafny
-      run: dotnet add package Microsoft.NET.Test.Sdk --version 16.0.0
+      run: dotnet add dafny package Microsoft.NET.Test.Sdk --version 16.0.0
     - run: rm dafny/Test/libraries/lit.site.cfg # we remove the lit configuration file in the library repo (a git submodule) to prevent override
     - name: Create release
       run: |
