@@ -13,7 +13,7 @@ datatype Co<+T> = Co(T){
     static function method sA(x : T) : int { 0 }
     function method gA(ghost x : T) : int { 0 }
     function method B(x : seq<T>) : int { 0 }
-    function method C(x : int) : seq<T> { [] }
+    function method C(x : int) : seq<T> { y }
     function method D(x : T) : T { x }
 
     method mA(x : T) returns (r: int) { r := 0; }
@@ -28,14 +28,14 @@ datatype In<T> = In(T){
     static function method sA(x : T) : int { 0 }
     function method gA(ghost x : T) : int { 0 }
     function method B(x : seq<T>) : int { 0 }
-    function method C(x : int) : seq<T> { [] }
+    function method C(x : int) : seq<T> { y }
     function method D(x : T) : T { x }
 
     method mA(x : T) returns (r: int) { r := 0; }
     method mD(x : T) returns (r: T) { r := x; }
 }
 
-datatype Con<-T> = Con {
+datatype Con<-T> = Con(T -> int) {
     const x : int;
     const y : seq<T>;
 
@@ -43,7 +43,7 @@ datatype Con<-T> = Con {
     static function method sA(x : T) : int { 0 }
     function method gA(ghost x : T) : int { 0 }
     function method B(x : seq<T>) : int { 0 }
-    function method C(x : int) : seq<T> { [] }
+    function method C(x : int) : seq<T> { y }
     function method D(x : T) : T { x }
 
     method mA(x : T) returns (r: int) { r := 0; }
@@ -58,7 +58,7 @@ codatatype CCo<+T> = CCo(T){
     static function method sA(x : T) : int { 0 }
     function method gA(ghost x : T) : int { 0 }
     function method B(x : seq<T>) : int { 0 }
-    function method C(x : int) : seq<T> { [] }
+    function method C(x : int) : seq<T> { y }
     function method D(x : T) : T { x }
 
     method mA(x : T) returns (r: int) { r := 0; }
@@ -73,14 +73,14 @@ codatatype CIn<T> = CIn(T){
     static function method sA(x : T) : int { 0 }
     function method gA(ghost x : T) : int { 0 }
     function method B(x : seq<T>) : int { 0 }
-    function method C(x : int) : seq<T> { [] }
+    function method C(x : int) : seq<T> { y }
     function method D(x : T) : T { x }
 
     method mA(x : T) returns (r: int) { r := 0; }
     method mD(x : T) returns (r: T) { r := x; }
 }
 
-codatatype CCon<-T> = CCon {
+codatatype CCon<-T> = CCon(T -> int) {
     const x : int;
     const y : seq<T>;
 
@@ -88,7 +88,7 @@ codatatype CCon<-T> = CCon {
     static function method sA(x : T) : int { 0 }
     function method gA(ghost x : T) : int { 0 }
     function method B(x : seq<T>) : int { 0 }
-    function method C(x : int) : seq<T> { [] }
+    function method C(x : int) : seq<T> { y }
     function method D(x : T) : T { x }
 
     method mA(x : T) returns (r: int) { r := 0; }
@@ -129,12 +129,12 @@ method Invariant() {
 }
 
 method Contravariant() {
-  var a: Con<X> := Con();  // compilation error: compilation does not support trait types as a type parameter; consider introducing a ghost
+  var a: Con<X> := Con(_ => 0);  // compilation error: compilation does not support trait types as a type parameter; consider introducing a ghost
   var b: Con<Int>;
   b := a;
   print a, " and ", b, "\n";
 
-  var s := Con;
+  var s := Con(_ => 0);
   var t := s.mD(true);
   var y := s.mA(t);
   print t, y, s.C(s.x), s.B(s.y), s.A(t), Co.sA(t), s.gA(t), "\n"; 
@@ -168,12 +168,12 @@ method CInvariant() {
 }
 
 method CContravariant() {
-  var a: CCon<X> := CCon(); // compilation error: compilation does not support trait types as a type parameter; consider introducing a ghost
+  var a: CCon<X> := CCon(_ => 0); // compilation error: compilation does not support trait types as a type parameter; consider introducing a ghost
   var b: CCon<Int>;
   b := a;
   print a, " and ", b, "\n";
 
-  var s := CCon;
+  var s := CCon(_ => 0);
   var t := s.mD(true);
   var y := s.mA(t);
   print t, y, s.C(s.x), s.B(s.y), s.A(t), Co.sA(t), s.gA(t), "\n"; 
