@@ -211,7 +211,7 @@ namespace Microsoft.Dafny {
               CompileTarget = CompilationTarget.Cpp;
             } else if (args[ps.i].Equals("php")) {
               CompileTarget = CompilationTarget.Php;
-            } else if (args[ps.i].Equals("python")) {
+            } else if (args[ps.i].Equals("py")) {
               CompileTarget = CompilationTarget.Python;
             } else {
               InvalidArgumentError(name, ps);

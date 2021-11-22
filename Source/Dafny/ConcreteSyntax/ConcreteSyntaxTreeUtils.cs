@@ -63,6 +63,9 @@ namespace Microsoft.Dafny {
           outer.WriteLine();
           outer.WriteLine("{");
           break;
+        case BraceStyle.Nothing:
+          outer.WriteLine("{");
+          break;
         case BraceStyle.Pindent:
           outer.WriteLine();
           break;
@@ -76,6 +79,9 @@ namespace Microsoft.Dafny {
           outer.WriteLine("}");
           break;
         case BraceStyle.Newline:
+          outer.WriteLine("}");
+          break;
+        case BraceStyle.Nothing:
           outer.WriteLine("}");
           break;
       }
