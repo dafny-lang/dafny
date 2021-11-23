@@ -598,10 +598,13 @@ namespace Microsoft.Dafny {
     #region Compilation
 
     private record TargetPaths(string Directory, string Filename) {
-      private Func<string, string> DeleteDot = p => p == "." ? "" : p;
-      private Func<string, string> AddDot = p => p == "" ? "." : p;
-      public string RelativeDirectory => DeleteDot(Path.GetRelativePath(AddDot(Directory), AddDot(Path.GetDirectoryName(Filename))));
-      public string RelativeFilename => DeleteDot(Path.GetRelativePath(AddDot(Directory), Filename));
+      private static Func<string, string> DeleteDot = p => p == "." ? "" : p;
+      private static Func<string, string> AddDot = p => p == "" ? "." : p;
+      private Func<string, string> RelativeToDirectory =
+        path => DeleteDot(Path.GetRelativePath(AddDot(Directory), path));
+
+      public string RelativeDirectory => RelativeToDirectory(AddDot(Path.GetDirectoryName(Filename)));
+      public string RelativeFilename => RelativeToDirectory(Filename);
       public string SourceDirectory => Path.GetDirectoryName(Filename);
     }
 
