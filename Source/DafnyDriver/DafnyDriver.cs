@@ -599,8 +599,9 @@ namespace Microsoft.Dafny {
 
     private record TargetPaths(string Directory, string Filename) {
       private Func<string, string> DeleteDot = p => p == "." ? "" : p;
-      public string RelativeDirectory => DeleteDot(Path.GetRelativePath(Directory, Path.GetDirectoryName(Filename)));
-      public string RelativeFilename => DeleteDot(Path.GetRelativePath(Directory, Filename));
+      private Func<string, string> AddDot = p => p == "" ? "." : p;
+      public string RelativeDirectory => DeleteDot(Path.GetRelativePath(AddDot(Directory), AddDot(Path.GetDirectoryName(Filename))));
+      public string RelativeFilename => DeleteDot(Path.GetRelativePath(AddDot(Directory), Filename));
       public string SourceDirectory => Path.GetDirectoryName(Filename);
     }
 
@@ -642,7 +643,7 @@ namespace Microsoft.Dafny {
 
       string targetFilename = Path.Combine(targetDir, targetBaseName);
 
-      return new TargetPaths(Directory: Path.GetDirectoryName(Path.GetFullPath(dafnyProgramName)), Filename: Path.GetFullPath(targetFilename));
+      return new TargetPaths(Directory: Path.GetDirectoryName(dafnyProgramName), Filename: targetFilename);
     }
 
     static void WriteDafnyProgramToFiles(TargetPaths paths, bool targetProgramHasErrors, string targetProgramText,
