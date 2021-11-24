@@ -131,9 +131,7 @@ namespace Microsoft.Dafny {
     public bool WarningsAsErrors = false;
     [CanBeNull] private TestGenerationOptions testGenOptions = null;
     public bool ExtractCounterexample = false;
-
-    public string VerificationLoggerConfig = null;
-
+    public List<string> VerificationLoggerConfigs = new();
     // Working around the fact that xmlFilename is private
     public string BoogieXmlFilename = null;
 
@@ -495,7 +493,11 @@ namespace Microsoft.Dafny {
 
         case "verificationLogger":
           if (ps.ConfirmArgumentCount(1)) {
-            VerificationLoggerConfig = args[ps.i];
+            if (args[ps.i] is "trx" or "csv") {
+              VerificationLoggerConfigs.Add(args[ps.i]);
+            } else {
+              InvalidArgumentError(name, ps);
+            }
           }
 
           return true;
@@ -512,7 +514,7 @@ namespace Microsoft.Dafny {
     public override void ApplyDefaultOptions() {
       base.ApplyDefaultOptions();
 
-      if (VerificationLoggerConfig != null) {
+      if (VerificationLoggerConfigs.Any()) {
         if (XmlSink != null) {
           throw new Exception("The /verificationLogger and /xml options cannot be used at the same time.");
         }
