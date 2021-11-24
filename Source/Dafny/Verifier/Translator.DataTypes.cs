@@ -602,66 +602,58 @@ namespace Microsoft.Dafny {
       return fn;
     }
 
-    private void InferConstructorArgumentTypes(DatatypeDecl dt, DatatypeCtor ctor, Bpl.Function ctorFunction)
+    private void InferConstructorArgumentTypes(DatatypeDecl dt, DatatypeCtor ctor, Bpl.Function ctorFunction) {
+      var tyvars = MkTyParamBinders(dt.TypeArgs, out var tyexprs);
+      CreateBoundVariables(ctor.Formals, out var bvs, out var args);
+      var c_params = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
+      var c_ty = ClassTyCon(dt, tyexprs);
+      AddsIsConstructorAxiom(ctor, ctorFunction, args, bvs, tyvars, c_params, c_ty);
+      AddIsAllocConstructorAxiom(dt, ctor, ctorFunction, args, bvs, tyvars, c_params, c_ty);
+      AddDestructorAxiom(dt, ctor, ctorFunction, tyvars, c_ty);
+    }
+
+    /*
+          (forall x0 : C0, ..., xn : Cn, G : Ty, H : Heap •
+              { $IsAlloc(C(G, x0,...,xn), T(G), H) }
+              IsGoodHeap(H) ==>
+                 ($IsAlloc(C(G, x0,...,xn), T(G), H) <==>
+                  $IsAlloc[Box](x0, C0(G), H) && ... && $IsAlloc[Box](xn, Cn(G), H)));
+        */
+    private void AddIsAllocConstructorAxiom(DatatypeDecl dt, DatatypeCtor ctor, Bpl.Function ctorFunction,
+      List<Expr> args, List<Variable> bvs, List<Variable> tyvars, NAryExpr c_params, Expr c_ty)
     {
-      foreach (var is_alloc in Bools) {
-        /*
-            (forall x0 : C0, ..., xn : Cn, G : Ty •
-              { $Is(C(x0,...,xn), T(G)) }
-              $Is(C(x0,...,xn), T(G)) <==>
-              $Is[Box](x0, C0(G)) && ... && $Is[Box](xn, Cn(G)));
-            (forall x0 : C0, ..., xn : Cn, G : Ty, H : Heap •
-                { $IsAlloc(C(G, x0,...,xn), T(G), H) }
-                IsGoodHeap(H) ==>
-                   ($IsAlloc(C(G, x0,...,xn), T(G), H) <==>
-                    $IsAlloc[Box](x0, C0(G), H) && ... && $IsAlloc[Box](xn, Cn(G), H)));
-          */
-        List<Bpl.Expr> tyexprs;
-        var tyvars = MkTyParamBinders(dt.TypeArgs, out tyexprs);
-        List<Bpl.Variable> bvs;
-        List<Bpl.Expr> args;
-        CreateBoundVariables(ctor.Formals, out bvs, out args);
-        Bpl.Expr h;
-        var hVar = BplBoundVar("$h", predef.HeapType, out h);
-        Bpl.Expr conj = Bpl.Expr.True;
-        for (var i = 0; i < ctor.Formals.Count; i++) {
+      Bpl.Expr h;
+      Bpl.Expr conj = Bpl.Expr.True;
+      for (var i = 0; i < ctor.Formals.Count; i++) {
+        var arg = ctor.Formals[i];
+        if (CommonHeapUse || (NonGhostsUseHeap && !arg.IsGhost)) {
+          conj = BplAnd(conj, MkIsAlloc(args[i], arg.Type, h));
+        }
+      }
+
+      var hVar = BplBoundVar("$h", predef.HeapType, out h);
+      bvs.InsertRange(0, tyvars);
+      if (CommonHeapUse || NonGhostsUseHeap) {
+        var isGoodHeap = FunctionCall(ctor.tok, BuiltinFunction.IsGoodHeap, null, h);
+        var c_alloc = MkIsAlloc(c_params, c_ty, h);
+        bvs.Add(hVar);
+        var constructorIsAllocAxiom = new Bpl.Axiom(ctor.tok,
+          BplForall(bvs, BplTrigger(c_alloc),
+            BplImp(isGoodHeap, BplIff(c_alloc, conj))),
+          "Constructor $IsAlloc");
+        sink.AddTopLevelDeclaration(constructorIsAllocAxiom);
+        ctorFunction.AddOtherDefinitionAxiom(constructorIsAllocAxiom);
+      }
+    }
+
+    private void AddDestructorAxiom(DatatypeDecl dt, DatatypeCtor ctor, Bpl.Function ctorFunction, List<Variable> tyvars, Expr c_ty)
+    {
+      var hVar = BplBoundVar("$h", predef.HeapType, out h);
+      if (CommonHeapUse && !AlwaysUseHeap) {
+        for (int i = 0; i < ctor.Formals.Count; i++) {
           var arg = ctor.Formals[i];
-          if (is_alloc) {
-            if (CommonHeapUse || (NonGhostsUseHeap && !arg.IsGhost)) {
-              conj = BplAnd(conj, MkIsAlloc(args[i], arg.Type, h));
-            }
-          } else {
-            conj = BplAnd(conj, MkIs(args[i], arg.Type));
-          }
-        }
-
-        var c_params = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
-        var c_ty = ClassTyCon((TopLevelDecl)dt, tyexprs);
-        bvs.InsertRange(0, tyvars);
-        if (!is_alloc) {
-          var isCall = MkIs(c_params, c_ty);
-          var constructorIsAxiom = new Bpl.Axiom(ctor.tok,
-            BplForall(bvs, BplTrigger(isCall), BplIff(isCall, conj)),
-            "Constructor $Is");
-          sink.AddTopLevelDeclaration(constructorIsAxiom);
-          ctorFunction.AddOtherDefinitionAxiom(constructorIsAxiom);
-        } else if (is_alloc && (CommonHeapUse || NonGhostsUseHeap)) {
-          var isGoodHeap = FunctionCall(ctor.tok, BuiltinFunction.IsGoodHeap, null, h);
-          var c_alloc = MkIsAlloc(c_params, c_ty, h);
-          bvs.Add(hVar);
-          var constructorIsAllocAxiom = new Bpl.Axiom(ctor.tok,
-            BplForall(bvs, BplTrigger(c_alloc),
-              BplImp(isGoodHeap, BplIff(c_alloc, conj))),
-            "Constructor $IsAlloc");
-          sink.AddTopLevelDeclaration(constructorIsAllocAxiom);
-          ctorFunction.AddOtherDefinitionAxiom(constructorIsAllocAxiom);
-        }
-
-        if (is_alloc && CommonHeapUse && !AlwaysUseHeap) {
-          for (int i = 0; i < ctor.Formals.Count; i++) {
-            var arg = ctor.Formals[i];
-            var dtor = GetReadonlyField(ctor.Destructors[i]);
-            /* (forall d : DatatypeType, G : Ty, H : Heap •
+          var dtor = GetReadonlyField(ctor.Destructors[i]);
+          /* (forall d : DatatypeType, G : Ty, H : Heap •
                      { $IsAlloc[Box](Dtor(d), D(G), H) }
                      IsGoodHeap(H) &&
                      C?(d) &&
@@ -669,48 +661,70 @@ namespace Microsoft.Dafny {
                      ==>
                          $IsAlloc[Box](Dtor(d), D(G), H))
                */
-            Bpl.Expr dId;
-            var dBv = BplBoundVar("d", predef.DatatypeType, out dId);
-            var isGoodHeap = FunctionCall(ctor.tok, BuiltinFunction.IsGoodHeap, null, h);
-            Bpl.Expr dtq = FunctionCall(ctor.tok, ctor.QueryField.FullSanitizedName, Bpl.Type.Bool, dId);
-            var c_alloc = MkIsAlloc(dId, c_ty, h);
-            var dtorD = FunctionCall(ctor.tok, dtor.Name, TrType(arg.Type), dId);
-            var d_alloc = MkIsAlloc(dtorD, arg.Type, h);
+          Bpl.Expr dId;
+          var dBv = BplBoundVar("d", predef.DatatypeType, out dId);
+          var isGoodHeap = FunctionCall(ctor.tok, BuiltinFunction.IsGoodHeap, null, h);
+          Bpl.Expr dtq = FunctionCall(ctor.tok, ctor.QueryField.FullSanitizedName, Bpl.Type.Bool, dId);
+          var c_alloc = MkIsAlloc(dId, c_ty, h);
+          var dtorD = FunctionCall(ctor.tok, dtor.Name, TrType(arg.Type), dId);
+          var d_alloc = MkIsAlloc(dtorD, arg.Type, h);
 
-            // split tyvars into G,G' where G are the type variables that are used in the type of the destructor
-            var freeTypeVars = new HashSet<TypeParameter>();
-            ComputeFreeTypeVariables_All(arg.Type, freeTypeVars);
-            var tyvarsG = new List<Bpl.Variable>();
-            var tyvarsGprime = new List<Bpl.Variable>();
-            Contract.Assert(dt.TypeArgs.Count == tyvars.Count);
-            for (int j = 0; j < dt.TypeArgs.Count; j++) {
-              var tv = tyvars[j];
-              if (freeTypeVars.Contains(dt.TypeArgs[j])) {
-                tyvarsG.Add(tv);
-              } else {
-                tyvarsGprime.Add(tv);
-              }
+          // split tyvars into G,G' where G are the type variables that are used in the type of the destructor
+          var freeTypeVars = new HashSet<TypeParameter>();
+          ComputeFreeTypeVariables_All(arg.Type, freeTypeVars);
+          var tyvarsG = new List<Bpl.Variable>();
+          var tyvarsGprime = new List<Bpl.Variable>();
+          Contract.Assert(dt.TypeArgs.Count == tyvars.Count);
+          for (int j = 0; j < dt.TypeArgs.Count; j++) {
+            var tv = tyvars[j];
+            if (freeTypeVars.Contains(dt.TypeArgs[j])) {
+              tyvarsG.Add(tv);
+            } else {
+              tyvarsGprime.Add(tv);
             }
-
-            bvs = new List<Bpl.Variable>();
-            bvs.Add(dBv);
-            bvs.AddRange(tyvarsG);
-            bvs.Add(hVar);
-            if (tyvarsGprime.Count != 0) {
-              c_alloc = new Bpl.ExistsExpr(ctor.tok, tyvarsGprime, BplTrigger(c_alloc), c_alloc);
-            }
-
-            var destructorAxiom = new Bpl.Axiom(ctor.tok,
-              BplForall(bvs, BplTrigger(d_alloc),
-                BplImp(BplAnd(isGoodHeap, BplAnd(dtq, c_alloc)), d_alloc)),
-              "Destructor $IsAlloc");
-            sink.AddTopLevelDeclaration(destructorAxiom);
-            ctorFunction.AddOtherDefinitionAxiom(destructorAxiom);
           }
+
+          bvs = new List<Bpl.Variable>();
+          bvs.Add(dBv);
+          bvs.AddRange(tyvarsG);
+          bvs.Add(hVar);
+          if (tyvarsGprime.Count != 0) {
+            c_alloc = new Bpl.ExistsExpr(ctor.tok, tyvarsGprime, BplTrigger(c_alloc), c_alloc);
+          }
+
+          var destructorAxiom = new Bpl.Axiom(ctor.tok,
+            BplForall((IEnumerable<Variable>)bvs, BplTrigger(d_alloc),
+              BplImp(BplAnd(isGoodHeap, BplAnd(dtq, c_alloc)), d_alloc)),
+            "Destructor $IsAlloc");
+          sink.AddTopLevelDeclaration(destructorAxiom);
+          ctorFunction.AddOtherDefinitionAxiom(destructorAxiom);
         }
       }
+    }
 
-      ;
+    /*
+        (forall x0 : C0, ..., xn : Cn, G : Ty •
+          { $Is(C(x0,...,xn), T(G)) }
+          $Is(C(x0,...,xn), T(G)) <==>
+          $Is[Box](x0, C0(G)) && ... && $Is[Box](xn, Cn(G)));
+      */
+    private void AddsIsConstructorAxiom(DatatypeCtor ctor, Bpl.Function ctorFunction, List<Expr> args, List<Variable> bvs,
+      List<Variable> tyvars, NAryExpr c_params, Expr c_ty)
+    {
+      Bpl.Expr conj = Bpl.Expr.True;
+      for (var i = 0; i < ctor.Formals.Count; i++) {
+        var arg = ctor.Formals[i];
+        conj = BplAnd(conj, MkIs(args[i], arg.Type));
+      }
+
+      bvs.InsertRange(0, tyvars);
+
+      var isCall = MkIs(c_params, c_ty);
+      var constructorIsAxiom = new Bpl.Axiom(ctor.tok,
+        BplForall(bvs, BplTrigger(isCall), BplIff(isCall, conj)),
+        "Constructor $Is");
+      sink.AddTopLevelDeclaration(constructorIsAxiom);
+      ctorFunction.AddOtherDefinitionAxiom(constructorIsAxiom);
     }
 
     private Axiom CreateConstructorIdentifierAxiom(DatatypeCtor ctor, Expr c)
