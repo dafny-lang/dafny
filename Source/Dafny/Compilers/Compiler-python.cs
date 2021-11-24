@@ -21,7 +21,7 @@ namespace Microsoft.Dafny {
 
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
       Coverage.EmitSetup(wr);
-      wr.WriteLine("dafny.Helpers.withHaltHandling({0}.{1})", mainMethod.EnclosingClass, mainMethod);
+      wr.WriteLine("__default.Main()", mainMethod.EnclosingClass, mainMethod);
     }
 
     protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw) {
