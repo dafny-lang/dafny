@@ -9,7 +9,7 @@ using static Microsoft.Dafny.Util;
 
 namespace Microsoft.Dafny {
   public partial class Translator {    
-    private void AddClassMembers(TopLevelDeclWithMembers c, bool includeAllMethods) {
+    void AddClassMembers(TopLevelDeclWithMembers c, bool includeAllMethods) {
       Contract.Requires(sink != null && predef != null);
       Contract.Requires(c != null);
       Contract.Ensures(fuelContext == Contract.OldValue(fuelContext));
@@ -66,7 +66,7 @@ namespace Microsoft.Dafny {
           body = BplIff(is_o, rhs);
         }
 
-        sink.AddTopLevelDeclaration(new Bpl.Axiom(c.tok, BplForall(vars, BplTrigger(is_o), body), name));
+        AddRootAxiom(new Bpl.Axiom(c.tok, BplForall(vars, BplTrigger(is_o), body), name));
       });
 
       if (c is TraitDecl) {
@@ -191,8 +191,7 @@ namespace Microsoft.Dafny {
       this.fuelContext = oldFuelContext;
     }
 
-
-    /// <summary>
+/// <summary>
     /// For a non-static field "f" in a class "c(G)", generate:
     ///     // type axiom:
     ///     // If "G" is empty, then TClassA(G) is omitted from trigger.
@@ -275,7 +274,7 @@ namespace Microsoft.Dafny {
         var oDotF = new Bpl.NAryExpr(c.tok, new Bpl.FunctionCall(GetReadonlyField(f)), tyexprs);
         var is_hf = MkIs(oDotF, f.Type);              // $Is(h[o, f], ..)
         Bpl.Expr ax = bvsTypeAxiom.Count == 0 ? is_hf : BplForall(bvsTypeAxiom, BplTrigger(oDotF), is_hf);
-        sink.AddTopLevelDeclaration(new Bpl.Axiom(c.tok, BplImp(heightAntecedent, ax), string.Format("{0}.{1}: Type axiom", c, f)));
+        AddRootAxiom(new Bpl.Axiom(c.tok, BplImp(heightAntecedent, ax), string.Format("{0}.{1}: Type axiom", c, f)));
 
         if (CommonHeapUse || (NonGhostsUseHeap && !f.IsGhost)) {
           Bpl.Expr h;
@@ -284,7 +283,7 @@ namespace Microsoft.Dafny {
           var isGoodHeap = FunctionCall(c.tok, BuiltinFunction.IsGoodHeap, null, h);
           var isalloc_hf = MkIsAlloc(oDotF, f.Type, h); // $IsAlloc(h[o, f], ..)
           ax = BplForall(bvsAllocationAxiom, BplTrigger(isalloc_hf), BplImp(isGoodHeap, isalloc_hf));
-          sink.AddTopLevelDeclaration(new Bpl.Axiom(c.tok, BplImp(heightAntecedent, ax), string.Format("{0}.{1}: Allocation axiom", c, f)));
+          AddRootAxiom(new Bpl.Axiom(c.tok, BplImp(heightAntecedent, ax), string.Format("{0}.{1}: Allocation axiom", c, f)));
         }
 
       } else {
@@ -391,7 +390,7 @@ namespace Microsoft.Dafny {
         }
 
         Bpl.Expr ax = BplForall(bvsTypeAxiom, tr, BplImp(ante, is_hf));
-        sink.AddTopLevelDeclaration(new Bpl.Axiom(c.tok, BplImp(heightAntecedent, ax), string.Format("{0}.{1}: Type axiom", c, f)));
+        AddRootAxiom(new Bpl.Axiom(c.tok, BplImp(heightAntecedent, ax), string.Format("{0}.{1}: Type axiom", c, f)));
 
         if (isalloc_hf != null) {
           if (!is_array && !f.IsMutable) {
@@ -413,11 +412,11 @@ namespace Microsoft.Dafny {
           tr = new Bpl.Trigger(c.tok, true, t_es);
 
           ax = BplForall(bvsAllocationAxiom, tr, BplImp(ante, isalloc_hf));
-          sink.AddTopLevelDeclaration(new Bpl.Axiom(c.tok, BplImp(heightAntecedent, ax), string.Format("{0}.{1}: Allocation axiom", c, f)));
+          AddRootAxiom(new Bpl.Axiom(c.tok, BplImp(heightAntecedent, ax), string.Format("{0}.{1}: Allocation axiom", c, f)));
         }
       }
     }
-    
+
     private void AddImplementsAxioms(ClassDecl c)
     {
       //this adds: axiom implements$J(class.C, typeInstantiations);
@@ -432,7 +431,7 @@ namespace Microsoft.Dafny {
         }
         var expr = FunctionCall(c.tok, "implements$" + trait.FullSanitizedName, Bpl.Type.Bool, args);
         var implements_axiom = new Bpl.Axiom(c.tok, BplForall(vars, null, expr));
-        sink.AddTopLevelDeclaration(implements_axiom);
+        AddRootAxiom(implements_axiom);
       }
     }
     
@@ -466,7 +465,7 @@ namespace Microsoft.Dafny {
       }
       // for a function in a class C that overrides a function in a trait J, add an axiom that connects J.F and C.F
       if (f.OverriddenFunction != null) {
-        sink.AddTopLevelDeclaration(FunctionOverrideAxiom(f.OverriddenFunction, f));
+        AddRootAxiom(FunctionOverrideAxiom(f.OverriddenFunction, f));
       }
 
       // supply the connection between least/greatest predicates and prefix predicates
