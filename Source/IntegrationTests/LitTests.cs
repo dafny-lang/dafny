@@ -89,6 +89,7 @@ namespace IntegrationTests {
            .Concat(new[] {
              "DOTNET_CLI_HOME",
              "HOMEDRIVE", "HOMEPATH",
+             "LOCALAPPDATA",
              "APPDATA", "ProgramFiles", "ProgramFiles(x86)", "SystemRoot", "USERPROFILE"
            }).ToArray();
       } else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
