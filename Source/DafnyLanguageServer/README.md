@@ -63,3 +63,11 @@ Options provided through the command line have higher priority than the options 
 # Default: 0 (use half of the available virtual cores).
 --verifier:vcscores=0
 ```
+
+### Ghost Diagnostics
+
+```sh
+# Mark ghost statements
+# Default: true (mark the statements)
+--ghost:markStatements=true
+```
