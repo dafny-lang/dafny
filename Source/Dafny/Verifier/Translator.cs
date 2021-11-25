@@ -844,7 +844,7 @@ namespace Microsoft.Dafny {
       var bvs = new List<Variable>() { vVar };
       var isBv = MkIs(v, typeTerm);
       var tr = BplTrigger(isBv);
-      AddRootAxiom(new Bpl.Axiom(tok, new Bpl.ForallExpr(tok, bvs, tr, isBv)));
+      sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, new Bpl.ForallExpr(tok, bvs, tr, isBv)));
 
       // axiom (forall v: bv3, heap: Heap :: { $IsAlloc(v, TBitvector(3), h) } $IsAlloc(v, TBitvector(3), heap));
       vVar = BplBoundVar("v", boogieType, out v);
@@ -852,7 +852,7 @@ namespace Microsoft.Dafny {
       bvs = new List<Variable>() { vVar, heapVar };
       var isAllocBv = MkIsAlloc(v, typeTerm, heap);
       tr = BplTrigger(isAllocBv);
-      AddRootAxiom(new Bpl.Axiom(tok, new Bpl.ForallExpr(tok, bvs, tr, isAllocBv)));
+      sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, new Bpl.ForallExpr(tok, bvs, tr, isAllocBv)));
     }
 
     /// <summary>
@@ -981,7 +981,7 @@ namespace Microsoft.Dafny {
           Bpl.Expr.Lt(bv2nat, Bpl.Expr.Literal(BaseTypes.BigNum.FromBigInt(BigInteger.One << w)))),
           Bpl.Expr.Eq(bv2nat, smt_bv2nat));
         var ax = new Bpl.ForallExpr(tok, new List<Variable>() { bVar }, BplTrigger(bv2nat), body);
-        AddRootAxiom(new Bpl.Axiom(tok, ax));
+        sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, ax));
       }
     }
 
@@ -1059,7 +1059,7 @@ namespace Microsoft.Dafny {
             var tr = BplTrigger(isC);
             var body = BplImp(BplAnd(oNotNull, isC), isJ);
 
-            AddRootAxiom(new Bpl.Axiom(c.tok, new Bpl.ForallExpr(c.tok, bvs, tr, body)));
+            sink.AddTopLevelDeclaration(new Bpl.Axiom(c.tok, new Bpl.ForallExpr(c.tok, bvs, tr, body)));
 
             // axiom (forall T: Ty, $Heap: Heap, $o: ref ::
             //     { $IsAlloc($o, C(T), $Heap) }
@@ -1072,7 +1072,7 @@ namespace Microsoft.Dafny {
             bvs.Add(heapVar);
             tr = BplTrigger(isAllocC);
             body = BplImp(BplAnd(oNotNull, isAllocC), isAllocJ);
-            AddRootAxiom(new Bpl.Axiom(c.tok, new Bpl.ForallExpr(c.tok, bvs, tr, body)));
+            sink.AddTopLevelDeclaration(new Bpl.Axiom(c.tok, new Bpl.ForallExpr(c.tok, bvs, tr, body)));
           }
         }
       }
@@ -1918,11 +1918,11 @@ namespace Microsoft.Dafny {
         Contract.Assert(decs.Count <= allFormals.Count);
         if (0 < decs.Count && decs.Count < allFormals.Count) {
           ax = FunctionAxiom(f, body, decs);
-          sink.AddTopLevelDeclaration(ax);
+          AddRootAxiom(ax);
         }
 
         ax = FunctionAxiom(f, body, allFormals);
-        sink.AddTopLevelDeclaration(ax);
+        AddRootAxiom(ax);
       }
     }
 
@@ -3785,7 +3785,7 @@ namespace Microsoft.Dafny {
       var ax = new Bpl.ForallExpr(f.tok, new List<Bpl.TypeVariable>(), bvars, null, tr,
         Bpl.Expr.Imp(Bpl.Expr.And(wellFormed, Bpl.Expr.And(h0IsHeapAnchor, heapSucc)),
         Bpl.Expr.Imp(q0, eq)));
-      AddRootAxiom(new Bpl.Axiom(f.tok, ax, comment));
+      sink.AddTopLevelDeclaration(new Bpl.Axiom(f.tok, ax, comment));
     }
 
     Bpl.Expr InRWClause(IToken tok, Bpl.Expr o, Bpl.Expr f, List<FrameExpression> rw, ExpressionTranslator etran,
@@ -6706,7 +6706,8 @@ namespace Microsoft.Dafny {
           //   = [Box] F(Ty1, .., TyN, Layer, Heap, self, [Unbox] arg1, .., [Unbox] argN)
 
           var fhandle = FunctionCall(f.tok, name, predef.HandleType, SnocSelf(SnocPrevH(args)));
-          var lhs = FunctionCall(f.tok, Apply(arity), TrType(f.ResultType), Concat(tyargs, Cons(h, Cons(fhandle, lhs_args))));
+          var lhs = FunctionCall(f.tok, Apply(arity), TrType(f.ResultType),
+            Concat(tyargs, Cons(h, Cons(fhandle, lhs_args))));
           var args_h = AlwaysUseHeap || f.ReadsHeap ? Snoc(SnocPrevH(args), h) : args;
           var rhs = FunctionCall(f.tok, f.FullSanitizedName, TrType(f.ResultType), Concat(SnocSelf(args_h), rhs_args));
           var rhs_boxed = BoxIfUnboxed(rhs, f.ResultType);
@@ -6748,7 +6749,7 @@ namespace Microsoft.Dafny {
           var et = new ExpressionTranslator(this, predef, h);
           var rhs = InRWClause_Aux(f.tok, unboxBx, bx, null, f.Reads, false, et, selfExpr, rhs_dict);
 
-          AddRootAxiom(new Axiom(f.tok,
+          sink.AddTopLevelDeclaration(new Axiom(f.tok,
             BplForall(Cons(bxVar, Concat(vars, bvars)), BplTrigger(lhs), Bpl.Expr.Eq(lhs, rhs))));
         }
 
@@ -7021,7 +7022,7 @@ namespace Microsoft.Dafny {
 
             Func<Bpl.Expr, Bpl.Expr> fn = h => FunctionCall(tok, fname, Bpl.Type.Bool, Concat(types, Cons(h, Cons<Bpl.Expr>(f, boxes))));
 
-            AddRootAxiom(new Axiom(tok,
+            sink.AddTopLevelDeclaration(new Axiom(tok,
               BplForall(bvars,
                 new Bpl.Trigger(tok, true, new List<Bpl.Expr> { heapSucc, fn(h1) }),
                 BplImp(
@@ -7066,7 +7067,7 @@ namespace Microsoft.Dafny {
           var readsNothingOne = FunctionCall(tok, BuiltinFunction.SetEqual, null, readsOne, empty);
           var readsNothingH = FunctionCall(tok, BuiltinFunction.SetEqual, null, readsH, empty);
 
-          AddRootAxiom(new Axiom(tok, BplForall(bvars,
+          sink.AddTopLevelDeclaration(new Axiom(tok, BplForall(bvars,
             new Bpl.Trigger(tok, true, new List<Bpl.Expr> { readsOne, goodHeap },
             new Bpl.Trigger(tok, true, new List<Bpl.Expr> { readsH })),
             BplImp(
@@ -7107,7 +7108,7 @@ namespace Microsoft.Dafny {
           var requiresOne = FunctionCall(tok, Requires(arity), Bpl.Type.Bool, Concat(types, Cons(oneheap, Cons(f, boxes))));
           var requiresH = FunctionCall(tok, Requires(arity), Bpl.Type.Bool, Concat(types, Cons(h, Cons(f, boxes))));
 
-          AddRootAxiom(new Axiom(tok, BplForall(bvars,
+          sink.AddTopLevelDeclaration(new Axiom(tok, BplForall(bvars,
             new Bpl.Trigger(tok, true, new List<Bpl.Expr> { requiresOne, goodHeap },
             new Bpl.Trigger(tok, true, new List<Bpl.Expr> { requiresH })),
             BplImp(
@@ -7142,7 +7143,7 @@ namespace Microsoft.Dafny {
           var applied = FunctionCall(tok, Apply(ad.Arity), predef.BoxType, Concat(types, Cons(h, Cons<Bpl.Expr>(f, boxes))));
           var applied_is = MkIs(applied, types[ad.Arity], true);
 
-          AddRootAxiom(new Axiom(tok,
+          sink.AddTopLevelDeclaration(new Axiom(tok,
             BplForall(bvarsOuter, BplTrigger(Is),
               BplIff(Is,
                 BplForall(bvarsInner, BplTrigger(applied),
@@ -7183,7 +7184,7 @@ namespace Microsoft.Dafny {
           }
           body = BplAnd(body, Inner(typesT[arity], typesU[arity]));
           body = BplImp(body, IsU);
-          AddRootAxiom(new Axiom(tok,
+          sink.AddTopLevelDeclaration(new Axiom(tok,
             BplForall(bvarsOuter, new Bpl.Trigger(tok, true, new[] { IsT, IsU }), body)));
         }
         /*  This is the definition of $IsAlloc function the arrow type:
@@ -7228,7 +7229,7 @@ namespace Microsoft.Dafny {
           var rAlloc = IsAlloced(tok, h, r);
           var isAllocReads = BplForall(bvarsR, BplTrigger(rInReads), BplImp(BplAnd(rNonNull, rInReads), rAlloc));
 
-          AddRootAxiom(new Axiom(tok,
+          sink.AddTopLevelDeclaration(new Axiom(tok,
             BplForall(bvarsOuter, BplTrigger(isAlloc),
               BplImp(goodHeap,
                 BplIff(isAlloc, !CommonHeapUse ? Bpl.Expr.True :
@@ -7265,7 +7266,7 @@ namespace Microsoft.Dafny {
           var applied = FunctionCall(tok, Apply(ad.Arity), predef.BoxType, Concat(types, Cons(h, Cons<Bpl.Expr>(f, boxes))));
           var applied_isAlloc = MkIsAlloc(applied, types[ad.Arity], h, true);
 
-          AddRootAxiom(new Axiom(tok,
+          sink.AddTopLevelDeclaration(new Axiom(tok,
             BplForall(bvarsOuter, BplTrigger(isAlloc),
               BplImp(BplAnd(goodHeap, isAlloc),
                 BplForall(bvarsInner, BplTrigger(applied),
@@ -7351,10 +7352,12 @@ namespace Microsoft.Dafny {
           Bpl.Variable tyVarOut = BplFormalVar(null, predef.Ty, false);
           var injname = name + "_" + i;
           var injfunc = new Bpl.Function(tok, injname, Singleton(tyVarIn), tyVarOut);
+          sink.AddTopLevelDeclaration(injfunc);
           var outer = FunctionCall(tok, injname, args[i].TypedIdent.Type, inner);
           Bpl.Expr qq = BplForall(args, BplTrigger(inner), Bpl.Expr.Eq(outer, argExprs[i]));
-          AddRootAxiom(new Axiom(tok, qq, name + " injectivity " + i));
-          sink.AddTopLevelDeclaration(injfunc);
+          var injectivityAxiom = new Axiom(tok, qq, name + " injectivity " + i);
+          sink.AddTopLevelDeclaration(injectivityAxiom);
+          injfunc.AddOtherDefinitionAxiom(injectivityAxiom);
         });
       }
 
@@ -7396,7 +7399,7 @@ namespace Microsoft.Dafny {
       var box_is = MkIs(bx, typeTerm, true);
       var unbox_is = MkIs(unbox, typeTerm, false);
       var box_unbox = FunctionCall(tok, BuiltinFunction.Box, null, unbox);
-      AddRootAxiom(
+      sink.AddTopLevelDeclaration(
         new Axiom(tok,
           BplForall(Snoc(args, bxVar), BplTrigger(box_is),
             BplImp(box_is, BplAnd(Bpl.Expr.Eq(box_unbox, bx), unbox_is))),
@@ -7551,7 +7554,7 @@ namespace Microsoft.Dafny {
           Bpl.Expr body = Bpl.Expr.Le(Bpl.Expr.Literal(0), rhs);
           var trigger = BplTrigger(rhs);
           Bpl.Expr qq = new Bpl.ForallExpr(f.tok, new List<Variable> { oVar }, trigger, body);
-          AddRootAxiom(new Bpl.Axiom(f.tok, qq));
+          sink.AddTopLevelDeclaration(new Bpl.Axiom(f.tok, qq));
         }
       }
       return ff;

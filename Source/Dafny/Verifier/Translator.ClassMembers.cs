@@ -66,7 +66,7 @@ namespace Microsoft.Dafny {
           body = BplIff(is_o, rhs);
         }
 
-        AddRootAxiom(new Bpl.Axiom(c.tok, BplForall(vars, BplTrigger(is_o), body), name));
+        sink.AddTopLevelDeclaration(new Bpl.Axiom(c.tok, BplForall(vars, BplTrigger(is_o), body), name));
       });
 
       if (c is TraitDecl) {
@@ -191,7 +191,7 @@ namespace Microsoft.Dafny {
       this.fuelContext = oldFuelContext;
     }
 
-/// <summary>
+    /// <summary>
     /// For a non-static field "f" in a class "c(G)", generate:
     ///     // type axiom:
     ///     // If "G" is empty, then TClassA(G) is omitted from trigger.
