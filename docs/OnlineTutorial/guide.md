@@ -787,9 +787,6 @@ method Testing() {
 function max(a: int, b: int): int { ... }
 ```
 
-</div>
-
-
 One caveat of functions is that not only can they appear in
 annotations, they can only appear in annotations. One cannot write:
 
