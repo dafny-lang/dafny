@@ -2,7 +2,7 @@
 Dafny program verifier finished with 2 verified, 0 errors
 
 Dafny program verifier did not attempt verification
-DowncastDt.dfy(22,4): Error: compilation does not support downcasts for datatypes (converting from Co<X> to Co<Y>)
+DowncastDt.dfy(22,4): Error: compilation does not support downcasts involving copying for datatypes (like converting from Co<X> to Co<Y>)
 
 Dafny program verifier did not attempt verification
 Co.Co(_module.Y) and Co.Co(_module.Y)
