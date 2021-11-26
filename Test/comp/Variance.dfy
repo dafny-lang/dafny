@@ -104,7 +104,7 @@ class Int extends X {
 method Covariant() {
   var i := new Int.Int();
   var a: Co<Int> := Co(i);
-  var b: Co<X>; // compilation error: compilation does not support trait types as a type parameter; consider introducing a ghost
+  var b: Co<X>; // compilation error (java only): compilation does not support trait types as a type parameter; consider introducing a ghost
   b := a;
   print a, " and ", b, "\n";
 
@@ -129,7 +129,7 @@ method Invariant() {
 }
 
 method Contravariant() {
-  var a: Con<X> := Con(_ => 0);  // compilation error: compilation does not support trait types as a type parameter; consider introducing a ghost
+  var a: Con<X> := Con(_ => 0);  // compilation error (java only): compilation does not support trait types as a type parameter; consider introducing a ghost
   var b: Con<Int>;
   b := a;
   print a, " and ", b, "\n";
@@ -144,7 +144,7 @@ method Contravariant() {
 method CCovariant() {
   var i := new Int.Int();
   var a: CCo<Int> := CCo(i);
-  var b: CCo<X>; // compilation error: compilation does not support trait types as a type parameter; consider introducing a ghost
+  var b: CCo<X>; // compilation error (java only): compilation does not support trait types as a type parameter; consider introducing a ghost
   b := a;
   print a, " and ", b, "\n";
 
@@ -169,7 +169,7 @@ method CInvariant() {
 }
 
 method CContravariant() {
-  var a: CCon<X> := CCon(_ => 0); // compilation error: compilation does not support trait types as a type parameter; consider introducing a ghost
+  var a: CCon<X> := CCon(_ => 0); // compilation error (java only): compilation does not support trait types as a type parameter; consider introducing a ghost
   var b: CCon<Int>;
   b := a;
   print a, " and ", b, "\n";
