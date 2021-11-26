@@ -2905,7 +2905,6 @@ namespace Microsoft.Dafny {
 
       // ---------------------------------- Pass 2 ----------------------------------
       // This pass fills in various additional information.
-      // * Subset type in comprehensions have a compilable constraint 
       // * Postconditions and bodies of prefix lemmas
       // * Compute postconditions and statement body of prefix lemmas
       // * Perform the stratosphere check on inductive datatypes, and compute to what extent the inductive datatypes require equality support
@@ -18568,13 +18567,27 @@ namespace Microsoft.Dafny {
       string what = e.WhatKind;
 
       if (e is ForallExpr || e is ExistsExpr || e is SetComprehension || e is MapComprehension) {
-        foreach (var boundVar in e.BoundVars) {
+        for (var i = 0; i < e.BoundVars.Count(); i++) {
+          var boundVar = e.BoundVars[i];
+
           if (boundVar.Type.AsSubsetType is
           {
             Constraint: var constraint,
             ConstraintIsCompilable: false and var constraintIsCompilable
           } and var subsetTypeDecl
           ) {
+            if (i < e.Bounds.Count()) {
+              var bound = e.Bounds[i];
+              var boundVarType = boundVar.Type.NormalizeExpand(true);
+              if (bound is ComprehensionExpr.SetBoundedPool setBound) {
+                // TODO
+                if (setBound.CollectionElementType.AsSubsetType == subsetTypeDecl) {
+                  // No need to check here, it's the same type.
+                  continue;
+                }
+              }
+            }
+
             if (!subsetTypeDecl.CheckedIfConstraintIsCompilable) {
               // Builtin types were never resolved.
               constraintIsCompilable =
