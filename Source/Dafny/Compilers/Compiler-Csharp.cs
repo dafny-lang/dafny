@@ -1138,10 +1138,14 @@ namespace Microsoft.Dafny {
       var cl = udt.ResolvedClass;
       Contract.Assert(cl != null);
       if (cl is TypeParameter tp) {
-        if (constructTypeParameterDefaultsFromTypeDescriptors) {
-          return $"{FormatTypeDescriptorVariable(tp.CompileName)}.Default()";
+        if (tp.Characteristics.HasCompiledValue) {
+          if (constructTypeParameterDefaultsFromTypeDescriptors) {
+            return $"{FormatTypeDescriptorVariable(tp.CompileName)}.Default()";
+          } else {
+            return FormatDefaultTypeParameterValue(tp);
+          }
         } else {
-          return FormatDefaultTypeParameterValue(tp);
+          return TypeInitializationValue(type, wr, tok, true, constructTypeParameterDefaultsFromTypeDescriptors);
         }
       } else if (cl is OpaqueTypeDecl opaque) {
         return FormatDefaultTypeParameterValue(opaque);
