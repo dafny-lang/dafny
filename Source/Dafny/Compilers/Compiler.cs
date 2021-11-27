@@ -4126,7 +4126,9 @@ namespace Microsoft.Dafny {
         // only emit non-ghosts (we get here only for local variables introduced implicitly by call statements)
         return;
       }
-      DeclareLocalVar(IdName(v), v.Type, v.Tok, false, alwaysInitialize ? DefaultValue(v.Type, wr, v.Tok, true) : null, wr);
+
+      var use_tp = !(v.Type.IsTypeParameter) || v.Type.AsTypeParameter.Characteristics.HasCompiledValue;
+      DeclareLocalVar(IdName(v), v.Type, v.Tok, false, alwaysInitialize ? DefaultValue(v.Type, wr, v.Tok, use_tp) : null, wr);
     }
 
     ConcreteSyntaxTree MatchCasePrelude(string source, UserDefinedType sourceType, DatatypeCtor ctor, List<BoundVar> arguments, int caseIndex, int caseCount, ConcreteSyntaxTree wr) {
