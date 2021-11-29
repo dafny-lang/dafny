@@ -1,5 +1,5 @@
 // RUN: %dafny /compileTarget:cs "%s" > "%t"
-// RUN: dotnet CompileRunQuietly.dll >> "%t"
+// RUN: dotnet %S/CompileRunQuietly.dll >> "%t"
 
 // RUN: %dafny /compileTarget:js "%s" >> "%t"
 // RUN: node %S/CompileRunQuietly.js >> "%t"
@@ -11,7 +11,7 @@
 // RUN: java -cp %binaryDir/DafnyRuntime.jar:%S/CompileRunQuietly-java CompileRunQuietly >> "%t"
 
 // RUN: %dafny /compileTarget:cpp "%s" >> "%t"
-// RUN: CompileRunQuietly.exe >> "%t"
+// RUN: %S/CompileRunQuietly.exe >> "%t"
 
  // RUN: %diff "%s.expect" "%t"
 
