@@ -1884,7 +1884,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(f != null);
       Contract.Requires(body != null);
 
-      var ax = FunctionAxiom(f, body, null);
+      var ax = GetFunctionAxiom(f, body, null);
       AddRootAxiom(ax);
       // TODO(namin) Is checking f.Reads.Count==0 excluding Valid() of BinaryTree in the right way?
       //             I don't see how this in the decreasing clause would help there.
@@ -1917,11 +1917,11 @@ namespace Microsoft.Dafny {
 
         Contract.Assert(decs.Count <= allFormals.Count);
         if (0 < decs.Count && decs.Count < allFormals.Count) {
-          ax = FunctionAxiom(f, body, decs);
+          ax = GetFunctionAxiom(f, body, decs);
           AddRootAxiom(ax);
         }
 
-        ax = FunctionAxiom(f, body, allFormals);
+        ax = GetFunctionAxiom(f, body, allFormals);
         AddRootAxiom(ax);
       }
     }
@@ -2097,7 +2097,7 @@ namespace Microsoft.Dafny {
       Bpl.Expr ax = BplForall(f.tok, new List<Bpl.TypeVariable>(), formals, null, tr, Bpl.Expr.Imp(ante, post));
       var activate = AxiomActivation(f, etran);
       string comment = "consequence axiom for " + f.FullSanitizedName;
-      AddRootAxiom(new Bpl.Axiom(f.tok, Bpl.Expr.Imp(activate, ax), comment));
+      sink.AddTopLevelDeclaration(new Bpl.Axiom(f.tok, Bpl.Expr.Imp(activate, ax), comment));
 
       if (CommonHeapUse && !readsHeap) {
         whr = GetWhereClause(f.tok, funcAppl, f.ResultType, etranHeap, NOALLOC, true);
@@ -2107,7 +2107,7 @@ namespace Microsoft.Dafny {
           ante = BplAnd(ante, goodHeap);
           ax = BplForall(f.tok, new List<Bpl.TypeVariable>(), formals, null, BplTrigger(whr), Bpl.Expr.Imp(ante, whr));
           activate = AxiomActivation(f, etran);
-          AddRootAxiom(new Bpl.Axiom(f.tok, Bpl.Expr.Imp(activate, ax)));
+          sink.AddTopLevelDeclaration(new Bpl.Axiom(f.tok, Bpl.Expr.Imp(activate, ax)));
         }
       }
     }
@@ -2130,11 +2130,12 @@ namespace Microsoft.Dafny {
     /// The list of formals "lits" is allowed to contain an object of type ThisSurrogate, which indicates that
     /// the receiver parameter of the function should be included among the lit formals.
     /// </summary>
-    Bpl.Axiom FunctionAxiom(Function f, Expression/*?*/ body, List<Formal>/*?*/ lits) {
+    private Axiom GetFunctionAxiom(Function f, Expression body, List<Formal> lits)
+    {
       Contract.Requires(f != null);
       Contract.Requires(predef != null);
       Contract.Requires(f.EnclosingClass != null);
-      Contract.Ensures((Contract.Result<Bpl.Axiom>() == null) == (body == null));  // return null iff body is null
+      Contract.Ensures((Contract.Result<Axiom>() == null) == (body == null)); // return null iff body is null
 
       // This method generates the Definition Axiom, suitably modified according to the optional "lits".
       //
@@ -2192,6 +2193,7 @@ namespace Microsoft.Dafny {
       foreach (AttributedExpression e in f.Req) {
         readsHeap = readsHeap || UsesHeap(e.E);
       }
+
       if (body != null && UsesHeap(body)) {
         readsHeap = true;
       }
@@ -2204,9 +2206,9 @@ namespace Microsoft.Dafny {
           f.ReadsHeap ? new Bpl.IdentifierExpr(f.tok, predef.HeapVarName, predef.HeapType) : null,
           new Bpl.IdentifierExpr(f.tok, bvPrevHeap));
       } else {
-        etran = readsHeap ?
-          new ExpressionTranslator(this, predef, f.tok) :
-          new ExpressionTranslator(this, predef, (Bpl.Expr)null);
+        etran = readsHeap
+          ? new ExpressionTranslator(this, predef, f.tok)
+          : new ExpressionTranslator(this, predef, (Bpl.Expr)null);
       }
 
       // quantify over the type arguments, and add them first to the arguments
@@ -2238,21 +2240,25 @@ namespace Microsoft.Dafny {
         // ante:  $IsGoodHeap($prevHeap) &&
         ante = BplAnd(ante, FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, etran.Old.HeapExpr));
       }
+
       Bpl.Expr goodHeap = null;
       var bv = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, predef.HeapVarName, predef.HeapType));
       if (AlwaysUseHeap || f.ReadsHeap) {
         funcFormals.Add(bv);
       }
+
       if (AlwaysUseHeap || f.ReadsHeap) {
         args.Add(new Bpl.IdentifierExpr(f.tok, bv));
         reqFuncArguments.Add(new Bpl.IdentifierExpr(f.tok, bv));
       }
+
       // ante:  $IsGoodHeap($Heap) && $HeapSucc($prevHeap, $Heap) && this != null && formals-have-the-expected-types &&
       if (readsHeap) {
         forallFormals.Add(bv);
         goodHeap = FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, etran.HeapExpr);
         ante = BplAnd(ante, goodHeap);
       }
+
       if (f is TwoStateFunction && f.ReadsHeap) {
         ante = BplAnd(ante, HeapSucc(etran.Old.HeapExpr, etran.HeapExpr));
       }
@@ -2267,13 +2273,15 @@ namespace Microsoft.Dafny {
         if (lits != null && lits.Exists(p => p is ThisSurrogate)) {
           args.Add(Lit(bvThisIdExpr));
           var th = new ThisExpr(f);
-          var l = new UnaryOpExpr(f.tok, UnaryOpExpr.Opcode.Lit, th) {
+          var l = new UnaryOpExpr(f.tok, UnaryOpExpr.Opcode.Lit, th)
+          {
             Type = th.Type
           };
           receiverReplacement = l;
         } else {
           args.Add(bvThisIdExpr);
         }
+
         // add well-typedness conjunct to antecedent
         Type thisType = Resolver.GetReceiverType(f.tok, f);
         Bpl.Expr wh = Bpl.Expr.And(
@@ -2283,11 +2291,14 @@ namespace Microsoft.Dafny {
       }
 
       var typeMap = new Dictionary<TypeParameter, Type>();
-      var anteReqAxiom = ante;  // note that antecedent so far is the same for #requires axioms, even the receiver parameter of a two-state function
+      var
+        anteReqAxiom =
+          ante; // note that antecedent so far is the same for #requires axioms, even the receiver parameter of a two-state function
       var substMap = new Dictionary<IVariable, Expression>();
       foreach (Formal p in f.Formals) {
         var pType = Resolver.SubstType(p.Type, typeMap);
-        bv = new Bpl.BoundVariable(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(currentDeclaration.IdGenerator), TrType(pType)));
+        bv = new Bpl.BoundVariable(p.tok,
+          new Bpl.TypedIdent(p.tok, p.AssignUniqueName(currentDeclaration.IdGenerator), TrType(pType)));
         forallFormals.Add(bv);
         funcFormals.Add(bv);
         reqFuncArguments.Add(new Bpl.IdentifierExpr(f.tok, bv));
@@ -2295,24 +2306,32 @@ namespace Microsoft.Dafny {
         if (lits != null && lits.Contains(p) && !substMap.ContainsKey(p)) {
           args.Add(Lit(formal));
           var ie = new IdentifierExpr(p.tok, p.AssignUniqueName(f.IdGenerator));
-          ie.Var = p; ie.Type = ie.Var.Type;
+          ie.Var = p;
+          ie.Type = ie.Var.Type;
           var l = new UnaryOpExpr(p.tok, UnaryOpExpr.Opcode.Lit, ie);
           l.Type = ie.Var.Type;
           substMap.Add(p, l);
         } else {
           args.Add(formal);
         }
+
         // add well-typedness conjunct to antecedent
         Bpl.Expr wh = GetWhereClause(p.tok, formal, pType, p.IsOld ? etran.Old : etran, NOALLOC);
-        if (wh != null) { ante = BplAnd(ante, wh); }
+        if (wh != null) {
+          ante = BplAnd(ante, wh);
+        }
+
         wh = GetWhereClause(p.tok, formal, pType, etran, NOALLOC);
-        if (wh != null) { anteReqAxiom = BplAnd(anteReqAxiom, wh); }
+        if (wh != null) {
+          anteReqAxiom = BplAnd(anteReqAxiom, wh);
+        }
       }
 
       Bpl.Expr pre = Bpl.Expr.True;
       foreach (AttributedExpression req in f.Req) {
         pre = BplAnd(pre, etran.TrExpr(Substitute(req.E, receiverReplacement, substMap)));
       }
+
       var preReqAxiom = pre;
       if (f is TwoStateFunction) {
         // Checked preconditions that old parameters really existed in previous state
@@ -2323,8 +2342,10 @@ namespace Microsoft.Dafny {
             var dafnyFormalIdExpr = new IdentifierExpr(formal.tok, formal);
             preRA = BplAnd(preRA, MkIsAlloc(etran.TrExpr(dafnyFormalIdExpr), formal.Type, etran.Old.HeapExpr));
           }
+
           index++;
         }
+
         preReqAxiom = BplAnd(preRA, pre);
       }
 
@@ -2343,14 +2364,17 @@ namespace Microsoft.Dafny {
           BplForall(forallFormals, trig, BplImp(anteReqAxiom, Bpl.Expr.Eq(appl, preReqAxiom))),
           "#requires axiom for " + f.FullSanitizedName));
       }
+
       if (body == null || !RevealedInScope(f)) {
         return null;
       }
 
       // useViaContext: (mh != ModuleContextHeight || fh != FunctionContextHeight)
       ModuleDefinition mod = f.EnclosingClass.EnclosingModuleDefinition;
-      Bpl.Expr useViaContext = !InVerificationScope(f) ? (Bpl.Expr)Bpl.Expr.True :
-        Bpl.Expr.Neq(Bpl.Expr.Literal(mod.CallGraph.GetSCCRepresentativePredecessorCount(f)), etran.FunctionContextHeight());
+      Bpl.Expr useViaContext = !InVerificationScope(f)
+        ? (Bpl.Expr)Bpl.Expr.True
+        : Bpl.Expr.Neq(Bpl.Expr.Literal(mod.CallGraph.GetSCCRepresentativePredecessorCount(f)),
+          etran.FunctionContextHeight());
       // ante := (useViaContext && typeAnte && pre)
       ante = BplAnd(useViaContext, BplAnd(ante, pre));
 
@@ -2374,6 +2398,7 @@ namespace Microsoft.Dafny {
           //  funcArgs.Add(ly);
           //}
         }
+
         funcArgs.AddRange(args);
         funcAppl = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(funcID), funcArgs);
       }
@@ -2388,23 +2413,29 @@ namespace Microsoft.Dafny {
           var pp = (PrefixPredicate)f;
           bodyWithSubst = PrefixSubstitution(pp, bodyWithSubst);
         }
+
         Bpl.Expr ly = null;
         if (layer != null) {
           ly = new Bpl.IdentifierExpr(f.tok, layer);
-          if (lits != null) {   // Lit axiom doesn't consume any fuel
+          if (lits != null) {
+            // Lit axiom doesn't consume any fuel
             ly = LayerSucc(ly);
           }
         }
+
         var etranBody = layer == null ? etran : etran.LimitedFunctions(f, ly);
         var trbody = etranBody.TrExpr(bodyWithSubst);
         tastyVegetarianOption = BplAnd(CanCallAssumption(bodyWithSubst, etranBody),
           BplAnd(TrFunctionSideEffect(bodyWithSubst, etranBody), Bpl.Expr.Eq(funcAppl, trbody)));
       }
+
       QKeyValue kv = null;
       if (lits != null) {
         kv = new QKeyValue(f.tok, "weight", new List<object>() { Bpl.Expr.Literal(3) }, null);
       }
-      Bpl.Expr ax = BplForall(f.tok, new List<Bpl.TypeVariable>(), forallFormals, kv, tr, Bpl.Expr.Imp(ante, tastyVegetarianOption));
+
+      Bpl.Expr ax = BplForall(f.tok, new List<Bpl.TypeVariable>(), forallFormals, kv, tr,
+        Bpl.Expr.Imp(ante, tastyVegetarianOption));
       var activate = AxiomActivation(f, etran);
       string comment;
       comment = "definition axiom for " + f.FullSanitizedName;
@@ -2415,12 +2446,13 @@ namespace Microsoft.Dafny {
           comment += " for decreasing-related literals";
         }
       }
+
       if (RevealedInScope(f)) {
         comment += " (revealed)";
       } else {
         comment += " (opaque)";
       }
-      return new Bpl.Axiom(f.tok, Bpl.Expr.Imp(activate, ax), comment);
+      return new Axiom(f.tok, Bpl.Expr.Imp(activate, ax), comment);
     }
 
     Bpl.Type TrReceiverType(MemberDecl f) {
@@ -2874,12 +2906,12 @@ namespace Microsoft.Dafny {
         (Bpl.Expr)new Bpl.ExistsExpr(tok, new List<Variable> { k }, tr, kWhere == null ? prefixAppl : BplAnd(kWhere, prefixAppl));
       tr = BplTriggerHeap(this, tok, coAppl, AlwaysUseHeap || pp.ReadsHeap ? null : h);
       var allS = new Bpl.ForallExpr(tok, bvs, tr, BplImp(BplAnd(ante, coAppl), qqqK));
-      AddRootAxiom(new Bpl.Axiom(tok, Bpl.Expr.Imp(activation, allS),
+      sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, Bpl.Expr.Imp(activation, allS),
         "1st prefix predicate axiom for " + pp.FullSanitizedName));
 
       // forall args :: { P(args) } args-have-appropriate-values && (QQQ k :: 0 ATMOST k HHH P#[k](args)) ==> P(args)
       allS = new Bpl.ForallExpr(tok, bvs, tr, BplImp(BplAnd(ante, qqqK), coAppl));
-      AddRootAxiom(new Bpl.Axiom(tok, Bpl.Expr.Imp(activation, allS),
+      sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, Bpl.Expr.Imp(activation, allS),
         "2nd prefix predicate axiom"));
 
       // forall args,k :: args-have-appropriate-values && k == 0 ==> NNN P#0#[k](args)
@@ -2895,7 +2927,7 @@ namespace Microsoft.Dafny {
 
       var trigger = BplTriggerHeap(this, prefixLimitedBody.tok, prefixLimitedBody, AlwaysUseHeap || pp.ReadsHeap ? null : h);
       var trueAtZero = new Bpl.ForallExpr(tok, moreBvs, trigger, BplImp(BplAnd(ante, z), prefixLimited));
-      AddRootAxiom(new Bpl.Axiom(tok, Bpl.Expr.Imp(activation, trueAtZero),
+      sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, Bpl.Expr.Imp(activation, trueAtZero),
         "3rd prefix predicate axiom"));
 
 #if WILLING_TO_TAKE_THE_PERFORMANCE_HIT
@@ -2943,7 +2975,7 @@ namespace Microsoft.Dafny {
 
         var trigger3 = new Bpl.Trigger(tok, true, new List<Bpl.Expr> { prefixPred_K, kLessLimit, mLessLimit });
         var monotonicity = new Bpl.ForallExpr(tok, moreBvs, trigger3, BplImp(kLessM, direction));
-        AddRootAxiom(new Bpl.Axiom(tok, Bpl.Expr.Imp(activation, monotonicity),
+        sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, Bpl.Expr.Imp(activation, monotonicity),
           "targeted prefix predicate monotonicity axiom"));
       }
     }

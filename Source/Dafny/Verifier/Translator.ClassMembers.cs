@@ -18,7 +18,7 @@ namespace Microsoft.Dafny {
       sink.AddTopLevelDeclaration(GetClass(c));
       if (c is ArrayClassDecl) {
         // classes.Add(c, predef.ClassDotArray);
-        AddAllocationAxiom(null, (ArrayClassDecl)c, true);
+        AddAllocationAxiom(null, null, (ArrayClassDecl)c, true);
       }
 
       // Add $Is and $IsAlloc for this class :
@@ -66,7 +66,7 @@ namespace Microsoft.Dafny {
           body = BplIff(is_o, rhs);
         }
 
-        sink.AddTopLevelDeclaration(new Bpl.Axiom(c.tok, BplForall(vars, BplTrigger(is_o), body), name));
+        AddRootAxiom(new Boogie.Axiom(c.tok, BplForall(vars, BplTrigger(is_o), body), name));
       });
 
       if (c is TraitDecl) {
@@ -86,29 +86,28 @@ namespace Microsoft.Dafny {
         currentDeclaration = member;
         if (member is Field) {
           Field f = (Field)member;
+          Boogie.Declaration fieldDeclaration;
           if (f is ConstantField) {
             // The following call has the side effect of idempotently creating and adding the function to the sink's top-level declarations
             Contract.Assert(currentModule == null);
             currentModule = f.EnclosingClass.EnclosingModuleDefinition;
             var oldFuelContext = fuelContext;
             fuelContext = FuelSetting.NewFuelContext(f);
-            var boogieFunction = GetReadonlyField(f);
+            fieldDeclaration = GetReadonlyField(f);
             fuelContext = oldFuelContext;
             currentModule = null;
-            AddAllocationAxiom(f, c);
           } else {
             if (f.IsMutable) {
-              Bpl.Constant fc = GetField(f);
-              sink.AddTopLevelDeclaration(fc);
+              fieldDeclaration = GetField(f);
+              sink.AddTopLevelDeclaration(fieldDeclaration);
             } else {
-              Bpl.Function ff = GetReadonlyField(f);
-              if (ff != predef.ArrayLength) {
-                sink.AddTopLevelDeclaration(ff);
+              fieldDeclaration = GetReadonlyField(f);
+              if (fieldDeclaration != predef.ArrayLength) {
+                sink.AddTopLevelDeclaration(fieldDeclaration);
               }
             }
-            AddAllocationAxiom(f, c);
           }
-
+          AddAllocationAxiom(fieldDeclaration, f, c);
         } else if (member is Function function) {
           AddFunction_Top(function, includeAllMethods);
         } else if (member is Method method) {
@@ -245,7 +244,7 @@ namespace Microsoft.Dafny {
     ///         (h[o, alloc] ==> $IsAlloc(h[o, f], TT(TClassA_Inv_i(dtype(o)),..), h)) &&
     ///         $Is(h[o, f], TT(TClassA_Inv_i(dtype(o)),..), h);
     /// <summary>
-    void AddAllocationAxiom(Field f, TopLevelDeclWithMembers c, bool is_array = false) {
+    private void AddAllocationAxiom(Boogie.Declaration fieldDeclaration, Field f, TopLevelDeclWithMembers c, bool is_array = false) {
       Contract.Requires(c != null);
       // IFF you're adding the array axioms, then the field should be null
       Contract.Requires(is_array == (f == null));
@@ -265,34 +264,17 @@ namespace Microsoft.Dafny {
       var bvsAllocationAxiom = new List<Bpl.Variable>();
 
       // G
-      List<Bpl.Expr> tyexprs;
-      var tyvars = MkTyParamBinders(GetTypeParams(c), out tyexprs);
+      var tyvars = MkTyParamBinders(GetTypeParams(c), out var tyexprs);
       bvsTypeAxiom.AddRange(tyvars);
       bvsAllocationAxiom.AddRange(tyvars);
 
       if (f is ConstantField && f.IsStatic) {
-        var oDotF = new Bpl.NAryExpr(c.tok, new Bpl.FunctionCall(GetReadonlyField(f)), tyexprs);
-        var is_hf = MkIs(oDotF, f.Type);              // $Is(h[o, f], ..)
-        Bpl.Expr ax = bvsTypeAxiom.Count == 0 ? is_hf : BplForall(bvsTypeAxiom, BplTrigger(oDotF), is_hf);
-        AddRootAxiom(new Bpl.Axiom(c.tok, BplImp(heightAntecedent, ax), string.Format("{0}.{1}: Type axiom", c, f)));
-
-        if (CommonHeapUse || (NonGhostsUseHeap && !f.IsGhost)) {
-          Bpl.Expr h;
-          var hVar = BplBoundVar("$h", predef.HeapType, out h);
-          bvsAllocationAxiom.Add(hVar);
-          var isGoodHeap = FunctionCall(c.tok, BuiltinFunction.IsGoodHeap, null, h);
-          var isalloc_hf = MkIsAlloc(oDotF, f.Type, h); // $IsAlloc(h[o, f], ..)
-          ax = BplForall(bvsAllocationAxiom, BplTrigger(isalloc_hf), BplImp(isGoodHeap, isalloc_hf));
-          AddRootAxiom(new Bpl.Axiom(c.tok, BplImp(heightAntecedent, ax), string.Format("{0}.{1}: Allocation axiom", c, f)));
-        }
-
+        AddStaticConstFieldAllocationAxiom(fieldDeclaration, f, c, tyexprs, bvsTypeAxiom, heightAntecedent, bvsAllocationAxiom);
       } else {
         // This is the typical case (that is, f is not a static const field)
 
-        // h, o
-        Bpl.Expr h, o;
-        var hVar = BplBoundVar("$h", predef.HeapType, out h);
-        var oVar = BplBoundVar("$o", TrType(Resolver.GetThisType(c.tok, c)), out o);
+        var hVar = BplBoundVar("$h", predef.HeapType, out var h);
+        var oVar = BplBoundVar("$o", TrType(Resolver.GetThisType(c.tok, c)), out var o);
 
         // TClassA(G)
         Bpl.Expr o_ty = ClassTyCon(c, tyexprs);
@@ -412,8 +394,38 @@ namespace Microsoft.Dafny {
           tr = new Bpl.Trigger(c.tok, true, t_es);
 
           ax = BplForall(bvsAllocationAxiom, tr, BplImp(ante, isalloc_hf));
-          AddRootAxiom(new Bpl.Axiom(c.tok, BplImp(heightAntecedent, ax), string.Format("{0}.{1}: Allocation axiom", c, f)));
+          AddRootAxiom(new Boogie.Axiom(c.tok, BplImp(heightAntecedent, ax), $"{c}.{f}: Allocation axiom"));
         }
+      }
+    }
+
+    private void AddStaticConstFieldAllocationAxiom(Boogie.Declaration fieldDeclaration, Field f, TopLevelDeclWithMembers c,
+      List<Expr> tyexprs, List<Variable> bvsTypeAxiom, Expr heightAntecedent, List<Variable> bvsAllocationAxiom)
+    {
+      var oDotF = new Boogie.NAryExpr(c.tok, new Boogie.FunctionCall(GetReadonlyField(f)), tyexprs);
+      var is_hf = MkIs(oDotF, f.Type); // $Is(h[o, f], ..)
+      Boogie.Expr ax = bvsTypeAxiom.Count == 0 ? is_hf : BplForall(bvsTypeAxiom, BplTrigger(oDotF), is_hf);
+      var isAxiom = new Boogie.Axiom(c.tok, BplImp(heightAntecedent, ax), $"{c}.{f}: Type axiom");
+      switch (fieldDeclaration) {
+        case Boogie.Function boogieFunction:
+          boogieFunction.AddOtherDefinitionAxiom(isAxiom);
+          break;
+        case Boogie.Constant boogieConstant:
+          boogieConstant.DefinitionAxioms.Add(isAxiom);
+          break;
+        default: throw new ArgumentException("Field declaration must be a function or constant");
+      }
+      sink.AddTopLevelDeclaration(isAxiom);
+
+      if (CommonHeapUse || (NonGhostsUseHeap && !f.IsGhost)) {
+        Boogie.Expr h;
+        var hVar = BplBoundVar("$h", predef.HeapType, out h);
+        bvsAllocationAxiom.Add(hVar);
+        var isGoodHeap = FunctionCall(c.tok, BuiltinFunction.IsGoodHeap, null, h);
+        var isalloc_hf = MkIsAlloc(oDotF, f.Type, h); // $IsAlloc(h[o, f], ..)
+        ax = BplForall(bvsAllocationAxiom, BplTrigger(isalloc_hf), BplImp(isGoodHeap, isalloc_hf));
+        var isAllocAxiom = new Boogie.Axiom(c.tok, BplImp(heightAntecedent, ax), $"{c}.{f}: Allocation axiom");
+        sink.AddTopLevelDeclaration(isAllocAxiom);
       }
     }
 
@@ -460,12 +472,12 @@ namespace Microsoft.Dafny {
         AddFunctionAxiom(f, f.Body.Resolved);
       } else {
         // for body-less functions, at least generate its #requires function
-        var b = FunctionAxiom(f, null, null);
+        var b = GetFunctionAxiom(f, null, null);
         Contract.Assert(b == null);
       }
       // for a function in a class C that overrides a function in a trait J, add an axiom that connects J.F and C.F
       if (f.OverriddenFunction != null) {
-        AddRootAxiom(FunctionOverrideAxiom(f.OverriddenFunction, f));
+        sink.AddTopLevelDeclaration(FunctionOverrideAxiom(f.OverriddenFunction, f));
       }
 
       // supply the connection between least/greatest predicates and prefix predicates
