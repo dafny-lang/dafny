@@ -46,9 +46,6 @@ namespace Microsoft.Dafny {
         var body = Bpl.Expr.Imp(d_is, cases_body);
         var ax = BplForall(Snoc(tyvars, dVar), tr, body);
         var axiom = new Bpl.Axiom(dt.tok, ax, "Questionmark data type disjunctivity");
-        foreach (DatatypeCtor ctor in dt.Ctors) {
-          ctorFunctions[ctor].AddOtherDefinitionAxiom(axiom);
-        }
         sink.AddTopLevelDeclaration(axiom);
       }
 
