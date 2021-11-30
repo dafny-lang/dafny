@@ -524,7 +524,7 @@ namespace Microsoft.Dafny {
 
     private void CompileDatatypeInterfaceMembers(DatatypeDecl dt, ConcreteSyntaxTree interfaceTree) {
       foreach (var member in dt.Members) {
-        if (member.IsGhost || member.IsStatic) continue;
+        if (member.IsGhost || member.IsStatic) { continue; }
         if (member is Function fn && !NeedsCustomReceiver(member)) {
           CreateFunction(IdName(fn), CombineAllTypeArguments(fn), fn.Formals, fn.ResultType, fn.tok, fn.IsStatic,
             false, fn, interfaceTree, false, false);
@@ -552,20 +552,21 @@ namespace Microsoft.Dafny {
       if (!member.IsStatic && (member.EnclosingClass is IndDatatypeDecl || member.EnclosingClass is CoDatatypeDecl)) {
         DatatypeDecl d = member.EnclosingClass is IndDatatypeDecl ind ? ind : member.EnclosingClass as CoDatatypeDecl;
         foreach (var tp in d.TypeArgs) {
-          Predicate<Type> InvalidType = ty => ty.AsTypeParameter != null && ty.AsTypeParameter.Equals(tp)
-                                              || ty.TypeArgs.Exists(a => a.AsTypeParameter.Equals(tp));
+          Predicate<Type> InvalidType = null;
+          InvalidType = ty => (ty.AsTypeParameter != null && ty.AsTypeParameter.Equals(tp))
+                              || ty.TypeArgs.Exists(a => InvalidType(a));
           Predicate<Formal> InvalidFormal = f => !f.IsGhost && InvalidType(f.SyntacticType);
           switch (tp.Variance) {
             //Can only be in output
             case TypeParameter.TPVariance.Co:
               if (member is Function f && f.Formals.Exists(InvalidFormal)
-                  || member is Method m && m.Ins.Exists(InvalidFormal)) return true;
+                  || member is Method m && m.Ins.Exists(InvalidFormal)) { return true; }
               break;
             //Can only be in input
             case TypeParameter.TPVariance.Contra:
               if (member is Function fn && InvalidType(fn.ResultType)
                   || member is Method me && me.Outs.Exists(InvalidFormal)
-                  || member is ConstantField c && InvalidType(c.Type)) return true;
+                  || member is ConstantField c && InvalidType(c.Type)) { return true; }
               break;
           }
         }
@@ -2043,7 +2044,7 @@ namespace Microsoft.Dafny {
     protected override void EmitDatatypeValue(DatatypeValue dtv, string arguments, ConcreteSyntaxTree wr) {
       var dt = dtv.Ctor.EnclosingDatatype;
       var dtName = "";
-      if (!dt.EnclosingModuleDefinition.IsDefaultModule) dtName += IdProtect(dt.EnclosingModuleDefinition.CompileName) + ".";
+      if (!dt.EnclosingModuleDefinition.IsDefaultModule) { dtName += IdProtect(dt.EnclosingModuleDefinition.CompileName) + "."; }
       dtName += IdProtect(dt.CompileName);
 
       var nonGhostInferredTypeArgs = SelectNonGhost(dt, dtv.InferredTypeArgs);
