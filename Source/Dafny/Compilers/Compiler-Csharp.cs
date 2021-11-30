@@ -549,8 +549,7 @@ namespace Microsoft.Dafny {
     public override bool NeedsCustomReceiver(MemberDecl member) {
       Contract.Requires(member != null);
       //Dafny and C# have different ideas about variance, so not every datatype member can be in the interface.
-      if (!member.IsStatic && (member.EnclosingClass is IndDatatypeDecl || member.EnclosingClass is CoDatatypeDecl)) {
-        DatatypeDecl d = member.EnclosingClass is IndDatatypeDecl ind ? ind : member.EnclosingClass as CoDatatypeDecl;
+      if (!member.IsStatic && member.EnclosingClass is DatatypeDecl d) {
         foreach (var tp in d.TypeArgs) {
           Predicate<Type> InvalidType = null;
           InvalidType = ty => (ty.AsTypeParameter != null && ty.AsTypeParameter.Equals(tp))
@@ -2014,7 +2013,7 @@ namespace Microsoft.Dafny {
 
       //Use the interface if applicable (not handwritten, or incompatible variance)
       bool compileIt = true;
-      if ((cl is IndDatatypeDecl || cl is CoDatatypeDecl)
+      if ((cl is DatatypeDecl)
           && !ignoreInterface
           && (!Attributes.ContainsBool(cl.Attributes, "compile", ref compileIt) || compileIt)
           && (member is null || !NeedsCustomReceiver(member))) {
@@ -2187,7 +2186,7 @@ namespace Microsoft.Dafny {
           });
         } else if (NeedsCustomReceiver(member) && !(member.EnclosingClass is TraitDecl)) {
           // instance const in a newtype or belongs to a datatype
-          Contract.Assert(typeArgs.Count == 0 || member.EnclosingClass is IndDatatypeDecl || member.EnclosingClass is CoDatatypeDecl);
+          Contract.Assert(typeArgs.Count == 0 || member.EnclosingClass is DatatypeDecl);
           return SimpleLvalue(w => {
             w.Write("{0}.{1}(", TypeName_Companion(objType, w, member.tok, member), IdName(member));
             obj(w);
