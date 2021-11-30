@@ -343,12 +343,10 @@ namespace Microsoft.Dafny {
     }
     protected abstract string GenerateLhsDecl(string target, Type/*?*/ type, ConcreteSyntaxTree wr, Bpl.IToken tok);
 
-    protected virtual ConcreteSyntaxTree EmitAssignment(ILvalue wLhs, Type lhsType /*?*/, Type rhsType /*?*/,
-      ConcreteSyntaxTree wr, Bpl.IToken tok = null) {
+    protected virtual ConcreteSyntaxTree EmitAssignment(ILvalue wLhs, Type lhsType /*?*/, Type rhsType /*?*/, ConcreteSyntaxTree wr) {
       var w = wLhs.EmitWrite(wr);
-      if (tok == null) tok = Bpl.Token.NoToken;
-      w = EmitCoercionIfNecessary(rhsType, lhsType, tok, w);
-      w = EmitDowncastIfNecessary(rhsType, lhsType, tok, w);
+      w = EmitCoercionIfNecessary(rhsType, lhsType, Bpl.Token.NoToken, w);
+      w = EmitDowncastIfNecessary(rhsType, lhsType, Bpl.Token.NoToken, w);
       return w;
     }
 
@@ -2736,7 +2734,7 @@ namespace Microsoft.Dafny {
         } else {
           var lvalue = CreateLvalue(s.Lhs, wr);
           var wStmts = wr.Fork();
-          var wRhs = EmitAssignment(lvalue, TypeOfLhs(s.Lhs), TypeOfRhs(s.Rhs), wr, stmt.Tok);
+          var wRhs = EmitAssignment(lvalue, TypeOfLhs(s.Lhs), TypeOfRhs(s.Rhs), wr);
           TrRhs(s.Rhs, wRhs, wStmts);
         }
 
