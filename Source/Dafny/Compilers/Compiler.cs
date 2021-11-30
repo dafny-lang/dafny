@@ -1361,7 +1361,10 @@ namespace Microsoft.Dafny {
       mainMethod = null;
       bool hasMain = false;
       string name = DafnyOptions.O.MainMethod;
-      if (name != null && name == "-") return false;
+      if (name != null && name == "-") {
+        return false;
+      }
+
       if (name != null && name != "") {
         foreach (var module in program.CompileModules) {
           if (module.IsAbstract) {

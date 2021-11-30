@@ -396,7 +396,9 @@ namespace Microsoft.Dafny {
         var rhs = Substitute(letExpr.RHSs[0]);
         var body = Substitute(letExpr.Body);
         var newBounds = SubstituteBoundedPoolList(letExpr.Constraint_Bounds);
-        if (rhs == letExpr.RHSs[0] && body == letExpr.Body && newBounds == letExpr.Constraint_Bounds) return null;
+        if (rhs == letExpr.RHSs[0] && body == letExpr.Body && newBounds == letExpr.Constraint_Bounds) {
+          return null;
+        }
 
         // keep copies of the substitution maps so we can reuse them at desugaring time
         var newSubstMap = new Dictionary<IVariable, Expression>(substMap);
