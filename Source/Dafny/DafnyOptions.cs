@@ -841,8 +841,9 @@ $@"
 /definiteAssignment:<n>
     0 - ignores definite-assignment rules; this mode is for testing only--it is
         not sound
-    1 (default) - enforces definite-assignment rules for variables and fields
-        of types that do not support auto-initialization
+    1 (default) - enforces definite-assignment rules for compiled variables and fields
+        whose types do not support auto-initialization and for ghost variables
+        and fields whose type is possibly empty
     2 - enforces definite-assignment for all non-yield-parameter
         variables and fields, regardless of their types
     3 - like 2, but also performs checks in the compiler that no nondeterministic
