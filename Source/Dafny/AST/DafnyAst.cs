@@ -1045,6 +1045,24 @@ namespace Microsoft.Dafny {
       }
     }
 
+    // Returns true if it's possible to check that a value has this type at run-time.
+    public bool IsRuntimeTestable() {
+      // It might not be possible to do so if the constraint of this type uses ghost predicates
+      if (this.AsSubsetType is SubsetTypeDecl subsetTypeDecl && !subsetTypeDecl.IsConstraintCompilable) {
+        return false;
+      } else {
+        return true;
+      }
+    }
+
+    // Returns a parent of this type that can be tested at run time.
+    public Type GetRuntimeTestableType() {
+      if (this.AsSubsetType is SubsetTypeDecl subsetTypeDecl && !subsetTypeDecl.IsConstraintCompilable) {
+        return subsetTypeDecl.Var.Type.GetRuntimeTestableType();
+      }
+      return this;
+    }
+
     public CollectionType AsCollectionType { get { return NormalizeExpand() as CollectionType; } }
     public SetType AsSetType { get { return NormalizeExpand() as SetType; } }
     public MultiSetType AsMultiSetType { get { return NormalizeExpand() as MultiSetType; } }
@@ -5756,8 +5774,22 @@ namespace Microsoft.Dafny {
     public enum WKind { CompiledZero, Compiled, Ghost, OptOut, Special }
     public readonly SubsetTypeDecl.WKind WitnessKind;
     public readonly Expression/*?*/ Witness;  // non-null iff WitnessKind is Compiled or Ghost
-    public bool ConstraintIsCompilable; // Will be filled in by the Resolver
-    public bool CheckedIfConstraintIsCompilable = false; // Set to true lazily by the Resolver when the Resolver fills in "ConstraintIsCompilable".
+    bool ConstraintIsCompilable; // Will be filled in by the Resolver
+    bool CheckedIfConstraintIsCompilable = false; // Set to true lazily by the Resolver when the Resolver fills in "ConstraintIsCompilable".
+
+    public bool IsConstraintCompilable {
+      get {
+        if (!CheckedIfConstraintIsCompilable) {
+          // Builtin types were never resolved.
+          ConstraintIsCompilable =
+            ExpressionTester.CheckIsCompilable(null, Constraint, new CodeContextWrapper(this, true));
+          CheckedIfConstraintIsCompilable = true;
+        }
+
+        return ConstraintIsCompilable;
+      }
+    }
+
     public SubsetTypeDecl(IToken tok, string name, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, ModuleDefinition module,
       BoundVar id, Expression constraint, WKind witnessKind, Expression witness,
       Attributes attributes)
@@ -6012,7 +6044,7 @@ namespace Microsoft.Dafny {
         return compileName;
       }
     }
-    Type type;
+    protected Type type;
     public Type SyntacticType { get { return type; } }  // returns the non-normalized type
     public Type Type {
       get {
@@ -6137,6 +6169,20 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(type != null);
+    }
+
+    // To use only in special cases where the type is not the same for the term.
+    public void adjustType(Type adjustedType) {
+      typeForTerm = this.type;
+      this.type = adjustedType;
+    }
+
+    private Type typeForTerm;
+
+    Type TypeForTerm {
+      get {
+        return typeForTerm;
+      }
     }
   }
 
@@ -11210,6 +11256,7 @@ namespace Microsoft.Dafny {
   /// </summary>
   public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBearingExpression {
     public virtual string WhatKind => "comprehension";
+    // The bound vars might need a fix if they are assigned a type that cannot be compiled.
     public readonly List<BoundVar> BoundVars;
     public readonly Expression Range;
     private Expression term;

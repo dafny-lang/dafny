@@ -2682,9 +2682,6 @@ namespace Microsoft.Dafny {
           if (!CheckTypeInference_Visitor.IsDetermined(dd.Rhs.NormalizeExpand())) {
             reporter.Error(MessageSource.Resolver, dd.tok, "subset type's base type is not fully determined; add an explicit type for '{0}'", dd.Var.Name);
           }
-          dd.ConstraintIsCompilable = ExpressionTester.CheckIsCompilable(null, dd.Constraint, new CodeContextWrapper(dd, true));
-          dd.CheckedIfConstraintIsCompilable = true;
-
           scope.PopMarker();
           allTypeParameters.PopMarker();
         }
@@ -10140,6 +10137,12 @@ namespace Microsoft.Dafny {
       ScopePushAndReport(scope, v.Name, v, v.Tok, kind);
     }
 
+    void ScopePushNoReport(Scope<IVariable> scope, IVariable v) {
+      Contract.Requires(scope != null);
+      Contract.Requires(v != null);
+      scope.Push(v.Name, v);
+    }
+
     void ScopePushAndReport<Thing>(Scope<Thing> scope, string name, Thing thing, IToken tok, string kind) where Thing : class {
       Contract.Requires(scope != null);
       Contract.Requires(name != null);
@@ -15298,22 +15301,45 @@ namespace Microsoft.Dafny {
         var e = (SetComprehension)expr;
         int prevErrorCount = reporter.Count(ErrorLevel.Error);
         scope.PushMarker();
+        var oldBoundVariableTypes = new List<Type>();
+        //For the range, we need to assume that the bound vars have a run-time testable type.
+        foreach (BoundVar v in e.BoundVars) {
+          ResolveType(v.tok, v.Type, opts.codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+          // If the type can be tested at run time, we keep the same scope
+          // Else, the the scoped type is the upper type that can be tested.
+          if (!v.Type.IsRuntimeTestable()) {
+            v.adjustType(v.Type.GetRuntimeTestableType());
+          }
+          ScopePushNoReport(scope, v);
+          // TODO: Gather verification condition and verify it.
+        }
+        ResolveExpression(e.Range, opts);
+        Contract.Assert(e.Range.Type != null);  // follows from postcondition of ResolveExpression
+        ConstrainTypeExprBool(e.Range, "range of comprehension must be of type bool (instead got {0})");
+        ResolveAttributes(e.Attributes, e, opts);
+
+        scope.PopMarker();
+        scope.PushMarker();
+        // TODO: Swap the type for the term.
+        // For the term only, we can assume the inferred type which has to be proved later
         foreach (BoundVar v in e.BoundVars) {
           ScopePushAndReport(scope, v, "bound-variable");
-          ResolveType(v.tok, v.Type, opts.codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
           var inferredProxy = v.Type as InferredTypeProxy;
           if (inferredProxy != null) {
             Contract.Assert(!inferredProxy.KeepConstraints);  // in general, this proxy is inferred to be a base type
           }
         }
-        ResolveExpression(e.Range, opts);
-        Contract.Assert(e.Range.Type != null);  // follows from postcondition of ResolveExpression
-        ConstrainTypeExprBool(e.Range, "range of comprehension must be of type bool (instead got {0})");
         ResolveExpression(e.Term, opts);
         Contract.Assert(e.Term.Type != null);  // follows from postcondition of ResolveExpression
 
-        ResolveAttributes(e.Attributes, e, opts);
         scope.PopMarker();
+        // Discard old type inteference if this type cannot be tested at run-time.
+        for (var i = 0; i < newBoundVarTypes.Count(); i++) {
+          if (newBoundVarTypes[i] != null) {
+            e.BoundVars[i].adjustType(newBoundVarTypes[i]);
+          }
+        }
+
         expr.Type = new SetType(e.Finite, e.Term.Type);
 
       } else if (expr is MapComprehension) {
@@ -18434,6 +18460,7 @@ namespace Microsoft.Dafny {
     readonly List<string> names = new List<string>();  // a null means a marker
     [Rep]
     readonly List<Thing> things = new List<Thing>();
+
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(names != null);
@@ -18569,34 +18596,23 @@ namespace Microsoft.Dafny {
       if (e is ForallExpr || e is ExistsExpr || e is SetComprehension || e is MapComprehension) {
         for (var i = 0; i < e.BoundVars.Count(); i++) {
           var boundVar = e.BoundVars[i];
-
-          if (boundVar.Type.AsSubsetType is
-          {
-            Constraint: var constraint,
-            ConstraintIsCompilable: false and var constraintIsCompilable
-          } and var subsetTypeDecl
-          ) {
+          if (!boundVar.Type.IsRuntimeTestable()) {
             if (i < e.Bounds.Count()) {
               var bound = e.Bounds[i];
-              var boundVarType = boundVar.Type.NormalizeExpand(true);
               if (bound is ComprehensionExpr.SetBoundedPool setBound) {
-                // TODO
-                if (setBound.CollectionElementType.AsSubsetType == subsetTypeDecl) {
-                  // No need to check here, it's the same type.
+                if (setBound.CollectionElementType.IsSubtypeOf(setBound.BoundVariableType, false, false)) {
+                  // var bound: B = (collectionElement as A) where A is a subtype of B
+                  // No need to check here, these are compatible types, even if they are ghost
                   continue;
                 }
               }
             }
-
-            if (!subsetTypeDecl.CheckedIfConstraintIsCompilable) {
-              // Builtin types were never resolved.
-              constraintIsCompilable =
-                ExpressionTester.CheckIsCompilable(null, constraint, new CodeContextWrapper(subsetTypeDecl, true));
-              subsetTypeDecl.CheckedIfConstraintIsCompilable = true;
-              subsetTypeDecl.ConstraintIsCompilable = constraintIsCompilable;
-            }
-
-            if (!constraintIsCompilable) {
+            if (boundVar.Type.AsSubsetType is
+            {
+              Constraint: var constraint,
+              IsConstraintCompilable: false
+            } and var subsetTypeDecl
+            ) {
               // Explicitly report the error
               var showProvenance = constraint.tok.line != 0;
               this.resolver.Reporter.Error(MessageSource.Resolver, boundVar.tok,
@@ -18606,6 +18622,10 @@ namespace Microsoft.Dafny {
                 ExpressionTester.CheckIsCompilable(this.resolver, constraint,
                   new CodeContextWrapper(subsetTypeDecl, true));
               }
+            } else {
+              // Types that are not run-time testable will be redirected here in the future.
+              this.resolver.Reporter.Error(MessageSource.Resolver, boundVar.tok,
+                $"{boundVar.Type} is a type that cannot be tested at run-time, hence it cannot yet be used as the type of a bound variable in {what}.");
             }
           }
         }

@@ -4755,7 +4755,7 @@ namespace Microsoft.Dafny {
           {
             TypeArgs: var typeParametersArgs,
             Var: var var,
-            ConstraintIsCompilable: true,
+            IsConstraintCompilable: true,
             Constraint: var constraint
           }
         }) {
