@@ -1,5 +1,7 @@
 # More options for this file can be found on https://docs.microsoft.com/en-us/dotnet/fundamentals/code-analysis/code-style-rule-options?view=vs-2019
 
+root = true
+
 # C# files
 [*.cs]
 
@@ -21,6 +23,10 @@ end_of_line = lf
 csharp_new_line_before_open_brace = none
 csharp_new_line_before_catch = false
 csharp_new_line_before_else = false
+
+# Curly braces preferences
+csharp_prefer_braces = true:warning
+dotnet_diagnostic.IDE0011.severity = warning
 
 #### Naming rules
 
