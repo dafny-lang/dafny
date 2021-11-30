@@ -11738,7 +11738,12 @@ namespace Microsoft.Dafny {
         Type localType = rhsTypeConstraint;  // this is a type that is appropriate for capturing the value of the RHS
         var ty = TrType(localType);
         var nm = CurrentIdGenerator.FreshId("$rhs#");
-        Bpl.Expr wh = GetWhereClause(tok, new Bpl.IdentifierExpr(tok, nm, ty), localType, etran, NOALLOC);
+        Bpl.Expr wh;
+        if (rhs is HavocRhs && localType.IsNonempty) {
+          wh = GetWhereClause(tok, new Bpl.IdentifierExpr(tok, nm, ty), localType, etran, NOALLOC);
+        } else {
+          wh = null;
+        }
         var v = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, nm, ty, wh));
         locals.Add(v);
         bLhs = new Bpl.IdentifierExpr(tok, v);

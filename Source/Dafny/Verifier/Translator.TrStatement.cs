@@ -2007,9 +2007,7 @@ namespace Microsoft.Dafny {
             string nm = CurrentIdGenerator.FreshId("$rhs##");
             var formalOutType = Resolver.SubstType(s.Method.Outs[i].Type, tySubst);
             var ty = TrType(formalOutType);
-            Bpl.Expr wh = GetWhereClause(lhs.tok, new Bpl.IdentifierExpr(lhs.tok, nm, ty), formalOutType, etran,
-              isAllocContext.Var(s.IsGhost || s.Method.IsGhost, s.Method.Outs[i]));
-            Bpl.LocalVariable var = new Bpl.LocalVariable(lhs.tok, new Bpl.TypedIdent(lhs.tok, nm, ty, wh));
+            Bpl.LocalVariable var = new Bpl.LocalVariable(lhs.tok, new Bpl.TypedIdent(lhs.tok, nm, ty));
             locals.Add(var);
             bLhss[i] = new Bpl.IdentifierExpr(lhs.tok, var.Name, ty);
           }
