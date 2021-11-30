@@ -844,6 +844,10 @@ namespace Microsoft.Dafny {
               needDefiniteAssignmentTracking = true;
             }
           }
+          if (!local.Type.IsNonempty) {
+            // This prevents generating an unsatisfiable where clause for possibly empty types
+            needDefiniteAssignmentTracking = true;
+          }
           if (needDefiniteAssignmentTracking) {
             var defassExpr = AddDefiniteAssignmentTracker(local, locals);
             if (wh != null && defassExpr != null) {
