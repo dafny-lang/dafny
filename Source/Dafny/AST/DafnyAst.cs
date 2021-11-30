@@ -6171,18 +6171,24 @@ namespace Microsoft.Dafny {
       Contract.Requires(type != null);
     }
 
-    // To use only in special cases where the type is not the same for the term.
-    public void adjustType(Type adjustedType) {
-      typeForTerm = this.type;
-      this.type = adjustedType;
+    // To use only in special cases where the type is not the same for the range in comprehensions
+    private Type secondType = null;
+
+    public void ReplaceType(Type secondType = null) {
+      Contract.Assert(secondType != null || this.secondType != null);
+      //Contract.Assert(adjustedType.IsRuntimeTestable());
+      if (secondType == null && this.secondType != null) {
+        var tmp = this.type;
+        this.type = this.secondType;
+        this.secondType = tmp;
+      } else if (secondType != null) {
+        this.secondType = this.type;
+        this.type = secondType;
+      }
     }
 
-    private Type typeForTerm;
-
-    Type TypeForTerm {
-      get {
-        return typeForTerm;
-      }
+    public bool HasReplacementType() {
+      return this.secondType != null;
     }
   }
 

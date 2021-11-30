@@ -15308,7 +15308,7 @@ namespace Microsoft.Dafny {
           // If the type can be tested at run time, we keep the same scope
           // Else, the the scoped type is the upper type that can be tested.
           if (!v.Type.IsRuntimeTestable()) {
-            v.adjustType(v.Type.GetRuntimeTestableType());
+            v.ReplaceType(v.Type.GetRuntimeTestableType());
           }
           ScopePushNoReport(scope, v);
           // TODO: Gather verification condition and verify it.
@@ -15323,6 +15323,9 @@ namespace Microsoft.Dafny {
         // TODO: Swap the type for the term.
         // For the term only, we can assume the inferred type which has to be proved later
         foreach (BoundVar v in e.BoundVars) {
+          if (v.HasReplacementType()) {
+            v.ReplaceType(); // Reinstate the original type set by the user, only for the term.
+          }
           ScopePushAndReport(scope, v, "bound-variable");
           var inferredProxy = v.Type as InferredTypeProxy;
           if (inferredProxy != null) {
@@ -15334,9 +15337,9 @@ namespace Microsoft.Dafny {
 
         scope.PopMarker();
         // Discard old type inteference if this type cannot be tested at run-time.
-        for (var i = 0; i < newBoundVarTypes.Count(); i++) {
-          if (newBoundVarTypes[i] != null) {
-            e.BoundVars[i].adjustType(newBoundVarTypes[i]);
+        foreach (BoundVar v in e.BoundVars) {
+          if (v.HasReplacementType()) {
+            v.ReplaceType(); // Reinstate the original type set by the user just for the term.
           }
         }
 
