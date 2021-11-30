@@ -1918,11 +1918,11 @@ namespace Microsoft.Dafny {
     protected override string FullTypeName(UserDefinedType udt, MemberDecl/*?*/ member = null) {
       Contract.Assume(udt != null);  // precondition; this ought to be declared as a Requires in the superclass
       if (udt is ArrowType) return ArrowType.Arrow_FullCompileName;
-      
-      
-      
-      
-      
+
+
+
+
+
       if (member != null && member.IsExtern(out var qualification, out _) && qualification != null) {
         return qualification;
       }
