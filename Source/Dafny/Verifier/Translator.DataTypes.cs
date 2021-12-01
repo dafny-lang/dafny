@@ -417,20 +417,20 @@ namespace Microsoft.Dafny {
           definitionAxioms: definitionAxioms);
         Bpl.Expr constructorIdReference = new Bpl.IdentifierExpr(ctor.tok, constructorId);
         var constructorIdentifierAxiom = CreateConstructorIdentifierAxiom(ctor, constructorIdReference);
+        fn.AddOtherDefinitionAxiom(constructorIdentifierAxiom);
         definitionAxioms.Add(constructorIdentifierAxiom);
         sink.AddTopLevelDeclaration(constructorId);
         sink.AddTopLevelDeclaration(constructorIdentifierAxiom);
 
         {
           // Add:  function dt.ctor?(this: DatatypeType): bool { DatatypeCtorId(this) == ##dt.ctor }
-          fn = GetReadonlyField(ctor.QueryField);
-          sink.AddTopLevelDeclaration(fn);
+          var queryField = GetReadonlyField(ctor.QueryField);
+          sink.AddTopLevelDeclaration(queryField);
 
           // and here comes the associated axiom:
 
-          Bpl.Expr th;
-          var thVar = BplBoundVar("d", predef.DatatypeType, out th);
-          var queryPredicate = FunctionCall(ctor.tok, fn.Name, Bpl.Type.Bool, th);
+          var thVar = BplBoundVar("d", predef.DatatypeType, out var th);
+          var queryPredicate = FunctionCall(ctor.tok, queryField.Name, Bpl.Type.Bool, th);
           var ctorId = FunctionCall(ctor.tok, BuiltinFunction.DatatypeCtorId, null, th);
           var rhs = Bpl.Expr.Eq(ctorId, constructorIdReference);
           var body = Bpl.Expr.Iff(queryPredicate, rhs);
@@ -446,12 +446,9 @@ namespace Microsoft.Dafny {
 
       {
         // Add:  axiom (forall d: DatatypeType :: dt.ctor?(d) ==> (exists params :: d == #dt.ctor(params));
-        List<Bpl.Variable> bvs;
-        List<Bpl.Expr> args;
-        CreateBoundVariables(ctor.Formals, out bvs, out args);
+        CreateBoundVariables(ctor.Formals, out var bvs, out var args);
         Bpl.Expr rhs = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
-        Bpl.Expr dId;
-        var dBv = BplBoundVar("d", predef.DatatypeType, out dId);
+        var dBv = BplBoundVar("d", predef.DatatypeType, out var dId);
         Bpl.Expr q = Bpl.Expr.Eq(dId, rhs);
         if (bvs.Count != 0) {
           q = new Bpl.ExistsExpr(ctor.tok, bvs, null /*always in a Skolemization context*/, q);
