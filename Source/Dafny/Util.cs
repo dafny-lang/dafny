@@ -507,17 +507,26 @@ namespace Microsoft.Dafny {
 
     // Traverse methods retun true to interrupt.
     public bool Traverse(Program program) {
-      if (program == null) return false;
+      if (program == null) {
+        return false;
+      }
+
       return program.Modules().Any(Traverse);
     }
 
     public bool Traverse(ModuleDefinition moduleDefinition) {
-      if (moduleDefinition == null) return false;
+      if (moduleDefinition == null) {
+        return false;
+      }
+
       return Traverse(moduleDefinition.TopLevelDecls);
     }
 
     public bool Traverse(List<TopLevelDecl> topLevelDecls) {
-      if (topLevelDecls == null) return false;
+      if (topLevelDecls == null) {
+        return false;
+      }
+
       foreach (var topLevelDecl in topLevelDecls) {
         if (Traverse(topLevelDecl)) {
           return true;
@@ -528,7 +537,10 @@ namespace Microsoft.Dafny {
     }
 
     public bool Traverse(ModuleDecl moduleDecl) {
-      if (moduleDecl == null) return false;
+      if (moduleDecl == null) {
+        return false;
+      }
+
       if (moduleDecl is LiteralModuleDecl l) {
         return Traverse(l.ModuleDef);
       } else if (moduleDecl is AbstractModuleDecl a) {
@@ -543,7 +555,10 @@ namespace Microsoft.Dafny {
     }
 
     public bool Traverse(Formal formal) {
-      if (formal == null) return false;
+      if (formal == null) {
+        return false;
+      }
+
       if (formal.DefaultValue != null && Traverse(formal.DefaultValue, "DefaultValue", formal)) {
         return true;
       }
@@ -552,7 +567,10 @@ namespace Microsoft.Dafny {
     }
 
     public bool Traverse(DatatypeCtor ctor) {
-      if (ctor == null) return false;
+      if (ctor == null) {
+        return false;
+      }
+
       if (ctor.Formals.Any(Traverse)) {
         return true;
       }
@@ -561,7 +579,10 @@ namespace Microsoft.Dafny {
     }
 
     public bool Traverse(TopLevelDecl topd) {
-      if (topd == null) return false;
+      if (topd == null) {
+        return false;
+      }
+
       var d = topd is ClassDecl classDecl && classDecl.NonNullTypeDecl != null ? classDecl.NonNullTypeDecl : topd;
 
       if (d is TopLevelDeclWithMembers tdm) {
@@ -605,7 +626,9 @@ namespace Microsoft.Dafny {
           if (iter.YieldEnsures.Any(e => Traverse(e.E, "YieldEnsures.E", iter))) {
             return true;
           }
-          if (Traverse(iter.Body, "Body", iter)) return true;
+          if (Traverse(iter.Body, "Body", iter)) {
+            return true;
+          }
         }
 
         if (tdm is DatatypeDecl dtd) {
@@ -627,9 +650,15 @@ namespace Microsoft.Dafny {
     }
 
     public bool Traverse(MemberDecl memberDeclaration, [CanBeNull] string field, [CanBeNull] object parent) {
-      if (memberDeclaration == null) return false;
+      if (memberDeclaration == null) {
+        return false;
+      }
+
       var enterResult = OnEnter(memberDeclaration, field, parent);
-      if (enterResult is stop or skip) return enterResult == stop;
+      if (enterResult is stop or skip) {
+        return enterResult == stop;
+      }
+
       if (memberDeclaration is Field fi) {
         if (fi.SubExpressions.Any(expr => Traverse(expr, "SubExpressions", fi))) {
           return true;
@@ -653,10 +682,18 @@ namespace Microsoft.Dafny {
         if (f.Decreases.Expressions.Any(e => Traverse(e, "Decreases.Expressions", f))) {
           return true;
         }
-        if (Traverse(f.Body, "Body", f)) return true;
-        if (f.ByMethodDecl != null && Traverse(f.ByMethodDecl, "ByMethodDecl", f)) return true;
+        if (Traverse(f.Body, "Body", f)) {
+          return true;
+        }
+
+        if (f.ByMethodDecl != null && Traverse(f.ByMethodDecl, "ByMethodDecl", f)) {
+          return true;
+        }
+
         if (f.ByMethodDecl == null || f.ByMethodDecl.Body != f.ByMethodBody) {
-          if (f.ByMethodBody != null && Traverse(f.ByMethodBody, "ByMethodBody", f)) return true;
+          if (f.ByMethodBody != null && Traverse(f.ByMethodBody, "ByMethodBody", f)) {
+            return true;
+          }
         }
       } else if (memberDeclaration is Method m) {
         // For example, default value of formals is non-ghost
@@ -676,25 +713,39 @@ namespace Microsoft.Dafny {
         if (m.Decreases.Expressions.Any(e => Traverse(e, "Decreases.Expressions", m))) {
           return true;
         }
-        if (Traverse(m.Body, "Body", m)) return true;
+        if (Traverse(m.Body, "Body", m)) {
+          return true;
+        }
       }
 
       return false;
     }
 
     public virtual bool Traverse(Statement stmt, [CanBeNull] string field, [CanBeNull] object parent) {
-      if (stmt == null) return false;
+      if (stmt == null) {
+        return false;
+      }
+
       var enterResult = OnEnter(stmt, field, parent);
-      if (enterResult is stop or skip) return enterResult == stop;
+      if (enterResult is stop or skip) {
+        return enterResult == stop;
+      }
+
       return stmt.SubStatements.Any(subStmt => Traverse(subStmt, "SubStatements", stmt)) ||
              stmt.SubExpressions.Any(subExpr => Traverse(subExpr, "SubExpressions", stmt)) ||
              OnExit(stmt, field, parent);
     }
 
     public virtual bool Traverse(Expression expr, [CanBeNull] string field, [CanBeNull] object parent) {
-      if (expr == null) return false;
+      if (expr == null) {
+        return false;
+      }
+
       var enterResult = OnEnter(expr, field, parent);
-      if (enterResult is stop or skip) return enterResult == stop;
+      if (enterResult is stop or skip) {
+        return enterResult == stop;
+      }
+
       return expr.SubExpressions.Any(subExpr => Traverse(subExpr, "SubExpression", expr)) ||
              OnExit(expr, field, parent);
     }
@@ -748,7 +799,10 @@ namespace Microsoft.Dafny {
       } else if (expr is FunctionCallExpr callExpr) {
         if (callExpr.Function != null) {
           if (callExpr.Function.IsGhost) {
-            if (reportErrors == false) return false;
+            if (reportErrors == false) {
+              return false;
+            }
+
             string msg;
             if (callExpr.Function is TwoStateFunction || callExpr.Function is ExtremePredicate || callExpr.Function is PrefixPredicate) {
               msg = $"a call to a {callExpr.Function.WhatKind} is allowed only in specification contexts";
@@ -867,7 +921,10 @@ namespace Microsoft.Dafny {
       } else if (expr is ComprehensionExpr comprehensionExpr) {
         var uncompilableBoundVars = comprehensionExpr.UncompilableBoundVars();
         if (uncompilableBoundVars.Count != 0) {
-          if (reportErrors == false) return false;
+          if (reportErrors == false) {
+            return false;
+          }
+
           string what;
           if (comprehensionExpr is SetComprehension comprehension) {
             what = comprehension.Finite ? "set comprehensions" : "iset comprehensions";

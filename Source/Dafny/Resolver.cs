@@ -18546,7 +18546,9 @@ namespace Microsoft.Dafny {
     }
 
     public override bool Traverse(Expression expr, [CanBeNull] string field, [CanBeNull] object parent) {
-      if (expr == null) return false;
+      if (expr == null) {
+        return false;
+      }
       // Since we skipped ghost code, the code has to be compiled here. 
       if (expr is not ComprehensionExpr e) {
         return base.Traverse(expr, field, parent);
