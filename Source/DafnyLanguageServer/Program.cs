@@ -38,7 +38,7 @@ namespace Microsoft.Dafny.LanguageServer {
     }
 
     private static void InitializeLogger(IConfiguration configuration) {
-      // The environment variable is used so a log file can be explicitely created in the application dir.
+      // The environment variable is used so a log file can be explicitly created in the application dir.
       Environment.SetEnvironmentVariable("DAFNYLS_APP_DIR", Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location));
       Log.Logger = new LoggerConfiguration()
         .ReadFrom.Configuration(configuration)
