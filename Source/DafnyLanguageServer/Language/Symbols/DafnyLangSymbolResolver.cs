@@ -132,7 +132,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           case Function function:
             return ProcessFunction(scope, function);
           case Method method:
-            // TODO handle the constructors explicitely? The constructor is a sub-class of Method.
+            // TODO handle the constructors explicitly? The constructor is a sub-class of Method.
             return ProcessMethod(scope, method);
           case Field field:
             return ProcessField(scope, field);

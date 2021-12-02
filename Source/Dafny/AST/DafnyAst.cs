@@ -1141,6 +1141,14 @@ namespace Microsoft.Dafny {
         return udt?.ResolvedClass as TraitDecl;
       }
     }
+
+    public SubsetTypeDecl /*?*/ AsSubsetType {
+      get {
+        var std = NormalizeExpand(true) as UserDefinedType;
+        return std?.ResolvedClass as SubsetTypeDecl;
+      }
+    }
+
     public bool IsArrayType {
       get {
         return AsArrayType != null;
@@ -5712,6 +5720,8 @@ namespace Microsoft.Dafny {
     public enum WKind { CompiledZero, Compiled, Ghost, OptOut, Special }
     public readonly SubsetTypeDecl.WKind WitnessKind;
     public readonly Expression/*?*/ Witness;  // non-null iff WitnessKind is Compiled or Ghost
+    public bool ConstraintIsCompilable; // Will be filled in by the Resolver
+    public bool CheckedIfConstraintIsCompilable = false; // Set to true lazily by the Resolver when the Resolver fills in "ConstraintIsCompilable".
     public SubsetTypeDecl(IToken tok, string name, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, ModuleDefinition module,
       BoundVar id, Expression constraint, WKind witnessKind, Expression witness,
       Attributes attributes)
@@ -11224,12 +11234,11 @@ namespace Microsoft.Dafny {
       }
       public static List<VT> MissingBounds<VT>(List<VT> vars, List<BoundedPool> bounds, PoolVirtues requiredVirtues = PoolVirtues.None) where VT : IVariable {
         Contract.Requires(vars != null);
-        Contract.Requires(bounds != null);
-        Contract.Requires(vars.Count == bounds.Count);
+        Contract.Requires(bounds == null || vars.Count == bounds.Count);
         Contract.Ensures(Contract.Result<List<VT>>() != null);
         var missing = new List<VT>();
         for (var i = 0; i < vars.Count; i++) {
-          if (bounds[i] == null || (bounds[i].Virtues & requiredVirtues) != requiredVirtues) {
+          if (bounds == null || bounds[i] == null || (bounds[i].Virtues & requiredVirtues) != requiredVirtues) {
             missing.Add(vars[i]);
           }
         }
