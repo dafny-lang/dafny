@@ -675,6 +675,22 @@ namespace Microsoft.Dafny {
 
     /// <summary>
     /// Return the most constrained version of "this", getting to the bottom of proxies.
+    ///
+    /// Here is a description of the Normalize(), NormalizeExpandKeepConstraints(), and NormalizeExpand() methods:
+    /// * Any .Type field in the AST can, in general, be an AST node that is not really a type, but an AST node that has
+    ///   a field where the type is filled in, once the type has been inferred. Such "types" are called "type proxies".
+    ///   To follow a .Type (or other variable denoting a type) past its chain of type proxies, you call .Normalize().
+    ///   If you do this after type inference (more precisely, after the CheckTypeInference calls in Pass 1 of the
+    ///   Resolver), then you will get back a NonProxyType.
+    /// * That may not be enough. Even after calling .Normalize(), you may get a type that denotes a type synonym. If
+    ///   you compare it with, say, is SetType, you will get false if the type you're looking at is a type synonym for
+    ///   a SetType. Therefore, to go past both type proxies and type synonyms, you call .NormalizeExpandKeepConstraints().
+    /// * Actually, that may not be enough, either. Because .NormalizeExpandKeepConstraints() may return a subset type
+    ///   whose base type is what you're looking for. If you want to go all the way to the base type, then you should
+    ///   call .NormalizeExpand(). This is what is done most commonly when something is trying to look for a specific type.
+    /// * So, in conclusion: Usually you have to call .NormalizeExpand() on a type to unravel type proxies, type synonyms,
+    ///   and subset types. But in other places (in particular, in the verifier) where you want to know about any type
+    ///   constraints, then you call .NormalizeExpandKeepConstraints().
     /// </summary>
     public Type Normalize() {
       Contract.Ensures(Contract.Result<Type>() != null);
@@ -691,6 +707,8 @@ namespace Microsoft.Dafny {
 
     /// <summary>
     /// Return the type that "this" stands for, getting to the bottom of proxies and following type synonyms.
+    ///
+    /// For more documentation, see method Normalize(). 
     /// </summary>
     [Pure]
     public Type NormalizeExpand(bool keepConstraints = false) {
@@ -763,6 +781,8 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Return the type that "this" stands for, getting to the bottom of proxies and following type synonyms, but does
     /// not follow subset types.
+    ///
+    /// For more documentation, see method Normalize(). 
     /// </summary>
     [Pure]
     public Type NormalizeExpandKeepConstraints() {
