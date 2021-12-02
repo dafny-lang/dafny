@@ -49,7 +49,7 @@ jobs:
       run: dotnet build Source/Dafny.sln
     - name: Check whitespace and style
       working-directory: dafny
-      run: dotnet tool run dotnet-format -w -s warn --check Source/Dafny.sln --exclude Dafny/Scanner.cs --exclude Dafny/Parser.cs
+      run: dotnet tool run dotnet-format -w -s error --check Source/Dafny.sln --exclude Dafny/Scanner.cs --exclude Dafny/Parser.cs
       
   build:
     runs-on: ${{ matrix.os }}
