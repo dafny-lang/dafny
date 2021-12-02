@@ -811,7 +811,7 @@ namespace Microsoft.Dafny {
 
       public ConcreteSyntaxTree Writer(bool isStatic, bool createBody, MemberDecl/*?*/ member) {
         if (createBody) {
-          if (isStatic || member?.EnclosingClass is TraitDecl && NeedsCustomReceiver(member)) {
+          if (isStatic || (member?.EnclosingClass is TraitDecl && NeedsCustomReceiver(member))) {
             return StaticMemberWriter;
           }
         }
@@ -1941,8 +1941,8 @@ namespace Microsoft.Dafny {
 
     protected override void EmitThis(ConcreteSyntaxTree wr) {
       var custom =
-        enclosingMethod != null && enclosingMethod.IsTailRecursive ||
-        enclosingFunction != null && enclosingFunction.IsTailRecursive ||
+        (enclosingMethod != null && enclosingMethod.IsTailRecursive) ||
+        (enclosingFunction != null && enclosingFunction.IsTailRecursive) ||
         thisContext is NewtypeDecl ||
         thisContext is TraitDecl;
       wr.Write(custom ? "_this" : "this");
