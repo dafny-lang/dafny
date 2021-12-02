@@ -40,12 +40,10 @@ namespace Microsoft.Dafny {
           result.Append(elements[i]);
         }
       }
-
       return result;
     }
-
     public static ConcreteSyntaxTree ExprBlock(out ConcreteSyntaxTree body, string header = "", string footer = "") {
-      return Block(out body, header: header, footer: footer, open: BraceStyle.Space, close: BraceStyle.Nothing);
+      return Block(out body, header, footer, BraceStyle.Space, BraceStyle.Nothing);
     }
 
     public static ConcreteSyntaxTree Block(out ConcreteSyntaxTree body, string header = "", string footer = "",
@@ -63,33 +61,28 @@ namespace Microsoft.Dafny {
           outer.WriteLine();
           outer.WriteLine("{");
           break;
-        case BraceStyle.Nothing:
-          outer.WriteLine("{");
-          break;
         case BraceStyle.Pindent:
           outer.WriteLine();
           break;
+        case BraceStyle.Nothing:
+          outer.WriteLine("{");
+          break;
+
       }
 
 
       body = outer.Fork(1);
-
-      switch (close) {
-        case BraceStyle.Space:
-          outer.WriteLine("}");
+      switch (open) {
+        case BraceStyle.Pindent:
           break;
-        case BraceStyle.Newline:
-          outer.WriteLine("}");
-          break;
-        case BraceStyle.Nothing:
-          outer.WriteLine("}");
+        default:
+          outer.Write("}");
           break;
       }
 
       if (footer != "") {
         outer.Write(footer);
       }
-
       switch (close) {
         case BraceStyle.Space:
           outer.Write(" ");
@@ -101,7 +94,6 @@ namespace Microsoft.Dafny {
           outer.WriteLine();
           break;
       }
-
       return outer;
     }
   }
