@@ -779,8 +779,9 @@ namespace Microsoft.Dafny {
 
     // Don't verify modules which only contain other modules
     private static bool ShouldVerifyModule(ModuleDefinition m) {
-      if (!m.IsToBeVerified && !DafnyOptions.O.VerifyAllModules)
+      if (!m.IsToBeVerified && !DafnyOptions.O.VerifyAllModules) {
         return false;
+      }
 
       foreach (var top in m.TopLevelDecls) {
         if (top is DefaultClassDecl) {
@@ -2211,8 +2212,9 @@ namespace Microsoft.Dafny {
               sink.AddTopLevelDeclaration(fc);
             } else {
               Bpl.Function ff = GetReadonlyField(f);
-              if (ff != predef.ArrayLength)
+              if (ff != predef.ArrayLength) {
                 sink.AddTopLevelDeclaration(ff);
+              }
             }
             AddAllocationAxiom(f, c);
           }
@@ -10581,8 +10583,13 @@ namespace Microsoft.Dafny {
       foreach (var bound in bounds) {
         if (bound is ComprehensionExpr.IntBoundedPool) {
           var bnd = (ComprehensionExpr.IntBoundedPool)bound;
-          if (bnd.LowerBound != null) yield return bnd.LowerBound;
-          if (bnd.UpperBound != null) yield return Expression.CreateDecrement(bnd.UpperBound, 1);
+          if (bnd.LowerBound != null) {
+            yield return bnd.LowerBound;
+          }
+
+          if (bnd.UpperBound != null) {
+            yield return Expression.CreateDecrement(bnd.UpperBound, 1);
+          }
         } else if (bound is ComprehensionExpr.SubSetBoundedPool) {
           var bnd = (ComprehensionExpr.SubSetBoundedPool)bound;
           yield return bnd.UpperBound;
@@ -11483,14 +11490,20 @@ namespace Microsoft.Dafny {
     Bpl.Expr CheckDistinctness(Expression lhsa, Expression lhsb, ExpressionTranslator etran) {
       {
         if (lhsa is IdentifierExpr iea && lhsb is IdentifierExpr ieb) {
-          if (iea.Name != ieb.Name) return null;
+          if (iea.Name != ieb.Name) {
+            return null;
+          }
+
           return Bpl.Expr.False;
         }
       }
       {
         if (lhsa is MemberSelectExpr iea && lhsb is MemberSelectExpr ieb) {
           if (iea.Member is Field fa && ieb.Member is Field fb) {
-            if (fa != fb) return null;
+            if (fa != fb) {
+              return null;
+            }
+
             return Bpl.Expr.Neq(etran.TrExpr(iea.Obj), etran.TrExpr(ieb.Obj));
           }
         }

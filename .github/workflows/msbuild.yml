@@ -23,9 +23,6 @@ jobs:
     - name: Restore tools
       working-directory: dafny
       run: dotnet tool restore
-    - name: Check code style
-      working-directory: dafny
-      run: dotnet tool run dotnet-format -w --check Source/Dafny.sln --exclude Dafny/Scanner.cs --exclude Dafny/Parser.cs
     - name: Get XML
       id: boogieVersion
       uses: QwerMike/xpath-action@v1
@@ -50,6 +47,9 @@ jobs:
     - name: Build Dafny with local Boogie
       working-directory: dafny
       run: dotnet build Source/Dafny.sln
+    - name: Check whitespace and style
+      working-directory: dafny
+      run: dotnet tool run dotnet-format -w -s error --check Source/Dafny.sln --exclude Dafny/Scanner.cs --exclude Dafny/Parser.cs
       
   build:
     runs-on: ${{ matrix.os }}
