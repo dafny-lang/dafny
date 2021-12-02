@@ -1,7 +1,5 @@
-namespace Microsoft.Dafny
-{
-    class Main
-    {
+namespace Microsoft.Dafny {
+  class Main {
 
-    }
+  }
 }

@@ -1,7 +1,5 @@
-namespace MyModule2
-{
-    public class MyType
-    {
+namespace MyModule2 {
+  public class MyType {
 
-    }
+  }
 }
