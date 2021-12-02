@@ -58,8 +58,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private void AddInductiveDatatypeAxioms(IndDatatypeDecl dt)
-    {
+    private void AddInductiveDatatypeAxioms(IndDatatypeDecl dt) {
       var dtEqualName = dt.FullSanitizedName + "#Equal";
 
       // Add function Dt#Equal(DatatypeType, DatatypeType): bool;
@@ -145,8 +144,7 @@ namespace Microsoft.Dafny {
     }
 
     private void AddCoDatatypeDeclAxioms(CoDatatypeDecl codecl) {
-      Func<Bpl.Expr, Bpl.Expr> MinusOne = k =>
-      {
+      Func<Bpl.Expr, Bpl.Expr> MinusOne = k => {
         if (k == null) {
           return null;
         } else if (k.Type.IsInt) {
@@ -159,8 +157,7 @@ namespace Microsoft.Dafny {
 
       Action<Bpl.Type, Action<Tuple<List<Type>, List<Type>>, List<Bpl.Variable>, List<Bpl.Expr>, List<Bpl.Expr>,
         Bpl.Variable, Bpl.Expr, Bpl.Expr, Bpl.Expr, Bpl.Expr, Bpl.Expr, Bpl.Expr, Bpl.Expr, Bpl.Expr>> CoAxHelper =
-        (typeOfK, K) =>
-        {
+        (typeOfK, K) => {
           Func<string, List<TypeParameter>> renew = s =>
             Map(codecl.TypeArgs, tp =>
               new TypeParameter(tp.tok, tp.Name + "#" + s, tp.PositionalIndex, tp.Parent));
@@ -206,8 +203,7 @@ namespace Microsoft.Dafny {
           K(tyargs, vars, lexprs, rexprs, kVar, k, kIsValid, kIsNonZero, kHasSuccessor, kIsLimit, ly, d0, d1);
         };
 
-      Action<Bpl.Type> AddAxioms = typeOfK =>
-      {
+      Action<Bpl.Type> AddAxioms = typeOfK => {
         {
           // Add two copies of the type parameter lists!
           var args = MkTyParamFormals(Concat(GetTypeParams(codecl), GetTypeParams(codecl)), false);
@@ -239,8 +235,7 @@ namespace Microsoft.Dafny {
         //      (k != 0 && k.IsLimit ==>                        // for prefix equality only
         //        FullEq(G0, .., Gn, ly, d0.tail, d1.tail)))    // for prefix equality only
         CoAxHelper(typeOfK,
-          (tyargs, vars, lexprs, rexprs, kVar, k, kIsValid, kIsNonZero, kHasSuccessor, kIsLimit, ly, d0, d1) =>
-          {
+          (tyargs, vars, lexprs, rexprs, kVar, k, kIsValid, kIsNonZero, kHasSuccessor, kIsLimit, ly, d0, d1) => {
             var eqDt = CoEqualCall(codecl, lexprs, rexprs, k, LayerSucc(ly), d0, d1);
             var iss = BplAnd(MkIs(d0, ClassTyCon(codecl, lexprs)), MkIs(d1, ClassTyCon(codecl, rexprs)));
             var body = BplImp(
@@ -263,8 +258,7 @@ namespace Microsoft.Dafny {
         //      (Eq(G0, .., Gn, S(ly), k, d0, d1) <==>
         //       Eq(G0, .., Gn, ly, k, d0, d))
         CoAxHelper(typeOfK,
-          (tyargs, vars, lexprs, rexprs, kVar, k, kIsValid, kIsNonZero, kHasSuccessor, kIsLimit, ly, d0, d1) =>
-          {
+          (tyargs, vars, lexprs, rexprs, kVar, k, kIsValid, kIsNonZero, kHasSuccessor, kIsLimit, ly, d0, d1) => {
             var eqDtSL = CoEqualCall(codecl, lexprs, rexprs, k, LayerSucc(ly), d0, d1);
             var eqDtL = CoEqualCall(codecl, lexprs, rexprs, k, ly, d0, d1);
             var body = BplImp(kIsNonZero, BplIff(eqDtSL, eqDtL));
@@ -275,36 +269,35 @@ namespace Microsoft.Dafny {
 
       AddAxioms(null); // Add the above axioms for $Equal
 
-        // axiom (forall d0, d1: DatatypeType, k: int :: { $Equal(d0, d1) } :: Equal(d0, d1) <==> d0 == d1);
-        CoAxHelper(null, (tyargs, vars, lexprs, rexprs, kVar, k, kIsValid, kIsNonZero, kHasSuccessor, kIsLimit, ly, d0, d1) => {
-          var Eq = CoEqualCall(codecl, lexprs, rexprs, k, LayerSucc(ly), d0, d1);
-          var equal = Bpl.Expr.Eq(d0, d1);
-          AddRootAxiom(new Axiom(codecl.tok,
-            BplForall(vars, BplTrigger(Eq), BplIff(Eq, equal)),
-            "Equality for codatatypes"));
-        });
+      // axiom (forall d0, d1: DatatypeType, k: int :: { $Equal(d0, d1) } :: Equal(d0, d1) <==> d0 == d1);
+      CoAxHelper(null, (tyargs, vars, lexprs, rexprs, kVar, k, kIsValid, kIsNonZero, kHasSuccessor, kIsLimit, ly, d0, d1) => {
+        var Eq = CoEqualCall(codecl, lexprs, rexprs, k, LayerSucc(ly), d0, d1);
+        var equal = Bpl.Expr.Eq(d0, d1);
+        AddRootAxiom(new Axiom(codecl.tok,
+          BplForall(vars, BplTrigger(Eq), BplIff(Eq, equal)),
+          "Equality for codatatypes"));
+      });
 
-        Bpl.Type theTypeOfK = predef.BigOrdinalType;
-        AddAxioms(predef.BigOrdinalType); // Add the above axioms for $PrefixEqual
+      Bpl.Type theTypeOfK = predef.BigOrdinalType;
+      AddAxioms(predef.BigOrdinalType); // Add the above axioms for $PrefixEqual
 
-        // The connection between the full codatatype equality and its prefix version
-        // axiom (forall d0, d1: DatatypeType :: $Eq#Dt(d0, d1) <==>
-        //                                       (forall k: int :: 0 <= k ==> $PrefixEqual#Dt(k, d0, d1)));
-        CoAxHelper(theTypeOfK, (tyargs, vars, lexprs, rexprs, kVar, k, kIsValid, kIsNonZero, kHasSuccessor, kIsLimit, ly, d0, d1) => {
-          var Eq = CoEqualCall(codecl, lexprs, rexprs, null, LayerSucc(ly), d0, d1);
-          var PEq = CoEqualCall(codecl, lexprs, rexprs, k, LayerSucc(ly), d0, d1);
-          vars.Remove(kVar);
-          AddRootAxiom(new Axiom(codecl.tok,
-            BplForall(vars, BplTrigger(Eq), BplIff(Eq, BplForall(kVar, BplTrigger(PEq), BplImp(kIsValid, PEq)))),
-            "Coequality and prefix equality connection"));
-        });
+      // The connection between the full codatatype equality and its prefix version
+      // axiom (forall d0, d1: DatatypeType :: $Eq#Dt(d0, d1) <==>
+      //                                       (forall k: int :: 0 <= k ==> $PrefixEqual#Dt(k, d0, d1)));
+      CoAxHelper(theTypeOfK, (tyargs, vars, lexprs, rexprs, kVar, k, kIsValid, kIsNonZero, kHasSuccessor, kIsLimit, ly, d0, d1) => {
+        var Eq = CoEqualCall(codecl, lexprs, rexprs, null, LayerSucc(ly), d0, d1);
+        var PEq = CoEqualCall(codecl, lexprs, rexprs, k, LayerSucc(ly), d0, d1);
+        vars.Remove(kVar);
+        AddRootAxiom(new Axiom(codecl.tok,
+          BplForall(vars, BplTrigger(Eq), BplIff(Eq, BplForall(kVar, BplTrigger(PEq), BplImp(kIsValid, PEq)))),
+          "Coequality and prefix equality connection"));
+      });
       // In addition, the following special case holds for $Eq#Dt:
       // axiom (forall d0, d1: DatatypeType :: $Eq#Dt(d0, d1) <==
       //                                       (forall k: int :: 0 <= k ==> $PrefixEqual#Dt(ORD#FromNat(k), d0, d1)));
       if (!theTypeOfK.IsInt) {
         CoAxHelper(Bpl.Type.Int,
-          (tyargs, vars, lexprs, rexprs, kVar, k, kIsValid, kIsNonZero, kHasSuccessor, kIsLimit, ly, d0, d1) =>
-          {
+          (tyargs, vars, lexprs, rexprs, kVar, k, kIsValid, kIsNonZero, kHasSuccessor, kIsLimit, ly, d0, d1) => {
             var Eq = CoEqualCall(codecl, lexprs, rexprs, null, LayerSucc(ly), d0, d1);
             var PEq = CoEqualCall(codecl, lexprs, rexprs, FunctionCall(k.tok, "ORD#FromNat", predef.BigOrdinalType, k),
               LayerSucc(ly), d0, d1);
@@ -318,8 +311,7 @@ namespace Microsoft.Dafny {
       // A consequence of the definition of prefix equalities is the following:
       // axiom (forall k, m: int, d0, d1: DatatypeType :: 0 <= k <= m && $PrefixEq#Dt(m, d0, d1) ==> $PrefixEq#0#Dt(k, d0, d1));
       CoAxHelper(theTypeOfK,
-        (tyargs, vars, lexprs, rexprs, kVar, k, kIsValid, kIsNonZero, kHasSuccessor, kIsLimit, ly, d0, d1) =>
-        {
+        (tyargs, vars, lexprs, rexprs, kVar, k, kIsValid, kIsNonZero, kHasSuccessor, kIsLimit, ly, d0, d1) => {
           var m = BplBoundVar("m", k.Type, vars);
           var PEqK = CoEqualCall(codecl, lexprs, rexprs, k, LayerSucc(ly), d0, d1);
           var PEqM = CoEqualCall(codecl, lexprs, rexprs, m, LayerSucc(ly), d0, d1);
@@ -341,8 +333,7 @@ namespace Microsoft.Dafny {
       // provides a shortcut:
       // axiom (forall d0, d1: DatatypeType, k: int :: d0 == d1 && 0 <= k ==> $PrefixEqual#_module.Stream(k, d0, d1));
       CoAxHelper(theTypeOfK,
-        (tyargs, vars, lexprs, rexprs, kVar, k, kIsValid, kIsNonZero, kHasSuccessor, kIsLimit, ly, d0, d1) =>
-        {
+        (tyargs, vars, lexprs, rexprs, kVar, k, kIsValid, kIsNonZero, kHasSuccessor, kIsLimit, ly, d0, d1) => {
           var equal = Bpl.Expr.Eq(d0, d1);
           var PEq = CoEqualCall(codecl, lexprs, rexprs, k, LayerSucc(ly), d0, d1);
           var trigger = BplTrigger(PEq);
@@ -351,8 +342,7 @@ namespace Microsoft.Dafny {
         });
     }
 
-    private void AddDepthOneCaseSplitFunction(DatatypeDecl dt)
-    {
+    private void AddDepthOneCaseSplitFunction(DatatypeDecl dt) {
       // Add:
       //   function $IsA#Dt(G: Ty,d: DatatypeType): bool {
       //     Dt.Ctor0?(G, d) || Dt.Ctor1?(G, d) || ...
@@ -383,8 +373,7 @@ namespace Microsoft.Dafny {
       sink.AddTopLevelDeclaration(new Bpl.Axiom(dt.tok, ax, "Depth-one case-split axiom"));
     }
 
-    private Bpl.Function AddDataTypeConstructor(DatatypeDecl dt, DatatypeCtor ctor)
-    {
+    private Bpl.Function AddDataTypeConstructor(DatatypeDecl dt, DatatypeCtor ctor) {
       // Add:  function #dt.ctor(tyVars, paramTypes) returns (DatatypeType);
 
       List<Bpl.Variable> argTypes = new List<Bpl.Variable>();
@@ -655,8 +644,7 @@ namespace Microsoft.Dafny {
                   $IsAlloc[Box](x0, C0(G), H) && ... && $IsAlloc[Box](xn, Cn(G), H)));
         */
     private void AddIsAllocConstructorAxiom(DatatypeDecl dt, DatatypeCtor ctor, Bpl.Function ctorFunction,
-      List<Expr> args, List<Variable> bvs, NAryExpr c_params, Expr c_ty)
-    {
+      List<Expr> args, List<Variable> bvs, NAryExpr c_params, Expr c_ty) {
       var hVar = BplBoundVar("$h", predef.HeapType, out var h);
 
       Bpl.Expr conj = Bpl.Expr.True;
@@ -690,7 +678,7 @@ namespace Microsoft.Dafny {
          */
     private void AddDestructorAxiom(DatatypeDecl dt, DatatypeCtor ctor, Bpl.Function ctorFunction, List<Variable> tyvars, Expr c_ty) {
       if (!CommonHeapUse || AlwaysUseHeap) return;
-      
+
       var hVar = BplBoundVar("$h", predef.HeapType, out var h);
       for (int i = 0; i < ctor.Formals.Count; i++) {
         var arg = ctor.Formals[i];
@@ -741,8 +729,7 @@ namespace Microsoft.Dafny {
           $Is(C(x0,...,xn), T(G)) <==>
           $Is[Box](x0, C0(G)) && ... && $Is[Box](xn, Cn(G)));
       */
-    private void AddsIsConstructorAxiom(DatatypeCtor ctor, Bpl.Function ctorFunction, List<Expr> args, List<Variable> bvs, NAryExpr c_params, Expr c_ty)
-    {
+    private void AddsIsConstructorAxiom(DatatypeCtor ctor, Bpl.Function ctorFunction, List<Expr> args, List<Variable> bvs, NAryExpr c_params, Expr c_ty) {
       Bpl.Expr conj = Bpl.Expr.True;
       for (var i = 0; i < ctor.Formals.Count; i++) {
         var arg = ctor.Formals[i];
@@ -757,8 +744,7 @@ namespace Microsoft.Dafny {
       ctorFunction.AddOtherDefinitionAxiom(constructorIsAxiom);
     }
 
-    private Axiom CreateConstructorIdentifierAxiom(DatatypeCtor ctor, Expr c)
-    {
+    private Axiom CreateConstructorIdentifierAxiom(DatatypeCtor ctor, Expr c) {
       // Add:  axiom (forall params :: DatatypeCtorId(#dt.ctor(params)) == ##dt.ctor);
       List<Bpl.Variable> bvs;
       List<Bpl.Expr> args;

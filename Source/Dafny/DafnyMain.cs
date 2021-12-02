@@ -230,7 +230,7 @@ namespace Microsoft.Dafny {
       }
       return null; // Success
     }
-    
+
     public static bool BoogieOnce(string baseFile, string moduleName, Microsoft.Boogie.Program boogieProgram, string programId,
       out PipelineStatistics stats, out PipelineOutcome oc) {
       if (programId == null) {
@@ -268,7 +268,7 @@ namespace Microsoft.Dafny {
              && statistics.OutOfResourceCount == 0
              && statistics.OutOfMemoryCount == 0;
     }
-    
+
     /// <summary>
     /// Resolve, type check, infer invariants for, and verify the given Boogie program.
     /// The intention is that this Boogie program has been produced by translation from something

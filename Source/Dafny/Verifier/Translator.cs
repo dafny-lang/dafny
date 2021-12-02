@@ -1211,7 +1211,7 @@ namespace Microsoft.Dafny {
       currentModule = null;
       this.fuelContext = oldFuelContext;
     }
-    
+
     void AddRedirectingTypeDeclAxioms<T>(bool is_alloc, T dd, string fullName) where T : TopLevelDecl, RedirectingTypeDecl {
       Contract.Requires(dd != null);
       Contract.Requires(dd.Var != null && dd.Constraint != null);
@@ -1261,7 +1261,7 @@ namespace Microsoft.Dafny {
       AddRootAxiom(new Bpl.Axiom(dd.tok, BplForall(vars, BplTrigger(is_o), body), name));
     }
 
-    
+
 
     /// <summary>
     /// Return a sequence of expressions whose conjunction denotes a memberwise equality of "dt".  Recursive
@@ -2130,8 +2130,7 @@ namespace Microsoft.Dafny {
     /// The list of formals "lits" is allowed to contain an object of type ThisSurrogate, which indicates that
     /// the receiver parameter of the function should be included among the lit formals.
     /// </summary>
-    private Axiom GetFunctionAxiom(Function f, Expression body, List<Formal> lits)
-    {
+    private Axiom GetFunctionAxiom(Function f, Expression body, List<Formal> lits) {
       Contract.Requires(f != null);
       Contract.Requires(predef != null);
       Contract.Requires(f.EnclosingClass != null);
@@ -2273,8 +2272,7 @@ namespace Microsoft.Dafny {
         if (lits != null && lits.Exists(p => p is ThisSurrogate)) {
           args.Add(Lit(bvThisIdExpr));
           var th = new ThisExpr(f);
-          var l = new UnaryOpExpr(f.tok, UnaryOpExpr.Opcode.Lit, th)
-          {
+          var l = new UnaryOpExpr(f.tok, UnaryOpExpr.Opcode.Lit, th) {
             Type = th.Type
           };
           receiverReplacement = l;
@@ -7316,7 +7314,7 @@ namespace Microsoft.Dafny {
       var inner_name = GetClass(td).TypedIdent.Name;
       string name = "T" + inner_name;
 
-      Bpl.Function func; 
+      Bpl.Function func;
       // Create the type constructor
       if (td is ClassDecl cl && cl.IsObjectTrait) {
         func = null; // TODO assign func

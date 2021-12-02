@@ -129,7 +129,7 @@ method SomeMethod2(methodFormal: int) returns (result: bool)
     public void EqualProverLogWhenAddingUnrelatedProgram() {
 
       DafnyOptions.Install(new DafnyOptions());
-      CommandLineOptions.Clo.Parse(new [] {""});
+      CommandLineOptions.Clo.Parse(new[] { "" });
       CommandLineOptions.Clo.ProcsToCheck.Add("*SomeMethod");
       ExecutionEngine.printer = new ConsolePrinter(); // For boogie errors
 
@@ -143,9 +143,8 @@ method SomeMethod2(methodFormal: int) returns (result: bool)
       Assert.Single(logs);
       return logs[0];
     }
-    
-    private IEnumerable<string> GetProverLogsForProgram(IEnumerable<Microsoft.Boogie.Program> boogiePrograms)
-    {
+
+    private IEnumerable<string> GetProverLogsForProgram(IEnumerable<Microsoft.Boogie.Program> boogiePrograms) {
       string directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
       Directory.CreateDirectory(directory);
       var temp1 = directory + "/proverLog";
@@ -159,7 +158,7 @@ method SomeMethod2(methodFormal: int) returns (result: bool)
         }
       }
     }
-    
+
     ISet<string> UniqueNonCommentLines(string input) {
       return input.Split('\n').Where(line => !line.TrimStart().StartsWith("//")).ToHashSet();
     }

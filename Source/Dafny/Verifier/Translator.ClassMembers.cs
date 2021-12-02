@@ -8,7 +8,7 @@ using Bpl = Microsoft.Boogie;
 using static Microsoft.Dafny.Util;
 
 namespace Microsoft.Dafny {
-  public partial class Translator {    
+  public partial class Translator {
     void AddClassMembers(TopLevelDeclWithMembers c, bool includeAllMethods) {
       Contract.Requires(sink != null && predef != null);
       Contract.Requires(c != null);
@@ -400,8 +400,7 @@ namespace Microsoft.Dafny {
     }
 
     private void AddStaticConstFieldAllocationAxiom(Boogie.Declaration fieldDeclaration, Field f, TopLevelDeclWithMembers c,
-      List<Expr> tyexprs, List<Variable> bvsTypeAxiom, Expr heightAntecedent, List<Variable> bvsAllocationAxiom)
-    {
+      List<Expr> tyexprs, List<Variable> bvsTypeAxiom, Expr heightAntecedent, List<Variable> bvsAllocationAxiom) {
       var oDotF = new Boogie.NAryExpr(c.tok, new Boogie.FunctionCall(GetReadonlyField(f)), tyexprs);
       var is_hf = MkIs(oDotF, f.Type); // $Is(h[o, f], ..)
       Boogie.Expr ax = bvsTypeAxiom.Count == 0 ? is_hf : BplForall(bvsTypeAxiom, BplTrigger(oDotF), is_hf);
@@ -429,8 +428,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private void AddImplementsAxioms(ClassDecl c)
-    {
+    private void AddImplementsAxioms(ClassDecl c) {
       //this adds: axiom implements$J(class.C, typeInstantiations);
       var vars = MkTyParamBinders(GetTypeParams(c), out var tyexprs);
 
@@ -446,7 +444,7 @@ namespace Microsoft.Dafny {
         AddRootAxiom(implements_axiom);
       }
     }
-    
+
     private void AddClassMember_Function(Function f) {
       Contract.Ensures(currentModule == null && codeContext == null);
       Contract.Ensures(currentModule == null && codeContext == null);
