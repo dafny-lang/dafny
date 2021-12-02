@@ -23,7 +23,7 @@ namespace Microsoft.Dafny {
     public bool UseOptimizationInZ3 { get; set; }
 
     void AddRootAxiom(Axiom axiom) {
-      axiom.AddAttribute("root");
+      axiom.AddAttribute("include_dep");
       sink.AddTopLevelDeclaration(axiom);
     }
 
