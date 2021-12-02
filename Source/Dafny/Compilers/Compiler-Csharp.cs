@@ -442,7 +442,7 @@ namespace Microsoft.Dafny {
               var wGet = wDtor.NewBlock("get");
               if (dt.IsRecordType) {
                 if (dt is CoDatatypeDecl) {
-                    wGet.WriteLine($"return this._Get().{IdName(arg)};");
+                  wGet.WriteLine($"return this._Get().{IdName(arg)};");
                 } else {
                   wGet.WriteLine($"return this.{IdName(arg)};");
                 }
