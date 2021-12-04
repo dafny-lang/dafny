@@ -123,6 +123,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
       public override void Visit(Formal formal) {
         cancellationToken.ThrowIfCancellationRequested();
+        RegisterDesignator(currentScope, formal, formal.tok, formal.Name);
         RegisterTypeDesignator(currentScope, formal.Type);
         base.Visit(formal);
       }
@@ -154,6 +155,12 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       public override void Visit(FrameExpression frameExpression) {
         cancellationToken.ThrowIfCancellationRequested();
         RegisterDesignator(currentScope, frameExpression, frameExpression.tok, frameExpression.FieldName);
+      }
+
+      public override void Visit(IdentifierExpr identifierExpression) {
+        cancellationToken.ThrowIfCancellationRequested();
+        RegisterDesignator(currentScope, identifierExpression, identifierExpression.tok, identifierExpression.Name);
+        base.Visit(identifierExpression);
       }
 
       public override void Visit(LocalVariable localVariable) {
