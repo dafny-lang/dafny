@@ -675,6 +675,22 @@ namespace Microsoft.Dafny {
 
     /// <summary>
     /// Return the most constrained version of "this", getting to the bottom of proxies.
+    ///
+    /// Here is a description of the Normalize(), NormalizeExpandKeepConstraints(), and NormalizeExpand() methods:
+    /// * Any .Type field in the AST can, in general, be an AST node that is not really a type, but an AST node that has
+    ///   a field where the type is filled in, once the type has been inferred. Such "types" are called "type proxies".
+    ///   To follow a .Type (or other variable denoting a type) past its chain of type proxies, you call .Normalize().
+    ///   If you do this after type inference (more precisely, after the CheckTypeInference calls in Pass 1 of the
+    ///   Resolver), then you will get back a NonProxyType.
+    /// * That may not be enough. Even after calling .Normalize(), you may get a type that denotes a type synonym. If
+    ///   you compare it with, say, is SetType, you will get false if the type you're looking at is a type synonym for
+    ///   a SetType. Therefore, to go past both type proxies and type synonyms, you call .NormalizeExpandKeepConstraints().
+    /// * Actually, that may not be enough, either. Because .NormalizeExpandKeepConstraints() may return a subset type
+    ///   whose base type is what you're looking for. If you want to go all the way to the base type, then you should
+    ///   call .NormalizeExpand(). This is what is done most commonly when something is trying to look for a specific type.
+    /// * So, in conclusion: Usually you have to call .NormalizeExpand() on a type to unravel type proxies, type synonyms,
+    ///   and subset types. But in other places (in particular, in the verifier) where you want to know about any type
+    ///   constraints, then you call .NormalizeExpandKeepConstraints().
     /// </summary>
     public Type Normalize() {
       Contract.Ensures(Contract.Result<Type>() != null);
@@ -691,6 +707,8 @@ namespace Microsoft.Dafny {
 
     /// <summary>
     /// Return the type that "this" stands for, getting to the bottom of proxies and following type synonyms.
+    ///
+    /// For more documentation, see method Normalize(). 
     /// </summary>
     [Pure]
     public Type NormalizeExpand(bool keepConstraints = false) {
@@ -763,6 +781,8 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Return the type that "this" stands for, getting to the bottom of proxies and following type synonyms, but does
     /// not follow subset types.
+    ///
+    /// For more documentation, see method Normalize(). 
     /// </summary>
     [Pure]
     public Type NormalizeExpandKeepConstraints() {
@@ -3888,7 +3908,10 @@ namespace Microsoft.Dafny {
     public readonly string Name; // (Last segment of the) module name
     public string FullDafnyName {
       get {
-        if (EnclosingModule == null) return "";
+        if (EnclosingModule == null) {
+          return "";
+        }
+
         string n = EnclosingModule.FullDafnyName;
         return (n.Length == 0 ? n : (n + ".")) + DafnyName;
       }
@@ -4214,8 +4237,14 @@ namespace Microsoft.Dafny {
 
     public string FullDafnyName {
       get {
-        if (Name == "_module") return "";
-        if (Name == "_default") return EnclosingModuleDefinition.FullDafnyName;
+        if (Name == "_module") {
+          return "";
+        }
+
+        if (Name == "_default") {
+          return EnclosingModuleDefinition.FullDafnyName;
+        }
+
         string n = EnclosingModuleDefinition.FullDafnyName;
         return (n.Length == 0 ? n : (n + ".")) + Name;
       }
@@ -6904,7 +6933,10 @@ namespace Microsoft.Dafny {
     }
 
     public static LList<T> Append(LList<T> a, LList<T> b) {
-      if (a == null) return b;
+      if (a == null) {
+        return b;
+      }
+
       return new LList<T>(a.Data, Append(a.Next, b));
       // pretend this is ML
     }
@@ -8406,15 +8438,21 @@ namespace Microsoft.Dafny {
         Contract.Requires(other != null);
         var op1 = Op;
         var op2 = other.Op;
-        if (op1 == BinaryExpr.Opcode.Neq || op2 == BinaryExpr.Opcode.Neq)
+        if (op1 == BinaryExpr.Opcode.Neq || op2 == BinaryExpr.Opcode.Neq) {
           return op2 == BinaryExpr.Opcode.Eq;
-        if (op1 == op2)
+        }
+
+        if (op1 == op2) {
           return true;
-        if (LogicOp(op1) || LogicOp(op2))
+        }
+
+        if (LogicOp(op1) || LogicOp(op2)) {
           return op2 == BinaryExpr.Opcode.Eq ||
             (op1 == BinaryExpr.Opcode.Imp && op2 == BinaryExpr.Opcode.Iff) ||
             (op1 == BinaryExpr.Opcode.Exp && op2 == BinaryExpr.Opcode.Iff) ||
             (op1 == BinaryExpr.Opcode.Eq && op2 == BinaryExpr.Opcode.Iff);
+        }
+
         return op2 == BinaryExpr.Opcode.Eq ||
           (op1 == BinaryExpr.Opcode.Lt && op2 == BinaryExpr.Opcode.Le) ||
           (op1 == BinaryExpr.Opcode.Gt && op2 == BinaryExpr.Opcode.Ge);
@@ -10246,8 +10284,13 @@ namespace Microsoft.Dafny {
     public override IEnumerable<Expression> SubExpressions {
       get {
         yield return Seq;
-        if (E0 != null) yield return E0;
-        if (E1 != null) yield return E1;
+        if (E0 != null) {
+          yield return E0;
+        }
+
+        if (E1 != null) {
+          yield return E1;
+        }
       }
     }
   }
@@ -12881,12 +12924,22 @@ namespace Microsoft.Dafny {
     }
 
     public void Visit(SubsetTypeDecl ntd) {
-      if (ntd.Constraint != null) Visit(ntd.Constraint);
-      if (ntd.Witness != null) Visit(ntd.Witness);
+      if (ntd.Constraint != null) {
+        Visit(ntd.Constraint);
+      }
+
+      if (ntd.Witness != null) {
+        Visit(ntd.Witness);
+      }
     }
     public void Visit(NewtypeDecl ntd) {
-      if (ntd.Constraint != null) Visit(ntd.Constraint);
-      if (ntd.Witness != null) Visit(ntd.Witness);
+      if (ntd.Constraint != null) {
+        Visit(ntd.Constraint);
+      }
+
+      if (ntd.Witness != null) {
+        Visit(ntd.Witness);
+      }
     }
     public void Visit(Method method) {
       Visit(method.Req);

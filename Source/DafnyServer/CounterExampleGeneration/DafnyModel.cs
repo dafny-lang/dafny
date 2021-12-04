@@ -190,8 +190,10 @@ namespace DafnyServer.CounterexampleGeneration {
     /// </summary>
     private static string GetTrueName(Model.Element element) {
       string name = null;
-      if (element == null)
+      if (element == null) {
         return null;
+      }
+
       foreach (var funcTuple in element.Names) {
         if (funcTuple.Func.Arity != 0) {
           continue;

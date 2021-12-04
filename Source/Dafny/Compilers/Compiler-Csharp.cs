@@ -1473,7 +1473,10 @@ namespace Microsoft.Dafny {
 
     protected override void EmitHalt(Bpl.IToken tok, Expression/*?*/ messageExpr, ConcreteSyntaxTree wr) {
       wr.Write("throw new Dafny.HaltException(");
-      if (tok != null) wr.Write(SymbolDisplay.FormatLiteral(ErrorReporter.TokenToString(tok) + ": ", true) + " + ");
+      if (tok != null) {
+        wr.Write(SymbolDisplay.FormatLiteral(ErrorReporter.TokenToString(tok) + ": ", true) + " + ");
+      }
+
       TrExpr(messageExpr, wr, false);
       wr.WriteLine(");");
     }
@@ -1578,7 +1581,9 @@ namespace Microsoft.Dafny {
       string msg = null) {
       wr.Write($"{GetHelperModuleName()}.ToIntChecked(");
       TrExpr(expr, wr, inLetExprBody);
-      if (checkRange) wr.Write(msg == null ? ", null" : $", \"{msg}\")");
+      if (checkRange) {
+        wr.Write(msg == null ? ", null" : $", \"{msg}\")");
+      }
     }
 
     protected override void EmitNewArray(Type elmtType, Bpl.IToken tok, List<Expression> dimensions, bool mustInitialize, ConcreteSyntaxTree wr) {
@@ -1915,6 +1920,7 @@ namespace Microsoft.Dafny {
       if (udt is ArrowType) {
         return ArrowType.Arrow_FullCompileName;
       }
+
       if (member != null && member.IsExtern(out var qualification, out _) && qualification != null) {
         return qualification;
       }

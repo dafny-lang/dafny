@@ -899,8 +899,9 @@ namespace Microsoft.Dafny {
 
       foreach (var top in basem.TopLevelDecls) {
         var import = reverseMap[top] as AliasModuleDecl;
-        if (import == null)
+        if (import == null) {
           continue;
+        }
 
         var def = import.Signature.ModuleDef;
         if (def == null) {
