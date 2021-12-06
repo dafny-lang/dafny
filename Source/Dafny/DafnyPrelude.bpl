@@ -492,7 +492,9 @@ axiom (forall<A> f : [LayerType]A, ly : LayerType :: { AtLayer(f,$LS(ly)) } AtLa
 
 type Field alpha;
 
-function FDim<T>(Field T): int;
+function FDim<T>(Field T): int uses {
+  axiom FDim(alloc) == 0;
+}
 
 function IndexField(int): Field Box;
 axiom (forall i: int :: { IndexField(i) } FDim(IndexField(i)) == 1);
@@ -510,7 +512,9 @@ axiom (forall f: Field Box, i: int :: { MultiIndexField(f,i) }
 function DeclType<T>(Field T): ClassName;
 
 type NameFamily;
-function DeclName<T>(Field T): NameFamily;
+function DeclName<T>(Field T): NameFamily uses {
+  axiom DeclName(alloc) == allocName;
+}
 function FieldOfDecl<alpha>(ClassName, NameFamily): Field alpha;
 axiom (forall<T> cl : ClassName, nm: NameFamily ::
    {FieldOfDecl(cl, nm): Field T}
@@ -544,15 +548,14 @@ axiom (forall h, k : Heap, bx : Box, t : Ty ::
 
 const unique alloc: Field bool;
 const unique allocName: NameFamily;
-axiom {:root} FDim(alloc) == 0 &&
-  DeclName(alloc) == allocName;
 
 // ---------------------------------------------------------------
 // -- Arrays -----------------------------------------------------
 // ---------------------------------------------------------------
 
-function _System.array.Length(a: ref): int;
-axiom {:root} (forall o: ref :: 0 <= _System.array.Length(o));
+function _System.array.Length(a: ref): int uses {
+  axiom (forall o: ref :: 0 <= _System.array.Length(o));
+}
 
 // ---------------------------------------------------------------
 // -- Reals ------------------------------------------------------
@@ -578,8 +581,9 @@ var $Heap: Heap where $IsGoodHeap($Heap) && $IsHeapAnchor($Heap);
 // The following is used as a reference heap in places where the translation needs a heap
 // but the expression generated is really one that is (at least in a correct program)
 // independent of the heap.
-const $OneHeap: Heap;
-axiom {:root} $IsGoodHeap($OneHeap);
+const $OneHeap: Heap uses {
+  axiom $IsGoodHeap($OneHeap);
+}
 
 function $HeapSucc(Heap, Heap): bool;
 axiom (forall<alpha> h: Heap, r: ref, f: Field alpha, x: alpha :: { update(h, r, f, x) }
@@ -912,7 +916,9 @@ axiom (forall<T> s: Set T :: { MultiSet#Card(MultiSet#FromSet(s)) }
   MultiSet#Card(MultiSet#FromSet(s)) == Set#Card(s));
 
 // conversion to a multiset, from a sequence.
-function MultiSet#FromSeq<T>(Seq T): MultiSet T;
+function MultiSet#FromSeq<T>(Seq T): MultiSet T uses {
+  axiom (forall<T> :: MultiSet#FromSeq(Seq#Empty(): Seq T) == MultiSet#Empty(): MultiSet T);
+}
 // conversion produces a good map.
 axiom (forall<T> s: Seq T :: { MultiSet#FromSeq(s) } $IsGoodMultiSet(MultiSet#FromSeq(s)) );
 // cardinality axiom
@@ -924,7 +930,6 @@ axiom (forall<T> s: Seq T, v: T ::
   { MultiSet#FromSeq(Seq#Build(s, v)) }
     MultiSet#FromSeq(Seq#Build(s, v)) == MultiSet#UnionOne(MultiSet#FromSeq(s), v)
   );
-axiom {:root} (forall<T> :: MultiSet#FromSeq(Seq#Empty(): Seq T) == MultiSet#Empty(): MultiSet T);
 
 // concatenation axiom
 axiom (forall<T> a: Seq T, b: Seq T ::
