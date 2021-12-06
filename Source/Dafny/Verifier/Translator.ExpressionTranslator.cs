@@ -1292,8 +1292,8 @@ namespace Microsoft.Dafny {
           Boogie.Expr y = new Boogie.IdentifierExpr(expr.tok, yVar);
           Boogie.Expr lbody;
           if (e.TermIsSimple) {
-            // lambda y: BoxType :: CorrectType(y) && R[xs := yUnboxed]
             var bv = e.BoundVars[0];
+            // lambda y: BoxType :: CorrectType(y) && R[xs := yUnboxed]
             Boogie.Expr typeAntecedent = translator.MkIsBox(new Boogie.IdentifierExpr(expr.tok, yVar), bv.Type);
             if (freeOfAlloc != null && !freeOfAlloc[0]) {
               var isAlloc = translator.MkIsAlloc(new Boogie.IdentifierExpr(expr.tok, yVar), bv.Type, HeapExpr);
