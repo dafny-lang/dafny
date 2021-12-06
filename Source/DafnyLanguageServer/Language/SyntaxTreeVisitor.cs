@@ -450,6 +450,15 @@
         case ForallExpr forAllExpression:
           Visit(forAllExpression);
           break;
+        case ExistsExpr existsExpr:
+          Visit(existsExpr);
+          break;
+        case SetComprehension setComp:
+          Visit(setComp);
+          break;
+        case MapComprehension mapComp:
+          Visit(mapComp);
+          break;
         case NestedMatchExpr nestedMatchExpression:
           Visit(nestedMatchExpression);
           break;
@@ -508,6 +517,17 @@
     }
 
     public virtual void Visit(ComprehensionExpr comprehensionExpression) {
+      foreach (var boundVar in comprehensionExpression.BoundVars) {
+        Visit(boundVar);
+      }
+      VisitNullableAttributes(comprehensionExpression.Attributes);
+      VisitNullableExpression(comprehensionExpression.Range);
+      if (comprehensionExpression is not SetComprehension setComp || !setComp.TermIsImplicit) {
+        Visit(comprehensionExpression.Term);
+      }
+      if (comprehensionExpression is MapComprehension mapComp) {
+        Visit(mapComp.TermLeft);
+      }
     }
 
     public virtual void Visit(AttributedExpression attributedExpression) {
@@ -563,11 +583,6 @@
       Visit(ifThenElseExpression.Els);
     }
 
-    public virtual void Visit(ForallExpr forAllExpression) {
-      VisitNullableAttributes(forAllExpression.Attributes);
-      VisitNullableExpression(forAllExpression.Range);
-      Visit(forAllExpression.Term);
-    }
     public virtual void Visit(NestedMatchExpr nestedMatchExpression) {
       Visit(nestedMatchExpression.Source);
       foreach (var nestedMatchCaseExpression in nestedMatchExpression.Cases) {

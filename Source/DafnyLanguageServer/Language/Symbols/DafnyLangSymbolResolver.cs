@@ -218,6 +218,18 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       public override void Visit(LocalVariable localVariable) {
         block.Symbols.Add(new VariableSymbol(block, localVariable));
       }
+
+      public override void Visit(ComprehensionExpr compExpr) {
+        var comprehensionSymbol = new ComprehensionSymbol(block, compExpr);
+        foreach (var parameter in compExpr.BoundVars) {
+          comprehensionSymbol.BoundVars.Add(ProcessBoundVar(block, parameter));
+        }
+        block.Symbols.Add(comprehensionSymbol);
+      }
+
+      private static VariableSymbol ProcessBoundVar(Symbol scope, BoundVar formal) {
+        return new VariableSymbol(scope, formal);
+      }
     }
   }
 }

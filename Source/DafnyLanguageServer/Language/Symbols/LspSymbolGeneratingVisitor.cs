@@ -64,6 +64,10 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       return CreateSymbolsOfEntryDocument(variableSymbol, variableSymbol.Declaration.Tok, SymbolKind.Variable);
     }
 
+    public IEnumerable<DocumentSymbol> Visit(ComprehensionSymbol comprehensionSymbol) {
+      return comprehensionSymbol.BoundVars.SelectMany(Visit);
+    }
+
     public IEnumerable<DocumentSymbol> Visit(ScopeSymbol scopeSymbol) {
       return scopeSymbol.Children.SelectMany(Visit);
     }

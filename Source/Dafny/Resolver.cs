@@ -6809,18 +6809,15 @@ namespace Microsoft.Dafny {
             }
           }
           // apply bounds discovery to quantifiers, finite sets, and finite maps
-          string what = null;
+          string what = e.WhatKind;
           Expression whereToLookForBounds = null;
           var polarity = true;
           if (e is QuantifierExpr quantifierExpr) {
-            what = "quantifier";
             whereToLookForBounds = quantifierExpr.LogicalBody();
             polarity = quantifierExpr is ExistsExpr;
           } else if (e is SetComprehension setComprehension) {
-            what = "set comprehension";
             whereToLookForBounds = setComprehension.Range;
           } else if (e is MapComprehension) {
-            what = "map comprehension";
             whereToLookForBounds = e.Range;
           } else {
             Contract.Assume(e is LambdaExpr);  // otherwise, unexpected ComprehensionExpr
@@ -18554,20 +18551,9 @@ namespace Microsoft.Dafny {
         return base.Traverse(expr, field, parent);
       }
 
-      string what;
-      if (e is ForallExpr) {
-        what = "forall expression";
-      } else if (e is ExistsExpr) {
-        what = "exists expression";
-      } else if (e is SetComprehension) {
-        what = "set comprehension";
-      } else if (e is MapComprehension) {
-        what = "map comprehension";
-      } else {
-        what = "comprehension";
-      }
+      string what = e.WhatKind;
 
-      if (what != "comprehension") { // should not apply for functions
+      if (e is ForallExpr || e is ExistsExpr || e is SetComprehension || e is MapComprehension) {
         foreach (var boundVar in e.BoundVars) {
           if (boundVar.Type.AsSubsetType is
           {

@@ -115,6 +115,11 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         ProcessNestedScope(function, function.tok, () => base.Visit(function));
       }
 
+      public override void Visit(ComprehensionExpr compExpr) {
+        cancellationToken.ThrowIfCancellationRequested();
+        ProcessNestedScope(compExpr, compExpr.tok, () => base.Visit(compExpr));
+      }
+
       public override void Visit(Field field) {
         cancellationToken.ThrowIfCancellationRequested();
         RegisterTypeDesignator(currentScope, field.Type);
@@ -126,6 +131,13 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         RegisterDesignator(currentScope, formal, formal.tok, formal.Name);
         RegisterTypeDesignator(currentScope, formal.Type);
         base.Visit(formal);
+      }
+
+      public override void Visit(NonglobalVariable variable) {
+        cancellationToken.ThrowIfCancellationRequested();
+        RegisterDesignator(currentScope, variable, variable.tok, variable.Name);
+        RegisterTypeDesignator(currentScope, variable.Type);
+        base.Visit(variable);
       }
 
       public override void Visit(BlockStmt blockStatement) {
@@ -337,6 +349,18 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           variableSymbol.Declaration.Tok.GetLspRange()
         );
         VisitChildren(variableSymbol);
+        return Unit.Value;
+      }
+
+      public Unit Visit(ComprehensionSymbol comprehensionSymbol) {
+        cancellationToken.ThrowIfCancellationRequested();
+        RegisterLocation(
+          comprehensionSymbol,
+          comprehensionSymbol.Declaration.tok,
+          comprehensionSymbol.Declaration.tok.GetLspRange(),
+          comprehensionSymbol.Declaration.tok.GetLspRange()
+        );
+        VisitChildren(comprehensionSymbol);
         return Unit.Value;
       }
 
