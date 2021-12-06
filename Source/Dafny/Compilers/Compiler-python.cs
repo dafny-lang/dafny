@@ -543,7 +543,7 @@ namespace Microsoft.Dafny {
       if (runAfterCompile) {
         Contract.Assert(callToMain != null); // this is part of the contract of CompileTargetProgram
         // Since the program is to be run soon, nothing further is done here. Any compilation errors (that is, any errors
-        // in the emitted program--this should never happen if the compiler itself is correct) will be reported as 'node'
+        // in the emitted program--this should never happen if the compiler itself is correct) will be reported as 'python'
         // will run the program.
         return true;
       } else {
