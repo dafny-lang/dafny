@@ -65,7 +65,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       var symbolsAtPosition = LookupTree.Query(position);
       // TODO: Figure out why duplication crashes SingleOrDefault before using FirstOrDefault 
       // Use case: function f(a: int) {}, and hover over a.
-      symbol = symbolsAtPosition.FirstOrDefault();
+      symbol = symbolsAtPosition.SingleOrDefault();
       return symbol != null;
     }
 

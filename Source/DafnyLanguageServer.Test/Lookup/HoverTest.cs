@@ -292,5 +292,35 @@ method Main() {
       Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
       Assert.AreEqual("```dafny\nmethod SomeType.AssertEqual(x: int, y: int)\n```", markup.Value);
     }
+
+    [TestMethod]
+    public async Task HoveringFormalReturnsFormalType() {
+      var source = @"
+method f(i: int) {
+  var r := i;
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var hover = await RequestHover(documentItem, (0, 9));
+      Assert.IsNotNull(hover);
+      var markup = hover.Contents.MarkupContent;
+      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
+      Assert.AreEqual("```dafny\ni: int\n```", markup.Value);
+    }
+
+    [TestMethod]
+    public async Task HoveringDeclarationVariableReturnsInferredVariableType() {
+      var source = @"
+method f(i: int) {
+  var r := i;
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var hover = await RequestHover(documentItem, (1, 6));
+      Assert.IsNotNull(hover);
+      var markup = hover.Contents.MarkupContent;
+      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
+      Assert.AreEqual("```dafny\nr: int\n```", markup.Value);
+    }
   }
 }
