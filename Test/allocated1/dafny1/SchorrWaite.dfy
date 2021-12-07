@@ -178,7 +178,7 @@ class Main {
     ensures forall n :: n in S && n.marked ==>
                 forall ch :: ch in n.children && ch != null ==> ch.marked
     // every marked node was reachable from 'root' in the pre-state:
-    ensures forall n {:autotriggers false} :: n in S && n.marked ==> old(Reachable(root, n, S))
+    ensures forall n :: n in S && n.marked ==> old(Reachable(root, n, S))
     // the structure of the graph has not changed:
     ensures forall n :: n in S ==>
                 n.childrenVisited == old(n.childrenVisited) &&
