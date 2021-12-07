@@ -11520,7 +11520,7 @@ namespace Microsoft.Dafny {
   }
 
   public abstract class QuantifierExpr : ComprehensionExpr, TypeParameter.ParentType {
-    public string WhatKind => "quantifier";
+    public override string WhatKind => "quantifier";
 
     private readonly int UniqueId;
     public List<TypeParameter> TypeArgs;
@@ -11609,7 +11609,7 @@ namespace Microsoft.Dafny {
   }
 
   public class ForallExpr : QuantifierExpr {
-    public string WhatKind => "forall expression";
+    public override string WhatKind => "forall expression";
     protected override BinaryExpr.ResolvedOpcode SplitResolvedOp { get { return BinaryExpr.ResolvedOpcode.And; } }
 
     public ForallExpr(IToken tok, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
@@ -11636,7 +11636,7 @@ namespace Microsoft.Dafny {
   }
 
   public class ExistsExpr : QuantifierExpr {
-    public string WhatKind => "exists expression";
+    public override string WhatKind => "exists expression";
     protected override BinaryExpr.ResolvedOpcode SplitResolvedOp { get { return BinaryExpr.ResolvedOpcode.Or; } }
 
     public ExistsExpr(IToken tok, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
@@ -11663,7 +11663,7 @@ namespace Microsoft.Dafny {
   }
 
   public class SetComprehension : ComprehensionExpr {
-    public string WhatKind => "set comprehension";
+    public override string WhatKind => "set comprehension";
 
     public readonly bool Finite;
     public readonly bool TermIsImplicit;  // records the given syntactic form
@@ -11690,7 +11690,7 @@ namespace Microsoft.Dafny {
     }
   }
   public class MapComprehension : ComprehensionExpr {
-    public string WhatKind => "map comprehension";
+    public override string WhatKind => "map comprehension";
 
     public readonly bool Finite;
     public readonly Expression TermLeft;
@@ -11748,7 +11748,7 @@ namespace Microsoft.Dafny {
   }
 
   public class LambdaExpr : ComprehensionExpr {
-    public string WhatKind => "lambda";
+    public override string WhatKind => "lambda";
 
     public readonly List<FrameExpression> Reads;
 
