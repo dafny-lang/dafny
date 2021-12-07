@@ -428,7 +428,7 @@ method f(i: int) {
     public async Task HoveringForAllBoundVarInPredicateReturnsBoundVarInferredType() {
       var source = @"
 predicate f(i: int) {
-  forall j :: j + i == i + j;
+  forall j :: j + i == i + j
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
@@ -466,7 +466,7 @@ predicate even(n: nat)
       Assert.IsNotNull(hover);
       markup = hover.Contents.MarkupContent;
       Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
-      Assert.AreEqual("```dafny\nn: int\n```", markup.Value);
+      Assert.AreEqual("```dafny\nn: nat\n```", markup.Value);
     }
 
     [TestMethod]

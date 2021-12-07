@@ -47,7 +47,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       foreach (var symbol in compilationUnit.GetAllDescendantsAndSelf()) {
         cancellationToken.ThrowIfCancellationRequested();
         if (symbol is ILocalizableSymbol localizableSymbol) {
-          // TODO we're using try-add since it appears that nodes of the System module are re-used accross several builtins.
+          // TODO we're using try-add since it appears that nodes of the System module are re-used across several builtins.
           // TODO Maybe refine the mapping of the "declarations".
           declarations.TryAdd(localizableSymbol.Node, localizableSymbol);
         }
@@ -356,9 +356,9 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         cancellationToken.ThrowIfCancellationRequested();
         RegisterLocation(
           comprehensionSymbol,
-          comprehensionSymbol.Declaration.tok,
-          comprehensionSymbol.Declaration.tok.GetLspRange(),
-          comprehensionSymbol.Declaration.tok.GetLspRange()
+          comprehensionSymbol.Declaration.Tok,
+          comprehensionSymbol.Declaration.Tok.GetLspRange(),
+          comprehensionSymbol.Declaration.Tok.GetLspRange()
         );
         VisitChildren(comprehensionSymbol);
         return Unit.Value;

@@ -127,6 +127,7 @@
       }
       Visit(function.Decreases);
       VisitNullableExpression(function.Body);
+      VisitNullableBlock(function.ByMethodBody);
     }
 
     public virtual void Visit(NonglobalVariable nonGlobalVariable) {

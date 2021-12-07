@@ -24,8 +24,6 @@
 
     TResult Visit(VariableSymbol variableSymbol);
 
-    TResult Visit(ComprehensionSymbol variableSymbol);
-
     TResult Visit(ScopeSymbol scopeSymbol);
   }
 }

@@ -1,4 +1,5 @@
-﻿using Microsoft.Dafny.LanguageServer.Util;
+﻿using System.Linq;
+using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading;
@@ -155,14 +156,24 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         return functionSymbol;
       }
 
-      private void ProcessAndRegisterFunctionBody(FunctionSymbol functionSymbol, Expression? blockStatement) {
-        if (blockStatement == null) {
+      private void ProcessAndRegisterFunctionBody(FunctionSymbol functionSymbol, Expression? expression) {
+        if (expression == null) {
           return;
         }
-        var rootBlock = new ScopeSymbol(functionSymbol, blockStatement);
+        // The outer function symbol takes ownership of the function already.
+        var rootBlock = new ScopeSymbol(functionSymbol, functionSymbol.Declaration);
         var localVisitor = new LocalVariableDeclarationVisitor(logger, rootBlock);
-        localVisitor.Resolve(blockStatement);
-        functionSymbol.Body = rootBlock;
+        localVisitor.Resolve(expression);
+        // Special case when the body was already a scopeSymbol (a let-in or a quantifier)
+        if (rootBlock.Symbols.Count() == 1 &&
+            rootBlock.Symbols[0] is ScopeSymbol ss &&
+            rootBlock.Declaration.Node == ss.Node &&
+            rootBlock.Scope == ss.Scope) {
+          // In this case, we record the child directly
+          functionSymbol.Body = ss;
+        } else {
+          functionSymbol.Body = rootBlock;
+        }
       }
 
       private void ProcessAndRegisterFunctionByMethodBody(FunctionSymbol functionSymbol, BlockStmt? blockStatement) {
@@ -208,8 +219,6 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       }
     }
 
-
-
     private class LocalVariableDeclarationVisitor : SyntaxTreeVisitor {
       private readonly ILogger logger;
 
@@ -221,9 +230,9 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         block = rootBlock;
       }
 
-      public void Resolve(BlockStmt blockStmt) {
+      public void Resolve(BlockStmt blockStatement) {
         // The base is directly visited to avoid doubly nesting the root block of the method.
-        base.Visit(blockStmt);
+        base.Visit(blockStatement);
       }
 
       public void Resolve(Expression bodyExpression) {
@@ -249,11 +258,14 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       }
 
       public override void Visit(ComprehensionExpr compExpr) {
-        var comprehensionSymbol = new ComprehensionSymbol(block, compExpr);
+        var oldBlock = block;
+        block = new ComprehensionSymbol(block, compExpr);
         foreach (var parameter in compExpr.BoundVars) {
-          comprehensionSymbol.BoundVars.Add(ProcessBoundVar(block, parameter));
+          block.Symbols.Add(ProcessBoundVar(block, parameter));
         }
-        block.Symbols.Add(comprehensionSymbol);
+        oldBlock.Symbols.Add(block);
+        base.Visit(compExpr);
+        block = oldBlock;
       }
 
       private static VariableSymbol ProcessBoundVar(Symbol scope, BoundVar formal) {

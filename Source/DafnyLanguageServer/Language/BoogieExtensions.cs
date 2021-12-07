@@ -21,7 +21,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// </summary>
     /// <param name="token">The token to get the range of.</param>
     /// <returns>The LSP range of the token.</returns>
-    public static Range GetLspRange(this IToken? token) {
+    public static Range GetLspRange(this IToken token) {
       return new Range(
         GetLspPosition(token),
         ToLspPosition(token.line, token.col + token.val.Length)
@@ -33,7 +33,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// </summary>
     /// <param name="token">The token to get the position of.</param>
     /// <returns>The LSP position of the token.</returns>
-    public static Position GetLspPosition(this IToken? token) {
+    public static Position GetLspPosition(this IToken token) {
       return ToLspPosition(token.line, token.col);
     }
 
