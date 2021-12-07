@@ -1,16 +1,17 @@
 ﻿namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
-  /// Base syntax tree visitor implementation that visits all nodes.
+  /// Base syntax tree visitor implementation that visits all nodes,
+  /// except auto-generated expressions and attributes.
   /// </summary>
   public abstract class SyntaxTreeVisitor {
-    // Double-dispatching would be convenient here, but requirees adaptions to the AST.
+    // Double-dispatching would be convenient here, but requires adaptions to the AST.
     // TODO Is visiting Attributes necessary, i.e., does it belong to the AST?
 
     /// <summary>
     /// This method is invoked as soon as the visitor encounters an unknown syntax node.
     /// </summary>
     /// <param name="node">The unknown node that is being visited.</param>
-    /// <param name="token">The token asociated with the unknown node.</param>
+    /// <param name="token">The token associated with the unknown node.</param>
     public abstract void VisitUnknown(object node, Boogie.IToken token);
 
     public virtual void Visit(Dafny.Program program) {
@@ -145,9 +146,12 @@
     }
 
     public virtual void Visit(Attributes attributes) {
-      foreach (var argument in attributes.Args) {
-        Visit(argument);
+      if (attributes is UserSuppliedAttributes) {
+        foreach (var argument in attributes.Args) {
+          Visit(argument);
+        }
       }
+      VisitNullableAttributes(attributes.Prev);
     }
 
     public virtual void Visit(Statement statement) {
@@ -447,6 +451,9 @@
         case ITEExpr ifThenElseExpression:
           Visit(ifThenElseExpression);
           break;
+        case LambdaExpr lambdaExpr:
+          Visit(lambdaExpr);
+          break;
         case ForallExpr forAllExpression:
           Visit(forAllExpression);
           break;
@@ -523,10 +530,10 @@
       VisitNullableAttributes(comprehensionExpression.Attributes);
       VisitNullableExpression(comprehensionExpression.Range);
       if (comprehensionExpression is not SetComprehension setComp || !setComp.TermIsImplicit) {
-        Visit(comprehensionExpression.Term);
+        VisitNullableExpression(comprehensionExpression.Term);
       }
       if (comprehensionExpression is MapComprehension mapComp) {
-        Visit(mapComp.TermLeft);
+        VisitNullableExpression(mapComp.TermLeft);
       }
     }
 

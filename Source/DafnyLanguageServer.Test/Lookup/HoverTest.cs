@@ -364,20 +364,60 @@ method f(i: int) {
     }
 
     [TestMethod]
-    public async Task HoveringExistsBoundVarReturnsBoundVarInferredType() {
+    public async Task HoveringSetBoundVarReturnsBoundVarInferredType() {
       var source = @"
 method f(i: int) {
   var x := {1, 2, 3};
-  var y := set j |`j in x && j < 3;
+  var y := set j | j in x && j < 3;
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var hover = await RequestHover(documentItem, (1, 17));
+      var hover = await RequestHover(documentItem, (2, 16));
       Assert.IsNotNull(hover);
       var markup = hover.Contents.MarkupContent;
       Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
       Assert.AreEqual("```dafny\nj: int\n```", markup.Value);
-      hover = await RequestHover(documentItem, (1, 22));
+      hover = await RequestHover(documentItem, (2, 20));
+      Assert.IsNotNull(hover);
+      markup = hover.Contents.MarkupContent;
+      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
+      Assert.AreEqual("```dafny\nj: int\n```", markup.Value);
+    }
+
+    [TestMethod]
+    public async Task HoveringMapBoundVarReturnsBoundVarInferredType() {
+      var source = @"
+method f(i: int) {
+  var m := map j : int | 0 <= j <= i :: j * j;
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var hover = await RequestHover(documentItem, (1, 16));
+      Assert.IsNotNull(hover);
+      var markup = hover.Contents.MarkupContent;
+      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
+      Assert.AreEqual("```dafny\nj: int\n```", markup.Value);
+      hover = await RequestHover(documentItem, (1, 31));
+      Assert.IsNotNull(hover);
+      markup = hover.Contents.MarkupContent;
+      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
+      Assert.AreEqual("```dafny\nj: int\n```", markup.Value);
+    }
+
+    [TestMethod]
+    public async Task HoveringLambdaBoundVarReturnsBoundVarInferredType() {
+      var source = @"
+method f(i: int) {
+  var m := j => j * i;
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var hover = await RequestHover(documentItem, (1, 12));
+      Assert.IsNotNull(hover);
+      var markup = hover.Contents.MarkupContent;
+      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
+      Assert.AreEqual("```dafny\nj: int\n```", markup.Value);
+      hover = await RequestHover(documentItem, (1, 17));
       Assert.IsNotNull(hover);
       markup = hover.Contents.MarkupContent;
       Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
