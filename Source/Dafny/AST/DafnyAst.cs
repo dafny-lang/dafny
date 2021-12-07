@@ -11183,7 +11183,7 @@ namespace Microsoft.Dafny {
   /// Currently, BINDER is one of the logical quantifiers "exists" or "forall".
   /// </summary>
   public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclaration {
-    public string WhatKind => "comprehension";
+    public virtual string WhatKind => "comprehension";
     public readonly List<BoundVar> BoundVars;
     public readonly Expression Range;
     private Expression term;
