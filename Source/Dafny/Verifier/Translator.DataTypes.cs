@@ -465,7 +465,9 @@ namespace Microsoft.Dafny {
         Bpl.Expr lhs = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, litargs);
         Bpl.Expr rhs = Lit(FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args), predef.DatatypeType);
         Bpl.Expr q = BplForall(bvs, BplTrigger(lhs), Bpl.Expr.Eq(lhs, rhs));
-        AddRootAxiom(new Bpl.Axiom(ctor.tok, q, "Constructor literal"));
+        var constructorLiteralAxiom = new Bpl.Axiom(ctor.tok, q, "Constructor literal");
+        fn.AddOtherDefinitionAxiom(constructorLiteralAxiom);
+        sink.AddTopLevelDeclaration(constructorLiteralAxiom);
       }
 
       // Injectivity axioms for normal arguments

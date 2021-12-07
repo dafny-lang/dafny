@@ -467,7 +467,7 @@ namespace Microsoft.Dafny {
       AddFunctionConsequenceAxiom(boogieFunction, f, f.Ens);
       // add definition axioms, suitably specialized for literals
       if (f.Body != null && RevealedInScope(f)) {
-        AddFunctionAxiom(f, f.Body.Resolved);
+        AddFunctionAxiom(boogieFunction, f, f.Body.Resolved);
       } else {
         // for body-less functions, at least generate its #requires function
         var b = GetFunctionAxiom(f, null, null);

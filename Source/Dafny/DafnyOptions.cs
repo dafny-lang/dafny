@@ -18,8 +18,8 @@ namespace Microsoft.Dafny {
       : base("Dafny", "Dafny program verifier") {
       this.errorReporter = errorReporter;
       Prune = true;
-      //DiscardNames = true;
-      //EmitDebugInformation = false;
+      NormalizeNames = true;
+      EmitDebugInformation = false;
     }
 
     public override string VersionNumber {

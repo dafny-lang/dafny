@@ -1880,12 +1880,13 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void AddFunctionAxiom(Function f, Expression body) {
+    void AddFunctionAxiom(Bpl.Function boogieFunction, Function f, Expression body) {
       Contract.Requires(f != null);
       Contract.Requires(body != null);
 
       var ax = GetFunctionAxiom(f, body, null);
-      AddRootAxiom(ax);
+      boogieFunction.AddOtherDefinitionAxiom(ax);
+      sink.AddTopLevelDeclaration(ax);
       // TODO(namin) Is checking f.Reads.Count==0 excluding Valid() of BinaryTree in the right way?
       //             I don't see how this in the decreasing clause would help there.
       if (!(f is ExtremePredicate) && f.CoClusterTarget == Function.CoCallClusterInvolvement.None && f.Reads.Count == 0) {
@@ -1917,12 +1918,14 @@ namespace Microsoft.Dafny {
 
         Contract.Assert(decs.Count <= allFormals.Count);
         if (0 < decs.Count && decs.Count < allFormals.Count) {
-          ax = GetFunctionAxiom(f, body, decs);
-          AddRootAxiom(ax);
+          var decreasesAxiom = GetFunctionAxiom(f, body, decs);
+          boogieFunction.AddOtherDefinitionAxiom(decreasesAxiom);
+          sink.AddTopLevelDeclaration(decreasesAxiom);
         }
 
-        ax = GetFunctionAxiom(f, body, allFormals);
-        AddRootAxiom(ax);
+        var formalsAxiom = GetFunctionAxiom(f, body, allFormals);
+        boogieFunction.AddOtherDefinitionAxiom(formalsAxiom);
+        sink.AddTopLevelDeclaration(formalsAxiom);
       }
     }
 

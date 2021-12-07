@@ -133,8 +133,8 @@ method SomeMethod2(methodFormal: int) returns (result: bool)
       CommandLineOptions.Clo.ProcsToCheck.Add("*SomeMethod");
       ExecutionEngine.printer = new ConsolePrinter(); // For boogie errors
 
-      var regularProverLog = GetProverLogForProgram(GetBoogie(originalProgram));
       var renamedProverLog = GetProverLogForProgram(GetBoogie(renamedProgram + originalProgram));
+      var regularProverLog = GetProverLogForProgram(GetBoogie(originalProgram));
       Assert.Equal(regularProverLog, renamedProverLog);
     }
 
