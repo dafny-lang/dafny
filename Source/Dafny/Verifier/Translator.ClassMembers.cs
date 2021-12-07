@@ -453,7 +453,7 @@ namespace Microsoft.Dafny {
       codeContext = f;
 
       // declare function
-      AddFunction(f);
+      var boogieFunction = AddFunction(f);
       // add synonym axiom
       if (f.IsFuelAware()) {
         AddLayerSynonymAxiom(f);
@@ -464,7 +464,7 @@ namespace Microsoft.Dafny {
         AddFrameAxiom(f);
       }
       // add consequence axiom
-      AddFunctionConsequenceAxiom(f, f.Ens);
+      AddFunctionConsequenceAxiom(boogieFunction, f, f.Ens);
       // add definition axioms, suitably specialized for literals
       if (f.Body != null && RevealedInScope(f)) {
         AddFunctionAxiom(f, f.Body.Resolved);

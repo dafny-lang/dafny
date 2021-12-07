@@ -1926,7 +1926,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void AddFunctionConsequenceAxiom(Function f, List<AttributedExpression> ens) {
+    void AddFunctionConsequenceAxiom(Boogie.Function boogieFunction, Function f, List<AttributedExpression> ens) {
       Contract.Requires(f != null);
       Contract.Requires(predef != null);
       Contract.Requires(f.EnclosingClass != null);
@@ -2097,7 +2097,9 @@ namespace Microsoft.Dafny {
       Bpl.Expr ax = BplForall(f.tok, new List<Bpl.TypeVariable>(), formals, null, tr, Bpl.Expr.Imp(ante, post));
       var activate = AxiomActivation(f, etran);
       string comment = "consequence axiom for " + f.FullSanitizedName;
-      sink.AddTopLevelDeclaration(new Bpl.Axiom(f.tok, Bpl.Expr.Imp(activate, ax), comment));
+      var consequenceAxiom = new Bpl.Axiom(f.tok, Bpl.Expr.Imp(activate, ax), comment);
+      boogieFunction.AddOtherDefinitionAxiom(consequenceAxiom);
+      sink.AddTopLevelDeclaration(consequenceAxiom);
 
       if (CommonHeapUse && !readsHeap) {
         whr = GetWhereClause(f.tok, funcAppl, f.ResultType, etranHeap, NOALLOC, true);
@@ -2107,7 +2109,9 @@ namespace Microsoft.Dafny {
           ante = BplAnd(ante, goodHeap);
           ax = BplForall(f.tok, new List<Bpl.TypeVariable>(), formals, null, BplTrigger(whr), Bpl.Expr.Imp(ante, whr));
           activate = AxiomActivation(f, etran);
-          sink.AddTopLevelDeclaration(new Bpl.Axiom(f.tok, Bpl.Expr.Imp(activate, ax)));
+          var heapConsequenceAxiom = new Bpl.Axiom(f.tok, Bpl.Expr.Imp(activate, ax));
+          boogieFunction.AddOtherDefinitionAxiom(heapConsequenceAxiom);
+          sink.AddTopLevelDeclaration(heapConsequenceAxiom);
         }
       }
     }
@@ -7601,11 +7605,12 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// This method is expected to be called just once for each function in the program.
     /// </summary>
-    void AddFunction(Function f) {
+    Bpl.Function AddFunction(Function f) {
       Contract.Requires(f != null);
       Contract.Requires(predef != null && sink != null);
 
       // declare the function
+      Bpl.Function func;
       if (!f.IsBuiltin) {
         var formals = new List<Variable>();
         formals.AddRange(MkTyParamFormals(GetTypeParams(f)));
@@ -7625,11 +7630,13 @@ namespace Microsoft.Dafny {
           formals.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(f.IdGenerator), TrType(p.Type)), true));
         }
         var res = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, Bpl.TypedIdent.NoName, TrType(f.ResultType)), false);
-        var func = new Bpl.Function(f.tok, f.FullSanitizedName, new List<Bpl.TypeVariable>(), formals, res, "function declaration for " + f.FullName);
+        func = new Bpl.Function(f.tok, f.FullSanitizedName, new List<Bpl.TypeVariable>(), formals, res, "function declaration for " + f.FullName);
         if (InsertChecksums) {
           InsertChecksum(f, func);
         }
         sink.AddTopLevelDeclaration(func);
+      } else {
+        throw new NotImplementedException();
       }
 
       // declare the corresponding canCall function
@@ -7652,6 +7659,8 @@ namespace Microsoft.Dafny {
         var canCallF = new Bpl.Function(f.tok, f.FullSanitizedName + "#canCall", new List<Bpl.TypeVariable>(), formals, res);
         sink.AddTopLevelDeclaration(canCallF);
       }
+
+      return func;
     }
 
     /// <summary>
