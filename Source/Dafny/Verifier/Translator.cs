@@ -2296,9 +2296,7 @@ namespace Microsoft.Dafny {
       }
 
       var typeMap = new Dictionary<TypeParameter, Type>();
-      var
-        anteReqAxiom =
-          ante; // note that antecedent so far is the same for #requires axioms, even the receiver parameter of a two-state function
+      var anteReqAxiom = ante; // note that antecedent so far is the same for #requires axioms, even the receiver parameter of a two-state function
       var substMap = new Dictionary<IVariable, Expression>();
       foreach (Formal p in f.Formals) {
         var pType = Resolver.SubstType(p.Type, typeMap);

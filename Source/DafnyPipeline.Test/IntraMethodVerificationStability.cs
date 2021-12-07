@@ -19,84 +19,84 @@ namespace DafnyPipeline.Test {
     // But also all types of AST nodes, they may all generate something using counters.
     // Just trying to come up with this very large Dafny program is a hassle. Would be awesome if it could be generated based on the types.
 
-    readonly string originalProgram = $@"
-module SomeModule {{
+    readonly string originalProgram = @"
+module SomeModule {
 
-  module NestedModule {{
-    class C {{
+  module NestedModule {
+    class C {
       var f: int
       constructor ()
-    }}
-  }}
+    }
+  }
 
-  method m() {{
+  method m() {
     var x: NestedModule.C;
     x := new NestedModule.C();
     x.f := 4;
-  }}
-}}
+  }
+}
 
 import opened SomeModule
 
 type FooSynonym<T> = FooClass
 
-class FooClass {{
+class FooClass {
   var f: int
   constructor ()
-}}
+}
 
 datatype Friends = Agnes | Agatha | Jermaine
 
-function method SomeFunc(funcFormal: int): nat {{ 3 }}
+function method SomeFunc(funcFormal: int): nat { 3 }
 
 method SomeMethod(methodFormal: int) returns (result: bool)
   requires methodFormal == 2
   ensures result == true 
   // ensures forall x :: x == methodFormal
-{{
+{
   m();
   var lambdaExpr := x => x + 1;
   result := methodFormal == SomeFunc(42);
-}}
+}
 ";
 
-    readonly string renamedProgram = $@"   
+    readonly string renamedProgram = @"   
 
-module SomeModule2 {{
+module SomeModule2 {
 
-  module NestedModule {{
-      class C {{
+  module NestedModule {
+      class C {
         var f: int
         constructor ()
-      }}
-    }}
+      }
+    }
 
-    method m() {{
+    method m() {
       var x: NestedModule.C;
       x := new NestedModule.C();
       x.f := 4;
-    }}
-}}
+    }
+}
 
 type FooSynonym2<T> = FooClass2
 
-class FooClass2 {{
+class FooClass2 {
   var f: int
   constructor ()
-}}
+}
 
 datatype Friends2 = Agnes2 | Agatha2 | Jermaine2
 
-function method SomeFunc2(funcFormal: int): nat {{ 3 }}
+function method SomeFunc2(funcFormal: int): nat { 3 }
 
 method SomeMethod2(methodFormal: int) returns (result: bool) 
   requires methodFormal == 2
   ensures result == true
   // ensures forall x :: x == methodFormal
-{{
+{
   var lambdaExpr := x => x + 1;
   result := methodFormal == SomeFunc2(42);
-}}
+}
 ";
 
     public IntraMethodVerificationStability(ITestOutputHelper testOutputHelper) {
@@ -117,12 +117,6 @@ method SomeMethod2(methodFormal: int) returns (result: bool)
 
       var uniqueLines = separate.Union(together).Except(separate.Intersect(together)).ToList();
       Assert.Equal(Enumerable.Empty<string>(), uniqueLines);
-    }
-
-    // Inter method proof isolation.
-    [Fact]
-    public void NoUniqueLinesWhenConcatenatingUnrelatedBlocks() {
-      // TODO
     }
 
     [Fact]

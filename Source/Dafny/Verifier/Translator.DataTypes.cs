@@ -16,7 +16,9 @@ namespace Microsoft.Dafny {
       Contract.Requires(dt != null);
       Contract.Requires(sink != null && predef != null);
 
-      var ctorFunctions = dt.Ctors.ToDictionary(c => c, c => AddDataTypeConstructor(dt, c));
+      foreach (DatatypeCtor ctor in dt.Ctors) {
+        AddDataTypeConstructor(dt, ctor);
+      }
 
       AddDepthOneCaseSplitFunction(dt);
 
