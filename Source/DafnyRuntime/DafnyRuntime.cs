@@ -930,8 +930,9 @@ namespace Dafny {
     public static bool EqualUntil(ISequence<T> left, ISequence<T> right, int n) {
       T[] leftElmts = left.Elements, rightElmts = right.Elements;
       for (int i = 0; i < n; i++) {
-        if (!object.Equals(leftElmts[i], rightElmts[i]))
+        if (!object.Equals(leftElmts[i], rightElmts[i])) {
           return false;
+        }
       }
       return true;
     }
@@ -1017,8 +1018,10 @@ namespace Dafny {
     public override int GetHashCode() {
       ImmutableArray<T> elmts = ImmutableElements;
       // https://devblogs.microsoft.com/dotnet/please-welcome-immutablearrayt/
-      if (elmts.IsDefaultOrEmpty)
+      if (elmts.IsDefaultOrEmpty) {
         return 0;
+      }
+
       var hashCode = 0;
       for (var i = 0; i < elmts.Length; i++) {
         hashCode = (hashCode << 3) | (hashCode >> 29) ^ Dafny.Helpers.GetHashCode(elmts[i]);
@@ -1053,8 +1056,10 @@ namespace Dafny {
       return false;
     }
     public ISequence<T> Take(long m) {
-      if (ImmutableElements.Length == m)
+      if (ImmutableElements.Length == m) {
         return this;
+      }
+
       int length = checked((int)m);
       T[] tmp = new T[length];
       ImmutableElements.CopyTo(0, tmp, 0, length);
@@ -1068,8 +1073,10 @@ namespace Dafny {
     }
     public ISequence<T> Drop(long m) {
       int startingElement = checked((int)m);
-      if (startingElement == 0)
+      if (startingElement == 0) {
         return this;
+      }
+
       int length = ImmutableElements.Length - startingElement;
       T[] tmp = new T[length];
       ImmutableElements.CopyTo(startingElement, tmp, 0, length);
@@ -1079,8 +1086,10 @@ namespace Dafny {
       return Drop((long)n);
     }
     public ISequence<T> Drop(BigInteger n) {
-      if (n.IsZero)
+      if (n.IsZero) {
         return this;
+      }
+
       return Drop((long)n);
     }
     public ISequence<T> Subsequence(long lo, long hi) {
@@ -1231,14 +1240,20 @@ namespace Dafny {
 
     public static int ToIntChecked(BigInteger i, string msg) {
       if (i > Int32.MaxValue || i < Int32.MinValue) {
-        if (msg == null) msg = "value out of range for a 32-bit int";
+        if (msg == null) {
+          msg = "value out of range for a 32-bit int";
+        }
+
         throw new HaltException(msg + ": " + i);
       }
       return (int)i;
     }
     public static int ToIntChecked(long i, string msg) {
       if (i > Int32.MaxValue || i < Int32.MinValue) {
-        if (msg == null) msg = "value out of range for a 32-bit int";
+        if (msg == null) {
+          msg = "value out of range for a 32-bit int";
+        }
+
         throw new HaltException(msg + ": " + i);
       }
       return (int)i;

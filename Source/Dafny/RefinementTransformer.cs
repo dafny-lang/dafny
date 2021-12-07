@@ -293,8 +293,9 @@ namespace Microsoft.Dafny {
           reporter.Error(MessageSource.RefinementTransformer, nw, "a module ({0}) can only refine a module facade", nw.Name);
         } else {
           // check that the new module refines the previous declaration
-          if (!CheckIsRefinement((ModuleDecl)nw, (AbstractModuleDecl)d))
+          if (!CheckIsRefinement((ModuleDecl)nw, (AbstractModuleDecl)d)) {
             reporter.Error(MessageSource.RefinementTransformer, nw.tok, "a module ({0}) can only be replaced by a refinement of the original module", d.Name);
+          }
         }
       } else if (d is OpaqueTypeDecl) {
         if (nw is ModuleDecl) {
@@ -428,8 +429,9 @@ namespace Microsoft.Dafny {
       prev = prev.NormalizeExpandKeepConstraints();
       next = next.NormalizeExpandKeepConstraints();
 
-      if (prev is TypeProxy || next is TypeProxy)
+      if (prev is TypeProxy || next is TypeProxy) {
         return false;
+      }
 
       if (prev is BoolType) {
         return next is BoolType;
@@ -466,9 +468,12 @@ namespace Microsoft.Dafny {
         } else if (aa.ResolvedClass == bb.ResolvedClass) {
           // these are both resolved class/datatype types
           Contract.Assert(aa.TypeArgs.Count == bb.TypeArgs.Count);
-          for (int i = 0; i < aa.TypeArgs.Count; i++)
-            if (!ResolvedTypesAreTheSame(aa.TypeArgs[i], bb.TypeArgs[i]))
+          for (int i = 0; i < aa.TypeArgs.Count; i++) {
+            if (!ResolvedTypesAreTheSame(aa.TypeArgs[i], bb.TypeArgs[i])) {
               return false;
+            }
+          }
+
           return true;
         } else {
           // something is wrong; either aa or bb wasn't properly resolved, or they aren't the same
@@ -509,9 +514,12 @@ namespace Microsoft.Dafny {
 
       List<AttributedExpression> ens;
       if (checkPrevPostconditions)  // note, if a postcondition includes something that changes in the module, the translator will notice this and still re-check the postcondition
+{
         ens = f.Ens.ConvertAll(rawCloner.CloneAttributedExpr);
-      else
+      } else {
         ens = f.Ens.ConvertAll(refinementCloner.CloneAttributedExpr);
+      }
+
       if (moreEnsures != null) {
         ens.AddRange(moreEnsures);
       }
@@ -571,10 +579,12 @@ namespace Microsoft.Dafny {
       var mod = refinementCloner.CloneSpecFrameExpr(m.Mod);
 
       List<AttributedExpression> ens;
-      if (checkPreviousPostconditions)
+      if (checkPreviousPostconditions) {
         ens = m.Ens.ConvertAll(rawCloner.CloneAttributedExpr);
-      else
+      } else {
         ens = m.Ens.ConvertAll(refinementCloner.CloneAttributedExpr);
+      }
+
       if (moreEnsures != null) {
         ens.AddRange(moreEnsures);
       }
@@ -1203,8 +1213,9 @@ namespace Microsoft.Dafny {
                     var updateOld = (UpdateStmt)cOld.Update;  // if cast fails, there are more ConcreteUpdateStatement subclasses than expected
                     doMerge = true;
                     foreach (var rhs in updateOld.Rhss) {
-                      if (!(rhs is HavocRhs))
+                      if (!(rhs is HavocRhs)) {
                         doMerge = false;
+                      }
                     }
                   }
                 }
@@ -1261,8 +1272,9 @@ namespace Microsoft.Dafny {
                 doMerge = true;
                 stmtGenerated.Add(nw);
                 foreach (var rhs in s.Rhss) {
-                  if (!(rhs is HavocRhs))
+                  if (!(rhs is HavocRhs)) {
                     doMerge = false;
+                  }
                 }
               }
             } else if (oldS is AssignSuchThatStmt) {
@@ -1337,8 +1349,10 @@ namespace Microsoft.Dafny {
     }
 
     private bool LeftHandSidesAgree(List<Expression> old, List<Expression> nw) {
-      if (old.Count != nw.Count)
+      if (old.Count != nw.Count) {
         return false;
+      }
+
       for (int i = 0; i < old.Count; i++) {
         var a = old[i].WasResolved() ? old[i].Resolved as IdentifierExpr : null;
         var b = nw[i] as NameSegment;
@@ -1351,11 +1365,14 @@ namespace Microsoft.Dafny {
       return true;
     }
     private bool LocalVarsAgree(List<LocalVariable> old, List<LocalVariable> nw) {
-      if (old.Count != nw.Count)
+      if (old.Count != nw.Count) {
         return false;
+      }
+
       for (int i = 0; i < old.Count; i++) {
-        if (old[i].Name != nw[i].Name)
+        if (old[i].Name != nw[i].Name) {
           return false;
+        }
       }
       return true;
     }

@@ -1123,7 +1123,10 @@ namespace Microsoft.Dafny {
 
     protected override void EmitHalt(Bpl.IToken tok, Expression/*?*/ messageExpr, ConcreteSyntaxTree wr) {
       wr.Write("throw new _dafny.HaltException(");
-      if (tok != null) wr.Write("\"" + Dafny.ErrorReporter.TokenToString(tok) + ": \" + ");
+      if (tok != null) {
+        wr.Write("\"" + Dafny.ErrorReporter.TokenToString(tok) + ": \" + ");
+      }
+
       TrExpr(messageExpr, wr, false);
       wr.WriteLine(");");
     }
@@ -2133,9 +2136,15 @@ namespace Microsoft.Dafny {
           if (AsNativeType(e.E.Type) != null || e.E.Type.IsCharType) {
             wr.Write("new BigNumber");
           }
-          if (e.E.Type.IsCharType) wr.Write("(");
+          if (e.E.Type.IsCharType) {
+            wr.Write("(");
+          }
+
           TrParenExpr(e.E, wr, inLetExprBody);
-          if (e.E.Type.IsCharType) wr.Write(".charCodeAt(0))");
+          if (e.E.Type.IsCharType) {
+            wr.Write(".charCodeAt(0))");
+          }
+
           wr.Write(", new BigNumber(1))");
         } else if (e.ToType.IsCharType) {
           wr.Write("String.fromCharCode(");
@@ -2213,9 +2222,14 @@ namespace Microsoft.Dafny {
           }
         }
       } else if (e.E.Type.IsBigOrdinalType) {
-        if (e.ToType.IsCharType) wr.Write("String.fromCharCode((");
+        if (e.ToType.IsCharType) {
+          wr.Write("String.fromCharCode((");
+        }
+
         TrExpr(e.E, wr, inLetExprBody);
-        if (e.ToType.IsCharType) wr.Write(").toNumber())");
+        if (e.ToType.IsCharType) {
+          wr.Write(").toNumber())");
+        }
       } else {
         Contract.Assert(false, $"not implemented for javascript: {e.E.Type} -> {e.ToType}");
       }
