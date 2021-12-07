@@ -58,8 +58,12 @@ namespace Microsoft.Dafny {
 
     protected override IClassWriter DeclareDatatype(DatatypeDecl dt, ConcreteSyntaxTree wr) {
 
-      return null;
-
+      if (dt is TupleTypeDecl) {
+        // Tuple types are declared once and for all in DafnyRuntime.js
+        return null;
+      } else {
+        throw new NotImplementedException();
+      }
 
     }
 
@@ -590,7 +594,7 @@ namespace Microsoft.Dafny {
         pythonProcess.StandardInput.Close();
         pythonProcess.WaitForExit();
         return pythonProcess.ExitCode == 0;
-      } catch (System.ComponentModel.Win32Exception e) {
+      } catch (Exception e) {
         outputWriter.WriteLine("Error: Unable to start python ({0}): {1}", psi.FileName, e.Message);
         return false;
       }
