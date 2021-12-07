@@ -14,19 +14,14 @@ namespace Microsoft.Dafny {
 
     public override string TargetLanguage => "Python";
 
-    const string DafnySetClass = "_dafny.Set";
-    const string DafnyMultiSetClass = "_dafny.MultiSet";
-    const string DafnySeqClass = "_dafny.Seq";
-    const string DafnyMapClass = "_dafny.Map";
-
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
       Coverage.EmitSetup(wr);
-      wr.WriteLine("__default.Main()", mainMethod.EnclosingClass, mainMethod);
+      wr.WriteLine("f=__default()\nf.Main()", mainMethod.EnclosingClass, mainMethod);
     }
 
     protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw) {
       var wr = (cw as PythonCompiler.ClassWriter).MethodWriter;
-      return wr.WriteLine("def Main():");
+      return wr.WriteLine("def Main(self):");
     }
 
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern,
@@ -45,8 +40,8 @@ namespace Microsoft.Dafny {
 
       var w = wr.WriteLine("class {0}:", name);
 
-      var methodWriter = w.NewBlock(open: BraceStyle.Pindent, close: BraceStyle.Pindent);
-      ConcreteSyntaxTree fieldWriter = w.NewBlock(open: BraceStyle.Pindent, close: BraceStyle.Pindent);
+      var methodWriter = w.NewBlock(open: BraceStyle.NewlineNoBrace, close: BraceStyle.NewlineNoBrace);
+      ConcreteSyntaxTree fieldWriter = w.NewBlock(open: BraceStyle.NewlineNoBrace, close: BraceStyle.NewlineNoBrace);
       return new ClassWriter(this, methodWriter, fieldWriter);
 
     }
@@ -161,7 +156,7 @@ namespace Microsoft.Dafny {
       }
 
       var customReceiver = !forBodyInheritance && NeedsCustomReceiver(m);
-      wr.Write("{0}{1}(", m.IsStatic || customReceiver ? "def " : "", IdName(m));
+      wr.Write("{0}{1}(self", m.IsStatic || customReceiver ? "def " : "", IdName(m));
       var sep = "";
       WriteRuntimeTypeDescriptorsFormals(m, ForTypeDescriptors(typeArgs, m, lookasideBody), wr, ref sep,
         tp => $"rtd$_{tp.CompileName}");
@@ -173,12 +168,7 @@ namespace Microsoft.Dafny {
       }
 
       WriteFormals(sep, m.Ins, wr);
-      var w = wr.NewBlock("):", open: BraceStyle.Pindent, close: BraceStyle.Pindent);
-
-      if (!m.IsStatic && !customReceiver) {
-        w.WriteLine("let _this = this;");
-      }
-
+      var w = wr.NewBlock("):", open: BraceStyle.NewlineNoBrace, close: BraceStyle.NewlineNoBrace);
       return w;
 
     }
@@ -362,6 +352,17 @@ namespace Microsoft.Dafny {
 
     protected override void EmitTupleSelect(string prefix, int i, ConcreteSyntaxTree wr) {
       throw new NotImplementedException();
+    }
+
+    protected override string IdProtect(string name) {
+      return PublicIdProtect(name);
+    }
+    public static string PublicIdProtect(string name) {
+      Contract.Requires(name != null);
+      switch (name) {
+        default:
+          return name;
+      }
     }
 
     protected override string FullTypeName(UserDefinedType udt, MemberDecl member = null) {
@@ -548,7 +549,7 @@ namespace Microsoft.Dafny {
         return true;
       } else {
         // compile now
-        return SendToNewNodeProcess(dafnyProgramName, targetProgramText, null, targetFilename, otherFileNames,
+        return SendToNewPythonProcess(dafnyProgramName, targetProgramText, null, targetFilename, otherFileNames,
           outputWriter);
       }
     }
@@ -557,11 +558,11 @@ namespace Microsoft.Dafny {
       string targetFilename, ReadOnlyCollection<string> otherFileNames,
       object compilationResult, TextWriter outputWriter) {
 
-      return SendToNewNodeProcess(dafnyProgramName, targetProgramText, callToMain, targetFilename, otherFileNames,
+      return SendToNewPythonProcess(dafnyProgramName, targetProgramText, callToMain, targetFilename, otherFileNames,
         outputWriter);
     }
 
-    bool SendToNewNodeProcess(string dafnyProgramName, string targetProgramText, string /*?*/ callToMain,
+    bool SendToNewPythonProcess(string dafnyProgramName, string targetProgramText, string /*?*/ callToMain,
       string targetFilename, ReadOnlyCollection<string> otherFileNames,
       TextWriter outputWriter) {
       Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
@@ -575,20 +576,20 @@ namespace Microsoft.Dafny {
       };
 
       try {
-        using var nodeProcess = Process.Start(psi);
+        using var pythonProcess = Process.Start(psi);
         foreach (var filename in otherFileNames) {
-          WriteFromFile(filename, nodeProcess.StandardInput);
+          WriteFromFile(filename, pythonProcess.StandardInput);
         }
 
-        nodeProcess.StandardInput.Write(targetProgramText);
+        pythonProcess.StandardInput.Write(targetProgramText);
         if (callToMain != null && DafnyOptions.O.RunAfterCompile) {
-          nodeProcess.StandardInput.Write(callToMain);
+          pythonProcess.StandardInput.Write(callToMain);
         }
 
-        nodeProcess.StandardInput.Flush();
-        nodeProcess.StandardInput.Close();
-        nodeProcess.WaitForExit();
-        return nodeProcess.ExitCode == 0;
+        pythonProcess.StandardInput.Flush();
+        pythonProcess.StandardInput.Close();
+        pythonProcess.WaitForExit();
+        return pythonProcess.ExitCode == 0;
       } catch (System.ComponentModel.Win32Exception e) {
         outputWriter.WriteLine("Error: Unable to start python ({0}): {1}", psi.FileName, e.Message);
         return false;

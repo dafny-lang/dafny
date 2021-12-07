@@ -10,7 +10,7 @@ namespace Microsoft.Dafny {
     Nothing,
     Space,
     Newline,
-    Pindent
+    NewlineNoBrace
   }
 
   public class ConcreteSyntaxTree : ICanRender {
