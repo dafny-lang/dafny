@@ -1,4 +1,4 @@
-// RUN: %dafny /allocated:1 /compile:0 /dprint:"%t.dprint" /autoTriggers:0 "%s" > "%t"
+// RUN: %dafny /allocated:1 /compile:0 /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Rustan Leino
@@ -7,7 +7,8 @@
 // Copyright (c) 2008, Microsoft.
 
 class Node {
-  var children: seq<Node?>
+  var children: seq<Node?> j == n.childrenVisited || n.children[j] == old(n.children[j])
+
   var marked: bool
   var childrenVisited: int
   ghost var pathFromRoot: Path
@@ -212,8 +213,7 @@ class Main {
       invariant forall n :: n in S ==> n in stackNodes || (allocated(n) && n.children == old(n.children))
       invariant forall n :: n in stackNodes ==>
                   |n.children| == old(|n.children|) &&
-                  forall j :: 0 <= j < |n.children| ==>
-                    j == n.childrenVisited || n.children[j] == old(n.children[j])
+                 n.children == old(n.children)[n.childrenVisited := n.children[n.childrenVisited]]
       // every marked node is reachable:
       invariant old(allocated(path))  // needed to show 'path' worthy as argument to old(Reachable(...))
       invariant old(ReachableVia(root, path, t, S))
@@ -222,10 +222,10 @@ class Main {
       invariant forall n :: n in S && n.marked ==> old(Reachable(root, n, S))
       // the current values of m.children[m.childrenVisited] for m's on the stack:
       invariant 0 < |stackNodes| ==> stackNodes[0].children[stackNodes[0].childrenVisited] == null
-      invariant forall k :: 0 < k < |stackNodes| ==>
+      invariant forall k {:matchinglooprewrite false} :: 0 < k < |stackNodes| ==>
                   stackNodes[k].children[stackNodes[k].childrenVisited] == stackNodes[k-1]
       // the original values of m.children[m.childrenVisited] for m's on the stack:
-      invariant forall k :: 0 <= k && k+1 < |stackNodes| ==>
+      invariant forall k {:matchinglooprewrite false} :: 0 <= k && k+1 < |stackNodes| ==>
                   old(stackNodes[k].children)[stackNodes[k].childrenVisited] == stackNodes[k+1]
       invariant 0 < |stackNodes| ==>
         old(stackNodes[|stackNodes|-1].children)[stackNodes[|stackNodes|-1].childrenVisited] == t
