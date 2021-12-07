@@ -7,8 +7,7 @@
 // Copyright (c) 2008, Microsoft.
 
 class Node {
-  var children: seq<Node?> j == n.childrenVisited || n.children[j] == old(n.children[j])
-
+  var children: seq<Node?>
   var marked: bool
   var childrenVisited: int
   ghost var pathFromRoot: Path
