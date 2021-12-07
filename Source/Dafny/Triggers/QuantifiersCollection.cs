@@ -158,8 +158,9 @@ namespace Microsoft.Dafny.Triggers {
           q.RejectedCandidates.AddRange(looping);
         }
 
-        if (looping.Count > 0)
+        if (looping.Count > 0) {
           foundloop = true;
+        }
       }
       return foundloop;
     }

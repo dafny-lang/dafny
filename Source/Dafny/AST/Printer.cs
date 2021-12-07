@@ -415,7 +415,10 @@ namespace Microsoft.Dafny {
             if (e.IsRefining) {
               wr.Write(" ...");
             }
-            if (e.Extends.Count > 0) wr.Write(" extends {0}", Util.Comma(e.Extends, id => id.val));
+            if (e.Extends.Count > 0) {
+              wr.Write(" extends {0}", Util.Comma(e.Extends, id => id.val));
+            }
+
             wr.WriteLine();
             PrintModuleExportDecl(e, indent + IndentAmount, fileBeingPrinted);
             wr.WriteLine();
@@ -1470,7 +1473,10 @@ namespace Microsoft.Dafny {
             wr.Write("case");
             PrintAttributes(mc.Attributes);
             wr.Write(" ");
-            if (!mc.Ctor.Name.StartsWith(BuiltIns.TupleTypeCtorNamePrefix)) wr.Write(mc.Ctor.Name);
+            if (!mc.Ctor.Name.StartsWith(BuiltIns.TupleTypeCtorNamePrefix)) {
+              wr.Write(mc.Ctor.Name);
+            }
+
             PrintMatchCaseArgument(mc);
             wr.Write(" =>");
             foreach (Statement bs in mc.Body) {

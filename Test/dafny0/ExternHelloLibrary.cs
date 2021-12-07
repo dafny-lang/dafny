@@ -3,12 +3,9 @@
 
 using System;
 
-namespace ExternHelloLibrary
-{
-  public static class ExternHelloLibrary
-  {
-    public static void SayHello()
-    {
+namespace ExternHelloLibrary {
+  public static class ExternHelloLibrary {
+    public static void SayHello() {
       Console.WriteLine("Hello from ExternHelloLibrary.");
     }
   }
