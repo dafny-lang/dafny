@@ -66,7 +66,7 @@ namespace Microsoft.Dafny {
           body = BplIff(is_o, rhs);
         }
 
-        AddRootAxiom(new Boogie.Axiom(c.tok, BplForall(vars, BplTrigger(is_o), body), name));
+        AddIncludeDepAxiom(new Boogie.Axiom(c.tok, BplForall(vars, BplTrigger(is_o), body), name));
       });
 
       if (c is TraitDecl) {
@@ -372,7 +372,7 @@ namespace Microsoft.Dafny {
         }
 
         Bpl.Expr ax = BplForall(bvsTypeAxiom, tr, BplImp(ante, is_hf));
-        AddRootAxiom(new Bpl.Axiom(c.tok, BplImp(heightAntecedent, ax), string.Format("{0}.{1}: Type axiom", c, f)));
+        AddIncludeDepAxiom(new Bpl.Axiom(c.tok, BplImp(heightAntecedent, ax), string.Format("{0}.{1}: Type axiom", c, f)));
 
         if (isalloc_hf != null) {
           if (!is_array && !f.IsMutable) {
@@ -394,7 +394,7 @@ namespace Microsoft.Dafny {
           tr = new Bpl.Trigger(c.tok, true, t_es);
 
           ax = BplForall(bvsAllocationAxiom, tr, BplImp(ante, isalloc_hf));
-          AddRootAxiom(new Boogie.Axiom(c.tok, BplImp(heightAntecedent, ax), $"{c}.{f}: Allocation axiom"));
+          AddIncludeDepAxiom(new Boogie.Axiom(c.tok, BplImp(heightAntecedent, ax), $"{c}.{f}: Allocation axiom"));
         }
       }
     }
@@ -441,7 +441,7 @@ namespace Microsoft.Dafny {
         }
         var expr = FunctionCall(c.tok, "implements$" + trait.FullSanitizedName, Bpl.Type.Bool, args);
         var implements_axiom = new Bpl.Axiom(c.tok, BplForall(vars, null, expr));
-        AddRootAxiom(implements_axiom);
+        AddIncludeDepAxiom(implements_axiom);
       }
     }
 

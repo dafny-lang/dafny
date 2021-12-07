@@ -22,7 +22,7 @@ namespace Microsoft.Dafny {
     // TODO(wuestholz): Enable this once Dafny's recommended Z3 version includes changeset 0592e765744497a089c42021990740f303901e67.
     public bool UseOptimizationInZ3 { get; set; }
 
-    void AddRootAxiom(Axiom axiom) {
+    void AddIncludeDepAxiom(Axiom axiom) {
       axiom.AddAttribute("include_dep");
       sink.AddTopLevelDeclaration(axiom);
     }
@@ -1258,7 +1258,7 @@ namespace Microsoft.Dafny {
         body = BplIff(is_o, BplAnd(parentConstraint, constraint));
       }
 
-      AddRootAxiom(new Bpl.Axiom(dd.tok, BplForall(vars, BplTrigger(is_o), body), name));
+      AddIncludeDepAxiom(new Bpl.Axiom(dd.tok, BplForall(vars, BplTrigger(is_o), body), name));
     }
 
 
@@ -2365,7 +2365,7 @@ namespace Microsoft.Dafny {
         var appl = FunctionCall(f.tok, RequiresName(f), Bpl.Type.Bool, reqFuncArguments);
         Bpl.Trigger trig = BplTriggerHeap(this, f.tok, appl, readsHeap ? etran.HeapExpr : null);
         // axiom (forall params :: { f#requires(params) }  ante ==> f#requires(params) == pre);
-        AddRootAxiom(new Axiom(f.tok,
+        AddIncludeDepAxiom(new Axiom(f.tok,
           BplForall(forallFormals, trig, BplImp(anteReqAxiom, Bpl.Expr.Eq(appl, preReqAxiom))),
           "#requires axiom for " + f.FullSanitizedName));
       }
@@ -2712,7 +2712,7 @@ namespace Microsoft.Dafny {
 
       Bpl.Trigger tr = new Bpl.Trigger(f.tok, true, new List<Bpl.Expr> { funcAppl1 });
       Bpl.Expr ax = new Bpl.ForallExpr(f.tok, new List<Bpl.TypeVariable>(), formals, null, tr, Bpl.Expr.Eq(funcAppl1, funcAppl0));
-      AddRootAxiom(new Bpl.Axiom(f.tok, ax, "layer synonym axiom"));
+      AddIncludeDepAxiom(new Bpl.Axiom(f.tok, ax, "layer synonym axiom"));
     }
 
     void AddFuelSynonymAxiom(Function f) {
@@ -2778,7 +2778,7 @@ namespace Microsoft.Dafny {
 
       Bpl.Trigger tr = new Bpl.Trigger(f.tok, true, new List<Bpl.Expr> { funcAppl2 });
       Bpl.Expr ax = new Bpl.ForallExpr(f.tok, new List<Bpl.TypeVariable>(), formals, null, tr, Bpl.Expr.Eq(funcAppl1, funcAppl0));
-      AddRootAxiom(new Bpl.Axiom(f.tok, ax, "fuel synonym axiom"));
+      AddIncludeDepAxiom(new Bpl.Axiom(f.tok, ax, "fuel synonym axiom"));
     }
 
     /// <summary>
@@ -6749,7 +6749,7 @@ namespace Microsoft.Dafny {
           var rhs = FunctionCall(f.tok, f.FullSanitizedName, TrType(f.ResultType), Concat(SnocSelf(args_h), rhs_args));
           var rhs_boxed = BoxIfUnboxed(rhs, f.ResultType);
 
-          AddRootAxiom(new Axiom(f.tok,
+          AddIncludeDepAxiom(new Axiom(f.tok,
             BplForall(Concat(vars, bvars), BplTrigger(lhs), Bpl.Expr.Eq(lhs, rhs_boxed))));
         }
 
@@ -6768,7 +6768,7 @@ namespace Microsoft.Dafny {
             rhs = FunctionCall(f.tok, RequiresName(f), Bpl.Type.Bool, Concat(SnocSelf(args_h), rhs_args));
           }
 
-          AddRootAxiom(new Axiom(f.tok,
+          AddIncludeDepAxiom(new Axiom(f.tok,
             BplForall(Concat(vars, bvars), BplTrigger(lhs), Bpl.Expr.Eq(lhs, rhs))));
         }
 
@@ -6801,7 +6801,7 @@ namespace Microsoft.Dafny {
           var rhs_unboxed = UnboxIfBoxed(rhs, f.ResultType);
           var tr = BplTriggerHeap(this, f.tok, lhs, AlwaysUseHeap || f.ReadsHeap ? null : h);
 
-          AddRootAxiom(new Axiom(f.tok,
+          AddIncludeDepAxiom(new Axiom(f.tok,
             BplForall(Concat(vars, func_vars), tr, Bpl.Expr.Eq(lhs, rhs_unboxed))));
         }
       }
@@ -6956,7 +6956,7 @@ namespace Microsoft.Dafny {
           if (selectorVar == "r") {
             op = (u, v) => Bpl.Expr.Imp(v, u);
           }
-          AddRootAxiom(new Axiom(tok,
+          AddIncludeDepAxiom(new Axiom(tok,
             BplForall(bvars, BplTrigger(lhs), op(lhs, rhs))));
         };
         SelectorSemantics(Apply(arity), predef.BoxType, "h", apply_ty, Requires(arity), requires_ty);
@@ -7500,7 +7500,7 @@ namespace Microsoft.Dafny {
         var ig = FunctionCall(f.tok, BuiltinFunction.IsGhostField, ty, Bpl.Expr.Ident(fc));
         cond = Bpl.Expr.And(cond, f.IsGhost ? ig : Bpl.Expr.Not(ig));
         Bpl.Axiom ax = new Bpl.Axiom(f.tok, cond);
-        AddRootAxiom(ax);
+        AddIncludeDepAxiom(ax);
       }
       return fc;
     }
@@ -10165,7 +10165,7 @@ namespace Microsoft.Dafny {
             var p = Substitute(e.RHSs[0], receiverReplacement, substMap);
             Bpl.Expr ax = Bpl.Expr.Imp(canCall, BplAnd(antecedent, etranCC.TrExpr(p)));
             ax = BplForall(gg, tr, ax);
-            AddRootAxiom(new Bpl.Axiom(e.tok, ax));
+            AddIncludeDepAxiom(new Bpl.Axiom(e.tok, ax));
           }
 
           // now that we've declared the functions and axioms, let's prepare the let-such-that desugaring
