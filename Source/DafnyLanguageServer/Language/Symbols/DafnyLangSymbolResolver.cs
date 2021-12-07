@@ -150,7 +150,29 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           cancellationToken.ThrowIfCancellationRequested();
           functionSymbol.Parameters.Add(ProcessFormal(scope, parameter));
         }
+        ProcessAndRegisterFunctionBody(functionSymbol, function.Body);
+        ProcessAndRegisterFunctionByMethodBody(functionSymbol, function.ByMethodBody);
         return functionSymbol;
+      }
+
+      private void ProcessAndRegisterFunctionBody(FunctionSymbol functionSymbol, Expression? blockStatement) {
+        if (blockStatement == null) {
+          return;
+        }
+        var rootBlock = new ScopeSymbol(functionSymbol, blockStatement);
+        var localVisitor = new LocalVariableDeclarationVisitor(logger, rootBlock);
+        localVisitor.Resolve(blockStatement);
+        functionSymbol.Body = rootBlock;
+      }
+
+      private void ProcessAndRegisterFunctionByMethodBody(FunctionSymbol functionSymbol, BlockStmt? blockStatement) {
+        if (blockStatement == null) {
+          return;
+        }
+        var rootBlock = new ScopeSymbol(functionSymbol, blockStatement);
+        var localVisitor = new LocalVariableDeclarationVisitor(logger, rootBlock);
+        localVisitor.Resolve(blockStatement);
+        functionSymbol.ByMethodBody = rootBlock;
       }
 
       private MethodSymbol ProcessMethod(Symbol scope, Method method) {
@@ -186,6 +208,8 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       }
     }
 
+
+
     private class LocalVariableDeclarationVisitor : SyntaxTreeVisitor {
       private readonly ILogger logger;
 
@@ -197,9 +221,14 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         block = rootBlock;
       }
 
-      public void Resolve(BlockStmt blockStatement) {
+      public void Resolve(BlockStmt blockStmt) {
         // The base is directly visited to avoid doubly nesting the root block of the method.
-        base.Visit(blockStatement);
+        base.Visit(blockStmt);
+      }
+
+      public void Resolve(Expression bodyExpression) {
+        // The base is directly visited to avoid doubly nesting the root block of the method.
+        base.Visit(bodyExpression);
       }
 
       public override void VisitUnknown(object node, Boogie.IToken token) {

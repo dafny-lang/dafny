@@ -2,6 +2,7 @@
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.IO;
+using Microsoft.Boogie;
 
 namespace Microsoft.Dafny.LanguageServer.Util {
   /// <summary>
@@ -61,7 +62,7 @@ namespace Microsoft.Dafny.LanguageServer.Util {
     /// </summary>
     /// <param name="token">The token to get the boogie token from.</param>
     /// <returns>The uri of the document where the token is located.</returns>
-    public static DocumentUri GetDocumentUri(this Boogie.IToken token) {
+    public static DocumentUri GetDocumentUri(this IToken? token) {
       return DocumentUri.FromFileSystemPath(token.filename);
     }
 

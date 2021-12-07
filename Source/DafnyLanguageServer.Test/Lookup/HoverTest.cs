@@ -423,5 +423,72 @@ method f(i: int) {
       Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
       Assert.AreEqual("```dafny\nj: int\n```", markup.Value);
     }
+
+    [TestMethod]
+    public async Task HoveringForAllBoundVarInPredicateReturnsBoundVarInferredType() {
+      var source = @"
+predicate f(i: int) {
+  forall j :: j + i == i + j;
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var hover = await RequestHover(documentItem, (1, 10));
+      Assert.IsNotNull(hover);
+      var markup = hover.Contents.MarkupContent;
+      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
+      Assert.AreEqual("```dafny\nj: int\n```", markup.Value);
+      hover = await RequestHover(documentItem, (1, 15));
+      Assert.IsNotNull(hover);
+      markup = hover.Contents.MarkupContent;
+      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
+      Assert.AreEqual("```dafny\nj: int\n```", markup.Value);
+    }
+
+    [TestMethod]
+    public async Task HoveringByMethodReturnsInferredType() {
+      var source = @"
+predicate even(n: nat)
+  ensures even(n) <==> n % 2 == 0 
+{
+  if n < 2 then n == 0 else even(n - 2)
+} by method {
+  var x := n % 2 == 0;
+  return x;
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var hover = await RequestHover(documentItem, (5, 7));
+      Assert.IsNotNull(hover);
+      var markup = hover.Contents.MarkupContent;
+      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
+      Assert.AreEqual("```dafny\nx: bool\n```", markup.Value);
+      hover = await RequestHover(documentItem, (5, 12));
+      Assert.IsNotNull(hover);
+      markup = hover.Contents.MarkupContent;
+      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
+      Assert.AreEqual("```dafny\nn: int\n```", markup.Value);
+    }
+
+    [TestMethod]
+    public async Task HoveringLetInReturnsInferredType() {
+      var source = @"
+function test(n: nat): nat {
+  var i := n * 2;
+  if i == 4 then 3 else 2
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var hover = await RequestHover(documentItem, (1, 7));
+      Assert.IsNotNull(hover);
+      var markup = hover.Contents.MarkupContent;
+      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
+      Assert.AreEqual("```dafny\ni: int\n```", markup.Value);
+      hover = await RequestHover(documentItem, (1, 12));
+      Assert.IsNotNull(hover);
+      markup = hover.Contents.MarkupContent;
+      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
+      Assert.AreEqual("```dafny\nn: int\n```", markup.Value);
+    }
+
   }
 }
