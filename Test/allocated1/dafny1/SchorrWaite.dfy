@@ -1,4 +1,4 @@
-// RUN: %dafny /allocated:1 /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %dafny /allocated:1 /compile:0 /dprint:"%t.dprint" /autoTriggers:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Rustan Leino
@@ -178,7 +178,7 @@ class Main {
     ensures forall n :: n in S && n.marked ==>
                 forall ch :: ch in n.children && ch != null ==> ch.marked
     // every marked node was reachable from 'root' in the pre-state:
-    ensures forall n :: n in S && n.marked ==> old(Reachable(root, n, S))
+    ensures forall n {:autotriggers false} :: n in S && n.marked ==> old(Reachable(root, n, S))
     // the structure of the graph has not changed:
     ensures forall n :: n in S ==>
                 n.childrenVisited == old(n.childrenVisited) &&
@@ -212,7 +212,8 @@ class Main {
       invariant forall n :: n in S ==> n in stackNodes || (allocated(n) && n.children == old(n.children))
       invariant forall n :: n in stackNodes ==>
                   |n.children| == old(|n.children|) &&
-                 n.children == old(n.children)[n.childrenVisited := n.children[n.childrenVisited]]
+                  forall j :: 0 <= j < |n.children| ==>
+                    j == n.childrenVisited || n.children[j] == old(n.children[j])
       // every marked node is reachable:
       invariant old(allocated(path))  // needed to show 'path' worthy as argument to old(Reachable(...))
       invariant old(ReachableVia(root, path, t, S))
@@ -221,10 +222,10 @@ class Main {
       invariant forall n :: n in S && n.marked ==> old(Reachable(root, n, S))
       // the current values of m.children[m.childrenVisited] for m's on the stack:
       invariant 0 < |stackNodes| ==> stackNodes[0].children[stackNodes[0].childrenVisited] == null
-      invariant forall k {:matchinglooprewrite false} :: 0 < k < |stackNodes| ==>
+      invariant forall k :: 0 < k < |stackNodes| ==>
                   stackNodes[k].children[stackNodes[k].childrenVisited] == stackNodes[k-1]
       // the original values of m.children[m.childrenVisited] for m's on the stack:
-      invariant forall k {:matchinglooprewrite false} :: 0 <= k && k+1 < |stackNodes| ==>
+      invariant forall k :: 0 <= k && k+1 < |stackNodes| ==>
                   old(stackNodes[k].children)[stackNodes[k].childrenVisited] == stackNodes[k+1]
       invariant 0 < |stackNodes| ==>
         old(stackNodes[|stackNodes|-1].children)[stackNodes[|stackNodes|-1].childrenVisited] == t
@@ -232,6 +233,7 @@ class Main {
       decreases unmarkedNodes, stackNodes, |t.children| - t.childrenVisited
     {
       if t.childrenVisited == |t.children| {
+        assert {:focus} true;
         // pop
         t.childrenVisited := 0;
         if p == null {
@@ -250,6 +252,7 @@ class Main {
         t.childrenVisited := t.childrenVisited + 1;
 
       } else {
+        assert {:focus} true;
         // push
 
         var newT := t.children[t.childrenVisited];
