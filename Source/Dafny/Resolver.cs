@@ -70,7 +70,7 @@ namespace Microsoft.Dafny {
         Contract.Requires(b != null);
         Contract.Requires(eq != null);
         Contract.Ensures(Contract.Result<Thing>() != null ||
-                         (Contract.ValueAtReturn(out s) != null || 2 <= Contract.ValueAtReturn(out s).Count));
+                         Contract.ValueAtReturn(out s) != null || 2 <= Contract.ValueAtReturn(out s).Count);
         s = null;
         if (eq.Equals(a, b)) {
           return a;

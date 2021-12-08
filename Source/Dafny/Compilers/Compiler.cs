@@ -1217,7 +1217,7 @@ namespace Microsoft.Dafny {
             }
             var classIsExtern = false;
             if (include) {
-              classIsExtern = !DafnyOptions.O.DisallowExterns && Attributes.Contains(cl.Attributes, "extern") || cl.IsDefaultClass && Attributes.Contains(cl.EnclosingModuleDefinition.Attributes, "extern");
+              classIsExtern = (!DafnyOptions.O.DisallowExterns && Attributes.Contains(cl.Attributes, "extern")) || (cl.IsDefaultClass && Attributes.Contains(cl.EnclosingModuleDefinition.Attributes, "extern"));
               if (classIsExtern && cl.Members.TrueForAll(member => member.IsGhost || Attributes.Contains(member.Attributes, "extern"))) {
                 include = false;
               }
@@ -1745,7 +1745,7 @@ namespace Microsoft.Dafny {
           } else if (f.IsGhost) {
             // nothing to compile, but we do check for assumes
             if (f.Body == null) {
-              Contract.Assert(c is TraitDecl && !f.IsStatic || Attributes.Contains(f.Attributes, "extern"));
+              Contract.Assert((c is TraitDecl && !f.IsStatic) || Attributes.Contains(f.Attributes, "extern"));
             }
 
             if (Attributes.Contains(f.Attributes, "test")) {
@@ -3381,9 +3381,9 @@ namespace Microsoft.Dafny {
         return
           no1DArrayAccesses(sse.Seq, sse.E0, range, rhs) ||
 
-          bvs.Count == 1 &&
+          (bvs.Count == 1 &&
           isVar(bvs[0], sse.E0) &&
-          indexIsAlwaysVar(bvs[0], range, sse.Seq, rhs); // also covers sequence conversions
+          indexIsAlwaysVar(bvs[0], range, sse.Seq, rhs)); // also covers sequence conversions
       } else if (lhs is MultiSelectExpr mse) {
         return
           noMultiDArrayAccesses(mse.Array, range, rhs) &&
@@ -3395,9 +3395,9 @@ namespace Microsoft.Dafny {
         return
           noFieldAccesses(mse2.Member, mse2.Obj, range, rhs) ||
 
-          bvs.Count == 1 &&
+          (bvs.Count == 1 &&
           isVar(bvs[0], mse2.Obj) &&
-          accessedObjectIsAlwaysVar(mse2.Member, bvs[0], range, rhs);
+          accessedObjectIsAlwaysVar(mse2.Member, bvs[0], range, rhs));
       }
 
       bool noImpureFunctionCalls(params Expression[] exprs) {

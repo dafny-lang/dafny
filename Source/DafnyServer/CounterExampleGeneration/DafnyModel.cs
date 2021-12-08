@@ -390,10 +390,10 @@ namespace DafnyServer.CounterexampleGeneration {
         return new DafnyModelType("?");
       }
       var tagName = GetTrueName(tagElement);
-      if (tagName == null || tagName.Length < 10 && tagName != "TagSeq" &&
+      if (tagName == null || (tagName.Length < 10 && tagName != "TagSeq" &&
                               tagName != "TagSet" &&
                               tagName != "TagBitVector" &&
-                              tagName != "TagMap") {
+                              tagName != "TagMap")) {
         return new DafnyModelType("?");
       }
       var typeArgs = Model.GetFunc("T" + tagName.Substring(3))?.
