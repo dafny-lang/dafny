@@ -195,11 +195,19 @@ namespace Microsoft.Dafny {
               extension == null ? "" : extension);
             return CommandLineArgumentsResult.PREPROCESSING_ERROR;
           }
-        } else {
+        } else if (DafnyOptions.O.CompileTarget == DafnyOptions.CompilationTarget.Go) {
           if (extension == ".go") {
             otherFiles.Add(file);
           } else if (!isDafnyFile) {
             ExecutionEngine.printer.ErrorWriteLine(Console.Out, "*** Error: '{0}': Filename extension '{1}' is not supported. Input files must be Dafny programs (.dfy) or Go files (.go)", file,
+              extension == null ? "" : extension);
+            return CommandLineArgumentsResult.PREPROCESSING_ERROR;
+          }
+        } else {
+          if (extension == ".py") {
+            otherFiles.Add(file);
+          } else if (!isDafnyFile) {
+            ExecutionEngine.printer.ErrorWriteLine(Console.Out, "*** Error: '{0}': Filename extension '{1}' is not supported. Input files must be Dafny programs (.dfy) or Python files (.py)", file,
               extension == null ? "" : extension);
             return CommandLineArgumentsResult.PREPROCESSING_ERROR;
           }
@@ -635,6 +643,10 @@ namespace Microsoft.Dafny {
         case DafnyOptions.CompilationTarget.Cpp:
           targetExtension = "cpp";
           break;
+        case DafnyOptions.CompilationTarget.Python:
+          targetExtension = "py";
+          break;
+
         default:
           Contract.Assert(false);
           throw new cce.UnreachableException();
@@ -725,6 +737,9 @@ namespace Microsoft.Dafny {
           break;
         case DafnyOptions.CompilationTarget.Cpp:
           compiler = new Dafny.CppCompiler(dafnyProgram.reporter, otherFileNames);
+          break;
+        case DafnyOptions.CompilationTarget.Python:
+          compiler = new Dafny.PythonCompiler(dafnyProgram.reporter);
           break;
       }
 
