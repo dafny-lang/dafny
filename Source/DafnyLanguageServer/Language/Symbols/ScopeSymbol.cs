@@ -37,6 +37,12 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     }
   }
 
+  public class MethodDeclaration : DeclarationStmtOrExpr {
+    public Method Declaration;
+    public MethodDeclaration(Method declaration) : base(declaration.tok, Token.NoToken, declaration) {
+      Declaration = declaration;
+    }
+  }
   public class ScopeSymbol : Symbol, ILocalizableSymbol {
     public DeclarationStmtOrExpr Declaration { get; }
     public object Node => Declaration.Node;
@@ -53,6 +59,9 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
     public ScopeSymbol(ISymbol? scope, Function declaration) : base(scope, string.Empty) {
       Declaration = new FunctionDeclaration(declaration);
+    }
+    public ScopeSymbol(ISymbol? scope, Method declaration) : base(scope, string.Empty) {
+      Declaration = new MethodDeclaration(declaration);
     }
 
     public override TResult Accept<TResult>(ISymbolVisitor<TResult> visitor) {

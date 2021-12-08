@@ -24,10 +24,19 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     /// Gets the block
     /// </summary>
     public ScopeSymbol? Block { get; set; }
+    public List<ScopeSymbol> Ens { get; set; }
+    public List<ScopeSymbol> Req { get; set; }
+    public List<ScopeSymbol> Mod { get; set; }
+    public List<ScopeSymbol> Decreases { get; set; }
 
-    private IEnumerable<ISymbol> BlockAsEnumerable => Block != null ? new[] { Block } : Enumerable.Empty<ISymbol>();
-
-    public override IEnumerable<ISymbol> Children => BlockAsEnumerable.Concat(Parameters).Concat(Returns);
+    public override IEnumerable<ISymbol> Children =>
+      AsEnumerable<ISymbol>(Block)
+        .Concat(Parameters)
+        .Concat(Returns)
+        .Concat(Ens)
+        .Concat(Req)
+        .Concat(Mod)
+        .Concat(Decreases);
 
     public MethodSymbol(ISymbol? scope, Method method) : base(scope, method) {
       Declaration = method;

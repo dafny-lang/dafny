@@ -120,6 +120,11 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         ProcessNestedScope(compExpr, compExpr.tok, () => base.Visit(compExpr));
       }
 
+      public override void Visit(LetExpr letExpr) {
+        cancellationToken.ThrowIfCancellationRequested();
+        ProcessNestedScope(letExpr, letExpr.tok, () => base.Visit(letExpr));
+      }
+
       public override void Visit(Field field) {
         cancellationToken.ThrowIfCancellationRequested();
         RegisterTypeDesignator(currentScope, field.Type);
@@ -349,18 +354,6 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           variableSymbol.Declaration.Tok.GetLspRange()
         );
         VisitChildren(variableSymbol);
-        return Unit.Value;
-      }
-
-      public Unit Visit(ComprehensionSymbol comprehensionSymbol) {
-        cancellationToken.ThrowIfCancellationRequested();
-        RegisterLocation(
-          comprehensionSymbol,
-          comprehensionSymbol.Declaration.Tok,
-          comprehensionSymbol.Declaration.Tok.GetLspRange(),
-          comprehensionSymbol.Declaration.Tok.GetLspRange()
-        );
-        VisitChildren(comprehensionSymbol);
         return Unit.Value;
       }
 

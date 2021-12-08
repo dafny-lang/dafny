@@ -472,7 +472,7 @@ predicate even(n: nat)
     [TestMethod]
     public async Task HoveringLetInReturnsInferredType() {
       var source = @"
-function test(n: nat): nat {
+function method test(n: nat): nat {
   var i := n * 2;
   if i == 4 then 3 else 2
 }".TrimStart();
@@ -487,7 +487,30 @@ function test(n: nat): nat {
       Assert.IsNotNull(hover);
       markup = hover.Contents.MarkupContent;
       Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
-      Assert.AreEqual("```dafny\nn: int\n```", markup.Value);
+      Assert.AreEqual("```dafny\nn: nat\n```", markup.Value);
+    }
+
+    [TestMethod]
+    public async Task HoveringSpecificationBoundVariableReturnsInferredType() {
+      var source = @"
+method returnBiggerThan(n: nat) returns (y: int)
+  requires var y := 100; forall i :: i < n ==> i < y 
+  ensures forall i :: i > y ==> i > n 
+ {
+  return n + 2;
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var hover = await RequestHover(documentItem, (1, 16));
+      Assert.IsNotNull(hover);
+      var markup = hover.Contents.MarkupContent;
+      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
+      Assert.AreEqual("```dafny\ny: int\n```", markup.Value);
+      hover = await RequestHover(documentItem, (1, 33));
+      Assert.IsNotNull(hover);
+      markup = hover.Contents.MarkupContent;
+      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
+      Assert.AreEqual("```dafny\ni: int\n```", markup.Value);
     }
 
   }

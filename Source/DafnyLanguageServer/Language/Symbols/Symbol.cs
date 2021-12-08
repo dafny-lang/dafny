@@ -6,6 +6,14 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   /// Represents a resolved symbol.
   /// </summary>
   public abstract class Symbol : ISymbol {
+
+    /// <summary>
+    /// Helper to convert a potentially null symbol to a list of symbols
+    /// </summary>
+    public static IEnumerable<TSymbol> AsEnumerable<TSymbol>(TSymbol? symbol) where TSymbol : ISymbol {
+      return symbol != null ? new[] { symbol } : Enumerable.Empty<TSymbol>();
+    }
+
     /// <summary>
     /// Gets the name of the symbol. The string is empty if the symbol does not have any name.
     /// </summary>

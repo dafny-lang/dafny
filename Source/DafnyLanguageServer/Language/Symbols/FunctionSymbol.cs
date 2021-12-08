@@ -13,11 +13,19 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     /// Gets the body of the function
     /// </summary>
     public ScopeSymbol? Body { get; set; }
-    private IEnumerable<ISymbol> BodyAsEnumerable => Body != null ? new[] { Body } : Enumerable.Empty<ISymbol>();
-
     public ScopeSymbol? ByMethodBody { get; set; }
-    private IEnumerable<ISymbol> ByMethodBodyAsEnumerable => ByMethodBody != null ? new[] { ByMethodBody } : Enumerable.Empty<ISymbol>();
-    public override IEnumerable<ISymbol> Children => BodyAsEnumerable.Concat(ByMethodBodyAsEnumerable).Concat(Parameters);
+    public List<ScopeSymbol> Ens { get; set; }
+    public List<ScopeSymbol> Req { get; set; }
+    public List<ScopeSymbol> Reads { get; set; }
+    public List<ScopeSymbol> Decreases { get; set; }
+    public override IEnumerable<ISymbol> Children =>
+      AsEnumerable<ISymbol>(Body)
+        .Concat(AsEnumerable(ByMethodBody))
+        .Concat(Ens)
+        .Concat(Req)
+        .Concat(Reads)
+        .Concat(Decreases)
+        .Concat(Parameters);
 
     public FunctionSymbol(ISymbol? scope, Function function) : base(scope, function) {
       Declaration = function;
