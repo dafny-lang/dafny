@@ -59,7 +59,6 @@ namespace Microsoft.Dafny {
     protected override IClassWriter DeclareDatatype(DatatypeDecl dt, ConcreteSyntaxTree wr) {
 
       if (dt is TupleTypeDecl) {
-        // Tuple types are declared once and for all in DafnyRuntime.js
         return null;
       } else {
         throw new NotImplementedException();
