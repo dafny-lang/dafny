@@ -24,14 +24,14 @@ namespace Microsoft.Dafny {
 
     void AddOtherDefinition(Bpl.Declaration declaration, Axiom axiom) {
       
-      switch (fieldDeclaration) {
+      switch (declaration) {
         case Boogie.Function boogieFunction:
-        boogieFunction.AddOtherDefinitionAxiom(isAxiom);
+        boogieFunction.AddOtherDefinitionAxiom(axiom);
         break;
         case Boogie.Constant boogieConstant:
-        boogieConstant.DefinitionAxioms.Add(isAxiom);
+        boogieConstant.DefinitionAxioms.Add(axiom);
         break;
-        default: throw new ArgumentException("Field declaration must be a function or constant");
+        default: throw new ArgumentException("Declaration must be a function or constant");
       }
     
       sink.AddTopLevelDeclaration(axiom);
@@ -206,6 +206,8 @@ namespace Microsoft.Dafny {
       public readonly Bpl.Function IMapValues;
       public readonly Bpl.Function MapItems;
       public readonly Bpl.Function IMapItems;
+      public readonly Bpl.Function ObjectTypeConstructor;
+      public readonly Bpl.Function Tuple2TypeConstructor;
       public readonly Bpl.Function Tuple2Destructors0;
       public readonly Bpl.Function Tuple2Destructors1;
       public readonly Bpl.Function Tuple2Constructor;
@@ -316,7 +318,8 @@ namespace Microsoft.Dafny {
                              Bpl.Function ORD_isLimit, Bpl.Function ORD_isSucc, Bpl.Function ORD_offset, Bpl.Function ORD_isNat,
                              Bpl.Function mapDomain, Bpl.Function imapDomain,
                              Bpl.Function mapValues, Bpl.Function imapValues, Bpl.Function mapItems, Bpl.Function imapItems,
-                             Bpl.Function tuple2Destructors0, Bpl.Function tuple2Destructors1, Bpl.Function tuple2Constructor,
+                             Bpl.Function objectTypeConstructor,
+                             Bpl.Function tuple2Destructors0, Bpl.Function tuple2Destructors1, Bpl.Function tuple2Constructor, Bpl.Function tuple2TypeConstructor,
                              Bpl.TypeCtorDecl seqTypeCtor, Bpl.TypeSynonymDecl bv0TypeDecl,
                              Bpl.TypeCtorDecl fieldNameType, Bpl.TypeCtorDecl tyType, Bpl.TypeCtorDecl tyTagType, Bpl.TypeCtorDecl tyTagFamilyType,
                              Bpl.GlobalVariable heap, Bpl.TypeCtorDecl classNameType, Bpl.TypeCtorDecl nameFamilyType,
@@ -383,9 +386,11 @@ namespace Microsoft.Dafny {
         this.IMapValues = imapValues;
         this.MapItems = mapItems;
         this.IMapItems = imapItems;
+        this.ObjectTypeConstructor = objectTypeConstructor;
         this.Tuple2Destructors0 = tuple2Destructors0;
         this.Tuple2Destructors1 = tuple2Destructors1;
         this.Tuple2Constructor = tuple2Constructor;
+        this.Tuple2TypeConstructor = tuple2TypeConstructor;
         this.seqTypeCtor = seqTypeCtor;
         this.Bv0Type = new Bpl.TypeSynonymAnnotation(Token.NoToken, bv0TypeDecl, new List<Bpl.Type>());
         this.fieldName = fieldNameType;
@@ -429,6 +434,8 @@ namespace Microsoft.Dafny {
       Bpl.Function imapValues = null;
       Bpl.Function mapItems = null;
       Bpl.Function imapItems = null;
+      Bpl.Function objectTypeConstructor = null;
+      Bpl.Function tuple2TypeConstructor = null;
       Bpl.Function tuple2Destructors0 = null;
       Bpl.Function tuple2Destructors1 = null;
       Bpl.Function tuple2Constructor = null;
@@ -541,6 +548,10 @@ namespace Microsoft.Dafny {
             tuple2Destructors1 = f;
           } else if (f.Name == "#_System._tuple#2._#Make2") {
             tuple2Constructor = f;
+          } else if (f.Name == "Tclass._System.Tuple2") {
+            tuple2TypeConstructor = f;
+          } else if (f.Name == "Tclass._System.object?") {
+            objectTypeConstructor = f;
           }
         }
       }
@@ -620,6 +631,10 @@ namespace Microsoft.Dafny {
         Console.WriteLine("Error: Dafny prelude is missing declaration of $Heap");
       } else if (allocField == null) {
         Console.WriteLine("Error: Dafny prelude is missing declaration of constant alloc");
+      } else if (tuple2TypeConstructor == null) {
+        Console.WriteLine("Error: Dafny prelude is missing declaration of tuple2TypeConstructor");
+      } else if (objectTypeConstructor == null) {
+        Console.WriteLine("Error: Dafny prelude is missing declaration of objectTypeConstructor");
       } else {
         return new PredefinedDecls(charType, refType, boxType, tickType,
                                    setTypeCtor, isetTypeCtor, multiSetTypeCtor,
@@ -628,7 +643,8 @@ namespace Microsoft.Dafny {
                                    ORDINAL_isLimit, ORDINAL_isSucc, ORDINAL_offset, ORDINAL_isNat,
                                    mapDomain, imapDomain,
                                    mapValues, imapValues, mapItems, imapItems,
-                                   tuple2Destructors0, tuple2Destructors1, tuple2Constructor,
+                                   objectTypeConstructor,
+                                   tuple2Destructors0, tuple2Destructors1, tuple2Constructor, tuple2TypeConstructor,
                                    seqTypeCtor, bv0TypeDecl,
                                    fieldNameType, tyType, tyTagType, tyTagFamilyType,
                                    heap, classNameType, nameFamilyType,
@@ -7324,86 +7340,29 @@ namespace Microsoft.Dafny {
       Contract.Requires(td != null);
       IToken tok = td.tok;
 
-      var ty_repr = TrType(UserDefinedType.FromTopLevelDecl(td.tok, td));
-      var arity = td.TypeArgs.Count;
-      var inner_name = GetClass(td).TypedIdent.Name;
-      string name = "T" + inner_name;
+      var func = GetOrCreateTypeConstructor(td);
+      var name = func.Name;
 
-      Bpl.Function func;
-      // Create the type constructor
-      if (td is ClassDecl cl && cl.IsObjectTrait) {
-        func = null; // TODO assign func
-        // the type constructor for "object" is in DafnyPrelude.bpl
-      } else if (td is TupleTypeDecl ttd && ttd.Dims == 2 && ttd.NonGhostDims == 2) {
-        func = null; // TODO assign func
-        // the type constructor for "Tuple2" is in DafnyPrelude.bpl
-      } else {
-        Bpl.Variable tyVarOut = BplFormalVar(null, predef.Ty, false);
-        List<Bpl.Variable> args = new List<Bpl.Variable>(
-          Enumerable.Range(0, arity).Select(i =>
-            (Bpl.Variable)BplFormalVar(null, predef.Ty, true)));
-        func = new Bpl.Function(tok, name, args, tyVarOut);
-        sink.AddTopLevelDeclaration(func);
-      }
-
-      // Helper action to create variables and the function call.
-      Action<Action<List<Bpl.Expr>, List<Bpl.Variable>, Bpl.Expr>> Helper = K => {
-        List<Bpl.Expr> argExprs;
-        var args = MkTyParamBinders(td.TypeArgs, out argExprs);
-        var inner = FunctionCall(tok, name, predef.Ty, argExprs);
-        K(argExprs, args, inner);
-      };
-
-      /* Create the Tag and calling Tag on this type constructor
-       *
-       * The common case:
-       *     const unique TagList: TyTag;
-       *     const unique tytagFamily$List: TyTagFamily;  // defined once for each type named "List"
-       *     axiom (forall t0: Ty :: { List(t0) } Tag(List(t0)) == TagList && TagFamily(List(t0)) == tytagFamily$List);
-       * For types obtained via an abstract import, just do:
-       *     const unique tytagFamily$List: TyTagFamily;  // defined once for each type named "List"
-       *     axiom (forall t0: Ty :: { List(t0) } TagFamily(List(t0)) == tytagFamily$List);
-       */
-      Helper((argExprs, args, inner) => {
-        Bpl.Expr body = Bpl.Expr.True;
-
-        if (!td.EnclosingModuleDefinition.IsFacade) {
-          var tagName = "Tag" + inner_name;
-          var tag = new Bpl.Constant(tok, new Bpl.TypedIdent(tok, tagName, predef.TyTag), true);
-          sink.AddTopLevelDeclaration(tag);
-          body = Bpl.Expr.Eq(FunctionCall(tok, "Tag", predef.TyTag, inner), new Bpl.IdentifierExpr(tok, tag));
-        }
-
-        if (!tytagConstants.TryGetValue(td.Name, out var tagFamily)) {
-          tagFamily = new Bpl.Constant(Token.NoToken, new Bpl.TypedIdent(Token.NoToken, "tytagFamily$" + td.Name, predef.TyTagFamily), true);
-          tytagConstants.Add(td.Name, tagFamily);
-        }
-        body = BplAnd(body, Bpl.Expr.Eq(FunctionCall(tok, "TagFamily", predef.TyTagFamily, inner), new Bpl.IdentifierExpr(tok, tagFamily)));
-
-        var qq = BplForall(args, BplTrigger(inner), body);
-        var tagAxiom = new Axiom(tok, qq, name + " Tag");
-        AddOtherDefinition();
-        sink.AddTopLevelDeclaration(tagAxiom);
-        func?.AddOtherDefinitionAxiom(tagAxiom);
-      });
+      var tagAxiom = CreateTagAndCallingForTypeConstructor(td);
+      AddOtherDefinition(func, tagAxiom);
 
       // Create the injectivity axiom and its function
       /*
          function List_0(Ty) : Ty;
          axiom (forall t0: Ty :: { List(t0) } List_0(List(t0)) == t0);
       */
-      for (int i = 0; i < arity; i++) {
-        Helper((argExprs, args, inner) => {
-          Bpl.Variable tyVarIn = BplFormalVar(null, predef.Ty, true);
-          Bpl.Variable tyVarOut = BplFormalVar(null, predef.Ty, false);
-          var injname = name + "_" + i;
-          var injfunc = new Bpl.Function(tok, injname, Singleton(tyVarIn), tyVarOut);
-          sink.AddTopLevelDeclaration(injfunc);
-          var outer = FunctionCall(tok, injname, args[i].TypedIdent.Type, inner);
-          Bpl.Expr qq = BplForall(args, BplTrigger(inner), Bpl.Expr.Eq(outer, argExprs[i]));
-          var injectivityAxiom = new Axiom(tok, qq, name + " injectivity " + i);
-          AddOtherDefinition(injfunc, injectivityAxiom);
-        });
+      for (int i = 0; i < func.InParams.Count; i++) {
+        var args = MkTyParamBinders(td.TypeArgs, out var argExprs);
+        var inner = FunctionCall(tok, name, predef.Ty, argExprs);
+        Bpl.Variable tyVarIn = BplFormalVar(null, predef.Ty, true);
+        Bpl.Variable tyVarOut = BplFormalVar(null, predef.Ty, false);
+        var injname = name + "_" + i;
+        var injfunc = new Bpl.Function(tok, injname, Singleton(tyVarIn), tyVarOut);
+        sink.AddTopLevelDeclaration(injfunc);
+        var outer = FunctionCall(tok, injname, args[i].TypedIdent.Type, inner);
+        Bpl.Expr qq = BplForall(args, BplTrigger(inner), Bpl.Expr.Eq(outer, argExprs[i]));
+        var injectivityAxiom = new Axiom(tok, qq, name + " injectivity " + i);
+        AddOtherDefinition(injfunc, injectivityAxiom);
       }
 
       // Boxing axiom (important for the properties of unbox)
@@ -7415,13 +7374,76 @@ namespace Microsoft.Dafny {
                && $Is($Unbox(bx): DatatypeType, List(T)));
       */
       if (!ModeledAsBoxType(UserDefinedType.FromTopLevelDecl(td.tok, td))) {
-        Helper((argExprs, args, _inner) => {
-          var typeTerm = FunctionCall(tok, name, predef.Ty, argExprs);
-          AddBoxUnboxAxiom(tok, name, typeTerm, ty_repr, args);
-        });
+        var args = MkTyParamBinders(td.TypeArgs, out var argExprs);
+        var ty_repr = TrType(UserDefinedType.FromTopLevelDecl(td.tok, td));
+        var typeTerm = FunctionCall(tok, name, predef.Ty, argExprs);
+        AddBoxUnboxAxiom(tok, name, typeTerm, ty_repr, args);
       }
 
       return name;
+    }
+
+    private Bpl.Function GetOrCreateTypeConstructor(TopLevelDecl td)
+    {
+      Bpl.Function func;
+      if (td is ClassDecl cl && cl.IsObjectTrait) {
+        // the type constructor for "object" is in DafnyPrelude.bpl
+        func = predef.ObjectTypeConstructor;
+      } else if (td is TupleTypeDecl ttd && ttd.Dims == 2 && ttd.NonGhostDims == 2) {
+        // the type constructor for "Tuple2" is in DafnyPrelude.bpl
+        func = this.predef.Tuple2TypeConstructor;
+      } else {
+        var inner_name = GetClass(td).TypedIdent.Name;
+        string name = "T" + inner_name;
+
+        Bpl.Variable tyVarOut = BplFormalVar(null, predef.Ty, false);
+        var args = Enumerable.Range(0, td.TypeArgs.Count).Select(i => (Bpl.Variable)BplFormalVar(null, predef.Ty, true)).ToList();
+        func = new Bpl.Function(td.tok, name, args, tyVarOut);
+        sink.AddTopLevelDeclaration(func);
+      }
+
+      return func;
+    }
+
+    /* Create the Tag and calling Tag on this type constructor
+     *
+     * The common case:
+     *     const unique TagList: TyTag;
+     *     const unique tytagFamily$List: TyTagFamily;  // defined once for each type named "List"
+     *     axiom (forall t0: Ty :: { List(t0) } Tag(List(t0)) == TagList && TagFamily(List(t0)) == tytagFamily$List);
+     * For types obtained via an abstract import, just do:
+     *     const unique tytagFamily$List: TyTagFamily;  // defined once for each type named "List"
+     *     axiom (forall t0: Ty :: { List(t0) } TagFamily(List(t0)) == tytagFamily$List);
+     */
+    private Axiom CreateTagAndCallingForTypeConstructor(TopLevelDecl td)
+    {
+      IToken tok = td.tok;
+      var inner_name = GetClass(td).TypedIdent.Name;
+      string name = "T" + inner_name;
+      
+      var args = MkTyParamBinders(td.TypeArgs, out var argExprs);
+      var inner = FunctionCall(tok, name, predef.Ty, argExprs);
+      Bpl.Expr body = Bpl.Expr.True;
+
+      if (!td.EnclosingModuleDefinition.IsFacade) {
+        var tagName = "Tag" + inner_name;
+        var tag = new Bpl.Constant(tok, new Bpl.TypedIdent(tok, tagName, predef.TyTag), true);
+        sink.AddTopLevelDeclaration(tag);
+        body = Bpl.Expr.Eq(FunctionCall(tok, "Tag", predef.TyTag, inner), new Bpl.IdentifierExpr(tok, tag));
+      }
+
+      if (!tytagConstants.TryGetValue(td.Name, out var tagFamily)) {
+        tagFamily = new Bpl.Constant(Token.NoToken,
+          new Bpl.TypedIdent(Token.NoToken, "tytagFamily$" + td.Name, predef.TyTagFamily), true);
+        tytagConstants.Add(td.Name, tagFamily);
+      }
+
+      body = BplAnd(body,
+        Bpl.Expr.Eq(FunctionCall(tok, "TagFamily", predef.TyTagFamily, inner), new Bpl.IdentifierExpr(tok, tagFamily)));
+
+      var qq = BplForall(args, BplTrigger(inner), body);
+      var tagAxiom = new Axiom(tok, qq, name + " Tag");
+      return tagAxiom;
     }
 
     /// <summary>
