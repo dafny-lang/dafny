@@ -408,10 +408,9 @@ namespace Microsoft.Dafny {
           definitionAxioms: definitionAxioms);
         Bpl.Expr constructorIdReference = new Bpl.IdentifierExpr(ctor.tok, constructorId);
         var constructorIdentifierAxiom = CreateConstructorIdentifierAxiom(ctor, constructorIdReference);
-        fn.AddOtherDefinitionAxiom(constructorIdentifierAxiom);
+        AddOtherDefinition(fn, constructorIdentifierAxiom);
         definitionAxioms.Add(constructorIdentifierAxiom);
         sink.AddTopLevelDeclaration(constructorId);
-        sink.AddTopLevelDeclaration(constructorIdentifierAxiom);
 
         {
           // Add:  function dt.ctor?(this: DatatypeType): bool { DatatypeCtorId(this) == ##dt.ctor }
@@ -468,8 +467,7 @@ namespace Microsoft.Dafny {
         Bpl.Expr rhs = Lit(FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args), predef.DatatypeType);
         Bpl.Expr q = BplForall(bvs, BplTrigger(lhs), Bpl.Expr.Eq(lhs, rhs));
         var constructorLiteralAxiom = new Bpl.Axiom(ctor.tok, q, "Constructor literal");
-        fn.AddOtherDefinitionAxiom(constructorLiteralAxiom);
-        sink.AddTopLevelDeclaration(constructorLiteralAxiom);
+        AddOtherDefinition(fn, constructorLiteralAxiom);
       }
 
       // Injectivity axioms for normal arguments
@@ -667,8 +665,7 @@ namespace Microsoft.Dafny {
           BplForall(bvs, BplTrigger(c_alloc),
             BplImp(isGoodHeap, BplIff(c_alloc, conj))),
           "Constructor $IsAlloc");
-        sink.AddTopLevelDeclaration(constructorIsAllocAxiom);
-        ctorFunction.AddOtherDefinitionAxiom(constructorIsAllocAxiom);
+        AddOtherDefinition(ctorFunction, constructorIsAllocAxiom);
       }
     }
 
@@ -722,8 +719,7 @@ namespace Microsoft.Dafny {
           BplForall(bvs, BplTrigger(d_alloc),
             BplImp(BplAnd(isGoodHeap, BplAnd(dtq, c_alloc)), d_alloc)),
           "Destructor $IsAlloc");
-        sink.AddTopLevelDeclaration(destructorAxiom);
-        ctorFunction.AddOtherDefinitionAxiom(destructorAxiom);
+        AddOtherDefinition(ctorFunction, destructorAxiom);
       }
     }
 
@@ -744,8 +740,7 @@ namespace Microsoft.Dafny {
       var constructorIsAxiom = new Bpl.Axiom(ctor.tok,
         BplForall(bvs, BplTrigger(isCall), BplIff(isCall, conj)),
         "Constructor $Is");
-      sink.AddTopLevelDeclaration(constructorIsAxiom);
-      ctorFunction.AddOtherDefinitionAxiom(constructorIsAxiom);
+      AddOtherDefinition(ctorFunction, constructorIsAxiom);
     }
 
     private Axiom CreateConstructorIdentifierAxiom(DatatypeCtor ctor, Expr c) {

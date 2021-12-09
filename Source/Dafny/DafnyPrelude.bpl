@@ -8,7 +8,7 @@
 // SPDX-License-Identifier: MIT
 
 const $$Language$Dafny: bool;  // To be recognizable to the ModelViewer as
-axiom {:root} $$Language$Dafny;        // coming from a Dafny program.
+axiom $$Language$Dafny;        // coming from a Dafny program.
 
 // ---------------------------------------------------------------
 // -- Types ------------------------------------------------------

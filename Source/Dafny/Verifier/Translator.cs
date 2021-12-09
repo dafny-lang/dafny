@@ -22,6 +22,21 @@ namespace Microsoft.Dafny {
     // TODO(wuestholz): Enable this once Dafny's recommended Z3 version includes changeset 0592e765744497a089c42021990740f303901e67.
     public bool UseOptimizationInZ3 { get; set; }
 
+    void AddOtherDefinition(Bpl.Declaration declaration, Axiom axiom) {
+      
+      switch (fieldDeclaration) {
+        case Boogie.Function boogieFunction:
+        boogieFunction.AddOtherDefinitionAxiom(isAxiom);
+        break;
+        case Boogie.Constant boogieConstant:
+        boogieConstant.DefinitionAxioms.Add(isAxiom);
+        break;
+        default: throw new ArgumentException("Field declaration must be a function or constant");
+      }
+    
+      sink.AddTopLevelDeclaration(axiom);
+    }
+    
     void AddIncludeDepAxiom(Axiom axiom) {
       axiom.AddAttribute("include_dep");
       sink.AddTopLevelDeclaration(axiom);
@@ -1885,8 +1900,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(body != null);
 
       var ax = GetFunctionAxiom(f, body, null);
-      boogieFunction.AddOtherDefinitionAxiom(ax);
-      sink.AddTopLevelDeclaration(ax);
+      AddOtherDefinition(boogieFunction, ax);
       // TODO(namin) Is checking f.Reads.Count==0 excluding Valid() of BinaryTree in the right way?
       //             I don't see how this in the decreasing clause would help there.
       if (!(f is ExtremePredicate) && f.CoClusterTarget == Function.CoCallClusterInvolvement.None && f.Reads.Count == 0) {
@@ -1919,13 +1933,11 @@ namespace Microsoft.Dafny {
         Contract.Assert(decs.Count <= allFormals.Count);
         if (0 < decs.Count && decs.Count < allFormals.Count) {
           var decreasesAxiom = GetFunctionAxiom(f, body, decs);
-          boogieFunction.AddOtherDefinitionAxiom(decreasesAxiom);
-          sink.AddTopLevelDeclaration(decreasesAxiom);
+          AddOtherDefinition(boogieFunction, decreasesAxiom);
         }
 
         var formalsAxiom = GetFunctionAxiom(f, body, allFormals);
-        boogieFunction.AddOtherDefinitionAxiom(formalsAxiom);
-        sink.AddTopLevelDeclaration(formalsAxiom);
+        AddOtherDefinition(boogieFunction, formalsAxiom);
       }
     }
 
@@ -2101,8 +2113,7 @@ namespace Microsoft.Dafny {
       var activate = AxiomActivation(f, etran);
       string comment = "consequence axiom for " + f.FullSanitizedName;
       var consequenceAxiom = new Bpl.Axiom(f.tok, Bpl.Expr.Imp(activate, ax), comment);
-      boogieFunction.AddOtherDefinitionAxiom(consequenceAxiom);
-      sink.AddTopLevelDeclaration(consequenceAxiom);
+      AddOtherDefinition(boogieFunction, consequenceAxiom);
 
       if (CommonHeapUse && !readsHeap) {
         whr = GetWhereClause(f.tok, funcAppl, f.ResultType, etranHeap, NOALLOC, true);
@@ -2113,8 +2124,7 @@ namespace Microsoft.Dafny {
           ax = BplForall(f.tok, new List<Bpl.TypeVariable>(), formals, null, BplTrigger(whr), Bpl.Expr.Imp(ante, whr));
           activate = AxiomActivation(f, etran);
           var heapConsequenceAxiom = new Bpl.Axiom(f.tok, Bpl.Expr.Imp(activate, ax));
-          boogieFunction.AddOtherDefinitionAxiom(heapConsequenceAxiom);
-          sink.AddTopLevelDeclaration(heapConsequenceAxiom);
+          AddOtherDefinition(boogieFunction, heapConsequenceAxiom);
         }
       }
     }
@@ -7372,6 +7382,7 @@ namespace Microsoft.Dafny {
 
         var qq = BplForall(args, BplTrigger(inner), body);
         var tagAxiom = new Axiom(tok, qq, name + " Tag");
+        AddOtherDefinition();
         sink.AddTopLevelDeclaration(tagAxiom);
         func?.AddOtherDefinitionAxiom(tagAxiom);
       });
@@ -7391,8 +7402,7 @@ namespace Microsoft.Dafny {
           var outer = FunctionCall(tok, injname, args[i].TypedIdent.Type, inner);
           Bpl.Expr qq = BplForall(args, BplTrigger(inner), Bpl.Expr.Eq(outer, argExprs[i]));
           var injectivityAxiom = new Axiom(tok, qq, name + " injectivity " + i);
-          sink.AddTopLevelDeclaration(injectivityAxiom);
-          injfunc.AddOtherDefinitionAxiom(injectivityAxiom);
+          AddOtherDefinition(injfunc, injectivityAxiom);
         });
       }
 

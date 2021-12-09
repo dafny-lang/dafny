@@ -405,16 +405,7 @@ namespace Microsoft.Dafny {
       var is_hf = MkIs(oDotF, f.Type); // $Is(h[o, f], ..)
       Boogie.Expr ax = bvsTypeAxiom.Count == 0 ? is_hf : BplForall(bvsTypeAxiom, BplTrigger(oDotF), is_hf);
       var isAxiom = new Boogie.Axiom(c.tok, BplImp(heightAntecedent, ax), $"{c}.{f}: Type axiom");
-      switch (fieldDeclaration) {
-        case Boogie.Function boogieFunction:
-          boogieFunction.AddOtherDefinitionAxiom(isAxiom);
-          break;
-        case Boogie.Constant boogieConstant:
-          boogieConstant.DefinitionAxioms.Add(isAxiom);
-          break;
-        default: throw new ArgumentException("Field declaration must be a function or constant");
-      }
-      sink.AddTopLevelDeclaration(isAxiom);
+      AddOtherDefinition(fieldDeclaration, isAxiom);
 
       if (CommonHeapUse || (NonGhostsUseHeap && !f.IsGhost)) {
         Boogie.Expr h;
