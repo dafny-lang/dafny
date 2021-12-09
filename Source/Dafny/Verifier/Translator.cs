@@ -7644,7 +7644,7 @@ namespace Microsoft.Dafny {
 
       // declare the function
       Bpl.Function func;
-      if (!f.IsBuiltin) {
+      {
         var formals = new List<Variable>();
         formals.AddRange(MkTyParamFormals(GetTypeParams(f)));
         if (f.IsFuelAware()) {
@@ -7668,8 +7668,6 @@ namespace Microsoft.Dafny {
           InsertChecksum(f, func);
         }
         sink.AddTopLevelDeclaration(func);
-      } else {
-        throw new NotImplementedException();
       }
 
       // declare the corresponding canCall function
