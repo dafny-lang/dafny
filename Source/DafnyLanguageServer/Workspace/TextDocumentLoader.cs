@@ -152,7 +152,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private DafnyDocument VerifyInternal(VerifyRequest verifyRequest) {
       var (document, cancellationToken) = verifyRequest;
       notificationPublisher.SendStatusNotification(document.Text, CompilationStatus.VerificationStarted);
-      var verificationResult = verifier.Verify(document.Program, cancellationToken);
+      var progressReporter = new VerificationProgressReporter(document.Text, notificationPublisher);
+      var verificationResult = verifier.Verify(document.Program, progressReporter, cancellationToken);
       var compilationStatusAfterVerification = verificationResult.Verified
         ? CompilationStatus.VerificationSucceeded
         : CompilationStatus.VerificationFailed;
@@ -169,5 +170,20 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private record LoadRequest(TextDocumentItem TextDocument, CancellationToken CancellationToken) : Request(CancellationToken);
 
     private record VerifyRequest(DafnyDocument OriginalDocument, CancellationToken CancellationToken) : Request(CancellationToken);
+  }
+
+  public class VerificationProgressReporter : IVerificationProgressReporter {
+    public ICompilationStatusNotificationPublisher publisher { get; init; }
+    public TextDocumentItem document { get; init; }
+
+    public VerificationProgressReporter(TextDocumentItem document,
+                                        ICompilationStatusNotificationPublisher publisher) {
+      this.document = document;
+      this.publisher = publisher;
+    }
+
+    public void ReportProgress(string message) {
+      publisher.SendStatusNotification(document, CompilationStatus.VerificationInProgress, message);
+    }
   }
 }

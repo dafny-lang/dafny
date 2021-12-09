@@ -58,12 +58,14 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         : Convert.ToInt32(options.VcsCores);
     }
 
-    public VerificationResult Verify(Dafny.Program program, CancellationToken cancellationToken) {
+    public VerificationResult Verify(Dafny.Program program,
+                                     IVerificationProgressReporter progressReporter,
+                                     CancellationToken cancellationToken) {
       mutex.Wait(cancellationToken);
       try {
         // The printer is responsible for two things: It logs boogie errors and captures the counter example model.
         var errorReporter = (DiagnosticErrorReporter)program.reporter;
-        var printer = new ModelCapturingOutputPrinter(logger, errorReporter);
+        var printer = new ModelCapturingOutputPrinter(logger, errorReporter, progressReporter);
         ExecutionEngine.printer = printer;
         // Do not set the time limit within the construction/statically. It will break some VerificationNotificationTest unit tests
         // since we change the configured time limit depending on the test.
@@ -120,13 +122,16 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     private class ModelCapturingOutputPrinter : OutputPrinter {
       private readonly ILogger logger;
       private readonly DiagnosticErrorReporter errorReporter;
+      private readonly IVerificationProgressReporter progressReporter;
       private StringBuilder? serializedCounterExamples;
 
       public string? SerializedCounterExamples => serializedCounterExamples?.ToString();
 
-      public ModelCapturingOutputPrinter(ILogger logger, DiagnosticErrorReporter errorReporter) {
+      public ModelCapturingOutputPrinter(ILogger logger, DiagnosticErrorReporter errorReporter,
+                                         IVerificationProgressReporter progressReporter) {
         this.logger = logger;
         this.errorReporter = errorReporter;
+        this.progressReporter = progressReporter;
       }
 
       public void AdvisoryWriteLine(string format, params object[] args) {
@@ -142,6 +147,9 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
       public void Inform(string s, TextWriter tw) {
         logger.LogInformation(s);
+        if (s.StartsWith("Verifying")) { // Exclude "verified" and "" messages
+          progressReporter.reportProgress(s);
+        }
       }
 
       public void ReportBplError(IToken tok, string message, bool error, TextWriter tw, [AllowNull] string category) {
