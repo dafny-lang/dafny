@@ -23,9 +23,9 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     }
   }
 
-  public class ExprDeclaration : DeclarationStmtOrExpr {
+  public class ExpressionDeclaration : DeclarationStmtOrExpr {
     public Expression Declaration;
-    public ExprDeclaration(Expression declaration) : base(declaration.tok, Token.NoToken, declaration) {
+    public ExpressionDeclaration(Expression declaration) : base(declaration.tok, Token.NoToken, declaration) {
       Declaration = declaration;
     }
   }
@@ -54,7 +54,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     }
 
     public ScopeSymbol(ISymbol? scope, Expression declaration) : base(scope, string.Empty) {
-      Declaration = new ExprDeclaration(declaration);
+      Declaration = new ExpressionDeclaration(declaration);
     }
 
     public ScopeSymbol(ISymbol? scope, Function declaration) : base(scope, string.Empty) {
@@ -68,7 +68,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       return visitor.Visit(this);
     }
 
-    public virtual string GetDetailText(CancellationToken cancellationToken) {
+    public string GetDetailText(CancellationToken cancellationToken) {
       return "";
     }
   }

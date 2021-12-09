@@ -7,6 +7,7 @@
 //
 //-----------------------------------------------------------------------------
 using System;
+using System.Collections;
 using System.Text;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
@@ -374,6 +375,13 @@ namespace Microsoft.Dafny {
       Contract.Assert(0 <= dims);
       return TupleTypeCtorNamePrefix + dims;
     }
+  }
+
+  /// <summary>
+  /// An expression introducting bound variables
+  /// </summary>
+  public interface IBoundVarsBearingExpression {
+    public IEnumerable<BoundVar> AllBoundVars { get; }
   }
 
   /// <summary>
@@ -11105,7 +11113,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class LetExpr : Expression, IAttributeBearingDeclaration {
+  public class LetExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBearingExpression {
     public readonly List<CasePattern<BoundVar>> LHSs;
     public readonly List<Expression> RHSs;
     public readonly Expression Body;
@@ -11160,6 +11168,8 @@ namespace Microsoft.Dafny {
         }
       }
     }
+
+    public IEnumerable<BoundVar> AllBoundVars => BoundVars;
   }
 
   public class LetOrFailExpr : ConcreteSyntaxExpression {
@@ -11182,12 +11192,13 @@ namespace Microsoft.Dafny {
   /// where "Attributes" is optional, and "| Range(x)" is optional and defaults to "true".
   /// Currently, BINDER is one of the logical quantifiers "exists" or "forall".
   /// </summary>
-  public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclaration {
+  public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBearingExpression {
     public virtual string WhatKind => "comprehension";
     public readonly List<BoundVar> BoundVars;
     public readonly Expression Range;
     private Expression term;
     public Expression Term { get { return term; } }
+    public IEnumerable<BoundVar> AllBoundVars => BoundVars;
 
     public void UpdateTerm(Expression newTerm) {
       term = newTerm;

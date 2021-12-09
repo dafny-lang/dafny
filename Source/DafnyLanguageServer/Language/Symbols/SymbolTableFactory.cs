@@ -115,9 +115,25 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         ProcessNestedScope(function, function.tok, () => base.Visit(function));
       }
 
-      public override void Visit(ComprehensionExpr compExpr) {
+      public override void Visit(LambdaExpr lambdaExpression) {
         cancellationToken.ThrowIfCancellationRequested();
-        ProcessNestedScope(compExpr, compExpr.tok, () => base.Visit(compExpr));
+        ProcessNestedScope(lambdaExpression, lambdaExpression.tok, () => base.Visit(lambdaExpression));
+      }
+      public override void Visit(ForallExpr forallExpression) {
+        cancellationToken.ThrowIfCancellationRequested();
+        ProcessNestedScope(forallExpression, forallExpression.tok, () => base.Visit(forallExpression));
+      }
+      public override void Visit(ExistsExpr existsExpression) {
+        cancellationToken.ThrowIfCancellationRequested();
+        ProcessNestedScope(existsExpression, existsExpression.tok, () => base.Visit(existsExpression));
+      }
+      public override void Visit(SetComprehension setComprehension) {
+        cancellationToken.ThrowIfCancellationRequested();
+        ProcessNestedScope(setComprehension, setComprehension.tok, () => base.Visit(setComprehension));
+      }
+      public override void Visit(MapComprehension mapComprehension) {
+        cancellationToken.ThrowIfCancellationRequested();
+        ProcessNestedScope(mapComprehension, mapComprehension.tok, () => base.Visit(mapComprehension));
       }
 
       public override void Visit(LetExpr letExpr) {

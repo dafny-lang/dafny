@@ -14,13 +14,13 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     /// </summary>
     public ScopeSymbol? Body { get; set; }
     public ScopeSymbol? ByMethodBody { get; set; }
-    public List<ScopeSymbol> Ens { get; set; }
-    public List<ScopeSymbol> Req { get; set; }
-    public List<ScopeSymbol> Reads { get; set; }
-    public List<ScopeSymbol> Decreases { get; set; }
+    public List<ScopeSymbol> Ens { get; set; } = new();
+    public List<ScopeSymbol> Req { get; set; } = new();
+    public List<ScopeSymbol> Reads { get; set; } = new();
+    public List<ScopeSymbol> Decreases { get; set; } = new();
     public override IEnumerable<ISymbol> Children =>
-      AsEnumerable<ISymbol>(Body)
-        .Concat(AsEnumerable(ByMethodBody))
+      Body.AsEnumerable<ISymbol>()
+        .Concat(ByMethodBody.AsEnumerable())
         .Concat(Ens)
         .Concat(Req)
         .Concat(Reads)

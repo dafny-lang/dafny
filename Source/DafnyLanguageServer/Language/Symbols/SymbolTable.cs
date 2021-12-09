@@ -63,7 +63,6 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     /// <exception cref="System.InvalidOperationException">Thrown if there was one more symbol at the specified position. This should never happen, unless there was an error.</exception>
     public bool TryGetSymbolAt(Position position, [NotNullWhen(true)] out ILocalizableSymbol? symbol) {
       var symbolsAtPosition = LookupTree.Query(position);
-      // TODO: Figure out why duplication crashes SingleOrDefault before using FirstOrDefault 
       // Use case: function f(a: int) {}, and hover over a.
       symbol = symbolsAtPosition.SingleOrDefault();
       return symbol != null;

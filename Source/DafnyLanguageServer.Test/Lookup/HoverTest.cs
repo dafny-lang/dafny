@@ -513,5 +513,26 @@ method returnBiggerThan(n: nat) returns (y: int)
       Assert.AreEqual("```dafny\ni: int\n```", markup.Value);
     }
 
+    [TestMethod]
+    public async Task HoveringResultVarReturnsInferredType() {
+      var source = @"
+function f(i: int): (r: int)
+  ensures r - i < 10
+{
+  i + 2
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var hover = await RequestHover(documentItem, (0, 22));
+      Assert.IsNotNull(hover);
+      var markup = hover.Contents.MarkupContent;
+      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
+      Assert.AreEqual("```dafny\nr: int\n```", markup.Value);
+      hover = await RequestHover(documentItem, (1, 11));
+      Assert.IsNotNull(hover);
+      markup = hover.Contents.MarkupContent;
+      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
+      Assert.AreEqual("```dafny\nr: int\n```", markup.Value);
+    }
   }
 }

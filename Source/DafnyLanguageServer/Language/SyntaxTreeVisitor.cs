@@ -116,6 +116,9 @@
       foreach (var formal in function.Formals) {
         Visit(formal);
       }
+      if (function.Result != null) {
+        Visit(function.Result);
+      }
       foreach (var read in function.Reads) {
         Visit(read);
       }
@@ -458,14 +461,14 @@
         case ForallExpr forAllExpression:
           Visit(forAllExpression);
           break;
-        case ExistsExpr existsExpr:
-          Visit(existsExpr);
+        case ExistsExpr existsExpression:
+          Visit(existsExpression);
           break;
-        case SetComprehension setComp:
-          Visit(setComp);
+        case SetComprehension setComprehension:
+          Visit(setComprehension);
           break;
-        case MapComprehension mapComp:
-          Visit(mapComp);
+        case MapComprehension mapComprehension:
+          Visit(mapComprehension);
           break;
         case NestedMatchExpr nestedMatchExpression:
           Visit(nestedMatchExpression);
@@ -527,19 +530,49 @@
     public virtual void Visit(DisplayExpression displayExpression) {
     }
 
-    public virtual void Visit(ComprehensionExpr comprehensionExpression) {
-      foreach (var boundVar in comprehensionExpression.BoundVars) {
+    private void VisitBoundVars<TExpr>(TExpr boundVarBearingExpression)
+      where TExpr : Expression, IBoundVarsBearingExpression {
+      foreach (var boundVar in boundVarBearingExpression.AllBoundVars) {
         Visit(boundVar);
       }
-      VisitNullableAttributes(comprehensionExpression.Attributes);
-      VisitNullableExpression(comprehensionExpression.Range);
-      if (comprehensionExpression is not SetComprehension setComp || !setComp.TermIsImplicit) {
+    }
+
+    private void VisitComprehensionBoundVarsAttributesRange(ComprehensionExpr comprehensionExpr) {
+      VisitBoundVars(comprehensionExpr);
+      VisitNullableAttributes(comprehensionExpr.Attributes);
+      VisitNullableExpression(comprehensionExpr.Range);
+    }
+
+    public virtual void Visit(LambdaExpr comprehensionExpression) {
+      VisitComprehensionBoundVarsAttributesRange(comprehensionExpression);
+      VisitNullableExpression(comprehensionExpression.Term);
+    }
+
+    public virtual void Visit(ForallExpr comprehensionExpression) {
+      VisitComprehensionBoundVarsAttributesRange(comprehensionExpression);
+      VisitNullableExpression(comprehensionExpression.Term);
+    }
+
+    public virtual void Visit(ExistsExpr comprehensionExpression) {
+      VisitComprehensionBoundVarsAttributesRange(comprehensionExpression);
+      VisitNullableExpression(comprehensionExpression.Term);
+    }
+
+    public virtual void Visit(SetComprehension comprehensionExpression) {
+      VisitComprehensionBoundVarsAttributesRange(comprehensionExpression);
+      if (!comprehensionExpression.TermIsImplicit) {
         VisitNullableExpression(comprehensionExpression.Term);
       }
-      if (comprehensionExpression is MapComprehension mapComp) {
-        VisitNullableExpression(mapComp.TermLeft);
-      }
     }
+
+
+
+    public virtual void Visit(MapComprehension comprehensionExpression) {
+      VisitComprehensionBoundVarsAttributesRange(comprehensionExpression);
+      VisitNullableExpression(comprehensionExpression.Term);
+      VisitNullableExpression(comprehensionExpression.TermLeft);
+    }
+
 
     public virtual void Visit(AttributedExpression attributedExpression) {
       VisitNullableAttributes(attributedExpression.Attributes);
@@ -655,9 +688,7 @@
     }
 
     public virtual void Visit(LetExpr letExpr) {
-      foreach (var boundVar in letExpr.BoundVars) {
-        Visit(boundVar);
-      }
+      VisitBoundVars(letExpr);
       foreach (var rhs in letExpr.RHSs) {
         VisitNullableExpression(rhs);
       }
