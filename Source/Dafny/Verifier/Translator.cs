@@ -23,20 +23,20 @@ namespace Microsoft.Dafny {
     public bool UseOptimizationInZ3 { get; set; }
 
     void AddOtherDefinition(Bpl.Declaration declaration, Axiom axiom) {
-      
+
       switch (declaration) {
         case Boogie.Function boogieFunction:
-        boogieFunction.AddOtherDefinitionAxiom(axiom);
-        break;
+          boogieFunction.AddOtherDefinitionAxiom(axiom);
+          break;
         case Boogie.Constant boogieConstant:
-        boogieConstant.DefinitionAxioms.Add(axiom);
-        break;
+          boogieConstant.DefinitionAxioms.Add(axiom);
+          break;
         default: throw new ArgumentException("Declaration must be a function or constant");
       }
-    
+
       sink.AddTopLevelDeclaration(axiom);
     }
-    
+
     void AddIncludeDepAxiom(Axiom axiom) {
       axiom.AddAttribute("include_dep");
       sink.AddTopLevelDeclaration(axiom);
@@ -7383,8 +7383,7 @@ namespace Microsoft.Dafny {
       return name;
     }
 
-    private Bpl.Function GetOrCreateTypeConstructor(TopLevelDecl td)
-    {
+    private Bpl.Function GetOrCreateTypeConstructor(TopLevelDecl td) {
       Bpl.Function func;
       if (td is ClassDecl cl && cl.IsObjectTrait) {
         // the type constructor for "object" is in DafnyPrelude.bpl
@@ -7415,12 +7414,11 @@ namespace Microsoft.Dafny {
      *     const unique tytagFamily$List: TyTagFamily;  // defined once for each type named "List"
      *     axiom (forall t0: Ty :: { List(t0) } TagFamily(List(t0)) == tytagFamily$List);
      */
-    private Axiom CreateTagAndCallingForTypeConstructor(TopLevelDecl td)
-    {
+    private Axiom CreateTagAndCallingForTypeConstructor(TopLevelDecl td) {
       IToken tok = td.tok;
       var inner_name = GetClass(td).TypedIdent.Name;
       string name = "T" + inner_name;
-      
+
       var args = MkTyParamBinders(td.TypeArgs, out var argExprs);
       var inner = FunctionCall(tok, name, predef.Ty, argExprs);
       Bpl.Expr body = Bpl.Expr.True;

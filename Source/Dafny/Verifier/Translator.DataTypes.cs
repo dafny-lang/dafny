@@ -678,7 +678,9 @@ namespace Microsoft.Dafny {
                    $IsAlloc[Box](Dtor(d), D(G), H))
          */
     private void AddDestructorAxiom(DatatypeDecl dt, DatatypeCtor ctor, Bpl.Function ctorFunction, List<Variable> tyvars, Expr c_ty) {
-      if (!CommonHeapUse || AlwaysUseHeap) return;
+      if (!CommonHeapUse || AlwaysUseHeap) {
+        return;
+      }
 
       var hVar = BplBoundVar("$h", predef.HeapType, out var h);
       for (int i = 0; i < ctor.Formals.Count; i++) {
