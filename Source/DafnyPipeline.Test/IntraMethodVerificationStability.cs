@@ -16,9 +16,6 @@ namespace DafnyPipeline.Test {
     private readonly ITestOutputHelper testOutputHelper;
 
     // All types of top level declarations.
-    // But also all types of AST nodes, they may all generate something using counters.
-    // Just trying to come up with this very large Dafny program is a hassle. Would be awesome if it could be generated based on the types.
-
     readonly string originalProgram = @"
 module SomeModule {
 
