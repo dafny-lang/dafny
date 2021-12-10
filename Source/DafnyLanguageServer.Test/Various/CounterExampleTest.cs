@@ -763,7 +763,6 @@ method a(multiplier:int) {
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(2, counterExamples.Length);
-      Assert.AreEqual(4, counterExamples[1].Variables.Count);
       Assert.IsTrue(counterExamples[1].Variables.ContainsKey("multiplier:int"));
       Assert.IsTrue(counterExamples[1].Variables.ContainsKey("s:seq<int>"));
       StringAssert.Matches(counterExamples[1].Variables["s:seq<int>"], new Regex("\\(Length := 3, .*\\[2\\] := 6.*\\)"));
