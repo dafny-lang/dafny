@@ -162,8 +162,8 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
             ? null
             : ProcessExpression(new ScopeSymbol(functionSymbol, functionSymbol.Declaration), expression);
         functionSymbol.Body = ExpressionHandler(function.Body);
-        functionSymbol.Ens = ProcessListAttributedExpressions(function.Ens, ExpressionHandler);
-        functionSymbol.Req = ProcessListAttributedExpressions(function.Req, ExpressionHandler);
+        functionSymbol.Ensures = ProcessListAttributedExpressions(function.Ens, ExpressionHandler);
+        functionSymbol.Requires = ProcessListAttributedExpressions(function.Req, ExpressionHandler);
         functionSymbol.Reads = ProcessListFramedExpressions(function.Reads, ExpressionHandler);
         functionSymbol.Decreases = ProcessListExpressions(function.Decreases.Expressions, ExpressionHandler);
         functionSymbol.ByMethodBody = function.ByMethodBody == null ? null : ProcessFunctionByMethodBody(functionSymbol, function.ByMethodBody);
@@ -206,9 +206,9 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           expression == null
             ? null
             : ProcessExpression(new ScopeSymbol(methodSymbol, methodSymbol.Declaration), expression);
-        methodSymbol.Ens = ProcessListAttributedExpressions(method.Ens, ExpressionHandler);
-        methodSymbol.Req = ProcessListAttributedExpressions(method.Req, ExpressionHandler);
-        methodSymbol.Mod = ProcessListExpressions(
+        methodSymbol.Ensures = ProcessListAttributedExpressions(method.Ens, ExpressionHandler);
+        methodSymbol.Requires = ProcessListAttributedExpressions(method.Req, ExpressionHandler);
+        methodSymbol.Modifies = ProcessListExpressions(
           method.Mod.Expressions.Select(frameExpression => frameExpression.E).ToList(), ExpressionHandler);
         methodSymbol.Decreases = ProcessListExpressions(method.Decreases.Expressions, ExpressionHandler);
 
