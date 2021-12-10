@@ -470,7 +470,7 @@ namespace Microsoft.Dafny {
         }
         var expr = FunctionCall(c.tok, "implements$" + trait.FullSanitizedName, Bpl.Type.Bool, args);
         var implements_axiom = new Bpl.Axiom(c.tok, BplForall(vars, null, expr));
-        AddIncludeDepAxiom(implements_axiom);
+        AddOtherDefinition(GetOrCreateTypeConstructor(c), implements_axiom);
       }
     }
 

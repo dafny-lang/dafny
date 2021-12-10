@@ -16,9 +16,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(dt != null);
       Contract.Requires(sink != null && predef != null);
 
-      foreach (DatatypeCtor ctor in dt.Ctors) {
-        AddDataTypeConstructor(dt, ctor);
-      }
+      var constructorFunctions = dt.Ctors.ToDictionary(ctor => ctor, ctor => AddDataTypeConstructor(dt, ctor));
 
       AddDepthOneCaseSplitFunction(dt);
 
@@ -33,8 +31,7 @@ namespace Microsoft.Dafny {
       //         { Dt.Ctor1?(G,d) }
       //         $Is(d, T(G)) ==> Dt.Ctor0?(G,d) || Dt.Ctor1?(G,d) || ...);
       {
-        List<Bpl.Expr> tyexprs;
-        var tyvars = MkTyParamBinders(dt.TypeArgs, out tyexprs);
+        var tyvars = MkTyParamBinders(dt.TypeArgs, out var tyexprs);
         Bpl.Expr d;
         var dVar = BplBoundVar("d", predef.DatatypeType, out d);
         var d_is = MkIs(d, ClassTyCon(dt, tyexprs));
@@ -52,7 +49,8 @@ namespace Microsoft.Dafny {
       }
 
       if (dt is IndDatatypeDecl indDatatypeDecl) {
-        AddInductiveDatatypeAxioms(indDatatypeDecl);
+        AddInductiveDatatypeAxioms(constructorFunctions, indDatatypeDecl);
+        AddExtensionalityAxiom(indDatatypeDecl);
       }
 
       if (dt is CoDatatypeDecl coDatatypeDecl) {
@@ -60,82 +58,90 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private void AddInductiveDatatypeAxioms(IndDatatypeDecl dt) {
-      var dtEqualName = dt.FullSanitizedName + "#Equal";
+    /// <summary>
+    /// Add function Dt#Equal(DatatypeType, DatatypeType): bool;
+    /// For each constructor Ctor(x: X, y: Y), add an axiom of the form
+    ///     forall a, b ::
+    ///       { Dt#Equal(a, b), Ctor?(a) }
+    ///       { Dt#Equal(a, b), Ctor?(b) }
+    ///       Ctor?(a) && Ctor?(b)
+    ///       ==>
+    ///       (Dt#Equal(a, b) <==>
+    ///           X#Equal(a.x, b.x) &&
+    ///           Y#Equal(a.y, b.y)
+    ///       )
+    /// where X#Equal is the equality predicate for type X and a.x denotes Dtor#x(a), and similarly
+    /// for Y and b.
+    /// Except, in the event that the datatype has exactly one constructor, then instead generate:
+    ///     forall a, b ::
+    ///       { Dt#Equal(a, b) }
+    ///       true
+    ///       ==>
+    ///       ...as before
+    /// </summary>
+    private void AddInductiveDatatypeAxioms(Dictionary<DatatypeCtor, Bpl.Function> constructorFunctions,
+      IndDatatypeDecl dt) {
+      var dtEqualName = DtEqualName(dt);
 
-      // Add function Dt#Equal(DatatypeType, DatatypeType): bool;
-      // For each constructor Ctor(x: X, y: Y), add an axiom of the form
-      //     forall a, b ::
-      //       { Dt#Equal(a, b), Ctor?(a) }
-      //       { Dt#Equal(a, b), Ctor?(b) }
-      //       Ctor?(a) && Ctor?(b)
-      //       ==>
-      //       (Dt#Equal(a, b) <==>
-      //           X#Equal(a.x, b.x) &&
-      //           Y#Equal(a.y, b.y)
-      //       )
-      // where X#Equal is the equality predicate for type X and a.x denotes Dtor#x(a), and similarly
-      // for Y and b.
-      // Except, in the event that the datatype has exactly one constructor, then instead generate:
-      //     forall a, b ::
-      //       { Dt#Equal(a, b) }
-      //       true
-      //       ==>
-      //       ...as before
-      {
-        var args = new List<Variable>();
-        args.Add(new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, Bpl.TypedIdent.NoName, predef.DatatypeType), false));
-        args.Add(new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, Bpl.TypedIdent.NoName, predef.DatatypeType), false));
-        var ctorEqualResult =
-          new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
-        sink.AddTopLevelDeclaration(new Bpl.Function(dt.tok, dtEqualName, args, ctorEqualResult,
-          "Datatype extensional equality declaration"));
+      var args = new List<Variable>();
+      args.Add(new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, Bpl.TypedIdent.NoName, predef.DatatypeType), false));
+      args.Add(new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, Bpl.TypedIdent.NoName, predef.DatatypeType), false));
+      var ctorEqualResult =
+        new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
+      sink.AddTopLevelDeclaration(new Bpl.Function(dt.tok, dtEqualName, args, ctorEqualResult,
+        "Datatype extensional equality declaration"));
 
-        Bpl.Expr a;
-        var aVar = BplBoundVar("a", predef.DatatypeType, out a);
-        Bpl.Expr b;
-        var bVar = BplBoundVar("b", predef.DatatypeType, out b);
+      Bpl.Expr a;
+      var aVar = BplBoundVar("a", predef.DatatypeType, out a);
+      Bpl.Expr b;
+      var bVar = BplBoundVar("b", predef.DatatypeType, out b);
 
-        var dtEqual = FunctionCall(dt.tok, dtEqualName, Bpl.Type.Bool, a, b);
+      var dtEqual = FunctionCall(dt.tok, dtEqualName, Bpl.Type.Bool, a, b);
 
-        foreach (var ctor in dt.Ctors) {
-          Bpl.Trigger trigger;
-          Bpl.Expr ante;
-          if (dt.Ctors.Count == 1) {
-            ante = Bpl.Expr.True;
-            trigger = BplTrigger(dtEqual);
-          } else {
-            var ctorQ = GetReadonlyField(ctor.QueryField);
-            var ctorQa = FunctionCall(ctor.tok, ctorQ.Name, Bpl.Type.Bool, a);
-            var ctorQb = FunctionCall(ctor.tok, ctorQ.Name, Bpl.Type.Bool, b);
-            ante = BplAnd(ctorQa, ctorQb);
-            trigger = dt.Ctors.Count == 1
-              ? BplTrigger(dtEqual)
-              : new Bpl.Trigger(ctor.tok, true, new List<Bpl.Expr> { dtEqual, ctorQa },
-                new Bpl.Trigger(ctor.tok, true, new List<Bpl.Expr> { dtEqual, ctorQb }));
-          }
-
-          Bpl.Expr eqs = Bpl.Expr.True;
-          for (var i = 0; i < ctor.Formals.Count; i++) {
-            var arg = ctor.Formals[i];
-            var dtor = GetReadonlyField(ctor.Destructors[i]);
-            var dtorA = FunctionCall(ctor.tok, dtor.Name, TrType(arg.Type), a);
-            var dtorB = FunctionCall(ctor.tok, dtor.Name, TrType(arg.Type), b);
-            var eq = TypeSpecificEqual(ctor.tok, arg.Type, dtorA, dtorB);
-            eqs = BplAnd(eqs, eq);
-          }
-
-          var ax = BplForall(new List<Variable> { aVar, bVar }, trigger, Bpl.Expr.Imp(ante, Bpl.Expr.Iff(dtEqual, eqs)));
-          AddIncludeDepAxiom(new Bpl.Axiom(dt.tok, ax, $"Datatype extensional equality definition: {ctor.FullName}"));
+      foreach (var ctor in dt.Ctors) {
+        Bpl.Trigger trigger;
+        Bpl.Expr ante;
+        if (dt.Ctors.Count == 1) {
+          ante = Bpl.Expr.True;
+          trigger = BplTrigger(dtEqual);
+        } else {
+          var ctorQ = GetReadonlyField(ctor.QueryField);
+          var ctorQa = FunctionCall(ctor.tok, ctorQ.Name, Bpl.Type.Bool, a);
+          var ctorQb = FunctionCall(ctor.tok, ctorQ.Name, Bpl.Type.Bool, b);
+          ante = BplAnd(ctorQa, ctorQb);
+          trigger = dt.Ctors.Count == 1
+            ? BplTrigger(dtEqual)
+            : new Bpl.Trigger(ctor.tok, true, new List<Bpl.Expr> { dtEqual, ctorQa },
+              new Bpl.Trigger(ctor.tok, true, new List<Bpl.Expr> { dtEqual, ctorQb }));
         }
-      }
 
-      // Add extensionality axiom: forall a, b :: { Dt#Equal(a, b) } Dt#Equal(a, b) <==> a == b
+        Bpl.Expr eqs = Bpl.Expr.True;
+        for (var i = 0; i < ctor.Formals.Count; i++) {
+          var arg = ctor.Formals[i];
+          var dtor = GetReadonlyField(ctor.Destructors[i]);
+          var dtorA = FunctionCall(ctor.tok, dtor.Name, TrType(arg.Type), a);
+          var dtorB = FunctionCall(ctor.tok, dtor.Name, TrType(arg.Type), b);
+          var eq = TypeSpecificEqual(ctor.tok, arg.Type, dtorA, dtorB);
+          eqs = BplAnd(eqs, eq);
+        }
+
+        var ax = BplForall(new List<Variable> { aVar, bVar }, trigger, Bpl.Expr.Imp(ante, Bpl.Expr.Iff(dtEqual, eqs)));
+        AddOtherDefinition(constructorFunctions[ctor], new Bpl.Axiom(dt.tok, ax, $"Datatype extensional equality definition: {ctor.FullName}"));
+      }
+    }
+
+    private static string DtEqualName(IndDatatypeDecl dt)
+    {
+      return dt.FullSanitizedName + "#Equal";
+    }
+
+    // Add extensionality axiom: forall a, b :: { Dt#Equal(a, b) } Dt#Equal(a, b) <==> a == b
+    private void AddExtensionalityAxiom(IndDatatypeDecl dt)
+    {
+      var dtEqualName = DtEqualName(dt);
       {
-        Bpl.Expr a;
-        var aVar = BplBoundVar("a", predef.DatatypeType, out a);
-        Bpl.Expr b;
-        var bVar = BplBoundVar("b", predef.DatatypeType, out b);
+        var aVar = BplBoundVar("a", predef.DatatypeType, out var a);
+        var bVar = BplBoundVar("b", predef.DatatypeType, out var b);
 
         var lhs = FunctionCall(dt.tok, dtEqualName, Bpl.Type.Bool, a, b);
         var rhs = Bpl.Expr.Eq(a, b);
