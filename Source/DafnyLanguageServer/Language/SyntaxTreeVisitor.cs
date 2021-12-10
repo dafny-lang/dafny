@@ -455,8 +455,8 @@
         case ITEExpr ifThenElseExpression:
           Visit(ifThenElseExpression);
           break;
-        case LambdaExpr lambdaExpr:
-          Visit(lambdaExpr);
+        case LambdaExpr lambdaExpression:
+          Visit(lambdaExpression);
           break;
         case ForallExpr forAllExpression:
           Visit(forAllExpression);
@@ -543,34 +543,34 @@
       VisitNullableExpression(comprehensionExpr.Range);
     }
 
-    public virtual void Visit(LambdaExpr comprehensionExpression) {
-      VisitComprehensionBoundVarsAttributesRange(comprehensionExpression);
-      VisitNullableExpression(comprehensionExpression.Term);
+    public virtual void Visit(LambdaExpr lambdaExpression) {
+      VisitComprehensionBoundVarsAttributesRange(lambdaExpression);
+      VisitNullableExpression(lambdaExpression.Term);
     }
 
-    public virtual void Visit(ForallExpr comprehensionExpression) {
-      VisitComprehensionBoundVarsAttributesRange(comprehensionExpression);
-      VisitNullableExpression(comprehensionExpression.Term);
+    public virtual void Visit(ForallExpr forallExpression) {
+      VisitComprehensionBoundVarsAttributesRange(forallExpression);
+      VisitNullableExpression(forallExpression.Term);
     }
 
-    public virtual void Visit(ExistsExpr comprehensionExpression) {
-      VisitComprehensionBoundVarsAttributesRange(comprehensionExpression);
-      VisitNullableExpression(comprehensionExpression.Term);
+    public virtual void Visit(ExistsExpr existsExpression) {
+      VisitComprehensionBoundVarsAttributesRange(existsExpression);
+      VisitNullableExpression(existsExpression.Term);
     }
 
-    public virtual void Visit(SetComprehension comprehensionExpression) {
-      VisitComprehensionBoundVarsAttributesRange(comprehensionExpression);
-      if (!comprehensionExpression.TermIsImplicit) {
-        VisitNullableExpression(comprehensionExpression.Term);
+    public virtual void Visit(SetComprehension setComprehensionExpression) {
+      VisitComprehensionBoundVarsAttributesRange(setComprehensionExpression);
+      if (!setComprehensionExpression.TermIsImplicit) {
+        VisitNullableExpression(setComprehensionExpression.Term);
       }
     }
 
 
 
-    public virtual void Visit(MapComprehension comprehensionExpression) {
-      VisitComprehensionBoundVarsAttributesRange(comprehensionExpression);
-      VisitNullableExpression(comprehensionExpression.Term);
-      VisitNullableExpression(comprehensionExpression.TermLeft);
+    public virtual void Visit(MapComprehension mapComprehensionExpression) {
+      VisitComprehensionBoundVarsAttributesRange(mapComprehensionExpression);
+      VisitNullableExpression(mapComprehensionExpression.Term);
+      VisitNullableExpression(mapComprehensionExpression.TermLeft);
     }
 
 
