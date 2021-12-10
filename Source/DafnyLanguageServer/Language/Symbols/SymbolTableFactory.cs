@@ -111,7 +111,9 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
       public override void Visit(Function function) {
         cancellationToken.ThrowIfCancellationRequested();
-        RegisterTypeDesignator(currentScope, function.ResultType);
+        if (function.Result == null) {
+          RegisterTypeDesignator(currentScope, function.ResultType);
+        }
         ProcessNestedScope(function, function.tok, () => base.Visit(function));
       }
 

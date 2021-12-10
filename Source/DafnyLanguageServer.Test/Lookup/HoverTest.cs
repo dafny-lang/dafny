@@ -553,5 +553,23 @@ function method f(i: int): Pos {
       Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
       Assert.AreEqual("```dafny\nr: Pos\n```", markup.Value);
     }
+
+    [TestMethod]
+    public async Task HoverIngResultTypeShouldNotCrash() {
+      var source = @"
+datatype Position = Position(Line: nat)
+function ToRelativeIndependent(): (p: Position)
+{
+   Position(12)
+}
+".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var hover = await RequestHover(documentItem, (1, 41));
+      Assert.IsNotNull(hover);
+      var markup = hover.Contents.MarkupContent;
+      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
+      Assert.AreEqual("```dafny\ndatatype Position\n```", markup.Value);
+    }
   }
 }
