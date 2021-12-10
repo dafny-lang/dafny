@@ -12087,15 +12087,15 @@ namespace Microsoft.Dafny {
     }
 
 
-    private MatchCase MakeMatchCaseFromContainer(IToken tok, KeyValuePair<string, DatatypeCtor> ctor, List<BoundVar> freshPatBV, SyntaxContainer insideContainer) {
+    private MatchCase MakeMatchCaseFromContainer(IToken tok, KeyValuePair<string, DatatypeCtor> ctor, List<BoundVar> freshPatBV, SyntaxContainer insideContainer, bool fromBoundVar) {
       MatchCase newMatchCase;
       if (insideContainer is CStmt c) {
         List<Statement> insideBranch = UnboxStmtContainer(insideContainer);
-        newMatchCase = new MatchCaseStmt(tok, ctor.Value, freshPatBV, insideBranch, c.Attributes);
+        newMatchCase = new MatchCaseStmt(tok, ctor.Value, fromBoundVar, freshPatBV, insideBranch, c.Attributes);
       } else {
         var insideBranch = ((CExpr)insideContainer).Body;
         var attrs = ((CExpr)insideContainer).Attributes;
-        newMatchCase = new MatchCaseExpr(tok, ctor.Value, freshPatBV, insideBranch, attrs);
+        newMatchCase = new MatchCaseExpr(tok, ctor.Value, fromBoundVar, freshPatBV, insideBranch, attrs);
       }
       newMatchCase.Ctor = ctor.Value;
       return newMatchCase;
@@ -12223,6 +12223,8 @@ namespace Microsoft.Dafny {
         mti.UpdateBranchID(PB.Item2.BranchID, ctors.Count - 1);
       }
 
+      var ctorToFromBoundVar = new Dictionary<string, bool>();
+
       foreach (var ctor in ctors) {
         if (mti.Debug) {
           Console.WriteLine("DEBUG: ===[3]>>>> Ctor {0}", ctor.Key);
@@ -12257,6 +12259,9 @@ namespace Microsoft.Dafny {
               currBranch.Patterns.InsertRange(0, currPattern.Arguments);
               currBranches.Add(currBranch);
               ctorCounter++;
+              if (!ctorToFromBoundVar.ContainsKey(ctor.Key)) {
+                ctorToFromBoundVar.Add(ctor.Key, false);
+              }
             } else if (ctors.ContainsKey(currPattern.Id) && currPattern.Arguments != null) {
               // ==[3.2]== If the pattern is a different constructor, drop the branch
               mti.UpdateBranchID(PB.Item2.BranchID, -1);
@@ -12279,6 +12284,9 @@ namespace Microsoft.Dafny {
               currBranch.Patterns.InsertRange(0, freshArgs);
               LetBindNonWildCard(currBranch, currPattern, rhsExpr);
               currBranches.Add(currBranch);
+              if (!ctorToFromBoundVar.ContainsKey(ctor.Key)) {
+                ctorToFromBoundVar.Add(ctor.Key, true);
+              }
             }
           } else {
             Contract.Assert(false); throw new cce.UnreachableException();
@@ -12298,7 +12306,8 @@ namespace Microsoft.Dafny {
         } else {
           // Otherwise, add the case the new match created at [3]
           var tok = insideContainer.Tok is null ? currMatchee.tok : insideContainer.Tok;
-          MatchCase newMatchCase = MakeMatchCaseFromContainer(tok, ctor, freshPatBV, insideContainer);
+          var fromBoundVar = ctorToFromBoundVar.GetValueOrDefault(ctor.Key);
+          MatchCase newMatchCase = MakeMatchCaseFromContainer(tok, ctor, freshPatBV, insideContainer, fromBoundVar);
           // newMatchCase.Attributes = (new Cloner()).CloneAttributes(mti.Attributes);
           newMatchCases.Add(newMatchCase);
         }

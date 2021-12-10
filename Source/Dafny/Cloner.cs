@@ -478,7 +478,7 @@ namespace Microsoft.Dafny {
     public MatchCaseExpr CloneMatchCaseExpr(MatchCaseExpr c) {
       Contract.Requires(c != null);
       Contract.Requires(c.Arguments != null);
-      return new MatchCaseExpr(Tok(c.tok), c.Ctor, c.Arguments.ConvertAll(CloneBoundVar), CloneExpr(c.Body), CloneAttributes(c.Attributes));
+      return new MatchCaseExpr(Tok(c.tok), c.Ctor, c.fromBoundVar, c.Arguments.ConvertAll(CloneBoundVar), CloneExpr(c.Body), CloneAttributes(c.Attributes));
     }
 
     public NestedMatchCaseExpr CloneNestedMatchCaseExpr(NestedMatchCaseExpr c) {
@@ -686,7 +686,7 @@ namespace Microsoft.Dafny {
     public MatchCaseStmt CloneMatchCaseStmt(MatchCaseStmt c) {
       Contract.Requires(c != null);
       Contract.Assert(c.Arguments != null);
-      return new MatchCaseStmt(Tok(c.tok), c.Ctor, c.Arguments.ConvertAll(CloneBoundVar), c.Body.ConvertAll(CloneStmt), CloneAttributes(c.Attributes));
+      return new MatchCaseStmt(Tok(c.tok), c.Ctor, c.fromBoundVar, c.Arguments.ConvertAll(CloneBoundVar), c.Body.ConvertAll(CloneStmt), CloneAttributes(c.Attributes));
     }
 
     public ExtendedPattern CloneExtendedPattern(ExtendedPattern pat) {
