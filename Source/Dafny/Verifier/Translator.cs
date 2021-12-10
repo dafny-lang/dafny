@@ -25,6 +25,8 @@ namespace Microsoft.Dafny {
     void AddOtherDefinition(Bpl.Declaration declaration, Axiom axiom) {
 
       switch (declaration) {
+        case null: 
+          break;
         case Boogie.Function boogieFunction:
           boogieFunction.AddOtherDefinitionAxiom(axiom);
           break;
