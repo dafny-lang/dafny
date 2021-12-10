@@ -530,10 +530,9 @@
     public virtual void Visit(DisplayExpression displayExpression) {
     }
 
-    private void VisitBoundVars<TExpr>(TExpr boundVarBearingExpression)
-      where TExpr : Expression, IBoundVarsBearingExpression {
-      foreach (var boundVar in boundVarBearingExpression.AllBoundVars) {
-        Visit(boundVar);
+    private void VisitBoundVars(IBoundVarsBearingExpression boundVariablesBearingExpression) {
+      foreach (var boundVariable in boundVariablesBearingExpression.AllBoundVars) {
+        Visit(boundVariable);
       }
     }
 
