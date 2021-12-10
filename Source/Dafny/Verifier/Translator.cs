@@ -168,12 +168,10 @@ namespace Microsoft.Dafny {
       return InVerificationScope((Declaration)d);
     }
 
-
-
     private Bpl.Program sink;
     private VisibilityScope currentScope;
     private VisibilityScope verificationScope;
-
+    private Dictionary<TopLevelDecl, Bpl.Function> declarationMapping = new();
 
     readonly PredefinedDecls predef;
 
@@ -1243,7 +1241,22 @@ namespace Microsoft.Dafny {
       this.fuelContext = oldFuelContext;
     }
 
-    void AddRedirectingTypeDeclAxioms<T>(bool is_alloc, T dd, string fullName) where T : TopLevelDecl, RedirectingTypeDecl {
+    /**
+     * Example:
+      // _System.object: subset type $Is
+      axiom (forall c#0: ref :: 
+        { $Is(c#0, Tclass._System.object()) } 
+        $Is(c#0, Tclass._System.object())
+           <==> $Is(c#0, Tclass._System.object?()) && c#0 != null);
+
+      // _System.object: subset type $IsAlloc
+      axiom (forall c#0: ref, $h: Heap :: 
+        { $IsAlloc(c#0, Tclass._System.object(), $h) } 
+        $IsAlloc(c#0, Tclass._System.object(), $h)
+           <==> $IsAlloc(c#0, Tclass._System.object?(), $h));
+     */
+    void AddRedirectingTypeDeclAxioms<T>(bool is_alloc, T dd, string fullName) 
+      where T : TopLevelDecl, RedirectingTypeDecl {
       Contract.Requires(dd != null);
       Contract.Requires(dd.Var != null && dd.Constraint != null);
       Contract.Requires(fullName != null);
@@ -1256,10 +1269,10 @@ namespace Microsoft.Dafny {
       var o = BplBoundVar(dd.Var.AssignUniqueName(dd.IdGenerator), oBplType, vars);
 
       Bpl.Expr body, is_o;
-      string name = string.Format("{0}: {1} ", fullName, dd.WhatKind);
+      string comment = string.Format("{0}: {1} ", fullName, dd.WhatKind);
 
       if (is_alloc) {
-        name += "$IsAlloc";
+        comment += "$IsAlloc";
         var h = BplBoundVar("$h", predef.HeapType, vars);
         // $IsAlloc(o, ..)
         is_o = MkIsAlloc(o, o_ty, h, ModeledAsBoxType(dd.Var.Type));
@@ -1270,7 +1283,7 @@ namespace Microsoft.Dafny {
           body = BplIff(is_o, rhs);
         }
       } else {
-        name += "$Is";
+        comment += "$Is";
         // $Is(o, ..)
         is_o = MkIs(o, o_ty, ModeledAsBoxType(dd.Var.Type));
         var etran = new ExpressionTranslator(this, predef, NewOneHeapExpr(dd.tok));
@@ -1289,10 +1302,9 @@ namespace Microsoft.Dafny {
         body = BplIff(is_o, BplAnd(parentConstraint, constraint));
       }
 
-      AddIncludeDepAxiom(new Bpl.Axiom(dd.tok, BplForall(vars, BplTrigger(is_o), body), name));
+      var axiom = new Bpl.Axiom(dd.tok, BplForall(vars, BplTrigger(is_o), body), comment);
+      AddOtherDefinition(GetOrCreateTypeConstructor(dd), axiom);
     }
-
-
 
     /// <summary>
     /// Return a sequence of expressions whose conjunction denotes a memberwise equality of "dt".  Recursive
@@ -7384,6 +7396,10 @@ namespace Microsoft.Dafny {
     }
 
     private Bpl.Function GetOrCreateTypeConstructor(TopLevelDecl td) {
+      if (declarationMapping.TryGetValue(td, out var result)) {
+        return result;
+      }
+      
       Bpl.Function func;
       if (td is ClassDecl cl && cl.IsObjectTrait) {
         // the type constructor for "object" is in DafnyPrelude.bpl
@@ -7401,6 +7417,7 @@ namespace Microsoft.Dafny {
         sink.AddTopLevelDeclaration(func);
       }
 
+      declarationMapping[td] = func;
       return func;
     }
 
