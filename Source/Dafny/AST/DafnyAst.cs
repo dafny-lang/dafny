@@ -6200,7 +6200,6 @@ namespace Microsoft.Dafny {
     public Method/*?*/ ByMethodDecl; // filled in by resolution, if ByMethodBody is non-null
     public bool SignatureIsOmitted { get { return SignatureEllipsis != null; } }  // is "false" for all Function objects that survive into resolution
     public readonly IToken SignatureEllipsis;
-    public bool IsBuiltin;
     public Function OverriddenFunction;
     public Function Original => OverriddenFunction == null ? this : OverriddenFunction.Original;
     public override bool IsOverrideThatAddsBody => base.IsOverrideThatAddsBody && Body != null;

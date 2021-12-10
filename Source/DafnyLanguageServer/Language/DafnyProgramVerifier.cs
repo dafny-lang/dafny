@@ -99,7 +99,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         try {
           var statistics = new PipelineStatistics();
           var outcome = ExecutionEngine.InferAndVerify(program, statistics, uniqueId, error => { }, uniqueId);
-          return DafnyDriver.IsBoogieVerified(outcome, statistics);
+          return Main.IsBoogieVerified(outcome, statistics);
         } catch (Exception e) when (e is not OperationCanceledException) {
           if (!cancellationToken.IsCancellationRequested) {
             throw;
