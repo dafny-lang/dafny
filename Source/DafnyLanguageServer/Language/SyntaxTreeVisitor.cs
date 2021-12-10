@@ -485,8 +485,8 @@
         case StmtExpr statementExpression:
           Visit(statementExpression);
           break;
-        case LetExpr letExpr:
-          Visit(letExpr);
+        case LetExpr letExpression:
+          Visit(letExpression);
           break;
         default:
           VisitUnknown(expression, expression.tok);
@@ -687,13 +687,13 @@
       Visit(statementExpression.E);
     }
 
-    public virtual void Visit(LetExpr letExpr) {
-      VisitBoundVars(letExpr);
-      foreach (var rhs in letExpr.RHSs) {
+    public virtual void Visit(LetExpr letExpression) {
+      VisitBoundVars(letExpression);
+      foreach (var rhs in letExpression.RHSs) {
         VisitNullableExpression(rhs);
       }
-      VisitNullableAttributes(letExpr.Attributes);
-      Visit(letExpr.Body);
+      VisitNullableAttributes(letExpression.Attributes);
+      Visit(letExpression.Body);
     }
   }
 }

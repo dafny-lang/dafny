@@ -136,9 +136,9 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         ProcessNestedScope(mapComprehension, mapComprehension.tok, () => base.Visit(mapComprehension));
       }
 
-      public override void Visit(LetExpr letExpr) {
+      public override void Visit(LetExpr letExpression) {
         cancellationToken.ThrowIfCancellationRequested();
-        ProcessNestedScope(letExpr, letExpr.tok, () => base.Visit(letExpr));
+        ProcessNestedScope(letExpression, letExpression.tok, () => base.Visit(letExpression));
       }
 
       public override void Visit(Field field) {
