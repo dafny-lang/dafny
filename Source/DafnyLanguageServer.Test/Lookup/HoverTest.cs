@@ -534,5 +534,24 @@ function f(i: int): (r: int)
       Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
       Assert.AreEqual("```dafny\nr: int\n```", markup.Value);
     }
+
+    [TestMethod]
+    public async Task HoverIngInferredVariable() {
+      var source = @"
+datatype Pos = Pos(line: int)
+function method f(i: int): Pos {
+  if i <= 3 then Pos(i)
+  else
+   var r := f(i - 2);
+   Pos(r.line + 2)
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var hover = await RequestHover(documentItem, (4, 8));
+      Assert.IsNotNull(hover);
+      var markup = hover.Contents.MarkupContent;
+      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
+      Assert.AreEqual("```dafny\nr: Pos\n```", markup.Value);
+    }
   }
 }
