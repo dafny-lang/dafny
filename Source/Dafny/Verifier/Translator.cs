@@ -39,11 +39,6 @@ namespace Microsoft.Dafny {
       sink.AddTopLevelDeclaration(axiom);
     }
 
-    void AddIncludeDepAxiom(Axiom axiom) {
-      axiom.AddAttribute("include_dep");
-      sink.AddTopLevelDeclaration(axiom);
-    }
-
     public class TranslatorFlags {
       public bool InsertChecksums = 0 < CommandLineOptions.Clo.VerifySnapshots;
       public string UniqueIdPrefix = null;
@@ -10161,62 +10156,8 @@ namespace Microsoft.Dafny {
 
             sink.AddTopLevelDeclaration(fn);
           }
-          // add canCall function
-          {
-            Bpl.Variable resType = new Bpl.Formal(e.tok, new Bpl.TypedIdent(e.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
-            Bpl.Expr ante;
-            List<Variable> formals = info.GAsVars(this, true, out ante, null);
-            var fn = new Bpl.Function(e.tok, info.CanCallFunctionName(), formals, resType);
-
-            if (InsertChecksums) {
-              InsertChecksum(e.Body, fn);
-            }
-
-            sink.AddTopLevelDeclaration(fn);
-          }
-
-          {
-            var etranCC = new ExpressionTranslator(this, predef, info.HeapExpr(this, false), info.HeapExpr(this, true));
-            Bpl.Expr typeAntecedents;  // later ignored
-            List<Variable> gg = info.GAsVars(this, false, out typeAntecedents, etranCC);
-            var gExprs = new List<Bpl.Expr>();
-            foreach (Bpl.Variable g in gg) {
-              gExprs.Add(new Bpl.IdentifierExpr(g.tok, g));
-            }
-            Bpl.Trigger tr = null;
-            Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
-            Bpl.Expr antecedent = Bpl.Expr.True;
-            foreach (var bv in e.BoundVars) {
-              // create a call to $let$x(g)
-              var call = FunctionCall(e.tok, info.SkolemFunctionName(bv), TrType(bv.Type), gExprs);
-              tr = new Bpl.Trigger(e.tok, true, new List<Bpl.Expr> { call }, tr);
-              substMap.Add(bv, new BoogieWrapper(call, bv.Type));
-              if (!(bv.Type.IsTypeParameter)) {
-                Bpl.Expr wh = GetWhereClause(bv.tok, call, bv.Type, etranCC, NOALLOC);
-                if (wh != null) {
-                  antecedent = BplAnd(antecedent, wh);
-                }
-              }
-            }
-            var i = info.FTVs.Count + (info.UsesHeap ? 1 : 0) + (info.UsesOldHeap ? 1 : 0) + info.UsesHeapAt.Count;
-            Expression receiverReplacement;
-            if (info.ThisType == null) {
-              receiverReplacement = null;
-            } else {
-              receiverReplacement = new BoogieWrapper(gExprs[i], info.ThisType);
-              i++;
-            }
-            foreach (var fv in info.FVs) {
-              var ge = gExprs[i];
-              substMap.Add(fv, new BoogieWrapper(ge, fv.Type));
-              i++;
-            }
-            var canCall = FunctionCall(e.tok, info.CanCallFunctionName(), Bpl.Type.Bool, gExprs);
-            var p = Substitute(e.RHSs[0], receiverReplacement, substMap);
-            Bpl.Expr ax = Bpl.Expr.Imp(canCall, BplAnd(antecedent, etranCC.TrExpr(p)));
-            ax = BplForall(gg, tr, ax);
-            AddIncludeDepAxiom(new Bpl.Axiom(e.tok, ax));
-          }
+          var canCallFunction = AddLetSuchThatCanCallFunction(e, info);
+          AddLetSuchThenCanCallAxiom(e, info, canCallFunction);
 
           // now that we've declared the functions and axioms, let's prepare the let-such-that desugaring
           {
@@ -10235,6 +10176,67 @@ namespace Microsoft.Dafny {
         }
       }
       return e.getTranslationDesugaring(this);
+    }
+
+    private Bpl.Function AddLetSuchThatCanCallFunction(LetExpr e, LetSuchThatExprInfo info) {
+      Bpl.Variable resType = new Bpl.Formal(e.tok, new Bpl.TypedIdent(e.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool),
+        false);
+      List<Variable> formals = info.GAsVars(this, true, out var ante, null);
+      var canCallFunction = new Bpl.Function(e.tok, info.CanCallFunctionName(), formals, resType);
+
+      if (InsertChecksums) {
+        InsertChecksum(e.Body, canCallFunction);
+      }
+
+      sink.AddTopLevelDeclaration(canCallFunction);
+      return canCallFunction;
+    }
+
+    private void AddLetSuchThenCanCallAxiom(LetExpr e, LetSuchThatExprInfo info, Bpl.Function canCallFunction) {
+      var etranCC = new ExpressionTranslator(this, predef, info.HeapExpr(this, false), info.HeapExpr(this, true));
+      Bpl.Expr typeAntecedents; // later ignored
+      List<Variable> gg = info.GAsVars(this, false, out typeAntecedents, etranCC);
+      var gExprs = new List<Bpl.Expr>();
+      foreach (Bpl.Variable g in gg) {
+        gExprs.Add(new Bpl.IdentifierExpr(g.tok, g));
+      }
+
+      Bpl.Trigger tr = null;
+      Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
+      Bpl.Expr antecedent = Bpl.Expr.True;
+      foreach (var bv in e.BoundVars) {
+        // create a call to $let$x(g)
+        var call = FunctionCall(e.tok, info.SkolemFunctionName(bv), TrType(bv.Type), gExprs);
+        tr = new Bpl.Trigger(e.tok, true, new List<Bpl.Expr> { call }, tr);
+        substMap.Add(bv, new BoogieWrapper(call, bv.Type));
+        if (!(bv.Type.IsTypeParameter)) {
+          Bpl.Expr wh = GetWhereClause(bv.tok, call, bv.Type, etranCC, NOALLOC);
+          if (wh != null) {
+            antecedent = BplAnd(antecedent, wh);
+          }
+        }
+      }
+
+      var i = info.FTVs.Count + (info.UsesHeap ? 1 : 0) + (info.UsesOldHeap ? 1 : 0) + info.UsesHeapAt.Count;
+      Expression receiverReplacement;
+      if (info.ThisType == null) {
+        receiverReplacement = null;
+      } else {
+        receiverReplacement = new BoogieWrapper(gExprs[i], info.ThisType);
+        i++;
+      }
+
+      foreach (var fv in info.FVs) {
+        var ge = gExprs[i];
+        substMap.Add(fv, new BoogieWrapper(ge, fv.Type));
+        i++;
+      }
+
+      var canCall = FunctionCall(e.tok, info.CanCallFunctionName(), Bpl.Type.Bool, gExprs);
+      var p = Substitute(e.RHSs[0], receiverReplacement, substMap);
+      Bpl.Expr ax = Bpl.Expr.Imp(canCall, BplAnd(antecedent, etranCC.TrExpr(p)));
+      ax = BplForall(gg, tr, ax);
+      AddOtherDefinition(canCallFunction, new Bpl.Axiom(e.tok, ax));
     }
 
     class LetSuchThatExprInfo {
