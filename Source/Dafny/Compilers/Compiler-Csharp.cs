@@ -2018,10 +2018,8 @@ namespace Microsoft.Dafny {
       }
 
       //Use the interface if applicable (not handwritten, or incompatible variance)
-      bool compileIt = true;
       if ((cl is DatatypeDecl)
           && !ignoreInterface
-          && (!Attributes.ContainsBool(cl.Attributes, "compile", ref compileIt) || compileIt)
           && (member is null || !NeedsCustomReceiver(member))) {
         var prefix = cl.EnclosingModuleDefinition.IsDefaultModule ? "" : IdProtect(cl.EnclosingModuleDefinition.CompileName) + ".";
         return prefix + "_I" + cl.CompileName;
