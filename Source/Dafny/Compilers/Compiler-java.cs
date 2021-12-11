@@ -246,7 +246,7 @@ namespace Microsoft.Dafny {
         indices.Add(wIndex.ToString());
       }
       var lv = EmitArraySelectAsLvalue(array, indices, tupleTypeArgsList[L - 1]);
-      var wrRhs = EmitAssignment(lv, tupleTypeArgsList[L - 1], null, wr);
+      var wrRhs = EmitAssignment(lv, tupleTypeArgsList[L - 1], null, wr, s0.Tok);
       wrRhs.Write($"(({TypeName(tupleTypeArgsList[L - 1], wrRhs, s0.Tok)})");
       EmitTupleSelect(tup, L - 1, wrRhs);
       wrRhs.Write(")");

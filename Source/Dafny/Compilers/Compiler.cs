@@ -344,11 +344,8 @@ namespace Microsoft.Dafny {
     protected abstract string GenerateLhsDecl(string target, Type/*?*/ type, ConcreteSyntaxTree wr, Bpl.IToken tok);
 
     protected virtual ConcreteSyntaxTree EmitAssignment(ILvalue wLhs, Type lhsType /*?*/, Type rhsType /*?*/,
-      ConcreteSyntaxTree wr, Bpl.IToken tok = null) {
+      ConcreteSyntaxTree wr, Bpl.IToken tok) {
       var w = wLhs.EmitWrite(wr);
-      if (tok == null) {
-        tok = Bpl.Token.NoToken;
-      }
 
       w = EmitCoercionIfNecessary(rhsType, lhsType, tok, w);
       w = EmitDowncastIfNecessary(rhsType, lhsType, tok, w);
@@ -455,7 +452,7 @@ namespace Microsoft.Dafny {
 
       Contract.Assert(rhsVars.Count == lhsTypes.Count);
       for (int i = 0; i < rhsVars.Count; i++) {
-        ConcreteSyntaxTree wRhsVar = EmitAssignment(lhssn[i], lhsTypes[i], rhsTypes[i], wr);
+        ConcreteSyntaxTree wRhsVar = EmitAssignment(lhssn[i], lhsTypes[i], rhsTypes[i], wr, Bpl.Token.NoToken);
         wRhsVar.Write(rhsVars[i]);
       }
     }
@@ -3153,7 +3150,7 @@ namespace Microsoft.Dafny {
         EmitTupleSelect(tup, 0, wObj);
       }, lhs.Obj.Type, lhs.Member, typeArgs, lhs.TypeArgumentSubstitutionsWithParents(), lhs.Type);
 
-      var wRhs = EmitAssignment(lvalue, lhs.Type, tupleTypeArgsList[1], wr);
+      var wRhs = EmitAssignment(lvalue, lhs.Type, tupleTypeArgsList[1], wr, s0.Tok);
       var wCoerced = EmitCoercionIfNecessary(from: null, to: tupleTypeArgsList[1], tok: s0.Tok, wr: wRhs);
       EmitTupleSelect(tup, 1, wCoerced);
     }
@@ -4023,7 +4020,7 @@ namespace Microsoft.Dafny {
             if (lvalue != null) {
               // The type information here takes care both of implicit upcasts and
               // implicit downcasts from type parameters (see above).
-              ConcreteSyntaxTree wRhs = EmitAssignment(lvalue, s.Lhs[j].Type, outTypes[l], wr);
+              ConcreteSyntaxTree wRhs = EmitAssignment(lvalue, s.Lhs[j].Type, outTypes[l], wr, s.Tok);
               if (s.Method.IsExtern(out _, out _)) {
                 wRhs = EmitCoercionFromNativeForm(p.Type, s.Tok, wRhs);
               }
