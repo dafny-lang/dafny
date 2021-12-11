@@ -780,7 +780,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<string>() != null);
 
       var dt = ctor.EnclosingDatatype;
-      var dtName = dt.EnclosingModuleDefinition.IsDefaultModule ? IdProtect(dt.CompileName) : dt.FullCompileName;
+      var dtName = dt.EnclosingModuleDefinition.IsDefaultModule ? IdName(dt) : dt.FullCompileName;
       return dt.IsRecordType ? dtName : dtName + "_" + ctor.CompileName;
     }
 
@@ -2050,7 +2050,7 @@ namespace Microsoft.Dafny {
       var dt = dtv.Ctor.EnclosingDatatype;
       var dtName = "";
       if (!dt.EnclosingModuleDefinition.IsDefaultModule) { dtName += IdProtect(dt.EnclosingModuleDefinition.CompileName) + "."; }
-      dtName += IdProtect(dt.CompileName);
+      dtName += IdName(dt);
 
       var nonGhostInferredTypeArgs = SelectNonGhost(dt, dtv.InferredTypeArgs);
       var typeParams = nonGhostInferredTypeArgs.Count == 0 ? "" : $"<{TypeNames(nonGhostInferredTypeArgs, wr, dtv.tok)}>";
