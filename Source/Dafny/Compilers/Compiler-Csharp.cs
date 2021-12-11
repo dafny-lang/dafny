@@ -2371,7 +2371,7 @@ namespace Microsoft.Dafny {
       to = to.NormalizeExpand();
       Contract.Assert(from.IsRefType == to.IsRefType);
 
-      if (from.IsIndDatatype || from.IsCoDatatype) {
+      if (from.IsDatatype) {
         Error(tok, "compilation does not support downcasts involving copying for datatypes (like converting from {0} to {1})", wr, from, to);
       }
 
