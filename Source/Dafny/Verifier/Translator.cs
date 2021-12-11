@@ -25,7 +25,7 @@ namespace Microsoft.Dafny {
     void AddOtherDefinition(Bpl.Declaration declaration, Axiom axiom) {
 
       switch (declaration) {
-        case null: 
+        case null:
           break;
         case Boogie.Function boogieFunction:
           boogieFunction.AddOtherDefinitionAxiom(axiom);
@@ -1257,7 +1257,7 @@ namespace Microsoft.Dafny {
         $IsAlloc(c#0, Tclass._System.object(), $h)
            <==> $IsAlloc(c#0, Tclass._System.object?(), $h));
      */
-    void AddRedirectingTypeDeclAxioms<T>(bool is_alloc, T dd, string fullName) 
+    void AddRedirectingTypeDeclAxioms<T>(bool is_alloc, T dd, string fullName)
       where T : TopLevelDecl, RedirectingTypeDecl {
       Contract.Requires(dd != null);
       Contract.Requires(dd.Var != null && dd.Constraint != null);
@@ -7401,7 +7401,7 @@ namespace Microsoft.Dafny {
       if (declarationMapping.TryGetValue(td, out var result)) {
         return result;
       }
-      
+
       Bpl.Function func;
       if (td is ClassDecl cl && cl.IsObjectTrait) {
         // the type constructor for "object" is in DafnyPrelude.bpl
@@ -7659,7 +7659,7 @@ namespace Microsoft.Dafny {
       if (this.declarationMapping.TryGetValue(f, out var result)) {
         return result;
       }
-      
+
       Contract.Requires(f != null);
       Contract.Requires(predef != null && sink != null);
 

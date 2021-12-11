@@ -81,10 +81,8 @@ namespace Microsoft.Dafny {
             { $IsAlloc(p, TClassA(G), h) }
             $IsAlloc(p, TClassA(G), h) => (p == null || h[p, alloc]);
      */
-    private void AddIsAndIsAllocForClassLike(TopLevelDeclWithMembers c)
-    {
-      MapM(c is ClassDecl ? Bools : new List<bool>(), is_alloc =>
-      {
+    private void AddIsAndIsAllocForClassLike(TopLevelDeclWithMembers c) {
+      MapM(c is ClassDecl ? Bools : new List<bool>(), is_alloc => {
         var vars = MkTyParamBinders(GetTypeParams(c), out var tyexprs);
 
         var o = BplBoundVar("$o", predef.RefType, vars);
@@ -250,8 +248,7 @@ namespace Microsoft.Dafny {
     ///         $IsAlloc(h[o, f], TT(PP), h));
     /// </summary>
     private void AddInstanceFieldAllocationAxioms(Bpl.Declaration fieldDeclaration, Field f, TopLevelDeclWithMembers c,
-      bool is_array, Expr heightAntecedent)
-    {
+      bool is_array, Expr heightAntecedent) {
       var bvsTypeAxiom = new List<Bpl.Variable>();
       var bvsAllocationAxiom = new List<Bpl.Variable>();
 
@@ -259,7 +256,7 @@ namespace Microsoft.Dafny {
       var tyvars = MkTyParamBinders(GetTypeParams(c), out var tyexprs);
       bvsTypeAxiom.AddRange(tyvars);
       bvsAllocationAxiom.AddRange(tyvars);
-      
+
       // This is the typical case (that is, f is not a static const field)
 
       var hVar = BplBoundVar("$h", predef.HeapType, out var h);
@@ -430,7 +427,7 @@ namespace Microsoft.Dafny {
     ///         $Is(h[o, f], TT(TClassA_Inv_i(dtype(o)),..), h);
     /// <summary>
     private void AddStaticConstFieldAllocationAxiom(Boogie.Declaration fieldDeclaration, Field f, TopLevelDeclWithMembers c, Expr heightAntecedent) {
-      
+
       var bvsTypeAxiom = new List<Bpl.Variable>();
       var bvsAllocationAxiom = new List<Bpl.Variable>();
 
@@ -438,7 +435,7 @@ namespace Microsoft.Dafny {
       var tyvars = MkTyParamBinders(GetTypeParams(c), out var tyexprs);
       bvsTypeAxiom.AddRange(tyvars);
       bvsAllocationAxiom.AddRange(tyvars);
-      
+
       var oDotF = new Boogie.NAryExpr(c.tok, new Boogie.FunctionCall(GetReadonlyField(f)), tyexprs);
       var is_hf = MkIs(oDotF, f.Type); // $Is(h[o, f], ..)
       Boogie.Expr ax = bvsTypeAxiom.Count == 0 ? is_hf : BplForall(bvsTypeAxiom, BplTrigger(oDotF), is_hf);

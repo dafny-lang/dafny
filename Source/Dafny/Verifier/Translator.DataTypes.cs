@@ -130,14 +130,12 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private static string DtEqualName(IndDatatypeDecl dt)
-    {
+    private static string DtEqualName(IndDatatypeDecl dt) {
       return dt.FullSanitizedName + "#Equal";
     }
 
     // Add extensionality axiom: forall a, b :: { Dt#Equal(a, b) } Dt#Equal(a, b) <==> a == b
-    private void AddExtensionalityAxiom(IndDatatypeDecl dt)
-    {
+    private void AddExtensionalityAxiom(IndDatatypeDecl dt) {
       var dtEqualName = DtEqualName(dt);
       {
         var aVar = BplBoundVar("a", predef.DatatypeType, out var a);
