@@ -55,7 +55,9 @@ namespace DafnyServer {
       foreach (var dafnyModel in specificModels) {
         var counterExample = new CounterExample();
         foreach (var state in dafnyModel.States) {
-          if (state == null) continue;
+          if (state == null) {
+            continue;
+          }
 
           var counterExampleState = new CounterExampleState {
             Name = state.FullStateName

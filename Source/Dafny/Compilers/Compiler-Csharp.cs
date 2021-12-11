@@ -558,14 +558,14 @@ namespace Microsoft.Dafny {
           switch (tp.Variance) {
             //Can only be in output
             case TypeParameter.TPVariance.Co:
-              if (member is Function f && f.Formals.Exists(InvalidFormal)
-                  || member is Method m && m.Ins.Exists(InvalidFormal)) { return true; }
+              if ((member is Function f && f.Formals.Exists(InvalidFormal))
+                  || (member is Method m && m.Ins.Exists(InvalidFormal))) { return true; }
               break;
             //Can only be in input
             case TypeParameter.TPVariance.Contra:
-              if (member is Function fn && InvalidType(fn.ResultType)
-                  || member is Method me && me.Outs.Exists(InvalidFormal)
-                  || member is ConstantField c && InvalidType(c.Type)) { return true; }
+              if ((member is Function fn && InvalidType(fn.ResultType))
+                  || (member is Method me && me.Outs.Exists(InvalidFormal))
+                  || (member is ConstantField c && InvalidType(c.Type))) { return true; }
               break;
           }
         }
@@ -903,7 +903,7 @@ namespace Microsoft.Dafny {
 
       public ConcreteSyntaxTree Writer(bool isStatic, bool createBody, MemberDecl/*?*/ member) {
         if (createBody) {
-          if (isStatic || member?.EnclosingClass is TraitDecl && Compiler.NeedsCustomReceiver(member)) {
+          if (isStatic || (member?.EnclosingClass is TraitDecl && Compiler.NeedsCustomReceiver(member))) {
             return StaticMemberWriter;
           }
         }
@@ -1558,7 +1558,10 @@ namespace Microsoft.Dafny {
 
     protected override void EmitHalt(Bpl.IToken tok, Expression/*?*/ messageExpr, ConcreteSyntaxTree wr) {
       wr.Write("throw new Dafny.HaltException(");
-      if (tok != null) wr.Write(SymbolDisplay.FormatLiteral(ErrorReporter.TokenToString(tok) + ": ", true) + " + ");
+      if (tok != null) {
+        wr.Write(SymbolDisplay.FormatLiteral(ErrorReporter.TokenToString(tok) + ": ", true) + " + ");
+      }
+
       TrExpr(messageExpr, wr, false);
       wr.WriteLine(");");
     }
@@ -1663,7 +1666,9 @@ namespace Microsoft.Dafny {
       string msg = null) {
       wr.Write($"{GetHelperModuleName()}.ToIntChecked(");
       TrExpr(expr, wr, inLetExprBody);
-      if (checkRange) wr.Write(msg == null ? ", null" : $", \"{msg}\")");
+      if (checkRange) {
+        wr.Write(msg == null ? ", null" : $", \"{msg}\")");
+      }
     }
 
     protected override void EmitNewArray(Type elmtType, Bpl.IToken tok, List<Expression> dimensions, bool mustInitialize, ConcreteSyntaxTree wr) {
@@ -2003,6 +2008,7 @@ namespace Microsoft.Dafny {
       if (udt is ArrowType) {
         return ArrowType.Arrow_FullCompileName;
       }
+
       if (member != null && member.IsExtern(out var qualification, out _) && qualification != null) {
         return qualification;
       }
@@ -2033,8 +2039,8 @@ namespace Microsoft.Dafny {
 
     protected override void EmitThis(ConcreteSyntaxTree wr) {
       var custom =
-        enclosingMethod != null && enclosingMethod.IsTailRecursive ||
-        enclosingFunction != null && (enclosingFunction.IsTailRecursive || NeedsCustomReceiver(enclosingFunction)) ||
+        (enclosingMethod != null && enclosingMethod.IsTailRecursive) ||
+        (enclosingFunction != null && enclosingFunction.IsTailRecursive) || NeedsCustomReceiver(enclosingFunction) ||
         thisContext is NewtypeDecl ||
         thisContext is TraitDecl;
       wr.Write(custom ? "_this" : "this");

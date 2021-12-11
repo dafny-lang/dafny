@@ -1805,7 +1805,10 @@ namespace Microsoft.Dafny {
 
     protected override void EmitHalt(Bpl.IToken tok, Expression messageExpr, ConcreteSyntaxTree wr) {
       wr.Write("panic(");
-      if (tok != null) wr.Write("\"" + Dafny.ErrorReporter.TokenToString(tok) + ": \" + ");
+      if (tok != null) {
+        wr.Write("\"" + Dafny.ErrorReporter.TokenToString(tok) + ": \" + ");
+      }
+
       wr.Write("(");
       TrExpr(messageExpr, wr, false);
       wr.WriteLine(").String())");
@@ -3227,7 +3230,7 @@ namespace Microsoft.Dafny {
 
     private static bool EqualsUpToParameters(Type type1, Type type2) {
       // TODO Consider whether Type.SameHead should return true in this case
-      return Type.SameHead(type1, type2) || type1.IsArrayType && type1.IsArrayType;
+      return Type.SameHead(type1, type2) || (type1.IsArrayType && type1.IsArrayType);
     }
 
     protected override ConcreteSyntaxTree EmitCoercionIfNecessary(Type/*?*/ from, Type/*?*/ to, Bpl.IToken tok, ConcreteSyntaxTree wr) {

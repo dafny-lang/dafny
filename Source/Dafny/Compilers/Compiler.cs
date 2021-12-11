@@ -346,7 +346,10 @@ namespace Microsoft.Dafny {
     protected virtual ConcreteSyntaxTree EmitAssignment(ILvalue wLhs, Type lhsType /*?*/, Type rhsType /*?*/,
       ConcreteSyntaxTree wr, Bpl.IToken tok = null) {
       var w = wLhs.EmitWrite(wr);
-      if (tok == null) tok = Bpl.Token.NoToken;
+      if (tok == null) {
+        tok = Bpl.Token.NoToken;
+      }
+
       w = EmitCoercionIfNecessary(rhsType, lhsType, tok, w);
       w = EmitDowncastIfNecessary(rhsType, lhsType, tok, w);
       return w;
@@ -1219,7 +1222,7 @@ namespace Microsoft.Dafny {
             }
             var classIsExtern = false;
             if (include) {
-              classIsExtern = !DafnyOptions.O.DisallowExterns && Attributes.Contains(cl.Attributes, "extern") || cl.IsDefaultClass && Attributes.Contains(cl.EnclosingModuleDefinition.Attributes, "extern");
+              classIsExtern = (!DafnyOptions.O.DisallowExterns && Attributes.Contains(cl.Attributes, "extern")) || (cl.IsDefaultClass && Attributes.Contains(cl.EnclosingModuleDefinition.Attributes, "extern"));
               if (classIsExtern && cl.Members.TrueForAll(member => member.IsGhost || Attributes.Contains(member.Attributes, "extern"))) {
                 include = false;
               }
@@ -1363,7 +1366,10 @@ namespace Microsoft.Dafny {
       mainMethod = null;
       bool hasMain = false;
       string name = DafnyOptions.O.MainMethod;
-      if (name != null && name == "-") return false;
+      if (name != null && name == "-") {
+        return false;
+      }
+
       if (name != null && name != "") {
         foreach (var module in program.CompileModules) {
           if (module.IsAbstract) {
@@ -1744,7 +1750,7 @@ namespace Microsoft.Dafny {
           } else if (f.IsGhost) {
             // nothing to compile, but we do check for assumes
             if (f.Body == null) {
-              Contract.Assert(c is TraitDecl && !f.IsStatic || Attributes.Contains(f.Attributes, "extern"));
+              Contract.Assert((c is TraitDecl && !f.IsStatic) || Attributes.Contains(f.Attributes, "extern"));
             }
 
             if (Attributes.Contains(f.Attributes, "test")) {
@@ -3380,9 +3386,9 @@ namespace Microsoft.Dafny {
         return
           no1DArrayAccesses(sse.Seq, sse.E0, range, rhs) ||
 
-          bvs.Count == 1 &&
+          (bvs.Count == 1 &&
           isVar(bvs[0], sse.E0) &&
-          indexIsAlwaysVar(bvs[0], range, sse.Seq, rhs); // also covers sequence conversions
+          indexIsAlwaysVar(bvs[0], range, sse.Seq, rhs)); // also covers sequence conversions
       } else if (lhs is MultiSelectExpr mse) {
         return
           noMultiDArrayAccesses(mse.Array, range, rhs) &&
@@ -3394,9 +3400,9 @@ namespace Microsoft.Dafny {
         return
           noFieldAccesses(mse2.Member, mse2.Obj, range, rhs) ||
 
-          bvs.Count == 1 &&
+          (bvs.Count == 1 &&
           isVar(bvs[0], mse2.Obj) &&
-          accessedObjectIsAlwaysVar(mse2.Member, bvs[0], range, rhs);
+          accessedObjectIsAlwaysVar(mse2.Member, bvs[0], range, rhs));
       }
 
       bool noImpureFunctionCalls(params Expression[] exprs) {
@@ -4612,7 +4618,7 @@ namespace Microsoft.Dafny {
           wBody.Write(", {0}, ", expr is ForallExpr ? "true" : "false");
           var native = AsNativeType(e.BoundVars[i].Type);
           ConcreteSyntaxTree newWBody = CreateLambda(new List<Type> { bv.Type }, e.tok, new List<string> { IdName(bv) }, Type.Bool, wBody, untyped: true);
-          newWBody = EmitReturnExpr(newWBody);
+          newWBody = MaybeInjectSubsetConstraint(newWBody, inLetExprBody, e.BoundVars[i], e, true, e is ForallExpr);
           wBody.Write(')');
           wBody = newWBody;
         }
@@ -4652,6 +4658,9 @@ namespace Microsoft.Dafny {
           ConcreteSyntaxTree collectionWriter;
           var tmpVar = idGenerator.FreshId("_compr_");
           wr = CreateForeachLoop(tmpVar, GetCollectionEnumerationType(bound, bv), IdName(bv), bv.Type, true, bv.tok, out collectionWriter, wr);
+          // var  s = {List(Cell(1)), List(Cell(2), Cell(4)), List(Cell(2), Cell(3))};
+          // set x: List<EvenCell> | x in s 
+          wr = MaybeInjectSubsetConstraint(wr, inLetExprBody, bv, e);
           CompileCollection(bound, bv, inLetExprBody, true, null, collectionWriter);
         }
         ConcreteSyntaxTree guardWriter;
@@ -4697,6 +4706,7 @@ namespace Microsoft.Dafny {
           ConcreteSyntaxTree collectionWriter;
           var tmpVar = idGenerator.FreshId("_compr_");
           wr = CreateForeachLoop(tmpVar, GetCollectionEnumerationType(bound, bv), IdName(bv), bv.Type, true, bv.tok, out collectionWriter, wr);
+          wr = MaybeInjectSubsetConstraint(wr, inLetExprBody, bv, e);
           CompileCollection(bound, bv, inLetExprBody, true, null, collectionWriter);
         }
         ConcreteSyntaxTree guardWriter;
@@ -4736,6 +4746,51 @@ namespace Microsoft.Dafny {
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
+    }
+
+    private ConcreteSyntaxTree MaybeInjectSubsetConstraint(ConcreteSyntaxTree wr, bool inLetExprBody, BoundVar bv,
+      Expression e, bool isReturning = false, bool elseReturnValue = false) {
+      if (bv.Type.NormalizeExpand(true) is UserDefinedType
+        {
+          TypeArgs: var typeArgs,
+          ResolvedClass:
+          SubsetTypeDecl
+          {
+            TypeArgs: var typeParametersArgs,
+            Var: var var,
+            ConstraintIsCompilable: true,
+            Constraint: var constraint
+          }
+        }) {
+        var bvIdentifier = new IdentifierExpr(e.tok, bv);
+        var typeParameters = new Dictionary<TypeParameter, Type> { };
+        for (var i = 0; i < typeParametersArgs.Count(); i++) {
+          typeParameters[typeParametersArgs[i]] = typeArgs[i];
+        }
+        var subContract = new Substituter(null,
+          new Dictionary<IVariable, Expression>()
+          {
+            {var, bvIdentifier}
+          },
+          new Dictionary<TypeParameter, Type>(
+            typeParameters
+          )
+        );
+        var constraintInContext = subContract.Substitute(constraint);
+        var thenWriter = EmitIf(out var guardWriter, isReturning, wr);
+        TrExpr(constraintInContext, guardWriter, inLetExprBody);
+        if (isReturning) {
+          wr = wr.NewBlock("", null, BraceStyle.Nothing);
+          wr = EmitReturnExpr(wr);
+          TrExpr(new LiteralExpr(e.tok, elseReturnValue), wr, inLetExprBody);
+          thenWriter = EmitReturnExpr(thenWriter);
+        }
+        wr = thenWriter;
+      } else if (isReturning) {
+        wr = EmitReturnExpr(wr);
+      }
+
+      return wr;
     }
 
     protected ConcreteSyntaxTree CaptureFreeVariables(Expression expr, bool captureOnlyAsRequiredByTargetLanguage, out Substituter su, bool inLetExprBody, ConcreteSyntaxTree wr) {
