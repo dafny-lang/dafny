@@ -2,9 +2,7 @@
 Dafny program verifier finished with 2 verified, 0 errors
 
 Dafny program verifier did not attempt verification
-Errors compiling program:
-(1867,23): error CS1061: '_ICo<X>' does not contain a definition for 'DowncastClone' and no accessible extension method 'DowncastClone' accepting a first argument of type '_ICo<X>' could be found (are you missing a using directive or an assembly reference?)
-
+DowncastDt.dfy(22,4): Error: compilation does not support downcasts involving copying for datatypes (like converting from Co<X> to Co<Y>)
 
 Dafny program verifier did not attempt verification
 Co.Co(_module.Y) and Co.Co(_module.Y)
