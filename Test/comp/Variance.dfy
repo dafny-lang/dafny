@@ -20,7 +20,7 @@ datatype Co<+T> = Co(T){
     method mD(x: T) returns (r: T) { r := x; }
 }
 
-datatype In<T> = In(T){
+datatype Non<T> = Non(T){
     const x: int;
     const y: seq<T>
 
@@ -65,7 +65,7 @@ codatatype CCo<+T> = CCo(T){
     method mD(x: T) returns (r: T) { r := x; }
 }
 
-codatatype CIn<T> = CIn(T){
+codatatype CNon<T> = CNon(T){
     const x: int;
     const y: seq<T>
 
@@ -117,12 +117,12 @@ method Covariant() {
 method Nonvariant() {
   var i := new Int.Int();
   var j := new Int.Int();
-  var a: In<Int> := In(i);
-  var b: In<Int>;
+  var a: Non<Int> := Non(i);
+  var b: Non<Int>;
   b := a;
   print a, " and ", b, "\n";
   
-  var s := In(false);
+  var s := Non(false);
   var t := s.mD(true);
   var y := s.mA(t);
   print t, y, s.C(s.x), s.B(s.y), s.A(t), Co.sA(t), s.gA(t), "\n"; 
@@ -157,12 +157,12 @@ method CCovariant() {
 method CNonvariant() {
   var i := new Int.Int();
   var j := new Int.Int();
-  var a: CIn<Int> := CIn(i);
-  var b: CIn<Int>;
+  var a: CNon<Int> := CNon(i);
+  var b: CNon<Int>;
   b := a;
   print a, " and ", b, "\n";
   
-  var s := CIn(false);
+  var s := CNon(false);
   var t := s.mD(true);
   var y := s.mA(t);
   print t, y, s.C(s.x), s.B(s.y), s.A(t), Co.sA(t), s.gA(t), "\n"; 
