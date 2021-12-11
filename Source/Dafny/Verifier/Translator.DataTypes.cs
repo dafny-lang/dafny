@@ -517,7 +517,7 @@ namespace Microsoft.Dafny {
             var rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ct);
             var trigger = BplTrigger(ct);
             q = new Bpl.ForallExpr(ctor.tok, bvs, trigger, Bpl.Expr.Lt(lhs, rhs));
-            AddIncludeDepAxiom(new Bpl.Axiom(ctor.tok, q, "Inductive rank"));
+            AddOtherDefinition(fn, new Bpl.Axiom(ctor.tok, q, "Inductive rank"));
           } else if (argType is SeqType) {
             // axiom (forall params, i: int {#dt.ctor(params)} :: 0 <= i && i < |arg| ==> DtRank(arg[i]) < DtRank(#dt.ctor(params)));
             // that is:
@@ -548,7 +548,7 @@ namespace Microsoft.Dafny {
               var rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ct);
               var trigger = BplTrigger(ct);
               q = new Bpl.ForallExpr(ctor.tok, bvs, trigger, Bpl.Expr.Lt(lhs, rhs));
-              AddIncludeDepAxiom(new Bpl.Axiom(ctor.tok, q, "Inductive seq rank"));
+              AddOtherDefinition(fn, new Bpl.Axiom(ctor.tok, q, "Inductive seq rank"));
             }
           } else if (argType is SetType) {
             // axiom (forall params, d: Datatype {arg[d], #dt.ctor(params)}  :: arg[d] ==> DtRank(d) < DtRank(#dt.ctor(params)));

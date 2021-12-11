@@ -6994,7 +6994,7 @@ namespace Microsoft.Dafny {
           if (selectorVar == "r") {
             op = (u, v) => Bpl.Expr.Imp(v, u);
           }
-          AddIncludeDepAxiom(new Axiom(tok,
+          AddOtherDefinition(GetOrCreateTypeConstructor(ad), new Axiom(tok,
             BplForall(bvars, BplTrigger(lhs), op(lhs, rhs))));
         };
         SelectorSemantics(Apply(arity), predef.BoxType, "h", apply_ty, Requires(arity), requires_ty);
