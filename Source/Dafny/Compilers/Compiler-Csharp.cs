@@ -2040,7 +2040,7 @@ namespace Microsoft.Dafny {
     protected override void EmitThis(ConcreteSyntaxTree wr) {
       var custom =
         (enclosingMethod != null && enclosingMethod.IsTailRecursive) ||
-        (enclosingFunction != null && enclosingFunction.IsTailRecursive) || NeedsCustomReceiver(enclosingFunction) ||
+        (enclosingFunction != null && (enclosingFunction.IsTailRecursive || NeedsCustomReceiver(enclosingFunction))) ||
         thisContext is NewtypeDecl ||
         thisContext is TraitDecl;
       wr.Write(custom ? "_this" : "this");
