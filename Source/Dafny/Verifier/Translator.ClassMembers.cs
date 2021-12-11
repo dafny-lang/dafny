@@ -482,11 +482,11 @@ namespace Microsoft.Dafny {
       codeContext = f;
 
       // declare function
-      var boogieFunction = AddFunction(f);
+      var boogieFunction = GetOrCreateFunction(f);
       // add synonym axiom
       if (f.IsFuelAware()) {
-        AddLayerSynonymAxiom(f);
-        AddFuelSynonymAxiom(f);
+        AddFuelSuccSynonymAxiom(f);
+        AddFuelZeroSynonymAxiom(f);
       }
       // add frame axiom
       if (AlwaysUseHeap || f.ReadsHeap) {

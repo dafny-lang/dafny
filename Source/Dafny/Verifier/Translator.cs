@@ -173,7 +173,7 @@ namespace Microsoft.Dafny {
     private Bpl.Program sink;
     private VisibilityScope currentScope;
     private VisibilityScope verificationScope;
-    private Dictionary<TopLevelDecl, Bpl.Function> declarationMapping = new();
+    private Dictionary<Declaration, Bpl.Function> declarationMapping = new();
 
     readonly PredefinedDecls predef;
 
@@ -2403,7 +2403,7 @@ namespace Microsoft.Dafny {
         var appl = FunctionCall(f.tok, RequiresName(f), Bpl.Type.Bool, reqFuncArguments);
         Bpl.Trigger trig = BplTriggerHeap(this, f.tok, appl, readsHeap ? etran.HeapExpr : null);
         // axiom (forall params :: { f#requires(params) }  ante ==> f#requires(params) == pre);
-        AddIncludeDepAxiom(new Axiom(f.tok,
+        AddOtherDefinition(precondF, new Axiom(f.tok,
           BplForall(forallFormals, trig, BplImp(anteReqAxiom, Bpl.Expr.Eq(appl, preReqAxiom))),
           "#requires axiom for " + f.FullSanitizedName));
       }
@@ -2691,7 +2691,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void AddLayerSynonymAxiom(Function f, bool forHandle = false) {
+    void AddFuelSuccSynonymAxiom(Function f, bool forHandle = false) {
       Contract.Requires(f != null);
       Contract.Requires(f.IsFuelAware());
       Contract.Requires(sink != null && predef != null);
@@ -2750,10 +2750,10 @@ namespace Microsoft.Dafny {
 
       Bpl.Trigger tr = new Bpl.Trigger(f.tok, true, new List<Bpl.Expr> { funcAppl1 });
       Bpl.Expr ax = new Bpl.ForallExpr(f.tok, new List<Bpl.TypeVariable>(), formals, null, tr, Bpl.Expr.Eq(funcAppl1, funcAppl0));
-      AddIncludeDepAxiom(new Bpl.Axiom(f.tok, ax, "layer synonym axiom"));
+      AddOtherDefinition(GetOrCreateFunction(f), new Bpl.Axiom(f.tok, ax, "layer synonym axiom"));
     }
 
-    void AddFuelSynonymAxiom(Function f) {
+    void AddFuelZeroSynonymAxiom(Function f) {
       // axiom  // fuel axiom
       //   (forall s, $Heap, formals ::
       //       { f(AsFuelBottom(s), $Heap, formals) }
@@ -2816,7 +2816,7 @@ namespace Microsoft.Dafny {
 
       Bpl.Trigger tr = new Bpl.Trigger(f.tok, true, new List<Bpl.Expr> { funcAppl2 });
       Bpl.Expr ax = new Bpl.ForallExpr(f.tok, new List<Bpl.TypeVariable>(), formals, null, tr, Bpl.Expr.Eq(funcAppl1, funcAppl0));
-      AddIncludeDepAxiom(new Bpl.Axiom(f.tok, ax, "fuel synonym axiom"));
+      AddOtherDefinition(GetOrCreateFunction(f), (new Bpl.Axiom(f.tok, ax, "fuel synonym axiom")));
     }
 
     /// <summary>
@@ -6721,7 +6721,7 @@ namespace Microsoft.Dafny {
         if (f.IsFuelAware()) {
           Bpl.Expr ly; vars.Add(BplBoundVar("$ly", predef.LayerType, out ly)); args.Add(ly);
           formals.Add(BplFormalVar(null, predef.LayerType, true));
-          AddLayerSynonymAxiom(f, true);
+          AddFuelSuccSynonymAxiom(f, true);
         }
 
         Func<List<Bpl.Expr>, List<Bpl.Expr>> SnocSelf = x => x;
@@ -6787,8 +6787,8 @@ namespace Microsoft.Dafny {
           var rhs = FunctionCall(f.tok, f.FullSanitizedName, TrType(f.ResultType), Concat(SnocSelf(args_h), rhs_args));
           var rhs_boxed = BoxIfUnboxed(rhs, f.ResultType);
 
-          AddIncludeDepAxiom(new Axiom(f.tok,
-            BplForall(Concat(vars, bvars), BplTrigger(lhs), Bpl.Expr.Eq(lhs, rhs_boxed))));
+          AddOtherDefinition(GetOrCreateFunction(f), (new Axiom(f.tok,
+            BplForall(Concat(vars, bvars), BplTrigger(lhs), Bpl.Expr.Eq(lhs, rhs_boxed)))));
         }
 
         {
@@ -6806,8 +6806,8 @@ namespace Microsoft.Dafny {
             rhs = FunctionCall(f.tok, RequiresName(f), Bpl.Type.Bool, Concat(SnocSelf(args_h), rhs_args));
           }
 
-          AddIncludeDepAxiom(new Axiom(f.tok,
-            BplForall(Concat(vars, bvars), BplTrigger(lhs), Bpl.Expr.Eq(lhs, rhs))));
+          AddOtherDefinition(GetOrCreateFunction(f), (new Axiom(f.tok,
+            BplForall(Concat(vars, bvars), BplTrigger(lhs), Bpl.Expr.Eq(lhs, rhs)))));
         }
 
         {
@@ -6839,8 +6839,8 @@ namespace Microsoft.Dafny {
           var rhs_unboxed = UnboxIfBoxed(rhs, f.ResultType);
           var tr = BplTriggerHeap(this, f.tok, lhs, AlwaysUseHeap || f.ReadsHeap ? null : h);
 
-          AddIncludeDepAxiom(new Axiom(f.tok,
-            BplForall(Concat(vars, func_vars), tr, Bpl.Expr.Eq(lhs, rhs_unboxed))));
+          AddOtherDefinition(GetOrCreateFunction(f), (new Axiom(f.tok,
+            BplForall(Concat(vars, func_vars), tr, Bpl.Expr.Eq(lhs, rhs_unboxed)))));
         }
       }
       return name;
@@ -7547,7 +7547,7 @@ namespace Microsoft.Dafny {
         var ig = FunctionCall(f.tok, BuiltinFunction.IsGhostField, ty, Bpl.Expr.Ident(fc));
         cond = Bpl.Expr.And(cond, f.IsGhost ? ig : Bpl.Expr.Not(ig));
         Bpl.Axiom ax = new Bpl.Axiom(f.tok, cond);
-        AddIncludeDepAxiom(ax);
+        AddOtherDefinition(fc, ax);
       }
       return fc;
     }
@@ -7655,7 +7655,11 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// This method is expected to be called just once for each function in the program.
     /// </summary>
-    Bpl.Function AddFunction(Function f) {
+    Bpl.Function GetOrCreateFunction(Function f) {
+      if (this.declarationMapping.TryGetValue(f, out var result)) {
+        return result;
+      }
+      
       Contract.Requires(f != null);
       Contract.Requires(predef != null && sink != null);
 
@@ -7708,6 +7712,7 @@ namespace Microsoft.Dafny {
         sink.AddTopLevelDeclaration(canCallF);
       }
 
+      declarationMapping[f] = func;
       return func;
     }
 

@@ -257,7 +257,7 @@ namespace Microsoft.Dafny {
                     : BplImp(BplAnd(kIsNonZero, kIsLimit),
                       CoEqualCall(codecl, tyargs.Item1, tyargs.Item2, null, ly, d0, d1)))));
             var ax = BplForall(vars, BplTrigger(eqDt), body);
-            AddIncludeDepAxiom(new Bpl.Axiom(codecl.tok, ax, "Layered co-equality axiom"));
+            AddOtherDefinition(GetOrCreateTypeConstructor(codecl), new Bpl.Axiom(codecl.tok, ax, "Layered co-equality axiom"));
           });
 
         // axiom (forall G0,...,Gn : Ty, k: int, ly : Layer, d0, d1: DatatypeType ::
@@ -271,7 +271,7 @@ namespace Microsoft.Dafny {
             var eqDtL = CoEqualCall(codecl, lexprs, rexprs, k, ly, d0, d1);
             var body = BplImp(kIsNonZero, BplIff(eqDtSL, eqDtL));
             var ax = BplForall(vars, BplTrigger(eqDtSL), body);
-            AddIncludeDepAxiom(new Bpl.Axiom(codecl.tok, ax, "Unbump layer co-equality axiom"));
+            AddOtherDefinition(GetOrCreateTypeConstructor(codecl), new Bpl.Axiom(codecl.tok, ax, "Unbump layer co-equality axiom"));
           });
       };
 
@@ -281,7 +281,7 @@ namespace Microsoft.Dafny {
       CoAxHelper(null, (tyargs, vars, lexprs, rexprs, kVar, k, kIsValid, kIsNonZero, kHasSuccessor, kIsLimit, ly, d0, d1) => {
         var Eq = CoEqualCall(codecl, lexprs, rexprs, k, LayerSucc(ly), d0, d1);
         var equal = Bpl.Expr.Eq(d0, d1);
-        AddIncludeDepAxiom(new Axiom(codecl.tok,
+        AddOtherDefinition(GetOrCreateTypeConstructor(codecl), new Axiom(codecl.tok,
           BplForall(vars, BplTrigger(Eq), BplIff(Eq, equal)),
           "Equality for codatatypes"));
       });
@@ -296,7 +296,7 @@ namespace Microsoft.Dafny {
         var Eq = CoEqualCall(codecl, lexprs, rexprs, null, LayerSucc(ly), d0, d1);
         var PEq = CoEqualCall(codecl, lexprs, rexprs, k, LayerSucc(ly), d0, d1);
         vars.Remove(kVar);
-        AddIncludeDepAxiom(new Axiom(codecl.tok,
+        AddOtherDefinition(GetOrCreateTypeConstructor(codecl), new Axiom(codecl.tok,
           BplForall(vars, BplTrigger(Eq), BplIff(Eq, BplForall(kVar, BplTrigger(PEq), BplImp(kIsValid, PEq)))),
           "Coequality and prefix equality connection"));
       });
@@ -310,7 +310,7 @@ namespace Microsoft.Dafny {
             var PEq = CoEqualCall(codecl, lexprs, rexprs, FunctionCall(k.tok, "ORD#FromNat", predef.BigOrdinalType, k),
               LayerSucc(ly), d0, d1);
             vars.Remove(kVar);
-            AddIncludeDepAxiom(new Axiom(codecl.tok,
+            AddOtherDefinition(GetOrCreateTypeConstructor(codecl), new Axiom(codecl.tok,
               BplForall(vars, BplTrigger(Eq), BplImp(BplForall(kVar, BplTrigger(PEq), BplImp(kIsValid, PEq)), Eq)),
               "Coequality and prefix equality connection"));
           });
@@ -329,7 +329,7 @@ namespace Microsoft.Dafny {
           } else {
             kLtM = FunctionCall(codecl.tok, "ORD#Less", Bpl.Type.Bool, k, m);
           }
-          AddIncludeDepAxiom(new Axiom(codecl.tok,
+          AddOtherDefinition(GetOrCreateTypeConstructor(codecl), new Axiom(codecl.tok,
             BplForall(vars,
               new Bpl.Trigger(codecl.tok, true, new List<Bpl.Expr> { PEqK, PEqM }),
               BplImp(BplAnd(BplAnd(kIsValid, kLtM), PEqM), PEqK)),
@@ -345,7 +345,7 @@ namespace Microsoft.Dafny {
           var equal = Bpl.Expr.Eq(d0, d1);
           var PEq = CoEqualCall(codecl, lexprs, rexprs, k, LayerSucc(ly), d0, d1);
           var trigger = BplTrigger(PEq);
-          AddIncludeDepAxiom(new Axiom(codecl.tok,
+          AddOtherDefinition(GetOrCreateTypeConstructor(codecl), new Axiom(codecl.tok,
             BplForall(vars, trigger, BplImp(BplAnd(equal, kIsValid), PEq)), "Prefix equality shortcut"));
         });
     }
@@ -499,7 +499,7 @@ namespace Microsoft.Dafny {
         var inner = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
         var outer = FunctionCall(ctor.tok, fn.Name, TrType(arg.Type), inner);
         var q = BplForall(bvs, BplTrigger(inner), Bpl.Expr.Eq(outer, args[i]));
-        AddIncludeDepAxiom(new Bpl.Axiom(ctor.tok, q, "Constructor injectivity"));
+        AddOtherDefinition(fn, (new Bpl.Axiom(ctor.tok, q, "Constructor injectivity")));
 
         if (dt is IndDatatypeDecl) {
           var argType = arg.Type.NormalizeExpandKeepConstraints(); // TODO: keep constraints -- really?  Write a test case
