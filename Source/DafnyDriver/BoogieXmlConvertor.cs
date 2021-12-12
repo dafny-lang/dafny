@@ -75,17 +75,51 @@ namespace Microsoft.Dafny {
       // Only report the top level method result if there was no splitting
       var childSplits = method.Nodes().OfType<XElement>().Where(child => child.Name.LocalName == "split").ToList();
       return childSplits.Count > 1
-        ? childSplits.Select(childSplit => ToTestResult(childSplit, currentFileFragment)) 
-        : new[] { ToTestResult(method, currentFileFragment) };
+        ? childSplits.Select(childSplit => TestResultForSplit(currentFileFragment, method, childSplit)) 
+        : new[] { TestResultForMethod(currentFileFragment, method) };
     }
     
-    private static TestResult ToTestResult(XElement node, string currentFileFragment) {
+    private static TestResult TestResultForMethod(string currentFileFragment, XElement node) {
       var name = node.Attribute("name")!.Value;
       var startTime = node.Attribute("startTime")!.Value;
       var conclusionNode = node.Nodes()
                                        .OfType<XElement>()
                                        .Single(n => n.Name.LocalName == "conclusion");
-      var endTime = conclusionNode.Attribute("endTime")?.Value;
+      var endTime = conclusionNode.Attribute("endTime")!.Value;
+      var duration = float.Parse(conclusionNode.Attribute("duration")!.Value);
+      var outcome = conclusionNode.Attribute("outcome")!.Value;
+
+      var testCase = new TestCase {
+        FullyQualifiedName = name,
+        ExecutorUri = new Uri("executor://dafnyverifier/v1"),
+        Source = currentFileFragment
+      };
+
+      var testResult = new TestResult(testCase) {
+        StartTime = DateTimeOffset.Parse(startTime),
+        Duration = TimeSpan.FromMilliseconds((long)(duration * 1000)),
+        EndTime = DateTimeOffset.Parse(endTime)
+      };
+
+      if (outcome == "correct") {
+        testResult.Outcome = TestOutcome.Passed;
+      } else {
+        testResult.Outcome = TestOutcome.Failed;
+        testResult.ErrorMessage = outcome;
+      }
+
+      return testResult;
+    }
+    
+    private static TestResult TestResultForSplit(string currentFileFragment, XElement methodNode, XElement splitNode) {
+      var methodName = methodNode.Attribute("name")!.Value;
+      var splitNumber = splitNode.Attribute("number")!.Value;
+      var name = $"{methodName}$${splitNumber}";
+      
+      var startTime = splitNode.Attribute("startTime")!.Value;
+      var conclusionNode = splitNode.Nodes()
+        .OfType<XElement>()
+        .Single(n => n.Name.LocalName == "conclusion");
       var duration = float.Parse(conclusionNode.Attribute("duration")!.Value);
       var outcome = conclusionNode.Attribute("outcome")!.Value;
 
@@ -99,11 +133,8 @@ namespace Microsoft.Dafny {
         StartTime = DateTimeOffset.Parse(startTime),
         Duration = TimeSpan.FromMilliseconds((long)(duration * 1000))
       };
-      if (endTime != null) {
-        testResult.EndTime = DateTimeOffset.Parse(endTime);
-      }
 
-      if (outcome is "correct" or "valid") {
+      if (outcome == "valid") {
         testResult.Outcome = TestOutcome.Passed;
       } else {
         testResult.Outcome = TestOutcome.Failed;
