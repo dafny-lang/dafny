@@ -6931,23 +6931,27 @@ namespace Microsoft.Dafny {
         sink.AddTopLevelDeclaration(new Bpl.Function(Token.NoToken, Handle(arity), arg, res));
       }
 
-      Action<string, Bpl.Type> SelectorFunction = (s, t) => {
+      Action<Function, string, Bpl.Type> SelectorFunction = (dafnyFunction, name, t) => {
         var args = new List<Bpl.Variable>();
         MapM(Enumerable.Range(0, arity + 1), i => args.Add(BplFormalVar(null, predef.Ty, true)));
         args.Add(BplFormalVar(null, predef.HeapType, true));
         args.Add(BplFormalVar(null, predef.HandleType, true));
         MapM(Enumerable.Range(0, arity), i => args.Add(BplFormalVar(null, predef.BoxType, true)));
-        sink.AddTopLevelDeclaration(new Bpl.Function(Token.NoToken, s, args, BplFormalVar(null, t, false)));
+        var boogieFunction = new Bpl.Function(Token.NoToken, name, args, BplFormalVar(null, t, false));
+        if (dafnyFunction != null) {
+          declarationMapping[dafnyFunction] = boogieFunction;
+        }
+        sink.AddTopLevelDeclaration(boogieFunction);
       };
 
       // function ApplyN(Ty, ... Ty, HandleType, Heap, Box, ..., Box) : Box
       if (arity != 1) {  // Apply1 is already declared in DafnyPrelude.bpl
-        SelectorFunction(Apply(arity), predef.BoxType);
+        SelectorFunction(null, Apply(arity), predef.BoxType);
       }
       // function RequiresN(Ty, ... Ty, HandleType, Heap, Box, ..., Box) : Bool
-      SelectorFunction(Requires(arity), Bpl.Type.Bool);
+      SelectorFunction(ad.Requires, Requires(arity), Bpl.Type.Bool);
       // function ReadsN(Ty, ... Ty, HandleType, Heap, Box, ..., Box) : Set Box
-      SelectorFunction(Reads(arity), objset_ty);
+      SelectorFunction(ad.Reads, Reads(arity), objset_ty);
 
       {
         // forall t1, .., tN+1 : Ty, p: [Heap, Box, ..., Box] Box, heap : Heap, b1, ..., bN : Box
