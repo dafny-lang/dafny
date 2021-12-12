@@ -231,6 +231,7 @@ class Main {
       decreases unmarkedNodes, stackNodes, |t.children| - t.childrenVisited
     {
       if t.childrenVisited == |t.children| {
+        assert {:focus} true;
         // pop
         t.childrenVisited := 0;
         if p == null {
@@ -249,6 +250,7 @@ class Main {
         t.childrenVisited := t.childrenVisited + 1;
 
       } else {
+        assert {:focus} true;
         // push
 
         var newT := t.children[t.childrenVisited];
