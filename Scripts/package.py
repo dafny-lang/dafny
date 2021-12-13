@@ -125,19 +125,19 @@ class Release:
         run(["make", "--quiet", "clean"])
         run(["dotnet", "publish", path.join(SOURCE_DIRECTORY, "DafnyLanguageServer", "DafnyLanguageServer.csproj"),
             "--nologo",
-            "-f", "net5.0",
+            "-f", "net6.0",
             "-o", self.buildDirectory,
             "-r", self.target,
             "-c", "Release"])
         run(["dotnet", "publish", path.join(SOURCE_DIRECTORY, "DafnyServer", "DafnyServer.csproj"),
             "--nologo",
-            "-f", "net5.0",
+            "-f", "net6.0",
             "-o", self.buildDirectory,
             "-r", self.target,
             "-c", "Release"])
         run(["dotnet", "publish", path.join(SOURCE_DIRECTORY, "DafnyDriver", "DafnyDriver.csproj"),
             "--nologo",
-            "-f", "net5.0",
+            "-f", "net6.0",
             "-o", self.buildDirectory,
             "-r", self.target,
             "-c", "Release"])
