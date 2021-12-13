@@ -64,7 +64,11 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     public bool TryGetSymbolAt(Position position, [NotNullWhen(true)] out ILocalizableSymbol? symbol) {
       var symbolsAtPosition = LookupTree.Query(position);
       // Use case: function f(a: int) {}, and hover over a.
-      symbol = symbolsAtPosition.SingleOrDefault();
+      if (symbolsAtPosition.Count() > 1) {
+        symbol = symbolsAtPosition.FirstOrDefault();
+      } else {
+        symbol = symbolsAtPosition.SingleOrDefault();
+      }
       return symbol != null;
     }
 

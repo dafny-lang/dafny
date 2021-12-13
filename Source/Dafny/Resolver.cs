@@ -842,7 +842,7 @@ namespace Microsoft.Dafny {
         bvars.Add(oVar);
 
         return
-          new SetComprehension(e.tok, true, bvars,
+          new SetComprehension(e.tok, e.tok, true, bvars,
             new BinaryExpr(e.tok, BinaryExpr.Opcode.In, obj,
               new ApplyExpr(e.tok, e, bexprs) {
                 Type = new SetType(true, builtIns.ObjectQ())
@@ -894,7 +894,7 @@ namespace Microsoft.Dafny {
             }
 
             sInE.Type = Type.Bool; // resolve here
-            var s = new SetComprehension(e.tok, true, new List<BoundVar>() { bv }, sInE, bvIE, null);
+            var s = new SetComprehension(e.tok, e.tok, true, new List<BoundVar>() { bv }, sInE, bvIE, null);
             s.Type = new SetType(true, builtIns.ObjectQ()); // resolve here
             sets.Add(s);
           } else {

@@ -313,7 +313,11 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         TExpr boundVarExpression, System.Action baseVisit
         ) where TExpr : Expression, IBoundVarsBearingExpression {
         var oldBlock = block;
-        if (block.Node != boundVarExpression) { // Else we reuse the current scope
+        // To prevent two scope symbols from pointing to the same node,
+        // (this crashes `declarations[nodes]` later on)
+        // we reuse the existing scope symbol if it happens to be a top-level
+        // bounded variable bearing expression that otherwise would create a new scope symbol
+        if (block.Node != boundVarExpression) {
           block = new ScopeSymbol(block, boundVarExpression);
           oldBlock.Symbols.Add(block);
         }

@@ -383,15 +383,13 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
       public Unit Visit(ScopeSymbol scopeSymbol) {
         cancellationToken.ThrowIfCancellationRequested();
-        var endToken = scopeSymbol.Declaration.EndTok;
-        if (endToken != null && endToken != Token.NoToken) {
-          RegisterLocation(
-            scopeSymbol,
-            scopeSymbol.Declaration.Tok,
-            scopeSymbol.Declaration.Tok.GetLspRange(),
-            new Range(scopeSymbol.Declaration.Tok.GetLspPosition(), endToken.GetLspPosition())
-          );
-        }
+        var endToken = scopeSymbol.EndTok;
+        RegisterLocation(
+          scopeSymbol,
+          scopeSymbol.Tok,
+          scopeSymbol.Tok.GetLspRange(),
+          new Range(scopeSymbol.Tok.GetLspPosition(), endToken.GetLspPosition())
+        );
         VisitChildren(scopeSymbol);
         return Unit.Value;
       }
