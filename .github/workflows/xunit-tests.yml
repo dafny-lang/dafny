@@ -16,22 +16,22 @@ jobs:
         include:
           - os: ubuntu-18.04
             suffix: ubuntu-18.04
-            z3: z3-4.8.5-x64-ubuntu-16.04
+            z3: z3-4.8.13-x64-glibc-2.31.zip
             chmod: true
             coverage: true
           - os: windows-2019
             suffix: win
-            z3: z3-4.8.5-x64-win
+            z3: z3-4.8.13-x64-win
             chmod: false
             coverage: false
           - os: macos-10.15
             suffix: osx-10.14.1
-            z3: z3-4.8.5-x64-osx-10.14.2
+            z3: z3-4.8.13-x64-osx-10.16
             chmod: true
             coverage: false
     env:
       solutionPath: Source/Dafny.sln
-      z3BaseUri: https://github.com/Z3Prover/z3/releases/download/Z3-4.8.5
+      z3BaseUri: https://github.com/Z3Prover/z3/releases/download/z3-4.8.13
     steps:
     - uses: actions/checkout@v2
       with:
