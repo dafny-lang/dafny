@@ -1,7 +1,18 @@
 #!/usr/bin/env python3
-"""Differential tester for Dafny."""
+"""Differential tester for Dafny.
 
-from typing import Any, Dict, Iterable, List, Tuple
+This takes a sequence of snapshots and verifies them through Dafny's CLI as well
+as through Dafny's LSP server.  The results are matched for equality.
+
+Limitations:
+
+- This only checks error messages, not return codes
+
+- This only checks for errors in one "main" file, not in all files reported by
+  the LSP server.
+"""
+
+from typing import Any, Dict, Iterable, List, Tuple, TypeVar
 
 import json
 import os
@@ -12,11 +23,14 @@ import shutil
 import subprocess
 import sys
 
+from collections import deque
 from pathlib import Path
 from subprocess import PIPE
 
 # For ordered dicts and f strings
 assert sys.version_info >= (3, 7)
+
+T = TypeVar("T")
 
 Snapshot = str
 """The contents of a Dafny file."""
@@ -28,7 +42,7 @@ VerificationResult = List[str]
 """Structured output returned by Dafny."""
 
 FIXME = NotImplementedError
-DEBUG = True
+DEBUG = False
 TEE = "inputs.log"
 
 def which(exe):
@@ -72,8 +86,8 @@ class Tee(object):
             s.flush()
 
 
-class ProverInput:
-    """An input to Dafny."""
+class ProverInputs:
+    """A sequence of inputs to Dafny."""
 
     def as_lsp(self) -> "LSPTrace":
         """Convert self into an LSP trace."""
@@ -83,6 +97,21 @@ class ProverInput:
         """Convert self into a sequence of snapshots."""
         raise NotImplementedError
 
+    def __len__(self):
+        raise NotImplementedError
+
+class ProverOutput:
+    """An output of Dafny."""
+
+    # @property
+    # def errors(self) -> List[VerificationResult]:
+    #     """Normalize this output and convert it to a list of results."""
+    #     raise NotImplementedError
+
+    # Strings are easier to diff than structured data, especially when looking
+    # at insertions/deletions.
+    def format(self) -> str:
+        raise NotImplementedError
 
 class LSPMethods:
     """Global constants for LSP Methods."""
@@ -92,7 +121,7 @@ class LSPMethods:
     NEED_DIAGNOSTICS = {didOpen, didChange}
 
 
-class LSPTrace(ProverInput):
+class LSPTrace(ProverInputs):
     """A sequence of messages sent by an LSP client."""
 
     def __init__(self, commands: Iterable[LSPMessage]):
@@ -126,6 +155,10 @@ class LSPTrace(ProverInput):
     def as_snapshots(self) -> "Snapshots":
         """Convert self into a sequence of snapshots."""
         return Snapshots(self.uri, self._iter_snapshots())
+
+    def __len__(self):
+        return sum(msg["method"] in (LSPMethods.didOpen, LSPMethods.didChange)
+                   for msg in self.messages)
 
 
 class Snapshots:
@@ -209,12 +242,14 @@ class Snapshots:
         """Convert self into a sequence of snapshots."""
         return self
 
+    def __len__(self):
+        return len(self.snapshots)
 
 class Driver:
     """Abstract interface for Dafny drivers."""
 
-    def run(self, pinput: ProverInput) -> List[VerificationResult]:
-        """Run `pinput` and return the prover's output."""
+    def run(self, inputs: ProverInputs) -> List[ProverOutput]:
+        """Run `inputs` and return the prover's output."""
         raise NotImplementedError()
 
 
@@ -319,6 +354,25 @@ class LSPServer:
         self.kill()
 
 
+class LSPOutput(ProverOutput):
+    LEVELS = {1: "Error", }
+
+    def __init__(self, diagnostics: Dict[str, Any]):
+        self.diags = diagnostics
+
+    @classmethod
+    def _format_diag(cls, d):
+        msg = d["message"]
+        kind = cls.LEVELS[d["severity"]]
+        pos = d['range']['start']
+        l, c = pos['line'] + 1, pos['character']
+        return f"<stdin>({l},{c}): {kind}: {msg}"
+
+    def format(self):
+        """Format to a string matching Dafny's CLI output."""
+        return "\n".join(self._format_diag(d) for d in self.diags)
+
+
 class LSPDriver:
     """A driver using Dafny's LSP implementation."""
 
@@ -341,22 +395,35 @@ class LSPDriver:
         """Return a function that checks for responses to `id`."""
         return lambda m: m.get("id") == id
 
-    def _iter_results(self, messages: Iterable[LSPMessage]) \
+    def _iter_results(self, messages: Iterable[LSPOutput]) \
             -> Iterable[LSPMessage]:
-        """Feed `pinput` to Dafny's LSP server; return diagnostic messages."""
+        """Feed `inputs` to Dafny's LSP server; return diagnostic messages."""
         with LSPServer(self.command) as server:
             for msg in messages:
                 server.send(msg)
                 if msg["method"] in LSPMethods.NEED_DIAGNOSTICS:
                     doc = msg["params"]["textDocument"]
-                    yield server.receive(self.is_diagnostic_for(doc))
+                    diag = server.receive(self.is_diagnostic_for(doc))
+                    yield LSPOutput(diag["params"]["diagnostics"])
                 if "id" in msg:  # Wait for response
                     server.receive(self.is_response_to(msg["id"]))
 
-    def run(self, pinput: ProverInput) -> List[VerificationResult]:
-        """Feed `pinput` to Dafny's LSP server; return diagnostics."""
-        messages = pinput.as_lsp().messages
+    def run(self, inputs: ProverInputs) -> List[ProverOutput]:
+        """Feed `inputs` to Dafny's LSP server; return diagnostics."""
+        messages = inputs.as_lsp().messages
         return list(self._iter_results(messages))
+
+
+class CLIOutput(ProverOutput):
+    ERROR_PATTERN = re.compile(r"^.*?[(][0-9]+,[0-9]+[)].*")
+
+    def __init__(self, output: str):
+        self.output = output
+
+    def format(self):
+        """Normalize the output of a single Dafny run for easier comparison."""
+        messages = self.ERROR_PATTERN.finditer(self.output)
+        return "\n".join(m.group() for m in messages)
 
 
 class CLIDriver:
@@ -376,21 +443,35 @@ class CLIDriver:
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
     def _iter_results(self, snapshots: Snapshots) \
-            -> Iterable[VerificationResult]:
+            -> Iterable[str]:
         for snapshot in snapshots.snapshots:
-            yield self._exec(snapshot).stdout
+            yield CLIOutput(self._exec(snapshot).stdout)
 
-    def run(self, pinput: ProverInput) -> List[VerificationResult]:
-        """Run `pinput` through Dafny's CLI and return the prover's output."""
-        return list(self._iter_results(pinput.as_snapshots()))
+    def run(self, inputs: ProverInputs) -> List[ProverOutput]:
+        """Run `inputs` through Dafny's CLI and return the prover's output."""
+        return list(self._iter_results(inputs.as_snapshots()))
 
 
-def test(trace: LSPTrace, *drivers):
-    """Run `trace` through each one of `drivers` and report any mismatches."""
-    outputs = [d.run(trace) for d in drivers]
-    for i in range(len(outputs) - 1):
-        if outputs[i] != outputs[i + 1]:
-            print("Error")
+def window(stream: Iterable[T], n: int) -> Iterable[Tuple[T, ...]]:
+    """Iterate over `n`-element windows of `stream`."""
+    win = deque(maxlen=n)
+    for token in stream:
+        win.append(token)
+        if len(win) == n:
+            yield tuple(win)
+
+
+def test(inputs: ProverInputs, *drivers: Driver):
+    """Run `inputs` through each one of `drivers` and report any mismatches."""
+    prover_outputs = [d.run(inputs) for d in drivers]
+    n_snapshots = len(inputs.as_snapshots())
+    assert all(len(po) == n_snapshots for po in prover_outputs)
+    for snapidx in range(n_snapshots):
+        print(f"=== Snapshot {snapidx} ===")
+        for p1, p2 in window(prover_outputs, 2):
+            o1, o2 = p1[snapidx].format(), p2[snapidx].format()
+            if o1 != o2:
+                print(f"Error: {o1} != {o2}")
 
 
 from pprint import pprint
@@ -398,8 +479,9 @@ from pprint import pprint
 
 def _test_snapshots():
     d = CLIDriver(["Dafny"])
-    trace = Snapshots.from_files("snaps.dfy")
-    pprint(d.run(trace))
+    inputs = Snapshots.from_files("snaps.dfy")
+    for m in d.run(inputs):
+        print(m.format())
 
 
 def _test_snapshots_lsp():
@@ -409,5 +491,12 @@ def _test_snapshots_lsp():
     pprint(driver.run(lsp))
 
 
+def _test_diff():
+    inputs = Snapshots.from_files("snaps.dfy")
+    dll = r"C:\Users\cpitcla\git\dafny\Binaries\DafnyLanguageServer.dll"
+    test(inputs, LSPDriver(["dotnet", dll]), CLIDriver(["Dafny"]))
+
 if __name__ == "__main__":
-    _test_snapshots_lsp()
+    _test_diff()
+    # _test_snapshots()
+    # _test_snapshots_lsp()
