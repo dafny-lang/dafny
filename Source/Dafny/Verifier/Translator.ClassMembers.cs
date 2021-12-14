@@ -252,7 +252,6 @@ namespace Microsoft.Dafny {
       var bvsTypeAxiom = new List<Bpl.Variable>();
       var bvsAllocationAxiom = new List<Bpl.Variable>();
 
-      // G
       var tyvars = MkTyParamBinders(GetTypeParams(c), out var tyexprs);
       bvsTypeAxiom.AddRange(tyvars);
       bvsAllocationAxiom.AddRange(tyvars);
@@ -431,7 +430,6 @@ namespace Microsoft.Dafny {
       var bvsTypeAxiom = new List<Bpl.Variable>();
       var bvsAllocationAxiom = new List<Bpl.Variable>();
 
-      // G
       var tyvars = MkTyParamBinders(GetTypeParams(c), out var tyexprs);
       bvsTypeAxiom.AddRange(tyvars);
       bvsAllocationAxiom.AddRange(tyvars);
