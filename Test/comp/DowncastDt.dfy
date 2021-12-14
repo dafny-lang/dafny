@@ -8,6 +8,7 @@
 // Java avoids this problem by not even allowing traits in datatypes.
 
 datatype Co<+T> = Co(T)
+datatype Con<-T> = Con(seq<T>)
 
 trait X {}
 
@@ -15,7 +16,7 @@ class Y extends X {
   constructor Y() {}
 }
 
-method Downcast() {
+method DowncastCo() {
   var i := new Y.Y();
   var a: Co<X> := Co(i);
   var b: Co<Y>;
@@ -23,7 +24,16 @@ method Downcast() {
   print a, " and ", b, "\n";
 }
 
+method DowncastCon() {
+  var f: seq<Y> := [];
+  var a: Con<Y> := Con(f);
+  var b: Con<X>;
+  b := a;
+  print a, " and ", b, "\n";
+}
+
 method Main(){
-  Downcast();
+  DowncastCo();
+  DowncastCon();
   print "Done\n";
 }
