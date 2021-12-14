@@ -21,7 +21,7 @@ jobs:
       run: echo ${{ runner.os }} ${{ matrix.os }}
     - uses: actions/setup-python@v1
     - name: Setup dotnet
-      uses: actions/setup-dotnet@v1
+      uses: actions/setup-dotnet@v1.9.0
       with:
         dotnet-version: 6.0.x
     - name: Checkout Dafny

@@ -6,14 +6,17 @@ on:
   pull_request:
     branches: [ master ]
 
+env:
+  dotnet-version: 6.0.x # SDK Version for building Dafny
+  
 jobs:
   singletons:
     runs-on: ubuntu-18.04
     steps:
     - name: Setup dotnet
-      uses: actions/setup-dotnet@v1
+      uses: actions/setup-dotnet@v1.9.0
       with:
-        dotnet-version: 6.0.x
+        dotnet-version: ${{env.dotnet-version}}
     - name: Checkout Dafny
       uses: actions/checkout@v2
       with:
@@ -83,9 +86,9 @@ jobs:
       run: cert-sync /etc/ssl/certs/ca-certificates.crt
     - uses: actions/setup-python@v1
     - name: Setup dotnet
-      uses: actions/setup-dotnet@v1
+      uses: actions/setup-dotnet@v1.9.0
       with:
-        dotnet-version: 6.0.x
+        dotnet-version: ${{env.dotnet-version}}
     - name: C++ for ubuntu 18.04
       if: matrix.os == 'ubuntu-18.04'
       run: |
