@@ -3326,6 +3326,8 @@ namespace Microsoft.Dafny {
           return JavaCompiler.PublicIdProtect(name);
         case DafnyOptions.CompilationTarget.Cpp:
           return CppCompiler.PublicIdProtect(name);
+        case DafnyOptions.CompilationTarget.Python:
+          return PythonCompiler.PublicIdProtect(name);
         default:
           Contract.Assert(false);  // unexpected compile target
           return name;
@@ -6190,7 +6192,6 @@ namespace Microsoft.Dafny {
     public Method/*?*/ ByMethodDecl; // filled in by resolution, if ByMethodBody is non-null
     public bool SignatureIsOmitted { get { return SignatureEllipsis != null; } }  // is "false" for all Function objects that survive into resolution
     public readonly IToken SignatureEllipsis;
-    public bool IsBuiltin;
     public Function OverriddenFunction;
     public Function Original => OverriddenFunction == null ? this : OverriddenFunction.Original;
     public override bool IsOverrideThatAddsBody => base.IsOverrideThatAddsBody && Body != null;
@@ -7572,7 +7573,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Lhss != null);
       Contract.Invariant(
           Lhss.Count == 0 ||                   // ":- MethodOrExpresion;" which returns void success or an error
-          Lhss.Count == 1 && Lhss[0] != null   // "y :- MethodOrExpression;"
+          (Lhss.Count == 1 && Lhss[0] != null)   // "y :- MethodOrExpression;"
       );
       Contract.Invariant(Rhs != null);
     }
@@ -12497,7 +12498,7 @@ namespace Microsoft.Dafny {
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(E != null);
-      Contract.Invariant(!(E is WildcardExpr) || FieldName == null && Field == null);
+      Contract.Invariant(!(E is WildcardExpr) || (FieldName == null && Field == null));
     }
 
     public readonly string FieldName;
