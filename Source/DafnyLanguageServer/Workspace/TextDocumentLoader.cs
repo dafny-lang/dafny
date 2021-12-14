@@ -174,14 +174,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var (document, cancellationToken) = verifyRequest;
       notificationPublisher.SendStatusNotification(document.Text, CompilationStatus.VerificationStarted);
       var progressReporter = new VerificationProgressReporter(document.Text, notificationPublisher);
-      var verificationResult = verifier.Verify(document.Program, progressReporter, cancellationToken);
+      var verificationResult = verifier.Verify(document, progressReporter, cancellationToken);
       var compilationStatusAfterVerification = verificationResult.Verified
         ? CompilationStatus.VerificationSucceeded
         : CompilationStatus.VerificationFailed;
       notificationPublisher.SendStatusNotification(document.Text, compilationStatusAfterVerification);
       return document with {
         OldVerificationDiagnostics = new List<Diagnostic>(),
-        SerializedCounterExamples = verificationResult.SerializedCounterExamples
+        SerializedCounterExamples = verificationResult.SerializedCounterExamples,
+        VerificationPass = true
       };
     }
 

@@ -1,12 +1,17 @@
 ﻿using Microsoft.Boogie;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
+using OmniSharp.Extensions.LanguageServer.Protocol.Server;
+using System;
+using System.Text.RegularExpressions;
+using Microsoft.Dafny.LanguageServer.Workspace;
+using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
+using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
@@ -23,11 +28,17 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     private static bool initialized;
 
     private readonly ILogger logger;
+    private readonly ILanguageServerFacade languageServer;
     private readonly VerifierOptions options;
     private readonly SemaphoreSlim mutex = new(1);
 
-    private DafnyProgramVerifier(ILogger<DafnyProgramVerifier> logger, VerifierOptions options) {
+    private DafnyProgramVerifier(
+      ILogger<DafnyProgramVerifier> logger,
+      ILanguageServerFacade languageServer,
+      VerifierOptions options
+      ) {
       this.logger = logger;
+      this.languageServer = languageServer;
       this.options = options;
     }
 
@@ -36,9 +47,11 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// settings are set exactly ones.
     /// </summary>
     /// <param name="logger">A logger instance that may be used by this verifier instance.</param>
+    /// <param name="languageServer">A instance of the language server</param>
     /// <param name="options">Settings for the verifier.</param>
     /// <returns>A safely created dafny verifier instance.</returns>
-    public static DafnyProgramVerifier Create(ILogger<DafnyProgramVerifier> logger, IOptions<VerifierOptions> options) {
+    public static DafnyProgramVerifier Create(
+      ILogger<DafnyProgramVerifier> logger, ILanguageServerFacade languageServer, IOptions<VerifierOptions> options) {
       lock (InitializationSyncObject) {
         if (!initialized) {
           // TODO This may be subject to change. See Microsoft.Boogie.Counterexample
@@ -51,7 +64,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
                           "VerifySnapshots={VerifySnapshots}.",
                           DafnyOptions.O.VerifySnapshots);
         }
-        return new DafnyProgramVerifier(logger, options.Value);
+        return new DafnyProgramVerifier(logger, languageServer, options.Value);
       }
     }
 
@@ -61,9 +74,34 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         : Convert.ToInt32(options.VcsCores);
     }
 
-    public VerificationResult Verify(Dafny.Program program,
+    private static Range? GetMethodRange(string name,
+      Dafny.ModuleDefinition module) {
+      foreach (var topLevelDecl in module.TopLevelDecls) {
+        if (topLevelDecl.FullName == name) {
+          return new Range(topLevelDecl.BodyStartTok.line, topLevelDecl.BodyStartTok.col,
+               topLevelDecl.BodyEndTok.line, topLevelDecl.BodyEndTok.col);
+        }
+      }
+
+      return null;
+    }
+
+
+    private static Range? GetMethodRange(string name, Dafny.Program program) {
+      foreach (var module in program.Modules()) {
+        var range = GetMethodRange(name, module);
+        if (range != null) {
+          return range;
+        }
+      }
+
+      return null;
+    }
+
+    public VerificationResult Verify(DafnyDocument document,
                                      IVerificationProgressReporter progressReporter,
                                      CancellationToken cancellationToken) {
+      var program = document.Program;
       mutex.Wait(cancellationToken);
       try {
         // The printer is responsible for two things: It logs boogie errors and captures the counter example model.

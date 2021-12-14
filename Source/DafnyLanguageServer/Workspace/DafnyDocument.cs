@@ -33,6 +33,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public string? SerializedCounterExamples { get; init; }
 
     /// <summary>
+    /// True is the verification pass went through
+    /// <c>null</c> If the verification did not start (e.g. because of resolution errors)
+    /// </summary>
+    public bool? VerificationPass { get; init; }
+
+    /// <summary>
     /// Checks if the given document uri is pointing to this dafny document.
     /// </summary>
     /// <param name="documentUri">The document uri to check.</param>
