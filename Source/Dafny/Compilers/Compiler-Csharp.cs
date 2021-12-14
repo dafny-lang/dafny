@@ -380,11 +380,8 @@ namespace Microsoft.Dafny {
       //    }}
       //   ...
       //
-<<<<<<< HEAD
       //   public abstract _IDt<U> DowncastClone<U>(Func<T0, U0> converter0, ...);
       //
-=======
->>>>>>> master
       //   // Implementations of all members, but possibly (variance) rewritten to be static.
       // }
       var nonGhostTypeArgs = SelectNonGhost(dt, dt.TypeArgs);
@@ -474,18 +471,16 @@ namespace Microsoft.Dafny {
 
       CompileDatatypeDestructorsAndAddToInterface(dt, wr, interfaceTree, DtT_TypeArgs);
 
-<<<<<<< HEAD
       DtDowncastClone(dt, interfaceTree, nonGhostTypeArgs, @interface: true);
-      if (!dt.IsRecordType) DtDowncastClone(dt, wr, nonGhostTypeArgs);
+      if (!dt.IsRecordType) {
+        DtDowncastClone(dt, wr, nonGhostTypeArgs);
+      }
 
-=======
->>>>>>> master
       CompileDatatypeInterfaceMembers(dt, interfaceTree);
 
       return new ClassWriter(this, btw, null);
     }
 
-<<<<<<< HEAD
     private void DtDowncastClone(DatatypeDecl dt, ConcreteSyntaxTree wr, List<TypeParameter> nonGhostTypeArgs, bool @interface = false, bool lazy = false, DatatypeCtor ctor = null) {
       if (nonGhostTypeArgs.Any(ty => ty.Variance == TypeParameter.TPVariance.Contra)) { return; };
       var typeArgs = TypeParameters(nonGhostTypeArgs, safe: true);
@@ -550,8 +545,6 @@ namespace Microsoft.Dafny {
 
     }
 
-=======
->>>>>>> master
     private void CompileDatatypeDestructorsAndAddToInterface(DatatypeDecl dt, ConcreteSyntaxTree wr,
       ConcreteSyntaxTree interfaceTree, string DtT_TypeArgs) {
       foreach (var ctor in dt.Ctors) {
@@ -677,10 +670,7 @@ namespace Microsoft.Dafny {
         w.WriteLine($"{NeedsNew(dt, "c")}Computer c;");
         w.WriteLine($"{NeedsNew(dt, "d")}{ICompileName}{typeParams} d;");
         w.WriteLine($"public {dt.CompileName}__Lazy(Computer c) {{ this.c = c; }}");
-<<<<<<< HEAD
         DtDowncastClone(dt, w, nonGhostTypeArgs, lazy: true);
-=======
->>>>>>> master
         w.WriteLine($"public override {ICompileName}{typeParams} _Get() {{ if (c != null) {{ d = c(); c = null; }} return d; }}");
         w.WriteLine("public override string ToString() { return _Get().ToString(); }");
       }
