@@ -21,53 +21,7 @@ namespace Microsoft.Dafny {
         AddAllocationAxiom(null, null, (ArrayClassDecl)c, true);
       }
 
-      // Add $Is and $IsAlloc for this class :
-      //    axiom (forall p: ref, G: Ty ::
-      //       { $Is(p, TClassA(G), h) }
-      //       $Is(p, TClassA(G), h) <=> (p == null || dtype(p) == TClassA(G));
-      //    axiom (forall p: ref, h: Heap, G: Ty ::
-      //       { $IsAlloc(p, TClassA(G), h) }
-      //       $IsAlloc(p, TClassA(G), h) => (p == null || h[p, alloc]);
-      MapM(c is ClassDecl ? Bools : new List<bool>(), is_alloc => {
-        List<Bpl.Expr> tyexprs;
-        var vars = MkTyParamBinders(GetTypeParams(c), out tyexprs);
-
-        var o = BplBoundVar("$o", predef.RefType, vars);
-
-        Bpl.Expr body, is_o;
-        Bpl.Expr o_null = Bpl.Expr.Eq(o, predef.Null);
-        Bpl.Expr o_ty = ClassTyCon(c, tyexprs);
-        string name;
-
-        if (is_alloc) {
-          name = c + ": Class $IsAlloc";
-          var h = BplBoundVar("$h", predef.HeapType, vars);
-          // $IsAlloc(o, ..)
-          is_o = MkIsAlloc(o, o_ty, h);
-          body = BplIff(is_o, BplOr(o_null, IsAlloced(c.tok, h, o)));
-        } else {
-          name = c + ": Class $Is";
-          // $Is(o, ..)
-          is_o = MkIs(o, o_ty);
-          Bpl.Expr rhs;
-          if (c == program.BuiltIns.ObjectDecl) {
-            rhs = Bpl.Expr.True;
-          } else if (c is TraitDecl) {
-            //generating $o == null || implements$J(dtype(x), typeArgs)
-            var t = (TraitDecl)c;
-            var dtypeFunc = FunctionCall(o.tok, BuiltinFunction.DynamicType, null, o);
-            var implementsJ_Arguments = new List<Expr> { dtypeFunc }; // TODO: also needs type parameters
-            implementsJ_Arguments.AddRange(tyexprs);
-            Bpl.Expr implementsFunc = FunctionCall(t.tok, "implements$" + t.FullSanitizedName, Bpl.Type.Bool, implementsJ_Arguments);
-            rhs = BplOr(o_null, implementsFunc);
-          } else {
-            rhs = BplOr(o_null, DType(o, o_ty));
-          }
-          body = BplIff(is_o, rhs);
-        }
-
-        AddIncludeDepAxiom(new Boogie.Axiom(c.tok, BplForall(vars, BplTrigger(is_o), body), name));
-      });
+      AddIsAndIsAllocForClassLike(c);
 
       if (c is TraitDecl) {
         //this adds: function implements$J(Ty, typeArgs): bool;
@@ -116,6 +70,60 @@ namespace Microsoft.Dafny {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member
         }
       }
+    }
+
+    /**
+      Add $Is and $IsAlloc for this class :
+         axiom (forall p: ref, G: Ty ::
+            { $Is(p, TClassA(G), h) }
+            $Is(p, TClassA(G), h) <=> (p == null || dtype(p) == TClassA(G));
+         axiom (forall p: ref, h: Heap, G: Ty ::
+            { $IsAlloc(p, TClassA(G), h) }
+            $IsAlloc(p, TClassA(G), h) => (p == null || h[p, alloc]);
+     */
+    private void AddIsAndIsAllocForClassLike(TopLevelDeclWithMembers c) {
+      MapM(c is ClassDecl ? Bools : new List<bool>(), is_alloc => {
+        var vars = MkTyParamBinders(GetTypeParams(c), out var tyexprs);
+
+        var o = BplBoundVar("$o", predef.RefType, vars);
+
+        Bpl.Expr body, is_o;
+        Bpl.Expr o_null = Bpl.Expr.Eq(o, predef.Null);
+        Bpl.Expr o_ty = ClassTyCon(c, tyexprs);
+        string name;
+
+        if (is_alloc) {
+          name = c + ": Class $IsAlloc";
+          var h = BplBoundVar("$h", predef.HeapType, vars);
+          // $IsAlloc(o, ..)
+          is_o = MkIsAlloc(o, o_ty, h);
+          body = BplIff(is_o, BplOr(o_null, IsAlloced(c.tok, h, o)));
+        } else {
+          name = c + ": Class $Is";
+          // $Is(o, ..)
+          is_o = MkIs(o, o_ty);
+          Bpl.Expr rhs;
+          if (c == program.BuiltIns.ObjectDecl) {
+            rhs = Bpl.Expr.True;
+          } else if (c is TraitDecl) {
+            //generating $o == null || implements$J(dtype(x), typeArgs)
+            var t = (TraitDecl)c;
+            var dtypeFunc = FunctionCall(o.tok, BuiltinFunction.DynamicType, null, o);
+            var implementsJ_Arguments = new List<Expr> { dtypeFunc }; // TODO: also needs type parameters
+            implementsJ_Arguments.AddRange(tyexprs);
+            Bpl.Expr implementsFunc =
+              FunctionCall(t.tok, "implements$" + t.FullSanitizedName, Bpl.Type.Bool, implementsJ_Arguments);
+            rhs = BplOr(o_null, implementsFunc);
+          } else {
+            rhs = BplOr(o_null, DType(o, o_ty));
+          }
+
+          body = BplIff(is_o, rhs);
+        }
+
+        var axiom = new Boogie.Axiom(c.tok, BplForall(vars, BplTrigger(is_o), body), name);
+        AddOtherDefinition(GetOrCreateTypeConstructor(c), axiom);
+      });
     }
 
     void AddFunction_Top(Function f, bool includeAllMethods) {
@@ -190,6 +198,29 @@ namespace Microsoft.Dafny {
       this.fuelContext = oldFuelContext;
     }
 
+    private void AddAllocationAxiom(Boogie.Declaration fieldDeclaration, Field f, TopLevelDeclWithMembers c, bool is_array = false) {
+      Contract.Requires(c != null);
+      // IFF you're adding the array axioms, then the field should be null
+      Contract.Requires(is_array == (f == null));
+      Contract.Requires(sink != null && predef != null);
+
+      Bpl.Expr heightAntecedent = Bpl.Expr.True;
+      if (f is ConstantField) {
+        var cf = (ConstantField)f;
+        AddWellformednessCheck(cf);
+        if (InVerificationScope(cf)) {
+          var etran = new ExpressionTranslator(this, predef, f.tok);
+          heightAntecedent = Bpl.Expr.Lt(Bpl.Expr.Literal(cf.EnclosingModule.CallGraph.GetSCCRepresentativePredecessorCount(cf)), etran.FunctionContextHeight());
+        }
+      }
+
+      if (f is ConstantField && f.IsStatic) {
+        AddStaticConstFieldAllocationAxiom(fieldDeclaration, f, c, heightAntecedent);
+      } else {
+        AddInstanceFieldAllocationAxioms(fieldDeclaration, f, c, is_array, heightAntecedent);
+      }
+    }
+
     /// <summary>
     /// For a non-static field "f" in a class "c(G)", generate:
     ///     // type axiom:
@@ -215,7 +246,157 @@ namespace Microsoft.Dafny {
     ///         h[o, alloc]
     ///         ==>
     ///         $IsAlloc(h[o, f], TT(PP), h));
-    ///
+    /// </summary>
+    private void AddInstanceFieldAllocationAxioms(Bpl.Declaration fieldDeclaration, Field f, TopLevelDeclWithMembers c,
+      bool is_array, Expr heightAntecedent) {
+      var bvsTypeAxiom = new List<Bpl.Variable>();
+      var bvsAllocationAxiom = new List<Bpl.Variable>();
+
+      var tyvars = MkTyParamBinders(GetTypeParams(c), out var tyexprs);
+      bvsTypeAxiom.AddRange(tyvars);
+      bvsAllocationAxiom.AddRange(tyvars);
+
+      // This is the typical case (that is, f is not a static const field)
+
+      var hVar = BplBoundVar("$h", predef.HeapType, out var h);
+      var oVar = BplBoundVar("$o", TrType(Resolver.GetThisType(c.tok, c)), out var o);
+
+      // TClassA(G)
+      Bpl.Expr o_ty = ClassTyCon(c, tyexprs);
+
+      var isGoodHeap = FunctionCall(c.tok, BuiltinFunction.IsGoodHeap, null, h);
+      Bpl.Expr isalloc_o;
+      if (!(c is ClassDecl)) {
+        var udt = UserDefinedType.FromTopLevelDecl(c.tok, c);
+        isalloc_o = MkIsAlloc(o, udt, h);
+      } else if (RevealedInScope(c)) {
+        isalloc_o = IsAlloced(c.tok, h, o);
+      } else {
+        // c is only provided, not revealed, in the scope. Use the non-null type decl's internal synonym
+        var cl = (ClassDecl)c;
+        Contract.Assert(cl.NonNullTypeDecl != null);
+        var udt = UserDefinedType.FromTopLevelDecl(c.tok, cl.NonNullTypeDecl);
+        isalloc_o = MkIsAlloc(o, udt, h);
+      }
+
+      Bpl.Expr indexBounds = Bpl.Expr.True;
+      Bpl.Expr oDotF;
+      if (is_array) {
+        // generate h[o,Index(ii)]
+        bvsTypeAxiom.Add(hVar);
+        bvsTypeAxiom.Add(oVar);
+        bvsAllocationAxiom.Add(hVar);
+        bvsAllocationAxiom.Add(oVar);
+
+        var ac = (ArrayClassDecl)c;
+        var ixs = new List<Bpl.Expr>();
+        for (int i = 0; i < ac.Dims; i++) {
+          Bpl.Expr e;
+          Bpl.Variable v = BplBoundVar("$i" + i, Bpl.Type.Int, out e);
+          ixs.Add(e);
+          bvsTypeAxiom.Add(v);
+          bvsAllocationAxiom.Add(v);
+        }
+
+        oDotF = ReadHeap(c.tok, h, o, GetArrayIndexFieldName(c.tok, ixs));
+
+        for (int i = 0; i < ac.Dims; i++) {
+          // 0 <= i && i < _System.array.Length(o)
+          var e1 = Bpl.Expr.Le(Bpl.Expr.Literal(0), ixs[i]);
+          var ff = GetReadonlyField((Field)(ac.Members[i]));
+          var e2 = Bpl.Expr.Lt(ixs[i], new Bpl.NAryExpr(c.tok, new Bpl.FunctionCall(ff), new List<Bpl.Expr> { o }));
+          indexBounds = BplAnd(indexBounds, BplAnd(e1, e2));
+        }
+      } else if (f.IsMutable) {
+        // generate h[o,f]
+        oDotF = ReadHeap(c.tok, h, o, new Bpl.IdentifierExpr(c.tok, GetField(f)));
+        bvsTypeAxiom.Add(hVar);
+        bvsTypeAxiom.Add(oVar);
+        bvsAllocationAxiom.Add(hVar);
+        bvsAllocationAxiom.Add(oVar);
+      } else {
+        // generate f(G,o)
+        var args = new List<Bpl.Expr> { o };
+        if (f is ConstantField) {
+          args = Concat(tyexprs, args);
+        }
+
+        oDotF = new Bpl.NAryExpr(c.tok, new Bpl.FunctionCall(GetReadonlyField(f)), args);
+        bvsTypeAxiom.Add(oVar);
+        bvsAllocationAxiom.Add(hVar);
+        bvsAllocationAxiom.Add(oVar);
+      }
+
+      // antecedent: some subset of: $IsHeap(h) && o != null && $Is(o, TClassA(G)) && indexBounds
+      Bpl.Expr ante = Bpl.Expr.True;
+      if (is_array || f.IsMutable) {
+        ante = BplAnd(ante, isGoodHeap);
+        // Note: for the allocation axiom, isGoodHeap is added back in for !f.IsMutable below
+      }
+
+      if (!(f is ConstantField)) {
+        Bpl.Expr is_o = BplAnd(
+          ReceiverNotNull(o),
+          c is TraitDecl ? MkIs(o, o_ty) : DType(o, o_ty)); // $Is(o, ..)  or  dtype(o) == o_ty
+        ante = BplAnd(ante, is_o);
+      }
+
+      ante = BplAnd(ante, indexBounds);
+
+      // trigger
+      var t_es = new List<Bpl.Expr>();
+      t_es.Add(oDotF);
+      if (tyvars.Count > 0 && (is_array || !(f is ConstantField))) {
+        t_es.Add(o_ty);
+      }
+
+      var tr = new Bpl.Trigger(c.tok, true, t_es);
+
+      // Now for the conclusion of the axioms
+      Bpl.Expr is_hf, isalloc_hf = null;
+      if (is_array) {
+        is_hf = MkIs(oDotF, tyexprs[0], true);
+        if (CommonHeapUse || NonGhostsUseHeap) {
+          isalloc_hf = MkIsAlloc(oDotF, tyexprs[0], h, true);
+        }
+      } else {
+        is_hf = MkIs(oDotF, f.Type); // $Is(h[o, f], ..)
+        if (CommonHeapUse || (NonGhostsUseHeap && !f.IsGhost)) {
+          isalloc_hf = MkIsAlloc(oDotF, f.Type, h); // $IsAlloc(h[o, f], ..)
+        }
+      }
+
+      Bpl.Expr ax = BplForall(bvsTypeAxiom, tr, BplImp(ante, is_hf));
+      AddOtherDefinition(fieldDeclaration, new Bpl.Axiom(c.tok, BplImp(heightAntecedent, ax), string.Format("{0}.{1}: Type axiom", c, f)));
+
+      if (isalloc_hf != null) {
+        if (!is_array && !f.IsMutable) {
+          // isGoodHeap wasn't added above, so add it now
+          ante = BplAnd(isGoodHeap, ante);
+        }
+
+        ante = BplAnd(ante, isalloc_o);
+
+        // compute a different trigger
+        t_es = new List<Bpl.Expr>();
+        t_es.Add(oDotF);
+        if (!is_array && !f.IsMutable) {
+          // since "h" is not part of oDotF, we add a separate term that mentions "h"
+          t_es.Add(isalloc_o);
+        }
+
+        if (!(f is ConstantField) && tyvars.Count > 0) {
+          t_es.Add(o_ty);
+        }
+
+        tr = new Bpl.Trigger(c.tok, true, t_es);
+
+        ax = BplForall(bvsAllocationAxiom, tr, BplImp(ante, isalloc_hf));
+        AddOtherDefinition(fieldDeclaration, new Boogie.Axiom(c.tok, BplImp(heightAntecedent, ax), $"{c}.{f}: Allocation axiom"));
+      }
+    }
+
+    /// <summary>
     /// For a static (necessarily "const") field "f" in a class "c(G)", the expression corresponding to "h[o, f]" or "f(G,o)" above is "f(G)",
     /// so generate:
     ///     // type axiom:
@@ -244,163 +425,15 @@ namespace Microsoft.Dafny {
     ///         (h[o, alloc] ==> $IsAlloc(h[o, f], TT(TClassA_Inv_i(dtype(o)),..), h)) &&
     ///         $Is(h[o, f], TT(TClassA_Inv_i(dtype(o)),..), h);
     /// <summary>
-    private void AddAllocationAxiom(Boogie.Declaration fieldDeclaration, Field f, TopLevelDeclWithMembers c, bool is_array = false) {
-      Contract.Requires(c != null);
-      // IFF you're adding the array axioms, then the field should be null
-      Contract.Requires(is_array == (f == null));
-      Contract.Requires(sink != null && predef != null);
-
-      Bpl.Expr heightAntecedent = Bpl.Expr.True;
-      if (f is ConstantField) {
-        var cf = (ConstantField)f;
-        AddWellformednessCheck(cf);
-        if (InVerificationScope(cf)) {
-          var etran = new ExpressionTranslator(this, predef, f.tok);
-          heightAntecedent = Bpl.Expr.Lt(Bpl.Expr.Literal(cf.EnclosingModule.CallGraph.GetSCCRepresentativePredecessorCount(cf)), etran.FunctionContextHeight());
-        }
-      }
+    private void AddStaticConstFieldAllocationAxiom(Boogie.Declaration fieldDeclaration, Field f, TopLevelDeclWithMembers c, Expr heightAntecedent) {
 
       var bvsTypeAxiom = new List<Bpl.Variable>();
       var bvsAllocationAxiom = new List<Bpl.Variable>();
 
-      // G
       var tyvars = MkTyParamBinders(GetTypeParams(c), out var tyexprs);
       bvsTypeAxiom.AddRange(tyvars);
       bvsAllocationAxiom.AddRange(tyvars);
 
-      if (f is ConstantField && f.IsStatic) {
-        AddStaticConstFieldAllocationAxiom(fieldDeclaration, f, c, tyexprs, bvsTypeAxiom, heightAntecedent, bvsAllocationAxiom);
-      } else {
-        // This is the typical case (that is, f is not a static const field)
-
-        var hVar = BplBoundVar("$h", predef.HeapType, out var h);
-        var oVar = BplBoundVar("$o", TrType(Resolver.GetThisType(c.tok, c)), out var o);
-
-        // TClassA(G)
-        Bpl.Expr o_ty = ClassTyCon(c, tyexprs);
-
-        var isGoodHeap = FunctionCall(c.tok, BuiltinFunction.IsGoodHeap, null, h);
-        Bpl.Expr isalloc_o;
-        if (!(c is ClassDecl)) {
-          var udt = UserDefinedType.FromTopLevelDecl(c.tok, c);
-          isalloc_o = MkIsAlloc(o, udt, h);
-        } else if (RevealedInScope(c)) {
-          isalloc_o = IsAlloced(c.tok, h, o);
-        } else {
-          // c is only provided, not revealed, in the scope. Use the non-null type decl's internal synonym
-          var cl = (ClassDecl)c;
-          Contract.Assert(cl.NonNullTypeDecl != null);
-          var udt = UserDefinedType.FromTopLevelDecl(c.tok, cl.NonNullTypeDecl);
-          isalloc_o = MkIsAlloc(o, udt, h);
-        }
-
-        Bpl.Expr indexBounds = Bpl.Expr.True;
-        Bpl.Expr oDotF;
-        if (is_array) {
-          // generate h[o,Index(ii)]
-          bvsTypeAxiom.Add(hVar); bvsTypeAxiom.Add(oVar);
-          bvsAllocationAxiom.Add(hVar); bvsAllocationAxiom.Add(oVar);
-
-          var ac = (ArrayClassDecl)c;
-          var ixs = new List<Bpl.Expr>();
-          for (int i = 0; i < ac.Dims; i++) {
-            Bpl.Expr e; Bpl.Variable v = BplBoundVar("$i" + i, Bpl.Type.Int, out e);
-            ixs.Add(e);
-            bvsTypeAxiom.Add(v);
-            bvsAllocationAxiom.Add(v);
-          }
-
-          oDotF = ReadHeap(c.tok, h, o, GetArrayIndexFieldName(c.tok, ixs));
-
-          for (int i = 0; i < ac.Dims; i++) {
-            // 0 <= i && i < _System.array.Length(o)
-            var e1 = Bpl.Expr.Le(Bpl.Expr.Literal(0), ixs[i]);
-            var ff = GetReadonlyField((Field)(ac.Members[i]));
-            var e2 = Bpl.Expr.Lt(ixs[i], new Bpl.NAryExpr(c.tok, new Bpl.FunctionCall(ff), new List<Bpl.Expr> { o }));
-            indexBounds = BplAnd(indexBounds, BplAnd(e1, e2));
-          }
-        } else if (f.IsMutable) {
-          // generate h[o,f]
-          oDotF = ReadHeap(c.tok, h, o, new Bpl.IdentifierExpr(c.tok, GetField(f)));
-          bvsTypeAxiom.Add(hVar); bvsTypeAxiom.Add(oVar);
-          bvsAllocationAxiom.Add(hVar); bvsAllocationAxiom.Add(oVar);
-        } else {
-          // generate f(G,o)
-          var args = new List<Bpl.Expr> { o };
-          if (f is ConstantField) {
-            args = Concat(tyexprs, args);
-          }
-          oDotF = new Bpl.NAryExpr(c.tok, new Bpl.FunctionCall(GetReadonlyField(f)), args);
-          bvsTypeAxiom.Add(oVar);
-          bvsAllocationAxiom.Add(hVar); bvsAllocationAxiom.Add(oVar);
-        }
-
-        // antecedent: some subset of: $IsHeap(h) && o != null && $Is(o, TClassA(G)) && indexBounds
-        Bpl.Expr ante = Bpl.Expr.True;
-        if (is_array || f.IsMutable) {
-          ante = BplAnd(ante, isGoodHeap);
-          // Note: for the allocation axiom, isGoodHeap is added back in for !f.IsMutable below
-        }
-        if (!(f is ConstantField)) {
-          Bpl.Expr is_o = BplAnd(
-            ReceiverNotNull(o),
-            c is TraitDecl ? MkIs(o, o_ty) : DType(o, o_ty));  // $Is(o, ..)  or  dtype(o) == o_ty
-          ante = BplAnd(ante, is_o);
-        }
-        ante = BplAnd(ante, indexBounds);
-
-        // trigger
-        var t_es = new List<Bpl.Expr>();
-        t_es.Add(oDotF);
-        if (tyvars.Count > 0 && (is_array || !(f is ConstantField))) {
-          t_es.Add(o_ty);
-        }
-        var tr = new Bpl.Trigger(c.tok, true, t_es);
-
-        // Now for the conclusion of the axioms
-        Bpl.Expr is_hf, isalloc_hf = null;
-        if (is_array) {
-          is_hf = MkIs(oDotF, tyexprs[0], true);
-          if (CommonHeapUse || NonGhostsUseHeap) {
-            isalloc_hf = MkIsAlloc(oDotF, tyexprs[0], h, true);
-          }
-        } else {
-          is_hf = MkIs(oDotF, f.Type);              // $Is(h[o, f], ..)
-          if (CommonHeapUse || (NonGhostsUseHeap && !f.IsGhost)) {
-            isalloc_hf = MkIsAlloc(oDotF, f.Type, h); // $IsAlloc(h[o, f], ..)
-          }
-        }
-
-        Bpl.Expr ax = BplForall(bvsTypeAxiom, tr, BplImp(ante, is_hf));
-        AddIncludeDepAxiom(new Bpl.Axiom(c.tok, BplImp(heightAntecedent, ax), string.Format("{0}.{1}: Type axiom", c, f)));
-
-        if (isalloc_hf != null) {
-          if (!is_array && !f.IsMutable) {
-            // isGoodHeap wasn't added above, so add it now
-            ante = BplAnd(isGoodHeap, ante);
-          }
-          ante = BplAnd(ante, isalloc_o);
-
-          // compute a different trigger
-          t_es = new List<Bpl.Expr>();
-          t_es.Add(oDotF);
-          if (!is_array && !f.IsMutable) {
-            // since "h" is not part of oDotF, we add a separate term that mentions "h"
-            t_es.Add(isalloc_o);
-          }
-          if (!(f is ConstantField) && tyvars.Count > 0) {
-            t_es.Add(o_ty);
-          }
-          tr = new Bpl.Trigger(c.tok, true, t_es);
-
-          ax = BplForall(bvsAllocationAxiom, tr, BplImp(ante, isalloc_hf));
-          AddIncludeDepAxiom(new Boogie.Axiom(c.tok, BplImp(heightAntecedent, ax), $"{c}.{f}: Allocation axiom"));
-        }
-      }
-    }
-
-    private void AddStaticConstFieldAllocationAxiom(Boogie.Declaration fieldDeclaration, Field f, TopLevelDeclWithMembers c,
-      List<Expr> tyexprs, List<Variable> bvsTypeAxiom, Expr heightAntecedent, List<Variable> bvsAllocationAxiom) {
       var oDotF = new Boogie.NAryExpr(c.tok, new Boogie.FunctionCall(GetReadonlyField(f)), tyexprs);
       var is_hf = MkIs(oDotF, f.Type); // $Is(h[o, f], ..)
       Boogie.Expr ax = bvsTypeAxiom.Count == 0 ? is_hf : BplForall(bvsTypeAxiom, BplTrigger(oDotF), is_hf);
@@ -423,7 +456,7 @@ namespace Microsoft.Dafny {
       //this adds: axiom implements$J(class.C, typeInstantiations);
       var vars = MkTyParamBinders(GetTypeParams(c), out var tyexprs);
 
-      foreach (var parent in ((ClassDecl)c).ParentTraits) {
+      foreach (var parent in c.ParentTraits) {
         var trait = (TraitDecl)((NonNullTypeDecl)((UserDefinedType)parent).ResolvedClass).ViewAsClass;
         var arg = ClassTyCon(c, tyexprs);
         var args = new List<Bpl.Expr> { arg };
@@ -432,7 +465,7 @@ namespace Microsoft.Dafny {
         }
         var expr = FunctionCall(c.tok, "implements$" + trait.FullSanitizedName, Bpl.Type.Bool, args);
         var implements_axiom = new Bpl.Axiom(c.tok, BplForall(vars, null, expr));
-        AddIncludeDepAxiom(implements_axiom);
+        AddOtherDefinition(GetOrCreateTypeConstructor(c), implements_axiom);
       }
     }
 
@@ -444,11 +477,11 @@ namespace Microsoft.Dafny {
       codeContext = f;
 
       // declare function
-      var boogieFunction = AddFunction(f);
+      var boogieFunction = GetOrCreateFunction(f);
       // add synonym axiom
       if (f.IsFuelAware()) {
-        AddLayerSynonymAxiom(f);
-        AddFuelSynonymAxiom(f);
+        AddFuelSuccSynonymAxiom(f);
+        AddFuelZeroSynonymAxiom(f);
       }
       // add frame axiom
       if (AlwaysUseHeap || f.ReadsHeap) {
