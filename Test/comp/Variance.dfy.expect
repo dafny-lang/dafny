@@ -1,0 +1,56 @@
+
+Dafny program verifier finished with 13 verified, 0 errors
+Co.Co(_module.Int) and Co.Co(_module.Int)
+true0[]0000
+Non.Non(_module.Int) and Non.Non(_module.Int)
+true0[]0000
+Con.Con(System.Func`2[_module.X,System.Numerics.BigInteger]) and Con.Con(System.Func`2[_module.X,System.Numerics.BigInteger])
+_module.Int0[]0000
+CCo.CCo and CCo.CCo
+true0[]0000
+CNon.CNon and CNon.CNon
+true0[]0000
+CCon.CCon and CCon.CCon
+_module.Int0[]0000
+Done
+
+Dafny program verifier finished with 13 verified, 0 errors
+Co.Co(_module.Int) and Co.Co(_module.Int)
+true0[]0000
+Non.Non(_module.Int) and Non.Non(_module.Int)
+true0[]0000
+Con.Con(function (_169___v6) {
+  return _dafny.ZERO;
+}) and Con.Con(function (_169___v6) {
+  return _dafny.ZERO;
+})
+_module.Int0[]0000
+CCo.CCo and CCo.CCo
+true0[]0000
+CNon.CNon and CNon.CNon
+true0[]0000
+CCon.CCon and CCon.CCon
+_module.Int0[]0000
+Done
+
+Dafny program verifier finished with 13 verified, 0 errors
+Co.Co(_module.Int) and Co.Co(_module.Int)
+true0[]0000
+Non.Non(_module.Int) and Non.Non(_module.Int)
+true0[]0000
+Con.Con(func(interface {}) dafny.Int) and Con.Con(func(interface {}) dafny.Int)
+_module.Int0[]0000
+CCo.CCo and CCo.CCo
+true0[]0000
+CNon.CNon and CNon.CNon
+true0[]0000
+CCon.CCon and CCon.CCon
+_module.Int0[]0000
+Done
+
+Dafny program verifier finished with 13 verified, 0 errors
+Variance.dfy(107,9): Error: compilation does not support trait types as a type parameter (got 'X'); consider introducing a ghost
+Variance.dfy(132,9): Error: compilation does not support trait types as a type parameter (got 'X'); consider introducing a ghost
+Variance.dfy(147,9): Error: compilation does not support trait types as a type parameter (got 'X'); consider introducing a ghost
+Variance.dfy(172,9): Error: compilation does not support trait types as a type parameter (got 'X'); consider introducing a ghost
+Wrote textual form of partial target program to Variance-java/Variance.java
