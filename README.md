@@ -9,7 +9,7 @@ Developers thus can avoid dreaded missed corner tests that could cause rollbacks
 
 Dafny has support for common programming concepts such as [classes and inheritance](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-class-types), [datatypes and pattern matching](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#181-inductive-datatypes) that can have methods, [lazily unbounded datatypes](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#182-co-inductive-datatypes), [subset types e.g. for bounded integers](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-subset-types), [lambdas](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-lambda-expressions), [immutable and mutable data structures](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-collection-types)...
 
-Dafny also offers an extensive arsenal for mathematical proofs, such as [unbounded and bounded quantifiers](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-forall-statement), [proof hint structures](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#1923-calc-statement), [pre-, post-condition, termination conditions, loop invariants and read/write specifications](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#51-specification-clauses).
+Dafny also offers an extensive toolbox for mathematical proofs, such as [unbounded and bounded quantifiers](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-forall-statement), [proof hint structures](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#1923-calc-statement), [pre-, post-condition, termination conditions, loop invariants and read/write specifications](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#51-specification-clauses).
 
 ![Dafny](dafny-banner.png)
 
