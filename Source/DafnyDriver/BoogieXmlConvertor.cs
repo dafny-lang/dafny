@@ -89,12 +89,7 @@ namespace Microsoft.Dafny {
       var duration = float.Parse(conclusionNode.Attribute("duration")!.Value);
       var outcome = conclusionNode.Attribute("outcome")!.Value;
 
-      var testCase = new TestCase {
-        FullyQualifiedName = name,
-        ExecutorUri = new Uri("executor://dafnyverifier/v1"),
-        Source = currentFileFragment
-      };
-
+      var testCase = TestCaseForEntry(name, currentFileFragment);
       var testResult = new TestResult(testCase) {
         StartTime = DateTimeOffset.Parse(startTime),
         Duration = TimeSpan.FromMilliseconds((long)(duration * 1000)),
@@ -118,17 +113,12 @@ namespace Microsoft.Dafny {
       
       var startTime = splitNode.Attribute("startTime")!.Value;
       var conclusionNode = splitNode.Nodes()
-        .OfType<XElement>()
-        .Single(n => n.Name.LocalName == "conclusion");
+                                            .OfType<XElement>()
+                                            .Single(n => n.Name.LocalName == "conclusion");
       var duration = float.Parse(conclusionNode.Attribute("duration")!.Value);
       var outcome = conclusionNode.Attribute("outcome")!.Value;
 
-      var testCase = new TestCase {
-        FullyQualifiedName = name,
-        ExecutorUri = new Uri("executor://dafnyverifier/v1"),
-        Source = currentFileFragment
-      };
-
+      var testCase = TestCaseForEntry(name, currentFileFragment);
       var testResult = new TestResult(testCase) {
         StartTime = DateTimeOffset.Parse(startTime),
         Duration = TimeSpan.FromMilliseconds((long)(duration * 1000))
@@ -142,6 +132,14 @@ namespace Microsoft.Dafny {
       }
 
       return testResult;
+    }
+
+    private static TestCase TestCaseForEntry(string currentFileFragment, string entryName) {
+      return new TestCase {
+        FullyQualifiedName = entryName,
+        ExecutorUri = new Uri("executor://dafnyverifier/v1"),
+        Source = currentFileFragment
+      };
     }
   }
 }
