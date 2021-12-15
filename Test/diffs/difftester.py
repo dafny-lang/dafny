@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-"""Differential tester for Dafny.
+"""A differential tester for Dafny.
 
-This takes a sequence of snapshots and verifies them through Dafny's CLI as well
-as through Dafny's LSP server.  The results are matched for equality.
+This program takes a list of Dafny executables (either the CLI or the LSP
+server) and a list of snapshots and runs them through Dafny's CLI as well as
+through Dafny's LSP server.  Verification results are then compared to ensure
+that they match.
 
 Limitations:
 
@@ -10,10 +12,12 @@ Limitations:
 
 - This only checks for errors in one "main" file, not in all files reported by
   the LSP server.
+
 """
 
 from typing import Any, Dict, Iterable, List, Tuple, TypeVar
 
+import argparse
 import json
 import os
 import platform
@@ -89,6 +93,8 @@ class Tee(object):
 class ProverInputs:
     """A sequence of inputs to Dafny."""
 
+    name: str
+
     def as_lsp(self) -> "LSPTrace":
         """Convert self into an LSP trace."""
         raise NotImplementedError
@@ -124,13 +130,15 @@ class LSPMethods:
 class LSPTrace(ProverInputs):
     """A sequence of messages sent by an LSP client."""
 
-    def __init__(self, commands: Iterable[LSPMessage]):
+    def __init__(self, name: str, commands: Iterable[LSPMessage]):
+        self.name = name
         self.messages: List[LSPMessage] = list(commands)
 
     @classmethod
-    def from_json(cls, js: bytes) -> "LSPTrace":
-        """Load an LSP trace from an encoded `js` string."""
-        return LSPTrace(json.loads(js))
+    def from_json(cls, fname) -> "LSPTrace":
+        """Load an LSP trace from a file containing JSON."""
+        with open(fname, encoding="utf-8") as f:
+            return LSPTrace(fname, json.load(f))
 
     def as_lsp(self) -> "LSPTrace":
         """Convert self into an LSP trace."""
@@ -154,39 +162,59 @@ class LSPTrace(ProverInputs):
 
     def as_snapshots(self) -> "Snapshots":
         """Convert self into a sequence of snapshots."""
-        return Snapshots(self.uri, self._iter_snapshots())
+        return Snapshots(self.name, self.uri, self._iter_snapshots())
 
     def __len__(self):
         return sum(msg["method"] in (LSPMethods.didOpen, LSPMethods.didChange)
                    for msg in self.messages)
 
 
-class Snapshots:
+class Snapshots(ProverInputs):
     """A sequence of Dafny files."""
 
     VERNUM_RE = re.compile(r"\A(?P<stem>.*)[.]v(?P<num>[0-9]+)\Z")
 
-    def __init__(self, uri: str, snapshots: Iterable[Snapshot]):
+    def __init__(self, name: str, uri: str, snapshots: Iterable[Snapshot]):
+        self.name = name
         self.uri = uri
         self.snapshots = list(snapshots)
 
     @classmethod
+    def strip_vernum(cls, fname):
+        """Split `fname` into a stem, a suffix, and a version number.
+
+        >>> Snapshots.strip_vernum("a.v0.dfy")
+        ('a', 0, '.dfy')
+        >>> Snapshots.strip_vernum("a.dfy")
+        ('a', None, '.dfy')
+        """
+        pth = Path(fname)
+        mnum = cls.VERNUM_RE.match(pth.stem)
+        if not mnum:
+            return pth.stem, None, pth.suffix
+        return mnum.group("stem"), int(mnum.group("num")), pth.suffix
+
+
+    @classmethod
     def _find_snapshots(cls, name: str) -> Iterable[Tuple[int, Path]]:
-        """Yield paths matching stem.vN.suffix when `name` is stem.suffix."""
+        """Yield paths matching stem.vN.suffix where stem.suffix is `name`."""
         ref = Path(name)
         for f in ref.parent.iterdir():
-            if ref.suffix == f.suffix:
-                mnum = cls.VERNUM_RE.match(f.stem)
-                if mnum and ref.stem == mnum.group("stem"):
-                    yield int(mnum.group("num")), f
+            stem, num, suffix = cls.strip_vernum(f)
+            if ref.stem == stem and ref.suffix == suffix and num is not None:
+                yield num, f
 
     @classmethod
     def from_files(cls, name: str) -> "Snapshots":
-        """Read files matching stem.vN.suffix when `name` is stem.suffix."""
+        """Read file `name` from file.
+
+        If `name` does not exist, read all files matching stem.vN.suffix, where
+        stem.suffix is `name`.
+        """
         uri = Path(name).absolute().as_uri()
         files = (f for _, f in sorted(cls._find_snapshots(name)))
         snaps = (f.read_text("utf-8") for f in files)
-        return Snapshots(uri, snaps)
+        return Snapshots(name, uri, snaps)
 
     @classmethod
     def _complete_range(cls, previous: Snapshot):
@@ -236,7 +264,7 @@ class Snapshots:
 
     def as_lsp(self) -> "LSPTrace":
         """Convert self into an LSP trace."""
-        return LSPTrace(self._iter_jrpc())
+        return LSPTrace(self.name, self._iter_jrpc())
 
     def as_snapshots(self) -> "Snapshots":
         """Convert self into a sequence of snapshots."""
@@ -276,7 +304,7 @@ class LSPServer:
         """Send a request to the server."""
         js = self._dump(cmd)
         header = f"Content-Length: {len(js)}\r\n\r\n"
-        debug(">>", repr(header), end="")
+        debug(">>", repr(header))
         debug(">>", js)
         self.repl.stdin.write(header.encode("utf-8"))
         self.repl.stdin.write(js.encode("utf-8"))
@@ -293,7 +321,7 @@ class LSPServer:
             if header:
                 length = int(header.group("len"))
         if length is None:
-            raise ValueError(f"Unexpected output: {line!r}")
+            raise ValueError(f"Unexpected output: {line!r}, use --debug")
         response = self.repl.stdout.read(length)
         if len(response) != length:
             raise ValueError(f"Truncated response: {response!r}")
@@ -436,6 +464,7 @@ class CLIDriver:
 
     def _exec(self, snapshot: Snapshot):
         cmd = [*self.command, *self.ARGS]
+        debug("#", shlex.join(cmd))
         return subprocess.run(
             cmd, check=False,
             input=snapshot, encoding="utf-8",
@@ -467,11 +496,63 @@ def test(inputs: ProverInputs, *drivers: Driver):
     n_snapshots = len(inputs.as_snapshots())
     assert all(len(po) == n_snapshots for po in prover_outputs)
     for snapidx in range(n_snapshots):
-        print(f"=== Snapshot {snapidx} ===")
+        print(f"------ Snapshot #{snapidx} ------")
         for p1, p2 in window(prover_outputs, 2):
             o1, o2 = p1[snapidx].format(), p2[snapidx].format()
             if o1 != o2:
                 print(f"Error: {o1} != {o2}")
+
+
+def resolve_driver(command):
+    if "DafnyLanguageServer" in command[0]:
+        return LSPDriver(command)
+    return CLIDriver(command)
+
+
+def resolve_input(inp, parser):
+    stem, num, suffix = Snapshots.strip_vernum(inp)
+
+    if num:
+        MSG = (f"WARNING: File name {inp} looks like a single snapshot.  "
+               f"To verify multiple snapshots, call this program on "
+               f"{stem}{suffix}.")
+
+    if suffix != ".dfy":
+        MSG = (f"{inp}: Unsupported file extension {suffix!r} "
+               "(only .dfy inputs are supported for now).")
+        parser.error(MSG)
+
+    return Snapshots.from_files(inp)
+
+def parse_arguments():
+    parser = argparse.ArgumentParser(description=__doc__)
+
+    parser.add_argument("--debug", action="store_true")
+
+    parser.add_argument("--driver", required=True,
+                        nargs="+", action="append", dest="drivers",
+                        metavar=("DRIVER_NAME", "ARGUMENTS"),
+                        help="Register an additional driver")
+
+    parser.add_argument("--input", required=True,
+                        action="append", dest="inputs",
+                        help="Register an input file")
+
+    args = parser.parse_args()
+    args.drivers = [resolve_driver(d) for d in args.drivers]
+    args.inputs = [resolve_input(d, parser) for d in args.inputs]
+    if args.debug:
+        global DEBUG
+        DEBUG = True
+
+    return args
+
+
+def main():
+    args = parse_arguments()
+    for inputs in args.inputs:
+        print(f"====== {inputs.name} ======", file=sys.stderr)
+        test(inputs, *args.drivers)
 
 
 from pprint import pprint
@@ -496,7 +577,10 @@ def _test_diff():
     dll = r"C:\Users\cpitcla\git\dafny\Binaries\DafnyLanguageServer.dll"
     test(inputs, LSPDriver(["dotnet", dll]), CLIDriver(["Dafny"]))
 
+
+
 if __name__ == "__main__":
-    _test_diff()
+    main()
+    # _test_diff()
     # _test_snapshots()
     # _test_snapshots_lsp()
