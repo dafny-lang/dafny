@@ -33,6 +33,7 @@ import subprocess
 import sys
 
 from collections import deque
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from subprocess import PIPE
 
@@ -489,17 +490,20 @@ class CLIDriver:
 
     def _exec(self, snapshot: Snapshot):
         cmd = [*self.command, *self.ARGS]
-        debug("#", shlex.join(cmd))
+        debug("#", shlex.join(cmd), "<", snapshot.name)
         return subprocess.run(
             cmd, check=False,
             input=str(snapshot), encoding="utf-8",
             startupinfo=_no_window(),
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
+    def _collect_one_output(self, snapshot: Snapshot):
+        return CLIOutput(self._exec(snapshot).stdout)
+
     def _iter_results(self, snapshots: Snapshots) \
             -> Iterable[str]:
-        for snapshot in snapshots.snapshots:
-            yield CLIOutput(self._exec(snapshot).stdout)
+        with ThreadPoolExecutor(max_workers=NWORKERS) as exc:
+            yield from exc.map(self._collect_one_output, snapshots)
 
     def run(self, inputs: ProverInputs) -> Iterable[ProverOutput]:
         """Run `inputs` through Dafny's CLI; return the prover's outputs."""
@@ -553,6 +557,9 @@ def parse_arguments():
 
     parser.add_argument("--debug", action="store_true")
 
+    J_HELP = "Run command line tests in N concurrent threads."
+    parser.add_argument("-j", type=int, default=1, help=J_HELP)
+
     parser.add_argument("--driver", required=True,
                         nargs="+", action="append", dest="drivers",
                         metavar=("DRIVER_NAME", "ARGUMENTS"),
@@ -565,9 +572,14 @@ def parse_arguments():
     args = parser.parse_args()
     args.drivers = [resolve_driver(d) for d in args.drivers]
     args.inputs = [resolve_input(d, parser) for d in args.inputs]
+
     if args.debug:
         global DEBUG
         DEBUG = True
+
+    if args.j:
+        global NWORKERS
+        NWORKERS = args.j
 
     return args
 
@@ -577,30 +589,6 @@ def main():
     for inputs in args.inputs:
         print(f"====== {inputs.name} ======", file=sys.stderr)
         test(inputs, *args.drivers)
-
-
-from pprint import pprint
-
-
-def _test_snapshots():
-    d = CLIDriver(["Dafny"])
-    inputs = Snapshots.from_files("snaps.dfy")
-    for m in d.run(inputs):
-        print(m.format())
-
-
-def _test_snapshots_lsp():
-    lsp = Snapshots.from_files("snaps.dfy").as_lsp()
-    dll = r"C:\Users\cpitcla\git\dafny\Binaries\DafnyLanguageServer.dll"
-    driver = LSPDriver(["dotnet", dll])
-    pprint(driver.run(lsp))
-
-
-def _test_diff():
-    inputs = Snapshots.from_files("snaps.dfy")
-    dll = r"C:\Users\cpitcla\git\dafny\Binaries\DafnyLanguageServer.dll"
-    test(inputs, LSPDriver(["dotnet", dll]), CLIDriver(["Dafny"]))
-
 
 
 if __name__ == "__main__":
