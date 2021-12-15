@@ -1,10 +1,9 @@
-// RUN: %dafny /compile:0 /dprint:"%t.dprint" /autoTriggers:0 "%s" > "%t"
+// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Rustan Leino
 // 7 November 2008
 // Schorr-Waite and other marking algorithms, written and verified in Dafny.
-// Copyright (c) 2008, Microsoft.
 
 class Node {
   var children: seq<Node?>
@@ -127,6 +126,7 @@ class Main {
       decreases unmarkedNodes, stackNodes, |t.children| - t.childrenVisited
     {
       if t.childrenVisited == |t.children| {
+        assert {:focus} true;
         // pop
         t.childrenVisited := 0;
         if |stackNodes| == 0 {
@@ -139,6 +139,7 @@ class Main {
         // just advance to next child
         t.childrenVisited := t.childrenVisited + 1;
       } else {
+        assert {:focus} true;
         // push
         stackNodes := stackNodes + [t];
         t := t.children[t.childrenVisited];
@@ -178,7 +179,7 @@ class Main {
     ensures forall n :: n in S && n.marked ==>
                 forall ch :: ch in n.children && ch != null ==> ch.marked
     // every marked node was reachable from 'root' in the pre-state:
-    ensures forall n {:autotriggers false} :: n in S && n.marked ==> old(Reachable(root, n, S))
+    ensures forall n :: n in S && n.marked ==> old(Reachable(root, n, S))
     // the structure of the graph has not changed:
     ensures forall n :: n in S ==>
                 n.childrenVisited == old(n.childrenVisited) &&
@@ -212,8 +213,7 @@ class Main {
       invariant forall n :: n in S ==> n in stackNodes || n.children == old(n.children)
       invariant forall n :: n in stackNodes ==>
                   |n.children| == old(|n.children|) &&
-                  forall j :: 0 <= j < |n.children| ==>
-                    j == n.childrenVisited || n.children[j] == old(n.children[j])
+                  n.children == old(n.children)[n.childrenVisited := n.children[n.childrenVisited]]
       // every marked node is reachable:
       invariant old(allocated(path))  // needed to show 'path' worthy as argument to old(Reachable(...))
       invariant old(ReachableVia(root, path, t, S))
@@ -222,6 +222,8 @@ class Main {
       invariant forall n :: n in S && n.marked ==> old(Reachable(root, n, S))
       // the current values of m.children[m.childrenVisited] for m's on the stack:
       invariant 0 < |stackNodes| ==> stackNodes[0].children[stackNodes[0].childrenVisited] == null
+      invariant forall k :: 1 < k < |stackNodes| ==>
+                  stackNodes[k].children[stackNodes[k].childrenVisited] != null
       invariant forall k :: 0 < k < |stackNodes| ==>
                   stackNodes[k].children[stackNodes[k].childrenVisited] == stackNodes[k-1]
       // the original values of m.children[m.childrenVisited] for m's on the stack:
@@ -233,6 +235,7 @@ class Main {
       decreases unmarkedNodes, stackNodes, |t.children| - t.childrenVisited
     {
       if t.childrenVisited == |t.children| {
+        assert {:focus} true;
         // pop
         t.childrenVisited := 0;
         if p == null {
@@ -251,6 +254,7 @@ class Main {
         t.childrenVisited := t.childrenVisited + 1;
 
       } else {
+        assert {:focus} true;
         // push
 
         var newT := t.children[t.childrenVisited];

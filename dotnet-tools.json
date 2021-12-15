@@ -3,7 +3,7 @@
   "isRoot": true,
   "tools": {
     "cocor": {
-      "version": "2014.12.23",
+      "version": "2014.12.24",
       "commands": [
         "coco"
       ]

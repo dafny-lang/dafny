@@ -217,13 +217,13 @@ namespace DafnyServer.CounterexampleGeneration {
         return null;
       }
       var name = GetTrueName(typeElement);
-      if (Model.GetFunc("SeqTypeInv0").OptEval(typeElement) != null) {
+      if (Model.TryGetFunc("SeqTypeInv0")?.OptEval(typeElement) != null) {
         return "SeqType";
       }
-      if (Model.GetFunc("MapType0TypeInv0").OptEval(typeElement) != null) {
+      if (Model.TryGetFunc("MapType0TypeInv0")?.OptEval(typeElement) != null) {
         return "SetType";
       }
-      if (Model.GetFunc("MapTypeInv0").OptEval(typeElement) != null) {
+      if (Model.TryGetFunc("MapTypeInv0")?.OptEval(typeElement) != null) {
         return "MapType";
       }
       return name;

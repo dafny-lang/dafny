@@ -343,10 +343,12 @@ namespace Microsoft.Dafny {
     }
     protected abstract string GenerateLhsDecl(string target, Type/*?*/ type, ConcreteSyntaxTree wr, Bpl.IToken tok);
 
-    protected virtual ConcreteSyntaxTree EmitAssignment(ILvalue wLhs, Type/*?*/ lhsType, Type/*?*/ rhsType, ConcreteSyntaxTree wr) {
+    protected virtual ConcreteSyntaxTree EmitAssignment(ILvalue wLhs, Type lhsType /*?*/, Type rhsType /*?*/,
+      ConcreteSyntaxTree wr, Bpl.IToken tok) {
       var w = wLhs.EmitWrite(wr);
-      w = EmitCoercionIfNecessary(rhsType, lhsType, Bpl.Token.NoToken, w);
-      w = EmitDowncastIfNecessary(rhsType, lhsType, Bpl.Token.NoToken, w);
+
+      w = EmitCoercionIfNecessary(rhsType, lhsType, tok, w);
+      w = EmitDowncastIfNecessary(rhsType, lhsType, tok, w);
       return w;
     }
 
@@ -450,7 +452,7 @@ namespace Microsoft.Dafny {
 
       Contract.Assert(rhsVars.Count == lhsTypes.Count);
       for (int i = 0; i < rhsVars.Count; i++) {
-        ConcreteSyntaxTree wRhsVar = EmitAssignment(lhssn[i], lhsTypes[i], rhsTypes[i], wr);
+        ConcreteSyntaxTree wRhsVar = EmitAssignment(lhssn[i], lhsTypes[i], rhsTypes[i], wr, Bpl.Token.NoToken);
         wRhsVar.Write(rhsVars[i]);
       }
     }
@@ -643,7 +645,7 @@ namespace Microsoft.Dafny {
             okay = IsTargetSupertype(to.TypeArgs[i], from.TypeArgs[i], true);
           } else if (formalTypeParameters == null || formalTypeParameters[i].Variance == TypeParameter.TPVariance.Co) {
             okay = IsTargetSupertype(to.TypeArgs[i], from.TypeArgs[i]);
-          } else if (formalTypeParameters[i].Variance == TypeParameter.TPVariance.Co) {
+          } else if (formalTypeParameters[i].Variance == TypeParameter.TPVariance.Contra) {
             okay = IsTargetSupertype(from.TypeArgs[i], to.TypeArgs[i]);
           } else {
             okay = IsTargetSupertype(to.TypeArgs[i], from.TypeArgs[i], true);
@@ -1553,7 +1555,7 @@ namespace Microsoft.Dafny {
       decls.AddRange(consts);
     }
 
-    public static bool NeedsCustomReceiver(MemberDecl member) {
+    public virtual bool NeedsCustomReceiver(MemberDecl member) {
       Contract.Requires(member != null);
       if (!member.IsStatic && member.EnclosingClass is NewtypeDecl) {
         return true;
@@ -2737,7 +2739,7 @@ namespace Microsoft.Dafny {
         } else {
           var lvalue = CreateLvalue(s.Lhs, wr);
           var wStmts = wr.Fork();
-          var wRhs = EmitAssignment(lvalue, TypeOfLhs(s.Lhs), TypeOfRhs(s.Rhs), wr);
+          var wRhs = EmitAssignment(lvalue, TypeOfLhs(s.Lhs), TypeOfRhs(s.Rhs), wr, stmt.Tok);
           TrRhs(s.Rhs, wRhs, wStmts);
         }
 
@@ -3148,7 +3150,7 @@ namespace Microsoft.Dafny {
         EmitTupleSelect(tup, 0, wObj);
       }, lhs.Obj.Type, lhs.Member, typeArgs, lhs.TypeArgumentSubstitutionsWithParents(), lhs.Type);
 
-      var wRhs = EmitAssignment(lvalue, lhs.Type, tupleTypeArgsList[1], wr);
+      var wRhs = EmitAssignment(lvalue, lhs.Type, tupleTypeArgsList[1], wr, s0.Tok);
       var wCoerced = EmitCoercionIfNecessary(from: null, to: tupleTypeArgsList[1], tok: s0.Tok, wr: wRhs);
       EmitTupleSelect(tup, 1, wCoerced);
     }
@@ -4018,7 +4020,7 @@ namespace Microsoft.Dafny {
             if (lvalue != null) {
               // The type information here takes care both of implicit upcasts and
               // implicit downcasts from type parameters (see above).
-              ConcreteSyntaxTree wRhs = EmitAssignment(lvalue, s.Lhs[j].Type, outTypes[l], wr);
+              ConcreteSyntaxTree wRhs = EmitAssignment(lvalue, s.Lhs[j].Type, outTypes[l], wr, s.Tok);
               if (s.Method.IsExtern(out _, out _)) {
                 wRhs = EmitCoercionFromNativeForm(p.Type, s.Tok, wRhs);
               }
