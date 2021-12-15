@@ -7,6 +7,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
   [TestClass]
@@ -18,6 +19,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
     private Mock<IGhostStateDiagnosticCollector> ghostStateDiagnosticCollector;
     private Mock<ICompilationStatusNotificationPublisher> notificationPublisher;
     private TextDocumentLoader textDocumentLoader;
+    private Mock<ILogger> logger;
 
     [TestInitialize]
     public void SetUp() {
@@ -27,13 +29,15 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
       symbolTableFactory = new();
       ghostStateDiagnosticCollector = new();
       notificationPublisher = new();
+      logger = new Mock<ILogger>();
       textDocumentLoader = TextDocumentLoader.Create(
         parser.Object,
         symbolResolver.Object,
         verifier.Object,
         symbolTableFactory.Object,
         ghostStateDiagnosticCollector.Object,
-        notificationPublisher.Object
+        notificationPublisher.Object,
+        logger.Object
       );
     }
 

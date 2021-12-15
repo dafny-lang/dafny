@@ -564,8 +564,6 @@
       }
     }
 
-
-
     public virtual void Visit(MapComprehension mapComprehensionExpression) {
       VisitComprehensionBoundVarsAttributesRange(mapComprehensionExpression);
       VisitNullableExpression(mapComprehensionExpression.Term);

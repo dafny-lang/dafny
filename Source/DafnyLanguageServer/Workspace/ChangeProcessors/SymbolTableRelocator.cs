@@ -55,7 +55,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
           originalSymbolTable.Declarations,
           migratedDeclarations,
           migratedLookupTree,
-          false
+          false,
+          logger
         );
       }
 

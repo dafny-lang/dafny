@@ -38,7 +38,8 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         declarations,
         declarationLocationVisitor.Locations,
         designatorVisitor.SymbolLookup,
-        symbolsResolved
+        symbolsResolved,
+        logger
       );
     }
 
@@ -383,12 +384,12 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
       public Unit Visit(ScopeSymbol scopeSymbol) {
         cancellationToken.ThrowIfCancellationRequested();
-        var endToken = scopeSymbol.EndTok;
+        var endToken = scopeSymbol.BodyEndToken;
         RegisterLocation(
           scopeSymbol,
-          scopeSymbol.Tok,
-          scopeSymbol.Tok.GetLspRange(),
-          new Range(scopeSymbol.Tok.GetLspPosition(), endToken.GetLspPosition())
+          scopeSymbol.BodyStartToken,
+          scopeSymbol.BodyStartToken.GetLspRange(),
+          new Range(scopeSymbol.BodyStartToken.GetLspPosition(), endToken.GetLspPosition())
         );
         VisitChildren(scopeSymbol);
         return Unit.Value;
@@ -400,8 +401,8 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         }
       }
 
-      private void RegisterLocation(ISymbol symbol, IToken? token, Range name, Range declaration) {
-        if (token?.filename != null) {
+      private void RegisterLocation(ISymbol symbol, IToken token, Range name, Range declaration) {
+        if (token.filename != null) {
           // The filename is null if we have a default or System based symbol. This is also reflected by the ranges being usually -1.
           Locations.Add(symbol, new SymbolLocation(token.GetDocumentUri(), name, declaration));
         }

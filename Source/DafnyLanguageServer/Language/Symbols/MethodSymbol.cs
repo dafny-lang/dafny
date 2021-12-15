@@ -24,10 +24,10 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     /// Gets the block
     /// </summary>
     public ScopeSymbol? Block { get; set; }
-    public List<ScopeSymbol> Ensures { get; set; } = new();
-    public List<ScopeSymbol> Requires { get; set; } = new();
-    public List<ScopeSymbol> Modifies { get; set; } = new();
-    public List<ScopeSymbol> Decreases { get; set; } = new();
+    public List<ScopeSymbol> Ensures { get; } = new();
+    public List<ScopeSymbol> Requires { get; } = new();
+    public List<ScopeSymbol> Modifies { get; } = new();
+    public List<ScopeSymbol> Decreases { get; } = new();
 
     public override IEnumerable<ISymbol> Children =>
       Block.AsEnumerable<ISymbol>()

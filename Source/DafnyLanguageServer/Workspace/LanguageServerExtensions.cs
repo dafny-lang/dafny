@@ -43,7 +43,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         services.GetRequiredService<IProgramVerifier>(),
         services.GetRequiredService<ISymbolTableFactory>(),
         services.GetRequiredService<IGhostStateDiagnosticCollector>(),
-        services.GetRequiredService<ICompilationStatusNotificationPublisher>()
+        services.GetRequiredService<ICompilationStatusNotificationPublisher>(),
+        services.GetRequiredService<ILogger<TextDocumentLoader>>()
       );
     }
   }

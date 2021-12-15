@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
+using Microsoft.Extensions.Logging;
 using AstElement = System.Object;
 
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
@@ -11,6 +12,8 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   /// Represents the symbol table
   /// </summary>
   public class SymbolTable {
+    private readonly ILogger logger;
+
     // TODO Guard the properties from changes
     public CompilationUnit CompilationUnit { get; }
 
@@ -41,7 +44,8 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         IDictionary<AstElement, ILocalizableSymbol> declarations,
         IDictionary<ISymbol, SymbolLocation> locations,
         IIntervalTree<Position, ILocalizableSymbol> lookupTree,
-        bool symbolsResolved
+        bool symbolsResolved,
+        ILogger iLogger
     ) {
       CompilationUnit = compilationUnit;
       Declarations = declarations;
@@ -49,6 +53,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       LookupTree = lookupTree;
       Resolved = symbolsResolved;
       typeResolver = new DafnyLangTypeResolver(declarations);
+      logger = iLogger;
 
       // TODO IntervalTree goes out of sync after any change and "fixes" its state upon the first query. Replace it with another implementation that can be queried without potential side-effects.
       LookupTree.Query(new Position(0, 0));
@@ -63,11 +68,15 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     /// <exception cref="System.InvalidOperationException">Thrown if there was one more symbol at the specified position. This should never happen, unless there was an error.</exception>
     public bool TryGetSymbolAt(Position position, [NotNullWhen(true)] out ILocalizableSymbol? symbol) {
       var symbolsAtPosition = LookupTree.Query(position);
+      symbol = null;
       // Use case: function f(a: int) {}, and hover over a.
-      if (symbolsAtPosition.Count() > 1) {
-        symbol = symbolsAtPosition.FirstOrDefault();
-      } else {
-        symbol = symbolsAtPosition.SingleOrDefault();
+      foreach (var potentialSymbol in symbolsAtPosition) {
+        if (symbol != null) {
+          logger.Log(LogLevel.Warning, $"Two registered symbols as the same position (line {position.Line}, character {position.Character})");
+          break;
+        }
+
+        symbol = potentialSymbol;
       }
       return symbol != null;
     }

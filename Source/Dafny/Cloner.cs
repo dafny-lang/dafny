@@ -420,8 +420,7 @@ namespace Microsoft.Dafny {
         var bvs = e.BoundVars.ConvertAll(CloneBoundVar);
         var range = CloneExpr(e.Range);
         var term = CloneExpr(e.Term);
-        if (e is QuantifierExpr) {
-          var q = (QuantifierExpr)e;
+        if (e is QuantifierExpr q) {
           var tvs = q.TypeArgs.ConvertAll(CloneTypeParam);
           if (e is ForallExpr) {
             return new ForallExpr(tk, q.BodyEndTok, tvs, bvs, range, term, CloneAttributes(e.Attributes));
@@ -430,11 +429,9 @@ namespace Microsoft.Dafny {
           } else {
             Contract.Assert(false); throw new cce.UnreachableException();  // unexpected quantifier expression
           }
-        } else if (e is MapComprehension) {
-          var mc = (MapComprehension)e;
+        } else if (e is MapComprehension mc) {
           return new MapComprehension(tk, tkEnd, mc.Finite, bvs, range, mc.TermLeft == null ? null : CloneExpr(mc.TermLeft), term, CloneAttributes(e.Attributes));
-        } else if (e is LambdaExpr) {
-          var l = (LambdaExpr)e;
+        } else if (e is LambdaExpr l) {
           return new LambdaExpr(tk, tkEnd, bvs, range, l.Reads.ConvertAll(CloneFrameExpr), term);
         } else {
           Contract.Assert(e is SetComprehension);
