@@ -13,6 +13,11 @@ Limitations:
 - This only checks for errors in one "main" file, not in all files reported by
   the LSP server.
 
+Example usage::
+
+   ./difftester.py --driver Dafny \
+                   --driver DafnyLanguageServer \
+                   --input snaps.dfy
 """
 
 from typing import Any, Dict, Iterable, List, Tuple, TypeVar
@@ -35,9 +40,6 @@ from subprocess import PIPE
 assert sys.version_info >= (3, 7)
 
 T = TypeVar("T")
-
-Snapshot = str
-"""The contents of a Dafny file."""
 
 LSPMessage = Dict[str, Any]
 """A single LSP client request."""
@@ -90,6 +92,22 @@ class Tee(object):
             s.flush()
 
 
+class Snapshot:
+    """The contents of a Dafny file."""
+
+    def __init__(self, name, contents):
+        self.name = name
+        self.contents = contents
+
+    @staticmethod
+    def from_file(path):
+        pth = Path(path)
+        return Snapshot(pth.name, pth.read_text(encoding="utf-8"))
+
+    def __str__(self):
+        return self.contents
+
+
 class ProverInputs:
     """A sequence of inputs to Dafny."""
 
@@ -106,6 +124,7 @@ class ProverInputs:
     def __len__(self):
         raise NotImplementedError
 
+
 class ProverOutput:
     """An output of Dafny."""
 
@@ -118,6 +137,7 @@ class ProverOutput:
     # at insertions/deletions.
     def format(self) -> str:
         raise NotImplementedError
+
 
 class LSPMethods:
     """Global constants for LSP Methods."""
@@ -162,7 +182,8 @@ class LSPTrace(ProverInputs):
 
     def as_snapshots(self) -> "Snapshots":
         """Convert self into a sequence of snapshots."""
-        return Snapshots(self.name, self.uri, self._iter_snapshots())
+        snapshots = (Snapshot(self.name, s) for s in self._iter_snapshots())
+        return Snapshots(self.name, self.uri, snapshots)
 
     def __len__(self):
         return sum(msg["method"] in (LSPMethods.didOpen, LSPMethods.didChange)
@@ -213,14 +234,15 @@ class Snapshots(ProverInputs):
         """
         uri = Path(name).absolute().as_uri()
         files = (f for _, f in sorted(cls._find_snapshots(name)))
-        snaps = (f.read_text("utf-8") for f in files)
+        snaps = (Snapshot.from_file(f) for f in files)
         return Snapshots(name, uri, snaps)
 
     @classmethod
     def _complete_range(cls, previous: Snapshot):
-        last_line = previous.count("\n")
-        last_bol = previous.rfind("\n") + 1
-        last_pos = len(previous[last_bol:].encode("utf-16le"))
+        contents = str(previous)
+        last_line = contents.count("\n")
+        last_bol = contents.rfind("\n") + 1
+        last_pos = len(contents[last_bol:].encode("utf-16le"))
         return {"start": {"line": 0, "character": 0},
                 "end": {"line": last_line, "character": last_pos}}
 
@@ -230,12 +252,12 @@ class Snapshots(ProverInputs):
         document = {"uri": uri, "languageId": "dafny", "version": version}
         return {
             "method": LSPMethods.didOpen,
-            "params": {"textDocument": {**document, "text": snapshot}}
+            "params": {"textDocument": {**document, "text": str(snapshot)}}
         } if previous is None else {
             "method": LSPMethods.didChange,
             "params": {"textDocument": document,
                        "contentChanges": [{
-                           "text": snapshot,
+                           "text": str(snapshot),
                            "range": cls._complete_range(previous)
                        }]}
         }
@@ -270,14 +292,17 @@ class Snapshots(ProverInputs):
         """Convert self into a sequence of snapshots."""
         return self
 
+    def __iter__(self):
+        return iter(self.snapshots)
+
     def __len__(self):
         return len(self.snapshots)
 
 class Driver:
     """Abstract interface for Dafny drivers."""
 
-    def run(self, inputs: ProverInputs) -> List[ProverOutput]:
-        """Run `inputs` and return the prover's output."""
+    def run(self, inputs: ProverInputs) -> Iterable[ProverOutput]:
+        """Run `inputs` and return the prover's outputs."""
         raise NotImplementedError()
 
 
@@ -436,10 +461,10 @@ class LSPDriver:
                 if "id" in msg:  # Wait for response
                     server.receive(self.is_response_to(msg["id"]))
 
-    def run(self, inputs: ProverInputs) -> List[ProverOutput]:
-        """Feed `inputs` to Dafny's LSP server; return diagnostics."""
+    def run(self, inputs: ProverInputs) -> Iterable[ProverOutput]:
+        """Run `inputs` through Dafny's LSP server; return diagnostics."""
         messages = inputs.as_lsp().messages
-        return list(self._iter_results(messages))
+        yield from self._iter_results(messages)
 
 
 class CLIOutput(ProverOutput):
@@ -467,7 +492,7 @@ class CLIDriver:
         debug("#", shlex.join(cmd))
         return subprocess.run(
             cmd, check=False,
-            input=snapshot, encoding="utf-8",
+            input=str(snapshot), encoding="utf-8",
             startupinfo=_no_window(),
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
@@ -476,9 +501,9 @@ class CLIDriver:
         for snapshot in snapshots.snapshots:
             yield CLIOutput(self._exec(snapshot).stdout)
 
-    def run(self, inputs: ProverInputs) -> List[ProverOutput]:
-        """Run `inputs` through Dafny's CLI and return the prover's output."""
-        return list(self._iter_results(inputs.as_snapshots()))
+    def run(self, inputs: ProverInputs) -> Iterable[ProverOutput]:
+        """Run `inputs` through Dafny's CLI; return the prover's outputs."""
+        yield from self._iter_results(inputs.as_snapshots())
 
 
 def window(stream: Iterable[T], n: int) -> Iterable[Tuple[T, ...]]:
@@ -492,13 +517,12 @@ def window(stream: Iterable[T], n: int) -> Iterable[Tuple[T, ...]]:
 
 def test(inputs: ProverInputs, *drivers: Driver):
     """Run `inputs` through each one of `drivers` and report any mismatches."""
-    prover_outputs = [d.run(inputs) for d in drivers]
-    n_snapshots = len(inputs.as_snapshots())
-    assert all(len(po) == n_snapshots for po in prover_outputs)
-    for snapidx in range(n_snapshots):
-        print(f"------ Snapshot #{snapidx} ------")
+    snapshots = inputs.as_snapshots()
+    prover_output_streams = [d.run(inputs) for d in drivers]
+    for snapidx, (snap, *prover_outputs) in enumerate(zip(snapshots, *prover_output_streams)):
+        print(f"------ #{snapidx} {snap.name} ------")
         for p1, p2 in window(prover_outputs, 2):
-            o1, o2 = p1[snapidx].format(), p2[snapidx].format()
+            o1, o2 = p1.format(), p2.format()
             if o1 != o2:
                 print(f"Error: {o1} != {o2}")
 
