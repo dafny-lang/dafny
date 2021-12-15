@@ -225,8 +225,8 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           // abstract syntax tree). We just ignore such duplicates until more information is availabe in the AST.
           var range = token.GetLspRange();
           SymbolLookup.Add(range.Start, range.End, symbol);
-          if (designators.ContainsKey(node)) {
-            if (designators[node] != symbol) {
+          if (designators.TryGetValue(node, out var registeredSymbol)) {
+            if (registeredSymbol != symbol) {
               logger.LogInformation("Conflicting  symbol resolution nf designator named {Identifier} in {Filename}@({Line},{Column})",
                 identifier, token.GetDocumentFileName(), token.line, token.col);
             }
