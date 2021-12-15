@@ -14,6 +14,11 @@ namespace Microsoft.Dafny {
 
     public override string TargetLanguage => "Python";
 
+    protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
+      wr.WriteLine("# Dafny program {0} compiled into Python", program.Name);
+      ReadRuntimeSystem("DafnyRuntime.py", wr);
+    }
+
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
       Coverage.EmitSetup(wr);
       wr.WriteLine("f=__default()\nf.Main()", mainMethod.EnclosingClass, mainMethod);
@@ -161,6 +166,7 @@ namespace Microsoft.Dafny {
       var customReceiver = !forBodyInheritance && NeedsCustomReceiver(m);
       wr.Write("{0}{1}(self", m.IsStatic || customReceiver ? "def " : "", IdName(m));
       var sep = "";
+
       WriteRuntimeTypeDescriptorsFormals(m, ForTypeDescriptors(typeArgs, m, lookasideBody), wr, ref sep,
         tp => $"rtd$_{tp.CompileName}");
       if (customReceiver) {
@@ -325,7 +331,7 @@ namespace Microsoft.Dafny {
 
     protected override void EmitLiteralExpr(ConcreteSyntaxTree wr, LiteralExpr e) {
       if (e.Value is bool value) {
-        wr.Write(value ? "True" : "False");
+        wr.Write("helpers.printLiteralExpr({0})", value);
       }
     }
 
