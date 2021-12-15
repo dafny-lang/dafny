@@ -7,13 +7,14 @@ on:
     branches: [ master ]
 
 env:
-  dotnet-version: 5.0.x # SDK Version for building Dafny; x will use the latest version of the 5.0 channel
+  dotnet-version: 6.0.x # SDK Version for building Dafny
+  
 jobs:
   singletons:
     runs-on: ubuntu-18.04
     steps:
-    - name: Setup dotnet 5.0
-      uses: actions/setup-dotnet@v1.7.2
+    - name: Setup dotnet
+      uses: actions/setup-dotnet@v1.9.0
       with:
         dotnet-version: ${{env.dotnet-version}}
     - name: Checkout Dafny
@@ -84,8 +85,8 @@ jobs:
       if: runner.os == 'Linux'
       run: cert-sync /etc/ssl/certs/ca-certificates.crt
     - uses: actions/setup-python@v1
-    - name: Setup dotnet 5.0
-      uses: actions/setup-dotnet@v1.7.2
+    - name: Setup dotnet
+      uses: actions/setup-dotnet@v1.9.0
       with:
         dotnet-version: ${{env.dotnet-version}}
     - name: C++ for ubuntu 18.04

@@ -25,6 +25,8 @@ namespace Microsoft.Dafny {
     void AddOtherDefinition(Bpl.Declaration declaration, Axiom axiom) {
 
       switch (declaration) {
+        case null:
+          break;
         case Boogie.Function boogieFunction:
           boogieFunction.AddOtherDefinitionAxiom(axiom);
           break;
@@ -34,11 +36,6 @@ namespace Microsoft.Dafny {
         default: throw new ArgumentException("Declaration must be a function or constant");
       }
 
-      sink.AddTopLevelDeclaration(axiom);
-    }
-
-    void AddIncludeDepAxiom(Axiom axiom) {
-      axiom.AddAttribute("include_dep");
       sink.AddTopLevelDeclaration(axiom);
     }
 
@@ -168,12 +165,10 @@ namespace Microsoft.Dafny {
       return InVerificationScope((Declaration)d);
     }
 
-
-
     private Bpl.Program sink;
     private VisibilityScope currentScope;
     private VisibilityScope verificationScope;
-
+    private Dictionary<Declaration, Bpl.Function> declarationMapping = new();
 
     readonly PredefinedDecls predef;
 
@@ -1243,7 +1238,22 @@ namespace Microsoft.Dafny {
       this.fuelContext = oldFuelContext;
     }
 
-    void AddRedirectingTypeDeclAxioms<T>(bool is_alloc, T dd, string fullName) where T : TopLevelDecl, RedirectingTypeDecl {
+    /**
+     * Example:
+      // _System.object: subset type $Is
+      axiom (forall c#0: ref :: 
+        { $Is(c#0, Tclass._System.object()) } 
+        $Is(c#0, Tclass._System.object())
+           <==> $Is(c#0, Tclass._System.object?()) && c#0 != null);
+
+      // _System.object: subset type $IsAlloc
+      axiom (forall c#0: ref, $h: Heap :: 
+        { $IsAlloc(c#0, Tclass._System.object(), $h) } 
+        $IsAlloc(c#0, Tclass._System.object(), $h)
+           <==> $IsAlloc(c#0, Tclass._System.object?(), $h));
+     */
+    void AddRedirectingTypeDeclAxioms<T>(bool is_alloc, T dd, string fullName)
+      where T : TopLevelDecl, RedirectingTypeDecl {
       Contract.Requires(dd != null);
       Contract.Requires(dd.Var != null && dd.Constraint != null);
       Contract.Requires(fullName != null);
@@ -1256,10 +1266,10 @@ namespace Microsoft.Dafny {
       var o = BplBoundVar(dd.Var.AssignUniqueName(dd.IdGenerator), oBplType, vars);
 
       Bpl.Expr body, is_o;
-      string name = string.Format("{0}: {1} ", fullName, dd.WhatKind);
+      string comment = string.Format("{0}: {1} ", fullName, dd.WhatKind);
 
       if (is_alloc) {
-        name += "$IsAlloc";
+        comment += "$IsAlloc";
         var h = BplBoundVar("$h", predef.HeapType, vars);
         // $IsAlloc(o, ..)
         is_o = MkIsAlloc(o, o_ty, h, ModeledAsBoxType(dd.Var.Type));
@@ -1270,7 +1280,7 @@ namespace Microsoft.Dafny {
           body = BplIff(is_o, rhs);
         }
       } else {
-        name += "$Is";
+        comment += "$Is";
         // $Is(o, ..)
         is_o = MkIs(o, o_ty, ModeledAsBoxType(dd.Var.Type));
         var etran = new ExpressionTranslator(this, predef, NewOneHeapExpr(dd.tok));
@@ -1289,10 +1299,9 @@ namespace Microsoft.Dafny {
         body = BplIff(is_o, BplAnd(parentConstraint, constraint));
       }
 
-      AddIncludeDepAxiom(new Bpl.Axiom(dd.tok, BplForall(vars, BplTrigger(is_o), body), name));
+      var axiom = new Bpl.Axiom(dd.tok, BplForall(vars, BplTrigger(is_o), body), comment);
+      AddOtherDefinition(GetOrCreateTypeConstructor(dd), axiom);
     }
-
-
 
     /// <summary>
     /// Return a sequence of expressions whose conjunction denotes a memberwise equality of "dt".  Recursive
@@ -2389,7 +2398,7 @@ namespace Microsoft.Dafny {
         var appl = FunctionCall(f.tok, RequiresName(f), Bpl.Type.Bool, reqFuncArguments);
         Bpl.Trigger trig = BplTriggerHeap(this, f.tok, appl, readsHeap ? etran.HeapExpr : null);
         // axiom (forall params :: { f#requires(params) }  ante ==> f#requires(params) == pre);
-        AddIncludeDepAxiom(new Axiom(f.tok,
+        AddOtherDefinition(precondF, new Axiom(f.tok,
           BplForall(forallFormals, trig, BplImp(anteReqAxiom, Bpl.Expr.Eq(appl, preReqAxiom))),
           "#requires axiom for " + f.FullSanitizedName));
       }
@@ -2677,7 +2686,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void AddLayerSynonymAxiom(Function f, bool forHandle = false) {
+    void AddFuelSuccSynonymAxiom(Function f, bool forHandle = false) {
       Contract.Requires(f != null);
       Contract.Requires(f.IsFuelAware());
       Contract.Requires(sink != null && predef != null);
@@ -2736,10 +2745,10 @@ namespace Microsoft.Dafny {
 
       Bpl.Trigger tr = new Bpl.Trigger(f.tok, true, new List<Bpl.Expr> { funcAppl1 });
       Bpl.Expr ax = new Bpl.ForallExpr(f.tok, new List<Bpl.TypeVariable>(), formals, null, tr, Bpl.Expr.Eq(funcAppl1, funcAppl0));
-      AddIncludeDepAxiom(new Bpl.Axiom(f.tok, ax, "layer synonym axiom"));
+      AddOtherDefinition(GetOrCreateFunction(f), new Bpl.Axiom(f.tok, ax, "layer synonym axiom"));
     }
 
-    void AddFuelSynonymAxiom(Function f) {
+    void AddFuelZeroSynonymAxiom(Function f) {
       // axiom  // fuel axiom
       //   (forall s, $Heap, formals ::
       //       { f(AsFuelBottom(s), $Heap, formals) }
@@ -2802,7 +2811,7 @@ namespace Microsoft.Dafny {
 
       Bpl.Trigger tr = new Bpl.Trigger(f.tok, true, new List<Bpl.Expr> { funcAppl2 });
       Bpl.Expr ax = new Bpl.ForallExpr(f.tok, new List<Bpl.TypeVariable>(), formals, null, tr, Bpl.Expr.Eq(funcAppl1, funcAppl0));
-      AddIncludeDepAxiom(new Bpl.Axiom(f.tok, ax, "fuel synonym axiom"));
+      AddOtherDefinition(GetOrCreateFunction(f), (new Bpl.Axiom(f.tok, ax, "fuel synonym axiom")));
     }
 
     /// <summary>
@@ -6707,7 +6716,7 @@ namespace Microsoft.Dafny {
         if (f.IsFuelAware()) {
           Bpl.Expr ly; vars.Add(BplBoundVar("$ly", predef.LayerType, out ly)); args.Add(ly);
           formals.Add(BplFormalVar(null, predef.LayerType, true));
-          AddLayerSynonymAxiom(f, true);
+          AddFuelSuccSynonymAxiom(f, true);
         }
 
         Func<List<Bpl.Expr>, List<Bpl.Expr>> SnocSelf = x => x;
@@ -6773,8 +6782,8 @@ namespace Microsoft.Dafny {
           var rhs = FunctionCall(f.tok, f.FullSanitizedName, TrType(f.ResultType), Concat(SnocSelf(args_h), rhs_args));
           var rhs_boxed = BoxIfUnboxed(rhs, f.ResultType);
 
-          AddIncludeDepAxiom(new Axiom(f.tok,
-            BplForall(Concat(vars, bvars), BplTrigger(lhs), Bpl.Expr.Eq(lhs, rhs_boxed))));
+          AddOtherDefinition(GetOrCreateFunction(f), (new Axiom(f.tok,
+            BplForall(Concat(vars, bvars), BplTrigger(lhs), Bpl.Expr.Eq(lhs, rhs_boxed)))));
         }
 
         {
@@ -6792,8 +6801,8 @@ namespace Microsoft.Dafny {
             rhs = FunctionCall(f.tok, RequiresName(f), Bpl.Type.Bool, Concat(SnocSelf(args_h), rhs_args));
           }
 
-          AddIncludeDepAxiom(new Axiom(f.tok,
-            BplForall(Concat(vars, bvars), BplTrigger(lhs), Bpl.Expr.Eq(lhs, rhs))));
+          AddOtherDefinition(GetOrCreateFunction(f), (new Axiom(f.tok,
+            BplForall(Concat(vars, bvars), BplTrigger(lhs), Bpl.Expr.Eq(lhs, rhs)))));
         }
 
         {
@@ -6825,8 +6834,8 @@ namespace Microsoft.Dafny {
           var rhs_unboxed = UnboxIfBoxed(rhs, f.ResultType);
           var tr = BplTriggerHeap(this, f.tok, lhs, AlwaysUseHeap || f.ReadsHeap ? null : h);
 
-          AddIncludeDepAxiom(new Axiom(f.tok,
-            BplForall(Concat(vars, func_vars), tr, Bpl.Expr.Eq(lhs, rhs_unboxed))));
+          AddOtherDefinition(GetOrCreateFunction(f), (new Axiom(f.tok,
+            BplForall(Concat(vars, func_vars), tr, Bpl.Expr.Eq(lhs, rhs_unboxed)))));
         }
       }
       return name;
@@ -6922,23 +6931,27 @@ namespace Microsoft.Dafny {
         sink.AddTopLevelDeclaration(new Bpl.Function(Token.NoToken, Handle(arity), arg, res));
       }
 
-      Action<string, Bpl.Type> SelectorFunction = (s, t) => {
+      Action<Function, string, Bpl.Type> SelectorFunction = (dafnyFunction, name, t) => {
         var args = new List<Bpl.Variable>();
         MapM(Enumerable.Range(0, arity + 1), i => args.Add(BplFormalVar(null, predef.Ty, true)));
         args.Add(BplFormalVar(null, predef.HeapType, true));
         args.Add(BplFormalVar(null, predef.HandleType, true));
         MapM(Enumerable.Range(0, arity), i => args.Add(BplFormalVar(null, predef.BoxType, true)));
-        sink.AddTopLevelDeclaration(new Bpl.Function(Token.NoToken, s, args, BplFormalVar(null, t, false)));
+        var boogieFunction = new Bpl.Function(Token.NoToken, name, args, BplFormalVar(null, t, false));
+        if (dafnyFunction != null) {
+          declarationMapping[dafnyFunction] = boogieFunction;
+        }
+        sink.AddTopLevelDeclaration(boogieFunction);
       };
 
       // function ApplyN(Ty, ... Ty, HandleType, Heap, Box, ..., Box) : Box
       if (arity != 1) {  // Apply1 is already declared in DafnyPrelude.bpl
-        SelectorFunction(Apply(arity), predef.BoxType);
+        SelectorFunction(null, Apply(arity), predef.BoxType);
       }
       // function RequiresN(Ty, ... Ty, HandleType, Heap, Box, ..., Box) : Bool
-      SelectorFunction(Requires(arity), Bpl.Type.Bool);
+      SelectorFunction(ad.Requires, Requires(arity), Bpl.Type.Bool);
       // function ReadsN(Ty, ... Ty, HandleType, Heap, Box, ..., Box) : Set Box
-      SelectorFunction(Reads(arity), objset_ty);
+      SelectorFunction(ad.Reads, Reads(arity), objset_ty);
 
       {
         // forall t1, .., tN+1 : Ty, p: [Heap, Box, ..., Box] Box, heap : Heap, b1, ..., bN : Box
@@ -6980,7 +6993,7 @@ namespace Microsoft.Dafny {
           if (selectorVar == "r") {
             op = (u, v) => Bpl.Expr.Imp(v, u);
           }
-          AddIncludeDepAxiom(new Axiom(tok,
+          AddOtherDefinition(GetOrCreateTypeConstructor(ad), new Axiom(tok,
             BplForall(bvars, BplTrigger(lhs), op(lhs, rhs))));
         };
         SelectorSemantics(Apply(arity), predef.BoxType, "h", apply_ty, Requires(arity), requires_ty);
@@ -7384,6 +7397,10 @@ namespace Microsoft.Dafny {
     }
 
     private Bpl.Function GetOrCreateTypeConstructor(TopLevelDecl td) {
+      if (declarationMapping.TryGetValue(td, out var result)) {
+        return result;
+      }
+
       Bpl.Function func;
       if (td is ClassDecl cl && cl.IsObjectTrait) {
         // the type constructor for "object" is in DafnyPrelude.bpl
@@ -7401,6 +7418,7 @@ namespace Microsoft.Dafny {
         sink.AddTopLevelDeclaration(func);
       }
 
+      declarationMapping[td] = func;
       return func;
     }
 
@@ -7528,7 +7546,7 @@ namespace Microsoft.Dafny {
         var ig = FunctionCall(f.tok, BuiltinFunction.IsGhostField, ty, Bpl.Expr.Ident(fc));
         cond = Bpl.Expr.And(cond, f.IsGhost ? ig : Bpl.Expr.Not(ig));
         Bpl.Axiom ax = new Bpl.Axiom(f.tok, cond);
-        AddIncludeDepAxiom(ax);
+        AddOtherDefinition(fc, ax);
       }
       return fc;
     }
@@ -7636,7 +7654,11 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// This method is expected to be called just once for each function in the program.
     /// </summary>
-    Bpl.Function AddFunction(Function f) {
+    Bpl.Function GetOrCreateFunction(Function f) {
+      if (this.declarationMapping.TryGetValue(f, out var result)) {
+        return result;
+      }
+
       Contract.Requires(f != null);
       Contract.Requires(predef != null && sink != null);
 
@@ -7689,6 +7711,7 @@ namespace Microsoft.Dafny {
         sink.AddTopLevelDeclaration(canCallF);
       }
 
+      declarationMapping[f] = func;
       return func;
     }
 
@@ -10137,62 +10160,8 @@ namespace Microsoft.Dafny {
 
             sink.AddTopLevelDeclaration(fn);
           }
-          // add canCall function
-          {
-            Bpl.Variable resType = new Bpl.Formal(e.tok, new Bpl.TypedIdent(e.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
-            Bpl.Expr ante;
-            List<Variable> formals = info.GAsVars(this, true, out ante, null);
-            var fn = new Bpl.Function(e.tok, info.CanCallFunctionName(), formals, resType);
-
-            if (InsertChecksums) {
-              InsertChecksum(e.Body, fn);
-            }
-
-            sink.AddTopLevelDeclaration(fn);
-          }
-
-          {
-            var etranCC = new ExpressionTranslator(this, predef, info.HeapExpr(this, false), info.HeapExpr(this, true));
-            Bpl.Expr typeAntecedents;  // later ignored
-            List<Variable> gg = info.GAsVars(this, false, out typeAntecedents, etranCC);
-            var gExprs = new List<Bpl.Expr>();
-            foreach (Bpl.Variable g in gg) {
-              gExprs.Add(new Bpl.IdentifierExpr(g.tok, g));
-            }
-            Bpl.Trigger tr = null;
-            Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
-            Bpl.Expr antecedent = Bpl.Expr.True;
-            foreach (var bv in e.BoundVars) {
-              // create a call to $let$x(g)
-              var call = FunctionCall(e.tok, info.SkolemFunctionName(bv), TrType(bv.Type), gExprs);
-              tr = new Bpl.Trigger(e.tok, true, new List<Bpl.Expr> { call }, tr);
-              substMap.Add(bv, new BoogieWrapper(call, bv.Type));
-              if (!(bv.Type.IsTypeParameter)) {
-                Bpl.Expr wh = GetWhereClause(bv.tok, call, bv.Type, etranCC, NOALLOC);
-                if (wh != null) {
-                  antecedent = BplAnd(antecedent, wh);
-                }
-              }
-            }
-            var i = info.FTVs.Count + (info.UsesHeap ? 1 : 0) + (info.UsesOldHeap ? 1 : 0) + info.UsesHeapAt.Count;
-            Expression receiverReplacement;
-            if (info.ThisType == null) {
-              receiverReplacement = null;
-            } else {
-              receiverReplacement = new BoogieWrapper(gExprs[i], info.ThisType);
-              i++;
-            }
-            foreach (var fv in info.FVs) {
-              var ge = gExprs[i];
-              substMap.Add(fv, new BoogieWrapper(ge, fv.Type));
-              i++;
-            }
-            var canCall = FunctionCall(e.tok, info.CanCallFunctionName(), Bpl.Type.Bool, gExprs);
-            var p = Substitute(e.RHSs[0], receiverReplacement, substMap);
-            Bpl.Expr ax = Bpl.Expr.Imp(canCall, BplAnd(antecedent, etranCC.TrExpr(p)));
-            ax = BplForall(gg, tr, ax);
-            AddIncludeDepAxiom(new Bpl.Axiom(e.tok, ax));
-          }
+          var canCallFunction = AddLetSuchThatCanCallFunction(e, info);
+          AddLetSuchThenCanCallAxiom(e, info, canCallFunction);
 
           // now that we've declared the functions and axioms, let's prepare the let-such-that desugaring
           {
@@ -10211,6 +10180,67 @@ namespace Microsoft.Dafny {
         }
       }
       return e.getTranslationDesugaring(this);
+    }
+
+    private Bpl.Function AddLetSuchThatCanCallFunction(LetExpr e, LetSuchThatExprInfo info) {
+      Bpl.Variable resType = new Bpl.Formal(e.tok, new Bpl.TypedIdent(e.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool),
+        false);
+      List<Variable> formals = info.GAsVars(this, true, out var ante, null);
+      var canCallFunction = new Bpl.Function(e.tok, info.CanCallFunctionName(), formals, resType);
+
+      if (InsertChecksums) {
+        InsertChecksum(e.Body, canCallFunction);
+      }
+
+      sink.AddTopLevelDeclaration(canCallFunction);
+      return canCallFunction;
+    }
+
+    private void AddLetSuchThenCanCallAxiom(LetExpr e, LetSuchThatExprInfo info, Bpl.Function canCallFunction) {
+      var etranCC = new ExpressionTranslator(this, predef, info.HeapExpr(this, false), info.HeapExpr(this, true));
+      Bpl.Expr typeAntecedents; // later ignored
+      List<Variable> gg = info.GAsVars(this, false, out typeAntecedents, etranCC);
+      var gExprs = new List<Bpl.Expr>();
+      foreach (Bpl.Variable g in gg) {
+        gExprs.Add(new Bpl.IdentifierExpr(g.tok, g));
+      }
+
+      Bpl.Trigger tr = null;
+      Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
+      Bpl.Expr antecedent = Bpl.Expr.True;
+      foreach (var bv in e.BoundVars) {
+        // create a call to $let$x(g)
+        var call = FunctionCall(e.tok, info.SkolemFunctionName(bv), TrType(bv.Type), gExprs);
+        tr = new Bpl.Trigger(e.tok, true, new List<Bpl.Expr> { call }, tr);
+        substMap.Add(bv, new BoogieWrapper(call, bv.Type));
+        if (!(bv.Type.IsTypeParameter)) {
+          Bpl.Expr wh = GetWhereClause(bv.tok, call, bv.Type, etranCC, NOALLOC);
+          if (wh != null) {
+            antecedent = BplAnd(antecedent, wh);
+          }
+        }
+      }
+
+      var i = info.FTVs.Count + (info.UsesHeap ? 1 : 0) + (info.UsesOldHeap ? 1 : 0) + info.UsesHeapAt.Count;
+      Expression receiverReplacement;
+      if (info.ThisType == null) {
+        receiverReplacement = null;
+      } else {
+        receiverReplacement = new BoogieWrapper(gExprs[i], info.ThisType);
+        i++;
+      }
+
+      foreach (var fv in info.FVs) {
+        var ge = gExprs[i];
+        substMap.Add(fv, new BoogieWrapper(ge, fv.Type));
+        i++;
+      }
+
+      var canCall = FunctionCall(e.tok, info.CanCallFunctionName(), Bpl.Type.Bool, gExprs);
+      var p = Substitute(e.RHSs[0], receiverReplacement, substMap);
+      Bpl.Expr ax = Bpl.Expr.Imp(canCall, BplAnd(antecedent, etranCC.TrExpr(p)));
+      ax = BplForall(gg, tr, ax);
+      AddOtherDefinition(canCallFunction, new Bpl.Axiom(e.tok, ax));
     }
 
     class LetSuchThatExprInfo {
