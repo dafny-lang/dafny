@@ -52,6 +52,9 @@ FIXME = NotImplementedError
 DEBUG = False
 TEE = "inputs.log"
 
+NWORKERS = 1
+TIMEOUT = 120.0  # https://stackoverflow.com/questions/1408356/
+
 def which(exe):
     """Locate executable `exe`; raise a ``ValueError`` if it can't be found."""
     if isinstance(exe, list):
@@ -503,7 +506,8 @@ class CLIDriver:
     def _iter_results(self, snapshots: Snapshots) \
             -> Iterable[str]:
         with ThreadPoolExecutor(max_workers=NWORKERS) as exc:
-            yield from exc.map(self._collect_one_output, snapshots)
+            yield from exc.map(self._collect_one_output,
+                               snapshots, timeout=TIMEOUT)
 
     def run(self, inputs: ProverInputs) -> Iterable[ProverOutput]:
         """Run `inputs` through Dafny's CLI; return the prover's outputs."""
@@ -558,12 +562,17 @@ def parse_arguments():
     parser.add_argument("--debug", action="store_true")
 
     J_HELP = "Run command line tests in N concurrent threads."
-    parser.add_argument("-j", type=int, default=1, help=J_HELP)
+    parser.add_argument("-j", type=int, default=None,
+                        metavar="N", help=J_HELP)
+
+    TIMEOUT_HELP = "Limit execution time to N seconds for individual CLI runs."
+    parser.add_argument("--timeout", type=int, default=None,
+                        metavar="N", help=TIMEOUT_HELP)
 
     parser.add_argument("--driver", required=True,
                         nargs="+", action="append", dest="drivers",
                         metavar=("DRIVER_NAME", "ARGUMENTS"),
-                        help="Register an additional driver")
+                        help="Register a driver")
 
     parser.add_argument("--input", required=True,
                         action="append", dest="inputs",
@@ -580,6 +589,10 @@ def parse_arguments():
     if args.j:
         global NWORKERS
         NWORKERS = args.j
+
+    if args.timeout:
+        global TIMEOUT
+        TIMEOUT = args.timeout
 
     return args
 
