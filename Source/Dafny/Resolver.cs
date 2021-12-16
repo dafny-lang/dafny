@@ -13554,7 +13554,7 @@ namespace Microsoft.Dafny {
             s.Tok, lhs.Type, st, "incorrect type of method out-parameter" +
                                  (callee.Outs.Count == 1 ? "" : " " + i) +
                                  (outFormal is ImplicitFormal || !outFormal.HasName
-                                   ? "" : "named '" + outFormal.Name + "'") +
+                                   ? "" : " named '" + outFormal.Name + "'") +
                                  " (expected {1}, got {0})");
         }
         for (int i = 0; i < s.Lhs.Count; i++) {
