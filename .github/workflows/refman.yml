@@ -21,9 +21,9 @@ jobs:
       run: echo ${{ runner.os }} ${{ matrix.os }}
     - uses: actions/setup-python@v1
     - name: Setup dotnet
-      uses: actions/setup-dotnet@v1.7.2
+      uses: actions/setup-dotnet@v1.9.0
       with:
-        dotnet-version: '5.0.x' # SDK Version to use; x will use the latest version of the 5.0 channel
+        dotnet-version: 6.0.x
     - name: Checkout Dafny
       uses: actions/checkout@v2
       with:
