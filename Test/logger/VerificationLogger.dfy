@@ -1,8 +1,7 @@
-// Regression test that just ensures this runs without errors.
-// Inspecting the output is dependent on implementing %OutputCheck.
-// See https://github.com/dafny-lang/dafny/issues/1640.
+// RUN: %dafny /verificationLogger:trx;LogFileName="%t.trx" "%s"
+// RUN: %OutputCheck --file-to-check "%t.trx" "%s"
 
-// RUN: %dafny /verificationLogger:trx "%s"
+// CHECK: \<UnitTestResult.* testName="Impl\$\$_module\.__default\.ExampleWithSplits\$\$5" .*\>
 
 method ExampleWithSplits() returns (y: int)
   ensures y >= 0

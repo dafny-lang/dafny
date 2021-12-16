@@ -25,17 +25,32 @@ namespace Microsoft.Dafny {
   public static class BoogieXmlConvertor {
 
     public static void RaiseTestLoggerEvents(string fileName, string loggerConfig) {
+      string loggerName;
+      Dictionary<string, string> parameters;
+      int semiColonIndex = loggerConfig.IndexOf(";");
+      if (semiColonIndex >= 0) {
+        loggerName = loggerConfig[..semiColonIndex];
+        var parametersList = loggerConfig[(semiColonIndex + 1)..];
+        parameters = parametersList.Split(",").Select(s => {
+          var equalsIndex = s.IndexOf("=");
+          return (s[..equalsIndex], s[(equalsIndex + 1)..]);
+        }).ToDictionary(p => p.Item1, p => p.Item2);
+      } else {
+        loggerName = loggerConfig;
+        parameters = new();
+      }
+      
       // The only supported value for now
-      if (loggerConfig != "trx") {
-        throw new ArgumentException($"Unsupported verification logger config: {loggerConfig}");
+      if (loggerName != "trx") {
+        throw new ArgumentException($"Unsupported verification logger name: {loggerName}");
       }
 
+      // Provide just enough configuration for the TRX logger to work
+      parameters["TestRunDirectory"] = Constants.DefaultResultsDirectory;
+      
       var events = new LocalTestLoggerEvents();
       var logger = new TrxLogger();
-      // Provide just enough configuration for the TRX logger to work
-      logger.Initialize(events, new Dictionary<string, string> {
-        ["TestRunDirectory"] = Constants.DefaultResultsDirectory
-      });
+      logger.Initialize(events, parameters);
       events.EnableEvents();
 
       // Sort failures to the top, and then slower procedures first.
@@ -89,7 +104,7 @@ namespace Microsoft.Dafny {
       var duration = float.Parse(conclusionNode.Attribute("duration")!.Value);
       var outcome = conclusionNode.Attribute("outcome")!.Value;
 
-      var testCase = TestCaseForEntry(name, currentFileFragment);
+      var testCase = TestCaseForEntry(currentFileFragment, name);
       var testResult = new TestResult(testCase) {
         StartTime = DateTimeOffset.Parse(startTime),
         Duration = TimeSpan.FromMilliseconds((long)(duration * 1000)),
@@ -118,7 +133,7 @@ namespace Microsoft.Dafny {
       var duration = float.Parse(conclusionNode.Attribute("duration")!.Value);
       var outcome = conclusionNode.Attribute("outcome")!.Value;
 
-      var testCase = TestCaseForEntry(name, currentFileFragment);
+      var testCase = TestCaseForEntry(currentFileFragment, name);
       var testResult = new TestResult(testCase) {
         StartTime = DateTimeOffset.Parse(startTime),
         Duration = TimeSpan.FromMilliseconds((long)(duration * 1000))

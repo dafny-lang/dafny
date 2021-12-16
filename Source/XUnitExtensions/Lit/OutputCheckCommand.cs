@@ -93,7 +93,11 @@ namespace XUnitExtensions.Lit {
       var checkDirectives = File.ReadAllLines(options.CheckFile)
         .Select((line, index) => CheckDirective.Parse(fileName, index + 1, line))
         .Where(e => e != null)
-        .Select(e => e!);
+        .Select(e => e!)
+        .ToList();
+      if (!checkDirectives.Any()) {
+        return (1, "", $"ERROR: '{fileName}' does not contain any CHECK directives");
+      }
 
       IEnumerator<string> lineEnumerator = linesToCheck.GetEnumerator();
       foreach (var directive in checkDirectives) {

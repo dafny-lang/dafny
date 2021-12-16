@@ -482,11 +482,7 @@ namespace Microsoft.Dafny {
 
         case "verificationLogger":
           if (ps.ConfirmArgumentCount(1)) {
-            if (args[ps.i] == "trx") {
               VerificationLoggerConfig = args[ps.i];
-            } else {
-              InvalidArgumentError(name, ps);
-            }
           }
 
           return true;
