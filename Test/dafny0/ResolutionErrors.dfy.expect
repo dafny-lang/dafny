@@ -44,8 +44,8 @@ ResolutionErrors.dfy(354,18): Error: arguments must have comparable types (got i
 ResolutionErrors.dfy(355,18): Error: arguments must have comparable types (got DTD_List and int)
 ResolutionErrors.dfy(369,17): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(393,7): Error: incorrect type of method in-parameter 1 (expected GenericClass<int>, found GenericClass<bool>) (non-variant type parameter would require int = bool)
-ResolutionErrors.dfy(407,13): Error: incorrect type of datatype constructor argument 0 (expected _T0, found int)
-ResolutionErrors.dfy(408,9): Error: incorrect type of datatype constructor argument 0 (expected _T0, found int)
+ResolutionErrors.dfy(407,13): Error: incorrect type of datatype constructor argument 0 named 'hd' (expected _T0, found int)
+ResolutionErrors.dfy(408,9): Error: incorrect type of datatype constructor argument 0 named 'hd' (expected _T0, found int)
 ResolutionErrors.dfy(417,8): Error: all lines in a calculation must have the same type (got int after bool)
 ResolutionErrors.dfy(421,8): Error: all lines in a calculation must have the same type (got int after bool)
 ResolutionErrors.dfy(424,8): Error: first argument to ==> must be of type bool (instead got int)

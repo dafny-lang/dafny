@@ -16942,6 +16942,10 @@ namespace Microsoft.Dafny {
           if (formals.Count != 1) {
             what += " " + j;
           }
+          if (formal.HasName) {
+            what += " named '" + formal.Name + "'";
+          }
+
           AddAssignableConstraint(callTok, SubstType(formal.Type, typeMap), b.Actual.Type, "incorrect type of " + what + " (expected {0}, found {1})");
         } else if (formal.DefaultValue != null) {
           // Note, in the following line, "substMap" is passed in, but it hasn't been fully filled in until the
