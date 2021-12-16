@@ -12,7 +12,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   /// Represents the symbol table
   /// </summary>
   public class SymbolTable {
-    private readonly ILogger logger;
+    private readonly ILogger<SymbolTable> logger;
 
     // TODO Guard the properties from changes
     public CompilationUnit CompilationUnit { get; }
@@ -40,12 +40,12 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     private readonly DafnyLangTypeResolver typeResolver;
 
     public SymbolTable(
+        ILogger<SymbolTable> iLogger,
         CompilationUnit compilationUnit,
         IDictionary<AstElement, ILocalizableSymbol> declarations,
         IDictionary<ISymbol, SymbolLocation> locations,
         IIntervalTree<Position, ILocalizableSymbol> lookupTree,
-        bool symbolsResolved,
-        ILogger iLogger
+        bool symbolsResolved
     ) {
       CompilationUnit = compilationUnit;
       Declarations = declarations;
@@ -72,7 +72,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       // Use case: function f(a: int) {}, and hover over a.
       foreach (var potentialSymbol in symbolsAtPosition) {
         if (symbol != null) {
-          logger.Log(LogLevel.Warning, $"Two registered symbols as the same position (line {position.Line}, character {position.Character})");
+          logger.Log(LogLevel.Warning, "Two registered symbols as the same position (line {Line}, character {Character})", position.Line, position.Character);
           break;
         }
 

@@ -170,25 +170,25 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         return functionSymbol;
       }
 
-      private List<ScopeSymbol> ProcessListAttributedExpressions(
-        IList<AttributedExpression> list, Func<Expression?, ScopeSymbol?> expressionHandler
+      private IEnumerable<ScopeSymbol> ProcessListAttributedExpressions(
+        IEnumerable<AttributedExpression> list, Func<Expression?, ScopeSymbol?> expressionHandler
         ) {
-        return list.SelectMany(attributedExpression =>
-          expressionHandler(attributedExpression.E).AsEnumerable()).ToList();
+        return list.Select(attributedExpression =>
+          expressionHandler(attributedExpression.E)).Where(x => x != null).OfType<ScopeSymbol>();
       }
 
-      private List<ScopeSymbol> ProcessListFramedExpressions(
-        IList<FrameExpression> list, Func<Expression?, ScopeSymbol?> expressionHandler
+      private IEnumerable<ScopeSymbol> ProcessListFramedExpressions(
+        IEnumerable<FrameExpression> list, Func<Expression?, ScopeSymbol?> expressionHandler
         ) {
-        return list.SelectMany(frameExpression =>
-          expressionHandler(frameExpression.E).AsEnumerable()).ToList();
+        return list.Select(frameExpression =>
+          expressionHandler(frameExpression.E)).Where(x => x != null).OfType<ScopeSymbol>();
       }
 
-      private List<ScopeSymbol> ProcessListExpressions<T>(
-        List<T> list, Func<T, ScopeSymbol?> expressionHandler
+      private IEnumerable<ScopeSymbol> ProcessListExpressions<T>(
+        IEnumerable<T> list, Func<T, ScopeSymbol?> expressionHandler
         ) where T : class {
-        return list.SelectMany(expression =>
-          expressionHandler(expression).AsEnumerable()).ToList();
+        return list.Select(expression =>
+          expressionHandler(expression)).Where(x => x != null).OfType<ScopeSymbol>();
       }
 
       private MethodSymbol ProcessMethod(Symbol scope, Method method) {

@@ -12,9 +12,11 @@ using AstElement = System.Object;
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   public class SymbolTableFactory : ISymbolTableFactory {
     private readonly ILogger logger;
+    private readonly ILogger<SymbolTable> loggerSymbolTable;
 
-    public SymbolTableFactory(ILogger<SymbolTableFactory> logger) {
+    public SymbolTableFactory(ILogger<SymbolTableFactory> logger, ILogger<SymbolTable> loggerSymbolTable) {
       this.logger = logger;
+      this.loggerSymbolTable = loggerSymbolTable;
     }
 
     public SymbolTable CreateFrom(Dafny.Program program, CompilationUnit compilationUnit, CancellationToken cancellationToken) {
@@ -34,12 +36,12 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         logger.LogDebug("cannot create symbol table from a program with errors");
       }
       return new SymbolTable(
+        loggerSymbolTable,
         compilationUnit,
         declarations,
         declarationLocationVisitor.Locations,
         designatorVisitor.SymbolLookup,
-        symbolsResolved,
-        logger
+        symbolsResolved
       );
     }
 
