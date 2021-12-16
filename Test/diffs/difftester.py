@@ -538,7 +538,12 @@ def test(inputs: ProverInputs, *drivers: Driver):
                 print(f"Error: {o1} != {o2}")
 
 
-def resolve_driver(command):
+SLASH_2DASHES = re.compile("^/(?=--)")
+
+
+def resolve_driver(command: List[str]) -> Driver:
+    """Resolve `command` into a ``Driver`` instance."""
+    command = [SLASH_2DASHES.sub("", c) for c in command]
     if "DafnyLanguageServer" in command[0]:
         return LSPDriver(command)
     return CLIDriver(command)
@@ -581,7 +586,14 @@ def parse_arguments():
                         action="append", dest="inputs",
                         help="Register an input file")
 
-    args = parser.parse_args()
+    args, argv = parser.parse_known_args()
+    if argv:
+        MSG = (f"Unrecognized arguments: {' '.join(argv)}.  "
+               "If these were meant as arguments to a --driver, "
+               "prefix them with a slash.  For example, use "
+               "/--verifier:cachingPolicy=0 instead of "
+               "--verifier:cachingPolicy=0.")
+        parser.error(MSG)
     args.drivers = [resolve_driver(d) for d in args.drivers]
     args.inputs = [resolve_input(d, parser) for d in args.inputs]
 
