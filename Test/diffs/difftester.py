@@ -78,7 +78,10 @@ def _no_window():
     """
     si = subprocess.STARTUPINFO()
     if platform.system() == "Windows":
+        # No new window
         si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        # “Terminate batch job?” on Ctrl+C, but that blocks the parent process
+        # si.dwFlags |= subprocess.CREATE_NEW_PROCESS_GROUP
     return si
 
 
@@ -605,7 +608,10 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        pass
     # _test_diff()
     # _test_snapshots()
     # _test_snapshots_lsp()
