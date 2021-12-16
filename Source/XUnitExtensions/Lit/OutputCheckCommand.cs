@@ -37,7 +37,7 @@ namespace XUnitExtensions.Lit {
         return null;
       }
       
-      public abstract bool Matches(string line);
+      public abstract bool FindMatch(IEnumerator<string> lines);
     }
 
     private record CheckRegexp(string File, int LineNumber, Regex Pattern) : CheckDirective(File, LineNumber) {
@@ -45,8 +45,13 @@ namespace XUnitExtensions.Lit {
         return new CheckRegexp(file, lineNumber, new Regex(arguments));
       }
       
-      public override bool Matches(string line) {
-        return Pattern.IsMatch(line);
+      public override bool FindMatch(IEnumerator<string> lines) {
+        while (lines.MoveNext()) {
+          if (Pattern.IsMatch(lines.Current)) {
+            return true;
+          }
+        }
+        return false;
       }
 
       public override string ToString() {
@@ -59,8 +64,13 @@ namespace XUnitExtensions.Lit {
         return new CheckLiteral(file, lineNumber, arguments);
       }
       
-      public override bool Matches(string line) {
-        return Literal == line.Trim();
+      public override bool FindMatch(IEnumerator<string> lines) {
+        while (lines.MoveNext()) {
+          if (Literal == lines.Current.Trim()) {
+            return true;
+          }
+        }
+        return false;
       }
       
       public override string ToString() {
@@ -78,30 +88,24 @@ namespace XUnitExtensions.Lit {
 
     public (int, string, string) Execute(ITestOutputHelper outputHelper, TextReader? inputReader,
                                          TextWriter? outputWriter, TextWriter? errorWriter) {
-      var linesToCheck = File.ReadAllLines(options.FileToCheck);
+      var linesToCheck = File.ReadAllLines(options.FileToCheck).ToList();
       var fileName = options.CheckFile;
       var checkDirectives = File.ReadAllLines(options.CheckFile)
         .Select((line, index) => CheckDirective.Parse(fileName, index + 1, line))
         .Where(e => e != null)
-        .Select(e => e!)
-        .ToList();
-      
-      if (checkDirectives.Any()) {
-        int currentDirectiveIndex = 0;
-        foreach (var lineToCheck in linesToCheck) {
-          if (checkDirectives[currentDirectiveIndex].Matches(lineToCheck)) {
-            currentDirectiveIndex++;
-          }
+        .Select(e => e!);
 
-          if (currentDirectiveIndex == checkDirectives.Count) {
-            return (0, "", "");
-          }
+      IEnumerator<string> lineEnumerator = linesToCheck.GetEnumerator();
+      foreach (var directive in checkDirectives) {
+        if (!directive.FindMatch(lineEnumerator)) {
+          return (1, "", $"ERROR: Could not find a match for {directive}");
         }
-        
-        return (1, "", $"ERROR: Could not find a match for {checkDirectives[currentDirectiveIndex]}");
-      } else {
-        return (0, "", "");
       }
+      return (0, "", "");
+    }
+
+    public override string ToString() {
+      return $"OutputCheck --file-to-check {options.FileToCheck} {options.CheckFile}";
     }
   }
 }
