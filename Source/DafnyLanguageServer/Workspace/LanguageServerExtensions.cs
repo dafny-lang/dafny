@@ -44,7 +44,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         services.GetRequiredService<ISymbolTableFactory>(),
         services.GetRequiredService<IGhostStateDiagnosticCollector>(),
         services.GetRequiredService<ICompilationStatusNotificationPublisher>(),
-        services.GetRequiredService<ILogger<TextDocumentLoader>>()
+        services.GetRequiredService<ILoggerFactory>()
       );
     }
   }

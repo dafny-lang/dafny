@@ -19,7 +19,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
     private Mock<IGhostStateDiagnosticCollector> ghostStateDiagnosticCollector;
     private Mock<ICompilationStatusNotificationPublisher> notificationPublisher;
     private TextDocumentLoader textDocumentLoader;
-    private Mock<ILogger> logger;
+    private Mock<ILoggerFactory> logger;
 
     [TestInitialize]
     public void SetUp() {
@@ -29,7 +29,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
       symbolTableFactory = new();
       ghostStateDiagnosticCollector = new();
       notificationPublisher = new();
-      logger = new Mock<ILogger>();
+      logger = new Mock<ILoggerFactory>();
       textDocumentLoader = TextDocumentLoader.Create(
         parser.Object,
         symbolResolver.Object,

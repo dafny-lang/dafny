@@ -30,26 +30,24 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private readonly IProgramVerifier verifier;
     private readonly IGhostStateDiagnosticCollector ghostStateDiagnosticCollector;
     private readonly ICompilationStatusNotificationPublisher notificationPublisher;
-    private readonly ILogger logger;
-    private readonly ILogger<SymbolTable> loggerSymbolTable;
+    private readonly ILoggerFactory loggerFactory;
     private readonly BlockingCollection<Request> requestQueue = new();
 
     private TextDocumentLoader(
+      ILoggerFactory loggerFactory,
       IDafnyParser parser,
       ISymbolResolver symbolResolver,
       IProgramVerifier verifier,
       ISymbolTableFactory symbolTableFactory,
       IGhostStateDiagnosticCollector ghostStateDiagnosticCollector,
-      ICompilationStatusNotificationPublisher notificationPublisher,
-      ILogger logger
-    ) {
+      ICompilationStatusNotificationPublisher notificationPublisher) {
       this.parser = parser;
       this.symbolResolver = symbolResolver;
       this.verifier = verifier;
       this.symbolTableFactory = symbolTableFactory;
       this.ghostStateDiagnosticCollector = ghostStateDiagnosticCollector;
       this.notificationPublisher = notificationPublisher;
-      this.logger = logger;
+      this.loggerFactory = loggerFactory;
     }
 
     public static TextDocumentLoader Create(
@@ -59,9 +57,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       ISymbolTableFactory symbolTableFactory,
       IGhostStateDiagnosticCollector ghostStateDiagnosticCollector,
       ICompilationStatusNotificationPublisher notificationPublisher,
-      ILogger logger
+      ILoggerFactory loggerFactory
     ) {
-      var loader = new TextDocumentLoader(parser, symbolResolver, verifier, symbolTableFactory, ghostStateDiagnosticCollector, notificationPublisher, logger);
+      var loader = new TextDocumentLoader(loggerFactory, parser, symbolResolver, verifier, symbolTableFactory, ghostStateDiagnosticCollector, notificationPublisher);
       var loadThread = new Thread(loader.Run, MaxStackSize) { IsBackground = true };
       loadThread.Start();
       return loader;
@@ -70,7 +68,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public DafnyDocument CreateUnloaded(TextDocumentItem textDocument, CancellationToken cancellationToken) {
       var errorReporter = new DiagnosticErrorReporter(textDocument.Uri);
       return CreateDocumentWithEmptySymbolTable(
-        loggerSymbolTable,
+        loggerFactory.CreateLogger<SymbolTable>(),
         textDocument,
         errorReporter,
         parser.CreateUnparsed(textDocument, errorReporter, cancellationToken),
@@ -111,7 +109,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var program = parser.Parse(textDocument, errorReporter, cancellationToken);
       if (errorReporter.HasErrors) {
         notificationPublisher.SendStatusNotification(textDocument, CompilationStatus.ParsingFailed);
-        return CreateDocumentWithEmptySymbolTable(loggerSymbolTable, textDocument, errorReporter, program, loadCanceled: false);
+        return CreateDocumentWithEmptySymbolTable(loggerFactory.CreateLogger<SymbolTable>(), textDocument, errorReporter, program, loadCanceled: false);
       }
       var compilationUnit = symbolResolver.ResolveSymbols(textDocument, program, cancellationToken);
       var symbolTable = symbolTableFactory.CreateFrom(program, compilationUnit, cancellationToken);
