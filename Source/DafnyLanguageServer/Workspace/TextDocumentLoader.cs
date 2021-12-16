@@ -83,6 +83,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           request.Document.SetCanceled(request.CancellationToken);
           continue;
         }
+
         try {
           var document = request switch {
             LoadRequest loadRequest => LoadInternal(loadRequest),
@@ -90,8 +91,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             _ => throw new ArgumentException($"invalid request type ${request.GetType()}")
           };
           request.Document.SetResult(document);
-        } catch (OperationCanceledException e) {
-          request.Document.SetCanceled(e.CancellationToken);
+        } catch (OperationCanceledException) {
+          if (request is VerifyRequest verifyRequest) {
+            request.Document.SetResult(verifyRequest.OriginalDocument);
+          }
         } catch (Exception e) {
           request.Document.SetException(e);
         }
