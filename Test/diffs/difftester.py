@@ -37,8 +37,11 @@ import sys
 
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor
+from itertools import zip_longest
 from pathlib import Path
 from subprocess import PIPE
+from pprint import pformat
+from textwrap import indent
 
 # For ordered dicts and f-strings
 assert sys.version_info >= (3, 7)
@@ -157,6 +160,12 @@ class ProverOutput:
     # Strings are easier to diff than structured data, especially when looking
     # at insertions/deletions.
     def format(self) -> str:
+        """Normalize this output and convert it to a string."""
+        raise NotImplementedError
+
+    @property
+    def raw(self) -> str:
+        """Return the raw output of the prover."""
         raise NotImplementedError
 
 
@@ -377,7 +386,10 @@ class LSPServer:
             if header:
                 length = int(header.group("len"))
         if length is None:
-            raise ValueError(f"Unexpected output: {line!r}, use --debug")
+            MSG = (f"Unexpected output: {line!r}, use --debug for more info."
+                   "If --debug doesn't help, check Dafny's server logs "
+                   "(https://github.com/dafny-lang/ide-vscode#debugging).")
+            raise ValueError(MSG)
         response: bytes = self.repl.stdout.read(length)
         if len(response) != length:
             raise ValueError(f"Truncated response: {response!r}")
@@ -397,12 +409,11 @@ class LSPServer:
                 return msg
 
     def _kill(self) -> None:
-        assert self.repl
+        assert self.repl and self.repl.stdin and self.repl.stdout
         self.repl.kill()
         try:
-            pass  # FIXME
-            # self.repl.stdin.close()
-            # self.repl.stdout.close()
+            self.repl.stdin.close()
+            self.repl.stdout.close()
         finally:
             self.repl.wait()
 
@@ -445,7 +456,7 @@ class LSPOutput(ProverOutput):
     LEVELS = {1: "Error", }
 
     def __init__(self, diagnostics: List[Dict[str, Any]]) -> None:
-        self.diags = diagnostics
+        self.diags = sorted(diagnostics, key=self._key)
 
     @classmethod
     def _format_diag(cls, d: LSPMessage) -> str:
@@ -455,9 +466,20 @@ class LSPOutput(ProverOutput):
         l, c = pos['line'] + 1, pos['character']
         return f"<stdin>({l},{c}): {kind}: {msg}"
 
+    @staticmethod
+    def _key(d) -> Tuple[int, int, int, int]:
+        start, end = d['range']['start'], d['range']['end']
+        return start['line'], start['character'], end['line'], end['character']
+
     def format(self) -> str:
         """Format to a string matching Dafny's CLI output."""
-        return "\n".join(self._format_diag(d) for d in self.diags)
+        diags = sorted(self.diags, key=self._key)
+        return "\n".join(self._format_diag(d) for d in diags)
+
+    @property
+    def raw(self) -> str:
+        """Return the raw output of the prover."""
+        return self.diags
 
 
 class LSPDriver(Driver):
@@ -509,6 +531,10 @@ class CLIOutput(ProverOutput):
         messages = self.ERROR_PATTERN.finditer(self.output)
         return "\n".join(m.group() for m in messages)
 
+    @property
+    def raw(self) -> str:
+        """Return the raw output of the prover."""
+        return self.output
 
 class CLIDriver(Driver):
     """A driver using Dafny's CLI."""
@@ -550,12 +576,26 @@ def test(inputs: ProverInputs, *drivers: Driver) -> None:
     """Run `inputs` through each one of `drivers` and report any mismatches."""
     snapshots = inputs.as_snapshots()
     prover_output_streams = [d.run(inputs) for d in drivers]
-    for snapidx, (snap, *prover_outputs) in enumerate(zip(snapshots, *prover_output_streams)):
-        print(f"------ #{snapidx} {snap.name} ------")
-        for p1, p2 in window(prover_outputs, 2):
+    # zip() would be unsafe here (it wouldn't exhaust the iterator over the LSP
+    # server's results and hence wouldn't send the “shutdown” message).
+    results = zip_longest(*prover_output_streams)
+    for snapidx, snap in enumerate(snapshots):
+        print(f"------ {snap.name}(#{snapidx}) ------", flush=True)
+        prover_outputs = next(results)
+        for (d1, p1), (d2, p2) in window(zip(drivers, prover_outputs), 2):
             o1, o2 = p1.format(), p2.format()
             if o1 != o2:
-                print(f"Error: {o1} != {o2}")
+                print("!! Output mismatch")
+                print(f"   For input {snap.name}(#{snapidx}),")
+                print(f"   Driver {d1} produced this output:")
+                print(indent(o1, "   > "))
+                print(f"   Driver {d2} produced this output:")
+                print(indent(o2, "   > "))
+                print("   Raw output:")
+                print(indent(pformat(p1.raw), "   > "))
+                print("   --------------------------------")
+                print(indent(pformat(p2.raw), "   > "))
+        sys.stdout.flush()
 
 
 SLASH_2DASHES = re.compile("^/(?=--)")
