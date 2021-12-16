@@ -45,8 +45,13 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           // https://github.com/boogie-org/boogie/blob/b03dd2e4d5170757006eef94cbb07739ba50dddb/Source/VCGeneration/Couterexample.cs#L217
           DafnyOptions.O.ModelViewFile = "-";
           DafnyOptions.O.VcsCores = GetConfiguredCoreCount(options.Value);
+          DafnyOptions.O.VerifySnapshots = (int)options.Value.VerifySnapshots;
           initialized = true;
-          logger.LogTrace("initialized the boogie verifier...");
+          logger.LogTrace("Initialized the boogie verifier with " +
+                          "VcsCores={VcsCores}, " +
+                          "VerifySnapshots={VerifySnapshots}.",
+                          DafnyOptions.O.VcsCores,
+                          DafnyOptions.O.VerifySnapshots);
         }
         return new DafnyProgramVerifier(logger, options.Value);
       }
