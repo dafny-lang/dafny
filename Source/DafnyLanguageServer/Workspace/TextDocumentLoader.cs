@@ -83,7 +83,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           request.Document.SetCanceled(request.CancellationToken);
           continue;
         }
-
         try {
           var document = request switch {
             LoadRequest loadRequest => LoadInternal(loadRequest),

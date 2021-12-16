@@ -139,11 +139,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       if (!documents.TryGetValue(documentId.Uri, out var databaseEntry)) {
         return Task.FromException<DafnyDocument>(new ArgumentException($"the document {documentId.Uri} was not loaded before"));
       }
-
       if (!VerifyOnSave) {
         return databaseEntry.Document;
       }
-
       try {
         return VerifyDocumentIfRequiredAsync(databaseEntry);
       } catch (OperationCanceledException) {
