@@ -21,8 +21,8 @@ Example usage::
 """
 
 from typing import (
-    Any, Dict, Iterable, IO, List, Optional,
-    Tuple, TypeVar, Union, overload
+    Any, Callable, Dict, Iterable, Iterator, IO, List, Optional, Tuple, TypeVar,
+    Union, overload
 )
 
 import argparse
@@ -75,13 +75,13 @@ def which(exe: Union[str, List[str]]) -> Union[str, List[str]]:
     return path
 
 
-def debug(prefix, *msgs, **kwds):
-    """Print `msgs` with `prefix`; forward `kwds` to `print`."""
+def debug(prefix: str, *msgs: str, **kwds: Dict[str, Any]) -> None:
+    """Print `msgs` with `prefix`; forward `kwds` to ``print``."""
     if DEBUG:
-        print(prefix, *msgs, **{**kwds, "file": sys.stderr})
+        print(prefix, *msgs, **{**kwds, "file": sys.stderr}) # type: ignore
 
 
-def _no_window():
+def _no_window() -> subprocess.STARTUPINFO:
     """Create a startupinfo object.
 
     On Windows, set it up to run without showing a command window.
@@ -98,18 +98,17 @@ def _no_window():
 class Tee(IO[bytes]):
     """Wrapper around a collection of streams that broadcasts outputs."""
 
-    def __init__(self, *streams):
+    def __init__(self, *streams: IO[bytes]) -> None:
         self.streams = streams
 
-    def close(self):
+    def close(self) -> None:
         for s in self.streams:
             s.close()
 
-    def write(self, data):
-        for s in self.streams:
-            s.write(data)
+    def write(self, data: bytes) -> int:
+        return max(s.write(data) for s in self.streams)
 
-    def flush(self):
+    def flush(self) -> None:
         for s in self.streams:
             s.flush()
 
@@ -117,16 +116,16 @@ class Tee(IO[bytes]):
 class Snapshot:
     """The contents of a Dafny file."""
 
-    def __init__(self, name, contents):
+    def __init__(self, name: str, contents: str) -> None:
         self.name = name
         self.contents = contents
 
     @staticmethod
-    def from_file(path):
+    def from_file(path: Union[str, Path]) -> "Snapshot":
         pth = Path(path)
         return Snapshot(pth.name, pth.read_text(encoding="utf-8"))
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.contents
 
 
@@ -143,7 +142,7 @@ class ProverInputs:
         """Convert self into a sequence of snapshots."""
         raise NotImplementedError
 
-    def __len__(self):
+    def __len__(self) -> int:
         raise NotImplementedError
 
 
@@ -172,12 +171,12 @@ class LSPMethods:
 class LSPTrace(ProverInputs):
     """A sequence of messages sent by an LSP client."""
 
-    def __init__(self, name: str, commands: Iterable[LSPMessage]):
+    def __init__(self, name: str, commands: Iterable[LSPMessage]) -> None:
         self.name = name
         self.messages: List[LSPMessage] = list(commands)
 
     @classmethod
-    def from_json(cls, fname) -> "LSPTrace":
+    def from_json(cls, fname: str) -> "LSPTrace":
         """Load an LSP trace from a file containing JSON."""
         with open(fname, encoding="utf-8") as f:
             return LSPTrace(fname, json.load(f))
@@ -186,7 +185,7 @@ class LSPTrace(ProverInputs):
         """Convert self into an LSP trace."""
         return self
 
-    def _iter_snapshots(self) -> Iterable[Snapshot]:
+    def _iter_snapshots(self) -> Iterable[str]:
         for msg in self.messages:
             if msg["method"] == LSPMethods.didOpen:
                 yield msg["params"]["textDocument"]["text"]
@@ -195,11 +194,11 @@ class LSPTrace(ProverInputs):
                     yield change["text"]  # FIXME add support for ranges
 
     @property
-    def uri(self):
+    def uri(self) -> str:
         """Return the current document's URI."""
         for m in self.messages:
             if m["method"] == LSPMethods.didOpen:
-                return m["textDocument"]["uri"]
+                return m["textDocument"]["uri"] # type: ignore
         raise ValueError("No didOpen message found in LSP trace.")
 
     def as_snapshots(self) -> "Snapshots":
@@ -207,7 +206,7 @@ class LSPTrace(ProverInputs):
         snapshots = (Snapshot(self.name, s) for s in self._iter_snapshots())
         return Snapshots(self.name, self.uri, snapshots)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return sum(msg["method"] in (LSPMethods.didOpen, LSPMethods.didChange)
                    for msg in self.messages)
 
@@ -217,13 +216,13 @@ class Snapshots(ProverInputs):
 
     VERNUM_RE = re.compile(r"\A(?P<stem>.*)[.]v(?P<num>[0-9]+)\Z")
 
-    def __init__(self, name: str, uri: str, snapshots: Iterable[Snapshot]):
+    def __init__(self, name: str, uri: str, snapshots: Iterable[Snapshot]) -> None:
         self.name = name
         self.uri = uri
         self.snapshots = list(snapshots)
 
     @classmethod
-    def strip_vernum(cls, fname):
+    def strip_vernum(cls, fname: Union[str, Path]) -> Tuple[str, Optional[int], str]:
         """Split `fname` into a stem, a suffix, and a version number.
 
         >>> Snapshots.strip_vernum("a.v0.dfy")
@@ -260,7 +259,7 @@ class Snapshots(ProverInputs):
         return Snapshots(name, uri, snaps)
 
     @classmethod
-    def _complete_range(cls, previous: Snapshot):
+    def _complete_range(cls, previous: Snapshot) -> Json:
         contents = str(previous)
         last_line = contents.count("\n")
         last_bol = contents.rfind("\n") + 1
@@ -269,8 +268,8 @@ class Snapshots(ProverInputs):
                 "end": {"line": last_line, "character": last_pos}}
 
     @classmethod
-    def _lsp_of_snapshot(cls, uri: str, version: int,
-                         snapshot: Snapshot, previous: Optional[Snapshot]):
+    def _lsp_of_snapshot(cls, uri: str, version: int, snapshot: Snapshot,
+                         previous: Optional[Snapshot]) -> LSPMessage:
         document = {"uri": uri, "languageId": "dafny", "version": version}
         return {
             "method": LSPMethods.didOpen,
@@ -314,23 +313,23 @@ class Snapshots(ProverInputs):
         """Convert self into a sequence of snapshots."""
         return self
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Snapshot]:
         return iter(self.snapshots)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.snapshots)
 
 class Driver:
     """Abstract interface for Dafny drivers."""
 
-    def __init__(self, command: List[str]):
+    def __init__(self, command: List[str]) -> None:
         self.command = which(command)
 
     def run(self, inputs: ProverInputs) -> Iterable[ProverOutput]:
         """Run `inputs` and return the prover's outputs."""
         raise NotImplementedError()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{type(self).__name__}(command={self.command})"
 
 
@@ -342,9 +341,9 @@ class LSPServer:
             "--verifier:vcscores=0",
             "--ghost:markStatements=true"]  # FIXME
 
-    def __init__(self, command: List[str]):
+    def __init__(self, command: List[str]) -> None:
         self.command = command
-        self.repl = None
+        self.repl: "Optional[subprocess.Popen[bytes]]" = None
         self.pending_output: Dict[bytes, LSPMessage] = {}  # Random access queue
 
     @staticmethod
@@ -353,7 +352,7 @@ class LSPServer:
         # \r\n for consistency, final newline for readability
         return js.replace("\n", "\r\n") + "\r\n"
 
-    def send(self, cmd: LSPMessage):
+    def send(self, cmd: LSPMessage) -> None:
         """Send a request to the server."""
         assert self.repl
         assert self.repl.stdin
@@ -367,7 +366,7 @@ class LSPServer:
 
     HEADER_RE = re.compile(r"Content-Length: (?P<len>[0-9]+)\r\n")
 
-    def _receive(self):
+    def _receive(self) -> Tuple[bytes, Json]:
         assert self.repl
         assert self.repl.stdout
         line, length = None, None
@@ -382,21 +381,22 @@ class LSPServer:
         response: bytes = self.repl.stdout.read(length)
         if len(response) != length:
             raise ValueError(f"Truncated response: {response!r}")
-        debug("<<", response)
-        js = json.loads(response.decode("utf-8"))
+        resp = response.decode("utf-8")
+        debug("<<", resp)
+        js = json.loads(resp)
         self.pending_output[response] = js
         return (response, js)
 
-    def receive(self, pred):
+    def receive(self, pred: Callable[[LSPMessage], bool]) -> LSPMessage:
         """Read server messages until finding one that matches `pred`."""
         msgs = iter(self.pending_output.items())
         while True:
-            key, msg = next(msgs, None) or self._receive()
+            key, msg = next(msgs, None) or self._receive() # type: ignore
             if pred(msg):
                 del self.pending_output[key]
                 return msg
 
-    def _kill(self):
+    def _kill(self) -> None:
         assert self.repl
         self.repl.kill()
         try:
@@ -406,7 +406,7 @@ class LSPServer:
         finally:
             self.repl.wait()
 
-    def kill(self):
+    def kill(self) -> "Optional[subprocess.Popen[bytes]]":
         """Terminate this Dafny instance."""
         repl = self.repl
         if self.repl:
@@ -415,7 +415,7 @@ class LSPServer:
             self.pending_output = {}
         return repl
 
-    def _start(self):
+    def _start(self) -> None:
         self.kill()
 
         cmd =  [*self.command, *self.ARGS]
@@ -427,15 +427,16 @@ class LSPServer:
             stdin=PIPE, stderr=PIPE, stdout=PIPE)
 
         if TEE:
+            assert self.repl.stdin
             log = open(TEE, mode="wb")
-            self.repl.stdin = Tee(self.repl.stdin, log)
+            self.repl.stdin = Tee(self.repl.stdin, log) # type: ignore
 
-    def __enter__(self):
+    def __enter__(self) -> "LSPServer":
         """Start a Dafny LSP server."""
         self._start()
         return self
 
-    def __exit__(self, *_exn):
+    def __exit__(self, *_exn: Any) -> None:
         """Kill the current Dafny LSP server."""
         self.kill()
 
@@ -443,18 +444,18 @@ class LSPServer:
 class LSPOutput(ProverOutput):
     LEVELS = {1: "Error", }
 
-    def __init__(self, diagnostics: Dict[str, Any]):
+    def __init__(self, diagnostics: List[Dict[str, Any]]) -> None:
         self.diags = diagnostics
 
     @classmethod
-    def _format_diag(cls, d):
+    def _format_diag(cls, d: LSPMessage) -> str:
         msg = d["message"]
         kind = cls.LEVELS[d["severity"]]
         pos = d['range']['start']
         l, c = pos['line'] + 1, pos['character']
         return f"<stdin>({l},{c}): {kind}: {msg}"
 
-    def format(self):
+    def format(self) -> str:
         """Format to a string matching Dafny's CLI output."""
         return "\n".join(self._format_diag(d) for d in self.diags)
 
@@ -463,18 +464,18 @@ class LSPDriver(Driver):
     """A driver using Dafny's LSP implementation."""
 
     @staticmethod
-    def is_diagnostic_for(doc):
+    def is_diagnostic_for(doc: Json) -> Callable[[LSPMessage], bool]:
         """Return a function that checks for diagnostics for `doc`."""
-        def _filter(m):
+        def _filter(m: LSPMessage) -> bool:
             if m["method"] == LSPMethods.publishDiagnostics:
                 mp = m["params"]
-                return (mp["version"] == doc["version"] and
+                return (mp["version"] == doc["version"] and # type: ignore
                         mp["uri"] == doc["uri"])
             return False
         return _filter
 
     @staticmethod
-    def is_response_to(id: int):
+    def is_response_to(id: int) -> Callable[[LSPMessage], bool]:
         """Return a function that checks for responses to `id`."""
         return lambda m: m.get("id") == id
 
@@ -500,10 +501,10 @@ class LSPDriver(Driver):
 class CLIOutput(ProverOutput):
     ERROR_PATTERN = re.compile(r"^.*?[(][0-9]+,[0-9]+[)].*")
 
-    def __init__(self, output: str):
+    def __init__(self, output: str) -> None:
         self.output = output
 
-    def format(self):
+    def format(self) -> str:
         """Normalize the output of a single Dafny run for easier comparison."""
         messages = self.ERROR_PATTERN.finditer(self.output)
         return "\n".join(m.group() for m in messages)
@@ -545,7 +546,7 @@ def window(stream: Iterable[T], n: int) -> Iterable[Tuple[T, ...]]:
             yield tuple(win)
 
 
-def test(inputs: ProverInputs, *drivers: Driver):
+def test(inputs: ProverInputs, *drivers: Driver) -> None:
     """Run `inputs` through each one of `drivers` and report any mismatches."""
     snapshots = inputs.as_snapshots()
     prover_output_streams = [d.run(inputs) for d in drivers]
@@ -635,7 +636,7 @@ def parse_arguments() -> argparse.Namespace:
     return args
 
 
-def main():
+def main() -> None:
     args = parse_arguments()
     for inputs in args.inputs:
         print(f"====== {inputs.name} ======", file=sys.stderr)
