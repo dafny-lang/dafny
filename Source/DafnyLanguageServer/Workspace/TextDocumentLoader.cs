@@ -170,20 +170,20 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private record LoadRequest(TextDocumentItem TextDocument, CancellationToken CancellationToken) : Request(CancellationToken);
 
     private record VerifyRequest(DafnyDocument OriginalDocument, CancellationToken CancellationToken) : Request(CancellationToken);
-  }
 
-  public class VerificationProgressReporter : IVerificationProgressReporter {
-    public ICompilationStatusNotificationPublisher publisher { get; init; }
-    public TextDocumentItem document { get; init; }
+    private class VerificationProgressReporter : IVerificationProgressReporter {
+      public ICompilationStatusNotificationPublisher publisher { get; init; }
+      public TextDocumentItem document { get; init; }
 
-    public VerificationProgressReporter(TextDocumentItem document,
-                                        ICompilationStatusNotificationPublisher publisher) {
-      this.document = document;
-      this.publisher = publisher;
-    }
+      public VerificationProgressReporter(TextDocumentItem document,
+                                          ICompilationStatusNotificationPublisher publisher) {
+        this.document = document;
+        this.publisher = publisher;
+      }
 
-    public void ReportProgress(string message) {
-      publisher.SendStatusNotification(document, CompilationStatus.VerificationInProgress, message);
+      public void ReportProgress(string message) {
+        publisher.SendStatusNotification(document, CompilationStatus.VerificationInProgress, message);
+      }
     }
   }
 }
