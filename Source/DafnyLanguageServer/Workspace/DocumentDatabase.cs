@@ -135,33 +135,33 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
     }
 
-    public Task<DafnyDocument> SaveDocumentAsync(TextDocumentIdentifier documentId) {
+    public async Task<DafnyDocument> SaveDocumentAsync(TextDocumentIdentifier documentId) {
       if (!documents.TryGetValue(documentId.Uri, out var databaseEntry)) {
-        return Task.FromException<DafnyDocument>(new ArgumentException($"the document {documentId.Uri} was not loaded before"));
+        throw new ArgumentException($"the document {documentId.Uri} was not loaded before");
       }
       if (!VerifyOnSave) {
-        return databaseEntry.Document;
+        return await databaseEntry.Document;
       }
-      try {
-        return VerifyDocumentIfRequiredAsync(databaseEntry);
-      } catch (OperationCanceledException) {
-        return databaseEntry.Document;
-      }
+      return await VerifyDocumentIfRequiredAsync(databaseEntry);
     }
 
     private async Task<DafnyDocument> VerifyDocumentIfRequiredAsync(DocumentEntry databaseEntry) {
-      var document = await databaseEntry.Document;
-      if (!RequiresOnSaveVerification(document)) {
-        return document;
+      try {
+        var document = await databaseEntry.Document;
+        if (!RequiresOnSaveVerification(document)) {
+          return document;
+        }
+        var cancellationSource = new CancellationTokenSource();
+        var updatedEntry = new DocumentEntry(
+          document.Version,
+          Task.Run(() => documentLoader.VerifyAsync(document, cancellationSource.Token)),
+          cancellationSource
+        );
+        documents[document.Uri] = updatedEntry;
+        return await updatedEntry.Document;
+      } catch (OperationCanceledException) {
+        return await databaseEntry.Document;
       }
-      var cancellationSource = new CancellationTokenSource();
-      var updatedEntry = new DocumentEntry(
-        document.Version,
-        Task.Run(() => documentLoader.VerifyAsync(document, cancellationSource.Token)),
-        cancellationSource
-      );
-      documents[document.Uri] = updatedEntry;
-      return await updatedEntry.Document;
     }
 
     private static bool RequiresOnSaveVerification(DafnyDocument document) {
