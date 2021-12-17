@@ -13550,12 +13550,13 @@ namespace Microsoft.Dafny {
           var it = outFormal.Type;
           Type st = SubstType(it, typeMap);
           var lhs = s.Lhs[i];
+          var outIndex = callee.Outs.Count == 1 ? "" : $" {i}";
+          var outName = outFormal is ImplicitFormal || !outFormal.HasName
+            ? ""
+            : $" named '{outFormal.Name}'";
           AddAssignableConstraint(
-            s.Tok, lhs.Type, st, "incorrect type of method out-parameter" +
-                                 (callee.Outs.Count == 1 ? "" : " " + i) +
-                                 (outFormal is ImplicitFormal || !outFormal.HasName
-                                   ? "" : " named '" + outFormal.Name + "'") +
-                                 " (expected {1}, got {0})");
+            s.Tok, lhs.Type, st,
+            $"incorrect type of method out-parameter{outIndex}{outName} (expected {{1}}, got {{0}})");
         }
         for (int i = 0; i < s.Lhs.Count; i++) {
           var lhs = s.Lhs[i];
