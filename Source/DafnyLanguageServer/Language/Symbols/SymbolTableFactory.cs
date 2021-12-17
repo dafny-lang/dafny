@@ -229,7 +229,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           SymbolLookup.Add(range.Start, range.End, symbol);
           if (designators.TryGetValue(node, out var registeredSymbol)) {
             if (registeredSymbol != symbol) {
-              logger.LogInformation("Conflicting  symbol resolution nf designator named {Identifier} in {Filename}@({Line},{Column})",
+              logger.LogInformation("Conflicting symbol resolution of designator named {Identifier} in {Filename}@({Line},{Column})",
                 identifier, token.GetDocumentFileName(), token.line, token.col);
             }
           } else {
