@@ -5,6 +5,7 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
@@ -147,8 +148,9 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
       public void Inform(string s, TextWriter tw) {
         logger.LogInformation(s);
-        if (s.StartsWith("Verifying")) { // Exclude "verified" and "" messages
-          progressReporter.reportProgress(s);
+        var match = Regex.Match(s, "^Verifying .+[.](?<name>[^.]+) ...$");
+        if (match.Success) {
+          progressReporter.ReportProgress($"Verifying {match.Groups["name"].Value}...");
         }
       }
 
