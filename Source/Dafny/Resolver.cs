@@ -13543,10 +13543,16 @@ namespace Microsoft.Dafny {
           callee.IsStatic ? null : s.Receiver);
         // type check the out-parameter arguments (in-parameters were type checked as part of ResolveActualParameters)
         for (int i = 0; i < callee.Outs.Count && i < s.Lhs.Count; i++) {
-          var it = callee.Outs[i].Type;
+          var outFormal = callee.Outs[i];
+          var it = outFormal.Type;
           Type st = SubstType(it, typeMap);
           var lhs = s.Lhs[i];
-          AddAssignableConstraint(s.Tok, lhs.Type, st, "incorrect type of method out-parameter" + (callee.Outs.Count == 1 ? "" : " " + i) + " (expected {1}, got {0})");
+          AddAssignableConstraint(
+            s.Tok, lhs.Type, st, "incorrect type of method out-parameter" +
+                                 (callee.Outs.Count == 1 ? "" : " " + i) +
+                                 (outFormal is ImplicitFormal || !outFormal.HasName
+                                   ? "" : " named '" + outFormal.Name + "'") +
+                                 " (expected {1}, got {0})");
         }
         for (int i = 0; i < s.Lhs.Count; i++) {
           var lhs = s.Lhs[i];
@@ -16803,7 +16809,7 @@ namespace Microsoft.Dafny {
               formals = new List<Formal>();
               for (var i = 0; i < fnType.Args.Count; i++) {
                 var argType = fnType.Args[i];
-                var formal = new Formal(e.tok, "_#p" + i, argType, true, false, null);
+                var formal = new ImplicitFormal(e.tok, "_#p" + i, argType, true, false);
                 formals.Add(formal);
               }
             }
@@ -16939,6 +16945,10 @@ namespace Microsoft.Dafny {
           if (formals.Count != 1) {
             what += " " + j;
           }
+          if (formal.HasName && !(formal is ImplicitFormal)) {
+            what += " named '" + formal.Name + "'";
+          }
+
           AddAssignableConstraint(callTok, SubstType(formal.Type, typeMap), b.Actual.Type, "incorrect type of " + what + " (expected {0}, found {1})");
         } else if (formal.DefaultValue != null) {
           // Note, in the following line, "substMap" is passed in, but it hasn't been fully filled in until the
