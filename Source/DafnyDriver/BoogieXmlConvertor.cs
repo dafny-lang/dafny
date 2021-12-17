@@ -39,7 +39,7 @@ namespace Microsoft.Dafny {
         loggerName = loggerConfig;
         parameters = new();
       }
-      
+
       // The only supported value for now
       if (loggerName != "trx") {
         throw new ArgumentException($"Unsupported verification logger name: {loggerName}");
@@ -47,7 +47,7 @@ namespace Microsoft.Dafny {
 
       // Provide just enough configuration for the TRX logger to work
       parameters["TestRunDirectory"] = Constants.DefaultResultsDirectory;
-      
+
       var events = new LocalTestLoggerEvents();
       var logger = new TrxLogger();
       logger.Initialize(events, parameters);
@@ -90,10 +90,10 @@ namespace Microsoft.Dafny {
       // Only report the top level method result if there was no splitting
       var childSplits = method.Nodes().OfType<XElement>().Where(child => child.Name.LocalName == "split").ToList();
       return childSplits.Count > 1
-        ? childSplits.Select(childSplit => TestResultForSplit(currentFileFragment, method, childSplit)) 
+        ? childSplits.Select(childSplit => TestResultForSplit(currentFileFragment, method, childSplit))
         : new[] { TestResultForMethod(currentFileFragment, method) };
     }
-    
+
     private static TestResult TestResultForMethod(string currentFileFragment, XElement node) {
       var name = node.Attribute("name")!.Value;
       var startTime = node.Attribute("startTime")!.Value;
@@ -120,12 +120,12 @@ namespace Microsoft.Dafny {
 
       return testResult;
     }
-    
+
     private static TestResult TestResultForSplit(string currentFileFragment, XElement methodNode, XElement splitNode) {
       var methodName = methodNode.Attribute("name")!.Value;
       var splitNumber = splitNode.Attribute("number")!.Value;
       var name = $"{methodName}$${splitNumber}";
-      
+
       var startTime = splitNode.Attribute("startTime")!.Value;
       var conclusionNode = splitNode.Nodes()
                                             .OfType<XElement>()

@@ -482,7 +482,7 @@ namespace Microsoft.Dafny {
 
         case "verificationLogger":
           if (ps.ConfirmArgumentCount(1)) {
-              VerificationLoggerConfig = args[ps.i];
+            VerificationLoggerConfig = args[ps.i];
           }
 
           return true;
