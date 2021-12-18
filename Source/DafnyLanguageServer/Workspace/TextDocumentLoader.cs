@@ -90,10 +90,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             _ => throw new ArgumentException($"invalid request type ${request.GetType()}")
           };
           request.Document.SetResult(document);
-        } catch (OperationCanceledException) {
-          if (request is VerifyRequest verifyRequest) {
-            request.Document.SetResult(verifyRequest.OriginalDocument);
-          }
+        } catch (OperationCanceledException e) {
+          request.Document.SetCanceled(e.CancellationToken);
         } catch (Exception e) {
           request.Document.SetException(e);
         }
@@ -146,9 +144,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public async Task<DafnyDocument> VerifyAsync(DafnyDocument document, CancellationToken cancellationToken) {
-      var request = new VerifyRequest(document, cancellationToken);
-      requestQueue.Add(request, cancellationToken);
-      return await request.Document.Task;
+      try {
+        var request = new VerifyRequest(document, cancellationToken);
+        requestQueue.Add(request, cancellationToken);
+        return await request.Document.Task;
+      } catch (OperationCanceledException) {
+        return document;
+      }
     }
 
     private DafnyDocument VerifyInternal(VerifyRequest verifyRequest) {
