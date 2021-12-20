@@ -144,13 +144,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public async Task<DafnyDocument> VerifyAsync(DafnyDocument document, CancellationToken cancellationToken) {
-      try {
-        var request = new VerifyRequest(document, cancellationToken);
-        requestQueue.Add(request, cancellationToken);
-        return await request.Document.Task;
-      } catch (OperationCanceledException) {
-        return document;
-      }
+      var request = new VerifyRequest(document, cancellationToken);
+      requestQueue.Add(request, cancellationToken);
+      return await request.Document.Task;
     }
 
     private DafnyDocument VerifyInternal(VerifyRequest verifyRequest) {

@@ -81,6 +81,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
     }
 
+    private async Task<DafnyDocument> VerifyHandleCancellationAsync(DafnyDocument document, CancellationToken cancellationToken) {
+      try {
+        return await documentLoader.VerifyAsync(document, cancellationToken);
+      } catch (OperationCanceledException) {
+        return document;
+      }
+    }
+
     private async Task<DafnyDocument> LoadAndVerifyAsync(TextDocumentItem textDocument, bool verify, CancellationToken cancellationToken) {
       var document = await documentLoader.LoadAsync(textDocument, cancellationToken);
       if (!verify || document.Errors.HasErrors) {
@@ -94,14 +102,20 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       if (!documents.TryGetValue(documentUri, out var databaseEntry)) {
         throw new ArgumentException($"the document {documentUri} was not loaded before");
       }
-      if (documentChange.TextDocument.Version != databaseEntry.Version + 1) {
-        throw new InvalidOperationException($"the updates of document {documentUri} are out-of-order");
+
+      var oldVer = databaseEntry.Version;
+      var newVer = documentChange.TextDocument.Version;
+      if (oldVer > newVer) {
+        throw new InvalidOperationException(
+          $"the updates of document {documentUri} are out-of-order: {oldVer} -> {newVer}");
       }
+
       databaseEntry.CancelPendingUpdates();
       var cancellationSource = new CancellationTokenSource();
       var updatedEntry = new DocumentEntry(
         documentChange.TextDocument.Version,
-        Task.Run(async () => await ApplyChangesAsync(await databaseEntry.Document, documentChange, cancellationSource.Token)),
+        Task.Run(async () =>
+          await ApplyChangesAsync(await databaseEntry.Document, documentChange, cancellationSource.Token)),
         cancellationSource
       );
       documents[documentUri] = updatedEntry;
@@ -153,7 +167,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var cancellationSource = new CancellationTokenSource();
       var updatedEntry = new DocumentEntry(
         document.Version,
-        Task.Run(() => documentLoader.VerifyAsync(document, cancellationSource.Token)),
+        Task.Run(() => VerifyHandleCancellationAsync(document, cancellationSource.Token)),
         cancellationSource
       );
       documents[document.Uri] = updatedEntry;
