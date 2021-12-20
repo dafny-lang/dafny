@@ -99,12 +99,14 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     }
 
     private void AddDiagnosticForFile(Diagnostic item, DocumentUri documentUri) {
-      var fileDiagnostics = diagnostics.GetOrCreate(documentUri, () => new List<Diagnostic>());
+      lock (this) {
+        var fileDiagnostics = diagnostics.GetOrCreate(documentUri, () => new List<Diagnostic>());
 
-      var severity = item.Severity!.Value; // All our diagnostics have a severity.
-      counts.TryGetValue(severity, out var count);
-      counts[severity] = count + 1;
-      fileDiagnostics.Add(item);
+        var severity = item.Severity!.Value; // All our diagnostics have a severity.
+        counts.TryGetValue(severity, out var count);
+        counts[severity] = count + 1;
+        fileDiagnostics.Add(item);
+      }
     }
 
     private DocumentUri GetDocumentUriOrDefault(IToken token) {
