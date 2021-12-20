@@ -2409,7 +2409,7 @@ A one-dimensional array of `n` `T` elements is created as follows:
 a := new T[n];
 ```
 The initial values of the array elements are arbitrary values of type
-`T`. They can also be initialized with the array display syntax:
+`T`. They can also be initialized using a sequence display expression, as follows:
 ```
 a := new T[] [t1, t2, t3, t4];
 ```
