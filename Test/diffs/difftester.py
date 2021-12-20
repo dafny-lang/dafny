@@ -82,7 +82,7 @@ def which(exe: Union[str, List[str]]) -> Union[str, List[str]]:
 def debug(prefix: str, *msgs: str, **kwds: Dict[str, Any]) -> None:
     """Print `msgs` with `prefix`; forward `kwds` to ``print``."""
     if DEBUG:
-        print(prefix, *msgs, **{**kwds, "file": sys.stderr}) # type: ignore
+        print(prefix, *msgs, **{**kwds, "file": sys.stderr})  # type: ignore
 
 
 def _no_window() -> subprocess.STARTUPINFO:
@@ -233,7 +233,7 @@ class LSPTrace(ProverInputs):
         """Return the current document's URI."""
         for m in self.messages:
             if m["method"] == LSPMethods.didOpen:
-                return m["textDocument"]["uri"] # type: ignore
+                return m["textDocument"]["uri"]  # type: ignore
         raise ValueError("No didOpen message found in LSP trace.")
 
     def as_snapshots(self) -> "Snapshots":
@@ -432,7 +432,7 @@ class LSPServer:
         """Read server messages until finding one that matches `pred`."""
         msgs = iter(list(self.pending_output.items()))
         while True:
-            key, msg = next(msgs, None) or self._receive() # type: ignore
+            key, msg = next(msgs, None) or self._receive()  # type: ignore
             if pred(msg):
                 del self.pending_output[key]
                 return msg
@@ -462,7 +462,7 @@ class LSPServer:
     def _start(self) -> None:
         self.kill()
 
-        cmd =  [*self.command, *self.ARGS]
+        cmd = [*self.command, *self.ARGS]
         debug("#", shlex.join(cmd))
 
         # pylint: disable=consider-using-with
@@ -473,12 +473,12 @@ class LSPServer:
         if INPUT_TEE:
             assert self.repl.stdin
             log = open(INPUT_TEE, mode="wb")
-            self.repl.stdin = InputTee(self.repl.stdin, log) # type: ignore
+            self.repl.stdin = InputTee(self.repl.stdin, log)  # type: ignore
 
         if OUTPUT_TEE:
             assert self.repl.stdout
             log = open(OUTPUT_TEE, mode="wb")
-            self.repl.stdout = RecorderTee(self.repl.stdout, log) # type: ignore
+            self.repl.stdout = RecorderTee(self.repl.stdout, log)  # type: ignore
 
     def __enter__(self) -> "LSPServer":
         """Start a Dafny LSP server."""
@@ -529,7 +529,7 @@ class LSPDriver(Driver):
         def _filter(m: LSPMessage) -> bool:
             if m["method"] == LSPMethods.publishDiagnostics:
                 mp = m["params"]
-                return (mp["version"] == doc["version"] and # type: ignore
+                return (mp["version"] == doc["version"] and  # type: ignore
                         mp["uri"] == doc["uri"])
             return False
         return _filter
@@ -682,6 +682,7 @@ def resolve_input(inp: str, parser: argparse.ArgumentParser) -> ProverInputs:
 
     return Snapshots.from_files(inp)
 
+
 def parse_arguments() -> argparse.Namespace:
     """Parser command line arguments."""
     parser = argparse.ArgumentParser(description=__doc__)
@@ -736,6 +737,7 @@ def main() -> None:
     for inputs in args.inputs:
         print(f"====== {inputs.name} ======", file=sys.stderr)
         test(inputs, *args.drivers)
+
 
 if __name__ == "__main__":
     try:
