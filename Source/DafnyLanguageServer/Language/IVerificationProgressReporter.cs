@@ -8,7 +8,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// <summary>
     /// Report verification progress.
     /// </summary>
-    /// <param name="message">A progress message</param>
+    /// <param name="message">A progress message (IDE will prepend “Verifying” header)</param>
     void ReportProgress(string message);
   }
 }
