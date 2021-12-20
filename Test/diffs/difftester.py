@@ -57,7 +57,8 @@ VerificationResult = List[str]
 
 FIXME = NotImplementedError
 DEBUG = False
-TEE = "inputs.log"
+INPUT_TEE = "inputs.log"
+OUTPUT_TEE = "outputs.log"
 
 NWORKERS = 1
 TIMEOUT = 120.0  # https://stackoverflow.com/questions/1408356/
@@ -98,8 +99,8 @@ def _no_window() -> subprocess.STARTUPINFO:
     return si
 
 
-class Tee(IO[bytes]):
-    """Wrapper around a collection of streams that broadcasts outputs."""
+class InputTee(IO[bytes]):
+    """Wrapper around a collection of streams that broadcasts writes."""
 
     def __init__(self, *streams: IO[bytes]) -> None:
         self.streams = streams
@@ -114,6 +115,30 @@ class Tee(IO[bytes]):
     def flush(self) -> None:
         for s in self.streams:
             s.flush()
+
+
+class RecorderTee(IO[bytes]):
+    """Wrapper around a stream that records reads from it."""
+
+    def __init__(self, stream: IO[bytes], log: IO[bytes]) -> None:
+        self.stream, self.log = stream, log
+
+    def read(self, n: int) -> bytes:
+        bs = self.stream.read(n)
+        self.log.write(bs)
+        return bs
+
+    def readline(self) -> bytes:
+        bs = self.stream.readline()
+        self.log.write(bs)
+        return bs
+
+    def close(self) -> None:
+        for s in (self.stream, self.log):
+            s.close()
+
+    def flush(self) -> None:
+        self.log.flush()
 
 
 class Snapshot:
@@ -445,10 +470,15 @@ class LSPServer:
             cmd, startupinfo=_no_window(),
             stdin=PIPE, stderr=PIPE, stdout=PIPE)
 
-        if TEE:
+        if INPUT_TEE:
             assert self.repl.stdin
-            log = open(TEE, mode="wb")
-            self.repl.stdin = Tee(self.repl.stdin, log) # type: ignore
+            log = open(INPUT_TEE, mode="wb")
+            self.repl.stdin = InputTee(self.repl.stdin, log) # type: ignore
+
+        if OUTPUT_TEE:
+            assert self.repl.stdout
+            log = open(OUTPUT_TEE, mode="wb")
+            self.repl.stdout = RecorderTee(self.repl.stdout, log) # type: ignore
 
     def __enter__(self) -> "LSPServer":
         """Start a Dafny LSP server."""
