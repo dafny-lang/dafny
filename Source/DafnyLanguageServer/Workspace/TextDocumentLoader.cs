@@ -172,8 +172,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private record VerifyRequest(DafnyDocument OriginalDocument, CancellationToken CancellationToken) : Request(CancellationToken);
 
     private class VerificationProgressReporter : IVerificationProgressReporter {
-      public ICompilationStatusNotificationPublisher publisher { get; init; }
-      public TextDocumentItem document { get; init; }
+      private ICompilationStatusNotificationPublisher publisher { get; init; }
+      private TextDocumentItem document { get; init; }
 
       public VerificationProgressReporter(TextDocumentItem document,
                                           ICompilationStatusNotificationPublisher publisher) {
