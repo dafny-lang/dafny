@@ -150,7 +150,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         logger.LogInformation(s);
         var match = Regex.Match(s, "^Verifying .+[.](?<name>[^.]+) [.][.][.]$");
         if (match.Success) {
-          progressReporter.ReportProgress($"Verifying {match.Groups["name"].Value}...");
+          progressReporter.ReportProgress(match.Groups["name"].Value);
         }
       }
 
