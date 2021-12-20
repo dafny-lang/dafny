@@ -40,10 +40,6 @@ namespace IntegrationTests {
       "/timeLimit:300"
     };
 
-    private static ILitCommand MainWithArguments(Assembly assembly, IEnumerable<string> arguments, LitTestConfiguration config, bool invokeDirectly) {
-      return MainMethodLitCommand.Parse(assembly, arguments, config, invokeDirectly);
-    }
-
     private static readonly LitTestConfiguration Config;
     static LitTests() {
       var substitutions = new Dictionary<string, string> {
@@ -56,13 +52,16 @@ namespace IntegrationTests {
       var commands = new Dictionary<string, Func<IEnumerable<string>, LitTestConfiguration, ILitCommand>> {
         {
           "%baredafny", (args, config) =>
-            MainWithArguments(DafnyDriverAssembly, args, config, InvokeMainMethodsDirectly)
+            MainMethodLitCommand.Parse(DafnyDriverAssembly, args, config, InvokeMainMethodsDirectly)
         }, {
           "%dafny", (args, config) =>
-            MainWithArguments(DafnyDriverAssembly, DefaultDafnyArguments.Concat(args), config, InvokeMainMethodsDirectly)
+            MainMethodLitCommand.Parse(DafnyDriverAssembly, DefaultDafnyArguments.Concat(args), config, InvokeMainMethodsDirectly)
         }, {
           "%server", (args, config) =>
-            MainWithArguments(DafnyServerAssembly, args, config, InvokeMainMethodsDirectly)
+            MainMethodLitCommand.Parse(DafnyServerAssembly, args, config, InvokeMainMethodsDirectly)
+        }, {
+          "%OutputCheck", (args, config) =>
+            OutputCheckCommand.Parse(args, config)
         }
       };
 
