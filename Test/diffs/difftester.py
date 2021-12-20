@@ -248,9 +248,12 @@ class Snapshots(ProverInputs):
 
 
     @classmethod
-    def _find_snapshots(cls, name: str) -> Iterable[Tuple[int, Path]]:
+    def _find_snapshot_files(cls, name: str) -> Iterable[Tuple[int, Path]]:
         """Yield paths matching stem.vN.suffix where stem.suffix is `name`."""
         ref = Path(name)
+        if ref.exists():
+            yield 0, ref
+            return
         for f in ref.parent.iterdir():
             stem, num, suffix = cls.strip_vernum(f)
             if ref.stem == stem and ref.suffix == suffix and num is not None:
@@ -263,9 +266,9 @@ class Snapshots(ProverInputs):
         If `name` does not exist, read all files matching stem.vN.suffix, where
         stem.suffix is `name`.
         """
-        uri = Path(name).absolute().as_uri()
-        files = (f for _, f in sorted(cls._find_snapshots(name)))
+        files = [f for _, f in sorted(cls._find_snapshot_files(name))]
         snaps = (Snapshot.from_file(f) for f in files)
+        uri = Path(name).absolute().as_uri()
         return Snapshots(name, uri, snaps)
 
     @classmethod
