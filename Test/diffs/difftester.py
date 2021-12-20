@@ -174,6 +174,7 @@ class LSPMethods:
     didOpen = "textDocument/didOpen"
     didChange = "textDocument/didChange"
     publishDiagnostics = "textDocument/publishDiagnostics"
+    compilationStatus = "dafny/compilation/status"
     NEED_DIAGNOSTICS = {didOpen, didChange}
 
 
@@ -401,12 +402,16 @@ class LSPServer:
 
     def receive(self, pred: Callable[[LSPMessage], bool]) -> LSPMessage:
         """Read server messages until finding one that matches `pred`."""
-        msgs = iter(self.pending_output.items())
+        msgs = iter(list(self.pending_output.items()))
         while True:
             key, msg = next(msgs, None) or self._receive() # type: ignore
             if pred(msg):
                 del self.pending_output[key]
                 return msg
+
+    def discard_pending_messages(self):
+        """Discard pending server messages."""
+        self.pending_output.clear()
 
     def _kill(self) -> None:
         assert self.repl and self.repl.stdin and self.repl.stdout
@@ -501,14 +506,27 @@ class LSPDriver(Driver):
         """Return a function that checks for responses to `id`."""
         return lambda m: m.get("id") == id
 
+    @staticmethod
+    def is_verified_notification() -> Callable[[LSPMessage], bool]:
+        """Return a function that checks for a message indicating completion."""
+        def _filter(m: LSPMessage) -> bool:
+            if m["method"] == LSPMethods.compilationStatus:
+                st = m["params"]["status"]
+                return "Suceeded" in st or "Failed" in st
+            return False
+        return _filter
+
     def _iter_results(self, messages: Iterable[LSPMessage]) \
             -> Iterable[LSPOutput]:
         """Feed `inputs` to Dafny's LSP server; return diagnostic messages."""
         with LSPServer(self.command) as server:
             for msg in messages:
+                server.discard_pending_messages() # Drop stale output
                 server.send(msg)
                 if msg["method"] in LSPMethods.NEED_DIAGNOSTICS:
                     doc = msg["params"]["textDocument"]
+                    _ = server.receive(self.is_verified_notification())
+                    server.discard_pending_messages() # Drop in-progress diagnostics
                     diag = server.receive(self.is_diagnostic_for(doc))
                     yield LSPOutput(diag["params"]["diagnostics"])
                 if "id" in msg:  # Wait for response
@@ -596,6 +614,10 @@ def test(inputs: ProverInputs, *drivers: Driver) -> None:
                 print("   --------------------------------")
                 print(indent(pformat(p2.raw), "   > "))
         sys.stdout.flush()
+    for _ in results:
+        # Exhaust results iterators to make sure LSPServer calls shutdown and
+        # exit (otherwise the final code of these iterators remains pending).
+        assert False
 
 
 SLASH_2DASHES = re.compile("^/(?=--)")
@@ -681,7 +703,6 @@ def main() -> None:
     for inputs in args.inputs:
         print(f"====== {inputs.name} ======", file=sys.stderr)
         test(inputs, *args.drivers)
-
 
 if __name__ == "__main__":
     try:
