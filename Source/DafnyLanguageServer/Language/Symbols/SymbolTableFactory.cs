@@ -12,9 +12,11 @@ using AstElement = System.Object;
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   public class SymbolTableFactory : ISymbolTableFactory {
     private readonly ILogger logger;
+    private readonly ILogger<SymbolTable> loggerSymbolTable;
 
-    public SymbolTableFactory(ILogger<SymbolTableFactory> logger) {
+    public SymbolTableFactory(ILogger<SymbolTableFactory> logger, ILogger<SymbolTable> loggerSymbolTable) {
       this.logger = logger;
+      this.loggerSymbolTable = loggerSymbolTable;
     }
 
     public SymbolTable CreateFrom(Dafny.Program program, CompilationUnit compilationUnit, CancellationToken cancellationToken) {
@@ -34,6 +36,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         logger.LogDebug("cannot create symbol table from a program with errors");
       }
       return new SymbolTable(
+        loggerSymbolTable,
         compilationUnit,
         declarations,
         declarationLocationVisitor.Locations,
@@ -47,7 +50,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       foreach (var symbol in compilationUnit.GetAllDescendantsAndSelf()) {
         cancellationToken.ThrowIfCancellationRequested();
         if (symbol is ILocalizableSymbol localizableSymbol) {
-          // TODO we're using try-add since it appears that nodes of the System module are re-used accross several builtins.
+          // TODO we're using try-add since it appears that nodes of the System module are re-used across several builtins.
           // TODO Maybe refine the mapping of the "declarations".
           declarations.TryAdd(localizableSymbol.Node, localizableSymbol);
         }
@@ -111,8 +114,36 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
       public override void Visit(Function function) {
         cancellationToken.ThrowIfCancellationRequested();
-        RegisterTypeDesignator(currentScope, function.ResultType);
+        if (function.Result == null) {
+          RegisterTypeDesignator(currentScope, function.ResultType);
+        }
         ProcessNestedScope(function, function.tok, () => base.Visit(function));
+      }
+
+      public override void Visit(LambdaExpr lambdaExpression) {
+        cancellationToken.ThrowIfCancellationRequested();
+        ProcessNestedScope(lambdaExpression, lambdaExpression.tok, () => base.Visit(lambdaExpression));
+      }
+      public override void Visit(ForallExpr forallExpression) {
+        cancellationToken.ThrowIfCancellationRequested();
+        ProcessNestedScope(forallExpression, forallExpression.tok, () => base.Visit(forallExpression));
+      }
+      public override void Visit(ExistsExpr existsExpression) {
+        cancellationToken.ThrowIfCancellationRequested();
+        ProcessNestedScope(existsExpression, existsExpression.tok, () => base.Visit(existsExpression));
+      }
+      public override void Visit(SetComprehension setComprehension) {
+        cancellationToken.ThrowIfCancellationRequested();
+        ProcessNestedScope(setComprehension, setComprehension.tok, () => base.Visit(setComprehension));
+      }
+      public override void Visit(MapComprehension mapComprehension) {
+        cancellationToken.ThrowIfCancellationRequested();
+        ProcessNestedScope(mapComprehension, mapComprehension.tok, () => base.Visit(mapComprehension));
+      }
+
+      public override void Visit(LetExpr letExpression) {
+        cancellationToken.ThrowIfCancellationRequested();
+        ProcessNestedScope(letExpression, letExpression.tok, () => base.Visit(letExpression));
       }
 
       public override void Visit(Field field) {
@@ -123,8 +154,16 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
       public override void Visit(Formal formal) {
         cancellationToken.ThrowIfCancellationRequested();
+        RegisterDesignator(currentScope, formal, formal.tok, formal.Name);
         RegisterTypeDesignator(currentScope, formal.Type);
         base.Visit(formal);
+      }
+
+      public override void Visit(NonglobalVariable variable) {
+        cancellationToken.ThrowIfCancellationRequested();
+        RegisterDesignator(currentScope, variable, variable.tok, variable.Name);
+        RegisterTypeDesignator(currentScope, variable.Type);
+        base.Visit(variable);
       }
 
       public override void Visit(BlockStmt blockStatement) {
@@ -156,6 +195,12 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         RegisterDesignator(currentScope, frameExpression, frameExpression.tok, frameExpression.FieldName);
       }
 
+      public override void Visit(IdentifierExpr identifierExpression) {
+        cancellationToken.ThrowIfCancellationRequested();
+        RegisterDesignator(currentScope, identifierExpression, identifierExpression.tok, identifierExpression.Name);
+        base.Visit(identifierExpression);
+      }
+
       public override void Visit(LocalVariable localVariable) {
         cancellationToken.ThrowIfCancellationRequested();
         // TODO The type of a local variable may be visited twice when its initialized at declaration.
@@ -179,11 +224,17 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           // Many resolutions for automatically generated nodes (e.g. Decreases, Update when initializating a variable
           // at declaration) cause duplicated visits. These cannot be prevented at this time as it seems there's no way
           // to distinguish nodes from automatically created one (i.e. nodes of the original syntax tree vs. nodes of the
-          // abstract syntax tree). We could just ignore such duplicates. However, we may miss programatic errors if we
-          // do so.
+          // abstract syntax tree). We just ignore such duplicates until more information is availabe in the AST.
           var range = token.GetLspRange();
           SymbolLookup.Add(range.Start, range.End, symbol);
-          designators.Add(node, symbol);
+          if (designators.TryGetValue(node, out var registeredSymbol)) {
+            if (registeredSymbol != symbol) {
+              logger.LogInformation("Conflicting symbol resolution of designator named {Identifier} in {Filename}@({Line},{Column})",
+                identifier, token.GetDocumentFileName(), token.line, token.col);
+            }
+          } else {
+            designators.Add(node, symbol);
+          }
         } else {
           logger.LogInformation("could not resolve the symbol of designator named {Identifier} in {Filename}@({Line},{Column})",
             identifier, token.GetDocumentFileName(), token.line, token.col);
@@ -335,11 +386,12 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
       public Unit Visit(ScopeSymbol scopeSymbol) {
         cancellationToken.ThrowIfCancellationRequested();
+        var endToken = scopeSymbol.BodyEndToken;
         RegisterLocation(
           scopeSymbol,
-          scopeSymbol.Declaration.Tok,
-          scopeSymbol.Declaration.Tok.GetLspRange(),
-          new Range(scopeSymbol.Declaration.Tok.GetLspPosition(), scopeSymbol.Declaration.EndTok.GetLspPosition())
+          scopeSymbol.BodyStartToken,
+          scopeSymbol.BodyStartToken.GetLspRange(),
+          new Range(scopeSymbol.BodyStartToken.GetLspPosition(), endToken.GetLspPosition())
         );
         VisitChildren(scopeSymbol);
         return Unit.Value;
