@@ -44,7 +44,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           //      A dash means write to the textwriter instead of a file.
           // https://github.com/boogie-org/boogie/blob/b03dd2e4d5170757006eef94cbb07739ba50dddb/Source/VCGeneration/Couterexample.cs#L217
           DafnyOptions.O.ModelViewFile = "-";
-          DafnyOptions.O.VcsCores = GetConfiguredCoreCount(options.Value);
           initialized = true;
           logger.LogTrace("initialized the boogie verifier...");
         }
@@ -65,9 +64,10 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         var errorReporter = (DiagnosticErrorReporter)program.reporter;
         var printer = new ModelCapturingOutputPrinter(logger, errorReporter);
         ExecutionEngine.printer = printer;
-        // Do not set the time limit within the construction/statically. It will break some VerificationNotificationTest unit tests
-        // since we change the configured time limit depending on the test.
+        // Do not set these settings within the object's construction. It will break some tests within
+        // VerificationNotificationTest and DiagnosticsTest that rely on updating these settings.
         DafnyOptions.O.TimeLimit = options.TimeLimit;
+        DafnyOptions.O.VcsCores = GetConfiguredCoreCount(options);
         var translated = Translator.Translate(program, errorReporter, new Translator.TranslatorFlags { InsertChecksums = true });
         bool verified = true;
         foreach (var (_, boogieProgram) in translated) {

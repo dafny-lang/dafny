@@ -633,6 +633,9 @@ method t26() { assert false; }
 method t27() { assert false; }
 method t28() { assert false; }
 method t29() { assert false; }".TrimStart();
+      await SetUp(new Dictionary<string, string>() {
+        { $"{VerifierOptions.Section}:{nameof(VerifierOptions.VcsCores)}", "4" }
+      });
       for (int i = 0; i < 100; i++) {
         var documentItem = CreateTestDocument(source, $"test_{i}.dfy");
         client.OpenDocument(documentItem);
