@@ -114,8 +114,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var cancellationSource = new CancellationTokenSource();
       var updatedEntry = new DocumentEntry(
         documentChange.TextDocument.Version,
-        Task.Run(async () =>
-          await ApplyChangesAsync(await databaseEntry.Document, documentChange, cancellationSource.Token)),
+        Task.Run(async () => await ApplyChangesAsync(await databaseEntry.Document, documentChange, cancellationSource.Token)),
         cancellationSource
       );
       documents[documentUri] = updatedEntry;
