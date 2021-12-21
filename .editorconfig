@@ -28,6 +28,9 @@ csharp_new_line_before_else = false
 csharp_prefer_braces = true:error
 dotnet_diagnostic.IDE0011.severity = error
 
+# Parentheses around logical operators
+dotnet_style_parentheses_in_other_binary_operators = always_for_clarity:error
+
 #### Naming rules
 
 ##### Private mutable fields

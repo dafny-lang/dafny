@@ -70,7 +70,7 @@ namespace Microsoft.Dafny {
         Contract.Requires(b != null);
         Contract.Requires(eq != null);
         Contract.Ensures(Contract.Result<Thing>() != null ||
-                         (Contract.ValueAtReturn(out s) != null || 2 <= Contract.ValueAtReturn(out s).Count));
+                         Contract.ValueAtReturn(out s) != null || 2 <= Contract.ValueAtReturn(out s).Count);
         s = null;
         if (eq.Equals(a, b)) {
           return a;
@@ -842,7 +842,7 @@ namespace Microsoft.Dafny {
         bvars.Add(oVar);
 
         return
-          new SetComprehension(e.tok, true, bvars,
+          new SetComprehension(e.tok, e.tok, true, bvars,
             new BinaryExpr(e.tok, BinaryExpr.Opcode.In, obj,
               new ApplyExpr(e.tok, e, bexprs) {
                 Type = new SetType(true, builtIns.ObjectQ())
@@ -894,7 +894,7 @@ namespace Microsoft.Dafny {
             }
 
             sInE.Type = Type.Bool; // resolve here
-            var s = new SetComprehension(e.tok, true, new List<BoundVar>() { bv }, sInE, bvIE, null);
+            var s = new SetComprehension(e.tok, e.tok, true, new List<BoundVar>() { bv }, sInE, bvIE, null);
             s.Type = new SetType(true, builtIns.ObjectQ()); // resolve here
             sets.Add(s);
           } else {
@@ -6809,18 +6809,15 @@ namespace Microsoft.Dafny {
             }
           }
           // apply bounds discovery to quantifiers, finite sets, and finite maps
-          string what = null;
+          string what = e.WhatKind;
           Expression whereToLookForBounds = null;
           var polarity = true;
           if (e is QuantifierExpr quantifierExpr) {
-            what = "quantifier";
             whereToLookForBounds = quantifierExpr.LogicalBody();
             polarity = quantifierExpr is ExistsExpr;
           } else if (e is SetComprehension setComprehension) {
-            what = "set comprehension";
             whereToLookForBounds = setComprehension.Range;
           } else if (e is MapComprehension) {
-            what = "map comprehension";
             whereToLookForBounds = e.Range;
           } else {
             Contract.Assume(e is LambdaExpr);  // otherwise, unexpected ComprehensionExpr
@@ -13546,10 +13543,16 @@ namespace Microsoft.Dafny {
           callee.IsStatic ? null : s.Receiver);
         // type check the out-parameter arguments (in-parameters were type checked as part of ResolveActualParameters)
         for (int i = 0; i < callee.Outs.Count && i < s.Lhs.Count; i++) {
-          var it = callee.Outs[i].Type;
+          var outFormal = callee.Outs[i];
+          var it = outFormal.Type;
           Type st = SubstType(it, typeMap);
           var lhs = s.Lhs[i];
-          AddAssignableConstraint(s.Tok, lhs.Type, st, "incorrect type of method out-parameter" + (callee.Outs.Count == 1 ? "" : " " + i) + " (expected {1}, got {0})");
+          AddAssignableConstraint(
+            s.Tok, lhs.Type, st, "incorrect type of method out-parameter" +
+                                 (callee.Outs.Count == 1 ? "" : " " + i) +
+                                 (outFormal is ImplicitFormal || !outFormal.HasName
+                                   ? "" : " named '" + outFormal.Name + "'") +
+                                 " (expected {1}, got {0})");
         }
         for (int i = 0; i < s.Lhs.Count; i++) {
           var lhs = s.Lhs[i];
@@ -16806,7 +16809,7 @@ namespace Microsoft.Dafny {
               formals = new List<Formal>();
               for (var i = 0; i < fnType.Args.Count; i++) {
                 var argType = fnType.Args[i];
-                var formal = new Formal(e.tok, "_#p" + i, argType, true, false, null);
+                var formal = new ImplicitFormal(e.tok, "_#p" + i, argType, true, false);
                 formals.Add(formal);
               }
             }
@@ -16942,6 +16945,10 @@ namespace Microsoft.Dafny {
           if (formals.Count != 1) {
             what += " " + j;
           }
+          if (formal.HasName && !(formal is ImplicitFormal)) {
+            what += " named '" + formal.Name + "'";
+          }
+
           AddAssignableConstraint(callTok, SubstType(formal.Type, typeMap), b.Actual.Type, "incorrect type of " + what + " (expected {0}, found {1})");
         } else if (formal.DefaultValue != null) {
           // Note, in the following line, "substMap" is passed in, but it hasn't been fully filled in until the
@@ -18554,20 +18561,9 @@ namespace Microsoft.Dafny {
         return base.Traverse(expr, field, parent);
       }
 
-      string what;
-      if (e is ForallExpr) {
-        what = "forall expression";
-      } else if (e is ExistsExpr) {
-        what = "exists expression";
-      } else if (e is SetComprehension) {
-        what = "set comprehension";
-      } else if (e is MapComprehension) {
-        what = "map comprehension";
-      } else {
-        what = "comprehension";
-      }
+      string what = e.WhatKind;
 
-      if (what != "comprehension") { // should not apply for functions
+      if (e is ForallExpr || e is ExistsExpr || e is SetComprehension || e is MapComprehension) {
         foreach (var boundVar in e.BoundVars) {
           if (boundVar.Type.AsSubsetType is
           {

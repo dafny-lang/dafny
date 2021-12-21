@@ -126,6 +126,7 @@ class Main {
       decreases unmarkedNodes, stackNodes, |t.children| - t.childrenVisited
     {
       if t.childrenVisited == |t.children| {
+        assert {:focus} true;
         // pop
         t.childrenVisited := 0;
         if |stackNodes| == 0 {
@@ -138,6 +139,7 @@ class Main {
         // just advance to next child
         t.childrenVisited := t.childrenVisited + 1;
       } else {
+        assert {:focus} true;
         // push
         stackNodes := stackNodes + [t];
         t := t.children[t.childrenVisited];
@@ -220,7 +222,9 @@ class Main {
       invariant forall n :: n in S && n.marked ==> old(Reachable(root, n, S))
       // the current values of m.children[m.childrenVisited] for m's on the stack:
       invariant 0 < |stackNodes| ==> stackNodes[0].children[stackNodes[0].childrenVisited] == null
-      invariant forall k {:matchinglooprewrite false} :: 0 < k < |stackNodes| ==>
+      invariant forall k :: 1 < k < |stackNodes| ==>
+                  stackNodes[k].children[stackNodes[k].childrenVisited] != null
+      invariant forall k :: 0 < k < |stackNodes| ==>
                   stackNodes[k].children[stackNodes[k].childrenVisited] == stackNodes[k-1]
       // the original values of m.children[m.childrenVisited] for m's on the stack:
       invariant forall k {:matchinglooprewrite false} :: 0 <= k && k+1 < |stackNodes| ==>
@@ -231,6 +235,7 @@ class Main {
       decreases unmarkedNodes, stackNodes, |t.children| - t.childrenVisited
     {
       if t.childrenVisited == |t.children| {
+        assert {:focus} true;
         // pop
         t.childrenVisited := 0;
         if p == null {
@@ -249,6 +254,7 @@ class Main {
         t.childrenVisited := t.childrenVisited + 1;
 
       } else {
+        assert {:focus} true;
         // push
 
         var newT := t.children[t.childrenVisited];
