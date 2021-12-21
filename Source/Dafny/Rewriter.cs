@@ -111,7 +111,7 @@ namespace Microsoft.Dafny {
               term = new BinaryExpr(s.Tok, BinaryExpr.ResolvedOpcode.And, term, s.Ens[i].E);
             }
             List<Expression> exprList = new List<Expression>();
-            ForallExpr expr = new ForallExpr(s.Tok, s.BoundVars, s.Range, term, s.Attributes);
+            ForallExpr expr = new ForallExpr(s.Tok, s.EndTok, s.BoundVars, s.Range, term, s.Attributes);
             expr.Type = Type.Bool; // resolve here
             expr.Bounds = s.Bounds;
             exprList.Add(expr);
@@ -188,7 +188,7 @@ namespace Microsoft.Dafny {
                         Printer.ExprToString(newRhs));
                       reporter.Info(MessageSource.Resolver, stmt.Tok, msg);
 
-                      var expr = new ForallExpr(s.Tok, jList, val.Range, new BinaryExpr(s.Tok, BinaryExpr.ResolvedOpcode.EqCommon, lhs, newRhs), attributes);
+                      var expr = new ForallExpr(s.Tok, s.EndTok, jList, val.Range, new BinaryExpr(s.Tok, BinaryExpr.ResolvedOpcode.EqCommon, lhs, newRhs), attributes);
                       expr.Type = Type.Bool; //resolve here
                       exprList.Add(expr);
                     }
@@ -196,7 +196,7 @@ namespace Microsoft.Dafny {
                   }
                 }
                 if (!usedInversion) {
-                  var expr = new ForallExpr(s.Tok, s.BoundVars, s.Range, new BinaryExpr(s.Tok, BinaryExpr.ResolvedOpcode.EqCommon, lhs, rhs), s.Attributes);
+                  var expr = new ForallExpr(s.Tok, s.EndTok, s.BoundVars, s.Range, new BinaryExpr(s.Tok, BinaryExpr.ResolvedOpcode.EqCommon, lhs, rhs), s.Attributes);
                   expr.Type = Type.Bool; // resolve here
                   expr.Bounds = s.Bounds;
                   exprList.Add(expr);
@@ -227,7 +227,7 @@ namespace Microsoft.Dafny {
               term = new BinaryExpr(s.Tok, BinaryExpr.ResolvedOpcode.And, term, substituter.Substitute(s0.Method.Ens[i].E));
             }
             List<Expression> exprList = new List<Expression>();
-            ForallExpr expr = new ForallExpr(s.Tok, s.BoundVars, s.Range, term, s.Attributes);
+            ForallExpr expr = new ForallExpr(s.Tok, s.EndTok, s.BoundVars, s.Range, term, s.Attributes);
             expr.Type = Type.Bool; // resolve here
             expr.Bounds = s.Bounds;
             exprList.Add(expr);
@@ -1369,7 +1369,7 @@ namespace Microsoft.Dafny {
         //reqs.AddRange(generateAutoReqs(e.Range));
         var auto_reqs = generateAutoReqs(e.Term);
         if (auto_reqs.Count > 0) {
-          reqs.Add(Expression.CreateQuantifier(new ForallExpr(e.tok, new List<TypeParameter>(), e.BoundVars, e.Range, andify(e.Term.tok, auto_reqs), e.Attributes), true));
+          reqs.Add(Expression.CreateQuantifier(new ForallExpr(e.tok, e.BodyEndTok, new List<TypeParameter>(), e.BoundVars, e.Range, andify(e.Term.tok, auto_reqs), e.Attributes), true));
         }
       } else if (expr is MapComprehension) {
         var e = (MapComprehension)expr;
@@ -1382,7 +1382,7 @@ namespace Microsoft.Dafny {
         }
         auto_reqs.AddRange(generateAutoReqs(e.Term));
         if (auto_reqs.Count > 0) {
-          reqs.Add(Expression.CreateQuantifier(new ForallExpr(e.tok, new List<TypeParameter>(), e.BoundVars, e.Range, andify(e.Term.tok, auto_reqs), e.Attributes), true));
+          reqs.Add(Expression.CreateQuantifier(new ForallExpr(e.tok, e.BodyEndTok, new List<TypeParameter>(), e.BoundVars, e.Range, andify(e.Term.tok, auto_reqs), e.Attributes), true));
         }
       } else if (expr is StmtExpr) {
         var e = (StmtExpr)expr;
