@@ -9,13 +9,18 @@ using System.Threading;
 namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
   public class SymbolTableRelocator : ISymbolTableRelocator {
     private readonly ILogger logger;
+    private readonly ILogger<SymbolTable> loggerSymbolTable;
 
-    public SymbolTableRelocator(ILogger<SymbolTableRelocator> logger) {
+    public SymbolTableRelocator(
+      ILogger<SymbolTableRelocator> logger,
+      ILogger<SymbolTable> loggerSymbolTable
+      ) {
       this.logger = logger;
+      this.loggerSymbolTable = loggerSymbolTable;
     }
 
     public SymbolTable Relocate(SymbolTable originalSymbolTable, DidChangeTextDocumentParams changes, CancellationToken cancellationToken) {
-      return new ChangeProcessor(logger, originalSymbolTable, changes.ContentChanges, cancellationToken).MigrateSymbolTable();
+      return new ChangeProcessor(logger, loggerSymbolTable, originalSymbolTable, changes.ContentChanges, cancellationToken).MigrateSymbolTable();
     }
 
     private class ChangeProcessor {
@@ -23,9 +28,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
       private readonly SymbolTable originalSymbolTable;
       private readonly Container<TextDocumentContentChangeEvent> contentChanges;
       private readonly CancellationToken cancellationToken;
+      private readonly ILogger<SymbolTable> loggerSymbolTable;
 
       public ChangeProcessor(
         ILogger logger,
+        ILogger<SymbolTable> loggerSymbolTable,
         SymbolTable originalSymbolTable,
         Container<TextDocumentContentChangeEvent> contentChanges,
         CancellationToken cancellationToken
@@ -34,6 +41,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
         this.originalSymbolTable = originalSymbolTable;
         this.contentChanges = contentChanges;
         this.cancellationToken = cancellationToken;
+        this.loggerSymbolTable = loggerSymbolTable;
       }
 
       public SymbolTable MigrateSymbolTable() {
@@ -51,6 +59,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
         logger.LogTrace("migrated the lookup tree, lookup before={SymbolsBefore}, after={SymbolsAfter}",
           originalSymbolTable.LookupTree.Count, migratedLookupTree.Count);
         return new SymbolTable(
+          loggerSymbolTable,
           originalSymbolTable.CompilationUnit,
           originalSymbolTable.Declarations,
           migratedDeclarations,

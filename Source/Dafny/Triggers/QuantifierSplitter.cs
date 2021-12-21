@@ -76,7 +76,7 @@ namespace Microsoft.Dafny.Triggers {
         }
         foreach (var e in stream) {
           var tok = new NestedToken(quantifier.tok, e.tok);
-          yield return new ForallExpr(tok, ((ForallExpr)quantifier).TypeArgs, quantifier.BoundVars, quantifier.Range, e, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds };
+          yield return new ForallExpr(tok, quantifier.BodyEndTok, ((ForallExpr)quantifier).TypeArgs, quantifier.BoundVars, quantifier.Range, e, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds };
         }
       } else if (quantifier is ExistsExpr) {
         IEnumerable<Expression> stream;
@@ -87,7 +87,7 @@ namespace Microsoft.Dafny.Triggers {
         }
         foreach (var e in stream) {
           var tok = new NestedToken(quantifier.tok, e.tok);
-          yield return new ExistsExpr(tok, ((ExistsExpr)quantifier).TypeArgs, quantifier.BoundVars, quantifier.Range, e, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds };
+          yield return new ExistsExpr(tok, quantifier.BodyEndTok, ((ExistsExpr)quantifier).TypeArgs, quantifier.BoundVars, quantifier.Range, e, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds };
         }
       } else {
         yield return quantifier;
@@ -167,9 +167,9 @@ namespace Microsoft.Dafny.Triggers {
       } else {
         // make a copy of the expr
         if (expr is ForallExpr) {
-          expr = new ForallExpr(expr.tok, expr.TypeArgs, expr.BoundVars, expr.Range, expr.Term, TriggerUtils.CopyAttributes(expr.Attributes)) { Type = expr.Type, Bounds = expr.Bounds };
+          expr = new ForallExpr(expr.tok, expr.BodyEndTok, expr.TypeArgs, expr.BoundVars, expr.Range, expr.Term, TriggerUtils.CopyAttributes(expr.Attributes)) { Type = expr.Type, Bounds = expr.Bounds };
         } else {
-          expr = new ExistsExpr(expr.tok, expr.TypeArgs, expr.BoundVars, expr.Range, expr.Term, TriggerUtils.CopyAttributes(expr.Attributes)) { Type = expr.Type, Bounds = expr.Bounds };
+          expr = new ExistsExpr(expr.tok, expr.BodyEndTok, expr.TypeArgs, expr.BoundVars, expr.Range, expr.Term, TriggerUtils.CopyAttributes(expr.Attributes)) { Type = expr.Type, Bounds = expr.Bounds };
         }
       }
       return expr;
