@@ -14,6 +14,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     private readonly DocumentUri entryDocumentUri;
     private readonly Dictionary<DocumentUri, List<Diagnostic>> diagnostics = new();
     private readonly Dictionary<DiagnosticSeverity, int> counts = new();
+    private static readonly object syncObject = new();
 
     public IReadOnlyDictionary<DocumentUri, List<Diagnostic>> Diagnostics => diagnostics;
 
@@ -96,9 +97,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     }
 
     private void AddDiagnosticForFile(Diagnostic item, DocumentUri documentUri) {
-      lock (this) {
+      lock (syncObject) {
         var fileDiagnostics = diagnostics.GetOrCreate(documentUri, () => new List<Diagnostic>());
-
         var severity = item.Severity!.Value; // All our diagnostics have a severity.
         counts[severity] = counts.GetValueOrDefault(severity, 0) + 1;
         fileDiagnostics.Add(item);
