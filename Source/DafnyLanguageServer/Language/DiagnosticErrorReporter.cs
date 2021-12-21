@@ -92,10 +92,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     }
 
     public override int Count(ErrorLevel level) {
-      if (counts.TryGetValue(ToSeverity(level), out var count)) {
-        return count;
-      }
-      return 0;
+      return counts.GetValueOrDefault(ToSeverity(level), 0);
     }
 
     private void AddDiagnosticForFile(Diagnostic item, DocumentUri documentUri) {
@@ -103,8 +100,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         var fileDiagnostics = diagnostics.GetOrCreate(documentUri, () => new List<Diagnostic>());
 
         var severity = item.Severity!.Value; // All our diagnostics have a severity.
-        counts.TryGetValue(severity, out var count);
-        counts[severity] = count + 1;
+        counts[severity] = counts.GetValueOrDefault(severity, 0) + 1;
         fileDiagnostics.Add(item);
       }
     }
