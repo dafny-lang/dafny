@@ -158,8 +158,9 @@ namespace Microsoft.Dafny.Triggers {
           q.RejectedCandidates.AddRange(looping);
         }
 
-        if (looping.Count > 0)
+        if (looping.Count > 0) {
           foundloop = true;
+        }
       }
       return foundloop;
     }
@@ -248,11 +249,11 @@ namespace Microsoft.Dafny.Triggers {
           if (q.quantifier is ForallExpr) {
             ForallExpr quantifier = (ForallExpr)q.quantifier;
             Expression expr = QuantifiersToExpression(quantifier.tok, BinaryExpr.ResolvedOpcode.And, group.expressions);
-            q.quantifier = new ForallExpr(quantifier.tok, quantifier.TypeArgs, quantifier.BoundVars, quantifier.Range, expr, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds };
+            q.quantifier = new ForallExpr(quantifier.tok, quantifier.BodyEndTok, quantifier.TypeArgs, quantifier.BoundVars, quantifier.Range, expr, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds };
           } else if (q.quantifier is ExistsExpr) {
             ExistsExpr quantifier = (ExistsExpr)q.quantifier;
             Expression expr = QuantifiersToExpression(quantifier.tok, BinaryExpr.ResolvedOpcode.Or, group.expressions);
-            q.quantifier = new ExistsExpr(quantifier.tok, quantifier.TypeArgs, quantifier.BoundVars, quantifier.Range, expr, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds };
+            q.quantifier = new ExistsExpr(quantifier.tok, quantifier.BodyEndTok, quantifier.TypeArgs, quantifier.BoundVars, quantifier.Range, expr, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds };
           }
           list.Add(q);
           splits.Add(q.quantifier);

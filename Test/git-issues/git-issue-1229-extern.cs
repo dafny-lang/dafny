@@ -1,5 +1,5 @@
 namespace MyModule2 {
-    public class MyType {
+  public class MyType {
 
-    }
+  }
 }

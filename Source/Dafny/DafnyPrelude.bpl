@@ -17,37 +17,61 @@ axiom $$Language$Dafny;        // coming from a Dafny program.
 type Ty;
 type Bv0 = int;
 
-const unique TBool : Ty;
-const unique TChar : Ty;
-const unique TInt  : Ty;
-const unique TReal : Ty;
-const unique TORDINAL  : Ty;
-function TBitvector(int) : Ty;
-function TSet(Ty)      : Ty;
-function TISet(Ty)     : Ty;
-function TMultiSet(Ty) : Ty;
-function TSeq(Ty)      : Ty;
-function TMap(Ty, Ty)  : Ty;
-function TIMap(Ty, Ty) : Ty;
+const unique TBool : Ty uses {
+  axiom Tag(TBool) == TagBool;
+}
+const unique TChar : Ty uses {
+  axiom Tag(TChar) == TagChar;
+}
+const unique TInt  : Ty uses {
+  axiom Tag(TInt) == TagInt;
+}
+const unique TReal : Ty uses {
+  axiom Tag(TReal) == TagReal;
+}
+const unique TORDINAL  : Ty uses {
+  axiom Tag(TORDINAL) == TagORDINAL;
+}
+// See for which axioms we can make use of the trigger to determine the connection.
+function TBitvector(int) : Ty uses {
+  axiom (forall w: int :: { TBitvector(w) } Inv0_TBitvector(TBitvector(w)) == w);
+}
+function TSet(Ty)      : Ty uses {
+  axiom (forall t: Ty :: { TSet(t) } Inv0_TSet(TSet(t)) == t);
+  axiom (forall t: Ty    :: { TSet(t) }      Tag(TSet(t))      == TagSet);
+}
+function TISet(Ty)     : Ty uses {
+  axiom (forall t: Ty :: { TISet(t) } Inv0_TISet(TISet(t)) == t);
+  axiom (forall t: Ty    :: { TISet(t) }     Tag(TISet(t))     == TagISet);
+}
+function TMultiSet(Ty) : Ty uses {
+  axiom (forall t: Ty :: { TMultiSet(t) } Inv0_TMultiSet(TMultiSet(t)) == t);
+  axiom (forall t: Ty    :: { TMultiSet(t) } Tag(TMultiSet(t)) == TagMultiSet);
+}
+function TSeq(Ty)      : Ty uses {
+  axiom (forall t: Ty :: { TSeq(t) } Inv0_TSeq(TSeq(t)) == t);
+  axiom (forall t: Ty    :: { TSeq(t) }      Tag(TSeq(t))      == TagSeq);
+}
+function TMap(Ty, Ty)  : Ty uses {
+  axiom (forall t, u: Ty :: { TMap(t,u) } Inv0_TMap(TMap(t,u)) == t);
+  axiom (forall t, u: Ty :: { TMap(t,u) } Inv1_TMap(TMap(t,u)) == u);
+  axiom (forall t, u: Ty :: { TMap(t,u) }    Tag(TMap(t,u))    == TagMap);
+}
+function TIMap(Ty, Ty) : Ty uses {
+  axiom (forall t, u: Ty :: { TIMap(t,u) } Inv0_TIMap(TIMap(t,u)) == t);
+  axiom (forall t, u: Ty :: { TIMap(t,u) } Inv1_TIMap(TIMap(t,u)) == u);
+  axiom (forall t, u: Ty :: { TIMap(t,u) }   Tag(TIMap(t,u))   == TagIMap);
+}
 
 function Inv0_TBitvector(Ty) : int;
-axiom (forall w: int :: { TBitvector(w) } Inv0_TBitvector(TBitvector(w)) == w);
 function Inv0_TSet(Ty) : Ty;
-axiom (forall t: Ty :: { TSet(t) } Inv0_TSet(TSet(t)) == t);
 function Inv0_TISet(Ty) : Ty;
-axiom (forall t: Ty :: { TISet(t) } Inv0_TISet(TISet(t)) == t);
 function Inv0_TSeq(Ty) : Ty;
-axiom (forall t: Ty :: { TSeq(t) } Inv0_TSeq(TSeq(t)) == t);
 function Inv0_TMultiSet(Ty) : Ty;
-axiom (forall t: Ty :: { TMultiSet(t) } Inv0_TMultiSet(TMultiSet(t)) == t);
 function Inv0_TMap(Ty) : Ty;
 function Inv1_TMap(Ty) : Ty;
-axiom (forall t, u: Ty :: { TMap(t,u) } Inv0_TMap(TMap(t,u)) == t);
-axiom (forall t, u: Ty :: { TMap(t,u) } Inv1_TMap(TMap(t,u)) == u);
 function Inv0_TIMap(Ty) : Ty;
 function Inv1_TIMap(Ty) : Ty;
-axiom (forall t, u: Ty :: { TIMap(t,u) } Inv0_TIMap(TIMap(t,u)) == t);
-axiom (forall t, u: Ty :: { TIMap(t,u) } Inv1_TIMap(TIMap(t,u)) == u);
 
 // -- Classes and Datatypes --
 
@@ -68,58 +92,54 @@ const unique TagMap      : TyTag;
 const unique TagIMap     : TyTag;
 const unique TagClass    : TyTag;
 
-axiom Tag(TBool) == TagBool;
-axiom Tag(TChar) == TagChar;
-axiom Tag(TInt) == TagInt;
-axiom Tag(TReal) == TagReal;
-axiom Tag(TORDINAL) == TagORDINAL;
-axiom (forall t: Ty    :: { TSet(t) }      Tag(TSet(t))      == TagSet);
-axiom (forall t: Ty    :: { TISet(t) }     Tag(TISet(t))     == TagISet);
-axiom (forall t: Ty    :: { TMultiSet(t) } Tag(TMultiSet(t)) == TagMultiSet);
-axiom (forall t: Ty    :: { TSeq(t) }      Tag(TSeq(t))      == TagSeq);
-axiom (forall t, u: Ty :: { TMap(t,u) }    Tag(TMap(t,u))    == TagMap);
-axiom (forall t, u: Ty :: { TIMap(t,u) }   Tag(TIMap(t,u))   == TagIMap);
-
 type TyTagFamily;
 function TagFamily(Ty): TyTagFamily;
 
 // ---------------------------------------------------------------
 // -- Literals ---------------------------------------------------
 // ---------------------------------------------------------------
-function {:identity} Lit<T>(x: T): T { x }
-axiom (forall<T> x: T :: { $Box(Lit(x)) } $Box(Lit(x)) == Lit($Box(x)) );
+function {:identity} Lit<T>(x: T): T { x } uses {
+  axiom (forall<T> x: T :: { $Box(Lit(x)) } $Box(Lit(x)) == Lit($Box(x)) );
+}
 
 // Specialize Lit to concrete types.
 // These aren't logically required, but on some examples improve
 // verification speed
-function {:identity} LitInt(x: int): int { x }
-axiom (forall x: int :: { $Box(LitInt(x)) } $Box(LitInt(x)) == Lit($Box(x)) );
-function {:identity} LitReal(x: real): real { x }
-axiom (forall x: real :: { $Box(LitReal(x)) } $Box(LitReal(x)) == Lit($Box(x)) );
+function {:identity} LitInt(x: int): int { x } uses {
+  axiom (forall x: int :: { $Box(LitInt(x)) } $Box(LitInt(x)) == Lit($Box(x)) );
+}
+function {:identity} LitReal(x: real): real { x } uses {
+  axiom (forall x: real :: { $Box(LitReal(x)) } $Box(LitReal(x)) == Lit($Box(x)) );
+}
 
 // ---------------------------------------------------------------
 // -- Characters -------------------------------------------------
 // ---------------------------------------------------------------
 
 type char;
-function char#FromInt(int): char;
-function char#ToInt(char): int;  // inverse of char#FromInt
-axiom (forall ch: char ::
-  { char#ToInt(ch) }
-  char#FromInt(char#ToInt(ch)) == ch &&
-  0 <= char#ToInt(ch) && char#ToInt(ch) < 65536);
-axiom (forall n: int ::
-  { char#FromInt(n) }
-  0 <= n && n < 65536 ==> char#ToInt(char#FromInt(n)) == n);
+function char#FromInt(int): char uses {
+  axiom (forall n: int ::
+    { char#FromInt(n) }
+    0 <= n && n < 65536 ==> char#ToInt(char#FromInt(n)) == n);
+}
 
-function char#Plus(char, char): char;
-function char#Minus(char, char): char;
-axiom (forall a: char, b: char ::
-  { char#Plus(a, b) }
-  char#Plus(a, b) == char#FromInt(char#ToInt(a) + char#ToInt(b)));
-axiom (forall a: char, b: char ::
-  { char#Minus(a, b) }
-  char#Minus(a, b) == char#FromInt(char#ToInt(a) - char#ToInt(b)));
+function char#ToInt(char): int uses {
+  axiom (forall ch: char ::
+    { char#ToInt(ch) }
+    char#FromInt(char#ToInt(ch)) == ch &&
+    0 <= char#ToInt(ch) && char#ToInt(ch) < 65536);
+}  
+
+function char#Plus(char, char): char uses {
+  axiom (forall a: char, b: char ::
+    { char#Plus(a, b) }
+    char#Plus(a, b) == char#FromInt(char#ToInt(a) + char#ToInt(b)));
+}
+function char#Minus(char, char): char uses {
+  axiom (forall a: char, b: char ::
+    { char#Minus(a, b) }
+    char#Minus(a, b) == char#FromInt(char#ToInt(a) - char#ToInt(b)));
+}
 
 // ---------------------------------------------------------------
 // -- References -------------------------------------------------
@@ -135,10 +155,15 @@ const null: ref;
 type Box;
 const $ArbitraryBoxValue: Box;
 
-function $Box<T>(T): Box;
+function $Box<T>(T): Box uses {
+  axiom (forall<T> x : T :: { $Box(x) } $Unbox($Box(x)) == x);
+}
 function $Unbox<T>(Box): T;
 
-axiom (forall<T> x : T :: { $Box(x) } $Unbox($Box(x)) == x);
+// Corresponding entries for boxes...
+// This could probably be solved by having Box also inhabit Ty
+function $IsBox<T>(T,Ty): bool;
+function $IsAllocBox<T>(T,Ty,Heap): bool;
 
 axiom (forall bx : Box ::
     { $IsBox(bx, TInt) }
@@ -191,113 +216,112 @@ axiom (forall<T> v : T, t : Ty, h : Heap ::
 
 // Type-argument to $Is is the /representation type/,
 // the second value argument to $Is is the actual type.
-function $Is<T>(T,Ty): bool;           // no heap for now
-function $IsAlloc<T>(T,Ty,Heap): bool;
+function $Is<T>(T,Ty): bool uses {           // no heap for now
+    axiom(forall v : int  :: { $Is(v,TInt) }  $Is(v,TInt));
+    axiom(forall v : real :: { $Is(v,TReal) } $Is(v,TReal));
+    axiom(forall v : bool :: { $Is(v,TBool) } $Is(v,TBool));
+    axiom(forall v : char :: { $Is(v,TChar) } $Is(v,TChar));
+    axiom(forall v : ORDINAL :: { $Is(v,TORDINAL) } $Is(v,TORDINAL));
+    
+    // Since every bitvector type is a separate type in Boogie, the $Is/$IsAlloc axioms
+    // for bitvectors are generated programatically. Except, TBitvector(0) is given here.
+    axiom (forall v: Bv0 :: { $Is(v, TBitvector(0)) } $Is(v, TBitvector(0)));
 
-// Corresponding entries for boxes...
-// This could probably be solved by having Box also inhabit Ty
-function $IsBox<T>(T,Ty): bool;
-function $IsAllocBox<T>(T,Ty,Heap): bool;
-
-axiom(forall v : int  :: { $Is(v,TInt) }  $Is(v,TInt));
-axiom(forall v : real :: { $Is(v,TReal) } $Is(v,TReal));
-axiom(forall v : bool :: { $Is(v,TBool) } $Is(v,TBool));
-axiom(forall v : char :: { $Is(v,TChar) } $Is(v,TChar));
-axiom(forall v : ORDINAL :: { $Is(v,TORDINAL) } $Is(v,TORDINAL));
-
-axiom(forall h : Heap, v : int  :: { $IsAlloc(v,TInt,h) }  $IsAlloc(v,TInt,h));
-axiom(forall h : Heap, v : real :: { $IsAlloc(v,TReal,h) } $IsAlloc(v,TReal,h));
-axiom(forall h : Heap, v : bool :: { $IsAlloc(v,TBool,h) } $IsAlloc(v,TBool,h));
-axiom(forall h : Heap, v : char :: { $IsAlloc(v,TChar,h) } $IsAlloc(v,TChar,h));
-axiom(forall h : Heap, v : ORDINAL :: { $IsAlloc(v,TORDINAL,h) } $IsAlloc(v,TORDINAL,h));
-
-// Since every bitvector type is a separate type in Boogie, the $Is/$IsAlloc axioms
-// for bitvectors are generated programatically. Except, TBitvector(0) is given here.
-axiom (forall v: Bv0 :: { $Is(v, TBitvector(0)) } $Is(v, TBitvector(0)));
-axiom (forall v: Bv0, h: Heap :: { $IsAlloc(v, TBitvector(0), h) } $IsAlloc(v, TBitvector(0), h));
-
-axiom (forall v: Set Box, t0: Ty :: { $Is(v, TSet(t0)) }
-  $Is(v, TSet(t0)) <==>
-  (forall bx: Box :: { v[bx] }
-    v[bx] ==> $IsBox(bx, t0)));
-axiom (forall v: ISet Box, t0: Ty :: { $Is(v, TISet(t0)) }
-  $Is(v, TISet(t0)) <==>
-  (forall bx: Box :: { v[bx] }
-    v[bx] ==> $IsBox(bx, t0)));
-axiom (forall v: MultiSet Box, t0: Ty :: { $Is(v, TMultiSet(t0)) }
-  $Is(v, TMultiSet(t0)) <==>
-  (forall bx: Box :: { v[bx] }
-    0 < v[bx] ==> $IsBox(bx, t0)));
-axiom (forall v: MultiSet Box, t0: Ty :: { $Is(v, TMultiSet(t0)) }
-  $Is(v, TMultiSet(t0)) ==> $IsGoodMultiSet(v));
-axiom (forall v: Seq Box, t0: Ty :: { $Is(v, TSeq(t0)) }
-  $Is(v, TSeq(t0)) <==>
-  (forall i : int :: { Seq#Index(v, i) }
-    0 <= i && i < Seq#Length(v) ==>
-	$IsBox(Seq#Index(v, i), t0)));
-axiom (forall v: Set Box, t0: Ty, h: Heap :: { $IsAlloc(v, TSet(t0), h) }
-  $IsAlloc(v, TSet(t0), h) <==>
-  (forall bx: Box :: { v[bx] }
-    v[bx] ==> $IsAllocBox(bx, t0, h)));
-axiom (forall v: ISet Box, t0: Ty, h: Heap :: { $IsAlloc(v, TISet(t0), h) }
-  $IsAlloc(v, TISet(t0), h) <==>
-  (forall bx: Box :: { v[bx] }
-    v[bx] ==> $IsAllocBox(bx, t0, h)));
-axiom (forall v: MultiSet Box, t0: Ty, h: Heap :: { $IsAlloc(v, TMultiSet(t0), h) }
-  $IsAlloc(v, TMultiSet(t0), h) <==>
-  (forall bx: Box :: { v[bx] }
-    0 < v[bx] ==> $IsAllocBox(bx, t0, h)));
-axiom (forall v: Seq Box, t0: Ty, h: Heap :: { $IsAlloc(v, TSeq(t0), h) }
-  $IsAlloc(v, TSeq(t0), h) <==>
-  (forall i : int :: { Seq#Index(v, i) }
-    0 <= i && i < Seq#Length(v) ==>
-	$IsAllocBox(Seq#Index(v, i), t0, h)));
-
-axiom (forall v: Map Box Box, t0: Ty, t1: Ty ::
-  { $Is(v, TMap(t0, t1)) }
-  $Is(v, TMap(t0, t1))
-     <==> (forall bx: Box ::
-      { Map#Elements(v)[bx] } { Map#Domain(v)[bx] }
-      Map#Domain(v)[bx] ==>
-        $IsBox(Map#Elements(v)[bx], t1) &&
-        $IsBox(bx, t0)));
-axiom (forall v: Map Box Box, t0: Ty, t1: Ty, h: Heap ::
-  { $IsAlloc(v, TMap(t0, t1), h) }
-  $IsAlloc(v, TMap(t0, t1), h)
-     <==> (forall bx: Box ::
-      { Map#Elements(v)[bx] } { Map#Domain(v)[bx] }
-      Map#Domain(v)[bx] ==>
-        $IsAllocBox(Map#Elements(v)[bx], t1, h) &&
-        $IsAllocBox(bx, t0, h)));
-axiom (forall v: Map Box Box, t0: Ty, t1: Ty ::
-  { $Is(v, TMap(t0, t1)) }
-  $Is(v, TMap(t0, t1)) ==>
-    $Is(Map#Domain(v), TSet(t0)) &&
-    $Is(Map#Values(v), TSet(t1)) &&
-    $Is(Map#Items(v), TSet(Tclass._System.Tuple2(t0, t1))));
-
-axiom (forall v: IMap Box Box, t0: Ty, t1: Ty ::
-  { $Is(v, TIMap(t0, t1)) }
-  $Is(v, TIMap(t0, t1))
-     <==> (forall bx: Box ::
-      { IMap#Elements(v)[bx] } { IMap#Domain(v)[bx] }
-      IMap#Domain(v)[bx] ==>
-        $IsBox(IMap#Elements(v)[bx], t1) &&
-        $IsBox(bx, t0)));
-axiom (forall v: IMap Box Box, t0: Ty, t1: Ty, h: Heap ::
-  { $IsAlloc(v, TIMap(t0, t1), h) }
-  $IsAlloc(v, TIMap(t0, t1), h)
-     <==> (forall bx: Box ::
-      { IMap#Elements(v)[bx] } { IMap#Domain(v)[bx] }
-      IMap#Domain(v)[bx] ==>
-        $IsAllocBox(IMap#Elements(v)[bx], t1, h) &&
-        $IsAllocBox(bx, t0, h)));
-axiom (forall v: IMap Box Box, t0: Ty, t1: Ty ::
-  { $Is(v, TIMap(t0, t1)) }
-  $Is(v, TIMap(t0, t1)) ==>
-    $Is(IMap#Domain(v), TISet(t0)) &&
-    $Is(IMap#Values(v), TISet(t1)) &&
-    $Is(IMap#Items(v), TISet(Tclass._System.Tuple2(t0, t1))));
+    axiom (forall v: Set Box, t0: Ty :: { $Is(v, TSet(t0)) }
+      $Is(v, TSet(t0)) <==>
+      (forall bx: Box :: { v[bx] }
+        v[bx] ==> $IsBox(bx, t0)));
+    axiom (forall v: ISet Box, t0: Ty :: { $Is(v, TISet(t0)) }
+      $Is(v, TISet(t0)) <==>
+      (forall bx: Box :: { v[bx] }
+        v[bx] ==> $IsBox(bx, t0)));
+    axiom (forall v: MultiSet Box, t0: Ty :: { $Is(v, TMultiSet(t0)) }
+      $Is(v, TMultiSet(t0)) <==>
+      (forall bx: Box :: { v[bx] }
+        0 < v[bx] ==> $IsBox(bx, t0)));
+    axiom (forall v: MultiSet Box, t0: Ty :: { $Is(v, TMultiSet(t0)) }
+      $Is(v, TMultiSet(t0)) ==> $IsGoodMultiSet(v));
+    axiom (forall v: Seq Box, t0: Ty :: { $Is(v, TSeq(t0)) }
+      $Is(v, TSeq(t0)) <==>
+      (forall i : int :: { Seq#Index(v, i) }
+        0 <= i && i < Seq#Length(v) ==>
+        $IsBox(Seq#Index(v, i), t0)));
+        
+    axiom (forall v: Map Box Box, t0: Ty, t1: Ty ::
+      { $Is(v, TMap(t0, t1)) }
+      $Is(v, TMap(t0, t1))
+         <==> (forall bx: Box ::
+          { Map#Elements(v)[bx] } { Map#Domain(v)[bx] }
+          Map#Domain(v)[bx] ==>
+            $IsBox(Map#Elements(v)[bx], t1) &&
+            $IsBox(bx, t0)));
+            
+    axiom (forall v: Map Box Box, t0: Ty, t1: Ty ::
+      { $Is(v, TMap(t0, t1)) }
+      $Is(v, TMap(t0, t1)) ==>
+        $Is(Map#Domain(v), TSet(t0)) &&
+        $Is(Map#Values(v), TSet(t1)) &&
+        $Is(Map#Items(v), TSet(Tclass._System.Tuple2(t0, t1))));
+    axiom (forall v: IMap Box Box, t0: Ty, t1: Ty ::
+      { $Is(v, TIMap(t0, t1)) }
+      $Is(v, TIMap(t0, t1))
+         <==> (forall bx: Box ::
+          { IMap#Elements(v)[bx] } { IMap#Domain(v)[bx] }
+          IMap#Domain(v)[bx] ==>
+            $IsBox(IMap#Elements(v)[bx], t1) &&
+            $IsBox(bx, t0)));
+    axiom (forall v: IMap Box Box, t0: Ty, t1: Ty ::
+      { $Is(v, TIMap(t0, t1)) }
+      $Is(v, TIMap(t0, t1)) ==>
+        $Is(IMap#Domain(v), TISet(t0)) &&
+        $Is(IMap#Values(v), TISet(t1)) &&
+        $Is(IMap#Items(v), TISet(Tclass._System.Tuple2(t0, t1))));
+}
+function  $IsAlloc<T>(T,Ty,Heap): bool uses {
+    axiom(forall h : Heap, v : int  :: { $IsAlloc(v,TInt,h) }  $IsAlloc(v,TInt,h));
+    axiom(forall h : Heap, v : real :: { $IsAlloc(v,TReal,h) } $IsAlloc(v,TReal,h));
+    axiom(forall h : Heap, v : bool :: { $IsAlloc(v,TBool,h) } $IsAlloc(v,TBool,h));
+    axiom(forall h : Heap, v : char :: { $IsAlloc(v,TChar,h) } $IsAlloc(v,TChar,h));
+    axiom(forall h : Heap, v : ORDINAL :: { $IsAlloc(v,TORDINAL,h) } $IsAlloc(v,TORDINAL,h));
+    
+    axiom (forall v: Bv0, h: Heap :: { $IsAlloc(v, TBitvector(0), h) } $IsAlloc(v, TBitvector(0), h));
+    
+    axiom (forall v: Set Box, t0: Ty, h: Heap :: { $IsAlloc(v, TSet(t0), h) }
+      $IsAlloc(v, TSet(t0), h) <==>
+      (forall bx: Box :: { v[bx] }
+        v[bx] ==> $IsAllocBox(bx, t0, h)));
+    axiom (forall v: ISet Box, t0: Ty, h: Heap :: { $IsAlloc(v, TISet(t0), h) }
+      $IsAlloc(v, TISet(t0), h) <==>
+      (forall bx: Box :: { v[bx] }
+        v[bx] ==> $IsAllocBox(bx, t0, h)));
+    axiom (forall v: MultiSet Box, t0: Ty, h: Heap :: { $IsAlloc(v, TMultiSet(t0), h) }
+      $IsAlloc(v, TMultiSet(t0), h) <==>
+      (forall bx: Box :: { v[bx] }
+        0 < v[bx] ==> $IsAllocBox(bx, t0, h)));
+    axiom (forall v: Seq Box, t0: Ty, h: Heap :: { $IsAlloc(v, TSeq(t0), h) }
+      $IsAlloc(v, TSeq(t0), h) <==>
+      (forall i : int :: { Seq#Index(v, i) }
+        0 <= i && i < Seq#Length(v) ==>
+    	$IsAllocBox(Seq#Index(v, i), t0, h)));
+    	
+    axiom (forall v: Map Box Box, t0: Ty, t1: Ty, h: Heap ::
+      { $IsAlloc(v, TMap(t0, t1), h) }
+      $IsAlloc(v, TMap(t0, t1), h)
+         <==> (forall bx: Box ::
+          { Map#Elements(v)[bx] } { Map#Domain(v)[bx] }
+          Map#Domain(v)[bx] ==>
+            $IsAllocBox(Map#Elements(v)[bx], t1, h) &&
+            $IsAllocBox(bx, t0, h)));
+            
+    axiom (forall v: IMap Box Box, t0: Ty, t1: Ty, h: Heap ::
+      { $IsAlloc(v, TIMap(t0, t1), h) }
+      $IsAlloc(v, TIMap(t0, t1), h)
+         <==> (forall bx: Box ::
+          { IMap#Elements(v)[bx] } { IMap#Domain(v)[bx] }
+          IMap#Domain(v)[bx] ==>
+            $IsAllocBox(IMap#Elements(v)[bx], t1, h) &&
+            $IsAllocBox(bx, t0, h)));
+}
 
 // ---------------------------------------------------------------
 // -- Encoding of type names -------------------------------------
@@ -468,7 +492,9 @@ axiom (forall<A> f : [LayerType]A, ly : LayerType :: { AtLayer(f,$LS(ly)) } AtLa
 
 type Field alpha;
 
-function FDim<T>(Field T): int;
+function FDim<T>(Field T): int uses {
+  axiom FDim(alloc) == 0;
+}
 
 function IndexField(int): Field Box;
 axiom (forall i: int :: { IndexField(i) } FDim(IndexField(i)) == 1);
@@ -486,13 +512,23 @@ axiom (forall f: Field Box, i: int :: { MultiIndexField(f,i) }
 function DeclType<T>(Field T): ClassName;
 
 type NameFamily;
-function DeclName<T>(Field T): NameFamily;
+function DeclName<T>(Field T): NameFamily uses {
+  axiom DeclName(alloc) == allocName;
+}
 function FieldOfDecl<alpha>(ClassName, NameFamily): Field alpha;
 axiom (forall<T> cl : ClassName, nm: NameFamily ::
    {FieldOfDecl(cl, nm): Field T}
    DeclType(FieldOfDecl(cl, nm): Field T) == cl && DeclName(FieldOfDecl(cl, nm): Field T) == nm);
 
-function $IsGhostField<T>(Field T): bool;
+function $IsGhostField<T>(Field T): bool uses {
+   axiom $IsGhostField(alloc); // treat as ghost field, since it is allowed to be changed by ghost code
+  
+   axiom (forall h: Heap, k: Heap :: { $HeapSuccGhost(h,k) }
+      $HeapSuccGhost(h,k) ==>
+        $HeapSucc(h,k) &&
+        (forall<alpha> o: ref, f: Field alpha :: { read(k, o, f) }
+          !$IsGhostField(f) ==> read(h, o, f) == read(k, o, f)));
+}
 
 // ---------------------------------------------------------------
 // -- Allocatedness and Heap Succession --------------------------
@@ -501,10 +537,10 @@ function $IsGhostField<T>(Field T): bool;
 
 // $IsAlloc and $IsAllocBox are monotonic
 
-axiom(forall<T> h, k : Heap, v : T, t : Ty ::
+axiom (forall<T> h, k : Heap, v : T, t : Ty ::
   { $HeapSucc(h, k), $IsAlloc(v, t, h) }
   $HeapSucc(h, k) ==> $IsAlloc(v, t, h) ==> $IsAlloc(v, t, k));
-axiom(forall h, k : Heap, bx : Box, t : Ty ::
+axiom (forall h, k : Heap, bx : Box, t : Ty ::
   { $HeapSucc(h, k), $IsAllocBox(bx, t, h) }
   $HeapSucc(h, k) ==> $IsAllocBox(bx, t, h) ==> $IsAllocBox(bx, t, k));
 
@@ -512,16 +548,14 @@ axiom(forall h, k : Heap, bx : Box, t : Ty ::
 
 const unique alloc: Field bool;
 const unique allocName: NameFamily;
-axiom FDim(alloc) == 0 &&
-  DeclName(alloc) == allocName &&
-  $IsGhostField(alloc);  // treat as ghost field, since it is allowed to be changed by ghost code
 
 // ---------------------------------------------------------------
 // -- Arrays -----------------------------------------------------
 // ---------------------------------------------------------------
 
-function _System.array.Length(a: ref): int;
-axiom (forall o: ref :: 0 <= _System.array.Length(o));
+function _System.array.Length(a: ref): int uses {
+  axiom (forall o: ref :: 0 <= _System.array.Length(o));
+}
 
 // ---------------------------------------------------------------
 // -- Reals ------------------------------------------------------
@@ -547,8 +581,9 @@ var $Heap: Heap where $IsGoodHeap($Heap) && $IsHeapAnchor($Heap);
 // The following is used as a reference heap in places where the translation needs a heap
 // but the expression generated is really one that is (at least in a correct program)
 // independent of the heap.
-const $OneHeap: Heap;
-axiom $IsGoodHeap($OneHeap);
+const $OneHeap: Heap uses {
+  axiom $IsGoodHeap($OneHeap);
+}
 
 function $HeapSucc(Heap, Heap): bool;
 axiom (forall<alpha> h: Heap, r: ref, f: Field alpha, x: alpha :: { update(h, r, f, x) }
@@ -560,11 +595,6 @@ axiom (forall h: Heap, k: Heap :: { $HeapSucc(h,k) }
   $HeapSucc(h,k) ==> (forall o: ref :: { read(k, o, alloc) } read(h, o, alloc) ==> read(k, o, alloc)));
 
 function $HeapSuccGhost(Heap, Heap): bool;
-axiom (forall h: Heap, k: Heap :: { $HeapSuccGhost(h,k) }
-  $HeapSuccGhost(h,k) ==>
-    $HeapSucc(h,k) &&
-    (forall<alpha> o: ref, f: Field alpha :: { read(k, o, f) }
-      !$IsGhostField(f) ==> read(h, o, f) == read(k, o, f)));
 
 // ---------------------------------------------------------------
 // -- Non-determinism --------------------------------------------
@@ -693,7 +723,7 @@ axiom (forall<T> a, b: Set T ::
   Set#Card(Set#Difference(a, b)) == Set#Card(a) - Set#Card(Set#Intersection(a, b)));
 
 function Set#Subset<T>(Set T, Set T): bool;
-axiom(forall<T> a: Set T, b: Set T :: { Set#Subset(a,b) }
+axiom (forall<T> a: Set T, b: Set T :: { Set#Subset(a,b) }
   Set#Subset(a,b) <==> (forall o: T :: {a[o]} {b[o]} a[o] ==> b[o]));
 // axiom(forall<T> a: Set T, b: Set T ::
 //   { Set#Subset(a,b), Set#Card(a), Set#Card(b) }  // very restrictive trigger
@@ -701,9 +731,9 @@ axiom(forall<T> a: Set T, b: Set T :: { Set#Subset(a,b) }
 
 
 function Set#Equal<T>(Set T, Set T): bool;
-axiom(forall<T> a: Set T, b: Set T :: { Set#Equal(a,b) }
+axiom (forall<T> a: Set T, b: Set T :: { Set#Equal(a,b) }
   Set#Equal(a,b) <==> (forall o: T :: {a[o]} {b[o]} a[o] <==> b[o]));
-axiom(forall<T> a: Set T, b: Set T :: { Set#Equal(a,b) }  // extensionality axiom for sets
+axiom (forall<T> a: Set T, b: Set T :: { Set#Equal(a,b) }  // extensionality axiom for sets
   Set#Equal(a,b) ==> a == b);
 
 function Set#Disjoint<T>(Set T, Set T): bool;
@@ -764,13 +794,13 @@ axiom (forall<T> a, b: ISet T, y: T :: { ISet#Difference(a, b), b[y] }
   b[y] ==> !ISet#Difference(a, b)[y] );
 
 function ISet#Subset<T>(ISet T, ISet T): bool;
-axiom(forall<T> a: ISet T, b: ISet T :: { ISet#Subset(a,b) }
+axiom (forall<T> a: ISet T, b: ISet T :: { ISet#Subset(a,b) }
   ISet#Subset(a,b) <==> (forall o: T :: {a[o]} {b[o]} a[o] ==> b[o]));
 
 function ISet#Equal<T>(ISet T, ISet T): bool;
-axiom(forall<T> a: ISet T, b: ISet T :: { ISet#Equal(a,b) }
+axiom (forall<T> a: ISet T, b: ISet T :: { ISet#Equal(a,b) }
   ISet#Equal(a,b) <==> (forall o: T :: {a[o]} {b[o]} a[o] <==> b[o]));
-axiom(forall<T> a: ISet T, b: ISet T :: { ISet#Equal(a,b) }  // extensionality axiom for sets
+axiom (forall<T> a: ISet T, b: ISet T :: { ISet#Equal(a,b) }  // extensionality axiom for sets
   ISet#Equal(a,b) ==> a == b);
 
 function ISet#Disjoint<T>(ISet T, ISet T): bool;
@@ -863,14 +893,14 @@ axiom (forall<T> a, b: MultiSet T ::
 
 // multiset subset means a must have at most as many of each element as b
 function MultiSet#Subset<T>(MultiSet T, MultiSet T): bool;
-axiom(forall<T> a: MultiSet T, b: MultiSet T :: { MultiSet#Subset(a,b) }
+axiom (forall<T> a: MultiSet T, b: MultiSet T :: { MultiSet#Subset(a,b) }
   MultiSet#Subset(a,b) <==> (forall o: T :: {a[o]} {b[o]} a[o] <= b[o]));
 
 function MultiSet#Equal<T>(MultiSet T, MultiSet T): bool;
-axiom(forall<T> a: MultiSet T, b: MultiSet T :: { MultiSet#Equal(a,b) }
+axiom (forall<T> a: MultiSet T, b: MultiSet T :: { MultiSet#Equal(a,b) }
   MultiSet#Equal(a,b) <==> (forall o: T :: {a[o]} {b[o]} a[o] == b[o]));
 // extensionality axiom for multisets
-axiom(forall<T> a: MultiSet T, b: MultiSet T :: { MultiSet#Equal(a,b) }
+axiom (forall<T> a: MultiSet T, b: MultiSet T :: { MultiSet#Equal(a,b) }
   MultiSet#Equal(a,b) ==> a == b);
 
 function MultiSet#Disjoint<T>(MultiSet T, MultiSet T): bool;
@@ -886,7 +916,9 @@ axiom (forall<T> s: Set T :: { MultiSet#Card(MultiSet#FromSet(s)) }
   MultiSet#Card(MultiSet#FromSet(s)) == Set#Card(s));
 
 // conversion to a multiset, from a sequence.
-function MultiSet#FromSeq<T>(Seq T): MultiSet T;
+function MultiSet#FromSeq<T>(Seq T): MultiSet T uses {
+  axiom (forall<T> :: MultiSet#FromSeq(Seq#Empty(): Seq T) == MultiSet#Empty(): MultiSet T);
+}
 // conversion produces a good map.
 axiom (forall<T> s: Seq T :: { MultiSet#FromSeq(s) } $IsGoodMultiSet(MultiSet#FromSeq(s)) );
 // cardinality axiom
@@ -898,7 +930,6 @@ axiom (forall<T> s: Seq T, v: T ::
   { MultiSet#FromSeq(Seq#Build(s, v)) }
     MultiSet#FromSeq(Seq#Build(s, v)) == MultiSet#UnionOne(MultiSet#FromSeq(s), v)
   );
-axiom (forall<T> :: MultiSet#FromSeq(Seq#Empty(): Seq T) == MultiSet#Empty(): MultiSet T);
 
 // concatenation axiom
 axiom (forall<T> a: Seq T, b: Seq T ::

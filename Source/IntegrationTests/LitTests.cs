@@ -35,7 +35,7 @@ namespace IntegrationTests {
 
       // Hide Boogie execution traces since they are meaningless for Dafny programs
       "/errorTrace:0",
-
+      
       // Set a default time limit, to catch cases where verification time runs off the rails
       "/timeLimit:300"
     };
@@ -58,16 +58,20 @@ namespace IntegrationTests {
       var commands = new Dictionary<string, Func<IEnumerable<string>, LitTestConfiguration, ILitCommand>> {
         {
           "%baredafny", (args, config) =>
-            MainWithArguments(DafnyDriverAssembly, args, config, InvokeMainMethodsDirectly)
+            MainMethodLitCommand.Parse(DafnyDriverAssembly, args, config, InvokeMainMethodsDirectly)
         }, {
           "%dafny", (args, config) =>
-            MainWithArguments(DafnyDriverAssembly, DefaultDafnyArguments.Concat(args), config,
+            MainMethodLitCommand.Parse(DafnyDriverAssembly, DefaultDafnyArguments.Concat(args), config,
               InvokeMainMethodsDirectly)
         }, {
           "%server", (args, config) =>
-            MainWithArguments(DafnyServerAssembly, args, config, InvokeMainMethodsDirectly)
+            MainMethodLitCommand.Parse(DafnyServerAssembly, args, config, InvokeMainMethodsDirectly)
         }, {
           "%diff", (args, config) => DiffCommand.Parse(args.ToArray())
+            MainMethodLitCommand.Parse(DafnyServerAssembly, args, config, InvokeMainMethodsDirectly)
+        }, {
+          "%OutputCheck", (args, config) =>
+            OutputCheckCommand.Parse(args, config)
         }
       };
 
@@ -78,20 +82,6 @@ namespace IntegrationTests {
         features = new[] { "ubuntu", "posix" };
       } else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
         features = new[] { "windows" };
-        // Uncomment the following if it is needed for new tests.
-        string path = System.Reflection.Assembly.GetExecutingAssembly().Location;
-        var directory = System.IO.Path.GetDirectoryName(path);
-        Environment.SetEnvironmentVariable("DOTNET_CLI_HOME", directory);
-        if (directory != null) Directory.SetCurrentDirectory(directory);
-        Environment.SetEnvironmentVariable("HOME",
-          Environment.GetEnvironmentVariable("HOMEDRIVE") + Environment.GetEnvironmentVariable("HOMEPATH"));
-        passthroughEnvironmentVariables = passthroughEnvironmentVariables
-           .Concat(new[] {
-             "DOTNET_CLI_HOME",
-             "HOMEDRIVE", "HOMEPATH",
-             "LOCALAPPDATA",
-             "APPDATA", "ProgramFiles", "ProgramFiles(x86)", "SystemRoot", "USERPROFILE"
-           }).ToArray();
       } else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
         features = new[] { "macosx", "posix" };
       } else {
@@ -100,19 +90,12 @@ namespace IntegrationTests {
 
       var dafnyReleaseDir = Environment.GetEnvironmentVariable("DAFNY_RELEASE");
       if (dafnyReleaseDir != null) {
-        var dafnyCLIName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "Dafny.exe" : "dafny";
-        var dafnyServerCLIName =
-          RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "DafnyServer.exe" : "DafnyServer";
-
         commands["%baredafny"] = (args, config) =>
-          new ShellLitCommand(config, Path.Join(dafnyReleaseDir, dafnyCLIName), args,
-            config.PassthroughEnvironmentVariables);
+          new ShellLitCommand(config, Path.Join(dafnyReleaseDir, "dafny"), args, config.PassthroughEnvironmentVariables);
         commands["%dafny"] = (args, config) =>
-          new ShellLitCommand(config, Path.Join(dafnyReleaseDir, dafnyCLIName), DefaultDafnyArguments.Concat(args),
-            config.PassthroughEnvironmentVariables);
+          new ShellLitCommand(config, Path.Join(dafnyReleaseDir, "dafny"), DefaultDafnyArguments.Concat(args), config.PassthroughEnvironmentVariables);
         commands["%server"] = (args, config) =>
-          new ShellLitCommand(config, Path.Join(dafnyReleaseDir, dafnyServerCLIName), args,
-            config.PassthroughEnvironmentVariables);
+          new ShellLitCommand(config, Path.Join(dafnyReleaseDir, "DafnyServer"), args, config.PassthroughEnvironmentVariables);
         substitutions["%z3"] = Path.Join(dafnyReleaseDir, "z3", "bin", "z3");
       }
 
@@ -130,11 +113,6 @@ namespace IntegrationTests {
               Excludes = new[] { "**/Inputs/**/*", "**/Output/**/*", "refman/examples/**/*" })]
     public void LitTest(string path) {
       LitTestCase.Run(path, Config, output);
-    }
-
-    [Fact]
-    public void AssertEqualWithDiffIgnoresCarriageReturns() {
-      AssertWithDiff.Equal("a\rb", "a\r\nb");
     }
   }
 }

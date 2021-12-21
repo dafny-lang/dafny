@@ -6,8 +6,10 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
@@ -26,21 +28,26 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private readonly ISymbolResolver symbolResolver;
     private readonly ISymbolTableFactory symbolTableFactory;
     private readonly IProgramVerifier verifier;
+    private readonly IGhostStateDiagnosticCollector ghostStateDiagnosticCollector;
     private readonly ICompilationStatusNotificationPublisher notificationPublisher;
+    private readonly ILoggerFactory loggerFactory;
     private readonly BlockingCollection<Request> requestQueue = new();
 
     private TextDocumentLoader(
+      ILoggerFactory loggerFactory,
       IDafnyParser parser,
       ISymbolResolver symbolResolver,
       IProgramVerifier verifier,
       ISymbolTableFactory symbolTableFactory,
-      ICompilationStatusNotificationPublisher notificationPublisher
-    ) {
+      IGhostStateDiagnosticCollector ghostStateDiagnosticCollector,
+      ICompilationStatusNotificationPublisher notificationPublisher) {
       this.parser = parser;
       this.symbolResolver = symbolResolver;
       this.verifier = verifier;
       this.symbolTableFactory = symbolTableFactory;
+      this.ghostStateDiagnosticCollector = ghostStateDiagnosticCollector;
       this.notificationPublisher = notificationPublisher;
+      this.loggerFactory = loggerFactory;
     }
 
     public static TextDocumentLoader Create(
@@ -48,9 +55,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       ISymbolResolver symbolResolver,
       IProgramVerifier verifier,
       ISymbolTableFactory symbolTableFactory,
-      ICompilationStatusNotificationPublisher notificationPublisher
+      IGhostStateDiagnosticCollector ghostStateDiagnosticCollector,
+      ICompilationStatusNotificationPublisher notificationPublisher,
+      ILoggerFactory loggerFactory
     ) {
-      var loader = new TextDocumentLoader(parser, symbolResolver, verifier, symbolTableFactory, notificationPublisher);
+      var loader = new TextDocumentLoader(loggerFactory, parser, symbolResolver, verifier, symbolTableFactory, ghostStateDiagnosticCollector, notificationPublisher);
       var loadThread = new Thread(loader.Run, MaxStackSize) { IsBackground = true };
       loadThread.Start();
       return loader;
@@ -59,6 +68,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public DafnyDocument CreateUnloaded(TextDocumentItem textDocument, CancellationToken cancellationToken) {
       var errorReporter = new DiagnosticErrorReporter(textDocument.Uri);
       return CreateDocumentWithEmptySymbolTable(
+        loggerFactory.CreateLogger<SymbolTable>(),
         textDocument,
         errorReporter,
         parser.CreateUnparsed(textDocument, errorReporter, cancellationToken),
@@ -99,7 +109,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var program = parser.Parse(textDocument, errorReporter, cancellationToken);
       if (errorReporter.HasErrors) {
         notificationPublisher.SendStatusNotification(textDocument, CompilationStatus.ParsingFailed);
-        return CreateDocumentWithEmptySymbolTable(textDocument, errorReporter, program, loadCanceled: false);
+        return CreateDocumentWithEmptySymbolTable(loggerFactory.CreateLogger<SymbolTable>(), textDocument, errorReporter, program, loadCanceled: false);
       }
       var compilationUnit = symbolResolver.ResolveSymbols(textDocument, program, cancellationToken);
       var symbolTable = symbolTableFactory.CreateFrom(program, compilationUnit, cancellationToken);
@@ -108,10 +118,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       } else {
         notificationPublisher.SendStatusNotification(textDocument, CompilationStatus.CompilationSucceeded);
       }
-      return new DafnyDocument(textDocument, errorReporter, program, symbolTable);
+      var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(symbolTable, cancellationToken).ToArray();
+      return new DafnyDocument(textDocument, errorReporter, ghostDiagnostics, program, symbolTable);
     }
 
     private static DafnyDocument CreateDocumentWithEmptySymbolTable(
+      ILogger<SymbolTable> logger,
       TextDocumentItem textDocument,
       DiagnosticErrorReporter errorReporter,
       Dafny.Program program,
@@ -120,14 +132,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return new DafnyDocument(
         textDocument,
         errorReporter,
+        Array.Empty<Diagnostic>(),
         program,
-        CreateEmptySymbolTable(program),
+        CreateEmptySymbolTable(program, logger),
         loadCanceled
       );
     }
 
-    private static SymbolTable CreateEmptySymbolTable(Dafny.Program program) {
+    private static SymbolTable CreateEmptySymbolTable(Dafny.Program program, ILogger<SymbolTable> logger) {
       return new SymbolTable(
+        logger,
         new CompilationUnit(program),
         new Dictionary<object, ILocalizableSymbol>(),
         new Dictionary<ISymbol, SymbolLocation>(),

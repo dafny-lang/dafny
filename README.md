@@ -5,7 +5,7 @@
 Dafny is a programming language with a program verifier. As you type in your program, the verifier constantly looks over your shoulders and flags any errors. This github site contains these materials:
 
 * sources
-* [binary downloads](https://github.com/dafny-lang/dafny/releases) for Windows, Mac, GNU/Linux, and FreeBSD
+* [binary downloads](https://github.com/dafny-lang/dafny/releases) for Windows, macOS, GNU/Linux, and FreeBSD
 * the [issue tracker](https://github.com/dafny-lang/dafny/issues)
 * the wiki, including [frequently asked questions](https://github.com/dafny-lang/dafny/wiki/FAQ)
 
@@ -63,7 +63,7 @@ The language itself draws pieces of influence from:
 To enforce some basic style conventions, we've adopted [pre-commit](https://pre-commit.com/).  We're
 using [their default hooks](https://github.com/pre-commit/pre-commit-hooks).  When you clone
 Dafny, install pre-commit as per [the instructions](https://pre-commit.com/#install).
-For example, on OSX you do
+For example, on macOS you do
 
     $ brew install pre-commit
 

@@ -17,25 +17,28 @@ namespace Microsoft.Dafny {
     public DafnyOptions(ErrorReporter errorReporter = null)
       : base("Dafny", "Dafny program verifier") {
       this.errorReporter = errorReporter;
+      Prune = true;
+      NormalizeNames = true;
+      EmitDebugInformation = false;
     }
 
     public override string VersionNumber {
       get {
-        return System.Diagnostics.FileVersionInfo.GetVersionInfo(System.Reflection.Assembly.GetExecutingAssembly().Location).FileVersion;
-      }
-    }
-    public override string Version {
-      get {
-        return ToolName + VersionSuffix;
-      }
-    }
-    public override string VersionSuffix {
-      get {
-        return " " + VersionNumber;
+        return System.Diagnostics.FileVersionInfo
+          .GetVersionInfo(System.Reflection.Assembly.GetExecutingAssembly().Location).FileVersion;
       }
     }
 
+    public override string Version {
+      get { return ToolName + VersionSuffix; }
+    }
+
+    public override string VersionSuffix {
+      get { return " " + VersionNumber; }
+    }
+
     private static DafnyOptions clo;
+
     public static DafnyOptions O {
       get { return clo; }
     }
@@ -54,14 +57,31 @@ namespace Microsoft.Dafny {
     public bool MatchCompilerDebug = false;
     public string DafnyPrelude = null;
     public string DafnyPrintFile = null;
-    public enum PrintModes { Everything, DllEmbed, NoIncludes, NoGhost };
-    public PrintModes PrintMode = PrintModes.Everything;  // Default to printing everything
+
+    public enum PrintModes {
+      Everything,
+      DllEmbed,
+      NoIncludes,
+      NoGhost
+    };
+
+    public PrintModes PrintMode = PrintModes.Everything; // Default to printing everything
     public bool DafnyVerify = true;
     public string DafnyPrintResolvedFile = null;
     public List<string> DafnyPrintExportedViews = new List<string>();
     public bool Compile = true;
+
     [Flags]
-    public enum CompilationTarget { Csharp = 1, JavaScript = 2, Go = 4, Java = 8, Cpp = 16, Php = 32 }
+    public enum CompilationTarget {
+      Csharp = 1,
+      JavaScript = 2,
+      Go = 4,
+      Java = 8,
+      Cpp = 16,
+      Php = 32,
+      Python = 64
+    }
+
     public CompilationTarget CompileTarget = CompilationTarget.Csharp;
     public bool CompileVerbose = true;
     public string DafnyPrintCompiledFile = null;
@@ -69,11 +89,11 @@ namespace Microsoft.Dafny {
     public string MainMethod = null;
     public bool ForceCompile = false;
     public bool RunAfterCompile = false;
-    public int SpillTargetCode = 0;  // [0..4]
+    public int SpillTargetCode = 0; // [0..4]
     public bool DisallowIncludes = false;
     public bool DisallowExterns = false;
     public bool DisableNLarith = false;
-    public int ArithMode = 1;  // [0..10]
+    public int ArithMode = 1; // [0..10]
     public string AutoReqPrintFile = null;
     public bool ignoreAutoReq = false;
     public bool AllowGlobals = false;
@@ -85,14 +105,22 @@ namespace Microsoft.Dafny {
     public bool PrintStats = false;
     public bool PrintFunctionCallGraph = false;
     public bool WarnShadowing = false;
-    public int DefiniteAssignmentLevel = 1;  // [0..4]
+    public int DefiniteAssignmentLevel = 1; // [0..4]
+
     public bool ForbidNondeterminism {
       get { return DefiniteAssignmentLevel == 3; }
     }
+
     public int DeprecationNoise = 1;
     public bool VerifyAllModules = false;
     public bool SeparateModuleOutput = false;
-    public enum IncludesModes { None, Immediate, Transitive }
+
+    public enum IncludesModes {
+      None,
+      Immediate,
+      Transitive
+    }
+
     public IncludesModes PrintIncludesMode = IncludesModes.None;
     public int OptimizeResolution = 2;
     public bool UseRuntimeLib = false;
@@ -103,7 +131,9 @@ namespace Microsoft.Dafny {
     public bool WarningsAsErrors = false;
     [CanBeNull] private TestGenerationOptions testGenOptions = null;
     public bool ExtractCounterexample = false;
+
     public string VerificationLoggerConfig = null;
+
     // Working around the fact that xmlFilename is private
     public string BoogieXmlFilename = null;
 
@@ -111,19 +141,21 @@ namespace Microsoft.Dafny {
       testGenOptions ??= new TestGenerationOptions();
 
     protected override bool ParseOption(string name, Bpl.CommandLineOptionEngine.CommandLineParseState ps) {
-      var args = ps.args;  // convenient synonym
+      var args = ps.args; // convenient synonym
 
       switch (name) {
         case "dprelude":
           if (ps.ConfirmArgumentCount(1)) {
             DafnyPrelude = args[ps.i];
           }
+
           return true;
 
         case "dprint":
           if (ps.ConfirmArgumentCount(1)) {
             DafnyPrintFile = args[ps.i];
           }
+
           return true;
 
         case "printMode":
@@ -140,17 +172,20 @@ namespace Microsoft.Dafny {
               InvalidArgumentError(name, ps);
             }
           }
+
           return true;
 
         case "rprint":
           if (ps.ConfirmArgumentCount(1)) {
             DafnyPrintResolvedFile = args[ps.i];
           }
+
           return true;
         case "view":
           if (ps.ConfirmArgumentCount(1)) {
             DafnyPrintExportedViews = args[ps.i].Split(',').ToList();
           }
+
           return true;
 
         case "compile": {
@@ -161,6 +196,7 @@ namespace Microsoft.Dafny {
               ForceCompile = compile == 2 || compile == 4;
               RunAfterCompile = compile == 3 || compile == 4;
             }
+
             return true;
           }
 
@@ -178,10 +214,13 @@ namespace Microsoft.Dafny {
               CompileTarget = CompilationTarget.Cpp;
             } else if (args[ps.i].Equals("php")) {
               CompileTarget = CompilationTarget.Php;
+            } else if (args[ps.i].Equals("py")) {
+              CompileTarget = CompilationTarget.Python;
             } else {
               InvalidArgumentError(name, ps);
             }
           }
+
           return true;
 
         case "compileVerbose": {
@@ -189,6 +228,7 @@ namespace Microsoft.Dafny {
             if (ps.GetNumericArgument(ref verbosity, 2)) {
               CompileVerbose = verbosity == 1;
             }
+
             return true;
           }
 
@@ -197,6 +237,7 @@ namespace Microsoft.Dafny {
             if (ps.ConfirmArgumentCount(1)) {
               MainMethod = args[ps.i];
             }
+
             return true;
           }
 
@@ -205,6 +246,7 @@ namespace Microsoft.Dafny {
             if (ps.GetNumericArgument(ref verify, 2)) {
               DafnyVerify = verify != 0; // convert to boolean
             }
+
             return true;
           }
 
@@ -213,12 +255,14 @@ namespace Microsoft.Dafny {
             if (ps.GetNumericArgument(ref spill, 4)) {
               SpillTargetCode = spill;
             }
+
             return true;
           }
         case "out": {
             if (ps.ConfirmArgumentCount(1)) {
               DafnyPrintCompiledFile = args[ps.i];
             }
+
             return true;
           }
 
@@ -226,6 +270,7 @@ namespace Microsoft.Dafny {
             if (ps.ConfirmArgumentCount(1)) {
               CoverageLegendFile = args[ps.i];
             }
+
             return true;
           }
 
@@ -234,6 +279,7 @@ namespace Microsoft.Dafny {
             if (ps.GetNumericArgument(ref cheat, 2)) {
               DisallowSoundnessCheating = cheat == 1;
             }
+
             return true;
           }
 
@@ -270,6 +316,7 @@ namespace Microsoft.Dafny {
             if (ps.GetNumericArgument(ref a, 11)) {
               ArithMode = a;
             }
+
             return true;
           }
 
@@ -277,6 +324,7 @@ namespace Microsoft.Dafny {
           if (ps.ConfirmArgumentCount(1)) {
             AutoReqPrintFile = args[ps.i];
           }
+
           return true;
 
         case "noAutoReq":
@@ -312,6 +360,7 @@ namespace Microsoft.Dafny {
             if (ps.GetNumericArgument(ref d, 3)) {
               DeprecationNoise = d;
             }
+
             return true;
           }
 
@@ -320,6 +369,7 @@ namespace Microsoft.Dafny {
             if (ps.GetNumericArgument(ref countErrors, 2)) {
               CountVerificationErrors = countErrors == 1;
             }
+
             return true;
           }
 
@@ -332,6 +382,7 @@ namespace Microsoft.Dafny {
             if (ps.GetNumericArgument(ref autoTriggers, 2)) {
               AutoTriggers = autoTriggers == 1;
             }
+
             return true;
           }
 
@@ -340,6 +391,7 @@ namespace Microsoft.Dafny {
             if (ps.GetNumericArgument(ref rewriteFocalPredicates, 2)) {
               RewriteFocalPredicates = rewriteFocalPredicates == 1;
             }
+
             return true;
           }
 
@@ -358,6 +410,7 @@ namespace Microsoft.Dafny {
             if (ps.GetNumericArgument(ref d, 3)) {
               OptimizeResolution = d;
             }
+
             return true;
           }
 
@@ -366,6 +419,7 @@ namespace Microsoft.Dafny {
             if (ps.GetNumericArgument(ref da, 4)) {
               DefiniteAssignmentLevel = da;
             }
+
             return true;
           }
 
@@ -396,6 +450,7 @@ namespace Microsoft.Dafny {
               DafnyVerify = false;
             }
           }
+
           return true;
 
         case "stdin": {
@@ -413,6 +468,7 @@ namespace Microsoft.Dafny {
                 InvalidArgumentError(name, ps);
               }
             }
+
             return true;
           }
 
@@ -426,12 +482,9 @@ namespace Microsoft.Dafny {
 
         case "verificationLogger":
           if (ps.ConfirmArgumentCount(1)) {
-            if (args[ps.i] == "trx") {
-              VerificationLoggerConfig = args[ps.i];
-            } else {
-              InvalidArgumentError(name, ps);
-            }
+            VerificationLoggerConfig = args[ps.i];
           }
+
           return true;
       }
 
@@ -450,6 +503,7 @@ namespace Microsoft.Dafny {
         if (XmlSink != null) {
           throw new Exception("The /verificationLogger and /xml options cannot be used at the same time.");
         }
+
         BoogieXmlFilename = Path.GetTempFileName();
         XmlSink = new Bpl.XmlSink(BoogieXmlFilename);
       }
@@ -467,7 +521,7 @@ namespace Microsoft.Dafny {
     }
 
     public override string AttributeHelp =>
-@"Dafny: The following attributes are supported by this version.
+      @"Dafny: The following attributes are supported by this version.
 
     {:extern}
     {:extern <s1:string>}
@@ -666,8 +720,8 @@ namespace Microsoft.Dafny {
       // Boogie also used to set the following options, but does not anymore.
       SetZ3Option("auto_config", "false");
       SetZ3Option("type_check", "true");
-      SetZ3Option("smt.case_split", "3");  // TODO: try removing
-      SetZ3Option("smt.qi.eager_threshold", "100");  // TODO: try lowering
+      SetZ3Option("smt.case_split", "3"); // TODO: try removing
+      SetZ3Option("smt.qi.eager_threshold", "100"); // TODO: try lowering
       SetZ3Option("smt.delay_units", "true");
       SetZ3Option("smt.arith.solver", "2");
 
@@ -678,7 +732,7 @@ namespace Microsoft.Dafny {
 
     public override string Help =>
       base.Help +
-$@"
+      $@"
 
   ---- Dafny options ---------------------------------------------------------
 
@@ -903,8 +957,10 @@ $@"
     /proverOpt:0:model_compress=false and /proverOpt:0:model.completion=true.
 /verificationLogger:<configuration string>
     Logs verification results to the given test result logger.
-    The only currently supported value is ""trx"", the XML-based format
-    commonly used for test results for .NET languages.
+    The only currently supported logger is ""trx"", the XML-based format
+    commonly used for test results for .NET languages. You can provide configuration
+    using the same string format as when using the --logger option for dotnet test,
+    such as /verificationLogger:trx;LogFileName=<...>.
     The exact mapping of verification concepts to the TRX format is
     experimental and subject to change!
 {TestGenOptions.Help}

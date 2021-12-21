@@ -1,0 +1,17 @@
+
+Dafny program verifier finished with 2 verified, 0 errors
+
+Dafny program verifier did not attempt verification
+DowncastDt.dfy(22,4): Error: compilation does not support downcasts involving copying for datatypes (like converting from Co<X> to Co<Y>)
+
+Dafny program verifier did not attempt verification
+Co.Co(_module.Y) and Co.Co(_module.Y)
+Done
+
+Dafny program verifier did not attempt verification
+Co.Co(_module.Y) and Co.Co(_module.Y)
+Done
+
+Dafny program verifier did not attempt verification
+DowncastDt.dfy(20,9): Error: compilation does not support trait types as a type parameter (got 'X'); consider introducing a ghost
+Wrote textual form of partial target program to DowncastDt-java/DowncastDt.java
