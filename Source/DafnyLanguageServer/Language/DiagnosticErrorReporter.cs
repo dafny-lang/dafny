@@ -98,10 +98,9 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
     private void AddDiagnosticForFile(Diagnostic item, DocumentUri documentUri) {
       lock (syncObject) {
-        var fileDiagnostics = diagnostics.GetOrCreate(documentUri, () => new List<Diagnostic>());
         var severity = item.Severity!.Value; // All our diagnostics have a severity.
         counts[severity] = counts.GetValueOrDefault(severity, 0) + 1;
-        fileDiagnostics.Add(item);
+        diagnostics.GetOrCreate(documentUri, () => new List<Diagnostic>()).Add(item);
       }
     }
 
