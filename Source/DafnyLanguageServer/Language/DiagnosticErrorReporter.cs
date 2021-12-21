@@ -4,6 +4,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   public class DiagnosticErrorReporter : ErrorReporter {
@@ -14,9 +15,20 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     private readonly DocumentUri entryDocumentUri;
     private readonly Dictionary<DocumentUri, List<Diagnostic>> diagnostics = new();
     private readonly Dictionary<DiagnosticSeverity, int> counts = new();
-    private static readonly object syncObject = new();
+    private System.Threading.ReaderWriterLockSlim rwLock = new();
 
-    public IReadOnlyDictionary<DocumentUri, List<Diagnostic>> Diagnostics => diagnostics;
+    public IReadOnlyDictionary<DocumentUri, List<Diagnostic>> Diagnostics {
+      get {
+        rwLock.EnterReadLock();
+        try {
+          // Copy the dictionary to avoid concurrency issues
+          return diagnostics.ToDictionary(e => e.Key,
+                                          e => new List<Diagnostic>(e.Value));
+        } finally {
+          rwLock.ExitReadLock();
+        }
+      }
+    }
 
     /// <summary>
     /// Creates a new instance with the given uri of the entry document.
@@ -93,14 +105,22 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     }
 
     public override int Count(ErrorLevel level) {
-      return counts.GetValueOrDefault(ToSeverity(level), 0);
+      rwLock.EnterReadLock();
+      try {
+        return counts.GetValueOrDefault(ToSeverity(level), 0);
+      } finally {
+        rwLock.ExitReadLock();
+      }
     }
 
     private void AddDiagnosticForFile(Diagnostic item, DocumentUri documentUri) {
-      lock (syncObject) {
+      rwLock.EnterWriteLock();
+      try {
         var severity = item.Severity!.Value; // All our diagnostics have a severity.
         counts[severity] = counts.GetValueOrDefault(severity, 0) + 1;
         diagnostics.GetOrCreate(documentUri, () => new List<Diagnostic>()).Add(item);
+      } finally {
+        rwLock.ExitWriteLock();
       }
     }
 
