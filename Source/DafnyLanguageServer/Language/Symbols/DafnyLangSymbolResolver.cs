@@ -1,7 +1,11 @@
-﻿using Microsoft.Dafny.LanguageServer.Util;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading;
+using Microsoft.Boogie;
 
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   /// <summary>
@@ -150,7 +154,47 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           cancellationToken.ThrowIfCancellationRequested();
           functionSymbol.Parameters.Add(ProcessFormal(scope, parameter));
         }
+        if (function.Result != null) {
+          functionSymbol.Parameters.Add(ProcessFormal(scope, function.Result));
+        }
+        ScopeSymbol? ExpressionHandler(Expression? expression) =>
+          expression == null
+            ? null
+            : ProcessExpression(new ScopeSymbol(functionSymbol, functionSymbol.Declaration), expression);
+        functionSymbol.Body = ExpressionHandler(function.Body);
+        functionSymbol.Ensures.AddRange(ProcessListAttributedExpressions(function.Ens, ExpressionHandler));
+        functionSymbol.Requires.AddRange(ProcessListAttributedExpressions(function.Req, ExpressionHandler));
+        functionSymbol.Reads.AddRange(ProcessListFramedExpressions(function.Reads, ExpressionHandler));
+        functionSymbol.Decreases.AddRange(ProcessListExpressions(function.Decreases.Expressions, ExpressionHandler));
+        functionSymbol.ByMethodBody = function.ByMethodBody == null ? null : ProcessFunctionByMethodBody(functionSymbol, function.ByMethodBody);
         return functionSymbol;
+      }
+
+      private IEnumerable<ScopeSymbol> ProcessListAttributedExpressions(
+        IEnumerable<AttributedExpression> list, Func<Expression?, ScopeSymbol?> expressionHandler
+        ) {
+        return list
+          .Select(attributedExpression => expressionHandler(attributedExpression.E))
+          .Where(x => x != null)
+          .Cast<ScopeSymbol>();
+      }
+
+      private IEnumerable<ScopeSymbol> ProcessListFramedExpressions(
+        IEnumerable<FrameExpression> list, Func<Expression?, ScopeSymbol?> expressionHandler
+        ) {
+        return list
+          .Select(frameExpression => expressionHandler(frameExpression.E))
+          .Where(x => x != null)
+          .Cast<ScopeSymbol>();
+      }
+
+      private IEnumerable<ScopeSymbol> ProcessListExpressions<T>(
+        IEnumerable<T> list, Func<T, ScopeSymbol?> expressionHandler
+        ) where T : class {
+        return list
+          .Select(expression => expressionHandler(expression))
+          .Where(x => x != null)
+          .Cast<ScopeSymbol>();
       }
 
       private MethodSymbol ProcessMethod(Symbol scope, Method method) {
@@ -163,18 +207,41 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           cancellationToken.ThrowIfCancellationRequested();
           methodSymbol.Returns.Add(ProcessFormal(scope, result));
         }
-        ProcessAndRegisterMethodBody(methodSymbol, method.Body);
+        methodSymbol.Block = method.Body == null ? null : ProcessMethodBody(methodSymbol, method.Body);
+        ScopeSymbol? ExpressionHandler(Expression? expression) =>
+          expression == null
+            ? null
+            : ProcessExpression(new ScopeSymbol(methodSymbol, methodSymbol.Declaration), expression);
+        methodSymbol.Ensures.AddRange(ProcessListAttributedExpressions(method.Ens, ExpressionHandler));
+        methodSymbol.Requires.AddRange(ProcessListAttributedExpressions(method.Req, ExpressionHandler));
+        methodSymbol.Modifies.AddRange(ProcessListExpressions(
+          method.Mod.Expressions.Select(frameExpression => frameExpression.E), ExpressionHandler));
+        methodSymbol.Decreases.AddRange(ProcessListExpressions(method.Decreases.Expressions, ExpressionHandler));
+
         return methodSymbol;
       }
 
-      private void ProcessAndRegisterMethodBody(MethodSymbol methodSymbol, BlockStmt? blockStatement) {
-        if (blockStatement == null) {
-          return;
-        }
-        var rootBlock = new ScopeSymbol(methodSymbol, blockStatement);
+      private ScopeSymbol ProcessBlockStmt(ScopeSymbol rootBlock, BlockStmt blockStatement) {
         var localVisitor = new LocalVariableDeclarationVisitor(logger, rootBlock);
         localVisitor.Resolve(blockStatement);
-        methodSymbol.Block = rootBlock;
+        return rootBlock;
+      }
+
+      private ScopeSymbol ProcessFunctionByMethodBody(
+        FunctionSymbol functionSymbol, BlockStmt blockStatement
+      ) {
+        return ProcessBlockStmt(new ScopeSymbol(functionSymbol, blockStatement), blockStatement);
+      }
+
+      private ScopeSymbol ProcessMethodBody(MethodSymbol methodSymbol, BlockStmt blockStatement) {
+        return ProcessBlockStmt(new ScopeSymbol(methodSymbol, blockStatement), blockStatement);
+      }
+
+      private ScopeSymbol ProcessExpression(ScopeSymbol rootBlock, Expression expression) {
+        // The outer function symbol takes ownership of the function already.
+        var localVisitor = new LocalVariableDeclarationVisitor(logger, rootBlock);
+        localVisitor.Resolve(expression);
+        return rootBlock;
       }
 
       private static FieldSymbol ProcessField(Symbol scope, Field field) {
@@ -202,6 +269,11 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         base.Visit(blockStatement);
       }
 
+      public void Resolve(Expression bodyExpression) {
+        // The base is directly visited to avoid doubly nesting the root block of the method.
+        base.Visit(bodyExpression);
+      }
+
       public override void VisitUnknown(object node, Boogie.IToken token) {
         logger.LogDebug("encountered unknown syntax node of type {NodeType} in {Filename}@({Line},{Column})",
           node.GetType(), token.GetDocumentFileName(), token.line, token.col);
@@ -217,6 +289,53 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
       public override void Visit(LocalVariable localVariable) {
         block.Symbols.Add(new VariableSymbol(block, localVariable));
+      }
+
+      public override void Visit(LambdaExpr lambdaExpression) {
+        ProcessBoundVariableBearingExpression(lambdaExpression, () => base.Visit(lambdaExpression));
+      }
+
+      public override void Visit(ForallExpr forallExpression) {
+        ProcessBoundVariableBearingExpression(forallExpression, () => base.Visit(forallExpression));
+      }
+
+      public override void Visit(ExistsExpr existExpression) {
+        ProcessBoundVariableBearingExpression(existExpression, () => base.Visit(existExpression));
+      }
+
+      public override void Visit(SetComprehension setComprehension) {
+        ProcessBoundVariableBearingExpression(setComprehension, () => base.Visit(setComprehension));
+      }
+
+      public override void Visit(MapComprehension mapComprehension) {
+        ProcessBoundVariableBearingExpression(mapComprehension, () => base.Visit(mapComprehension));
+      }
+
+      public override void Visit(LetExpr letExpression) {
+        ProcessBoundVariableBearingExpression(letExpression, () => base.Visit(letExpression));
+      }
+
+      private void ProcessBoundVariableBearingExpression<TExpr>(
+        TExpr boundVarExpression, System.Action baseVisit
+        ) where TExpr : Expression, IBoundVarsBearingExpression {
+        var oldBlock = block;
+        // To prevent two scope symbols from pointing to the same node,
+        // (this crashes `declarations[nodes]` later on)
+        // we reuse the existing scope symbol if it happens to be a top-level
+        // bounded variable bearing expression that otherwise would create a new scope symbol
+        if (block.Node != boundVarExpression) {
+          block = new ScopeSymbol(block, boundVarExpression);
+          oldBlock.Symbols.Add(block);
+        }
+        foreach (var parameter in boundVarExpression.AllBoundVars) {
+          block.Symbols.Add(ProcessBoundVar(block, parameter));
+        }
+        baseVisit();
+        block = oldBlock;
+      }
+
+      private static VariableSymbol ProcessBoundVar(Symbol scope, BoundVar formal) {
+        return new VariableSymbol(scope, formal);
       }
     }
   }

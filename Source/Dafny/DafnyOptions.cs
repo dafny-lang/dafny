@@ -482,11 +482,7 @@ namespace Microsoft.Dafny {
 
         case "verificationLogger":
           if (ps.ConfirmArgumentCount(1)) {
-            if (args[ps.i] == "trx") {
-              VerificationLoggerConfig = args[ps.i];
-            } else {
-              InvalidArgumentError(name, ps);
-            }
+            VerificationLoggerConfig = args[ps.i];
           }
 
           return true;
@@ -961,8 +957,10 @@ namespace Microsoft.Dafny {
     /proverOpt:0:model_compress=false and /proverOpt:0:model.completion=true.
 /verificationLogger:<configuration string>
     Logs verification results to the given test result logger.
-    The only currently supported value is ""trx"", the XML-based format
-    commonly used for test results for .NET languages.
+    The only currently supported logger is ""trx"", the XML-based format
+    commonly used for test results for .NET languages. You can provide configuration
+    using the same string format as when using the --logger option for dotnet test,
+    such as /verificationLogger:trx;LogFileName=<...>.
     The exact mapping of verification concepts to the TRX format is
     experimental and subject to change!
 {TestGenOptions.Help}
