@@ -68,7 +68,6 @@ namespace IntegrationTests {
             MainMethodLitCommand.Parse(DafnyServerAssembly, args, config, InvokeMainMethodsDirectly)
         }, {
           "%diff", (args, config) => DiffCommand.Parse(args.ToArray())
-            MainMethodLitCommand.Parse(DafnyServerAssembly, args, config, InvokeMainMethodsDirectly)
         }, {
           "%OutputCheck", (args, config) =>
             OutputCheckCommand.Parse(args, config)
