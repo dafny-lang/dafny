@@ -16949,7 +16949,7 @@ namespace Microsoft.Dafny {
           substMap.Add(formal, b.Actual);
           var what = whatKind + (context is Method ? " in-parameter" : " argument");
           var displayName = formal.HasName && !(formal is ImplicitFormal);
-          if (!namesProvidedExplicitly.Contains(formal.Name)) {
+          if (!namesProvidedExplicitly.Contains(formal.Name) && formals.Count() > 1) {
             what += $" at index {j}";
           }
           if (displayName) {
