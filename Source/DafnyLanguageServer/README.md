@@ -62,6 +62,10 @@ Options provided through the command line have higher priority than the options 
 # Sets the maximum number of virtual cores to use. 
 # Default: 0 (use half of the available virtual cores).
 --verifier:vcscores=0
+
+# Set the caching policy (like /verifySnapshots for Dafny.exe)
+# Default: 0 (no caching).
+--verifier:verifysnapshots=0
 ```
 
 ### Ghost Diagnostics
