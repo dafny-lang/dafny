@@ -86,7 +86,10 @@ namespace IntegrationTests {
         string path = System.Reflection.Assembly.GetExecutingAssembly().Location;
         var directory = System.IO.Path.GetDirectoryName(path);
         Environment.SetEnvironmentVariable("DOTNET_CLI_HOME", directory);
-        if (directory != null) Directory.SetCurrentDirectory(directory);
+        if (directory != null) {
+          Directory.SetCurrentDirectory(directory);
+        }
+
         Environment.SetEnvironmentVariable("HOME",
           Environment.GetEnvironmentVariable("HOMEDRIVE") + Environment.GetEnvironmentVariable("HOMEPATH"));
         passthroughEnvironmentVariables = passthroughEnvironmentVariables
