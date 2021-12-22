@@ -33,7 +33,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       try {
         // Return a fresh list to avoid concurrency issues
         return new List<Diagnostic>(diagnostics.GetValueOrDefault(documentUri) ?? Enumerable.Empty<Diagnostic>());
-      } finally {
+      }
+      finally {
         rwLock.ExitReadLock();
       }
     }
@@ -105,7 +106,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       rwLock.EnterReadLock();
       try {
         return counts.GetValueOrDefault(ToSeverity(level), 0);
-      } finally {
+      }
+      finally {
         rwLock.ExitReadLock();
       }
     }
@@ -116,7 +118,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         var severity = item.Severity!.Value; // All our diagnostics have a severity.
         counts[severity] = counts.GetValueOrDefault(severity, 0) + 1;
         diagnostics.GetOrCreate(documentUri, () => new List<Diagnostic>()).Add(item);
-      } finally {
+      }
+      finally {
         rwLock.ExitWriteLock();
       }
     }
