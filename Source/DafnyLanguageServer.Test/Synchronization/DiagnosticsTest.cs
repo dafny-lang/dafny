@@ -609,34 +609,15 @@ method t2() { assert true; }
 method t3() { assert true; }
 method t4() { assert true; }
 method t5() { assert true; }
-method t6() { assert true; }
-method t7() { assert true; }
-method t8() { assert true; }
-method t9() { assert true; }
-method t10() { assert true; }
-method t11() { assert true; }
-method t12() { assert true; }
-method t13() { assert true; }
-method t14() { assert true; }
-method t15() { assert true; }
-method t16() { assert true; }
-method t17() { assert true; }
-method t18() { assert true; }
-method t19() { assert true; }
-method t20() { assert true; }
-method t21() { assert true; }
-method t22() { assert true; }
-method t23() { assert true; }
-method t24() { assert true; }
-method t25() { assert false; }
-method t26() { assert false; }
-method t27() { assert false; }
-method t28() { assert false; }
-method t29() { assert false; }".TrimStart();
+method t6() { assert false; }
+method t7() { assert false; }
+method t8() { assert false; }
+method t9() { assert false; }
+method t10() { assert false; }".TrimStart();
       await SetUp(new Dictionary<string, string>() {
         { $"{VerifierOptions.Section}:{nameof(VerifierOptions.VcsCores)}", "4" }
       });
-      for (int i = 0; i < 100; i++) {
+      for (int i = 0; i < 20; i++) {
         var documentItem = CreateTestDocument(source, $"test_{i}.dfy");
         client.OpenDocument(documentItem);
         var report = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
