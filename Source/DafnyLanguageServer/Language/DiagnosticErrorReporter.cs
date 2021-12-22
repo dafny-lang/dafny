@@ -17,19 +17,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     private readonly Dictionary<DiagnosticSeverity, int> counts = new();
     private System.Threading.ReaderWriterLockSlim rwLock = new();
 
-    public IReadOnlyDictionary<DocumentUri, List<Diagnostic>> Diagnostics {
-      get {
-        rwLock.EnterReadLock();
-        try {
-          // Copy the dictionary to avoid concurrency issues
-          return diagnostics.ToDictionary(e => e.Key,
-                                          e => new List<Diagnostic>(e.Value));
-        } finally {
-          rwLock.ExitReadLock();
-        }
-      }
-    }
-
     /// <summary>
     /// Creates a new instance with the given uri of the entry document.
     /// </summary>
@@ -39,6 +26,16 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// </remarks>
     public DiagnosticErrorReporter(DocumentUri entryDocumentUri) {
       this.entryDocumentUri = entryDocumentUri;
+    }
+
+    public IReadOnlyList<Diagnostic> GetDiagnostics(DocumentUri documentUri) {
+      rwLock.EnterReadLock();
+      try {
+        // Return a fresh list to avoid concurrency issues
+        return new List<Diagnostic>(diagnostics.GetValueOrDefault(documentUri) ?? Enumerable.Empty<Diagnostic>());
+      } finally {
+        rwLock.ExitReadLock();
+      }
     }
 
     public void ReportBoogieError(ErrorInformation error) {
