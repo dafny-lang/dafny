@@ -35,7 +35,8 @@ datatype Non<T> = Non(T){
     method mD(x: T) returns (r: T) { r := x; }
 }
 
-datatype Con<-T> = Con(T -> int) {
+// Con.java would create an error in Windows file systems because "Con" is a reserved file name.
+datatype Cont<-T> = Cont(T -> int) {
     const x: int;
     const y: seq<T>
 
@@ -129,12 +130,12 @@ method Nonvariant() {
 }
 
 method Contravariant() {
-  var a: Con<X> := Con(_ => 0);  // compilation error (java only): compilation does not support trait types as a type parameter; consider introducing a ghost
-  var b: Con<Int>;
+  var a: Cont<X> := Cont(_ => 0);  // compilation error (java only): compilation does not support trait types as a type parameter; consider introducing a ghost
+  var b: Cont<Int>;
   b := a;
   print a, " and ", b, "\n";
 
-  var s := Con(_ => 1);
+  var s := Cont(_ => 1);
   var i := new Int.Int();
   var t := s.mD(i);
   var y := s.mA(t);

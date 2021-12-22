@@ -12,6 +12,8 @@
 
 using DafnyServer.CounterexampleGeneration;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
+
 namespace Microsoft.Dafny {
   using System;
   using System.Collections.Generic;
@@ -621,6 +623,21 @@ namespace Microsoft.Dafny {
         Directory.CreateDirectory(dir);
       }
 
+      // We cannot get the full path correctly on Windows if the file name uses some reserved words
+      // For example, Path.GetFullPath("con.txt") will return "//./con" which is incorrect.
+      // https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file?redirectedfrom=MSDN
+      if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+        var problematicNames =
+          "CON, PRN, AUX, NUL, COM1, COM2, COM3, COM4, COM5, COM6, COM7, COM8, COM9, LPT1, LPT2, LPT3, LPT4, LPT5, LPT6, LPT7, LPT8, LPT9";
+        var problematicRegex =
+          new Regex(@"^(.*[/\\]|^)(" +
+                    string.Join("|", problematicNames.Split(", ")) + @")(\.[^/\\]*)?$", RegexOptions.IgnoreCase);
+        var match = problematicRegex.Match(filename);
+        if (match.Success) {
+          throw new Exception($"Cannot create a file with the name {filename}." +
+                              $" Windows reserves the following file names: {problematicNames}");
+        }
+      }
       using (TextWriter target = new StreamWriter(new FileStream(filename, System.IO.FileMode.Create))) {
         target.Write(text);
         if (moreText != null) {

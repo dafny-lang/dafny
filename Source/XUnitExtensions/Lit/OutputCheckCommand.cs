@@ -94,11 +94,11 @@ namespace XUnitExtensions.Lit {
 
     var linesToCheck = File.ReadAllLines(options.FileToCheck).ToList();
     var fileName = options.CheckFile;
-    if (options.CheckFile == null) {
+    if (fileName == null) {
       return (0, "", "");
     }
 
-    var checkDirectives = File.ReadAllLines(options.CheckFile)
+    var checkDirectives = File.ReadAllLines(options.CheckFile!)
       .Select((line, index) => CheckDirective.Parse(fileName, index + 1, line))
       .Where(e => e != null).Cast<CheckDirective>()
       .Select(e => e!)
