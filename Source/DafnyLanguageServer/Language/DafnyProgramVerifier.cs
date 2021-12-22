@@ -5,6 +5,7 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
@@ -44,8 +45,11 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           //      A dash means write to the textwriter instead of a file.
           // https://github.com/boogie-org/boogie/blob/b03dd2e4d5170757006eef94cbb07739ba50dddb/Source/VCGeneration/Couterexample.cs#L217
           DafnyOptions.O.ModelViewFile = "-";
+          DafnyOptions.O.VerifySnapshots = (int)options.Value.VerifySnapshots;
           initialized = true;
-          logger.LogTrace("initialized the boogie verifier...");
+          logger.LogTrace("Initialized the boogie verifier with " +
+                          "VerifySnapshots={VerifySnapshots}.",
+                          DafnyOptions.O.VerifySnapshots);
         }
         return new DafnyProgramVerifier(logger, options.Value);
       }
@@ -53,16 +57,18 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
     private static int GetConfiguredCoreCount(VerifierOptions options) {
       return options.VcsCores == 0
-        ? Environment.ProcessorCount / 2
+        ? Math.Max(1, Environment.ProcessorCount / 2)
         : Convert.ToInt32(options.VcsCores);
     }
 
-    public VerificationResult Verify(Dafny.Program program, CancellationToken cancellationToken) {
+    public VerificationResult Verify(Dafny.Program program,
+                                     IVerificationProgressReporter progressReporter,
+                                     CancellationToken cancellationToken) {
       mutex.Wait(cancellationToken);
       try {
         // The printer is responsible for two things: It logs boogie errors and captures the counter example model.
         var errorReporter = (DiagnosticErrorReporter)program.reporter;
-        var printer = new ModelCapturingOutputPrinter(logger, errorReporter);
+        var printer = new ModelCapturingOutputPrinter(logger, errorReporter, progressReporter);
         ExecutionEngine.printer = printer;
         // Do not set these settings within the object's construction. It will break some tests within
         // VerificationNotificationTest and DiagnosticsTest that rely on updating these settings.
@@ -120,13 +126,16 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     private class ModelCapturingOutputPrinter : OutputPrinter {
       private readonly ILogger logger;
       private readonly DiagnosticErrorReporter errorReporter;
+      private readonly IVerificationProgressReporter progressReporter;
       private StringBuilder? serializedCounterExamples;
 
       public string? SerializedCounterExamples => serializedCounterExamples?.ToString();
 
-      public ModelCapturingOutputPrinter(ILogger logger, DiagnosticErrorReporter errorReporter) {
+      public ModelCapturingOutputPrinter(ILogger logger, DiagnosticErrorReporter errorReporter,
+                                         IVerificationProgressReporter progressReporter) {
         this.logger = logger;
         this.errorReporter = errorReporter;
+        this.progressReporter = progressReporter;
       }
 
       public void AdvisoryWriteLine(string format, params object[] args) {
@@ -142,6 +151,10 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
       public void Inform(string s, TextWriter tw) {
         logger.LogInformation(s);
+        var match = Regex.Match(s, "^Verifying .+[.](?<name>[^.]+) [.][.][.]$");
+        if (match.Success) {
+          progressReporter.ReportProgress(match.Groups["name"].Value);
+        }
       }
 
       public void ReportBplError(IToken tok, string message, bool error, TextWriter tw, [AllowNull] string category) {
