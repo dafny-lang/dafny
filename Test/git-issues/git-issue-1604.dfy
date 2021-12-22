@@ -52,7 +52,7 @@ method Main() {
   b := b && isSetOfGhostEvenCells(set c: GhostEvenCell | c in x && c.x % 2 == 0);
 
   // This line should work because the precondition of ghostEvenCellIsOneOrMore is met
-  /*b := b && isSetOfGhostEvenCells(set c: GhostEvenCell | c in x && c.x % 2 == 0 && ghostEvenCellIsOneOrMore(c));
+  b := b && isSetOfGhostEvenCells(set c: GhostEvenCell | c in x && c.x % 2 == 0 && ghostEvenCellIsOneOrMore(c));
 
   // This line should work because the precondition of ghostEvenCellIsOneOrMore is met
   b := b && isSetOfGhostEvenCells(set c | c in x && c.x % 2 == 0 && ghostEvenCellIsOneOrMore(c));
@@ -90,7 +90,7 @@ method Main() {
 
     // This line should work because the tpye of c can be inferred to be CompiledEvenCell
   b := b && isSetOfCompilableEvenCells(set c | c in x && compiledEvenCellIsOneOrMore(c) && c.x % 2 == 0);
-*/
+ //*/
   assert b;
   print if b then "ok" else "error";
 }

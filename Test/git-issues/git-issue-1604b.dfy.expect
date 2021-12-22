@@ -1,3 +1,5 @@
-
-Dafny program verifier finished with 0 verified, 7 errors
-<report errors here>
+git-issue-1604b.dfy(51,38): Error: GhostEvenCell is a subset type and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in set comprehension. The next error will explain why the constraint is not compilable.
+git-issue-1604b.dfy(10,31): Error: predicate calls are allowed only in specification contexts (consider declaring the predicate a 'predicate method')
+git-issue-1604b.dfy(54,38): Error: GhostEvenCell is a subset type and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in set comprehension. The next error will explain why the constraint is not compilable.
+git-issue-1604b.dfy(10,31): Error: predicate calls are allowed only in specification contexts (consider declaring the predicate a 'predicate method')
+4 resolution/type errors detected in git-issue-1604b.dfy
