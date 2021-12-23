@@ -125,7 +125,6 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var code = @$"using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
-using System;
 
 public class Foo {{
   public static async Task<int> Main(string[] args) {{
