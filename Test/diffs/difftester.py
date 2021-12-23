@@ -34,6 +34,7 @@ import shlex
 import shutil
 import subprocess
 import sys
+import urllib.parse
 
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor
@@ -61,7 +62,7 @@ INPUT_TEE = "inputs.log"
 OUTPUT_TEE = "outputs.log"
 
 NWORKERS = 1
-TIMEOUT = 120.0  # https://stackoverflow.com/questions/1408356/
+TIMEOUT = 6000.0  # https://stackoverflow.com/questions/1408356/
 
 
 @overload
@@ -221,6 +222,73 @@ class LSPMethods:
     NEED_DIAGNOSTICS = {didOpen, didChange}
 
 
+class LSPReader:
+    HEADER_RE = re.compile(r"Content-Length: (?P<len>[0-9]+)\r\n")
+
+    def __init__(self, stream: IO[bytes]) -> None:
+        self.stream = stream
+
+    def read_one(self, verbose=False) -> Tuple[bytes, Json]:
+        line, length = None, None
+        while line not in ("", "\r\n"):
+            line = self.stream.readline().decode("utf-8")
+            if verbose:
+                trace("<<", repr(line))
+            header = self.HEADER_RE.match(line)
+            if header:
+                length = int(header.group("len"))
+        if line == "":
+            raise EOFError
+        if length is None:
+            MSG = (f"Unexpected output: {line!r}, use -vvv for a trace."
+                   "If -vvv doesn't help, check Dafny's server logs "
+                   "(https://github.com/dafny-lang/ide-vscode#debugging).")
+            raise ValueError(MSG)
+        response: bytes = self.stream.read(length)
+        if len(response) != length:
+            raise ValueError(f"Truncated response: {response!r}")
+        resp = response.decode("utf-8")
+        if verbose:
+            trace("<<", resp)
+        return response, json.loads(resp)
+
+    def read(self, verbose=True):
+        try:
+            while True:
+                yield self.read_one(verbose=verbose)
+        except EOFError:
+            pass
+
+
+class LSPDocument:
+    def __init__(self):
+        self.document = "" # Calculations below assume utf-16 representation
+
+    def find_nth_bol(self, n: int) -> int:
+        bol = 0
+        for _ in range(n):
+            bol = self.document.find("\n", bol)
+            if bol < 0:
+                raise ValueError(f"Invalid line number: {n}")
+            bol += 1
+        return bol
+
+    def loc2offset(self, loc: Json):
+        line, char = int(loc["line"]), int(loc["character"])
+        assert line >= 0, char >= 0
+        return self.find_nth_bol(line) + char
+
+    def update(self, change: Json) -> str:
+        rng, text = change.get("range"), change["text"]
+        if rng is None:
+            self.document = text
+        else:
+            beg = self.loc2offset(rng["start"])
+            end = self.loc2offset(rng["end"])
+            self.document = self.document[:beg] + text + self.document[end:]
+        return self.document
+
+
 class LSPTrace(ProverInputs):
     """A sequence of messages sent by an LSP client."""
 
@@ -229,38 +297,49 @@ class LSPTrace(ProverInputs):
         self.messages: List[LSPMessage] = list(commands)
 
     @classmethod
-    def from_json(cls, fname: str) -> "LSPTrace":
-        """Load an LSP trace from a file containing JSON."""
+    def from_json_file(cls, fname: str) -> "LSPTrace":
+        """Load an LSP trace from a JSON file."""
         with open(fname, encoding="utf-8") as f:
             return LSPTrace(fname, json.load(f))
+
+    @classmethod
+    def from_dump_file(cls, fname: str) -> "LSPTrace":
+        """Load an LSP trace from a file containing JSON."""
+        with open(fname, mode="rb") as f:
+            return LSPTrace(fname, (js for _, js in LSPReader(f).read()))
 
     def as_lsp(self) -> "LSPTrace":
         """Convert self into an LSP trace."""
         return self
 
     def _iter_snapshots(self) -> Iterable[str]:
+        doc = LSPDocument()
         for msg in self.messages:
-            if msg["method"] == LSPMethods.didOpen:
-                yield msg["params"]["textDocument"]["text"]
-            if msg["method"] == LSPMethods.didChange:
+            if msg.get("method") == LSPMethods.didOpen:
+                yield doc.update(msg["params"]["textDocument"])
+            if msg.get("method") == LSPMethods.didChange:
                 for change in msg["params"]["contentChanges"]:
-                    yield change["text"]  # FIXME add support for ranges
+                    yield doc.update(change)
 
     @property
     def uri(self) -> str:
         """Return the current document's URI."""
         for m in self.messages:
-            if m["method"] == LSPMethods.didOpen:
-                return m["textDocument"]["uri"]  # type: ignore
+            if m.get("method") == LSPMethods.didOpen:
+                return m["params"]["textDocument"]["uri"]  # type: ignore
         raise ValueError("No didOpen message found in LSP trace.")
+
+    def _snapshot_name(self, idx: int) -> str:
+        return str(Path(self.name).with_suffix(f".v{idx}.dfy"))
 
     def as_snapshots(self) -> "Snapshots":
         """Convert self into a sequence of snapshots."""
-        snapshots = (Snapshot(self.name, s) for s in self._iter_snapshots())
+        snapshots = (Snapshot(self._snapshot_name(idx), s)
+                     for idx, s in enumerate(self._iter_snapshots()))
         return Snapshots(self.name, self.uri, snapshots)
 
     def __len__(self) -> int:
-        return sum(msg["method"] in (LSPMethods.didOpen, LSPMethods.didChange)
+        return sum(msg.get("method") in (LSPMethods.didOpen, LSPMethods.didChange)
                    for msg in self.messages)
 
 
@@ -358,7 +437,7 @@ class Snapshots(ProverInputs):
     def _iter_jrpc(self) -> Iterable[LSPMessage]:
         METHODS = {"initialize", "shutdown"}
         for id, msg in enumerate(self._iter_lsp()):
-            idd = {"id": id} if msg["method"] in METHODS else {}
+            idd = {"id": id} if msg.get("method") in METHODS else {}
             yield {"jsonrpc": "2.0", **msg, **idd}
 
     def as_lsp(self) -> "LSPTrace":
@@ -392,13 +471,11 @@ class Driver:
 class LSPServer:
     """A simpler wrapper aroudn the Dafny LSP server."""
 
-    ARGS = ["--documents:verify=onchange",
-            "--verifier:timelimit=0",
-            "--verifier:vcscores=0",
-            "--ghost:markStatements=true"]  # FIXME
+    ARGS = ["--documents:verify=onchange"]  # FIXME
 
     def __init__(self, command: List[str]) -> None:
         self.command = command
+        self.listeners: List[Callable[[Json], None]] = []
         self.repl: "Optional[subprocess.Popen[bytes]]" = None
         self.pending_output: Dict[bytes, LSPMessage] = {}  # Random access queue
 
@@ -420,30 +497,20 @@ class LSPServer:
         self.repl.stdin.write(js.encode("utf-8"))
         self.repl.stdin.flush()
 
-    HEADER_RE = re.compile(r"Content-Length: (?P<len>[0-9]+)\r\n")
+    def listen(self, listener: Callable[[Json], None]):
+        """Register a `listener` to which all LSP messages should be sent."""
+        self.listeners.append(listener)
+
+    def _call_listeners(self, js: Json) -> None:
+        for callback in self.listeners:
+            callback(js)
 
     def _receive(self) -> Tuple[bytes, Json]:
         assert self.repl
         assert self.repl.stdout
-        line, length = None, None
-        while line not in ("", "\r\n"):
-            line = self.repl.stdout.readline().decode("utf-8")
-            debug("<<", repr(line))
-            header = self.HEADER_RE.match(line)
-            if header:
-                length = int(header.group("len"))
-        if length is None:
-            MSG = (f"Unexpected output: {line!r}, use --debug for more info."
-                   "If --debug doesn't help, check Dafny's server logs "
-                   "(https://github.com/dafny-lang/ide-vscode#debugging).")
-            raise ValueError(MSG)
-        response: bytes = self.repl.stdout.read(length)
-        if len(response) != length:
-            raise ValueError(f"Truncated response: {response!r}")
-        resp = response.decode("utf-8")
-        debug("<<", resp)
-        js = json.loads(resp)
+        response, js = LSPReader(self.repl.stdout).read_one(verbose=True)
         self.pending_output[response] = js
+        self._call_listeners(js)
         return (response, js)
 
     def receive(self, pred: Callable[[LSPMessage], bool]) -> LSPMessage:
@@ -509,33 +576,64 @@ class LSPServer:
 
 
 class LSPOutput(ProverOutput):
-    LEVELS = {1: "Error", }
+    LEVELS = {1: "Error", 2: "Warning", 4: "Info"}
+    RELATED_LOCATION = "Related location"
 
-    def __init__(self, diagnostics: List[Dict[str, Any]]) -> None:
+    def __init__(self, diagnostics: List[Json]) -> None:
+        lines = [d["range"]["start"]["line"] for d in diagnostics]
+        debug("[lsp]", f"{len(diagnostics)} diagnostics (lines: {lines})")
         self.diags = sorted(diagnostics, key=self._key)
 
     @classmethod
-    def _format_diag(cls, d: LSPMessage) -> str:
-        msg = d["message"]
-        kind = cls.LEVELS[d["severity"]]
-        pos = d['range']['start']
+    def _format_one(cls, pos: Json, header: str, msg: str) -> str:
+        """Format an LSP diagnostic `pos`, `msg`, `header` like Dafny's CLI."""
         l, c = pos['line'] + 1, pos['character']
-        return f"<stdin>({l},{c}): {kind}: {msg}"
+        sep = ": " if header and msg else ""
+        return f"<stdin>({l},{c}): {header}{sep}{msg}"
+
+    @classmethod
+    def _format_related(cls, related_info: List[LSPMessage]) -> Iterator[str]:
+        for related in related_info: # FIXME: Check URI
+            pos, msg = related["location"]["range"]["start"], related["message"]
+            header = cls.RELATED_LOCATION if msg != cls.RELATED_LOCATION else ""
+            yield cls._format_one(pos, header, msg)
+
+    @classmethod
+    def _format_main(cls, d: LSPMessage) -> Iterator[str]:
+        kind = cls.LEVELS[d["severity"]]
+        pos, msg = d["range"]["start"], d["message"]
+        if "File contains no code" not in msg:
+            yield cls._format_one(pos, kind, msg)
+
+    @classmethod
+    def _format_diag(cls, d: LSPMessage):
+        yield from cls._format_main(d)
+        yield from cls._format_related(d.get("relatedInformation", []))
 
     @staticmethod
-    def _key(d) -> Tuple[int, int, int, int]:
+    def _key(d: Json) -> Tuple[int, int, int, int, str]:
+        """Extract a sorting key from an LSP diagnostic `d`."""
         start, end = d['range']['start'], d['range']['end']
-        return start['line'], start['character'], end['line'], end['character']
+        return (start['line'], start['character'],
+                end['line'], end['character'],
+                d['message'])
 
     def format(self) -> str:
         """Format to a string matching Dafny's CLI output."""
         diags = sorted(self.diags, key=self._key)
-        return "\n".join(self._format_diag(d) for d in diags)
+        return "\n".join(l for d in diags for l in self._format_diag(d))
 
     @property
-    def raw(self) -> str:
+    def raw(self) -> List[Json]:
         """Return the raw output of the prover."""
         return self.diags
+
+
+def same_uri(u1, u2):
+    """Try to check whether `u1` and `u2` refer to the same resource.
+
+    This is needed because Dafny's LSP server unquotes URIs."""
+    return urllib.parse.unquote(u1) == urllib.parse.unquote(u2)
 
 
 class LSPDriver(Driver):
@@ -545,10 +643,10 @@ class LSPDriver(Driver):
     def is_diagnostic_for(doc: Json) -> Callable[[LSPMessage], bool]:
         """Return a function that checks for diagnostics for `doc`."""
         def _filter(m: LSPMessage) -> bool:
-            if m["method"] == LSPMethods.publishDiagnostics:
+            if m.get("method") == LSPMethods.publishDiagnostics:
                 mp = m["params"]
                 return (mp["version"] == doc["version"] and  # type: ignore
-                        mp["uri"] == doc["uri"])
+                        same_uri(mp["uri"], doc["uri"]))
             return False
         return _filter
 
@@ -561,25 +659,40 @@ class LSPDriver(Driver):
     def is_verified_notification() -> Callable[[LSPMessage], bool]:
         """Return a function that checks for a message indicating completion."""
         def _filter(m: LSPMessage) -> bool:
-            if m["method"] == LSPMethods.compilationStatus:
+            if m.get("method") == LSPMethods.compilationStatus:
                 st = m["params"]["status"]
-                return "Suceeded" in st or "Failed" in st
+                return "Succeeded" in st or "Failed" in st
             return False
         return _filter
+
+    @staticmethod
+    def _log_progress(m: Json):
+        """Log LSP message `m` if it signals verification progress."""
+        if m.get("method") == LSPMethods.compilationStatus:
+            trace("[lsp]", f"Verifying: {m['params'].get('message', '...')}")
+
+    def _receive_diagnostics(self, doc: Json, server: LSPServer):
+        """Wait for a verified status message and a set of diagnostics."""
+        # Drop stale output
+        server.discard_pending_messages()
+        # Wait for verification to complete
+        _ = server.receive(self.is_verified_notification())
+        # Ignore partial diagnostics
+        server.discard_pending_messages()
+        # Read final diagnostic message
+        diag = server.receive(self.is_diagnostic_for(doc))
+        return LSPOutput(diag["params"]["diagnostics"])
 
     def _iter_results(self, messages: Iterable[LSPMessage]) \
             -> Iterable[LSPOutput]:
         """Feed `inputs` to Dafny's LSP server; return diagnostic messages."""
         with LSPServer(self.command) as server:
+            server.listen(self._log_progress)
             for msg in messages:
-                server.discard_pending_messages() # Drop stale output
                 server.send(msg)
-                if msg["method"] in LSPMethods.NEED_DIAGNOSTICS:
+                if msg.get("method") in LSPMethods.NEED_DIAGNOSTICS:
                     doc = msg["params"]["textDocument"]
-                    _ = server.receive(self.is_verified_notification())
-                    server.discard_pending_messages() # Drop in-progress diagnostics
-                    diag = server.receive(self.is_diagnostic_for(doc))
-                    yield LSPOutput(diag["params"]["diagnostics"])
+                    yield self._receive_diagnostics(doc, server)
                 if "id" in msg:  # Wait for response
                     server.receive(self.is_response_to(msg["id"]))
 
@@ -590,7 +703,7 @@ class LSPDriver(Driver):
 
 
 class CLIOutput(ProverOutput):
-    ERROR_PATTERN = re.compile(r"^.*?[(][0-9]+,[0-9]+[)].*")
+    ERROR_PATTERN = re.compile(r"^<stdin>[(][0-9]+,[0-9]+[)].*", re.MULTILINE)
 
     def __init__(self, output: str) -> None:
         self.output = output
@@ -667,8 +780,8 @@ def test(inputs: ProverInputs, *drivers: Driver) -> None:
         sys.stdout.flush()
     for _ in results:
         # Exhaust results iterators to make sure LSPServer calls shutdown and
-        # exit (otherwise the final code of these iterators remains pending).
-        assert False
+        # exit (without this LSP commands after the last didChange are never sent).
+        pass
 
 
 SLASH_2DASHES = re.compile("^/(?=--)")
@@ -688,17 +801,20 @@ def resolve_input(inp: str, parser: argparse.ArgumentParser) -> ProverInputs:
     Report errors through `parser`."""
     stem, num, suffix = Snapshots.strip_vernum(inp)
 
-    if num:
+    if num is not None:
         MSG = (f"WARNING: File name {inp} looks like a single snapshot.  "
-               f"To verify multiple snapshots, call this program on "
+               "To verify multiple snapshots, call this program on "
                f"{stem}{suffix}.")
+        print(MSG, file=sys.stderr, flush=True)
 
-    if suffix != ".dfy":
-        MSG = (f"{inp}: Unsupported file extension {suffix!r} "
-               "(only .dfy inputs are supported for now).")
-        parser.error(MSG)
+    if suffix == ".dfy":
+        return Snapshots.from_files(inp)
+    if suffix == ".lsp":
+        return LSPTrace.from_dump_file(inp)
+    MSG = (f"{inp}: Unsupported file extension {suffix!r} "
+           "(only .dfy and .lsp inputs are supported for now).")
+    parser.error(MSG)
 
-    return Snapshots.from_files(inp)
 
 
 def parse_arguments() -> argparse.Namespace:
