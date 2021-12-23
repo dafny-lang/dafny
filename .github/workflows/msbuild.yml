@@ -43,7 +43,7 @@ jobs:
       uses: actions/checkout@v2
       with:
         repository: boogie-org/boogie
-        path: dafny/boogie
+        path: boogie
         ref: v${{ steps.regex-match.outputs.group1 }}
     - name: Build Dafny with local Boogie
       working-directory: dafny
