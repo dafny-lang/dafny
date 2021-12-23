@@ -26,7 +26,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
   public class ShutdownTest {
 
     [TestMethod]
-    public async Task LanguageServerStaysAliveIfNoParentIdIsProvided() {
+    public async Task LanguageServerStaysAliveIfParentDiesButNoParentIdWasProvided() {
       var process = await StartLanguageServerRunnerProcess();
 
       var languageServerProcessId = await process.StandardOutput.ReadLineAsync();
