@@ -1,5 +1,4 @@
 using System;
-using System.CodeDom.Compiler;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
@@ -28,19 +27,21 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     [TestMethod]
     public async Task LanguageServerStaysAliveIfParentDiesButNoParentIdWasProvided() {
       var process = await StartLanguageServerRunnerProcess();
+      var error = "";
+      process.ErrorDataReceived += delegate (object sender, DataReceivedEventArgs args) { error += args.Data; };
 
       var languageServerProcessId = await process.StandardOutput.ReadLineAsync();
+      Assert.IsNotNull(languageServerProcessId);
 
+      Thread.Sleep(1000); // Give the process some time to die
       var initializeMessage = GetLspInitializeMessage(null);
       await process.StandardInput.WriteAsync(initializeMessage);
 
       var initializedResponseFirstLine = await process.StandardOutput.ReadLineAsync();
       Assert.IsFalse(string.IsNullOrEmpty(initializedResponseFirstLine));
 
-      var error = await process.StandardError.ReadToEndAsync();
       var didExit = process.WaitForExit(-1);
       Assert.IsTrue(didExit);
-      Assert.IsNotNull(languageServerProcessId, error);
 
       Thread.Sleep(100); // Give the process some time to die
 
@@ -48,7 +49,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       try {
         var languageServer = Process.GetProcessById(int.Parse(languageServerProcessId));
         languageServer.Kill();
-      } catch (ArgumentException e) {
+      } catch (ArgumentException) {
         Assert.Fail("Language server should not have killed itself if it doesn't know the parent.");
       }
     }
@@ -78,7 +79,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
         var languageServer = Process.GetProcessById(int.Parse(languageServerProcessId));
         languageServer.Kill();
         Assert.Fail("Language server should have killed itself if the parent is gone.");
-      } catch (ArgumentException e) {
+      } catch (ArgumentException) {
         // Language server process is not running, pass the test.
       }
     }
@@ -114,7 +115,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
           Capabilities = new ClientCapabilities(),
         }
       });
+#pragma warning disable VSTHRD002
       outputHandler.StopAsync().Wait();
+#pragma warning restore VSTHRD002
       return Encoding.ASCII.GetString(buffer.ToArray());
     }
 
@@ -122,6 +125,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var code = @$"using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
+using System;
 
 public class Foo {{
   public static async Task<int> Main(string[] args) {{
@@ -161,10 +165,10 @@ public class Foo {{
       var configuration = JsonSerializer.Serialize(
         new {
           runtimeOptions = new {
-            tfm = "net5.0",
+            tfm = "net6.0",
             framework = new {
               name = "Microsoft.NETCore.App",
-              version = "5.0.0",
+              version = "6.0.0",
               rollForward = "LatestMinor"
             }
           }
