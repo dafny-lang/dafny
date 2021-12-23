@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using Microsoft.Dafny.LanguageServer.Handlers;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace;
@@ -59,7 +60,7 @@ namespace Microsoft.Dafny.LanguageServer {
         var hostProcess = Process.GetProcessById((int)request.ProcessId)!;
         hostProcess.EnableRaisingEvents = true;
         hostProcess.Exited += (_, _) => Kill();
-      } catch {
+      } catch(ArgumentException) {
         // If the process dies before we get here then request shutdown immediately
         Kill();
       }
