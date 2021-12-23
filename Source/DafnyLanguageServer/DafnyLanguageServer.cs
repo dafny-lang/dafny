@@ -20,7 +20,7 @@ namespace Microsoft.Dafny.LanguageServer {
       }
     }
 
-    public static LanguageServerOptions WithDafnyLanguageServer(this LanguageServerOptions options, 
+    public static LanguageServerOptions WithDafnyLanguageServer(this LanguageServerOptions options,
       IConfiguration configuration, CancellationTokenSource cancelLanguageServer) {
       return options
         .WithDafnyLanguage(configuration)
@@ -30,27 +30,23 @@ namespace Microsoft.Dafny.LanguageServer {
         .OnStarted(StartedAsync);
     }
 
-    private static Task InitializeAsync(ILanguageServer server, InitializeParams request, CancellationToken cancelRequestToken, 
+    private static Task InitializeAsync(ILanguageServer server, InitializeParams request, CancellationToken cancelRequestToken,
         CancellationTokenSource cancelLanguageServer) {
       var logger = server.GetRequiredService<ILogger<Program>>();
       logger.LogTrace("initializing service");
-    
+
       // https://github.com/microsoft/language-server-protocol/blob/gh-pages/_specifications/specification-3-16.md?plain=1#L1713
-      if (request.ProcessId >= 0)
-      {
-        try
-        {
+      if (request.ProcessId >= 0) {
+        try {
           var hostProcess = Process.GetProcessById((int)request.ProcessId)!;
           hostProcess.EnableRaisingEvents = true;
           hostProcess.Exited += (_, _) => Process.GetCurrentProcess().Kill(); //cancelLanguageServer.Cancel());
-        }
-        catch
-        {
+        } catch {
           // If the process dies before we get here then request shutdown immediately
           Process.GetCurrentProcess().Kill(); //;cancelLanguageServer.Cancel();
         }
       }
-      
+
       return Task.CompletedTask;
     }
 

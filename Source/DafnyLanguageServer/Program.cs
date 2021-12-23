@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 using OmniSharpLanguageServer = OmniSharp.Extensions.LanguageServer.Server.LanguageServer;
 
 namespace Microsoft.Dafny.LanguageServer {
-  
+
   public class Program {
     private static async Task Main(string[] args) {
       var configuration = CreateConfiguration(args);

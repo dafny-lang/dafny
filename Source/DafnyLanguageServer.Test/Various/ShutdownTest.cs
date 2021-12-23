@@ -20,31 +20,30 @@ using OmniSharp.Extensions.JsonRpc.Serialization;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client.Capabilities;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
-namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {    
-  class AlwaysOutputFilter : IOutputFilter { public bool ShouldOutput(object value) => true; }
+namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
   [TestClass]
   public class ShutdownTest {
-    
+
     [TestMethod]
     public async Task LanguageServerStaysAliveIfNoParentIdIsProvided() {
       var process = await StartLanguageServerRunnerProcess();
-      
+
       var languageServerProcessId = await process.StandardOutput.ReadLineAsync();
-      
+
       var initializeMessage = GetLspInitializeMessage(null);
       await process.StandardInput.WriteAsync(initializeMessage);
-      
+
       var initializedResponseFirstLine = await process.StandardOutput.ReadLineAsync();
       Assert.IsFalse(string.IsNullOrEmpty(initializedResponseFirstLine));
-      
+
       var error = await process.StandardError.ReadToEndAsync();
       var didExit = process.WaitForExit(-1);
       Assert.IsTrue(didExit);
       Assert.IsNotNull(languageServerProcessId, error);
-      
+
       Thread.Sleep(100); // Give the process some time to die
-      
+
       Assert.IsFalse(string.IsNullOrEmpty(initializedResponseFirstLine));
       try {
         var languageServer = Process.GetProcessById(int.Parse(languageServerProcessId));
@@ -57,21 +56,21 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     [TestMethod]
     public async Task LanguageServerShutsDownIfParentDies() {
       var process = await StartLanguageServerRunnerProcess();
-      
+
       var languageServerProcessId = await process.StandardOutput.ReadLineAsync();
-      
+
       var initializeMessage = GetLspInitializeMessage(process.Id);
       await process.StandardInput.WriteAsync(initializeMessage);
-      
+
       var initializedResponseFirstLine = await process.StandardOutput.ReadLineAsync();
       Assert.IsFalse(string.IsNullOrEmpty(initializedResponseFirstLine));
-      
+
       var error = await process.StandardError.ReadToEndAsync();
       var didExit = process.WaitForExit(-1);
       Assert.IsTrue(didExit);
       Assert.IsNotNull(languageServerProcessId, error);
       Assert.IsTrue(string.IsNullOrEmpty(error), error);
-      
+
       // Wait for the language server to kill itself by waiting until it closes the output stream.
       await process.StandardOutput.ReadToEndAsync();
       Thread.Sleep(100); // Give the process some time to die
@@ -88,8 +87,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var languageServerBinary = Path.Join(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "DafnyLanguageServer");
       var languageServerRunnerPath = await CreateDotNetDllThatStartsGivenFilepath(languageServerBinary);
 
-      var processInfo = new ProcessStartInfo("dotnet", languageServerRunnerPath)
-      {
+      var processInfo = new ProcessStartInfo("dotnet", languageServerRunnerPath) {
         RedirectStandardOutput = true,
         RedirectStandardError = true,
         RedirectStandardInput = true,
@@ -98,8 +96,11 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       return Process.Start(processInfo)!;
     }
 
-    private static string GetLspInitializeMessage(int? processId)
-    {
+    class AlwaysOutputFilter : IOutputFilter {
+      public bool ShouldOutput(object value) => true;
+    }
+
+    private static string GetLspInitializeMessage(int? processId) {
       var buffer = new MemoryStream();
       OutputHandler outputHandler = new OutputHandler(PipeWriter.Create(buffer), new JsonRpcSerializer(),
         new List<IOutputFilter> { new AlwaysOutputFilter() },
@@ -107,8 +108,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       outputHandler.Send(new OutgoingRequest {
         Id = 1,
         Method = "initialize",
-        Params = new InitializeParams
-        {
+        Params = new InitializeParams {
           ProcessId = processId,
           ClientInfo = new ClientInfo(),
           Capabilities = new ClientCapabilities(),
@@ -117,9 +117,8 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       outputHandler.StopAsync().Wait();
       return Encoding.ASCII.GetString(buffer.ToArray());
     }
-    
-    private static async Task<string> CreateDotNetDllThatStartsGivenFilepath(string filePathToStart)
-    {
+
+    private static async Task<string> CreateDotNetDllThatStartsGivenFilepath(string filePathToStart) {
       var code = @$"using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
@@ -160,13 +159,10 @@ public class Foo {{
       var result = compilation.Emit(assemblyPath);
 
       var configuration = JsonSerializer.Serialize(
-        new
-        {
-          runtimeOptions = new
-          {
+        new {
+          runtimeOptions = new {
             tfm = "net5.0",
-            framework = new
-            {
+            framework = new {
               name = "Microsoft.NETCore.App",
               version = "5.0.0",
               rollForward = "LatestMinor"
