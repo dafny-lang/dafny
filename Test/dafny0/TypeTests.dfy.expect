@@ -1,10 +1,10 @@
-TypeTests.dfy(9,14): Error: incorrect type of function argument 0 named 'c' (expected C, found D)
-TypeTests.dfy(9,14): Error: incorrect type of function argument 1 named 'd' (expected D, found C)
-TypeTests.dfy(10,14): Error: incorrect type of function argument 0 named 'c' (expected C, found int)
-TypeTests.dfy(10,14): Error: incorrect type of function argument 1 named 'd' (expected D, found int)
+TypeTests.dfy(9,14): Error: incorrect type of function argument at index 0 named 'c' (expected C, found D)
+TypeTests.dfy(9,14): Error: incorrect type of function argument at index 1 named 'd' (expected D, found C)
+TypeTests.dfy(10,14): Error: incorrect type of function argument at index 0 named 'c' (expected C, found int)
+TypeTests.dfy(10,14): Error: incorrect type of function argument at index 1 named 'd' (expected D, found int)
 TypeTests.dfy(16,16): Error: incorrect type of method in-parameter named 'x' (expected int, found bool)
-TypeTests.dfy(16,16): Error: incorrect type of method out-parameter 1 named 'c' (expected C, got int)
-TypeTests.dfy(17,12): Error: incorrect type of method out-parameter 1 named 'c' (expected C, got int)
+TypeTests.dfy(16,16): Error: incorrect type of method out-parameter at index 1 named 'c' (expected C, got int)
+TypeTests.dfy(17,12): Error: incorrect type of method out-parameter at index 1 named 'c' (expected C, got int)
 TypeTests.dfy(45,6): Error: Duplicate local-variable name: z
 TypeTests.dfy(47,6): Error: Duplicate local-variable name: x
 TypeTests.dfy(50,8): Error: Duplicate local-variable name: x

@@ -13547,12 +13547,12 @@ namespace Microsoft.Dafny {
           var it = outFormal.Type;
           Type st = SubstType(it, typeMap);
           var lhs = s.Lhs[i];
+          var what = "method out-parameter";
+          what += GetLocationInformation(callee.Outs, i);
+
           AddAssignableConstraint(
-            s.Tok, lhs.Type, st, "incorrect type of method out-parameter" +
-                                 (callee.Outs.Count == 1 ? "" : " " + i) +
-                                 (outFormal is ImplicitFormal || !outFormal.HasName
-                                   ? "" : " named '" + outFormal.Name + "'") +
-                                 " (expected {1}, got {0})");
+            s.Tok, lhs.Type, st,
+            $"incorrect type of {what} (expected {{1}}, got {{0}})");
         }
         for (int i = 0; i < s.Lhs.Count; i++) {
           var lhs = s.Lhs[i];
@@ -16884,6 +16884,7 @@ namespace Microsoft.Dafny {
 
       // resolve given arguments and populate the "namesToActuals" map
       var namesToActuals = new Dictionary<string, ActualBinding>();
+      var namesProvidedExplicitly = new HashSet<string>();
       formals.ForEach(f => namesToActuals.Add(f.Name, null)); // a name mapping to "null" says it hasn't been filled in yet
       var stillAcceptingPositionalArguments = true;
       var j = 0;
@@ -16898,6 +16899,7 @@ namespace Microsoft.Dafny {
           } else if (b == null) {
             // all is good
             namesToActuals[pname] = binding;
+            namesProvidedExplicitly.Add(pname);
           } else if (b.FormalParameterName == null) {
             reporter.Error(MessageSource.Resolver, binding.FormalParameterName, $"the parameter named '{pname}' is already given positionally");
           } else {
@@ -16942,14 +16944,11 @@ namespace Microsoft.Dafny {
           actuals.Add(b.Actual);
           substMap.Add(formal, b.Actual);
           var what = whatKind + (context is Method ? " in-parameter" : " argument");
-          if (formals.Count != 1) {
-            what += " " + j;
-          }
-          if (formal.HasName && !(formal is ImplicitFormal)) {
-            what += " named '" + formal.Name + "'";
-          }
+          what += GetLocationInformation(formals, j);
 
-          AddAssignableConstraint(callTok, SubstType(formal.Type, typeMap), b.Actual.Type, "incorrect type of " + what + " (expected {0}, found {1})");
+          AddAssignableConstraint(
+            callTok, SubstType(formal.Type, typeMap), b.Actual.Type,
+            $"incorrect type of {what} (expected {{0}}, found {{1}})");
         } else if (formal.DefaultValue != null) {
           // Note, in the following line, "substMap" is passed in, but it hasn't been fully filled in until the
           // end of this foreach loop. Still, that's soon enough, because DefaultValueExpression won't use it
@@ -16979,6 +16978,21 @@ namespace Microsoft.Dafny {
       }
 
       bindings.AcceptArgumentExpressionsAsExactParameterList(actuals);
+    }
+
+    private static string GetLocationInformation(List<Formal> formals, int index) {
+      var formal = formals[index];
+      var displayName = formal.HasName && !(formal is ImplicitFormal);
+      var description = "";
+      if (formals.Count() > 1) {
+        description += $" at index {index}";
+      }
+
+      if (displayName) {
+        description += $" named '{formal.Name}'";
+      }
+
+      return description;
     }
 
     private List<DefaultValueExpression> allDefaultValueExpressions = new List<DefaultValueExpression>();
