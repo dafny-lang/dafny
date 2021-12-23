@@ -56,7 +56,7 @@ VerificationResult = List[str]
 """Structured output returned by Dafny."""
 
 FIXME = NotImplementedError
-DEBUG = False
+VERBOSITY = 0
 INPUT_TEE = "inputs.log"
 OUTPUT_TEE = "outputs.log"
 
@@ -79,10 +79,28 @@ def which(exe: Union[str, List[str]]) -> Union[str, List[str]]:
     return path
 
 
-def debug(prefix: str, *msgs: str, **kwds: Dict[str, Any]) -> None:
-    """Print `msgs` with `prefix`; forward `kwds` to ``print``."""
-    if DEBUG:
-        print(prefix, *msgs, **{**kwds, "file": sys.stderr})  # type: ignore
+def _print(level: int, prefix: str, *msgs: str, **kwargs: Any) -> None:
+    """Print `msgs` with `prefix` if `level` <= ``VERBOSITY``.
+
+    Keywords `kwargs` are forwarded to ``print``.
+    """
+    if level <= VERBOSITY:
+        print(prefix, *msgs, **{**kwargs, "file": sys.stderr})  # type: ignore
+
+
+def info(prefix: str, *msgs: str, **kwargs: Any) -> None:
+    """Call ``_debug`` with `prefix`, `msgs`, and `kwargs` at level 1."""
+    _print(1, prefix, *msgs, **kwargs)
+
+
+def debug(prefix: str, *msgs: str, **kwargs: Any) -> None:
+    """Call ``_debug`` with `prefix`, `msgs`, and `kwargs` at level 2."""
+    _print(2, prefix, *msgs, **kwargs)
+
+
+def trace(prefix: str, *msgs: str, **kwargs: Any) -> None:
+    """Call ``_debug`` with `prefix`, `msgs`, and `kwargs` at level 2."""
+    _print(3, prefix, *msgs, **kwargs)
 
 
 def _no_window() -> subprocess.STARTUPINFO:
@@ -396,8 +414,8 @@ class LSPServer:
         assert self.repl.stdin
         js = self._dump(cmd)
         header = f"Content-Length: {len(js)}\r\n\r\n"
-        debug(">>", repr(header))
-        debug(">>", js)
+        trace(">>", repr(header))
+        trace(">>", js)
         self.repl.stdin.write(header.encode("utf-8"))
         self.repl.stdin.write(js.encode("utf-8"))
         self.repl.stdin.flush()
@@ -631,7 +649,7 @@ def test(inputs: ProverInputs, *drivers: Driver) -> None:
     # server's results and hence wouldn't send the “shutdown” message).
     results = zip_longest(*prover_output_streams)
     for snapidx, snap in enumerate(snapshots):
-        print(f"------ {snap.name}(#{snapidx}) ------", flush=True)
+        info(f"------ {snap.name}(#{snapidx}) ------", flush=True)
         prover_outputs = next(results)
         for (d1, p1), (d2, p2) in window(zip(drivers, prover_outputs), 2):
             o1, o2 = p1.format(), p2.format()
@@ -687,7 +705,8 @@ def parse_arguments() -> argparse.Namespace:
     """Parser command line arguments."""
     parser = argparse.ArgumentParser(description=__doc__)
 
-    parser.add_argument("--debug", action="store_true")
+    parser.add_argument('--verbose', '-v', action='count', default=0,
+                        help="Increase verbosity (repeat for more).")
 
     J_HELP = "Run command line tests in N concurrent threads."
     parser.add_argument("-j", type=int, default=None,
@@ -717,9 +736,8 @@ def parse_arguments() -> argparse.Namespace:
     args.drivers = [resolve_driver(d) for d in args.drivers]
     args.inputs = [resolve_input(d, parser) for d in args.inputs]
 
-    if args.debug:
-        global DEBUG
-        DEBUG = True
+    global VERBOSITY
+    VERBOSITY = args.verbose
 
     if args.j:
         global NWORKERS
@@ -735,7 +753,7 @@ def parse_arguments() -> argparse.Namespace:
 def main() -> None:
     args = parse_arguments()
     for inputs in args.inputs:
-        print(f"====== {inputs.name} ======", file=sys.stderr)
+        info(f"====== {inputs.name} ======", file=sys.stderr)
         test(inputs, *args.drivers)
 
 
