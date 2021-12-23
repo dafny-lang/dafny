@@ -7,34 +7,63 @@ using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Collections.Generic;
+using System.IO.Pipelines;
 using System.Linq;
+using System.Reactive.Concurrency;
+using System.Text;
 using System.Text.Json;
 using System.Threading;
 using Microsoft.CodeAnalysis;
+using OmniSharp.Extensions.JsonRpc;
+using OmniSharp.Extensions.JsonRpc.Client;
+using OmniSharp.Extensions.JsonRpc.Serialization;
+using OmniSharp.Extensions.LanguageServer.Protocol.Client.Capabilities;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
-namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
+namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {    
+  class AlwaysOutputFilter : IOutputFilter { public bool ShouldOutput(object value) => true; }
+
   [TestClass]
   public class ShutdownTest {
     
     [TestMethod]
-    public async Task LanguageServerShutsDownIfParentDies() {
-      var languageServerBinary = "/Users/rwillems/Documents/SourceCode/dafny/Binaries/DafnyLanguageServer";
-      var languageServerRunnerPath = await CreateDotNetDllThatStartsGivenFilepath(languageServerBinary);
+    public async Task LanguageServerStaysAliveIfNoParentIdIsProvided() {
+      var process = await StartLanguageServerRunnerProcess();
 
-      var processInfo = new ProcessStartInfo("dotnet", languageServerRunnerPath) {
-        RedirectStandardOutput = true,
-        RedirectStandardError = true,
-        UseShellExecute = false
-      };
-      using var process = Process.Start(processInfo)!;
+      var initializeMessage = await GetLspInitializeMessage(null);
+      Thread.Sleep(1000);
+      await process.StandardInput.WriteAsync(initializeMessage);
       
-      var output = process.StandardOutput.ReadToEnd();
-      var error = process.StandardError.ReadToEnd();
+      var languageServerProcessId = await process.StandardOutput.ReadToEndAsync();
+      var error = await process.StandardError.ReadToEndAsync();
+      var didExit = process.WaitForExit(-1);
+      Assert.IsTrue(didExit);
+      Assert.IsNotNull(languageServerProcessId, error);
+      try {
+        Thread.Sleep(1000);
+        var languageServer = Process.GetProcessById(int.Parse(languageServerProcessId));
+        languageServer.Kill();
+      } catch (ArgumentException e) {
+        Assert.Fail("Language server should not have killed itself if it doesn't know the parent.");
+      }
+    }
+
+    [TestMethod]
+    public async Task LanguageServerShutsDownIfParentDies() {
+      var process = await StartLanguageServerRunnerProcess();
+      
+      var initializeMessage = await GetLspInitializeMessage(process.Id);
+      
+      var languageServerProcessId = await process.StandardOutput.ReadToEndAsync();
+      var error = await process.StandardError.ReadToEndAsync();
       var didExit = process.WaitForExit(-1);
       Assert.IsTrue(didExit);
       Assert.IsTrue(string.IsNullOrEmpty(error), error);
-      var languageServerProcessId = output;
+
       Assert.IsNotNull(languageServerProcessId, error);
+      
+      Thread.Sleep(1000);
+      await process.StandardInput.WriteAsync(initializeMessage);
       try {
         Thread.Sleep(1000);
         var languageServer = Process.GetProcessById(int.Parse(languageServerProcessId));
@@ -43,6 +72,41 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       } catch (ArgumentException e) {
         // Language server process is not running, pass the test.
       }
+    }
+
+    private static async Task<Process> StartLanguageServerRunnerProcess()
+    {
+      var languageServerBinary = "/Users/rwillems/Documents/SourceCode/dafny/Binaries/DafnyLanguageServer";
+      var languageServerRunnerPath = await CreateDotNetDllThatStartsGivenFilepath(languageServerBinary);
+
+      var processInfo = new ProcessStartInfo("dotnet", languageServerRunnerPath)
+      {
+        RedirectStandardOutput = true,
+        RedirectStandardError = true,
+        RedirectStandardInput = true,
+        UseShellExecute = false
+      };
+      return Process.Start(processInfo)!;
+    }
+
+    private static async Task<string> GetLspInitializeMessage(int? processId)
+    {
+      var buffer = new MemoryStream();
+      OutputHandler outputHandler = new OutputHandler(PipeWriter.Create(buffer), new JsonRpcSerializer(),
+        new List<IOutputFilter> { new AlwaysOutputFilter() },
+        TaskPoolScheduler.Default, null);
+      outputHandler.Send(new OutgoingRequest {
+        Id = 1,
+        Method = "initialize",
+        Params = new InitializeParams
+        {
+          ProcessId = processId,
+          ClientInfo = new ClientInfo(),
+          Capabilities = new ClientCapabilities(),
+        }
+      });
+      await outputHandler.StopAsync();
+      return Encoding.ASCII.GetString(buffer.ToArray());
     }
 
     private static async Task<string> CreateDotNetDllThatStartsGivenFilepath(string filePathToStart)
