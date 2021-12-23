@@ -53,8 +53,7 @@ namespace Microsoft.Dafny.LanguageServer {
         var hostProcess = Process.GetProcessById((int)request.ProcessId)!;
         hostProcess.EnableRaisingEvents = true;
         hostProcess.Exited += (_, _) => cancelLanguageServer.Cancel();
-      }
-      catch {
+      } catch {
         // If the process dies before we get here then request shutdown immediately
         cancelLanguageServer.Cancel();
       }
