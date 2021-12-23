@@ -41,11 +41,12 @@ namespace XUnitExtensions.Lit {
         throw new ArgumentException($"Couldn't get directory name for path: {filePath}");
       }
 
-      string fullDirectoryPath = Path.GetFullPath(directory);
+      string fullDirectoryPath = Path.GetFullPath(directory).Replace(@"\", "/");
       config = config.WithSubstitutions(new Dictionary<string, string> {
-        {"%s", filePath},
+        {"%s", filePath.Replace(@"\", "/")},
         // For class path separators
         {".jar:%S", ".jar" + Path.PathSeparator + fullDirectoryPath},
+        {"-java:", "-java" + Path.PathSeparator}, // In Windows path separators are ";"
         {"%S", fullDirectoryPath},
         {"%t", Path.Join(fullDirectoryPath, "Output", $"{fileName}.tmp")}
       });
