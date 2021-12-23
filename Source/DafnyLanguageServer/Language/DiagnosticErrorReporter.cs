@@ -5,6 +5,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   public class DiagnosticErrorReporter : ErrorReporter {
@@ -15,7 +16,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     private readonly DocumentUri entryDocumentUri;
     private readonly Dictionary<DocumentUri, List<Diagnostic>> diagnostics = new();
     private readonly Dictionary<DiagnosticSeverity, int> counts = new();
-    private System.Threading.ReaderWriterLockSlim rwLock = new();
+    private readonly ReaderWriterLockSlim rwLock = new();
 
     /// <summary>
     /// Creates a new instance with the given uri of the entry document.
@@ -31,7 +32,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     public IReadOnlyList<Diagnostic> GetDiagnostics(DocumentUri documentUri) {
       rwLock.EnterReadLock();
       try {
-        // Return a fresh list to avoid concurrency issues
+        // Concurrency: Return a copy of the list not to expose a reference to an object that requires synchronization.
+        // LATER: Make the Diagnostic type immutable, since we're not protecting it from concurrent accesses
         return new List<Diagnostic>(diagnostics.GetValueOrDefault(documentUri) ?? Enumerable.Empty<Diagnostic>());
       }
       finally {
