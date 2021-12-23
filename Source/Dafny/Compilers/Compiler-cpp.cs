@@ -2377,11 +2377,10 @@ namespace Microsoft.Dafny {
       var codebase = System.IO.Path.GetDirectoryName(assemblyLocation);
       Contract.Assert(codebase != null);
       var warnings = "-Wall -Wextra -Wpedantic -Wno-unused-variable -Wno-deprecated-copy";
-      if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
-        warnings += " -Wno-unknown-warning-option";
-      }
-      if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
+      if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
         warnings += " -Wno-unused-but-set-variable";
+      } else {
+        warnings += " -Wno-unknown-warning-option";
       }
       var args = warnings + $" -g -std=c++17 -I {codebase} -o {ComputeExeName(targetFilename)} {targetFilename}";
       compilationResult = null;
