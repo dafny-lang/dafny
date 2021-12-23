@@ -148,7 +148,7 @@ method Multiply(x: int, y: int) returns (product: int)
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var report = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
+      var report = await diagnosticReceiver.AwaitSecondNotificationAsync(CancellationToken);
       var diagnostics = report.Diagnostics.ToArray();
       Assert.AreEqual(1, diagnostics.Length);
       Assert.AreEqual("Other", diagnostics[0].Source);
@@ -196,7 +196,7 @@ method Multiply(x: int, y: int) returns (product: int)
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var report = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
+      var report = await diagnosticReceiver.AwaitSecondNotificationAsync(CancellationToken);
       var diagnostics = report.Diagnostics.ToArray();
       Assert.AreEqual(2, diagnostics.Length);
       Assert.AreEqual("Other", diagnostics[0].Source);
@@ -270,7 +270,7 @@ method Multiply(x: int, y: int) returns (product: int)
       });
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var reportAfterOpening = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
+      var reportAfterOpening = await diagnosticReceiver.AwaitSecondNotificationAsync(CancellationToken);
       var diagnosticsAfterOpening = reportAfterOpening.Diagnostics.ToArray();
       Assert.AreEqual(0, diagnosticsAfterOpening.Length);
 
@@ -311,7 +311,7 @@ method Multiply(x: int, y: int) returns (product: int)
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var reportAfterOpening = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
+      var reportAfterOpening = await diagnosticReceiver.AwaitSecondNotificationAsync(CancellationToken);
       var diagnosticsAfterOpening = reportAfterOpening.Diagnostics.ToArray();
       Assert.AreEqual(0, diagnosticsAfterOpening.Length);
 
@@ -328,7 +328,7 @@ method Multiply(x: int, y: int) returns (product: int)
         }
       });
 
-      var report = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
+      var report = await diagnosticReceiver.AwaitSecondNotificationAsync(CancellationToken);
       var diagnostics = report.Diagnostics.ToArray();
       Assert.AreEqual(1, diagnostics.Length);
       Assert.AreEqual("Other", diagnostics[0].Source);
@@ -442,7 +442,7 @@ method Multiply(x: int, y: int) returns (product: int
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
+      await diagnosticReceiver.AwaitSecondNotificationAsync(CancellationToken);
       client.DidCloseTextDocument(new DidCloseTextDocumentParams { TextDocument = documentItem });
       var report = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
       var diagnostics = report.Diagnostics.ToArray();
@@ -518,17 +518,14 @@ method Multiply(x: int, y: int) returns (product: int)
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var changeReport = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
+      var changeReport = await diagnosticReceiver.AwaitSecondNotificationAsync(CancellationToken);
       var changeDiagnostics = changeReport.Diagnostics.ToArray();
       Assert.AreEqual(1, changeDiagnostics.Length);
       Assert.AreEqual("Other", changeDiagnostics[0].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, changeDiagnostics[0].Severity);
       client.SaveDocument(documentItem);
-      var saveReport = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
-      var saveDiagnostics = saveReport.Diagnostics.ToArray();
-      Assert.AreEqual(1, saveDiagnostics.Length);
-      Assert.AreEqual("Other", saveDiagnostics[0].Source);
-      Assert.AreEqual(DiagnosticSeverity.Error, saveDiagnostics[0].Severity);
+      
+      // TODO check that no diagnostics are received, but how?
     }
 
     [TestMethod]
@@ -587,7 +584,7 @@ class Test {
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       client.OpenDocument(documentItem);
-      var report = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
+      var report = await diagnosticReceiver.AwaitSecondNotificationAsync(CancellationToken);
       var diagnostics = report.Diagnostics.ToArray();
       Assert.AreEqual(1, diagnostics.Length);
       Assert.AreEqual("Other", diagnostics[0].Source);

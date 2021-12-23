@@ -7,8 +7,12 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reactive.Linq;
+using System.Reactive.Threading.Tasks;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using OmniSharp.Extensions.LanguageServer.Protocol.Server.Capabilities;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
@@ -54,42 +58,45 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public async Task<bool> CloseDocumentAsync(TextDocumentIdentifier documentId) {
       if (documents.Remove(documentId.Uri, out var databaseEntry)) {
         databaseEntry.CancelPendingUpdates();
-        await databaseEntry.Document;
+        await databaseEntry.VerifiedDocument;
         return true;
       }
       return false;
     }
 
-    public async Task<DafnyDocument> OpenDocumentAsync(TextDocumentItem document) {
+    public IObservable<DafnyDocument> OpenDocumentAsync(TextDocumentItem document) {
       var cancellationSource = new CancellationTokenSource();
+      var resolvedDocument = OpenAsync(document, cancellationSource.Token);
+      var verifiedDocument = VerifyAsync(resolvedDocument, VerifyOnOpen, cancellationSource.Token);
       var databaseEntry = new DocumentEntry(
         document.Version,
-        Task.Run(() => OpenAndVerifyAsync(document, cancellationSource.Token)),
+        resolvedDocument,
+        verifiedDocument,
         cancellationSource
       );
       documents.Add(document.Uri, databaseEntry);
-      return await databaseEntry.Document;
+      return resolvedDocument.ToObservable().Concat(verifiedDocument.ToObservable());
     }
 
-    private async Task<DafnyDocument> OpenAndVerifyAsync(TextDocumentItem textDocument, CancellationToken cancellationToken) {
+    private Task<DafnyDocument> OpenAsync(TextDocumentItem textDocument, CancellationToken cancellationToken) {
       try {
-        return await LoadAndVerifyAsync(textDocument, VerifyOnOpen, cancellationToken);
+        return documentLoader.LoadAsync(textDocument, cancellationToken);
       } catch (OperationCanceledException) {
         // We do not allow canceling the load of the placeholder document. Otherwise, other components
         // start to have to check for nullability in later stages such as change request processors.
-        return documentLoader.CreateUnloaded(textDocument, CancellationToken.None);
+        return Task.FromResult(documentLoader.CreateUnloaded(textDocument, CancellationToken.None));
       }
     }
-
-    private async Task<DafnyDocument> LoadAndVerifyAsync(TextDocumentItem textDocument, bool verify, CancellationToken cancellationToken) {
-      var document = await documentLoader.LoadAsync(textDocument, cancellationToken);
+    
+    private async Task<DafnyDocument> VerifyAsync(Task<DafnyDocument> documentTask, bool verify, CancellationToken cancellationToken) {
+      var document = await documentTask;
       if (!verify || document.Errors.HasErrors) {
-        return document;
+        throw new TaskCanceledException();
       }
       return await documentLoader.VerifyAsync(document, cancellationToken);
     }
 
-    public async Task<DafnyDocument> UpdateDocumentAsync(DidChangeTextDocumentParams documentChange) {
+    public IObservable<DafnyDocument> UpdateDocumentAsync(DidChangeTextDocumentParams documentChange) {
       var documentUri = documentChange.TextDocument.Uri;
       if (!documents.TryGetValue(documentUri, out var databaseEntry)) {
         throw new ArgumentException($"the document {documentUri} was not loaded before");
@@ -99,20 +106,45 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
       databaseEntry.CancelPendingUpdates();
       var cancellationSource = new CancellationTokenSource();
+      var previousDocumentTask = FirstSuccessfulTask(databaseEntry.VerifiedDocument, databaseEntry.ResolvedDocument);
+      var resolvedDocumentTask = ApplyChangesAsync(previousDocumentTask, documentChange, cancellationSource.Token);
+      var verifiedDocument = VerifyAsync(resolvedDocumentTask, VerifyOnChange, cancellationSource.Token);
       var updatedEntry = new DocumentEntry(
         documentChange.TextDocument.Version,
-        Task.Run(async () => await ApplyChangesAsync(await databaseEntry.Document, documentChange, cancellationSource.Token)),
+        resolvedDocumentTask,
+        verifiedDocument,
         cancellationSource
       );
       documents[documentUri] = updatedEntry;
-      return await updatedEntry.Document;
+      return resolvedDocumentTask.ToObservable().Concat(verifiedDocument.ToObservable());
     }
 
-    private async Task<DafnyDocument> ApplyChangesAsync(DafnyDocument oldDocument, DidChangeTextDocumentParams documentChange, CancellationToken cancellationToken) {
+    public static Task<T> FirstSuccessfulTask<T>(params Task<T>[] tasks)
+    {
+      var taskList = tasks.ToList();
+      var tcs = new TaskCompletionSource<T>();
+      int remainingTasks = taskList.Count;
+      foreach (var task in taskList)
+      {
+        task.ContinueWith(t =>
+        {
+          if (task.Status == TaskStatus.RanToCompletion) {
+            tcs.TrySetResult(t.Result);
+          } 
+          else if (Interlocked.Decrement(ref remainingTasks) == 0) {
+            tcs.SetException(new AggregateException(tasks.SelectMany(t1 => t1.Exception.InnerExceptions)));
+          }
+        });
+      }
+      return tcs.Task;
+    }
+    
+    private async Task<DafnyDocument> ApplyChangesAsync(Task<DafnyDocument> oldDocumentTask, DidChangeTextDocumentParams documentChange, CancellationToken cancellationToken) {
+      var oldDocument = await oldDocumentTask;
       // We do not pass the cancellation token to the text change processor because the text has to be kept in sync with the LSP client.
       var updatedText = textChangeProcessor.ApplyChange(oldDocument.Text, documentChange, CancellationToken.None);
       try {
-        var newDocument = await LoadAndVerifyAsync(updatedText, VerifyOnChange, cancellationToken);
+        var newDocument = await documentLoader.LoadAsync(updatedText, cancellationToken);
         if (newDocument.SymbolTable.Resolved) {
           return newDocument;
         }
@@ -135,29 +167,31 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
     }
 
-    public Task<DafnyDocument> SaveDocumentAsync(TextDocumentIdentifier documentId) {
+    public IObservable<DafnyDocument> SaveDocumentAsync(TextDocumentIdentifier documentId) {
       if (!documents.TryGetValue(documentId.Uri, out var databaseEntry)) {
-        return Task.FromException<DafnyDocument>(new ArgumentException($"the document {documentId.Uri} was not loaded before"));
+        throw new ArgumentException($"the document {documentId.Uri} was not loaded before");
       }
       if (!VerifyOnSave) {
-        return databaseEntry.Document;
+        return Observable.Empty<DafnyDocument>();
       }
-      return VerifyDocumentIfRequiredAsync(databaseEntry);
+      return VerifyDocumentIfRequiredAsync(databaseEntry).ToObservable();
     }
 
     private async Task<DafnyDocument> VerifyDocumentIfRequiredAsync(DocumentEntry databaseEntry) {
-      var document = await databaseEntry.Document;
+      var document = await databaseEntry.ResolvedDocument;
       if (!RequiresOnSaveVerification(document)) {
-        return document;
+        throw new TaskCanceledException();
       }
       var cancellationSource = new CancellationTokenSource();
+      var verifiedDocumentTask = documentLoader.VerifyAsync(document, cancellationSource.Token);
       var updatedEntry = new DocumentEntry(
         document.Version,
-        Task.Run(() => documentLoader.VerifyAsync(document, cancellationSource.Token)),
+        Task.FromResult(document),
+        verifiedDocumentTask,
         cancellationSource
       );
       documents[document.Uri] = updatedEntry;
-      return await updatedEntry.Document;
+      return await verifiedDocumentTask;
     }
 
     private static bool RequiresOnSaveVerification(DafnyDocument document) {
@@ -166,12 +200,21 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public async Task<DafnyDocument?> GetDocumentAsync(TextDocumentIdentifier documentId) {
       if (documents.TryGetValue(documentId.Uri, out var databaseEntry)) {
-        return await databaseEntry.Document;
+        return await databaseEntry.ResolvedDocument;
       }
       return null;
     }
 
-    private record DocumentEntry(int? Version, Task<DafnyDocument> Document, CancellationTokenSource CancellationSource) {
+    public async Task<DafnyDocument?> GetVerifiedDocumentAsync(TextDocumentIdentifier documentId) {
+      if (documents.TryGetValue(documentId.Uri, out var databaseEntry)) {
+        return await databaseEntry.VerifiedDocument;
+      }
+      return null;
+    }
+
+    private record DocumentEntry(int? Version, Task<DafnyDocument> ResolvedDocument, 
+      Task<DafnyDocument> VerifiedDocument, // TODO consider making this nullable in case we didn't try to verify 
+      CancellationTokenSource CancellationSource) {
       public void CancelPendingUpdates() {
         CancellationSource.Cancel();
       }

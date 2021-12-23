@@ -22,7 +22,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
     }
 
     public async Task<CounterExampleList> Handle(CounterExampleParams request, CancellationToken cancellationToken) {
-      var document = await documents.GetDocumentAsync(request.TextDocument);
+      var document = await documents.GetVerifiedDocumentAsync(request.TextDocument);
       if (document == null) {
         logger.LogWarning("counter-examples requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
         return new CounterExampleList();

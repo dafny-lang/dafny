@@ -116,20 +116,31 @@ lemma {:timeLimit 10} SquareRoot2NotRational(p: nat, q: nat)
         ContentChanges = new[] {
           new TextDocumentContentChangeEvent {
             Range = new Range((0, 0), (13, 1)),
-            Text = "function GetConstant(): int { 1 }"
+            Text = "function GetConstant(): int ensures false { 1 }"
           }
         }
       }, CancellationTokenWithHighTimeout);
 
+      // TODO fix documentation!!
       // The diagnostics of the initial document are already awaited. The original document contains a syntactic error.
       // The first change fixes the error. Therefore, if it was canceled by the second change, it should not report
       // any diagnostics.
       // The second change replaces the complete document with a correct one. Mind that the original document
       // was chosen because of the exceptionally long time it requires to verify.
       var report = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationTokenWithHighTimeout);
-      var diagnostics = report.Diagnostics.ToArray();
-      Assert.AreEqual(0, diagnostics.Length);
+      var firstResolutionDiagnostics = report.Diagnostics.ToArray();
+      Assert.AreEqual(1, firstResolutionDiagnostics.Length);
+      Assert.IsTrue(firstResolutionDiagnostics[0].Message.Contains("rbrace"));
 
+      var report2 = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationTokenWithHighTimeout);
+      var secondResolutionDiagnostics = report2.Diagnostics.ToArray();
+      Assert.AreEqual(0, secondResolutionDiagnostics.Length);
+      
+      var report3 = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationTokenWithHighTimeout);
+      var verificationDiagnostics = report3.Diagnostics.ToArray();
+      Assert.AreEqual(1, verificationDiagnostics.Length);
+      Assert.IsTrue(verificationDiagnostics[0].Message.Contains("postcondition"));
+      
       // This change is to ensure that no diagnostics are remaining in the report queue.
       var verificationDocumentItem = CreateTestDocument("class X {}", "verification.dfy");
       await client.OpenDocumentAndWaitAsync(verificationDocumentItem, CancellationTokenWithHighTimeout);

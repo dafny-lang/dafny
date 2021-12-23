@@ -16,6 +16,11 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util {
       availableNotifications.Release();
     }
 
+    public async Task<TNotification> AwaitSecondNotificationAsync(CancellationToken cancellationToken) {
+      await AwaitNextNotificationAsync(cancellationToken);
+      return await AwaitNextNotificationAsync(cancellationToken);
+    }
+    
     public async Task<TNotification> AwaitNextNotificationAsync(CancellationToken cancellationToken) {
       await availableNotifications.WaitAsync(cancellationToken);
       if (notifications.TryDequeue(out var notification)) {
