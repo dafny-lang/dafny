@@ -13548,7 +13548,7 @@ namespace Microsoft.Dafny {
           Type st = SubstType(it, typeMap);
           var lhs = s.Lhs[i];
           var what = "method out-parameter";
-          what += GetLocationInformation(outFormal, callee.Outs.Count(), i);
+          what += GetLocationInformation(callee.Outs, i);
 
           AddAssignableConstraint(
             s.Tok, lhs.Type, st,
@@ -16942,7 +16942,7 @@ namespace Microsoft.Dafny {
           actuals.Add(b.Actual);
           substMap.Add(formal, b.Actual);
           var what = whatKind + (context is Method ? " in-parameter" : " argument");
-          what += GetLocationInformation(formal, formals.Count(), j);
+          what += GetLocationInformation(formals, j);
 
           AddAssignableConstraint(
             callTok, SubstType(formal.Type, typeMap), b.Actual.Type,
@@ -16978,10 +16978,11 @@ namespace Microsoft.Dafny {
       bindings.AcceptArgumentExpressionsAsExactParameterList(actuals);
     }
 
-    private static string GetLocationInformation(Formal formal, int formalsCount, int index) {
+    private static string GetLocationInformation(List<Formal> formals, int index) {
+      var formal = formals[index];
       var displayName = formal.HasName && !(formal is ImplicitFormal);
       var description = "";
-      if (formalsCount > 1) {
+      if (formals.Count() > 1) {
         description += $" at index {index}";
       }
 
