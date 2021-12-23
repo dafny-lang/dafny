@@ -35,19 +35,29 @@ namespace Microsoft.Dafny.LanguageServer {
       var logger = server.GetRequiredService<ILogger<Program>>();
       logger.LogTrace("initializing service");
 
-      // https://github.com/microsoft/language-server-protocol/blob/gh-pages/_specifications/specification-3-16.md?plain=1#L1713
-      if (request.ProcessId >= 0) {
-        try {
-          var hostProcess = Process.GetProcessById((int)request.ProcessId)!;
-          hostProcess.EnableRaisingEvents = true;
-          hostProcess.Exited += (_, _) => Process.GetCurrentProcess().Kill(); //cancelLanguageServer.Cancel());
-        } catch {
-          // If the process dies before we get here then request shutdown immediately
-          Process.GetCurrentProcess().Kill(); //;cancelLanguageServer.Cancel();
-        }
-      }
+      KillLanguageServerIfParentDies(request, cancelLanguageServer);
 
       return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// As part of the LSP spec, a language server must kill itself if its parent process dies
+    /// https://github.com/microsoft/language-server-protocol/blob/gh-pages/_specifications/specification-3-16.md?plain=1#L1713
+    /// </summary>
+    private static void KillLanguageServerIfParentDies(InitializeParams request, CancellationTokenSource cancelLanguageServer) {
+      if (!(request.ProcessId >= 0)) {
+        return;
+      }
+
+      try {
+        var hostProcess = Process.GetProcessById((int)request.ProcessId)!;
+        hostProcess.EnableRaisingEvents = true;
+        hostProcess.Exited += (_, _) => cancelLanguageServer.Cancel();
+      }
+      catch {
+        // If the process dies before we get here then request shutdown immediately
+        cancelLanguageServer.Cancel();
+      }
     }
 
     private static Task StartedAsync(ILanguageServer server, CancellationToken cancellationToken) {

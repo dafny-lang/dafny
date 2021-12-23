@@ -17,7 +17,7 @@ namespace Microsoft.Dafny.LanguageServer {
       var configuration = CreateConfiguration(args);
       InitializeLogger(configuration);
       try {
-        var c = new CancellationTokenSource();
+        var cancelLanguageServer = new CancellationTokenSource();
         var server = await OmniSharpLanguageServer.From(
           options => options
             .WithInput(Console.OpenStandardInput())
@@ -25,9 +25,9 @@ namespace Microsoft.Dafny.LanguageServer {
             .ConfigureConfiguration(builder => builder.AddConfiguration(configuration))
             .ConfigureLogging(SetupLogging)
             .WithUnhandledExceptionHandler(LogException)
-            .WithDafnyLanguageServer(configuration, c)
+            .WithDafnyLanguageServer(configuration, cancelLanguageServer)
         );
-        c.Token.Register(() => server.ForcefulShutdown());
+        cancelLanguageServer.Token.Register(() => server.ForcefulShutdown());
         await server.WaitForExit;
       }
       finally {
