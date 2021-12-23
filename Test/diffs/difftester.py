@@ -21,8 +21,8 @@ Example usage::
 """
 
 from typing import (
-    Any, Callable, Dict, Iterable, Iterator, IO, List, Optional, Tuple, TypeVar,
-    Union, overload
+    Any, Callable, Dict, Iterable, Iterator, IO, List, NamedTuple,
+    Optional, Tuple, TypeVar, Union, overload
 )
 
 import argparse
@@ -53,9 +53,6 @@ Json = Dict[str, Any]
 LSPMessage = Json
 """A single LSP client request."""
 
-VerificationResult = List[str]
-"""Structured output returned by Dafny."""
-
 FIXME = NotImplementedError
 VERBOSITY = 0
 INPUT_TEE = "inputs.log"
@@ -64,6 +61,8 @@ OUTPUT_TEE = "outputs.log"
 NWORKERS = 1
 TIMEOUT = 6000.0  # https://stackoverflow.com/questions/1408356/
 
+RELATED_LOCATION = "Related location"
+"""String used by Dafny to indicate a relatedInformation message."""
 
 @overload
 def which(exe: str) -> str: ...
@@ -193,22 +192,36 @@ class ProverInputs:
         raise NotImplementedError
 
 
+class VerificationResult(NamedTuple):
+    """Structured output returned by Dafny."""
+    fname: str
+    line: int
+    col: int
+    header: str
+    msg: str
+    children: "List[VerificationResult]"
+
+    def format(self) -> List[str]:
+        sep = ": " if self.header and self.msg else ""
+        line = f"{self.fname}({self.line},{self.col}): {self.header}{sep}{self.msg}"
+        return [line, *(ll for vr in self.children for ll in vr.format())]
+
+
 class ProverOutput:
     """An output of Dafny."""
 
-    # @property
-    # def errors(self) -> List[VerificationResult]:
-    #     """Normalize this output and convert it to a list of results."""
-    #     raise NotImplementedError
+    def normalize(self) -> Iterable[VerificationResult]:
+        """Normalize this output and convert it to a list of results."""
+        raise NotImplementedError
 
     # Strings are easier to diff than structured data, especially when looking
     # at insertions/deletions.
     def format(self) -> str:
         """Normalize this output and convert it to a string."""
-        raise NotImplementedError
+        return "\n".join(ll for vr in sorted(self.normalize()) for ll in vr.format())
 
     @property
-    def raw(self) -> str:
+    def raw(self) -> Any:
         """Return the raw output of the prover."""
         raise NotImplementedError
 
@@ -577,51 +590,41 @@ class LSPServer:
 
 class LSPOutput(ProverOutput):
     LEVELS = {1: "Error", 2: "Warning", 4: "Info"}
-    RELATED_LOCATION = "Related location"
 
     def __init__(self, diagnostics: List[Json]) -> None:
         lines = [d["range"]["start"]["line"] for d in diagnostics]
         debug("[lsp]", f"{len(diagnostics)} diagnostics (lines: {lines})")
-        self.diags = sorted(diagnostics, key=self._key)
+        self.diags = diagnostics
 
     @classmethod
-    def _format_one(cls, pos: Json, header: str, msg: str) -> str:
-        """Format an LSP diagnostic `pos`, `msg`, `header` like Dafny's CLI."""
+    def _normalize_one(cls, pos: Json, header: str, msg: str,
+                       children: List[VerificationResult]) -> VerificationResult:
+        """Convert an LSP diagnostic `pos`, `msg`, `header`, `children` into a ``VerificationResult``."""
         l, c = pos['line'] + 1, pos['character']
-        sep = ": " if header and msg else ""
-        return f"<stdin>({l},{c}): {header}{sep}{msg}"
+        return VerificationResult("<stdin>", l, c, header, msg, children)
 
     @classmethod
-    def _format_related(cls, related_info: List[LSPMessage]) -> Iterator[str]:
-        for related in related_info: # FIXME: Check URI
-            pos, msg = related["location"]["range"]["start"], related["message"]
-            header = cls.RELATED_LOCATION if msg != cls.RELATED_LOCATION else ""
-            yield cls._format_one(pos, header, msg)
+    def _normalize_related(cls, ri: LSPMessage) -> VerificationResult:
+        # FIXME: Check URI
+        pos, msg = ri["location"]["range"]["start"], ri["message"]
+        header = RELATED_LOCATION if msg != RELATED_LOCATION else ""
+        return cls._normalize_one(pos, header, msg, [])
 
     @classmethod
-    def _format_main(cls, d: LSPMessage) -> Iterator[str]:
+    def _normalize_diag(cls, d: LSPMessage) -> Iterator[VerificationResult]:
         kind = cls.LEVELS[d["severity"]]
         pos, msg = d["range"]["start"], d["message"]
-        if "File contains no code" not in msg:
-            yield cls._format_one(pos, kind, msg)
+        related = d.get("relatedInformation", [])
+        if "File contains no code" in msg:
+            assert not related # Skip these errors
+            return
+        children = [cls._normalize_related(ri) for ri in related]
+        yield cls._normalize_one(pos, kind, msg, children=children)
 
-    @classmethod
-    def _format_diag(cls, d: LSPMessage):
-        yield from cls._format_main(d)
-        yield from cls._format_related(d.get("relatedInformation", []))
-
-    @staticmethod
-    def _key(d: Json) -> Tuple[int, int, int, int, str]:
-        """Extract a sorting key from an LSP diagnostic `d`."""
-        start, end = d['range']['start'], d['range']['end']
-        return (start['line'], start['character'],
-                end['line'], end['character'],
-                d['message'])
-
-    def format(self) -> str:
-        """Format to a string matching Dafny's CLI output."""
-        diags = sorted(self.diags, key=self._key)
-        return "\n".join(l for d in diags for l in self._format_diag(d))
+    def normalize(self) -> Iterable[VerificationResult]:
+        """Normalize this output and convert it to a list of results."""
+        for d in self.diags:
+            yield from self._normalize_diag(d)
 
     @property
     def raw(self) -> List[Json]:
@@ -703,15 +706,34 @@ class LSPDriver(Driver):
 
 
 class CLIOutput(ProverOutput):
-    ERROR_PATTERN = re.compile(r"^<stdin>[(][0-9]+,[0-9]+[)].*", re.MULTILINE)
+    ERROR_PATTERN = re.compile(r"""
+      ^
+       (?P<fname><stdin>)
+       [(](?P<l>[0-9]+),
+          (?P<c>[0-9]+)[)]
+       ((?P<hdr>[^:]*):[ ]*)?
+       (?P<msg>.*)
+      $
+    """, re.MULTILINE | re.VERBOSE)
 
     def __init__(self, output: str) -> None:
         self.output = output
 
-    def format(self) -> str:
-        """Normalize the output of a single Dafny run for easier comparison."""
-        messages = self.ERROR_PATTERN.finditer(self.output)
-        return "\n".join(m.group() for m in messages)
+    def _normalize(self) -> Iterable[VerificationResult]:
+        last = None
+        for m in self.ERROR_PATTERN.finditer(self.output):
+            fname, l, c, hdr, msg = m.group("fname", "l", "c", "hdr", "msg")
+            vr = VerificationResult(fname, int(l), int(c), hdr or "", msg or "", [])
+            if (RELATED_LOCATION in vr.header or RELATED_LOCATION in vr.msg):
+                assert last
+                last.children.append(vr)
+            else:
+                last = vr
+                yield last
+
+    def normalize(self) -> Iterable[VerificationResult]:
+        """Normalize this output and convert it to a list of results."""
+        return list(self._normalize()) # Force list to collect all children
 
     @property
     def raw(self) -> str:
