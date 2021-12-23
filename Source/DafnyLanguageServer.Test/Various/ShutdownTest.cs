@@ -74,7 +74,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
       // Wait for the language server to kill itself by waiting until it closes the output stream.
       await process.StandardOutput.ReadToEndAsync();
-      Thread.Sleep(100); // Give the process some time to die
+      Thread.Sleep(200); // Give the process some time to die
       try {
         var languageServer = Process.GetProcessById(int.Parse(languageServerProcessId));
         languageServer.Kill();
@@ -86,7 +86,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     private static async Task<Process> StartLanguageServerRunnerProcess() {
       var languageServerBinary = Path.Join(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "DafnyLanguageServer");
-      var languageServerRunnerPath = await CreateDotNetDllThatStartsGivenFilepath(languageServerBinary);
+      var languageServerRunnerPath = await CreateDotNetDllThatStartsGivenFilepath(languageServerBinary.Replace("\\", "\\\\"));
 
       var processInfo = new ProcessStartInfo("dotnet", languageServerRunnerPath) {
         RedirectStandardOutput = true,
