@@ -60,7 +60,7 @@ namespace Microsoft.Dafny.LanguageServer {
         var hostProcess = Process.GetProcessById((int)request.ProcessId)!;
         hostProcess.EnableRaisingEvents = true;
         hostProcess.Exited += (_, _) => Kill();
-      } catch(ArgumentException) {
+      } catch (ArgumentException) {
         // If the process dies before we get here then request shutdown immediately
         Kill();
       }
