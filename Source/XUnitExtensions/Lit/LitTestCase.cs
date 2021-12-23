@@ -86,9 +86,8 @@ namespace XUnitExtensions.Lit {
         }
 
         if (exitCode != 0) {
-          // TODO: sloppy, don't commit without cleaning up
           outputHelper.WriteLine("Previous command results:");
-          foreach (var (prevOutput, prevError) in results) {
+          foreach (var (prevOutput, _) in results) {
             outputHelper.WriteLine($"Output:\n{prevOutput}");
             outputHelper.WriteLine($"Error:\n{error}");
           }
