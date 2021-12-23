@@ -29,18 +29,20 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     [TestMethod]
     public async Task LanguageServerStaysAliveIfNoParentIdIsProvided() {
       var process = await StartLanguageServerRunnerProcess();
-
-      var initializeMessage = await GetLspInitializeMessage(null);
-      Thread.Sleep(1000);
-      await process.StandardInput.WriteAsync(initializeMessage);
       
-      var languageServerProcessId = await process.StandardOutput.ReadToEndAsync();
+      var languageServerProcessId = await process.StandardOutput.ReadLineAsync();
       var error = await process.StandardError.ReadToEndAsync();
       var didExit = process.WaitForExit(-1);
       Assert.IsTrue(didExit);
       Assert.IsNotNull(languageServerProcessId, error);
+      
+      Thread.Sleep(1000);
+      var initializeMessage = GetLspInitializeMessage(null);
+      await process.StandardInput.WriteAsync(initializeMessage);
+      
+      var initializedResponseFirstLine = await process.StandardOutput.ReadLineAsync();
+      Assert.IsFalse(string.IsNullOrEmpty(initializedResponseFirstLine));
       try {
-        Thread.Sleep(1000);
         var languageServer = Process.GetProcessById(int.Parse(languageServerProcessId));
         languageServer.Kill();
       } catch (ArgumentException e) {
@@ -52,9 +54,8 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     public async Task LanguageServerShutsDownIfParentDies() {
       var process = await StartLanguageServerRunnerProcess();
       
-      var initializeMessage = await GetLspInitializeMessage(process.Id);
       
-      var languageServerProcessId = await process.StandardOutput.ReadToEndAsync();
+      var languageServerProcessId = await process.StandardOutput.ReadLineAsync();
       var error = await process.StandardError.ReadToEndAsync();
       var didExit = process.WaitForExit(-1);
       Assert.IsTrue(didExit);
@@ -63,9 +64,12 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.IsNotNull(languageServerProcessId, error);
       
       Thread.Sleep(1000);
+      var initializeMessage = GetLspInitializeMessage(process.Id);
       await process.StandardInput.WriteAsync(initializeMessage);
+      // Wait for the language server to kill itself by waiting until it closes the output stream.
+      // Wait can't wait for the initialized notification because it's not sent before the server kills itself.
+      await process.StandardOutput.ReadToEndAsync();
       try {
-        Thread.Sleep(1000);
         var languageServer = Process.GetProcessById(int.Parse(languageServerProcessId));
         languageServer.Kill();
         Assert.Fail("Language server should have killed itself if the parent is gone.");
@@ -74,9 +78,8 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       }
     }
 
-    private static async Task<Process> StartLanguageServerRunnerProcess()
-    {
-      var languageServerBinary = "/Users/rwillems/Documents/SourceCode/dafny/Binaries/DafnyLanguageServer";
+    private static async Task<Process> StartLanguageServerRunnerProcess() {
+      var languageServerBinary = Path.Join(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "DafnyLanguageServer");
       var languageServerRunnerPath = await CreateDotNetDllThatStartsGivenFilepath(languageServerBinary);
 
       var processInfo = new ProcessStartInfo("dotnet", languageServerRunnerPath)
@@ -89,7 +92,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       return Process.Start(processInfo)!;
     }
 
-    private static async Task<string> GetLspInitializeMessage(int? processId)
+    private static string GetLspInitializeMessage(int? processId)
     {
       var buffer = new MemoryStream();
       OutputHandler outputHandler = new OutputHandler(PipeWriter.Create(buffer), new JsonRpcSerializer(),
@@ -105,7 +108,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
           Capabilities = new ClientCapabilities(),
         }
       });
-      await outputHandler.StopAsync();
+      outputHandler.StopAsync().RunSynchronously();
       return Encoding.ASCII.GetString(buffer.ToArray());
     }
 
@@ -118,7 +121,7 @@ public class Foo {{
   public static int Main(string[] args) {{
     var processInfo = new ProcessStartInfo(""{filePathToStart}"") {{
       // Prevents keeping stdio open after the outer process closes. 
-      RedirectStandardOutput = true,
+      RedirectStandardOutput = false,
       RedirectStandardError = true,
       UseShellExecute = false
     }};

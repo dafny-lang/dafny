@@ -12,6 +12,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Server;
 using OmniSharp.Extensions.LanguageServer.Server;
 using System.IO;
 using System.IO.Pipelines;
+using System.Threading;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest {
   public class DafnyLanguageServerTestBase : LanguageServerTestBase {
@@ -31,7 +32,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest {
           .WithInput(serverPipe.Reader)
           .WithOutput(clientPipe.Writer)
           .ConfigureLogging(SetupTestLogging)
-          .WithDafnyLanguageServer(CreateConfiguration())
+          .WithDafnyLanguageServer(CreateConfiguration(), new CancellationTokenSource())
       );
       // This is the style used in the LSP implementation itself:
       // https://github.com/OmniSharp/csharp-language-server-protocol/blob/1b6788df2600083c28811913a221ccac7b1d72c9/test/Lsp.Tests/Testing/LanguageServerTestBaseTests.cs
