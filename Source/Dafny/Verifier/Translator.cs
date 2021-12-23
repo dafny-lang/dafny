@@ -9298,7 +9298,15 @@ namespace Microsoft.Dafny {
       }
     }
 
-
+    /// <summary>
+    /// A "where" clause for a variable in Boogie turns into an assumption anytime that Boogie is tasked
+    /// with assigning an arbitrary value to that variable. This happens at the beginning of a procedure
+    /// implementation, after a procedure call, or as part of a "havoc" command. Each one of these can
+    /// easily be followed by a manual "assume" command. However, the use-case that makes "where" clauses
+    /// especially valuable is in loops, because when Boogie cuts the backedge, it inserts "havoc" commands.
+    /// To do this in Dafny, Dafny would have to compute loop targets, which is better done in Boogie (which
+    /// already has to do it).
+    /// </summary>
     Bpl.Expr GetWhereClause(IToken tok, Bpl.Expr x, Type type, ExpressionTranslator etran, IsAllocType alloc, bool allocatednessOnly = false) {
       Contract.Requires(tok != null);
       Contract.Requires(x != null);
