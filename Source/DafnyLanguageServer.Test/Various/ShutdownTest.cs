@@ -31,16 +31,20 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var process = await StartLanguageServerRunnerProcess();
       
       var languageServerProcessId = await process.StandardOutput.ReadLineAsync();
+      
+      var initializeMessage = GetLspInitializeMessage(null);
+      await process.StandardInput.WriteAsync(initializeMessage);
+      
+      var initializedResponseFirstLine = await process.StandardOutput.ReadLineAsync();
+      Assert.IsFalse(string.IsNullOrEmpty(initializedResponseFirstLine));
+      
       var error = await process.StandardError.ReadToEndAsync();
       var didExit = process.WaitForExit(-1);
       Assert.IsTrue(didExit);
       Assert.IsNotNull(languageServerProcessId, error);
       
-      Thread.Sleep(1000);
-      var initializeMessage = GetLspInitializeMessage(null);
-      await process.StandardInput.WriteAsync(initializeMessage);
+      Thread.Sleep(100); // Give the process some time to die
       
-      var initializedResponseFirstLine = await process.StandardOutput.ReadLineAsync();
       Assert.IsFalse(string.IsNullOrEmpty(initializedResponseFirstLine));
       try {
         var languageServer = Process.GetProcessById(int.Parse(languageServerProcessId));
@@ -54,21 +58,23 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     public async Task LanguageServerShutsDownIfParentDies() {
       var process = await StartLanguageServerRunnerProcess();
       
-      
       var languageServerProcessId = await process.StandardOutput.ReadLineAsync();
+      
+      var initializeMessage = GetLspInitializeMessage(process.Id);
+      await process.StandardInput.WriteAsync(initializeMessage);
+      
+      var initializedResponseFirstLine = await process.StandardOutput.ReadLineAsync();
+      Assert.IsFalse(string.IsNullOrEmpty(initializedResponseFirstLine));
+      
       var error = await process.StandardError.ReadToEndAsync();
       var didExit = process.WaitForExit(-1);
       Assert.IsTrue(didExit);
-      Assert.IsTrue(string.IsNullOrEmpty(error), error);
-
       Assert.IsNotNull(languageServerProcessId, error);
+      Assert.IsTrue(string.IsNullOrEmpty(error), error);
       
-      Thread.Sleep(1000);
-      var initializeMessage = GetLspInitializeMessage(process.Id);
-      await process.StandardInput.WriteAsync(initializeMessage);
       // Wait for the language server to kill itself by waiting until it closes the output stream.
-      // Wait can't wait for the initialized notification because it's not sent before the server kills itself.
       await process.StandardOutput.ReadToEndAsync();
+      Thread.Sleep(100); // Give the process some time to die
       try {
         var languageServer = Process.GetProcessById(int.Parse(languageServerProcessId));
         languageServer.Kill();
@@ -108,25 +114,28 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
           Capabilities = new ClientCapabilities(),
         }
       });
-      outputHandler.StopAsync().RunSynchronously();
+      outputHandler.StopAsync().Wait();
       return Encoding.ASCII.GetString(buffer.ToArray());
     }
-
+    
     private static async Task<string> CreateDotNetDllThatStartsGivenFilepath(string filePathToStart)
     {
       var code = @$"using System;
 using System.Diagnostics;
+using System.Threading.Tasks;
 
 public class Foo {{
-  public static int Main(string[] args) {{
+  public static async Task<int> Main(string[] args) {{
     var processInfo = new ProcessStartInfo(""{filePathToStart}"") {{
       // Prevents keeping stdio open after the outer process closes. 
-      RedirectStandardOutput = false,
+      RedirectStandardOutput = true,
       RedirectStandardError = true,
       UseShellExecute = false
     }};
-    using var process = Process.Start(processInfo);
-    Console.Out.WriteLine(process.Id);
+    using var process = Process.Start(processInfo)!;
+    await Console.Out.WriteLineAsync(process.Id.ToString());
+    var firstLine = await process.StandardOutput.ReadLineAsync();
+    await Console.Out.WriteLineAsync(firstLine);
     return 0;
   }}
 }}";
