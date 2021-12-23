@@ -9756,6 +9756,10 @@ namespace Microsoft.Dafny {
         if (rhs is HavocRhs && localType.IsNonempty) {
           wh = GetWhereClause(tok, new Bpl.IdentifierExpr(tok, nm, ty), localType, etran, NOALLOC);
         } else {
+          // In this case, it could be unsound to use a "where" clause, see issue #1619.
+          // Luckily, leaving it out is harmless, because we don't need a "where" clause here in the first
+          // place--because the variable is short lived, we know it will not be havoc'ed by Boogie, so a
+          // "where" wouldn't provide additional information over the assigned value.
           wh = null;
         }
         var v = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, nm, ty, wh));
