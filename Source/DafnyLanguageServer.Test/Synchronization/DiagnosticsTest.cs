@@ -524,8 +524,11 @@ method Multiply(x: int, y: int) returns (product: int)
       Assert.AreEqual("Other", changeDiagnostics[0].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, changeDiagnostics[0].Severity);
       client.SaveDocument(documentItem);
-      
-      // TODO check that no diagnostics are received, but how?
+
+      var moreDiagnostics = diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
+      if (await Task.WhenAny(moreDiagnostics, Task.Delay(100)) == moreDiagnostics) {
+        Assert.Fail("No additional diagnostics should have been published");
+      }
     }
 
     [TestMethod]
