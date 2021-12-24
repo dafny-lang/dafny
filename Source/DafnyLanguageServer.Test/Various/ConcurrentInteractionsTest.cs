@@ -35,6 +35,36 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     }
 
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    public async Task ResolutionDiagnosticsContainPreviousVerificationResults() {
+      var fastToVerify = "function GetConstant(): int ensures false { 1 }";
+      var slowToVerify = @"
+lemma {:timeLimit 10} SquareRoot2NotRational(p: nat, q: nat)
+  requires p > 0 && q > 0
+  ensures (p * p) !=  2 * (q * q)
+{ 
+  if (p * p) ==  2 * (q * q) {
+    calc == {
+      (2 * q - p) * (2 * q - p);
+      4 * q * q + p * p - 4 * p * q;
+      {assert 2 * q * q == p * p;}
+      2 * q * q + 2 * p * p - 4 * p * q;
+      2 * (p - q) * (p - q);
+    }
+  }
+}";
+      
+      var documentItem = CreateTestDocument(fastToVerify);
+      client.OpenDocument(documentItem);
+      var verificationDiagnostics = await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
+      Assert.AreEqual(1, verificationDiagnostics.Length);
+      ApplyChange(documentItem, new Range(0, 0, 0, 0), slowToVerify + "\n\n");
+      var resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      Assert.AreEqual(1, resolutionDiagnostics.Length);
+      // Verification diagnostic should have been moved.
+      Assert.AreEqual(15, resolutionDiagnostics[0].Range.Start.Line);
+    }
+
+    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
     public async Task ChangeDocumentCancelsPreviousOpenAndChangeVerification() {
       var source = @"
 lemma {:timeLimit 10} SquareRoot2NotRational(p: nat, q: nat)
