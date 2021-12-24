@@ -57,7 +57,7 @@ namespace Microsoft.Dafny.LanguageServer {
       }
 
       try {
-        var hostProcess = Process.GetProcessById((int)request.ProcessId)!;
+        var hostProcess = Process.GetProcessById((int)request.ProcessId);
         hostProcess.EnableRaisingEvents = true;
         hostProcess.Exited += (_, _) => Kill();
       } catch (ArgumentException) {

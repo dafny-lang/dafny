@@ -24,24 +24,23 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
   [TestClass]
   public class ShutdownTest {
 
-    [TestMethod]
+    [TestMethod, Timeout(10000)]
     public async Task LanguageServerStaysAliveIfParentDiesButNoParentIdWasProvided() {
       var process = await StartLanguageServerRunnerProcess();
 
       var languageServerProcessId = await process.StandardOutput.ReadLineAsync();
       Assert.IsNotNull(languageServerProcessId);
 
-      Thread.Sleep(1000); // Give the process some time to die
+      await Task.Delay(1000); // Give the process some time to die
       var initializeMessage = GetLspInitializeMessage(null);
       await process.StandardInput.WriteAsync(initializeMessage);
 
       var initializedResponseFirstLine = await process.StandardOutput.ReadLineAsync();
       Assert.IsFalse(string.IsNullOrEmpty(initializedResponseFirstLine));
 
-      var didExit = process.WaitForExit(-1);
-      Assert.IsTrue(didExit);
+      await process.WaitForExitAsync();
 
-      Thread.Sleep(100); // Give the process some time to die
+      await Task.Delay(100); // Give the process some time to die
 
       Assert.IsFalse(string.IsNullOrEmpty(initializedResponseFirstLine));
       try {
@@ -52,7 +51,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       }
     }
 
-    [TestMethod]
+    [TestMethod, Timeout(10000)]
     public async Task LanguageServerShutsDownIfParentDies() {
       var process = await StartLanguageServerRunnerProcess();
 
@@ -158,14 +157,14 @@ public class ShortLivedProcessStarter {{
         "System.ComponentModel.Primitives"
       };
       compilation = compilation.AddReferences(standardLibraries.Select(fileName =>
-        MetadataReference.CreateFromFile(Assembly.Load(fileName).Location)));
-      compilation = compilation.WithOptions(new CSharpCompilationOptions(OutputKind.ConsoleApplication))
-        .AddReferences(
-          MetadataReference.CreateFromFile(typeof(object).GetTypeInfo().Assembly.Location),
-          MetadataReference.CreateFromFile(Assembly.Load("mscorlib").Location));
+            MetadataReference.CreateFromFile(Assembly.Load(fileName).Location))).
+        AddReferences(
+            MetadataReference.CreateFromFile(typeof(object).GetTypeInfo().Assembly.Location),
+            MetadataReference.CreateFromFile(Assembly.Load("mscorlib").Location));
+      compilation = compilation.WithOptions(new CSharpCompilationOptions(OutputKind.ConsoleApplication));
       var syntaxTree = CSharpSyntaxTree.ParseText(code);
       compilation = compilation.AddSyntaxTrees(syntaxTree);
-      var assemblyPath = temp + ".dll";
+      var assemblyPath = $"{temp}.dll";
       var result = compilation.Emit(assemblyPath);
 
       var configuration = JsonSerializer.Serialize(
