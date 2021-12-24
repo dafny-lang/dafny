@@ -75,8 +75,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         cancellationSource
       );
       documents.Add(document.Uri, databaseEntry);
-      return resolvedDocument.ToObservable().Where(d => !d.LoadCanceled).
-        Concat(verifiedDocument.ToObservable());
+      return resolvedDocument.ToObservable().Where(d => !d.LoadCanceled).Concat(verifiedDocument.ToObservable());
     }
 
     private async Task<DafnyDocument> OpenAsync(TextDocumentItem textDocument, CancellationToken cancellationToken) {

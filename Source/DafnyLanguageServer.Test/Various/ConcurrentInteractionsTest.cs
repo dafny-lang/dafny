@@ -126,12 +126,15 @@ lemma {:timeLimit 10} SquareRoot2NotRational(p: nat, q: nat)
       Assert.IsFalse(await diagnosticReceiver.AreMoreDiagnosticsComing());
     }
     
+    /// <summary>
+    /// If this test is flaky, increase the amount of lines in the source program
+    /// </summary>
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
     public async Task ChangeDocumentCancelsPreviousResolution() {
       // Two syntax errors
       var createCorrectFunction = (int index) => @$"function GetConstant{index}(x: int): int {{ x }}";
       var functionWithError = "function GetConstant(): int { x }\n";
-      var slowToResolveSource = functionWithError + string.Join("\n", Enumerable.Range(0, 100).Select(createCorrectFunction));
+      var slowToResolveSource = functionWithError + string.Join("\n", Enumerable.Range(0, 1000).Select(createCorrectFunction));
       var documentItem = CreateTestDocument(slowToResolveSource);
       client.OpenDocument(documentItem);
 

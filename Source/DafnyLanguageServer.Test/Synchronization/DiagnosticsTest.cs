@@ -224,8 +224,7 @@ method Multiply(x: int, y: int) returns (product: int)
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var reportAfterOpening = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
-      var diagnosticsAfterOpening = reportAfterOpening.Diagnostics.ToArray();
+      var diagnosticsAfterOpening = await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(0, diagnosticsAfterOpening.Length);
 
       client.DidChangeTextDocument(new DidChangeTextDocumentParams {
@@ -268,7 +267,7 @@ method Multiply(x: int, y: int) returns (product: int)
       });
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var diagnosticsAfterOpening = await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
+      var diagnosticsAfterOpening = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(0, diagnosticsAfterOpening.Length);
 
       client.DidChangeTextDocument(new DidChangeTextDocumentParams {
@@ -284,8 +283,7 @@ method Multiply(x: int, y: int) returns (product: int)
         }
       });
 
-      var report = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
-      var diagnostics = report.Diagnostics.ToArray();
+      var diagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(1, diagnostics.Length);
       Assert.AreEqual("Parser", diagnostics[0].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
@@ -437,7 +435,7 @@ method Multiply(x: int, y: int) returns (product: int
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
+      await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       client.DidCloseTextDocument(new DidCloseTextDocumentParams { TextDocument = documentItem });
       var report = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
       var diagnostics = report.Diagnostics.ToArray();
