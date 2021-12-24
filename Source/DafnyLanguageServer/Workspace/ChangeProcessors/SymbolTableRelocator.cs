@@ -4,6 +4,7 @@ using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
@@ -20,12 +21,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
     }
 
     public SymbolTable Relocate(SymbolTable originalSymbolTable, DidChangeTextDocumentParams changes, CancellationToken cancellationToken) {
-      return new ChangeProcessor(logger, loggerSymbolTable, originalSymbolTable, changes.ContentChanges, cancellationToken).MigrateSymbolTable();
+      return new ChangeProcessor(logger, loggerSymbolTable, changes.ContentChanges, cancellationToken).MigrateSymbolTable(originalSymbolTable);
+    }
+
+    public IReadOnlyList<Diagnostic> MigrateDiagnostics(IReadOnlyList<Diagnostic> originalDiagnostics, DidChangeTextDocumentParams changes, CancellationToken cancellationToken) {
+      return new ChangeProcessor(logger, loggerSymbolTable, changes.ContentChanges, cancellationToken).MigrateDiagnostics(originalDiagnostics);
     }
 
     private class ChangeProcessor {
       private readonly ILogger logger;
-      private readonly SymbolTable originalSymbolTable;
       private readonly Container<TextDocumentContentChangeEvent> contentChanges;
       private readonly CancellationToken cancellationToken;
       private readonly ILogger<SymbolTable> loggerSymbolTable;
@@ -33,18 +37,43 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
       public ChangeProcessor(
         ILogger logger,
         ILogger<SymbolTable> loggerSymbolTable,
-        SymbolTable originalSymbolTable,
         Container<TextDocumentContentChangeEvent> contentChanges,
         CancellationToken cancellationToken
       ) {
         this.logger = logger;
-        this.originalSymbolTable = originalSymbolTable;
         this.contentChanges = contentChanges;
         this.cancellationToken = cancellationToken;
         this.loggerSymbolTable = loggerSymbolTable;
       }
+      
+      public IReadOnlyList<Diagnostic> MigrateDiagnostics(IReadOnlyList<Diagnostic> originalDiagnostics) {
+        var result = new List<Diagnostic>();
+        foreach (var diagnostic in originalDiagnostics) {
+          foreach (var change in contentChanges) {
+            if (change.Range == null) {
+              throw new System.InvalidOperationException("the range of the change must not be null");
+            }
+            var afterChangeEndOffset = GetPositionAtEndOfAppliedChange(change.Range, change.Text);
+            if (diagnostic.Range.Intersects(change.Range)) {
+              continue;
+            }
 
-      public SymbolTable MigrateSymbolTable() {
+            if (change.Range.IsAfter(diagnostic.Range)) {
+              result.Add(diagnostic);
+            } else {
+              var beforeChangeEndOffset = change.Range.End;
+              var from = GetPositionWithOffset(diagnostic.Range.Start, beforeChangeEndOffset, afterChangeEndOffset);
+              var to = GetPositionWithOffset(diagnostic.Range.End, beforeChangeEndOffset, afterChangeEndOffset);
+              result.Add(diagnostic with {
+                Range = new Range(@from, to)
+              });
+            }
+          }
+        }
+        return result;
+      }
+
+      public SymbolTable MigrateSymbolTable(SymbolTable originalSymbolTable) {
         var migratedLookupTree = originalSymbolTable.LookupTree;
         var migratedDeclarations = originalSymbolTable.Locations;
         foreach (var change in contentChanges) {
@@ -54,7 +83,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
           }
           var afterChangeEndOffset = GetPositionAtEndOfAppliedChange(change.Range, change.Text);
           migratedLookupTree = ApplyLookupTreeChange(migratedLookupTree, change.Range, afterChangeEndOffset);
-          migratedDeclarations = ApplyDeclarationsChange(migratedDeclarations, change.Range, afterChangeEndOffset);
+          migratedDeclarations = ApplyDeclarationsChange(originalSymbolTable, migratedDeclarations, change.Range, afterChangeEndOffset);
         }
         logger.LogTrace("migrated the lookup tree, lookup before={SymbolsBefore}, after={SymbolsAfter}",
           originalSymbolTable.LookupTree.Count, migratedLookupTree.Count);
@@ -118,6 +147,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
       }
 
       private IDictionary<ISymbol, SymbolLocation> ApplyDeclarationsChange(
+        SymbolTable originalSymbolTable,
         IDictionary<ISymbol, SymbolLocation> previousDeclarations,
         Range changeRange,
         Position afterChangeEndOffset

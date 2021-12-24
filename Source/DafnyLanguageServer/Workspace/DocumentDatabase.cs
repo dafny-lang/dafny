@@ -142,22 +142,28 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
       return tcs.Task;
     }
-    
+
     private async Task<DafnyDocument> ApplyChangesAsync(Task<DafnyDocument> oldDocumentTask, DidChangeTextDocumentParams documentChange, CancellationToken cancellationToken) {
       var oldDocument = await oldDocumentTask;
       // We do not pass the cancellation token to the text change processor because the text has to be kept in sync with the LSP client.
       var updatedText = textChangeProcessor.ApplyChange(oldDocument.Text, documentChange, CancellationToken.None);
+      var oldVerificationDiagnostics =
+        oldDocument.Errors.GetDiagnostics(oldDocument.Uri).Where(d => d.Code == "Verification").ToList();
+      var migratedVerificationDiagnotics =
+        symbolTableRelocator.MigrateDiagnostics(oldVerificationDiagnostics, documentChange, CancellationToken.None);
       try {
         var newDocument = await documentLoader.LoadAsync(updatedText, cancellationToken);
         if (newDocument.SymbolTable.Resolved) {
-          return newDocument;
+          return newDocument with {
+            OldVerificationDiagnostics = migratedVerificationDiagnotics
+          };
         }
         // The document loader failed to create a new symbol table. Since we'd still like to provide
         // features such as code completion and lookup, we re-locate the previously resolved symbols
         // according to the change.
         return newDocument with {
           SymbolTable = symbolTableRelocator.Relocate(oldDocument.SymbolTable, documentChange, CancellationToken.None),
-          OldErrors = oldDocument.Errors // TODO relocate
+          OldVerificationDiagnostics = migratedVerificationDiagnotics
         };
       } catch (OperationCanceledException) {
         // The document load was canceled before it could complete. We migrate the document
@@ -168,7 +174,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           SymbolTable = symbolTableRelocator.Relocate(oldDocument.SymbolTable, documentChange, CancellationToken.None),
           SerializedCounterExamples = null,
           LoadCanceled = true,
-          OldErrors = oldDocument.Errors // TODO relocate
+          OldVerificationDiagnostics = migratedVerificationDiagnotics
         };
       }
     }

@@ -119,7 +119,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         notificationPublisher.SendStatusNotification(textDocument, CompilationStatus.CompilationSucceeded);
       }
       var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(symbolTable, cancellationToken).ToArray();
-      return new DafnyDocument(textDocument, errorReporter, ghostDiagnostics, program, symbolTable);
+      return new DafnyDocument(textDocument, errorReporter, new List<Diagnostic>(), ghostDiagnostics, program, symbolTable);
     }
 
     private static DafnyDocument CreateDocumentWithEmptySymbolTable(
@@ -132,6 +132,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return new DafnyDocument(
         textDocument,
         errorReporter,
+        new List<Diagnostic>(),
         Array.Empty<Diagnostic>(),
         program,
         CreateEmptySymbolTable(program, logger),
@@ -166,6 +167,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         : CompilationStatus.VerificationFailed;
       notificationPublisher.SendStatusNotification(document.Text, compilationStatusAfterVerification);
       return document with {
+        OldVerificationDiagnostics = new List<Diagnostic>(),
         SerializedCounterExamples = verificationResult.SerializedCounterExamples
       };
     }

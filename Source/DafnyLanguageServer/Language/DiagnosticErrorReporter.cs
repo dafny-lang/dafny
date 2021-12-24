@@ -61,7 +61,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           Message = error.Msg,
           Range = error.Tok.GetLspRange(),
           RelatedInformation = relatedInformation,
-          Source = VerifierMessageSource.ToString()
+          Source = VerifierMessageSource.ToString(),
+          Code = "Verification"
         },
         GetDocumentUriOrDefault(error.Tok)
       );
