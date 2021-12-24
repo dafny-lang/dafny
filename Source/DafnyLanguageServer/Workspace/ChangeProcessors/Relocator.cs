@@ -8,23 +8,23 @@ using System.Linq;
 using System.Threading;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
-  public class SymbolTableRelocator : ISymbolTableRelocator {
+  public class Relocator : IRelocator {
     private readonly ILogger logger;
     private readonly ILogger<SymbolTable> loggerSymbolTable;
 
-    public SymbolTableRelocator(
-      ILogger<SymbolTableRelocator> logger,
+    public Relocator(
+      ILogger<Relocator> logger,
       ILogger<SymbolTable> loggerSymbolTable
       ) {
       this.logger = logger;
       this.loggerSymbolTable = loggerSymbolTable;
     }
 
-    public SymbolTable Relocate(SymbolTable originalSymbolTable, DidChangeTextDocumentParams changes, CancellationToken cancellationToken) {
+    public SymbolTable RelocateSymbols(SymbolTable originalSymbolTable, DidChangeTextDocumentParams changes, CancellationToken cancellationToken) {
       return new ChangeProcessor(logger, loggerSymbolTable, changes.ContentChanges, cancellationToken).MigrateSymbolTable(originalSymbolTable);
     }
 
-    public IReadOnlyList<Diagnostic> MigrateDiagnostics(IReadOnlyList<Diagnostic> originalDiagnostics, DidChangeTextDocumentParams changes, CancellationToken cancellationToken) {
+    public IReadOnlyList<Diagnostic> RelocateDiagnostics(IReadOnlyList<Diagnostic> originalDiagnostics, DidChangeTextDocumentParams changes, CancellationToken cancellationToken) {
       return new ChangeProcessor(logger, loggerSymbolTable, changes.ContentChanges, cancellationToken).MigrateDiagnostics(originalDiagnostics);
     }
 
@@ -47,9 +47,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
       }
 
       public IReadOnlyList<Diagnostic> MigrateDiagnostics(IReadOnlyList<Diagnostic> originalDiagnostics) {
+        return contentChanges.Aggregate(originalDiagnostics, MigrateDiagnostics);
+      }
+
+      private IReadOnlyList<Diagnostic> MigrateDiagnostics(IReadOnlyList<Diagnostic> originalDiagnostics, TextDocumentContentChangeEvent change) {
         var result = new List<Diagnostic>();
         foreach (var diagnostic in originalDiagnostics) {
-          foreach (var change in contentChanges) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (change.Range == null) {
               throw new System.InvalidOperationException("the range of the change must not be null");
             }
@@ -68,7 +72,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
                 Range = new Range(@from, to)
               });
             }
-          }
         }
         return result;
       }

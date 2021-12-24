@@ -27,7 +27,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private readonly Dictionary<DocumentUri, DocumentEntry> documents = new();
     private readonly ITextDocumentLoader documentLoader;
     private readonly ITextChangeProcessor textChangeProcessor;
-    private readonly ISymbolTableRelocator symbolTableRelocator;
+    private readonly IRelocator relocator;
 
     private bool VerifyOnOpen => options.Verify == AutoVerification.OnChange;
     private bool VerifyOnChange => options.Verify == AutoVerification.OnChange;
@@ -38,13 +38,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       IOptions<DocumentOptions> options,
       ITextDocumentLoader documentLoader,
       ITextChangeProcessor textChangeProcessor,
-      ISymbolTableRelocator symbolTableRelocator
+      IRelocator relocator
     ) {
       this.logger = logger;
       this.options = options.Value;
       this.documentLoader = documentLoader;
       this.textChangeProcessor = textChangeProcessor;
-      this.symbolTableRelocator = symbolTableRelocator;
+      this.relocator = relocator;
       CommandLineOptions.Clo.ProverOptions = GetProverOptions(this.options);
     }
 
@@ -119,7 +119,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return resolvedDocumentTask.ToObservable().Concat(verifiedDocument.ToObservable());
     }
 
-    public static Task<T> FirstSuccessfulTask<T>(params Task<T>[] tasks) {
+    private static Task<T> FirstSuccessfulTask<T>(params Task<T>[] tasks) {
       var taskList = tasks.ToList();
       var tcs = new TaskCompletionSource<T>();
       int remainingTasks = taskList.Count;
@@ -146,7 +146,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var oldVerificationDiagnostics =
         oldDocument.Errors.GetDiagnostics(oldDocument.Uri).Where(d => d.Code == "Verification").ToList();
       var migratedVerificationDiagnotics =
-        symbolTableRelocator.MigrateDiagnostics(oldVerificationDiagnostics, documentChange, CancellationToken.None);
+        relocator.RelocateDiagnostics(oldVerificationDiagnostics, documentChange, CancellationToken.None);
       try {
         var newDocument = await documentLoader.LoadAsync(updatedText, cancellationToken);
         if (newDocument.SymbolTable.Resolved) {
@@ -158,7 +158,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         // features such as code completion and lookup, we re-locate the previously resolved symbols
         // according to the change.
         return newDocument with {
-          SymbolTable = symbolTableRelocator.Relocate(oldDocument.SymbolTable, documentChange, CancellationToken.None),
+          SymbolTable = relocator.RelocateSymbols(oldDocument.SymbolTable, documentChange, CancellationToken.None),
           OldVerificationDiagnostics = migratedVerificationDiagnotics
         };
       } catch (OperationCanceledException) {
@@ -167,7 +167,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         logger.LogTrace("document loading canceled, applying migration");
         return oldDocument with {
           Text = updatedText,
-          SymbolTable = symbolTableRelocator.Relocate(oldDocument.SymbolTable, documentChange, CancellationToken.None),
+          SymbolTable = relocator.RelocateSymbols(oldDocument.SymbolTable, documentChange, CancellationToken.None),
           SerializedCounterExamples = null,
           LoadCanceled = true,
           OldVerificationDiagnostics = migratedVerificationDiagnotics
