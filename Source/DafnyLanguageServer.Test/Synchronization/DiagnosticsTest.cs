@@ -587,5 +587,33 @@ class Test {
       Assert.AreEqual("Related location", relatedInformation[1].Message);
       Assert.AreEqual(new Range((9, 13), (9, 14)), relatedInformation[1].Location.Range);
     }
+
+    [TestMethod]
+    public async Task OpeningDocumentWithMultipleVerificationCoresReturnsStableDiagnostics() {
+      var source = @"
+method t0() { assert true; }
+method t1() { assert true; }
+method t2() { assert true; }
+method t3() { assert true; }
+method t4() { assert true; }
+method t5() { assert true; }
+method t6() { assert false; }
+method t7() { assert false; }
+method t8() { assert false; }
+method t9() { assert false; }
+method t10() { assert false; }".TrimStart();
+      await SetUp(new Dictionary<string, string>() {
+        { $"{VerifierOptions.Section}:{nameof(VerifierOptions.VcsCores)}", "4" }
+      });
+      for (int i = 0; i < 20; i++) {
+        var documentItem = CreateTestDocument(source, $"test_{i}.dfy");
+        client.OpenDocument(documentItem);
+        var report = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
+        var diagnostics = report.Diagnostics.ToArray();
+        Assert.AreEqual(5, diagnostics.Length);
+        Assert.AreEqual("Other", diagnostics[0].Source);
+        Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
+      }
+    }
   }
 }
