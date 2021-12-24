@@ -75,22 +75,23 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         cancellationSource
       );
       documents.Add(document.Uri, databaseEntry);
-      return resolvedDocument.ToObservable().Concat(verifiedDocument.ToObservable());
+      return resolvedDocument.ToObservable().Where(d => !d.LoadCanceled).
+        Concat(verifiedDocument.ToObservable());
     }
 
-    private Task<DafnyDocument> OpenAsync(TextDocumentItem textDocument, CancellationToken cancellationToken) {
+    private async Task<DafnyDocument> OpenAsync(TextDocumentItem textDocument, CancellationToken cancellationToken) {
       try {
-        return documentLoader.LoadAsync(textDocument, cancellationToken);
+        return await documentLoader.LoadAsync(textDocument, cancellationToken);
       } catch (OperationCanceledException) {
         // We do not allow canceling the load of the placeholder document. Otherwise, other components
         // start to have to check for nullability in later stages such as change request processors.
-        return Task.FromResult(documentLoader.CreateUnloaded(textDocument, CancellationToken.None));
+        return documentLoader.CreateUnloaded(textDocument, CancellationToken.None);
       }
     }
     
     private async Task<DafnyDocument> VerifyAsync(Task<DafnyDocument> documentTask, bool verify, CancellationToken cancellationToken) {
       var document = await documentTask;
-      if (!verify || document.Errors.HasErrors) {
+      if (document.LoadCanceled || !verify || document.Errors.HasErrors) {
         throw new TaskCanceledException();
       }
       return await documentLoader.VerifyAsync(document, cancellationToken);
@@ -132,7 +133,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             tcs.TrySetResult(t.Result);
           } 
           else if (Interlocked.Decrement(ref remainingTasks) == 0) {
-            tcs.SetException(new AggregateException(tasks.SelectMany(t1 => t1.Exception.InnerExceptions)));
+            if (tasks.Any(t => t.IsCanceled)) {
+              tcs.SetCanceled();
+            } else {
+              tcs.SetException(new AggregateException(tasks.SelectMany(t1 => t1.Exception.InnerExceptions)));
+            }
           }
         });
       }

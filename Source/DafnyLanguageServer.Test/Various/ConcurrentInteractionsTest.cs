@@ -18,7 +18,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     private const int MaxRequestExecutionTimeMs = 180_000;
 
     private ILanguageClient client;
-    private TestNotificationReceiver<PublishDiagnosticsParams> diagnosticReceiver;
+    private DiagnosticsReceiver diagnosticReceiver;
 
     // We do not use the LanguageServerTestBase.cancellationToken here because it has a timeout.
     // Since these tests are slow, we do not use the timeout here.
@@ -34,47 +34,8 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       cancellationSource.CancelAfter(MaxRequestExecutionTimeMs);
     }
 
-    [TestMethod, Timeout(MaxTestExecutionTimeMs), Ignore("Disabled due to instability since the verification cannot always be canceled.")]
-    public async Task ChangeDocumentRightAfterOpeningCancelsLoad() {
-      var source = @"
-lemma {:timeLimit 10} SquareRoot2NotRational(p: nat, q: nat)
-  requires p > 0 && q > 0
-  ensures (p * p) !=  2 * (q * q)
-{ 
-  if (p * p) ==  2 * (q * q) {
-    calc == {
-      (2 * q - p) * (2 * q - p);
-      4 * q * q + p * p - 4 * p * q;
-      {assert 2 * q * q == p * p;}
-      2 * q * q + 2 * p * p - 4 * p * q;
-      2 * (p - q) * (p - q);
-    }
-  }
-}".TrimStart();
-      var documentItem = CreateTestDocument(source);
-      client.OpenDocument(documentItem);
-      await client.ChangeDocumentAndWaitAsync(new DidChangeTextDocumentParams {
-        TextDocument = new OptionalVersionedTextDocumentIdentifier {
-          Uri = documentItem.Uri,
-          Version = documentItem.Version + 1
-        },
-        ContentChanges = new[] {
-          new TextDocumentContentChangeEvent {
-            Range = new Range((13, 0), (13, 1)),
-            Text = ""
-          }
-        }
-      }, CancellationTokenWithHighTimeout);
-
-      // The initial document does not have issues. If the load was succesfully canceled, we should
-      // receive diagnostics with a parser error.
-      var report = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationTokenWithHighTimeout);
-      var diagnostics = report.Diagnostics.ToArray();
-      Assert.AreEqual(1, diagnostics.Length);
-    }
-
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
-    public async Task ChangeDocumentCancelsPreviousChange() {
+    public async Task ChangeDocumentCancelsPreviousOpenAndChangeVerification() {
       var source = @"
 lemma {:timeLimit 10} SquareRoot2NotRational(p: nat, q: nat)
   requires p > 0 && q > 0
@@ -91,8 +52,9 @@ lemma {:timeLimit 10} SquareRoot2NotRational(p: nat, q: nat)
   }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationTokenWithHighTimeout);
-      var initialLoadReport = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationTokenWithHighTimeout);
-      var initialLoadDiagnostics = initialLoadReport.Diagnostics.ToArray();
+      // The original document contains a syntactic error.
+      var initialLoadDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout);
+      Assert.IsFalse(await diagnosticReceiver.AreMoreDiagnosticsComing());
       Assert.AreEqual(1, initialLoadDiagnostics.Length);
 
       client.DidChangeTextDocument(new DidChangeTextDocumentParams {
@@ -107,6 +69,10 @@ lemma {:timeLimit 10} SquareRoot2NotRational(p: nat, q: nat)
           }
         }
       });
+      
+      // Wait for resolution diagnostics now, so they don't get cancelled.
+      var parseErrorFixedDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout);
+      Assert.AreEqual(0, parseErrorFixedDiagnostics.Length);
 
       await client.ChangeDocumentAndWaitAsync(new DidChangeTextDocumentParams {
         TextDocument = new OptionalVersionedTextDocumentIdentifier {
@@ -121,31 +87,54 @@ lemma {:timeLimit 10} SquareRoot2NotRational(p: nat, q: nat)
         }
       }, CancellationTokenWithHighTimeout);
 
-      // TODO fix documentation!!
-      // The diagnostics of the initial document are already awaited. The original document contains a syntactic error.
-      // The first change fixes the error. Therefore, if it was canceled by the second change, it should not report
-      // any diagnostics.
-      // The second change replaces the complete document with a correct one. Mind that the original document
-      // was chosen because of the exceptionally long time it requires to verify.
-      var report = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationTokenWithHighTimeout);
-      var firstResolutionDiagnostics = report.Diagnostics.ToArray();
-      Assert.AreEqual(1, firstResolutionDiagnostics.Length);
-      Assert.IsTrue(firstResolutionDiagnostics[0].Message.Contains("rbrace"));
+      var parseErrorStillFixedDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout);
+      Assert.AreEqual(0, parseErrorStillFixedDiagnostics.Length);
 
-      var report2 = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationTokenWithHighTimeout);
-      var secondResolutionDiagnostics = report2.Diagnostics.ToArray();
-      Assert.AreEqual(0, secondResolutionDiagnostics.Length);
-      
-      var report3 = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationTokenWithHighTimeout);
-      var verificationDiagnostics = report3.Diagnostics.ToArray();
+      var verificationDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout);
       Assert.AreEqual(1, verificationDiagnostics.Length);
-      Assert.IsTrue(verificationDiagnostics[0].Message.Contains("postcondition"));
+
+      Assert.IsFalse(await diagnosticReceiver.AreMoreDiagnosticsComing());
+    }
+    
+    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    public async Task ChangeDocumentCancelsPreviousResolution() {
+      // Two syntax errors
+      var createCorrectFunction = (int index) => @$"function GetConstant{index}(x: int): int {{ x }}";
+      var functionWithError = "function GetConstant(): int { x }\n";
+      var slowToResolveSource = functionWithError + string.Join("\n", Enumerable.Range(0, 100).Select(createCorrectFunction));
+      var documentItem = CreateTestDocument(slowToResolveSource);
+      client.OpenDocument(documentItem);
+
+      // Change but keep a resolution error, cancel previous diagnostics
+      documentItem = ApplyChange(documentItem, new Range((0, 30), (0, 31)), "y");
       
-      // This change is to ensure that no diagnostics are remaining in the report queue.
-      var verificationDocumentItem = CreateTestDocument("class X {}", "verification.dfy");
-      await client.OpenDocumentAndWaitAsync(verificationDocumentItem, CancellationTokenWithHighTimeout);
-      var verificationReport = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationTokenWithHighTimeout);
-      Assert.AreEqual(verificationDocumentItem.Uri, verificationReport.Uri);
+      // Fix resolution error, cancel previous diagnostics
+      ApplyChange(documentItem, new Range((0, 30), (0, 31)), "1");
+
+      var resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      Assert.AreEqual(0, resolutionDiagnostics.Length);
+      
+      var verificationDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      Assert.AreEqual(0, verificationDiagnostics.Length);
+      
+      Assert.IsFalse(await diagnosticReceiver.AreMoreDiagnosticsComing());
+    }
+
+    private TextDocumentItem ApplyChange(TextDocumentItem documentItem, Range range, string text) {
+      var result = documentItem with { Version = documentItem.Version + 1 };
+      client.DidChangeTextDocument(new DidChangeTextDocumentParams {
+        TextDocument = new OptionalVersionedTextDocumentIdentifier {
+          Uri = documentItem.Uri,
+          Version = result.Version
+        },
+        ContentChanges = new[] {
+          new TextDocumentContentChangeEvent {
+            Range = range,
+            Text = text
+          }
+        }
+      });
+      return result;
     }
 
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]

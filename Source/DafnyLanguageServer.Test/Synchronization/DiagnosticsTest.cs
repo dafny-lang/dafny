@@ -17,7 +17,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   public class DiagnosticsTest : DafnyLanguageServerTestBase {
     // TODO test locations as well?
     private ILanguageClient client;
-    private TestNotificationReceiver<PublishDiagnosticsParams> diagnosticReceiver;
+    private DiagnosticsReceiver diagnosticReceiver;
     private IDictionary<string, string> configuration;
 
     [TestInitialize]
@@ -148,8 +148,7 @@ method Multiply(x: int, y: int) returns (product: int)
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var report = await diagnosticReceiver.AwaitSecondNotificationAsync(CancellationToken);
-      var diagnostics = report.Diagnostics.ToArray();
+      var diagnostics = await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(1, diagnostics.Length);
       Assert.AreEqual("Other", diagnostics[0].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
@@ -196,8 +195,7 @@ method Multiply(x: int, y: int) returns (product: int)
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var report = await diagnosticReceiver.AwaitSecondNotificationAsync(CancellationToken);
-      var diagnostics = report.Diagnostics.ToArray();
+      var diagnostics = await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(2, diagnostics.Length);
       Assert.AreEqual("Other", diagnostics[0].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
@@ -270,8 +268,7 @@ method Multiply(x: int, y: int) returns (product: int)
       });
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var reportAfterOpening = await diagnosticReceiver.AwaitSecondNotificationAsync(CancellationToken);
-      var diagnosticsAfterOpening = reportAfterOpening.Diagnostics.ToArray();
+      var diagnosticsAfterOpening = await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(0, diagnosticsAfterOpening.Length);
 
       client.DidChangeTextDocument(new DidChangeTextDocumentParams {
@@ -311,8 +308,7 @@ method Multiply(x: int, y: int) returns (product: int)
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var reportAfterOpening = await diagnosticReceiver.AwaitSecondNotificationAsync(CancellationToken);
-      var diagnosticsAfterOpening = reportAfterOpening.Diagnostics.ToArray();
+      var diagnosticsAfterOpening = await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(0, diagnosticsAfterOpening.Length);
 
       client.DidChangeTextDocument(new DidChangeTextDocumentParams {
@@ -328,8 +324,7 @@ method Multiply(x: int, y: int) returns (product: int)
         }
       });
 
-      var report = await diagnosticReceiver.AwaitSecondNotificationAsync(CancellationToken);
-      var diagnostics = report.Diagnostics.ToArray();
+      var diagnostics = await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(1, diagnostics.Length);
       Assert.AreEqual("Other", diagnostics[0].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
@@ -442,7 +437,7 @@ method Multiply(x: int, y: int) returns (product: int
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      await diagnosticReceiver.AwaitSecondNotificationAsync(CancellationToken);
+      await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
       client.DidCloseTextDocument(new DidCloseTextDocumentParams { TextDocument = documentItem });
       var report = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
       var diagnostics = report.Diagnostics.ToArray();
@@ -518,17 +513,13 @@ method Multiply(x: int, y: int) returns (product: int)
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var changeReport = await diagnosticReceiver.AwaitSecondNotificationAsync(CancellationToken);
-      var changeDiagnostics = changeReport.Diagnostics.ToArray();
+      var changeDiagnostics = await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(1, changeDiagnostics.Length);
       Assert.AreEqual("Other", changeDiagnostics[0].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, changeDiagnostics[0].Severity);
       client.SaveDocument(documentItem);
 
-      var moreDiagnostics = diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
-      if (await Task.WhenAny(moreDiagnostics, Task.Delay(100)) == moreDiagnostics) {
-        Assert.Fail("No additional diagnostics should have been published");
-      }
+      Assert.IsFalse(await diagnosticReceiver.AreMoreDiagnosticsComing(), "No additional diagnostics should have been published");
     }
 
     [TestMethod]
@@ -587,8 +578,7 @@ class Test {
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       client.OpenDocument(documentItem);
-      var report = await diagnosticReceiver.AwaitSecondNotificationAsync(CancellationToken);
-      var diagnostics = report.Diagnostics.ToArray();
+      var diagnostics = await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(1, diagnostics.Length);
       Assert.AreEqual("Other", diagnostics[0].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
