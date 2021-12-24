@@ -22,21 +22,21 @@ namespace Microsoft.Dafny.LanguageServer {
     }
 
     public static LanguageServerOptions WithDafnyLanguageServer(this LanguageServerOptions options,
-        IConfiguration configuration, CancellationTokenSource cancelLanguageServer) {
+        IConfiguration configuration, Action killLanguageServer) {
       return options
         .WithDafnyLanguage(configuration)
         .WithDafnyWorkspace(configuration)
         .WithDafnyHandlers()
-        .OnInitialize((server, @params, token) => InitializeAsync(server, @params, token, cancelLanguageServer))
+        .OnInitialize((server, @params, token) => InitializeAsync(server, @params, token, killLanguageServer))
         .OnStarted(StartedAsync);
     }
 
     private static Task InitializeAsync(ILanguageServer server, InitializeParams request, CancellationToken cancelRequestToken,
-        CancellationTokenSource cancelLanguageServer) {
+        Action killLanguageServer) {
       var logger = server.GetRequiredService<ILogger<Program>>();
       logger.LogTrace("initializing service");
 
-      KillLanguageServerIfParentDies(logger, request, cancelLanguageServer);
+      KillLanguageServerIfParentDies(logger, request, killLanguageServer);
 
       return Task.CompletedTask;
     }
@@ -46,14 +46,14 @@ namespace Microsoft.Dafny.LanguageServer {
     /// https://github.com/microsoft/language-server-protocol/blob/gh-pages/_specifications/specification-3-16.md?plain=1#L1713
     /// </summary>
     private static void KillLanguageServerIfParentDies(ILogger<Program> logger, InitializeParams request,
-        CancellationTokenSource cancelLanguageServer) {
+        Action killLanguageServer) {
       if (!(request.ProcessId >= 0)) {
         return;
       }
 
       void Kill() {
         logger.LogWarning("Shutting down language server because parent process died.");
-        cancelLanguageServer.Cancel();
+        killLanguageServer();
       }
 
       try {

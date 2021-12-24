@@ -24,7 +24,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
   [TestClass]
   public class ShutdownTest {
 
-    [TestMethod, Timeout(10000)]
+    [TestMethod, Timeout(10_000)]
     public async Task LanguageServerStaysAliveIfParentDiesButNoParentIdWasProvided() {
       var process = await StartLanguageServerRunnerProcess();
 
@@ -51,7 +51,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       }
     }
 
-    [TestMethod, Timeout(10000)]
+    [TestMethod, Timeout(10_000)]
     public async Task LanguageServerShutsDownIfParentDies() {
       var process = await StartLanguageServerRunnerProcess();
 
@@ -157,11 +157,11 @@ public class ShortLivedProcessStarter {{
         "System.ComponentModel.Primitives"
       };
       compilation = compilation.AddReferences(standardLibraries.Select(fileName =>
-            MetadataReference.CreateFromFile(Assembly.Load(fileName).Location))).
-        AddReferences(
+            MetadataReference.CreateFromFile(Assembly.Load(fileName).Location)))
+        .AddReferences(
             MetadataReference.CreateFromFile(typeof(object).GetTypeInfo().Assembly.Location),
-            MetadataReference.CreateFromFile(Assembly.Load("mscorlib").Location));
-      compilation = compilation.WithOptions(new CSharpCompilationOptions(OutputKind.ConsoleApplication));
+            MetadataReference.CreateFromFile(Assembly.Load("mscorlib").Location))
+        .WithOptions(new CSharpCompilationOptions(OutputKind.ConsoleApplication));
       var syntaxTree = CSharpSyntaxTree.ParseText(code);
       compilation = compilation.AddSyntaxTrees(syntaxTree);
       var assemblyPath = $"{temp}.dll";
