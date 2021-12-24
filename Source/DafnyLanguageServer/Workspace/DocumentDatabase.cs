@@ -87,7 +87,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return documentLoader.CreateUnloaded(textDocument, CancellationToken.None);
       }
     }
-    
+
     private async Task<DafnyDocument> VerifyAsync(Task<DafnyDocument> documentTask, bool verify, CancellationToken cancellationToken) {
       var document = await documentTask;
       if (document.LoadCanceled || !verify || document.Errors.HasErrors) {
@@ -119,19 +119,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return resolvedDocumentTask.ToObservable().Concat(verifiedDocument.ToObservable());
     }
 
-    public static Task<T> FirstSuccessfulTask<T>(params Task<T>[] tasks)
-    {
+    public static Task<T> FirstSuccessfulTask<T>(params Task<T>[] tasks) {
       var taskList = tasks.ToList();
       var tcs = new TaskCompletionSource<T>();
       int remainingTasks = taskList.Count;
-      foreach (var task in taskList)
-      {
-        task.ContinueWith(t =>
-        {
+      foreach (var task in taskList) {
+        task.ContinueWith(t => {
           if (task.Status == TaskStatus.RanToCompletion) {
             tcs.TrySetResult(t.Result);
-          } 
-          else if (Interlocked.Decrement(ref remainingTasks) == 0) {
+          } else if (Interlocked.Decrement(ref remainingTasks) == 0) {
             if (tasks.Any(t => t.IsCanceled)) {
               tcs.SetCanceled();
             } else {
@@ -224,7 +220,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return null;
     }
 
-    private record DocumentEntry(int? Version, Task<DafnyDocument> ResolvedDocument, 
+    private record DocumentEntry(int? Version, Task<DafnyDocument> ResolvedDocument,
       Task<DafnyDocument> VerifiedDocument, // TODO consider making this nullable in case we didn't try to verify 
       CancellationTokenSource CancellationSource) {
       public void CancelPendingUpdates() {

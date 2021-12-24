@@ -17,7 +17,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util {
       notifications.Enqueue(request);
       availableNotifications.Release();
     }
-    
+
     public async Task<TNotification> AwaitNextNotificationAsync(CancellationToken cancellationToken) {
       await availableNotifications.WaitAsync(cancellationToken);
       if (notifications.TryDequeue(out var notification)) {
@@ -28,7 +28,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util {
   }
 
   class DiagnosticsReceiver : TestNotificationReceiver<PublishDiagnosticsParams> {
-    
+
 
     public async Task<Diagnostic[]> AwaitNextDiagnosticsAsync(CancellationToken cancellationToken) {
       var result = await AwaitNextNotificationAsync(cancellationToken);
@@ -39,7 +39,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util {
       var result = await AwaitNextNotificationAsync(cancellationToken);
       return result.Diagnostics.ToArray();
     }
-      
+
     // This change is to ensure that no diagnostics are remaining in the report queue.
     // var verificationDocumentItem = CreateTestDocument("class X {}", "verification.dfy");
     // await client.OpenDocumentAndWaitAsync(verificationDocumentItem, CancellationTokenWithHighTimeout);

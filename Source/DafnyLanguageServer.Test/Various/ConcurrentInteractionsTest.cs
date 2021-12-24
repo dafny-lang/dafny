@@ -52,7 +52,7 @@ lemma {:timeLimit 10} SquareRoot2NotRational(p: nat, q: nat)
     }
   }
 }";
-      
+
       var documentItem = CreateTestDocument(fastToVerify);
       client.OpenDocument(documentItem);
       var verificationDiagnostics = await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
@@ -99,7 +99,7 @@ lemma {:timeLimit 10} SquareRoot2NotRational(p: nat, q: nat)
           }
         }
       });
-      
+
       // Wait for resolution diagnostics now, so they don't get cancelled.
       var parseErrorFixedDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout);
       Assert.AreEqual(0, parseErrorFixedDiagnostics.Length);
@@ -125,7 +125,7 @@ lemma {:timeLimit 10} SquareRoot2NotRational(p: nat, q: nat)
 
       Assert.IsFalse(await diagnosticReceiver.AreMoreDiagnosticsComing());
     }
-    
+
     /// <summary>
     /// If this test is flaky, increase the amount of lines in the source program
     /// </summary>
@@ -140,16 +140,16 @@ lemma {:timeLimit 10} SquareRoot2NotRational(p: nat, q: nat)
 
       // Change but keep a resolution error, cancel previous diagnostics
       documentItem = ApplyChange(documentItem, new Range((0, 30), (0, 31)), "y");
-      
+
       // Fix resolution error, cancel previous diagnostics
       ApplyChange(documentItem, new Range((0, 30), (0, 31)), "1");
 
       var resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(0, resolutionDiagnostics.Length);
-      
+
       var verificationDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(0, verificationDiagnostics.Length);
-      
+
       Assert.IsFalse(await diagnosticReceiver.AreMoreDiagnosticsComing());
     }
 

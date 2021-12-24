@@ -45,7 +45,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
         this.cancellationToken = cancellationToken;
         this.loggerSymbolTable = loggerSymbolTable;
       }
-      
+
       public IReadOnlyList<Diagnostic> MigrateDiagnostics(IReadOnlyList<Diagnostic> originalDiagnostics) {
         var result = new List<Diagnostic>();
         foreach (var diagnostic in originalDiagnostics) {

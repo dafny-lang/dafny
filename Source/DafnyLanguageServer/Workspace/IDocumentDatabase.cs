@@ -54,7 +54,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// <param name="documentId">The ID of the document to resolve.</param>
     /// <returns>An instance of the managed document, <c>null</c> if the specified document was not found.</param>
     Task<DafnyDocument?> GetDocumentAsync(TextDocumentIdentifier documentId);
-    
+
     /// <summary>
     /// Tries to resolve a document with the specified identifier.
     /// </summary>
