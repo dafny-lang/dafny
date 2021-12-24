@@ -17,6 +17,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   public record DafnyDocument(
     TextDocumentItem Text,
     DiagnosticErrorReporter Errors,
+    DiagnosticErrorReporter? OldErrors,
     IReadOnlyList<Diagnostic> GhostDiagnostics,
     Dafny.Program Program,
     SymbolTable SymbolTable,

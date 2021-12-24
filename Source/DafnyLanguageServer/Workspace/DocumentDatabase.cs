@@ -156,7 +156,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         // features such as code completion and lookup, we re-locate the previously resolved symbols
         // according to the change.
         return newDocument with {
-          SymbolTable = symbolTableRelocator.Relocate(oldDocument.SymbolTable, documentChange, CancellationToken.None)
+          SymbolTable = symbolTableRelocator.Relocate(oldDocument.SymbolTable, documentChange, CancellationToken.None),
+          OldErrors = oldDocument.Errors // TODO relocate
         };
       } catch (OperationCanceledException) {
         // The document load was canceled before it could complete. We migrate the document
@@ -166,7 +167,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           Text = updatedText,
           SymbolTable = symbolTableRelocator.Relocate(oldDocument.SymbolTable, documentChange, CancellationToken.None),
           SerializedCounterExamples = null,
-          LoadCanceled = true
+          LoadCanceled = true,
+          OldErrors = oldDocument.Errors // TODO relocate
         };
       }
     }
