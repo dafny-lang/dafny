@@ -32,7 +32,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest {
           .WithInput(serverPipe.Reader)
           .WithOutput(clientPipe.Writer)
           .ConfigureLogging(SetupTestLogging)
-          .WithDafnyLanguageServer(CreateConfiguration(), new CancellationTokenSource())
+          .WithDafnyLanguageServer(CreateConfiguration(), () => { })
       );
       // This is the style used in the LSP implementation itself:
       // https://github.com/OmniSharp/csharp-language-server-protocol/blob/1b6788df2600083c28811913a221ccac7b1d72c9/test/Lsp.Tests/Testing/LanguageServerTestBaseTests.cs

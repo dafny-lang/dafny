@@ -24,7 +24,7 @@ namespace Microsoft.Dafny.LanguageServer {
             .ConfigureConfiguration(builder => builder.AddConfiguration(configuration))
             .ConfigureLogging(SetupLogging)
             .WithUnhandledExceptionHandler(LogException)
-            .WithDafnyLanguageServer(configuration, cancelLanguageServer)
+            .WithDafnyLanguageServer(configuration, () => cancelLanguageServer.Cancel())
         );
         cancelLanguageServer.Token.Register(() => server.ForcefulShutdown());
         await server.WaitForExit;
