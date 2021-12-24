@@ -22,7 +22,7 @@ namespace Microsoft.Dafny.LanguageServer {
     }
 
     public static LanguageServerOptions WithDafnyLanguageServer(this LanguageServerOptions options,
-      IConfiguration configuration, CancellationTokenSource cancelLanguageServer) {
+        IConfiguration configuration, CancellationTokenSource cancelLanguageServer) {
       return options
         .WithDafnyLanguage(configuration)
         .WithDafnyWorkspace(configuration)
@@ -46,7 +46,7 @@ namespace Microsoft.Dafny.LanguageServer {
     /// https://github.com/microsoft/language-server-protocol/blob/gh-pages/_specifications/specification-3-16.md?plain=1#L1713
     /// </summary>
     private static void KillLanguageServerIfParentDies(ILogger<Program> logger, InitializeParams request,
-      CancellationTokenSource cancelLanguageServer) {
+        CancellationTokenSource cancelLanguageServer) {
       if (!(request.ProcessId >= 0)) {
         return;
       }

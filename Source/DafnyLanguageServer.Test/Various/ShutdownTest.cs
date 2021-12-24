@@ -27,8 +27,6 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     [TestMethod]
     public async Task LanguageServerStaysAliveIfParentDiesButNoParentIdWasProvided() {
       var process = await StartLanguageServerRunnerProcess();
-      var error = "";
-      process.ErrorDataReceived += delegate (object sender, DataReceivedEventArgs args) { error += args.Data; };
 
       var languageServerProcessId = await process.StandardOutput.ReadLineAsync();
       Assert.IsNotNull(languageServerProcessId);
@@ -86,7 +84,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     private static async Task<Process> StartLanguageServerRunnerProcess() {
       var languageServerBinary = Path.Join(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "DafnyLanguageServer");
-      var languageServerRunnerPath = await CreateDotNetDllThatStartsGivenFilepath(languageServerBinary.Replace("\\", "\\\\"));
+      var languageServerRunnerPath = await CreateDotNetDllThatStartsGivenFilepath(languageServerBinary.Replace(@"\", @"\\"));
 
       var processInfo = new ProcessStartInfo("dotnet", languageServerRunnerPath) {
         RedirectStandardOutput = true,
@@ -121,12 +119,21 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       return Encoding.ASCII.GetString(buffer.ToArray());
     }
 
+    /// <summary>
+    /// This method creates a binary and returns the path to that binary.
+    /// Running the binary mimics the situation in which an IDE starts the Dafny language server and then dies.
+    /// 
+    /// The reason we create this binary at runtime instead of compile time is to prevent having to add
+    /// another .NET project to the Dafny solution, which incurs a build time overhead.
+    /// The downside if this choice is that we have to define the source code of our binary in a string literal,
+    /// which makes it harder to develop.
+    /// </summary>
     private static async Task<string> CreateDotNetDllThatStartsGivenFilepath(string filePathToStart) {
       var code = @$"using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
 
-public class Foo {{
+public class ShortLivedProcessStarter {{
   public static async Task<int> Main(string[] args) {{
     var processInfo = new ProcessStartInfo(""{filePathToStart}"") {{
       // Prevents keeping stdio open after the outer process closes. 
