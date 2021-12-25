@@ -119,6 +119,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return resolvedDocumentTask.ToObservable().Concat(verifiedDocument.ToObservable());
     }
 
+
     private static Task<T> FirstSuccessfulTask<T>(params Task<T>[] tasks) {
       var taskList = tasks.ToList();
       var tcs = new TaskCompletionSource<T>();

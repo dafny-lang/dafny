@@ -57,21 +57,28 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
             if (change.Range == null) {
               throw new System.InvalidOperationException("the range of the change must not be null");
             }
+
             var afterChangeEndOffset = GetPositionAtEndOfAppliedChange(change.Range, change.Text);
-            if (diagnostic.Range.Intersects(change.Range)) {
+            var newRange = MigrateRange(diagnostic.Range, change.Range, afterChangeEndOffset);
+            if (newRange == null) {
               continue;
             }
 
-            if (change.Range.IsAfter(diagnostic.Range)) {
-              result.Add(diagnostic);
-            } else {
-              var beforeChangeEndOffset = change.Range.End;
-              var from = GetPositionWithOffset(diagnostic.Range.Start, beforeChangeEndOffset, afterChangeEndOffset);
-              var to = GetPositionWithOffset(diagnostic.Range.End, beforeChangeEndOffset, afterChangeEndOffset);
-              result.Add(diagnostic with {
-                Range = new Range(@from, to)
-              });
-            }
+            var newRelated = diagnostic.RelatedInformation?.SelectMany(related => {
+              var migratedRange = MigrateRange(related.Location.Range, change.Range, afterChangeEndOffset);
+              if (migratedRange == null) {
+                return Enumerable.Empty<DiagnosticRelatedInformation>();
+              }
+
+              return new[] {
+                related with {
+                  Location = related.Location with {
+                    Range = migratedRange
+                  }
+                }
+              };
+            }).ToList();
+            result.Add(diagnostic with { Range = newRange, RelatedInformation = newRelated });
         }
         return result;
       }
@@ -129,6 +136,30 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
           characterOffset = changeStart.Character + changeEof.Character;
         }
         return new Position(changeStart.Line + changeEof.Line, characterOffset);
+      }
+
+      private static Range? MigrateRange(Range range, Range originalRange, Position afterChangeEndOffset) {
+
+        var start = MigratePosition(range.Start, originalRange, afterChangeEndOffset);
+        var end = MigratePosition(range.End, originalRange, afterChangeEndOffset);
+        if (start != null && end != null) {
+          return new Range(start, end);
+        }
+
+        return null;
+      }
+      
+      private static Position? MigratePosition(Position position, Range originalRange, Position afterChangeEndOffset) {
+        
+        if (originalRange.Start >= position) {
+          return position;
+        }
+
+        if (originalRange.Contains(position)) {
+          return null;
+        }
+
+        return GetPositionWithOffset(position, originalRange.End, afterChangeEndOffset);
       }
 
       private static Position GetPositionWithOffset(Position position, Position originalOffset, Position changeOffset) {

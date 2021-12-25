@@ -49,7 +49,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     private static IEnumerable<Diagnostic> GetDiagnostics(DafnyDocument document) {
       // Only report errors of the entry-document.
-      return document.Errors.GetDiagnostics(document.GetFilePath()).Concat(document.OldVerificationDiagnostics);
+     return document.Errors.GetDiagnostics(document.GetFilePath()).Concat(document.OldVerificationDiagnostics);
     }
   }
 }
