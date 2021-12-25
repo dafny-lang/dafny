@@ -2462,7 +2462,10 @@ namespace Microsoft.Dafny {
       Contract.Assert(from.IsRefType == to.IsRefType);
 
       if (from.IsDatatype) {
-        Error(tok, "compilation does not support downcasts involving copying for datatypes (like converting from {0} to {1})", wr, from, to);
+        var dt = from.AsDatatype;
+        if (SelectNonGhost(dt, dt.TypeArgs).Any(ty => ty.Variance == TypeParameter.TPVariance.Contra)) {
+          Error(tok, "compilation does not support downcasts involving copying for datatypes with contavariant type parameters (like converting from {0} to {1})", wr, from, to);
+        }
       }
 
       var w = new ConcreteSyntaxTree();

@@ -4578,8 +4578,7 @@ namespace Microsoft.Dafny {
           if (cl is TypeParameter) {
             var tp = udt.AsTypeParameter;
             Contract.Assert(tp != null);
-            isRoot = true; isLeaf = true;  // all type parameters are invariant
-            headIsRoot = true; headIsLeaf = true;
+            headIsRoot = true; headIsLeaf = true;  // all type parameters are non-variant
           } else if (cl is SubsetTypeDecl) {
             headIsRoot = false; headIsLeaf = true;
           } else if (cl is TraitDecl) {
@@ -4603,10 +4602,11 @@ namespace Microsoft.Dafny {
             if (variance != TypeParameter.TPVariance.Non) {
               bool r, l, hr, hl;
               CheckEnds(udt.TypeArgs[i], out r, out l, out hr, out hl);
-              if (variance == TypeParameter.TPVariance.Co) {
-                isRoot &= r; isLeaf &= l;
-              } else {
-                isRoot &= l; isLeaf &= r;
+              // isRoot and isLeaf aren't duals, so Co and Conta require separate consideration beyond inversion.
+              switch (variance) {
+                case TypeParameter.TPVariance.Co: { isRoot &= r; isLeaf &= l; break; }
+                // A invariably constructible subtype becomes a supertype, and thus the enclosing type is never a root.
+                case TypeParameter.TPVariance.Contra: { isRoot &= false; isLeaf &= r; break; }
               }
             }
           }
