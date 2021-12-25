@@ -36,7 +36,7 @@
   <ItemGroup>
     <ProjectReference Include="..\DafnyDriver\DafnyDriver.csproj" GlobalPropertiesToRemove="SelfContained" />
     <ProjectReference Include="..\DafnyServer\DafnyServer.csproj" GlobalPropertiesToRemove="SelfContained" />
-    <ProjectReference Include="..\Dafny\DafnyPipeline.csproj" />
+    <ProjectReference Include="..\Dafny\DafnyPipeline.csproj" GlobalPropertiesToRemove="SelfContained" />
   </ItemGroup>
 
   <ItemGroup>
