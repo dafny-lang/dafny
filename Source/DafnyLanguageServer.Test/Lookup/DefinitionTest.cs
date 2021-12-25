@@ -10,14 +10,18 @@ using System.IO;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
+using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
+using Microsoft.Dafny.LanguageServer.Workspace;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
   [TestClass]
   public class DefinitionTest : DafnyLanguageServerTestBase {
-    private ILanguageClient client;
+    private ILanguageClient client;    
+    private DiagnosticsReceiver diagnosticReceiver;
 
     [TestInitialize]
     public async Task SetUp() {
+      diagnosticReceiver = new();
       client = await InitializeClient();
     }
 
@@ -43,6 +47,27 @@ method CallDoIt() returns () {
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var definition = (await RequestDefinition(documentItem, (4, 14)).AsTask()).Single();
+      var location = definition.Location;
+      Assert.AreEqual(documentItem.Uri, location.Uri);
+      Assert.AreEqual(new Range((0, 7), (0, 11)), location.Range);
+    }
+    
+    [TestMethod]
+    public async Task DefinitionReturnsBeforeVerificationIsComplete() {
+      var source = @"
+method DoIt() returns (x: int) {
+}
+
+method CallDoIt() returns () {
+  var x := DoIt();
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      client.OpenDocument(documentItem);
+      var verificationTask = diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
+      var definitionTask = RequestDefinition(documentItem, (4, 14)).AsTask();
+      var first = await Task.WhenAny(verificationTask, definitionTask);
+      Assert.AreSame(first, definitionTask);
+      var definition = (await definitionTask).Single();
       var location = definition.Location;
       Assert.AreEqual(documentItem.Uri, location.Uri);
       Assert.AreEqual(new Range((0, 7), (0, 11)), location.Range);
