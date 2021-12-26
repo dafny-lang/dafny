@@ -220,7 +220,7 @@ def download(releases):
 
 def run(cmd, env=None):
     flush("    + {}...".format(" ".join(cmd)), end=' ')
-    retv = subprocess.call(cmd, env)
+    retv = subprocess.call(cmd, env=env)
     if retv != 0:
         flush("failed! (Is Dafny or the Dafny server running?)")
         sys.exit(1)
