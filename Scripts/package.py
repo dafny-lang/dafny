@@ -122,7 +122,8 @@ class Release:
 
         if path.exists(self.buildDirectory):
             shutil.rmtree(self.buildDirectory)
-        env = { "RUNTIME_IDENTIFIER": self.target }
+        env = dict(os.environ)
+        env["RUNTIME_IDENTIFIER"] = self.target
         run(["make", "--quiet", "clean"])
         run(["dotnet", "publish", path.join(SOURCE_DIRECTORY, "DafnyLanguageServer", "DafnyLanguageServer.csproj"),
             "--nologo",
