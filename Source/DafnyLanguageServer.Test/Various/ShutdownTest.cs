@@ -43,12 +43,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       await Task.Delay(100); // Give the process some time to die
 
       Assert.IsFalse(string.IsNullOrEmpty(initializedResponseFirstLine));
-      try {
+      Assert.ThrowsException<ArgumentException>(() => {
         var languageServer = Process.GetProcessById(int.Parse(languageServerProcessId));
         languageServer.Kill();
-      } catch (ArgumentException) {
-        Assert.Fail("Language server should not have killed itself if it doesn't know the parent.");
-      }
+      }, "Language server should not have killed itself if it doesn't know the parent.");
     }
 
     [TestMethod, Timeout(10_000)]
