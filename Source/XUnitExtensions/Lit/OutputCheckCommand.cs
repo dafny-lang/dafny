@@ -10,10 +10,10 @@ namespace XUnitExtensions.Lit {
   public class OutputCheckOptions {
 
     [Value(0)]
-    public string? CheckFile { get; set; }
+    public string? CheckFile { get; set; } = default!;
 
     [Option("file-to-check", Required = true, HelpText = "File to check")]
-    public string? FileToCheck { get; set; }
+    public string? FileToCheck { get; set; } = default!;
   }
 
   public readonly record struct OutputCheckCommand(OutputCheckOptions options) : ILitCommand {
