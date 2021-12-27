@@ -16,18 +16,12 @@ namespace XUnitExtensions {
       message.AppendLine("AssertEqualWithDiff() Failure");
       message.AppendLine("Diff (changing expected into actual):");
       foreach (var line in diff.Lines) {
-        switch (line.Type) {
-          case ChangeType.Inserted:
-            message.Append('+');
-            break;
-          case ChangeType.Deleted:
-            message.Append('-');
-            break;
-          default:
-            message.Append(' ');
-            break;
-        }
-
+        var prefix = line.Type switch {
+          ChangeType.Inserted => '+',
+          ChangeType.Deleted => '-',
+          _ => ' '
+        };
+        message.Append(prefix);
         message.AppendLine(line.Text);
       }
 

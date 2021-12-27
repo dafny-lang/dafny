@@ -5,6 +5,10 @@ using Xunit.Abstractions;
 using Xunit.Sdk;
 
 namespace XUnitExtensions.Lit {
+  /// <summary>
+  /// This class implements the equivalent of the Unix 'diff' command that lit tests rely on,
+  /// because 'diff' does not exist on Windows.
+  /// </summary>
   public class DiffCommand : ILitCommand {
 
     private readonly string expectedPath;

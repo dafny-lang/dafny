@@ -3522,11 +3522,10 @@ namespace Microsoft.Dafny {
       psi.EnvironmentVariables["GO111MODULE"] = "auto";
       if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
         // On Windows, Path.GetTempPath() returns "c:\Windows" which, being not writable, crashes Go.
-        // Hence we set up a local temporary directory depending on the user.
-        psi.EnvironmentVariables["GOTMPDIR"] =
-          Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "\\Temp";
-        psi.EnvironmentVariables["LOCALAPPDATA"] =
-          Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "\\go-build";
+        // Hence we set up a local temporary directory
+        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        psi.EnvironmentVariables["GOTMPDIR"] = localAppData + @"\Temp";
+        psi.EnvironmentVariables["LOCALAPPDATA"] = localAppData + @"\go-build";
       }
 
       try {

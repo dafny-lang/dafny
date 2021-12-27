@@ -35,7 +35,6 @@ datatype Non<T> = Non(T){
     method mD(x: T) returns (r: T) { r := x; }
 }
 
-// Con.java would create an error in Windows file systems because "Con" is a reserved file name.
 datatype Cont<-T> = Cont(T -> int) {
     const x: int;
     const y: seq<T>

@@ -594,11 +594,13 @@ namespace Microsoft.Dafny {
 
       WriteFile(paths.Filename, targetProgramText, callToMain);
 
-      var relativeTarget = paths.RelativeFilename;
-      if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-        // To satisfy the tests that assume a '/' instead of a '\'
-        relativeTarget = relativeTarget.Replace('\\', '/');
+      string NormalizeRelativeFilename(string fileName) {
+        return RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+          ? fileName.Replace(@"\", "/")
+          : fileName;
       }
+
+      var relativeTarget = NormalizeRelativeFilename(paths.RelativeFilename);
       if (targetProgramHasErrors) {
         // Something went wrong during compilation (e.g., the compiler may have found an "assume" statement).
         // As a courtesy, we're still printing the text of the generated target program. We print a message regardless
@@ -612,7 +614,7 @@ namespace Microsoft.Dafny {
         var filename = entry.Key;
         WriteFile(Path.Join(paths.SourceDirectory, filename), entry.Value);
         if (DafnyOptions.O.CompileVerbose) {
-          outputWriter.WriteLine("Additional target code written to {0}", Path.Join(paths.RelativeDirectory, filename).Replace("\\", "/"));
+          outputWriter.WriteLine("Additional target code written to {0}", NormalizeRelativeFilename(Path.Join(paths.RelativeDirectory, filename)));
         }
       }
     }
@@ -623,6 +625,16 @@ namespace Microsoft.Dafny {
         Directory.CreateDirectory(dir);
       }
 
+      CheckFilenameIsLegal(filename);
+      using (TextWriter target = new StreamWriter(new FileStream(filename, System.IO.FileMode.Create))) {
+        target.Write(text);
+        if (moreText != null) {
+          target.Write(moreText);
+        }
+      }
+    }
+
+    private static void CheckFilenameIsLegal(string filename) {
       // We cannot get the full path correctly on Windows if the file name uses some reserved words
       // For example, Path.GetFullPath("con.txt") will return "//./con" which is incorrect.
       // https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file?redirectedfrom=MSDN
@@ -636,12 +648,6 @@ namespace Microsoft.Dafny {
         if (match.Success) {
           throw new Exception($"Cannot create a file with the name {filename}." +
                               $" Windows reserves the following file names: {problematicNames}");
-        }
-      }
-      using (TextWriter target = new StreamWriter(new FileStream(filename, System.IO.FileMode.Create))) {
-        target.Write(text);
-        if (moreText != null) {
-          target.Write(moreText);
         }
       }
     }

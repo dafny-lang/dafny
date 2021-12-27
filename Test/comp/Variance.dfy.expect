@@ -49,8 +49,8 @@ _module.Int0[]0000
 Done
 
 Dafny program verifier finished with 13 verified, 0 errors
-Variance.dfy(108,9): Error: compilation does not support trait types as a type parameter (got 'X'); consider introducing a ghost
-Variance.dfy(133,9): Error: compilation does not support trait types as a type parameter (got 'X'); consider introducing a ghost
-Variance.dfy(148,9): Error: compilation does not support trait types as a type parameter (got 'X'); consider introducing a ghost
-Variance.dfy(173,9): Error: compilation does not support trait types as a type parameter (got 'X'); consider introducing a ghost
+Variance.dfy(107,9): Error: compilation does not support trait types as a type parameter (got 'X'); consider introducing a ghost
+Variance.dfy(132,9): Error: compilation does not support trait types as a type parameter (got 'X'); consider introducing a ghost
+Variance.dfy(147,9): Error: compilation does not support trait types as a type parameter (got 'X'); consider introducing a ghost
+Variance.dfy(172,9): Error: compilation does not support trait types as a type parameter (got 'X'); consider introducing a ghost
 Wrote textual form of partial target program to Variance-java/Variance.java
