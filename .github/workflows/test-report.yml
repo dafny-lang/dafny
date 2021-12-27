@@ -1,13 +1,14 @@
-name: 'Test Report'
+name: "Test Report"
 on:
   workflow_run:
-    workflows: ['Run XUnit tests', 'Build and Test']
+    workflows:
+      - "Run XUnit tests"
+      - "Build and Test"
     types:
       - completed
 jobs:
   report:
     name: "Download and Publish Test Results"
-    needs: build
     runs-on: ubuntu-latest
     if: always()
 
