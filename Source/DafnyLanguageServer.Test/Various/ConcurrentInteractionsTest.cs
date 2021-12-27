@@ -81,7 +81,7 @@ lemma {:timeLimit 10} SquareRoot2NotRational(p: nat, q: nat)
     // [TestMethod, Timeout(MaxTestExecutionTimeMs)]
     public async Task ChangeDocumentCancelsPreviousResolution() {
       string CreateCorrectFunction(int index) => @$"function GetConstant{index}(x: int): int {{ x }}";
-      
+
       var functionWithResolutionError = "function GetConstant(): int { x }\n";
       var slowToResolveSource = functionWithResolutionError + string.Join("\n", Enumerable.Range(0, 1000).Select(CreateCorrectFunction));
       var documentItem = CreateTestDocument(slowToResolveSource);

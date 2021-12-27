@@ -228,7 +228,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private record DocumentEntry(int? Version, Task<DafnyDocument> ResolvedDocument,
-      Task<DafnyDocument> VerifiedDocument, 
+      Task<DafnyDocument> VerifiedDocument,
       CancellationTokenSource CancellationSource) {
       public void CancelPendingUpdates() {
         CancellationSource.Cancel();
