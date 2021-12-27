@@ -135,6 +135,4 @@ lemma {:timeLimit 10} SquareRoot2NotRational(p: nat, q: nat)
     Assert.AreEqual(1, resolutionDiagnostics1.Length);
     Assert.AreEqual(resolutionDiagnostics1[0], resolutionDiagnostics2[0]);
   }
-
-  // test related locations
 }
