@@ -105,7 +105,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       var oldVer = databaseEntry.Version;
       var newVer = documentChange.TextDocument.Version;
-      if (oldVer > newVer) {
+      if (oldVer >= newVer) {
         throw new InvalidOperationException(
           $"the updates of document {documentUri} are out-of-order: {oldVer} -> {newVer}");
       }

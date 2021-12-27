@@ -107,7 +107,7 @@ method Multiply(x: int, y: int) returns (product: int)
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationTokenWithHighTimeout);
 
-      DidChangeTextDocumentParams makeChange(int? version, Range range, string text) {
+      DidChangeTextDocumentParams MakeChange(int? version, Range range, string text) {
         return new DidChangeTextDocumentParams {
           TextDocument = new OptionalVersionedTextDocumentIdentifier {
             Uri = documentItem.Uri,
@@ -123,29 +123,29 @@ method Multiply(x: int, y: int) returns (product: int)
       }
 
       // Add a space in the document
-      var change1 = makeChange(documentItem.Version + 1, new Range((0, 6), (0, 7)), " ");
+      var change1 = MakeChange(documentItem.Version + 1, new Range((0, 6), (0, 7)), " ");
       client.DidChangeTextDocument(change1);
-      // Save and don't wait, so the next save will interrupt and cancel it
+      // Save and don't wait, so the next save will interrupt and cancel verification
       client.SaveDocument(documentItem);
 
       // Remove the space
       // Use a non-consecutive version to test that the server doesn't drop it
-      var change2 = makeChange(documentItem.Version + 4, new Range((0, 6), (0, 7)), "");
+      var change2 = MakeChange(documentItem.Version + 4, new Range((0, 6), (0, 7)), "");
       client.DidChangeTextDocument(change2);
-      // Save and don't wait, so the next save will interrupt and cancel it
+      // Save and don't wait, so the next save will interrupt and cancel verification
       client.SaveDocument(documentItem);
 
-      // Make a verification-breaking change: replace == with !=
-      // Use a non-consecutive version to test that the server doesn't drop it
-      var change3 = makeChange(documentItem.Version + 6, new Range((0, 0), (11, 1)), failSource);
+      // Make a verification-breaking change, and use a non-consecutive version
+      // to test that the server doesn't drop the change
+      var change3 = MakeChange(documentItem.Version + 6, new Range((0, 0), (11, 1)), failSource);
       client.DidChangeTextDocument(change3);
       // Save and wait for the final result
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationTokenWithHighTimeout);
 
       var document = await Documents.GetDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
-      Assert.AreEqual(document.Text.Text, failSource);
-      Assert.AreEqual(document.Errors.ErrorCount, 1);
+      Assert.AreEqual(failSource, document.Text.Text);
+      Assert.AreEqual(1, document.Errors.ErrorCount);
     }
 
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
