@@ -32,8 +32,17 @@ method DowncastCon() {
   print a, " and ", b, "\n";
 }
 
+method DowncastFunc() {
+  var i := new Y.Y();
+  var a: bool -> X := (_ => i);
+  var b: bool -> Y;
+  b := a;
+  print a, " and ", b, "\n";
+}
+
 method Main(){
   DowncastCo();
   DowncastCon();
+  DowncastFunc();
   print "Done\n";
 }

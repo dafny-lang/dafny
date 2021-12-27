@@ -482,7 +482,10 @@ namespace Microsoft.Dafny {
     }
 
     private void DtDowncastClone(DatatypeDecl dt, ConcreteSyntaxTree wr, List<TypeParameter> nonGhostTypeArgs, bool @interface = false, bool lazy = false, DatatypeCtor ctor = null) {
-      if (nonGhostTypeArgs.Any(ty => ty.Variance == TypeParameter.TPVariance.Contra)) { return; };
+      if (nonGhostTypeArgs.Any(ty => ty.Variance == TypeParameter.TPVariance.Contra)
+          || dt.Ctors.Any(ctor => ctor.Formals.Any(f => f.Type.IsArrowType))) {
+        return;
+      }
       var typeArgs = TypeParameters(nonGhostTypeArgs, safe: true);
       var dtArgs = "_I" + dt.CompileName + typeArgs;
       Func<(TypeParameter, int), string> PrintConverter = ((TypeParameter tArg, int i) t) => {
@@ -2466,6 +2469,10 @@ namespace Microsoft.Dafny {
         if (SelectNonGhost(dt, dt.TypeArgs).Any(ty => ty.Variance == TypeParameter.TPVariance.Contra)) {
           Error(tok, "compilation does not support downcasts involving copying for datatypes with contavariant type parameters (like converting from {0} to {1})", wr, from, to);
         }
+      }
+
+      if (from.IsArrowType) {
+        Error(tok, "compilation does not support downcasts involving copying for functions (like converting from {0} to {1})", wr, from, to);
       }
 
       var w = new ConcreteSyntaxTree();
