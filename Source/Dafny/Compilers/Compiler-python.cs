@@ -249,7 +249,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {
-      wr.Write("helpers.print(");
+      wr.Write("_dafny.print(");
       EmitToString(wr, arg);
       wr.WriteLine(")");
     }
