@@ -67,10 +67,6 @@ method CallDoIt() returns () {
       var definitionTask = RequestDefinition(documentItem, (4, 14)).AsTask();
       var first = await Task.WhenAny(verificationTask, definitionTask);
       Assert.AreSame(first, definitionTask);
-      var definition = (await definitionTask).Single();
-      var location = definition.Location;
-      Assert.AreEqual(documentItem.Uri, location.Uri);
-      Assert.AreEqual(new Range((0, 7), (0, 11)), location.Range);
     }
 
     [TestMethod]

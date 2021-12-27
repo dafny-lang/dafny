@@ -138,28 +138,24 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
         return new Position(changeStart.Line + changeEof.Line, characterOffset);
       }
 
-      private static Range? MigrateRange(Range range, Range originalRange, Position afterChangeEndOffset) {
-
-        var start = MigratePosition(range.Start, originalRange, afterChangeEndOffset);
-        var end = MigratePosition(range.End, originalRange, afterChangeEndOffset);
-        if (start != null && end != null) {
-          return new Range(start, end);
-        }
-
-        return null;
-      }
-      
-      private static Position? MigratePosition(Position position, Range originalRange, Position afterChangeEndOffset) {
-        
-        if (originalRange.Start >= position) {
-          return position;
-        }
-
-        if (originalRange.Contains(position)) {
+      private static Range? MigrateRange(Range rangeToMigrate, Range changeRange, Position afterChangeEndOffset) {
+        if (!rangeToMigrate.Contains(changeRange) && rangeToMigrate.Intersects(changeRange)) {
+          // Do not migrate ranges that partially overlap with the change
           return null;
         }
 
-        return GetPositionWithOffset(position, originalRange.End, afterChangeEndOffset);
+        var start = MigratePosition(rangeToMigrate.Start, changeRange, afterChangeEndOffset);
+        var end = MigratePosition(rangeToMigrate.End, changeRange, afterChangeEndOffset);
+        return new Range(start, end);
+      }
+      
+      private static Position MigratePosition(Position position, Range changeRange, Position afterChangeEndOffset) {
+        var changeIsAfterPosition = changeRange.Start >= position && changeRange.End != position;
+        if (changeIsAfterPosition) {
+          return position;
+        }
+
+        return GetPositionWithOffset(position, changeRange.End, afterChangeEndOffset);
       }
 
       private static Position GetPositionWithOffset(Position position, Position originalOffset, Position changeOffset) {
