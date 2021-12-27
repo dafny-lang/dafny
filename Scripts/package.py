@@ -130,21 +130,21 @@ class Release:
             "-f", "net6.0",
             "-o", self.buildDirectory,
             "-r", self.target,
-            "--sc",
+            "--self-contained",
             "-c", "Release"], env)
         run(["dotnet", "publish", path.join(SOURCE_DIRECTORY, "DafnyServer", "DafnyServer.csproj"),
             "--nologo",
             "-f", "net6.0",
             "-o", self.buildDirectory,
             "-r", self.target,
-            "--sc",
+            "--self-contained",
             "-c", "Release"], env)
         run(["dotnet", "publish", path.join(SOURCE_DIRECTORY, "DafnyDriver", "DafnyDriver.csproj"),
             "--nologo",
             "-f", "net6.0",
             "-o", self.buildDirectory,
             "-r", self.target,
-            "--sc",
+            "--self-contained",
             "-c", "Release"], env)
 
     def pack(self):
