@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
@@ -29,22 +30,24 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private readonly IProgramVerifier verifier;
     private readonly IGhostStateDiagnosticCollector ghostStateDiagnosticCollector;
     private readonly ICompilationStatusNotificationPublisher notificationPublisher;
+    private readonly ILoggerFactory loggerFactory;
     private readonly BlockingCollection<Request> requestQueue = new();
 
     private TextDocumentLoader(
+      ILoggerFactory loggerFactory,
       IDafnyParser parser,
       ISymbolResolver symbolResolver,
       IProgramVerifier verifier,
       ISymbolTableFactory symbolTableFactory,
       IGhostStateDiagnosticCollector ghostStateDiagnosticCollector,
-      ICompilationStatusNotificationPublisher notificationPublisher
-    ) {
+      ICompilationStatusNotificationPublisher notificationPublisher) {
       this.parser = parser;
       this.symbolResolver = symbolResolver;
       this.verifier = verifier;
       this.symbolTableFactory = symbolTableFactory;
       this.ghostStateDiagnosticCollector = ghostStateDiagnosticCollector;
       this.notificationPublisher = notificationPublisher;
+      this.loggerFactory = loggerFactory;
     }
 
     public static TextDocumentLoader Create(
@@ -53,9 +56,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       IProgramVerifier verifier,
       ISymbolTableFactory symbolTableFactory,
       IGhostStateDiagnosticCollector ghostStateDiagnosticCollector,
-      ICompilationStatusNotificationPublisher notificationPublisher
+      ICompilationStatusNotificationPublisher notificationPublisher,
+      ILoggerFactory loggerFactory
     ) {
-      var loader = new TextDocumentLoader(parser, symbolResolver, verifier, symbolTableFactory, ghostStateDiagnosticCollector, notificationPublisher);
+      var loader = new TextDocumentLoader(loggerFactory, parser, symbolResolver, verifier, symbolTableFactory, ghostStateDiagnosticCollector, notificationPublisher);
       var loadThread = new Thread(loader.Run, MaxStackSize) { IsBackground = true };
       loadThread.Start();
       return loader;
@@ -64,6 +68,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public DafnyDocument CreateUnloaded(TextDocumentItem textDocument, CancellationToken cancellationToken) {
       var errorReporter = new DiagnosticErrorReporter(textDocument.Uri);
       return CreateDocumentWithEmptySymbolTable(
+        loggerFactory.CreateLogger<SymbolTable>(),
         textDocument,
         errorReporter,
         parser.CreateUnparsed(textDocument, errorReporter, cancellationToken),
@@ -104,7 +109,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var program = parser.Parse(textDocument, errorReporter, cancellationToken);
       if (errorReporter.HasErrors) {
         notificationPublisher.SendStatusNotification(textDocument, CompilationStatus.ParsingFailed);
-        return CreateDocumentWithEmptySymbolTable(textDocument, errorReporter, program, loadCanceled: false);
+        return CreateDocumentWithEmptySymbolTable(loggerFactory.CreateLogger<SymbolTable>(), textDocument, errorReporter, program, loadCanceled: false);
       }
       var compilationUnit = symbolResolver.ResolveSymbols(textDocument, program, cancellationToken);
       var symbolTable = symbolTableFactory.CreateFrom(program, compilationUnit, cancellationToken);
@@ -118,6 +123,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private static DafnyDocument CreateDocumentWithEmptySymbolTable(
+      ILogger<SymbolTable> logger,
       TextDocumentItem textDocument,
       DiagnosticErrorReporter errorReporter,
       Dafny.Program program,
@@ -128,13 +134,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         errorReporter,
         Array.Empty<Diagnostic>(),
         program,
-        CreateEmptySymbolTable(program),
+        CreateEmptySymbolTable(program, logger),
         loadCanceled
       );
     }
 
-    private static SymbolTable CreateEmptySymbolTable(Dafny.Program program) {
+    private static SymbolTable CreateEmptySymbolTable(Dafny.Program program, ILogger<SymbolTable> logger) {
       return new SymbolTable(
+        logger,
         new CompilationUnit(program),
         new Dictionary<object, ILocalizableSymbol>(),
         new Dictionary<ISymbol, SymbolLocation>(),
@@ -152,7 +159,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private DafnyDocument VerifyInternal(VerifyRequest verifyRequest) {
       var (document, cancellationToken) = verifyRequest;
       notificationPublisher.SendStatusNotification(document.Text, CompilationStatus.VerificationStarted);
-      var verificationResult = verifier.Verify(document.Program, cancellationToken);
+      var progressReporter = new VerificationProgressReporter(document.Text, notificationPublisher);
+      var verificationResult = verifier.Verify(document.Program, progressReporter, cancellationToken);
       var compilationStatusAfterVerification = verificationResult.Verified
         ? CompilationStatus.VerificationSucceeded
         : CompilationStatus.VerificationFailed;
@@ -169,5 +177,20 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private record LoadRequest(TextDocumentItem TextDocument, CancellationToken CancellationToken) : Request(CancellationToken);
 
     private record VerifyRequest(DafnyDocument OriginalDocument, CancellationToken CancellationToken) : Request(CancellationToken);
+
+    private class VerificationProgressReporter : IVerificationProgressReporter {
+      private ICompilationStatusNotificationPublisher publisher { get; init; }
+      private TextDocumentItem document { get; init; }
+
+      public VerificationProgressReporter(TextDocumentItem document,
+                                          ICompilationStatusNotificationPublisher publisher) {
+        this.document = document;
+        this.publisher = publisher;
+      }
+
+      public void ReportProgress(string message) {
+        publisher.SendStatusNotification(document, CompilationStatus.VerificationInProgress, message);
+      }
+    }
   }
 }
