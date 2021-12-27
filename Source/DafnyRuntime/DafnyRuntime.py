@@ -1,4 +1,5 @@
 class _dafny:
-    def printLiteralExpr(self,literalVal):
-        return "true" if literalVal == True else "false"
+    def print(self, toPrintVal):
+        if type(toPrintVal)== bool:
+            print("true" if toPrintVal else "false")
 helpers = _dafny()

@@ -21,12 +21,12 @@ namespace Microsoft.Dafny {
 
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
       Coverage.EmitSetup(wr);
-      wr.WriteLine("f=__default()\nf.Main()", mainMethod.EnclosingClass, mainMethod);
+      wr.WriteLine("__default.Main()", mainMethod.EnclosingClass, mainMethod);
     }
 
     protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw) {
       var wr = (cw as PythonCompiler.ClassWriter).MethodWriter;
-      return wr.WriteLine("def Main(self):");
+      return wr.WriteLine("def Main():");
     }
 
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern,
@@ -164,7 +164,7 @@ namespace Microsoft.Dafny {
       }
 
       var customReceiver = !forBodyInheritance && NeedsCustomReceiver(m);
-      wr.Write("{0}{1}(self", m.IsStatic || customReceiver ? "def " : "", IdName(m));
+      wr.Write("{0}{1}(", m.IsStatic || customReceiver ? "def " : "", IdName(m));
       var sep = "";
 
       WriteRuntimeTypeDescriptorsFormals(m, ForTypeDescriptors(typeArgs, m, lookasideBody), wr, ref sep,
@@ -249,7 +249,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {
-      wr.Write("print(");
+      wr.Write("helpers.print(");
       EmitToString(wr, arg);
       wr.WriteLine(")");
     }
@@ -331,7 +331,7 @@ namespace Microsoft.Dafny {
 
     protected override void EmitLiteralExpr(ConcreteSyntaxTree wr, LiteralExpr e) {
       if (e.Value is bool value) {
-        wr.Write("helpers.printLiteralExpr({0})", value);
+        wr.Write("{0}", value);
       }
     }
 
@@ -576,7 +576,7 @@ namespace Microsoft.Dafny {
       TextWriter outputWriter) {
       Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
 
-      var psi = new ProcessStartInfo("python", "") {
+      var psi = new ProcessStartInfo("python3", "") {
         CreateNoWindow = true,
         UseShellExecute = false,
         RedirectStandardInput = true,
