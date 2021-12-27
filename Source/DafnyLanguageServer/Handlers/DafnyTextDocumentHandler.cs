@@ -58,7 +58,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     public override Task<Unit> Handle(DidOpenTextDocumentParams notification, CancellationToken cancellationToken) {
       logger.LogTrace("received open notification {DocumentUri}", notification.TextDocument.Uri);
-      documents.OpenDocumentAsync(notification.TextDocument).Subscribe(dafnyDocument => HandleUpdateAndPublishDiagnosticsAsync(dafnyDocument));
+      documents.OpenDocumentAsync(notification.TextDocument).Subscribe(HandleUpdateAndPublishDiagnostics);
       return Unit.Task;
     }
 
@@ -70,17 +70,17 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     public override Task<Unit> Handle(DidChangeTextDocumentParams notification, CancellationToken cancellationToken) {
       logger.LogTrace("received change notification {DocumentUri}", notification.TextDocument.Uri);
-      documents.UpdateDocumentAsync(notification).Subscribe(dafnyDocument => HandleUpdateAndPublishDiagnosticsAsync(dafnyDocument));
+      documents.UpdateDocumentAsync(notification).Subscribe(HandleUpdateAndPublishDiagnostics);
       return Unit.Task;
     }
 
     public override Task<Unit> Handle(DidSaveTextDocumentParams notification, CancellationToken cancellationToken) {
       logger.LogTrace("received save notification {DocumentUri}", notification.TextDocument.Uri);
-      documents.SaveDocumentAsync(notification.TextDocument).Subscribe(dafnyDocument => HandleUpdateAndPublishDiagnosticsAsync(dafnyDocument));
+      documents.SaveDocumentAsync(notification.TextDocument).Subscribe(HandleUpdateAndPublishDiagnostics);
       return Unit.Task;
     }
 
-    private async Task HandleUpdateAndPublishDiagnosticsAsync(DafnyDocument document) {
+    private void HandleUpdateAndPublishDiagnostics(DafnyDocument document) {
       try {
         diagnosticPublisher.PublishDiagnostics(document);
       } catch (Exception e) {

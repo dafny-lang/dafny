@@ -11,8 +11,6 @@ using System.Reactive.Linq;
 using System.Reactive.Threading.Tasks;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using OmniSharp.Extensions.LanguageServer.Protocol.Server.Capabilities;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
@@ -89,7 +87,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private async Task<DafnyDocument> VerifyAsync(Task<DafnyDocument> documentTask, bool verify, CancellationToken cancellationToken) {
+#pragma warning disable VSTHRD003
       var document = await documentTask;
+#pragma warning restore VSTHRD003
       if (document.LoadCanceled || !verify || document.Errors.HasErrors) {
         throw new TaskCanceledException();
       }
@@ -120,28 +120,34 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
 
+#pragma warning disable VSTHRD200
     private static Task<T> FirstSuccessfulTask<T>(params Task<T>[] tasks) {
+#pragma warning restore VSTHRD200
       var taskList = tasks.ToList();
       var tcs = new TaskCompletionSource<T>();
       int remainingTasks = taskList.Count;
       foreach (var task in taskList) {
+#pragma warning disable VSTHRD110
         task.ContinueWith(t => {
+#pragma warning restore VSTHRD110
           if (task.Status == TaskStatus.RanToCompletion) {
             tcs.TrySetResult(t.Result);
           } else if (Interlocked.Decrement(ref remainingTasks) == 0) {
-            if (tasks.Any(t => t.IsCanceled)) {
+            if (tasks.Any(otherTask => otherTask.IsCanceled)) {
               tcs.SetCanceled();
             } else {
-              tcs.SetException(new AggregateException(tasks.SelectMany(t1 => t1.Exception.InnerExceptions)));
+              tcs.SetException(new AggregateException(tasks.SelectMany(t1 => t1.Exception!.InnerExceptions)));
             }
           }
-        });
+        }, TaskScheduler.Default);
       }
       return tcs.Task;
     }
 
     private async Task<DafnyDocument> ApplyChangesAsync(Task<DafnyDocument> oldDocumentTask, DidChangeTextDocumentParams documentChange, CancellationToken cancellationToken) {
+#pragma warning disable VSTHRD003
       var oldDocument = await oldDocumentTask;
+#pragma warning restore VSTHRD003
       // We do not pass the cancellation token to the text change processor because the text has to be kept in sync with the LSP client.
       var updatedText = textChangeProcessor.ApplyChange(oldDocument.Text, documentChange, CancellationToken.None);
       var oldVerificationDiagnostics =
@@ -222,7 +228,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private record DocumentEntry(int? Version, Task<DafnyDocument> ResolvedDocument,
-      Task<DafnyDocument> VerifiedDocument, // TODO consider making this nullable in case we didn't try to verify 
+      Task<DafnyDocument> VerifiedDocument, 
       CancellationTokenSource CancellationSource) {
       public void CancelPendingUpdates() {
         CancellationSource.Cancel();

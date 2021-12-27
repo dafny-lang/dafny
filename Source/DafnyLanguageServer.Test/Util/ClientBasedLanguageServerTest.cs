@@ -1,8 +1,12 @@
+using System;
+using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util; 
 
@@ -30,5 +34,15 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
         }
       }
     });
+  }
+  
+  public async Task<bool> DidMoreDiagnosticsCome() {
+    var verificationDocumentItem = CreateTestDocument("class X {}", $"verification{new Random().Next()}.dfy");
+    await client.OpenDocumentAndWaitAsync(verificationDocumentItem, CancellationToken.None);
+    var verificationReport = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken.None);
+    client.DidCloseTextDocument(new DidCloseTextDocumentParams {
+      TextDocument = verificationDocumentItem
+    });
+    return verificationDocumentItem.Uri != verificationReport.Uri;
   }
 }

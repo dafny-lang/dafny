@@ -14,19 +14,13 @@ using System.Threading.Tasks;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   [TestClass]
-  public class DiagnosticsTest : DafnyLanguageServerTestBase {
+  public class DiagnosticsTest : ClientBasedLanguageServerTest {
     // TODO test locations as well?
-    private ILanguageClient client;
-    private DiagnosticsReceiver diagnosticReceiver;
     private IDictionary<string, string> configuration;
-
-    [TestInitialize]
-    public Task SetUp() => SetUp(null);
 
     public async Task SetUp(IDictionary<string, string> configuration) {
       this.configuration = configuration;
-      diagnosticReceiver = new();
-      client = await InitializeClient(options => options.OnPublishDiagnostics(diagnosticReceiver.NotificationReceived));
+      await SetUp();
     }
 
     protected override IConfiguration CreateConfiguration() {
@@ -517,7 +511,7 @@ method Multiply(x: int, y: int) returns (product: int)
       Assert.AreEqual(DiagnosticSeverity.Error, changeDiagnostics[0].Severity);
       client.SaveDocument(documentItem);
 
-      Assert.IsFalse(await diagnosticReceiver.AreMoreDiagnosticsComing(), "No additional diagnostics should have been published");
+      Assert.IsFalse(await DidMoreDiagnosticsCome(), "No additional diagnostics should have been published");
     }
 
     [TestMethod]
@@ -608,8 +602,7 @@ method t10() { assert false; }".TrimStart();
       for (int i = 0; i < 20; i++) {
         var documentItem = CreateTestDocument(source, $"test_{i}.dfy");
         client.OpenDocument(documentItem);
-        var report = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
-        var diagnostics = report.Diagnostics.ToArray();
+        var diagnostics = await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
         Assert.AreEqual(5, diagnostics.Length);
         Assert.AreEqual("Other", diagnostics[0].Source);
         Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);

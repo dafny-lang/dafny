@@ -114,7 +114,6 @@ lemma {:timeLimit 10} SquareRoot2NotRational(p: nat, q: nat)
     Assert.AreEqual(new Range(4, 7, 4, 13), resolutionDiagnostics[0].Range);
   }
 
-
   [TestMethod]
   public async Task VerificationDiagnosticsCanBeMigratedAcrossMultipleResolutions() {
     var documentItem = CreateTestDocument(@"method GetConstant() returns (x: int) 
@@ -134,5 +133,24 @@ lemma {:timeLimit 10} SquareRoot2NotRational(p: nat, q: nat)
 
     Assert.AreEqual(1, resolutionDiagnostics1.Length);
     Assert.AreEqual(resolutionDiagnostics1[0], resolutionDiagnostics2[0]);
+  }
+
+  [TestMethod]
+  public async Task VerificationDiagnosticsDoNotShowUpTwice() {
+    var documentItem = CreateTestDocument(@"method GetConstant() returns (x: int) 
+  ensures x == 2 
+  { 
+    x := 1;
+    return;
+  }");
+    client.OpenDocument(documentItem);
+    var verificationDiagnostics1 = await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
+    Assert.AreEqual(1, verificationDiagnostics1.Length);
+
+    ApplyChange(ref documentItem, new Range(3, 9, 3, 10), "3");
+    var verificationDiagnostics2 = await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
+
+    Assert.AreEqual(verificationDiagnostics1.Length, verificationDiagnostics2.Length);
+    Assert.AreEqual(verificationDiagnostics1[0], verificationDiagnostics2[0]);
   }
 }
