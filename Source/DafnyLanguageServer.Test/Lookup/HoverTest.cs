@@ -56,14 +56,14 @@ method DoIt() {
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      
+
       client.OpenDocument(documentItem);
       var verificationTask = diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
       var definitionTask = RequestHover(documentItem, (4, 14));
       var first = await Task.WhenAny(verificationTask, definitionTask);
       Assert.AreSame(first, definitionTask);
     }
-    
+
     [TestMethod]
     public async Task HoveringFieldOfSystemTypeReturnsDefinition() {
       var source = @"

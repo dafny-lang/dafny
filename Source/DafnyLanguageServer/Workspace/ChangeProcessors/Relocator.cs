@@ -53,32 +53,32 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
       private IReadOnlyList<Diagnostic> MigrateDiagnostics(IReadOnlyList<Diagnostic> originalDiagnostics, TextDocumentContentChangeEvent change) {
         var result = new List<Diagnostic>();
         foreach (var diagnostic in originalDiagnostics) {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (change.Range == null) {
-              throw new System.InvalidOperationException("the range of the change must not be null");
+          cancellationToken.ThrowIfCancellationRequested();
+          if (change.Range == null) {
+            throw new System.InvalidOperationException("the range of the change must not be null");
+          }
+
+          var afterChangeEndOffset = GetPositionAtEndOfAppliedChange(change.Range, change.Text);
+          var newRange = MigrateRange(diagnostic.Range, change.Range, afterChangeEndOffset);
+          if (newRange == null) {
+            continue;
+          }
+
+          var newRelated = diagnostic.RelatedInformation?.SelectMany(related => {
+            var migratedRange = MigrateRange(related.Location.Range, change.Range, afterChangeEndOffset);
+            if (migratedRange == null) {
+              return Enumerable.Empty<DiagnosticRelatedInformation>();
             }
 
-            var afterChangeEndOffset = GetPositionAtEndOfAppliedChange(change.Range, change.Text);
-            var newRange = MigrateRange(diagnostic.Range, change.Range, afterChangeEndOffset);
-            if (newRange == null) {
-              continue;
-            }
-
-            var newRelated = diagnostic.RelatedInformation?.SelectMany(related => {
-              var migratedRange = MigrateRange(related.Location.Range, change.Range, afterChangeEndOffset);
-              if (migratedRange == null) {
-                return Enumerable.Empty<DiagnosticRelatedInformation>();
-              }
-
-              return new[] {
+            return new[] {
                 related with {
                   Location = related.Location with {
                     Range = migratedRange
                   }
                 }
               };
-            }).ToList();
-            result.Add(diagnostic with { Range = newRange, RelatedInformation = newRelated });
+          }).ToList();
+          result.Add(diagnostic with { Range = newRange, RelatedInformation = newRelated });
         }
         return result;
       }
@@ -148,7 +148,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
         var end = MigratePosition(rangeToMigrate.End, changeRange, afterChangeEndOffset);
         return new Range(start, end);
       }
-      
+
       private static Position MigratePosition(Position position, Range changeRange, Position afterChangeEndOffset) {
         var changeIsAfterPosition = changeRange.Start >= position && changeRange.End != position;
         if (changeIsAfterPosition) {

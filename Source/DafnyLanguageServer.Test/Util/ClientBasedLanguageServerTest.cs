@@ -9,7 +9,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
   protected ILanguageClient client;
   protected DiagnosticsReceiver diagnosticReceiver;
-  
+
   [TestInitialize]
   public virtual async Task SetUp() {
     diagnosticReceiver = new();

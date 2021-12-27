@@ -16,7 +16,7 @@ using Microsoft.Dafny.LanguageServer.Workspace;
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
   [TestClass]
   public class DefinitionTest : DafnyLanguageServerTestBase {
-    private ILanguageClient client;    
+    private ILanguageClient client;
     private DiagnosticsReceiver diagnosticReceiver;
 
     [TestInitialize]
@@ -51,7 +51,7 @@ method CallDoIt() returns () {
       Assert.AreEqual(documentItem.Uri, location.Uri);
       Assert.AreEqual(new Range((0, 7), (0, 11)), location.Range);
     }
-    
+
     [TestMethod]
     public async Task DefinitionReturnsBeforeVerificationIsComplete() {
       var source = @"
