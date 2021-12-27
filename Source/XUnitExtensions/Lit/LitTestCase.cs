@@ -71,8 +71,7 @@ namespace XUnitExtensions.Lit {
         string output;
         string error;
         try {
-          var commandStr = $"{command}";
-          outputHelper.WriteLine($"Executing command: {commandStr}");
+          outputHelper.WriteLine($"Executing command: {command}");
           (exitCode, output, error) = command.Execute(outputHelper, null, null, null);
         } catch (Exception e) {
           throw new Exception($"Exception thrown while executing command: {command}", e);
