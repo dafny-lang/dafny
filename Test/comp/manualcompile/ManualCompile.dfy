@@ -1,6 +1,6 @@
 // RUN: %dafny /compileVerbose:1 /compile:0 /spillTargetCode:2 /compileTarget:cs "%s" > "%t"
 // RUN: dotnet build %S/ManualCompile.csproj
-// RUN: dotnet %S/bin/Debug/net5.0/ManualCompile.dll >> "%t"
+// RUN: dotnet %S/bin/Debug/net6.0/ManualCompile.dll >> "%t"
 
 // RUN: %dafny /compileVerbose:1 /compile:0 /spillTargetCode:2 /compileTarget:js "%s" >> "%t"
 // RUN: node %S/ManualCompile.js >> "%t"
