@@ -88,7 +88,7 @@ lemma {:timeLimit 10} SquareRoot2NotRational(p: nat, q: nat)
     public async Task VerificationErrorDetectedAfterCanceledSave() {
       // Create a document that'll be slightly slow to verify
       var source = @"
-method Multiply(x: int, y: int) returns (product: int)
+method Multiply(x: bv10, y: bv10) returns (product: bv10)
   requires y >= 0 && x >= 0
   decreases y
   ensures product == x * y && product >= 0
@@ -123,29 +123,38 @@ method Multiply(x: int, y: int) returns (product: int)
       }
 
       // Add a space in the document
-      var change1 = MakeChange(documentItem.Version + 1, new Range((0, 6), (0, 7)), " ");
+      var change1 = MakeChange(documentItem.Version + 1, new Range((0, 6), (0, 6)), " ");
       client.DidChangeTextDocument(change1);
       // Save and don't wait, so the next save will interrupt and cancel verification
       client.SaveDocument(documentItem);
 
-      // Remove the space
-      // Use a non-consecutive version to test that the server doesn't drop it
+      // Remove the space, and use a non-consecutive version to test that the server doesn't drop the change
       var change2 = MakeChange(documentItem.Version + 4, new Range((0, 6), (0, 7)), "");
       client.DidChangeTextDocument(change2);
       // Save and don't wait, so the next save will interrupt and cancel verification
       client.SaveDocument(documentItem);
 
+      // Do the previous again a few times. This seems to be what it takes to guarantee cancelling verification.
+      client.DidChangeTextDocument(MakeChange(documentItem.Version + 5, new Range((0, 6), (0, 6)), " "));
+      client.SaveDocument(documentItem);
+      client.DidChangeTextDocument(MakeChange(documentItem.Version + 6, new Range((0, 6), (0, 7)), ""));
+      client.SaveDocument(documentItem);
+      client.DidChangeTextDocument(MakeChange(documentItem.Version + 8, new Range((0, 6), (0, 6)), " "));
+      client.SaveDocument(documentItem);
+      client.DidChangeTextDocument(MakeChange(documentItem.Version + 9, new Range((0, 6), (0, 7)), ""));
+      client.SaveDocument(documentItem);
+
       // Make a verification-breaking change, and use a non-consecutive version
       // to test that the server doesn't drop the change
-      var change3 = MakeChange(documentItem.Version + 6, new Range((0, 0), (11, 1)), failSource);
+      var change3 = MakeChange(documentItem.Version + 11, new Range((0, 0), (11, 1)), failSource);
       client.DidChangeTextDocument(change3);
       // Save and wait for the final result
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationTokenWithHighTimeout);
 
       var document = await Documents.GetDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
-      Assert.AreEqual(failSource, document.Text.Text);
       Assert.AreEqual(1, document.Errors.ErrorCount);
+      Assert.AreEqual("assertion violation", document.Errors.GetDiagnostics(documentItem.Uri)[0].Message);
     }
 
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
