@@ -40,7 +40,13 @@ namespace IntegrationTests {
       "/timeLimit:300"
     };
 
+    private static ILitCommand MainWithArguments(Assembly assembly, IEnumerable<string> arguments,
+      LitTestConfiguration config, bool invokeDirectly) {
+      return MainMethodLitCommand.Parse(assembly, arguments, config, invokeDirectly);
+    }
+
     private static readonly LitTestConfiguration Config;
+
     static LitTests() {
       var substitutions = new Dictionary<string, string> {
         { "%diff", "diff" },
@@ -55,10 +61,15 @@ namespace IntegrationTests {
             MainMethodLitCommand.Parse(DafnyDriverAssembly, args, config, InvokeMainMethodsDirectly)
         }, {
           "%dafny", (args, config) =>
-            MainMethodLitCommand.Parse(DafnyDriverAssembly, DefaultDafnyArguments.Concat(args), config, InvokeMainMethodsDirectly)
+            MainMethodLitCommand.Parse(DafnyDriverAssembly, DefaultDafnyArguments.Concat(args), config,
+              InvokeMainMethodsDirectly)
         }, {
           "%server", (args, config) =>
             MainMethodLitCommand.Parse(DafnyServerAssembly, args, config, InvokeMainMethodsDirectly)
+        }, {
+          "%diff", (args, config) => DiffCommand.Parse(args.ToArray())
+        }, {
+          "%sed", (args, config) => SedCommand.Parse(args.ToArray())
         }, {
           "%OutputCheck", (args, config) =>
             OutputCheckCommand.Parse(args, config)
@@ -72,6 +83,22 @@ namespace IntegrationTests {
         features = new[] { "ubuntu", "posix" };
       } else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
         features = new[] { "windows" };
+        string path = System.Reflection.Assembly.GetExecutingAssembly().Location;
+        var directory = System.IO.Path.GetDirectoryName(path);
+        Environment.SetEnvironmentVariable("DOTNET_CLI_HOME", directory);
+        if (directory != null) {
+          Directory.SetCurrentDirectory(directory);
+        }
+
+        Environment.SetEnvironmentVariable("HOME",
+          Environment.GetEnvironmentVariable("HOMEDRIVE") + Environment.GetEnvironmentVariable("HOMEPATH"));
+        passthroughEnvironmentVariables = passthroughEnvironmentVariables
+          .Concat(new[] {
+            "DOTNET_CLI_HOME",
+            "HOMEDRIVE", "HOMEPATH",
+            "LOCALAPPDATA",
+            "APPDATA", "ProgramFiles", "ProgramFiles(x86)", "SystemRoot", "USERPROFILE"
+          }).ToArray();
       } else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
         features = new[] { "macosx", "posix" };
       } else {
