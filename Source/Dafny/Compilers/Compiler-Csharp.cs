@@ -149,7 +149,7 @@ namespace Microsoft.Dafny {
         return "";
       }
 
-      Func<TypeParameter.TPVariance, string> PrintVariance = variance => {
+      string PrintVariance(TypeParameter.TPVariance variance) {
         if (addVariance) {
           switch (variance) {
             case TypeParameter.TPVariance.Co:
@@ -159,10 +159,9 @@ namespace Microsoft.Dafny {
           }
         }
         return "";
-      };
-      Func<TypeParameter, string> PrintTypeParameter = tArg => {
-        return $"{PrintVariance(tArg.Variance)}{(safe ? "__" : "")}{IdName(tArg)}";
-      };
+      }
+
+      string PrintTypeParameter(TypeParameter tArg) => $"{PrintVariance(tArg.Variance)}{(safe ? "__" : "")}{IdName(tArg)}";
 
       return $"<{targs.Comma(PrintTypeParameter)}>";
     }
@@ -488,10 +487,11 @@ namespace Microsoft.Dafny {
       }
       var typeArgs = TypeParameters(nonGhostTypeArgs, safe: true);
       var dtArgs = "_I" + dt.CompileName + typeArgs;
-      Func<(TypeParameter, int), string> PrintConverter = ((TypeParameter tArg, int i) t) => {
-        var name = IdName(t.tArg);
-        return $"Func<{name}, __{name}> converter{t.i}";
-      };
+      string PrintConverter((TypeParameter, int) t) {
+        var (tArg, i) = t;
+        var name = IdName(tArg);
+        return $"Func<{name}, __{name}> converter{i}";
+      }
       var argsWithIndex = nonGhostTypeArgs.Zip(Enumerable.Range(0, nonGhostTypeArgs.Count));
 
       if (!toInterface) {
@@ -505,41 +505,45 @@ namespace Microsoft.Dafny {
         return;
       }
 
-      var wBody = wr.NewBlock("");
-
-      wBody.WriteLine($"if (this is {dtArgs} dt) {{ return dt; }}");
-
-      Func<(string, Type), string> PrintInvocation = ((string name, Type ty) t) => {
+      string PrintInvocation((string, Type) t) {
+        var (name, type) = t;
         var constructorIndex = -1;
-        Func<TypeParameter, Type, bool> ContainsTyVar = null;
-        ContainsTyVar = (tp, ty) => (ty.AsTypeParameter != null && ty.AsTypeParameter.Equals(tp))
-                                    || ty.TypeArgs.Exists(ty => ContainsTyVar(tp, ty));
-        if ((constructorIndex = nonGhostTypeArgs.IndexOf(t.ty.AsTypeParameter)) != -1) {
-          return $"converter{constructorIndex}({t.name})";
+        bool ContainsTyVar(TypeParameter tp, Type ty)
+          => (ty.AsTypeParameter != null && ty.AsTypeParameter.Equals(tp))
+             || ty.TypeArgs.Exists(ty => ContainsTyVar(tp, ty));
+
+        if ((constructorIndex = nonGhostTypeArgs.IndexOf(type.AsTypeParameter)) != -1) {
+          return $"converter{constructorIndex}({name})";
         }
-        if (nonGhostTypeArgs.Exists(ty => ContainsTyVar(ty, t.ty))) {
-          var map = nonGhostTypeArgs.ToDictionary(tp => tp, tp =>
-            (Type)new UserDefinedType(tp.tok, new TypeParameter(tp.tok, $"_{tp.Name}", tp.VarianceSyntax)));
-          var sub = Resolver.SubstType(t.ty, map);
+
+        if (nonGhostTypeArgs.Exists(ty => ContainsTyVar(ty, type))) {
+          var map = nonGhostTypeArgs.ToDictionary(
+            tp => tp,
+            tp => (Type)new UserDefinedType(tp.tok, new TypeParameter(tp.tok, $"_{tp.Name}", tp.VarianceSyntax)));
+          var to = Resolver.SubstType(type, map);
           var downcast = new ConcreteSyntaxTree();
-          EmitDowncast(t.ty, sub, null, downcast).Write(t.name);
+          EmitDowncast(type, to, null, downcast).Write(name);
           return downcast.ToString();
         }
-        return t.name;
-      };
 
+        return name;
+      }
+
+      var wBody = wr.NewBlock("").WriteLine($"if (this is {dtArgs} dt) {{ return dt; }}");
       var parameter = "";
 
       if (lazy) {
         parameter = $"() => c().DowncastClone{typeArgs}({Enumerable.Range(0, nonGhostTypeArgs.Count).Comma(i => $"converter{i}")})";
       } else {
-        if (ctor.Formals.Exists(f => f.Type.NormalizeExpand().IsRefType)) {
+        if (ctor.Formals.Exists(f => f.Type.IsRefType)) {
           wBody.WriteLine("throw new NotImplementedException(\"No DowncastClone for RefTypes\");");
           return;
         }
         var nonGhostFormals = ctor.Formals.FindAll(f => !f.IsGhost);
-        var formalsWithIndex = nonGhostFormals.Zip(Enumerable.Range(0, nonGhostFormals.Count)).Select(((Formal f, int i) t) => (FormalName(t.f, t.i), t.f.Type));
-        parameter = formalsWithIndex.Comma(PrintInvocation);
+        parameter = nonGhostFormals
+          .Zip(Enumerable.Range(0, nonGhostFormals.Count))
+          .Select(((Formal f, int i) t) => (FormalName(t.f, t.i), t.f.Type))
+          .Comma(PrintInvocation);
       }
       wBody.WriteLine($"return new {(lazy ? $"{dt.CompileName}__Lazy" : DtCtorDeclarationName(ctor))}{typeArgs}({parameter});");
     }
