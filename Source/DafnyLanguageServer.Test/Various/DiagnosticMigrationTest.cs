@@ -11,21 +11,6 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 
 [TestClass]
 public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
-  private const string SlowToVerify = @"
-lemma {:timeLimit 10} SquareRoot2NotRational(p: nat, q: nat)
-  requires p > 0 && q > 0
-  ensures (p * p) !=  2 * (q * q)
-{ 
-  if (p * p) ==  2 * (q * q) {
-    calc == {
-      (2 * q - p) * (2 * q - p);
-      4 * q * q + p * p - 4 * p * q;
-      {assert 2 * q * q == p * p;}
-      2 * q * q + 2 * p * p - 4 * p * q;
-      2 * (p - q) * (p - q);
-    }
-  }
-}";
 
   private const string FastToFailVerification = "function GetConstant(): int ensures false { 1 }";
   private const string FastToPassVerification = "function GetConstant2(): int { 1 }";

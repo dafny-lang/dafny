@@ -41,12 +41,7 @@ method CallDoIt() returns () {
 
     [TestMethod]
     public async Task HoverReturnsBeforeVerificationIsComplete() {
-      var source = @"
-method DoIt() {
-  var x := new int[0];
-  var y := x.Length;
-}".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(SlowToVerify);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
       client.OpenDocument(documentItem);
