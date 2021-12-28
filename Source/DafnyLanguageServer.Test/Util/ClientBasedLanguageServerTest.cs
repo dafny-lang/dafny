@@ -39,6 +39,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
   public async Task<bool> DidMoreDiagnosticsCome() {
     var verificationDocumentItem = CreateTestDocument("class X {}", $"verification{new Random().Next()}.dfy");
     await client.OpenDocumentAndWaitAsync(verificationDocumentItem, CancellationToken.None);
+    await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken.None);
     var verificationReport = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken.None);
     client.DidCloseTextDocument(new DidCloseTextDocumentParams {
       TextDocument = verificationDocumentItem

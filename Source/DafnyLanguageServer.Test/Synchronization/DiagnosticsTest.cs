@@ -46,9 +46,9 @@ method Multiply(x: int, y: int) returns (product: int)
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var report = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
-      var diagnostics = report.Diagnostics.ToArray();
+      var diagnostics = await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(0, diagnostics.Length);
+      Assert.IsFalse(await DidMoreDiagnosticsCome());
     }
 
     [TestMethod]
@@ -68,11 +68,11 @@ method Multiply(x: int, y: int) returns (product: int
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var report = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
-      var diagnostics = report.Diagnostics.ToArray();
+      var diagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(1, diagnostics.Length);
       Assert.AreEqual("Parser", diagnostics[0].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
+      Assert.IsFalse(await DidMoreDiagnosticsCome());
     }
 
     [TestMethod]
@@ -92,11 +92,11 @@ method Multiply(x: int, y: int) returns (product: int)
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var report = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
-      var diagnostics = report.Diagnostics.ToArray();
+      var diagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(1, diagnostics.Length);
       Assert.AreEqual("Resolver", diagnostics[0].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
+      Assert.IsFalse(await DidMoreDiagnosticsCome());
     }
 
     [TestMethod]
@@ -116,13 +116,13 @@ method Multiply(x: int, y: int) returns (product: int)
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var report = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
-      var diagnostics = report.Diagnostics.ToArray();
+      var diagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(2, diagnostics.Length);
       Assert.AreEqual("Resolver", diagnostics[0].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
       Assert.AreEqual("Resolver", diagnostics[1].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[1].Severity);
+      Assert.IsFalse(await DidMoreDiagnosticsCome());
     }
 
     [TestMethod]
@@ -146,6 +146,7 @@ method Multiply(x: int, y: int) returns (product: int)
       Assert.AreEqual(1, diagnostics.Length);
       Assert.AreEqual("Other", diagnostics[0].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
+      Assert.IsFalse(await DidMoreDiagnosticsCome());
     }
 
     [TestMethod]
@@ -171,6 +172,7 @@ method Multiply(x: int, y: int) returns (product: int)
       var report = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
       var diagnostics = report.Diagnostics.ToArray();
       Assert.AreEqual(0, diagnostics.Length);
+      Assert.IsFalse(await DidMoreDiagnosticsCome());
     }
 
     [TestMethod]
@@ -199,6 +201,7 @@ method Multiply(x: int, y: int) returns (product: int)
       var relatedInformation = diagnostics[0].RelatedInformation.First();
       Assert.AreEqual("This is the postcondition that might not hold.", relatedInformation.Message);
       Assert.AreEqual(new Range(new Position(2, 38), new Position(2, 40)), relatedInformation.Location.Range);
+      Assert.IsFalse(await DidMoreDiagnosticsCome());
     }
 
     [TestMethod]
@@ -239,6 +242,7 @@ method Multiply(x: int, y: int) returns (product: int)
       Assert.AreEqual(1, diagnostics.Length);
       Assert.AreEqual("Parser", diagnostics[0].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
+      Assert.IsFalse(await DidMoreDiagnosticsCome());
     }
 
     [TestMethod]
@@ -281,6 +285,7 @@ method Multiply(x: int, y: int) returns (product: int)
       Assert.AreEqual(1, diagnostics.Length);
       Assert.AreEqual("Parser", diagnostics[0].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
+      Assert.IsFalse(await DidMoreDiagnosticsCome());
     }
 
     [TestMethod]
@@ -320,6 +325,7 @@ method Multiply(x: int, y: int) returns (product: int)
       Assert.AreEqual(1, diagnostics.Length);
       Assert.AreEqual("Other", diagnostics[0].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
+      Assert.IsFalse(await DidMoreDiagnosticsCome());
     }
 
     [TestMethod]
@@ -362,6 +368,7 @@ method Multiply(x: int, y: int) returns (product: int)
       var report = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
       var diagnostics = report.Diagnostics.ToArray();
       Assert.AreEqual(0, diagnostics.Length);
+      Assert.IsFalse(await DidMoreDiagnosticsCome());
     }
 
     [TestMethod]
@@ -433,6 +440,7 @@ method Multiply(x: int, y: int) returns (product: int
       var report = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
       var diagnostics = report.Diagnostics.ToArray();
       Assert.AreEqual(0, diagnostics.Length);
+      Assert.IsFalse(await DidMoreDiagnosticsCome());
     }
 
     [TestMethod]
@@ -446,6 +454,7 @@ method Multiply(x: int, y: int) returns (product: int
       Assert.AreEqual("Parser", diagnostics[0].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
       Assert.AreEqual(new Range((0, 8), (0, 26)), diagnostics[0].Range);
+      Assert.IsFalse(await DidMoreDiagnosticsCome());
     }
 
     [TestMethod]
@@ -459,6 +468,7 @@ method Multiply(x: int, y: int) returns (product: int
       Assert.AreEqual("Parser", diagnostics[0].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
       Assert.AreEqual(new Range((0, 8), (0, 25)), diagnostics[0].Range);
+      Assert.IsFalse(await DidMoreDiagnosticsCome());
     }
 
     [TestMethod]
@@ -472,6 +482,7 @@ method Multiply(x: int, y: int) returns (product: int
       Assert.AreEqual("Parser", diagnostics[0].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
       Assert.AreEqual(new Range((0, 8), (0, 25)), diagnostics[0].Range);
+      Assert.IsFalse(await DidMoreDiagnosticsCome());
     }
 
     [TestMethod]
@@ -485,6 +496,7 @@ method Multiply(x: int, y: int) returns (product: int
       Assert.AreEqual("Resolver", diagnostics[0].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
       Assert.AreEqual(new Range((0, 8), (0, 27)), diagnostics[0].Range);
+      Assert.IsFalse(await DidMoreDiagnosticsCome());
     }
 
     [TestMethod]
@@ -542,6 +554,7 @@ method Multiply(x: int, y: int) returns (product: int)
       Assert.AreEqual(1, saveDiagnostics.Length);
       Assert.AreEqual("Other", saveDiagnostics[0].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, saveDiagnostics[0].Severity);
+      Assert.IsFalse(await DidMoreDiagnosticsCome());
     }
 
     [TestMethod]
@@ -579,6 +592,7 @@ class Test {
       Assert.AreEqual(new Range((14, 16), (14, 21)), relatedInformation[0].Location.Range);
       Assert.AreEqual("Related location", relatedInformation[1].Message);
       Assert.AreEqual(new Range((9, 13), (9, 14)), relatedInformation[1].Location.Range);
+      Assert.IsFalse(await DidMoreDiagnosticsCome());
     }
 
     [TestMethod]
@@ -606,6 +620,7 @@ method t10() { assert false; }".TrimStart();
         Assert.AreEqual("Other", diagnostics[0].Source);
         Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
       }
+      Assert.IsFalse(await DidMoreDiagnosticsCome());
     }
   }
 }
