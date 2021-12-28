@@ -66,3 +66,7 @@ jobs:
       with:
         name: unit-test-results-${{ matrix.os }}
         path: Source/*/TestResults/*.trx
+
+  test-report:
+     needs: build
+     uses: dafny-lang/dafny/.github/workflows/test-report.yml@fabiomadge-patch-1
