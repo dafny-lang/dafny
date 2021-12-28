@@ -9,15 +9,7 @@ using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
   [TestClass]
-  public class HoverTest : DafnyLanguageServerTestBase {
-    private ILanguageClient client;
-    private DiagnosticsReceiver diagnosticReceiver;
-
-    [TestInitialize]
-    public async Task SetUp() {
-      diagnosticReceiver = new();
-      client = await InitializeClient();
-    }
+  public class HoverTest : ClientBasedLanguageServerTest {
 
     private Task<Hover> RequestHover(TextDocumentItem documentItem, Position position) {
       return client.RequestHover(
