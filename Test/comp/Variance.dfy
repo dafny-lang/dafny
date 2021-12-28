@@ -134,7 +134,7 @@ method Contravariant() {
   b := a;
   print a, " and ", b, "\n";
 
-  var s := Con(_ => 1);
+  var s: Con<X> := Con(_ => 1);
   var i := new Int.Int();
   var t := s.mD(i);
   var y := s.mA(t);
@@ -174,7 +174,7 @@ method CContravariant() {
   b := a;
   print a, " and ", b, "\n";
 
-  var s := CCon(_ => 1);
+  var s: CCon<X> := CCon(_ => 1);
   var i := new Int.Int();
   var t := s.mD(i);
   var y := s.mA(t);
