@@ -381,8 +381,7 @@ method Multiply(x: int, y: int) returns (product: int)
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var reportAfterOpening = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
-      var diagnosticsAfterOpening = reportAfterOpening.Diagnostics.ToArray();
+      var diagnosticsAfterOpening = await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(0, diagnosticsAfterOpening.Length);
 
       client.DidChangeTextDocument(new DidChangeTextDocumentParams {
@@ -403,13 +402,13 @@ method Multiply(x: int, y: int) returns (product: int)
       });
 
       // The test applies a change that introduces a syntax error and fixes it thereafter.
-      // Therefore, we know that the erronoues state was never reported when we now receive
+      // Therefore, we know that the erroneous state was never reported when we now receive
       // a report without any diagnostics/errors.
       // Otherwise, we'd have to wait for a signal/diagnostic that should never be sent, e.g.
       // with a timeout.
-      var report = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
-      var diagnostics = report.Diagnostics.ToArray();
+      var diagnostics = await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(0, diagnostics.Length);
+      Assert.IsFalse(await DidMoreDiagnosticsCome());
     }
 
     [TestMethod]
@@ -506,7 +505,7 @@ method Multiply(x: int, y: int) returns (product: int)
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var changeDiagnostics = await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
-      Assert.AreEqual(1, changeDiagnostics.Length);
+      Assert.AreEqual(1, changeDiagnostics.Length, PrintEnumerable(changeDiagnostics));
       Assert.AreEqual("Other", changeDiagnostics[0].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, changeDiagnostics[0].Severity);
       client.SaveDocument(documentItem);

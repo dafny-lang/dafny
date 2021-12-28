@@ -1,4 +1,6 @@
-﻿using Microsoft.Dafny.LanguageServer.Workspace;
+﻿using System.Collections;
+using System.Collections.Generic;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -12,6 +14,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Server;
 using OmniSharp.Extensions.LanguageServer.Server;
 using System.IO;
 using System.IO.Pipelines;
+using System.Linq;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest {
   public class DafnyLanguageServerTestBase : LanguageServerTestBase {
@@ -65,6 +68,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest {
       client.DidOpenTextDocument(new DidOpenTextDocumentParams {
         TextDocument = document
       });
+    }
+
+    public static string PrintEnumerable(IEnumerable<object> items) {
+      return "[" + string.Join(", ", items.Select(o => o.ToString())) + "]";
     }
   }
 }
