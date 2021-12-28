@@ -32,7 +32,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.IsNotNull(languageServerProcessId);
 
       await Task.Delay(1000); // Give the process some time to die
-      var initializeMessage = GetLspInitializeMessage(null);
+      var initializeMessage = await GetLspInitializeMessage(null);
       await process.StandardInput.WriteAsync(initializeMessage);
 
       var initializedResponseFirstLine = await process.StandardOutput.ReadLineAsync();
@@ -57,7 +57,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
       var languageServerProcessId = await process.StandardOutput.ReadLineAsync();
 
-      var initializeMessage = GetLspInitializeMessage(process.Id);
+      var initializeMessage = await GetLspInitializeMessage(process.Id);
       await process.StandardInput.WriteAsync(initializeMessage);
 
       var initializedResponseFirstLine = await process.StandardOutput.ReadLineAsync();
@@ -96,7 +96,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       public bool ShouldOutput(object value) => true;
     }
 
-    private static string GetLspInitializeMessage(int? processId) {
+    private static async Task<string> GetLspInitializeMessage(int? processId) {
       var buffer = new MemoryStream();
       OutputHandler outputHandler = new OutputHandler(PipeWriter.Create(buffer), new JsonRpcSerializer(),
         new List<IOutputFilter> { new AlwaysOutputFilter() },
@@ -110,9 +110,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
           Capabilities = new ClientCapabilities(),
         }
       });
-#pragma warning disable VSTHRD002
-      outputHandler.StopAsync().Wait();
-#pragma warning restore VSTHRD002
+      await outputHandler.StopAsync();
       return Encoding.ASCII.GetString(buffer.ToArray());
     }
 

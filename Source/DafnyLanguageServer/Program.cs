@@ -16,7 +16,7 @@ namespace Microsoft.Dafny.LanguageServer {
       var configuration = CreateConfiguration(args);
       InitializeLogger(configuration);
       try {
-        var cancelLanguageServer = new CancellationTokenSource();
+        Action? shutdownServer = null;
         var server = await OmniSharpLanguageServer.From(
           options => options
             .WithInput(Console.OpenStandardInput())
@@ -24,9 +24,10 @@ namespace Microsoft.Dafny.LanguageServer {
             .ConfigureConfiguration(builder => builder.AddConfiguration(configuration))
             .ConfigureLogging(SetupLogging)
             .WithUnhandledExceptionHandler(LogException)
-            .WithDafnyLanguageServer(configuration, () => cancelLanguageServer.Cancel())
+            // ReSharper disable once AccessToModifiedClosure
+            .WithDafnyLanguageServer(configuration, () => shutdownServer!())
         );
-        cancelLanguageServer.Token.Register(() => server.ForcefulShutdown());
+        shutdownServer = () => server.ForcefulShutdown();
         await server.WaitForExit;
       }
       finally {
