@@ -26,7 +26,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// A dafny document representing the loaded text document.
     /// If there was a newer existing text document already loaded, it will be returned instead.
     /// </returns>
-    IObservable<DafnyDocument> OpenDocumentAsync(TextDocumentItem document);
+    IObservable<DafnyDocument> OpenDocument(TextDocumentItem document);
 
     /// <summary>
     /// Updates a document with the specified changes.
@@ -38,7 +38,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// In the case that the update was sent for an unloaded document, <c>null</c> will be returned.
     /// </returns>
     /// <exception cref="ArgumentException">Thrown if the specified document does not exist.</exception>
-    IObservable<DafnyDocument> UpdateDocumentAsync(DidChangeTextDocumentParams documentChange);
+    IObservable<DafnyDocument> UpdateDocument(DidChangeTextDocumentParams documentChange);
 
     /// <summary>
     /// Notifies the document database that the given document was saved.
@@ -46,20 +46,20 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// <param name="documentId">The ID of the document that was saved.</param>
     /// <returns>The saved document.</returns>
     /// <exception cref="ArgumentException">Thrown if the specified document does not exist.</exception>
-    IObservable<DafnyDocument> SaveDocumentAsync(TextDocumentIdentifier documentId);
+    IObservable<DafnyDocument> SaveDocument(TextDocumentIdentifier documentId);
 
     /// <summary>
     /// Tries to resolve a document with the specified identifier.
     /// </summary>
     /// <param name="documentId">The ID of the document to resolve.</param>
-    /// <returns>An instance of the managed document, <c>null</c> if the specified document was not found.</param>
+    /// <returns>An instance of the managed document, <c>null</c> if the specified document was not found.</returns>
     Task<DafnyDocument?> GetDocumentAsync(TextDocumentIdentifier documentId);
 
     /// <summary>
     /// Tries to resolve a document with the specified identifier.
     /// </summary>
     /// <param name="documentId">The ID of the document to resolve.</param>
-    /// <returns>An instance of the managed document, <c>null</c> if the specified document was not found.</param>
+    /// <returns>An instance of the managed document, <c>null</c> if the specified document was not found.</returns>
     Task<DafnyDocument?> GetVerifiedDocumentAsync(TextDocumentIdentifier documentId);
   }
 }

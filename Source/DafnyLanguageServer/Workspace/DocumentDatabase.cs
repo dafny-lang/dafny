@@ -56,13 +56,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public async Task<bool> CloseDocumentAsync(TextDocumentIdentifier documentId) {
       if (documents.Remove(documentId.Uri, out var databaseEntry)) {
         databaseEntry.CancelPendingUpdates();
-        await databaseEntry.VerifiedDocument;
+        try {
+          await databaseEntry.VerifiedDocument;
+        } catch (TaskCanceledException) {
+        }
         return true;
       }
       return false;
     }
 
-    public IObservable<DafnyDocument> OpenDocumentAsync(TextDocumentItem document) {
+    public IObservable<DafnyDocument> OpenDocument(TextDocumentItem document) {
       var cancellationSource = new CancellationTokenSource();
       var resolvedDocument = OpenAsync(document, cancellationSource.Token);
       var verifiedDocument = VerifyAsync(resolvedDocument, VerifyOnOpen, cancellationSource.Token);
@@ -96,7 +99,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return await documentLoader.VerifyAsync(document, cancellationToken);
     }
 
-    public IObservable<DafnyDocument> UpdateDocumentAsync(DidChangeTextDocumentParams documentChange) {
+    public IObservable<DafnyDocument> UpdateDocument(DidChangeTextDocumentParams documentChange) {
       var documentUri = documentChange.TextDocument.Uri;
       if (!documents.TryGetValue(documentUri, out var databaseEntry)) {
         throw new ArgumentException($"the document {documentUri} was not loaded before");
@@ -182,7 +185,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
     }
 
-    public IObservable<DafnyDocument> SaveDocumentAsync(TextDocumentIdentifier documentId) {
+    public IObservable<DafnyDocument> SaveDocument(TextDocumentIdentifier documentId) {
       if (!documents.TryGetValue(documentId.Uri, out var databaseEntry)) {
         throw new ArgumentException($"the document {documentId.Uri} was not loaded before");
       }

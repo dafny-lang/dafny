@@ -46,7 +46,8 @@ lemma {:timeLimit 10} SquareRoot2NotRational(p: nat, q: nat)
     var documentItem = CreateTestDocument(FastToFailVerification);
     client.OpenDocument(documentItem);
     var verificationDiagnostics = await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
-    Assert.AreEqual(1, verificationDiagnostics.Length);
+    Assert.AreEqual(1, verificationDiagnostics.Length, 
+      string.Join("\n", verificationDiagnostics.Select(d => d.ToString())));
     ApplyChange(ref documentItem, new Range(0, 0, 0, 0), SlowToVerify + "\n\n");
     var resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.AreEqual(1, resolutionDiagnostics.Length);
