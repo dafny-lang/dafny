@@ -125,7 +125,7 @@ method Nonvariant() {
   var s := Non(false);
   var t := s.mD(true);
   var y := s.mA(t);
-  print t, y, s.C(s.x), s.B(s.y), s.A(t), Co.sA(t), s.gA(t), "\n"; 
+  print t, y, s.C(s.x), s.B(s.y), s.A(t), Non.sA(t), s.gA(t), "\n"; 
 }
 
 method Contravariant() {
@@ -138,7 +138,7 @@ method Contravariant() {
   var i := new Int.Int();
   var t := s.mD(i);
   var y := s.mA(t);
-  print t, y, s.C(s.x), s.B(s.y), s.A(t), Co.sA(t), s.gA(t), "\n"; 
+  print t, y, s.C(s.x), s.B(s.y), s.A(t), Con.sA(t), s.gA(t), "\n"; 
 }
 
 method CCovariant() {
@@ -151,7 +151,7 @@ method CCovariant() {
   var s := CCo(false);
   var t := s.mD(true);
   var y := s.mA(t);
-  print t, y, s.C(s.x), s.B(s.y), s.A(t), Co.sA(t), s.gA(t), "\n"; 
+  print t, y, s.C(s.x), s.B(s.y), s.A(t), CCo.sA(t), s.gA(t), "\n"; 
 }
 
 method CNonvariant() {
@@ -165,7 +165,7 @@ method CNonvariant() {
   var s := CNon(false);
   var t := s.mD(true);
   var y := s.mA(t);
-  print t, y, s.C(s.x), s.B(s.y), s.A(t), Co.sA(t), s.gA(t), "\n"; 
+  print t, y, s.C(s.x), s.B(s.y), s.A(t), CNon.sA(t), s.gA(t), "\n"; 
 }
 
 method CContravariant() {
@@ -178,7 +178,7 @@ method CContravariant() {
   var i := new Int.Int();
   var t := s.mD(i);
   var y := s.mA(t);
-  print t, y, s.C(s.x), s.B(s.y), s.A(t), Co.sA(t), s.gA(t), "\n"; 
+  print t, y, s.C(s.x), s.B(s.y), s.A(t), CCon.sA(t), s.gA(t), "\n"; 
 }
 
 method Main(){
