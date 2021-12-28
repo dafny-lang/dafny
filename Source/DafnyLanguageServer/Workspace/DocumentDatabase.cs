@@ -109,7 +109,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
       databaseEntry.CancelPendingUpdates();
       var cancellationSource = new CancellationTokenSource();
-      var previousDocumentTask = FirstSuccessfulTask(databaseEntry.VerifiedDocument, databaseEntry.ResolvedDocument);
+      var previousDocumentTask = FirstSuccessfulAsync(databaseEntry.VerifiedDocument, databaseEntry.ResolvedDocument);
       var resolvedDocumentTask = ApplyChangesAsync(previousDocumentTask, documentChange, cancellationSource.Token);
       var verifiedDocument = VerifyAsync(resolvedDocumentTask, VerifyOnChange, cancellationSource.Token);
       var updatedEntry = new DocumentEntry(
@@ -123,16 +123,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
 
-#pragma warning disable VSTHRD200
-    private static Task<T> FirstSuccessfulTask<T>(params Task<T>[] tasks) {
-#pragma warning restore VSTHRD200
+    private static Task<T> FirstSuccessfulAsync<T>(params Task<T>[] tasks) {
       var taskList = tasks.ToList();
       var tcs = new TaskCompletionSource<T>();
       int remainingTasks = taskList.Count;
       foreach (var task in taskList) {
-#pragma warning disable VSTHRD110
-        task.ContinueWith(t => {
-#pragma warning restore VSTHRD110
+        _ = task.ContinueWith(t => {
           if (task.Status == TaskStatus.RanToCompletion) {
             tcs.TrySetResult(t.Result);
           } else if (Interlocked.Decrement(ref remainingTasks) == 0) {
