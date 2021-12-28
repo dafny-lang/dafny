@@ -35,7 +35,7 @@ datatype Non<T> = Non(T){
     method mD(x: T) returns (r: T) { r := x; }
 }
 
-datatype Con<-T> = Con(T -> int) {
+datatype Cont<-T> = Cont(T -> int) {
     const x: int;
     const y: seq<T>
 
@@ -129,16 +129,16 @@ method Nonvariant() {
 }
 
 method Contravariant() {
-  var a: Con<X> := Con(_ => 0);  // compilation error (java only): compilation does not support trait types as a type parameter; consider introducing a ghost
-  var b: Con<Int>;
+  var a: Cont<X> := Cont(_ => 0);  // compilation error (java only): compilation does not support trait types as a type parameter; consider introducing a ghost
+  var b: Cont<Int>;
   b := a;
   print a, " and ", b, "\n";
 
-  var s: Con<X> := Con(_ => 1);
+  var s: Cont<X> := Cont(_ => 1);
   var i := new Int.Int();
   var t := s.mD(i);
   var y := s.mA(t);
-  print t, y, s.C(s.x), s.B(s.y), s.A(t), Con.sA(t), s.gA(t), "\n"; 
+  print t, y, s.C(s.x), s.B(s.y), s.A(t), Cont.sA(t), s.gA(t), "\n"; 
 }
 
 method CCovariant() {
