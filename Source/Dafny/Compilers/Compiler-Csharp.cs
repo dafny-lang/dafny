@@ -482,7 +482,7 @@ namespace Microsoft.Dafny {
 
     private void DtDowncastClone(DatatypeDecl dt, ConcreteSyntaxTree wr, List<TypeParameter> nonGhostTypeArgs, bool toInterface = false, bool lazy = false, DatatypeCtor ctor = null) {
       if (nonGhostTypeArgs.Any(ty => ty.Variance == TypeParameter.TPVariance.Contra)
-          || dt.Ctors.Any(ctor => ctor.Formals.Any(f => f.Type.IsArrowType))) {
+          || dt.Ctors.Any(ctor => ctor.Formals.Any(f => f.Type.IsArrowType || f.Type.IsRefType))) {
         return;
       }
       var typeArgs = TypeParameters(nonGhostTypeArgs, safe: true);
@@ -535,10 +535,6 @@ namespace Microsoft.Dafny {
       if (lazy) {
         parameter = $"() => c().DowncastClone{typeArgs}({Enumerable.Range(0, nonGhostTypeArgs.Count).Comma(i => $"converter{i}")})";
       } else {
-        if (ctor.Formals.Exists(f => f.Type.IsRefType)) {
-          wBody.WriteLine("throw new NotImplementedException(\"No DowncastClone for RefTypes\");");
-          return;
-        }
         var nonGhostFormals = ctor.Formals.FindAll(f => !f.IsGhost);
         parameter = nonGhostFormals
           .Zip(Enumerable.Range(0, nonGhostFormals.Count))
@@ -2464,15 +2460,24 @@ namespace Microsoft.Dafny {
       to = to.NormalizeExpand();
       Contract.Assert(from.IsRefType == to.IsRefType);
 
+      ConcreteSyntaxTree Unsupported(string message) {
+        Error(tok, "compilation does not support downcasts involving copying for {0} (like converting from {1} to {2})", wr, message, from, to);
+        return new ConcreteSyntaxTree();
+      }
+
       if (from.IsDatatype) {
         var dt = from.AsDatatype;
         if (SelectNonGhost(dt, dt.TypeArgs).Any(ty => ty.Variance == TypeParameter.TPVariance.Contra)) {
-          Error(tok, "compilation does not support downcasts involving copying for datatypes with contavariant type parameters (like converting from {0} to {1})", wr, from, to);
+          return Unsupported("datatypes with contavariant type parameters");
         }
+        if (dt.Ctors.Any(ctor => ctor.Formals.Any(f => f.Type.IsArrowType || f.Type.IsRefType))) {
+          return Unsupported("datatypes with constuctors using functions or references");
+        }
+
       }
 
       if (from.IsArrowType) {
-        Error(tok, "compilation does not support downcasts involving copying for functions (like converting from {0} to {1})", wr, from, to);
+        return Unsupported("functions");
       }
 
       var w = new ConcreteSyntaxTree();
