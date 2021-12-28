@@ -15,6 +15,7 @@ using OmniSharp.Extensions.LanguageServer.Server;
 using System.IO;
 using System.IO.Pipelines;
 using System.Linq;
+using System.Threading;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest {
   public class DafnyLanguageServerTestBase : LanguageServerTestBase {
@@ -50,7 +51,7 @@ lemma {:timeLimit 10} SquareRoot2NotRational(p: nat, q: nat)
           .WithInput(serverPipe.Reader)
           .WithOutput(clientPipe.Writer)
           .ConfigureLogging(SetupTestLogging)
-          .WithDafnyLanguageServer(CreateConfiguration())
+          .WithDafnyLanguageServer(CreateConfiguration(), () => { })
       );
       // This is the style used in the LSP implementation itself:
       // https://github.com/OmniSharp/csharp-language-server-protocol/blob/1b6788df2600083c28811913a221ccac7b1d72c9/test/Lsp.Tests/Testing/LanguageServerTestBaseTests.cs
