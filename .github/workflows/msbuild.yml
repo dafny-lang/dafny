@@ -61,12 +61,11 @@ jobs:
         ##os: [ubuntu-latest]
         ##os: [ubuntu-latest, windows-latest, ubuntu-18.04]
         ##os: [ubuntu-latest, macos-latest]
-        os: [
-             ubuntu-latest,
-             macos-latest,
-             windows-latest,
-             ubuntu-18.04,
-            ]
+        os: 
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+          - ubuntu-18.04
         ## Size of the following array must match --num-shards in lit command
         shard: [1, 2, 3, 4, 5]
         include:
@@ -145,3 +144,7 @@ jobs:
       with:
         name: integration-test-results-${{ matrix.os }}
         path: dafny/Source/IntegrationTests/TestResults/*.trx
+
+  test-report:
+    needs: build
+    uses: dafny-lang/dafny/.github/workflows/test-report.yml@fabiomadge-patch-1
