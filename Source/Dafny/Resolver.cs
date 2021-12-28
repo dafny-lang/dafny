@@ -4602,7 +4602,7 @@ namespace Microsoft.Dafny {
             if (variance != TypeParameter.TPVariance.Non) {
               bool r, l, hr, hl;
               CheckEnds(udt.TypeArgs[i], out r, out l, out hr, out hl);
-              // isRoot and isLeaf aren't duals, so Co and Conta require separate consideration beyond inversion.
+              // isRoot and isLeaf aren't duals, so Co and Contra require separate consideration beyond inversion.
               switch (variance) {
                 case TypeParameter.TPVariance.Co: { isRoot &= r; isLeaf &= l; break; }
                 // A invariably constructible subtype becomes a supertype, and thus the enclosing type is never a root.
