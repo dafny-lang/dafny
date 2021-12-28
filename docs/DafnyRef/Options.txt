@@ -199,7 +199,6 @@
                 or type definitions during translation.
 
 
-  /nologo       suppress printing of version number, copyright message
   /env:<n>      print command line arguments
                   0 - never, 1 (default) - during BPL print and prover log,
                   2 - like 1 and also to standard output
