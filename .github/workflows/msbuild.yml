@@ -130,7 +130,7 @@ jobs:
         XUNIT_SHARD_COUNT: 5
         DAFNY_RELEASE: ${{ github.workspace }}\unzippedRelease\dafny
       run: |
-        dotnet test -v:n dafny/Source/IntegrationTests/IntegrationTests.csproj
+        dotnet test -v:n --logger trx dafny/Source/IntegrationTests/IntegrationTests.csproj
     - name: Run integration tests
       if: runner.os != 'Windows'
       env:
@@ -138,7 +138,7 @@ jobs:
         XUNIT_SHARD_COUNT: 5
         DAFNY_RELEASE: ${{ github.workspace }}/unzippedRelease/dafny
       run: |
-        dotnet test -v:n dafny/Source/IntegrationTests/IntegrationTests.csproj
+        dotnet test -v:n --logger trx dafny/Source/IntegrationTests/IntegrationTests.csproj
     - uses: actions/upload-artifact@v2
       if: always()
       with:
