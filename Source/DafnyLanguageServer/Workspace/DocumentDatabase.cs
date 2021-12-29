@@ -128,6 +128,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var tcs = new TaskCompletionSource<T>();
       int remainingTasks = taskList.Count;
       foreach (var task in taskList) {
+        if (tcs.Task.IsCompleted) {
+          break;
+        }
+        
         _ = task.ContinueWith(t => {
           if (task.Status == TaskStatus.RanToCompletion) {
             tcs.TrySetResult(t.Result);
