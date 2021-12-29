@@ -10,10 +10,10 @@ namespace XUnitExtensions.Lit {
   public class OutputCheckOptions {
 
     [Value(0)]
-    public string CheckFile { get; set; }
+    public string? CheckFile { get; set; } = default!;
 
     [Option("file-to-check", Required = true, HelpText = "File to check")]
-    public string FileToCheck { get; set; }
+    public string? FileToCheck { get; set; } = default!;
   }
 
   public readonly record struct OutputCheckCommand(OutputCheckOptions options) : ILitCommand {
@@ -41,7 +41,7 @@ namespace XUnitExtensions.Lit {
   }
 
   private record CheckRegexp(string File, int LineNumber, Regex Pattern) : CheckDirective(File, LineNumber) {
-    public static CheckDirective Parse(string file, int lineNumber, string arguments) {
+    public new static CheckDirective Parse(string file, int lineNumber, string arguments) {
       return new CheckRegexp(file, lineNumber, new Regex(arguments));
     }
 
@@ -60,7 +60,7 @@ namespace XUnitExtensions.Lit {
   }
 
   private record CheckLiteral(string File, int LineNumber, string Literal) : CheckDirective(File, LineNumber) {
-    public static CheckDirective Parse(string file, int lineNumber, string arguments) {
+    public new static CheckDirective Parse(string file, int lineNumber, string arguments) {
       return new CheckLiteral(file, lineNumber, arguments);
     }
 
@@ -88,11 +88,19 @@ namespace XUnitExtensions.Lit {
 
   public (int, string, string) Execute(ITestOutputHelper outputHelper, TextReader? inputReader,
                                        TextWriter? outputWriter, TextWriter? errorWriter) {
+    if (options.FileToCheck == null) {
+      return (0, "", "");
+    }
+
     var linesToCheck = File.ReadAllLines(options.FileToCheck).ToList();
     var fileName = options.CheckFile;
-    var checkDirectives = File.ReadAllLines(options.CheckFile)
+    if (fileName == null) {
+      return (0, "", "");
+    }
+
+    var checkDirectives = File.ReadAllLines(options.CheckFile!)
       .Select((line, index) => CheckDirective.Parse(fileName, index + 1, line))
-      .Where(e => e != null)
+      .Where(e => e != null).Cast<CheckDirective>()
       .Select(e => e!)
       .ToList();
     if (!checkDirectives.Any()) {
@@ -105,6 +113,7 @@ namespace XUnitExtensions.Lit {
         return (1, "", $"ERROR: Could not find a match for {directive}");
       }
     }
+
     return (0, "", "");
   }
 

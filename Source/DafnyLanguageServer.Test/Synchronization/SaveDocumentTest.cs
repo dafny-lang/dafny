@@ -134,7 +134,7 @@ method DoIt() {
       var document = await Documents.GetDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
       Assert.AreEqual(1, document.Errors.ErrorCount);
-      var message = document.Errors.Diagnostics.First().Value[0];
+      var message = document.Errors.GetDiagnostics(documentItem.Uri)[0];
       Assert.AreEqual(MessageSource.Other.ToString(), message.Source);
     }
   }
