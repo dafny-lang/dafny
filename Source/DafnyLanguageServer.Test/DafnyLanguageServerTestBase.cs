@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Configuration;
@@ -87,6 +88,16 @@ lemma {:timeLimit 10} SquareRoot2NotRational(p: nat, q: nat)
       });
     }
 
+    public static string PrintDiagnostics(IEnumerable<Diagnostic> items) {
+      return PrintEnumerable(items.Select(PrintDiagnostic));
+    }
+    
+    public static string PrintDiagnostic(Diagnostic diagnostic) {
+      var relatedPrint = string.Join(", ", diagnostic.RelatedInformation?.
+        Select(r => $"at {r.Location} saying '{r.Message}'") ?? Array.Empty<string>());
+      return $"Diagnostic at {diagnostic.Range} saying '{diagnostic.Message}', related: " + relatedPrint;
+    }
+    
     public static string PrintEnumerable(IEnumerable<object> items) {
       return "[" + string.Join(", ", items.Select(o => o.ToString())) + "]";
     }

@@ -143,7 +143,7 @@ method Multiply(x: int, y: int) returns (product: int)
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics = await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
-      Assert.AreEqual(1, diagnostics.Length, PrintEnumerable(diagnostics));
+      Assert.AreEqual(1, diagnostics.Length, PrintDiagnostics(diagnostics));
       Assert.AreEqual("Other", diagnostics[0].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
       Assert.IsFalse(await DidMoreDiagnosticsCome());
@@ -305,7 +305,7 @@ method Multiply(x: int, y: int) returns (product: int)
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnosticsAfterOpening = await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
-      Assert.AreEqual(0, diagnosticsAfterOpening.Length, PrintEnumerable(diagnosticsAfterOpening));
+      Assert.AreEqual(0, diagnosticsAfterOpening.Length, PrintDiagnostics(diagnosticsAfterOpening));
 
       client.DidChangeTextDocument(new DidChangeTextDocumentParams {
         TextDocument = new OptionalVersionedTextDocumentIdentifier {
@@ -516,7 +516,7 @@ method Multiply(x: int, y: int) returns (product: int)
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var changeDiagnostics = await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
-      Assert.AreEqual(1, changeDiagnostics.Length, PrintEnumerable(changeDiagnostics));
+      Assert.AreEqual(1, changeDiagnostics.Length, PrintDiagnostics(changeDiagnostics));
       Assert.AreEqual("Other", changeDiagnostics[0].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, changeDiagnostics[0].Severity);
       client.SaveDocument(documentItem);
