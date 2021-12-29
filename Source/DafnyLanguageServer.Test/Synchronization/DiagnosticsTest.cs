@@ -43,7 +43,7 @@ method Multiply(x: int, y: int) returns (product: int)
     product := x + step;
   }
 }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "OpeningFlawlessDocumentReportsEmptyDiagnostics");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics = await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken, documentItem.Uri);
       Assert.AreEqual(0, diagnostics.Length);
@@ -65,7 +65,7 @@ method Multiply(x: int, y: int) returns (product: int
     product := x + step;
   }
 }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "OpeningDocumentWithSyntaxErrorReportsDiagnosticsWithParserErrors");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem.Uri);
       Assert.AreEqual(1, diagnostics.Length);
@@ -89,7 +89,7 @@ method Multiply(x: int, y: int) returns (product: int)
     product := x + step;
   }
 }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "OpeningDocumentWithSemanticErrorReportsDiagnosticsWithSemanticErrors");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem.Uri);
       Assert.AreEqual(1, diagnostics.Length);
@@ -113,7 +113,7 @@ method Multiply(x: int, y: int) returns (product: int)
     product := x + step;
   }
 }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "OpeningDocumentWithMultipleSemanticErrorsReportsDiagnosticsWithAllSemanticErrors");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem.Uri);
       Assert.AreEqual(2, diagnostics.Length);
@@ -139,7 +139,7 @@ method Multiply(x: int, y: int) returns (product: int)
     product := x + step;
   }
 }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "OpeningDocumentWithVerificationErrorReportsDiagnosticsWithVerificationErrors");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics = await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken, documentItem.Uri);
       Assert.AreEqual(1, diagnostics.Length, PrintDiagnostics(diagnostics));
@@ -166,7 +166,7 @@ method Multiply(x: int, y: int) returns (product: int)
       await SetUp(new Dictionary<string, string>() {
         { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.Never) }
       });
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "OpeningDocumentWithVerificationErrorDoesNotReportDiagnosticsWithVerificationErrorsIfNotVerifyOnChange");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem.Uri);
       Assert.AreEqual(0, diagnostics.Length);
@@ -187,7 +187,7 @@ method Multiply(x: int, y: int) returns (product: int)
     product := x + step;
   }
 }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "OpeningDocumentWithMultipleVerificationErrorsReportsDiagnosticsWithAllVerificationErrorsAndRelatedInformation");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics = await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken, documentItem.Uri);
       Assert.AreEqual(2, diagnostics.Length);
@@ -217,7 +217,7 @@ method Multiply(x: int, y: int) returns (product: int)
     product := x + step;
   }
 }".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "ChangingCorrectDocumentToOneWithSyntaxErrorsReportsTheSyntaxErrors.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnosticsAfterOpening = await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken, documentItem.Uri);
       Assert.AreEqual(0, diagnosticsAfterOpening.Length, PrintDiagnostics(diagnosticsAfterOpening));
@@ -260,7 +260,7 @@ method Multiply(x: int, y: int) returns (product: int)
       await SetUp(new Dictionary<string, string>() {
         { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.Never) }
       });
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "ChangingCorrectDocumentToOneWithSyntaxErrorsReportsTheSyntaxErrorsIfNotVerifyOnChange.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnosticsAfterOpening = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem.Uri);
       Assert.AreEqual(0, diagnosticsAfterOpening.Length);

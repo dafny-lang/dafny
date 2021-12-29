@@ -73,7 +73,8 @@ lemma {:timeLimit 10} SquareRoot2NotRational(p: nat, q: nat)
         .AddFilter("OmniSharp", LogLevel.Warning);
     }
 
-    protected static TextDocumentItem CreateTestDocument(string source, string filePath = "test.dfy", int version = 1) {
+    protected static TextDocumentItem CreateTestDocument(string source, string filePath = null, int version = 1) {
+      filePath ??= $"randomPath{new Random().Next()}";
       return new TextDocumentItem {
         LanguageId = LanguageId,
         Text = source,
