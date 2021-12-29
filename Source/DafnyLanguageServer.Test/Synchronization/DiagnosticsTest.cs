@@ -4,7 +4,6 @@ using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Configuration;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
@@ -236,8 +235,7 @@ method Multiply(x: int, y: int) returns (product: int)
         }
       });
 
-      var report = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken, documentItem.Uri);
-      var diagnostics = report.Diagnostics.ToArray();
+      var diagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem.Uri);
       Assert.AreEqual(1, diagnostics.Length);
       Assert.AreEqual("Parser", diagnostics[0].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
