@@ -2,7 +2,7 @@
 Dafny program verifier finished with 4 verified, 0 errors
 
 Dafny program verifier did not attempt verification
-DowncastDt.dfy(32,4): Error: compilation does not support downcasts involving copying for datatypes with contavariant type parameters (like converting from Contra<Y> to Contra<X>)
+DowncastDt.dfy(32,4): Error: compilation does not support downcasts involving copying for datatypes with contravariant type parameters (like converting from Contra<Y> to Contra<X>)
 DowncastDt.dfy(40,4): Error: compilation does not support downcasts involving copying for functions (like converting from bool ~> X to bool ~> Y)
 
 Dafny program verifier did not attempt verification
