@@ -1912,8 +1912,9 @@ namespace Microsoft.Dafny {
             $"_dafny.InstanceOfTrait({tmpVarName}.(_dafny.TraitOffspring), {TypeName_Companion(trait, wPreconditions, tok)}.TraitID_");
         } else {
           var typeAssertSucceeds = FreshId("_typeAssertSucceeds");
-          wPreconditions.Write(
-            $@"{typeAssertSucceeds} := func(param interface{{}}) bool {{ var ok bool; _, ok = param.({TypeName(boundVarType, wPreconditions, tok)}); return ok");
+          wPreconditions.WriteLine(
+            $@"{typeAssertSucceeds} := func(param interface{{}}) bool {{ var ok bool; _, ok = param.({TypeName(boundVarType, wPreconditions, tok)}); return ok}}");
+          conditions.Add($"{typeAssertSucceeds}({tmpVarName})");
           // When Go will support generics
           //conditions.Add($"typeAssertSucceeds[{TypeName(boundVarType, wr, tok)}]({tmpVarName})");
         }

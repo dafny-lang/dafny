@@ -4634,13 +4634,14 @@ namespace Microsoft.Dafny {
         for (int i = 0; i < n; i++) {
           var bound = e.Bounds[i];
           var bv = e.BoundVars[i];
+          var collectionElementType = bound is ComprehensionExpr.CollectionBoundedPool c ? c.CollectionElementType : bv.Type;
+
           // emit:  Dafny.Helpers.Quantifier(rangeOfValues, isForall, bv => body)
-          wBody.Write("{0}(", GetQuantifierName(TypeName(bv.Type, wBody, bv.tok)));
+          wBody.Write("{0}(", GetQuantifierName(TypeName(collectionElementType, wBody, bv.tok)));
           CompileCollection(bound, bv, inLetExprBody, false, su, wBody, e.Bounds, e.BoundVars, i);
           wBody.Write(", {0}, ", expr is ForallExpr ? "true" : "false");
           var native = AsNativeType(e.BoundVars[i].Type);
           var tmpVarName = idGenerator.FreshId(e is ForallExpr ? "_forall_var_" : "_exists_var_");
-          var collectionElementType = bound is ComprehensionExpr.CollectionBoundedPool c ? c.CollectionElementType : bv.Type;
           ConcreteSyntaxTree newWBody = CreateLambda(new List<Type> { collectionElementType }, e.tok, new List<string> { tmpVarName }, Type.Bool, wBody, untyped: true);
           newWBody = MaybeInjectSubtypeConstraint(
             tmpVarName, collectionElementType, bv.Type,
