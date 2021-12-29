@@ -198,11 +198,12 @@ func InstanceOf(p interface{}, q interface{}) bool {
 }
 
 // Use typeAssertSucceeds[T](x) to test if a call x.(T) would not panic
-func typeAssertSucceeds[T any](x interface{}) bool {
+// Only when Go will have generics
+/*func typeAssertSucceeds[T any](x interface{}) bool {
 	var ok bool
 	_, ok = x.(T)
 	return ok
-}
+}*/
 
 /******************************************************************************
  * Object
