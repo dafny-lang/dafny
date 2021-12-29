@@ -2,10 +2,10 @@ name: "Integration Test Report"
 
 on:
   workflow_run:
-     workflows:
-       - Build and Test
-     types:
-       - completed
+    workflows:
+      - Build and Test
+    types:
+      - completed
 
 jobs:
   report:
