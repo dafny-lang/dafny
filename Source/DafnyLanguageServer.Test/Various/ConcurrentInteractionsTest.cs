@@ -137,7 +137,7 @@ lemma {:timeLimit 10} SquareRoot2NotRational(p: nat, q: nat)
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationTokenWithHighTimeout);
       // The original document contains a syntactic error.
-      var initialLoadDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout);
+      var initialLoadDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout, documentItem.Uri);
       Assert.IsFalse(await DidMoreDiagnosticsCome());
       Assert.AreEqual(1, initialLoadDiagnostics.Length);
 
@@ -145,16 +145,16 @@ lemma {:timeLimit 10} SquareRoot2NotRational(p: nat, q: nat)
 
       // Wait for resolution diagnostics now, so they don't get cancelled.
       // After this we still have slow verification diagnostics in the queue.
-      var parseErrorFixedDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout);
+      var parseErrorFixedDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout, documentItem.Uri);
       Assert.AreEqual(0, parseErrorFixedDiagnostics.Length);
 
       // Cancel the slow verification and start a fast verification
       ApplyChange(ref documentItem, new Range((0, 0), (13, 1)), "function GetConstant(): int ensures false { 1 }");
 
-      var parseErrorStillFixedDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout);
+      var parseErrorStillFixedDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout, documentItem.Uri);
       Assert.AreEqual(0, parseErrorStillFixedDiagnostics.Length);
 
-      var verificationDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout);
+      var verificationDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout, documentItem.Uri);
       Assert.AreEqual(1, verificationDiagnostics.Length);
 
       Assert.IsFalse(await DidMoreDiagnosticsCome());
@@ -178,10 +178,10 @@ lemma {:timeLimit 10} SquareRoot2NotRational(p: nat, q: nat)
       // Fix resolution error, cancel previous diagnostics
       ApplyChange(ref documentItem, new Range((0, 30), (0, 31)), "1");
 
-      var resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      var resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem.Uri);
       Assert.AreEqual(0, resolutionDiagnostics.Length);
 
-      var verificationDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      var verificationDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem.Uri);
       Assert.AreEqual(0, verificationDiagnostics.Length);
 
       Assert.IsFalse(await DidMoreDiagnosticsCome());

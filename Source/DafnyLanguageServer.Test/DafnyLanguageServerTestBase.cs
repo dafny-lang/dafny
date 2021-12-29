@@ -37,6 +37,7 @@ lemma {:timeLimit 10} SquareRoot2NotRational(p: nat, q: nat)
 }";
 
     public const string LanguageId = "dafny";
+    private static readonly Random Random = new Random();
 
     public ILanguageServer Server { get; private set; }
 
@@ -74,7 +75,7 @@ lemma {:timeLimit 10} SquareRoot2NotRational(p: nat, q: nat)
     }
 
     protected static TextDocumentItem CreateTestDocument(string source, string filePath = null, int version = 1) {
-      filePath ??= $"randomPath{new Random().Next()}";
+      filePath ??= $"randomPath{Random.Next()}";
       return new TextDocumentItem {
         LanguageId = LanguageId,
         Text = source,
