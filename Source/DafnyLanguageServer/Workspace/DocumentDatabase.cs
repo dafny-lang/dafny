@@ -103,7 +103,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         throw new ArgumentException($"the document {documentUri} was not loaded before");
       }
 
-      // According to the LSP specification, document versions should increase monotonically but may not be consecutive.
+      // According to the LSP specification, document versions should increase monotonically but may be non-consecutive.
       // See: https://github.com/microsoft/language-server-protocol/blob/gh-pages/_specifications/specification-3-16.md?plain=1#L1195
       var oldVer = databaseEntry.Version;
       var newVer = documentChange.TextDocument.Version;
