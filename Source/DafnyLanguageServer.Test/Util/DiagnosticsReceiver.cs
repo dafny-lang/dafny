@@ -19,7 +19,7 @@ public class DiagnosticsReceiver : TestNotificationReceiver<PublishDiagnosticsPa
   }
   public async Task<Diagnostic[]> AwaitVerificationDiagnosticsAsync(CancellationToken cancellationToken, [CanBeNull] DocumentUri uri = null) {
     var resolutionDiagnostics = await AwaitNextDiagnosticsAsync(cancellationToken);
-    Assert.AreEqual(0, resolutionDiagnostics.Length);
+    Assert.AreEqual(0, resolutionDiagnostics.Length, DafnyLanguageServerTestBase.PrintDiagnostics(resolutionDiagnostics));
     return await AwaitNextDiagnosticsAsync(cancellationToken, uri);
   }
 }
