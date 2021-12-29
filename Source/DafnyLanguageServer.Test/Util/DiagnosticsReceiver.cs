@@ -18,7 +18,8 @@ public class DiagnosticsReceiver : TestNotificationReceiver<PublishDiagnosticsPa
     return result.Diagnostics.ToArray();
   }
   public async Task<Diagnostic[]> AwaitVerificationDiagnosticsAsync(CancellationToken cancellationToken, [CanBeNull] DocumentUri uri = null) {
-    await AwaitNextNotificationAsync(cancellationToken);
+    var resolutionDiagnostics = await AwaitNextDiagnosticsAsync(cancellationToken);
+    Assert.AreEqual(0, resolutionDiagnostics.Length);
     return await AwaitNextDiagnosticsAsync(cancellationToken, uri);
   }
 }
