@@ -27,14 +27,17 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     private CancellationToken CancellationTokenWithHighTimeout => cancellationSource.Token;
 
-    public override Task SetUp() => SetUp(null);
-
-    public async Task SetUp(IDictionary<string, string> configuration) {
-      this.configuration = configuration;
+    [TestInitialize]
+    public override async Task SetUp() {
       await base.SetUp();
       // We use a custom cancellation token with a higher timeout to clearly identify where the request got stuck.
       cancellationSource = new();
       cancellationSource.CancelAfter(MaxRequestExecutionTimeMs);
+    }
+
+    public async Task SetUp(IDictionary<string, string> configuration) {
+      this.configuration = configuration;
+      await SetUp();
     }
     protected override IConfiguration CreateConfiguration() {
       return configuration == null
@@ -109,7 +112,7 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
       // Save and wait for the final result
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationTokenWithHighTimeout);
 
-      var document = await Documents.GetDocumentAsync(documentItem.Uri);
+      var document = await Documents.GetVerifiedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
       Assert.AreEqual(1, document.Errors.ErrorCount);
       Assert.AreEqual("assertion violation", document.Errors.GetDiagnostics(documentItem.Uri)[0].Message);
