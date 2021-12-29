@@ -144,7 +144,3 @@ jobs:
       with:
         name: integration-test-results-${{ matrix.os }}
         path: dafny/Source/IntegrationTests/TestResults/*.trx
-
-  test-report:
-    needs: build
-    uses: dafny-lang/dafny/.github/workflows/test-report.yml@fabiomadge-patch-1
