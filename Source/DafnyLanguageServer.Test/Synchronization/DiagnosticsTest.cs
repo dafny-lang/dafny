@@ -221,7 +221,7 @@ method Multiply(x: int, y: int) returns (product: int)
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnosticsAfterOpening = await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
-      Assert.AreEqual(0, diagnosticsAfterOpening.Length);
+      Assert.AreEqual(0, diagnosticsAfterOpening.Length, PrintDiagnostics(diagnosticsAfterOpening));
 
       client.DidChangeTextDocument(new DidChangeTextDocumentParams {
         TextDocument = new OptionalVersionedTextDocumentIdentifier {
