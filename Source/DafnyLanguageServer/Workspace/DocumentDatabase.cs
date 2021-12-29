@@ -131,7 +131,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         if (tcs.Task.IsCompleted) {
           break;
         }
-        
+
         _ = task.ContinueWith(t => {
           if (task.Status == TaskStatus.RanToCompletion) {
             tcs.TrySetResult(t.Result);
