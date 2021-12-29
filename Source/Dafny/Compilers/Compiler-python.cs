@@ -302,10 +302,13 @@ namespace Microsoft.Dafny {
       throw new NotImplementedException();
     }
 
-    protected override ConcreteSyntaxTree CreateForeachLoop(string tmpVarName, Type collectionElementType,
-      string boundVarName,
-      Type boundVarType, bool introduceBoundVar, IToken tok, out ConcreteSyntaxTree collectionWriter,
-      ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree CreateForeachLoop(string tmpVarName, Type collectionElementType, IToken tok,
+      out ConcreteSyntaxTree collectionWriter, ConcreteSyntaxTree wr) {
+      throw new NotImplementedException();
+    }
+
+    protected override ConcreteSyntaxTree EmitDowncastVariableAssignment(string boundVarName, Type boundVarType, string tmpVarName,
+      Type collectionElementType, bool introduceBoundVar, IToken tok, ConcreteSyntaxTree wwr) {
       throw new NotImplementedException();
     }
 
@@ -525,6 +528,10 @@ namespace Microsoft.Dafny {
     protected override ConcreteSyntaxTree EmitMapBuilder_Add(MapType mt, IToken tok, string collName, Expression term,
       bool inLetExprBody,
       ConcreteSyntaxTree wr) {
+      throw new NotImplementedException();
+    }
+
+    protected override void EmitSubtypeCondition(string tmpVarName, Type boundVarType, IToken tok, ConcreteSyntaxTree wwr, ConcreteSyntaxTree wPreconditions) {
       throw new NotImplementedException();
     }
 

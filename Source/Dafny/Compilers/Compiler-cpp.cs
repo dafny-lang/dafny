@@ -1294,15 +1294,18 @@ namespace Microsoft.Dafny {
       throw NotSupported("QuantifierName");
     }
 
-    protected override ConcreteSyntaxTree CreateForeachLoop(string tmpVarName, Type collectionElementType, string boundVarName, Type boundVarType, bool introduceBoundVar,
-      Bpl.IToken tok, out ConcreteSyntaxTree collectionWriter, ConcreteSyntaxTree wr) {
-
+    protected override ConcreteSyntaxTree CreateForeachLoop(string tmpVarName, Type collectionElementType, Bpl.IToken tok,
+      out ConcreteSyntaxTree collectionWriter, ConcreteSyntaxTree wr) {
       wr.Write("for ({1} {0} : ", tmpVarName, TypeName(collectionElementType, wr, tok));
       collectionWriter = wr.Fork();
       var wwr = wr.NewBlock(")");
+      return wwr;
+    }
 
+    protected override void EmitSubtypeCondition(string tmpVarName, Type boundVarType, Bpl.IToken tok, ConcreteSyntaxTree wwr,
+      ConcreteSyntaxTree wPreconditions) {
+      string typeTest;
       if (boundVarType.IsRefType) {
-        string typeTest;
         if (boundVarType.IsObject || boundVarType.IsObjectQ) {
           typeTest = "true";
         } else if (boundVarType.IsTraitType) {
@@ -1315,8 +1318,15 @@ namespace Microsoft.Dafny {
         } else {
           typeTest = $"{tmpVarName} == null || {typeTest}";
         }
-        wwr = wwr.NewBlock($"if ({typeTest})");
+      } else {
+        typeTest = "true";
       }
+
+      wwr.Write(typeTest);
+    }
+
+    protected override ConcreteSyntaxTree EmitDowncastVariableAssignment(string boundVarName, Type boundVarType, string tmpVarName,
+      Type collectionElementType, bool introduceBoundVar, Bpl.IToken tok, ConcreteSyntaxTree wwr) {
       var typeName = TypeName(boundVarType, wwr, tok);
       wwr.WriteLine("{0}{1} = ({2}){3};", introduceBoundVar ? typeName + " " : "", boundVarName, typeName, tmpVarName);
       return wwr;

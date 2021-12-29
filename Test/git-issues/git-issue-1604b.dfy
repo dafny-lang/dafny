@@ -48,7 +48,7 @@ method Main() {
   var b := true;
 
   // This line should fail because c should be of type Cell as the constraint is not compilable
-  b := b && isSetOfGhostEvenCells(set c | c in x && ghostEvenCellIsOneOrMore(c));
+  b := b && isSetOfGhostEvenCells(set c: GhostEvenCell | c in x && ghostEvenCellIsOneOrMore(c) :: c);
 
   // This line should fail because although the type constraint can be proven, the precondition for ghostEvenCellIsOneOrMore cannot.
   b := b && isSetOfGhostEvenCells(set c | c in x && ghostEvenCellIsOneOrMore(c) && c.x % 2 == 0);

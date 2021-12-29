@@ -1194,31 +1194,41 @@ namespace Microsoft.Dafny {
       return string.Format("_dafny.Quantifier");
     }
 
-    protected override ConcreteSyntaxTree CreateForeachLoop(string tmpVarName, Type collectionElementType, string boundVarName, Type boundVarType, bool introduceBoundVar,
-      Bpl.IToken tok, out ConcreteSyntaxTree collectionWriter, ConcreteSyntaxTree wr) {
-
+    protected override ConcreteSyntaxTree CreateForeachLoop(string tmpVarName, Type collectionElementType, Bpl.IToken tok,
+      out ConcreteSyntaxTree collectionWriter, ConcreteSyntaxTree wr) {
       wr.Write("for (const {0} of ", tmpVarName);
       collectionWriter = wr.Fork();
       var wwr = wr.NewBlock(")");
+      return wwr;
+    }
 
+    protected override ConcreteSyntaxTree EmitDowncastVariableAssignment(string boundVarName, Type boundVarType, string tmpVarName,
+      Type collectionElementType, bool introduceBoundVar, Bpl.IToken tok, ConcreteSyntaxTree wr) {
+      wr.WriteLine("{0}{1} = {2};", introduceBoundVar ? "let " : "", boundVarName, tmpVarName);
+      return wr;
+    }
+
+    protected override void EmitSubtypeCondition(string tmpVarName, Type boundVarType, Bpl.IToken tok,
+      ConcreteSyntaxTree guardWriter, ConcreteSyntaxTree preconditions) {
+      string typeTest;
       if (boundVarType.IsRefType) {
-        string typeTest;
         if (boundVarType.IsObject || boundVarType.IsObjectQ) {
           typeTest = "true";
         } else if (boundVarType.IsTraitType) {
-          typeTest = $"_dafny.InstanceOfTrait({tmpVarName}, {TypeName(boundVarType, wwr, tok)})";
+          typeTest = $"_dafny.InstanceOfTrait({tmpVarName}, {TypeName(boundVarType, preconditions, tok)})";
         } else {
-          typeTest = $"{tmpVarName} instanceof {TypeName(boundVarType, wwr, tok)}";
+          typeTest = $"{tmpVarName} instanceof {TypeName(boundVarType, preconditions, tok)}";
         }
+
         if (boundVarType.IsNonNullRefType) {
           typeTest = $"{tmpVarName} !== null && " + typeTest;
         } else {
           typeTest = $"{tmpVarName} === null || " + typeTest;
         }
-        wwr = wwr.NewBlock($"if ({typeTest})");
+      } else {
+        typeTest = "true";
       }
-      wwr.WriteLine("{0}{1} = {2};", introduceBoundVar ? "let " : "", boundVarName, tmpVarName);
-      return wwr;
+      guardWriter.Write(typeTest);
     }
 
     protected override ConcreteSyntaxTree CreateForeachIngredientLoop(string boundVarName, int L, string tupleTypeArgs, out ConcreteSyntaxTree collectionWriter, ConcreteSyntaxTree wr) {

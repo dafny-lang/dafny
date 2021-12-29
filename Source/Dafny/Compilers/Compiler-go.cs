@@ -1882,8 +1882,8 @@ namespace Microsoft.Dafny {
       return "_dafny.Quantifier";
     }
 
-    protected override ConcreteSyntaxTree CreateForeachLoop(string tmpVarName, Type collectionElementType, string boundVarName, Type boundVarType, bool introduceBoundVar,
-      Bpl.IToken tok, out ConcreteSyntaxTree collectionWriter, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree CreateForeachLoop(string tmpVarName, Type collectionElementType, Bpl.IToken tok,
+      out ConcreteSyntaxTree collectionWriter, ConcreteSyntaxTree wr) {
 
       var okVar = FreshId("_ok");
       var iterVar = FreshId("_iter");
@@ -1892,35 +1892,49 @@ namespace Microsoft.Dafny {
       var wBody = wr.NewBlock(");;");
       wBody.WriteLine("{0}, {1} := {2}()", tmpVarName, okVar, iterVar);
       wBody.WriteLine("if !{0} {{ break }}", okVar);
+      return wBody;
+    }
 
-      if (introduceBoundVar) {
-        wBody.WriteLine("var {0} {1}", boundVarName, TypeName(boundVarType, wBody, tok));
+    protected override void EmitSubtypeCondition(string tmpVarName, Type boundVarType, Bpl.IToken tok, ConcreteSyntaxTree wwr,
+      ConcreteSyntaxTree wPreconditions) {
+      var conditions = new List<string> { };
+      if (boundVarType.IsNonNullRefType) {
+        conditions.Add($"!_dafny.IsDafnyNull({tmpVarName})");
       }
+
       if (boundVarType.IsRefType) {
-        var wIf = EmitIf($"_dafny.IsDafnyNull({tmpVarName})", true, wBody);
-        if (boundVarType.IsNonNullRefType) {
-          wIf.WriteLine("continue");
-        } else {
-          wIf.WriteLine("{0} = ({1})(nil)", boundVarName, TypeName(boundVarType, wBody, tok));
-        }
-        wIf = wBody.NewBlock("", open: BraceStyle.Nothing);
-        string typeTest;
         if (boundVarType.IsObject || boundVarType.IsObjectQ) {
-          // nothing more to test
-          wIf.WriteLine("{0} = {1}.({2})", boundVarName, tmpVarName, TypeName(boundVarType, wIf, tok));
+          // Nothing more to test
         } else if (boundVarType.IsTraitType) {
           var trait = boundVarType.AsTraitType;
-          wIf.WriteLine($"if !_dafny.InstanceOfTrait({tmpVarName}.(_dafny.TraitOffspring), {TypeName_Companion(trait, wBody, tok)}.TraitID_) {{ continue }}");
-          wIf.WriteLine("{0} = {1}.({2})", boundVarName, tmpVarName, TypeName(boundVarType, wIf, tok));
+          conditions.Add(
+            $"_dafny.InstanceOfTrait({tmpVarName}.(_dafny.TraitOffspring), {TypeName_Companion(trait, wPreconditions, tok)}.TraitID_");
         } else {
-          typeTest = $"_dafny.InstanceOf({tmpVarName}, ({TypeName(boundVarType, wBody, tok)})(nil))";
-          wIf.WriteLine("{0}, {1} = {2}.({3})", boundVarName, okVar, tmpVarName, TypeName(boundVarType, wIf, tok));
-          wIf.WriteLine("if !{0} {{ continue }}", okVar);
+          conditions.Add($"typeAssertSucceeds[T]({tmpVarName})");
         }
-      } else {
-        wBody.WriteLine("{0} = {1}.({2})", boundVarName, tmpVarName, TypeName(boundVarType, wBody, tok));
       }
-      return wBody;
+
+      if (conditions.Count() == 0) {
+        conditions.Add("true");
+      }
+
+      var typeTest = string.Join("&&", conditions);
+      wwr.Write(typeTest);
+    }
+
+    protected override ConcreteSyntaxTree EmitDowncastVariableAssignment(string boundVarName, Type boundVarType, string tmpVarName,
+      Type collectionElementType, bool introduceBoundVar, Bpl.IToken tok, ConcreteSyntaxTree wr) {
+
+      if (introduceBoundVar) {
+        wr.WriteLine("var {0} {1}", boundVarName, TypeName(boundVarType, wr, tok));
+      }
+      if (boundVarType.IsRefType && !boundVarType.IsNonNullRefType) {
+        var wIf = EmitIf($"_dafny.IsDafnyNull({tmpVarName})", true, wr);
+        wIf.WriteLine("{0} = ({1})(nil)", boundVarName, TypeName(boundVarType, wr, tok));
+        wr.NewBlock("", open: BraceStyle.Nothing);
+      }
+      wr.WriteLine("{0} = {1}.({2})", boundVarName, tmpVarName, TypeName(boundVarType, wr, tok));
+      return wr;
     }
 
     protected override ConcreteSyntaxTree CreateForeachIngredientLoop(string boundVarName, int L, string tupleTypeArgs, out ConcreteSyntaxTree collectionWriter, ConcreteSyntaxTree wr) {

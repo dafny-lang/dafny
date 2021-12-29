@@ -1607,14 +1607,23 @@ namespace Microsoft.Dafny {
       return string.Format($"{DafnyHelpersClass}.Quantifier<{bvType}>");
     }
 
-    protected override ConcreteSyntaxTree CreateForeachLoop(string tmpVarName, Type collectionElementType, string boundVarName, Type boundVarType, bool introduceBoundVar,
-      Bpl.IToken tok, out ConcreteSyntaxTree collectionWriter, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree CreateForeachLoop(string tmpVarName, Type collectionElementType, Bpl.IToken tok, out ConcreteSyntaxTree collectionWriter, ConcreteSyntaxTree wr) {
       collectionWriter = new ConcreteSyntaxTree();
       wr.Format($"foreach ({TypeName(collectionElementType, wr, tok)} {tmpVarName} in {collectionWriter})");
       var wwr = wr.NewBlock();
+      return wwr;
+    }
 
+    protected override ConcreteSyntaxTree EmitDowncastVariableAssignment(string boundVarName, Type boundVarType, string tmpVarName,
+      Type collectionElementType, bool introduceBoundVar, Bpl.IToken tok, ConcreteSyntaxTree wwr) {
+      var typeName = TypeName(boundVarType, wwr, tok);
+      wwr.WriteLine("{0}{1} = ({2}){3};", introduceBoundVar ? typeName + " " : "", boundVarName, typeName, tmpVarName);
+      return wwr;
+    }
+
+    protected override void EmitSubtypeCondition(string tmpVarName, Type boundVarType, Bpl.IToken tok, ConcreteSyntaxTree wwr, ConcreteSyntaxTree wPreconditions) {
+      string typeTest;
       if (boundVarType.IsRefType) {
-        string typeTest;
         if (boundVarType.IsObject || boundVarType.IsObjectQ) {
           typeTest = "true";
         } else {
@@ -1625,11 +1634,11 @@ namespace Microsoft.Dafny {
         } else {
           typeTest = $"{tmpVarName} == null || {typeTest}";
         }
-        wwr = wwr.NewBlock($"if ({typeTest})");
+      } else {
+        typeTest = "true";
       }
-      var typeName = TypeName(boundVarType, wwr, tok);
-      wwr.WriteLine("{0}{1} = ({2}){3};", introduceBoundVar ? typeName + " " : "", boundVarName, typeName, tmpVarName);
-      return wwr;
+
+      wwr.Write(typeTest);
     }
 
     protected override ConcreteSyntaxTree CreateForeachIngredientLoop(string boundVarName, int L, string tupleTypeArgs, out ConcreteSyntaxTree collectionWriter, ConcreteSyntaxTree wr) {
