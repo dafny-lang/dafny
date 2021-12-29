@@ -84,7 +84,7 @@ lemma {:timeLimit 10} SquareRoot2NotRational(p: nat, q: nat)
 
       var functionWithResolutionError = "function GetConstant(): int { x }\n";
       var slowToResolveSource = functionWithResolutionError + string.Join("\n", Enumerable.Range(0, 1000).Select(CreateCorrectFunction));
-      var documentItem = CreateTestDocument(slowToResolveSource);
+      var documentItem = CreateTestDocument(slowToResolveSource, "veryLongDocument.dfy");
       client.OpenDocument(documentItem);
 
       // Change but keep a resolution error, cancel previous diagnostics
