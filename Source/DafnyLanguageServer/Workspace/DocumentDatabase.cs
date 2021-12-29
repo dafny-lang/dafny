@@ -130,6 +130,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
 
+    /// <summary>
+    /// Returns the first task that completes successfully.
+    /// If multiple tasks are already completed, the first one is returned.
+    /// </summary>
     private static Task<T> FirstSuccessfulAsync<T>(params Task<T>[] tasks) {
       var taskList = tasks.ToList();
       var tcs = new TaskCompletionSource<T>();
