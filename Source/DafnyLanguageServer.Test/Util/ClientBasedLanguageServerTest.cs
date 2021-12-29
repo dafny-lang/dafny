@@ -37,7 +37,11 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
 
   public async Task AssertNoDiagnosticsAreComing() {
     foreach (var entry in Documents.Documents.Values) {
-      await entry.VerifiedDocument;
+      try {
+        await entry.VerifiedDocument;
+      } catch (TaskCanceledException) {
+        
+      }
     }
     var verificationDocumentItem = CreateTestDocument("class X {does not parse", $"verification{Random.Next()}.dfy");
     await client.OpenDocumentAndWaitAsync(verificationDocumentItem, CancellationToken.None);
