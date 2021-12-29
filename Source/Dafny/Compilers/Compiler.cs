@@ -543,14 +543,14 @@ namespace Microsoft.Dafny {
 
     private ConcreteSyntaxTree CreateGuardedForeachLoop(
       string tmpVarName, Type collectionElementType,
-      string boundVarName, Type boundVarType,
+      IVariable boundVar,
       bool introduceBoundVar, bool inLetExprBody,
       Bpl.IToken tok, out ConcreteSyntaxTree collectionWriter, ConcreteSyntaxTree wr
       ) {
       wr = CreateForeachLoop(tmpVarName, collectionElementType, tok, out collectionWriter, wr);
-      wr = MaybeInjectSubtypeConstraint(tmpVarName, collectionElementType, boundVarType, inLetExprBody, tok, wr);
-      wr = EmitDowncastVariableAssignment(boundVarName, boundVarType, tmpVarName, collectionElementType, introduceBoundVar, tok, wr);
-      wr = MaybeInjectSubsetConstraint(boundVarName, boundVarType, inLetExprBody, tok, wr);
+      wr = MaybeInjectSubtypeConstraint(tmpVarName, collectionElementType, boundVar.Type, inLetExprBody, tok, wr);
+      wr = EmitDowncastVariableAssignment(IdName(boundVar), boundVar.Type, tmpVarName, collectionElementType, introduceBoundVar, tok, wr);
+      wr = MaybeInjectSubsetConstraint(boundVar, IdName(boundVar), inLetExprBody, tok, wr);
       return wr;
     }
 
@@ -3218,7 +3218,7 @@ namespace Microsoft.Dafny {
         var bv = bvs[i];
         ConcreteSyntaxTree collectionWriter;
         var tmpVar = idGenerator.FreshId("_guard_loop_");
-        wr = CreateGuardedForeachLoop(tmpVar, GetCollectionEnumerationType(bound, bv), IdName(bv), bv.Type, true, false, range.tok, out collectionWriter, wr);
+        wr = CreateGuardedForeachLoop(tmpVar, GetCollectionEnumerationType(bound, bv), bv, true, false, range.tok, out collectionWriter, wr);
         CompileCollection(bound, bv, false, false, null, collectionWriter, bounds, bvs, i);
       }
 
@@ -3542,7 +3542,7 @@ namespace Microsoft.Dafny {
         }
         var tmpVar = idGenerator.FreshId("_assign_such_that_");
         ConcreteSyntaxTree collectionWriter;
-        wr = CreateGuardedForeachLoop(tmpVar, GetCollectionEnumerationType(bound, bv), IdName(bv), bv.Type, false, inLetExprBody, bv.Tok, out collectionWriter, wr);
+        wr = CreateGuardedForeachLoop(tmpVar, GetCollectionEnumerationType(bound, bv), bv, false, inLetExprBody, bv.Tok, out collectionWriter, wr);
         CompileCollection(bound, bv, inLetExprBody, true, null, collectionWriter);
         if (needIterLimit) {
           var varName = string.Format("{0}_{1}", iterLimit, i);
@@ -4646,9 +4646,9 @@ namespace Microsoft.Dafny {
             tmpVarName, collectionElementType, bv.Type,
             inLetExprBody, e.tok, newWBody, true, e is ForallExpr);
           newWBody = EmitDowncastVariableAssignment(
-            IdName(bv), bv.Type, tmpVarName, collectionElementType, true, e.tok, wr);
+            IdName(bv), bv.Type, tmpVarName, collectionElementType, true, e.tok, newWBody);
           newWBody = MaybeInjectSubsetConstraint(
-            IdName(bv), bv.Type, inLetExprBody, e.tok, newWBody, true, e is ForallExpr);
+            bv, IdName(bv), inLetExprBody, e.tok, newWBody, true, e is ForallExpr);
           wBody.Write(')');
           wBody = newWBody;
         }
@@ -4687,7 +4687,7 @@ namespace Microsoft.Dafny {
           var bv = e.BoundVars[i];
           ConcreteSyntaxTree collectionWriter;
           var tmpVar = idGenerator.FreshId("_compr_");
-          wr = CreateGuardedForeachLoop(tmpVar, GetCollectionEnumerationType(bound, bv), IdName(bv), bv.Type, true, inLetExprBody, e.tok, out collectionWriter, wr);
+          wr = CreateGuardedForeachLoop(tmpVar, GetCollectionEnumerationType(bound, bv), bv, true, inLetExprBody, e.tok, out collectionWriter, wr);
           CompileCollection(bound, bv, inLetExprBody, true, null, collectionWriter);
         }
         ConcreteSyntaxTree guardWriter;
@@ -4732,7 +4732,7 @@ namespace Microsoft.Dafny {
           var bv = e.BoundVars[i];
           ConcreteSyntaxTree collectionWriter;
           var tmpVar = idGenerator.FreshId("_compr_");
-          wr = CreateGuardedForeachLoop(tmpVar, GetCollectionEnumerationType(bound, bv), IdName(bv), bv.Type, true, false, bv.tok, out collectionWriter, wr);
+          wr = CreateGuardedForeachLoop(tmpVar, GetCollectionEnumerationType(bound, bv), bv, true, false, bv.tok, out collectionWriter, wr);
           CompileCollection(bound, bv, inLetExprBody, true, null, collectionWriter);
         }
         ConcreteSyntaxTree guardWriter;
@@ -4778,7 +4778,7 @@ namespace Microsoft.Dafny {
       Type collectionElementType, Type boundVarType, bool inLetExprBody,
       Bpl.IToken tok, ConcreteSyntaxTree wr, bool isReturning = false, bool elseReturnValue = false
       ) {
-      if (!IsTargetSupertype(collectionElementType, boundVarType)) {
+      if (IsTargetSupertype(collectionElementType, boundVarType)) {
         // That's an issue. We are iterating values that need to be checked.
         var preconditions = wr.Fork();
         var thenWriter = EmitIf(out var guardWriter, isReturning, wr);
@@ -4796,9 +4796,10 @@ namespace Microsoft.Dafny {
     }
 
     private ConcreteSyntaxTree MaybeInjectSubsetConstraint(
-      string boundVarName, Type boundVarType, bool inLetExprBody,
+      IVariable boundVar, string boundVarName, bool inLetExprBody,
       Bpl.IToken tok, ConcreteSyntaxTree wr, bool isReturning = false, bool elseReturnValue = false
       ) {
+      var boundVarType = boundVar.Type;
       if (boundVarType.NormalizeExpand(true) is UserDefinedType
         {
           TypeArgs: var typeArgs,
@@ -4809,19 +4810,21 @@ namespace Microsoft.Dafny {
             Var: var variable,
             IsConstraintCompilable: true,
             Constraint: var constraint
-            // TODO: Get the type of Var, it might also be a subset type
           }
         }) {
         if (variable.Type.NormalizeExpand(true) is UserDefinedType
           {
             ResolvedClass:
               SubsetTypeDecl
-          } supertype) {
-          wr = MaybeInjectSubsetConstraint(boundVarName,
-            supertype, inLetExprBody, tok, wr, isReturning, elseReturnValue);
+          }) {
+          wr = MaybeInjectSubsetConstraint(variable, boundVarName,
+            inLetExprBody, tok, wr, isReturning, elseReturnValue);
         }
 
-        var bvIdentifier = new IdentifierExpr(tok, boundVarName);
+        var bvIdentifier = new IdentifierExpr(tok, boundVarName) {
+          Var = boundVar,
+          Type = boundVarType
+        };
         var typeParameters = Resolver.TypeSubstitutionMap(typeParametersArgs, typeArgs);
         var subContract = new Substituter(null,
           new Dictionary<IVariable, Expression>()
