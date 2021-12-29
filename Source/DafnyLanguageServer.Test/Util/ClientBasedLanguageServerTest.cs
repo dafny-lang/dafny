@@ -1,4 +1,3 @@
-using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
@@ -36,13 +35,16 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
     });
   }
 
-  public async Task<bool> DidMoreDiagnosticsCome() {
-    var verificationDocumentItem = CreateTestDocument("class X {does not parse", $"verification{new Random().Next()}.dfy");
+  public async Task AssertNoDiagnosticsAreComing() {
+    foreach (var entry in Documents.Documents.Values) {
+      await entry.VerifiedDocument;
+    }
+    var verificationDocumentItem = CreateTestDocument("class X {does not parse", $"verification{Random.Next()}.dfy");
     await client.OpenDocumentAndWaitAsync(verificationDocumentItem, CancellationToken.None);
     var resolutionReport = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken.None);
     client.DidCloseTextDocument(new DidCloseTextDocumentParams {
       TextDocument = verificationDocumentItem
     });
-    return verificationDocumentItem.Uri != resolutionReport.Uri;
+    Assert.AreEqual(verificationDocumentItem.Uri, resolutionReport.Uri);
   }
 }

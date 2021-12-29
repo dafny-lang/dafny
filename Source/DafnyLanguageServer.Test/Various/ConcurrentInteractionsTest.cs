@@ -6,6 +6,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.Metadata;
 using System.Threading;
 using System.Threading.Tasks;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
@@ -138,7 +139,7 @@ lemma {:timeLimit 10} SquareRoot2NotRational(p: nat, q: nat)
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationTokenWithHighTimeout);
       // The original document contains a syntactic error.
       var initialLoadDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout, documentItem.Uri);
-      Assert.IsFalse(await DidMoreDiagnosticsCome());
+      await AssertNoDiagnosticsAreComing();
       Assert.AreEqual(1, initialLoadDiagnostics.Length);
 
       ApplyChange(ref documentItem, new Range((12, 3), (12, 3)), "\n}");
@@ -157,7 +158,7 @@ lemma {:timeLimit 10} SquareRoot2NotRational(p: nat, q: nat)
       var verificationDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout, documentItem.Uri);
       Assert.AreEqual(1, verificationDiagnostics.Length);
 
-      Assert.IsFalse(await DidMoreDiagnosticsCome());
+      await AssertNoDiagnosticsAreComing();
     }
 
     /// <summary>
@@ -184,7 +185,7 @@ lemma {:timeLimit 10} SquareRoot2NotRational(p: nat, q: nat)
       var verificationDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem.Uri);
       Assert.AreEqual(0, verificationDiagnostics.Length);
 
-      Assert.IsFalse(await DidMoreDiagnosticsCome());
+      await AssertNoDiagnosticsAreComing();
     }
 
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
@@ -217,7 +218,11 @@ method Multiply(x: int, y: int) returns (product: int)
         var report = await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationTokenWithHighTimeout);
         Assert.AreEqual(0, report.Length);
       }
-      Assert.IsFalse(await DidMoreDiagnosticsCome());
+
+      foreach (var loadingDocument in loadingDocuments) {
+        await Documents.CloseDocumentAsync(loadingDocument);
+      }
+      await AssertNoDiagnosticsAreComing();
     }
   }
 }

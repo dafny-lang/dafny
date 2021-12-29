@@ -37,7 +37,7 @@ lemma {:timeLimit 10} SquareRoot2NotRational(p: nat, q: nat)
 }";
 
     public const string LanguageId = "dafny";
-    private static readonly Random Random = new Random();
+    protected static readonly Random Random = new Random();
 
     public ILanguageServer Server { get; private set; }
 

@@ -237,9 +237,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return null;
     }
 
+    public IReadOnlyDictionary<DocumentUri, IDocumentEntry> Documents => 
+      documents.ToDictionary(k => k.Key, v => (IDocumentEntry)v.Value);
+
     private record DocumentEntry(int? Version, Task<DafnyDocument> ResolvedDocument,
       Task<DafnyDocument> VerifiedDocument,
-      CancellationTokenSource CancellationSource) {
+      CancellationTokenSource CancellationSource) : IDocumentEntry {
       public void CancelPendingUpdates() {
         CancellationSource.Cancel();
       }
