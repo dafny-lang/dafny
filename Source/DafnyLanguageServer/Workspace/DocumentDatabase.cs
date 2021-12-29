@@ -104,9 +104,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       if (!documents.TryGetValue(documentUri, out var databaseEntry)) {
         throw new ArgumentException($"the document {documentUri} was not loaded before");
       }
-      if (documentChange.TextDocument.Version != databaseEntry.Version + 1) {
-        throw new InvalidOperationException($"the updates of document {documentUri} are out-of-order");
+
+      // According to the LSP specification, document versions should increase monotonically but may be non-consecutive.
+      // See: https://github.com/microsoft/language-server-protocol/blob/gh-pages/_specifications/specification-3-16.md?plain=1#L1195
+      var oldVer = databaseEntry.Version;
+      var newVer = documentChange.TextDocument.Version;
+      if (oldVer >= newVer) {
+        throw new InvalidOperationException(
+          $"the updates of document {documentUri} are out-of-order: {oldVer} -> {newVer}");
       }
+
       databaseEntry.CancelPendingUpdates();
       var cancellationSource = new CancellationTokenSource();
       var previousDocumentTask = FirstSuccessfulAsync(databaseEntry.VerifiedDocument, databaseEntry.ResolvedDocument);
