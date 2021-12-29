@@ -20,7 +20,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     private const int MaxRequestExecutionTimeMs = 180_000;
 
     private IDictionary<string, string> configuration;
-    
+
     // We do not use the LanguageServerTestBase.cancellationToken here because it has a timeout.
     // Since these tests are slow, we do not use the timeout here.
     private CancellationTokenSource cancellationSource;
