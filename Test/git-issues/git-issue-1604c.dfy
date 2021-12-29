@@ -1,10 +1,7 @@
 // RUN: %dafny /compile:3 /rprint:"%t.rprint" /compileTarget:js "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
-// RUN: %dafny /compile:3 /rprint:"%t.rprint" /compileTarget:java "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
-// RUN: %dafny /compile:3 /rprint:"%t.rprint" /compileTarget:go "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
-// RUN: %dafny /compile:3 /rprint:"%t.rprint" /compileTarget:cs "%s" > "%t"
+// RUN: %dafny /compile:3 /rprint:"%t.rprint" /compileTarget:java "%s" >> "%t"
+// RUN: %dafny /compile:3 /rprint:"%t.rprint" /compileTarget:go "%s" >> "%t"
+// RUN: %dafny /compile:3 /rprint:"%t.rprint" /compileTarget:cs "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 trait Tr { }
