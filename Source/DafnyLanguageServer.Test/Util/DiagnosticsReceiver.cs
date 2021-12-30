@@ -10,7 +10,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 
 public class DiagnosticsReceiver : TestNotificationReceiver<PublishDiagnosticsParams> {
 
-  public async Task<Diagnostic[]> AwaitNextDiagnosticsAsync(CancellationToken cancellationToken, [CanBeNull] DocumentUri uri = null) {
+  public async Task<Diagnostic[]> AwaitNextDiagnosticsAsync(CancellationToken cancellationToken, DocumentUri uri = null) {
     var result = await AwaitNextNotificationAsync(cancellationToken);
     if (uri != null) {
       Assert.AreEqual(uri, result.Uri, result.Uri + ", diagnostics: " + DafnyLanguageServerTestBase.PrintDiagnostics(result.Diagnostics));

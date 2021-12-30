@@ -11,6 +11,7 @@ using System.Reactive.Linq;
 using System.Reactive.Threading.Tasks;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Dafny.LanguageServer.Util;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
@@ -22,7 +23,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   public class DocumentDatabase : IDocumentDatabase {
     private readonly ILogger logger;
     private readonly DocumentOptions options;
-    private readonly Dictionary<DocumentUri, DocumentEntry> documents = new();
+    private readonly Dictionary<DocumentUri, DocumentDatabase.DocumentEntry> documents = new();
     private readonly ITextDocumentLoader documentLoader;
     private readonly ITextChangeProcessor textChangeProcessor;
     private readonly IRelocator relocator;
@@ -69,7 +70,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var cancellationSource = new CancellationTokenSource();
       var resolvedDocument = OpenAsync(document, cancellationSource.Token);
       var verifiedDocument = VerifyAsync(resolvedDocument, VerifyOnOpen, cancellationSource.Token);
-      var databaseEntry = new DocumentEntry(
+      var databaseEntry = new DocumentDatabase.DocumentEntry(
         document.Version,
         resolvedDocument,
         verifiedDocument,
@@ -116,10 +117,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       databaseEntry.CancelPendingUpdates();
       var cancellationSource = new CancellationTokenSource();
-      var previousDocumentTask = FirstSuccessfulAsync(databaseEntry.VerifiedDocument, databaseEntry.ResolvedDocument);
+      var previousDocumentTask = AsyncExtensions.FirstSuccessfulAsync(databaseEntry.VerifiedDocument, databaseEntry.ResolvedDocument);
       var resolvedDocumentTask = ApplyChangesAsync(previousDocumentTask, documentChange, cancellationSource.Token);
       var verifiedDocument = VerifyAsync(resolvedDocumentTask, VerifyOnChange, cancellationSource.Token);
-      var updatedEntry = new DocumentEntry(
+      var updatedEntry = new DocumentDatabase.DocumentEntry(
         documentChange.TextDocument.Version,
         resolvedDocumentTask,
         verifiedDocument,
@@ -129,34 +130,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return resolvedDocumentTask.ToObservable().Concat(verifiedDocument.ToObservable());
     }
 
-
-    /// <summary>
-    /// Returns the first task that completes successfully.
-    /// If multiple tasks are already completed, the first one is returned.
-    /// </summary>
-    private static Task<T> FirstSuccessfulAsync<T>(params Task<T>[] tasks) {
-      var taskList = tasks.ToList();
-      var tcs = new TaskCompletionSource<T>();
-      int remainingTasks = taskList.Count;
-      foreach (var task in taskList) {
-        if (tcs.Task.IsCompleted) {
-          break;
-        }
-
-        _ = task.ContinueWith(t => {
-          if (task.Status == TaskStatus.RanToCompletion) {
-            tcs.TrySetResult(t.Result);
-          } else if (Interlocked.Decrement(ref remainingTasks) == 0) {
-            if (tasks.Any(otherTask => otherTask.IsCanceled)) {
-              tcs.SetCanceled();
-            } else {
-              tcs.SetException(new AggregateException(tasks.SelectMany(t1 => t1.Exception!.InnerExceptions)));
-            }
-          }
-        }, TaskScheduler.Default);
-      }
-      return tcs.Task;
-    }
 
     private async Task<DafnyDocument> ApplyChangesAsync(Task<DafnyDocument> oldDocumentTask, DidChangeTextDocumentParams documentChange, CancellationToken cancellationToken) {
 #pragma warning disable VSTHRD003
@@ -213,7 +186,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
       var cancellationSource = new CancellationTokenSource();
       var verifiedDocumentTask = documentLoader.VerifyAsync(document, cancellationSource.Token);
-      var updatedEntry = new DocumentEntry(
+      var updatedEntry = new DocumentDatabase.DocumentEntry(
         document.Version,
         Task.FromResult(document),
         verifiedDocumentTask,

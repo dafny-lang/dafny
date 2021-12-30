@@ -51,36 +51,41 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
       }
 
       private IReadOnlyList<Diagnostic> MigrateDiagnostics(IReadOnlyList<Diagnostic> originalDiagnostics, TextDocumentContentChangeEvent change) {
-        var result = new List<Diagnostic>();
-        foreach (var diagnostic in originalDiagnostics) {
-          cancellationToken.ThrowIfCancellationRequested();
-          if (change.Range == null) {
-            throw new System.InvalidOperationException("the range of the change must not be null");
-          }
-
-          var afterChangeEndOffset = GetPositionAtEndOfAppliedChange(change.Range, change.Text);
-          var newRange = MigrateRange(diagnostic.Range, change.Range, afterChangeEndOffset);
-          if (newRange == null) {
-            continue;
-          }
-
-          var newRelated = diagnostic.RelatedInformation?.SelectMany(related => {
-            var migratedRange = MigrateRange(related.Location.Range, change.Range, afterChangeEndOffset);
-            if (migratedRange == null) {
-              return Enumerable.Empty<DiagnosticRelatedInformation>();
-            }
-
-            return new[] {
-                related with {
-                  Location = related.Location with {
-                    Range = migratedRange
-                  }
-                }
-              };
-          }).ToList();
-          result.Add(diagnostic with { Range = newRange, RelatedInformation = newRelated });
+        if (change.Range == null) {
+          throw new System.InvalidOperationException("the range of the change must not be null");
         }
-        return result;
+
+        return originalDiagnostics.SelectMany(diagnostic => MigrateDiagnostic(change, diagnostic)).ToList();
+      }
+
+      private IEnumerable<Diagnostic> MigrateDiagnostic(TextDocumentContentChangeEvent change, Diagnostic diagnostic)
+      {
+        cancellationToken.ThrowIfCancellationRequested();
+        
+        var afterChangeEndOffset = GetPositionAtEndOfAppliedChange(change.Range!, change.Text);
+        var newRange = MigrateRange(diagnostic.Range, change.Range!, afterChangeEndOffset);
+        if (newRange == null) {
+          yield break;
+        }
+
+        var newRelatedInformation = diagnostic.RelatedInformation?.SelectMany(related => 
+          MigrateRelatedInformation(change, related, afterChangeEndOffset)).ToList();
+        yield return diagnostic with { Range = newRange, RelatedInformation = newRelatedInformation };
+      }
+
+      private static IEnumerable<DiagnosticRelatedInformation> MigrateRelatedInformation(TextDocumentContentChangeEvent change,
+        DiagnosticRelatedInformation related, Position afterChangeEndOffset)
+      {
+        var migratedRange = MigrateRange(related.Location.Range, change.Range!, afterChangeEndOffset);
+        if (migratedRange == null) {
+          yield break;
+        }
+
+        yield return related with {
+          Location = related.Location with {
+            Range = migratedRange
+          }
+        };
       }
 
       public SymbolTable MigrateSymbolTable(SymbolTable originalSymbolTable) {
