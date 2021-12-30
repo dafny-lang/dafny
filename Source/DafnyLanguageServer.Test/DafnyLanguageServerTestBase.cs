@@ -73,7 +73,7 @@ lemma {:timeLimit 10} SquareRoot2NotRational(p: nat, q: nat)
     }
 
     protected static TextDocumentItem CreateTestDocument(string source, string filePath = null, int version = 1) {
-      filePath ??= $"file{fileIndex++}";
+      filePath ??= $"testFile{fileIndex++}.dfy";
       return new TextDocumentItem {
         LanguageId = LanguageId,
         Text = source,
