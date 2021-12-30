@@ -31,7 +31,7 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
     var documentItem = CreateTestDocument(FastToFailVerification);
     client.OpenDocument(documentItem);
     var verificationDiagnostics = await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
-    Assert.AreEqual(1, verificationDiagnostics.Length, PrintDiagnostics(verificationDiagnostics));
+    Assert.AreEqual(1, verificationDiagnostics.Length);
     ApplyChange(ref documentItem, new Range(0, 0, 0, 0), SlowToVerify + "\n\n");
     var resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.AreEqual(1, resolutionDiagnostics.Length);
