@@ -512,8 +512,8 @@ namespace Microsoft.Dafny {
         return;
       }
 
-      string PrintInvocation((string, Type) t) {
-        var (name, type) = t;
+      string PrintInvocation(Formal f, int i) {
+        var (name, type) = (FormalName(f, i), f.Type);
         var constructorIndex = -1;
         bool ContainsTyVar(TypeParameter tp, Type ty)
           => (ty.AsTypeParameter != null && ty.AsTypeParameter.Equals(tp))
@@ -537,13 +537,9 @@ namespace Microsoft.Dafny {
       }
 
       var wBody = wr.NewBlock("").WriteLine($"if (this is {dtArgs} dt) {{ return dt; }}");
-      var nonGhostFormals = ctor?.Formals.FindAll(f => !f.IsGhost);
       var constructorArgs = lazy switch {
         true => $"() => c().DowncastClone{typeArgs}({ nonGhostTypeArgs.Comma((_, i) => $"converter{i}") })",
-        false => nonGhostFormals
-          .Zip(Enumerable.Range(0, nonGhostFormals.Count))
-          .Select(((Formal f, int i) t) => (FormalName(t.f, t.i), t.f.Type))
-          .Comma(PrintInvocation)
+        false => ctor.Formals.Where(f => !f.IsGhost).Comma(PrintInvocation)
       };
 
       var className = lazy ? $"{datatype.CompileName}__Lazy" : DtCtorDeclarationName(ctor);
