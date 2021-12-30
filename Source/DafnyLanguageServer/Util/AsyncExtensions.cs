@@ -5,8 +5,7 @@ using System.Threading.Tasks;
 
 namespace Microsoft.Dafny.LanguageServer.Util;
 
-public static class AsyncExtensions
-{
+public static class AsyncExtensions {
   /// <summary>
   /// Returns the result of the first task that completes successfully.
   /// If multiple tasks are already completed, the first one is returned.

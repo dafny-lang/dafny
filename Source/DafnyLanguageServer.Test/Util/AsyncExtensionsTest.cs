@@ -18,8 +18,8 @@ public class AsyncExtensionsTest {
     one.SetResult(1);
     three.SetResult(3);
     Assert.AreEqual(2, await resultTask);
-  } 
-  
+  }
+
   [TestMethod]
   public async Task FirstPassedTaskIsReturnedIfMultipleAreAlreadyCompleted() {
     var one = new TaskCompletionSource<int>();
@@ -29,7 +29,7 @@ public class AsyncExtensionsTest {
     one.SetResult(1);
     Assert.AreEqual(2, await resultTask);
   }
-  
+
   [TestMethod]
   public async Task ReturnsCancelledIfNoneSucceededAndAtLeastOneCancelled() {
     await Assert.ThrowsExceptionAsync<TaskCanceledException>(() => {
@@ -40,8 +40,8 @@ public class AsyncExtensionsTest {
       var three = Task.FromException<int>(new Exception());
       return AsyncExtensions.FirstSuccessfulAsync(one, two, three);
     });
-  } 
-  
+  }
+
   [TestMethod]
   public async Task ReturnsAllExceptions() {
     var exception1 = new Exception();
@@ -50,7 +50,7 @@ public class AsyncExtensionsTest {
       var one = Task.FromException<int>(exception1);
       var two = Task.FromException<int>(exception2);
       await AsyncExtensions.FirstSuccessfulAsync(one, two);
-    } catch(AggregateException e) {
+    } catch (AggregateException e) {
       Assert.AreSame(exception1, e.InnerExceptions[0]);
       Assert.AreSame(exception2, e.InnerExceptions[1]);
     }

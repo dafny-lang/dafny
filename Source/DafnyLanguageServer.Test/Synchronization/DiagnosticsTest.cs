@@ -89,7 +89,7 @@ method Multiply(x: int, y: int) returns (product: int)
     product := x + step;
   }
 }".TrimStart();
-      var documentItem = CreateTestDocument(source, "OpeningDocumentWithSemanticErrorReportsDiagnosticsWithSemanticErrors");
+      var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(1, diagnostics.Length);
@@ -113,7 +113,7 @@ method Multiply(x: int, y: int) returns (product: int)
     product := x + step;
   }
 }".TrimStart();
-      var documentItem = CreateTestDocument(source, "OpeningDocumentWithMultipleSemanticErrorsReportsDiagnosticsWithAllSemanticErrors");
+      var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(2, diagnostics.Length);
@@ -139,7 +139,7 @@ method Multiply(x: int, y: int) returns (product: int)
     product := x + step;
   }
 }".TrimStart();
-      var documentItem = CreateTestDocument(source, "OpeningDocumentWithVerificationErrorReportsDiagnosticsWithVerificationErrors");
+      var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics = await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(1, diagnostics.Length);
@@ -166,7 +166,7 @@ method Multiply(x: int, y: int) returns (product: int)
       await SetUp(new Dictionary<string, string>() {
         { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.Never) }
       });
-      var documentItem = CreateTestDocument(source, "OpeningDocumentWithVerificationErrorDoesNotReportDiagnosticsWithVerificationErrorsIfNotVerifyOnChange");
+      var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(0, diagnostics.Length);

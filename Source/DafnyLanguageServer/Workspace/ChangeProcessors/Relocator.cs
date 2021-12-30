@@ -58,24 +58,22 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
         return originalDiagnostics.SelectMany(diagnostic => MigrateDiagnostic(change, diagnostic)).ToList();
       }
 
-      private IEnumerable<Diagnostic> MigrateDiagnostic(TextDocumentContentChangeEvent change, Diagnostic diagnostic)
-      {
+      private IEnumerable<Diagnostic> MigrateDiagnostic(TextDocumentContentChangeEvent change, Diagnostic diagnostic) {
         cancellationToken.ThrowIfCancellationRequested();
-        
+
         var afterChangeEndOffset = GetPositionAtEndOfAppliedChange(change.Range!, change.Text);
         var newRange = MigrateRange(diagnostic.Range, change.Range!, afterChangeEndOffset);
         if (newRange == null) {
           yield break;
         }
 
-        var newRelatedInformation = diagnostic.RelatedInformation?.SelectMany(related => 
+        var newRelatedInformation = diagnostic.RelatedInformation?.SelectMany(related =>
           MigrateRelatedInformation(change, related, afterChangeEndOffset)).ToList();
         yield return diagnostic with { Range = newRange, RelatedInformation = newRelatedInformation };
       }
 
       private static IEnumerable<DiagnosticRelatedInformation> MigrateRelatedInformation(TextDocumentContentChangeEvent change,
-        DiagnosticRelatedInformation related, Position afterChangeEndOffset)
-      {
+        DiagnosticRelatedInformation related, Position afterChangeEndOffset) {
         var migratedRange = MigrateRange(related.Location.Range, change.Range!, afterChangeEndOffset);
         if (migratedRange == null) {
           yield break;
