@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Configuration;
@@ -16,7 +15,6 @@ using OmniSharp.Extensions.LanguageServer.Server;
 using System.IO;
 using System.IO.Pipelines;
 using System.Linq;
-using System.Threading;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest {
   public class DafnyLanguageServerTestBase : LanguageServerTestBase {
@@ -37,7 +35,7 @@ lemma {:timeLimit 10} SquareRoot2NotRational(p: nat, q: nat)
 }";
 
     public const string LanguageId = "dafny";
-    protected static readonly Random Random = new Random();
+    protected static int fileIndex;
 
     public ILanguageServer Server { get; private set; }
 
@@ -75,7 +73,7 @@ lemma {:timeLimit 10} SquareRoot2NotRational(p: nat, q: nat)
     }
 
     protected static TextDocumentItem CreateTestDocument(string source, string filePath = null, int version = 1) {
-      filePath ??= $"randomPath{Random.Next()}";
+      filePath ??= $"file{fileIndex++}";
       return new TextDocumentItem {
         LanguageId = LanguageId,
         Text = source,
