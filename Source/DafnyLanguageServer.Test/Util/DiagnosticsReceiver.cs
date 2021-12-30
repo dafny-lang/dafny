@@ -16,7 +16,7 @@ public class DiagnosticsReceiver : TestNotificationReceiver<PublishDiagnosticsPa
   }
   public async Task<Diagnostic[]> AwaitVerificationDiagnosticsAsync(CancellationToken cancellationToken) {
     var resolutionDiagnostics = await AwaitNextDiagnosticsAsync(cancellationToken);
-    Assert.AreEqual(0, resolutionDiagnostics.Count(d => d.Code != "Verification"));
+    Assert.AreEqual(0, resolutionDiagnostics.Count(d => d.Source != MessageSource.Verifier.ToString()));
     return await AwaitNextDiagnosticsAsync(cancellationToken);
   }
 }

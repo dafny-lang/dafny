@@ -88,7 +88,7 @@ method Recurse(x: int) returns (r: int) {
       Assert.IsNotNull(document);
       Assert.AreEqual(1, document.Errors.ErrorCount);
       var message = document.Errors.GetDiagnostics(documentItem.Uri).First(d => d.Severity!.Value == DiagnosticSeverity.Error);
-      Assert.AreEqual(MessageSource.Other.ToString(), message.Source);
+      Assert.AreEqual(MessageSource.Verifier.ToString(), message.Source);
     }
 
     [TestMethod]
