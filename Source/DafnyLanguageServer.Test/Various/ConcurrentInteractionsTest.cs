@@ -178,10 +178,10 @@ lemma {:timeLimit 10} SquareRoot2NotRational(p: nat, q: nat)
       // Fix resolution error, cancel previous diagnostics
       ApplyChange(ref documentItem, new Range((0, 30), (0, 31)), "1");
 
-      var resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      var resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       Assert.AreEqual(0, resolutionDiagnostics.Length);
 
-      var verificationDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      var verificationDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       Assert.AreEqual(0, verificationDiagnostics.Length);
 
       await AssertNoDiagnosticsAreComing();

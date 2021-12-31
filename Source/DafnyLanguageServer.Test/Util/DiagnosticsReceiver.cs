@@ -10,10 +10,18 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 
 public class DiagnosticsReceiver : TestNotificationReceiver<PublishDiagnosticsParams> {
 
-  public async Task<Diagnostic[]> AwaitNextDiagnosticsAsync(CancellationToken cancellationToken) {
+  public async Task<Diagnostic[]> AwaitNextDiagnosticsAsync(CancellationToken cancellationToken,
+    TextDocumentItem textDocumentItem = null) {
     var result = await AwaitNextNotificationAsync(cancellationToken);
+    if (textDocumentItem != null) {
+      if (result.Version != null) {
+        Assert.AreEqual(textDocumentItem.Version, result.Version);
+      }
+      Assert.AreEqual(textDocumentItem.Uri, result.Uri);
+    }
     return result.Diagnostics.ToArray();
   }
+
   public async Task<Diagnostic[]> AwaitVerificationDiagnosticsAsync(CancellationToken cancellationToken) {
     var resolutionDiagnostics = await AwaitNextDiagnosticsAsync(cancellationToken);
     Assert.AreEqual(0, resolutionDiagnostics.Count(d => d.Source != MessageSource.Verifier.ToString()));
