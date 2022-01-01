@@ -386,10 +386,11 @@ method Multiply(x: int, y: int) returns (product: int)
       var diagnosticsAfterOpening = await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(0, diagnosticsAfterOpening.Length);
 
+      var newVersion = documentItem with { Version = documentItem.Version + 1 };
       client.DidChangeTextDocument(new DidChangeTextDocumentParams {
         TextDocument = new OptionalVersionedTextDocumentIdentifier {
-          Uri = documentItem.Uri,
-          Version = documentItem.Version + 1
+          Uri = newVersion.Uri,
+          Version = newVersion.Version
         },
         ContentChanges = new[] {
           new TextDocumentContentChangeEvent {
@@ -408,6 +409,7 @@ method Multiply(x: int, y: int) returns (product: int)
       // a report without any diagnostics/errors.
       // Otherwise, we'd have to wait for a signal/diagnostic that should never be sent, e.g.
       // with a timeout.
+      await Documents.GetVerifiedDocumentAsync(newVersion); // For debug purposes.
       var diagnostics = await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(0, diagnostics.Length);
       await AssertNoDiagnosticsAreComing();
