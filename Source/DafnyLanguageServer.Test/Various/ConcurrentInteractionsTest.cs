@@ -114,6 +114,7 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
 
       var document = await Documents.GetVerifiedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
+      Assert.AreEqual(document.Version, documentItem.Version);
       Assert.AreEqual(1, document.Errors.ErrorCount);
       Assert.AreEqual("assertion violation", document.Errors.GetDiagnostics(documentItem.Uri)[0].Message);
     }
@@ -137,7 +138,7 @@ lemma {:timeLimit 10} SquareRoot2NotRational(p: nat, q: nat)
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationTokenWithHighTimeout);
       // The original document contains a syntactic error.
-      var initialLoadDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout);
+      var initialLoadDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout, documentItem);
       await AssertNoDiagnosticsAreComing();
       Assert.AreEqual(1, initialLoadDiagnostics.Length);
 
@@ -145,16 +146,16 @@ lemma {:timeLimit 10} SquareRoot2NotRational(p: nat, q: nat)
 
       // Wait for resolution diagnostics now, so they don't get cancelled.
       // After this we still have slow verification diagnostics in the queue.
-      var parseErrorFixedDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout);
+      var parseErrorFixedDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout, documentItem);
       Assert.AreEqual(0, parseErrorFixedDiagnostics.Length);
 
       // Cancel the slow verification and start a fast verification
       ApplyChange(ref documentItem, new Range((0, 0), (13, 1)), "function GetConstant(): int ensures false { 1 }");
 
-      var parseErrorStillFixedDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout);
+      var parseErrorStillFixedDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout, documentItem);
       Assert.AreEqual(0, parseErrorStillFixedDiagnostics.Length);
 
-      var verificationDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout);
+      var verificationDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout, documentItem);
       Assert.AreEqual(1, verificationDiagnostics.Length);
 
       await AssertNoDiagnosticsAreComing();
