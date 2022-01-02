@@ -114,7 +114,7 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
 
       var document = await Documents.GetVerifiedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
-      Assert.AreEqual(document.Version, documentItem.Version);
+      Assert.AreEqual(documentItem.Version + 11, document.Version);
       Assert.AreEqual(1, document.Errors.ErrorCount);
       Assert.AreEqual("assertion violation", document.Errors.GetDiagnostics(documentItem.Uri)[0].Message);
     }
