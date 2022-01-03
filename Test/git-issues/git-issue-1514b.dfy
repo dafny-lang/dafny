@@ -1,21 +1,8 @@
 // RUN: %dafny /compile:3 /rprint:"%t.rprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-datatype Option<+T> = None | Some(value: T) {
-  predicate method IsFailure() {
-    None?
-  }
-  function method PropagateFailure<U>(): Option<U>
-    requires None?
-  {
-    None
-  }
-  function method Extract(): T
-    requires Some?
-  {
-    value
-  }
-}
+include "../libraries/src/Wrappers.dfy"
+import opened Wrappers
 
 trait Foo<C, D> {
   method Bar(a: C) returns (r: D)
