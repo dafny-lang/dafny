@@ -3068,6 +3068,7 @@ namespace Microsoft.Dafny {
         var i = 0;
         foreach (var local in s.Locals) {
           bool hasRhs = s.Update is AssignSuchThatStmt;
+          bool willBeAssignedAnyway = s.Update is AssignOrReturnStmt;
           if (!hasRhs && s.Update is UpdateStmt u) {
             if (i < u.Rhss.Count && u.Rhss[i] is HavocRhs) {
               // there's no specific initial value
@@ -3075,7 +3076,7 @@ namespace Microsoft.Dafny {
               hasRhs = true;
             }
           }
-          TrLocalVar(local, !hasRhs, wr);
+          TrLocalVar(local, !hasRhs && !willBeAssignedAnyway, wr);
           i++;
         }
         if (s.Update != null) {

@@ -13195,6 +13195,7 @@ namespace Microsoft.Dafny {
     /// [y := temp.Extract();]
     ///
     /// and saves the result into s.ResolvedStatements.
+    /// This is also known as the "elephant operator"
     /// </summary>
     private void ResolveAssignOrReturnStmt(AssignOrReturnStmt s, ICodeContext codeContext) {
       // TODO Do I have any responsibilities regarding the use of codeContext? Is it mutable?
@@ -13216,7 +13217,10 @@ namespace Microsoft.Dafny {
         call = (asx.Lhs.Resolved as MemberSelectExpr)?.Member as Method;
         if (call != null) {
           // We're looking at a method call
-          if (call.Outs.Count != 0) {
+          var outTypes = (asx.Lhs.Resolved as MemberSelectExpr)?.ResolvedOutparameterTypes;
+          if (outTypes != null && outTypes.Count != 0) {
+            firstType = outTypes[0];
+          } else if (call.Outs.Count != 0) {
             firstType = call.Outs[0].Type;
           } else {
             reporter.Error(MessageSource.Resolver, s.Rhs.tok, "Expected {0} to have a Success/Failure output value", call.Name);
@@ -13267,7 +13271,7 @@ namespace Microsoft.Dafny {
           }
         } else {
           reporter.Error(MessageSource.Resolver, s.Tok,
-            "The type of the first expression is not a failure type in :- statement");
+            $"The type of the first returned expression ({firstType}) could not be determined to be a failure type in :- statement");
           return;
         }
       } else {
@@ -13388,11 +13392,12 @@ namespace Microsoft.Dafny {
       if (expectExtract) {
         // "y := temp.Extract();"
         var lhs = s.Lhss[0];
-        s.ResolvedStatements.Add(
-          new UpdateStmt(s.Tok, s.Tok,
-            new List<Expression>() { lhsExtract },
-            new List<AssignmentRhs>() { new ExprRhs(VarDotMethod(s.Tok, temp, "Extract")) }
-            ));
+        var assignStatement = new UpdateStmt(s.Tok, s.EndTok,
+          new List<Expression>() { lhsExtract },
+          new List<AssignmentRhs>() { new ExprRhs(VarDotMethod(s.Tok, temp, "Extract")) }
+        );
+
+        s.ResolvedStatements.Add(assignStatement);
         // The following check is not necessary, because the ghost mismatch is caught later.
         // However the error message here is much clearer.
         var m = ResolveMember(s.Tok, firstType, "Extract", out _);
@@ -16663,7 +16668,10 @@ namespace Microsoft.Dafny {
         for (int i = 0; i < m.TypeArgs.Count; i++) {
           var ta = i < suppliedTypeArguments ? optTypeArguments[i] : new InferredTypeProxy();
           rr.TypeApplication_JustMember.Add(ta);
+          subst.Add(m.TypeArgs[i], ta);
         }
+        subst = BuildTypeArgumentSubstitute(subst, receiverTypeBound ?? receiver.Type);
+        rr.ResolvedOutparameterTypes = m.Outs.ConvertAll(f => SubstType(f.Type, subst));
         rr.Type = new InferredTypeProxy();  // fill in this field, in order to make "rr" resolved
       }
       return rr;
