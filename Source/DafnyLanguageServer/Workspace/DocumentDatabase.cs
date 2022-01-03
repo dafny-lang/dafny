@@ -70,7 +70,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var cancellationSource = new CancellationTokenSource();
       var resolvedDocument = OpenAsync(document, cancellationSource.Token);
       var verifiedDocument = VerifyAsync(resolvedDocument, VerifyOnOpen, cancellationSource.Token);
-      var databaseEntry = new DocumentDatabase.DocumentEntry(
+      var databaseEntry = new DocumentEntry(
         document.Version,
         resolvedDocument,
         verifiedDocument,
@@ -177,23 +177,25 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       if (!VerifyOnSave) {
         return Observable.Empty<DafnyDocument>();
       }
-      return VerifyDocumentIfRequiredAsync(databaseEntry).ToObservable();
+
+      var cancellationSource = new CancellationTokenSource();
+      var verifiedDocumentTask = VerifyDocumentIfRequiredAsync(databaseEntry, cancellationSource.Token);
+      var updatedEntry = new DocumentEntry(
+        databaseEntry.Version,
+        databaseEntry.ResolvedDocument,
+        verifiedDocumentTask,
+        cancellationSource
+      );
+      documents[documentId.Uri] = updatedEntry;
+      return verifiedDocumentTask.ToObservable();
     }
 
-    private async Task<DafnyDocument> VerifyDocumentIfRequiredAsync(DocumentEntry databaseEntry) {
+    private async Task<DafnyDocument> VerifyDocumentIfRequiredAsync(IDocumentEntry databaseEntry, CancellationToken cancellationToken) {
       var document = await databaseEntry.ResolvedDocument;
       if (!RequiresOnSaveVerification(document)) {
         throw new TaskCanceledException();
       }
-      var cancellationSource = new CancellationTokenSource();
-      var verifiedDocumentTask = documentLoader.VerifyAsync(document, cancellationSource.Token);
-      var updatedEntry = new DocumentDatabase.DocumentEntry(
-        document.Version,
-        Task.FromResult(document),
-        verifiedDocumentTask,
-        cancellationSource
-      );
-      documents[document.Uri] = updatedEntry;
+      var verifiedDocumentTask = documentLoader.VerifyAsync(document, cancellationToken);
       return await verifiedDocumentTask;
     }
 
