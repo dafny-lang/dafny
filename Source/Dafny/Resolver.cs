@@ -13271,7 +13271,7 @@ namespace Microsoft.Dafny {
           }
         } else {
           reporter.Error(MessageSource.Resolver, s.Tok,
-            $"The type of the first returned expression ({firstType}) could not be determined to be a failure type in :- statement");
+            $"The type of the first expression to the right of ':-' could not be determined to be a failure type (got '{firstType}')");
           return;
         }
       } else {
