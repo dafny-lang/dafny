@@ -9,7 +9,7 @@ using System.Threading;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   public class DiagnosticErrorReporter : ErrorReporter {
-    private const MessageSource VerifierMessageSource = MessageSource.Other;
+    private const MessageSource VerifierMessageSource = MessageSource.Verifier;
     private const string RelatedLocationCategory = "Related location";
     private const string RelatedLocationMessage = RelatedLocationCategory;
 
