@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
+using Microsoft.Boogie;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
@@ -58,8 +59,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
     public Dafny.Program Parse(TextDocumentItem document, ErrorReporter errorReporter, CancellationToken cancellationToken) {
       mutex.Wait(cancellationToken);
+      var program = NewDafnyProgram(document, errorReporter);
       try {
-        var program = NewDafnyProgram(document, errorReporter);
         var parseErrors = Parser.Parse(
           document.Text,
           document.GetFilePath(),
@@ -72,9 +73,23 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         if (parseErrors != 0) {
           logger.LogDebug("encountered {ErrorCount} errors while parsing {DocumentUri}", parseErrors, document.Uri);
         }
+
         if (!TryParseIncludesOfModule(program.DefaultModule, program.BuiltIns, errorReporter, cancellationToken)) {
           logger.LogDebug("encountered error while parsing the includes of {DocumentUri}", document.Uri);
         }
+
+        return program;
+      } catch (Exception e) {
+        logger.LogDebug("encountered an exception while parsing {DocumentUri}", document.Uri);
+        logger.LogDebug(e.ToString());
+        var t = new Token {
+          filename = document.GetFilePath(),
+          line = 1,
+          col = 1,
+          pos = 0,
+          val = "."
+        };
+        errorReporter.Error(MessageSource.Parser, t, "[internal error] Parser exception: " + e.Message);
         return program;
       }
       finally {
