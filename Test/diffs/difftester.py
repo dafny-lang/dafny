@@ -497,11 +497,26 @@ class LSPServer:
         # \r\n for consistency, final newline for readability
         return js.replace("\n", "\r\n") + "\r\n"
 
+    @staticmethod
+    def _adjust_cmd(cmd: LSPMessage) -> LSPMessage:
+        """Make small changes to `cmd` to ensure that it can run.
+
+        For now the only change needed is updating the ``processId`` in
+        ``initialize`` messages.
+
+        https://microsoft.github.io/language-server-protocol/specification#initialize
+        """
+        if cmd["method"] == "initialize":
+            cmd = {**cmd,  # Avoid mutating the original ``cmd``.
+                   "params": {**cmd["params"],
+                              "processId": os.getpid()}}
+        return cmd
+
     def send(self, cmd: LSPMessage) -> None:
         """Send a request to the server."""
         assert self.repl
         assert self.repl.stdin
-        js = self._dump(cmd)
+        js = self._dump(self._adjust_cmd(cmd))
         header = f"Content-Length: {len(js)}\r\n\r\n"
         trace(">>", repr(header))
         trace(">>", js)
