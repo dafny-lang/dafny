@@ -2625,9 +2625,9 @@ Rhs<out AssignmentRhs r>
        }
     .)
   | "*"                                (. r = new HavocRhs(t); .)
-  | Expression<out e, false, true>     (. r = new ExprRhs(e); .)
+  | Expression<out e, false, true>     (. r = e != null ? new ExprRhs(e) : null; .)
   )
-  { Attribute<ref attrs> }             (. r.Attributes = attrs; .)
+  { Attribute<ref attrs> }             (. if(r != null) { r.Attributes = attrs; } .)
   .
 
 /*------------------------------------------------------------------------*/
