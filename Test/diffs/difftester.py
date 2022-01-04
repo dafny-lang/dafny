@@ -1,23 +1,30 @@
 #!/usr/bin/env python3
 """A differential tester for Dafny.
 
-This program takes a list of Dafny executables (either the CLI or the LSP
-server) and a list of snapshots and runs them through Dafny's CLI as well as
-through Dafny's LSP server.  Verification results are then compared to ensure
+This program takes a list of Dafny frontends and a list of inputs and runs each
+input through each frontend.  Verification results are then compared to ensure
 that they match.
+
+A frontend is an executable (either the Dafny CLI ``Dafny.exe`` or the Dafny LSP
+Server ``DafnyLanguageServer.exe``) plus the arguments to pass to it.
+
+An input is either a Dafny file (``.dfy``) or an LSP trace (``.lsp``).  If given
+a file ``xyz.dfy``, this program first looks for a sequence of snapshots
+``xyz.v0.dfy``, ``xyz.v1.dfy``, etc. before falling back to ``xyz.dfy``.
 
 Limitations:
 
 - This only checks error messages, not return codes
 
-- This only checks for errors in one "main" file, not in all files reported by
+- This only checks for errors in the "main" file, not in all files reported by
   the LSP server.
 
 Example usage::
 
-   ./difftester.py --driver Dafny \
-                   --driver DafnyLanguageServer \
+   ./difftester.py --frontend Dafny \
+                   --frontend DafnyLanguageServer \
                    --input snaps.dfy
+
 """
 
 from typing import (
@@ -469,8 +476,8 @@ class Snapshots(ProverInputs):
     def __len__(self) -> int:
         return len(self.snapshots)
 
-class Driver:
-    """Abstract interface for Dafny drivers."""
+class Frontend:
+    """Abstract interface for Dafny frontends."""
 
     def __init__(self, command: List[str]) -> None:
         self.command = which(command)
@@ -657,8 +664,8 @@ def same_uri(u1, u2):
     return urllib.parse.unquote(u1) == urllib.parse.unquote(u2)
 
 
-class LSPDriver(Driver):
-    """A driver using Dafny's LSP implementation."""
+class LSPFrontend(Frontend):
+    """A frontend using Dafny's LSP implementation."""
 
     @staticmethod
     def is_diagnostic_for(doc: Json) -> Callable[[LSPMessage], bool]:
@@ -758,8 +765,8 @@ class CLIOutput(ProverOutput):
         """Return the raw output of the prover."""
         return self.output
 
-class CLIDriver(Driver):
-    """A driver using Dafny's CLI."""
+class CLIFrontend(Frontend):
+    """A frontend using Dafny's CLI."""
 
     ARGS = ["/compile:0", "/stdin"]
 
@@ -794,29 +801,29 @@ def window(stream: Iterable[T], n: int) -> Iterable[Tuple[T, ...]]:
             yield tuple(win)
 
 
-def test(inputs: ProverInputs, *drivers: Driver) -> None:
-    """Run `inputs` through each one of `drivers` and report any mismatches."""
+def test(inputs: ProverInputs, *frontends: Frontend) -> None:
+    """Run `inputs` through each one of `frontends` and report any mismatches."""
     retval = 0
     snapshots = inputs.as_snapshots()
-    prover_output_streams = [d.run(inputs) for d in drivers]
+    prover_output_streams = [d.run(inputs) for d in frontends]
     # zip() would be unsafe here (it wouldn't exhaust the iterator over the LSP
     # server's results and hence wouldn't send the “shutdown” message).
     results = zip_longest(*prover_output_streams)
     for snapidx, snap in enumerate(snapshots):
         info(f"------ {snap.name}(#{snapidx}) ------", flush=True)
         prover_outputs: List[ProverOutput] = next(results)
-        for (d1, p1), (d2, p2) in window(zip(drivers, prover_outputs), 2):
+        for (d1, p1), (d2, p2) in window(zip(frontends, prover_outputs), 2):
             o1, o2 = p1.format(), p2.format()
             if o1 != o2:
                 print("!! Output mismatch")
                 print(f"   For input {snap.name}(#{snapidx}),")
 
                 print()
-                print(f"   Driver {d1} produced this output:")
+                print(f"   Frontend {d1} produced this output:")
                 print(indent(o1, "     "))
 
                 print()
-                print(f"   Driver {d2} produced this output:")
+                print(f"   Frontend {d2} produced this output:")
                 print(indent(o2, "     "))
 
                 print()
@@ -844,12 +851,12 @@ def test(inputs: ProverInputs, *drivers: Driver) -> None:
 SLASH_2DASHES = re.compile("^/(?=--)")
 
 
-def resolve_driver(command: List[str]) -> Driver:
-    """Resolve `command` into a ``Driver`` instance."""
+def resolve_frontend(command: List[str]) -> Frontend:
+    """Resolve `command` into a ``Frontend`` instance."""
     command = [SLASH_2DASHES.sub("", c) for c in command]
     if "DafnyLanguageServer" in command[0]:
-        return LSPDriver(command)
-    return CLIDriver(command)
+        return LSPFrontend(command)
+    return CLIFrontend(command)
 
 
 def resolve_input(inp: str, parser: argparse.ArgumentParser) -> ProverInputs:
@@ -889,24 +896,24 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument("--timeout", type=int, default=None,
                         metavar="N", help=TIMEOUT_HELP)
 
-    parser.add_argument("--driver", required=True,
-                        nargs="+", action="append", dest="drivers",
-                        metavar=("DRIVER_NAME", "ARGUMENTS"),
-                        help="Register a driver")
+    parser.add_argument("--frontend", required=True,
+                        nargs="+", action="append", dest="frontends",
+                        metavar=("FRONTEND_NAME", "ARGUMENTS"),
+                        help="Register a frontend")
 
     parser.add_argument("--input", required=True,
-                        action="append", dest="inputs",
+                        metavar="INPUT", action="append", dest="inputs",
                         help="Register an input file")
 
     args, argv = parser.parse_known_args()
     if argv:
         MSG = (f"Unrecognized arguments: {' '.join(argv)}.  "
-               "If these were meant as arguments to a --driver, "
+               "If these were meant as arguments to a --frontend, "
                "prefix them with a slash.  For example, use "
                "/--verifier:cachingPolicy=0 instead of "
                "--verifier:cachingPolicy=0.")
         parser.error(MSG)
-    args.drivers = [resolve_driver(d) for d in args.drivers]
+    args.frontends = [resolve_frontend(d) for d in args.frontends]
     args.inputs = [resolve_input(d, parser) for d in args.inputs]
 
     global VERBOSITY
@@ -928,7 +935,7 @@ def main() -> None:
     args = parse_arguments()
     for inputs in args.inputs:
         info(f"====== {inputs.name} ======", file=sys.stderr)
-        retval += test(inputs, *args.drivers)
+        retval += test(inputs, *args.frontends)
     return retval
 
 
