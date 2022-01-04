@@ -1835,7 +1835,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(builtIns != null);
       var j = JoinX(a, b, builtIns);
       if (DafnyOptions.O.TypeInferenceDebug) {
-        Console.WriteLine("DEBUG: Meet( {0}, {1} ) = {2}", a, b, j);
+        Console.WriteLine("DEBUG: Join( {0}, {1} ) = {2}", a, b, j);
       }
       return j;
     }
