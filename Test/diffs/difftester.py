@@ -53,7 +53,6 @@ Json = Dict[str, Any]
 LSPMessage = Json
 """A single LSP client request."""
 
-FIXME = NotImplementedError
 VERBOSITY = 0
 INPUT_TEE = "inputs.log"
 OUTPUT_TEE = "outputs.log"
@@ -778,6 +777,7 @@ def window(stream: Iterable[T], n: int) -> Iterable[Tuple[T, ...]]:
 
 def test(inputs: ProverInputs, *drivers: Driver) -> None:
     """Run `inputs` through each one of `drivers` and report any mismatches."""
+    retval = 0
     snapshots = inputs.as_snapshots()
     prover_output_streams = [d.run(inputs) for d in drivers]
     # zip() would be unsafe here (it wouldn't exhaust the iterator over the LSP
@@ -799,11 +799,13 @@ def test(inputs: ProverInputs, *drivers: Driver) -> None:
                 print(indent(pformat(p1.raw), "   > "))
                 print("   --------------------------------")
                 print(indent(pformat(p2.raw), "   > "))
+                retval += 1
         sys.stdout.flush()
     for _ in results:
         # Exhaust results iterators to make sure LSPServer calls shutdown and
         # exit (without this LSP commands after the last didChange are never sent).
         pass
+    return retval
 
 
 SLASH_2DASHES = re.compile("^/(?=--)")
@@ -889,17 +891,16 @@ def parse_arguments() -> argparse.Namespace:
 
 
 def main() -> None:
+    retval = 0
     args = parse_arguments()
     for inputs in args.inputs:
         info(f"====== {inputs.name} ======", file=sys.stderr)
-        test(inputs, *args.drivers)
+        retval += test(inputs, *args.drivers)
+    return retval
 
 
 if __name__ == "__main__":
     try:
-        main()
+        sys.exit(main() != 0)
     except KeyboardInterrupt:
-        pass
-    # _test_diff()
-    # _test_snapshots()
-    # _test_snapshots_lsp()
+        sys.exit(0)
