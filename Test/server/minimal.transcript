@@ -1,8 +1,8 @@
 # RUN: %server "%s" > "%t"
 # RUN: %diff "%s.expect" "%t"
 verify
-eyJhcmdzIjpbIi9jb21waWxlOjAiLCIvbm9sb2dvIiwiL3ByaW50VG9vbHRpcHMiLCIvdGltZUxp
-bWl0OjIwIl0sImZpbGVuYW1lIjoidHJhbnNjcmlwdCIsInNvdXJjZSI6Im1ldGhvZCBBKGE6aW50
-KSByZXR1cm5zIChiOiBpbnQpIHtcbiAgYiA6PSBhO1xuICBhc3NlcnQgZmFsc2U7XG59XG4iLCJz
-b3VyY2VJc0ZpbGUiOmZhbHNlfQ==
+eyJhcmdzIjpbIi9jb21waWxlOjAiLCIvcHJpbnRUb29sdGlwcyIsIi90aW1lTGltaXQ6MjAiXSwi
+ZmlsZW5hbWUiOiJ0cmFuc2NyaXB0Iiwic291cmNlIjoibWV0aG9kIEEoYTppbnQpIHJldHVybnMg
+KGI6IGludCkge1xuICBiIDo9IGE7XG4gIGFzc2VydCBmYWxzZTtcbn1cbiIsInNvdXJjZUlzRmls
+ZSI6ZmFsc2V9
 [[DAFNY-CLIENT: EOM]]

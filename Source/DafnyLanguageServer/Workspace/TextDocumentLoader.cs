@@ -189,7 +189,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       public void ReportProgress(string message) {
-        publisher.SendStatusNotification(document, CompilationStatus.VerificationInProgress, message);
+        publisher.SendStatusNotification(document, CompilationStatus.VerificationStarted, message);
       }
     }
   }

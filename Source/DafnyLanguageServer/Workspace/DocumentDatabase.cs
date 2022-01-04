@@ -81,6 +81,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
     }
 
+    private async Task<DafnyDocument> VerifyHandleCancellationAsync(DafnyDocument document, CancellationToken cancellationToken) {
+      try {
+        return await documentLoader.VerifyAsync(document, cancellationToken);
+      } catch (OperationCanceledException) {
+        return document;
+      }
+    }
+
     private async Task<DafnyDocument> LoadAndVerifyAsync(TextDocumentItem textDocument, bool verify, CancellationToken cancellationToken) {
       var document = await documentLoader.LoadAsync(textDocument, cancellationToken);
       if (!verify || document.Errors.HasErrors) {
@@ -94,9 +102,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       if (!documents.TryGetValue(documentUri, out var databaseEntry)) {
         throw new ArgumentException($"the document {documentUri} was not loaded before");
       }
-      if (documentChange.TextDocument.Version != databaseEntry.Version + 1) {
-        throw new InvalidOperationException($"the updates of document {documentUri} are out-of-order");
+
+      // According to the LSP specification, document versions should increase monotonically but may be non-consecutive.
+      // See: https://github.com/microsoft/language-server-protocol/blob/gh-pages/_specifications/specification-3-16.md?plain=1#L1195
+      var oldVer = databaseEntry.Version;
+      var newVer = documentChange.TextDocument.Version;
+      if (oldVer >= newVer) {
+        throw new InvalidOperationException(
+          $"the updates of document {documentUri} are out-of-order: {oldVer} -> {newVer}");
       }
+
       databaseEntry.CancelPendingUpdates();
       var cancellationSource = new CancellationTokenSource();
       var updatedEntry = new DocumentEntry(
@@ -135,14 +150,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
     }
 
-    public Task<DafnyDocument> SaveDocumentAsync(TextDocumentIdentifier documentId) {
+    public async Task<DafnyDocument> SaveDocumentAsync(TextDocumentIdentifier documentId) {
       if (!documents.TryGetValue(documentId.Uri, out var databaseEntry)) {
-        return Task.FromException<DafnyDocument>(new ArgumentException($"the document {documentId.Uri} was not loaded before"));
+        throw new ArgumentException($"the document {documentId.Uri} was not loaded before");
       }
       if (!VerifyOnSave) {
-        return databaseEntry.Document;
+        return await databaseEntry.Document;
       }
-      return VerifyDocumentIfRequiredAsync(databaseEntry);
+      return await VerifyDocumentIfRequiredAsync(databaseEntry);
     }
 
     private async Task<DafnyDocument> VerifyDocumentIfRequiredAsync(DocumentEntry databaseEntry) {
@@ -153,7 +168,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var cancellationSource = new CancellationTokenSource();
       var updatedEntry = new DocumentEntry(
         document.Version,
-        Task.Run(() => documentLoader.VerifyAsync(document, cancellationSource.Token)),
+        Task.Run(() => VerifyHandleCancellationAsync(document, cancellationSource.Token)),
         cancellationSource
       );
       documents[document.Uri] = updatedEntry;

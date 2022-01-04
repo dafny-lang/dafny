@@ -107,7 +107,7 @@ method Abs(x: int) returns (y: int)
       var inprogress = await notificationReceiver.AwaitNextNotificationAsync(CancellationToken);
       Assert.AreEqual(documentItem.Uri, inprogress.Uri);
       Assert.AreEqual(documentItem.Version, inprogress.Version);
-      Assert.AreEqual(CompilationStatus.VerificationInProgress, inprogress.Status);
+      Assert.AreEqual(CompilationStatus.VerificationStarted, inprogress.Status);
       Assert.AreEqual("Abs", inprogress.Message);
       var completed = await notificationReceiver.AwaitNextNotificationAsync(CancellationToken);
       Assert.AreEqual(documentItem.Uri, completed.Uri);
@@ -137,7 +137,7 @@ method Abs(x: int) returns (y: int)
       var inprogress = await notificationReceiver.AwaitNextNotificationAsync(CancellationToken);
       Assert.AreEqual(documentItem.Uri, inprogress.Uri);
       Assert.AreEqual(documentItem.Version, inprogress.Version);
-      Assert.AreEqual(CompilationStatus.VerificationInProgress, inprogress.Status);
+      Assert.AreEqual(CompilationStatus.VerificationStarted, inprogress.Status);
       Assert.AreEqual("Abs", inprogress.Message);
       var completed = await notificationReceiver.AwaitNextNotificationAsync(CancellationToken);
       Assert.AreEqual(documentItem.Uri, completed.Uri);
@@ -175,7 +175,7 @@ lemma {:timeLimit 3} SquareRoot2NotRational(p: nat, q: nat)
       var inprogress = await notificationReceiver.AwaitNextNotificationAsync(CancellationToken);
       Assert.AreEqual(documentItem.Uri, inprogress.Uri);
       Assert.AreEqual(documentItem.Version, inprogress.Version);
-      Assert.AreEqual(CompilationStatus.VerificationInProgress, inprogress.Status);
+      Assert.AreEqual(CompilationStatus.VerificationStarted, inprogress.Status);
       Assert.AreEqual("SquareRoot2NotRational", inprogress.Message);
       var completed = await notificationReceiver.AwaitNextNotificationAsync(CancellationToken);
       Assert.AreEqual(documentItem.Uri, completed.Uri);
@@ -216,7 +216,7 @@ lemma SquareRoot2NotRational(p: nat, q: nat)
       var inprogress = await notificationReceiver.AwaitNextNotificationAsync(CancellationToken);
       Assert.AreEqual(documentItem.Uri, inprogress.Uri);
       Assert.AreEqual(documentItem.Version, inprogress.Version);
-      Assert.AreEqual(CompilationStatus.VerificationInProgress, inprogress.Status);
+      Assert.AreEqual(CompilationStatus.VerificationStarted, inprogress.Status);
       Assert.AreEqual("SquareRoot2NotRational", inprogress.Message);
       var completed = await notificationReceiver.AwaitNextNotificationAsync(CancellationToken);
       Assert.AreEqual(documentItem.Uri, completed.Uri);

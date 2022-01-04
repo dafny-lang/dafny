@@ -12,6 +12,7 @@ using System.IO;
 using System.Diagnostics.Contracts;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using Bpl = Microsoft.Boogie;
 using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
@@ -3519,6 +3520,13 @@ namespace Microsoft.Dafny {
       // Dafny compiles to the old Go package system, whereas Go has moved on to a module
       // system. Until Dafny's Go compiler catches up, the GO111MODULE variable has to be set.
       psi.EnvironmentVariables["GO111MODULE"] = "auto";
+      if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+        // On Windows, Path.GetTempPath() returns "c:\Windows" which, being not writable, crashes Go.
+        // Hence we set up a local temporary directory
+        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        psi.EnvironmentVariables["GOTMPDIR"] = localAppData + @"\Temp";
+        psi.EnvironmentVariables["LOCALAPPDATA"] = localAppData + @"\go-build";
+      }
 
       try {
         using var process = Process.Start(psi);

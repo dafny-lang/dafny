@@ -3,8 +3,10 @@ using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Server;
 using Serilog;
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 using OmniSharpLanguageServer = OmniSharp.Extensions.LanguageServer.Server.LanguageServer;
 
@@ -14,6 +16,7 @@ namespace Microsoft.Dafny.LanguageServer {
       var configuration = CreateConfiguration(args);
       InitializeLogger(configuration);
       try {
+        Action? shutdownServer = null;
         var server = await OmniSharpLanguageServer.From(
           options => options
             .WithInput(Console.OpenStandardInput())
@@ -21,8 +24,10 @@ namespace Microsoft.Dafny.LanguageServer {
             .ConfigureConfiguration(builder => builder.AddConfiguration(configuration))
             .ConfigureLogging(SetupLogging)
             .WithUnhandledExceptionHandler(LogException)
-            .WithDafnyLanguageServer(configuration)
+            // ReSharper disable once AccessToModifiedClosure
+            .WithDafnyLanguageServer(configuration, () => shutdownServer!())
         );
+        shutdownServer = () => server.ForcefulShutdown();
         await server.WaitForExit;
       }
       finally {
