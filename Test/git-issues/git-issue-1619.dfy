@@ -168,17 +168,129 @@ predicate G(m: MaybeEmpty)
 
 method G0() {
   var m: MaybeEmpty, other: int := *, *;
-  assume G(m); // error: use before definition
-  assert exists m :: G(m); // error: cannot prove assertion
+  assume G(m); // error: use before definition (note, execution continues after this check under the assumption that m really has been assigned)
+  assert exists m :: G(m); // this passes (see previous line)
+  assert false; // error: assertion violation
 }
 
 method G1() {
   var m: MaybeEmpty := *;
   assume G(m); // error: use before definition
   assert exists m :: G(m);
+  assert false; // error: assertion violation
 }
 
 method H<U(00)>() {
   var u: U := *;
   var uu := u; // error: use before definition
+}
+
+// more tests ---------------------------
+
+type NonEmpty = x: int | 2 <= x < 7 ghost witness 6
+type PossiblyEmpty = x: int | 2 <= x < 7 witness *
+predicate MaybeOrMaybeNot(x: int)
+type AlsoPossiblyEmpty = x: int | MaybeOrMaybeNot(x) witness *
+
+method HavocSingleVar(n: nat) {
+  var p: PossiblyEmpty;
+
+  // The following "*" assignment does not fulfill any definite-assignment obligations. That
+  // is, even after this "*" assignment, "p" is not considered to have been definitely
+  // assigned.
+  p := *;
+  if * {
+    assert p < 10; // error: use before definition
+  }
+
+  p := 3;
+  // Since p has now been assigned, the "*" assignment to "p" in the next line will give
+  // a value that's known to be of the type PossibleEmpty.
+  p := *;
+  assert p < 12;
+}
+
+method HavocMultipleVar(n: nat) {
+  var x: NonEmpty;
+  var p: PossiblyEmpty;
+
+  // The following "*" assignments do not fulfill any definite-assignment obligations. That
+  // is, even after these "*" assignments, neither "x" nor "p" is considered to have been
+  // definitely assigned.
+  x, p := *, *;
+  if * {
+    assert x < 9; // error: use before definition
+    assert p < 10; // error: use before definition
+  }
+
+  x, p := 3, 3;
+  // Since p has now been assigned, the "*" assignment to "p" in the next line will give
+  // a value that's known to be of the type PossibleEmpty.
+  x, p := *, *;
+  assert x < 9;
+  assert p < 12;
+}
+
+method AssignSuchSingleVar(n: nat) {
+  var p: PossiblyEmpty;
+
+  // An assign-such-that statement fulfills any definite-assignment obligations. However,
+  // as usual, one has to prove that a value exists--which in this case follows from the
+  // given range constraint (which the verifier studies, in order to build a helpful proof
+  // obligation).
+  p :| true;
+  if * {
+    assert p < 10;
+  }
+}
+
+method AssignSuchMultipleVar(n: nat) {
+  var x: NonEmpty;
+  var p: PossiblyEmpty;
+
+  // An assign-such-that statement fulfills any definite-assignment obligations. However,
+  // as usual, one has to prove that a value exists--which in this case follows from the
+  // given range constraints (which the verifier studies, in order to build helpful proof
+  // obligations).
+  x, p :| true;
+  if * {
+    assert x < 9;
+    assert p < 10;
+  }
+}
+
+method AssignSuchSingleVar'(n: nat) {
+  var p: AlsoPossiblyEmpty;
+
+  if * {
+    assert MaybeOrMaybeNot(p); // error: use before definition
+  } else {
+    // An assign-such-that statement fulfills any definite-assignment obligations. However,
+    // as usual, one has to prove that a value exists--which in this case cannot be done,
+    // since nothing is known about the constraint MaybeOrMaybeNot.
+    p :| true; // error: cannot establish existence of a value for p
+    if * {
+      // if we ever get here, then p has been definitely assigned and thus the constraint holds
+      assert MaybeOrMaybeNot(p);
+    }
+  }
+}
+
+method AssignSuchMultipleVar'(n: nat) {
+  var x: NonEmpty;
+  var p: AlsoPossiblyEmpty;
+
+  if * {
+    assert MaybeOrMaybeNot(p); // error: use before definition
+  } else {
+    // An assign-such-that statement fulfills any definite-assignment obligations. However,
+    // as usual, one has to prove that a value exists--which in this case cannot be done,
+    // since nothing is known about the constraint MaybeOrMaybeNot.
+    x, p :| true; // error: cannot establish existence of a value (for p)
+    if * {
+      // if we ever get here, then p has been definitely assigned and thus the constraints hold
+      assert x < 9;
+      assert MaybeOrMaybeNot(p);
+    }
+  }
 }
