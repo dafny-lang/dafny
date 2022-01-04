@@ -252,7 +252,7 @@ namespace Microsoft.Dafny {
         //       check well-formedness of RHS(x');
         //     }
         //     assert (exists x'' :: RHS(x''));  // for ":| assume", omit this line; for ":|", LHS is only allowed to contain simple variables
-        //     defass$x := true;
+        //     defass#x := true;
         //     havoc x;
         //     assume RHS(x);
 
@@ -981,7 +981,7 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// "lhs" is expected to be a resolved form of an expression, i.e., not a conrete-syntax expression.
+    /// "lhs" is expected to be a resolved form of an expression, i.e., not a concrete-syntax expression.
     /// </summary>
     void TrAssignment(Statement stmt, Expression lhs, AssignmentRhs rhs,
       BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
