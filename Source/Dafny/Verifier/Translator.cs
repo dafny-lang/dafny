@@ -9779,8 +9779,8 @@ namespace Microsoft.Dafny {
           // then the variable will get a new value, but Dafny's definite-assginment rules prevent that
           // value from being used, so it's appropriate to use effectively-"true" as the "where" clause
           // in that case.
-          wh = GetWhereClause(tok, new Bpl.IdentifierExpr(tok, nm, ty), localType, etran, NOALLOC);
-          wh = BplImp(GetDefiniteAssignmentTracker(lhsVar), wh);
+          wh = BplImp(GetDefiniteAssignmentTracker(lhsVar),
+            GetWhereClause(tok, new Bpl.IdentifierExpr(tok, nm, ty), localType, etran, NOALLOC));
         } else {
           // In this case, it could be unsound to use a "where" clause, see issue #1619.
           // Luckily, leaving it out is harmless, because we don't need a "where" clause here in the first
