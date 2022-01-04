@@ -26,6 +26,7 @@ from typing import (
 )
 
 import argparse
+import difflib
 import json
 import os
 import platform
@@ -88,17 +89,17 @@ def _print(level: int, prefix: str, *msgs: str, **kwargs: Any) -> None:
 
 
 def info(prefix: str, *msgs: str, **kwargs: Any) -> None:
-    """Call ``_debug`` with `prefix`, `msgs`, and `kwargs` at level 1."""
+    """Call ``_print`` with `prefix`, `msgs`, and `kwargs` at level 1."""
     _print(1, prefix, *msgs, **kwargs)
 
 
 def debug(prefix: str, *msgs: str, **kwargs: Any) -> None:
-    """Call ``_debug`` with `prefix`, `msgs`, and `kwargs` at level 2."""
+    """Call ``_print`` with `prefix`, `msgs`, and `kwargs` at level 2."""
     _print(2, prefix, *msgs, **kwargs)
 
 
 def trace(prefix: str, *msgs: str, **kwargs: Any) -> None:
-    """Call ``_debug`` with `prefix`, `msgs`, and `kwargs` at level 2."""
+    """Call ``_print`` with `prefix`, `msgs`, and `kwargs` at level 2."""
     _print(3, prefix, *msgs, **kwargs)
 
 
@@ -217,7 +218,9 @@ class ProverOutput:
     # at insertions/deletions.
     def format(self) -> str:
         """Normalize this output and convert it to a string."""
-        return "\n".join(ll for vr in sorted(self.normalize()) for ll in vr.format())
+        return "\n".join(ll.replace("\r\n", "\n") # Ignore line ending differences
+                         for vr in sorted(self.normalize())
+                         for ll in vr.format())
 
     @property
     def raw(self) -> Any:
@@ -615,6 +618,7 @@ class LSPOutput(ProverOutput):
                        children: List[VerificationResult]) -> VerificationResult:
         """Convert an LSP diagnostic `pos`, `msg`, `header`, `children` into a ``VerificationResult``."""
         l, c = pos['line'] + 1, pos['character']
+        msg = msg.replace("\n", "\n ") # The CLI does this to make messages easier to match
         return VerificationResult("<stdin>", l, c, header, msg, children)
 
     @classmethod
@@ -726,7 +730,7 @@ class CLIOutput(ProverOutput):
        [(](?P<l>[0-9]+),
           (?P<c>[0-9]+)[)]
        ((?P<hdr>[^:]*):[ ]*)?
-       (?P<msg>.*)
+       (?P<msg>.*(\n[ ].+)*)
       $
     """, re.MULTILINE | re.VERBOSE)
 
@@ -800,20 +804,34 @@ def test(inputs: ProverInputs, *drivers: Driver) -> None:
     results = zip_longest(*prover_output_streams)
     for snapidx, snap in enumerate(snapshots):
         info(f"------ {snap.name}(#{snapidx}) ------", flush=True)
-        prover_outputs = next(results)
+        prover_outputs: List[ProverOutput] = next(results)
         for (d1, p1), (d2, p2) in window(zip(drivers, prover_outputs), 2):
             o1, o2 = p1.format(), p2.format()
             if o1 != o2:
                 print("!! Output mismatch")
                 print(f"   For input {snap.name}(#{snapidx}),")
+
+                print()
                 print(f"   Driver {d1} produced this output:")
-                print(indent(o1, "   > "))
+                print(indent(o1, "     "))
+
+                print()
                 print(f"   Driver {d2} produced this output:")
-                print(indent(o2, "   > "))
-                print("   Raw output:")
-                print(indent(pformat(p1.raw), "   > "))
-                print("   --------------------------------")
-                print(indent(pformat(p2.raw), "   > "))
+                print(indent(o2, "     "))
+
+                print()
+                l1, l2 = o1.splitlines(keepends=True), o2.splitlines(keepends=True)
+                ld = difflib.unified_diff(l1, l2, str(d1), str(d2))
+                print(f"   Diff:")
+                print(indent("".join(ld), "     "))
+                sys.stdout.flush()
+
+                debug("")
+                debug("   Raw output:")
+                debug(indent(pformat(p1.raw), "     "))
+                debug("   --------------------------------")
+                debug(indent(pformat(p2.raw), "     "))
+                sys.stderr.flush()
                 retval += 1
         sys.stdout.flush()
     for _ in results:
@@ -853,7 +871,7 @@ def resolve_input(inp: str, parser: argparse.ArgumentParser) -> ProverInputs:
     MSG = (f"{inp}: Unsupported file extension {suffix!r} "
            "(only .dfy and .lsp inputs are supported for now).")
     parser.error(MSG)
-
+    assert False # Unreachable
 
 
 def parse_arguments() -> argparse.Namespace:
