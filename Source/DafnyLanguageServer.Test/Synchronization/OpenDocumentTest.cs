@@ -84,11 +84,11 @@ method Recurse(x: int) returns (r: int) {
 }".Trim();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var document = await Documents.GetDocumentAsync(documentItem.Uri);
+      var document = await Documents.GetVerifiedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
       Assert.AreEqual(1, document.Errors.ErrorCount);
       var message = document.Errors.GetDiagnostics(documentItem.Uri).First(d => d.Severity!.Value == DiagnosticSeverity.Error);
-      Assert.AreEqual(MessageSource.Other.ToString(), message.Source);
+      Assert.AreEqual(MessageSource.Verifier.ToString(), message.Source);
     }
 
     [TestMethod]

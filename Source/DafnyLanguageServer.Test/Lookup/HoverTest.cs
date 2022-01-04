@@ -5,16 +5,11 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.IO;
 using System.Threading.Tasks;
+using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
   [TestClass]
-  public class HoverTest : DafnyLanguageServerTestBase {
-    private ILanguageClient client;
-
-    [TestInitialize]
-    public async Task SetUp() {
-      client = await InitializeClient();
-    }
+  public class HoverTest : ClientBasedLanguageServerTest {
 
     private Task<Hover> RequestHover(TextDocumentItem documentItem, Position position) {
       return client.RequestHover(
@@ -42,6 +37,18 @@ method CallDoIt() returns () {
       var markup = hover.Contents.MarkupContent;
       Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
       Assert.AreEqual("```dafny\nmethod DoIt() returns (x: int)\n```", markup.Value);
+    }
+
+    [TestMethod]
+    public async Task HoverReturnsBeforeVerificationIsComplete() {
+      var documentItem = CreateTestDocument(SlowToVerify);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+
+      client.OpenDocument(documentItem);
+      var verificationTask = diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
+      var definitionTask = RequestHover(documentItem, (4, 14));
+      var first = await Task.WhenAny(verificationTask, definitionTask);
+      Assert.AreSame(first, definitionTask);
     }
 
     [TestMethod]

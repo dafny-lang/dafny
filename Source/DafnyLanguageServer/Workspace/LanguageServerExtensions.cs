@@ -30,7 +30,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         .AddSingleton<ITextDocumentLoader>(CreateTextDocumentLoader)
         .AddSingleton<IDiagnosticPublisher, DiagnosticPublisher>()
         .AddSingleton<ITextChangeProcessor, TextChangeProcessor>()
-        .AddSingleton<ISymbolTableRelocator, SymbolTableRelocator>()
+        .AddSingleton<IRelocator, Relocator>()
         .AddSingleton<ISymbolGuesser, SymbolGuesser>()
         .AddSingleton<ICompilationStatusNotificationPublisher, CompilationStatusNotificationPublisher>()
         .AddSingleton<IDiagnosticPublisher, DiagnosticPublisher>();
