@@ -3075,7 +3075,7 @@ namespace Microsoft.Dafny {
               hasRhs = true;
             }
           }
-          TrLocalVar(local, !hasRhs, wr);
+          TrLocalVar(local, !hasRhs && local.Type.KnownToHaveToAValue(false), wr);
           i++;
         }
         if (s.Update != null) {
@@ -4131,8 +4131,7 @@ namespace Microsoft.Dafny {
         // only emit non-ghosts (we get here only for local variables introduced implicitly by call statements)
         return;
       }
-      var use_td = !(v.Type.IsTypeParameter) || v.Type.AsTypeParameter.Characteristics.HasCompiledValue;
-      DeclareLocalVar(IdName(v), v.Type, v.Tok, false, alwaysInitialize ? DefaultValue(v.Type, wr, v.Tok, use_td) : null, wr);
+      DeclareLocalVar(IdName(v), v.Type, v.Tok, false, alwaysInitialize ? DefaultValue(v.Type, wr, v.Tok, true) : null, wr);
     }
 
     ConcreteSyntaxTree MatchCasePrelude(string source, UserDefinedType sourceType, DatatypeCtor ctor, List<BoundVar> arguments, int caseIndex, int caseCount, ConcreteSyntaxTree wr) {

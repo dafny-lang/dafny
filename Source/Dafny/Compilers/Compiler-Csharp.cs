@@ -1232,8 +1232,6 @@ namespace Microsoft.Dafny {
       if (cl is TypeParameter tp) {
         if (constructTypeParameterDefaultsFromTypeDescriptors) {
           return $"{FormatTypeDescriptorVariable(tp.CompileName)}.Default()";
-        } else if (tp.Parent is MemberDecl) {
-          return TypeInitializationValue(type, wr, tok, true, constructTypeParameterDefaultsFromTypeDescriptors);
         } else {
           return FormatDefaultTypeParameterValue(tp);
         }
