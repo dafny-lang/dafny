@@ -285,18 +285,18 @@ namespace Microsoft.Dafny {
         var newBounds = SubstituteBoundedPoolList(e.Bounds);
         if (newBoundVars != e.BoundVars || newRange != e.Range || newTerm != e.Term || newAttrs != e.Attributes || newBounds != e.Bounds) {
           if (e is SetComprehension) {
-            newExpr = new SetComprehension(expr.tok, ((SetComprehension)e).Finite, newBoundVars, newRange, newTerm, newAttrs);
+            newExpr = new SetComprehension(e.BodyStartTok, e.BodyEndTok, ((SetComprehension)e).Finite, newBoundVars, newRange, newTerm, newAttrs);
           } else if (e is MapComprehension) {
             var mc = (MapComprehension)e;
             var newTermLeft = mc.IsGeneralMapComprehension ? Substitute(mc.TermLeft) : null;
-            newExpr = new MapComprehension(expr.tok, mc.Finite, newBoundVars, newRange, newTermLeft, newTerm, newAttrs);
-          } else if (expr is ForallExpr) {
-            newExpr = new ForallExpr(expr.tok, ((QuantifierExpr)expr).TypeArgs, newBoundVars, newRange, newTerm, newAttrs);
-          } else if (expr is ExistsExpr) {
-            newExpr = new ExistsExpr(expr.tok, ((QuantifierExpr)expr).TypeArgs, newBoundVars, newRange, newTerm, newAttrs);
+            newExpr = new MapComprehension(e.BodyStartTok, e.BodyEndTok, mc.Finite, newBoundVars, newRange, newTermLeft, newTerm, newAttrs);
+          } else if (expr is ForallExpr forallExpr) {
+            newExpr = new ForallExpr(expr.tok, e.BodyEndTok, forallExpr.TypeArgs, newBoundVars, newRange, newTerm, newAttrs);
+          } else if (expr is ExistsExpr existsExpr) {
+            newExpr = new ExistsExpr(expr.tok, e.BodyEndTok, existsExpr.TypeArgs, newBoundVars, newRange, newTerm, newAttrs);
           } else if (expr is LambdaExpr) {
             var l = (LambdaExpr)expr;
-            newExpr = new LambdaExpr(e.tok, newBoundVars, newRange, l.Reads.ConvertAll(SubstFrameExpr), newTerm);
+            newExpr = new LambdaExpr(e.BodyStartTok, e.BodyEndTok, newBoundVars, newRange, l.Reads.ConvertAll(SubstFrameExpr), newTerm);
           } else {
             Contract.Assert(false);  // unexpected ComprehensionExpr
           }
@@ -396,7 +396,9 @@ namespace Microsoft.Dafny {
         var rhs = Substitute(letExpr.RHSs[0]);
         var body = Substitute(letExpr.Body);
         var newBounds = SubstituteBoundedPoolList(letExpr.Constraint_Bounds);
-        if (rhs == letExpr.RHSs[0] && body == letExpr.Body && newBounds == letExpr.Constraint_Bounds) return null;
+        if (rhs == letExpr.RHSs[0] && body == letExpr.Body && newBounds == letExpr.Constraint_Bounds) {
+          return null;
+        }
 
         // keep copies of the substitution maps so we can reuse them at desugaring time
         var newSubstMap = new Dictionary<IVariable, Expression>(substMap);

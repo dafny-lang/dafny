@@ -45,4 +45,4 @@ DefiniteAssignment.dfy(143,8): Error: variable 'w', which is subject to definite
 DefiniteAssignment.dfy(237,12): Error: variable 'a', which is subject to definite-assignment rules, might be used before it has been assigned
 DefiniteAssignment.dfy(238,12): Error: variable 'b', which is subject to definite-assignment rules, might be used before it has been assigned
 
-Dafny program verifier finished with 12 verified, 46 errors
+Dafny program verifier finished with 14 verified, 46 errors

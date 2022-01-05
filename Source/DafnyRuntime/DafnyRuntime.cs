@@ -840,12 +840,12 @@ namespace Dafny {
       }
     }
 
-    public static ISet<_System.Tuple2<U, V>> Items(IMap<U, V> m) {
-      var result = new HashSet<_System.Tuple2<U, V>>();
+    public static ISet<_System._ITuple2<U, V>> Items(IMap<U, V> m) {
+      var result = new HashSet<_System._ITuple2<U, V>>();
       foreach (var item in m.ItemEnumerable) {
         result.Add(_System.Tuple2<U, V>.create(item.Car, item.Cdr));
       }
-      return Dafny.Set<_System.Tuple2<U, V>>.FromCollection(result);
+      return Dafny.Set<_System._ITuple2<U, V>>.FromCollection(result);
     }
   }
 
@@ -930,8 +930,9 @@ namespace Dafny {
     public static bool EqualUntil(ISequence<T> left, ISequence<T> right, int n) {
       T[] leftElmts = left.Elements, rightElmts = right.Elements;
       for (int i = 0; i < n; i++) {
-        if (!object.Equals(leftElmts[i], rightElmts[i]))
+        if (!object.Equals(leftElmts[i], rightElmts[i])) {
           return false;
+        }
       }
       return true;
     }
@@ -1017,8 +1018,10 @@ namespace Dafny {
     public override int GetHashCode() {
       ImmutableArray<T> elmts = ImmutableElements;
       // https://devblogs.microsoft.com/dotnet/please-welcome-immutablearrayt/
-      if (elmts.IsDefaultOrEmpty)
+      if (elmts.IsDefaultOrEmpty) {
         return 0;
+      }
+
       var hashCode = 0;
       for (var i = 0; i < elmts.Length; i++) {
         hashCode = (hashCode << 3) | (hashCode >> 29) ^ Dafny.Helpers.GetHashCode(elmts[i]);
@@ -1053,8 +1056,10 @@ namespace Dafny {
       return false;
     }
     public ISequence<T> Take(long m) {
-      if (ImmutableElements.Length == m)
+      if (ImmutableElements.Length == m) {
         return this;
+      }
+
       int length = checked((int)m);
       T[] tmp = new T[length];
       ImmutableElements.CopyTo(0, tmp, 0, length);
@@ -1068,8 +1073,10 @@ namespace Dafny {
     }
     public ISequence<T> Drop(long m) {
       int startingElement = checked((int)m);
-      if (startingElement == 0)
+      if (startingElement == 0) {
         return this;
+      }
+
       int length = ImmutableElements.Length - startingElement;
       T[] tmp = new T[length];
       ImmutableElements.CopyTo(startingElement, tmp, 0, length);
@@ -1079,8 +1086,10 @@ namespace Dafny {
       return Drop((long)n);
     }
     public ISequence<T> Drop(BigInteger n) {
-      if (n.IsZero)
+      if (n.IsZero) {
         return this;
+      }
+
       return Drop((long)n);
     }
     public ISequence<T> Subsequence(long lo, long hi) {
@@ -1231,14 +1240,20 @@ namespace Dafny {
 
     public static int ToIntChecked(BigInteger i, string msg) {
       if (i > Int32.MaxValue || i < Int32.MinValue) {
-        if (msg == null) msg = "value out of range for a 32-bit int";
+        if (msg == null) {
+          msg = "value out of range for a 32-bit int";
+        }
+
         throw new HaltException(msg + ": " + i);
       }
       return (int)i;
     }
     public static int ToIntChecked(long i, string msg) {
       if (i > Int32.MaxValue || i < Int32.MinValue) {
-        if (msg == null) msg = "value out of range for a 32-bit int";
+        if (msg == null) {
+          msg = "value out of range for a 32-bit int";
+        }
+
         throw new HaltException(msg + ": " + i);
       }
       return (int)i;
@@ -1649,7 +1664,12 @@ namespace Dafny {
 }
 
 namespace @_System {
-  public class Tuple2<T0, T1> {
+  public interface _ITuple2<out T0, out T1> {
+    T0 dtor__0 { get; }
+    T1 dtor__1 { get; }
+  }
+
+  public class Tuple2<T0, T1> : _ITuple2<T0, T1> {
     public readonly T0 _0;
     public readonly T1 _1;
     public Tuple2(T0 _0, T1 _1) {
@@ -1676,16 +1696,15 @@ namespace @_System {
       s += ")";
       return s;
     }
-    public static Tuple2<T0, T1> Default(T0 _default_T0, T1 _default_T1) {
+    public static _ITuple2<T0, T1> Default(T0 _default_T0, T1 _default_T1) {
       return create(_default_T0, _default_T1);
     }
-    public static Dafny.TypeDescriptor<_System.Tuple2<T0, T1>> _TypeDescriptor(Dafny.TypeDescriptor<T0> _td_T0, Dafny.TypeDescriptor<T1> _td_T1) {
-      return new Dafny.TypeDescriptor<_System.Tuple2<T0, T1>>(_System.Tuple2<T0, T1>.Default(_td_T0.Default(), _td_T1.Default()));
+    public static Dafny.TypeDescriptor<_System._ITuple2<T0, T1>> _TypeDescriptor(Dafny.TypeDescriptor<T0> _td_T0, Dafny.TypeDescriptor<T1> _td_T1) {
+      return new Dafny.TypeDescriptor<_System._ITuple2<T0, T1>>(_System.Tuple2<T0, T1>.Default(_td_T0.Default(), _td_T1.Default()));
     }
-    public static Tuple2<T0, T1> create(T0 _0, T1 _1) {
+    public static _ITuple2<T0, T1> create(T0 _0, T1 _1) {
       return new Tuple2<T0, T1>(_0, _1);
     }
-    public bool is____hMake2 { get { return true; } }
     public T0 dtor__0 {
       get {
         return this._0;

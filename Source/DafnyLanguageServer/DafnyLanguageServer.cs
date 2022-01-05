@@ -1,4 +1,6 @@
-﻿using Microsoft.Dafny.LanguageServer.Handlers;
+﻿using System;
+using System.Diagnostics;
+using Microsoft.Dafny.LanguageServer.Handlers;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Configuration;
@@ -19,19 +21,49 @@ namespace Microsoft.Dafny.LanguageServer {
       }
     }
 
-    public static LanguageServerOptions WithDafnyLanguageServer(this LanguageServerOptions options, IConfiguration configuration) {
+    public static LanguageServerOptions WithDafnyLanguageServer(this LanguageServerOptions options,
+        IConfiguration configuration, Action killLanguageServer) {
       return options
         .WithDafnyLanguage(configuration)
         .WithDafnyWorkspace(configuration)
         .WithDafnyHandlers()
-        .OnInitialize(InitializeAsync)
+        .OnInitialize((server, @params, token) => InitializeAsync(server, @params, token, killLanguageServer))
         .OnStarted(StartedAsync);
     }
 
-    private static Task InitializeAsync(ILanguageServer server, InitializeParams request, CancellationToken cancellationToken) {
+    private static Task InitializeAsync(ILanguageServer server, InitializeParams request, CancellationToken cancelRequestToken,
+        Action killLanguageServer) {
       var logger = server.GetRequiredService<ILogger<Program>>();
       logger.LogTrace("initializing service");
+
+      KillLanguageServerIfParentDies(logger, request, killLanguageServer);
+
       return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// As part of the LSP spec, a language server must kill itself if its parent process dies
+    /// https://github.com/microsoft/language-server-protocol/blob/gh-pages/_specifications/specification-3-16.md?plain=1#L1713
+    /// </summary>
+    private static void KillLanguageServerIfParentDies(ILogger<Program> logger, InitializeParams request,
+        Action killLanguageServer) {
+      if (!(request.ProcessId >= 0)) {
+        return;
+      }
+
+      void Kill() {
+        logger.LogWarning("Shutting down language server because parent process died.");
+        killLanguageServer();
+      }
+
+      try {
+        var hostProcess = Process.GetProcessById((int)request.ProcessId);
+        hostProcess.EnableRaisingEvents = true;
+        hostProcess.Exited += (_, _) => Kill();
+      } catch (ArgumentException) {
+        // If the process dies before we get here then request shutdown immediately
+        Kill();
+      }
     }
 
     private static Task StartedAsync(ILanguageServer server, CancellationToken cancellationToken) {

@@ -12,6 +12,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// </summary>
     /// <param name="textDocument">The document which had a compilation status change.</param>
     /// <param name="status"></param>
-    void SendStatusNotification(TextDocumentItem textDocument, CompilationStatus status);
+    /// <param name="message">Additional info about the current status</param>
+    void SendStatusNotification(TextDocumentItem textDocument, CompilationStatus status, string? message = null);
   }
 }

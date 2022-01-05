@@ -1,4 +1,5 @@
-﻿using DafnyServer.CounterexampleGeneration;
+﻿using System;
+using DafnyServer.CounterexampleGeneration;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace;
@@ -22,12 +23,21 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
     }
 
     public async Task<CounterExampleList> Handle(CounterExampleParams request, CancellationToken cancellationToken) {
-      var document = await documents.GetDocumentAsync(request.TextDocument);
-      if (document == null) {
-        logger.LogWarning("counter-examples requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
+      try {
+        var document = await documents.GetVerifiedDocumentAsync(request.TextDocument);
+        if (document != null) {
+          return new CounterExampleLoader(logger, document, request.CounterExampleDepth, cancellationToken)
+            .GetCounterExamples();
+        }
+
+        logger.LogWarning("counter-examples requested for unloaded document {DocumentUri}",
+          request.TextDocument.Uri);
+        return new CounterExampleList();
+      } catch (TaskCanceledException) {
+        logger.LogWarning("counter-examples requested for unverified document {DocumentUri}",
+          request.TextDocument.Uri);
         return new CounterExampleList();
       }
-      return new CounterExampleLoader(logger, document, request.CounterExampleDepth, cancellationToken).GetCounterExamples();
     }
 
     private class CounterExampleLoader {
@@ -64,10 +74,10 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
         using var counterExampleReader = new StringReader(serializedCounterExamples);
         return Model.ParseModels(counterExampleReader)
           .WithCancellation(cancellationToken)
-          .Select(GetLanguagSpecificModel);
+          .Select(GetLanguageSpecificModel);
       }
 
-      private DafnyModel GetLanguagSpecificModel(Model model) {
+      private DafnyModel GetLanguageSpecificModel(Model model) {
         return new(model);
       }
 
