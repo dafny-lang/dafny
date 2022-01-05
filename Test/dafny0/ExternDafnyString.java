@@ -8,4 +8,3 @@ public class ExternDafnyString {
         return dafny.DafnySequence.asString(js);
     }
 }
-

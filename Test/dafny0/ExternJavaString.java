@@ -6,4 +6,3 @@ public class ExternJavaString {
         return "this is some possible / text that / may have come from a file";
     }
 }
-

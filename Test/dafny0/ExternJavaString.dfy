@@ -33,4 +33,3 @@ method Main() {
     print s[previousStart..], "\n";
   }
 }
-
