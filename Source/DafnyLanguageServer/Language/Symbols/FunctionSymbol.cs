@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
@@ -8,7 +9,23 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
     public IList<VariableSymbol> Parameters { get; } = new List<VariableSymbol>();
 
-    public override IEnumerable<ISymbol> Children => Parameters;
+    /// <summary>
+    /// Gets the body of the function
+    /// </summary>
+    public ScopeSymbol? Body { get; set; }
+    public ScopeSymbol? ByMethodBody { get; set; }
+    public List<ScopeSymbol> Ensures { get; } = new();
+    public List<ScopeSymbol> Requires { get; } = new();
+    public List<ScopeSymbol> Reads { get; } = new();
+    public List<ScopeSymbol> Decreases { get; } = new();
+    public override IEnumerable<ISymbol> Children =>
+      Body.AsEnumerable<ISymbol>()
+        .Concat(ByMethodBody.AsEnumerable())
+        .Concat(Ensures)
+        .Concat(Requires)
+        .Concat(Reads)
+        .Concat(Decreases)
+        .Concat(Parameters);
 
     public FunctionSymbol(ISymbol? scope, Function function) : base(scope, function) {
       Declaration = function;

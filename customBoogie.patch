@@ -138,7 +138,7 @@ index 30e67936..64a5a976 100644
  
    <!-- Boogie dependency -->
    <ItemGroup>
--    <PackageReference Include="Boogie.ExecutionEngine" Version="2.11.0" />
+-    <PackageReference Include="Boogie.ExecutionEngine" Version="2.11.1" />
 +    <ProjectReference Include="..\..\boogie\Source\ExecutionEngine\ExecutionEngine.csproj" />
    </ItemGroup>
  

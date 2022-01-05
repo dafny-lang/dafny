@@ -30,7 +30,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         .AddSingleton<ITextDocumentLoader>(CreateTextDocumentLoader)
         .AddSingleton<IDiagnosticPublisher, DiagnosticPublisher>()
         .AddSingleton<ITextChangeProcessor, TextChangeProcessor>()
-        .AddSingleton<ISymbolTableRelocator, SymbolTableRelocator>()
+        .AddSingleton<IRelocator, Relocator>()
         .AddSingleton<ISymbolGuesser, SymbolGuesser>()
         .AddSingleton<ICompilationStatusNotificationPublisher, CompilationStatusNotificationPublisher>()
         .AddSingleton<IDiagnosticPublisher, DiagnosticPublisher>();
@@ -43,7 +43,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         services.GetRequiredService<IProgramVerifier>(),
         services.GetRequiredService<ISymbolTableFactory>(),
         services.GetRequiredService<IGhostStateDiagnosticCollector>(),
-        services.GetRequiredService<ICompilationStatusNotificationPublisher>()
+        services.GetRequiredService<ICompilationStatusNotificationPublisher>(),
+        services.GetRequiredService<ILoggerFactory>()
       );
     }
   }

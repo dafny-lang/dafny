@@ -45,15 +45,16 @@ namespace XUnitExtensions.Lit {
       process.Start();
       if (inputReader != null) {
         string input = inputReader.ReadToEnd();
+        inputReader.Close();
         process.StandardInput.Write(input);
         process.StandardInput.Close();
       }
       string output = process.StandardOutput.ReadToEnd();
       outputWriter?.Write(output);
-      outputWriter?.Flush();
+      outputWriter?.Close();
       string error = process.StandardError.ReadToEnd();
       errorWriter?.Write(error);
-      errorWriter?.Flush();
+      errorWriter?.Close();
       process.WaitForExit();
 
       return (process.ExitCode, output, error);

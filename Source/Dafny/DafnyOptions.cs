@@ -482,11 +482,7 @@ namespace Microsoft.Dafny {
 
         case "verificationLogger":
           if (ps.ConfirmArgumentCount(1)) {
-            if (args[ps.i] == "trx") {
-              VerificationLoggerConfig = args[ps.i];
-            } else {
-              InvalidArgumentError(name, ps);
-            }
+            VerificationLoggerConfig = args[ps.i];
           }
 
           return true;
@@ -899,8 +895,9 @@ namespace Microsoft.Dafny {
 /definiteAssignment:<n>
     0 - ignores definite-assignment rules; this mode is for testing only--it is
         not sound
-    1 (default) - enforces definite-assignment rules for variables and fields
-        of types that do not support auto-initialization
+    1 (default) - enforces definite-assignment rules for compiled variables and fields
+        whose types do not support auto-initialization and for ghost variables
+        and fields whose type is possibly empty
     2 - enforces definite-assignment for all non-yield-parameter
         variables and fields, regardless of their types
     3 - like 2, but also performs checks in the compiler that no nondeterministic
@@ -961,8 +958,10 @@ namespace Microsoft.Dafny {
     /proverOpt:0:model_compress=false and /proverOpt:0:model.completion=true.
 /verificationLogger:<configuration string>
     Logs verification results to the given test result logger.
-    The only currently supported value is ""trx"", the XML-based format
-    commonly used for test results for .NET languages.
+    The only currently supported logger is ""trx"", the XML-based format
+    commonly used for test results for .NET languages. You can provide configuration
+    using the same string format as when using the --logger option for dotnet test,
+    such as /verificationLogger:trx;LogFileName=<...>.
     The exact mapping of verification concepts to the TRX format is
     experimental and subject to change!
 {TestGenOptions.Help}
