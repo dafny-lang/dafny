@@ -13217,13 +13217,11 @@ namespace Microsoft.Dafny {
         call = (asx.Lhs.Resolved as MemberSelectExpr)?.Member as Method;
         if (call != null) {
           // We're looking at a method call
-          var outTypes = (asx.Lhs.Resolved as MemberSelectExpr)?.ResolvedOutparameterTypes;
-          if (outTypes != null && outTypes.Count != 0) {
-            firstType = outTypes[0];
-          } else if (call.Outs.Count != 0) {
-            firstType = call.Outs[0].Type;
+          var typeMap = (asx.Lhs.Resolved as MemberSelectExpr)?.TypeArgumentSubstitutionsWithParents();
+          if (call.Outs.Count != 0) {
+            firstType = SubstType(call.Outs[0].Type, typeMap);
           } else {
-            reporter.Error(MessageSource.Resolver, s.Rhs.tok, "Expected {0} to have a Success/Failure output value", call.Name);
+            reporter.Error(MessageSource.Resolver, s.Rhs.tok, "Expected {0} to have a Success/Failure output value, but the method returns nothing.", call.Name);
           }
         } else {
           // We're looking at a call to a function. Treat it like any other expression.
@@ -13392,12 +13390,11 @@ namespace Microsoft.Dafny {
       if (expectExtract) {
         // "y := temp.Extract();"
         var lhs = s.Lhss[0];
-        var assignStatement = new UpdateStmt(s.Tok, s.EndTok,
-          new List<Expression>() { lhsExtract },
-          new List<AssignmentRhs>() { new ExprRhs(VarDotMethod(s.Tok, temp, "Extract")) }
-        );
-
-        s.ResolvedStatements.Add(assignStatement);
+        s.ResolvedStatements.Add(
+          new UpdateStmt(s.Tok, s.Tok,
+            new List<Expression>() { lhsExtract },
+            new List<AssignmentRhs>() { new ExprRhs(VarDotMethod(s.Tok, temp, "Extract")) }
+          ));
         // The following check is not necessary, because the ghost mismatch is caught later.
         // However the error message here is much clearer.
         var m = ResolveMember(s.Tok, firstType, "Extract", out _);
