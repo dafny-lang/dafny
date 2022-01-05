@@ -80,16 +80,15 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
         return program;
       } catch (Exception e) {
-        logger.LogDebug("encountered an exception while parsing {DocumentUri}", document.Uri);
-        logger.LogDebug(e.ToString());
-        var t = new Token {
+        logger.LogDebug(e, "encountered an exception while parsing {DocumentUri}", document.Uri);
+        var internalErrorDummyToken = new Token {
           filename = document.GetFilePath(),
           line = 1,
           col = 1,
           pos = 0,
-          val = "."
+          val = " "
         };
-        errorReporter.Error(MessageSource.Parser, t, "[internal error] Parser exception: " + e.Message);
+        errorReporter.Error(MessageSource.Parser, internalErrorDummyToken, "[internal error] Parser exception: " + e.Message);
         return program;
       }
       finally {
