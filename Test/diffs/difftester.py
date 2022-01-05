@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""A differential tester for Dafny.
+r"""A differential tester for Dafny.
 
 This program takes a list of Dafny frontends and a list of inputs and runs each
 input through each frontend.  Verification results are then compared to ensure
@@ -21,10 +21,19 @@ Limitations:
 
 Example usage::
 
-   ./difftester.py --frontend Dafny \
-                   --frontend DafnyLanguageServer \
-                   --input snaps.dfy
+   ./difftester.py \
+      --frontend Dafny /printTooltips \
+      --frontend ../../Binaries/DafnyLanguageServer.exe \
+        /--verifier:verifysnapshots=0 \
+      --frontend ../../Binaries/DafnyLanguageServer.exe \
+        /--verifier:verifysnapshots=3 \
+      --input trace.lsp \
+      --input example.dfy
 
+In this example we run two sets of inputs (``trace.lsp`` and either
+``example.v[0-9].dfy`` if found or ``example.dfy`` otheriwse) through three
+copies of Dafny: one CLI (found in the system's path) and LSP servers with
+different arguments.
 """
 
 from typing import (
