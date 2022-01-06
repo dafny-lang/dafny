@@ -2625,9 +2625,9 @@ Rhs<out AssignmentRhs r>
        }
     .)
   | "*"                                (. r = new HavocRhs(t); .)
-  | Expression<out e, false, true>     (. r = e != null ? new ExprRhs(e) : null; .)
+  | Expression<out e, false, true>     (. r = new ExprRhs(e); .)
   )
-  { Attribute<ref attrs> }             (. if(r != null) { r.Attributes = attrs; } .)
+  { Attribute<ref attrs> }             (. r.Attributes = attrs; .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -3736,7 +3736,7 @@ UnaryExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowB
 
 /*------------------------------------------------------------------------*/
 PrimaryExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwiseOps>
-= (. e = null; .)
+= (. e = null; Contract.Ensures(Contract.ValueAtReturn(out e) != null); e = dummyExpr; .)
   ( IF(IsMapDisplay())  /* this alternative must be checked before going into EndlessExpression, where there is another "map" */
     MapDisplayExpr<out e>
     { IF(IsSuffix()) Suffix<ref e> }
