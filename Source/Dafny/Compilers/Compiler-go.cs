@@ -17,16 +17,32 @@ using System.Text.RegularExpressions;
 using Bpl = Microsoft.Boogie;
 using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 
-namespace Microsoft.Dafny {
-  public class GoCompiler : Compiler {
-    public GoCompiler(ErrorReporter reporter)
-    : base(reporter) {
+namespace Microsoft.Dafny.Compilers.Go {
+  public class Factory : CompilerFactory {
+    public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".go" };
+
+    public override string TargetLanguage => "Go";
+    public override string TargetExtension => "go";
+    public override string TargetBaseDir(string baseName) => baseName + "-go/src";
+
+    public override string PublicIdProtect(string name) => GoCompiler.PublicIdProtect(name);
+
+    public override bool SupportsInMemoryCompilation => false;
+    public override bool TextualTargetIsExecutable => false;
+
+    public override ICompiler CreateInstance(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
+      return new GoCompiler(this, reporter);
+    }
+  }
+
+  public class GoCompiler : SinglePassCompiler {
+    public GoCompiler(Factory factory, ErrorReporter reporter)
+    : base(factory, reporter) {
       if (DafnyOptions.O.CoverageLegendFile != null) {
         Imports.Add(new Import { Name = "DafnyProfiling", Path = "DafnyProfiling" });
       }
     }
 
-    public override string TargetLanguage => "Go";
 
     static string FormatDefaultTypeParameterValue(TopLevelDecl tp) {
       Contract.Requires(tp is TypeParameter || tp is OpaqueTypeDecl);
@@ -3433,8 +3449,6 @@ namespace Microsoft.Dafny {
     }
 
     // ----- Target compilation and execution -------------------------------------------------------------
-
-    public override bool SupportsInMemoryCompilation => false;
 
     public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
       bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {

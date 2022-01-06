@@ -76,18 +76,7 @@ namespace Microsoft.Dafny {
     public List<string> DafnyPrintExportedViews = new List<string>();
     public bool Compile = true;
 
-    [Flags]
-    public enum CompilationTarget {
-      Csharp = 1,
-      JavaScript = 2,
-      Go = 4,
-      Java = 8,
-      Cpp = 16,
-      Php = 32,
-      Python = 64
-    }
-
-    public CompilationTarget CompileTarget = CompilationTarget.Csharp;
+    public CompilerFactory CompilerFactoryInstance;
     public bool CompileVerbose = true;
     public string DafnyPrintCompiledFile = null;
     public string CoverageLegendFile = null;
@@ -216,22 +205,11 @@ namespace Microsoft.Dafny {
 
         case "compileTarget":
           if (ps.ConfirmArgumentCount(1)) {
-            if (args[ps.i].Equals("cs")) {
-              CompileTarget = CompilationTarget.Csharp;
-            } else if (args[ps.i].Equals("js")) {
-              CompileTarget = CompilationTarget.JavaScript;
-            } else if (args[ps.i].Equals("go")) {
-              CompileTarget = CompilationTarget.Go;
-            } else if (args[ps.i].Equals("java")) {
-              CompileTarget = CompilationTarget.Java;
-            } else if (args[ps.i].Equals("cpp")) {
-              CompileTarget = CompilationTarget.Cpp;
-            } else if (args[ps.i].Equals("php")) {
-              CompileTarget = CompilationTarget.Php;
-            } else if (args[ps.i].Equals("py")) {
-              CompileTarget = CompilationTarget.Python;
-            } else {
-              InvalidArgumentError(name, ps);
+            var compileTarget = args[ps.i];
+            try {
+              CompilerFactoryInstance = CompilerFactory.Load(compileTarget);
+            } catch (Exception ex) {
+              ps.Error("Cannot load compileTarget \"{0}\": {1}", compileTarget, ex.Message);
             }
           }
 
@@ -592,6 +570,10 @@ namespace Microsoft.Dafny {
         XmlSink = new Bpl.XmlSink(this, BoogieXmlFilename);
       }
 
+      if (CompilerFactoryInstance == null) {
+        CompilerFactoryInstance = CompilerFactory.Load("cs");
+      }
+
       // expand macros in filenames, now that LogPrefix is fully determined
       ExpandFilename(DafnyPrelude, x => DafnyPrelude = x, LogPrefix, FileTimestamp);
       ExpandFilename(DafnyPrintFile, x => DafnyPrintFile = x, LogPrefix, FileTimestamp);
@@ -902,8 +884,8 @@ namespace Microsoft.Dafny {
     go - Compilation to Go
     js - Compilation to JavaScript
     java - Compilation to Java
+    py - Compilation to Python
     cpp - Compilation to C++
-    php - Compilation to PHP
 
     Note that the C++ backend has various limitations (see Docs/Compilation/Cpp.md).
     This includes lack of support for BigIntegers (aka int), most higher order

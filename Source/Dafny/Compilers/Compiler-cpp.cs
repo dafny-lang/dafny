@@ -17,10 +17,26 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Bpl = Microsoft.Boogie;
 
-namespace Microsoft.Dafny {
-  public class CppCompiler : Compiler {
-    public CppCompiler(ErrorReporter reporter, ReadOnlyCollection<string> otherHeaders)
-    : base(reporter) {
+namespace Microsoft.Dafny.Compilers.Cpp {
+  public class Factory : CompilerFactory {
+    public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".h" };
+
+    public override string TargetLanguage => "Cpp";
+    public override string TargetExtension => "cpp";
+
+    public override string PublicIdProtect(string name) => CppCompiler.PublicIdProtect(name);
+
+    public override bool SupportsInMemoryCompilation => false;
+    public override bool TextualTargetIsExecutable => false;
+
+    public override ICompiler CreateInstance(ErrorReporter reporter, ReadOnlyCollection<string> otherFilenames) {
+      return new CppCompiler(this, reporter, otherFilenames);
+    }
+  }
+
+  public class CppCompiler : SinglePassCompiler {
+    public CppCompiler(Factory factory, ErrorReporter reporter, ReadOnlyCollection<string> otherHeaders)
+    : base(factory, reporter) {
       this.headers = otherHeaders;
       this.datatypeDecls = new List<DatatypeDecl>();
       this.classDefaults = new List<string>();
@@ -54,11 +70,8 @@ namespace Microsoft.Dafny {
     const string DafnySeqClass = "DafnySequence";
     const string DafnyMapClass = "DafnyMap";
 
-    public override string TargetLanguage => "Cpp";
     protected override string ModuleSeparator => "::";
     protected override string ClassAccessor => "->";
-
-    public override bool SupportsInMemoryCompilation => false;
 
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
       wr.WriteLine("// Dafny program {0} compiled into Cpp", program.Name);

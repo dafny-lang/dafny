@@ -19,15 +19,34 @@ using System.Reflection;
 using Bpl = Microsoft.Boogie;
 using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 
-namespace Microsoft.Dafny {
-  public class JavaCompiler : Compiler {
-    public JavaCompiler(ErrorReporter reporter)
-      : base(reporter) {
+namespace Microsoft.Dafny.Compilers.Java {
+  public class Factory : CompilerFactory {
+    public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".java" };
+
+    public override String TargetLanguage => "Java";
+    public override string TargetExtension => "java";
+    public override string Basename(string dafnyProgramName) =>
+      TransformToClassName(base.Basename(dafnyProgramName));
+    public override string TargetBaseDir(string baseName) => baseName + "-java";
+    public override string TransformToClassName(string baseName) =>
+      System.Text.RegularExpressions.Regex.Replace(baseName, "[^_A-Za-z0-9\\$]", "_");
+
+    public override string PublicIdProtect(string name) => JavaCompiler.PublicIdProtect(name);
+
+    public override bool SupportsInMemoryCompilation => false;
+    public override bool TextualTargetIsExecutable => false;
+
+    public override ICompiler CreateInstance(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
+      return new JavaCompiler(this, reporter);
+    }
+  }
+
+  public class JavaCompiler : SinglePassCompiler {
+    public JavaCompiler(Factory factory, ErrorReporter reporter)
+      : base(factory, reporter) {
       IntSelect = ",java.math.BigInteger";
       LambdaExecute = ".apply";
     }
-
-    public override String TargetLanguage => "Java";
 
     const string DafnySetClass = "dafny.DafnySet";
     const string DafnyMultiSetClass = "dafny.DafnyMultiset";
@@ -79,7 +98,6 @@ namespace Microsoft.Dafny {
 
     protected override bool UseReturnStyleOuts(Method m, int nonGhostOutCount) => true;
 
-    public override bool SupportsInMemoryCompilation => false;
 
     protected override bool SupportsAmbiguousTypeDecl => false;
     protected override bool SupportsProperties => false;
@@ -304,7 +322,7 @@ namespace Microsoft.Dafny {
     protected override void EmitBuiltInDecls(BuiltIns builtIns, ConcreteSyntaxTree wr) { }
 
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
-      var className = TransformToClassName(baseName);
+      var className = Factory.TransformToClassName(baseName);
       wr = wr.NewBlock($"public class {className}");
 
       var companion = TypeName_Companion(UserDefinedType.FromTopLevelDeclWithAllBooleanTypeParameters(mainMethod.EnclosingClass), wr, mainMethod.tok, mainMethod);
@@ -3936,10 +3954,6 @@ namespace Microsoft.Dafny {
 
     protected override ConcreteSyntaxTree CreateIterator(IteratorDecl iter, ConcreteSyntaxTree wr) {
       throw new NotImplementedException();
-    }
-
-    public override string TransformToClassName(string baseName) {
-      return System.Text.RegularExpressions.Regex.Replace(baseName, "[^_A-Za-z0-9\\$]", "_");
     }
   }
 }
