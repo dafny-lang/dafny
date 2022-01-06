@@ -61,12 +61,11 @@ jobs:
         ##os: [ubuntu-latest]
         ##os: [ubuntu-latest, windows-latest, ubuntu-18.04]
         ##os: [ubuntu-latest, macos-latest]
-        os: [
-             ubuntu-latest,
-             macos-latest,
-             windows-latest,
-             ubuntu-18.04,
-            ]
+        os: 
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+          - ubuntu-18.04
         ## Size of the following array must match --num-shards in lit command
         shard: [1, 2, 3, 4, 5]
         include:
@@ -131,7 +130,7 @@ jobs:
         XUNIT_SHARD_COUNT: 5
         DAFNY_RELEASE: ${{ github.workspace }}\unzippedRelease\dafny
       run: |
-        dotnet test -v:n dafny/Source/IntegrationTests/IntegrationTests.csproj
+        dotnet test -v:n --logger trx dafny/Source/IntegrationTests/IntegrationTests.csproj
     - name: Run integration tests
       if: runner.os != 'Windows'
       env:
@@ -139,7 +138,7 @@ jobs:
         XUNIT_SHARD_COUNT: 5
         DAFNY_RELEASE: ${{ github.workspace }}/unzippedRelease/dafny
       run: |
-        dotnet test -v:n dafny/Source/IntegrationTests/IntegrationTests.csproj
+        dotnet test -v:n --logger trx dafny/Source/IntegrationTests/IntegrationTests.csproj
     - uses: actions/upload-artifact@v2
       if: always()
       with:
