@@ -338,7 +338,7 @@ namespace Microsoft.Dafny {
           }
 
           return true;
-        
+
         case "noAutoReq":
           ignoreAutoReq = true;
           return true;
