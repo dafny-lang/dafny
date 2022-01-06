@@ -1902,8 +1902,8 @@ namespace Microsoft.Dafny.Compilers.Go {
     protected override ConcreteSyntaxTree CreateForeachLoop(string tmpVarName, Type collectionElementType, string boundVarName, Type boundVarType, bool introduceBoundVar,
       Bpl.IToken tok, out ConcreteSyntaxTree collectionWriter, ConcreteSyntaxTree wr) {
 
-      var okVar = FreshId("_ok");
-      var iterVar = FreshId("_iter");
+      var okVar = idGenerator.FreshId("_ok");
+      var iterVar = idGenerator.FreshId("_iter");
       wr.Write("for {0} := _dafny.Iterate(", iterVar);
       collectionWriter = wr.Fork();
       var wBody = wr.NewBlock(");;");
@@ -1941,8 +1941,8 @@ namespace Microsoft.Dafny.Compilers.Go {
     }
 
     protected override ConcreteSyntaxTree CreateForeachIngredientLoop(string boundVarName, int L, string tupleTypeArgs, out ConcreteSyntaxTree collectionWriter, ConcreteSyntaxTree wr) {
-      var okVar = FreshId("_ok");
-      var iterVar = FreshId("_iter");
+      var okVar = idGenerator.FreshId("_ok");
+      var iterVar = idGenerator.FreshId("_iter");
       wr.Write("for {0} := _dafny.Iterate(", iterVar);
       collectionWriter = wr.Fork();
       var wBody = wr.NewBlock(");;");
@@ -3262,14 +3262,14 @@ namespace Microsoft.Dafny.Compilers.Go {
         // EqualsUpToParameters check below
         ArrowType fat = from.AsArrowType, tat = to.AsArrowType;
         // We must wrap the whole conversion in an IIFE to avoid capturing the source expression
-        var bvName = FreshId("coer");
+        var bvName = idGenerator.FreshId("coer");
         CreateIIFE(bvName, fat, tok, tat, tok, wr, out var ans, out wr);
 
         wr.Write("func (");
         var sep = "";
         var args = new List<string>();
         foreach (Type toArgType in tat.Args) {
-          var arg = FreshId("arg");
+          var arg = idGenerator.FreshId("arg");
           args.Add(arg);
           wr.Write("{0}{1} {2}", sep, arg, TypeName(toArgType, wr, tok));
           sep = ", ";

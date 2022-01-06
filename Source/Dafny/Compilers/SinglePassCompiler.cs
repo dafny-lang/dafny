@@ -40,14 +40,6 @@ namespace Microsoft.Dafny {
 
     protected readonly FreshIdGenerator idGenerator = new FreshIdGenerator();
 
-    static FreshIdGenerator compileNameIdGenerator = new FreshIdGenerator();
-    public static string FreshId() {
-      return compileNameIdGenerator.FreshNumericId();
-    }
-    public static string FreshId(string prefix) {
-      return compileNameIdGenerator.FreshId(prefix);
-    }
-
     Dictionary<Expression, int> uniqueAstNumbers = new Dictionary<Expression, int>();
     int GetUniqueAstNumber(Expression expr) {
       Contract.Requires(expr != null);

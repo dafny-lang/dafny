@@ -3329,23 +3329,7 @@ namespace Microsoft.Dafny {
     }
 
     public static string IdProtect(string name) {
-      switch (DafnyOptions.O.CompileTarget) {
-        case DafnyOptions.CompilationTarget.Csharp:
-          return CsharpCompiler.PublicIdProtect(name);
-        case DafnyOptions.CompilationTarget.JavaScript:
-          return JavaScriptCompiler.PublicIdProtect(name);
-        case DafnyOptions.CompilationTarget.Go:
-          return GoCompiler.PublicIdProtect(name);
-        case DafnyOptions.CompilationTarget.Java:
-          return JavaCompiler.PublicIdProtect(name);
-        case DafnyOptions.CompilationTarget.Cpp:
-          return CppCompiler.PublicIdProtect(name);
-        case DafnyOptions.CompilationTarget.Python:
-          return PythonCompiler.PublicIdProtect(name);
-        default:
-          Contract.Assert(false);  // unexpected compile target
-          return name;
-      }
+      return DafnyOptions.O.CompilerFactoryInstance.PublicIdProtect(name);
     }
 
     public IToken tok;
@@ -4297,11 +4281,9 @@ namespace Microsoft.Dafny {
             return externArgs[0].AsStringLiteral() + "." + externArgs[1].AsStringLiteral();
           }
         }
-        if (EnclosingModuleDefinition.IsDefaultModule && DafnyOptions.O.CompileTarget == DafnyOptions.CompilationTarget.Csharp) {
-          return Declaration.IdProtect(CompileName);
-        } else {
-          return Declaration.IdProtect(EnclosingModuleDefinition.CompileName) + "." + Declaration.IdProtect(CompileName);
-        }
+
+        return DafnyOptions.O.CompilerFactoryInstance.GetCompileName(EnclosingModuleDefinition.IsDefaultModule, 
+          EnclosingModuleDefinition.CompileName, CompileName);
       }
     }
 
@@ -5838,6 +5820,7 @@ namespace Microsoft.Dafny {
     bool HasBeenAssignedUniqueName {  // unique names are not assigned until the Translator; if you don't already know if that stage has run, this boolean method will tell you
       get;
     }
+    static FreshIdGenerator CompileNameIdGenerator = new FreshIdGenerator();
     string AssignUniqueName(FreshIdGenerator generator);
     string CompileName {
       get;
@@ -5961,7 +5944,7 @@ namespace Microsoft.Dafny {
     public string AssignUniqueName(FreshIdGenerator generator) {
       if (uniqueName == null) {
         uniqueName = generator.FreshId(Name + "#");
-        compileName = string.Format("_{0}_{1}", SinglePassCompiler.FreshId(), CompilerizeName(name));
+        compileName = string.Format("_{0}_{1}", IVariable.CompileNameIdGenerator.FreshNumericId(), CompilerizeName(name));
       }
       return UniqueName;
     }
@@ -6005,7 +5988,7 @@ namespace Microsoft.Dafny {
     public virtual string CompileName {
       get {
         if (compileName == null) {
-          compileName = string.Format("_{0}_{1}", SinglePassCompiler.FreshId(), CompilerizeName(name));
+          compileName = string.Format("_{0}_{1}", IVariable.CompileNameIdGenerator.FreshNumericId(), CompilerizeName(name));
         }
         return compileName;
       }
@@ -7752,7 +7735,7 @@ namespace Microsoft.Dafny {
     public string AssignUniqueName(FreshIdGenerator generator) {
       if (uniqueName == null) {
         uniqueName = generator.FreshId(Name + "#");
-        compileName = string.Format("_{0}_{1}", SinglePassCompiler.FreshId(), NonglobalVariable.CompilerizeName(name));
+        compileName = string.Format("_{0}_{1}", IVariable.CompileNameIdGenerator.FreshNumericId(), NonglobalVariable.CompilerizeName(name));
       }
       return UniqueName;
     }
@@ -7760,7 +7743,7 @@ namespace Microsoft.Dafny {
     public string CompileName {
       get {
         if (compileName == null) {
-          compileName = string.Format("_{0}_{1}", SinglePassCompiler.FreshId(), NonglobalVariable.CompilerizeName(name));
+          compileName = string.Format("_{0}_{1}", IVariable.CompileNameIdGenerator.FreshNumericId(), NonglobalVariable.CompilerizeName(name));
         }
         return compileName;
       }
