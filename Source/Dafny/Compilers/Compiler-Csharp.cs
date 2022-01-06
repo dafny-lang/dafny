@@ -21,13 +21,31 @@ using System.Text.Json;
 using Microsoft.BaseTypes;
 using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 
-namespace Microsoft.Dafny {
-  public class CsharpCompiler : Compiler {
-    public CsharpCompiler(ErrorReporter reporter)
-      : base(reporter) {
-    }
+namespace Microsoft.Dafny.Compilers.Csharp {
+  public class Factory : CompilerFactory {
+    public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> {".cs", ".dll"};
 
     public override string TargetLanguage => "C#";
+    public override string TargetExtension => "cs";
+
+    public override string PublicIdProtect(string name) => Compiler.PublicIdProtect(name);
+    public override string GetCompileName(bool isDefaultModule, string moduleName, string compileName) {
+      return isDefaultModule ? PublicIdProtect(compileName) :
+        base.GetCompileName(isDefaultModule, moduleName, compileName);
+    }
+
+    public override bool SupportsInMemoryCompilation => true;
+    public override bool TextualTargetIsExecutable => false;
+
+    public override ICompiler CreateInstance(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
+      return new Compiler(this, reporter);
+    }
+  }
+
+  public class Compiler : SinglePassCompiler {
+    public Compiler(Factory factory, ErrorReporter reporter)
+      : base(factory, reporter) {
+    }
 
     const string DafnyISet = "Dafny.ISet";
     const string DafnyIMultiset = "Dafny.IMultiSet";
@@ -887,12 +905,12 @@ namespace Microsoft.Dafny {
     }
 
     protected class ClassWriter : IClassWriter {
-      public readonly CsharpCompiler Compiler;
+      public readonly Compiler Compiler;
       public readonly ConcreteSyntaxTree InstanceMemberWriter;
       public readonly ConcreteSyntaxTree StaticMemberWriter;
       public readonly ConcreteSyntaxTree CtorBodyWriter;
 
-      public ClassWriter(CsharpCompiler compiler, ConcreteSyntaxTree instanceMemberWriter, ConcreteSyntaxTree/*?*/ ctorBodyWriter, ConcreteSyntaxTree/*?*/ staticMemberWriter = null) {
+      public ClassWriter(Compiler compiler, ConcreteSyntaxTree instanceMemberWriter, ConcreteSyntaxTree/*?*/ ctorBodyWriter, ConcreteSyntaxTree/*?*/ staticMemberWriter = null) {
         Contract.Requires(compiler != null);
         Contract.Requires(instanceMemberWriter != null);
         this.Compiler = compiler;

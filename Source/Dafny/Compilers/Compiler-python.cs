@@ -7,12 +7,29 @@ using System.IO;
 using Microsoft.Boogie;
 
 
-namespace Microsoft.Dafny {
-  public class PythonCompiler : Compiler {
-    public PythonCompiler(ErrorReporter reporter) : base(reporter) {
-    }
-
+namespace Microsoft.Dafny.Compilers.Python {
+  public class Factory : CompilerFactory {
+    public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> {".py"};
+    
     public override string TargetLanguage => "Python";
+    public override string TargetExtension => "py";
+    
+    public override string PublicIdProtect(string name) => Compiler.PublicIdProtect(name);
+
+    public override bool SupportsInMemoryCompilation => true;
+    public override bool TextualTargetIsExecutable => true;
+    
+    public override IReadOnlySet<string> SupportedNativeTypes => new HashSet<string> {}; // FIXME
+    
+    public override ICompiler CreateInstance(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
+      return new Compiler(this, reporter);
+    }
+  }
+  
+  public class Compiler : SinglePassCompiler {
+    public Compiler(Factory factory, ErrorReporter reporter) 
+      : base(factory, reporter) {
+    }
 
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
       wr.WriteLine("# Dafny program {0} compiled into Python", program.Name);
@@ -25,7 +42,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw) {
-      var wr = (cw as PythonCompiler.ClassWriter).MethodWriter;
+      var wr = (cw as Compiler.ClassWriter).MethodWriter;
       return wr.WriteLine("def Main():");
     }
 
@@ -88,11 +105,11 @@ namespace Microsoft.Dafny {
     }
 
     protected class ClassWriter : IClassWriter {
-      public readonly PythonCompiler Compiler;
+      public readonly Compiler Compiler;
       public readonly ConcreteSyntaxTree MethodWriter;
       public readonly ConcreteSyntaxTree FieldWriter;
 
-      public ClassWriter(PythonCompiler compiler, ConcreteSyntaxTree methodWriter, ConcreteSyntaxTree fieldWriter) {
+      public ClassWriter(Compiler compiler, ConcreteSyntaxTree methodWriter, ConcreteSyntaxTree fieldWriter) {
         Contract.Requires(compiler != null);
         Contract.Requires(methodWriter != null);
         Contract.Requires(fieldWriter != null);
@@ -543,8 +560,6 @@ namespace Microsoft.Dafny {
       ConcreteSyntaxTree wr) {
       throw new NotImplementedException();
     }
-
-    public override bool TextualTargetIsExecutable => true;
 
     public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText,
       string /*?*/ callToMain, string /*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,

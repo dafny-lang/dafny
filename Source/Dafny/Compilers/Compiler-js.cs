@@ -15,13 +15,30 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using Bpl = Microsoft.Boogie;
 
-namespace Microsoft.Dafny {
-  public class JavaScriptCompiler : Compiler {
-    public JavaScriptCompiler(ErrorReporter reporter)
-    : base(reporter) {
-    }
+namespace Microsoft.Dafny.Compilers.Js {
+  public class Factory : CompilerFactory {
+    public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> {".js"};
 
     public override string TargetLanguage => "JavaScript";
+    public override string TargetExtension => "js";
+
+    public override string PublicIdProtect(string name) => Compiler.PublicIdProtect(name);
+    
+    public override bool SupportsInMemoryCompilation => true;
+    public override bool TextualTargetIsExecutable => true;
+    
+    public override IReadOnlySet<string> SupportedNativeTypes => 
+      new HashSet<string>(base.SupportedNativeTypes.Union(new List<string> { "number" }));
+    
+    public override ICompiler CreateInstance(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
+      return new Compiler(this, reporter);
+    }
+  }
+  
+  public class Compiler : SinglePassCompiler {
+    public Compiler(Factory factory, ErrorReporter reporter)
+      : base(factory, reporter) {
+    }
 
     const string DafnySetClass = "_dafny.Set";
     const string DafnyMultiSetClass = "_dafny.MultiSet";
@@ -45,7 +62,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw) {
-      var wr = (cw as JavaScriptCompiler.ClassWriter).MethodWriter;
+      var wr = (cw as Compiler.ClassWriter).MethodWriter;
       return wr.NewBlock("static Main()");
     }
 
@@ -138,7 +155,7 @@ namespace Microsoft.Dafny {
       //     }
       //   }
 
-      var cw = CreateClass(IdProtect(iter.EnclosingModuleDefinition.CompileName), IdName(iter), iter, wr) as JavaScriptCompiler.ClassWriter;
+      var cw = CreateClass(IdProtect(iter.EnclosingModuleDefinition.CompileName), IdName(iter), iter, wr) as Compiler.ClassWriter;
       var w = cw.MethodWriter;
       var instanceFieldsWriter = cw.FieldWriter;
       // here come the fields
@@ -574,11 +591,11 @@ namespace Microsoft.Dafny {
     }
 
     protected class ClassWriter : IClassWriter {
-      public readonly JavaScriptCompiler Compiler;
+      public readonly Compiler Compiler;
       public readonly ConcreteSyntaxTree MethodWriter;
       public readonly ConcreteSyntaxTree FieldWriter;
 
-      public ClassWriter(JavaScriptCompiler compiler, ConcreteSyntaxTree methodWriter, ConcreteSyntaxTree fieldWriter) {
+      public ClassWriter(Compiler compiler, ConcreteSyntaxTree methodWriter, ConcreteSyntaxTree fieldWriter) {
         Contract.Requires(compiler != null);
         Contract.Requires(methodWriter != null);
         Contract.Requires(fieldWriter != null);
@@ -2347,8 +2364,6 @@ namespace Microsoft.Dafny {
     }
 
     // ----- Target compilation and execution -------------------------------------------------------------
-
-    public override bool TextualTargetIsExecutable => true;
 
     public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
       bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {

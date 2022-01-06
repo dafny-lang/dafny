@@ -17,16 +17,32 @@ using System.Text.RegularExpressions;
 using Bpl = Microsoft.Boogie;
 using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 
-namespace Microsoft.Dafny {
-  public class GoCompiler : Compiler {
-    public GoCompiler(ErrorReporter reporter)
-    : base(reporter) {
+namespace Microsoft.Dafny.Compilers.Go {
+  public class Factory : CompilerFactory {
+    public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> {".go"};
+
+    public override string TargetLanguage => "Go";
+    public override string TargetExtension => "go";
+    public override string TargetBaseDir(string baseName) => baseName + "-go/src";
+
+    public override string PublicIdProtect(string name) => Compiler.PublicIdProtect(name);
+
+    public override bool SupportsInMemoryCompilation => false;
+    public override bool TextualTargetIsExecutable => false;
+
+    public override ICompiler CreateInstance(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
+      return new Compiler(this, reporter);
+    }
+  }
+
+  public class Compiler : SinglePassCompiler {
+    public Compiler(Factory factory, ErrorReporter reporter)
+    : base(factory, reporter) {
       if (DafnyOptions.O.CoverageLegendFile != null) {
         Imports.Add(new Import { Name = "DafnyProfiling", Path = "DafnyProfiling" });
       }
     }
 
-    public override string TargetLanguage => "Go";
 
     static string FormatDefaultTypeParameterValue(TopLevelDecl tp) {
       Contract.Requires(tp is TypeParameter || tp is OpaqueTypeDecl);
@@ -114,8 +130,8 @@ namespace Microsoft.Dafny {
     }
 
     protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw) {
-      var wr = ((GoCompiler.ClassWriter)cw).ConcreteMethodWriter;
-      return wr.NewNamedBlock("func (_this * {0}) Main()", FormatCompanionTypeName(((GoCompiler.ClassWriter)cw).ClassName));
+      var wr = ((Compiler.ClassWriter)cw).ConcreteMethodWriter;
+      return wr.NewNamedBlock("func (_this * {0}) Main()", FormatCompanionTypeName(((Compiler.ClassWriter)cw).ClassName));
     }
 
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern, string/*?*/ libraryName, ConcreteSyntaxTree wr) {
@@ -191,7 +207,7 @@ namespace Microsoft.Dafny {
     }
 
     // TODO Consider splitting this into two functions; most things seem to bepassing includeRtd: false and includeEquals: false.
-    private GoCompiler.ClassWriter CreateClass(string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, ConcreteSyntaxTree wr, bool includeRtd, bool includeEquals) {
+    private Compiler.ClassWriter CreateClass(string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, ConcreteSyntaxTree wr, bool includeRtd, bool includeEquals) {
       // See docs/Compilation/ReferenceTypes.md for a description of how instance members of classes and traits are compiled into Go.
       //
       // func New_Class_(Type0 _dafny.TypeDescriptor, Type1 _dafny.TypeDescriptor) *Class {
@@ -969,13 +985,13 @@ namespace Microsoft.Dafny {
       }
     }
     protected class ClassWriter : IClassWriter {
-      public readonly GoCompiler Compiler;
+      public readonly Compiler Compiler;
       public readonly string ClassName;
       public readonly bool IsExtern;
       public readonly ConcreteSyntaxTree/*?*/ AbstractMethodWriter, ConcreteMethodWriter, InstanceFieldWriter, InstanceFieldInitWriter, TraitInitWriter, StaticFieldWriter, StaticFieldInitWriter;
       public bool AnyInstanceFields { get; private set; } = false;
 
-      public ClassWriter(GoCompiler compiler, string className, bool isExtern, ConcreteSyntaxTree abstractMethodWriter, ConcreteSyntaxTree concreteMethodWriter,
+      public ClassWriter(Compiler compiler, string className, bool isExtern, ConcreteSyntaxTree abstractMethodWriter, ConcreteSyntaxTree concreteMethodWriter,
         ConcreteSyntaxTree/*?*/ instanceFieldWriter, ConcreteSyntaxTree/*?*/ instanceFieldInitWriter, ConcreteSyntaxTree/*?*/ traitInitWriter,
         ConcreteSyntaxTree staticFieldWriter, ConcreteSyntaxTree staticFieldInitWriter) {
         Contract.Requires(compiler != null);
@@ -1305,7 +1321,7 @@ namespace Microsoft.Dafny {
     protected override bool SupportsStaticsInGenericClasses => false;
     protected override bool TraitRepeatsInheritedDeclarations => true;
 
-    private void FinishClass(GoCompiler.ClassWriter cw) {
+    private void FinishClass(Compiler.ClassWriter cw) {
       // Go gets weird about zero-length structs.  In particular, it likes to
       // make all pointers to a zero-length struct the same.  Irritatingly, this
       // forces us to waste space here.
@@ -3429,8 +3445,6 @@ namespace Microsoft.Dafny {
     }
 
     // ----- Target compilation and execution -------------------------------------------------------------
-
-    public override bool SupportsInMemoryCompilation => false;
 
     public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
       bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {

@@ -21,15 +21,15 @@ using Microsoft.BaseTypes;
 
 
 namespace Microsoft.Dafny {
-  public abstract class Compiler {
-    public Compiler(ErrorReporter reporter) {
+  public abstract class SinglePassCompiler : ICompiler {
+    public SinglePassCompiler(CompilerFactory factory, ErrorReporter reporter) {
+      Factory = factory;
       Reporter = reporter;
       Coverage = new CoverageInstrumenter(this);
     }
 
     public static string DefaultNameMain = "Main";
 
-    public abstract string TargetLanguage { get; }
     protected virtual string ModuleSeparator { get => "."; }
     protected virtual string ClassAccessor { get => "."; }
 
@@ -58,19 +58,24 @@ namespace Microsoft.Dafny {
       }
       return n;
     }
+    
+    public CompilerFactory Factory { get; }
 
     public ErrorReporter Reporter;
 
     public CoverageInstrumenter Coverage;
 
-    protected void Error(Bpl.IToken tok, string msg, ConcreteSyntaxTree/*?*/ wr, params object[] args) {
+    protected static void ReportError(ErrorReporter reporter, Bpl.IToken tok, string msg, ConcreteSyntaxTree/*?*/ wr, params object[] args) {
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
 
-      Reporter.Error(MessageSource.Compiler, tok, msg, args);
-      if (wr != null) {
-        wr.WriteLine("/* {0} */", string.Format("Compilation error: " + msg, args));
-      }
+      reporter.Error(MessageSource.Compiler, tok, msg, args);
+      // FIXME this is not valid syntax in all supported languages (e.g. Python)
+      wr?.WriteLine("/* {0} */", string.Format("Compilation error: " + msg, args));
+    }
+
+    protected void Error(Bpl.IToken tok, string msg, ConcreteSyntaxTree wr, params object[] args) {
+      ReportError(Reporter, tok, msg, wr, args);
     }
 
     protected string IntSelect = ",int";
@@ -111,15 +116,6 @@ namespace Microsoft.Dafny {
     protected virtual bool TraitRepeatsInheritedDeclarations => false;
     protected IClassWriter CreateClass(string moduleName, string name, TopLevelDecl cls, ConcreteSyntaxTree wr) {
       return CreateClass(moduleName, name, false, null, cls.TypeArgs, cls, null, null, wr);
-    }
-
-    /// <summary>
-    /// Transforms a legal file name (without extension or directory) into
-    /// a legal class name in the target language
-    /// </summary>
-    public virtual string TransformToClassName(string baseName) {
-      Contract.Requires(baseName != null);
-      return baseName;
     }
 
     /// <summary>
@@ -1358,7 +1354,7 @@ namespace Microsoft.Dafny {
       return IdProtect(formal.HasName ? formal.CompileName : "_a" + i);
     }
 
-    public bool HasMain(Program program, out Method mainMethod) {
+    public static bool HasMain(Program program, out Method mainMethod) {
       Contract.Ensures(Contract.Result<bool>() == (Contract.ValueAtReturn(out mainMethod) != null));
       mainMethod = null;
       bool hasMain = false;
@@ -1366,7 +1362,7 @@ namespace Microsoft.Dafny {
       if (name != null && name == "-") {
         return false;
       }
-
+      
       if (name != null && name != "") {
         foreach (var module in program.CompileModules) {
           if (module.IsAbstract) {
@@ -1379,7 +1375,7 @@ namespace Microsoft.Dafny {
                 if (member is Method m && member.FullDafnyName == name) {
                   mainMethod = m;
                   if (!IsPermittedAsMain(mainMethod, out string reason)) {
-                    Error(mainMethod.tok, "The method \"{0}\" is not permitted as a main method ({1}).", null, name, reason);
+                    ReportError(program.reporter, mainMethod.tok, "The method \"{0}\" is not permitted as a main method ({1}).", null, name, reason);
                     mainMethod = null;
                     return false;
                   } else {
@@ -1390,7 +1386,7 @@ namespace Microsoft.Dafny {
             }
           }
         }
-        Error(program.DefaultModule.tok, "Could not find the method named by the -Main option: {0}", null, name);
+        ReportError(program.reporter, program.DefaultModule.tok, "Could not find the method named by the -Main option: {0}", null, name);
       }
       foreach (var module in program.CompileModules) {
         if (module.IsAbstract) {
@@ -1408,7 +1404,7 @@ namespace Microsoft.Dafny {
                   hasMain = true;
                 } else {
                   // more than one main in the program
-                  Error(m.tok, "More than one method is marked \"{{:main}}\". First declaration appeared at {0}.", null,
+                  ReportError(program.reporter, m.tok, "More than one method is marked \"{{:main}}\". First declaration appeared at {0}.", null,
                     ErrorReporter.TokenToString(mainMethod.tok));
                   hasMain = false;
                 }
@@ -1419,7 +1415,7 @@ namespace Microsoft.Dafny {
       }
       if (hasMain) {
         if (!IsPermittedAsMain(mainMethod, out string reason)) {
-          Error(mainMethod.tok, "This method marked \"{{:main}}\" is not permitted as a main method ({0}).", null, reason);
+          ReportError(program.reporter, mainMethod.tok, "This method marked \"{{:main}}\" is not permitted as a main method ({0}).", null, reason);
           mainMethod = null;
           return false;
         } else {
@@ -1448,7 +1444,7 @@ namespace Microsoft.Dafny {
                   hasMain = true;
                 } else {
                   // more than one main in the program
-                  Error(m.tok, "More than one method is declared as \"{0}\". First declaration appeared at {1}.", null,
+                  ReportError(program.reporter, m.tok, "More than one method is declared as \"{0}\". First declaration appeared at {1}.", null,
                     DefaultNameMain, ErrorReporter.TokenToString(mainMethod.tok));
                   hasMain = false;
                 }
@@ -1460,7 +1456,7 @@ namespace Microsoft.Dafny {
 
       if (hasMain) {
         if (!IsPermittedAsMain(mainMethod, out string reason)) {
-          Error(mainMethod.tok, "This method \"Main\" is not permitted as a main method ({0}).", null, reason);
+          ReportError(program.reporter, mainMethod.tok, "This method \"Main\" is not permitted as a main method ({0}).", null, reason);
           return false;
         } else {
           return true;
@@ -2618,9 +2614,9 @@ namespace Microsoft.Dafny {
     // ----- Stmt ---------------------------------------------------------------------------------
 
     public class CheckHasNoAssumes_Visitor : BottomUpVisitor {
-      readonly Compiler compiler;
+      readonly SinglePassCompiler compiler;
       ConcreteSyntaxTree wr;
-      public CheckHasNoAssumes_Visitor(Compiler c, ConcreteSyntaxTree wr) {
+      public CheckHasNoAssumes_Visitor(SinglePassCompiler c, ConcreteSyntaxTree wr) {
         Contract.Requires(c != null);
         compiler = c;
         this.wr = wr;
@@ -3579,16 +3575,16 @@ namespace Microsoft.Dafny {
     }
 
     private class SimpleLvalueImpl : ILvalue {
-      private readonly Compiler Compiler;
+      private readonly SinglePassCompiler Compiler;
       private readonly Action<ConcreteSyntaxTree> LvalueAction, RvalueAction;
 
-      public SimpleLvalueImpl(Compiler compiler, Action<ConcreteSyntaxTree> action) {
+      public SimpleLvalueImpl(SinglePassCompiler compiler, Action<ConcreteSyntaxTree> action) {
         Compiler = compiler;
         LvalueAction = action;
         RvalueAction = action;
       }
 
-      public SimpleLvalueImpl(Compiler compiler, Action<ConcreteSyntaxTree> lvalueAction, Action<ConcreteSyntaxTree> rvalueAction) {
+      public SimpleLvalueImpl(SinglePassCompiler compiler, Action<ConcreteSyntaxTree> lvalueAction, Action<ConcreteSyntaxTree> rvalueAction) {
         Compiler = compiler;
         LvalueAction = lvalueAction;
         RvalueAction = rvalueAction;
@@ -3606,12 +3602,12 @@ namespace Microsoft.Dafny {
     }
 
     private class CoercedLvalueImpl : ILvalue {
-      private readonly Compiler Compiler;
+      private readonly SinglePassCompiler Compiler;
       private readonly ILvalue lvalue;
       private readonly Type /*?*/ from;
       private readonly Type /*?*/ to;
 
-      public CoercedLvalueImpl(Compiler compiler, ILvalue lvalue, Type/*?*/ from, Type/*?*/ to) {
+      public CoercedLvalueImpl(SinglePassCompiler compiler, ILvalue lvalue, Type/*?*/ from, Type/*?*/ to) {
         Compiler = compiler;
         this.lvalue = lvalue;
         this.from = from;
@@ -5072,9 +5068,6 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public virtual bool SupportsInMemoryCompilation => true;
-    public virtual bool TextualTargetIsExecutable => false;
-
     /// <summary>
     /// Compile the target program known as "dafnyProgramName".
     /// "targetProgramText" contains the program text.
@@ -5097,7 +5090,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(targetProgramText != null);
       Contract.Requires(otherFileNames != null);
       Contract.Requires(otherFileNames.Count == 0 || targetFilename != null);
-      Contract.Requires(this.SupportsInMemoryCompilation || targetFilename != null);
+      Contract.Requires(this.Factory.SupportsInMemoryCompilation || targetFilename != null);
       Contract.Requires(!runAfterCompile || callToMain != null);
       Contract.Requires(outputWriter != null);
 
@@ -5125,10 +5118,10 @@ namespace Microsoft.Dafny {
   }
 
   public class CoverageInstrumenter {
-    private readonly Compiler compiler;
+    private readonly SinglePassCompiler compiler;
     private List<(Bpl.IToken, string)>/*?*/ legend;  // non-null implies DafnyOptions.O.CoverageLegendFile is non-null
 
-    public CoverageInstrumenter(Compiler compiler) {
+    public CoverageInstrumenter(SinglePassCompiler compiler) {
       this.compiler = compiler;
       if (DafnyOptions.O.CoverageLegendFile != null) {
         legend = new List<(Bpl.IToken, string)>();

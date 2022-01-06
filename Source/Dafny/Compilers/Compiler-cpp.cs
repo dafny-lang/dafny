@@ -17,10 +17,26 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Bpl = Microsoft.Boogie;
 
-namespace Microsoft.Dafny {
-  public class CppCompiler : Compiler {
-    public CppCompiler(ErrorReporter reporter, ReadOnlyCollection<string> otherHeaders)
-    : base(reporter) {
+namespace Microsoft.Dafny.Compilers.Cpp {
+  public class Factory : CompilerFactory {
+    public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> {".h"};
+
+    public override string TargetLanguage => "Cpp";
+    public override string TargetExtension => "cpp";
+
+    public override string PublicIdProtect(string name) => Compiler.PublicIdProtect(name);
+
+    public override bool SupportsInMemoryCompilation => false;
+    public override bool TextualTargetIsExecutable => false;
+
+    public override ICompiler CreateInstance(ErrorReporter reporter, ReadOnlyCollection<string> otherFilenames) {
+      return new Compiler(this, reporter, otherFilenames);
+    }
+  }
+
+  public class Compiler : SinglePassCompiler {
+    public Compiler(Factory factory, ErrorReporter reporter, ReadOnlyCollection<string> otherHeaders)
+    : base(factory, reporter) {
       this.headers = otherHeaders;
       this.datatypeDecls = new List<DatatypeDecl>();
       this.classDefaults = new List<string>();
@@ -53,12 +69,9 @@ namespace Microsoft.Dafny {
     const string DafnyMultiSetClass = "DafnyMultiset";
     const string DafnySeqClass = "DafnySequence";
     const string DafnyMapClass = "DafnyMap";
-
-    public override string TargetLanguage => "Cpp";
+    
     protected override string ModuleSeparator => "::";
     protected override string ClassAccessor => "->";
-
-    public override bool SupportsInMemoryCompilation => false;
 
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
       wr.WriteLine("// Dafny program {0} compiled into Cpp", program.Name);
@@ -112,7 +125,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw) {
-      var wr = (cw as CppCompiler.ClassWriter).MethodWriter;
+      var wr = (cw as Compiler.ClassWriter).MethodWriter;
       return wr.NewBlock("int main()");
     }
 
@@ -574,7 +587,7 @@ namespace Microsoft.Dafny {
         throw NotSupported(String.Format("non-native newtype {0}", nt));
       }
       var className = "class_" + IdName(nt);
-      var cw = CreateClass(nt.EnclosingModuleDefinition.CompileName, className, nt, wr) as CppCompiler.ClassWriter;
+      var cw = CreateClass(nt.EnclosingModuleDefinition.CompileName, className, nt, wr) as Compiler.ClassWriter;
       var w = cw.MethodDeclWriter;
       if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var witness = new ConcreteSyntaxTree(w.RelativeIndentLevel);
@@ -613,7 +626,7 @@ namespace Microsoft.Dafny {
       this.modDeclWr.WriteLine("{0} using {1} = {2};", templateDecl, IdName(sst), TypeName(sst.Var.Type, wr, sst.tok));
 
       var className = "class_" + IdName(sst);
-      var cw = CreateClass(sst.EnclosingModuleDefinition.CompileName, className, sst, wr) as CppCompiler.ClassWriter;
+      var cw = CreateClass(sst.EnclosingModuleDefinition.CompileName, className, sst, wr) as Compiler.ClassWriter;
       var w = cw.MethodDeclWriter;
 
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
@@ -666,13 +679,13 @@ namespace Microsoft.Dafny {
 
     protected class ClassWriter : IClassWriter {
       public string ClassName;
-      public readonly CppCompiler Compiler;
+      public readonly Compiler Compiler;
       public readonly ConcreteSyntaxTree MethodDeclWriter;
       public readonly ConcreteSyntaxTree MethodWriter;
       public readonly ConcreteSyntaxTree FieldWriter;
       public readonly ConcreteSyntaxTree Finisher;
 
-      public ClassWriter(string className, CppCompiler compiler, ConcreteSyntaxTree methodDeclWriter, ConcreteSyntaxTree methodWriter, ConcreteSyntaxTree fieldWriter, ConcreteSyntaxTree finisher) {
+      public ClassWriter(string className, Compiler compiler, ConcreteSyntaxTree methodDeclWriter, ConcreteSyntaxTree methodWriter, ConcreteSyntaxTree fieldWriter, ConcreteSyntaxTree finisher) {
         Contract.Requires(compiler != null);
         Contract.Requires(methodDeclWriter != null);
         Contract.Requires(methodWriter != null);
