@@ -18566,8 +18566,19 @@ namespace Microsoft.Dafny {
       return skip;
     }
 
+    private bool isFieldSpecification(string field, object parent) {
+      return field != null && parent != null && (
+        (parent is Statement && field == "SpecificationSubExpressions") ||
+        (parent is Function && (field is "Req.E" or "Reads.E" or "Ens.E" or "Decreases.Expressions")) ||
+        (parent is Method && (field is "Req.E" or "Mod.E" or "Ens.E" or "Decreases.Expressions"))
+      );
+    }
+
     public override bool Traverse(Expression expr, [CanBeNull] string field, [CanBeNull] object parent) {
       if (expr == null) {
+        return false;
+      }
+      if (isFieldSpecification(field, parent)) {
         return false;
       }
       // Since we skipped ghost code, the code has to be compiled here. 
