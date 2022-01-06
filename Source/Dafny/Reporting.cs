@@ -199,7 +199,14 @@ namespace Microsoft.Dafny {
 
         ConsoleColor previousColor = Console.ForegroundColor;
         Console.ForegroundColor = ColorForLevel(level);
-        Console.WriteLine(ErrorToString(level, tok, msg));
+        var errorLine = ErrorToString(level, tok, msg);
+        while (tok is NestedToken nt) {
+          tok = nt.Inner;
+          msg = nt.Message ?? "[Related location]";
+          errorLine += " " + msg + " (" + (TokenToString(tok) + ").");
+        }
+        Console.WriteLine(errorLine);
+
         Console.ForegroundColor = previousColor;
         return true;
       } else {
@@ -233,6 +240,21 @@ namespace Microsoft.Dafny {
     public override bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg) {
       base.Message(source, level, tok, msg);
       return WrappedReporter.Message(source, level, tok, msgPrefix + msg);
+    }
+  }
+
+  public class SimpleErrorCorrector : ErrorReporter {
+    public List<string> CollectedMessages = new();
+    public List<IToken> CollectedTokens = new();
+
+    public override bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg) {
+      CollectedMessages.Add(msg);
+      CollectedTokens.Add(tok);
+      return true;
+    }
+
+    public override int Count(ErrorLevel level) {
+      throw new NotImplementedException();
     }
   }
 }
