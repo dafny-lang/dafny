@@ -8,6 +8,7 @@
 // Java avoids this problem by not even allowing traits in datatypes.
 
 datatype Co<+T> = Co(T)
+datatype Contra<-T> = Contra(f: T -> bool)
 
 trait X {}
 
@@ -15,7 +16,7 @@ class Y extends X {
   constructor Y() {}
 }
 
-method Downcast() {
+method DowncastCo() {
   var i := new Y.Y();
   var a: Co<X> := Co(i);
   var b: Co<Y>;
@@ -23,7 +24,26 @@ method Downcast() {
   print a, " and ", b, "\n";
 }
 
+method DowncastContra() {
+  var y := new Y.Y();
+  var i: Contra<X> := Contra(_ => false);
+  var a: Contra<Y> := i;
+  var b: Contra<X>;
+  b := a;
+  print a.f(y), " and ", b.f(y), "\n";
+}
+
+method DowncastFunc() {
+  var i := new Y.Y();
+  var a: bool -> X := (_ => i);
+  var b: bool -> Y;
+  b := a;
+  print a(false), " and ", b(false), "\n";
+}
+
 method Main(){
-  Downcast();
+  DowncastCo();
+  DowncastContra();
+  DowncastFunc();
   print "Done\n";
 }
