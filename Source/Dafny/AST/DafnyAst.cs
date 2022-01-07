@@ -10223,6 +10223,7 @@ namespace Microsoft.Dafny {
       var receiverType = obj.Type.NormalizeExpand();
       this.TypeApplication_AtEnclosingClass = receiverType.TypeArgs;
       this.TypeApplication_JustMember = new List<Type>();
+      this.ResolvedOutparameterTypes = new List<Type>();
 
       var typeMap = new Dictionary<TypeParameter, Type>();
       if (receiverType is UserDefinedType udt) {
@@ -10275,6 +10276,8 @@ namespace Microsoft.Dafny {
     }
 
     public override IEnumerable<Type> ComponentTypes => Util.Concat(TypeApplication_AtEnclosingClass, TypeApplication_JustMember);
+
+    public List<Type> ResolvedOutparameterTypes; // filled in during resolution
   }
 
   public class SeqSelectExpr : Expression {
