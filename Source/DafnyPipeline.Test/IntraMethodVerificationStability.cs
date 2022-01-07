@@ -61,19 +61,21 @@ method SomeMethod(methodFormal: int) returns (result: bool)
 
 module SomeModule2 {
 
-  module NestedModule {
-      class C {
-        var f: int
+  module NestedModule2 {
+      class C2 {
+        var f2: int
         constructor ()
       }
     }
 
-    method m() {
-      var x: NestedModule.C;
-      x := new NestedModule.C();
-      x.f := 4;
+    method m2() {
+      var x2: NestedModule2.C2;
+      x2 := new NestedModule2.C2();
+      x2.f2 := 4;
     }
 }
+
+import opened SomeModule2
 
 type FooSynonym2<T> = FooClass2
 
@@ -86,16 +88,58 @@ datatype Friends2 = Agnes2 | Agatha2 | Jermaine2
 
 function method SomeFunc2(funcFormal: int): nat { 3 }
 
-method SomeMethod2(methodFormal: int) returns (result: bool) 
-  requires methodFormal == 2
-  ensures result == true
+method SomeMethod2(methodFormal2: int) returns (result2: bool) 
+  requires methodFormal2 == 2
+  ensures result2 == true
   // ensures forall x :: x == methodFormal
 {
-  var lambdaExpr := x => x + 1;
-  result := methodFormal == SomeFunc2(42);
+  m2();
+  var lambdaExpr2 := x => x + 1;
+  result2 := methodFormal2 == SomeFunc2(42);
 }
 ";
 
+    readonly string reorderedProgram = @"
+method SomeMethod(methodFormal: int) returns (result: bool)
+  requires methodFormal == 2
+  ensures result == true 
+  // ensures forall x :: x == methodFormal
+{
+  m();
+  var lambdaExpr := x => x + 1;
+  result := methodFormal == SomeFunc(42);
+}
+
+function method SomeFunc(funcFormal: int): nat { 3 }
+
+datatype Friends = Agnes | Agatha | Jermaine
+
+class FooClass {
+  var f: int
+  constructor ()
+}
+
+type FooSynonym<T> = FooClass
+
+import opened SomeModule
+
+module SomeModule {
+
+  module NestedModule {
+    class C {
+      var f: int
+      constructor ()
+    }
+  }
+
+  method m() {
+    var x: NestedModule.C;
+    x := new NestedModule.C();
+    x.f := 4;
+  }
+}
+";
+    
     public IntraMethodVerificationStability(ITestOutputHelper testOutputHelper) {
       this.testOutputHelper = testOutputHelper;
     }
@@ -116,6 +160,31 @@ method SomeMethod2(methodFormal: int) returns (result: bool)
       Assert.Equal(Enumerable.Empty<string>(), uniqueLines);
     }
 
+    [Fact]
+    public void EqualProverLogWhenReorderingProgram() {
+      DafnyOptions.Install(new DafnyOptions());
+      CommandLineOptions.Clo.Parse(new[] { "" });
+      CommandLineOptions.Clo.ProcsToCheck.Add("*SomeMethod");
+      ExecutionEngine.printer = new ConsolePrinter(); // For boogie errors
+
+      var reorderedProverLog = GetProverLogForProgram(GetBoogie(reorderedProgram));
+      var regularProverLog = GetProverLogForProgram(GetBoogie(originalProgram));
+      Assert.Equal(regularProverLog, reorderedProverLog);
+    }
+    
+    [Fact]
+    public void EqualProverLogWhenRenamingProgram() {
+
+      DafnyOptions.Install(new DafnyOptions());
+      CommandLineOptions.Clo.Parse(new[] { "" });
+      CommandLineOptions.Clo.ProcsToCheck.Add("*SomeMethod*");
+      ExecutionEngine.printer = new ConsolePrinter(); // For boogie errors
+
+      var renamedProverLog = GetProverLogForProgram(GetBoogie(renamedProgram));
+      var regularProverLog = GetProverLogForProgram(GetBoogie(originalProgram));
+      Assert.Equal(regularProverLog, renamedProverLog);
+    }
+    
     [Fact]
     public void EqualProverLogWhenAddingUnrelatedProgram() {
 
