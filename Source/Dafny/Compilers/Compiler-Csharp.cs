@@ -141,7 +141,7 @@ namespace Microsoft.Dafny {
 
     const string DafnyTypeDescriptor = "Dafny.TypeDescriptor";
 
-    string TypeParameters(List<TypeParameter>/*?*/ targs, bool addVariance = false) {
+    private string TypeParameters(List<TypeParameter>/*?*/ targs, bool addVariance = false, bool uniqueNames = false) {
       Contract.Requires(targs == null || cce.NonNullElements(targs));
       Contract.Ensures(Contract.Result<string>() != null);
 
@@ -149,19 +149,21 @@ namespace Microsoft.Dafny {
         return "";
       }
 
-      Func<TypeParameter, string> printTypeArgument = tArg => {
+      string PrintVariance(TypeParameter.TPVariance variance) {
         if (addVariance) {
-          switch (tArg.Variance) {
+          switch (variance) {
             case TypeParameter.TPVariance.Co:
-              return $"out {IdName(tArg)}";
+              return "out ";
             case TypeParameter.TPVariance.Contra:
-              return $"in {IdName(tArg)}";
+              return "in ";
           }
         }
-        return IdName(tArg);
-      };
+        return "";
+      }
 
-      return $"<{targs.Comma(printTypeArgument)}>";
+      string PrintTypeParameter(TypeParameter tArg) => $"{PrintVariance(tArg.Variance)}{(uniqueNames ? "__" : "")}{IdName(tArg)}";
+
+      return $"<{targs.Comma(PrintTypeParameter)}>";
     }
 
     protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string /*?*/ fullPrintName,
@@ -330,6 +332,8 @@ namespace Microsoft.Dafny {
       //   T0 dtor_Dtor0 { get; }
       //   ...
       //
+      //   _IDt<U> DowncastClone<U>(Func<T0, U0> converter0, ...);
+      //
       //   // Members that don't violate C# variance restrictions
       // }
       //
@@ -374,6 +378,8 @@ namespace Microsoft.Dafny {
       //       return ((DT_Ctor(n-1))d).Dtor0;  // for record types: drop cast
       //    }}
       //   ...
+      //
+      //   public abstract _IDt<U> DowncastClone<U>(Func<T0, U0> converter0, ...); // for record types: implementation
       //
       //   // Implementations of all members, but possibly (variance) rewritten to be static.
       // }
@@ -464,9 +470,80 @@ namespace Microsoft.Dafny {
 
       CompileDatatypeDestructorsAndAddToInterface(dt, wr, interfaceTree, DtT_TypeArgs);
 
+      CompileDatatypeDowncastClone(dt, interfaceTree, nonGhostTypeArgs, toInterface: true);
+      if (!dt.IsRecordType) {
+        CompileDatatypeDowncastClone(dt, wr, nonGhostTypeArgs);
+      }
+
       CompileDatatypeInterfaceMembers(dt, interfaceTree);
 
       return new ClassWriter(this, btw, null);
+    }
+
+    /// <summary>
+    /// Generate the "DowncastClone" code for a generated datatype. This includes the exported signature for the interface,
+    /// the abstract method for the abstract class, and the actual implementations for the constructor classes. If the
+    /// datatype is a record type, there is no abstract class, so the method is directly emitted.
+    /// toInterface: just the signature for the interface
+    /// lazy: convert a codatatype's "__Lazy" class's computer
+    /// ctor: constructor to generate the method for
+    /// </summary>
+    private void CompileDatatypeDowncastClone(DatatypeDecl datatype, ConcreteSyntaxTree wr,
+        List<TypeParameter> nonGhostTypeArgs, bool toInterface = false, bool lazy = false, DatatypeCtor ctor = null) {
+      if (nonGhostTypeArgs.Any(ty => ty.Variance == TypeParameter.TPVariance.Contra)
+          || datatype.Ctors.Any(ctor => ctor.Formals.Any(f => !f.IsGhost && (f.Type.IsArrowType || f.Type.IsRefType)))) {
+        return;
+      }
+      var typeArgs = TypeParameters(nonGhostTypeArgs, uniqueNames: true);
+      var dtArgs = "_I" + datatype.CompileName + typeArgs;
+      string PrintConverter(TypeParameter tArg, int i) {
+        var name = IdName(tArg);
+        return $"Func<{name}, __{name}> converter{i}";
+      }
+
+      if (!toInterface) {
+        wr.Write($"public {((ctor != null || lazy) ? (datatype.IsRecordType ? "" : "override ") : "abstract ")}");
+      }
+
+      wr.Write($"{dtArgs} DowncastClone{typeArgs}({nonGhostTypeArgs.Comma(PrintConverter)})");
+
+      if (ctor == null && !lazy) {
+        wr.WriteLine(";");
+        return;
+      }
+
+      string PrintInvocation(Formal f, int i) {
+        var (name, type) = (FormalName(f, i), f.Type);
+        var constructorIndex = -1;
+        bool ContainsTyVar(TypeParameter tp, Type ty)
+          => (ty.AsTypeParameter != null && ty.AsTypeParameter.Equals(tp))
+             || ty.TypeArgs.Exists(ty => ContainsTyVar(tp, ty));
+
+        if ((constructorIndex = nonGhostTypeArgs.IndexOf(type.AsTypeParameter)) != -1) {
+          return $"converter{constructorIndex}({name})";
+        }
+
+        if (nonGhostTypeArgs.Exists(ty => ContainsTyVar(ty, type))) {
+          var map = nonGhostTypeArgs.ToDictionary(
+            tp => tp,
+            tp => (Type)new UserDefinedType(tp.tok, new TypeParameter(tp.tok, $"_{tp.Name}", tp.VarianceSyntax)));
+          var to = Resolver.SubstType(type, map);
+          var downcast = new ConcreteSyntaxTree();
+          EmitDowncast(type, to, null, downcast).Write(name);
+          return downcast.ToString();
+        }
+
+        return name;
+      }
+
+      var wBody = wr.NewBlock("").WriteLine($"if (this is {dtArgs} dt) {{ return dt; }}");
+      var constructorArgs = lazy switch {
+        true => $"() => c().DowncastClone{typeArgs}({ nonGhostTypeArgs.Comma((_, i) => $"converter{i}") })",
+        false => ctor.Formals.Where(f => !f.IsGhost).Comma(PrintInvocation)
+      };
+
+      var className = lazy ? $"{datatype.CompileName}__Lazy" : DtCtorDeclarationName(ctor);
+      wBody.WriteLine($"return new {className}{typeArgs}({constructorArgs});");
     }
 
     private void CompileDatatypeDestructorsAndAddToInterface(DatatypeDecl dt, ConcreteSyntaxTree wr,
@@ -551,10 +628,9 @@ namespace Microsoft.Dafny {
       //Dafny and C# have different ideas about variance, so not every datatype member can be in the interface.
       if (!member.IsStatic && member.EnclosingClass is DatatypeDecl d) {
         foreach (var tp in d.TypeArgs) {
-          Predicate<Type> InvalidType = null;
-          InvalidType = ty => (ty.AsTypeParameter != null && ty.AsTypeParameter.Equals(tp))
-                              || ty.TypeArgs.Exists(a => InvalidType(a));
-          Predicate<Formal> InvalidFormal = f => !f.IsGhost && InvalidType(f.SyntacticType);
+          bool InvalidType(Type ty) => (ty.AsTypeParameter != null && ty.AsTypeParameter.Equals(tp))
+                                       || ty.TypeArgs.Exists(InvalidType);
+          bool InvalidFormal(Formal f) => !f.IsGhost && InvalidType(f.SyntacticType);
           switch (tp.Variance) {
             //Can only be in output
             case TypeParameter.TPVariance.Co:
@@ -585,6 +661,10 @@ namespace Microsoft.Dafny {
         //   Computer c;
         //   _IDt<T> d;
         //   public Dt__Lazy(Computer c) { this.c = c; }
+        //   public override _IDt<U> DowncastClone<U>(Func<T0, U0> converter0, ...) {
+        //     if (this is _IDt<U> dt) { return dt; }
+        //     return new Dt__Lazy<U>(() => c().DowncastClone<U>(converter0, ...));
+        //   }
         //   public override _IDt<T> _Get() { if (c != null) { d = c(); c = null; } return d; }
         //   public override string ToString() { return _Get().ToString(); }
         // }
@@ -594,6 +674,7 @@ namespace Microsoft.Dafny {
         w.WriteLine($"{NeedsNew(dt, "c")}Computer c;");
         w.WriteLine($"{NeedsNew(dt, "d")}{ICompileName}{typeParams} d;");
         w.WriteLine($"public {dt.CompileName}__Lazy(Computer c) {{ this.c = c; }}");
+        CompileDatatypeDowncastClone(dt, w, nonGhostTypeArgs, lazy: true);
         w.WriteLine($"public override {ICompileName}{typeParams} _Get() {{ if (c != null) {{ d = c(); c = null; }} return d; }}");
         w.WriteLine("public override string ToString() { return _Get().ToString(); }");
       }
@@ -618,12 +699,19 @@ namespace Microsoft.Dafny {
       Contract.Requires(wr != null);
 
       var dt = ctor.EnclosingDatatype;
-      // class Dt_Ctor<T,U> : Dt<T> {  // This line is to be added by the caller of DatatypeFieldsAndConstructor
+      // class Dt_Ctor<T> : Dt<T> {  // This line is to be added by the caller of DatatypeFieldsAndConstructor
       //   Fields;
       //   public Dt_Ctor(arguments) {  // for record types: Dt
       //     Fields = arguments;
       //   }
-      //   public override Dt<T> _Get() { return this; }  // for co-datatypes only
+      //   public override _IDt<T> _Get() { return this; }  // for co-datatypes only
+      //   public override _IDt<U> DowncastClone<U>(Func<T0, U0> converter0, ...) {
+      //     if (this is _IDt<U> dt) {
+      //       return dt;
+      //     } else {
+      //       return new Dt_Ctor<U>(converter0(_field0), ...);
+      //     }
+      //   }
       //   public override bool Equals(object other) {
       //     var oth = other as Dt_Ctor;  // for record types: Dt
       //     return oth != null && equals(_field0, oth._field0) && ... ;
@@ -663,6 +751,8 @@ namespace Microsoft.Dafny {
         string typeParams = TypeParameters(nonGhostTypeArgs);
         wr.WriteLine($"public override _I{dt.CompileName}{typeParams} _Get() {{ return this; }}");
       }
+
+      CompileDatatypeDowncastClone(dt, wr, nonGhostTypeArgs, ctor: ctor);
 
       // Equals method
       {
@@ -2375,8 +2465,24 @@ namespace Microsoft.Dafny {
       to = to.NormalizeExpand();
       Contract.Assert(from.IsRefType == to.IsRefType);
 
+      ConcreteSyntaxTree Unsupported(string message) {
+        Error(tok, "compilation does not support downcasts involving copying for {0} (like converting from {1} to {2})", wr, message, from, to);
+        return new ConcreteSyntaxTree();
+      }
+
       if (from.IsDatatype) {
-        Error(tok, "compilation does not support downcasts involving copying for datatypes (like converting from {0} to {1})", wr, from, to);
+        var dt = from.AsDatatype;
+        if (SelectNonGhost(dt, dt.TypeArgs).Any(ty => ty.Variance == TypeParameter.TPVariance.Contra)) {
+          return Unsupported("datatypes with contravariant type parameters");
+        }
+        if (dt.Ctors.Any(ctor => ctor.Formals.Any(f => !f.IsGhost && (f.Type.IsArrowType || f.Type.IsRefType)))) {
+          return Unsupported("datatypes with constuctors using functions or references");
+        }
+
+      }
+
+      if (from.IsArrowType) {
+        return Unsupported("functions");
       }
 
       var w = new ConcreteSyntaxTree();
