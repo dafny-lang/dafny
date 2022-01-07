@@ -4,7 +4,7 @@ The top four improvements in Dafny 3.4 are:
 - For certain classes of changes, prevent unexpected changes in verification behavior when changing a Dafny program 
 - Add command line options to assist in debugging verification performance.
 - Critical fixes to the IDE and greatly improved responsiveness of non-verification IDE features. 
-- The C# back-end supports traits as type parameters on datatypes.
+- The C# back-end partially supports traits as type parameters on datatypes.
 
 ### Verification
 - fix: Resolve the following unsoundness issue: https://github.com/dafny-lang/dafny/issues/1619
@@ -31,11 +31,11 @@ The top four improvements in Dafny 3.4 are:
 
 ### C#
 - fix: resolve an instance where Dafny would produce invalid C# code: https://github.com/dafny-lang/dafny/issues/1607
-- feat: support traits as type parameters on datatypes: https://github.com/dafny-lang/dafny/issues/1499
+- feat: support traits as type parameters on datatypes for co-variant and non-variant type parameter, but not for contra-variant type parameters: https://github.com/dafny-lang/dafny/issues/1499
 
 ## Breaking changes
 
-- Proofs such as methods and lemma's whose verification behavior, either the result or the verification time, depend on arbitrary behavior in Dafny's solver, may show different verification behavior in Dafny 3.4. For customers who are not ready to change those proofs to make their verification more reliable, we offer the command line option `/mimicVerificationOf:3.3` to  keep the Dafny 3.4 verification behavior consistent with 3.3.
+- Proofs such as methods and lemmas whose verification behavior, either the result or the verification time, depend on arbitrary behavior in Dafny's solver, may show different verification behavior in Dafny 3.4. For customers who are not ready to change those proofs to make their verification more reliable, we offer the command line option `/mimicVerificationOf:3.3` to keep the Dafny 3.4 verification behavior consistent with 3.3.
 
 - In Dafny 3.3, comprehensions quantified over subset types did not validate the constraint of the subset type, which could result in crashes at run-time. In 3.4, subset types are disabled in set comprehensions in compiled contexts, unless the subset constraint is itself compilable.
 
