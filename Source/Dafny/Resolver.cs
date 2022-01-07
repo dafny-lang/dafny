@@ -18610,19 +18610,15 @@ namespace Microsoft.Dafny {
             }
 
             if (!constraintIsCompilable) {
-              IToken finalToken = boundVar.tok;
-              if (constraint.tok.line != 0) {
-                var errorCollector = new SimpleErrorCorrector();
-                ExpressionTester.CheckIsCompilable(this.resolver, errorCollector, constraint,
+              // Explicitly report the error
+              var showProvenance = constraint.tok.line != 0;
+              this.resolver.Reporter.Error(MessageSource.Resolver, boundVar.tok,
+                $"{boundVar.Type} is a subset type and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in {what}." +
+                (showProvenance ? " The next error will explain why the constraint is not compilable." : ""));
+              if (showProvenance) {
+                ExpressionTester.CheckIsCompilable(this.resolver, constraint,
                   new CodeContextWrapper(subsetTypeDecl, true));
-                if (errorCollector.CollectedMessages.Count > 0) {
-                  finalToken = new NestedToken(finalToken, errorCollector.CollectedTokens[0],
-                    "The constraint is not compilable because " + errorCollector.CollectedMessages[0]
-                  );
-                }
               }
-              this.resolver.Reporter.Error(MessageSource.Resolver, finalToken,
-                $"{boundVar.Type} is a subset type and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in {what}.");
             }
           }
         }

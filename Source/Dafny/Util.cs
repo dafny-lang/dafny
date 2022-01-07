@@ -731,9 +731,8 @@ namespace Microsoft.Dafny {
         return enterResult == stop;
       }
 
-      return stmt.NonSpecificationSubExpressions.Any(subExpr => Traverse(subExpr, "NonSpecificationSubExpressions", stmt)) ||
-             stmt.SpecificationSubExpressions.Any(subExpr => Traverse(subExpr, "SpecificationSubExpressions", stmt)) ||
-             stmt.SubStatements.Any(subStmt => Traverse(subStmt, "SubStatements", stmt)) ||
+      return stmt.SubStatements.Any(subStmt => Traverse(subStmt, "SubStatements", stmt)) ||
+             stmt.SubExpressions.Any(subExpr => Traverse(subExpr, "SubExpressions", stmt)) ||
              OnExit(stmt, field, parent);
     }
 
@@ -757,24 +756,19 @@ namespace Microsoft.Dafny {
     private ErrorReporter reporter = null;
     private Resolver resolver = null;
 
-    public ExpressionTester(Resolver resolver = null, bool reportErrors = false) :
-      this(resolver, resolver?.Reporter, reportErrors) {
-    }
-
-    public ExpressionTester(Resolver resolver, ErrorReporter reporter, bool reportErrors = false) {
+    public ExpressionTester(Resolver resolver = null, bool reportErrors = false) {
       Contract.Requires(reportErrors == false || resolver != null);
-      this.resolver = resolver;
-      this.reporter = reporter;
+      if (resolver != null) {
+        this.reporter = resolver.Reporter;
+        this.resolver = resolver;
+      }
+
       this.reportErrors = reportErrors;
     }
 
     // Static call to CheckIsCompilable
     public static bool CheckIsCompilable(Resolver resolver, Expression expr, ICodeContext codeContext) {
       return new ExpressionTester(resolver, resolver != null).CheckIsCompilable(expr, codeContext);
-    }
-    // Static call to CheckIsCompilable
-    public static bool CheckIsCompilable(Resolver resolver, ErrorReporter reporter, Expression expr, ICodeContext codeContext) {
-      return new ExpressionTester(resolver, reporter, resolver != null).CheckIsCompilable(expr, codeContext);
     }
 
     /// <summary>
