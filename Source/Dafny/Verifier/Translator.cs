@@ -3206,9 +3206,8 @@ namespace Microsoft.Dafny {
                 vdecl2.Locals.Iter(RemoveDefiniteAssignmentTracker);
               }
             }
-          } else {
-            vdecl.Locals.Iter(RemoveDefiniteAssignmentTracker);
           }
+          vdecl.Locals.Iter(RemoveDefiniteAssignmentTracker);
         } else if (s is AssignOrReturnStmt ars) {
           foreach (var sx in ars.ResolvedStatements) {
             if (sx is VarDeclStmt vdecl2) {
