@@ -202,6 +202,11 @@ namespace Microsoft.Dafny {
         var errorLine = ErrorToString(level, tok, msg);
         while (tok is NestedToken nestedToken) {
           tok = nestedToken.Inner;
+          if (tok.filename == nestedToken.filename &&
+              tok.line == nestedToken.line &&
+              tok.col == nestedToken.col) {
+            continue;
+          }
           msg = nestedToken.Message ?? "[Related location]";
           errorLine += $" {msg} ({TokenToString(tok)}).";
         }

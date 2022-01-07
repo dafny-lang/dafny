@@ -302,7 +302,7 @@ namespace Microsoft.Dafny.Triggers {
         AddTriggersToMessage("Rejected triggers:", q.RejectedCandidates, msg, indent, true);
 
 #if QUANTIFIER_WARNINGS
-        var WARN_TAG = DafnyOptions.O.UnicodeOutput ? "⚠ " : "/!\\ ";
+        var WARN_TAG = DafnyOptions.O.UnicodeOutput ? "⚠ " : @"/!\ ";
         var WARN_TAG_OVERRIDE = suppressWarnings ? "(Suppressed warning) " : WARN_TAG;
         var WARN_LEVEL = suppressWarnings ? ErrorLevel.Info : ErrorLevel.Warning;
         var WARN = indent + WARN_TAG_OVERRIDE;
