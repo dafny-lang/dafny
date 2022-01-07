@@ -984,7 +984,7 @@ namespace Microsoft.Dafny {
     that are unstable in the sense that their verification may become slower or fail altogether 
     after logically irrelevant changes are made in the verification input.
 
-    Accepted versions are: 3.3 (note that this turns of features that prevent classes of verification instability)
+    Accepted versions are: 3.3 (note that this turns off features that prevent classes of verification instability)
 
 Dafny generally accepts Boogie options and passes these on to Boogie. However,
 some Boogie options, like /loopUnroll, may not be sound for Dafny or may not
