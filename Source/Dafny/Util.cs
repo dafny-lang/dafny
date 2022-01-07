@@ -731,9 +731,8 @@ namespace Microsoft.Dafny {
         return enterResult == stop;
       }
 
-      return stmt.NonSpecificationSubExpressions.Any(subExpr => Traverse(subExpr, "NonSpecificationSubExpressions", stmt)) ||
-             stmt.SpecificationSubExpressions.Any(subExpr => Traverse(subExpr, "SpecificationSubExpressions", stmt)) ||
-             stmt.SubStatements.Any(subStmt => Traverse(subStmt, "SubStatements", stmt)) ||
+      return stmt.SubStatements.Any(subStmt => Traverse(subStmt, "SubStatements", stmt)) ||
+             stmt.SubExpressions.Any(subExpr => Traverse(subExpr, "SubExpressions", stmt)) ||
              OnExit(stmt, field, parent);
     }
 
