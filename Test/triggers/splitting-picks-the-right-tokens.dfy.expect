@@ -1,5 +1,5 @@
-splitting-picks-the-right-tokens.dfy(9,11): Info: Selected triggers: {Id(x)}
-splitting-picks-the-right-tokens.dfy(16,11): Info: Selected triggers: {Id(x)}
+splitting-picks-the-right-tokens.dfy(9,11): Info: Selected triggers: {Id(x)} [Related location] (splitting-picks-the-right-tokens.dfy(9,37)).
+splitting-picks-the-right-tokens.dfy(16,11): Info: Selected triggers: {Id(x)} [Related location] (splitting-picks-the-right-tokens.dfy(16,39)).
 splitting-picks-the-right-tokens.dfy(20,12): Error: A precondition for this call might not hold.
 splitting-picks-the-right-tokens.dfy(16,11): Related location: This is the precondition that might not hold.
 splitting-picks-the-right-tokens.dfy(16,39): Related location
