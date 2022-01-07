@@ -116,3 +116,114 @@ module M2 {
     Needs1(s1or0[0]);
   }
 }
+
+module M3 {
+  type MyBool = b | !b
+  type MyChar = ch | ch == 'D'
+  type MyInt = i | i < 17
+  type MyReal = r | r == 3.14 || r == 1.618 witness 3.14
+
+  newtype NewTypeInt = i | 0 <= i < 100
+  newtype NewTypeReal = r | 0.0 <= r < 100.0
+  type MyNewTypeInt = n: NewTypeInt | 2 <= n witness 28
+  type MyNewTypeReal = n: NewTypeReal | 2.0 <= n witness 28.9
+
+  type MyBv10 = v: bv10 | v != 7
+  type MyOrdinal = o: ORDINAL | 1000 <= o < 1200 witness 1001
+
+  method TestBool(x0: bool, x1: MyBool) {
+    var s0: multiset<bool> := multiset{x0};
+    var s1: multiset<MyBool> := multiset{x1};
+    if
+    case true => var a: multiset<bool> := s0 + s1;
+    case true => var a: multiset<bool> := s1 + s0;
+    case true => var a: multiset<MyBool> := s0 + s1; // error: subset constraint violated
+    case true => var a: multiset<MyBool> := s1 + s0; // error: subset constraint violated
+    case true => var a := s0 + s1;
+    case true => var a := s1 + s0;
+  }
+
+  method TestChar(x0: char, x1: MyChar) {
+    var s0: multiset<char> := multiset{x0};
+    var s1: multiset<MyChar> := multiset{x1};
+    if
+    case true => var a: multiset<char> := s0 + s1;
+    case true => var a: multiset<char> := s1 + s0;
+    case true => var a: multiset<MyChar> := s0 + s1; // error: subset constraint violated
+    case true => var a: multiset<MyChar> := s1 + s0; // error: subset constraint violated
+    case true => var a := s0 + s1;
+    case true => var a := s1 + s0;
+  }
+
+  method TestInt(x0: int, x1: MyInt) {
+    var s0: multiset<int> := multiset{x0};
+    var s1: multiset<MyInt> := multiset{x1};
+    if
+    case true => var a: multiset<int> := s0 + s1;
+    case true => var a: multiset<int> := s1 + s0;
+    case true => var a: multiset<MyInt> := s0 + s1; // error: subset constraint violated
+    case true => var a: multiset<MyInt> := s1 + s0; // error: subset constraint violated
+    case true => var a := s0 + s1;
+    case true => var a := s1 + s0;
+  }
+
+  method TestReal(x0: real, x1: MyReal) {
+    var s0: multiset<real> := multiset{x0};
+    var s1: multiset<MyReal> := multiset{x1};
+    if
+    case true => var a: multiset<real> := s0 + s1;
+    case true => var a: multiset<real> := s1 + s0;
+    case true => var a: multiset<MyReal> := s0 + s1; // error: subset constraint violated
+    case true => var a: multiset<MyReal> := s1 + s0; // error: subset constraint violated
+    case true => var a := s0 + s1;
+    case true => var a := s1 + s0;
+  }
+
+  method TestMyNewTypeInt(x0: NewTypeInt, x1: MyNewTypeInt) {
+    var s0: multiset<NewTypeInt> := multiset{x0};
+    var s1: multiset<MyNewTypeInt> := multiset{x1};
+    if
+    case true => var a: multiset<NewTypeInt> := s0 + s1;
+    case true => var a: multiset<NewTypeInt> := s1 + s0;
+    case true => var a: multiset<MyNewTypeInt> := s0 + s1; // error: subset constraint violated
+    case true => var a: multiset<MyNewTypeInt> := s1 + s0; // error: subset constraint violated
+    case true => var a := s0 + s1;
+    case true => var a := s1 + s0;
+  }
+
+  method TestNewTypeReal(x0: NewTypeReal, x1: MyNewTypeReal) {
+    var s0: multiset<NewTypeReal> := multiset{x0};
+    var s1: multiset<MyNewTypeReal> := multiset{x1};
+    if
+    case true => var a: multiset<NewTypeReal> := s0 + s1;
+    case true => var a: multiset<NewTypeReal> := s1 + s0;
+    case true => var a: multiset<MyNewTypeReal> := s0 + s1; // error: subset constraint violated
+    case true => var a: multiset<MyNewTypeReal> := s1 + s0; // error: subset constraint violated
+    case true => var a := s0 + s1;
+    case true => var a := s1 + s0;
+  }
+
+  method TestBv10(x0: bv10, x1: MyBv10) {
+    var s0: multiset<bv10> := multiset{x0};
+    var s1: multiset<MyBv10> := multiset{x1};
+    if
+    case true => var a: multiset<bv10> := s0 + s1;
+    case true => var a: multiset<bv10> := s1 + s0;
+    case true => var a: multiset<MyBv10> := s0 + s1; // error: subset constraint violated
+    case true => var a: multiset<MyBv10> := s1 + s0; // error: subset constraint violated
+    case true => var a := s0 + s1;
+    case true => var a := s1 + s0;
+  }
+
+  method TestOrdinal(x0: ORDINAL, x1: MyOrdinal) {
+    var s0: ORDINAL := x0;
+    var s1: MyOrdinal := x1;
+    if
+    case true => var a: ORDINAL := s0 + s1;
+    case true => var a: ORDINAL := s1 + s0;
+    case true => var a: MyOrdinal := s0 + s1; // error: subset constraint violated
+    case true => var a: MyOrdinal := s1 + s0; // error: subset constraint violated
+    case true => var a := s0 + s1;
+    case true => var a := s1 + s0;
+  }
+}
