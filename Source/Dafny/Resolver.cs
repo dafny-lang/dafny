@@ -4573,6 +4573,8 @@ namespace Microsoft.Dafny {
             headIsRoot = true; headIsLeaf = true;  // all type parameters are non-variant
           } else if (cl is SubsetTypeDecl) {
             headIsRoot = false; headIsLeaf = true;
+          } else if (cl is NewtypeDecl) {
+            headIsRoot = true; headIsLeaf = true;
           } else if (cl is TraitDecl) {
             headIsRoot = false; headIsLeaf = false;
           } else if (cl is ClassDecl) {
