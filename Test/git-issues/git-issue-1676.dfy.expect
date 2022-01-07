@@ -1,0 +1,12 @@
+git-issue-1676.dfy(15,13): Error: value does not satisfy the subset constraints of 'seq<nat>'
+git-issue-1676.dfy(17,13): Error: value does not satisfy the subset constraints of 'seq<nat>'
+git-issue-1676.dfy(27,42): Error: value does not satisfy the subset constraints of 'nat'
+git-issue-1676.dfy(32,44): Error: value does not satisfy the subset constraints of 'nat'
+git-issue-1676.dfy(40,44): Error: value does not satisfy the subset constraints of 'seq<nat>'
+git-issue-1676.dfy(47,30): Error: value does not satisfy the subset constraints of 'seq<nat>'
+git-issue-1676.dfy(65,31): Error: value does not satisfy the subset constraints of 'seq<int1>'
+git-issue-1676.dfy(88,31): Error: value does not satisfy the subset constraints of 'seq<int0>'
+git-issue-1676.dfy(94,31): Error: value does not satisfy the subset constraints of 'seq<int1>'
+git-issue-1676.dfy(102,16): Error: value does not satisfy the subset constraints of 'int1'
+
+Dafny program verifier finished with 9 verified, 10 errors
