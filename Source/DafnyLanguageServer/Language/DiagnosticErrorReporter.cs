@@ -94,10 +94,10 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         return false;
       }
       var relatedInformation = new List<DiagnosticRelatedInformation>();
-      if (tok is NestedToken nTok) {
+      if (tok is NestedToken nestedToken) {
         relatedInformation.AddRange(
           CreateDiagnosticRelatedInformationFor(
-            nTok.Inner, nTok.Message ?? "Related location")
+            nestedToken.Inner, nestedToken.Message ?? "Related location")
         );
       }
       var item = new Diagnostic {

@@ -18566,7 +18566,7 @@ namespace Microsoft.Dafny {
       return skip;
     }
 
-    private bool isFieldSpecification(string field, object parent) {
+    private bool IsFieldSpecification(string field, object parent) {
       return field != null && parent != null && (
         (parent is Statement && field == "SpecificationSubExpressions") ||
         (parent is Function && (field is "Req.E" or "Reads.E" or "Ens.E" or "Decreases.Expressions")) ||
@@ -18578,7 +18578,7 @@ namespace Microsoft.Dafny {
       if (expr == null) {
         return false;
       }
-      if (isFieldSpecification(field, parent)) {
+      if (IsFieldSpecification(field, parent)) {
         return false;
       }
       // Since we skipped ghost code, the code has to be compiled here. 

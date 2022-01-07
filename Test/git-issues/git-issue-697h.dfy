@@ -11,12 +11,12 @@ method test(s: seq<substring>) returns (r: int)
   ensures forall x: substring :: x in s ==> |x| < maxi
 {
   for j := 0 to 5
-    invariant forall x: substring :: x in s ==> |x| < maxi + 5- j
+    invariant forall x: substring :: x in s ==> |x| < maxi + 5 - j
   {
     r := j;
   }
   assert forall x: substring :: x in s ==> |x| < maxi;
-  while (true)
+  while true
     invariant forall x: substring :: x in s ==> |x| < maxi
   {
     break;

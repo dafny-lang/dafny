@@ -200,10 +200,10 @@ namespace Microsoft.Dafny {
         ConsoleColor previousColor = Console.ForegroundColor;
         Console.ForegroundColor = ColorForLevel(level);
         var errorLine = ErrorToString(level, tok, msg);
-        while (tok is NestedToken nt) {
-          tok = nt.Inner;
-          msg = nt.Message ?? "[Related location]";
-          errorLine += " " + msg + " (" + (TokenToString(tok) + ").");
+        while (tok is NestedToken nestedToken) {
+          tok = nestedToken.Inner;
+          msg = nestedToken.Message ?? "[Related location]";
+          errorLine += $" {msg} ({TokenToString(tok)}).";
         }
         Console.WriteLine(errorLine);
 
