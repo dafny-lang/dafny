@@ -3256,6 +3256,17 @@ namespace Microsoft.Dafny {
       }
     }
 
+    /// <summary>
+    /// Returns an expression denoting the definite-assignment tracker for "var", or "null" if there is none.
+    /// </summary>
+    Bpl.IdentifierExpr/*?*/ GetDefiniteAssignmentTracker(IVariable var) {
+      Bpl.IdentifierExpr ie;
+      if (definiteAssignmentTrackers.TryGetValue(var.UniqueName, out ie)) {
+        return ie;
+      }
+      return null;
+    }
+
     void CheckDefiniteAssignmentSurrogate(IToken tok, Field field, bool atNew, BoogieStmtListBuilder builder) {
       Contract.Requires(tok != null);
       Contract.Requires(field != null);
@@ -9297,7 +9308,15 @@ namespace Microsoft.Dafny {
       }
     }
 
-
+    /// <summary>
+    /// A "where" clause for a variable in Boogie turns into an assumption anytime that Boogie is tasked
+    /// with assigning an arbitrary value to that variable. This happens at the beginning of a procedure
+    /// implementation, after a procedure call, or as part of a "havoc" command. Each one of these can
+    /// easily be followed by a manual "assume" command. However, the use-case that makes "where" clauses
+    /// especially valuable is in loops, because when Boogie cuts the backedge, it inserts "havoc" commands.
+    /// To do this in Dafny, Dafny would have to compute loop targets, which is better done in Boogie (which
+    /// already has to do it).
+    /// </summary>
     Bpl.Expr GetWhereClause(IToken tok, Bpl.Expr x, Type type, ExpressionTranslator etran, IsAllocType alloc, bool allocatednessOnly = false) {
       Contract.Requires(tok != null);
       Contract.Requires(x != null);
@@ -9384,7 +9403,7 @@ namespace Microsoft.Dafny {
           lhsType = null;  // for an array update, always make sure the value assigned is boxed
           rhsTypeConstraint = e.Array.Type.NormalizeExpand().TypeArgs[0];
         }
-        var bRhs = TrAssignmentRhs(rhss[i].Tok, bLhss[i], lhsType, rhss[i], rhsTypeConstraint, builder, locals, etran);
+        var bRhs = TrAssignmentRhs(rhss[i].Tok, bLhss[i], null, lhsType, rhss[i], rhsTypeConstraint, builder, locals, etran);
         if (bLhss[i] != null) {
           Contract.Assert(bRhs == bLhss[i]);  // this is what the postcondition of TrAssignmentRhs promises
           // assignment has already been done by TrAssignmentRhs
@@ -9435,7 +9454,7 @@ namespace Microsoft.Dafny {
           lhsType = null;  // for an array update, always make sure the value assigned is boxed
           rhsTypeConstraint = e.Array.Type.TypeArgs[0];
         }
-        var bRhs = TrAssignmentRhs(rhss[i].Tok, null, lhsType, rhss[i], rhsTypeConstraint, builder, locals, etran);
+        var bRhs = TrAssignmentRhs(rhss[i].Tok, null, (lhs as IdentifierExpr)?.Var, lhsType, rhss[i], rhsTypeConstraint, builder, locals, etran);
         finalRhss.Add(bRhs);
       }
       return finalRhss;
@@ -9720,11 +9739,18 @@ namespace Microsoft.Dafny {
     ///
     /// Before the assignment, the generated code will check that "rhs" obeys any subrange requirements entailed by "rhsTypeConstraint".
     ///
+    /// The purpose of "lhsVar" is to determine an appropriate Boogie "where" clause for any temporary variable generated.
+    /// If passed in as non-null, it says that "lhsVar" is the LHS of the assignment being translated. If the type is subject to
+    /// definite-assignment rules and the RHS is "*", then the "where" clause of the temporary variable will have the form
+    /// "defass#lhs ==> wh" where "defass#lhs" is the definite-assignment tracker for "lhsVar" and "wh" is the "where"
+    /// clause for type "lhsType" for the temporary variable.
+    ///
     /// The purpose of "lhsType" is to determine if the expression should be boxed before doing the assignment.  It is allowed to be null,
     /// which indicates that the result should always be a box.  Note that "lhsType" may refer to a formal type parameter that is not in
     /// scope; this is okay, since the purpose of "lhsType" is just to say whether or not the result should be boxed.
     /// </summary>
-    Bpl.Expr TrAssignmentRhs(IToken tok, Bpl.IdentifierExpr bGivenLhs, Type lhsType, AssignmentRhs rhs, Type rhsTypeConstraint,
+    Bpl.Expr TrAssignmentRhs(IToken tok, Bpl.IdentifierExpr bGivenLhs, IVariable lhsVar, Type lhsType,
+                             AssignmentRhs rhs, Type rhsTypeConstraint,
                              BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
       Contract.Requires(tok != null);
       Contract.Requires(rhs != null);
@@ -9743,7 +9769,24 @@ namespace Microsoft.Dafny {
         Type localType = rhsTypeConstraint;  // this is a type that is appropriate for capturing the value of the RHS
         var ty = TrType(localType);
         var nm = CurrentIdGenerator.FreshId("$rhs#");
-        Bpl.Expr wh = GetWhereClause(tok, new Bpl.IdentifierExpr(tok, nm, ty), localType, etran, NOALLOC);
+        Bpl.Expr wh;
+        if (rhs is HavocRhs && localType.IsNonempty) {
+          wh = GetWhereClause(tok, new Bpl.IdentifierExpr(tok, nm, ty), localType, etran, NOALLOC);
+        } else if (rhs is HavocRhs && lhsVar != null && GetDefiniteAssignmentTracker(lhsVar) != null) {
+          // This "where" clause expresses that the new variable has a value of the given type only if
+          // the variable has already been definitely assigned. (If it has not already been assigned,
+          // then the variable will get a new value, but Dafny's definite-assginment rules prevent that
+          // value from being used, so it's appropriate to use effectively-"true" as the "where" clause
+          // in that case.
+          wh = BplImp(GetDefiniteAssignmentTracker(lhsVar),
+            GetWhereClause(tok, new Bpl.IdentifierExpr(tok, nm, ty), localType, etran, NOALLOC));
+        } else {
+          // In this case, it could be unsound to use a "where" clause, see issue #1619.
+          // Luckily, leaving it out is harmless, because we don't need a "where" clause here in the first
+          // place--because the variable is short lived, we know it will not be havoc'ed by Boogie, so a
+          // "where" wouldn't provide additional information over the assigned value.
+          wh = null;
+        }
         var v = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, nm, ty, wh));
         locals.Add(v);
         bLhs = new Bpl.IdentifierExpr(tok, v);
