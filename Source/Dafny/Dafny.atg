@@ -3736,7 +3736,7 @@ UnaryExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowB
 
 /*------------------------------------------------------------------------*/
 PrimaryExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwiseOps>
-= (. e = null; Contract.Ensures(Contract.ValueAtReturn(out e) != null); e = dummyExpr; .)
+= (. e = null; .)
   ( IF(IsMapDisplay())  /* this alternative must be checked before going into EndlessExpression, where there is another "map" */
     MapDisplayExpr<out e>
     { IF(IsSuffix()) Suffix<ref e> }
