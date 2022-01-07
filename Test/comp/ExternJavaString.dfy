@@ -1,5 +1,7 @@
 // RUN: %dafny /compile:3 /compileTarget:java "%s" %S/Conversions.java %S/ExternJavaString.java > "%t"
 // RUN: %diff "%s.expect" "%t"
+// In this example, the extern method obtains a Java string and returns it as such.
+// The Dafny code converts that Java string to a Dafny string.
 
 class {:extern "java.lang.String"} JavaString {
   ghost const value: string
