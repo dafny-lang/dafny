@@ -12320,7 +12320,7 @@ namespace Microsoft.Dafny {
       var newMatchCases = new List<MatchCase>();
       // Update mti -> each branch generates up to |ctors| copies of itself
       foreach (var PB in pairPB) {
-        mti.UpdateBranchID(PB.Item2.BranchID, ctors.Count() - 1);
+        mti.UpdateBranchID(PB.Item2.BranchID, ctors.Count - 1);
       }
 
       foreach (var ctor in ctors) {
@@ -12463,7 +12463,7 @@ namespace Microsoft.Dafny {
           Console.WriteLine("\treturn Bid:{0}", branches.First().BranchID);
         }
 
-        for (int i = 1; i < branches.Count(); i++) {
+        for (int i = 1; i < branches.Count; i++) {
           mti.UpdateBranchID(branches.ElementAt(i).BranchID, -1);
         }
         return PackBody(mti.BranchTok[branches.First().BranchID], branches.First());
@@ -12548,11 +12548,11 @@ namespace Microsoft.Dafny {
         Console.WriteLine("DEBUG: CompileNestedMatchExpr for match at line {0}", e.tok.line);
       }
 
-      MatchTempInfo mti = new MatchTempInfo(e.tok, e.Cases.Count(), opts.codeContext, DafnyOptions.O.MatchCompilerDebug);
+      MatchTempInfo mti = new MatchTempInfo(e.tok, e.Cases.Count, opts.codeContext, DafnyOptions.O.MatchCompilerDebug);
 
       // create Rbranches from MatchCaseExpr and set the branch tokens in mti
       List<RBranch> branches = new List<RBranch>();
-      for (int id = 0; id < e.Cases.Count(); id++) {
+      for (int id = 0; id < e.Cases.Count; id++) {
         var branch = e.Cases.ElementAt(id);
         branches.Add(new RBranchExpr(id, branch, branch.Attributes));
         mti.BranchTok[id] = branch.Tok;
@@ -12603,11 +12603,11 @@ namespace Microsoft.Dafny {
       }
 
       // initialize the MatchTempInfo to record position and duplication information about each branch
-      MatchTempInfo mti = new MatchTempInfo(s.Tok, s.EndTok, s.Cases.Count(), codeContext, DafnyOptions.O.MatchCompilerDebug, s.Attributes);
+      MatchTempInfo mti = new MatchTempInfo(s.Tok, s.EndTok, s.Cases.Count, codeContext, DafnyOptions.O.MatchCompilerDebug, s.Attributes);
 
       // create Rbranches from NestedMatchCaseStmt and set the branch tokens in mti
       List<RBranch> branches = new List<RBranch>();
-      for (int id = 0; id < s.Cases.Count(); id++) {
+      for (int id = 0; id < s.Cases.Count; id++) {
         var branch = s.Cases.ElementAt(id);
         branches.Add(new RBranchStmt(id, branch, branch.Attributes));
         mti.BranchTok[id] = branch.Tok;
@@ -16982,7 +16982,7 @@ namespace Microsoft.Dafny {
       var formal = formals[index];
       var displayName = formal.HasName && !(formal is ImplicitFormal);
       var description = "";
-      if (formals.Count() > 1) {
+      if (formals.Count > 1) {
         description += $" at index {index}";
       }
 
