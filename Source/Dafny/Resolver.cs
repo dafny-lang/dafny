@@ -12099,7 +12099,7 @@ namespace Microsoft.Dafny {
       if (branch is RBranchStmt branchStmt) {
         var cLVar = new LocalVariable(var.Tok, var.Tok, name, type, isGhost);
         var cPat = new CasePattern<LocalVariable>(cLVar.EndTok, cLVar);
-        var cLet = new VarDeclPattern(cLVar.Tok, cLVar.Tok, cPat, expr);
+        var cLet = new VarDeclPattern(cLVar.Tok, cLVar.Tok, cPat, expr, false);
         branchStmt.Body.Insert(0, cLet);
       } else if (branch is RBranchExpr branchExpr) {
         var cBVar = new BoundVar(var.Tok, name, type);

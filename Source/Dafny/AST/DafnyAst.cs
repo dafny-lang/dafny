@@ -7457,7 +7457,7 @@ namespace Microsoft.Dafny {
     public readonly Expression RHS;
     public bool HasGhostModifier;
 
-    public VarDeclPattern(IToken tok, IToken endTok, CasePattern<LocalVariable> lhs, Expression rhs, bool hasGhostModifier = true)
+    public VarDeclPattern(IToken tok, IToken endTok, CasePattern<LocalVariable> lhs, Expression rhs, bool hasGhostModifier)
       : base(tok, endTok) {
       LHS = lhs;
       RHS = rhs;
