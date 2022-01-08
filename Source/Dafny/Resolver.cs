@@ -12075,9 +12075,12 @@ namespace Microsoft.Dafny {
     }
 
     private List<Statement> UnboxStmtContainer(SyntaxContainer con) {
-      if (con is CStmt) {
-        var r = new List<Statement> { ((CStmt)con).Body };
-        return r;
+      if (con is CStmt cstmt) {
+        if (cstmt.Body is BlockStmt block) {
+          return block.Body;
+        } else {
+          return new List<Statement>() { cstmt.Body };
+        }
       } else {
         throw new NotImplementedException("Bug in CompileRBranch: expected a StmtContainer");
       }
