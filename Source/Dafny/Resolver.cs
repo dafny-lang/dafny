@@ -15514,6 +15514,20 @@ namespace Microsoft.Dafny {
       }
     }
 
+    void EagerAddAssignableConstraint(IToken tok, Type lhs, Type rhs, string errMsgFormat) {
+      Contract.Requires(tok != null);
+      Contract.Requires(lhs != null);
+      Contract.Requires(rhs != null);
+      Contract.Requires(errMsgFormat != null);
+      var lhsNormalized = lhs.Normalize();
+      var rhsNormalized = rhs.Normalize();
+      if (lhsNormalized is TypeProxy lhsProxy && !(rhsNormalized is TypeProxy)) {
+        Contract.Assert(lhsProxy.T == null); // otherwise, lhs.Normalize() above would have kept on going
+        AssignProxyAndHandleItsConstraints(lhsProxy, rhsNormalized, true);
+      } else {
+        AddAssignableConstraint(tok, lhs, rhs, errMsgFormat);
+      }
+    }
     void AddAssignableConstraint(IToken tok, Type lhs, Type rhs, string errMsgFormat) {
       Contract.Requires(tok != null);
       Contract.Requires(lhs != null);
@@ -15932,7 +15946,7 @@ namespace Microsoft.Dafny {
         // a type declared as "datatype Atom<T> = MakeAtom(T)", where T is a non-variant type argument.  Suppose the RHS has type Atom<nat>
         // and that the LHS is the pattern MakeAtom(x: int).  This is okay, despite the fact that Atom<nat> is not assignable to Atom<int>.
         // The reason is that the purpose of the pattern on the left is really just to provide a skeleton to introduce bound variables in.
-        AddAssignableConstraint(v.Tok, v.Type, sourceType, "type of corresponding source/RHS ({1}) does not match type of bound variable ({0})");
+        EagerAddAssignableConstraint(v.Tok, v.Type, sourceType, "type of corresponding source/RHS ({1}) does not match type of bound variable ({0})");
         pat.AssembleExpr(null);
         return;
       }
