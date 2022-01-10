@@ -102,7 +102,7 @@ method SomeMethod2(methodFormal2: int) returns (result2: bool)
     readonly string reorderedProgram = @"
 method SomeMethod(methodFormal: int) returns (result: bool)
   requires methodFormal == 2
-  ensures result == true 
+  ensures result == true
   // ensures forall x :: x == methodFormal
 {
   m();
