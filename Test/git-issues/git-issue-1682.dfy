@@ -3,5 +3,5 @@
 
 method IsUnique(str: array<char>) returns (ret: bool)
 {
-    ret := multiset
+  ret := multiset
 }

@@ -3725,7 +3725,7 @@ AsExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitw
 
 /*------------------------------------------------------------------------*/
 UnaryExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwiseOps>
-= (. e = null; Contract.Ensures(Contract.ValueAtReturn(out e) != null); IToken/*!*/ x;  e = dummyExpr; .)
+= (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); IToken/*!*/ x;  e = dummyExpr; .)
   ( "-"                                             (. x = t; .)
     UnaryExpression<out e, allowLemma, allowLambda, allowBitwiseOps>  (. e = new NegationExpression(x, e); .)
   | NegOp                                           (. x = t; .)
@@ -3736,7 +3736,7 @@ UnaryExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowB
 
 /*------------------------------------------------------------------------*/
 PrimaryExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwiseOps>
-= (. e = null; Contract.Ensures(Contract.ValueAtReturn(out e) != null); e = dummyExpr; .)
+= (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); e = dummyExpr; .)
   ( IF(IsMapDisplay())  /* this alternative must be checked before going into EndlessExpression, where there is another "map" */
     MapDisplayExpr<out e>
     { IF(IsSuffix()) Suffix<ref e> }
