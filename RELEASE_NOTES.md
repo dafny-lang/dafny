@@ -30,28 +30,30 @@ The top four improvements in Dafny 3.4 are:
 - feat: Improve error reporting when using type tests
 
 ### C#
-- fix: resolve an instance where Dafny would produce invalid C# code: https://github.com/dafny-lang/dafny/issues/1607
-- feat: support traits as type parameters on datatypes for co-variant and non-variant type parameter, but not for contra-variant type parameters: https://github.com/dafny-lang/dafny/issues/1499
+- fix: resolve an instance where Dafny would produce invalid C# code. https://github.com/dafny-lang/dafny/issues/1607
+- feat: support variant type parameters on datatype definitions, which enables using traits as type arguments. Support for downcasting datatypes with contra-variant type parameters is left out. https://github.com/dafny-lang/dafny/issues/1499
 
 ## Breaking changes
 
-- Proofs such as methods and lemmas whose verification behavior, either the result or the verification time, depend on arbitrary behavior in Dafny's solver, may show different verification behavior in Dafny 3.4. For customers who are not ready to change those proofs to make their verification more reliable, we offer the command line option `/mimicVerificationOf:3.3` to keep the Dafny 3.4 verification behavior consistent with 3.3.
+- Proofs such as methods and lemmas whose verification behavior, either the result or the verification time, depend on arbitrary behavior in Dafny's solver, may show different verification behavior in Dafny 3.4. For users who are not ready to change those proofs to make their verification more reliable, we offer the command line option `/mimicVerificationOf:3.3` to keep the Dafny 3.4 verification behavior consistent with 3.3.
 
 - In Dafny 3.3, comprehensions quantified over subset types did not validate the constraint of the subset type, which could result in crashes at run-time. In 3.4, subset types are disabled in set comprehensions in compiled contexts, unless the subset constraint is itself compilable.
 
-Before, the following code would pass Dafny and be compiled without error, but would crash at run-time:
-```
-type RefinedData = x: Data | ghostFunction(x)
-method Main() {
-  var s: set<Data> = ...
-  var t = set x: RefinedData | x in s;
-  forall x in t {
-    if !ghostFunction(x) {
-      var crash := 1/0;
+  Before, the following code would pass Dafny and be compiled without error, but would crash at run-time:
+  ```
+  type RefinedData = x: Data | ghostFunction(x)
+  method Main() {
+    var s: set<Data> = ...
+    var t = set x: RefinedData | x in s;
+    forall x in t {
+      if !ghostFunction(x) {
+        var crash := 1/0;
+      }
     }
   }
-}
-```
-In Dafny 3.4, the same code triggers a resolution error of the form:
-Error: RefinedData is a subset type and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in set comprehension. The next error will explain why the constraint is not compilable.
-Error: ghost constants are allowed only in specification contexts
+  ```
+  In Dafny 3.4, the same code triggers a resolution error of the form:
+  ```
+  Error: RefinedData is a subset type and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in set comprehension. The next error will explain why the constraint is not compilable.
+  Error: ghost constants are allowed only in specification contexts
+  ```
