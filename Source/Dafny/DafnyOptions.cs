@@ -326,6 +326,7 @@ namespace Microsoft.Dafny {
               Prune = false;
               NormalizeNames = false;
               EmitDebugInformation = true;
+              NormalizeDeclarationOrder = false;
             } else {
               ps.Error("Mimic verification is not supported for Dafny version {0}", ps.args[ps.i]);
             }
