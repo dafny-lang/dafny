@@ -139,7 +139,7 @@ module SomeModule {
   }
 }
 ";
-    
+
     public IntraMethodVerificationStability(ITestOutputHelper testOutputHelper) {
       this.testOutputHelper = testOutputHelper;
     }
@@ -171,7 +171,7 @@ module SomeModule {
       var regularProverLog = GetProverLogForProgram(GetBoogie(originalProgram));
       Assert.Equal(regularProverLog, reorderedProverLog);
     }
-    
+
     [Fact]
     public void EqualProverLogWhenRenamingProgram() {
 
@@ -184,7 +184,7 @@ module SomeModule {
       var regularProverLog = GetProverLogForProgram(GetBoogie(originalProgram));
       Assert.Equal(regularProverLog, renamedProverLog);
     }
-    
+
     [Fact]
     public void EqualProverLogWhenAddingUnrelatedProgram() {
 
