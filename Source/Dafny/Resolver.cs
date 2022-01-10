@@ -18547,6 +18547,25 @@ namespace Microsoft.Dafny {
   // Looks for every non-ghost comprehensions, and if they are using a subset type,
   // check that the subset constraint is compilable. If it is not compilable, raises an error.
   public class SubsetConstraintGhostChecker : ProgramTraverser {
+    public class FirstErrorCollector : ErrorReporter {
+      public string FirstCollectedMessage = "";
+      public IToken FirstCollectedToken = Token.NoToken;
+      public bool Collected = false;
+
+      public override bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg) {
+        if (!Collected && level == ErrorLevel.Error) {
+          FirstCollectedMessage = msg;
+          FirstCollectedToken = tok;
+          Collected = true;
+        }
+        return true;
+      }
+
+      public override int Count(ErrorLevel level) {
+        return level == ErrorLevel.Error && Collected ? 1 : 0;
+      }
+    }
+
     public Resolver resolver;
 
     public SubsetConstraintGhostChecker(Resolver resolver) {
@@ -18601,12 +18620,12 @@ namespace Microsoft.Dafny {
             if (!constraintIsCompilable) {
               IToken finalToken = boundVar.tok;
               if (constraint.tok.line != 0) {
-                var errorCollector = new SimpleErrorCorrector();
+                var errorCollector = new FirstErrorCollector();
                 ExpressionTester.CheckIsCompilable(this.resolver, errorCollector, constraint,
                   new CodeContextWrapper(subsetTypeDecl, true));
-                if (errorCollector.CollectedMessages.Count > 0) {
-                  finalToken = new NestedToken(finalToken, errorCollector.CollectedTokens[0],
-                    "The constraint is not compilable because " + errorCollector.CollectedMessages[0]
+                if (errorCollector.Collected) {
+                  finalToken = new NestedToken(finalToken, errorCollector.FirstCollectedToken,
+                    "The constraint is not compilable because " + errorCollector.FirstCollectedMessage
                   );
                 }
               }

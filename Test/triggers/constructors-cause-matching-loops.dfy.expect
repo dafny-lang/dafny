@@ -1,6 +1,6 @@
 constructors-cause-matching-loops.dfy(10,9): Info: Selected triggers: {Succ(s)}
  Rejected triggers:
    {f(s)} (may loop with "f(Succ(s))")
-   {f(Succ(s))} (more specific than {Succ(s)}) [Related location] (constructors-cause-matching-loops.dfy(10,40)).
+   {f(Succ(s))} (more specific than {Succ(s)}) Trigger position: (constructors-cause-matching-loops.dfy(10,40)).
 
 Dafny program verifier finished with 1 verified, 0 errors

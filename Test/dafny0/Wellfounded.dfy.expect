@@ -1,5 +1,5 @@
-Wellfounded.dfy(49,14): Warning: /!\ No terms found to trigger on. [Related location] (Wellfounded.dfy(49,26)).
-Wellfounded.dfy(77,5): Warning: /!\ No terms found to trigger on. [Related location] (Wellfounded.dfy(77,17)).
+Wellfounded.dfy(49,14): Warning: /!\ No terms found to trigger on. Potential trigger not suitable: (Wellfounded.dfy(49,26)).
+Wellfounded.dfy(77,5): Warning: /!\ No terms found to trigger on. Potential trigger not suitable: (Wellfounded.dfy(77,17)).
 
 Dafny program verifier finished with 3 verified, 0 errors
 M(d, d) = 10

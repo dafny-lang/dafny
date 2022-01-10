@@ -247,19 +247,4 @@ namespace Microsoft.Dafny {
       return WrappedReporter.Message(source, level, tok, msgPrefix + msg);
     }
   }
-
-  public class SimpleErrorCorrector : ErrorReporter {
-    public List<string> CollectedMessages = new();
-    public List<IToken> CollectedTokens = new();
-
-    public override bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg) {
-      CollectedMessages.Add(msg);
-      CollectedTokens.Add(tok);
-      return true;
-    }
-
-    public override int Count(ErrorLevel level) {
-      throw new NotImplementedException();
-    }
-  }
 }

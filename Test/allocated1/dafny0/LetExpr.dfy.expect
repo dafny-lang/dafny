@@ -1,5 +1,5 @@
-LetExpr.dfy(45,2): Warning: /!\ No terms found to trigger on. [Related location] (LetExpr.dfy(45,39)).
-LetExpr.dfy(206,4): Warning: /!\ No terms found to trigger on. [Related location] (LetExpr.dfy(206,30)).
+LetExpr.dfy(45,2): Warning: /!\ No terms found to trigger on. Potential trigger not suitable: (LetExpr.dfy(45,39)).
+LetExpr.dfy(206,4): Warning: /!\ No terms found to trigger on. Potential trigger not suitable: (LetExpr.dfy(206,30)).
 LetExpr.dfy(340,18): Error: value does not satisfy the subset constraints of 'nat'
 LetExpr.dfy(344,13): Error: value does not satisfy the subset constraints of 'nat'
 LetExpr.dfy(390,33): Error: assertion violation
@@ -15,7 +15,7 @@ LetExpr.dfy(323,11): Error: to be compilable, the value of a let-such-that expre
 LetExpr.dfy(109,22): Error: assertion violation
 
 Dafny program verifier finished with 37 verified, 13 errors
-LetExpr.dfy.tmp.dprint.dfy(281,4): Warning: /!\ No terms found to trigger on. [Related location] (LetExpr.dfy.tmp.dprint.dfy(283,8)).
-LetExpr.dfy.tmp.dprint.dfy(46,2): Warning: /!\ No terms found to trigger on. [Related location] (LetExpr.dfy.tmp.dprint.dfy(47,12)).
+LetExpr.dfy.tmp.dprint.dfy(281,4): Warning: /!\ No terms found to trigger on. Potential trigger not suitable: (LetExpr.dfy.tmp.dprint.dfy(283,8)).
+LetExpr.dfy.tmp.dprint.dfy(46,2): Warning: /!\ No terms found to trigger on. Potential trigger not suitable: (LetExpr.dfy.tmp.dprint.dfy(47,12)).
 
 Dafny program verifier did not attempt verification

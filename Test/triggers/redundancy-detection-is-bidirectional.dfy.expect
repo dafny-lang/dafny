@@ -1,12 +1,12 @@
 redundancy-detection-is-bidirectional.dfy(13,9): Info: Selected triggers:
-   {R(x), Q(y)}, {P(x, y)} [Related location] (redundancy-detection-is-bidirectional.dfy(13,51)).
+   {R(x), Q(y)}, {P(x, y)} Trigger position: (redundancy-detection-is-bidirectional.dfy(13,51)).
 redundancy-detection-is-bidirectional.dfy(14,9): Info: Selected triggers:
-   {R(x), Q(y)}, {P(x, y)} [Related location] (redundancy-detection-is-bidirectional.dfy(14,51)).
+   {R(x), Q(y)}, {P(x, y)} Trigger position: (redundancy-detection-is-bidirectional.dfy(14,51)).
 redundancy-detection-is-bidirectional.dfy(15,9): Info: Selected triggers:
-   {P(x, y)}, {R(x), Q(y)} [Related location] (redundancy-detection-is-bidirectional.dfy(15,48)).
-redundancy-detection-is-bidirectional.dfy(25,9): Info: Selected triggers: {SS(z, w), RR(y, v), QQ(x, u)} [Related location] (redundancy-detection-is-bidirectional.dfy(25,83)).
-redundancy-detection-is-bidirectional.dfy(26,9): Info: Selected triggers: {SS(z, w), RR(y, v), QQ(x, u)} [Related location] (redundancy-detection-is-bidirectional.dfy(26,83)).
-redundancy-detection-is-bidirectional.dfy(27,9): Info: Selected triggers: {SS(z, w), RR(y, v), QQ(x, u)} [Related location] (redundancy-detection-is-bidirectional.dfy(27,83)).
-redundancy-detection-is-bidirectional.dfy(28,9): Info: Selected triggers: {SS(z, w), RR(y, v), QQ(x, u)} [Related location] (redundancy-detection-is-bidirectional.dfy(28,80)).
+   {P(x, y)}, {R(x), Q(y)} Trigger position: (redundancy-detection-is-bidirectional.dfy(15,48)).
+redundancy-detection-is-bidirectional.dfy(25,9): Info: Selected triggers: {SS(z, w), RR(y, v), QQ(x, u)} Trigger position: (redundancy-detection-is-bidirectional.dfy(25,83)).
+redundancy-detection-is-bidirectional.dfy(26,9): Info: Selected triggers: {SS(z, w), RR(y, v), QQ(x, u)} Trigger position: (redundancy-detection-is-bidirectional.dfy(26,83)).
+redundancy-detection-is-bidirectional.dfy(27,9): Info: Selected triggers: {SS(z, w), RR(y, v), QQ(x, u)} Trigger position: (redundancy-detection-is-bidirectional.dfy(27,83)).
+redundancy-detection-is-bidirectional.dfy(28,9): Info: Selected triggers: {SS(z, w), RR(y, v), QQ(x, u)} Trigger position: (redundancy-detection-is-bidirectional.dfy(28,80)).
 
 Dafny program verifier finished with 2 verified, 0 errors
