@@ -13549,7 +13549,7 @@ namespace Microsoft.Dafny {
           var it = outFormal.Type;
           Type st = SubstType(it, typeMap);
           var lhs = s.Lhs[i];
-          var what = GetLocationInformation(callee.Outs, i, "method out-parameter");
+          var what = GetLocationInformation(outFormal, callee.Outs.Count(), i, "method out-parameter");
 
           AddAssignableConstraint(
             s.Tok, lhs.Type, st,
@@ -16945,7 +16945,8 @@ namespace Microsoft.Dafny {
         if (b != null) {
           actuals.Add(b.Actual);
           substMap.Add(formal, b.Actual);
-          var what = GetLocationInformation(formals, j,
+          var what = GetLocationInformation(formal,
+            bindings.ArgumentBindings.Count(), bindings.ArgumentBindings.IndexOf(b),
             whatKind + (context is Method ? " in-parameter" : " parameter"));
 
           AddAssignableConstraint(
@@ -16965,14 +16966,8 @@ namespace Microsoft.Dafny {
             // a simple error message has already been reported
             Contract.Assert(simpleErrorReported);
           } else {
-            var message = "no actual argument passed for " + whatKind + (context is Method ? " in-parameter" : " argument");
-            if (formals.Count != 1) {
-              if (formal.HasName) {
-                message += $" '{formal.Name}'";
-              } else {
-                message += " " + j;
-              }
-            }
+            var message = "no actual argument passed " +
+                          GetLocationInformation(formal, 0, 0, whatKind + (context is Method ? " in-parameter" : " parameter"));
             reporter.Error(MessageSource.Resolver, callTok, message);
           }
         }
@@ -16982,12 +16977,11 @@ namespace Microsoft.Dafny {
       bindings.AcceptArgumentExpressionsAsExactParameterList(actuals);
     }
 
-    private static string GetLocationInformation(List<Formal> parameters, int parameterIndex, ActualBindings actualBindings, int argumentIndex, string parameterDescription) {
-      var parameter = parameters[parameterIndex];
+    private static string GetLocationInformation(Formal parameter, int bindingCount, int argumentIndex, string parameterDescription) {
       var displayName = parameter.HasName && !(parameter is ImplicitFormal);
       var description = "";
-      if (actualBindings.Count() > 1) {
-        description += $" at index {argumentIndex}";
+      if (bindingCount > 1) {
+        description += $"at index {argumentIndex} ";
       }
 
       description += $"for {parameterDescription}";
