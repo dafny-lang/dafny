@@ -762,7 +762,7 @@ namespace Microsoft.Dafny {
           }
         }
 
-        //A hidden type may become visible in another scope
+        // A hidden type may become visible in another scope
         var isyn = type.AsInternalTypeSynonym;
         if (isyn != null) {
           var udt = (UserDefinedType)type;
