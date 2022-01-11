@@ -6534,13 +6534,33 @@ namespace Microsoft.Dafny {
         private void Reporting(ErrorReporter reporter, string suffix) {
           Contract.Requires(reporter != null);
           Contract.Requires(suffix != null);
+
+          object[] RemoveAmbiguity(object[] msgArgs) {
+            var renderedInterpolated = new HashSet<string>();
+            var ambiguity = false;
+            foreach (var x in msgArgs) {
+              var str = x.ToString();
+              if (renderedInterpolated.Contains(str)) {
+                ambiguity = true;
+              }
+
+              renderedInterpolated.Add(str);
+            }
+            if (ambiguity) {
+              return msgArgs.Select(x =>
+                x is UserDefinedType udt ? udt.FullName : x.ToString()
+              ).ToArray();
+            } else {
+              return msgArgs;
+            }
+          }
           if (this is ErrorMsgWithToken) {
             var err = (ErrorMsgWithToken)this;
             Contract.Assert(err.Tok != null);
-            reporter.Error(MessageSource.Resolver, err.Tok, err.Msg + suffix, err.MsgArgs);
+            reporter.Error(MessageSource.Resolver, err.Tok, err.Msg + suffix, RemoveAmbiguity(err.MsgArgs));
           } else {
             var err = (ErrorMsgWithBase)this;
-            err.BaseMsg.Reporting(reporter, " (" + string.Format(err.Msg, err.MsgArgs) + ")" + suffix);
+            err.BaseMsg.Reporting(reporter, " (" + string.Format(err.Msg, RemoveAmbiguity(err.MsgArgs)) + ")" + suffix);
           }
           reported = true;
         }
