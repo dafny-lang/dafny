@@ -1,4 +1,4 @@
-SumSum.dfy(77,2): Warning: /!\ No terms found to trigger on. Potential trigger not suitable: (SumSum.dfy(80,43)).
-SumSum.dfy(106,6): Warning: /!\ No terms found to trigger on. Potential trigger not suitable: (SumSum.dfy(108,36)).
+SumSum.dfy(77,2): Warning: /!\ No terms found to trigger on. Potential trigger not suitable: SumSum.dfy(80,43)
+SumSum.dfy(106,6): Warning: /!\ No terms found to trigger on. Potential trigger not suitable: SumSum.dfy(108,36)
 
 Dafny program verifier finished with 19 verified, 0 errors

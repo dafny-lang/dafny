@@ -1,4 +1,4 @@
-nested-quantifiers-all-get-triggers.dfy(8,17): Info: Selected triggers: {x in s} Trigger position: (nested-quantifiers-all-get-triggers.dfy(8,55)).
-nested-quantifiers-all-get-triggers.dfy(8,59): Info: Selected triggers: {y in s} Trigger position: (nested-quantifiers-all-get-triggers.dfy(8,84)).
+nested-quantifiers-all-get-triggers.dfy(8,17): Info: Selected triggers: {x in s} Trigger position: nested-quantifiers-all-get-triggers.dfy(8,55)
+nested-quantifiers-all-get-triggers.dfy(8,59): Info: Selected triggers: {y in s} Trigger position: nested-quantifiers-all-get-triggers.dfy(8,84)
 
 Dafny program verifier finished with 0 verified, 0 errors

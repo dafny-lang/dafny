@@ -1,15 +1,15 @@
 loop-detection-is-not-too-strict.dfy(15,9): Info: Selected triggers:
-   {P(y, x)}, {P(x, y)} Trigger position: (loop-detection-is-not-too-strict.dfy(15,42)).
+   {P(y, x)}, {P(x, y)} Trigger position: loop-detection-is-not-too-strict.dfy(15,42)
 loop-detection-is-not-too-strict.dfy(18,9): Info: Selected triggers:
-   {P(y, x)}, {P(x, y)} Trigger position: (loop-detection-is-not-too-strict.dfy(18,42)).
-loop-detection-is-not-too-strict.dfy(21,9): Info: Selected triggers: {P(x, _t#0), P(x, y)} Trigger position: (loop-detection-is-not-too-strict.dfy(21,42)).
-loop-detection-is-not-too-strict.dfy(26,9): Info: Selected triggers: {Q(x)} Trigger position: (loop-detection-is-not-too-strict.dfy(26,37)).
-loop-detection-is-not-too-strict.dfy(27,9): Info: Selected triggers: {Q(x)} Trigger position: (loop-detection-is-not-too-strict.dfy(27,37)).
+   {P(y, x)}, {P(x, y)} Trigger position: loop-detection-is-not-too-strict.dfy(18,42)
+loop-detection-is-not-too-strict.dfy(21,9): Info: Selected triggers: {P(x, _t#0), P(x, y)} Trigger position: loop-detection-is-not-too-strict.dfy(21,42)
+loop-detection-is-not-too-strict.dfy(26,9): Info: Selected triggers: {Q(x)} Trigger position: loop-detection-is-not-too-strict.dfy(26,37)
+loop-detection-is-not-too-strict.dfy(27,9): Info: Selected triggers: {Q(x)} Trigger position: loop-detection-is-not-too-strict.dfy(27,37)
 loop-detection-is-not-too-strict.dfy(28,9): Info: Selected triggers:
-   {P(x, z)}, {P(x, 1)} Trigger position: (loop-detection-is-not-too-strict.dfy(28,40)).
-loop-detection-is-not-too-strict.dfy(33,9): Info: Selected triggers: {Q(x)} Trigger position: (loop-detection-is-not-too-strict.dfy(33,37)).
-loop-detection-is-not-too-strict.dfy(34,9): Info: Selected triggers: {Q(x)} Trigger position: (loop-detection-is-not-too-strict.dfy(34,37)).
-loop-detection-is-not-too-strict.dfy(36,9): Info: Selected triggers: {Q(_t#0), Q(x)} Trigger position: (loop-detection-is-not-too-strict.dfy(36,37)).
-loop-detection-is-not-too-strict.dfy(40,9): Info: Selected triggers: {Q(_t#0), Q(x)} Trigger position: (loop-detection-is-not-too-strict.dfy(40,38)).
+   {P(x, z)}, {P(x, 1)} Trigger position: loop-detection-is-not-too-strict.dfy(28,40)
+loop-detection-is-not-too-strict.dfy(33,9): Info: Selected triggers: {Q(x)} Trigger position: loop-detection-is-not-too-strict.dfy(33,37)
+loop-detection-is-not-too-strict.dfy(34,9): Info: Selected triggers: {Q(x)} Trigger position: loop-detection-is-not-too-strict.dfy(34,37)
+loop-detection-is-not-too-strict.dfy(36,9): Info: Selected triggers: {Q(_t#0), Q(x)} Trigger position: loop-detection-is-not-too-strict.dfy(36,37)
+loop-detection-is-not-too-strict.dfy(40,9): Info: Selected triggers: {Q(_t#0), Q(x)} Trigger position: loop-detection-is-not-too-strict.dfy(40,38)
 
 Dafny program verifier finished with 1 verified, 0 errors

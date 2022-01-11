@@ -1,4 +1,4 @@
-Matrix-OOB.dfy(11,10): Info: Selected triggers: {m[i, j]} Trigger position: (Matrix-OOB.dfy(11,33)).
+Matrix-OOB.dfy(11,10): Info: Selected triggers: {m[i, j]} Trigger position: Matrix-OOB.dfy(11,33)
 Matrix-OOB.dfy(11,26): Error: index 0 out of range
 Matrix-OOB.dfy(11,26): Error: index 1 out of range
 Matrix-OOB.dfy(12,0): Error: A postcondition might not hold on this return path.

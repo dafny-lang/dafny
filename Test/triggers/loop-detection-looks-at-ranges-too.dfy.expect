@@ -1,4 +1,4 @@
-loop-detection-looks-at-ranges-too.dfy(11,17): Info: Selected triggers: {P(_t#0), P(x)} Trigger position: (loop-detection-looks-at-ranges-too.dfy(11,41)).
-loop-detection-looks-at-ranges-too.dfy(13,17): Info: Selected triggers: {P(x), P(_t#0)} Trigger position: (loop-detection-looks-at-ranges-too.dfy(13,43)).
+loop-detection-looks-at-ranges-too.dfy(11,17): Info: Selected triggers: {P(_t#0), P(x)} Trigger position: loop-detection-looks-at-ranges-too.dfy(11,41)
+loop-detection-looks-at-ranges-too.dfy(13,17): Info: Selected triggers: {P(x), P(_t#0)} Trigger position: loop-detection-looks-at-ranges-too.dfy(13,43)
 
 Dafny program verifier finished with 1 verified, 0 errors

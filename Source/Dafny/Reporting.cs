@@ -208,7 +208,7 @@ namespace Microsoft.Dafny {
             continue;
           }
           msg = nestedToken.Message ?? "[Related location]";
-          errorLine += $" {msg} ({TokenToString(tok)}).";
+          errorLine += $" {msg} {TokenToString(tok)}";
         }
         Console.WriteLine(errorLine);
 

@@ -1,5 +1,5 @@
-Ackermann.dfy(163,4): Warning: /!\ No terms found to trigger on. Potential trigger not suitable: (Ackermann.dfy(147,12)).
-Ackermann.dfy(181,4): Warning: /!\ No terms found to trigger on. Potential trigger not suitable: (Ackermann.dfy(129,21)).
+Ackermann.dfy(163,4): Warning: /!\ No terms found to trigger on. Potential trigger not suitable: Ackermann.dfy(147,12)
+Ackermann.dfy(181,4): Warning: /!\ No terms found to trigger on. Potential trigger not suitable: Ackermann.dfy(129,21)
 
 Dafny program verifier finished with 15 verified, 0 errors
 Ack(3, 4) = 125

@@ -1,9 +1,9 @@
-function-applications-are-triggers.dfy(9,9): Info: Selected triggers: {P.requires(f)} Trigger position: (function-applications-are-triggers.dfy(9,35)).
+function-applications-are-triggers.dfy(9,9): Info: Selected triggers: {P.requires(f)} Trigger position: function-applications-are-triggers.dfy(9,35)
 function-applications-are-triggers.dfy(10,9): Info: Selected triggers:
-   {f(10)}, {f.requires(10)}, {P(f)} Trigger position: (function-applications-are-triggers.dfy(10,44)).
+   {f(10)}, {f.requires(10)}, {P(f)} Trigger position: function-applications-are-triggers.dfy(10,44)
 function-applications-are-triggers.dfy(11,9): Info: Selected triggers:
-   {f(10)}, {f.requires(10)} Trigger position: (function-applications-are-triggers.dfy(13,19)).
+   {f(10)}, {f.requires(10)} Trigger position: function-applications-are-triggers.dfy(13,19)
 function-applications-are-triggers.dfy(12,5): Info: Selected triggers:
-   {g(x)}, {f(x)}, {g.requires(x)}, {f.requires(x)} Trigger position: (function-applications-are-triggers.dfy(12,57)).
+   {g(x)}, {f(x)}, {g.requires(x)}, {f.requires(x)} Trigger position: function-applications-are-triggers.dfy(12,57)
 
 Dafny program verifier finished with 1 verified, 0 errors
