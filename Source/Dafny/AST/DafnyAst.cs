@@ -2272,7 +2272,7 @@ namespace Microsoft.Dafny {
         return ignoreTypeArguments || CompatibleTypeArgs(super, sub);
       }
 
-      return ParentTypes().Any(parentType => parentType.IsSubtypeOf(super, ignoreTypeArguments, ignoreNullity));
+      return sub.ParentTypes().Any(parentType => parentType.IsSubtypeOf(super, ignoreTypeArguments, ignoreNullity));
     }
 
     public static bool CompatibleTypeArgs(Type super, Type sub) {
