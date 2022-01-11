@@ -42,10 +42,24 @@ predicate method isSetOfCompilableEvenCells(s: set<CompilableEvenCell>) {
   forall c :: c in s ==> returnsOneIfCompilableEvenCell(c) == 1
 }
 
+function method isGhostEvenCell(c: Cell): (r: bool)
+{
+  c.x == 0
+}
+
 method Main() {
   var x: set<Cell> := getOriginalSet();
 
   var b := true;
+  // This line should work because c is assigned the type GhostEvenCell early in the process, so it can be assigned the type Cell in the rangee
+  // and thus resolution does not fail.
+  // Since it figures out the type of c later, it will be resolved as a "GhostEvenCell" everywhere.
+  b := b && isSetOfGhostEvenCells(set c: GhostEvenCell | c in x && c.x % 4 == 0 :: c);
+
+  // This line should work because c is assigned the type GhostEvenCell early in the process, so it can be assigned the type Cell in the rangee
+  // and thus resolution does not fail.
+  // Since it figures out the type of c later, it will be resolved as a "GhostEvenCell" everywhere.
+  b := b && isSetOfGhostEvenCells(set c: GhostEvenCell | c in x && isGhostEvenCell(c) && ghostEvenCellIsOneOrMore(c) :: c);
 
   // This line should work because the output type constraint can be proven
   // c should be assigned the type Cell in the range expression, but GhostEvenCell in the term expression
@@ -88,10 +102,6 @@ method Main() {
     // This line should work because the precondition of compiledEvenCellIsOneOrMore is met although it's executed twice
   b := b && isSetOfCompilableEvenCells(set c | c in x && c.x % 2 == 0 && compiledEvenCellIsOneOrMore(c));
 
-    // This line should work because the tpye of c can be inferred to be CompiledEvenCell
-  b := b && isSetOfCompilableEvenCells(set c | c in x && compiledEvenCellIsOneOrMore(c) && c.x % 2 == 0);
-
- //*/
   assert b;
   print if b then "ok" else "error";
 }

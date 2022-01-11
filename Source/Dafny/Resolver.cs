@@ -15300,37 +15300,16 @@ namespace Microsoft.Dafny {
         var e = (SetComprehension)expr;
         int prevErrorCount = reporter.Count(ErrorLevel.Error);
         scope.PushMarker();
-        var oldBoundVariableTypes = new List<Type>();
         //For the range, we need to assume that the bound vars have a run-time testable type.
-        foreach (BoundVar v in e.BoundVars) {
-          ResolveType(v.tok, v.Type, opts.codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
-          // If the type can be tested at run time, we keep the same scope
-          // Else, the the scoped type is the upper type that can be tested.
-          if (!v.Type.IsRuntimeTestable()) {
-            v.ReplaceType(v.Type.GetRuntimeTestableType());
-          }
-          ScopePushNoReport(scope, v);
-          // TODO: Gather verification condition and verify it.
-        }
+        ScopePushBoundVarsForRange(e, opts);
         ResolveExpression(e.Range, opts);
         Contract.Assert(e.Range.Type != null);  // follows from postcondition of ResolveExpression
-        ConstrainTypeExprBool(e.Range, "range of comprehension must be of type bool (instead got {0})");
+        ConstrainTypeExprBool(e.Range, "range of set comprehension must be of type bool (instead got {0})");
         ResolveAttributes(e.Attributes, e, opts);
 
         scope.PopMarker();
         scope.PushMarker();
-        // TODO: Swap the type for the term.
-        // For the term only, we can assume the inferred type which has to be proved later
-        foreach (BoundVar v in e.BoundVars) {
-          if (v.HasReplacementType()) {
-            v.ReplaceType(); // Reinstate the original type set by the user, only for the term.
-          }
-          ScopePushAndReport(scope, v, "bound-variable");
-          var inferredProxy = v.Type as InferredTypeProxy;
-          if (inferredProxy != null) {
-            Contract.Assert(!inferredProxy.KeepConstraints);  // in general, this proxy is inferred to be a base type
-          }
-        }
+        ScopePushBoundVarsForTerm(e);
         ResolveExpression(e.Term, opts);
         Contract.Assert(e.Term.Type != null);  // follows from postcondition of ResolveExpression
 
@@ -15349,17 +15328,15 @@ namespace Microsoft.Dafny {
         int prevErrorCount = reporter.Count(ErrorLevel.Error);
         scope.PushMarker();
         Contract.Assert(e.BoundVars.Count == 1 || (1 < e.BoundVars.Count && e.TermLeft != null));
-        foreach (BoundVar v in e.BoundVars) {
-          ScopePushAndReport(scope, v, "bound-variable");
-          ResolveType(v.tok, v.Type, opts.codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
-          var inferredProxy = v.Type as InferredTypeProxy;
-          if (inferredProxy != null) {
-            Contract.Assert(!inferredProxy.KeepConstraints);  // in general, this proxy is inferred to be a base type
-          }
-        }
+        ScopePushBoundVarsForRange(e, opts);
         ResolveExpression(e.Range, opts);
         Contract.Assert(e.Range.Type != null);  // follows from postcondition of ResolveExpression
-        ConstrainTypeExprBool(e.Range, "range of comprehension must be of type bool (instead got {0})");
+        ConstrainTypeExprBool(e.Range, "range of map comprehension must be of type bool (instead got {0})");
+        ResolveAttributes(e.Attributes, e, opts);
+
+        scope.PopMarker();
+        scope.PushMarker();
+        ScopePushBoundVarsForTerm(e);
         if (e.TermLeft != null) {
           ResolveExpression(e.TermLeft, opts);
           Contract.Assert(e.TermLeft.Type != null);  // follows from postcondition of ResolveExpression
@@ -15367,7 +15344,6 @@ namespace Microsoft.Dafny {
         ResolveExpression(e.Term, opts);
         Contract.Assert(e.Term.Type != null);  // follows from postcondition of ResolveExpression
 
-        ResolveAttributes(e.Attributes, e, opts);
         scope.PopMarker();
         expr.Type = new MapType(e.Finite, e.TermLeft != null ? e.TermLeft.Type : e.BoundVars[0].Type, e.Term.Type);
 
@@ -15440,6 +15416,40 @@ namespace Microsoft.Dafny {
       if (expr.Type == null) {
         // some resolution error occurred
         expr.Type = new InferredTypeProxy();
+      }
+    }
+
+    private void ScopePushBoundVarsForTerm(IBoundVarsBearingExpression e) {
+      // For the term only, we can assume the inferred type which has to be proved later
+      foreach (BoundVar v in e.AllBoundVars) {
+        if (v.HasReplacementType()) {
+          v.ReplaceType(); // Reinstate the original type set by the user, only for the term.
+        }
+
+        ScopePushAndReport(scope, v, "bound-variable");
+        var inferredProxy = v.Type as InferredTypeProxy;
+        if (inferredProxy != null) {
+          Contract.Assert(!inferredProxy.KeepConstraints); // in general, this proxy is inferred to be a base type
+        }
+      }
+    }
+
+    private void ScopePushBoundVarsForRange(IBoundVarBearingExpressionWithToken e, ResolveOpts opts) {
+      foreach (BoundVar v in e.AllBoundVars) {
+        ResolveType(v.tok, v.Type, opts.codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+        // If the type can be tested at run time, we keep the same scope
+        // Else, the the scoped type is the upper type that can be tested.
+        if (!v.Type.IsRuntimeTestable()) {
+          var collectionVarType = v.Type.GetRuntimeTestableType();
+          if (v.Type is InferredTypeProxy) {
+            AddAssignableConstraint(e.Token, collectionVarType, v.Type,
+              "Collection type '{0}' should be a superset of the assignable type (got '{1}')");
+          }
+
+          v.ReplaceType(collectionVarType);
+        }
+
+        ScopePushNoReport(scope, v); // Let's not report duplicated and shadowed names twice
       }
     }
 
@@ -16973,9 +16983,8 @@ namespace Microsoft.Dafny {
           substMap.Add(formal, b.Actual);
           var what = whatKind + (context is Method ? " in-parameter" : " argument");
           what += GetLocationInformation(formals, j);
-
           AddAssignableConstraint(
-            callTok, SubstType(formal.Type, typeMap), b.Actual.Type,
+            callTok, SubstType(formal.Type.NormalizeExpand(), typeMap), b.Actual.Type,
             $"incorrect type of {what} (expected {{0}}, found {{1}})");
         } else if (formal.DefaultValue != null) {
           // Note, in the following line, "substMap" is passed in, but it hasn't been fully filled in until the
@@ -18610,10 +18619,13 @@ namespace Microsoft.Dafny {
         for (var i = 0; i < e.BoundVars.Count(); i++) {
           var boundVar = e.BoundVars[i];
           if (!boundVar.Type.IsRuntimeTestable()) {
+            Type collectionElementType = null;
             if (i < e.Bounds.Count()) {
               var bound = e.Bounds[i];
               if (bound is ComprehensionExpr.SetBoundedPool setBound) {
-                if (setBound.CollectionElementType.IsSubtypeOf(setBound.BoundVariableType, false, false)) {
+                collectionElementType = setBound.CollectionElementType.NormalizeExpand(true);
+                if (collectionElementType
+                    .IsSubtypeOf(setBound.BoundVariableType.NormalizeExpand(true), false, false)) {
                   // var bound: B = (collectionElement as A) where A is a subtype of B
                   // No need to check here, these are compatible types, even if they are ghost
                   continue;
@@ -18626,10 +18638,15 @@ namespace Microsoft.Dafny {
               IsConstraintCompilable: false
             } and var subsetTypeDecl
             ) {
+              // This happens only if the type inference assigned the subset type everywhere.
               // Explicitly report the error
               var showProvenance = constraint.tok.line != 0;
               this.resolver.Reporter.Error(MessageSource.Resolver, boundVar.tok,
-                $"{boundVar.Type} is a subset type and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in {what}." +
+                $"'{boundVar.Name}' has been lately inferred to be of the subset type {boundVar.Type}" +
+                $" which has a non-compilable constraint," +
+                $" which prevents this {what}" + (collectionElementType == null ? "" : $" of {collectionElementType}") +
+                $" to be compiled. If you really want the verifier to check it," +
+                $" please explicitely annotate the bound variable ({boundVar.Name}: {boundVar.Type})." +
                 (showProvenance ? " The next error will explain why the constraint is not compilable." : ""));
               if (showProvenance) {
                 ExpressionTester.CheckIsCompilable(this.resolver, constraint,

@@ -47,11 +47,23 @@ method Main() {
 
   var b := true;
 
+  // This line should fail because we cannot extract GhostEvenCells directly
+  b := b && isSetOfGhostEvenCells(set c: GhostEvenCell | c in x);
+
+  // This line should fail because we cannot prove that c is a GhostEvenCell
+  b := b && isSetOfGhostEvenCells(set c: GhostEvenCell | c in x && c.x % 3 == 0 :: c);
+
+  // This line should fail because although the type constraint can be proven, the precondition for ghostEvenCellIsOneOrMore cannot.
+  b := b && isSetOfGhostEvenCells(set c | c in x && ghostEvenCellIsOneOrMore(c) && c.x % 2 == 0);
+
   // This line should fail because c should be of type Cell as the constraint is not compilable
   b := b && isSetOfGhostEvenCells(set c: GhostEvenCell | c in x && ghostEvenCellIsOneOrMore(c));
 
   // This line should fail because although the type constraint can be proven, the precondition for ghostEvenCellIsOneOrMore cannot.
   b := b && isSetOfGhostEvenCells(set c: GhostEvenCell | c in x && ghostEvenCellIsOneOrMore(c) && c.x % 2 == 0);
+
+  // This line fails because the type of c is inferred to be a Cell
+  b := b && isSetOfCompilableEvenCells(set c | c in x && compiledEvenCellIsOneOrMore(c) && c.x % 2 == 0);
 
   assert b;
   print if b then "ok" else "error";

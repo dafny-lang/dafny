@@ -1,4 +1,7 @@
-git-issue-1604b2.dfy(51,92): Error: value does not satisfy the subset constraints of 'GhostEvenCell'
+git-issue-1604b2.dfy(51,77): Error: value does not satisfy the subset constraints of 'GhostEvenCell'
 git-issue-1604b2.dfy(54,92): Error: value does not satisfy the subset constraints of 'GhostEvenCell'
+git-issue-1604b2.dfy(57,92): Error: value does not satisfy the subset constraints of 'GhostEvenCell'
+git-issue-1604b2.dfy(60,85): Error: value does not satisfy the subset constraints of 'CompilableEvenCell'
+git-issue-1604b2.dfy(62,9): Error: assertion violation
 
-Dafny program verifier finished with 9 verified, 2 errors
+Dafny program verifier finished with 9 verified, 5 errors

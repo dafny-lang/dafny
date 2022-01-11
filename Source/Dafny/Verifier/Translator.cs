@@ -6039,6 +6039,38 @@ namespace Microsoft.Dafny {
               CheckWellformed(range, newOptions, locals, newBuilder, comprehensionEtran);
               guard = comprehensionEtran.TrExpr(range);
             }
+            Boogie.Expr CheckGhostType(Expression term) {
+              var type = term.Type;
+              return MkIs(etran.TrExpr(Substitute(term, null, substMap)), type);
+            }
+
+            if (e is SetComprehension setComp) {
+              if (setComp.Term.Type.AsSubsetType != null) {
+                // It has a term. We need to verify the term's type.
+                BplIfIf(setComp.Term.tok, true, guard, newBuilder,
+                  b => {
+                    b.Add(Assert(setComp.Term.tok, CheckGhostType(setComp.Term),
+               $"Could not prove that the set term satisfies the subset type {setComp.Term.Type}."));
+                  });
+              }
+            } else if (e is MapComprehension mapComp) {
+              // It has a term. We need to verify the term's type.
+              if (mapComp.Term.Type.AsSubsetType != null) {
+                BplIfIf(mapComp.Term.tok, true, guard, newBuilder,
+                  b => {
+                    b.Add(Assert(mapComp.Term.tok, CheckGhostType(mapComp.Term),
+               $"Could not prove that the map value term satisfies the subset type {mapComp.Term.Type}."));
+                  });
+              }
+
+              if (mapComp.TermLeft.Type.AsSubsetType != null) {
+                BplIfIf(mapComp.TermLeft.tok, true, guard, newBuilder,
+                  b => {
+                    b.Add(Assert(mapComp.TermLeft.tok, CheckGhostType(mapComp.TermLeft),
+               $"Could not prove that the map key term satisfies the subset type {mapComp.TermLeft.Type}."));
+                  });
+              }
+            }
 
             if (mc != null) {
               Contract.Assert(bodyLeft != null);

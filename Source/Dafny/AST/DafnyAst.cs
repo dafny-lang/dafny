@@ -387,6 +387,10 @@ namespace Microsoft.Dafny {
     }
   }
 
+  public interface IBoundVarBearingExpressionWithToken : IBoundVarsBearingExpression {
+    public IToken Token { get; }
+  }
+
   /// <summary>
   /// A class implementing this interface is one that can carry attributes.
   /// </summary>
@@ -1050,6 +1054,8 @@ namespace Microsoft.Dafny {
       // It might not be possible to do so if the constraint of this type uses ghost predicates
       if (this.AsSubsetType is SubsetTypeDecl subsetTypeDecl && !subsetTypeDecl.IsConstraintCompilable) {
         return false;
+      } else if (this.NormalizeExpandKeepConstraints() is InferredTypeProxy) {
+        return false;
       } else {
         return true;
       }
@@ -1059,6 +1065,10 @@ namespace Microsoft.Dafny {
     public Type GetRuntimeTestableType() {
       if (this.AsSubsetType is SubsetTypeDecl subsetTypeDecl && !subsetTypeDecl.IsConstraintCompilable) {
         return subsetTypeDecl.Var.Type.GetRuntimeTestableType();
+      }
+      if (this.NormalizeExpandKeepConstraints() is InferredTypeProxy) {
+        // We need to create another inferred type proxy
+        return new InferredTypeProxy();
       }
       return this;
     }
@@ -11260,7 +11270,7 @@ namespace Microsoft.Dafny {
   /// where "Attributes" is optional, and "| Range(x)" is optional and defaults to "true".
   /// Currently, BINDER is one of the logical quantifiers "exists" or "forall".
   /// </summary>
-  public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBearingExpression {
+  public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclaration, IBoundVarBearingExpressionWithToken {
     public virtual string WhatKind => "comprehension";
     // The bound vars might need a fix if they are assigned a type that cannot be compiled.
     public readonly List<BoundVar> BoundVars;
@@ -11273,6 +11283,9 @@ namespace Microsoft.Dafny {
     public IToken BodyEndTok = Token.NoToken;
     IToken IRegion.BodyStartTok { get { return BodyStartTok; } }
     IToken IRegion.BodyEndTok { get { return BodyEndTok; } }
+    IToken IBoundVarBearingExpressionWithToken.Token {
+      get => tok;
+    }
 
     public void UpdateTerm(Expression newTerm) {
       term = newTerm;
@@ -12878,7 +12891,7 @@ namespace Microsoft.Dafny {
   /// these into:
   ///   0. IdentifierExpr or MemberSelectExpr (with .Lhs set to ImplicitThisExpr or StaticReceiverExpr)
   ///   1. IdentifierExpr or MemberSelectExpr
-  ///   2. FuncionCallExpr or ApplyExpr
+  ///   2. FunctionCallExpr or ApplyExpr
   ///
   /// The IdentifierExpr's that forms 0 and 1 can turn into sometimes denote the name of a module or
   /// type.  The .Type field of the corresponding resolved expressions are then the special Type subclasses
