@@ -4423,7 +4423,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(cl.TypeArgs.Count == B.Count);
         moreXConstraints = false;
         for (int i = 0; i < B.Count; i++) {
-          var msgFormat = "variance for type parameter" + (B.Count == 1 ? "" : "" + i) + " expects {0} {1} {2}";
+          var msgFormat = "variance for type parameter" + (B.Count == 1 ? "" : " " + i) + " expects {0} {1} {2}";
           if (cl.TypeArgs[i].Variance == TypeParameter.TPVariance.Co) {
             var em = new TypeConstraint.ErrorMsgWithBase(errMsg, "co" + msgFormat, A[i], ":>", B[i]);
             AddAssignableConstraint(tok, A[i], B[i], em);
