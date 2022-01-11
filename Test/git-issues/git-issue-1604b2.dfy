@@ -62,7 +62,7 @@ method Main() {
   // This line should fail because although the type constraint can be proven, the precondition for ghostEvenCellIsOneOrMore cannot.
   b := b && isSetOfGhostEvenCells(set c: GhostEvenCell | c in x && ghostEvenCellIsOneOrMore(c) && c.x % 2 == 0);
 
-  // This line fails because the type of c is inferred to be a Cell
+  // This line fail because the type of c is inferred to be a Cell
   b := b && isSetOfCompilableEvenCells(set c | c in x && compiledEvenCellIsOneOrMore(c) && c.x % 2 == 0);
 
   assert b;
