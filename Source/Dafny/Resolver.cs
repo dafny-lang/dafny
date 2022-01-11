@@ -12196,21 +12196,13 @@ namespace Microsoft.Dafny {
       return newMatchCase;
     }
 
-    private BoundVar CreatePatBV(IToken oldtok, Type subtype, ICodeContext codeContext) {
-      var tok = oldtok;
+    private BoundVar CreatePatBV(IToken tok, Type type, ICodeContext codeContext) {
       var name = FreshTempVarName("_mcc#", codeContext);
-      var type = new InferredTypeProxy();
-      var err = new TypeConstraint.ErrorMsgWithToken(oldtok, "the declared type of the formal ({0}) does not agree with the corresponding type in the constructor's signature ({1})", type, subtype, name);
-      ConstrainSubtypeRelation(type, subtype, err);
       return new BoundVar(tok, name, type);
     }
 
-    private IdPattern CreateFreshId(IToken oldtok, Type subtype, ICodeContext codeContext, bool isGhost = false) {
-      var tok = oldtok;
+    private IdPattern CreateFreshId(IToken tok, Type type, ICodeContext codeContext, bool isGhost = false) {
       var name = FreshTempVarName("_mcc#", codeContext);
-      var type = new InferredTypeProxy();
-      var err = new TypeConstraint.ErrorMsgWithToken(oldtok, "the declared type of the formal ({0}) does not agree with the corresponding type in the constructor's signature ({1})", type, subtype, name);
-      ConstrainSubtypeRelation(type, subtype, err);
       return new IdPattern(tok, name, type, null, isGhost);
     }
 
