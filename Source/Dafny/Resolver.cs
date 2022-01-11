@@ -16890,7 +16890,7 @@ namespace Microsoft.Dafny {
       var namesToActuals = new Dictionary<string, ActualBinding>();
       formals.ForEach(f => namesToActuals.Add(f.Name, null)); // a name mapping to "null" says it hasn't been filled in yet
       var stillAcceptingPositionalArguments = true;
-      var j = 0;
+      var bindingIndex = 0;
       foreach (var binding in bindings.ArgumentBindings) {
         var arg = binding.Actual;
         // insert the actual into "namesToActuals" under an appropriate name, unless there is an error
@@ -16909,9 +16909,9 @@ namespace Microsoft.Dafny {
           }
         } else if (!stillAcceptingPositionalArguments) {
           reporter.Error(MessageSource.Resolver, arg.tok, "a positional argument is not allowed to follow named arguments");
-        } else if (j < formals.Count) {
+        } else if (bindingIndex < formals.Count) {
           // use the name of formal corresponding to this positional argument, unless the parameter is named-only
-          var formal = formals[j];
+          var formal = formals[bindingIndex];
           var pname = formal.Name;
           if (formal.IsNameOnly) {
             reporter.Error(MessageSource.Resolver, arg.tok,
@@ -16924,7 +16924,7 @@ namespace Microsoft.Dafny {
           if (onlyPositionalArguments) {
             // error was reported before the "foreach" loop
             Contract.Assert(simpleErrorReported);
-          } else if (formals.Count < j) {
+          } else if (formals.Count < bindingIndex) {
             // error was reported on a previous iteration of this "foreach" loop
           } else {
             reporter.Error(MessageSource.Resolver, callTok,
@@ -16934,11 +16934,11 @@ namespace Microsoft.Dafny {
 
         // resolve argument
         ResolveExpression(arg, opts);
-        j++;
+        bindingIndex++;
       }
 
       var actuals = new List<Expression>();
-      j = 0;
+      var formalIndex = 0;
       var substMap = new Dictionary<IVariable, Expression>();
       foreach (var formal in formals) {
         var b = namesToActuals[formal.Name];
@@ -16966,25 +16966,32 @@ namespace Microsoft.Dafny {
             // a simple error message has already been reported
             Contract.Assert(simpleErrorReported);
           } else {
-            var message = "no actual argument passed " +
-                          GetLocationInformation(formal, 0, 0, whatKind + (context is Method ? " in-parameter" : " parameter"));
+            var formalDescription = whatKind + (context is Method ? " in-parameter" : " parameter");
+            var nameWithIndex = formal.HasName && formal is not ImplicitFormal ? "'" + formal.Name + "'" : "";
+            if (formals.Count > 1 || nameWithIndex == "") {
+              nameWithIndex += nameWithIndex == "" ? "" : " ";
+              nameWithIndex += $"at index {formalIndex}";
+            }
+            var message = $"{formalDescription} {nameWithIndex} requires an argument of type {formal.Type}";
             reporter.Error(MessageSource.Resolver, callTok, message);
           }
         }
-        j++;
+        formalIndex++;
       }
 
       bindings.AcceptArgumentExpressionsAsExactParameterList(actuals);
     }
 
-    private static string GetLocationInformation(Formal parameter, int bindingCount, int argumentIndex, string parameterDescription) {
-      var displayName = parameter.HasName && !(parameter is ImplicitFormal);
+    private static string GetLocationInformation(
+        Formal parameter, int bindingCount, int bindingIndex, string formalDescription
+      ) {
+      var displayName = parameter.HasName && parameter is not ImplicitFormal;
       var description = "";
       if (bindingCount > 1) {
-        description += $"at index {argumentIndex} ";
+        description += $"at index {bindingIndex} ";
       }
 
-      description += $"for {parameterDescription}";
+      description += $"for {formalDescription}";
 
       if (displayName) {
         description += $" '{parameter.Name}'";
