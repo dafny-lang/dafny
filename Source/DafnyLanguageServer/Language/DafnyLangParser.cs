@@ -86,7 +86,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           line = 1,
           col = 1,
           pos = 0,
-          val = " "
+          val = string.Empty
         };
         errorReporter.Error(MessageSource.Parser, internalErrorDummyToken, "[internal error] Parser exception: " + e.Message);
         return program;

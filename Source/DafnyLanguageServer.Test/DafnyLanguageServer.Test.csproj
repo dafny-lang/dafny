@@ -55,4 +55,8 @@
     </None>
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Remove="Various\ParserExceptionTest.cs" />
+  </ItemGroup>
+
 </Project>
