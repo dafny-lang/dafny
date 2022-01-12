@@ -227,3 +227,47 @@ module M3 {
     case true => var a := s1 + s0;
   }
 }
+
+module ReferenceTypes {
+  datatype Result<U> = Success(value: U) | Failure(exn: Exception)
+
+  trait Exception {
+    const message: string
+  }
+
+  trait RuntimeException extends Exception {}
+
+  trait IllegalArgumentException extends RuntimeException {}
+
+  function method F(): Result<int>
+
+  function method Test0(): int {
+    var x := F();
+    match x {
+      case Failure(e) =>
+        // The following line once reported "type test ... must be from an expression assignable to it (got 'Exception?')"
+        if e is IllegalArgumentException then 2 else 3
+      case _ => 4
+    }
+  }
+
+  function method Test1(): int {
+    var x := F();
+    match x {
+      case Failure(e: Exception) =>
+        // Even with the explicit type in the previous line, the following line once reported the same error as in Test0
+        if e is IllegalArgumentException then 2 else 3
+      case _ => 4
+    }
+  }
+
+  function method Test2(): int {
+    var x := F();
+    match x {
+      case Failure(e) =>
+        var e: Exception := e;
+        if e is IllegalArgumentException then 2 else 3
+      case _ => 4
+    }
+  }
+}
