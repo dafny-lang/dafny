@@ -12233,7 +12233,7 @@ namespace Microsoft.Dafny {
         return Id;
       } else {
         List<string> cps = Arguments.ConvertAll<string>(x => x.ToString());
-        return string.Format("{0}({1})", Id, String.Join(",", cps));
+        return string.Format("{0}({1})", Id, String.Join(", ", cps));
       }
     }
 
@@ -12390,7 +12390,7 @@ namespace Microsoft.Dafny {
         return Id;
       } else {
         List<string> cps = Arguments.ConvertAll<string>(x => x.ToString());
-        return string.Format("{0}({1})", Id, String.Join(",", cps));
+        return string.Format("{0}({1})", Id, String.Join(", ", cps));
       }
     }
   }
