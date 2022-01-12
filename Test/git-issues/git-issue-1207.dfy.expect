@@ -1,8 +1,8 @@
-git-issue-1207.dfy(17,9): Warning: /!\ No terms found to trigger on.
-git-issue-1207.dfy(29,9): Warning: /!\ No terms found to trigger on.
-git-issue-1207.dfy(41,9): Warning: /!\ No terms found to trigger on.
-git-issue-1207.dfy(47,9): Warning: /!\ No terms found to trigger on.
-git-issue-1207.dfy(48,9): Warning: /!\ No terms found to trigger on.
+git-issue-1207.dfy(17,9): Warning: /!\ No terms found to trigger on. Potential trigger not suitable: git-issue-1207.dfy(17,42)
+git-issue-1207.dfy(29,9): Warning: /!\ No terms found to trigger on. Potential trigger not suitable: git-issue-1207.dfy(29,44)
+git-issue-1207.dfy(41,9): Warning: /!\ No terms found to trigger on. Potential trigger not suitable: git-issue-1207.dfy(41,52)
+git-issue-1207.dfy(47,9): Warning: /!\ No terms found to trigger on. Potential trigger not suitable: git-issue-1207.dfy(47,42)
+git-issue-1207.dfy(48,9): Warning: /!\ No terms found to trigger on. Potential trigger not suitable: git-issue-1207.dfy(48,42)
 git-issue-1207.dfy(10,9): Error: assertion violation
 git-issue-1207.dfy(11,9): Error: assertion violation
 git-issue-1207.dfy(14,9): Error: assertion violation
