@@ -4372,7 +4372,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(rhs != null);
       Contract.Requires(errMsg != null);
 
-      CheckEnds(lhs, out var isRoot, out _, out _, out _);
+      DetermineRootLeaf(lhs, out var isRoot, out _, out _, out _);
       if (isRoot) {
         ConstrainSubtypeRelation(lhs, rhs, errMsg, true, allowDecisions);
         moreXConstraints = false;
@@ -4535,13 +4535,13 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// "root" says that the type is a non-artificial type with no proper supertypes.
+    /// "root" says that the type is a non-artificial type (that is, not an ArtificialType) with no proper supertypes.
     /// "leaf" says that the only possible proper subtypes are subset types of the type. Thus, the only
     /// types that are not leaf types are traits and artificial types.
     /// The "headIs" versions speak only about the head symbols, so it is possible that the given
     /// type arguments would change the root/leaf status of the entire type.
     /// </summary>
-    void CheckEnds(Type t, out bool isRoot, out bool isLeaf, out bool headIsRoot, out bool headIsLeaf) {
+    void DetermineRootLeaf(Type t, out bool isRoot, out bool isLeaf, out bool headIsRoot, out bool headIsLeaf) {
       Contract.Requires(t != null);
       Contract.Ensures(!Contract.ValueAtReturn(out isRoot) || Contract.ValueAtReturn(out headIsRoot)); // isRoot ==> headIsRoot
       Contract.Ensures(!Contract.ValueAtReturn(out isLeaf) || Contract.ValueAtReturn(out headIsLeaf)); // isLeaf ==> headIsLeaf
@@ -4556,7 +4556,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(arr.Arity + 1 == arr.TypeArgs.Count);
         for (int i = 0; i < arr.TypeArgs.Count; i++) {
           var arg = arr.TypeArgs[i];
-          CheckEnds(arg, out var r, out var l, out _, out _);
+          DetermineRootLeaf(arg, out var r, out var l, out _, out _);
           if (i < arr.Arity) {
             isRoot &= l; isLeaf &= r;  // argument types are contravariant
           } else {
@@ -4594,7 +4594,7 @@ namespace Microsoft.Dafny {
           for (int i = 0; i < udt.TypeArgs.Count; i++) {
             var variance = cl.TypeArgs[i].Variance;
             if (variance != TypeParameter.TPVariance.Non) {
-              CheckEnds(udt.TypeArgs[i], out var r, out var l, out _, out _);
+              DetermineRootLeaf(udt.TypeArgs[i], out var r, out var l, out _, out _);
               // isRoot and isLeaf aren't duals, so Co and Contra require separate consideration beyond inversion.
               switch (variance) {
                 case TypeParameter.TPVariance.Co: { isRoot &= r; isLeaf &= l; break; }
@@ -4615,13 +4615,13 @@ namespace Microsoft.Dafny {
         headIsRoot = false; headIsLeaf = false;
       } else if (t is MapType) {  // map, imap
         Contract.Assert(t.TypeArgs.Count == 2);
-        CheckEnds(t.TypeArgs[0], out var r0, out _, out _, out _);
-        CheckEnds(t.TypeArgs[1], out var r1, out _, out _, out _);
+        DetermineRootLeaf(t.TypeArgs[0], out var r0, out _, out _, out _);
+        DetermineRootLeaf(t.TypeArgs[1], out var r1, out _, out _, out _);
         isRoot = r0 & r1; isLeaf = r0 & r1;  // map types are covariant in both type arguments
         headIsRoot = true; headIsLeaf = true;
       } else if (t is CollectionType) {  // set, iset, multiset, seq
         Contract.Assert(t.TypeArgs.Count == 1);
-        CheckEnds(t.TypeArgs[0], out isRoot, out isLeaf, out _, out _);  // type is covariant is type argument
+        DetermineRootLeaf(t.TypeArgs[0], out isRoot, out isLeaf, out _, out _);  // type is covariant is type argument
         headIsRoot = true; headIsLeaf = true;
       } else {
         isRoot = false; isLeaf = false;  // don't know
@@ -4721,7 +4721,7 @@ namespace Microsoft.Dafny {
       proxy.T = t;
 
       // check feasibility
-      CheckEnds(t, out var isRoot, out var isLeaf, out _, out _);
+      DetermineRootLeaf(t, out var isRoot, out var isLeaf, out _, out _);
       // propagate up
       foreach (var c in proxy.SupertypeConstraints) {
         var u = keepConstraints ? c.Super.NormalizeExpandKeepConstraints() : c.Super.NormalizeExpand();
@@ -6131,7 +6131,7 @@ namespace Microsoft.Dafny {
       // ----- first, go light; also, prefer subtypes over supertypes
       IEnumerable<Type> subTypes = keepConstraints ? proxy.SubtypesKeepConstraints : proxy.Subtypes;
       foreach (var su in subTypes) {
-        CheckEnds(su, out var isRoot, out _, out var headRoot, out _);
+        DetermineRootLeaf(su, out var isRoot, out _, out var headRoot, out _);
         Contract.Assert(!isRoot || headRoot);  // isRoot ==> headRoot
         if (isRoot) {
           if (Reaches(su, proxy, 1, new HashSet<TypeProxy>())) {
@@ -6152,7 +6152,7 @@ namespace Microsoft.Dafny {
       if (fullStrength) {
         IEnumerable<Type> superTypes = keepConstraints ? proxy.SupertypesKeepConstraints : proxy.Supertypes;
         foreach (var su in superTypes) {
-          CheckEnds(su, out _, out var isLeaf, out _, out var headLeaf);
+          DetermineRootLeaf(su, out _, out var isLeaf, out _, out var headLeaf);
           Contract.Assert(!isLeaf || headLeaf);  // isLeaf ==> headLeaf
           if (isLeaf) {
             if (Reaches(su, proxy, -1, new HashSet<TypeProxy>())) {
@@ -13993,7 +13993,7 @@ namespace Microsoft.Dafny {
       // Look for a join of head symbols among the proxy's subtypes
       Type joinType = null;
       if (JoinOfAllSubtypes(proxy, ref joinType, new HashSet<TypeProxy>()) && joinType != null) {
-        CheckEnds(joinType, out _, out _, out var headIsRoot, out _);
+        DetermineRootLeaf(joinType, out _, out _, out var headIsRoot, out _);
         if (joinType.IsDatatype) {
           if (DafnyOptions.O.TypeInferenceDebug) {
             Console.WriteLine("  ----> join is a datatype: {0}", joinType);

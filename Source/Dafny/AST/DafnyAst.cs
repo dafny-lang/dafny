@@ -2299,6 +2299,9 @@ namespace Microsoft.Dafny {
 
   /// <summary>
   /// An ArtificialType is only used during type checking. It should never be assigned as the type of any expression.
+  /// It works as a supertype to numeric literals. For example, the literal 6 can be an "int", a "bv16", a
+  /// newtype based on integers, or an "ORDINAL". Type inference thus uses an "artificial" supertype of all of
+  /// these types as the type of literal 6, until a more precise (and non-artificial) type is inferred for it.
   /// </summary>
   public abstract class ArtificialType : Type {
   }
