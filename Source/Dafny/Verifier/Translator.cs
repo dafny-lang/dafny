@@ -6063,7 +6063,7 @@ namespace Microsoft.Dafny {
                   });
               }
 
-              if (mapComp?.TermLeft?.Type?.AsSubsetType != null) {
+              if (mapComp.TermLeft?.Type.AsSubsetType != null) {
                 BplIfIf(mapComp.TermLeft.tok, true, guard, newBuilder,
                   b => {
                     b.Add(Assert(mapComp.TermLeft.tok, CheckGhostType(mapComp.TermLeft),
