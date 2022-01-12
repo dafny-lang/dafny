@@ -4407,9 +4407,9 @@ namespace Microsoft.Dafny {
         // all done
         moreXConstraints = false;
       } else if (typeHead is MapType) {
-        var em = new TypeConstraint.ErrorMsgWithBase(errMsg, "covariance for type parameter 0 expects {1} <: {0}", A[0], B[0]);
+        var em = new TypeConstraint.ErrorMsgWithBase(errMsg, "covariance for type parameter at index 0 expects {1} <: {0}", A[0], B[0]);
         AddAssignableConstraint(tok, A[0], B[0], em);
-        em = new TypeConstraint.ErrorMsgWithBase(errMsg, "covariance for type parameter 1 expects {1} <: {0}", A[1], B[1]);
+        em = new TypeConstraint.ErrorMsgWithBase(errMsg, "covariance for type parameter at index 1 expects {1} <: {0}", A[1], B[1]);
         AddAssignableConstraint(tok, A[1], B[1], em);
         moreXConstraints = true;
       } else if (typeHead is CollectionType) {
@@ -4423,7 +4423,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(cl.TypeArgs.Count == B.Count);
         moreXConstraints = false;
         for (int i = 0; i < B.Count; i++) {
-          var msgFormat = "variance for type parameter" + (B.Count == 1 ? "" : " " + i) + " expects {0} {1} {2}";
+          var msgFormat = "variance for type parameter" + (B.Count == 1 ? "" : " at index " + i) + " expects {0} {1} {2}";
           if (cl.TypeArgs[i].Variance == TypeParameter.TPVariance.Co) {
             var em = new TypeConstraint.ErrorMsgWithBase(errMsg, "co" + msgFormat, A[i], ":>", B[i]);
             AddAssignableConstraint(tok, A[i], B[i], em);

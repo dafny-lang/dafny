@@ -27,7 +27,7 @@ TypeTests.dfy(169,7): Error: non-ghost variable cannot be assigned a value that 
 TypeTests.dfy(179,6): Error: cannot assign to non-ghost variable in a ghost context
 TypeTests.dfy(180,9): Error: cannot assign to non-ghost variable in a ghost context
 TypeTests.dfy(198,10): Error: incorrect type of datatype constructor argument (expected int -> Dt<int>, found int -> int) (covariant type parameter 1 would require int <: Dt<int>)
-TypeTests.dfy(204,10): Error: incorrect type of datatype constructor argument (expected ? -> Dt<?>, found Dt<?> -> Dt<?>) (contravariance for type parameter 0 expects ? <: Dt<?>)
+TypeTests.dfy(204,10): Error: incorrect type of datatype constructor argument (expected ? -> Dt<?>, found Dt<?> -> Dt<?>) (contravariance for type parameter at index 0 expects ? <: Dt<?>)
 TypeTests.dfy(211,10): Error: incorrect type of function argument named 'x' (expected ?, found set<?>)
 TypeTests.dfy(222,9): Error: assignment to array element is not allowed in this context, because this is a ghost method
 TypeTests.dfy(229,11): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'A' can be constructed
