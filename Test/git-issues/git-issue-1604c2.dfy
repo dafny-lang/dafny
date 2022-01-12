@@ -8,17 +8,24 @@ trait Tr { }
 class A extends Tr { }
 class B extends Tr { }
 
-function method test(x: Tr): bool
-  requires x is A
+// Abstract predicate cause errors at run-time so they should be caught
+predicate SpecialA(a: A)
 {
-  if x is B then 1/0 == 0 else true
+  false
+}
+type Ap  = x : A | SpecialA(x) witness *
+
+function method testSpecial(x: Tr): bool
+  requires x is A && SpecialA(x)
+{
+  1/0 == 0
 }
 
 method Main() {
   var a := new A;
   var b := new B;
   var s: set<Tr> := {a, b};
-  var aa := forall a': A :: a' in s ==> test(a');
-  assert(aa);
+  var ap := forall a': Ap :: a' in s ==> testSpecial(a');
+  assert(ap);
   print "ok";
 }
