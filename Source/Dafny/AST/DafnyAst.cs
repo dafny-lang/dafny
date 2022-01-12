@@ -8903,14 +8903,16 @@ namespace Microsoft.Dafny {
   }
 
   public class NestedToken : TokenWrapper {
-    public NestedToken(IToken outer, IToken inner)
+    public NestedToken(IToken outer, IToken inner, string message = null)
       : base(outer) {
       Contract.Requires(outer != null);
       Contract.Requires(inner != null);
       Inner = inner;
+      this.Message = message;
     }
     public IToken Outer { get { return WrappedToken; } }
     public readonly IToken Inner;
+    public readonly string Message;
   }
 
   /// <summary>
