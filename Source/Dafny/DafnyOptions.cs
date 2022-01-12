@@ -320,6 +320,19 @@ namespace Microsoft.Dafny {
             return true;
           }
 
+        case "mimicVerificationOf":
+          if (ps.ConfirmArgumentCount(1)) {
+            if (args[ps.i] == "3.3") {
+              Prune = false;
+              NormalizeNames = false;
+              EmitDebugInformation = true;
+              NormalizeDeclarationOrder = false;
+            } else {
+              ps.Error("Mimic verification is not supported for Dafny version {0}", ps.args[ps.i]);
+            }
+          }
+          return true;
+
         case "autoReqPrint":
           if (ps.ConfirmArgumentCount(1)) {
             AutoReqPrintFile = args[ps.i];
@@ -895,8 +908,9 @@ namespace Microsoft.Dafny {
 /definiteAssignment:<n>
     0 - ignores definite-assignment rules; this mode is for testing only--it is
         not sound
-    1 (default) - enforces definite-assignment rules for variables and fields
-        of types that do not support auto-initialization
+    1 (default) - enforces definite-assignment rules for compiled variables and fields
+        whose types do not support auto-initialization and for ghost variables
+        and fields whose type is possibly empty
     2 - enforces definite-assignment for all non-yield-parameter
         variables and fields, regardless of their types
     3 - like 2, but also performs checks in the compiler that no nondeterministic
@@ -964,6 +978,14 @@ namespace Microsoft.Dafny {
     The exact mapping of verification concepts to the TRX format is
     experimental and subject to change!
 {TestGenOptions.Help}
+
+/mimicVerificationOf:<Dafny version>
+    Let Dafny attempt to mimic the verification as it was in a previous version of Dafny. 
+    Useful during migration to a newer version of Dafny when a Dafny program has proofs, such as methods or lemmas, 
+    that are unstable in the sense that their verification may become slower or fail altogether 
+    after logically irrelevant changes are made in the verification input.
+
+    Accepted versions are: 3.3 (note that this turns off features that prevent classes of verification instability)
 
 Dafny generally accepts Boogie options and passes these on to Boogie. However,
 some Boogie options, like /loopUnroll, may not be sound for Dafny or may not

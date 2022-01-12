@@ -14,7 +14,7 @@ namespace Microsoft.Dafny {
   }
 
   public enum MessageSource {
-    Parser, Resolver, Translator, Rewriter, Other,
+    Parser, Resolver, Translator, Rewriter, Verifier,
     RefinementTransformer,
     Cloner,
     Compiler
@@ -199,7 +199,19 @@ namespace Microsoft.Dafny {
 
         ConsoleColor previousColor = Console.ForegroundColor;
         Console.ForegroundColor = ColorForLevel(level);
-        Console.WriteLine(ErrorToString(level, tok, msg));
+        var errorLine = ErrorToString(level, tok, msg);
+        while (tok is NestedToken nestedToken) {
+          tok = nestedToken.Inner;
+          if (tok.filename == nestedToken.filename &&
+              tok.line == nestedToken.line &&
+              tok.col == nestedToken.col) {
+            continue;
+          }
+          msg = nestedToken.Message ?? "[Related location]";
+          errorLine += $" {msg} {TokenToString(tok)}";
+        }
+        Console.WriteLine(errorLine);
+
         Console.ForegroundColor = previousColor;
         return true;
       } else {

@@ -4574,8 +4574,7 @@ namespace Microsoft.Dafny {
           if (cl is TypeParameter) {
             var tp = udt.AsTypeParameter;
             Contract.Assert(tp != null);
-            isRoot = true; isLeaf = true;  // all type parameters are invariant
-            headIsRoot = true; headIsLeaf = true;
+            headIsRoot = true; headIsLeaf = true;  // all type parameters are non-variant
           } else if (cl is SubsetTypeDecl) {
             headIsRoot = false; headIsLeaf = true;
           } else if (cl is TraitDecl) {
@@ -4599,10 +4598,11 @@ namespace Microsoft.Dafny {
             if (variance != TypeParameter.TPVariance.Non) {
               bool r, l, hr, hl;
               CheckEnds(udt.TypeArgs[i], out r, out l, out hr, out hl);
-              if (variance == TypeParameter.TPVariance.Co) {
-                isRoot &= r; isLeaf &= l;
-              } else {
-                isRoot &= l; isLeaf &= r;
+              // isRoot and isLeaf aren't duals, so Co and Contra require separate consideration beyond inversion.
+              switch (variance) {
+                case TypeParameter.TPVariance.Co: { isRoot &= r; isLeaf &= l; break; }
+                // A invariably constructible subtype becomes a supertype, and thus the enclosing type is never a root.
+                case TypeParameter.TPVariance.Contra: { isRoot &= false; isLeaf &= r; break; }
               }
             }
           }
@@ -13197,6 +13197,7 @@ namespace Microsoft.Dafny {
     /// [y := temp.Extract();]
     ///
     /// and saves the result into s.ResolvedStatements.
+    /// This is also known as the "elephant operator"
     /// </summary>
     private void ResolveAssignOrReturnStmt(AssignOrReturnStmt s, ICodeContext codeContext) {
       // TODO Do I have any responsibilities regarding the use of codeContext? Is it mutable?
@@ -13218,10 +13219,11 @@ namespace Microsoft.Dafny {
         call = (asx.Lhs.Resolved as MemberSelectExpr)?.Member as Method;
         if (call != null) {
           // We're looking at a method call
+          var typeMap = (asx.Lhs.Resolved as MemberSelectExpr)?.TypeArgumentSubstitutionsWithParents();
           if (call.Outs.Count != 0) {
-            firstType = call.Outs[0].Type;
+            firstType = SubstType(call.Outs[0].Type, typeMap);
           } else {
-            reporter.Error(MessageSource.Resolver, s.Rhs.tok, "Expected {0} to have a Success/Failure output value", call.Name);
+            reporter.Error(MessageSource.Resolver, s.Rhs.tok, "Expected {0} to have a Success/Failure output value, but the method returns nothing.", call.Name);
           }
         } else {
           // We're looking at a call to a function. Treat it like any other expression.
@@ -13269,7 +13271,7 @@ namespace Microsoft.Dafny {
           }
         } else {
           reporter.Error(MessageSource.Resolver, s.Tok,
-            "The type of the first expression is not a failure type in :- statement");
+            $"The type of the first expression to the right of ':-' could not be determined to be a failure type (got '{firstType}')");
           return;
         }
       } else {
@@ -13394,7 +13396,7 @@ namespace Microsoft.Dafny {
           new UpdateStmt(s.Tok, s.Tok,
             new List<Expression>() { lhsExtract },
             new List<AssignmentRhs>() { new ExprRhs(VarDotMethod(s.Tok, temp, "Extract")) }
-            ));
+          ));
         // The following check is not necessary, because the ghost mismatch is caught later.
         // However the error message here is much clearer.
         var m = ResolveMember(s.Tok, firstType, "Extract", out _);
@@ -16701,7 +16703,10 @@ namespace Microsoft.Dafny {
         for (int i = 0; i < m.TypeArgs.Count; i++) {
           var ta = i < suppliedTypeArguments ? optTypeArguments[i] : new InferredTypeProxy();
           rr.TypeApplication_JustMember.Add(ta);
+          subst.Add(m.TypeArgs[i], ta);
         }
+        subst = BuildTypeArgumentSubstitute(subst, receiverTypeBound ?? receiver.Type);
+        rr.ResolvedOutparameterTypes = m.Outs.ConvertAll(f => SubstType(f.Type, subst));
         rr.Type = new InferredTypeProxy();  // fill in this field, in order to make "rr" resolved
       }
       return rr;
@@ -18580,6 +18585,25 @@ namespace Microsoft.Dafny {
   // Looks for every non-ghost comprehensions, and if they are using a subset type,
   // check that the subset constraint is compilable. If it is not compilable, raises an error.
   public class SubsetConstraintGhostChecker : ProgramTraverser {
+    public class FirstErrorCollector : ErrorReporter {
+      public string FirstCollectedMessage = "";
+      public IToken FirstCollectedToken = Token.NoToken;
+      public bool Collected = false;
+
+      public override bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg) {
+        if (!Collected && level == ErrorLevel.Error) {
+          FirstCollectedMessage = msg;
+          FirstCollectedToken = tok;
+          Collected = true;
+        }
+        return true;
+      }
+
+      public override int Count(ErrorLevel level) {
+        return level == ErrorLevel.Error && Collected ? 1 : 0;
+      }
+    }
+
     public Resolver resolver;
 
     public SubsetConstraintGhostChecker(Resolver resolver) {
@@ -18604,8 +18628,19 @@ namespace Microsoft.Dafny {
       return skip;
     }
 
+    private bool IsFieldSpecification(string field, object parent) {
+      return field != null && parent != null && (
+        (parent is Statement && field == "SpecificationSubExpressions") ||
+        (parent is Function && (field is "Req.E" or "Reads.E" or "Ens.E" or "Decreases.Expressions")) ||
+        (parent is Method && (field is "Req.E" or "Mod.E" or "Ens.E" or "Decreases.Expressions"))
+      );
+    }
+
     public override bool Traverse(Expression expr, [CanBeNull] string field, [CanBeNull] object parent) {
       if (expr == null) {
+        return false;
+      }
+      if (IsFieldSpecification(field, parent)) {
         return false;
       }
       // Since we skipped ghost code, the code has to be compiled here. 
@@ -18641,21 +18676,23 @@ namespace Microsoft.Dafny {
               // This happens only if the type inference assigned the subset type everywhere.
               // Explicitly report the error
               var showProvenance = constraint.tok.line != 0;
-              this.resolver.Reporter.Error(MessageSource.Resolver, boundVar.tok,
+              IToken finalToken = boundVar.tok;
+              if (showProvenance) {
+                var errorCollector = new FirstErrorCollector();
+                ExpressionTester.CheckIsCompilable(this.resolver, errorCollector, constraint,
+                  new CodeContextWrapper(subsetTypeDecl, true));
+                if (errorCollector.Collected) {
+                  finalToken = new NestedToken(finalToken, errorCollector.FirstCollectedToken,
+                    "The constraint cannot be tested at-run-time because " + errorCollector.FirstCollectedMessage
+                  );
+                }
+              }
+              this.resolver.Reporter.Error(MessageSource.Resolver, finalToken,
                 $"'{boundVar.Name}' has been lately inferred to be of the subset type {boundVar.Type}" +
                 $" which has a non-compilable constraint," +
                 $" which prevents this {what}" + (collectionElementType == null ? "" : $" of {collectionElementType}") +
                 $" to be compiled. If you really want the verifier to check it," +
-                $" please explicitely annotate the bound variable ({boundVar.Name}: {boundVar.Type})." +
-                (showProvenance ? " The next error will explain why the constraint is not compilable." : ""));
-              if (showProvenance) {
-                ExpressionTester.CheckIsCompilable(this.resolver, constraint,
-                  new CodeContextWrapper(subsetTypeDecl, true));
-              }
-            } else {
-              // Types that are not run-time testable will be redirected here in the future.
-              this.resolver.Reporter.Error(MessageSource.Resolver, boundVar.tok,
-                $"{boundVar.Type} is a type that cannot be tested at run-time, hence it cannot yet be used as the type of a bound variable in {what}.");
+                $" please explicitely annotate the bound variable ({boundVar.Name}: {boundVar.Type}).");
             }
           }
         }

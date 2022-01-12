@@ -11,7 +11,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     ResolutionFailed,
     CompilationSucceeded,
     VerificationStarted,
-    VerificationInProgress,
     VerificationFailed,
     VerificationSucceeded
   }

@@ -9,7 +9,7 @@ using System.Threading;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   public class DiagnosticErrorReporter : ErrorReporter {
-    private const MessageSource VerifierMessageSource = MessageSource.Other;
+    private const MessageSource VerifierMessageSource = MessageSource.Verifier;
     private const string RelatedLocationCategory = "Related location";
     private const string RelatedLocationMessage = RelatedLocationCategory;
 
@@ -93,12 +93,19 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       if (ErrorsOnly && level != ErrorLevel.Error) {
         return false;
       }
-
+      var relatedInformation = new List<DiagnosticRelatedInformation>();
+      if (tok is NestedToken nestedToken) {
+        relatedInformation.AddRange(
+          CreateDiagnosticRelatedInformationFor(
+            nestedToken.Inner, nestedToken.Message ?? "Related location")
+        );
+      }
       var item = new Diagnostic {
         Severity = ToSeverity(level),
         Message = msg,
         Range = tok.GetLspRange(),
-        Source = source.ToString()
+        Source = source.ToString(),
+        RelatedInformation = relatedInformation,
       };
       AddDiagnosticForFile(item, GetDocumentUriOrDefault(tok));
       return true;
