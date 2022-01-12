@@ -18567,6 +18567,25 @@ namespace Microsoft.Dafny {
   // Looks for every non-ghost comprehensions, and if they are using a subset type,
   // check that the subset constraint is compilable. If it is not compilable, raises an error.
   public class SubsetConstraintGhostChecker : ProgramTraverser {
+    public class FirstErrorCollector : ErrorReporter {
+      public string FirstCollectedMessage = "";
+      public IToken FirstCollectedToken = Token.NoToken;
+      public bool Collected = false;
+
+      public override bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg) {
+        if (!Collected && level == ErrorLevel.Error) {
+          FirstCollectedMessage = msg;
+          FirstCollectedToken = tok;
+          Collected = true;
+        }
+        return true;
+      }
+
+      public override int Count(ErrorLevel level) {
+        return level == ErrorLevel.Error && Collected ? 1 : 0;
+      }
+    }
+
     public Resolver resolver;
 
     public SubsetConstraintGhostChecker(Resolver resolver) {
@@ -18630,15 +18649,19 @@ namespace Microsoft.Dafny {
             }
 
             if (!constraintIsCompilable) {
-              // Explicitly report the error
-              var showProvenance = constraint.tok.line != 0;
-              this.resolver.Reporter.Error(MessageSource.Resolver, boundVar.tok,
-                $"{boundVar.Type} is a subset type and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in {what}." +
-                (showProvenance ? " The next error will explain why the constraint is not compilable." : ""));
-              if (showProvenance) {
-                ExpressionTester.CheckIsCompilable(this.resolver, constraint,
+              IToken finalToken = boundVar.tok;
+              if (constraint.tok.line != 0) {
+                var errorCollector = new FirstErrorCollector();
+                ExpressionTester.CheckIsCompilable(this.resolver, errorCollector, constraint,
                   new CodeContextWrapper(subsetTypeDecl, true));
+                if (errorCollector.Collected) {
+                  finalToken = new NestedToken(finalToken, errorCollector.FirstCollectedToken,
+                    "The constraint is not compilable because " + errorCollector.FirstCollectedMessage
+                  );
+                }
               }
+              this.resolver.Reporter.Error(MessageSource.Resolver, finalToken,
+                $"{boundVar.Type} is a subset type and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in {what}.");
             }
           }
         }

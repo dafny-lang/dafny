@@ -1,4 +1,4 @@
-Streams.dfy(65,2): Warning: /!\ No terms found to trigger on.
-Streams.dfy(105,2): Warning: /!\ No terms found to trigger on.
+Streams.dfy(65,2): Warning: /!\ No terms found to trigger on. Potential trigger not suitable: Streams.dfy(70,20)
+Streams.dfy(105,2): Warning: /!\ No terms found to trigger on. Potential trigger not suitable: Streams.dfy(110,30)
 
 Dafny program verifier finished with 37 verified, 0 errors
