@@ -13549,12 +13549,11 @@ namespace Microsoft.Dafny {
           var it = outFormal.Type;
           Type st = SubstType(it, typeMap);
           var lhs = s.Lhs[i];
-          var what = "method out-parameter";
-          what += GetLocationInformation(callee.Outs, i);
+          var what = GetLocationInformation(outFormal, callee.Outs.Count(), i, "method out-parameter");
 
           AddAssignableConstraint(
             s.Tok, lhs.Type, st,
-            $"incorrect type of {what} (expected {{1}}, got {{0}})");
+            $"incorrect return type {what} (expected {{1}}, got {{0}})");
         }
         for (int i = 0; i < s.Lhs.Count; i++) {
           var lhs = s.Lhs[i];
@@ -16889,10 +16888,9 @@ namespace Microsoft.Dafny {
 
       // resolve given arguments and populate the "namesToActuals" map
       var namesToActuals = new Dictionary<string, ActualBinding>();
-      var namesProvidedExplicitly = new HashSet<string>();
       formals.ForEach(f => namesToActuals.Add(f.Name, null)); // a name mapping to "null" says it hasn't been filled in yet
       var stillAcceptingPositionalArguments = true;
-      var j = 0;
+      var bindingIndex = 0;
       foreach (var binding in bindings.ArgumentBindings) {
         var arg = binding.Actual;
         // insert the actual into "namesToActuals" under an appropriate name, unless there is an error
@@ -16904,7 +16902,6 @@ namespace Microsoft.Dafny {
           } else if (b == null) {
             // all is good
             namesToActuals[pname] = binding;
-            namesProvidedExplicitly.Add(pname);
           } else if (b.FormalParameterName == null) {
             reporter.Error(MessageSource.Resolver, binding.FormalParameterName, $"the parameter named '{pname}' is already given positionally");
           } else {
@@ -16912,9 +16909,9 @@ namespace Microsoft.Dafny {
           }
         } else if (!stillAcceptingPositionalArguments) {
           reporter.Error(MessageSource.Resolver, arg.tok, "a positional argument is not allowed to follow named arguments");
-        } else if (j < formals.Count) {
+        } else if (bindingIndex < formals.Count) {
           // use the name of formal corresponding to this positional argument, unless the parameter is named-only
-          var formal = formals[j];
+          var formal = formals[bindingIndex];
           var pname = formal.Name;
           if (formal.IsNameOnly) {
             reporter.Error(MessageSource.Resolver, arg.tok,
@@ -16927,7 +16924,7 @@ namespace Microsoft.Dafny {
           if (onlyPositionalArguments) {
             // error was reported before the "foreach" loop
             Contract.Assert(simpleErrorReported);
-          } else if (formals.Count < j) {
+          } else if (formals.Count < bindingIndex) {
             // error was reported on a previous iteration of this "foreach" loop
           } else {
             reporter.Error(MessageSource.Resolver, callTok,
@@ -16937,23 +16934,24 @@ namespace Microsoft.Dafny {
 
         // resolve argument
         ResolveExpression(arg, opts);
-        j++;
+        bindingIndex++;
       }
 
       var actuals = new List<Expression>();
-      j = 0;
+      var formalIndex = 0;
       var substMap = new Dictionary<IVariable, Expression>();
       foreach (var formal in formals) {
         var b = namesToActuals[formal.Name];
         if (b != null) {
           actuals.Add(b.Actual);
           substMap.Add(formal, b.Actual);
-          var what = whatKind + (context is Method ? " in-parameter" : " argument");
-          what += GetLocationInformation(formals, j);
+          var what = GetLocationInformation(formal,
+            bindings.ArgumentBindings.Count(), bindings.ArgumentBindings.IndexOf(b),
+            whatKind + (context is Method ? " in-parameter" : " parameter"));
 
           AddAssignableConstraint(
             callTok, SubstType(formal.Type, typeMap), b.Actual.Type,
-            $"incorrect type of {what} (expected {{0}}, found {{1}})");
+            $"incorrect argument type {what} (expected {{0}}, found {{1}})");
         } else if (formal.DefaultValue != null) {
           // Note, in the following line, "substMap" is passed in, but it hasn't been fully filled in until the
           // end of this foreach loop. Still, that's soon enough, because DefaultValueExpression won't use it
@@ -16968,33 +16966,35 @@ namespace Microsoft.Dafny {
             // a simple error message has already been reported
             Contract.Assert(simpleErrorReported);
           } else {
-            var message = "no actual argument passed for " + whatKind + (context is Method ? " in-parameter" : " argument");
-            if (formals.Count != 1) {
-              if (formal.HasName) {
-                message += $" '{formal.Name}'";
-              } else {
-                message += " " + j;
-              }
+            var formalDescription = whatKind + (context is Method ? " in-parameter" : " parameter");
+            var nameWithIndex = formal.HasName && formal is not ImplicitFormal ? "'" + formal.Name + "'" : "";
+            if (formals.Count > 1 || nameWithIndex == "") {
+              nameWithIndex += nameWithIndex == "" ? "" : " ";
+              nameWithIndex += $"at index {formalIndex}";
             }
+            var message = $"{formalDescription} {nameWithIndex} requires an argument of type {formal.Type}";
             reporter.Error(MessageSource.Resolver, callTok, message);
           }
         }
-        j++;
+        formalIndex++;
       }
 
       bindings.AcceptArgumentExpressionsAsExactParameterList(actuals);
     }
 
-    private static string GetLocationInformation(List<Formal> formals, int index) {
-      var formal = formals[index];
-      var displayName = formal.HasName && !(formal is ImplicitFormal);
+    private static string GetLocationInformation(
+        Formal parameter, int bindingCount, int bindingIndex, string formalDescription
+      ) {
+      var displayName = parameter.HasName && parameter is not ImplicitFormal;
       var description = "";
-      if (formals.Count() > 1) {
-        description += $" at index {index}";
+      if (bindingCount > 1) {
+        description += $"at index {bindingIndex} ";
       }
 
+      description += $"for {formalDescription}";
+
       if (displayName) {
-        description += $" named '{formal.Name}'";
+        description += $" '{parameter.Name}'";
       }
 
       return description;
