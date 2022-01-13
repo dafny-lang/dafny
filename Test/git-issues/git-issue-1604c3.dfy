@@ -25,7 +25,8 @@ method Main() {
   var a := new A;
   var b := new B;
   var s: set<Tr> := {a, b};
-  var ap := forall a': Ap :: a' in s ==> testSpecial(a');
+    // Verification error, cannot prove after the range that a' has type Ap
+  var ap := forall a': Ap | a' in s :: testSpecial(a');
   assert(ap);
   print "ok";
 }

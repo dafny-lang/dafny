@@ -24,7 +24,8 @@ function method testSpecial(x: Tr): bool
 method Main() {
   var a := new A;
   var b := new B;
-  var s: set<Tr> := {a, b};
+  var s: set<Tr> := {a, b};  
+  // Resolution Error, because of subset type, need to use explicit range forall x | range :: term
   var ap := forall a': Ap :: a' in s ==> testSpecial(a');
   assert(ap);
   print "ok";

@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:3 /rprint:"%t.rprint" "%s" > "%t"
+// RUN: %dafny /compile:3 /errorLimit:0 /rprint:"%t.rprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype Cell = Cell(x: int)
@@ -36,10 +36,10 @@ function method {:opaque} getOriginalSet(): set<Cell> {
 }
 
 predicate method isSetOfGhostEvenCells(s: set<GhostEvenCell>) {
-  forall c :: c in s ==> returnsOneIfGhostEvenCell(c) == 1
+  forall c | c in s :: returnsOneIfGhostEvenCell(c) == 1
 }
 predicate method isSetOfCompilableEvenCells(s: set<GhostEvenCell>) {
-  forall c :: c in s ==> returnsOneIfCompilableEvenCell(c) == 1
+  forall c | c in s :: returnsOneIfCompilableEvenCell(c) == 1
 }
 
 method Main() {

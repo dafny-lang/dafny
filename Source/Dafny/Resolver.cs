@@ -15274,26 +15274,32 @@ namespace Microsoft.Dafny {
         bool typeQuantifier = Attributes.ContainsBool(e.Attributes, "typeQuantifier", ref _val) && _val;
         allTypeParameters.PushMarker();
         ResolveTypeParameters(e.TypeArgs, true, e);
-        scope.PushMarker();
-        foreach (BoundVar v in e.BoundVars) {
-          ScopePushAndReport(scope, v, "bound-variable");
-          var option = typeQuantifier ? new ResolveTypeOption(e) : new ResolveTypeOption(ResolveTypeOptionEnum.InferTypeProxies);
-          ResolveType(v.tok, v.Type, opts.codeContext, option, typeQuantifier ? e.TypeArgs : null);
-        }
+        var option = typeQuantifier ? new ResolveTypeOption(e) : new ResolveTypeOption(ResolveTypeOptionEnum.InferTypeProxies);
         if (e.TypeArgs.Count > 0 && !typeQuantifier) {
           reporter.Error(MessageSource.Resolver, expr, "a quantifier cannot quantify over types. Possible fix: use the experimental attribute :typeQuantifier");
         }
+        scope.PushMarker();
+        var nonRuntimeTestableType = ScopePushBoundVarsForRange(e, opts, option);
         if (e.Range != null) {
           ResolveExpression(e.Range, opts);
           Contract.Assert(e.Range.Type != null);  // follows from postcondition of ResolveExpression
           ConstrainTypeExprBool(e.Range, "range of quantifier must be of type bool (instead got {0})");
+        } else if (nonRuntimeTestableType != null) {
+          reporter.Error(MessageSource.Resolver, expr,
+            $"The type {nonRuntimeTestableType} ia not run-time testable, hence " +
+            $"you must explicit the range of the {e.WhatKind}, i.e. {(e is ForallExpr ? "forall" : "exists")} VARIABLES | RANGE :: TERM instead of {(e is ForallExpr ? "forall" : "exists")} VARIABLES :: RANGE_AND_TERM.");
         }
+        ResolveAttributes(e.Attributes, e, opts);
+
+        scope.PopMarker();
+        scope.PushMarker();
+        ScopePushBoundVarsForTerm(e);
+
         ResolveExpression(e.Term, opts);
         Contract.Assert(e.Term.Type != null);  // follows from postcondition of ResolveExpression
         ConstrainTypeExprBool(e.Term, "body of quantifier must be of type bool (instead got {0})");
         // Since the body is more likely to infer the types of the bound variables, resolve it
         // first (above) and only then resolve the attributes (below).
-        ResolveAttributes(e.Attributes, e, opts);
         scope.PopMarker();
         allTypeParameters.PopMarker();
         expr.Type = Type.Bool;
@@ -15436,12 +15442,19 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private void ScopePushBoundVarsForRange(IBoundVarBearingExpressionWithToken e, ResolveOpts opts) {
+    /// Returns the first non-runtime testable type of the comprehension if it exists
+    /// Ensures ret != null ==> !ret.IsRuntimeTestable() && ret is one of the type of e.AllBoundVars[i]
+    private Type? ScopePushBoundVarsForRange(IBoundVarBearingExpressionWithToken e, ResolveOpts opts, [CanBeNull] ResolveTypeOption resolveTypeOption = null) {
+      if (resolveTypeOption == null) {
+        resolveTypeOption = new ResolveTypeOption(ResolveTypeOptionEnum.InferTypeProxies);
+      }
+      Type? nonRuntimeTestableType = null;
       foreach (BoundVar v in e.AllBoundVars) {
-        ResolveType(v.tok, v.Type, opts.codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+        ResolveType(v.tok, v.Type, opts.codeContext, resolveTypeOption, null);
         // If the type can be tested at run time, we keep the same scope
         // Else, the the scoped type is the upper type that can be tested.
         if (!v.Type.IsRuntimeTestable()) {
+          nonRuntimeTestableType = v.Type;
           var collectionVarType = v.Type.GetRuntimeTestableType();
           if (v.Type is InferredTypeProxy) {
             AddAssignableConstraint(e.Token, collectionVarType, v.Type,
@@ -15453,6 +15466,8 @@ namespace Microsoft.Dafny {
 
         ScopePushNoReport(scope, v); // Let's not report duplicated and shadowed names twice
       }
+
+      return nonRuntimeTestableType;
     }
 
     Label/*?*/ ResolveDominatingLabelInExpr(IToken tok, string/*?*/ labelName, string expressionDescription, ResolveOpts opts) {
@@ -18643,6 +18658,8 @@ namespace Microsoft.Dafny {
       if (IsFieldSpecification(field, parent)) {
         return false;
       }
+
+      return false;
       // Since we skipped ghost code, the code has to be compiled here. 
       if (expr is not ComprehensionExpr e) {
         return base.Traverse(expr, field, parent);
@@ -18687,6 +18704,7 @@ namespace Microsoft.Dafny {
                   );
                 }
               }
+
               this.resolver.Reporter.Error(MessageSource.Resolver, finalToken,
                 $"'{boundVar.Name}' has been lately inferred to be of the subset type {boundVar.Type}" +
                 $" which has a non-compilable constraint," +
