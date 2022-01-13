@@ -42,8 +42,8 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
       private int numberOfErrors;
       public string LastMessage = "";
       public override bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg) {
-        numberOfErrors++;
         if (level == ErrorLevel.Error) {
+          numberOfErrors++;
           if (numberOfErrors == 1) {
             throw new Exception("Simulated parser internal error");
           }
