@@ -11745,6 +11745,7 @@ namespace Microsoft.Dafny {
     /// 1 - checking that all of its patterns are linear
     /// 2 - desugaring it into a decision tree of MatchStmt and IfStmt (for constant matching)
     /// 3 - resolving the generated (sub)statement.
+    /// 4 - resolve all the case braches
     /// </summary>
     void ResolveNestedMatchStmt(NestedMatchStmt s, ResolveOpts opts) {
       ICodeContext codeContext = opts.codeContext;
@@ -11786,6 +11787,15 @@ namespace Microsoft.Dafny {
 
       enclosingStatementLabels.PushMarker();
       ResolveStatement(s.ResolvedStatement, codeContext);
+      enclosingStatementLabels.PopMarker();
+
+      // (unboxedtype): for RPrint to work properly, we need to resolve
+      // case branches also.
+      // https://github.com/dafny-lang/dafny/issues/1665
+      enclosingStatementLabels.PushMarker();
+      s.Cases.ForEach(ss =>
+        ss.Body.ForEach(sst => ResolveStatement(sst, codeContext))
+      );
       enclosingStatementLabels.PopMarker();
     }
 
