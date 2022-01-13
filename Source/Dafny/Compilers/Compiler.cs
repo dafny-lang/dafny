@@ -4761,7 +4761,7 @@ namespace Microsoft.Dafny {
         }) {
         var bvIdentifier = new IdentifierExpr(e.tok, bv);
         var typeParameters = new Dictionary<TypeParameter, Type> { };
-        for (var i = 0; i < typeParametersArgs.Count(); i++) {
+        for (var i = 0; i < typeParametersArgs.Count; i++) {
           typeParameters[typeParametersArgs[i]] = typeArgs[i];
         }
         var subContract = new Substituter(null,
