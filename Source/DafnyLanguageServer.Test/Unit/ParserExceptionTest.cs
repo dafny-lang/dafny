@@ -38,21 +38,21 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
     /// <summary>
     /// An error reporter that throws an exception on the first reported error, to simulate a parser exception.
     /// </summary>
-    class ParserExceptionSimulatingErrorReporter : ErrorReporter {
+    private class ParserExceptionSimulatingErrorReporter : ErrorReporter {
       private int numberOfErrors;
       public string LastMessage = "";
       public override bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg) {
-        if (level == ErrorLevel.Error) {
-          numberOfErrors++;
-          if (numberOfErrors == 1) {
-            throw new Exception("Simulated parser internal error");
-          }
-
-          LastMessage = ErrorToString(level, tok, msg);
-          return true;
+        if (level != ErrorLevel.Error) {
+          return false;
         }
 
-        return false;
+        numberOfErrors++;
+        if (numberOfErrors == 1) {
+          throw new Exception("Simulated parser internal error");
+        }
+
+        LastMessage = ErrorToString(level, tok, msg);
+        return true;
       }
 
       public override int Count(ErrorLevel level) {
@@ -65,7 +65,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
     /// <summary>
     /// Retains the last debug logged message
     /// </summary>
-    public class LastDebugLogger : ILogger<DafnyLangParser> {
+    private class LastDebugLogger : ILogger<DafnyLangParser> {
       public string LastDebugMessage = "";
       public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter) {
         if (logLevel is LogLevel.Debug) {
