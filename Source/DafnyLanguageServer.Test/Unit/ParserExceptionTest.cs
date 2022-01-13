@@ -15,7 +15,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
   public class ParserExceptionTest {
     private static readonly string TestFilePath = "parserException.dfy";
     private const string LanguageId = "dafny";
-    private const int MaxTestExecutionTimeMs = 10000;
+    private const int MaxTestExecutionTimeMs = 10_000;
     private DafnyLangParser parser;
     private LastDebugLogger lastDebugLogger;
 
@@ -30,7 +30,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
       var source = "function t() { / }";
       var documentItem = CreateTestDocument(source, TestFilePath);
       var errorReporter = new ParserExceptionSimulatingErrorReporter();
-      parser.Parse(documentItem, errorReporter, new CancellationToken());
+      parser.Parse(documentItem, errorReporter, default);
       Assert.AreEqual($"encountered an exception while parsing file:///{TestFilePath}", lastDebugLogger.LastDebugMessage);
       Assert.AreEqual($"/{TestFilePath}(1,0): Error: [internal error] Parser exception: Simulated parser internal error", errorReporter.LastMessage);
     }
