@@ -26,7 +26,7 @@ public abstract class CompilerFactory {
   }
 
   public virtual IReadOnlySet<string> SupportedNativeTypes =>
-    new HashSet<string> {"byte", "sbyte", "ushort", "short", "uint", "int", "ulong", "long"};
+    new HashSet<string> { "byte", "sbyte", "ushort", "short", "uint", "int", "ulong", "long" };
 
   public abstract bool TextualTargetIsExecutable { get; }
   public abstract bool SupportsInMemoryCompilation { get; }

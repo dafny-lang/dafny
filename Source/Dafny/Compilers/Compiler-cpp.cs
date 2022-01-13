@@ -19,7 +19,7 @@ using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny.Compilers.Cpp {
   public class Factory : CompilerFactory {
-    public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> {".h"};
+    public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".h" };
 
     public override string TargetLanguage => "Cpp";
     public override string TargetExtension => "cpp";
@@ -69,7 +69,7 @@ namespace Microsoft.Dafny.Compilers.Cpp {
     const string DafnyMultiSetClass = "DafnyMultiset";
     const string DafnySeqClass = "DafnySequence";
     const string DafnyMapClass = "DafnyMap";
-    
+
     protected override string ModuleSeparator => "::";
     protected override string ClassAccessor => "->";
 

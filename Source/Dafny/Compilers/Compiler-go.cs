@@ -19,7 +19,7 @@ using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 
 namespace Microsoft.Dafny.Compilers.Go {
   public class Factory : CompilerFactory {
-    public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> {".go"};
+    public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".go" };
 
     public override string TargetLanguage => "Go";
     public override string TargetExtension => "go";

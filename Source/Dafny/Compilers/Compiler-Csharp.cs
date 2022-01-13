@@ -23,7 +23,7 @@ using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 
 namespace Microsoft.Dafny.Compilers.Csharp {
   public class Factory : CompilerFactory {
-    public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> {".cs", ".dll"};
+    public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".cs", ".dll" };
 
     public override string TargetLanguage => "C#";
     public override string TargetExtension => "cs";

@@ -17,24 +17,24 @@ using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny.Compilers.Js {
   public class Factory : CompilerFactory {
-    public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> {".js"};
+    public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".js" };
 
     public override string TargetLanguage => "JavaScript";
     public override string TargetExtension => "js";
 
     public override string PublicIdProtect(string name) => Compiler.PublicIdProtect(name);
-    
+
     public override bool SupportsInMemoryCompilation => true;
     public override bool TextualTargetIsExecutable => true;
-    
-    public override IReadOnlySet<string> SupportedNativeTypes => 
+
+    public override IReadOnlySet<string> SupportedNativeTypes =>
       new HashSet<string>(base.SupportedNativeTypes.Union(new List<string> { "number" }));
-    
+
     public override ICompiler CreateInstance(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
       return new Compiler(this, reporter);
     }
   }
-  
+
   public class Compiler : SinglePassCompiler {
     public Compiler(Factory factory, ErrorReporter reporter)
       : base(factory, reporter) {

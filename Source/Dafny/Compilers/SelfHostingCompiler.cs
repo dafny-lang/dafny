@@ -1,5 +1,5 @@
-﻿namespace DafnyPipeline.Compilers; 
+﻿namespace DafnyPipeline.Compilers;
 
 public class SelfHostingCompiler {
-  
+
 }

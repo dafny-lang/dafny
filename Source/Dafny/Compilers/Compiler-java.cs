@@ -21,18 +21,18 @@ using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 
 namespace Microsoft.Dafny.Compilers.Java {
   public class Factory : CompilerFactory {
-    public override IReadOnlySet<string> SupportedExtensions  => new HashSet<string> {".java"};
+    public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".java" };
 
     public override String TargetLanguage => "Java";
     public override string TargetExtension => "java";
-    public override string Basename(string dafnyProgramName) => 
-      TransformToClassName(base.Basename(dafnyProgramName));  
+    public override string Basename(string dafnyProgramName) =>
+      TransformToClassName(base.Basename(dafnyProgramName));
     public override string TargetBaseDir(string baseName) => baseName + "-java";
     public override string TransformToClassName(string baseName) =>
       System.Text.RegularExpressions.Regex.Replace(baseName, "[^_A-Za-z0-9\\$]", "_");
-    
+
     public override string PublicIdProtect(string name) => Compiler.PublicIdProtect(name);
-    
+
     public override bool SupportsInMemoryCompilation => false;
     public override bool TextualTargetIsExecutable => false;
 
@@ -40,7 +40,7 @@ namespace Microsoft.Dafny.Compilers.Java {
       return new Compiler(this, reporter);
     }
   }
-  
+
   public class Compiler : SinglePassCompiler {
     public Compiler(Factory factory, ErrorReporter reporter)
       : base(factory, reporter) {

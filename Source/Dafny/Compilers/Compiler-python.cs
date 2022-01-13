@@ -9,25 +9,25 @@ using Microsoft.Boogie;
 
 namespace Microsoft.Dafny.Compilers.Python {
   public class Factory : CompilerFactory {
-    public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> {".py"};
-    
+    public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".py" };
+
     public override string TargetLanguage => "Python";
     public override string TargetExtension => "py";
-    
+
     public override string PublicIdProtect(string name) => Compiler.PublicIdProtect(name);
 
     public override bool SupportsInMemoryCompilation => true;
     public override bool TextualTargetIsExecutable => true;
-    
-    public override IReadOnlySet<string> SupportedNativeTypes => new HashSet<string> {}; // FIXME
-    
+
+    public override IReadOnlySet<string> SupportedNativeTypes => new HashSet<string> { }; // FIXME
+
     public override ICompiler CreateInstance(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
       return new Compiler(this, reporter);
     }
   }
-  
+
   public class Compiler : SinglePassCompiler {
-    public Compiler(Factory factory, ErrorReporter reporter) 
+    public Compiler(Factory factory, ErrorReporter reporter)
       : base(factory, reporter) {
     }
 
