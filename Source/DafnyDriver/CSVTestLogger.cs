@@ -27,13 +27,9 @@ namespace Microsoft.Dafny {
       results.Add(e.Result);
     }
 
-    private int? GetResourceCount(TestResult result) {
-      return result.GetPropertyValue<int?>(BoogieXmlConvertor.ResourceCountProperty, null);
-    }
-
     private void TestRunCompleteHandler(object sender, TestRunCompleteEventArgs e) {
       var realWriter = writer ?? Console.Out;
-      foreach (var result in results.OrderByDescending(GetResourceCount)) {
+      foreach (var result in results.OrderByDescending(r => r.Duration)) {
         realWriter.WriteLine($"{result.TestCase.DisplayName}, {result.Outcome}, {result.Duration}");
       }
       writer?.Close();

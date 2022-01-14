@@ -24,8 +24,6 @@ namespace Microsoft.Dafny {
   /// </summary>
   public static class BoogieXmlConvertor {
 
-    public static TestProperty ResourceCountProperty = TestProperty.Register("TestResult.ResourceCount", "TestResult.ResourceCount", typeof(int), typeof(TestResult));
-
     public static void RaiseTestLoggerEvents(string fileName, List<string> loggerConfigs) {
       // Provide just enough configuration for the loggers to work
       var parameters = new Dictionary<string, string> {
@@ -108,7 +106,6 @@ namespace Microsoft.Dafny {
                                        .Single(n => n.Name.LocalName == "conclusion");
       var endTime = conclusionNode.Attribute("endTime")!.Value;
       var duration = float.Parse(conclusionNode.Attribute("duration")!.Value);
-      var resourceCount = conclusionNode.Attribute("resourceCount")?.Value;
       var outcome = conclusionNode.Attribute("outcome")!.Value;
 
       var testCase = TestCaseForEntry(currentFileFragment, name);
@@ -117,10 +114,6 @@ namespace Microsoft.Dafny {
         Duration = TimeSpan.FromMilliseconds((long)(duration * 1000)),
         EndTime = DateTimeOffset.Parse(endTime)
       };
-
-      if (resourceCount != null) {
-        testResult.SetPropertyValue(ResourceCountProperty, int.Parse(resourceCount));
-      }
 
       if (outcome is "correct" or "valid") {
         testResult.Outcome = TestOutcome.Passed;
