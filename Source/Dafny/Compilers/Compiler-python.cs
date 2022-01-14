@@ -4,8 +4,9 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.IO;
+using System.Numerics;
 using Microsoft.Boogie;
-
+using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
   public class PythonCompiler : Compiler {
@@ -13,7 +14,11 @@ namespace Microsoft.Dafny {
     }
 
     public override string TargetLanguage => "Python";
-
+    const string DafnySetClass = "_dafny.Set";
+    const string DafnyMultiSetClass = "_dafny.MultiSet";
+    const string DafnySeqClass = "_dafny.Seq";
+    const string DafnyMapClass = "_dafny.Map";
+    protected override string StmtTerminator { get => ""; }
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
       wr.WriteLine("# Dafny program {0} compiled into Python", program.Name);
       ReadRuntimeSystem("DafnyRuntime.py", wr);
@@ -200,9 +205,31 @@ namespace Microsoft.Dafny {
     protected override void EmitJumpToTailCallStart(ConcreteSyntaxTree wr) {
       throw new NotImplementedException();
     }
+    protected override string TypeName(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok, MemberDecl/*?*/ member = null) {
+      return TypeName(type, wr, tok, boxed: false, member);
+    }
+    private string TypeName(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok, bool boxed, MemberDecl /*?*/ member = null) {
+      return TypeName(type, wr, tok, boxed, false, member);
+    }
+    private string TypeName(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok, bool boxed, bool erased, MemberDecl/*?*/ member = null) {
+      Contract.Ensures(Contract.Result<string>() != null);
+      Contract.Assume(type != null);  // precondition; this ought to be declared as a Requires in the superclass
 
-    protected override string TypeName(Type type, ConcreteSyntaxTree wr, IToken tok, MemberDecl member = null) {
-      throw new NotImplementedException();
+      var xType = type.NormalizeExpand();
+      if (xType is TypeProxy) {
+        // unresolved proxy; just treat as ref, since no particular type information is apparently needed for this type
+        return "object";
+      }
+
+      if (xType is BoolType) {
+        return "bool";
+      } else if (xType is CharType) {
+        return "char";
+      } else if (xType is IntType || xType is BigOrdinalType) {
+        return "int";
+      } else {
+        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
+      }
     }
 
     protected override string TypeInitializationValue(Type type, ConcreteSyntaxTree wr, IToken tok,
@@ -228,7 +255,13 @@ namespace Microsoft.Dafny {
 
     protected override void DeclareLocalVar(string name, Type type, IToken tok, bool leaveRoomForRhs, string rhs,
       ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
+      wr.Write("{0}{1}", name, type != null ? "=" + TypeName(type, wr, tok) + "()" : "");
+
+      if (leaveRoomForRhs) {
+        Contract.Assert(rhs == null);  // follows from precondition
+      } else {
+        wr.WriteLine();
+      }
     }
 
     protected override ConcreteSyntaxTree DeclareLocalVar(string name, Type type, IToken tok, ConcreteSyntaxTree wr) {
@@ -332,11 +365,25 @@ namespace Microsoft.Dafny {
     protected override void EmitLiteralExpr(ConcreteSyntaxTree wr, LiteralExpr e) {
       if (e.Value is bool value) {
         wr.Write("{0}", value);
+
+      } else if (e is StringLiteralExpr) {
+        var str = (StringLiteralExpr)e;
+        TrStringLiteral(str, wr);
+      } else if (e.Value is BigInteger) {
+        var i = (BigInteger)e.Value;
+        wr.Write(IntegerLiteral(i));
       }
     }
 
+    string IntegerLiteral(BigInteger i) {
+      return $"{i}";
+    }
+
     protected override void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
+
+      if (!isVerbatim) {
+        wr.Write("\"{0}\"", str);
+      }
     }
 
     protected override ConcreteSyntaxTree EmitBitvectorTruncation(BitvectorType bvType, bool surroundByUnchecked,
