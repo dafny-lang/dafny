@@ -493,7 +493,7 @@ namespace Microsoft.Dafny {
 
         case "verificationLogger":
           if (ps.ConfirmArgumentCount(1)) {
-            if (args[ps.i] is "trx" or "csv") {
+            if (args[ps.i].StartsWith("trx") || args[ps.i].StartsWith("csv")) {
               VerificationLoggerConfigs.Add(args[ps.i]);
             } else {
               InvalidArgumentError(name, ps);

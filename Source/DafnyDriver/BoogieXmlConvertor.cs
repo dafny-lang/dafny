@@ -27,16 +27,30 @@ namespace Microsoft.Dafny {
     public static TestProperty ResourceCountProperty = TestProperty.Register("TestResult.ResourceCount", "TestResult.ResourceCount", typeof(int), typeof(TestResult));
 
     public static void RaiseTestLoggerEvents(string fileName, List<string> loggerConfigs) {
-      var events = new LocalTestLoggerEvents();
       // Provide just enough configuration for the loggers to work
       var parameters = new Dictionary<string, string> {
         ["TestRunDirectory"] = Constants.DefaultResultsDirectory
       };
+
+      var events = new LocalTestLoggerEvents();
       foreach (var loggerConfig in loggerConfigs) {
-        if (loggerConfig == "trx") {
+        string loggerName;
+        int semiColonIndex = loggerConfig.IndexOf(";");
+        if (semiColonIndex >= 0) {
+          loggerName = loggerConfig[..semiColonIndex];
+          var parametersList = loggerConfig[(semiColonIndex + 1)..];
+          foreach (string s in parametersList.Split(",")) {
+            var equalsIndex = s.IndexOf("=");
+            parameters.Add(s[..equalsIndex], s[(equalsIndex + 1)..]);
+          };
+        } else {
+          loggerName = loggerConfig;
+        }
+
+        if (loggerName == "trx") {
           var logger = new TrxLogger();
           logger.Initialize(events, parameters);
-        } else if (loggerConfig == "csv") {
+        } else if (loggerName == "csv") {
           var csvLogger = new CSVTestLogger();
           csvLogger.Initialize(events, parameters);
         } else {
