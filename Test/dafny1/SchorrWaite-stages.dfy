@@ -5,7 +5,6 @@
 // Rustan Leino
 // Original version:  7 November 2008
 // Version with proof divided into stages:  June 2012.
-// Copyright (c) 2008-2012 Microsoft.
 
 abstract module M0 {
   // In this module, we declare the Node class, the definition of Reachability, and the specification

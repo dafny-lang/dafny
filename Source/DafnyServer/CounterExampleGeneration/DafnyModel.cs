@@ -4,11 +4,12 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.Boogie;
 
-namespace DafnyServer.CounterExampleGeneration {
+namespace DafnyServer.CounterexampleGeneration {
 
   /// <summary>
   /// a wrapper around Boogie's Model class that
@@ -78,6 +79,19 @@ namespace DafnyServer.CounterExampleGeneration {
         var sn = new DafnyModelState(this, s);
         States.Add(sn);
       }
+    }
+
+    /// <summary>
+    /// Extract and parse the first Dafny model recorded in the model view file.
+    /// </summary>
+    public static DafnyModel ExtractModel(string mv) {
+      const string begin = "*** MODEL";
+      const string end = "*** END_MODEL";
+      var beginIndex = mv.IndexOf(begin, StringComparison.Ordinal);
+      var endIndex = mv.IndexOf(end, StringComparison.Ordinal);
+      var modelString = mv.Substring(beginIndex, endIndex + end.Length - beginIndex);
+      var model = Model.ParseModels(new StringReader(modelString)).First();
+      return new DafnyModel(model);
     }
 
     /// <summary>
@@ -176,8 +190,10 @@ namespace DafnyServer.CounterExampleGeneration {
     /// </summary>
     private static string GetTrueName(Model.Element element) {
       string name = null;
-      if (element == null)
+      if (element == null) {
         return null;
+      }
+
       foreach (var funcTuple in element.Names) {
         if (funcTuple.Func.Arity != 0) {
           continue;
@@ -201,13 +217,13 @@ namespace DafnyServer.CounterExampleGeneration {
         return null;
       }
       var name = GetTrueName(typeElement);
-      if (Model.GetFunc("SeqTypeInv0").OptEval(typeElement) != null) {
+      if (Model.TryGetFunc("SeqTypeInv0")?.OptEval(typeElement) != null) {
         return "SeqType";
       }
-      if (Model.GetFunc("MapType0TypeInv0").OptEval(typeElement) != null) {
+      if (Model.TryGetFunc("MapType0TypeInv0")?.OptEval(typeElement) != null) {
         return "SetType";
       }
-      if (Model.GetFunc("MapTypeInv0").OptEval(typeElement) != null) {
+      if (Model.TryGetFunc("MapTypeInv0")?.OptEval(typeElement) != null) {
         return "MapType";
       }
       return name;
@@ -374,10 +390,10 @@ namespace DafnyServer.CounterExampleGeneration {
         return new DafnyModelType("?");
       }
       var tagName = GetTrueName(tagElement);
-      if (tagName == null || tagName.Length < 10 && tagName != "TagSeq" &&
+      if (tagName == null || (tagName.Length < 10 && tagName != "TagSeq" &&
                               tagName != "TagSet" &&
                               tagName != "TagBitVector" &&
-                              tagName != "TagMap") {
+                              tagName != "TagMap")) {
         return new DafnyModelType("?");
       }
       var typeArgs = Model.GetFunc("T" + tagName.Substring(3))?.

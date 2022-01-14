@@ -17,7 +17,7 @@
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <DefineConstants>TRACE</DefineConstants>
     <PackageVersion>1.1.0</PackageVersion>
-    <TargetFramework>net5.0</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>
@@ -28,10 +28,9 @@
   </ItemGroup>
 
   <ItemGroup>
-      <ProjectReference Include="..\DafnyRuntime\DafnyRuntime.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Compile Include="..\version.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="DafnyPrelude.bpl" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

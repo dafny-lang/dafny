@@ -1260,7 +1260,10 @@ namespace Microsoft.Dafny {
 
     protected override void EmitHalt(Bpl.IToken tok, Expression messageExpr, ConcreteSyntaxTree wr) {
       wr.Write("throw DafnyHaltException(");
-      if (tok != null) wr.Write("\"" + Dafny.ErrorReporter.TokenToString(tok) + ": \" + ");
+      if (tok != null) {
+        wr.Write("\"" + Dafny.ErrorReporter.TokenToString(tok) + ": \" + ");
+      }
+
       TrExpr(messageExpr, wr, false);
       wr.WriteLine(");");
     }
@@ -2364,7 +2367,7 @@ namespace Microsoft.Dafny {
 
     // ----- Target compilation and execution -------------------------------------------------------------
     private string ComputeExeName(string targetFilename) {
-      return Path.GetFileNameWithoutExtension(targetFilename) + ".exe";
+      return Path.ChangeExtension(Path.GetFullPath(targetFilename), "exe");
     }
 
     public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
@@ -2373,25 +2376,19 @@ namespace Microsoft.Dafny {
       Contract.Assert(assemblyLocation != null);
       var codebase = System.IO.Path.GetDirectoryName(assemblyLocation);
       Contract.Assert(codebase != null);
-      var exeName = ComputeExeName(targetFilename);
-      var warnings = "-Wall -Wextra -Wpedantic -Wno-unused-variable";
-      if (!RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
-        warnings += " -Wno-deprecated-copy";
-      }
-      if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
+      var warnings = "-Wall -Wextra -Wpedantic -Wno-unused-variable -Wno-deprecated-copy";
+      if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+        warnings += " -Wno-unused-but-set-variable";
+      } else {
         warnings += " -Wno-unknown-warning-option";
       }
-      if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
-        warnings += " -Wno-unused-but-set-variable";
-      }
-      var args = warnings + $" -g -std=c++17 -I{codebase} -o {exeName} {targetFilename}";
+      var args = warnings + $" -g -std=c++17 -I {codebase} -o {ComputeExeName(targetFilename)} {targetFilename}";
       compilationResult = null;
       var psi = new ProcessStartInfo("g++", args) {
         CreateNoWindow = true,
         UseShellExecute = false,
         RedirectStandardOutput = true,
-        RedirectStandardError = true,
-        WorkingDirectory = Path.GetDirectoryName(Path.GetFullPath(targetFilename))
+        RedirectStandardError = true
       };
       var proc = Process.Start(psi);
       while (!proc.StandardOutput.EndOfStream) {
@@ -2410,15 +2407,11 @@ namespace Microsoft.Dafny {
 
     public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string targetFilename, ReadOnlyCollection<string> otherFileNames,
       object compilationResult, TextWriter outputWriter) {
-      var exeName = ComputeExeName(targetFilename);
-      var dir = Path.GetDirectoryName(Path.GetFullPath(targetFilename));
-      var exePath = Path.Combine(dir, exeName);
-      var psi = new ProcessStartInfo(exePath) {
+      var psi = new ProcessStartInfo(ComputeExeName(targetFilename)) {
         CreateNoWindow = true,
         UseShellExecute = false,
         RedirectStandardOutput = true,
         RedirectStandardError = true,
-        WorkingDirectory = dir
       };
       var proc = Process.Start(psi);
       while (!proc.StandardOutput.EndOfStream) {

@@ -204,7 +204,7 @@ namespace Microsoft.Dafny {
         var SCCs = module.CallGraph.TopologicallySortedComponents();
         SCCs.Reverse();
         foreach (var clbl in SCCs) {
-          Indent(indent); wr.WriteLine(" * SCC at height {0}:", module.CallGraph.GetSCCRepresentativeId(clbl));
+          Indent(indent); wr.WriteLine(" * SCC at height {0}:", module.CallGraph.GetSCCRepresentativePredecessorCount(clbl));
           var r = module.CallGraph.GetSCC(clbl);
           foreach (var m in r) {
             Indent(indent);
@@ -374,9 +374,14 @@ namespace Microsoft.Dafny {
               wr.Write(dd.ResolvedHash);
               wr.Write("*/");
             }
-            wr.Write(" {0} ", dd.Name);
-            wr.Write("= {0}", dd.TargetQId.ToString());
-            if (dd.Exports.Count > 0) {
+            wr.Write(" {0}", dd.Name);
+            if (dd.Name != dd.TargetQId.ToString()) {
+              wr.Write(" = {0}", dd.TargetQId.ToString());
+            }
+            if (dd.Exports.Count == 1) {
+              wr.Write("`{0}", dd.Exports[0].val);
+            }
+            if (dd.Exports.Count > 1) {
               wr.Write("`{{{0}}}", Util.Comma(dd.Exports, id => id.val));
             }
             wr.WriteLine();
@@ -410,7 +415,10 @@ namespace Microsoft.Dafny {
             if (e.IsRefining) {
               wr.Write(" ...");
             }
-            if (e.Extends.Count > 0) wr.Write(" extends {0}", Util.Comma(e.Extends, id => id.val));
+            if (e.Extends.Count > 0) {
+              wr.Write(" extends {0}", Util.Comma(e.Extends, id => id.val));
+            }
+
             wr.WriteLine();
             PrintModuleExportDecl(e, indent + IndentAmount, fileBeingPrinted);
             wr.WriteLine();
@@ -913,7 +921,7 @@ namespace Microsoft.Dafny {
 
     private bool PrintModeSkipGeneral(Bpl.IToken tok, string fileBeingPrinted) {
       return (printMode == DafnyOptions.PrintModes.NoIncludes || printMode == DafnyOptions.PrintModes.NoGhost)
-             && (tok.filename != null && fileBeingPrinted != null && Path.GetFullPath(tok.filename) != fileBeingPrinted);
+             && tok.filename != null && fileBeingPrinted != null && Path.GetFullPath(tok.filename) != fileBeingPrinted;
     }
 
     public void PrintMethod(Method method, int indent, bool printSignatureOnly) {
@@ -928,7 +936,7 @@ namespace Microsoft.Dafny {
         method is TwoStateLemma ? "twostate lemma" :
         "method";
       if (method.HasStaticKeyword) { k = "static " + k; }
-      if (method.IsGhost && !(method is Lemma) && !(method is PrefixLemma) && !(method is TwoStateLemma) && !(method is ExtremeLemma)) {
+      if (method.IsGhost && !method.IsLemmaLike) {
         k = "ghost " + k;
       }
       string nm = method is Constructor && !((Constructor)method).HasName ? "" : method.Name;
@@ -1465,7 +1473,10 @@ namespace Microsoft.Dafny {
             wr.Write("case");
             PrintAttributes(mc.Attributes);
             wr.Write(" ");
-            if (!mc.Ctor.Name.StartsWith(BuiltIns.TupleTypeCtorNamePrefix)) wr.Write(mc.Ctor.Name);
+            if (!mc.Ctor.Name.StartsWith(BuiltIns.TupleTypeCtorNamePrefix)) {
+              wr.Write(mc.Ctor.Name);
+            }
+
             PrintMatchCaseArgument(mc);
             wr.Write(" =>");
             foreach (Statement bs in mc.Body) {

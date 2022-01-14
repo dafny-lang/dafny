@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.Boogie;
 
-namespace DafnyServer.CounterExampleGeneration {
+namespace DafnyServer.CounterexampleGeneration {
 
   /// <summary>
   /// A static class for generating instance of DafnyModelvariable and its
@@ -94,8 +94,10 @@ namespace DafnyServer.CounterExampleGeneration {
     public virtual string Value {
       get {
         var result = state.Model.CanonicalName(Element);
-        if (children.Count == 0)
+        if (children.Count == 0) {
           return result == "" ? "()" : result;
+        }
+
         List<(string ChildName, string ChildValue)> childList = new();
         foreach (var childName in children.Keys) {
           foreach (var child in children[childName]) {
@@ -139,8 +141,10 @@ namespace DafnyServer.CounterExampleGeneration {
     }
 
     public override bool Equals(object obj) {
-      if (obj is not DafnyModelVariable other)
+      if (obj is not DafnyModelVariable other) {
         return false;
+      }
+
       return other.Element == Element && other.state == state && other.Name == Name;
     }
   }
@@ -229,8 +233,9 @@ namespace DafnyServer.CounterExampleGeneration {
 
     public override string Value {
       get {
-        if (Mappings.Count == 0)
+        if (Mappings.Count == 0) {
           return "()";
+        }
         // maps a key value pair to how many times it appears in the map
         // a key value pair can appear many times in a map due to "?:int" etc.
         Dictionary<string, int> mapStrings = new();

@@ -7,6 +7,7 @@
 //
 //-----------------------------------------------------------------------------
 using System;
+using System.Collections;
 using System.Text;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
@@ -240,7 +241,7 @@ namespace Microsoft.Dafny {
         var id = new BoundVar(tok, "f", new ArrowType(tok, arrowDecl, tys));
         var partialArrow = new SubsetTypeDecl(tok, ArrowType.PartialArrowTypeName(arity),
           new TypeParameter.TypeParameterCharacteristics(false), tps, SystemModule,
-          id, ArrowSubtypeConstraint(tok, id, reads, tps, false), SubsetTypeDecl.WKind.Special, null, DontCompile());
+          id, ArrowSubtypeConstraint(tok, tok, id, reads, tps, false), SubsetTypeDecl.WKind.Special, null, DontCompile());
         PartialArrowTypeDecls.Add(arity, partialArrow);
         SystemModule.TopLevelDecls.Add(partialArrow);
 
@@ -253,7 +254,7 @@ namespace Microsoft.Dafny {
         id = new BoundVar(tok, "f", new UserDefinedType(tok, partialArrow.Name, partialArrow, tys));
         var totalArrow = new SubsetTypeDecl(tok, ArrowType.TotalArrowTypeName(arity),
           new TypeParameter.TypeParameterCharacteristics(false), tps, SystemModule,
-          id, ArrowSubtypeConstraint(tok, id, req, tps, true), SubsetTypeDecl.WKind.Special, null, DontCompile());
+          id, ArrowSubtypeConstraint(tok, tok, id, req, tps, true), SubsetTypeDecl.WKind.Special, null, DontCompile());
         TotalArrowTypeDecls.Add(arity, totalArrow);
         SystemModule.TopLevelDecls.Add(totalArrow);
       }
@@ -265,8 +266,9 @@ namespace Microsoft.Dafny {
     /// the built-in total-arrow type (if "total", in which case "member" is expected to denote the "requires" member).
     /// The given "id" is expected to be already resolved.
     /// </summary>
-    private Expression ArrowSubtypeConstraint(IToken tok, BoundVar id, Function member, List<TypeParameter> tps, bool total) {
+    private Expression ArrowSubtypeConstraint(IToken tok, IToken endTok, BoundVar id, Function member, List<TypeParameter> tps, bool total) {
       Contract.Requires(tok != null);
+      Contract.Requires(endTok != null);
       Contract.Requires(id != null);
       Contract.Requires(member != null);
       Contract.Requires(tps != null && 1 <= tps.Count);
@@ -297,7 +299,7 @@ namespace Microsoft.Dafny {
         body = Expression.CreateEq(body, emptySet, member.ResultType);
       }
       if (tps.Count > 1) {
-        body = new ForallExpr(tok, bvs, null, body, null) { Type = Type.Bool, Bounds = bounds };
+        body = new ForallExpr(tok, endTok, bvs, null, body, null) { Type = Type.Bool, Bounds = bounds };
       }
       return body;
     }
@@ -373,6 +375,15 @@ namespace Microsoft.Dafny {
     public static string TupleTypeCtorName(int dims) {
       Contract.Assert(0 <= dims);
       return TupleTypeCtorNamePrefix + dims;
+    }
+  }
+
+  /// <summary>
+  /// An expression introducting bound variables
+  /// </summary>
+  public interface IBoundVarsBearingExpression : IRegion {
+    public IEnumerable<BoundVar> AllBoundVars {
+      get;
     }
   }
 
@@ -675,6 +686,22 @@ namespace Microsoft.Dafny {
 
     /// <summary>
     /// Return the most constrained version of "this", getting to the bottom of proxies.
+    ///
+    /// Here is a description of the Normalize(), NormalizeExpandKeepConstraints(), and NormalizeExpand() methods:
+    /// * Any .Type field in the AST can, in general, be an AST node that is not really a type, but an AST node that has
+    ///   a field where the type is filled in, once the type has been inferred. Such "types" are called "type proxies".
+    ///   To follow a .Type (or other variable denoting a type) past its chain of type proxies, you call .Normalize().
+    ///   If you do this after type inference (more precisely, after the CheckTypeInference calls in Pass 1 of the
+    ///   Resolver), then you will get back a NonProxyType.
+    /// * That may not be enough. Even after calling .Normalize(), you may get a type that denotes a type synonym. If
+    ///   you compare it with, say, is SetType, you will get false if the type you're looking at is a type synonym for
+    ///   a SetType. Therefore, to go past both type proxies and type synonyms, you call .NormalizeExpandKeepConstraints().
+    /// * Actually, that may not be enough, either. Because .NormalizeExpandKeepConstraints() may return a subset type
+    ///   whose base type is what you're looking for. If you want to go all the way to the base type, then you should
+    ///   call .NormalizeExpand(). This is what is done most commonly when something is trying to look for a specific type.
+    /// * So, in conclusion: Usually you have to call .NormalizeExpand() on a type to unravel type proxies, type synonyms,
+    ///   and subset types. But in other places (in particular, in the verifier) where you want to know about any type
+    ///   constraints, then you call .NormalizeExpandKeepConstraints().
     /// </summary>
     public Type Normalize() {
       Contract.Ensures(Contract.Result<Type>() != null);
@@ -691,6 +718,8 @@ namespace Microsoft.Dafny {
 
     /// <summary>
     /// Return the type that "this" stands for, getting to the bottom of proxies and following type synonyms.
+    ///
+    /// For more documentation, see method Normalize(). 
     /// </summary>
     [Pure]
     public Type NormalizeExpand(bool keepConstraints = false) {
@@ -733,7 +762,7 @@ namespace Microsoft.Dafny {
           }
         }
 
-        //A hidden type may become visible in another scope
+        // A hidden type may become visible in another scope
         var isyn = type.AsInternalTypeSynonym;
         if (isyn != null) {
           var udt = (UserDefinedType)type;
@@ -763,6 +792,8 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Return the type that "this" stands for, getting to the bottom of proxies and following type synonyms, but does
     /// not follow subset types.
+    ///
+    /// For more documentation, see method Normalize(). 
     /// </summary>
     [Pure]
     public Type NormalizeExpandKeepConstraints() {
@@ -1141,6 +1172,14 @@ namespace Microsoft.Dafny {
         return udt?.ResolvedClass as TraitDecl;
       }
     }
+
+    public SubsetTypeDecl /*?*/ AsSubsetType {
+      get {
+        var std = NormalizeExpand(true) as UserDefinedType;
+        return std?.ResolvedClass as SubsetTypeDecl;
+      }
+    }
+
     public bool IsArrayType {
       get {
         return AsArrayType != null;
@@ -2233,7 +2272,7 @@ namespace Microsoft.Dafny {
         return ignoreTypeArguments || CompatibleTypeArgs(super, sub);
       }
 
-      return ParentTypes().Any(parentType => parentType.IsSubtypeOf(super, ignoreTypeArguments, ignoreNullity));
+      return sub.ParentTypes().Any(parentType => parentType.IsSubtypeOf(super, ignoreTypeArguments, ignoreNullity));
     }
 
     public static bool CompatibleTypeArgs(Type super, Type sub) {
@@ -2260,6 +2299,9 @@ namespace Microsoft.Dafny {
 
   /// <summary>
   /// An ArtificialType is only used during type checking. It should never be assigned as the type of any expression.
+  /// It works as a supertype to numeric literals. For example, the literal 6 can be an "int", a "bv16", a
+  /// newtype based on integers, or an "ORDINAL". Type inference thus uses an "artificial" supertype of all of
+  /// these types as the type of literal 6, until a more precise (and non-artificial) type is inferred for it.
   /// </summary>
   public abstract class ArtificialType : Type {
   }
@@ -3273,9 +3315,12 @@ namespace Microsoft.Dafny {
   /// <summary>
   /// This interface is used by the Dafny IDE.
   /// </summary>
-  public interface INamedRegion {
+  public interface IRegion {
     IToken BodyStartTok { get; }
     IToken BodyEndTok { get; }
+  }
+
+  public interface INamedRegion : IRegion {
     string Name { get; }
   }
 
@@ -3298,6 +3343,8 @@ namespace Microsoft.Dafny {
           return JavaCompiler.PublicIdProtect(name);
         case DafnyOptions.CompilationTarget.Cpp:
           return CppCompiler.PublicIdProtect(name);
+        case DafnyOptions.CompilationTarget.Python:
+          return PythonCompiler.PublicIdProtect(name);
         default:
           Contract.Assert(false);  // unexpected compile target
           return name;
@@ -3309,8 +3356,8 @@ namespace Microsoft.Dafny {
     public IToken BodyEndTok = Token.NoToken;
     public readonly string Name;
     public bool IsRefining;
-    IToken INamedRegion.BodyStartTok { get { return BodyStartTok; } }
-    IToken INamedRegion.BodyEndTok { get { return BodyEndTok; } }
+    IToken IRegion.BodyStartTok { get { return BodyStartTok; } }
+    IToken IRegion.BodyEndTok { get { return BodyEndTok; } }
     string INamedRegion.Name { get { return Name; } }
     protected string compileName;
 
@@ -3880,7 +3927,10 @@ namespace Microsoft.Dafny {
     public readonly string Name; // (Last segment of the) module name
     public string FullDafnyName {
       get {
-        if (EnclosingModule == null) return "";
+        if (EnclosingModule == null) {
+          return "";
+        }
+
         string n = EnclosingModule.FullDafnyName;
         return (n.Length == 0 ? n : (n + ".")) + DafnyName;
       }
@@ -3896,8 +3946,8 @@ namespace Microsoft.Dafny {
     }
     public readonly List<IToken> PrefixIds; // The qualified module name, except the last segment when a
                                             // nested module declaration is outside its enclosing module
-    IToken INamedRegion.BodyStartTok { get { return BodyStartTok; } }
-    IToken INamedRegion.BodyEndTok { get { return BodyEndTok; } }
+    IToken IRegion.BodyStartTok { get { return BodyStartTok; } }
+    IToken IRegion.BodyEndTok { get { return BodyEndTok; } }
     string INamedRegion.Name { get { return Name; } }
     public ModuleDefinition EnclosingModule;  // readonly, except can be changed by resolver for prefix-named modules when the real parent is discovered
     public readonly Attributes Attributes;
@@ -4206,8 +4256,14 @@ namespace Microsoft.Dafny {
 
     public string FullDafnyName {
       get {
-        if (Name == "_module") return "";
-        if (Name == "_default") return EnclosingModuleDefinition.FullDafnyName;
+        if (Name == "_module") {
+          return "";
+        }
+
+        if (Name == "_default") {
+          return EnclosingModuleDefinition.FullDafnyName;
+        }
+
         string n = EnclosingModuleDefinition.FullDafnyName;
         return (n.Length == 0 ? n : (n + ".")) + Name;
       }
@@ -4276,6 +4332,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(this.TypeArgs.Count == typeArgs.Count);
       return new List<Type>();
     }
+
+    public bool AllowsAllocation => true;
   }
 
   public abstract class TopLevelDeclWithMembers : TopLevelDecl {
@@ -4850,6 +4908,7 @@ namespace Microsoft.Dafny {
     /// the property will get the value "true".  This is so that a useful error message can be provided.
     /// </summary>
     bool InferredDecreases { get; set; }
+    bool AllowsAllocation { get; }
   }
 
   /// <summary>
@@ -4873,6 +4932,8 @@ namespace Microsoft.Dafny {
       get => cwInner.InferredDecreases;
       set { cwInner.InferredDecreases = value; }
     }
+
+    public bool AllowsAllocation => cwInner.AllowsAllocation;
   }
 
   public class DontUseICallable : ICallable {
@@ -4891,6 +4952,7 @@ namespace Microsoft.Dafny {
       get { throw new cce.UnreachableException(); }
       set { throw new cce.UnreachableException(); }
     }
+    public bool AllowsAllocation => throw new cce.UnreachableException();
   }
   /// <summary>
   /// An IMethodCodeContext is a Method or IteratorDecl.
@@ -4916,6 +4978,7 @@ namespace Microsoft.Dafny {
     bool ICodeContext.MustReverify { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
     public string FullSanitizedName { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
     public bool AllowsNontermination { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
+    public bool AllowsAllocation => true;
   }
 
   public class IteratorDecl : ClassDecl, IMethodCodeContext {
@@ -5403,6 +5466,7 @@ namespace Microsoft.Dafny {
       get { throw new cce.UnreachableException(); }
       set { throw new cce.UnreachableException(); }
     }
+    public bool AllowsAllocation => true;
   }
 
   public class OpaqueTypeDecl : TopLevelDeclWithMembers, TypeParameter.ParentType, RevealableTypeDecl {
@@ -5695,6 +5759,8 @@ namespace Microsoft.Dafny {
     public enum WKind { CompiledZero, Compiled, Ghost, OptOut, Special }
     public readonly SubsetTypeDecl.WKind WitnessKind;
     public readonly Expression/*?*/ Witness;  // non-null iff WitnessKind is Compiled or Ghost
+    public bool ConstraintIsCompilable; // Will be filled in by the Resolver
+    public bool CheckedIfConstraintIsCompilable = false; // Set to true lazily by the Resolver when the Resolver fills in "ConstraintIsCompilable".
     public SubsetTypeDecl(IToken tok, string name, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, ModuleDefinition module,
       BoundVar id, Expression constraint, WKind witnessKind, Expression witness,
       Attributes attributes)
@@ -6143,10 +6209,10 @@ namespace Microsoft.Dafny {
     public Method/*?*/ ByMethodDecl; // filled in by resolution, if ByMethodBody is non-null
     public bool SignatureIsOmitted { get { return SignatureEllipsis != null; } }  // is "false" for all Function objects that survive into resolution
     public readonly IToken SignatureEllipsis;
-    public bool IsBuiltin;
     public Function OverriddenFunction;
     public Function Original => OverriddenFunction == null ? this : OverriddenFunction.Original;
     public override bool IsOverrideThatAddsBody => base.IsOverrideThatAddsBody && Body != null;
+    public bool AllowsAllocation => true;
 
     public bool containsQuantifier;
     public bool ContainsQuantifier {
@@ -6561,6 +6627,8 @@ namespace Microsoft.Dafny {
       get { return _inferredDecr; }
     }
 
+    public virtual bool AllowsAllocation => true;
+
     ModuleDefinition ICodeContext.EnclosingModule {
       get {
         Contract.Assert(this.EnclosingClass != null);  // this getter is supposed to be called only after signature-resolution is complete
@@ -6590,7 +6658,7 @@ namespace Microsoft.Dafny {
       get {
         // Lemma from included files do not need to be resolved and translated
         // so we return emptyBody. This is to speed up resolvor and translator.
-        if (methodBody != null && (this is Lemma || this is TwoStateLemma) && this.tok is IncludeToken && !DafnyOptions.O.VerifyAllModules) {
+        if (methodBody != null && IsLemmaLike && this.tok is IncludeToken && !DafnyOptions.O.VerifyAllModules) {
           return Method.emptyBody;
         } else {
           return methodBody;
@@ -6600,6 +6668,8 @@ namespace Microsoft.Dafny {
         methodBody = value;
       }
     }
+
+    public bool IsLemmaLike => this is Lemma || this is TwoStateLemma || this is ExtremeLemma || this is PrefixLemma;
 
     public BlockStmt BodyForRefinement {
       // For refinement, we still need to merge in the body
@@ -6624,6 +6694,8 @@ namespace Microsoft.Dafny {
                  Attributes attributes, IToken signatureEllipsis)
       : base(tok, name, hasStaticKeyword, true, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, signatureEllipsis) {
     }
+
+    public override bool AllowsAllocation => false;
   }
 
   public class TwoStateLemma : Method {
@@ -6649,6 +6721,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(ens != null);
       Contract.Requires(decreases != null);
     }
+
+    public override bool AllowsAllocation => false;
   }
 
   public class Constructor : Method {
@@ -6676,6 +6750,7 @@ namespace Microsoft.Dafny {
       }
     }
     public Constructor(IToken tok, string name,
+                  bool isGhost,
                   List<TypeParameter> typeArgs,
                   List<Formal> ins,
                   List<AttributedExpression> req, [Captured] Specification<FrameExpression> mod,
@@ -6683,7 +6758,7 @@ namespace Microsoft.Dafny {
                   Specification<Expression> decreases,
                   DividedBlockStmt body,
                   Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, false, false, typeArgs, ins, new List<Formal>(), req, mod, ens, decreases, body, attributes, signatureEllipsis) {
+      : base(tok, name, false, isGhost, typeArgs, ins, new List<Formal>(), req, mod, ens, decreases, body, attributes, signatureEllipsis) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(cce.NonNullElements(typeArgs));
@@ -6719,6 +6794,8 @@ namespace Microsoft.Dafny {
       K = k;
       ExtremeLemma = extremeLemma;
     }
+
+    public override bool AllowsAllocation => false;
   }
 
   public abstract class ExtremeLemma : Method {
@@ -6751,6 +6828,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(decreases != null);
       TypeOfK = typeOfK;
     }
+
+    public override bool AllowsAllocation => false;
   }
 
   public class LeastLemma : ExtremeLemma {
@@ -6851,8 +6930,35 @@ namespace Microsoft.Dafny {
 
     /// <summary>
     /// Returns the non-null expressions of this statement proper (that is, do not include the expressions of substatements).
+    /// Filters all sub expressions that are not part of specifications
     /// </summary>
-    public virtual IEnumerable<Expression> SubExpressions {
+    public IEnumerable<Expression> SubExpressions {
+      get {
+        foreach (var e in SpecificationSubExpressions) {
+          yield return e;
+        }
+
+        foreach (var e in NonSpecificationSubExpressions) {
+          yield return e;
+        }
+      }
+    }
+
+    /// <summary>
+    /// Returns the non-null expressions of this statement proper (that is, do not include the expressions of substatements).
+    /// Filters only expressions that are always part of specifications
+    /// </summary>
+    public virtual IEnumerable<Expression> SpecificationSubExpressions {
+      get {
+        yield break;
+      }
+    }
+
+    /// <summary>
+    /// Returns the non-null expressions of this statement proper (that is, do not include the expressions of substatements).
+    /// Filters all sub expressions that are not part of specifications
+    /// </summary>
+    public virtual IEnumerable<Expression> NonSpecificationSubExpressions {
       get {
         foreach (var e in Attributes.SubExpressions(Attributes)) {
           yield return e;
@@ -6872,7 +6978,10 @@ namespace Microsoft.Dafny {
     }
 
     public static LList<T> Append(LList<T> a, LList<T> b) {
-      if (a == null) return b;
+      if (a == null) {
+        return b;
+      }
+
       return new LList<T>(a.Data, Append(a.Next, b));
       // pretend this is ML
     }
@@ -6934,12 +7043,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(expr != null);
       this.Expr = expr;
     }
-    public override IEnumerable<Expression> SubExpressions {
-      get {
-        foreach (var e in base.SubExpressions) { yield return e; }
-        yield return Expr;
-      }
-    }
   }
 
   public class AssertStmt : PredicateStmt {
@@ -6966,6 +7069,13 @@ namespace Microsoft.Dafny {
       IToken closeBrace = new Token(tok.line, tok.col + 7 + s.Length + 1); // where 7 = length(":error ")
       this.Attributes = new UserSuppliedAttributes(tok, openBrace, closeBrace, args, this.Attributes);
     }
+
+    public override IEnumerable<Expression> SpecificationSubExpressions {
+      get {
+        foreach (var e in base.SpecificationSubExpressions) { yield return e; }
+        yield return Expr;
+      }
+    }
   }
 
   public class ExpectStmt : PredicateStmt {
@@ -6978,9 +7088,10 @@ namespace Microsoft.Dafny {
       this.Message = message;
     }
 
-    public override IEnumerable<Expression> SubExpressions {
+    public override IEnumerable<Expression> NonSpecificationSubExpressions {
       get {
-        foreach (var e in base.SubExpressions) { yield return e; }
+        foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }
+        yield return Expr;
         if (Message != null) {
           yield return Message;
         }
@@ -6994,6 +7105,12 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
       Contract.Requires(expr != null);
+    }
+    public override IEnumerable<Expression> SpecificationSubExpressions {
+      get {
+        foreach (var e in base.SpecificationSubExpressions) { yield return e; }
+        yield return Expr;
+      }
     }
   }
 
@@ -7012,9 +7129,9 @@ namespace Microsoft.Dafny {
 
       Args = args;
     }
-    public override IEnumerable<Expression> SubExpressions {
+    public override IEnumerable<Expression> NonSpecificationSubExpressions {
       get {
-        foreach (var e in base.SubExpressions) { yield return e; }
+        foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }
         foreach (var arg in Args) {
           yield return arg;
         }
@@ -7056,7 +7173,7 @@ namespace Microsoft.Dafny {
   }
 
   public class BreakStmt : Statement {
-    public readonly string TargetLabel;
+    public readonly IToken TargetLabel;
     public readonly int BreakCount;
     public Statement TargetStmt;  // filled in during resolution
     [ContractInvariantMethod]
@@ -7064,7 +7181,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(TargetLabel != null || 1 <= BreakCount);
     }
 
-    public BreakStmt(IToken tok, IToken endTok, string targetLabel)
+    public BreakStmt(IToken tok, IToken endTok, IToken targetLabel)
       : base(tok, endTok) {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
@@ -7090,9 +7207,9 @@ namespace Microsoft.Dafny {
       this.rhss = rhss;
       hiddenUpdate = null;
     }
-    public override IEnumerable<Expression> SubExpressions {
+    public override IEnumerable<Expression> NonSpecificationSubExpressions {
       get {
-        foreach (var e in base.SubExpressions) { yield return e; }
+        foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }
         if (rhss != null) {
           foreach (var rhs in rhss) {
             foreach (var ee in rhs.SubExpressions) {
@@ -7361,9 +7478,9 @@ namespace Microsoft.Dafny {
       get { if (Update != null) { yield return Update; } }
     }
 
-    public override IEnumerable<Expression> SubExpressions {
+    public override IEnumerable<Expression> NonSpecificationSubExpressions {
       get {
-        foreach (var e in base.SubExpressions) { yield return e; }
+        foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }
         foreach (var v in Locals) {
           foreach (var e in Attributes.SubExpressions(v.Attributes)) {
             yield return e;
@@ -7378,16 +7495,16 @@ namespace Microsoft.Dafny {
     public readonly Expression RHS;
     public bool HasGhostModifier;
 
-    public VarDeclPattern(IToken tok, IToken endTok, CasePattern<LocalVariable> lhs, Expression rhs, bool hasGhostModifier = true)
+    public VarDeclPattern(IToken tok, IToken endTok, CasePattern<LocalVariable> lhs, Expression rhs, bool hasGhostModifier)
       : base(tok, endTok) {
       LHS = lhs;
       RHS = rhs;
       HasGhostModifier = hasGhostModifier;
     }
 
-    public override IEnumerable<Expression> SubExpressions {
+    public override IEnumerable<Expression> NonSpecificationSubExpressions {
       get {
-        foreach (var e in Attributes.SubExpressions(Attributes)) {
+        foreach (var e in base.NonSpecificationSubExpressions) {
           yield return e;
         }
         yield return RHS;
@@ -7446,9 +7563,9 @@ namespace Microsoft.Dafny {
         AssumeToken = assumeToken;
       }
     }
-    public override IEnumerable<Expression> SubExpressions {
+    public override IEnumerable<Expression> NonSpecificationSubExpressions {
       get {
-        foreach (var e in base.SubExpressions) { yield return e; }
+        foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }
         yield return Expr;
         foreach (var lhs in Lhss) {
           yield return lhs;
@@ -7508,7 +7625,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Lhss != null);
       Contract.Invariant(
           Lhss.Count == 0 ||                   // ":- MethodOrExpresion;" which returns void success or an error
-          Lhss.Count == 1 && Lhss[0] != null   // "y :- MethodOrExpression;"
+          (Lhss.Count == 1 && Lhss[0] != null)   // "y :- MethodOrExpression;"
       );
       Contract.Invariant(Rhs != null);
     }
@@ -7553,9 +7670,9 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public override IEnumerable<Expression> SubExpressions {
+    public override IEnumerable<Expression> NonSpecificationSubExpressions {
       get {
-        foreach (var e in base.SubExpressions) { yield return e; }
+        foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }
         yield return Lhs;
         foreach (var ee in Rhs.SubExpressions) {
           yield return ee;
@@ -7765,9 +7882,9 @@ namespace Microsoft.Dafny {
       Bindings.AcceptArgumentExpressionsAsExactParameterList();
     }
 
-    public override IEnumerable<Expression> SubExpressions {
+    public override IEnumerable<Expression> NonSpecificationSubExpressions {
       get {
-        foreach (var e in base.SubExpressions) { yield return e; }
+        foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }
         foreach (var ee in Lhs) {
           yield return ee;
         }
@@ -7779,8 +7896,12 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class BlockStmt : Statement {
+  public class BlockStmt : Statement, IRegion {
     public readonly List<Statement> Body;
+
+    IToken IRegion.BodyStartTok => Tok;
+    IToken IRegion.BodyEndTok => EndTok;
+
     public BlockStmt(IToken tok, IToken endTok, [Captured] List<Statement> body)
       : base(tok, endTok) {
       Contract.Requires(tok != null);
@@ -7865,9 +7986,9 @@ namespace Microsoft.Dafny {
         }
       }
     }
-    public override IEnumerable<Expression> SubExpressions {
+    public override IEnumerable<Expression> NonSpecificationSubExpressions {
       get {
-        foreach (var e in base.SubExpressions) { yield return e; }
+        foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }
         if (Guard != null) {
           yield return Guard;
         }
@@ -7944,9 +8065,9 @@ namespace Microsoft.Dafny {
         }
       }
     }
-    public override IEnumerable<Expression> SubExpressions {
+    public override IEnumerable<Expression> NonSpecificationSubExpressions {
       get {
-        foreach (var e in base.SubExpressions) { yield return e; }
+        foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }
         foreach (var alt in Alternatives) {
           yield return alt.Guard;
         }
@@ -8010,11 +8131,16 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public override IEnumerable<Expression> SubExpressions {
+    public override IEnumerable<Expression> NonSpecificationSubExpressions {
       get {
-        foreach (var e in base.SubExpressions) {
+        foreach (var e in base.NonSpecificationSubExpressions) {
           yield return e;
         }
+      }
+    }
+
+    public override IEnumerable<Expression> SpecificationSubExpressions {
+      get {
         foreach (var e in LoopSpecificationExpressions) {
           yield return e;
         }
@@ -8080,9 +8206,9 @@ namespace Microsoft.Dafny {
         }
       }
     }
-    public override IEnumerable<Expression> SubExpressions {
+    public override IEnumerable<Expression> NonSpecificationSubExpressions {
       get {
-        foreach (var e in base.SubExpressions) { yield return e; }
+        foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }
         if (Guard != null) {
           yield return Guard;
         }
@@ -8128,9 +8254,9 @@ namespace Microsoft.Dafny {
       GoingUp = goingUp;
     }
 
-    public override IEnumerable<Expression> SubExpressions {
+    public override IEnumerable<Expression> NonSpecificationSubExpressions {
       get {
-        foreach (var e in base.SubExpressions) { yield return e; }
+        foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }
         yield return Start;
         if (End != null) {
           yield return End;
@@ -8175,9 +8301,9 @@ namespace Microsoft.Dafny {
         }
       }
     }
-    public override IEnumerable<Expression> SubExpressions {
+    public override IEnumerable<Expression> NonSpecificationSubExpressions {
       get {
-        foreach (var e in base.SubExpressions) { yield return e; }
+        foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }
         foreach (var alt in Alternatives) {
           yield return alt.Guard;
         }
@@ -8269,10 +8395,21 @@ namespace Microsoft.Dafny {
         }
       }
     }
-    public override IEnumerable<Expression> SubExpressions {
+
+    public override IEnumerable<Expression> NonSpecificationSubExpressions {
       get {
-        foreach (var e in base.SubExpressions) { yield return e; }
+        foreach (var e in base.NonSpecificationSubExpressions) {
+          yield return e;
+        }
+
         yield return Range;
+      }
+    }
+    public override IEnumerable<Expression> SpecificationSubExpressions {
+      get {
+        foreach (var e in base.SpecificationSubExpressions) {
+          yield return e;
+        }
         foreach (var ee in Ens) {
           foreach (var e in Attributes.SubExpressions(ee.Attributes)) { yield return e; }
           yield return ee.E;
@@ -8307,9 +8444,9 @@ namespace Microsoft.Dafny {
         }
       }
     }
-    public override IEnumerable<Expression> SubExpressions {
+    public override IEnumerable<Expression> SpecificationSubExpressions {
       get {
-        foreach (var e in base.SubExpressions) { yield return e; }
+        foreach (var e in base.SpecificationSubExpressions) { yield return e; }
         foreach (var e in Attributes.SubExpressions(Mod.Attributes)) { yield return e; }
         foreach (var fe in Mod.Expressions) {
           yield return fe.E;
@@ -8374,15 +8511,21 @@ namespace Microsoft.Dafny {
         Contract.Requires(other != null);
         var op1 = Op;
         var op2 = other.Op;
-        if (op1 == BinaryExpr.Opcode.Neq || op2 == BinaryExpr.Opcode.Neq)
+        if (op1 == BinaryExpr.Opcode.Neq || op2 == BinaryExpr.Opcode.Neq) {
           return op2 == BinaryExpr.Opcode.Eq;
-        if (op1 == op2)
+        }
+
+        if (op1 == op2) {
           return true;
-        if (LogicOp(op1) || LogicOp(op2))
+        }
+
+        if (LogicOp(op1) || LogicOp(op2)) {
           return op2 == BinaryExpr.Opcode.Eq ||
             (op1 == BinaryExpr.Opcode.Imp && op2 == BinaryExpr.Opcode.Iff) ||
             (op1 == BinaryExpr.Opcode.Exp && op2 == BinaryExpr.Opcode.Iff) ||
             (op1 == BinaryExpr.Opcode.Eq && op2 == BinaryExpr.Opcode.Iff);
+        }
+
         return op2 == BinaryExpr.Opcode.Eq ||
           (op1 == BinaryExpr.Opcode.Lt && op2 == BinaryExpr.Opcode.Le) ||
           (op1 == BinaryExpr.Opcode.Gt && op2 == BinaryExpr.Opcode.Ge);
@@ -8510,9 +8653,9 @@ namespace Microsoft.Dafny {
         }
       }
     }
-    public override IEnumerable<Expression> SubExpressions {
+    public override IEnumerable<Expression> SpecificationSubExpressions {
       get {
-        foreach (var e in base.SubExpressions) { yield return e; }
+        foreach (var e in base.SpecificationSubExpressions) { yield return e; }
         foreach (var e in Attributes.SubExpressions(Attributes)) { yield return e; }
 
         for (int i = 0; i < Lines.Count - 1; i++) {  // note, we skip the duplicated line at the end
@@ -8630,9 +8773,9 @@ namespace Microsoft.Dafny {
         }
       }
     }
-    public override IEnumerable<Expression> SubExpressions {
+    public override IEnumerable<Expression> NonSpecificationSubExpressions {
       get {
-        foreach (var e in base.SubExpressions) { yield return e; }
+        foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }
         yield return Source;
       }
     }
@@ -8760,14 +8903,16 @@ namespace Microsoft.Dafny {
   }
 
   public class NestedToken : TokenWrapper {
-    public NestedToken(IToken outer, IToken inner)
+    public NestedToken(IToken outer, IToken inner, string message = null)
       : base(outer) {
       Contract.Requires(outer != null);
       Contract.Requires(inner != null);
       Inner = inner;
+      this.Message = message;
     }
     public IToken Outer { get { return WrappedToken; } }
     public readonly IToken Inner;
+    public readonly string Message;
   }
 
   /// <summary>
@@ -9475,9 +9620,9 @@ namespace Microsoft.Dafny {
 
       QuantifierExpr q;
       if (forall) {
-        q = new ForallExpr(expr.tok, new List<TypeParameter>(), newVars, expr.Range, body, expr.Attributes);
+        q = new ForallExpr(expr.tok, expr.BodyEndTok, new List<TypeParameter>(), newVars, expr.Range, body, expr.Attributes);
       } else {
-        q = new ExistsExpr(expr.tok, new List<TypeParameter>(), newVars, expr.Range, body, expr.Attributes);
+        q = new ExistsExpr(expr.tok, expr.BodyEndTok, new List<TypeParameter>(), newVars, expr.Range, body, expr.Attributes);
       }
       q.Type = Type.Bool;
 
@@ -10134,6 +10279,7 @@ namespace Microsoft.Dafny {
       var receiverType = obj.Type.NormalizeExpand();
       this.TypeApplication_AtEnclosingClass = receiverType.TypeArgs;
       this.TypeApplication_JustMember = new List<Type>();
+      this.ResolvedOutparameterTypes = new List<Type>();
 
       var typeMap = new Dictionary<TypeParameter, Type>();
       if (receiverType is UserDefinedType udt) {
@@ -10186,6 +10332,8 @@ namespace Microsoft.Dafny {
     }
 
     public override IEnumerable<Type> ComponentTypes => Util.Concat(TypeApplication_AtEnclosingClass, TypeApplication_JustMember);
+
+    public List<Type> ResolvedOutparameterTypes; // filled in during resolution
   }
 
   public class SeqSelectExpr : Expression {
@@ -10214,8 +10362,13 @@ namespace Microsoft.Dafny {
     public override IEnumerable<Expression> SubExpressions {
       get {
         yield return Seq;
-        if (E0 != null) yield return E0;
-        if (E1 != null) yield return E1;
+        if (E0 != null) {
+          yield return E0;
+        }
+
+        if (E1 != null) {
+          yield return E1;
+        }
       }
     }
   }
@@ -11030,7 +11183,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class LetExpr : Expression, IAttributeBearingDeclaration {
+  public class LetExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBearingExpression {
     public readonly List<CasePattern<BoundVar>> LHSs;
     public readonly List<Expression> RHSs;
     public readonly Expression Body;
@@ -11040,6 +11193,11 @@ namespace Microsoft.Dafny {
     // invariant Constraint_Bounds == null || Constraint_Bounds.Count == BoundVars.Count;
     private Expression translationDesugaring;  // filled in during translation, lazily; to be accessed only via Translation.LetDesugaring; always null when Exact==true
     private Translator lastTranslatorUsed; // avoid clashing desugaring between translators
+
+    public IToken BodyStartTok = Token.NoToken;
+    public IToken BodyEndTok = Token.NoToken;
+    IToken IRegion.BodyStartTok { get { return BodyStartTok; } }
+    IToken IRegion.BodyEndTok { get { return BodyEndTok; } }
 
     public void setTranslationDesugaring(Translator trans, Expression expr) {
       lastTranslatorUsed = trans;
@@ -11085,6 +11243,8 @@ namespace Microsoft.Dafny {
         }
       }
     }
+
+    public IEnumerable<BoundVar> AllBoundVars => BoundVars;
   }
 
   public class LetOrFailExpr : ConcreteSyntaxExpression {
@@ -11107,11 +11267,18 @@ namespace Microsoft.Dafny {
   /// where "Attributes" is optional, and "| Range(x)" is optional and defaults to "true".
   /// Currently, BINDER is one of the logical quantifiers "exists" or "forall".
   /// </summary>
-  public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclaration {
+  public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBearingExpression {
+    public virtual string WhatKind => "comprehension";
     public readonly List<BoundVar> BoundVars;
     public readonly Expression Range;
     private Expression term;
     public Expression Term { get { return term; } }
+    public IEnumerable<BoundVar> AllBoundVars => BoundVars;
+
+    public IToken BodyStartTok = Token.NoToken;
+    public IToken BodyEndTok = Token.NoToken;
+    IToken IRegion.BodyStartTok { get { return BodyStartTok; } }
+    IToken IRegion.BodyEndTok { get { return BodyEndTok; } }
 
     public void UpdateTerm(Expression newTerm) {
       term = newTerm;
@@ -11179,12 +11346,11 @@ namespace Microsoft.Dafny {
       }
       public static List<VT> MissingBounds<VT>(List<VT> vars, List<BoundedPool> bounds, PoolVirtues requiredVirtues = PoolVirtues.None) where VT : IVariable {
         Contract.Requires(vars != null);
-        Contract.Requires(bounds != null);
-        Contract.Requires(vars.Count == bounds.Count);
+        Contract.Requires(bounds == null || vars.Count == bounds.Count);
         Contract.Ensures(Contract.Result<List<VT>>() != null);
         var missing = new List<VT>();
         for (var i = 0; i < vars.Count; i++) {
-          if (bounds[i] == null || (bounds[i].Virtues & requiredVirtues) != requiredVirtues) {
+          if (bounds == null || bounds[i] == null || (bounds[i].Virtues & requiredVirtues) != requiredVirtues) {
             missing.Add(vars[i]);
           }
         }
@@ -11419,7 +11585,7 @@ namespace Microsoft.Dafny {
       return ComprehensionExpr.BoundedPool.MissingBounds(BoundVars, Bounds, v);
     }
 
-    public ComprehensionExpr(IToken tok, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
+    public ComprehensionExpr(IToken tok, IToken endTok, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
       : base(tok) {
       Contract.Requires(tok != null);
       Contract.Requires(cce.NonNullElements(bvars));
@@ -11429,6 +11595,8 @@ namespace Microsoft.Dafny {
       this.Range = range;
       this.UpdateTerm(term);
       this.Attributes = attrs;
+      this.BodyStartTok = tok;
+      this.BodyEndTok = endTok;
     }
 
     public override IEnumerable<Expression> SubExpressions {
@@ -11445,6 +11613,8 @@ namespace Microsoft.Dafny {
   }
 
   public abstract class QuantifierExpr : ComprehensionExpr, TypeParameter.ParentType {
+    public override string WhatKind => "quantifier";
+
     private readonly int UniqueId;
     public List<TypeParameter> TypeArgs;
     private static int currentQuantId = -1;
@@ -11498,8 +11668,8 @@ namespace Microsoft.Dafny {
       var _scratch = true;
       Contract.Invariant(Attributes.ContainsBool(Attributes, "typeQuantifier", ref _scratch) || TypeArgs.Count == 0);
     }
-    public QuantifierExpr(IToken tok, List<TypeParameter> tvars, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
-      : base(tok, bvars, range, term, attrs) {
+    public QuantifierExpr(IToken tok, IToken endTok, List<TypeParameter> tvars, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
+      : base(tok, endTok, bvars, range, term, attrs) {
       Contract.Requires(tok != null);
       Contract.Requires(cce.NonNullElements(bvars));
       Contract.Requires(term != null);
@@ -11532,16 +11702,17 @@ namespace Microsoft.Dafny {
   }
 
   public class ForallExpr : QuantifierExpr {
+    public override string WhatKind => "forall expression";
     protected override BinaryExpr.ResolvedOpcode SplitResolvedOp { get { return BinaryExpr.ResolvedOpcode.And; } }
 
-    public ForallExpr(IToken tok, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
-      : this(tok, new List<TypeParameter>(), bvars, range, term, attrs) {
+    public ForallExpr(IToken tok, IToken endTok, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
+      : this(tok, endTok, new List<TypeParameter>(), bvars, range, term, attrs) {
       Contract.Requires(cce.NonNullElements(bvars));
       Contract.Requires(tok != null);
       Contract.Requires(term != null);
     }
-    public ForallExpr(IToken tok, List<TypeParameter> tvars, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
-      : base(tok, tvars, bvars, range, term, attrs) {
+    public ForallExpr(IToken tok, IToken endTok, List<TypeParameter> tvars, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
+      : base(tok, endTok, tvars, bvars, range, term, attrs) {
       Contract.Requires(cce.NonNullElements(bvars));
       Contract.Requires(tok != null);
       Contract.Requires(term != null);
@@ -11558,16 +11729,17 @@ namespace Microsoft.Dafny {
   }
 
   public class ExistsExpr : QuantifierExpr {
+    public override string WhatKind => "exists expression";
     protected override BinaryExpr.ResolvedOpcode SplitResolvedOp { get { return BinaryExpr.ResolvedOpcode.Or; } }
 
-    public ExistsExpr(IToken tok, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
-      : this(tok, new List<TypeParameter>(), bvars, range, term, attrs) {
+    public ExistsExpr(IToken tok, IToken endTok, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
+      : this(tok, endTok, new List<TypeParameter>(), bvars, range, term, attrs) {
       Contract.Requires(cce.NonNullElements(bvars));
       Contract.Requires(tok != null);
       Contract.Requires(term != null);
     }
-    public ExistsExpr(IToken tok, List<TypeParameter> tvars, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
-      : base(tok, tvars, bvars, range, term, attrs) {
+    public ExistsExpr(IToken tok, IToken endTok, List<TypeParameter> tvars, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
+      : base(tok, endTok, tvars, bvars, range, term, attrs) {
       Contract.Requires(cce.NonNullElements(bvars));
       Contract.Requires(tok != null);
       Contract.Requires(term != null);
@@ -11584,6 +11756,8 @@ namespace Microsoft.Dafny {
   }
 
   public class SetComprehension : ComprehensionExpr {
+    public override string WhatKind => "set comprehension";
+
     public readonly bool Finite;
     public readonly bool TermIsImplicit;  // records the given syntactic form
     public bool TermIsSimple {
@@ -11596,8 +11770,8 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public SetComprehension(IToken tok, bool finite, List<BoundVar> bvars, Expression range, Expression/*?*/ term, Attributes attrs)
-      : base(tok, bvars, range, term ?? new IdentifierExpr(tok, bvars[0].Name), attrs) {
+    public SetComprehension(IToken tok, IToken endTok, bool finite, List<BoundVar> bvars, Expression range, Expression/*?*/ term, Attributes attrs)
+      : base(tok, endTok, bvars, range, term ?? new IdentifierExpr(tok, bvars[0].Name), attrs) {
       Contract.Requires(tok != null);
       Contract.Requires(cce.NonNullElements(bvars));
       Contract.Requires(1 <= bvars.Count);
@@ -11609,13 +11783,15 @@ namespace Microsoft.Dafny {
     }
   }
   public class MapComprehension : ComprehensionExpr {
+    public override string WhatKind => "map comprehension";
+
     public readonly bool Finite;
     public readonly Expression TermLeft;
 
     public List<Boogie.Function> ProjectionFunctions;  // filled in during translation (and only for general map comprehensions where "TermLeft != null")
 
-    public MapComprehension(IToken tok, bool finite, List<BoundVar> bvars, Expression range, Expression/*?*/ termLeft, Expression termRight, Attributes attrs)
-      : base(tok, bvars, range, termRight, attrs) {
+    public MapComprehension(IToken tok, IToken endTok, bool finite, List<BoundVar> bvars, Expression range, Expression/*?*/ termLeft, Expression termRight, Attributes attrs)
+      : base(tok, endTok, bvars, range, termRight, attrs) {
       Contract.Requires(tok != null);
       Contract.Requires(cce.NonNullElements(bvars));
       Contract.Requires(1 <= bvars.Count);
@@ -11665,10 +11841,12 @@ namespace Microsoft.Dafny {
   }
 
   public class LambdaExpr : ComprehensionExpr {
+    public override string WhatKind => "lambda";
+
     public readonly List<FrameExpression> Reads;
 
-    public LambdaExpr(IToken tok, List<BoundVar> bvars, Expression requires, List<FrameExpression> reads, Expression body)
-      : base(tok, bvars, requires, body, null) {
+    public LambdaExpr(IToken tok, IToken endTok, List<BoundVar> bvars, Expression requires, List<FrameExpression> reads, Expression body)
+      : base(tok, endTok, bvars, requires, body, null) {
       Contract.Requires(reads != null);
       Reads = reads;
     }
@@ -12060,7 +12238,7 @@ namespace Microsoft.Dafny {
         return Id;
       } else {
         List<string> cps = Arguments.ConvertAll<string>(x => x.ToString());
-        return string.Format("{0}({1})", Id, String.Join(",", cps));
+        return string.Format("{0}({1})", Id, String.Join(", ", cps));
       }
     }
 
@@ -12217,7 +12395,7 @@ namespace Microsoft.Dafny {
         return Id;
       } else {
         List<string> cps = Arguments.ConvertAll<string>(x => x.ToString());
-        return string.Format("{0}({1})", Id, String.Join(",", cps));
+        return string.Format("{0}({1})", Id, String.Join(", ", cps));
       }
     }
   }
@@ -12280,8 +12458,11 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public override IEnumerable<Expression> SubExpressions {
+    public override IEnumerable<Expression> NonSpecificationSubExpressions {
       get {
+        foreach (var e in base.NonSpecificationSubExpressions) {
+          yield return e;
+        }
         if (this.ResolvedStatement == null) {
           yield return Source;
         }
@@ -12423,7 +12604,7 @@ namespace Microsoft.Dafny {
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(E != null);
-      Contract.Invariant(!(E is WildcardExpr) || FieldName == null && Field == null);
+      Contract.Invariant(!(E is WildcardExpr) || (FieldName == null && Field == null));
     }
 
     public readonly string FieldName;
@@ -12850,12 +13031,22 @@ namespace Microsoft.Dafny {
     }
 
     public void Visit(SubsetTypeDecl ntd) {
-      if (ntd.Constraint != null) Visit(ntd.Constraint);
-      if (ntd.Witness != null) Visit(ntd.Witness);
+      if (ntd.Constraint != null) {
+        Visit(ntd.Constraint);
+      }
+
+      if (ntd.Witness != null) {
+        Visit(ntd.Witness);
+      }
     }
     public void Visit(NewtypeDecl ntd) {
-      if (ntd.Constraint != null) Visit(ntd.Constraint);
-      if (ntd.Witness != null) Visit(ntd.Witness);
+      if (ntd.Constraint != null) {
+        Visit(ntd.Constraint);
+      }
+
+      if (ntd.Witness != null) {
+        Visit(ntd.Witness);
+      }
     }
     public void Visit(Method method) {
       Visit(method.Req);

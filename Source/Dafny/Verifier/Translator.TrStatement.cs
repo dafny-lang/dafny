@@ -221,7 +221,7 @@ namespace Microsoft.Dafny {
           builder.Add(TrAssumeCmd(stmt.Tok, yeEtran.TrExpr(p.E)));
         }
         YieldHavoc(iter.tok, iter, builder, etran);
-        builder.Add(CaptureState(s));
+        builder.AddCaptureState(s);
 
       } else if (stmt is AssignSuchThatStmt) {
         var s = (AssignSuchThatStmt)stmt;
@@ -252,7 +252,7 @@ namespace Microsoft.Dafny {
         //       check well-formedness of RHS(x');
         //     }
         //     assert (exists x'' :: RHS(x''));  // for ":| assume", omit this line; for ":|", LHS is only allowed to contain simple variables
-        //     defass$x := true;
+        //     defass#x := true;
         //     havoc x;
         //     assume RHS(x);
 
@@ -314,7 +314,7 @@ namespace Microsoft.Dafny {
 
         // End by doing the assume
         builder.Add(TrAssumeCmd(s.Tok, etran.TrExpr(s.Expr)));
-        builder.Add(CaptureState(s));  // just do one capture state--here, at the very end (that is, don't do one before the assume)
+        builder.AddCaptureState(s);  // just do one capture state--here, at the very end (that is, don't do one before the assume)
 
       } else if (stmt is UpdateStmt) {
         var s = (UpdateStmt)stmt;
@@ -351,7 +351,7 @@ namespace Microsoft.Dafny {
           for (int i = 0; i < lhss.Count; i++) {
             lhsBuilder[i](finalRhss[i], s.Rhss[i] is HavocRhs, builder, etran);
           }
-          builder.Add(CaptureState(s));
+          builder.AddCaptureState(s);
         }
 
       } else if (stmt is AssignOrReturnStmt) {
@@ -380,7 +380,7 @@ namespace Microsoft.Dafny {
         fields.RemoveAll(f => f == null);
         var localSurrogates = fields.ConvertAll(f => new Bpl.LocalVariable(f.tok, new TypedIdent(f.tok, SurrogateName(f), TrType(f.Type))));
         locals.AddRange(localSurrogates);
-        fields.Iter(f => AddDefiniteAssignmentTrackerSurrogate(f, cl, locals));
+        fields.Iter(f => AddDefiniteAssignmentTrackerSurrogate(f, cl, locals, codeContext is Constructor && codeContext.IsGhost));
 
         Contract.Assert(!inBodyInitContext);
         inBodyInitContext = true;
@@ -610,7 +610,7 @@ namespace Microsoft.Dafny {
           TrStmt(s.Body, builder, locals, updatedFrameEtran);
           CurrentIdGenerator.Pop();
         }
-        builder.Add(CaptureState(stmt));
+        builder.AddCaptureState(stmt);
 
       } else if (stmt is ForallStmt) {
         var s = (ForallStmt)stmt;
@@ -630,7 +630,7 @@ namespace Microsoft.Dafny {
             TrForallAssign(s, s0, definedness, updater, locals, etran);
             // All done, so put the two pieces together
             builder.Add(new Bpl.IfCmd(s.Tok, null, definedness.Collect(s.Tok), null, updater.Collect(s.Tok)));
-            builder.Add(CaptureState(stmt));
+            builder.AddCaptureState(stmt);
           }
 
         } else if (s.Kind == ForallStmt.BodyKind.Call) {
@@ -651,7 +651,7 @@ namespace Microsoft.Dafny {
               // All done, so put the two pieces together
               builder.Add(new Bpl.IfCmd(s.Tok, null, definedness.Collect(s.Tok), null, exporter.Collect(s.Tok)));
             }
-            builder.Add(CaptureState(stmt));
+            builder.AddCaptureState(stmt);
           }
 
         } else if (s.Kind == ForallStmt.BodyKind.Proof) {
@@ -662,7 +662,7 @@ namespace Microsoft.Dafny {
           TrForallProof(s, definedness, exporter, locals, etran);
           // All done, so put the two pieces together
           builder.Add(new Bpl.IfCmd(s.Tok, null, definedness.Collect(s.Tok), null, exporter.Collect(s.Tok)));
-          builder.Add(CaptureState(stmt));
+          builder.AddCaptureState(stmt);
 
         } else {
           Contract.Assert(false);  // unexpected kind
@@ -844,6 +844,10 @@ namespace Microsoft.Dafny {
               needDefiniteAssignmentTracking = true;
             }
           }
+          if (!local.Type.IsNonempty) {
+            // This prevents generating an unsatisfiable where clause for possibly empty types
+            needDefiniteAssignmentTracking = true;
+          }
           if (needDefiniteAssignmentTracking) {
             var defassExpr = AddDefiniteAssignmentTracker(local, locals);
             if (wh != null && defassExpr != null) {
@@ -977,7 +981,7 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// "lhs" is expected to be a resolved form of an expression, i.e., not a conrete-syntax expression.
+    /// "lhs" is expected to be a resolved form of an expression, i.e., not a concrete-syntax expression.
     /// </summary>
     void TrAssignment(Statement stmt, Expression lhs, AssignmentRhs rhs,
       BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
@@ -1002,7 +1006,7 @@ namespace Microsoft.Dafny {
 
       var rhss = new List<AssignmentRhs>() { rhs };
       ProcessRhss(lhsBuilder, bLhss, lhss, rhss, builder, locals, etran);
-      builder.Add(CaptureState(stmt));
+      builder.AddCaptureState(stmt);
     }
 
     void TrForallAssign(ForallStmt s, AssignStmt s0,
@@ -1797,7 +1801,7 @@ namespace Microsoft.Dafny {
           modifiesClause.AddRange(explicitModifies);
         }
         // include boilerplate invariants
-        foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(s.Tok, modifiesClause, s.IsGhost, etranPreLoop, etran, etran.Old)) {
+        foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(s.Tok, modifiesClause, s.IsGhost, codeContext.AllowsAllocation, etranPreLoop, etran, etran.Old)) {
           if (tri.IsFree) {
             invariants.Add(TrAssumeCmd(s.Tok, tri.Expr));
           } else {
@@ -1838,7 +1842,7 @@ namespace Microsoft.Dafny {
       }
 
       var loopBodyBuilder = new BoogieStmtListBuilder(this);
-      loopBodyBuilder.Add(CaptureState(s.Tok, true, "after some loop iterations"));
+      loopBodyBuilder.AddCaptureState(s.Tok, true, "after some loop iterations");
 
       // As the first thing inside the loop, generate:  if (!w) { CheckWellformed(inv); assume false; }
       invDefinednessBuilder.Add(TrAssumeCmd(s.Tok, Bpl.Expr.False));
@@ -2007,9 +2011,7 @@ namespace Microsoft.Dafny {
             string nm = CurrentIdGenerator.FreshId("$rhs##");
             var formalOutType = Resolver.SubstType(s.Method.Outs[i].Type, tySubst);
             var ty = TrType(formalOutType);
-            Bpl.Expr wh = GetWhereClause(lhs.tok, new Bpl.IdentifierExpr(lhs.tok, nm, ty), formalOutType, etran,
-              isAllocContext.Var(s.IsGhost || s.Method.IsGhost, s.Method.Outs[i]));
-            Bpl.LocalVariable var = new Bpl.LocalVariable(lhs.tok, new Bpl.TypedIdent(lhs.tok, nm, ty, wh));
+            Bpl.LocalVariable var = new Bpl.LocalVariable(lhs.tok, new Bpl.TypedIdent(lhs.tok, nm, ty));
             locals.Add(var);
             bLhss[i] = new Bpl.IdentifierExpr(lhs.tok, var.Name, ty);
           }
@@ -2062,7 +2064,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(initHeap != null);
         RecordNewObjectsIn_New(s.Tok, iter, initHeap, (Bpl.IdentifierExpr/*TODO: this cast is dubious*/)etran.HeapExpr, builder, locals, etran);
       }
-      builder.Add(CaptureState(s));
+      builder.AddCaptureState(s);
     }
 
     void ProcessCallStmt(IToken tok,
@@ -2387,7 +2389,7 @@ namespace Microsoft.Dafny {
         // advance $Heap, Tick;
         exporter.Add(new Bpl.HavocCmd(tok, new List<Bpl.IdentifierExpr> { heapIdExpr, etran.Tick() }));
         Contract.Assert(s0.Method.Mod.Expressions.Count == 0);  // checked by the resolver
-        foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(tok, new List<FrameExpression>(), s0.IsGhost, initEtran, etran, initEtran)) {
+        foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(tok, new List<FrameExpression>(), s0.IsGhost, s0.Method.AllowsAllocation, initEtran, etran, initEtran)) {
           if (tri.IsFree) {
             exporter.Add(TrAssumeCmd(tok, tri.Expr));
           }

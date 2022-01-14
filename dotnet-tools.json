@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "isRoot": true,
+  "tools": {
+    "cocor": {
+      "version": "2014.12.24",
+      "commands": [
+        "coco"
+      ]
+    },
+    "dotnet-format": {
+      "version": "5.1.250801",
+      "commands": [
+        "dotnet-format"
+      ]
+    }
+  }
+}

@@ -5,6 +5,7 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
@@ -18,16 +19,16 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   /// this verifier serializes all invocations.
   /// </remarks>
   public class DafnyProgramVerifier : IProgramVerifier {
-    private static readonly object _initializationSyncObject = new();
-    private static bool _initialized;
+    private static readonly object InitializationSyncObject = new();
+    private static bool initialized;
 
-    private readonly ILogger _logger;
-    private readonly VerifierOptions _options;
-    private readonly SemaphoreSlim _mutex = new(1);
+    private readonly ILogger logger;
+    private readonly VerifierOptions options;
+    private readonly SemaphoreSlim mutex = new(1);
 
     private DafnyProgramVerifier(ILogger<DafnyProgramVerifier> logger, VerifierOptions options) {
-      _logger = logger;
-      _options = options;
+      this.logger = logger;
+      this.options = options;
     }
 
     /// <summary>
@@ -38,15 +39,17 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// <param name="options">Settings for the verifier.</param>
     /// <returns>A safely created dafny verifier instance.</returns>
     public static DafnyProgramVerifier Create(ILogger<DafnyProgramVerifier> logger, IOptions<VerifierOptions> options) {
-      lock (_initializationSyncObject) {
-        if (!_initialized) {
+      lock (InitializationSyncObject) {
+        if (!initialized) {
           // TODO This may be subject to change. See Microsoft.Boogie.Counterexample
           //      A dash means write to the textwriter instead of a file.
           // https://github.com/boogie-org/boogie/blob/b03dd2e4d5170757006eef94cbb07739ba50dddb/Source/VCGeneration/Couterexample.cs#L217
           DafnyOptions.O.ModelViewFile = "-";
-          DafnyOptions.O.VcsCores = GetConfiguredCoreCount(options.Value);
-          _initialized = true;
-          logger.LogTrace("initialized the boogie verifier...");
+          DafnyOptions.O.VerifySnapshots = (int)options.Value.VerifySnapshots;
+          initialized = true;
+          logger.LogTrace("Initialized the boogie verifier with " +
+                          "VerifySnapshots={VerifySnapshots}.",
+                          DafnyOptions.O.VerifySnapshots);
         }
         return new DafnyProgramVerifier(logger, options.Value);
       }
@@ -54,20 +57,23 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
     private static int GetConfiguredCoreCount(VerifierOptions options) {
       return options.VcsCores == 0
-        ? Environment.ProcessorCount / 2
+        ? Math.Max(1, Environment.ProcessorCount / 2)
         : Convert.ToInt32(options.VcsCores);
     }
 
-    public VerificationResult Verify(Dafny.Program program, CancellationToken cancellationToken) {
-      _mutex.Wait(cancellationToken);
+    public VerificationResult Verify(Dafny.Program program,
+                                     IVerificationProgressReporter progressReporter,
+                                     CancellationToken cancellationToken) {
+      mutex.Wait(cancellationToken);
       try {
         // The printer is responsible for two things: It logs boogie errors and captures the counter example model.
         var errorReporter = (DiagnosticErrorReporter)program.reporter;
-        var printer = new ModelCapturingOutputPrinter(_logger, errorReporter);
+        var printer = new ModelCapturingOutputPrinter(logger, errorReporter, progressReporter);
         ExecutionEngine.printer = printer;
-        // Do not set the time limit within the construction/statically. It will break some VerificationNotificationTest unit tests
-        // since we change the configured time limit depending on the test.
-        DafnyOptions.O.TimeLimit = _options.TimeLimit;
+        // Do not set these settings within the object's construction. It will break some tests within
+        // VerificationNotificationTest and DiagnosticsTest that rely on updating these settings.
+        DafnyOptions.O.TimeLimit = options.TimeLimit;
+        DafnyOptions.O.VcsCores = GetConfiguredCoreCount(options);
         var translated = Translator.Translate(program, errorReporter, new Translator.TranslatorFlags { InsertChecksums = true });
         bool verified = true;
         foreach (var (_, boogieProgram) in translated) {
@@ -78,7 +84,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         return new VerificationResult(verified, printer.SerializedCounterExamples);
       }
       finally {
-        _mutex.Release();
+        mutex.Release();
       }
     }
 
@@ -96,59 +102,76 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       //      synchronization is completed.
       var uniqueId = Guid.NewGuid().ToString();
       using (cancellationToken.Register(() => CancelVerification(uniqueId))) {
-        var statistics = new PipelineStatistics();
-        var outcome = ExecutionEngine.InferAndVerify(program, statistics, uniqueId, error => { }, uniqueId);
-        return DafnyDriver.IsBoogieVerified(outcome, statistics);
+        try {
+          var statistics = new PipelineStatistics();
+          var outcome = ExecutionEngine.InferAndVerify(program, statistics, uniqueId, error => { }, uniqueId);
+          return Main.IsBoogieVerified(outcome, statistics);
+        } catch (Exception e) when (e is not OperationCanceledException) {
+          if (!cancellationToken.IsCancellationRequested) {
+            throw;
+          }
+          // It appears that Boogie disposes resources that are still in use upon cancellation.
+          // Therefore, we log this error and proceed with the cancellation.
+          logger.LogDebug(e, "boogie error occured when cancelling the verification");
+          throw new OperationCanceledException(cancellationToken);
+        }
       }
     }
 
     private void CancelVerification(string requestId) {
-      _logger.LogDebug("requesting verification cancellation of {RequestId}", requestId);
+      logger.LogDebug("requesting verification cancellation of {RequestId}", requestId);
       ExecutionEngine.CancelRequest(requestId);
     }
 
     private class ModelCapturingOutputPrinter : OutputPrinter {
-      private readonly ILogger _logger;
-      private readonly DiagnosticErrorReporter _errorReporter;
-      private StringBuilder? _serializedCounterExamples;
+      private readonly ILogger logger;
+      private readonly DiagnosticErrorReporter errorReporter;
+      private readonly IVerificationProgressReporter progressReporter;
+      private StringBuilder? serializedCounterExamples;
 
-      public string? SerializedCounterExamples => _serializedCounterExamples?.ToString();
+      public string? SerializedCounterExamples => serializedCounterExamples?.ToString();
 
-      public ModelCapturingOutputPrinter(ILogger logger, DiagnosticErrorReporter errorReporter) {
-        _logger = logger;
-        _errorReporter = errorReporter;
+      public ModelCapturingOutputPrinter(ILogger logger, DiagnosticErrorReporter errorReporter,
+                                         IVerificationProgressReporter progressReporter) {
+        this.logger = logger;
+        this.errorReporter = errorReporter;
+        this.progressReporter = progressReporter;
       }
 
       public void AdvisoryWriteLine(string format, params object[] args) {
       }
 
       public void ErrorWriteLine(TextWriter tw, string s) {
-        _logger.LogError(s);
+        logger.LogError(s);
       }
 
       public void ErrorWriteLine(TextWriter tw, string format, params object[] args) {
-        _logger.LogError(format, args);
+        logger.LogError(format, args);
       }
 
       public void Inform(string s, TextWriter tw) {
-        _logger.LogInformation(s);
+        logger.LogInformation(s);
+        var match = Regex.Match(s, "^Verifying .+[.](?<name>[^.]+) [.][.][.]$");
+        if (match.Success) {
+          progressReporter.ReportProgress(match.Groups["name"].Value);
+        }
       }
 
       public void ReportBplError(IToken tok, string message, bool error, TextWriter tw, [AllowNull] string category) {
-        _logger.LogError(message);
+        logger.LogError(message);
       }
 
       public void WriteErrorInformation(ErrorInformation errorInfo, TextWriter tw, bool skipExecutionTrace) {
         CaptureCounterExamples(errorInfo);
-        _errorReporter.ReportBoogieError(errorInfo);
+        errorReporter.ReportBoogieError(errorInfo);
       }
 
       private void CaptureCounterExamples(ErrorInformation errorInfo) {
         if (errorInfo.Model is StringWriter modelString) {
           // We do not know a-priori how many errors we'll receive. Therefore we capture all models
           // in a custom stringbuilder and reset the original one to not duplicate the outputs.
-          _serializedCounterExamples ??= new StringBuilder();
-          _serializedCounterExamples.Append(modelString.ToString());
+          serializedCounterExamples ??= new StringBuilder();
+          serializedCounterExamples.Append(modelString.ToString());
           modelString.GetStringBuilder().Clear();
         }
       }

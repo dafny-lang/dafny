@@ -1,5 +1,6 @@
 ﻿using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
+using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -28,9 +29,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         .AddSingleton<IDafnyParser>(serviceProvider => DafnyLangParser.Create(serviceProvider.GetRequiredService<ILogger<DafnyLangParser>>()))
         .AddSingleton<ITextDocumentLoader>(CreateTextDocumentLoader)
         .AddSingleton<IDiagnosticPublisher, DiagnosticPublisher>()
-        .AddSingleton<IDocumentUpdater, DocumentUpdater>()
+        .AddSingleton<ITextChangeProcessor, TextChangeProcessor>()
+        .AddSingleton<IRelocator, Relocator>()
         .AddSingleton<ISymbolGuesser, SymbolGuesser>()
-        .AddSingleton<ICompilationStatusNotificationPublisher, CompilationStatusNotificationPublisher>();
+        .AddSingleton<ICompilationStatusNotificationPublisher, CompilationStatusNotificationPublisher>()
+        .AddSingleton<IDiagnosticPublisher, DiagnosticPublisher>();
     }
 
     private static TextDocumentLoader CreateTextDocumentLoader(IServiceProvider services) {
@@ -39,7 +42,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         services.GetRequiredService<ISymbolResolver>(),
         services.GetRequiredService<IProgramVerifier>(),
         services.GetRequiredService<ISymbolTableFactory>(),
-        services.GetRequiredService<ICompilationStatusNotificationPublisher>()
+        services.GetRequiredService<IGhostStateDiagnosticCollector>(),
+        services.GetRequiredService<ICompilationStatusNotificationPublisher>(),
+        services.GetRequiredService<ILoggerFactory>()
       );
     }
   }

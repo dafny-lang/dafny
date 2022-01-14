@@ -17,7 +17,7 @@ namespace Microsoft.Dafny.LanguageServer.Util {
     /// <exception cref="ArgumentException">Thrown if the specified position does not belong to the given text.</exception>
     /// <exception cref="OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
     /// <exception cref="ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
-    public static int ToAbsolutePosition(this Position position, string text, CancellationToken cancellationToken) {
+    public static int ToAbsolutePosition(this Position position, string text, CancellationToken cancellationToken = default) {
       int line = 0;
       int character = 0;
       int absolutePosition = 0;
@@ -46,7 +46,7 @@ namespace Microsoft.Dafny.LanguageServer.Util {
     /// <exception cref="ArgumentException">Thrown if the specified position does not belong to the given text.</exception>
     /// <exception cref="OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
     /// <exception cref="ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
-    public static Position GetEofPosition(this string text, CancellationToken cancellationToken) {
+    public static Position GetEofPosition(this string text, CancellationToken cancellationToken = default) {
       int line = 0;
       int character = 0;
       int absolutePosition = 0;

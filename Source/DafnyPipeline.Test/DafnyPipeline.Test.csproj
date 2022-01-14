@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net5.0</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
 
     <IsPackable>false</IsPackable>
   </PropertyGroup>
@@ -21,7 +21,16 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Dafny\DafnyPipeline.csproj" />
+    <ProjectReference Include="..\DafnyDriver\DafnyDriver.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="..\..\Binaries\z3\**\*.*" LinkBase="z3">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\..\Test\dafny0\warnings-as-errors.dfy">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
 </Project>

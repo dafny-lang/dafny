@@ -3,7 +3,7 @@
 /*
 module _System {
   /* CALL GRAPH for module _System:
-   * SCC at height 2:
+   * SCC at height 1:
    *   RotateRight
    * SCC at height 1:
    *   RotateLeft
@@ -116,27 +116,27 @@ module _System {
 */
 
 /* CALL GRAPH for module _module:
- * SCC at height 12:
- *   M5
- * SCC at height 11:
- *   M4
- * SCC at height 10:
- *   M3
- * SCC at height 9:
- *   M2'
- * SCC at height 8:
- *   M2
- * SCC at height 7:
- *   M1
- * SCC at height 6:
- *   M0
- * SCC at height 5:
- *   UseTheVars
- * SCC at height 4:
- *   SmallReal
- * SCC at height 3:
- *   EvenInt
  * SCC at height 2:
+ *   M5
+ * SCC at height 2:
+ *   M4
+ * SCC at height 2:
+ *   M3
+ * SCC at height 2:
+ *   M2'
+ * SCC at height 2:
+ *   M2
+ * SCC at height 2:
+ *   M1
+ * SCC at height 2:
+ *   M0
+ * SCC at height 1:
+ *   UseTheVars
+ * SCC at height 0:
+ *   SmallReal
+ * SCC at height 0:
+ *   EvenInt
+ * SCC at height 0:
  *   nat
  * SCC at height 1:
  *   ClassSubset

@@ -3,7 +3,7 @@
 /*
 module _System {
   /* CALL GRAPH for module _System:
-   * SCC at height 2:
+   * SCC at height 1:
    *   RotateRight
    * SCC at height 1:
    *   RotateLeft
@@ -100,9 +100,9 @@ module _System {
 */
 
 /* CALL GRAPH for module _module:
- * SCC at height 2:
+ * SCC at height 0:
  *   TestMultiset
- * SCC at height 1:
+ * SCC at height 0:
  *   TestSet
  * SCC at height 0:
  *   TestBool
@@ -110,31 +110,31 @@ module _System {
 
 module PrintTest {
   /* CALL GRAPH for module PrintTest:
-   * SCC at height 13:
+   * SCC at height 0:
    *   NewEven
-   * SCC at height 12:
+   * SCC at height 0:
    *   Even
-   * SCC at height 11:
+   * SCC at height 0:
    *   NewOdd
-   * SCC at height 10:
+   * SCC at height 0:
    *   Odd
-   * SCC at height 9:
+   * SCC at height 0:
    *   Twenty
-   * SCC at height 8:
-   *   TwentyOne
-   * SCC at height 7:
-   *   Yes
-   * SCC at height 6:
-   *   Twelve
-   * SCC at height 5:
-   *   Eleven
-   * SCC at height 4:
-   *   TenOnceMore
-   * SCC at height 3:
-   *   TenAgain
-   * SCC at height 2:
-   *   Ten
    * SCC at height 1:
+   *   TwentyOne
+   * SCC at height 0:
+   *   Yes
+   * SCC at height 1:
+   *   Twelve
+   * SCC at height 1:
+   *   Eleven
+   * SCC at height 1:
+   *   TenOnceMore
+   * SCC at height 1:
+   *   TenAgain
+   * SCC at height 1:
+   *   Ten
+   * SCC at height 0:
    *   Six
    * SCC at height 0:
    *   Five

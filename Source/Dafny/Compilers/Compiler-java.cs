@@ -246,7 +246,7 @@ namespace Microsoft.Dafny {
         indices.Add(wIndex.ToString());
       }
       var lv = EmitArraySelectAsLvalue(array, indices, tupleTypeArgsList[L - 1]);
-      var wrRhs = EmitAssignment(lv, tupleTypeArgsList[L - 1], null, wr);
+      var wrRhs = EmitAssignment(lv, tupleTypeArgsList[L - 1], null, wr, s0.Tok);
       wrRhs.Write($"(({TypeName(tupleTypeArgsList[L - 1], wrRhs, s0.Tok)})");
       EmitTupleSelect(tup, L - 1, wrRhs);
       wrRhs.Write(")");
@@ -391,7 +391,7 @@ namespace Microsoft.Dafny {
 
       public ConcreteSyntaxTree Writer(bool isStatic, bool createBody, MemberDecl/*?*/ member) {
         if (createBody) {
-          if (isStatic || (member != null && member.EnclosingClass is TraitDecl && NeedsCustomReceiver(member))) {
+          if (isStatic || (member != null && member.EnclosingClass is TraitDecl && Compiler.NeedsCustomReceiver(member))) {
             return StaticMemberWriter;
           }
         }
@@ -506,7 +506,10 @@ namespace Microsoft.Dafny {
     protected override ConcreteSyntaxTree EmitMethodReturns(Method m, ConcreteSyntaxTree wr) {
       int nonGhostOuts = 0;
       foreach (var t in m.Outs) {
-        if (t.IsGhost) continue;
+        if (t.IsGhost) {
+          continue;
+        }
+
         nonGhostOuts += 1;
         break;
       }
@@ -772,7 +775,10 @@ namespace Microsoft.Dafny {
     }
 
     protected override bool DeclareFormal(string prefix, string name, Type type, Bpl.IToken tok, bool isInParam, ConcreteSyntaxTree wr) {
-      if (!isInParam) return false;
+      if (!isInParam) {
+        return false;
+      }
+
       wr.Write($"{prefix}{TypeName(type, wr, tok)} {name}");
       return true;
     }
@@ -2475,7 +2481,7 @@ namespace Microsoft.Dafny {
 
     bool OutContainsParam(List<Formal> l, TypeParameter tp) {
       foreach (Formal f in l) {
-        if (f.Type.IsTypeParameter && f.Type.AsTypeParameter.Equals(tp) || f.Type.AsCollectionType != null && f.Type.AsCollectionType.Arg.IsTypeParameter && f.Type.AsCollectionType.Arg.AsTypeParameter.Equals(tp)) {
+        if ((f.Type.IsTypeParameter && f.Type.AsTypeParameter.Equals(tp)) || (f.Type.AsCollectionType != null && f.Type.AsCollectionType.Arg.IsTypeParameter && f.Type.AsCollectionType.Arg.AsTypeParameter.Equals(tp))) {
           return true;
         }
       }
@@ -2948,8 +2954,9 @@ namespace Microsoft.Dafny {
       wrToString.WriteLine("sb.append(\"(\");");
       for (int j = 0; j < i; j++) {
         wrToString.WriteLine($"sb.append(_{j} == null ? \"null\" : _{j}.toString());");
-        if (j != i - 1)
+        if (j != i - 1) {
           wrToString.WriteLine("sb.append(\", \");");
+        }
       }
 
       wrToString.WriteLine("sb.append(\")\");");
@@ -3365,7 +3372,10 @@ namespace Microsoft.Dafny {
 
     protected override void EmitHalt(Bpl.IToken tok, Expression messageExpr, ConcreteSyntaxTree wr) {
       wr.Write("throw new dafny.DafnyHaltException(");
-      if (tok != null) wr.Write("\"" + Dafny.ErrorReporter.TokenToString(tok) + ": \" + ");
+      if (tok != null) {
+        wr.Write("\"" + Dafny.ErrorReporter.TokenToString(tok) + ": \" + ");
+      }
+
       EmitToString(wr, messageExpr);
       wr.WriteLine(");");
     }
@@ -3421,19 +3431,28 @@ namespace Microsoft.Dafny {
       if (nt == null) {
         wr.Write($"{DafnyHelpersClass}.toInt" + (checkRange ? "Checked(" : "("));
         TrParenExpr(expr, wr, inLetExprBody);
-        if (checkRange) wr.Write(msg == null ? ", null" : $", \"{msg}\"");
+        if (checkRange) {
+          wr.Write(msg == null ? ", null" : $", \"{msg}\"");
+        }
+
         wr.Write(")");
       } else if (nt.Sel == NativeType.Selection.Int || nt.Sel == NativeType.Selection.UInt) {
         TrExpr(expr, wr, inLetExprBody);
       } else if (IsUnsignedJavaNativeType(nt)) {
         wr.Write($"{DafnyHelpersClass}.unsignedToInt" + (checkRange ? "Checked(" : "("));
         TrExpr(expr, wr, inLetExprBody);
-        if (checkRange) wr.Write(msg == null ? ", null" : $", \"{msg}\"");
+        if (checkRange) {
+          wr.Write(msg == null ? ", null" : $", \"{msg}\"");
+        }
+
         wr.Write(")");
       } else {
         wr.Write($"{DafnyHelpersClass}.toInt" + (checkRange ? "Checked(" : "("));
         TrExpr(expr, wr, inLetExprBody);
-        if (checkRange) wr.Write(msg == null ? ", null" : $", \"{msg}\"");
+        if (checkRange) {
+          wr.Write(msg == null ? ", null" : $", \"{msg}\"");
+        }
+
         wr.Write(")");
       }
     }
