@@ -44,18 +44,20 @@ AsIs-Resolve.dfy(150,13): Error: type cast to reference type 'M<V>' must be from
 AsIs-Resolve.dfy(157,13): Error: type cast to reference type 'M?<V>' must be from an expression assignable to it (got 'K?<V>')
 AsIs-Resolve.dfy(158,13): Error: type cast to reference type 'M?<V>' must be from an expression assignable to it (got 'L?<V>')
 AsIs-Resolve.dfy(159,14): Error: type cast to reference type 'M?<V>' must be from an expression assignable to it (got 'RefSyn?')
+AsIs-Resolve.dfy(211,11): Error: type test for type 'real -> nat' must be from an expression assignable to it (got 'int -> nat') (contravariance for type parameter at index 0 expects real <: int)
+AsIs-Resolve.dfy(221,11): Error: type test for type 'real --> nat' must be from an expression assignable to it (got 'int ~> nat') (contravariance for type parameter at index 0 expects real <: int)
 AsIs-Resolve.dfy(183,11): Error: type test for type 'A<bv10>' must be from an expression assignable to it (got 'M<string>') (non-variant type parameter would require bv10 = seq<(string, string)>)
 AsIs-Resolve.dfy(193,24): Error: type test for type 'List<int>' must be from an expression assignable to it (got 'List<real>') (non-variant type parameter would require int = real)
 AsIs-Resolve.dfy(201,19): Error: type test for type 'VeryShortList<real>' must be from an expression assignable to it (got 'VeryShortList<int>') (non-variant type parameter would require real = int)
 AsIs-Resolve.dfy(204,18): Error: type test for type 'Stream<char>' must be from an expression assignable to it (got 'Stream<int>') (non-variant type parameter would require char = int)
-AsIs-Resolve.dfy(211,11): Error: type test for type 'real -> nat' must be from an expression assignable to it (got 'int -> nat') (contravariant type parameter 0 would require real <: int)
 AsIs-Resolve.dfy(212,11): Error: type test for type 'int -> real' must be from an expression assignable to it (got 'int -> nat') (covariant type parameter 1 would require nat <: real)
 AsIs-Resolve.dfy(213,11): Error: type test for type 'int -> Odd' must be from an expression assignable to it (got 'int -> nat') (covariant type parameter 1 would require nat <: Odd)
 AsIs-Resolve.dfy(220,11): Error: type test for type 'int ~> real' must be from an expression assignable to it (got 'int ~> nat') (covariant type parameter 1 would require nat <: real)
-AsIs-Resolve.dfy(221,11): Error: type test for type 'real --> nat' must be from an expression assignable to it (got 'int ~> nat') (contravariant type parameter 0 would require real <: int)
 AsIs-Resolve.dfy(185,11): Error: type cast to reference type 'C<(int, real)>' must be from an expression assignable to it (got 'M<string>') (non-variant type parameter would require (int, real) = (string, string)) (covariant type parameter 0 would require string <: int)
 AsIs-Resolve.dfy(185,11): Error: type cast to reference type 'C<(int, real)>' must be from an expression assignable to it (got 'M<string>') (non-variant type parameter would require (int, real) = (string, string)) (covariant type parameter 0 would require int <: string)
-AsIs-Resolve.dfy(196,9): Error: incorrect type of datatype constructor argument at index 0 (expected real, found int)
+AsIs-Resolve.dfy(196,9): Error: incorrect argument type at index 0 for datatype constructor parameter (expected real, found int)
+AsIs-Resolve.dfy(211,11): Error: type test for type 'real -> nat' must be from an expression assignable to it (got 'int -> nat') (contravariance for type parameter at index 0 expects int <: real)
+AsIs-Resolve.dfy(221,11): Error: type test for type 'real --> nat' must be from an expression assignable to it (got 'int ~> nat') (contravariance for type parameter at index 0 expects int <: real)
 AsIs-Resolve.dfy(229,15): Error: type test for type 'object' must be from an expression assignable to it (got 'T')
 AsIs-Resolve.dfy(230,18): Error: type test for type 'array<object>' must be from an expression assignable to it (got 'array<T>') (nonvariance for type parameter expects object = T)
 AsIs-Resolve.dfy(231,18): Error: type test for type 'array<int>' must be from an expression assignable to it (got 'array<T>') (nonvariance for type parameter expects int = T)
@@ -77,4 +79,4 @@ AsIs-Resolve.dfy(282,12): Error: an expression of type 'D<(real, real)>' is not 
 AsIs-Resolve.dfy(283,12): Error: an expression of type 'T<int>' is not run-time checkable to be a 'I<real>'
 AsIs-Resolve.dfy(306,11): Error: an expression of type 'object' is not run-time checkable to be a 'TriviallyObject<real>'
 AsIs-Resolve.dfy(308,21): Error: an expression of type 'object' is not run-time checkable to be a 'TriviallyObject<real>'
-79 resolution/type errors detected in AsIs-Resolve.dfy
+81 resolution/type errors detected in AsIs-Resolve.dfy
