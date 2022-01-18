@@ -5805,8 +5805,8 @@ namespace Microsoft.Dafny {
                 break;
               }
 
-              TypeConstraint oneSuper = null;
-              TypeConstraint oneSub = null;
+              TypeConstraint.ErrorMsg oneSuperErrorMsg = null;
+              TypeConstraint.ErrorMsg oneSubErrorMsg = null;
               var ss = new HashSet<Type>();
               foreach (var c in AllTypeConstraints) {
                 var super = c.Super.NormalizeExpand();
@@ -5827,11 +5827,11 @@ namespace Microsoft.Dafny {
                   var sub = c.Sub.NormalizeExpand();
                   if (t.Equals(super)) {
                     lowers.Add(sub);
-                    oneSub = c;
+                    oneSubErrorMsg = c.errorMsg;
                   }
                   if (t.Equals(sub)) {
                     uppers.Add(super);
-                    oneSuper = c;
+                    oneSuperErrorMsg = c.errorMsg;
                   }
                 }
 
@@ -5880,7 +5880,7 @@ namespace Microsoft.Dafny {
                     var em = lowers.GetEnumerator();
                     em.MoveNext();
                     if (!ContainsAsTypeParameter(em.Current, t)) {
-                      var errorMsg = new TypeConstraint.ErrorMsgWithBase(oneSub.errorMsg,
+                      var errorMsg = new TypeConstraint.ErrorMsgWithBase(oneSubErrorMsg,
                         "Decision: {0} is decided to be {1} because the latter is a lower bound to the proxy and there is no constraint with an upper bound",
                         t, em.Current);
                       ConstrainSubtypeRelation_Equal(t, em.Current, errorMsg);
@@ -5894,7 +5894,7 @@ namespace Microsoft.Dafny {
                     var em = uppers.GetEnumerator();
                     em.MoveNext();
                     if (!ContainsAsTypeParameter(em.Current, t)) {
-                      var errorMsg = new TypeConstraint.ErrorMsgWithBase(oneSuper.errorMsg,
+                      var errorMsg = new TypeConstraint.ErrorMsgWithBase(oneSuperErrorMsg,
                         "Decision: {0} is decided to be {1} because the latter is an upper bound to the proxy and there is no constraint with a lower bound",
                         t, em.Current);
                       ConstrainSubtypeRelation_Equal(t, em.Current, errorMsg);
