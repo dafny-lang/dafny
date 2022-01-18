@@ -11788,15 +11788,6 @@ namespace Microsoft.Dafny {
       enclosingStatementLabels.PushMarker();
       ResolveStatement(s.ResolvedStatement, codeContext);
       enclosingStatementLabels.PopMarker();
-
-      // (unboxedtype): for RPrint to work properly, we need to resolve
-      // case branches also.
-      // https://github.com/dafny-lang/dafny/issues/1665
-      enclosingStatementLabels.PushMarker();
-      s.Cases.ForEach(ss =>
-        ss.Body.ForEach(sst => ResolveStatement(sst, codeContext))
-      );
-      enclosingStatementLabels.PopMarker();
     }
 
     void ResolveMatchStmt(MatchStmt s, ICodeContext codeContext) {
