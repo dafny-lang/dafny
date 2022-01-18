@@ -4726,7 +4726,7 @@ namespace Microsoft.Dafny {
       foreach (var c in proxy.SupertypeConstraints) {
         var u = keepConstraints ? c.Super.NormalizeExpandKeepConstraints() : c.Super.NormalizeExpand();
         if (!(u is TypeProxy)) {
-          ImposeSubtypingConstraint(u, t, c.errorMsg);
+          ImposeSubtypingConstraint(u, t, c.ErrMsg);
         } else if (isRoot) {
           // If t is a root, we might as well constrain u now.  Otherwise, we'll wait until the .Subtype constraint of u is dealt with.
           AssignProxyAndHandleItsConstraints((TypeProxy)u, t, keepConstraints);
@@ -4737,7 +4737,7 @@ namespace Microsoft.Dafny {
         var u = keepConstraints ? c.Sub.NormalizeExpandKeepConstraints() : c.Sub.NormalizeExpand();
         Contract.Assert(!TypeProxy.IsSupertypeOfLiteral(u));  // these should only appear among .Supertypes
         if (!(u is TypeProxy)) {
-          ImposeSubtypingConstraint(t, u, c.errorMsg);
+          ImposeSubtypingConstraint(t, u, c.ErrMsg);
         } else if (isLeaf) {
           // If t is a leaf (no pun intended), we might as well constrain u now.  Otherwise, we'll wait until the .Supertype constraint of u is dealt with.
           AssignProxyAndHandleItsConstraints((TypeProxy)u, t, keepConstraints);
@@ -5827,11 +5827,11 @@ namespace Microsoft.Dafny {
                   var sub = c.Sub.NormalizeExpand();
                   if (t.Equals(super)) {
                     lowers.Add(sub);
-                    oneSubErrorMsg = c.errorMsg;
+                    oneSubErrorMsg = c.ErrMsg;
                   }
                   if (t.Equals(sub)) {
                     uppers.Add(super);
-                    oneSuperErrorMsg = c.errorMsg;
+                    oneSuperErrorMsg = c.ErrMsg;
                   }
                 }
 
@@ -5840,7 +5840,7 @@ namespace Microsoft.Dafny {
                   foreach (var tu in uppers) {
                     if (tl.Equals(tu)) {
                       if (!ContainsAsTypeParameter(tu, t)) {
-                        var errorMsg = new TypeConstraint.ErrorMsgWithBase(AllTypeConstraints[0].errorMsg,
+                        var errorMsg = new TypeConstraint.ErrorMsgWithBase(AllTypeConstraints[0].ErrMsg,
                           "Decision: {0} is decided to be {1} because the latter is both the upper and lower bound to the proxy",
                           t, tu);
                         ConstrainSubtypeRelation_Equal(t, tu, errorMsg);
@@ -6067,7 +6067,7 @@ namespace Microsoft.Dafny {
       if (super.Equals(sub)) {
         // the constraint is satisfied, so just drop it
       } else if ((super is NonProxyType || super is ArtificialType) && sub is NonProxyType) {
-        ImposeSubtypingConstraint(super, sub, c.errorMsg);
+        ImposeSubtypingConstraint(super, sub, c.ErrMsg);
         anyNewConstraints = true;
       } else if (AssignKnownEnd(sub as TypeProxy, true, fullStrength)) {
         anyNewConstraints = true;

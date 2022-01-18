@@ -17,8 +17,8 @@ using Microsoft.Boogie;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Microsoft.Dafny {
-  public readonly record struct TypeConstraint(Type Super, Type Sub, TypeConstraint.ErrorMsg errorMsg, bool KeepConstraints) {
-    private static List<ErrorMsg> ErrorsToBeReported = new List<ErrorMsg>();
+  public readonly record struct TypeConstraint(Type Super, Type Sub, TypeConstraint.ErrorMsg ErrMsg, bool KeepConstraints) {
+    private static readonly List<ErrorMsg> ErrorsToBeReported = new List<ErrorMsg>();
   public static void ReportErrors(ErrorReporter reporter) {
     Contract.Requires(reporter != null);
     foreach (var err in ErrorsToBeReported) {
@@ -114,7 +114,7 @@ namespace Microsoft.Dafny {
     protected override string ApproximateErrorMessage() => string.Format(Msg, MsgArgs);
   }
   public void FlagAsError() {
-    errorMsg.FlagAsError();
+    ErrMsg.FlagAsError();
   }
 }
 }
