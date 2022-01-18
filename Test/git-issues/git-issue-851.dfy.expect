@@ -1,18 +1,18 @@
-git-issue-851.dfy(116,9): Warning: /!\ No terms found to trigger on.
-git-issue-851.dfy(144,13): Warning: /!\ No terms found to trigger on.
-git-issue-851.dfy(150,13): Warning: /!\ No terms found to trigger on.
-git-issue-851.dfy(156,13): Warning: /!\ No terms found to trigger on.
+git-issue-851.dfy(116,9): Warning: /!\ No terms found to trigger on. Potential trigger not suitable: git-issue-851.dfy(116,19)
+git-issue-851.dfy(144,13): Warning: /!\ No terms found to trigger on. Potential trigger not suitable: git-issue-851.dfy(144,41)
+git-issue-851.dfy(150,13): Warning: /!\ No terms found to trigger on. Potential trigger not suitable: git-issue-851.dfy(150,36)
+git-issue-851.dfy(156,13): Warning: /!\ No terms found to trigger on. Potential trigger not suitable: git-issue-851.dfy(156,36)
 git-issue-851.dfy(162,13): Warning: /!\ No terms found to trigger on.
 git-issue-851.dfy(168,13): Warning: /!\ No terms found to trigger on.
 git-issue-851.dfy(174,13): Warning: /!\ No terms found to trigger on.
 git-issue-851.dfy(180,13): Warning: /!\ No terms found to trigger on.
 git-issue-851.dfy(186,13): Warning: /!\ No terms found to trigger on.
 git-issue-851.dfy(192,13): Warning: /!\ No terms found to trigger on.
-git-issue-851.dfy(211,13): Warning: /!\ No terms found to trigger on.
-git-issue-851.dfy(217,13): Warning: /!\ No terms found to trigger on.
-git-issue-851.dfy(223,13): Warning: /!\ No terms found to trigger on.
-git-issue-851.dfy(229,13): Warning: /!\ No terms found to trigger on.
-git-issue-851.dfy(235,13): Warning: /!\ No terms found to trigger on.
+git-issue-851.dfy(211,13): Warning: /!\ No terms found to trigger on. Potential trigger not suitable: git-issue-851.dfy(211,32)
+git-issue-851.dfy(217,13): Warning: /!\ No terms found to trigger on. Potential trigger not suitable: git-issue-851.dfy(217,36)
+git-issue-851.dfy(223,13): Warning: /!\ No terms found to trigger on. Potential trigger not suitable: git-issue-851.dfy(223,36)
+git-issue-851.dfy(229,13): Warning: /!\ No terms found to trigger on. Potential trigger not suitable: git-issue-851.dfy(229,36)
+git-issue-851.dfy(235,13): Warning: /!\ No terms found to trigger on. Potential trigger not suitable: git-issue-851.dfy(235,36)
 git-issue-851.dfy(241,13): Warning: /!\ No terms found to trigger on.
 git-issue-851.dfy(247,13): Warning: /!\ No terms found to trigger on.
 git-issue-851.dfy(253,13): Warning: /!\ No terms found to trigger on.
