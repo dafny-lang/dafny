@@ -11745,7 +11745,6 @@ namespace Microsoft.Dafny {
     /// 1 - checking that all of its patterns are linear
     /// 2 - desugaring it into a decision tree of MatchStmt and IfStmt (for constant matching)
     /// 3 - resolving the generated (sub)statement.
-    /// 4 - resolve all the case braches
     /// </summary>
     void ResolveNestedMatchStmt(NestedMatchStmt s, ResolveOpts opts) {
       ICodeContext codeContext = opts.codeContext;
