@@ -216,10 +216,6 @@ namespace Microsoft.Dafny {
       Contract.Assume(type != null);  // precondition; this ought to be declared as a Requires in the superclass
 
       var xType = type.NormalizeExpand();
-      if (xType is TypeProxy) {
-        // unresolved proxy; just treat as ref, since no particular type information is apparently needed for this type
-        return "object";
-      }
 
       if (xType is BoolType) {
         return "bool";
@@ -256,12 +252,8 @@ namespace Microsoft.Dafny {
     protected override void DeclareLocalVar(string name, Type type, IToken tok, bool leaveRoomForRhs, string rhs,
       ConcreteSyntaxTree wr) {
       wr.Write("{0}{1}", name, type != null ? "=" + TypeName(type, wr, tok) + "()" : "");
+      wr.WriteLine();
 
-      if (leaveRoomForRhs) {
-        Contract.Assert(rhs == null);  // follows from precondition
-      } else {
-        wr.WriteLine();
-      }
     }
 
     protected override ConcreteSyntaxTree DeclareLocalVar(string name, Type type, IToken tok, ConcreteSyntaxTree wr) {
