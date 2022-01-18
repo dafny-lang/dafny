@@ -2843,6 +2843,8 @@ namespace Microsoft.Dafny {
       switch (pat) {
         case IdPattern idPat:
           if (idPat.Id.StartsWith(BuiltIns.TupleTypeCtorNamePrefix)) {
+          } else if (idPat.Id.StartsWith("_")) {
+            wr.Write("_");
           } else {
             wr.Write(idPat.Id);
           }

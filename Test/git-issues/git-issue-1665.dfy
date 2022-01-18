@@ -1,4 +1,4 @@
-// RUN: %dafny /env:0 /noVerify /compile:0 "%s" >> "%t"
+// RUN: %dafny /env:0 /dafnyVerify:0 /compile:0 /rprint:- "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module ConcreteModule
@@ -21,10 +21,10 @@ module ConcreteModule
 			case 0 =>            
 				:- Func1(); // elephant operator is essential to reproduce the bug
         match m {
-            case 1 =>
-                :- Func1();
-            case _ =>
-                return Success;
+          case 1 =>
+            :- Func1();
+          case _ =>
+            return Success;
         }
 			case _ =>
 				return Success;

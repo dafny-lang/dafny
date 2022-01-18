@@ -170,10 +170,10 @@ module ConcreteModule {
         match m {
           case {:split false} 1 =>
             :- Func1();
-          case {:split false} _v0 =>
+          case {:split false} _ =>
             return Success;
         }
-      case {:split false} _v1 =>
+      case {:split false} _ =>
         return Success;
     }
   }
