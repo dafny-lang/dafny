@@ -24,18 +24,18 @@ namespace Microsoft.Dafny.Compilers.Cpp {
     public override string TargetLanguage => "Cpp";
     public override string TargetExtension => "cpp";
 
-    public override string PublicIdProtect(string name) => Compiler.PublicIdProtect(name);
+    public override string PublicIdProtect(string name) => CppCompiler.PublicIdProtect(name);
 
     public override bool SupportsInMemoryCompilation => false;
     public override bool TextualTargetIsExecutable => false;
 
     public override ICompiler CreateInstance(ErrorReporter reporter, ReadOnlyCollection<string> otherFilenames) {
-      return new Compiler(this, reporter, otherFilenames);
+      return new CppCompiler(this, reporter, otherFilenames);
     }
   }
 
-  public class Compiler : SinglePassCompiler {
-    public Compiler(Factory factory, ErrorReporter reporter, ReadOnlyCollection<string> otherHeaders)
+  public class CppCompiler : SinglePassCompiler {
+    public CppCompiler(Factory factory, ErrorReporter reporter, ReadOnlyCollection<string> otherHeaders)
     : base(factory, reporter) {
       this.headers = otherHeaders;
       this.datatypeDecls = new List<DatatypeDecl>();
@@ -125,7 +125,7 @@ namespace Microsoft.Dafny.Compilers.Cpp {
     }
 
     protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw) {
-      var wr = (cw as Compiler.ClassWriter).MethodWriter;
+      var wr = (cw as CppCompiler.ClassWriter).MethodWriter;
       return wr.NewBlock("int main()");
     }
 
@@ -587,7 +587,7 @@ namespace Microsoft.Dafny.Compilers.Cpp {
         throw NotSupported(String.Format("non-native newtype {0}", nt));
       }
       var className = "class_" + IdName(nt);
-      var cw = CreateClass(nt.EnclosingModuleDefinition.CompileName, className, nt, wr) as Compiler.ClassWriter;
+      var cw = CreateClass(nt.EnclosingModuleDefinition.CompileName, className, nt, wr) as CppCompiler.ClassWriter;
       var w = cw.MethodDeclWriter;
       if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var witness = new ConcreteSyntaxTree(w.RelativeIndentLevel);
@@ -626,7 +626,7 @@ namespace Microsoft.Dafny.Compilers.Cpp {
       this.modDeclWr.WriteLine("{0} using {1} = {2};", templateDecl, IdName(sst), TypeName(sst.Var.Type, wr, sst.tok));
 
       var className = "class_" + IdName(sst);
-      var cw = CreateClass(sst.EnclosingModuleDefinition.CompileName, className, sst, wr) as Compiler.ClassWriter;
+      var cw = CreateClass(sst.EnclosingModuleDefinition.CompileName, className, sst, wr) as CppCompiler.ClassWriter;
       var w = cw.MethodDeclWriter;
 
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
@@ -679,13 +679,13 @@ namespace Microsoft.Dafny.Compilers.Cpp {
 
     protected class ClassWriter : IClassWriter {
       public string ClassName;
-      public readonly Compiler Compiler;
+      public readonly CppCompiler Compiler;
       public readonly ConcreteSyntaxTree MethodDeclWriter;
       public readonly ConcreteSyntaxTree MethodWriter;
       public readonly ConcreteSyntaxTree FieldWriter;
       public readonly ConcreteSyntaxTree Finisher;
 
-      public ClassWriter(string className, Compiler compiler, ConcreteSyntaxTree methodDeclWriter, ConcreteSyntaxTree methodWriter, ConcreteSyntaxTree fieldWriter, ConcreteSyntaxTree finisher) {
+      public ClassWriter(string className, CppCompiler compiler, ConcreteSyntaxTree methodDeclWriter, ConcreteSyntaxTree methodWriter, ConcreteSyntaxTree fieldWriter, ConcreteSyntaxTree finisher) {
         Contract.Requires(compiler != null);
         Contract.Requires(methodDeclWriter != null);
         Contract.Requires(methodWriter != null);

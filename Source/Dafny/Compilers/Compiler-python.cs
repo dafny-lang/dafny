@@ -14,7 +14,7 @@ namespace Microsoft.Dafny.Compilers.Python {
     public override string TargetLanguage => "Python";
     public override string TargetExtension => "py";
 
-    public override string PublicIdProtect(string name) => Compiler.PublicIdProtect(name);
+    public override string PublicIdProtect(string name) => PythonCompiler.PublicIdProtect(name);
 
     public override bool SupportsInMemoryCompilation => true;
     public override bool TextualTargetIsExecutable => true;
@@ -22,12 +22,12 @@ namespace Microsoft.Dafny.Compilers.Python {
     public override IReadOnlySet<string> SupportedNativeTypes => new HashSet<string> { }; // FIXME
 
     public override ICompiler CreateInstance(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
-      return new Compiler(this, reporter);
+      return new PythonCompiler(this, reporter);
     }
   }
 
-  public class Compiler : SinglePassCompiler {
-    public Compiler(Factory factory, ErrorReporter reporter)
+  public class PythonCompiler : SinglePassCompiler {
+    public PythonCompiler(Factory factory, ErrorReporter reporter)
       : base(factory, reporter) {
     }
 
@@ -42,7 +42,7 @@ namespace Microsoft.Dafny.Compilers.Python {
     }
 
     protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw) {
-      var wr = (cw as Compiler.ClassWriter).MethodWriter;
+      var wr = (cw as PythonCompiler.ClassWriter).MethodWriter;
       return wr.WriteLine("def Main():");
     }
 
@@ -105,11 +105,11 @@ namespace Microsoft.Dafny.Compilers.Python {
     }
 
     protected class ClassWriter : IClassWriter {
-      public readonly Compiler Compiler;
+      public readonly PythonCompiler Compiler;
       public readonly ConcreteSyntaxTree MethodWriter;
       public readonly ConcreteSyntaxTree FieldWriter;
 
-      public ClassWriter(Compiler compiler, ConcreteSyntaxTree methodWriter, ConcreteSyntaxTree fieldWriter) {
+      public ClassWriter(PythonCompiler compiler, ConcreteSyntaxTree methodWriter, ConcreteSyntaxTree fieldWriter) {
         Contract.Requires(compiler != null);
         Contract.Requires(methodWriter != null);
         Contract.Requires(fieldWriter != null);

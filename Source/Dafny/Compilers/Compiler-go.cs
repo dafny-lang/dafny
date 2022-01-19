@@ -25,18 +25,18 @@ namespace Microsoft.Dafny.Compilers.Go {
     public override string TargetExtension => "go";
     public override string TargetBaseDir(string baseName) => baseName + "-go/src";
 
-    public override string PublicIdProtect(string name) => Compiler.PublicIdProtect(name);
+    public override string PublicIdProtect(string name) => GoCompiler.PublicIdProtect(name);
 
     public override bool SupportsInMemoryCompilation => false;
     public override bool TextualTargetIsExecutable => false;
 
     public override ICompiler CreateInstance(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
-      return new Compiler(this, reporter);
+      return new GoCompiler(this, reporter);
     }
   }
 
-  public class Compiler : SinglePassCompiler {
-    public Compiler(Factory factory, ErrorReporter reporter)
+  public class GoCompiler : SinglePassCompiler {
+    public GoCompiler(Factory factory, ErrorReporter reporter)
     : base(factory, reporter) {
       if (DafnyOptions.O.CoverageLegendFile != null) {
         Imports.Add(new Import { Name = "DafnyProfiling", Path = "DafnyProfiling" });
@@ -130,8 +130,8 @@ namespace Microsoft.Dafny.Compilers.Go {
     }
 
     protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw) {
-      var wr = ((Compiler.ClassWriter)cw).ConcreteMethodWriter;
-      return wr.NewNamedBlock("func (_this * {0}) Main()", FormatCompanionTypeName(((Compiler.ClassWriter)cw).ClassName));
+      var wr = ((GoCompiler.ClassWriter)cw).ConcreteMethodWriter;
+      return wr.NewNamedBlock("func (_this * {0}) Main()", FormatCompanionTypeName(((GoCompiler.ClassWriter)cw).ClassName));
     }
 
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern, string/*?*/ libraryName, ConcreteSyntaxTree wr) {
@@ -207,7 +207,7 @@ namespace Microsoft.Dafny.Compilers.Go {
     }
 
     // TODO Consider splitting this into two functions; most things seem to bepassing includeRtd: false and includeEquals: false.
-    private Compiler.ClassWriter CreateClass(string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, ConcreteSyntaxTree wr, bool includeRtd, bool includeEquals) {
+    private GoCompiler.ClassWriter CreateClass(string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, ConcreteSyntaxTree wr, bool includeRtd, bool includeEquals) {
       // See docs/Compilation/ReferenceTypes.md for a description of how instance members of classes and traits are compiled into Go.
       //
       // func New_Class_(Type0 _dafny.TypeDescriptor, Type1 _dafny.TypeDescriptor) *Class {
@@ -985,13 +985,13 @@ namespace Microsoft.Dafny.Compilers.Go {
       }
     }
     protected class ClassWriter : IClassWriter {
-      public readonly Compiler Compiler;
+      public readonly GoCompiler Compiler;
       public readonly string ClassName;
       public readonly bool IsExtern;
       public readonly ConcreteSyntaxTree/*?*/ AbstractMethodWriter, ConcreteMethodWriter, InstanceFieldWriter, InstanceFieldInitWriter, TraitInitWriter, StaticFieldWriter, StaticFieldInitWriter;
       public bool AnyInstanceFields { get; private set; } = false;
 
-      public ClassWriter(Compiler compiler, string className, bool isExtern, ConcreteSyntaxTree abstractMethodWriter, ConcreteSyntaxTree concreteMethodWriter,
+      public ClassWriter(GoCompiler compiler, string className, bool isExtern, ConcreteSyntaxTree abstractMethodWriter, ConcreteSyntaxTree concreteMethodWriter,
         ConcreteSyntaxTree/*?*/ instanceFieldWriter, ConcreteSyntaxTree/*?*/ instanceFieldInitWriter, ConcreteSyntaxTree/*?*/ traitInitWriter,
         ConcreteSyntaxTree staticFieldWriter, ConcreteSyntaxTree staticFieldInitWriter) {
         Contract.Requires(compiler != null);
@@ -1321,7 +1321,7 @@ namespace Microsoft.Dafny.Compilers.Go {
     protected override bool SupportsStaticsInGenericClasses => false;
     protected override bool TraitRepeatsInheritedDeclarations => true;
 
-    private void FinishClass(Compiler.ClassWriter cw) {
+    private void FinishClass(GoCompiler.ClassWriter cw) {
       // Go gets weird about zero-length structs.  In particular, it likes to
       // make all pointers to a zero-length struct the same.  Irritatingly, this
       // forces us to waste space here.

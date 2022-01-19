@@ -28,7 +28,7 @@ namespace Microsoft.Dafny.Compilers.Csharp {
     public override string TargetLanguage => "C#";
     public override string TargetExtension => "cs";
 
-    public override string PublicIdProtect(string name) => Compiler.PublicIdProtect(name);
+    public override string PublicIdProtect(string name) => CsharpCompiler.PublicIdProtect(name);
     public override string GetCompileName(bool isDefaultModule, string moduleName, string compileName) {
       return isDefaultModule ? PublicIdProtect(compileName) :
         base.GetCompileName(isDefaultModule, moduleName, compileName);
@@ -38,12 +38,12 @@ namespace Microsoft.Dafny.Compilers.Csharp {
     public override bool TextualTargetIsExecutable => false;
 
     public override ICompiler CreateInstance(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
-      return new Compiler(this, reporter);
+      return new CsharpCompiler(this, reporter);
     }
   }
 
-  public class Compiler : SinglePassCompiler {
-    public Compiler(Factory factory, ErrorReporter reporter)
+  public class CsharpCompiler : SinglePassCompiler {
+    public CsharpCompiler(Factory factory, ErrorReporter reporter)
       : base(factory, reporter) {
     }
 
@@ -905,12 +905,12 @@ namespace Microsoft.Dafny.Compilers.Csharp {
     }
 
     protected class ClassWriter : IClassWriter {
-      public readonly Compiler Compiler;
+      public readonly CsharpCompiler Compiler;
       public readonly ConcreteSyntaxTree InstanceMemberWriter;
       public readonly ConcreteSyntaxTree StaticMemberWriter;
       public readonly ConcreteSyntaxTree CtorBodyWriter;
 
-      public ClassWriter(Compiler compiler, ConcreteSyntaxTree instanceMemberWriter, ConcreteSyntaxTree/*?*/ ctorBodyWriter, ConcreteSyntaxTree/*?*/ staticMemberWriter = null) {
+      public ClassWriter(CsharpCompiler compiler, ConcreteSyntaxTree instanceMemberWriter, ConcreteSyntaxTree/*?*/ ctorBodyWriter, ConcreteSyntaxTree/*?*/ staticMemberWriter = null) {
         Contract.Requires(compiler != null);
         Contract.Requires(instanceMemberWriter != null);
         this.Compiler = compiler;

@@ -31,18 +31,18 @@ namespace Microsoft.Dafny.Compilers.Java {
     public override string TransformToClassName(string baseName) =>
       System.Text.RegularExpressions.Regex.Replace(baseName, "[^_A-Za-z0-9\\$]", "_");
 
-    public override string PublicIdProtect(string name) => Compiler.PublicIdProtect(name);
+    public override string PublicIdProtect(string name) => JavaCompiler.PublicIdProtect(name);
 
     public override bool SupportsInMemoryCompilation => false;
     public override bool TextualTargetIsExecutable => false;
 
     public override ICompiler CreateInstance(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
-      return new Compiler(this, reporter);
+      return new JavaCompiler(this, reporter);
     }
   }
 
-  public class Compiler : SinglePassCompiler {
-    public Compiler(Factory factory, ErrorReporter reporter)
+  public class JavaCompiler : SinglePassCompiler {
+    public JavaCompiler(Factory factory, ErrorReporter reporter)
       : base(factory, reporter) {
       IntSelect = ",java.math.BigInteger";
       LambdaExecute = ".apply";
@@ -393,12 +393,12 @@ namespace Microsoft.Dafny.Compilers.Java {
     }
 
     protected class ClassWriter : IClassWriter {
-      public readonly Compiler Compiler;
+      public readonly JavaCompiler Compiler;
       public readonly ConcreteSyntaxTree InstanceMemberWriter;
       public readonly ConcreteSyntaxTree StaticMemberWriter;
       public readonly ConcreteSyntaxTree CtorBodyWriter;
 
-      public ClassWriter(Compiler compiler, ConcreteSyntaxTree instanceMemberWriter, ConcreteSyntaxTree ctorBodyWriter, ConcreteSyntaxTree staticMemberWriter = null) {
+      public ClassWriter(JavaCompiler compiler, ConcreteSyntaxTree instanceMemberWriter, ConcreteSyntaxTree ctorBodyWriter, ConcreteSyntaxTree staticMemberWriter = null) {
         Contract.Requires(compiler != null);
         Contract.Requires(instanceMemberWriter != null);
         this.Compiler = compiler;
@@ -1466,12 +1466,12 @@ namespace Microsoft.Dafny.Compilers.Java {
     }
 
     private class GenericArrayElementLvalue : ILvalue {
-      private readonly Compiler Compiler;
+      private readonly JavaCompiler Compiler;
       private readonly string Array;
       private readonly List<string> Indices;
       private readonly TypeParameter ElmtTypeParameter;
 
-      public GenericArrayElementLvalue(Compiler compiler, string array, List<string> indices, TypeParameter elmtTypeParameter) {
+      public GenericArrayElementLvalue(JavaCompiler compiler, string array, List<string> indices, TypeParameter elmtTypeParameter) {
         Compiler = compiler;
         Array = array;
         Indices = indices;
