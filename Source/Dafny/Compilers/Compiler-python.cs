@@ -363,12 +363,8 @@ namespace Microsoft.Dafny {
         TrStringLiteral(str, wr);
       } else if (e.Value is BigInteger) {
         var i = (BigInteger)e.Value;
-        wr.Write(IntegerLiteral(i));
+        wr.Write($"{i}");
       }
-    }
-
-    string IntegerLiteral(BigInteger i) {
-      return $"{i}";
     }
 
     protected override void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr) {
