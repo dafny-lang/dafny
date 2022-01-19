@@ -3002,7 +3002,7 @@ BindingGuard<out Expression e, bool allowLambda>
   { Attribute<ref attrs> }
   ":|"
   Expression<out body, true, allowLambda>
-  (. e = new ExistsExpr(x, bvars, null, body, attrs); .)
+  (. e = new ExistsExpr(x, t, bvars, null, body, attrs); .)
   .
 
 
@@ -3725,7 +3725,7 @@ AsExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitw
 
 /*------------------------------------------------------------------------*/
 UnaryExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwiseOps>
-= (. e = null; Contract.Ensures(Contract.ValueAtReturn(out e) != null); IToken/*!*/ x;  e = dummyExpr; .)
+= (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); IToken/*!*/ x;  e = dummyExpr; .)
   ( "-"                                             (. x = t; .)
     UnaryExpression<out e, allowLemma, allowLambda, allowBitwiseOps>  (. e = new NegationExpression(x, e); .)
   | NegOp                                           (. x = t; .)
@@ -3736,7 +3736,7 @@ UnaryExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowB
 
 /*------------------------------------------------------------------------*/
 PrimaryExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwiseOps>
-= (. e = null; .)
+= (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); e = dummyExpr; .)
   ( IF(IsMapDisplay())  /* this alternative must be checked before going into EndlessExpression, where there is another "map" */
     MapDisplayExpr<out e>
     { IF(IsSuffix()) Suffix<ref e> }
@@ -3850,7 +3850,7 @@ LambdaExpression<out Expression e, bool allowLemma, bool allowBitwiseOps>
   LambdaSpec<ref reads, ref req>
   "=>"
   Expression<out body, allowLemma, true, allowBitwiseOps>
-  (. e = new LambdaExpr(x, bvs, req, reads, body);
+  (. e = new LambdaExpr(x, t, bvs, req, reads, body);
      theBuiltIns.CreateArrowTypeDecl(bvs.Count);
   .)
   .
@@ -4021,7 +4021,7 @@ MapComprehensionExpr<out Expression e, bool allowLemma, bool allowLambda, bool a
        SemErr(t, "a map comprehension with more than one bound variable must have a term expression of the form 'Expr := Expr'");
        e = dummyExpr;
      } else {
-       e = new MapComprehension(mapToken, finite, bvars, range ?? new LiteralExpr(mapToken, true), bodyLeft, bodyRight, attrs);
+       e = new MapComprehension(mapToken, t, finite, bvars, range ?? new LiteralExpr(mapToken, true), bodyLeft, bodyRight, attrs);
      }
   .)
   .
@@ -4477,7 +4477,8 @@ ActualBinding<out ActualBinding binding, bool isGhost = false>
 
 /*------------------------------------------------------------------------*/
 QuantifierExpression<out Expression q, bool allowLemma, bool allowLambda>
-= (. Contract.Ensures(Contract.ValueAtReturn(out q) != null); IToken/*!*/ x = Token.NoToken;
+= (. Contract.Ensures(Contract.ValueAtReturn(out q) != null);
+     IToken/*!*/ x = Token.NoToken;
      bool univ = false;
      List<BoundVar/*!*/> bvars;
      Attributes attrs;
@@ -4491,9 +4492,9 @@ QuantifierExpression<out Expression q, bool allowLemma, bool allowLambda>
   QSep
   Expression<out body, allowLemma, allowLambda>
   (. if (univ) {
-       q = new ForallExpr(x, bvars, range, body, attrs);
+       q = new ForallExpr(x, t, bvars, range, body, attrs);
      } else {
-       q = new ExistsExpr(x, bvars, range, body, attrs);
+       q = new ExistsExpr(x, t, bvars, range, body, attrs);
      }
   .)
   .
@@ -4542,7 +4543,7 @@ SetComprehensionExpr<out Expression q, bool allowLemma, bool allowLambda, bool a
        SemErr(t, "a set comprehension with more than one bound variable must have a term expression");
        q = dummyExpr;
      } else {
-       q = new SetComprehension(setToken, finite, bvars, range, body, attrs);
+       q = new SetComprehension(setToken, t, finite, bvars, range, body, attrs);
      }
   .)
   .

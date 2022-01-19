@@ -1,16 +1,16 @@
 ParameterResolution.dfy(17,15): Error: wrong number of arguments (function 'F' expects 3, got 2)
 ParameterResolution.dfy(18,15): Error: wrong number of arguments (function 'F' expects 3, got 4)
 ParameterResolution.dfy(19,27): Error: duplicate binding for parameter name 'y'
-ParameterResolution.dfy(19,15): Error: no actual argument passed for function argument 'z'
+ParameterResolution.dfy(19,15): Error: function parameter 'z' at index 2 requires an argument of type int
 ParameterResolution.dfy(20,19): Error: the parameter named 'x' is already given positionally
-ParameterResolution.dfy(20,15): Error: no actual argument passed for function argument 'z'
+ParameterResolution.dfy(20,15): Error: function parameter 'z' at index 2 requires an argument of type int
 ParameterResolution.dfy(21,27): Error: a positional argument is not allowed to follow named arguments
-ParameterResolution.dfy(21,15): Error: no actual argument passed for function argument 'z'
+ParameterResolution.dfy(21,15): Error: function parameter 'z' at index 2 requires an argument of type int
 ParameterResolution.dfy(27,22): Error: the binding named 'xyz' does not correspond to any formal parameter
-ParameterResolution.dfy(27,15): Error: no actual argument passed for function argument 'z'
-ParameterResolution.dfy(30,14): Error: no actual argument passed for datatype constructor argument 1
+ParameterResolution.dfy(27,15): Error: function parameter 'z' at index 2 requires an argument of type int
+ParameterResolution.dfy(30,14): Error: datatype constructor parameter at index 1 requires an argument of type bool
 ParameterResolution.dfy(31,34): Error: the parameter named 'a' is already given positionally
-ParameterResolution.dfy(31,14): Error: no actual argument passed for datatype constructor argument 1
+ParameterResolution.dfy(31,14): Error: datatype constructor parameter at index 1 requires an argument of type bool
 ParameterResolution.dfy(41,24): Error: default-value expression (of type 'bool') is not assignable to formal (of type 'int')
 ParameterResolution.dfy(51,34): Error: 'this' is not allowed in a 'static' context
 ParameterResolution.dfy(52,36): Error: 'this' is not allowed in a 'static' context
@@ -65,10 +65,10 @@ ParameterResolution.dfy(225,14): Error: the name 'Nothing' denotes a datatype co
 ParameterResolution.dfy(226,14): Error: the name 'Nothing' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Ax.Nothing')
 ParameterResolution.dfy(227,14): Error: the name 'Nothing' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Ax.Nothing')
 ParameterResolution.dfy(239,17): Error: wrong number of arguments (datatype constructor 'Create' expects at most 1, got 2)
-ParameterResolution.dfy(246,5): Error: no actual argument passed for method in-parameter 'a'
-ParameterResolution.dfy(246,5): Error: no actual argument passed for method in-parameter 'b'
-ParameterResolution.dfy(247,5): Error: no actual argument passed for method in-parameter 'a'
-ParameterResolution.dfy(247,5): Error: no actual argument passed for method in-parameter 'b'
+ParameterResolution.dfy(246,5): Error: method in-parameter 'a' at index 0 requires an argument of type int
+ParameterResolution.dfy(246,5): Error: method in-parameter 'b' at index 1 requires an argument of type int
+ParameterResolution.dfy(247,5): Error: method in-parameter 'a' at index 0 requires an argument of type int
+ParameterResolution.dfy(247,5): Error: method in-parameter 'b' at index 1 requires an argument of type int
 ParameterResolution.dfy(252,21): Error: Duplicate parameter name: x
 ParameterResolution.dfy(259,11): Error: default-value expressions for parameters contain a cycle: x -> x
 ParameterResolution.dfy(260,35): Error: unresolved identifier: _k
@@ -87,15 +87,15 @@ ParameterResolution.dfy(313,16): Error: the parameter named 'b' is already given
 ParameterResolution.dfy(314,21): Error: duplicate binding for parameter name 'b'
 ParameterResolution.dfy(323,16): Error: nameonly parameter 'b' must be passed using a name binding; it cannot be passed positionally
 ParameterResolution.dfy(328,15): Error: wrong number of arguments (least predicate 'LP' expects at least 2, got 1)
-ParameterResolution.dfy(329,15): Error: no actual argument passed for least predicate argument 'b'
+ParameterResolution.dfy(329,15): Error: least predicate parameter 'b' at index 1 requires an argument of type int
 ParameterResolution.dfy(333,36): Error: the parameter named 'a' is already given positionally
 ParameterResolution.dfy(336,21): Error: nameonly parameter 'u' must be passed using a name binding; it cannot be passed positionally
 ParameterResolution.dfy(337,29): Error: a positional argument is not allowed to follow named arguments
-ParameterResolution.dfy(337,12): Error: no actual argument passed for constructor in-parameter 'x'
+ParameterResolution.dfy(337,12): Error: constructor in-parameter 'x' at index 1 requires an argument of type int
 ParameterResolution.dfy(340,37): Error: duplicate binding for parameter name 'x'
 ParameterResolution.dfy(343,12): Error: unresolved identifier: a
 ParameterResolution.dfy(351,15): Error: nameonly parameter '900' must be passed using a name binding; it cannot be passed positionally
 ParameterResolution.dfy(355,15): Error: the binding named '0900' does not correspond to any formal parameter
-ParameterResolution.dfy(355,9): Error: no actual argument passed for datatype constructor argument '900'
+ParameterResolution.dfy(355,9): Error: datatype constructor parameter '900' at index 1 requires an argument of type int
 ParameterResolution.dfy(356,25): Error: the binding named '90_0' does not correspond to any formal parameter
 100 resolution/type errors detected in ParameterResolution.dfy

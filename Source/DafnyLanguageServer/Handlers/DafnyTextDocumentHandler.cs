@@ -58,7 +58,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     public override Task<Unit> Handle(DidOpenTextDocumentParams notification, CancellationToken cancellationToken) {
       logger.LogTrace("received open notification {DocumentUri}", notification.TextDocument.Uri);
-      HandleUpdateAndPublishDiagnosticsAsync(documents.OpenDocumentAsync(notification.TextDocument));
+      documents.OpenDocument(notification.TextDocument).Subscribe(HandleUpdateAndPublishDiagnostics);
       return Unit.Task;
     }
 
@@ -70,19 +70,18 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     public override Task<Unit> Handle(DidChangeTextDocumentParams notification, CancellationToken cancellationToken) {
       logger.LogTrace("received change notification {DocumentUri}", notification.TextDocument.Uri);
-      HandleUpdateAndPublishDiagnosticsAsync(documents.UpdateDocumentAsync(notification));
+      documents.UpdateDocument(notification).Subscribe(HandleUpdateAndPublishDiagnostics);
       return Unit.Task;
     }
 
     public override Task<Unit> Handle(DidSaveTextDocumentParams notification, CancellationToken cancellationToken) {
       logger.LogTrace("received save notification {DocumentUri}", notification.TextDocument.Uri);
-      HandleUpdateAndPublishDiagnosticsAsync(documents.SaveDocumentAsync(notification.TextDocument));
+      documents.SaveDocument(notification.TextDocument).Subscribe(HandleUpdateAndPublishDiagnostics);
       return Unit.Task;
     }
 
-    private async Task HandleUpdateAndPublishDiagnosticsAsync(Task<DafnyDocument> documentAction) {
+    private void HandleUpdateAndPublishDiagnostics(DafnyDocument document) {
       try {
-        var document = await documentAction;
         diagnosticPublisher.PublishDiagnostics(document);
       } catch (Exception e) {
         logger.LogError(e, "error while handling document event");

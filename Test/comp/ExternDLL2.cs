@@ -5,8 +5,7 @@ namespace @Modx {
     public static BigInteger @Fun1x() {
       return BigInteger.One;
     }
-    public static BigInteger @Method1x()
-    {
+    public static BigInteger @Method1x() {
       ExternHelloLibrary.ExternHelloLibrary.SayHello();
       return BigInteger.One;
     }

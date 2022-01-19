@@ -206,7 +206,9 @@ namespace DafnyServer {
     private static void ParseCallStatement(Statement statement, List<SymbolInformation> information) {
       var callStmt = (CallStmt)statement;
       {
-        if (!(callStmt.Receiver.Type is UserDefinedType)) return;
+        if (!(callStmt.Receiver.Type is UserDefinedType)) {
+          return;
+        }
 
         var receiver = callStmt.Receiver as NameSegment;
         var userType = (UserDefinedType)callStmt.Receiver.Type;
@@ -230,7 +232,9 @@ namespace DafnyServer {
       var rightSideDots = rightSide.OfType<ExprDotName>();
       var allExprDotNames = leftSideDots.Concat(rightSideDots);
       foreach (var exprDotName in allExprDotNames) {
-        if (!(exprDotName.Lhs.Type is UserDefinedType)) continue;
+        if (!(exprDotName.Lhs.Type is UserDefinedType)) {
+          continue;
+        }
 
         var segment = exprDotName.Lhs as NameSegment;
         var type = (UserDefinedType)exprDotName.Lhs.Type;
@@ -252,7 +256,9 @@ namespace DafnyServer {
 
       foreach (var module in _dafnyProgram.Modules()) {
         foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls).Where(e => !(e.Tok is IncludeToken))) {
-          if (!(clbl is Method)) continue;
+          if (!(clbl is Method)) {
+            continue;
+          }
 
           var m = (Method)clbl;
           if (m.Body != null) {
@@ -268,7 +274,9 @@ namespace DafnyServer {
 
       foreach (var module in _dafnyProgram.Modules()) {
         foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls).Where(e => !(e.Tok is IncludeToken))) {
-          if (!(clbl is Method)) continue;
+          if (!(clbl is Method)) {
+            continue;
+          }
 
           var m = (Method)clbl;
           if (m.Body != null) {

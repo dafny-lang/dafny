@@ -20,7 +20,7 @@ Some care must be taken to enable both modes of rendering.
 
 In addition, some textual search and replace operations are implemented
 (see the Makefile) to perform section numbering uniformly and to adjust a few
-pother aspects that are dissimilar between the pdf and online versions.
+other aspects that are dissimilar between the pdf and online versions.
 
 GitHub pages are rendered (converted from markdown to html) using Jekyll.
 The result is a single, long html page.

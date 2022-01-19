@@ -392,8 +392,9 @@ namespace Microsoft.Dafny {
 
       if (args.Result.Messages.Count != 0) {
         foreach (TestResultMessage msg in args.Result.Messages) {
-          if (!string.IsNullOrEmpty(msg.Text))
+          if (!string.IsNullOrEmpty(msg.Text)) {
             size += msg.Text.Length;
+          }
         }
       }
 

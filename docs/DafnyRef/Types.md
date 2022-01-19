@@ -2549,7 +2549,10 @@ A one-dimensional array of `n` `T` elements is created as follows:
 a := new T[n];
 ```
 The initial values of the array elements are arbitrary values of type
-`T`.
+`T`. They can be initialized using an ordered list of expressions enclosed in square brackets, as follows:
+```
+a := new T[] [t1, t2, t3, t4];
+```
 The length of an array is retrieved using the immutable `Length`
 member.  For example, the array allocated above satisfies:
 ```dafny

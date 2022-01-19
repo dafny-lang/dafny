@@ -190,8 +190,10 @@ namespace DafnyServer.CounterexampleGeneration {
     /// </summary>
     private static string GetTrueName(Model.Element element) {
       string name = null;
-      if (element == null)
+      if (element == null) {
         return null;
+      }
+
       foreach (var funcTuple in element.Names) {
         if (funcTuple.Func.Arity != 0) {
           continue;
@@ -215,13 +217,13 @@ namespace DafnyServer.CounterexampleGeneration {
         return null;
       }
       var name = GetTrueName(typeElement);
-      if (Model.GetFunc("SeqTypeInv0").OptEval(typeElement) != null) {
+      if (Model.TryGetFunc("SeqTypeInv0")?.OptEval(typeElement) != null) {
         return "SeqType";
       }
-      if (Model.GetFunc("MapType0TypeInv0").OptEval(typeElement) != null) {
+      if (Model.TryGetFunc("MapType0TypeInv0")?.OptEval(typeElement) != null) {
         return "SetType";
       }
-      if (Model.GetFunc("MapTypeInv0").OptEval(typeElement) != null) {
+      if (Model.TryGetFunc("MapTypeInv0")?.OptEval(typeElement) != null) {
         return "MapType";
       }
       return name;
@@ -388,10 +390,10 @@ namespace DafnyServer.CounterexampleGeneration {
         return new DafnyModelType("?");
       }
       var tagName = GetTrueName(tagElement);
-      if (tagName == null || tagName.Length < 10 && tagName != "TagSeq" &&
+      if (tagName == null || (tagName.Length < 10 && tagName != "TagSeq" &&
                               tagName != "TagSet" &&
                               tagName != "TagBitVector" &&
-                              tagName != "TagMap") {
+                              tagName != "TagMap")) {
         return new DafnyModelType("?");
       }
       var typeArgs = Model.GetFunc("T" + tagName.Substring(3))?.
