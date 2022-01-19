@@ -7366,7 +7366,7 @@ namespace Microsoft.Dafny {
       var func = GetOrCreateTypeConstructor(td);
       var name = func.Name;
 
-      var tagAxiom = CreateTagAndCallingForTypeConstructor(td);
+      var tagAxiom = CreateTagAndCallingForTypeConstructor(func, td);
       AddOtherDefinition(func, tagAxiom);
 
       // Create the injectivity axiom and its function
@@ -7442,7 +7442,7 @@ namespace Microsoft.Dafny {
      *     const unique tytagFamily$List: TyTagFamily;  // defined once for each type named "List"
      *     axiom (forall t0: Ty :: { List(t0) } TagFamily(List(t0)) == tytagFamily$List);
      */
-    private Axiom CreateTagAndCallingForTypeConstructor(TopLevelDecl td) {
+    private Axiom CreateTagAndCallingForTypeConstructor(Bpl.Function typeConstructorFunction, TopLevelDecl td) {
       IToken tok = td.tok;
       var inner_name = GetClass(td).TypedIdent.Name;
       string name = "T" + inner_name;
@@ -7469,6 +7469,7 @@ namespace Microsoft.Dafny {
 
       var qq = BplForall(args, BplTrigger(inner), body);
       var tagAxiom = new Axiom(tok, qq, name + " Tag");
+      typeConstructorFunction.AddOtherDefinitionAxiom(tagAxiom);
       return tagAxiom;
     }
 
