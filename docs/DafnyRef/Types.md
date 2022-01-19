@@ -1119,19 +1119,6 @@ SynonymTypeDecl_ =
    { TypeParameterCharacteristics }
    [ GenericParameters ]
    "=" Type
-   [ TypeMembers ]
-
-TypeMembers =
-  "{"
-  {
-    { DeclModifier }
-    ClassMemberDecl(allowConstructors: false,
-                    isValueType: true,
-                    moduleLevelDecl: false,
-                    isWithinAbstractModule: module.IsAbstract)
-  }
-  "}"
-
 ````
 
 A _type synonym_ declaration:
@@ -1176,6 +1163,17 @@ OpaqueTypeDecl_ =
    { TypeParameterCharacteristics }
    [ GenericParameters ]
    [ TypeMembers ]
+
+TypeMembers =
+  "{"
+  {
+    { DeclModifier }
+    ClassMemberDecl(allowConstructors: false,
+                    isValueType: true,
+                    moduleLevelDecl: false,
+                    isWithinAbstractModule: module.IsAbstract)
+  }
+  "}"
 ````
 
 An opaque type is a special case of a type synonym that is underspecified.  Such
