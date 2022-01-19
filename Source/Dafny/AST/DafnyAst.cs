@@ -2414,7 +2414,7 @@ namespace Microsoft.Dafny {
       : base() {
       Contract.Requires(0 <= width);
       Width = width;
-      foreach (var nativeType in Resolver.NativeTypes) { // FIXME shouldn't the AST code be agnostic to the choice of backend?
+      foreach (var nativeType in Resolver.NativeTypes) {
         if (DafnyOptions.O.CompilerFactoryInstance.SupportedNativeTypes.Contains(nativeType.Name) && width <= nativeType.Bitwidth) {
           NativeType = nativeType;
           break;
