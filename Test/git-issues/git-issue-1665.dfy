@@ -1,5 +1,15 @@
-// RUN: %dafny /env:0 /dafnyVerify:0 /compile:0 /rprint:- "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t"
+// Check that Rprinted program is generated as expected:
+// RUN: %dafny /env:0 /compile:0 /dafnyVerify:0 /rprint:"%t".raw.dfy "%s"
+// RUN: %diff "%s.expect" "%t".raw.dfy
+
+// Check that original program successfully verifies (exit code 0):
+// RUN: %dafny /env:0 /compile:0 "%s" > "%t".1
+
+// Check that produced rprinted program also successfuly verifies:
+// RUN: %dafny /env:0 /compile:0 "%t".raw.dfy > "%t".2
+
+// Check that verification results are the same:
+// RUN: %diff "%t".1 "%t".2
 
 module ConcreteModule
 {
