@@ -1351,7 +1351,13 @@ For example,
 Note that `?` is not an operator. Instead, it is simply the last
 character of the name of these various possibly-null types.
 
-### 11.3.3 Arrow subset types: `-->` and `->` {#sec-arrow-subset-types}
+### 11.3.3 Arrow types: `->`, `-->`, and `~>` {#sec-arrow-subset-types}
+
+The built-in type `->` stands for total functions, `-->` stands for
+partial functions (that is, functions with possible `requires` clauses),
+and `~>` stands for all functions. More precisely, these are type constructors
+that exist for any arity (`() -> X`, `A -> X`, `(A, B) -> X`, `(A, B, C) -> X`,
+etc.).
 
 For a list of types `TT` and a type `U`, the values of the arrow type `(TT) ~> U`
 are functions from `TT` to `U. This includes functions that may read the
