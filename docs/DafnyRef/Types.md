@@ -1351,7 +1351,7 @@ For example,
 Note that `?` is not an operator. Instead, it is simply the last
 character of the name of these various possibly-null types.
 
-### 11.3.2 Arrow subset types: `-->` and `->` {#sec-arrow-subset-types}
+### 11.3.3 Arrow subset types: `-->` and `->` {#sec-arrow-subset-types}
 
 For a list of types `TT` and a type `U`, the values of the arrow type `(TT) ~> U`
 are functions from `TT` to `U. This includes functions that may read the
@@ -2937,7 +2937,7 @@ is `(int, array<bool>) ~> real`.
 As seen in the example above, the functions that are values of a type
 `(TT) ~> U` can have a precondition (as indicated by the `requires` clause)
 and can read values in the heap (as indicated by the `reads` clause).
-As described in [Section 11.3.2](#sec-arrow-subset-types),
+As described in [Section 11.3.3](#sec-arrow-subset-types),
 the subset type `(TT) --> U` denotes partial (but heap-independent) functions
 and the subset type `(TT) -> U` denotes total functions.
 
