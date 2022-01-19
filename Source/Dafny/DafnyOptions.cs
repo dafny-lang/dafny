@@ -88,7 +88,7 @@ namespace Microsoft.Dafny {
     public bool AllowGlobals = false;
     public bool CountVerificationErrors = true;
     public bool Optimize = false;
-    public bool AutoTriggers = true; // FIXME: unused?
+    public bool AutoTriggers = true;
     public bool RewriteFocalPredicates = true;
     public bool PrintTooltips = false;
     public bool PrintStats = false;

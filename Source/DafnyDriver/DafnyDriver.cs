@@ -155,11 +155,11 @@ namespace Microsoft.Dafny {
         } else if (!isDafnyFile) {
           ExecutionEngine.printer.ErrorWriteLine(Console.Out, 
             "*** Error: '{0}': Filename extension '{1}' is not supported. Input files must be Dafny programs (.dfy) or supported auxiliary files ({2})",
-            file, extension ?? "", string.Join(", ", supportedExtensions.Contains(extension)));
+            file, extension ?? "", string.Join(", ", supportedExtensions));
           return CommandLineArgumentsResult.PREPROCESSING_ERROR;
         }
       }
-      
+
       if (dafnyFiles.Count == 0) {
         ExecutionEngine.printer.ErrorWriteLine(Console.Out, "*** Error: The command-line contains no .dfy files");
         return CommandLineArgumentsResult.PREPROCESSING_ERROR;
