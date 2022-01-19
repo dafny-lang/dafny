@@ -5,6 +5,7 @@ This is the procedure for generating a new Dafny release.
 
 1) In an up-to-date repository, with the master branch checked out
    and up-to-date (e.g., git pull upstream)
+   checkout a nre branch from master (e.g., git checkout -b branchname master)
    cd to the repo root (i.e., dafny, which contains Source, Binaries, etc.)
 
 2) Select a version number (descriptor) $VER (e.g., "3.0.0" or "3.0.0-alpha")
@@ -28,6 +29,8 @@ This is the procedure for generating a new Dafny release.
 5) In the Github releases, edit the new release to add in the release notes.
 
 6) Push the Publish button.
+   if doing a pre-release stop here, as steps further are to define the release as
+   latest version to be installed which is not needed.
 
 7) Edit the release name into .github/workflows/release-downloads.yml
    for the 'ver' variable for Windows
