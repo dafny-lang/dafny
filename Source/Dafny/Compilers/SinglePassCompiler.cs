@@ -80,6 +80,7 @@ namespace Microsoft.Dafny {
     /// required in the target language.
     /// </summary>
     public virtual void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) { }
+    public void WriteCoverageLegendFile() { Coverage.WriteLegendFile(); }
     /// <summary>
     /// Creates a static Main method. The caller will fill the body of this static Main with a
     /// call to the instance Main method in the enclosing class.

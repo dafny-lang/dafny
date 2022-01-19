@@ -578,7 +578,7 @@ namespace Microsoft.Dafny {
       Dafny.ICompiler compiler =
         DafnyOptions.O.CompilerFactoryInstance.CreateInstance(dafnyProgram.reporter, otherFileNames);
 
-      var hasMain = SinglePassCompiler.HasMain(dafnyProgram, out var mainMethod); // CPC FIXME: Where should this method go?
+      var hasMain = SinglePassCompiler.HasMain(dafnyProgram, out var mainMethod);
       if (hasMain) {
         mainMethod.IsEntryPoint = true;
         dafnyProgram.MainMethod = mainMethod;
@@ -612,7 +612,7 @@ namespace Microsoft.Dafny {
       Contract.Assert(hasMain == (callToMain != null));
       bool targetProgramHasErrors = dafnyProgram.reporter.Count(ErrorLevel.Error) != oldErrorCount;
 
-      // CPC FIXME compiler.Coverage.WriteLegendFile();
+      compiler.WriteCoverageLegendFile();
 
       // blurt out the code to a file, if requested, or if other target-language files were specified on the command line.
       var paths = GenerateTargetPaths(compiler, dafnyProgramName);

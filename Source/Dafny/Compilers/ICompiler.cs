@@ -13,4 +13,6 @@ public interface ICompiler {
     ReadOnlyCollection<string> otherFileNames, bool runAfterCompile, TextWriter outputWriter, out object compilationResult);
   bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain, string pathsFilename,
     ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter);
+
+  void WriteCoverageLegendFile();
 }
