@@ -62,7 +62,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(args != null);
 
       reporter.Error(MessageSource.Compiler, tok, msg, args);
-      // FIXME this is not valid syntax in all supported languages (e.g. Python)
       wr?.WriteLine("/* {0} */", string.Format("Compilation error: " + msg, args));
     }
 
