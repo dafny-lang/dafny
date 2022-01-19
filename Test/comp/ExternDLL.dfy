@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:1 /compileTarget:cs /print:"%t.print" /dprint:"%t.dprint" "%s" %S/Extern2.cs %S/ExternHelloLibrary.dll > "%t"
+// RUN: %dafny /compile:1 /compileTarget:cs /print:"%t.print" /dprint:"%t.dprint" "%s" %S/ExternDLL2.cs %S/ExternHelloLibrary.dll > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Main() {

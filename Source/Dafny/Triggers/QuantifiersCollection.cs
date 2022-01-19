@@ -285,10 +285,18 @@ namespace Microsoft.Dafny.Triggers {
       var msg = new StringBuilder();
       var indent = addHeader ? "  " : "";
       bool suppressWarnings = Attributes.Contains(q.quantifier.Attributes, "nowarn");
+      var reportingToken = q.quantifier.tok;
+
+      void SetRelatedLocationMessage(string msg) {
+        if (reportingToken is NestedToken nestedToken) {
+          reportingToken = new NestedToken(nestedToken.Outer, nestedToken.Inner, msg);
+        }
+      }
 
       if (!TriggerUtils.NeedsAutoTriggers(q.quantifier)) { // NOTE: split and autotriggers attributes are passed down to Boogie
         var extraMsg = TriggerUtils.WantsAutoTriggers(q.quantifier) ? "" : " Note that {:autotriggers false} can cause instabilities. Consider using {:nowarn}, {:matchingloop} (not great either), or a manual trigger instead.";
         msg.AppendFormat("Not generating triggers for \"{0}\".{1}", Printer.ExprToString(q.quantifier.Term), extraMsg).AppendLine();
+        SetRelatedLocationMessage("Trigger position:");
       } else {
         if (addHeader) {
           msg.AppendFormat("For expression \"{0}\":", Printer.ExprToString(q.quantifier.Term)).AppendLine();
@@ -299,32 +307,42 @@ namespace Microsoft.Dafny.Triggers {
         }
 
         AddTriggersToMessage("Selected triggers:", q.Candidates, msg, indent);
+        if (q.Candidates.Count > 0) {
+          SetRelatedLocationMessage("Trigger position:");
+        }
         AddTriggersToMessage("Rejected triggers:", q.RejectedCandidates, msg, indent, true);
+        if (q.RejectedCandidates.Count > 0 && q.Candidates.Count == 0) {
+          SetRelatedLocationMessage("Rejected trigger position:");
+        }
 
 #if QUANTIFIER_WARNINGS
-        var WARN_TAG = DafnyOptions.O.UnicodeOutput ? "⚠ " : "/!\\ ";
+        var WARN_TAG = DafnyOptions.O.UnicodeOutput ? "⚠ " : @"/!\ ";
         var WARN_TAG_OVERRIDE = suppressWarnings ? "(Suppressed warning) " : WARN_TAG;
         var WARN_LEVEL = suppressWarnings ? ErrorLevel.Info : ErrorLevel.Warning;
         var WARN = indent + WARN_TAG_OVERRIDE;
         if (!q.CandidateTerms.Any()) {
           errorLevel = WARN_LEVEL;
           msg.Append(WARN).AppendLine("No terms found to trigger on.");
+          SetRelatedLocationMessage("Potential trigger not suitable:");
         } else if (!q.Candidates.Any()) {
           errorLevel = WARN_LEVEL;
           msg.Append(WARN).AppendLine("No trigger covering all quantified variables found.");
+          SetRelatedLocationMessage("Potential trigger not suitable:");
         } else if (!q.CouldSuppressLoops && !q.AllowsLoops) {
           errorLevel = WARN_LEVEL;
           msg.Append(WARN).AppendLine("Suppressing loops would leave this expression without triggers.");
+          SetRelatedLocationMessage("Trigger position:");
         } else if (suppressWarnings) {
           errorLevel = ErrorLevel.Warning;
           msg.Append(indent).Append(WARN_TAG).AppendLine("There is no warning here to suppress.");
+          SetRelatedLocationMessage("Trigger position:");
         }
 #endif
       }
 
       if (msg.Length > 0) {
         var msgStr = msg.ToString().TrimEnd("\r\n ".ToCharArray());
-        reporter.Message(MessageSource.Rewriter, errorLevel, q.quantifier.tok, msgStr);
+        reporter.Message(MessageSource.Rewriter, errorLevel, reportingToken, msgStr);
       }
     }
 

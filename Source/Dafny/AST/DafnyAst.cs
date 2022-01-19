@@ -762,7 +762,7 @@ namespace Microsoft.Dafny {
           }
         }
 
-        //A hidden type may become visible in another scope
+        // A hidden type may become visible in another scope
         var isyn = type.AsInternalTypeSynonym;
         if (isyn != null) {
           var udt = (UserDefinedType)type;
@@ -2272,7 +2272,7 @@ namespace Microsoft.Dafny {
         return ignoreTypeArguments || CompatibleTypeArgs(super, sub);
       }
 
-      return ParentTypes().Any(parentType => parentType.IsSubtypeOf(super, ignoreTypeArguments, ignoreNullity));
+      return sub.ParentTypes().Any(parentType => parentType.IsSubtypeOf(super, ignoreTypeArguments, ignoreNullity));
     }
 
     public static bool CompatibleTypeArgs(Type super, Type sub) {
@@ -2299,6 +2299,9 @@ namespace Microsoft.Dafny {
 
   /// <summary>
   /// An ArtificialType is only used during type checking. It should never be assigned as the type of any expression.
+  /// It works as a supertype to numeric literals. For example, the literal 6 can be an "int", a "bv16", a
+  /// newtype based on integers, or an "ORDINAL". Type inference thus uses an "artificial" supertype of all of
+  /// these types as the type of literal 6, until a more precise (and non-artificial) type is inferred for it.
   /// </summary>
   public abstract class ArtificialType : Type {
   }
@@ -6908,8 +6911,35 @@ namespace Microsoft.Dafny {
 
     /// <summary>
     /// Returns the non-null expressions of this statement proper (that is, do not include the expressions of substatements).
+    /// Filters all sub expressions that are not part of specifications
     /// </summary>
-    public virtual IEnumerable<Expression> SubExpressions {
+    public IEnumerable<Expression> SubExpressions {
+      get {
+        foreach (var e in SpecificationSubExpressions) {
+          yield return e;
+        }
+
+        foreach (var e in NonSpecificationSubExpressions) {
+          yield return e;
+        }
+      }
+    }
+
+    /// <summary>
+    /// Returns the non-null expressions of this statement proper (that is, do not include the expressions of substatements).
+    /// Filters only expressions that are always part of specifications
+    /// </summary>
+    public virtual IEnumerable<Expression> SpecificationSubExpressions {
+      get {
+        yield break;
+      }
+    }
+
+    /// <summary>
+    /// Returns the non-null expressions of this statement proper (that is, do not include the expressions of substatements).
+    /// Filters all sub expressions that are not part of specifications
+    /// </summary>
+    public virtual IEnumerable<Expression> NonSpecificationSubExpressions {
       get {
         foreach (var e in Attributes.SubExpressions(Attributes)) {
           yield return e;
@@ -6994,12 +7024,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(expr != null);
       this.Expr = expr;
     }
-    public override IEnumerable<Expression> SubExpressions {
-      get {
-        foreach (var e in base.SubExpressions) { yield return e; }
-        yield return Expr;
-      }
-    }
   }
 
   public class AssertStmt : PredicateStmt {
@@ -7026,6 +7050,13 @@ namespace Microsoft.Dafny {
       IToken closeBrace = new Token(tok.line, tok.col + 7 + s.Length + 1); // where 7 = length(":error ")
       this.Attributes = new UserSuppliedAttributes(tok, openBrace, closeBrace, args, this.Attributes);
     }
+
+    public override IEnumerable<Expression> SpecificationSubExpressions {
+      get {
+        foreach (var e in base.SpecificationSubExpressions) { yield return e; }
+        yield return Expr;
+      }
+    }
   }
 
   public class ExpectStmt : PredicateStmt {
@@ -7038,9 +7069,10 @@ namespace Microsoft.Dafny {
       this.Message = message;
     }
 
-    public override IEnumerable<Expression> SubExpressions {
+    public override IEnumerable<Expression> NonSpecificationSubExpressions {
       get {
-        foreach (var e in base.SubExpressions) { yield return e; }
+        foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }
+        yield return Expr;
         if (Message != null) {
           yield return Message;
         }
@@ -7054,6 +7086,12 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
       Contract.Requires(expr != null);
+    }
+    public override IEnumerable<Expression> SpecificationSubExpressions {
+      get {
+        foreach (var e in base.SpecificationSubExpressions) { yield return e; }
+        yield return Expr;
+      }
     }
   }
 
@@ -7072,9 +7110,9 @@ namespace Microsoft.Dafny {
 
       Args = args;
     }
-    public override IEnumerable<Expression> SubExpressions {
+    public override IEnumerable<Expression> NonSpecificationSubExpressions {
       get {
-        foreach (var e in base.SubExpressions) { yield return e; }
+        foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }
         foreach (var arg in Args) {
           yield return arg;
         }
@@ -7150,9 +7188,9 @@ namespace Microsoft.Dafny {
       this.rhss = rhss;
       hiddenUpdate = null;
     }
-    public override IEnumerable<Expression> SubExpressions {
+    public override IEnumerable<Expression> NonSpecificationSubExpressions {
       get {
-        foreach (var e in base.SubExpressions) { yield return e; }
+        foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }
         if (rhss != null) {
           foreach (var rhs in rhss) {
             foreach (var ee in rhs.SubExpressions) {
@@ -7421,9 +7459,9 @@ namespace Microsoft.Dafny {
       get { if (Update != null) { yield return Update; } }
     }
 
-    public override IEnumerable<Expression> SubExpressions {
+    public override IEnumerable<Expression> NonSpecificationSubExpressions {
       get {
-        foreach (var e in base.SubExpressions) { yield return e; }
+        foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }
         foreach (var v in Locals) {
           foreach (var e in Attributes.SubExpressions(v.Attributes)) {
             yield return e;
@@ -7438,16 +7476,16 @@ namespace Microsoft.Dafny {
     public readonly Expression RHS;
     public bool HasGhostModifier;
 
-    public VarDeclPattern(IToken tok, IToken endTok, CasePattern<LocalVariable> lhs, Expression rhs, bool hasGhostModifier = true)
+    public VarDeclPattern(IToken tok, IToken endTok, CasePattern<LocalVariable> lhs, Expression rhs, bool hasGhostModifier)
       : base(tok, endTok) {
       LHS = lhs;
       RHS = rhs;
       HasGhostModifier = hasGhostModifier;
     }
 
-    public override IEnumerable<Expression> SubExpressions {
+    public override IEnumerable<Expression> NonSpecificationSubExpressions {
       get {
-        foreach (var e in Attributes.SubExpressions(Attributes)) {
+        foreach (var e in base.NonSpecificationSubExpressions) {
           yield return e;
         }
         yield return RHS;
@@ -7506,9 +7544,9 @@ namespace Microsoft.Dafny {
         AssumeToken = assumeToken;
       }
     }
-    public override IEnumerable<Expression> SubExpressions {
+    public override IEnumerable<Expression> NonSpecificationSubExpressions {
       get {
-        foreach (var e in base.SubExpressions) { yield return e; }
+        foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }
         yield return Expr;
         foreach (var lhs in Lhss) {
           yield return lhs;
@@ -7613,9 +7651,9 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public override IEnumerable<Expression> SubExpressions {
+    public override IEnumerable<Expression> NonSpecificationSubExpressions {
       get {
-        foreach (var e in base.SubExpressions) { yield return e; }
+        foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }
         yield return Lhs;
         foreach (var ee in Rhs.SubExpressions) {
           yield return ee;
@@ -7825,9 +7863,9 @@ namespace Microsoft.Dafny {
       Bindings.AcceptArgumentExpressionsAsExactParameterList();
     }
 
-    public override IEnumerable<Expression> SubExpressions {
+    public override IEnumerable<Expression> NonSpecificationSubExpressions {
       get {
-        foreach (var e in base.SubExpressions) { yield return e; }
+        foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }
         foreach (var ee in Lhs) {
           yield return ee;
         }
@@ -7929,9 +7967,9 @@ namespace Microsoft.Dafny {
         }
       }
     }
-    public override IEnumerable<Expression> SubExpressions {
+    public override IEnumerable<Expression> NonSpecificationSubExpressions {
       get {
-        foreach (var e in base.SubExpressions) { yield return e; }
+        foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }
         if (Guard != null) {
           yield return Guard;
         }
@@ -8008,9 +8046,9 @@ namespace Microsoft.Dafny {
         }
       }
     }
-    public override IEnumerable<Expression> SubExpressions {
+    public override IEnumerable<Expression> NonSpecificationSubExpressions {
       get {
-        foreach (var e in base.SubExpressions) { yield return e; }
+        foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }
         foreach (var alt in Alternatives) {
           yield return alt.Guard;
         }
@@ -8074,11 +8112,16 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public override IEnumerable<Expression> SubExpressions {
+    public override IEnumerable<Expression> NonSpecificationSubExpressions {
       get {
-        foreach (var e in base.SubExpressions) {
+        foreach (var e in base.NonSpecificationSubExpressions) {
           yield return e;
         }
+      }
+    }
+
+    public override IEnumerable<Expression> SpecificationSubExpressions {
+      get {
         foreach (var e in LoopSpecificationExpressions) {
           yield return e;
         }
@@ -8144,9 +8187,9 @@ namespace Microsoft.Dafny {
         }
       }
     }
-    public override IEnumerable<Expression> SubExpressions {
+    public override IEnumerable<Expression> NonSpecificationSubExpressions {
       get {
-        foreach (var e in base.SubExpressions) { yield return e; }
+        foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }
         if (Guard != null) {
           yield return Guard;
         }
@@ -8192,9 +8235,9 @@ namespace Microsoft.Dafny {
       GoingUp = goingUp;
     }
 
-    public override IEnumerable<Expression> SubExpressions {
+    public override IEnumerable<Expression> NonSpecificationSubExpressions {
       get {
-        foreach (var e in base.SubExpressions) { yield return e; }
+        foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }
         yield return Start;
         if (End != null) {
           yield return End;
@@ -8239,9 +8282,9 @@ namespace Microsoft.Dafny {
         }
       }
     }
-    public override IEnumerable<Expression> SubExpressions {
+    public override IEnumerable<Expression> NonSpecificationSubExpressions {
       get {
-        foreach (var e in base.SubExpressions) { yield return e; }
+        foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }
         foreach (var alt in Alternatives) {
           yield return alt.Guard;
         }
@@ -8333,10 +8376,21 @@ namespace Microsoft.Dafny {
         }
       }
     }
-    public override IEnumerable<Expression> SubExpressions {
+
+    public override IEnumerable<Expression> NonSpecificationSubExpressions {
       get {
-        foreach (var e in base.SubExpressions) { yield return e; }
+        foreach (var e in base.NonSpecificationSubExpressions) {
+          yield return e;
+        }
+
         yield return Range;
+      }
+    }
+    public override IEnumerable<Expression> SpecificationSubExpressions {
+      get {
+        foreach (var e in base.SpecificationSubExpressions) {
+          yield return e;
+        }
         foreach (var ee in Ens) {
           foreach (var e in Attributes.SubExpressions(ee.Attributes)) { yield return e; }
           yield return ee.E;
@@ -8371,9 +8425,9 @@ namespace Microsoft.Dafny {
         }
       }
     }
-    public override IEnumerable<Expression> SubExpressions {
+    public override IEnumerable<Expression> SpecificationSubExpressions {
       get {
-        foreach (var e in base.SubExpressions) { yield return e; }
+        foreach (var e in base.SpecificationSubExpressions) { yield return e; }
         foreach (var e in Attributes.SubExpressions(Mod.Attributes)) { yield return e; }
         foreach (var fe in Mod.Expressions) {
           yield return fe.E;
@@ -8580,9 +8634,9 @@ namespace Microsoft.Dafny {
         }
       }
     }
-    public override IEnumerable<Expression> SubExpressions {
+    public override IEnumerable<Expression> SpecificationSubExpressions {
       get {
-        foreach (var e in base.SubExpressions) { yield return e; }
+        foreach (var e in base.SpecificationSubExpressions) { yield return e; }
         foreach (var e in Attributes.SubExpressions(Attributes)) { yield return e; }
 
         for (int i = 0; i < Lines.Count - 1; i++) {  // note, we skip the duplicated line at the end
@@ -8700,9 +8754,9 @@ namespace Microsoft.Dafny {
         }
       }
     }
-    public override IEnumerable<Expression> SubExpressions {
+    public override IEnumerable<Expression> NonSpecificationSubExpressions {
       get {
-        foreach (var e in base.SubExpressions) { yield return e; }
+        foreach (var e in base.NonSpecificationSubExpressions) { yield return e; }
         yield return Source;
       }
     }
@@ -8830,14 +8884,16 @@ namespace Microsoft.Dafny {
   }
 
   public class NestedToken : TokenWrapper {
-    public NestedToken(IToken outer, IToken inner)
+    public NestedToken(IToken outer, IToken inner, string message = null)
       : base(outer) {
       Contract.Requires(outer != null);
       Contract.Requires(inner != null);
       Inner = inner;
+      this.Message = message;
     }
     public IToken Outer { get { return WrappedToken; } }
     public readonly IToken Inner;
+    public readonly string Message;
   }
 
   /// <summary>
@@ -10204,6 +10260,7 @@ namespace Microsoft.Dafny {
       var receiverType = obj.Type.NormalizeExpand();
       this.TypeApplication_AtEnclosingClass = receiverType.TypeArgs;
       this.TypeApplication_JustMember = new List<Type>();
+      this.ResolvedOutparameterTypes = new List<Type>();
 
       var typeMap = new Dictionary<TypeParameter, Type>();
       if (receiverType is UserDefinedType udt) {
@@ -10256,6 +10313,8 @@ namespace Microsoft.Dafny {
     }
 
     public override IEnumerable<Type> ComponentTypes => Util.Concat(TypeApplication_AtEnclosingClass, TypeApplication_JustMember);
+
+    public List<Type> ResolvedOutparameterTypes; // filled in during resolution
   }
 
   public class SeqSelectExpr : Expression {
@@ -12160,7 +12219,7 @@ namespace Microsoft.Dafny {
         return Id;
       } else {
         List<string> cps = Arguments.ConvertAll<string>(x => x.ToString());
-        return string.Format("{0}({1})", Id, String.Join(",", cps));
+        return string.Format("{0}({1})", Id, String.Join(", ", cps));
       }
     }
 
@@ -12317,7 +12376,7 @@ namespace Microsoft.Dafny {
         return Id;
       } else {
         List<string> cps = Arguments.ConvertAll<string>(x => x.ToString());
-        return string.Format("{0}({1})", Id, String.Join(",", cps));
+        return string.Format("{0}({1})", Id, String.Join(", ", cps));
       }
     }
   }
@@ -12380,8 +12439,11 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public override IEnumerable<Expression> SubExpressions {
+    public override IEnumerable<Expression> NonSpecificationSubExpressions {
       get {
+        foreach (var e in base.NonSpecificationSubExpressions) {
+          yield return e;
+        }
         if (this.ResolvedStatement == null) {
           yield return Source;
         }
