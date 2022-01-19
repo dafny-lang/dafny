@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -9,8 +10,8 @@ using Microsoft.VisualStudio.TestPlatform.ObjectModel.Logging;
 namespace Microsoft.Dafny {
   public class CSVTestLogger : ITestLoggerWithParameters {
 
-    private readonly List<TestResult> results = new();
     private TextWriter writer = null;
+    private readonly ConcurrentBag<TestResult> results = new();
 
     public void Initialize(TestLoggerEvents events, string testRunDirectory) {
     }
@@ -29,8 +30,9 @@ namespace Microsoft.Dafny {
 
     private void TestRunCompleteHandler(object sender, TestRunCompleteEventArgs e) {
       var realWriter = writer ?? Console.Out;
+      realWriter.WriteLine("TestResult.DisplayName,TestResult.Outcome,TestResult.Duration");
       foreach (var result in results.OrderByDescending(r => r.Duration)) {
-        realWriter.WriteLine($"{result.TestCase.DisplayName}, {result.Outcome}, {result.Duration}");
+        realWriter.WriteLine($"{result.TestCase.DisplayName},{result.Outcome},{result.Duration}");
       }
       writer?.Close();
     }

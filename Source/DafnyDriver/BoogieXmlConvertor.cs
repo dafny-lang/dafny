@@ -115,7 +115,7 @@ namespace Microsoft.Dafny {
         EndTime = DateTimeOffset.Parse(endTime)
       };
 
-      if (outcome is "correct" or "valid") {
+      if (outcome == "correct") {
         testResult.Outcome = TestOutcome.Passed;
       } else {
         testResult.Outcome = TestOutcome.Failed;
