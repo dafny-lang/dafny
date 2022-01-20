@@ -442,7 +442,7 @@ namespace Microsoft.Dafny {
         foreach (var assemblyPath in DafnyOptions.O.CompilerBackends) {
           Assembly compilerBackend;
           try {
-            compilerBackend = Assembly.Load(assemblyPath);
+            compilerBackend = Assembly.LoadFrom(assemblyPath);
           } catch (ArgumentException) {
             reporter.Error(MessageSource.Resolver, Token.NoToken, $"Compiler backend paths cannot be empty.");
             continue;
