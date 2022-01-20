@@ -20,7 +20,7 @@ namespace Microsoft.Dafny {
       events.TestResult += TestResultHandler;
       events.TestRunComplete += TestRunCompleteHandler;
       if (parameters.TryGetValue("LogFileName", out string filename)) {
-        writer = filename == "-" ? Console.Out : new StreamWriter(filename);
+        writer = new StreamWriter(filename);
       } else {
         // Auto-generate a file name if none is specified. This uses a
         // similar approach to the TRX logger, but with simpler logic.
@@ -55,9 +55,7 @@ namespace Microsoft.Dafny {
         writer.WriteLine($"{result.TestCase.DisplayName},{result.Outcome},{result.Duration}");
       }
 
-      if (writer != Console.Out) {
-        writer.Close();
-      }
+      writer.Close();
     }
   }
 }
