@@ -16,11 +16,11 @@ namespace Microsoft.Dafny {
       this.reporter = reporter;
     }
 
-    virtual void PreResolve(ModuleDefinition m) {
+    public virtual void PreResolve(ModuleDefinition m) {
       Contract.Requires(m != null);
     }
 
-    virtual void PostResolve(ModuleDefinition m) {
+    public virtual void PostResolve(ModuleDefinition m) {
       Contract.Requires(m != null);
     }
 
