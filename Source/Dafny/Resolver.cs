@@ -4726,7 +4726,7 @@ namespace Microsoft.Dafny {
       foreach (var c in proxy.SupertypeConstraints) {
         var u = keepConstraints ? c.Super.NormalizeExpandKeepConstraints() : c.Super.NormalizeExpand();
         if (!(u is TypeProxy)) {
-          ImposeSubtypingConstraint(u, t, c.errorMsg);
+          ImposeSubtypingConstraint(u, t, c.ErrMsg);
         } else if (isRoot) {
           // If t is a root, we might as well constrain u now.  Otherwise, we'll wait until the .Subtype constraint of u is dealt with.
           AssignProxyAndHandleItsConstraints((TypeProxy)u, t, keepConstraints);
@@ -4737,7 +4737,7 @@ namespace Microsoft.Dafny {
         var u = keepConstraints ? c.Sub.NormalizeExpandKeepConstraints() : c.Sub.NormalizeExpand();
         Contract.Assert(!TypeProxy.IsSupertypeOfLiteral(u));  // these should only appear among .Supertypes
         if (!(u is TypeProxy)) {
-          ImposeSubtypingConstraint(t, u, c.errorMsg);
+          ImposeSubtypingConstraint(t, u, c.ErrMsg);
         } else if (isLeaf) {
           // If t is a leaf (no pun intended), we might as well constrain u now.  Otherwise, we'll wait until the .Supertype constraint of u is dealt with.
           AssignProxyAndHandleItsConstraints((TypeProxy)u, t, keepConstraints);
@@ -5805,8 +5805,8 @@ namespace Microsoft.Dafny {
                 break;
               }
 
-              TypeConstraint oneSuper = null;
-              TypeConstraint oneSub = null;
+              TypeConstraint.ErrorMsg oneSuperErrorMsg = null;
+              TypeConstraint.ErrorMsg oneSubErrorMsg = null;
               var ss = new HashSet<Type>();
               foreach (var c in AllTypeConstraints) {
                 var super = c.Super.NormalizeExpand();
@@ -5827,11 +5827,11 @@ namespace Microsoft.Dafny {
                   var sub = c.Sub.NormalizeExpand();
                   if (t.Equals(super)) {
                     lowers.Add(sub);
-                    oneSub = c;
+                    oneSubErrorMsg = c.ErrMsg;
                   }
                   if (t.Equals(sub)) {
                     uppers.Add(super);
-                    oneSuper = c;
+                    oneSuperErrorMsg = c.ErrMsg;
                   }
                 }
 
@@ -5840,7 +5840,7 @@ namespace Microsoft.Dafny {
                   foreach (var tu in uppers) {
                     if (tl.Equals(tu)) {
                       if (!ContainsAsTypeParameter(tu, t)) {
-                        var errorMsg = new TypeConstraint.ErrorMsgWithBase(AllTypeConstraints[0].errorMsg,
+                        var errorMsg = new TypeConstraint.ErrorMsgWithBase(AllTypeConstraints[0].ErrMsg,
                           "Decision: {0} is decided to be {1} because the latter is both the upper and lower bound to the proxy",
                           t, tu);
                         ConstrainSubtypeRelation_Equal(t, tu, errorMsg);
@@ -5880,7 +5880,7 @@ namespace Microsoft.Dafny {
                     var em = lowers.GetEnumerator();
                     em.MoveNext();
                     if (!ContainsAsTypeParameter(em.Current, t)) {
-                      var errorMsg = new TypeConstraint.ErrorMsgWithBase(oneSub.errorMsg,
+                      var errorMsg = new TypeConstraint.ErrorMsgWithBase(oneSubErrorMsg,
                         "Decision: {0} is decided to be {1} because the latter is a lower bound to the proxy and there is no constraint with an upper bound",
                         t, em.Current);
                       ConstrainSubtypeRelation_Equal(t, em.Current, errorMsg);
@@ -5894,7 +5894,7 @@ namespace Microsoft.Dafny {
                     var em = uppers.GetEnumerator();
                     em.MoveNext();
                     if (!ContainsAsTypeParameter(em.Current, t)) {
-                      var errorMsg = new TypeConstraint.ErrorMsgWithBase(oneSuper.errorMsg,
+                      var errorMsg = new TypeConstraint.ErrorMsgWithBase(oneSuperErrorMsg,
                         "Decision: {0} is decided to be {1} because the latter is an upper bound to the proxy and there is no constraint with a lower bound",
                         t, em.Current);
                       ConstrainSubtypeRelation_Equal(t, em.Current, errorMsg);
@@ -6067,7 +6067,7 @@ namespace Microsoft.Dafny {
       if (super.Equals(sub)) {
         // the constraint is satisfied, so just drop it
       } else if ((super is NonProxyType || super is ArtificialType) && sub is NonProxyType) {
-        ImposeSubtypingConstraint(super, sub, c.errorMsg);
+        ImposeSubtypingConstraint(super, sub, c.ErrMsg);
         anyNewConstraints = true;
       } else if (AssignKnownEnd(sub as TypeProxy, true, fullStrength)) {
         anyNewConstraints = true;
@@ -6495,121 +6495,6 @@ namespace Microsoft.Dafny {
       TypeConstraint.ReportErrors(reporter);
       AllTypeConstraints.Clear();
       AllXConstraints.Clear();
-    }
-
-    public class TypeConstraint {
-      public readonly Type Super;
-      public readonly Type Sub;
-      public readonly bool KeepConstraints;
-
-      private static List<ErrorMsg> ErrorsToBeReported = new List<ErrorMsg>();
-      public static void ReportErrors(ErrorReporter reporter) {
-        Contract.Requires(reporter != null);
-        foreach (var err in ErrorsToBeReported) {
-          err.ReportAsError(reporter);
-        }
-        ErrorsToBeReported.Clear();
-      }
-      abstract public class ErrorMsg {
-        public abstract IToken Tok { get; }
-        bool reported;
-        public void FlagAsError() {
-          if (DafnyOptions.O.TypeInferenceDebug) {
-            Console.WriteLine($"DEBUG: flagging error: {ApproximateErrorMessage()}");
-          }
-          TypeConstraint.ErrorsToBeReported.Add(this);
-        }
-        internal void ReportAsError(ErrorReporter reporter) {
-          Contract.Requires(reporter != null);
-          if (!reported) {  // this "reported" bit is checked only for the top-level message, but this message and all nested ones get their "reported" bit set to "true" as a result
-            Reporting(reporter, "");
-          }
-        }
-        private void Reporting(ErrorReporter reporter, string suffix) {
-          Contract.Requires(reporter != null);
-          Contract.Requires(suffix != null);
-
-          object[] RemoveAmbiguity(object[] msgArgs) {
-            var renderedInterpolated = new HashSet<string>();
-            var ambiguity = false;
-            foreach (var x in msgArgs) {
-              var str = x.ToString();
-              if (renderedInterpolated.Contains(str)) {
-                ambiguity = true;
-              }
-
-              renderedInterpolated.Add(str);
-            }
-            if (ambiguity) {
-              return msgArgs.Select(x =>
-                x is UserDefinedType udt ? udt.FullName : x.ToString()
-              ).ToArray();
-            } else {
-              return msgArgs;
-            }
-          }
-          if (this is ErrorMsgWithToken) {
-            var err = (ErrorMsgWithToken)this;
-            Contract.Assert(err.Tok != null);
-            reporter.Error(MessageSource.Resolver, err.Tok, err.Msg + suffix, RemoveAmbiguity(err.MsgArgs));
-          } else {
-            var err = (ErrorMsgWithBase)this;
-            err.BaseMsg.Reporting(reporter, " (" + string.Format(err.Msg, RemoveAmbiguity(err.MsgArgs)) + ")" + suffix);
-          }
-          reported = true;
-        }
-
-        protected abstract string ApproximateErrorMessage();
-      }
-      public class ErrorMsgWithToken : ErrorMsg {
-        readonly IToken tok;
-        public override IToken Tok {
-          get { return tok; }
-        }
-        public readonly string Msg;
-        public readonly object[] MsgArgs;
-        public ErrorMsgWithToken(IToken tok, string msg, params object[] msgArgs) {
-          Contract.Requires(tok != null);
-          Contract.Requires(msg != null);
-          Contract.Requires(msgArgs != null);
-          this.tok = tok;
-          this.Msg = msg;
-          this.MsgArgs = msgArgs;
-        }
-
-        protected override string ApproximateErrorMessage() => string.Format(Msg, MsgArgs);
-      }
-      public class ErrorMsgWithBase : ErrorMsg {
-        public override IToken Tok {
-          get { return BaseMsg.Tok; }
-        }
-        public readonly ErrorMsg BaseMsg;
-        public readonly string Msg;
-        public readonly object[] MsgArgs;
-        public ErrorMsgWithBase(ErrorMsg baseMsg, string msg, params object[] msgArgs) {
-          Contract.Requires(baseMsg != null);
-          Contract.Requires(msg != null);
-          Contract.Requires(msgArgs != null);
-          BaseMsg = baseMsg;
-          Msg = msg;
-          MsgArgs = msgArgs;
-        }
-
-        protected override string ApproximateErrorMessage() => string.Format(Msg, MsgArgs);
-      }
-      public readonly ErrorMsg errorMsg;
-      public TypeConstraint(Type super, Type sub, ErrorMsg errMsg, bool keepConstraints) {
-        Contract.Requires(super != null);
-        Contract.Requires(sub != null);
-        Contract.Requires(errMsg != null);
-        Super = super;
-        Sub = sub;
-        errorMsg = errMsg;
-        KeepConstraints = keepConstraints;
-      }
-      public void FlagAsError() {
-        errorMsg.FlagAsError();
-      }
     }
 
     // ------------------------------------------------------------------------------------------------------
