@@ -34,14 +34,25 @@ namespace Microsoft.Dafny {
         // 65k tries (as in the TRX case).
         string autoFilename;
         ushort suffixCounter = 0;
-        do {
+        while (true) {
           if (suffixCounter == ushort.MaxValue) {
             throw new FileNotFoundException("Could not create unique file name for CSV test log.");
           }
+
           autoFilename =
             Path.ChangeExtension(Path.Combine(resultsDir, dateTime + "-" + suffixCounter.ToString()), ".csv");
           suffixCounter++;
-        } while (File.Exists(autoFilename));
+          try {
+            // Creating the file reserves it for use. It'll be closed here and re-opened below.
+            using (var fs = File.Open(autoFilename, FileMode.CreateNew)) {
+            }
+
+            break;
+          } catch (IOException) {
+            // If creating the file using CreateNew failed, try again with the incremented suffix.
+            continue;
+          }
+        }
 
         writer = new StreamWriter(autoFilename);
         writerFilename = autoFilename;
