@@ -12,6 +12,7 @@ namespace Microsoft.Dafny {
 
     private readonly ConcurrentBag<TestResult> results = new();
     private TextWriter writer;
+    private string writerFilename;
 
     public void Initialize(TestLoggerEvents events, string testRunDirectory) {
     }
@@ -21,6 +22,7 @@ namespace Microsoft.Dafny {
       events.TestRunComplete += TestRunCompleteHandler;
       if (parameters.TryGetValue("LogFileName", out string filename)) {
         writer = new StreamWriter(filename);
+        writerFilename = filename;
       } else {
         // Auto-generate a file name if none is specified. This uses a
         // similar approach to the TRX logger, but with simpler logic.
@@ -42,6 +44,7 @@ namespace Microsoft.Dafny {
         } while (File.Exists(autoFilename));
 
         writer = new StreamWriter(autoFilename);
+        writerFilename = autoFilename;
       }
     }
 
@@ -56,6 +59,7 @@ namespace Microsoft.Dafny {
       }
 
       writer.Close();
+      Console.Out.WriteLine("Results File: " + Path.GetFullPath(writerFilename));
     }
   }
 }
