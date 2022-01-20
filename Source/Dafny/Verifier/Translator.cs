@@ -11213,7 +11213,7 @@ namespace Microsoft.Dafny {
             if (!CanSafelyInline(fexp, f)) {
               // Skip inlining, as it would cause arbitrary expressions to pop up in the trigger
               // TODO this should appear at the outmost call site, not at the innermost. See SnapshotableTrees.dfy
-              reporter.Info(MessageSource.Translator, fexp.tok, "Some instances of this call cannot safely be inlined.");
+              reporter.Info(MessageSource.Translator, fexp.tok, "Some instances of this call are not inlined.");
               // F#canCall(args) ==> F(args)
               var p = Bpl.Expr.Binary(fargs.tok, BinaryOperator.Opcode.Imp, canCall, fargs);
               splits.Add(new SplitExprInfo(SplitExprInfo.K.Checked, p));
