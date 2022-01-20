@@ -29,8 +29,8 @@ This is the procedure for generating a new Dafny release.
 5) In the Github releases, edit the new release to add in the release notes.
 
 6) Push the Publish button.
-   if doing a pre-release stop here, as steps further are to define the release as
-   latest version to be installed which is not needed.
+   If preparing a pre-release, stop here, as the following steps declare the release
+   as the latest version, which is not the intention.
 
 7) Edit the release name into .github/workflows/release-downloads.yml
    for the 'ver' variable for Windows
