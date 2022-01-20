@@ -27,8 +27,20 @@ namespace Microsoft.Dafny {
         const string resultsDir = "TestResults";
         Directory.CreateDirectory(resultsDir); // No-op if the directory already exists
         var dateTime = DateTime.Now.ToString("yyyy-MM-dd_HH_mm_ss");
-        var autoFilename =
-          Path.ChangeExtension(Path.Combine(resultsDir, dateTime), ".csv");
+
+        // Iterate through possible file names to ensure uniqueness, failing after
+        // 65k tries (as in the TRX case).
+        string autoFilename;
+        ushort suffixCounter = 0;
+        do {
+          if (suffixCounter == ushort.MaxValue) {
+            throw new FileNotFoundException("Could not create unique file name for CSV test log.");
+          }
+          autoFilename =
+            Path.ChangeExtension(Path.Combine(resultsDir, dateTime + "-" + suffixCounter.ToString()), ".csv");
+          suffixCounter++;
+        } while (File.Exists(autoFilename));
+
         writer = new StreamWriter(autoFilename);
       }
     }
