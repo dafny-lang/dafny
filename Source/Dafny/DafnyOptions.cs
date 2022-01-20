@@ -818,7 +818,7 @@ namespace Microsoft.Dafny {
     This includes lack of support for BigIntegers (aka int), most higher order
     functions, and advanced features like traits or co-inductive types.
 /compiler:<assemblies>
-    (experimental) List of comma-separated DLLs or assemblies that contain at least one
+    (experimental) List of comma-separated paths to assemblies that contain at least one
     instantiatable class extending Microsoft.Dafny.IRewriter
 /Main:<name>
     The (fully-qualified) name of the method to use as the executable entry point.
