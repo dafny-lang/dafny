@@ -2843,6 +2843,9 @@ namespace Microsoft.Dafny {
         case IdPattern idPat:
           if (idPat.Id.StartsWith(BuiltIns.TupleTypeCtorNamePrefix)) {
           } else if (idPat.Id.StartsWith("_")) {
+            // In case of the universal match pattern, print '_' instead of
+            // its node identifier, otherwise the printed program becomes
+            // syntactically incorrect.
             wr.Write("_");
           } else {
             wr.Write(idPat.Id);
