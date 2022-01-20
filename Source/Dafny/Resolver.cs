@@ -11,6 +11,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Diagnostics.Contracts;
+using System.IO;
+using System.Reflection;
 using JetBrains.Annotations;
 using Microsoft.BaseTypes;
 using Microsoft.Boogie;
@@ -435,6 +437,42 @@ namespace Microsoft.Dafny {
       }
 
       rewriters.Add(new InductionRewriter(reporter));
+
+      if (DafnyOptions.O.CompilerBackends.Count() >= 1) {
+        foreach (var assemblyPath in DafnyOptions.O.CompilerBackends) {
+          Assembly compilerBackend;
+          try {
+            compilerBackend = Assembly.Load(assemblyPath);
+          } catch (ArgumentException) {
+            reporter.Error(MessageSource.Resolver, Token.NoToken, $"Compiler backend paths cannot be empty.");
+            continue;
+          } catch (FileNotFoundException) {
+            reporter.Error(MessageSource.Resolver, Token.NoToken, $"Compiler backend '{assemblyPath}' could not be found ");
+            continue;
+          } catch (FileLoadException e) {
+            reporter.Error(MessageSource.Resolver, Token.NoToken, $"Compiler backend '{assemblyPath}' could not be loaded: {e.Message}");
+            continue;
+          } catch (BadImageFormatException e) {
+            reporter.Error(MessageSource.Resolver, Token.NoToken, $"Compiler backend version of '{assemblyPath}' is incompatible: {e.Message}");
+            continue;
+          }
+
+          var oneRewriterInstantiated = false;
+          foreach (System.Type type in compilerBackend.GetTypes().Where(t => t.IsAssignableTo(typeof(IRewriter)))) {
+            var pluginRewriter = Activator.CreateInstance(type, reporter) as IRewriter;
+            if (pluginRewriter == null) {
+              reporter.Error(MessageSource.Resolver, Token.NoToken, $"[Internal error] '{type.FullName}' could not be created as an IRewriter");
+            } else {
+              rewriters.Add(pluginRewriter);
+              oneRewriterInstantiated = true;
+            }
+          }
+
+          if (!oneRewriterInstantiated) {
+            reporter.Error(MessageSource.Resolver, Token.NoToken, $"Could not find an Microsoft.Dafny.IRewriter in '{assemblyPath}'");
+          }
+        }
+      }
 
       systemNameInfo = RegisterTopLevelDecls(prog.BuiltIns.SystemModule, false);
       prog.CompileModules.Add(prog.BuiltIns.SystemModule);

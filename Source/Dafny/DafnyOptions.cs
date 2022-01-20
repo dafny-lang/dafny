@@ -137,6 +137,9 @@ namespace Microsoft.Dafny {
     // Working around the fact that xmlFilename is private
     public string BoogieXmlFilename = null;
 
+    // invariant: All strings of this list are non-empty
+    public readonly List<string> CompilerBackends = new();
+
     public virtual TestGenerationOptions TestGenOptions =>
       testGenOptions ??= new TestGenerationOptions();
 
@@ -227,6 +230,16 @@ namespace Microsoft.Dafny {
             int verbosity = 0;
             if (ps.GetNumericArgument(ref verbosity, 2)) {
               CompileVerbose = verbosity == 1;
+            }
+
+            return true;
+          }
+
+        case "compiler": {
+            if (ps.ConfirmArgumentCount(1)) {
+              if (args[ps.i].Length > 0) {
+                CompilerBackends.AddRange(args[ps.i].Split(',').Where(s => s.Length > 0));
+              }
             }
 
             return true;
@@ -804,6 +817,9 @@ namespace Microsoft.Dafny {
     Note that the C++ backend has various limitations (see Docs/Compilation/Cpp.md).
     This includes lack of support for BigIntegers (aka int), most higher order
     functions, and advanced features like traits or co-inductive types.
+/compiler:<assemblies>
+    (experimental) List of comma-separated DLLs or assemblies that contain at least one
+    instantiatable class extending Microsoft.Dafny.IRewriter
 /Main:<name>
     The (fully-qualified) name of the method to use as the executable entry point.
     Default is the method with the {{:main}} atrribute, or else the method named 'Main'.
