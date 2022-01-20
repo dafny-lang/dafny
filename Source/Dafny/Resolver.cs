@@ -439,21 +439,29 @@ namespace Microsoft.Dafny {
       rewriters.Add(new InductionRewriter(reporter));
 
       if (DafnyOptions.O.CompilerBackends.Count() >= 1) {
+        IToken GetFirstTopLevelToken() {
+          return prog.DefaultModuleDef.TopLevelDecls.Select(x => x as ClassDecl)
+            .Where(x => x != null)
+            .SelectMany(classDecl => classDecl.Members)
+            .Where(member => member.tok.line > 0)
+            .Select(member => member.tok).FirstOrDefault(Token.NoToken);
+        }
+
         foreach (var assemblyPath in DafnyOptions.O.CompilerBackends) {
           Assembly compilerBackend;
           try {
             compilerBackend = Assembly.LoadFrom(assemblyPath);
           } catch (ArgumentException) {
-            reporter.Error(MessageSource.Resolver, Token.NoToken, $"Compiler backend paths cannot be empty.");
+            reporter.Error(MessageSource.Resolver, GetFirstTopLevelToken(), $"Compiler backend paths cannot be empty.");
             continue;
           } catch (FileNotFoundException) {
-            reporter.Error(MessageSource.Resolver, Token.NoToken, $"Compiler backend '{assemblyPath}' could not be found ");
+            reporter.Error(MessageSource.Resolver, GetFirstTopLevelToken(), $"Compiler backend '{assemblyPath}' could not be found ");
             continue;
           } catch (FileLoadException e) {
-            reporter.Error(MessageSource.Resolver, Token.NoToken, $"Compiler backend '{assemblyPath}' could not be loaded: {e.Message}");
+            reporter.Error(MessageSource.Resolver, GetFirstTopLevelToken(), $"Compiler backend '{assemblyPath}' could not be loaded: {e.Message}");
             continue;
           } catch (BadImageFormatException e) {
-            reporter.Error(MessageSource.Resolver, Token.NoToken, $"Compiler backend version of '{assemblyPath}' is incompatible: {e.Message}");
+            reporter.Error(MessageSource.Resolver, GetFirstTopLevelToken(), $"Compiler backend version of '{assemblyPath}' is incompatible: {e.Message}");
             continue;
           }
 
@@ -461,7 +469,7 @@ namespace Microsoft.Dafny {
           foreach (System.Type type in compilerBackend.GetTypes().Where(t => t.IsAssignableTo(typeof(IRewriter)))) {
             var pluginRewriter = Activator.CreateInstance(type, reporter) as IRewriter;
             if (pluginRewriter == null) {
-              reporter.Error(MessageSource.Resolver, Token.NoToken, $"[Internal error] '{type.FullName}' could not be created as an IRewriter");
+              reporter.Error(MessageSource.Resolver, GetFirstTopLevelToken(), $"[Internal error] '{type.FullName}' could not be created as an IRewriter");
             } else {
               rewriters.Add(pluginRewriter);
               oneRewriterInstantiated = true;

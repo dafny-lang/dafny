@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Server;
 using System;
+using Microsoft.Extensions.Options;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
@@ -44,7 +45,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         services.GetRequiredService<ISymbolTableFactory>(),
         services.GetRequiredService<IGhostStateDiagnosticCollector>(),
         services.GetRequiredService<ICompilationStatusNotificationPublisher>(),
-        services.GetRequiredService<ILoggerFactory>()
+        services.GetRequiredService<ILoggerFactory>(),
+        services.GetRequiredService<IOptions<CompilerOptions>>()
       );
     }
   }

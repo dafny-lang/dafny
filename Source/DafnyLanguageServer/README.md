@@ -75,3 +75,12 @@ Options provided through the command line have higher priority than the options 
 # Default: true (mark the statements)
 --ghost:markStatements=true
 ```
+
+### Compilation Backends
+
+```sh
+# Provides a comma-separated list of paths to assemblies
+# that contain an instantiatable IRewrite that is used during resolution
+# Default: "" (nothing extra is loaded)
+--compiler:backends=
+```

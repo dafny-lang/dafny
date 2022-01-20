@@ -10,6 +10,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
@@ -32,6 +33,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private readonly ICompilationStatusNotificationPublisher notificationPublisher;
     private readonly ILoggerFactory loggerFactory;
     private readonly BlockingCollection<Request> requestQueue = new();
+    private readonly IOptions<CompilerOptions> compilerOptions;
 
     private TextDocumentLoader(
       ILoggerFactory loggerFactory,
@@ -40,7 +42,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       IProgramVerifier verifier,
       ISymbolTableFactory symbolTableFactory,
       IGhostStateDiagnosticCollector ghostStateDiagnosticCollector,
-      ICompilationStatusNotificationPublisher notificationPublisher) {
+      ICompilationStatusNotificationPublisher notificationPublisher,
+      IOptions<CompilerOptions> compilerOptions) {
       this.parser = parser;
       this.symbolResolver = symbolResolver;
       this.verifier = verifier;
@@ -48,6 +51,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       this.ghostStateDiagnosticCollector = ghostStateDiagnosticCollector;
       this.notificationPublisher = notificationPublisher;
       this.loggerFactory = loggerFactory;
+      this.compilerOptions = compilerOptions;
     }
 
     public static TextDocumentLoader Create(
@@ -57,9 +61,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       ISymbolTableFactory symbolTableFactory,
       IGhostStateDiagnosticCollector ghostStateDiagnosticCollector,
       ICompilationStatusNotificationPublisher notificationPublisher,
-      ILoggerFactory loggerFactory
-    ) {
-      var loader = new TextDocumentLoader(loggerFactory, parser, symbolResolver, verifier, symbolTableFactory, ghostStateDiagnosticCollector, notificationPublisher);
+      ILoggerFactory loggerFactory,
+      IOptions<CompilerOptions> compilerOptions
+      ) {
+      var loader = new TextDocumentLoader(loggerFactory, parser, symbolResolver, verifier, symbolTableFactory, ghostStateDiagnosticCollector, notificationPublisher, compilerOptions);
       var loadThread = new Thread(loader.Run, MaxStackSize) { IsBackground = true };
       loadThread.Start();
       return loader;
@@ -111,6 +116,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         notificationPublisher.SendStatusNotification(textDocument, CompilationStatus.ParsingFailed);
         return CreateDocumentWithEmptySymbolTable(loggerFactory.CreateLogger<SymbolTable>(), textDocument, errorReporter, program, loadCanceled: false);
       }
+
+      if (compilerOptions.Value.Backends.Length > 0) {
+        DafnyOptions.O.CompilerBackends = compilerOptions.Value.Backends.Split(",").Where(x => x.Length > 0).ToList();
+      }
+
       var compilationUnit = symbolResolver.ResolveSymbols(textDocument, program, cancellationToken);
       var symbolTable = symbolTableFactory.CreateFrom(program, compilationUnit, cancellationToken);
       if (errorReporter.HasErrors) {

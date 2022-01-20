@@ -8,6 +8,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
   [TestClass]
@@ -20,6 +21,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
     private Mock<ICompilationStatusNotificationPublisher> notificationPublisher;
     private TextDocumentLoader textDocumentLoader;
     private Mock<ILoggerFactory> logger;
+    private Mock<IOptions<CompilerOptions>> compilerOptions;
 
     [TestInitialize]
     public void SetUp() {
@@ -30,6 +32,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
       ghostStateDiagnosticCollector = new();
       notificationPublisher = new();
       logger = new Mock<ILoggerFactory>();
+      compilerOptions = new Mock<IOptions<CompilerOptions>>();
       textDocumentLoader = TextDocumentLoader.Create(
         parser.Object,
         symbolResolver.Object,
@@ -37,7 +40,8 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
         symbolTableFactory.Object,
         ghostStateDiagnosticCollector.Object,
         notificationPublisher.Object,
-        logger.Object
+        logger.Object,
+        compilerOptions.Object
       );
     }
 

@@ -138,7 +138,7 @@ namespace Microsoft.Dafny {
     public string BoogieXmlFilename = null;
 
     // invariant: All strings of this list are non-empty
-    public readonly List<string> CompilerBackends = new();
+    public List<string> CompilerBackends = new();
 
     public virtual TestGenerationOptions TestGenOptions =>
       testGenOptions ??= new TestGenerationOptions();
