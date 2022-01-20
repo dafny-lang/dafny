@@ -6182,24 +6182,27 @@ namespace Microsoft.Dafny {
     }
 
     // To use only in special cases where the type is not the same for the range in comprehensions
-    private Type secondType = null;
+    // Overally, the typeInRange is the type of the bound variable in the range expression.
+    private Type secondaryType = null;
 
-    public void ReplaceType(Type secondType = null) {
-      Contract.Assert(secondType != null || this.secondType != null);
+    public void ReplaceType(Type secondaryType = null) {
+      Contract.Assert(secondaryType != null || this.secondaryType != null);
       //Contract.Assert(adjustedType.IsRuntimeTestable());
-      if (secondType == null && this.secondType != null) {
+      if (secondaryType == null && this.secondaryType != null) {
         var tmp = this.type;
-        this.type = this.secondType;
-        this.secondType = tmp;
-      } else if (secondType != null) {
-        this.secondType = this.type;
-        this.type = secondType;
+        this.type = this.secondaryType;
+        this.secondaryType = tmp;
+      } else if (secondaryType != null) {
+        this.secondaryType = this.type;
+        this.type = secondaryType;
       }
     }
 
-    public bool HasReplacementType() {
-      return this.secondType != null;
+    public bool HasSecondaryType() {
+      return this.secondaryType != null;
     }
+
+    public Type? SecondaryType => secondaryType;
   }
 
   public class ActualBinding {
@@ -11328,6 +11331,8 @@ namespace Microsoft.Dafny {
   /// </summary>
   public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclaration, IBoundVarBearingExpressionWithToken {
     public virtual string WhatKind => "comprehension";
+
+    public virtual string Keyword => "";
     // The bound vars might need a fix if they are assigned a type that cannot be compiled.
     public readonly List<BoundVar> BoundVars;
     public readonly Expression Range;
@@ -11766,6 +11771,8 @@ namespace Microsoft.Dafny {
 
   public class ForallExpr : QuantifierExpr {
     public override string WhatKind => "forall expression";
+    public override string Keyword => "forall";
+
     protected override BinaryExpr.ResolvedOpcode SplitResolvedOp { get { return BinaryExpr.ResolvedOpcode.And; } }
 
     public ForallExpr(IToken tok, IToken endTok, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
@@ -11793,6 +11800,8 @@ namespace Microsoft.Dafny {
 
   public class ExistsExpr : QuantifierExpr {
     public override string WhatKind => "exists expression";
+    public override string Keyword => "exists";
+
     protected override BinaryExpr.ResolvedOpcode SplitResolvedOp { get { return BinaryExpr.ResolvedOpcode.Or; } }
 
     public ExistsExpr(IToken tok, IToken endTok, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
@@ -11820,6 +11829,7 @@ namespace Microsoft.Dafny {
 
   public class SetComprehension : ComprehensionExpr {
     public override string WhatKind => "set comprehension";
+    public override string Keyword => Finite ? "set" : "iset";
 
     public readonly bool Finite;
     public readonly bool TermIsImplicit;  // records the given syntactic form
@@ -11847,6 +11857,7 @@ namespace Microsoft.Dafny {
   }
   public class MapComprehension : ComprehensionExpr {
     public override string WhatKind => "map comprehension";
+    public override string Keyword => Finite ? "map" : "imap";
 
     public readonly bool Finite;
     public readonly Expression TermLeft;

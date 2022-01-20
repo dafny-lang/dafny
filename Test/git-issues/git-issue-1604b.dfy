@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:3 /rprint:"%t.rprint" "%s" > "%t"
+// RUN: %dafny /compile:3 /errorLimit:0 /rprint:"%t.rprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype Cell = Cell(x: int)
@@ -41,24 +41,37 @@ predicate method isSetOfGhostEvenCells(s: set<GhostEvenCell>) {
 predicate method isSetOfCompilableEvenCells(s: set<GhostEvenCell>) {
   forall c :: c in s ==> returnsOneIfCompilableEvenCell(c) == 1
 }
-function method isGhostEvenCell(c: Cell): (r: bool)
+function method isEvenCell(c: Cell): (r: bool)
 {
   c.x == 0
 }
 
 method Main() {
   var x: set<Cell> := getOriginalSet();
-
-  // TODO: It should fail to prove that the term has type GhostEvenCell
   var b := true;
-
-  // This line should work because c should be of type Cell as the constraint is not compilable
-  // Since it figures out the type of c later, it will be resolved as a "GhostEvenCell" everywhere.
-  b := b && isSetOfGhostEvenCells(set c | c in x && isGhostEvenCell(c) && ghostEvenCellIsOneOrMore(c) :: c);
-
-  // This line should fail because c should be of type Cell as the constraint is not compilable
-  // Since it figures out the type of c later, it will be resolved as a "GhostEvenCell" everywhere.
+  
+  // This line should fail because c inside the range should be of type Cell as the constraint is not compilable
   b := b && isSetOfGhostEvenCells(set c | c in x && ghostEvenCellIsOneOrMore(c) :: c);
+
+  // This line should fail because we cannot extract GhostEvenCells directly
+  b := b && isSetOfGhostEvenCells(set c: GhostEvenCell | c in x);
+
+  // This line should fail because we cannot prove that c is a GhostEvenCell
+  b := b && isSetOfGhostEvenCells(set c: GhostEvenCell | c in x && c.x % 3 == 0 :: c);
+
+  // This line should fail because although the type constraint can be proven, the precondition for ghostEvenCellIsOneOrMore cannot.
+  b := b && isSetOfGhostEvenCells(set c | c in x && ghostEvenCellIsOneOrMore(c) && c.x % 2 == 0);
+
+  // This line should fail twice because c should be of type Cell as the constraint is not compilable
+  b := b && isSetOfGhostEvenCells(set c: GhostEvenCell | c in x && ghostEvenCellIsOneOrMore(c));
+
+  // This line should fail because although the type constraint can be proven, the precondition for ghostEvenCellIsOneOrMore cannot.
+  b := b && isSetOfGhostEvenCells(set c: GhostEvenCell | c in x && ghostEvenCellIsOneOrMore(c) && c.x % 2 == 0);
+
+  // This line fail because the type of c is inferred to be a Cell
+  b := b && isSetOfCompilableEvenCells(set c | c in x && compiledEvenCellIsOneOrMore(c) && c.x % 2 == 0);
+
   assert b;
   print if b then "ok" else "error";
 }
+

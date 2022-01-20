@@ -6049,35 +6049,24 @@ namespace Microsoft.Dafny {
               CheckWellformed(range, newOptions, locals, newBuilder, comprehensionEtran);
               guard = comprehensionEtran.TrExpr(range);
             }
-            Boogie.Expr CheckGhostType(Expression term) {
-              var type = term.Type;
-              return MkIs(etran.TrExpr(Substitute(term, null, substMap)), type);
+            Boogie.Expr CheckGhostType(Expression term, Type type = null) {
+              return MkIs(etran.TrExpr(Substitute(term, null, substMap)), type ?? term.Type);
             }
 
-            if (e is SetComprehension setComp) {
-              if (setComp.Term.Type.AsSubsetType != null) {
+            foreach (var boundVar in e.AllBoundVars) {
+              if (boundVar.HasSecondaryType() && !boundVar.SecondaryType.IsRuntimeTestable()) {
                 // It has a term. We need to verify the term's type.
-                BplIfIf(setComp.Term.tok, true, guard, newBuilder,
+                BplIfIf(e.tok, true, guard ?? new Bpl.LiteralExpr(boundVar.tok, true), nextBuilder,
                   b => {
-                    b.Add(Assert(setComp.Term.tok, CheckGhostType(setComp.Term),
-               $"Could not prove that the set term satisfies the subset type {setComp.Term.Type}."));
-                  });
-              }
-            } else if (e is MapComprehension mapComp) {
-              // It has a term. We need to verify the term's type.
-              if (mapComp.Term.Type.AsSubsetType != null) {
-                BplIfIf(mapComp.Term.tok, true, guard, newBuilder,
-                  b => {
-                    b.Add(Assert(mapComp.Term.tok, CheckGhostType(mapComp.Term),
-               $"Could not prove that the map value term satisfies the subset type {mapComp.Term.Type}."));
-                  });
-              }
-
-              if (mapComp.TermLeft?.Type.AsSubsetType != null) {
-                BplIfIf(mapComp.TermLeft.tok, true, guard, newBuilder,
-                  b => {
-                    b.Add(Assert(mapComp.TermLeft.tok, CheckGhostType(mapComp.TermLeft),
-               $"Could not prove that the map key term satisfies the subset type {mapComp.TermLeft.Type}."));
+                    var idExpressionToTest = new IdentifierExpr(boundVar.tok, boundVar);
+                    // Assume at least the collection bound
+                    b.Add(TrAssumeCmd(e.tok, CheckGhostType(idExpressionToTest, boundVar.Type)));
+                    b.Add(Assert(e.tok, CheckGhostType(idExpressionToTest, boundVar.SecondaryType),
+                      $"Could not prove that the bound variable {boundVar.DisplayName} satisfies " +
+                      $"the (non runtime testable) subset type {boundVar.SecondaryType} after the range, where it's assumed to be of type {boundVar.Type} based on inferred bounds." +
+                      (e.Range != null
+                        ? ""
+                        : $" Consider expliciting the range of the {e.WhatKind}, i.e. {e.Keyword} {boundVar.DisplayName} | RANGE :: TERM instead of {e.Keyword} {boundVar.DisplayName} :: RANGE_AND_TERM.")));
                   });
               }
             }

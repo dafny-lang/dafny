@@ -20,13 +20,21 @@ function method testSpecial(x: Tr): bool
 {
   1/0 == 0
 }
+predicate method {:opaque} isTrue() {
+  true
+}
 
 method Main() {
   var a := new A;
   var b := new B;
   var s: set<Tr> := {a, b};  
   // Resolution Error, because of subset type, need to use explicit range forall x | range :: term
-  var ap := forall a': Ap :: a' in s ==> testSpecial(a');
-  assert(ap);
+  if(isTrue()) {
+    var ap := forall a': Ap :: a' in s ==> testSpecial(a');
+    assert(ap);
+  } else {
+    var ap2 := forall a': Ap | a' in s :: testSpecial(a');
+    assert(ap2);
+  }
   print "ok";
 }

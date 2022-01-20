@@ -4981,6 +4981,10 @@ namespace Microsoft.Dafny {
         foreach (var t in Types) {
           s += " " + t;
         }
+
+        if (tok.line >= 0) {
+          s += $" ({tok.line},{tok.col})";
+        }
         return s;
       }
 
@@ -5016,6 +5020,14 @@ namespace Microsoft.Dafny {
         bool satisfied;
         Type tUp, uUp;
         switch (ConstraintName) {
+          case "SubtypeOfRuntimeTestable": {
+              var u = Types[0].NormalizeExpandKeepConstraints();
+              // Once we know the 
+              if (!CheckTypeInference_Visitor.IsDetermined(u)) return false;
+              resolver.ConstrainSubtypeRelation(Types[1], u.GetRuntimeTestableType(), errorMsg, true);
+              convertedIntoOtherTypeConstraints = true;
+              return true;
+            }
           case "Assignable": {
               Contract.Assert(t == t.Normalize());  // it's already been normalized above
               var u = Types[1].NormalizeExpand();
@@ -6446,6 +6458,14 @@ namespace Microsoft.Dafny {
       }
     }
 
+    string ConstraintPosition(TypeConstraint constraint) {
+      if (constraint.errorMsg is TypeConstraint.ErrorMsgWithToken errWithTok) {
+        return $" ({errWithTok.Tok.line}, {errWithTok.Tok.col})";
+      }
+
+      return "";
+    }
+
     [System.Diagnostics.Conditional("TI_DEBUG_PRINT")]
     void PrintTypeConstraintState(int lbl) {
       if (!DafnyOptions.O.TypeInferenceDebug) {
@@ -6455,7 +6475,10 @@ namespace Microsoft.Dafny {
       foreach (var constraint in AllTypeConstraints) {
         var super = constraint.Super.Normalize();
         var sub = constraint.Sub.Normalize();
-        Console.WriteLine("    {0} :> {1}", super is IntVarietiesSupertype ? "int-like" : super is RealVarietiesSupertype ? "real-like" : super.ToString(), sub);
+        Console.WriteLine("    {0} :> {1}{2}",
+          super is IntVarietiesSupertype ? "int-like" : super is RealVarietiesSupertype ? "real-like" : super.ToString(),
+          sub,
+          ConstraintPosition(constraint));
       }
       foreach (var xc in AllXConstraints) {
         Console.WriteLine("    {0}", xc);
@@ -15284,10 +15307,6 @@ namespace Microsoft.Dafny {
           ResolveExpression(e.Range, opts);
           Contract.Assert(e.Range.Type != null);  // follows from postcondition of ResolveExpression
           ConstrainTypeExprBool(e.Range, "range of quantifier must be of type bool (instead got {0})");
-        } else if (nonRuntimeTestableType != null) {
-          reporter.Error(MessageSource.Resolver, expr,
-            $"The type {nonRuntimeTestableType} ia not run-time testable, hence " +
-            $"you must explicit the range of the {e.WhatKind}, i.e. {(e is ForallExpr ? "forall" : "exists")} VARIABLES | RANGE :: TERM instead of {(e is ForallExpr ? "forall" : "exists")} VARIABLES :: RANGE_AND_TERM.");
         }
         ResolveAttributes(e.Attributes, e, opts);
 
@@ -15301,6 +15320,13 @@ namespace Microsoft.Dafny {
         // Since the body is more likely to infer the types of the bound variables, resolve it
         // first (above) and only then resolve the attributes (below).
         scope.PopMarker();
+        // Discard old type inteference if this type cannot be tested at run-time.
+        foreach (BoundVar v in e.BoundVars) {
+          if (v.HasSecondaryType()) {
+            v.ReplaceType(); // Reinstate the runtime testable type since verification uses bounded variable
+          }
+        }
+
         allTypeParameters.PopMarker();
         expr.Type = Type.Bool;
 
@@ -15324,8 +15350,8 @@ namespace Microsoft.Dafny {
         scope.PopMarker();
         // Discard old type inteference if this type cannot be tested at run-time.
         foreach (BoundVar v in e.BoundVars) {
-          if (v.HasReplacementType()) {
-            v.ReplaceType(); // Reinstate the original type set by the user just for the term.
+          if (v.HasSecondaryType()) {
+            v.ReplaceType(); // Reinstate the runtime testable type since verification uses bounded variable
           }
         }
 
@@ -15353,6 +15379,13 @@ namespace Microsoft.Dafny {
         Contract.Assert(e.Term.Type != null);  // follows from postcondition of ResolveExpression
 
         scope.PopMarker();
+        // Discard old type inteference if this type cannot be tested at run-time.
+        foreach (BoundVar v in e.BoundVars) {
+          if (v.HasSecondaryType()) {
+            v.ReplaceType(); // Reinstate the runtime testable type since verification uses bounded variable
+          }
+        }
+
         expr.Type = new MapType(e.Finite, e.TermLeft != null ? e.TermLeft.Type : e.BoundVars[0].Type, e.Term.Type);
 
       } else if (expr is LambdaExpr) {
@@ -15430,7 +15463,7 @@ namespace Microsoft.Dafny {
     private void ScopePushBoundVarsForTerm(IBoundVarsBearingExpression e) {
       // For the term only, we can assume the inferred type which has to be proved later
       foreach (BoundVar v in e.AllBoundVars) {
-        if (v.HasReplacementType()) {
+        if (v.HasSecondaryType()) {
           v.ReplaceType(); // Reinstate the original type set by the user, only for the term.
         }
 
@@ -15455,10 +15488,11 @@ namespace Microsoft.Dafny {
         // Else, the the scoped type is the upper type that can be tested.
         if (!v.Type.IsRuntimeTestable()) {
           nonRuntimeTestableType = v.Type;
-          var collectionVarType = v.Type.GetRuntimeTestableType();
+          var collectionVarType = v.Type is InferredTypeProxy ? new InferredTypeProxy() : v.Type.GetRuntimeTestableType(); ;
           if (v.Type is InferredTypeProxy) {
-            AddAssignableConstraint(e.Token, collectionVarType, v.Type,
-              "Collection type '{0}' should be a superset of the assignable type (got '{1}')");
+            AddXConstraint(e.Token, "SubtypeOfRuntimeTestable", v.Type, collectionVarType,
+              "Collection type '{1}' should be a run-time testable parent of its final element, but got '{0}'"
+            );
           }
 
           v.ReplaceType(collectionVarType);
@@ -15569,6 +15603,14 @@ namespace Microsoft.Dafny {
       if (!allowBitVector) {
         AddXConstraint(tok, "IntegerType", type, errorMsg);
       }
+    }
+
+    void AddSubtypeOfRuntimeTestableConstraint(IToken tok, Type lhs, Type rhs, string errMsgFormat) {
+      Contract.Requires(tok != null);
+      Contract.Requires(lhs != null);
+      Contract.Requires(rhs != null);
+      Contract.Requires(errMsgFormat != null);
+      AddXConstraint(tok, "SubtypeOfRuntimeTestable", lhs, rhs, errMsgFormat);
     }
 
     void AddAssignableConstraint(IToken tok, Type lhs, Type rhs, string errMsgFormat) {

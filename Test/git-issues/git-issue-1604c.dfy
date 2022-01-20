@@ -1,7 +1,6 @@
-// RUN: %dafny /compile:0 /rprint:"%t.rprint" /compileTarget:js "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:js "%s" > "%t"
+// RUN: %dafny /compile:4 /compileTarget:js "%s" > "%t"
 // RUN: %dafny /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:go "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /spillTargetCode:1 /compileTarget:go "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
@@ -36,6 +35,14 @@ method Main() {
 
   // Fine because Ap has the same type as elements of s2
   var ab := forall a': Ap | a' in s2 :: testSpecial(a');
+
+  // No way to make any of these work, for now ?
+  //ab := forall a': Ap :: !testSpecial(a') ==> !(a' in s2);
+  //ab := forall a': Ap :: a' in s2 ==> testSpecial(a');
+
+  var si: set<int> := {2, 3, 4};
+  var ai:= forall i: nat :: i in si ==> i > 1;
+
   assert aa;
   assert ab;
   print "ok";

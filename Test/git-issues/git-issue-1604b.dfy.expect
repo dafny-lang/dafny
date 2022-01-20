@@ -1,5 +1,12 @@
-git-issue-1604b.dfy(57,38): Error: 'c' has been lately inferred to be of the subset type GhostEvenCell which has a non-compilable constraint, which prevents this set comprehension of Cell to be compiled. If you really want the verifier to check it, please explicitely annotate the bound variable (c: GhostEvenCell). The next error will explain why the constraint is not compilable.
-git-issue-1604b.dfy(10,31): Error: predicate calls are allowed only in specification contexts (consider declaring the predicate a 'predicate method')
-git-issue-1604b.dfy(61,38): Error: 'c' has been lately inferred to be of the subset type GhostEvenCell which has a non-compilable constraint, which prevents this set comprehension of Cell to be compiled. If you really want the verifier to check it, please explicitely annotate the bound variable (c: GhostEvenCell). The next error will explain why the constraint is not compilable.
-git-issue-1604b.dfy(10,31): Error: predicate calls are allowed only in specification contexts (consider declaring the predicate a 'predicate method')
-4 resolution/type errors detected in git-issue-1604b.dfy
+git-issue-1604b.dfy(54,34): Error: Could not prove that the bound variable c satisfies the (non runtime testable) subset type GhostEvenCell after the range, where it's assumed to be of type Cell based on inferred bounds.
+git-issue-1604b.dfy(54,77): Error: value does not satisfy the subset constraints of 'GhostEvenCell'
+git-issue-1604b.dfy(57,34): Error: Could not prove that the bound variable c satisfies the (non runtime testable) subset type GhostEvenCell after the range, where it's assumed to be of type Cell based on inferred bounds.
+git-issue-1604b.dfy(60,34): Error: Could not prove that the bound variable c satisfies the (non runtime testable) subset type GhostEvenCell after the range, where it's assumed to be of type Cell based on inferred bounds.
+git-issue-1604b.dfy(63,77): Error: value does not satisfy the subset constraints of 'GhostEvenCell'
+git-issue-1604b.dfy(66,34): Error: Could not prove that the bound variable c satisfies the (non runtime testable) subset type GhostEvenCell after the range, where it's assumed to be of type Cell based on inferred bounds.
+git-issue-1604b.dfy(66,92): Error: value does not satisfy the subset constraints of 'GhostEvenCell'
+git-issue-1604b.dfy(69,92): Error: value does not satisfy the subset constraints of 'GhostEvenCell'
+git-issue-1604b.dfy(72,85): Error: value does not satisfy the subset constraints of 'CompilableEvenCell'
+git-issue-1604b.dfy(74,9): Error: assertion violation
+
+Dafny program verifier finished with 9 verified, 10 errors
