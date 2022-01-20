@@ -11448,21 +11448,18 @@ namespace Microsoft.Dafny {
     }
 
     private class TriggersExplorer : BottomUpVisitor {
-      VariablesCollector collector;
+      private readonly VariablesCollector collector;
 
-      internal ISet<IVariable> TriggerVariables { get { return collector.variables; } }
+      internal ISet<IVariable> TriggerVariables => collector.variables;
 
       internal TriggersExplorer() {
         collector = new VariablesCollector();
       }
 
       protected override void VisitOneExpr(Expression expr) {
-        if (expr is QuantifierExpr) {
-          var e = (QuantifierExpr)expr;
-          if (e.SplitQuantifier == null) {
-            foreach (var trigger in (expr as QuantifierExpr).Attributes.AsEnumerable().Where(a => a.Name == "trigger").SelectMany(a => a.Args)) {
-              collector.Visit(trigger);
-            }
+        if (expr is QuantifierExpr quantifierExpr && quantifierExpr.SplitQuantifier == null) {
+          foreach (var trigger in quantifierExpr.Attributes.AsEnumerable().Where(a => a.Name == "trigger").SelectMany(a => a.Args)) {
+            collector.Visit(trigger);
           }
         }
       }
