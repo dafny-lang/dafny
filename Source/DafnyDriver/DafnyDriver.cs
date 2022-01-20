@@ -153,7 +153,7 @@ namespace Microsoft.Dafny {
         if (supportedExtensions.Contains(extension)) {
           otherFiles.Add(file);
         } else if (!isDafnyFile) {
-          ExecutionEngine.printer.ErrorWriteLine(Console.Out, 
+          ExecutionEngine.printer.ErrorWriteLine(Console.Out,
             "*** Error: '{0}': Filename extension '{1}' is not supported. Input files must be Dafny programs (.dfy) or supported auxiliary files ({2})",
             file, extension ?? "", string.Join(", ", supportedExtensions));
           return CommandLineArgumentsResult.PREPROCESSING_ERROR;
@@ -572,7 +572,7 @@ namespace Microsoft.Dafny {
       if (outputWriter == null) {
         outputWriter = Console.Out;
       }
-      
+
       // Compile the Dafny program into a string that contains the target program
       var oldErrorCount = dafnyProgram.reporter.Count(ErrorLevel.Error);
       Dafny.ICompiler compiler =

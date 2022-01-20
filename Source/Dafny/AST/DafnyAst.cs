@@ -4285,7 +4285,7 @@ namespace Microsoft.Dafny {
           }
         }
 
-        return DafnyOptions.O.CompilerFactoryInstance.GetCompileName(EnclosingModuleDefinition.IsDefaultModule, 
+        return DafnyOptions.O.CompilerFactoryInstance.GetCompileName(EnclosingModuleDefinition.IsDefaultModule,
           EnclosingModuleDefinition.CompileName, CompileName);
       }
     }

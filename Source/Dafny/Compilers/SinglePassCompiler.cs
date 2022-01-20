@@ -50,7 +50,7 @@ namespace Microsoft.Dafny {
       }
       return n;
     }
-    
+
     public CompilerFactory Factory { get; }
 
     public ErrorReporter Reporter;
@@ -1354,7 +1354,7 @@ namespace Microsoft.Dafny {
       if (name != null && name == "-") {
         return false;
       }
-      
+
       if (name != null && name != "") {
         foreach (var module in program.CompileModules) {
           if (module.IsAbstract) {
