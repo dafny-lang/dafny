@@ -164,7 +164,7 @@ namespace Microsoft.Dafny {
     public ModuleSignature RefinedSig;  // the intention is to use this field only after a successful PreResolve
     private ModuleSignature refinedSigOpened;
 
-    internal override void PreResolve(ModuleDefinition m) {
+    public override void PreResolve(ModuleDefinition m) {
       if (m.RefinementQId?.Decl != null) { // There is a refinement parent and it resolved OK
         RefinedSig = m.RefinementQId.Sig;
 
@@ -485,7 +485,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    internal override void PostResolve(ModuleDefinition m) {
+    public override void PostResolve(ModuleDefinition m) {
       if (m == moduleUnderConstruction) {
         while (this.postTasks.Count != 0) {
           var a = postTasks.Dequeue();

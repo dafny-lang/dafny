@@ -67,7 +67,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(reporter != null);
     }
 
-    internal override void PostResolve(ModuleDefinition m) {
+    public override void PostResolve(ModuleDefinition m) {
       var splitter = new Triggers.QuantifierSplitter();
       foreach (var decl in ModuleDefinition.AllCallables(m.TopLevelDecls)) {
         splitter.Visit(decl);
@@ -82,7 +82,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(reporter != null);
     }
 
-    internal override void PostResolve(ModuleDefinition m) {
+    public override void PostResolve(ModuleDefinition m) {
       var forallvisiter = new ForAllStmtVisitor(reporter);
       foreach (var decl in ModuleDefinition.AllCallables(m.TopLevelDecls)) {
         forallvisiter.Visit(decl, true);
@@ -456,7 +456,7 @@ namespace Microsoft.Dafny {
       this.builtIns = builtIns;
     }
 
-    internal override void PreResolve(ModuleDefinition m) {
+    public override void PreResolve(ModuleDefinition m) {
       foreach (var d in m.TopLevelDecls) {
         bool sayYes = true;
         if (d is ClassDecl && Attributes.ContainsBool(d.Attributes, "autocontracts", ref sayYes) && sayYes) {
@@ -543,7 +543,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    internal override void PostResolve(ModuleDefinition m) {
+    public override void PostResolve(ModuleDefinition m) {
       foreach (var d in m.TopLevelDecls) {
         bool sayYes = true;
         if (d is ClassDecl && Attributes.ContainsBool(d.Attributes, "autocontracts", ref sayYes) && sayYes) {
@@ -910,7 +910,7 @@ namespace Microsoft.Dafny {
       revealOriginal = new Dictionary<Method, Function>();
     }
 
-    internal override void PreResolve(ModuleDefinition m) {
+    public override void PreResolve(ModuleDefinition m) {
       foreach (var d in m.TopLevelDecls) {
         if (d is TopLevelDeclWithMembers) {
           ProcessOpaqueClassFunctions((TopLevelDeclWithMembers)d);
@@ -918,7 +918,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    internal override void PostResolve(ModuleDefinition m) {
+    public override void PostResolve(ModuleDefinition m) {
       foreach (var decl in ModuleDefinition.AllCallables(m.TopLevelDecls)) {
         if (decl is Lemma || decl is TwoStateLemma) {
           var lem = (Method)decl;
@@ -1053,7 +1053,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(reporter != null);
     }
 
-    internal override void PostResolve(ModuleDefinition m) {
+    public override void PostResolve(ModuleDefinition m) {
       var components = m.CallGraph.TopologicallySortedComponents();
 
       foreach (var scComponent in components) {  // Visit the call graph bottom up, so anything we call already has its prequisites calculated
@@ -1416,7 +1416,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(reporter != null);
     }
 
-    internal override void PreResolve(ModuleDefinition m) {
+    public override void PreResolve(ModuleDefinition m) {
       var declarations = m.TopLevelDecls;
 
       foreach (var d in declarations) {
@@ -1481,7 +1481,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(reporter != null);
     }
 
-    internal override void PreResolve(ModuleDefinition m) {
+    public override void PreResolve(ModuleDefinition m) {
       foreach (var d in m.TopLevelDecls) {
         if (d is TopLevelDeclWithMembers tld) {
           foreach (MemberDecl member in tld.Members) {
