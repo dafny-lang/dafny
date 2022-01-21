@@ -439,19 +439,17 @@ namespace Microsoft.Dafny {
       rewriters.Add(new InductionRewriter(reporter));
 
       if (DafnyOptions.O.Plugins.Count() >= 1) {
-        IToken GetFirstTopLevelToken() {
-          return prog.DefaultModuleDef.TopLevelDecls.Select(x => x as ClassDecl)
-            .Where(x => x != null)
-            .SelectMany(classDecl => classDecl.Members)
-            .Where(member => member.tok.line > 0)
-            .Select(member => member.tok).FirstOrDefault(Token.NoToken);
-        }
-
         foreach (var assembly in DafnyOptions.O.Plugins) {
           foreach (System.Type type in assembly.GetTypes().Where(t => t.IsAssignableTo(typeof(IRewriter)))) {
-            var pluginRewriter = Activator.CreateInstance(type, reporter) as IRewriter;
+            IRewriter pluginRewriter = null;
+            Exception e = null;
+            try {
+              pluginRewriter = Activator.CreateInstance(type, reporter) as IRewriter;
+            } catch (Exception _e) {
+              e = _e;
+            }
             if (pluginRewriter == null) {
-              reporter.Error(MessageSource.Resolver, GetFirstTopLevelToken(), $"[Internal error] '{type.FullName}' could not be created as an IRewriter");
+              reporter.Error(MessageSource.Resolver, prog.GetFirstTopLevelToken(), $"[Internal error] '{type.FullName}' could not be created as an IRewriter" + (e != null ? ":" + e.ToString() : ""));
             } else {
               rewriters.Add(pluginRewriter);
             }

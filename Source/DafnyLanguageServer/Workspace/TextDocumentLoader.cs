@@ -118,7 +118,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       if (dafnyPluginsOptions.Value.Plugins.Length > 0 && DafnyOptions.O.Plugins.Count == 0) {
-        DafnyOptions.O.Parse(new[] { "-plugins:" + dafnyPluginsOptions.Value.Plugins });
+        try {
+          DafnyOptions.O.Parse(new[] { "-plugins:" + dafnyPluginsOptions.Value.Plugins });
+        } catch (Exception e) {
+          errorReporter.Error(MessageSource.Parser, program.GetFirstTopLevelToken(), "Error while instantiating the plugins:" + e.ToString());
+        }
       }
 
       var compilationUnit = symbolResolver.ResolveSymbols(textDocument, program, cancellationToken);
