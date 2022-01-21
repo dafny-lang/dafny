@@ -10,8 +10,9 @@ This is the procedure for generating a new Dafny release.
 
 2) Select a version number (descriptor) $VER (e.g., "3.0.0" or "3.0.0-alpha")
    and select an internal version number (e.g., "3.0.0.30203")
-   guideline for internal version number:Use the no. of years since 2018 and release date
-   e.g.,Release on January 12th 2022 = 2018 + 4 years and date in "mmdd" - x.y.z.40112
+   The last section is in format "ymmdd" format
+   where y is years since 2018 and then release date in "mmdd"
+   (e.g., Release on January 12th 2022  2018 + 4 years and date in "mmdd" - x.y.z.40112)
    Edit the internal version number in Source/version.cs.
    Push/merge that change to the master branch.
 
