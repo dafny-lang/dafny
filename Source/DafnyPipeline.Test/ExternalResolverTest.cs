@@ -39,19 +39,6 @@ public class ExternalResolverTest {
     var assemblyPath = $"{temp}.dll";
     var result = compilation.Emit(assemblyPath);
 
-    var configuration = JsonSerializer.Serialize(
-      new {
-        runtimeOptions = new {
-          tfm = "net6.0",
-          framework = new {
-            name = "Microsoft.NETCore.App",
-            version = "6.0.0",
-            rollForward = "LatestMinor"
-          }
-        }
-      }, new JsonSerializerOptions() { WriteIndented = true });
-    await File.WriteAllTextAsync(temp + ".runtimeconfig.json", configuration + Environment.NewLine);
-
     Assert.True(result.Success, string.Join("\n", result.Diagnostics.Select(d => d.ToString())));
     return Assembly.LoadFrom(assemblyPath);
   }
