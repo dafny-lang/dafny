@@ -240,11 +240,14 @@ namespace Microsoft.Dafny {
               var pluginsList = args[ps.i];
               if (pluginsList.Length > 0) {
                 foreach (var pluginPath in pluginsList.Split(',').Where(s => s.Length > 0)) {
+                  Console.WriteLine($"Loading {pluginPath}...");
                   var pluginAssembly = Assembly.LoadFrom(pluginPath);
+                  Console.WriteLine($"Loaded {pluginPath}...");
                   if (!pluginAssembly.GetTypes().Any(t =>
                         t.IsAssignableTo(typeof(IRewriter)))) {
                     throw new Exception($"Plugin {pluginPath} does not contain any Microsoft.Dafny.IRewriter");
                   }
+                  Console.WriteLine($"At least one IRewriter in {pluginPath}...");
                   Plugins.Add(pluginAssembly);
                 }
               }
