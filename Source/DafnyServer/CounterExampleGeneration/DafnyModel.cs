@@ -30,11 +30,11 @@ namespace DafnyServer.CounterexampleGeneration {
     private readonly Dictionary<Model.Element, Model.Element[]> arrayLengths = new();
     private readonly Dictionary<Model.Element, Model.FuncTuple> datatypeValues = new();
     private readonly Dictionary<Model.Element, string> localValue = new();
-    // Maps an element's id to another unique id. This can be used to
-    // distinguish between basic-typed variables for which the model does not
-    // specify values. This mapping makes ids shorter since there are fewer such
-    // elements than there are elements in general.
-    private readonly Dictionary<int, int> shortElementIds = new();
+    // maps a basic type (int, real, bv4, etc.) to the set of values that
+    // the model assigns to variables of this type. 
+    private readonly Dictionary<string, HashSet<string>> reservedValues = new();
+    // maps a particular element to a value reserved for it (see above)
+    private readonly Dictionary<Model.Element, string> reservedValuesMap = new();
 
 
     public DafnyModel(Model model) {
@@ -75,6 +75,7 @@ namespace DafnyServer.CounterexampleGeneration {
       fTag = model.MkFunc("Tag", 1);
       fBv = model.MkFunc("TBitvector", 1);
       InitArraysAndDataTypes();
+      RegisterReservedValues();
       foreach (var s in model.States) {
         var sn = new DafnyModelState(this, s);
         States.Add(sn);
@@ -152,6 +153,60 @@ namespace DafnyServer.CounterexampleGeneration {
         result.Else ??= func.Else;
       }
       return result;
+    }
+    
+    /// <summary>
+    /// Registered all values of basic types specified by the model in
+    /// the reservedValues map;
+    /// </summary>
+    private void RegisterReservedValues() {
+      var fCharToInt = Model.MkFunc("char#ToInt", 1);
+      reservedValues["char"] = new();
+      foreach (var app in fCharToInt.Apps) {
+        var UTFCode = int.Parse(((Model.Integer)app.Result).Numeral);
+        reservedValues["char"].Add(Convert.ToChar(UTFCode).ToString());
+      }
+
+      var fU2Int = Model.MkFunc("U_2_int", 1);
+      reservedValues["int"] = new();
+      foreach (var app in fU2Int.Apps) {
+        // this skips negative values
+        if (app.Result is Model.Integer) {
+          reservedValues["int"].Add(((Model.Integer)app.Result).Numeral);
+        }
+      }
+
+      var fU2Bool = Model.MkFunc("U_2_bool", 1);
+      reservedValues["bool"] = new();
+      foreach (var app in fU2Bool.Apps) {
+        reservedValues["bool"].Add(((Model.Boolean)app.Result).ToString());
+      }
+
+      var fU2Real = Model.MkFunc("U_2_real", 1);
+      reservedValues["real"] = new();
+      foreach (var app in fU2Real.Apps) {
+        var resultAsString = app.Result.ToString() ?? "";
+        // this skips fractions and negative values
+        if (app.Result is Model.Real && resultAsString.Contains("/")) {
+          reservedValues["real"].Add(Regex.Replace(
+            resultAsString, "\\.0$", ""));
+        }
+      }
+
+      foreach (var func in Model.Functions) {
+        if (!Regex.IsMatch(func.Name, "^U_2_bv[0-9]+$")) {
+          continue;
+        }
+
+        var type = func.Name[4..];
+        if (!reservedValues.ContainsKey(type)) {
+          reservedValues[type] = new();
+        }
+
+        foreach (var app in func.Apps) {
+          reservedValues[type].Add((app.Result as Model.BitVector).Numeral);
+        }
+      }
     }
 
     /// <summary>
@@ -433,12 +488,12 @@ namespace DafnyServer.CounterexampleGeneration {
         var typeName = GetTrueName(fType.OptEval(elt));
         var funcName = "U_2_" + typeName[..^4];
         if (!Model.HasFunc(funcName)) {
-          return "?#" + GetShortElementId(elt);
+          return GetUnspecifiedValue(elt, typeName[..^4]);
         }
         if (Model.GetFunc(funcName).OptEval(elt) != null) {
           return Model.GetFunc(funcName).OptEval(elt).AsInt().ToString();
         }
-        return "?#" + GetShortElementId(elt);
+        return GetUnspecifiedValue(elt, typeName[..^4]);
       }
       if (elt.Kind == Model.ElementKind.DataValue) {
         if (((Model.DatatypeValue)elt).ConstructorName == "-") {
@@ -458,34 +513,65 @@ namespace DafnyServer.CounterexampleGeneration {
           utfCode = ((Model.Integer)fCharToInt.OptEval(elt)).AsInt();
           return "'" + char.ConvertFromUtf32(utfCode) + "'";
         }
-        return "?#" + GetShortElementId(elt);
+        return GetUnspecifiedValue(elt, "char");
       }
       if (fType.OptEval(elt) == fReal.GetConstant()) {
         if (fU2Real.OptEval(elt) != null) {
           return CanonicalName(fU2Real.OptEval(elt));
         }
-        return "?#" + GetShortElementId(elt);
+        return GetUnspecifiedValue(elt, "real");
       }
       if (fType.OptEval(elt) == fBool.GetConstant()) {
         if (fU2Bool.OptEval(elt) != null) {
           return CanonicalName(fU2Bool.OptEval(elt));
         }
-        return "?#" + GetShortElementId(elt);
+        return GetUnspecifiedValue(elt, "bool");
       }
       if (fType.OptEval(elt) == fInt.GetConstant()) {
         if (fU2Int.OptEval(elt) != null) {
           return CanonicalName(fU2Int.OptEval(elt));
         }
-        return "?#" + GetShortElementId(elt);
+        return GetUnspecifiedValue(elt, "int");
       }
       return "";
     }
 
-    private int GetShortElementId(Model.Element element) {
-      if (!shortElementIds.ContainsKey(element.Id)) {
-        shortElementIds[element.Id] = shortElementIds.Count;
+    private string GetUnspecifiedValue(Model.Element element, string primitiveType) {
+      if (reservedValuesMap.ContainsKey(element)) {
+        return reservedValuesMap[element];
       }
-      return shortElementIds[element.Id];
+
+      if (primitiveType == "bool") {
+        if (!reservedValues["bool"].Contains("true")) {
+          reservedValues["bool"].Add("true");
+          reservedValuesMap[element] = "true";
+        } else {
+          reservedValuesMap[element] = "false";
+        }
+        return reservedValuesMap[element];
+      }
+
+      var i = 0;
+      if (primitiveType == "char") {
+        i = 33; // 33 is the first non special character (excluding space)
+        while (reservedValues["char"].Contains(Convert.ToChar(i).ToString())) {
+          i++;
+        }
+        reservedValuesMap[element] = $"'{Convert.ToChar(i)}'";
+        reservedValues[primitiveType].Add(Convert.ToChar(i).ToString());
+        return reservedValuesMap[element];
+      }
+      
+      while (reservedValues[primitiveType].Contains(i.ToString())) {
+        i++;
+      }
+      if (primitiveType == "real") {
+        reservedValuesMap[element] = i + ".0";  
+      } else {
+        reservedValuesMap[element] = i.ToString();
+      }
+      reservedValues[primitiveType].Add(reservedValuesMap[element]);
+      return reservedValuesMap[element];
     }
 
     /// <summary>

@@ -422,7 +422,7 @@ method listHasSingleElement(list:List<bool>)
       Assert.AreEqual(1, counterExamples.Length);
       Assert.AreEqual(2, counterExamples[0].Variables.Count);
       Assert.IsTrue(counterExamples[0].Variables.ContainsKey("list:_module.List<bool>"));
-      StringAssert.Matches(counterExamples[0].Variables["list:_module.List<bool>"], new Regex("Cons\\(head := \\?#[0-9]+, tail := @[0-9]+\\)"));
+      StringAssert.Matches(counterExamples[0].Variables["list:_module.List<bool>"], new Regex("Cons\\(head := (true|false), tail := @[0-9]+\\)"));
     }
 
     [TestMethod]
@@ -441,7 +441,7 @@ method listHasSingleElement(list:List<int>)
       Assert.AreEqual(1, counterExamples.Length);
       Assert.AreEqual(2, counterExamples[0].Variables.Count);
       Assert.IsTrue(counterExamples[0].Variables.ContainsKey("list:_module.List<int>"));
-      StringAssert.Matches(counterExamples[0].Variables["list:_module.List<int>"], new Regex("Cons\\(head := \\?#[0-9]+, tail := @[0-9]+\\)"));
+      StringAssert.Matches(counterExamples[0].Variables["list:_module.List<int>"], new Regex("Cons\\(head := -?[0-9]+, tail := @[0-9]+\\)"));
     }
 
     [TestMethod]
@@ -460,7 +460,7 @@ method listHasSingleElement(list:List<real>)
       Assert.AreEqual(1, counterExamples.Length);
       Assert.AreEqual(2, counterExamples[0].Variables.Count);
       Assert.IsTrue(counterExamples[0].Variables.ContainsKey("list:_module.List<real>"));
-      StringAssert.Matches(counterExamples[0].Variables["list:_module.List<real>"], new Regex("Cons\\(head := \\?#[0-9]+, tail := @[0-9]+\\)"));
+      StringAssert.Matches(counterExamples[0].Variables["list:_module.List<real>"], new Regex("Cons\\(head := -?[0-9]+\\.[0-9], tail := @[0-9]+\\)"));
     }
 
     [TestMethod]
@@ -948,10 +948,10 @@ method test(m:map<int,char>) {
     [TestMethod]
     public async Task MapsValues() {
       var source = @"
-      method test(m:map<int,char>) {
-       var values := m.Values;
-       assert ('c' !in values);
-      }".TrimStart();
+method test(m:map<int,char>) {
+  var values := m.Values;
+  assert ('c' !in values);
+}".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
@@ -961,6 +961,24 @@ method test(m:map<int,char>) {
       Assert.IsTrue(counterExamples[1].Variables.ContainsKey("values:set<char>"));
       StringAssert.Matches(counterExamples[1].Variables["m:map<int,char>"], new Regex("\\(.* := 'c'.*"));
       StringAssert.Matches(counterExamples[1].Variables["values:set<char>"], new Regex("\\{.*'c' := true.*"));
+    }
+    
+    [TestMethod]
+    public async Task MapsOfBitVectors() {
+      // This test case triggers a situation in which the model does not
+      // specify concrete values for bit vectors and the counterexample extraction
+      // tool has to come up with such a value
+      var source = @"
+      method test(m:map<bv2,bv3>) {
+       assert |m| == 0;
+      }".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
+      Assert.AreEqual(1, counterExamples.Length);
+      Assert.AreEqual(1, counterExamples[0].Variables.Count);
+      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("m:map<bv2,bv3>"));
+      StringAssert.Matches(counterExamples[0].Variables["m:map<bv2,bv3>"], new Regex("\\(.*[0-9]+ := [0-9]+.*"));
     }
 
     [TestMethod]
