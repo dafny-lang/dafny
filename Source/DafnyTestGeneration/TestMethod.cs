@@ -12,7 +12,7 @@ namespace DafnyTestGeneration {
   public class TestMethod {
 
     private static int nextId; // next unique id to be assigned
-    
+
     // list of values to mock together with their types
     public readonly List<(string id, DafnyModelType type)> ObjectsToMock = new();
     // maps a variable that is mocked to its unique id

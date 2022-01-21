@@ -962,7 +962,7 @@ method test(m:map<int,char>) {
       StringAssert.Matches(counterExamples[1].Variables["m:map<int,char>"], new Regex("\\(.* := 'c'.*"));
       StringAssert.Matches(counterExamples[1].Variables["values:set<char>"], new Regex("\\{.*'c' := true.*"));
     }
-    
+
     [TestMethod]
     public async Task MapsOfBitVectors() {
       // This test case triggers a situation in which the model does not

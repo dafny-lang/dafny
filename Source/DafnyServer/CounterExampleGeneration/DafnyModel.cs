@@ -154,7 +154,7 @@ namespace DafnyServer.CounterexampleGeneration {
       }
       return result;
     }
-    
+
     /// <summary>
     /// Registered all values of basic types specified by the model in
     /// the reservedValues map;
@@ -561,12 +561,12 @@ namespace DafnyServer.CounterexampleGeneration {
         reservedValues[primitiveType].Add(Convert.ToChar(i).ToString());
         return reservedValuesMap[element];
       }
-      
+
       while (reservedValues[primitiveType].Contains(i.ToString())) {
         i++;
       }
       if (primitiveType == "real") {
-        reservedValuesMap[element] = i + ".0";  
+        reservedValuesMap[element] = i + ".0";
       } else {
         reservedValuesMap[element] = i.ToString();
       }
