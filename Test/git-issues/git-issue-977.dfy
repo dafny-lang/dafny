@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %dafny /compile:0 /printTooltips "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype Option<V> = Some(value: V) | None
@@ -176,4 +176,43 @@ lemma Test7(k: nat, n: int)
 {
   About_NumNat(k, ToNumber(if n < 0 then 0 else n));
   assert RicochetNat(k, ToNumber(if n < 0 then 0 else n));  // info: not inlined
+}
+
+// ----- Inline/trigger issues for prefix predicates --------------------------------------------------------
+
+module PrefixBodyInlining {
+  greatest predicate AAA(r: nat)
+  {
+    BBB(r)
+  }
+
+  greatest predicate BBB(s: nat)
+
+  lemma P(k: ORDINAL, n: int)
+    requires forall t :: AAA#[k](t)
+  {
+    // We DO NOT want the following call to be inlined--a trigger would then contain a "<".
+    assert AAA#[k](if n < 0 then 0 else n); // info: not inlined
+  }
+
+
+
+  codatatype IList = ICons(head: int, tail: IList)
+
+  function UpIList(n: int): IList
+  {
+    ICons(n, UpIList(n+1))
+  }
+
+  greatest predicate Pos(s: IList)
+  {
+    s.head > 0 && Pos(s.tail)
+  }
+
+  greatest lemma {:induction false} Theorem2(n: int)
+    requires 1 <= n
+    ensures Pos(UpIList(n)) // We DO want this call to be inlined--needed to prove the lemma.
+  {
+    Theorem2(n+1);
+  }
 }
