@@ -444,9 +444,7 @@ namespace Microsoft.Dafny {
             IRewriter pluginRewriter = null;
             Exception e = null;
             try {
-              Console.WriteLine($"Creating instance...");
               pluginRewriter = Activator.CreateInstance(type, reporter) as IRewriter;
-              Console.WriteLine($"Created instance...");
             } catch (Exception _e) {
               e = _e;
             }
