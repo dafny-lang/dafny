@@ -46,7 +46,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         services.GetRequiredService<IGhostStateDiagnosticCollector>(),
         services.GetRequiredService<ICompilationStatusNotificationPublisher>(),
         services.GetRequiredService<ILoggerFactory>(),
-        services.GetRequiredService<IOptions<CompilerOptions>>()
+        services.GetRequiredService<IOptions<DafnyPluginsOptions>>()
       );
     }
   }

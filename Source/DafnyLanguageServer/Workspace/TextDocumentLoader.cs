@@ -33,7 +33,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private readonly ICompilationStatusNotificationPublisher notificationPublisher;
     private readonly ILoggerFactory loggerFactory;
     private readonly BlockingCollection<Request> requestQueue = new();
-    private readonly IOptions<CompilerOptions> compilerOptions;
+    private readonly IOptions<DafnyPluginsOptions> dafnyPluginsOptions;
 
     private TextDocumentLoader(
       ILoggerFactory loggerFactory,
@@ -43,7 +43,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       ISymbolTableFactory symbolTableFactory,
       IGhostStateDiagnosticCollector ghostStateDiagnosticCollector,
       ICompilationStatusNotificationPublisher notificationPublisher,
-      IOptions<CompilerOptions> compilerOptions) {
+      IOptions<DafnyPluginsOptions> dafnyPluginsOptions) {
       this.parser = parser;
       this.symbolResolver = symbolResolver;
       this.verifier = verifier;
@@ -51,7 +51,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       this.ghostStateDiagnosticCollector = ghostStateDiagnosticCollector;
       this.notificationPublisher = notificationPublisher;
       this.loggerFactory = loggerFactory;
-      this.compilerOptions = compilerOptions;
+      this.dafnyPluginsOptions = dafnyPluginsOptions;
     }
 
     public static TextDocumentLoader Create(
@@ -62,7 +62,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       IGhostStateDiagnosticCollector ghostStateDiagnosticCollector,
       ICompilationStatusNotificationPublisher notificationPublisher,
       ILoggerFactory loggerFactory,
-      IOptions<CompilerOptions> compilerOptions
+      IOptions<DafnyPluginsOptions> compilerOptions
       ) {
       var loader = new TextDocumentLoader(loggerFactory, parser, symbolResolver, verifier, symbolTableFactory, ghostStateDiagnosticCollector, notificationPublisher, compilerOptions);
       var loadThread = new Thread(loader.Run, MaxStackSize) { IsBackground = true };
@@ -117,8 +117,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return CreateDocumentWithEmptySymbolTable(loggerFactory.CreateLogger<SymbolTable>(), textDocument, errorReporter, program, loadCanceled: false);
       }
 
-      if (compilerOptions.Value.Backends.Length > 0) {
-        DafnyOptions.O.CompilerBackends = compilerOptions.Value.Backends.Split(",").Where(x => x.Length > 0).ToList();
+      if (dafnyPluginsOptions.Value.Plugins.Length > 0) {
+        DafnyOptions.O.Parse(new[] { "-plugins:" + dafnyPluginsOptions.Value.Plugins });
       }
 
       var compilationUnit = symbolResolver.ResolveSymbols(textDocument, program, cancellationToken);

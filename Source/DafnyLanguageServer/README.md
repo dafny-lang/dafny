@@ -76,11 +76,11 @@ Options provided through the command line have higher priority than the options 
 --ghost:markStatements=true
 ```
 
-### Compilation Backends
+### Plugins
 
 ```sh
 # Provides a comma-separated list of paths to assemblies
-# that contain an instantiatable IRewrite that is used during resolution
+# that contain an instantiatable IRewrite to use during resolution
 # Default: "" (nothing extra is loaded)
---compiler:backends=
+--dafny:plugins=
 ```

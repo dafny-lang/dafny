@@ -25,7 +25,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       return services
         .Configure<VerifierOptions>(configuration.GetSection(VerifierOptions.Section))
         .Configure<GhostOptions>(configuration.GetSection(GhostOptions.Section))
-        .Configure<CompilerOptions>(configuration.GetSection(CompilerOptions.Section))
+        .Configure<DafnyPluginsOptions>(configuration.GetSection(DafnyPluginsOptions.Section))
         .AddSingleton<IDafnyParser>(serviceProvider => DafnyLangParser.Create(serviceProvider.GetRequiredService<ILogger<DafnyLangParser>>()))
         .AddSingleton<ISymbolResolver, DafnyLangSymbolResolver>()
         .AddSingleton<IProgramVerifier>(CreateVerifier)

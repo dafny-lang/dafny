@@ -18,7 +18,7 @@ public class ExternalResolverTest {
   /// This method creates a library and returns the path to that library.
   /// The library extends an IRewriter so that we can verify that Dafny invokes it if provided in argument.
   /// </summary>
-  public async Task<string> GetLibrary(string code) {
+  public async Task<Assembly> GetLibrary(string code) {
     var temp = Path.GetTempFileName();
     var compilation = CSharpCompilation.Create("tempAssembly");
     var standardLibraries = new List<string>()
@@ -53,7 +53,7 @@ public class ExternalResolverTest {
     await File.WriteAllTextAsync(temp + ".runtimeconfig.json", configuration + Environment.NewLine);
 
     Assert.True(result.Success, string.Join("\n", result.Diagnostics.Select(d => d.ToString())));
-    return assemblyPath;
+    return Assembly.LoadFrom(assemblyPath);
   }
 
   class CollectionErrorReporter : BatchErrorReporter {
@@ -77,7 +77,7 @@ public class ExternalResolverTest {
 
     var reporter = new CollectionErrorReporter();
     var options = new DafnyOptions(reporter);
-    options.CompilerBackends.Add(library);
+    options.Plugins.Add(library);
     DafnyOptions.Install(options);
 
     var programString = "function test(): int { 1 }";

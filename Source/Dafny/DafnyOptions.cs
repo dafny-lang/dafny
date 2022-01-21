@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Diagnostics.Contracts;
 using System.IO;
+using System.Reflection;
 using JetBrains.Annotations;
 using Bpl = Microsoft.Boogie;
 
@@ -138,14 +139,13 @@ namespace Microsoft.Dafny {
     public string BoogieXmlFilename = null;
 
     // invariant: All strings of this list are non-empty
-    public List<string> CompilerBackends = new();
+    public List<Assembly> Plugins = new();
 
     public virtual TestGenerationOptions TestGenOptions =>
       testGenOptions ??= new TestGenerationOptions();
 
     protected override bool ParseOption(string name, Bpl.CommandLineOptionEngine.CommandLineParseState ps) {
       var args = ps.args; // convenient synonym
-
       switch (name) {
         case "dprelude":
           if (ps.ConfirmArgumentCount(1)) {
@@ -235,10 +235,18 @@ namespace Microsoft.Dafny {
             return true;
           }
 
-        case "compiler": {
+        case "plugins": {
             if (ps.ConfirmArgumentCount(1)) {
-              if (args[ps.i].Length > 0) {
-                CompilerBackends.AddRange(args[ps.i].Split(',').Where(s => s.Length > 0));
+              var pluginsList = args[ps.i];
+              if (pluginsList.Length > 0) {
+                foreach (var pluginPath in pluginsList.Split(',').Where(s => s.Length > 0)) {
+                  var pluginAssembly = Assembly.LoadFrom(pluginPath);
+                  if (!pluginAssembly.GetTypes().Any(t =>
+                        t.IsAssignableTo(typeof(IRewriter)))) {
+                    throw new Exception($"Plugin {pluginPath} does not contain any Microsoft.Dafny.IRewriter");
+                  }
+                  Plugins.Add(pluginAssembly);
+                }
               }
             }
 
@@ -817,7 +825,7 @@ namespace Microsoft.Dafny {
     Note that the C++ backend has various limitations (see Docs/Compilation/Cpp.md).
     This includes lack of support for BigIntegers (aka int), most higher order
     functions, and advanced features like traits or co-inductive types.
-/compiler:<assemblies>
+/plugins:<path to assemblies>
     (experimental) List of comma-separated paths to assemblies that contain at least one
     instantiatable class extending Microsoft.Dafny.IRewriter
 /Main:<name>
