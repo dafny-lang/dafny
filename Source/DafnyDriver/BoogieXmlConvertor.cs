@@ -24,33 +24,37 @@ namespace Microsoft.Dafny {
   /// </summary>
   public static class BoogieXmlConvertor {
 
-    public static void RaiseTestLoggerEvents(string fileName, string loggerConfig) {
-      string loggerName;
-      Dictionary<string, string> parameters;
-      int semiColonIndex = loggerConfig.IndexOf(";");
-      if (semiColonIndex >= 0) {
-        loggerName = loggerConfig[..semiColonIndex];
-        var parametersList = loggerConfig[(semiColonIndex + 1)..];
-        parameters = parametersList.Split(",").Select(s => {
-          var equalsIndex = s.IndexOf("=");
-          return (s[..equalsIndex], s[(equalsIndex + 1)..]);
-        }).ToDictionary(p => p.Item1, p => p.Item2);
-      } else {
-        loggerName = loggerConfig;
-        parameters = new();
-      }
-
-      // The only supported value for now
-      if (loggerName != "trx") {
-        throw new ArgumentException($"Unsupported verification logger name: {loggerName}");
-      }
-
-      // Provide just enough configuration for the TRX logger to work
-      parameters["TestRunDirectory"] = Constants.DefaultResultsDirectory;
+    public static void RaiseTestLoggerEvents(string fileName, List<string> loggerConfigs) {
+      // Provide just enough configuration for the loggers to work
+      var parameters = new Dictionary<string, string> {
+        ["TestRunDirectory"] = Constants.DefaultResultsDirectory
+      };
 
       var events = new LocalTestLoggerEvents();
-      var logger = new TrxLogger();
-      logger.Initialize(events, parameters);
+      foreach (var loggerConfig in loggerConfigs) {
+        string loggerName;
+        int semiColonIndex = loggerConfig.IndexOf(";");
+        if (semiColonIndex >= 0) {
+          loggerName = loggerConfig[..semiColonIndex];
+          var parametersList = loggerConfig[(semiColonIndex + 1)..];
+          foreach (string s in parametersList.Split(",")) {
+            var equalsIndex = s.IndexOf("=");
+            parameters.Add(s[..equalsIndex], s[(equalsIndex + 1)..]);
+          };
+        } else {
+          loggerName = loggerConfig;
+        }
+
+        if (loggerName == "trx") {
+          var logger = new TrxLogger();
+          logger.Initialize(events, parameters);
+        } else if (loggerName == "csv") {
+          var csvLogger = new CSVTestLogger();
+          csvLogger.Initialize(events, parameters);
+        } else {
+          throw new ArgumentException("Unsupported verification logger config: {loggerConfig}");
+        }
+      }
       events.EnableEvents();
 
       // Sort failures to the top, and then slower procedures first.
