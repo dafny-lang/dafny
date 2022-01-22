@@ -15,11 +15,11 @@ datatype ReContra<-T> = ReContra(f: T -> bool)
 trait X {}
 
 class Y extends X {
-  constructor Y() {}
+  constructor () {}
 }
 
 method DowncastCo() {
-  var i := new Y.Y();
+  var i := new Y();
   var a: Co<X> := Co(i);
   var b: Co<Y>;
   b := a;
@@ -27,7 +27,7 @@ method DowncastCo() {
 }
 
 method DowncastReCo() {
-  var i := new Y.Y();
+  var i := new Y();
   var a: ReCo<X> := ReCo(i);
   var b: ReCo<Y>;
   b := a;
@@ -35,7 +35,7 @@ method DowncastReCo() {
 }
 
 method DowncastContra() {
-  var y := new Y.Y();
+  var y := new Y();
   var i: Contra<X> := Contra(_ => false);
   var a: Contra<Y> := i;
   var b: Contra<X>;
@@ -44,7 +44,7 @@ method DowncastContra() {
 }
 
 method DowncastReContra() {
-  var y := new Y.Y();
+  var y := new Y();
   var i: ReContra<X> := ReContra(_ => false);
   var a: ReContra<Y> := i;
   var b: ReContra<X>;
@@ -53,7 +53,7 @@ method DowncastReContra() {
 }
 
 method DowncastFunc() {
-  var i := new Y.Y();
+  var i := new Y();
   var a: bool -> X := (_ => i);
   var b: bool -> Y;
   b := a;

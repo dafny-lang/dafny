@@ -138,6 +138,7 @@ namespace Microsoft.Dafny {
           l.Add($"{prefix}Result");
           return l;
         }
+
         string TPs(IEnumerable<string> l) => $"<{l.Comma()}>";
 
         var us = TyList("U");
@@ -529,7 +530,6 @@ namespace Microsoft.Dafny {
     /// </summary>
     private void CompileDatatypeDowncastClone(DatatypeDecl datatype, ConcreteSyntaxTree wr,
         List<TypeParameter> nonGhostTypeArgs, bool toInterface = false, bool lazy = false, DatatypeCtor ctor = null) {
-      if (datatype.Ctors.Any(ctor => ctor.Formals.Any(f => !f.IsGhost && (f.Type.IsRefType)))) { return; }
       var customReceiver = nonGhostTypeArgs.Any(ty => ty.Variance == TypeParameter.TPVariance.Contra);
       var uTypeArgs = TypeParameters(nonGhostTypeArgs, uniqueNames: true);
       var typeArgs = TypeParameters(nonGhostTypeArgs);
@@ -2530,17 +2530,6 @@ namespace Microsoft.Dafny {
       ConcreteSyntaxTree Unsupported(string message) {
         Error(tok, "compilation does not support downcasts involving copying for {0} (like converting from {1} to {2})", wr, message, from, to);
         return new ConcreteSyntaxTree();
-      }
-
-      if (from.IsDatatype) {
-        var dt = from.AsDatatype;
-        /*if (SelectNonGhost(dt, dt.TypeArgs).Any(ty => ty.Variance == TypeParameter.TPVariance.Contra)) {
-          return Unsupported("datatypes with contravariant type parameters");
-        }*/
-        if (dt.Ctors.Any(ctor => ctor.Formals.Any(f => !f.IsGhost && (f.Type.IsRefType)))) {
-          return Unsupported("datatypes with constuctors using functions or references");
-        }
-
       }
 
       var w = new ConcreteSyntaxTree();
