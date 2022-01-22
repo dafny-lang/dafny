@@ -11184,7 +11184,7 @@ namespace Microsoft.Dafny {
             // The function was inherited as body-less but is now given a body. Don't inline the body (since, apparently, everything
             // that needed to be proved about the function was proved already in the previous module, even without the body definition).
           } else if (!FunctionBodyIsAvailable(f, currentModule, currentScope, inlineProtectedFunctions)) {
-            // Don't inline opaque functions or foreign protected functions
+            // Don't inline opaque functions
           } else if (Attributes.Contains(f.Attributes, "no_inline")) {
             // User manually prevented inlining
           } else {
