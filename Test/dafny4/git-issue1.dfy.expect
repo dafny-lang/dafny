@@ -1,4 +1,4 @@
 git-issue1.dfy(15,11): Warning: /!\ No terms found to trigger on. Potential trigger not suitable: git-issue1.dfy(15,27)
-git-issue1.dfy(16,11): Warning: /!\ No terms found to trigger on. Potential trigger not suitable: git-issue1.dfy(16,27)	
+git-issue1.dfy(16,11): Warning: /!\ No terms found to trigger on. Potential trigger not suitable: git-issue1.dfy(16,27)
 
 Dafny program verifier finished with 2 verified, 0 errors
