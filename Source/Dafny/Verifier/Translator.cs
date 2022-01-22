@@ -10887,7 +10887,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<List<SplitExprInfo>>() != null);
 
       var splits = new List<SplitExprInfo>();
-      var apply_induction = true;/*kind == MethodTranslationKind.Implementation*/;
+      var apply_induction = kind == MethodTranslationKind.Implementation;
       bool splitHappened;  // we don't actually care
       splitHappened = TrSplitExpr(expr, splits, true, int.MaxValue, kind != MethodTranslationKind.Call, apply_induction, etran);
       return splits;
