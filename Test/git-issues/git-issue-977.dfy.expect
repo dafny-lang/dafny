@@ -8,4 +8,4 @@ git-issue-977.dfy(43,11): Error: assertion violation
 git-issue-977.dfy(30,20): Related location
 git-issue-977.dfy(9,7): Related location
 
-Dafny program verifier finished with 3 verified, 3 errors
+Dafny program verifier finished with 23 verified, 3 errors

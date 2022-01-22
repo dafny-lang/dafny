@@ -2,7 +2,6 @@ CoinductiveProofs.dfy(30,11): Error: assertion violation
 CoinductiveProofs.dfy(15,36): Related location
 CoinductiveProofs.dfy(13,16): Related location
 CoinductiveProofs.dfy(44,11): Error: assertion violation
-CoinductiveProofs.dfy(13,16): Related location
 CoinductiveProofs.dfy(48,11): Error: assertion violation
 CoinductiveProofs.dfy(13,16): Related location
 CoinductiveProofs.dfy(78,0): Error: A postcondition might not hold on this return path.

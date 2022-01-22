@@ -11428,7 +11428,13 @@ namespace Microsoft.Dafny {
 
     private bool CanSafelyInline(FunctionCallExpr fexp, Function f) {
       var visitor = new TriggersExplorer();
-      visitor.Visit(f);
+      if (f.Body != null) {
+        var body = f.Body;
+        if (f is PrefixPredicate pp) {
+          body = PrefixSubstitution(pp, body);
+        }
+        visitor.Visit(body);
+      }
       return LinqExtender.Zip(f.Formals, fexp.Args).All(formal_concrete => CanSafelySubstitute(visitor.TriggerVariables, formal_concrete.Item1, formal_concrete.Item2));
     }
 
