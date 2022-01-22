@@ -125,34 +125,43 @@ namespace Microsoft.Dafny {
         }
       }
 
+      //Generates casts for functions of those arities present in the program
       var funcExtension = wr.NewNamedBlock("public static class FuncExtension");
-      foreach (var kv in builtIns.ArrowTypeDecls.Where(kv => kv.Key > 0)) {
-        int i = kv.Key;
+      foreach (var kv in builtIns.ArrowTypeDecls) {
+        int arity = kv.Key;
 
         List<string> TyList(string prefix) {
-          List<string> l = i switch {
+          var l = arity switch {
             1 => new List<string> { prefix },
-            _ => Enumerable.Range(1, i).Select(i => $"{prefix}{i}").ToList()
+            _ => Enumerable.Range(1, arity).Select(i => $"{prefix}{i}").ToList()
           };
           l.Add($"{prefix}Result");
           return l;
         }
-        string TPs(List<string> l) => $"<{l.Comma()}>";
+        string TPs(IEnumerable<string> l) => $"<{l.Comma()}>";
 
         var us = TyList("U");
         var ts = TyList("T");
         var tsus = ts.Concat(us).ToList();
 
-        var argCs = i switch {
-          1 => "Func<U, T> ArgC",
-          _ => us.SkipLast(1).Zip(ts.SkipLast(1)).Comma((tp, i) => $"Func<{tp.First}, {tp.Second}> ArgC{++i}")
+        string ArgConv((string u, string t) tp) => $"Func<{tp.u}, {tp.t}> ArgConv";
+        var argConvs = arity switch {
+          0 => "",
+          1 => $"{ArgConv(("U", "T"))}, ",
+          _ => us.SkipLast(1).Zip(ts.SkipLast(1))
+                 .Comma((tp, i) => $"{ArgConv(tp)}{++i}")
+               + ", "
         };
 
-        funcExtension.Write($"public static Func{TPs(us)} DowncastClone{TPs(tsus)}(this Func{TPs(ts)} F, {argCs}, Func<TResult, UResult> ResC)");
+        var parameters = $"this Func{TPs(ts)} F, {argConvs}Func<TResult, UResult> ResConv";
+        funcExtension.Write($"public static Func{TPs(us)} DowncastClone{TPs(tsus)}({parameters})");
 
-        var arg = i switch { 1 => "arg", _ => $"({Enumerable.Range(1, i).Comma(i => $"arg{i}")})" };
-        var argCCalls = i switch { 1 => "ArgC(arg)", _ => Enumerable.Range(1, i).Comma(i => $"ArgC{i}(arg{i})") };
-        funcExtension.NewBlock().WriteLine($"return {arg} => ResC(F({argCCalls}));");
+        var arg = arity switch { 1 => "arg", _ => $"({Enumerable.Range(1, arity).Comma(i => $"arg{i}")})" };
+        var argConvCalls = arity switch {
+          1 => "ArgConv(arg)",
+          _ => Enumerable.Range(1, arity).Comma(i => $"ArgConv{i}(arg{i})")
+        };
+        funcExtension.NewBlock().WriteLine($"return {arg} => ResConv(F({argConvCalls}));");
       }
     }
 
