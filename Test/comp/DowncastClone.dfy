@@ -7,7 +7,6 @@
 // To enable this in cs we need to implement DowncastClone for datatypes.
 // Java avoids this problem by not even allowing traits in datatypes.
 
-//Add non record versions to both
 datatype Co<+T> = Co(T) | C
 datatype ReCo<+T> = ReCo(T)
 datatype Contra<-T> = Contra(f: T -> bool) | C
