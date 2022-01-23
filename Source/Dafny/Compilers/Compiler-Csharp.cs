@@ -534,18 +534,17 @@ namespace Microsoft.Dafny {
       var uTypeArgs = TypeParameters(nonGhostTypeArgs, uniqueNames: true);
       var typeArgs = TypeParameters(nonGhostTypeArgs);
       var dtArgs = "_I" + datatype.CompileName + uTypeArgs;
+      var converters = $"{nonGhostTypeArgs.Comma((_, i) => $"converter{i}")}";
       string PrintConverter(TypeParameter tArg, int i) {
         var name = IdName(tArg);
         return $"Func<{name}, __{name}> converter{i}";
       }
 
       if (!toInterface) {
-        wr.Write($"public ");
-        if (customReceiver) {
-          wr.Write($"{((ctor != null || lazy) ? (datatype.IsRecordType ? "static " : "new static ") : "static ")}");
-        } else {
-          wr.Write($"{((ctor != null || lazy) ? (datatype.IsRecordType ? "" : "override ") : "abstract ")}");
-        }
+        var modifiers = customReceiver
+          ? ((ctor != null || lazy) ? (datatype.IsRecordType ? "static " : "new static ") : "static ")
+          : ((ctor != null || lazy) ? (datatype.IsRecordType ? "" : "override ") : "abstract ");
+        wr.Write($"public {modifiers}");
       }
 
       if (!(toInterface && customReceiver)) {
@@ -554,25 +553,39 @@ namespace Microsoft.Dafny {
       }
 
       if (ctor == null && !lazy) {
-        if (!customReceiver) { wr.WriteLine(";"); } else if (!toInterface) {
+        if (!customReceiver) {
+          wr.WriteLine(";");
+        } else if (!toInterface) {
           var body = wr.NewBlock();
-          if (datatype is CoDatatypeDecl) {
-            body.NewBlock($"if (_this is {datatype.CompileName}__Lazy{typeArgs})").WriteLine($"return {datatype.CompileName}__Lazy{typeArgs}.DowncastClone{uTypeArgs}(_this, {nonGhostTypeArgs.Comma((_, i) => $"converter{i}")});");
 
+          ConcreteSyntaxTree NextBlock(string comp) { return body.NewBlock($"if (_this{comp})"); }
+
+          void WriteReturn(ConcreteSyntaxTree wr, string staticClass) {
+            wr.WriteLine($"return {staticClass}{typeArgs}.DowncastClone{uTypeArgs}(_this, {converters});");
           }
+
+          if (datatype is CoDatatypeDecl) {
+            var lazyClass = $"{datatype.CompileName}__Lazy";
+            WriteReturn(NextBlock($" is {lazyClass}{typeArgs}"), lazyClass);
+          }
+
           for (int i = 0; i < datatype.Ctors.Count; i++) {
             var ret = body;
-            if (i + 1 != datatype.Ctors.Count) {
-              ret = body.NewBlock($"if (_this.is_{datatype.Ctors[i].CompileName})");
+            //The final constructor is chosen as the default
+            if (i + 1 < datatype.Ctors.Count) {
+              ret = NextBlock($".is_{datatype.Ctors[i].CompileName}");
             }
-            ret.WriteLine($"return {DtCtorDeclarationName(datatype.Ctors[i])}{typeArgs}.DowncastClone{uTypeArgs}(_this, {nonGhostTypeArgs.Comma((_, i) => $"converter{i}")});");
+            WriteReturn(ret, DtCtorDeclarationName(datatype.Ctors[i]));
           }
         }
         return;
       }
 
       string PrintInvocation(Formal f, int i) {
-        var (name, type) = ((customReceiver ? (datatype.IsRecordType || !f.HasName ? $"(({DtCtorDeclarationName(ctor)}{typeArgs}) _this)." : "_this.dtor_") : "") + FormalName(f, i), f.Type);
+        var prefix = customReceiver
+          ? datatype.IsRecordType || !f.HasName ? $"(({DtCtorDeclarationName(ctor)}{typeArgs}) _this)." : "_this.dtor_"
+          : "";
+        var (name, type) = ($"{prefix}{FormalName(f, i)}", f.Type);
         var constructorIndex = -1;
         bool ContainsTyVar(TypeParameter tp, Type ty)
           => (ty.AsTypeParameter != null && ty.AsTypeParameter.Equals(tp))
@@ -596,13 +609,11 @@ namespace Microsoft.Dafny {
       }
 
       var wBody = wr.NewBlock("").WriteLine($"if ({(customReceiver ? "_" : "")}this is {dtArgs} dt) {{ return dt; }}");
-      var constructorArgs = lazy switch {
-        true => customReceiver switch {
-          true => $"() => {datatype.CompileName}{typeArgs}.DowncastClone{uTypeArgs}(_this._Get(), { nonGhostTypeArgs.Comma((_, i) => $"converter{i}") })",
-          false => $"() => _Get().DowncastClone{uTypeArgs}({nonGhostTypeArgs.Comma((_, i) => $"converter{i}")})"
-        },
-        false => ctor.Formals.Where(f => !f.IsGhost).Comma(PrintInvocation)
-      };
+      var constructorArgs = lazy
+        ? customReceiver
+          ? $"() => {datatype.CompileName}{typeArgs}.DowncastClone{uTypeArgs}(_this._Get(), {converters})"
+          : $"() => _Get().DowncastClone{uTypeArgs}({converters})"
+        : ctor.Formals.Where(f => !f.IsGhost).Comma(PrintInvocation);
 
       var className = lazy ? $"{datatype.CompileName}__Lazy" : DtCtorDeclarationName(ctor);
       wBody.WriteLine($"return new {className}{uTypeArgs}({constructorArgs});");
@@ -2527,11 +2538,6 @@ namespace Microsoft.Dafny {
       to = to.NormalizeExpand();
       Contract.Assert(from.IsRefType == to.IsRefType);
 
-      ConcreteSyntaxTree Unsupported(string message) {
-        Error(tok, "compilation does not support downcasts involving copying for {0} (like converting from {1} to {2})", wr, message, from, to);
-        return new ConcreteSyntaxTree();
-      }
-
       var w = new ConcreteSyntaxTree();
       if (to.IsRefType) {
         wr.Format($"({TypeName(to, wr, tok)})({w})");
@@ -2540,10 +2546,10 @@ namespace Microsoft.Dafny {
 
         var typeArgs = from.IsArrowType ? from.TypeArgs.Concat(to.TypeArgs) : to.TypeArgs;
         var wTypeArgs = typeArgs.Comma(ta => TypeName(ta, wr, tok));
-        var argPairs = from.IsArrowType switch {
-          false => from.TypeArgs.Zip(to.TypeArgs),
-          true => to.TypeArgs.SkipLast(1).Zip(from.TypeArgs.SkipLast(1)).Append((from.TypeArgs.Last(), to.TypeArgs.Last()))
-        };
+        var argPairs = from.TypeArgs.Zip(to.TypeArgs);
+        if (from.IsArrowType) {
+          argPairs = argPairs.Select((tp, i) => ++i < to.TypeArgs.Count ? (tp.Second, tp.First) : tp);
+        }
         var wConverters = argPairs.Comma(t => DowncastConverter(t.Item1, t.Item2, wr, tok));
         DatatypeDecl dt = from.AsDatatype;
         if ((dt != null) && SelectNonGhost(dt, dt.TypeArgs).Any(ty => ty.Variance == TypeParameter.TPVariance.Contra)) {
