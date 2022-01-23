@@ -553,7 +553,7 @@ namespace DafnyServer.CounterexampleGeneration {
 
       var i = 0;
       if (primitiveType == "char") {
-        i = 33; // 33 is the first non special character (excluding space)
+        i = 65; // 65 is the UTF code for 'A', i.e. the first letter character
         while (reservedValues["char"].Contains(Convert.ToChar(i).ToString())) {
           i++;
         }
