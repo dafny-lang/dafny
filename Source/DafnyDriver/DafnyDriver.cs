@@ -66,8 +66,8 @@ namespace Microsoft.Dafny {
 
       if (CommandLineOptions.Clo.XmlSink != null) {
         CommandLineOptions.Clo.XmlSink.Close();
-        if (DafnyOptions.O.VerificationLoggerConfig != null) {
-          BoogieXmlConvertor.RaiseTestLoggerEvents(DafnyOptions.O.BoogieXmlFilename, DafnyOptions.O.VerificationLoggerConfig);
+        if (DafnyOptions.O.VerificationLoggerConfigs.Any()) {
+          BoogieXmlConvertor.RaiseTestLoggerEvents(DafnyOptions.O.BoogieXmlFilename, DafnyOptions.O.VerificationLoggerConfigs);
         }
       }
       if (CommandLineOptions.Clo.Wait) {
