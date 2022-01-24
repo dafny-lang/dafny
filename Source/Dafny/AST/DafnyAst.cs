@@ -3103,8 +3103,8 @@ namespace Microsoft.Dafny {
 
   public abstract class TypeProxy : Type {
     public Type T;  // filled in during resolution
-    public readonly List<Resolver.TypeConstraint> SupertypeConstraints = new List<Resolver.TypeConstraint>();
-    public readonly List<Resolver.TypeConstraint> SubtypeConstraints = new List<Resolver.TypeConstraint>();
+    public readonly List<TypeConstraint> SupertypeConstraints = new List<TypeConstraint>();
+    public readonly List<TypeConstraint> SubtypeConstraints = new List<TypeConstraint>();
     public IEnumerable<Type> Supertypes {
       get {
         foreach (var c in SupertypeConstraints) {
@@ -3123,7 +3123,7 @@ namespace Microsoft.Dafny {
         }
       }
     }
-    public void AddSupertype(Resolver.TypeConstraint c) {
+    public void AddSupertype(TypeConstraint c) {
       Contract.Requires(c != null);
       Contract.Requires(c.Sub == this);
       SupertypeConstraints.Add(c);
@@ -3162,7 +3162,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void AddSubtype(Resolver.TypeConstraint c) {
+    public void AddSubtype(TypeConstraint c) {
       Contract.Requires(c != null);
       Contract.Requires(c.Super == this);
       SubtypeConstraints.Add(c);
