@@ -107,7 +107,7 @@ namespace Microsoft.Dafny {
     //   }
     // They aren't in any namespace to make them universally available.
     private static void EmitFuncExtensions(BuiltIns builtIns, ConcreteSyntaxTree wr) {
-      var funcExtension = wr.NewNamedBlock("public static class FuncExtensions");
+      var funcExtensions = wr.NewNamedBlock("public static class FuncExtensions");
       foreach (var kv in builtIns.ArrowTypeDecls) {
         int arity = kv.Key;
 
@@ -136,14 +136,14 @@ namespace Microsoft.Dafny {
         };
 
         var parameters = $"this Func{TPs(ts)} F, {argConvs}Func<TResult, UResult> ResConv";
-        funcExtension.Write($"public static Func{TPs(us)} DowncastClone{TPs(tsus)}({parameters})");
+        funcExtensions.Write($"public static Func{TPs(us)} DowncastClone{TPs(tsus)}({parameters})");
 
         var arg = arity switch { 1 => "arg", _ => $"({Enumerable.Range(1, arity).Comma(i => $"arg{i}")})" };
         var argConvCalls = arity switch {
           1 => "ArgConv(arg)",
           _ => Enumerable.Range(1, arity).Comma(i => $"ArgConv{i}(arg{i})")
         };
-        funcExtension.NewBlock().WriteLine($"return {arg} => ResConv(F({argConvCalls}));");
+        funcExtensions.NewBlock().WriteLine($"return {arg} => ResConv(F({argConvCalls}));");
       }
     }
 
@@ -542,7 +542,7 @@ namespace Microsoft.Dafny {
     /// the abstract method for the abstract class, and the actual implementations for the constructor classes. If the
     /// datatype is a record type, there is no abstract class, so the method is directly emitted.
     /// toInterface: just the signature for the interface
-    /// lazy: convert a codatatype's "__Lazy" class's computer
+    /// lazy: convert the computer of a codatatype's "__Lazy" class
     /// ctor: constructor to generate the method for
     /// </summary>
     private void CompileDatatypeDowncastClone(DatatypeDecl datatype, ConcreteSyntaxTree wr,
@@ -556,6 +556,7 @@ namespace Microsoft.Dafny {
       var typeArgs = TypeParameters(nonGhostTypeArgs);
       var dtArgs = "_I" + datatype.CompileName + uTypeArgs;
       var converters = $"{nonGhostTypeArgs.Comma((_, i) => $"converter{i}")}";
+      var lazyClass = $"{datatype.CompileName}__Lazy";
       string PrintConverter(TypeParameter tArg, int i) {
         var name = IdName(tArg);
         return $"Func<{name}, __{name}> converter{i}";
@@ -586,7 +587,6 @@ namespace Microsoft.Dafny {
           }
 
           if (datatype is CoDatatypeDecl) {
-            var lazyClass = $"{datatype.CompileName}__Lazy";
             WriteReturn(NextBlock($" is {lazyClass}{typeArgs}"), lazyClass);
           }
 
@@ -636,7 +636,7 @@ namespace Microsoft.Dafny {
           : $"() => _Get().DowncastClone{uTypeArgs}({converters})"
         : ctor.Formals.Where(f => !f.IsGhost).Comma(PrintInvocation);
 
-      var className = lazy ? $"{datatype.CompileName}__Lazy" : DtCtorDeclarationName(ctor);
+      var className = lazy ? lazyClass : DtCtorDeclarationName(ctor);
       wBody.WriteLine($"return new {className}{uTypeArgs}({constructorArgs});");
     }
 
