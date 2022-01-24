@@ -13,6 +13,7 @@ namespace Microsoft.Dafny {
     }
 
     public override string TargetLanguage => "Python";
+    const string DafnySetClass = "_dafny.Set";
 
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
       wr.WriteLine("# Dafny program {0} compiled into Python", program.Name);
@@ -182,10 +183,30 @@ namespace Microsoft.Dafny {
 
     }
 
-    private ConcreteSyntaxTree CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs,
+    protected ConcreteSyntaxTree CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs,
       List<Formal> formals, Type resultType, IToken tok, bool isStatic, bool createBody, MemberDecl member,
       ConcreteSyntaxTree methodWriter, bool forBodyInheritance, bool lookasideBody) {
-      throw new NotImplementedException();
+      return null;
+      // if (!createBody) {
+      //   return null;
+      // }
+      //
+      // var customReceiver = !forBodyInheritance && NeedsCustomReceiver(member);
+      // wr.Write("{0}{1}(", isStatic || customReceiver ? "static " : "", name);
+      // var sep = "";
+      // var nTypes = WriteRuntimeTypeDescriptorsFormals(member, ForTypeDescriptors(typeArgs, member, lookasideBody), wr, ref sep, tp => $"rtd$_{tp.CompileName}");
+      // if (customReceiver) {
+      //   var nt = member.EnclosingClass;
+      //   var receiverType = UserDefinedType.FromTopLevelDecl(tok, nt);
+      //   DeclareFormal(sep, "_this", receiverType, tok, true, wr);
+      //   sep = ", ";
+      // }
+      // WriteFormals(sep, formals, wr);
+      // var w = wr.NewBlock(")", ";");
+      // if (!isStatic && !customReceiver) {
+      //   w.WriteLine("let _this = this;");
+      // }
+      // return w; 
     }
 
 
@@ -211,6 +232,10 @@ namespace Microsoft.Dafny {
       throw new NotImplementedException();
     }
 
+    private string IntegerLiteral(int p0) {
+      throw new NotImplementedException();
+    }
+
     protected override string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variance,
       List<Type> typeArgs, ConcreteSyntaxTree wr, IToken tok) {
       string s = IdProtect(fullCompileName);
@@ -223,7 +248,12 @@ namespace Microsoft.Dafny {
 
     protected override bool DeclareFormal(string prefix, string name, Type type, IToken tok, bool isInParam,
       ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
+      if (isInParam) {
+        wr.Write("{0}{1}", prefix, name);
+        return true;
+      } else {
+        return false;
+      }
     }
 
     protected override void DeclareLocalVar(string name, Type type, IToken tok, bool leaveRoomForRhs, string rhs,
@@ -390,7 +420,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitThis(ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
+      wr.Write("_this");
     }
 
     protected override void EmitDatatypeValue(DatatypeValue dtv, string arguments, ConcreteSyntaxTree wr) {

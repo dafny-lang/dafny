@@ -9,8 +9,9 @@ function method F(x: int, y: bool): int {
   x + if y then 2 else 3
 }
 
+/*
 method A0(x: int, y: bool) {
-  return;
+ return;
 }
 
 method A1(x: int, y: bool) returns (a: int) {
@@ -155,3 +156,10 @@ module VariableCapture {
     r := s + [x] + l;
   }
 }
+*/
+
+method Main()
+{ var w;
+  w := F(2, false);
+  print w;
+  }
