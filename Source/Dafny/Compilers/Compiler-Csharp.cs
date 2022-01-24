@@ -92,41 +92,22 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitBuiltInDecls(BuiltIns builtIns, ConcreteSyntaxTree wr) {
-      var dafnyNamespace = CreateModule("Dafny", false, false, null, wr);
-      var arrayHelpers = dafnyNamespace.NewNamedBlock("internal class ArrayHelpers");
-      foreach (var decl in builtIns.SystemModule.TopLevelDecls) {
-        if (decl is ArrayClassDecl classDecl) {
-          int dims = classDecl.Dims;
+      EmitInitNewArrays(builtIns, wr);
 
-          // Here is an overloading of the method name, where there is an initialValue parameter
-          // public static T[,] InitNewArray2<T>(T z, BigInteger size0, BigInteger size1) {
-          arrayHelpers.Write($"public static T[{Repeat("", dims, ",")}] InitNewArray{dims}<T>(T z, {Repeat("BigInteger size{0}", dims, ", ")})");
+      EmitFuncExtensions(builtIns, wr);
+    }
 
-          var w = arrayHelpers.NewBlock();
-          // int s0 = (int)size0;
-          for (int i = 0; i < dims; i++) {
-            w.WriteLine("int s{0} = (int)size{0};", i);
-          }
-
-          // T[,] a = new T[s0, s1];
-          w.WriteLine($"T[{Repeat("", dims, ",")}] a = new T[{Repeat("s{0}", dims, ",")}];");
-
-          // for (int i0 = 0; i0 < s0; i0++) {
-          //   for (int i1 = 0; i1 < s1; i1++) {
-          var wLoopNest = w;
-          for (int i = 0; i < dims; i++) {
-            wLoopNest = wLoopNest.NewNamedBlock("for (int i{0} = 0; i{0} < s{0}; i{0}++)", i);
-          }
-
-          // a[i0,i1] = z;
-          wLoopNest.WriteLine($"a[{Repeat("i{0}", dims, ",")}] = z;");
-          // return a;
-          w.WriteLine("return a;");
-        }
-      }
-
-      //Generates casts for functions of those arities present in the program
-      var funcExtension = wr.NewNamedBlock("public static class FuncExtension");
+    // Generates casts for functions of those arities present in the program, like:
+    //   public static class FuncExtensions {
+    //     public static Func<U, UResult> DowncastClone<T, TResult, U, UResult>(this Func<T, TResult> F,
+    //         Func<U, T> ArgConv, Func<TResult, UResult> ResConv) {
+    //       return arg => ResConv(F(ArgConv(arg)));
+    //     }
+    //     ...
+    //   }
+    // They aren't in any namespace to make them universally available.
+    private static void EmitFuncExtensions(BuiltIns builtIns, ConcreteSyntaxTree wr) {
+      var funcExtension = wr.NewNamedBlock("public static class FuncExtensions");
       foreach (var kv in builtIns.ArrowTypeDecls) {
         int arity = kv.Key;
 
@@ -163,6 +144,42 @@ namespace Microsoft.Dafny {
           _ => Enumerable.Range(1, arity).Comma(i => $"ArgConv{i}(arg{i})")
         };
         funcExtension.NewBlock().WriteLine($"return {arg} => ResConv(F({argConvCalls}));");
+      }
+    }
+
+    private void EmitInitNewArrays(BuiltIns builtIns, ConcreteSyntaxTree wr) {
+      var dafnyNamespace = CreateModule("Dafny", false, false, null, wr);
+      var arrayHelpers = dafnyNamespace.NewNamedBlock("internal class ArrayHelpers");
+      foreach (var decl in builtIns.SystemModule.TopLevelDecls) {
+        if (decl is ArrayClassDecl classDecl) {
+          int dims = classDecl.Dims;
+
+          // Here is an overloading of the method name, where there is an initialValue parameter
+          // public static T[,] InitNewArray2<T>(T z, BigInteger size0, BigInteger size1) {
+          arrayHelpers.Write(
+            $"public static T[{Repeat("", dims, ",")}] InitNewArray{dims}<T>(T z, {Repeat("BigInteger size{0}", dims, ", ")})");
+
+          var w = arrayHelpers.NewBlock();
+          // int s0 = (int)size0;
+          for (int i = 0; i < dims; i++) {
+            w.WriteLine("int s{0} = (int)size{0};", i);
+          }
+
+          // T[,] a = new T[s0, s1];
+          w.WriteLine($"T[{Repeat("", dims, ",")}] a = new T[{Repeat("s{0}", dims, ",")}];");
+
+          // for (int i0 = 0; i0 < s0; i0++) {
+          //   for (int i1 = 0; i1 < s1; i1++) {
+          var wLoopNest = w;
+          for (int i = 0; i < dims; i++) {
+            wLoopNest = wLoopNest.NewNamedBlock("for (int i{0} = 0; i{0} < s{0}; i{0}++)", i);
+          }
+
+          // a[i0,i1] = z;
+          wLoopNest.WriteLine($"a[{Repeat("i{0}", dims, ",")}] = z;");
+          // return a;
+          w.WriteLine("return a;");
+        }
       }
     }
 
