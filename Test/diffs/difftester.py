@@ -402,7 +402,9 @@ class Snapshots(ProverInputs):
 
     @classmethod
     def _find_snapshot_files(cls, name: str) -> Iterable[Tuple[int, Path]]:
-        """Yield paths matching stem.vN.suffix where stem.suffix is `name`."""
+        """Yield paths matching stem.vN.suffix where stem.suffix is `name`.
+
+        If `name` already exists, return that instead."""
         ref = Path(name)
         if ref.exists():
             yield 0, ref
@@ -420,6 +422,8 @@ class Snapshots(ProverInputs):
         stem.suffix is `name`.
         """
         files = [f for _, f in sorted(cls._find_snapshot_files(name))]
+        if not files:
+            raise FileNotFoundError(f"File not found and no snapshots found either: {name}")
         snaps = (Snapshot.from_file(f) for f in files)
         uri = Path(name).absolute().as_uri()
         return Snapshots(name, uri, snaps)
@@ -626,7 +630,7 @@ class LSPOutput(ProverOutput):
 
     def __init__(self, diagnostics: List[Json]) -> None:
         lines = [d["range"]["start"]["line"] for d in diagnostics]
-        debug("[lsp]", f"{len(diagnostics)} diagnostics (lines: {lines})")
+        trace("[lsp]", f"{len(diagnostics)} diagnostics (lines: {lines})")
         self.diags = diagnostics
 
     @classmethod
@@ -744,7 +748,7 @@ class CLIOutput(ProverOutput):
       ^
        (?P<fname><stdin>)
        [(](?P<l>[0-9]+),
-          (?P<c>[0-9]+)[)]
+          (?P<c>[0-9]+)[)]:[ ]*
        ((?P<hdr>[^:]*):[ ]*)?
        (?P<msg>.*(\n[ ].+)*)
       $
@@ -757,7 +761,9 @@ class CLIOutput(ProverOutput):
         last = None
         for m in self.ERROR_PATTERN.finditer(self.output):
             fname, l, c, hdr, msg = m.group("fname", "l", "c", "hdr", "msg")
-            vr = VerificationResult(fname, int(l), int(c), hdr or "", msg or "", [])
+            # Default to "error" level (the LSP server always has a level).
+            vr = VerificationResult(fname, int(l), int(c),
+                                    hdr or "Error", msg or "", [])
             if (RELATED_LOCATION in vr.header or RELATED_LOCATION in vr.msg):
                 assert last
                 last.children.append(vr)
@@ -822,7 +828,7 @@ def test(inputs: ProverInputs, *frontends: Frontend) -> None:
         info(f"------ {snap.name}(#{snapidx}) ------", flush=True)
         prover_outputs: List[ProverOutput] = next(results)
         for (d1, p1), (d2, p2) in window(zip(frontends, prover_outputs), 2):
-            o1, o2 = p1.format(), p2.format()
+            o1, o2 = p1.format().rstrip(), p2.format().rstrip()
             if o1 != o2:
                 print("!! Output mismatch")
                 print(f"   For input {snap.name}(#{snapidx}),")
@@ -836,9 +842,10 @@ def test(inputs: ProverInputs, *frontends: Frontend) -> None:
                 print(indent(o2, "     "))
 
                 print()
-                l1, l2 = o1.splitlines(keepends=True), o2.splitlines(keepends=True)
+                l1 = (o1 + "\n").splitlines(keepends=True)
+                l2 = (o2 + "\n").splitlines(keepends=True)
                 ld = difflib.unified_diff(l1, l2, str(d1), str(d2))
-                print(f"   Diff:")
+                print("   Diff:")
                 print(indent("".join(ld), "     "))
                 sys.stdout.flush()
 
