@@ -1776,7 +1776,7 @@ namespace Microsoft.Dafny {
               // suppress error message
             } else if (!DafnyOptions.O.DisallowExterns && Attributes.Contains(m.Attributes, "extern")) {
               if (Attributes.Contains(m.Attributes, "mock") && m.IsStatic &&
-                  m.Ins.Count == 0 && m.Outs.Count == 1 &&
+                  m.Outs.Count == 1 && m.Ins.Count == 0 &&
                   m.Ens.Count == 1 && m.Ens.Any(ensure => ensure.E is FreshExpr)) {
                 classWriter.CreateMockMethod(m);
               }
