@@ -112,12 +112,12 @@ namespace Microsoft.Dafny {
         int arity = kv.Key;
 
         List<string> TyList(string prefix) {
-          var l = arity switch {
+          var result = arity switch {
             1 => new List<string> { prefix },
             _ => Enumerable.Range(1, arity).Select(i => $"{prefix}{i}").ToList()
           };
-          l.Add($"{prefix}Result");
-          return l;
+          result.Add($"{prefix}Result");
+          return result;
         }
 
         string TPs(IEnumerable<string> l) => $"<{l.Comma()}>";
@@ -540,7 +540,9 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Generate the "DowncastClone" code for a generated datatype. This includes the exported signature for the interface,
     /// the abstract method for the abstract class, and the actual implementations for the constructor classes. If the
-    /// datatype is a record type, there is no abstract class, so the method is directly emitted.
+    /// datatype is a record type, there is no abstract class, so the method is directly emitted. Contravariant type
+    /// parameters require a CustomReceiver-like treatment involving static methods and can thus require a jump table in
+    /// the abstract class.
     /// toInterface: just the signature for the interface
     /// lazy: convert the computer of a codatatype's "__Lazy" class
     /// ctor: constructor to generate the method for
@@ -563,9 +565,11 @@ namespace Microsoft.Dafny {
       }
 
       if (!toInterface) {
+        string Modifiers(string abs, string single, string cons) =>
+          (ctor != null || lazy) ? (datatype.IsRecordType ? single : cons) : abs;
         var modifiers = customReceiver
-          ? ((ctor != null || lazy) ? (datatype.IsRecordType ? "static " : "new static ") : "static ")
-          : ((ctor != null || lazy) ? (datatype.IsRecordType ? "" : "override ") : "abstract ");
+          ? Modifiers("static ", "static ", "new static ")
+          : Modifiers("abstract ", "", "override ");
         wr.Write($"public {modifiers}");
       }
 
