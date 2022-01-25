@@ -132,9 +132,7 @@ namespace Microsoft.Dafny {
     public bool WarningsAsErrors = false;
     [CanBeNull] private TestGenerationOptions testGenOptions = null;
     public bool ExtractCounterexample = false;
-
-    public string VerificationLoggerConfig = null;
-
+    public List<string> VerificationLoggerConfigs = new();
     // Working around the fact that xmlFilename is private
     public string BoogieXmlFilename = null;
 
@@ -516,7 +514,11 @@ namespace Microsoft.Dafny {
 
         case "verificationLogger":
           if (ps.ConfirmArgumentCount(1)) {
-            VerificationLoggerConfig = args[ps.i];
+            if (args[ps.i].StartsWith("trx") || args[ps.i].StartsWith("csv")) {
+              VerificationLoggerConfigs.Add(args[ps.i]);
+            } else {
+              InvalidArgumentError(name, ps);
+            }
           }
 
           return true;
@@ -533,7 +535,7 @@ namespace Microsoft.Dafny {
     public override void ApplyDefaultOptions() {
       base.ApplyDefaultOptions();
 
-      if (VerificationLoggerConfig != null) {
+      if (VerificationLoggerConfigs.Any()) {
         if (XmlSink != null) {
           throw new Exception("The /verificationLogger and /xml options cannot be used at the same time.");
         }
@@ -994,12 +996,13 @@ namespace Microsoft.Dafny {
     failing assertion. Requires specifying the /mv option as well as
     /proverOpt:0:model_compress=false and /proverOpt:0:model.completion=true.
 /verificationLogger:<configuration string>
-    Logs verification results to the given test result logger.
-    The only currently supported logger is ""trx"", the XML-based format
-    commonly used for test results for .NET languages. You can provide configuration
-    using the same string format as when using the --logger option for dotnet test,
-    such as /verificationLogger:trx;LogFileName=<...>.
-    The exact mapping of verification concepts to the TRX format is
+    Logs verification results to the given test result logger. The currently
+    supported loggers are ""trx"" and ""csv"". The former is the XML-based format
+    commonly used for test results for .NET languages. You can provide
+    configuration using the same string format as when using the --logger
+    option for dotnet test, such as:
+        /verificationLogger:trx;LogFileName=<...>.
+    The exact mapping of verification concepts to the TRX and CSV formats is
     experimental and subject to change!
 {TestGenOptions.Help}
 
