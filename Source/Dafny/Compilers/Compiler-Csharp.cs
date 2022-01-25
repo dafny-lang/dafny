@@ -1039,6 +1039,9 @@ namespace Microsoft.Dafny {
       AddTestCheckerIfNeeded(m.Name, m, wr);
       var typeParameters = TypeParameters(TypeArgumentInstantiation.ToFormals(ForTypeParameters(typeArgs, m, lookasideBody)));
       var parameters = GetMethodParameters(m, typeArgs, lookasideBody, customReceiver, returnType);
+
+      if (!createBody && m is Constructor) { return null; }
+
       wr.Format($"{keywords}{returnType} {IdName(m)}{typeParameters}({parameters})");
 
       if (!createBody || hasDllImportAttribute) {
@@ -1741,7 +1744,7 @@ namespace Microsoft.Dafny {
         for (int i = 0; i < ctor.Ins.Count; i++) {
           Formal p = ctor.Ins[i];
           if (!p.IsGhost) {
-            wr.Write(sep);
+            arguments.Write(sep);
             TrExpr(initCall.Args[i], arguments, false);
             sep = ", ";
           }
