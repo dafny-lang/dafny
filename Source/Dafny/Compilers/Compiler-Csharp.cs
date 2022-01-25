@@ -105,7 +105,7 @@ namespace Microsoft.Dafny {
     //     }
     //     ...
     //   }
-    // They aren't in any namespace to make them universally available.
+    // They aren't in any namespace to make them universally accessible.
     private static void EmitFuncExtensions(BuiltIns builtIns, ConcreteSyntaxTree wr) {
       var funcExtensions = wr.NewNamedBlock("public static class FuncExtensions");
       foreach (var kv in builtIns.ArrowTypeDecls) {
