@@ -8,6 +8,9 @@ using Bpl = Microsoft.Boogie;
 using IToken = Microsoft.Boogie.IToken;
 
 namespace Microsoft.Dafny {
+  /// <summary>
+  /// Class that plugins should extend, in order to provide an extra IRewriter to the pipeline.
+  /// </summary>
   public abstract class IRewriter {
     protected readonly ErrorReporter reporter;
 
