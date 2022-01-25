@@ -525,7 +525,7 @@ namespace Microsoft.Dafny {
             if (!good || reporter.Count(ErrorLevel.Error) != preResolveErrorCount) {
               break;
             }
-            r.PostResolve(m);
+            r.PostResolveIntermediate(m);
           }
           if (good && reporter.Count(ErrorLevel.Error) == errorCount) {
             m.SuccessfullyResolved = true;
@@ -708,6 +708,12 @@ namespace Microsoft.Dafny {
 
       Type.DisableScopes();
       CheckDupModuleNames(prog);
+
+      foreach (var module in prog.Modules()) {
+        foreach (var r in rewriters) {
+          r.PostResolve(module);
+        }
+      }
     }
 
     void FillInDefaultDecreasesClauses(Program prog) {

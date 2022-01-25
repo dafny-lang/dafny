@@ -136,7 +136,6 @@ namespace Microsoft.Dafny {
     // Working around the fact that xmlFilename is private
     public string BoogieXmlFilename = null;
 
-    // invariant: All strings of this list are non-empty
     public List<Assembly> Plugins = new();
 
     public virtual TestGenerationOptions TestGenOptions =>

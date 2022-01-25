@@ -77,11 +77,7 @@ namespace Microsoft.Dafny {
     }
 
     public IToken GetFirstTopLevelToken() {
-      return DefaultModuleDef.TopLevelDecls.Select(x => x as ClassDecl)
-        .Where(x => x != null)
-        .SelectMany(classDecl => classDecl.Members)
-        .Where(member => member.tok.line > 0)
-        .Select(member => member.tok).FirstOrDefault(Token.NoToken);
+      return DefaultModuleDef.GetFirstTopLevelToken();
     }
   }
 
@@ -4230,6 +4226,14 @@ namespace Microsoft.Dafny {
         return false;
       }
       return true;
+    }
+
+    public IToken GetFirstTopLevelToken() {
+      return TopLevelDecls.Select(x => x as ClassDecl)
+        .Where(x => x != null)
+        .SelectMany(classDecl => classDecl.Members)
+        .Where(member => member.tok.line > 0)
+        .Select(member => member.tok).FirstOrDefault(Token.NoToken);
     }
   }
 
