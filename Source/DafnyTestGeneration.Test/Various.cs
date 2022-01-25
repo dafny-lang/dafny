@@ -201,25 +201,25 @@ module Objects {
         m.DafnyInfo.IsStatic("Objects.List.IsACircleOfLessThanThree")));
       Assert.IsTrue(methods.All(m => m.ArgValues.Count == 1));
       Assert.IsTrue(methods.Exists(m =>
-        m.Assignments.Count == 1 && m.Assignments[0] == ("v0", "next", "v0") &&
-        m.ObjectsToMock.Count == 1 ||
-        m.Assignments.Count == 2 && m.Assignments[1] == ("v0", "next", "v1") &&
+        (m.Assignments.Count == 1 && m.Assignments[0] == ("v0", "next", "v0") &&
+        m.ObjectsToMock.Count == 1) ||
+        (m.Assignments.Count == 2 && m.Assignments[1] == ("v0", "next", "v1") &&
         m.Assignments[0] == ("v1", "next", "v0") &&
-        m.ObjectsToMock.Count == 2));
+        m.ObjectsToMock.Count == 2)));
       Assert.IsTrue(methods.Exists(m =>
-        m.Assignments.Count > 2 && m.ObjectsToMock.Count > 2 &&
+        (m.Assignments.Count > 2 && m.ObjectsToMock.Count > 2 &&
         m.Assignments.Last() == ("v0", "next", "v1") &&
-        m.Assignments[^2] == ("v1", "next", "v2") ||
-        m.Assignments.Count == 2 && m.ObjectsToMock.Count == 2 &&
+        m.Assignments[^2] == ("v1", "next", "v2")) ||
+        (m.Assignments.Count == 2 && m.ObjectsToMock.Count == 2 &&
         m.Assignments[1] == ("v0", "next", "v1") &&
-        m.Assignments[0] == ("v1", "next", "v1")));
+        m.Assignments[0] == ("v1", "next", "v1"))));
       Assert.IsTrue(methods.Exists(m =>
-        m.Assignments.Count == 1 &&
+        (m.Assignments.Count == 1 &&
         m.Assignments[0] == ("v0", "next", "null") &&
-        m.ObjectsToMock.Count == 1 ||
-        m.Assignments.Count == 2 && m.Assignments[1] == ("v0", "next", "v1") &&
+        m.ObjectsToMock.Count == 1) ||
+        (m.Assignments.Count == 2 && m.Assignments[1] == ("v0", "next", "v1") &&
         m.Assignments[0] == ("v1", "next", "null") &&
-        m.ObjectsToMock.Count == 2));
+        m.ObjectsToMock.Count == 2)));
     }
 
     [TestMethod]

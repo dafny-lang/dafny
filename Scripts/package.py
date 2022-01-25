@@ -122,25 +122,30 @@ class Release:
 
         if path.exists(self.buildDirectory):
             shutil.rmtree(self.buildDirectory)
+        env = dict(os.environ)
+        env["RUNTIME_IDENTIFIER"] = self.target
         run(["make", "--quiet", "clean"])
         run(["dotnet", "publish", path.join(SOURCE_DIRECTORY, "DafnyLanguageServer", "DafnyLanguageServer.csproj"),
             "--nologo",
-            "-f", "net5.0",
+            "-f", "net6.0",
             "-o", self.buildDirectory,
             "-r", self.target,
-            "-c", "Release"])
+            "--self-contained",
+            "-c", "Release"], env)
         run(["dotnet", "publish", path.join(SOURCE_DIRECTORY, "DafnyServer", "DafnyServer.csproj"),
             "--nologo",
-            "-f", "net5.0",
+            "-f", "net6.0",
             "-o", self.buildDirectory,
             "-r", self.target,
-            "-c", "Release"])
+            "--self-contained",
+            "-c", "Release"], env)
         run(["dotnet", "publish", path.join(SOURCE_DIRECTORY, "DafnyDriver", "DafnyDriver.csproj"),
             "--nologo",
-            "-f", "net5.0",
+            "-f", "net6.0",
             "-o", self.buildDirectory,
             "-r", self.target,
-            "-c", "Release"])
+            "--self-contained",
+            "-c", "Release"], env)
 
     def pack(self):
         try:
@@ -214,9 +219,9 @@ def download(releases):
         flush("    + {}:".format(release.z3_name), end=' ')
         release.download()
 
-def run(cmd):
+def run(cmd, env=None):
     flush("    + {}...".format(" ".join(cmd)), end=' ')
-    retv = subprocess.call(cmd)
+    retv = subprocess.call(cmd, env=env)
     if retv != 0:
         flush("failed! (Is Dafny or the Dafny server running?)")
         sys.exit(1)

@@ -6,10 +6,14 @@ using System.Linq;
 using JetBrains.Annotations;
 
 namespace Microsoft.Dafny {
-  public enum BraceStyle { Nothing, Space, Newline }
+  public enum BraceStyle {
+    Nothing,
+    Space,
+    Newline,
+    NewlineNoBrace
+  }
 
   public class ConcreteSyntaxTree : ICanRender {
-
     public ConcreteSyntaxTree(int relativeIndent = 0) {
       RelativeIndentLevel = relativeIndent;
     }
@@ -73,6 +77,7 @@ namespace Microsoft.Dafny {
     }
 
     static string anchorUUID = "20e34a49-f40b-4547-ba7a-3a1955826af2";
+
     public ConcreteSyntaxTree Format(FormattableString input) {
       var anchorValues = new List<ConcreteSyntaxTree>();
       // Because template strings are difficult to process, we use the existing string.Format to do the processing
@@ -96,6 +101,7 @@ namespace Microsoft.Dafny {
         Write(split[0]);
         Append(anchorValues[argIndex]);
       }
+
       if (anchorString != "") {
         Write(anchorString);
       }
@@ -122,7 +128,8 @@ namespace Microsoft.Dafny {
       BraceStyle open = BraceStyle.Space,
       BraceStyle close = BraceStyle.Newline) {
       Contract.Requires(header != null);
-      Append(ConcreteSyntaxTreeUtils.Block(out ConcreteSyntaxTree result, header, footer, open, close));
+      Append(ConcreteSyntaxTreeUtils.Block(out ConcreteSyntaxTree result, header: header, footer: footer, open: open,
+        close: close));
       return result;
     }
 
@@ -138,7 +145,7 @@ namespace Microsoft.Dafny {
       return NewBigExprBlock(string.Format(headerFormat, headerArgs), null);
     }
 
-    public ConcreteSyntaxTree NewBigExprBlock(string header = "", string/*?*/ footer = "") {
+    public ConcreteSyntaxTree NewBigExprBlock(string header = "", string /*?*/ footer = "") {
       return NewBlock(header, footer, BraceStyle.Space, BraceStyle.Nothing);
     }
 
@@ -159,6 +166,7 @@ namespace Microsoft.Dafny {
         sw.WriteLine("#file {0}", ftw.Filename);
         ftw.Render(sw, 0, new WriterState(), files);
       }
+
       return sw.ToString();
     }
 

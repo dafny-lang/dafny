@@ -40,12 +40,24 @@ namespace IntegrationTests {
       "/timeLimit:300"
     };
 
-    private static ILitCommand MainWithArguments(Assembly assembly, IEnumerable<string> arguments, LitTestConfiguration config, bool invokeDirectly) {
+    private static ILitCommand MainWithArguments(Assembly assembly, IEnumerable<string> arguments,
+      LitTestConfiguration config, bool invokeDirectly) {
       return MainMethodLitCommand.Parse(assembly, arguments, config, invokeDirectly);
     }
 
     private static readonly LitTestConfiguration Config;
+
     static LitTests() {
+      // Allow extra arguments to Dafny subprocesses. This can be especially
+      // useful for capturing prover logs.
+      var extraDafnyArguments =
+        Environment.GetEnvironmentVariable("DAFNY_EXTRA_TEST_ARGUMENTS");
+
+      var dafnyArguments =
+        extraDafnyArguments is null ?
+          DefaultDafnyArguments :
+          DefaultDafnyArguments.Append(extraDafnyArguments);
+
       var substitutions = new Dictionary<string, string> {
         { "%diff", "diff" },
         { "%binaryDir", "." },
@@ -56,13 +68,21 @@ namespace IntegrationTests {
       var commands = new Dictionary<string, Func<IEnumerable<string>, LitTestConfiguration, ILitCommand>> {
         {
           "%baredafny", (args, config) =>
-            MainWithArguments(DafnyDriverAssembly, args, config, InvokeMainMethodsDirectly)
+            MainMethodLitCommand.Parse(DafnyDriverAssembly, args, config, InvokeMainMethodsDirectly)
         }, {
           "%dafny", (args, config) =>
-            MainWithArguments(DafnyDriverAssembly, DefaultDafnyArguments.Concat(args), config, InvokeMainMethodsDirectly)
+            MainMethodLitCommand.Parse(DafnyDriverAssembly, dafnyArguments.Concat(args), config,
+              InvokeMainMethodsDirectly)
         }, {
           "%server", (args, config) =>
-            MainWithArguments(DafnyServerAssembly, args, config, InvokeMainMethodsDirectly)
+            MainMethodLitCommand.Parse(DafnyServerAssembly, args, config, InvokeMainMethodsDirectly)
+        }, {
+          "%diff", (args, config) => DiffCommand.Parse(args.ToArray())
+        }, {
+          "%sed", (args, config) => SedCommand.Parse(args.ToArray())
+        }, {
+          "%OutputCheck", (args, config) =>
+            OutputCheckCommand.Parse(args, config)
         }
       };
 
@@ -73,6 +93,22 @@ namespace IntegrationTests {
         features = new[] { "ubuntu", "posix" };
       } else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
         features = new[] { "windows" };
+        string path = System.Reflection.Assembly.GetExecutingAssembly().Location;
+        var directory = System.IO.Path.GetDirectoryName(path);
+        Environment.SetEnvironmentVariable("DOTNET_CLI_HOME", directory);
+        if (directory != null) {
+          Directory.SetCurrentDirectory(directory);
+        }
+
+        Environment.SetEnvironmentVariable("HOME",
+          Environment.GetEnvironmentVariable("HOMEDRIVE") + Environment.GetEnvironmentVariable("HOMEPATH"));
+        passthroughEnvironmentVariables = passthroughEnvironmentVariables
+          .Concat(new[] {
+            "DOTNET_CLI_HOME",
+            "HOMEDRIVE", "HOMEPATH",
+            "LOCALAPPDATA",
+            "APPDATA", "ProgramFiles", "ProgramFiles(x86)", "SystemRoot", "USERPROFILE"
+          }).ToArray();
       } else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
         features = new[] { "macosx", "posix" };
       } else {
@@ -84,7 +120,7 @@ namespace IntegrationTests {
         commands["%baredafny"] = (args, config) =>
           new ShellLitCommand(config, Path.Join(dafnyReleaseDir, "dafny"), args, config.PassthroughEnvironmentVariables);
         commands["%dafny"] = (args, config) =>
-          new ShellLitCommand(config, Path.Join(dafnyReleaseDir, "dafny"), DefaultDafnyArguments.Concat(args), config.PassthroughEnvironmentVariables);
+          new ShellLitCommand(config, Path.Join(dafnyReleaseDir, "dafny"), dafnyArguments.Concat(args), config.PassthroughEnvironmentVariables);
         commands["%server"] = (args, config) =>
           new ShellLitCommand(config, Path.Join(dafnyReleaseDir, "DafnyServer"), args, config.PassthroughEnvironmentVariables);
         substitutions["%z3"] = Path.Join(dafnyReleaseDir, "z3", "bin", "z3");

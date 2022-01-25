@@ -4,7 +4,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
@@ -114,7 +113,7 @@ function GetConstant(): int {
       var openedDocument = await Documents.GetDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(openedDocument);
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
-      var savedDocument = await Documents.GetDocumentAsync(documentItem.Uri);
+      var savedDocument = await Documents.GetVerifiedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(savedDocument);
       Assert.AreNotSame(openedDocument, savedDocument);
     }
@@ -131,11 +130,11 @@ method DoIt() {
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
-      var document = await Documents.GetDocumentAsync(documentItem.Uri);
+      var document = await Documents.GetVerifiedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
       Assert.AreEqual(1, document.Errors.ErrorCount);
-      var message = document.Errors.Diagnostics.First().Value[0];
-      Assert.AreEqual(MessageSource.Other.ToString(), message.Source);
+      var message = document.Errors.GetDiagnostics(documentItem.Uri)[0];
+      Assert.AreEqual(MessageSource.Verifier.ToString(), message.Source);
     }
   }
 }

@@ -210,3 +210,69 @@ module IncorrectConcrete refines Abstract {
     }
   }
 }
+
+// ------------------------------------------------
+
+module Modify0 {
+  class Cell {
+    var data: int
+  }
+
+  method M(c: Cell)
+    modifies c
+    ensures c.data == 10
+  {
+    modify c;
+    c.data := 10;
+  }
+
+  method N() returns (x: int)
+    ensures x == 10
+  {
+    var i := 0;
+    while i < 10
+    x := 10;
+  }
+
+  method P() returns (x: int)
+    ensures x == 10
+  {
+    x := 10;
+  }
+
+  method Q() returns (x: int)
+    ensures x == 10
+  {
+    x := 10;
+  }
+}
+
+module Modify1 refines Modify0 {
+  method M... {
+    modify ... {
+      return; // error: a "return" here would cause a problem with the refinement
+    }
+    ...;
+  }
+
+  method N... {
+    ...;
+    while ... {
+      return; // error: a "return" here would cause a problem with the refinement
+      ...;
+    }
+    ...;
+  }
+
+  method P... {
+    return; // error: a "return" here would cause a problem with the refinement
+    ...;
+  }
+
+  method Q... {
+    {
+      return; // error: a "return" here would cause a problem with the refinement
+    }
+    ...;
+  }
+}

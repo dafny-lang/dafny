@@ -166,7 +166,7 @@ function SomeConstant(): int {
 
     [TestMethod]
     public async Task InsertMultipleInSingleChange() {
-      // Note: line breaks are explicitely defined to avoid compatibility issues of \r and \r\n between
+      // Note: line breaks are explicitly defined to avoid compatibility issues of \r and \r\n between
       // the change and the verification.
       var source = "function GetConstant(): int { 1 }";
       var documentItem = CreateTestDocument(source);

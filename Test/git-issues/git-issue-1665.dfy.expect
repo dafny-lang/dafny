@@ -1,0 +1,185 @@
+// git-issue-1665.dfy
+
+/*
+module _System {
+  /* CALL GRAPH for module _System:
+   * SCC at height 1:
+   *   RotateRight
+   * SCC at height 1:
+   *   RotateLeft
+   * SCC at height 0:
+   *   nat
+   */
+  type string(==,0) = seq<char>
+
+  type {:axiom} nat(==,0) = x: int
+    | 0 <= x
+
+  trait {:compile false} object { }
+  /*-- non-null type
+  type {:axiom} object(==) = c: object? | c != null /*special witness*/
+  */
+
+  class {:compile false} array<arg> {
+    var Length: int  // immutable
+  }
+  /*-- non-null type
+  type {:axiom} array(==)<arg> = c: array?<arg> | c != null /*special witness*/
+  */
+
+  class {:compile false} /*_#Func1*/ -T0 ~> +R {
+    function requires(x0: T0): bool
+      reads reads(x0)
+
+    function reads(x0: T0): set<object?>
+      reads reads(x0)
+  }
+
+  type {:compile false} /*_#PartialFunc1*/ -T0 --> +R = f: T0 ~> R
+    | forall x0: T0 :: f.reads(x0) == {}
+    /*special witness*/
+
+  type {:compile false} /*_#TotalFunc1*/ -T0 -> +R = f: T0 --> R
+    | forall x0: T0 :: f.requires(x0)
+    /*special witness*/
+
+  class {:compile false} /*_#Func0*/ () ~> +R {
+    function requires(): bool
+      reads reads()
+
+    function reads(): set<object?>
+      reads reads()
+  }
+
+  type {:compile false} /*_#PartialFunc0*/ () --> +R = f: () ~> R
+    | f.reads() == {}
+    /*special witness*/
+
+  type {:compile false} /*_#TotalFunc0*/ () -> +R = f: () --> R
+    | f.requires()
+    /*special witness*/
+
+  datatype {:compile false} /*_tuple#2*/ (+T0, +T1) = _#Make2(0: T0, 1: T1)
+
+  type bool { }
+
+  type int { }
+
+  type real {
+    var Floor: int  // immutable
+  }
+
+  type ORDINAL {
+    var IsLimit: bool  // immutable
+    var IsSucc: bool  // immutable
+    var Offset: int  // immutable
+    var IsNat: bool  // immutable
+  }
+
+  type _bv {
+    function method RotateLeft(w: nat): selftype
+
+    function method RotateRight(w: nat): selftype
+  }
+
+  type map<T, U> {
+    var Keys: set<T>  // immutable
+    var Values: set<U>  // immutable
+    var Items: set<(T, U)>  // immutable
+  }
+
+  type imap<T, U> {
+    var Keys: iset<T>  // immutable
+    var Values: iset<U>  // immutable
+    var Items: iset<(T, U)>  // immutable
+  }
+
+  datatype /*_tuple#0*/ () = _#Make0
+}
+// bitvector types in use:
+*/
+
+/* CALL GRAPH for module _module:
+ */
+
+module ConcreteModule {
+  /* CALL GRAPH for module ConcreteModule:
+   * SCC at height 3:
+   *   execute_external_method
+   * SCC at height 2:
+   *   Func1
+   * SCC at height 2:
+   *   Status.PropagateFailure
+   * SCC at height 0:
+   *   Status.IsFailure
+   * SCC at height 1:
+   *   Status
+   * SCC at height 0:
+   *   nat
+   */
+  datatype Status = Success | Failure(error: nat) {
+    predicate method IsFailure()
+      decreases this
+    {
+      this.Failure?
+    }
+
+    function method PropagateFailure(): Status
+      requires IsFailure()
+      decreases this
+    {
+      Failure(this.error)
+    }
+  }
+
+  method execute_external_method(n: nat, m: nat) returns (r: Status)
+    decreases n, m
+  {
+    
+    /*---------- desugared ----------
+    if n == 0 {
+      :- Func1()
+      /*---------- desugared ----------
+      var valueOrError0: Status;
+      valueOrError0 := Func1();
+      if valueOrError0.IsFailure() {
+        r := valueOrError0.PropagateFailure();
+        return;
+      }
+      ---------- end desugared ----------*/;
+      
+      if m == 1 {
+        :- Func1()
+        /*---------- desugared ----------
+        var valueOrError1: Status;
+        valueOrError1 := Func1();
+        if valueOrError1.IsFailure() {
+          r := valueOrError1.PropagateFailure();
+          return;
+        }
+        ---------- end desugared ----------*/;
+      } else {
+        return Success;
+      }      
+    } else {
+      return Success;
+    }    ---------- end desugared ----------*/
+    match n {
+      case {:split false} 0 =>
+        :- Func1();
+        match m {
+          case {:split false} 1 =>
+            :- Func1();
+          case {:split false} _ =>
+            return Success;
+        }
+      case {:split false} _ =>
+        return Success;
+    }
+  }
+
+  method Func1() returns (r: Status)
+  {
+    return Success;
+  }
+}

@@ -36,6 +36,8 @@ Source/packages
 Source/Dafny/Parser.cs.old
 Source/Dafny/Scanner.cs.old
 
+Source/DafnyRuntime/MSBuild_Logs/
+
 Docs/OnlineTutorial/DocumentationTransducer.exe
 Docs/OnlineTutorial/DocumentationTransducer.pdb
 Docs/OnlineTutorial/DocumentationTransducer/obj

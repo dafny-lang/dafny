@@ -415,7 +415,10 @@ namespace Microsoft.Dafny {
             if (e.IsRefining) {
               wr.Write(" ...");
             }
-            if (e.Extends.Count > 0) wr.Write(" extends {0}", Util.Comma(e.Extends, id => id.val));
+            if (e.Extends.Count > 0) {
+              wr.Write(" extends {0}", Util.Comma(e.Extends, id => id.val));
+            }
+
             wr.WriteLine();
             PrintModuleExportDecl(e, indent + IndentAmount, fileBeingPrinted);
             wr.WriteLine();
@@ -918,7 +921,7 @@ namespace Microsoft.Dafny {
 
     private bool PrintModeSkipGeneral(Bpl.IToken tok, string fileBeingPrinted) {
       return (printMode == DafnyOptions.PrintModes.NoIncludes || printMode == DafnyOptions.PrintModes.NoGhost)
-             && (tok.filename != null && fileBeingPrinted != null && Path.GetFullPath(tok.filename) != fileBeingPrinted);
+             && tok.filename != null && fileBeingPrinted != null && Path.GetFullPath(tok.filename) != fileBeingPrinted;
     }
 
     public void PrintMethod(Method method, int indent, bool printSignatureOnly) {
@@ -933,7 +936,7 @@ namespace Microsoft.Dafny {
         method is TwoStateLemma ? "twostate lemma" :
         "method";
       if (method.HasStaticKeyword) { k = "static " + k; }
-      if (method.IsGhost && !(method is Lemma) && !(method is PrefixLemma) && !(method is TwoStateLemma) && !(method is ExtremeLemma)) {
+      if (method.IsGhost && !method.IsLemmaLike) {
         k = "ghost " + k;
       }
       string nm = method is Constructor && !((Constructor)method).HasName ? "" : method.Name;
@@ -1470,7 +1473,10 @@ namespace Microsoft.Dafny {
             wr.Write("case");
             PrintAttributes(mc.Attributes);
             wr.Write(" ");
-            if (!mc.Ctor.Name.StartsWith(BuiltIns.TupleTypeCtorNamePrefix)) wr.Write(mc.Ctor.Name);
+            if (!mc.Ctor.Name.StartsWith(BuiltIns.TupleTypeCtorNamePrefix)) {
+              wr.Write(mc.Ctor.Name);
+            }
+
             PrintMatchCaseArgument(mc);
             wr.Write(" =>");
             foreach (Statement bs in mc.Body) {
@@ -1628,8 +1634,7 @@ namespace Microsoft.Dafny {
         var stmt = (AssignOrReturnStmt)s;
         wr.Write(":- ");
         PrintExpression(stmt.Rhs, true);
-        if (DafnyOptions.O.DafnyPrintResolvedFile != null) {
-          Contract.Assert(stmt.ResolvedStatements.Count > 0);  // filled in during resolution
+        if (DafnyOptions.O.DafnyPrintResolvedFile != null && stmt.ResolvedStatements.Count > 0) {
           wr.WriteLine();
           Indent(indent); wr.WriteLine("/*---------- desugared ----------");
           foreach (Statement r in stmt.ResolvedStatements) {
@@ -2837,6 +2842,11 @@ namespace Microsoft.Dafny {
       switch (pat) {
         case IdPattern idPat:
           if (idPat.Id.StartsWith(BuiltIns.TupleTypeCtorNamePrefix)) {
+          } else if (idPat.Id.StartsWith("_")) {
+            // In case of the universal match pattern, print '_' instead of
+            // its node identifier, otherwise the printed program becomes
+            // syntactically incorrect.
+            wr.Write("_");
           } else {
             wr.Write(idPat.Id);
           }

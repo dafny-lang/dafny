@@ -252,7 +252,7 @@ namespace Microsoft.Dafny {
         //       check well-formedness of RHS(x');
         //     }
         //     assert (exists x'' :: RHS(x''));  // for ":| assume", omit this line; for ":|", LHS is only allowed to contain simple variables
-        //     defass$x := true;
+        //     defass#x := true;
         //     havoc x;
         //     assume RHS(x);
 
@@ -380,7 +380,7 @@ namespace Microsoft.Dafny {
         fields.RemoveAll(f => f == null);
         var localSurrogates = fields.ConvertAll(f => new Bpl.LocalVariable(f.tok, new TypedIdent(f.tok, SurrogateName(f), TrType(f.Type))));
         locals.AddRange(localSurrogates);
-        fields.Iter(f => AddDefiniteAssignmentTrackerSurrogate(f, cl, locals));
+        fields.Iter(f => AddDefiniteAssignmentTrackerSurrogate(f, cl, locals, codeContext is Constructor && codeContext.IsGhost));
 
         Contract.Assert(!inBodyInitContext);
         inBodyInitContext = true;
@@ -844,6 +844,10 @@ namespace Microsoft.Dafny {
               needDefiniteAssignmentTracking = true;
             }
           }
+          if (!local.Type.IsNonempty) {
+            // This prevents generating an unsatisfiable where clause for possibly empty types
+            needDefiniteAssignmentTracking = true;
+          }
           if (needDefiniteAssignmentTracking) {
             var defassExpr = AddDefiniteAssignmentTracker(local, locals);
             if (wh != null && defassExpr != null) {
@@ -977,7 +981,7 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// "lhs" is expected to be a resolved form of an expression, i.e., not a conrete-syntax expression.
+    /// "lhs" is expected to be a resolved form of an expression, i.e., not a concrete-syntax expression.
     /// </summary>
     void TrAssignment(Statement stmt, Expression lhs, AssignmentRhs rhs,
       BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
@@ -1797,7 +1801,7 @@ namespace Microsoft.Dafny {
           modifiesClause.AddRange(explicitModifies);
         }
         // include boilerplate invariants
-        foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(s.Tok, modifiesClause, s.IsGhost, etranPreLoop, etran, etran.Old)) {
+        foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(s.Tok, modifiesClause, s.IsGhost, codeContext.AllowsAllocation, etranPreLoop, etran, etran.Old)) {
           if (tri.IsFree) {
             invariants.Add(TrAssumeCmd(s.Tok, tri.Expr));
           } else {
@@ -2007,9 +2011,7 @@ namespace Microsoft.Dafny {
             string nm = CurrentIdGenerator.FreshId("$rhs##");
             var formalOutType = Resolver.SubstType(s.Method.Outs[i].Type, tySubst);
             var ty = TrType(formalOutType);
-            Bpl.Expr wh = GetWhereClause(lhs.tok, new Bpl.IdentifierExpr(lhs.tok, nm, ty), formalOutType, etran,
-              isAllocContext.Var(s.IsGhost || s.Method.IsGhost, s.Method.Outs[i]));
-            Bpl.LocalVariable var = new Bpl.LocalVariable(lhs.tok, new Bpl.TypedIdent(lhs.tok, nm, ty, wh));
+            Bpl.LocalVariable var = new Bpl.LocalVariable(lhs.tok, new Bpl.TypedIdent(lhs.tok, nm, ty));
             locals.Add(var);
             bLhss[i] = new Bpl.IdentifierExpr(lhs.tok, var.Name, ty);
           }
@@ -2387,7 +2389,7 @@ namespace Microsoft.Dafny {
         // advance $Heap, Tick;
         exporter.Add(new Bpl.HavocCmd(tok, new List<Bpl.IdentifierExpr> { heapIdExpr, etran.Tick() }));
         Contract.Assert(s0.Method.Mod.Expressions.Count == 0);  // checked by the resolver
-        foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(tok, new List<FrameExpression>(), s0.IsGhost, initEtran, etran, initEtran)) {
+        foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(tok, new List<FrameExpression>(), s0.IsGhost, s0.Method.AllowsAllocation, initEtran, etran, initEtran)) {
           if (tri.IsFree) {
             exporter.Add(TrAssumeCmd(tok, tri.Expr));
           }

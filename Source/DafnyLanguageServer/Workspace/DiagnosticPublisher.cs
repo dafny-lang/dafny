@@ -1,11 +1,12 @@
 ﻿using Microsoft.Dafny.LanguageServer.Util;
+using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Microsoft.Dafny.LanguageServer.Language {
+namespace Microsoft.Dafny.LanguageServer.Workspace {
   public class DiagnosticPublisher : IDiagnosticPublisher {
     private readonly ILanguageServerFacade languageServer;
 
@@ -19,7 +20,24 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         // Therefore, we do not republish the errors when the document (re-)load was canceled.
         return;
       }
-      languageServer.TextDocument.PublishDiagnostics(ToPublishDiagnostics(document));
+      PublishDocumentDiagnostics(document);
+      PublishGhostDiagnostics(document);
+    }
+
+    private void PublishDocumentDiagnostics(DafnyDocument document) {
+      languageServer.TextDocument.PublishDiagnostics(new PublishDiagnosticsParams {
+        Uri = document.Uri,
+        Version = document.Version,
+        Diagnostics = GetDiagnostics(document).ToArray(),
+      });
+    }
+
+    private void PublishGhostDiagnostics(DafnyDocument document) {
+      languageServer.TextDocument.SendNotification(new GhostDiagnosticsParams {
+        Uri = document.Uri,
+        Version = document.Version,
+        Diagnostics = document.GhostDiagnostics.ToArray(),
+      });
     }
 
     public void HideDiagnostics(TextDocumentIdentifier documentId) {
@@ -29,20 +47,9 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       });
     }
 
-    private static PublishDiagnosticsParams ToPublishDiagnostics(DafnyDocument document) {
-      return new() {
-        Uri = document.Uri,
-        Version = document.Version,
-        Diagnostics = ToDiagnostics(document).ToArray(),
-      };
-    }
-
-    private static IEnumerable<Diagnostic> ToDiagnostics(DafnyDocument document) {
+    private static IEnumerable<Diagnostic> GetDiagnostics(DafnyDocument document) {
       // Only report errors of the entry-document.
-      if (document.Errors.Diagnostics.TryGetValue(document.GetFilePath(), out var diagnostics)) {
-        return diagnostics;
-      }
-      return Enumerable.Empty<Diagnostic>();
+      return document.Errors.GetDiagnostics(document.GetFilePath()).Concat(document.OldVerificationDiagnostics);
     }
   }
 }
