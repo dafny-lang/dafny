@@ -27,9 +27,8 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 [TestClass]
 public class ExternalResolverTest : DafnyLanguageServerTestBase {
   private ILanguageClient client;
-  protected DiagnosticsReceiver diagnosticReceiver;
-  private Assembly library,
-
+  private DiagnosticsReceiver diagnosticReceiver;
+  private Assembly library;
 
   [TestInitialize]
   public async Task SetUp() {
@@ -44,13 +43,12 @@ public class ExternalResolverTest : DafnyLanguageServerTestBase {
           reporter.Error(MessageSource.Compiler, m.tok, ""Impossible to continue"");
         }
       }");
-    this.configuration = await CreateConfiguration()
     client = await InitializeClient(options => options.OnPublishDiagnostics(diagnosticReceiver.NotificationReceived));
   }
 
   protected override IConfiguration CreateConfiguration() {
     return new ConfigurationBuilder().AddCommandLine(
-      new string[] { "--dafny:plugins:" + this.library.Location }).Build();
+      new[] { "--dafny:plugins=" + this.library.Location }).Build();
   }
 
   /// <summary>
@@ -91,6 +89,6 @@ public class ExternalResolverTest : DafnyLanguageServerTestBase {
     var diagnostics = resolutionReport.Diagnostics.ToArray();
     Assert.AreEqual(1, diagnostics.Length);
     Assert.AreEqual("Impossible to continue", diagnostics[0].Message);
-    Assert.AreEqual(new Range((7, 4), (7, 15)), diagnostics[0].Range);
+    Assert.AreEqual(new Range((-1, -1), (-1, 29)), diagnostics[0].Range);
   }
 }
