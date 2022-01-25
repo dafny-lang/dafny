@@ -25,7 +25,8 @@ namespace Microsoft.Dafny {
       if (parameters.TryGetValue("Metric", out var metricType)) {
         metricProperty = metricType switch {
           "ticks" => BoogieXmlConvertor.ResourceCountProperty,
-          _ => throw new ArgumentException($"Unknown metric type {metricType}")
+          "time" => null
+          _ => throw new ArgumentException($"Unknown metric type: {metricType}")
         };
       } else {
         metricProperty = null;
