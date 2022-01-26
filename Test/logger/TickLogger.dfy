@@ -1,7 +1,7 @@
-// RUN: %dafny /verificationLogger:csv;LogFileName="%t.csv" "%s"
-// RUN: %OutputCheck --file-to-check "%t.csv" "%s"
+// RUN: %dafny /verificationLogger:csv;LogFileName="%t-res.csv",Metric=ticks "%s"
+// RUN: %OutputCheck --file-to-check "%t-res.csv" "%s"
 
-// CHECK: TestResult\.DisplayName,TestResult\.Outcome,TestResult\.Duration
+// CHECK: TestResult\.DisplayName,TestResult\.Outcome,TestResult\.ResourceCount
 // CHECK-NEXT: Impl\$\$_module.__default\.ExampleWithSplits\$\$1,Passed,.*
 
 method ExampleWithSplits() returns (y: int)
