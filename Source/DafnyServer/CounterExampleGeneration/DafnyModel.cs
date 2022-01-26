@@ -39,7 +39,7 @@ namespace DafnyServer.CounterexampleGeneration {
     // maps a particular element to a value reserved for it (see above)
     private readonly Dictionary<Model.Element, string> reservedValuesMap = new();
     // ensures that a given bitvectorType is created only once for a given base
-    private readonly Dictionary<int, BitvectorType> bitvectorTypes = new(); 
+    private readonly Dictionary<int, BitvectorType> bitvectorTypes = new();
 
 
     public DafnyModel(Model model) {
@@ -207,7 +207,7 @@ namespace DafnyServer.CounterexampleGeneration {
           bitvectorTypes[width] = new BitvectorType(width);
         }
         var type = bitvectorTypes[width];
-        
+
         if (!reservedValues.ContainsKey(type)) {
           reservedValues[type] = new();
         }
