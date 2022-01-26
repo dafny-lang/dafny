@@ -40,7 +40,7 @@ public class ExternalResolverTest : DafnyLanguageServerTestBase {
         {}
 
         public override void PostResolve(ModuleDefinition m) {
-          reporter.Error(MessageSource.Compiler, m.tok, ""Impossible to continue"");
+          Reporter.Error(MessageSource.Compiler, m.tok, ""Impossible to continue"");
         }
       }");
     client = await InitializeClient(options => options.OnPublishDiagnostics(diagnosticReceiver.NotificationReceived));

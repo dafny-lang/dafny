@@ -58,7 +58,7 @@ public class ExternalResolverTest {
         {}
 
         public override void PostResolve(ModuleDefinition m) {
-          reporter.Error(MessageSource.Compiler, m.tok, ""Impossible to continue"");
+          Reporter.Error(MessageSource.Compiler, m.tok, ""Impossible to continue"");
         }
       }");
 
