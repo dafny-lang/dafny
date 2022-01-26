@@ -9,8 +9,8 @@
     public const string Section = "Dafny";
 
     /// <summary>
-    /// Gets or sets which backends will be targeted so that their resolver can run before verification.
+    /// Gets or sets which plugins to use in Dafny (e.g. for resolution or compilation)
     /// </summary>
-    public string Plugins { get; set; } = "";
+    public string[] Plugins { get; set; } = System.Array.Empty<string>();
   }
 }

@@ -18,7 +18,7 @@ public class ExternalResolverTest {
   /// This method creates a library and returns the path to that library.
   /// The library extends an IRewriter so that we can verify that Dafny invokes it if provided in argument.
   /// </summary>
-  public async Task<Assembly> GetLibrary(string code) {
+  public async Task<string> GetLibrary(string code) {
     var temp = Path.GetTempFileName();
     var compilation = CSharpCompilation.Create("tempAssembly");
     var standardLibraries = new List<string>()
@@ -40,7 +40,7 @@ public class ExternalResolverTest {
     var result = compilation.Emit(assemblyPath);
 
     Assert.True(result.Success, string.Join("\n", result.Diagnostics.Select(d => d.ToString())));
-    return Assembly.LoadFrom(assemblyPath);
+    return assemblyPath;
   }
 
   class CollectionErrorReporter : BatchErrorReporter {
@@ -52,19 +52,34 @@ public class ExternalResolverTest {
   [Fact]
   public async void EnsureItIsPossibleToPluginIRewriter() {
     var library = await GetLibrary(@"
-      using Microsoft.Dafny;
-      public class ErrorRewriter: IRewriter {
-        public ErrorRewriter(ErrorReporter reporter) : base(reporter)
-        {}
+using Microsoft.Dafny;
+using Microsoft.Dafny.Plugins;
 
-        public override void PostResolve(ModuleDefinition moduleDefinition) {
-          Reporter.Error(MessageSource.Compiler, moduleDefinition.tok, ""Impossible to continue"");
-        }
-      }");
+public class TestConfiguration: Configuration {
+  public string Argument = """";
+  public override void ParseArguments(string[] args) {
+    Argument = args[0];
+  }
+  public override Rewriter[] GetRewriters(ErrorReporter errorReporter) {
+    return new Rewriter[]{new ErrorRewriter(errorReporter, this)};
+  }
+}
+
+public class ErrorRewriter: Rewriter {
+  private readonly TestConfiguration configuration;
+
+  public ErrorRewriter(ErrorReporter reporter, TestConfiguration configuration): base(reporter) {
+    this.configuration = configuration;
+  }
+
+  public override void PostResolve(ModuleDefinition moduleDefinition) {
+    Reporter.Error(MessageSource.Compiler, moduleDefinition.tok, ""Impossible to continue ""+configuration.Argument);
+  }
+}");
 
     var reporter = new CollectionErrorReporter();
     var options = new DafnyOptions(reporter);
-    options.Plugins.Add(library);
+    options.Plugins.Add(new Microsoft.Dafny.Plugin(library, new string[] { "because whatever" }, reporter));
     DafnyOptions.Install(options);
 
     var programString = "function test(): int { 1 }";
@@ -76,6 +91,6 @@ public class ExternalResolverTest {
     Main.Resolve(dafnyProgram, reporter);
 
     Assert.Equal(1, reporter.Count(ErrorLevel.Error));
-    Assert.Equal("Impossible to continue", reporter.GetLastErrorMessage());
+    Assert.Equal("Impossible to continue because whatever", reporter.GetLastErrorMessage());
   }
 }

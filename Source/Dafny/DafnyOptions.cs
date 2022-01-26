@@ -8,7 +8,9 @@ using System.Text;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using JetBrains.Annotations;
+using Microsoft.Dafny.Plugins;
 using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
@@ -136,7 +138,7 @@ namespace Microsoft.Dafny {
     // Working around the fact that xmlFilename is private
     public string BoogieXmlFilename = null;
 
-    public List<Assembly> Plugins = new();
+    public List<Plugin> Plugins = new();
 
     public virtual TestGenerationOptions TestGenOptions =>
       testGenOptions ??= new TestGenerationOptions();
@@ -232,17 +234,33 @@ namespace Microsoft.Dafny {
             return true;
           }
 
-        case "plugins": {
+        case "Plugin":
+        case "plugin": {
             if (ps.ConfirmArgumentCount(1)) {
-              var pluginsList = args[ps.i];
-              if (pluginsList.Length > 0) {
-                foreach (var pluginPath in pluginsList.Split(',').Where(s => s.Length > 0)) {
-                  var pluginAssembly = Assembly.LoadFrom(pluginPath);
-                  if (!pluginAssembly.GetTypes().Any(t =>
-                        t.IsAssignableTo(typeof(IRewriter)))) {
-                    throw new Exception($"Plugin {pluginPath} does not contain any Microsoft.Dafny.IRewriter");
+              var pluginAndArgument = args[ps.i];
+              if (pluginAndArgument.Length > 0 &&
+                  pluginAndArgument[0] == '"' &&
+                  pluginAndArgument[^1] == '"'
+                  ) {
+                pluginAndArgument = pluginAndArgument.Substring(1, pluginAndArgument.Length - 2);
+              }
+              if (pluginAndArgument.Length > 0) {
+                var pluginArray = pluginAndArgument.Split(',');
+                var pluginPath = pluginArray[0];
+                var arguments = Array.Empty<string>();
+                if (pluginArray.Length > 2) {
+                  ps.Error("\"plugin\" cannot have more than one comma separating the DLL from the arguments");
+                } else {
+                  if (pluginArray.Length == 2) {
+                    // Parse arguments, accepting and remove double quotes that isolate long arguments
+                    var splitter = new Regex(@"""((?:[^""]|\\"")*)""|([^ ]+)");
+                    arguments = splitter.Matches(pluginArray[1]).Select(
+                      matchResult => matchResult.Groups[1].Success ?
+                          matchResult.Groups[1].Value.Replace(@"\""", @"""") :
+                          matchResult.Groups[2].Value
+                      ).ToArray();
                   }
-                  Plugins.Add(pluginAssembly);
+                  Plugins.Add(new Plugin(pluginPath, arguments, errorReporter));
                 }
               }
             }
@@ -826,9 +844,10 @@ namespace Microsoft.Dafny {
     Note that the C++ backend has various limitations (see Docs/Compilation/Cpp.md).
     This includes lack of support for BigIntegers (aka int), most higher order
     functions, and advanced features like traits or co-inductive types.
-/plugins:<path to assemblies>
-    (experimental) List of comma-separated paths to assemblies that contain at least one
-    instantiatable class extending Microsoft.Dafny.IRewriter
+/plugin:<path to assemblies>[:<arguments>]
+    (experimental) One path to an assembly that contains at least one
+    instantiatable class extending Microsoft.Dafny.Plugin.Rewriter.
+    It can also extend Microsoft.Dafny.Plugin.Initializer to receive arguments
 /Main:<name>
     The (fully-qualified) name of the method to use as the executable entry point.
     Default is the method with the {{:main}} atrribute, or else the method named 'Main'.

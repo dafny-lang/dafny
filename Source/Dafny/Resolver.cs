@@ -17,6 +17,7 @@ using JetBrains.Annotations;
 using Microsoft.BaseTypes;
 using Microsoft.Boogie;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.Dafny.Plugins;
 
 namespace Microsoft.Dafny {
   public class Resolver {
@@ -240,7 +241,7 @@ namespace Microsoft.Dafny {
     private ModuleSignature systemNameInfo = null;
     private bool useCompileSignatures = false;
 
-    private List<IRewriter> rewriters;
+    private List<Rewriter> rewriters;
     private RefinementTransformer refinementTransformer;
 
     public Resolver(Program prog) {
@@ -421,7 +422,7 @@ namespace Microsoft.Dafny {
         h++;
       }
 
-      rewriters = new List<IRewriter>();
+      rewriters = new List<Rewriter>();
       refinementTransformer = new RefinementTransformer(prog);
       rewriters.Add(refinementTransformer);
       rewriters.Add(new AutoContractsRewriter(reporter, builtIns));
@@ -439,20 +440,9 @@ namespace Microsoft.Dafny {
       rewriters.Add(new InductionRewriter(reporter));
 
       if (DafnyOptions.O.Plugins.Count() >= 1) {
-        foreach (var assembly in DafnyOptions.O.Plugins) {
-          foreach (System.Type type in assembly.GetTypes().Where(t => t.IsAssignableTo(typeof(IRewriter)))) {
-            IRewriter pluginRewriter = null;
-            Exception e = null;
-            try {
-              pluginRewriter = Activator.CreateInstance(type, reporter) as IRewriter;
-            } catch (Exception _e) {
-              e = _e;
-            }
-            if (pluginRewriter == null) {
-              reporter.Error(MessageSource.Resolver, prog.GetFirstTopLevelToken(), $"[Internal error] '{type.FullName}' could not be created as an IRewriter" + (e != null ? ":" + e.ToString() : ""));
-            } else {
-              rewriters.Add(pluginRewriter);
-            }
+        foreach (var plugin in DafnyOptions.O.Plugins) {
+          foreach (var rewriter in plugin.Configuration.GetRewriters(reporter)) {
+            rewriters.Add(rewriter);
           }
         }
       }

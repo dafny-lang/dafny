@@ -28,34 +28,49 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 public class ExternalResolverTest : DafnyLanguageServerTestBase {
   private ILanguageClient client;
   private DiagnosticsReceiver diagnosticReceiver;
-  private Assembly library;
+  private string libraryPath;
 
   [TestInitialize]
   public async Task SetUp() {
     diagnosticReceiver = new();
-    library = await GetLibrary(@"
-      using Microsoft.Dafny;
-      public class ErrorRewriter: IRewriter {
-        public ErrorRewriter(ErrorReporter reporter) : base(reporter)
-        {}
+    libraryPath = await GetLibrary(@"
+using Microsoft.Dafny;
+using Microsoft.Dafny.Plugins;
 
-        public override void PostResolve(ModuleDefinition moduleDefinition) {
-          Reporter.Error(MessageSource.Compiler, moduleDefinition.tok, ""Impossible to continue"");
-        }
-      }");
+public class TestConfiguration: Configuration {
+  public string Argument = """";
+  public override void ParseArguments(string[] args) {
+    Argument = args[0];
+  }
+  public override Rewriter[] GetRewriters(ErrorReporter errorReporter) {
+    return new Rewriter[]{new ErrorRewriter(errorReporter, this)};
+  }
+}
+
+public class ErrorRewriter: Rewriter {
+  private readonly TestConfiguration configuration;
+
+  public ErrorRewriter(ErrorReporter reporter, TestConfiguration configuration): base(reporter) {
+    this.configuration = configuration;
+  }
+
+  public override void PostResolve(ModuleDefinition moduleDefinition) {
+    Reporter.Error(MessageSource.Compiler, moduleDefinition.tok, ""Impossible to continue ""+configuration.Argument);
+  }
+}");
     client = await InitializeClient(options => options.OnPublishDiagnostics(diagnosticReceiver.NotificationReceived));
   }
 
   protected override IConfiguration CreateConfiguration() {
     return new ConfigurationBuilder().AddCommandLine(
-      new[] { "--dafny:plugins=" + this.library.Location }).Build();
+      new[] { "--dafny:plugins:0=" + libraryPath + ",\"because whatever\"" }).Build();
   }
 
   /// <summary>
   /// This method creates a library and returns the path to that library.
   /// The library extends an IRewriter so that we can verify that Dafny invokes it if provided in argument.
   /// </summary>
-  public async Task<Assembly> GetLibrary(string code) {
+  public async Task<string> GetLibrary(string code) {
     var temp = Path.GetTempFileName();
     var compilation = CSharpCompilation.Create("tempAssembly");
     var standardLibraries = new List<string>()
@@ -77,7 +92,7 @@ public class ExternalResolverTest : DafnyLanguageServerTestBase {
     var result = compilation.Emit(assemblyPath);
 
     Assert.IsTrue(result.Success, string.Join("\n", result.Diagnostics.Select(d => d.ToString())));
-    return Assembly.LoadFrom(assemblyPath);
+    return assemblyPath;
   }
 
   [TestMethod]
@@ -88,7 +103,7 @@ public class ExternalResolverTest : DafnyLanguageServerTestBase {
     Assert.AreEqual(documentItem.Uri, resolutionReport.Uri);
     var diagnostics = resolutionReport.Diagnostics.ToArray();
     Assert.AreEqual(1, diagnostics.Length);
-    Assert.AreEqual("Impossible to continue", diagnostics[0].Message);
+    Assert.AreEqual("Impossible to continue because whatever", diagnostics[0].Message);
     Assert.AreEqual(new Range((-1, -1), (-1, 29)), diagnostics[0].Range);
   }
 }

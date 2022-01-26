@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.Numerics;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using Microsoft.Dafny.Plugins;
 using IToken = Microsoft.Boogie.IToken;
 
 namespace Microsoft.Dafny {
@@ -140,7 +141,7 @@ namespace Microsoft.Dafny {
   ///      Jason Koenig and K. Rustan M. Leino.
   ///      In EPTCS, 2016. (Post-workshop proceedings of REFINE 2015.) 
   /// </summary>
-  public class RefinementTransformer : IRewriter {
+  public class RefinementTransformer : Rewriter {
     Cloner rawCloner; // This cloner just gives exactly the same thing back.
     RefinementCloner refinementCloner; // This cloner wraps things in a RefinementToken
 

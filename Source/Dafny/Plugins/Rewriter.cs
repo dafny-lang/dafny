@@ -1,0 +1,87 @@
+﻿using System.Diagnostics.Contracts;
+
+namespace Microsoft.Dafny.Plugins {
+  /// <summary>
+  /// A class that plugins should extend, in order to provide an extra Rewriter to the pipeline.
+  /// </summary>
+  public abstract class Rewriter {
+    /// <summary>
+    /// Used to report errors and warnings, with positional information.
+    /// </summary>
+    protected readonly ErrorReporter Reporter;
+
+    /// <summary>
+    /// Make sure, when you extends an Rewriter in a plugin, that
+    /// 1. You accept an ErrorReporter as the first argument of your constructor
+    /// 2. All other arguments, if any, should have default values
+    /// 3. You provide this ErrorReporter to the base class
+    /// Then you can use the protected field "reporter" like the following:
+    /// 
+    ///     reporter.Error(MessageSource.Compiler, token, "Your error message here");
+    ///
+    /// The token is usually obtained on expressions and statements in the field `tok`
+    /// If you do not have access to them, use moduleDefinition.GetFirstTopLevelToken()
+    /// </summary>
+    /// <param name="reporter"></param>
+    public Rewriter(ErrorReporter reporter) {
+      Contract.Requires(reporter != null);
+      this.Reporter = reporter;
+    }
+
+    /// <summary>
+    /// Phase 1/5
+    /// Override this method to obtain a module definition after parsing and built-in pre-resolvers,
+    /// You can then report errors using reporter.Error(MessageSource.Resolver, token, "message") (see above)
+    /// This is a good place to perform AST rewritings, if necessary
+    /// </summary>
+    /// <param name="moduleDefinition">A module definition before is resolved</param>
+    public virtual void PreResolve(ModuleDefinition moduleDefinition) {
+      Contract.Requires(moduleDefinition != null);
+    }
+
+    /// <summary>
+    /// Phase 2/5
+    /// Override this method to obtain a module definition after bare resolution, if no error were thrown,
+    /// You can then report errors using reporter.Error (see above)
+    /// We heavily discourage AST rewriting after this stage, as automatic type checking will not take place anymore.
+    /// </summary>
+    /// <param name="moduleDefinition">A module definition after it is resolved and type-checked</param>
+    public virtual void PostResolveIntermediate(ModuleDefinition moduleDefinition) {
+      Contract.Requires(moduleDefinition != null);
+    }
+
+    /// <summary>
+    /// Phase 3/5
+    /// Override this method to obtain the module definition after resolution and
+    /// SCC/Cyclicity/Recursivity analysis.
+    /// You can then report errors using reporter.Error (see above)
+    /// </summary>
+    /// <param name="moduleDefinition">A module definition after it
+    /// is resolved, type-checked and SCC/Cyclicity/Recursivity have been performed</param>
+    public virtual void PostCyclicityResolve(ModuleDefinition moduleDefinition) {
+      Contract.Requires(moduleDefinition != null);
+    }
+
+    /// <summary>
+    /// Phase 4/5
+    /// Override this method to obtain the module definition after resolving decreasesResolve
+    /// You can then report errors using reporter.Error (see above)
+    /// </summary>
+    /// <param name="moduleDefinition">A module definition after it
+    /// is resolved, type-checked and SCC/Cyclicity/Recursivity and decreasesResolve checks have been performed</param>
+    public virtual void PostDecreasesResolve(ModuleDefinition moduleDefinition) {
+      Contract.Requires(moduleDefinition != null);
+    }
+
+    /// <summary>
+    /// Phase 5/5
+    /// Override this method to obtain a module definition after the entire resolution pipeline
+    /// You can then report errors using reporter.Error (see above)
+    /// </summary>
+    /// <param name="moduleDefinition">A module definition after it
+    /// is resolved, type-checked and SCC/Cyclicity/Recursivity have been performed</param>
+    public virtual void PostResolve(ModuleDefinition moduleDefinition) {
+      Contract.Requires(moduleDefinition != null);
+    }
+  }
+}
