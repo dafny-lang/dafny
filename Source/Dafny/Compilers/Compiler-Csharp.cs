@@ -122,7 +122,6 @@ namespace Microsoft.Dafny {
 
         var us = TyList("U");
         var ts = TyList("T");
-        var tsus = ts.Concat(us).ToList();
 
         string ArgConv((string u, string t) tp) => $"Func<{tp.u}, {tp.t}> ArgConv";
         var argConvs = arity switch {
@@ -134,7 +133,7 @@ namespace Microsoft.Dafny {
         };
 
         var parameters = $"this Func<{ts.Comma()}> F, {argConvs}Func<TResult, UResult> ResConv";
-        funcExtensions.Write($"public static Func<{us.Comma()}> DowncastClone<{tsus.Comma()}>({parameters})");
+        funcExtensions.Write($"public static Func<{us.Comma()}> DowncastClone<{ts.Concat(us).Comma()}>({parameters})");
 
         var arg = arity switch { 1 => "arg", _ => $"({Enumerable.Range(1, arity).Comma(i => $"arg{i}")})" };
         var argConvCalls = arity switch {
