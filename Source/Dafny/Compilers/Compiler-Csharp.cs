@@ -112,12 +112,12 @@ namespace Microsoft.Dafny {
         int arity = kv.Key;
 
         List<string> TyList(string prefix) {
-          var result = arity switch {
+          var list = arity switch {
             1 => new List<string> { prefix },
             _ => Enumerable.Range(1, arity).Select(i => $"{prefix}{i}").ToList()
           };
-          result.Add($"{prefix}Result");
-          return result;
+          list.Add($"{prefix}Result");
+          return list;
         }
 
         var us = TyList("U");
