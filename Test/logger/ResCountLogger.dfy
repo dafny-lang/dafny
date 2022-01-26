@@ -1,4 +1,4 @@
-// RUN: %dafny /verificationLogger:csv;LogFileName="%t-res.csv",Metric=ticks "%s"
+// RUN: %dafny // /verificationLogger:csv;LogFileName="%t-res.csv",Metric=resource-count "%s"
 // RUN: %OutputCheck --file-to-check "%t-res.csv" "%s"
 
 // CHECK: TestResult\.DisplayName,TestResult\.Outcome,TestResult\.ResourceCount
