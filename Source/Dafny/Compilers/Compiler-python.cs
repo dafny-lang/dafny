@@ -224,7 +224,9 @@ namespace Microsoft.Dafny {
       } else if (xType is IntType || xType is BigOrdinalType) {
         return "int";
       } else {
-        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
+        Contract.Assert(false);
+        throw new NotImplementedException();
+
       }
     }
 
@@ -251,7 +253,7 @@ namespace Microsoft.Dafny {
 
     protected override void DeclareLocalVar(string name, Type type, IToken tok, bool leaveRoomForRhs, string rhs,
       ConcreteSyntaxTree wr) {
-      wr.Write("{0}{1}", name, type != null ? "=" + TypeName(type, wr, tok) + "()" : "");
+      wr.Write("{0}{1}", name, type != null ? "=" + TypeName(type, wr, tok) + "()" : ""); //else part can be used to define class object.
       wr.WriteLine();
 
     }
