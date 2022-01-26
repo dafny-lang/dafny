@@ -12,9 +12,7 @@ namespace Microsoft.Dafny.Plugins {
 
     /// <summary>
     /// Make sure, when you extends an Rewriter in a plugin, that
-    /// 1. You accept an ErrorReporter as the first argument of your constructor
-    /// 2. All other arguments, if any, should have default values
-    /// 3. You provide this ErrorReporter to the base class
+    /// you provide an ErrorReporter to the base class (you can obtain one in Configuration.GetRewriters())
     /// Then you can use the protected field "reporter" like the following:
     /// 
     ///     reporter.Error(MessageSource.Compiler, token, "Your error message here");
