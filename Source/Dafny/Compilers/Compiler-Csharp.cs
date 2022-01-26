@@ -120,8 +120,6 @@ namespace Microsoft.Dafny {
           return result;
         }
 
-        string TPs(IEnumerable<string> l) => $"<{l.Comma()}>";
-
         var us = TyList("U");
         var ts = TyList("T");
         var tsus = ts.Concat(us).ToList();
@@ -135,8 +133,8 @@ namespace Microsoft.Dafny {
                + ", "
         };
 
-        var parameters = $"this Func{TPs(ts)} F, {argConvs}Func<TResult, UResult> ResConv";
-        funcExtensions.Write($"public static Func{TPs(us)} DowncastClone{TPs(tsus)}({parameters})");
+        var parameters = $"this Func<{ts.Comma()}> F, {argConvs}Func<TResult, UResult> ResConv";
+        funcExtensions.Write($"public static Func<{us.Comma()}> DowncastClone<{tsus.Comma()}>({parameters})");
 
         var arg = arity switch { 1 => "arg", _ => $"({Enumerable.Range(1, arity).Comma(i => $"arg{i}")})" };
         var argConvCalls = arity switch {
