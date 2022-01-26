@@ -79,8 +79,9 @@ Options provided through the command line have higher priority than the options 
 ### Plugins
 
 ```sh
-# Provides a comma-separated list of paths to assemblies
-# that contain an instantiatable IRewrite to use during resolution
+# Provides a path to assemblies
+# that contain an instantiatable Microsoft.Dafny.Plugins.Configuration to use during resolution
+# Optionally, after a comma, provide an extra list of space-separated arguments.
 # Default: "" (nothing extra is loaded)
---dafny:plugins=
+--dafny:plugins:0=
 ```
