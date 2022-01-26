@@ -18,7 +18,7 @@ namespace DafnyAssembly {
   }
 }
 
-namespace Dafny {
+namespace DafnyRuntime {
   using System.Collections.Generic;
   using System.Collections.Immutable;
   using System.Linq;
@@ -43,7 +43,7 @@ namespace Dafny {
 
     public static readonly ISet<T> Empty = new Set<T>(ImmutableHashSet<T>.Empty, false);
 
-    private static readonly TypeDescriptor<ISet<T>> _TYPE = new Dafny.TypeDescriptor<ISet<T>>(Empty);
+    private static readonly TypeDescriptor<ISet<T>> _TYPE = new DafnyRuntime.TypeDescriptor<ISet<T>>(Empty);
     public static TypeDescriptor<ISet<T>> _TypeDescriptor() {
       return _TYPE;
     }
@@ -211,11 +211,11 @@ namespace Dafny {
     public override int GetHashCode() {
       var hashCode = 1;
       if (containsNull) {
-        hashCode = hashCode * (Dafny.Helpers.GetHashCode(default(T)) + 3);
+        hashCode = hashCode * (DafnyRuntime.Helpers.GetHashCode(default(T)) + 3);
       }
 
       foreach (var t in this.setImpl) {
-        hashCode = hashCode * (Dafny.Helpers.GetHashCode(t) + 3);
+        hashCode = hashCode * (DafnyRuntime.Helpers.GetHashCode(t) + 3);
       }
 
       return hashCode;
@@ -225,12 +225,12 @@ namespace Dafny {
       var s = "{";
       var sep = "";
       if (containsNull) {
-        s += sep + Dafny.Helpers.ToString(default(T));
+        s += sep + DafnyRuntime.Helpers.ToString(default(T));
         sep = ", ";
       }
 
       foreach (var t in this.setImpl) {
-        s += sep + Dafny.Helpers.ToString(t);
+        s += sep + DafnyRuntime.Helpers.ToString(t);
         sep = ", ";
       }
 
@@ -306,7 +306,7 @@ namespace Dafny {
     }
     public static readonly MultiSet<T> Empty = new MultiSet<T>(ImmutableDictionary<T, BigInteger>.Empty.ToBuilder(), BigInteger.Zero);
 
-    private static readonly TypeDescriptor<IMultiSet<T>> _TYPE = new Dafny.TypeDescriptor<IMultiSet<T>>(Empty);
+    private static readonly TypeDescriptor<IMultiSet<T>> _TYPE = new DafnyRuntime.TypeDescriptor<IMultiSet<T>>(Empty);
     public static TypeDescriptor<IMultiSet<T>> _TypeDescriptor() {
       return _TYPE;
     }
@@ -426,12 +426,12 @@ namespace Dafny {
     public override int GetHashCode() {
       var hashCode = 1;
       if (occurrencesOfNull > 0) {
-        var key = Dafny.Helpers.GetHashCode(default(T));
+        var key = DafnyRuntime.Helpers.GetHashCode(default(T));
         key = (key << 3) | (key >> 29) ^ occurrencesOfNull.GetHashCode();
         hashCode = hashCode * (key + 3);
       }
       foreach (var kv in dict) {
-        var key = Dafny.Helpers.GetHashCode(kv.Key);
+        var key = DafnyRuntime.Helpers.GetHashCode(kv.Key);
         key = (key << 3) | (key >> 29) ^ kv.Value.GetHashCode();
         hashCode = hashCode * (key + 3);
       }
@@ -441,11 +441,11 @@ namespace Dafny {
       var s = "multiset{";
       var sep = "";
       for (var i = BigInteger.Zero; i < occurrencesOfNull; i++) {
-        s += sep + Dafny.Helpers.ToString(default(T));
+        s += sep + DafnyRuntime.Helpers.ToString(default(T));
         sep = ", ";
       }
       foreach (var kv in dict) {
-        var t = Dafny.Helpers.ToString(kv.Key);
+        var t = DafnyRuntime.Helpers.ToString(kv.Key);
         for (var i = BigInteger.Zero; i < kv.Value; i++) {
           s += sep + t;
           sep = ", ";
@@ -644,7 +644,7 @@ namespace Dafny {
       this.nullValue = nullValue;
     }
 
-    private static readonly TypeDescriptor<IMap<U, V>> _TYPE = new Dafny.TypeDescriptor<IMap<U, V>>(Empty);
+    private static readonly TypeDescriptor<IMap<U, V>> _TYPE = new DafnyRuntime.TypeDescriptor<IMap<U, V>>(Empty);
     public static TypeDescriptor<IMap<U, V>> _TypeDescriptor() {
       return _TYPE;
     }
@@ -754,13 +754,13 @@ namespace Dafny {
     public override int GetHashCode() {
       var hashCode = 1;
       if (hasNullKey) {
-        var key = Dafny.Helpers.GetHashCode(default(U));
-        key = (key << 3) | (key >> 29) ^ Dafny.Helpers.GetHashCode(nullValue);
+        var key = DafnyRuntime.Helpers.GetHashCode(default(U));
+        key = (key << 3) | (key >> 29) ^ DafnyRuntime.Helpers.GetHashCode(nullValue);
         hashCode = hashCode * (key + 3);
       }
       foreach (var kv in dict) {
-        var key = Dafny.Helpers.GetHashCode(kv.Key);
-        key = (key << 3) | (key >> 29) ^ Dafny.Helpers.GetHashCode(kv.Value);
+        var key = DafnyRuntime.Helpers.GetHashCode(kv.Key);
+        key = (key << 3) | (key >> 29) ^ DafnyRuntime.Helpers.GetHashCode(kv.Value);
         hashCode = hashCode * (key + 3);
       }
       return hashCode;
@@ -769,11 +769,11 @@ namespace Dafny {
       var s = "map[";
       var sep = "";
       if (hasNullKey) {
-        s += sep + Dafny.Helpers.ToString(default(U)) + " := " + Dafny.Helpers.ToString(nullValue);
+        s += sep + DafnyRuntime.Helpers.ToString(default(U)) + " := " + DafnyRuntime.Helpers.ToString(nullValue);
         sep = ", ";
       }
       foreach (var kv in dict) {
-        s += sep + Dafny.Helpers.ToString(kv.Key) + " := " + Dafny.Helpers.ToString(kv.Value);
+        s += sep + DafnyRuntime.Helpers.ToString(kv.Key) + " := " + DafnyRuntime.Helpers.ToString(kv.Value);
         sep = ", ";
       }
       return s + "]";
@@ -813,18 +813,18 @@ namespace Dafny {
     public ISet<U> Keys {
       get {
         if (hasNullKey) {
-          return Dafny.Set<U>.FromCollectionPlusOne(dict.Keys, default(U));
+          return DafnyRuntime.Set<U>.FromCollectionPlusOne(dict.Keys, default(U));
         } else {
-          return Dafny.Set<U>.FromCollection(dict.Keys);
+          return DafnyRuntime.Set<U>.FromCollection(dict.Keys);
         }
       }
     }
     public ISet<V> Values {
       get {
         if (hasNullKey) {
-          return Dafny.Set<V>.FromCollectionPlusOne(dict.Values, nullValue);
+          return DafnyRuntime.Set<V>.FromCollectionPlusOne(dict.Values, nullValue);
         } else {
-          return Dafny.Set<V>.FromCollection(dict.Values);
+          return DafnyRuntime.Set<V>.FromCollection(dict.Values);
         }
       }
     }
@@ -845,7 +845,7 @@ namespace Dafny {
       foreach (var item in m.ItemEnumerable) {
         result.Add(_System.Tuple2<U, V>.create(item.Car, item.Cdr));
       }
-      return Dafny.Set<_System._ITuple2<U, V>>.FromCollection(result);
+      return DafnyRuntime.Set<_System._ITuple2<U, V>>.FromCollection(result);
     }
   }
 
@@ -882,7 +882,7 @@ namespace Dafny {
   public abstract class Sequence<T> : ISequence<T> {
     public static readonly ISequence<T> Empty = new ArraySequence<T>(new T[0]);
 
-    private static readonly TypeDescriptor<ISequence<T>> _TYPE = new Dafny.TypeDescriptor<ISequence<T>>(Empty);
+    private static readonly TypeDescriptor<ISequence<T>> _TYPE = new DafnyRuntime.TypeDescriptor<ISequence<T>>(Empty);
     public static TypeDescriptor<ISequence<T>> _TypeDescriptor() {
       return _TYPE;
     }
@@ -1024,7 +1024,7 @@ namespace Dafny {
 
       var hashCode = 0;
       for (var i = 0; i < elmts.Length; i++) {
-        hashCode = (hashCode << 3) | (hashCode >> 29) ^ Dafny.Helpers.GetHashCode(elmts[i]);
+        hashCode = (hashCode << 3) | (hashCode >> 29) ^ DafnyRuntime.Helpers.GetHashCode(elmts[i]);
       }
       return hashCode;
     }
@@ -1042,7 +1042,7 @@ namespace Dafny {
         var s = "[";
         var sep = "";
         foreach (var t in elmts) {
-          s += sep + Dafny.Helpers.ToString(t);
+          s += sep + DafnyRuntime.Helpers.ToString(t);
           sep = ", ";
         }
         return s + "]";
@@ -1693,24 +1693,24 @@ namespace @_System {
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._0));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._1));
+      hash = ((hash << 5) + hash) + ((ulong)DafnyRuntime.Helpers.GetHashCode(this._0));
+      hash = ((hash << 5) + hash) + ((ulong)DafnyRuntime.Helpers.GetHashCode(this._1));
       return (int)hash;
     }
     public override string ToString() {
       string s = "";
       s += "(";
-      s += Dafny.Helpers.ToString(this._0);
+      s += DafnyRuntime.Helpers.ToString(this._0);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._1);
+      s += DafnyRuntime.Helpers.ToString(this._1);
       s += ")";
       return s;
     }
     public static _ITuple2<T0, T1> Default(T0 _default_T0, T1 _default_T1) {
       return create(_default_T0, _default_T1);
     }
-    public static Dafny.TypeDescriptor<_System._ITuple2<T0, T1>> _TypeDescriptor(Dafny.TypeDescriptor<T0> _td_T0, Dafny.TypeDescriptor<T1> _td_T1) {
-      return new Dafny.TypeDescriptor<_System._ITuple2<T0, T1>>(_System.Tuple2<T0, T1>.Default(_td_T0.Default(), _td_T1.Default()));
+    public static DafnyRuntime.TypeDescriptor<_System._ITuple2<T0, T1>> _TypeDescriptor(DafnyRuntime.TypeDescriptor<T0> _td_T0, DafnyRuntime.TypeDescriptor<T1> _td_T1) {
+      return new DafnyRuntime.TypeDescriptor<_System._ITuple2<T0, T1>>(_System.Tuple2<T0, T1>.Default(_td_T0.Default(), _td_T1.Default()));
     }
     public static _ITuple2<T0, T1> create(T0 _0, T1 _1) {
       return new Tuple2<T0, T1>(_0, _1);

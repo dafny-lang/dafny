@@ -40,17 +40,17 @@ namespace Microsoft.Dafny.Compilers {
     public override bool SupportsInMemoryCompilation => true;
     public override bool TextualTargetIsExecutable => false;
 
-    const string DafnyISet = "Dafny.ISet";
-    const string DafnyIMultiset = "Dafny.IMultiSet";
-    const string DafnyISeq = "Dafny.ISequence";
-    const string DafnyIMap = "Dafny.IMap";
+    const string DafnyISet = "DafnyRuntime.ISet";
+    const string DafnyIMultiset = "DafnyRuntime.IMultiSet";
+    const string DafnyISeq = "DafnyRuntime.ISequence";
+    const string DafnyIMap = "DafnyRuntime.IMap";
 
-    const string DafnySetClass = "Dafny.Set";
-    const string DafnyMultiSetClass = "Dafny.MultiSet";
-    const string DafnySeqClass = "Dafny.Sequence";
-    const string DafnyMapClass = "Dafny.Map";
+    const string DafnySetClass = "DafnyRuntime.Set";
+    const string DafnyMultiSetClass = "DafnyRuntime.MultiSet";
+    const string DafnySeqClass = "DafnyRuntime.Sequence";
+    const string DafnyMapClass = "DafnyRuntime.Map";
 
-    const string DafnyHelpersClass = "Dafny.Helpers";
+    const string DafnyHelpersClass = "DafnyRuntime.Helpers";
 
     static string FormatTypeDescriptorVariable(string typeVarName) => $"_td_{typeVarName}";
     static string FormatTypeDescriptorVariable(TypeParameter tp) => FormatTypeDescriptorVariable(tp.CompileName);
@@ -121,7 +121,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitBuiltInDecls(BuiltIns builtIns, ConcreteSyntaxTree wr) {
-      var dafnyNamespace = CreateModule("Dafny", false, false, null, wr);
+      var dafnyNamespace = CreateModule("DafnyRuntime", false, false, null, wr);
       EmitInitNewArrays(builtIns, dafnyNamespace);
       if (Synthesize) {
         CsharpSynthesizer.EmitMultiMatcher(dafnyNamespace);
@@ -224,7 +224,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override string GetHelperModuleName() => DafnyHelpersClass;
 
-    const string DafnyTypeDescriptor = "Dafny.TypeDescriptor";
+    const string DafnyTypeDescriptor = "DafnyRuntime.TypeDescriptor";
 
     internal string TypeParameters(List<TypeParameter>/*?*/ targs, bool addVariance = false, bool uniqueNames = false) {
       Contract.Requires(targs == null || cce.NonNullElements(targs));
@@ -1357,7 +1357,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (xType is IntType || xType is BigOrdinalType) {
         return "BigInteger";
       } else if (xType is RealType) {
-        return "Dafny.BigRational";
+        return "DafnyRuntime.BigRational";
       } else if (xType is BitvectorType) {
         var t = (BitvectorType)xType;
         return t.NativeType != null ? GetNativeTypeName(t.NativeType) : "BigInteger";
@@ -1409,7 +1409,7 @@ namespace Microsoft.Dafny.Compilers {
     public string TypeHelperName(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok, Type/*?*/ otherType = null) {
       var xType = type.NormalizeExpand();
       if (xType is SeqType seqType) {
-        return "Dafny.Sequence" + "<" + CommonTypeName(seqType.Arg, otherType?.AsSeqType?.Arg, wr, tok) + ">";
+        return "DafnyRuntime.Sequence" + "<" + CommonTypeName(seqType.Arg, otherType?.AsSeqType?.Arg, wr, tok) + ">";
       } else if (xType is SetType setType) {
         return $"{DafnySetClass}<{CommonTypeName(setType.Arg, otherType?.AsSetType?.Arg, wr, tok)}>";
       } else if (xType is MultiSetType msType) {
@@ -1453,7 +1453,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (xType is IntType || xType is BigOrdinalType) {
         return "BigInteger.Zero";
       } else if (xType is RealType) {
-        return "Dafny.BigRational.ZERO";
+        return "DafnyRuntime.BigRational.ZERO";
       } else if (xType is BitvectorType) {
         var t = (BitvectorType)xType;
         return t.NativeType != null ? "0" : "BigInteger.Zero";
@@ -1568,19 +1568,19 @@ namespace Microsoft.Dafny.Compilers {
     protected override string TypeDescriptor(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok) {
       type = type.NormalizeExpandKeepConstraints();
       if (type is BoolType) {
-        return "Dafny.Helpers.BOOL";
+        return "DafnyRuntime.Helpers.BOOL";
       } else if (type is CharType) {
-        return "Dafny.Helpers.CHAR";
+        return "DafnyRuntime.Helpers.CHAR";
       } else if (type is IntType || type is BigOrdinalType) {
-        return "Dafny.Helpers.INT";
+        return "DafnyRuntime.Helpers.INT";
       } else if (type is RealType) {
-        return "Dafny.Helpers.REAL";
+        return "DafnyRuntime.Helpers.REAL";
       } else if (type is BitvectorType) {
         var t = (BitvectorType)type;
         if (t.NativeType != null) {
           return GetNativeTypeDescriptor(AsNativeType(type));
         } else {
-          return "Dafny.Helpers.INT";
+          return "DafnyRuntime.Helpers.INT";
         }
       } else if (type is SetType setType) {
         return $"{DafnySetClass}<{TypeName(setType.Arg, wr, tok)}>.{TypeDescriptorMethodName}()";
@@ -1591,12 +1591,12 @@ namespace Microsoft.Dafny.Compilers {
       } else if (type is MapType mapType) {
         return $"{DafnyMapClass}<{TypeName(mapType.Domain, wr, tok)}, {TypeName(mapType.Range, wr, tok)}>.{TypeDescriptorMethodName}()";
       } else if (type.IsRefType) {
-        return $"Dafny.Helpers.NULL<{TypeName(type, wr, tok)}>()";
+        return $"DafnyRuntime.Helpers.NULL<{TypeName(type, wr, tok)}>()";
       } else if (type.IsArrayType) {
         ArrayClassDecl at = type.AsArrayType;
         var elType = UserDefinedType.ArrayElementType(type);
         var elTypeName = TypeName(elType, wr, tok);
-        return $"Dafny.Helpers.ARRAY{(at.Dims == 1 ? "" : $"{at.Dims}")}<{elTypeName}>()";
+        return $"DafnyRuntime.Helpers.ARRAY{(at.Dims == 1 ? "" : $"{at.Dims}")}<{elTypeName}>()";
       } else if (type.IsTypeParameter) {
         var tp = type.AsTypeParameter;
         Contract.Assert(tp != null);
@@ -1605,13 +1605,13 @@ namespace Microsoft.Dafny.Compilers {
         }
         return FormatTypeDescriptorVariable(type.AsTypeParameter.CompileName);
       } else if (type.IsBuiltinArrowType) {
-        return $"Dafny.Helpers.NULL<{TypeName(type, wr, tok)}>()";
+        return $"DafnyRuntime.Helpers.NULL<{TypeName(type, wr, tok)}>()";
       } else if (type is UserDefinedType udt) {
         var cl = udt.ResolvedClass;
         Contract.Assert(cl != null);
         bool isHandle = true;
         if (Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
-          return "Dafny.Helpers.INT64";
+          return "DafnyRuntime.Helpers.INT64";
         }
 
         List<Type> relevantTypeArgs;
@@ -1638,21 +1638,21 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Assert(nt != null);
       switch (nt.Sel) {
         case NativeType.Selection.SByte:
-          return $"Dafny.Helpers.INT8";
+          return $"DafnyRuntime.Helpers.INT8";
         case NativeType.Selection.Byte:
-          return $"Dafny.Helpers.UINT8";
+          return $"DafnyRuntime.Helpers.UINT8";
         case NativeType.Selection.Short:
-          return $"Dafny.Helpers.INT16";
+          return $"DafnyRuntime.Helpers.INT16";
         case NativeType.Selection.UShort:
-          return $"Dafny.Helpers.UINT16";
+          return $"DafnyRuntime.Helpers.UINT16";
         case NativeType.Selection.Int:
-          return $"Dafny.Helpers.INT32";
+          return $"DafnyRuntime.Helpers.INT32";
         case NativeType.Selection.UInt:
-          return $"Dafny.Helpers.UINT32";
+          return $"DafnyRuntime.Helpers.UINT32";
         case NativeType.Selection.Long:
-          return $"Dafny.Helpers.INT64";
+          return $"DafnyRuntime.Helpers.INT64";
         case NativeType.Selection.ULong:
-          return $"Dafny.Helpers.UINT64";
+          return $"DafnyRuntime.Helpers.UINT64";
         default:
           Contract.Assert(false);
           throw new cce.UnreachableException();
@@ -1814,7 +1814,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitHalt(Bpl.IToken tok, Expression/*?*/ messageExpr, ConcreteSyntaxTree wr) {
       var wStmts = wr.Fork();
-      wr.Write("throw new Dafny.HaltException(");
+      wr.Write("throw new DafnyRuntime.HaltException(");
       if (tok != null) {
         wr.Write(SymbolDisplay.FormatLiteral(ErrorReporter.TokenToString(tok) + ": ", true) + " + ");
       }
@@ -1952,7 +1952,7 @@ namespace Microsoft.Dafny.Compilers {
         }
         wr.Write("]{0}", brackets);
       } else {
-        wr.Write("Dafny.ArrayHelpers.InitNewArray{0}<{1}>", dimCount, TypeName(elmtType, wr, tok));
+        wr.Write("DafnyRuntime.ArrayHelpers.InitNewArray{0}<{1}>", dimCount, TypeName(elmtType, wr, tok));
         var inParens = wr.ForkInParens();
         inParens.Write(DefaultValue(elmtType, inParens, tok, true));
         for (var d = 0; d < dimCount; d++) {
@@ -2022,13 +2022,13 @@ namespace Microsoft.Dafny.Compilers {
         EmitIntegerLiteral(bigInteger, wr);
       } else if (e.Value is BigDec n) {
         if (0 <= n.Exponent) {
-          wr.Write("new Dafny.BigRational(BigInteger.Parse(\"{0}", n.Mantissa);
+          wr.Write("new DafnyRuntime.BigRational(BigInteger.Parse(\"{0}", n.Mantissa);
           for (int i = 0; i < n.Exponent; i++) {
             wr.Write("0");
           }
           wr.Write("\"), BigInteger.One)");
         } else {
-          wr.Write("new Dafny.BigRational(");
+          wr.Write("new DafnyRuntime.BigRational(");
           EmitIntegerLiteral(n.Mantissa, wr);
           wr.Write(", BigInteger.Parse(\"1");
           for (int i = n.Exponent; i < 0; i++) {
@@ -2348,19 +2348,19 @@ namespace Microsoft.Dafny.Compilers {
           compiledName = "ToBigInteger()";
           break;
         case SpecialField.ID.IsLimit:
-          preString = "Dafny.BigOrdinal.IsLimit(";
+          preString = "DafnyRuntime.BigOrdinal.IsLimit(";
           postString = ")";
           break;
         case SpecialField.ID.IsSucc:
-          preString = "Dafny.BigOrdinal.IsSucc(";
+          preString = "DafnyRuntime.BigOrdinal.IsSucc(";
           postString = ")";
           break;
         case SpecialField.ID.Offset:
-          preString = "Dafny.BigOrdinal.Offset(";
+          preString = "DafnyRuntime.BigOrdinal.Offset(";
           postString = ")";
           break;
         case SpecialField.ID.IsNat:
-          preString = "Dafny.BigOrdinal.IsNat(";
+          preString = "DafnyRuntime.BigOrdinal.IsNat(";
           postString = ")";
           break;
         case SpecialField.ID.Keys:
@@ -2570,7 +2570,7 @@ namespace Microsoft.Dafny.Compilers {
     // case that f is a lambda expression.  In that case, rather than
     // something like
     //
-    //   var s = Dafny.Sequence.Create(N, i => ...);
+    //   var s = DafnyRuntime.Sequence.Create(N, i => ...);
     //
     // (which will call the lambda N times), we'd rather write
     //
@@ -2579,18 +2579,18 @@ namespace Microsoft.Dafny.Compilers {
     //   for (int i = 0; i < dim; i++) {
     //     arr[i] = ...;
     //   }
-    //   var s = Dafny.Sequence<T>.FromArray(a);
+    //   var s = DafnyRuntime.Sequence<T>.FromArray(a);
     //
     // and thus avoid method calls.  Unfortunately, since we can't add
     // statements easily, we have to settle for the slightly clunkier
     //
-    //   var s = ((System.Func<Dafny.Sequence<T>>) (() => {
+    //   var s = ((System.Func<DafnyRuntime.Sequence<T>>) (() => {
     //     var dim = N;
     //     var arr = new T[dim];
     //     for (int i = 0; i < dim; i++) {
     //       arr[i] = ...;
     //     }
-    //     return Dafny.Sequence<T>.FromArray(a);
+    //     return DafnyRuntime.Sequence<T>.FromArray(a);
     //   }))();
     private void EmitSeqConstructionExprFromLambda(Expression lengthExpr, BoundVar boundVar, Expression body, bool inLetExprBody, ConcreteSyntaxTree wr) {
       wr.Format($"((System.Func<{TypeName(new SeqType(body.Type), wr, body.tok)}>) (() =>{ExprBlock(out ConcreteSyntaxTree wrLamBody)}))()");
@@ -2666,7 +2666,7 @@ namespace Microsoft.Dafny.Compilers {
 
     string DowncastConverter(Type from, Type to, ConcreteSyntaxTree errorWr, Bpl.IToken tok) {
       if (IsTargetSupertype(from, to, true)) {
-        return $"Dafny.Helpers.Id<{TypeName(to, errorWr, tok)}>";
+        return $"DafnyRuntime.Helpers.Id<{TypeName(to, errorWr, tok)}>";
       }
       if (from.AsCollectionType != null) {
         var sTo = TypeName(to, errorWr, tok);
@@ -2676,7 +2676,7 @@ namespace Microsoft.Dafny.Compilers {
         return wr.ToString();
       }
       // use a type
-      return $"Dafny.Helpers.CastConverter<{TypeName(from, errorWr, tok)}, {TypeName(to, errorWr, tok)}>";
+      return $"DafnyRuntime.Helpers.CastConverter<{TypeName(from, errorWr, tok)}, {TypeName(to, errorWr, tok)}>";
     }
 
     protected override bool TargetLambdaCanUseEnclosingLocals => false;
@@ -2911,7 +2911,7 @@ namespace Microsoft.Dafny.Compilers {
         if (e.ToType.IsNumericBased(Type.NumericPersuasion.Real)) {
           // (int or bv or char) -> real
           Contract.Assert(AsNativeType(e.ToType) == null);
-          wr.Write("new Dafny.BigRational(");
+          wr.Write("new DafnyRuntime.BigRational(");
           if (AsNativeType(e.E.Type) != null) {
             wr.Write("new BigInteger");
           }
@@ -2994,7 +2994,7 @@ namespace Microsoft.Dafny.Compilers {
           wr.Write("(char)");
           TrParenExpr(e.E, wr, inLetExprBody, wStmts);
         } else if (e.ToType.IsNumericBased(Type.NumericPersuasion.Real)) {
-          wr.Write("new Dafny.BigRational(");
+          wr.Write("new DafnyRuntime.BigRational(");
           if (AsNativeType(e.E.Type) != null) {
             wr.Write("new BigInteger");
             TrParenExpr(e.E, wr, inLetExprBody, wStmts);
@@ -3049,7 +3049,7 @@ namespace Microsoft.Dafny.Compilers {
         bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       var arguments = elements.Select(p => {
         var result = new ConcreteSyntaxTree();
-        result.Format($"new Dafny.Pair{BracketList((LineSegment)TypeName(p.A.Type, result, p.A.tok), (LineSegment)TypeName(p.B.Type, result, p.B.tok))}");
+        result.Format($"new DafnyRuntime.Pair{BracketList((LineSegment)TypeName(p.A.Type, result, p.A.tok), (LineSegment)TypeName(p.B.Type, result, p.B.tok))}");
         result.Append(ParensList(Expr(p.A, inLetExprBody, wStmts), Expr(p.B, inLetExprBody, wStmts)));
         return result;
       }).ToArray<ICanRender>();
@@ -3066,7 +3066,7 @@ namespace Microsoft.Dafny.Compilers {
       var mt = e.Type.AsMapType;
       var domtypeName = TypeName(mt.Domain, wrVarInit, e.tok);
       var rantypeName = TypeName(mt.Range, wrVarInit, e.tok);
-      wrVarInit.Write($"new System.Collections.Generic.List<Dafny.Pair<{domtypeName},{rantypeName}>>()");
+      wrVarInit.Write($"new System.Collections.Generic.List<DafnyRuntime.Pair<{domtypeName},{rantypeName}>>()");
     }
 
     protected override void EmitSetBuilder_Add(CollectionType ct, string collName, Expression elmt, bool inLetExprBody, ConcreteSyntaxTree wr) {
@@ -3083,7 +3083,7 @@ namespace Microsoft.Dafny.Compilers {
       var rantypeName = TypeName(mt.Range, wr, tok);
       var termLeftWriter = new ConcreteSyntaxTree();
       var wStmts = wr.Fork();
-      wr.FormatLine($"{collName}.Add(new Dafny.Pair<{domtypeName},{rantypeName}>{ParensList(termLeftWriter, Expr(term, inLetExprBody, wStmts))});");
+      wr.FormatLine($"{collName}.Add(new DafnyRuntime.Pair<{domtypeName},{rantypeName}>{ParensList(termLeftWriter, Expr(term, inLetExprBody, wStmts))});");
       return termLeftWriter;
     }
 
