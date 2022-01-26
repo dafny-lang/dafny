@@ -3,11 +3,14 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.Boogie;
+using Microsoft.Dafny;
+using Type = Microsoft.Dafny.Type;
 
 namespace DafnyServer.CounterexampleGeneration {
 
@@ -32,9 +35,11 @@ namespace DafnyServer.CounterexampleGeneration {
     private readonly Dictionary<Model.Element, string> localValue = new();
     // maps a basic type (int, real, bv4, etc.) to the set of values that
     // the model assigns to variables of this type. 
-    private readonly Dictionary<string, HashSet<string>> reservedValues = new();
+    private readonly Dictionary<Type, HashSet<string>> reservedValues = new();
     // maps a particular element to a value reserved for it (see above)
     private readonly Dictionary<Model.Element, string> reservedValuesMap = new();
+    // ensures that a given bitvectorType is created only once for a given base
+    private readonly Dictionary<int, BitvectorType> bitvectorTypes = new(); 
 
 
     public DafnyModel(Model model) {
@@ -161,44 +166,48 @@ namespace DafnyServer.CounterexampleGeneration {
     /// </summary>
     private void RegisterReservedValues() {
       var fCharToInt = Model.MkFunc("char#ToInt", 1);
-      reservedValues["char"] = new();
+      reservedValues[Type.Char] = new();
       foreach (var app in fCharToInt.Apps) {
         var UTFCode = int.Parse(((Model.Integer)app.Result).Numeral);
-        reservedValues["char"].Add(Convert.ToChar(UTFCode).ToString());
+        reservedValues[Type.Char].Add(Convert.ToChar(UTFCode).ToString());
       }
 
       var fU2Int = Model.MkFunc("U_2_int", 1);
-      reservedValues["int"] = new();
+      reservedValues[Type.Int] = new();
       foreach (var app in fU2Int.Apps) {
         // this skips negative values
         if (app.Result is Model.Integer) {
-          reservedValues["int"].Add(((Model.Integer)app.Result).Numeral);
+          reservedValues[Type.Int].Add(((Model.Integer)app.Result).Numeral);
         }
       }
 
       var fU2Bool = Model.MkFunc("U_2_bool", 1);
-      reservedValues["bool"] = new();
+      reservedValues[Type.Bool] = new();
       foreach (var app in fU2Bool.Apps) {
-        reservedValues["bool"].Add(((Model.Boolean)app.Result).ToString());
+        reservedValues[Type.Bool].Add(((Model.Boolean)app.Result).ToString());
       }
 
       var fU2Real = Model.MkFunc("U_2_real", 1);
-      reservedValues["real"] = new();
+      reservedValues[Type.Real] = new();
       foreach (var app in fU2Real.Apps) {
         var resultAsString = app.Result.ToString() ?? "";
         // this skips fractions and negative values
         if (app.Result is Model.Real && resultAsString.Contains("/")) {
-          reservedValues["real"].Add(Regex.Replace(
+          reservedValues[Type.Real].Add(Regex.Replace(
             resultAsString, "\\.0$", ""));
         }
       }
-
       foreach (var func in Model.Functions) {
         if (!Regex.IsMatch(func.Name, "^U_2_bv[0-9]+$")) {
           continue;
         }
 
-        var type = func.Name[4..];
+        var width = int.Parse(func.Name[6..]);
+        if (!bitvectorTypes.ContainsKey(width)) {
+          bitvectorTypes[width] = new BitvectorType(width);
+        }
+        var type = bitvectorTypes[width];
+        
         if (!reservedValues.ContainsKey(type)) {
           reservedValues[type] = new();
         }
@@ -487,13 +496,18 @@ namespace DafnyServer.CounterexampleGeneration {
       if (IsBitVectorObject(elt, this)) {
         var typeName = GetTrueName(fType.OptEval(elt));
         var funcName = "U_2_" + typeName[..^4];
+        var width = int.Parse(typeName[2..^4]);
+        if (!bitvectorTypes.ContainsKey(width)) {
+          bitvectorTypes[width] = new BitvectorType(width);
+          reservedValues[bitvectorTypes[width]] = new HashSet<string>();
+        }
         if (!Model.HasFunc(funcName)) {
-          return GetUnspecifiedValue(elt, typeName[..^4]);
+          return GetUnspecifiedValue(elt, bitvectorTypes[width]);
         }
         if (Model.GetFunc(funcName).OptEval(elt) != null) {
           return Model.GetFunc(funcName).OptEval(elt).AsInt().ToString();
         }
-        return GetUnspecifiedValue(elt, typeName[..^4]);
+        return GetUnspecifiedValue(elt, bitvectorTypes[width]);
       }
       if (elt.Kind == Model.ElementKind.DataValue) {
         if (((Model.DatatypeValue)elt).ConstructorName == "-") {
@@ -513,37 +527,36 @@ namespace DafnyServer.CounterexampleGeneration {
           utfCode = ((Model.Integer)fCharToInt.OptEval(elt)).AsInt();
           return "'" + char.ConvertFromUtf32(utfCode) + "'";
         }
-        return GetUnspecifiedValue(elt, "char");
+        return GetUnspecifiedValue(elt, Type.Char);
       }
       if (fType.OptEval(elt) == fReal.GetConstant()) {
         if (fU2Real.OptEval(elt) != null) {
           return CanonicalName(fU2Real.OptEval(elt));
         }
-        return GetUnspecifiedValue(elt, "real");
+        return GetUnspecifiedValue(elt, Type.Real);
       }
       if (fType.OptEval(elt) == fBool.GetConstant()) {
         if (fU2Bool.OptEval(elt) != null) {
           return CanonicalName(fU2Bool.OptEval(elt));
         }
-        return GetUnspecifiedValue(elt, "bool");
+        return GetUnspecifiedValue(elt, Type.Bool);
       }
       if (fType.OptEval(elt) == fInt.GetConstant()) {
         if (fU2Int.OptEval(elt) != null) {
           return CanonicalName(fU2Int.OptEval(elt));
         }
-        return GetUnspecifiedValue(elt, "int");
+        return GetUnspecifiedValue(elt, Type.Int);
       }
       return "";
     }
 
-    private string GetUnspecifiedValue(Model.Element element, string primitiveType) {
+    private string GetUnspecifiedValue(Model.Element element, Type primitiveType) {
       if (reservedValuesMap.ContainsKey(element)) {
         return reservedValuesMap[element];
       }
-
-      if (primitiveType == "bool") {
-        if (!reservedValues["bool"].Contains("true")) {
-          reservedValues["bool"].Add("true");
+      if (primitiveType == Type.Bool) {
+        if (!reservedValues[Type.Bool].Contains("true")) {
+          reservedValues[Type.Bool].Add("true");
           reservedValuesMap[element] = "true";
         } else {
           reservedValuesMap[element] = "false";
@@ -552,9 +565,9 @@ namespace DafnyServer.CounterexampleGeneration {
       }
 
       var i = 0;
-      if (primitiveType == "char") {
+      if (primitiveType == Type.Char) {
         i = 65; // 65 is the UTF code for 'A', i.e. the first letter character
-        while (reservedValues["char"].Contains(Convert.ToChar(i).ToString())) {
+        while (reservedValues[Type.Char].Contains(Convert.ToChar(i).ToString())) {
           i++;
         }
         reservedValuesMap[element] = $"'{Convert.ToChar(i)}'";
@@ -565,7 +578,7 @@ namespace DafnyServer.CounterexampleGeneration {
       while (reservedValues[primitiveType].Contains(i.ToString())) {
         i++;
       }
-      if (primitiveType == "real") {
+      if (primitiveType == Type.Real) {
         reservedValuesMap[element] = i + ".0";
       } else {
         reservedValuesMap[element] = i.ToString();
