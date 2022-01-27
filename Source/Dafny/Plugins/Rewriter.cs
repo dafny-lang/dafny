@@ -3,6 +3,9 @@
 namespace Microsoft.Dafny.Plugins {
   /// <summary>
   /// A class that plugins should extend, in order to provide an extra Rewriter to the pipeline.
+  ///
+  /// If the plugin defines no Configuration, then Dafny will instantiate every sub-class
+  /// of Rewriter from the plugin, providing them with an ErrorReporter as the first and only argument.
   /// </summary>
   public abstract class Rewriter {
     /// <summary>
@@ -11,16 +14,19 @@ namespace Microsoft.Dafny.Plugins {
     protected readonly ErrorReporter Reporter;
 
     /// <summary>
-    /// Make sure, when you extends an Rewriter in a plugin, that
-    /// you provide an ErrorReporter to the base class (you can obtain one in Configuration.GetRewriters())
+    /// Constructor that accepts an ErrorReporter
+    /// You can obtain an ErrorReporter two following ways:
+    /// * Extend a Configuration class, and override the method GetRewriters(), whose first argument is an ErrorReporter
+    /// * Have no Configuration  class, and an ErrorReporter will be provided to your class's constructor.
+    /// 
     /// Then you can use the protected field "reporter" like the following:
     /// 
-    ///     reporter.Error(MessageSource.Compiler, token, "Your error message here");
+    ///     reporter.Error(MessageSource.Compiler, token, "[Your plugin] Your error message here");
     ///
     /// The token is usually obtained on expressions and statements in the field `tok`
     /// If you do not have access to them, use moduleDefinition.GetFirstTopLevelToken()
     /// </summary>
-    /// <param name="reporter"></param>
+    /// <param name="reporter">The error reporter. Usually outputs automatically to IDE or command-line</param>
     public Rewriter(ErrorReporter reporter) {
       Contract.Requires(reporter != null);
       this.Reporter = reporter;

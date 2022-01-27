@@ -25,7 +25,7 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 
 [TestClass]
-public class ExternalResolverTest : DafnyLanguageServerTestBase {
+public class PluginsTest : DafnyLanguageServerTestBase {
   private ILanguageClient client;
   private DiagnosticsReceiver diagnosticReceiver;
   private string libraryPath;
@@ -68,7 +68,7 @@ public class ErrorRewriter: Rewriter {
 
   /// <summary>
   /// This method creates a library and returns the path to that library.
-  /// The library extends an IRewriter so that we can verify that Dafny invokes it if provided in argument.
+  /// The library extends a Rewriter so that we can verify that Dafny invokes it if provided in argument.
   /// </summary>
   public async Task<string> GetLibrary(string code) {
     var temp = Path.GetTempFileName();
@@ -96,7 +96,7 @@ public class ErrorRewriter: Rewriter {
   }
 
   [TestMethod]
-  public async Task EnsureItIsPossibleToPluginIRewriter() {
+  public async Task EnsureItIsPossibleToLoadAPluginWithArguments() {
     var documentItem = CreateTestDocument("function test(): int { 1 }");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     var resolutionReport = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken.None);

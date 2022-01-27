@@ -12,11 +12,11 @@ using Microsoft.Dafny;
 
 namespace DafnyPipeline.Test;
 
-[Collection("External Resolver plug-in tests")]
-public class ExternalResolverTest {
+[Collection("Dafny plug-ins tests")]
+public class PluginsTest {
   /// <summary>
   /// This method creates a library and returns the path to that library.
-  /// The library extends an IRewriter so that we can verify that Dafny invokes it if provided in argument.
+  /// The library extends a Rewriter so that we can verify that Dafny invokes it if provided in argument.
   /// </summary>
   public async Task<string> GetLibrary(string code) {
     var temp = Path.GetTempFileName();
@@ -50,7 +50,7 @@ public class ExternalResolverTest {
   }
 
   [Fact]
-  public async void EnsureItIsPossibleToPluginIRewriter() {
+  public async void EnsurePluginIsExecuted() {
     var library = await GetLibrary(@"
 using Microsoft.Dafny;
 using Microsoft.Dafny.Plugins;
@@ -92,5 +92,36 @@ public class ErrorRewriter: Rewriter {
 
     Assert.Equal(1, reporter.Count(ErrorLevel.Error));
     Assert.Equal("Impossible to continue because whatever", reporter.GetLastErrorMessage());
+  }
+
+  [Fact]
+  public async void EnsurePluginIsExecutedEvenWithoutConfiguration() {
+    var library = await GetLibrary(@"
+using Microsoft.Dafny;
+using Microsoft.Dafny.Plugins;
+
+public class ErrorRewriter: Rewriter {
+  public ErrorRewriter(ErrorReporter reporter): base(reporter) {}
+
+  public override void PostResolve(ModuleDefinition moduleDefinition) {
+    Reporter.Error(MessageSource.Compiler, moduleDefinition.tok, ""Impossible to continue"");
+  }
+}");
+
+    var reporter = new CollectionErrorReporter();
+    var options = new DafnyOptions(reporter);
+    options.Plugins.Add(new Microsoft.Dafny.Plugin(library, new string[] { "ignored arguments" }, reporter));
+    DafnyOptions.Install(options);
+
+    var programString = "function test(): int { 1 }";
+    ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDecl(), null);
+    Microsoft.Dafny.Type.ResetScopes();
+    BuiltIns builtIns = new BuiltIns();
+    Parser.Parse(programString, "virtual", "virtual", module, builtIns, reporter);
+    var dafnyProgram = new Program("programName", module, builtIns, reporter);
+    Main.Resolve(dafnyProgram, reporter);
+
+    Assert.Equal(1, reporter.Count(ErrorLevel.Error));
+    Assert.Equal("Impossible to continue", reporter.GetLastErrorMessage());
   }
 }

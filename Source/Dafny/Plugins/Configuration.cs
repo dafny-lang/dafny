@@ -5,6 +5,10 @@ namespace Microsoft.Dafny.Plugins;
 
 /// <summary>
 /// A class that plugins should extend, in order to receive plugin-specific command-line arguments
+///
+/// If no class extending Microsoft.Dafny.Plugins.Configuration is defined in the assembly plugin,
+/// Dafny will implicitly load all classes extending Rewriter
+/// providing them with an ErrorReporter as the first and only argument
 /// </summary>
 public abstract class Configuration {
   /// <summary>
