@@ -8,7 +8,6 @@ The top four improvements in Dafny 3.4 are:
 
 ### Verification
 - fix: Resolve the following unsoundness issue: https://github.com/dafny-lang/dafny/issues/1619
-
 - feat: Prevent changes in the verification behavior of a proof, when any of these types of changes are made to Dafny user code:
   - Changes logically unrelated to the proof being verified.
   - Changes to the name of any declaration
@@ -24,6 +23,7 @@ The top four improvements in Dafny 3.4 are:
 - feat: Enable 'go to definition', 'hover' and 'signature help' features before verification has completed
 - feat: Improve the hover feature to work for a wider scope of Dafny constructs, including function and method parameters, forall, exists and let expressions, and set and map comprehensions.
 - feat: Add an experimental verification caching feature, which enables automatically determining which proofs need to verify again after making changes.
+- feat: Display related resolution errors using nested diagnostics instead of independent diagnostics
 
 ### UX
 - feat: Improve error reporting when providing wrongly typed arguments in a function call
@@ -33,6 +33,13 @@ The top four improvements in Dafny 3.4 are:
 - fix: resolve an instance where Dafny would produce invalid C# code. https://github.com/dafny-lang/dafny/issues/1607
 - feat: Support variant type parameters on datatype definitions, which enables using traits as type arguments. https://github.com/dafny-lang/dafny/issues/1499
 - feat: Support for downcasting both custom datatypes and functions.
+
+### Various improvements
+- fix: DafnyLanguageServer.dll and Dafny.dll depended on two different versions of Newtonsoft.Json, which could cause crashes in development environments
+- fix: (error reporting) Types with the same name but from different modules are now disambiguated in error messages
+- fix: (error reporting) Messages about arguments / parameters type mismatch are clearer and include the parameter name if available.
+- fix: (robustness) Exceptions during parsing, if any, won't crash the language server anymore.
+- fix: The elephant operator :- has a clearer error message and no longer reject generic methods on its right-hand side
 
 ## Breaking changes
 
