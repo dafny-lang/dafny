@@ -38,7 +38,7 @@ using Microsoft.Dafny;
 using Microsoft.Dafny.Plugins;
 using System.Collections;
 /// <summary>
-///  Small plugin that detect all extern method and verify that there are test methods that actually invoke them.
+///  Small plugin that detects all extern methods and verifies that there are test methods that actually invoke them.
 /// </summary>
 public class TestConfiguration: Configuration {
   public string PluginUser = """";
