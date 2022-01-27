@@ -65,7 +65,7 @@ namespace Microsoft.Dafny {
     }
 
     private void TestRunCompleteHandler(object sender, TestRunCompleteEventArgs e) {
-      writer.WriteLine($"TestResult.DisplayName,TestResult.Outcome,TestResult.Duration,TestResult.ResourceCount");
+      writer.WriteLine("TestResult.DisplayName,TestResult.Outcome,TestResult.Duration,TestResult.ResourceCount");
       foreach (var result in results.OrderByDescending(r => r.Duration)) {
         var resCount = result.GetPropertyValue(BoogieXmlConvertor.ResourceCountProperty);
         writer.WriteLine($"{result.TestCase.DisplayName},{result.Outcome},{result.Duration},{resCount}");
