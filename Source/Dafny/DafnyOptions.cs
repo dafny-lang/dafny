@@ -248,20 +248,18 @@ namespace Microsoft.Dafny {
                 var pluginArray = pluginAndArgument.Split(',');
                 var pluginPath = pluginArray[0];
                 var arguments = Array.Empty<string>();
-                if (pluginArray.Length > 2) {
-                  ps.Error("\"plugin\" cannot have more than one comma separating the DLL from the arguments");
-                } else {
-                  if (pluginArray.Length == 2) {
-                    // Parse arguments, accepting and remove double quotes that isolate long arguments
-                    var splitter = new Regex(@"""((?:[^""]|\\"")*)""|([^ ]+)");
-                    arguments = splitter.Matches(pluginArray[1]).Select(
-                      matchResult => matchResult.Groups[1].Success ?
-                          matchResult.Groups[1].Value.Replace(@"\""", @"""") :
-                          matchResult.Groups[2].Value
-                      ).ToArray();
-                  }
-                  Plugins.Add(new Plugin(pluginPath, arguments, errorReporter));
+                if (pluginArray.Length >= 2) {
+                  // There are no commas in paths, but there can be in arguments
+                  var argumentsString = string.Join(',', pluginArray.Skip(1));
+                  // Parse arguments, accepting and remove double quotes that isolate long arguments
+                  var splitter = new Regex(@"""((?:[^""]|\\"")*)""|([^ ]+)");
+                  arguments = splitter.Matches(argumentsString).Select(
+                    matchResult => matchResult.Groups[1].Success ?
+                        matchResult.Groups[1].Value.Replace(@"\""", @"""") :
+                        matchResult.Groups[2].Value
+                    ).ToArray();
                 }
+                Plugins.Add(new Plugin(pluginPath, arguments, errorReporter));
               }
             }
 
