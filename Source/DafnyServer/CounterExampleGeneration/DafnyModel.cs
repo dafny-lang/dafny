@@ -201,7 +201,7 @@ namespace DafnyServer.CounterexampleGeneration {
       reservedNumerals[Type.Real] = new();
       foreach (var app in fU2Real.Apps) {
         var valueAsString = app.Result.ToString()?.Split(".")[0] ?? "";
-        if ((app.Result is Model.Real) && (int.TryParse(valueAsString, out int value))) {
+        if ((app.Result is Model.Real) && int.TryParse(valueAsString, out int value)) {
           reservedNumerals[Type.Real].Add(value);
         }
       }
