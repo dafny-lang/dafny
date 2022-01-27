@@ -242,7 +242,10 @@ namespace Microsoft.Dafny {
                   pluginAndArgument[0] == '"' &&
                   pluginAndArgument[^1] == '"'
                   ) {
-                pluginAndArgument = pluginAndArgument.Substring(1, pluginAndArgument.Length - 2);
+                var unescapeRegex = new Regex(@"\\""|\\\\");
+                pluginAndArgument = unescapeRegex.Replace(pluginAndArgument.Substring(1, pluginAndArgument.Length - 2),
+                  match => match.Groups[0].Value == @"\""" ? "\"" : @"\"
+                );
               }
               if (pluginAndArgument.Length > 0) {
                 var pluginArray = pluginAndArgument.Split(',');

@@ -63,7 +63,7 @@ public class ErrorRewriter: Rewriter {
 
   protected override IConfiguration CreateConfiguration() {
     return new ConfigurationBuilder().AddCommandLine(
-      new[] { "--dafny:plugins:0=" + libraryPath + ",\"because, whatever\"" }).Build();
+      new[] { $@"--dafny:plugins:0=""{libraryPath},\""because\\ whatever\""""" }).Build();
   }
 
   /// <summary>
@@ -103,7 +103,7 @@ public class ErrorRewriter: Rewriter {
     Assert.AreEqual(documentItem.Uri, resolutionReport.Uri);
     var diagnostics = resolutionReport.Diagnostics.ToArray();
     Assert.AreEqual(1, diagnostics.Length);
-    Assert.AreEqual("Impossible to continue because, whatever", diagnostics[0].Message);
+    Assert.AreEqual("Impossible to continue because\\ whatever", diagnostics[0].Message);
     Assert.AreEqual(new Range((0, 9), (0, 13)), diagnostics[0].Range);
   }
 }

@@ -4233,7 +4233,12 @@ namespace Microsoft.Dafny {
         .Where(x => x != null)
         .SelectMany(classDecl => classDecl.Members)
         .Where(member => member.tok.line > 0)
-        .Select(member => member.tok).FirstOrDefault(Token.NoToken);
+        .Select(member => member.tok)
+        .Concat(TopLevelDecls.Select(x => x as LiteralModuleDecl)
+          .Where(x => x != null)
+          .Select((moduleDecl => moduleDecl.ModuleDef.GetFirstTopLevelToken()))
+          .Where(tok => tok.line > 0)
+        ).FirstOrDefault(Token.NoToken);
     }
   }
 
