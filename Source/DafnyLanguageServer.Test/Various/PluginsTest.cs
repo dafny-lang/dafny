@@ -40,7 +40,7 @@ using Microsoft.Dafny.Plugins;
 public class TestConfiguration: Configuration {
   public string Argument = """";
   public override void ParseArguments(string[] args) {
-    Argument = args[0];
+    Argument = args.Length > 0 ? args[0] : ""[no argument]"";
   }
   public override Rewriter[] GetRewriters(ErrorReporter errorReporter) {
     return new Rewriter[]{new ErrorRewriter(errorReporter, this)};
@@ -55,7 +55,7 @@ public class ErrorRewriter: Rewriter {
   }
 
   public override void PostResolve(ModuleDefinition moduleDefinition) {
-    Reporter.Error(MessageSource.Compiler, moduleDefinition.tok, ""Impossible to continue ""+configuration.Argument);
+    Reporter.Error(MessageSource.Compiler, moduleDefinition.GetFirstTopLevelToken(), ""Impossible to continue ""+configuration.Argument);
   }
 }");
     client = await InitializeClient(options => options.OnPublishDiagnostics(diagnosticReceiver.NotificationReceived));
@@ -104,6 +104,6 @@ public class ErrorRewriter: Rewriter {
     var diagnostics = resolutionReport.Diagnostics.ToArray();
     Assert.AreEqual(1, diagnostics.Length);
     Assert.AreEqual("Impossible to continue because, whatever", diagnostics[0].Message);
-    Assert.AreEqual(new Range((-1, -1), (-1, 29)), diagnostics[0].Range);
+    Assert.AreEqual(new Range((0, 9), (0, 13)), diagnostics[0].Range);
   }
 }
