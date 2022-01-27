@@ -131,9 +131,7 @@ namespace Microsoft.Dafny {
     public bool WarningsAsErrors = false;
     [CanBeNull] private TestGenerationOptions testGenOptions = null;
     public bool ExtractCounterexample = false;
-
-    public string VerificationLoggerConfig = null;
-
+    public List<string> VerificationLoggerConfigs = new();
     // Working around the fact that xmlFilename is private
     public string BoogieXmlFilename = null;
 
@@ -320,6 +318,19 @@ namespace Microsoft.Dafny {
             return true;
           }
 
+        case "mimicVerificationOf":
+          if (ps.ConfirmArgumentCount(1)) {
+            if (args[ps.i] == "3.3") {
+              Prune = false;
+              NormalizeNames = false;
+              EmitDebugInformation = true;
+              NormalizeDeclarationOrder = false;
+            } else {
+              ps.Error("Mimic verification is not supported for Dafny version {0}", ps.args[ps.i]);
+            }
+          }
+          return true;
+
         case "autoReqPrint":
           if (ps.ConfirmArgumentCount(1)) {
             AutoReqPrintFile = args[ps.i];
@@ -482,7 +493,11 @@ namespace Microsoft.Dafny {
 
         case "verificationLogger":
           if (ps.ConfirmArgumentCount(1)) {
-            VerificationLoggerConfig = args[ps.i];
+            if (args[ps.i].StartsWith("trx") || args[ps.i].StartsWith("csv")) {
+              VerificationLoggerConfigs.Add(args[ps.i]);
+            } else {
+              InvalidArgumentError(name, ps);
+            }
           }
 
           return true;
@@ -499,7 +514,7 @@ namespace Microsoft.Dafny {
     public override void ApplyDefaultOptions() {
       base.ApplyDefaultOptions();
 
-      if (VerificationLoggerConfig != null) {
+      if (VerificationLoggerConfigs.Any()) {
         if (XmlSink != null) {
           throw new Exception("The /verificationLogger and /xml options cannot be used at the same time.");
         }
@@ -957,14 +972,23 @@ namespace Microsoft.Dafny {
     failing assertion. Requires specifying the /mv option as well as
     /proverOpt:0:model_compress=false and /proverOpt:0:model.completion=true.
 /verificationLogger:<configuration string>
-    Logs verification results to the given test result logger.
-    The only currently supported logger is ""trx"", the XML-based format
-    commonly used for test results for .NET languages. You can provide configuration
-    using the same string format as when using the --logger option for dotnet test,
-    such as /verificationLogger:trx;LogFileName=<...>.
-    The exact mapping of verification concepts to the TRX format is
+    Logs verification results to the given test result logger. The currently
+    supported loggers are ""trx"" and ""csv"". The former is the XML-based format
+    commonly used for test results for .NET languages. You can provide
+    configuration using the same string format as when using the --logger
+    option for dotnet test, such as:
+        /verificationLogger:trx;LogFileName=<...>.
+    The exact mapping of verification concepts to the TRX and CSV formats is
     experimental and subject to change!
 {TestGenOptions.Help}
+
+/mimicVerificationOf:<Dafny version>
+    Let Dafny attempt to mimic the verification as it was in a previous version of Dafny. 
+    Useful during migration to a newer version of Dafny when a Dafny program has proofs, such as methods or lemmas, 
+    that are unstable in the sense that their verification may become slower or fail altogether 
+    after logically irrelevant changes are made in the verification input.
+
+    Accepted versions are: 3.3 (note that this turns off features that prevent classes of verification instability)
 
 Dafny generally accepts Boogie options and passes these on to Boogie. However,
 some Boogie options, like /loopUnroll, may not be sound for Dafny or may not

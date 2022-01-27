@@ -4372,8 +4372,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(rhs != null);
       Contract.Requires(errMsg != null);
 
-      bool isRoot, isLeaf, headIsRoot, headIsLeaf;
-      CheckEnds(lhs, out isRoot, out isLeaf, out headIsRoot, out headIsLeaf);
+      DetermineRootLeaf(lhs, out var isRoot, out _, out _, out _);
       if (isRoot) {
         ConstrainSubtypeRelation(lhs, rhs, errMsg, true, allowDecisions);
         moreXConstraints = false;
@@ -4408,9 +4407,9 @@ namespace Microsoft.Dafny {
         // all done
         moreXConstraints = false;
       } else if (typeHead is MapType) {
-        var em = new TypeConstraint.ErrorMsgWithBase(errMsg, "covariance for type parameter 0 expects {1} <: {0}", A[0], B[0]);
+        var em = new TypeConstraint.ErrorMsgWithBase(errMsg, "covariance for type parameter at index 0 expects {1} <: {0}", A[0], B[0]);
         AddAssignableConstraint(tok, A[0], B[0], em);
-        em = new TypeConstraint.ErrorMsgWithBase(errMsg, "covariance for type parameter 1 expects {1} <: {0}", A[1], B[1]);
+        em = new TypeConstraint.ErrorMsgWithBase(errMsg, "covariance for type parameter at index 1 expects {1} <: {0}", A[1], B[1]);
         AddAssignableConstraint(tok, A[1], B[1], em);
         moreXConstraints = true;
       } else if (typeHead is CollectionType) {
@@ -4424,7 +4423,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(cl.TypeArgs.Count == B.Count);
         moreXConstraints = false;
         for (int i = 0; i < B.Count; i++) {
-          var msgFormat = "variance for type parameter" + (B.Count == 1 ? "" : "" + i) + " expects {0} {1} {2}";
+          var msgFormat = "variance for type parameter" + (B.Count == 1 ? "" : " at index " + i) + " expects {0} {1} {2}";
           if (cl.TypeArgs[i].Variance == TypeParameter.TPVariance.Co) {
             var em = new TypeConstraint.ErrorMsgWithBase(errMsg, "co" + msgFormat, A[i], ":>", B[i]);
             AddAssignableConstraint(tok, A[i], B[i], em);
@@ -4536,24 +4535,18 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// "root" says that the type is a non-artificial type with no proper supertypes.
+    /// "root" says that the type is a non-artificial type (that is, not an ArtificialType) with no proper supertypes.
     /// "leaf" says that the only possible proper subtypes are subset types of the type. Thus, the only
     /// types that are not leaf types are traits and artificial types.
     /// The "headIs" versions speak only about the head symbols, so it is possible that the given
     /// type arguments would change the root/leaf status of the entire type.
     /// </summary>
-    void CheckEnds(Type t, out bool isRoot, out bool isLeaf, out bool headIsRoot, out bool headIsLeaf) {
+    void DetermineRootLeaf(Type t, out bool isRoot, out bool isLeaf, out bool headIsRoot, out bool headIsLeaf) {
       Contract.Requires(t != null);
       Contract.Ensures(!Contract.ValueAtReturn(out isRoot) || Contract.ValueAtReturn(out headIsRoot)); // isRoot ==> headIsRoot
       Contract.Ensures(!Contract.ValueAtReturn(out isLeaf) || Contract.ValueAtReturn(out headIsLeaf)); // isLeaf ==> headIsLeaf
       t = t.NormalizeExpandKeepConstraints();
-      if (t.IsBoolType || t.IsCharType || t.IsIntegerType || t.IsRealType || t.AsNewtype != null || t.IsBitVectorType || t.IsBigOrdinalType) {
-        isRoot = true; isLeaf = true;
-        headIsRoot = true; headIsLeaf = true;
-      } else if (t is ArtificialType) {
-        isRoot = false; isLeaf = false;
-        headIsRoot = false; headIsLeaf = false;
-      } else if (t.IsObjectQ) {
+      if (t.IsObjectQ) {
         isRoot = true; isLeaf = false;
         headIsRoot = true; headIsLeaf = false;
       } else if (t is ArrowType) {
@@ -4563,8 +4556,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(arr.Arity + 1 == arr.TypeArgs.Count);
         for (int i = 0; i < arr.TypeArgs.Count; i++) {
           var arg = arr.TypeArgs[i];
-          bool r, l, hr, hl;
-          CheckEnds(arg, out r, out l, out hr, out hl);
+          DetermineRootLeaf(arg, out var r, out var l, out _, out _);
           if (i < arr.Arity) {
             isRoot &= l; isLeaf &= r;  // argument types are contravariant
           } else {
@@ -4578,10 +4570,11 @@ namespace Microsoft.Dafny {
           if (cl is TypeParameter) {
             var tp = udt.AsTypeParameter;
             Contract.Assert(tp != null);
-            isRoot = true; isLeaf = true;  // all type parameters are invariant
-            headIsRoot = true; headIsLeaf = true;
+            headIsRoot = true; headIsLeaf = true;  // all type parameters are non-variant
           } else if (cl is SubsetTypeDecl) {
             headIsRoot = false; headIsLeaf = true;
+          } else if (cl is NewtypeDecl) {
+            headIsRoot = true; headIsLeaf = true;
           } else if (cl is TraitDecl) {
             headIsRoot = false; headIsLeaf = false;
           } else if (cl is ClassDecl) {
@@ -4601,12 +4594,12 @@ namespace Microsoft.Dafny {
           for (int i = 0; i < udt.TypeArgs.Count; i++) {
             var variance = cl.TypeArgs[i].Variance;
             if (variance != TypeParameter.TPVariance.Non) {
-              bool r, l, hr, hl;
-              CheckEnds(udt.TypeArgs[i], out r, out l, out hr, out hl);
-              if (variance == TypeParameter.TPVariance.Co) {
-                isRoot &= r; isLeaf &= l;
-              } else {
-                isRoot &= l; isLeaf &= r;
+              DetermineRootLeaf(udt.TypeArgs[i], out var r, out var l, out _, out _);
+              // isRoot and isLeaf aren't duals, so Co and Contra require separate consideration beyond inversion.
+              switch (variance) {
+                case TypeParameter.TPVariance.Co: { isRoot &= r; isLeaf &= l; break; }
+                // A invariably constructible subtype becomes a supertype, and thus the enclosing type is never a root.
+                case TypeParameter.TPVariance.Contra: { isRoot &= false; isLeaf &= r; break; }
               }
             }
           }
@@ -4614,17 +4607,21 @@ namespace Microsoft.Dafny {
           isRoot = false; isLeaf = false;  // don't know
           headIsRoot = false; headIsLeaf = false;
         }
+      } else if (t.IsBoolType || t.IsCharType || t.IsIntegerType || t.IsRealType || t.AsNewtype != null || t.IsBitVectorType || t.IsBigOrdinalType) {
+        isRoot = true; isLeaf = true;
+        headIsRoot = true; headIsLeaf = true;
+      } else if (t is ArtificialType) {
+        isRoot = false; isLeaf = false;
+        headIsRoot = false; headIsLeaf = false;
       } else if (t is MapType) {  // map, imap
         Contract.Assert(t.TypeArgs.Count == 2);
-        bool r0, l0, r1, l1, hr, hl;
-        CheckEnds(t.TypeArgs[0], out r0, out l0, out hr, out hl);
-        CheckEnds(t.TypeArgs[1], out r1, out l1, out hr, out hl);
+        DetermineRootLeaf(t.TypeArgs[0], out var r0, out _, out _, out _);
+        DetermineRootLeaf(t.TypeArgs[1], out var r1, out _, out _, out _);
         isRoot = r0 & r1; isLeaf = r0 & r1;  // map types are covariant in both type arguments
         headIsRoot = true; headIsLeaf = true;
       } else if (t is CollectionType) {  // set, iset, multiset, seq
         Contract.Assert(t.TypeArgs.Count == 1);
-        bool hr, hl;
-        CheckEnds(t.TypeArgs[0], out isRoot, out isLeaf, out hr, out hl);  // type is covariant is type argument
+        DetermineRootLeaf(t.TypeArgs[0], out isRoot, out isLeaf, out _, out _);  // type is covariant is type argument
         headIsRoot = true; headIsLeaf = true;
       } else {
         isRoot = false; isLeaf = false;  // don't know
@@ -4724,13 +4721,12 @@ namespace Microsoft.Dafny {
       proxy.T = t;
 
       // check feasibility
-      bool isRoot, isLeaf, headRoot, headLeaf;
-      CheckEnds(t, out isRoot, out isLeaf, out headRoot, out headLeaf);
+      DetermineRootLeaf(t, out var isRoot, out var isLeaf, out _, out _);
       // propagate up
       foreach (var c in proxy.SupertypeConstraints) {
         var u = keepConstraints ? c.Super.NormalizeExpandKeepConstraints() : c.Super.NormalizeExpand();
         if (!(u is TypeProxy)) {
-          ImposeSubtypingConstraint(u, t, c.errorMsg);
+          ImposeSubtypingConstraint(u, t, c.ErrMsg);
         } else if (isRoot) {
           // If t is a root, we might as well constrain u now.  Otherwise, we'll wait until the .Subtype constraint of u is dealt with.
           AssignProxyAndHandleItsConstraints((TypeProxy)u, t, keepConstraints);
@@ -4741,7 +4737,7 @@ namespace Microsoft.Dafny {
         var u = keepConstraints ? c.Sub.NormalizeExpandKeepConstraints() : c.Sub.NormalizeExpand();
         Contract.Assert(!TypeProxy.IsSupertypeOfLiteral(u));  // these should only appear among .Supertypes
         if (!(u is TypeProxy)) {
-          ImposeSubtypingConstraint(t, u, c.errorMsg);
+          ImposeSubtypingConstraint(t, u, c.ErrMsg);
         } else if (isLeaf) {
           // If t is a leaf (no pun intended), we might as well constrain u now.  Otherwise, we'll wait until the .Supertype constraint of u is dealt with.
           AssignProxyAndHandleItsConstraints((TypeProxy)u, t, keepConstraints);
@@ -5809,8 +5805,8 @@ namespace Microsoft.Dafny {
                 break;
               }
 
-              TypeConstraint oneSuper = null;
-              TypeConstraint oneSub = null;
+              TypeConstraint.ErrorMsg oneSuperErrorMsg = null;
+              TypeConstraint.ErrorMsg oneSubErrorMsg = null;
               var ss = new HashSet<Type>();
               foreach (var c in AllTypeConstraints) {
                 var super = c.Super.NormalizeExpand();
@@ -5831,11 +5827,11 @@ namespace Microsoft.Dafny {
                   var sub = c.Sub.NormalizeExpand();
                   if (t.Equals(super)) {
                     lowers.Add(sub);
-                    oneSub = c;
+                    oneSubErrorMsg = c.ErrMsg;
                   }
                   if (t.Equals(sub)) {
                     uppers.Add(super);
-                    oneSuper = c;
+                    oneSuperErrorMsg = c.ErrMsg;
                   }
                 }
 
@@ -5844,7 +5840,7 @@ namespace Microsoft.Dafny {
                   foreach (var tu in uppers) {
                     if (tl.Equals(tu)) {
                       if (!ContainsAsTypeParameter(tu, t)) {
-                        var errorMsg = new TypeConstraint.ErrorMsgWithBase(AllTypeConstraints[0].errorMsg,
+                        var errorMsg = new TypeConstraint.ErrorMsgWithBase(AllTypeConstraints[0].ErrMsg,
                           "Decision: {0} is decided to be {1} because the latter is both the upper and lower bound to the proxy",
                           t, tu);
                         ConstrainSubtypeRelation_Equal(t, tu, errorMsg);
@@ -5884,7 +5880,7 @@ namespace Microsoft.Dafny {
                     var em = lowers.GetEnumerator();
                     em.MoveNext();
                     if (!ContainsAsTypeParameter(em.Current, t)) {
-                      var errorMsg = new TypeConstraint.ErrorMsgWithBase(oneSub.errorMsg,
+                      var errorMsg = new TypeConstraint.ErrorMsgWithBase(oneSubErrorMsg,
                         "Decision: {0} is decided to be {1} because the latter is a lower bound to the proxy and there is no constraint with an upper bound",
                         t, em.Current);
                       ConstrainSubtypeRelation_Equal(t, em.Current, errorMsg);
@@ -5898,7 +5894,7 @@ namespace Microsoft.Dafny {
                     var em = uppers.GetEnumerator();
                     em.MoveNext();
                     if (!ContainsAsTypeParameter(em.Current, t)) {
-                      var errorMsg = new TypeConstraint.ErrorMsgWithBase(oneSuper.errorMsg,
+                      var errorMsg = new TypeConstraint.ErrorMsgWithBase(oneSuperErrorMsg,
                         "Decision: {0} is decided to be {1} because the latter is an upper bound to the proxy and there is no constraint with a lower bound",
                         t, em.Current);
                       ConstrainSubtypeRelation_Equal(t, em.Current, errorMsg);
@@ -6071,7 +6067,7 @@ namespace Microsoft.Dafny {
       if (super.Equals(sub)) {
         // the constraint is satisfied, so just drop it
       } else if ((super is NonProxyType || super is ArtificialType) && sub is NonProxyType) {
-        ImposeSubtypingConstraint(super, sub, c.errorMsg);
+        ImposeSubtypingConstraint(super, sub, c.ErrMsg);
         anyNewConstraints = true;
       } else if (AssignKnownEnd(sub as TypeProxy, true, fullStrength)) {
         anyNewConstraints = true;
@@ -6135,8 +6131,7 @@ namespace Microsoft.Dafny {
       // ----- first, go light; also, prefer subtypes over supertypes
       IEnumerable<Type> subTypes = keepConstraints ? proxy.SubtypesKeepConstraints : proxy.Subtypes;
       foreach (var su in subTypes) {
-        bool isRoot, isLeaf, headRoot, headLeaf;
-        CheckEnds(su, out isRoot, out isLeaf, out headRoot, out headLeaf);
+        DetermineRootLeaf(su, out var isRoot, out _, out var headRoot, out _);
         Contract.Assert(!isRoot || headRoot);  // isRoot ==> headRoot
         if (isRoot) {
           if (Reaches(su, proxy, 1, new HashSet<TypeProxy>())) {
@@ -6157,8 +6152,7 @@ namespace Microsoft.Dafny {
       if (fullStrength) {
         IEnumerable<Type> superTypes = keepConstraints ? proxy.SupertypesKeepConstraints : proxy.Supertypes;
         foreach (var su in superTypes) {
-          bool isRoot, isLeaf, headRoot, headLeaf;
-          CheckEnds(su, out isRoot, out isLeaf, out headRoot, out headLeaf);
+          DetermineRootLeaf(su, out _, out var isLeaf, out _, out var headLeaf);
           Contract.Assert(!isLeaf || headLeaf);  // isLeaf ==> headLeaf
           if (isLeaf) {
             if (Reaches(su, proxy, -1, new HashSet<TypeProxy>())) {
@@ -6501,101 +6495,6 @@ namespace Microsoft.Dafny {
       TypeConstraint.ReportErrors(reporter);
       AllTypeConstraints.Clear();
       AllXConstraints.Clear();
-    }
-
-    public class TypeConstraint {
-      public readonly Type Super;
-      public readonly Type Sub;
-      public readonly bool KeepConstraints;
-
-      private static List<ErrorMsg> ErrorsToBeReported = new List<ErrorMsg>();
-      public static void ReportErrors(ErrorReporter reporter) {
-        Contract.Requires(reporter != null);
-        foreach (var err in ErrorsToBeReported) {
-          err.ReportAsError(reporter);
-        }
-        ErrorsToBeReported.Clear();
-      }
-      abstract public class ErrorMsg {
-        public abstract IToken Tok { get; }
-        bool reported;
-        public void FlagAsError() {
-          if (DafnyOptions.O.TypeInferenceDebug) {
-            Console.WriteLine($"DEBUG: flagging error: {ApproximateErrorMessage()}");
-          }
-          TypeConstraint.ErrorsToBeReported.Add(this);
-        }
-        internal void ReportAsError(ErrorReporter reporter) {
-          Contract.Requires(reporter != null);
-          if (!reported) {  // this "reported" bit is checked only for the top-level message, but this message and all nested ones get their "reported" bit set to "true" as a result
-            Reporting(reporter, "");
-          }
-        }
-        private void Reporting(ErrorReporter reporter, string suffix) {
-          Contract.Requires(reporter != null);
-          Contract.Requires(suffix != null);
-          if (this is ErrorMsgWithToken) {
-            var err = (ErrorMsgWithToken)this;
-            Contract.Assert(err.Tok != null);
-            reporter.Error(MessageSource.Resolver, err.Tok, err.Msg + suffix, err.MsgArgs);
-          } else {
-            var err = (ErrorMsgWithBase)this;
-            err.BaseMsg.Reporting(reporter, " (" + string.Format(err.Msg, err.MsgArgs) + ")" + suffix);
-          }
-          reported = true;
-        }
-
-        protected abstract string ApproximateErrorMessage();
-      }
-      public class ErrorMsgWithToken : ErrorMsg {
-        readonly IToken tok;
-        public override IToken Tok {
-          get { return tok; }
-        }
-        public readonly string Msg;
-        public readonly object[] MsgArgs;
-        public ErrorMsgWithToken(IToken tok, string msg, params object[] msgArgs) {
-          Contract.Requires(tok != null);
-          Contract.Requires(msg != null);
-          Contract.Requires(msgArgs != null);
-          this.tok = tok;
-          this.Msg = msg;
-          this.MsgArgs = msgArgs;
-        }
-
-        protected override string ApproximateErrorMessage() => string.Format(Msg, MsgArgs);
-      }
-      public class ErrorMsgWithBase : ErrorMsg {
-        public override IToken Tok {
-          get { return BaseMsg.Tok; }
-        }
-        public readonly ErrorMsg BaseMsg;
-        public readonly string Msg;
-        public readonly object[] MsgArgs;
-        public ErrorMsgWithBase(ErrorMsg baseMsg, string msg, params object[] msgArgs) {
-          Contract.Requires(baseMsg != null);
-          Contract.Requires(msg != null);
-          Contract.Requires(msgArgs != null);
-          BaseMsg = baseMsg;
-          Msg = msg;
-          MsgArgs = msgArgs;
-        }
-
-        protected override string ApproximateErrorMessage() => string.Format(Msg, MsgArgs);
-      }
-      public readonly ErrorMsg errorMsg;
-      public TypeConstraint(Type super, Type sub, ErrorMsg errMsg, bool keepConstraints) {
-        Contract.Requires(super != null);
-        Contract.Requires(sub != null);
-        Contract.Requires(errMsg != null);
-        Super = super;
-        Sub = sub;
-        errorMsg = errMsg;
-        KeepConstraints = keepConstraints;
-      }
-      public void FlagAsError() {
-        errorMsg.FlagAsError();
-      }
     }
 
     // ------------------------------------------------------------------------------------------------------
@@ -12081,9 +11980,12 @@ namespace Microsoft.Dafny {
     }
 
     private List<Statement> UnboxStmtContainer(SyntaxContainer con) {
-      if (con is CStmt) {
-        var r = new List<Statement> { ((CStmt)con).Body };
-        return r;
+      if (con is CStmt cstmt) {
+        if (cstmt.Body is BlockStmt block) {
+          return block.Body;
+        } else {
+          return new List<Statement>() { cstmt.Body };
+        }
       } else {
         throw new NotImplementedException("Bug in CompileRBranch: expected a StmtContainer");
       }
@@ -12105,7 +12007,7 @@ namespace Microsoft.Dafny {
       if (branch is RBranchStmt branchStmt) {
         var cLVar = new LocalVariable(var.Tok, var.Tok, name, type, isGhost);
         var cPat = new CasePattern<LocalVariable>(cLVar.EndTok, cLVar);
-        var cLet = new VarDeclPattern(cLVar.Tok, cLVar.Tok, cPat, expr);
+        var cLet = new VarDeclPattern(cLVar.Tok, cLVar.Tok, cPat, expr, false);
         branchStmt.Body.Insert(0, cLet);
       } else if (branch is RBranchExpr branchExpr) {
         var cBVar = new BoundVar(var.Tok, name, type);
@@ -12155,7 +12057,7 @@ namespace Microsoft.Dafny {
         if (elsC is null) {
           // handle an empty default
           // assert guard; item2.Body
-          var contextStr = context.FillHole(new IdCtx(string.Format("c:{0}", matchee.Type.ToString()), new List<MatchingContext>())).AbstractAllHoles().ToString();
+          var contextStr = context.FillHole(new IdCtx(string.Format("c: {0}", matchee.Type.ToString()), new List<MatchingContext>())).AbstractAllHoles().ToString();
           var errorMessage = new StringLiteralExpr(mti.Tok, string.Format("missing case in match expression: {0} (not all possibilities for constant 'c' in context have been covered)", contextStr), true);
           var attr = new Attributes("error", new List<Expression>() { errorMessage }, null);
           var ag = new AssertStmt(mti.Tok, endtok, new AutoGeneratedExpression(mti.Tok, guard), null, null, attr);
@@ -12169,7 +12071,7 @@ namespace Microsoft.Dafny {
         if (elsC is null) {
           // handle an empty default
           // assert guard; item2.Body
-          var contextStr = context.FillHole(new IdCtx(string.Format("c:{0}", matchee.Type.ToString()), new List<MatchingContext>())).AbstractAllHoles().ToString();
+          var contextStr = context.FillHole(new IdCtx(string.Format("c: {0}", matchee.Type.ToString()), new List<MatchingContext>())).AbstractAllHoles().ToString();
           var errorMessage = new StringLiteralExpr(mti.Tok, string.Format("missing case in match statement: {0} (not all possibilities for constant 'c' have been covered)", contextStr), true);
           var attr = new Attributes("error", new List<Expression>() { errorMessage }, null);
           var ag = new AssertStmt(mti.Tok, endtok, new AutoGeneratedExpression(mti.Tok, guard), null, null, attr);
@@ -12199,21 +12101,13 @@ namespace Microsoft.Dafny {
       return newMatchCase;
     }
 
-    private BoundVar CreatePatBV(IToken oldtok, Type subtype, ICodeContext codeContext) {
-      var tok = oldtok;
+    private BoundVar CreatePatBV(IToken tok, Type type, ICodeContext codeContext) {
       var name = FreshTempVarName("_mcc#", codeContext);
-      var type = new InferredTypeProxy();
-      var err = new TypeConstraint.ErrorMsgWithToken(oldtok, "the declared type of the formal ({0}) does not agree with the corresponding type in the constructor's signature ({1})", type, subtype, name);
-      ConstrainSubtypeRelation(type, subtype, err);
       return new BoundVar(tok, name, type);
     }
 
-    private IdPattern CreateFreshId(IToken oldtok, Type subtype, ICodeContext codeContext, bool isGhost = false) {
-      var tok = oldtok;
+    private IdPattern CreateFreshId(IToken tok, Type type, ICodeContext codeContext, bool isGhost = false) {
       var name = FreshTempVarName("_mcc#", codeContext);
-      var type = new InferredTypeProxy();
-      var err = new TypeConstraint.ErrorMsgWithToken(oldtok, "the declared type of the formal ({0}) does not agree with the corresponding type in the constructor's signature ({1})", type, subtype, name);
-      ConstrainSubtypeRelation(type, subtype, err);
       return new IdPattern(tok, name, type, null, isGhost);
     }
 
@@ -12326,7 +12220,7 @@ namespace Microsoft.Dafny {
       var newMatchCases = new List<MatchCase>();
       // Update mti -> each branch generates up to |ctors| copies of itself
       foreach (var PB in pairPB) {
-        mti.UpdateBranchID(PB.Item2.BranchID, ctors.Count() - 1);
+        mti.UpdateBranchID(PB.Item2.BranchID, ctors.Count - 1);
       }
 
       foreach (var ctor in ctors) {
@@ -12469,7 +12363,7 @@ namespace Microsoft.Dafny {
           Console.WriteLine("\treturn Bid:{0}", branches.First().BranchID);
         }
 
-        for (int i = 1; i < branches.Count(); i++) {
+        for (int i = 1; i < branches.Count; i++) {
           mti.UpdateBranchID(branches.ElementAt(i).BranchID, -1);
         }
         return PackBody(mti.BranchTok[branches.First().BranchID], branches.First());
@@ -12554,11 +12448,11 @@ namespace Microsoft.Dafny {
         Console.WriteLine("DEBUG: CompileNestedMatchExpr for match at line {0}", e.tok.line);
       }
 
-      MatchTempInfo mti = new MatchTempInfo(e.tok, e.Cases.Count(), opts.codeContext, DafnyOptions.O.MatchCompilerDebug);
+      MatchTempInfo mti = new MatchTempInfo(e.tok, e.Cases.Count, opts.codeContext, DafnyOptions.O.MatchCompilerDebug);
 
       // create Rbranches from MatchCaseExpr and set the branch tokens in mti
       List<RBranch> branches = new List<RBranch>();
-      for (int id = 0; id < e.Cases.Count(); id++) {
+      for (int id = 0; id < e.Cases.Count; id++) {
         var branch = e.Cases.ElementAt(id);
         branches.Add(new RBranchExpr(id, branch, branch.Attributes));
         mti.BranchTok[id] = branch.Tok;
@@ -12609,11 +12503,11 @@ namespace Microsoft.Dafny {
       }
 
       // initialize the MatchTempInfo to record position and duplication information about each branch
-      MatchTempInfo mti = new MatchTempInfo(s.Tok, s.EndTok, s.Cases.Count(), codeContext, DafnyOptions.O.MatchCompilerDebug, s.Attributes);
+      MatchTempInfo mti = new MatchTempInfo(s.Tok, s.EndTok, s.Cases.Count, codeContext, DafnyOptions.O.MatchCompilerDebug, s.Attributes);
 
       // create Rbranches from NestedMatchCaseStmt and set the branch tokens in mti
       List<RBranch> branches = new List<RBranch>();
-      for (int id = 0; id < s.Cases.Count(); id++) {
+      for (int id = 0; id < s.Cases.Count; id++) {
         var branch = s.Cases.ElementAt(id);
         branches.Add(new RBranchStmt(id, branch, branch.Attributes));
         mti.BranchTok[id] = branch.Tok;
@@ -13195,6 +13089,7 @@ namespace Microsoft.Dafny {
     /// [y := temp.Extract();]
     ///
     /// and saves the result into s.ResolvedStatements.
+    /// This is also known as the "elephant operator"
     /// </summary>
     private void ResolveAssignOrReturnStmt(AssignOrReturnStmt s, ICodeContext codeContext) {
       // TODO Do I have any responsibilities regarding the use of codeContext? Is it mutable?
@@ -13216,10 +13111,11 @@ namespace Microsoft.Dafny {
         call = (asx.Lhs.Resolved as MemberSelectExpr)?.Member as Method;
         if (call != null) {
           // We're looking at a method call
+          var typeMap = (asx.Lhs.Resolved as MemberSelectExpr)?.TypeArgumentSubstitutionsWithParents();
           if (call.Outs.Count != 0) {
-            firstType = call.Outs[0].Type;
+            firstType = SubstType(call.Outs[0].Type, typeMap);
           } else {
-            reporter.Error(MessageSource.Resolver, s.Rhs.tok, "Expected {0} to have a Success/Failure output value", call.Name);
+            reporter.Error(MessageSource.Resolver, s.Rhs.tok, "Expected {0} to have a Success/Failure output value, but the method returns nothing.", call.Name);
           }
         } else {
           // We're looking at a call to a function. Treat it like any other expression.
@@ -13267,7 +13163,7 @@ namespace Microsoft.Dafny {
           }
         } else {
           reporter.Error(MessageSource.Resolver, s.Tok,
-            "The type of the first expression is not a failure type in :- statement");
+            $"The type of the first expression to the right of ':-' could not be determined to be a failure type (got '{firstType}')");
           return;
         }
       } else {
@@ -13392,7 +13288,7 @@ namespace Microsoft.Dafny {
           new UpdateStmt(s.Tok, s.Tok,
             new List<Expression>() { lhsExtract },
             new List<AssignmentRhs>() { new ExprRhs(VarDotMethod(s.Tok, temp, "Extract")) }
-            ));
+          ));
         // The following check is not necessary, because the ghost mismatch is caught later.
         // However the error message here is much clearer.
         var m = ResolveMember(s.Tok, firstType, "Extract", out _);
@@ -13547,12 +13443,11 @@ namespace Microsoft.Dafny {
           var it = outFormal.Type;
           Type st = SubstType(it, typeMap);
           var lhs = s.Lhs[i];
-          var what = "method out-parameter";
-          what += GetLocationInformation(callee.Outs, i);
+          var what = GetLocationInformation(outFormal, callee.Outs.Count(), i, "method out-parameter");
 
           AddAssignableConstraint(
             s.Tok, lhs.Type, st,
-            $"incorrect type of {what} (expected {{1}}, got {{0}})");
+            $"incorrect return type {what} (expected {{1}}, got {{0}})");
         }
         for (int i = 0; i < s.Lhs.Count; i++) {
           var lhs = s.Lhs[i];
@@ -14002,8 +13897,7 @@ namespace Microsoft.Dafny {
       // Look for a join of head symbols among the proxy's subtypes
       Type joinType = null;
       if (JoinOfAllSubtypes(proxy, ref joinType, new HashSet<TypeProxy>()) && joinType != null) {
-        bool isRoot, isLeaf, headIsRoot, headIsLeaf;
-        CheckEnds(joinType, out isRoot, out isLeaf, out headIsRoot, out headIsLeaf);
+        DetermineRootLeaf(joinType, out _, out _, out var headIsRoot, out _);
         if (joinType.IsDatatype) {
           if (DafnyOptions.O.TypeInferenceDebug) {
             Console.WriteLine("  ----> join is a datatype: {0}", joinType);
@@ -15516,6 +15410,20 @@ namespace Microsoft.Dafny {
       }
     }
 
+    void EagerAddAssignableConstraint(IToken tok, Type lhs, Type rhs, string errMsgFormat) {
+      Contract.Requires(tok != null);
+      Contract.Requires(lhs != null);
+      Contract.Requires(rhs != null);
+      Contract.Requires(errMsgFormat != null);
+      var lhsNormalized = lhs.Normalize();
+      var rhsNormalized = rhs.Normalize();
+      if (lhsNormalized is TypeProxy lhsProxy && !(rhsNormalized is TypeProxy)) {
+        Contract.Assert(lhsProxy.T == null); // otherwise, lhs.Normalize() above would have kept on going
+        AssignProxyAndHandleItsConstraints(lhsProxy, rhsNormalized, true);
+      } else {
+        AddAssignableConstraint(tok, lhs, rhs, errMsgFormat);
+      }
+    }
     void AddAssignableConstraint(IToken tok, Type lhs, Type rhs, string errMsgFormat) {
       Contract.Requires(tok != null);
       Contract.Requires(lhs != null);
@@ -15934,7 +15842,7 @@ namespace Microsoft.Dafny {
         // a type declared as "datatype Atom<T> = MakeAtom(T)", where T is a non-variant type argument.  Suppose the RHS has type Atom<nat>
         // and that the LHS is the pattern MakeAtom(x: int).  This is okay, despite the fact that Atom<nat> is not assignable to Atom<int>.
         // The reason is that the purpose of the pattern on the left is really just to provide a skeleton to introduce bound variables in.
-        AddAssignableConstraint(v.Tok, v.Type, sourceType, "type of corresponding source/RHS ({1}) does not match type of bound variable ({0})");
+        EagerAddAssignableConstraint(v.Tok, v.Type, sourceType, "type of corresponding source/RHS ({1}) does not match type of bound variable ({0})");
         pat.AssembleExpr(null);
         return;
       }
@@ -16663,7 +16571,10 @@ namespace Microsoft.Dafny {
         for (int i = 0; i < m.TypeArgs.Count; i++) {
           var ta = i < suppliedTypeArguments ? optTypeArguments[i] : new InferredTypeProxy();
           rr.TypeApplication_JustMember.Add(ta);
+          subst.Add(m.TypeArgs[i], ta);
         }
+        subst = BuildTypeArgumentSubstitute(subst, receiverTypeBound ?? receiver.Type);
+        rr.ResolvedOutparameterTypes = m.Outs.ConvertAll(f => SubstType(f.Type, subst));
         rr.Type = new InferredTypeProxy();  // fill in this field, in order to make "rr" resolved
       }
       return rr;
@@ -16884,10 +16795,9 @@ namespace Microsoft.Dafny {
 
       // resolve given arguments and populate the "namesToActuals" map
       var namesToActuals = new Dictionary<string, ActualBinding>();
-      var namesProvidedExplicitly = new HashSet<string>();
       formals.ForEach(f => namesToActuals.Add(f.Name, null)); // a name mapping to "null" says it hasn't been filled in yet
       var stillAcceptingPositionalArguments = true;
-      var j = 0;
+      var bindingIndex = 0;
       foreach (var binding in bindings.ArgumentBindings) {
         var arg = binding.Actual;
         // insert the actual into "namesToActuals" under an appropriate name, unless there is an error
@@ -16899,7 +16809,6 @@ namespace Microsoft.Dafny {
           } else if (b == null) {
             // all is good
             namesToActuals[pname] = binding;
-            namesProvidedExplicitly.Add(pname);
           } else if (b.FormalParameterName == null) {
             reporter.Error(MessageSource.Resolver, binding.FormalParameterName, $"the parameter named '{pname}' is already given positionally");
           } else {
@@ -16907,9 +16816,9 @@ namespace Microsoft.Dafny {
           }
         } else if (!stillAcceptingPositionalArguments) {
           reporter.Error(MessageSource.Resolver, arg.tok, "a positional argument is not allowed to follow named arguments");
-        } else if (j < formals.Count) {
+        } else if (bindingIndex < formals.Count) {
           // use the name of formal corresponding to this positional argument, unless the parameter is named-only
-          var formal = formals[j];
+          var formal = formals[bindingIndex];
           var pname = formal.Name;
           if (formal.IsNameOnly) {
             reporter.Error(MessageSource.Resolver, arg.tok,
@@ -16922,7 +16831,7 @@ namespace Microsoft.Dafny {
           if (onlyPositionalArguments) {
             // error was reported before the "foreach" loop
             Contract.Assert(simpleErrorReported);
-          } else if (formals.Count < j) {
+          } else if (formals.Count < bindingIndex) {
             // error was reported on a previous iteration of this "foreach" loop
           } else {
             reporter.Error(MessageSource.Resolver, callTok,
@@ -16932,23 +16841,24 @@ namespace Microsoft.Dafny {
 
         // resolve argument
         ResolveExpression(arg, opts);
-        j++;
+        bindingIndex++;
       }
 
       var actuals = new List<Expression>();
-      j = 0;
+      var formalIndex = 0;
       var substMap = new Dictionary<IVariable, Expression>();
       foreach (var formal in formals) {
         var b = namesToActuals[formal.Name];
         if (b != null) {
           actuals.Add(b.Actual);
           substMap.Add(formal, b.Actual);
-          var what = whatKind + (context is Method ? " in-parameter" : " argument");
-          what += GetLocationInformation(formals, j);
+          var what = GetLocationInformation(formal,
+            bindings.ArgumentBindings.Count(), bindings.ArgumentBindings.IndexOf(b),
+            whatKind + (context is Method ? " in-parameter" : " parameter"));
 
           AddAssignableConstraint(
             callTok, SubstType(formal.Type, typeMap), b.Actual.Type,
-            $"incorrect type of {what} (expected {{0}}, found {{1}})");
+            $"incorrect argument type {what} (expected {{0}}, found {{1}})");
         } else if (formal.DefaultValue != null) {
           // Note, in the following line, "substMap" is passed in, but it hasn't been fully filled in until the
           // end of this foreach loop. Still, that's soon enough, because DefaultValueExpression won't use it
@@ -16963,33 +16873,33 @@ namespace Microsoft.Dafny {
             // a simple error message has already been reported
             Contract.Assert(simpleErrorReported);
           } else {
-            var message = "no actual argument passed for " + whatKind + (context is Method ? " in-parameter" : " argument");
-            if (formals.Count != 1) {
-              if (formal.HasName) {
-                message += $" '{formal.Name}'";
-              } else {
-                message += " " + j;
-              }
+            var formalDescription = whatKind + (context is Method ? " in-parameter" : " parameter");
+            var nameWithIndex = formal.HasName && formal is not ImplicitFormal ? "'" + formal.Name + "'" : "";
+            if (formals.Count > 1 || nameWithIndex == "") {
+              nameWithIndex += nameWithIndex == "" ? "" : " ";
+              nameWithIndex += $"at index {formalIndex}";
             }
+            var message = $"{formalDescription} {nameWithIndex} requires an argument of type {formal.Type}";
             reporter.Error(MessageSource.Resolver, callTok, message);
           }
         }
-        j++;
+        formalIndex++;
       }
 
       bindings.AcceptArgumentExpressionsAsExactParameterList(actuals);
     }
 
-    private static string GetLocationInformation(List<Formal> formals, int index) {
-      var formal = formals[index];
-      var displayName = formal.HasName && !(formal is ImplicitFormal);
+    private static string GetLocationInformation(Formal parameter, int bindingCount, int bindingIndex, string formalDescription) {
+      var displayName = parameter.HasName && parameter is not ImplicitFormal;
       var description = "";
-      if (formals.Count() > 1) {
-        description += $" at index {index}";
+      if (bindingCount > 1) {
+        description += $"at index {bindingIndex} ";
       }
 
+      description += $"for {formalDescription}";
+
       if (displayName) {
-        description += $" named '{formal.Name}'";
+        description += $" '{parameter.Name}'";
       }
 
       return description;
@@ -18542,6 +18452,25 @@ namespace Microsoft.Dafny {
   // Looks for every non-ghost comprehensions, and if they are using a subset type,
   // check that the subset constraint is compilable. If it is not compilable, raises an error.
   public class SubsetConstraintGhostChecker : ProgramTraverser {
+    public class FirstErrorCollector : ErrorReporter {
+      public string FirstCollectedMessage = "";
+      public IToken FirstCollectedToken = Token.NoToken;
+      public bool Collected = false;
+
+      public override bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg) {
+        if (!Collected && level == ErrorLevel.Error) {
+          FirstCollectedMessage = msg;
+          FirstCollectedToken = tok;
+          Collected = true;
+        }
+        return true;
+      }
+
+      public override int Count(ErrorLevel level) {
+        return level == ErrorLevel.Error && Collected ? 1 : 0;
+      }
+    }
+
     public Resolver resolver;
 
     public SubsetConstraintGhostChecker(Resolver resolver) {
@@ -18566,8 +18495,19 @@ namespace Microsoft.Dafny {
       return skip;
     }
 
+    private bool IsFieldSpecification(string field, object parent) {
+      return field != null && parent != null && (
+        (parent is Statement && field == "SpecificationSubExpressions") ||
+        (parent is Function && (field is "Req.E" or "Reads.E" or "Ens.E" or "Decreases.Expressions")) ||
+        (parent is Method && (field is "Req.E" or "Mod.E" or "Ens.E" or "Decreases.Expressions"))
+      );
+    }
+
     public override bool Traverse(Expression expr, [CanBeNull] string field, [CanBeNull] object parent) {
       if (expr == null) {
+        return false;
+      }
+      if (IsFieldSpecification(field, parent)) {
         return false;
       }
       // Since we skipped ghost code, the code has to be compiled here. 
@@ -18594,15 +18534,19 @@ namespace Microsoft.Dafny {
             }
 
             if (!constraintIsCompilable) {
-              // Explicitly report the error
-              var showProvenance = constraint.tok.line != 0;
-              this.resolver.Reporter.Error(MessageSource.Resolver, boundVar.tok,
-                $"{boundVar.Type} is a subset type and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in {what}." +
-                (showProvenance ? " The next error will explain why the constraint is not compilable." : ""));
-              if (showProvenance) {
-                ExpressionTester.CheckIsCompilable(this.resolver, constraint,
+              IToken finalToken = boundVar.tok;
+              if (constraint.tok.line != 0) {
+                var errorCollector = new FirstErrorCollector();
+                ExpressionTester.CheckIsCompilable(this.resolver, errorCollector, constraint,
                   new CodeContextWrapper(subsetTypeDecl, true));
+                if (errorCollector.Collected) {
+                  finalToken = new NestedToken(finalToken, errorCollector.FirstCollectedToken,
+                    "The constraint is not compilable because " + errorCollector.FirstCollectedMessage
+                  );
+                }
               }
+              this.resolver.Reporter.Error(MessageSource.Resolver, finalToken,
+                $"{boundVar.Type} is a subset type and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in {what}.");
             }
           }
         }
