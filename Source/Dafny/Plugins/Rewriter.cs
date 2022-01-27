@@ -87,5 +87,16 @@ namespace Microsoft.Dafny.Plugins {
     public virtual void PostResolve(ModuleDefinition moduleDefinition) {
       Contract.Requires(moduleDefinition != null);
     }
+
+    /// <summary>
+    /// Phase 5/5
+    /// Override this method to obtain the final program after the entire resolution pipeline
+    /// after the individual PostResolve on every module
+    /// You can then report errors using reporter.Error (see above)
+    /// </summary>
+    /// <param name="program">The entire program after it is fully resolved</param>
+    public virtual void PostResolve(Program program) {
+      Contract.Requires(program != null);
+    }
   }
 }

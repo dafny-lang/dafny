@@ -439,11 +439,9 @@ namespace Microsoft.Dafny {
 
       rewriters.Add(new InductionRewriter(reporter));
 
-      if (DafnyOptions.O.Plugins.Count() >= 1) {
-        foreach (var plugin in DafnyOptions.O.Plugins) {
-          foreach (var rewriter in plugin.Configuration.GetRewriters(reporter)) {
-            rewriters.Add(rewriter);
-          }
+      foreach (var plugin in DafnyOptions.O.Plugins) {
+        foreach (var rewriter in plugin.Configuration.GetRewriters(reporter)) {
+          rewriters.Add(rewriter);
         }
       }
 
@@ -703,6 +701,10 @@ namespace Microsoft.Dafny {
         foreach (var r in rewriters) {
           r.PostResolve(module);
         }
+      }
+
+      foreach (var r in rewriters) {
+        r.PostResolve(prog);
       }
     }
 
