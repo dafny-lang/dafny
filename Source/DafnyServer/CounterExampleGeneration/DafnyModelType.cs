@@ -37,9 +37,9 @@ namespace DafnyServer.CounterexampleGeneration {
       // The line below converts "_m" used in boogie to separate modules to ".":
       var tmp = Regex.Replace(Name, "(?<=[^_](__)*)_m", ".");
       // The code below converts every "__" to "_":
-      var removeNextUnderscore = false;
+      bool removeNextUnderscore = false;
       var newName = "";
-      foreach (var c in tmp) {
+      foreach (char c in tmp) {
         if (c == '_') {
           if (!removeNextUnderscore) {
             newName += c;
@@ -66,11 +66,11 @@ namespace DafnyServer.CounterexampleGeneration {
         return new DafnyModelType(type);
       }
       List<DafnyModelType> typeArgs = new();
-      var id = type.IndexOf("<", StringComparison.Ordinal);
+      int id = type.IndexOf("<", StringComparison.Ordinal);
       var name = type[..id];
       id++; // skip the first '<' since it opens the argument list
-      var lastId = id;
-      var openBrackets = 0;
+      int lastId = id;
+      int openBrackets = 0;
       while (id < type.Length) {
         switch (type[id]) {
           case '<':

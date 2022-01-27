@@ -33,13 +33,20 @@ namespace DafnyServer.CounterexampleGeneration {
     private readonly Dictionary<Model.Element, Model.Element[]> arrayLengths = new();
     private readonly Dictionary<Model.Element, Model.FuncTuple> datatypeValues = new();
     private readonly Dictionary<Model.Element, string> localValue = new();
-    // maps a basic type (int, real, bv4, etc.) to the set of values that
-    // the model assigns to variables of this type. 
-    private readonly Dictionary<Type, HashSet<string>> reservedValues = new();
-    // maps a particular element to a value reserved for it (see above)
+
+    // maps a numeric type (int, real, bv4, etc.) to the set of integer
+    // values of that type that appear in the model. 
+    private readonly Dictionary<Type, HashSet<int>> reservedNumerals = new();
+    // set of all characters values that appear in the model
+    private readonly HashSet<char> reservedChars = new();
+    private bool isTrueReserved = false; // True if "true" appears anywhere in the model
+    // maps an element representing a primitive value to the string representation of that value
     private readonly Dictionary<Model.Element, string> reservedValuesMap = new();
     // ensures that a given bitvectorType is created only once for a given base
     private readonly Dictionary<int, BitvectorType> bitvectorTypes = new();
+
+    // the model will begin assigning characters starting from this utf value
+    private readonly int firstCharacterUtfValue = 65; // 'A'
 
 
     public DafnyModel(Model model) {
@@ -80,7 +87,11 @@ namespace DafnyServer.CounterexampleGeneration {
       fTag = model.MkFunc("Tag", 1);
       fBv = model.MkFunc("TBitvector", 1);
       InitArraysAndDataTypes();
-      RegisterReservedValues();
+      RegisterReservedChars();
+      RegisterReservedInts();
+      RegisterReservedBools();
+      RegisterReservedReals();
+      RegisterReservedBitVectors();
       foreach (var s in model.States) {
         var sn = new DafnyModelState(this, s);
         States.Add(sn);
@@ -93,8 +104,8 @@ namespace DafnyServer.CounterexampleGeneration {
     public static DafnyModel ExtractModel(string mv) {
       const string begin = "*** MODEL";
       const string end = "*** END_MODEL";
-      var beginIndex = mv.IndexOf(begin, StringComparison.Ordinal);
-      var endIndex = mv.IndexOf(end, StringComparison.Ordinal);
+      int beginIndex = mv.IndexOf(begin, StringComparison.Ordinal);
+      int endIndex = mv.IndexOf(end, StringComparison.Ordinal);
       var modelString = mv.Substring(beginIndex, endIndex + end.Length - beginIndex);
       var model = Model.ParseModels(new StringReader(modelString)).First();
       return new DafnyModel(model);
@@ -107,9 +118,9 @@ namespace DafnyServer.CounterexampleGeneration {
     private void InitArraysAndDataTypes() {
       foreach (var fn in Model.Functions) {
         if (Regex.IsMatch(fn.Name, "^_System.array[0-9]*.Length[0-9]*$")) {
-          var j = fn.Name.IndexOf('.', 13);
-          var dims = j == 13 ? 1 : int.Parse(fn.Name.Substring(13, j - 13));
-          var idx = j == 13 ? 0 : int.Parse(fn.Name[(j + 7)..]);
+          int j = fn.Name.IndexOf('.', 13);
+          int dims = j == 13 ? 1 : int.Parse(fn.Name.Substring(13, j - 13));
+          int idx = j == 13 ? 0 : int.Parse(fn.Name[(j + 7)..]);
           foreach (var tpl in fn.Apps) {
             var elt = tpl.Args[0];
             var len = tpl.Result;
@@ -140,7 +151,7 @@ namespace DafnyServer.CounterexampleGeneration {
       var name = "[" + arity + "]";
       if (Model.HasFunc(name)) {
         // Coming up with a new name if the ideal one is reserved
-        var id = 0;
+        int id = 0;
         while (Model.HasFunc(name + "#" + id)) {
           id++;
         }
@@ -160,60 +171,62 @@ namespace DafnyServer.CounterexampleGeneration {
       return result;
     }
 
-    /// <summary>
-    /// Registered all values of basic types specified by the model in
-    /// the reservedValues map;
-    /// </summary>
-    private void RegisterReservedValues() {
-      var fCharToInt = Model.MkFunc("char#ToInt", 1);
-      reservedValues[Type.Char] = new();
+    /// <summary> Registered all char values specified by the model </summary>
+    private void RegisterReservedChars() {
       foreach (var app in fCharToInt.Apps) {
-        var UTFCode = int.Parse(((Model.Integer)app.Result).Numeral);
-        reservedValues[Type.Char].Add(Convert.ToChar(UTFCode).ToString());
+        int UTFCode = int.Parse(((Model.Integer)app.Result).Numeral);
+        reservedChars.Add(Convert.ToChar(UTFCode));
       }
+    }
 
-      var fU2Int = Model.MkFunc("U_2_int", 1);
-      reservedValues[Type.Int] = new();
+    /// <summary> Registered all int values specified by the model </summary>
+    private void RegisterReservedInts() {
+      reservedNumerals[Type.Int] = new();
       foreach (var app in fU2Int.Apps) {
-        // this skips negative values
-        if (app.Result is Model.Integer) {
-          reservedValues[Type.Int].Add(((Model.Integer)app.Result).Numeral);
+        if (app.Result is Model.Integer integer) {
+          reservedNumerals[Type.Int].Add(integer.AsInt());
         }
       }
+    }
 
-      var fU2Bool = Model.MkFunc("U_2_bool", 1);
-      reservedValues[Type.Bool] = new();
+    /// <summary> Registered all bool values specified by the model </summary>
+    private void RegisterReservedBools() {
       foreach (var app in fU2Bool.Apps) {
-        reservedValues[Type.Bool].Add(((Model.Boolean)app.Result).ToString());
+        isTrueReserved |= ((Model.Boolean)app.Result).Value;
       }
+    }
 
-      var fU2Real = Model.MkFunc("U_2_real", 1);
-      reservedValues[Type.Real] = new();
+    /// <summary> Registered all real values specified by the model </summary>
+    private void RegisterReservedReals() {
+      reservedNumerals[Type.Real] = new();
       foreach (var app in fU2Real.Apps) {
-        var resultAsString = app.Result.ToString() ?? "";
-        // this skips fractions and negative values
-        if (app.Result is Model.Real && resultAsString.Contains("/")) {
-          reservedValues[Type.Real].Add(Regex.Replace(
-            resultAsString, "\\.0$", ""));
+        var valueAsString = app.Result.ToString()?.Split(".")[0] ?? "";
+        if ((app.Result is Model.Real) && (int.TryParse(valueAsString, out int value))) {
+          reservedNumerals[Type.Real].Add(value);
         }
       }
+    }
+
+    /// <summary> Registered all bv values specified by the model </summary>
+    private void RegisterReservedBitVectors() {
       foreach (var func in Model.Functions) {
         if (!Regex.IsMatch(func.Name, "^U_2_bv[0-9]+$")) {
           continue;
         }
 
-        var width = int.Parse(func.Name[6..]);
+        int width = int.Parse(func.Name[6..]);
         if (!bitvectorTypes.ContainsKey(width)) {
           bitvectorTypes[width] = new BitvectorType(width);
         }
+
         var type = bitvectorTypes[width];
 
-        if (!reservedValues.ContainsKey(type)) {
-          reservedValues[type] = new();
+        if (!reservedNumerals.ContainsKey(type)) {
+          reservedNumerals[type] = new();
         }
 
         foreach (var app in func.Apps) {
-          reservedValues[type].Add((app.Result as Model.BitVector).Numeral);
+          reservedNumerals[type].Add((app.Result as Model.BitVector).AsInt());
         }
       }
     }
@@ -496,18 +509,18 @@ namespace DafnyServer.CounterexampleGeneration {
       if (IsBitVectorObject(elt, this)) {
         var typeName = GetTrueName(fType.OptEval(elt));
         var funcName = "U_2_" + typeName[..^4];
-        var width = int.Parse(typeName[2..^4]);
+        int width = int.Parse(typeName[2..^4]);
         if (!bitvectorTypes.ContainsKey(width)) {
           bitvectorTypes[width] = new BitvectorType(width);
-          reservedValues[bitvectorTypes[width]] = new HashSet<string>();
+          reservedNumerals[bitvectorTypes[width]] = new HashSet<int>();
         }
         if (!Model.HasFunc(funcName)) {
-          return GetUnspecifiedValue(elt, bitvectorTypes[width]);
+          return GetUnreservedNumericValue(elt, bitvectorTypes[width]);
         }
         if (Model.GetFunc(funcName).OptEval(elt) != null) {
           return Model.GetFunc(funcName).OptEval(elt).AsInt().ToString();
         }
-        return GetUnspecifiedValue(elt, bitvectorTypes[width]);
+        return GetUnreservedNumericValue(elt, bitvectorTypes[width]);
       }
       if (elt.Kind == Model.ElementKind.DataValue) {
         if (((Model.DatatypeValue)elt).ConstructorName == "-") {
@@ -527,63 +540,83 @@ namespace DafnyServer.CounterexampleGeneration {
           utfCode = ((Model.Integer)fCharToInt.OptEval(elt)).AsInt();
           return "'" + char.ConvertFromUtf32(utfCode) + "'";
         }
-        return GetUnspecifiedValue(elt, Type.Char);
+        return GetUnreservedCharValue(elt);
       }
       if (fType.OptEval(elt) == fReal.GetConstant()) {
         if (fU2Real.OptEval(elt) != null) {
           return CanonicalName(fU2Real.OptEval(elt));
         }
-        return GetUnspecifiedValue(elt, Type.Real);
+        return GetUnreservedNumericValue(elt, Type.Real);
       }
       if (fType.OptEval(elt) == fBool.GetConstant()) {
         if (fU2Bool.OptEval(elt) != null) {
           return CanonicalName(fU2Bool.OptEval(elt));
         }
-        return GetUnspecifiedValue(elt, Type.Bool);
+        return GetUnreservedBoolValue(elt);
       }
       if (fType.OptEval(elt) == fInt.GetConstant()) {
         if (fU2Int.OptEval(elt) != null) {
           return CanonicalName(fU2Int.OptEval(elt));
         }
-        return GetUnspecifiedValue(elt, Type.Int);
+        return GetUnreservedNumericValue(elt, Type.Int);
       }
       return "";
     }
 
-    private string GetUnspecifiedValue(Model.Element element, Type primitiveType) {
+    /// <summary>
+    /// Find a char value that is different from any other value
+    /// of that type in the entire model. Reserve that value for given element
+    /// </summary>
+    private string GetUnreservedCharValue(Model.Element element) {
       if (reservedValuesMap.ContainsKey(element)) {
         return reservedValuesMap[element];
       }
-      if (primitiveType == Type.Bool) {
-        if (!reservedValues[Type.Bool].Contains("true")) {
-          reservedValues[Type.Bool].Add("true");
-          reservedValuesMap[element] = "true";
-        } else {
-          reservedValuesMap[element] = "false";
-        }
-        return reservedValuesMap[element];
-      }
-
-      var i = 0;
-      if (primitiveType == Type.Char) {
-        i = 65; // 65 is the UTF code for 'A', i.e. the first letter character
-        while (reservedValues[Type.Char].Contains(Convert.ToChar(i).ToString())) {
-          i++;
-        }
-        reservedValuesMap[element] = $"'{Convert.ToChar(i)}'";
-        reservedValues[primitiveType].Add(Convert.ToChar(i).ToString());
-        return reservedValuesMap[element];
-      }
-
-      while (reservedValues[primitiveType].Contains(i.ToString())) {
+      int i = firstCharacterUtfValue;
+      while (reservedChars.Contains(Convert.ToChar(i))) {
         i++;
       }
-      if (primitiveType == Type.Real) {
+      reservedValuesMap[element] = $"'{Convert.ToChar(i)}'";
+      reservedChars.Add(Convert.ToChar(i));
+      return reservedValuesMap[element];
+    }
+
+    /// <summary>
+    /// Find a bool value that is different from any other value
+    /// of that type in the entire model (if possible).
+    /// Reserve that value for given element
+    /// </summary>
+    private string GetUnreservedBoolValue(Model.Element element) {
+      if (reservedValuesMap.ContainsKey(element)) {
+        return reservedValuesMap[element];
+      }
+      if (!isTrueReserved) {
+        isTrueReserved = true;
+        reservedValuesMap[element] = true.ToString().ToLower();
+      } else {
+        reservedValuesMap[element] = false.ToString().ToLower();
+      }
+      return reservedValuesMap[element];
+    }
+
+    /// <summary>
+    /// Find a value of the given numericType that is different from
+    /// any other value of that type in the entire model.
+    /// Reserve that value for given element
+    /// </summary>
+    private string GetUnreservedNumericValue(Model.Element element, Type numericType) {
+      if (reservedValuesMap.ContainsKey(element)) {
+        return reservedValuesMap[element];
+      }
+      int i = 0;
+      while (reservedNumerals[numericType].Contains(i)) {
+        i++;
+      }
+      if (numericType == Type.Real) {
         reservedValuesMap[element] = i + ".0";
       } else {
         reservedValuesMap[element] = i.ToString();
       }
-      reservedValues[primitiveType].Add(reservedValuesMap[element]);
+      reservedNumerals[numericType].Add(i);
       return reservedValuesMap[element];
     }
 
@@ -608,7 +641,7 @@ namespace DafnyServer.CounterexampleGeneration {
           }
         } else {
           // we don't now destructor names, so we use indices instead
-          for (var i = 0; i < fnTuple.Args.Length; i++) {
+          for (int i = 0; i < fnTuple.Args.Length; i++) {
             result.Add(DafnyModelVariableFactory.Get(state, Unbox(fnTuple.Args[i]),
               "[" + i + "]", var));
           }
@@ -627,7 +660,7 @@ namespace DafnyServer.CounterexampleGeneration {
           elements.Insert(0, Unbox(fSeqBuild.AppWithResult(substring).Args[1]));
           substring = fSeqBuild.AppWithResult(substring).Args[0];
         }
-        for (var i = 0; i < elements.Count; i++) {
+        for (int i = 0; i < elements.Count; i++) {
           var e = DafnyModelVariableFactory.Get(state, Unbox(elements[i]), "[" + i + "]", var);
           result.Add(e);
           (var as SeqVariable)?.AddAtIndex(e, i);
@@ -693,7 +726,7 @@ namespace DafnyServer.CounterexampleGeneration {
 
       if (arrayLengths.TryGetValue(var.Element, out var lengths)) {
         // Elt is an array
-        var i = 0;
+        int i = 0;
         foreach (var len in lengths) {
           var name = lengths.Length == 1 ? "Length" : "Length" + i;
           result.Add(DafnyModelVariableFactory.Get(state, len, name, var));
@@ -741,7 +774,7 @@ namespace DafnyServer.CounterexampleGeneration {
     /// Special care is required if the element represents an array index
     /// </summary>
     private string GetFieldName(Model.Element elt) {
-      var dims = fDim.OptEval(elt)?.AsInt();
+      int? dims = fDim.OptEval(elt)?.AsInt();
       if (dims is null or 0) { // meaning elt is not an array index
         var fieldName = GetTrueName(elt);
         if (fieldName == null) {
@@ -751,7 +784,7 @@ namespace DafnyServer.CounterexampleGeneration {
       }
       // Reaching this code means elt is an index into an array
       var indices = new Model.Element[(int)dims];
-      for (var i = (int)dims; 0 <= --i;) {
+      for (int i = (int)dims; 0 <= --i;) {
         Model.FuncTuple dimTuple;
         if (i == 0) {
           dimTuple = fIndexField.AppWithResult(elt);
@@ -783,7 +816,7 @@ namespace DafnyServer.CounterexampleGeneration {
     private static ulong GetNumber(string s, int beg) {
       ulong res = 0;
       while (beg < s.Length) {
-        var c = s[beg];
+        char c = s[beg];
         if ('0' <= c && c <= '9') {
           res *= 10;
           res += (uint)c - '0';
@@ -794,11 +827,11 @@ namespace DafnyServer.CounterexampleGeneration {
     }
 
     private static int CompareFieldNames(string f1, string f2) {
-      var len = Math.Min(f1.Length, f2.Length);
-      var numberPos = -1;
-      for (var i = 0; i < len; ++i) {
-        var c1 = f1[i];
-        var c2 = f2[i];
+      int len = Math.Min(f1.Length, f2.Length);
+      int numberPos = -1;
+      for (int i = 0; i < len; ++i) {
+        char c1 = f1[i];
+        char c2 = f2[i];
         if ('0' <= c1 && c1 <= '9' && '0' <= c2 && c2 <= '9') {
           numberPos = i;
           break;
@@ -808,8 +841,8 @@ namespace DafnyServer.CounterexampleGeneration {
         }
       }
       if (numberPos >= 0) {
-        var v1 = GetNumber(f1, numberPos);
-        var v2 = GetNumber(f2, numberPos);
+        ulong v1 = GetNumber(f1, numberPos);
+        ulong v2 = GetNumber(f2, numberPos);
         if (v1 < v2) {
           return -1;
         }
