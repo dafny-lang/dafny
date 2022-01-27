@@ -373,7 +373,10 @@ namespace Microsoft.Dafny {
 
       if (!isVerbatim) {
         wr.Write("\"{0}\"", str);
+      } else {
+        throw new NotImplementedException();
       }
+
     }
 
     protected override ConcreteSyntaxTree EmitBitvectorTruncation(BitvectorType bvType, bool surroundByUnchecked,
