@@ -31,7 +31,8 @@ The top four improvements in Dafny 3.4 are:
 
 ### C#
 - fix: resolve an instance where Dafny would produce invalid C# code. https://github.com/dafny-lang/dafny/issues/1607
-- feat: support variant type parameters on datatype definitions, which enables using traits as type arguments. Support for downcasting datatypes with contra-variant type parameters is left out. https://github.com/dafny-lang/dafny/issues/1499
+- feat: Support variant type parameters on datatype definitions, which enables using traits as type arguments. https://github.com/dafny-lang/dafny/issues/1499
+- feat: Support for downcasting both custom datatypes and functions.
 
 ## Breaking changes
 
