@@ -72,6 +72,7 @@ namespace Microsoft.Dafny {
       wr.WriteLine();
       wr.WriteLine("using System;");
       wr.WriteLine("using System.Numerics;");
+      wr.WriteLine("using Moq;");
       EmitDafnySourceAttribute(program, wr);
       if (!DafnyOptions.O.UseRuntimeLib) {
         ReadRuntimeSystem("DafnyRuntime.cs", wr);
@@ -1005,8 +1006,13 @@ namespace Microsoft.Dafny {
         return Compiler.CreateMethod(m, typeArgs, createBody, Writer(m.IsStatic, createBody, m), forBodyInheritance, lookasideBody);
       }
 
-      public ConcreteSyntaxTree CreateMockMethod(Method m) {
-        return Compiler.CreateMockMethod(m, Writer(m.IsStatic, true, m));
+      public ConcreteSyntaxTree CreateFreshMethod(Method m) {
+        return Compiler.CreateFreshMethod(m, Writer(m.IsStatic, true, m));
+      }
+
+      public ConcreteSyntaxTree CreateMockMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance,
+        bool lookasideBody) {
+        return Compiler.CreateMockMethod(m, typeArgs, createBody, Writer(m.IsStatic, createBody, m), forBodyInheritance, lookasideBody);
       }
 
       public ConcreteSyntaxTree /*?*/ CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, bool forBodyInheritance, bool lookasideBody) {
@@ -1060,7 +1066,7 @@ namespace Microsoft.Dafny {
       return block;
     }
 
-    protected ConcreteSyntaxTree/*?*/ CreateMockMethod(Method m, ConcreteSyntaxTree wr) {
+    protected ConcreteSyntaxTree/*?*/ CreateFreshMethod(Method m, ConcreteSyntaxTree wr) {
       var keywords = Keywords(true, true, false);
       var returnType = GetTargetReturnTypeReplacement(m, wr);
       wr.FormatLine($"{keywords}{returnType} {IdName(m)}() {{");
@@ -1069,8 +1075,105 @@ namespace Microsoft.Dafny {
       return wr;
     }
 
-    static string Keywords(bool isPublic = false, bool isStatic = false, bool isExtern = false) {
-      return (isPublic ? "public " : "") + (isStatic ? "static " : "") + (isExtern ? "extern " : "");
+    protected ConcreteSyntaxTree/*?*/ CreateMockMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
+      var customReceiver = createBody && !forBodyInheritance && NeedsCustomReceiver(m);
+      var keywords = Keywords(true, true, false);
+      var returnType = GetTargetReturnTypeReplacement(m, wr);
+      var typeParameters = TypeParameters(TypeArgumentInstantiation.ToFormals(ForTypeParameters(typeArgs, m, lookasideBody)));
+      var parameters = GetMethodParameters(m, typeArgs, lookasideBody, customReceiver, returnType);
+      wr.FormatLine($"{keywords}{returnType} {IdName(m)}{typeParameters}({parameters}) {{");
+      // TODO: name collisions
+      // TODO: ghost variables
+      if (returnType != "void") {
+        wr.FormatLine($"var {m.Outs[0].Name}Tmp = new Mock<{returnType}>();");
+      } else {
+        foreach (var o in m.Outs) {
+          // TODO: keep same name?
+          wr.FormatLine($"var {o.Name}Tmp = new Mock<{TypeName(o.Type, wr, o.tok)}>();");
+        }
+      }
+      foreach (var ensureClause in m.Ens) {
+        MockExpression(wr, ensureClause.E);
+      }
+      if (returnType != "void") {
+        wr.FormatLine($"return {m.Outs[0].Name}Tmp.Object;");
+      } else {
+        foreach (var o in m.Outs) {
+          wr.FormatLine($"{o.Name} = {m.Outs[0].Name}Tmp.Object;");
+        }
+      }
+      wr.FormatLine($"}}");
+      return wr;
+    }
+
+    void MockExpression(ConcreteSyntaxTree wr, Expression expr) {
+      if (expr is LiteralExpr literalExpr) {
+        EmitLiteralExpr(wr, literalExpr);
+      } else if (expr is ApplySuffix applySuffix) {
+        MockExpression(wr, applySuffix);
+      } else if (expr is BinaryExpr binaryExpr) {
+        MockExpression(wr, binaryExpr);
+      } else if (expr is ForallExpr forallExpr) {
+        MockExpression(wr, forallExpr);
+      }
+    }
+
+    void MockExpression(ConcreteSyntaxTree wr, ApplySuffix applySuffix, List<Tuple<IVariable, string>> bounds = null) {
+      var receiver = ((NameSegment)((ExprDotName)applySuffix.Lhs).Lhs).Name;
+      var method = ((ExprDotName)applySuffix.Lhs).SuffixName;
+      wr.Format($"{receiver}Tmp.Setup(x => x.{method}(");
+      for (int i = 0; i < applySuffix.Args.Count; i++) {
+        if (bounds != null &&
+            applySuffix.Args[i] is NameSegment &&
+            bounds.Exists(tuple => (applySuffix.Args[i].Resolved as IdentifierExpr).Var.CompileName == tuple.Item1.CompileName)) {
+          var bound = bounds.Find(tuple =>
+            (applySuffix.Args[i].Resolved as IdentifierExpr).Var.CompileName == tuple.Item1.CompileName);
+          wr.Format($"{bound.Item2}");
+        } else {
+          TrExpr(applySuffix.Args[i], wr, false);
+        }
+        if (i != applySuffix.Args.Count - 1) {
+          wr.Format($", ");
+        }
+      }
+      wr.Format($"))");
+    }
+
+    void MockExpression(ConcreteSyntaxTree wr, BinaryExpr binaryExpr, List<Tuple<IVariable, string>> bounds = null) {
+      if (binaryExpr.Op == BinaryExpr.Opcode.Eq &&
+          binaryExpr.E0 is ApplySuffix applySuffix) {
+        MockExpression(wr, applySuffix, bounds);
+        wr.Format($".Returns(");
+        var first = true;
+        if (bounds != null && bounds.Count != 0) {
+          wr.Format($"(");
+          foreach (var bound in bounds) {
+            if (!first) {
+              wr.Format($", ");
+            }
+            wr.Format($"{TypeName(bound.Item1.Type, wr, bound.Item1.Tok)} {bound.Item1.CompileName}");
+            first = false;
+          }
+          wr.Format($")=>");
+        }
+        TrExpr(binaryExpr.E1, wr, false);
+        wr.FormatLine($");");
+      }
+    }
+
+    void MockExpression(ConcreteSyntaxTree wr, ForallExpr forallExpr) {
+      var bounds = new List<Tuple<IVariable, string>>();
+      foreach (var boundVar in forallExpr.BoundVars) {
+        bounds.Add(new(boundVar, $"It.IsAny<{TypeName(boundVar.Type, wr, boundVar.tok)}>()"));
+      }
+
+      if (forallExpr.Term is BinaryExpr binaryExpr) {
+        MockExpression(wr, binaryExpr, bounds);
+      }
+    }
+
+    static string Keywords(bool isPublic = false, bool isStatic = false, bool isExtern = false, bool isVirtual = true) {
+      return (isPublic ? "public " : "") + (isStatic ? "static " : "") + (isExtern ? "extern " : "") + (isVirtual && !isStatic && isPublic ? "virtual " : "");
     }
 
     private ConcreteSyntaxTree GetMethodParameters(Method m, List<TypeArgumentInstantiation> typeArgs, bool lookasideBody, bool customReceiver, string returnType) {

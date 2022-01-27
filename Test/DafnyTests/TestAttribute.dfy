@@ -79,18 +79,69 @@ class Even {
     {
         this.value := value;
     }
+    function method Sum(a:int, b:int):int {
+        a + b
+    }
 }
 
-method {:extern} {:mock} mockEven() returns (e:Even) ensures fresh(e)
+method {:extern} {:fresh} freshEven() returns (e:Even) ensures fresh(e)
 
-method {:test} PassingTestUsingMocks() {
-    var e:Even := mockEven();
+method {:test} PassingTestUsingFresh() {
+    var e:Even := freshEven();
     e.value := 4;
     expect(e.IsValid());
 }
 
-method {:test} FailingTestUsingMocks() {
-    var e:Even := mockEven();
+method {:test} FailingTestUsingFresh() {
+    var e:Even := freshEven();
     e.value := 5;
     expect(e.IsValid());
+}
+
+method {:extern} {:mock} MockValidEven() returns (e:Even) 
+    ensures fresh(e) 
+    ensures e.IsValid() == true
+method {:extern} {:mock} MockInValidEven() returns (e:Even) 
+    ensures fresh(e) 
+    ensures e.IsValid() == false
+
+method {:test} PassingTestUsingValidMock() {
+    var e:Even := MockValidEven();
+    expect(e.IsValid());
+}
+
+method {:test} PassingTestUsingInValidMock() {
+    var e:Even := MockInValidEven();
+    expect(!e.IsValid());
+}
+
+method {:extern} {:mock} MockSum() returns (e:Even) 
+    ensures fresh(e) 
+    ensures e.Sum(2, 2) == 3
+
+method {:test} PassingMockSum() {
+    var e:Even := MockSum();
+    expect(e.Sum(2, 2) == 3);
+}
+
+method {:extern} {:mock} MockSumForall() returns (e:Even) 
+    ensures fresh(e) 
+    ensures forall a:int, b:int :: e.Sum(a, b) == 3
+
+method {:test} PassingMockForall() {
+    var e:Even := MockSumForall();
+    expect(e.Sum(2, 2) == 3);
+    expect(e.Sum(3, 2) == 3);
+}
+
+method {:extern} {:mock} MockSumAsMultiplication() returns (e:Even) 
+    ensures fresh(e) 
+    ensures forall a:int, b:int :: e.Sum(a, b) == a * b
+    
+method {:test} PassingMockSumAsMultiplication() {
+    var e:Even := MockSumAsMultiplication();
+    expect(e.Sum(2, 2) == 4);
+    expect(e.Sum(2, 3) == 6);
+    expect(e.Sum(4, 0) == 0);
+    expect(e.Sum(5, 1) == 5);
 }

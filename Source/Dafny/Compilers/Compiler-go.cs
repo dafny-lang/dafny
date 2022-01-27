@@ -1004,7 +1004,12 @@ namespace Microsoft.Dafny {
         return Compiler.CreateMethod(m, typeArgs, createBody, ClassName, AbstractMethodWriter, ConcreteMethodWriter, forBodyInheritance, lookasideBody);
       }
 
-      public ConcreteSyntaxTree CreateMockMethod(Method m) {
+      public ConcreteSyntaxTree CreateFreshMethod(Method m) {
+        throw new NotImplementedException();
+      }
+
+      public ConcreteSyntaxTree CreateMockMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance,
+        bool lookasideBody) {
         throw new NotImplementedException();
       }
 
