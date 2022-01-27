@@ -13,7 +13,6 @@ namespace Microsoft.Dafny {
     private readonly ConcurrentBag<TestResult> results = new();
     private TextWriter writer;
     private string writerFilename;
-    private TestProperty metricProperty;
 
     public void Initialize(TestLoggerEvents events, string testRunDirectory) {
     }
@@ -21,16 +20,6 @@ namespace Microsoft.Dafny {
     public void Initialize(TestLoggerEvents events, Dictionary<string, string> parameters) {
       events.TestResult += TestResultHandler;
       events.TestRunComplete += TestRunCompleteHandler;
-
-      if (parameters.TryGetValue("Metric", out var metricType)) {
-        metricProperty = metricType switch {
-          "resource-count" => BoogieXmlConvertor.ResourceCountProperty,
-          "time" => null,
-          _ => throw new ArgumentException($"Unknown metric type: {metricType}")
-        };
-      } else {
-        metricProperty = null;
-      }
 
       if (parameters.TryGetValue("LogFileName", out string filename)) {
         writer = new StreamWriter(filename);
@@ -76,11 +65,10 @@ namespace Microsoft.Dafny {
     }
 
     private void TestRunCompleteHandler(object sender, TestRunCompleteEventArgs e) {
-      var metricName = metricProperty?.ToString() ?? "TestResult.Duration";
-      writer.WriteLine($"TestResult.DisplayName,TestResult.Outcome,{metricName}");
+      writer.WriteLine($"TestResult.DisplayName,TestResult.Outcome,TestResult.Duration,TestResult.ResourceCount");
       foreach (var result in results.OrderByDescending(r => r.Duration)) {
-        var metric = metricProperty is not null ? result.GetPropertyValue(metricProperty) : result.Duration;
-        writer.WriteLine($"{result.TestCase.DisplayName},{result.Outcome},{metric.ToString()}");
+        var resCount = result.GetPropertyValue(BoogieXmlConvertor.ResourceCountProperty);
+        writer.WriteLine($"{result.TestCase.DisplayName},{result.Outcome},{result.Duration},{resCount}");
       }
 
       writer.Close();

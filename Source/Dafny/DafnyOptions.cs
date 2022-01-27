@@ -980,10 +980,6 @@ namespace Microsoft.Dafny {
         /verificationLogger:trx;LogFileName=<...>.
     The exact mapping of verification concepts to the TRX and CSV formats is
     experimental and subject to change!
-
-    The CSV format also accepts a `Metric` parameter to indicate which metric
-    to include. With `Metric=time` the log includes elapsed time (default),
-    and with `Metric=ticks` it includes the number of Z3 ticks used.
 {TestGenOptions.Help}
 
 /mimicVerificationOf:<Dafny version>
