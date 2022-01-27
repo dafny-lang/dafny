@@ -117,7 +117,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return CreateDocumentWithEmptySymbolTable(loggerFactory.CreateLogger<SymbolTable>(), textDocument, errorReporter, program, loadCanceled: false);
       }
 
-      if (dafnyPluginsOptions.Value.Plugins.Length > 0 && DafnyOptions.O.Plugins.Count == 0) {
+      if (dafnyPluginsOptions.Value.Plugins.Length > 0 && !DafnyOptions.O.Plugins.Any()) {
         try {
           foreach (var pluginPathArgument in dafnyPluginsOptions.Value.Plugins) {
             DafnyOptions.O.Parse(new[] { "-plugin:" + pluginPathArgument });

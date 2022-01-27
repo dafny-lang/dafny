@@ -79,9 +79,14 @@ Options provided through the command line have higher priority than the options 
 ### Plugins
 
 ```sh
-# Provides a path to assemblies
-# that contain an instantiatable Microsoft.Dafny.Plugins.Configuration to use during resolution
+# Provides a path to assemblies that contain
+# 1) Either a class extending Microsoft.Dafny.Plugins.Configuration to receive plugin arguments
+#    and provide classes extending Microsoft.Dafny.Plugins.Rewriter
+# 2) Or, if no Configuration is defined, at least one Microsoft.Dafny.Plugins.Rewriter that it will load during resolution
 # Optionally, after a comma, provide an extra list of space-separated arguments.
+# Easier to use via VSCode's Settings interface (no need to escape inner double quotes)
 # Default: "" (nothing extra is loaded)
---dafny:plugins:0=
+--dafny:plugins:0=example.dll
+--dafny:plugins:1=example2.dll,oneArgument
+"--dafny:plugins:1=\"example2.dll,\\\"firstArgument with space\\\" secondArgument\""
 ```
