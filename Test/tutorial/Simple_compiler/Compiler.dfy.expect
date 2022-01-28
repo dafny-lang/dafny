@@ -1,0 +1,28 @@
+# Step 1: Parse
+cAST =
+  SimpleCompiler.CSharpAST.Prog
+
+# Step 2: Compile (using Dafny)
+translated = 
+  DafnyAST_Compile.Stmt.Seq(DafnyAST_Compile.Stmt.Print(DafnyAST_Compile.Expr.Op(DafnyAST_Compile.BinOp.Add, DafnyAST_Compile.Expr.Const(3), DafnyAST_Compile.Expr.Const(4))), DafnyAST_Compile.Stmt.Seq(DafnyAST_Compile.Stmt.Print(DafnyAST_Compile.Expr.Const(5)), DafnyAST_Compile.Stmt.Skip))
+interp(translated) = 
+  [7, 5]
+
+optimized = 
+  DafnyAST_Compile.Stmt.Seq(DafnyAST_Compile.Stmt.Print(DafnyAST_Compile.Expr.Op(DafnyAST_Compile.BinOp.Add, DafnyAST_Compile.Expr.Const(3), DafnyAST_Compile.Expr.Const(4))), DafnyAST_Compile.Stmt.Print(DafnyAST_Compile.Expr.Const(5)))
+interp(optimized) = 
+  [7, 5]
+
+compiled = 
+  LinkedList_Compile.List.Cons(StackMachine_Compile.Instr.PopPrint, LinkedList_Compile.List.Cons(StackMachine_Compile.Instr.PushConst(5), LinkedList_Compile.List.Cons(StackMachine_Compile.Instr.PopPrint, LinkedList_Compile.List.Cons(StackMachine_Compile.Instr.PopAdd, LinkedList_Compile.List.Cons(StackMachine_Compile.Instr.PushConst(4), LinkedList_Compile.List.Cons(StackMachine_Compile.Instr.PushConst(3), LinkedList_Compile.List.Nil))))))
+interp(compiled) = 
+  [7, 5]
+
+
+# Step 3: Print (using C#)
+  Print
+  PushConst(5)
+  Print
+  PopAdd
+  PushConst(4)
+  PushConst(3)
