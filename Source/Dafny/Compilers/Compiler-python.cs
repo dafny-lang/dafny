@@ -372,6 +372,7 @@ namespace Microsoft.Dafny {
     protected override void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr) {
 
       if (!isVerbatim) {
+        if (str.Contains("\"") || str.Contains("\\")) { throw new NotImplementedException(); }
         wr.Write("\"{0}\"", str);
       } else {
         throw new NotImplementedException();
