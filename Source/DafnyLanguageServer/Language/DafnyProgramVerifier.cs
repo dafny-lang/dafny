@@ -104,7 +104,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       using (cancellationToken.Register(() => CancelVerification(uniqueId))) {
         try {
           var statistics = new PipelineStatistics();
-          var outcome = ExecutionEngine.InferAndVerify(program, statistics, uniqueId, error => { }, uniqueId);
+          var outcome = ExecutionEngine.InferAndVerify(program, statistics, uniqueId, null, uniqueId);
           return Main.IsBoogieVerified(outcome, statistics);
         } catch (Exception e) when (e is not OperationCanceledException) {
           if (!cancellationToken.IsCancellationRequested) {

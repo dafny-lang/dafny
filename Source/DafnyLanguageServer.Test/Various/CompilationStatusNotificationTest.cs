@@ -181,6 +181,9 @@ lemma {:timeLimit 3} SquareRoot2NotRational(p: nat, q: nat)
       Assert.AreEqual(documentItem.Uri, completed.Uri);
       Assert.AreEqual(documentItem.Version, completed.Version);
       Assert.AreEqual(CompilationStatus.VerificationFailed, completed.Status);
+      var document = await Documents.GetVerifiedDocumentAsync(documentItem.Uri);
+      Assert.IsNotNull(document);
+      Assert.IsTrue(document.Errors.GetDiagnostics(documentItem.Uri)[0].Message.Contains("timed out"));
     }
 
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
