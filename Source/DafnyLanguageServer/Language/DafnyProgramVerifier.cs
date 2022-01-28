@@ -100,11 +100,11 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       //      However, the cancelling a verification is currently not possible since it blocks a text document
       //      synchronization event which are serialized. Thus, no event is processed until the pending
       //      synchronization is completed.
-      var uniqueId = Guid.NewGuid().ToString();
-      using (cancellationToken.Register(() => CancelVerification(uniqueId))) {
+      var requestId = Guid.NewGuid().ToString();
+      using (cancellationToken.Register(() => CancelVerification(requestId))) {
         try {
           var statistics = new PipelineStatistics();
-          var outcome = ExecutionEngine.InferAndVerify(program, statistics, uniqueId, null, uniqueId);
+          var outcome = ExecutionEngine.InferAndVerify(program, statistics, requestId, null, requestId);
           return Main.IsBoogieVerified(outcome, statistics);
         } catch (Exception e) when (e is not OperationCanceledException) {
           if (!cancellationToken.IsCancellationRequested) {
