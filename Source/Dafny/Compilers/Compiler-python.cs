@@ -253,7 +253,7 @@ namespace Microsoft.Dafny {
 
     protected override void DeclareLocalVar(string name, Type type, IToken tok, bool leaveRoomForRhs, string rhs,
       ConcreteSyntaxTree wr) {
-      wr.Write("{0}{1}", name, type != null ? "=" + TypeName(type, wr, tok) + "()" : ""); //else part can be used to define class object.
+      wr.Write("{0}{1}", name, type != null ? $"={TypeName(type, wr, tok)}()" : ""); //else part can be used to define class object.
       wr.WriteLine();
 
     }
