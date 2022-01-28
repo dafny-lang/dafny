@@ -1634,8 +1634,7 @@ namespace Microsoft.Dafny {
         var stmt = (AssignOrReturnStmt)s;
         wr.Write(":- ");
         PrintExpression(stmt.Rhs, true);
-        if (DafnyOptions.O.DafnyPrintResolvedFile != null) {
-          Contract.Assert(stmt.ResolvedStatements.Count > 0);  // filled in during resolution
+        if (DafnyOptions.O.DafnyPrintResolvedFile != null && stmt.ResolvedStatements.Count > 0) {
           wr.WriteLine();
           Indent(indent); wr.WriteLine("/*---------- desugared ----------");
           foreach (Statement r in stmt.ResolvedStatements) {
@@ -2843,6 +2842,11 @@ namespace Microsoft.Dafny {
       switch (pat) {
         case IdPattern idPat:
           if (idPat.Id.StartsWith(BuiltIns.TupleTypeCtorNamePrefix)) {
+          } else if (idPat.Id.StartsWith("_")) {
+            // In case of the universal match pattern, print '_' instead of
+            // its node identifier, otherwise the printed program becomes
+            // syntactically incorrect.
+            wr.Write("_");
           } else {
             wr.Write(idPat.Id);
           }
