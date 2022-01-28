@@ -1,5 +1,5 @@
 // RUN: %dafny /compile:0 /spillTargetCode:3 "%s"
-// RUN: dotnet run -- example_input.calc > "%t"
+// RUN: dotnet run --project %S/SimpleCompiler.csproj -- %S/example_input.calc > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 /// A simple compiler pipeline
