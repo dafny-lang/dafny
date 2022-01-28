@@ -107,6 +107,8 @@ namespace SimpleCompiler {
     }
 
     public static void Main(string[] args) {
+      Console.Out.NewLine = "\n";
+
       Console.WriteLine("# Step 1: Parse");
       var ast = parse(args[0]);
       Console.WriteLine($"cAST =\n  {ast}");

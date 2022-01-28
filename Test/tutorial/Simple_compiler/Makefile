@@ -1,4 +1,7 @@
 DafnyDriver = ../../../Source/DafnyDriver/DafnyDriver
+deps := Main.cs Compiler.cs Simple.g4
+dll := bin/Debug/net6.0/SimpleCompiler.dll
+input := example_input.calc
 
 default: run
 
@@ -6,12 +9,10 @@ Compiler.cs: Compiler.dfy
 	dotnet run --project $(DafnyDriver).csproj -- \
 		/spillTargetCode:3 /compile:0 /noVerify $<
 
-dll := bin/Debug/net6.0/SimpleCompiler.dll
-
-$(dll): Main.cs Compiler.cs Simple.g4
+$(dll): $(deps)
 	dotnet build
 
-input := example_input.calc
+build: $(dll)
 
-run: $(dll) $(input)
-	dotnet $^
+run: $(input) $(deps)
+	dotnet run -- $^
