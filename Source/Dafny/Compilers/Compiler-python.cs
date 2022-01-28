@@ -372,10 +372,25 @@ namespace Microsoft.Dafny {
     protected override void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr) {
 
       if (!isVerbatim) {
-        if (str.Contains("\"") || str.Contains("\\")) { throw new NotImplementedException(); }
         wr.Write("\"{0}\"", str);
       } else {
-        throw new NotImplementedException();
+        var n = str.Length;
+        wr.Write("\"");
+        for (var i = 0; i < n; i++) {
+          if (str[i] == '\"' && i + 1 < n && str[i + 1] == '\"') {
+            wr.Write("\\\"");
+            i++;
+          } else if (str[i] == '\\') {
+            wr.Write("\\\\");
+          } else if (str[i] == '\n') {
+            wr.Write("\\n");
+          } else if (str[i] == '\r') {
+            wr.Write("\\r");
+          } else {
+            wr.Write(str[i]);
+          }
+        }
+        wr.Write("\"");
       }
 
     }
