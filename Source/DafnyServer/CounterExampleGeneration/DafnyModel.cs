@@ -46,7 +46,8 @@ namespace DafnyServer.CounterexampleGeneration {
     private readonly Dictionary<int, BitvectorType> bitvectorTypes = new();
 
     // the model will begin assigning characters starting from this utf value
-    private readonly int firstCharacterUtfValue = 65; // 'A'
+    private static readonly int firstCharacterUtfValue = 65; // 'A'
+    private static readonly Regex bvTypeRegex = new Regex("^bv[0-9]+Type$");
 
 
     public DafnyModel(Model model) {
@@ -116,8 +117,9 @@ namespace DafnyServer.CounterexampleGeneration {
     /// and collect all known datatype values
     /// </summary>
     private void InitArraysAndDataTypes() {
+      var arrayLength = new Regex("^_System.array[0-9]*.Length[0-9]*$");
       foreach (var fn in Model.Functions) {
-        if (Regex.IsMatch(fn.Name, "^_System.array[0-9]*.Length[0-9]*$")) {
+        if (arrayLength.IsMatch(fn.Name)) {
           int j = fn.Name.IndexOf('.', 13);
           int dims = j == 13 ? 1 : int.Parse(fn.Name.Substring(13, j - 13));
           int idx = j == 13 ? 0 : int.Parse(fn.Name[(j + 7)..]);
@@ -158,8 +160,9 @@ namespace DafnyServer.CounterexampleGeneration {
         name += "#" + id;
       }
       var result = Model.MkFunc(name, arity);
+      var mapTypeSelect = new Regex("^MapType[0-9]*Select$");
       foreach (var func in Model.Functions) {
-        if (!Regex.IsMatch(func.Name, "^MapType[0-9]*Select$") ||
+        if (!mapTypeSelect.IsMatch(func.Name) ||
             func.Arity != arity) {
           continue;
         }
@@ -209,8 +212,9 @@ namespace DafnyServer.CounterexampleGeneration {
 
     /// <summary> Registered all bv values specified by the model </summary>
     private void RegisterReservedBitVectors() {
+      var bvFuncName = new Regex("^U_2_bv[0-9]+$");
       foreach (var func in Model.Functions) {
-        if (!Regex.IsMatch(func.Name, "^U_2_bv[0-9]+$")) {
+        if (!bvFuncName.IsMatch(func.Name)) {
           continue;
         }
 
@@ -243,8 +247,7 @@ namespace DafnyServer.CounterexampleGeneration {
     /// instance of Model.BitVector, which is a BitVector value)
     /// </summary>
     private static bool IsBitVectorObject(Model.Element element, DafnyModel model) =>
-      Regex.IsMatch(GetTrueName(model.fType.OptEval(element))
-                    ?? "", "^bv[0-9]+Type$");
+      bvTypeRegex.IsMatch(GetTrueName(model.fType.OptEval(element)) ?? "");
 
     /// <summary>
     /// Return True iff the given element has primitive type in Dafny or is null
@@ -438,7 +441,7 @@ namespace DafnyServer.CounterexampleGeneration {
           return ReconstructType(fDtype.OptEval(element));
         case null:
           return new DafnyModelType("?");
-        case var bv when new Regex("^bv[0-9]+Type$").IsMatch(bv):
+        case var bv when bvTypeRegex.IsMatch(bv):
           return new DafnyModelType(bv.Substring(0, bv.Length - 4));
         default:
           return new DafnyModelType("?");
@@ -568,8 +571,8 @@ namespace DafnyServer.CounterexampleGeneration {
     /// of that type in the entire model. Reserve that value for given element
     /// </summary>
     private string GetUnreservedCharValue(Model.Element element) {
-      if (reservedValuesMap.ContainsKey(element)) {
-        return reservedValuesMap[element];
+      if (reservedValuesMap.TryGetValue(element, out var reservedValue)) {
+        return reservedValue;
       }
       int i = firstCharacterUtfValue;
       while (reservedChars.Contains(Convert.ToChar(i))) {
@@ -586,8 +589,8 @@ namespace DafnyServer.CounterexampleGeneration {
     /// Reserve that value for given element
     /// </summary>
     private string GetUnreservedBoolValue(Model.Element element) {
-      if (reservedValuesMap.ContainsKey(element)) {
-        return reservedValuesMap[element];
+      if (reservedValuesMap.TryGetValue(element, out var reservedValue)) {
+        return reservedValue;
       }
       if (!isTrueReserved) {
         isTrueReserved = true;
@@ -604,8 +607,8 @@ namespace DafnyServer.CounterexampleGeneration {
     /// Reserve that value for given element
     /// </summary>
     private string GetUnreservedNumericValue(Model.Element element, Type numericType) {
-      if (reservedValuesMap.ContainsKey(element)) {
-        return reservedValuesMap[element];
+      if (reservedValuesMap.TryGetValue(element, out var reservedValue)) {
+        return reservedValue;
       }
       int i = 0;
       while (reservedNumerals[numericType].Contains(i)) {
@@ -757,11 +760,11 @@ namespace DafnyServer.CounterexampleGeneration {
     /// </summary>
     private static List<Model.Func> GetDestructorFunctions(Model.Element datatype, string type) {
       List<Model.Func> result = new();
+      var builtInDatatypeDestructor = new Regex("^.*[^_](__)*_q$");
       foreach (var app in datatype.References) {
         if (app.Func.Arity != 1 || app.Args[0] != datatype ||
             !app.Func.Name.StartsWith(type + ".") ||
-            Regex.IsMatch(app.Func.Name.Split(".").Last(), "^.*[^_](__)*_q$")) {
-          // the regex is for built-in datatype destructors
+            builtInDatatypeDestructor.IsMatch(app.Func.Name.Split(".").Last())) {
           continue;
         }
         result.Add(app.Func);
