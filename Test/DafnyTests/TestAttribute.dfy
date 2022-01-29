@@ -145,3 +145,16 @@ method {:test} PassingMockSumAsMultiplication() {
     expect(e.Sum(4, 0) == 0);
     expect(e.Sum(5, 1) == 5);
 }
+
+method {:extern} {:mock} MockSumWithArgumentMatcher() returns (e:Even) 
+    ensures fresh(e) 
+    ensures forall a:int, b:int :: (a > b) ==> (e.Sum(a, b) == a * b)
+    ensures forall a:int, b:int :: (a <= b) ==> (e.Sum(a, b) == -a * b)
+    
+method {:test} PassingMockSumWithArgumentMatcher() {
+    var e:Even := MockSumWithArgumentMatcher();
+    expect(e.Sum(2, 2) == -4);
+    expect(e.Sum(2, 3) == -6);
+    expect(e.Sum(4, 0) == 0);
+    expect(e.Sum(5, 1) == 5);
+}

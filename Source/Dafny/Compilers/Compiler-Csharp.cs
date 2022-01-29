@@ -23,6 +23,9 @@ using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 
 namespace Microsoft.Dafny {
   public class CsharpCompiler : Compiler {
+
+    private int matcherCount = 0; // TODO: move to a separate class
+
     public CsharpCompiler(ErrorReporter reporter)
       : base(reporter) {
     }
@@ -79,6 +82,37 @@ namespace Microsoft.Dafny {
       }
     }
 
+    private static void AddMultiMatcher(ConcreteSyntaxTree wr) {
+      const string multiMatcher = @"
+      class MultiMatcher {
+
+        private readonly Func<object[], bool> predicate;
+        private readonly int nArgs;
+        private readonly object[] currArgs;
+        private int nextArgId;
+
+        public MultiMatcher(int nArgs, Func<object[], bool> predicate) {
+          this.predicate = predicate;
+          this.nArgs = nArgs;
+          currArgs = new object[nArgs];
+          for (int i = 0; i < currArgs.Length; i++) {
+            currArgs[i] = null;
+          }
+          nextArgId = 0;
+        }
+
+        public bool Match(object arg) {
+          currArgs[nextArgId++] = arg;
+          if (nextArgId != currArgs.Length) {
+            return true;
+          }
+          nextArgId = 0;
+          return predicate(currArgs);
+        }
+      }";
+      wr.WriteLine(multiMatcher);
+    }
+
     void EmitDafnySourceAttribute(Program program, ConcreteSyntaxTree wr) {
       Contract.Requires(program != null);
       Contract.Requires(wr != null);
@@ -94,6 +128,7 @@ namespace Microsoft.Dafny {
 
     protected override void EmitBuiltInDecls(BuiltIns builtIns, ConcreteSyntaxTree wr) {
       var dafnyNamespace = CreateModule("Dafny", false, false, null, wr);
+      AddMultiMatcher(dafnyNamespace);
       var arrayHelpers = dafnyNamespace.NewNamedBlock("internal class ArrayHelpers");
       foreach (var decl in builtIns.SystemModule.TopLevelDecls) {
         if (decl is ArrayClassDecl classDecl) {
@@ -1066,7 +1101,7 @@ namespace Microsoft.Dafny {
       return block;
     }
 
-    protected ConcreteSyntaxTree/*?*/ CreateFreshMethod(Method m, ConcreteSyntaxTree wr) {
+    private ConcreteSyntaxTree/*?*/ CreateFreshMethod(Method m, ConcreteSyntaxTree wr) {
       var keywords = Keywords(true, true, false);
       var returnType = GetTargetReturnTypeReplacement(m, wr);
       wr.FormatLine($"{keywords}{returnType} {IdName(m)}() {{");
@@ -1075,7 +1110,7 @@ namespace Microsoft.Dafny {
       return wr;
     }
 
-    protected ConcreteSyntaxTree/*?*/ CreateMockMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
+    private ConcreteSyntaxTree/*?*/ CreateMockMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
       var customReceiver = createBody && !forBodyInheritance && NeedsCustomReceiver(m);
       var keywords = Keywords(true, true, false);
       var returnType = GetTargetReturnTypeReplacement(m, wr);
@@ -1106,19 +1141,24 @@ namespace Microsoft.Dafny {
       return wr;
     }
 
-    void MockExpression(ConcreteSyntaxTree wr, Expression expr) {
-      if (expr is LiteralExpr literalExpr) {
-        EmitLiteralExpr(wr, literalExpr);
-      } else if (expr is ApplySuffix applySuffix) {
-        MockExpression(wr, applySuffix);
-      } else if (expr is BinaryExpr binaryExpr) {
-        MockExpression(wr, binaryExpr);
-      } else if (expr is ForallExpr forallExpr) {
-        MockExpression(wr, forallExpr);
+    private void MockExpression(ConcreteSyntaxTree wr, Expression expr) {
+      switch (expr) {
+        case LiteralExpr literalExpr:
+          EmitLiteralExpr(wr, literalExpr);
+          break;
+        case ApplySuffix applySuffix:
+          MockExpression(wr, applySuffix);
+          break;
+        case BinaryExpr binaryExpr:
+          MockExpression(wr, binaryExpr);
+          break;
+        case ForallExpr forallExpr:
+          MockExpression(wr, forallExpr);
+          break;
       }
     }
 
-    void MockExpression(ConcreteSyntaxTree wr, ApplySuffix applySuffix, List<Tuple<IVariable, string>> bounds = null) {
+    private void MockExpression(ConcreteSyntaxTree wr, ApplySuffix applySuffix, List<Tuple<IVariable, string>> bounds = null) {
       var receiver = ((NameSegment)((ExprDotName)applySuffix.Lhs).Lhs).Name;
       var method = ((ExprDotName)applySuffix.Lhs).SuffixName;
       wr.Format($"{receiver}Tmp.Setup(x => x.{method}(");
@@ -1139,37 +1179,61 @@ namespace Microsoft.Dafny {
       wr.Format($"))");
     }
 
-    void MockExpression(ConcreteSyntaxTree wr, BinaryExpr binaryExpr, List<Tuple<IVariable, string>> bounds = null) {
-      if (binaryExpr.Op == BinaryExpr.Opcode.Eq &&
-          binaryExpr.E0 is ApplySuffix applySuffix) {
-        MockExpression(wr, applySuffix, bounds);
-        wr.Format($".Returns(");
-        var first = true;
-        if (bounds != null && bounds.Count != 0) {
-          wr.Format($"(");
-          foreach (var bound in bounds) {
-            if (!first) {
-              wr.Format($", ");
-            }
-            wr.Format($"{TypeName(bound.Item1.Type, wr, bound.Item1.Tok)} {bound.Item1.CompileName}");
-            first = false;
-          }
-          wr.Format($")=>");
-        }
-        TrExpr(binaryExpr.E1, wr, false);
-        wr.FormatLine($");");
+    private void MockExpression(ConcreteSyntaxTree wr, BinaryExpr binaryExpr, List<Tuple<IVariable, string>> bounds = null) {
+      if (binaryExpr.Op != BinaryExpr.Opcode.Eq || binaryExpr.E0 is not ApplySuffix applySuffix) {
+        return;
       }
+      MockExpression(wr, applySuffix, bounds);
+      wr.Format($".Returns(");
+      var first = true;
+      if (bounds != null && bounds.Count != 0) {
+        wr.Format($"(");
+        foreach (var bound in bounds) {
+          if (!first) {
+            wr.Format($", ");
+          }
+          wr.Format($"{TypeName(bound.Item1.Type, wr, bound.Item1.Tok)} {bound.Item1.CompileName}");
+          first = false;
+        }
+        wr.Format($")=>");
+      }
+      TrExpr(binaryExpr.E1, wr, false);
+      wr.FormatLine($");");
     }
 
-    void MockExpression(ConcreteSyntaxTree wr, ForallExpr forallExpr) {
+    private void MockExpression(ConcreteSyntaxTree wr, ForallExpr forallExpr) {
+      if (forallExpr.Term is not BinaryExpr) {
+        return;
+      }
+      var binaryExpr = forallExpr.Term as BinaryExpr;
       var bounds = new List<Tuple<IVariable, string>>();
-      foreach (var boundVar in forallExpr.BoundVars) {
-        bounds.Add(new(boundVar, $"It.IsAny<{TypeName(boundVar.Type, wr, boundVar.tok)}>()"));
+      var declarations = new List<string>();
+      var matcherName = "matcher" + matcherCount++; // TODO
+      for (int i = 0; i < forallExpr.BoundVars.Count; i++) {
+        var boundVar = forallExpr.BoundVars[i];
+        var varType = TypeName(boundVar.Type, wr, boundVar.tok);
+        bounds.Add(new(boundVar, $"It.Is<{varType}>(x => {matcherName}.Match(x))"));
+        declarations.Add($"var {boundVar.CompileName} = ({varType}) o[{i}];");
       }
 
-      if (forallExpr.Term is BinaryExpr binaryExpr) {
-        MockExpression(wr, binaryExpr, bounds);
+      // TODO: what if "o" shadows something?
+      wr.WriteLine($"var {matcherName} = new Dafny.MultiMatcher({declarations.Count}, o => {{");
+      foreach (var declaration in declarations) {
+        wr.WriteLine($"\t{declaration}");
       }
+
+      if (binaryExpr.Op == BinaryExpr.Opcode.Imp) {
+        wr.Write($"\treturn ");
+        TrExpr(binaryExpr.E0, wr, false);
+        wr.WriteLine(";"); // TODO: is this necessary?
+        binaryExpr = (BinaryExpr)binaryExpr.E1;
+      } else if (binaryExpr.Op == BinaryExpr.Opcode.Eq) {
+        wr.WriteLine("\treturn true;");
+      } else {
+        // TODO
+      }
+      wr.WriteLine($"}});");
+      MockExpression(wr, binaryExpr, bounds);
     }
 
     static string Keywords(bool isPublic = false, bool isStatic = false, bool isExtern = false, bool isVirtual = true) {
