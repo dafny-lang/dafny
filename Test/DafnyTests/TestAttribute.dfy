@@ -168,3 +168,13 @@ method {:test} PassingMockField() {
     expect(e.value == 7);
     expect(e.value != 5);
 }
+
+method {:extern} {:mock} ParametrizedMock(a: int) returns (e:Even) 
+    ensures fresh(e) 
+    ensures e.value == a;
+    
+method {:test} PassingParameterizedMock() {
+    var e:Even := ParametrizedMock(24);
+    expect(e.value == 24);
+    expect(e.value != 7);
+}
