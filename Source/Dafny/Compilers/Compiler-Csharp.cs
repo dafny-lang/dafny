@@ -3192,6 +3192,7 @@ namespace Microsoft.Dafny {
     ///    FORALL
     ///  | EQUALS
     ///  | ENSURES && ENSURES;
+    ///  | FRESH
     ///  
     /// FORALL = forall ARGS :: EXPRESSION ==> EQUALS
     ///  
@@ -3200,7 +3201,7 @@ namespace Microsoft.Dafny {
     ///  | FIELD_ACCESS == EXPRESSION
     /// 
     /// </summary>
-    protected class MockWriter {
+    private class MockWriter {
 
       private readonly CsharpCompiler compiler;
       private int matcherCount;
@@ -3212,7 +3213,7 @@ namespace Microsoft.Dafny {
       /// <summary>
       /// Create a body for a method returning a fresh instance of an object 
       /// </summary>
-      public ConcreteSyntaxTree/*?*/ CreateFreshMethod(Method m,
+      public ConcreteSyntaxTree CreateFreshMethod(Method m,
         ConcreteSyntaxTree wr) {
         var keywords = Keywords(true, true, false);
         var returnType = compiler.GetTargetReturnTypeReplacement(m, wr);
@@ -3222,7 +3223,10 @@ namespace Microsoft.Dafny {
         return wr;
       }
 
-      public ConcreteSyntaxTree/*?*/ CreateMockMethod(Method m,
+      /// <summary>
+      /// Create a body of a method that mocks one or more objects
+      /// </summary>
+      public ConcreteSyntaxTree CreateMockMethod(Method m,
         List<TypeArgumentInstantiation> typeArgs, bool createBody,
         ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
         var customReceiver = createBody &&
@@ -3237,6 +3241,8 @@ namespace Microsoft.Dafny {
         wr.FormatLine($"{keywords}{returnType} {compiler.IdName(m)}{typeParameters}({parameters}) {{");
         // TODO: name collisions
         // TODO: ghost variables
+
+        // Create the mocks:
         if (returnType != "void") {
           wr.FormatLine($"var {m.Outs[0].Name}Tmp = new Mock<{returnType}>();");
         } else {
@@ -3245,9 +3251,13 @@ namespace Microsoft.Dafny {
             wr.FormatLine($"var {o.Name}Tmp = new Mock<{compiler.TypeName(o.Type, wr, o.tok)}>();");
           }
         }
+
+        // populate the mocks according to the Dafny post-conditions:
         foreach (var ensureClause in m.Ens) {
           MockExpression(wr, ensureClause.E);
         }
+
+        // Return the mocked objects:
         if (returnType != "void") {
           wr.FormatLine($"return {m.Outs[0].Name}Tmp.Object;");
         } else {
@@ -3286,13 +3296,13 @@ namespace Microsoft.Dafny {
         wr.Format($"{receiver}Tmp.Setup(x => x.{method}(");
         for (int i = 0; i < applySuffix.Args.Count; i++) {
           if (bounds != null &&
-              applySuffix.Args[i] is NameSegment &&
-              bounds.Exists(tuple =>
-                (applySuffix.Args[i].Resolved as IdentifierExpr).Var.CompileName ==
-                tuple.Item1.CompileName)) {
+              applySuffix.Args[i] is NameSegment) {
             var bound = bounds.Find(tuple =>
               (applySuffix.Args[i].Resolved as IdentifierExpr).Var.CompileName ==
               tuple.Item1.CompileName);
+            if (bound == null) {
+              continue;
+            }
             wr.Write(bound.Item2);
           } else {
             compiler.TrExpr(applySuffix.Args[i], wr, false);
@@ -3323,13 +3333,13 @@ namespace Microsoft.Dafny {
         var first = true;
         if (bounds != null && bounds.Count != 0) {
           wr.Write("(");
-          foreach (var bound in bounds) {
+          foreach (var (variable, _) in bounds) {
             if (!first) {
               wr.Write(", ");
             }
 
-            var typeName = compiler.TypeName(bound.Item1.Type, wr, bound.Item1.Tok);
-            wr.Format($"{typeName} {bound.Item1.CompileName}");
+            var typeName = compiler.TypeName(variable.Type, wr, variable.Tok);
+            wr.Format($"{typeName} {variable.CompileName}");
             first = false;
           }
           wr.Write(")=>");
@@ -3348,7 +3358,8 @@ namespace Microsoft.Dafny {
         for (int i = 0; i < forallExpr.BoundVars.Count; i++) {
           var boundVar = forallExpr.BoundVars[i];
           var varType = compiler.TypeName(boundVar.Type, wr, boundVar.tok);
-          bounds.Add(new(boundVar, $"It.Is<{varType}>(x => {matcherName}.Match(x))"));
+          bounds.Add(new(boundVar,
+            $"It.Is<{varType}>(x => {matcherName}.Match(x))"));
           declarations.Add($"var {boundVar.CompileName} = ({varType}) o[{i}];");
         }
 
