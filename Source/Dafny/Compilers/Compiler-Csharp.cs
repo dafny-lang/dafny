@@ -1180,7 +1180,16 @@ namespace Microsoft.Dafny {
     }
 
     private void MockExpression(ConcreteSyntaxTree wr, BinaryExpr binaryExpr, List<Tuple<IVariable, string>> bounds = null) {
-      if (binaryExpr.Op != BinaryExpr.Opcode.Eq || binaryExpr.E0 is not ApplySuffix applySuffix) {
+      if (binaryExpr.Op != BinaryExpr.Opcode.Eq) {
+        return;
+      }
+      if (binaryExpr.E0 is ExprDotName exprDotName) {
+        var obj = ((NameSegment)(exprDotName).Lhs).Name; ;
+        wr.Format($"{obj}Tmp.SetupGet({obj} => {obj}.@{exprDotName.SuffixName}).Returns( ");
+        TrExpr(binaryExpr.E1, wr, false);
+        wr.FormatLine($");");
+      }
+      if (binaryExpr.E0 is not ApplySuffix applySuffix) {
         return;
       }
       MockExpression(wr, applySuffix, bounds);
@@ -1202,10 +1211,9 @@ namespace Microsoft.Dafny {
     }
 
     private void MockExpression(ConcreteSyntaxTree wr, ForallExpr forallExpr) {
-      if (forallExpr.Term is not BinaryExpr) {
+      if (forallExpr.Term is not BinaryExpr binaryExpr) {
         return;
       }
-      var binaryExpr = forallExpr.Term as BinaryExpr;
       var bounds = new List<Tuple<IVariable, string>>();
       var declarations = new List<string>();
       var matcherName = "matcher" + matcherCount++; // TODO
@@ -1718,13 +1726,21 @@ namespace Microsoft.Dafny {
         }
         cw.StaticMemberWriter.WriteLine(";");
       } else if (cw.CtorBodyWriter == null) {
-        cw.InstanceMemberWriter.Write($"{publik}{konst} {typeName} {name}");
+        if (isPublic && !isConst) {
+          cw.InstanceMemberWriter.Write($"{publik}{konst} virtual {typeName} {name} {{get; set;}}");
+        } else {
+          cw.InstanceMemberWriter.Write($"{publik}{konst} {typeName} {name}");
+        }
         if (rhs != null) {
           cw.InstanceMemberWriter.Write($" = {rhs}");
         }
         cw.InstanceMemberWriter.WriteLine(";");
       } else {
-        cw.InstanceMemberWriter.WriteLine($"{publik} {typeName} {name};");
+        if (isPublic) {
+          cw.InstanceMemberWriter.Write($"{publik} virtual {typeName} {name} {{get; set;}}");
+        } else {
+          cw.InstanceMemberWriter.WriteLine($"{publik} {typeName} {name};");
+        }
         if (rhs != null) {
           cw.CtorBodyWriter.WriteLine($"this.{name} = {rhs};");
         }

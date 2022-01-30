@@ -158,3 +158,13 @@ method {:test} PassingMockSumWithArgumentMatcher() {
     expect(e.Sum(4, 0) == 0);
     expect(e.Sum(5, 1) == 5);
 }
+
+method {:extern} {:mock} MockField() returns (e:Even) 
+    ensures fresh(e) 
+    ensures e.value == 7;
+    
+method {:test} PassingMockField() {
+    var e:Even := MockField();
+    expect(e.value == 7);
+    expect(e.value != 5);
+}
