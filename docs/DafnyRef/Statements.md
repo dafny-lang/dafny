@@ -748,7 +748,10 @@ expression. For example,
   }
 ```
 
-Unlike `match` statements and `if` expressions, `if` statements do not have to be exhaustive: omitting the `else` block is the same as including an empty `else` block.  To ensure that an `if` statement is exhaustive, use the `if-case` statement documented below.
+Unlike `match` statements, `if` statements do not have to be exhaustive:
+omitting the `else` block is the same as including an empty `else`
+block.  To ensure that an `if` statement is exhaustive, use the
+`if-case` statement documented below.
 
 If the guard is an asterisk then a non-deterministic choice is made:
 
