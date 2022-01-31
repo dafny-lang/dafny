@@ -779,7 +779,7 @@ In this form, the expressions following the `case` keyword are called
 _guards_. The statement is evaluated by evaluating the guards in an
 undetermined order until one is found that is `true` and the statements
 to the right of `=>` for that guard are executed. The statement requires
-at least one of the guards to evaluate to `true` (that is, `if-case
+at least one of the guards to evaluate to `true` (that is, `if-case`
 statements must be exhaustive: the guards must cover all cases).
 
 TODO: Describe the ... refinement
