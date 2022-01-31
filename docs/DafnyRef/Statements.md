@@ -748,6 +748,8 @@ expression. For example,
   }
 ```
 
+Unlike `match` statements and `if` expressions, `if` statements do not have to be exhaustive: omitting the `else` block is the same as including an empty `else` block.  To ensure that an `if` statement is exhaustive, use the `if-case` statement documented below.
+
 If the guard is an asterisk then a non-deterministic choice is made:
 
 ```dafny
@@ -758,7 +760,7 @@ If the guard is an asterisk then a non-deterministic choice is made:
   }
 ```
 
-The `if` statement using the `AlternativeBlock` form is similar to the
+The `if-case` statement using the `AlternativeBlock` form is similar to the
 `if ... fi` construct used in the book "A Discipline of Programming" by
 Edsger W. Dijkstra. It is used for a multi-branch `if`.
 
@@ -774,7 +776,8 @@ In this form, the expressions following the `case` keyword are called
 _guards_. The statement is evaluated by evaluating the guards in an
 undetermined order until one is found that is `true` and the statements
 to the right of `=>` for that guard are executed. The statement requires
-at least one of the guards to evaluate to `true`.
+at least one of the guards to evaluate to `true` (that is, `if-case
+statements must be exhaustive: the guards must cover all cases).
 
 TODO: Describe the ... refinement
 
