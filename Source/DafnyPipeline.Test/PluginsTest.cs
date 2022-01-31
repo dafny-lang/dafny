@@ -1,10 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Text.Json;
-using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Xunit;
@@ -18,7 +15,7 @@ public class PluginsTest {
   /// This method creates a library and returns the path to that library.
   /// The library extends a Rewriter so that we can verify that Dafny invokes it if provided in argument.
   /// </summary>
-  public async Task<string> GetLibrary(string code) {
+  private string GetLibrary(string code) {
     var temp = Path.GetTempFileName();
     var compilation = CSharpCompilation.Create("tempAssembly");
     var standardLibraries = new List<string>()
@@ -45,13 +42,13 @@ public class PluginsTest {
 
   class CollectionErrorReporter : BatchErrorReporter {
     public string GetLastErrorMessage() {
-      return allMessages[ErrorLevel.Error][0].message;
+      return AllMessages[ErrorLevel.Error][0].message;
     }
   }
 
   [Fact]
-  public async void EnsurePluginIsExecuted() {
-    var library = await GetLibrary(@"
+  public void EnsurePluginIsExecuted() {
+    var library = GetLibrary(@"
 using Microsoft.Dafny;
 using Microsoft.Dafny.Plugins;
 
@@ -95,8 +92,8 @@ public class ErrorRewriter: Rewriter {
   }
 
   [Fact]
-  public async void EnsurePluginIsExecutedEvenWithoutConfiguration() {
-    var library = await GetLibrary(@"
+  public void EnsurePluginIsExecutedEvenWithoutConfiguration() {
+    var library = GetLibrary(@"
 using Microsoft.Dafny;
 using Microsoft.Dafny.Plugins;
 

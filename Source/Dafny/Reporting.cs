@@ -153,11 +153,11 @@ namespace Microsoft.Dafny {
   }
 
   public abstract class BatchErrorReporter : ErrorReporter {
-    protected readonly Dictionary<ErrorLevel, List<ErrorMessage>> allMessages;
+    protected readonly Dictionary<ErrorLevel, List<ErrorMessage>> AllMessages;
 
     protected BatchErrorReporter() {
       ErrorsOnly = false;
-      allMessages = new Dictionary<ErrorLevel, List<ErrorMessage>> {
+      AllMessages = new Dictionary<ErrorLevel, List<ErrorMessage>> {
         [ErrorLevel.Error] = new(),
         [ErrorLevel.Warning] = new(),
         [ErrorLevel.Info] = new()
@@ -169,12 +169,12 @@ namespace Microsoft.Dafny {
         // discard the message
         return false;
       }
-      allMessages[level].Add(new ErrorMessage { token = tok, message = msg });
+      AllMessages[level].Add(new ErrorMessage { token = tok, message = msg });
       return true;
     }
 
     public override int Count(ErrorLevel level) {
-      return allMessages[level].Count;
+      return AllMessages[level].Count;
     }
   }
 

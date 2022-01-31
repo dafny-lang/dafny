@@ -4229,14 +4229,12 @@ namespace Microsoft.Dafny {
     }
 
     public IToken GetFirstTopLevelToken() {
-      return TopLevelDecls.Select(x => x as ClassDecl)
-        .Where(x => x != null)
+      return TopLevelDecls.OfType<ClassDecl>()
         .SelectMany(classDecl => classDecl.Members)
         .Where(member => member.tok.line > 0)
         .Select(member => member.tok)
-        .Concat(TopLevelDecls.Select(x => x as LiteralModuleDecl)
-          .Where(x => x != null)
-          .Select((moduleDecl => moduleDecl.ModuleDef.GetFirstTopLevelToken()))
+        .Concat(TopLevelDecls.OfType<LiteralModuleDecl>()
+          .Select(moduleDecl => moduleDecl.ModuleDef.GetFirstTopLevelToken())
           .Where(tok => tok.line > 0)
         ).FirstOrDefault(Token.NoToken);
     }
