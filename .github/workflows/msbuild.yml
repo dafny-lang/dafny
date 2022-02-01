@@ -128,7 +128,7 @@ jobs:
       env:
         XUNIT_SHARD: ${{ matrix.shard }}
         XUNIT_SHARD_COUNT: 5
-        DAFNY_RELEASE: ${{ github.workspace }}\unzippedRelease\dafny
+        #DAFNY_RELEASE: ${{ github.workspace }}\unzippedRelease\dafny
       run: |
         dotnet test -v:n --logger trx dafny/Source/IntegrationTests/IntegrationTests.csproj
     - name: Run integration tests
@@ -136,7 +136,7 @@ jobs:
       env:
         XUNIT_SHARD: ${{ matrix.shard }}
         XUNIT_SHARD_COUNT: 5
-        DAFNY_RELEASE: ${{ github.workspace }}/unzippedRelease/dafny
+        #DAFNY_RELEASE: ${{ github.workspace }}/unzippedRelease/dafny
       run: |
         dotnet test -v:n --logger trx dafny/Source/IntegrationTests/IntegrationTests.csproj
     - uses: actions/upload-artifact@v2
