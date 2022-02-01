@@ -4,11 +4,13 @@ using System.Collections.Generic;
 namespace Microsoft.Dafny.Plugins;
 
 /// <summary>
-/// A class that plugins should extend, in order to receive plugin-specific command-line arguments
+/// Plugins should define a class that extends Configuration,
+/// in order to receive plugin-specific command-line arguments by overwriting the method `ParseArguments`
+/// It is also used to provide to Dafny a list of Rewriter using the method `GetRewriters`
 ///
-/// If no class extending Microsoft.Dafny.Plugins.Configuration is defined in the assembly plugin,
-/// Dafny will implicitly load all classes extending Rewriter
-/// providing them with an ErrorReporter as the first and only argument
+/// If the plugin defines no Configuration, then Dafny will instantiate every sub-class
+/// of Rewriter from the plugin, providing them with an ErrorReporter in the constructor
+/// as the first and only argument.
 /// </summary>
 public abstract class Configuration {
   /// <summary>

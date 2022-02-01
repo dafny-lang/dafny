@@ -5,7 +5,8 @@ namespace Microsoft.Dafny.Plugins {
   /// A class that plugins should extend, in order to provide an extra Rewriter to the pipeline.
   ///
   /// If the plugin defines no Configuration, then Dafny will instantiate every sub-class
-  /// of Rewriter from the plugin, providing them with an ErrorReporter as the first and only argument.
+  /// of Rewriter from the plugin, providing them with an ErrorReporter in the constructor
+  /// as the first and only argument.
   /// </summary>
   public abstract class Rewriter {
     /// <summary>
@@ -68,7 +69,7 @@ namespace Microsoft.Dafny.Plugins {
 
     /// <summary>
     /// Phase 4/5
-    /// Override this method to obtain the module definition after resolving decreasesResolve
+    /// Override this method to obtain the module definition after the phase decreasesResolve
     /// You can then report errors using reporter.Error (see above)
     /// </summary>
     /// <param name="moduleDefinition">A module definition after it

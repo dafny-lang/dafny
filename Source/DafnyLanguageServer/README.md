@@ -79,14 +79,32 @@ Options provided through the command line have higher priority than the options 
 ### Plugins
 
 ```sh
-# Provides a path to assemblies that contain
-# 1) Either a class extending Microsoft.Dafny.Plugins.Configuration to receive plugin arguments
-#    and provide classes extending Microsoft.Dafny.Plugins.Rewriter
-# 2) Or, if no Configuration is defined, at least one Microsoft.Dafny.Plugins.Rewriter that it will load during resolution
-# Optionally, after a comma, provide an extra list of space-separated arguments.
+# Provides a path to assemblies and optional space-separated command-line arguments after a commo.
 # Easier to use via VSCode's Settings interface (no need to escape inner double quotes)
-# Default: "" (nothing extra is loaded)
+# Repeat with --dafny:plugins:0=... --dafny:plugins:1=... for multiple plugins.
 --dafny:plugins:0=example.dll
---dafny:plugins:1=example2.dll,oneArgument
-"--dafny:plugins:1=\"example2.dll,\\\"firstArgument with space\\\" secondArgument\""
+--dafny:plugins:0=example2.dll,oneArgument
+"--dafny:plugins:0=\"example2.dll,\\\"firstArgument with space\\\" secondArgument\""
 ```
+
+#### About plugins
+Plugins are libraries linked to a `Dafny.dll` of the same version than the language server.
+A plugin typically defines:
+
+* Zero or one class extending `Microsoft.Dafny.Plugins.Configuration` which receives plugins arguments in their method `ParseArguments`,
+  and returns a list of `Microsoft.Dafny.Plugins.Rewriter` when their method `GetRewriters()` is called by Dafny.
+* Zero or more classes extending `Microsoft.Dafny.Plugins.Rewriter`.
+  If a configuration class is provided, it is responsible for instantiating them and returning them in `GetRewriters()`.
+  If no configuration class is provided, an automatic configuration will load every defined `Rewriter`s automatically.
+
+The most important methods of the class `Rewriter` that plugins override are
+* (experimental) `PreResolve(ModuleDefinition)`: Here you can optionally modify the AST before it is resolved.
+* `PostResolve(ModuleDefinition)`: This method is repeatedly called with every resolved and type-checked module, before verification.
+  Plugins override this method typically to report additional diagnostics.
+* `PostResolve(Program)`: This method is called once after all `PostResolve(ModuleDefinition)` have been called.
+
+Plugins are typically used to report additional diagnostics such as unsupported constructs for specific compilers (through the methods `Èrror(...)` and `Warning(...)` of the field `Reporter` of the class `Rewriter`)
+
+Note that all plugin errors should use the original program's expressions' token and NOT `Token.NoToken`, else no error will be displayed in the IDE.
+
+Morover, plugins should not write anything to `stdout` as it interferes with the communication protocol with the IDE.

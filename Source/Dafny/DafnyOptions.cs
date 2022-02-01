@@ -845,10 +845,12 @@ namespace Microsoft.Dafny {
     Note that the C++ backend has various limitations (see Docs/Compilation/Cpp.md).
     This includes lack of support for BigIntegers (aka int), most higher order
     functions, and advanced features like traits or co-inductive types.
-/plugin:<path to assemblies>[:<arguments>]
+/plugin:<path to one assembly>[ <arguments>]
     (experimental) One path to an assembly that contains at least one
     instantiatable class extending Microsoft.Dafny.Plugin.Rewriter.
-    It can also extend Microsoft.Dafny.Plugin.Initializer to receive arguments
+    It can also extend Microsoft.Dafny.Plugin.Configuration to receive arguments
+    More information about what plugins do and how define them:
+    https://github.com/dafny-lang/dafny/blob/master/Source/DafnyLanguageServer/README.md#about-plugins
 /Main:<name>
     The (fully-qualified) name of the method to use as the executable entry point.
     Default is the method with the {{:main}} atrribute, or else the method named 'Main'.
