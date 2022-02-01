@@ -75,7 +75,7 @@ namespace Microsoft.Dafny.Triggers {
           stream = SplitExpr(body, BinaryExpr.Opcode.And);
         }
         foreach (var e in stream) {
-          var tok = new NestedToken(quantifier.tok, e.tok);
+          var tok = new NestedToken(quantifier.tok, e.tok, "in sub-expression at");
           yield return new ForallExpr(tok, quantifier.BodyEndTok, ((ForallExpr)quantifier).TypeArgs, quantifier.BoundVars, quantifier.Range, e, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds };
         }
       } else if (quantifier is ExistsExpr) {
@@ -86,7 +86,7 @@ namespace Microsoft.Dafny.Triggers {
           stream = SplitExpr(body, BinaryExpr.Opcode.Or);
         }
         foreach (var e in stream) {
-          var tok = new NestedToken(quantifier.tok, e.tok);
+          var tok = body?.tok == e.tok ? quantifier.tok : new NestedToken(quantifier.tok, e.tok, "in sub-expression at");
           yield return new ExistsExpr(tok, quantifier.BodyEndTok, ((ExistsExpr)quantifier).TypeArgs, quantifier.BoundVars, quantifier.Range, e, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds };
         }
       } else {
