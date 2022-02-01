@@ -30,7 +30,7 @@ The top four improvements in Dafny 3.4 are:
 - feat: Improve error reporting when using type tests
 
 ### C#
-- fix: resolve an instance where Dafny would produce invalid C# code. https://github.com/dafny-lang/dafny/issues/1607
+- fix: resolve various instances where Dafny would produce invalid C# code. (#1607, #1761, and #1762)
 - feat: Support variant type parameters on datatype definitions, which enables using traits as type arguments. https://github.com/dafny-lang/dafny/issues/1499
 - feat: Support for downcasting both custom datatypes and functions.
 
