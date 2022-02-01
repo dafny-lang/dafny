@@ -12,7 +12,8 @@ The top four improvements in Dafny 3.4 are:
   - Changes logically unrelated to the proof being verified.
   - Changes to the name of any declaration
   - Changes to the order of top-level declarations
-- feat: Assist in debugging the verification performance of a proof by adding the '/vcsSplitOnEveryAssert' CLI option and '{:vcs_split_on_every_assert}' attribute, and report the outcome and duration of splits when they occur in /verificationLogger:trx content.
+- feat: Assist in debugging the verification performance of a proof by adding the `/vcsSplitOnEveryAssert` CLI option and `{:vcs_split_on_every_assert}` attribute, and report the outcome and duration of splits when they occur in /verificationLogger:trx content.
+- feat: Add a `/verificationLogger:csv` CLI option that emits the same status and timing information as `/verificationLogger:trx`, but in an easier-to-parse format, along with Z3 resource counts for more repeatable tracking of verification difficulty
 
 ### IDE 
 - fix: Clean up process resources if IDE closed or restarted
