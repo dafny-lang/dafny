@@ -6059,7 +6059,7 @@ namespace Microsoft.Dafny {
                 BplIfIf(e.tok, true, guard ?? new Bpl.LiteralExpr(boundVar.tok, true), nextBuilder,
                   b => {
                     var idExpressionToTest = new IdentifierExpr(boundVar.tok, boundVar);
-                    var tokReporting = boundVar.SecondaryType is UserDefinedType
+                    var tokReporting = boundVar.SecondaryType.NormalizeExpandKeepConstraints() is UserDefinedType
                     {
                       AsSubsetType: SubsetTypeDecl
                       {

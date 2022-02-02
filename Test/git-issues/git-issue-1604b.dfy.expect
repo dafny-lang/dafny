@@ -1,4 +1,5 @@
 git-issue-1604b.dfy(54,34): Error: Could not prove that the bound variable 'c' satisfies the (non runtime testable) type GhostEvenCell after the range, where it's assumed to be of type Cell based on inferred bounds.
+git-issue-1604b.dfy(10,31): [Related location] The constraint of GhostEvenCell cannot be tested at-run-time because predicate calls are allowed only in specification contexts (consider declaring the predicate a 'predicate method')
 git-issue-1604b.dfy(54,77): Error: value does not satisfy the subset constraints of 'GhostEvenCell'
 git-issue-1604b.dfy(57,34): Error: Could not prove that the bound variable 'c' satisfies the (non runtime testable) type GhostEvenCell after the range, where it's assumed to be of type Cell based on inferred bounds.
 git-issue-1604b.dfy(10,31): [Related location] The constraint of GhostEvenCell cannot be tested at-run-time because predicate calls are allowed only in specification contexts (consider declaring the predicate a 'predicate method')
