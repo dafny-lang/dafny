@@ -551,7 +551,7 @@ namespace Microsoft.Dafny {
       wr = MaybeInjectSubtypeConstraint(tmpVarName, collectionElementType, boundVar.Type, inLetExprBody, tok, wr);
       wr = EmitDowncastVariableAssignment(IdName(boundVar), boundVar.Type, tmpVarName, collectionElementType,
           introduceBoundVar, tok, wr);
-      wr = MaybeInjectSubsetConstraint(boundVar, IdName(boundVar), inLetExprBody, tok, wr);
+      wr = MaybeInjectSubsetConstraint(boundVar, boundVar.Type, inLetExprBody, tok, wr);
       return wr;
     }
 
@@ -4650,7 +4650,7 @@ namespace Microsoft.Dafny {
           newWBody = EmitDowncastVariableAssignment(
             IdName(bv), bv.Type, tmpVarName, collectionElementType, true, e.tok, newWBody);
           newWBody = MaybeInjectSubsetConstraint(
-            bv, IdName(bv), inLetExprBody, e.tok, newWBody, true, e is ForallExpr);
+            bv, bv.Type, inLetExprBody, e.tok, newWBody, true, e is ForallExpr);
           wBody.Write(')');
           wBody = newWBody;
         }
@@ -4798,10 +4798,9 @@ namespace Microsoft.Dafny {
     }
 
     private ConcreteSyntaxTree MaybeInjectSubsetConstraint(
-      IVariable boundVar, string boundVarName, bool inLetExprBody,
+      IVariable boundVar, Type boundVarType, bool inLetExprBody,
       Bpl.IToken tok, ConcreteSyntaxTree wr, bool isReturning = false, bool elseReturnValue = false
       ) {
-      var boundVarType = boundVar.Type;
       if (boundVarType.NormalizeExpand(true) is UserDefinedType
         {
           TypeArgs: var typeArgs,
@@ -4818,15 +4817,12 @@ namespace Microsoft.Dafny {
           {
             ResolvedClass:
               SubsetTypeDecl
-          }) {
-          wr = MaybeInjectSubsetConstraint(variable, boundVarName,
+          } and var normalizedVariableType) {
+          wr = MaybeInjectSubsetConstraint(boundVar, normalizedVariableType,
             inLetExprBody, tok, wr, isReturning, elseReturnValue);
         }
 
-        var bvIdentifier = new IdentifierExpr(tok, boundVarName) {
-          Var = boundVar,
-          Type = boundVarType
-        };
+        var bvIdentifier = new IdentifierExpr(tok, boundVar);
         var typeParameters = Resolver.TypeSubstitutionMap(typeParametersArgs, typeArgs);
         var subContract = new Substituter(null,
           new Dictionary<IVariable, Expression>()

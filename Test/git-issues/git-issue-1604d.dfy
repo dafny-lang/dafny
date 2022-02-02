@@ -10,10 +10,10 @@ predicate isNatural(x: int) {
 }
 
 // Ghost constraint
-type GhostNaturalCell = c: Cell | isNatural(c.x) witness Cell(0)
+type GhostNaturalCell = gn: Cell | isNatural(gn.x) witness Cell(0)
 
 // Compilable constraint
-type CompilableNaturalCell = c: GhostNaturalCell | c.x >= 0 witness Cell(0)
+type CompilableNaturalCell = cn: Cell | cn.x >= 0 witness Cell(0)
 
 
 predicate isNonZero(x: int) {
@@ -21,13 +21,13 @@ predicate isNonZero(x: int) {
 }
 
 // Ghost constraint
-type GhostOrdinalCell = c: GhostNaturalCell | isNonZero(c.x) witness Cell(1)
+type GhostOrdinalCell = goc: GhostNaturalCell | isNonZero(goc.x) witness Cell(1)
 // Ghost constraint
-type GhostOrdinalCell2 = c: CompilableNaturalCell | isNonZero(c.x) witness Cell(1)
+type GhostOrdinalCell2 = goc2: CompilableNaturalCell | isNonZero(goc2.x) witness Cell(1)
 // Ghost constraint
-type GhostOrdinalCell3 = c: GhostNaturalCell | c.x != 0 witness Cell(1)
+type GhostOrdinalCell3 = goc3: GhostNaturalCell | goc3.x != 0 witness Cell(1)
 // Compilable constraint
-type CompilableOrdinalCell = c: CompilableNaturalCell | c.x != 0 witness Cell(1)
+type CompilableOrdinalCell = coc: CompilableNaturalCell | coc.x != 0 witness Cell(1)
 
 predicate method ghostOrdinalCellIsOneOrMore(c: GhostOrdinalCell)
 {
@@ -65,13 +65,15 @@ method Main() {
 
   // This line should work because c should be of type Cell as the constraint is not compilable
   // Since it figures out the type of c later, it will be resolved as a "GhostEvenCell" everywhere.
-  b := b && isSetOfGhostOrdinalCells(set c | c in x && c.x >= 1 && ghostOrdinalCellIsOneOrMore(c) :: c);
+  b := b && isSetOfGhostOrdinalCells(set go | go in x && go.x >= 1 && ghostOrdinalCellIsOneOrMore(go) :: go);
 
-  b := b && isSetOfCompilableOrdinalCells(set c: CompilableOrdinalCell | c in x && compiledOrdinalCellIsOneOrMore(c) :: c);
+  b := b && isSetOfCompilableOrdinalCells(set co: CompilableOrdinalCell | co in x && compiledOrdinalCellIsOneOrMore(co) :: co);
 
   /** The following should fail
-  b := b && isSetOfCompilableOrdinalCells(set c: GhostOrdinalCell | c in x && ghostOrdinalCellIsOneOrMore(c) :: c);
-  b := b && isSetOfCompilableOrdinalCells(set c: GhostOrdinalCell2 | c in x && ghostOrdinalCellIsOneOrMore(c) :: c);
-  b := b && isSetOfCompilableOrdinalCells(set c: GhostOrdinalCell3| c in x && ghostOrdinalCellIsOneOrMore(c) :: c);
+  b := b && isSetOfCompilableOrdinalCells(set go: GhostOrdinalCell | go in x && ghostOrdinalCellIsOneOrMore(go) :: go);
+  b := b && isSetOfCompilableOrdinalCells(set go2: GhostOrdinalCell2 | go2 in x && ghostOrdinalCellIsOneOrMore(go2) :: go2);
+  b := b && isSetOfCompilableOrdinalCells(set go3: GhostOrdinalCell3| go3 in x && ghostOrdinalCellIsOneOrMore(go3) :: go3);
   */
+  assert b;
+  print if b then "ok" else "error";
 }
