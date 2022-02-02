@@ -137,7 +137,7 @@ class Release:
                     flush("failed! (Is Dafny or the Dafny server running?)")
                     sys.exit(1)
                 else:
-                   flush("failed! (Retrying another %i time(s))" % MAX_RETRYS - i)
+                   flush("failed! (Retrying another %i time(s))" % (MAX_RETRYS - i))
         flush("done!")
 
     def build(self):
