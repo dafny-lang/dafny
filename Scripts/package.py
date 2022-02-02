@@ -125,6 +125,7 @@ class Release:
         retv = 1
         MAX_RETRYS = 3
         while(i < MAX_RETRYS and retv != 0):
+            i += 1
             retv = subprocess.call(["dotnet", "publish", projectPath,
                 "--nologo",
                 "-f", "net6.0",
