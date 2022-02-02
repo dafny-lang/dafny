@@ -117,7 +117,6 @@ class Release:
         return fpath.replace(os.path.sep, '/')
 
     def run_publish(self, project):
-        projectPath = path.join(SOURCE_DIRECTORY, project, project + ".csproj")
         env = dict(os.environ)
         env["RUNTIME_IDENTIFIER"] = self.target
         flush("   + Publishing " + project)
@@ -125,7 +124,7 @@ class Release:
         exitStatus = 1
         while 0 < remaining and exitStatus != 0:
             remaining -= 1
-            exitStatus = subprocess.call(["dotnet", "publish", projectPath,
+            exitStatus = subprocess.call(["dotnet", "publish", path.join(SOURCE_DIRECTORY, project, project + ".csproj"),
                 "--nologo",
                 "-f", "net6.0",
                 "-o", self.buildDirectory,
