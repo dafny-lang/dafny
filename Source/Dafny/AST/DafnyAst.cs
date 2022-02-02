@@ -766,7 +766,7 @@ namespace Microsoft.Dafny {
           }
         }
 
-        //A hidden type may become visible in another scope
+        // A hidden type may become visible in another scope
         var isyn = type.AsInternalTypeSynonym;
         if (isyn != null) {
           var udt = (UserDefinedType)type;
@@ -2300,7 +2300,7 @@ namespace Microsoft.Dafny {
         return ignoreTypeArguments || CompatibleTypeArgs(super, sub);
       }
 
-      return ParentTypes().Any(parentType => parentType.IsSubtypeOf(super, ignoreTypeArguments, ignoreNullity));
+      return sub.ParentTypes().Any(parentType => parentType.IsSubtypeOf(super, ignoreTypeArguments, ignoreNullity));
     }
 
     public static bool CompatibleTypeArgs(Type super, Type sub) {
@@ -2327,6 +2327,9 @@ namespace Microsoft.Dafny {
 
   /// <summary>
   /// An ArtificialType is only used during type checking. It should never be assigned as the type of any expression.
+  /// It works as a supertype to numeric literals. For example, the literal 6 can be an "int", a "bv16", a
+  /// newtype based on integers, or an "ORDINAL". Type inference thus uses an "artificial" supertype of all of
+  /// these types as the type of literal 6, until a more precise (and non-artificial) type is inferred for it.
   /// </summary>
   public abstract class ArtificialType : Type {
   }
@@ -3128,8 +3131,8 @@ namespace Microsoft.Dafny {
 
   public abstract class TypeProxy : Type {
     public Type T;  // filled in during resolution
-    public readonly List<Resolver.TypeConstraint> SupertypeConstraints = new List<Resolver.TypeConstraint>();
-    public readonly List<Resolver.TypeConstraint> SubtypeConstraints = new List<Resolver.TypeConstraint>();
+    public readonly List<TypeConstraint> SupertypeConstraints = new List<TypeConstraint>();
+    public readonly List<TypeConstraint> SubtypeConstraints = new List<TypeConstraint>();
     public IEnumerable<Type> Supertypes {
       get {
         foreach (var c in SupertypeConstraints) {
@@ -3148,7 +3151,7 @@ namespace Microsoft.Dafny {
         }
       }
     }
-    public void AddSupertype(Resolver.TypeConstraint c) {
+    public void AddSupertype(TypeConstraint c) {
       Contract.Requires(c != null);
       Contract.Requires(c.Sub == this);
       SupertypeConstraints.Add(c);
@@ -3187,7 +3190,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void AddSubtype(Resolver.TypeConstraint c) {
+    public void AddSubtype(TypeConstraint c) {
       Contract.Requires(c != null);
       Contract.Requires(c.Super == this);
       SubtypeConstraints.Add(c);
@@ -7557,7 +7560,7 @@ namespace Microsoft.Dafny {
     public readonly Expression RHS;
     public bool HasGhostModifier;
 
-    public VarDeclPattern(IToken tok, IToken endTok, CasePattern<LocalVariable> lhs, Expression rhs, bool hasGhostModifier = true)
+    public VarDeclPattern(IToken tok, IToken endTok, CasePattern<LocalVariable> lhs, Expression rhs, bool hasGhostModifier)
       : base(tok, endTok) {
       LHS = lhs;
       RHS = rhs;
@@ -12312,7 +12315,7 @@ namespace Microsoft.Dafny {
         return Id;
       } else {
         List<string> cps = Arguments.ConvertAll<string>(x => x.ToString());
-        return string.Format("{0}({1})", Id, String.Join(",", cps));
+        return string.Format("{0}({1})", Id, String.Join(", ", cps));
       }
     }
 
@@ -12469,7 +12472,7 @@ namespace Microsoft.Dafny {
         return Id;
       } else {
         List<string> cps = Arguments.ConvertAll<string>(x => x.ToString());
-        return string.Format("{0}({1})", Id, String.Join(",", cps));
+        return string.Format("{0}({1})", Id, String.Join(", ", cps));
       }
     }
   }

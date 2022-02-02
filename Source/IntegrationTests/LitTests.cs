@@ -48,6 +48,16 @@ namespace IntegrationTests {
     private static readonly LitTestConfiguration Config;
 
     static LitTests() {
+      // Allow extra arguments to Dafny subprocesses. This can be especially
+      // useful for capturing prover logs.
+      var extraDafnyArguments =
+        Environment.GetEnvironmentVariable("DAFNY_EXTRA_TEST_ARGUMENTS");
+
+      var dafnyArguments =
+        extraDafnyArguments is null ?
+          DefaultDafnyArguments :
+          DefaultDafnyArguments.Append(extraDafnyArguments);
+
       var substitutions = new Dictionary<string, string> {
         { "%diff", "diff" },
         { "%binaryDir", "." },
@@ -61,7 +71,7 @@ namespace IntegrationTests {
             MainMethodLitCommand.Parse(DafnyDriverAssembly, args, config, InvokeMainMethodsDirectly)
         }, {
           "%dafny", (args, config) =>
-            MainMethodLitCommand.Parse(DafnyDriverAssembly, DefaultDafnyArguments.Concat(args), config,
+            MainMethodLitCommand.Parse(DafnyDriverAssembly, dafnyArguments.Concat(args), config,
               InvokeMainMethodsDirectly)
         }, {
           "%server", (args, config) =>
@@ -110,7 +120,7 @@ namespace IntegrationTests {
         commands["%baredafny"] = (args, config) =>
           new ShellLitCommand(config, Path.Join(dafnyReleaseDir, "dafny"), args, config.PassthroughEnvironmentVariables);
         commands["%dafny"] = (args, config) =>
-          new ShellLitCommand(config, Path.Join(dafnyReleaseDir, "dafny"), DefaultDafnyArguments.Concat(args), config.PassthroughEnvironmentVariables);
+          new ShellLitCommand(config, Path.Join(dafnyReleaseDir, "dafny"), dafnyArguments.Concat(args), config.PassthroughEnvironmentVariables);
         commands["%server"] = (args, config) =>
           new ShellLitCommand(config, Path.Join(dafnyReleaseDir, "DafnyServer"), args, config.PassthroughEnvironmentVariables);
         substitutions["%z3"] = Path.Join(dafnyReleaseDir, "z3", "bin", "z3");
