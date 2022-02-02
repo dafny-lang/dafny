@@ -5819,7 +5819,7 @@ namespace Microsoft.Dafny {
             if (!ConstraintIsCompilable && errorCollector.AllMessages[ErrorLevel.Error].FirstOrDefault() is var entry) {
               ConstraintIsCompilableLocationIfNot = entry.token;
               ConstraintIsCompilableReasonIfNot =
-                $"[Related location] The constraint of {this.Name} cannot be tested at-run-time because " +
+                $"[Related location] The constraint of {this.Name} cannot be tested at run-time because " +
                                                   entry.message;
             }
           }

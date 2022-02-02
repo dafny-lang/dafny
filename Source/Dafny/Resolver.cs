@@ -2911,7 +2911,6 @@ namespace Microsoft.Dafny {
       // * Check that functions claiming to be abstemious really are
       // * Check that all == and != operators in non-ghost contexts are applied to equality-supporting types.
       // * Extreme predicate recursivity checks
-      // * Verify that subset constraints are compilable if necessary
       // ----------------------------------------------------------------------------
 
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
@@ -3509,8 +3508,6 @@ namespace Microsoft.Dafny {
           }
         }
       }
-      // Verifies that, in all compiled places, subset types in comprehensions have a compilable constraint
-      new SubsetConstraintGhostChecker(this).Traverse(declarations);
     }
 
     private void CheckIsOkayWithoutRHS(ConstantField f) {
@@ -18541,129 +18538,6 @@ namespace Microsoft.Dafny {
 
     public bool ContainsDecl(Thing t) {
       return things.Exists(thing => thing == t);
-    }
-  }
-
-
-  // Looks for every non-ghost comprehensions, and if they are using a subset type,
-  // check that the subset constraint is compilable. If it is not compilable, raises an error.
-  public class SubsetConstraintGhostChecker : ProgramTraverser {
-    public class FirstErrorCollector : ErrorReporter {
-      public string FirstCollectedMessage = "";
-      public IToken FirstCollectedToken = Token.NoToken;
-      public bool Collected = false;
-
-      public override bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg) {
-        if (!Collected && level == ErrorLevel.Error) {
-          FirstCollectedMessage = msg;
-          FirstCollectedToken = tok;
-          Collected = true;
-        }
-        return true;
-      }
-
-      public override int Count(ErrorLevel level) {
-        return level == ErrorLevel.Error && Collected ? 1 : 0;
-      }
-    }
-
-    public Resolver resolver;
-
-    public SubsetConstraintGhostChecker(Resolver resolver) {
-      this.resolver = resolver;
-    }
-
-    protected override ContinuationStatus OnEnter(Statement stmt, string field, object parent) {
-      return stmt != null && stmt.IsGhost ? skip : ok;
-    }
-
-    protected override ContinuationStatus OnEnter(MemberDecl memberDecl, string field, object parent) {
-      // Includes functions and methods as well.
-      // Ghost functions can have a compiled implementation.
-      // We want to recurse only on the by method, not on the sub expressions of the function
-      if (memberDecl == null || !memberDecl.IsGhost) { return ok; }
-      if (memberDecl is Function f) {
-        if (f.ByMethodDecl != null && Traverse(f.ByMethodDecl, "ByMethodDecl", f)) { return stop; }
-        if (f.ByMethodDecl == null || f.ByMethodDecl.Body != f.ByMethodBody) {
-          if (f.ByMethodBody != null && Traverse(f.ByMethodBody, "ByMethodBody", f)) { return stop; }
-        }
-      }
-      return skip;
-    }
-
-    private bool IsFieldSpecification(string field, object parent) {
-      return field != null && parent != null && (
-        (parent is Statement && field == "SpecificationSubExpressions") ||
-        (parent is Function && (field is "Req.E" or "Reads.E" or "Ens.E" or "Decreases.Expressions")) ||
-        (parent is Method && (field is "Req.E" or "Mod.E" or "Ens.E" or "Decreases.Expressions"))
-      );
-    }
-
-    public override bool Traverse(Expression expr, [CanBeNull] string field, [CanBeNull] object parent) {
-      if (expr == null) {
-        return false;
-      }
-      if (IsFieldSpecification(field, parent)) {
-        return false;
-      }
-
-      return false;
-      // Since we skipped ghost code, the code has to be compiled here. 
-      if (expr is not ComprehensionExpr e) {
-        return base.Traverse(expr, field, parent);
-      }
-
-      string what = e.WhatKind;
-
-      if (e is ForallExpr || e is ExistsExpr || e is SetComprehension || e is MapComprehension) {
-        for (var i = 0; i < e.BoundVars.Count(); i++) {
-          var boundVar = e.BoundVars[i];
-          if (!boundVar.Type.IsRuntimeTestable()) {
-            Type collectionElementType = null;
-            if (i < e.Bounds.Count()) {
-              var bound = e.Bounds[i];
-              if (bound is ComprehensionExpr.SetBoundedPool setBound) {
-                collectionElementType = setBound.CollectionElementType.NormalizeExpand(true);
-                if (collectionElementType
-                    .IsSubtypeOf(setBound.BoundVariableType.NormalizeExpand(true), false, false)) {
-                  // var bound: B = (collectionElement as A) where A is a subtype of B
-                  // No need to check here, these are compatible types, even if they are ghost
-                  continue;
-                }
-              }
-            }
-            if (boundVar.Type.AsSubsetType is
-            {
-              Constraint: var constraint,
-              IsConstraintCompilable: false
-            } and var subsetTypeDecl
-            ) {
-              // This happens only if the type inference assigned the subset type everywhere.
-              // Explicitly report the error
-              var showProvenance = constraint.tok.line != 0;
-              IToken finalToken = boundVar.tok;
-              if (showProvenance) {
-                var errorCollector = new FirstErrorCollector();
-                ExpressionTester.CheckIsCompilable(this.resolver, errorCollector, constraint,
-                  new CodeContextWrapper(subsetTypeDecl, true));
-                if (errorCollector.Collected) {
-                  finalToken = new NestedToken(finalToken, errorCollector.FirstCollectedToken,
-                    "The constraint cannot be tested at-run-time because " + errorCollector.FirstCollectedMessage
-                  );
-                }
-              }
-
-              this.resolver.Reporter.Error(MessageSource.Resolver, finalToken,
-                $"'{boundVar.Name}' has been lately inferred to be of the subset type {boundVar.Type}" +
-                $" which has a non-compilable constraint," +
-                $" which prevents this {what}" + (collectionElementType == null ? "" : $" of {collectionElementType}") +
-                $" to be compiled. If you really want the verifier to check it," +
-                $" please explicitely annotate the bound variable ({boundVar.Name}: {boundVar.Type}).");
-            }
-          }
-        }
-      }
-      return base.Traverse(e, field, parent);
     }
   }
 }
