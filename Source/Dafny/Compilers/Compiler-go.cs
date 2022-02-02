@@ -1939,7 +1939,11 @@ namespace Microsoft.Dafny {
         wIf.WriteLine("{0} = ({1})(nil)", boundVarName, TypeName(boundVarType, wr, tok));
         wr.NewBlock("", open: BraceStyle.Nothing);
       }
-      wr.WriteLine("{0} = {1}.({2})", boundVarName, tmpVarName, TypeName(boundVarType, wr, tok));
+
+      var cast = boundVarType.Equals(collectionElementType, false)
+        ? ""
+        : $".({TypeName(boundVarType, wr, tok)})";
+      wr.WriteLine("{0} = {1}{2}", boundVarName, tmpVarName, cast);
       return wr;
     }
 

@@ -549,7 +549,8 @@ namespace Microsoft.Dafny {
       ) {
       wr = CreateForeachLoop(tmpVarName, collectionElementType, tok, out collectionWriter, wr);
       wr = MaybeInjectSubtypeConstraint(tmpVarName, collectionElementType, boundVar.Type, inLetExprBody, tok, wr);
-      wr = EmitDowncastVariableAssignment(IdName(boundVar), boundVar.Type, tmpVarName, collectionElementType, introduceBoundVar, tok, wr);
+      wr = EmitDowncastVariableAssignment(IdName(boundVar), boundVar.Type, tmpVarName, collectionElementType,
+          introduceBoundVar, tok, wr);
       wr = MaybeInjectSubsetConstraint(boundVar, IdName(boundVar), inLetExprBody, tok, wr);
       return wr;
     }
