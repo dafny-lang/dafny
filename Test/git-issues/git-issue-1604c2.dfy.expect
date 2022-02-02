@@ -1,3 +1,0 @@
-git-issue-1604c2.dfy(29,12): Error: The type Ap ia not run-time testable, hence you must explicit the
- range of the forall expression, i.e. forall VARIABLES | RANGE :: TERM instead of forall VARIABLES :: RANGE_AND_TERM.
-1 resolution/type errors detected in git-issue-1604c2.dfy

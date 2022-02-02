@@ -1,3 +1,0 @@
-git-issue-1604b2.dfy(27,1): Error: Could not prove that the forall term satisfies the subset type Ap.
-
-Dafny program verifier finished with 1 verified, 0 errors
