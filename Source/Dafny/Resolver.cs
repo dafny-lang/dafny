@@ -6453,7 +6453,7 @@ namespace Microsoft.Dafny {
     }
 
     string ConstraintPosition(TypeConstraint constraint) {
-      if (constraint.errorMsg is TypeConstraint.ErrorMsgWithToken errWithTok) {
+      if (constraint.ErrMsg is TypeConstraint.ErrorMsgWithToken errWithTok) {
         return $" ({errWithTok.Tok.line}, {errWithTok.Tok.col})";
       }
 
