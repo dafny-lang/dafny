@@ -121,24 +121,23 @@ class Release:
         env = dict(os.environ)
         env["RUNTIME_IDENTIFIER"] = self.target
         flush("   + Publishing " + project)
-        i = 0
-        retv = 1
-        MAX_RETRYS = 3
-        while(i < MAX_RETRYS and retv != 0):
-            i += 1
-            retv = subprocess.call(["dotnet", "publish", projectPath,
+        remaining = 3
+        exitStatus = 1
+        while 0 < remaining and exitStatus != 0:
+            remaining -= 1
+            exitStatus = subprocess.call(["dotnet", "publish", projectPath,
                 "--nologo",
                 "-f", "net6.0",
                 "-o", self.buildDirectory,
                 "-r", self.target,
                 "--self-contained",
                 "-c", "Release"], env=env)
-            if retv != 0:
-                if i == MAX_RETRYS:
+            if exitStatus != 0:
+                if remaining == 0:
                     flush("failed! (Is Dafny or the Dafny server running?)")
                     sys.exit(1)
                 else:
-                   flush("failed! (Retrying another %i time(s))" % (MAX_RETRYS - i))
+                   flush("failed! (Retrying another %s)" % ("time" if remaining == 1 else "%i times" % remaining))
         flush("done!")
 
     def build(self):
