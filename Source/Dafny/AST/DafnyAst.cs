@@ -5788,15 +5788,41 @@ namespace Microsoft.Dafny {
     public readonly SubsetTypeDecl.WKind WitnessKind;
     public readonly Expression/*?*/ Witness;  // non-null iff WitnessKind is Compiled or Ghost
     bool ConstraintIsCompilable; // Will be filled in by the Resolver
-    bool CheckedIfConstraintIsCompilable = false; // Set to true lazily by the Resolver when the Resolver fills in "ConstraintIsCompilable".
+    bool ConstraintIsCompilableComputed = false; // Set to true lazily by the Resolver when the Resolver fills in "ConstraintIsCompilable".
+    public string ConstraintIsCompilableReasonIfNot;
+    public IToken ConstraintIsCompilableLocationIfNot;
 
     public bool IsConstraintCompilable {
       get {
-        if (!CheckedIfConstraintIsCompilable) {
-          // Builtin types were never resolved.
-          ConstraintIsCompilable =
-            ExpressionTester.CheckIsCompilable(null, Constraint, new CodeContextWrapper(this, true));
-          CheckedIfConstraintIsCompilable = true;
+        if (!ConstraintIsCompilableComputed) {
+          // The constraint is not compilable if the parent type is also a subset type whose constraint is not compilable.
+          if (Var.Type.NormalizeExpandKeepConstraints() is UserDefinedType
+            {
+              AsSubsetType: SubsetTypeDecl
+              {
+                IsConstraintCompilable: false,
+                ConstraintIsCompilableLocationIfNot: var constraintLocation,
+                ConstraintIsCompilableReasonIfNot: var constraintReason
+              }
+            }) {
+            ConstraintIsCompilable = false;
+            ConstraintIsCompilableComputed = true;
+            if (constraintLocation != null && constraintReason != null) {
+              ConstraintIsCompilableReasonIfNot =
+                $"[Related location] The constraint of {this.Name} is not run-time testable because it depends on the non-runtime-testable subset type {Var.Type}";
+              ConstraintIsCompilableLocationIfNot = new NestedToken(Var.tok, constraintLocation, constraintReason);
+            }
+          } else {
+            var errorCollector = new BatchErrorReporter();
+            ConstraintIsCompilable = ExpressionTester.CheckIsCompilable(null, errorCollector, Constraint, new CodeContextWrapper(this, true));
+            ConstraintIsCompilableComputed = true;
+            if (!ConstraintIsCompilable && errorCollector.AllMessages[ErrorLevel.Error].FirstOrDefault() is var entry) {
+              ConstraintIsCompilableLocationIfNot = entry.token;
+              ConstraintIsCompilableReasonIfNot =
+                $"[Related location] The constraint of {this.Name} cannot be tested at-run-time because " +
+                                                  entry.message;
+            }
+          }
         }
 
         return ConstraintIsCompilable;
@@ -6186,26 +6212,25 @@ namespace Microsoft.Dafny {
 
     // To use only in special cases where the type is not the same for the range in comprehensions
     // Overally, the typeInRange is the type of the bound variable in the range expression.
-    private Type secondaryType = null;
 
     public void ReplaceType(Type secondaryType = null) {
-      Contract.Assert(secondaryType != null || this.secondaryType != null);
+      Contract.Assert(secondaryType != null || this.SecondaryType != null);
       //Contract.Assert(adjustedType.IsRuntimeTestable());
-      if (secondaryType == null && this.secondaryType != null) {
+      if (secondaryType == null && this.SecondaryType != null) {
         var tmp = this.type;
-        this.type = this.secondaryType;
-        this.secondaryType = tmp;
+        this.type = this.SecondaryType;
+        this.SecondaryType = tmp;
       } else if (secondaryType != null) {
-        this.secondaryType = this.type;
+        this.SecondaryType = this.type;
         this.type = secondaryType;
       }
     }
 
     public bool HasSecondaryType() {
-      return this.secondaryType != null;
+      return this.SecondaryType != null;
     }
 
-    public Type? SecondaryType => secondaryType;
+    public Type? SecondaryType { get; private set; } = null;
   }
 
   public class ActualBinding {

@@ -23,9 +23,8 @@ namespace Microsoft.Dafny {
       realigned_tok.filename = tok.filename;
       base.ReportBplError(realigned_tok, message, error, tw, category);
 
-      if (tok is Dafny.NestedToken) {
-        var nt = (Dafny.NestedToken)tok;
-        ReportBplError(nt.Inner, "Related location", false, tw);
+      if (tok is Dafny.NestedToken nt) {
+        ReportBplError(nt.Inner, nt.Message ?? "Related location", false, tw);
       }
     }
   }

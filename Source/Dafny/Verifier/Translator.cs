@@ -6059,11 +6059,21 @@ namespace Microsoft.Dafny {
                 BplIfIf(e.tok, true, guard ?? new Bpl.LiteralExpr(boundVar.tok, true), nextBuilder,
                   b => {
                     var idExpressionToTest = new IdentifierExpr(boundVar.tok, boundVar);
+                    var tokReporting = boundVar.SecondaryType is UserDefinedType
+                    {
+                      AsSubsetType: SubsetTypeDecl
+                      {
+                        ConstraintIsCompilableLocationIfNot: var constraintLocation,
+                        ConstraintIsCompilableReasonIfNot: var constraintReason
+                      }
+                    } && constraintLocation != null
+                      ? new NestedToken(e.tok, constraintLocation, constraintReason)
+                      : e.tok;
                     // Assume at least the collection bound
                     b.Add(TrAssumeCmd(e.tok, CheckGhostType(idExpressionToTest, boundVar.Type)));
-                    b.Add(Assert(e.tok, CheckGhostType(idExpressionToTest, boundVar.SecondaryType),
-                      $"Could not prove that the bound variable {boundVar.DisplayName} satisfies " +
-                      $"the (non runtime testable) subset type {boundVar.SecondaryType} after the range, where it's assumed to be of type {boundVar.Type} based on inferred bounds." +
+                    b.Add(Assert(tokReporting, CheckGhostType(idExpressionToTest, boundVar.SecondaryType),
+                      $"Could not prove that the bound variable '{boundVar.DisplayName}' satisfies " +
+                      $"the (non runtime testable) type {boundVar.SecondaryType} after the range, where it's assumed to be of type {boundVar.Type} based on inferred bounds." +
                       (e.Range != null
                         ? ""
                         : $" Consider expliciting the range of the {e.WhatKind}, i.e. {e.Keyword} {boundVar.DisplayName} | RANGE :: TERM instead of {e.Keyword} {boundVar.DisplayName} :: RANGE_AND_TERM.")));

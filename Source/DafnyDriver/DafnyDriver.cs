@@ -515,9 +515,8 @@ namespace Microsoft.Dafny {
           WriteSourceCodeSnippet(tok, tw);
         }
 
-        if (tok is Dafny.NestedToken) {
-          var nt = (Dafny.NestedToken)tok;
-          ReportBplError(nt.Inner, "Related location", false, tw);
+        if (tok is Dafny.NestedToken nt) {
+          ReportBplError(nt.Inner, nt.Message ?? "Related location", false, tw);
         }
       }
     }
