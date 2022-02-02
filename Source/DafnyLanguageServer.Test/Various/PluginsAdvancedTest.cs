@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Threading;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
+using Microsoft.Extensions.DependencyModel;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
@@ -19,6 +20,9 @@ public class PluginsAdvancedTest : PluginsTestBase {
 using Microsoft.Dafny;
 using Microsoft.Dafny.Plugins;
 using System.Collections;
+
+namespace PluginsAdvancedTest {
+
 /// <summary>
 ///  Small plugin that detects all extern methods and verifies that there are test methods that actually invoke them.
 /// </summary>
@@ -85,7 +89,13 @@ public class ExternCheckRewriter: Rewriter {
       }
     }
   }
+}
+
 }";
+  }
+
+  protected override string GetLibraryName() {
+    return "PluginsAdvancedTest";
   }
 
   protected override string[] GetCommandLineArgument() {
@@ -106,7 +116,8 @@ method {:test} myMethodWrongName() {
     var resolutionReport = await DiagnosticReceiver.AwaitNextNotificationAsync(CancellationToken.None);
     Assert.AreEqual(documentItem.Uri, resolutionReport.Uri);
     var diagnostics = resolutionReport.Diagnostics.ToArray();
-    Assert.AreEqual(1, diagnostics.Length);
+    Assert.AreEqual(1, DafnyOptions.O.Plugins.Count, "Too many plugins loaded");
+    Assert.AreEqual(1, diagnostics.Length, LibraryPath + " did not raise an error.");
     Assert.AreEqual("Please declare a method {:test} named myMethod_test that will call myMethod, you", diagnostics[0].Message);
     Assert.AreEqual(new Range((1, 17), (1, 25)), diagnostics[0].Range);
     var related = diagnostics[0].RelatedInformation?.GetEnumerator();
@@ -114,5 +125,10 @@ method {:test} myMethodWrongName() {
     Assert.AreEqual("You might want to just rename this method", related.Current.Message);
     Assert.AreEqual(new Range((3, 15), (3, 32)), related.Current.Location.Range);
     related.Dispose();
+  }
+
+  [TestCleanup]
+  public void DoCleanup() {
+    CleanupPlugin();
   }
 }

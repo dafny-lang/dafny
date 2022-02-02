@@ -2,6 +2,7 @@
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -18,13 +19,15 @@ public abstract class PluginsTestBase : DafnyLanguageServerTestBase {
   protected DiagnosticsReceiver DiagnosticReceiver;
   protected string LibraryPath;
 
+  private static readonly object PluginSync = new { };
+
   /// <summary>
   /// This method creates a library and returns the path to that library.
   /// The library extends a Rewriter so that we can verify that Dafny invokes it if provided in argument.
   /// </summary>
-  private string GetLibrary(string code) {
+  private string GetLibrary(string code, string assemblyName) {
     var temp = Path.GetTempFileName();
-    var compilation = CSharpCompilation.Create("tempAssembly");
+    var compilation = CSharpCompilation.Create(assemblyName);
     var standardLibraries = new List<string>()
     {
       "DafnyPipeline",
@@ -50,14 +53,21 @@ public abstract class PluginsTestBase : DafnyLanguageServerTestBase {
 
   protected abstract string GetLibraryCode();
 
+  protected abstract string GetLibraryName();
+
   protected abstract string[] GetCommandLineArgument();
 
   public async Task SetUpPlugin() {
     DiagnosticReceiver = new();
-    LibraryPath = GetLibrary(GetLibraryCode());
+    LibraryPath = GetLibrary(GetLibraryCode(), GetLibraryName());
+    Monitor.Enter(PluginSync);
     Client = await InitializeClient(options => options.OnPublishDiagnostics(DiagnosticReceiver.NotificationReceived));
   }
 
+  protected void CleanupPlugin() {
+    DafnyOptions.O.Plugins.RemoveAt(0);
+    Monitor.Exit(PluginSync);
+  }
 
   protected override IConfiguration CreateConfiguration() {
     return new ConfigurationBuilder().AddCommandLine(GetCommandLineArgument()).Build();

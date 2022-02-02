@@ -18,6 +18,8 @@ public class PluginsTest : PluginsTestBase {
 using Microsoft.Dafny;
 using Microsoft.Dafny.Plugins;
 
+namespace PluginsTest {
+
 public class TestConfiguration: Configuration {
   public string Argument = """";
   public override void ParseArguments(string[] args) {
@@ -38,7 +40,13 @@ public class ErrorRewriter: Rewriter {
   public override void PostResolve(ModuleDefinition moduleDefinition) {
     Reporter.Error(MessageSource.Compiler, moduleDefinition.GetFirstTopLevelToken(), ""Impossible to continue ""+configuration.Argument);
   }
+}
+
 }";
+  }
+
+  protected override string GetLibraryName() {
+    return "PluginsTest";
   }
 
   protected override string[] GetCommandLineArgument() {
@@ -47,13 +55,21 @@ public class ErrorRewriter: Rewriter {
 
   [TestMethod]
   public async Task EnsureItIsPossibleToLoadAPluginWithArguments() {
+    // TODO: Need to clean up the plugins from the options after they are set.
+    // This code will run with the plugin from PluginsAdvancedTest, but that plugin won't throw an exception on the code below.
     var documentItem = CreateTestDocument("function test(): int { 1 }");
     await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     var resolutionReport = await DiagnosticReceiver.AwaitNextNotificationAsync(CancellationToken.None);
     Assert.AreEqual(documentItem.Uri, resolutionReport.Uri);
     var diagnostics = resolutionReport.Diagnostics.ToArray();
-    Assert.AreEqual(1, diagnostics.Length);
+    Assert.AreEqual(DafnyOptions.O.Plugins.Count, 1, "Too many plugins loaded");
+    Assert.AreEqual(1, diagnostics.Length, LibraryPath + " did not raise an error.");
     Assert.AreEqual("Impossible to continue because\\ whatever", diagnostics[0].Message);
     Assert.AreEqual(new Range((0, 9), (0, 13)), diagnostics[0].Range);
+  }
+
+  [TestCleanup]
+  public void DoCleanup() {
+    CleanupPlugin();
   }
 }
