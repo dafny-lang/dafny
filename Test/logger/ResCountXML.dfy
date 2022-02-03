@@ -1,7 +1,7 @@
 // RUN: %dafny /xml:%t.xml %s"
 // RUN: %OutputCheck --file-to-check "%t.xml" "%s"
 
-// CHECK: "resourceCount=\".*\""
+// CHECK: resourceCount=\".*\"
 
 method ExampleWithSplits() returns (y: int)
   ensures y >= 0
