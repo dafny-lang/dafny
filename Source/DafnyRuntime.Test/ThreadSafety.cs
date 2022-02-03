@@ -36,8 +36,7 @@ namespace DafnyRuntime.Test {
 
     [Fact]
     public void ReplayCoyoteTest() {
-      var tracePath =
-        "/Users/fmadge/Documents/dafny/Source/DafnyRuntime.Test/bin/Debug/net6.0/ConcatSequence_0.schedule";
+      const string tracePath = "ConcatSequence_0.schedule";
       var trace = File.ReadAllText(tracePath);
       var config = Configuration.Create().WithReplayStrategy(trace);
       TestingEngine engine = TestingEngine.Create(config, ConcatImmutableList);
