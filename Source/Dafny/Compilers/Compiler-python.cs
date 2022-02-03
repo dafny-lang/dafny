@@ -26,7 +26,7 @@ namespace Microsoft.Dafny {
 
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
       Coverage.EmitSetup(wr);
-      wr.WriteLine("__default.Main()", mainMethod.EnclosingClass, mainMethod);
+      wr.WriteLine("_default.Main()", mainMethod.EnclosingClass, mainMethod);
     }
 
     protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw) {
@@ -48,7 +48,7 @@ namespace Microsoft.Dafny {
       List<TypeParameter> typeParameters,
       TopLevelDecl cls, List<Type> superClasses, IToken tok, ConcreteSyntaxTree wr) {
 
-      var w = wr.WriteLine("class {0}:", name);
+      var w = wr.WriteLine("class {0}:", cls);
 
       var methodWriter = w.NewBlock(open: BraceStyle.NewlineNoBrace, close: BraceStyle.NewlineNoBrace);
       ConcreteSyntaxTree fieldWriter = w.NewBlock(open: BraceStyle.NewlineNoBrace, close: BraceStyle.NewlineNoBrace);
@@ -81,10 +81,19 @@ namespace Microsoft.Dafny {
     }
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, ConcreteSyntaxTree wr) {
-
+      var cw = (ClassWriter)CreateClass(IdProtect(sst.EnclosingModuleDefinition.CompileName), IdName(sst), sst, wr);
+      var w = cw.MethodWriter;
       var udt = UserDefinedType.FromTopLevelDecl(sst.tok, sst);
       string d;
-      d = TypeName_UDT(FullTypeName(udt), udt, wr, udt.tok) + ".Witness";
+      if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
+        var sw = new ConcreteSyntaxTree(w.RelativeIndentLevel);
+        TrExpr(sst.Witness, sw, false);
+        DeclareField("Witness", true, true, sst.Rhs, sst.tok, sw.ToString(), w);
+        d = TypeName_UDT(FullTypeName(udt), udt, wr, udt.tok) + ".Witness";
+      } else {
+        d = TypeInitializationValue(udt, wr, sst.tok, false, false);
+      }
+      w.NewBlock("def Default():", "", BraceStyle.NewlineNoBrace, BraceStyle.NewlineNoBrace).WriteLine($"return {d}", "");
     }
 
     protected override void GetNativeInfo(NativeType.Selection sel, out string name, out string literalSuffix,
@@ -189,8 +198,28 @@ namespace Microsoft.Dafny {
 
     private ConcreteSyntaxTree CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs,
       List<Formal> formals, Type resultType, IToken tok, bool isStatic, bool createBody, MemberDecl member,
-      ConcreteSyntaxTree methodWriter, bool forBodyInheritance, bool lookasideBody) {
-      throw new NotImplementedException();
+      ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
+      if (!createBody) {
+        return null;
+      }
+
+      var customReceiver = !forBodyInheritance && NeedsCustomReceiver(member);
+      wr.Write("{0} {1}(", isStatic || customReceiver ? "def" : "", name);
+      var sep = "";
+      var nTypes = WriteRuntimeTypeDescriptorsFormals(member, ForTypeDescriptors(typeArgs, member, lookasideBody), wr, ref sep, tp => $"rtd$_{tp.CompileName}");
+      if (customReceiver) {
+        var nt = member.EnclosingClass;
+        var receiverType = UserDefinedType.FromTopLevelDecl(tok, nt);
+        DeclareFormal(sep, "_this", receiverType, tok, true, wr);
+        sep = ", ";
+      }
+      WriteFormals(sep, formals, wr);
+      var w = wr.NewBlock("):", open: BraceStyle.NewlineNoBrace, close: BraceStyle.NewlineNoBrace);
+      if (!isStatic && !customReceiver) {
+        w.WriteLine("let _this = this;");
+      }
+      return w;
+
     }
 
 
@@ -223,6 +252,10 @@ namespace Microsoft.Dafny {
         return "char";
       } else if (xType is IntType || xType is BigOrdinalType) {
         return "int";
+      } else if (xType is UserDefinedType) {
+        var udt = (UserDefinedType)xType;
+        var s = FullTypeName(udt, member);
+        return TypeName_UDT(s, udt, wr, udt.tok);
       } else {
         Contract.Assert(false);
         throw new NotImplementedException();
@@ -233,7 +266,111 @@ namespace Microsoft.Dafny {
     protected override string TypeInitializationValue(Type type, ConcreteSyntaxTree wr, IToken tok,
       bool usePlaceboValue,
       bool constructTypeParameterDefaultsFromTypeDescriptors) {
-      throw new NotImplementedException();
+      var xType = type.NormalizeExpandKeepConstraints();
+
+      if (usePlaceboValue) {
+        return "undefined";
+      }
+
+      if (xType is BoolType) {
+        return "false";
+      } else if (xType is CharType) {
+        return CharType.DefaultValueAsString;
+      } else if (xType is IntType || xType is BigOrdinalType) {
+        return IntegerLiteral(0);
+      } else if (xType is RealType) {
+        return "_dafny.BigRational.ZERO";
+      } else if (xType is BitvectorType) {
+        var t = (BitvectorType)xType;
+        return t.NativeType != null ? "0" : IntegerLiteral(0);
+      } else if (xType is SetType) {
+        return $"{DafnySetClass}.Empty";
+      } else if (xType is MultiSetType) {
+        return $"{DafnyMultiSetClass}.Empty";
+      } else if (xType is SeqType seq) {
+        if (seq.Arg.IsCharType) {
+          return "''";
+        }
+        return $"{DafnySeqClass}.of()";
+      } else if (xType is MapType) {
+        return $"{DafnyMapClass}.Empty";
+      }
+
+      var udt = (UserDefinedType)xType;
+      var cl = udt.ResolvedClass;
+      Contract.Assert(cl != null);
+      if (cl is TypeParameter) {
+        if (constructTypeParameterDefaultsFromTypeDescriptors) {
+          return string.Format("{0}.Default", TypeDescriptor(udt, wr, udt.tok));
+        } else {
+          return FormatDefaultTypeParameterValue((TypeParameter)udt.ResolvedClass);
+        }
+      } else if (cl is OpaqueTypeDecl opaque) {
+        return FormatDefaultTypeParameterValue(opaque);
+      } else if (cl is NewtypeDecl) {
+        var td = (NewtypeDecl)cl;
+        if (td.Witness != null) {
+          return TypeName_UDT(FullTypeName(udt), udt, wr, udt.tok) + ".Witness";
+        } else if (td.NativeType != null) {
+          return "0";
+        } else {
+          return TypeInitializationValue(td.BaseType, wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
+        }
+      } else if (cl is SubsetTypeDecl) {
+        var td = (SubsetTypeDecl)cl;
+        if (td.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
+          return TypeName_UDT(FullTypeName(udt), udt, wr, udt.tok) + ".Default";
+        } else if (td.WitnessKind == SubsetTypeDecl.WKind.Special) {
+          // WKind.Special is only used with -->, ->, and non-null types:
+          Contract.Assert(ArrowType.IsPartialArrowTypeName(td.Name) || ArrowType.IsTotalArrowTypeName(td.Name) || td is NonNullTypeDecl);
+          if (ArrowType.IsPartialArrowTypeName(td.Name)) {
+            return "null";
+          } else if (((NonNullTypeDecl)td).Class is ArrayClassDecl) {
+            // non-null array type; we know how to initialize them
+            var arrayClass = (ArrayClassDecl)((NonNullTypeDecl)td).Class;
+            if (arrayClass.Dims == 1) {
+              return "[]";
+            } else {
+              return string.Format("_dafny.newArray(undefined, {0})", Util.Comma(arrayClass.Dims, _ => "0"));
+            }
+          } else {
+            // non-null (non-array) type
+            // even though the type doesn't necessarily have a known initializer, it could be that the the compiler needs to
+            // lay down some bits to please the C#'s compiler's different definite-assignment rules.
+            return "null";
+          }
+        } else {
+          return TypeInitializationValue(td.RhsWithArgument(udt.TypeArgs), wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
+        }
+      } else if (cl is ClassDecl) {
+        bool isHandle = true;
+        if (Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
+          return "0";
+        } else {
+          return "null";
+        }
+      } else if (cl is DatatypeDecl) {
+        var dt = (DatatypeDecl)cl;
+        var s = dt is TupleTypeDecl ? "_dafny.Tuple" : FullTypeName(udt);
+        var relevantTypeArgs = UsedTypeParameters(dt, udt.TypeArgs).ConvertAll(ta => ta.Actual);
+        return string.Format($"{s}.Default({Util.Comma(relevantTypeArgs, arg => DefaultValue(arg, wr, tok, constructTypeParameterDefaultsFromTypeDescriptors))})");
+      } else {
+        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
+      }
+
+    }
+
+    static string FormatDefaultTypeParameterValue(TopLevelDecl tp) {
+      Contract.Requires(tp is TypeParameter || tp is OpaqueTypeDecl);
+      return $"_default_{tp.CompileName}";
+    }
+    string IntegerLiteral(BigInteger i) {
+      if (i.IsZero || i.IsOne) {
+        return "int()";
+      } else {
+        return $"int(\"{i}\")";
+      }
+
     }
 
     protected override string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variance,
@@ -243,12 +380,18 @@ namespace Microsoft.Dafny {
     }
 
     protected override string TypeName_Companion(Type type, ConcreteSyntaxTree wr, IToken tok, MemberDecl member) {
-      throw new NotImplementedException();
+      type = UserDefinedType.UpcastToMemberEnclosingType(type, member);
+      return TypeName(type, wr, tok, member);
     }
 
     protected override bool DeclareFormal(string prefix, string name, Type type, IToken tok, bool isInParam,
       ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
+      if (isInParam) {
+        wr.Write("{0}{1}", prefix, name);
+        return true;
+      } else {
+        return false;
+      }
     }
 
     protected override void DeclareLocalVar(string name, Type type, IToken tok, bool leaveRoomForRhs, string rhs,
@@ -268,7 +411,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitActualTypeArgs(List<Type> typeArgs, IToken tok, ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
+      // emit nothing
     }
 
     protected override string GenerateLhsDecl(string target, Type type, ConcreteSyntaxTree wr, IToken tok) {
@@ -439,7 +582,7 @@ namespace Microsoft.Dafny {
       if (cl is TypeParameter) {
         return IdProtect(udt.CompileName);
       } else {
-        return IdProtect(cl.EnclosingModuleDefinition.CompileName) + "." + IdProtect(cl.CompileName);
+        return (cl.Name); //IdProtect(cl.CompileName);
       }
 
 
@@ -546,6 +689,75 @@ namespace Microsoft.Dafny {
     protected override void EmitUnaryExpr(ResolvedUnaryOp op, Expression expr, bool inLetExprBody,
       ConcreteSyntaxTree wr) {
       throw new NotImplementedException();
+    }
+
+    protected override void CompileBinOp(BinaryExpr.ResolvedOpcode op,
+      Expression e0, Expression e1, Bpl.IToken tok, Type resultType,
+      out string opString,
+      out string preOpString,
+      out string postOpString,
+      out string callString,
+      out string staticCallString,
+      out bool reverseArguments,
+      out bool truncateResult,
+      out bool convertE1_to_int,
+      ConcreteSyntaxTree errorWr) {
+
+      opString = null;
+      preOpString = "";
+      postOpString = "";
+      callString = null;
+      staticCallString = null;
+      reverseArguments = false;
+      truncateResult = false;
+      convertE1_to_int = false;
+
+      switch (op) {
+        case BinaryExpr.ResolvedOpcode.Add:
+          truncateResult = true;
+          if (resultType.IsCharType) {
+            preOpString = "(char) (";
+            postOpString = ")";
+            opString = "+";
+          } else {
+            doPossiblyNativeBinOp("+", "__add__", out preOpString, out opString, out postOpString, out callString);
+          }
+
+          break;
+
+
+        default:
+          base.CompileBinOp(op, e0, e1, tok, resultType,
+            out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments,
+            out truncateResult, out convertE1_to_int,
+            errorWr);
+          break;
+      }
+    }
+
+    private void doPossiblyNativeBinOp(string o, string name, out string preOpS, out string opS,
+      out string postOpS, out string callS) {
+      callS = name;
+      preOpS = "";
+      opS = null;
+      postOpS = "";
+    }
+
+
+    protected override void EmitITE(Expression guard, Expression thn, Expression els, Type resultType, bool inLetExprBody, ConcreteSyntaxTree wr) {
+      Contract.Requires(guard != null);
+      Contract.Requires(thn != null);
+      Contract.Requires(thn.Type != null);
+      Contract.Requires(els != null);
+      Contract.Requires(resultType != null);
+      Contract.Requires(wr != null);
+
+      resultType = resultType.NormalizeExpand();
+      var thenExpr = Expr(thn, inLetExprBody);
+      var castedThenExpr = resultType.Equals(thn.Type.NormalizeExpand()) ? thenExpr : Cast(resultType, thenExpr);
+      var elseExpr = Expr(els, inLetExprBody);
+      var castedElseExpr = resultType.Equals(els.Type.NormalizeExpand()) ? elseExpr : Cast(resultType, elseExpr);
+      wr.Format($"({castedThenExpr} if {Expr(guard, inLetExprBody)} else {castedElseExpr})");
     }
 
     protected override void EmitIsZero(string varName, ConcreteSyntaxTree wr) {

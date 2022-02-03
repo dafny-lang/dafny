@@ -40,6 +40,12 @@
         <Content Include="..\..\node_modules\**\*.*" LinkBase="TestFiles\LitTests\LitTest\node_modules">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
+        <Content Update="..\..\Test\comp\comp-builds\Call-F.dfy.expect">
+          <Link>TestFiles\LitTests\LitTest\comp\comp-builds\Call-F.dfy.expect</Link>
+        </Content>
+        <Content Update="..\..\Test\comp\comp-builds\Calls-F.dfy">
+          <Link>TestFiles\LitTests\LitTest\comp\comp-builds\Calls-F.dfy</Link>
+        </Content>
     </ItemGroup>
     
 </Project>
