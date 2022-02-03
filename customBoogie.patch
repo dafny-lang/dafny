@@ -131,7 +131,7 @@ index 36bb4d93..7194b644 100644
 +	EndGlobalSection
  EndGlobal
 diff --git a/Source/Directory.Build.props b/Source/Directory.Build.props
-index 9225bf55..e7fc12f5 100644
+index 30e67936..64a5a976 100644
 --- a/Source/Directory.Build.props
 +++ b/Source/Directory.Build.props
 @@ -7,7 +7,7 @@
