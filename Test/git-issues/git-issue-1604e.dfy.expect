@@ -1,0 +1,15 @@
+git-issue-1604e.dfy(65,37): Error: Could not prove that the bound variable 'go' satisfies the (non runtime testable) type GhostOrdinalCell after the range, where it's assumed to be of type Cell based on inferred bounds.
+git-issue-1604e.dfy(24,24): [Related location] The constraint of GhostOrdinalCell is not run-time testable because it depends on the non-runtime-testable subset type GhostNaturalCell
+git-issue-1604e.dfy(13,35): [Related location] The constraint of GhostNaturalCell cannot be tested at run-time because predicate calls are allowed only in specification contexts (consider declaring the predicate a 'predicate method')
+git-issue-1604e.dfy(65,103): Error: value does not satisfy the subset constraints of 'GhostOrdinalCell'
+git-issue-1604e.dfy(67,37): Error: Could not prove that the bound variable 'go2' satisfies the (non runtime testable) type GhostOrdinalCell2 after the range, where it's assumed to be of type CompilableNaturalCell based on inferred bounds.
+git-issue-1604e.dfy(26,55): [Related location] The constraint of GhostOrdinalCell2 cannot be tested at run-time because predicate calls are allowed only in specification contexts (consider declaring the predicate a 'predicate method')
+git-issue-1604e.dfy(67,37): Error: value does not satisfy the subset constraints of 'set<GhostOrdinalCell>'
+git-issue-1604e.dfy(67,106): Error: value does not satisfy the subset constraints of 'GhostOrdinalCell'
+git-issue-1604e.dfy(69,37): Error: Could not prove that the bound variable 'go3' satisfies the (non runtime testable) type GhostOrdinalCell3 after the range, where it's assumed to be of type Cell based on inferred bounds.
+git-issue-1604e.dfy(28,25): [Related location] The constraint of GhostOrdinalCell3 is not run-time testable because it depends on the non-runtime-testable subset type GhostNaturalCell
+git-issue-1604e.dfy(13,35): [Related location] The constraint of GhostNaturalCell cannot be tested at run-time because predicate calls are allowed only in specification contexts (consider declaring the predicate a 'predicate method')
+git-issue-1604e.dfy(69,106): Error: value does not satisfy the subset constraints of 'GhostOrdinalCell'
+git-issue-1604e.dfy(71,9): Error: assertion violation
+
+Dafny program verifier finished with 12 verified, 8 errors
