@@ -75,4 +75,8 @@ public class Plugin {
           Activator.CreateInstance(rewriterType, new object[] { errorReporter }) as Rewriter).ToArray());
     return configuration;
   }
+
+  public IEnumerable<IRewriter> GetRewriters(ErrorReporter reporter) {
+    return Configuration.GetRewriters(reporter).Select(rewriter => new PluginRewriter(reporter, rewriter));
+  }
 }

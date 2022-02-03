@@ -141,7 +141,7 @@ namespace Microsoft.Dafny {
   ///      Jason Koenig and K. Rustan M. Leino.
   ///      In EPTCS, 2016. (Post-workshop proceedings of REFINE 2015.) 
   /// </summary>
-  public class RefinementTransformer : Rewriter {
+  public class RefinementTransformer : IRewriter {
     Cloner rawCloner; // This cloner just gives exactly the same thing back.
     RefinementCloner refinementCloner; // This cloner wraps things in a RefinementToken
 
@@ -165,7 +165,7 @@ namespace Microsoft.Dafny {
     public ModuleSignature RefinedSig;  // the intention is to use this field only after a successful PreResolve
     private ModuleSignature refinedSigOpened;
 
-    public override void PreResolve(ModuleDefinition m) {
+    internal override void PreResolve(ModuleDefinition m) {
       if (m.RefinementQId?.Decl != null) { // There is a refinement parent and it resolved OK
         RefinedSig = m.RefinementQId.Sig;
 
@@ -486,7 +486,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public override void PostResolveIntermediate(ModuleDefinition m) {
+    internal override void PostResolveIntermediate(ModuleDefinition m) {
       if (m == moduleUnderConstruction) {
         while (this.postTasks.Count != 0) {
           var a = postTasks.Dequeue();

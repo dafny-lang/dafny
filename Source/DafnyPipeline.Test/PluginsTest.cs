@@ -15,9 +15,9 @@ public class PluginsTest {
   /// This method creates a library and returns the path to that library.
   /// The library extends a Rewriter so that we can verify that Dafny invokes it if provided in argument.
   /// </summary>
-  private string GetLibrary(string code) {
+  private string GetLibrary(string code, string name) {
     var temp = Path.GetTempFileName();
-    var compilation = CSharpCompilation.Create("tempAssembly");
+    var compilation = CSharpCompilation.Create(name);
     var standardLibraries = new List<string>()
     {
       "DafnyPipeline",
@@ -72,7 +72,7 @@ public class ErrorRewriter: Rewriter {
   public override void PostResolve(ModuleDefinition moduleDefinition) {
     Reporter.Error(MessageSource.Compiler, moduleDefinition.tok, ""Impossible to continue ""+configuration.Argument);
   }
-}");
+}", "simplePlugin");
 
     var reporter = new CollectionErrorReporter();
     var options = new DafnyOptions(reporter);
@@ -103,7 +103,7 @@ public class ErrorRewriter: Rewriter {
   public override void PostResolve(ModuleDefinition moduleDefinition) {
     Reporter.Error(MessageSource.Compiler, moduleDefinition.tok, ""Impossible to continue"");
   }
-}");
+}", "secondPlugin");
 
     var reporter = new CollectionErrorReporter();
     var options = new DafnyOptions(reporter);

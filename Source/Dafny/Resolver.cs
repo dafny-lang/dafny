@@ -241,7 +241,7 @@ namespace Microsoft.Dafny {
     private ModuleSignature systemNameInfo = null;
     private bool useCompileSignatures = false;
 
-    private List<Rewriter> rewriters;
+    private List<IRewriter> rewriters;
     private RefinementTransformer refinementTransformer;
 
     public Resolver(Program prog) {
@@ -422,7 +422,7 @@ namespace Microsoft.Dafny {
         h++;
       }
 
-      rewriters = new List<Rewriter>();
+      rewriters = new List<IRewriter>();
       refinementTransformer = new RefinementTransformer(prog);
       rewriters.Add(refinementTransformer);
       rewriters.Add(new AutoContractsRewriter(reporter, builtIns));
@@ -440,9 +440,7 @@ namespace Microsoft.Dafny {
       rewriters.Add(new InductionRewriter(reporter));
 
       foreach (var plugin in DafnyOptions.O.Plugins) {
-        foreach (var rewriter in plugin.Configuration.GetRewriters(reporter)) {
-          rewriters.Add(rewriter);
-        }
+        rewriters.AddRange(plugin.GetRewriters(reporter));
       }
 
       systemNameInfo = RegisterTopLevelDecls(prog.BuiltIns.SystemModule, false);

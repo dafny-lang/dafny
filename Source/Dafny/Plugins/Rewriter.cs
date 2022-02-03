@@ -30,56 +30,9 @@ namespace Microsoft.Dafny.Plugins {
     /// <param name="reporter">The error reporter. Usually outputs automatically to IDE or command-line</param>
     public Rewriter(ErrorReporter reporter) {
       Contract.Requires(reporter != null);
-      this.Reporter = reporter;
+      Reporter = reporter;
     }
-
     /// <summary>
-    /// Phase 1/5
-    /// Override this method to obtain a module definition after parsing and built-in pre-resolvers,
-    /// You can then report errors using reporter.Error(MessageSource.Resolver, token, "message") (see above)
-    /// This is a good place to perform AST rewritings, if necessary
-    /// </summary>
-    /// <param name="moduleDefinition">A module definition before is resolved</param>
-    public virtual void PreResolve(ModuleDefinition moduleDefinition) {
-      Contract.Requires(moduleDefinition != null);
-    }
-
-    /// <summary>
-    /// Phase 2/5
-    /// Override this method to obtain a module definition after bare resolution, if no error were thrown,
-    /// You can then report errors using reporter.Error (see above)
-    /// We heavily discourage AST rewriting after this stage, as automatic type checking will not take place anymore.
-    /// </summary>
-    /// <param name="moduleDefinition">A module definition after it is resolved and type-checked</param>
-    public virtual void PostResolveIntermediate(ModuleDefinition moduleDefinition) {
-      Contract.Requires(moduleDefinition != null);
-    }
-
-    /// <summary>
-    /// Phase 3/5
-    /// Override this method to obtain the module definition after resolution and
-    /// SCC/Cyclicity/Recursivity analysis.
-    /// You can then report errors using reporter.Error (see above)
-    /// </summary>
-    /// <param name="moduleDefinition">A module definition after it
-    /// is resolved, type-checked and SCC/Cyclicity/Recursivity have been performed</param>
-    public virtual void PostCyclicityResolve(ModuleDefinition moduleDefinition) {
-      Contract.Requires(moduleDefinition != null);
-    }
-
-    /// <summary>
-    /// Phase 4/5
-    /// Override this method to obtain the module definition after the phase decreasesResolve
-    /// You can then report errors using reporter.Error (see above)
-    /// </summary>
-    /// <param name="moduleDefinition">A module definition after it
-    /// is resolved, type-checked and SCC/Cyclicity/Recursivity and decreasesResolve checks have been performed</param>
-    public virtual void PostDecreasesResolve(ModuleDefinition moduleDefinition) {
-      Contract.Requires(moduleDefinition != null);
-    }
-
-    /// <summary>
-    /// Phase 5/5
     /// Override this method to obtain a module definition after the entire resolution pipeline
     /// You can then report errors using reporter.Error (see above)
     /// </summary>
@@ -90,7 +43,6 @@ namespace Microsoft.Dafny.Plugins {
     }
 
     /// <summary>
-    /// Phase 5/5
     /// Override this method to obtain the final program after the entire resolution pipeline
     /// after the individual PostResolve on every module
     /// You can then report errors using reporter.Error (see above)

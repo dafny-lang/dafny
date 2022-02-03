@@ -4,11 +4,110 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
-using Microsoft.Dafny.Plugins;
 using Bpl = Microsoft.Boogie;
 using IToken = Microsoft.Boogie.IToken;
 
 namespace Microsoft.Dafny {
+  /// <summary>
+  /// A class that plugins should extend, in order to provide an extra Rewriter to the pipeline.
+  ///
+  /// If the plugin defines no Configuration, then Dafny will instantiate every sub-class
+  /// of Rewriter from the plugin, providing them with an ErrorReporter in the constructor
+  /// as the first and only argument.
+  /// </summary>
+  public abstract class IRewriter {
+    /// <summary>
+    /// Used to report errors and warnings, with positional information.
+    /// </summary>
+    protected readonly ErrorReporter Reporter;
+
+    /// <summary>
+    /// Constructor that accepts an ErrorReporter
+    /// You can obtain an ErrorReporter two following ways:
+    /// * Extend a Configuration class, and override the method GetRewriters(), whose first argument is an ErrorReporter
+    /// * Have no Configuration  class, and an ErrorReporter will be provided to your class's constructor.
+    /// 
+    /// Then you can use the protected field "reporter" like the following:
+    /// 
+    ///     reporter.Error(MessageSource.Compiler, token, "[Your plugin] Your error message here");
+    ///
+    /// The token is usually obtained on expressions and statements in the field `tok`
+    /// If you do not have access to them, use moduleDefinition.GetFirstTopLevelToken()
+    /// </summary>
+    /// <param name="reporter">The error reporter. Usually outputs automatically to IDE or command-line</param>
+    internal IRewriter(ErrorReporter reporter) {
+      Contract.Requires(reporter != null);
+      this.Reporter = reporter;
+    }
+
+    /// <summary>
+    /// Phase 1/5
+    /// Override this method to obtain a module definition after parsing and built-in pre-resolvers,
+    /// You can then report errors using reporter.Error(MessageSource.Resolver, token, "message") (see above)
+    /// This is a good place to perform AST rewritings, if necessary
+    /// </summary>
+    /// <param name="moduleDefinition">A module definition before is resolved</param>
+    internal virtual void PreResolve(ModuleDefinition moduleDefinition) {
+      Contract.Requires(moduleDefinition != null);
+    }
+
+    /// <summary>
+    /// Phase 2/5
+    /// Override this method to obtain a module definition after bare resolution, if no error were thrown,
+    /// You can then report errors using reporter.Error (see above)
+    /// We heavily discourage AST rewriting after this stage, as automatic type checking will not take place anymore.
+    /// </summary>
+    /// <param name="moduleDefinition">A module definition after it is resolved and type-checked</param>
+    internal virtual void PostResolveIntermediate(ModuleDefinition moduleDefinition) {
+      Contract.Requires(moduleDefinition != null);
+    }
+
+    /// <summary>
+    /// Phase 3/5
+    /// Override this method to obtain the module definition after resolution and
+    /// SCC/Cyclicity/Recursivity analysis.
+    /// You can then report errors using reporter.Error (see above)
+    /// </summary>
+    /// <param name="moduleDefinition">A module definition after it
+    /// is resolved, type-checked and SCC/Cyclicity/Recursivity have been performed</param>
+    internal virtual void PostCyclicityResolve(ModuleDefinition moduleDefinition) {
+      Contract.Requires(moduleDefinition != null);
+    }
+
+    /// <summary>
+    /// Phase 4/5
+    /// Override this method to obtain the module definition after the phase decreasesResolve
+    /// You can then report errors using reporter.Error (see above)
+    /// </summary>
+    /// <param name="moduleDefinition">A module definition after it
+    /// is resolved, type-checked and SCC/Cyclicity/Recursivity and decreasesResolve checks have been performed</param>
+    internal virtual void PostDecreasesResolve(ModuleDefinition moduleDefinition) {
+      Contract.Requires(moduleDefinition != null);
+    }
+
+    /// <summary>
+    /// Phase 5/5
+    /// Override this method to obtain a module definition after the entire resolution pipeline
+    /// You can then report errors using reporter.Error (see above)
+    /// </summary>
+    /// <param name="moduleDefinition">A module definition after it
+    /// is resolved, type-checked and SCC/Cyclicity/Recursivity have been performed</param>
+    internal virtual void PostResolve(ModuleDefinition moduleDefinition) {
+      Contract.Requires(moduleDefinition != null);
+    }
+
+    /// <summary>
+    /// Phase 5/5
+    /// Override this method to obtain the final program after the entire resolution pipeline
+    /// after the individual PostResolve on every module
+    /// You can then report errors using reporter.Error (see above)
+    /// </summary>
+    /// <param name="program">The entire program after it is fully resolved</param>
+    internal virtual void PostResolve(Program program) {
+      Contract.Requires(program != null);
+    }
+  }
+
   public class AutoGeneratedToken : TokenWrapper {
     public AutoGeneratedToken(Boogie.IToken wrappedToken)
       : base(wrappedToken) {
@@ -16,12 +115,12 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class TriggerGeneratingRewriter : Rewriter {
+  public class TriggerGeneratingRewriter : IRewriter {
     internal TriggerGeneratingRewriter(ErrorReporter reporter) : base(reporter) {
       Contract.Requires(reporter != null);
     }
 
-    public override void PostCyclicityResolve(ModuleDefinition m) {
+    internal override void PostCyclicityResolve(ModuleDefinition m) {
       var finder = new Triggers.QuantifierCollector(Reporter);
 
       foreach (var decl in ModuleDefinition.AllCallables(m.TopLevelDecls)) {
@@ -36,12 +135,12 @@ namespace Microsoft.Dafny {
     }
   }
 
-  internal class QuantifierSplittingRewriter : Rewriter {
+  internal class QuantifierSplittingRewriter : IRewriter {
     internal QuantifierSplittingRewriter(ErrorReporter reporter) : base(reporter) {
       Contract.Requires(reporter != null);
     }
 
-    public override void PostResolveIntermediate(ModuleDefinition m) {
+    internal override void PostResolveIntermediate(ModuleDefinition m) {
       var splitter = new Triggers.QuantifierSplitter();
       foreach (var decl in ModuleDefinition.AllCallables(m.TopLevelDecls)) {
         splitter.Visit(decl);
@@ -51,12 +150,12 @@ namespace Microsoft.Dafny {
   }
 
   // write out the quantifier for ForallStmt
-  public class ForallStmtRewriter : Rewriter {
+  public class ForallStmtRewriter : IRewriter {
     public ForallStmtRewriter(ErrorReporter reporter) : base(reporter) {
       Contract.Requires(reporter != null);
     }
 
-    public override void PostResolveIntermediate(ModuleDefinition m) {
+    internal override void PostResolveIntermediate(ModuleDefinition m) {
       var forallvisiter = new ForAllStmtVisitor(Reporter);
       foreach (var decl in ModuleDefinition.AllCallables(m.TopLevelDecls)) {
         forallvisiter.Visit(decl, true);
@@ -421,7 +520,7 @@ namespace Microsoft.Dafny {
   ///    requires Valid()
   ///    reads Repr
   /// </summary>
-  public class AutoContractsRewriter : Rewriter {
+  public class AutoContractsRewriter : IRewriter {
     readonly BuiltIns builtIns;
     public AutoContractsRewriter(ErrorReporter reporter, BuiltIns builtIns)
       : base(reporter) {
@@ -430,7 +529,7 @@ namespace Microsoft.Dafny {
       this.builtIns = builtIns;
     }
 
-    public override void PreResolve(ModuleDefinition m) {
+    internal override void PreResolve(ModuleDefinition m) {
       foreach (var d in m.TopLevelDecls) {
         bool sayYes = true;
         if (d is ClassDecl && Attributes.ContainsBool(d.Attributes, "autocontracts", ref sayYes) && sayYes) {
@@ -517,7 +616,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public override void PostResolveIntermediate(ModuleDefinition m) {
+    internal override void PostResolveIntermediate(ModuleDefinition m) {
       foreach (var d in m.TopLevelDecls) {
         bool sayYes = true;
         if (d is ClassDecl && Attributes.ContainsBool(d.Attributes, "autocontracts", ref sayYes) && sayYes) {
@@ -870,7 +969,7 @@ namespace Microsoft.Dafny {
   /// recursive clique (if any), or if the programmer
   /// specifically asks to see it via the reveal_foo() lemma
   /// </summary>
-  public class OpaqueFunctionRewriter : Rewriter {
+  public class OpaqueFunctionRewriter : IRewriter {
     protected Dictionary<Function, Function> fullVersion; // Given an opaque function, retrieve the full
     protected Dictionary<Function, Function> original;    // Given a full version of an opaque function, find the original opaque version
     protected Dictionary<Method, Function> revealOriginal; // Map reveal_* lemmas (or two-state lemmas) back to their original functions
@@ -884,7 +983,7 @@ namespace Microsoft.Dafny {
       revealOriginal = new Dictionary<Method, Function>();
     }
 
-    public override void PreResolve(ModuleDefinition m) {
+    internal override void PreResolve(ModuleDefinition m) {
       foreach (var d in m.TopLevelDecls) {
         if (d is TopLevelDeclWithMembers) {
           ProcessOpaqueClassFunctions((TopLevelDeclWithMembers)d);
@@ -892,7 +991,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public override void PostResolveIntermediate(ModuleDefinition m) {
+    internal override void PostResolveIntermediate(ModuleDefinition m) {
       foreach (var decl in ModuleDefinition.AllCallables(m.TopLevelDecls)) {
         if (decl is Lemma || decl is TwoStateLemma) {
           var lem = (Method)decl;
@@ -1018,7 +1117,7 @@ namespace Microsoft.Dafny {
   /// Automatically accumulate requires for function calls within a function body,
   /// if requested via {:autoreq}
   /// </summary>
-  public class AutoReqFunctionRewriter : Rewriter {
+  public class AutoReqFunctionRewriter : IRewriter {
     Function parentFunction;
     bool containsMatch; // TODO: Track this per-requirement, rather than per-function
 
@@ -1027,7 +1126,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(reporter != null);
     }
 
-    public override void PostResolveIntermediate(ModuleDefinition m) {
+    internal override void PostResolveIntermediate(ModuleDefinition m) {
       var components = m.CallGraph.TopologicallySortedComponents();
 
       foreach (var scComponent in components) {  // Visit the call graph bottom up, so anything we call already has its prequisites calculated
@@ -1384,13 +1483,13 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class ProvideRevealAllRewriter : Rewriter {
+  public class ProvideRevealAllRewriter : IRewriter {
     public ProvideRevealAllRewriter(ErrorReporter reporter)
       : base(reporter) {
       Contract.Requires(reporter != null);
     }
 
-    public override void PreResolve(ModuleDefinition m) {
+    internal override void PreResolve(ModuleDefinition m) {
       var declarations = m.TopLevelDecls;
 
       foreach (var d in declarations) {
@@ -1449,13 +1548,13 @@ namespace Microsoft.Dafny {
   /// Replace all occurrences of attribute {:timeLimitMultiplier X} with {:timeLimit Y}
   /// where Y = X*default-time-limit or Y = X*command-line-time-limit
   /// </summary>
-  public class TimeLimitRewriter : Rewriter {
+  public class TimeLimitRewriter : IRewriter {
     public TimeLimitRewriter(ErrorReporter reporter)
       : base(reporter) {
       Contract.Requires(reporter != null);
     }
 
-    public override void PreResolve(ModuleDefinition m) {
+    internal override void PreResolve(ModuleDefinition m) {
       foreach (var d in m.TopLevelDecls) {
         if (d is TopLevelDeclWithMembers tld) {
           foreach (MemberDecl member in tld.Members) {
@@ -1619,12 +1718,12 @@ namespace Microsoft.Dafny {
 
   // ===========================================================================================
 
-  public class InductionRewriter : Rewriter {
+  public class InductionRewriter : IRewriter {
     internal InductionRewriter(ErrorReporter reporter) : base(reporter) {
       Contract.Requires(reporter != null);
     }
 
-    public override void PostDecreasesResolve(ModuleDefinition m) {
+    internal override void PostDecreasesResolve(ModuleDefinition m) {
       if (DafnyOptions.O.Induction == 0) {
         // Don't bother inferring :induction attributes.  This will also have the effect of not warning about malformed :induction attributes
       } else {
@@ -1979,6 +2078,22 @@ namespace Microsoft.Dafny {
         }
         return false;
       }
+    }
+  }
+
+  class PluginRewriter : IRewriter {
+    private Plugins.Rewriter internalRewriter;
+
+    public PluginRewriter(ErrorReporter reporter, Plugins.Rewriter internalRewriter) : base(reporter) {
+      this.internalRewriter = internalRewriter;
+    }
+
+    internal override void PostResolve(ModuleDefinition moduleDefinition) {
+      internalRewriter.PostResolve(moduleDefinition);
+    }
+
+    internal override void PostResolve(Program program) {
+      internalRewriter.PostResolve(program);
     }
   }
 }
