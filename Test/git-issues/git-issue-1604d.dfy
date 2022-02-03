@@ -69,11 +69,6 @@ method Main() {
 
   b := b && isSetOfCompilableOrdinalCells(set co: CompilableOrdinalCell | co in x && compiledOrdinalCellIsOneOrMore(co) :: co);
 
-  /** The following should fail
-  b := b && isSetOfCompilableOrdinalCells(set go: GhostOrdinalCell | go in x && ghostOrdinalCellIsOneOrMore(go) :: go);
-  b := b && isSetOfCompilableOrdinalCells(set go2: GhostOrdinalCell2 | go2 in x && ghostOrdinalCellIsOneOrMore(go2) :: go2);
-  b := b && isSetOfCompilableOrdinalCells(set go3: GhostOrdinalCell3| go3 in x && ghostOrdinalCellIsOneOrMore(go3) :: go3);
-  */
   assert b;
   print if b then "ok" else "error";
 }
