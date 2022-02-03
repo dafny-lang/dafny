@@ -1,0 +1,7 @@
+{
+  "AssembliesPath": "bin/Debug/net6.0",
+  "Assemblies": [
+    "DafnyRuntime.Test.dll",
+    "DafnyRuntime.dll"
+  ]
+}
