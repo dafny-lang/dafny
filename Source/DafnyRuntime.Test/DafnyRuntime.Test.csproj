@@ -22,7 +22,7 @@
     </ItemGroup>
 
     <Target Name="CoyoteRewrite" AfterTargets="AfterBuild">
-        <Exec Command="coyote rewrite rewrite.coyote.json"/>
+        <Exec Command="dotnet coyote rewrite rewrite.coyote.json"/>
     </Target>
     
     <ItemGroup>
