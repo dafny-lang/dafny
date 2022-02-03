@@ -3,6 +3,7 @@ using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Boogie;
 using Microsoft.Coyote;
 using Microsoft.Coyote.SystematicTesting;
 using Xunit;
@@ -37,6 +38,7 @@ namespace DafnyRuntime.Test {
     [Fact]
     public void ReplayCoyoteTest() {
       const string tracePath = "ConcatSequence_0.schedule";
+      if (!File.Exists(tracePath)) { return; }
       var trace = File.ReadAllText(tracePath);
       var config = Configuration.Create().WithReplayStrategy(trace);
       TestingEngine engine = TestingEngine.Create(config, ConcatImmutableList);
