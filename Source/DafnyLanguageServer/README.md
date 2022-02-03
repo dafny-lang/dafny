@@ -88,6 +88,11 @@ Options provided through the command line have higher priority than the options 
 ```
 
 #### About plugins
+
+*Plugins are experimental.
+The plugin API directly exposes the Dafny AST, which is constantly evolving.
+Hence, always recompile your plugin against the binary of Dafny that will be importing your plugin.*
+
 Plugins are libraries linked to a `Dafny.dll` of the same version than the language server.
 A plugin typically defines:
 
