@@ -1189,15 +1189,23 @@ namespace Dafny {
       // Traverse the tree formed by all descendants which are ConcatSequences
       var ansBuilder = ImmutableArray.CreateBuilder<T>();
       var toVisit = new Stack<ISequence<T>>();
-      toVisit.Push(right);
-      toVisit.Push(left);
+      var (leftBuffer, rightBuffer) = (left, right);
+      if (left == null || right == null) {
+        return elmts;
+      }
+      toVisit.Push(rightBuffer);
+      toVisit.Push(leftBuffer);
 
       while (toVisit.Count != 0) {
         var seq = toVisit.Pop();
-        var cs = seq as ConcatSequence<T>;
-        if (cs != null && cs.elmts.IsDefault) {
-          toVisit.Push(cs.right);
-          toVisit.Push(cs.left);
+        if (seq is ConcatSequence<T> { elmts: { IsDefault: true } } cs) {
+          (leftBuffer, rightBuffer) = (cs.left, cs.right);
+          if (cs.left == null || cs.right == null) {
+            toVisit.Push(cs);
+          } else {
+            toVisit.Push(rightBuffer);
+            toVisit.Push(leftBuffer);
+          }
         } else {
           var array = seq.Elements;
           ansBuilder.AddRange(array);
