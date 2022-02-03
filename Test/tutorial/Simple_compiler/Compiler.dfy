@@ -257,9 +257,9 @@ module Compiler {
 ///
 /// There are a few interesting difficulties: native C# types, nested types, enums:
 ///
-/// 1. The C# side uses native C# types like `List<T>`.
-/// 2. C# types are commonly nested, but Dafny doesn't support nesting types.
-/// 3. Dafny datatypes don't compile to C# enums, so we cannot use them to model those.
+/// 1. The C# side uses native C# types like `List<T>` (we'll model them using Dafny traits).
+/// 2. C# types are commonly `nested <https://docs.microsoft.com/en-us/dotnet/csharp/programming-guide/classes-and-structs/nested-types>`__, but Dafny doesn't support nesting types (we'll use `:extern` annotations on the traits to map Dafny non-nested traits to C# nested types, e.g. in `Op__BinOp` below).
+/// 3. Dafny datatypes don't compile to C# enums, so we cannot use them to model those (instead we'll model enum members as `static const` fields of a Dafny class, as in `Add: Op__BinOp` below).
 
 /// Modeling C# types in Dafny
 /// ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -267,7 +267,7 @@ module Compiler {
 /// Native types
 /// ^^^^^^^^^^^^
 ///
-/// In this example the only native C# type that we use is `List<T>`.  We add a model of the no-arguments `List<T>` constructor and of the `Add` method to build new lists.  For iterating over existing lists (passed from C#) the ``Aggregate`` method would be enough, but to make this example more informative we define a custom method `FoldL` instead, which is implemented in ``Main.cs``.
+/// In this example the only native C# type that we use is `List<T>`.  We add a model of the no-arguments `List<T>` constructor and of the `Add` method to build new lists.  For iterating over existing lists (passed from C#) using the native ``Aggregate`` method provided by Linq would be enough, but to make this example more informative we define a custom method `FoldR` instead, model it in Dafny as an `:extern` method, and implement in ``Main.cs``.
 
 module {:extern "System.Collections.Generic"} {:compile false} System.Collections.Generic {
   class {:extern} {:compile false} List<T> {
@@ -439,8 +439,8 @@ module PrettyPrint {
   }
 }
 
-/// 5. Exposing Dafny to C#
-/// ~~~~~~~~~~~~~~~~~~~~~~~
+/// Exposing Dafny to C#
+/// ~~~~~~~~~~~~~~~~~~~~
 ///
 /// Finally, we define a single Dafny function that serves as our interface to C#.  It takes a C# AST, translates it to Dafny, runs rewriting passes, compiles it to a stack machine program, pretty-prints it to a string, and returns it to C#.
 ///
