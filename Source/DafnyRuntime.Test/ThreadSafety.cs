@@ -20,7 +20,7 @@ namespace DafnyRuntime.Test {
 
     [Fact(Timeout = 5000)]
     public void RunCoyoteTest() {
-      var config = Configuration.Create().WithTestingIterations(500000).WithConcurrencyFuzzingEnabled();
+      var config = Configuration.Create().WithTestingIterations(500).WithConcurrencyFuzzingEnabled();
       TestingEngine engine = TestingEngine.Create(config, ConcatSequence);
       engine.Run();
 
