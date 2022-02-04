@@ -112,6 +112,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var (textDocument, cancellationToken) = loadRequest;
       var errorReporter = new DiagnosticErrorReporter(textDocument.Uri);
       var program = parser.Parse(textDocument, errorReporter, cancellationToken);
+      PublishDafnyLanguageServerLoadErrors(errorReporter, program);
       if (errorReporter.HasErrors) {
         notificationPublisher.SendStatusNotification(textDocument, CompilationStatus.ParsingFailed);
         return CreateDocumentWithEmptySymbolTable(loggerFactory.CreateLogger<SymbolTable>(), textDocument, errorReporter, program, loadCanceled: false);
@@ -126,6 +127,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
       var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(symbolTable, cancellationToken).ToArray();
       return new DafnyDocument(textDocument, errorReporter, new List<Diagnostic>(), ghostDiagnostics, program, symbolTable);
+    }
+
+    private static void PublishDafnyLanguageServerLoadErrors(DiagnosticErrorReporter errorReporter, Dafny.Program program) {
+      foreach (var error in DafnyLanguageServer.LoadErrors) {
+        errorReporter.Error(MessageSource.Compiler, program.GetFirstTopLevelToken(), error);
+      }
     }
 
     private static DafnyDocument CreateDocumentWithEmptySymbolTable(
