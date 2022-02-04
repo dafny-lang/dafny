@@ -15,8 +15,8 @@ public class PluginsAdvancedTest : PluginsTestBase {
     await SetUpPlugin();
   }
 
-  protected override string GetLibraryCode() {
-    return @"
+  protected override string LibraryCode =>
+    @"
 using Microsoft.Dafny;
 using Microsoft.Dafny.Plugins;
 using System.Collections;
@@ -92,11 +92,9 @@ public class ExternCheckRewriter: Rewriter {
 }
 
 }";
-  }
 
-  protected override string GetLibraryName() {
-    return "PluginsAdvancedTest";
-  }
+  protected override string LibraryName =>
+    "PluginsAdvancedTest";
 
   protected override string[] GetCommandLineArgument() {
     return new[] { $@"--dafny:plugins:0=""{LibraryPath},force you""" };

@@ -13,8 +13,8 @@ public class PluginsTest : PluginsTestBase {
   public async Task SetUp() {
     await SetUpPlugin();
   }
-  protected override string GetLibraryCode() {
-    return @"
+  protected override string LibraryCode =>
+    @"
 using Microsoft.Dafny;
 using Microsoft.Dafny.Plugins;
 
@@ -43,11 +43,9 @@ public class ErrorRewriter: Rewriter {
 }
 
 }";
-  }
 
-  protected override string GetLibraryName() {
-    return "PluginsTest";
-  }
+  protected override string LibraryName =>
+    "PluginsTest";
 
   protected override string[] GetCommandLineArgument() {
     return new[] { $@"--dafny:plugins:0=""{LibraryPath},\""because\\ whatever\""""" };

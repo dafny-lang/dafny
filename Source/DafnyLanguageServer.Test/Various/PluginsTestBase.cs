@@ -51,15 +51,15 @@ public abstract class PluginsTestBase : DafnyLanguageServerTestBase {
     return assemblyPath;
   }
 
-  protected abstract string GetLibraryCode();
+  protected abstract string LibraryCode { get; }
 
-  protected abstract string GetLibraryName();
+  protected abstract string LibraryName { get; }
 
   protected abstract string[] GetCommandLineArgument();
 
   public async Task SetUpPlugin() {
     DiagnosticReceiver = new();
-    LibraryPath = GetLibrary(GetLibraryCode(), GetLibraryName());
+    LibraryPath = GetLibrary(LibraryCode, LibraryName);
     Client = await InitializeClient(options => options.OnPublishDiagnostics(DiagnosticReceiver.NotificationReceived));
   }
 
