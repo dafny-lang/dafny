@@ -10,7 +10,7 @@ function method F(x: int, y: bool): int {
 }
 
 method A0(x: int, y: bool) {
- return;
+  return;
 }
 
 method A1(x: int, y: bool) returns (a: int) {
