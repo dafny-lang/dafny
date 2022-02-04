@@ -116,36 +116,39 @@ class Release:
         """Zip entries always use '/' as the path separator."""
         return fpath.replace(os.path.sep, '/')
 
+    def run_publish(self, project):
+        env = dict(os.environ)
+        env["RUNTIME_IDENTIFIER"] = self.target
+        flush("   + Publishing " + project)
+        remaining = 3
+        exitStatus = 1
+        while 0 < remaining and exitStatus != 0:
+            remaining -= 1
+            exitStatus = subprocess.call(["dotnet", "publish", path.join(SOURCE_DIRECTORY, project, project + ".csproj"),
+                "--nologo",
+                "-f", "net6.0",
+                "-o", self.buildDirectory,
+                "-r", self.target,
+                "--self-contained",
+                "-c", "Release"], env=env)
+            if exitStatus != 0:
+                if remaining == 0:
+                    flush("failed! (Is Dafny or the Dafny server running?)")
+                    sys.exit(1)
+                else:
+                   flush("failed! (Retrying another %s)" % ("time" if remaining == 1 else "%i times" % remaining))
+        flush("done!")
+
     def build(self):
         os.chdir(ROOT_DIRECTORY)
         flush("  - Building")
 
         if path.exists(self.buildDirectory):
             shutil.rmtree(self.buildDirectory)
-        env = dict(os.environ)
-        env["RUNTIME_IDENTIFIER"] = self.target
         run(["make", "--quiet", "clean"])
-        run(["dotnet", "publish", path.join(SOURCE_DIRECTORY, "DafnyLanguageServer", "DafnyLanguageServer.csproj"),
-            "--nologo",
-            "-f", "net6.0",
-            "-o", self.buildDirectory,
-            "-r", self.target,
-            "--self-contained",
-            "-c", "Release"], env)
-        run(["dotnet", "publish", path.join(SOURCE_DIRECTORY, "DafnyServer", "DafnyServer.csproj"),
-            "--nologo",
-            "-f", "net6.0",
-            "-o", self.buildDirectory,
-            "-r", self.target,
-            "--self-contained",
-            "-c", "Release"], env)
-        run(["dotnet", "publish", path.join(SOURCE_DIRECTORY, "DafnyDriver", "DafnyDriver.csproj"),
-            "--nologo",
-            "-f", "net6.0",
-            "-o", self.buildDirectory,
-            "-r", self.target,
-            "--self-contained",
-            "-c", "Release"], env)
+        self.run_publish("DafnyLanguageServer")
+        self.run_publish("DafnyServer")
+        self.run_publish("DafnyDriver")
 
     def pack(self):
         try:
@@ -219,9 +222,9 @@ def download(releases):
         flush("    + {}:".format(release.z3_name), end=' ')
         release.download()
 
-def run(cmd, env=None):
+def run(cmd):
     flush("    + {}...".format(" ".join(cmd)), end=' ')
-    retv = subprocess.call(cmd, env=env)
+    retv = subprocess.call(cmd)
     if retv != 0:
         flush("failed! (Is Dafny or the Dafny server running?)")
         sys.exit(1)
