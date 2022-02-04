@@ -51,22 +51,23 @@ module DafnyAST {
     }
   }
 
-  function method interpStmt'(s: Stmt, ctx: Context)
-    : (Context, seq<int>)
+  datatype InterpResult = InterpResult(ctx: Context, output: seq<int>)
+
+  function method interpStmt'(s: Stmt, ctx: Context) : InterpResult
   {
     match s {
-      case Skip => (ctx, [])
-      case Print(e) => (ctx, [interpExpr(e, ctx)])
-      case Assign(v, e) => (ctx[v := interpExpr(e, ctx)], [])
+      case Skip => InterpResult(ctx, [])
+      case Print(e) => InterpResult(ctx, [interpExpr(e, ctx)])
+      case Assign(v, e) => InterpResult(ctx[v := interpExpr(e, ctx)], [])
       case Seq(s1, s2) =>
-        var (ctx1, o1) := interpStmt'(s1, ctx);
-        var (ctx2, o2) := interpStmt'(s2, ctx1);
-        (ctx2, o1 + o2)
+        var InterpResult(ctx1, o1) := interpStmt'(s1, ctx);
+        var InterpResult(ctx2, o2) := interpStmt'(s2, ctx1);
+        InterpResult(ctx2, o1 + o2)
     }
   }
 
   function method interpStmt(s: Stmt) : seq<int> {
-    interpStmt'(s, map[]).1
+    interpStmt'(s, map[]).output
   }
 }
 
@@ -325,7 +326,7 @@ module Compiler {
 
   lemma {:induction false} compileStmtCorrect'(s: DafnyAST.Stmt, st: State)
     ensures interpProg'(compileStmt(s), st) ==
-            var (ctx', output) := DafnyAST.interpStmt'(s, st.regs);
+            var InterpResult(ctx', output) := DafnyAST.interpStmt'(s, st.regs);
             st.(regs := ctx', output := st.output + output)
   {
     match s {
@@ -358,9 +359,19 @@ module Compiler {
   }
 
   lemma compileStmtCorrect(s: DafnyAST.Stmt)
+    ensures forall input: DafnyAST.Context ::
+              interpProg'(compileStmt(s), EmptyState.(regs := input)).output ==
+              DafnyAST.interpStmt'(s, input).output
+  {
+    forall input: DafnyAST.Context {
+      compileStmtCorrect'(s, EmptyState.(regs := input));
+    }
+  }
+
+  lemma compileCorrect(s: DafnyAST.Stmt)
     ensures interpProg(compileStmt(s)) == DafnyAST.interpStmt(s)
   {
-    compileStmtCorrect'(s, EmptyState);
+    compileStmtCorrect(s);
   }
 }
 
