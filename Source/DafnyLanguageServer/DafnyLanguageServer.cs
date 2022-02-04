@@ -36,8 +36,19 @@ namespace Microsoft.Dafny.LanguageServer {
         Action killLanguageServer) {
       var logger = server.GetRequiredService<ILogger<Program>>();
       logger.LogTrace("initializing service");
-      var dafnyPluginsOptions = server.GetRequiredService<IOptions<DafnyPluginsOptions>>();
 
+      LoadPlugins(logger, server);
+
+      KillLanguageServerIfParentDies(logger, request, killLanguageServer);
+
+      return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Load the plugins for the Dafny pipeline
+    /// </summary>
+    private static void LoadPlugins(ILogger<Program> logger, ILanguageServer server) {
+      var dafnyPluginsOptions = server.GetRequiredService<IOptions<DafnyPluginsOptions>>();
       try {
         foreach (var pluginPathArgument in dafnyPluginsOptions.Value.Plugins) {
           DafnyOptions.O.Parse(new[] { "-plugin:" + pluginPathArgument });
@@ -45,10 +56,6 @@ namespace Microsoft.Dafny.LanguageServer {
       } catch (Exception e) {
         logger.LogError(e, "Error while instantiating the plugins:");
       }
-
-      KillLanguageServerIfParentDies(logger, request, killLanguageServer);
-
-      return Task.CompletedTask;
     }
 
     /// <summary>
