@@ -117,17 +117,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return CreateDocumentWithEmptySymbolTable(loggerFactory.CreateLogger<SymbolTable>(), textDocument, errorReporter, program, loadCanceled: false);
       }
 
-      // We load plugins at most once.
-      if (dafnyPluginsOptions.Value.Plugins.Length > 0 && !DafnyOptions.O.Plugins.Any()) {
-        try {
-          foreach (var pluginPathArgument in dafnyPluginsOptions.Value.Plugins) {
-            DafnyOptions.O.Parse(new[] { "-plugin:" + pluginPathArgument });
-          }
-        } catch (Exception e) {
-          errorReporter.Error(MessageSource.Parser, program.GetFirstTopLevelToken(), "Error while instantiating the plugins:" + e.ToString());
-        }
-      }
-
       var compilationUnit = symbolResolver.ResolveSymbols(textDocument, program, cancellationToken);
       var symbolTable = symbolTableFactory.CreateFrom(program, compilationUnit, cancellationToken);
       if (errorReporter.HasErrors) {

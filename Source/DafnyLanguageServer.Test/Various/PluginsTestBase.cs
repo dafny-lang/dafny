@@ -60,13 +60,11 @@ public abstract class PluginsTestBase : DafnyLanguageServerTestBase {
   public async Task SetUpPlugin() {
     DiagnosticReceiver = new();
     LibraryPath = GetLibrary(GetLibraryCode(), GetLibraryName());
-    Monitor.Enter(PluginSync);
     Client = await InitializeClient(options => options.OnPublishDiagnostics(DiagnosticReceiver.NotificationReceived));
   }
 
   protected void CleanupPlugin() {
     DafnyOptions.O.Plugins.RemoveAt(0);
-    Monitor.Exit(PluginSync);
   }
 
   protected override IConfiguration CreateConfiguration() {

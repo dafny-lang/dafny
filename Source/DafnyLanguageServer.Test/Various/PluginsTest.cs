@@ -55,7 +55,6 @@ public class ErrorRewriter: Rewriter {
 
   [TestMethod]
   public async Task EnsureItIsPossibleToLoadAPluginWithArguments() {
-    // TODO: Need to clean up the plugins from the options after they are set.
     // This code will run with the plugin from PluginsAdvancedTest, but that plugin won't throw an exception on the code below.
     var documentItem = CreateTestDocument("function test(): int { 1 }");
     await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);

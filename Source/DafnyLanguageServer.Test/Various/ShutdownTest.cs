@@ -71,7 +71,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
       // Wait for the language server to kill itself by waiting until it closes the output stream.
       await process.StandardOutput.ReadToEndAsync();
-      Thread.Sleep(400); // Give the process some time to die
+      await Task.Delay(400); // Give the process some time to die
 
       Assert.ThrowsException<ArgumentException>(() => {
         var languageServer = Process.GetProcessById(int.Parse(languageServerProcessId));

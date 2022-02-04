@@ -11,6 +11,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Server;
 using OmniSharp.Extensions.LanguageServer.Server;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Options;
 
 namespace Microsoft.Dafny.LanguageServer {
   public static class DafnyLanguageServer {
@@ -35,6 +36,15 @@ namespace Microsoft.Dafny.LanguageServer {
         Action killLanguageServer) {
       var logger = server.GetRequiredService<ILogger<Program>>();
       logger.LogTrace("initializing service");
+      var dafnyPluginsOptions = server.GetRequiredService<IOptions<DafnyPluginsOptions>>();
+
+      try {
+        foreach (var pluginPathArgument in dafnyPluginsOptions.Value.Plugins) {
+          DafnyOptions.O.Parse(new[] { "-plugin:" + pluginPathArgument });
+        }
+      } catch (Exception e) {
+        logger.LogError(e, "Error while instantiating the plugins:");
+      }
 
       KillLanguageServerIfParentDies(logger, request, killLanguageServer);
 
