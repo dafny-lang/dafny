@@ -85,14 +85,8 @@ namespace Microsoft.Dafny {
       var w = cw.MethodWriter;
       var udt = UserDefinedType.FromTopLevelDecl(sst.tok, sst);
       string d;
-      if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
-        var sw = new ConcreteSyntaxTree(w.RelativeIndentLevel);
-        TrExpr(sst.Witness, sw, false);
-        DeclareField("Witness", true, true, sst.Rhs, sst.tok, sw.ToString(), w);
-        d = TypeName_UDT(FullTypeName(udt), udt, wr, udt.tok) + ".Witness";
-      } else {
-        d = TypeInitializationValue(udt, wr, sst.tok, false, false);
-      }
+      d = TypeInitializationValue(udt, wr, sst.tok, false, false);
+
       w.NewBlock("def Default():", "", BraceStyle.NewlineNoBrace, BraceStyle.NewlineNoBrace).WriteLine($"return {d}", "");
     }
 
@@ -278,45 +272,12 @@ namespace Microsoft.Dafny {
         return CharType.DefaultValueAsString;
       } else if (xType is IntType || xType is BigOrdinalType) {
         return IntegerLiteral(0);
-      } else if (xType is RealType) {
-        return "_dafny.BigRational.ZERO";
-      } else if (xType is BitvectorType) {
-        var t = (BitvectorType)xType;
-        return t.NativeType != null ? "0" : IntegerLiteral(0);
-      } else if (xType is SetType) {
-        return $"{DafnySetClass}.Empty";
-      } else if (xType is MultiSetType) {
-        return $"{DafnyMultiSetClass}.Empty";
-      } else if (xType is SeqType seq) {
-        if (seq.Arg.IsCharType) {
-          return "''";
-        }
-        return $"{DafnySeqClass}.of()";
-      } else if (xType is MapType) {
-        return $"{DafnyMapClass}.Empty";
       }
 
       var udt = (UserDefinedType)xType;
       var cl = udt.ResolvedClass;
       Contract.Assert(cl != null);
-      if (cl is TypeParameter) {
-        if (constructTypeParameterDefaultsFromTypeDescriptors) {
-          return string.Format("{0}.Default", TypeDescriptor(udt, wr, udt.tok));
-        } else {
-          return FormatDefaultTypeParameterValue((TypeParameter)udt.ResolvedClass);
-        }
-      } else if (cl is OpaqueTypeDecl opaque) {
-        return FormatDefaultTypeParameterValue(opaque);
-      } else if (cl is NewtypeDecl) {
-        var td = (NewtypeDecl)cl;
-        if (td.Witness != null) {
-          return TypeName_UDT(FullTypeName(udt), udt, wr, udt.tok) + ".Witness";
-        } else if (td.NativeType != null) {
-          return "0";
-        } else {
-          return TypeInitializationValue(td.BaseType, wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
-        }
-      } else if (cl is SubsetTypeDecl) {
+      if (cl is SubsetTypeDecl) {
         var td = (SubsetTypeDecl)cl;
         if (td.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
           return TypeName_UDT(FullTypeName(udt), udt, wr, udt.tok) + ".Default";
@@ -342,18 +303,6 @@ namespace Microsoft.Dafny {
         } else {
           return TypeInitializationValue(td.RhsWithArgument(udt.TypeArgs), wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
         }
-      } else if (cl is ClassDecl) {
-        bool isHandle = true;
-        if (Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
-          return "0";
-        } else {
-          return "null";
-        }
-      } else if (cl is DatatypeDecl) {
-        var dt = (DatatypeDecl)cl;
-        var s = dt is TupleTypeDecl ? "_dafny.Tuple" : FullTypeName(udt);
-        var relevantTypeArgs = UsedTypeParameters(dt, udt.TypeArgs).ConvertAll(ta => ta.Actual);
-        return string.Format($"{s}.Default({Util.Comma(relevantTypeArgs, arg => DefaultValue(arg, wr, tok, constructTypeParameterDefaultsFromTypeDescriptors))})");
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
