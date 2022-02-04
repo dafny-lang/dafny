@@ -25,7 +25,7 @@ public abstract class PluginsTestBase : DafnyLanguageServerTestBase {
   /// This method creates a library and returns the path to that library.
   /// The library extends a Rewriter so that we can verify that Dafny invokes it if provided in argument.
   /// </summary>
-  private string GetLibrary(string code, string assemblyName) {
+  private static string GetLibrary(string code, string assemblyName) {
     var temp = Path.GetTempFileName();
     var compilation = CSharpCompilation.Create(assemblyName);
     var standardLibraries = new List<string>()
@@ -55,7 +55,7 @@ public abstract class PluginsTestBase : DafnyLanguageServerTestBase {
 
   protected abstract string LibraryName { get; }
 
-  protected abstract string[] GetCommandLineArgument();
+  protected abstract string[] CommandLineArgument { get; }
 
   public async Task SetUpPlugin() {
     DiagnosticReceiver = new();
@@ -68,6 +68,6 @@ public abstract class PluginsTestBase : DafnyLanguageServerTestBase {
   }
 
   protected override IConfiguration CreateConfiguration() {
-    return new ConfigurationBuilder().AddCommandLine(GetCommandLineArgument()).Build();
+    return new ConfigurationBuilder().AddCommandLine(CommandLineArgument).Build();
   }
 }

@@ -47,9 +47,8 @@ public class ErrorRewriter: Rewriter {
   protected override string LibraryName =>
     "PluginsTest";
 
-  protected override string[] GetCommandLineArgument() {
-    return new[] { $@"--dafny:plugins:0=""{LibraryPath},\""because\\ whatever\""""" };
-  }
+  protected override string[] CommandLineArgument =>
+    new[] { $@"--dafny:plugins:0=""{LibraryPath},\""because\\ whatever\""""" };
 
   [TestMethod]
   public async Task EnsureItIsPossibleToLoadAPluginWithArguments() {

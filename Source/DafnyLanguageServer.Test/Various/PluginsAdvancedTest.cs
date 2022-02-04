@@ -96,9 +96,8 @@ public class ExternCheckRewriter: Rewriter {
   protected override string LibraryName =>
     "PluginsAdvancedTest";
 
-  protected override string[] GetCommandLineArgument() {
-    return new[] { $@"--dafny:plugins:0=""{LibraryPath},force you""" };
-  }
+  protected override string[] CommandLineArgument =>
+    new[] { $@"--dafny:plugins:0=""{LibraryPath},force you""" };
 
   [TestMethod]
   public async Task EnsureErrorMessageCanBeComplexAndTakeIntoAccountConfiguration() {
