@@ -309,10 +309,6 @@ namespace Microsoft.Dafny {
 
     }
 
-    static string FormatDefaultTypeParameterValue(TopLevelDecl tp) {
-      Contract.Requires(tp is TypeParameter || tp is OpaqueTypeDecl);
-      return $"_default_{tp.CompileName}";
-    }
     string IntegerLiteral(BigInteger i) {
       if (i.IsZero || i.IsOne) {
         return "int()";
