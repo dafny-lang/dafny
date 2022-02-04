@@ -1,8 +1,7 @@
-// RUN: %dafny /verificationLogger:csv;LogFileName="%t.csv" "%s"
-// RUN: %OutputCheck --file-to-check "%t.csv" "%s"
+// RUN: %dafny /xml:%t.xml %s"
+// RUN: %OutputCheck --file-to-check "%t.xml" "%s"
 
-// CHECK: TestResult\.DisplayName,TestResult\.Outcome,TestResult\.Duration,TestResult\.ResourceCount
-// CHECK-NEXT: Impl\$\$_module.__default\.ExampleWithSplits\$\$1,Passed,.*,.*
+// CHECK: resourceCount=\".*\"
 
 method ExampleWithSplits() returns (y: int)
   ensures y >= 0
