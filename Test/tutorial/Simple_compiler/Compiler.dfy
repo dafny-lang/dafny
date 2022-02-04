@@ -16,7 +16,7 @@ module DafnyAST {
 /// We have two kinds of AST nodes:
 ///
 /// 1. Expressions:
-///    Either constants or binary operations
+///    Constants, variable accesses, or binary operations.
 
   datatype BinOp =
     | Add
@@ -24,6 +24,7 @@ module DafnyAST {
 
   datatype Expr =
     | Const(n: int)
+    | Var(v: string)
     | Op(op: BinOp, e1: Expr, e2: Expr)
 
 /// 2. Statements:
@@ -32,26 +33,43 @@ module DafnyAST {
   datatype Stmt =
     | Skip
     | Print(e: Expr)
+    | Assign(v: string, e: Expr)
     | Seq(s1: Stmt, s2: Stmt)
 
 /// The semantics of expressions and statements can be defined using recursive interpreters:
 
-  function method interpExpr(e: Expr): int {
+  type Context = map<string, int>
+
+  function method interpExpr(e: Expr, ctx: Context): int {
     match e {
       case Const(n) => n
-      case Op(Add, e1, e2) => interpExpr(e1) + interpExpr(e2)
-      case Op(Sub, e1, e2) => interpExpr(e1) - interpExpr(e2)
+      case Var(v) => if v in ctx.Keys then ctx[v] else 0
+      case Op(Add, e1, e2) =>
+        interpExpr(e1, ctx) + interpExpr(e2, ctx)
+      case Op(Sub, e1, e2) =>
+        interpExpr(e1, ctx) - interpExpr(e2, ctx)
     }
   }
 
-  function method interpStmt(s: Stmt): seq<int> {
+  function method interpStmt'(s: Stmt, ctx: Context)
+    : (Context, seq<int>)
+  {
     match s {
-      case Skip => []
-      case Print(e) => [interpExpr(e)]
-      case Seq(s1, s2) => interpStmt(s1) + interpStmt(s2)
+      case Skip => (ctx, [])
+      case Print(e) => (ctx, [interpExpr(e, ctx)])
+      case Assign(v, e) => (ctx[v := interpExpr(e, ctx)], [])
+      case Seq(s1, s2) =>
+        var (ctx1, o1) := interpStmt'(s1, ctx);
+        var (ctx2, o2) := interpStmt'(s2, ctx1);
+        (ctx2, o1 + o2)
     }
   }
+
+  function method interpStmt(s: Stmt) : seq<int> {
+    interpStmt'(s, map[]).1
+  }
 }
+
 
 /// Transforming Dafny ASTs
 /// -----------------------
@@ -62,10 +80,13 @@ module Rewriter {
   import opened DafnyAST
 
   function method simplifyExpr(e: Expr) : Expr
-    ensures DafnyAST.interpExpr(simplifyExpr(e)) == DafnyAST.interpExpr(e)
+    ensures forall ctx: Context ::
+              DafnyAST.interpExpr(simplifyExpr(e), ctx) ==
+              DafnyAST.interpExpr(e, ctx)
   {
     match e {
       case Const(n) => e
+      case Var(v) => e
       case Op(op, e1, e2) =>
         match (op, simplifyExpr(e1), simplifyExpr(e2)) {
           case (_, Const(0), Const(0)) => Const(0)
@@ -78,16 +99,92 @@ module Rewriter {
   }
 
   function method simplifyStmt(s: Stmt) : Stmt
-    ensures DafnyAST.interpStmt(simplifyStmt(s)) == DafnyAST.interpStmt(s)
+    ensures forall ctx: Context ::
+              DafnyAST.interpStmt'(simplifyStmt(s), ctx) ==
+              DafnyAST.interpStmt'(s, ctx)
   {
     match s {
-      case Skip => Skip
-      case Print(e) => Print(simplifyExpr(e))
+      case Skip =>
+        Skip
+      case Print(e) =>
+        Print(simplifyExpr(e))
+      case Assign(v, e) =>
+        Assign(v, simplifyExpr(e))
       case Seq(s1, s2) =>
         match (simplifyStmt(s1), simplifyStmt(s2)) {
-          case (s1, Skip) => s1
-          case (Skip, s2) => s2
-          case (s1, s2) => Seq(s1, s2)
+          case (s1', Skip) =>
+            assert forall o: seq<int> :: o + [] == o; // FIXME
+            // assert forall ctx: Context ::
+            //   DafnyAST.interpStmt'(s1', ctx) ==
+            //   DafnyAST.interpStmt'(s, ctx) by {
+            //     forall ctx: Context
+            //       ensures DafnyAST.interpStmt'(s1', ctx) ==
+            //               DafnyAST.interpStmt'(s, ctx) {
+            //       calc {
+            //           DafnyAST.interpStmt'(s, ctx);
+            //         ==
+            //           DafnyAST.interpStmt'(Seq(s1, s2), ctx);
+            //         ==
+            //           var (ctx1, o1) := interpStmt'(s1, ctx);
+            //           var (ctx2, o2) := interpStmt'(s2, ctx1);
+            //           (ctx2, o1 + o2);
+            //         ==
+            //           var (ctx1, o1) := interpStmt'(s1', ctx);
+            //           var (ctx2, o2) := interpStmt'(Skip, ctx1);
+            //           (ctx2, o1 + o2);
+            //         ==
+            //           var (ctx1, o1) := interpStmt'(s1', ctx);
+            //           var (ctx2, o2) := (ctx1, []);
+            //           (ctx2, o1 + o2);
+            //         ==
+            //           var (ctx1, o1) := interpStmt'(s1', ctx);
+            //           (ctx1, o1 + []);
+            //         ==
+            //           var (ctx1, o1) := interpStmt'(s1', ctx);
+            //           (ctx1, o1);
+            //         ==
+            //           interpStmt'(s1', ctx);
+            //       }
+            //     }
+            //   }
+            s1'
+          case (Skip, s2') =>
+            assert forall o: seq<int> :: [] + o == o; // WISH: why is this needed, why didn't I need it in the previous version (without contexts), and how should I have found this faster?
+            // assert forall ctx: Context ::
+            //   DafnyAST.interpStmt'(s2', ctx) ==
+            //   DafnyAST.interpStmt'(s, ctx) by {
+            //     forall ctx: Context
+            //       ensures DafnyAST.interpStmt'(s2', ctx) ==
+            //               DafnyAST.interpStmt'(s, ctx) {
+            //       calc {
+            //           DafnyAST.interpStmt'(s, ctx);
+            //         ==
+            //           DafnyAST.interpStmt'(Seq(s1, s2), ctx);
+            //         ==
+            //           var (ctx1, o1) := interpStmt'(s1, ctx);
+            //           var (ctx2, o2) := interpStmt'(s2, ctx1);
+            //           (ctx2, o1 + o2);
+            //         ==
+            //           var (ctx1, o1) := interpStmt'(Skip, ctx);
+            //           var (ctx2, o2) := interpStmt'(s2', ctx1);
+            //           (ctx2, o1 + o2);
+            //         ==
+            //           var (ctx1, o1) := (ctx, []);
+            //           var (ctx2, o2) := interpStmt'(s2', ctx1);
+            //           (ctx2, o1 + o2);
+            //         ==
+            //           var (ctx2, o2) := interpStmt'(s2', ctx);
+            //           (ctx2, [] + o2);
+            //         ==
+            //           var (ctx2, o2) := interpStmt'(s2', ctx);
+            //           (ctx2, o2);
+            //         ==
+            //           interpStmt'(s2', ctx);
+            //       }
+            //     }
+            //   }
+            s2'
+          case (s1', s2') => Seq(s1', s2')
         }
     }
   }
@@ -96,7 +193,7 @@ module Rewriter {
 /// Target language
 /// ---------------
 ///
-/// Our target language targets a very simple stack machine.  The machine reads and executes instructions sequentially and modifies its state by pushing or popping from a data stack and writing to an output channel.
+/// Our target language targets a very simple stack machine.  The machine reads and executes instructions sequentially and modifies its state by pushing or popping from a data stack and writing to an output channel.  Local variables are stored in an infinite register file.
 ///
 /// For convenient, programs are represented using a simple linked-list type:
 
@@ -119,38 +216,51 @@ module StackMachine {
 /// The machine has 4 instructions:
 ///
 /// 1. `PushConst(n)` adds `n` to the machine's stack.
-/// 2. `PopAdd` removes the top two elements of stack, sums them, and pushes the result.
-/// 3. `PopSub` removes the top two elements of stack, subtract the first one from the second one, and pushes the result.
-/// 4. `PopPrint` removes the top element of the stack and writes it to the output channel.
+/// 2. `PushVar(v)` reads register `v` and pushes its value to the machine's stack.
+/// 3. `PopAdd` removes the top two elements of stack, sums them, and pushes the result.
+/// 4. `PopSub` removes the top two elements of stack, subtract the first one from the second one, and pushes the result.
+/// 5. `PopPrint` removes the top element of the stack and writes it to the output channel.
+/// 6. `PopVar(v)` removes the top element of the stack and stores it in register `v`.
 
   datatype Instr =
     | PushConst(n: int)
+    | PushVar(v: string)
     | PopAdd
     | PopSub
     | PopPrint
+    | PopVar(v: string)
 
 /// Programs are modeled using a linked list:
 
   type Prog = List<Instr>
 
-/// And semantics are given using an interpreter whose state combines a stack of values and a list of outputs.
+/// And semantics are given using an interpreter whose state combines a stack of values, a map of local variables (registers), and a list of outputs.
 
-  datatype State = State(stack: List<int>, output: seq<int>)
+  type RegisterFile = map<string, int>
+  datatype State = State(stack: List<int>,
+                         regs: RegisterFile,
+                         output: seq<int>)
 
   function method interpInstr(instr: Instr, st: State) : State {
     match (instr, st.stack) {
       case (PushConst(n), tl) =>
-        State(Cons(n, tl), st.output)
+        st.(stack := Cons(n, tl))
+      case (PushVar(v), tl) =>
+        var val := if v in st.regs.Keys then st.regs[v] else 0;
+        st.(stack := Cons(val, tl))
       case (PopAdd, Cons(n2, Cons(n1, tl))) =>
-        State(Cons(n1 + n2, tl), st.output)
+        st.(stack := Cons(n1 + n2, tl))
       case (PopSub, Cons(n2, Cons(n1, tl))) =>
-        State(Cons(n1 - n2, tl), st.output)
+        st.(stack := Cons(n1 - n2, tl))
       case (PopPrint, Cons(n, tl)) =>
-        State(tl, st.output + [n])
+        st.(stack := tl, output := st.output + [n])
+      case (PopVar(v), Cons(n, tl)) =>
+        st.(stack := tl, regs := st.regs[v := n])
       // Error cases
       case (PopAdd, _) => st
       case (PopSub, _) => st
       case (PopPrint, _) => st
+      case (PopVar, _) => st
     }
   }
 
@@ -161,7 +271,7 @@ module StackMachine {
     }
   }
 
-  const EmptyState := State(Nil, []);
+  const EmptyState := State(Nil, map[], []);
 
   function method interpProg(p: Prog) : seq<int> {
     interpProg'(p, EmptyState).output
@@ -177,6 +287,7 @@ module Compiler {
   function method compileExpr(e: DafnyAST.Expr): Prog {
     match e {
       case Const(n) => Cons(PushConst(n), Nil)
+      case Var(v) => Cons(PushVar(v), Nil)
       case Op(Add, e1, e2) => Cons(PopAdd, Concat(compileExpr(e2), compileExpr(e1)))
       case Op(Sub, e1, e2) => Cons(PopSub, Concat(compileExpr(e2), compileExpr(e1)))
     }
@@ -185,6 +296,7 @@ module Compiler {
   function method compileStmt(s: DafnyAST.Stmt): Prog {
     match s {
       case Skip => Nil
+      case Assign(v, e) => Cons(PopVar(v), compileExpr(e))
       case Print(e) => Cons(PopPrint, compileExpr(e))
       case Seq(s1, s2) => Concat(compileStmt(s2), compileStmt(s1))
     }
@@ -195,47 +307,53 @@ module Compiler {
             interpProg'(p1, interpProg'(p2, st))
   {}
 
-  lemma compileExprCorrect'(e: DafnyAST.Expr, st: State)
+  lemma {:induction false} compileExprCorrect'(e: DafnyAST.Expr, st: State) // FIXME default induction on e, st breaks things
     ensures interpProg'(compileExpr(e), st) ==
-            State(Cons(DafnyAST.interpExpr(e), st.stack), st.output)
+            st.(stack := Cons(DafnyAST.interpExpr(e, st.regs), st.stack))
   {
     match e {
       case Const(n) =>
-      case Op(op, e1, e2) =>
+      case Var(v) =>
+      case Op(op, e1, e2) => // Here's the expanded version of the same proof
         interpProg'_Concat(compileExpr(e2), compileExpr(e1), st);
-      // case Op(Sub, e1, e2) => // Here's the expanded version of the same proof
-      //   calc {
-      //     interpProg'(compileExpr(e), st);
-      //     interpProg'(Cons(PopSub, Concat(compileExpr(e2), compileExpr(e1))), st);
-      //     interpInstr(PopSub, interpProg'(Concat(compileExpr(e2), compileExpr(e1)), st));
-      //     { interpProg'_Concat(compileExpr(e2), compileExpr(e1), st); }
-      //   }
+        compileExprCorrect'(e1, st);
+        var st' := st.(stack := Cons(DafnyAST.interpExpr(e1, st.regs), st.stack));
+        compileExprCorrect'(e2, st');
+        // var st'' := st'.(stack := Cons(DafnyAST.interpExpr(e2, st'.regs), st'.stack));
     }
   }
 
-  lemma compileStmtCorrect'(s: DafnyAST.Stmt, st: State)
+  lemma {:induction false} compileStmtCorrect'(s: DafnyAST.Stmt, st: State)
     ensures interpProg'(compileStmt(s), st) ==
-            State(st.stack, st.output + DafnyAST.interpStmt(s))
+            var (ctx', output) := DafnyAST.interpStmt'(s, st.regs);
+            st.(regs := ctx', output := st.output + output)
   {
     match s {
       case Skip =>
+      case Assign(v, e) =>
+        compileExprCorrect'(e, st);
       case Print(e) =>
-        calc {
-          interpProg'(compileStmt(s), st);
-          interpProg'(compileStmt(DafnyAST.Print(e)), st);
-          interpProg'(Cons(PopPrint, compileExpr(e)), st);
-          interpInstr(PopPrint, interpProg'(compileExpr(e), st));
-          { compileExprCorrect'(e, st); }
-          interpInstr(PopPrint, State(Cons(DafnyAST.interpExpr(e), st.stack), st.output));
-        }
+        compileExprCorrect'(e, st);
       case Seq(s1, s2) =>
-        calc {
-          interpProg'(compileStmt(s), st);
-          interpProg'(compileStmt(DafnyAST.Seq(s1, s2)), st);
-          interpProg'(Concat(compileStmt(s2), compileStmt(s1)), st);
-          { interpProg'_Concat(compileStmt(s2), compileStmt(s1), st); }
-          interpProg'(compileStmt(s2), interpProg'(compileStmt(s1), st));
-        }
+        interpProg'_Concat(compileStmt(s2), compileStmt(s1), st);
+        compileStmtCorrect'(s1, st);
+        compileStmtCorrect'(s2, interpProg'(compileStmt(s1), st));
+        // calc { // Here is the original proof
+        //   interpProg'(compileStmt(s), st);
+        //   interpProg'(compileStmt(DafnyAST.Seq(s1, s2)), st);
+        //   interpProg'(Concat(compileStmt(s2), compileStmt(s1)), st);
+        //   { interpProg'_Concat(compileStmt(s2), compileStmt(s1), st); }
+        //   interpProg'(compileStmt(s2), interpProg'(compileStmt(s1), st));
+        //   { compileStmtCorrect'(s1, st); }
+        //   var (ctx1, o1) := DafnyAST.interpStmt'(s1, st.regs);
+        //   interpProg'(compileStmt(s2), st.(regs := ctx1, output := st.output + o1));
+        //   == { compileStmtCorrect'(s2,
+        //          var (ctx', output) := DafnyAST.interpStmt'(s1, st.regs);
+        //          st.(regs := ctx', output := st.output + output)); }
+        //   var (ctx1, o1) := DafnyAST.interpStmt'(s1, st.regs);
+        //   var (ctx2, o2) := DafnyAST.interpStmt'(s2, ctx1);
+        //   st.(regs := ctx2, output := st.output + o1 + o2);
+        // }
     }
   }
 
@@ -267,7 +385,21 @@ module Compiler {
 /// Native types
 /// ^^^^^^^^^^^^
 ///
-/// In this example the only native C# type that we use is `List<T>`.  We add a model of the no-arguments `List<T>` constructor and of the `Add` method to build new lists.  For iterating over existing lists (passed from C#) using the native ``Aggregate`` method provided by Linq would be enough, but to make this example more informative we define a custom method `FoldR` instead, model it in Dafny as an `:extern` method, and implement in ``Main.cs``.
+/// In this example the native C# types that we use are `int`, `string`, and `List<T>`.
+///
+/// For `int`, we use Dafny's support for subset types:
+
+module NativeTypes {
+  newtype nativeint = n: int | -0x8000_0000 <= n < 0x8000_0000
+}
+
+/// For `string` we add a model of the native string type, and below (in `CSharpUtils`) we declare an additional method `StringAsDafnyString`.
+
+module {:extern "System"} {:compile false} System {
+  class {:extern} {:compile false} String {}
+}
+
+/// We add a model of the no-arguments `List<T>` constructor and of the `Add` method to build new lists.  For iterating over existing lists (passed from C#) using the native ``Aggregate`` method provided by Linq would be enough, but to make this example more informative we define a custom method `FoldR` instead, model it in Dafny as an `:extern` method, and implement in ``Main.cs``.
 
 module {:extern "System.Collections.Generic"} {:compile false} System.Collections.Generic {
   class {:extern} {:compile false} List<T> {
@@ -280,7 +412,16 @@ module {:extern "System.Collections.Generic"} {:compile false} System.Collection
 
 module {:extern "SimpleCompiler.CSharpUtils"} CSharpUtils {
   import LinkedList
+  import opened System
   import opened System.Collections.Generic
+
+  class StringUtils {
+    // It's OK to model this as a function method because Dafny's `string` is a
+    // value type (otherwise it would be invalid in general to assume that
+    // calling the method twice produces equal results).
+    static function method {:extern}
+      StringAsDafnyString(s: String): string
+  }
 
   class ListUtils {
     static function method {:extern}
@@ -312,6 +453,7 @@ module {:extern "SimpleCompiler.CSharpUtils"} CSharpUtils {
 
 module {:extern "SimpleCompiler.CSharpAST"} CSharpAST {
   import System
+  import opened NativeTypes
 
   class {:extern "Op.BinOp"} Op__BinOp {
     static const {:extern} Add: Op__BinOp
@@ -322,7 +464,11 @@ module {:extern "SimpleCompiler.CSharpAST"} CSharpAST {
   trait {:compile false} {:extern} Expr {}
 
   trait {:compile false} {:extern} Const extends Expr {
-    var n: int
+    var n: nativeint
+  }
+
+  trait {:compile false} {:extern} Var extends Expr {
+    var v: System.String
   }
 
   trait {:compile false} {:extern} Op extends Expr {
@@ -334,6 +480,11 @@ module {:extern "SimpleCompiler.CSharpAST"} CSharpAST {
   trait {:compile false} {:extern} Stmt {}
 
   trait {:compile false} {:extern} Print extends Stmt {
+    var e: Expr
+  }
+
+  trait {:compile false} {:extern} Assign extends Stmt {
+    var v: System.String;
     var e: Expr
   }
 
@@ -353,7 +504,7 @@ module {:extern "SimpleCompiler.CSharpAST"} CSharpAST {
 module Translator {
   import CSharpAST
   import DafnyAST
-  import CSharpUtils
+  import opened CSharpUtils
   import opened LinkedList
 
   function method {:verify false} translateOp(op: CSharpAST.Op__BinOp)
@@ -370,11 +521,15 @@ module Translator {
   {
     if c is CSharpAST.Const then
       var c := c as CSharpAST.Const;
-      DafnyAST.Const(c.n)
+      DafnyAST.Const(c.n as int)
+    else if c is CSharpAST.Var then
+      var c := c as CSharpAST.Var;
+      DafnyAST.Var(StringUtils.StringAsDafnyString(c.v))
     else if c is CSharpAST.Op then
       var c := c as CSharpAST.Op;
       DafnyAST.Op(translateOp(c.op), translateExpr(c.e1), translateExpr(c.e2))
     else
+      assert false;
       translateExpr(c)
   }
 
@@ -385,6 +540,9 @@ module Translator {
     if c is CSharpAST.Print then
       var c := c as CSharpAST.Print;
       DafnyAST.Print(translateExpr(c.e))
+    else if c is CSharpAST.Assign then
+      var c := c as CSharpAST.Assign;
+      DafnyAST.Assign(StringUtils.StringAsDafnyString(c.v), translateExpr(c.e))
     else
       translateStmt(c)
   }
@@ -393,7 +551,7 @@ module Translator {
     : DafnyAST.Stmt
     reads *
   {
-    CSharpUtils.ListUtils.FoldR(
+    ListUtils.FoldR(
       (c, ds) => DafnyAST.Seq(translateStmt(c), ds),
       DafnyAST.Skip,
       c.s
@@ -425,9 +583,11 @@ module PrettyPrint {
   function method prettyPrintInstr(instr: Instr) : string {
     match instr {
       case PushConst(n) => "PushConst(" + prettyPrintNum(n, "0") + ")"
+      case PushVar(v) => "PushVar(" + v + ")"
       case PopAdd => "PopAdd"
       case PopSub => "PopSub"
-      case Print => "Print"
+      case PopPrint => "PopPrint"
+      case PopVar(v) => "PopVar(" + v + ")"
     }
   }
 
@@ -496,3 +656,5 @@ module {:extern "SimpleCompiler"} Interop {
     }
   }
 }
+
+/// With all this, we're ready to connect to C# and run our compiler.  Read through ``Main.cs`` to see how this file is called.

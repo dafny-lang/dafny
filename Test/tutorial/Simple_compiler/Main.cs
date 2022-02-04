@@ -22,6 +22,14 @@ namespace SimpleCompiler {
       }
     }
 
+    public class Var : Expr {
+      public string v;
+
+      public Var(string v) {
+        this.v = v;
+      }
+    }
+
     public class Op : Expr {
       public enum BinOp { Add, Sub }
 
@@ -40,6 +48,16 @@ namespace SimpleCompiler {
       public Expr e;
 
       public Print(Expr e) {
+        this.e = e;
+      }
+    }
+
+    public class Assign : Stmt {
+      public string v;
+      public Expr e;
+
+      public Assign(string v, Expr e) {
+        this.v = v;
         this.e = e;
       }
     }
@@ -66,6 +84,10 @@ namespace SimpleCompiler {
         return new Print((Expr)Visit(context.e));
       }
 
+      public override AST VisitAssign(SimpleParser.AssignContext context) {
+        return new Assign(context.v.Text, (Expr)Visit(context.e));
+      }
+
       public override AST VisitAdd(SimpleParser.AddContext context) {
         return new Op(Op.BinOp.Add, (Expr)Visit(context.l), (Expr)Visit(context.r));
       }
@@ -77,12 +99,22 @@ namespace SimpleCompiler {
       public override AST VisitConst(SimpleParser.ConstContext context) {
         return new Const(int.Parse(context.c.Text));
       }
+
+      public override AST VisitVar(SimpleParser.VarContext context) {
+        return new Var(context.v.Text);
+      }
     }
   }
 
   // Then we define any C# methods that Dafny may need:
 
   namespace CSharpUtils {
+    public partial class StringUtils {
+      public static Dafny.ISequence<char> StringAsDafnyString(String s) {
+        return Dafny.Sequence<char>.FromString(s);
+      }
+    }
+
     public partial class ListUtils {
       public static B FoldR<A, B>(Func<A, B, B> f, B b0, List<A> lA) {
         for (int i = lA.Count - 1; i >= 0; i--) {

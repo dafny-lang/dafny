@@ -15,4 +15,4 @@ $(dll): $(deps)
 build: $(dll)
 
 run: $(input) $(deps)
-	dotnet run -- $^
+	dotnet run -- $<
