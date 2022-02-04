@@ -1,46 +1,47 @@
 # 3.4 
 
 The top four improvements in Dafny 3.4 are:
-- For certain classes of changes, prevent unexpected changes in verification behavior when changing a Dafny program 
+- For certain classes of changes, prevent unexpected changes in verification behavior when changing a Dafny program.
 - Add command line options to assist in debugging verification performance.
 - Critical fixes to the IDE and greatly improved responsiveness of non-verification IDE features. 
 - The C# back-end supports traits as type parameters on datatypes.
 
 ### Verification
-- fix: Resolve the following unsoundness issue: https://github.com/dafny-lang/dafny/issues/1619
+- fix: Resolve unsoundness issue (https://github.com/dafny-lang/dafny/issues/1619).
+- fix: Don't silently succeed if the solver crashes (https://github.com/boogie-org/boogie/pull/488).
 - feat: Prevent changes in the verification behavior of a proof, when any of these types of changes are made to Dafny user code:
-  - Changes logically unrelated to the proof being verified.
+  - Changes logically unrelated to the proof being verified
   - Changes to the name of any declaration
   - Changes to the order of top-level declarations
-- feat: Assist in debugging the verification performance of a proof by adding the `/vcsSplitOnEveryAssert` CLI option and `{:vcs_split_on_every_assert}` attribute, and report the outcome and duration of splits when they occur in /verificationLogger:trx content.
-- feat: Add a `/verificationLogger:csv` CLI option that emits the same status and timing information as `/verificationLogger:trx`, but in an easier-to-parse format, along with Z3 resource counts for more repeatable tracking of verification difficulty
+- feat: Assist in debugging the verification performance of a proof by adding the `/vcsSplitOnEveryAssert` CLI option and `{:vcs_split_on_every_assert}` attribute, and report the outcome and duration of splits when they occur in `/verificationLogger:trx` content.
+- feat: Add a `/verificationLogger:csv` CLI option that emits the same status and timing information as `/verificationLogger:trx`, but in an easier-to-parse format, along with Z3 resource counts for more repeatable tracking of verification difficulty.
 
 ### IDE 
-- fix: Clean up process resources if IDE closed or restarted
-- fix: Do not let the Dafny compilation status bar get in a stuck state
+- fix: Clean up process resources if IDE closed or restarted.
+- fix: Do not let the Dafny compilation status bar get in a stuck state.
 
 - feat: Verification status reporting shows which proof is being verified, which can help debug slow to verify proofs.
 - feat: Publish parsing and resolution diagnostics before verification has completed. Verification diagnostics from previous runs are migrated.
-- feat: Enable 'go to definition', 'hover' and 'signature help' features before verification has completed
+- feat: Enable 'go to definition', 'hover' and 'signature help' features before verification has completed.
 - feat: Improve the hover feature to work for a wider scope of Dafny constructs, including function and method parameters, forall, exists and let expressions, and set and map comprehensions.
 - feat: Add an experimental verification caching feature, which enables automatically determining which proofs need to verify again after making changes.
-- feat: Display related resolution errors using nested diagnostics instead of independent diagnostics
+- feat: Display related resolution errors using nested diagnostics instead of independent diagnostics.
 
 ### UX
-- feat: Improve error reporting when providing wrongly typed arguments in a function call
-- feat: Improve error reporting when using type tests
+- feat: Improve error reporting when providing incorrectly typed arguments in a function call.
+- feat: Improve error reporting when using type tests.
 
 ### C#
-- fix: resolve various instances where Dafny would produce invalid C# code. (#1607, #1761, and #1762)
-- feat: Support variant type parameters on datatype definitions, which enables using traits as type arguments. https://github.com/dafny-lang/dafny/issues/1499
+- fix: resolve various instances where Dafny would produce invalid C# code (#1607, #1761, and #1762).
+- feat: Support variant type parameters on datatype definitions, which enables using traits as type arguments (https://github.com/dafny-lang/dafny/issues/1499).
 - feat: Support for downcasting both custom datatypes and functions.
 
 ### Various improvements
-- fix: DafnyLanguageServer.dll and Dafny.dll depended on two different versions of Newtonsoft.Json, which could cause crashes in development environments
-- fix: (error reporting) Types with the same name but from different modules are now disambiguated in error messages
+- fix: `DafnyLanguageServer.dll` and `Dafny.dll` depended on two different versions of Newtonsoft.Json, which could cause crashes in development environments.
+- fix: (error reporting) Types with the same name but from different modules are now disambiguated in error messages.
 - fix: (error reporting) Messages about arguments / parameters type mismatch are clearer and include the parameter name if available.
 - fix: (robustness) Exceptions during parsing, if any, won't crash the language server anymore.
-- fix: The elephant operator :- has a clearer error message and no longer reject generic methods on its right-hand side
+- fix: The elephant operator (`:-`) has a clearer error message and no longer reject generic methods on its right-hand side.
 
 ## Breaking changes
 
