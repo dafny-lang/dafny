@@ -107,7 +107,7 @@ namespace IntegrationTests {
           Environment.GetEnvironmentVariable("HOMEDRIVE") + Environment.GetEnvironmentVariable("HOMEPATH"));
         passthroughEnvironmentVariables = passthroughEnvironmentVariables
           .Concat(new[] {
-              "DOTNET_CLI_HOME",
+            "DOTNET_CLI_HOME",
             "HOMEDRIVE", "HOMEPATH",
             "LOCALAPPDATA",
             "APPDATA", "ProgramFiles", "ProgramFiles(x86)", "SystemRoot", "USERPROFILE"
