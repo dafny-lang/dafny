@@ -24,33 +24,39 @@ namespace Microsoft.Dafny {
   /// </summary>
   public static class BoogieXmlConvertor {
 
-    public static void RaiseTestLoggerEvents(string fileName, string loggerConfig) {
-      string loggerName;
-      Dictionary<string, string> parameters;
-      int semiColonIndex = loggerConfig.IndexOf(";");
-      if (semiColonIndex >= 0) {
-        loggerName = loggerConfig[..semiColonIndex];
-        var parametersList = loggerConfig[(semiColonIndex + 1)..];
-        parameters = parametersList.Split(",").Select(s => {
-          var equalsIndex = s.IndexOf("=");
-          return (s[..equalsIndex], s[(equalsIndex + 1)..]);
-        }).ToDictionary(p => p.Item1, p => p.Item2);
-      } else {
-        loggerName = loggerConfig;
-        parameters = new();
-      }
+    public static TestProperty ResourceCountProperty = TestProperty.Register("TestResult.ResourceCount", "TestResult.ResourceCount", typeof(int), typeof(TestResult));
 
-      // The only supported value for now
-      if (loggerName != "trx") {
-        throw new ArgumentException($"Unsupported verification logger name: {loggerName}");
-      }
-
-      // Provide just enough configuration for the TRX logger to work
-      parameters["TestRunDirectory"] = Constants.DefaultResultsDirectory;
+    public static void RaiseTestLoggerEvents(string fileName, List<string> loggerConfigs) {
+      // Provide just enough configuration for the loggers to work
+      var parameters = new Dictionary<string, string> {
+        ["TestRunDirectory"] = Constants.DefaultResultsDirectory
+      };
 
       var events = new LocalTestLoggerEvents();
-      var logger = new TrxLogger();
-      logger.Initialize(events, parameters);
+      foreach (var loggerConfig in loggerConfigs) {
+        string loggerName;
+        int semiColonIndex = loggerConfig.IndexOf(";");
+        if (semiColonIndex >= 0) {
+          loggerName = loggerConfig[..semiColonIndex];
+          var parametersList = loggerConfig[(semiColonIndex + 1)..];
+          foreach (string s in parametersList.Split(",")) {
+            var equalsIndex = s.IndexOf("=");
+            parameters.Add(s[..equalsIndex], s[(equalsIndex + 1)..]);
+          };
+        } else {
+          loggerName = loggerConfig;
+        }
+
+        if (loggerName == "trx") {
+          var logger = new TrxLogger();
+          logger.Initialize(events, parameters);
+        } else if (loggerName == "csv") {
+          var csvLogger = new CSVTestLogger();
+          csvLogger.Initialize(events, parameters);
+        } else {
+          throw new ArgumentException("Unsupported verification logger config: {loggerConfig}");
+        }
+      }
       events.EnableEvents();
 
       // Sort failures to the top, and then slower procedures first.
@@ -102,6 +108,7 @@ namespace Microsoft.Dafny {
                                        .Single(n => n.Name.LocalName == "conclusion");
       var endTime = conclusionNode.Attribute("endTime")!.Value;
       var duration = float.Parse(conclusionNode.Attribute("duration")!.Value);
+      var resourceCount = conclusionNode.Attribute("resourceCount")?.Value;
       var outcome = conclusionNode.Attribute("outcome")!.Value;
 
       var testCase = TestCaseForEntry(currentFileFragment, name);
@@ -110,6 +117,10 @@ namespace Microsoft.Dafny {
         Duration = TimeSpan.FromMilliseconds((long)(duration * 1000)),
         EndTime = DateTimeOffset.Parse(endTime)
       };
+
+      if (resourceCount != null) {
+        testResult.SetPropertyValue(ResourceCountProperty, int.Parse(resourceCount));
+      }
 
       if (outcome == "correct") {
         testResult.Outcome = TestOutcome.Passed;

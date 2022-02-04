@@ -285,6 +285,18 @@ namespace Microsoft.Dafny.Triggers {
       var msg = new StringBuilder();
       var indent = addHeader ? "  " : "";
       bool suppressWarnings = Attributes.Contains(q.quantifier.Attributes, "nowarn");
+      var reportingToken = q.quantifier.tok;
+      // If there is only one sub-expression, we discard the nested token information.
+      if (reportingToken is NestedToken nestedToken && !addHeader) {
+        reportingToken = nestedToken.Outer;
+      }
+
+      void FirstLetterCapitalOnNestedToken() {
+        if (reportingToken is NestedToken nestToken && nestToken.Message != null && nestToken.Message.Length > 1) {
+          reportingToken = new NestedToken(nestToken.Outer, nestToken.Inner,
+            char.ToUpper(nestToken.Message[0]) + nestToken.Message.Substring(1));
+        }
+      }
 
       if (!TriggerUtils.NeedsAutoTriggers(q.quantifier)) { // NOTE: split and autotriggers attributes are passed down to Boogie
         var extraMsg = TriggerUtils.WantsAutoTriggers(q.quantifier) ? "" : " Note that {:autotriggers false} can cause instabilities. Consider using {:nowarn}, {:matchingloop} (not great either), or a manual trigger instead.";
@@ -302,29 +314,33 @@ namespace Microsoft.Dafny.Triggers {
         AddTriggersToMessage("Rejected triggers:", q.RejectedCandidates, msg, indent, true);
 
 #if QUANTIFIER_WARNINGS
-        var WARN_TAG = DafnyOptions.O.UnicodeOutput ? "⚠ " : "/!\\ ";
+        var WARN_TAG = DafnyOptions.O.UnicodeOutput ? "⚠ " : @"/!\ ";
         var WARN_TAG_OVERRIDE = suppressWarnings ? "(Suppressed warning) " : WARN_TAG;
         var WARN_LEVEL = suppressWarnings ? ErrorLevel.Info : ErrorLevel.Warning;
         var WARN = indent + WARN_TAG_OVERRIDE;
         if (!q.CandidateTerms.Any()) {
           errorLevel = WARN_LEVEL;
           msg.Append(WARN).AppendLine("No terms found to trigger on.");
+          FirstLetterCapitalOnNestedToken();
         } else if (!q.Candidates.Any()) {
           errorLevel = WARN_LEVEL;
           msg.Append(WARN).AppendLine("No trigger covering all quantified variables found.");
+          FirstLetterCapitalOnNestedToken();
         } else if (!q.CouldSuppressLoops && !q.AllowsLoops) {
           errorLevel = WARN_LEVEL;
           msg.Append(WARN).AppendLine("Suppressing loops would leave this expression without triggers.");
+          FirstLetterCapitalOnNestedToken();
         } else if (suppressWarnings) {
           errorLevel = ErrorLevel.Warning;
           msg.Append(indent).Append(WARN_TAG).AppendLine("There is no warning here to suppress.");
+          FirstLetterCapitalOnNestedToken();
         }
 #endif
       }
 
       if (msg.Length > 0) {
         var msgStr = msg.ToString().TrimEnd("\r\n ".ToCharArray());
-        reporter.Message(MessageSource.Rewriter, errorLevel, q.quantifier.tok, msgStr);
+        reporter.Message(MessageSource.Rewriter, errorLevel, reportingToken, msgStr);
       }
     }
 
