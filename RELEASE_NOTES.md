@@ -13,7 +13,7 @@ The top four improvements in Dafny 3.4 are:
   - Changes logically unrelated to the proof being verified
   - Changes to the name of any declaration
   - Changes to the order of top-level declarations
-- feat: Assist in debugging the verification performance of a proof by adding the `/vcsSplitOnEveryAssert` CLI option and `{:vcs_split_on_every_assert}` attribute, and report the outcome and duration of splits when they occur in `/verificationLogger:trx` content.
+- feat: Assist in debugging the verification performance of a proof by adding the `/vcsSplitOnEveryAssert` CLI option and `{:vcs_split_on_every_assert}` attribute (see https://github.com/boogie-org/boogie/issues/465), and report the outcome and duration of splits when they occur in `/verificationLogger:trx` content.
 - feat: Add a `/verificationLogger:csv` CLI option that emits the same status and timing information as `/verificationLogger:trx`, but in an easier-to-parse format, along with Z3 resource counts for more repeatable tracking of verification difficulty.
 
 ### IDE 
@@ -28,11 +28,11 @@ The top four improvements in Dafny 3.4 are:
 - feat: Display related resolution errors using nested diagnostics instead of independent diagnostics.
 
 ### UX
-- feat: Improve error reporting when providing incorrectly typed arguments in a function call.
+- feat: Improve error reporting when providing incorrectly-typed arguments in a function call.
 - feat: Improve error reporting when using type tests.
 
 ### C#
-- fix: resolve various instances where Dafny would produce invalid C# code (#1607, #1761, and #1762).
+- fix: Resolve various instances where Dafny would produce invalid C# code (https://github.com/dafny-lang/dafny/issues/1607, https://github.com/dafny-lang/dafny/issues/1761, and https://github.com/dafny-lang/dafny/issues/1762).
 - feat: Support variant type parameters on datatype definitions, which enables using traits as type arguments (https://github.com/dafny-lang/dafny/issues/1499).
 - feat: Support for downcasting both custom datatypes and functions.
 
@@ -45,7 +45,7 @@ The top four improvements in Dafny 3.4 are:
 
 ## Breaking changes
 
-- Proofs such as methods and lemmas whose verification behavior, either the result or the verification time, depend on arbitrary behavior in Dafny's solver, may show different verification behavior in Dafny 3.4. For users who are not ready to change those proofs to make their verification more reliable, we offer the command line option `/mimicVerificationOf:3.3` to keep the Dafny 3.4 verification behavior consistent with 3.3.
+- The verifier in Dafny 3.4 is now more efficient for many programs, and making changes to Dafny programs is less likely to cause verification to take longer or timeout. However, it is still possible for some correct programs to take longer to verify than on Dafny 3.3, or for verification to fail. For users with such programs who are not yet ready to modify them to pass the 3.4 verifier, we offer the command line option `/mimicVerificationOf:3.3` to keep the Dafny 3.4 verification behavior consistent with 3.3.
 
 - In Dafny 3.3, comprehensions quantified over subset types did not validate the constraint of the subset type, which could result in crashes at run-time. In 3.4, subset types are disabled in set comprehensions in compiled contexts, unless the subset constraint is itself compilable.
 
