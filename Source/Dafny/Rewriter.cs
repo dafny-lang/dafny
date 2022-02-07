@@ -11,7 +11,7 @@ namespace Microsoft.Dafny {
   /// <summary>
   /// A class that plugins should extend, in order to provide an extra Rewriter to the pipeline.
   ///
-  /// If the plugin defines no Configuration, then Dafny will instantiate every sub-class
+  /// If the plugin defines no PluginConfiguration, then Dafny will instantiate every sub-class
   /// of Rewriter from the plugin, providing them with an ErrorReporter in the constructor
   /// as the first and only argument.
   /// </summary>
@@ -24,8 +24,8 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Constructor that accepts an ErrorReporter
     /// You can obtain an ErrorReporter two following ways:
-    /// * Extend a Configuration class, and override the method GetRewriters(), whose first argument is an ErrorReporter
-    /// * Have no Configuration  class, and an ErrorReporter will be provided to your class's constructor.
+    /// * Extend a PluginConfiguration class, and override the method GetRewriters(), whose first argument is an ErrorReporter
+    /// * Have no PluginConfiguration  class, and an ErrorReporter will be provided to your class's constructor.
     /// 
     /// Then you can use the protected field "reporter" like the following:
     /// 

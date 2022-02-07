@@ -7,19 +7,30 @@ using Microsoft.Dafny.Plugins;
 namespace Microsoft.Dafny;
 
 /// <summary>
-/// This class is internal to Dafny. It wraps an assembly and an extracted configuration from this assembly,
+/// This class wraps an assembly and an extracted configuration from this assembly,
 /// The configuration provides the methods to parse command-line arguments and obtain Rewriters 
 /// </summary>
 public class Plugin {
-  public Configuration Configuration;
+  public PluginConfiguration PluginConfiguration;
 
-  private readonly string path;
+  private readonly string pluginPath;
   private readonly Assembly assembly;
   private System.Type[] rewriterTypes;
 
-  class AutomaticConfiguration : Configuration {
+  private Plugin(string path, string[] args) {
+    pluginPath = path;
+    assembly = Assembly.LoadFrom(pluginPath);
+    rewriterTypes = CheckPluginForRewriters(assembly);
+    PluginConfiguration = LoadConfiguration(assembly, args, rewriterTypes);
+  }
+
+  public static Plugin Load(string pluginPath, string[] args) {
+    return new Plugin(pluginPath, args);
+  }
+
+  class AutomaticPluginConfiguration : PluginConfiguration {
     private Func<ErrorReporter, Rewriter>[] rewriters;
-    public AutomaticConfiguration(Func<ErrorReporter, Rewriter>[] rewriters) {
+    public AutomaticPluginConfiguration(Func<ErrorReporter, Rewriter>[] rewriters) {
       this.rewriters = rewriters;
     }
 
@@ -31,52 +42,45 @@ public class Plugin {
 
   public static IEnumerable<System.Type> GetConfigurationsTypes(Assembly assembly) {
     return assembly.GetTypes()
-      .Where(t => t.IsAssignableTo(typeof(Configuration)));
+      .Where(t => t.IsAssignableTo(typeof(PluginConfiguration)));
   }
 
-  public Plugin(string pluginPath, string[] args, ErrorReporter reporter) {
-    path = pluginPath;
-    assembly = Assembly.LoadFrom(path);
-    rewriterTypes = CheckPluginForRewriters(assembly, path);
-    Configuration = LoadConfiguration(assembly, args, path, rewriterTypes);
-  }
-
-  private static System.Type[] CheckPluginForRewriters(Assembly assembly, string path) {
+  private static System.Type[] CheckPluginForRewriters(Assembly assembly) {
     System.Type[] rewriterTpes = assembly.GetTypes().Where(t =>
       t.IsAssignableTo(typeof(Rewriter))).ToArray();
     // Checks about the plugin to be well-behaved.
     if (!rewriterTpes.Any()) {
-      throw new Exception($"Plugin {path} does not contain any Microsoft.Dafny.Plugins.Rewriter");
+      throw new Exception($"Plugin {assembly.Location} does not contain any Microsoft.Dafny.Plugins.Rewriter");
     }
 
     return rewriterTpes;
   }
 
-  private static Configuration LoadConfiguration(Assembly assembly, string[] args, string path, System.Type[] rewriterTypes) {
-    Configuration configuration = null;
+  private static PluginConfiguration LoadConfiguration(Assembly assembly, string[] args, System.Type[] rewriterTypes) {
+    PluginConfiguration pluginConfiguration = null;
     foreach (var configurationType in GetConfigurationsTypes(assembly)) {
-      if (configuration != null) {
+      if (pluginConfiguration != null) {
         throw new Exception(
-          $"Only one class should extend Microsoft.Dafny.Plugins.Configuration from {path}. Please remove {configurationType}.");
+          $"Only one class should extend Microsoft.Dafny.Plugins.PluginConfiguration from {assembly.Location}. Please remove {configurationType}.");
       }
 
-      configuration = (Configuration)Activator.CreateInstance(configurationType);
+      pluginConfiguration = (PluginConfiguration)Activator.CreateInstance(configurationType);
 
-      if (configuration == null) {
-        throw new Exception($"Could not instantiate a {configurationType} from {path}");
+      if (pluginConfiguration == null) {
+        throw new Exception($"Could not instantiate a {configurationType} from {assembly.Location}");
       }
 
-      configuration.ParseArguments(args);
+      pluginConfiguration.ParseArguments(args);
     }
 
-    configuration ??= new AutomaticConfiguration(
+    pluginConfiguration ??= new AutomaticPluginConfiguration(
       rewriterTypes.Select<System.Type, Func<ErrorReporter, Rewriter>>((System.Type rewriterType) =>
         (ErrorReporter errorReporter) =>
           Activator.CreateInstance(rewriterType, new object[] { errorReporter }) as Rewriter).ToArray());
-    return configuration;
+    return pluginConfiguration;
   }
 
   public IEnumerable<IRewriter> GetRewriters(ErrorReporter reporter) {
-    return Configuration.GetRewriters(reporter).Select(rewriter => new PluginRewriter(reporter, rewriter));
+    return PluginConfiguration.GetRewriters(reporter).Select(rewriter => new PluginRewriter(reporter, rewriter));
   }
 }

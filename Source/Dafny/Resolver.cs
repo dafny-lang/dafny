@@ -481,8 +481,8 @@ namespace Microsoft.Dafny {
             m.RefinementQId.Set(md); // If module is not found, md is null and an error message has been emitted
           }
 
-          foreach (var r in rewriters) {
-            r.PreResolve(m);
+          foreach (var rewriter in rewriters) {
+            rewriter.PreResolve(m);
           }
 
           literalDecl.Signature = RegisterTopLevelDecls(m, true);
@@ -507,11 +507,11 @@ namespace Microsoft.Dafny {
 
           prog.ModuleSigs[m] = sig;
 
-          foreach (var r in rewriters) {
+          foreach (var rewriter in rewriters) {
             if (!good || reporter.Count(ErrorLevel.Error) != preResolveErrorCount) {
               break;
             }
-            r.PostResolveIntermediate(m);
+            rewriter.PostResolveIntermediate(m);
           }
           if (good && reporter.Count(ErrorLevel.Error) == errorCount) {
             m.SuccessfullyResolved = true;
@@ -611,8 +611,8 @@ namespace Microsoft.Dafny {
           }
         }
 
-        foreach (var r in rewriters) {
-          r.PostCyclicityResolve(module);
+        foreach (var rewriter in rewriters) {
+          rewriter.PostCyclicityResolve(module);
         }
       }
 
@@ -641,8 +641,8 @@ namespace Microsoft.Dafny {
       }
 
       foreach (var module in prog.Modules()) {
-        foreach (var r in rewriters) {
-          r.PostDecreasesResolve(module);
+        foreach (var rewriter in rewriters) {
+          rewriter.PostDecreasesResolve(module);
         }
       }
 
@@ -696,13 +696,13 @@ namespace Microsoft.Dafny {
       CheckDupModuleNames(prog);
 
       foreach (var module in prog.Modules()) {
-        foreach (var r in rewriters) {
-          r.PostResolve(module);
+        foreach (var rewriter in rewriters) {
+          rewriter.PostResolve(module);
         }
       }
 
-      foreach (var r in rewriters) {
-        r.PostResolve(prog);
+      foreach (var rewriter in rewriters) {
+        rewriter.PostResolve(prog);
       }
     }
 

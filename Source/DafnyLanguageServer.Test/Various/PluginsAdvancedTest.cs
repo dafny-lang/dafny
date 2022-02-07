@@ -26,7 +26,7 @@ namespace PluginsAdvancedTest {
 /// <summary>
 ///  Small plugin that detects all extern methods and verifies that there are test methods that actually invoke them.
 /// </summary>
-public class TestConfiguration: Configuration {
+public class TestConfiguration: PluginConfiguration {
   public string PluginUser = """";
   public bool ForceName = false;
   public override void ParseArguments(string[] args) {

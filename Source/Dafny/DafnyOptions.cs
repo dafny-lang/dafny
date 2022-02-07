@@ -262,7 +262,7 @@ namespace Microsoft.Dafny {
                         matchResult.Groups[2].Value
                     ).ToArray();
                 }
-                Plugins.Add(new Plugin(pluginPath, arguments, errorReporter));
+                Plugins.Add(Plugin.Load(pluginPath, arguments));
               }
             }
 
@@ -848,7 +848,7 @@ namespace Microsoft.Dafny {
 /plugin:<path to one assembly>[ <arguments>]
     (experimental) One path to an assembly that contains at least one
     instantiatable class extending Microsoft.Dafny.Plugin.Rewriter.
-    It can also extend Microsoft.Dafny.Plugin.Configuration to receive arguments
+    It can also extend Microsoft.Dafny.Plugins.PluginConfiguration to receive arguments
     More information about what plugins do and how define them:
     https://github.com/dafny-lang/dafny/blob/master/Source/DafnyLanguageServer/README.md#about-plugins
 /Main:<name>

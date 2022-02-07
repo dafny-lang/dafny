@@ -20,7 +20,7 @@ using Microsoft.Dafny.Plugins;
 
 namespace PluginsTest {
 
-public class TestConfiguration: Configuration {
+public class TestConfiguration: PluginConfiguration {
   public string Argument = """";
   public override void ParseArguments(string[] args) {
     Argument = args.Length > 0 ? args[0] : ""[no argument]"";

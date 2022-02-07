@@ -52,7 +52,7 @@ public class PluginsTest {
 using Microsoft.Dafny;
 using Microsoft.Dafny.Plugins;
 
-public class TestConfiguration: Configuration {
+public class TestConfiguration: PluginConfiguration {
   public string Argument = """";
   public override void ParseArguments(string[] args) {
     Argument = args[0];
@@ -76,7 +76,7 @@ public class ErrorRewriter: Rewriter {
 
     var reporter = new CollectionErrorReporter();
     var options = new DafnyOptions(reporter);
-    options.Plugins.Add(new Microsoft.Dafny.Plugin(library, new string[] { "because whatever" }, reporter));
+    options.Plugins.Add(Plugin.Load(library, new string[] { "because whatever" }));
     DafnyOptions.Install(options);
 
     var programString = "function test(): int { 1 }";
@@ -107,7 +107,7 @@ public class ErrorRewriter: Rewriter {
 
     var reporter = new CollectionErrorReporter();
     var options = new DafnyOptions(reporter);
-    options.Plugins.Add(new Microsoft.Dafny.Plugin(library, new string[] { "ignored arguments" }, reporter));
+    options.Plugins.Add(Plugin.Load(library, new string[] { "ignored arguments" }));
     DafnyOptions.Install(options);
 
     var programString = "function test(): int { 1 }";
