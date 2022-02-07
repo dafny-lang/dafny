@@ -2244,7 +2244,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
   )
 
   (. decreases = isLeastPredicate || isGreatestPredicate ? null : new List<Expression/*!*/>(); .)
-  FunctionSpec<reqs, reads, ens, decreases>
+  FunctionSpec<reqs, reads, ens, decreases, !isFunctionMethod>
   (. IToken byMethodTok = null; BlockStmt byMethodBody = null; .)
   [ FunctionBody<out body, out bodyStart, out bodyEnd, out byMethodTok, out byMethodBody>
     (. if (byMethodBody != null) {
@@ -2304,7 +2304,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
   .
 
 /*------------------------------------------------------------------------*/
-FunctionSpec<.List<AttributedExpression/*!*/>/*!*/ reqs, List<FrameExpression/*!*/>/*!*/ reads, List<AttributedExpression/*!*/>/*!*/ ens, List<Expression/*!*/> decreases.>
+FunctionSpec<.List<AttributedExpression/*!*/>/*!*/ reqs, List<FrameExpression/*!*/>/*!*/ reads, List<AttributedExpression/*!*/>/*!*/ ens, List<Expression/*!*/> decreases, bool IsGhost.>
 = (. Contract.Requires(cce.NonNullElements(reqs));
      Contract.Requires(cce.NonNullElements(reads));
      Contract.Requires(decreases == null || cce.NonNullElements(decreases));
@@ -2319,7 +2319,7 @@ FunctionSpec<.List<AttributedExpression/*!*/>/*!*/ reqs, List<FrameExpression/*!
          decreases = new List<Expression/*!*/>();
        }
     .)
-    DecreasesClause<decreases, ref attrs, false, false>
+    DecreasesClause<decreases, ref attrs, !IsGhost, false>
   }
   .
 

@@ -1,8 +1,8 @@
 DIR=$(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 
-default: parser runtime boogie exe
+default: parser boogie exe
 
-all: runtime boogie exe refman
+all: boogie exe refman
 
 exe:
 	(cd ${DIR} ; dotnet build Source/Dafny.sln ) ## includes parser
