@@ -66,8 +66,8 @@ module DafnyAST {
     }
   }
 
-  function method interpStmt(s: Stmt) : seq<int> {
-    interpStmt'(s, map[]).output
+  function method interpStmt(s: Stmt, ctx: Context) : seq<int> {
+    interpStmt'(s, ctx).output
   }
 }
 
@@ -274,8 +274,8 @@ module StackMachine {
 
   const EmptyState := State(Nil, map[], []);
 
-  function method interpProg(p: Prog) : seq<int> {
-    interpProg'(p, EmptyState).output
+  function method interpProg(p: Prog, input: RegisterFile) : seq<int> {
+    interpProg'(p, EmptyState.(regs := input)).output
   }
 }
 
@@ -369,7 +369,8 @@ module Compiler {
   }
 
   lemma compileCorrect(s: DafnyAST.Stmt)
-    ensures interpProg(compileStmt(s)) == DafnyAST.interpStmt(s)
+    ensures forall input: DafnyAST.Context ::
+              interpProg(compileStmt(s), input) == DafnyAST.interpStmt(s, input)
   {
     compileStmtCorrect(s);
   }
@@ -631,30 +632,25 @@ module {:extern "SimpleCompiler"} Interop {
 
   class DafnyCompiler {
     static method Compile(dAST: DafnyAST.Stmt) returns (dSM: StackMachine.Prog)
-      ensures DafnyAST.interpStmt(dAST) == StackMachine.interpProg(dSM)
+      ensures forall input: DafnyAST.Context ::
+                DafnyAST.interpStmt(dAST, input) == StackMachine.interpProg(dSM, input)
     {
       print "translated = \n  "; print dAST; print "\n";
-      print "interp(translated) = \n  "; print DafnyAST.interpStmt(dAST); print "\n";
+      print "interp(translated) = \n  "; print DafnyAST.interpStmt(dAST, map[]); print "\n";
       print "\n";
 
       var optimized: DafnyAST.Stmt := Rewriter.simplifyStmt(dAST);
       print "optimized = \n  "; print optimized; print "\n";
-      print "interp(optimized) = \n  "; print DafnyAST.interpStmt(optimized); print "\n";
+      print "interp(optimized) = \n  "; print DafnyAST.interpStmt(optimized, map[]); print "\n";
       print "\n";
 
       dSM := Compiler.compileStmt(optimized);
       print "compiled = \n  "; print dSM; print "\n";
-      print "interp(compiled) = \n  "; print StackMachine.interpProg(dSM); print "\n";
+      print "interp(compiled) = \n  "; print StackMachine.interpProg(dSM, map[]); print "\n";
       print "\n";
 
       // Proof:
-      calc {
-        DafnyAST.interpStmt(dAST);
-        // No lemma needed here since simplifyStmt has the right postcondition
-        DafnyAST.interpStmt(optimized);
-        { Compiler.compileStmtCorrect(optimized); }
-        StackMachine.interpProg(dSM);
-      }
+      Compiler.compileStmtCorrect(optimized);
     }
 
     static method CompileAndExport(cAST: CSharpAST.Prog)
