@@ -649,6 +649,8 @@ function usesTuple() : int
 }
 ```
 
+The special assignment operator `:-` enables to quickly return if the value evaluates to an error-compatible type, see [Section 19.7](sec-update-failure).
+
 ## 19.9. Guards
 ````grammar
 Guard = ( "*"
