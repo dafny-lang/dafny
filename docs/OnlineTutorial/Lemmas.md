@@ -14,7 +14,7 @@ goal in and of themselves. They allow Dafny to break the proof into two:
 prove the lemma, then use it to prove the final result; the final result
 being the correctness of the program. By splitting it in this way, you
 can prevent Dafny from trying to bite off more than it can chew. Dafny,
-and computers in general, is very good a dealing with a bunch of specific
+and computers in general, is very good at dealing with a bunch of specific
 details and covering all the cases, but it lacks the cleverness to see
 intermediate steps that make the proof process easier.
 
@@ -181,7 +181,7 @@ method FindZero(a: array<int>) returns (index: int)
 
 Now Dafny does not complain about the `FindZero` method, as the
 lemma's postcondition shows that the loop invariant is preserved. It does
-complain about the lemma itself, which is not suprising given that the
+complain about the lemma itself, which is not surprising given that the
 body is empty. In order to get Dafny to accept the lemma, we will have to
 demonstrate that the postcondition is true. We do this like we do everything
 in Dafny: writing code.
@@ -870,7 +870,7 @@ the preconditions that `root in subgraph`. Thus, because `closed(subgraph)`, we 
 `p[1] in subgraph`. These are the same conditions that we started with! What we have here is a smaller
 version of the same problem. We can just recursively call `DisproofLemma` to prove that `p[1..]` is
 not a path. This means, per the definition of `path`, that `p` cannot be a path, and the second postcondition
-is satisfied. This can be implmented as:
+is satisfied. This can be implemented as:
 
 ``` {.editonly}
 lemma DisproofLemma(p: seq<Node>, subgraph: set<Node>,
