@@ -1,7 +1,7 @@
 # 3.4 
 
 The top four improvements in Dafny 3.4 are:
-- For certain classes of changes, prevent unexpected changes in verification behavior when changing a Dafny program.
+- For certain classes of changes to a Dafny program, prevent unexpected changes in verification behavior.
 - Add command line options to assist in debugging verification performance.
 - Critical fixes to the IDE and greatly improved responsiveness of non-verification IDE features. 
 - The C# back-end supports traits as type parameters on datatypes.
