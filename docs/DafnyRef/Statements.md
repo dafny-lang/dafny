@@ -1112,7 +1112,7 @@ If the `decreases` clause of a loop specifies `*`, then no
 termination check will be performed. Use of this feature is sound only with
 respect to partial correctness.
 
-### 19.14.3. Loop framing
+### 19.14.3. Loop framing {#sec-loop-framing}
 
 The specification of a loop also includes _framing_, which says what the
 loop modifies. The loop frame includes both local variables and locations
@@ -1201,6 +1201,107 @@ every iteration, a proof obligation that
 * everything indicated in the loop `modifies` clause is allowed to be modified by the
   (effective `modifies` clause of the) enclosing loop or method.
 
+### 19.14.4. Body-less methods, functions, loops, and aggregate statements
+
+Methods (including lemmas), functions, loops, and `forall` statements are ordinarily
+declared with a body, that is, a curly-braces pair that contains (for methods, loops, and `forall`)
+a list of statements or (for a function) an expression. In each case, Dafny syntactically
+allows these constructs to be given without a body. This is to allow programmers to
+temporarily postpone the development of the implementation of the method, function, loop, or
+aggregate statement.
+
+If a method has no body, there is no difference for callers of the method. Callers still reason
+about the call in terms of the method's specification. But without a body, the verifier has
+no method implementation to check against the specification, so the verifier is silently happy.
+The compiler, on the other hand, will complain if it encounters a body-less method, because the
+compiler is supposed to generate code for the method, but it isn't clever enough to do that by
+itself without a given method body. If the method implementation is provided by code written
+outside of Dafny, the method can be marked with an `{:extern}` annotation, in which case the
+compiler will no longer complain about the absence of a method body.
+
+A lemma is a special kind of method. Callers are therefore unaffected by the absence of a body,
+and the verifier is silently happy with not having a proof to check against the lemma specification.
+Despite a lemma being ghost, it is still the compiler that checks for, and complains about,
+body-less lemmas. A body-less lemma is an unproven lemma, which is often known as an _axiom_.
+If you intend to use a lemma as an axiom, omit its body and add the attribute `{:axiom}`, which
+causes the compiler to suppress its complaint about the lack of a body.
+
+Similarly, calls to a body-less function use only the specification of the function. The
+verifier is silently happy, but the compiler complains (whether or not the function is ghost).
+As for methods and lemmas, the `{:extern}` and `{:axiom}` attributes can be used to suppress the
+compiler's complaint.
+
+By supplying a body for a method or function, the verifier will in effect show the feasibility of
+the specification of the method or function. By supplying an `{:extern}` or `{:axiom}` attribute,
+you are taking that responsibility into your own hands. Common mistakes include forgetting to
+provide an appropriate `modifies` or `reads` clause in the specification, or forgetting that
+the results of functions in Dafny (unlike in most other languages) must be deterministic.
+
+Just like methods and functions have two sides, callers and implementations, loops also have
+two sides. One side (analogous to callers) is the context that uses the loop. That context treats
+the loop in the same way regardless of whether or not the loop has a body. The other side
+is the loop body, that is, the implementation of each loop iteration. The verifier checks
+that the loop body maintains the loop invariant and that the iterations will eventually terminate,
+but if there is no loop body, the verifier is silently happy. This allows you to temporarily
+postpone the authoring of the loop body until after you've made sure that the loop specification
+is what you need in the context of the loop.
+
+There is one thing that works differently for body-less loops than for loops with bodies.
+It is the computation of syntactic loop targets, which become part of the loop frame
+(see [Section 19.14.3](#sec-loop-framing)). For a body-less loop, the local variables
+computed as part of the loop frame are the mutable variables that occur free in the
+loop specification. The heap is considered a part of the loop frame if it is used
+for mutable fields in the loop specification or if the loop has an explicit `modifies` clause.
+The IDE will display the computed loop frame in hover text.
+
+For example, consider
+
+```dafny
+class Cell {
+  var data: int
+  const K: int
+}
+
+method BodylessLoop(n: nat, c: Cell)
+  requires c.K == 8
+  modifies c
+{
+  c.data := 5;
+  var a, b := n, n;
+  for i := 0 to n
+    invariant c.K < 10
+    invariant a <= n
+    invariant c.data < 10
+  assert a == n;
+  assert b == n;
+  assert c.data == 5;
+}
+```
+
+The loop specification mentions local variable `a`, and thus `a` is considered part of
+the loop frame. Since what the loop invariant says about `a` is not strong enough to
+prove the assertion `a == n` that follows the loop, the verifier complains about that
+assertion.
+
+Local variable `b` is not mentioned in the loop specification, and thus `b` is not
+included in the loop frame. Since in-parameter `n` is immutable, it is not included
+in the loop frame, either, despite being mentioned in the loop specification. For
+these reasons, the assertion `b == n` is provable after the loop.
+
+Because the loop specification mentions the mutable field `data`, the heap becomes
+part of the loop frame. Since the loop invariant is not strong enough to prove the
+assertion `c.data == 5` that follows the loop, the verifier complains about that
+assertion. On the other hand, had `c.data < 10` not been mentioned in the loop
+specification, the assertion would be verified, since field `K` is then the only
+field mentioned in the loop specification and `K` is immutable.
+
+Finally, the aggregate statement (`forall`) can also be given without a body. Such
+a statement claims that the given `ensures` clause holds true for all values of
+the bound variables that satisfy the given range constraint. If the statement has
+no body, the program is in effect omitting the proof, much like a body-less lemma
+is omitting the proof of the claim made by the lemma specification. As with the
+other body-less constructs above, the verifier is silently happy with a body-less
+`forall` statement, but the compiler will complain.
 
 ## 19.15. Match Statement {#sec-match-statement}
 ````grammar
