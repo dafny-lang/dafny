@@ -54,6 +54,15 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
         | Datatypes(oDatatypes: Datatypes)
     }
 
+    module UnaryOp { // FIXME should be resolved ResolvedUnaryOp (see SinglePassCompiler.cs)
+      datatype Op =
+        | Not
+        | Cardinality
+        | Fresh
+        | Allocated
+        | Lit
+    }
+
     // public class LiteralExpr : Expression
     datatype LiteralExpr =
       | LitBool(b: bool)
@@ -63,7 +72,8 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
       | LitString(s: string, verbatim: bool)
 
     datatype Expr =
-      | BinaryExpr(op: BinaryOp.Op, e0: Expr, e1: Expr)
+      | UnaryOpExpr(uop: UnaryOp.Op, e: Expr) // LATER UnaryExpr
+      | BinaryExpr(bop: BinaryOp.Op, e0: Expr, e1: Expr)
       | LiteralExpr(lit: LiteralExpr)
       | InvalidExpr(msg: string)
       | UnsupportedExpr(expr: C.Expression)
@@ -87,6 +97,13 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
     import opened CSharpDafnyInterop.Microsoft
     import C = CSharpDafnyASTModel
     import D = AST
+
+    const UnaryOpCodeMap: map<C.UnaryOpExpr__Opcode, D.UnaryOp.Op> :=
+      map[C.UnaryOpExpr__Opcode.Not := D.UnaryOp.Not]
+         [C.UnaryOpExpr__Opcode.Cardinality := D.UnaryOp.Cardinality]
+         [C.UnaryOpExpr__Opcode.Fresh := D.UnaryOp.Fresh]
+         [C.UnaryOpExpr__Opcode.Allocated := D.UnaryOp.Allocated]
+         [C.UnaryOpExpr__Opcode.Lit := D.UnaryOp.Lit]
 
     const BinaryOpCodeMap: map<C.BinaryExpr__ResolvedOpcode, D.BinaryOp.Op> :=
       map[C.BinaryExpr__ResolvedOpcode.Iff := D.BinaryOp.Logical(D.BinaryOp.Iff)]
@@ -152,6 +169,16 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
          [C.BinaryExpr__ResolvedOpcode.MapSubtraction := D.BinaryOp.Maps(D.BinaryOp.MapSubtraction)]
          [C.BinaryExpr__ResolvedOpcode.RankLt := D.BinaryOp.Datatypes(D.BinaryOp.RankLt)]
          [C.BinaryExpr__ResolvedOpcode.RankGt := D.BinaryOp.Datatypes(D.BinaryOp.RankGt)];
+
+    function method {:verify false} TranslateUnary(u: C.UnaryExpr) : D.Expr {
+      if u is C.UnaryOpExpr then
+        var u := u as C.UnaryOpExpr;
+        var op, e := u.Op, u.E;
+        assume op in UnaryOpCodeMap.Keys; // FIXME expect
+        D.UnaryOpExpr(UnaryOpCodeMap[op], TranslateExpression(e))
+      else
+        D.UnsupportedExpr(u)
+    }
 
     function method {:verify false} TranslateBinary(b: C.BinaryExpr) : D.Expr {
       var op, e0, e1 := b.ResolvedOp, b.E0, b.E1;
@@ -271,6 +298,96 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
     }
   }
 
+
+  module Predicates {
+    module TopExprs {
+      import opened Lib
+      import opened AST
+
+      function method TopExprs_Stmt(s: Stmt, P: Expr -> bool) : bool {
+        match s {
+          case PrintStmt(exprs) =>
+            Seq.All(P, exprs)
+          case UnsupportedStmt => true
+        }
+      }
+
+      function method TopExprs_BlockStmt(b: BlockStmt, P: Expr -> bool) : bool {
+        Seq.All((s => TopExprs_Stmt(s, P)), b)
+      }
+
+      function method TopExprs_Method(m: Method, P: Expr -> bool) : bool {
+        match m {
+          case Method(CompileName_, methodBody) => TopExprs_BlockStmt(methodBody, P)
+        }
+      }
+
+      function method TopExprs_Program(p: Program, P: Expr -> bool) : bool {
+        match p {
+          case Program(mainMethod) => TopExprs_Method(mainMethod, P)
+        }
+      }
+
+      function method TopExprs(p: Program, P: Expr -> bool) : bool {
+        TopExprs_Program(p, P)
+      }
+    }
+
+    module AllExprs {
+      import opened Lib
+      import opened AST
+
+      // FIXME rewrite in terms of a generic iterator on expressions
+      function method AllExprs_Expr(e: Expr, P: Expr -> bool) : bool {
+        && P(e)
+        && match e {
+            case UnaryOpExpr(uop: UnaryOp.Op, e: Expr) =>
+              AllExprs_Expr(e, P)
+            case BinaryExpr(bop: BinaryOp.Op, e0: Expr, e1: Expr) =>
+              AllExprs_Expr(e0, P) && AllExprs_Expr(e1, P)
+            case LiteralExpr(lit: LiteralExpr) => true
+            case InvalidExpr(msg: string) => true
+            case UnsupportedExpr(expr: C.Expression) => true
+          }
+      }
+
+      function method AllExprs_Stmt(s: Stmt, P: Expr -> bool) : bool {
+        match s {
+          case PrintStmt(exprs) =>
+            Seq.All((e => AllExprs_Expr(e, P)), exprs)
+          case UnsupportedStmt => true
+        }
+      }
+
+      function method AllExprs_BlockStmt(b: BlockStmt, P: Expr -> bool) : bool {
+        Seq.All((s => AllExprs_Stmt(s, P)), b)
+      }
+
+      function method AllExprs_Method(m: Method, P: Expr -> bool) : bool {
+        match m {
+          case Method(CompileName_, methodBody) => AllExprs_BlockStmt(methodBody, P)
+        }
+      }
+
+      function method AllExprs_Program(p: Program, P: Expr -> bool) : bool {
+        match p {
+          case Program(mainMethod) => AllExprs_Method(mainMethod, P)
+        }
+      }
+
+      function method AllExprs(p: Program, P: Expr -> bool) : bool {
+        AllExprs_Program(p, P)
+      }
+    }
+
+    import opened AST
+
+    lemma TopExprs_AllExprs(p: Program, P: Expr -> bool)
+      requires TopExprs.TopExprs_Program(p, (e => AllExprs.AllExprs_Expr(e, P)))
+      ensures AllExprs.AllExprs_Program(p, P)
+    {}
+  }
+
   module Rewriter {
     import Lib
     import opened AST
@@ -281,8 +398,32 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
     module MapExprs {
       import opened Lib
       import opened AST
+      import opened Predicates.TopExprs
 
-      function method MapExprs_Stmt(s: Stmt, f: Expr -> Expr) : Stmt {
+      function IsMap<T(!new), T'>(f: T -> T') : T' -> bool {
+        y => exists x :: y == f(x)
+      }
+
+      // LATER: Explain why this can't be defined: putting `f` on the outside risks breaking the invariant for subterms, and putting f on the inside breaks termination.
+      // function method {:verify true} MapExprs_Expr(e: Expr, f: Expr -> Expr) : (e': Expr)
+      //   ensures AllExprs_Expr(e', IsMap(f))
+      // {
+      //   var e := f(e);
+      //   match e {
+      //       case UnaryOpExpr(uop, e) =>
+      //         // Not using datatype update to ensure that I get a warning if a type gets new arguments
+      //         UnaryOpExpr(uop, MapExprs_Expr(e, f))
+      //       case BinaryExpr(bop, e0, e1) =>
+      //         BinaryExpr(bop, MapExprs_Expr(e0, f), MapExprs_Expr(e1, f))
+      //       case LiteralExpr(lit_) => e
+      //       case InvalidExpr(msg_) => e
+      //       case UnsupportedExpr(cexpr_) => e
+      //   }
+      // }
+
+      function method {:opaque} {:verify false} MapExprs_Stmt(s: Stmt, f: Expr -> Expr) : (s': Stmt)
+        ensures TopExprs_Stmt(s', IsMap(f))
+      {
         match s {
           case PrintStmt(exprs) =>
             PrintStmt(Seq.Map(f, exprs))
@@ -290,36 +431,105 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
         }
       }
 
-      function method MapExprs_BlockStmt(b: BlockStmt, f: Expr -> Expr) : BlockStmt {
+      function method {:opaque} {:verify false} MapExprs_BlockStmt(b: BlockStmt, f: Expr -> Expr) : (b': BlockStmt)
+        ensures TopExprs_BlockStmt(b', IsMap(f))
+      {
         Seq.Map((s => MapExprs_Stmt(s, f)), b)
       }
 
-      function method MapExprs_Method(m: Method, f: Expr -> Expr) : Method {
+      function method {:opaque} {:verify false} MapExprs_Method(m: Method, f: Expr -> Expr) : (m': Method)
+        ensures TopExprs_Method(m', IsMap(f))
+      {
         match m {
           case Method(CompileName, methodBody) =>
             Method(CompileName, MapExprs_BlockStmt(methodBody, f))
         }
       }
 
-      function method MapExprs_Program(p: Program, f: Expr -> Expr) : Program {
+      function method {:opaque} {:verify false} MapExprs_Program(p: Program, f: Expr -> Expr) : (p': Program)
+        ensures TopExprs_Program(p', IsMap(f))
+      {
         match p {
           case Program(mainMethod) => Program(MapExprs_Method(mainMethod, f))
         }
       }
+    }
+  }
 
-      function method MapExprs(p: Program, f: Expr -> Expr) : Program {
-        MapExprs_Program(p, f)
+  module Simplifier {
+    import Lib
+    import opened AST
+    import opened Lib.Datatypes
+    import opened Rewriter.MapExprs
+
+    import Predicates
+    import opened Predicates.AllExprs
+    import opened Predicates.TopExprs
+
+    function method FlipNegatedBinop(op: BinaryOp.Op) : BinaryOp.Op {
+      match op {
+        case Eq(NeqCommon) => BinaryOp.Eq(BinaryOp.EqCommon)
+        case Maps(MapNeq) => BinaryOp.Maps(BinaryOp.MapEq)
+        case Maps(NotInMap) => BinaryOp.Maps(BinaryOp.InMap)
+        case MultiSets(MultiSetNeq) => BinaryOp.MultiSets(BinaryOp.MultiSetEq)
+        case MultiSets(NotInMultiSet) => BinaryOp.MultiSets(BinaryOp.InMultiSet)
+        case Sequences(SeqNeq) => BinaryOp.Sequences(BinaryOp.SeqEq)
+        case Sets(SetNeq) => BinaryOp.Sets(BinaryOp.SetEq)
+        case Sets(NotInSet) => BinaryOp.Sets(BinaryOp.InSet)
+        case Sequences(NotInSeq) => BinaryOp.Sequences(BinaryOp.InSeq)
+        case _ => op
       }
+    }
+
+    predicate method IsNegatedBinop(op: BinaryOp.Op) {
+      FlipNegatedBinop(op) != op
+    }
+
+    predicate method IsNegatedBinopExpr(e: Expr) {
+      e.BinaryExpr? && IsNegatedBinop(e.bop)
+    }
+
+    predicate NoNegatedBinops(e: Expr) {
+      !IsNegatedBinopExpr(e)
+    }
+
+    function method EliminateNegatedBinops_Expr(e: Expr) : (e': Expr)
+      ensures AllExprs_Expr(e', NoNegatedBinops)
+    {
+      match e {
+        case UnaryOpExpr(uop, e) =>
+          // Not using datatype update to ensure that I get a warning if a type gets new arguments
+          UnaryOpExpr(uop, EliminateNegatedBinops_Expr(e))
+        case BinaryExpr(bop, e0, e1) =>
+          var e0', e1' := EliminateNegatedBinops_Expr(e0), EliminateNegatedBinops_Expr(e1);
+          if IsNegatedBinop(bop) then BinaryExpr(bop, e0', e1')
+          else UnaryOpExpr(UnaryOp.Not, BinaryExpr(FlipNegatedBinop(bop), e0', e1'))
+        case LiteralExpr(lit_) => e
+        case InvalidExpr(msg_) => e
+        case UnsupportedExpr(cexpr_) => e
+      }
+    }
+
+    function method EliminateNegatedBinops(p: Program) : (p': Program)
+      ensures AllExprs_Program(p', NoNegatedBinops)
+    {
+      var p' := MapExprs_Program(p, EliminateNegatedBinops_Expr);
+      // LATER: it actually works even without this call; make more things opaque?
+      Predicates.TopExprs_AllExprs(p', NoNegatedBinops);
+      p'
     }
   }
 
   module Compiler {
     import Lib
+    import Simplifier
     import opened AST
     import opened Target
     import opened Lib.Datatypes
     import opened CSharpInterop
     import opened CSharpDafnyInterop
+    import Predicates
+    import opened Predicates.AllExprs
 
     function method CompileInt(i: int) : StrTree {
       var istr := Lib.Str.of_int(i, 10);
@@ -339,9 +549,21 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
       }
     }
 
+    function method CompileUnaryOpExpr(op: UnaryOp.Op, c: StrTree) : StrTree {
+      match op {
+        case Not => Format("!{}", [c]) // LATER use resolved op, which distinguishes between BV and boolean
+        case Cardinality => Unsupported
+        case Fresh => Unsupported
+        case Allocated => Unsupported
+        case Lit => Unsupported
+      }
+    }
+
     // NEXT: Write a transformation that translates negations into unary op + unnegated binary op, apply it using the expr mapper, then write a predicate on the AST that rules out negated exprs, and finally omit the relevant cases from CompileBinaryExpr below.
 
-    function method CompileBinaryExpr(op: BinaryOp.Op, c0: StrTree, c1: StrTree) : StrTree {
+    function method CompileBinaryExpr(op: BinaryOp.Op, c0: StrTree, c1: StrTree) : StrTree
+      requires !Simplifier.IsNegatedBinop(op)
+    {
       var fmt := str requires |splitFormat(str)| == 3 =>
         Format(str, [c0, c1]); // Cute use of function precondition
       var bin := str =>
@@ -387,7 +609,6 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
         case Sets(ProperSuperset) => Unsupported
         case Sets(Disjoint) => Unsupported
         case Sets(InSet) => rbin("{}.Contains({})")
-        case Sets(NotInSet) => Unsupported
         case Sets(Union) => Unsupported
         case Sets(Intersection) => Unsupported
         case Sets(SetDifference) => Unsupported
@@ -400,23 +621,19 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
         case MultiSets(ProperMultiSuperset) => Unsupported
         case MultiSets(MultiSetDisjoint) => Unsupported
         case MultiSets(InMultiSet) => rbin("{}.Contains({})")
-        case MultiSets(NotInMultiSet) => Unsupported
         case MultiSets(MultiSetUnion) => Unsupported
         case MultiSets(MultiSetIntersection) => Unsupported
         case MultiSets(MultiSetDifference) => Unsupported
 
         case Sequences(SeqEq) => fmt("{}.Equals({})")
-        case Sequences(SeqNeq) => Unsupported
         case Sequences(ProperPrefix) => Unsupported
         case Sequences(Prefix) => Unsupported
         case Sequences(Concat) => Unsupported
         case Sequences(InSeq) => Unsupported
-        case Sequences(NotInSeq) => Unsupported
 
         case Maps(MapEq) => fmt("{}.Equals({})")
         case Maps(MapNeq) => Unsupported
         case Maps(InMap) => rbin("{}.Contains({})")
-        case Maps(NotInMap) => Unsupported
         case Maps(MapMerge) => Unsupported
         case Maps(MapSubtraction) => Unsupported
 
@@ -425,10 +642,15 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
       }
     }
 
-    function method CompileExpr(s: Expr) : StrTree {
-      match s {
+    function method CompileExpr(e: Expr) : StrTree
+      requires AllExprs_Expr(e, Simplifier.NoNegatedBinops)
+    {
+      match e {
         case LiteralExpr(l) =>
           CompileLiteralExpr(l)
+        case UnaryOpExpr(op, e) =>
+          var c := CompileExpr(e);
+          CompileUnaryOpExpr(op, c)
         case BinaryExpr(op, e0, e1) =>
           var c0, c1 := CompileExpr(e0), CompileExpr(e1);
           CompileBinaryExpr(op, c0, c1)
@@ -437,11 +659,15 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
       }
     }
 
-    function method CompilePrint(e: Expr) : StrTree {
+    function method CompilePrint(e: Expr) : StrTree
+      requires AllExprs_Expr(e, Simplifier.NoNegatedBinops)
+    {
       Seq([Call("DafnyRuntime.Helpers.Print", [CompileExpr(e)]), Str(";")])
     }
 
-    function method CompileStmt(s: Stmt) : StrTree {
+    function method CompileStmt(s: Stmt) : StrTree
+      requires AllExprs_Stmt(s, Simplifier.NoNegatedBinops)
+    {
       match s {
         case PrintStmt(exprs) =>
           Concat("\n", Lib.Seq.Map(CompilePrint, exprs))
@@ -449,13 +675,17 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
       }
     }
 
-    function method CompileMethod(m: Method) : StrTree {
+    function method CompileMethod(m: Method) : StrTree
+      requires AllExprs_Method(m, Simplifier.NoNegatedBinops)
+    {
       match m {
         case Method(nm, methodBody) => Concat("\n", Lib.Seq.Map(CompileStmt, methodBody))
       }
     }
 
-    function method CompileProgram(p: Program) : StrTree {
+    function method CompileProgram(p: Program) : StrTree
+      requires AllExprs_Program(p, Simplifier.NoNegatedBinops)
+    {
       match p {
         case Program(mainMethod) => CompileMethod(mainMethod)
       }
@@ -485,6 +715,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
                    wr: ConcreteSyntaxTree) {
       var st := new CSharpDafnyInterop.SyntaxTreeAdapter(wr);
       var translated := Translator.TranslateProgram(dafnyProgram);
+      var lowered := Simplifier.EliminateNegatedBinops(translated);
       var compiled := Compiler.CompileProgram(translated);
       WriteAST(st, compiled);
     }

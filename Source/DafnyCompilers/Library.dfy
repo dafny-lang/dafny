@@ -1,10 +1,20 @@
 module Lib {
   module Seq {
-    function method Map<T, Q>(f: T ~> Q, ts: seq<T>) : seq<Q>
+    function method {:opaque} Map<T, Q>(f: T ~> Q, ts: seq<T>) : (qs: seq<Q>)
       reads f.reads // FIXME: what does this mean?
       requires forall t | t in ts :: f.requires(t)
+      ensures |qs| == |ts|
+      ensures forall i | 0 <= i < |ts| :: qs[i] == f(ts[i])
     {
       if ts == [] then [] else [f(ts[0])] + Map(f, ts[1..])
+    }
+
+    function method All<T>(P: T ~> bool, ts: seq<T>) : (b: bool)
+      reads P.reads // FIXME: what does this mean?
+      requires forall t | t in ts :: P.requires(t)
+      ensures b == forall i | 0 <= i < |ts| :: P(ts[i])
+    {
+      if ts == [] then true else P(ts[0]) && All(P, ts[1..])
     }
   }
 
