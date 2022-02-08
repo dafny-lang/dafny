@@ -1,14 +1,11 @@
-# 3.4 
+# 3.4
 
-The top four improvements in Dafny 3.4 are:
 - For certain classes of changes to a Dafny program, prevent unexpected changes in verification behavior.
 - Add command line options to assist in debugging verification performance.
-- Critical fixes to the IDE and greatly improved responsiveness of non-verification IDE features. 
+- Critical fixes to the IDE and greatly improved responsiveness of non-verification IDE features.
 - The C# back-end supports traits as type parameters on datatypes.
 
 ### Verification
-- fix: Resolve unsoundness issue (https://github.com/dafny-lang/dafny/issues/1619).
-- fix: Don't silently succeed if the solver crashes (https://github.com/boogie-org/boogie/pull/488).
 - feat: Prevent changes in the verification behavior of a proof, when any of these types of changes are made to Dafny user code:
   - Changes to declarations not referenced by the method being verified
   - Changes to the name of any declaration
@@ -16,10 +13,10 @@ The top four improvements in Dafny 3.4 are:
 - feat: Assist in debugging the verification performance of a proof by adding the `/vcsSplitOnEveryAssert` CLI option and `{:vcs_split_on_every_assert}` attribute (see https://github.com/boogie-org/boogie/issues/465), and report the outcome and duration of splits when they occur in `/verificationLogger:trx` content.
 - feat: Add a `/verificationLogger:csv` CLI option that emits the same status and timing information as `/verificationLogger:trx`, but in an easier-to-parse format, along with Z3 resource counts for more repeatable tracking of verification difficulty.
 
-### IDE 
-- fix: Clean up process resources if IDE closed or restarted.
-- fix: Do not let the Dafny compilation status bar get in a stuck state.
+- fix: Resolve unsoundness issue (https://github.com/dafny-lang/dafny/issues/1619).
+- fix: Don't silently succeed if the solver crashes (https://github.com/boogie-org/boogie/pull/488).
 
+### IDE
 - feat: Verification status reporting shows which proof is being verified, which can help debug slow to verify proofs.
 - feat: Publish parsing and resolution diagnostics before verification has completed. Verification diagnostics from previous runs are migrated.
 - feat: Enable 'go to definition', 'hover' and 'signature help' features before verification has completed.
@@ -27,14 +24,18 @@ The top four improvements in Dafny 3.4 are:
 - feat: Add an experimental verification caching feature, which enables automatically determining which proofs need to verify again after making changes.
 - feat: Display related resolution errors using nested diagnostics instead of independent diagnostics.
 
+- fix: Clean up process resources if IDE closed or restarted.
+- fix: Do not let the Dafny compilation status bar get in a stuck state.
+
 ### UX
 - feat: Improve error reporting when providing incorrectly typed arguments in a function call.
 - feat: Improve error reporting when using type tests.
 
 ### C#
-- fix: Resolve various instances where Dafny would produce invalid C# code (https://github.com/dafny-lang/dafny/issues/1607, https://github.com/dafny-lang/dafny/issues/1761, and https://github.com/dafny-lang/dafny/issues/1762).
 - feat: Support variant type parameters on datatype definitions, which enables using traits as type arguments (https://github.com/dafny-lang/dafny/issues/1499).
-- feat: Support for downcasting both custom datatypes and functions.
+- feat: Support for downcasting both custom datatypes and functions (https://github.com/dafny-lang/dafny/pull/1645, https://github.com/dafny-lang/dafny/pull/1755).
+
+- fix: Resolve various instances where Dafny would produce invalid C# code (https://github.com/dafny-lang/dafny/issues/1607, https://github.com/dafny-lang/dafny/issues/1761, and https://github.com/dafny-lang/dafny/issues/1762).
 
 ### Various improvements
 - fix: `DafnyLanguageServer.dll` and `Dafny.dll` depended on two different versions of Newtonsoft.Json, which could cause crashes in development environments.
@@ -68,7 +69,7 @@ The top four improvements in Dafny 3.4 are:
   Error: ghost constants are allowed only in specification contexts
   ```
 
-- Changes in type inference may cause some programs to need manual type annotations. For example, in the nested pattern in the following program 
+- Changes in type inference may cause some programs to need manual type annotations. For example, in the nested pattern in the following program
   ```Dafny
   datatype X<+T> = X(x: T)
   datatype Y<T> = Y(y: T)
