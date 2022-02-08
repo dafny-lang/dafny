@@ -1113,11 +1113,94 @@ termination check will be performed. Use of this feature is sound only with
 respect to partial correctness.
 
 ### 19.14.3. Loop Framing
-In some cases we also must specify what memory locations the loop body
-is allowed to modify. This is done using a `modifies` clause.
-See the discussion of framing in methods for a fuller discussion.
 
-TO BE WRITTEN
+The specification of a loop also includes _framing_, which says what the
+loop modifies. The loop frame includes both local variables and locations
+in the heap.
+
+For local variables, the Dafny verifier performs a syntactic
+scan of the loop body to find every local variable or out-parameter that occurs as a left-hand
+side of an assignment. These variables are called
+_syntactic assignment targets of the loop_, or _syntactic loop targets_ for short.
+Any local variable or out-parameter that is not a syntactic assignment target is known by the
+verifier to remain unchanged by the loop.
+
+The heap may or may not be a syntactic loop target. It is when the loop body
+syntactically contains a statement that can modify a heap location. This
+includes calls to compiled methods, even if such a method has an empty
+`modifies` clause, since a compiled method is always allowed to allocate
+new objects and change their values in the heap.
+
+If the heap is not a syntactic loop target, then the verifier knows the heap
+remains unchanged by the loop. If the heap _is_ a syntactic loop target,
+then the loop's effective `modifies` clause determines what is allowed to be
+modified by iterations of the loop body.
+
+A loop can use `modifies` clauses to declare the effective `modifies` clause
+of the loop. If a loop does not explicitly declare any `modifies` clause, then
+the effective `modifies` clause of the loop is the effective `modifies` clause
+of the most tightly enclosing loop or, if there is no enclosing loop, the
+`modifies` clause of the enclosing method.
+
+In most cases, there is no need to give an explicit `modifies` clause for a
+loop. The one case where it is sometimes needed is if a loop modifies less
+than is allowed by the enclosing method. Here are two simple methods that
+illustrate this case:
+
+```
+class Cell {
+  var data: int
+}
+
+method M0(c: Cell, d: Cell)
+  requires c != d
+  modifies c, d
+  ensures c.data == d.data == 100
+{
+  c.data, d.data := 100, 0;
+  var i := 0;
+  while i < 100
+    invariant d.data == i
+    // Needs "invariant c.data == 100" or "modifies d" to verify
+  {
+    d.data := d.data + 1;
+    i := i + 1;
+  }
+}
+
+method M1(c: Cell)
+  modifies c
+  ensures c.data == 100
+{
+  c.data := 100;
+  var i := 0;
+  while i < 100
+    // Needs "invariant c.data == 100" or "modifies {}" to verify
+  {
+    var tmp := new Cell;
+    tmp.data := i;
+    i := i + 1;
+  }
+}
+```
+
+In `M0`, the effective `modifies` clause of the loop is `modifies c, d`. Therefore,
+the method's postcondition `c.data == 100` is not provable. To remedy the situation,
+the loop needs to be declared either with `invariant c.data == 100` or with
+`modifies d`.
+
+Similarly, the effective `modifies` clause of the loop in `M1` is `modifies c`. Therefore,
+the method's postcondition `c.data == 100` is not provable. To remedy the situation,
+the loop needs to be declared either with `invariant c.data == 100` or with
+`modifies {}`.
+
+When a loop has an explicit `modifies` clause, there is, at the top of
+every iteration, a proof obligation that
+
+* the expressions given in the `modifies` clause are well-formed, and
+* everything indicated in the loop `modifies` clause is allowed to be modified by the
+  (effective `modifies` clause of the) enclosing loop or method.
+
 
 ## 19.15. Match Statement {#sec-match-statement}
 ````grammar
