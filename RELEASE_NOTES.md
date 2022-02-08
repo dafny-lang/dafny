@@ -10,7 +10,7 @@ The top four improvements in Dafny 3.4 are:
 - fix: Resolve unsoundness issue (https://github.com/dafny-lang/dafny/issues/1619).
 - fix: Don't silently succeed if the solver crashes (https://github.com/boogie-org/boogie/pull/488).
 - feat: Prevent changes in the verification behavior of a proof, when any of these types of changes are made to Dafny user code:
-  - Changes logically unrelated to the proof being verified
+  - Changes to declarations not referenced by the method being verified
   - Changes to the name of any declaration
   - Changes to the order of top-level declarations
 - feat: Assist in debugging the verification performance of a proof by adding the `/vcsSplitOnEveryAssert` CLI option and `{:vcs_split_on_every_assert}` attribute (see https://github.com/boogie-org/boogie/issues/465), and report the outcome and duration of splits when they occur in `/verificationLogger:trx` content.
