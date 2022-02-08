@@ -28,7 +28,7 @@ The top four improvements in Dafny 3.4 are:
 - feat: Display related resolution errors using nested diagnostics instead of independent diagnostics.
 
 ### UX
-- feat: Improve error reporting when providing incorrectly-typed arguments in a function call.
+- feat: Improve error reporting when providing incorrectly typed arguments in a function call.
 - feat: Improve error reporting when using type tests.
 
 ### C#
