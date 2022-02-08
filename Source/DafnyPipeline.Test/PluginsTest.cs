@@ -2,6 +2,7 @@
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Resources;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Xunit;
@@ -15,7 +16,12 @@ public class PluginsTest {
   /// This method creates a library and returns the path to that library.
   /// The library extends a Rewriter so that we can verify that Dafny invokes it if provided in argument.
   /// </summary>
-  private string GetLibrary(string code, string name) {
+  private string GetLibrary(string name) {
+    var assembly = Assembly.GetExecutingAssembly();
+    Stream codeStream = assembly.GetManifestResourceStream($"DafnyPipeline.Test._plugins.{name}.cs");
+    Assert.NotNull(codeStream);
+    string code = new StreamReader(codeStream).ReadToEnd();
+
     var temp = Path.GetTempFileName();
     var compilation = CSharpCompilation.Create(name);
     var standardLibraries = new List<string>()
@@ -48,31 +54,7 @@ public class PluginsTest {
 
   [Fact]
   public void EnsurePluginIsExecuted() {
-    var library = GetLibrary(@"
-using Microsoft.Dafny;
-using Microsoft.Dafny.Plugins;
-
-public class TestConfiguration: PluginConfiguration {
-  public string Argument = """";
-  public override void ParseArguments(string[] args) {
-    Argument = args[0];
-  }
-  public override Rewriter[] GetRewriters(ErrorReporter errorReporter) {
-    return new Rewriter[]{new ErrorRewriter(errorReporter, this)};
-  }
-}
-
-public class ErrorRewriter: Rewriter {
-  private readonly TestConfiguration configuration;
-
-  public ErrorRewriter(ErrorReporter reporter, TestConfiguration configuration): base(reporter) {
-    this.configuration = configuration;
-  }
-
-  public override void PostResolve(ModuleDefinition moduleDefinition) {
-    Reporter.Error(MessageSource.Compiler, moduleDefinition.tok, ""Impossible to continue ""+configuration.Argument);
-  }
-}", "simplePlugin");
+    var library = GetLibrary("simplePlugin");
 
     var reporter = new CollectionErrorReporter();
     var options = new DafnyOptions(reporter);
@@ -93,17 +75,7 @@ public class ErrorRewriter: Rewriter {
 
   [Fact]
   public void EnsurePluginIsExecutedEvenWithoutConfiguration() {
-    var library = GetLibrary(@"
-using Microsoft.Dafny;
-using Microsoft.Dafny.Plugins;
-
-public class ErrorRewriter: Rewriter {
-  public ErrorRewriter(ErrorReporter reporter): base(reporter) {}
-
-  public override void PostResolve(ModuleDefinition moduleDefinition) {
-    Reporter.Error(MessageSource.Compiler, moduleDefinition.tok, ""Impossible to continue"");
-  }
-}", "secondPlugin");
+    var library = GetLibrary("secondPlugin");
 
     var reporter = new CollectionErrorReporter();
     var options = new DafnyOptions(reporter);

@@ -25,7 +25,13 @@ public abstract class PluginsTestBase : DafnyLanguageServerTestBase {
   /// This method creates a library and returns the path to that library.
   /// The library extends a Rewriter so that we can verify that Dafny invokes it if provided in argument.
   /// </summary>
-  private static string GetLibrary(string code, string assemblyName) {
+  private static string GetLibrary(string assemblyName) {
+    var assembly = Assembly.GetExecutingAssembly();
+    string[] names = assembly.GetManifestResourceNames();
+    Stream codeStream = assembly.GetManifestResourceStream($"Microsoft.Dafny.LanguageServer.IntegrationTest._plugins.{assemblyName}.cs");
+    Assert.IsNotNull(codeStream);
+    string code = new StreamReader(codeStream).ReadToEnd();
+
     var temp = Path.GetTempFileName();
     var compilation = CSharpCompilation.Create(assemblyName);
     var standardLibraries = new List<string>()
@@ -51,15 +57,13 @@ public abstract class PluginsTestBase : DafnyLanguageServerTestBase {
     return assemblyPath;
   }
 
-  protected abstract string LibraryCode { get; }
-
   protected abstract string LibraryName { get; }
 
   protected abstract string[] CommandLineArgument { get; }
 
   public async Task SetUpPlugin() {
     DiagnosticReceiver = new();
-    LibraryPath = GetLibrary(LibraryCode, LibraryName);
+    LibraryPath = GetLibrary(LibraryName);
     Client = await InitializeClient(options => options.OnPublishDiagnostics(DiagnosticReceiver.NotificationReceived));
   }
 
