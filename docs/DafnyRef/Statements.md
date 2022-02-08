@@ -804,8 +804,8 @@ they obey expected behavior. In some cases Dafny can infer the loop specificatio
 so the loop specifications need not always be explicit.
 These specifications are described in [Section 19.14](#sec-loop-specification).
 
-The `while` statement is Dafny's only loop statement. It has two general
-forms.
+The general loop statement in Dafny is the familiar `while` statement.
+It has two general forms.
 
 The first form is similar to a while loop in a C-like language. For
 example:
