@@ -649,7 +649,7 @@ function usesTuple() : int
 }
 ```
 
-The special assignment operator `:-` enables to quickly return if the value evaluates to an error-compatible type, see [Section 19.7](sec-update-failure).
+The assignment with failure operator `:-` returns (from the method) if the value evaluates to a failure value of a failure-compatible type, see [Section 19.7](sec-update-failure).
 
 ## 19.9. Guards
 ````grammar
