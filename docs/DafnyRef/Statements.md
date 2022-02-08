@@ -1003,7 +1003,7 @@ what the loop modifies.
 For additional tutorial information see [@KoenigLeino:MOD2011] or the
 [online Dafny tutorial](../OnlineTutorial/guide).
 
-### 19.14.1. Loop Invariants
+### 19.14.1. Loop invariants
 
 Loops present a problem for specification-based reasoning. There is no way to
 know in advance how many times the code will go around the loop and
@@ -1040,7 +1040,7 @@ loop condition). Just as Dafny will not discover properties of a method
 on its own, it will not know that any but the most basic properties of a loop
 are preserved unless it is told via an invariant.
 
-### 19.14.2. Loop Termination
+### 19.14.2. Loop termination
 
 Dafny proves that code terminates, i.e. does not loop forever, by using
 `decreases` annotations. For many things, Dafny is able to guess the right
@@ -1112,7 +1112,7 @@ If the `decreases` clause of a loop specifies `*`, then no
 termination check will be performed. Use of this feature is sound only with
 respect to partial correctness.
 
-### 19.14.3. Loop Framing
+### 19.14.3. Loop framing
 
 The specification of a loop also includes _framing_, which says what the
 loop modifies. The loop frame includes both local variables and locations
