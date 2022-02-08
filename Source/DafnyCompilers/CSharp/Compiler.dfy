@@ -180,33 +180,43 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
         D.UnsupportedExpr(u)
     }
 
-    function method {:verify false} TranslateBinary(b: C.BinaryExpr) : D.Expr {
+    function ASTHeight(c: C.Expression) : nat
+
+    function method TranslateBinary(b: C.BinaryExpr) : D.Expr
+      decreases ASTHeight(b), 0
+      reads *
+    {
       var op, e0, e1 := b.ResolvedOp, b.E0, b.E1;
       // LATER b.AccumulatesForTailRecursion
       assume op in BinaryOpCodeMap.Keys; // FIXME expect
+      assume ASTHeight(e0) < ASTHeight(b);
+      assume ASTHeight(e1) < ASTHeight(b);
       D.BinaryExpr(BinaryOpCodeMap[op], TranslateExpression(e0), TranslateExpression(e1))
     }
 
     function method TranslateLiteral(l: C.LiteralExpr): D.Expr reads * {
-        if l.Value is Boolean then
-          D.LiteralExpr(D.LitBool(TypeConv.AsBool(l.Value)))
-        else if l.Value is Numerics.BigInteger then
-          D.LiteralExpr(D.LitInt(TypeConv.AsInt(l.Value)))
-        else if l.Value is BaseTypes.BigDec then
-          D.LiteralExpr(D.LitReal(TypeConv.AsReal(l.Value))) // TODO test
-        else if l.Value is String then
-          var str := TypeConv.AsString(l.Value);
-          if l is C.CharLiteralExpr then
-            D.LiteralExpr(D.LitChar(str))
-          else if l is C.StringLiteralExpr then
-            var sl := l as C.StringLiteralExpr;
-            D.LiteralExpr(D.LitString(str, sl.IsVerbatim))
-          else
-            D.InvalidExpr("LiteralExpr with .Value of type string must be a char or a string.")
-        else D.UnsupportedExpr(l)
+      if l.Value is Boolean then
+        D.LiteralExpr(D.LitBool(TypeConv.AsBool(l.Value)))
+      else if l.Value is Numerics.BigInteger then
+        D.LiteralExpr(D.LitInt(TypeConv.AsInt(l.Value)))
+      else if l.Value is BaseTypes.BigDec then
+        D.LiteralExpr(D.LitReal(TypeConv.AsReal(l.Value))) // TODO test
+      else if l.Value is String then
+        var str := TypeConv.AsString(l.Value);
+        if l is C.CharLiteralExpr then
+          D.LiteralExpr(D.LitChar(str))
+        else if l is C.StringLiteralExpr then
+          var sl := l as C.StringLiteralExpr;
+          D.LiteralExpr(D.LitString(str, sl.IsVerbatim))
+        else
+          D.InvalidExpr("LiteralExpr with .Value of type string must be a char or a string.")
+      else D.UnsupportedExpr(l)
     }
 
-    function method {:verify false} TranslateExpression(c: C.Expression) : D.Expr reads * {
+    function method TranslateExpression(c: C.Expression) : D.Expr
+      reads *
+      decreases ASTHeight(c), 1
+    {
       if c is C.BinaryExpr then
         TranslateBinary(c as C.BinaryExpr)
       else if c is C.LiteralExpr then
@@ -405,7 +415,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
       }
 
       // LATER: Explain why this can't be defined: putting `f` on the outside risks breaking the invariant for subterms, and putting f on the inside breaks termination.
-      // function method {:verify true} MapExprs_Expr(e: Expr, f: Expr -> Expr) : (e': Expr)
+      // function method MapExprs_Expr(e: Expr, f: Expr -> Expr) : (e': Expr)
       //   ensures AllExprs_Expr(e', IsMap(f))
       // {
       //   var e := f(e);
@@ -466,7 +476,8 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
     import opened Predicates.AllExprs
     import opened Predicates.TopExprs
 
-    function method FlipNegatedBinop(op: BinaryOp.Op) : BinaryOp.Op {
+    function method FlipNegatedBinop1(op: BinaryOp.Op) : (op': BinaryOp.Op)
+    {
       match op {
         case Eq(NeqCommon) => BinaryOp.Eq(BinaryOp.EqCommon)
         case Maps(MapNeq) => BinaryOp.Maps(BinaryOp.MapEq)
@@ -481,20 +492,26 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
       }
     }
 
+    function method FlipNegatedBinop(op: BinaryOp.Op) : (op': BinaryOp.Op)
+      ensures !IsNegatedBinop(op')
+    {
+      FlipNegatedBinop1(op)
+    }
+
     predicate method IsNegatedBinop(op: BinaryOp.Op) {
-      FlipNegatedBinop(op) != op
+      FlipNegatedBinop1(op) != op
     }
 
     predicate method IsNegatedBinopExpr(e: Expr) {
       e.BinaryExpr? && IsNegatedBinop(e.bop)
     }
 
-    predicate NoNegatedBinops(e: Expr) {
+    predicate NotANegatedBinopExpr(e: Expr) {
       !IsNegatedBinopExpr(e)
     }
 
     function method EliminateNegatedBinops_Expr(e: Expr) : (e': Expr)
-      ensures AllExprs_Expr(e', NoNegatedBinops)
+      ensures AllExprs_Expr(e', NotANegatedBinopExpr)
     {
       match e {
         case UnaryOpExpr(uop, e) =>
@@ -502,8 +519,10 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
           UnaryOpExpr(uop, EliminateNegatedBinops_Expr(e))
         case BinaryExpr(bop, e0, e1) =>
           var e0', e1' := EliminateNegatedBinops_Expr(e0), EliminateNegatedBinops_Expr(e1);
-          if IsNegatedBinop(bop) then BinaryExpr(bop, e0', e1')
-          else UnaryOpExpr(UnaryOp.Not, BinaryExpr(FlipNegatedBinop(bop), e0', e1'))
+          if IsNegatedBinop(bop) then
+            UnaryOpExpr(UnaryOp.Not, BinaryExpr(FlipNegatedBinop(bop), e0', e1'))
+          else
+            BinaryExpr(bop, e0', e1')
         case LiteralExpr(lit_) => e
         case InvalidExpr(msg_) => e
         case UnsupportedExpr(cexpr_) => e
@@ -511,11 +530,11 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
     }
 
     function method EliminateNegatedBinops(p: Program) : (p': Program)
-      ensures AllExprs_Program(p', NoNegatedBinops)
+      ensures AllExprs_Program(p', NotANegatedBinopExpr)
     {
       var p' := MapExprs_Program(p, EliminateNegatedBinops_Expr);
       // LATER: it actually works even without this call; make more things opaque?
-      Predicates.TopExprs_AllExprs(p', NoNegatedBinops);
+      Predicates.TopExprs_AllExprs(p', NotANegatedBinopExpr);
       p'
     }
   }
@@ -558,8 +577,6 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
         case Lit => Unsupported
       }
     }
-
-    // NEXT: Write a transformation that translates negations into unary op + unnegated binary op, apply it using the expr mapper, then write a predicate on the AST that rules out negated exprs, and finally omit the relevant cases from CompileBinaryExpr below.
 
     function method CompileBinaryExpr(op: BinaryOp.Op, c0: StrTree, c1: StrTree) : StrTree
       requires !Simplifier.IsNegatedBinop(op)
@@ -643,7 +660,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
     }
 
     function method CompileExpr(e: Expr) : StrTree
-      requires AllExprs_Expr(e, Simplifier.NoNegatedBinops)
+      requires AllExprs_Expr(e, Simplifier.NotANegatedBinopExpr)
     {
       match e {
         case LiteralExpr(l) =>
@@ -660,13 +677,13 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
     }
 
     function method CompilePrint(e: Expr) : StrTree
-      requires AllExprs_Expr(e, Simplifier.NoNegatedBinops)
+      requires AllExprs_Expr(e, Simplifier.NotANegatedBinopExpr)
     {
       Seq([Call("DafnyRuntime.Helpers.Print", [CompileExpr(e)]), Str(";")])
     }
 
     function method CompileStmt(s: Stmt) : StrTree
-      requires AllExprs_Stmt(s, Simplifier.NoNegatedBinops)
+      requires AllExprs_Stmt(s, Simplifier.NotANegatedBinopExpr)
     {
       match s {
         case PrintStmt(exprs) =>
@@ -676,7 +693,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
     }
 
     function method CompileMethod(m: Method) : StrTree
-      requires AllExprs_Method(m, Simplifier.NoNegatedBinops)
+      requires AllExprs_Method(m, Simplifier.NotANegatedBinopExpr)
     {
       match m {
         case Method(nm, methodBody) => Concat("\n", Lib.Seq.Map(CompileStmt, methodBody))
@@ -684,7 +701,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
     }
 
     function method CompileProgram(p: Program) : StrTree
-      requires AllExprs_Program(p, Simplifier.NoNegatedBinops)
+      requires AllExprs_Program(p, Simplifier.NotANegatedBinopExpr)
     {
       match p {
         case Program(mainMethod) => CompileMethod(mainMethod)
@@ -716,7 +733,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
       var st := new CSharpDafnyInterop.SyntaxTreeAdapter(wr);
       var translated := Translator.TranslateProgram(dafnyProgram);
       var lowered := Simplifier.EliminateNegatedBinops(translated);
-      var compiled := Compiler.CompileProgram(translated);
+      var compiled := Compiler.CompileProgram(lowered);
       WriteAST(st, compiled);
     }
 
