@@ -8900,6 +8900,14 @@ namespace Microsoft.Dafny {
       get { return WrappedToken.val; }
       set { throw new NotSupportedException(); }
     }
+    public virtual string leadingTrivia {
+      get { return WrappedToken.leadingTrivia; }
+      set { throw new NotSupportedException(); }
+    }
+    public virtual string trailingTrivia {
+      get { return WrappedToken.trailingTrivia; }
+      set { throw new NotSupportedException(); }
+    }
   }
 
   public class NestedToken : TokenWrapper {

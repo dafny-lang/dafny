@@ -285,11 +285,13 @@ public class Scanner {
 
   char[]/*!*/ tval = new char[128]; // text of current token
   int tlen;         // length of current token
-  char[]/*!*/ tLeadingTrivia  = new char[128]; // text of leading trivia
-  int tlenLeadingTrivia;         // length of current leading trivia
-  char[]/*!*/ tTrailingTrivia = new char[128]; // text of trailing trivia
-  int tlenTrailingTrivia;         // length of current trailing trivia
-
+  
+  // Trivia are whitespaces before and after tokens.
+  int posTrailingStart = -1;     // Position where a trailing trivia starts
+  int posTrailingEndLeadingStart = -1; // Position where a leading trivia starts
+  bool parsingTrivia = false;    // set to true when we are parsing trivia
+  bool triviaTrailing = true;
+      
   private string/*!*/ Filename;
   private Errors/*!*/ errorHandler;
 
@@ -436,30 +438,6 @@ public class Scanner {
 -->casing1
   }
   
-  void AddChLeadingTrivia() {
-    if (tlenLeadingTrivia >= tLeadingTrivia.Length) {
-      char[] newBuf = new char[2 * tLeadingTrivia.Length];
-      Array.Copy(tLeadingTrivia, 0, newBuf, 0, tLeadingTrivia.Length);
-      tLeadingTrivia = newBuf;
-    }
-    if (ch != Buffer.EOF) {
-	  tLeadingTrivia[tlen++] = (char) ch;
-	  NextCh();
-	}
-  }
-  
-  void AddChTrailingTrivia() {
-    if (tlenTrailingTrivia >= tTrailingTrivia.Length) {
-      char[] newBuf = new char[2 * tTrailingTrivia.Length];
-      Array.Copy(tTrailingTrivia, 0, newBuf, 0, tTrailingTrivia.Length);
-      tTrailingTrivia = newBuf;
-    }
-    if (ch != Buffer.EOF && ch != '\n' && ch != '\r') {
-	  tTrailingTrivia[tlenTrailingTrivia++] = (char) ch;
-	  NextCh();
-	}
-  }
-
   void AddCh() {
     if (tlen >= tval.Length) {
       char[] newBuf = new char[2 * tval.Length];
@@ -481,13 +459,35 @@ public class Scanner {
 
   Token/*!*/ NextToken() {
     Contract.Ensures(Contract.Result<Token>() != null);
+    if(!parsingTrivia) {
+      posTrailingStart = pos;
+      posTrailingEndLeadingStart = pos;
+      parsingTrivia = true;
+      triviaTrailing = true;
+    }
     while (ch == ' ' ||
 -->scan1
-    ) NextCh();
+    ) {
+      if(triviaTrailing && (ch == '\r' || ch == '\n')) {
+        triviaTrailing = false;
+        posTrailingEndLeadingStart = pos;
+      }
+      NextCh();
+    }
 -->scan2
+    parsingTrivia = false;
+    if(t == null) { // There is no trailing trivia before the first token
+      posTrailingEndLeadingStart = 0;
+    } else {
+      // Extract the trivia from the buffers
+      t.trailingTrivia = buffer.GetString(posTrailingStart, posTrailingEndLeadingStart);
+    }
+    
     int recKind = noSym;
     int recEnd = pos;
     t = new Token();
+    t.leadingTrivia = buffer.GetString(posTrailingEndLeadingStart, pos);
+    
     t.pos = pos; t.col = col; t.line = line;
     t.filename = this.Filename;
     int state;
