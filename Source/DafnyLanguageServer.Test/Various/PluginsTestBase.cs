@@ -19,8 +19,6 @@ public abstract class PluginsTestBase : DafnyLanguageServerTestBase {
   protected DiagnosticsReceiver DiagnosticReceiver;
   protected string LibraryPath;
 
-  private static readonly object PluginSync = new { };
-
   /// <summary>
   /// This method creates a library and returns the path to that library.
   /// The library extends a Rewriter so that we can verify that Dafny invokes it if provided in argument.
