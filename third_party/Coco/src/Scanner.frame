@@ -285,6 +285,10 @@ public class Scanner {
 
   char[]/*!*/ tval = new char[128]; // text of current token
   int tlen;         // length of current token
+  char[]/*!*/ tLeadingTrivia  = new char[128]; // text of leading trivia
+  int tlenLeadingTrivia;         // length of current leading trivia
+  char[]/*!*/ tTrailingTrivia = new char[128]; // text of trailing trivia
+  int tlenTrailingTrivia;         // length of current trailing trivia
 
   private string/*!*/ Filename;
   private Errors/*!*/ errorHandler;
@@ -430,6 +434,30 @@ public class Scanner {
 
     }
 -->casing1
+  }
+  
+  void AddChLeadingTrivia() {
+    if (tlenLeadingTrivia >= tLeadingTrivia.Length) {
+      char[] newBuf = new char[2 * tLeadingTrivia.Length];
+      Array.Copy(tLeadingTrivia, 0, newBuf, 0, tLeadingTrivia.Length);
+      tLeadingTrivia = newBuf;
+    }
+    if (ch != Buffer.EOF) {
+	  tLeadingTrivia[tlen++] = (char) ch;
+	  NextCh();
+	}
+  }
+  
+  void AddChTrailingTrivia() {
+    if (tlenTrailingTrivia >= tTrailingTrivia.Length) {
+      char[] newBuf = new char[2 * tTrailingTrivia.Length];
+      Array.Copy(tTrailingTrivia, 0, newBuf, 0, tTrailingTrivia.Length);
+      tTrailingTrivia = newBuf;
+    }
+    if (ch != Buffer.EOF && ch != '\n' && ch != '\r') {
+	  tTrailingTrivia[tlenTrailingTrivia++] = (char) ch;
+	  NextCh();
+	}
   }
 
   void AddCh() {
