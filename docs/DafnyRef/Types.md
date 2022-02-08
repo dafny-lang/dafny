@@ -1274,7 +1274,7 @@ type.  For such assignments, an explicit conversion must be used, see
 
 Dafny builds in three families of subset types, as described next.
 
-### 11.3.1 Type`nat`
+### 11.3.1.1 Type`nat`
 
 The built-in type `nat`, which represents the non-negative integers
 (that is, the natural numbers), is a subset type:
@@ -1304,7 +1304,7 @@ function Fib(n: int): int
 }
 ```
 
-### 11.3.2 Non-null types
+### 11.3.2.2 Non-null types
 
 Every class, trait, and iterator declaration `C` gives rise to two types.
 
@@ -1349,7 +1349,7 @@ For example,
 Note that `?` is not an operator. Instead, it is simply the last
 character of the name of these various possibly-null types.
 
-### 11.3.3 Arrow types: `->`, `-->`, and `~>` {#sec-arrow-subset-types}
+### 11.3.3.3 Arrow types: `->`, `-->`, and `~>` {#sec-arrow-subset-types}
 
 The built-in type `->` stands for total functions, `-->` stands for
 partial functions (that is, functions with possible `requires` clauses),
