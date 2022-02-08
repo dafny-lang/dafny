@@ -10,22 +10,11 @@ namespace Microsoft.Dafny;
 /// This class wraps an assembly and an extracted configuration from this assembly,
 /// The configuration provides the methods to parse command-line arguments and obtain Rewriters 
 /// </summary>
-public class Plugin {
-  public PluginConfiguration PluginConfiguration;
-
-  private readonly string pluginPath;
-  private readonly Assembly assembly;
-  private System.Type[] rewriterTypes;
-
-  private Plugin(string path, string[] args) {
-    pluginPath = path;
-    assembly = Assembly.LoadFrom(pluginPath);
-    rewriterTypes = CheckPluginForRewriters(assembly);
-    PluginConfiguration = LoadConfiguration(assembly, args, rewriterTypes);
-  }
+public record Plugin(Assembly Assembly, string[] Args) {
+  public PluginConfiguration PluginConfiguration { get; init; } = LoadConfiguration(Assembly, Args);
 
   public static Plugin Load(string pluginPath, string[] args) {
-    return new Plugin(pluginPath, args);
+    return new Plugin(Assembly.LoadFrom(pluginPath), args);
   }
 
   class AutomaticPluginConfiguration : PluginConfiguration {
@@ -56,7 +45,8 @@ public class Plugin {
     return rewriterTpes;
   }
 
-  private static PluginConfiguration LoadConfiguration(Assembly assembly, string[] args, System.Type[] rewriterTypes) {
+  private static PluginConfiguration LoadConfiguration(Assembly assembly, string[] args) {
+    var rewriterTypes = CheckPluginForRewriters(assembly);
     PluginConfiguration pluginConfiguration = null;
     foreach (var configurationType in GetConfigurationsTypes(assembly)) {
       if (pluginConfiguration != null) {
