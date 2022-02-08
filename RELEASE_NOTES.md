@@ -50,7 +50,7 @@ The top four improvements in Dafny 3.4 are:
 - In Dafny 3.3, comprehensions quantified over subset types did not validate the constraint of the subset type, which could result in crashes at run-time. In 3.4, subset types are disabled in set comprehensions in compiled contexts, unless the subset constraint is itself compilable.
 
   Before, the following code would pass Dafny and be compiled without error, but would crash at run-time:
-  ```
+  ```Dafny
   type RefinedData = x: Data | ghostFunction(x)
   method Main() {
     var s: set<Data> = ...
@@ -67,3 +67,33 @@ The top four improvements in Dafny 3.4 are:
   Error: RefinedData is a subset type and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in set comprehension. The next error will explain why the constraint is not compilable.
   Error: ghost constants are allowed only in specification contexts
   ```
+
+- Changes in type inference may cause some programs to need manual type annotations. For example, in the nested pattern in the following program 
+  ```Dafny
+  datatype X<+T> = X(x: T)
+  datatype Y<T> = Y(y: T)
+
+  function method M(): (r: X<Y<nat>>) {
+      var d: X<Y<int>> := X(Y(3));
+      match d
+      case X(Y(i)) => X(Y(i))
+  }
+  ```
+  the type of the Y constructor needs the type to be given explicitly `X(Y<nat>.Y(i)`. As a variation of that program
+  ```Dafny
+  datatype X<+T> = X(x: T)
+  datatype Y<T> = Y(y: T)
+
+  trait Tr {}
+  class Cl extends Tr {
+      constructor () {}
+  }
+
+  method M() returns (r: X<Y<Cl>>) {
+      var cl := new Cl();
+      var d: X<Y<Tr>> := X(Y(cl));
+      match d
+      case X(Y(tr)) => r := X(Y(tr));
+  }
+  ```
+  the program can be specified with an explicit cast `X(Y(tr as Cl))`.
