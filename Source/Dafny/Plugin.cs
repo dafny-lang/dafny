@@ -11,38 +11,34 @@ namespace Microsoft.Dafny;
 /// The configuration provides the methods to parse command-line arguments and obtain Rewriters 
 /// </summary>
 public record Plugin(Assembly Assembly, string[] Args) {
-  public PluginConfiguration PluginConfiguration { get; init; } = LoadConfiguration(Assembly, Args);
+  public PluginConfiguration PluginConfiguration { get; } = LoadConfiguration(Assembly, Args);
 
   public static Plugin Load(string pluginPath, string[] args) {
     return new Plugin(Assembly.LoadFrom(pluginPath), args);
   }
 
   class AutomaticPluginConfiguration : PluginConfiguration {
-    private Func<ErrorReporter, Rewriter>[] rewriters;
-    public AutomaticPluginConfiguration(Func<ErrorReporter, Rewriter>[] rewriters) {
-      this.rewriters = rewriters;
-    }
-
+    public Func<ErrorReporter, Rewriter>[] Rewriters { get; init; }
     public override Rewriter[] GetRewriters(ErrorReporter errorReporter) {
-      return rewriters.Select(funcErrorReporterRewriter =>
+      return Rewriters.Select(funcErrorReporterRewriter =>
         funcErrorReporterRewriter(errorReporter)).ToArray();
     }
   }
 
   public static IEnumerable<System.Type> GetConfigurationsTypes(Assembly assembly) {
     return assembly.GetTypes()
-      .Where(t => t.IsAssignableTo(typeof(PluginConfiguration)));
+      .Where(type => type.IsAssignableTo(typeof(PluginConfiguration)));
   }
 
   private static System.Type[] CheckPluginForRewriters(Assembly assembly) {
-    System.Type[] rewriterTpes = assembly.GetTypes().Where(t =>
-      t.IsAssignableTo(typeof(Rewriter))).ToArray();
+    var rewriterTypes = assembly.GetTypes().Where(type =>
+      type.IsAssignableTo(typeof(Rewriter))).ToArray();
     // Checks about the plugin to be well-behaved.
-    if (!rewriterTpes.Any()) {
+    if (!rewriterTypes.Any()) {
       throw new Exception($"Plugin {assembly.Location} does not contain any Microsoft.Dafny.Plugins.Rewriter");
     }
 
-    return rewriterTpes;
+    return rewriterTypes;
   }
 
   private static PluginConfiguration LoadConfiguration(Assembly assembly, string[] args) {
@@ -63,10 +59,12 @@ public record Plugin(Assembly Assembly, string[] Args) {
       pluginConfiguration.ParseArguments(args);
     }
 
-    pluginConfiguration ??= new AutomaticPluginConfiguration(
+    pluginConfiguration ??= new AutomaticPluginConfiguration {
+      Rewriters =
       rewriterTypes.Select<System.Type, Func<ErrorReporter, Rewriter>>((System.Type rewriterType) =>
         (ErrorReporter errorReporter) =>
-          Activator.CreateInstance(rewriterType, new object[] { errorReporter }) as Rewriter).ToArray());
+          (Rewriter)Activator.CreateInstance(rewriterType, new object[] { errorReporter })).ToArray()
+    };
     return pluginConfiguration;
   }
 

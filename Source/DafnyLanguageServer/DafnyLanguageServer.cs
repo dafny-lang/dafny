@@ -16,7 +16,7 @@ using Microsoft.Extensions.Options;
 
 namespace Microsoft.Dafny.LanguageServer {
   public static class DafnyLanguageServer {
-    public static List<string> LoadErrors = new();
+    public static IReadOnlyList<string> LoadErrors = new List<string>();
     private static string DafnyVersion {
       get {
         var version = typeof(DafnyLanguageServer).Assembly.GetName().Version!;
@@ -52,6 +52,7 @@ namespace Microsoft.Dafny.LanguageServer {
     private static void LoadPlugins(ILogger<Program> logger, ILanguageServer server) {
       var dafnyPluginsOptions = server.GetRequiredService<IOptions<DafnyPluginsOptions>>();
       var lastPlugin = "";
+      var loadErrors = new List<string>();
       try {
         foreach (var pluginPathArgument in dafnyPluginsOptions.Value.Plugins) {
           lastPlugin = pluginPathArgument;
@@ -59,8 +60,10 @@ namespace Microsoft.Dafny.LanguageServer {
         }
       } catch (Exception e) {
         logger.LogError(e, $"Error while instantiating plugin {lastPlugin}");
-        LoadErrors.Add($"Error while instantiating plugin {lastPlugin}. Please restart the server.\n" + e);
+        loadErrors.Add($"Error while instantiating plugin {lastPlugin}. Please restart the server.\n" + e);
       }
+
+      LoadErrors = loadErrors;
     }
 
     /// <summary>
