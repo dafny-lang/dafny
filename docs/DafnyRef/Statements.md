@@ -649,6 +649,8 @@ function usesTuple() : int
 }
 ```
 
+The assignment with failure operator `:-` returns from the method if the value evaluates to a failure value of a failure-compatible type, see [Section 19.7](sec-update-failure).
+
 ## 19.9. Guards
 ````grammar
 Guard = ( "*"
