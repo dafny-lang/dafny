@@ -8855,7 +8855,7 @@ namespace Microsoft.Dafny {
         // we don't consider S to be a substatement.  Instead, the substatements of S are the
         // substatements of the SkeletonStatement.  In the case the SkeletonStatement modifies
         // S by omitting its body (which is true only for loops), there are no substatements.
-        if (!BodyOmitted) {
+        if (!BodyOmitted && S.SubStatements != null) {
           foreach (var s in S.SubStatements) {
             yield return s;
           }
