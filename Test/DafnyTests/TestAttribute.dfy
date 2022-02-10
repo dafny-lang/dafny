@@ -119,7 +119,7 @@ method {:extern} {:mock} MockSum() returns (e:Even)
     ensures fresh(e) 
     ensures e.Sum(2, 2) == 3
 
-method {:test} PassingMockSum() {
+method {:test} PassingTestMockSum() {
     var e:Even := MockSum();
     expect(e.Sum(2, 2) == 3);
 }
@@ -128,7 +128,7 @@ method {:extern} {:mock} MockSumForall() returns (e:Even)
     ensures fresh(e) 
     ensures forall a:int, b:int :: e.Sum(a, b) == 3
 
-method {:test} PassingMockForall() {
+method {:test} PassingTestMockForall() {
     var e:Even := MockSumForall();
     expect(e.Sum(2, 2) == 3);
     expect(e.Sum(3, 2) == 3);
@@ -138,7 +138,7 @@ method {:extern} {:mock} MockSumAsMultiplication() returns (e:Even)
     ensures fresh(e) 
     ensures forall a:int, b:int :: e.Sum(a, b) == a * b
     
-method {:test} PassingMockSumAsMultiplication() {
+method {:test} PassingTestMockSumAsMultiplication() {
     var e:Even := MockSumAsMultiplication();
     expect(e.Sum(2, 2) == 4);
     expect(e.Sum(2, 3) == 6);
@@ -151,7 +151,7 @@ method {:extern} {:mock} MockSumWithArgumentMatcher() returns (e:Even)
     ensures forall a:int, b:int :: (a > b) ==> (e.Sum(a, b) == a * b)
     ensures forall a:int, b:int :: (a <= b) ==> (e.Sum(a, b) == -a * b)
     
-method {:test} PassingMockSumWithArgumentMatcher() {
+method {:test} PassingTestMockSumWithArgumentMatcher() {
     var e:Even := MockSumWithArgumentMatcher();
     expect(e.Sum(2, 2) == -4);
     expect(e.Sum(2, 3) == -6);
@@ -163,7 +163,7 @@ method {:extern} {:mock} MockField() returns (e:Even)
     ensures fresh(e) 
     ensures e.value == 7;
     
-method {:test} PassingMockField() {
+method {:test} PassingTestMockField() {
     var e:Even := MockField();
     expect(e.value == 7);
     expect(e.value != 5);
@@ -173,8 +173,39 @@ method {:extern} {:mock} ParametrizedMock(a: int) returns (e:Even)
     ensures fresh(e) 
     ensures e.value == a;
     
-method {:test} PassingParameterizedMock() {
+method {:test} PassingTestParameterizedMock() {
     var e:Even := ParametrizedMock(24);
     expect(e.value == 24);
     expect(e.value != 7);
+}
+
+class StringMap {
+
+	var m:map<string, string>;
+
+	function method Contains(key:string):bool reads this {
+		key in m
+	}
+
+	function method Get(key:string):string reads this
+		requires Contains(key)
+	{
+		m[key]
+	}
+
+	static function method GetOrDefault(m:StringMap, key:string, default:string):string reads m
+	{
+		if m.Contains(key) then m.Get(key) else default
+	}
+}
+
+method {:extern} {:mock} MockStringMap(k:string, v:string) 
+	returns (m:StringMap)
+	ensures m.Contains(k) == true && m.Get(k) == v
+	ensures fresh(m)
+
+method {:test} PassingTestGetOrDefault() {
+	var stringMap := MockStringMap("a", "b");
+	assert StringMap.GetOrDefault(stringMap, "a", "c") == "b";
+	expect StringMap.GetOrDefault(stringMap, "a", "c") == "b";
 }

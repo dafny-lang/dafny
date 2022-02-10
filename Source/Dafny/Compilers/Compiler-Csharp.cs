@@ -3404,6 +3404,10 @@ namespace Microsoft.Dafny {
 
       private void MockExpression(ConcreteSyntaxTree wr, BinaryExpr binaryExpr,
         List<Tuple<IVariable, string>> bounds = null) {
+        if (binaryExpr.Op == BinaryExpr.Opcode.And) {
+          MockExpression(wr, binaryExpr.E0);
+          MockExpression(wr, binaryExpr.E1); // TODO: what if and is inside forall?
+        }
         if (binaryExpr.Op != BinaryExpr.Opcode.Eq) {
           return;
         }
