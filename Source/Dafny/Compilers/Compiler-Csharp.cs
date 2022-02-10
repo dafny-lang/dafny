@@ -13,6 +13,7 @@ using System.IO;
 using System.Diagnostics.Contracts;
 using System.Reflection;
 using System.Collections.ObjectModel;
+using System.Runtime.CompilerServices;
 using Bpl = Microsoft.Boogie;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis;
@@ -3276,23 +3277,21 @@ namespace Microsoft.Dafny {
     /// Below is the full grammar of ensures clauses that can specify
     /// the behavior of an object returned by the mock-annotated method:
     ///
-    /// ENSURES =
-    ///    FORALL
-    ///  | EQUALS
-    ///  | ENSURES && ENSURES;
-    ///  | FRESH
-    ///  
-    /// FORALL = forall ARGS :: EXPRESSION ==> EQUALS
-    ///  
-    /// EQUALS =
-    ///    FUNCTION_CALL == EXPRESSION
-    ///  | FIELD_ACCESS == EXPRESSION
+    /// S       = FORALL 
+    ///         | EQUALS 
+    ///         | S && S
+    /// EQUALS  = ID . ID (ID_LIST) == EXP // stubs method call
+    ///         | ID . ID == EXP // stubs field access
+    /// FORALL  = forall ARGS :: EXP ==> EQUALS
+    /// ID_LIST = ID 
+    ///         | ID, ID_LIST
+    /// ARGS    = ID : ID 
+    ///         | ARGS, ARGS
     /// 
     /// </summary>
     private class MockWriter {
 
       private readonly CsharpCompiler compiler;
-      private int matcherCount;
 
       public MockWriter(CsharpCompiler compiler) {
         this.compiler = compiler;
@@ -3303,9 +3302,10 @@ namespace Microsoft.Dafny {
       /// </summary>
       public ConcreteSyntaxTree CreateFreshMethod(Method m,
         ConcreteSyntaxTree wr) {
-        var keywords = Keywords(true, true, false);
+        var keywords = Keywords(true, true);
         var returnType = compiler.GetTargetReturnTypeReplacement(m, wr);
         wr.FormatLine($"{keywords}{returnType} {compiler.IdName(m)}() {{");
+        // Exploit the fact that compiler creates zero-arguments constructors:
         wr.FormatLine($"return new {returnType}();");
         wr.WriteLine("}");
         return wr;
@@ -3317,59 +3317,64 @@ namespace Microsoft.Dafny {
       public ConcreteSyntaxTree CreateMockMethod(Method m,
         List<TypeArgumentInstantiation> typeArgs, bool createBody,
         ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
+
+        // The following few lines are identical to those in CreateMethod above:
         var customReceiver = createBody &&
                              !forBodyInheritance &&
                              compiler.NeedsCustomReceiver(m);
-        var keywords = Keywords(true, true, false);
+        var keywords = Keywords(true, true);
         var returnType = compiler.GetTargetReturnTypeReplacement(m, wr);
         var typeParameters = compiler.TypeParameters(TypeArgumentInstantiation.
           ToFormals(compiler.ForTypeParameters(typeArgs, m, lookasideBody)));
         var parameters = compiler
           .GetMethodParameters(m, typeArgs, lookasideBody, customReceiver, returnType);
-        wr.FormatLine($"{keywords}{returnType} {compiler.IdName(m)}{typeParameters}({parameters}) {{");
-        // TODO: name collisions
-        // TODO: ghost variables
 
-        // Create the mocks:
+        // Method declaration:
+        wr.FormatLine($"{keywords}{returnType} {compiler.IdName(m)}{typeParameters}({parameters}) {{");
+
+        // Initialize the mocks:
+        var mockNames = new Dictionary<string, string>();
         if (returnType != "void") {
-          wr.FormatLine($"var {m.Outs[0].Name}Tmp = new Mock<{returnType}>();");
+          mockNames[m.Outs[0].CompileName] = compiler.idGenerator.FreshId(m.Outs[0].CompileName + "Mock");
+          wr.FormatLine($"var {mockNames[m.Outs[0].CompileName]} = new Mock<{returnType}>();");
         } else {
           foreach (var o in m.Outs) {
-            // TODO: keep same name?
-            wr.FormatLine($"var {o.Name}Tmp = new Mock<{compiler.TypeName(o.Type, wr, o.tok)}>();");
+            mockNames[o.CompileName] = compiler.idGenerator.FreshId(o.CompileName + "Mock");
+            wr.FormatLine($"var {mockNames[o.CompileName]} = new Mock<{compiler.TypeName(o.Type, wr, o.tok)}>();");
           }
         }
 
-        // populate the mocks according to the Dafny post-conditions:
+        // Stub methods and fields according to the Dafny post-conditions:
         foreach (var ensureClause in m.Ens) {
-          MockExpression(wr, ensureClause.E);
+          MockExpression(wr, ensureClause.E, mockNames);
         }
 
         // Return the mocked objects:
         if (returnType != "void") {
-          wr.FormatLine($"return {m.Outs[0].Name}Tmp.Object;");
+          wr.FormatLine($"return {mockNames[m.Outs[0].CompileName]}.Object;");
         } else {
           foreach (var o in m.Outs) {
-            wr.FormatLine($"{o.Name} = {m.Outs[0].Name}Tmp.Object;");
+            wr.FormatLine($"{o.CompileName} = {mockNames[o.CompileName]}.Object;");
           }
         }
         wr.WriteLine("}");
         return wr;
       }
 
-      private void MockExpression(ConcreteSyntaxTree wr, Expression expr) {
+      private void MockExpression(ConcreteSyntaxTree wr, Expression expr,
+        Dictionary<string, string> mockNames) {
         switch (expr) {
           case LiteralExpr literalExpr:
             compiler.EmitLiteralExpr(wr, literalExpr);
             break;
           case ApplySuffix applySuffix:
-            MockExpression(wr, applySuffix);
+            MockExpression(wr, applySuffix, mockNames);
             break;
           case BinaryExpr binaryExpr:
-            MockExpression(wr, binaryExpr);
+            MockExpression(wr, binaryExpr, mockNames);
             break;
           case ForallExpr forallExpr:
-            MockExpression(wr, forallExpr);
+            MockExpression(wr, forallExpr, mockNames);
             break;
           default:
             // TODO
@@ -3378,13 +3383,14 @@ namespace Microsoft.Dafny {
       }
 
       private void MockExpression(ConcreteSyntaxTree wr,
-        ApplySuffix applySuffix, List<Tuple<IVariable, string>> bounds = null) {
-        var receiver = ((NameSegment)((ExprDotName)applySuffix.Lhs).Lhs).Name;
-        var method = ((ExprDotName)applySuffix.Lhs).SuffixName;
-        wr.Format($"{receiver}Tmp.Setup(x => x.{method}(");
+        ApplySuffix applySuffix, Dictionary<string, string> mockNames,
+        List<Tuple<IVariable, string>> bounds = null) {
+        var methodApp = (ExprDotName)applySuffix.Lhs;
+        var receiver = ((IdentifierExpr)methodApp.Lhs.Resolved).Var.CompileName;
+        var method = ((MemberSelectExpr)methodApp.Resolved).Member.CompileName;
+        wr.Format($"{mockNames[receiver]}.Setup(x => x.{method}(");
         for (int i = 0; i < applySuffix.Args.Count; i++) {
-          if (bounds != null &&
-              applySuffix.Args[i] is NameSegment) {
+          if (bounds != null && applySuffix.Args[i] is NameSegment) {
             var bound = bounds.Find(tuple =>
               (applySuffix.Args[i].Resolved as IdentifierExpr).Var.CompileName ==
               tuple.Item1.CompileName);
@@ -3403,24 +3409,26 @@ namespace Microsoft.Dafny {
       }
 
       private void MockExpression(ConcreteSyntaxTree wr, BinaryExpr binaryExpr,
+        Dictionary<string, string> mockNames,
         List<Tuple<IVariable, string>> bounds = null) {
         if (binaryExpr.Op == BinaryExpr.Opcode.And) {
-          MockExpression(wr, binaryExpr.E0);
-          MockExpression(wr, binaryExpr.E1); // TODO: what if and is inside forall?
+          MockExpression(wr, binaryExpr.E0, mockNames);
+          MockExpression(wr, binaryExpr.E1, mockNames); // TODO: what if and is inside forall?
         }
         if (binaryExpr.Op != BinaryExpr.Opcode.Eq) {
           return;
         }
         if (binaryExpr.E0 is ExprDotName exprDotName) {
-          var obj = ((NameSegment)(exprDotName).Lhs).Name; ;
-          wr.Format($"{obj}Tmp.SetupGet({obj} => {obj}.@{exprDotName.SuffixName}).Returns( ");
+          var obj = ((IdentifierExpr)exprDotName.Lhs.Resolved).Var.CompileName;
+          var field = ((MemberSelectExpr)exprDotName.Resolved).Member.CompileName;
+          wr.Format($"{mockNames[obj]}.SetupGet({obj} => {obj}.@{field}).Returns( ");
           compiler.TrExpr(binaryExpr.E1, wr, false);
           wr.WriteLine(");");
         }
         if (binaryExpr.E0 is not ApplySuffix applySuffix) {
           return;
         }
-        MockExpression(wr, applySuffix, bounds);
+        MockExpression(wr, applySuffix, mockNames, bounds);
         wr.Write(".Returns(");
         var first = true;
         if (bounds != null && bounds.Count != 0) {
@@ -3440,23 +3448,25 @@ namespace Microsoft.Dafny {
         wr.WriteLine(");");
       }
 
-      private void MockExpression(ConcreteSyntaxTree wr, ForallExpr forallExpr) {
+      private void MockExpression(ConcreteSyntaxTree wr, ForallExpr forallExpr,
+        Dictionary<string, string> mockNames) {
         if (forallExpr.Term is not BinaryExpr binaryExpr) {
           return;
         }
         var bounds = new List<Tuple<IVariable, string>>();
         var declarations = new List<string>();
-        var matcherName = "matcher" + matcherCount++; // TODO
+        var matcherName = compiler.idGenerator.FreshId("matcher");
+
+        var tmpId = compiler.idGenerator.FreshId("tmp");
         for (int i = 0; i < forallExpr.BoundVars.Count; i++) {
           var boundVar = forallExpr.BoundVars[i];
           var varType = compiler.TypeName(boundVar.Type, wr, boundVar.tok);
           bounds.Add(new(boundVar,
             $"It.Is<{varType}>(x => {matcherName}.Match(x))"));
-          declarations.Add($"var {boundVar.CompileName} = ({varType}) o[{i}];");
+          declarations.Add($"var {boundVar.CompileName} = ({varType}) {tmpId}[{i}];");
         }
 
-        // TODO: what if "o" shadows something?
-        wr.WriteLine($"var {matcherName} = new Dafny.MultiMatcher({declarations.Count}, o => {{");
+        wr.WriteLine($"var {matcherName} = new Dafny.MultiMatcher({declarations.Count}, {tmpId} => {{");
         foreach (var declaration in declarations) {
           wr.WriteLine($"\t{declaration}");
         }
@@ -3470,7 +3480,7 @@ namespace Microsoft.Dafny {
           wr.WriteLine("\treturn true;");
         } // TODO: other cases
         wr.WriteLine("});");
-        MockExpression(wr, binaryExpr, bounds);
+        MockExpression(wr, binaryExpr, mockNames, bounds);
       }
     }
   }
