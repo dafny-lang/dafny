@@ -13,13 +13,11 @@ using System.IO;
 using System.Diagnostics.Contracts;
 using System.Reflection;
 using System.Collections.ObjectModel;
-using System.Runtime.CompilerServices;
 using Bpl = Microsoft.Boogie;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis;
 using System.Runtime.Loader;
 using System.Text.Json;
-using JetBrains.Annotations;
 using Microsoft.BaseTypes;
 using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 
@@ -82,6 +80,23 @@ namespace Microsoft.Dafny {
       }
     }
 
+    /// <summary>
+    /// Adds MultiMatcher class to the specified ConcreteSyntaxTree.
+    /// MultiMatcher allows converting one expression over many arguments
+    /// (like ones one finds in Dafny in antecedent of a forall statement)
+    /// to many separate predicates over each argument (which is how argument
+    /// matching is done in expressionC#'s Moq library)
+    /// So, for instance, a Dafny postcondition
+    ///   forall a,b:int :: a > b ==> o.m(a, b) == 4
+    /// is converted to:
+    /// 
+    ///   var matcher = new Dafny.MultiMatcher(2, args => {
+    ///     return args[0] > args[1];
+    ///   });
+    ///   o.Setup(x => x.m(It.Is<int>(a => matcher.Match(a)),
+    ///                    It.Is<int>(b => matcher.Match(b)))).Returns(4);
+    /// 
+    /// </summary>
     private static void AddMultiMatcher(ConcreteSyntaxTree wr) {
       const string multiMatcher = @"
       class MultiMatcher {
@@ -3255,7 +3270,7 @@ namespace Microsoft.Dafny {
 
       wr = wr.NewNamedBlock("public static void {0}_CheckForFailureForXunit()", name);
       var returnsString = string.Join(",", Enumerable.Range(0, returnTypesCount).Select(i => $"r{i}"));
-      wr.WriteLine("var {0} = {1}();", returnsString, name);
+      wr.FormatLine($"var {returnsString} = {name}();");
       wr.WriteLine("Xunit.Assert.False(r0.IsFailure(), \"Dafny test failed: \" + r0);");
 
     }
@@ -3276,18 +3291,26 @@ namespace Microsoft.Dafny {
 
     /// <summary>
     /// Below is the full grammar of ensures clauses that can specify
-    /// the behavior of an object returned by the mock-annotated method:
+    /// the behavior of an object returned by a mock-annotated method
+    /// (S is the starting symbol, ID refers to a variable/field/method/type
+    /// identifier, EXP stands for an arbitrary Dafny expression):
     ///
-    /// S       = FORALL 
+    /// S       = FORALL
     ///         | EQUALS 
     ///         | S && S
-    /// EQUALS  = ID . ID (ID_LIST) == EXP // stubs method call
-    ///         | ID . ID == EXP // stubs field access
-    /// FORALL  = forall ARGS :: EXP ==> EQUALS
-    /// ID_LIST = ID 
-    ///         | ID, ID_LIST
-    /// ARGS    = ID : ID 
-    ///         | ARGS, ARGS
+    /// 
+    /// EQUALS  = ID.ID (ARGLIST)  == EXP // stubs a method call
+    ///         | ID.ID            == EXP // stubs field access
+    ///         | EQUALS && EQUALS
+    /// 
+    /// FORALL  = forall SKOLEMS :: EXP ==> EQUALS
+    /// 
+    /// ARGLIST = ID  // this can be one of the skolem variables
+    ///         | EXP // this exp may not reference any of the skolems 
+    ///         | ARG_LIST, ARG_LIST
+    /// 
+    /// SKOLEMS = ID : ID 
+    ///         | SKOLEMS, SKOLEMS
     /// 
     /// </summary>
     private class MockWriter {
@@ -3368,10 +3391,9 @@ namespace Microsoft.Dafny {
       }
 
       /// <summary>
-      /// If the expression is the name of a skolem variable, return the
+      /// If the expression is a skolem variable identifier, return the
       /// variable and the string representation of the bounding condition
       /// </summary>
-      [CanBeNull]
       private Tuple<IVariable, string> GetBound(Expression exp) {
         Tuple<IVariable, string> bound = null;
         if (exp is NameSegment) {
@@ -3407,10 +3429,14 @@ namespace Microsoft.Dafny {
         var receiver = ((IdentifierExpr)methodApp.Lhs.Resolved).Var.CompileName;
         var method = ((MemberSelectExpr)methodApp.Resolved).Member.CompileName;
         wr.Format($"{mockNames[receiver]}.Setup(x => x.{method}(");
+
+        // The remaining part of the method uses Moq's argument matching to
+        // describe the arguments for which the method should be stubbed
+        // (in Dafny, this condition is the antecedent over skolem variables)
         for (int i = 0; i < applySuffix.Args.Count; i++) {
           var arg = applySuffix.Args[i];
           var bound = GetBound(arg);
-          if (bound != null) {
+          if (bound != null) { // if true, arg is a skolem variable
             wr.Write(bound.Item2);
           } else {
             compiler.TrExpr(arg, wr, false);
@@ -3424,24 +3450,26 @@ namespace Microsoft.Dafny {
 
       private void MockExpression(ConcreteSyntaxTree wr, BinaryExpr binaryExpr) {
         if (binaryExpr.Op == BinaryExpr.Opcode.And) {
-          List<Tuple<IVariable, string>> oldbounds = new();
-          oldbounds.AddRange(bounds);
+          List<Tuple<IVariable, string>> oldBounds = new();
+          oldBounds.AddRange(bounds);
           MockExpression(wr, binaryExpr.E0);
-          bounds = oldbounds;
+          bounds = oldBounds;
           MockExpression(wr, binaryExpr.E1);
-        }
-        if (binaryExpr.Op != BinaryExpr.Opcode.Eq) {
           return;
         }
-        if (binaryExpr.E0 is ExprDotName exprDotName) {
+        if (binaryExpr.Op != BinaryExpr.Opcode.Eq) {
+          throw new NotImplementedException();
+        }
+        if (binaryExpr.E0 is ExprDotName exprDotName) { // field stubbing
           var obj = ((IdentifierExpr)exprDotName.Lhs.Resolved).Var.CompileName;
           var field = ((MemberSelectExpr)exprDotName.Resolved).Member.CompileName;
           wr.Format($"{mockNames[obj]}.SetupGet({obj} => {obj}.@{field}).Returns( ");
           compiler.TrExpr(binaryExpr.E1, wr, false);
           wr.WriteLine(");");
+          return;
         }
         if (binaryExpr.E0 is not ApplySuffix applySuffix) {
-          return;
+          throw new NotImplementedException();
         }
         MockExpression(wr, applySuffix);
         wr.Write(".Returns(");
@@ -3453,6 +3481,8 @@ namespace Microsoft.Dafny {
           if (bound != null) {
             wr.Format($"{typeName} {bound.Item1.CompileName}");
           } else {
+            // if the argument is not a skolem variable, it is irrelevant to the
+            // expression in the lambda
             wr.Format($"{typeName} _");
           }
           if (i != applySuffix.Args.Count - 1) {
@@ -3466,9 +3496,12 @@ namespace Microsoft.Dafny {
 
       private void MockExpression(ConcreteSyntaxTree wr, ForallExpr forallExpr) {
         if (forallExpr.Term is not BinaryExpr binaryExpr) {
-          return;
+          throw new NotImplementedException();
         }
         var declarations = new List<string>();
+
+        // a MultiMatcher is created to convert an antecedent of the implication
+        // following the forall statement to argument matching calls in Moq
         var matcherName = compiler.idGenerator.FreshId("matcher");
 
         var tmpId = compiler.idGenerator.FreshId("tmp");
@@ -3485,13 +3518,18 @@ namespace Microsoft.Dafny {
           wr.WriteLine($"\t{declaration}");
         }
 
-        if (binaryExpr.Op == BinaryExpr.Opcode.Imp) {
-          wr.Write("\treturn ");
-          compiler.TrExpr(binaryExpr.E0, wr, false);
-          wr.WriteLine(";");
-          binaryExpr = (BinaryExpr)binaryExpr.E1;
-        } else if (binaryExpr.Op == BinaryExpr.Opcode.Eq) {
-          wr.WriteLine("\treturn true;");
+        switch (binaryExpr.Op) {
+          case BinaryExpr.Opcode.Imp:
+            wr.Write("\treturn ");
+            compiler.TrExpr(binaryExpr.E0, wr, false);
+            wr.WriteLine(";");
+            binaryExpr = (BinaryExpr)binaryExpr.E1;
+            break;
+          case BinaryExpr.Opcode.Eq:
+            wr.WriteLine("\treturn true;");
+            break;
+          default:
+            throw new NotImplementedException();
         }
         wr.WriteLine("});");
         MockExpression(wr, binaryExpr);
