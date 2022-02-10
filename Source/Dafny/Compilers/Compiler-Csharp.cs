@@ -19,6 +19,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis;
 using System.Runtime.Loader;
 using System.Text.Json;
+using JetBrains.Annotations;
 using Microsoft.BaseTypes;
 using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 
@@ -3292,6 +3293,10 @@ namespace Microsoft.Dafny {
     private class MockWriter {
 
       private readonly CsharpCompiler compiler;
+      // maps identifier names to the names of corresponding mocks:
+      private Dictionary<string, string> mockNames = new();
+      // associates a skolem variable with the lambda passed to argument matcher
+      private List<Tuple<IVariable, string>> bounds = new();
 
       public MockWriter(CsharpCompiler compiler) {
         this.compiler = compiler;
@@ -3333,7 +3338,7 @@ namespace Microsoft.Dafny {
         wr.FormatLine($"{keywords}{returnType} {compiler.IdName(m)}{typeParameters}({parameters}) {{");
 
         // Initialize the mocks:
-        var mockNames = new Dictionary<string, string>();
+        mockNames = new Dictionary<string, string>();
         if (returnType != "void") {
           mockNames[m.Outs[0].CompileName] = compiler.idGenerator.FreshId(m.Outs[0].CompileName + "Mock");
           wr.FormatLine($"var {mockNames[m.Outs[0].CompileName]} = new Mock<{returnType}>();");
@@ -3346,7 +3351,8 @@ namespace Microsoft.Dafny {
 
         // Stub methods and fields according to the Dafny post-conditions:
         foreach (var ensureClause in m.Ens) {
-          MockExpression(wr, ensureClause.E, mockNames);
+          bounds = new List<Tuple<IVariable, string>>();
+          MockExpression(wr, ensureClause.E);
         }
 
         // Return the mocked objects:
@@ -3361,45 +3367,53 @@ namespace Microsoft.Dafny {
         return wr;
       }
 
-      private void MockExpression(ConcreteSyntaxTree wr, Expression expr,
-        Dictionary<string, string> mockNames) {
+      /// <summary>
+      /// If the expression is the name of a skolem variable, return the
+      /// variable and the string representation of the bounding condition
+      /// </summary>
+      [CanBeNull]
+      private Tuple<IVariable, string> GetBound(Expression exp) {
+        Tuple<IVariable, string> bound = null;
+        if (exp is NameSegment) {
+          var varName = (exp.Resolved as IdentifierExpr).Var.CompileName;
+          bound = bounds.Find(tuple => varName == tuple.Item1.CompileName);
+        }
+        return bound;
+      }
+
+      private void MockExpression(ConcreteSyntaxTree wr, Expression expr) {
         switch (expr) {
           case LiteralExpr literalExpr:
             compiler.EmitLiteralExpr(wr, literalExpr);
             break;
           case ApplySuffix applySuffix:
-            MockExpression(wr, applySuffix, mockNames);
+            MockExpression(wr, applySuffix);
             break;
           case BinaryExpr binaryExpr:
-            MockExpression(wr, binaryExpr, mockNames);
+            MockExpression(wr, binaryExpr);
             break;
           case ForallExpr forallExpr:
-            MockExpression(wr, forallExpr, mockNames);
+            MockExpression(wr, forallExpr);
+            break;
+          case FreshExpr freshExpr:
             break;
           default:
-            // TODO
-            break;
+            throw new NotImplementedException();
         }
       }
 
-      private void MockExpression(ConcreteSyntaxTree wr,
-        ApplySuffix applySuffix, Dictionary<string, string> mockNames,
-        List<Tuple<IVariable, string>> bounds = null) {
+      private void MockExpression(ConcreteSyntaxTree wr, ApplySuffix applySuffix) {
         var methodApp = (ExprDotName)applySuffix.Lhs;
         var receiver = ((IdentifierExpr)methodApp.Lhs.Resolved).Var.CompileName;
         var method = ((MemberSelectExpr)methodApp.Resolved).Member.CompileName;
         wr.Format($"{mockNames[receiver]}.Setup(x => x.{method}(");
         for (int i = 0; i < applySuffix.Args.Count; i++) {
-          if (bounds != null && applySuffix.Args[i] is NameSegment) {
-            var bound = bounds.Find(tuple =>
-              (applySuffix.Args[i].Resolved as IdentifierExpr).Var.CompileName ==
-              tuple.Item1.CompileName);
-            if (bound == null) {
-              continue;
-            }
+          var arg = applySuffix.Args[i];
+          var bound = GetBound(arg);
+          if (bound != null) {
             wr.Write(bound.Item2);
           } else {
-            compiler.TrExpr(applySuffix.Args[i], wr, false);
+            compiler.TrExpr(arg, wr, false);
           }
           if (i != applySuffix.Args.Count - 1) {
             wr.Write(", ");
@@ -3408,12 +3422,13 @@ namespace Microsoft.Dafny {
         wr.Write("))");
       }
 
-      private void MockExpression(ConcreteSyntaxTree wr, BinaryExpr binaryExpr,
-        Dictionary<string, string> mockNames,
-        List<Tuple<IVariable, string>> bounds = null) {
+      private void MockExpression(ConcreteSyntaxTree wr, BinaryExpr binaryExpr) {
         if (binaryExpr.Op == BinaryExpr.Opcode.And) {
-          MockExpression(wr, binaryExpr.E0, mockNames);
-          MockExpression(wr, binaryExpr.E1, mockNames); // TODO: what if and is inside forall?
+          List<Tuple<IVariable, string>> oldbounds = new();
+          oldbounds.AddRange(bounds);
+          MockExpression(wr, binaryExpr.E0);
+          bounds = oldbounds;
+          MockExpression(wr, binaryExpr.E1);
         }
         if (binaryExpr.Op != BinaryExpr.Opcode.Eq) {
           return;
@@ -3428,32 +3443,31 @@ namespace Microsoft.Dafny {
         if (binaryExpr.E0 is not ApplySuffix applySuffix) {
           return;
         }
-        MockExpression(wr, applySuffix, mockNames, bounds);
+        MockExpression(wr, applySuffix);
         wr.Write(".Returns(");
-        var first = true;
-        if (bounds != null && bounds.Count != 0) {
-          wr.Write("(");
-          foreach (var (variable, _) in bounds) {
-            if (!first) {
-              wr.Write(", ");
-            }
-
-            var typeName = compiler.TypeName(variable.Type, wr, variable.Tok);
-            wr.Format($"{typeName} {variable.CompileName}");
-            first = false;
+        wr.Write("(");
+        for (int i = 0; i < applySuffix.Args.Count; i++) {
+          var arg = applySuffix.Args[i];
+          var typeName = compiler.TypeName(arg.Type, wr, arg.tok);
+          var bound = GetBound(arg);
+          if (bound != null) {
+            wr.Format($"{typeName} {bound.Item1.CompileName}");
+          } else {
+            wr.Format($"{typeName} _");
           }
-          wr.Write(")=>");
+          if (i != applySuffix.Args.Count - 1) {
+            wr.Write(", ");
+          }
         }
+        wr.Write(")=>");
         compiler.TrExpr(binaryExpr.E1, wr, false);
         wr.WriteLine(");");
       }
 
-      private void MockExpression(ConcreteSyntaxTree wr, ForallExpr forallExpr,
-        Dictionary<string, string> mockNames) {
+      private void MockExpression(ConcreteSyntaxTree wr, ForallExpr forallExpr) {
         if (forallExpr.Term is not BinaryExpr binaryExpr) {
           return;
         }
-        var bounds = new List<Tuple<IVariable, string>>();
         var declarations = new List<string>();
         var matcherName = compiler.idGenerator.FreshId("matcher");
 
@@ -3478,9 +3492,9 @@ namespace Microsoft.Dafny {
           binaryExpr = (BinaryExpr)binaryExpr.E1;
         } else if (binaryExpr.Op == BinaryExpr.Opcode.Eq) {
           wr.WriteLine("\treturn true;");
-        } // TODO: other cases
+        }
         wr.WriteLine("});");
-        MockExpression(wr, binaryExpr, mockNames, bounds);
+        MockExpression(wr, binaryExpr);
       }
     }
   }

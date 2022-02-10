@@ -79,6 +79,7 @@ class Even {
     {
         this.value := value;
     }
+    
     function method Sum(a:int, b:int):int {
         a + b
     }
@@ -136,20 +137,18 @@ method {:test} PassingTestMockForall() {
 
 method {:extern} {:mock} MockSumAsMultiplication() returns (e:Even) 
     ensures fresh(e) 
-    ensures forall a:int, b:int :: e.Sum(a, b) == a * b
+    ensures forall a:int :: e.Sum(3, a) == a * 3
     
 method {:test} PassingTestMockSumAsMultiplication() {
     var e:Even := MockSumAsMultiplication();
-    expect(e.Sum(2, 2) == 4);
-    expect(e.Sum(2, 3) == 6);
-    expect(e.Sum(4, 0) == 0);
-    expect(e.Sum(5, 1) == 5);
+    expect(e.Sum(3, 2) == 6);
+    expect(e.Sum(3, 0) == 0);
 }
 
 method {:extern} {:mock} MockSumWithArgumentMatcher() returns (e:Even) 
     ensures fresh(e) 
-    ensures forall a:int, b:int :: (a > b) ==> (e.Sum(a, b) == a * b)
-    ensures forall a:int, b:int :: (a <= b) ==> (e.Sum(a, b) == -a * b)
+    ensures forall a:int, b:int :: (b < a) ==> (e.Sum(a, b) == a * b)
+    ensures forall a:int, b:int :: (b >= a) ==> (e.Sum(a, b) == -a * b)
     
 method {:test} PassingTestMockSumWithArgumentMatcher() {
     var e:Even := MockSumWithArgumentMatcher();
