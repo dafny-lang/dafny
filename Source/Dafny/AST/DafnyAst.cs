@@ -8789,18 +8789,18 @@ namespace Microsoft.Dafny {
     // E.g. 
     // var x: Option<bool>;
     // match x
-    //   case Some(true) => ... // frounBoundVar == false
-    //   case Some(_)    => ... // frounBoundVar == false
-    //   case v          => ... // frounBoundVar == true
-    //   case _ =>       => ... // fromBoundVar == true (this case would be unreachable; added for illustration purposes)
-    public readonly bool fromBoundVar;
+    //   case Some(true) => ... // FromBoundVar == false
+    //   case Some(_)    => ... // FromBoundVar == false
+    //   case v          => ... // FromBoundVar == true
+    //   case _ =>       => ... // FromBoundVar == true (this case would be unreachable; added for illustration purposes)
+    public readonly bool FromBoundVar;
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(cce.NonNullElements(Body));
     }
 
-    public MatchCaseStmt(IToken tok, DatatypeCtor ctor, bool fromBoundVar, [Captured] List<BoundVar> arguments, [Captured] List<Statement> body, Attributes attrs = null)
+    public MatchCaseStmt(IToken tok, DatatypeCtor ctor, bool FromBoundVar, [Captured] List<BoundVar> arguments, [Captured] List<Statement> body, Attributes attrs = null)
       : base(tok, ctor, arguments) {
       Contract.Requires(tok != null);
       Contract.Requires(ctor != null);
@@ -8808,7 +8808,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(body));
       this.body = body;
       this.Attributes = attrs;
-      this.fromBoundVar = fromBoundVar;
+      this.FromBoundVar = FromBoundVar;
     }
 
     public List<Statement> Body {
@@ -8818,10 +8818,6 @@ namespace Microsoft.Dafny {
     // should only be called by resolve to reset the body of the MatchCaseExpr
     public void UpdateBody(List<Statement> body) {
       this.body = body;
-    }
-
-    public bool FromBoundVar {
-      get { return fromBoundVar; }
     }
   }
 
@@ -9577,7 +9573,7 @@ namespace Microsoft.Dafny {
       var newVars = old_case.Arguments.ConvertAll(cloner.CloneBoundVar);
       new_body = VarSubstituter(old_case.Arguments.ConvertAll<NonglobalVariable>(x => (NonglobalVariable)x), newVars, new_body);
 
-      var new_case = new MatchCaseExpr(old_case.tok, old_case.Ctor, old_case.fromBoundVar, newVars, new_body, old_case.Attributes);
+      var new_case = new MatchCaseExpr(old_case.tok, old_case.Ctor, old_case.FromBoundVar, newVars, new_body, old_case.Attributes);
 
       new_case.Ctor = old_case.Ctor; // resolve here
       return new_case;
@@ -12142,13 +12138,13 @@ namespace Microsoft.Dafny {
   public class MatchCaseExpr : MatchCase {
     private Expression body;
     public Attributes Attributes;
-    public readonly bool fromBoundVar;
+    public readonly bool FromBoundVar;
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(body != null);
     }
 
-    public MatchCaseExpr(IToken tok, DatatypeCtor ctor, bool fromBoundVar, [Captured] List<BoundVar> arguments, Expression body, Attributes attrs = null)
+    public MatchCaseExpr(IToken tok, DatatypeCtor ctor, bool FromBoundVar, [Captured] List<BoundVar> arguments, Expression body, Attributes attrs = null)
       : base(tok, ctor, arguments) {
       Contract.Requires(tok != null);
       Contract.Requires(ctor != null);
@@ -12156,11 +12152,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(body != null);
       this.body = body;
       this.Attributes = attrs;
-      this.fromBoundVar = fromBoundVar;
-    }
-
-    public bool FromBoundVar {
-      get { return fromBoundVar; }
+      this.FromBoundVar = FromBoundVar;
     }
 
     public Expression Body {
