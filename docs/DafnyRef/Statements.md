@@ -649,6 +649,8 @@ function usesTuple() : int
 }
 ```
 
+The assignment with failure operator `:-` returns from the method if the value evaluates to a failure value of a failure-compatible type, see [Section 19.7](sec-update-failure).
+
 ## 19.9. Guards
 ````grammar
 Guard = ( "*"
@@ -804,8 +806,8 @@ they obey expected behavior. In some cases Dafny can infer the loop specificatio
 so the loop specifications need not always be explicit.
 These specifications are described in [Section 19.14](#sec-loop-specification).
 
-The `while` statement is Dafny's only loop statement. It has two general
-forms.
+The general loop statement in Dafny is the familiar `while` statement.
+It has two general forms.
 
 The first form is similar to a while loop in a C-like language. For
 example:
@@ -1003,7 +1005,7 @@ what the loop modifies.
 For additional tutorial information see [@KoenigLeino:MOD2011] or the
 [online Dafny tutorial](../OnlineTutorial/guide).
 
-### 19.14.1. Loop Invariants
+### 19.14.1. Loop invariants
 
 Loops present a problem for specification-based reasoning. There is no way to
 know in advance how many times the code will go around the loop and
@@ -1040,7 +1042,7 @@ loop condition). Just as Dafny will not discover properties of a method
 on its own, it will not know that any but the most basic properties of a loop
 are preserved unless it is told via an invariant.
 
-### 19.14.2. Loop Termination
+### 19.14.2. Loop termination
 
 Dafny proves that code terminates, i.e. does not loop forever, by using
 `decreases` annotations. For many things, Dafny is able to guess the right
@@ -1112,12 +1114,196 @@ If the `decreases` clause of a loop specifies `*`, then no
 termination check will be performed. Use of this feature is sound only with
 respect to partial correctness.
 
-### 19.14.3. Loop Framing
-In some cases we also must specify what memory locations the loop body
-is allowed to modify. This is done using a `modifies` clause.
-See the discussion of framing in methods for a fuller discussion.
+### 19.14.3. Loop framing {#sec-loop-framing}
 
-TO BE WRITTEN
+The specification of a loop also includes _framing_, which says what the
+loop modifies. The loop frame includes both local variables and locations
+in the heap.
+
+For local variables, the Dafny verifier performs a syntactic
+scan of the loop body to find every local variable or out-parameter that occurs as a left-hand
+side of an assignment. These variables are called
+_syntactic assignment targets of the loop_, or _syntactic loop targets_ for short.
+Any local variable or out-parameter that is not a syntactic assignment target is known by the
+verifier to remain unchanged by the loop.
+
+The heap may or may not be a syntactic loop target. It is when the loop body
+syntactically contains a statement that can modify a heap location. This
+includes calls to compiled methods, even if such a method has an empty
+`modifies` clause, since a compiled method is always allowed to allocate
+new objects and change their values in the heap.
+
+If the heap is not a syntactic loop target, then the verifier knows the heap
+remains unchanged by the loop. If the heap _is_ a syntactic loop target,
+then the loop's effective `modifies` clause determines what is allowed to be
+modified by iterations of the loop body.
+
+A loop can use `modifies` clauses to declare the effective `modifies` clause
+of the loop. If a loop does not explicitly declare any `modifies` clause, then
+the effective `modifies` clause of the loop is the effective `modifies` clause
+of the most tightly enclosing loop or, if there is no enclosing loop, the
+`modifies` clause of the enclosing method.
+
+In most cases, there is no need to give an explicit `modifies` clause for a
+loop. The one case where it is sometimes needed is if a loop modifies less
+than is allowed by the enclosing method. Here are two simple methods that
+illustrate this case:
+
+```
+class Cell {
+  var data: int
+}
+
+method M0(c: Cell, d: Cell)
+  requires c != d
+  modifies c, d
+  ensures c.data == d.data == 100
+{
+  c.data, d.data := 100, 0;
+  var i := 0;
+  while i < 100
+    invariant d.data == i
+    // Needs "invariant c.data == 100" or "modifies d" to verify
+  {
+    d.data := d.data + 1;
+    i := i + 1;
+  }
+}
+
+method M1(c: Cell)
+  modifies c
+  ensures c.data == 100
+{
+  c.data := 100;
+  var i := 0;
+  while i < 100
+    // Needs "invariant c.data == 100" or "modifies {}" to verify
+  {
+    var tmp := new Cell;
+    tmp.data := i;
+    i := i + 1;
+  }
+}
+```
+
+In `M0`, the effective `modifies` clause of the loop is `modifies c, d`. Therefore,
+the method's postcondition `c.data == 100` is not provable. To remedy the situation,
+the loop needs to be declared either with `invariant c.data == 100` or with
+`modifies d`.
+
+Similarly, the effective `modifies` clause of the loop in `M1` is `modifies c`. Therefore,
+the method's postcondition `c.data == 100` is not provable. To remedy the situation,
+the loop needs to be declared either with `invariant c.data == 100` or with
+`modifies {}`.
+
+When a loop has an explicit `modifies` clause, there is, at the top of
+every iteration, a proof obligation that
+
+* the expressions given in the `modifies` clause are well-formed, and
+* everything indicated in the loop `modifies` clause is allowed to be modified by the
+  (effective `modifies` clause of the) enclosing loop or method.
+
+### 19.14.4. Body-less methods, functions, loops, and aggregate statements
+
+Methods (including lemmas), functions, loops, and `forall` statements are ordinarily
+declared with a body, that is, a curly-braces pair that contains (for methods, loops, and `forall`)
+a list of statements or (for a function) an expression. In each case, Dafny syntactically
+allows these constructs to be given without a body. This is to allow programmers to
+temporarily postpone the development of the implementation of the method, function, loop, or
+aggregate statement.
+
+If a method has no body, there is no difference for callers of the method. Callers still reason
+about the call in terms of the method's specification. But without a body, the verifier has
+no method implementation to check against the specification, so the verifier is silently happy.
+The compiler, on the other hand, will complain if it encounters a body-less method, because the
+compiler is supposed to generate code for the method, but it isn't clever enough to do that by
+itself without a given method body. If the method implementation is provided by code written
+outside of Dafny, the method can be marked with an `{:extern}` annotation, in which case the
+compiler will no longer complain about the absence of a method body.
+
+A lemma is a special kind of method. Callers are therefore unaffected by the absence of a body,
+and the verifier is silently happy with not having a proof to check against the lemma specification.
+Despite a lemma being ghost, it is still the compiler that checks for, and complains about,
+body-less lemmas. A body-less lemma is an unproven lemma, which is often known as an _axiom_.
+If you intend to use a lemma as an axiom, omit its body and add the attribute `{:axiom}`, which
+causes the compiler to suppress its complaint about the lack of a body.
+
+Similarly, calls to a body-less function use only the specification of the function. The
+verifier is silently happy, but the compiler complains (whether or not the function is ghost).
+As for methods and lemmas, the `{:extern}` and `{:axiom}` attributes can be used to suppress the
+compiler's complaint.
+
+By supplying a body for a method or function, the verifier will in effect show the feasibility of
+the specification of the method or function. By supplying an `{:extern}` or `{:axiom}` attribute,
+you are taking that responsibility into your own hands. Common mistakes include forgetting to
+provide an appropriate `modifies` or `reads` clause in the specification, or forgetting that
+the results of functions in Dafny (unlike in most other languages) must be deterministic.
+
+Just like methods and functions have two sides, callers and implementations, loops also have
+two sides. One side (analogous to callers) is the context that uses the loop. That context treats
+the loop in the same way regardless of whether or not the loop has a body. The other side
+is the loop body, that is, the implementation of each loop iteration. The verifier checks
+that the loop body maintains the loop invariant and that the iterations will eventually terminate,
+but if there is no loop body, the verifier is silently happy. This allows you to temporarily
+postpone the authoring of the loop body until after you've made sure that the loop specification
+is what you need in the context of the loop.
+
+There is one thing that works differently for body-less loops than for loops with bodies.
+It is the computation of syntactic loop targets, which become part of the loop frame
+(see [Section 19.14.3](#sec-loop-framing)). For a body-less loop, the local variables
+computed as part of the loop frame are the mutable variables that occur free in the
+loop specification. The heap is considered a part of the loop frame if it is used
+for mutable fields in the loop specification or if the loop has an explicit `modifies` clause.
+The IDE will display the computed loop frame in hover text.
+
+For example, consider
+
+```dafny
+class Cell {
+  var data: int
+  const K: int
+}
+
+method BodylessLoop(n: nat, c: Cell)
+  requires c.K == 8
+  modifies c
+{
+  c.data := 5;
+  var a, b := n, n;
+  for i := 0 to n
+    invariant c.K < 10
+    invariant a <= n
+    invariant c.data < 10
+  assert a == n;
+  assert b == n;
+  assert c.data == 5;
+}
+```
+
+The loop specification mentions local variable `a`, and thus `a` is considered part of
+the loop frame. Since what the loop invariant says about `a` is not strong enough to
+prove the assertion `a == n` that follows the loop, the verifier complains about that
+assertion.
+
+Local variable `b` is not mentioned in the loop specification, and thus `b` is not
+included in the loop frame. Since in-parameter `n` is immutable, it is not included
+in the loop frame, either, despite being mentioned in the loop specification. For
+these reasons, the assertion `b == n` is provable after the loop.
+
+Because the loop specification mentions the mutable field `data`, the heap becomes
+part of the loop frame. Since the loop invariant is not strong enough to prove the
+assertion `c.data == 5` that follows the loop, the verifier complains about that
+assertion. On the other hand, had `c.data < 10` not been mentioned in the loop
+specification, the assertion would be verified, since field `K` is then the only
+field mentioned in the loop specification and `K` is immutable.
+
+Finally, the aggregate statement (`forall`) can also be given without a body. Such
+a statement claims that the given `ensures` clause holds true for all values of
+the bound variables that satisfy the given range constraint. If the statement has
+no body, the program is in effect omitting the proof, much like a body-less lemma
+is omitting the proof of the claim made by the lemma specification. As with the
+other body-less constructs above, the verifier is silently happy with a body-less
+`forall` statement, but the compiler will complain.
 
 ## 19.15. Match Statement {#sec-match-statement}
 ````grammar
