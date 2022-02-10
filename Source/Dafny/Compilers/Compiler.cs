@@ -1264,8 +1264,7 @@ namespace Microsoft.Dafny {
         throw new NotImplementedException();
       }
 
-      public ConcreteSyntaxTree CreateMockMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance,
-        bool lookasideBody) {
+      public ConcreteSyntaxTree CreateMockMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
         throw new NotImplementedException();
       }
 
@@ -1791,9 +1790,7 @@ namespace Microsoft.Dafny {
                   m.Ens.Count == 1 && m.Ens.Any(ensure => ensure.E is FreshExpr)) {
                 classWriter.CreateFreshMethod(m);
               }
-              if (Attributes.Contains(m.Attributes, "mock") && m.IsStatic &&
-                  m.Outs.Count > 0 && m.Ens.Count(ensure => ensure.E is FreshExpr) == m.Outs.Count) {
-                // TODO: one ensure can contain two fresh expressions
+              if (Attributes.Contains(m.Attributes, "mock") && m.IsStatic && m.Outs.Count > 0) {
                 classWriter.CreateMockMethod(m, CombineAllTypeArguments(m), true, true, false);
               }
             } else {
