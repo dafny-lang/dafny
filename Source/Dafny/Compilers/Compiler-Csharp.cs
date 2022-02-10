@@ -73,7 +73,9 @@ namespace Microsoft.Dafny {
       wr.WriteLine();
       wr.WriteLine("using System;");
       wr.WriteLine("using System.Numerics;");
-      wr.WriteLine("using Moq;");
+      if (DafnyOptions.O.CompileMocks) {
+        wr.WriteLine("using Moq;");
+      }
       EmitDafnySourceAttribute(program, wr);
       if (!DafnyOptions.O.UseRuntimeLib) {
         ReadRuntimeSystem("DafnyRuntime.cs", wr);

@@ -1790,7 +1790,7 @@ namespace Microsoft.Dafny {
                   m.Ens.Count == 1 && m.Ens.Any(ensure => ensure.E is FreshExpr)) {
                 classWriter.CreateFreshMethod(m);
               }
-              if (Attributes.Contains(m.Attributes, "mock") && m.IsStatic && m.Outs.Count > 0) {
+              if (Attributes.Contains(m.Attributes, "mock") && m.IsStatic && m.Outs.Count > 0 && DafnyOptions.O.CompileMocks) {
                 classWriter.CreateMockMethod(m, CombineAllTypeArguments(m), true, true, false);
               }
             } else {
