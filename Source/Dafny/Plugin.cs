@@ -60,12 +60,13 @@ public record Plugin(Assembly Assembly, string[] Args) {
     }
 
     pluginConfiguration ??= new AutomaticPluginConfiguration {
-      Rewriters =
-      rewriterTypes.Select<System.Type, Func<ErrorReporter, Rewriter>>((System.Type rewriterType) =>
-        (ErrorReporter errorReporter) =>
-          (Rewriter)Activator.CreateInstance(rewriterType, new object[] { errorReporter })).ToArray()
+      Rewriters = rewriterTypes.Select(CreateRewriterFactory).ToArray()
     };
     return pluginConfiguration;
+  }
+
+  private static Func<ErrorReporter, Rewriter> CreateRewriterFactory(System.Type rewriterType) {
+    return errorReporter => (Rewriter)Activator.CreateInstance(rewriterType, new object[] { errorReporter });
   }
 
   public IEnumerable<IRewriter> GetRewriters(ErrorReporter reporter) {
