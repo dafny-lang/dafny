@@ -80,6 +80,10 @@ class Even {
         this.value := value;
     }
     
+    function method Next():Even? {
+        null // not implemented yet but can be mocked
+    }
+    
     function method Sum(a:int, b:int):int {
         a + b
     }
@@ -176,6 +180,29 @@ method {:test} PassingTestParameterizedMock() {
     var e:Even := ParametrizedMock(24);
     expect(e.value == 24);
     expect(e.value != 7);
+}
+
+method {:extern} {:mock} SelfReferentialMock() returns (e:Even) 
+    ensures fresh(e)
+    ensures e.Next() == e
+    
+method {:test} PassingTestSelfReferentialMock() {
+    var e:Even:= SelfReferentialMock();
+    expect(e.Next() == e);
+    expect(e.Next() != null);
+}
+
+method {:extern} {:mock} CrossReferentialMock() returns (e1:Even, e2:Even) 
+    ensures fresh(e1) && fresh(e2) 
+    ensures e1.Next() == e2
+    ensures e2.Next() == e1
+    
+method {:test} PassingTestCrossReferentialMock() {
+    var e1:Even, e2:Even := CrossReferentialMock();
+    expect(e1.Next() == e2);
+    expect(e1.Next() != e1);
+    expect(e2.Next() == e1);
+    expect(e2.Next() != e2);
 }
 
 class StringMap {

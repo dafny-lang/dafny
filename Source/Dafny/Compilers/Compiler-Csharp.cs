@@ -18,6 +18,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis;
 using System.Runtime.Loader;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Microsoft.BaseTypes;
 using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 
@@ -3359,19 +3360,26 @@ namespace Microsoft.Dafny {
         var parameters = compiler
           .GetMethodParameters(m, typeArgs, lookasideBody, customReceiver, returnType);
 
-        // Method declaration:
-        wr.FormatLine($"{keywords}{returnType} {compiler.IdName(m)}{typeParameters}({parameters}) {{");
+        // Out parameters cannot be used inside lambda expressions in Csharp
+        // but the mocked objects may appear in lambda expressions during
+        // mocking (e.g. two objects may cross-reference each other).
+        // The solution is to rename the out parameters.
+        var parameterString = parameters.ToString();
+        var retNames = new Dictionary<string, string>();
+        foreach (var o in m.Outs) {
+          retNames[o.CompileName] = FreshId(o.CompileName + "Return");
+          parameterString = Regex.Replace(parameterString,
+            $"(^|[^a-zA-Z0-9_]){o.CompileName}([^a-zA-Z0-9_]|$)",
+            "$1" + retNames[o.CompileName] + "$2");
+        }
+        wr.FormatLine($"{keywords}{returnType} {compiler.IdName(m)}{typeParameters}({parameterString}) {{");
 
         // Initialize the mocks:
         mockNames = new Dictionary<string, string>();
-        if (returnType != "void") {
-          mockNames[m.Outs[0].CompileName] = compiler.idGenerator.FreshId(m.Outs[0].CompileName + "Mock");
-          wr.FormatLine($"var {mockNames[m.Outs[0].CompileName]} = new Mock<{returnType}>();");
-        } else {
-          foreach (var o in m.Outs) {
-            mockNames[o.CompileName] = compiler.idGenerator.FreshId(o.CompileName + "Mock");
-            wr.FormatLine($"var {mockNames[o.CompileName]} = new Mock<{compiler.TypeName(o.Type, wr, o.tok)}>();");
-          }
+        foreach (var o in m.Outs) {
+          mockNames[o.CompileName] = compiler.idGenerator.FreshId(o.CompileName + "Mock");
+          wr.FormatLine($"var {mockNames[o.CompileName]} = new Mock<{compiler.TypeName(o.Type, wr, o.tok)}>();");
+          wr.FormatLine($"var {o.CompileName} = {mockNames[o.CompileName]}.Object;");
         }
 
         // Stub methods and fields according to the Dafny post-conditions:
@@ -3382,10 +3390,10 @@ namespace Microsoft.Dafny {
 
         // Return the mocked objects:
         if (returnType != "void") {
-          wr.FormatLine($"return {mockNames[m.Outs[0].CompileName]}.Object;");
+          wr.FormatLine($"return {m.Outs[0].CompileName};");
         } else {
           foreach (var o in m.Outs) {
-            wr.FormatLine($"{o.CompileName} = {mockNames[o.CompileName]}.Object;");
+            wr.FormatLine($"{retNames[o.CompileName]} = {o.CompileName};");
           }
         }
         wr.WriteLine("}");
