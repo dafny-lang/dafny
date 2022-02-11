@@ -238,15 +238,6 @@ namespace Microsoft.Dafny {
         case "plugin": {
             if (ps.ConfirmArgumentCount(1)) {
               var pluginAndArgument = args[ps.i];
-              if (pluginAndArgument.Length > 0 &&
-                  pluginAndArgument[0] == '"' &&
-                  pluginAndArgument[^1] == '"'
-                  ) {
-                var unescapeRegex = new Regex(@"\\""|\\\\");
-                pluginAndArgument = unescapeRegex.Replace(pluginAndArgument.Substring(1, pluginAndArgument.Length - 2),
-                  match => match.Groups[0].Value == @"\""" ? "\"" : @"\"
-                );
-              }
               if (pluginAndArgument.Length > 0) {
                 var pluginArray = pluginAndArgument.Split(',');
                 var pluginPath = pluginArray[0];
@@ -255,11 +246,13 @@ namespace Microsoft.Dafny {
                   // There are no commas in paths, but there can be in arguments
                   var argumentsString = string.Join(',', pluginArray.Skip(1));
                   // Parse arguments, accepting and remove double quotes that isolate long arguments
-                  var splitter = new Regex(@"""((?:[^""]|\\"")*)""|([^ ]+)");
+                  var splitter = new Regex(@"""((?:[^""\\]|\\\\|\\"")*)""|([^ ]+)");
+                  var unescaper = new Regex(@"\\""|\\\\");
                   arguments = splitter.Matches(argumentsString).Select(
-                    matchResult => matchResult.Groups[1].Success ?
-                        matchResult.Groups[1].Value.Replace(@"\""", @"""") :
-                        matchResult.Groups[2].Value
+                    matchResult => matchResult.Groups[1].Success
+                      ? unescaper.Replace(matchResult.Groups[1].Value, matchResult2 =>
+                          matchResult2.Groups[0].Value == @"\""" ? "\"" : "\\")
+                      : matchResult.Groups[2].Value
                     ).ToArray();
                 }
                 Plugins.Add(Plugin.Load(pluginPath, arguments));
