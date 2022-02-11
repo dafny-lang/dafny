@@ -11,10 +11,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Diagnostics.Contracts;
+using System.IO;
+using System.Reflection;
 using JetBrains.Annotations;
 using Microsoft.BaseTypes;
 using Microsoft.Boogie;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.Dafny.Plugins;
 
 namespace Microsoft.Dafny {
   public class Resolver {
@@ -436,6 +439,10 @@ namespace Microsoft.Dafny {
 
       rewriters.Add(new InductionRewriter(reporter));
 
+      foreach (var plugin in DafnyOptions.O.Plugins) {
+        rewriters.AddRange(plugin.GetRewriters(reporter));
+      }
+
       systemNameInfo = RegisterTopLevelDecls(prog.BuiltIns.SystemModule, false);
       prog.CompileModules.Add(prog.BuiltIns.SystemModule);
       RevealAllInScope(prog.BuiltIns.SystemModule.TopLevelDecls, systemNameInfo.VisibilityScope);
@@ -474,8 +481,8 @@ namespace Microsoft.Dafny {
             m.RefinementQId.Set(md); // If module is not found, md is null and an error message has been emitted
           }
 
-          foreach (var r in rewriters) {
-            r.PreResolve(m);
+          foreach (var rewriter in rewriters) {
+            rewriter.PreResolve(m);
           }
 
           literalDecl.Signature = RegisterTopLevelDecls(m, true);
@@ -500,11 +507,11 @@ namespace Microsoft.Dafny {
 
           prog.ModuleSigs[m] = sig;
 
-          foreach (var r in rewriters) {
+          foreach (var rewriter in rewriters) {
             if (!good || reporter.Count(ErrorLevel.Error) != preResolveErrorCount) {
               break;
             }
-            r.PostResolve(m);
+            rewriter.PostResolveIntermediate(m);
           }
           if (good && reporter.Count(ErrorLevel.Error) == errorCount) {
             m.SuccessfullyResolved = true;
@@ -604,8 +611,8 @@ namespace Microsoft.Dafny {
           }
         }
 
-        foreach (var r in rewriters) {
-          r.PostCyclicityResolve(module);
+        foreach (var rewriter in rewriters) {
+          rewriter.PostCyclicityResolve(module);
         }
       }
 
@@ -634,8 +641,8 @@ namespace Microsoft.Dafny {
       }
 
       foreach (var module in prog.Modules()) {
-        foreach (var r in rewriters) {
-          r.PostDecreasesResolve(module);
+        foreach (var rewriter in rewriters) {
+          rewriter.PostDecreasesResolve(module);
         }
       }
 
@@ -687,6 +694,16 @@ namespace Microsoft.Dafny {
 
       Type.DisableScopes();
       CheckDupModuleNames(prog);
+
+      foreach (var module in prog.Modules()) {
+        foreach (var rewriter in rewriters) {
+          rewriter.PostResolve(module);
+        }
+      }
+
+      foreach (var rewriter in rewriters) {
+        rewriter.PostResolve(prog);
+      }
     }
 
     void FillInDefaultDecreasesClauses(Program prog) {
