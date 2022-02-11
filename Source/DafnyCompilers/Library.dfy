@@ -9,7 +9,7 @@ module Lib {
       if ts == [] then [] else [f(ts[0])] + Map(f, ts[1..])
     }
 
-    function method All<T>(P: T ~> bool, ts: seq<T>) : (b: bool)
+    function method {:opaque} All<T>(P: T ~> bool, ts: seq<T>) : (b: bool)
       reads P.reads // FIXME: what does this mean?
       requires forall t | t in ts :: P.requires(t)
       ensures b == forall i | 0 <= i < |ts| :: P(ts[i])

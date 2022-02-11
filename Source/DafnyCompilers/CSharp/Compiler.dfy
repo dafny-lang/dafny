@@ -61,6 +61,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
         | Fresh
         | Allocated
         | Lit
+
     }
 
     // public class LiteralExpr : Expression
@@ -170,7 +171,10 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
          [C.BinaryExpr__ResolvedOpcode.RankLt := D.BinaryOp.Datatypes(D.BinaryOp.RankLt)]
          [C.BinaryExpr__ResolvedOpcode.RankGt := D.BinaryOp.Datatypes(D.BinaryOp.RankGt)];
 
-    function method {:verify false} TranslateUnary(u: C.UnaryExpr) : D.Expr {
+    function method TranslateUnary(u: C.UnaryExpr) : D.Expr
+      decreases ASTHeight(u), 0
+      reads *
+    {
       if u is C.UnaryOpExpr then
         var u := u as C.UnaryOpExpr;
         var op, e := u.Op, u.E;
@@ -318,7 +322,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
         match s {
           case PrintStmt(exprs) =>
             Seq.All(P, exprs)
-          case UnsupportedStmt => true
+          case UnsupportedStmt() => true
         }
       }
 
@@ -365,7 +369,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
         match s {
           case PrintStmt(exprs) =>
             Seq.All((e => AllExprs_Expr(e, P)), exprs)
-          case UnsupportedStmt => true
+          case UnsupportedStmt() => true
         }
       }
 
@@ -419,7 +423,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
       //   ensures AllExprs_Expr(e', IsMap(f))
       // {
       //   var e := f(e);
-      //   match e {
+      //   f(match e {
       //       case UnaryOpExpr(uop, e) =>
       //         // Not using datatype update to ensure that I get a warning if a type gets new arguments
       //         UnaryOpExpr(uop, MapExprs_Expr(e, f))
@@ -428,26 +432,26 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
       //       case LiteralExpr(lit_) => e
       //       case InvalidExpr(msg_) => e
       //       case UnsupportedExpr(cexpr_) => e
-      //   }
+      //   })
       // }
 
-      function method {:opaque} {:verify false} MapExprs_Stmt(s: Stmt, f: Expr -> Expr) : (s': Stmt)
+      function method {:opaque} MapExprs_Stmt(s: Stmt, f: Expr -> Expr) : (s': Stmt)
         ensures TopExprs_Stmt(s', IsMap(f))
       {
         match s {
           case PrintStmt(exprs) =>
             PrintStmt(Seq.Map(f, exprs))
-          case UnsupportedStmt => s
+          case UnsupportedStmt() => s
         }
       }
 
-      function method {:opaque} {:verify false} MapExprs_BlockStmt(b: BlockStmt, f: Expr -> Expr) : (b': BlockStmt)
+      function method {:opaque} MapExprs_BlockStmt(b: BlockStmt, f: Expr -> Expr) : (b': BlockStmt)
         ensures TopExprs_BlockStmt(b', IsMap(f))
       {
         Seq.Map((s => MapExprs_Stmt(s, f)), b)
       }
 
-      function method {:opaque} {:verify false} MapExprs_Method(m: Method, f: Expr -> Expr) : (m': Method)
+      function method {:opaque} MapExprs_Method(m: Method, f: Expr -> Expr) : (m': Method)
         ensures TopExprs_Method(m', IsMap(f))
       {
         match m {
@@ -456,11 +460,237 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
         }
       }
 
-      function method {:opaque} {:verify false} MapExprs_Program(p: Program, f: Expr -> Expr) : (p': Program)
+      function method {:opaque} MapExprs_Program(p: Program, f: Expr -> Expr) : (p': Program)
         ensures TopExprs_Program(p', IsMap(f))
       {
         match p {
           case Program(mainMethod) => Program(MapExprs_Method(mainMethod, f))
+        }
+      }
+    }
+
+    module Generic {
+      module Things {
+        import opened AST
+
+        datatype DafnyThing =
+          | ExprThing(e: Expr)
+          | StmtThing(s: Stmt)
+          | MethodThing(m: Method)
+          | ProgramThing(p: Program)
+
+        predicate method SameKind(t1: DafnyThing, t2: DafnyThing) {
+          match (t1, t2) {
+            case (ExprThing(_), ExprThing(_)) => true
+            case (StmtThing(_), StmtThing(_)) => true
+            case (MethodThing(_), MethodThing(_)) => true
+            case (ProgramThing(_), ProgramThing(_)) => true
+            case (_, _) => false
+          }
+        }
+
+        predicate IsDafnyTransformer(f: DafnyThing -> DafnyThing) {
+          forall t: DafnyThing :: SameKind(t, f(t))
+        }
+
+        type DafnyTransformer = f: DafnyThing -> DafnyThing | IsDafnyTransformer(f)
+          witness (d => d)
+
+        function method unreachable<T>() : T requires false {
+          assert false; unreachable()
+        }
+
+        function method LiftExpr<T>(f: DafnyThing -> T) : Expr -> T {
+          e => f(ExprThing(e))
+        }
+
+        function method LiftStmt<T>(f: DafnyThing -> T) : Stmt -> T {
+          s => f(StmtThing(s))
+        }
+
+        function method LiftMethod<T>(f: DafnyThing -> T) : Method -> T {
+          m => f(MethodThing(m))
+        }
+
+        function method LiftProgram<T>(f: DafnyThing -> T) : Program -> T {
+          p => f(ProgramThing(p))
+        }
+
+        function method BiLiftExpr(f: DafnyTransformer) : Expr -> Expr {
+          e => match LiftExpr(f)(e) { case ExprThing(e') => e' }
+        }
+
+        function method BiLiftStmt(f: DafnyTransformer) : Stmt -> Stmt {
+          s => match LiftStmt(f)(s) { case StmtThing(e') => e' }
+        }
+
+        function method BiLiftMethod(f: DafnyTransformer) : Method -> Method {
+          m => match LiftMethod(f)(m) { case MethodThing(e') => e' }
+        }
+
+        function method BiLiftProgram(f: DafnyTransformer) : Program -> Program {
+          p => match LiftProgram(f)(p) { case ProgramThing(e') => e' }
+        }
+      }
+
+      module All { // FIXME rewrite in terms of a generic iterator on expressions
+        import opened Lib
+        import opened AST
+        import opened Things
+
+        function method AllChildren_Expr(e: Expr, P: DafnyThing -> bool) : bool
+          decreases e, 0
+        {
+          match e {
+            case UnaryOpExpr(uop: UnaryOp.Op, e: Expr) =>
+              All_Expr(e, P)
+            case BinaryExpr(bop: BinaryOp.Op, e0: Expr, e1: Expr) =>
+              All_Expr(e0, P) && All_Expr(e1, P)
+            case LiteralExpr(lit: LiteralExpr) => true
+            case InvalidExpr(msg: string) => true
+            case UnsupportedExpr(expr: C.Expression) => true
+          }
+        }
+
+        function method All_Expr(e: Expr, P: DafnyThing -> bool) : bool
+          decreases e, 1
+        {
+           LiftExpr(P)(e) && AllChildren_Expr(e, P)
+        }
+
+        function method AllChildren_Stmt(s: Stmt, P: DafnyThing -> bool) : bool {
+           match s {
+             case PrintStmt(exprs) =>
+               Seq.All((e => All_Expr(e, P)), exprs)
+             case UnsupportedStmt() => true
+           }
+         }
+
+        function method All_Stmt(s: Stmt, P: DafnyThing -> bool) : bool {
+          LiftStmt(P)(s) && AllChildren_Stmt(s, P)
+        }
+
+        function method AllChildren_Method(m: Method, P: DafnyThing -> bool) : bool {
+          match m {
+            case Method(CompileName_, methodBody) => Seq.All((s => All_Stmt(s, P)), methodBody)
+          }
+        }
+
+        function method All_Method(m: Method, P: DafnyThing -> bool) : bool {
+          LiftMethod(P)(m) && AllChildren_Method(m, P)
+        }
+
+        function method AllChildren_Program(p: Program, P: DafnyThing -> bool) : bool {
+          match p {
+            case Program(mainMethod) => All_Method(mainMethod, P)
+          }
+        }
+
+        function method All_Program(p: Program, P: DafnyThing -> bool) : bool {
+          LiftProgram(P)(p) && AllChildren_Program(p, P)
+        }
+
+        function method AllChildren_Thing(p: DafnyThing, P: DafnyThing -> bool) : bool {
+          match p {
+            case ExprThing(e) => AllChildren_Expr(e, P)
+            case StmtThing(s) => AllChildren_Stmt(s, P)
+            case MethodThing(m) => AllChildren_Method(m, P)
+            case ProgramThing(p) => AllChildren_Program(p, P)
+          }
+        }
+
+        function method All_Thing(p: DafnyThing, P: DafnyThing -> bool) : bool {
+          P(p) && AllChildren_Thing(p, P)
+        }
+      }
+
+      module BottomUp {
+        import opened AST
+        import opened Lib
+        import opened Things
+        import opened All
+
+        function IsMap<T(!new), T'>(f: T -> T') : T' -> bool {
+          y => exists x :: y == f(x)
+        }
+
+
+        predicate IsBottomUpTransformer(f: DafnyThing -> DafnyThing) {
+          && IsDafnyTransformer(f)
+          && forall t :: AllChildren_Thing(t, IsMap(f)) ==> All_Thing(f(t), IsMap(f))
+        }
+
+        type BottomUpTransformer = f: DafnyThing -> DafnyThing | IsBottomUpTransformer(f)
+          witness (d => d)
+
+        function method Map_Expr(e: Expr, f: BottomUpTransformer) : (e': Expr)
+          ensures All_Expr(e', IsMap(f))
+        {
+          // Not using datatype updates below to ensure that I get a warning if a
+          // type gets new arguments
+          BiLiftExpr(f)(match e {
+              case UnaryOpExpr(uop, e) =>
+                UnaryOpExpr(uop, Map_Expr(e, f))
+              case BinaryExpr(bop, e0, e1) =>
+                BinaryExpr(bop, Map_Expr(e0, f), Map_Expr(e1, f))
+              case LiteralExpr(lit_) => e
+              case InvalidExpr(msg_) => e
+              case UnsupportedExpr(cexpr_) => e
+          })
+        }
+
+        lemma Map_All_IsMap<T, T'>(f: T -> T', ts: seq<T>)
+          ensures Seq.All(IsMap(f), Seq.Map(f, ts))
+        {}
+
+        function method {:opaque} Map_Stmt(s: Stmt, f: BottomUpTransformer) : (s': Stmt)
+          ensures All_Stmt(s', IsMap(f))
+        {
+          BiLiftStmt(f)(match s {
+            case PrintStmt(exprs) =>
+              var exprs' := Seq.Map(e => Map_Expr(e, f), exprs);
+              assert Seq.All(e => All_Expr(e, IsMap(f)), exprs');
+              PrintStmt(exprs')
+            case UnsupportedStmt() =>
+              s
+          })
+        }
+
+        function method {:opaque} Map_Method(m: Method, f: BottomUpTransformer) : (m': Method)
+          ensures All_Method(m', IsMap(f))
+        {
+          BiLiftMethod(f)(match m {
+            case Method(CompileName, methodBody) =>
+              Method(CompileName, Seq.Map((s => Map_Stmt(s, f)), methodBody))
+          })
+        }
+
+        function method {:opaque} Map_Program(p: Program, f: BottomUpTransformer) : (p': Program)
+          ensures All_Program(p', IsMap(f))
+        {
+          BiLiftProgram(f)(match p {
+            case Program(mainMethod) =>
+              calc {
+                AllChildren_Program(Program(Map_Method(mainMethod, f)), IsMap(f));
+                All_Method(Map_Method(mainMethod, f), IsMap(f));
+                // Follows directly from ensures clause
+              }
+              assert All_Method(Map_Method(mainMethod, f), IsMap(f));
+              assert AllChildren_Program(Program(Map_Method(mainMethod, f)), IsMap(f));
+              assume false;
+              Program(Map_Method(mainMethod, f))
+          })
+        }
+
+        function method {:opaque} Map_Thing(t: DafnyThing, f: BottomUpTransformer) : (t': DafnyThing)
+          ensures All_Thing(t', IsMap(f))
+        {
+          match t {
+            case ExprThing(e) => ExprThing(Map_Expr(e, f))
+            case StmtThing(s) => StmtThing(Map_Stmt(s, f))
+            case MethodThing(m) => MethodThing(Map_Method(m, f))
+            case ProgramThing(p) => ProgramThing(Map_Program(p, f))
+          }
         }
       }
     }
@@ -510,6 +740,20 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
       !IsNegatedBinopExpr(e)
     }
 
+    // function method EliminateNegatedBinops_Expr(e: Expr) : (e': Expr)
+    //   ensures NotANegatedBinopExpr(e')
+    // {
+    //   match e {
+    //     case BinaryExpr(bop, e0, e1) =>
+    //       if IsNegatedBinop(bop) then
+    //         UnaryOpExpr(UnaryOp.Not, BinaryExpr(FlipNegatedBinop(bop), e0, e1))
+    //       else
+    //         BinaryExpr(bop, e0, e1)
+    //     case _ => e
+    //   }
+    // }
+
+
     function method EliminateNegatedBinops_Expr(e: Expr) : (e': Expr)
       ensures AllExprs_Expr(e', NotANegatedBinopExpr)
     {
@@ -536,6 +780,104 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
       // LATER: it actually works even without this call; make more things opaque?
       Predicates.TopExprs_AllExprs(p', NotANegatedBinopExpr);
       p'
+    }
+
+    import opened Rewriter.Generic.Things
+    import opened Rewriter.Generic.All
+    import opened Rewriter.Generic.BottomUp
+
+    predicate method IsNegatedBinopThing(t: DafnyThing) {
+      (t.ExprThing? && t.e.BinaryExpr? && IsNegatedBinop(t.e.bop))
+    }
+
+    predicate method NotANegatedBinopThing(t: DafnyThing) {
+      !IsNegatedBinopThing(t)
+    }
+
+    function method EliminateNegatedBinops_Thing'(t: DafnyThing) : (t': DafnyThing)
+      ensures NotANegatedBinopThing(t')
+    {
+      if IsNegatedBinopThing(t) then
+        var b := BinaryExpr(FlipNegatedBinop(t.e.bop), t.e.e0, t.e.e1);
+        var u := UnaryOpExpr(UnaryOp.Not, b);
+        ExprThing(u)
+      else t
+    }
+
+    lemma EliminateNegatedBinops_Thing'_ok()
+      ensures IsBottomUpTransformer(EliminateNegatedBinops_Thing')
+    {
+      var f := EliminateNegatedBinops_Thing';
+      assert IsDafnyTransformer(f);
+      var P := BottomUp.IsMap(f);
+      forall t ensures AllChildren_Thing(t, P) ==>
+                       All_Thing(f(t), P) {
+        if (AllChildren_Thing(t, P)) {
+          if IsNegatedBinopThing(t) {
+            calc {
+              AllChildren_Thing(t, P);
+              AllChildren_Expr(t.e, P);
+              All_Expr(t.e.e0, P) && All_Expr(t.e.e1, P); // FIXME why do I need this?
+            }
+            assert P(ExprThing(t.e.e0));
+            assert P(ExprThing(t.e.e1));
+
+            var b := BinaryExpr(FlipNegatedBinop(t.e.bop), t.e.e0, t.e.e1);
+            assert f(ExprThing(b)) == ExprThing(b); // !!
+            assert P(ExprThing(b));
+
+            var u := UnaryOpExpr(UnaryOp.Not, b);
+            assert f(ExprThing(u)) == ExprThing(u); // !!
+            assert P(ExprThing(u));
+
+            calc { // !! Not enough unfolding?
+              All_Thing(f(t), P);
+              All_Thing(ExprThing(u), P);
+              All_Expr(u, P);
+              P(ExprThing(u)) && AllChildren_Expr(u, P);
+              P(ExprThing(u)) && All_Expr(b, P);
+              All_Expr(b, P);
+              P(ExprThing(b)) && AllChildren_Expr(b, P);
+            }
+          } else {
+          }
+        }
+      }
+    }
+
+    // NEXT: Rewrite All_thing and other functions as a single recursive function instead of multiple functions, to have a single postcondition?
+
+    lemma All_Thing_weaken(t: DafnyThing, P: DafnyThing -> bool, Q: DafnyThing -> bool)
+      requires All_Thing(t, P)
+      requires forall t' :: P(t') ==> Q(t')
+      // FIXME what's a good decreases clause for this function?
+      ensures All_Thing(t, Q)
+    {
+      match t { // How do I automate this lemma so that I don't have to edit it every time I add cases to Expr?
+        case ExprThing(e) =>
+          match e {
+            case UnaryOpExpr(uop: UnaryOp.Op, e: Expr) =>
+              All_Thing_weaken(ExprThing(e), P, Q);
+            case BinaryExpr(bop: BinaryOp.Op, e0: Expr, e1: Expr) =>
+              assume false;
+            case LiteralExpr(lit: LiteralExpr) =>
+            case InvalidExpr(msg: string) =>
+            case UnsupportedExpr(expr: C.Expression) =>
+          }
+        case StmtThing(s) =>
+        case MethodThing(m) =>
+        case ProgramThing(p) =>
+      }
+    }
+    
+    function method EliminateNegatedBinops_Thing(t: DafnyThing) : (t': DafnyThing)
+      ensures All_Thing(t', NotANegatedBinopThing)
+    {
+      EliminateNegatedBinops_Thing'_ok();
+      var r := Map_Thing(t, EliminateNegatedBinops_Thing');
+      assert All_Thing(r, BottomUp.IsMap(EliminateNegatedBinops_Thing'));
+      All_Thing_weaken(r, BottomUp.IsMap(EliminateNegatedBinops_Thing'), NotANegatedBinopThing);
+      r
     }
   }
 
@@ -570,11 +912,11 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
 
     function method CompileUnaryOpExpr(op: UnaryOp.Op, c: StrTree) : StrTree {
       match op {
-        case Not => Format("!{}", [c]) // LATER use resolved op, which distinguishes between BV and boolean
-        case Cardinality => Unsupported
-        case Fresh => Unsupported
-        case Allocated => Unsupported
-        case Lit => Unsupported
+        case Not() => Format("!{}", [c]) // LATER use resolved op, which distinguishes between BV and boolean
+        case Cardinality() => Unsupported
+        case Fresh() => Unsupported
+        case Allocated() => Unsupported
+        case Lit() => Unsupported
       }
     }
 
@@ -688,7 +1030,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
       match s {
         case PrintStmt(exprs) =>
           Concat("\n", Lib.Seq.Map(CompilePrint, exprs))
-        case UnsupportedStmt => Unsupported
+        case UnsupportedStmt() => Unsupported
       }
     }
 
@@ -720,7 +1062,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
           }
           WriteAST(wr, asts[i]);
         }
-      case Unsupported =>
+      case Unsupported() =>
     }
   }
 
