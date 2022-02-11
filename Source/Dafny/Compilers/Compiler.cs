@@ -1781,17 +1781,17 @@ namespace Microsoft.Dafny {
           v.Visit(f);
         } else if (member is Method m) {
           if (m.Body == null && !(c is TraitDecl && !m.IsStatic) &&
-              !(!DafnyOptions.O.DisallowExterns && (Attributes.Contains(m.Attributes, "dllimport") || (IncludeExternMembers && Attributes.Contains(m.Attributes, "extern"))))) {
+              (!DafnyOptions.O.DisallowExterns && (Attributes.Contains(m.Attributes, "dllimport") || (IncludeExternMembers && Attributes.Contains(m.Attributes, "extern"))))) {
             // A (ghost or non-ghost) method must always have a body, except if it's an instance method in a trait.
             if (Attributes.Contains(m.Attributes, "axiom")) {
               // suppress error message
             } else if (!DafnyOptions.O.DisallowExterns && Attributes.Contains(m.Attributes, "extern")) {
-              if (Attributes.Contains(m.Attributes, "fresh") && m.IsStatic &&
+              if (Attributes.Contains(m.Attributes, "fresh") /*&& m.IsStatic*/ &&
                   m.Outs.Count == 1 && m.Ins.Count == 0 &&
                   m.Ens.Count == 1 && m.Ens.Any(ensure => ensure.E is FreshExpr)) {
                 classWriter.CreateFreshMethod(m);
               }
-              if (Attributes.Contains(m.Attributes, "mock") && m.IsStatic &&
+              if (Attributes.Contains(m.Attributes, "mock") /*&& m.IsStatic */&&
                   m.Outs.Count > 0 && m.Ens.Count(ensure => ensure.E is FreshExpr) == m.Outs.Count) {
                 // TODO: one ensure can contain two fresh expressions
                 classWriter.CreateMockMethod(m, CombineAllTypeArguments(m), true, true, false);

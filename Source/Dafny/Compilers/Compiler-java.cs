@@ -291,13 +291,50 @@ namespace Microsoft.Dafny {
       return wrOuter;
     }
 
+    private static void AddMultiMatcher(ConcreteSyntaxTree wr) {
+      const string multiMatcher = @"
+      public class MultiMatcher implements ArgumentMatcher<Object> {
+
+          private final int argsTotal;
+          private int argsRead;
+          private final Object[] args;
+          private final Predicate predicate;
+
+          public MultiMatcher(int nOfArgs, Predicate predicate) {
+              this.argsTotal = nOfArgs;
+              this.argsRead = 0;
+              this.args = new Object[nOfArgs];
+              this.predicate = predicate;
+          }
+
+          @Override
+          public boolean matches(Object o) {
+              args[argsRead] = o;
+              argsRead++;
+              if (argsRead < argsTotal)
+                  return true;
+              argsRead = 0;
+              return predicate.p(args);
+          }
+
+          public interface Predicate {
+              boolean p(Object[] args);
+          }
+      }";
+      wr.WriteLine(multiMatcher);
+    }
+
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
       wr.WriteLine($"// Dafny program {program.Name} compiled into Java");
       ModuleName = program.MainMethod != null ? "main" : Path.GetFileNameWithoutExtension(program.Name);
       wr.WriteLine();
       // Keep the import writers so that we can import subsequent modules into the main one
       EmitImports(wr, out RootImportWriter);
+      wr.WriteLine($"import static org.mockito.Mockito.*;"); // TODO: pom file??
+      wr.WriteLine($"import org.mockito.Mockito;");
+      wr.WriteLine($"import org.mockito.ArgumentMatcher;");
       wr.WriteLine();
+      AddMultiMatcher(wr);
     }
 
     // Only exists to make sure method is overriden
@@ -379,6 +416,7 @@ namespace Microsoft.Dafny {
       public readonly ConcreteSyntaxTree InstanceMemberWriter;
       public readonly ConcreteSyntaxTree StaticMemberWriter;
       public readonly ConcreteSyntaxTree CtorBodyWriter;
+      private readonly MockWriter mockWriter;
 
       public ClassWriter(JavaCompiler compiler, ConcreteSyntaxTree instanceMemberWriter, ConcreteSyntaxTree ctorBodyWriter, ConcreteSyntaxTree staticMemberWriter = null) {
         Contract.Requires(compiler != null);
@@ -387,6 +425,7 @@ namespace Microsoft.Dafny {
         this.InstanceMemberWriter = instanceMemberWriter;
         this.CtorBodyWriter = ctorBodyWriter;
         this.StaticMemberWriter = staticMemberWriter ?? instanceMemberWriter;
+        this.mockWriter = new MockWriter(this.Compiler);
       }
 
       public ConcreteSyntaxTree Writer(bool isStatic, bool createBody, MemberDecl/*?*/ member) {
@@ -403,12 +442,14 @@ namespace Microsoft.Dafny {
       }
 
       public ConcreteSyntaxTree CreateFreshMethod(Method m) {
-        throw new NotImplementedException();
+        //  throw new NotImplementedException();
+        return mockWriter.CreateFreshMethod(m, Writer(m.IsStatic, true, m));
       }
 
       public ConcreteSyntaxTree CreateMockMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance,
         bool lookasideBody) {
-        throw new NotImplementedException();
+        //  throw new NotImplementedException();
+        return mockWriter.CreateMockMethod(m, typeArgs, createBody, Writer(m.IsStatic, createBody, m), forBodyInheritance, lookasideBody);
       }
 
       public ConcreteSyntaxTree/*?*/ CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, bool forBodyInheritance, bool lookasideBody) {
@@ -473,6 +514,7 @@ namespace Microsoft.Dafny {
       }
       return wGet;
     }
+
     protected ConcreteSyntaxTree CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
       if (m.IsExtern(out _, out _) && (m.IsStatic || m is Constructor)) {
         // No need for an abstract version of a static method or a constructor
@@ -494,7 +536,7 @@ namespace Microsoft.Dafny {
       }
       var customReceiver = createBody && !forBodyInheritance && NeedsCustomReceiver(m);
       var receiverType = UserDefinedType.FromTopLevelDecl(m.tok, m.EnclosingClass);
-      wr.Write("public {0}{1}", !createBody && !(m.EnclosingClass is TraitDecl) ? "abstract " : "", m.IsStatic || customReceiver ? "static " : "");
+      wr.Write("public {0}{1}", !createBody && m.EnclosingClass is not TraitDecl ? "abstract " : "", m.IsStatic || customReceiver ? "static " : "");
       wr.Write(TypeParameters(TypeArgumentInstantiation.ToFormals(ForTypeParameters(typeArgs, m, lookasideBody)), " "));
       wr.Write("{0} {1}", targetReturnTypeReplacement ?? "void", IdName(m));
       wr.Write("(");
@@ -511,6 +553,60 @@ namespace Microsoft.Dafny {
       } else {
         return wr.NewBlock(")", null, BraceStyle.Newline, BraceStyle.Newline);
       }
+    }
+
+    private ConcreteSyntaxTree GetMethodParameters(Method m, List<TypeArgumentInstantiation> typeArgs, bool lookasideBody, bool customReceiver, string returnType) {
+      //var parameters = GetFunctionParameters(m.Ins, m, typeArgs, lookasideBody, customReceiver);
+      var parameters = new ConcreteSyntaxTree();
+      var sep = "";
+      WriteRuntimeTypeDescriptorsFormals(m, ForTypeDescriptors(typeArgs, m, lookasideBody), parameters, ref sep, tp => $"{DafnyTypeDescriptor}<{tp.CompileName}> {FormatTypeDescriptorVariable(tp)}");
+      if (customReceiver) {
+        var nt = m.EnclosingClass;
+        var receiverType = UserDefinedType.FromTopLevelDecl(m.tok, nt);
+        DeclareFormal(sep, "_this", receiverType, m.tok, true, parameters);
+        sep = ", ";
+      }
+      WriteFormals(sep, m.Ins, parameters);
+      if (returnType == "void") {
+        WriteFormals(parameters.Nodes.Any() ? ", " : "", m.Outs, parameters);
+      }
+      return parameters;
+    }
+
+    //private ConcreteSyntaxTree GetFunctionParameters(List<Formal> formals, MemberDecl m, List<TypeArgumentInstantiation> typeArgs, bool lookasideBody, bool customReceiver) {
+    //  var parameters = new ConcreteSyntaxTree();
+    //  var sep = "";
+    //  WriteRuntimeTypeDescriptorsFormals(m, ForTypeDescriptors(typeArgs, m, lookasideBody), parameters, ref sep,
+    //    tp => $"{DafnyTypeDescriptor}<{tp.CompileName}> {FormatTypeDescriptorVariable(tp)}");
+    //  if (customReceiver) {
+    //    var nt = m.EnclosingClass;
+    //    var receiverType = UserDefinedType.FromTopLevelDecl(m.tok, nt);
+    //    DeclareFormal(sep, "_this", receiverType, m.tok, true, parameters);
+    //    sep = ", ";
+    //  }
+
+    //  WriteFormals(sep, formals, parameters);
+    //  return parameters;
+    //}
+
+    private string GetTargetReturnTypeReplacement(Method m, ConcreteSyntaxTree wr) {
+      string targetReturnTypeReplacement = null;
+      int nonGhostOuts = 0;
+      int nonGhostIndex = 0;
+      for (int i = 0; i < m.Outs.Count; i++) {
+        if (!m.Outs[i].IsGhost) {
+          nonGhostOuts += 1;
+          nonGhostIndex = i;
+        }
+      }
+      if (nonGhostOuts == 1) {
+        targetReturnTypeReplacement = TypeName(m.Outs[nonGhostIndex].Type, wr, m.Outs[nonGhostIndex].tok);
+      } else if (nonGhostOuts > 1) {
+        targetReturnTypeReplacement = DafnyTupleClass(nonGhostOuts);
+      }
+
+      targetReturnTypeReplacement ??= "void";
+      return targetReturnTypeReplacement;
     }
 
     protected override ConcreteSyntaxTree EmitMethodReturns(Method m, ConcreteSyntaxTree wr) {
@@ -3953,6 +4049,204 @@ namespace Microsoft.Dafny {
 
     public override string TransformToClassName(string baseName) {
       return System.Text.RegularExpressions.Regex.Replace(baseName, "[^_A-Za-z0-9\\$]", "_");
+    }
+
+    /// <summary>
+    /// Below is the full grammar of ensures clauses that can specify
+    /// the behavior of an object returned by the mock-annotated method:
+    ///
+    /// ENSURES =
+    ///    FORALL
+    ///  | EQUALS
+    ///  | ENSURES && ENSURES;
+    ///  | FRESH
+    ///  
+    /// FORALL = forall ARGS :: EXPRESSION ==> EQUALS
+    ///  
+    /// EQUALS =
+    ///    FUNCTION_CALL == EXPRESSION
+    ///  | FIELD_ACCESS == EXPRESSION
+    /// 
+    /// </summary>
+    private class MockWriter {
+
+      private readonly JavaCompiler compiler;
+      private int matcherCount;
+
+      public MockWriter(JavaCompiler compiler) {
+        this.compiler = compiler;
+      }
+
+      /// <summary>
+      /// Create a body for a method returning a fresh instance of an object 
+      /// </summary>
+      public ConcreteSyntaxTree CreateFreshMethod(Method m,
+        ConcreteSyntaxTree wr) {
+        var keywords = "public "; // TODO: dis ok?
+        var returnType = compiler.GetTargetReturnTypeReplacement(m, wr);
+        wr.FormatLine($"{keywords}{returnType} {compiler.IdName(m)}() {{");
+        wr.FormatLine($"  return new {returnType}();"); // TODO: make sure this is correct java
+        wr.WriteLine("}");
+        return wr;
+      }
+
+      /// <summary>
+      /// Create a body of a method that mocks one or more objects
+      /// </summary>
+      public ConcreteSyntaxTree CreateMockMethod(Method m,
+        List<TypeArgumentInstantiation> typeArgs, bool createBody,
+        ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
+        var customReceiver = createBody &&
+                             !forBodyInheritance &&
+                             compiler.NeedsCustomReceiver(m);
+        var keywords = "public "; // TODO: dis ok?
+        var returnType = compiler.GetTargetReturnTypeReplacement(m, wr);
+        var typeParameters = compiler.TypeParameters(TypeArgumentInstantiation.
+          ToFormals(compiler.ForTypeParameters(typeArgs, m, lookasideBody)));
+        var parameters = compiler
+          .GetMethodParameters(m, typeArgs, lookasideBody, customReceiver, returnType);
+        wr.FormatLine($"{keywords}{returnType} {compiler.IdName(m)}{typeParameters}({parameters}) {{");
+        // TODO: name collisions
+        // TODO: ghost variables
+
+        // Create the mocks:
+        if (returnType != "void") {
+          wr.FormatLine($"  {returnType} {m.Outs[0].Name}Tmp = mock({returnType}.class);");
+        } else {
+          foreach (var o in m.Outs) {
+            // TODO: keep same name?
+            wr.FormatLine($"  {returnType} {o.Name}Tmp = mock({compiler.TypeName(o.Type, wr, o.tok)}.class);");
+          }
+        }
+
+        // populate the mocks according to the Dafny post-conditions:
+        foreach (var ensureClause in m.Ens) {
+          MockExpression(wr, ensureClause.E);
+        }
+
+        // Return the mocked objects:
+        if (returnType != "void") {
+          wr.FormatLine($"  return {m.Outs[0].Name}Tmp;");
+        } else {
+          foreach (var o in m.Outs) {
+            wr.FormatLine($"{o.Name} = {m.Outs[0].Name}Tmp;");
+          }
+        }
+        wr.WriteLine("}");
+        return wr;
+      }
+
+      private void MockExpression(ConcreteSyntaxTree wr, Expression expr) {
+        switch (expr) {
+          case LiteralExpr literalExpr:
+            compiler.EmitLiteralExpr(wr, literalExpr);
+            break;
+          case ApplySuffix applySuffix:
+            MockExpression(wr, applySuffix);
+            break;
+          case BinaryExpr binaryExpr:
+            MockExpression(wr, binaryExpr);
+            break;
+          case ForallExpr forallExpr:
+            MockExpression(wr, forallExpr);
+            break;
+          default:
+            // TODO
+            break;
+        }
+      }
+
+      private void MockExpression(ConcreteSyntaxTree wr,
+        ApplySuffix applySuffix, List<Tuple<IVariable, string>> bounds = null) {
+        var receiver = ((NameSegment)((ExprDotName)applySuffix.Lhs).Lhs).Name;
+        var method = ((ExprDotName)applySuffix.Lhs).SuffixName;
+        wr.Format($"  when({receiver}Tmp.{method}(");
+        for (int i = 0; i < applySuffix.Args.Count; i++) {
+          if (bounds != null &&
+              applySuffix.Args[i] is NameSegment) {
+            var bound = bounds.Find(tuple =>
+              (applySuffix.Args[i].Resolved as IdentifierExpr).Var.CompileName ==
+              tuple.Item1.CompileName);
+            if (bound == null) {
+              continue;
+            }
+            wr.Write(bound.Item2);
+          } else {
+            compiler.TrExpr(applySuffix.Args[i], wr, false);
+          }
+          if (i != applySuffix.Args.Count - 1) {
+            wr.Write(", ");
+          }
+        }
+        wr.Write("))");
+      }
+
+      private void MockExpression(ConcreteSyntaxTree wr, BinaryExpr binaryExpr,
+        List<Tuple<IVariable, string>> bounds = null) {
+        if (binaryExpr.Op != BinaryExpr.Opcode.Eq) {
+          return;
+        }
+        if (binaryExpr.E0 is ExprDotName exprDotName) {
+          var obj = ((NameSegment)(exprDotName).Lhs).Name; ;
+          wr.Format($"  when({obj}Tmp.{exprDotName.SuffixName}).theReturn( ");
+          compiler.TrExpr(binaryExpr.E1, wr, false);
+          wr.WriteLine(");");
+        }
+        if (binaryExpr.E0 is not ApplySuffix applySuffix) {
+          return;
+        }
+        MockExpression(wr, applySuffix, bounds);
+        wr.Write(".theReturn(");
+        //var first = true;
+        //if (bounds != null && bounds.Count != 0) {
+        //  wr.Write("(");
+        //  foreach (var (variable, _) in bounds) {
+        //    if (!first) {
+        //      wr.Write(", ");
+        //    }
+
+        //    var typeName = compiler.TypeName(variable.Type, wr, variable.Tok);
+        //    wr.Format($"{typeName} {variable.CompileName}");
+        //    first = false;
+        //  }
+        //  wr.Write(")=>");
+        //}
+        compiler.TrExpr(binaryExpr.E1, wr, false);
+        wr.WriteLine(");");
+      }
+
+      //private void MockExpression(ConcreteSyntaxTree wr, ForallExpr forallExpr) {
+      //  if (forallExpr.Term is not BinaryExpr binaryExpr) {
+      //    return;
+      //  }
+      //  var bounds = new List<Tuple<IVariable, string>>();
+      //  var declarations = new List<string>();
+      //  var matcherName = "matcher" + matcherCount++; // TODO
+      //  for (int i = 0; i < forallExpr.BoundVars.Count; i++) {
+      //    var boundVar = forallExpr.BoundVars[i];
+      //    var varType = compiler.TypeName(boundVar.Type, wr, boundVar.tok);
+      //    bounds.Add(new(boundVar,
+      //      $"It.Is<{varType}>(x => {matcherName}.matches(x))"));
+      //    declarations.Add($"{varType} {boundVar.CompileName} = ({varType}) o[{i}];");
+      //  }
+
+      //  // TODO: what if "o" shadows something?
+      //  wr.WriteLine($"MultiMatcher {matcherName} = new MultiMatcher({declarations.Count}, o -> {{");
+      //  foreach (var declaration in declarations) {
+      //    wr.WriteLine($"\t{declaration}");
+      //  }
+
+      //  if (binaryExpr.Op == BinaryExpr.Opcode.Imp) {
+      //    wr.Write("\treturn ");
+      //    compiler.TrExpr(binaryExpr.E0, wr, false);
+      //    wr.WriteLine(";");
+      //    binaryExpr = (BinaryExpr)binaryExpr.E1;
+      //  } else if (binaryExpr.Op == BinaryExpr.Opcode.Eq) {
+      //    wr.WriteLine("\treturn true;");
+      //  } // TODO: other cases
+      //  wr.WriteLine("});");
+      //  MockExpression(wr, binaryExpr, bounds);
+      //}
     }
   }
 }
