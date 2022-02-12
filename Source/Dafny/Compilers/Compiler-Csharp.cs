@@ -2617,9 +2617,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr) {
-      var dtorName = dtor.HasName ? dtor.CompileName : ctor.CompileName + FormalName(dtor, formalNonGhostIndex);
-      wr.Write($"{source}.dtor_{dtorName}");
-      //wr.Write("(({0}){1}{2}).{3}", DtCtorName(ctor, typeArgs, wr), source, ctor.EnclosingDatatype is CoDatatypeDecl ? "._Get()" : "", dtorName);
+      wr.Write($"{source}.dtor_{(dtor.HasName ? dtor.CompileName : ctor.CompileName + FormalName(dtor, formalNonGhostIndex))}");
     }
 
     protected override ConcreteSyntaxTree CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames, Type resultType, ConcreteSyntaxTree wr, bool untyped = false) {
