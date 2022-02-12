@@ -642,14 +642,17 @@ namespace Microsoft.Dafny {
     }
 
     private void CompileDatatypeDestructorsAndAddToInterface(DatatypeDecl dt, ConcreteSyntaxTree wr,
-      ConcreteSyntaxTree interfaceTree, string DtT_TypeArgs) {
+        ConcreteSyntaxTree interfaceTree, string DtT_TypeArgs) {
       foreach (var ctor in dt.Ctors) {
-        foreach (var dtor in ctor.Destructors) {
+        foreach (var (dtor, index) in ctor.Destructors.Select((v, i) => (v, i))) {
           if (dtor.EnclosingCtors[0] == ctor) {
             var arg = dtor.CorrespondingFormals[0];
-            if (!arg.IsGhost && arg.HasName) {
+            if (!arg.IsGhost) {
+              var name = arg.HasName ? arg.CompileName : FormalName(arg, index);
+              var dtor_name = $"dtor_{(arg.HasName ? "" : ctor.CompileName)}{name}"
+              ;
               //   T0 dtor_Dtor0 { get; }
-              interfaceTree.WriteLine($"{TypeName(arg.Type, wr, arg.tok)} dtor_{arg.CompileName} {{ get; }}");
+              interfaceTree.WriteLine($"{TypeName(arg.Type, wr, arg.tok)} {dtor_name} {{ get; }}");
 
               //   public T0 dtor_Dtor0 { get {
               //       var d = this;         // for inductive datatypes
@@ -660,13 +663,13 @@ namespace Microsoft.Dafny {
               //       if (d is DT_Ctor(n-2)) { return ((DT_Ctor(n-2))d).Dtor0; }
               //       return ((DT_Ctor(n-1))d).Dtor0;
               //    }}
-              var wDtor = wr.NewNamedBlock($"public {TypeName(arg.Type, wr, arg.tok)} dtor_{arg.CompileName}");
+              var wDtor = wr.NewNamedBlock($"public {TypeName(arg.Type, wr, arg.tok)} {dtor_name}");
               var wGet = wDtor.NewBlock("get");
               if (dt.IsRecordType) {
                 if (dt is CoDatatypeDecl) {
-                  wGet.WriteLine($"return this._Get().{IdName(arg)};");
+                  wGet.WriteLine($"return this._Get().{IdProtect(name)};");
                 } else {
-                  wGet.WriteLine($"return this.{IdName(arg)};");
+                  wGet.WriteLine($"return this.{IdProtect(name)};");
                 }
               } else {
                 if (dt is CoDatatypeDecl) {
@@ -681,12 +684,12 @@ namespace Microsoft.Dafny {
                   Contract.Assert(arg.CompileName == dtor.CorrespondingFormals[i].CompileName);
                   var type = $"{dt.CompileName}_{ctor_i.CompileName}{DtT_TypeArgs}";
                   // TODO use pattern matching to replace cast.
-                  wGet.WriteLine($"if (d is {type}) {{ return (({type})d).{IdName(arg)}; }}");
+                  wGet.WriteLine($"if (d is {type}) {{ return (({type})d).{IdProtect(name)}; }}");
                 }
 
                 Contract.Assert(arg.CompileName == dtor.CorrespondingFormals[n - 1].CompileName);
                 wGet.WriteLine(
-                  $"return (({dt.CompileName}_{dtor.EnclosingCtors[n - 1].CompileName}{DtT_TypeArgs})d).{IdName(arg)};");
+                  $"return (({dt.CompileName}_{dtor.EnclosingCtors[n - 1].CompileName}{DtT_TypeArgs})d).{IdProtect(name)};");
               }
             }
           }
@@ -2614,7 +2617,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr) {
-      var dtorName = FormalName(dtor, formalNonGhostIndex);
+      var dtorName = dtor.HasName ? dtor.CompileName : ctor.CompileName + FormalName(dtor, formalNonGhostIndex);
       wr.Write($"{source}.dtor_{dtorName}");
       //wr.Write("(({0}){1}{2}).{3}", DtCtorName(ctor, typeArgs, wr), source, ctor.EnclosingDatatype is CoDatatypeDecl ? "._Get()" : "", dtorName);
     }
