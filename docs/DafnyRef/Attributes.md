@@ -307,38 +307,21 @@ or if the programmer specifically asks to see it via the statement `reveal foo()
 
 ***Internal implementation***
 
-We create a lemma to allow the user to selectively reveal the function's body.
-That is, given:
+Internally, and for verification in Boogie only, all functions are given an extra first parameter, which is the _fuel_ (represented in Boogie by unary numbers, e.g. `$LS($LS($LZ)`) is a fuel of two).
+To unroll a function, axioms ensures that a recursive call is provided with the previous fuel minus 1, so that we don't unroll undefinitely.
 
-```dafny
-  function {:opaque} foo(x:int, y:int) : int
-    requires 0 <= x < 5
-    requires 0 <= y < 5
-    ensures foo(x, y) < 10
-  { x + y }
-```
+**Normal behavior:** When verifying each method or function, Dafny will look at every `assert`. If it finds one, every function inside it will be given a fuel of at least 2 (`$LS($LS($LZ))`), meaning the verifier will be able to unroll the function's body twice for this assertion. When this assertion is proven, Dafny provides an `assume` about the result, but in this case the functions are provided a fuel of only 1 (`$LS($LZ)`), meaning it unrolls the body only once.
 
-We first add the attribute `{:fuel 0,0}` to the function `foo` above so that it will never expand.
-Then, every statement (or part of expression) `reveal foo(), bar();` is translated to calls to lemmas `reveal_foo(); reveal_bar();`.
-Such lemmas are defined as follow:
+**Opaque behavior:** When Dafny sees an `{:opaque}` attribute on a function `foo`, Dafny declares to Boogie two unknown constants `StartFuel_f` and `StartFuelAssert_f`. It uses `StartFuelAssert_f` in lieu of the default fuel (`$LS($LS($LZ))`) in the context of `assert` statements or expressions, and `StartFuel_f` in lieu of the default fuel (`$LS($LZ)`) in the context of the `assume` that immediately follows the `assert`. These two constants don't have any axioms so, by default, the verifier is unable to unroll the functions and they behave like uninterpreted functions.
+
+**Reveal lemma:** Every statement (or part of expression) `reveal foo(), bar();` is translated to calls to lemmas `reveal_foo(); reveal_bar();`.
+Such lemmas are defined in Dafny and with special attribute provide the postcondition that 1) `StartFuel_f` is `$LS(MoreFuel_f)` (where `MoreFuel_f` is an declared constant without axiom), and `StartFuelAssert_f` is `$LS($LS(MoreFuel_f))`. This makes the call to a function the same as if it was not opaque.
 
 ```dafny
   lemma {:axiom} {:opaque_reveal} {:auto_generated} reveal_foo()
-    ensures forall x:int, y:int {:trigger f(x,y)} ::
-         0 <= x < 5 && 0 <= y < 5 ==> f(x,y) == f_FULL(x,y)
+    ensures StartFuel_f = $LS(MoreFuel_f)
+    ensures StartFuelAssert_f = $LS($LS(MoreFuel_f))
 ```
-where `foo_full` is a copy of `foo` which does not have its body hidden:
-```dafny
-  function {:opaque_Full} {:opaque} foo_full(x:int, y:int) : int
-    requires 0 <= x < 5
-    requires 0 <= y < 5
-    ensures foo(x, y) < 10
-  { x + y }
-```
-In addition `foo_full` is given the internal
-`{:opaque_full}` and `{:auto_generated}` attributes in addition
-to the original `{:opaque}` attribute (which it got because it is a copy of `f`),
-but it's not added the attribute `{:fuel 0,0}` so it can unroll as many times as needed.
 
 <!--
 Describe this where refinement is described, as appropriate.
