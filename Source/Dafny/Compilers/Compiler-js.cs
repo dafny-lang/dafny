@@ -2386,12 +2386,22 @@ namespace Microsoft.Dafny {
         CreateNoWindow = true,
         UseShellExecute = false,
         RedirectStandardInput = true,
-        RedirectStandardOutput = false,
-        RedirectStandardError = false,
+        RedirectStandardOutput = true,
+        RedirectStandardError = true,
       };
 
       try {
         using var nodeProcess = Process.Start(psi);
+        nodeProcess.BeginOutputReadLine();
+
+        void ProcessErrorData(object sender, DataReceivedEventArgs e) {
+          Console.Out.Write(e.Data);
+        }
+        void ProcessOutputData(object sender, DataReceivedEventArgs e) {
+          Console.Error.Write(e.Data);
+        }
+        nodeProcess.ErrorDataReceived += ProcessErrorData;
+        nodeProcess.OutputDataReceived += ProcessOutputData;
         foreach (var filename in otherFileNames) {
           WriteFromFile(filename, nodeProcess.StandardInput);
         }
