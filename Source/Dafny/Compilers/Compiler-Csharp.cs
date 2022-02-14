@@ -649,8 +649,7 @@ namespace Microsoft.Dafny {
             var arg = dtor.CorrespondingFormals[0];
             if (!arg.IsGhost) {
               var name = arg.HasName ? arg.CompileName : FormalName(arg, index);
-              var dtorName = $"dtor_{(arg.HasName ? "" : ctor.CompileName)}{name}"
-              ;
+              var dtorName = $"dtor_{(arg.HasName ? "" : ctor.CompileName)}{name}";
               //   T0 dtor_Dtor0 { get; }
               interfaceTree.WriteLine($"{TypeName(arg.Type, wr, arg.tok)} {dtorName} {{ get; }}");
 
