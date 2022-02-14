@@ -653,9 +653,8 @@ namespace Microsoft.Dafny {
             var arg = dtor.CorrespondingFormals[0];
             if (!arg.IsGhost) {
               var DtorM = arg.HasName ? arg.CompileName : FormalName(arg, index);
-              var QDtorM = DestructorGetterName(arg, ctor, index);
               //   TN dtor_QDtorM { get; }
-              interfaceTree.WriteLine($"{TypeName(arg.Type, wr, arg.tok)} {QDtorM} {{ get; }}");
+              interfaceTree.WriteLine($"{TypeName(arg.Type, wr, arg.tok)} {DestructorGetterName(arg, ctor, index)} {{ get; }}");
 
               //   public TN dtor_QDtorM { get {
               //       var d = this;         // for inductive datatypes
@@ -666,7 +665,8 @@ namespace Microsoft.Dafny {
               //       if (d is DT_Ctor(n-2)) { return ((DT_Ctor(n-2))d).DtorM; }
               //       return ((DT_Ctor(n-1))d).DtorM;
               //    }}
-              var wDtor = wr.NewNamedBlock($"public {TypeName(arg.Type, wr, arg.tok)} {QDtorM}");
+              var wDtor =
+                wr.NewNamedBlock($"public {TypeName(arg.Type, wr, arg.tok)} {DestructorGetterName(arg, ctor, index)}");
               var wGet = wDtor.NewBlock("get");
               if (dt.IsRecordType) {
                 if (dt is CoDatatypeDecl) {
@@ -2621,11 +2621,11 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr) {
-      wr.Write($"{source}.dtor_{DestructorGetterName(dtor, ctor, formalNonGhostIndex)}");
+      wr.Write($"{source}.{DestructorGetterName(dtor, ctor, formalNonGhostIndex)}");
     }
 
     private string DestructorGetterName(Formal dtor, DatatypeCtor ctor, int index) {
-      return dtor.HasName ? dtor.CompileName : ctor.CompileName + FormalName(dtor, index);
+      return $"dtor_{(dtor.HasName ? dtor.CompileName : ctor.CompileName + FormalName(dtor, index))}";
     }
 
     protected override ConcreteSyntaxTree CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames, Type resultType, ConcreteSyntaxTree wr, bool untyped = false) {
