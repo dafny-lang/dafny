@@ -318,9 +318,13 @@ To unroll a function, axioms ensures that a recursive call is provided with the 
 Such lemmas are defined in Dafny and with special attribute provide the postcondition that 1) `StartFuel_f` is `$LS(MoreFuel_f)` (where `MoreFuel_f` is an declared constant without axiom), and `StartFuelAssert_f` is `$LS($LS(MoreFuel_f))`. This makes the call to a function the same as if it was not opaque.
 
 ```dafny
-  lemma {:axiom} {:opaque_reveal} {:auto_generated} reveal_foo()
-    ensures StartFuel_f = $LS(MoreFuel_f)
-    ensures StartFuelAssert_f = $LS($LS(MoreFuel_f))
+  lemma {:axiom} {:opaque_reveal} {:auto_generated} {:fuel foo,1,2} reveal_foo()
+```
+
+The `{:fuel foo,1,2}` annotation in Dafny corresponds to the Boogie equivalent of:
+```
+ensures StartFuel_f = $LS(MoreFuel_f)
+ensures StartFuelAssert_f = $LS($LS(MoreFuel_f))
 ```
 
 <!--
