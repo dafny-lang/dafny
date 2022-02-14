@@ -147,7 +147,7 @@ It means that the post-condition may be assumed to be true
 without proof. In that case also the body of the function or
 method may be omitted.
 
-The `{:axiom}` attribute is also used for the internally generated `reveal_*`
+The `{:axiom}` attribute is internally equivalent to `{:verify false}` and is also used for the internal `reveal_*`
 lemmas as shown in Section [#sec-opaque].
 
 ### 22.1.5. compile
