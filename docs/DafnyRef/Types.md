@@ -2293,7 +2293,7 @@ function is defined.
  Y            | N           | N
 
 When `{:opaque}` is specified for function `g`, `g` is opaque,
-however the expression `reveal g(); ...` or statement `reveal g();` is available to give the semantics
+however the statement `reveal g();` is available to give the semantics
 of `g` whether in the defining module or outside.
 
 ### 13.4.4. Least/Greatest (CoInductive) Predicates and Lemmas
