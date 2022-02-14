@@ -147,7 +147,7 @@ It means that the post-condition may be assumed to be true
 without proof. In that case also the body of the function or
 method may be omitted.
 
-The `{:axiom}` attribute is also used for generated `reveal_*`
+The `{:axiom}` attribute is also used for the internally generated `reveal_*`
 lemmas as shown in Section [#sec-opaque].
 
 ### 22.1.5. compile
@@ -300,12 +300,13 @@ values that satisfy the constraint.
 
 ### 22.1.13. opaque {#sec-opaque}
 Ordinarily the body of a function is transparent to its users but
-sometimes it is useful to hide it. If a function `f` is given the
-`{:opaque}` attribute then Dafny hides the body of the function,
+sometimes it is useful to hide it. If a function `foo` or `bar` is given the
+`{:opaque}` attribute, then Dafny hides the body of the function,
 so that it can only be seen within its recursive clique (if any),
-or if the programmer specifically asks to see it via the `reveal_f()` lemma.
+or if the programmer specifically asks to see it via the statement `reveal foo(), bar();` or the expression `reveal foo(), bar(); ...`.
 
-We create a lemma to allow the user to selectively reveal the function's body
+#### Internals explanation
+We create a lemma to allow the user to selectively reveal the function's body.
 That is, given:
 
 ```dafny
@@ -316,22 +317,27 @@ That is, given:
   { x + y }
 ```
 
-We produce:
+we first add the attribute `{:fuel 0,0}` to the function `foo` above.
+Then, every statement (or part of expression) `reveal foo(), bar();` is translated to calls to lemmas `reveal_foo(); reveal_bar();`.
+Such lemmas are defined as follow:
 
 ```dafny
-  lemma {:axiom} reveal_foo()
-    ensures forall x:int, y:int {:trigger foo(x,y)} ::
-         0 <= x < 5 && 0 <= y < 5 ==> foo(x,y) == foo_FULL(x,y)
+  lemma {:axiom} {:opaque_reveal} {:auto_generated} reveal_foo()
+    ensures forall x:int, y:int {:trigger f(x,y)} ::
+         0 <= x < 5 && 0 <= y < 5 ==> f(x,y) == f_FULL(x,y)
 ```
-
-where `foo_FULL` is a copy of `foo` which does not have its body
-hidden. In addition `foo_FULL` is given the
+where `foo_full` is a copy of `foo` which does not have its body hidden:
+```dafny
+  function {:opaque_Full} {:opaque} foo_full(x:int, y:int) : int
+    requires 0 <= x < 5
+    requires 0 <= y < 5
+    ensures foo(x, y) < 10
+  { x + y }
+```
+In addition `foo_full` is given the internal
 `{:opaque_full}` and `{:auto_generated}` attributes in addition
-to the `{:opaque}` attribute (which it got because it is a copy of `foo`).
-
-### 22.1.14. opaque_full
-The `{:opaque_full}` attribute is used to mark the _full_ version
-of an opaque function. See [Section 22.1.13](#sec-opaque).
+to the original `{:opaque}` attribute (which it got because it is a copy of `f`),
+but it's not added the attribute `{:fuel 0,0}` so it can unroll as many times as needed.
 
 <!--
 Describe this where refinement is described, as appropriate.
