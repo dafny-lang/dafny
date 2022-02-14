@@ -1,6 +1,6 @@
 # Upcoming
 
-- feat: Plugin support in the compiler pipeline (https://github.com/dafny-lang/dafny/pull/1739)
+- feat: Plugin support in the resolution pipeline (https://github.com/dafny-lang/dafny/pull/1739)
 - fix: NullPointerException in the AST (https://github.com/dafny-lang/dafny/pull/1805)
 - fix: Change datatype deconstruction in match statements (https://github.com/dafny-lang/dafny/issues/1815)
 
