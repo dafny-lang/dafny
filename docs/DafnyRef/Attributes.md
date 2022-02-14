@@ -305,7 +305,8 @@ sometimes it is useful to hide it. If a function `foo` or `bar` is given the
 so that it can only be seen within its recursive clique (if any),
 or if the programmer specifically asks to see it via the statement `reveal foo(), bar();` or the expression `reveal foo(), bar(); ...`.
 
-#### Internals explanation
+***Internal implementation***
+
 We create a lemma to allow the user to selectively reveal the function's body.
 That is, given:
 
@@ -317,7 +318,7 @@ That is, given:
   { x + y }
 ```
 
-we first add the attribute `{:fuel 0,0}` to the function `foo` above.
+We first add the attribute `{:fuel 0,0}` to the function `foo` above so that it will never expand.
 Then, every statement (or part of expression) `reveal foo(), bar();` is translated to calls to lemmas `reveal_foo(); reveal_bar();`.
 Such lemmas are defined as follow:
 
