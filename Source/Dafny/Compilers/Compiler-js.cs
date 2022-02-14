@@ -2393,12 +2393,25 @@ namespace Microsoft.Dafny {
       try {
         using var nodeProcess = Process.Start(psi);
         nodeProcess.BeginOutputReadLine();
+        nodeProcess.BeginErrorReadLine();
+        var firstTimeError = true;
+        var firstTimeOutput = true;
 
         void ProcessErrorData(object sender, DataReceivedEventArgs e) {
-          Console.Out.Write(e.Data);
+          if (firstTimeError) {
+            firstTimeError = false;
+          } else {
+            Console.Error.WriteLine();
+          }
+          Console.Error.Write(e.Data);
         }
         void ProcessOutputData(object sender, DataReceivedEventArgs e) {
-          Console.Error.Write(e.Data);
+          if (firstTimeOutput) {
+            firstTimeOutput = false;
+          } else {
+            Console.Out.WriteLine();
+          }
+          Console.Out.Write(e.Data);
         }
         nodeProcess.ErrorDataReceived += ProcessErrorData;
         nodeProcess.OutputDataReceived += ProcessOutputData;
