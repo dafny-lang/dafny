@@ -692,7 +692,20 @@ namespace Microsoft.Dafny {
       is not, an error is given.
 
     {:termination}
-      TODO
+      Dafny currently lacks the features needed to specify usable termination
+      metrics for trait methods that are dynamically dispatched to method
+      implementations given in other modules. This issue and a sketch of a
+      solution are described in https://github.com/dafny-lang/dafny/issues/1588.
+      Until such features are added to the language, a type `C` that extends a
+      trait `T` must be declared in the same module as `T`.
+      There is, however, an available loophole: if a programmer is willing to
+      take the responsibility that all calls to methods in a trait `T`
+      that dynamically dispatch to implementations in other modules terminate,
+      then the trait `T` can be marked with `{:termination false}`. This will
+      allow `T` to be extended by types declared in modules outside `T`'s module.
+      Caution: This loophole is unsound; that is, if a cross-module dynamic
+      dispatch fails to terminate, then this and other errors in the program
+      may have been overlooked by the verifier.       
 
     {:warnShadowing}
       TODO
