@@ -970,16 +970,12 @@ namespace Microsoft.Dafny {
   /// specifically asks to see it via the reveal_foo() lemma
   /// </summary>
   public class OpaqueFunctionRewriter : IRewriter {
-    protected Dictionary<Function, Function> fullVersion; // Given an opaque function, retrieve the full
-    protected Dictionary<Function, Function> original;    // Given a full version of an opaque function, find the original opaque version
     protected Dictionary<Method, Function> revealOriginal; // Map reveal_* lemmas (or two-state lemmas) back to their original functions
 
     public OpaqueFunctionRewriter(ErrorReporter reporter)
       : base(reporter) {
       Contract.Requires(reporter != null);
 
-      fullVersion = new Dictionary<Function, Function>();
-      original = new Dictionary<Function, Function>();
       revealOriginal = new Dictionary<Method, Function>();
     }
 
