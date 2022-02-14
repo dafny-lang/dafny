@@ -649,10 +649,10 @@ namespace Microsoft.Dafny {
             var arg = dtor.CorrespondingFormals[0];
             if (!arg.IsGhost) {
               var name = arg.HasName ? arg.CompileName : FormalName(arg, index);
-              var dtor_name = $"dtor_{(arg.HasName ? "" : ctor.CompileName)}{name}"
+              var dtorName = $"dtor_{(arg.HasName ? "" : ctor.CompileName)}{name}"
               ;
               //   T0 dtor_Dtor0 { get; }
-              interfaceTree.WriteLine($"{TypeName(arg.Type, wr, arg.tok)} {dtor_name} {{ get; }}");
+              interfaceTree.WriteLine($"{TypeName(arg.Type, wr, arg.tok)} {dtorName} {{ get; }}");
 
               //   public T0 dtor_Dtor0 { get {
               //       var d = this;         // for inductive datatypes
@@ -663,7 +663,7 @@ namespace Microsoft.Dafny {
               //       if (d is DT_Ctor(n-2)) { return ((DT_Ctor(n-2))d).Dtor0; }
               //       return ((DT_Ctor(n-1))d).Dtor0;
               //    }}
-              var wDtor = wr.NewNamedBlock($"public {TypeName(arg.Type, wr, arg.tok)} {dtor_name}");
+              var wDtor = wr.NewNamedBlock($"public {TypeName(arg.Type, wr, arg.tok)} {dtorName}");
               var wGet = wDtor.NewBlock("get");
               if (dt.IsRecordType) {
                 if (dt is CoDatatypeDecl) {
@@ -2617,7 +2617,8 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr) {
-      wr.Write($"{source}.dtor_{(dtor.HasName ? dtor.CompileName : ctor.CompileName + FormalName(dtor, formalNonGhostIndex))}");
+      var dtorName = dtor.HasName ? dtor.CompileName : ctor.CompileName + FormalName(dtor, formalNonGhostIndex);
+      wr.Write($"{source}.dtor_{dtorName}");
     }
 
     protected override ConcreteSyntaxTree CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames, Type resultType, ConcreteSyntaxTree wr, bool untyped = false) {
