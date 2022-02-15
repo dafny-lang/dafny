@@ -51,7 +51,7 @@ namespace Microsoft.Dafny {
       Dafny.DafnyOptions.O.TimeLimit = 10; //This is just a default; it can be overriden
       DafnyOptions.O.VerifySnapshots = 3;
 
-      if (CommandLineOptions.Clo.Parse(args)) {
+      if (DafnyOptions.O.Parse(args)) {
         DafnyOptions.O.VcsCores = Math.Max(1, System.Environment.ProcessorCount / 2); // Don't use too many cores
         DafnyOptions.O.PrintTooltips = true; // Dump tooptips (ErrorLevel.Info) to stdout
         //DafnyOptions.O.UnicodeOutput = true; // Use pretty warning signs

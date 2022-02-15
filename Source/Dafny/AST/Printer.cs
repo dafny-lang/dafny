@@ -167,9 +167,9 @@ namespace Microsoft.Dafny {
     public void PrintProgram(Program prog, bool afterResolver) {
       Contract.Requires(prog != null);
       this.afterResolver = afterResolver;
-      if (Bpl.CommandLineOptions.Clo.ShowEnv != Bpl.CommandLineOptions.ShowEnvironment.Never) {
-        wr.WriteLine("// " + Bpl.CommandLineOptions.Clo.Version);
-        wr.WriteLine("// " + Bpl.CommandLineOptions.Clo.Environment);
+      if (DafnyOptions.O.ShowEnv != Bpl.ExecutionEngineOptions.ShowEnvironment.Never) {
+        wr.WriteLine("// " + DafnyOptions.O.Version);
+        wr.WriteLine("// " + DafnyOptions.O.Environment);
       }
       if (DafnyOptions.O.PrintMode != DafnyOptions.PrintModes.DllEmbed) {
         wr.WriteLine("// {0}", prog.Name);

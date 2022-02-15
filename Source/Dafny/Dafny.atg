@@ -119,7 +119,7 @@ public static int Parse (bool useStdin, string/*!*/ filename, Include include, M
   } else {
     using (System.IO.StreamReader reader = new System.IO.StreamReader(filename)) {
       s = Microsoft.Boogie.ParserHelper.Fill(reader, new List<string>());
-      return Parse(s, filename, DafnyOptions.Clo.UseBaseNameForFileName ? Path.GetFileName(filename) : filename, include, module, builtIns, errors, verifyThisFile, compileThisFile);
+      return Parse(s, filename, DafnyOptions.O.UseBaseNameForFileName ? Path.GetFileName(filename) : filename, include, module, builtIns, errors, verifyThisFile, compileThisFile);
     }
   }
 }
@@ -875,7 +875,7 @@ Dafny
   { TopDecl<defaultModule, membersDefaultClass, /* isTopLevel */ true, /* isAbstract */ false> }
   (. // find the default class in the default module, then append membersDefaultClass to its member list
 		 if (membersDefaultClass.Count == 0 && defaultModule.Includes.Count == 0 && defaultModule.TopLevelDecls.Count == 0) {
-		   var fileName = DafnyOptions.Clo.UseBaseNameForFileName 
+		   var fileName = DafnyOptions.O.UseBaseNameForFileName
                    ? Path.GetFileName(scanner.FullFilename) 
                    : Path.GetRelativePath(Directory.GetCurrentDirectory(), scanner.FullFilename);
 		   errors.Warning(defaultModule.tok, "File contains no code: " + fileName);

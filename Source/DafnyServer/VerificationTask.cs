@@ -6,10 +6,13 @@ using System.IO;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
 using System.Text;
+using Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
   [Serializable]
   class VerificationTask {
+    private readonly ExecutionEngineOptions options;
+
     [DataMember]
     string[] args = null;
 
@@ -22,7 +25,8 @@ namespace Microsoft.Dafny {
     [DataMember]
     bool sourceIsFile = false;
 
-    public VerificationTask(string[] args, string filename, string source, bool sourceIsFile) {
+    public VerificationTask(ExecutionEngineOptions options, string[] args, string filename, string source, bool sourceIsFile) {
+      this.options = options;
       this.args = args;
       this.filename = filename;
       this.source = source;
@@ -43,8 +47,8 @@ namespace Microsoft.Dafny {
       }
     }
 
-    internal static void SelfTest() {
-      var task = new VerificationTask(new string[] { }, "<none>", "method selftest() { assert true; }", false);
+    internal static void SelfTest(ExecutionEngineOptions options) {
+      var task = new VerificationTask(options, new string[] { }, "<none>", "method selftest() { assert true; }", false);
       try {
         task.Run();
         Interaction.EOM(Interaction.SUCCESS, (string)null);
@@ -54,19 +58,19 @@ namespace Microsoft.Dafny {
     }
 
     internal void Run() {
-      new DafnyHelper(args, filename, ProgramSource).Verify();
+      new DafnyHelper(options, args, filename, ProgramSource).Verify();
     }
 
     internal void Symbols() {
-      new DafnyHelper(args, filename, ProgramSource).Symbols();
+      new DafnyHelper(options, args, filename, ProgramSource).Symbols();
     }
 
     public void CounterExample() {
-      new DafnyHelper(args, filename, ProgramSource).CounterExample();
+      new DafnyHelper(options, args, filename, ProgramSource).CounterExample();
     }
 
     public void DotGraph() {
-      new DafnyHelper(args, filename, ProgramSource).DotGraph();
+      new DafnyHelper(options, args, filename, ProgramSource).DotGraph();
     }
 
     public string EncodeProgram(out string json) {

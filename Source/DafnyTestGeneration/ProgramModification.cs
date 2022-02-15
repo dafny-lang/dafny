@@ -79,11 +79,11 @@ namespace DafnyTestGeneration {
       program.Resolve();
       program.Typecheck();
       ExecutionEngine.EliminateDeadVariables(program);
-      ExecutionEngine.CollectModSets(program);
-      ExecutionEngine.CoalesceBlocks(program);
-      ExecutionEngine.Inline(program);
+      ExecutionEngine.CollectModSets(options, program);
+      ExecutionEngine.CoalesceBlocks(options, program);
+      ExecutionEngine.Inline(options, program);
       var log = Utils.CaptureConsoleOutput(
-        () => ExecutionEngine.InferAndVerify(program,
+        () => ExecutionEngine.InferAndVerify(options, program,
           new PipelineStatistics(), uniqueId,
           _ => { }, uniqueId));
       DafnyOptions.Install(oldOptions);

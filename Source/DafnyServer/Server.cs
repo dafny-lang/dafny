@@ -10,9 +10,11 @@ using Microsoft.Boogie;
 namespace Microsoft.Dafny {
   public class Server {
     private bool running;
+    private readonly ExecutionEngineOptions options;
 
     static void Main(string[] args) {
-      Server server = new Server();
+      var options = CommandLineOptions.FromArguments();
+      Server server = new Server(options);
 
       // read the optional flag (only one flag is allowed)
       bool plaintext = false;
@@ -36,7 +38,7 @@ namespace Microsoft.Dafny {
       }
 
       if (selftest) {
-        VerificationTask.SelfTest();
+        VerificationTask.SelfTest(options);
         return;
       }
 
@@ -64,9 +66,10 @@ namespace Microsoft.Dafny {
       Console.OutputEncoding = new UTF8Encoding(false, true);
     }
 
-    public Server() {
+    public Server(ExecutionEngineOptions options) {
+      this.options = options;
       this.running = true;
-      ExecutionEngine.printer = new DafnyConsolePrinter();
+      ExecutionEngine.printer = new DafnyConsolePrinter(options);
       SetupConsole();
     }
 
@@ -216,7 +219,7 @@ namespace Microsoft.Dafny {
     VerificationTask ReadVerificationTask(bool inputIsPlaintext) {
       var payload = ReadPayload(inputIsPlaintext);
       if (inputIsPlaintext) {
-        return new VerificationTask(new string[0], "transcript", payload, false);
+        return new VerificationTask(options, new string[0], "transcript", payload, false);
       } else {
         return VerificationTask.ReadTask(payload);
       }

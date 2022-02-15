@@ -163,9 +163,9 @@ module SomeModule {
     [Fact]
     public void EqualProverLogWhenReorderingProgram() {
       DafnyOptions.Install(new DafnyOptions());
-      CommandLineOptions.Clo.Parse(new[] { "" });
-      CommandLineOptions.Clo.ProcsToCheck.Add("*SomeMethod");
-      ExecutionEngine.printer = new ConsolePrinter(); // For boogie errors
+      DafnyOptions.O.Parse(new[] { "" });
+      DafnyOptions.O.ProcsToCheck.Add("*SomeMethod");
+      ExecutionEngine.printer = new ConsolePrinter(DafnyOptions.O); // For boogie errors
 
       var reorderedProverLog = GetProverLogForProgram(GetBoogie(reorderedProgram));
       var regularProverLog = GetProverLogForProgram(GetBoogie(originalProgram));
@@ -176,9 +176,9 @@ module SomeModule {
     public void EqualProverLogWhenRenamingProgram() {
 
       DafnyOptions.Install(new DafnyOptions());
-      CommandLineOptions.Clo.Parse(new[] { "" });
-      CommandLineOptions.Clo.ProcsToCheck.Add("*SomeMethod*");
-      ExecutionEngine.printer = new ConsolePrinter(); // For boogie errors
+      DafnyOptions.O.Parse(new[] { "" });
+      DafnyOptions.O.ProcsToCheck.Add("*SomeMethod*");
+      ExecutionEngine.printer = new ConsolePrinter(DafnyOptions.O); // For boogie errors
 
       var renamedProverLog = GetProverLogForProgram(GetBoogie(renamedProgram));
       var regularProverLog = GetProverLogForProgram(GetBoogie(originalProgram));
@@ -189,9 +189,9 @@ module SomeModule {
     public void EqualProverLogWhenAddingUnrelatedProgram() {
 
       DafnyOptions.Install(new DafnyOptions());
-      CommandLineOptions.Clo.Parse(new[] { "" });
-      CommandLineOptions.Clo.ProcsToCheck.Add("*SomeMethod");
-      ExecutionEngine.printer = new ConsolePrinter(); // For boogie errors
+      DafnyOptions.O.Parse(new[] { "" });
+      DafnyOptions.O.ProcsToCheck.Add("*SomeMethod");
+      ExecutionEngine.printer = new ConsolePrinter(DafnyOptions.O); // For boogie errors
 
       var renamedProverLog = GetProverLogForProgram(GetBoogie(renamedProgram + originalProgram));
       var regularProverLog = GetProverLogForProgram(GetBoogie(originalProgram));
@@ -209,9 +209,9 @@ module SomeModule {
       Directory.CreateDirectory(directory);
       var temp1 = directory + "/proverLog";
       testOutputHelper.WriteLine("proverLog: " + temp1);
-      CommandLineOptions.Clo.ProverLogFilePath = temp1;
+      DafnyOptions.O.ProverLogFilePath = temp1;
       foreach (var boogieProgram in boogiePrograms) {
-        Main.BoogieOnce("", "", boogieProgram, "programId", out _, out var outcome);
+        Main.BoogieOnce(DafnyOptions.O, "", "", boogieProgram, "programId", out _, out var outcome);
         testOutputHelper.WriteLine("outcome: " + outcome);
         foreach (var proverFile in Directory.GetFiles(directory)) {
           yield return File.ReadAllText(proverFile);

@@ -26,6 +26,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     private readonly VerifierOptions options;
     private readonly SemaphoreSlim mutex = new(1);
 
+    DafnyOptions Options => DafnyOptions.O;
+
     private DafnyProgramVerifier(ILogger<DafnyProgramVerifier> logger, VerifierOptions options) {
       this.logger = logger;
       this.options = options;
@@ -93,9 +95,9 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       program.Typecheck();
 
       ExecutionEngine.EliminateDeadVariables(program);
-      ExecutionEngine.CollectModSets(program);
-      ExecutionEngine.CoalesceBlocks(program);
-      ExecutionEngine.Inline(program);
+      ExecutionEngine.CollectModSets(Options, program);
+      ExecutionEngine.CoalesceBlocks(Options, program);
+      ExecutionEngine.Inline(Options, program);
       // TODO Is the programId of any relevance? The requestId is used to cancel a verification.
       //      However, the cancelling a verification is currently not possible since it blocks a text document
       //      synchronization event which are serialized. Thus, no event is processed until the pending
@@ -104,7 +106,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       using (cancellationToken.Register(() => CancelVerification(uniqueId))) {
         try {
           var statistics = new PipelineStatistics();
-          var outcome = ExecutionEngine.InferAndVerify(program, statistics, uniqueId, null, uniqueId);
+          var outcome = ExecutionEngine.InferAndVerify(Options, program, statistics, uniqueId, null, uniqueId);
           return Main.IsBoogieVerified(outcome, statistics);
         } catch (Exception e) when (e is not OperationCanceledException) {
           if (!cancellationToken.IsCancellationRequested) {

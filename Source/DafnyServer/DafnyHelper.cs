@@ -14,6 +14,11 @@ using Bpl = Microsoft.Boogie;
 namespace Microsoft.Dafny {
   // FIXME: This should not be duplicated here
   class DafnyConsolePrinter : ConsolePrinter {
+
+    public DafnyConsolePrinter(ExecutionEngineOptions options) : base(options)
+    {
+    }
+
     public override void ReportBplError(IToken tok, string message, bool error, TextWriter tw, string category = null) {
       // Dafny has 0-indexed columns, but Boogie counts from 1
       var realigned_tok = new Token(tok.line, tok.col - 1);
@@ -33,13 +38,15 @@ namespace Microsoft.Dafny {
   class DafnyHelper {
     private string fname;
     private string source;
+    private readonly ExecutionEngineOptions options;
     private string[] args;
 
     private readonly Dafny.ErrorReporter reporter;
     private Dafny.Program dafnyProgram;
     private IEnumerable<Tuple<string, Bpl.Program>> boogiePrograms;
 
-    public DafnyHelper(string[] args, string fname, string source) {
+    public DafnyHelper(ExecutionEngineOptions options, string[] args, string fname, string source) {
+      this.options = options;
       this.args = args;
       this.fname = fname;
       this.source = source;
@@ -77,12 +84,12 @@ namespace Microsoft.Dafny {
     private bool BoogieOnce(string moduleName, Bpl.Program boogieProgram) {
       if (boogieProgram.Resolve() == 0 && boogieProgram.Typecheck() == 0) { //FIXME ResolveAndTypecheck?
         ExecutionEngine.EliminateDeadVariables(boogieProgram);
-        ExecutionEngine.CollectModSets(boogieProgram);
-        ExecutionEngine.CoalesceBlocks(boogieProgram);
-        ExecutionEngine.Inline(boogieProgram);
+        ExecutionEngine.CollectModSets(options, boogieProgram);
+        ExecutionEngine.CoalesceBlocks(options, boogieProgram);
+        ExecutionEngine.Inline(options, boogieProgram);
 
         //NOTE: We could capture errors instead of printing them (pass a delegate instead of null)
-        switch (ExecutionEngine.InferAndVerify(boogieProgram, new PipelineStatistics(), "ServerProgram_" + moduleName, null, DateTime.UtcNow.Ticks.ToString())) {
+        switch (ExecutionEngine.InferAndVerify(options, boogieProgram, new PipelineStatistics(), "ServerProgram_" + moduleName, null, DateTime.UtcNow.Ticks.ToString())) {
           case PipelineOutcome.Done:
           case PipelineOutcome.VerificationCompleted:
             return true;

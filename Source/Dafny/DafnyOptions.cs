@@ -563,8 +563,8 @@ namespace Microsoft.Dafny {
       }
 
       // expand macros in filenames, now that LogPrefix is fully determined
-      ExpandFilename(ref DafnyPrelude, LogPrefix, FileTimestamp);
-      ExpandFilename(ref DafnyPrintFile, LogPrefix, FileTimestamp);
+      ExpandFilename(DafnyPrelude, x => DafnyPrelude = x, LogPrefix, FileTimestamp);
+      ExpandFilename(DafnyPrintFile, x => DafnyPrintFile = x, LogPrefix, FileTimestamp);
 
       SetZ3ExecutablePath();
       SetZ3Options();
