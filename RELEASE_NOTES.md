@@ -2,7 +2,7 @@
 
 - feat: Plugin support in the resolution pipeline (https://github.com/dafny-lang/dafny/pull/1739)
 - fix: NullPointerException in the AST (https://github.com/dafny-lang/dafny/pull/1805)
-- fix: Change datatype deconstruction in match statements (https://github.com/dafny-lang/dafny/issues/1815)
+- fix: Change datatype deconstruction in match statements for C# (https://github.com/dafny-lang/dafny/issues/1815)
 
 
 # 3.4
