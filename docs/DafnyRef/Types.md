@@ -1274,7 +1274,7 @@ type.  For such assignments, an explicit conversion must be used, see
 
 Dafny builds in three families of subset types, as described next.
 
-### 11.3.1. Type`nat`
+### 11.3.1. Type `nat`
 
 The built-in type `nat`, which represents the non-negative integers
 (that is, the natural numbers), is a subset type:
