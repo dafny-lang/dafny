@@ -134,6 +134,7 @@ namespace Microsoft.Dafny {
     public List<string> VerificationLoggerConfigs = new();
     // Working around the fact that xmlFilename is private
     public string BoogieXmlFilename = null;
+    public bool CompileMocks = false;
 
     public virtual TestGenerationOptions TestGenOptions =>
       testGenOptions ??= new TestGenerationOptions();
@@ -499,7 +500,10 @@ namespace Microsoft.Dafny {
               InvalidArgumentError(name, ps);
             }
           }
+          return true;
 
+        case "compileMocks":
+          CompileMocks = true;
           return true;
       }
 
@@ -980,6 +984,9 @@ namespace Microsoft.Dafny {
         /verificationLogger:trx;LogFileName=<...>.
     The exact mapping of verification concepts to the TRX and CSV formats is
     experimental and subject to change!
+/compileMocks 
+    If true, automatically compile external methods annotated with {{:mock}}
+    into the target language (currently only supported for C#)
 {TestGenOptions.Help}
 
 /mimicVerificationOf:<Dafny version>
