@@ -1,3 +1,4 @@
+// This is a partial test from comp/Calls.dfy to be used as a milestone for compiler builds. 
 // RUN: %dafny /compile:0 "%s" > "%t"
 // RUN: %dafny /noVerify /compile:4 /compileTarget:py "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"

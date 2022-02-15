@@ -308,8 +308,13 @@ TO BE WRITTEN
 
 ### 24.10.5. Controlling verification
 
-* `-verifyAllModules` - verify modules that come from include directives (default is to not verify included modules)
-TO BE WRITTEN
+* `-verifyAllModules` - verify modules that come from include directives
+
+By default, Dafny only verifies files explicitly listed on the command line: if `a.dfy` includes `b.dfy`, a call to `Dafny a.dfy` will detect and report verification errors from `a.dfy` but not from `b.dfy`'s.
+
+With this flag, Dafny will instead verify everything: all input modules and all their transitive dependencies.  This way `Dafny a.dfy` will verify `a.dfy` and all files that it includes (here `b.dfy`), as well all files that these files include, etc.
+
+Running Dafny with `/verifyAllModules` on the file containing your main result is a good way to ensure that all its dependencies verify.
 
 ### 24.10.6. Controlling boogie
 

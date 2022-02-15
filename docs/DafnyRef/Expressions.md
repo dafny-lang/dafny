@@ -1192,8 +1192,6 @@ if-then-else expression. Consequently these two expressions must have types that
 the whole let-or-fail expression. Typically that means that `tmp.PropagateFailure()` is a failure value and
 `E` is a value-carrying success value, both of the same failure-compatible type, as described in [Section 19.7](#sec-update-failure).
 
-TODO: Should the assert/assume/expect variants be permitted?
-
 ## 20.39. Map Comprehension Expression {#sec-map-comprehension-expression}
 ````grammar
 MapComprehensionExpr(allowLemma, allowLambda) =
