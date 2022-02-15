@@ -75,6 +75,10 @@ namespace Microsoft.Dafny {
         }
       }
     }
+
+    public IToken GetFirstTopLevelToken() {
+      return DefaultModuleDef.GetFirstTopLevelToken();
+    }
   }
 
   public class Include : IComparable {
@@ -4222,6 +4226,17 @@ namespace Microsoft.Dafny {
         return false;
       }
       return true;
+    }
+
+    public IToken GetFirstTopLevelToken() {
+      return TopLevelDecls.OfType<ClassDecl>()
+        .SelectMany(classDecl => classDecl.Members)
+        .Where(member => member.tok.line > 0)
+        .Select(member => member.tok)
+        .Concat(TopLevelDecls.OfType<LiteralModuleDecl>()
+          .Select(moduleDecl => moduleDecl.ModuleDef.GetFirstTopLevelToken())
+          .Where(tok => tok.line > 0)
+        ).FirstOrDefault(Token.NoToken);
     }
   }
 
