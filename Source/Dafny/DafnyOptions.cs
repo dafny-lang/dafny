@@ -7,7 +7,10 @@ using System.Linq;
 using System.Text;
 using System.Diagnostics.Contracts;
 using System.IO;
+using System.Reflection;
+using System.Text.RegularExpressions;
 using JetBrains.Annotations;
+using Microsoft.Dafny.Plugins;
 using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
@@ -135,12 +138,13 @@ namespace Microsoft.Dafny {
     // Working around the fact that xmlFilename is private
     public string BoogieXmlFilename = null;
 
+    public List<Plugin> Plugins = new();
+
     public virtual TestGenerationOptions TestGenOptions =>
       testGenOptions ??= new TestGenerationOptions();
 
     protected override bool ParseOption(string name, Bpl.CommandLineOptionEngine.CommandLineParseState ps) {
       var args = ps.args; // convenient synonym
-
       switch (name) {
         case "dprelude":
           if (ps.ConfirmArgumentCount(1)) {
@@ -225,6 +229,41 @@ namespace Microsoft.Dafny {
             int verbosity = 0;
             if (ps.GetNumericArgument(ref verbosity, 2)) {
               CompileVerbose = verbosity == 1;
+            }
+
+            return true;
+          }
+
+        case "Plugin":
+        case "plugin": {
+            if (ps.ConfirmArgumentCount(1)) {
+              var pluginAndArgument = args[ps.i];
+              if (pluginAndArgument.Length > 0 &&
+                  pluginAndArgument[0] == '"' &&
+                  pluginAndArgument[^1] == '"'
+                  ) {
+                var unescapeRegex = new Regex(@"\\""|\\\\");
+                pluginAndArgument = unescapeRegex.Replace(pluginAndArgument.Substring(1, pluginAndArgument.Length - 2),
+                  match => match.Groups[0].Value == @"\""" ? "\"" : @"\"
+                );
+              }
+              if (pluginAndArgument.Length > 0) {
+                var pluginArray = pluginAndArgument.Split(',');
+                var pluginPath = pluginArray[0];
+                var arguments = Array.Empty<string>();
+                if (pluginArray.Length >= 2) {
+                  // There are no commas in paths, but there can be in arguments
+                  var argumentsString = string.Join(',', pluginArray.Skip(1));
+                  // Parse arguments, accepting and remove double quotes that isolate long arguments
+                  var splitter = new Regex(@"""((?:[^""]|\\"")*)""|([^ ]+)");
+                  arguments = splitter.Matches(argumentsString).Select(
+                    matchResult => matchResult.Groups[1].Success ?
+                        matchResult.Groups[1].Value.Replace(@"\""", @"""") :
+                        matchResult.Groups[2].Value
+                    ).ToArray();
+                }
+                Plugins.Add(Plugin.Load(pluginPath, arguments));
+              }
             }
 
             return true;
@@ -806,6 +845,12 @@ namespace Microsoft.Dafny {
     Note that the C++ backend has various limitations (see Docs/Compilation/Cpp.md).
     This includes lack of support for BigIntegers (aka int), most higher order
     functions, and advanced features like traits or co-inductive types.
+/plugin:<path to one assembly>[ <arguments>]
+    (experimental) One path to an assembly that contains at least one
+    instantiatable class extending Microsoft.Dafny.Plugin.Rewriter.
+    It can also extend Microsoft.Dafny.Plugins.PluginConfiguration to receive arguments
+    More information about what plugins do and how define them:
+    https://github.com/dafny-lang/dafny/blob/master/Source/DafnyLanguageServer/README.md#about-plugins
 /Main:<name>
     The (fully-qualified) name of the method to use as the executable entry point.
     Default is the method with the {{:main}} atrribute, or else the method named 'Main'.
