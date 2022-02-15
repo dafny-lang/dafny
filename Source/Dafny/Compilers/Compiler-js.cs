@@ -2378,12 +2378,14 @@ namespace Microsoft.Dafny {
       return SendToNewNodeProcess(dafnyProgramName, targetProgramText, callToMain, targetFilename, otherFileNames, outputWriter);
     }
 
-    DataReceivedEventHandler ProcessData(TextWriter writer) {
+    DataReceivedEventHandler GetEventHandlerFrom(TextWriter writer) {
       return (sendingProcess, e) => {
-        if (!((Process)sendingProcess).HasExited) {
-          writer.WriteLine(e.Data);
-        } else {
-          writer.Write(e.Data);
+        if (e.Data != null) {
+          if (!((Process)sendingProcess).HasExited) {
+            writer.WriteLine(e.Data);
+          } else {
+            writer.Write(e.Data);
+          }
         }
       };
     }
@@ -2402,8 +2404,8 @@ namespace Microsoft.Dafny {
 
       try {
         Process nodeProcess = new Process { StartInfo = psi };
-        nodeProcess.OutputDataReceived += ProcessData(Console.Out);
-        nodeProcess.ErrorDataReceived += ProcessData(Console.Error);
+        nodeProcess.OutputDataReceived += GetEventHandlerFrom(Console.Out);
+        nodeProcess.ErrorDataReceived += GetEventHandlerFrom(Console.Error);
         nodeProcess.Start();
         nodeProcess.BeginOutputReadLine();
         nodeProcess.BeginErrorReadLine();
