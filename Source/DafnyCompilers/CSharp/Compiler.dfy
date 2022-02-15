@@ -184,7 +184,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
         D.UnsupportedExpr(u)
     }
 
-    function ASTHeight(c: C.Expression) : nat
+    function {:axiom} ASTHeight(c: C.Expression) : nat
 
     function method TranslateBinary(b: C.BinaryExpr) : D.Expr
       decreases ASTHeight(b), 0

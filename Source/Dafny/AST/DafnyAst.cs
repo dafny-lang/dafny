@@ -10927,7 +10927,7 @@ namespace Microsoft.Dafny {
       RankLt,
       RankGt
     }
-    private ResolvedOpcode _theResolvedOp = ResolvedOpcode.YetUndetermined;
+    public /* CPC */ ResolvedOpcode _theResolvedOp = ResolvedOpcode.YetUndetermined;
     public ResolvedOpcode ResolvedOp {
       set {
         Contract.Assume(_theResolvedOp == ResolvedOpcode.YetUndetermined || _theResolvedOp == value);  // there's never a reason for resolution to change its mind, is there?
