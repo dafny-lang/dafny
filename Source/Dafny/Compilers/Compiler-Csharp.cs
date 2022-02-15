@@ -3226,9 +3226,58 @@ namespace Microsoft.Dafny {
       return false;
     }
 
+    private string WriteDafnyStructure(Method m, ConcreteSyntaxTree wr) {
+      string res = "Dafny.ISequence<_System._ITuple" + m.Ins.Count.ToString() + "<";
+      foreach (var o in m.Ins) {
+        res += this.TypeName(o.Type, wr, o.tok);
+        if (!o.Equals(m.Ins.Last())) {
+          res += ", ";
+        }
+      }
+      res += ">>";
+      return res;
+    }
+
+    private void WriteGlueCode(ConcreteSyntaxTree wr, string methodName, string dafnyStructure, int tupleLength) {
+      wr.WriteLine("public static System.Collections.Generic.IEnumerable<object[]> DafnyTupleToObjArray(" + dafnyStructure + " dafnyStructure) {");
+      wr.WriteLine("System.Collections.Generic.List<object[]> newList = new ();");
+      wr.WriteLine("foreach (var tuple in dafnyStructure.UniqueElements) {");
+      wr.Write("newList.Add(new object[] {");
+      for (int i = 0; i < tupleLength; i++) {
+        string tupleValue = "tuple.dtor__" + i.ToString();
+        wr.Write(tupleValue);
+        if (i < tupleLength - 1)
+          wr.Write(", ");
+      }
+      wr.WriteLine("});");
+      wr.WriteLine("}");
+      wr.WriteLine("return newList;");
+      wr.WriteLine("}");
+
+      wr.WriteLine("public static System.Collections.Generic.IEnumerable<object[]> _" + methodName + "() {");
+      wr.WriteLine(dafnyStructure + " retValue =  " + methodName + "();");
+      wr.WriteLine("return DafnyTupleToObjArray(retValue);");
+      wr.WriteLine("}");
+
+      wr.WriteLine("[Xunit.Theory]");
+      wr.WriteLine("[Xunit.MemberData(nameof(_" + methodName + "))]");
+    }
+
     private void AddTestCheckerIfNeeded(string name, Declaration decl, ConcreteSyntaxTree wr) {
       if (!Attributes.Contains(decl.Attributes, "test")) {
         return;
+      }
+      var args = Attributes.FindExpressions(decl.Attributes, "test");
+      if (args.Count == 2 && args[0] is LiteralExpr && args[1] is LiteralExpr) {
+        LiteralExpr sourceType = (LiteralExpr) args[0];
+
+        if (sourceType.Value.ToString().Equals("MethodSource")) {
+          Method m = (Method) decl;
+          LiteralExpr methodNameExpr = (LiteralExpr) args[1];
+          string dafnyStructure = WriteDafnyStructure(m, wr);
+          WriteGlueCode(wr, methodNameExpr.Value.ToString(), dafnyStructure, m.Ins.Count);
+          return;
+        }
       }
 
       var firstReturnIsFailureCompatible = false;
