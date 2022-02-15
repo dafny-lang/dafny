@@ -2378,6 +2378,16 @@ namespace Microsoft.Dafny {
       return SendToNewNodeProcess(dafnyProgramName, targetProgramText, callToMain, targetFilename, otherFileNames, outputWriter);
     }
 
+    DataReceivedEventHandler ProcessData(TextWriter writer) {
+      return (sendingProcess, e) => {
+        if (!((Process)sendingProcess).HasExited) {
+          writer.WriteLine(e.Data);
+        } else {
+          writer.Write(e.Data);
+        }
+      };
+    }
+
     bool SendToNewNodeProcess(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string targetFilename, ReadOnlyCollection<string> otherFileNames,
       TextWriter outputWriter) {
       Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
@@ -2391,27 +2401,13 @@ namespace Microsoft.Dafny {
       };
 
       try {
-        using var nodeProcess = Process.Start(psi);
-        nodeProcess.BeginErrorReadLine();
+        Process nodeProcess = new Process { StartInfo = psi };
+        nodeProcess.OutputDataReceived += ProcessData(Console.Out);
+        nodeProcess.ErrorDataReceived += ProcessData(Console.Error);
+        nodeProcess.Start();
         nodeProcess.BeginOutputReadLine();
+        nodeProcess.BeginErrorReadLine();
 
-        void ProcessErrorData(object sender, DataReceivedEventArgs e) {
-          if (!nodeProcess.HasExited) {
-            Console.Error.WriteLine(e.Data);
-          } else {
-            Console.Error.Write(e.Data);
-          }
-        }
-
-        void ProcessOutputData(object sender, DataReceivedEventArgs e) {
-          if (!nodeProcess.HasExited) {
-            Console.Out.WriteLine(e.Data);
-          } else {
-            Console.Out.Write(e.Data);
-          }
-        }
-        nodeProcess.ErrorDataReceived += ProcessErrorData;
-        nodeProcess.OutputDataReceived += ProcessOutputData;
         foreach (var filename in otherFileNames) {
           WriteFromFile(filename, nodeProcess.StandardInput);
         }
