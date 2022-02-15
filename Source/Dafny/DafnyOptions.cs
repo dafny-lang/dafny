@@ -692,7 +692,40 @@ namespace Microsoft.Dafny {
       is not, an error is given.
 
     {:termination}
-      TODO
+      Dafny currently lacks the features needed to specify usable termination
+      metrics for trait methods that are dynamically dispatched to method
+      implementations given in other modules. This issue and a sketch of a
+      solution are described in https://github.com/dafny-lang/dafny/issues/1588.
+      Until such features are added to the language, a type `C` that extends a
+      trait `T` must be declared in the same module as `T`.
+      There is, however, an available loophole: if a programmer is willing to
+      take the responsibility that all calls to methods in a trait `T`
+      that dynamically dispatch to implementations in other modules terminate,
+      then the trait `T` can be marked with `{:termination false}`. This will
+      allow `T` to be extended by types declared in modules outside `T`'s module.
+
+      Caution: This loophole is unsound; that is, if a cross-module dynamic
+      dispatch fails to terminate, then this and other errors in the program
+      may have been overlooked by the verifier.       
+
+      The meaning of `{:termination false}` is defined only on trait declarations.
+      It has no meaning if applied to other declarations.
+
+      Applying `{:termination false}` to a trait is similar to the
+      effect of declaring each of its methods with `decreases *`, but
+      there are several differences.  The biggest difference is that
+      `decreases *` is sound, whereas the attribute is not. As such,
+      `decreases *` cannot be used with functions, lemmas, or ghost
+      methods, and callers of a `decreases *` method must themselves
+      be declared with `decreases *`. In contrast, `{:termination false}`
+      applies to all functions, lemmas, and methods of the trait, and
+      callers do not have to indicate that they are using such a
+      trait. Another difference is that `{:termination false}` does
+      not change checking for intra-module calls. That is, even if a
+      trait is declared with `{:termination false}`, calls to its
+      functions, lemmas, and methods from within the module where the
+      trait is declared are checked for termination in the usual
+      manner.
 
     {:warnShadowing}
       TODO
