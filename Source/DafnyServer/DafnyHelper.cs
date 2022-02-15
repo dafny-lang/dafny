@@ -14,11 +14,6 @@ using Bpl = Microsoft.Boogie;
 namespace Microsoft.Dafny {
   // FIXME: This should not be duplicated here
   class DafnyConsolePrinter : ConsolePrinter {
-
-    public DafnyConsolePrinter(ExecutionEngineOptions options) : base(options)
-    {
-    }
-
     public override void ReportBplError(IToken tok, string message, bool error, TextWriter tw, string category = null) {
       // Dafny has 0-indexed columns, but Boogie counts from 1
       var realigned_tok = new Token(tok.line, tok.col - 1);
@@ -89,7 +84,8 @@ namespace Microsoft.Dafny {
         engine.Inline(boogieProgram);
 
         //NOTE: We could capture errors instead of printing them (pass a delegate instead of null)
-        switch (engine.InferAndVerify(boogieProgram, new PipelineStatistics(), "ServerProgram_" + moduleName, null, DateTime.UtcNow.Ticks.ToString())) {
+        switch (engine.InferAndVerify(boogieProgram, new PipelineStatistics(),
+                  "ServerProgram_" + moduleName, null, DateTime.UtcNow.Ticks.ToString()).Result) {
           case PipelineOutcome.Done:
           case PipelineOutcome.VerificationCompleted:
             return true;

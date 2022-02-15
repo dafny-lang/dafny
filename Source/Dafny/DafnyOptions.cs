@@ -4,29 +4,31 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Diagnostics.Contracts;
 using System.IO;
-using System.Reflection;
 using System.Text.RegularExpressions;
 using JetBrains.Annotations;
-using Microsoft.Dafny.Plugins;
 using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
   public class DafnyOptions : Bpl.CommandLineOptions {
-    private ErrorReporter errorReporter;
 
     public new static DafnyOptions FromArguments(params string[] arguments)
     {
-      var result = new DafnyOptions();
+      var result = new DafnyOptions(new Bpl.ConsolePrinter());
       result.Parse(arguments);
       return result;
     }
 
-    public DafnyOptions(ErrorReporter errorReporter = null)
-      : base("Dafny", "Dafny program verifier") {
-      this.errorReporter = errorReporter;
+    public new static DafnyOptions FromArguments(Bpl.OutputPrinter printer, params string[] arguments)
+    {
+      var result = new DafnyOptions(printer);
+      result.Parse(arguments);
+      return result;
+    }
+
+    public DafnyOptions(Bpl.OutputPrinter printer, ErrorReporter errorReporter = null)
+      : base("Dafny", "Dafny program verifier", printer) {
       Prune = true;
       NormalizeNames = true;
       EmitDebugInformation = false;
@@ -159,7 +161,7 @@ namespace Microsoft.Dafny {
     public virtual TestGenerationOptions TestGenOptions =>
       testGenOptions ??= new TestGenerationOptions();
 
-    protected override bool ParseOption(string name, Bpl.CommandLineOptionEngine.CommandLineParseState ps) {
+    protected override bool ParseOption(string name, Bpl.CommandLineParseState ps) {
       var args = ps.args; // convenient synonym
       switch (name) {
         case "dprelude":
@@ -580,7 +582,7 @@ namespace Microsoft.Dafny {
       ).ToArray();
     }
 
-    protected void InvalidArgumentError(string name, CommandLineParseState ps) {
+    protected void InvalidArgumentError(string name, Bpl.CommandLineParseState ps) {
       ps.Error("Invalid argument \"{0}\" to option {1}", ps.args[ps.i], name);
     }
 
