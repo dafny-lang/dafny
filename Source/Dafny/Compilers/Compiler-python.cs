@@ -306,16 +306,10 @@ namespace Microsoft.Dafny {
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
-
     }
 
     string IntegerLiteral(BigInteger i) {
-      if (i.IsZero || i.IsOne) {
-        return "int()";
-      } else {
-        return $"int(\"{i}\")";
-      }
-
+      return $"int(\"{i}\")";
     }
 
     protected override string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variance,
@@ -660,16 +654,8 @@ namespace Microsoft.Dafny {
       switch (op) {
         case BinaryExpr.ResolvedOpcode.Add:
           truncateResult = true;
-          if (resultType.IsCharType) {
-            preOpString = "(char) (";
-            postOpString = ")";
-            opString = "+";
-          } else {
-            doPossiblyNativeBinOp("+", "__add__", out preOpString, out opString, out postOpString, out callString);
-          }
-
+          doPossiblyNativeBinOp("+", "__add__", out preOpString, out opString, out postOpString, out callString);
           break;
-
 
         default:
           base.CompileBinOp(op, e0, e1, tok, resultType,
