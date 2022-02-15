@@ -14,10 +14,10 @@ namespace Microsoft.Dafny {
     }
 
     public override string TargetLanguage => "Python";
-    const string DafnySetClass = "_dafny.Set";
-    const string DafnyMultiSetClass = "_dafny.MultiSet";
-    const string DafnySeqClass = "_dafny.Seq";
-    const string DafnyMapClass = "_dafny.Map";
+    const string DafnySetClass = "__dafny.Set";
+    const string DafnyMultiSetClass = "__dafny.MultiSet";
+    const string DafnySeqClass = "__dafny.Seq";
+    const string DafnyMapClass = "__dafny.Map";
     protected override string StmtTerminator { get => ""; }
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
       wr.WriteLine("# Dafny program {0} compiled into Python", program.Name);
@@ -26,7 +26,7 @@ namespace Microsoft.Dafny {
 
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
       Coverage.EmitSetup(wr);
-      wr.WriteLine("_default.Main()", mainMethod.EnclosingClass, mainMethod);
+      wr.WriteLine("__default.Main()", mainMethod.EnclosingClass, mainMethod);
     }
 
     protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw) {
@@ -48,7 +48,7 @@ namespace Microsoft.Dafny {
       List<TypeParameter> typeParameters,
       TopLevelDecl cls, List<Type> superClasses, IToken tok, ConcreteSyntaxTree wr) {
 
-      var w = wr.WriteLine("class {0}:", cls);
+      var w = wr.WriteLine("class {0}:", name);
 
       var methodWriter = w.NewBlock(open: BraceStyle.NewlineNoBrace, close: BraceStyle.NewlineNoBrace);
       ConcreteSyntaxTree fieldWriter = w.NewBlock(open: BraceStyle.NewlineNoBrace, close: BraceStyle.NewlineNoBrace);
@@ -81,7 +81,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, ConcreteSyntaxTree wr) {
-      var cw = (ClassWriter)CreateClass(IdProtect(sst.EnclosingModuleDefinition.CompileName), IdName(sst), sst, wr);
+      IClassWriter cw = CreateClass(IdProtect(sst.EnclosingModuleDefinition.CompileName), IdName(sst), sst, wr);
       var w = cw.MethodWriter;
       var udt = UserDefinedType.FromTopLevelDecl(sst.tok, sst);
       string d;
