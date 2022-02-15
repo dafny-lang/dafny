@@ -2315,9 +2315,9 @@ TraitDecl =
 ````
 
 A _trait_ is an abstract superclass, similar to an "interface" or
-"mixin".[^fn-traits] A trait can be _extended_ only by another trait or
+"mixin". A trait can be _extended_ only by another trait or
 by a class (and in the latter case we say that the class _implements_
-the trait). More specifically, algebraic datatypes cannot extend traits.
+the trait). More specifically, algebraic datatypes cannot extend traits.[^fn-traits]
 
 [^fn-traits]: Traits are new to Dafny and are likely to evolve for a while.
 
