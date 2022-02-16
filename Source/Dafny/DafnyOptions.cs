@@ -109,6 +109,13 @@ namespace Microsoft.Dafny {
     public bool PrintFunctionCallGraph = false;
     public bool WarnShadowing = false;
     public int DefiniteAssignmentLevel = 1; // [0..4]
+    public FunctionSyntaxOptions FunctionSyntax = FunctionSyntaxOptions.Version3;
+    
+    public enum FunctionSyntaxOptions {
+      Version3,
+      Migration3To4,
+      Version4,
+    }
 
     public bool ForbidNondeterminism {
       get { return DefiniteAssignmentLevel == 3; }
@@ -414,6 +421,20 @@ namespace Microsoft.Dafny {
             return true;
           }
 
+        case "functionSyntax":
+          if (ps.ConfirmArgumentCount(1)) {
+            if (args[ps.i] == "3") {
+              FunctionSyntax = FunctionSyntaxOptions.Version3;
+            } else if (args[ps.i] == "4") {
+              FunctionSyntax = FunctionSyntaxOptions.Version4;
+            } else if (args[ps.i] == "migration3to4") {
+              FunctionSyntax = FunctionSyntaxOptions.Migration3To4;
+            } else {
+              InvalidArgumentError(name, ps);
+            }
+          }
+          return true;
+        
         case "countVerificationErrors": {
             int countErrors = 1; // defaults to reporting verification errors
             if (ps.GetNumericArgument(ref countErrors, 2)) {
@@ -964,6 +985,25 @@ namespace Microsoft.Dafny {
         statements are used; thus, a program that passes at this level 3 is one
         that the language guarantees that values seen during execution will be
         the same in every run of the program
+/functionSyntax:<version>
+    The syntax for functions is changing from Dafny version 3 to version 4.
+    This switch gives early access to the new syntax, and also provides a mode
+    to help with migration.
+    3 (default) - Compiled functions are written `function method` and
+        `predicate method`. Ghost functions are written `function` and `predicate`.
+    4 - Compiled functions are written `function` and `predicate`. Ghost functions
+        are written `ghost function` and `ghost predicate`.
+    migration3to4 - Compiled functions are written `function method` and
+        `predicate method`. Ghost functions are written `ghost function` and
+        `ghost predicate`. To migrate from version 3 to version 4, use this flag
+        on your version 3 program. This will give flag all occurrences of
+        `function` and `predicate` as parsing errors. These are ghost functions,
+        so change those into the new syntax `ghost function` and `ghost predicate`.
+        Then, start using /functionSyntax:4. This will flag all occurrences of
+        `function method` and `predicate method` as parsing errors. So, change
+        those to just `function` and `predicate`. Now, your program uses version 4
+        syntax and has the exact same meaning as your previous version 3 program.
+
 /deprecation:<n>
     0 - don't give any warnings about deprecated features
     1 (default) - show warnings about deprecated features
