@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -67,8 +68,9 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       mutex.Wait(cancellationToken);
       try {
         // The printer is responsible for two things: It logs boogie errors and captures the counter example model.
+        int totalPrograms = Translator.VerifiableModules(program).Count();
         var errorReporter = (DiagnosticErrorReporter)program.reporter;
-        var printer = new ModelCapturingOutputPrinter(logger, errorReporter, progressReporter);
+        var printer = new ModelCapturingOutputPrinter(logger, errorReporter, progressReporter, totalPrograms);
         ExecutionEngine.printer = printer;
         // Do not set these settings within the object's construction. It will break some tests within
         // VerificationNotificationTest and DiagnosticsTest that rely on updating these settings.
@@ -77,6 +79,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         var translated = Translator.Translate(program, errorReporter, new Translator.TranslatorFlags { InsertChecksums = true });
         bool verified = true;
         foreach (var (_, boogieProgram) in translated) {
+          printer.CurrentProgram++;
           cancellationToken.ThrowIfCancellationRequested();
           var verificationResult = VerifyWithBoogie(boogieProgram, cancellationToken);
           verified = verified && verificationResult;
@@ -127,15 +130,22 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       private readonly ILogger logger;
       private readonly DiagnosticErrorReporter errorReporter;
       private readonly IVerificationProgressReporter progressReporter;
+      private readonly int totalPrograms;
       private StringBuilder? serializedCounterExamples;
 
       public string? SerializedCounterExamples => serializedCounterExamples?.ToString();
+      public int CurrentProgram { get; set; }
 
-      public ModelCapturingOutputPrinter(ILogger logger, DiagnosticErrorReporter errorReporter,
-                                         IVerificationProgressReporter progressReporter) {
+      public ModelCapturingOutputPrinter(
+        ILogger logger,
+        DiagnosticErrorReporter errorReporter,
+        IVerificationProgressReporter progressReporter,
+        int totalPrograms
+      ) {
         this.logger = logger;
         this.errorReporter = errorReporter;
         this.progressReporter = progressReporter;
+        this.totalPrograms = totalPrograms;
       }
 
       public void AdvisoryWriteLine(string format, params object[] args) {
@@ -153,7 +163,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         logger.LogInformation(s);
         var match = Regex.Match(s, "^Verifying .+[.](?<name>[^.]+) [.][.][.]$");
         if (match.Success) {
-          progressReporter.ReportProgress(match.Groups["name"].Value);
+          var verifiedName = match.Groups["name"].Value;
+          progressReporter.ReportProgress($"{verifiedName} ({CurrentProgram}/{totalPrograms})");
         }
       }
 
