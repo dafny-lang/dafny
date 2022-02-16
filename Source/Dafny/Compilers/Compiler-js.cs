@@ -13,6 +13,8 @@ using System.IO;
 using System.Diagnostics.Contracts;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Threading;
+using System.Threading.Tasks;
 using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
@@ -2402,13 +2404,16 @@ namespace Microsoft.Dafny {
         }
         nodeProcess.StandardInput.Flush();
         nodeProcess.StandardInput.Close();
-        int current;
         // Fixes a problem of Node on Windows, where Node does not prints to the parent console its standard outputs.
+        Task.Run(() => {
+          int current;
+          while ((current = nodeProcess.StandardError.Read()) != -1) {
+            Console.Error.Write((char)current);
+          }
+        });
+        int current;
         while ((current = nodeProcess.StandardOutput.Read()) != -1) {
           Console.Out.Write((char)current);
-        }
-        while ((current = nodeProcess.StandardError.Read()) != -1) {
-          Console.Error.Write((char)current);
         }
         nodeProcess.WaitForExit();
         return nodeProcess.ExitCode == 0;
