@@ -2264,7 +2264,12 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
          // basic function or predicate
          Contract.Assert(headToken != null);
          if (functionMethodToken != null) {
-           if (DafnyOptions.O.FunctionSyntax == DafnyOptions.FunctionSyntaxOptions.Version4) {
+           if (isPredicate && DafnyOptions.O.FunctionSyntax == DafnyOptions.FunctionSyntaxOptions.ExperimentalPredicateAlwaysGhost) {
+             SemErr(t, $"a {what} is always ghost and is declared with '{what}'");
+             functionMethodToken = null;
+             dmod.IsGhost = false; // don't report errors about 'ghost', too
+           } else if (DafnyOptions.O.FunctionSyntax == DafnyOptions.FunctionSyntaxOptions.Version4 ||
+                      DafnyOptions.O.FunctionSyntax == DafnyOptions.FunctionSyntaxOptions.ExperimentalPredicateAlwaysGhost) {
              SemErr(t, $"the phrase '{what} method' is not allowed; to declare a compiled {what}, use just '{what}'");
              functionMethodToken = null;
            } else if (dmod.IsGhost && DafnyOptions.O.FunctionSyntax != DafnyOptions.FunctionSyntaxOptions.Version3) {
@@ -2275,18 +2280,44 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
            SemErr(headToken, $"a {what} must be declared as either 'ghost {what}' or '{what} method'");
          }
          AllowedDeclModifiers allowed = AllowedDeclModifiers.Static;
-         allowed |= DafnyOptions.O.FunctionSyntax == DafnyOptions.FunctionSyntaxOptions.Version3 ? AllowedDeclModifiers.AlreadyGhost : AllowedDeclModifiers.Ghost;
+         if (isPredicate && DafnyOptions.O.FunctionSyntax == DafnyOptions.FunctionSyntaxOptions.ExperimentalPredicateAlwaysGhost) {
+           allowed |= AllowedDeclModifiers.AlreadyGhost;
+         } else if (DafnyOptions.O.FunctionSyntax == DafnyOptions.FunctionSyntaxOptions.Version3) {
+           allowed |= AllowedDeclModifiers.AlreadyGhost;
+         } else {
+           allowed |= AllowedDeclModifiers.Ghost;
+         }
          CheckDeclModifiers(ref dmod, what, allowed);
        }
      }
      // Determine if the function is considered ghost. Note, for our purposes here, a function-by-method is considered non-ghost.
-     var isGhost = isTwoState || isLeastPredicate || isGreatestPredicate ||
-       (byMethodBody == null &&
-         (DafnyOptions.O.FunctionSyntax == DafnyOptions.FunctionSyntaxOptions.Version3
-           ? functionMethodToken == null
-           : (dmod.IsGhost ||
-               (DafnyOptions.O.FunctionSyntax == DafnyOptions.FunctionSyntaxOptions.ExperimentalTreatUnspecifiedAsGhost &&
-                 functionMethodToken == null)))); 
+     bool isGhost;
+     if (isTwoState || isLeastPredicate || isGreatestPredicate) {
+       isGhost = true;
+     } else if (byMethodBody != null) {
+       isGhost = false;
+     } else {
+       switch (DafnyOptions.O.FunctionSyntax) {
+         case DafnyOptions.FunctionSyntaxOptions.Version3:
+           isGhost = functionMethodToken == null;
+           break;
+         case DafnyOptions.FunctionSyntaxOptions.Migration3To4:
+         case DafnyOptions.FunctionSyntaxOptions.Version4:
+         case DafnyOptions.FunctionSyntaxOptions.ExperimentalTreatUnspecifiedAsCompiled:
+           isGhost = dmod.IsGhost;
+           break;
+         case DafnyOptions.FunctionSyntaxOptions.ExperimentalTreatUnspecifiedAsGhost:
+           isGhost = dmod.IsGhost || functionMethodToken == null;
+           break;
+         case DafnyOptions.FunctionSyntaxOptions.ExperimentalPredicateAlwaysGhost:
+           isGhost = dmod.IsGhost || isPredicate;
+           break;
+         default:
+           Contract.Assert(false); // unexpected FunctionSyntaxOptions
+           isGhost = false; // to please the compiler
+           break;
+       }
+     }
      // Some sanity checks
      Contract.Assert(DafnyOptions.O.FunctionSyntax != DafnyOptions.FunctionSyntaxOptions.Version4 || functionMethodToken == null);
      Contract.Assert(DafnyOptions.O.FunctionSyntax != DafnyOptions.FunctionSyntaxOptions.Version3 || !dmod.IsGhost);

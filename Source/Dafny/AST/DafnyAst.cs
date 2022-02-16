@@ -6212,6 +6212,9 @@ namespace Microsoft.Dafny {
           k = WhatKind;
         } else if (this is PrefixPredicate) {
           k = "predicate";
+        } else if (DafnyOptions.O.FunctionSyntax == DafnyOptions.FunctionSyntaxOptions.ExperimentalPredicateAlwaysGhost &&
+                   (this is Predicate || !IsGhost)) { 
+          k = WhatKind;
         } else if (DafnyOptions.O.FunctionSyntax != DafnyOptions.FunctionSyntaxOptions.Version4 && !IsGhost) {
           k = WhatKind + " method";
         } else if (DafnyOptions.O.FunctionSyntax != DafnyOptions.FunctionSyntaxOptions.Version3 && IsGhost) {

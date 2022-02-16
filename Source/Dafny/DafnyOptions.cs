@@ -116,6 +116,7 @@ namespace Microsoft.Dafny {
       Migration3To4,
       ExperimentalTreatUnspecifiedAsGhost,
       ExperimentalTreatUnspecifiedAsCompiled,
+      ExperimentalPredicateAlwaysGhost,
       Version4,
     }
 
@@ -435,6 +436,8 @@ namespace Microsoft.Dafny {
               FunctionSyntax = FunctionSyntaxOptions.ExperimentalTreatUnspecifiedAsGhost;
             } else if (args[ps.i] == "experimentalDefaultCompiled") {
               FunctionSyntax = FunctionSyntaxOptions.ExperimentalTreatUnspecifiedAsCompiled;
+            } else if (args[ps.i] == "experimentalPredicateAlwaysGhost") {
+              FunctionSyntax = FunctionSyntaxOptions.ExperimentalPredicateAlwaysGhost;
             } else {
               InvalidArgumentError(name, ps);
             }
@@ -1015,6 +1018,9 @@ namespace Microsoft.Dafny {
     experimentalDefaultCompiled - like migration3to4, but allow `function` and
         `predicate` as alternatives to declaring compiled functions and predicates,
         respectively
+    experimentalPredicateAlwaysGhost - Compiled functions are written `function`.
+        Ghost functions are written `ghost function`. Predicates are always ghost
+        and are written `predicate`.
 
 /deprecation:<n>
     0 - don't give any warnings about deprecated features
