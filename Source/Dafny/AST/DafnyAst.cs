@@ -6330,9 +6330,6 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Decreases != null);
     }
 
-    /// <summary>
-    /// Note, functions are "ghost" by default; a non-ghost function is called a "function method".
-    /// </summary>
     public Function(IToken tok, string name, bool hasStaticKeyword, bool isGhost,
       List<TypeParameter> typeArgs, List<Formal> formals, Formal result, Type resultType,
       List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,

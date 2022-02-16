@@ -69,7 +69,7 @@ method DoIt() {
 
     [TestMethod]
     public async Task HoveringFunctionInvocationOfFunctionDeclaredInForeignDocumentReturnsSignature() {
-      // TODO Actually, the invoked function is a function method.
+      // TODO Actually, the invoked function is a compiled function.
       var source = @"
 include ""foreign.dfy""
 

@@ -2122,17 +2122,17 @@ GenericInstantiation<.List<Type> gt.>
 
 /*------------------------------------------------------------------------*/
 FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
-= (. Contract.Ensures(Contract.ValueAtReturn(out f)!=null);
+= (. Contract.Ensures(Contract.ValueAtReturn(out f) != null);
      Attributes attrs = null;
      IToken/*!*/ id = Token.NoToken;  // to please compiler
-     List<TypeParameter/*!*/> typeArgs = new List<TypeParameter/*!*/>();
-     List<Formal/*!*/> formals = new List<Formal/*!*/>();
+     List<TypeParameter> typeArgs = new List<TypeParameter>();
+     List<Formal> formals = new List<Formal>();
      Formal/*!*/ result = null;
      Type/*!*/ returnType = new BoolType();
-     List<AttributedExpression/*!*/> reqs = new List<AttributedExpression/*!*/>();
-     List<AttributedExpression/*!*/> ens = new List<AttributedExpression/*!*/>();
-     List<FrameExpression/*!*/> reads = new List<FrameExpression/*!*/>();
-     List<Expression/*!*/> decreases;
+     List<AttributedExpression> reqs = new List<AttributedExpression>();
+     List<AttributedExpression> ens = new List<AttributedExpression>();
+     List<FrameExpression> reads = new List<FrameExpression>();
+     List<Expression> decreases;
      Expression body = null;
      bool isPredicate = false; bool isLeastPredicate = false; bool isGreatestPredicate = false;
      bool isFunctionMethod = false;
@@ -2143,7 +2143,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
      ExtremePredicate.KType kType = ExtremePredicate.KType.Unspecified;
   .)
   /* ----- function ----- */
-  [ "twostate"               (. isTwoState = true; .)
+  [ "twostate"   (. isTwoState = true; .)
   ]
   ( "function"
     [ "method"                 (. if (isTwoState) { SemErr(t, "twostate functions are supported only as a ghosts, not as function methods"); }
@@ -2172,7 +2172,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
          ")"
          | Type<out returnType>
       )
-    | ellipsis                 (. signatureEllipsis = t; .)
+    | ellipsis   (. signatureEllipsis = t; .)
     )
 
   /* ----- predicate ----- */
@@ -2196,7 +2196,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
       ]
       [ ":" Type<out returnType> (. SemErr(t, "predicates do not have an explicitly declared return type; it is always bool"); .)
       ]
-    | ellipsis                   (. signatureEllipsis = t; .)
+    | ellipsis   (. signatureEllipsis = t; .)
     )
 
   /* ----- least predicate ----- */

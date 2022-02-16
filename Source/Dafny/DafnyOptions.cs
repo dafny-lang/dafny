@@ -66,7 +66,7 @@ namespace Microsoft.Dafny {
       DllEmbed,
       NoIncludes,
       NoGhost
-    };
+    }
 
     public PrintModes PrintMode = PrintModes.Everything; // Default to printing everything
     public bool DafnyVerify = true;
