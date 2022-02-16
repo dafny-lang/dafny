@@ -77,7 +77,7 @@ enum AllowedDeclModifiers {
 /// It is used in error messages.
 /// Any declaration modifiers that are present but not allowed are cleared.
 ///</summary>
-void CheckDeclModifiers(DeclModifierData dmod, string declCaption, AllowedDeclModifiers allowed)
+void CheckDeclModifiers(ref DeclModifierData dmod, string declCaption, AllowedDeclModifiers allowed)
 {
   declCaption = (declCaption.StartsWith("i") || declCaption.StartsWith("o") ? "an " : "a ") + declCaption;
   if (dmod.IsAbstract && ((allowed & AllowedDeclModifiers.Abstract) == 0)) {
@@ -962,7 +962,7 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
      ModuleDefinition module;
      submodule = null; // appease compiler
      bool isAbstract = dmod.IsAbstract;
-     CheckDeclModifiers(dmod, "module", AllowedDeclModifiers.Abstract);
+     CheckDeclModifiers(ref dmod, "module", AllowedDeclModifiers.Abstract);
    .)
    { Attribute<ref attrs> }
    ModuleQualifiedName<out idQualified>
@@ -1120,7 +1120,7 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out TopLevel
      List<TypeParameter> typeArgs = new List<TypeParameter>();
      List<MemberDecl> members = new List<MemberDecl>();
      IToken bodyStart;
-     CheckDeclModifiers(dmodClass, "class", AllowedDeclModifiers.None);
+     CheckDeclModifiers(ref dmodClass, "class", AllowedDeclModifiers.None);
      DeclModifierData dmod;
   .)
   SYNC
@@ -1150,7 +1150,7 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out TopLevel
 TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*!*/ trait>
 = (. Contract.Requires(module != null);
      Contract.Ensures(Contract.ValueAtReturn(out trait) != null);
-     CheckDeclModifiers(dmodIn, "trait", AllowedDeclModifiers.None);
+     CheckDeclModifiers(ref dmodIn, "trait", AllowedDeclModifiers.None);
      IToken/*!*/ id;
      Type parentTrait;
      List<Type> parentTraits = new List<Type>();
@@ -1225,7 +1225,7 @@ DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDe
      IToken bodyStart = Token.NoToken;  // dummy assignment
      bool isRefining = false;
      bool co = false;
-     CheckDeclModifiers(dmod, "datatype or codatatype", AllowedDeclModifiers.None);
+     CheckDeclModifiers(ref dmod, "datatype or codatatype", AllowedDeclModifiers.None);
      var members = new List<MemberDecl>();
   .)
   SYNC
@@ -1283,7 +1283,7 @@ FieldDecl<.DeclModifierData dmod, bool isValueType, List<MemberDecl> mm.>
 = (. Contract.Requires(cce.NonNullElements(mm));
      Attributes attrs = null;
      IToken/*!*/ id;  Type/*!*/ ty;
-     CheckDeclModifiers(dmod, "field", AllowedDeclModifiers.Ghost);
+     CheckDeclModifiers(ref dmod, "field", AllowedDeclModifiers.Ghost);
      if (isValueType) {
        // we're about to produce an error; put fields into a throw-away list, so we don't return them
        mm = new List<MemberDecl>();
@@ -1311,7 +1311,7 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool mo
        errors.Warning(dmod.StaticToken, "module-level const declarations are always non-instance, so the 'static' keyword is not allowed here");
        dmod.IsStatic = false;
      }
-     CheckDeclModifiers(dmod, "field", AllowedDeclModifiers.Ghost | AllowedDeclModifiers.Static);
+     CheckDeclModifiers(ref dmod, "field", AllowedDeclModifiers.Ghost | AllowedDeclModifiers.Static);
   .)
   SYNC
   "const"
@@ -1339,7 +1339,7 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
      Expression constraint;
      Expression witness = null;
      bool isRefining = false;
-     CheckDeclModifiers(dmod, "newtype", AllowedDeclModifiers.None);
+     CheckDeclModifiers(ref dmod, "newtype", AllowedDeclModifiers.None);
      var members = new List<MemberDecl>();
   .)
   "newtype"
@@ -1431,7 +1431,7 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
        td = new OpaqueTypeDecl(id, id.val, module, characteristics, typeArgs, members, attrs, isRefining);
      }
   .)
-  (. CheckDeclModifiers(dmod, kind, AllowedDeclModifiers.None); .)
+  (. CheckDeclModifiers(ref dmod, kind, AllowedDeclModifiers.None); .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -1561,7 +1561,7 @@ IteratorDecl<DeclModifierData dmod, ModuleDefinition module, out IteratorDecl/*!
      IToken signatureEllipsis = null;
      IToken bodyStart = Token.NoToken;
      IToken bodyEnd = Token.NoToken;
-     CheckDeclModifiers(dmod, "iterator", AllowedDeclModifiers.None);
+     CheckDeclModifiers(ref dmod, "iterator", AllowedDeclModifiers.None);
   .)
   SYNC
   "iterator"
@@ -1716,7 +1716,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
                                        allowed = AllowedDeclModifiers.Ghost;
                                     .)
   )                                 (. keywordToken = t;
-                                       CheckDeclModifiers(dmod, caption, allowed); .)
+                                       CheckDeclModifiers(ref dmod, caption, allowed); .)
   { Attribute<ref attrs> }
   [ MethodFunctionName<out id>               (. hasName = true; .)
   ]
@@ -2155,7 +2155,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
        if (isFunctionMethod) {
          caption = "function method";
        }
-       CheckDeclModifiers(dmod, caption, allowed);
+       CheckDeclModifiers(ref dmod, caption, allowed);
     .)
     { Attribute<ref attrs> }
     MethodFunctionName<out id>
@@ -2186,7 +2186,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
        if (isFunctionMethod) {
          caption = "predicate method";
        }
-       CheckDeclModifiers(dmod, caption, allowed);
+       CheckDeclModifiers(ref dmod, caption, allowed);
     .)
     { Attribute<ref attrs> }
     MethodFunctionName<out id>
@@ -2207,7 +2207,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
     )
     "predicate"
     (. isLeastPredicate = true;
-       CheckDeclModifiers(dmod, "least predicate",
+       CheckDeclModifiers(ref dmod, "least predicate",
          AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static);
     .)
     { Attribute<ref attrs> }
@@ -2228,7 +2228,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
     | "copredicate"              (. errors.Deprecated(t, "the old keyword 'copredicate' has been renamed to the keyword phrase 'greatest predicate'"); .)
     )
     (. isGreatestPredicate = true;
-       CheckDeclModifiers(dmod, "greatest predicate",
+       CheckDeclModifiers(ref dmod, "greatest predicate",
          AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static);
     .)
     { Attribute<ref attrs> }
