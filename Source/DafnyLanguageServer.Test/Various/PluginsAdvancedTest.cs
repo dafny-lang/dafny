@@ -19,7 +19,7 @@ public class PluginsAdvancedTest : PluginsTestBase {
     "PluginsAdvancedTest";
 
   protected override string[] CommandLineArgument =>
-    new[] { $@"--dafny:plugins:0={LibraryPath},force you" };
+    new[] { $"--dafny:plugins:0={LibraryPath},force you" };
 
   [TestMethod]
   public async Task EnsureErrorMessageCanBeComplexAndTakeIntoAccountConfiguration() {

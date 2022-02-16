@@ -246,14 +246,7 @@ namespace Microsoft.Dafny {
                   // There are no commas in paths, but there can be in arguments
                   var argumentsString = string.Join(',', pluginArray.Skip(1));
                   // Parse arguments, accepting and remove double quotes that isolate long arguments
-                  var splitter = new Regex(@"""((?:[^""\\]|\\\\|\\"")*)""|([^ ]+)");
-                  var unescaper = new Regex(@"\\""|\\\\");
-                  arguments = splitter.Matches(argumentsString).Select(
-                    matchResult => matchResult.Groups[1].Success
-                      ? unescaper.Replace(matchResult.Groups[1].Value, matchResult2 =>
-                          matchResult2.Groups[0].Value == @"\""" ? "\"" : "\\")
-                      : matchResult.Groups[2].Value
-                    ).ToArray();
+                  arguments = ParsePluginArguments(argumentsString);
                 }
                 Plugins.Add(Plugin.Load(pluginPath, arguments));
               }
@@ -537,6 +530,18 @@ namespace Microsoft.Dafny {
 
       // Unless this is an option for test generation, defer to superclass
       return TestGenOptions.ParseOption(name, ps) || base.ParseOption(name, ps);
+    }
+
+    private static string[] ParsePluginArguments(string argumentsString) {
+      var splitter = new Regex(@"""(?<escapedArgument>(?:[^""\\]|\\\\|\\"")*)""|(?<rawArgument>[^ ]+)");
+      var escapedChars = new Regex(@"(?<escapedDoubleQuote>\\"")|\\\\");
+      return splitter.Matches(argumentsString).Select(
+        matchResult =>
+          matchResult.Groups["escapedArgument"].Success
+          ? escapedChars.Replace(matchResult.Groups["escapedArgument"].Value,
+            matchResult2 => matchResult2.Groups["escapedDoubleQuote"].Success ? "\"" : "\\")
+          : matchResult.Groups["rawArgument"].Value
+      ).ToArray();
     }
 
     protected void InvalidArgumentError(string name, CommandLineParseState ps) {
