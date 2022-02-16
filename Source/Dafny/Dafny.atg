@@ -2282,7 +2282,11 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
      // Determine if the function is considered ghost. Note, for our purposes here, a function-by-method is considered non-ghost.
      var isGhost = isTwoState || isLeastPredicate || isGreatestPredicate ||
        (byMethodBody == null &&
-         (DafnyOptions.O.FunctionSyntax == DafnyOptions.FunctionSyntaxOptions.Version3 ? functionMethodToken == null : dmod.IsGhost)); 
+         (DafnyOptions.O.FunctionSyntax == DafnyOptions.FunctionSyntaxOptions.Version3
+           ? functionMethodToken == null
+           : (dmod.IsGhost ||
+               (DafnyOptions.O.FunctionSyntax == DafnyOptions.FunctionSyntaxOptions.ExperimentalTreatUnspecifiedAsGhost &&
+                 functionMethodToken == null)))); 
      // Some sanity checks
      Contract.Assert(DafnyOptions.O.FunctionSyntax != DafnyOptions.FunctionSyntaxOptions.Version4 || functionMethodToken == null);
      Contract.Assert(DafnyOptions.O.FunctionSyntax != DafnyOptions.FunctionSyntaxOptions.Version3 || !dmod.IsGhost);

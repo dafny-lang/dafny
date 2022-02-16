@@ -114,6 +114,8 @@ namespace Microsoft.Dafny {
     public enum FunctionSyntaxOptions {
       Version3,
       Migration3To4,
+      ExperimentalTreatUnspecifiedAsGhost,
+      ExperimentalTreatUnspecifiedAsCompiled,
       Version4,
     }
 
@@ -429,6 +431,10 @@ namespace Microsoft.Dafny {
               FunctionSyntax = FunctionSyntaxOptions.Version4;
             } else if (args[ps.i] == "migration3to4") {
               FunctionSyntax = FunctionSyntaxOptions.Migration3To4;
+            } else if (args[ps.i] == "experimentalDefaultGhost") {
+              FunctionSyntax = FunctionSyntaxOptions.ExperimentalTreatUnspecifiedAsGhost;
+            } else if (args[ps.i] == "experimentalDefaultCompiled") {
+              FunctionSyntax = FunctionSyntaxOptions.ExperimentalTreatUnspecifiedAsCompiled;
             } else {
               InvalidArgumentError(name, ps);
             }
@@ -1003,6 +1009,12 @@ namespace Microsoft.Dafny {
         `function method` and `predicate method` as parsing errors. So, change
         those to just `function` and `predicate`. Now, your program uses version 4
         syntax and has the exact same meaning as your previous version 3 program.
+    experimentalDefaultGhost - like migration3to4, but allow `function` and
+        `predicate` as alternatives to declaring ghost functions and predicates,
+        respectively
+    experimentalDefaultCompiled - like migration3to4, but allow `function` and
+        `predicate` as alternatives to declaring compiled functions and predicates,
+        respectively
 
 /deprecation:<n>
     0 - don't give any warnings about deprecated features
