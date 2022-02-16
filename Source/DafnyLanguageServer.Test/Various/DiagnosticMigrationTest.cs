@@ -100,6 +100,23 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
   }
 
   [TestMethod]
+  public async Task VerificationDiagnosticsAreClearedWithNullRanges() {
+    var documentItem = CreateTestDocument("method t() { var x: bool := 0; }");
+    client.OpenDocument(documentItem);
+
+    var resolutionDiagnostics = await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
+    Assert.AreEqual(1, resolutionDiagnostics.Length);
+
+    ApplyChange(ref documentItem, null, "method u() { var x: bool := true; }");
+    resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+    Assert.AreEqual(0, resolutionDiagnostics.Length);
+
+    ApplyChange(ref documentItem, new Range(1, 28, 1, 32), "1");
+    resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+    Assert.AreEqual(1, resolutionDiagnostics.Length);
+  }
+
+  [TestMethod]
   public async Task VerificationDiagnosticsCanBeMigratedAcrossMultipleResolutions() {
     var documentItem = CreateTestDocument(@"method GetConstant() returns (x: int) 
   ensures x == 2 

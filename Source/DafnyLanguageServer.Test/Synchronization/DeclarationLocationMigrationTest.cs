@@ -279,5 +279,22 @@ class A {
       Assert.AreEqual(new Range((6, 6), (6, 7)), yLocation.Name);
       Assert.AreEqual(new Range((6, 6), (6, 7)), yLocation.Declaration);
     }
+
+    [TestMethod]
+    public async Task NullRangeClearsSymbolsTable() {
+      var source = "class X {}";
+
+      var documentItem = CreateTestDocument(source);
+      await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var document = await Documents.GetDocumentAsync(documentItem.Uri);
+
+      Assert.IsNotNull(document);
+      Assert.IsFalse(document.SymbolTable.Resolved);
+      Assert.IsTrue(TryFindSymbolDeclarationByName(document, "X", out var _));
+
+      await ApplyChangeAndWaitCompletionAsync(documentItem, null, "class Y {}");
+      Assert.IsFalse(TryFindSymbolDeclarationByName(document, "X", out var _));
+      Assert.IsTrue(TryFindSymbolDeclarationByName(document, "Y", out var _));
+    }
   }
 }
