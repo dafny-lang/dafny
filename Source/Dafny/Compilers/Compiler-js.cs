@@ -2378,18 +2378,6 @@ namespace Microsoft.Dafny {
       return SendToNewNodeProcess(dafnyProgramName, targetProgramText, callToMain, targetFilename, otherFileNames, outputWriter);
     }
 
-    DataReceivedEventHandler GetEventHandlerFrom(TextWriter writer) {
-      return (sendingProcess, e) => {
-        if (e.Data != null) {
-          if (!((Process)sendingProcess).HasExited) {
-            writer.WriteLine(e.Data);
-          } else {
-            writer.Write(e.Data);
-          }
-        }
-      };
-    }
-
     bool SendToNewNodeProcess(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string targetFilename, ReadOnlyCollection<string> otherFileNames,
       TextWriter outputWriter) {
       Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
@@ -2404,12 +2392,7 @@ namespace Microsoft.Dafny {
 
       try {
         Process nodeProcess = new Process { StartInfo = psi };
-        nodeProcess.OutputDataReceived += GetEventHandlerFrom(Console.Out);
-        nodeProcess.ErrorDataReceived += GetEventHandlerFrom(Console.Error);
         nodeProcess.Start();
-        nodeProcess.BeginOutputReadLine();
-        nodeProcess.BeginErrorReadLine();
-
         foreach (var filename in otherFileNames) {
           WriteFromFile(filename, nodeProcess.StandardInput);
         }
@@ -2419,6 +2402,14 @@ namespace Microsoft.Dafny {
         }
         nodeProcess.StandardInput.Flush();
         nodeProcess.StandardInput.Close();
+        int current;
+        // Fixes a problem of Node on Windows, where Node does not prints to the parent console its standard outputs.
+        while ((current = nodeProcess.StandardOutput.Read()) != -1) {
+          Console.Out.Write((char)current);
+        }
+        while ((current = nodeProcess.StandardError.Read()) != -1) {
+          Console.Error.Write((char)current);
+        }
         nodeProcess.WaitForExit();
         return nodeProcess.ExitCode == 0;
       } catch (System.ComponentModel.Win32Exception e) {
