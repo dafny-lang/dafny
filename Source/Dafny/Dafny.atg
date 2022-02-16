@@ -2165,8 +2165,8 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
       ":"
       (  IF(FollowedByColon())
          "("
-           GIdentType<false, false, false, out var resultId, out var ty, out var isGhost, out var isOld, out var isNameOnly>
-           (. Contract.Assert(!isGhost && !isOld && !isNameOnly);
+           GIdentType<false, false, false, out var resultId, out var ty, out var resultIsGhost, out var isOld, out var isNameOnly>
+           (. Contract.Assert(!resultIsGhost && !isOld && !isNameOnly);
               result = new Formal(resultId, resultId.val, ty, false, false, null, false);
            .)
          ")"
@@ -2215,7 +2215,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
     (
       [ GenericParameters<typeArgs, false> ]
       [ KType<ref kType> ]
-      Formals<true, isFunctionMethod, false, formals>
+      Formals<true, false, false, formals>
       [ ":"                    (. SemErr(t, "least predicates do not have an explicitly declared return type; it is always bool"); .)
       ]
     | ellipsis                 (. signatureEllipsis = t; .)
@@ -2236,7 +2236,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
     (
       [ GenericParameters<typeArgs, false> ]
       [ KType<ref kType> ]
-      Formals<true, isFunctionMethod, false, formals>
+      Formals<true, false, false, formals>
       [ ":"                    (. SemErr(t, "greatest predicates do not have an explicitly declared return type; it is always bool"); .)
       ]
     | ellipsis                 (. signatureEllipsis = t; .)

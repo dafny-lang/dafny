@@ -6204,6 +6204,23 @@ namespace Microsoft.Dafny {
 
   public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
     public override string WhatKind { get { return "function"; } }
+
+    public string FunctionDeclarationKeywords {
+      get {
+        string k;
+        if (this is TwoStateFunction || this is ExtremePredicate || this.ByMethodBody != null) {
+          k = WhatKind;
+        } else if (this is PrefixPredicate) {
+          k = "predicate";
+        } else if (!IsGhost) {
+          k = WhatKind + " method";
+        } else {
+          k = WhatKind;
+        }
+        return HasStaticKeyword ? "static " + k : k;
+      }
+    }
+
     public override bool CanBeRevealed() { return true; }
     public bool IsRecursive;  // filled in during resolution
     public TailStatus TailRecursion = TailStatus.NotTailRecursive;  // filled in during resolution; NotTailRecursive = no tail recursion; TriviallyTailRecursive is never used here
