@@ -3,6 +3,7 @@ using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
+using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
@@ -37,6 +38,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// <c>null</c> If the verification did not start (e.g. because of resolution errors)
     /// </summary>
     public bool? VerificationPass { get; init; }
+
+    /// <summary>
+    /// Contains the real-time status of all verification efforts.
+    /// Can be migrated from a previous document
+    /// </summary>
+    public NodeDiagnostic VerificationDiagnostics { get; init; } = new NodeDiagnostic {
+      DisplayName = "Document",
+      Identifier = Text.Uri.ToString()
+    };
 
     /// <summary>
     /// Checks if the given document uri is pointing to this dafny document.
