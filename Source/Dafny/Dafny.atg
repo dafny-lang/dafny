@@ -81,20 +81,20 @@ void CheckDeclModifiers(DeclModifierData dmod, string declCaption, AllowedDeclMo
 {
   declCaption = (declCaption.StartsWith("i") || declCaption.StartsWith("o") ? "an " : "a ") + declCaption;
   if (dmod.IsAbstract && ((allowed & AllowedDeclModifiers.Abstract) == 0)) {
-    SemErr(dmod.AbstractToken, $"{declCaption} cannot be declared 'abstract'.");
+    SemErr(dmod.AbstractToken, $"{declCaption} cannot be declared 'abstract'");
     dmod.IsAbstract = false;
   }
   if (dmod.IsGhost) {
     if ((allowed & AllowedDeclModifiers.AlreadyGhost) != 0) {
-      SemErr(dmod.GhostToken, $"{declCaption} cannot be declared ghost (they are 'ghost' by default).");
+      SemErr(dmod.GhostToken, $"{declCaption} cannot be declared 'ghost' (it is 'ghost' by default)");
       dmod.IsGhost = false;
     } else if ((allowed & AllowedDeclModifiers.Ghost) == 0) {
-      SemErr(dmod.GhostToken, $"{declCaption} cannot be declared 'ghost'.");
+      SemErr(dmod.GhostToken, $"{declCaption} cannot be declared 'ghost'");
       dmod.IsGhost = false;
     }
   }
   if (dmod.IsStatic && ((allowed & AllowedDeclModifiers.Static) == 0)) {
-    SemErr(dmod.StaticToken, $"{declCaption} cannot be declared 'static'.");
+    SemErr(dmod.StaticToken, $"{declCaption} cannot be declared 'static'");
     dmod.IsStatic = false;
   }
 }
@@ -3569,7 +3569,7 @@ RelationalExpression<out Expression e, bool allowLemma, bool allowLambda, bool a
                                           else if (kind != 2) { SemErr(x, "this operator chain cannot continue with a descending operator"); kind = 3; }
                                           break;
                                         case BinaryExpr.Opcode.Disjoint:
-                                          if (kind != 4) { SemErr(x, "can only chain disjoint (!!) with itself."); kind = 3; }
+                                          if (kind != 4) { SemErr(x, "can only chain disjoint (!!) with itself"); kind = 3; }
                                           break;
                                         default:
                                           SemErr(x, "this operator cannot be part of a chain");

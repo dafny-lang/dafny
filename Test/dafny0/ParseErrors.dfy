@@ -203,3 +203,26 @@ module GhostConstructors {
     }
 }
 }
+
+// ------------------------- static keyword ------------------------------
+
+module IllegalStatic {
+  class C {
+    static constructor () // error: constructor cannot be declared 'static'
+  }
+  static method M() // warning: 'static' not allowed here
+  static function F(): int // warning: 'static' not allowed here
+  static lemma F() // warning: 'static' not allowed here
+  static twostate function F2(): int // warning: 'static' not allowed here
+  static least predicate LP() // warning: 'static' not allowed here
+
+  static datatype D = D // error: cannot be 'static'
+  static module M { } // error: cannot be 'static'
+}
+
+// ------------------------- ghost keyword ------------------------------
+
+module IllegalGhost {
+  ghost datatype D = D // error: cannot be 'ghost'
+  ghost module M { } // error: cannot be 'ghost'
+}
