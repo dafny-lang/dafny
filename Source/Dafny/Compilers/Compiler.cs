@@ -38,7 +38,7 @@ namespace Microsoft.Dafny {
     protected Method enclosingMethod;  // non-null when a method body is being translated
     protected Function enclosingFunction;  // non-null when a function body is being translated
 
-    protected readonly FreshIdGenerator idGenerator = new FreshIdGenerator();
+    protected internal readonly FreshIdGenerator idGenerator = new FreshIdGenerator();
 
     static FreshIdGenerator compileNameIdGenerator = new FreshIdGenerator();
     public static string FreshId() {
@@ -242,7 +242,8 @@ namespace Microsoft.Dafny {
     /// </summary>
     protected abstract ConcreteSyntaxTree EmitTailCallStructure(MemberDecl member, ConcreteSyntaxTree wr);
     protected abstract void EmitJumpToTailCallStart(ConcreteSyntaxTree wr);
-    protected abstract string TypeName(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok, MemberDecl/*?*/ member = null);
+
+    internal abstract string TypeName(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok, MemberDecl/*?*/ member = null);
     // For cases where a type looks different when it's an argument, such as (*sigh*) Java primitives
     protected virtual string TypeArgumentName(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok) {
       return TypeName(type, wr, tok);
@@ -848,7 +849,7 @@ namespace Microsoft.Dafny {
       throw new NotImplementedException();
     }
 
-    protected List<TypeArgumentInstantiation> ForTypeParameters(List<TypeArgumentInstantiation> typeArgs, MemberDecl member, bool lookasideBody) {
+    protected internal List<TypeArgumentInstantiation> ForTypeParameters(List<TypeArgumentInstantiation> typeArgs, MemberDecl member, bool lookasideBody) {
       Contract.Requires(member is ConstantField || member is Function || member is Method);
       Contract.Requires(typeArgs != null);
       var memberHasBody =
@@ -4245,7 +4246,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Before calling TrExpr(expr), the caller must have spilled the let variables declared in "expr".
     /// </summary>
-    protected void TrExpr(Expression expr, ConcreteSyntaxTree wr, bool inLetExprBody) {
+    protected internal void TrExpr(Expression expr, ConcreteSyntaxTree wr, bool inLetExprBody) {
       Contract.Requires(expr != null);
       Contract.Requires(wr != null);
 
