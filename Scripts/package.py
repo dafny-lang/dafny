@@ -114,7 +114,7 @@ class Release:
                         with open(self.z3_zip, mode="wb") as writer:
                             writer.write(reader.read())
                     flush("done!")
-                except (http.client.IncompleteRead) as e:
+                except http.client.IncompleteRead as e:
                     if currentAttempt == Z3_MAX_DOWNLOAD_ATTEMPTS - 1:
                         raise
             
