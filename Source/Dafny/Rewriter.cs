@@ -970,16 +970,12 @@ namespace Microsoft.Dafny {
   /// specifically asks to see it via the reveal_foo() lemma
   /// </summary>
   public class OpaqueFunctionRewriter : IRewriter {
-    protected Dictionary<Function, Function> fullVersion; // Given an opaque function, retrieve the full
-    protected Dictionary<Function, Function> original;    // Given a full version of an opaque function, find the original opaque version
     protected Dictionary<Method, Function> revealOriginal; // Map reveal_* lemmas (or two-state lemmas) back to their original functions
 
     public OpaqueFunctionRewriter(ErrorReporter reporter)
       : base(reporter) {
       Contract.Requires(reporter != null);
 
-      fullVersion = new Dictionary<Function, Function>();
-      original = new Dictionary<Function, Function>();
       revealOriginal = new Dictionary<Method, Function>();
     }
 
@@ -1043,13 +1039,11 @@ namespace Microsoft.Dafny {
       Contract.Requires(c != null);
       List<MemberDecl> newDecls = new List<MemberDecl>();
       foreach (MemberDecl member in c.Members) {
-        if (member is Function) {
-          var f = (Function)member;
-
-          if (!Attributes.Contains(f.Attributes, "opaque")) {
+        if (member is Function function) {
+          if (!Attributes.Contains(function.Attributes, "opaque")) {
             // Nothing to do
-          } else if (!RefinementToken.IsInherited(f.tok, c.EnclosingModuleDefinition)) {
-            RewriteOpaqueFunctionUseFuel(f, newDecls);
+          } else if (!RefinementToken.IsInherited(function.tok, c.EnclosingModuleDefinition)) {
+            RewriteOpaqueFunctionUseFuel(function, newDecls);
           }
         }
       }
@@ -1057,7 +1051,7 @@ namespace Microsoft.Dafny {
     }
 
     private void RewriteOpaqueFunctionUseFuel(Function f, List<MemberDecl> newDecls) {
-      // mark the opaque function with {:fuel, 0, 0}
+      // mark the opaque function with {:fuel 0, 0}
       LiteralExpr amount = new LiteralExpr(f.tok, 0);
       f.Attributes = new Attributes("fuel", new List<Expression>() { amount, amount }, f.Attributes);
 
