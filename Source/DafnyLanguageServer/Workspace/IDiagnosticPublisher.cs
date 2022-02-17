@@ -14,6 +14,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     void PublishDiagnostics(DafnyDocument document);
 
     /// <summary>
+    /// Publishes the more precise real-time verification diagnostics to the connected LSP client
+    /// </summary>
+    /// <param name="document"></param>
+    void PublishVerificationDiagnostics(DafnyDocument document);
+
+    /// <summary>
     /// Hides the previously published diagnostics of the specified dafny document.
     /// </summary>
     /// <param name="documentId">The ID document whose diagnostics should be hidden.</param>

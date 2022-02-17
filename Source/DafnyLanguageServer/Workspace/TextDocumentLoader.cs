@@ -9,8 +9,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Boogie;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using VC;
+using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
+using VerificationResult = Microsoft.Boogie.VerificationResult;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
@@ -34,6 +38,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private readonly ILoggerFactory loggerFactory;
     private readonly BlockingCollection<Request> requestQueue = new();
     private readonly IOptions<DafnyPluginsOptions> dafnyPluginsOptions;
+    private readonly IDiagnosticPublisher diagnosticPublisher;
 
     private TextDocumentLoader(
       ILoggerFactory loggerFactory,
@@ -43,7 +48,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       ISymbolTableFactory symbolTableFactory,
       IGhostStateDiagnosticCollector ghostStateDiagnosticCollector,
       ICompilationStatusNotificationPublisher notificationPublisher,
-      IOptions<DafnyPluginsOptions> dafnyPluginsOptions) {
+      IOptions<DafnyPluginsOptions> dafnyPluginsOptions, IDiagnosticPublisher diagnosticPublisher) {
       this.parser = parser;
       this.symbolResolver = symbolResolver;
       this.verifier = verifier;
@@ -52,6 +57,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       this.notificationPublisher = notificationPublisher;
       this.loggerFactory = loggerFactory;
       this.dafnyPluginsOptions = dafnyPluginsOptions;
+      this.diagnosticPublisher = diagnosticPublisher;
     }
 
     public static TextDocumentLoader Create(
@@ -62,9 +68,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       IGhostStateDiagnosticCollector ghostStateDiagnosticCollector,
       ICompilationStatusNotificationPublisher notificationPublisher,
       ILoggerFactory loggerFactory,
-      IOptions<DafnyPluginsOptions> compilerOptions
+      IOptions<DafnyPluginsOptions> compilerOptions,
+      IDiagnosticPublisher diagnosticPublisher
       ) {
-      var loader = new TextDocumentLoader(loggerFactory, parser, symbolResolver, verifier, symbolTableFactory, ghostStateDiagnosticCollector, notificationPublisher, compilerOptions);
+      var loader = new TextDocumentLoader(loggerFactory, parser, symbolResolver, verifier, symbolTableFactory, ghostStateDiagnosticCollector, notificationPublisher, compilerOptions, diagnosticPublisher);
       var loadThread = new Thread(loader.Run, MaxStackSize) { IsBackground = true };
       loadThread.Start();
       return loader;
@@ -170,10 +177,39 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return await request.Document.Task;
     }
 
+    private void RegenerateVerificationDiagnostics(DafnyDocument document) {
+      List<NodeDiagnostic> result = new List<NodeDiagnostic>();
+      foreach (var module in document.Program.Modules()) {
+        foreach (var toplLevelDecl in module.TopLevelDecls) {
+          if (toplLevelDecl is TopLevelDeclWithMembers topLevelDeclWithMembers) {
+            foreach (var member in topLevelDeclWithMembers.Members) {
+              if (member is Method or Function) {
+                result.Add(new NodeDiagnostic() {
+                  DisplayName = member.Name,
+                  Identifier = member.CompileName,
+                  Token = member.tok,
+                  Range = new Range(TokenToPosition(member.BodyStartTok, false), TokenToPosition(member.BodyEndTok, true))
+                });
+              }
+            }
+          }
+        }
+      }
+      // TODO: Migrate previous diagnostics
+      document.VerificationDiagnostics.Children = result.ToArray();
+    }
+
+    private Position TokenToPosition(IToken token, bool end) {
+      return new Position(token.line, token.col + (end ? token.val.Length : 0));
+    }
+
     private DafnyDocument VerifyInternal(VerifyRequest verifyRequest) {
       var (document, cancellationToken) = verifyRequest;
       notificationPublisher.SendStatusNotification(document.Text, CompilationStatus.VerificationStarted);
-      var progressReporter = new VerificationProgressReporter(document.Text, notificationPublisher);
+      RegenerateVerificationDiagnostics(document);
+      var progressReporter = new VerificationProgressReporter(
+        loggerFactory.CreateLogger<VerificationProgressReporter>(),
+        document, notificationPublisher, diagnosticPublisher);
       var verificationResult = verifier.Verify(document, progressReporter, cancellationToken);
       var compilationStatusAfterVerification = verificationResult.Verified
         ? CompilationStatus.VerificationSucceeded
@@ -195,17 +231,58 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private record VerifyRequest(DafnyDocument OriginalDocument, CancellationToken CancellationToken) : Request(CancellationToken);
 
     private class VerificationProgressReporter : IVerificationProgressReporter {
-      private ICompilationStatusNotificationPublisher publisher { get; init; }
-      private TextDocumentItem document { get; init; }
+      private ICompilationStatusNotificationPublisher publisher { get; }
+      private DafnyDocument document { get; }
 
-      public VerificationProgressReporter(TextDocumentItem document,
-                                          ICompilationStatusNotificationPublisher publisher) {
+      private ILogger<VerificationProgressReporter> logger { get; }
+      private IDiagnosticPublisher diagnosticPublisher { get; }
+
+      public VerificationProgressReporter(ILogger<VerificationProgressReporter> logger,
+                                          DafnyDocument document,
+                                          ICompilationStatusNotificationPublisher publisher,
+                                          IDiagnosticPublisher diagnosticPublisher
+      ) {
         this.document = document;
         this.publisher = publisher;
+        this.logger = logger;
+        this.diagnosticPublisher = diagnosticPublisher;
       }
 
       public void ReportProgress(string message) {
-        publisher.SendStatusNotification(document, CompilationStatus.VerificationStarted, message);
+        publisher.SendStatusNotification(document.Text, CompilationStatus.VerificationStarted, message);
+      }
+
+      public void ReportStartVerifyMethodOrFunction(IToken implToken) {
+        var targetMethodNode = document.VerificationDiagnostics.Children.FirstOrDefault(node => node?.Token == implToken, null);
+        if (targetMethodNode == null) {
+          logger.LogError($"No method at {implToken}");
+        } else {
+          targetMethodNode.Start();
+          diagnosticPublisher.PublishVerificationDiagnostics(document);
+        }
+      }
+
+      public void ReportEndVerifyMethodOrFunction(IToken implToken, VerificationResult verificationResult) {
+        var targetMethodNode = document.VerificationDiagnostics.Children.FirstOrDefault(node => node?.Token == implToken, null);
+        if (targetMethodNode == null) {
+          logger.LogError($"No method at {implToken}");
+        } else {
+          targetMethodNode.Stop();
+          // Later, will be overriden by individual outcomes
+          targetMethodNode.Status = verificationResult.Outcome switch {
+            ConditionGeneration.Outcome.Correct => NodeVerificationStatus.Verified,
+            _ => NodeVerificationStatus.Error
+          };
+          targetMethodNode.ResourceCount = verificationResult.ResourceCount;
+          diagnosticPublisher.PublishVerificationDiagnostics(document);
+        }
+      }
+
+      public void ReportVerificationStarts(IToken assertionToken, IToken implToken) {
+      }
+
+      public void ReportVerificationCompleted(IToken assertionToken, IToken implToken, ConditionGeneration.Outcome outcome, int totalResource) {
+
       }
     }
   }

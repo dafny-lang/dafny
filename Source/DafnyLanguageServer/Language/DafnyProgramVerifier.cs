@@ -11,6 +11,7 @@ using System;
 using System.Text.RegularExpressions;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
+using VC;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
@@ -200,18 +201,24 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         logger.LogError(message);
       }
 
-      public void ReportImplNumber(int implNumber) {
+      public void ReportImplCount(int implNumber) {
         // Do nothing
       }
 
-      public void ReportStartVerifyImpl(IToken tok) {
-        // TODO: Update the VerificationDiagnostics associated to the tok.
-        // TODO: Send the notification to the client about the updated diagnostics
+      public void ReportStartVerifyImpl(IToken implToken) {
+        progressReporter.ReportStartVerifyMethodOrFunction(implToken);
       }
 
-      public void ReportEndVerifyImpl(IToken tok, Boogie.VerificationResult result) {
-        // TODO: Update the VerificationDiagnostics associated to the tok.
-        // TODO: Send the notification to the client about the updated diagnostics
+      public void ReportEndVerifyImpl(IToken implToken, Boogie.VerificationResult result) {
+        progressReporter.ReportEndVerifyMethodOrFunction(implToken, result);
+      }
+
+      public void ReportVerificationStarts(IToken assertionToken, IToken implToken) {
+        progressReporter.ReportVerificationStarts(assertionToken, implToken);
+      }
+
+      public void ReportVerificationCompleted(IToken assertionToken, IToken implToken, ConditionGeneration.Outcome outcome, int totalResource) {
+        progressReporter.ReportVerificationCompleted(assertionToken, implToken, outcome, totalResource);
       }
 
       public void WriteErrorInformation(ErrorInformation errorInfo, TextWriter tw, bool skipExecutionTrace) {

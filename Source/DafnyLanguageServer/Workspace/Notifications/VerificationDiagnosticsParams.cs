@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Linq;
 using MediatR;
+using Microsoft.Boogie;
 using OmniSharp.Extensions.JsonRpc;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -104,6 +105,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     /// Used to relocate previous diagnostics, and re-trigger the verification of some diagnostics.
     public string Identifier { get; init; }
 
+    public IToken Token { get; init; }
+
     /// Time and Resource diagnostics
     public bool Started { get; private set; } = false;
 
@@ -112,6 +115,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
     public void Start() {
       StartTime = DateTime.Now.Millisecond;
+      Status = Status == NodeVerificationStatus.Error ? NodeVerificationStatus.ErrorPending :
+          Status == NodeVerificationStatus.Verified ? Status :
+          NodeVerificationStatus.Pending;
       Started = true;
     }
 
@@ -125,7 +131,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     public int TimeSpent => Finished ? EndTime - StartTime : Started ? DateTime.Now.Millisecond - StartTime : -1;
 
     // Resources allocated at the end of the computation.
-    public int ResourceSpent { get; set; } = -1;
+    public int ResourceCount { get; set; } = -1;
 
     // The range of this node.
     public Range Range { get; init; }

@@ -1,4 +1,6 @@
 using System.Threading;
+using Microsoft.Boogie;
+using VC;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
@@ -10,5 +12,11 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// </summary>
     /// <param name="message">A progress message (IDE will prepend “Verifying” header)</param>
     void ReportProgress(string message);
+
+
+    void ReportStartVerifyMethodOrFunction(IToken implToken);
+    void ReportEndVerifyMethodOrFunction(IToken implToken, Boogie.VerificationResult verificationResult);
+    void ReportVerificationStarts(IToken assertionToken, IToken implToken);
+    void ReportVerificationCompleted(IToken assertionToken, IToken implToken, ConditionGeneration.Outcome outcome, int totalResource);
   }
 }

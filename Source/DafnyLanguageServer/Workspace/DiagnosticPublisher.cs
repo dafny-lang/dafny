@@ -51,38 +51,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return true;
     }
 
-    private void PublishVerificationDiagnostics(DafnyDocument document) {
+    public void PublishVerificationDiagnostics(DafnyDocument document) {
       var errors = GetDiagnostics(document)
         .Where(x => x.Severity == DiagnosticSeverity.Error)
         .OrderBy(x => x.Range.Start.Line)
         .ToArray();
-      var verified = new List<Range>();
-      var unverified = new List<Range>();
-      // Publish a green icon for every line of verified method if it does not contain any error
-      foreach (var module in document.Program.Modules()) {
-        foreach (var definition in module.TopLevelDecls) {
-          if (definition is ClassDecl classDecl) {
-            foreach (var member in classDecl.Members) {
-              var range = new Range(
-                member.tok.line - 1,
-                member.tok.col,
-                member.BodyEndTok.line - 1,
-                member.BodyEndTok.col);
-              if (NoErrorWithin(member.tok, member.BodyEndTok, errors)) {
-                verified.Add(range);
-              } else {
-                unverified.Add(range);
-              }
-            }
-          }
-        }
-      }
       languageServer.TextDocument.SendNotification(new VerificationDiagnosticsParams {
         Uri = document.Uri,
         Version = document.Version,
         Diagnostics = errors,
-        Verified = verified.OrderBy(x => x.Start.Line).ToArray(),
-        Unverified = unverified.OrderBy(x => x.Start.Line).ToArray()
+        PerNodeDiagnostic = document.VerificationDiagnostics.Children
       });
     }
 

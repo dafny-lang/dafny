@@ -22,6 +22,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
     private TextDocumentLoader textDocumentLoader;
     private Mock<ILoggerFactory> logger;
     private Mock<IOptions<DafnyPluginsOptions>> dafnyPluginOptions;
+    private Mock<IDiagnosticPublisher> diagnosticPublisher;
 
     [TestInitialize]
     public void SetUp() {
@@ -33,6 +34,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
       notificationPublisher = new();
       logger = new Mock<ILoggerFactory>();
       dafnyPluginOptions = new Mock<IOptions<DafnyPluginsOptions>>();
+      diagnosticPublisher = new Mock<IDiagnosticPublisher>();
       textDocumentLoader = TextDocumentLoader.Create(
         parser.Object,
         symbolResolver.Object,
@@ -41,7 +43,8 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
         ghostStateDiagnosticCollector.Object,
         notificationPublisher.Object,
         logger.Object,
-        dafnyPluginOptions.Object
+        dafnyPluginOptions.Object,
+        diagnosticPublisher.Object
       );
     }
 
