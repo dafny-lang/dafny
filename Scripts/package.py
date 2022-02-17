@@ -116,8 +116,8 @@ class Release:
                 except (http.client.IncompleteRead) as e:
                     maxTries -= 1
                     if maxTries == 0:
-                        throw e;
-                    continue;
+                        throw e
+                    continue
             flush("done!")
 
     @staticmethod
