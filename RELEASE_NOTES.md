@@ -1,6 +1,7 @@
 # Upcoming
 
-- fix: Dafny with JavaScript target not producing any output on Windows (https://github.com/dafny-lang/dafny/pull/1824)
+- fix: No output when compiling to JavaScript on Windows (https://github.com/dafny-lang/dafny/pull/1824)
+
 
 # 3.4.1
 
