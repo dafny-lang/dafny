@@ -106,9 +106,18 @@ class Release:
             print("cached!")
         else:
             flush("downloading {:.2f}MB...".format(self.MB), end=' ')
-            with request.urlopen(self.url) as reader:
-                with open(self.z3_zip, mode="wb") as writer:
-                    writer.write(reader.read())
+            maxTries = 5
+            while maxTries > 0:
+                try:
+                    with request.urlopen(self.url) as reader:
+                        with open(self.z3_zip, mode="wb") as writer:
+                            writer.write(reader.read())
+                    break
+                except (http.client.IncompleteRead) as e:
+                    maxTries -= 1
+                    if maxTries == 0:
+                        throw e;
+                    continue;
             flush("done!")
 
     @staticmethod
