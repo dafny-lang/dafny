@@ -147,7 +147,9 @@ It means that the post-condition may be assumed to be true
 without proof. In that case also the body of the function or
 method may be omitted.
 
-The `{:axiom}` attribute is internally equivalent to `{:verify false}`.
+The `{:axiom}` attribute only prevents Dafny from verifying that the body matches the post-condition.
+Dafny still verifies the well-formedness of pre-conditions, of post-conditions, and of the body if provided.
+To prevent Dafny from running all these checks, one would use `{:verify false}`, which is not recommended.
 
 ### 22.1.5. compile
 The `{:compile}` attribute takes a boolean argument. It may be applied to
