@@ -15,6 +15,7 @@ using BplParser = Microsoft.Boogie.Parser;
 using System.Text;
 using Microsoft.Boogie;
 using static Microsoft.Dafny.Util;
+using Core;
 
 namespace Microsoft.Dafny {
   public partial class Translator {
@@ -5921,7 +5922,7 @@ namespace Microsoft.Dafny {
                 zero = Bpl.Expr.Literal(0);
               }
               CheckWellformed(e.E1, options, locals, builder, etran);
-              builder.Add(Assert(expr.tok, Bpl.Expr.Neq(etran.TrExpr(e.E1), zero), "possible division by zero", options.AssertKv));
+              builder.Add(AssertDesc(expr.tok, Bpl.Expr.Neq(etran.TrExpr(e.E1), zero), new DafnyDivisionAssertion(), options.AssertKv));
               CheckResultToBeInType(expr.tok, expr, expr.Type, locals, builder, etran);
             }
             break;
@@ -8229,6 +8230,7 @@ namespace Microsoft.Dafny {
       return Assert(tok, condition, errorMessage, tok, kv);
     }
 
+    // Note: not trying to reduce duplication between this and AssertDesc because this one should ultimately be removed.
     Bpl.PredicateCmd Assert(Bpl.IToken tok, Bpl.Expr condition, string errorMessage, Bpl.IToken refinesToken, Bpl.QKeyValue kv = null) {
       Contract.Requires(tok != null);
       Contract.Requires(condition != null);
@@ -8241,6 +8243,24 @@ namespace Microsoft.Dafny {
       } else {
         var cmd = TrAssertCmd(ForceCheckToken.Unwrap(tok), condition, kv);
         cmd.ErrorData = "Error: " + errorMessage;
+        return cmd;
+      }
+    }
+
+    Bpl.PredicateCmd AssertDesc(Bpl.IToken tok, Bpl.Expr condition, ProofObligationDescription description, Bpl.QKeyValue kv = null) {
+      return AssertDesc(tok, condition, description, tok, kv);
+    }
+
+    Bpl.PredicateCmd AssertDesc(Bpl.IToken tok, Bpl.Expr condition, ProofObligationDescription description, Bpl.IToken refinesToken, Bpl.QKeyValue kv = null) {
+      Contract.Requires(tok != null);
+      Contract.Requires(condition != null);
+      Contract.Ensures(Contract.Result<Bpl.PredicateCmd>() != null);
+
+      if (assertAsAssume || (RefinementToken.IsInherited(refinesToken, currentModule) && (codeContext == null || !codeContext.MustReverify))) {
+        // produce an assume instead
+        return TrAssumeCmd(tok, condition, kv);
+      } else {
+        var cmd = TrAssertCmdDesc(ForceCheckToken.Unwrap(tok), condition, description, kv);
         return cmd;
       }
     }
@@ -8700,7 +8720,10 @@ namespace Microsoft.Dafny {
 
     delegate Bpl.Expr ExpressionConverter(Dictionary<IVariable, Expression> substMap, ExpressionTranslator etran);
 
+    // Note: not trying to reduce duplication between this and TrAssertCmdDesc because this one should ultimately be removed.
     Bpl.AssertCmd TrAssertCmd(IToken tok, Bpl.Expr expr, Bpl.QKeyValue attributes = null) {
+      // TODO: move the following comment once this method disappears
+
       // It may be that "expr" is a Lit expression. It might seem we don't need a Lit expression
       // around the boolean expression that is being asserted. However, we keep it. For one,
       // it doesn't change the semantics of the assert command. More importantly, leaving
@@ -8708,6 +8731,10 @@ namespace Microsoft.Dafny {
       // Boogie looks especially for "assert false;" commands and processes them in such a way
       // that loops no longer are loops (which is confusing for Dafny users).
       return attributes == null ? new Bpl.AssertCmd(tok, expr) : new Bpl.AssertCmd(tok, expr, attributes);
+    }
+
+    Bpl.AssertCmd TrAssertCmdDesc(IToken tok, Bpl.Expr expr, ProofObligationDescription description, Bpl.QKeyValue attributes = null) {
+      return new Bpl.AssertCmd(tok, expr, description, attributes);
     }
 
     delegate void BodyTranslator(BoogieStmtListBuilder builder, ExpressionTranslator etr);
