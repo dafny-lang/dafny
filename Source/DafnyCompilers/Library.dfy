@@ -9,12 +9,73 @@ module Lib {
       if ts == [] then [] else [f(ts[0])] + Map(f, ts[1..])
     }
 
+    function method FoldL<TAcc(!new), T>(f: (TAcc, T) ~> TAcc, a0: TAcc, ts: seq<T>) : TAcc
+      reads f.reads // FIXME: what does this mean?
+      requires forall a, t | t in ts :: f.requires(a, t)
+    {
+      if ts == [] then a0 else FoldL(f, f(a0, ts[0]), ts[1..])
+    }
+
+    lemma FoldL_induction'<TAcc(!new), T>(
+      f: (TAcc, T) ~> TAcc, a0: TAcc, ts: seq<T>,
+      prefix: seq<T>, P: (TAcc, seq<T>) -> bool
+    )
+      requires forall a, t | t in ts :: f.requires(a, t)
+      requires P(a0, prefix)
+      requires forall a, t, ts' | t in ts && P(a, ts') :: P(f(a, t), ts' + [t])
+      ensures P(FoldL(f, a0, ts), prefix + ts)
+    {
+      if ts == [] {
+        assert prefix + ts == prefix;
+      } else {
+        var t0, ts' := ts[0], ts[1..];
+        var a0' := f(a0, t0);
+        var prefix' := prefix + [t0];
+        FoldL_induction'(f, a0', ts[1..], prefix', P);
+        assert P(FoldL(f, a0', ts[1..]), prefix' + ts');
+        assert prefix' + ts' == prefix + ts;
+      }
+    }
+
+    lemma FoldL_induction<TAcc(!new), T>(
+      f: (TAcc, T) ~> TAcc, a0: TAcc, ts: seq<T>,
+      P: (TAcc, seq<T>) -> bool
+    )
+      requires forall a, t | t in ts :: f.requires(a, t)
+      requires P(a0, [])
+      requires forall a, t, ts' | t in ts && P(a, ts') :: P(f(a, t), ts' + [t])
+      ensures P(FoldL(f, a0, ts), ts)
+    {
+      assert [] + ts == ts;
+      FoldL_induction'(f, a0, ts, [], P);
+    }
+
     function method {:opaque} All<T>(P: T ~> bool, ts: seq<T>) : (b: bool)
       reads P.reads // FIXME: what does this mean?
       requires forall t | t in ts :: P.requires(t)
       ensures b == forall i | 0 <= i < |ts| :: P(ts[i])
     {
       if ts == [] then true else P(ts[0]) && All(P, ts[1..])
+    }
+
+    lemma All_weaken<T>(P: T ~> bool, Q: T~> bool, ts: seq<T>)
+      requires forall t | t in ts :: P.requires(t)
+      requires forall t | t in ts :: Q.requires(t)
+      requires forall t | t in ts :: P(t) ==> Q(t)
+      ensures All(P, ts) ==> All(Q, ts)
+    {}
+    import Math
+
+    function method {:opaque} Max(s: seq<int>, default: int) : (m: int)
+      requires forall i | i in s :: i >= default
+      ensures if s == [] then m == default else m in s
+      ensures forall i | i in s :: i <= m
+    {
+      var P := (m, s) =>
+        && (if s == [] then m == default else m in s)
+        && (forall i | i in s :: i <= m);
+      FoldL_induction(Math.Max, default, s, P);
+      FoldL(Math.Max, default, s)
     }
   }
 
@@ -81,6 +142,16 @@ module Lib {
       expect of_int(302, 10) == "302";
       expect of_int(-3, 10) == "-3";
       expect of_int(-302, 10) == "-302";
+    }
+  }
+
+  module Math {
+    function method {:opaque} Max(x: int, y: int) : (m: int)
+      ensures x <= m
+      ensures y <= m
+      ensures x == m || y == m
+    {
+      if (x <= y) then y else x
     }
   }
 }

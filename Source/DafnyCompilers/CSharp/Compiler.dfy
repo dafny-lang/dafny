@@ -11,6 +11,8 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
   import opened Microsoft.Dafny
 
   module AST {
+    import Lib.Math
+    import Lib.Seq
     import opened Microsoft
     import C = CSharpDafnyASTModel
 
@@ -71,6 +73,9 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
       | LitReal(r: real)
       | LitChar(c: string) // FIXME should this use a char?
       | LitString(s: string, verbatim: bool)
+    {
+      function method Depth() : nat { 1 }
+    }
 
     datatype Expr =
       | UnaryOpExpr(uop: UnaryOp.Op, e: Expr) // LATER UnaryExpr
@@ -78,16 +83,57 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
       | LiteralExpr(lit: LiteralExpr)
       | InvalidExpr(msg: string)
       | UnsupportedExpr(expr: C.Expression)
+    {
+      function method Depth() : nat {
+        1 + match this {
+          case UnaryOpExpr(uop: UnaryOp.Op, e: Expr) =>
+            e.Depth()
+          case BinaryExpr(bop: BinaryOp.Op, e0: Expr, e1: Expr) =>
+            Math.Max(e0.Depth(), e1.Depth())
+          case LiteralExpr(lit: LiteralExpr) =>
+            0
+          case InvalidExpr(msg: string) =>
+            0
+          case UnsupportedExpr(expr: C.Expression) =>
+            0
+        }
+      }
+    }
 
     datatype Stmt =
       | PrintStmt(exprs: seq<Expr>)
       | UnsupportedStmt
+    {
+      function method Depth() : nat {
+        1 + match this {
+          case PrintStmt(exprs) =>
+            Seq.Max(Seq.Map((e: Expr) => e.Depth(), exprs), 0)
+          case UnsupportedStmt() =>
+            0
+        }
+      }
+    }
 
     type BlockStmt = seq<Stmt>
 
     datatype Method = Method(CompileName: string, methodBody: BlockStmt)
+    {
+      function method Depth() : nat {
+        1 + match this {
+          case Method(CompileName, methodBody) =>
+            Seq.Max(Seq.Map((s: Stmt) => s.Depth(), methodBody), 0)
+        }
+      }
+    }
 
-    datatype Program = Program(mainMethod: Method)
+    datatype Program = Program(mainMethod: Method) {
+      function method Depth() : nat {
+        1 + match this {
+          case Program(mainMethod) =>
+            mainMethod.Depth()
+        }
+      }
+    }
   }
 
   module Translator {
@@ -478,6 +524,16 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
           | StmtThing(s: Stmt)
           | MethodThing(m: Method)
           | ProgramThing(p: Program)
+        {
+          function method Depth() : nat {
+            match this {
+              case ExprThing(e: Expr) => e.Depth()
+              case StmtThing(s: Stmt) => s.Depth()
+              case MethodThing(m: Method) => m.Depth()
+              case ProgramThing(p: Program) => p.Depth()
+            }
+          }
+        }
 
         predicate method SameKind(t1: DafnyThing, t2: DafnyThing) {
           match (t1, t2) {
@@ -850,21 +906,104 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
     lemma {:verify false} All_Thing_weaken(t: DafnyThing, P: DafnyThing -> bool, Q: DafnyThing -> bool)
       requires All_Thing(t, P)
       requires forall t' :: P(t') ==> Q(t')
-      // FIXME what's a good decreases clause for this function?
+      decreases t.Depth()
       ensures All_Thing(t, Q)
-    { // NEXT : Weaken for each case instead of one function.  But what a pain!
+    {
       match t { // How do I automate this lemma so that I don't have to edit it every time I add cases to Expr?
         case ExprThing(e) =>
           match e {
-            case UnaryOpExpr(uop: UnaryOp.Op, e: Expr) =>
-              All_Thing_weaken(ExprThing(e), P, Q);
+            case UnaryOpExpr(uop: UnaryOp.Op, e': Expr) =>
+              calc {
+                All_Thing(t, P);
+                All_Expr(e, P);
+                All_Expr(e', P);
+                All_Thing(ExprThing(e'), P);
+              }
+              All_Thing_weaken(ExprThing(e'), P, Q);
+              calc {
+                All_Thing(ExprThing(e'), Q);
+                All_Expr(e', Q);
+                All_Expr(e, Q);
+                All_Thing(ExprThing(e), Q);
+                All_Thing(t, Q);
+              }
+              assert All_Expr(e, P);
+              assert All_Thing(ExprThing(e), P);
             case BinaryExpr(bop: BinaryOp.Op, e0: Expr, e1: Expr) =>
-              assume false;
+              calc {
+                All_Thing(t, P);
+                All_Expr(e, P);
+                Q(ExprThing(e)) && All_Expr(e0, P) && All_Expr(e1, P);
+                All_Thing(ExprThing(e0), P) && All_Thing(ExprThing(e1), P);
+              }
+              All_Thing_weaken(ExprThing(e0), P, Q);
+              All_Thing_weaken(ExprThing(e1), P, Q);
+              calc {
+                All_Thing(ExprThing(e0), Q) && All_Thing(ExprThing(e1), Q);
+                Q(ExprThing(e)) && All_Expr(e0, Q) && All_Expr(e1, Q);
+                All_Expr(e, Q);
+                All_Thing(ExprThing(e), Q);
+                All_Thing(t, Q);
+              }
+              assert All_Expr(e, P);
+              assert All_Thing(ExprThing(e), P);
             case LiteralExpr(lit: LiteralExpr) =>
             case InvalidExpr(msg: string) =>
             case UnsupportedExpr(expr: C.Expression) =>
           }
         case StmtThing(s) =>
+          match s {
+            case PrintStmt(exprs) =>
+              calc {
+                All_Thing(t, P);
+                All_Stmt(PrintStmt(exprs), P);
+                P(StmtThing(PrintStmt(exprs))) && Seq.All((e => All_Expr(e, P)), exprs);
+                P(StmtThing(PrintStmt(exprs))) && Seq.All((e => All_Thing(ExprThing(e), P)), exprs);
+              }
+              assert forall e | e in exprs :: All_Thing(ExprThing(e), P) ==> All_Thing(ExprThing(e), Q) by {
+                forall e | e in exprs ensures All_Thing(ExprThing(e), P) ==> All_Thing(ExprThing(e), Q) {
+                  assert e in exprs;
+                  assert exists i | 0 <= i < |exprs| :: exprs[i] == e;
+                  assert exists i | 0 <= i < |exprs| :: exprs[i].Depth() == e.Depth();
+                  assert e.Depth() in Seq.Map((e: Expr) => e.Depth(), exprs);
+
+                  var depths := Seq.Map((e: Expr) => e.Depth(), exprs);
+                  var m := Seq.Max(depths, 0);
+                  assert forall i | i in depths :: i <= m;
+                  assert e.Depth() in depths;
+                  assert e.Depth() <= m;
+
+                  calc {
+                    StmtThing(s).Depth();
+                    s.Depth();
+                    1 + match s { // FIXME why?
+                      case PrintStmt(exprs) =>
+                        Seq.Max(Seq.Map((e: Expr) => e.Depth(), exprs), 0)
+                      case UnsupportedStmt() =>
+                        0
+                    };
+                    1 + Seq.Max(Seq.Map((e: Expr) => e.Depth(), exprs), 0);
+                    >
+                    Seq.Max(Seq.Map((e: Expr) => e.Depth(), exprs), 0);
+                    >=
+                    e.Depth();
+                  }
+
+                  assert StmtThing(s).Depth() > ExprThing(e).Depth();
+                  All_Thing_weaken(ExprThing(e), P, Q);
+                }
+              }
+              Seq.All_weaken((e => All_Thing(ExprThing(e), P)),
+                             (e => All_Thing(ExprThing(e), Q)),
+                             exprs);
+              calc {
+                P(StmtThing(PrintStmt(exprs))) && Seq.All((e => All_Thing(ExprThing(e), Q)), exprs);
+                Q(StmtThing(PrintStmt(exprs))) && Seq.All((e => All_Expr(e, Q)), exprs);
+                All_Stmt(PrintStmt(exprs), Q);
+                All_Thing(t, Q);
+              }
+            case UnsupportedStmt =>
+          }
         case MethodThing(m) =>
         case ProgramThing(p) =>
       }
@@ -1017,7 +1156,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
     function method CompilePrint(e: Expr) : StrTree
       requires AllExprs_Expr(e, Simplifier.NotANegatedBinopExpr)
     {
-      Seq([Call("DafnyRuntime.Helpers.Print", [CompileExpr(e)]), Str(";")])
+      Target.Seq([Call("DafnyRuntime.Helpers.Print", [CompileExpr(e)]), Str(";")])
     }
 
     function method CompileStmt(s: Stmt) : StrTree
