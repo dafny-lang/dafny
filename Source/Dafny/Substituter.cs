@@ -678,9 +678,9 @@ namespace Microsoft.Dafny {
         var s = (BreakStmt)stmt;
         BreakStmt rr;
         if (s.TargetLabel != null) {
-          rr = new BreakStmt(s.Tok, s.EndTok, s.TargetLabel);
+          rr = new BreakStmt(s.Tok, s.EndTok, s.TargetLabel, s.IsContinue);
         } else {
-          rr = new BreakStmt(s.Tok, s.EndTok, s.BreakCount);
+          rr = new BreakStmt(s.Tok, s.EndTok, s.BreakCount, s.IsContinue);
         }
         // r.TargetStmt will be filled in as later
         List<BreakStmt> breaks;

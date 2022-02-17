@@ -7187,28 +7187,39 @@ namespace Microsoft.Dafny {
     }
   }
 
+  /// <summary>
+  /// Class "BreakStmt" represents both "break" and "continue" statements.
+  /// </summary>
   public class BreakStmt : Statement {
     public readonly IToken TargetLabel;
-    public readonly int BreakCount;
-    public Statement TargetStmt;  // filled in during resolution
+    public readonly bool IsContinue;
+    public readonly int BreakCount; // this includes the final "continue", if any
+    public Statement TargetStmt; // filled in during resolution
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(TargetLabel != null || 1 <= BreakCount);
     }
 
-    public BreakStmt(IToken tok, IToken endTok, IToken targetLabel)
+    public BreakStmt(IToken tok, IToken endTok, IToken targetLabel, bool isContinue)
       : base(tok, endTok) {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
       Contract.Requires(targetLabel != null);
       this.TargetLabel = targetLabel;
+      this.IsContinue = isContinue;
     }
-    public BreakStmt(IToken tok, IToken endTok, int breakCount)
+    
+    /// <summary>
+    /// For "isContinue == false", represents the statement "break ^breakCount ;".
+    /// For "isContinue == true", represents the statement "break ^(breakCount - 1) continue;".
+    /// </summary>
+    public BreakStmt(IToken tok, IToken endTok, int breakCount, bool isContinue)
       : base(tok, endTok) {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
       Contract.Requires(1 <= breakCount);
       this.BreakCount = breakCount;
+      this.IsContinue = isContinue;
     }
   }
 
