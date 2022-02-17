@@ -104,6 +104,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       var program = document.Program;
       mutex.Wait(cancellationToken);
       try {
+        var verificationDiagnostics = document.VerificationDiagnostics;
         // The printer is responsible for two things: It logs boogie errors and captures the counter example model.
         var errorReporter = (DiagnosticErrorReporter)program.reporter;
         var printer = new ModelCapturingOutputPrinter(logger, errorReporter, progressReporter);
@@ -197,6 +198,20 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
       public void ReportBplError(IToken tok, string message, bool error, TextWriter tw, [AllowNull] string category) {
         logger.LogError(message);
+      }
+
+      public void ReportImplNumber(int implNumber) {
+        // Do nothing
+      }
+
+      public void ReportStartVerifyImpl(IToken tok) {
+        // TODO: Update the VerificationDiagnostics associated to the tok.
+        // TODO: Send the notification to the client about the updated diagnostics
+      }
+
+      public void ReportEndVerifyImpl(IToken tok, Boogie.VerificationResult result) {
+        // TODO: Update the VerificationDiagnostics associated to the tok.
+        // TODO: Send the notification to the client about the updated diagnostics
       }
 
       public void WriteErrorInformation(ErrorInformation errorInfo, TextWriter tw, bool skipExecutionTrace) {
