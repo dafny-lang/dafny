@@ -154,9 +154,10 @@ namespace Microsoft.Dafny {
         }
 
       } else if (stmt is BreakStmt) {
-        AddComment(builder, stmt, "break statement");
         var s = (BreakStmt)stmt;
-        builder.Add(new GotoCmd(s.Tok, new List<String> { "after_" + s.TargetStmt.Labels.Data.AssignUniqueId(CurrentIdGenerator) }));
+        AddComment(builder, stmt, $"{s.Kind} statement");
+        var lbl = (s.IsContinue ? "continue_" : "after_") + s.TargetStmt.Labels.Data.AssignUniqueId(CurrentIdGenerator);
+        builder.Add(new GotoCmd(s.Tok, new List<String> { lbl }));
       } else if (stmt is ReturnStmt) {
         var s = (ReturnStmt)stmt;
         AddComment(builder, stmt, "return statement");
@@ -470,6 +471,7 @@ namespace Microsoft.Dafny {
           bodyTr = delegate (BoogieStmtListBuilder bld, ExpressionTranslator e) {
             CurrentIdGenerator.Push();
             TrStmt(s.Body, bld, locals, e);
+            InsertContinueTarget(s, bld);
             CurrentIdGenerator.Pop();
           };
         }
@@ -483,6 +485,7 @@ namespace Microsoft.Dafny {
         TrLoop(s, tru,
           delegate (BoogieStmtListBuilder bld, ExpressionTranslator e) {
             TrAlternatives(s.Alternatives, null, new Bpl.BreakCmd(s.Tok, null), bld, locals, e, stmt.IsGhost);
+            InsertContinueTarget(s, bld);
           },
           builder, locals, etran);
 
@@ -569,6 +572,7 @@ namespace Microsoft.Dafny {
               bld.Add(Bpl.Cmd.SimpleAssign(s.Tok, bIndex, Bpl.Expr.Sub(bIndex, Bpl.Expr.Literal(1))));
             }
             TrStmt(s.Body, bld, locals, e);
+            InsertContinueTarget(s, bld);
             if (s.GoingUp) {
               bld.Add(Bpl.Cmd.SimpleAssign(s.Tok, bIndex, Bpl.Expr.Add(bIndex, Bpl.Expr.Literal(1))));
             }
@@ -1918,6 +1922,15 @@ namespace Microsoft.Dafny {
 
       builder.Add(new Bpl.WhileCmd(s.Tok, Bpl.Expr.True, invariants, body));
     }
+
+    void InsertContinueTarget(LoopStmt loop, BoogieStmtListBuilder builder) {
+      Contract.Requires(loop != null);
+      Contract.Requires(builder != null);
+      if (loop.Labels != null) {
+        builder.AddLabelCmd("continue_" + loop.Labels.Data.AssignUniqueId(CurrentIdGenerator));
+      }
+    }
+    
     void TrAlternatives(List<GuardedAlternative> alternatives, Bpl.Cmd elseCase0, Bpl.StructuredCmd elseCase1,
                         BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran, bool isGhost) {
       Contract.Requires(alternatives != null);
