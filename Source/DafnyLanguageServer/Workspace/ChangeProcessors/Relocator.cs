@@ -92,7 +92,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
         var migratedDeclarations = originalSymbolTable.Locations;
         foreach (var change in contentChanges) {
           cancellationToken.ThrowIfCancellationRequested();
-          var afterChangeEndOffset = null;
+          Position? afterChangeEndOffset = null;
           if (change.Range == null) {
             migratedLookupTree = new IntervalTree<Position, ILocalizableSymbol>();
           } else {
