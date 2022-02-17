@@ -1206,14 +1206,13 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is BreakStmt) {
         var s = (BreakStmt)stmt;
-        var jump = s.IsContinue ? "continue" : "break";
         if (s.TargetLabel != null) {
-          wr.Write($"{jump} {s.TargetLabel.val};");
+          wr.Write($"{s.Kind} {s.TargetLabel.val};");
         } else {
           for (int i = 0; i < s.BreakCount - 1; i++) {
             wr.Write("break ");
           }
-          wr.Write($"{jump};");
+          wr.Write($"{s.Kind};");
         }
 
       } else if (stmt is ProduceStmt) {

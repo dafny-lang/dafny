@@ -33,4 +33,6 @@ ParallelResolveErrors.dfy(237,10): Error: break statement in skeleton is not all
 ParallelResolveErrors.dfy(239,10): Error: break statement in skeleton is not allowed to break outside the skeleton fragment
 ParallelResolveErrors.dfy(253,10): Error: break statement in skeleton is not allowed to break outside the skeleton fragment
 ParallelResolveErrors.dfy(255,10): Error: break statement in skeleton is not allowed to break outside the skeleton fragment
-35 resolution/type errors detected in ParallelResolveErrors.dfy
+ParallelResolveErrors.dfy(269,10): Error: continue statement in skeleton is not allowed to break outside the skeleton fragment
+ParallelResolveErrors.dfy(271,10): Error: continue statement in skeleton is not allowed to break outside the skeleton fragment
+37 resolution/type errors detected in ParallelResolveErrors.dfy

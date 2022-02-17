@@ -7193,6 +7193,7 @@ namespace Microsoft.Dafny {
   public class BreakStmt : Statement {
     public readonly IToken TargetLabel;
     public readonly bool IsContinue;
+    public string Kind => IsContinue ? "continue" : "break";
     public readonly int BreakCount; // this includes the final "continue", if any
     public Statement TargetStmt; // filled in during resolution
     [ContractInvariantMethod]

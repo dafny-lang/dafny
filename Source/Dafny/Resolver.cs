@@ -8499,8 +8499,8 @@ namespace Microsoft.Dafny {
           var s = (BreakStmt)stmt;
           s.IsGhost = mustBeErasable;
           if (s.IsGhost && !s.TargetStmt.IsGhost) {
-            var targetIsLoop = s.TargetStmt is LoopStmt;
-            Error(stmt, "ghost-context break statement is not allowed to break out of non-ghost " + (targetIsLoop ? "loop" : "structure"));
+            var targetKind = s.TargetStmt is LoopStmt ? "loop" : "structure";
+            Error(stmt, $"ghost-context {s.Kind} statement is not allowed to {s.Kind} out of non-ghost {targetKind}");
           }
 
         } else if (stmt is ProduceStmt) {
@@ -11068,13 +11068,16 @@ namespace Microsoft.Dafny {
         if (s.TargetLabel != null) {
           Statement target = enclosingStatementLabels.Find(s.TargetLabel.val);
           if (target == null) {
-            reporter.Error(MessageSource.Resolver, s.TargetLabel, "break label is undefined or not in scope: {0}", s.TargetLabel.val);
+            reporter.Error(MessageSource.Resolver, s.TargetLabel, $"{s.Kind} label is undefined or not in scope: {s.TargetLabel.val}");
+          } else if (s.IsContinue && !(target is LoopStmt)) {
+            reporter.Error(MessageSource.Resolver, s.TargetLabel, $"continue label must designate a loop: {s.TargetLabel.val}");
           } else {
             s.TargetStmt = target;
           }
         } else {
           if (loopStack.Count < s.BreakCount) {
-            reporter.Error(MessageSource.Resolver, s, "trying to break out of more loop levels than there are enclosing loops");
+            var jump = s.IsContinue && s.BreakCount != 1 ? "break/continue" : s.Kind;
+            reporter.Error(MessageSource.Resolver, s, $"trying to {jump} out of more loop levels than there are enclosing loops");
           } else {
             Statement target = loopStack[loopStack.Count - s.BreakCount];
             if (target.Labels == null) {

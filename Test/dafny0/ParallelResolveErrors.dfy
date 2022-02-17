@@ -259,3 +259,19 @@ module ModifyStmtBreak1' refines ModifyStmtBreak0 {
     }
   }
 }
+
+module ModifyStmtContinue refines ModifyStmtBreak0 {
+  method W... {
+    ...;
+    while ... {
+      modify ... {
+        if * {
+          continue; // error: a "continue" here would cause a problem with the refinement
+        } else {
+          continue L; // error: a "continue" here would cause a problem with the refinement
+        }
+      }
+      ...;
+    }
+  }
+}
