@@ -6213,7 +6213,7 @@ namespace Microsoft.Dafny {
         } else if (this is PrefixPredicate) {
           k = "predicate";
         } else if (DafnyOptions.O.FunctionSyntax == DafnyOptions.FunctionSyntaxOptions.ExperimentalPredicateAlwaysGhost &&
-                   (this is Predicate || !IsGhost)) { 
+                   (this is Predicate || !IsGhost)) {
           k = WhatKind;
         } else if (DafnyOptions.O.FunctionSyntax != DafnyOptions.FunctionSyntaxOptions.Version4 && !IsGhost) {
           k = WhatKind + " method";

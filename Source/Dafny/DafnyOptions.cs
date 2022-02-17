@@ -110,7 +110,7 @@ namespace Microsoft.Dafny {
     public bool WarnShadowing = false;
     public int DefiniteAssignmentLevel = 1; // [0..4]
     public FunctionSyntaxOptions FunctionSyntax = FunctionSyntaxOptions.Version3;
-    
+
     public enum FunctionSyntaxOptions {
       Version3,
       Migration3To4,
@@ -443,7 +443,7 @@ namespace Microsoft.Dafny {
             }
           }
           return true;
-        
+
         case "countVerificationErrors": {
             int countErrors = 1; // defaults to reporting verification errors
             if (ps.GetNumericArgument(ref countErrors, 2)) {
