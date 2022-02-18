@@ -281,20 +281,27 @@ class A {
     }
 
     [TestMethod]
-    public async Task NullRangeClearsSymbolsTable() {
+    public async Task PassingANullChangeRangeClearsSymbolsTable() {
       var source = "class X {}";
 
       var documentItem = CreateTestDocument(source);
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var document = await Documents.GetDocumentAsync(documentItem.Uri);
 
+      var document = await Documents.GetDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
-      Assert.IsFalse(document.SymbolTable.Resolved);
       Assert.IsTrue(TryFindSymbolDeclarationByName(document, "X", out var _));
 
-      await ApplyChangeAndWaitCompletionAsync(documentItem, null, "class Y {}");
+      await ApplyChangeAndWaitCompletionAsync(document.Text, null, "class Y {}");
+      document = await Documents.GetDocumentAsync(documentItem.Uri);
+      Assert.IsNotNull(document); // No relocation, since no resolution errors, so Y can be found
       Assert.IsFalse(TryFindSymbolDeclarationByName(document, "X", out var _));
       Assert.IsTrue(TryFindSymbolDeclarationByName(document, "Y", out var _));
+
+      await ApplyChangeAndWaitCompletionAsync(document.Text, null, "; class Y {}");
+      document = await Documents.GetDocumentAsync(documentItem.Uri);
+      Assert.IsNotNull(document); // Relocation happens due to the error, but range is null so table is cleared
+      Assert.IsFalse(TryFindSymbolDeclarationByName(document, "X", out var _));
+      Assert.IsFalse(TryFindSymbolDeclarationByName(document, "Y", out var _));
     }
   }
 }
