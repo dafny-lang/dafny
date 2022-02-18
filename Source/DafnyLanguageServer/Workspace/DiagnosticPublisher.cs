@@ -61,7 +61,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         Uri = document.Uri,
         Version = document.Version,
         Diagnostics = errors,
-        LinesCount = Regex.Matches(document.Text.Text, System.Environment.NewLine).Count + 1,
+        LinesCount = Regex.Matches(document.Text.Text, "\r?\n").Count + 1,
         PerNodeDiagnostic = document.VerificationDiagnostics.Children
       });
     }

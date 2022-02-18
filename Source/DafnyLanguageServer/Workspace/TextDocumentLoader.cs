@@ -207,6 +207,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var (document, cancellationToken) = verifyRequest;
       notificationPublisher.SendStatusNotification(document.Text, CompilationStatus.VerificationStarted);
       RegenerateVerificationDiagnostics(document);
+      diagnosticPublisher.PublishVerificationDiagnostics(document);
       var progressReporter = new VerificationProgressReporter(
         loggerFactory.CreateLogger<VerificationProgressReporter>(),
         document, notificationPublisher, diagnosticPublisher);
@@ -278,11 +279,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
       }
 
-      public void ReportVerificationStarts(IToken assertionToken, IToken implToken) {
+      public void ReportVerificationStarts(List<IToken> assertionToken, IToken implToken) {
+        // TODO: Either migrate or create node diagnostics
       }
 
-      public void ReportVerificationCompleted(IToken assertionToken, IToken implToken, ConditionGeneration.Outcome outcome, int totalResource) {
-
+      public void ReportVerificationCompleted(List<IToken> assertionToken, IToken implToken,
+        ConditionGeneration.Outcome outcome, int totalResource) {
+        // TODO: update node diagnostics
       }
     }
   }

@@ -58,13 +58,20 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       }
 
       // Fill in the missing "Unknown" based on the surrounding content
+      // The filling only takes Verified an Error
       var previousNotUnknown = result.FirstOrDefault(
-        status => status != LineVerificationStatus.Unknown, LineVerificationStatus.Unknown);
+        status => status != LineVerificationStatus.Unknown
+        , LineVerificationStatus.Unknown);
       for (var i = 0; i < numberOfLines; i++) {
+        if (previousNotUnknown != LineVerificationStatus.Verified &&
+            previousNotUnknown != LineVerificationStatus.ErrorRange) {
+          previousNotUnknown = LineVerificationStatus.Unknown;
+        }
         if (result[i] == LineVerificationStatus.Unknown) {
           result[i] = previousNotUnknown;
         } else {
           previousNotUnknown = result[i];
+
         }
       }
 
@@ -74,28 +81,32 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
   public enum NodeVerificationStatus {
     Unknown = 0,
-    Verified,
-    Pending,
-    ErrorObsolete,
-    ErrorPending,
-    Error
+    Obsolete = 1,
+    Pending = 2,
+    Verified = 3,
+    ErrorObsolete = 4,
+    ErrorPending = 5,
+    Error = 6
   }
 
   public enum LineVerificationStatus {
     // Default value for every line, before the renderer figures it out.
-    Unknown,
+    Unknown = 0,
+    // For first-time computation not actively computing but soon
+    // (scheduledComputation)
+    Obsolete = 1,
+    // For first-time computations, actively computing
+    Pending = 2,
     // Also applicable for empty spaces if they are not surrounded by errors. 
-    Verified,
-    // For first-time computations
-    Pending,
+    Verified = 3,
     // For containers of other diagnostics nodes (e.g. methods)
-    ErrorRangeObsolete,
-    ErrorRangePending,
-    ErrorRange,
+    ErrorRangeObsolete = 4,
+    ErrorRangePending = 5,
+    ErrorRange = 6,
     // For specific lines which have errors on it.
-    ErrorObsolete,
-    ErrorPending,
-    Error
+    ErrorObsolete = 7,
+    ErrorPending = 8,
+    Error = 9
   }
 
   public class NodeDiagnostic {
@@ -163,23 +174,28 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     }
 
     // Overriden by checking children if there are some
-    public NodeVerificationStatus Status { get; set; } = NodeVerificationStatus.Unknown;
+    public NodeVerificationStatus Status { get; set; } = NodeVerificationStatus.Obsolete;
 
     public void RenderInto(LineVerificationStatus[] perLineDiagnostics) {
       foreach (var child in Children) {
         child.RenderInto(perLineDiagnostics);
       }
-      for (var line = Range.Start.Line; line <= Range.End.Line; line++) {
+      for (var line = Range.Start.Line - 1; line <= Range.End.Line - 1; line++) {
         if (StatusSeverityOf(perLineDiagnostics[line]) < StatusSeverityOf(Status)) {
-          if (Children.Length > 0) { // It's a range
+          if (Children.Length == 0) { // Not a range
+            perLineDiagnostics[line] = Status switch {
+              NodeVerificationStatus.Error => LineVerificationStatus.Error,
+              NodeVerificationStatus.ErrorPending => LineVerificationStatus.ErrorPending,
+              NodeVerificationStatus.ErrorObsolete => LineVerificationStatus.ErrorObsolete,
+              var status => (LineVerificationStatus)(int)status
+            };
+          } else { // For a range, 
             perLineDiagnostics[line] = Status switch {
               NodeVerificationStatus.Error => LineVerificationStatus.ErrorRange,
               NodeVerificationStatus.ErrorPending => LineVerificationStatus.ErrorRangePending,
               NodeVerificationStatus.ErrorObsolete => LineVerificationStatus.ErrorRangeObsolete,
               var status => (LineVerificationStatus)(int)status
             };
-          } else {
-            perLineDiagnostics[line] = (LineVerificationStatus)(int)Status;
           }
         }
       }

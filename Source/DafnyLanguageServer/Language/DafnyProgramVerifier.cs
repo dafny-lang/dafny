@@ -8,6 +8,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server;
 using System;
+using System.Collections.Generic;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using VC;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
@@ -211,12 +212,12 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         progressReporter.ReportEndVerifyMethodOrFunction(implToken, result);
       }
 
-      public void ReportVerificationStarts(IToken assertionToken, IToken implToken) {
-        progressReporter.ReportVerificationStarts(assertionToken, implToken);
+      public void ReportVerificationStarts(List<IToken> assertionTokens, IToken implToken) {
+        progressReporter.ReportVerificationStarts(assertionTokens, implToken);
       }
 
-      public void ReportVerificationCompleted(IToken assertionToken, IToken implToken, ConditionGeneration.Outcome outcome, int totalResource) {
-        progressReporter.ReportVerificationCompleted(assertionToken, implToken, outcome, totalResource);
+      public void ReportVerificationCompleted(List<IToken> assertionTokens, IToken implToken, ConditionGeneration.Outcome outcome, int totalResource) {
+        progressReporter.ReportVerificationCompleted(assertionTokens, implToken, outcome, totalResource);
       }
 
       public void WriteErrorInformation(ErrorInformation errorInfo, TextWriter tw, bool skipExecutionTrace) {

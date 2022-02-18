@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Threading;
 using Microsoft.Boogie;
 using VC;
@@ -16,7 +17,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
     void ReportStartVerifyMethodOrFunction(IToken implToken);
     void ReportEndVerifyMethodOrFunction(IToken implToken, Boogie.VerificationResult verificationResult);
-    void ReportVerificationStarts(IToken assertionToken, IToken implToken);
-    void ReportVerificationCompleted(IToken assertionToken, IToken implToken, ConditionGeneration.Outcome outcome, int totalResource);
+    void ReportVerificationStarts(List<IToken> assertionToken, IToken implToken);
+    void ReportVerificationCompleted(List<IToken> assertionToken, IToken implToken, ConditionGeneration.Outcome outcome,
+      int totalResource);
   }
 }
