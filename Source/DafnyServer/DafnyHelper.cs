@@ -38,15 +38,15 @@ namespace Microsoft.Dafny {
   class DafnyHelper {
     private string fname;
     private string source;
-    private readonly ExecutionEngineOptions options;
+    private readonly ExecutionEngine engine;
     private string[] args;
 
     private readonly Dafny.ErrorReporter reporter;
     private Dafny.Program dafnyProgram;
     private IEnumerable<Tuple<string, Bpl.Program>> boogiePrograms;
 
-    public DafnyHelper(ExecutionEngineOptions options, string[] args, string fname, string source) {
-      this.options = options;
+    public DafnyHelper(ExecutionEngine engine, string[] args, string fname, string source) {
+      this.engine = engine;
       this.args = args;
       this.fname = fname;
       this.source = source;
@@ -83,13 +83,13 @@ namespace Microsoft.Dafny {
 
     private bool BoogieOnce(string moduleName, Bpl.Program boogieProgram) {
       if (boogieProgram.Resolve() == 0 && boogieProgram.Typecheck() == 0) { //FIXME ResolveAndTypecheck?
-        ExecutionEngine.EliminateDeadVariables(boogieProgram);
-        ExecutionEngine.CollectModSets(options, boogieProgram);
-        ExecutionEngine.CoalesceBlocks(options, boogieProgram);
-        ExecutionEngine.Inline(options, boogieProgram);
+        engine.EliminateDeadVariables(boogieProgram);
+        engine.CollectModSets(boogieProgram);
+        engine.CoalesceBlocks(boogieProgram);
+        engine.Inline(boogieProgram);
 
         //NOTE: We could capture errors instead of printing them (pass a delegate instead of null)
-        switch (ExecutionEngine.InferAndVerify(options, boogieProgram, new PipelineStatistics(), "ServerProgram_" + moduleName, null, DateTime.UtcNow.Ticks.ToString())) {
+        switch (engine.InferAndVerify(boogieProgram, new PipelineStatistics(), "ServerProgram_" + moduleName, null, DateTime.UtcNow.Ticks.ToString())) {
           case PipelineOutcome.Done:
           case PipelineOutcome.VerificationCompleted:
             return true;

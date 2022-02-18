@@ -76,11 +76,12 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         // VerificationNotificationTest and DiagnosticsTest that rely on updating these settings.
         DafnyOptions.O.TimeLimit = options.TimeLimit;
         DafnyOptions.O.VcsCores = GetConfiguredCoreCount(options);
+        var executionEngine = new ExecutionEngine(DafnyOptions.O);
         var translated = Translator.Translate(program, errorReporter, new Translator.TranslatorFlags { InsertChecksums = true });
         bool verified = true;
         foreach (var (_, boogieProgram) in translated) {
           cancellationToken.ThrowIfCancellationRequested();
-          var verificationResult = VerifyWithBoogie(boogieProgram, cancellationToken);
+          var verificationResult = VerifyWithBoogie(executionEngine, boogieProgram, cancellationToken);
           verified = verified && verificationResult;
         }
         return new VerificationResult(verified, printer.SerializedCounterExamples);
@@ -90,14 +91,14 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
     }
 
-    private bool VerifyWithBoogie(Boogie.Program program, CancellationToken cancellationToken) {
+    private bool VerifyWithBoogie(ExecutionEngine engine, Boogie.Program program, CancellationToken cancellationToken) {
       program.Resolve();
       program.Typecheck();
 
-      ExecutionEngine.EliminateDeadVariables(program);
-      ExecutionEngine.CollectModSets(Options, program);
-      ExecutionEngine.CoalesceBlocks(Options, program);
-      ExecutionEngine.Inline(Options, program);
+      engine.EliminateDeadVariables(program);
+      engine.CollectModSets(program);
+      engine.CoalesceBlocks(program);
+      engine.Inline(program);
       // TODO Is the programId of any relevance? The requestId is used to cancel a verification.
       //      However, the cancelling a verification is currently not possible since it blocks a text document
       //      synchronization event which are serialized. Thus, no event is processed until the pending
@@ -106,7 +107,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       using (cancellationToken.Register(() => CancelVerification(uniqueId))) {
         try {
           var statistics = new PipelineStatistics();
-          var outcome = ExecutionEngine.InferAndVerify(Options, program, statistics, uniqueId, null, uniqueId);
+          var outcome = engine.InferAndVerify(program, statistics, uniqueId, null, uniqueId);
           return Main.IsBoogieVerified(outcome, statistics);
         } catch (Exception e) when (e is not OperationCanceledException) {
           if (!cancellationToken.IsCancellationRequested) {

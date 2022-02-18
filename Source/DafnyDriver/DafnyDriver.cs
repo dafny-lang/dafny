@@ -371,12 +371,13 @@ namespace Microsoft.Dafny {
       Stopwatch watch = new Stopwatch();
       watch.Start();
 
+      var engine = new ExecutionEngine(options);
       foreach (var prog in boogiePrograms) {
         if (DafnyOptions.O.SeparateModuleOutput) {
           ExecutionEngine.printer.AdvisoryWriteLine("For module: {0}", prog.Item1);
         }
 
-        isVerified = Dafny.Main.BoogieOnce(options, baseName, prog.Item1, prog.Item2, programId, out var newstats, out var newOutcome) && isVerified;
+        isVerified = Dafny.Main.BoogieOnce(engine, baseName, prog.Item1, prog.Item2, programId, out var newstats, out var newOutcome) && isVerified;
 
         watch.Stop();
 

@@ -75,15 +75,16 @@ namespace DafnyTestGeneration {
       var oldOptions = DafnyOptions.O;
       var options = SetupOptions(procedure);
       DafnyOptions.Install(options);
+      var engine = new ExecutionEngine(options);
       var uniqueId = Guid.NewGuid().ToString();
       program.Resolve();
       program.Typecheck();
-      ExecutionEngine.EliminateDeadVariables(program);
-      ExecutionEngine.CollectModSets(options, program);
-      ExecutionEngine.CoalesceBlocks(options, program);
-      ExecutionEngine.Inline(options, program);
+      engine.EliminateDeadVariables(program);
+      engine.CollectModSets(program);
+      engine.CoalesceBlocks(program);
+      engine.Inline(program);
       var log = Utils.CaptureConsoleOutput(
-        () => ExecutionEngine.InferAndVerify(options, program,
+        () => engine.InferAndVerify(program,
           new PipelineStatistics(), uniqueId,
           _ => { }, uniqueId));
       DafnyOptions.Install(oldOptions);

@@ -162,56 +162,57 @@ module SomeModule {
 
     [Fact]
     public void EqualProverLogWhenReorderingProgram() {
-      DafnyOptions.Install(new DafnyOptions());
-      DafnyOptions.O.Parse(new[] { "" });
-      DafnyOptions.O.ProcsToCheck.Add("*SomeMethod");
-      ExecutionEngine.printer = new ConsolePrinter(DafnyOptions.O); // For boogie errors
+      var options = DafnyOptions.FromArguments();
+      options.ProcsToCheck.Add("*SomeMethod");
+      DafnyOptions.Install(options);
+      ExecutionEngine.printer = new ConsolePrinter(options); // For boogie errors
 
-      var reorderedProverLog = GetProverLogForProgram(GetBoogie(reorderedProgram));
-      var regularProverLog = GetProverLogForProgram(GetBoogie(originalProgram));
+      var reorderedProverLog = GetProverLogForProgram(options, GetBoogie(reorderedProgram));
+      var regularProverLog = GetProverLogForProgram(options, GetBoogie(originalProgram));
       Assert.Equal(regularProverLog, reorderedProverLog);
     }
 
     [Fact]
     public void EqualProverLogWhenRenamingProgram() {
+      var options = DafnyOptions.FromArguments();
+      options.ProcsToCheck.Add("*SomeMethod");
+      DafnyOptions.Install(options);
+      ExecutionEngine.printer = new ConsolePrinter(options); // For boogie errors
 
-      DafnyOptions.Install(new DafnyOptions());
-      DafnyOptions.O.Parse(new[] { "" });
-      DafnyOptions.O.ProcsToCheck.Add("*SomeMethod*");
-      ExecutionEngine.printer = new ConsolePrinter(DafnyOptions.O); // For boogie errors
-
-      var renamedProverLog = GetProverLogForProgram(GetBoogie(renamedProgram));
-      var regularProverLog = GetProverLogForProgram(GetBoogie(originalProgram));
+      var renamedProverLog = GetProverLogForProgram(options, GetBoogie(renamedProgram));
+      var regularProverLog = GetProverLogForProgram(options, GetBoogie(originalProgram));
       Assert.Equal(regularProverLog, renamedProverLog);
     }
 
     [Fact]
     public void EqualProverLogWhenAddingUnrelatedProgram() {
 
-      DafnyOptions.Install(new DafnyOptions());
-      DafnyOptions.O.Parse(new[] { "" });
-      DafnyOptions.O.ProcsToCheck.Add("*SomeMethod");
-      ExecutionEngine.printer = new ConsolePrinter(DafnyOptions.O); // For boogie errors
+      var options = DafnyOptions.FromArguments();
+      options.ProcsToCheck.Add("*SomeMethod");
+      DafnyOptions.Install(options);
+      ExecutionEngine.printer = new ConsolePrinter(options); // For boogie errors
 
-      var renamedProverLog = GetProverLogForProgram(GetBoogie(renamedProgram + originalProgram));
-      var regularProverLog = GetProverLogForProgram(GetBoogie(originalProgram));
+      var renamedProverLog = GetProverLogForProgram(options, GetBoogie(renamedProgram + originalProgram));
+      var regularProverLog = GetProverLogForProgram(options, GetBoogie(originalProgram));
       Assert.Equal(regularProverLog, renamedProverLog);
     }
 
-    private string GetProverLogForProgram(IEnumerable<Microsoft.Boogie.Program> boogiePrograms) {
-      var logs = GetProverLogsForProgram(boogiePrograms).ToList();
+    private string GetProverLogForProgram(ExecutionEngineOptions options, IEnumerable<Microsoft.Boogie.Program> boogiePrograms) {
+      var logs = GetProverLogsForProgram(options, boogiePrograms).ToList();
       Assert.Single(logs);
       return logs[0];
     }
 
-    private IEnumerable<string> GetProverLogsForProgram(IEnumerable<Microsoft.Boogie.Program> boogiePrograms) {
+    private IEnumerable<string> GetProverLogsForProgram(ExecutionEngineOptions options,
+      IEnumerable<BoogieProgram> boogiePrograms) {
       string directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
       Directory.CreateDirectory(directory);
       var temp1 = directory + "/proverLog";
       testOutputHelper.WriteLine("proverLog: " + temp1);
       DafnyOptions.O.ProverLogFilePath = temp1;
+      var engine = new ExecutionEngine(options);
       foreach (var boogieProgram in boogiePrograms) {
-        Main.BoogieOnce(DafnyOptions.O, "", "", boogieProgram, "programId", out _, out var outcome);
+        Main.BoogieOnce(engine, "", "", boogieProgram, "programId", out _, out var outcome);
         testOutputHelper.WriteLine("outcome: " + outcome);
         foreach (var proverFile in Directory.GetFiles(directory)) {
           yield return File.ReadAllText(proverFile);

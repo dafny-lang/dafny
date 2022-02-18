@@ -11,7 +11,7 @@ using Microsoft.Boogie;
 namespace Microsoft.Dafny {
   [Serializable]
   class VerificationTask {
-    private readonly ExecutionEngineOptions options;
+    private readonly ExecutionEngine engine;
 
     [DataMember]
     string[] args = null;
@@ -26,7 +26,7 @@ namespace Microsoft.Dafny {
     bool sourceIsFile = false;
 
     public VerificationTask(ExecutionEngineOptions options, string[] args, string filename, string source, bool sourceIsFile) {
-      this.options = options;
+      this.engine = new ExecutionEngine(options);
       this.args = args;
       this.filename = filename;
       this.source = source;
@@ -58,19 +58,19 @@ namespace Microsoft.Dafny {
     }
 
     internal void Run() {
-      new DafnyHelper(options, args, filename, ProgramSource).Verify();
+      new DafnyHelper(engine, args, filename, ProgramSource).Verify();
     }
 
     internal void Symbols() {
-      new DafnyHelper(options, args, filename, ProgramSource).Symbols();
+      new DafnyHelper(engine, args, filename, ProgramSource).Symbols();
     }
 
     public void CounterExample() {
-      new DafnyHelper(options, args, filename, ProgramSource).CounterExample();
+      new DafnyHelper(engine, args, filename, ProgramSource).CounterExample();
     }
 
     public void DotGraph() {
-      new DafnyHelper(options, args, filename, ProgramSource).DotGraph();
+      new DafnyHelper(engine, args, filename, ProgramSource).DotGraph();
     }
 
     public string EncodeProgram(out string json) {

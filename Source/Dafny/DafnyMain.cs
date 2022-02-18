@@ -231,7 +231,7 @@ namespace Microsoft.Dafny {
       return null; // Success
     }
 
-    public static bool BoogieOnce(ExecutionEngineOptions options, string baseFile, string moduleName, Microsoft.Boogie.Program boogieProgram, string programId,
+    public static bool BoogieOnce(ExecutionEngine engine, string baseFile, string moduleName, Microsoft.Boogie.Program boogieProgram, string programId,
       out PipelineStatistics stats, out PipelineOutcome oc) {
       if (programId == null) {
         programId = "main_program_id";
@@ -249,7 +249,7 @@ namespace Microsoft.Dafny {
 
       bplFilename = BoogieProgramSuffix(bplFilename, moduleName);
       stats = null;
-      oc = BoogiePipelineWithRerun(options, boogieProgram, bplFilename, out stats, 1 < DafnyOptions.O.VerifySnapshots ? programId : null);
+      oc = BoogiePipelineWithRerun(engine, boogieProgram, bplFilename, out stats, 1 < DafnyOptions.O.VerifySnapshots ? programId : null);
       return IsBoogieVerified(oc, stats);
     }
 
@@ -277,41 +277,42 @@ namespace Microsoft.Dafny {
     /// The method prints errors for resolution and type checking errors, but still returns
     /// their error code.
     /// </summary>
-    static PipelineOutcome BoogiePipelineWithRerun(ExecutionEngineOptions options, Microsoft.Boogie.Program/*!*/ program, string/*!*/ bplFileName,
+    static PipelineOutcome BoogiePipelineWithRerun(ExecutionEngine engine, Microsoft.Boogie.Program/*!*/ program, string/*!*/ bplFileName,
         out PipelineStatistics stats, string programId) {
       Contract.Requires(program != null);
       Contract.Requires(bplFileName != null);
       Contract.Ensures(0 <= Contract.ValueAtReturn(out stats).InconclusiveCount && 0 <= Contract.ValueAtReturn(out stats).TimeoutCount);
 
       stats = new PipelineStatistics();
-      CivlTypeChecker ctc;
-      PipelineOutcome oc = ExecutionEngine.ResolveAndTypecheck(options, program, bplFileName, out ctc);
+      var oc = engine.ResolveAndTypecheck(program, bplFileName, out var ctc);
       switch (oc) {
         case PipelineOutcome.Done:
           return oc;
 
         case PipelineOutcome.ResolutionError:
-        case PipelineOutcome.TypeCheckingError: {
-            ExecutionEngine.PrintBplFile(options, bplFileName, program, false, false, DafnyOptions.O.PrettyPrint);
-            Console.WriteLine();
-            Console.WriteLine("*** Encountered internal translation error - re-running Boogie to get better debug information");
-            Console.WriteLine();
+        case PipelineOutcome.TypeCheckingError:
+          engine.PrintBplFile(bplFileName, program, false, false, DafnyOptions.O.PrettyPrint);
+          Console.WriteLine();
+          Console.WriteLine(
+            "*** Encountered internal translation error - re-running Boogie to get better debug information");
+          Console.WriteLine();
 
-            List<string/*!*/>/*!*/ fileNames = new List<string/*!*/>();
-            fileNames.Add(bplFileName);
-            var reparsedProgram = ExecutionEngine.ParseBoogieProgram(options, fileNames, true);
-            if (reparsedProgram != null) {
-              ExecutionEngine.ResolveAndTypecheck(options, reparsedProgram, bplFileName, out ctc);
-            }
+          List<string /*!*/> /*!*/
+            fileNames = new List<string /*!*/>();
+          fileNames.Add(bplFileName);
+          var reparsedProgram = engine.ParseBoogieProgram(fileNames, true);
+          if (reparsedProgram != null) {
+            engine.ResolveAndTypecheck(reparsedProgram, bplFileName, out ctc);
           }
+
           return oc;
 
         case PipelineOutcome.ResolvedAndTypeChecked:
-          ExecutionEngine.EliminateDeadVariables(program);
-          ExecutionEngine.CollectModSets(options, program);
-          ExecutionEngine.CoalesceBlocks(options, program);
-          ExecutionEngine.Inline(options, program);
-          return ExecutionEngine.InferAndVerify(options, program, stats, programId);
+          engine.EliminateDeadVariables(program);
+          engine.CollectModSets(program);
+          engine.CoalesceBlocks(program);
+          engine.Inline(program);
+          return engine.InferAndVerify(program, stats, programId);
 
         default:
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected outcome
