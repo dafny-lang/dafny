@@ -60,7 +60,7 @@ namespace Microsoft.Dafny {
       }
       return res;
     }
-    
+
     public static string Repeat(int count, string s) {
       Contract.Requires(0 <= count);
       Contract.Requires(s != null);
