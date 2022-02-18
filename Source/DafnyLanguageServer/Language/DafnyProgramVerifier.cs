@@ -8,9 +8,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server;
 using System;
-using System.Text.RegularExpressions;
 using Microsoft.Dafny.LanguageServer.Workspace;
-using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using VC;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 

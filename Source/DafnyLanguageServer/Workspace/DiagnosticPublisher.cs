@@ -5,6 +5,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
@@ -60,6 +61,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         Uri = document.Uri,
         Version = document.Version,
         Diagnostics = errors,
+        LinesCount = Regex.Matches(document.Text.Text, System.Environment.NewLine).Count + 1,
         PerNodeDiagnostic = document.VerificationDiagnostics.Children
       });
     }
