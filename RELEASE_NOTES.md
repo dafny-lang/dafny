@@ -1,7 +1,7 @@
 # Upcoming
 
 - fix: No output when compiling to JavaScript on Windows (https://github.com/dafny-lang/dafny/pull/1824)
-- feat: `continue` statements. Like Dafny's `break` statements, these come in two forms: one that uses a label to name the continue target and one that specifies the continue target by nesting level. See section 19.2 of the Reference Manual.
+- feat: `continue` statements. Like Dafny's `break` statements, these come in two forms: one that uses a label to name the continue target and one that specifies the continue target by nesting level. See section 19.2 of the Reference Manual. (https://github.com/dafny-lang/dafny/pull/1839)
 
 
 # 3.4.1
