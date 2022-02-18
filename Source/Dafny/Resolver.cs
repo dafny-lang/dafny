@@ -11075,9 +11075,14 @@ namespace Microsoft.Dafny {
             s.TargetStmt = target;
           }
         } else {
-          if (loopStack.Count < s.BreakCount) {
-            var jump = s.IsContinue && s.BreakCount != 1 ? "break/continue" : s.Kind;
-            reporter.Error(MessageSource.Resolver, s, $"trying to {jump} out of more loop levels than there are enclosing loops");
+          var jumpStmt = s.BreakCount == 1 ?
+            $"a non-labeled '{s.Kind}' statement" :
+            $"a '{Util.Repeat(s.BreakCount - 1, "break ")}{s.Kind}' statement";
+          if (loopStack.Count == 0) {
+            reporter.Error(MessageSource.Resolver, s, $"{jumpStmt} is allowed only in loops");
+          } else if (loopStack.Count < s.BreakCount) {
+            reporter.Error(MessageSource.Resolver, s,
+              $"{jumpStmt} is allowed only in contexts with {s.BreakCount} enclosing loops, but the current context only has {loopStack.Count}");
           } else {
             Statement target = loopStack[loopStack.Count - s.BreakCount];
             if (target.Labels == null) {

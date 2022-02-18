@@ -75,6 +75,20 @@ module Misc {
         j := j + 1;
       }
     }
+
+    label WhileOutsideForall:
+    while true {
+      forall i | 0 <= i < 20 { // "break" doesn't exit "forall" statements, so the enclosing "while" loop doesn't count
+        var j := 0;
+        while j < i {
+          if j == 6 { break; }  // fine
+          if j % 7 == 4 { break break; }  // error: attempt to break out too far
+          if j % 7 == 4 { break WhileOutsideForall; }  // error: attempt to break to place not in enclosing scope
+          j := j + 1;
+        }
+      }
+      break;
+    }
   }
 }
 
