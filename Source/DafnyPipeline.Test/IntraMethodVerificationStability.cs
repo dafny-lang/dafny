@@ -146,7 +146,7 @@ module SomeModule {
 
     [Fact]
     public void NoUniqueLinesWhenConcatenatingUnrelatedPrograms() {
-      var options = new DafnyOptions();
+      var options = DafnyOptions.FromArguments();
       DafnyOptions.Install(options);
 
       var regularBoogie = GetBoogie(originalProgram).ToList();
@@ -166,7 +166,6 @@ module SomeModule {
       var options = DafnyOptions.FromArguments();
       options.ProcsToCheck.Add("*SomeMethod");
       DafnyOptions.Install(options);
-      ExecutionEngine.printer = new ConsolePrinter(options); // For boogie errors
 
       var reorderedProverLog = GetProverLogForProgram(options, GetBoogie(reorderedProgram));
       var regularProverLog = GetProverLogForProgram(options, GetBoogie(originalProgram));
@@ -178,7 +177,6 @@ module SomeModule {
       var options = DafnyOptions.FromArguments();
       options.ProcsToCheck.Add("*SomeMethod*");
       DafnyOptions.Install(options);
-      ExecutionEngine.printer = new ConsolePrinter(options); // For boogie errors
 
       var renamedProverLog = GetProverLogForProgram(options, GetBoogie(renamedProgram));
       var regularProverLog = GetProverLogForProgram(options, GetBoogie(originalProgram));
@@ -191,7 +189,6 @@ module SomeModule {
       var options = DafnyOptions.FromArguments();
       options.ProcsToCheck.Add("*SomeMethod");
       DafnyOptions.Install(options);
-      ExecutionEngine.printer = new ConsolePrinter(options); // For boogie errors
 
       var renamedProverLog = GetProverLogForProgram(options, GetBoogie(renamedProgram + originalProgram));
       var regularProverLog = GetProverLogForProgram(options, GetBoogie(originalProgram));

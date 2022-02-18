@@ -4,9 +4,11 @@ using Microsoft.Extensions.Options;
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
@@ -65,27 +67,28 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         : Convert.ToInt32(options.VcsCores);
     }
 
-    public VerificationResult Verify(Dafny.Program program,
+    public async Task<VerificationResult> VerifyAsync(Dafny.Program program,
                                      IVerificationProgressReporter progressReporter,
                                      CancellationToken cancellationToken) {
-      mutex.Wait(cancellationToken);
+      await mutex.WaitAsync(cancellationToken);
       try {
         // The printer is responsible for two things: It logs boogie errors and captures the counter example model.
         var errorReporter = (DiagnosticErrorReporter)program.reporter;
         var printer = new ModelCapturingOutputPrinter(logger, errorReporter, progressReporter);
-        ExecutionEngine.printer = printer;
         // Do not set these settings within the object's construction. It will break some tests within
         // VerificationNotificationTest and DiagnosticsTest that rely on updating these settings.
         DafnyOptions.O.TimeLimit = options.TimeLimit;
         DafnyOptions.O.VcsCores = GetConfiguredCoreCount(options);
+        DafnyOptions.O.Printer = printer;
         var executionEngine = new ExecutionEngine(DafnyOptions.O, cache);
         var translated = Translator.Translate(program, errorReporter, new Translator.TranslatorFlags { InsertChecksums = true });
-        bool verified = true;
-        foreach (var (_, boogieProgram) in translated) {
-          cancellationToken.ThrowIfCancellationRequested();
-          var verificationResult = VerifyWithBoogie(executionEngine, boogieProgram, cancellationToken);
-          verified = verified && verificationResult;
-        }
+
+        var moduleTasks = translated.Select(t => {
+          var (_, boogieProgram) = t;
+          return VerifyWithBoogieAsync(executionEngine, boogieProgram, cancellationToken);
+        }).ToList();
+        await Task.WhenAll(moduleTasks);
+        var verified = moduleTasks.All(t => t.Result);
         return new VerificationResult(verified, printer.SerializedCounterExamples);
       }
       finally {
@@ -93,7 +96,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
     }
 
-    private bool VerifyWithBoogie(ExecutionEngine engine, Boogie.Program program, CancellationToken cancellationToken) {
+    private async Task<bool> VerifyWithBoogieAsync(ExecutionEngine engine, Boogie.Program program,
+      CancellationToken cancellationToken) {
       program.Resolve(engine.Options);
       program.Typecheck(engine.Options);
 
@@ -109,7 +113,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       using (cancellationToken.Register(() => CancelVerification(uniqueId))) {
         try {
           var statistics = new PipelineStatistics();
-          var outcome = engine.InferAndVerify(program, statistics, uniqueId, null, uniqueId);
+          var outcome = await engine.InferAndVerify(program, statistics, uniqueId, null, uniqueId);
           return Main.IsBoogieVerified(outcome, statistics);
         } catch (Exception e) when (e is not OperationCanceledException) {
           if (!cancellationToken.IsCancellationRequested) {
@@ -145,6 +149,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
       public void AdvisoryWriteLine(string format, params object[] args) {
       }
+
+      public ExecutionEngineOptions Options { get; set; }
 
       public void ErrorWriteLine(TextWriter tw, string s) {
         logger.LogError(s);

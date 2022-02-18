@@ -96,7 +96,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         try {
           var document = request switch {
             LoadRequest loadRequest => LoadInternal(loadRequest),
-            VerifyRequest verifyRequest => VerifyInternal(verifyRequest),
+#pragma warning disable VSTHRD002
+            VerifyRequest verifyRequest => VerifyInternalAsync(verifyRequest).Result,
+#pragma warning restore VSTHRD002
             _ => throw new ArgumentException($"invalid request type ${request.GetType()}")
           };
           request.Document.SetResult(document);
@@ -170,11 +172,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return await request.Document.Task;
     }
 
-    private DafnyDocument VerifyInternal(VerifyRequest verifyRequest) {
+    private async Task<DafnyDocument> VerifyInternalAsync(VerifyRequest verifyRequest) {
       var (document, cancellationToken) = verifyRequest;
       notificationPublisher.SendStatusNotification(document.Text, CompilationStatus.VerificationStarted);
       var progressReporter = new VerificationProgressReporter(document.Text, notificationPublisher);
-      var verificationResult = verifier.Verify(document.Program, progressReporter, cancellationToken);
+      var verificationResult = await verifier.VerifyAsync(document.Program, progressReporter, cancellationToken);
       var compilationStatusAfterVerification = verificationResult.Verified
         ? CompilationStatus.VerificationSucceeded
         : CompilationStatus.VerificationFailed;
