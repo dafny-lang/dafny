@@ -74,7 +74,9 @@ namespace Microsoft.Dafny {
       wr.WriteLine();
       wr.WriteLine("using System;");
       wr.WriteLine("using System.Numerics;");
-      CsharpMockWriter.EmitImports(wr);
+      if (DafnyOptions.O.CompileMocks) {
+        CsharpMockWriter.EmitImports(wr);
+      }
       EmitDafnySourceAttribute(program, wr);
       if (!DafnyOptions.O.UseRuntimeLib) {
         ReadRuntimeSystem("DafnyRuntime.cs", wr);
@@ -97,7 +99,9 @@ namespace Microsoft.Dafny {
     protected override void EmitBuiltInDecls(BuiltIns builtIns, ConcreteSyntaxTree wr) {
       var dafnyNamespace = CreateModule("Dafny", false, false, null, wr);
       EmitInitNewArrays(builtIns, dafnyNamespace);
-      CsharpMockWriter.EmitMultiMatcher(dafnyNamespace);
+      if (DafnyOptions.O.CompileMocks) {
+        CsharpMockWriter.EmitMultiMatcher(dafnyNamespace);
+      }
       EmitFuncExtensions(builtIns, wr);
     }
 

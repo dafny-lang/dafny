@@ -330,9 +330,7 @@ public class CsharpMockWriter {
   }
 
   internal static void EmitImports(ConcreteSyntaxTree wr) {
-    if (DafnyOptions.O.CompileMocks) {
-      wr.WriteLine("using Moq;");
-      wr.WriteLine("using System.Collections.Generic;");
-    }
+    wr.WriteLine("using Moq;");
+    wr.WriteLine("using System.Collections.Generic;");
   }
 }
