@@ -7209,7 +7209,7 @@ namespace Microsoft.Dafny {
       this.TargetLabel = targetLabel;
       this.IsContinue = isContinue;
     }
-    
+
     /// <summary>
     /// For "isContinue == false", represents the statement "break ^breakCount ;".
     /// For "isContinue == true", represents the statement "break ^(breakCount - 1) continue;".
