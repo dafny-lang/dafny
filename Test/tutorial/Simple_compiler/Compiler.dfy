@@ -114,71 +114,35 @@ module Rewriter {
       case Seq(s1, s2) =>
         match (simplifyStmt(s1), simplifyStmt(s2)) {
           case (s1', Skip) =>
-            assert forall o: seq<int> :: o + [] == o; // FIXME
-            // assert forall ctx: Context ::
-            //   DafnyAST.interpStmt'(s1', ctx) ==
-            //   DafnyAST.interpStmt'(s, ctx) by {
-            //     forall ctx: Context
-            //       ensures DafnyAST.interpStmt'(s1', ctx) ==
-            //               DafnyAST.interpStmt'(s, ctx) {
-            //       calc {
-            //           DafnyAST.interpStmt'(s, ctx);
-            //         ==
-            //           DafnyAST.interpStmt'(Seq(s1, s2), ctx);
-            //         ==
-            //           var (ctx1, o1) := interpStmt'(s1, ctx);
-            //           var (ctx2, o2) := interpStmt'(s2, ctx1);
-            //           (ctx2, o1 + o2);
-            //         ==
-            //           var (ctx1, o1) := interpStmt'(s1', ctx);
-            //           var (ctx2, o2) := interpStmt'(Skip, ctx1);
-            //           (ctx2, o1 + o2);
-            //         ==
-            //           var (ctx1, o1) := interpStmt'(s1', ctx);
-            //           var (ctx2, o2) := (ctx1, []);
-            //           (ctx2, o1 + o2);
-            //         ==
-            //           var (ctx1, o1) := interpStmt'(s1', ctx);
-            //           (ctx1, o1 + []);
-            //         ==
-            //           var (ctx1, o1) := interpStmt'(s1', ctx);
-            //           (ctx1, o1);
-            //         ==
-            //           interpStmt'(s1', ctx);
-            //       }
-            //     }
-            //   }
             s1'
           case (Skip, s2') =>
-            assert forall o: seq<int> :: [] + o == o; // WISH: why is this needed, why didn't I need it in the previous version (without contexts), and how should I have found this faster?
+            // For demonstration purposes here is an expanded proof (but Dafny figures it out automatically):
             // assert forall ctx: Context ::
             //   DafnyAST.interpStmt'(s2', ctx) ==
             //   DafnyAST.interpStmt'(s, ctx) by {
-            //     forall ctx: Context
-            //       ensures DafnyAST.interpStmt'(s2', ctx) ==
-            //               DafnyAST.interpStmt'(s, ctx) {
+            //     forall ctx: Context { // No ensures clause here: Dafny infers it from the ‘calc’
             //       calc {
             //           DafnyAST.interpStmt'(s, ctx);
             //         ==
-            //           DafnyAST.interpStmt'(Seq(s1, s2), ctx);
+            //           DafnyAST.interpStmt'(DafnyAST.Seq(s1, s2), ctx);
             //         ==
-            //           var (ctx1, o1) := interpStmt'(s1, ctx);
-            //           var (ctx2, o2) := interpStmt'(s2, ctx1);
-            //           (ctx2, o1 + o2);
+            //           var InterpResult(ctx1, o1) := interpStmt'(s1, ctx);
+            //           var InterpResult(ctx2, o2) := interpStmt'(s2, ctx1);
+            //           InterpResult(ctx2, o1 + o2);
             //         ==
-            //           var (ctx1, o1) := interpStmt'(Skip, ctx);
-            //           var (ctx2, o2) := interpStmt'(s2', ctx1);
-            //           (ctx2, o1 + o2);
+            //           var InterpResult(ctx1, o1) := interpStmt'(Skip, ctx);
+            //           var InterpResult(ctx2, o2) := interpStmt'(s2', ctx1);
+            //           InterpResult(ctx2, o1 + o2);
             //         ==
-            //           var (ctx1, o1) := (ctx, []);
-            //           var (ctx2, o2) := interpStmt'(s2', ctx1);
-            //           (ctx2, o1 + o2);
+            //           var InterpResult(ctx1, o1) := InterpResult(ctx, []);
+            //           var InterpResult(ctx2, o2) := interpStmt'(s2', ctx1);
+            //           InterpResult(ctx2, o1 + o2);
             //         ==
-            //           var (ctx2, o2) := interpStmt'(s2', ctx);
-            //           (ctx2, [] + o2);
-            //         ==
-            //           var (ctx2, o2) := interpStmt'(s2', ctx);
-            //           (ctx2, o2);
+            //           var InterpResult(ctx2, o2) := interpStmt'(s2', ctx);
+            //           InterpResult(ctx2, [] + o2);
+            //         == { assert var InterpResult(ctx2, o2) := interpStmt'(s2', ctx); [] + o2 == o2; }
+            //           var InterpResult(ctx2, o2) := interpStmt'(s2', ctx);
+            //           InterpResult(ctx2, o2);
             //         ==
             //           interpStmt'(s2', ctx);
             //       }
