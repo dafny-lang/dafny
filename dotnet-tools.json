@@ -13,12 +13,6 @@
       "commands": [
         "dotnet-format"
       ]
-    },
-    "microsoft.coyote.cli": {
-      "version": "1.4.2",
-      "commands": [
-        "coyote"
-      ]
     }
   }
 }
