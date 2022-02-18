@@ -21,7 +21,7 @@ All other pull requests and issues can be submitted here.
 
   - Dafny's unit tests are in various `.Test` directories in [`Source`](../Source).
 
-  Our CI is configured to run all tests when you create a PR.  To run tests locally, use `dotnet test Source/Dafny.sln` (but note that running the tests for our compiler backends requires installing lot of additional software).
+  Our CI is configured to run all tests when you create a PR.  To run tests locally, use `dotnet test Source/Dafny.sln` (but note that running the tests for our compiler backends requires installing lots of additional software).
 
 ## Code of Conduct
 
