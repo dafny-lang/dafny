@@ -3809,3 +3809,42 @@ module Continue1 {
     }
   }
 }
+
+module LabelRegressions {
+  // The cases of if-case, while-case, and match statements are List<Statement>'s, which are essentially
+  // a BlockStmt but without the curly braces. Each Statement in such a List can have labels, so
+  // it's important to ResolveStatementWithLabels, not ResolveStatement. Alas, that was once not the
+  // case (pun intended).
+  // There's also something analogous going on in the Verifier, where lists of statements should call
+  // TrStmtList, not just call TrStmt on every Statement in the List. (See method LabelRegressions()
+  // in Test/comp/ForLoops-Compilation.dfy.)
+  method IfCaseRegression() {
+    if
+    case true =>
+      label Loop:
+      for k := 0 to 10 {
+        continue Loop;
+        break Loop;
+      }
+  }
+
+  method WhileCaseRegression() {
+    while
+    case true =>
+      label Loop:
+      for k := 0 to 10 {
+        continue Loop;
+        break Loop;
+      }
+  }
+
+  method Match() {
+    match (0, 0)
+    case (_, _) =>
+      label Loop:
+      for k := 0 to 10 {
+        break Loop;
+        continue Loop;
+      }
+  }
+}

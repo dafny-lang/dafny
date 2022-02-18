@@ -149,9 +149,7 @@ namespace Microsoft.Dafny {
           Contract.Assert(la.E != null);  // this should have been filled in by now
           builder.Add(new Bpl.AssumeCmd(s.Tok, la.E));
         }
-        foreach (var resolved in s.ResolvedStatements) {
-          TrStmt(resolved, builder, locals, etran);
-        }
+        TrStmtList(s.ResolvedStatements, builder, locals, etran);
 
       } else if (stmt is BreakStmt) {
         var s = (BreakStmt)stmt;
@@ -1982,9 +1980,7 @@ namespace Microsoft.Dafny {
           b.Add(new AssumeCmd(alternative.Guard.tok, etran.TrExpr(alternative.Guard)));
         }
         var prevDefiniteAssignmentTrackerCount = definiteAssignmentTrackers.Count;
-        foreach (var s in alternative.Body) {
-          TrStmt(s, b, locals, etran);
-        }
+        TrStmtList(alternative.Body, b, locals, etran);
         RemoveDefiniteAssignmentTrackers(alternative.Body, prevDefiniteAssignmentTrackerCount);
         Bpl.StmtList thn = b.Collect(alternative.Tok);
         elsIf = new Bpl.IfCmd(alternative.Tok, null, thn, elsIf, els);

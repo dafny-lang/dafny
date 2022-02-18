@@ -11788,7 +11788,7 @@ namespace Microsoft.Dafny {
         }
         dominatingStatementLabels.PushMarker();
         foreach (Statement ss in mc.Body) {
-          ResolveStatement(ss, codeContext);
+          ResolveStatementWithLabels(ss, codeContext);
         }
         dominatingStatementLabels.PopMarker();
 
@@ -13391,7 +13391,7 @@ namespace Microsoft.Dafny {
         }
         ResolveAttributes(alternative.Attributes, null, new ResolveOpts(codeContext, true));
         foreach (Statement ss in alternative.Body) {
-          ResolveStatement(ss, codeContext);
+          ResolveStatementWithLabels(ss, codeContext);
         }
         dominatingStatementLabels.PopMarker();
         scope.PopMarker();
