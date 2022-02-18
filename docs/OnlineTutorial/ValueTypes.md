@@ -149,9 +149,9 @@ in the set for all `x` of type `T` that satisfy `p(x)`:
    set x: T | p(x) :: f(x)
 ```
 
-This defines a set in a manner reminiscent of a universal quantifier (`forall`). As with quanifiers,
+This defines a set in a manner reminiscent of a universal quantifier (`forall`). As with quantifiers,
 the type can usually be inferred. In contrast to quantifiers, the bar syntax (`|`) is required to
-seperate the predicate (`p`) from the bound variable (`x`). The type of the elements of the resulting set is
+separate the predicate (`p`) from the bound variable (`x`). The type of the elements of the resulting set is
 the type of the return value of `f(x)`. The values in the constructed set are the return values of `f(x)`:
 `x` itself acts only as a bridge between the predicate `p` and the function `f`. It
 usually has the same type as the resulting set, but it does not need to. As an example:

@@ -20,6 +20,7 @@ namespace Microsoft.Dafny {
     public void Initialize(TestLoggerEvents events, Dictionary<string, string> parameters) {
       events.TestResult += TestResultHandler;
       events.TestRunComplete += TestRunCompleteHandler;
+
       if (parameters.TryGetValue("LogFileName", out string filename)) {
         writer = new StreamWriter(filename);
         writerFilename = filename;
@@ -64,9 +65,10 @@ namespace Microsoft.Dafny {
     }
 
     private void TestRunCompleteHandler(object sender, TestRunCompleteEventArgs e) {
-      writer.WriteLine("TestResult.DisplayName,TestResult.Outcome,TestResult.Duration");
+      writer.WriteLine("TestResult.DisplayName,TestResult.Outcome,TestResult.Duration,TestResult.ResourceCount");
       foreach (var result in results.OrderByDescending(r => r.Duration)) {
-        writer.WriteLine($"{result.TestCase.DisplayName},{result.Outcome},{result.Duration}");
+        var resCount = result.GetPropertyValue(BoogieXmlConvertor.ResourceCountProperty);
+        writer.WriteLine($"{result.TestCase.DisplayName},{result.Outcome},{result.Duration},{resCount}");
       }
 
       writer.Close();

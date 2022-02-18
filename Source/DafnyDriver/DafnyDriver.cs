@@ -412,6 +412,10 @@ namespace Microsoft.Dafny {
         if (stats.OutOfResourceCount != 0) {
           Console.Write(", {0} out of resource", stats.OutOfResourceCount);
         }
+        if (stats.SolverExceptionCount != 0) {
+          Console.Write(", {0} solver exceptions", stats.SolverExceptionCount);
+        }
+
         Console.WriteLine();
         Console.Out.Flush();
       } else {
@@ -428,11 +432,13 @@ namespace Microsoft.Dafny {
         statSum.TimeoutCount += stats.Value.TimeoutCount;
         statSum.OutOfResourceCount += stats.Value.OutOfResourceCount;
         statSum.OutOfMemoryCount += stats.Value.OutOfMemoryCount;
+        statSum.SolverExceptionCount += stats.Value.SolverExceptionCount;
         statSum.CachedErrorCount += stats.Value.CachedErrorCount;
         statSum.CachedInconclusiveCount += stats.Value.CachedInconclusiveCount;
         statSum.CachedOutOfMemoryCount += stats.Value.CachedOutOfMemoryCount;
         statSum.CachedTimeoutCount += stats.Value.CachedTimeoutCount;
         statSum.CachedOutOfResourceCount += stats.Value.CachedOutOfResourceCount;
+        statSum.CachedSolverExceptionCount += stats.Value.CachedSolverExceptionCount;
         statSum.CachedVerifiedCount += stats.Value.CachedVerifiedCount;
         statSum.InconclusiveCount += stats.Value.InconclusiveCount;
       }
