@@ -1,5 +1,7 @@
 # Upcoming
 
+- fix: No output when compiling to JavaScript on Windows (https://github.com/dafny-lang/dafny/pull/1824)
+
 
 # 3.4.1
 
