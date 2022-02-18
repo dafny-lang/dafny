@@ -13,19 +13,19 @@ All other pull requests and issues can be submitted here.
 
 - For issues, please include your Dafny version number, any relevant code, and expected results.
 
-- For pull requests, consider updating <../RELEASE_NOTES.md> if your change is user-visible, and add tests if possible.
+- For pull requests, consider updating [`RELEASE_NOTES.md`](../RELEASE_NOTES.md) if your change is user-visible, and add tests if possible.
 
-  - Dafny's integration tests are in <../Test>.  PRs that fix issues reported on GitHub should include a test in <../Test/git-issues/>.
+  - Dafny's integration tests are in [`Test`](../Test).  PRs that fix issues reported on GitHub should include a test in [`Test/git-issues/`](../Test/git-issues/).
 
-    Each `.dfy` file in `Test/` a test, with a  [`lit`](https://llvm.org/docs/CommandGuide/lit.html) header describing how to run it and a `.expect` file indicating the expected output.  See <../Test/README.md> for more info on running Dafny' integration tests.
+    Each `.dfy` file in `Test/` a test, with a  [`lit`](https://llvm.org/docs/CommandGuide/lit.html) header describing how to run it and a `.expect` file indicating the expected output.  See [`Test/README.md`](../Test/README.md) for more info on running Dafny' integration tests.
 
-  - Dafny's unit tests are in various `.Test` directories in <../Source>.
+  - Dafny's unit tests are in various `.Test` directories in [`Source`](../Source).
 
   Our CI is configured to run all tests when you create a PR.  To run tests locally, use `dotnet test Source/Dafny.sln` (but note that running the tests for our compiler backends requires installing lot of additional software).
 
 ## Code of Conduct
 
-See <./CODE_OF_CONDUCT.md>.
+See [`ODE_OF_CONDUCT.md`](./CODE_OF_CONDUCT.md).
 
 ## Security issue notifications
 
