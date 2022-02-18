@@ -196,6 +196,44 @@ for i := 0 to 100 {
 }
 ```
 
+Note that a loop invariant is checked on entry to a loop and at the closing curly-brace
+of the loop body. It is not checked at break statements. It also isn't checked at continue
+statements per se, but the loop invariant is checked as usual at the closing curly-brace
+that the continue statement jumps to.
+This checking ensures that the loop invariant holds at the very top of
+every iteration. Commonly, the only exit out of a loop happens when the loop guard evaluates
+to `false`. Since no state is changed between the top of an iteration (where the loop
+invariant is known to hold) and the evaluation of the loop guard, one can also rely on
+the loop invariant to hold immediately following the loop. But the loop invariant may
+not hold immediately following a loop if a loop iteration changes the program state and
+then exits the loop with a break statement.
+
+For example, the following program verifies:
+```dafny
+var i := 0;
+while i < 10
+  invariant 0 <= i <= 10
+{
+  if P(i) {
+    i := i + 200;
+    break;
+  }
+  i := i + 1;
+}
+assert i == 10 || 200 <= i < 210;
+```
+To explain the example, the loop invariant `0 <= i <= 10` is known to hold at the very top
+of each iteration,
+that is, just before the loop guard `i < 10` is evaluated. If the loop guard evaluates
+to `false`, then the negated guard condition (`10 <= i`) and the invariant hold, so
+`i == 10` will hold immediately after the loop. If the loop guard evaluates to `true`
+(that is, `i < 10` holds), then the loop body is entered. If the test `P(i)` then evaluates
+to `true`, the loop adds `200` to `i` and breaks out of the loop, so on such a
+path, `200 <= i < 210` is known to hold immediately after the loop. This is summarized
+in the assert statement in the example.
+So, remember, a loop invariant holds at the very top of every iteration, not necessarily
+immediately after the loop.
+
 ## 19.3. Block Statement
 ````grammar
 BlockStmt = "{" { Stmt } "}"
