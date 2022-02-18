@@ -30,7 +30,8 @@ referenced in a `break` or `continue` statement within the labeled statement
 mentions the label must be _enclosed_ in the labeled statement.
 The label may also be used in an `old` expression ([Section 20.24](#sec-old-expression)). In this case, the label
 must have been encountered during the control flow en route to the `old`
-expression, which is to say the label must _dominate_ the use of the label.
+expression. We say in this case that the (program point of the) label _dominates_
+the (program point of the) use of the label.
 
 A statement can be given several labels. It makes no difference which of these
 labels is used to reference the statement---they are synonyms of each other.
