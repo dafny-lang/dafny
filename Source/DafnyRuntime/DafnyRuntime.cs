@@ -1154,7 +1154,7 @@ namespace Dafny {
   internal class ConcatSequence<T> : Sequence<T> {
     // INVARIANT: Either left != null, right != null, and elmts's underlying array == null or
     // left == null, right == null, and elmts's underlying array != null
-    private ISequence<T> left, right;
+    private volatile ISequence<T> left, right;
     private ImmutableArray<T> elmts;
     private readonly int count;
 
