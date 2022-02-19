@@ -1191,6 +1191,7 @@ namespace Dafny {
       var toVisit = new Stack<ISequence<T>>();
       var (leftBuffer, rightBuffer) = (left, right);
       if (left == null || right == null) {
+        // elmts can't be .IsDefault while either left, or right are null
         return elmts;
       }
       toVisit.Push(rightBuffer);
@@ -1201,6 +1202,7 @@ namespace Dafny {
         if (seq is ConcatSequence<T> { elmts: { IsDefault: true } } cs) {
           (leftBuffer, rightBuffer) = (cs.left, cs.right);
           if (cs.left == null || cs.right == null) {
+            // !cs.elmts.IsDefault, due to concurrent enumeration
             toVisit.Push(cs);
           } else {
             toVisit.Push(rightBuffer);
