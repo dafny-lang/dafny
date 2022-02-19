@@ -520,16 +520,41 @@ IteratorSpec =
 
 An iterator specification applies both to the iterator's constructor
 method and to its `MoveNext` method. The `reads` and `modifies`
-clauses apply to both of them. For the `requires` and `ensures`
-clauses, if `yield` is not present they apply to the constructor,
-but if `yield` is present they apply to the `MoveNext` method.
+clauses apply to both of them. A `requires` clause applies to the
+constructor, but a `yield requires` or `decreases` clause
+applies to the `MoveNext` method. 
+A `yield ensures` clause applies to the `MoveNext` method only
+when another element is yielded, while an `ensures` clause similarly
+applies to the `MoveNext` method only when another element is NOT yielded.
+This means `yield ensures` clauses must hold for each `yield` statement
+in an iterator's body, while `ensures` clauses must hold when the
+body completes.
 
-TODO: What is the meaning of a `decreases` clause on an iterator?
-Does it apply to `MoveNext`? Make sure our description of
-iterators explains these.
+Note also that all iterators define an implicit `Valid()` predicate
+that is 
 
-TODO: What is the relationship between the post condition and
-the `Valid()` predicate?
+The following table summarized how these clauses are translated into
+the iterator type:
+
+ clause               | target          | equivalent clause
+----------------------|-----------------|---------------------------
+ `requires P`         | constructor     | `requires P`
+----------------------|-----------------|---------------------------
+ (always implicit)    | constructor     | `ensures Valid()`
+----------------------|-----------------|---------------------------
+ `yield requires P`   | `MoveNext()`    | `requires P`
+----------------------|-----------------|---------------------------
+ (always implicit)    | `MoveNext()`    | `requires Valid()`
+----------------------|-----------------|---------------------------
+ `yield ensures P`    | `MoveNext()`    | `ensures more ==> P`
+----------------------|-----------------|---------------------------
+ (always implicit)    | `MoveNext()`    | `ensures more ==> Valid()`
+----------------------|-----------------|---------------------------
+ `ensures P`          | `MoveNext()`    | `ensures !more ==> P`
+----------------------|-----------------|---------------------------
+ `decreases A, B`     | `MoveNext()`    | `decreases A, B`
+----------------------|-----------------|---------------------------
+
 
 ## 5.6. Loop Specification
 ````grammar
