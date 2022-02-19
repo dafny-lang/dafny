@@ -531,7 +531,10 @@ in an iterator's body, while `ensures` clauses must hold when the
 body completes.
 
 Note also that all iterators define an implicit `Valid()` predicate
-that is 
+that is used as a pre-condition for `MoveNext`. An iterator is only
+guaranteed to be `Valid()` after invoking `MoveNext` if that method 
+returns `true`, which prevents you from attempting to move to any
+additional elements once the iterator has terminated.
 
 The following table summarized how these clauses are translated into
 the iterator type:
