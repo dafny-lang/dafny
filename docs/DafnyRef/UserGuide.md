@@ -173,13 +173,10 @@ of these are described in the following subsections. In general note that,
 - the compiled code originating from `dafny` can be compiled with other source and binary code, but only the `dafny`-originated code is verified
 - the output file names can be set using `-out`
 - for each target language, there is a runtime library that must be used with the `dafny`-generated code when executing that code; the runtime libraries are
-part of the Binary and Source releases (typically in the Binaries folder)
+part of the Binary (`./DafnyRuntime.*`) and Source (`./Source/DafnyRuntime/DafnyRuntime.*`) releases
 - names in Dafny are written out as names in the target language. In some cases this can result in naming conflicts.
 Thus if a Dafny program is intended to be compiled to a target language X, you should avoid using Dafny identifiers
 that are not legal identifiers in X or that conflict with reserved words in X.
-
-
-TODO - location of DafnyRuntime files
 
 ### 24.9.1. Main method {#sec-user-guide-main}
 
@@ -261,10 +258,23 @@ TO BE WRITTEN
 
 ### 24.9.7. C++
 
-The C++ back-end is still very preliminary and is available for experimentation only.
+The C++ backend was written assuming that it would primarily support writing
+C/C++ style code in Dafny, which leads to some limitations in the current
+implementation.
 
-TO BE WRITTEN
-
+- We do not support BigIntegers, so do not use `int`, or raw instances of
+  `arr.Length`, or sequence length, etc. in executable code.  You can however,
+  use `arr.Length as uint64` if you can prove your array is an appropriate
+  size.  The compiler will report inappropriate integer use.
+- We do not support more advanced Dafny features like traits or co-inductive
+  types.
+- Very limited support for higher order functions even for array init.  Use
+  extern definitions like newArrayFill (see [extern.dfy]
+  (https://github.com/dafny-lang/dafny/blob/master/Test/c++/extern.dfy)) or
+  similar.  See also the example in [`functions.dfy`]
+  (https://github.com/dafny-lang/dafny/blob/master/Test/c++/functions.dfy).
+- The current backend also assumes the use of C++17 in order to cleanly and
+  performantly implement datatypes.
 
 ## 24.10. Dafny Command Line Options {#sec-command-line-options}
 
