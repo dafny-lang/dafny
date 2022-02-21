@@ -11075,6 +11075,7 @@ namespace Microsoft.Dafny {
             s.TargetStmt = target;
           }
         } else {
+          Contract.Assert(1 <= s.BreakAndContinueCount); // follows from BreakStmt class invariant and the guard for this "else" branch
           var jumpStmt = s.BreakAndContinueCount == 1 ?
             $"a non-labeled '{s.Kind}' statement" :
             $"a '{Util.Repeat(s.BreakAndContinueCount - 1, "break ")}{s.Kind}' statement";
