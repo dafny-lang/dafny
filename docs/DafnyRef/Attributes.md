@@ -311,7 +311,7 @@ More information about the Boogie implementation of {:opaque} [here](https://git
 <!--
 Describe this where refinement is described, as appropriate.
 
-### 22.1.15. prependAssertToken
+-### 22.1.15. prependAssertToken
 This is used internally in Dafny as part of module refinement.
 It is an attribute on an assert statement.
 The Dafny code has the following comment:
@@ -328,7 +328,7 @@ the functionality is already adequately described where
 refinement is described.
 -->
 
-### 22.1.16. tailrecursion
+### 22.1.14. tailrecursion
 This attribute is used on method declarations. It has a boolean argument.
 
 If specified with a false value, it means the user specifically
@@ -344,7 +344,7 @@ recursion was explicitly requested.
 * If `{:tailrecursion true}` was specified but the code does not allow it,
 an error message is given.
 
-### 22.1.17. timeLimitMultiplier
+### 22.1.15. timeLimitMultiplier
 This attribute may be placed on a method or function declaration
 and has an integer argument. If `{:timeLimitMultiplier X}` was
 specified a `{:timelimit Y}` attributed is passed on to Boogie
@@ -352,11 +352,11 @@ where `Y` is `X` times either the default verification time limit
 for a function or method, or times the value specified by the
 Boogie `timelimit` command-line option.
 
-### 22.1.18. trigger
+### 22.1.16. trigger
 Trigger attributes are used on quantifiers and comprehensions.
 They are translated into Boogie triggers.
 
-### 22.1.19. typeQuantifier
+### 22.1.17. typeQuantifier
 The `{:typeQuantifier}` attribute must be used on a quantifier if it
 quantifies over types.
 
