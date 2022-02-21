@@ -99,12 +99,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
   public enum NodeVerificationStatus {
     Unknown = 0,
-    Obsolete = 1,
-    Pending = 2,
-    Verified = 3,
-    ErrorObsolete = 4,
-    ErrorPending = 5,
-    Error = 6
+    Schedulded = 1,
+    Verifying = 2,
+    VerifiedObsolete = 3,
+    VerifiedVerifying = 4,
+    Verified = 5,
+    ErrorObsolete = 6,
+    ErrorVerifying = 7,
+    Error = 8
   }
 
   public enum LineVerificationStatus {
@@ -112,21 +114,23 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     Unknown = 0,
     // For first-time computation not actively computing but soon
     // (scheduledComputation)
-    Obsolete = 1,
+    Scheduled = 1,
     // For first-time computations, actively computing
-    Pending = 2,
+    Verifying = 2,
+    VerifiedObsolete = 3,
+    VerifiedVerifying = 4,
     // Also applicable for empty spaces if they are not surrounded by errors. 
-    Verified = 3,
+    Verified = 5,
     // For containers of other diagnostics nodes (e.g. methods)
-    ErrorRangeObsolete = 4,
-    ErrorRangePending = 5,
-    ErrorRange = 6,
+    ErrorRangeObsolete = 6,
+    ErrorRangePending = 7,
+    ErrorRange = 8,
     // For specific lines which have errors on it.
-    ErrorObsolete = 7,
-    ErrorPending = 8,
-    Error = 9,
+    ErrorObsolete = 9,
+    ErrorVerifying = 10,
+    Error = 11,
     // For lines containing resolution or parse errors
-    ResolutionError = 10
+    ResolutionError = 12
   }
 
   public class NodeDiagnostic {
@@ -145,22 +149,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
     public bool Finished { get; private set; } = false;
     public int StartTime { get; private set; }
-
-    public void Start() {
-      StartTime = DateTime.Now.Millisecond;
-      Status = Status == NodeVerificationStatus.Error ? NodeVerificationStatus.ErrorPending :
-          Status == NodeVerificationStatus.Verified ? Status :
-          NodeVerificationStatus.Pending;
-      Started = true;
-    }
-
-    public void Stop() {
-      EndTime = DateTime.Now.Millisecond;
-      Finished = true;
-    }
-
     public int EndTime { get; private set; }
-
     public int TimeSpent => Finished ? EndTime - StartTime : Started ? DateTime.Now.Millisecond - StartTime : -1;
 
     // Resources allocated at the end of the computation.
@@ -173,8 +162,36 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     public NodeDiagnostic[] Children { get; set; } = Array.Empty<NodeDiagnostic>();
 
     // Overriden by checking children if there are some
-    public NodeVerificationStatus Status { get; set; } = NodeVerificationStatus.Obsolete;
+    public NodeVerificationStatus Status { get; set; } = NodeVerificationStatus.Schedulded;
 
+    public void SetObsolete() {
+      Status = Status switch {
+        NodeVerificationStatus.Error => NodeVerificationStatus.ErrorObsolete,
+        NodeVerificationStatus.Verified => NodeVerificationStatus.VerifiedObsolete,
+        NodeVerificationStatus.Verifying => NodeVerificationStatus.Schedulded,
+        NodeVerificationStatus.ErrorVerifying => NodeVerificationStatus.ErrorObsolete,
+        NodeVerificationStatus.VerifiedVerifying => NodeVerificationStatus.VerifiedObsolete,
+        NodeVerificationStatus.Schedulded => NodeVerificationStatus.Schedulded,
+        NodeVerificationStatus.Unknown => NodeVerificationStatus.Unknown,
+        _ => Status
+      };
+      foreach (var child in Children) {
+        child.SetObsolete();
+      }
+    }
+
+    public void Start() {
+      StartTime = DateTime.Now.Millisecond;
+      Status = Status == NodeVerificationStatus.Error ? NodeVerificationStatus.ErrorVerifying :
+        Status == NodeVerificationStatus.Verified ? Status :
+        NodeVerificationStatus.Verifying;
+      Started = true;
+    }
+
+    public void Stop() {
+      EndTime = DateTime.Now.Millisecond;
+      Finished = true;
+    }
     private static int StatusSeverityOf(NodeVerificationStatus status) {
       return (int)status;
     }
@@ -207,15 +224,23 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
           if (Children.Length == 0) { // Not a range
             perLineDiagnostics[line] = Status switch {
               NodeVerificationStatus.Error => LineVerificationStatus.Error,
-              NodeVerificationStatus.ErrorPending => LineVerificationStatus.ErrorPending,
+              NodeVerificationStatus.ErrorVerifying => LineVerificationStatus.ErrorVerifying,
               NodeVerificationStatus.ErrorObsolete => LineVerificationStatus.ErrorObsolete,
+              NodeVerificationStatus.VerifiedObsolete => LineVerificationStatus.VerifiedObsolete,
+              NodeVerificationStatus.VerifiedVerifying => LineVerificationStatus.VerifiedVerifying,
+              NodeVerificationStatus.Schedulded => LineVerificationStatus.Scheduled,
+              NodeVerificationStatus.Verifying => LineVerificationStatus.Verifying,
               var status => (LineVerificationStatus)(int)status
             };
           } else { // For a range, 
             perLineDiagnostics[line] = Status switch {
               NodeVerificationStatus.Error => LineVerificationStatus.ErrorRange,
-              NodeVerificationStatus.ErrorPending => LineVerificationStatus.ErrorRangePending,
+              NodeVerificationStatus.ErrorVerifying => LineVerificationStatus.ErrorRangePending,
               NodeVerificationStatus.ErrorObsolete => LineVerificationStatus.ErrorRangeObsolete,
+              NodeVerificationStatus.VerifiedObsolete => LineVerificationStatus.VerifiedObsolete,
+              NodeVerificationStatus.VerifiedVerifying => LineVerificationStatus.VerifiedVerifying,
+              NodeVerificationStatus.Schedulded => LineVerificationStatus.Scheduled,
+              NodeVerificationStatus.Verifying => LineVerificationStatus.Verifying,
               var status => (LineVerificationStatus)(int)status
             };
           }
@@ -225,7 +250,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
     // Returns true if a status was updated
     public bool SetVerifiedIfPending() {
-      if (Status is NodeVerificationStatus.Obsolete or NodeVerificationStatus.ErrorObsolete) {
+      if (Status is NodeVerificationStatus.Schedulded or NodeVerificationStatus.ErrorObsolete) {
         Status = NodeVerificationStatus.Verified;
         return true;
       }
