@@ -7,7 +7,10 @@ using System.Linq;
 using System.Text;
 using System.Diagnostics.Contracts;
 using System.IO;
+using System.Reflection;
+using System.Text.RegularExpressions;
 using JetBrains.Annotations;
+using Microsoft.Dafny.Plugins;
 using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
@@ -136,12 +139,13 @@ namespace Microsoft.Dafny {
     public string BoogieXmlFilename = null;
     public bool CompileMocks = false;
 
+    public List<Plugin> Plugins = new();
+
     public virtual TestGenerationOptions TestGenOptions =>
       testGenOptions ??= new TestGenerationOptions();
 
     protected override bool ParseOption(string name, Bpl.CommandLineOptionEngine.CommandLineParseState ps) {
       var args = ps.args; // convenient synonym
-
       switch (name) {
         case "dprelude":
           if (ps.ConfirmArgumentCount(1)) {
@@ -226,6 +230,27 @@ namespace Microsoft.Dafny {
             int verbosity = 0;
             if (ps.GetNumericArgument(ref verbosity, 2)) {
               CompileVerbose = verbosity == 1;
+            }
+
+            return true;
+          }
+
+        case "Plugin":
+        case "plugin": {
+            if (ps.ConfirmArgumentCount(1)) {
+              var pluginAndArgument = args[ps.i];
+              if (pluginAndArgument.Length > 0) {
+                var pluginArray = pluginAndArgument.Split(',');
+                var pluginPath = pluginArray[0];
+                var arguments = Array.Empty<string>();
+                if (pluginArray.Length >= 2) {
+                  // There are no commas in paths, but there can be in arguments
+                  var argumentsString = string.Join(',', pluginArray.Skip(1));
+                  // Parse arguments, accepting and remove double quotes that isolate long arguments
+                  arguments = ParsePluginArguments(argumentsString);
+                }
+                Plugins.Add(Plugin.Load(pluginPath, arguments));
+              }
             }
 
             return true;
@@ -511,6 +536,18 @@ namespace Microsoft.Dafny {
       return TestGenOptions.ParseOption(name, ps) || base.ParseOption(name, ps);
     }
 
+    private static string[] ParsePluginArguments(string argumentsString) {
+      var splitter = new Regex(@"""(?<escapedArgument>(?:[^""\\]|\\\\|\\"")*)""|(?<rawArgument>[^ ]+)");
+      var escapedChars = new Regex(@"(?<escapedDoubleQuote>\\"")|\\\\");
+      return splitter.Matches(argumentsString).Select(
+        matchResult =>
+          matchResult.Groups["escapedArgument"].Success
+          ? escapedChars.Replace(matchResult.Groups["escapedArgument"].Value,
+            matchResult2 => matchResult2.Groups["escapedDoubleQuote"].Success ? "\"" : "\\")
+          : matchResult.Groups["rawArgument"].Value
+      ).ToArray();
+    }
+
     protected void InvalidArgumentError(string name, CommandLineParseState ps) {
       ps.Error("Invalid argument \"{0}\" to option {1}", ps.args[ps.i], name);
     }
@@ -657,7 +694,40 @@ namespace Microsoft.Dafny {
       is not, an error is given.
 
     {:termination}
-      TODO
+      Dafny currently lacks the features needed to specify usable termination
+      metrics for trait methods that are dynamically dispatched to method
+      implementations given in other modules. This issue and a sketch of a
+      solution are described in https://github.com/dafny-lang/dafny/issues/1588.
+      Until such features are added to the language, a type `C` that extends a
+      trait `T` must be declared in the same module as `T`.
+      There is, however, an available loophole: if a programmer is willing to
+      take the responsibility that all calls to methods in a trait `T`
+      that dynamically dispatch to implementations in other modules terminate,
+      then the trait `T` can be marked with `{:termination false}`. This will
+      allow `T` to be extended by types declared in modules outside `T`'s module.
+
+      Caution: This loophole is unsound; that is, if a cross-module dynamic
+      dispatch fails to terminate, then this and other errors in the program
+      may have been overlooked by the verifier.       
+
+      The meaning of `{:termination false}` is defined only on trait declarations.
+      It has no meaning if applied to other declarations.
+
+      Applying `{:termination false}` to a trait is similar to the
+      effect of declaring each of its methods with `decreases *`, but
+      there are several differences.  The biggest difference is that
+      `decreases *` is sound, whereas the attribute is not. As such,
+      `decreases *` cannot be used with functions, lemmas, or ghost
+      methods, and callers of a `decreases *` method must themselves
+      be declared with `decreases *`. In contrast, `{:termination false}`
+      applies to all functions, lemmas, and methods of the trait, and
+      callers do not have to indicate that they are using such a
+      trait. Another difference is that `{:termination false}` does
+      not change checking for intra-module calls. That is, even if a
+      trait is declared with `{:termination false}`, calls to its
+      functions, lemmas, and methods from within the module where the
+      trait is declared are checked for termination in the usual
+      manner.
 
     {:warnShadowing}
       TODO
@@ -810,6 +880,12 @@ namespace Microsoft.Dafny {
     Note that the C++ backend has various limitations (see Docs/Compilation/Cpp.md).
     This includes lack of support for BigIntegers (aka int), most higher order
     functions, and advanced features like traits or co-inductive types.
+/plugin:<path to one assembly>[ <arguments>]
+    (experimental) One path to an assembly that contains at least one
+    instantiatable class extending Microsoft.Dafny.Plugin.Rewriter.
+    It can also extend Microsoft.Dafny.Plugins.PluginConfiguration to receive arguments
+    More information about what plugins do and how define them:
+    https://github.com/dafny-lang/dafny/blob/master/Source/DafnyLanguageServer/README.md#about-plugins
 /Main:<name>
     The (fully-qualified) name of the method to use as the executable entry point.
     Default is the method with the {{:main}} atrribute, or else the method named 'Main'.
