@@ -43,7 +43,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// Contains the real-time status of all verification efforts.
     /// Can be migrated from a previous document
     /// </summary>
-    public NodeDiagnostic VerificationDiagnostics { get; init; } = new NodeDiagnostic {
+    public NodeDiagnostic VerificationNodeDiagnostic { get; init; } = new NodeDiagnostic {
       DisplayName = "Document",
       Identifier = Text.Uri.ToString()
     };

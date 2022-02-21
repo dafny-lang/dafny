@@ -23,9 +23,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return;
       }
       PublishDocumentDiagnostics(document);
-      if (document.VerificationPass != null) {
-        PublishVerificationDiagnostics(document);
-      }
+      PublishVerificationDiagnostics(document);
 
       PublishGhostDiagnostics(document);
     }
@@ -53,7 +51,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public void PublishVerificationDiagnostics(DafnyDocument document) {
-      var errors = GetDiagnostics(document)
+      // Document.GetDiagnostics() returns not only resolution errors, but previous verification errors
+      var errors = document.Errors.GetDiagnostics(document.GetFilePath())
         .Where(x => x.Severity == DiagnosticSeverity.Error)
         .OrderBy(x => x.Range.Start.Line)
         .ToArray();
@@ -61,8 +60,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         Uri = document.Uri,
         Version = document.Version,
         Diagnostics = errors,
+        DiagnosticsAreResolutionErrors = document.VerificationPass == null,
         LinesCount = Regex.Matches(document.Text.Text, "\r?\n").Count + 1,
-        PerNodeDiagnostic = document.VerificationDiagnostics.Children
+        PerNodeDiagnostic = document.VerificationNodeDiagnostic.Children
       });
     }
 

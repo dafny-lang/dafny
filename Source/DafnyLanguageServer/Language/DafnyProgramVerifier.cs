@@ -104,7 +104,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       var program = document.Program;
       mutex.Wait(cancellationToken);
       try {
-        var verificationDiagnostics = document.VerificationDiagnostics;
+        var verificationDiagnostics = document.VerificationNodeDiagnostic;
         // The printer is responsible for two things: It logs boogie errors and captures the counter example model.
         var errorReporter = (DiagnosticErrorReporter)program.reporter;
         var printer = new ModelCapturingOutputPrinter(logger, errorReporter, progressReporter);

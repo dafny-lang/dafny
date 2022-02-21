@@ -197,7 +197,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
       }
       // TODO: Migrate previous diagnostics
-      document.VerificationDiagnostics.Children = result.ToArray();
+      document.VerificationNodeDiagnostic.Children = result.ToArray();
     }
 
     private static Position TokenToPosition(IToken token, bool end = false) {
@@ -228,7 +228,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     private void SetAllUnvisitedMethodsAsVerified(DafnyDocument document) {
       var updated = false;
-      foreach (var node in document.VerificationDiagnostics.Children) {
+      foreach (var node in document.VerificationNodeDiagnostic.Children) {
         updated = node.SetVerifiedIfPending() || updated;
       }
 
@@ -268,7 +268,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       public void ReportStartVerifyMethodOrFunction(IToken implToken) {
-        var targetMethodNode = document.VerificationDiagnostics.Children.FirstOrDefault(
+        var targetMethodNode = document.VerificationNodeDiagnostic.Children.FirstOrDefault(
           node => node?.Position == TokenToPosition(implToken) && node?.Filename == implToken.filename
           , null);
         if (targetMethodNode == null) {
@@ -280,7 +280,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       public void ReportEndVerifyMethodOrFunction(IToken implToken, VerificationResult verificationResult) {
-        var targetMethodNode = document.VerificationDiagnostics.Children.FirstOrDefault(node => node?.Position == TokenToPosition(implToken), null);
+        var targetMethodNode = document.VerificationNodeDiagnostic.Children.FirstOrDefault(node => node?.Position == TokenToPosition(implToken), null);
         if (targetMethodNode == null) {
           logger.LogError($"No method at {implToken}");
         } else {
@@ -364,7 +364,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
         var implPosition = TokenToPosition(implTok);
         // We might want to simplify this quadratic algorithm
-        var method = document.VerificationDiagnostics.Children.FirstOrDefault(node =>
+        var method = document.VerificationNodeDiagnostic.Children.FirstOrDefault(node =>
           node != null && node.Position == implPosition, null);
         if (method != null) {
           return method.Range.Intersects(lastChange) ? 10 : 0;

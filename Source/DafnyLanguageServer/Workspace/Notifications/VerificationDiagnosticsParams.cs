@@ -44,15 +44,22 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     /// </summary>
     public int LinesCount { get; init; }
 
+    public bool DiagnosticsAreResolutionErrors { get; init; }
 
     /// <summary>
     /// Returns per-line real-time diagnostic
     /// </summary>
-    public LineVerificationStatus[] PerLineDiagnostic => RenderPerLineDiagnostics(this, PerNodeDiagnostic, LinesCount);
+    public LineVerificationStatus[] PerLineDiagnostic =>
+      RenderPerLineDiagnostics(this, PerNodeDiagnostic, LinesCount,
+        DiagnosticsAreResolutionErrors, Diagnostics);
 
     static LineVerificationStatus[] RenderPerLineDiagnostics(
-      VerificationDiagnosticsParams verificationDiagnosticsParams, NodeDiagnostic[] perNodeDiagnostic,
-      int numberOfLines) {
+      VerificationDiagnosticsParams verificationDiagnosticsParams,
+      NodeDiagnostic[] perNodeDiagnostic,
+      int numberOfLines,
+      bool diagnosticsAreResolutionErrors,
+      Container<Diagnostic> diagnostics
+    ) {
       var result = new LineVerificationStatus[numberOfLines];
 
       // Render node content into lines.
@@ -77,6 +84,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
         } else {
           previousNotUnknown = result[i];
 
+        }
+      }
+
+      if (diagnosticsAreResolutionErrors) {
+        foreach (var diagnostic in diagnostics) {
+          result[diagnostic.Range.Start.Line - 1] = LineVerificationStatus.ResolutionError;
         }
       }
 
@@ -111,7 +124,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     // For specific lines which have errors on it.
     ErrorObsolete = 7,
     ErrorPending = 8,
-    Error = 9
+    Error = 9,
+    // For lines containing resolution or parse errors
+    ResolutionError = 10
   }
 
   public class NodeDiagnostic {
