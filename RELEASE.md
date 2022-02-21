@@ -1,4 +1,6 @@
-This is the procedure for generating a new Dafny release.
+# Preparing a new Dafny release
+
+## Making a new Github release
 
 0. Write release notes about changes since the last release in
    `RELEASE_NOTES.md`.
@@ -59,7 +61,7 @@ This is the procedure for generating a new Dafny release.
 
 10. Announce the new release to the world.
 
---------------------------
+## Updating Dafny on Homebrew
 
 Homebrew (`brew`) is a package manager for macOS. The Dafny project
 maintains a brew "formula" that allows easy installation of Dafny and

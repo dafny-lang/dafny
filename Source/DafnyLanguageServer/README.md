@@ -79,12 +79,17 @@ Options provided through the command line have higher priority than the options 
 ### Plugins
 
 ```sh
-# Provides a path to assemblies and optional space-separated command-line arguments after a commo.
-# Easier to use via VSCode's Settings interface (no need to escape inner double quotes)
+# Provides a path to assemblies and optional space-separated command-line arguments after a comma.
 # Repeat with --dafny:plugins:0=... --dafny:plugins:1=... for multiple plugins.
---dafny:plugins:0=example.dll
---dafny:plugins:0=example2.dll,oneArgument
-"--dafny:plugins:0=\"example2.dll,\\\"firstArgument with space\\\" secondArgument\""
+--dafny:plugins:0=path\to\example.dll
+--dafny:plugins:0=path/to/example2.dll,oneArgument
+--dafny:plugins:0=example3.dll,"firstArgument with \" space and quote" secondArgument
+
+# On the command-line, you'd use the following escapes for the first and third examples:
+"--dafny:plugins:0=path\\to\\example.dll"
+"--dafny:plugins:0=example3.dll,\"firstArgument with \\\" space and quote\" secondArgument"
+
+# For just the dafny executable, replace `--dafny:plugins:X` by `--plugin:` that you can repeat.
 ```
 
 #### About plugins

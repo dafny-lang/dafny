@@ -82,7 +82,7 @@ namespace Microsoft.Dafny {
     }
 
     private bool BoogieOnce(string moduleName, Bpl.Program boogieProgram) {
-      if (boogieProgram.Resolve() == 0 && boogieProgram.Typecheck() == 0) { //FIXME ResolveAndTypecheck?
+      if (boogieProgram.Resolve(DafnyOptions.O) == 0 && boogieProgram.Typecheck(DafnyOptions.O) == 0) { //FIXME ResolveAndTypecheck?
         engine.EliminateDeadVariables(boogieProgram);
         engine.CollectModSets(boogieProgram);
         engine.CoalesceBlocks(boogieProgram);
@@ -152,7 +152,7 @@ namespace Microsoft.Dafny {
 
           foreach (var impl in boogieProgram.Item2.Implementations) {
             using (StreamWriter sw = new StreamWriter(fname + impl.Name + ".dot")) {
-              sw.Write(boogieProgram.Item2.ProcessLoops(impl).ToDot());
+              sw.Write(boogieProgram.Item2.ProcessLoops(engine.Options, impl).ToDot());
             }
           }
         }
