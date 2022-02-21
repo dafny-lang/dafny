@@ -22,11 +22,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     public DocumentUri Uri { get; init; }
 
     /// <summary>
-    /// The number of lines in the document
-    /// </summary>
-    public int LinesCount { get; init; }
-
-    /// <summary>
     /// Gets the version of the document.
     /// </summary>
     public int? Version { get; init; }
@@ -45,16 +40,26 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     public NodeDiagnostic[] PerNodeDiagnostic { get; init; }
 
     /// <summary>
+    /// The number of lines in the document
+    /// </summary>
+    public int LinesCount { get; init; }
+
+
+    /// <summary>
     /// Returns per-line real-time diagnostic
     /// </summary>
-    public LineVerificationStatus[] PerLineDiagnostic => RenderPerLineDiagnostics(PerNodeDiagnostic, LinesCount);
+    public LineVerificationStatus[] PerLineDiagnostic => RenderPerLineDiagnostics(this, PerNodeDiagnostic, LinesCount);
 
-    static LineVerificationStatus[] RenderPerLineDiagnostics(NodeDiagnostic[] perNodeDiagnostic, int numberOfLines) {
+    static LineVerificationStatus[] RenderPerLineDiagnostics(
+      VerificationDiagnosticsParams verificationDiagnosticsParams, NodeDiagnostic[] perNodeDiagnostic,
+      int numberOfLines) {
       var result = new LineVerificationStatus[numberOfLines];
 
       // Render node content into lines.
       foreach (var nodeDiagnostic in perNodeDiagnostic) {
-        nodeDiagnostic.RenderInto(result);
+        if (nodeDiagnostic.Filename == verificationDiagnosticsParams.Uri) {
+          nodeDiagnostic.RenderInto(result);
+        }
       }
 
       // Fill in the missing "Unknown" based on the surrounding content
@@ -116,7 +121,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     /// Used to relocate previous diagnostics, and re-trigger the verification of some diagnostics.
     public string Identifier { get; init; }
 
-    public IToken Token { get; init; }
+    public string Filename { get; init; }
+
+    public Position Position { get; init; }
 
     /// Time and Resource diagnostics
     public bool Started { get; private set; } = false;
@@ -150,6 +157,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     // Sub-diagnostics if any
     public NodeDiagnostic[] Children { get; set; } = Array.Empty<NodeDiagnostic>();
 
+    // Overriden by checking children if there are some
+    public NodeVerificationStatus Status { get; set; } = NodeVerificationStatus.Obsolete;
+
     private static int StatusSeverityOf(NodeVerificationStatus status) {
       return (int)status;
     }
@@ -172,9 +182,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
         Status = childrenStatus;
       }
     }
-
-    // Overriden by checking children if there are some
-    public NodeVerificationStatus Status { get; set; } = NodeVerificationStatus.Obsolete;
 
     public void RenderInto(LineVerificationStatus[] perLineDiagnostics) {
       foreach (var child in Children) {

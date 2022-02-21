@@ -187,8 +187,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
                 result.Add(new NodeDiagnostic() {
                   DisplayName = member.Name,
                   Identifier = member.CompileName,
-                  Token = member.tok,
-                  Range = new Range(TokenToPosition(member.BodyStartTok, false), TokenToPosition(member.BodyEndTok, true))
+                  Filename = member.tok.filename,
+                  Position = TokenToPosition(member.tok),
+                  Range = new Range(TokenToPosition(member.tok, false), TokenToPosition(member.BodyEndTok, true))
                 });
               }
             }
@@ -199,7 +200,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       document.VerificationDiagnostics.Children = result.ToArray();
     }
 
-    private Position TokenToPosition(IToken token, bool end) {
+    private static Position TokenToPosition(IToken token, bool end = false) {
       return new Position(token.line, token.col + (end ? token.val.Length : 0));
     }
 
@@ -254,7 +255,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       public void ReportStartVerifyMethodOrFunction(IToken implToken) {
-        var targetMethodNode = document.VerificationDiagnostics.Children.FirstOrDefault(node => node?.Token == implToken, null);
+        var targetMethodNode = document.VerificationDiagnostics.Children.FirstOrDefault(
+          node => node?.Position == TokenToPosition(implToken) && node?.Filename == implToken.filename
+          , null);
         if (targetMethodNode == null) {
           logger.LogError($"No method at {implToken}");
         } else {
@@ -264,7 +267,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       public void ReportEndVerifyMethodOrFunction(IToken implToken, VerificationResult verificationResult) {
-        var targetMethodNode = document.VerificationDiagnostics.Children.FirstOrDefault(node => node?.Token == implToken, null);
+        var targetMethodNode = document.VerificationDiagnostics.Children.FirstOrDefault(node => node?.Position == TokenToPosition(implToken), null);
         if (targetMethodNode == null) {
           logger.LogError($"No method at {implToken}");
         } else {
@@ -275,6 +278,54 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             _ => NodeVerificationStatus.Error
           };
           targetMethodNode.ResourceCount = verificationResult.ResourceCount;
+          if (verificationResult.Errors != null) {
+            var children = new List<NodeDiagnostic>();
+            var errorCount = 1;
+
+            void AddChildError(IToken token, string errorDisplay = "", string errorIdentifier = "") {
+              var errorPosition = TokenToPosition(token);
+              if (targetMethodNode.Filename != token.filename) {
+                return;
+              }
+
+              errorDisplay = errorDisplay != "" ? " " + errorDisplay : "";
+              errorIdentifier = errorIdentifier != "" ? "_" + errorIdentifier : "";
+
+              var errorRange = new Range(errorPosition, TokenToPosition(token, true));
+              children.Add(new NodeDiagnostic {
+                DisplayName =
+                  $"{targetMethodNode.DisplayName}{errorDisplay} #{errorCount}",
+                Identifier =
+                  $"{targetMethodNode.Identifier}_{errorCount}{errorIdentifier}",
+                Position = errorPosition,
+                Range = errorRange,
+                Filename = token.filename,
+                Status = NodeVerificationStatus.Error
+              });
+            }
+
+            foreach (var error in verificationResult.Errors) {
+              if (error is ReturnCounterexample returnError) {
+                AddChildError(returnError.FailingEnsures.tok, "", "");
+                var returnPosition = TokenToPosition(returnError.FailingReturn.tok);
+                if (returnPosition != targetMethodNode.Position) {
+                  AddChildError(returnError.FailingReturn.tok, "return branch", "_return");
+                  // TODO: Dynamic range highlighting + display error on postconditions of edited code
+                }
+              } else if (error is AssertCounterexample assertError) {
+                AddChildError(assertError.FailingAssert.tok, "Assertion", "assert");
+              } else if (error is CallCounterexample callError) {
+                AddChildError(callError.FailingCall.tok, "Call", "call");
+                if (targetMethodNode.Range.Contains(TokenToPosition(callError.FailingRequires.tok))) {
+                  AddChildError(callError.FailingCall.tok, "Call precondition", "call_precondition");
+                }
+              }
+
+              errorCount++;
+            }
+            targetMethodNode.Children = children.ToArray();
+          }
+
           diagnosticPublisher.PublishVerificationDiagnostics(document);
         }
       }
@@ -286,6 +337,37 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       public void ReportVerificationCompleted(List<IToken> assertionToken, IToken implToken,
         ConditionGeneration.Outcome outcome, int totalResource) {
         // TODO: update node diagnostics
+      }
+
+      public void ReportErrorFindItsMethod(IToken tok, string message) {
+        /*var targetMethodNode = document.VerificationDiagnostics.Children.FirstOrDefault(
+          node => node.Range.Contains(TokenToPosition(tok)));
+        if (targetMethodNode == null) {
+          logger.LogError($"No method at {tok}");
+        } else {
+          var children = targetMethodNode.Children.ToList();
+          while (true) {
+            children.Add(new NodeDiagnostic() {
+              DisplayName = message,
+              Filename = tok.filename,
+              Identifier = targetMethodNode.Identifier + "_" + children.Count,
+              Position = TokenToPosition(tok),
+              Range = new Range(TokenToPosition(tok), TokenToPosition(tok, true)),
+              Status = NodeVerificationStatus.Error
+            });
+            
+            if (tok is NestedToken nestedToken) {
+              message = nestedToken.Message ?? "Related failing assertion";
+              tok = nestedToken.Inner;
+            } else {
+              break;
+            }
+          }
+          // Add related errors as well.
+          targetMethodNode.Children = children.ToArray();
+          targetMethodNode.RecomputeStatus();
+          diagnosticPublisher.PublishVerificationDiagnostics(document);
+        }*/
       }
     }
   }

@@ -198,6 +198,9 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
       public void ReportBplError(IToken tok, string message, bool error, TextWriter tw, [AllowNull] string category) {
         logger.LogError(message);
+        if (error) {
+          progressReporter.ReportErrorFindItsMethod(tok, message);
+        }
       }
 
       public void ReportImplCount(int implNumber) {
@@ -223,6 +226,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       public void WriteErrorInformation(ErrorInformation errorInfo, TextWriter tw, bool skipExecutionTrace) {
         CaptureCounterExamples(errorInfo);
         errorReporter.ReportBoogieError(errorInfo);
+        progressReporter.ReportErrorFindItsMethod(errorInfo.Tok, errorInfo.Msg);
       }
 
       private void CaptureCounterExamples(ErrorInformation errorInfo) {
