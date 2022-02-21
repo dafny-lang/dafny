@@ -1,7 +1,7 @@
 # Upcoming
 
 - fix: No output when compiling to JavaScript on Windows (https://github.com/dafny-lang/dafny/pull/1824)
-- fix: No warning "File contains no code" if module contains a submodule (https://github.com/dafny-lang/dafny/pull/1840)
+- fix: No warning "File contains no code" if a file only contains a submodule (https://github.com/dafny-lang/dafny/pull/1840)
 
 # 3.4.1
 
