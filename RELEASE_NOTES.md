@@ -9,6 +9,7 @@
 - fix: CanCall assumptions for loop invariants (https://github.com/dafny-lang/dafny/pull/1813)
 - fix: Behavior of the C# runtime in a concurrent setting (https://github.com/dafny-lang/dafny/pull/1780)
 
+
 # 3.4.1
 
 - feat: Plugin support in the resolution pipeline (https://github.com/dafny-lang/dafny/pull/1739)
