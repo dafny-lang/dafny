@@ -19,7 +19,7 @@ All other pull requests and issues can be submitted here.
 
     Each `.dfy` file in `Test/` a test, with a  [`lit`](https://llvm.org/docs/CommandGuide/lit.html) header describing how to run it and a `.expect` file indicating the expected output.  See [`Test/README.md`](../Test/README.md) for more info on running Dafny' integration tests.
 
-  - Dafny's unit tests are in various `.Test` directories in [`Source`](../Source).
+  - Dafny's unit tests are in various `*.Test` directories in [`Source`](../Source).
 
   Our CI is configured to run all tests when you create a PR.  To run tests locally, use `dotnet test Source/Dafny.sln` (but note that running the tests for our compiler backends requires installing lots of additional software).
 
