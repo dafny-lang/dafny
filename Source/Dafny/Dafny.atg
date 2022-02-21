@@ -2478,24 +2478,24 @@ BreakStmt<out Statement/*!*/ s>
 = (. var isContinue = false;
      IToken start = Token.NoToken;
      IToken label = null;
-     int breakCount = 1;
+     int breakAndContinueCount = 1;
   .)
   ( "continue"              (. start = t; isContinue = true; .)
     [ LabelName<out label> ]
   | "break"                 (. start = t; .)
     ( LabelName<out label>
-    | { "break"             (. breakCount++; .)
+    | { "break"             (. breakAndContinueCount++; .)
       }
-      [ "continue"          (. breakCount++; isContinue = true; .)
+      [ "continue"          (. breakAndContinueCount++; isContinue = true; .)
       ]
     )
   )
   SYNC
   ";"
-  (. Contract.Assert(label == null || breakCount == 1);
+  (. Contract.Assert(label == null || breakAndContinueCount == 1);
      s = label != null ?
        new BreakStmt(start, t, label, isContinue) :
-       new BreakStmt(start, t, breakCount, isContinue);
+       new BreakStmt(start, t, breakAndContinueCount, isContinue);
   .)
   .
 

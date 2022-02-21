@@ -680,7 +680,7 @@ namespace Microsoft.Dafny {
         if (s.TargetLabel != null) {
           rr = new BreakStmt(s.Tok, s.EndTok, s.TargetLabel, s.IsContinue);
         } else {
-          rr = new BreakStmt(s.Tok, s.EndTok, s.BreakCount, s.IsContinue);
+          rr = new BreakStmt(s.Tok, s.EndTok, s.BreakAndContinueCount, s.IsContinue);
         }
         // r.TargetStmt will be filled in as later
         List<BreakStmt> breaks;

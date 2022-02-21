@@ -1209,7 +1209,7 @@ namespace Microsoft.Dafny {
         if (s.TargetLabel != null) {
           wr.Write($"{s.Kind} {s.TargetLabel.val};");
         } else {
-          for (int i = 0; i < s.BreakCount - 1; i++) {
+          for (int i = 0; i < s.BreakAndContinueCount - 1; i++) {
             wr.Write("break ");
           }
           wr.Write($"{s.Kind};");

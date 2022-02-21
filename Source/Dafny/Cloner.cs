@@ -580,7 +580,7 @@ namespace Microsoft.Dafny {
         if (s.TargetLabel != null) {
           r = new BreakStmt(Tok(s.Tok), Tok(s.EndTok), s.TargetLabel, s.IsContinue);
         } else {
-          r = new BreakStmt(Tok(s.Tok), Tok(s.EndTok), s.BreakCount, s.IsContinue);
+          r = new BreakStmt(Tok(s.Tok), Tok(s.EndTok), s.BreakAndContinueCount, s.IsContinue);
         }
 
       } else if (stmt is ReturnStmt) {

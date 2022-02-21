@@ -11075,16 +11075,16 @@ namespace Microsoft.Dafny {
             s.TargetStmt = target;
           }
         } else {
-          var jumpStmt = s.BreakCount == 1 ?
+          var jumpStmt = s.BreakAndContinueCount == 1 ?
             $"a non-labeled '{s.Kind}' statement" :
-            $"a '{Util.Repeat(s.BreakCount - 1, "break ")}{s.Kind}' statement";
+            $"a '{Util.Repeat(s.BreakAndContinueCount - 1, "break ")}{s.Kind}' statement";
           if (loopStack.Count == 0) {
             reporter.Error(MessageSource.Resolver, s, $"{jumpStmt} is allowed only in loops");
-          } else if (loopStack.Count < s.BreakCount) {
+          } else if (loopStack.Count < s.BreakAndContinueCount) {
             reporter.Error(MessageSource.Resolver, s,
-              $"{jumpStmt} is allowed only in contexts with {s.BreakCount} enclosing loops, but the current context only has {loopStack.Count}");
+              $"{jumpStmt} is allowed only in contexts with {s.BreakAndContinueCount} enclosing loops, but the current context only has {loopStack.Count}");
           } else {
-            Statement target = loopStack[loopStack.Count - s.BreakCount];
+            Statement target = loopStack[loopStack.Count - s.BreakAndContinueCount];
             if (target.Labels == null) {
               // make sure there is a label, because the compiler and translator will want to see a unique ID
               target.Labels = new LList<Label>(new Label(target.Tok, null), null);
