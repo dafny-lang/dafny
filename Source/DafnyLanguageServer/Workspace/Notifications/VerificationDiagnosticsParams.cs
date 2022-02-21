@@ -207,5 +207,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
         }
       }
     }
+
+    // Returns true if a status was updated
+    public bool SetVerifiedIfPending() {
+      if (Status is NodeVerificationStatus.Obsolete or NodeVerificationStatus.ErrorObsolete) {
+        Status = NodeVerificationStatus.Verified;
+        return true;
+      }
+
+      return false;
+    }
   }
 }

@@ -216,12 +216,25 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var compilationStatusAfterVerification = verificationResult.Verified
         ? CompilationStatus.VerificationSucceeded
         : CompilationStatus.VerificationFailed;
+      // All unvisited nodes that were not verified, we need to set them as "verified"
+      SetAllUnvisitedMethodsAsVerified(document);
       notificationPublisher.SendStatusNotification(document.Text, compilationStatusAfterVerification);
       return document with {
         OldVerificationDiagnostics = new List<Diagnostic>(),
         SerializedCounterExamples = verificationResult.SerializedCounterExamples,
         VerificationPass = true
       };
+    }
+
+    private void SetAllUnvisitedMethodsAsVerified(DafnyDocument document) {
+      var updated = false;
+      foreach (var node in document.VerificationDiagnostics.Children) {
+        updated = node.SetVerifiedIfPending() || updated;
+      }
+
+      if (updated) {
+        diagnosticPublisher.PublishVerificationDiagnostics(document);
+      }
     }
 
     private record Request(CancellationToken CancellationToken) {
@@ -339,35 +352,25 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         // TODO: update node diagnostics
       }
 
+      // For realtime per-split verification, when verification is migrated
       public void ReportErrorFindItsMethod(IToken tok, string message) {
-        /*var targetMethodNode = document.VerificationDiagnostics.Children.FirstOrDefault(
-          node => node.Range.Contains(TokenToPosition(tok)));
-        if (targetMethodNode == null) {
-          logger.LogError($"No method at {tok}");
-        } else {
-          var children = targetMethodNode.Children.ToList();
-          while (true) {
-            children.Add(new NodeDiagnostic() {
-              DisplayName = message,
-              Filename = tok.filename,
-              Identifier = targetMethodNode.Identifier + "_" + children.Count,
-              Position = TokenToPosition(tok),
-              Range = new Range(TokenToPosition(tok), TokenToPosition(tok, true)),
-              Status = NodeVerificationStatus.Error
-            });
-            
-            if (tok is NestedToken nestedToken) {
-              message = nestedToken.Message ?? "Related failing assertion";
-              tok = nestedToken.Inner;
-            } else {
-              break;
-            }
-          }
-          // Add related errors as well.
-          targetMethodNode.Children = children.ToArray();
-          targetMethodNode.RecomputeStatus();
-          diagnosticPublisher.PublishVerificationDiagnostics(document);
-        }*/
+        // TODO: update node diagnostics
+      }
+
+      public int GetVerificationPriority(IToken implTok) {
+        var lastChange = document.LastChange;
+        if (lastChange == null) {
+          return 0;
+        }
+        var implPosition = TokenToPosition(implTok);
+        // We might want to simplify this quadratic algorithm
+        var method = document.VerificationDiagnostics.Children.FirstOrDefault(node =>
+          node != null && node.Position == implPosition, null);
+        if (method != null) {
+          return method.Range.Intersects(lastChange) ? 10 : 0;
+        }
+        // Can we do the call graph?
+        return 0;
       }
     }
   }

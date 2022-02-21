@@ -48,6 +48,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       Identifier = Text.Uri.ToString()
     };
 
+    // Used to prioritize verification to one method and its dependencies
+    public Range? LastChange { get; set; } = null;
+
     /// <summary>
     /// Checks if the given document uri is pointing to this dafny document.
     /// </summary>

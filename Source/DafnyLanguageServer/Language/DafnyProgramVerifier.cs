@@ -215,6 +215,10 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         progressReporter.ReportEndVerifyMethodOrFunction(implToken, result);
       }
 
+      public int GetVerificationPriority(IToken implTok) {
+        return progressReporter.GetVerificationPriority(implTok);
+      }
+
       public void ReportVerificationStarts(List<IToken> assertionTokens, IToken implToken) {
         progressReporter.ReportVerificationStarts(assertionTokens, implToken);
       }

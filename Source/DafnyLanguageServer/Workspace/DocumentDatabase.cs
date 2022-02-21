@@ -144,6 +144,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         relocator.RelocateDiagnostics(oldVerificationDiagnostics, documentChange, CancellationToken.None);
       try {
         var newDocument = await documentLoader.LoadAsync(updatedText, cancellationToken);
+        foreach (var change in documentChange.ContentChanges) {
+          newDocument.LastChange = change.Range;
+        }
         if (newDocument.SymbolTable.Resolved) {
           return newDocument with {
             OldVerificationDiagnostics = migratedVerificationDiagnotics

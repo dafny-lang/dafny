@@ -21,5 +21,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     void ReportVerificationCompleted(List<IToken> assertionToken, IToken implToken, ConditionGeneration.Outcome outcome,
       int totalResource);
     void ReportErrorFindItsMethod(IToken tok, string message);
+    int GetVerificationPriority(IToken implTok);
   }
 }
