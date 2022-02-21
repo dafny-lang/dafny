@@ -283,37 +283,50 @@ class A {
 
     [TestMethod]
     public async Task PassingANullChangeRangeClearsSymbolsTable() {
+      var source = "class X {}";
+      var documentItem = CreateTestDocument(source);
+
+      await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var document = await Documents.GetDocumentAsync(documentItem.Uri);
+      Assert.IsNotNull(document);
+      Assert.IsTrue(TryFindSymbolDeclarationByName(document, "X", out var _));
+
+      // First try a change that doesn't break resolution.
+      // In this case all information is recomputed and no relocation happens.
+      await ApplyChangeAndWaitCompletionAsync(document.Text, null, "class Y {}");
+      document = await Documents.GetDocumentAsync(document.Text.Uri);
+      Assert.IsNotNull(document); // No relocation, since no resolution errors, so Y can be found
+      Assert.IsFalse(TryFindSymbolDeclarationByName(document, "X", out var _));
+      Assert.IsTrue(TryFindSymbolDeclarationByName(document, "Y", out var _));
+
+      // Next try a change that breaks resolution.
+      // In this case symbols are relocated.  Since the change range is `null` all symbols for "test.dfy" are lost.
+      await ApplyChangeAndWaitCompletionAsync(document.Text, null, "; class Y {}");
+      document = await Documents.GetDocumentAsync(document.Text.Uri);
+      Assert.IsNotNull(document);
+      // Relocation happens due to the syntax error; range is null so table is cleared
+      Assert.IsFalse(TryFindSymbolDeclarationByName(document, "X", out var _));
+      Assert.IsFalse(TryFindSymbolDeclarationByName(document, "Y", out var _));
+    }
+
+
+    [TestMethod]
+    public async Task PassingANullChangeRangePreservesForeignSymbols() {
       var source = "include \"foreign.dfy\"\nclass X {}";
       var documentItem = CreateTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Lookup/TestFiles/test.dfy"));
 
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var document = await Documents.GetDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
-      Assert.IsTrue(TryFindSymbolDeclarationByName(document, "X", out var _));
       Assert.IsTrue(TryFindSymbolDeclarationByName(document, "A", out var _));
 
-      // First try a change that doesn't break resolution.
-      // In this case all information is recomputed and no relocation happens.
-      await ApplyChangeAndWaitCompletionAsync(document.Text, null, "include \"foreign.dfy\"\nclass Y {}");
-      document = await Documents.GetDocumentAsync(document.Text.Uri);
-      Assert.IsNotNull(document); // No relocation, since no resolution errors, so Y and A can be found
-      Assert.IsFalse(TryFindSymbolDeclarationByName(document, "X", out var _));
-      Assert.IsTrue(TryFindSymbolDeclarationByName(document, "Y", out var _));
-      Assert.IsTrue(TryFindSymbolDeclarationByName(document, "A", out var _));
-
-      // Next try a change that breaks resolution.
-      // In this case symbols are relocated.  Since the change range is `null` all symbols for "test.dfy" are lost,
-      // but those for `foreign.dfy` are kept.
+      // Try a change that breaks resolution.  Symbols for `foreign.dfy` are kept.
       await ApplyChangeAndWaitCompletionAsync(document.Text, null, "; include \"foreign.dfy\"\nclass Y {}");
       document = await Documents.GetDocumentAsync(document.Text.Uri);
       Assert.IsNotNull(document);
-      // Relocation happens due to the syntax error; range is null so table is cleared
-      Assert.IsFalse(TryFindSymbolDeclarationByName(document, "X", out var _));
-      Assert.IsFalse(TryFindSymbolDeclarationByName(document, "Y", out var _));
-      // But symbols from other files persist
       Assert.IsTrue(TryFindSymbolDeclarationByName(document, "A", out var _));
 
-      // Finally we drop the reference to "foreign.dfy" and confirm that `A` is not accessible any more.
+      // Finally we drop the reference to `foreign.dfy` and confirm that `A` is not accessible any more.
       await ApplyChangeAndWaitCompletionAsync(document.Text, null, "class Y {}");
       document = await Documents.GetDocumentAsync(document.Text.Uri);
       Assert.IsNotNull(document);
