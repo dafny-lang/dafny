@@ -173,10 +173,13 @@ of these are described in the following subsections. In general note that,
 - the compiled code originating from `dafny` can be compiled with other source and binary code, but only the `dafny`-originated code is verified
 - the output file names can be set using `-out`
 - for each target language, there is a runtime library that must be used with the `dafny`-generated code when executing that code; the runtime libraries are
-part of the Binary (`./DafnyRuntime.*`) and Source (`./Source/DafnyRuntime/DafnyRuntime.*`) releases
+part of the Binary and Source releases (typically in the Binaries folder)
 - names in Dafny are written out as names in the target language. In some cases this can result in naming conflicts.
 Thus if a Dafny program is intended to be compiled to a target language X, you should avoid using Dafny identifiers
 that are not legal identifiers in X or that conflict with reserved words in X.
+
+
+TODO - location of DafnyRuntime files
 
 ### 24.9.1. Main method {#sec-user-guide-main}
 
