@@ -10,11 +10,12 @@ using Microsoft.Boogie;
 namespace Microsoft.Dafny {
   public class Server {
     private bool running;
-    private readonly ExecutionEngineOptions options;
+    private readonly ExecutionEngine engine;
 
     static void Main(string[] args) {
       var options = CommandLineOptions.FromArguments();
-      Server server = new Server(options);
+      var engine = new ExecutionEngine(options);
+      Server server = new Server(engine);
 
       // read the optional flag (only one flag is allowed)
       bool plaintext = false;
@@ -38,7 +39,7 @@ namespace Microsoft.Dafny {
       }
 
       if (selftest) {
-        VerificationTask.SelfTest(options);
+        VerificationTask.SelfTest(engine);
         return;
       }
 
@@ -66,10 +67,10 @@ namespace Microsoft.Dafny {
       Console.OutputEncoding = new UTF8Encoding(false, true);
     }
 
-    public Server(ExecutionEngineOptions options) {
-      this.options = options;
+    public Server(ExecutionEngine engine) {
+      this.engine = engine;
       this.running = true;
-      ExecutionEngine.printer = new DafnyConsolePrinter(options);
+      ExecutionEngine.printer = new DafnyConsolePrinter(engine.Options);
       SetupConsole();
     }
 
@@ -172,19 +173,19 @@ namespace Microsoft.Dafny {
         if (verb == "verify") {
           ServerUtils.checkArgs(command, 0);
           var vt = ReadVerificationTask(inputIsPlaintext);
-          vt.Run();
+          vt.Run(engine);
         } else if (verb == "counterexample") {
           ServerUtils.checkArgs(command, 0);
           var vt = ReadVerificationTask(inputIsPlaintext);
-          vt.CounterExample();
+          vt.CounterExample(engine);
         } else if (verb == "dotgraph") {
           ServerUtils.checkArgs(command, 0);
           var vt = ReadVerificationTask(inputIsPlaintext);
-          vt.DotGraph();
+          vt.DotGraph(engine);
         } else if (verb == "symbols") {
           ServerUtils.checkArgs(command, 0);
           var vt = ReadVerificationTask(inputIsPlaintext);
-          vt.Symbols();
+          vt.Symbols(engine);
         } else if (verb == "version") {
           ServerUtils.checkArgs(command, 0);
           var _ = ReadVerificationTask(inputIsPlaintext);
@@ -219,7 +220,7 @@ namespace Microsoft.Dafny {
     VerificationTask ReadVerificationTask(bool inputIsPlaintext) {
       var payload = ReadPayload(inputIsPlaintext);
       if (inputIsPlaintext) {
-        return new VerificationTask(options, new string[0], "transcript", payload, false);
+        return new VerificationTask( Array.Empty<string>(), "transcript", payload, false);
       } else {
         return VerificationTask.ReadTask(payload);
       }

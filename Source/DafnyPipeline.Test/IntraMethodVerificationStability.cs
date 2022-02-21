@@ -146,14 +146,15 @@ module SomeModule {
 
     [Fact]
     public void NoUniqueLinesWhenConcatenatingUnrelatedPrograms() {
-      DafnyOptions.Install(new DafnyOptions());
+      var options = new DafnyOptions();
+      DafnyOptions.Install(options);
 
       var regularBoogie = GetBoogie(originalProgram).ToList();
       var renamedBoogie = GetBoogie(renamedProgram).ToList();
-      var regularBoogieText = GetBoogieText(regularBoogie);
-      var renamedBoogieText = GetBoogieText(renamedBoogie);
+      var regularBoogieText = GetBoogieText(options, regularBoogie);
+      var renamedBoogieText = GetBoogieText(options, renamedBoogie);
       var separate = UniqueNonCommentLines(regularBoogieText + renamedBoogieText);
-      var combinedBoogie = GetBoogieText(GetBoogie(originalProgram + renamedProgram));
+      var combinedBoogie = GetBoogieText(options, GetBoogie(originalProgram + renamedProgram));
       var together = UniqueNonCommentLines(combinedBoogie);
 
       var uniqueLines = separate.Union(together).Except(separate.Intersect(together)).ToList();
@@ -224,15 +225,15 @@ module SomeModule {
       return input.Split('\n').Where(line => !line.TrimStart().StartsWith("//")).ToHashSet();
     }
 
-    string PrintBoogie(BoogieProgram program) {
+    string PrintBoogie(CoreOptions options, BoogieProgram program) {
       var result = new StringWriter();
-      var writer = new TokenTextWriter(result);
+      var writer = new TokenTextWriter(result, options);
       program.Emit(writer);
       return result.ToString();
     }
 
-    string GetBoogieText(IEnumerable<BoogieProgram> boogieProgram) {
-      return string.Join('\n', boogieProgram.Select(PrintBoogie));
+    string GetBoogieText(CoreOptions options, IEnumerable<BoogieProgram> boogieProgram) {
+      return string.Join('\n', boogieProgram.Select(x => PrintBoogie(options, x)));
     }
 
     IEnumerable<BoogieProgram> GetBoogie(string dafnyProgramText) {

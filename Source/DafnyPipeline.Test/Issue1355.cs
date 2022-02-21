@@ -29,7 +29,7 @@ namespace DafnyPipeline.Test {
       Main.Resolve(dafnyProgram, reporter);
       foreach (var prog in Translator.Translate(dafnyProgram, dafnyProgram.reporter)) {
         var writer = new StringWriter();
-        var tokenWriter = new Bpl.TokenTextWriter("virtual", writer, true);
+        var tokenWriter = new Bpl.TokenTextWriter("virtual", writer, true, options);
         prog.Item2.Emit(tokenWriter);
         var parseErrorCount = Bpl.Parser.Parse(writer.ToString(), "virtualBoogie", out var boogieProgram);
         Assert.Equal(0, parseErrorCount);

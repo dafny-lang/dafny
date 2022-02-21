@@ -566,7 +566,7 @@ namespace Microsoft.Dafny {
         }
 
         BoogieXmlFilename = Path.GetTempFileName();
-        XmlSink = new Bpl.XmlSink(BoogieXmlFilename);
+        XmlSink = new Bpl.XmlSink(this, BoogieXmlFilename);
       }
 
       // expand macros in filenames, now that LogPrefix is fully determined

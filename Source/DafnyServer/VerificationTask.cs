@@ -11,7 +11,6 @@ using Microsoft.Boogie;
 namespace Microsoft.Dafny {
   [Serializable]
   class VerificationTask {
-    private readonly ExecutionEngine engine;
 
     [DataMember]
     string[] args = null;
@@ -25,8 +24,7 @@ namespace Microsoft.Dafny {
     [DataMember]
     bool sourceIsFile = false;
 
-    public VerificationTask(ExecutionEngineOptions options, string[] args, string filename, string source, bool sourceIsFile) {
-      this.engine = new ExecutionEngine(options);
+    public VerificationTask(string[] args, string filename, string source, bool sourceIsFile) {
       this.args = args;
       this.filename = filename;
       this.source = source;
@@ -47,29 +45,29 @@ namespace Microsoft.Dafny {
       }
     }
 
-    internal static void SelfTest(ExecutionEngineOptions options) {
-      var task = new VerificationTask(options, new string[] { }, "<none>", "method selftest() { assert true; }", false);
+    internal static void SelfTest(ExecutionEngine engine) {
+      var task = new VerificationTask(new string[] { }, "<none>", "method selftest() { assert true; }", false);
       try {
-        task.Run();
+        task.Run(engine);
         Interaction.EOM(Interaction.SUCCESS, (string)null);
       } catch (Exception ex) {
         Interaction.EOM(Interaction.FAILURE, ex);
       }
     }
 
-    internal void Run() {
+    internal void Run(ExecutionEngine engine) {
       new DafnyHelper(engine, args, filename, ProgramSource).Verify();
     }
 
-    internal void Symbols() {
+    internal void Symbols(ExecutionEngine engine) {
       new DafnyHelper(engine, args, filename, ProgramSource).Symbols();
     }
 
-    public void CounterExample() {
+    public void CounterExample(ExecutionEngine engine) {
       new DafnyHelper(engine, args, filename, ProgramSource).CounterExample();
     }
 
-    public void DotGraph() {
+    public void DotGraph(ExecutionEngine engine) {
       new DafnyHelper(engine, args, filename, ProgramSource).DotGraph();
     }
 

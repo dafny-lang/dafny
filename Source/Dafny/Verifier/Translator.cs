@@ -407,7 +407,7 @@ namespace Microsoft.Dafny {
 
     static PredefinedDecls FindPredefinedDecls(Bpl.Program prog) {
       Contract.Requires(prog != null);
-      if (prog.Resolve() != 0) {
+      if (prog.Resolve(DafnyOptions.O) != 0) {
         Console.WriteLine("Error: resolution errors encountered in Dafny prelude");
         return null;
       }

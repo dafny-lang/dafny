@@ -92,8 +92,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     }
 
     private bool VerifyWithBoogie(ExecutionEngine engine, Boogie.Program program, CancellationToken cancellationToken) {
-      program.Resolve();
-      program.Typecheck();
+      program.Resolve(engine.Options);
+      program.Typecheck(engine.Options);
 
       engine.EliminateDeadVariables(program);
       engine.CollectModSets(program);

@@ -32,7 +32,7 @@ namespace DafnyTestGeneration {
       DafnyOptions.O.PrintInstrumented = true;
       DafnyOptions.O.PrintFile = "-";
       var textRepresentation = Utils.CaptureConsoleOutput(
-        () => program.Emit(new TokenTextWriter(Console.Out)));
+        () => program.Emit(new TokenTextWriter(Console.Out, DafnyOptions.O)));
       Microsoft.Boogie.Parser.Parse(textRepresentation, "", out var copy);
       DafnyOptions.O.PrintInstrumented = oldPrintInstrumented;
       DafnyOptions.O.PrintFile = oldPrintFile;
@@ -77,8 +77,8 @@ namespace DafnyTestGeneration {
       DafnyOptions.Install(options);
       var engine = new ExecutionEngine(options);
       var uniqueId = Guid.NewGuid().ToString();
-      program.Resolve();
-      program.Typecheck();
+      program.Resolve(options);
+      program.Typecheck(options);
       engine.EliminateDeadVariables(program);
       engine.CollectModSets(program);
       engine.CoalesceBlocks(program);
