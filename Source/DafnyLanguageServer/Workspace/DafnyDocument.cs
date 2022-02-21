@@ -37,7 +37,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// True is the verification pass went through
     /// <c>null</c> If the verification did not start (e.g. because of resolution errors)
     /// </summary>
-    public bool? VerificationPass { get; init; }
+    public bool? VerificationPass { get; set; }
 
     /// <summary>
     /// Contains the real-time status of all verification efforts.

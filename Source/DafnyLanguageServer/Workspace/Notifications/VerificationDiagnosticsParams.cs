@@ -89,7 +89,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
       if (diagnosticsAreResolutionErrors) {
         foreach (var diagnostic in diagnostics) {
-          result[diagnostic.Range.Start.Line - 1] = LineVerificationStatus.ResolutionError;
+          result[diagnostic.Range.Start.Line] = LineVerificationStatus.ResolutionError;
         }
       }
 
@@ -99,7 +99,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
   public enum NodeVerificationStatus {
     Unknown = 0,
-    Schedulded = 1,
+    Scheduled = 1,
     Verifying = 2,
     VerifiedObsolete = 3,
     VerifiedVerifying = 4,
@@ -142,7 +142,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
     public string Filename { get; init; }
 
-    public Position Position { get; init; }
+    public Position Position { get; set; }
 
     /// Time and Resource diagnostics
     public bool Started { get; private set; } = false;
@@ -155,29 +155,31 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     // Resources allocated at the end of the computation.
     public int ResourceCount { get; set; } = -1;
 
-    // The range of this node.
-    public Range Range { get; init; }
+    // The range of this node. Make it a record to remove the set
+    public Range Range { get; set; }
 
     // Sub-diagnostics if any
     public NodeDiagnostic[] Children { get; set; } = Array.Empty<NodeDiagnostic>();
 
     // Overriden by checking children if there are some
-    public NodeVerificationStatus Status { get; set; } = NodeVerificationStatus.Schedulded;
+    public NodeVerificationStatus Status { get; set; } = NodeVerificationStatus.Scheduled;
 
-    public void SetObsolete() {
+    public NodeDiagnostic SetObsolete() {
       Status = Status switch {
         NodeVerificationStatus.Error => NodeVerificationStatus.ErrorObsolete,
         NodeVerificationStatus.Verified => NodeVerificationStatus.VerifiedObsolete,
-        NodeVerificationStatus.Verifying => NodeVerificationStatus.Schedulded,
+        NodeVerificationStatus.Verifying => NodeVerificationStatus.Scheduled,
         NodeVerificationStatus.ErrorVerifying => NodeVerificationStatus.ErrorObsolete,
         NodeVerificationStatus.VerifiedVerifying => NodeVerificationStatus.VerifiedObsolete,
-        NodeVerificationStatus.Schedulded => NodeVerificationStatus.Schedulded,
+        NodeVerificationStatus.Scheduled => NodeVerificationStatus.Scheduled,
         NodeVerificationStatus.Unknown => NodeVerificationStatus.Unknown,
         _ => Status
       };
       foreach (var child in Children) {
         child.SetObsolete();
       }
+
+      return this;
     }
 
     public void Start() {
@@ -228,7 +230,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
               NodeVerificationStatus.ErrorObsolete => LineVerificationStatus.ErrorObsolete,
               NodeVerificationStatus.VerifiedObsolete => LineVerificationStatus.VerifiedObsolete,
               NodeVerificationStatus.VerifiedVerifying => LineVerificationStatus.VerifiedVerifying,
-              NodeVerificationStatus.Schedulded => LineVerificationStatus.Scheduled,
+              NodeVerificationStatus.Scheduled => LineVerificationStatus.Scheduled,
               NodeVerificationStatus.Verifying => LineVerificationStatus.Verifying,
               var status => (LineVerificationStatus)(int)status
             };
@@ -239,7 +241,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
               NodeVerificationStatus.ErrorObsolete => LineVerificationStatus.ErrorRangeObsolete,
               NodeVerificationStatus.VerifiedObsolete => LineVerificationStatus.VerifiedObsolete,
               NodeVerificationStatus.VerifiedVerifying => LineVerificationStatus.VerifiedVerifying,
-              NodeVerificationStatus.Schedulded => LineVerificationStatus.Scheduled,
+              NodeVerificationStatus.Scheduled => LineVerificationStatus.Scheduled,
               NodeVerificationStatus.Verifying => LineVerificationStatus.Verifying,
               var status => (LineVerificationStatus)(int)status
             };
@@ -250,7 +252,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
     // Returns true if a status was updated
     public bool SetVerifiedIfPending() {
-      if (Status is NodeVerificationStatus.Schedulded or NodeVerificationStatus.ErrorObsolete) {
+      if (Status is NodeVerificationStatus.Scheduled or NodeVerificationStatus.ErrorObsolete) {
         Status = NodeVerificationStatus.Verified;
         return true;
       }

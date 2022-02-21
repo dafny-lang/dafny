@@ -142,6 +142,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           Concat(oldDocument.OldVerificationDiagnostics).ToList();
       var migratedVerificationDiagnotics =
         relocator.RelocateDiagnostics(oldVerificationDiagnostics, documentChange, CancellationToken.None);
+      var oldVerificationNodeDiagnostic =
+        oldDocument.VerificationNodeDiagnostic.SetObsolete();
+      var migratedVerificationNodeDiagnostics =
+        relocator.RelocateNodeDiagnostic(oldVerificationNodeDiagnostic, documentChange, CancellationToken.None);
       try {
         var newDocument = await documentLoader.LoadAsync(updatedText, cancellationToken);
         foreach (var change in documentChange.ContentChanges) {
@@ -149,7 +153,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
         if (newDocument.SymbolTable.Resolved) {
           return newDocument with {
-            OldVerificationDiagnostics = migratedVerificationDiagnotics
+            OldVerificationDiagnostics = migratedVerificationDiagnotics,
+            VerificationNodeDiagnostic = migratedVerificationNodeDiagnostics
           };
         }
         // The document loader failed to create a new symbol table. Since we'd still like to provide
@@ -157,7 +162,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         // according to the change.
         return newDocument with {
           SymbolTable = relocator.RelocateSymbols(oldDocument.SymbolTable, documentChange, CancellationToken.None),
-          OldVerificationDiagnostics = migratedVerificationDiagnotics
+          OldVerificationDiagnostics = migratedVerificationDiagnotics,
+          VerificationNodeDiagnostic = migratedVerificationNodeDiagnostics
         };
       } catch (OperationCanceledException) {
         // The document load was canceled before it could complete. We migrate the document
@@ -168,7 +174,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           SymbolTable = relocator.RelocateSymbols(oldDocument.SymbolTable, documentChange, CancellationToken.None),
           SerializedCounterExamples = null,
           LoadCanceled = true,
-          OldVerificationDiagnostics = migratedVerificationDiagnotics
+          OldVerificationDiagnostics = migratedVerificationDiagnotics,
+          VerificationNodeDiagnostic = migratedVerificationNodeDiagnostics
         };
       }
     }

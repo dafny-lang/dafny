@@ -6,6 +6,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
   public class Relocator : IRelocator {
@@ -26,6 +27,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
 
     public IReadOnlyList<Diagnostic> RelocateDiagnostics(IReadOnlyList<Diagnostic> originalDiagnostics, DidChangeTextDocumentParams changes, CancellationToken cancellationToken) {
       return new ChangeProcessor(logger, loggerSymbolTable, changes.ContentChanges, cancellationToken).MigrateDiagnostics(originalDiagnostics);
+    }
+
+    public NodeDiagnostic RelocateNodeDiagnostic(NodeDiagnostic originalNodeDiagnostic,
+      DidChangeTextDocumentParams changes, CancellationToken cancellationToken) {
+      var migratedChildren = new ChangeProcessor(logger, loggerSymbolTable, changes.ContentChanges, cancellationToken)
+        .MigrateNodeDiagnostic(originalNodeDiagnostic.Children);
+      originalNodeDiagnostic.Children = migratedChildren.ToArray();
+      return originalNodeDiagnostic;
     }
 
     private class ChangeProcessor {
@@ -231,6 +240,24 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
         }
         // The change overlaps with the start and/or the end of the range. We cannot compute a reliable change.
         return null;
+      }
+
+      public IEnumerable<NodeDiagnostic> MigrateNodeDiagnostic(IEnumerable<NodeDiagnostic> originalDiagnostics) {
+        return contentChanges.Aggregate(originalDiagnostics, MigrateNodeDiagnostic);
+      }
+      private IEnumerable<NodeDiagnostic> MigrateNodeDiagnostic(IEnumerable<NodeDiagnostic> nodeDiagnostics, TextDocumentContentChangeEvent change) {
+        var afterChangeEndOffset = GetPositionAtEndOfAppliedChange(change.Range!, change.Text);
+        foreach (var nodeDiagnostic in nodeDiagnostics) {
+          var newRange = MigrateRange(nodeDiagnostic.Range, change.Range!, afterChangeEndOffset);
+          if (newRange == null) {
+            continue;
+          }
+          var newPosition = MigratePosition(nodeDiagnostic.Position, change.Range!, afterChangeEndOffset);
+          nodeDiagnostic.Range = newRange;
+          nodeDiagnostic.Position = newPosition;
+          nodeDiagnostic.Children = MigrateNodeDiagnostic(nodeDiagnostic.Children, change).ToArray();
+          yield return nodeDiagnostic;
+        }
       }
     }
   }

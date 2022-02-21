@@ -2,6 +2,7 @@
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading;
+using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
   /// <summary>
@@ -30,5 +31,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
     /// <exception cref="System.OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
     IReadOnlyList<Diagnostic> RelocateDiagnostics(IReadOnlyList<Diagnostic> originalDiagnostics, DidChangeTextDocumentParams changes, CancellationToken cancellationToken);
+
+    NodeDiagnostic RelocateNodeDiagnostic(NodeDiagnostic oldVerificationNodeDiagnostic, DidChangeTextDocumentParams documentChange, CancellationToken none);
   }
 }

@@ -177,26 +177,36 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return await request.Document.Task;
     }
 
-    private void RegenerateVerificationDiagnostics(DafnyDocument document) {
+    private void RecomputeVerificationNodeDiagnostics(DafnyDocument document) {
+      var previousDiagnostics = document.VerificationNodeDiagnostic.Children;
+
       List<NodeDiagnostic> result = new List<NodeDiagnostic>();
       foreach (var module in document.Program.Modules()) {
         foreach (var toplLevelDecl in module.TopLevelDecls) {
           if (toplLevelDecl is TopLevelDeclWithMembers topLevelDeclWithMembers) {
             foreach (var member in topLevelDeclWithMembers.Members) {
               if (member is Method or Function) {
-                result.Add(new NodeDiagnostic() {
+                var diagnosticPosition = TokenToPosition(member.tok);
+                var diagnostic = new NodeDiagnostic() {
                   DisplayName = member.Name,
                   Identifier = member.CompileName,
                   Filename = member.tok.filename,
-                  Position = TokenToPosition(member.tok),
-                  Range = new Range(TokenToPosition(member.tok, false), TokenToPosition(member.BodyEndTok, true))
-                });
+                  Position = diagnosticPosition,
+                  Range = new Range(diagnosticPosition, TokenToPosition(member.BodyEndTok, true))
+                };
+                var previousDiagnostic = previousDiagnostics.FirstOrDefault(
+                  oldNode => oldNode.Position == diagnosticPosition,
+                  null);
+                if (previousDiagnostic != null) {
+                  diagnostic.Status = previousDiagnostic.Status;
+                  diagnostic.Children = previousDiagnostic.Children;
+                }
+                result.Add(diagnostic);
               }
             }
           }
         }
       }
-      // TODO: Migrate previous diagnostics
       document.VerificationNodeDiagnostic.Children = result.ToArray();
     }
 
@@ -207,7 +217,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private DafnyDocument VerifyInternal(VerifyRequest verifyRequest) {
       var (document, cancellationToken) = verifyRequest;
       notificationPublisher.SendStatusNotification(document.Text, CompilationStatus.VerificationStarted);
-      RegenerateVerificationDiagnostics(document);
+      document.VerificationPass = false;
+      RecomputeVerificationNodeDiagnostics(document);
       diagnosticPublisher.PublishVerificationDiagnostics(document);
       var progressReporter = new VerificationProgressReporter(
         loggerFactory.CreateLogger<VerificationProgressReporter>(),
@@ -219,6 +230,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       // All unvisited nodes that were not verified, we need to set them as "verified"
       SetAllUnvisitedMethodsAsVerified(document);
       notificationPublisher.SendStatusNotification(document.Text, compilationStatusAfterVerification);
+      // TODO: ability to recover previous positions so that we don't need to start from scratch.
       return document with {
         OldVerificationDiagnostics = new List<Diagnostic>(),
         SerializedCounterExamples = verificationResult.SerializedCounterExamples,
@@ -337,6 +349,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
               errorCount++;
             }
             targetMethodNode.Children = children.ToArray();
+          } else {
+            targetMethodNode.Children = Array.Empty<NodeDiagnostic>();
           }
 
           diagnosticPublisher.PublishVerificationDiagnostics(document);
