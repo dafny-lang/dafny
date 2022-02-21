@@ -76,7 +76,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
         , LineVerificationStatus.Unknown);
       for (var i = 0; i < numberOfLines; i++) {
         if (previousNotUnknown != LineVerificationStatus.Verified &&
-            previousNotUnknown != LineVerificationStatus.ErrorRange) {
+            previousNotUnknown != LineVerificationStatus.VerifiedObsolete &&
+            previousNotUnknown != LineVerificationStatus.VerifiedVerifying) {
           previousNotUnknown = LineVerificationStatus.Unknown;
         }
         if (result[i] == LineVerificationStatus.Unknown) {
@@ -184,14 +185,21 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
     public void Start() {
       StartTime = DateTime.Now.Millisecond;
-      Status = Status == NodeVerificationStatus.Error ? NodeVerificationStatus.ErrorVerifying :
-        Status == NodeVerificationStatus.Verified ? Status :
+      Status = Status is NodeVerificationStatus.Error or NodeVerificationStatus.ErrorObsolete ? NodeVerificationStatus.ErrorVerifying :
+        Status is NodeVerificationStatus.Verified or NodeVerificationStatus.VerifiedObsolete ? NodeVerificationStatus.VerifiedVerifying :
         NodeVerificationStatus.Verifying;
+      // Until we can track children, if some children were obsolete, should be "Verifying"
+      foreach (var child in Children) {
+        child.Start();
+      }
       Started = true;
     }
 
     public void Stop() {
       EndTime = DateTime.Now.Millisecond;
+      foreach (var child in Children) {
+        child.Stop();
+      }
       Finished = true;
     }
     private static int StatusSeverityOf(NodeVerificationStatus status) {
