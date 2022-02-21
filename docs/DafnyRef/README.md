@@ -44,9 +44,9 @@ Tools providing syntax coloring for programming language source typically
 require a PL-specific regular-expression based definition of the language
 syntax. Unfortunately there are many such tools.
 
-In the RM markdown sources, text bracketed by '```dafny' and '```' will have
+In the RM markdown sources, text bracketed by ` ```dafny ` and ` ``` ` will have
 syntax coloring for dafny applied. Text bracketed by
-'````grammar` and '````' has syntax coloring applied per the grammar
+` ```grammar ` and ` ``` ` has syntax coloring applied per the grammar
 definition file.
 
 ## On-line RM through github
