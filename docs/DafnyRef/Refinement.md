@@ -42,7 +42,7 @@ This is why Dafny does not re-resolve the names in their new context.
 than the declarations in the refinement parent are also copied into the
 refinement result.
 However, because the refining module is just a set of augmentation
-directives and mayt refer to names copied from the refinement parent,
+directives and may refer to names copied from the refinement parent,
 resolution of names and types of the declarations copied in this step is
 performed in the context of the full refinement result.
 
@@ -54,7 +54,7 @@ declarations with the same name from the parent and refinement modules.
 The way the refinement result declarations are assembled depends on the kind of declaration;
 the rules are described in subsections below.
 
-So that it is clear that refinment is taking place, refining declarations
+So that it is clear that refinement is taking place, refining declarations
 have some syntactic indicator that they are refining some parent declaration.
 Typically this is the presence of a `...` token.
 
