@@ -1,5 +1,14 @@
 # Upcoming
 
+- fix: No warning "File contains no code" if a file only contains a submodule (https://github.com/dafny-lang/dafny/pull/1840)
+
+
+# 3.4.2
+
+- fix: No output when compiling to JavaScript on Windows (https://github.com/dafny-lang/dafny/pull/1824)
+- fix: CanCall assumptions for loop invariants (https://github.com/dafny-lang/dafny/pull/1813)
+- fix: Behavior of the C# runtime in a concurrent setting (https://github.com/dafny-lang/dafny/pull/1780)
+
 
 # 3.4.1
 

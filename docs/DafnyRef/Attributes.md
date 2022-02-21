@@ -147,8 +147,9 @@ It means that the post-condition may be assumed to be true
 without proof. In that case also the body of the function or
 method may be omitted.
 
-The `{:axiom}` attribute is also used for generated `reveal_*`
-lemmas as shown in Section [#sec-opaque].
+The `{:axiom}` attribute only prevents Dafny from verifying that the body matches the post-condition.
+Dafny still verifies the well-formedness of pre-conditions, of post-conditions, and of the body if provided.
+To prevent Dafny from running all these checks, one would use `{:verify false}`, which is not recommended.
 
 ### 22.1.5. compile
 The `{:compile}` attribute takes a boolean argument. It may be applied to
@@ -300,43 +301,17 @@ values that satisfy the constraint.
 
 ### 22.1.13. opaque {#sec-opaque}
 Ordinarily the body of a function is transparent to its users but
-sometimes it is useful to hide it. If a function `f` is given the
-`{:opaque}` attribute then Dafny hides the body of the function,
+sometimes it is useful to hide it. If a function `foo` or `bar` is given the
+`{:opaque}` attribute, then Dafny hides the body of the function,
 so that it can only be seen within its recursive clique (if any),
-or if the programmer specifically asks to see it via the `reveal_f()` lemma.
+or if the programmer specifically asks to see it via the statement `reveal foo(), bar();`.
 
-We create a lemma to allow the user to selectively reveal the function's body
-That is, given:
-
-```dafny
-  function {:opaque} foo(x:int, y:int) : int
-    requires 0 <= x < 5
-    requires 0 <= y < 5
-    ensures foo(x, y) < 10
-  { x + y }
-```
-
-We produce:
-
-```dafny
-  lemma {:axiom} reveal_foo()
-    ensures forall x:int, y:int {:trigger foo(x,y)} ::
-         0 <= x < 5 && 0 <= y < 5 ==> foo(x,y) == foo_FULL(x,y)
-```
-
-where `foo_FULL` is a copy of `foo` which does not have its body
-hidden. In addition `foo_FULL` is given the
-`{:opaque_full}` and `{:auto_generated}` attributes in addition
-to the `{:opaque}` attribute (which it got because it is a copy of `foo`).
-
-### 22.1.14. opaque_full
-The `{:opaque_full}` attribute is used to mark the _full_ version
-of an opaque function. See [Section 22.1.13](#sec-opaque).
+More information about the Boogie implementation of {:opaque} [here](https://github.com/dafny-lang/dafny/blob/master/docs/Compilation/Boogie.md).
 
 <!--
 Describe this where refinement is described, as appropriate.
 
-### 22.1.15. prependAssertToken
+-### 22.1.15. prependAssertToken
 This is used internally in Dafny as part of module refinement.
 It is an attribute on an assert statement.
 The Dafny code has the following comment:
@@ -353,7 +328,7 @@ the functionality is already adequately described where
 refinement is described.
 -->
 
-### 22.1.16. tailrecursion
+### 22.1.14. tailrecursion
 This attribute is used on method declarations. It has a boolean argument.
 
 If specified with a false value, it means the user specifically
@@ -369,7 +344,7 @@ recursion was explicitly requested.
 * If `{:tailrecursion true}` was specified but the code does not allow it,
 an error message is given.
 
-### 22.1.17. timeLimitMultiplier
+### 22.1.15. timeLimitMultiplier
 This attribute may be placed on a method or function declaration
 and has an integer argument. If `{:timeLimitMultiplier X}` was
 specified a `{:timelimit Y}` attributed is passed on to Boogie
@@ -377,11 +352,11 @@ where `Y` is `X` times either the default verification time limit
 for a function or method, or times the value specified by the
 Boogie `timelimit` command-line option.
 
-### 22.1.18. trigger
+### 22.1.16. trigger
 Trigger attributes are used on quantifiers and comprehensions.
 They are translated into Boogie triggers.
 
-### 22.1.19. typeQuantifier
+### 22.1.17. typeQuantifier
 The `{:typeQuantifier}` attribute must be used on a quantifier if it
 quantifies over types.
 
