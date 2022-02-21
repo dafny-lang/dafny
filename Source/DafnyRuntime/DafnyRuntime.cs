@@ -1154,7 +1154,7 @@ namespace Dafny {
   internal class ConcatSequence<T> : Sequence<T> {
     // INVARIANT: Either left != null, right != null, and elmts's underlying array == null or
     // left == null, right == null, and elmts's underlying array != null
-    private ISequence<T> left, right;
+    private volatile ISequence<T> left, right;
     private ImmutableArray<T> elmts;
     private readonly int count;
 
@@ -1189,15 +1189,25 @@ namespace Dafny {
       // Traverse the tree formed by all descendants which are ConcatSequences
       var ansBuilder = ImmutableArray.CreateBuilder<T>();
       var toVisit = new Stack<ISequence<T>>();
-      toVisit.Push(right);
-      toVisit.Push(left);
+      var (leftBuffer, rightBuffer) = (left, right);
+      if (left == null || right == null) {
+        // elmts can't be .IsDefault while either left, or right are null
+        return elmts;
+      }
+      toVisit.Push(rightBuffer);
+      toVisit.Push(leftBuffer);
 
       while (toVisit.Count != 0) {
         var seq = toVisit.Pop();
-        var cs = seq as ConcatSequence<T>;
-        if (cs != null && cs.elmts.IsDefault) {
-          toVisit.Push(cs.right);
-          toVisit.Push(cs.left);
+        if (seq is ConcatSequence<T> { elmts: { IsDefault: true } } cs) {
+          (leftBuffer, rightBuffer) = (cs.left, cs.right);
+          if (cs.left == null || cs.right == null) {
+            // !cs.elmts.IsDefault, due to concurrent enumeration
+            toVisit.Push(cs);
+          } else {
+            toVisit.Push(rightBuffer);
+            toVisit.Push(leftBuffer);
+          }
         } else {
           var array = seq.Elements;
           ansBuilder.AddRange(array);
