@@ -18,7 +18,7 @@ public class PluginsTest : PluginsTestBase {
     "PluginsTest";
 
   protected override string[] CommandLineArgument =>
-    new[] { $@"--dafny:plugins:0=""{LibraryPath},\""because\\ whatever\""""" };
+    new[] { $@"--dafny:plugins:0={LibraryPath},""because\\ \""whatever""" };
 
   [TestMethod]
   public async Task EnsureItIsPossibleToLoadAPluginWithArguments() {
@@ -28,9 +28,9 @@ public class PluginsTest : PluginsTestBase {
     var resolutionReport = await DiagnosticReceiver.AwaitNextNotificationAsync(CancellationToken.None);
     Assert.AreEqual(documentItem.Uri, resolutionReport.Uri);
     var diagnostics = resolutionReport.Diagnostics.ToArray();
-    Assert.AreEqual(DafnyOptions.O.Plugins.Count, 1, "Too many plugins loaded");
+    Assert.AreEqual(DafnyOptions.O.Plugins.Count, 1, "Not exactly 1 plugin loaded");
     Assert.AreEqual(1, diagnostics.Length, LibraryPath + " did not raise an error.");
-    Assert.AreEqual("Impossible to continue because\\ whatever", diagnostics[0].Message);
+    Assert.AreEqual("Impossible to continue because\\ \"whatever", diagnostics[0].Message);
     Assert.AreEqual(new Range((0, 9), (0, 13)), diagnostics[0].Range);
   }
 

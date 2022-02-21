@@ -8,7 +8,7 @@
     <OutputType>Exe</OutputType>
     <RootNamespace>Coco</RootNamespace>
     <AssemblyName>Coco</AssemblyName>
-    <TargetFrameworkVersion>net5.0</TargetFrameworkVersion>
+    <TargetFramework>net5.0</TargetFramework>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
   </PropertyGroup>
