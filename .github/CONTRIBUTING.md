@@ -25,7 +25,7 @@ All other pull requests and issues can be submitted here.
 
 ## Code of Conduct
 
-See [`ODE_OF_CONDUCT.md`](./CODE_OF_CONDUCT.md).
+See [`CODE_OF_CONDUCT.md`](./CODE_OF_CONDUCT.md).
 
 ## Security issue notifications
 
