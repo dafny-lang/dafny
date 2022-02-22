@@ -86,7 +86,10 @@ namespace IntegrationTests {
         }
       };
 
-      var passthroughEnvironmentVariables = new[] { "PATH", "HOME" };
+      var passthroughEnvironmentVariables = new[] { "PATH", "HOME", "DOTNET_NOLOGO" };
+
+      // Silence dotnet's welcome message
+      Environment.SetEnvironmentVariable("DOTNET_NOLOGO", "true");
 
       string[] features;
       if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {

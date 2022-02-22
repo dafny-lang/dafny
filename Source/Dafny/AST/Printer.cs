@@ -1205,16 +1205,14 @@ namespace Microsoft.Dafny {
         wr.Write(";");
 
       } else if (stmt is BreakStmt) {
-        BreakStmt s = (BreakStmt)stmt;
+        var s = (BreakStmt)stmt;
         if (s.TargetLabel != null) {
-          wr.Write("break {0};", s.TargetLabel);
+          wr.Write($"{s.Kind} {s.TargetLabel.val};");
         } else {
-          string sep = "";
-          for (int i = 0; i < s.BreakCount; i++) {
-            wr.Write("{0}break", sep);
-            sep = " ";
+          for (int i = 0; i < s.BreakAndContinueCount - 1; i++) {
+            wr.Write("break ");
           }
-          wr.Write(";");
+          wr.Write($"{s.Kind};");
         }
 
       } else if (stmt is ProduceStmt) {
