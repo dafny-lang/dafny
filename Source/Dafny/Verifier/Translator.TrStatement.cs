@@ -1910,12 +1910,15 @@ namespace Microsoft.Dafny {
         loopBodyBuilder.Add(Bpl.Cmd.SimpleAssign(s.Tok, w, Bpl.Expr.False));
       }
       // Finally, assume the well-formedness of the invariant (which has been checked once and for all above), so that the check
-      // of invariant-maintenance can use the appropriate canCall predicates.
-      foreach (AttributedExpression loopInv in s.Invariants) {
-        loopBodyBuilder.Add(TrAssumeCmd(loopInv.E.tok, CanCallAssumption(loopInv.E, etran)));
+      // of invariant-maintenance can use the appropriate canCall predicates. Note, it is important (see Test/git-issues/git-issue-1812.dfy)
+      // that each CanCall assumption uses the preceding invariants as antecedents--this is achieved by treating all "invariant"
+      // declarations as one big conjunction, because then CanCallAssumption will add the needed antecedents.
+      if (s.Invariants.Any()) {
+        var allInvariants = s.Invariants.Select(inv => inv.E).Aggregate((a, b) => Expression.CreateAnd(a, b));
+        loopBodyBuilder.Add(TrAssumeCmd(s.Tok, CanCallAssumption(allInvariants, etran)));
       }
-      Bpl.StmtList body = loopBodyBuilder.Collect(s.Tok);
 
+      Bpl.StmtList body = loopBodyBuilder.Collect(s.Tok);
       builder.Add(new Bpl.WhileCmd(s.Tok, Bpl.Expr.True, invariants, body));
     }
     void TrAlternatives(List<GuardedAlternative> alternatives, Bpl.Cmd elseCase0, Bpl.StructuredCmd elseCase1,

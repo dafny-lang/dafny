@@ -130,12 +130,6 @@ logical inconsistency.  In general, there
 could be many solutions to an equation like [#eq-general] or there could be none.
 Let's consider two ways to make sure we're defining the function uniquely.
 
-TO BE WRITTEN - two-state functions and predicates
-
-TO BE WRITTEN - functions with named results
-
-TO BE WRITTEN - various kinds of arrow types: ~> -> -->
-
 #### 23.4.1.1. Well-founded Functions
 
 A standard way to ensure that equation [#eq-general] has a unique solution in $f$ is
