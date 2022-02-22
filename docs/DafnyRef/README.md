@@ -30,7 +30,7 @@ subfolders. In order to render files locally you must
 * set the working directly (cd) to the docs folder
 * run the jekyll server: bundle exec jekyll server
 * open a browser on the page http://localhost:4000 or directly to http://localhost:4000/DafnyRef/DafnyRef
-* the server rerenders when files are changed -- but not always quite completely. Sometimes one must kill the saerver process, delete all the files in the _saite folder, and restart the server.
+* the server rerenders when files are changed -- but not always quite completely. Sometimes one must kill the server process, delete all the files in the _saite folder, and restart the server.
 
 In order to convert markdown to pdf, you must be able to execute the Makefile, which requires installing pandoc and LaTeX, and being on a Linux-like platform.
 
@@ -44,9 +44,9 @@ Tools providing syntax coloring for programming language source typically
 require a PL-specific regular-expression based definition of the language
 syntax. Unfortunately there are many such tools.
 
-In the RM maarkdown sources, text bracketed by '```dafny' and '```' will have
+In the RM markdown sources, text bracketed by ` ```dafny ` and ` ``` ` will have
 syntax coloring for dafny applied. Text bracketed by
-'````grammar` and '````' has syntax coloring applied per the grammar
+` ```grammar ` and ` ``` ` has syntax coloring applied per the grammar
 definition file.
 
 ## On-line RM through github

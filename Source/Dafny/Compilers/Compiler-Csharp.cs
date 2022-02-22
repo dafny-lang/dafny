@@ -73,9 +73,7 @@ namespace Microsoft.Dafny {
       wr.WriteLine("using System;");
       wr.WriteLine("using System.Numerics;");
       EmitDafnySourceAttribute(program, wr);
-      if (!DafnyOptions.O.UseRuntimeLib) {
-        ReadRuntimeSystem("DafnyRuntime.cs", wr);
-      }
+      ReadRuntimeSystem("DafnyRuntime.cs", wr);
     }
 
     void EmitDafnySourceAttribute(Program program, ConcreteSyntaxTree wr) {
