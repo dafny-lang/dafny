@@ -8499,8 +8499,8 @@ namespace Microsoft.Dafny {
           var s = (BreakStmt)stmt;
           s.IsGhost = mustBeErasable;
           if (s.IsGhost && !s.TargetStmt.IsGhost) {
-            var targetIsLoop = s.TargetStmt is LoopStmt;
-            Error(stmt, "ghost-context break statement is not allowed to break out of non-ghost " + (targetIsLoop ? "loop" : "structure"));
+            var targetKind = s.TargetStmt is LoopStmt ? "loop" : "structure";
+            Error(stmt, $"ghost-context {s.Kind} statement is not allowed to {s.Kind} out of non-ghost {targetKind}");
           }
 
         } else if (stmt is ProduceStmt) {
@@ -11068,15 +11068,24 @@ namespace Microsoft.Dafny {
         if (s.TargetLabel != null) {
           Statement target = enclosingStatementLabels.Find(s.TargetLabel.val);
           if (target == null) {
-            reporter.Error(MessageSource.Resolver, s.TargetLabel, "break label is undefined or not in scope: {0}", s.TargetLabel.val);
+            reporter.Error(MessageSource.Resolver, s.TargetLabel, $"{s.Kind} label is undefined or not in scope: {s.TargetLabel.val}");
+          } else if (s.IsContinue && !(target is LoopStmt)) {
+            reporter.Error(MessageSource.Resolver, s.TargetLabel, $"continue label must designate a loop: {s.TargetLabel.val}");
           } else {
             s.TargetStmt = target;
           }
         } else {
-          if (loopStack.Count < s.BreakCount) {
-            reporter.Error(MessageSource.Resolver, s, "trying to break out of more loop levels than there are enclosing loops");
+          Contract.Assert(1 <= s.BreakAndContinueCount); // follows from BreakStmt class invariant and the guard for this "else" branch
+          var jumpStmt = s.BreakAndContinueCount == 1 ?
+            $"a non-labeled '{s.Kind}' statement" :
+            $"a '{Util.Repeat(s.BreakAndContinueCount - 1, "break ")}{s.Kind}' statement";
+          if (loopStack.Count == 0) {
+            reporter.Error(MessageSource.Resolver, s, $"{jumpStmt} is allowed only in loops");
+          } else if (loopStack.Count < s.BreakAndContinueCount) {
+            reporter.Error(MessageSource.Resolver, s,
+              $"{jumpStmt} is allowed only in contexts with {s.BreakAndContinueCount} enclosing loops, but the current context only has {loopStack.Count}");
           } else {
-            Statement target = loopStack[loopStack.Count - s.BreakCount];
+            Statement target = loopStack[loopStack.Count - s.BreakAndContinueCount];
             if (target.Labels == null) {
               // make sure there is a label, because the compiler and translator will want to see a unique ID
               target.Labels = new LList<Label>(new Label(target.Tok, null), null);
@@ -11785,7 +11794,7 @@ namespace Microsoft.Dafny {
         }
         dominatingStatementLabels.PushMarker();
         foreach (Statement ss in mc.Body) {
-          ResolveStatement(ss, codeContext);
+          ResolveStatementWithLabels(ss, codeContext);
         }
         dominatingStatementLabels.PopMarker();
 
@@ -13392,7 +13401,7 @@ namespace Microsoft.Dafny {
         }
         ResolveAttributes(alternative.Attributes, null, new ResolveOpts(codeContext, true));
         foreach (Statement ss in alternative.Body) {
-          ResolveStatement(ss, codeContext);
+          ResolveStatementWithLabels(ss, codeContext);
         }
         dominatingStatementLabels.PopMarker();
         scope.PopMarker();

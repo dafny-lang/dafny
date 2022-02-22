@@ -481,8 +481,9 @@ namespace Microsoft.Dafny {
     /// Labels the code written to the TargetWriter returned, in such that way that any
     /// emitted break to the label inside that code will abruptly end the execution of the code.
     /// </summary>
-    protected abstract ConcreteSyntaxTree CreateLabeledCode(string label, ConcreteSyntaxTree wr);
+    protected abstract ConcreteSyntaxTree CreateLabeledCode(string label, bool createContinueLabel, ConcreteSyntaxTree wr);
     protected abstract void EmitBreak(string/*?*/ label, ConcreteSyntaxTree wr);
+    protected abstract void EmitContinue(string label, ConcreteSyntaxTree wr);
     protected abstract void EmitYield(ConcreteSyntaxTree wr);
     protected abstract void EmitAbsurd(string/*?*/ message, ConcreteSyntaxTree wr);
     protected virtual void EmitAbsurd(string message, ConcreteSyntaxTree wr, bool needIterLimit) {
@@ -508,16 +509,17 @@ namespace Microsoft.Dafny {
         return thn;
       }
     }
-    protected virtual ConcreteSyntaxTree EmitWhile(Bpl.IToken tok, List<Statement> body, ConcreteSyntaxTree wr) {  // returns the guard writer
+    protected virtual ConcreteSyntaxTree EmitWhile(Bpl.IToken tok, List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr) {  // returns the guard writer
       ConcreteSyntaxTree guardWriter;
       var wBody = CreateWhileLoop(out guardWriter, wr);
+      wBody = EmitContinueLabel(labels, wBody);
       Coverage.Instrument(tok, "while body", wBody);
       TrStmtList(body, wBody);
       return guardWriter;
     }
 
     protected abstract ConcreteSyntaxTree EmitForStmt(Bpl.IToken tok, IVariable loopIndex, bool goingUp, string /*?*/ endVarName,
-      List<Statement> body, ConcreteSyntaxTree wr);
+      List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr);
 
     protected virtual ConcreteSyntaxTree CreateWhileLoop(out ConcreteSyntaxTree guardWriter, ConcreteSyntaxTree wr) {
       wr.Write("while (");
@@ -2670,7 +2672,12 @@ namespace Microsoft.Dafny {
         }
       } else if (stmt is BreakStmt) {
         var s = (BreakStmt)stmt;
-        EmitBreak(s.TargetStmt.Labels.Data.AssignUniqueId(idGenerator), wr);
+        var label = s.TargetStmt.Labels.Data.AssignUniqueId(idGenerator);
+        if (s.IsContinue) {
+          EmitContinue(label, wr);
+        } else {
+          EmitBreak(label, wr);
+        }
       } else if (stmt is ProduceStmt) {
         var s = (ProduceStmt)stmt;
         var isTailRecursiveResult = false;
@@ -2872,10 +2879,10 @@ namespace Microsoft.Dafny {
           ConcreteSyntaxTree guardWriter;
           var wBody = CreateWhileLoop(out guardWriter, wr);
           guardWriter.Write("true");
-          EmitBreak(s.Labels?.Data.AssignUniqueId(idGenerator), wBody);
+          EmitBreak(null, wBody);
           Coverage.UnusedInstrumentationPoint(s.Body.Tok, "while body");
         } else {
-          var guardWriter = EmitWhile(s.Body.Tok, s.Body.Body, wr);
+          var guardWriter = EmitWhile(s.Body.Tok, s.Body.Body, s.Labels, wr);
           TrExpr(s.Guard, guardWriter, false);
         }
 
@@ -2888,6 +2895,7 @@ namespace Microsoft.Dafny {
           ConcreteSyntaxTree whileGuardWriter;
           var w = CreateWhileLoop(out whileGuardWriter, wr);
           whileGuardWriter.Write("true");
+          w = EmitContinueLabel(s.Labels, w);
           foreach (var alternative in s.Alternatives) {
             ConcreteSyntaxTree guardWriter;
             var thn = EmitIf(out guardWriter, true, w);
@@ -2913,7 +2921,7 @@ namespace Microsoft.Dafny {
           wr.Write(GenerateLhsDecl(endVarName, s.End.Type, wr, s.End.tok));
           EmitAssignmentRhs(s.End, false, wr);
         }
-        var startExprWriter = EmitForStmt(s.Tok, s.LoopIndex, s.GoingUp, endVarName, s.Body.Body, wr);
+        var startExprWriter = EmitForStmt(s.Tok, s.LoopIndex, s.GoingUp, endVarName, s.Body.Body, s.Labels, wr);
         TrExpr(s.Start, startExprWriter, false);
 
       } else if (stmt is ForallStmt) {
@@ -3502,7 +3510,7 @@ namespace Microsoft.Dafny {
       var iterLimit = "_iterLimit_" + c;
 
       bool needIterLimit = lhss.Count != 1 && bounds.Exists(bnd => (bnd.Virtues & ComprehensionExpr.BoundedPool.PoolVirtues.Finite) == 0);
-      wr = CreateLabeledCode(doneLabel, wr);
+      wr = CreateLabeledCode(doneLabel, false, wr);
       var wrOuter = wr;
       if (needIterLimit) {
         wr = CreateDoublingForLoop(iterLimit, 5, wr);
@@ -4116,13 +4124,21 @@ namespace Microsoft.Dafny {
         //   ss          // translation of ss has side effect of filling the top copyInstrWriters
         var w = writer;
         if (ss.Labels != null) {
-          w = CreateLabeledCode(ss.Labels.Data.AssignUniqueId(idGenerator), w);
+          w = CreateLabeledCode(ss.Labels.Data.AssignUniqueId(idGenerator), false, w);
         }
         var prelude = w.Fork();
         copyInstrWriters.Push(prelude);
         TrStmt(ss, w);
         copyInstrWriters.Pop();
       }
+    }
+
+    protected ConcreteSyntaxTree EmitContinueLabel(LList<Label> loopLabels, ConcreteSyntaxTree writer) {
+      Contract.Requires(writer != null);
+      if (loopLabels != null) {
+        writer = CreateLabeledCode(loopLabels.Data.AssignUniqueId(idGenerator), true, writer);
+      }
+      return writer;
     }
 
     void TrLocalVar(IVariable v, bool alwaysInitialize, ConcreteSyntaxTree wr) {

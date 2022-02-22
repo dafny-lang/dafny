@@ -2608,20 +2608,28 @@ SkeletonStmt<out Statement s>
 
 /*------------------------------------------------------------------------*/
 BreakStmt<out Statement/*!*/ s>
-= "break"                 (. IToken x = t;
-                             IToken id = null;
-                             int breakCount = 1;
-                             IToken label = null;
-                          .)
-  ( LabelName<out id>     (. label = id; .)
-  | { "break"             (. breakCount++; .)
-    }
+= (. var isContinue = false;
+     IToken start = Token.NoToken;
+     IToken label = null;
+     int breakAndContinueCount = 1;
+  .)
+  ( "continue"              (. start = t; isContinue = true; .)
+    [ LabelName<out label> ]
+  | "break"                 (. start = t; .)
+    ( LabelName<out label>
+    | { "break"             (. breakAndContinueCount++; .)
+      }
+      [ "continue"          (. breakAndContinueCount++; isContinue = true; .)
+      ]
+    )
   )
   SYNC
   ";"
-  (. s = label != null ?
-     new BreakStmt(x, t, label) :
-     new BreakStmt(x, t, breakCount); .)
+  (. Contract.Assert(label == null || breakAndContinueCount == 1);
+     s = label != null ?
+       new BreakStmt(start, t, label, isContinue) :
+       new BreakStmt(start, t, breakAndContinueCount, isContinue);
+  .)
   .
 
 /*------------------------------------------------------------------------*/

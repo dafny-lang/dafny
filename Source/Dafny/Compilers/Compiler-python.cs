@@ -289,11 +289,15 @@ namespace Microsoft.Dafny {
       throw new NotImplementedException();
     }
 
-    protected override ConcreteSyntaxTree CreateLabeledCode(string label, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree CreateLabeledCode(string label, bool createContinueLabel, ConcreteSyntaxTree wr) {
       throw new NotImplementedException();
     }
 
     protected override void EmitBreak(string label, ConcreteSyntaxTree wr) {
+      throw new NotImplementedException();
+    }
+
+    protected override void EmitContinue(string label, ConcreteSyntaxTree wr) {
       throw new NotImplementedException();
     }
 
@@ -310,8 +314,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override ConcreteSyntaxTree EmitForStmt(IToken tok, IVariable loopIndex, bool goingUp, string endVarName,
-      List<Statement> body,
-      ConcreteSyntaxTree wr) {
+      List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr) {
       throw new NotImplementedException();
     }
 
