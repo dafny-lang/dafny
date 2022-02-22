@@ -21,9 +21,6 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     [TestMethod]
     public async Task CancelingVerificationStopsTheProver() {
       var source = @"
-predicate P(n: int)
-predicate Q(n: int)
-
 function method {:unroll 100} Ack(m: nat, n: nat): nat
   decreases m, n
 {
@@ -40,8 +37,6 @@ method test() {
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       client.OpenDocument(documentItem);
-      // We don't want to do the following:
-      //await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       Thread.Sleep(5000);
       // This cancels the previous request.
       client.DidChangeTextDocument(new DidChangeTextDocumentParams {
@@ -50,7 +45,7 @@ method test() {
           Version = documentItem.Version + 1
         },
         ContentChanges = new[] {new TextDocumentContentChangeEvent {
-          Range = new Range((15, 9), (15, 23)),
+          Range = new Range((12, 9), (12, 23)),
           Text = "true"
         }}
       });
@@ -64,7 +59,7 @@ method test() {
           Version = documentItem.Version + 2
         },
         ContentChanges = new[] {new TextDocumentContentChangeEvent {
-          Range = new Range((15, 9), (15, 13)),
+          Range = new Range((12, 9), (12, 13)),
           Text = "/" // A parse error
         }}
       });
