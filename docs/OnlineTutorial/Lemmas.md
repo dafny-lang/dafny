@@ -272,7 +272,7 @@ run into the end of the array already. For each index past `j` (of which there a
 `i-j`), the array can be one smaller, so this value is subtracted from `a[j]`.
 This only says that the current element cannot be zero, so without the second
 invariant, Dafny would not be able to know that there were no zeros. Dafny forgets
-everything about the executions of the loop except what is given in the invaraints,
+everything about the executions of the loop except what is given in the invariants,
 so we need to build up the fact that there were no zeros anywhere so far.
 
 That's it! The body of the loop just increments the counter. As we saw
@@ -333,7 +333,7 @@ forall a, b :: count(a + b) == count(a) + count(b)
 
 Here, the first plus (`+`) is sequence concatenation, and the second
 is integer addition. Clearly, we can break any sequence into two sequences `a`
-and `b`, count them seperately, and add the results. This is true, but Dafny
+and `b`, count them separately, and add the results. This is true, but Dafny
 cannot prove it directly. The problem is that the function does not split the sequence
 in this way. The function takes the first element, computes its count, then adds it to
 the rest of the sequence. If `a` is long, then it can be a while before this
@@ -514,8 +514,8 @@ termination, it can get the chain is finite. Then all it has to do is check one 
 is valid, then the whole chain must be as well. This is the same logic that Dafny uses for loops: check that
 the invariant holds initially, and that one arbitrary step preserves it, and you have checked the whole loop,
 regardless of how many times the loop goes around. The similarity is more than superficial. Both kinds of lemmas
-(and both kinds of reasoning Dafny makes about your program) are *inductive*. It is also not suprising
-given the relationship between iteration and recursion as two means of acheiving the same thing.
+(and both kinds of reasoning Dafny makes about your program) are *inductive*. It is also not surprising
+given the relationship between iteration and recursion as two means of achieving the same thing.
 
 With this in mind, we can complete the lemma by calling the lemma recursively in the else branch of the
 if statement:
