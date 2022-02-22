@@ -190,7 +190,7 @@ another method call, as if it were an expression.
 ```
     Lhs { , Lhs } ":=" Rhs { "," Rhs } ";"
 ```
-Thise ``UpdateStmt`` is a parallel
+This ``UpdateStmt`` is a parallel
 assignment of right-hand-side values to the left-hand sides. For example,
 `x,y := y,x` swaps the values of `x` and `y`. If more than one
 left-hand side is used, these must denote different l-values, unless the
@@ -467,7 +467,7 @@ if tmp.IsFailure() {
 ```
 ### 19.7.6. Failure with initialized declaration.
 
-The `:-` syntax can also be used in initalization, as in
+The `:-` syntax can also be used in initialization, as in
 ```dafny
 var s :- M();
 ```
