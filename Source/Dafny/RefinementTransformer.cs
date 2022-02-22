@@ -1536,8 +1536,8 @@ namespace Microsoft.Dafny {
         Reporter.Error(MessageSource.RefinementTransformer, s, "yield statements are not allowed in skeletons");
       } else if (s is BreakStmt) {
         var b = (BreakStmt)s;
-        if (b.TargetLabel != null ? !labels.Contains(b.TargetLabel.val) : loopLevels < b.BreakCount) {
-          Reporter.Error(MessageSource.RefinementTransformer, s, "break statement in skeleton is not allowed to break outside the skeleton fragment");
+        if (b.TargetLabel != null ? !labels.Contains(b.TargetLabel.val) : loopLevels < b.BreakAndContinueCount) {
+          Reporter.Error(MessageSource.RefinementTransformer, s, $"{b.Kind} statement in skeleton is not allowed to break outside the skeleton fragment");
         }
       } else if (s is AssignStmt) {
         // TODO: To be a refinement automatically (that is, without any further verification), only variables and fields defined
