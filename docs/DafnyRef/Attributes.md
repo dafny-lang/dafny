@@ -51,7 +51,7 @@ attribute in Boogie.
 
 ### 22.1.2. autoReq boolExpr
 For a function declaration, if this attribute is set true at the nearest
-level, then its `requires` clause is strengthed sufficiently so that
+level, then its `requires` clause is strengthened sufficiently so that
 it may call the functions that it calls.
 
 For following example
