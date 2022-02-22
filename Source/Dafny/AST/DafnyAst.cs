@@ -7194,7 +7194,7 @@ namespace Microsoft.Dafny {
     public readonly IToken TargetLabel;
     public readonly bool IsContinue;
     public string Kind => IsContinue ? "continue" : "break";
-    public readonly int BreakAndContinueCount; // this includes the final "continue", if any
+    public readonly int BreakAndContinueCount;
     public Statement TargetStmt; // filled in during resolution
     [ContractInvariantMethod]
     void ObjectInvariant() {
