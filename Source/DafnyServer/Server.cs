@@ -15,7 +15,8 @@ namespace Microsoft.Dafny {
     static void Main(string[] args) {
       ServerUtils.ApplyArgs(args, new ConsoleErrorReporter());
       var options = DafnyOptions.O;
-      var engine = new ExecutionEngine(options);
+      var cache = new VerificationResultCache(options.RunDiagnosticsOnTimeout);
+      var engine = new ExecutionEngine(options, cache);
       Server server = new Server(engine);
 
       // read the optional flag (only one flag is allowed)

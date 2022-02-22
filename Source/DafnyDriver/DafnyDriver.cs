@@ -27,6 +27,7 @@ namespace Microsoft.Dafny {
   using System.Diagnostics;
 
   public class DafnyDriver {
+
     // TODO: Refactor so that non-errors (NOT_VERIFIED, DONT_PROCESS_FILES) don't result in non-zero exit codes
     public enum ExitValue { SUCCESS = 0, PREPROCESSING_ERROR, DAFNY_ERROR, COMPILE_ERROR, VERIFICATION_ERROR }
 
@@ -360,6 +361,7 @@ namespace Microsoft.Dafny {
       }
     }
 
+    private static VerificationResultCache cache;
     public static bool Boogie(ExecutionEngineOptions options, string baseName,
       IEnumerable<Tuple<string, Bpl.Program>> boogiePrograms, string programId,
       out Dictionary<string, PipelineStatistics> statss, out PipelineOutcome outcome) {
@@ -371,7 +373,10 @@ namespace Microsoft.Dafny {
       Stopwatch watch = new Stopwatch();
       watch.Start();
 
-      var engine = new ExecutionEngine(options);
+      if (cache == null || cache.RunDiagnosticsOnTimeout != options.RunDiagnosticsOnTimeout) {
+        cache = new VerificationResultCache(options.RunDiagnosticsOnTimeout);
+      }
+      var engine = new ExecutionEngine(options, cache);
       foreach (var prog in boogiePrograms) {
         if (DafnyOptions.O.SeparateModuleOutput) {
           ExecutionEngine.printer.AdvisoryWriteLine("For module: {0}", prog.Item1);

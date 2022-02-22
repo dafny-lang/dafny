@@ -25,12 +25,14 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     private readonly ILogger logger;
     private readonly VerifierOptions options;
     private readonly SemaphoreSlim mutex = new(1);
+    private static VerificationResultCache cache = new VerificationResultCache(false);
 
     DafnyOptions Options => DafnyOptions.O;
 
     private DafnyProgramVerifier(ILogger<DafnyProgramVerifier> logger, VerifierOptions options) {
       this.logger = logger;
       this.options = options;
+
     }
 
     /// <summary>
@@ -76,7 +78,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         // VerificationNotificationTest and DiagnosticsTest that rely on updating these settings.
         DafnyOptions.O.TimeLimit = options.TimeLimit;
         DafnyOptions.O.VcsCores = GetConfiguredCoreCount(options);
-        var executionEngine = new ExecutionEngine(DafnyOptions.O);
+        var executionEngine = new ExecutionEngine(DafnyOptions.O, cache);
         var translated = Translator.Translate(program, errorReporter, new Translator.TranslatorFlags { InsertChecksums = true });
         bool verified = true;
         foreach (var (_, boogieProgram) in translated) {

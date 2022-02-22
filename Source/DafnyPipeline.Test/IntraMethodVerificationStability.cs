@@ -211,7 +211,7 @@ module SomeModule {
       var temp1 = directory + "/proverLog";
       testOutputHelper.WriteLine("proverLog: " + temp1);
       DafnyOptions.O.ProverLogFilePath = temp1;
-      var engine = new ExecutionEngine(options);
+      var engine = ExecutionEngine.CreateWithoutSharedCache(options);
       foreach (var boogieProgram in boogiePrograms) {
         Main.BoogieOnce(engine, "", "", boogieProgram, "programId", out _, out var outcome);
         testOutputHelper.WriteLine("outcome: " + outcome);

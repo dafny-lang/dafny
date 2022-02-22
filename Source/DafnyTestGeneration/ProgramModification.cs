@@ -75,7 +75,7 @@ namespace DafnyTestGeneration {
       var oldOptions = DafnyOptions.O;
       var options = SetupOptions(procedure);
       DafnyOptions.Install(options);
-      var engine = new ExecutionEngine(options);
+      var engine = ExecutionEngine.CreateWithoutSharedCache(options);
       var uniqueId = Guid.NewGuid().ToString();
       program.Resolve(options);
       program.Typecheck(options);
