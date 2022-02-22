@@ -825,10 +825,15 @@ namespace Microsoft.Dafny {
             string msg;
             if (callExpr.Function is TwoStateFunction || callExpr.Function is ExtremePredicate || callExpr.Function is PrefixPredicate) {
               msg = $"a call to a {callExpr.Function.WhatKind} is allowed only in specification contexts";
-            } else if (callExpr.Function is Predicate) {
-              msg = "predicate calls are allowed only in specification contexts (consider declaring the predicate a 'predicate method')";
             } else {
-              msg = "function calls are allowed only in specification contexts (consider declaring the function a 'function method')";
+              var what = callExpr.Function.WhatKind;
+              string compiledDeclHint;
+              if (DafnyOptions.O.FunctionSyntax == DafnyOptions.FunctionSyntaxOptions.Version4) {
+                compiledDeclHint = "without the 'ghost' keyword";
+              } else {
+                compiledDeclHint = $"with '{what} method'";
+              }
+              msg = $"a call to a ghost {what} is allowed only in specification contexts (consider declaring the {what} {compiledDeclHint})";
             }
             reporter?.Error(MessageSource.Resolver, callExpr, msg);
             return false;

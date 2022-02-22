@@ -6204,6 +6204,28 @@ namespace Microsoft.Dafny {
 
   public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
     public override string WhatKind { get { return "function"; } }
+
+    public string FunctionDeclarationKeywords {
+      get {
+        string k;
+        if (this is TwoStateFunction || this is ExtremePredicate || this.ByMethodBody != null) {
+          k = WhatKind;
+        } else if (this is PrefixPredicate) {
+          k = "predicate";
+        } else if (DafnyOptions.O.FunctionSyntax == DafnyOptions.FunctionSyntaxOptions.ExperimentalPredicateAlwaysGhost &&
+                   (this is Predicate || !IsGhost)) {
+          k = WhatKind;
+        } else if (DafnyOptions.O.FunctionSyntax != DafnyOptions.FunctionSyntaxOptions.Version4 && !IsGhost) {
+          k = WhatKind + " method";
+        } else if (DafnyOptions.O.FunctionSyntax != DafnyOptions.FunctionSyntaxOptions.Version3 && IsGhost) {
+          k = "ghost " + WhatKind;
+        } else {
+          k = WhatKind;
+        }
+        return HasStaticKeyword ? "static " + k : k;
+      }
+    }
+
     public override bool CanBeRevealed() { return true; }
     public bool IsRecursive;  // filled in during resolution
     public TailStatus TailRecursion = TailStatus.NotTailRecursive;  // filled in during resolution; NotTailRecursive = no tail recursion; TriviallyTailRecursive is never used here
@@ -6313,9 +6335,6 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Decreases != null);
     }
 
-    /// <summary>
-    /// Note, functions are "ghost" by default; a non-ghost function is called a "function method".
-    /// </summary>
     public Function(IToken tok, string name, bool hasStaticKeyword, bool isGhost,
       List<TypeParameter> typeArgs, List<Formal> formals, Formal result, Type resultType,
       List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
