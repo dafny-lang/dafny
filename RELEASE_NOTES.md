@@ -1,6 +1,7 @@
 # Upcoming
 
 - fix: No warning "File contains no code" if a file only contains a submodule (https://github.com/dafny-lang/dafny/pull/1840)
+- fix: Stuck in verifying in VSCode - support for verification cancellation (https://github.com/dafny-lang/dafny/pull/1771)
 
 
 # 3.4.2
