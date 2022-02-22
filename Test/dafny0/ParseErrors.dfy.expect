@@ -56,4 +56,22 @@ ParseErrors.dfy(219,2): Error: a datatype or codatatype cannot be declared 'stat
 ParseErrors.dfy(220,2): Error: a module cannot be declared 'static'
 ParseErrors.dfy(226,2): Error: a datatype or codatatype cannot be declared 'ghost'
 ParseErrors.dfy(227,2): Error: a module cannot be declared 'ghost'
-53 parse errors detected in ParseErrors.dfy
+ParseErrors.dfy(234,51): Error: a 'by method' implementation is not allowed on a twostate function
+ParseErrors.dfy(234,2): Error: a function-by-method cannot be declared 'ghost' (it is 'ghost' by default)
+ParseErrors.dfy(235,52): Error: a 'by method' implementation is not allowed on a twostate function
+ParseErrors.dfy(236,50): Error: a 'by method' implementation is not allowed on a twostate predicate
+ParseErrors.dfy(236,2): Error: a predicate-by-method cannot be declared 'ghost' (it is 'ghost' by default)
+ParseErrors.dfy(237,51): Error: a 'by method' implementation is not allowed on a twostate predicate
+ParseErrors.dfy(240,47): Error: a 'by method' implementation is not allowed on an extreme predicate
+ParseErrors.dfy(240,2): Error: a predicate-by-method cannot be declared 'ghost' (it is 'ghost' by default)
+ParseErrors.dfy(241,50): Error: a 'by method' implementation is not allowed on an extreme predicate
+ParseErrors.dfy(241,2): Error: a predicate-by-method cannot be declared 'ghost' (it is 'ghost' by default)
+ParseErrors.dfy(244,55): Error: a 'by method' implementation is not allowed on a twostate function
+ParseErrors.dfy(244,2): Error: a function-by-method cannot be declared 'abstract'
+ParseErrors.dfy(245,54): Error: a 'by method' implementation is not allowed on a twostate predicate
+ParseErrors.dfy(245,2): Error: a predicate-by-method cannot be declared 'abstract'
+ParseErrors.dfy(246,51): Error: a 'by method' implementation is not allowed on an extreme predicate
+ParseErrors.dfy(246,2): Error: a predicate-by-method cannot be declared 'abstract'
+ParseErrors.dfy(247,54): Error: a 'by method' implementation is not allowed on an extreme predicate
+ParseErrors.dfy(247,2): Error: a predicate-by-method cannot be declared 'abstract'
+71 parse errors detected in ParseErrors.dfy
