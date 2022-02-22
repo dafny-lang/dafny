@@ -1274,7 +1274,7 @@ type.  For such assignments, an explicit conversion must be used, see
 
 Dafny builds in three families of subset types, as described next.
 
-### 11.3.1 Type`nat`
+### 11.3.1. Type `nat`
 
 The built-in type `nat`, which represents the non-negative integers
 (that is, the natural numbers), is a subset type:
@@ -1304,7 +1304,7 @@ function Fib(n: int): int
 }
 ```
 
-### 11.3.2 Non-null types
+### 11.3.2. Non-null types
 
 Every class, trait, and iterator declaration `C` gives rise to two types.
 
@@ -1349,7 +1349,7 @@ For example,
 Note that `?` is not an operator. Instead, it is simply the last
 character of the name of these various possibly-null types.
 
-### 11.3.3 Arrow types: `->`, `-->`, and `~>` {#sec-arrow-subset-types}
+### 11.3.3. Arrow types: `->`, `-->`, and `~>` {#sec-arrow-subset-types}
 
 The built-in type `->` stands for total functions, `-->` stands for
 partial functions (that is, functions with possible `requires` clauses),
@@ -2293,7 +2293,7 @@ function is defined.
  Y            | N           | N
 
 When `{:opaque}` is specified for function `g`, `g` is opaque,
-however the lemma `reveal_g` is available to give the semantics
+however the statement `reveal g();` is available to give the semantics
 of `g` whether in the defining module or outside.
 
 ### 13.4.4. Least/Greatest (CoInductive) Predicates and Lemmas
@@ -2315,10 +2315,11 @@ TraitDecl =
 ````
 
 A _trait_ is an abstract superclass, similar to an "interface" or
-"mixin".[^fn-traits]
+"mixin". A trait can be _extended_ only by another trait or
+by a class (and in the latter case we say that the class _implements_
+the trait). More specifically, algebraic datatypes cannot extend traits.[^fn-traits]
 
-[^fn-traits]: Traits are new to Dafny and are likely to evolve for a
-while.
+[^fn-traits]: Traits are new to Dafny and are likely to evolve for a while.
 
 The declaration of a trait is much like that of a class:
 ```dafny

@@ -19,7 +19,7 @@ public class PluginsAdvancedTest : PluginsTestBase {
     "PluginsAdvancedTest";
 
   protected override string[] CommandLineArgument =>
-    new[] { $@"--dafny:plugins:0=""{LibraryPath},force you""" };
+    new[] { $"--dafny:plugins:0={LibraryPath},force you" };
 
   [TestMethod]
   public async Task EnsureErrorMessageCanBeComplexAndTakeIntoAccountConfiguration() {
@@ -35,7 +35,7 @@ method {:test} myMethodWrongName() {
     var resolutionReport = await DiagnosticReceiver.AwaitNextNotificationAsync(CancellationToken.None);
     Assert.AreEqual(documentItem.Uri, resolutionReport.Uri);
     var diagnostics = resolutionReport.Diagnostics.ToArray();
-    Assert.AreEqual(1, DafnyOptions.O.Plugins.Count, "Too many plugins loaded");
+    Assert.AreEqual(1, DafnyOptions.O.Plugins.Count, "Not exactly 1 plugin loaded");
     Assert.AreEqual(1, diagnostics.Length, LibraryPath + " did not raise an error.");
     Assert.AreEqual("Please declare a method {:test} named myMethod_test that will call myMethod, you", diagnostics[0].Message);
     Assert.AreEqual(new Range((1, 17), (1, 25)), diagnostics[0].Range);
