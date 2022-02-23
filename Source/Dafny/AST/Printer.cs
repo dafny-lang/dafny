@@ -1205,16 +1205,14 @@ namespace Microsoft.Dafny {
         wr.Write(";");
 
       } else if (stmt is BreakStmt) {
-        BreakStmt s = (BreakStmt)stmt;
+        var s = (BreakStmt)stmt;
         if (s.TargetLabel != null) {
-          wr.Write("break {0};", s.TargetLabel);
+          wr.Write($"{s.Kind} {s.TargetLabel.val};");
         } else {
-          string sep = "";
-          for (int i = 0; i < s.BreakCount; i++) {
-            wr.Write("{0}break", sep);
-            sep = " ";
+          for (int i = 0; i < s.BreakAndContinueCount - 1; i++) {
+            wr.Write("break ");
           }
-          wr.Write(";");
+          wr.Write($"{s.Kind};");
         }
 
       } else if (stmt is ProduceStmt) {
@@ -1634,8 +1632,7 @@ namespace Microsoft.Dafny {
         var stmt = (AssignOrReturnStmt)s;
         wr.Write(":- ");
         PrintExpression(stmt.Rhs, true);
-        if (DafnyOptions.O.DafnyPrintResolvedFile != null) {
-          Contract.Assert(stmt.ResolvedStatements.Count > 0);  // filled in during resolution
+        if (DafnyOptions.O.DafnyPrintResolvedFile != null && stmt.ResolvedStatements.Count > 0) {
           wr.WriteLine();
           Indent(indent); wr.WriteLine("/*---------- desugared ----------");
           foreach (Statement r in stmt.ResolvedStatements) {
@@ -2843,6 +2840,11 @@ namespace Microsoft.Dafny {
       switch (pat) {
         case IdPattern idPat:
           if (idPat.Id.StartsWith(BuiltIns.TupleTypeCtorNamePrefix)) {
+          } else if (idPat.Id.StartsWith("_")) {
+            // In case of the universal match pattern, print '_' instead of
+            // its node identifier, otherwise the printed program becomes
+            // syntactically incorrect.
+            wr.Write("_");
           } else {
             wr.Write(idPat.Id);
           }
