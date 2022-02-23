@@ -1,12 +1,14 @@
 # Upcoming
 
+- feat: `continue` statements. Like Dafny's `break` statements, these come in two forms: one that uses a label to name the continue target and one that specifies the continue target by nesting level. See section [19.2](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-break-continue) of the Reference Manual. (https://github.com/dafny-lang/dafny/pull/1839)
 - fix: No warning "File contains no code" if a file only contains a submodule (https://github.com/dafny-lang/dafny/pull/1840)
 - fix: export-reveals of function-by-method now allows the function body to be ghost
 
 # 3.4.2
 
 - fix: No output when compiling to JavaScript on Windows (https://github.com/dafny-lang/dafny/pull/1824)
-- feat: `continue` statements. Like Dafny's `break` statements, these come in two forms: one that uses a label to name the continue target and one that specifies the continue target by nesting level. See section 19.2 of the Reference Manual. (https://github.com/dafny-lang/dafny/pull/1839)
+- fix: CanCall assumptions for loop invariants (https://github.com/dafny-lang/dafny/pull/1813)
+- fix: Behavior of the C# runtime in a concurrent setting (https://github.com/dafny-lang/dafny/pull/1780)
 
 
 # 3.4.1
