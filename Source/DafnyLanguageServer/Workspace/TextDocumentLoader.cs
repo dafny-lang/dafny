@@ -160,7 +160,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         program,
         CreateEmptySymbolTable(program, logger),
         loadCanceled
-      );
+      ) {
+        ResolutionSucceeded = loadCanceled ? null : false
+      };
     }
 
     private static SymbolTable CreateEmptySymbolTable(Dafny.Program program, ILogger<SymbolTable> logger) {
