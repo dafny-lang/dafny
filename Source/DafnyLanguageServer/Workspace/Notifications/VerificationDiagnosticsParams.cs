@@ -65,7 +65,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
       // Render node content into lines.
       foreach (var nodeDiagnostic in perNodeDiagnostic) {
-        if (nodeDiagnostic.Filename == verificationDiagnosticsParams.Uri) {
+        if (nodeDiagnostic.Filename == verificationDiagnosticsParams.Uri ||
+            "untitled:" + nodeDiagnostic.Filename == verificationDiagnosticsParams.Uri) {
           nodeDiagnostic.RenderInto(result);
         }
       }
