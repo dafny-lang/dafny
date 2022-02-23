@@ -850,12 +850,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(f != null);
 
       if (PrintModeSkipFunctionOrMethod(f.IsGhost, f.Attributes, f.Name)) { return; }
-      var isPredicate = f is Predicate || f is PrefixPredicate;
       Indent(indent);
-      string k = isPredicate ? "predicate" : f.WhatKind;
-      if (f.HasStaticKeyword) { k = "static " + k; }
-      if (!f.IsGhost && f.ByMethodBody == null) { k += " method"; }
-      PrintClassMethodHelper(k, f.Attributes, f.Name, f.TypeArgs);
+      PrintClassMethodHelper(f.FunctionDeclarationKeywords, f.Attributes, f.Name, f.TypeArgs);
       if (f.SignatureIsOmitted) {
         wr.Write(" ...");
       } else {
@@ -863,7 +859,9 @@ namespace Microsoft.Dafny {
           PrintKTypeIndication(((ExtremePredicate)f).TypeOfK);
         }
         PrintFormals(f.Formals, f, f.Name);
-        if (!isPredicate && !(f is ExtremePredicate) && !(f is TwoStatePredicate)) {
+        if (f is Predicate || f is TwoStatePredicate || f is ExtremePredicate || f is PrefixPredicate) {
+          // the result type is tacitly "bool"
+        } else {
           wr.Write(": ");
           if (f.Result != null) {
             wr.Write("(");
