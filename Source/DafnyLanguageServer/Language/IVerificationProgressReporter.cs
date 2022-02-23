@@ -22,5 +22,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       int totalResource);
     void ReportErrorFindItsMethod(IToken tok, string message);
     int GetVerificationPriority(IToken implTok);
+    void ReportImplementationMultiplicity(IToken[] implementationPositions);
   }
 }

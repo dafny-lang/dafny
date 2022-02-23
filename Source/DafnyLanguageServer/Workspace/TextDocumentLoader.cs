@@ -10,6 +10,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using VC;
@@ -195,7 +196,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
                   Range = new Range(diagnosticPosition, TokenToPosition(member.BodyEndTok, true))
                 };
                 var previousDiagnostic = previousDiagnostics.FirstOrDefault(
-                  oldNode => oldNode.Position == diagnosticPosition,
+                  oldNode => oldNode != null && oldNode.Position == diagnosticPosition,
                   null);
                 if (previousDiagnostic != null) {
                   diagnostic.Status = previousDiagnostic.Status;
@@ -279,16 +280,36 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         publisher.SendStatusNotification(document.Text, CompilationStatus.VerificationStarted, message);
       }
 
+      public void ReportImplementationMultiplicity(IToken[] implementationPositions) {
+        foreach (var node in document.VerificationNodeDiagnostic.Children) {
+          node.ImplementationCount = 0;
+          node.VerifiedImplementationCount = 0;
+        }
+
+        foreach (var token in implementationPositions) {
+          var targetMethodNode = GetTargetMethodNode(token);
+          if (targetMethodNode != null) {
+            targetMethodNode.ImplementationCount++;
+          }
+        }
+      }
+
       public void ReportStartVerifyMethodOrFunction(IToken implToken) {
-        var targetMethodNode = document.VerificationNodeDiagnostic.Children.FirstOrDefault(
-          node => node?.Position == TokenToPosition(implToken) && node?.Filename == implToken.filename
-          , null);
+        var targetMethodNode = GetTargetMethodNode(implToken);
         if (targetMethodNode == null) {
           logger.LogError($"No method at {implToken}");
         } else {
-          targetMethodNode.Start();
-          diagnosticPublisher.PublishVerificationDiagnostics(document);
+          if (!targetMethodNode.Started) { // The same method could be started multiple times for each implementation
+            targetMethodNode.Start();
+            diagnosticPublisher.PublishVerificationDiagnostics(document);
+          }
         }
+      }
+
+      private NodeDiagnostic? GetTargetMethodNode(IToken implToken) {
+        return document.VerificationNodeDiagnostic.Children.FirstOrDefault(
+          node => node?.Position == TokenToPosition(implToken) && node?.Filename == implToken.filename
+          , null);
       }
 
       public void ReportEndVerifyMethodOrFunction(IToken implToken, VerificationResult verificationResult) {
@@ -296,61 +317,73 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         if (targetMethodNode == null) {
           logger.LogError($"No method at {implToken}");
         } else {
-          targetMethodNode.Stop();
-          // Later, will be overriden by individual outcomes
-          targetMethodNode.Status = verificationResult.Outcome switch {
-            ConditionGeneration.Outcome.Correct => NodeVerificationStatus.Verified,
-            _ => NodeVerificationStatus.Error
-          };
-          targetMethodNode.ResourceCount = verificationResult.ResourceCount;
-          if (verificationResult.Errors != null) {
-            var children = new List<NodeDiagnostic>();
-            var errorCount = 1;
+          int newVerifiedCount;
+          lock (targetMethodNode) {
 
-            void AddChildError(IToken token, string errorDisplay = "", string errorIdentifier = "") {
-              var errorPosition = TokenToPosition(token);
-              if (targetMethodNode.Filename != token.filename) {
-                return;
+            newVerifiedCount = ++targetMethodNode.VerifiedImplementationCount;
+            var children = newVerifiedCount == 1 ? new List<NodeDiagnostic>() : new List<NodeDiagnostic>(targetMethodNode.Children);
+            if (verificationResult.Errors != null) {
+              var errorCount = children.Count + 1;
+
+              void AddChildError(IToken token, string errorDisplay = "", string errorIdentifier = "") {
+                var errorPosition = TokenToPosition(token);
+                if (targetMethodNode.Filename != token.filename) {
+                  return;
+                }
+
+                errorDisplay = errorDisplay != "" ? " " + errorDisplay : "";
+                errorIdentifier = errorIdentifier != "" ? "_" + errorIdentifier : "";
+
+                var errorRange = new Range(errorPosition, TokenToPosition(token, true));
+                children.Add(new NodeDiagnostic {
+                  DisplayName =
+                    $"{targetMethodNode.DisplayName}{errorDisplay} #{errorCount}",
+                  Identifier =
+                    $"{targetMethodNode.Identifier}_{errorCount}{errorIdentifier}",
+                  Position = errorPosition,
+                  Range = errorRange,
+                  Filename = token.filename,
+                  Status = NodeVerificationStatus.Error
+                });
               }
 
-              errorDisplay = errorDisplay != "" ? " " + errorDisplay : "";
-              errorIdentifier = errorIdentifier != "" ? "_" + errorIdentifier : "";
-
-              var errorRange = new Range(errorPosition, TokenToPosition(token, true));
-              children.Add(new NodeDiagnostic {
-                DisplayName =
-                  $"{targetMethodNode.DisplayName}{errorDisplay} #{errorCount}",
-                Identifier =
-                  $"{targetMethodNode.Identifier}_{errorCount}{errorIdentifier}",
-                Position = errorPosition,
-                Range = errorRange,
-                Filename = token.filename,
-                Status = NodeVerificationStatus.Error
-              });
-            }
-
-            foreach (var error in verificationResult.Errors) {
-              if (error is ReturnCounterexample returnError) {
-                AddChildError(returnError.FailingEnsures.tok, "", "");
-                var returnPosition = TokenToPosition(returnError.FailingReturn.tok);
-                if (returnPosition != targetMethodNode.Position) {
-                  AddChildError(returnError.FailingReturn.tok, "return branch", "_return");
-                  // TODO: Dynamic range highlighting + display error on postconditions of edited code
+              foreach (var error in verificationResult.Errors) {
+                if (error is ReturnCounterexample returnError) {
+                  AddChildError(returnError.FailingEnsures.tok, "", "");
+                  var returnPosition = TokenToPosition(returnError.FailingReturn.tok);
+                  if (returnPosition != targetMethodNode.Position) {
+                    AddChildError(returnError.FailingReturn.tok, "return branch", "_return");
+                    // TODO: Dynamic range highlighting + display error on postconditions of edited code
+                  }
+                } else if (error is AssertCounterexample assertError) {
+                  AddChildError(assertError.FailingAssert.tok, "Assertion", "assert");
+                } else if (error is CallCounterexample callError) {
+                  AddChildError(callError.FailingCall.tok, "Call", "call");
+                  if (targetMethodNode.Range.Contains(TokenToPosition(callError.FailingRequires.tok))) {
+                    AddChildError(callError.FailingCall.tok, "Call precondition", "call_precondition");
+                  }
                 }
-              } else if (error is AssertCounterexample assertError) {
-                AddChildError(assertError.FailingAssert.tok, "Assertion", "assert");
-              } else if (error is CallCounterexample callError) {
-                AddChildError(callError.FailingCall.tok, "Call", "call");
-                if (targetMethodNode.Range.Contains(TokenToPosition(callError.FailingRequires.tok))) {
-                  AddChildError(callError.FailingCall.tok, "Call precondition", "call_precondition");
-                }
+                errorCount++;
               }
-
-              errorCount++;
             }
             targetMethodNode.Children = children.ToArray();
+          }
+
+          targetMethodNode.ResourceCount = (newVerifiedCount == 1 ? 0 : targetMethodNode.ResourceCount) + verificationResult.ResourceCount;
+          if (newVerifiedCount < targetMethodNode.ImplementationCount) {
+            targetMethodNode.Status = verificationResult.Outcome switch {
+              ConditionGeneration.Outcome.Correct => targetMethodNode.Status,
+              _ => NodeVerificationStatus.Error
+            };
+            targetMethodNode.RecomputeStatus();
           } else {
-            targetMethodNode.Children = Array.Empty<NodeDiagnostic>();
+            targetMethodNode.Stop();
+            // Later, will be overriden by individual outcomes
+            targetMethodNode.Status = verificationResult.Outcome switch {
+              ConditionGeneration.Outcome.Correct => NodeVerificationStatus.Verified,
+              _ => NodeVerificationStatus.Error
+            };
+            targetMethodNode.RecomputeStatus();
           }
 
           diagnosticPublisher.PublishVerificationDiagnostics(document);
@@ -381,10 +414,27 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         var method = document.VerificationNodeDiagnostic.Children.FirstOrDefault(node =>
           node != null && node.Position == implPosition, null);
         if (method != null) {
-          return method.Range.Intersects(lastChange) ? 10 : 0;
+          if (method.Range.Intersects(lastChange)) {
+            RememberLastTouchedMethod(method);
+            return 10;
+          }
+          // 0 if not found
+          var priority = 1 + document.LastTouchedMethods.IndexOf(method.Position);
+          return priority;
         }
         // Can we do the call graph?
         return 0;
+      }
+
+      private void RememberLastTouchedMethod(NodeDiagnostic method) {
+        var index = document.LastTouchedMethods.IndexOf(method.Position);
+        if (index != -1) {
+          document.LastTouchedMethods.RemoveAt(index);
+        }
+        document.LastTouchedMethods.Add(method.Position);
+        while (document.LastTouchedMethods.Count() > 5) {
+          document.LastTouchedMethods.RemoveAt(0);
+        }
       }
     }
   }

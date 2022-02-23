@@ -219,6 +219,10 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         return progressReporter.GetVerificationPriority(implTok);
       }
 
+      public void ReportImplementationMultiplicity(IToken[] implementationPositions) {
+        progressReporter.ReportImplementationMultiplicity(implementationPositions);
+      }
+
       public void ReportVerificationStarts(List<IToken> assertionTokens, IToken implToken) {
         progressReporter.ReportVerificationStarts(assertionTokens, implToken);
       }

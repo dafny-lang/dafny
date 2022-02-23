@@ -71,20 +71,24 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
       // Fill in the missing "Unknown" based on the surrounding content
       // The filling only takes Verified an Error
-      var previousNotUnknown = result.FirstOrDefault(
-        status => status != LineVerificationStatus.Unknown
-        , LineVerificationStatus.Unknown);
-      for (var i = 0; i < numberOfLines; i++) {
+      var previousNotUnknown = LineVerificationStatus.Unknown;
+      var lineDelta = 1;
+      // Two passes so that we can fill gaps based on what happened before AND after
+      for (var line = 0; 0 <= line; line += lineDelta) {
+        if (line == numberOfLines) {
+          lineDelta = -1;
+          previousNotUnknown = LineVerificationStatus.Unknown;
+          continue;
+        }
         if (previousNotUnknown != LineVerificationStatus.Verified &&
             previousNotUnknown != LineVerificationStatus.VerifiedObsolete &&
             previousNotUnknown != LineVerificationStatus.VerifiedVerifying) {
           previousNotUnknown = LineVerificationStatus.Unknown;
         }
-        if (result[i] == LineVerificationStatus.Unknown) {
-          result[i] = previousNotUnknown;
+        if (result[line] == LineVerificationStatus.Unknown) {
+          result[line] = previousNotUnknown;
         } else {
-          previousNotUnknown = result[i];
-
+          previousNotUnknown = result[line];
         }
       }
 
@@ -124,7 +128,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     Verified = 5,
     // For containers of other diagnostics nodes (e.g. methods)
     ErrorRangeObsolete = 6,
-    ErrorRangePending = 7,
+    ErrorRangeVerifying = 7,
     ErrorRange = 8,
     // For specific lines which have errors on it.
     ErrorObsolete = 9,
@@ -154,7 +158,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     public int TimeSpent => Finished ? EndTime - StartTime : Started ? DateTime.Now.Millisecond - StartTime : -1;
 
     // Resources allocated at the end of the computation.
-    public int ResourceCount { get; set; } = -1;
+    public int ResourceCount { get; set; } = 0;
 
     // The range of this node. Make it a record to remove the set
     public Range Range { get; set; }
@@ -164,6 +168,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
     // Overriden by checking children if there are some
     public NodeVerificationStatus Status { get; set; } = NodeVerificationStatus.Scheduled;
+
+    // For methods: number of different implementations that Boogie verify
+    public int ImplementationCount { get; set; } = 0;
+
+    // For methods: number of different implementations that Boogie finished to verify
+    public int VerifiedImplementationCount { get; set; } = 0;
 
     public NodeDiagnostic SetObsolete() {
       Status = Status switch {
@@ -245,7 +255,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
           } else { // For a range, 
             perLineDiagnostics[line] = Status switch {
               NodeVerificationStatus.Error => LineVerificationStatus.ErrorRange,
-              NodeVerificationStatus.ErrorVerifying => LineVerificationStatus.ErrorRangePending,
+              NodeVerificationStatus.ErrorVerifying => LineVerificationStatus.ErrorRangeVerifying,
               NodeVerificationStatus.ErrorObsolete => LineVerificationStatus.ErrorRangeObsolete,
               NodeVerificationStatus.VerifiedObsolete => LineVerificationStatus.VerifiedObsolete,
               NodeVerificationStatus.VerifiedVerifying => LineVerificationStatus.VerifiedVerifying,

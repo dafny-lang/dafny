@@ -48,6 +48,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       Identifier = Text.Uri.ToString()
     };
 
+    // List of last 5 top-level touched verification diagnostics positions
+    public List<Position> LastTouchedMethods { get; init; } = new();
+
     // Used to prioritize verification to one method and its dependencies
     public Range? LastChange { get; set; } = null;
 
