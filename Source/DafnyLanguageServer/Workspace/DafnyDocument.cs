@@ -3,6 +3,7 @@ using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
@@ -42,11 +43,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// <summary>
     /// Contains the real-time status of all verification efforts.
     /// Can be migrated from a previous document
+    /// The position and the range are never sent to the client.
     /// </summary>
-    public NodeDiagnostic VerificationNodeDiagnostic { get; init; } = new NodeDiagnostic {
-      DisplayName = "Document",
-      Identifier = Text.Uri.ToString()
-    };
+    public NodeDiagnostic VerificationNodeDiagnostic { get; init; } = new NodeDiagnostic(
+      "Document",
+      Text.Uri.ToString(),
+      Text.Uri.ToString(),
+      new Position(0, 0),
+      new Range(new Position(0, 0), new Position(Regex.Matches(Text.Text, "\r?\n").Count + 1, 0))
+    );
 
     // List of last 5 top-level touched verification diagnostics positions
     public List<Position> LastTouchedMethods { get; init; } = new();

@@ -62,7 +62,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         Diagnostics = errors,
         DiagnosticsAreResolutionErrors = document.VerificationPass == null,
         LinesCount = Regex.Matches(document.Text.Text, "\r?\n").Count + 1,
-        PerNodeDiagnostic = document.VerificationNodeDiagnostic.Children
+        PerNodeDiagnostic = document.VerificationNodeDiagnostic.Children.ToArray()
       });
     }
 

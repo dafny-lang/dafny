@@ -33,7 +33,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
       DidChangeTextDocumentParams changes, CancellationToken cancellationToken) {
       var migratedChildren = new ChangeProcessor(logger, loggerSymbolTable, changes.ContentChanges, cancellationToken)
         .MigrateNodeDiagnostic(originalNodeDiagnostic.Children);
-      originalNodeDiagnostic.Children = migratedChildren.ToArray();
+      originalNodeDiagnostic.Children = migratedChildren.ToList();
       return originalNodeDiagnostic;
     }
 
@@ -253,10 +253,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
             continue;
           }
           var newPosition = MigratePosition(nodeDiagnostic.Position, change.Range!, afterChangeEndOffset);
-          nodeDiagnostic.Range = newRange;
-          nodeDiagnostic.Position = newPosition;
-          nodeDiagnostic.Children = MigrateNodeDiagnostic(nodeDiagnostic.Children, change).ToArray();
-          yield return nodeDiagnostic;
+          var newNodeDiagnostic = nodeDiagnostic with {
+            Range = newRange,
+            Position = newPosition,
+            Children = MigrateNodeDiagnostic(nodeDiagnostic.Children, change).ToList()
+          };
+          newNodeDiagnostic.Status = nodeDiagnostic.Status;
+          yield return newNodeDiagnostic;
         }
       }
     }

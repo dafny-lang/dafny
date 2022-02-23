@@ -188,13 +188,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             foreach (var member in topLevelDeclWithMembers.Members) {
               if (member is Method or Function) {
                 var diagnosticPosition = TokenToPosition(member.tok);
-                var diagnostic = new NodeDiagnostic() {
-                  DisplayName = member.Name,
-                  Identifier = member.CompileName,
-                  Filename = member.tok.filename,
-                  Position = diagnosticPosition,
-                  Range = new Range(diagnosticPosition, TokenToPosition(member.BodyEndTok, true))
-                };
+                var diagnosticRange = new Range(diagnosticPosition, TokenToPosition(member.BodyEndTok, true));
+                var diagnostic = new NodeDiagnostic(member.Name, member.CompileName, member.tok.filename,
+                  diagnosticPosition, diagnosticRange);
                 var previousDiagnostic = previousDiagnostics.FirstOrDefault(
                   oldNode => oldNode != null && oldNode.Position == diagnosticPosition,
                   null);
@@ -208,7 +204,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           }
         }
       }
-      document.VerificationNodeDiagnostic.Children = result.ToArray();
+      document.VerificationNodeDiagnostic.Children = result;
     }
 
     private static Position TokenToPosition(IToken token, bool end = false) {
@@ -319,11 +315,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         } else {
           int newVerifiedCount;
           lock (targetMethodNode) {
-
             newVerifiedCount = ++targetMethodNode.VerifiedImplementationCount;
-            var children = newVerifiedCount == 1 ? new List<NodeDiagnostic>() : new List<NodeDiagnostic>(targetMethodNode.Children);
+            //var children = newVerifiedCount == 1 ? new List<NodeDiagnostic>() : new List<NodeDiagnostic>(targetMethodNode.Children);
             if (verificationResult.Errors != null) {
-              var errorCount = children.Count + 1;
+              var errorCount = targetMethodNode.NewChildrenCount + 1;
 
               void AddChildError(IToken token, string errorDisplay = "", string errorIdentifier = "") {
                 var errorPosition = TokenToPosition(token);
@@ -335,16 +330,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
                 errorIdentifier = errorIdentifier != "" ? "_" + errorIdentifier : "";
 
                 var errorRange = new Range(errorPosition, TokenToPosition(token, true));
-                children.Add(new NodeDiagnostic {
-                  DisplayName =
-                    $"{targetMethodNode.DisplayName}{errorDisplay} #{errorCount}",
-                  Identifier =
-                    $"{targetMethodNode.Identifier}_{errorCount}{errorIdentifier}",
-                  Position = errorPosition,
-                  Range = errorRange,
-                  Filename = token.filename,
+                var nodeDiagnostic = new NodeDiagnostic(
+                  $"{targetMethodNode.DisplayName}{errorDisplay} #{errorCount}",
+                  $"{targetMethodNode.Identifier}_{errorCount}{errorIdentifier}",
+                  token.filename,
+                  errorPosition,
+                  errorRange
+                ) {
                   Status = NodeVerificationStatus.Error
-                });
+                };
+                targetMethodNode.AddNewChild(nodeDiagnostic);
               }
 
               foreach (var error in verificationResult.Errors) {
@@ -366,10 +361,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
                 errorCount++;
               }
             }
-            targetMethodNode.Children = children.ToArray();
+
+            if (newVerifiedCount == targetMethodNode.ImplementationCount) {
+              targetMethodNode.SaveNewChildren();
+            }
+            targetMethodNode.ResourceCount = (newVerifiedCount == 1 ? 0 : targetMethodNode.ResourceCount) + verificationResult.ResourceCount;
           }
 
-          targetMethodNode.ResourceCount = (newVerifiedCount == 1 ? 0 : targetMethodNode.ResourceCount) + verificationResult.ResourceCount;
+          // Will be only executed by the last instance.
           if (newVerifiedCount < targetMethodNode.ImplementationCount) {
             targetMethodNode.Status = verificationResult.Outcome switch {
               ConditionGeneration.Outcome.Correct => targetMethodNode.Status,

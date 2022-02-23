@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using MediatR;
@@ -138,20 +139,20 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     ResolutionError = 12
   }
 
-  public class NodeDiagnostic {
-    /// User-facing name
-    public string DisplayName { get; init; }
-
-    /// Used to relocate previous diagnostics, and re-trigger the verification of some diagnostics.
-    public string Identifier { get; init; }
-
-    public string Filename { get; init; }
-
-    public Position Position { get; set; }
+  public record NodeDiagnostic(
+     /// User-facing name
+     string DisplayName,
+     /// Used to re-trigger the verification of some diagnostics.
+     string Identifier,
+     string Filename,
+     // Used to relocate a node diagnostic
+     Position Position,
+     // The range of this node.
+     Range Range
+  ) {
 
     /// Time and Resource diagnostics
     public bool Started { get; private set; } = false;
-
     public bool Finished { get; private set; } = false;
     public int StartTime { get; private set; }
     public int EndTime { get; private set; }
@@ -160,11 +161,19 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     // Resources allocated at the end of the computation.
     public int ResourceCount { get; set; } = 0;
 
-    // The range of this node. Make it a record to remove the set
-    public Range Range { get; set; }
-
     // Sub-diagnostics if any
-    public NodeDiagnostic[] Children { get; set; } = Array.Empty<NodeDiagnostic>();
+    public List<NodeDiagnostic> Children { get; set; } = new();
+    private List<NodeDiagnostic> NewChildren { get; set; } = new();
+
+    public int NewChildrenCount => NewChildren.Count;
+    public void AddNewChild(NodeDiagnostic newChild) {
+      NewChildren.Add(newChild);
+    }
+
+    public void SaveNewChildren() {
+      Children = NewChildren;
+      NewChildren = new();
+    }
 
     // Overriden by checking children if there are some
     public NodeVerificationStatus Status { get; set; } = NodeVerificationStatus.Scheduled;
@@ -241,7 +250,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       }
       for (var line = Range.Start.Line - 1; line <= Range.End.Line - 1; line++) {
         if (StatusSeverityOf(perLineDiagnostics[line]) < StatusSeverityOf(Status)) {
-          if (Children.Length == 0) { // Not a range
+          if (Children.Count == 0) { // Not a range
             perLineDiagnostics[line] = Status switch {
               NodeVerificationStatus.Error => LineVerificationStatus.Error,
               NodeVerificationStatus.ErrorVerifying => LineVerificationStatus.ErrorVerifying,
@@ -270,7 +279,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
     // Returns true if a status was updated
     public bool SetVerifiedIfPending() {
-      if (Status is NodeVerificationStatus.Scheduled or NodeVerificationStatus.ErrorObsolete) {
+      if (Status is NodeVerificationStatus.Scheduled or NodeVerificationStatus.ErrorObsolete or NodeVerificationStatus.VerifiedObsolete) {
         Status = NodeVerificationStatus.Verified;
         return true;
       }
