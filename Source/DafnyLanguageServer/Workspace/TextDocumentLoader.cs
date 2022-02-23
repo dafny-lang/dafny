@@ -134,7 +134,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         notificationPublisher.SendStatusNotification(textDocument, CompilationStatus.CompilationSucceeded);
       }
       var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(symbolTable, cancellationToken).ToArray();
-      return new DafnyDocument(textDocument, errorReporter, new List<Diagnostic>(), ghostDiagnostics, program, symbolTable);
+      return new DafnyDocument(textDocument, errorReporter, new List<Diagnostic>(), ghostDiagnostics, program, symbolTable) {
+        ResolutionSucceeded = !errorReporter.HasErrors
+      };
     }
 
     private static void PublishDafnyLanguageServerLoadErrors(DiagnosticErrorReporter errorReporter, Dafny.Program program) {
