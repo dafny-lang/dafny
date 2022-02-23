@@ -375,7 +375,7 @@ namespace Microsoft.Dafny {
         ModuleDefinition priorModDef;
         if (compileNameMap.TryGetValue(compileName, out priorModDef)) {
           reporter.Error(MessageSource.Resolver, m.tok,
-            "Modules '{0}' and '{1}' both have CompileName '{2}'.",
+            "modules '{0}' and '{1}' both have CompileName '{2}'",
             priorModDef.tok.val, m.tok.val, compileName);
         } else {
           compileNameMap.Add(compileName, m);
