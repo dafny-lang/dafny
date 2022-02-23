@@ -203,3 +203,46 @@ module GhostConstructors {
     }
 }
 }
+
+// ------------------------- static keyword ------------------------------
+
+module IllegalStatic {
+  class C {
+    static constructor () // error: constructor cannot be declared 'static'
+  }
+  static method M() // warning: 'static' not allowed here
+  static function F(): int // warning: 'static' not allowed here
+  static lemma F() // warning: 'static' not allowed here
+  static twostate function F2(): int // warning: 'static' not allowed here
+  static least predicate LP() // warning: 'static' not allowed here
+
+  static datatype D = D // error: cannot be 'static'
+  static module M { } // error: cannot be 'static'
+}
+
+// ------------------------- ghost keyword ------------------------------
+
+module IllegalGhost {
+  ghost datatype D = D // error: cannot be 'ghost'
+  ghost module M { } // error: cannot be 'ghost'
+}
+
+// ------------------------- already-ghost functions ------------------------------
+
+module AlreadyGhost {
+  // a twostate function/predicate cannot be used with ...
+  ghost twostate function F(): int { 2 } by method { } // error (x2): ... with "by method" or "ghost"
+  twostate function method G(): int { 2 } by method { } // error: ... with "by method"
+  ghost twostate predicate P() { true } by method { } // error (x2): ... with "by method" or "ghost"
+  twostate predicate method Q() { true } by method { } // error: ... with "by method"
+
+  // an extreme predicate cannot be used with ...
+  ghost least predicate I() { true } by method { } // error (x2): ... with "by method" or "ghost"
+  ghost greatest predicate J() { true } by method { } // error (x2): ... with "by method" or "ghost"
+
+  // a twostate or extreme predicate is not allowed to be declared with either "by method" or "abstract"
+  abstract twostate function A0(): int { 2 } by method { } // error (x2)
+  abstract twostate predicate A1() { true } by method { } // error (x2)
+  abstract least predicate A2() { true } by method { } // error (x2)
+  abstract greatest predicate A3() { true } by method { } // error (x2)
+}

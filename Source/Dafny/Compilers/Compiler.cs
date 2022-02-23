@@ -343,10 +343,12 @@ namespace Microsoft.Dafny {
     }
     protected abstract string GenerateLhsDecl(string target, Type/*?*/ type, ConcreteSyntaxTree wr, Bpl.IToken tok);
 
-    protected virtual ConcreteSyntaxTree EmitAssignment(ILvalue wLhs, Type/*?*/ lhsType, Type/*?*/ rhsType, ConcreteSyntaxTree wr) {
+    protected virtual ConcreteSyntaxTree EmitAssignment(ILvalue wLhs, Type lhsType /*?*/, Type rhsType /*?*/,
+      ConcreteSyntaxTree wr, Bpl.IToken tok) {
       var w = wLhs.EmitWrite(wr);
-      w = EmitCoercionIfNecessary(rhsType, lhsType, Bpl.Token.NoToken, w);
-      w = EmitDowncastIfNecessary(rhsType, lhsType, Bpl.Token.NoToken, w);
+
+      w = EmitCoercionIfNecessary(rhsType, lhsType, tok, w);
+      w = EmitDowncastIfNecessary(rhsType, lhsType, tok, w);
       return w;
     }
 
@@ -450,7 +452,7 @@ namespace Microsoft.Dafny {
 
       Contract.Assert(rhsVars.Count == lhsTypes.Count);
       for (int i = 0; i < rhsVars.Count; i++) {
-        ConcreteSyntaxTree wRhsVar = EmitAssignment(lhssn[i], lhsTypes[i], rhsTypes[i], wr);
+        ConcreteSyntaxTree wRhsVar = EmitAssignment(lhssn[i], lhsTypes[i], rhsTypes[i], wr, Bpl.Token.NoToken);
         wRhsVar.Write(rhsVars[i]);
       }
     }
@@ -479,8 +481,9 @@ namespace Microsoft.Dafny {
     /// Labels the code written to the TargetWriter returned, in such that way that any
     /// emitted break to the label inside that code will abruptly end the execution of the code.
     /// </summary>
-    protected abstract ConcreteSyntaxTree CreateLabeledCode(string label, ConcreteSyntaxTree wr);
+    protected abstract ConcreteSyntaxTree CreateLabeledCode(string label, bool createContinueLabel, ConcreteSyntaxTree wr);
     protected abstract void EmitBreak(string/*?*/ label, ConcreteSyntaxTree wr);
+    protected abstract void EmitContinue(string label, ConcreteSyntaxTree wr);
     protected abstract void EmitYield(ConcreteSyntaxTree wr);
     protected abstract void EmitAbsurd(string/*?*/ message, ConcreteSyntaxTree wr);
     protected virtual void EmitAbsurd(string message, ConcreteSyntaxTree wr, bool needIterLimit) {
@@ -506,16 +509,17 @@ namespace Microsoft.Dafny {
         return thn;
       }
     }
-    protected virtual ConcreteSyntaxTree EmitWhile(Bpl.IToken tok, List<Statement> body, ConcreteSyntaxTree wr) {  // returns the guard writer
+    protected virtual ConcreteSyntaxTree EmitWhile(Bpl.IToken tok, List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr) {  // returns the guard writer
       ConcreteSyntaxTree guardWriter;
       var wBody = CreateWhileLoop(out guardWriter, wr);
+      wBody = EmitContinueLabel(labels, wBody);
       Coverage.Instrument(tok, "while body", wBody);
       TrStmtList(body, wBody);
       return guardWriter;
     }
 
     protected abstract ConcreteSyntaxTree EmitForStmt(Bpl.IToken tok, IVariable loopIndex, bool goingUp, string /*?*/ endVarName,
-      List<Statement> body, ConcreteSyntaxTree wr);
+      List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr);
 
     protected virtual ConcreteSyntaxTree CreateWhileLoop(out ConcreteSyntaxTree guardWriter, ConcreteSyntaxTree wr) {
       wr.Write("while (");
@@ -643,7 +647,7 @@ namespace Microsoft.Dafny {
             okay = IsTargetSupertype(to.TypeArgs[i], from.TypeArgs[i], true);
           } else if (formalTypeParameters == null || formalTypeParameters[i].Variance == TypeParameter.TPVariance.Co) {
             okay = IsTargetSupertype(to.TypeArgs[i], from.TypeArgs[i]);
-          } else if (formalTypeParameters[i].Variance == TypeParameter.TPVariance.Co) {
+          } else if (formalTypeParameters[i].Variance == TypeParameter.TPVariance.Contra) {
             okay = IsTargetSupertype(from.TypeArgs[i], to.TypeArgs[i]);
           } else {
             okay = IsTargetSupertype(to.TypeArgs[i], from.TypeArgs[i], true);
@@ -829,7 +833,7 @@ namespace Microsoft.Dafny {
     /// For a member c, F, or M:
     ///     (co-)datatype/class/trait <<cl>> {
     ///       <<isStatic>> const c ...
-    ///       <<isStatic>> function method F ...
+    ///       <<isStatic>> function F ...
     ///       <<isStatic>> method M ...
     ///     }
     /// does a type parameter of "cl"
@@ -1217,7 +1221,7 @@ namespace Microsoft.Dafny {
             }
             var classIsExtern = false;
             if (include) {
-              classIsExtern = !DafnyOptions.O.DisallowExterns && Attributes.Contains(cl.Attributes, "extern") || cl.IsDefaultClass && Attributes.Contains(cl.EnclosingModuleDefinition.Attributes, "extern");
+              classIsExtern = (!DafnyOptions.O.DisallowExterns && Attributes.Contains(cl.Attributes, "extern")) || (cl.IsDefaultClass && Attributes.Contains(cl.EnclosingModuleDefinition.Attributes, "extern"));
               if (classIsExtern && cl.Members.TrueForAll(member => member.IsGhost || Attributes.Contains(member.Attributes, "extern"))) {
                 include = false;
               }
@@ -1553,7 +1557,7 @@ namespace Microsoft.Dafny {
       decls.AddRange(consts);
     }
 
-    public static bool NeedsCustomReceiver(MemberDecl member) {
+    public virtual bool NeedsCustomReceiver(MemberDecl member) {
       Contract.Requires(member != null);
       if (!member.IsStatic && member.EnclosingClass is NewtypeDecl) {
         return true;
@@ -1745,7 +1749,7 @@ namespace Microsoft.Dafny {
           } else if (f.IsGhost) {
             // nothing to compile, but we do check for assumes
             if (f.Body == null) {
-              Contract.Assert(c is TraitDecl && !f.IsStatic || Attributes.Contains(f.Attributes, "extern"));
+              Contract.Assert((c is TraitDecl && !f.IsStatic) || Attributes.Contains(f.Attributes, "extern"));
             }
 
             if (Attributes.Contains(f.Attributes, "test")) {
@@ -2668,7 +2672,12 @@ namespace Microsoft.Dafny {
         }
       } else if (stmt is BreakStmt) {
         var s = (BreakStmt)stmt;
-        EmitBreak(s.TargetStmt.Labels.Data.AssignUniqueId(idGenerator), wr);
+        var label = s.TargetStmt.Labels.Data.AssignUniqueId(idGenerator);
+        if (s.IsContinue) {
+          EmitContinue(label, wr);
+        } else {
+          EmitBreak(label, wr);
+        }
       } else if (stmt is ProduceStmt) {
         var s = (ProduceStmt)stmt;
         var isTailRecursiveResult = false;
@@ -2737,7 +2746,7 @@ namespace Microsoft.Dafny {
         } else {
           var lvalue = CreateLvalue(s.Lhs, wr);
           var wStmts = wr.Fork();
-          var wRhs = EmitAssignment(lvalue, TypeOfLhs(s.Lhs), TypeOfRhs(s.Rhs), wr);
+          var wRhs = EmitAssignment(lvalue, TypeOfLhs(s.Lhs), TypeOfRhs(s.Rhs), wr, stmt.Tok);
           TrRhs(s.Rhs, wRhs, wStmts);
         }
 
@@ -2870,10 +2879,10 @@ namespace Microsoft.Dafny {
           ConcreteSyntaxTree guardWriter;
           var wBody = CreateWhileLoop(out guardWriter, wr);
           guardWriter.Write("true");
-          EmitBreak(s.Labels?.Data.AssignUniqueId(idGenerator), wBody);
+          EmitBreak(null, wBody);
           Coverage.UnusedInstrumentationPoint(s.Body.Tok, "while body");
         } else {
-          var guardWriter = EmitWhile(s.Body.Tok, s.Body.Body, wr);
+          var guardWriter = EmitWhile(s.Body.Tok, s.Body.Body, s.Labels, wr);
           TrExpr(s.Guard, guardWriter, false);
         }
 
@@ -2886,6 +2895,7 @@ namespace Microsoft.Dafny {
           ConcreteSyntaxTree whileGuardWriter;
           var w = CreateWhileLoop(out whileGuardWriter, wr);
           whileGuardWriter.Write("true");
+          w = EmitContinueLabel(s.Labels, w);
           foreach (var alternative in s.Alternatives) {
             ConcreteSyntaxTree guardWriter;
             var thn = EmitIf(out guardWriter, true, w);
@@ -2911,7 +2921,7 @@ namespace Microsoft.Dafny {
           wr.Write(GenerateLhsDecl(endVarName, s.End.Type, wr, s.End.tok));
           EmitAssignmentRhs(s.End, false, wr);
         }
-        var startExprWriter = EmitForStmt(s.Tok, s.LoopIndex, s.GoingUp, endVarName, s.Body.Body, wr);
+        var startExprWriter = EmitForStmt(s.Tok, s.LoopIndex, s.GoingUp, endVarName, s.Body.Body, s.Labels, wr);
         TrExpr(s.Start, startExprWriter, false);
 
       } else if (stmt is ForallStmt) {
@@ -3065,7 +3075,7 @@ namespace Microsoft.Dafny {
         var s = (VarDeclStmt)stmt;
         var i = 0;
         foreach (var local in s.Locals) {
-          bool hasRhs = s.Update is AssignSuchThatStmt;
+          bool hasRhs = s.Update is AssignSuchThatStmt || s.Update is AssignOrReturnStmt;
           if (!hasRhs && s.Update is UpdateStmt u) {
             if (i < u.Rhss.Count && u.Rhss[i] is HavocRhs) {
               // there's no specific initial value
@@ -3073,7 +3083,7 @@ namespace Microsoft.Dafny {
               hasRhs = true;
             }
           }
-          TrLocalVar(local, !hasRhs, wr);
+          TrLocalVar(local, !hasRhs && local.Type.KnownToHaveToAValue(false), wr);
           i++;
         }
         if (s.Update != null) {
@@ -3148,7 +3158,7 @@ namespace Microsoft.Dafny {
         EmitTupleSelect(tup, 0, wObj);
       }, lhs.Obj.Type, lhs.Member, typeArgs, lhs.TypeArgumentSubstitutionsWithParents(), lhs.Type);
 
-      var wRhs = EmitAssignment(lvalue, lhs.Type, tupleTypeArgsList[1], wr);
+      var wRhs = EmitAssignment(lvalue, lhs.Type, tupleTypeArgsList[1], wr, s0.Tok);
       var wCoerced = EmitCoercionIfNecessary(from: null, to: tupleTypeArgsList[1], tok: s0.Tok, wr: wRhs);
       EmitTupleSelect(tup, 1, wCoerced);
     }
@@ -3381,9 +3391,9 @@ namespace Microsoft.Dafny {
         return
           no1DArrayAccesses(sse.Seq, sse.E0, range, rhs) ||
 
-          bvs.Count == 1 &&
+          (bvs.Count == 1 &&
           isVar(bvs[0], sse.E0) &&
-          indexIsAlwaysVar(bvs[0], range, sse.Seq, rhs); // also covers sequence conversions
+          indexIsAlwaysVar(bvs[0], range, sse.Seq, rhs)); // also covers sequence conversions
       } else if (lhs is MultiSelectExpr mse) {
         return
           noMultiDArrayAccesses(mse.Array, range, rhs) &&
@@ -3395,9 +3405,9 @@ namespace Microsoft.Dafny {
         return
           noFieldAccesses(mse2.Member, mse2.Obj, range, rhs) ||
 
-          bvs.Count == 1 &&
+          (bvs.Count == 1 &&
           isVar(bvs[0], mse2.Obj) &&
-          accessedObjectIsAlwaysVar(mse2.Member, bvs[0], range, rhs);
+          accessedObjectIsAlwaysVar(mse2.Member, bvs[0], range, rhs));
       }
 
       bool noImpureFunctionCalls(params Expression[] exprs) {
@@ -3500,7 +3510,7 @@ namespace Microsoft.Dafny {
       var iterLimit = "_iterLimit_" + c;
 
       bool needIterLimit = lhss.Count != 1 && bounds.Exists(bnd => (bnd.Virtues & ComprehensionExpr.BoundedPool.PoolVirtues.Finite) == 0);
-      wr = CreateLabeledCode(doneLabel, wr);
+      wr = CreateLabeledCode(doneLabel, false, wr);
       var wrOuter = wr;
       if (needIterLimit) {
         wr = CreateDoublingForLoop(iterLimit, 5, wr);
@@ -4018,7 +4028,7 @@ namespace Microsoft.Dafny {
             if (lvalue != null) {
               // The type information here takes care both of implicit upcasts and
               // implicit downcasts from type parameters (see above).
-              ConcreteSyntaxTree wRhs = EmitAssignment(lvalue, s.Lhs[j].Type, outTypes[l], wr);
+              ConcreteSyntaxTree wRhs = EmitAssignment(lvalue, s.Lhs[j].Type, outTypes[l], wr, s.Tok);
               if (s.Method.IsExtern(out _, out _)) {
                 wRhs = EmitCoercionFromNativeForm(p.Type, s.Tok, wRhs);
               }
@@ -4114,13 +4124,21 @@ namespace Microsoft.Dafny {
         //   ss          // translation of ss has side effect of filling the top copyInstrWriters
         var w = writer;
         if (ss.Labels != null) {
-          w = CreateLabeledCode(ss.Labels.Data.AssignUniqueId(idGenerator), w);
+          w = CreateLabeledCode(ss.Labels.Data.AssignUniqueId(idGenerator), false, w);
         }
         var prelude = w.Fork();
         copyInstrWriters.Push(prelude);
         TrStmt(ss, w);
         copyInstrWriters.Pop();
       }
+    }
+
+    protected ConcreteSyntaxTree EmitContinueLabel(LList<Label> loopLabels, ConcreteSyntaxTree writer) {
+      Contract.Requires(writer != null);
+      if (loopLabels != null) {
+        writer = CreateLabeledCode(loopLabels.Data.AssignUniqueId(idGenerator), true, writer);
+      }
+      return writer;
     }
 
     void TrLocalVar(IVariable v, bool alwaysInitialize, ConcreteSyntaxTree wr) {
@@ -4759,7 +4777,7 @@ namespace Microsoft.Dafny {
         }) {
         var bvIdentifier = new IdentifierExpr(e.tok, bv);
         var typeParameters = new Dictionary<TypeParameter, Type> { };
-        for (var i = 0; i < typeParametersArgs.Count(); i++) {
+        for (var i = 0; i < typeParametersArgs.Count; i++) {
           typeParameters[typeParametersArgs[i]] = typeArgs[i];
         }
         var subContract = new Substituter(null,

@@ -416,29 +416,27 @@ namespace Microsoft.Dafny {
       } else if (expr is ComprehensionExpr) {
         var e = (ComprehensionExpr)expr;
         var tk = Tok(e.tok);
+        var tkEnd = Tok(e.BodyEndTok);
         var bvs = e.BoundVars.ConvertAll(CloneBoundVar);
         var range = CloneExpr(e.Range);
         var term = CloneExpr(e.Term);
-        if (e is QuantifierExpr) {
-          var q = (QuantifierExpr)e;
+        if (e is QuantifierExpr q) {
           var tvs = q.TypeArgs.ConvertAll(CloneTypeParam);
           if (e is ForallExpr) {
-            return new ForallExpr(tk, tvs, bvs, range, term, CloneAttributes(e.Attributes));
+            return new ForallExpr(tk, q.BodyEndTok, tvs, bvs, range, term, CloneAttributes(e.Attributes));
           } else if (e is ExistsExpr) {
-            return new ExistsExpr(tk, tvs, bvs, range, term, CloneAttributes(e.Attributes));
+            return new ExistsExpr(tk, q.BodyEndTok, tvs, bvs, range, term, CloneAttributes(e.Attributes));
           } else {
             Contract.Assert(false); throw new cce.UnreachableException();  // unexpected quantifier expression
           }
-        } else if (e is MapComprehension) {
-          var mc = (MapComprehension)e;
-          return new MapComprehension(tk, mc.Finite, bvs, range, mc.TermLeft == null ? null : CloneExpr(mc.TermLeft), term, CloneAttributes(e.Attributes));
-        } else if (e is LambdaExpr) {
-          var l = (LambdaExpr)e;
-          return new LambdaExpr(tk, bvs, range, l.Reads.ConvertAll(CloneFrameExpr), term);
+        } else if (e is MapComprehension mc) {
+          return new MapComprehension(tk, tkEnd, mc.Finite, bvs, range, mc.TermLeft == null ? null : CloneExpr(mc.TermLeft), term, CloneAttributes(e.Attributes));
+        } else if (e is LambdaExpr l) {
+          return new LambdaExpr(tk, tkEnd, bvs, range, l.Reads.ConvertAll(CloneFrameExpr), term);
         } else {
           Contract.Assert(e is SetComprehension);
           var tt = (SetComprehension)e;
-          return new SetComprehension(tk, tt.Finite, bvs, range, tt.TermIsImplicit ? null : term, CloneAttributes(e.Attributes));
+          return new SetComprehension(tk, tkEnd, tt.Finite, bvs, range, tt.TermIsImplicit ? null : term, CloneAttributes(e.Attributes));
         }
 
       } else if (expr is WildcardExpr) {
@@ -480,7 +478,7 @@ namespace Microsoft.Dafny {
     public MatchCaseExpr CloneMatchCaseExpr(MatchCaseExpr c) {
       Contract.Requires(c != null);
       Contract.Requires(c.Arguments != null);
-      return new MatchCaseExpr(Tok(c.tok), c.Ctor, c.Arguments.ConvertAll(CloneBoundVar), CloneExpr(c.Body), CloneAttributes(c.Attributes));
+      return new MatchCaseExpr(Tok(c.tok), c.Ctor, c.FromBoundVar, c.Arguments.ConvertAll(CloneBoundVar), CloneExpr(c.Body), CloneAttributes(c.Attributes));
     }
 
     public NestedMatchCaseExpr CloneNestedMatchCaseExpr(NestedMatchCaseExpr c) {
@@ -580,9 +578,9 @@ namespace Microsoft.Dafny {
       } else if (stmt is BreakStmt) {
         var s = (BreakStmt)stmt;
         if (s.TargetLabel != null) {
-          r = new BreakStmt(Tok(s.Tok), Tok(s.EndTok), s.TargetLabel);
+          r = new BreakStmt(Tok(s.Tok), Tok(s.EndTok), s.TargetLabel, s.IsContinue);
         } else {
-          r = new BreakStmt(Tok(s.Tok), Tok(s.EndTok), s.BreakCount);
+          r = new BreakStmt(Tok(s.Tok), Tok(s.EndTok), s.BreakAndContinueCount, s.IsContinue);
         }
 
       } else if (stmt is ReturnStmt) {
@@ -688,7 +686,7 @@ namespace Microsoft.Dafny {
     public MatchCaseStmt CloneMatchCaseStmt(MatchCaseStmt c) {
       Contract.Requires(c != null);
       Contract.Assert(c.Arguments != null);
-      return new MatchCaseStmt(Tok(c.tok), c.Ctor, c.Arguments.ConvertAll(CloneBoundVar), c.Body.ConvertAll(CloneStmt), CloneAttributes(c.Attributes));
+      return new MatchCaseStmt(Tok(c.tok), c.Ctor, c.FromBoundVar, c.Arguments.ConvertAll(CloneBoundVar), c.Body.ConvertAll(CloneStmt), CloneAttributes(c.Attributes));
     }
 
     public ExtendedPattern CloneExtendedPattern(ExtendedPattern pat) {

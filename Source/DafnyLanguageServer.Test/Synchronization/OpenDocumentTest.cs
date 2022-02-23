@@ -53,7 +53,7 @@ function GetConstant() int {
       var document = await Documents.GetDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
       Assert.AreEqual(1, document.Errors.ErrorCount);
-      var message = document.Errors.Diagnostics.First().Value[0];
+      var message = document.Errors.GetDiagnostics(documentItem.Uri)[0];
       Assert.AreEqual(MessageSource.Parser.ToString(), message.Source);
     }
 
@@ -68,7 +68,7 @@ function GetConstant(): int {
       var document = await Documents.GetDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
       Assert.AreEqual(1, document.Errors.ErrorCount);
-      var message = document.Errors.Diagnostics.First().Value[0];
+      var message = document.Errors.GetDiagnostics(documentItem.Uri)[0];
       Assert.AreEqual(MessageSource.Resolver.ToString(), message.Source);
     }
 
@@ -84,11 +84,11 @@ method Recurse(x: int) returns (r: int) {
 }".Trim();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var document = await Documents.GetDocumentAsync(documentItem.Uri);
+      var document = await Documents.GetVerifiedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
       Assert.AreEqual(1, document.Errors.ErrorCount);
-      var message = document.Errors.Diagnostics.First().Value.First(d => d.Severity!.Value == DiagnosticSeverity.Error);
-      Assert.AreEqual(MessageSource.Other.ToString(), message.Source);
+      var message = document.Errors.GetDiagnostics(documentItem.Uri).First(d => d.Severity!.Value == DiagnosticSeverity.Error);
+      Assert.AreEqual(MessageSource.Verifier.ToString(), message.Source);
     }
 
     [TestMethod]

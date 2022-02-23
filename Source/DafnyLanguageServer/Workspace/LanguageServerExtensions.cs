@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Server;
 using System;
+using Microsoft.Extensions.Options;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
@@ -25,12 +26,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private static IServiceCollection WithDafnyWorkspace(this IServiceCollection services, IConfiguration configuration) {
       return services
         .Configure<DocumentOptions>(configuration.GetSection(DocumentOptions.Section))
+        .Configure<DafnyPluginsOptions>(configuration.GetSection(DafnyPluginsOptions.Section))
         .AddSingleton<IDocumentDatabase, DocumentDatabase>()
         .AddSingleton<IDafnyParser>(serviceProvider => DafnyLangParser.Create(serviceProvider.GetRequiredService<ILogger<DafnyLangParser>>()))
         .AddSingleton<ITextDocumentLoader>(CreateTextDocumentLoader)
         .AddSingleton<IDiagnosticPublisher, DiagnosticPublisher>()
         .AddSingleton<ITextChangeProcessor, TextChangeProcessor>()
-        .AddSingleton<ISymbolTableRelocator, SymbolTableRelocator>()
+        .AddSingleton<IRelocator, Relocator>()
         .AddSingleton<ISymbolGuesser, SymbolGuesser>()
         .AddSingleton<ICompilationStatusNotificationPublisher, CompilationStatusNotificationPublisher>()
         .AddSingleton<IDiagnosticPublisher, DiagnosticPublisher>();
@@ -43,7 +45,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         services.GetRequiredService<IProgramVerifier>(),
         services.GetRequiredService<ISymbolTableFactory>(),
         services.GetRequiredService<IGhostStateDiagnosticCollector>(),
-        services.GetRequiredService<ICompilationStatusNotificationPublisher>()
+        services.GetRequiredService<ICompilationStatusNotificationPublisher>(),
+        services.GetRequiredService<ILoggerFactory>(),
+        services.GetRequiredService<IOptions<DafnyPluginsOptions>>()
       );
     }
   }

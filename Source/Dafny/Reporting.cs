@@ -14,7 +14,7 @@ namespace Microsoft.Dafny {
   }
 
   public enum MessageSource {
-    Parser, Resolver, Translator, Rewriter, Other,
+    Parser, Resolver, Translator, Rewriter, Verifier,
     RefinementTransformer,
     Cloner,
     Compiler
@@ -153,11 +153,11 @@ namespace Microsoft.Dafny {
   }
 
   public abstract class BatchErrorReporter : ErrorReporter {
-    private readonly Dictionary<ErrorLevel, List<ErrorMessage>> allMessages;
+    protected readonly Dictionary<ErrorLevel, List<ErrorMessage>> AllMessages;
 
     protected BatchErrorReporter() {
       ErrorsOnly = false;
-      allMessages = new Dictionary<ErrorLevel, List<ErrorMessage>> {
+      AllMessages = new Dictionary<ErrorLevel, List<ErrorMessage>> {
         [ErrorLevel.Error] = new(),
         [ErrorLevel.Warning] = new(),
         [ErrorLevel.Info] = new()
@@ -169,12 +169,12 @@ namespace Microsoft.Dafny {
         // discard the message
         return false;
       }
-      allMessages[level].Add(new ErrorMessage { token = tok, message = msg });
+      AllMessages[level].Add(new ErrorMessage { token = tok, message = msg });
       return true;
     }
 
     public override int Count(ErrorLevel level) {
-      return allMessages[level].Count;
+      return AllMessages[level].Count;
     }
   }
 
@@ -193,13 +193,25 @@ namespace Microsoft.Dafny {
     }
 
     public override bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg) {
-      if (base.Message(source, level, tok, msg) && (DafnyOptions.O != null && DafnyOptions.O.PrintTooltips || level != ErrorLevel.Info)) {
+      if (base.Message(source, level, tok, msg) && ((DafnyOptions.O != null && DafnyOptions.O.PrintTooltips) || level != ErrorLevel.Info)) {
         // Extra indent added to make it easier to distinguish multiline error messages for clients that rely on the CLI
         msg = msg.Replace(Environment.NewLine, Environment.NewLine + " ");
 
         ConsoleColor previousColor = Console.ForegroundColor;
         Console.ForegroundColor = ColorForLevel(level);
-        Console.WriteLine(ErrorToString(level, tok, msg));
+        var errorLine = ErrorToString(level, tok, msg);
+        while (tok is NestedToken nestedToken) {
+          tok = nestedToken.Inner;
+          if (tok.filename == nestedToken.filename &&
+              tok.line == nestedToken.line &&
+              tok.col == nestedToken.col) {
+            continue;
+          }
+          msg = nestedToken.Message ?? "[Related location]";
+          errorLine += $" {msg} {TokenToString(tok)}";
+        }
+        Console.WriteLine(errorLine);
+
         Console.ForegroundColor = previousColor;
         return true;
       } else {

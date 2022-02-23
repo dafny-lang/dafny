@@ -149,14 +149,13 @@ namespace Microsoft.Dafny {
           Contract.Assert(la.E != null);  // this should have been filled in by now
           builder.Add(new Bpl.AssumeCmd(s.Tok, la.E));
         }
-        foreach (var resolved in s.ResolvedStatements) {
-          TrStmt(resolved, builder, locals, etran);
-        }
+        TrStmtList(s.ResolvedStatements, builder, locals, etran);
 
       } else if (stmt is BreakStmt) {
-        AddComment(builder, stmt, "break statement");
         var s = (BreakStmt)stmt;
-        builder.Add(new GotoCmd(s.Tok, new List<String> { "after_" + s.TargetStmt.Labels.Data.AssignUniqueId(CurrentIdGenerator) }));
+        AddComment(builder, stmt, $"{s.Kind} statement");
+        var lbl = (s.IsContinue ? "continue_" : "after_") + s.TargetStmt.Labels.Data.AssignUniqueId(CurrentIdGenerator);
+        builder.Add(new GotoCmd(s.Tok, new List<String> { lbl }));
       } else if (stmt is ReturnStmt) {
         var s = (ReturnStmt)stmt;
         AddComment(builder, stmt, "return statement");
@@ -252,7 +251,7 @@ namespace Microsoft.Dafny {
         //       check well-formedness of RHS(x');
         //     }
         //     assert (exists x'' :: RHS(x''));  // for ":| assume", omit this line; for ":|", LHS is only allowed to contain simple variables
-        //     defass$x := true;
+        //     defass#x := true;
         //     havoc x;
         //     assume RHS(x);
 
@@ -470,6 +469,7 @@ namespace Microsoft.Dafny {
           bodyTr = delegate (BoogieStmtListBuilder bld, ExpressionTranslator e) {
             CurrentIdGenerator.Push();
             TrStmt(s.Body, bld, locals, e);
+            InsertContinueTarget(s, bld);
             CurrentIdGenerator.Pop();
           };
         }
@@ -483,6 +483,7 @@ namespace Microsoft.Dafny {
         TrLoop(s, tru,
           delegate (BoogieStmtListBuilder bld, ExpressionTranslator e) {
             TrAlternatives(s.Alternatives, null, new Bpl.BreakCmd(s.Tok, null), bld, locals, e, stmt.IsGhost);
+            InsertContinueTarget(s, bld);
           },
           builder, locals, etran);
 
@@ -569,6 +570,7 @@ namespace Microsoft.Dafny {
               bld.Add(Bpl.Cmd.SimpleAssign(s.Tok, bIndex, Bpl.Expr.Sub(bIndex, Bpl.Expr.Literal(1))));
             }
             TrStmt(s.Body, bld, locals, e);
+            InsertContinueTarget(s, bld);
             if (s.GoingUp) {
               bld.Add(Bpl.Cmd.SimpleAssign(s.Tok, bIndex, Bpl.Expr.Add(bIndex, Bpl.Expr.Literal(1))));
             }
@@ -844,6 +846,10 @@ namespace Microsoft.Dafny {
               needDefiniteAssignmentTracking = true;
             }
           }
+          if (!local.Type.IsNonempty) {
+            // This prevents generating an unsatisfiable where clause for possibly empty types
+            needDefiniteAssignmentTracking = true;
+          }
           if (needDefiniteAssignmentTracking) {
             var defassExpr = AddDefiniteAssignmentTracker(local, locals);
             if (wh != null && defassExpr != null) {
@@ -977,7 +983,7 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// "lhs" is expected to be a resolved form of an expression, i.e., not a conrete-syntax expression.
+    /// "lhs" is expected to be a resolved form of an expression, i.e., not a concrete-syntax expression.
     /// </summary>
     void TrAssignment(Statement stmt, Expression lhs, AssignmentRhs rhs,
       BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
@@ -1906,14 +1912,26 @@ namespace Microsoft.Dafny {
         loopBodyBuilder.Add(Bpl.Cmd.SimpleAssign(s.Tok, w, Bpl.Expr.False));
       }
       // Finally, assume the well-formedness of the invariant (which has been checked once and for all above), so that the check
-      // of invariant-maintenance can use the appropriate canCall predicates.
-      foreach (AttributedExpression loopInv in s.Invariants) {
-        loopBodyBuilder.Add(TrAssumeCmd(loopInv.E.tok, CanCallAssumption(loopInv.E, etran)));
+      // of invariant-maintenance can use the appropriate canCall predicates. Note, it is important (see Test/git-issues/git-issue-1812.dfy)
+      // that each CanCall assumption uses the preceding invariants as antecedents--this is achieved by treating all "invariant"
+      // declarations as one big conjunction, because then CanCallAssumption will add the needed antecedents.
+      if (s.Invariants.Any()) {
+        var allInvariants = s.Invariants.Select(inv => inv.E).Aggregate((a, b) => Expression.CreateAnd(a, b));
+        loopBodyBuilder.Add(TrAssumeCmd(s.Tok, CanCallAssumption(allInvariants, etran)));
       }
-      Bpl.StmtList body = loopBodyBuilder.Collect(s.Tok);
 
+      Bpl.StmtList body = loopBodyBuilder.Collect(s.Tok);
       builder.Add(new Bpl.WhileCmd(s.Tok, Bpl.Expr.True, invariants, body));
     }
+
+    void InsertContinueTarget(LoopStmt loop, BoogieStmtListBuilder builder) {
+      Contract.Requires(loop != null);
+      Contract.Requires(builder != null);
+      if (loop.Labels != null) {
+        builder.AddLabelCmd("continue_" + loop.Labels.Data.AssignUniqueId(CurrentIdGenerator));
+      }
+    }
+
     void TrAlternatives(List<GuardedAlternative> alternatives, Bpl.Cmd elseCase0, Bpl.StructuredCmd elseCase1,
                         BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran, bool isGhost) {
       Contract.Requires(alternatives != null);
@@ -1965,9 +1983,7 @@ namespace Microsoft.Dafny {
           b.Add(new AssumeCmd(alternative.Guard.tok, etran.TrExpr(alternative.Guard)));
         }
         var prevDefiniteAssignmentTrackerCount = definiteAssignmentTrackers.Count;
-        foreach (var s in alternative.Body) {
-          TrStmt(s, b, locals, etran);
-        }
+        TrStmtList(alternative.Body, b, locals, etran);
         RemoveDefiniteAssignmentTrackers(alternative.Body, prevDefiniteAssignmentTrackerCount);
         Bpl.StmtList thn = b.Collect(alternative.Tok);
         elsIf = new Bpl.IfCmd(alternative.Tok, null, thn, elsIf, els);
@@ -2007,9 +2023,7 @@ namespace Microsoft.Dafny {
             string nm = CurrentIdGenerator.FreshId("$rhs##");
             var formalOutType = Resolver.SubstType(s.Method.Outs[i].Type, tySubst);
             var ty = TrType(formalOutType);
-            Bpl.Expr wh = GetWhereClause(lhs.tok, new Bpl.IdentifierExpr(lhs.tok, nm, ty), formalOutType, etran,
-              isAllocContext.Var(s.IsGhost || s.Method.IsGhost, s.Method.Outs[i]));
-            Bpl.LocalVariable var = new Bpl.LocalVariable(lhs.tok, new Bpl.TypedIdent(lhs.tok, nm, ty, wh));
+            Bpl.LocalVariable var = new Bpl.LocalVariable(lhs.tok, new Bpl.TypedIdent(lhs.tok, nm, ty));
             locals.Add(var);
             bLhss[i] = new Bpl.IdentifierExpr(lhs.tok, var.Name, ty);
           }

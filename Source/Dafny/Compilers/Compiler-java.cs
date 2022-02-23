@@ -246,7 +246,7 @@ namespace Microsoft.Dafny {
         indices.Add(wIndex.ToString());
       }
       var lv = EmitArraySelectAsLvalue(array, indices, tupleTypeArgsList[L - 1]);
-      var wrRhs = EmitAssignment(lv, tupleTypeArgsList[L - 1], null, wr);
+      var wrRhs = EmitAssignment(lv, tupleTypeArgsList[L - 1], null, wr, s0.Tok);
       wrRhs.Write($"(({TypeName(tupleTypeArgsList[L - 1], wrRhs, s0.Tok)})");
       EmitTupleSelect(tup, L - 1, wrRhs);
       wrRhs.Write(")");
@@ -391,7 +391,7 @@ namespace Microsoft.Dafny {
 
       public ConcreteSyntaxTree Writer(bool isStatic, bool createBody, MemberDecl/*?*/ member) {
         if (createBody) {
-          if (isStatic || (member != null && member.EnclosingClass is TraitDecl && NeedsCustomReceiver(member))) {
+          if (isStatic || (member != null && member.EnclosingClass is TraitDecl && Compiler.NeedsCustomReceiver(member))) {
             return StaticMemberWriter;
           }
         }
@@ -2481,7 +2481,7 @@ namespace Microsoft.Dafny {
 
     bool OutContainsParam(List<Formal> l, TypeParameter tp) {
       foreach (Formal f in l) {
-        if (f.Type.IsTypeParameter && f.Type.AsTypeParameter.Equals(tp) || f.Type.AsCollectionType != null && f.Type.AsCollectionType.Arg.IsTypeParameter && f.Type.AsCollectionType.Arg.AsTypeParameter.Equals(tp)) {
+        if ((f.Type.IsTypeParameter && f.Type.AsTypeParameter.Equals(tp)) || (f.Type.AsCollectionType != null && f.Type.AsCollectionType.Arg.IsTypeParameter && f.Type.AsCollectionType.Arg.AsTypeParameter.Equals(tp))) {
           return true;
         }
       }
@@ -3348,12 +3348,17 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override ConcreteSyntaxTree CreateLabeledCode(string label, ConcreteSyntaxTree wr) {
-      return wr.NewNamedBlock($"goto_{label}:");
+    protected override ConcreteSyntaxTree CreateLabeledCode(string label, bool createContinueLabel, ConcreteSyntaxTree wr) {
+      var prefix = createContinueLabel ? "continue_" : "goto_";
+      return wr.NewNamedBlock($"{prefix}{label}:");
     }
 
     protected override void EmitBreak(string label, ConcreteSyntaxTree wr) {
       wr.WriteLine(label == null ? "break;" : $"break goto_{label};");
+    }
+
+    protected override void EmitContinue(string label, ConcreteSyntaxTree wr) {
+      wr.WriteLine($"break continue_{label};");
     }
 
     protected override void EmitAbsurd(string message, ConcreteSyntaxTree wr) {
@@ -3524,7 +3529,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override ConcreteSyntaxTree EmitForStmt(Bpl.IToken tok, IVariable loopIndex, bool goingUp, string /*?*/ endVarName,
-      List<Statement> body, ConcreteSyntaxTree wr) {
+      List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr) {
 
       var nativeType = AsNativeType(loopIndex.Type);
 
@@ -3565,6 +3570,7 @@ namespace Microsoft.Dafny {
           bodyWr.WriteLine($"{loopIndex.CompileName}--;");
         }
       }
+      bodyWr = EmitContinueLabel(labels, bodyWr);
       TrStmtList(body, bodyWr);
 
       return startWr;

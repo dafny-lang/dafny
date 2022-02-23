@@ -4,7 +4,7 @@
 // To work around this, we don't pass /useBaseNameForFileName and instead manually
 // truncate the source paths to their base names using sed.
 // RUN: %baredafny /countVerificationErrors:0 /errorTrace:0 /compile:0 /showSnippets:1 "%s" > "%t".raw
-// RUN: sed 's/^.*\///' "%t".raw > "%t"
+// RUN: %sed 's/^.*[\/\\]//' "%t".raw > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Never() requires true && false {}

@@ -11,6 +11,8 @@
 //---------------------------------------------------------------------------------------------
 
 using DafnyServer.CounterexampleGeneration;
+using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 
 namespace Microsoft.Dafny {
   using System;
@@ -64,8 +66,8 @@ namespace Microsoft.Dafny {
 
       if (CommandLineOptions.Clo.XmlSink != null) {
         CommandLineOptions.Clo.XmlSink.Close();
-        if (DafnyOptions.O.VerificationLoggerConfig != null) {
-          BoogieXmlConvertor.RaiseTestLoggerEvents(DafnyOptions.O.BoogieXmlFilename, DafnyOptions.O.VerificationLoggerConfig);
+        if (DafnyOptions.O.VerificationLoggerConfigs.Any()) {
+          BoogieXmlConvertor.RaiseTestLoggerEvents(DafnyOptions.O.BoogieXmlFilename, DafnyOptions.O.VerificationLoggerConfigs);
         }
       }
       if (CommandLineOptions.Clo.Wait) {
@@ -195,11 +197,19 @@ namespace Microsoft.Dafny {
               extension == null ? "" : extension);
             return CommandLineArgumentsResult.PREPROCESSING_ERROR;
           }
-        } else {
+        } else if (DafnyOptions.O.CompileTarget == DafnyOptions.CompilationTarget.Go) {
           if (extension == ".go") {
             otherFiles.Add(file);
           } else if (!isDafnyFile) {
             ExecutionEngine.printer.ErrorWriteLine(Console.Out, "*** Error: '{0}': Filename extension '{1}' is not supported. Input files must be Dafny programs (.dfy) or Go files (.go)", file,
+              extension == null ? "" : extension);
+            return CommandLineArgumentsResult.PREPROCESSING_ERROR;
+          }
+        } else {
+          if (extension == ".py") {
+            otherFiles.Add(file);
+          } else if (!isDafnyFile) {
+            ExecutionEngine.printer.ErrorWriteLine(Console.Out, "*** Error: '{0}': Filename extension '{1}' is not supported. Input files must be Dafny programs (.dfy) or Python files (.py)", file,
               extension == null ? "" : extension);
             return CommandLineArgumentsResult.PREPROCESSING_ERROR;
           }
@@ -339,7 +349,7 @@ namespace Microsoft.Dafny {
 
         if (CommandLineOptions.Clo.PrintFile != null) {
 
-          var nm = nmodules > 1 ? BoogieProgramSuffix(CommandLineOptions.Clo.PrintFile, prog.Item1) : CommandLineOptions.Clo.PrintFile;
+          var nm = nmodules > 1 ? Dafny.Main.BoogieProgramSuffix(CommandLineOptions.Clo.PrintFile, prog.Item1) : CommandLineOptions.Clo.PrintFile;
 
           ExecutionEngine.PrintBplFile(nm, prog.Item2, false, false, CommandLineOptions.Clo.PrettyPrint);
         }
@@ -349,41 +359,10 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public static bool BoogieOnce(string baseFile, string moduleName, Bpl.Program boogieProgram, string programId,
-                              out PipelineStatistics stats, out PipelineOutcome oc) {
-      if (programId == null) {
-        programId = "main_program_id";
-      }
-      programId += "_" + moduleName;
-
-      string bplFilename;
-      if (CommandLineOptions.Clo.PrintFile != null) {
-        bplFilename = CommandLineOptions.Clo.PrintFile;
-      } else {
-        string baseName = cce.NonNull(Path.GetFileName(baseFile));
-        baseName = cce.NonNull(Path.ChangeExtension(baseName, "bpl"));
-        bplFilename = Path.Combine(Path.GetTempPath(), baseName);
-      }
-
-      bplFilename = BoogieProgramSuffix(bplFilename, moduleName);
-      stats = null;
-      oc = BoogiePipelineWithRerun(boogieProgram, bplFilename, out stats, 1 < Dafny.DafnyOptions.Clo.VerifySnapshots ? programId : null);
-      return IsBoogieVerified(oc, stats);
-    }
-
-    public static bool IsBoogieVerified(PipelineOutcome outcome, PipelineStatistics statistics) {
-      return (outcome == PipelineOutcome.Done || outcome == PipelineOutcome.VerificationCompleted)
-        && statistics.ErrorCount == 0
-        && statistics.InconclusiveCount == 0
-        && statistics.TimeoutCount == 0
-        && statistics.OutOfResourceCount == 0
-        && statistics.OutOfMemoryCount == 0;
-    }
-
-    public static bool Boogie(string baseName, IEnumerable<Tuple<string, Bpl.Program>> boogiePrograms, string programId, out Dictionary<string, PipelineStatistics> statss, out PipelineOutcome oc) {
+    public static bool Boogie(string baseName, IEnumerable<Tuple<string, Bpl.Program>> boogiePrograms, string programId, out Dictionary<string, PipelineStatistics> statss, out PipelineOutcome outcome) {
 
       bool isVerified = true;
-      oc = PipelineOutcome.VerificationCompleted;
+      outcome = PipelineOutcome.VerificationCompleted;
       statss = new Dictionary<string, PipelineStatistics>();
 
       Stopwatch watch = new Stopwatch();
@@ -394,12 +373,12 @@ namespace Microsoft.Dafny {
           ExecutionEngine.printer.AdvisoryWriteLine("For module: {0}", prog.Item1);
         }
 
-        isVerified = BoogieOnce(baseName, prog.Item1, prog.Item2, programId, out var newstats, out var newoc) && isVerified;
+        isVerified = Dafny.Main.BoogieOnce(baseName, prog.Item1, prog.Item2, programId, out var newstats, out var newOutcome) && isVerified;
 
         watch.Stop();
 
-        if ((oc == PipelineOutcome.VerificationCompleted || oc == PipelineOutcome.Done) && newoc != PipelineOutcome.VerificationCompleted) {
-          oc = newoc;
+        if ((outcome == PipelineOutcome.VerificationCompleted || outcome == PipelineOutcome.Done) && newOutcome != PipelineOutcome.VerificationCompleted) {
+          outcome = newOutcome;
         }
 
         if (DafnyOptions.O.SeparateModuleOutput) {
@@ -433,6 +412,10 @@ namespace Microsoft.Dafny {
         if (stats.OutOfResourceCount != 0) {
           Console.Write(", {0} out of resource", stats.OutOfResourceCount);
         }
+        if (stats.SolverExceptionCount != 0) {
+          Console.Write(", {0} solver exceptions", stats.SolverExceptionCount);
+        }
+
         Console.WriteLine();
         Console.Out.Flush();
       } else {
@@ -449,11 +432,13 @@ namespace Microsoft.Dafny {
         statSum.TimeoutCount += stats.Value.TimeoutCount;
         statSum.OutOfResourceCount += stats.Value.OutOfResourceCount;
         statSum.OutOfMemoryCount += stats.Value.OutOfMemoryCount;
+        statSum.SolverExceptionCount += stats.Value.SolverExceptionCount;
         statSum.CachedErrorCount += stats.Value.CachedErrorCount;
         statSum.CachedInconclusiveCount += stats.Value.CachedInconclusiveCount;
         statSum.CachedOutOfMemoryCount += stats.Value.CachedOutOfMemoryCount;
         statSum.CachedTimeoutCount += stats.Value.CachedTimeoutCount;
         statSum.CachedOutOfResourceCount += stats.Value.CachedOutOfResourceCount;
+        statSum.CachedSolverExceptionCount += stats.Value.CachedSolverExceptionCount;
         statSum.CachedVerifiedCount += stats.Value.CachedVerifiedCount;
         statSum.InconclusiveCount += stats.Value.InconclusiveCount;
       }
@@ -470,7 +455,7 @@ namespace Microsoft.Dafny {
           WriteStatss(statss);
           if ((DafnyOptions.O.Compile && verified && !CommandLineOptions.Clo.UserConstrainedProcsToCheck) || DafnyOptions.O.ForceCompile) {
             compiled = CompileDafnyProgram(dafnyProgram, resultFileName, otherFileNames, true);
-          } else if (2 <= DafnyOptions.O.SpillTargetCode && verified && !CommandLineOptions.Clo.UserConstrainedProcsToCheck || 3 <= DafnyOptions.O.SpillTargetCode) {
+          } else if ((2 <= DafnyOptions.O.SpillTargetCode && verified && !CommandLineOptions.Clo.UserConstrainedProcsToCheck) || 3 <= DafnyOptions.O.SpillTargetCode) {
             compiled = CompileDafnyProgram(dafnyProgram, resultFileName, otherFileNames, false);
           }
           break;
@@ -485,55 +470,6 @@ namespace Microsoft.Dafny {
           break;
       }
       return compiled;
-    }
-
-    /// <summary>
-    /// Resolve, type check, infer invariants for, and verify the given Boogie program.
-    /// The intention is that this Boogie program has been produced by translation from something
-    /// else.  Hence, any resolution errors and type checking errors are due to errors in
-    /// the translation.
-    /// The method prints errors for resolution and type checking errors, but still returns
-    /// their error code.
-    /// </summary>
-    static PipelineOutcome BoogiePipelineWithRerun(Bpl.Program/*!*/ program, string/*!*/ bplFileName,
-        out PipelineStatistics stats, string programId) {
-      Contract.Requires(program != null);
-      Contract.Requires(bplFileName != null);
-      Contract.Ensures(0 <= Contract.ValueAtReturn(out stats).InconclusiveCount && 0 <= Contract.ValueAtReturn(out stats).TimeoutCount);
-
-      stats = new PipelineStatistics();
-      CivlTypeChecker ctc;
-      PipelineOutcome oc = ExecutionEngine.ResolveAndTypecheck(program, bplFileName, out ctc);
-      switch (oc) {
-        case PipelineOutcome.Done:
-          return oc;
-
-        case PipelineOutcome.ResolutionError:
-        case PipelineOutcome.TypeCheckingError: {
-            ExecutionEngine.PrintBplFile(bplFileName, program, false, false, CommandLineOptions.Clo.PrettyPrint);
-            Console.WriteLine();
-            Console.WriteLine("*** Encountered internal translation error - re-running Boogie to get better debug information");
-            Console.WriteLine();
-
-            List<string/*!*/>/*!*/ fileNames = new List<string/*!*/>();
-            fileNames.Add(bplFileName);
-            Bpl.Program reparsedProgram = ExecutionEngine.ParseBoogieProgram(fileNames, true);
-            if (reparsedProgram != null) {
-              ExecutionEngine.ResolveAndTypecheck(reparsedProgram, bplFileName, out ctc);
-            }
-          }
-          return oc;
-
-        case PipelineOutcome.ResolvedAndTypeChecked:
-          ExecutionEngine.EliminateDeadVariables(program);
-          ExecutionEngine.CollectModSets(program);
-          ExecutionEngine.CoalesceBlocks(program);
-          ExecutionEngine.Inline(program);
-          return ExecutionEngine.InferAndVerify(program, stats, programId);
-
-        default:
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected outcome
-      }
     }
 
 
@@ -635,6 +571,10 @@ namespace Microsoft.Dafny {
         case DafnyOptions.CompilationTarget.Cpp:
           targetExtension = "cpp";
           break;
+        case DafnyOptions.CompilationTarget.Python:
+          targetExtension = "py";
+          break;
+
         default:
           Contract.Assert(false);
           throw new cce.UnreachableException();
@@ -660,20 +600,27 @@ namespace Microsoft.Dafny {
 
       WriteFile(paths.Filename, targetProgramText, callToMain);
 
+      string NormalizeRelativeFilename(string fileName) {
+        return RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+          ? fileName.Replace(@"\", "/")
+          : fileName;
+      }
+
+      var relativeTarget = NormalizeRelativeFilename(paths.RelativeFilename);
       if (targetProgramHasErrors) {
         // Something went wrong during compilation (e.g., the compiler may have found an "assume" statement).
         // As a courtesy, we're still printing the text of the generated target program. We print a message regardless
         // of the CompileVerbose settings.
-        outputWriter.WriteLine("Wrote textual form of partial target program to {0}", paths.RelativeFilename);
+        outputWriter.WriteLine("Wrote textual form of partial target program to {0}", relativeTarget);
       } else if (DafnyOptions.O.CompileVerbose) {
-        outputWriter.WriteLine("Wrote textual form of target program to {0}", paths.RelativeFilename);
+        outputWriter.WriteLine("Wrote textual form of target program to {0}", relativeTarget);
       }
 
       foreach (var entry in otherFiles) {
         var filename = entry.Key;
         WriteFile(Path.Join(paths.SourceDirectory, filename), entry.Value);
         if (DafnyOptions.O.CompileVerbose) {
-          outputWriter.WriteLine("Additional target code written to {0}", Path.Join(paths.RelativeDirectory, filename));
+          outputWriter.WriteLine("Additional target code written to {0}", NormalizeRelativeFilename(Path.Join(paths.RelativeDirectory, filename)));
         }
       }
     }
@@ -684,10 +631,29 @@ namespace Microsoft.Dafny {
         Directory.CreateDirectory(dir);
       }
 
+      CheckFilenameIsLegal(filename);
       using (TextWriter target = new StreamWriter(new FileStream(filename, System.IO.FileMode.Create))) {
         target.Write(text);
         if (moreText != null) {
           target.Write(moreText);
+        }
+      }
+    }
+
+    private static void CheckFilenameIsLegal(string filename) {
+      // We cannot get the full path correctly on Windows if the file name uses some reserved words
+      // For example, Path.GetFullPath("con.txt") will return "//./con" which is incorrect.
+      // https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file?redirectedfrom=MSDN
+      if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+        var problematicNames =
+          "CON, PRN, AUX, NUL, COM1, COM2, COM3, COM4, COM5, COM6, COM7, COM8, COM9, LPT1, LPT2, LPT3, LPT4, LPT5, LPT6, LPT7, LPT8, LPT9";
+        var problematicRegex =
+          new Regex(@"^(.*[/\\]|^)(" +
+                    string.Join("|", problematicNames.Split(", ")) + @")(\.[^/\\]*)?$", RegexOptions.IgnoreCase);
+        var match = problematicRegex.Match(filename);
+        if (match.Success) {
+          throw new Exception($"Cannot create a file with the name {filename}." +
+                              $" Windows reserves the following file names: {problematicNames}");
         }
       }
     }
@@ -725,6 +691,9 @@ namespace Microsoft.Dafny {
           break;
         case DafnyOptions.CompilationTarget.Cpp:
           compiler = new Dafny.CppCompiler(dafnyProgram.reporter, otherFileNames);
+          break;
+        case DafnyOptions.CompilationTarget.Python:
+          compiler = new Dafny.PythonCompiler(dafnyProgram.reporter);
           break;
       }
 

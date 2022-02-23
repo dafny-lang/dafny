@@ -840,12 +840,12 @@ namespace Dafny {
       }
     }
 
-    public static ISet<_System.Tuple2<U, V>> Items(IMap<U, V> m) {
-      var result = new HashSet<_System.Tuple2<U, V>>();
+    public static ISet<_System._ITuple2<U, V>> Items(IMap<U, V> m) {
+      var result = new HashSet<_System._ITuple2<U, V>>();
       foreach (var item in m.ItemEnumerable) {
         result.Add(_System.Tuple2<U, V>.create(item.Car, item.Cdr));
       }
-      return Dafny.Set<_System.Tuple2<U, V>>.FromCollection(result);
+      return Dafny.Set<_System._ITuple2<U, V>>.FromCollection(result);
     }
   }
 
@@ -1154,7 +1154,7 @@ namespace Dafny {
   internal class ConcatSequence<T> : Sequence<T> {
     // INVARIANT: Either left != null, right != null, and elmts's underlying array == null or
     // left == null, right == null, and elmts's underlying array != null
-    private ISequence<T> left, right;
+    private volatile ISequence<T> left, right;
     private ImmutableArray<T> elmts;
     private readonly int count;
 
@@ -1189,15 +1189,25 @@ namespace Dafny {
       // Traverse the tree formed by all descendants which are ConcatSequences
       var ansBuilder = ImmutableArray.CreateBuilder<T>();
       var toVisit = new Stack<ISequence<T>>();
-      toVisit.Push(right);
-      toVisit.Push(left);
+      var (leftBuffer, rightBuffer) = (left, right);
+      if (left == null || right == null) {
+        // elmts can't be .IsDefault while either left, or right are null
+        return elmts;
+      }
+      toVisit.Push(rightBuffer);
+      toVisit.Push(leftBuffer);
 
       while (toVisit.Count != 0) {
         var seq = toVisit.Pop();
-        var cs = seq as ConcatSequence<T>;
-        if (cs != null && cs.elmts.IsDefault) {
-          toVisit.Push(cs.right);
-          toVisit.Push(cs.left);
+        if (seq is ConcatSequence<T> { elmts: { IsDefault: true } } cs) {
+          (leftBuffer, rightBuffer) = (cs.left, cs.right);
+          if (cs.left == null || cs.right == null) {
+            // !cs.elmts.IsDefault, due to concurrent enumeration
+            toVisit.Push(cs);
+          } else {
+            toVisit.Push(rightBuffer);
+            toVisit.Push(leftBuffer);
+          }
         } else {
           var array = seq.Elements;
           ansBuilder.AddRange(array);
@@ -1664,7 +1674,12 @@ namespace Dafny {
 }
 
 namespace @_System {
-  public class Tuple2<T0, T1> {
+  public interface _ITuple2<out T0, out T1> {
+    T0 dtor__0 { get; }
+    T1 dtor__1 { get; }
+  }
+
+  public class Tuple2<T0, T1> : _ITuple2<T0, T1> {
     public readonly T0 _0;
     public readonly T1 _1;
     public Tuple2(T0 _0, T1 _1) {
@@ -1691,16 +1706,15 @@ namespace @_System {
       s += ")";
       return s;
     }
-    public static Tuple2<T0, T1> Default(T0 _default_T0, T1 _default_T1) {
+    public static _ITuple2<T0, T1> Default(T0 _default_T0, T1 _default_T1) {
       return create(_default_T0, _default_T1);
     }
-    public static Dafny.TypeDescriptor<_System.Tuple2<T0, T1>> _TypeDescriptor(Dafny.TypeDescriptor<T0> _td_T0, Dafny.TypeDescriptor<T1> _td_T1) {
-      return new Dafny.TypeDescriptor<_System.Tuple2<T0, T1>>(_System.Tuple2<T0, T1>.Default(_td_T0.Default(), _td_T1.Default()));
+    public static Dafny.TypeDescriptor<_System._ITuple2<T0, T1>> _TypeDescriptor(Dafny.TypeDescriptor<T0> _td_T0, Dafny.TypeDescriptor<T1> _td_T1) {
+      return new Dafny.TypeDescriptor<_System._ITuple2<T0, T1>>(_System.Tuple2<T0, T1>.Default(_td_T0.Default(), _td_T1.Default()));
     }
-    public static Tuple2<T0, T1> create(T0 _0, T1 _1) {
+    public static _ITuple2<T0, T1> create(T0 _0, T1 _1) {
       return new Tuple2<T0, T1>(_0, _1);
     }
-    public bool is____hMake2 { get { return true; } }
     public T0 dtor__0 {
       get {
         return this._0;

@@ -24,5 +24,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     /// Gets the status of the compilation.
     /// </summary>
     public CompilationStatus Status { get; init; }
+
+    /// <summary>
+    /// Gets additional information about the current status
+    /// </summary>
+    public string? Message { get; init; }
   }
 }

@@ -61,6 +61,19 @@ namespace Microsoft.Dafny {
       return res;
     }
 
+    public static string Repeat(int count, string s) {
+      Contract.Requires(0 <= count);
+      Contract.Requires(s != null);
+      // special-case trivial cases
+      if (count == 0) {
+        return "";
+      } else if (count == 1) {
+        return s;
+      } else {
+        return Comma("", count, _ => s);
+      }
+    }
+
     public static string Plural(int n) {
       Contract.Requires(0 <= n);
       return n == 1 ? "" : "s";
@@ -731,8 +744,9 @@ namespace Microsoft.Dafny {
         return enterResult == stop;
       }
 
-      return stmt.SubStatements.Any(subStmt => Traverse(subStmt, "SubStatements", stmt)) ||
-             stmt.SubExpressions.Any(subExpr => Traverse(subExpr, "SubExpressions", stmt)) ||
+      return stmt.NonSpecificationSubExpressions.Any(subExpr => Traverse(subExpr, "NonSpecificationSubExpressions", stmt)) ||
+             stmt.SpecificationSubExpressions.Any(subExpr => Traverse(subExpr, "SpecificationSubExpressions", stmt)) ||
+             stmt.SubStatements.Any(subStmt => Traverse(subStmt, "SubStatements", stmt)) ||
              OnExit(stmt, field, parent);
     }
 
@@ -756,19 +770,24 @@ namespace Microsoft.Dafny {
     private ErrorReporter reporter = null;
     private Resolver resolver = null;
 
-    public ExpressionTester(Resolver resolver = null, bool reportErrors = false) {
-      Contract.Requires(reportErrors == false || resolver != null);
-      if (resolver != null) {
-        this.reporter = resolver.Reporter;
-        this.resolver = resolver;
-      }
+    public ExpressionTester(Resolver resolver = null, bool reportErrors = false) :
+      this(resolver, resolver?.Reporter, reportErrors) {
+    }
 
+    public ExpressionTester(Resolver resolver, ErrorReporter reporter, bool reportErrors = false) {
+      Contract.Requires(reportErrors == false || resolver != null);
+      this.resolver = resolver;
+      this.reporter = reporter;
       this.reportErrors = reportErrors;
     }
 
     // Static call to CheckIsCompilable
     public static bool CheckIsCompilable(Resolver resolver, Expression expr, ICodeContext codeContext) {
       return new ExpressionTester(resolver, resolver != null).CheckIsCompilable(expr, codeContext);
+    }
+    // Static call to CheckIsCompilable
+    public static bool CheckIsCompilable(Resolver resolver, ErrorReporter reporter, Expression expr, ICodeContext codeContext) {
+      return new ExpressionTester(resolver, reporter, resolver != null).CheckIsCompilable(expr, codeContext);
     }
 
     /// <summary>
@@ -806,10 +825,15 @@ namespace Microsoft.Dafny {
             string msg;
             if (callExpr.Function is TwoStateFunction || callExpr.Function is ExtremePredicate || callExpr.Function is PrefixPredicate) {
               msg = $"a call to a {callExpr.Function.WhatKind} is allowed only in specification contexts";
-            } else if (callExpr.Function is Predicate) {
-              msg = "predicate calls are allowed only in specification contexts (consider declaring the predicate a 'predicate method')";
             } else {
-              msg = "function calls are allowed only in specification contexts (consider declaring the function a 'function method')";
+              var what = callExpr.Function.WhatKind;
+              string compiledDeclHint;
+              if (DafnyOptions.O.FunctionSyntax == DafnyOptions.FunctionSyntaxOptions.Version4) {
+                compiledDeclHint = "without the 'ghost' keyword";
+              } else {
+                compiledDeclHint = $"with '{what} method'";
+              }
+              msg = $"a call to a ghost {what} is allowed only in specification contexts (consider declaring the {what} {compiledDeclHint})";
             }
             reporter?.Error(MessageSource.Resolver, callExpr, msg);
             return false;

@@ -24,18 +24,39 @@ namespace Microsoft.Dafny {
   /// </summary>
   public static class BoogieXmlConvertor {
 
-    public static void RaiseTestLoggerEvents(string fileName, string loggerConfig) {
-      // The only supported value for now
-      if (loggerConfig != "trx") {
-        throw new ArgumentException($"Unsupported verification logger config: {loggerConfig}");
-      }
+    public static TestProperty ResourceCountProperty = TestProperty.Register("TestResult.ResourceCount", "TestResult.ResourceCount", typeof(int), typeof(TestResult));
+
+    public static void RaiseTestLoggerEvents(string fileName, List<string> loggerConfigs) {
+      // Provide just enough configuration for the loggers to work
+      var parameters = new Dictionary<string, string> {
+        ["TestRunDirectory"] = Constants.DefaultResultsDirectory
+      };
 
       var events = new LocalTestLoggerEvents();
-      var logger = new TrxLogger();
-      // Provide just enough configuration for the TRX logger to work
-      logger.Initialize(events, new Dictionary<string, string> {
-        ["TestRunDirectory"] = Constants.DefaultResultsDirectory
-      });
+      foreach (var loggerConfig in loggerConfigs) {
+        string loggerName;
+        int semiColonIndex = loggerConfig.IndexOf(";");
+        if (semiColonIndex >= 0) {
+          loggerName = loggerConfig[..semiColonIndex];
+          var parametersList = loggerConfig[(semiColonIndex + 1)..];
+          foreach (string s in parametersList.Split(",")) {
+            var equalsIndex = s.IndexOf("=");
+            parameters.Add(s[..equalsIndex], s[(equalsIndex + 1)..]);
+          };
+        } else {
+          loggerName = loggerConfig;
+        }
+
+        if (loggerName == "trx") {
+          var logger = new TrxLogger();
+          logger.Initialize(events, parameters);
+        } else if (loggerName == "csv") {
+          var csvLogger = new CSVTestLogger();
+          csvLogger.Initialize(events, parameters);
+        } else {
+          throw new ArgumentException("Unsupported verification logger config: {loggerConfig}");
+        }
+      }
       events.EnableEvents();
 
       // Sort failures to the top, and then slower procedures first.
@@ -63,7 +84,7 @@ namespace Microsoft.Dafny {
             currentFileFragment = child.Attribute("name")!.Value;
             break;
           case "method":
-            testResults.Add(ToTestResult(child, currentFileFragment));
+            testResults.AddRange(TestResultsForMethod(child, currentFileFragment));
             break;
         }
       }
@@ -71,7 +92,15 @@ namespace Microsoft.Dafny {
       return testResults;
     }
 
-    private static TestResult ToTestResult(XElement node, string currentFileFragment) {
+    private static IEnumerable<TestResult> TestResultsForMethod(XElement method, string currentFileFragment) {
+      // Only report the top level method result if there was no splitting
+      var childSplits = method.Nodes().OfType<XElement>().Where(child => child.Name.LocalName == "split").ToList();
+      return childSplits.Count > 1
+        ? childSplits.Select(childSplit => TestResultForSplit(currentFileFragment, method, childSplit))
+        : new[] { TestResultForMethod(currentFileFragment, method) };
+    }
+
+    private static TestResult TestResultForMethod(string currentFileFragment, XElement node) {
       var name = node.Attribute("name")!.Value;
       var startTime = node.Attribute("startTime")!.Value;
       var conclusionNode = node.Nodes()
@@ -79,19 +108,19 @@ namespace Microsoft.Dafny {
                                        .Single(n => n.Name.LocalName == "conclusion");
       var endTime = conclusionNode.Attribute("endTime")!.Value;
       var duration = float.Parse(conclusionNode.Attribute("duration")!.Value);
+      var resourceCount = conclusionNode.Attribute("resourceCount")?.Value;
       var outcome = conclusionNode.Attribute("outcome")!.Value;
 
-      var testCase = new TestCase {
-        FullyQualifiedName = name,
-        ExecutorUri = new Uri("executor://dafnyverifier/v1"),
-        Source = currentFileFragment
-      };
-
+      var testCase = TestCaseForEntry(currentFileFragment, name);
       var testResult = new TestResult(testCase) {
         StartTime = DateTimeOffset.Parse(startTime),
-        EndTime = DateTimeOffset.Parse(endTime),
-        Duration = TimeSpan.FromMilliseconds((long)(duration * 1000))
+        Duration = TimeSpan.FromMilliseconds((long)(duration * 1000)),
+        EndTime = DateTimeOffset.Parse(endTime)
       };
+
+      if (resourceCount != null) {
+        testResult.SetPropertyValue(ResourceCountProperty, int.Parse(resourceCount));
+      }
 
       if (outcome == "correct") {
         testResult.Outcome = TestOutcome.Passed;
@@ -101,6 +130,42 @@ namespace Microsoft.Dafny {
       }
 
       return testResult;
+    }
+
+    private static TestResult TestResultForSplit(string currentFileFragment, XElement methodNode, XElement splitNode) {
+      var methodName = methodNode.Attribute("name")!.Value;
+      var splitNumber = splitNode.Attribute("number")!.Value;
+      var name = $"{methodName}$${splitNumber}";
+
+      var startTime = splitNode.Attribute("startTime")!.Value;
+      var conclusionNode = splitNode.Nodes()
+                                            .OfType<XElement>()
+                                            .Single(n => n.Name.LocalName == "conclusion");
+      var duration = float.Parse(conclusionNode.Attribute("duration")!.Value);
+      var outcome = conclusionNode.Attribute("outcome")!.Value;
+
+      var testCase = TestCaseForEntry(currentFileFragment, name);
+      var testResult = new TestResult(testCase) {
+        StartTime = DateTimeOffset.Parse(startTime),
+        Duration = TimeSpan.FromMilliseconds((long)(duration * 1000))
+      };
+
+      if (outcome == "valid") {
+        testResult.Outcome = TestOutcome.Passed;
+      } else {
+        testResult.Outcome = TestOutcome.Failed;
+        testResult.ErrorMessage = outcome;
+      }
+
+      return testResult;
+    }
+
+    private static TestCase TestCaseForEntry(string currentFileFragment, string entryName) {
+      return new TestCase {
+        FullyQualifiedName = entryName,
+        ExecutorUri = new Uri("executor://dafnyverifier/v1"),
+        Source = currentFileFragment
+      };
     }
   }
 }

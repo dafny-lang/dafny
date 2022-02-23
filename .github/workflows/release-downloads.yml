@@ -5,7 +5,8 @@ name: Test Release Downloads
 on:
   release:
     types: [ published ]
-  workflow_dispatch: // For manual testing through the Actions UI
+  # For manual testing through the Actions UI
+  workflow_dispatch:
 
 jobs:
   build:
@@ -24,7 +25,7 @@ jobs:
           osn: 'osx'
         - os:  'windows-latest'
           osn: 'win'
-          ver: '3.3.0'
+          ver: '3.4.2'
     # There is no hosted environment for Unbuntu 14.04 or for debian
 
     # Java is installed by default, but we need to select 1.8

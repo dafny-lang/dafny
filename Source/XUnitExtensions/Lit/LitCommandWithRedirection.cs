@@ -70,7 +70,11 @@ namespace XUnitExtensions.Lit {
       var inputReader = inputFile != null ? new StreamReader(inputFile) : null;
       var outputWriter = outputFile != null ? new StreamWriter(outputFile, append) : null;
       var errorWriter = errorFile != null ? new StreamWriter(errorFile, false) : null;
-      return command.Execute(outputHelper, inputReader, outputWriter, errorWriter);
+      var result = command.Execute(outputHelper, inputReader, outputWriter, errorWriter);
+      inputReader?.Close();
+      outputWriter?.Close();
+      errorWriter?.Close();
+      return result;
     }
 
     public override string ToString() {
