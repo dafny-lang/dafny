@@ -316,7 +316,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           int newVerifiedCount;
           lock (targetMethodNode) {
             newVerifiedCount = ++targetMethodNode.VerifiedImplementationCount;
-            //var children = newVerifiedCount == 1 ? new List<NodeDiagnostic>() : new List<NodeDiagnostic>(targetMethodNode.Children);
             if (verificationResult.Errors != null) {
               var errorCount = targetMethodNode.NewChildrenCount + 1;
 
