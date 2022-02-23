@@ -1,7 +1,7 @@
 # Upcoming
 
 - fix: No warning "File contains no code" if a file only contains a submodule (https://github.com/dafny-lang/dafny/pull/1840)
-
+- fix: export-reveals of function-by-method now allows the function body to be ghost
 
 # 3.4.2
 
