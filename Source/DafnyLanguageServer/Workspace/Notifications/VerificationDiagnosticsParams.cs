@@ -99,7 +99,24 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
         }
       }
 
+      CheckResult(result);
+
       return result;
+    }
+
+    // Given a rendering, verifies that there is no error next to a verified, it should always be after an errorRange
+    private static void CheckResult(LineVerificationStatus[] result) {
+      var previousStatus = LineVerificationStatus.Verified;
+      foreach (var status in result) {
+        if (previousStatus is LineVerificationStatus.Verified or LineVerificationStatus.VerifiedObsolete
+            or LineVerificationStatus.VerifiedVerifying &&
+            status is LineVerificationStatus.Error or LineVerificationStatus.ErrorObsolete or LineVerificationStatus.ErrorVerifying
+            ) {
+          break;
+        }
+
+        previousStatus = status;
+      }
     }
   }
 

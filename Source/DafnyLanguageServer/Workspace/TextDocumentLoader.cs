@@ -225,7 +225,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         ? CompilationStatus.VerificationSucceeded
         : CompilationStatus.VerificationFailed;
       // All unvisited nodes that were not verified, we need to set them as "verified"
-      SetAllUnvisitedMethodsAsVerified(document);
+      if (!cancellationToken.IsCancellationRequested) {
+        SetAllUnvisitedMethodsAsVerified(document);
+      }
+
       notificationPublisher.SendStatusNotification(document.Text, compilationStatusAfterVerification);
       // TODO: ability to recover previous positions so that we don't need to start from scratch.
       return document with {
