@@ -66,7 +66,7 @@ namespace Microsoft.Dafny {
       DllEmbed,
       NoIncludes,
       NoGhost
-    };
+    }
 
     public PrintModes PrintMode = PrintModes.Everything; // Default to printing everything
     public bool DafnyVerify = true;
@@ -109,6 +109,16 @@ namespace Microsoft.Dafny {
     public bool PrintFunctionCallGraph = false;
     public bool WarnShadowing = false;
     public int DefiniteAssignmentLevel = 1; // [0..4]
+    public FunctionSyntaxOptions FunctionSyntax = FunctionSyntaxOptions.Version3;
+
+    public enum FunctionSyntaxOptions {
+      Version3,
+      Migration3To4,
+      ExperimentalTreatUnspecifiedAsGhost,
+      ExperimentalTreatUnspecifiedAsCompiled,
+      ExperimentalPredicateAlwaysGhost,
+      Version4,
+    }
 
     public bool ForbidNondeterminism {
       get { return DefiniteAssignmentLevel == 3; }
@@ -238,15 +248,6 @@ namespace Microsoft.Dafny {
         case "plugin": {
             if (ps.ConfirmArgumentCount(1)) {
               var pluginAndArgument = args[ps.i];
-              if (pluginAndArgument.Length > 0 &&
-                  pluginAndArgument[0] == '"' &&
-                  pluginAndArgument[^1] == '"'
-                  ) {
-                var unescapeRegex = new Regex(@"\\""|\\\\");
-                pluginAndArgument = unescapeRegex.Replace(pluginAndArgument.Substring(1, pluginAndArgument.Length - 2),
-                  match => match.Groups[0].Value == @"\""" ? "\"" : @"\"
-                );
-              }
               if (pluginAndArgument.Length > 0) {
                 var pluginArray = pluginAndArgument.Split(',');
                 var pluginPath = pluginArray[0];
@@ -255,12 +256,7 @@ namespace Microsoft.Dafny {
                   // There are no commas in paths, but there can be in arguments
                   var argumentsString = string.Join(',', pluginArray.Skip(1));
                   // Parse arguments, accepting and remove double quotes that isolate long arguments
-                  var splitter = new Regex(@"""((?:[^""]|\\"")*)""|([^ ]+)");
-                  arguments = splitter.Matches(argumentsString).Select(
-                    matchResult => matchResult.Groups[1].Success ?
-                        matchResult.Groups[1].Value.Replace(@"\""", @"""") :
-                        matchResult.Groups[2].Value
-                    ).ToArray();
+                  arguments = ParsePluginArguments(argumentsString);
                 }
                 Plugins.Add(Plugin.Load(pluginPath, arguments));
               }
@@ -414,6 +410,26 @@ namespace Microsoft.Dafny {
             return true;
           }
 
+        case "functionSyntax":
+          if (ps.ConfirmArgumentCount(1)) {
+            if (args[ps.i] == "3") {
+              FunctionSyntax = FunctionSyntaxOptions.Version3;
+            } else if (args[ps.i] == "4") {
+              FunctionSyntax = FunctionSyntaxOptions.Version4;
+            } else if (args[ps.i] == "migration3to4") {
+              FunctionSyntax = FunctionSyntaxOptions.Migration3To4;
+            } else if (args[ps.i] == "experimentalDefaultGhost") {
+              FunctionSyntax = FunctionSyntaxOptions.ExperimentalTreatUnspecifiedAsGhost;
+            } else if (args[ps.i] == "experimentalDefaultCompiled") {
+              FunctionSyntax = FunctionSyntaxOptions.ExperimentalTreatUnspecifiedAsCompiled;
+            } else if (args[ps.i] == "experimentalPredicateAlwaysGhost") {
+              FunctionSyntax = FunctionSyntaxOptions.ExperimentalPredicateAlwaysGhost;
+            } else {
+              InvalidArgumentError(name, ps);
+            }
+          }
+          return true;
+
         case "countVerificationErrors": {
             int countErrors = 1; // defaults to reporting verification errors
             if (ps.GetNumericArgument(ref countErrors, 2)) {
@@ -544,6 +560,18 @@ namespace Microsoft.Dafny {
 
       // Unless this is an option for test generation, defer to superclass
       return TestGenOptions.ParseOption(name, ps) || base.ParseOption(name, ps);
+    }
+
+    private static string[] ParsePluginArguments(string argumentsString) {
+      var splitter = new Regex(@"""(?<escapedArgument>(?:[^""\\]|\\\\|\\"")*)""|(?<rawArgument>[^ ]+)");
+      var escapedChars = new Regex(@"(?<escapedDoubleQuote>\\"")|\\\\");
+      return splitter.Matches(argumentsString).Select(
+        matchResult =>
+          matchResult.Groups["escapedArgument"].Success
+          ? escapedChars.Replace(matchResult.Groups["escapedArgument"].Value,
+            matchResult2 => matchResult2.Groups["escapedDoubleQuote"].Success ? "\"" : "\\")
+          : matchResult.Groups["rawArgument"].Value
+      ).ToArray();
     }
 
     protected void InvalidArgumentError(string name, CommandLineParseState ps) {
@@ -997,6 +1025,34 @@ namespace Microsoft.Dafny {
         statements are used; thus, a program that passes at this level 3 is one
         that the language guarantees that values seen during execution will be
         the same in every run of the program
+/functionSyntax:<version>
+    The syntax for functions is changing from Dafny version 3 to version 4.
+    This switch gives early access to the new syntax, and also provides a mode
+    to help with migration.
+    3 (default) - Compiled functions are written `function method` and
+        `predicate method`. Ghost functions are written `function` and `predicate`.
+    4 - Compiled functions are written `function` and `predicate`. Ghost functions
+        are written `ghost function` and `ghost predicate`.
+    migration3to4 - Compiled functions are written `function method` and
+        `predicate method`. Ghost functions are written `ghost function` and
+        `ghost predicate`. To migrate from version 3 to version 4, use this flag
+        on your version 3 program. This will give flag all occurrences of
+        `function` and `predicate` as parsing errors. These are ghost functions,
+        so change those into the new syntax `ghost function` and `ghost predicate`.
+        Then, start using /functionSyntax:4. This will flag all occurrences of
+        `function method` and `predicate method` as parsing errors. So, change
+        those to just `function` and `predicate`. Now, your program uses version 4
+        syntax and has the exact same meaning as your previous version 3 program.
+    experimentalDefaultGhost - like migration3to4, but allow `function` and
+        `predicate` as alternatives to declaring ghost functions and predicates,
+        respectively
+    experimentalDefaultCompiled - like migration3to4, but allow `function` and
+        `predicate` as alternatives to declaring compiled functions and predicates,
+        respectively
+    experimentalPredicateAlwaysGhost - Compiled functions are written `function`.
+        Ghost functions are written `ghost function`. Predicates are always ghost
+        and are written `predicate`.
+
 /deprecation:<n>
     0 - don't give any warnings about deprecated features
     1 (default) - show warnings about deprecated features

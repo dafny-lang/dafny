@@ -766,9 +766,9 @@ namespace Microsoft.Dafny {
                 Reporter.Error(MessageSource.RefinementTransformer, f, "a function in a refining module cannot be changed from static to non-static or vice versa: {0}", f.Name);
               }
               if (!prevFunction.IsGhost && f.IsGhost) {
-                Reporter.Error(MessageSource.RefinementTransformer, f, "a function method cannot be changed into a (ghost) function in a refining module: {0}", f.Name);
+                Reporter.Error(MessageSource.RefinementTransformer, f, "a compiled function cannot be changed into a ghost function in a refining module: {0}", f.Name);
               } else if (prevFunction.IsGhost && !f.IsGhost && prevFunction.Body != null) {
-                Reporter.Error(MessageSource.RefinementTransformer, f, "a function can be changed into a function method in a refining module only if the function has not yet been given a body: {0}", f.Name);
+                Reporter.Error(MessageSource.RefinementTransformer, f, "a ghost function can be changed into a compiled function in a refining module only if the function has not yet been given a body: {0}", f.Name);
               }
               if (f.SignatureIsOmitted) {
                 Contract.Assert(f.TypeArgs.Count == 0);
@@ -1536,8 +1536,8 @@ namespace Microsoft.Dafny {
         Reporter.Error(MessageSource.RefinementTransformer, s, "yield statements are not allowed in skeletons");
       } else if (s is BreakStmt) {
         var b = (BreakStmt)s;
-        if (b.TargetLabel != null ? !labels.Contains(b.TargetLabel.val) : loopLevels < b.BreakCount) {
-          Reporter.Error(MessageSource.RefinementTransformer, s, "break statement in skeleton is not allowed to break outside the skeleton fragment");
+        if (b.TargetLabel != null ? !labels.Contains(b.TargetLabel.val) : loopLevels < b.BreakAndContinueCount) {
+          Reporter.Error(MessageSource.RefinementTransformer, s, $"{b.Kind} statement in skeleton is not allowed to break outside the skeleton fragment");
         }
       } else if (s is AssignStmt) {
         // TODO: To be a refinement automatically (that is, without any further verification), only variables and fields defined
