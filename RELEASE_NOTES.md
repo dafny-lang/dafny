@@ -1,3 +1,16 @@
+# Upcoming
+
+- fix: No output when compiling to JavaScript on Windows (https://github.com/dafny-lang/dafny/pull/1824)
+- fix: Behavior of the C# runtime in a concurrent setting (https://github.com/dafny-lang/dafny/pull/1780)
+
+
+# 3.4.1
+
+- feat: Plugin support in the resolution pipeline (https://github.com/dafny-lang/dafny/pull/1739)
+- fix: NullPointerException in the AST (https://github.com/dafny-lang/dafny/pull/1805)
+- fix: Change datatype deconstruction in match statements for C# (https://github.com/dafny-lang/dafny/issues/1815)
+
+
 # 3.4
 
 - For certain classes of changes to a Dafny program, prevent unexpected changes in verification behavior.
