@@ -244,50 +244,26 @@ namespace Microsoft.Dafny {
       bool constructTypeParameterDefaultsFromTypeDescriptors) {
       var xType = type.NormalizeExpandKeepConstraints();
 
-      if (usePlaceboValue) {
-        return "undefined";
-      }
-
-      if (xType is BoolType) {
-        return "false";
-      } else if (xType is CharType) {
-        return CharType.DefaultValueAsString;
-      } else if (xType is IntType || xType is BigOrdinalType) {
-        return $"int(\"{0}\")";
+      switch (xType) {
+        case BoolType: {
+            return "false";
+          }
+        case CharType: {
+            return CharType.DefaultValueAsString;
+          }
+        case IntType or BigOrdinalType: {
+            return "int(0)";
+          }
       }
 
       var udt = (UserDefinedType)xType;
       var cl = udt.ResolvedClass;
       Contract.Assert(cl != null);
-      if (cl is SubsetTypeDecl) {
-        var td = (SubsetTypeDecl)cl;
-        if (td.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
-          return TypeName_UDT(FullTypeName(udt), udt, wr, udt.tok) + ".Default";
-        } else if (td.WitnessKind == SubsetTypeDecl.WKind.Special) {
-          // WKind.Special is only used with -->, ->, and non-null types:
-          Contract.Assert(ArrowType.IsPartialArrowTypeName(td.Name) || ArrowType.IsTotalArrowTypeName(td.Name) || td is NonNullTypeDecl);
-          if (ArrowType.IsPartialArrowTypeName(td.Name)) {
-            return "null";
-          } else if (((NonNullTypeDecl)td).Class is ArrayClassDecl) {
-            // non-null array type; we know how to initialize them
-            var arrayClass = (ArrayClassDecl)((NonNullTypeDecl)td).Class;
-            if (arrayClass.Dims == 1) {
-              return "[]";
-            } else {
-              return string.Format("_dafny.newArray(undefined, {0})", Util.Comma(arrayClass.Dims, _ => "0"));
-            }
-          } else {
-            // non-null (non-array) type
-            // even though the type doesn't necessarily have a known initializer, it could be that the the compiler needs to
-            // lay down some bits to please the C#'s compiler's different definite-assignment rules.
-            return "null";
-          }
-        } else {
-          return TypeInitializationValue(td.RhsWithArgument(udt.TypeArgs), wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
-        }
-      } else {
-        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
+      if (cl is SubsetTypeDecl td) {
+        return TypeInitializationValue(td.RhsWithArgument(udt.TypeArgs), wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
       }
+
+      Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
     }
 
     protected override string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variance,
