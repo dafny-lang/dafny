@@ -26,7 +26,7 @@ namespace Microsoft.Dafny {
 
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
       Coverage.EmitSetup(wr);
-      wr.WriteLine("__default.Main()", mainMethod.EnclosingClass, mainMethod);
+      wr.WriteLine("_default.Main()", mainMethod.EnclosingClass, mainMethod);
     }
 
     protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw) {
@@ -48,7 +48,7 @@ namespace Microsoft.Dafny {
       List<TypeParameter> typeParameters,
       TopLevelDecl cls, List<Type> superClasses, IToken tok, ConcreteSyntaxTree wr) {
 
-      var w = wr.WriteLine("class {0}:", name);
+      var w = wr.WriteLine("class {0}:", cls);
 
       var methodWriter = w.NewBlock(open: BraceStyle.NewlineNoBrace, close: BraceStyle.NewlineNoBrace);
       ConcreteSyntaxTree fieldWriter = w.NewBlock(open: BraceStyle.NewlineNoBrace, close: BraceStyle.NewlineNoBrace);
@@ -81,7 +81,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, ConcreteSyntaxTree wr) {
-      IClassWriter cw = CreateClass(IdProtect(sst.EnclosingModuleDefinition.CompileName), IdName(sst), sst, wr);
+      var cw = (ClassWriter)CreateClass(IdProtect(sst.EnclosingModuleDefinition.CompileName), IdName(sst), sst, wr);
       var w = cw.MethodWriter;
       var udt = UserDefinedType.FromTopLevelDecl(sst.tok, sst);
       string d;
@@ -271,7 +271,7 @@ namespace Microsoft.Dafny {
       } else if (xType is CharType) {
         return CharType.DefaultValueAsString;
       } else if (xType is IntType || xType is BigOrdinalType) {
-        return IntegerLiteral(0);
+        return $"int(\"{0}\")";
       }
 
       var udt = (UserDefinedType)xType;
@@ -308,10 +308,6 @@ namespace Microsoft.Dafny {
       }
     }
 
-    string IntegerLiteral(BigInteger i) {
-      return $"int(\"{i}\")";
-    }
-
     protected override string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variance,
       List<Type> typeArgs, ConcreteSyntaxTree wr, IToken tok) {
       string s = IdProtect(fullCompileName);
@@ -334,10 +330,11 @@ namespace Microsoft.Dafny {
     }
 
     protected override void DeclareLocalVar(string name, Type type, IToken tok, bool leaveRoomForRhs, string rhs,
-      ConcreteSyntaxTree wr) {
-      wr.Write("{0}{1}", name, type != null ? $"={TypeName(type, wr, tok)}()" : ""); //else part can be used to define class object.
+        ConcreteSyntaxTree wr) {
+      //else part can be used to define class object.
+      wr.Write(name);
+      if (type != null) { wr.Write($" = {TypeName(type, wr, tok)}()"); }
       wr.WriteLine();
-
     }
 
     protected override ConcreteSyntaxTree DeclareLocalVar(string name, Type type, IToken tok, ConcreteSyntaxTree wr) {
