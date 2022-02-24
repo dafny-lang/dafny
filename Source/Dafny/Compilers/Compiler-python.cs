@@ -191,29 +191,11 @@ namespace Microsoft.Dafny {
     }
 
     private ConcreteSyntaxTree CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs,
-      List<Formal> formals, Type resultType, IToken tok, bool isStatic, bool createBody, MemberDecl member,
-      ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
-      if (!createBody) {
-        return null;
-      }
-
-      var customReceiver = !forBodyInheritance && NeedsCustomReceiver(member);
-      wr.Write("{0} {1}(", isStatic || customReceiver ? "def" : "", name);
-      var sep = "";
-      var nTypes = WriteRuntimeTypeDescriptorsFormals(member, ForTypeDescriptors(typeArgs, member, lookasideBody), wr, ref sep, tp => $"rtd$_{tp.CompileName}");
-      if (customReceiver) {
-        var nt = member.EnclosingClass;
-        var receiverType = UserDefinedType.FromTopLevelDecl(tok, nt);
-        DeclareFormal(sep, "_this", receiverType, tok, true, wr);
-        sep = ", ";
-      }
-      WriteFormals(sep, formals, wr);
-      var w = wr.NewBlock("):", open: BraceStyle.NewlineNoBrace, close: BraceStyle.NewlineNoBrace);
-      if (!isStatic && !customReceiver) {
-        w.WriteLine("let _this = this;");
-      }
-      return w;
-
+        List<Formal> formals, Type resultType, IToken tok, bool isStatic, bool createBody, MemberDecl member,
+        ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
+      wr.Write($"def {name}(");
+      WriteFormals("", formals, wr);
+      return wr.NewBlock("):", open: BraceStyle.NewlineNoBrace, close: BraceStyle.NewlineNoBrace);
     }
 
 
