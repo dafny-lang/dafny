@@ -222,21 +222,24 @@ namespace Microsoft.Dafny {
 
       var xType = type.NormalizeExpand();
 
-      if (xType is BoolType) {
-        return "bool";
-      } else if (xType is CharType) {
-        return "char";
-      } else if (xType is IntType || xType is BigOrdinalType) {
-        return "int";
-      } else if (xType is UserDefinedType) {
-        var udt = (UserDefinedType)xType;
-        var s = FullTypeName(udt, member);
-        return TypeName_UDT(s, udt, wr, udt.tok);
-      } else {
-        Contract.Assert(false);
-        throw new NotImplementedException();
-
+      switch (xType) {
+        case BoolType: {
+            return "bool";
+          }
+        case CharType: {
+            return "char";
+          }
+        case IntType or BigOrdinalType: {
+            return "int";
+          }
+        case UserDefinedType udt: {
+            var s = FullTypeName(udt, member);
+            return TypeName_UDT(s, udt, wr, udt.tok);
+          }
       }
+
+      Contract.Assert(false);
+      throw new NotImplementedException();
     }
 
     protected override string TypeInitializationValue(Type type, ConcreteSyntaxTree wr, IToken tok,
@@ -254,16 +257,18 @@ namespace Microsoft.Dafny {
         case IntType or BigOrdinalType: {
             return "int(0)";
           }
+        case UserDefinedType udt: {
+            var cl = udt.ResolvedClass;
+            Contract.Assert(cl != null);
+            if (cl is SubsetTypeDecl td) {
+              return TypeInitializationValue(td.RhsWithArgument(udt.TypeArgs), wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
+            }
+            break;
+          }
       }
 
-      var udt = (UserDefinedType)xType;
-      var cl = udt.ResolvedClass;
-      Contract.Assert(cl != null);
-      if (cl is SubsetTypeDecl td) {
-        return TypeInitializationValue(td.RhsWithArgument(udt.TypeArgs), wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
-      }
-
-      Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
+      Contract.Assert(false);
+      throw new cce.UnreachableException();  // unexpected type
     }
 
     protected override string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variance,
