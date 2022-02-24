@@ -3259,7 +3259,7 @@ namespace Microsoft.Dafny {
     }
 
     private void WriteGlueCode(ConcreteSyntaxTree wr, string methodName, string dafnyStructure, int tupleLength) {
-      wr.WriteLine("public static System.Collections.Generic.IEnumerable<object[]> DafnyTupleToObjArray(" + dafnyStructure + " dafnyStructure) {");
+      wr.WriteLine("public static System.Collections.Generic.IEnumerable<object[]> " + methodName + "Converter(" + dafnyStructure + " dafnyStructure) {");
       wr.WriteLine("System.Collections.Generic.List<object[]> newList = new ();");
       wr.WriteLine("foreach (var tuple in dafnyStructure.UniqueElements) {");
       wr.Write("newList.Add(new object[] {");
@@ -3276,7 +3276,7 @@ namespace Microsoft.Dafny {
 
       wr.WriteLine("public static System.Collections.Generic.IEnumerable<object[]> _" + methodName + "() {");
       wr.WriteLine(dafnyStructure + " retValue =  " + methodName + "();");
-      wr.WriteLine("return DafnyTupleToObjArray(retValue);");
+      wr.WriteLine("return " + methodName + "Converter(retValue);");
       wr.WriteLine("}");
 
       wr.WriteLine("[Xunit.Theory]");

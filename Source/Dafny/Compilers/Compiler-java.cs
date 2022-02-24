@@ -476,7 +476,7 @@ namespace Microsoft.Dafny {
     private string WriteDafnyStructure(Method m, ConcreteSyntaxTree wr) {
       string res = "dafny.DafnySequence<? extends dafny.Tuple" + m.Ins.Count.ToString() + "<";
       foreach (var o in m.Ins) {
-        res += this.TypeName(o.Type, wr, o.tok);
+        res += this.BoxedTypeName(o.Type, wr, o.tok);
         if (!o.Equals(m.Ins.Last())) {
           res += ", ";
         }
@@ -486,7 +486,7 @@ namespace Microsoft.Dafny {
     }
 
     private void WriteGlueCode(ConcreteSyntaxTree wr, string methodName, string dafnyStructure, int tupleLength) {
-      wr.WriteLine("public static java.util.Collection<Object[]> dafnyTupleToObjArray(" + dafnyStructure + "dafnyStructure) {");
+      wr.WriteLine("public static java.util.Collection<Object[]> " + methodName + "Converter(" + dafnyStructure + "dafnyStructure) {");
       wr.WriteLine("java.util.List<Object[]> newList = new java.util.ArrayList<>();");
       wr.WriteLine("for (var tuple : dafnyStructure) {");
       wr.Write("newList.add(new Object[] {");
@@ -503,7 +503,7 @@ namespace Microsoft.Dafny {
 
       wr.WriteLine("public static java.util.Collection<Object[]> _" + methodName + "() {");
       wr.WriteLine(dafnyStructure + " retValue =  " + methodName + "();");
-      wr.WriteLine("return dafnyTupleToObjArray(retValue);");
+      wr.WriteLine("return " + methodName + "Converter(retValue);");
       wr.WriteLine("}");
 
       wr.WriteLine("@org.junit.jupiter.params.ParameterizedTest");
