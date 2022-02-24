@@ -616,8 +616,7 @@ namespace Microsoft.Dafny {
 
       switch (op) {
         case BinaryExpr.ResolvedOpcode.Add:
-          truncateResult = true;
-          doPossiblyNativeBinOp("+", "__add__", out preOpString, out opString, out postOpString, out callString);
+          opString = "+";
           break;
 
         default:
@@ -627,14 +626,6 @@ namespace Microsoft.Dafny {
             errorWr);
           break;
       }
-    }
-
-    private void doPossiblyNativeBinOp(string o, string name, out string preOpS, out string opS,
-      out string postOpS, out string callS) {
-      callS = name;
-      preOpS = "";
-      opS = null;
-      postOpS = "";
     }
 
 
@@ -651,7 +642,7 @@ namespace Microsoft.Dafny {
       var castedThenExpr = resultType.Equals(thn.Type.NormalizeExpand()) ? thenExpr : Cast(resultType, thenExpr);
       var elseExpr = Expr(els, inLetExprBody);
       var castedElseExpr = resultType.Equals(els.Type.NormalizeExpand()) ? elseExpr : Cast(resultType, elseExpr);
-      wr.Format($"({castedThenExpr} if {Expr(guard, inLetExprBody)} else {castedElseExpr})");
+      wr.Format($"{castedThenExpr} if {Expr(guard, inLetExprBody)} else {castedElseExpr}");
     }
 
     protected override void EmitIsZero(string varName, ConcreteSyntaxTree wr) {
