@@ -14,10 +14,10 @@ namespace Microsoft.Dafny {
     }
 
     public override string TargetLanguage => "Python";
-    const string DafnySetClass = "__dafny.Set";
-    const string DafnyMultiSetClass = "__dafny.MultiSet";
-    const string DafnySeqClass = "__dafny.Seq";
-    const string DafnyMapClass = "__dafny.Map";
+    const string DafnySetClass = "_dafny.Set";
+    const string DafnyMultiSetClass = "_dafny.MultiSet";
+    const string DafnySeqClass = "_dafny.Seq";
+    const string DafnyMapClass = "_dafny.Map";
     protected override string StmtTerminator { get => ""; }
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
       wr.WriteLine("# Dafny program {0} compiled into Python", program.Name);
