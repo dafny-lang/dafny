@@ -13,8 +13,8 @@ namespace Microsoft.Dafny {
     private readonly ExecutionEngine engine;
 
     static void Main(string[] args) {
-      ServerUtils.ApplyArgs(args, new ConsoleErrorReporter());
-      var options = DafnyOptions.O;
+      var options = new DafnyOptions(new ConsoleErrorReporter());
+      ServerUtils.ApplyArgs(args, options);
       var cache = new VerificationResultCache(options.RunDiagnosticsOnTimeout);
       var engine = new ExecutionEngine(options, cache);
       Server server = new Server(engine);
