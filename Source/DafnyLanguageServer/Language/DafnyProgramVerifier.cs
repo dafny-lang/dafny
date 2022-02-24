@@ -96,10 +96,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       ExecutionEngine.CollectModSets(program);
       ExecutionEngine.CoalesceBlocks(program);
       ExecutionEngine.Inline(program);
-      // TODO Is the programId of any relevance? The requestId is used to cancel a verification.
-      //      However, the cancelling a verification is currently not possible since it blocks a text document
-      //      synchronization event which are serialized. Thus, no event is processed until the pending
-      //      synchronization is completed.
       var requestId = Guid.NewGuid().ToString();
       using (cancellationToken.Register(() => CancelVerification(requestId))) {
         try {

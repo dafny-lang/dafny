@@ -37,7 +37,7 @@ method test() {
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       client.OpenDocument(documentItem);
-      Thread.Sleep(5000);
+      await Task.Delay(5_000);
       // This cancels the previous request.
       client.DidChangeTextDocument(new DidChangeTextDocumentParams {
         TextDocument = new OptionalVersionedTextDocumentIdentifier {
