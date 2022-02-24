@@ -288,7 +288,7 @@ each other in the two groups.
 The groups are listed in order of
 increasing binding power, with equality binding less strongly than any of these operators.
 There is no implicit conversion between `int` and `real`: use `as int` or
-`as real` conversions to write an explict conversion (cf. [Section 20.10](#sec-as-expression)).
+`as real` conversions to write an explicit conversion (cf. [Section 20.10](#sec-as-expression)).
 
 Modulus is supported only for integer-based numeric types.  Integer
 division and modulus are the _Euclidean division and modulus_.  This
@@ -446,7 +446,7 @@ Sequences of characters represent _strings_, as described in
 Character values can be converted to and from `int` values using the
 `as int` and `as char` conversion operations. The result is what would
 be expected in other programming languages, namely, the `int` value of a
-`char` is the ACSII or unicode numeric value.
+`char` is the ASCII or unicode numeric value.
 
 The only other operations on characters are obtaining a character
 by indexing into a string, and the implicit conversion to string
@@ -571,7 +571,7 @@ method NonemptyExamples<B(00), X>() returns (b: B, ghost g: B, ghost h: X)
   // error: 'h' has not been given a value
 }
 ```
-Because of `B`'s nonempty type characteric, ghost parameter `g` does not
+Because of `B`'s nonempty type characteristic, ghost parameter `g` does not
 need to be explicitly assigned. However, Dafny reports an error for the
 non-ghost `b`, since `B` is not an auto-init type, and reports an error
 for `h`, since the type `X` could be empty.
@@ -594,7 +594,7 @@ A type parameter characterized by `(!new)` is _recursively_ independent
 of the allocation state. For example, a datatype is not a reference, but for
 a parameterized data type such as
 ```dafny
-dataype Result<T> = Failure(error: string) | Success(value: T)
+datatype Result<T> = Failure(error: string) | Success(value: T)
 ```
 the instantiation `Result<int>` satisfies `(!new)`, whereas
 `Result<array<int>>` does not.
@@ -1080,7 +1080,7 @@ For a sequence, the only difference is the length operator:
 ```
 
 The `forall` statement ([Section 19.21](#sec-forall-statement)) can also be used
-with arrays where parallel assigment is needed:
+with arrays where parallel assignment is needed:
 ```dafny
   var rev := new int[s.Length];
   forall i | 0 <= i < s.Length {
@@ -1213,7 +1213,7 @@ type Y<T>
 Its definition can be revealed in a
 refining module.  The name `Y` can be immediately followed by
 a type characteristics suffix ([Section 8.1](#sec-type-characteristics)).
-Because there is no defining RHS, the type characterics cannot be inferred and so
+Because there is no defining RHS, the type characteristics cannot be inferred and so
 must be stated. If, in some refining module, a definition of the type is given, the
 type characteristics must match those of the new definition.
 
@@ -2293,7 +2293,7 @@ function is defined.
  Y            | N           | N
 
 When `{:opaque}` is specified for function `g`, `g` is opaque,
-however the lemma `reveal_g` is available to give the semantics
+however the statement `reveal g();` is available to give the semantics
 of `g` whether in the defining module or outside.
 
 ### 13.4.4. Least/Greatest (CoInductive) Predicates and Lemmas
@@ -2315,10 +2315,11 @@ TraitDecl =
 ````
 
 A _trait_ is an abstract superclass, similar to an "interface" or
-"mixin".[^fn-traits]
+"mixin". A trait can be _extended_ only by another trait or
+by a class (and in the latter case we say that the class _implements_
+the trait). More specifically, algebraic datatypes cannot extend traits.[^fn-traits]
 
-[^fn-traits]: Traits are new to Dafny and are likely to evolve for a
-while.
+[^fn-traits]: Traits are new to Dafny and are likely to evolve for a while.
 
 The declaration of a trait is much like that of a class:
 ```dafny
@@ -2439,7 +2440,7 @@ inheritance of a method M to a single "chain" of declarations and does not
 permit mixins.
 
 Each of any method declarations explicitly or implicitly
-includes a specification. In simple cases, those syntactially separate
+includes a specification. In simple cases, those syntactically separate
 specifications will be copies of each other (up to renaming to take account
 of differing formal parameter names). However they need not be. The rule is
 that the specifications of M in a given class or trait must be _as strong as_
@@ -2457,7 +2458,7 @@ respectively, then, under the precondition of `P.M`,
 
 Non-static const and field declarations are also inherited from parent traits.
 These may not be redeclared in extending traits and classes.
-However, a trait need not initalize a const field with a value.
+However, a trait need not initialize a const field with a value.
 The class that extends a trait that declares such a const field without an
 initializer can initialize the field in a constructor.
 If the declaring trait does give
@@ -2830,7 +2831,7 @@ added.  The iterator body is allowed to remove elements from the
     corresponding keywords, `reads` and `modifies`, as is done for
     function values.  Also, the various `_decreases\(_i_\)` fields can be
     combined into one field named `decreases` whose type is a
-    _n_-tuple. Thse changes may be incorporated into a future version
+    _n_-tuple. These changes may be incorporated into a future version
     of Dafny.
 
 Note, in the precondition of the iterator, which is to hold upon

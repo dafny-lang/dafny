@@ -375,7 +375,7 @@ namespace Microsoft.Dafny {
         ModuleDefinition priorModDef;
         if (compileNameMap.TryGetValue(compileName, out priorModDef)) {
           reporter.Error(MessageSource.Resolver, m.tok,
-            "Modules '{0}' and '{1}' both have CompileName '{2}'.",
+            "modules '{0}' and '{1}' both have CompileName '{2}'",
             priorModDef.tok.val, m.tok.val, compileName);
         } else {
           compileNameMap.Add(compileName, m);
@@ -8499,8 +8499,8 @@ namespace Microsoft.Dafny {
           var s = (BreakStmt)stmt;
           s.IsGhost = mustBeErasable;
           if (s.IsGhost && !s.TargetStmt.IsGhost) {
-            var targetIsLoop = s.TargetStmt is LoopStmt;
-            Error(stmt, "ghost-context break statement is not allowed to break out of non-ghost " + (targetIsLoop ? "loop" : "structure"));
+            var targetKind = s.TargetStmt is LoopStmt ? "loop" : "structure";
+            Error(stmt, $"ghost-context {s.Kind} statement is not allowed to {s.Kind} out of non-ghost {targetKind}");
           }
 
         } else if (stmt is ProduceStmt) {
@@ -11068,15 +11068,24 @@ namespace Microsoft.Dafny {
         if (s.TargetLabel != null) {
           Statement target = enclosingStatementLabels.Find(s.TargetLabel.val);
           if (target == null) {
-            reporter.Error(MessageSource.Resolver, s.TargetLabel, "break label is undefined or not in scope: {0}", s.TargetLabel.val);
+            reporter.Error(MessageSource.Resolver, s.TargetLabel, $"{s.Kind} label is undefined or not in scope: {s.TargetLabel.val}");
+          } else if (s.IsContinue && !(target is LoopStmt)) {
+            reporter.Error(MessageSource.Resolver, s.TargetLabel, $"continue label must designate a loop: {s.TargetLabel.val}");
           } else {
             s.TargetStmt = target;
           }
         } else {
-          if (loopStack.Count < s.BreakCount) {
-            reporter.Error(MessageSource.Resolver, s, "trying to break out of more loop levels than there are enclosing loops");
+          Contract.Assert(1 <= s.BreakAndContinueCount); // follows from BreakStmt class invariant and the guard for this "else" branch
+          var jumpStmt = s.BreakAndContinueCount == 1 ?
+            $"a non-labeled '{s.Kind}' statement" :
+            $"a '{Util.Repeat(s.BreakAndContinueCount - 1, "break ")}{s.Kind}' statement";
+          if (loopStack.Count == 0) {
+            reporter.Error(MessageSource.Resolver, s, $"{jumpStmt} is allowed only in loops");
+          } else if (loopStack.Count < s.BreakAndContinueCount) {
+            reporter.Error(MessageSource.Resolver, s,
+              $"{jumpStmt} is allowed only in contexts with {s.BreakAndContinueCount} enclosing loops, but the current context only has {loopStack.Count}");
           } else {
-            Statement target = loopStack[loopStack.Count - s.BreakCount];
+            Statement target = loopStack[loopStack.Count - s.BreakAndContinueCount];
             if (target.Labels == null) {
               // make sure there is a label, because the compiler and translator will want to see a unique ID
               target.Labels = new LList<Label>(new Label(target.Tok, null), null);
@@ -11785,7 +11794,7 @@ namespace Microsoft.Dafny {
         }
         dominatingStatementLabels.PushMarker();
         foreach (Statement ss in mc.Body) {
-          ResolveStatement(ss, codeContext);
+          ResolveStatementWithLabels(ss, codeContext);
         }
         dominatingStatementLabels.PopMarker();
 
@@ -12104,15 +12113,15 @@ namespace Microsoft.Dafny {
     }
 
 
-    private MatchCase MakeMatchCaseFromContainer(IToken tok, KeyValuePair<string, DatatypeCtor> ctor, List<BoundVar> freshPatBV, SyntaxContainer insideContainer) {
+    private MatchCase MakeMatchCaseFromContainer(IToken tok, KeyValuePair<string, DatatypeCtor> ctor, List<BoundVar> freshPatBV, SyntaxContainer insideContainer, bool FromBoundVar) {
       MatchCase newMatchCase;
       if (insideContainer is CStmt c) {
         List<Statement> insideBranch = UnboxStmtContainer(insideContainer);
-        newMatchCase = new MatchCaseStmt(tok, ctor.Value, freshPatBV, insideBranch, c.Attributes);
+        newMatchCase = new MatchCaseStmt(tok, ctor.Value, FromBoundVar, freshPatBV, insideBranch, c.Attributes);
       } else {
         var insideBranch = ((CExpr)insideContainer).Body;
         var attrs = ((CExpr)insideContainer).Attributes;
-        newMatchCase = new MatchCaseExpr(tok, ctor.Value, freshPatBV, insideBranch, attrs);
+        newMatchCase = new MatchCaseExpr(tok, ctor.Value, FromBoundVar, freshPatBV, insideBranch, attrs);
       }
       newMatchCase.Ctor = ctor.Value;
       return newMatchCase;
@@ -12240,6 +12249,8 @@ namespace Microsoft.Dafny {
         mti.UpdateBranchID(PB.Item2.BranchID, ctors.Count - 1);
       }
 
+      var ctorToFromBoundVar = new HashSet<string>();
+
       foreach (var ctor in ctors) {
         if (mti.Debug) {
           Console.WriteLine("DEBUG: ===[3]>>>> Ctor {0}", ctor.Key);
@@ -12296,6 +12307,7 @@ namespace Microsoft.Dafny {
               currBranch.Patterns.InsertRange(0, freshArgs);
               LetBindNonWildCard(currBranch, currPattern, rhsExpr);
               currBranches.Add(currBranch);
+              ctorToFromBoundVar.Add(ctor.Key);
             }
           } else {
             Contract.Assert(false); throw new cce.UnreachableException();
@@ -12315,7 +12327,8 @@ namespace Microsoft.Dafny {
         } else {
           // Otherwise, add the case the new match created at [3]
           var tok = insideContainer.Tok is null ? currMatchee.tok : insideContainer.Tok;
-          MatchCase newMatchCase = MakeMatchCaseFromContainer(tok, ctor, freshPatBV, insideContainer);
+          var FromBoundVar = ctorToFromBoundVar.Contains(ctor.Key);
+          MatchCase newMatchCase = MakeMatchCaseFromContainer(tok, ctor, freshPatBV, insideContainer, FromBoundVar);
           // newMatchCase.Attributes = (new Cloner()).CloneAttributes(mti.Attributes);
           newMatchCases.Add(newMatchCase);
         }
@@ -13388,7 +13401,7 @@ namespace Microsoft.Dafny {
         }
         ResolveAttributes(alternative.Attributes, null, new ResolveOpts(codeContext, true));
         foreach (Statement ss in alternative.Body) {
-          ResolveStatement(ss, codeContext);
+          ResolveStatementWithLabels(ss, codeContext);
         }
         dominatingStatementLabels.PopMarker();
         scope.PopMarker();
