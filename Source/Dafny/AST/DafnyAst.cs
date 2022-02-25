@@ -5546,39 +5546,26 @@ namespace Microsoft.Dafny {
 
     public TypeDeclSynonymInfo(TopLevelDecl d) {
       var thisType = UserDefinedType.FromTopLevelDecl(d.tok, d);
-      var tsd = new InternalTypeSynonymDecl(d.tok, d.Name, TypeParameter.GetExplicitCharacteristics(d), d.TypeArgs, d.EnclosingModuleDefinition, thisType, d.Attributes);
-      tsd.InheritVisibility(d, false);
-      SelfSynonymDecl = tsd;
+      SelfSynonymDecl = new InternalTypeSynonymDecl(d.tok, d.Name, TypeParameter.GetExplicitCharacteristics(d),
+        d.TypeArgs, d.EnclosingModuleDefinition, thisType, d.Attributes);
+      SelfSynonymDecl.InheritVisibility(d, false);
     }
 
     public UserDefinedType SelfSynonym(List<Type> args, Expression /*?*/ namePath = null) {
-      var typeSynonym = SelfSynonymDecl;
-      return new UserDefinedType(typeSynonym.tok, typeSynonym.Name, typeSynonym, args, namePath);
+      return new UserDefinedType(SelfSynonymDecl.tok, SelfSynonymDecl.Name, SelfSynonymDecl, args, namePath);
     }
   }
 
   public static class RevealableTypeDeclHelper {
-    public static TopLevelDecl AccessibleDecl(this RevealableTypeDecl rtd, VisibilityScope scope) {
-      var d = rtd.AsTopLevelDecl;
-      if (d.IsRevealedInScope(scope)) {
-        return d;
-      } else {
-        return rtd.SelfSynonymDecl();
-      }
-    }
-
     public static InternalTypeSynonymDecl SelfSynonymDecl(this RevealableTypeDecl rtd) =>
       rtd.SynonymInfo.SelfSynonymDecl;
 
-    public static UserDefinedType SelfSynonym(this RevealableTypeDecl rtd, List<Type> args, Expression /*?*/ namePath = null) {
-      return rtd.SynonymInfo.SelfSynonym(args, namePath);
-    }
+    public static UserDefinedType SelfSynonym(this RevealableTypeDecl rtd, List<Type> args, Expression /*?*/ namePath = null) =>
+      rtd.SynonymInfo.SelfSynonym(args, namePath);
 
     //Internal implementations are called before extensions, so this is safe
-    public static bool IsRevealedInScope(this RevealableTypeDecl rtd, VisibilityScope scope) {
-      var d = rtd.AsTopLevelDecl;
-      return d.IsRevealedInScope(scope);
-    }
+    public static bool IsRevealedInScope(this RevealableTypeDecl rtd, VisibilityScope scope) =>
+      rtd.AsTopLevelDecl.IsRevealedInScope(scope);
 
     public static void NewSelfSynonym(this RevealableTypeDecl rtd) {
       rtd.SynonymInfo = new TypeDeclSynonymInfo(rtd.AsTopLevelDecl);
