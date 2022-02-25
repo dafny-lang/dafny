@@ -53,12 +53,12 @@ namespace Microsoft.Dafny {
           var ss = TrSplitExpr(s.Expr, etran, true, out splitHappened);
           if (!splitHappened) {
             var tok = enclosingToken == null ? s.Expr.tok : new NestedToken(enclosingToken, s.Expr.tok);
-            (proofBuilder ?? b).Add(Assert(tok, etran.TrExpr(s.Expr), errorMessage ?? "assertion violation", stmt.Tok, etran.TrAttributes(stmt.Attributes, null)));
+            (proofBuilder ?? b).Add(Assert(tok, etran.TrExpr(s.Expr), errorMessage ?? "assertion may not hold", stmt.Tok, etran.TrAttributes(stmt.Attributes, null)));
           } else {
             foreach (var split in ss) {
               if (split.IsChecked) {
                 var tok = enclosingToken == null ? split.E.tok : new NestedToken(enclosingToken, split.E.tok);
-                (proofBuilder ?? b).Add(AssertNS(tok, split.E, errorMessage ?? "assertion violation", stmt.Tok, etran.TrAttributes(stmt.Attributes, null)));  // attributes go on every split
+                (proofBuilder ?? b).Add(AssertNS(tok, split.E, errorMessage ?? "assertion may not hold", stmt.Tok, etran.TrAttributes(stmt.Attributes, null)));  // attributes go on every split
               }
             }
           }
@@ -1611,13 +1611,13 @@ namespace Microsoft.Dafny {
         var ss = TrSplitExpr(stmt.Expr, etran, true, out var splitHappened);
         if (!splitHappened) {
           var tok = enclosingToken == null ? stmt.Expr.tok : new NestedToken(enclosingToken, stmt.Expr.tok);
-          (proofBuilder ?? b).Add(Assert(tok, etran.TrExpr(stmt.Expr), errorMessage ?? "assertion violation", stmt.Tok,
+          (proofBuilder ?? b).Add(Assert(tok, etran.TrExpr(stmt.Expr), errorMessage ?? "assertion may not hold", stmt.Tok,
             etran.TrAttributes(stmt.Attributes, null)));
         } else {
           foreach (var split in ss) {
             if (split.IsChecked) {
               var tok = enclosingToken == null ? split.E.tok : new NestedToken(enclosingToken, split.E.tok);
-              (proofBuilder ?? b).Add(AssertNS(tok, split.E, errorMessage ?? "assertion violation", stmt.Tok,
+              (proofBuilder ?? b).Add(AssertNS(tok, split.E, errorMessage ?? "assertion may not hold", stmt.Tok,
                 etran.TrAttributes(stmt.Attributes, null))); // attributes go on every split
             }
           }

@@ -3,7 +3,7 @@ ComputationsNeg.dfy(11,0): Error: A postcondition might not hold on this return 
 ComputationsNeg.dfy(10,16): Related location: This is the postcondition that might not hold.
 ComputationsNeg.dfy(23,0): Error: A postcondition might not hold on this return path.
 ComputationsNeg.dfy(22,10): Related location: This is the postcondition that might not hold.
-ComputationsNeg.dfy(36,12): Error: assertion violation
-ComputationsNeg.dfy(45,12): Error: assertion violation
+ComputationsNeg.dfy(36,12): Error: assertion may not hold
+ComputationsNeg.dfy(45,12): Error: assertion may not hold
 
 Dafny program verifier finished with 5 verified, 5 errors
