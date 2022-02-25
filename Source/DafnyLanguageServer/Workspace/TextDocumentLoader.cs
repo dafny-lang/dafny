@@ -11,6 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using VC;
@@ -186,23 +187,40 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var previousDiagnostics = document.VerificationNodeDiagnostic.Children;
 
       List<NodeDiagnostic> result = new List<NodeDiagnostic>();
+
+      void AddAndPossiblyMigrateDiagnostic(NodeDiagnostic nodeDiagnostic) {
+        var position = nodeDiagnostic.Position;
+        var previousDiagnostic = previousDiagnostics.FirstOrDefault(
+          oldNode => oldNode != null && oldNode.Position == position,
+          null);
+        if (previousDiagnostic != null) {
+          nodeDiagnostic.Status = previousDiagnostic.Status;
+          nodeDiagnostic.Children = previousDiagnostic.Children;
+        }
+        result.Add(nodeDiagnostic);
+      }
+
+      var documentFilePath = document.GetFilePath();
       foreach (var module in document.Program.Modules()) {
         foreach (var toplLevelDecl in module.TopLevelDecls) {
           if (toplLevelDecl is TopLevelDeclWithMembers topLevelDeclWithMembers) {
             foreach (var member in topLevelDeclWithMembers.Members) {
               if (member is Method or Function) {
+                if (member.tok.filename != documentFilePath) {
+                  continue;
+                }
                 var diagnosticPosition = TokenToPosition(member.tok);
                 var diagnosticRange = new Range(diagnosticPosition, TokenToPosition(member.BodyEndTok, true));
                 var diagnostic = new NodeDiagnostic(member.Name, member.CompileName, member.tok.filename,
                   diagnosticPosition, diagnosticRange);
-                var previousDiagnostic = previousDiagnostics.FirstOrDefault(
-                  oldNode => oldNode != null && oldNode.Position == diagnosticPosition,
-                  null);
-                if (previousDiagnostic != null) {
-                  diagnostic.Status = previousDiagnostic.Status;
-                  diagnostic.Children = previousDiagnostic.Children;
+                AddAndPossiblyMigrateDiagnostic(diagnostic);
+                if (member is Function { ByMethodBody: { } } function) {
+                  var diagnosticPositionByMethod = TokenToPosition(function.ByMethodTok);
+                  var diagnosticRangeByMethod = new Range(diagnosticPositionByMethod, TokenToPosition(function.ByMethodBody.EndTok, true));
+                  var diagnosticByMethod = new NodeDiagnostic(member.Name + " by method", member.CompileName + "_by_method", member.tok.filename,
+                    diagnosticPositionByMethod, diagnosticRangeByMethod);
+                  AddAndPossiblyMigrateDiagnostic(diagnosticByMethod);
                 }
-                result.Add(diagnostic);
               }
             }
           }
@@ -316,7 +334,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       public void ReportEndVerifyMethodOrFunction(IToken implToken, VerificationResult verificationResult) {
-        var targetMethodNode = document.VerificationNodeDiagnostic.Children.FirstOrDefault(node => node?.Position == TokenToPosition(implToken), null);
+        var targetMethodNode = document.VerificationNodeDiagnostic.Children.FirstOrDefault(
+          node => node?.Position == TokenToPosition(implToken), null);
         if (targetMethodNode == null) {
           logger.LogError($"No method at {implToken}");
         } else {

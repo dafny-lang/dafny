@@ -136,7 +136,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
   public enum LineVerificationStatus {
     // Default value for every line, before the renderer figures it out.
     Unknown = 0,
-    // For first-time computation not actively computing but soon
+    // For first-time computation not actively computing but soon. Synonym of "obsolete"
     // (scheduledComputation)
     Scheduled = 1,
     // For first-time computations, actively computing
@@ -163,7 +163,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
      /// Used to re-trigger the verification of some diagnostics.
      string Identifier,
      string Filename,
-     // Used to relocate a node diagnostic
+     // Used to relocate a node diagnostic and to determine which function is currently verifying
      Position Position,
      // The range of this node.
      Range Range
