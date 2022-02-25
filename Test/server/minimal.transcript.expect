@@ -2,7 +2,7 @@
 
 Verifying Impl$$_module.__default.A ...
   [1 proof obligation]  error
-transcript(3,9): Error: assertion may not hold
+transcript(3,9): Error: assertion might not hold
 Execution trace:
     (0,0): anon0
 Verification completed successfully!

@@ -1,4 +1,4 @@
-ShowSnippets.dfy(13,9): Error: assertion may not hold
+ShowSnippets.dfy(13,9): Error: assertion might not hold
    |
 13 |   assert false;
    |          ^ here
