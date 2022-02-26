@@ -105,7 +105,6 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         if (e is TaskCanceledException) {
           OnCompleted();
         } else {
-          // FIXME: Since we return from the caller without `await`ing, don't we risk closing `logger` too early?
           logger.LogError(e, "error while handling document event");
           telemetryPublisher.PublishUnhandledException(e);
         }

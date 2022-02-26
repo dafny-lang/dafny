@@ -15,11 +15,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       this.languageServer = languageServer;
     }
 
-    void ITelemetryPublisher.PublishTelemetry(ITelemetryPublisher.TelemetryEventKind kind, object? evt) {
-      languageServer.Window.SendTelemetryEvent(new TelemetryEventParams() {
+    void ITelemetryPublisher.PublishTelemetry(ITelemetryPublisher.TelemetryEventKind kind, object? payload) {
+      languageServer.Window.SendTelemetryEvent(new TelemetryEventParams {
         ExtensionData = new Dictionary<string, object> {
           {"kind", kind.ToString()},
-          {"data", evt ?? new Dictionary<string, object>()}
+          {"data", payload ?? new Dictionary<string, object>()}
         }
       });
     }

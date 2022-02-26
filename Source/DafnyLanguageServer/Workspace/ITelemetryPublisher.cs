@@ -16,9 +16,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// <summary>
     /// Publish a telemetry event.
     /// </summary>
-    /// <param name="kind">The kind of telemetry event.</param>
-    /// <param name="evt">The telemetry event.</param>
-    protected void PublishTelemetry(TelemetryEventKind kind, object? evt);
+    /// <param name="kind">The kind of this telemetry event.</param>
+    /// <param name="payload">The payload of this telemetry event.</param>
+    protected void PublishTelemetry(TelemetryEventKind kind, object? payload);
 
     /// <summary>
     /// Signal the completion of a document update.
