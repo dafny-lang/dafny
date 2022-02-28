@@ -19,7 +19,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       languageServer.Window.SendTelemetryEvent(new TelemetryEventParams {
         ExtensionData = new Dictionary<string, object> {
           {"kind", kind.ToString()},
-          {"data", payload ?? new Dictionary<string, object>()}
+          {"payload", payload ?? new Dictionary<string, object>()}
         }
       });
     }
