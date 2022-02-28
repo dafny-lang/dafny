@@ -17,8 +17,7 @@ namespace Microsoft.Dafny {
   public class DafnyOptions : Bpl.CommandLineOptions {
     private ErrorReporter errorReporter;
 
-    public new static DafnyOptions FromArguments(params string[] arguments)
-    {
+    public new static DafnyOptions FromArguments(params string[] arguments) {
       var result = new DafnyOptions();
       result.Parse(arguments);
       return result;

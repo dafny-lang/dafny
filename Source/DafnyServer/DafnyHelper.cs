@@ -15,8 +15,7 @@ namespace Microsoft.Dafny {
   // FIXME: This should not be duplicated here
   class DafnyConsolePrinter : ConsolePrinter {
 
-    public DafnyConsolePrinter(ExecutionEngineOptions options) : base(options)
-    {
+    public DafnyConsolePrinter(ExecutionEngineOptions options) : base(options) {
     }
 
     public override void ReportBplError(IToken tok, string message, bool error, TextWriter tw, string category = null) {

@@ -485,8 +485,7 @@ namespace Microsoft.Dafny {
     class DafnyConsolePrinter : ConsolePrinter {
       private readonly Dictionary<string, List<string>> fsCache = new();
 
-      public DafnyConsolePrinter(ExecutionEngineOptions options) : base(options)
-      {
+      public DafnyConsolePrinter(ExecutionEngineOptions options) : base(options) {
       }
 
       private string GetFileLine(string filename, int lineNumber) {
