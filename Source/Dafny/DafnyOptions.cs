@@ -17,6 +17,13 @@ namespace Microsoft.Dafny {
   public class DafnyOptions : Bpl.CommandLineOptions {
     private ErrorReporter errorReporter;
 
+    public new static DafnyOptions FromArguments(params string[] arguments)
+    {
+      var result = new DafnyOptions();
+      result.Parse(arguments);
+      return result;
+    }
+
     public DafnyOptions(ErrorReporter errorReporter = null)
       : base("Dafny", "Dafny program verifier") {
       this.errorReporter = errorReporter;
@@ -49,7 +56,6 @@ namespace Microsoft.Dafny {
     public static void Install(DafnyOptions options) {
       Contract.Requires(options != null);
       clo = options;
-      Bpl.CommandLineOptions.Install(options);
     }
 
     public bool UnicodeOutput = false;
@@ -587,12 +593,12 @@ namespace Microsoft.Dafny {
         }
 
         BoogieXmlFilename = Path.GetTempFileName();
-        XmlSink = new Bpl.XmlSink(BoogieXmlFilename);
+        XmlSink = new Bpl.XmlSink(this, BoogieXmlFilename);
       }
 
       // expand macros in filenames, now that LogPrefix is fully determined
-      ExpandFilename(ref DafnyPrelude, LogPrefix, FileTimestamp);
-      ExpandFilename(ref DafnyPrintFile, LogPrefix, FileTimestamp);
+      ExpandFilename(DafnyPrelude, x => DafnyPrelude = x, LogPrefix, FileTimestamp);
+      ExpandFilename(DafnyPrintFile, x => DafnyPrintFile = x, LogPrefix, FileTimestamp);
 
       SetZ3ExecutablePath();
       SetZ3Options();

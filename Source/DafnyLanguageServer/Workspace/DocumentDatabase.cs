@@ -44,7 +44,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       this.documentLoader = documentLoader;
       this.textChangeProcessor = textChangeProcessor;
       this.relocator = relocator;
-      CommandLineOptions.Clo.ProverOptions = GetProverOptions(this.options);
+      DafnyOptions.O.ProverOptions = GetProverOptions(this.options);
     }
 
     private static List<string> GetProverOptions(DocumentOptions options) {
