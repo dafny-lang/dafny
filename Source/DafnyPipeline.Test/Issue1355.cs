@@ -15,6 +15,7 @@ namespace DafnyPipeline.Test {
   public class Issue1355 {
     [Fact]
     public void Test() {
+      ErrorReporter reporter = new ConsoleErrorReporter();
       var options = new DafnyOptions();
       options.DafnyPrelude = "../../../../../Binaries/DafnyPrelude.bpl";
       DafnyOptions.Install(options);
