@@ -172,9 +172,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     /// Time and Resource diagnostics
     public bool Started { get; private set; } = false;
     public bool Finished { get; private set; } = false;
-    public int StartTime { get; private set; }
-    public int EndTime { get; private set; }
-    public int TimeSpent => Finished ? EndTime - StartTime : Started ? DateTime.Now.Millisecond - StartTime : -1;
+    public DateTime StartTime { get; private set; }
+    public DateTime EndTime { get; private set; }
+    public int TimeSpent => (int)(Finished ? ((TimeSpan)(EndTime - StartTime)).TotalMilliseconds : Started ? (DateTime.Now - StartTime).TotalMilliseconds : 0);
 
     // Resources allocated at the end of the computation.
     public int ResourceCount { get; set; } = 0;
@@ -221,7 +221,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     }
 
     public void Start() {
-      StartTime = DateTime.Now.Millisecond;
+      StartTime = DateTime.Now;
       Status = Status is NodeVerificationStatus.Error or NodeVerificationStatus.ErrorObsolete ? NodeVerificationStatus.ErrorVerifying :
         Status is NodeVerificationStatus.Verified or NodeVerificationStatus.VerifiedObsolete ? NodeVerificationStatus.VerifiedVerifying :
         NodeVerificationStatus.Verifying;
@@ -233,7 +233,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     }
 
     public void Stop() {
-      EndTime = DateTime.Now.Millisecond;
+      EndTime = DateTime.Now;
       foreach (var child in Children) {
         child.Stop();
       }
