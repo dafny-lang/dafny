@@ -32,7 +32,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     private DafnyProgramVerifier(ILogger<DafnyProgramVerifier> logger, VerifierOptions options) {
       this.logger = logger;
       this.options = options;
-
     }
 
     /// <summary>
