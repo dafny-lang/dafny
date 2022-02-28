@@ -46,7 +46,7 @@ namespace Microsoft.Dafny {
 
       ErrorReporter reporter = new ConsoleErrorReporter();
 
-      var dafnyOptions = new DafnyOptions(reporter);
+      var dafnyOptions = new DafnyOptions();
       DafnyOptions.Install(dafnyOptions);
       ExecutionEngine.printer = new DafnyConsolePrinter(dafnyOptions); // For boogie errors
 
