@@ -1,4 +1,5 @@
-﻿using Microsoft.Dafny.LanguageServer.Language.Symbols;
+﻿using System;
+using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client.Capabilities;
@@ -6,7 +7,6 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading;
 using System.Threading.Tasks;
-using OmniSharp.Extensions.JsonRpc.Server;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers {
   public class DafnyHoverHandler : HoverHandlerBase {
@@ -50,8 +50,8 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           var information = "**" + nodeDiagnostic.DisplayName + "** metrics:\n\n";
           information +=
               !nodeDiagnostic.Started ? "_Verification not started yet_"
-              : !nodeDiagnostic.Finished ? "_Still verifying..._  \nTime: " + nodeDiagnostic.TimeSpent + "ms"
-              : "Time: " + nodeDiagnostic.TimeSpent + "ms  \nResource: " + nodeDiagnostic.ResourceCount;
+              : !nodeDiagnostic.Finished ? $"_Still verifying..._  \nTime: {nodeDiagnostic.TimeSpent:n0}ms"
+              : $"Time: {nodeDiagnostic.TimeSpent:n0}ms  \nResource: {nodeDiagnostic.ResourceCount:n0}"; ;
           return new Hover {
             Contents = new MarkedStringsOrMarkupContent(
               new MarkupContent {
