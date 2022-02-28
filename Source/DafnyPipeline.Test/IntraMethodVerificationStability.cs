@@ -163,7 +163,7 @@ module SomeModule {
 
     [Fact]
     public void EqualProverLogWhenReorderingProgram() {
-      var options = DafnyOptions.FromArguments();
+      var options = DafnyOptions.Create();
       options.ProcsToCheck.Add("*SomeMethod");
       DafnyOptions.Install(options);
       ExecutionEngine.printer = new ConsolePrinter(options); // For boogie errors
@@ -175,7 +175,7 @@ module SomeModule {
 
     [Fact]
     public void EqualProverLogWhenRenamingProgram() {
-      var options = DafnyOptions.FromArguments();
+      var options = DafnyOptions.Create();
       options.ProcsToCheck.Add("*SomeMethod*");
       DafnyOptions.Install(options);
       ExecutionEngine.printer = new ConsolePrinter(options); // For boogie errors
@@ -188,7 +188,7 @@ module SomeModule {
     [Fact]
     public void EqualProverLogWhenAddingUnrelatedProgram() {
 
-      var options = DafnyOptions.FromArguments();
+      var options = DafnyOptions.Create();
       options.ProcsToCheck.Add("*SomeMethod");
       DafnyOptions.Install(options);
       ExecutionEngine.printer = new ConsolePrinter(options); // For boogie errors
