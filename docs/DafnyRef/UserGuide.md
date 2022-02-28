@@ -357,7 +357,7 @@ TO BE WRITTEN
    * 2 - write the compiled program if it passes verification, regardless of the `-compile` setting
    * 3 - write the compiled program regardless of verification success and the `-compile` setting
 
-* `-out:<file>` - TODO
+* `-out:<file>` - sets the name to use for compiled code files (by default Dafny reuses the name of the file being compiled).  Used as-is by compilers that generate a single file (e.g. the C# backend will generate `<file>.dll` and optionally `<file>.cs` with `-spillTargetCode`).  Used as a directory name by compilers that generate multiple files (e.g. the Java backend will generate files in directory `<file>-java/`).  Any file extension is ignored, so `-out:<file>` is the same as `-out:<file>.<ext>` if `<file>` contains no periods.
 
 * `-compileVerbose:<n>` - whether to write out compilation information
 
