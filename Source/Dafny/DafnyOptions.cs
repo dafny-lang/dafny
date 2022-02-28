@@ -15,17 +15,14 @@ using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
   public class DafnyOptions : Bpl.CommandLineOptions {
-    private ErrorReporter errorReporter;
-
-    public new static DafnyOptions Create(params string[] arguments) {
+    public static DafnyOptions Create(params string[] arguments) {
       var result = new DafnyOptions();
       result.Parse(arguments);
       return result;
     }
 
-    public DafnyOptions(ErrorReporter errorReporter = null)
+    public DafnyOptions()
       : base("Dafny", "Dafny program verifier") {
-      this.errorReporter = errorReporter;
       Prune = true;
       NormalizeNames = true;
       EmitDebugInformation = false;
