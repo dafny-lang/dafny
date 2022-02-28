@@ -7,10 +7,11 @@ using JetBrains.Annotations;
 
 namespace Microsoft.Dafny {
   public enum BraceStyle {
-    Nothing,
+    Brace,
     Space,
     Newline,
-    NewlineNoBrace
+    NewlineNoBrace,
+    Nothing
   }
 
   public class ConcreteSyntaxTree : ICanRender {
@@ -114,6 +115,12 @@ namespace Microsoft.Dafny {
       return this;
     }
 
+    public void DeleteLast() {
+      if (_nodes.Count > 0) {
+        _nodes.RemoveAt(_nodes.Count - 1);
+      }
+    }
+
     // ----- Nested blocks ------------------------------
 
     public ConcreteSyntaxTree ForkInParens() {
@@ -146,7 +153,7 @@ namespace Microsoft.Dafny {
     }
 
     public ConcreteSyntaxTree NewBigExprBlock(string header = "", string /*?*/ footer = "") {
-      return NewBlock(header, footer, BraceStyle.Space, BraceStyle.Nothing);
+      return NewBlock(header, footer, BraceStyle.Space, BraceStyle.Brace);
     }
 
     public ConcreteSyntaxTree NewFile(string filename) {

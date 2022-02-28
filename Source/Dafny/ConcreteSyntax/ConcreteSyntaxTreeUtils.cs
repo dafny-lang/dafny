@@ -43,7 +43,7 @@ namespace Microsoft.Dafny {
       return result;
     }
     public static ConcreteSyntaxTree ExprBlock(out ConcreteSyntaxTree body, string header = "", string footer = "") {
-      return Block(out body, header, footer, BraceStyle.Space, BraceStyle.Nothing);
+      return Block(out body, header, footer, BraceStyle.Space, BraceStyle.Brace);
     }
 
     public static ConcreteSyntaxTree Block(out ConcreteSyntaxTree body, string header = "", string footer = "",
@@ -64,16 +64,18 @@ namespace Microsoft.Dafny {
         case BraceStyle.NewlineNoBrace:
           outer.WriteLine();
           break;
-        case BraceStyle.Nothing:
+        case BraceStyle.Brace:
           outer.WriteLine("{");
           break;
-
+        case BraceStyle.Nothing:
+          break;
       }
 
 
       body = outer.Fork(1);
       switch (open) {
         case BraceStyle.NewlineNoBrace:
+        case BraceStyle.Nothing:
           break;
         default:
           outer.Write("}");
