@@ -1196,7 +1196,7 @@ namespace Microsoft.Dafny {
             var w = DeclareDatatype(dt, wr);
             if (w != null) {
               CompileClassMembers(program, dt, w);
-            } else {
+            } else if (this is not CppCompiler) {
               wr.DeleteLast();
             }
           } else if (d is IteratorDecl) {
