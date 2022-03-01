@@ -46,7 +46,7 @@ namespace DafnyTestGeneration {
     /// options.Parse() on a new DafnyObject.
     /// </summary>
     private static DafnyOptions SetupOptions(string procedure) {
-      var options = new DafnyOptions(new ConsolePrinter());
+      var options = DafnyOptions.Create();
       options.Parse(new[] { "/proc:" + procedure });
       options.NormalizeNames = false;
       options.EmitDebugInformation = true;
