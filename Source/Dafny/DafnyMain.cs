@@ -233,10 +233,7 @@ namespace Microsoft.Dafny {
 
     public static bool BoogieOnce(ExecutionEngine engine, string baseFile, string moduleName, Microsoft.Boogie.Program boogieProgram, string programId,
       out PipelineStatistics stats, out PipelineOutcome oc) {
-      if (programId == null) {
-        programId = "main_program_id";
-      }
-      programId += "_" + moduleName;
+      programId = (programId ?? "main_program_id") + "_" + moduleName;
 
       string bplFilename;
       if (DafnyOptions.O.PrintFile != null) {
