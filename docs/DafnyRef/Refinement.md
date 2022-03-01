@@ -110,8 +110,9 @@ A child `method` definition may refine a parent `method` declaration or
 definition to
 
 * provide a body missing in the parent,
-* replace the body of the parent with a semantically-compatible body,
-* strenthen the postcondition of the parent method by adding one or more
+* replace the body of the parent with a new, semantically-compatible
+  body,
+* strengthen the postcondition of the parent method by adding one or more
   `ensures` clauses,
 * provide a more deterministic version of a non-deterministic parent
   body, or
@@ -209,7 +210,7 @@ A child `function` (or `predicate`) definition can refine a parent
 * provide a body missing in the parent,
 * replace the body from the parent with a new, semantically-compatible
   body, or
-* strenthen the postcondition of the parent function by adding one or more
+* strengthen the postcondition of the parent function by adding one or more
   `ensures` clauses.
 
 The relation between the type signature of the parent and child function
