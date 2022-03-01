@@ -84,7 +84,7 @@ namespace DafnyTestGeneration {
       ExecutionEngine.Inline(program);
       var log = Utils.CaptureConsoleOutput(
         () => ExecutionEngine.InferAndVerify(program,
-          new PipelineStatistics(), uniqueId,
+          new PipelineStatistics(), null,
           _ => { }, uniqueId));
       DafnyOptions.Install(oldOptions);
       // make sure that there is a counterexample (i.e. no parse errors, etc):

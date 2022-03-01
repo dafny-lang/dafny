@@ -76,9 +76,11 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         DafnyOptions.O.VcsCores = GetConfiguredCoreCount(options);
         var translated = Translator.Translate(program, errorReporter, new Translator.TranslatorFlags { InsertChecksums = true });
         bool verified = true;
-        foreach (var (_, boogieProgram) in translated) {
+        var programId = program.FullName;
+        foreach (var (moduleName, boogieProgram) in translated) {
           cancellationToken.ThrowIfCancellationRequested();
-          var verificationResult = VerifyWithBoogie(boogieProgram, cancellationToken);
+          var boogieProgramId = (programId ?? "main_program_id") + "_" + moduleName;
+          var verificationResult = VerifyWithBoogie(boogieProgram, cancellationToken, boogieProgramId);
           verified = verified && verificationResult;
         }
         return new VerificationResult(verified, printer.SerializedCounterExamples);
@@ -88,7 +90,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
     }
 
-    private bool VerifyWithBoogie(Boogie.Program program, CancellationToken cancellationToken) {
+    private bool VerifyWithBoogie(Boogie.Program program, CancellationToken cancellationToken, string programId) {
       program.Resolve();
       program.Typecheck();
 
@@ -96,15 +98,15 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       ExecutionEngine.CollectModSets(program);
       ExecutionEngine.CoalesceBlocks(program);
       ExecutionEngine.Inline(program);
-      // TODO Is the programId of any relevance? The requestId is used to cancel a verification.
+      // TODO The requestId is used to cancel a verification.
       //      However, the cancelling a verification is currently not possible since it blocks a text document
       //      synchronization event which are serialized. Thus, no event is processed until the pending
       //      synchronization is completed.
-      var uniqueId = Guid.NewGuid().ToString();
-      using (cancellationToken.Register(() => CancelVerification(uniqueId))) {
+      var uniqueRequestId = Guid.NewGuid().ToString();
+      using (cancellationToken.Register(() => CancelVerification(uniqueRequestId))) {
         try {
           var statistics = new PipelineStatistics();
-          var outcome = ExecutionEngine.InferAndVerify(program, statistics, uniqueId, null, uniqueId);
+          var outcome = ExecutionEngine.InferAndVerify(program, statistics, programId, null, uniqueRequestId);
           return Main.IsBoogieVerified(outcome, statistics);
         } catch (Exception e) when (e is not OperationCanceledException) {
           if (!cancellationToken.IsCancellationRequested) {
