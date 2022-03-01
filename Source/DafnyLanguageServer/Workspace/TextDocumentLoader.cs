@@ -34,6 +34,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private readonly ILoggerFactory loggerFactory;
     private readonly BlockingCollection<Request> requestQueue = new();
     private readonly IOptions<DafnyPluginsOptions> dafnyPluginsOptions;
+    private readonly ILogger logger;
 
     private TextDocumentLoader(
       ILoggerFactory loggerFactory,
@@ -51,6 +52,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       this.ghostStateDiagnosticCollector = ghostStateDiagnosticCollector;
       this.notificationPublisher = notificationPublisher;
       this.loggerFactory = loggerFactory;
+      this.logger = loggerFactory.CreateLogger(typeof(TextDocumentLoader));
       this.dafnyPluginsOptions = dafnyPluginsOptions;
     }
 
@@ -179,6 +181,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         ? CompilationStatus.VerificationSucceeded
         : CompilationStatus.VerificationFailed;
       notificationPublisher.SendStatusNotification(document.Text, compilationStatusAfterVerification);
+      logger.LogDebug($"Finished verification with {document.Errors.ErrorCount} errors.");
       return document with {
         OldVerificationDiagnostics = new List<Diagnostic>(),
         SerializedCounterExamples = verificationResult.SerializedCounterExamples
