@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -219,16 +220,19 @@ module SomeModule {
         testOutputHelper.WriteLine("outcome: " + outcome);
         foreach (var proverFile in Directory.GetFiles(directory)) {
           string content = null;
+          Exception lastException = null;
           for (var attempt = 0; attempt < 3; attempt++) {
             try {
               content = await File.ReadAllTextAsync(proverFile);
-            } catch (IOException) {
-              await Task.Delay(10);
+              lastException = null;
+            } catch (IOException e) {
+              lastException = e;
+              await Task.Delay(100);
             }
           }
 
-          if (content == null) {
-            continue;
+          if (lastException != null) {
+            throw lastException;
           }
 
           yield return content;
