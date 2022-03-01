@@ -34,7 +34,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private readonly ILoggerFactory loggerFactory;
     private readonly BlockingCollection<Request> requestQueue = new();
     private readonly IOptions<DafnyPluginsOptions> dafnyPluginsOptions;
-    private readonly ILogger logger;
+    private readonly ILogger<TextDocumentLoader> logger;
 
     private TextDocumentLoader(
       ILoggerFactory loggerFactory,
@@ -52,7 +52,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       this.ghostStateDiagnosticCollector = ghostStateDiagnosticCollector;
       this.notificationPublisher = notificationPublisher;
       this.loggerFactory = loggerFactory;
-      this.logger = loggerFactory.CreateLogger(typeof(TextDocumentLoader));
+      this.logger = loggerFactory.CreateLogger<TextDocumentLoader>();
       this.dafnyPluginsOptions = dafnyPluginsOptions;
     }
 
