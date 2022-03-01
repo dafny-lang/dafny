@@ -27,14 +27,13 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     private readonly ILogger logger;
     private readonly VerifierOptions options;
     private readonly SemaphoreSlim mutex = new(1);
-    private static readonly VerificationResultCache cache = new();
+    private readonly VerificationResultCache cache = new();
 
     DafnyOptions Options => DafnyOptions.O;
 
     private DafnyProgramVerifier(ILogger<DafnyProgramVerifier> logger, VerifierOptions options) {
       this.logger = logger;
       this.options = options;
-
     }
 
     /// <summary>

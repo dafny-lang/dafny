@@ -14,6 +14,7 @@ using Bpl = Microsoft.Boogie;
 namespace Microsoft.Dafny {
   // FIXME: This should not be duplicated here
   class DafnyConsolePrinter : ConsolePrinter {
+
     public override void ReportBplError(IToken tok, string message, bool error, TextWriter tw, string category = null) {
       // Dafny has 0-indexed columns, but Boogie counts from 1
       var realigned_tok = new Token(tok.line, tok.col - 1);

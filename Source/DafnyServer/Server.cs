@@ -13,7 +13,7 @@ namespace Microsoft.Dafny {
     private readonly ExecutionEngine engine;
 
     static void Main(string[] args) {
-      var options = new DafnyOptions(new DafnyConsolePrinter(), new ConsoleErrorReporter());
+      var options = DafnyOptions.Create();
       ServerUtils.ApplyArgs(args, options);
       var engine = ExecutionEngine.CreateWithoutSharedCache(options);
       Server server = new Server(engine);
@@ -220,7 +220,7 @@ namespace Microsoft.Dafny {
     VerificationTask ReadVerificationTask(bool inputIsPlaintext) {
       var payload = ReadPayload(inputIsPlaintext);
       if (inputIsPlaintext) {
-        return new VerificationTask( Array.Empty<string>(), "transcript", payload, false);
+        return new VerificationTask(Array.Empty<string>(), "transcript", payload, false);
       } else {
         return VerificationTask.ReadTask(payload);
       }

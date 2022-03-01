@@ -1,6 +1,9 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
 using Xunit;
@@ -146,7 +149,7 @@ module SomeModule {
 
     [Fact]
     public void NoUniqueLinesWhenConcatenatingUnrelatedPrograms() {
-      var options = DafnyOptions.FromArguments();
+      var options = DafnyOptions.Create();
       DafnyOptions.Install(options);
 
       var regularBoogie = GetBoogie(originalProgram).ToList();
@@ -162,46 +165,46 @@ module SomeModule {
     }
 
     [Fact]
-    public void EqualProverLogWhenReorderingProgram() {
-      var options = DafnyOptions.FromArguments();
+    public async void EqualProverLogWhenReorderingProgram() {
+      var options = DafnyOptions.Create();
       options.ProcsToCheck.Add("*SomeMethod");
       DafnyOptions.Install(options);
 
-      var reorderedProverLog = GetProverLogForProgram(options, GetBoogie(reorderedProgram));
-      var regularProverLog = GetProverLogForProgram(options, GetBoogie(originalProgram));
+      var reorderedProverLog = await GetProverLogForProgram(options, GetBoogie(reorderedProgram));
+      var regularProverLog = await GetProverLogForProgram(options, GetBoogie(originalProgram));
       Assert.Equal(regularProverLog, reorderedProverLog);
     }
 
     [Fact]
-    public void EqualProverLogWhenRenamingProgram() {
-      var options = DafnyOptions.FromArguments();
+    public async void EqualProverLogWhenRenamingProgram() {
+      var options = DafnyOptions.Create();
       options.ProcsToCheck.Add("*SomeMethod*");
       DafnyOptions.Install(options);
 
-      var renamedProverLog = GetProverLogForProgram(options, GetBoogie(renamedProgram));
-      var regularProverLog = GetProverLogForProgram(options, GetBoogie(originalProgram));
+      var renamedProverLog = await GetProverLogForProgram(options, GetBoogie(renamedProgram));
+      var regularProverLog = await GetProverLogForProgram(options, GetBoogie(originalProgram));
       Assert.Equal(regularProverLog, renamedProverLog);
     }
 
     [Fact]
-    public void EqualProverLogWhenAddingUnrelatedProgram() {
+    public async void EqualProverLogWhenAddingUnrelatedProgram() {
 
-      var options = DafnyOptions.FromArguments();
+      var options = DafnyOptions.Create();
       options.ProcsToCheck.Add("*SomeMethod");
       DafnyOptions.Install(options);
 
-      var renamedProverLog = GetProverLogForProgram(options, GetBoogie(renamedProgram + originalProgram));
-      var regularProverLog = GetProverLogForProgram(options, GetBoogie(originalProgram));
+      var renamedProverLog = await GetProverLogForProgram(options, GetBoogie(renamedProgram + originalProgram));
+      var regularProverLog = await GetProverLogForProgram(options, GetBoogie(originalProgram));
       Assert.Equal(regularProverLog, renamedProverLog);
     }
 
-    private string GetProverLogForProgram(ExecutionEngineOptions options, IEnumerable<Microsoft.Boogie.Program> boogiePrograms) {
-      var logs = GetProverLogsForProgram(options, boogiePrograms).ToList();
+    private async Task<string> GetProverLogForProgram(ExecutionEngineOptions options, IEnumerable<Microsoft.Boogie.Program> boogiePrograms) {
+      var logs = await GetProverLogsForProgram(options, boogiePrograms).ToListAsync();
       Assert.Single(logs);
       return logs[0];
     }
 
-    private IEnumerable<string> GetProverLogsForProgram(ExecutionEngineOptions options,
+    private async IAsyncEnumerable<string> GetProverLogsForProgram(ExecutionEngineOptions options,
       IEnumerable<BoogieProgram> boogiePrograms) {
       string directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
       Directory.CreateDirectory(directory);
@@ -213,7 +216,23 @@ module SomeModule {
         var (_, outcome, _) = Main.BoogieOnce(engine, "", "", boogieProgram, "programId").Result;
         testOutputHelper.WriteLine("outcome: " + outcome);
         foreach (var proverFile in Directory.GetFiles(directory)) {
-          yield return File.ReadAllText(proverFile);
+          string content = null;
+          Exception lastException = null;
+          for (var attempt = 0; attempt < 3; attempt++) {
+            try {
+              content = await File.ReadAllTextAsync(proverFile);
+              lastException = null;
+            } catch (IOException e) {
+              lastException = e;
+              await Task.Delay(100);
+            }
+          }
+
+          if (lastException != null) {
+            throw lastException;
+          }
+
+          yield return content;
         }
       }
     }

@@ -13,21 +13,13 @@ using Bpl = Microsoft.Boogie;
 namespace Microsoft.Dafny {
   public class DafnyOptions : Bpl.CommandLineOptions {
 
-    public new static DafnyOptions FromArguments(params string[] arguments)
-    {
+    public static DafnyOptions Create(params string[] arguments) {
       var result = new DafnyOptions(new Bpl.ConsolePrinter());
       result.Parse(arguments);
       return result;
     }
 
-    public new static DafnyOptions FromArguments(Bpl.OutputPrinter printer, params string[] arguments)
-    {
-      var result = new DafnyOptions(printer);
-      result.Parse(arguments);
-      return result;
-    }
-
-    public DafnyOptions(Bpl.OutputPrinter printer, ErrorReporter errorReporter = null)
+    public DafnyOptions(Bpl.OutputPrinter printer)
       : base("Dafny", "Dafny program verifier", printer) {
       Prune = true;
       NormalizeNames = true;

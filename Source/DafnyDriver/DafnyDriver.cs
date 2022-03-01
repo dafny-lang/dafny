@@ -51,7 +51,7 @@ namespace Microsoft.Dafny {
 
       ErrorReporter reporter = new ConsoleErrorReporter();
 
-      var dafnyOptions = new DafnyOptions(new DafnyConsolePrinter(), reporter);
+      var dafnyOptions = DafnyOptions.Create();
       var driver = new DafnyDriver(dafnyOptions);
       DafnyOptions.Install(dafnyOptions);
 
