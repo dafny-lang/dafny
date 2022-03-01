@@ -92,32 +92,132 @@ TODO
 
 ## 21.4. Const declarations
 
-A parent `const` declaration may be refined by a refining `const` declaration
-if
+A child `const` declaration may refine a `const` declaration from a
+parent module if
 
 * the parent has no initialization,
 * the child has the same type as the parent, and
 * one or both of the following holds:
    * the child has an initializing expression
-   * the child is declared `ghost` and the parent is not `ghost`, or vice versa
+   * the child is declared `ghost` and the parent is not `ghost`, or vice versa.
 
-To indicate it is a refining declaration, a refining `const` declaration
-contains an ellipsis in this syntax:
-```grammar
-"const" { Attribute } CIdentType "..." [ ":=" Expression ]
-```
+A refining module can also introduce new `const` declarations that do
+not exist in the refinement parent.
 
 ## 21.5. Method declarations
 
-TODO
+A child `method` definition may refine a parent `method` declaration or
+definition to
+
+* provide a body missing in the parent,
+* replace the body of the parent with a semantically-compatible body,
+* strenthen the postcondition of the parent method by adding one or more
+  `ensures` clauses,
+* provide a more deterministic version of a non-deterministic parent
+  body, or
+* amend the body of the parent method with additional statements.
+
+The type signature of a refining method must be the same as that of the
+parent method it refines. This can be ensured by providing an explicit
+type signature equivalent to that of the parent (with renaming of
+parameters allowed) or by using an ellipsis (`...`) to indicate copying
+of the parent type signature. The following example illustrates that
+latter case.
+
+```
+module M0 {
+  method m(x: int) returns (r: int)
+}
+
+module M1 refines M0 {
+  method m...
+  {
+    return x + 1;
+  }
+}
+```
+
+As an example of semantic compatibility and increased determinism,
+consider the following example.
+
+```
+module M0 {
+  method m(x: int) returns (r: int)
+    ensures r > x;
+  {
+    var y :| y > x;
+    return y;
+  }
+}
+
+module M1 refines M0 {
+  method m(x: int) returns (r: int)
+  {
+    return x + 1;
+  }
+}
+```
+
+Here, `m` ensures that its result will be greater than `x`, but the
+version in `M0` returns an arbitrary value satisfying that
+postcondition. The version of `m` in `M1` is deterministic, and is
+required to satisfy all of the postconditions that its parent method
+declares.
+
+To introduce additional statements, the child method can include
+ellipses within the body to stand in for portions of code from the
+parent body. Dafny then attempts to merge the body of the child with the
+body of the parent by filling in the ellipses. For example:
+
+```
+module M0 {
+  method m(x: int) returns (r: int)
+    ensures r > x;
+  {
+    var y :| y > x;
+    return y;
+  }
+}
+
+module M1 refines M0 {
+  method m(x: int) returns (r: int)
+  {
+    ...;
+    return y + 1;
+  }
+}
+```
+
+Refinement of method bodies can go far beyond adding statements to the
+end, however. Full details of the algorithm used to perform the merge
+operation are available in [this
+paper](https://dl.acm.org/doi/10.1007/s00165-012-0254-3).
+
+A refining module can also introduce new `method` declarations or
+definitions that do not exist in the refinement parent.
 
 ## 21.6. Lemma declarations
 
-TODO
+As lemmas are (ghost) methods, the description of method refinement from
+the previous section also applies to lemma refinement.
 
 ## 21.7. Function and predicate declarations
 
-TODO
+A child `function` (or `predicate`) definition can refine a parent
+`function` (or `predicate`) declaration or definition to
+
+* provide a body missing in the parent,
+* replace the body from the parent with a new, semantically-compatible
+  body, or
+* strenthen the postcondition of the parent function by adding one or more
+  `ensures` clauses.
+
+The relation between the type signature of the parent and child function
+is the same as for methods and lemmas, as described above. The
+definition of semantic compatibility is also the same as for methods.
+
+A refining module can also introduce new `function` declarations or
+definitions that do not exist in the refinement parent.
 
 ## 21.8. Iterator declarations
 
