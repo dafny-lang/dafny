@@ -99,7 +99,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       ExecutionEngine.CoalesceBlocks(program);
       ExecutionEngine.Inline(program);
       var uniqueRequestId = Guid.NewGuid().ToString();
-      using (cancellationToken.Register(() => CancelVerification(requestId))) {
+      using (cancellationToken.Register(() => CancelVerification(uniqueRequestId))) {
         try {
           var statistics = new PipelineStatistics();
           var outcome = ExecutionEngine.InferAndVerify(program, statistics, programId, null, uniqueRequestId);
