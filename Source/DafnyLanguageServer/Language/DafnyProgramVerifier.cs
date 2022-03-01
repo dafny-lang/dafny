@@ -82,10 +82,11 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         DafnyOptions.O.Printer = printer;
         var executionEngine = new ExecutionEngine(DafnyOptions.O, cache);
         var translated = Translator.Translate(program, errorReporter, new Translator.TranslatorFlags { InsertChecksums = true });
-
         var moduleTasks = translated.Select(t => {
-          var (_, boogieProgram) = t;
-          return VerifyWithBoogieAsync(executionEngine, boogieProgram, cancellationToken);
+          var (moduleName, boogieProgram) = t;
+          var programId = program.FullName;
+          var boogieProgramId = (programId ?? "main_program_id") + "_" + moduleName;
+          return VerifyWithBoogieAsync(executionEngine, boogieProgram, cancellationToken, boogieProgramId);
         }).ToList();
         await Task.WhenAll(moduleTasks);
         var verified = moduleTasks.All(t => t.Result);
@@ -97,7 +98,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     }
 
     private async Task<bool> VerifyWithBoogieAsync(ExecutionEngine engine, Boogie.Program program,
-      CancellationToken cancellationToken) {
+      CancellationToken cancellationToken, string programId) {
       program.Resolve(engine.Options);
       program.Typecheck(engine.Options);
 
@@ -109,11 +110,11 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       //      However, the cancelling a verification is currently not possible since it blocks a text document
       //      synchronization event which are serialized. Thus, no event is processed until the pending
       //      synchronization is completed.
-      var uniqueId = Guid.NewGuid().ToString();
-      using (cancellationToken.Register(() => CancelVerification(uniqueId))) {
+      var uniqueRequestId = Guid.NewGuid().ToString();
+      using (cancellationToken.Register(() => CancelVerification(uniqueRequestId))) {
         try {
           var statistics = new PipelineStatistics();
-          var outcome = await engine.InferAndVerify(program, statistics, uniqueId, null, uniqueId);
+          var outcome = await engine.InferAndVerify(program, statistics, programId, null, uniqueRequestId);
           return Main.IsBoogieVerified(outcome, statistics);
         } catch (Exception e) when (e is not OperationCanceledException) {
           if (!cancellationToken.IsCancellationRequested) {
