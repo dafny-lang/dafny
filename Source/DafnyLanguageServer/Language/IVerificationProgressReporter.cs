@@ -15,13 +15,11 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     void ReportProgress(string message);
 
 
-    void ReportStartVerifyMethodOrFunction(Implementation implToken);
-    void ReportEndVerifyMethodOrFunction(Implementation implToken, Boogie.VerificationResult verificationResult);
-    void ReportVerificationStarts(List<IToken> assertionToken, IToken implToken);
-    void ReportVerificationCompleted(List<IToken> assertionToken, IToken implToken, ConditionGeneration.Outcome outcome,
-      int totalResource);
+    void ReportStartVerifyImplementation(Implementation implToken);
+    void ReportEndVerifyImplementation(Implementation implToken, Boogie.VerificationResult verificationResult);
     void ReportErrorFindItsMethod(IToken tok, string message);
     int GetVerificationPriority(IToken implTok);
     void ReportImplementationsBeforeVerification(Implementation[] implementations);
+    void ReportAssertionBatchResult(Implementation implementation, Dictionary<AssertCmd, ConditionGeneration.Outcome> perAssertOutcome);
   }
 }

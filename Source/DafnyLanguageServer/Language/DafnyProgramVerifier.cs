@@ -207,23 +207,19 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
 
       public void ReportStartVerifyImplementation(Implementation implementation) {
-        progressReporter.ReportStartVerifyMethodOrFunction(implementation);
+        progressReporter.ReportStartVerifyImplementation(implementation);
       }
 
       public void ReportEndVerifyImplementation(Implementation implementation, Boogie.VerificationResult result) {
-        progressReporter.ReportEndVerifyMethodOrFunction(implementation, result);
+        progressReporter.ReportEndVerifyImplementation(implementation, result);
       }
 
       public int GetVerificationPriority(IToken implTok) {
         return progressReporter.GetVerificationPriority(implTok);
       }
 
-      public void ReportVerificationStarts(List<IToken> assertionTokens, IToken implToken) {
-        progressReporter.ReportVerificationStarts(assertionTokens, implToken);
-      }
-
-      public void ReportVerificationCompleted(List<IToken> assertionTokens, IToken implToken, ConditionGeneration.Outcome outcome, int totalResource) {
-        progressReporter.ReportVerificationCompleted(assertionTokens, implToken, outcome, totalResource);
+      public void ReportAssertionBatchResult(Implementation implementation, Dictionary<AssertCmd, ConditionGeneration.Outcome> perAssertOutcome) {
+        progressReporter.ReportAssertionBatchResult(implementation, perAssertOutcome);
       }
 
       public void WriteErrorInformation(ErrorInformation errorInfo, TextWriter tw, bool skipExecutionTrace) {

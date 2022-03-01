@@ -129,9 +129,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     VerifiedObsolete = 3,
     VerifiedVerifying = 4,
     Verified = 5,
-    ErrorObsolete = 6,
-    ErrorVerifying = 7,
-    Error = 8
+    Inconclusive = 6,
+    ErrorObsolete = 7,
+    ErrorVerifying = 8,
+    Error = 9
   }
 
   public enum LineVerificationStatus {
@@ -146,16 +147,18 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     VerifiedVerifying = 4,
     // Also applicable for empty spaces if they are not surrounded by errors. 
     Verified = 5,
+    // Dafny tried to do something but couldn't (timeout, out of resources...)
+    Inconclusive = 6,
     // For containers of other diagnostics nodes (e.g. methods)
-    ErrorRangeObsolete = 6,
-    ErrorRangeVerifying = 7,
-    ErrorRange = 8,
+    ErrorRangeObsolete = 7,
+    ErrorRangeVerifying = 8,
+    ErrorRange = 9,
     // For specific lines which have errors on it.
-    ErrorObsolete = 9,
-    ErrorVerifying = 10,
-    Error = 11,
+    ErrorObsolete = 10,
+    ErrorVerifying = 11,
+    Error = 12,
     // For lines containing resolution or parse errors
-    ResolutionError = 12
+    ResolutionError = 13
   }
 
   public record NodeDiagnostic(

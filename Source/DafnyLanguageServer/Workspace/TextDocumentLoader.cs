@@ -336,7 +336,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
       }
 
-      public void ReportStartVerifyMethodOrFunction(Implementation implementation) {
+      public void ReportStartVerifyImplementation(Implementation implementation) {
         var targetMethodNode = GetTargetMethodNode(implementation, out var implementationNode);
         if (targetMethodNode == null) {
           logger.LogError($"No method at {implementation.tok}");
@@ -376,7 +376,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       private object LockProcessing = new();
 
-      public void ReportEndVerifyMethodOrFunction(Implementation implementation, VerificationResult verificationResult) {
+      public void ReportEndVerifyImplementation(Implementation implementation, VerificationResult verificationResult) {
         var targetMethodNode = GetTargetMethodNode(implementation, out var implementationNode);
         if (targetMethodNode == null) {
           logger.LogError($"No method at {implementation.tok}");
@@ -455,13 +455,78 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
       }
 
-      public void ReportVerificationStarts(List<IToken> assertionToken, IToken implToken) {
-        // TODO: Either migrate or create node diagnostics
+      public static NodeVerificationStatus GetNodeStatus(ConditionGeneration.Outcome outcome) {
+        return outcome switch {
+          ConditionGeneration.Outcome.Correct => NodeVerificationStatus.Verified,
+          ConditionGeneration.Outcome.Errors => NodeVerificationStatus.Error,
+          ConditionGeneration.Outcome.Inconclusive => NodeVerificationStatus.Inconclusive,
+          ConditionGeneration.Outcome.ReachedBound => NodeVerificationStatus.Error,
+          ConditionGeneration.Outcome.SolverException => NodeVerificationStatus.Error,
+          ConditionGeneration.Outcome.TimedOut => NodeVerificationStatus.Error,
+          ConditionGeneration.Outcome.OutOfMemory => NodeVerificationStatus.Error,
+          ConditionGeneration.Outcome.OutOfResource => NodeVerificationStatus.Error,
+          _ => NodeVerificationStatus.Inconclusive
+        };
       }
 
-      public void ReportVerificationCompleted(List<IToken> assertionToken, IToken implToken,
-        ConditionGeneration.Outcome outcome, int totalResource) {
-        // TODO: update node diagnostics
+      public void ReportAssertionBatchResult(Implementation implementation, Dictionary<AssertCmd, ConditionGeneration.Outcome> perAssertOutcome) {
+        // While there is no error, just add successful nodes.
+        var targetMethodNode = GetTargetMethodNode(implementation, out var implementationNode);
+        if (targetMethodNode == null) {
+          logger.LogError($"No method at {implementation.tok}");
+        } else if (implementationNode == null) {
+          logger.LogError($"No implementation at {implementation.tok}");
+        } else {
+          lock (targetMethodNode) {
+            void AddChildOutcome(IToken token,
+              NodeVerificationStatus status, string assertDisplay = "", string assertIdentifier = "") {
+              var errorPosition = TokenToPosition(token);
+              if (implementationNode.Filename != token.filename) {
+                return;
+              }
+
+              var childrenCount = implementationNode.NewChildrenCount;
+              assertDisplay = assertDisplay != "" ? " " + assertDisplay : "";
+              assertIdentifier = assertIdentifier != "" ? "_" + assertIdentifier : "";
+
+              var errorRange = new Range(errorPosition, TokenToPosition(token, true));
+              var nodeDiagnostic = new NodeDiagnostic(
+                $"{targetMethodNode.DisplayName}{assertDisplay} #{childrenCount}",
+                $"{targetMethodNode.Identifier}_{childrenCount}{assertIdentifier}",
+                token.filename,
+                errorPosition,
+                errorRange,
+                false
+              ) {
+                Status = status
+              };
+              implementationNode.AddNewChild(nodeDiagnostic);
+            }
+
+            foreach (var (assertCmd, outcome) in perAssertOutcome) {
+              var status = GetNodeStatus(outcome);
+              if (assertCmd is AssertEnsuresCmd assertEnsuresCmd) {
+                AddChildOutcome(assertEnsuresCmd.Ensures.tok, status, " ensures", "_ensures");
+                /*var returnPosition = TokenToPosition(returnError.FailingReturn.tok);
+                if (returnPosition != implementationNode.Position) {
+                  AddChildError(assertEnsuresCmd..tok, "return branch", "_return");
+                }*/
+              } else if (assertCmd is AssertRequiresCmd assertRequiresCmd) {
+                AddChildOutcome(assertRequiresCmd.Call.tok, status, "Call", "call");
+              } else {
+                AddChildOutcome(assertCmd.tok, status, "Assertion", "assert");
+                /*
+                if (targetMethodNode.Range.Contains(TokenToPosition(callError.FailingRequires.tok))) {
+                  AddChildError(callError.FailingCall.tok, "Call precondition", "call_precondition");
+                } */
+              }
+            }
+
+            implementationNode.RecomputeStatus();
+          }
+
+          diagnosticPublisher.PublishVerificationDiagnostics(document);
+        }
       }
 
       // For realtime per-split verification, when verification is migrated
