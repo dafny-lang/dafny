@@ -219,7 +219,7 @@ module SomeModule {
         testOutputHelper.WriteLine("outcome: " + outcome);
         foreach (var proverFile in Directory.GetFiles(directory)) {
           string content = null;
-          for(var attempt = 0; attempt < 3; attempt++) {
+          for (var attempt = 0; attempt < 3; attempt++) {
             try {
               content = await File.ReadAllTextAsync(proverFile);
             } catch (IOException) {
