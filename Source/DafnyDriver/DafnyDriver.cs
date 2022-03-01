@@ -302,7 +302,7 @@ namespace Microsoft.Dafny {
         var boogiePrograms = Translate(engine.Options, dafnyProgram);
 
         string baseName = cce.NonNull(Path.GetFileName(dafnyFileNames[^1]));
-        var (verified, oc, moduleStats) = await Boogie(engine, baseName, boogiePrograms, programId);
+        var (verified, oc, moduleStats) = await Boogie(baseName, boogiePrograms, programId);
         var compiled = Compile(dafnyFileNames[0], otherFileNames, dafnyProgram, oc, moduleStats, verified);
         exitValue = verified && compiled ? ExitValue.SUCCESS : !verified ? ExitValue.VERIFICATION_ERROR : ExitValue.COMPILE_ERROR;
       }
@@ -371,14 +371,14 @@ namespace Microsoft.Dafny {
       this.engine = ExecutionEngine.CreateWithoutSharedCache(dafnyOptions);
     }
 
-    public static async Task<(bool IsVerified, PipelineOutcome Outcome, IDictionary<string, PipelineStatistics> ModuleStats)>
-      Boogie(ExecutionEngine engine, string baseName,
+    public async Task<(bool IsVerified, PipelineOutcome Outcome, IDictionary<string, PipelineStatistics> ModuleStats)>
+      Boogie(string baseName,
       IEnumerable<Tuple<string, Bpl.Program>> boogiePrograms, string programId) {
 
       var concurrentModuleStats = new ConcurrentDictionary<string, PipelineStatistics>();
 
       var moduleTasks = boogiePrograms.Select(program =>
-        BoogieOnceWithTimer(engine, baseName, programId, concurrentModuleStats, program.Item1, program.Item2)).ToList();
+        BoogieOnceWithTimer(baseName, programId, concurrentModuleStats, program.Item1, program.Item2)).ToList();
 
       await Task.WhenAll(moduleTasks);
       var outcome = moduleTasks.Select(t => t.Result.Outcome)
@@ -389,7 +389,7 @@ namespace Microsoft.Dafny {
       return (isVerified, outcome, concurrentModuleStats);
     }
 
-    private static async Task<(bool IsVerified, PipelineOutcome Outcome)> BoogieOnceWithTimer(ExecutionEngine engine,
+    private async Task<(bool IsVerified, PipelineOutcome Outcome)> BoogieOnceWithTimer(
       string baseName, string programId,
       ConcurrentDictionary<string, PipelineStatistics> moduleStats,
       string moduleName,

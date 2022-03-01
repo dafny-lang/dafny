@@ -236,10 +236,7 @@ namespace Microsoft.Dafny {
       ExecutionEngine engine, string baseFile,
       string moduleName,
       Microsoft.Boogie.Program boogieProgram, string programId) {
-      if (programId == null) {
-        programId = "main_program_id";
-      }
-      programId += "_" + moduleName;
+      programId ??= "main_program_id" + "_" + moduleName;
 
       string bplFilename;
       if (DafnyOptions.O.PrintFile != null) {
