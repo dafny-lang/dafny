@@ -150,7 +150,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       public void AdvisoryWriteLine(string format, params object[] args) {
       }
 
-      public ExecutionEngineOptions Options { get; set; }
+      public ExecutionEngineOptions? Options { get; set; }
 
       public void ErrorWriteLine(TextWriter tw, string s) {
         logger.LogError(s);

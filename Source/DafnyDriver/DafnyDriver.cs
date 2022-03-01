@@ -368,6 +368,7 @@ namespace Microsoft.Dafny {
 
     private DafnyDriver(DafnyOptions dafnyOptions) {
       this.Options = dafnyOptions;
+      this.engine = ExecutionEngine.CreateWithoutSharedCache(dafnyOptions);
     }
 
     public static async Task<(bool IsVerified, PipelineOutcome Outcome, IDictionary<string, PipelineStatistics> ModuleStats)>
