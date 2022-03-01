@@ -57,7 +57,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       Text.Uri.ToString(),
       Text.Uri.ToString(),
       new Position(0, 0),
-      new Range(new Position(0, 0), new Position(Regex.Matches(Text.Text, "\r?\n").Count + 1, 0))
+      new Range(new Position(0, 0),
+        new Position(Regex.Matches(Text.Text, "\r?\n").Count + 1, 0)),
+      true
     );
 
     // List of last 5 top-level touched verification diagnostics positions

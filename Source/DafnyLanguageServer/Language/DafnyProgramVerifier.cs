@@ -202,24 +202,20 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         }
       }
 
-      public void ReportImplCount(int implNumber) {
-        // Do nothing
+      public void ReportImplementationsBeforeVerification(Implementation[] implementations) {
+        progressReporter.ReportImplementationsBeforeVerification(implementations);
       }
 
-      public void ReportStartVerifyImpl(IToken implToken) {
-        progressReporter.ReportStartVerifyMethodOrFunction(implToken);
+      public void ReportStartVerifyImplementation(Implementation implementation) {
+        progressReporter.ReportStartVerifyMethodOrFunction(implementation);
       }
 
-      public void ReportEndVerifyImpl(IToken implToken, Boogie.VerificationResult result) {
-        progressReporter.ReportEndVerifyMethodOrFunction(implToken, result);
+      public void ReportEndVerifyImplementation(Implementation implementation, Boogie.VerificationResult result) {
+        progressReporter.ReportEndVerifyMethodOrFunction(implementation, result);
       }
 
       public int GetVerificationPriority(IToken implTok) {
         return progressReporter.GetVerificationPriority(implTok);
-      }
-
-      public void ReportImplementationMultiplicity(IToken[] implementationPositions) {
-        progressReporter.ReportImplementationMultiplicity(implementationPositions);
       }
 
       public void ReportVerificationStarts(List<IToken> assertionTokens, IToken implToken) {

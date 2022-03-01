@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection.Metadata;
 using MediatR;
 using Microsoft.Boogie;
 using OmniSharp.Extensions.JsonRpc;
@@ -65,7 +66,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
       // Render node content into lines.
       foreach (var nodeDiagnostic in perNodeDiagnostic) {
-        if (nodeDiagnostic.Filename == verificationDiagnosticsParams.Uri ||
+        if (nodeDiagnostic.Filename == verificationDiagnosticsParams.Uri.GetFileSystemPath() ||
             "untitled:" + nodeDiagnostic.Filename == verificationDiagnosticsParams.Uri) {
           nodeDiagnostic.RenderInto(result);
         }
@@ -166,17 +167,19 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
      // Used to relocate a node diagnostic and to determine which function is currently verifying
      Position Position,
      // The range of this node.
-     Range Range
+     Range Range,
+     // True if this node is only gathering children feedback.
+     bool IsAlwaysRange
   ) {
-
     /// Time and Resource diagnostics
     public bool Started { get; private set; } = false;
     public bool Finished { get; private set; } = false;
     public DateTime StartTime { get; private set; }
     public DateTime EndTime { get; private set; }
     public int TimeSpent => (int)(Finished ? ((TimeSpan)(EndTime - StartTime)).TotalMilliseconds : Started ? (DateTime.Now - StartTime).TotalMilliseconds : 0);
-
+    public int MaximumChildTimeSpent => Children.Any() ? Children.Max(child => child.TimeSpent) : TimeSpent;
     // Resources allocated at the end of the computation.
+
     public int ResourceCount { get; set; } = 0;
 
     // Sub-diagnostics if any
@@ -188,19 +191,18 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       NewChildren.Add(newChild);
     }
 
+    public List<NodeDiagnostic> CurrentNewChildren => NewChildren;
+
     public void SaveNewChildren() {
       Children = NewChildren;
+      ResetNewChildren();
+    }
+    public void ResetNewChildren() {
       NewChildren = new();
     }
 
     // Overriden by checking children if there are some
     public NodeVerificationStatus Status { get; set; } = NodeVerificationStatus.Scheduled;
-
-    // For methods: number of different implementations that Boogie verify
-    public int ImplementationCount { get; set; } = 0;
-
-    // For methods: number of different implementations that Boogie finished to verify
-    public int VerifiedImplementationCount { get; set; } = 0;
 
     public NodeDiagnostic SetObsolete() {
       Status = Status switch {
@@ -268,7 +270,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       }
       for (var line = Range.Start.Line - 1; line <= Range.End.Line - 1; line++) {
         if (StatusSeverityOf(perLineDiagnostics[line]) < StatusSeverityOf(Status)) {
-          if (Children.Count == 0) { // Not a range
+          if (Children.Count == 0 && !IsAlwaysRange) { // Not a range
             perLineDiagnostics[line] = Status switch {
               NodeVerificationStatus.Error => LineVerificationStatus.Error,
               NodeVerificationStatus.ErrorVerifying => LineVerificationStatus.ErrorVerifying,
@@ -303,6 +305,17 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       }
 
       return false;
+    }
+
+    private Implementation? implementation = null;
+
+    public Implementation? GetImplementation() {
+      return implementation;
+    }
+
+    public NodeDiagnostic WithImplementation(Implementation impl) {
+      implementation = impl;
+      return this;
     }
   }
 }

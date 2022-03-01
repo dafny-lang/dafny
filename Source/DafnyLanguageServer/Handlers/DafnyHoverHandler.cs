@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
@@ -50,8 +51,11 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           var information = "**" + nodeDiagnostic.DisplayName + "** metrics:\n\n";
           information +=
               !nodeDiagnostic.Started ? "_Verification not started yet_"
-              : !nodeDiagnostic.Finished ? $"_Still verifying..._  \nTime: {nodeDiagnostic.TimeSpent:n0}ms"
-              : $"Time: {nodeDiagnostic.TimeSpent:n0}ms  \nResource: {nodeDiagnostic.ResourceCount:n0}"; ;
+              : !nodeDiagnostic.Finished ?
+                $"_Still verifying..._  \n{nodeDiagnostic.TimeSpent:n0}ms elapsed"
+              : $"{nodeDiagnostic.MaximumChildTimeSpent:n0}ms on the longest verification path   \n" +
+                $"{nodeDiagnostic.ResourceCount:n0} resource units  \n" +
+                $"{nodeDiagnostic.Children.Count} verification paths";
           return new Hover {
             Contents = new MarkedStringsOrMarkupContent(
               new MarkupContent {

@@ -212,13 +212,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
                 var diagnosticPosition = TokenToPosition(member.tok);
                 var diagnosticRange = new Range(diagnosticPosition, TokenToPosition(member.BodyEndTok, true));
                 var diagnostic = new NodeDiagnostic(member.Name, member.CompileName, member.tok.filename,
-                  diagnosticPosition, diagnosticRange);
+                  diagnosticPosition, diagnosticRange, true);
                 AddAndPossiblyMigrateDiagnostic(diagnostic);
                 if (member is Function { ByMethodBody: { } } function) {
                   var diagnosticPositionByMethod = TokenToPosition(function.ByMethodTok);
                   var diagnosticRangeByMethod = new Range(diagnosticPositionByMethod, TokenToPosition(function.ByMethodBody.EndTok, true));
                   var diagnosticByMethod = new NodeDiagnostic(member.Name + " by method", member.CompileName + "_by_method", member.tok.filename,
-                    diagnosticPositionByMethod, diagnosticRangeByMethod);
+                    diagnosticPositionByMethod, diagnosticRangeByMethod, true);
                   AddAndPossiblyMigrateDiagnostic(diagnosticByMethod);
                 }
               }
@@ -301,116 +301,157 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         publisher.SendStatusNotification(document.Text, CompilationStatus.VerificationStarted, message);
       }
 
-      public void ReportImplementationMultiplicity(IToken[] implementationPositions) {
-        foreach (var node in document.VerificationNodeDiagnostic.Children) {
-          node.ImplementationCount = 0;
-          node.VerifiedImplementationCount = 0;
+      public void ReportImplementationsBeforeVerification(Implementation[] implementations) {
+        // We migrate existing implementations to the new provided ones if they exist.
+        // (same child number, same file and same position)
+        foreach (var methodNode in document.VerificationNodeDiagnostic.Children) {
+          methodNode.ResetNewChildren();
+          methodNode.ResourceCount = 0;
         }
 
-        foreach (var token in implementationPositions) {
-          var targetMethodNode = GetTargetMethodNode(token);
-          if (targetMethodNode != null) {
-            targetMethodNode.ImplementationCount++;
+        foreach (var implementation in implementations) {
+          var targetMethodNode = GetTargetMethodNode(implementation, out var oldImplementationNode, true);
+          if (targetMethodNode == null) {
+            logger.LogError($"No method node at {implementation.tok}");
+            continue;
           }
+          var newDisplayName = targetMethodNode.DisplayName + " #" + (targetMethodNode.Children.Count + 1) + ":" +
+                               implementation.Name;
+          var newImplementationNode = new NodeDiagnostic(
+            newDisplayName,
+            implementation.Name,
+            targetMethodNode.Filename,
+            targetMethodNode.Position,
+            targetMethodNode.Range,
+            true
+          ).WithImplementation(implementation);
+          if (oldImplementationNode != null) {
+            newImplementationNode.Children = oldImplementationNode.Children;
+          }
+          targetMethodNode?.AddNewChild(newImplementationNode);
+        }
+
+        foreach (var methodNode in document.VerificationNodeDiagnostic.Children) {
+          methodNode.SaveNewChildren();
         }
       }
 
-      public void ReportStartVerifyMethodOrFunction(IToken implToken) {
-        var targetMethodNode = GetTargetMethodNode(implToken);
+      public void ReportStartVerifyMethodOrFunction(Implementation implementation) {
+        var targetMethodNode = GetTargetMethodNode(implementation, out var implementationNode);
         if (targetMethodNode == null) {
-          logger.LogError($"No method at {implToken}");
+          logger.LogError($"No method at {implementation.tok}");
         } else {
-          if (!targetMethodNode.Started) { // The same method could be started multiple times for each implementation
+          if (!targetMethodNode.Started) {
+            // The same method could be started multiple times for each implementation
             targetMethodNode.Start();
-            diagnosticPublisher.PublishVerificationDiagnostics(document);
-          }
-        }
-      }
-
-      private NodeDiagnostic? GetTargetMethodNode(IToken implToken) {
-        return document.VerificationNodeDiagnostic.Children.FirstOrDefault(
-          node => node?.Position == TokenToPosition(implToken) && node?.Filename == implToken.filename
-          , null);
-      }
-
-      public void ReportEndVerifyMethodOrFunction(IToken implToken, VerificationResult verificationResult) {
-        var targetMethodNode = document.VerificationNodeDiagnostic.Children.FirstOrDefault(
-          node => node?.Position == TokenToPosition(implToken), null);
-        if (targetMethodNode == null) {
-          logger.LogError($"No method at {implToken}");
-        } else {
-          int newVerifiedCount;
-          lock (targetMethodNode) {
-            newVerifiedCount = ++targetMethodNode.VerifiedImplementationCount;
-            if (verificationResult.Errors != null) {
-              var errorCount = targetMethodNode.NewChildrenCount + 1;
-
-              void AddChildError(IToken token, string errorDisplay = "", string errorIdentifier = "") {
-                var errorPosition = TokenToPosition(token);
-                if (targetMethodNode.Filename != token.filename) {
-                  return;
-                }
-
-                errorDisplay = errorDisplay != "" ? " " + errorDisplay : "";
-                errorIdentifier = errorIdentifier != "" ? "_" + errorIdentifier : "";
-
-                var errorRange = new Range(errorPosition, TokenToPosition(token, true));
-                var nodeDiagnostic = new NodeDiagnostic(
-                  $"{targetMethodNode.DisplayName}{errorDisplay} #{errorCount}",
-                  $"{targetMethodNode.Identifier}_{errorCount}{errorIdentifier}",
-                  token.filename,
-                  errorPosition,
-                  errorRange
-                ) {
-                  Status = NodeVerificationStatus.Error
-                };
-                targetMethodNode.AddNewChild(nodeDiagnostic);
-              }
-
-              foreach (var error in verificationResult.Errors) {
-                if (error is ReturnCounterexample returnError) {
-                  AddChildError(returnError.FailingEnsures.tok, "", "");
-                  var returnPosition = TokenToPosition(returnError.FailingReturn.tok);
-                  if (returnPosition != targetMethodNode.Position) {
-                    AddChildError(returnError.FailingReturn.tok, "return branch", "_return");
-                    // TODO: Dynamic range highlighting + display error on postconditions of edited code
-                  }
-                } else if (error is AssertCounterexample assertError) {
-                  AddChildError(assertError.FailingAssert.tok, "Assertion", "assert");
-                } else if (error is CallCounterexample callError) {
-                  AddChildError(callError.FailingCall.tok, "Call", "call");
-                  if (targetMethodNode.Range.Contains(TokenToPosition(callError.FailingRequires.tok))) {
-                    AddChildError(callError.FailingCall.tok, "Call precondition", "call_precondition");
-                  }
-                }
-                errorCount++;
-              }
-            }
-
-            if (newVerifiedCount == targetMethodNode.ImplementationCount) {
-              targetMethodNode.SaveNewChildren();
-            }
-            targetMethodNode.ResourceCount = (newVerifiedCount == 1 ? 0 : targetMethodNode.ResourceCount) + verificationResult.ResourceCount;
           }
 
-          // Will be only executed by the last instance.
-          if (newVerifiedCount < targetMethodNode.ImplementationCount) {
-            targetMethodNode.Status = verificationResult.Outcome switch {
-              ConditionGeneration.Outcome.Correct => targetMethodNode.Status,
-              _ => NodeVerificationStatus.Error
-            };
-            targetMethodNode.RecomputeStatus();
+          if (implementationNode == null) {
+            logger.LogError($"No implementation at {implementation.tok}");
           } else {
-            targetMethodNode.Stop();
-            // Later, will be overriden by individual outcomes
-            targetMethodNode.Status = verificationResult.Outcome switch {
-              ConditionGeneration.Outcome.Correct => NodeVerificationStatus.Verified,
-              _ => NodeVerificationStatus.Error
-            };
-            targetMethodNode.RecomputeStatus();
+            implementationNode.Start();
           }
 
           diagnosticPublisher.PublishVerificationDiagnostics(document);
+        }
+      }
+
+      private NodeDiagnostic? GetTargetMethodNode(Implementation implementation, out NodeDiagnostic? implementationNode, bool nameBased = false) {
+        var targetMethodNode = document.VerificationNodeDiagnostic.Children.FirstOrDefault(
+          node => node?.Position == TokenToPosition(implementation.tok) && node?.Filename == implementation.tok.filename
+          , null);
+        if (nameBased) {
+          implementationNode = targetMethodNode?.Children.FirstOrDefault(
+            node => {
+              var nodeImpl = node?.GetImplementation();
+              return nodeImpl?.Name == implementation.Name;
+            }, null);
+        } else {
+          implementationNode = targetMethodNode?.Children.FirstOrDefault(
+            node => node?.GetImplementation() == implementation, null);
+        }
+
+        return targetMethodNode;
+      }
+
+      private object LockProcessing = new();
+
+      public void ReportEndVerifyMethodOrFunction(Implementation implementation, VerificationResult verificationResult) {
+        var targetMethodNode = GetTargetMethodNode(implementation, out var implementationNode);
+        if (targetMethodNode == null) {
+          logger.LogError($"No method at {implementation.tok}");
+        } else if (implementationNode == null) {
+          logger.LogError($"No implementation at {implementation.tok}");
+        } else {
+          implementationNode.Stop();
+          implementationNode.ResourceCount = verificationResult.ResourceCount;
+          if (verificationResult.Errors != null) {
+            var errorCount = 1;
+
+            void AddChildError(IToken token, string errorDisplay = "", string errorIdentifier = "") {
+              var errorPosition = TokenToPosition(token);
+              if (implementationNode.Filename != token.filename) {
+                return;
+              }
+
+              errorDisplay = errorDisplay != "" ? " " + errorDisplay : "";
+              errorIdentifier = errorIdentifier != "" ? "_" + errorIdentifier : "";
+
+              var errorRange = new Range(errorPosition, TokenToPosition(token, true));
+              var nodeDiagnostic = new NodeDiagnostic(
+                $"{targetMethodNode.DisplayName}{errorDisplay} #{errorCount}",
+                $"{targetMethodNode.Identifier}_{errorCount}{errorIdentifier}",
+                token.filename,
+                errorPosition,
+                errorRange,
+                false
+              ) {
+                Status = NodeVerificationStatus.Error
+              };
+              implementationNode.AddNewChild(nodeDiagnostic);
+            }
+
+            foreach (var error in verificationResult.Errors) {
+              if (error is ReturnCounterexample returnError) {
+                AddChildError(returnError.FailingEnsures.tok, "failing ensures", "_failing_ensures");
+                var returnPosition = TokenToPosition(returnError.FailingReturn.tok);
+                if (returnPosition != implementationNode.Position) {
+                  AddChildError(returnError.FailingReturn.tok, "return branch", "_return");
+                  // TODO: Dynamic range highlighting + display error on postconditions of edited code
+                }
+              } else if (error is AssertCounterexample assertError) {
+                AddChildError(assertError.FailingAssert.tok, "Assertion", "assert");
+              } else if (error is CallCounterexample callError) {
+                AddChildError(callError.FailingCall.tok, "Call", "call");
+                if (targetMethodNode.Range.Contains(TokenToPosition(callError.FailingRequires.tok))) {
+                  AddChildError(callError.FailingCall.tok, "Call precondition", "call_precondition");
+                }
+              }
+              errorCount++;
+            }
+          }
+          implementationNode.SaveNewChildren();
+
+          lock (LockProcessing) {
+            targetMethodNode.ResourceCount += verificationResult.ResourceCount;
+            // Will be only executed by the last instance.
+            if (!targetMethodNode.Children.All(child => child.Finished)) {
+              targetMethodNode.Status = verificationResult.Outcome switch {
+                ConditionGeneration.Outcome.Correct => targetMethodNode.Status,
+                _ => NodeVerificationStatus.Error
+              };
+            } else {
+              targetMethodNode.Stop();
+              // Later, will be overriden by individual outcomes
+              targetMethodNode.Status = verificationResult.Outcome switch {
+                ConditionGeneration.Outcome.Correct => NodeVerificationStatus.Verified,
+                _ => NodeVerificationStatus.Error
+              };
+            }
+
+            targetMethodNode.RecomputeStatus();
+            diagnosticPublisher.PublishVerificationDiagnostics(document);
+          }
         }
       }
 
