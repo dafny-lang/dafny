@@ -76,9 +76,11 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         DafnyOptions.O.VcsCores = GetConfiguredCoreCount(options);
         var translated = Translator.Translate(program, errorReporter, new Translator.TranslatorFlags { InsertChecksums = true });
         bool verified = true;
-        foreach (var (_, boogieProgram) in translated) {
+        var programId = program.FullName;
+        foreach (var (moduleName, boogieProgram) in translated) {
           cancellationToken.ThrowIfCancellationRequested();
-          var verificationResult = VerifyWithBoogie(boogieProgram, cancellationToken);
+          var boogieProgramId = (programId ?? "main_program_id") + "_" + moduleName;
+          var verificationResult = VerifyWithBoogie(boogieProgram, cancellationToken, boogieProgramId);
           verified = verified && verificationResult;
         }
         return new VerificationResult(verified, printer.SerializedCounterExamples);
@@ -88,7 +90,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
     }
 
-    private bool VerifyWithBoogie(Boogie.Program program, CancellationToken cancellationToken) {
+    private bool VerifyWithBoogie(Boogie.Program program, CancellationToken cancellationToken, string programId) {
       program.Resolve();
       program.Typecheck();
 
@@ -96,11 +98,11 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       ExecutionEngine.CollectModSets(program);
       ExecutionEngine.CoalesceBlocks(program);
       ExecutionEngine.Inline(program);
-      var requestId = Guid.NewGuid().ToString();
+      var uniqueRequestId = Guid.NewGuid().ToString();
       using (cancellationToken.Register(() => CancelVerification(requestId))) {
         try {
           var statistics = new PipelineStatistics();
-          var outcome = ExecutionEngine.InferAndVerify(program, statistics, requestId, null, requestId);
+          var outcome = ExecutionEngine.InferAndVerify(program, statistics, programId, null, uniqueRequestId);
           return Main.IsBoogieVerified(outcome, statistics);
         } catch (Exception e) when (e is not OperationCanceledException) {
           if (!cancellationToken.IsCancellationRequested) {

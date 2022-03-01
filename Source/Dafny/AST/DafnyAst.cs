@@ -4556,7 +4556,8 @@ namespace Microsoft.Dafny {
       return PossiblyNullTraitsWithArgument(typeArgs);
     }
 
-    TopLevelDecl RevealableTypeDecl.AsTopLevelDecl { get => this; }
+    public TopLevelDecl AsTopLevelDecl => this;
+    public TypeDeclSynonymInfo SynonymInfo { get; set; }
   }
 
   public class DefaultClassDecl : ClassDecl {
@@ -4645,7 +4646,8 @@ namespace Microsoft.Dafny {
       get { return this is IndDatatypeDecl && Ctors.Count == 1; }
     }
 
-    TopLevelDecl RevealableTypeDecl.AsTopLevelDecl { get { return this; } }
+    public TopLevelDecl AsTopLevelDecl => this;
+    public TypeDeclSynonymInfo SynonymInfo { get; set; }
 
     bool ICodeContext.IsGhost { get { return true; } }
     List<TypeParameter> ICodeContext.TypeArgs { get { return TypeArgs; } }
@@ -4670,7 +4672,7 @@ namespace Microsoft.Dafny {
     public abstract DatatypeCtor GetGroundingCtor();
   }
 
-  public class IndDatatypeDecl : DatatypeDecl, RevealableTypeDecl {
+  public class IndDatatypeDecl : DatatypeDecl {
     public override string WhatKind { get { return "datatype"; } }
     public DatatypeCtor GroundingCtor;  // set during resolution
 
@@ -5502,9 +5504,8 @@ namespace Microsoft.Dafny {
       this.NewSelfSynonym();
     }
 
-    public TopLevelDecl AsTopLevelDecl {
-      get { return this; }
-    }
+    public TopLevelDecl AsTopLevelDecl => this;
+    public TypeDeclSynonymInfo SynonymInfo { get; set; }
   }
 
   public interface RedirectingTypeDecl : ICallable {
@@ -5540,52 +5541,40 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public static class RevealableTypeDeclHelper {
-    private static Dictionary<TopLevelDecl, InternalTypeSynonymDecl> tsdMap = new Dictionary<TopLevelDecl, InternalTypeSynonymDecl>();
+  public class TypeDeclSynonymInfo {
+    public readonly InternalTypeSynonymDecl SelfSynonymDecl;
 
-    public static void NewSelfSynonym(this RevealableTypeDecl rtd) {
-      var d = rtd.AsTopLevelDecl;
-      Contract.Assert(!tsdMap.ContainsKey(d));
+    public TypeDeclSynonymInfo(TopLevelDecl d) {
       var thisType = UserDefinedType.FromTopLevelDecl(d.tok, d);
-      var tsd = new InternalTypeSynonymDecl(d.tok, d.Name, TypeParameter.GetExplicitCharacteristics(d), d.TypeArgs, d.EnclosingModuleDefinition, thisType, d.Attributes);
-      tsd.InheritVisibility(d, false);
-      tsdMap.Add(d, tsd);
+      SelfSynonymDecl = new InternalTypeSynonymDecl(d.tok, d.Name, TypeParameter.GetExplicitCharacteristics(d),
+        d.TypeArgs, d.EnclosingModuleDefinition, thisType, d.Attributes);
+      SelfSynonymDecl.InheritVisibility(d, false);
     }
 
-    public static UserDefinedType SelfSynonym(this RevealableTypeDecl rtd, List<Type> args, Expression/*?*/ namePath = null) {
-      Contract.Requires(args != null);
-      Contract.Requires(namePath == null || namePath is NameSegment || namePath is ExprDotName);
-      var d = rtd.AsTopLevelDecl;
-      Contract.Assert(tsdMap.ContainsKey(d));
-      var typeSynonym = tsdMap[d];
-      Contract.Assert(typeSynonym.TypeArgs.Count == args.Count);
-      return new UserDefinedType(typeSynonym.tok, typeSynonym.Name, typeSynonym, args, namePath);
+    public UserDefinedType SelfSynonym(List<Type> args, Expression /*?*/ namePath = null) {
+      return new UserDefinedType(SelfSynonymDecl.tok, SelfSynonymDecl.Name, SelfSynonymDecl, args, namePath);
     }
+  }
 
-    public static InternalTypeSynonymDecl SelfSynonymDecl(this RevealableTypeDecl rtd) {
-      var d = rtd.AsTopLevelDecl;
-      Contract.Assert(tsdMap.ContainsKey(d));
-      return tsdMap[d];
-    }
+  public static class RevealableTypeDeclHelper {
+    public static InternalTypeSynonymDecl SelfSynonymDecl(this RevealableTypeDecl rtd) =>
+      rtd.SynonymInfo.SelfSynonymDecl;
 
-    public static TopLevelDecl AccessibleDecl(this RevealableTypeDecl rtd, VisibilityScope scope) {
-      var d = rtd.AsTopLevelDecl;
-      if (d.IsRevealedInScope(scope)) {
-        return d;
-      } else {
-        return rtd.SelfSynonymDecl();
-      }
-    }
+    public static UserDefinedType SelfSynonym(this RevealableTypeDecl rtd, List<Type> args, Expression /*?*/ namePath = null) =>
+      rtd.SynonymInfo.SelfSynonym(args, namePath);
 
     //Internal implementations are called before extensions, so this is safe
-    public static bool IsRevealedInScope(this RevealableTypeDecl rtd, VisibilityScope scope) {
-      var d = rtd.AsTopLevelDecl;
-      return d.IsRevealedInScope(scope);
+    public static bool IsRevealedInScope(this RevealableTypeDecl rtd, VisibilityScope scope) =>
+      rtd.AsTopLevelDecl.IsRevealedInScope(scope);
+
+    public static void NewSelfSynonym(this RevealableTypeDecl rtd) {
+      rtd.SynonymInfo = new TypeDeclSynonymInfo(rtd.AsTopLevelDecl);
     }
   }
 
   public interface RevealableTypeDecl {
     TopLevelDecl AsTopLevelDecl { get; }
+    TypeDeclSynonymInfo SynonymInfo { get; set; }
   }
 
   public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, RedirectingTypeDecl {
@@ -5622,7 +5611,9 @@ namespace Microsoft.Dafny {
       this.NewSelfSynonym();
     }
 
-    TopLevelDecl RevealableTypeDecl.AsTopLevelDecl { get { return this; } }
+    public TopLevelDecl AsTopLevelDecl => this;
+    public TypeDeclSynonymInfo SynonymInfo { get; set; }
+
     public TypeParameter.EqualitySupportValue EqualitySupport {
       get {
         if (this.BaseType.SupportsEquality) {
@@ -5757,7 +5748,8 @@ namespace Microsoft.Dafny {
       : base(tok, name, characteristics, typeArgs, module, rhs, attributes) {
       this.NewSelfSynonym();
     }
-    TopLevelDecl RevealableTypeDecl.AsTopLevelDecl { get { return this; } }
+    public TopLevelDecl AsTopLevelDecl => this;
+    public TypeDeclSynonymInfo SynonymInfo { get; set; }
   }
 
   public class InternalTypeSynonymDecl : TypeSynonymDeclBase, RedirectingTypeDecl {
