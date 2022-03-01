@@ -4,6 +4,7 @@
 - feat: The keyword syntax for functions will change in Dafny version 4. The new command-line option `/functionSyntax` (see `/help`) allows early adoption of the new syntax. (https://github.com/dafny-lang/dafny/pull/1832)
 - fix: No warning "File contains no code" if a file only contains a submodule (https://github.com/dafny-lang/dafny/pull/1840)
 - fix: export-reveals of function-by-method now allows the function body to be ghost (https://github.com/dafny-lang/dafny/pull/1855)
+- fix: Dafnyruntime's c# language version explicitly set to 7.1 to stay backward compatible. (https://github.com/dafny-lang/dafny/pull/1877)
 
 
 # 3.4.2
