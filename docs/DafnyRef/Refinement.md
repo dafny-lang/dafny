@@ -143,10 +143,11 @@ module A {
 
   method ToSuperimpose(x: int) returns (r: int)
   {
-    if (x < 0) {
-      return -x;
+    var y : int := x;
+    if (y < 0) {
+      return -y;
     } else {
-      return x;
+      return y;
     }
   }
 
@@ -171,7 +172,8 @@ module B refines A {
 
   method ToSuperimpose(x: int) returns (r: int)
   {
-    if (x < 0) {
+    ...;
+    if (y < 0) {
       print "inverting";
     } else {
       print "not modifying";
