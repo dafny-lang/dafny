@@ -37,7 +37,7 @@ namespace Microsoft.Dafny {
 
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern,
         string libraryName, ConcreteSyntaxTree wr) {
-      return wr.NewBlock($"class {IdProtect(moduleName)}:", open: BlockStyle.Nothing, close: BlockStyle.NewlineNoBrace);
+      return wr.NewBlock($"class {IdProtect(moduleName)}:", open: BlockStyle.Nothing, close: BlockStyle.Newline);
     }
 
     protected override string GetHelperModuleName() {
@@ -51,7 +51,7 @@ namespace Microsoft.Dafny {
     protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string fullPrintName,
         List<TypeParameter> typeParameters, TopLevelDecl cls, List<Type> superClasses, IToken tok, ConcreteSyntaxTree wr) {
       wr.Write("class {0}:", MangleName(name));
-      var methodWriter = wr.NewBlock(open: BlockStyle.NewlineNoBrace, close: BlockStyle.Nothing);
+      var methodWriter = wr.NewBlock(open: BlockStyle.Newline, close: BlockStyle.Nothing);
       if (cls is ClassDecl d) {
         if (d.Members.FindAll(m => !m.IsGhost).Count == 0) {
           methodWriter.WriteLine("pass");
@@ -91,7 +91,7 @@ namespace Microsoft.Dafny {
       string d;
       d = TypeInitializationValue(udt, wr, sst.tok, false, false);
 
-      w.NewBlock("def Default():", "", BlockStyle.NewlineNoBrace, BlockStyle.Nothing).WriteLine($"return {d}", "");
+      w.NewBlock("def Default():", "", BlockStyle.Newline, BlockStyle.Nothing).WriteLine($"return {d}", "");
     }
 
     protected override void GetNativeInfo(NativeType.Selection sel, out string name, out string literalSuffix,
@@ -166,7 +166,7 @@ namespace Microsoft.Dafny {
 
     private ConcreteSyntaxTree CreateGetter(string name, Type resultType, IToken tok, bool isStatic, bool createBody,
         ConcreteSyntaxTree methodWriter) {
-      return methodWriter.NewBlock($"def {name}():", open: BlockStyle.NewlineNoBrace, close: BlockStyle.Nothing);
+      return methodWriter.NewBlock($"def {name}():", open: BlockStyle.Newline, close: BlockStyle.Nothing);
     }
 
     private ConcreteSyntaxTree CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody,
@@ -174,7 +174,7 @@ namespace Microsoft.Dafny {
       wr.Write($"def {IdName(m)}(");
 
       WriteFormals("", m.Ins, wr);
-      var w = wr.NewBlock("):", open: BlockStyle.NewlineNoBrace, close: BlockStyle.NewlineNoBrace);
+      var w = wr.NewBlock("):", open: BlockStyle.Newline, close: BlockStyle.Newline);
       return w;
 
     }
@@ -184,7 +184,7 @@ namespace Microsoft.Dafny {
         ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
       wr.Write($"def {name}(");
       WriteFormals("", formals, wr);
-      return wr.NewBlock("):", open: BlockStyle.NewlineNoBrace, close: BlockStyle.NewlineNoBrace);
+      return wr.NewBlock("):", open: BlockStyle.Newline, close: BlockStyle.Newline);
     }
 
 

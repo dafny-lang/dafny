@@ -61,7 +61,7 @@ namespace Microsoft.Dafny {
           outer.WriteLine();
           outer.WriteLine("{");
           break;
-        case BlockStyle.NewlineNoBrace:
+        case BlockStyle.Newline:
           outer.WriteLine();
           break;
         case BlockStyle.Brace:
@@ -74,7 +74,7 @@ namespace Microsoft.Dafny {
 
       body = outer.Fork(1);
       switch (open) {
-        case BlockStyle.NewlineNoBrace:
+        case BlockStyle.Newline:
         case BlockStyle.Nothing:
           break;
         default:
@@ -92,7 +92,7 @@ namespace Microsoft.Dafny {
         case BlockStyle.NewlineBrace:
           outer.WriteLine();
           break;
-        case BlockStyle.NewlineNoBrace:
+        case BlockStyle.Newline:
           outer.WriteLine();
           break;
       }
