@@ -194,12 +194,12 @@ operations:
 * superimpose the body of the parent method with additional statements
   (as in `ToSuperimpose`).
 
-The type signature of a refining method must be the same as that of the
+The type signature of a child method must be the same as that of the
 parent method it refines. This can be ensured by providing an explicit
 type signature equivalent to that of the parent (with renaming of
 parameters allowed) or by using an ellipsis (`...`) to indicate copying
-of the parent type signature. The following example illustrates that
-latter case.
+of the parent type signature. The body of a child method must satisfy
+any ensures clauses from its parent in addition to any it adds.
 
 To introduce additional statements, the child method can include
 ellipses within the body to stand in for portions of code from the
@@ -230,10 +230,10 @@ method ToSuperimpose(x: int) returns (r: int)
 }
 ```
 
-In general, a refining method can add local variables and assignments,
+In general, a child method can add local variables and assignments,
 add some forms of `assert`, convert an `assume ` to an `assert` (using
 `assert ...;`), replace a non-deterministic operation with a more
-deterministic one, and insert additional `return` statements. A refining
+deterministic one, and insert additional `return` statements. A child
 method cannot otherwise change the control-flow structure of a method.
 Full details of the algorithm used to perform the merge operation are
 available in [this
