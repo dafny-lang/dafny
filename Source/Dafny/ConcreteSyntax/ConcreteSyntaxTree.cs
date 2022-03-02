@@ -115,12 +115,6 @@ namespace Microsoft.Dafny {
       return this;
     }
 
-    public void DeleteLast() {
-      if (_nodes.Count > 0) {
-        _nodes.RemoveAt(_nodes.Count - 1);
-      }
-    }
-
     // ----- Nested blocks ------------------------------
 
     public ConcreteSyntaxTree ForkInParens() {
