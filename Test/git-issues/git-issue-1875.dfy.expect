@@ -1,0 +1,34 @@
+c:\Users\cpitcla\git\dafny\master\Test\git-issues\git-issue-1875.dfy(33,8): Error: cannot prove termination; try supplying a decreases clause
+Execution trace:
+    (0,0): anon0
+    (0,0): anon10_Else
+    (0,0): anon11_Else
+    (0,0): anon12_Then
+    (0,0): anon13_Then
+    (0,0): anon7
+c:\Users\cpitcla\git\dafny\master\Test\git-issues\git-issue-1875.dfy(49,8): Error: cannot prove termination; try supplying a decreases clause
+Execution trace:
+    (0,0): anon0
+    (0,0): anon10_Else
+    (0,0): anon11_Else
+    (0,0): anon12_Then
+    (0,0): anon13_Then
+    (0,0): anon7
+c:\Users\cpitcla\git\dafny\master\Test\git-issues\git-issue-1875.dfy(65,8): Error: cannot prove termination; try supplying a decreases clause
+Execution trace:
+    (0,0): anon0
+    (0,0): anon10_Else
+    (0,0): anon11_Else
+    (0,0): anon12_Then
+    (0,0): anon13_Then
+    (0,0): anon7
+c:\Users\cpitcla\git\dafny\master\Test\git-issues\git-issue-1875.dfy(81,8): Error: cannot prove termination; try supplying a decreases clause
+Execution trace:
+    (0,0): anon0
+    (0,0): anon10_Else
+    (0,0): anon11_Else
+    (0,0): anon12_Then
+    (0,0): anon13_Then
+    (0,0): anon7
+
+Dafny program verifier finished with 1 verified, 4 errors
