@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" /autoTriggers:0 /optimizeResolution:0 "%s" > "%t"
+// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" /autoTriggers:0 /optimizeResolution:0 /errorLimit:10 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module TestModule1 {
@@ -332,8 +332,8 @@ module TestModule8 {
             requires ValInGrammar(val, CRequest_grammar());
         {
             if val.c == 0 then
-                var ep := parse_EndPoint(val.val.t[0]); // With default fuel, error: function precondition (3x), destructor, index
-                CRequest(ep, val.val.t[1].u, parse_AppMessage(val.val.t[2]))    // (there are errors here, too, but only 5 are reported per method)
+                var ep := parse_EndPoint(val.val.t[0]); // With default fuel, error: function precondition (6x), destructor, index
+                CRequest(ep, val.val.t[1].u, parse_AppMessage(val.val.t[2]))    // error: destructor, index
             else
                 CRequestNoOp()
         }
