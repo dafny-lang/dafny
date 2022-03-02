@@ -52,16 +52,18 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public void PublishVerificationDiagnostics(DafnyDocument document) {
       // Document.GetDiagnostics() returns not only resolution errors, but previous verification errors
-      var errors = document.Errors.GetDiagnostics(document.GetFilePath())
+      var currentDiagnostics =
+        document.Errors.GetDiagnostics(document.GetFilePath())
+          .Where(x => x.Severity == DiagnosticSeverity.Error).ToList();
+      var errors = currentDiagnostics
         .Concat(document.OldVerificationDiagnostics)
         .Where(x => x.Severity == DiagnosticSeverity.Error)
-        .OrderBy(x => x.Range.Start.Line)
         .ToArray();
       languageServer.TextDocument.SendNotification(new VerificationDiagnosticsParams {
         Uri = document.Uri,
         Version = document.Version,
         Diagnostics = errors,
-        DiagnosticsAreResolutionErrors = document.ResolutionSucceeded == false,
+        NumberOfResolutionErrors = document.ResolutionSucceeded == false ? currentDiagnostics.Count() : 0,
         LinesCount = Regex.Matches(document.Text.Text, "\r?\n").Count + 1,
         PerNodeDiagnostic = document.VerificationNodeDiagnostic.Children.ToArray()
       });

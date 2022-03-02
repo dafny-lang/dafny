@@ -46,20 +46,20 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     /// </summary>
     public int LinesCount { get; init; }
 
-    public bool DiagnosticsAreResolutionErrors { get; init; }
+    public int NumberOfResolutionErrors { get; init; }
 
     /// <summary>
     /// Returns per-line real-time diagnostic
     /// </summary>
     public LineVerificationStatus[] PerLineDiagnostic =>
       RenderPerLineDiagnostics(this, PerNodeDiagnostic, LinesCount,
-        DiagnosticsAreResolutionErrors, Diagnostics);
+        NumberOfResolutionErrors, Diagnostics);
 
     static LineVerificationStatus[] RenderPerLineDiagnostics(
       VerificationDiagnosticsParams verificationDiagnosticsParams,
       NodeDiagnostic[] perNodeDiagnostic,
       int numberOfLines,
-      bool diagnosticsAreResolutionErrors,
+      int numberOfResolutionErrors,
       Container<Diagnostic> diagnostics
     ) {
       var result = new LineVerificationStatus[numberOfLines];
@@ -95,10 +95,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
         }
       }
 
-      if (diagnosticsAreResolutionErrors) {
-        foreach (var diagnostic in diagnostics) {
-          result[diagnostic.Range.Start.Line] = LineVerificationStatus.ResolutionError;
+      var resolutionErrorRendered = 0;
+      foreach (var diagnostic in diagnostics) {
+        if (resolutionErrorRendered >= numberOfResolutionErrors) {
+          break;
         }
+        result[diagnostic.Range.Start.Line] = LineVerificationStatus.ResolutionError;
+        resolutionErrorRendered++;
       }
 
       CheckResult(result);
@@ -173,6 +176,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
      string Filename,
      // Used to relocate a node diagnostic and to determine which function is currently verifying
      Position Position,
+     // Contains permanent secondary positions to this node (e.g. return branch positions)
+     // Helps to distinguish between assertions with the same position (i.e. ensures for different branches)
+     Position? SecondaryPosition,
      // The range of this node.
      Range Range,
      // True if this node is only gathering children feedback.
@@ -189,16 +195,22 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
     public int ResourceCount { get; set; } = 0;
 
+    public int AssertionBatchCount { get; set; } = 0;
+
+    // If this node is an error, all the trace positions
+    public List<Position> RelatedPositions { get; set; } = new();
+
     // Sub-diagnostics if any
     public List<NodeDiagnostic> Children { get; set; } = new();
     private List<NodeDiagnostic> NewChildren { get; set; } = new();
 
-    public int NewChildrenCount => NewChildren.Count;
+    public int GetNewChildrenCount() {
+      return NewChildren.Count;
+    }
+
     public void AddNewChild(NodeDiagnostic newChild) {
       NewChildren.Add(newChild);
     }
-
-    public List<NodeDiagnostic> CurrentNewChildren => NewChildren;
 
     public void SaveNewChildren() {
       Children = NewChildren;

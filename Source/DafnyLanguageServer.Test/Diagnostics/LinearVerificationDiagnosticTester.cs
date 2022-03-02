@@ -40,6 +40,9 @@ public abstract class LinearVerificationDiagnosticTester : ClientBasedLanguageSe
     { LineVerificationStatus.ErrorObsolete, "|-|" },
     { LineVerificationStatus.ErrorVerifying, "|~|" },
     { LineVerificationStatus.Error, "|=|" },
+    { LineVerificationStatus.ErrorRangeAssertionVerifiedObsolete, "|v|" },
+    { LineVerificationStatus.ErrorRangeAssertionVerifiedVerifying, "|V|" },
+    { LineVerificationStatus.ErrorRangeAssertionVerified, "|Y|" },
     { LineVerificationStatus.ResolutionError, @"/!\" }
   };
 

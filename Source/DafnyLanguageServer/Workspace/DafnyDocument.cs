@@ -57,6 +57,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       Text.Uri.ToString(),
       Text.Uri.ToString(),
       new Position(0, 0),
+      null,
       new Range(new Position(0, 0),
         new Position(Regex.Matches(Text.Text, "\r?\n").Count + 1, 0)),
       true

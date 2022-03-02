@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Threading;
+using DafnyServer;
 using Microsoft.Boogie;
 using VC;
 
@@ -20,6 +21,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     void ReportErrorFindItsMethod(IToken tok, string message);
     int GetVerificationPriority(IToken implTok);
     void ReportImplementationsBeforeVerification(Implementation[] implementations);
-    void ReportAssertionBatchResult(Implementation implementation, Dictionary<AssertCmd, ConditionGeneration.Outcome> perAssertOutcome);
+    void ReportAssertionBatchResult(Implementation implementation,
+      Dictionary<AssertCmd, ConditionGeneration.Outcome> perAssertOutcome,
+      Dictionary<AssertCmd, Counterexample> perAssertCounterExample);
   }
 }

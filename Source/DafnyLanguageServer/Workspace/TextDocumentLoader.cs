@@ -213,14 +213,25 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
                 }
                 var diagnosticPosition = TokenToPosition(member.tok);
                 var diagnosticRange = new Range(diagnosticPosition, TokenToPosition(member.BodyEndTok, true));
-                var diagnostic = new NodeDiagnostic(member.Name, member.CompileName, member.tok.filename,
-                  diagnosticPosition, diagnosticRange, true);
+                var diagnostic = new NodeDiagnostic(
+                  member.Name,
+                  member.CompileName,
+                  member.tok.filename,
+                  diagnosticPosition,
+                  new(),
+                  diagnosticRange,
+                  true);
                 AddAndPossiblyMigrateDiagnostic(diagnostic);
                 if (member is Function { ByMethodBody: { } } function) {
                   var diagnosticPositionByMethod = TokenToPosition(function.ByMethodTok);
                   var diagnosticRangeByMethod = new Range(diagnosticPositionByMethod, TokenToPosition(function.ByMethodBody.EndTok, true));
-                  var diagnosticByMethod = new NodeDiagnostic(member.Name + " by method", member.CompileName + "_by_method", member.tok.filename,
-                    diagnosticPositionByMethod, diagnosticRangeByMethod, true);
+                  var diagnosticByMethod = new NodeDiagnostic(
+                    member.Name + " by method",
+                    member.CompileName + "_by_method",
+                    member.tok.filename,
+                    diagnosticPositionByMethod,
+                    new(),
+                    diagnosticRangeByMethod, true);
                   AddAndPossiblyMigrateDiagnostic(diagnosticByMethod);
                 }
               }
@@ -315,7 +326,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         foreach (var implementation in implementations) {
           var targetMethodNode = GetTargetMethodNode(implementation, out var oldImplementationNode, true);
           if (targetMethodNode == null) {
-            logger.LogError($"No method node at {implementation.tok}");
+            logger.LogError($"No method node at {implementation.tok.filename}:{implementation.tok.line}:{implementation.tok.col}");
             continue;
           }
           var newDisplayName = targetMethodNode.DisplayName + " #" + (targetMethodNode.Children.Count + 1) + ":" +
@@ -325,6 +336,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             implementation.Name,
             targetMethodNode.Filename,
             targetMethodNode.Position,
+            new(),
             targetMethodNode.Range,
             true
           ).WithImplementation(implementation);
@@ -342,7 +354,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       public void ReportStartVerifyImplementation(Implementation implementation) {
         var targetMethodNode = GetTargetMethodNode(implementation, out var implementationNode);
         if (targetMethodNode == null) {
-          logger.LogError($"No method at {implementation.tok}");
+          logger.LogError($"No method node at {implementation.tok.filename}:{implementation.tok.line}:{implementation.tok.col}");
         } else {
           if (!targetMethodNode.Started) {
             // The same method could be started multiple times for each implementation
@@ -352,6 +364,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           if (implementationNode == null) {
             logger.LogError($"No implementation at {implementation.tok}");
           } else {
+            implementationNode.AssertionBatchCount = 0;
             implementationNode.Start();
           }
 
@@ -382,57 +395,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       public void ReportEndVerifyImplementation(Implementation implementation, VerificationResult verificationResult) {
         var targetMethodNode = GetTargetMethodNode(implementation, out var implementationNode);
         if (targetMethodNode == null) {
-          logger.LogError($"No method at {implementation.tok}");
+          logger.LogError($"No method node at {implementation.tok.filename}:{implementation.tok.line}:{implementation.tok.col}");
         } else if (implementationNode == null) {
-          logger.LogError($"No implementation at {implementation.tok}");
+          logger.LogError($"No implementation node at {implementation.tok.filename}:{implementation.tok.line}:{implementation.tok.col}");
         } else {
           implementationNode.Stop();
           implementationNode.ResourceCount = verificationResult.ResourceCount;
-          /*if (verificationResult.Errors != null) {
-            var errorCount = 1;
-
-            void AddChildError(IToken token, string errorDisplay = "", string errorIdentifier = "") {
-              var errorPosition = TokenToPosition(token);
-              if (implementationNode.Filename != token.filename) {
-                return;
-              }
-
-              errorDisplay = errorDisplay != "" ? " " + errorDisplay : "";
-              errorIdentifier = errorIdentifier != "" ? "_" + errorIdentifier : "";
-
-              var errorRange = new Range(errorPosition, TokenToPosition(token, true));
-              var nodeDiagnostic = new NodeDiagnostic(
-                $"{targetMethodNode.DisplayName}{errorDisplay} #{errorCount}",
-                $"{targetMethodNode.Identifier}_{errorCount}{errorIdentifier}",
-                token.filename,
-                errorPosition,
-                errorRange,
-                false
-              ) {
-                Status = NodeVerificationStatus.Error
-              };
-              implementationNode.AddNewChild(nodeDiagnostic);
-            }
-
-            foreach (var error in verificationResult.Errors) {
-              if (error is ReturnCounterexample returnError) {
-                AddChildError(returnError.FailingEnsures.tok, "failing ensures", "_failing_ensures");
-                var returnPosition = TokenToPosition(returnError.FailingReturn.tok);
-                if (returnPosition != implementationNode.Position) {
-                  AddChildError(returnError.FailingReturn.tok, "return branch", "_return");
-                  // TODO: Dynamic range highlighting + display error on postconditions of edited code
-                }
-              } else if (error is AssertCounterexample assertError) {
-                AddChildError(assertError.FailingAssert.tok, "Assertion", "assert");
-              } else if (error is CallCounterexample callError) {
-                AddChildError(callError.FailingCall.tok, "Call", "call");
-                if (targetMethodNode.Range.Contains(TokenToPosition(callError.FailingRequires.tok))) {
-                  AddChildError(callError.FailingCall.tok, "Call precondition", "call_precondition");
-                }
-              }
-              errorCount++;
-            }
-          }*/
           implementationNode.SaveNewChildren();
 
           lock (LockProcessing) {
@@ -472,56 +440,92 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         };
       }
 
-      public void ReportAssertionBatchResult(Implementation implementation, Dictionary<AssertCmd, ConditionGeneration.Outcome> perAssertOutcome) {
+      public void ReportAssertionBatchResult(
+          Implementation implementation,
+          Dictionary<AssertCmd, ConditionGeneration.Outcome> perAssertOutcome,
+          Dictionary<AssertCmd, Counterexample> perAssertCounterExample) {
         // While there is no error, just add successful nodes.
         var targetMethodNode = GetTargetMethodNode(implementation, out var implementationNode);
         if (targetMethodNode == null) {
-          logger.LogError($"No method at {implementation.tok}");
+          logger.LogError($"No method node at {implementation.tok.filename}:{implementation.tok.line}:{implementation.tok.col}");
         } else if (implementationNode == null) {
-          logger.LogError($"No implementation at {implementation.tok}");
+          logger.LogError($"No implementation node at {implementation.tok.filename}:{implementation.tok.line}:{implementation.tok.col}");
         } else {
           lock (LockProcessing) {
+            implementationNode.AssertionBatchCount += 1;
+            // TODO: Attach the full trace if possible
             void AddChildOutcome(IToken token,
-              NodeVerificationStatus status, string assertDisplay = "", string assertIdentifier = "") {
-              var errorPosition = TokenToPosition(token);
-              if (implementationNode.Filename != token.filename) {
+              NodeVerificationStatus status, IToken? secondaryToken, List<IToken> relatedTokens, string? assertDisplay = "", string assertIdentifier = "") {
+              if (token.filename != implementationNode.Filename) {
                 return;
               }
 
-              var childrenCount = implementationNode.NewChildrenCount;
+              var relatedPositions = relatedTokens
+                .Where(tok => tok.filename == implementationNode.Filename)
+                .Select(tok => TokenToPosition(tok)).ToList();
+              var outcomePosition = TokenToPosition(token);
+              var secondaryOutcomePosition = secondaryToken != null ? TokenToPosition(secondaryToken) : null;
+
+              var childrenCount = implementationNode.GetNewChildrenCount();
               assertDisplay = assertDisplay != "" ? " " + assertDisplay : "";
               assertIdentifier = assertIdentifier != "" ? "_" + assertIdentifier : "";
 
-              var errorRange = new Range(errorPosition, TokenToPosition(token, true));
+              var outcomeRange = new Range(outcomePosition, TokenToPosition(token, true));
               var nodeDiagnostic = new NodeDiagnostic(
                 $"{targetMethodNode.DisplayName}{assertDisplay} #{childrenCount}",
                 $"{targetMethodNode.Identifier}_{childrenCount}{assertIdentifier}",
                 token.filename,
-                errorPosition,
-                errorRange,
+                outcomePosition,
+                secondaryOutcomePosition,
+                outcomeRange,
                 false
               ) {
-                Status = status
+                Status = status,
+                RelatedPositions = relatedPositions
               };
+              // Add this diagnostics as the new one to display once the implementation is fully verified
               implementationNode.AddNewChild(nodeDiagnostic);
+              // Update any previous pending "verifying" diagnostic as well so that they are updated in real-time
+              var previousChild = implementationNode.Children.FirstOrDefault(child =>
+                child != null && child.Position == outcomePosition && (
+                  secondaryOutcomePosition == null ||
+                  secondaryOutcomePosition == child.SecondaryPosition), null);
+              if (previousChild != null) {
+                implementationNode.Children.Remove(previousChild);
+                implementationNode.Children.Add(previousChild with {
+                  Status = status
+                });
+              }
             }
 
             foreach (var (assertCmd, outcome) in perAssertOutcome) {
               var status = GetNodeStatus(outcome);
+              perAssertCounterExample.TryGetValue(assertCmd, out var counterexample);
+              IToken? secondaryToken = counterexample is ReturnCounterexample returnCounterexample ? returnCounterexample.FailingReturn.tok :
+                counterexample is CallCounterexample callCounterexample ? callCounterexample.FailingRequires.tok :
+                null;
+              List<IToken> RelatedPositions = counterexample != null ?
+                counterexample.Trace.Select(block => block.TransferCmd?.tok).OfType<IToken>().ToList() : new();
               if (assertCmd is AssertEnsuresCmd assertEnsuresCmd) {
-                AddChildOutcome(assertEnsuresCmd.Ensures.tok, status, " ensures", "_ensures");
-                /*var returnPosition = TokenToPosition(returnError.FailingReturn.tok);
+                AddChildOutcome(assertEnsuresCmd.Ensures.tok, status, secondaryToken, RelatedPositions, " ensures", "_ensures");
+                if (secondaryToken == null) {
+                  continue;
+                }
+                var returnPosition = TokenToPosition(secondaryToken);
                 if (returnPosition != implementationNode.Position) {
-                  AddChildError(assertEnsuresCmd..tok, "return branch", "_return");
-                }*/
+                  AddChildOutcome(secondaryToken, status, assertEnsuresCmd.tok, RelatedPositions, "return branch", "_return");
+                }
               } else if (assertCmd is AssertRequiresCmd assertRequiresCmd) {
-                AddChildOutcome(assertRequiresCmd.Call.tok, status, "Call", "call");
+                AddChildOutcome(assertRequiresCmd.Call.tok, status, secondaryToken, RelatedPositions, "Call", "call");
               } else {
-                AddChildOutcome(assertCmd.tok, status, "Assertion", "assert");
-                /*
-                if (targetMethodNode.Range.Contains(TokenToPosition(callError.FailingRequires.tok))) {
-                  AddChildError(callError.FailingCall.tok, "Call precondition", "call_precondition");
-                } */
+                AddChildOutcome(assertCmd.tok, status, secondaryToken, RelatedPositions, "Assertion", "assert");
+                if (secondaryToken == null) {
+                  continue;
+                }
+                var requiresPosition = TokenToPosition(secondaryToken);
+                if (targetMethodNode.Range.Contains(requiresPosition)) {
+                  AddChildOutcome(secondaryToken, status, assertCmd.tok, RelatedPositions, "Call precondition", "call_precondition");
+                }
               }
             }
 

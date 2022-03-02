@@ -228,7 +228,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       public void ReportAssertionBatchResult(Implementation implementation,
         Dictionary<AssertCmd, ConditionGeneration.Outcome> perAssertOutcome,
         Dictionary<AssertCmd, Counterexample> perAssertCounterExamples) {
-        progressReporter.ReportAssertionBatchResult(implementation, perAssertOutcome);
+        progressReporter.ReportAssertionBatchResult(implementation, perAssertOutcome, perAssertCounterExamples);
       }
 
       public void WriteErrorInformation(ErrorInformation errorInfo, TextWriter tw, bool skipExecutionTrace) {
