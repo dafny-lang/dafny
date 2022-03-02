@@ -44,7 +44,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       this.documentLoader = documentLoader;
       this.textChangeProcessor = textChangeProcessor;
       this.relocator = relocator;
-      CommandLineOptions.Clo.ProverOptions = GetProverOptions(this.options);
+      DafnyOptions.O.ProverOptions = GetProverOptions(this.options);
     }
 
     private static List<string> GetProverOptions(DocumentOptions options) {
@@ -142,6 +142,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           Concat(oldDocument.OldVerificationDiagnostics).ToList();
       var migratedVerificationDiagnotics =
         relocator.RelocateDiagnostics(oldVerificationDiagnostics, documentChange, CancellationToken.None);
+      logger.LogDebug($"Migrated {oldVerificationDiagnostics.Count} diagnostics into {migratedVerificationDiagnotics.Count} diagnostics.");
       var oldVerificationNodeDiagnostic =
         oldDocument.VerificationNodeDiagnostic.SetObsolete();
       var migratedVerificationNodeDiagnostics =

@@ -35,7 +35,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         .AddSingleton<IRelocator, Relocator>()
         .AddSingleton<ISymbolGuesser, SymbolGuesser>()
         .AddSingleton<ICompilationStatusNotificationPublisher, CompilationStatusNotificationPublisher>()
-        .AddSingleton<IDiagnosticPublisher, DiagnosticPublisher>();
+        .AddSingleton<ITelemetryPublisher, TelemetryPublisher>();
     }
 
     private static TextDocumentLoader CreateTextDocumentLoader(IServiceProvider services) {

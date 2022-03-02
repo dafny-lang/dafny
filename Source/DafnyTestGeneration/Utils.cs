@@ -38,7 +38,7 @@ namespace DafnyTestGeneration {
     /// </summary>
     public static string CaptureConsoleOutput(Action action) {
 
-      var printer = new ConsolePrinter();
+      var printer = new ConsolePrinter(DafnyOptions.O);
       ExecutionEngine.printer = printer;
       var originalOut = Console.Out;
       var originalErr = Console.Error;

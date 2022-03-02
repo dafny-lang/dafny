@@ -40,6 +40,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private readonly ILoggerFactory loggerFactory;
     private readonly BlockingCollection<Request> requestQueue = new();
     private readonly IOptions<DafnyPluginsOptions> dafnyPluginsOptions;
+    private readonly ILogger<TextDocumentLoader> logger;
     private readonly IDiagnosticPublisher diagnosticPublisher;
 
     private TextDocumentLoader(
@@ -58,6 +59,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       this.ghostStateDiagnosticCollector = ghostStateDiagnosticCollector;
       this.notificationPublisher = notificationPublisher;
       this.loggerFactory = loggerFactory;
+      this.logger = loggerFactory.CreateLogger<TextDocumentLoader>();
       this.dafnyPluginsOptions = dafnyPluginsOptions;
       this.diagnosticPublisher = diagnosticPublisher;
     }
@@ -253,6 +255,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       notificationPublisher.SendStatusNotification(document.Text, compilationStatusAfterVerification);
       // TODO: ability to recover previous positions so that we don't need to start from scratch.
+      logger.LogDebug($"Finished verification with {document.Errors.ErrorCount} errors.");
       return document with {
         OldVerificationDiagnostics = new List<Diagnostic>(),
         SerializedCounterExamples = verificationResult.SerializedCounterExamples,
