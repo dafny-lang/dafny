@@ -214,8 +214,7 @@ module SomeModule {
       var temp1 = directory + "/proverLog";
       testOutputHelper.WriteLine("proverLog: " + temp1);
       options.ProverLogFilePath = temp1;
-      using var engine = ExecutionEngine.CreateWithoutSharedCache(options);
-      {
+      using (var engine = ExecutionEngine.CreateWithoutSharedCache(options)) {
         foreach (var boogieProgram in boogiePrograms) {
           Main.BoogieOnce(engine, "", "", boogieProgram, "programId", out _, out var outcome);
           testOutputHelper.WriteLine("outcome: " + outcome);
