@@ -132,13 +132,14 @@ namespace Microsoft.Dafny {
     /// "tok" can be "null" if "superClasses" is.
     /// </summary>
     protected abstract IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, ConcreteSyntaxTree wr);
-    protected virtual bool SupportsProperties { get => true; }
+    protected virtual bool SupportsProperties => true;
     protected abstract ConcreteSyntaxTree CreateIterator(IteratorDecl iter, ConcreteSyntaxTree wr);
     /// <summary>
     /// Returns an IClassWriter that can be used to write additional members. If "dt" is already written
     /// in the DafnyRuntime.targetlanguage file, then returns "null".
     /// </summary>
     protected abstract IClassWriter/*?*/ DeclareDatatype(DatatypeDecl dt, ConcreteSyntaxTree wr);
+    protected virtual bool DatatypeDeclarationAndMemberCompilationAreSeparate => true;
     /// <summary>
     /// Returns an IClassWriter that can be used to write additional members.
     /// </summary>
@@ -1158,7 +1159,7 @@ namespace Microsoft.Dafny {
           if (Attributes.ContainsBool(d.Attributes, "compile", ref compileIt) && !compileIt) {
             continue;
           }
-          wr.WriteLine();
+          var newLineWriter = wr.Fork();
           if (d is OpaqueTypeDecl) {
             var at = (OpaqueTypeDecl)d;
             bool externP = Attributes.Contains(at.Attributes, "extern");
@@ -1180,7 +1181,7 @@ namespace Microsoft.Dafny {
               DeclareSubsetType(sst, wr);
               v.Visit(sst);
             } else {
-              wr.DeleteLast();
+              continue;
             }
           } else if (d is NewtypeDecl) {
             var nt = (NewtypeDecl)d;
@@ -1196,8 +1197,8 @@ namespace Microsoft.Dafny {
             var w = DeclareDatatype(dt, wr);
             if (w != null) {
               CompileClassMembers(program, dt, w);
-            } else if (this is not CppCompiler) {
-              wr.DeleteLast();
+            } else if (DatatypeDeclarationAndMemberCompilationAreSeparate) {
+              continue;
             }
           } else if (d is IteratorDecl) {
             var iter = (IteratorDecl)d;
@@ -1242,11 +1243,13 @@ namespace Microsoft.Dafny {
             }
           } else if (d is ValuetypeDecl) {
             // nop
-            wr.DeleteLast();
+            continue;
           } else if (d is ModuleDecl) {
             // nop
-            wr.DeleteLast();
+            continue;
           } else { Contract.Assert(false); }
+
+          newLineWriter.WriteLine();
         }
 
         FinishModule();

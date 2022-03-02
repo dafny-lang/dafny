@@ -268,6 +268,8 @@ namespace Microsoft.Dafny {
       return String.Format("{0}_{1}{2}", IdProtect(ctor.EnclosingDatatype.CompileName), ctor.CompileName, args);
     }
 
+    protected override bool DatatypeDeclarationAndMemberCompilationAreSeparate => false;
+
     protected override IClassWriter DeclareDatatype(DatatypeDecl dt, ConcreteSyntaxTree writer) {
       if (dt is TupleTypeDecl) {
         // Tuple types are declared once and for all in DafnyRuntime.h
