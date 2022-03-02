@@ -25,6 +25,9 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     private readonly ILogger logger;
     private readonly VerifierOptions options;
     private readonly SemaphoreSlim mutex = new(1);
+    private readonly VerificationResultCache cache = new();
+
+    DafnyOptions Options => DafnyOptions.O;
 
     private DafnyProgramVerifier(ILogger<DafnyProgramVerifier> logger, VerifierOptions options) {
       this.logger = logger;
@@ -74,13 +77,14 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         // VerificationNotificationTest and DiagnosticsTest that rely on updating these settings.
         DafnyOptions.O.TimeLimit = options.TimeLimit;
         DafnyOptions.O.VcsCores = GetConfiguredCoreCount(options);
+        var executionEngine = new ExecutionEngine(DafnyOptions.O, cache);
         var translated = Translator.Translate(program, errorReporter, new Translator.TranslatorFlags { InsertChecksums = true });
         bool verified = true;
         var programId = program.FullName;
         foreach (var (moduleName, boogieProgram) in translated) {
           cancellationToken.ThrowIfCancellationRequested();
           var boogieProgramId = (programId ?? "main_program_id") + "_" + moduleName;
-          var verificationResult = VerifyWithBoogie(boogieProgram, cancellationToken, boogieProgramId);
+          var verificationResult = VerifyWithBoogie(executionEngine, boogieProgram, cancellationToken, boogieProgramId);
           verified = verified && verificationResult;
         }
         return new VerificationResult(verified, printer.SerializedCounterExamples);
@@ -90,14 +94,15 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
     }
 
-    private bool VerifyWithBoogie(Boogie.Program program, CancellationToken cancellationToken, string programId) {
-      program.Resolve();
-      program.Typecheck();
+    private bool VerifyWithBoogie(ExecutionEngine engine, Boogie.Program program, CancellationToken cancellationToken, string programId) {
+      program.Resolve(engine.Options);
+      program.Typecheck(engine.Options);
 
-      ExecutionEngine.EliminateDeadVariables(program);
-      ExecutionEngine.CollectModSets(program);
-      ExecutionEngine.CoalesceBlocks(program);
-      ExecutionEngine.Inline(program);
+      engine.EliminateDeadVariables(program);
+      engine.CollectModSets(program);
+      engine.CoalesceBlocks(program);
+      engine.Inline(program);
+
       // TODO The requestId is used to cancel a verification.
       //      However, the cancelling a verification is currently not possible since it blocks a text document
       //      synchronization event which are serialized. Thus, no event is processed until the pending
@@ -106,7 +111,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       using (cancellationToken.Register(() => CancelVerification(uniqueRequestId))) {
         try {
           var statistics = new PipelineStatistics();
-          var outcome = ExecutionEngine.InferAndVerify(program, statistics, programId, null, uniqueRequestId);
+          var outcome = engine.InferAndVerify(program, statistics, programId, null, uniqueRequestId);
           return Main.IsBoogieVerified(outcome, statistics);
         } catch (Exception e) when (e is not OperationCanceledException) {
           if (!cancellationToken.IsCancellationRequested) {
