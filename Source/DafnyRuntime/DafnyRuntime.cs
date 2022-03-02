@@ -1199,7 +1199,7 @@ namespace Dafny {
 
       while (toVisit.Count != 0) {
         var seq = toVisit.Pop();
-        if (seq is ConcatSequence<T> { elmts: { IsDefault: true } } cs) {
+        if (seq is ConcatSequence<T> cs && cs.elmts.IsDefault) {
           (leftBuffer, rightBuffer) = (cs.left, cs.right);
           if (cs.left == null || cs.right == null) {
             // !cs.elmts.IsDefault, due to concurrent enumeration
