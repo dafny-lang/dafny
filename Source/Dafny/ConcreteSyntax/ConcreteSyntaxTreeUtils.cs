@@ -43,39 +43,39 @@ namespace Microsoft.Dafny {
       return result;
     }
     public static ConcreteSyntaxTree ExprBlock(out ConcreteSyntaxTree body, string header = "", string footer = "") {
-      return Block(out body, header, footer, BraceStyle.Space, BraceStyle.Brace);
+      return Block(out body, header, footer, BlockStyle.SpaceBrace, BlockStyle.Brace);
     }
 
     public static ConcreteSyntaxTree Block(out ConcreteSyntaxTree body, string header = "", string footer = "",
-      BraceStyle open = BraceStyle.Space,
-      BraceStyle close = BraceStyle.Newline) {
+      BlockStyle open = BlockStyle.SpaceBrace,
+      BlockStyle close = BlockStyle.NewlineBrace) {
       var outer = new ConcreteSyntaxTree();
 
       outer.Write(header);
       switch (open) {
-        case BraceStyle.Space:
+        case BlockStyle.SpaceBrace:
           outer.Write(" ");
           outer.WriteLine("{");
           break;
-        case BraceStyle.Newline:
+        case BlockStyle.NewlineBrace:
           outer.WriteLine();
           outer.WriteLine("{");
           break;
-        case BraceStyle.NewlineNoBrace:
+        case BlockStyle.NewlineNoBrace:
           outer.WriteLine();
           break;
-        case BraceStyle.Brace:
+        case BlockStyle.Brace:
           outer.WriteLine("{");
           break;
-        case BraceStyle.Nothing:
+        case BlockStyle.Nothing:
           break;
       }
 
 
       body = outer.Fork(1);
       switch (open) {
-        case BraceStyle.NewlineNoBrace:
-        case BraceStyle.Nothing:
+        case BlockStyle.NewlineNoBrace:
+        case BlockStyle.Nothing:
           break;
         default:
           outer.Write("}");
@@ -86,13 +86,13 @@ namespace Microsoft.Dafny {
         outer.Write(footer);
       }
       switch (close) {
-        case BraceStyle.Space:
+        case BlockStyle.SpaceBrace:
           outer.Write(" ");
           break;
-        case BraceStyle.Newline:
+        case BlockStyle.NewlineBrace:
           outer.WriteLine();
           break;
-        case BraceStyle.NewlineNoBrace:
+        case BlockStyle.NewlineNoBrace:
           outer.WriteLine();
           break;
       }

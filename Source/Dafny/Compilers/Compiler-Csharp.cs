@@ -1149,7 +1149,7 @@ namespace Microsoft.Dafny {
         return null;
       }
 
-      var block = wr.NewBlock(open: BraceStyle.Newline);
+      var block = wr.NewBlock(open: BlockStyle.NewlineBrace);
       if (returnType != "void" && !forBodyInheritance) {
         var beforeReturnBlock = block.Fork();
         EmitReturn(m.Outs, block);
@@ -1222,12 +1222,12 @@ namespace Microsoft.Dafny {
         return null;
       }
 
-      return wr.NewBlock(open: formals.Count > 1 ? BraceStyle.Newline : BraceStyle.Space);
+      return wr.NewBlock(open: formals.Count > 1 ? BlockStyle.NewlineBrace : BlockStyle.SpaceBrace);
     }
 
     protected ConcreteSyntaxTree/*?*/ CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, ConcreteSyntaxTree wr) {
       ConcreteSyntaxTree/*?*/ result = null;
-      var body = createBody ? Block(out result, close: BraceStyle.Brace) : new ConcreteSyntaxTree().Write(";");
+      var body = createBody ? Block(out result, close: BlockStyle.Brace) : new ConcreteSyntaxTree().Write(";");
       wr.FormatLine($"{Keywords(createBody, isStatic)}{TypeName(resultType, wr, tok)} {name} {{ get{body} }}");
       return result;
     }
