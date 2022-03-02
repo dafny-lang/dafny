@@ -5,7 +5,8 @@
 - fix: No warning "File contains no code" if a file only contains a submodule (https://github.com/dafny-lang/dafny/pull/1840)
 - fix: export-reveals of function-by-method now allows the function body to be ghost (https://github.com/dafny-lang/dafny/pull/1855)
 - fix: Regain C# 7.3 compatibility of the compiled code. (https://github.com/dafny-lang/dafny/pull/1877)
-
+- fix: Plug two memory leaks in Dafny's verification server (#1858, #1863)
+- fix: Generate missing termination measures for subset types on sequences (#1875)
 
 # 3.4.2
 
