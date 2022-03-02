@@ -56,7 +56,7 @@ jobs:
     - name: Build
       run: dotnet build --no-restore ${{env.solutionPath}}
     - name: Run DafnyLanguageServer Tests
-      run: dotnet test --no-restore --verbosity diagnostic --logger trx Source/DafnyLanguageServer.Test
+      run: dotnet test --no-restore --verbosity normal --logger trx Source/DafnyLanguageServer.Test
     - name: Run DafnyPipeline Tests
       run: dotnet test --no-restore --verbosity normal --logger trx Source/DafnyPipeline.Test
     - name: Run DafnyTestGeneration Tests
