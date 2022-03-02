@@ -57,7 +57,7 @@ public class PluginsTest {
     var library = GetLibrary("simplePlugin");
 
     var reporter = new CollectionErrorReporter();
-    var options = new DafnyOptions(reporter);
+    var options = new DafnyOptions();
     options.Plugins.Add(Plugin.Load(library, new string[] { "because whatever" }));
     DafnyOptions.Install(options);
 
@@ -78,7 +78,7 @@ public class PluginsTest {
     var library = GetLibrary("secondPlugin");
 
     var reporter = new CollectionErrorReporter();
-    var options = new DafnyOptions(reporter);
+    var options = new DafnyOptions();
     options.Plugins.Add(Plugin.Load(library, new string[] { "ignored arguments" }));
     DafnyOptions.Install(options);
 
