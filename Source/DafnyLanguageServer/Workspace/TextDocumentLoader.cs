@@ -385,7 +385,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         } else {
           implementationNode.Stop();
           implementationNode.ResourceCount = verificationResult.ResourceCount;
-          if (verificationResult.Errors != null) {
+          /*if (verificationResult.Errors != null) {
             var errorCount = 1;
 
             void AddChildError(IToken token, string errorDisplay = "", string errorIdentifier = "") {
@@ -429,7 +429,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
               }
               errorCount++;
             }
-          }
+          }*/
           implementationNode.SaveNewChildren();
 
           lock (LockProcessing) {
@@ -477,7 +477,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         } else if (implementationNode == null) {
           logger.LogError($"No implementation at {implementation.tok}");
         } else {
-          lock (targetMethodNode) {
+          lock (LockProcessing) {
             void AddChildOutcome(IToken token,
               NodeVerificationStatus status, string assertDisplay = "", string assertIdentifier = "") {
               var errorPosition = TokenToPosition(token);

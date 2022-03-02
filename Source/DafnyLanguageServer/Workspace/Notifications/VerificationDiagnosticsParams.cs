@@ -153,12 +153,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     ErrorRangeObsolete = 7,
     ErrorRangeVerifying = 8,
     ErrorRange = 9,
+    // For individual assertions in error ranges
+    ErrorRangeAssertionVerifiedObsolete = 10,
+    ErrorRangeAssertionVerifiedVerifying = 11,
+    ErrorRangeAssertionVerified = 12,
     // For specific lines which have errors on it.
-    ErrorObsolete = 10,
-    ErrorVerifying = 11,
-    Error = 12,
+    ErrorObsolete = 13,
+    ErrorVerifying = 14,
+    Error = 15,
     // For lines containing resolution or parse errors
-    ResolutionError = 13
+    ResolutionError = 16
   }
 
   public record NodeDiagnostic(
@@ -267,37 +271,61 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       }
     }
 
-    public void RenderInto(LineVerificationStatus[] perLineDiagnostics) {
+    public void RenderInto(LineVerificationStatus[] perLineDiagnostics, bool contextHasErrors = false) {
       foreach (var child in Children) {
-        child.RenderInto(perLineDiagnostics);
+        child.RenderInto(perLineDiagnostics, IsStatusError());
       }
       for (var line = Range.Start.Line - 1; line <= Range.End.Line - 1; line++) {
-        if (StatusSeverityOf(perLineDiagnostics[line]) < StatusSeverityOf(Status)) {
-          if (Children.Count == 0 && !IsAlwaysRange) { // Not a range
-            perLineDiagnostics[line] = Status switch {
-              NodeVerificationStatus.Error => LineVerificationStatus.Error,
-              NodeVerificationStatus.ErrorVerifying => LineVerificationStatus.ErrorVerifying,
-              NodeVerificationStatus.ErrorObsolete => LineVerificationStatus.ErrorObsolete,
-              NodeVerificationStatus.VerifiedObsolete => LineVerificationStatus.VerifiedObsolete,
-              NodeVerificationStatus.VerifiedVerifying => LineVerificationStatus.VerifiedVerifying,
-              NodeVerificationStatus.Scheduled => LineVerificationStatus.Scheduled,
-              NodeVerificationStatus.Verifying => LineVerificationStatus.Verifying,
-              var status => (LineVerificationStatus)(int)status
-            };
-          } else { // For a range, 
-            perLineDiagnostics[line] = Status switch {
-              NodeVerificationStatus.Error => LineVerificationStatus.ErrorRange,
-              NodeVerificationStatus.ErrorVerifying => LineVerificationStatus.ErrorRangeVerifying,
-              NodeVerificationStatus.ErrorObsolete => LineVerificationStatus.ErrorRangeObsolete,
-              NodeVerificationStatus.VerifiedObsolete => LineVerificationStatus.VerifiedObsolete,
-              NodeVerificationStatus.VerifiedVerifying => LineVerificationStatus.VerifiedVerifying,
-              NodeVerificationStatus.Scheduled => LineVerificationStatus.Scheduled,
-              NodeVerificationStatus.Verifying => LineVerificationStatus.Verifying,
-              var status => (LineVerificationStatus)(int)status
-            };
-          }
+        LineVerificationStatus targetStatus;
+        switch (Status) {
+          case NodeVerificationStatus.Verified when contextHasErrors:
+            targetStatus = LineVerificationStatus.ErrorRangeAssertionVerified;
+            break;
+          case NodeVerificationStatus.Verifying when contextHasErrors:
+            targetStatus = LineVerificationStatus.ErrorRangeAssertionVerifiedVerifying;
+            break;
+          case NodeVerificationStatus.VerifiedObsolete when contextHasErrors:
+            targetStatus = LineVerificationStatus.ErrorRangeAssertionVerifiedObsolete;
+            break;
+          default: {
+              if (Children.Count == 0 && !IsAlwaysRange) { // Not a range
+                targetStatus = Status switch {
+                  NodeVerificationStatus.Error => LineVerificationStatus.Error,
+                  NodeVerificationStatus.ErrorVerifying => LineVerificationStatus.ErrorVerifying,
+                  NodeVerificationStatus.ErrorObsolete => LineVerificationStatus.ErrorObsolete,
+                  NodeVerificationStatus.VerifiedObsolete => LineVerificationStatus.VerifiedObsolete,
+                  NodeVerificationStatus.VerifiedVerifying => LineVerificationStatus.VerifiedVerifying,
+                  NodeVerificationStatus.Scheduled => LineVerificationStatus.Scheduled,
+                  NodeVerificationStatus.Verifying => LineVerificationStatus.Verifying,
+                  var status => (LineVerificationStatus)(int)status
+                };
+              } else { // For a range, 
+                targetStatus = Status switch {
+                  NodeVerificationStatus.Error => LineVerificationStatus.ErrorRange,
+                  NodeVerificationStatus.ErrorVerifying => LineVerificationStatus.ErrorRangeVerifying,
+                  NodeVerificationStatus.ErrorObsolete => LineVerificationStatus.ErrorRangeObsolete,
+                  NodeVerificationStatus.VerifiedObsolete => LineVerificationStatus.VerifiedObsolete,
+                  NodeVerificationStatus.VerifiedVerifying => LineVerificationStatus.VerifiedVerifying,
+                  NodeVerificationStatus.Scheduled => LineVerificationStatus.Scheduled,
+                  NodeVerificationStatus.Verifying => LineVerificationStatus.Verifying,
+                  var status => (LineVerificationStatus)(int)status
+                };
+              }
+
+              break;
+            }
+        }
+        if (StatusSeverityOf(perLineDiagnostics[line]) < StatusSeverityOf(targetStatus)) {
+          perLineDiagnostics[line] = targetStatus;
         }
       }
+    }
+
+    private bool IsStatusError() {
+      return Status == NodeVerificationStatus.Error ||
+             Status == NodeVerificationStatus.Inconclusive ||
+             Status == NodeVerificationStatus.ErrorObsolete ||
+             Status == NodeVerificationStatus.ErrorVerifying;
     }
 
     // Returns true if a status was updated

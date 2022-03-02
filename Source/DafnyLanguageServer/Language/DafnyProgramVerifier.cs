@@ -218,7 +218,9 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         return progressReporter.GetVerificationPriority(implTok);
       }
 
-      public void ReportAssertionBatchResult(Implementation implementation, Dictionary<AssertCmd, ConditionGeneration.Outcome> perAssertOutcome) {
+      public void ReportAssertionBatchResult(Implementation implementation,
+        Dictionary<AssertCmd, ConditionGeneration.Outcome> perAssertOutcome,
+        Dictionary<AssertCmd, Counterexample> perAssertCounterExamples) {
         progressReporter.ReportAssertionBatchResult(implementation, perAssertOutcome);
       }
 
