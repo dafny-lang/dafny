@@ -21,7 +21,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     void ReportErrorFindItsMethod(IToken tok, string message);
     int GetVerificationPriority(IToken implTok);
     void ReportImplementationsBeforeVerification(Implementation[] implementations);
-    void ReportAssertionBatchResult(Implementation implementation,
+    void ReportAssertionBatchResult(Split implementation,
       Dictionary<AssertCmd, ConditionGeneration.Outcome> perAssertOutcome,
       Dictionary<AssertCmd, Counterexample> perAssertCounterExample);
   }

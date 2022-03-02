@@ -364,7 +364,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           if (implementationNode == null) {
             logger.LogError($"No implementation at {implementation.tok}");
           } else {
-            implementationNode.AssertionBatchCount = 0;
+            implementationNode.AssertionBatchTimes = new();
             implementationNode.Start();
           }
 
@@ -440,10 +440,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         };
       }
 
-      public void ReportAssertionBatchResult(
-          Implementation implementation,
-          Dictionary<AssertCmd, ConditionGeneration.Outcome> perAssertOutcome,
-          Dictionary<AssertCmd, Counterexample> perAssertCounterExample) {
+      public void ReportAssertionBatchResult(Split split,
+        Dictionary<AssertCmd, ConditionGeneration.Outcome> perAssertOutcome,
+        Dictionary<AssertCmd, Counterexample> perAssertCounterExample) {
+        var implementation = split.Implementation;
         // While there is no error, just add successful nodes.
         var targetMethodNode = GetTargetMethodNode(implementation, out var implementationNode);
         if (targetMethodNode == null) {
@@ -452,8 +452,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           logger.LogError($"No implementation node at {implementation.tok.filename}:{implementation.tok.line}:{implementation.tok.col}");
         } else {
           lock (LockProcessing) {
-            implementationNode.AssertionBatchCount += 1;
-            // TODO: Attach the full trace if possible
+            implementationNode.AssertionBatchTimes.Add((int)split.Checker.ProverRunTime.TotalMilliseconds);
+
+            // Attaches the trace
             void AddChildOutcome(IToken token,
               NodeVerificationStatus status, IToken? secondaryToken, List<IToken> relatedTokens, string? assertDisplay = "", string assertIdentifier = "") {
               if (token.filename != implementationNode.Filename) {
@@ -505,7 +506,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
                 counterexample is CallCounterexample callCounterexample ? callCounterexample.FailingRequires.tok :
                 null;
               List<IToken> RelatedPositions = counterexample != null ?
-                counterexample.Trace.Select(block => block.TransferCmd?.tok).OfType<IToken>().ToList() : new();
+                counterexample.Trace.SelectMany(block => {
+                  var tokens = new List<IToken>();
+                  if (block.TransferCmd != null) {
+                    tokens.Add(block.TransferCmd.tok);
+                  }
+                  tokens.AddRange(block.cmds.Select(cmd => cmd.tok));
+                  return tokens;
+                }).ToList() : new();
               if (assertCmd is AssertEnsuresCmd assertEnsuresCmd) {
                 AddChildOutcome(assertEnsuresCmd.Ensures.tok, status, secondaryToken, RelatedPositions, " ensures", "_ensures");
                 if (secondaryToken == null) {

@@ -192,10 +192,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     public int TimeSpent => (int)(Finished ? ((TimeSpan)(EndTime - StartTime)).TotalMilliseconds : Started ? (DateTime.Now - StartTime).TotalMilliseconds : 0);
     public int MaximumChildTimeSpent => Children.Any() ? Children.Max(child => child.TimeSpent) : TimeSpent;
     // Resources allocated at the end of the computation.
-
+    public int VerificationPathTimeLongest => AssertionBatchTimes.Any() ? AssertionBatchTimes.Max() :
+      Children.Any() ? Children.Max(child => child.VerificationPathTimeLongest) : 0;
+    public int VerificationPathTimeCount => AssertionBatchTimes.Any() ? AssertionBatchTimes.Count() :
+      Children.Any() ? Children.Sum(child => child.VerificationPathTimeCount) : 0;
     public int ResourceCount { get; set; } = 0;
 
-    public int AssertionBatchCount { get; set; } = 0;
+    public List<int> AssertionBatchTimes { get; set; } = new();
 
     // If this node is an error, all the trace positions
     public List<Position> RelatedPositions { get; set; } = new();
@@ -275,6 +278,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
         var childSeverity = StatusSeverityOf(child.Status);
         if (childSeverity > severity) {
           childrenStatus = child.Status;
+          severity = childSeverity;
         }
       }
 
