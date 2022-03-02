@@ -96,19 +96,17 @@ Const declarations can be refined as in the following example.
 
 ```
 module A {
-  const ToDefine : int
-  const ToDefineWithoutType : int
-  const ToGhost : int := 1
+  const ToDefine: int
+  const ToDefineWithoutType: int
+  const ToGhost: int := 1
 }
 
 module B refines A {
-  const ToDefine : int := 2
+  const ToDefine: int := 2
   const ToDefineWithoutType ... := 3
-  ghost const ToGhost : int
-  const NewConst : int
+  ghost const ToGhost: int
+  const NewConst: int
 }
-
-
 ```
 
 Formally, a child `const` declaration may refine a `const` declaration
@@ -143,8 +141,8 @@ module A {
 
   method ToSuperimpose(x: int) returns (r: int)
   {
-    var y : int := x;
-    if (y < 0) {
+    var y: int := x;
+    if y < 0 {
       return -y;
     } else {
       return y;
@@ -173,7 +171,7 @@ module B refines A {
   method ToSuperimpose(x: int) returns (r: int)
   {
     ...;
-    if (y < 0) {
+    if y < 0 {
       print "inverting";
     } else {
       print "not modifying";
@@ -220,7 +218,7 @@ The refinement result for `ToSuperimpose` will be as follows.
 method ToSuperimpose(x: int) returns (r: int)
 {
   var y: int := x;
-  if (y < 0) {
+  if y < 0 {
     print "inverting";
     return -y;
   } else {
@@ -263,10 +261,10 @@ the following example.
 
 ```
 module A {
-  function F(x: int) : (r: int)
+  function F(x: int): (r: int)
     ensures r > x
 
-  function G(x: int) : (r: int)
+  function G(x: int): (r: int)
     ensures r > x
   { x + 1 }
 }
@@ -278,7 +276,6 @@ module B refines A {
   function G...
     ensures r == x + 1
 }
-
 ```
 
 Formally, a child `function` (or `predicate`) definition can refine a
