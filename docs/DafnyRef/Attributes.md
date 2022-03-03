@@ -426,7 +426,7 @@ Set the time limit for a given implementation.
 ### 22.2.3. Verification attributes functions
 
 #### 22.2.3.1. `{:builtin "spec"}`
-#### 22.2.3.2 `{:bvbuiltin "spec"}`
+#### 22.2.3.2. `{:bvbuiltin "spec"}`
 Rewrite the function to built-in prover function symbol 'fn'.
 
 #### 22.2.3.3. `{:inline}`
@@ -549,7 +549,7 @@ method doFocus(x: bool) returns (y: int) {
 -->
 
 
-### 22.2.6 Other undocumented verification attributes
+### 22.2.6. Other undocumented verification attributes
 
 A scan of Boogie's sources shows it checks for the
 following attributes.
