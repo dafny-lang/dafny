@@ -479,6 +479,7 @@ and 2) every preceding assumptions (and previous assertions transformed in assum
 [^complexity-path-encoding]: All the complexities of the execution paths (if-then-else, loops, goto, break....) are, down the road and for verification purposes, cleverly encoded with variables recording the paths and guarding assumptions made on each path. In practice, a second clever encoding of variables enables grouping many assertions together, and recovers which assertion is failing based on the value of variables that the SMT solver returns.
 
 To achieve higher verification performance, Dafny collects all the assertions of one method into one single conjecture (an _assertion batch_) that it sends to the verifier, which tries to prove it correct:
+
 * If the verifier says it is correct[^smt-encoding], it means that all the assertions hold.
 * If the verifier returns a counter-example, this counter-example is used to determine both the failing assertion and the failing path.
   Dafny will then query again the verifier with the assumption that that particular assert is valid, so that it can retrieve other failing assertions happening afterwards.[^caveat-about-assertion-and-assumption]
