@@ -365,12 +365,12 @@ Dafny passes verification attributes that have been specified to its dependency 
 Use the "/attrHelp" option to get the list of attributes
 recognized by Boogie and their meaning.
 
-### 22.2.1 Verification attributes on top-level declarations
+### 22.2.1. Verification attributes on top-level declarations
 
-#### 22.2.1.1 `{:ignore}`
+#### 22.2.1.1. `{:ignore}`
 Ignore the declaration (after checking for duplicate names).
 
-#### 22.2.1.2 `{:extern}` {#sec-extern}
+#### 22.2.1.2. `{:extern}` {#sec-extern}
 If two top-level declarations introduce the same name (for example, two
 constants with the same name or two procedures with the same name), then
 Boogie usually produces an error message.  However, if at least one of
@@ -379,13 +379,13 @@ ignored.  If both declarations are :extern, Boogie arbitrarily chooses
 one of them to keep; otherwise, Boogie ignore the :extern declaration
 and keeps the other.
 
-#### 22.2.1.3 `{:checksum <string>}`
+#### 22.2.1.3. `{:checksum <string>}`
 
 Attach a checksum to be used for verification result caching.
 
-### 22.2.2 Verification attributes on functions and methods
+### 22.2.2. Verification attributes on functions and methods
 
-#### 22.2.2.1 `{:inline N}`
+#### 22.2.2.1. `{:inline N}`
      
 Inline given procedure (can be also used on implementation).
 N should be a non-negative number and represents the inlining depth.
@@ -395,67 +395,67 @@ With `/inline:spec`, call is left as is once inlining depth is reached.
 With the above three options, methods with the attribute `{:inline N}` are not verified.
 With `/inline:none` the entire attribute is ignored.
 
-#### 22.2.2.2 `{:verify false}` {#sec-verify}
+#### 22.2.2.2. `{:verify false}` {#sec-verify}
      
 Skip verification of an implementation alltogether
 
-#### 22.2.2.3 `{:vcs_max_cost N}`
-#### 22.2.2.4 `{:vcs_max_splits N}`
-#### 22.2.2.5 `{:vcs_max_keep_going_splits N}`
+#### 22.2.2.3. `{:vcs_max_cost N}`
+#### 22.2.2.4. `{:vcs_max_splits N}`
+#### 22.2.2.5. `{:vcs_max_keep_going_splits N}`
 Per-implementation versions of
 `/vcsMaxCost`, `/vcsMaxSplits` and `/vcsMaxKeepGoingSplits`.
 
-#### 22.2.2.6 `{:selective_checking true}`
+#### 22.2.2.6. `{:selective_checking true}`
 Turn all asserts into assumes except for the ones reachable from
 assumptions marked with the attribute `{:start_checking_here}`.
 Thus, `assume {:start_checking_here} something;` becomes an inverse
 of `assume false;`: the first one disables all verification before
 it, and the second one disables all verification after.
 
-#### 22.2.2.7 `{:priority N}`
+#### 22.2.2.7. `{:priority N}`
 Assign a positive priority 'N' to an implementation to control the order
 in which implementations are verified (default: N = 1).
 
-#### 22.2.2.8 `{:id <string>}`
+#### 22.2.2.8. `{:id <string>}`
 Assign a unique ID to an implementation to be used for verification
 result caching (default: "<impl. name>:0").
 
-#### 22.2.2.9 `{:timeLimit N}`
+#### 22.2.2.9. `{:timeLimit N}`
 Set the time limit for a given implementation.
 
-### 22.2.3 Verification attributes functions
+### 22.2.3. Verification attributes functions
 
-#### 22.2.3.1 `{:builtin "spec"}`
+#### 22.2.3.1. `{:builtin "spec"}`
 #### 22.2.3.2 `{:bvbuiltin "spec"}`
 Rewrite the function to built-in prover function symbol 'fn'.
 
-#### 22.2.3.3 `{:inline}`
+#### 22.2.3.3. `{:inline}`
 `{:inline}` or `{:inline true}` expands function according to its definition before going to the prover.
 
-#### 22.2.3.4 `{:never_pattern true}`
+#### 22.2.3.4. `{:never_pattern true}`
 Terms starting with this function symbol will never be
 automatically selected as patterns. It does not prevent them
 from being used inside the triggers, and does not affect explicit
 trigger annotations. Internally it works by adding `{:nopats ...}`
 annotations to quantifiers.
 
-#### 22.2.3.5 `{:identity}`
+#### 22.2.3.5. `{:identity}`
 If the function annotated with `{:identity}` or `{:identity true}` has 1 argument and the use of it has type X->X for
 some X, then the abstract interpreter will treat the function as an
 identity function.  Note, the abstract interpreter trusts the
 attribute--it does not try to verify that the function really is an
 identity function.
 
-### 22.2.4 Verification attributes on variables
+### 22.2.4. Verification attributes on variables
 
-#### 22.2.4.1 `{:existential true}`
+#### 22.2.4.1. `{:existential true}`
 Marks a global Boolean variable as existentially quantified. If
 used in combination with option `/contractInfer` Boogie will check
 whether there exists a Boolean assignment to the existentials
 that makes all verification conditions valid.  Without option
 `/contractInfer` the attribute is ignored.
 
-### 22.2.5 Verification attributes on assert statements {#sec-verification-attributes-on-assert-statements}
+### 22.2.5. Verification attributes on assert statements {#sec-verification-attributes-on-assert-statements}
 
 To understand how to tweak verification,
 it is first useful to understand how Dafny verifies functions or methods.
@@ -492,7 +492,7 @@ To achieve higher verification performance, Dafny collects all the assertions of
 This is where the following annotations `{:focus}` and `{:split_here}` come it.
 They enables to manually force the verifier to split assertions into two lists, so that both of them can verify usually independently faster than the original problem, although the total verification time, if not using parallel cores, can double at most.
 
-#### 22.2.5.1 `{:focus}`
+#### 22.2.5.1. `{:focus}`
 Splits verification into two problems. First problem deletes all paths
 that do not have the focus block. Second problem considers the paths
 deleted in the first problem and does not contain either the focus block
@@ -514,7 +514,7 @@ method doFocus(x: bool) returns (y: int) {
 }
 ```
 
-#### 22.2.5.2 `{:split_here}`
+#### 22.2.5.2. `{:split_here}`
 Verifies code leading to this point and code leading from this point
 to the next `{:split_here}` as separate pieces. May help with timeouts.
 May also occasionally double-report errors.
@@ -528,9 +528,14 @@ method doFocus(x: bool) returns (y: int) {
   assert y >= 1;   // Assumed in list #1, Assert in list #2
 }
 ```
+
+#### 22.2.5.3. `{:subsumption n}`
+Overrides the `/subsumption` command-line setting for this assertion.
+
+
 <!--
 This is not working in Dafny and shouldn't be documented until so.
-#### 22.2.5.3 `{:msg <string>}`
+#### 22.2.5.4. `{:msg <string>}`
      
 Prints <string> rather than the standard message for assertion failure.
 Also applicable to requires and ensures declarations.
@@ -542,9 +547,6 @@ method doFocus(x: bool) returns (y: int) {
 }
 ```
 -->
-
-#### 22.2.5.4 `{:subsumption n}`
-Overrides the `/subsumption` command-line setting for this assertion.
 
 
 ### 22.2.6 Other undocumented verification attributes
