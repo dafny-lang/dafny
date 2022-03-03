@@ -102,7 +102,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       engine.CollectModSets(program);
       engine.CoalesceBlocks(program);
       engine.Inline(program);
-      
+
       var uniqueRequestId = Guid.NewGuid().ToString();
       using (cancellationToken.Register(() => CancelVerification(uniqueRequestId))) {
         try {
