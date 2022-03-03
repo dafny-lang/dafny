@@ -478,12 +478,14 @@ and 2) every preceding assumptions (and previous assertions transformed in assum
 
 [^complexity-path-encoding]: All the complexities of the execution paths (if-then-else, loops, goto, break....) are, down the road and for verification purposes, cleverly encoded with variables recording the paths and guarding assumptions made on each path. In practice, a second clever encoding of variables enables grouping many assertions together, and recovers which assertion is failing based on the value of variables that the SMT solver returns.
 
-So, unless otherwise specified. Dafny will encode all the assumptions and assertions into a single SMT formula and try to find counter-examples.
-* If the SMT solver returns `unsat`, it means that all the assertions hold and Dafny is done.
-* If the SMT solver returns `sat`, the value obtained from the model are mapped back into both the failing assertion and the failing path.
-  Dafny will then query again the SMT solver with the assumption that the assert is valid (meaning the counter-example won't hold anymore), so that it can retrieve other failing assertions if possible.[^caveat-about-assertion-and-assumption]
-* If the SMT solver returns `unknown` or times out, Dafny will duplicate the list of assertions, and ensure every assertion is transformed into an assumption in exactly one list, so that the assertions of the two new lists form a partition of the original list.
-  This results in "easier" formulas for the SMT solver because it has less to prove, but it takes more overhead because every verification instance have a common set of axioms and there is no knowledge sharing between instances because they run independently.
+So, unless otherwise specified. the Dafny verifier will encode all the assumptions and assertions into a single conjecture formula and try to prove it correct.
+* If the verifier says it is correct[^smt-encoding], it means that all the assertions hold and Dafny is done.
+* If the verifier returns a counter-example, this counter-example is used to determine both the failing assertion and the failing path.
+  Dafny will then query again the SMT solver with the assumption that the assert is valid, so that it can retrieve other failing assertions if possible.[^caveat-about-assertion-and-assumption]
+* If the verifier returns `unknown` or times out, Dafny will duplicate the list of assertions, and ensure every assertion is transformed into an assumption in exactly one list, so that the assertions of the two new lists form a partition of the original list.
+  This results in "easier" formulas for the verifier because it has less to prove, but it takes more overhead because every verification instance have a common set of axioms and there is no knowledge sharing between instances because they run independently.
+
+[^smt-encoding]: The formula sent to the underlying SMT solver is the negation of the formula that the verifier wants to prove. Hence, if the SMT solver returns "unsat", it means that the SMT formula is always false, meaning the verifier's formula is always true. On the other side, if the SMT solver returns "sat", it means that the SMT formula can be made true with a special variable assignment, which means that the verifier's formula is false under that same variable assignment, meaning it's a counter-example for the verifier.
 
 [^caveat-about-assertion-and-assumption]: Caveat about assertion and assumption: One big difference between an "assertion transformed in an assumption" and the original "assertion" is that the original "assertion" can unroll functions twice, whereas the "assumed assertion" can unroll them only once. Hence, Dafny can still continue to analyze assertions after a failing assertion without automatically proving "false" (which would make all further assertions to prove automatically).
 
