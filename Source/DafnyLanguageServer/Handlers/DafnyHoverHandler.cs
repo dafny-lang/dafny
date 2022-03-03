@@ -49,13 +49,15 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         if (nodeDiagnostic.Position.Line == position.Line + 1 &&
             nodeDiagnostic.Filename == document.Uri.GetFileSystemPath()) {
           var information = "**" + nodeDiagnostic.DisplayName + "** metrics:\n\n";
+          var assertionBatch =
+            "[assertion batch](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-verification-attributes-on-assert-statements)";
           information +=
               !nodeDiagnostic.Started ? "_Verification not started yet_"
               : !nodeDiagnostic.Finished ?
                 $"_Still verifying..._  \n{nodeDiagnostic.TimeSpent:n0}ms elapsed"
               : (nodeDiagnostic.VerificationPathTimeCount == 1 ?
-                $"{nodeDiagnostic.VerificationPathTimeLongest:n0}ms in 1 assertion batch  \n" :
-                $"{nodeDiagnostic.VerificationPathTimeLongest:n0}ms for the most time-consuming assertion batch among {nodeDiagnostic.VerificationPathTimeCount} batches   \n") +
+                $"{nodeDiagnostic.VerificationPathTimeLongest:n0}ms in 1 {assertionBatch}  \n" :
+                $"{nodeDiagnostic.VerificationPathTimeLongest:n0}ms for the most time-consuming {assertionBatch} among {nodeDiagnostic.VerificationPathTimeCount} batches   \n") +
                 $"{nodeDiagnostic.ResourceCount:n0} resource units";
           return new Hover {
             Contents = new MarkedStringsOrMarkupContent(
