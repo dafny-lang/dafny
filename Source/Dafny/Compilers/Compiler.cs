@@ -132,13 +132,14 @@ namespace Microsoft.Dafny {
     /// "tok" can be "null" if "superClasses" is.
     /// </summary>
     protected abstract IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, ConcreteSyntaxTree wr);
-    protected virtual bool SupportsProperties { get => true; }
+    protected virtual bool SupportsProperties => true;
     protected abstract ConcreteSyntaxTree CreateIterator(IteratorDecl iter, ConcreteSyntaxTree wr);
     /// <summary>
     /// Returns an IClassWriter that can be used to write additional members. If "dt" is already written
     /// in the DafnyRuntime.targetlanguage file, then returns "null".
     /// </summary>
     protected abstract IClassWriter/*?*/ DeclareDatatype(DatatypeDecl dt, ConcreteSyntaxTree wr);
+    protected virtual bool DatatypeDeclarationAndMemberCompilationAreSeparate => true;
     /// <summary>
     /// Returns an IClassWriter that can be used to write additional members.
     /// </summary>
@@ -502,7 +503,7 @@ namespace Microsoft.Dafny {
       wr.Write("if (");
       guardWriter = wr.Fork();
       if (hasElse) {
-        var thn = wr.NewBlock(")", " else", BraceStyle.Space, BraceStyle.Space);
+        var thn = wr.NewBlock(")", " else", BlockStyle.SpaceBrace, BlockStyle.SpaceBrace);
         return thn;
       } else {
         var thn = wr.NewBlock(")");
@@ -1158,7 +1159,7 @@ namespace Microsoft.Dafny {
           if (Attributes.ContainsBool(d.Attributes, "compile", ref compileIt) && !compileIt) {
             continue;
           }
-          wr.WriteLine();
+          var newLineWriter = wr.Fork();
           if (d is OpaqueTypeDecl) {
             var at = (OpaqueTypeDecl)d;
             bool externP = Attributes.Contains(at.Attributes, "extern");
@@ -1179,6 +1180,8 @@ namespace Microsoft.Dafny {
             if (sst != null) {
               DeclareSubsetType(sst, wr);
               v.Visit(sst);
+            } else {
+              continue;
             }
           } else if (d is NewtypeDecl) {
             var nt = (NewtypeDecl)d;
@@ -1194,6 +1197,8 @@ namespace Microsoft.Dafny {
             var w = DeclareDatatype(dt, wr);
             if (w != null) {
               CompileClassMembers(program, dt, w);
+            } else if (DatatypeDeclarationAndMemberCompilationAreSeparate) {
+              continue;
             }
           } else if (d is IteratorDecl) {
             var iter = (IteratorDecl)d;
@@ -1238,9 +1243,13 @@ namespace Microsoft.Dafny {
             }
           } else if (d is ValuetypeDecl) {
             // nop
+            continue;
           } else if (d is ModuleDecl) {
             // nop
+            continue;
           } else { Contract.Assert(false); }
+
+          newLineWriter.WriteLine();
         }
 
         FinishModule();
@@ -2372,7 +2381,7 @@ namespace Microsoft.Dafny {
         TrExprOpt(e.Thn, resultType, thn, accumulatorVar);
         ConcreteSyntaxTree els = wr;
         if (!(e.Els is ITEExpr)) {
-          els = wr.NewBlock("", null, BraceStyle.Nothing);
+          els = wr.NewBlock("", null, BlockStyle.Brace);
           Coverage.Instrument(e.Thn.tok, "else branch", els);
         }
         TrExprOpt(e.Els, resultType, els, accumulatorVar);
@@ -2793,7 +2802,7 @@ namespace Microsoft.Dafny {
         TrCallStmt(s, null, wr);
 
       } else if (stmt is BlockStmt) {
-        var w = wr.NewBlock("", null, BraceStyle.Nothing, BraceStyle.Newline);
+        var w = wr.NewBlock("", null, BlockStyle.Brace, BlockStyle.NewlineBrace);
         TrStmtList(((BlockStmt)stmt).Body, w);
 
       } else if (stmt is IfStmt) {
@@ -2834,7 +2843,7 @@ namespace Microsoft.Dafny {
           TrStmtList(s.Thn.Body, thenWriter);
 
           if (coverageForElse) {
-            wr = wr.NewBlock("", null, BraceStyle.Nothing);
+            wr = wr.NewBlock("", null, BlockStyle.Brace);
             if (s.Els == null) {
               Coverage.Instrument(s.Tok, "implicit else branch", wr);
             } else {
@@ -2861,7 +2870,7 @@ namespace Microsoft.Dafny {
           Coverage.Instrument(alternative.Tok, "if-case branch", thn);
           TrStmtList(alternative.Body, thn);
         }
-        var wElse = wr.NewBlock("", null, BraceStyle.Nothing);
+        var wElse = wr.NewBlock("", null, BlockStyle.Brace);
         EmitAbsurd("unreachable alternative", wElse);
 
       } else if (stmt is WhileStmt) {
@@ -4165,7 +4174,7 @@ namespace Microsoft.Dafny {
         // Need to avoid if (true) because some languages (Go, someday Java)
         // pretend that an if (true) isn't a certainty, leading to a complaint
         // about a missing return statement
-        w = wr.NewBlock("", null, BraceStyle.Nothing);
+        w = wr.NewBlock("", null, BlockStyle.Brace);
       } else {
         ConcreteSyntaxTree guardWriter;
         w = EmitIf(out guardWriter, !lastCase, wr);
@@ -4793,7 +4802,7 @@ namespace Microsoft.Dafny {
         var thenWriter = EmitIf(out var guardWriter, isReturning, wr);
         TrExpr(constraintInContext, guardWriter, inLetExprBody);
         if (isReturning) {
-          wr = wr.NewBlock("", null, BraceStyle.Nothing);
+          wr = wr.NewBlock("", null, BlockStyle.Brace);
           wr = EmitReturnExpr(wr);
           TrExpr(new LiteralExpr(e.tok, elseReturnValue), wr, inLetExprBody);
           thenWriter = EmitReturnExpr(thenWriter);
