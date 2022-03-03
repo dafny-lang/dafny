@@ -423,7 +423,7 @@ result caching (default: "<impl. name>:0").
 #### 22.2.2.9. `{:timeLimit N}`
 Set the time limit for a given implementation.
 
-### 22.2.3. Verification attributes functions
+### 22.2.3. Verification attributes on functions
 
 #### 22.2.3.1. `{:builtin "spec"}`
 #### 22.2.3.2. `{:bvbuiltin "spec"}`
