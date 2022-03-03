@@ -53,7 +53,9 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
               !nodeDiagnostic.Started ? "_Verification not started yet_"
               : !nodeDiagnostic.Finished ?
                 $"_Still verifying..._  \n{nodeDiagnostic.TimeSpent:n0}ms elapsed"
-              : $"{nodeDiagnostic.VerificationPathTimeLongest:n0}ms on the longest verification path among {nodeDiagnostic.VerificationPathTimeCount} paths   \n" +
+              : (nodeDiagnostic.VerificationPathTimeCount == 1 ?
+                $"{nodeDiagnostic.VerificationPathTimeLongest:n0}ms in 1 assertion batch  \n" :
+                $"{nodeDiagnostic.VerificationPathTimeLongest:n0}ms for the most time-consuming assertion batch among {nodeDiagnostic.VerificationPathTimeCount} batches   \n") +
                 $"{nodeDiagnostic.ResourceCount:n0} resource units";
           return new Hover {
             Contents = new MarkedStringsOrMarkupContent(
