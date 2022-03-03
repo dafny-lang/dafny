@@ -40,7 +40,7 @@ namespace Microsoft.Dafny {
     }
 
     public class TranslatorFlags {
-      public bool InsertChecksums = 0 < CommandLineOptions.Clo.VerifySnapshots;
+      public bool InsertChecksums = 0 < DafnyOptions.O.VerifySnapshots;
       public string UniqueIdPrefix = null;
     }
 
@@ -407,7 +407,7 @@ namespace Microsoft.Dafny {
 
     static PredefinedDecls FindPredefinedDecls(Bpl.Program prog) {
       Contract.Requires(prog != null);
-      if (prog.Resolve() != 0) {
+      if (prog.Resolve(DafnyOptions.O) != 0) {
         Console.WriteLine("Error: resolution errors encountered in Dafny prelude");
         return null;
       }
@@ -3574,7 +3574,7 @@ namespace Microsoft.Dafny {
       byte[] data;
       using (var writer = new System.IO.StringWriter()) {
         var printer = new Printer(writer);
-        writer.Write(f.IsGhost ? "function" : "function method");
+        writer.Write(f.FunctionDeclarationKeywords);
         printer.PrintAttributes(f.Attributes);
         printer.PrintFormals(f.Formals, f);
         writer.Write(": ");

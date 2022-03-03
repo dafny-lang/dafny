@@ -210,7 +210,7 @@ shorthand name, to a module. For example,
 
 ```dafny
 module MyModule { ... } // declares module MyModule
-import MyModule  // error: cannot add a moduled named MyModule
+import MyModule  // error: cannot add a module named MyModule
                  // because there already is one
 import M = MyModule // OK. M and MyModule are equivalent
 ```
@@ -475,7 +475,7 @@ that case, you can use an _abstract_ module import. In Dafny, this is
 written `import A : B`.  This means bind the name `A` as before, but
 instead of getting the exact module `B`, you get any module which
 _adheres_ to `B`.  Typically, the module `B` may have abstract type
-definitions, classes with bodyless methods, or otherwise be unsuitable
+definitions, classes with bodiless methods, or otherwise be unsuitable
 to use directly.  Because of the way refinement is defined, any
 refinement of `B` can be used safely. For example, if we start with:
 
@@ -640,7 +640,7 @@ are not considered in finding `A`.
    iterating outward to each successive enclosing module until a match is
 found or the default toplevel module is reached without a match.
 No consideration of export sets, default or otherwise, is used in this step.
-Howecver, if at any stage a matching name is found that is not a module
+However, if at any stage a matching name is found that is not a module
 declaration, the resolution fails. See the examples below.
 
 2a. Once the leading ``NameSegment`` is resolved as say module `M`, the next ``NameSegment``
@@ -651,14 +651,14 @@ declaration, the resolution fails. See the examples below.
    then the target of the alias is resolved as a new qualified name
    with respect to its syntactic context (independent of any resolutions or
 modules so far). Since `Z` depends on `M`, any such alias target will
-already have been resolved, beccause modules are resolved in order of
+already have been resolved, because modules are resolved in order of
 dependency.
 
 3. Step 2 is iterated for each ``NameSegment`` in the qualified module id,
    resulting in a module that is the final resolution of the complete
    qualified id.
 
-Ordinarily a module must be _imported_ in order for its constitutent
+Ordinarily a module must be _imported_ in order for its constituent
 declarations to be visible inside a given module `M`. However, for the
 resolution of qualified names this is not the case.
 
@@ -721,14 +721,14 @@ declaration, the resolution fails. See the examples below.
    then the target of the alias is resolved as a new qualified name
    with respect to its syntactic context (independent of any resolutions or
 modules so far). Since `Z` depends on `M`, any such alias target will
-already have been resolved, beccause modules are resolved in order of
+already have been resolved, because modules are resolved in order of
 dependency.
 
 3. Step 2 is iterated for each ``NameSegment`` in the qualified module id,
    resulting in a module that is the final resolution of the complete
    qualified id.
 
-Ordinarily a module must be _imported_ in order for its constitutent
+Ordinarily a module must be _imported_ in order for its constituent
 declarations to be visible inside a given module `M`. However, for the
 resolution of qualified names this is not the case.
 
@@ -774,7 +774,7 @@ rule that succeeds.
 4. Module-level (static) functions and methods
 
 TODO: Not sure about the following paragraph.
-In each module, names from opened modules are also potential martches, but
+In each module, names from opened modules are also potential matches, but
 only after names declared in the module.
 If a ambiguous name is found or  name of the wrong kind (e.g. a module
 instead of an expression identifier), an error is generated, rather than continuing

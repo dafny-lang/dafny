@@ -613,5 +613,32 @@ method t10() { assert false; }".TrimStart();
       }
       await AssertNoDiagnosticsAreComing();
     }
+
+    [TestMethod]
+    public async Task OpeningDocumentWithTimeoutReportsTimeoutDiagnostic() {
+      var source = @"
+function method {:unroll 100} Ack(m: nat, n: nat): nat
+  decreases m, n
+{
+  if m == 0 then
+    n + 1
+  else if n == 0 then
+    Ack(m - 1, 1)
+  else
+    Ack(m - 1, Ack(m, n - 1))
+}
+
+method test() {
+  assert Ack(5, 5) == 0;
+}".TrimStart();
+      await SetUp(new Dictionary<string, string>() {
+        { $"{VerifierOptions.Section}:{nameof(VerifierOptions.TimeLimit)}", "1" }
+      });
+      var documentItem = CreateTestDocument(source);
+      client.OpenDocument(documentItem);
+      var diagnostics = await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
+      Assert.AreEqual(diagnostics.Length, 1);
+      Assert.IsTrue(diagnostics[0].Message.Contains("timed out"));
+    }
   }
 }

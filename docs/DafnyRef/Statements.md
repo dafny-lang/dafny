@@ -1,9 +1,10 @@
 # 19. Statements
 ````grammar
-Stmt =
+Stmt = { "label" LabelName ":" } NonLabeledStmt
+NonLabeledStmt =
   ( AssertStmt | AssumeStmt | BlockStmt | BreakStmt
   | CalcStmt | ExpectStmt | ForallStmt | IfStmt
-  | LabeledStmt | MatchStmt | ModifyStmt
+  | MatchStmt | ModifyStmt
   | PrintStmt | ReturnStmt | RevealStmt | SkeletonStmt
   | UpdateStmt | UpdateFailureStmt
   | VarDeclStatement | WhileStmt | ForLoopStmt | YieldStmt
@@ -20,46 +21,59 @@ They are described in subsequent sections.
 
 ## 19.1. Labeled Statement {#sec-labeled-stmt}
 ````grammar
-LabeledStmt = "label" LabelName ":" Stmt
+Stmt = { "label" LabelName ":" } NonLabeledStmt
 ````
 A labeled statement is just the keyword `label` followed by an identifier
 which is the label, followed by a colon and a statement. The label may be
-referenced in a break statement  that is within the labeled statement
-to transfer control to the location after
-the labeled statement.
-The label is not allowed to be the same as any previous dominating
-label.
+referenced in a `break` or `continue` statement within the labeled statement
+(see [Section 19.2](#sec-break-continue)). That is, the break or continue that
+mentions the label must be _enclosed_ in the labeled statement.
+The label may also be used in an `old` expression ([Section 20.24](#sec-old-expression)). In this case, the label
+must have been encountered during the control flow en route to the `old`
+expression. We say in this case that the (program point of the) label _dominates_
+the (program point of the) use of the label.
 
-The label may also be used in an `old` expression ([Section 20.24](#sec-old-expression)). In this case the label
-must have been encountered during the control flow in route to the `old`
-expression. That is, again, the label must dominate the use of the label.
+A statement can be given several labels. It makes no difference which of these
+labels is used to reference the statement---they are synonyms of each other.
+The labels must be distinct from each other, and are not allowed to be the
+same as any previous enclosing or dominating label.
 
-## 19.2. Break Statement
+## 19.2. Break and Continue Statements {#sec-break-continue}
 ````grammar
-BreakStmt = "break" ( LabelName | { "break" } ) ";"
+BreakStmt =
+  ( "break" LabelName ";"
+  | "continue" LabelName ";"
+  | { "break" } "break" ";"
+  | { "break" } "continue" ";"
+  )
 ````
-A break statement provides a means to transfer control
+Break and continue statements provide a means to transfer control
 in a way different than the usual nested control structures.
-There are two forms of break statement: with and without a label.
+There are two forms of each of these statements: with and without a label.
 
-If a label is used, the break statement must be enclosed in a statement
-with that label and the result is to transfer control to the statement
-after the labeled statement. For example, such a break statement can be
+If a label is used, the break or continue statement must be enclosed in a statement
+with that label. The enclosing statement is called the _target_ of the break
+or continue.
+
+A `break` statement transfers control to the point immediately
+following the target statement. For example, such a break statement can be
 used to exit a sequence of statements in a block statement before
 reaching the end of the block.
 
 For example,
 ```dafny
-L: {
+label L: {
   var n := ReadNext();
-  if n < 0  { break L; }
+  if n < 0 {
+    break L;
+  }
   DoSomething(n);
 }
 ```
 is equivalent to
 ```dafny
 {
-  var n: ReadNext();
+  var n := ReadNext();
   if 0 <= n {
     DoSomething(n);
   }
@@ -68,25 +82,157 @@ is equivalent to
 
 If no label is specified and the statement lists `n`
 occurrences of `break`, then the statement must be enclosed in
-at least `n` levels of loops. Control continues after exiting `n`
+at least `n` levels of loop statements. Control continues after exiting `n`
 enclosing loops. For example,
 
 ```dafny
-var i := 0;
-while i < 10 {
-  var j := 0;
-  while j < 10 {
-    var k := 0;
-    while k < 10 {
-      if (j + k == 15) break break;
-      k := k + 1;
+for i := 0 to 10 {
+  for j := 0 to 10 {
+    label X: {
+      for k := 0 to 10 {
+        if j + k == 15 {
+          break break;
+        }
+      }
     }
-    j := j + 1;
   }
-  // control continues here after the break, exiting two loops
+  // control continues here after the "break break", exiting two loops
+}
+```
+
+Note that a non-labeled `break` pays attention only to loop, not to labeled
+statements. For example, the labeled block `X` in the previous example
+does not play a role in determining the target statement of the `break break;`.
+
+For a `continue` statement, the target statement must be a loop statement.
+The continue statement transfers control to the point immediately
+before the closing curly-brace of the loop body.
+
+For example,
+```dafny
+for i := 0 to 100 {
+  if i == 17 {
+    continue;
+  }
+  DoSomething(i);
+}
+```
+is equivalent to
+```dafny
+for i := 0 to 100 {
+  if i != 17 {
+    DoSomething(i);
+  }
+}
+```
+The same effect can also be obtained by wrapping the loop body in a labeled
+block statement and then using `break` with a label, but that usually makes
+for a more cluttered program:
+```dafny
+for i := 0 to 100 {
+  label LoopBody: {
+    if i == 17 {
+      break LoopBody;
+    }
+    DoSomething(i);
+  }
+}
+```
+
+Stated differently, `continue` has the effect of ending the current loop iteration,
+after which control continues with any remaining iterations. This is most natural
+for `for` loops. For a `while` loop, be careful to make progress toward termination
+before a `continue` statement. For example, the following program snippet shows
+an easy mistake to make (the verifier will complain that the loop may not terminate):
+
+```dafny
+var i := 0;
+while i < 100 {
+  if i == 17 {
+    continue; // error: this would cause an infinite loop
+  }
+  DoSomething(i);
   i := i + 1;
 }
 ```
+
+The `continue` statement can give a label, provided the label is a label of a loop.
+For example,
+
+```dafny
+label Outer:
+for i := 0 to 100 {
+  for j := 0 to 100 {
+    if i + j == 19 {
+      continue Outer;
+    }
+    WorkIt(i, j);
+  }
+  PostProcess(i);
+  // the "continue Outer" statement above transfers control to here
+}
+```
+
+If a non-labeled continue statement lists `n` occurrences of `break` before the
+`continue` keyword, then the statement must be enclosed in at least `n + 1` levels
+of loop statements. The effect is to `break` out of the `n` most closely enclosing
+loops and then `continue` the iterations of the next loop. That is, `n` occurrences
+of `break` followed by one more `break;` will break out of `n` levels of loops
+and then do a `break`, whereas `n` occurrences of `break` followed by `continue;`
+will break out of `n` levels of loops and then do a `continue`.
+
+For example, the `WorkIt` example above can equivalently be written without labels
+as
+```dafny
+for i := 0 to 100 {
+  for j := 0 to 100 {
+    if i + j == 19 {
+      break continue;
+    }
+    WorkIt(i, j);
+  }
+  PostProcess(i);
+  // the "break continue" statement above transfers control to here
+}
+```
+
+Note that a loop invariant is checked on entry to a loop and at the closing curly-brace
+of the loop body. It is not checked at break statements. It also isn't checked at continue
+statements per se, but the loop invariant is checked as usual at the closing curly-brace
+that the continue statement jumps to.
+This checking ensures that the loop invariant holds at the very top of
+every iteration. Commonly, the only exit out of a loop happens when the loop guard evaluates
+to `false`. Since no state is changed between the top of an iteration (where the loop
+invariant is known to hold) and the evaluation of the loop guard, one can also rely on
+the loop invariant to hold immediately following the loop. But the loop invariant may
+not hold immediately following a loop if a loop iteration changes the program state and
+then exits the loop with a break statement.
+
+For example, the following program verifies:
+```dafny
+var i := 0;
+while i < 10
+  invariant 0 <= i <= 10
+{
+  if P(i) {
+    i := i + 200;
+    break;
+  }
+  i := i + 1;
+}
+assert i == 10 || 200 <= i < 210;
+```
+To explain the example, the loop invariant `0 <= i <= 10` is known to hold at the very top
+of each iteration,
+that is, just before the loop guard `i < 10` is evaluated. If the loop guard evaluates
+to `false`, then the negated guard condition (`10 <= i`) and the invariant hold, so
+`i == 10` will hold immediately after the loop. If the loop guard evaluates to `true`
+(that is, `i < 10` holds), then the loop body is entered. If the test `P(i)` then evaluates
+to `true`, the loop adds `200` to `i` and breaks out of the loop, so on such a
+path, `200 <= i < 210` is known to hold immediately after the loop. This is summarized
+in the assert statement in the example.
+So, remember, a loop invariant holds at the very top of every iteration, not necessarily
+immediately after the loop.
 
 ## 19.3. Block Statement
 ````grammar
@@ -190,7 +336,7 @@ another method call, as if it were an expression.
 ```
     Lhs { , Lhs } ":=" Rhs { "," Rhs } ";"
 ```
-Thise ``UpdateStmt`` is a parallel
+This ``UpdateStmt`` is a parallel
 assignment of right-hand-side values to the left-hand sides. For example,
 `x,y := y,x` swaps the values of `x` and `y`. If more than one
 left-hand side is used, these must denote different l-values, unless the
@@ -467,7 +613,7 @@ if tmp.IsFailure() {
 ```
 ### 19.7.6. Failure with initialized declaration.
 
-The `:-` syntax can also be used in initalization, as in
+The `:-` syntax can also be used in initialization, as in
 ```dafny
 var s :- M();
 ```
@@ -649,6 +795,8 @@ function usesTuple() : int
 }
 ```
 
+The assignment with failure operator `:-` returns from the method if the value evaluates to a failure value of a failure-compatible type, see [Section 19.7](sec-update-failure).
+
 ## 19.9. Guards
 ````grammar
 Guard = ( "*"
@@ -748,6 +896,11 @@ expression. For example,
   }
 ```
 
+Unlike `match` statements, `if` statements do not have to be exhaustive:
+omitting the `else` block is the same as including an empty `else`
+block.  To ensure that an `if` statement is exhaustive, use the
+`if-case` statement documented below.
+
 If the guard is an asterisk then a non-deterministic choice is made:
 
 ```dafny
@@ -758,7 +911,7 @@ If the guard is an asterisk then a non-deterministic choice is made:
   }
 ```
 
-The `if` statement using the `AlternativeBlock` form is similar to the
+The `if-case` statement using the `AlternativeBlock` form is similar to the
 `if ... fi` construct used in the book "A Discipline of Programming" by
 Edsger W. Dijkstra. It is used for a multi-branch `if`.
 
@@ -774,7 +927,8 @@ In this form, the expressions following the `case` keyword are called
 _guards_. The statement is evaluated by evaluating the guards in an
 undetermined order until one is found that is `true` and the statements
 to the right of `=>` for that guard are executed. The statement requires
-at least one of the guards to evaluate to `true`.
+at least one of the guards to evaluate to `true` (that is, `if-case`
+statements must be exhaustive: the guards must cover all cases).
 
 TODO: Describe the ... refinement
 
@@ -798,8 +952,8 @@ they obey expected behavior. In some cases Dafny can infer the loop specificatio
 so the loop specifications need not always be explicit.
 These specifications are described in [Section 19.14](#sec-loop-specification).
 
-The `while` statement is Dafny's only loop statement. It has two general
-forms.
+The general loop statement in Dafny is the familiar `while` statement.
+It has two general forms.
 
 The first form is similar to a while loop in a C-like language. For
 example:
@@ -997,7 +1151,7 @@ what the loop modifies.
 For additional tutorial information see [@KoenigLeino:MOD2011] or the
 [online Dafny tutorial](../OnlineTutorial/guide).
 
-### 19.14.1. Loop Invariants
+### 19.14.1. Loop invariants
 
 Loops present a problem for specification-based reasoning. There is no way to
 know in advance how many times the code will go around the loop and
@@ -1034,7 +1188,7 @@ loop condition). Just as Dafny will not discover properties of a method
 on its own, it will not know that any but the most basic properties of a loop
 are preserved unless it is told via an invariant.
 
-### 19.14.2. Loop Termination
+### 19.14.2. Loop termination
 
 Dafny proves that code terminates, i.e. does not loop forever, by using
 `decreases` annotations. For many things, Dafny is able to guess the right
@@ -1106,12 +1260,196 @@ If the `decreases` clause of a loop specifies `*`, then no
 termination check will be performed. Use of this feature is sound only with
 respect to partial correctness.
 
-### 19.14.3. Loop Framing
-In some cases we also must specify what memory locations the loop body
-is allowed to modify. This is done using a `modifies` clause.
-See the discussion of framing in methods for a fuller discussion.
+### 19.14.3. Loop framing {#sec-loop-framing}
 
-TO BE WRITTEN
+The specification of a loop also includes _framing_, which says what the
+loop modifies. The loop frame includes both local variables and locations
+in the heap.
+
+For local variables, the Dafny verifier performs a syntactic
+scan of the loop body to find every local variable or out-parameter that occurs as a left-hand
+side of an assignment. These variables are called
+_syntactic assignment targets of the loop_, or _syntactic loop targets_ for short.
+Any local variable or out-parameter that is not a syntactic assignment target is known by the
+verifier to remain unchanged by the loop.
+
+The heap may or may not be a syntactic loop target. It is when the loop body
+syntactically contains a statement that can modify a heap location. This
+includes calls to compiled methods, even if such a method has an empty
+`modifies` clause, since a compiled method is always allowed to allocate
+new objects and change their values in the heap.
+
+If the heap is not a syntactic loop target, then the verifier knows the heap
+remains unchanged by the loop. If the heap _is_ a syntactic loop target,
+then the loop's effective `modifies` clause determines what is allowed to be
+modified by iterations of the loop body.
+
+A loop can use `modifies` clauses to declare the effective `modifies` clause
+of the loop. If a loop does not explicitly declare any `modifies` clause, then
+the effective `modifies` clause of the loop is the effective `modifies` clause
+of the most tightly enclosing loop or, if there is no enclosing loop, the
+`modifies` clause of the enclosing method.
+
+In most cases, there is no need to give an explicit `modifies` clause for a
+loop. The one case where it is sometimes needed is if a loop modifies less
+than is allowed by the enclosing method. Here are two simple methods that
+illustrate this case:
+
+```
+class Cell {
+  var data: int
+}
+
+method M0(c: Cell, d: Cell)
+  requires c != d
+  modifies c, d
+  ensures c.data == d.data == 100
+{
+  c.data, d.data := 100, 0;
+  var i := 0;
+  while i < 100
+    invariant d.data == i
+    // Needs "invariant c.data == 100" or "modifies d" to verify
+  {
+    d.data := d.data + 1;
+    i := i + 1;
+  }
+}
+
+method M1(c: Cell)
+  modifies c
+  ensures c.data == 100
+{
+  c.data := 100;
+  var i := 0;
+  while i < 100
+    // Needs "invariant c.data == 100" or "modifies {}" to verify
+  {
+    var tmp := new Cell;
+    tmp.data := i;
+    i := i + 1;
+  }
+}
+```
+
+In `M0`, the effective `modifies` clause of the loop is `modifies c, d`. Therefore,
+the method's postcondition `c.data == 100` is not provable. To remedy the situation,
+the loop needs to be declared either with `invariant c.data == 100` or with
+`modifies d`.
+
+Similarly, the effective `modifies` clause of the loop in `M1` is `modifies c`. Therefore,
+the method's postcondition `c.data == 100` is not provable. To remedy the situation,
+the loop needs to be declared either with `invariant c.data == 100` or with
+`modifies {}`.
+
+When a loop has an explicit `modifies` clause, there is, at the top of
+every iteration, a proof obligation that
+
+* the expressions given in the `modifies` clause are well-formed, and
+* everything indicated in the loop `modifies` clause is allowed to be modified by the
+  (effective `modifies` clause of the) enclosing loop or method.
+
+### 19.14.4. Body-less methods, functions, loops, and aggregate statements
+
+Methods (including lemmas), functions, loops, and `forall` statements are ordinarily
+declared with a body, that is, a curly-braces pair that contains (for methods, loops, and `forall`)
+a list of statements or (for a function) an expression. In each case, Dafny syntactically
+allows these constructs to be given without a body. This is to allow programmers to
+temporarily postpone the development of the implementation of the method, function, loop, or
+aggregate statement.
+
+If a method has no body, there is no difference for callers of the method. Callers still reason
+about the call in terms of the method's specification. But without a body, the verifier has
+no method implementation to check against the specification, so the verifier is silently happy.
+The compiler, on the other hand, will complain if it encounters a body-less method, because the
+compiler is supposed to generate code for the method, but it isn't clever enough to do that by
+itself without a given method body. If the method implementation is provided by code written
+outside of Dafny, the method can be marked with an `{:extern}` annotation, in which case the
+compiler will no longer complain about the absence of a method body.
+
+A lemma is a special kind of method. Callers are therefore unaffected by the absence of a body,
+and the verifier is silently happy with not having a proof to check against the lemma specification.
+Despite a lemma being ghost, it is still the compiler that checks for, and complains about,
+body-less lemmas. A body-less lemma is an unproven lemma, which is often known as an _axiom_.
+If you intend to use a lemma as an axiom, omit its body and add the attribute `{:axiom}`, which
+causes the compiler to suppress its complaint about the lack of a body.
+
+Similarly, calls to a body-less function use only the specification of the function. The
+verifier is silently happy, but the compiler complains (whether or not the function is ghost).
+As for methods and lemmas, the `{:extern}` and `{:axiom}` attributes can be used to suppress the
+compiler's complaint.
+
+By supplying a body for a method or function, the verifier will in effect show the feasibility of
+the specification of the method or function. By supplying an `{:extern}` or `{:axiom}` attribute,
+you are taking that responsibility into your own hands. Common mistakes include forgetting to
+provide an appropriate `modifies` or `reads` clause in the specification, or forgetting that
+the results of functions in Dafny (unlike in most other languages) must be deterministic.
+
+Just like methods and functions have two sides, callers and implementations, loops also have
+two sides. One side (analogous to callers) is the context that uses the loop. That context treats
+the loop in the same way regardless of whether or not the loop has a body. The other side
+is the loop body, that is, the implementation of each loop iteration. The verifier checks
+that the loop body maintains the loop invariant and that the iterations will eventually terminate,
+but if there is no loop body, the verifier is silently happy. This allows you to temporarily
+postpone the authoring of the loop body until after you've made sure that the loop specification
+is what you need in the context of the loop.
+
+There is one thing that works differently for body-less loops than for loops with bodies.
+It is the computation of syntactic loop targets, which become part of the loop frame
+(see [Section 19.14.3](#sec-loop-framing)). For a body-less loop, the local variables
+computed as part of the loop frame are the mutable variables that occur free in the
+loop specification. The heap is considered a part of the loop frame if it is used
+for mutable fields in the loop specification or if the loop has an explicit `modifies` clause.
+The IDE will display the computed loop frame in hover text.
+
+For example, consider
+
+```dafny
+class Cell {
+  var data: int
+  const K: int
+}
+
+method BodylessLoop(n: nat, c: Cell)
+  requires c.K == 8
+  modifies c
+{
+  c.data := 5;
+  var a, b := n, n;
+  for i := 0 to n
+    invariant c.K < 10
+    invariant a <= n
+    invariant c.data < 10
+  assert a == n;
+  assert b == n;
+  assert c.data == 5;
+}
+```
+
+The loop specification mentions local variable `a`, and thus `a` is considered part of
+the loop frame. Since what the loop invariant says about `a` is not strong enough to
+prove the assertion `a == n` that follows the loop, the verifier complains about that
+assertion.
+
+Local variable `b` is not mentioned in the loop specification, and thus `b` is not
+included in the loop frame. Since in-parameter `n` is immutable, it is not included
+in the loop frame, either, despite being mentioned in the loop specification. For
+these reasons, the assertion `b == n` is provable after the loop.
+
+Because the loop specification mentions the mutable field `data`, the heap becomes
+part of the loop frame. Since the loop invariant is not strong enough to prove the
+assertion `c.data == 5` that follows the loop, the verifier complains about that
+assertion. On the other hand, had `c.data < 10` not been mentioned in the loop
+specification, the assertion would be verified, since field `K` is then the only
+field mentioned in the loop specification and `K` is immutable.
+
+Finally, the aggregate statement (`forall`) can also be given without a body. Such
+a statement claims that the given `ensures` clause holds true for all values of
+the bound variables that satisfy the given range constraint. If the statement has
+no body, the program is in effect omitting the proof, much like a body-less lemma
+is omitting the proof of the claim made by the lemma specification. As with the
+other body-less constructs above, the verifier is silently happy with a body-less
+`forall` statement, but the compiler will complain.
 
 ## 19.15. Match Statement {#sec-match-statement}
 ````grammar

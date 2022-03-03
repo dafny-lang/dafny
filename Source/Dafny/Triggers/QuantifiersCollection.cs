@@ -286,17 +286,21 @@ namespace Microsoft.Dafny.Triggers {
       var indent = addHeader ? "  " : "";
       bool suppressWarnings = Attributes.Contains(q.quantifier.Attributes, "nowarn");
       var reportingToken = q.quantifier.tok;
+      // If there is only one sub-expression, we discard the nested token information.
+      if (reportingToken is NestedToken nestedToken && !addHeader) {
+        reportingToken = nestedToken.Outer;
+      }
 
-      void SetRelatedLocationMessage(string msg) {
-        if (reportingToken is NestedToken nestedToken) {
-          reportingToken = new NestedToken(nestedToken.Outer, nestedToken.Inner, msg);
+      void FirstLetterCapitalOnNestedToken() {
+        if (reportingToken is NestedToken nestToken && nestToken.Message != null && nestToken.Message.Length > 1) {
+          reportingToken = new NestedToken(nestToken.Outer, nestToken.Inner,
+            char.ToUpper(nestToken.Message[0]) + nestToken.Message.Substring(1));
         }
       }
 
       if (!TriggerUtils.NeedsAutoTriggers(q.quantifier)) { // NOTE: split and autotriggers attributes are passed down to Boogie
         var extraMsg = TriggerUtils.WantsAutoTriggers(q.quantifier) ? "" : " Note that {:autotriggers false} can cause instabilities. Consider using {:nowarn}, {:matchingloop} (not great either), or a manual trigger instead.";
         msg.AppendFormat("Not generating triggers for \"{0}\".{1}", Printer.ExprToString(q.quantifier.Term), extraMsg).AppendLine();
-        SetRelatedLocationMessage("Trigger position:");
       } else {
         if (addHeader) {
           msg.AppendFormat("For expression \"{0}\":", Printer.ExprToString(q.quantifier.Term)).AppendLine();
@@ -307,13 +311,7 @@ namespace Microsoft.Dafny.Triggers {
         }
 
         AddTriggersToMessage("Selected triggers:", q.Candidates, msg, indent);
-        if (q.Candidates.Count > 0) {
-          SetRelatedLocationMessage("Trigger position:");
-        }
         AddTriggersToMessage("Rejected triggers:", q.RejectedCandidates, msg, indent, true);
-        if (q.RejectedCandidates.Count > 0 && q.Candidates.Count == 0) {
-          SetRelatedLocationMessage("Rejected trigger position:");
-        }
 
 #if QUANTIFIER_WARNINGS
         var WARN_TAG = DafnyOptions.O.UnicodeOutput ? "⚠ " : @"/!\ ";
@@ -323,19 +321,19 @@ namespace Microsoft.Dafny.Triggers {
         if (!q.CandidateTerms.Any()) {
           errorLevel = WARN_LEVEL;
           msg.Append(WARN).AppendLine("No terms found to trigger on.");
-          SetRelatedLocationMessage("Potential trigger not suitable:");
+          FirstLetterCapitalOnNestedToken();
         } else if (!q.Candidates.Any()) {
           errorLevel = WARN_LEVEL;
           msg.Append(WARN).AppendLine("No trigger covering all quantified variables found.");
-          SetRelatedLocationMessage("Potential trigger not suitable:");
+          FirstLetterCapitalOnNestedToken();
         } else if (!q.CouldSuppressLoops && !q.AllowsLoops) {
           errorLevel = WARN_LEVEL;
           msg.Append(WARN).AppendLine("Suppressing loops would leave this expression without triggers.");
-          SetRelatedLocationMessage("Trigger position:");
+          FirstLetterCapitalOnNestedToken();
         } else if (suppressWarnings) {
           errorLevel = ErrorLevel.Warning;
           msg.Append(indent).Append(WARN_TAG).AppendLine("There is no warning here to suppress.");
-          SetRelatedLocationMessage("Trigger position:");
+          FirstLetterCapitalOnNestedToken();
         }
 #endif
       }
