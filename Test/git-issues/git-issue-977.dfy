@@ -181,6 +181,31 @@ lemma Test7(k: nat, n: int)
 // ----- Inline/trigger issues for prefix predicates --------------------------------------------------------
 
 module PrefixBodyInlining {
+  /* To generate more specific error messages, every user-defined assertion is processed by
+   * TrSplitExpr. One of the things TrSplitExpr does is to inline predicates. It is not good
+   * to inline a predicate call P(e) if the body of P uses P's argument in a way that makes it
+   * considered to be a trigger (aka matching pattern). For example, consider predicate
+   * GreatestManualOrd(k, num) defined above, whose body contains
+   *
+   *         forall m :: m < k ==> GreatestManualOrd(m, num)
+   *
+   * The (automatically generated) trigger for this quantifier is GreatestManualOrd(m, num).
+   * Note that this trigger includes GreatestManualOrd's second argument, so if that
+   * argument is something that is not allowed in a trigger, then by inlining the call,
+   * TrSplitExpr would generate malformed Boogie code.
+   *
+   * For every least/greatest predicate (aka extreme predicate) P, Dafny generates a
+   * prefix predicate P#. There are two kinds of bodies that P# can have, depending on
+   * if the extreme predicate uses a "nat" or an "ORDINAL" as its index variable. (For the
+   * purposes here, it doesn't matter what exactly those are, but) in the case of the
+   * latter, the body generated for P# includes a quantifier. Since the prefix predicate
+   * is not represented as a Dafny AST (but, rather, is generated to Boogie directly),
+   * the inlining mechanism in TrSplitExpr has no callee body to look at. Instead,
+   * prefix predicates are special-cased in TrSplitExpr.
+   *
+   * This module tests that TrSplitExpr produces the intended result for prefix predicates.
+   */
+
   greatest predicate AAA(r: nat)
   {
     BBB(r)
