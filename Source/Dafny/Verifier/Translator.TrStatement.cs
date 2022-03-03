@@ -885,7 +885,7 @@ namespace Microsoft.Dafny {
 
       BodyTranslator bodyTr = null;
       if (stmt.Body != null) {
-        bodyTr = delegate(BoogieStmtListBuilder bld, ExpressionTranslator e) {
+        bodyTr = delegate (BoogieStmtListBuilder bld, ExpressionTranslator e) {
           CurrentIdGenerator.Push();
           if (!stmt.GoingUp) {
             bld.Add(Bpl.Cmd.SimpleAssign(stmt.Tok, bIndex, Bpl.Expr.Sub(bIndex, Bpl.Expr.Literal(1))));
@@ -913,7 +913,7 @@ namespace Microsoft.Dafny {
       DefineFuelConstant(stmt.Tok, stmt.Attributes, builder, etran);
       BodyTranslator bodyTr = null;
       if (stmt.Body != null) {
-        bodyTr = delegate(BoogieStmtListBuilder bld, ExpressionTranslator e) {
+        bodyTr = delegate (BoogieStmtListBuilder bld, ExpressionTranslator e) {
           CurrentIdGenerator.Push();
           TrStmt(stmt.Body, bld, locals, e);
           InsertContinueTarget(stmt, bld);
