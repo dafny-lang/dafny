@@ -1,14 +1,8 @@
 # 22. Attributes
-````grammar
-Attribute = "{:" AttributeName [ Expressions ] "}"
-````
 Dafny allows many of its entities to be annotated with _Attributes_.
-The grammar shows where the attribute annotations may appear.
-
-Here is an example of an attribute from the Dafny test suite:
-
+Attributes are declared between `{:` and `}` like this:
 ```dafny
-{:MyAttribute "hello", "hi" + "there", 57}
+{:attributeName "argument", "second" + "argument", 57}
 ```
 
 In general an attribute may have any name the user chooses. It may be
@@ -20,10 +14,15 @@ Dafny does not check that the attributes listed for an entity
 are appropriate for that entity (which means that misspellings may
 go silently unnoticed).
 
+The grammar shows where the attribute annotations may appear:
+````grammar
+Attribute = "{:" AttributeName [ Expressions ] "}"
+````
+
 ## 22.1. Dafny Attributes
 All entities that Dafny translates to Boogie have their attributes
-passed on to Boogie except for the `{:axiom}` attribute (which
-conflicts with Boogie usage) and the `{:trigger}` attribute which is
+passed on to Boogie except for the [`{:axiom}`](#sec-axiom) attribute (which
+conflicts with Boogie usage) and the [`{:trigger}`](#sec-trigger) attribute which is
 instead converted into a Boogie quantifier _trigger_. See Section 11 of
 [@Leino:Boogie2-RefMan].
 
@@ -40,7 +39,7 @@ with no argument is interpreted as if it were true.
 The attributes that are processed specially by Dafny are described in the
 following sections.
 
-### 22.1.1. assumption
+### 22.1.1. `{:assumption}`
 This attribute can only be placed on a local ghost bool
 variable of a method. Its declaration cannot have a rhs, but it is
 allowed to participate as the lhs of exactly one assignment of the
@@ -49,7 +48,7 @@ Boogie output to a declaration followed by an `assume b` command.
 See [@LeinoWuestholz2015], Section 3, for example uses of the `{:assumption}`
 attribute in Boogie.
 
-### 22.1.2. autoReq boolExpr
+### 22.1.2. `{:autoReq}`
 For a function declaration, if this attribute is set true at the nearest
 level, then its `requires` clause is strengthened sufficiently so that
 it may call the functions that it calls.
@@ -79,7 +78,7 @@ function g(y:int, b:bool) : bool
 }
 ```
 
-### 22.1.3. autocontracts
+### 22.1.3. `{:autocontracts}`
 Dynamic frames [@Kassios:FM2006;@SmansEtAl:VeriCool;@SmansEtAl:ImplicitDynamicFrames;
 @LEINO:Dafny:DynamicFrames]
 are frame expressions that can vary dynamically during
@@ -141,7 +140,7 @@ be added.
    if (F != null) { Repr := Repr + {F} + F.Repr; }
 ```
 
-### 22.1.4. axiom
+### 22.1.4. `{:axiom}` {#sec-axiom}
 The `{:axiom}` attribute may be placed on a function or method.
 It means that the post-condition may be assumed to be true
 without proof. In that case also the body of the function or
@@ -149,24 +148,24 @@ method may be omitted.
 
 The `{:axiom}` attribute only prevents Dafny from verifying that the body matches the post-condition.
 Dafny still verifies the well-formedness of pre-conditions, of post-conditions, and of the body if provided.
-To prevent Dafny from running all these checks, one would use `{:verify false}`, which is not recommended.
+To prevent Dafny from running all these checks, one would use [`{:verify false}`](#sec-verify), which is not recommended.
 
-### 22.1.5. compile
+### 22.1.5. `{:compile}`
 The `{:compile}` attribute takes a boolean argument. It may be applied to
 any top-level declaration. If that argument is false, then that declaration
 will not be compiled into .Net code.
 
-### 22.1.6. decl
+### 22.1.6. `{:decl}` (deprecated) {#sec-decl}
 The `{:decl}` attribute may be placed on a method declaration. It
 inhibits the error message that has would be given when the method has an
-`ensures` clauses but no body. It has been used to declare Dafny interfaces
-in the MSR IronClad and IronFleet projects. Instead the `extern` keyword
-should be used (but that is soon to be replaced by the `{:extern}` attribute).
+[`ensures clauses`](#sec-ensures-clause) but no body. It has been used to declare Dafny interfaces
+in the MSR IronClad and IronFleet projects.
+Instead, the [`{:extern}`](#sec-extern) attribute should be used.
 
-### 22.1.7. fuel
+### 22.1.7. `{:fuel X}`
 The fuel attributes is used to specify how much "fuel" a function should have,
-i.e., how many times Z3 is permitted to unfold it's definition.  The
-new {:fuel} annotation can be added to the function itself, it which
+i.e., how many times the SMT solver is permitted to unfold it's definition.  The
+new `{:fuel}` annotation can be added to the function itself, it which
 case it will apply to all uses of that function, or it can overridden
 within the scope of a module, function, method, iterator, calc, forall,
 while, assert, or assume.  The general format is:
@@ -185,8 +184,8 @@ fewer assert statements), but it may also increase verification time,
 so use it with care.  Setting the fuel to 0,0 is similar to making the
 definition opaque, except when used with all literal arguments.
 
-### 22.1.8. heapQuantifier
-The `{:heapQuantifier}` attribute may be used on a ``QuantifierExpression``.
+### 22.1.8. `{:heapQuantifier}`
+The `{:heapQuantifier}` attribute may be used on a [`QuantifierExpression`](#sec-quantifier-expression).
 When it appears in a quantifier expression, it is as if a new heap-valued
 quantifier variable was added to the quantification. Consider this code
 that is one of the invariants of a while loop.
@@ -208,20 +207,20 @@ What this is saying is that the quantified expression, `f(u) == u + r`,
 which may depend on the heap, is also valid for any good heap that is either the
 same as the current heap, or that is derived from it by heap update operations.
 
-### 22.1.9. imported
+### 22.1.9. `{:imported}`
 If a ``MethodDecl`` or ``FunctionDecl`` has an `{:imported}` attribute,
-then it is allowed to have a empty body even though it has an **ensures**
-clause. Ordinarily a body would be required in order to provide the
-proof of the **ensures** clause (but the `(:axiom)` attribute also
+then it is allowed to have a empty body even though it has an [`ensures clause`](#sec-ensures-clause).
+Ordinarily a body would be required in order to provide the
+proof of the [`ensures clauses`](#sec-ensures-clause) (but the [`{:axiom}`](#sec-axiom) attribute also
 provides this facility, so the need for `(:imported)` is not clear.)
-A method or function declaration may be given the `(:imported)` attribute. This suppresses
-the error message that would be given if a method or function with an `ensures` clause
+A method or function declaration may be given the `{:imported}` attribute. This suppresses
+the error message that would be given if a method or function with an [`ensures clause`](#sec-ensures-clause)
 does not have a body.
 
-This seems to duplicate what `extern` and `{:decl}` do and would be a good candidate for
+This seems to duplicate what [`{:extern}`](#sec-extern) and [`{:decl}`](#sec-decl) do and would be a good candidate for
 deprecation.
 
-### 22.1.10. induction
+### 22.1.10. `{:induction}`
 The `{:induction}` attribute controls the application of
 proof by induction to two contexts. Given a list of
 variables on which induction might be applied, the
@@ -247,7 +246,7 @@ The form of the `{:induction}` attribute is one of the following:
 * `{:induction L}` where `L` is a list consisting entirely of bound variables
 -- apply induction to the specified bound variables
 * `{:induction X}` where `X` is anything else -- treat the same as
-{:induction}, that is, apply induction to all bound variables. For this
+`{:induction}`, that is, apply induction to all bound variables. For this
 usage conventionally `X` is `true`.
 
 Here is an example of using it on a quantifier expression:
@@ -259,7 +258,7 @@ lemma Fill_J(s: seq<int>)
 }
 ```
 
-### 22.1.11. layerQuantifier
+### 22.1.11. `{:layerQuantifier}`
 When Dafny is translating a quantified expression, if it has
 a `{:layerQuantifier}` attribute an additional quantifier
 variable is added to the quantifier bound variables.
@@ -280,7 +279,7 @@ TODO: Need more complete explanation of this attribute.
 Dafny issue [35](https://github.com/Microsoft/dafny/issues/35) tracks
 further effort for this attribute.
 
-### 22.1.12. nativeType {#sec-nativetype}
+### 22.1.12. `{:nativeType}` {#sec-nativetype}
 The `{:nativeType}` attribute may only be used on a ``NewtypeDecl``
 where the base type is an integral type. It can take one of the following
 forms:
@@ -299,14 +298,14 @@ An error is reported if the given datatype cannot hold all the
 values that satisfy the constraint.
 
 
-### 22.1.13. opaque {#sec-opaque}
+### 22.1.13. `{:opaque}` {#sec-opaque}
 Ordinarily the body of a function is transparent to its users but
 sometimes it is useful to hide it. If a function `foo` or `bar` is given the
 `{:opaque}` attribute, then Dafny hides the body of the function,
 so that it can only be seen within its recursive clique (if any),
 or if the programmer specifically asks to see it via the statement `reveal foo(), bar();`.
 
-More information about the Boogie implementation of {:opaque} [here](https://github.com/dafny-lang/dafny/blob/master/docs/Compilation/Boogie.md).
+More information about the Boogie implementation of `{:opaque}` [here](https://github.com/dafny-lang/dafny/blob/master/docs/Compilation/Boogie.md).
 
 <!--
 Describe this where refinement is described, as appropriate.
@@ -328,7 +327,7 @@ the functionality is already adequately described where
 refinement is described.
 -->
 
-### 22.1.14. tailrecursion
+### 22.1.14. `{:tailrecursion true/false}`
 This attribute is used on method declarations. It has a boolean argument.
 
 If specified with a false value, it means the user specifically
@@ -344,7 +343,7 @@ recursion was explicitly requested.
 * If `{:tailrecursion true}` was specified but the code does not allow it,
 an error message is given.
 
-### 22.1.15. timeLimitMultiplier
+### 22.1.15. `{:timeLimitMultiplier X}`
 This attribute may be placed on a method or function declaration
 and has an integer argument. If `{:timeLimitMultiplier X}` was
 specified a `{:timelimit Y}` attributed is passed on to Boogie
@@ -352,128 +351,203 @@ where `Y` is `X` times either the default verification time limit
 for a function or method, or times the value specified by the
 Boogie `timelimit` command-line option.
 
-### 22.1.16. trigger
+### 22.1.16. `{:trigger}` {#sec-trigger}
 Trigger attributes are used on quantifiers and comprehensions.
 They are translated into Boogie triggers.
 
-### 22.1.17. typeQuantifier
+### 22.1.17. `{:typeQuantifier}`
 The `{:typeQuantifier}` attribute must be used on a quantifier if it
 quantifies over types.
 
 
-## 22.2. Boogie Attributes
-Use the Boogie "/attrHelp" option to get the list of attributes
-that Boogie recognizes and their meaning. Here is the output at
-the time of this writing. Dafny passes attributes that have
-been specified to Boogie.
+## 22.2. Boogie-specific verification attributes
+Dafny passes verification attributes that have been specified to its dependency Boogie.
+Use the "/attrHelp" option to get the list of attributes
+recognized by Boogie and their meaning.
+
+### 22.2.1 Verification attributes on top-level declarations
+
+#### 22.2.1.1 `{:ignore}`
+Ignore the declaration (after checking for duplicate names).
+
+#### 22.2.1.2 `{:extern}` {#sec-extern}
+If two top-level declarations introduce the same name (for example, two
+constants with the same name or two procedures with the same name), then
+Boogie usually produces an error message.  However, if at least one of
+the declarations is declared with :extern, one of the declarations is
+ignored.  If both declarations are :extern, Boogie arbitrarily chooses
+one of them to keep; otherwise, Boogie ignore the :extern declaration
+and keeps the other.
+
+#### 22.2.1.3 `{:checksum <string>}`
+
+Attach a checksum to be used for verification result caching.
+
+### 22.2.2 Verification attributes on functions and methods
+
+#### 22.2.2.1 `{:inline N}`
+     
+Inline given procedure (can be also used on implementation).
+N should be a non-negative number and represents the inlining depth.
+With `/inline:assume`, call is replaced with `assume false` once inlining depth is reached.
+With `/inline:assert`, call is replaced with `assert false` once inlining depth is reached.
+With `/inline:spec`, call is left as is once inlining depth is reached.
+With the above three options, methods with the attribute `{:inline N}` are not verified.
+With `/inline:none` the entire attribute is ignored.
+
+#### 22.2.2.2 `{:verify false}` {#sec-verify}
+     
+Skip verification of an implementation alltogether
+
+#### 22.2.2.3 `{:vcs_max_cost N}`
+#### 22.2.2.4 `{:vcs_max_splits N}`
+#### 22.2.2.5 `{:vcs_max_keep_going_splits N}`
+Per-implementation versions of
+`/vcsMaxCost`, `/vcsMaxSplits` and `/vcsMaxKeepGoingSplits`.
+
+#### 22.2.2.6 `{:selective_checking true}`
+Turn all asserts into assumes except for the ones reachable from
+assumptions marked with the attribute `{:start_checking_here}`.
+Thus, `assume {:start_checking_here} something;` becomes an inverse
+of `assume false;`: the first one disables all verification before
+it, and the second one disables all verification after.
+
+#### 22.2.2.7 `{:priority N}`
+Assign a positive priority 'N' to an implementation to control the order
+in which implementations are verified (default: N = 1).
+
+#### 22.2.2.8 `{:id <string>}`
+Assign a unique ID to an implementation to be used for verification
+result caching (default: "<impl. name>:0").
+
+#### 22.2.2.9 `{:timeLimit N}`
+Set the time limit for a given implementation.
+
+### 22.2.3 Verification attributes functions
+
+#### 22.2.3.1 `{:builtin "spec"}`
+#### 22.2.3.2 `{:bvbuiltin "spec"}`
+Rewrite the function to built-in prover function symbol 'fn'.
+
+#### 22.2.3.3 `{:inline}`
+`{:inline}` or `{:inline true}` expands function according to its definition before going to the prover.
+
+#### 22.2.3.4 `{:never_pattern true}`
+Terms starting with this function symbol will never be
+automatically selected as patterns. It does not prevent them
+from being used inside the triggers, and does not affect explicit
+trigger annotations. Internally it works by adding `{:nopats ...}`
+annotations to quantifiers.
+
+#### 22.2.3.5 `{:identity}`
+If the function annotated with `{:identity}` or `{:identity true}` has 1 argument and the use of it has type X->X for
+some X, then the abstract interpreter will treat the function as an
+identity function.  Note, the abstract interpreter trusts the
+attribute--it does not try to verify that the function really is an
+identity function.
+
+### 22.2.4 Verification attributes on variables
+
+#### 22.2.4.1 `{:existential true}`
+Marks a global Boolean variable as existentially quantified. If
+used in combination with option `/contractInfer` Boogie will check
+whether there exists a Boolean assignment to the existentials
+that makes all verification conditions valid.  Without option
+`/contractInfer` the attribute is ignored.
+
+### 22.2.5 Verification attributes on assert statements {#sec-verification-attributes-on-assert-statements}
+
+To understand how to tweak verification,
+it is first useful to understand how Dafny verifies functions or methods.
+
+For every method, Dafny extracts _assertions_, as follows:
+* any explicit [`assert` statement](#sec-assert-statement) is _an assertion_.
+* A consecutive pair of lines in a [`calc` statement](#sec-calc-statement) forms _an assertion of their equality_.
+* Every function or method call with [`requires` clause](#sec-requires-clause) yields _one assertion per clause_
+  (special cases such as sequence indexing come with a special require clause that the index is within bounds).
+* Assignments `o.f := E;` yield an _assertion_ that `o.f` is allowed by the enclosing [`modifies` clause](#sec-loop-framing)
+* Assignments by predicate `x :| P(x)` yield an _assertion_ that `exists x :: P(x)`.
+* Every [`ensures` clause](#sec-ensures-clause) yields an _assertion_ at the end of the method.
+* ...
+
+It is useful to mentally visualize all these assertions as a list that roughly follows the order in the code[^complexity-path-encoding],
+except for `ensures` assertions that appear before in the code but, for verification purposes, would appear at the end.
+
+Thus, to prove or disprove a single assertion within this list, all the assumptions Dafny needs are 1) the global context,
+and 2) every preceding assumptions (and previous assertions transformed in assumptions).
+
+[^complexity-path-encoding]: All the complexities of the execution paths (if-then-else, loops, goto, break....) are, down the road and for verification purposes, cleverly encoded with variables recording the paths and guarding assumptions made on each path. In practice, a second clever encoding of variables enables grouping many assertions together, and recovers which assertion is failing based on the value of variables that the SMT solver returns.
+
+So, unless otherwise specified. Dafny will encode all the assumptions and assertions into a single SMT formula and try to find counter-examples.
+* If the SMT solver returns `unsat`, it means that all the assertions hold and Dafny is done.
+* If the SMT solver returns `sat`, the value obtained from the model are mapped back into both the failing assertion and the failing path.
+  Dafny will then query again the SMT solver with the assumption that the assert is valid (meaning the counter-example won't hold anymore), so that it can retrieve other failing assertions if possible.[^caveat-about-assertion-and-assumption]
+* If the SMT solver returns `unknown` or times out, Dafny will duplicate the list of assertions, and ensure every assertion is transformed into an assumption in exactly one list, so that the assertions of the two new lists form a partition of the original list.
+  This results in "easier" formulas for the SMT solver because it has less to prove, but it takes more overhead because every verification instance have a common set of axioms and there is no knowledge sharing between instances because they run independently.
+
+[^caveat-about-assertion-and-assumption]: Caveat about assertion and assumption: One big difference between an "assertion transformed in an assumption" and the original "assertion" is that the original "assertion" can unroll functions twice, whereas the "assumed assertion" can unroll them only once. Hence, Dafny can still continue to analyze assertions after a failing assertion without automatically proving "false" (which would make all further assertions to prove automatically).
+
+This is where the following annotations `{:focus}` and `{:split_here}` come it.
+They enables to manually force the verifier to split assertions into two lists, so that both of them can verify usually independently faster than the original problem, although the total verification time, if not using parallel cores, can double at most.
+
+#### 22.2.5.1 `{:focus}`
+Splits verification into two problems. First problem deletes all paths
+that do not have the focus block. Second problem considers the paths
+deleted in the first problem and does not contain either the focus block
+or any block dominated by it.
+For example:
 
 ```
-Boogie: The following attributes are supported by this implementation.
-
-  ---- On top-level declarations ---------------------------------------------
-
-    {:ignore}
-      Ignore the declaration (after checking for duplicate names).
-
-    {:extern}
-      If two top-level declarations introduce the same name (for example, two
-      constants with the same name or two procedures with the same name), then
-      Boogie usually produces an error message.  However, if at least one of
-      the declarations is declared with :extern, one of the declarations is
-      ignored.  If both declarations are :extern, Boogie arbitrarily chooses
-      one of them to keep; otherwise, Boogie ignore the :extern declaration
-      and keeps the other.
-
-    {:checksum <string>}
-      Attach a checksum to be used for verification result caching.
-
-  ---- On implementations and procedures -------------------------------------
-
-     {:inline N}
-       Inline given procedure (can be also used on implementation).
-       N should be a non-negative number and represents the inlining depth.
-       With /inline:assume call is replaced with "assume false" once inlining depth is reached.
-       With /inline:assert call is replaced with "assert false" once inlining depth is reached.
-       With /inline:spec call is left as is once inlining depth is reached.
-       With the above three options, methods with the attribute {:inline N} are not verified.
-       With /inline:none the entire attribute is ignored.
-
-     {:verify false}
-       Skip verification of an implementation.
-
-     {:vcs_max_cost N}
-     {:vcs_max_splits N}
-     {:vcs_max_keep_going_splits N}
-       Per-implementation versions of
-       /vcsMaxCost, /vcsMaxSplits and /vcsMaxKeepGoingSplits.
-
-     {:selective_checking true}
-       Turn all asserts into assumes except for the ones reachable from
-       assumptions marked with the attribute {:start_checking_here}.
-       Thus, "assume {:start_checking_here} something;" becomes an inverse
-       of "assume false;": the first one disables all verification before
-       it, and the second one disables all verification after.
-
-     {:priority N}
-       Assign a positive priority 'N' to an implementation to control the order
-       in which implementations are verified (default: N = 1).
-
-     {:id <string>}
-       Assign a unique ID to an implementation to be used for verification
-       result caching (default: "<impl. name>:0").
-
-     {:timeLimit N}
-       Set the time limit for a given implementation.
-
-  ---- On functions ----------------------------------------------------------
-
-     {:builtin "spec"}
-     {:bvbuiltin "spec"}
-       Rewrite the function to built-in prover function symbol 'fn'.
-
-     {:inline}
-     {:inline true}
-       Expand function according to its definition before going to the prover.
-
-     {:never_pattern true}
-       Terms starting with this function symbol will never be
-       automatically selected as patterns. It does not prevent them
-       from being used inside the triggers, and does not affect explicit
-       trigger annotations. Internally it works by adding {:nopats ...}
-       annotations to quantifiers.
-
-     {:identity}
-     {:identity true}
-       If the function has 1 argument and the use of it has type X->X for
-       some X, then the abstract interpreter will treat the function as an
-       identity function.  Note, the abstract interpreter trusts the
-       attribute--it does not try to verify that the function really is an
-       identity function.
-
-  ---- On variables ----------------------------------------------------------
-
-     {:existential true}
-       Marks a global Boolean variable as existentially quantified. If
-       used in combination with option /contractInfer Boogie will check
-       whether there exists a Boolean assignment to the existentials
-       that makes all verification conditions valid.  Without option
-       /contractInfer the attribute is ignored.
-
-  ---- On assert statements --------------------------------------------------
-
-     {:subsumption n}
-       Overrides the /subsumption command-line setting for this assertion.
-
-     {:split_here}
-       Verifies code leading to this point and code leading from this point
-       to the next split_here as separate pieces.  May help with timeouts.
-       May also occasionally double-report errors.
-
-  ---- The end ---------------------------------------------------------------
-
+method doFocus(x: bool) returns (y: int) {
+  y := 1;
+  assert y == 1;    // Assert in list #1, Assume in list #2
+  if(x) {
+    assert {:focus} true;
+    y := 2;
+    assert y == 2; // Assumed in list #1, Assert in list #2
+  } else {
+    assert y == 1; // Assert in list #1, Assume in list #2
+  }
+  assert y >= 1;   // Assert in list #1, Assume in list #2
+}
 ```
 
-However a scan of Boogie's sources shows it checks for the
+#### 22.2.5.2 `{:split_here}`
+Verifies code leading to this point and code leading from this point
+to the next `{:split_here}` as separate pieces. May help with timeouts.
+May also occasionally double-report errors.
+
+```
+method doFocus(x: bool) returns (y: int) {
+  y := 1;
+  assert y == 1;    // Assert in list #1, Assume in list #2
+  assert {:split_here} true;
+  assert y == 1;   // Assumed in list #1, Assert in list #2
+  assert y >= 1;   // Assumed in list #1, Assert in list #2
+}
+```
+<!--
+This is not working in Dafny and shouldn't be documented until so.
+#### 22.2.5.3 `{:msg <string>}`
+     
+Prints <string> rather than the standard message for assertion failure.
+Also applicable to requires and ensures declarations.
+
+```
+method doFocus(x: bool) returns (y: int) {
+  y := 1;
+  assert {:msg "y is indivisible"} y != 1;    //
+}
+```
+-->
+
+#### 22.2.5.4 `{:subsumption n}`
+Overrides the `/subsumption` command-line setting for this assertion.
+
+
+### 22.2.6 Other undocumented verification attributes
+
+A scan of Boogie's sources shows it checks for the
 following attributes.
 
 * `{:$}`
@@ -502,6 +576,7 @@ following attributes.
 * `{:exitAssert}`
 * `{:expand}`
 * `{:extern}`
+* `{:focus}`
 * `{:hidden}`
 * `{:ignore}`
 * `{:inline}`
