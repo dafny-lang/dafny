@@ -461,6 +461,7 @@ To understand how to tweak verification,
 it is first useful to understand how Dafny verifies functions or methods.
 
 For every method, Dafny extracts _assertions_, as follows:
+
 * any explicit [`assert` statement](#sec-assert-statement) is _an assertion_.
 * A consecutive pair of lines in a [`calc` statement](#sec-calc-statement) forms _an assertion of their equality_.
 * Every function or method call with [`requires` clause](#sec-requires-clause) yields _one assertion per clause_
