@@ -2282,14 +2282,6 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private string FullTypeName(TopLevelDecl cl, MemberDecl/*?*/ member = null) {
-      return UserDefinedTypeName(cl, true, member: member);
-    }
-
-    private string UnqualifiedTypeName(TopLevelDecl cl, MemberDecl/*?*/ member = null) {
-      return UserDefinedTypeName(cl, full: false, member: member);
-    }
-
     private string UserDefinedTypeName(TopLevelDecl cl, bool full, MemberDecl/*?*/ member = null) {
       if (IsExternMemberOfExternModule(member, cl)) {
         // omit the default class name ("_default") in extern modules, when the class is used to qualify an extern member
