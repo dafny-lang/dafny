@@ -472,22 +472,22 @@ For every method, Dafny extracts _assertions_, as follows:
 
 It is useful to mentally visualize all these assertions as a list that roughly follows the order in the code[^complexity-path-encoding],
 except for `ensures` assertions that appear before in the code but, for verification purposes, would appear at the end.
-
 Thus, to prove or disprove a single assertion within this list, all the assumptions Dafny needs are 1) the global context,
 and 2) every preceding assumptions (and previous assertions transformed in assumptions).
 
 [^complexity-path-encoding]: All the complexities of the execution paths (if-then-else, loops, goto, break....) are, down the road and for verification purposes, cleverly encoded with variables recording the paths and guarding assumptions made on each path. In practice, a second clever encoding of variables enables grouping many assertions together, and recovers which assertion is failing based on the value of variables that the SMT solver returns.
 
-So, unless otherwise specified. the Dafny verifier will encode all the assumptions and assertions into a single conjecture formula and try to prove it correct.
-* If the verifier says it is correct[^smt-encoding], it means that all the assertions hold and Dafny is done.
+To achieve higher verification performance, Dafny collects all the assertions of one method into one single conjecture (an _assertion batch_) that it sends to the verifier, which tries to prove it correct:
+* If the verifier says it is correct[^smt-encoding], it means that all the assertions hold.
 * If the verifier returns a counter-example, this counter-example is used to determine both the failing assertion and the failing path.
-  Dafny will then query again the SMT solver with the assumption that the assert is valid, so that it can retrieve other failing assertions if possible.[^caveat-about-assertion-and-assumption]
-* If the verifier returns `unknown` or times out, Dafny will duplicate the list of assertions, and ensure every assertion is transformed into an assumption in exactly one list, so that the assertions of the two new lists form a partition of the original list.
-  This results in "easier" formulas for the verifier because it has less to prove, but it takes more overhead because every verification instance have a common set of axioms and there is no knowledge sharing between instances because they run independently.
+  Dafny will then query again the verifier with the assumption that that particular assert is valid, so that it can retrieve other failing assertions happening afterwards.[^caveat-about-assertion-and-assumption]
+* If the verifier returns `unknown` or times out, or even preemptively for difficult assertions or to reduce the chance that the verifier will ‘be confused’ by the many assertions in a large batch, Dafny partitions the assertions up into smaller batches[^smaller-batches]. An extreme case is the use of the `/oneAssertAtATime` command-line option, which causes Dafny to make one batch for each assertion.
 
 [^smt-encoding]: The formula sent to the underlying SMT solver is the negation of the formula that the verifier wants to prove. Hence, if the SMT solver returns "unsat", it means that the SMT formula is always false, meaning the verifier's formula is always true. On the other side, if the SMT solver returns "sat", it means that the SMT formula can be made true with a special variable assignment, which means that the verifier's formula is false under that same variable assignment, meaning it's a counter-example for the verifier.
 
 [^caveat-about-assertion-and-assumption]: Caveat about assertion and assumption: One big difference between an "assertion transformed in an assumption" and the original "assertion" is that the original "assertion" can unroll functions twice, whereas the "assumed assertion" can unroll them only once. Hence, Dafny can still continue to analyze assertions after a failing assertion without automatically proving "false" (which would make all further assertions to prove automatically).
+
+[^smaller-batches]: To create a smaller batch, Dafny duplicates the list of assertions, and ensure every assertion is transformed into an assumption in exactly one list, so that the assertions of the two new lists form a partition of the original list. This results in "easier" formulas for the verifier because it has less to prove, but it takes more overhead because every verification instance have a common set of axioms and there is no knowledge sharing between instances because they run independently.
 
 This is where the following annotations `{:focus}` and `{:split_here}` come it.
 They enables to manually force the verifier to split assertions into two lists, so that both of them can verify usually independently faster than the original problem, although the total verification time, if not using parallel cores, can double at most.
