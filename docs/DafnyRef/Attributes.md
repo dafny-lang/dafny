@@ -282,7 +282,7 @@ values that satisfy the constraint.
 
 
 ### 22.1.11. `{:opaque}` {#sec-opaque}
-Ordinarily the body of a function is transparent to its users but
+Ordinarily, the body of a function is transparent to its users, but
 sometimes it is useful to hide it. If a function `foo` or `bar` is given the
 `{:opaque}` attribute, then Dafny hides the body of the function,
 so that it can only be seen within its recursive clique (if any),
