@@ -201,7 +201,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     public List<int> AssertionBatchTimes { get; set; } = new();
 
     // If this node is an error, all the trace positions
-    public List<Position> RelatedPositions { get; set; } = new();
+    public List<Range> RelatedRanges { get; set; } = new();
 
     // Sub-diagnostics if any
     public List<NodeDiagnostic> Children { get; set; } = new();

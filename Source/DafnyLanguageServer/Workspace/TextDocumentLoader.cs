@@ -204,8 +204,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       var documentFilePath = document.GetFilePath();
       foreach (var module in document.Program.Modules()) {
-        foreach (var toplLevelDecl in module.TopLevelDecls) {
-          if (toplLevelDecl is TopLevelDeclWithMembers topLevelDeclWithMembers) {
+        foreach (var topLevelDecl in module.TopLevelDecls) {
+          if (topLevelDecl is TopLevelDeclWithMembers topLevelDeclWithMembers) {
             foreach (var member in topLevelDeclWithMembers.Members) {
               if (member is Method or Function) {
                 if (member.tok.filename != documentFilePath) {
@@ -236,6 +236,26 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
                 }
               }
             }
+          } else if (topLevelDecl is SubsetTypeDecl subsetTypeDecl) {
+            if (subsetTypeDecl.tok.filename != documentFilePath) {
+              continue;
+            }
+
+            var diagnosticPosition = TokenToPosition(subsetTypeDecl.tok);
+            if (subsetTypeDecl.Witness == null) {
+              continue;
+            }
+            var diagnosticRange = new Range(diagnosticPosition,
+                TokenToPosition(subsetTypeDecl.Witness.tok, true));
+            var diagnostic = new NodeDiagnostic(
+              subsetTypeDecl.Name,
+              subsetTypeDecl.CompileName,
+              subsetTypeDecl.tok.filename,
+              diagnosticPosition,
+              new(),
+              diagnosticRange,
+              true);
+            AddAndPossiblyMigrateDiagnostic(diagnostic);
           }
         }
       }
@@ -461,11 +481,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
                 return;
               }
 
-              var relatedPositions = relatedTokens
-                .Where(tok => tok.filename == implementationNode.Filename)
-                .Select(tok => TokenToPosition(tok)).ToList();
               var outcomePosition = TokenToPosition(token);
               var secondaryOutcomePosition = secondaryToken != null ? TokenToPosition(secondaryToken) : null;
+              var relatedRanges = relatedTokens
+                .Where(tok => tok.filename == implementationNode.Filename)
+                .Select(tok => new Range(TokenToPosition(tok), TokenToPosition(tok, true)))
+                .Where(range => range.Start != outcomePosition && range.Start != secondaryOutcomePosition)
+                .ToList().GroupBy(x => x)
+                .Select(grp => grp.FirstOrDefault())
+                .OfType<Range>()
+                .OrderBy(x => x.Start.Line).ToList();
 
               var childrenCount = implementationNode.GetNewChildrenCount();
               assertDisplay = assertDisplay != "" ? " " + assertDisplay : "";
@@ -482,7 +507,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
                 false
               ) {
                 Status = status,
-                RelatedPositions = relatedPositions
+                RelatedRanges = relatedRanges
               };
               // Add this diagnostics as the new one to display once the implementation is fully verified
               implementationNode.AddNewChild(nodeDiagnostic);
