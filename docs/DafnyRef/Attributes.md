@@ -460,7 +460,7 @@ For every method, Dafny extracts _assertions_, as follows:
 * A consecutive pair of lines in a [`calc` statement](#sec-calc-statement) forms _an assertion of their equality_.
 * Every function or method call with a [`requires` clause](#sec-requires-clause) yields _one assertion per clause_
   (special cases such as sequence indexing come with a special require clause that the index is within bounds).
-* Assignments `o.f := E;` yield an _assertion_ that `o.f` is allowed by the enclosing [`modifies` clause](#sec-loop-framing)
+* Assignments `o.f := E;` yield an _assertion_ that `o.f` is allowed by the enclosing [`modifies` clause](#sec-loop-framing).
 * Assignments by predicate `x :| P(x)` yield an _assertion_ that `exists x :: P(x)`.
 * Every [`ensures` clause](#sec-ensures-clause) yields an _assertion_ at the end of the method.
 * ...
