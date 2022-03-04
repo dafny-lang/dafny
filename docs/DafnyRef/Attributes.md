@@ -158,7 +158,7 @@ The difference with [`{:extern}`](#sec-extern) is that [`{:extern}`](#sec-extern
 will still emit declaration code if necessary,
 whereas `{:compile false}` will just ignore the declaration for compilation purposes.
 
-### 22.1.6. `{:fuel X}`
+### 22.1.6. `{:fuel X}` {#sec-fuel}
 The fuel attributes is used to specify how much "fuel" a function should have,
 i.e., how many times the SMT solver is permitted to unfold its definition.  The
 new `{:fuel}` annotation can be added to the function itself, it which
@@ -353,14 +353,14 @@ recognized by Boogie and their meaning.
 #### 22.2.1.1. `{:ignore}`
 Ignore the declaration (after checking for duplicate names).
 
-#### 22.2.1.2. `{:extern}` {#sec-extern}
+#### 22.2.1.2. `{:extern <name>}` {#sec-extern}
 
 If a ``ClassDecl``, a ``MethodDecl`` or a ``FunctionDecl`` has an `{:extern}` attribute,
 then:
-* The compiler is going to emit nothing for it, it assumes it exists in the linked files
-* Methods and functions can have [`requires` clauses](#sec-requires-clause) and [`ensures` clauses](#sec-ensures-clause).
-* Methods should not have any body, since they are unchecked and opaque.
-* Functions can have a body which is used only for verification purposes.
+* The compiler generally emits nothing for it and will use <name> instead of the dafny provided name in the generated code referencing it.
+* `{:extern}` Methods and functions can have [`requires` clauses](#sec-requires-clause) and [`ensures` clauses](#sec-ensures-clause).
+* `{:extern}` methods typically do not have any body, since they are unchecked and opaque.
+* `{:extern}` Functions can have a body which is used only for verification purposes.
 
 The difference with [`{:axiom}`](#sec-axiom) is that the compiler will still emit code for an [`{:axiom}`](#sec-axiom), if it is a [`function method`, a `method` or a `function by method`](#sec-function-declarations) with a body.
 
@@ -382,30 +382,62 @@ With `/inline:none` the entire attribute is ignored.
 
 #### 22.2.2.2. `{:verify false}` {#sec-verify}
      
-Skip verification of an implementation altogether
+Skip verification of an implementation altogether.
+Will not even try to verify well-formedness of postconditions and preconditions.
+We discourage to use this attribute. Prefer [`{:axiom}`](#sec-axiom),
+which performs these minimal checks while not checking that the body satisfies postconditions.
 
-#### 22.2.2.3. `{:vcs_max_cost N}`
-#### 22.2.2.4. `{:vcs_max_splits N}`
-#### 22.2.2.5. `{:vcs_max_keep_going_splits N}`
-Per-implementation versions of
-`/vcsMaxCost`, `/vcsMaxSplits` and `/vcsMaxKeepGoingSplits`.
+#### 22.2.2.3. `{:vcs_max_cost N}` {#sec-vcs_max_cost}
+Per-method version of the command-line option `/vcsMaxCost`.
 
-#### 22.2.2.6. `{:selective_checking true}`
-Turn all asserts into assumes except for the ones reachable from
-assumptions marked with the attribute `{:start_checking_here}`.
+The [assertion batch](#sec-assertion-batches) of a method
+will not be split unless the cost of an [assertion batch](#sec-assertion-batches) exceeds this
+number, defaults to 2000.0. In
+[keep-going mode](#sec-vcs_max_keep_going_splits), only applies to the first round.
+If [`{:vcs_split_on_every_assert}`](#sec-vcs_split_on_every_assert) is set, then this parameter is useless.
+
+#### 22.2.2.4. `{:vcs_max_splits N}` {#sec-vcs_max_splits}
+
+Per-method version of the command-line option `/vcsMaxSplits`.
+Maximal number of [assertion batches](#sec-assertion-batches) generated for this method.
+In [keep-going mode](#sec-vcs_max_keep_going_splits), only applies to the first round.
+Defaults to 1.
+If [`{:vcs_split_on_every_assert}`](#sec-vcs_split_on_every_assert) is set, then this parameter is useless.
+                
+#### 22.2.2.5. `{:vcs_max_keep_going_splits N}` {#sec-vcs_max_keep_going_splits}
+
+Per-method version of the command-line option `/vcsMaxKeepGoingSplits`.
+If set to more than 1, activates the _keep going mode_ where, after the first round of splitting,
+[assertion batches](#sec-assertion-batches) that timed out are split into <n> [assertion batches](#sec-assertion-batches) and retried
+until we succeed proving them, or there is only one
+single assertion that it timeouts (in which
+case error is reported for that assertion).
+Defaults to 1.
+If [`{:vcs_split_on_every_assert}`](#sec-vcs_split_on_every_assert) is set, then this parameter is useless.
+
+#### 22.2.2.6. `{:vcs_split_on_every_assert}` {#sec-vcs_split_on_every_assert}
+Per-method version of the command-line option `/vcsSplitOnEveryAssert`.
+
+In the first verification round, this option will split the original [assertion batch](#sec-assertion-batches)
+into one assertion batch per assertion.
+This is mostly helpful for debugging which assertion is taking the most time to prove, e.g. to profile them.
+
+#### 22.2.2.7. `{:selective_checking true}`
+Turn all assertions into assumptions except for the ones reachable from after the
+assertions marked with the attribute `{:start_checking_here}`.
 Thus, `assume {:start_checking_here} something;` becomes an inverse
 of `assume false;`: the first one disables all verification before
 it, and the second one disables all verification after.
 
-#### 22.2.2.7. `{:priority N}`
+#### 22.2.2.8. `{:priority N}`
 Assign a positive priority 'N' to an implementation to control the order
 in which implementations are verified (default: N = 1).
 
-#### 22.2.2.8. `{:id <string>}`
+#### 22.2.2.9. `{:id <string>}`
 Assign a unique ID to an implementation to be used for verification
 result caching (default: "<impl. name>:0").
 
-#### 22.2.2.9. `{:timeLimit N}`
+#### 22.2.2.10. `{:timeLimit N}`
 Set the time limit for a given implementation.
 
 ### 22.2.3. Verification attributes on functions
@@ -442,45 +474,8 @@ that makes all verification conditions valid.  Without option
 
 ### 22.2.5. Verification attributes on assert statements {#sec-verification-attributes-on-assert-statements}
 
-To understand how to tweak verification,
-it is first useful to understand how Dafny verifies functions and methods.
-
-For every method, Dafny extracts _assertions_, as follows:
-
-* any explicit [`assert` statement](#sec-assert-statement) is _an assertion_.
-* A consecutive pair of lines in a [`calc` statement](#sec-calc-statement) forms _an assertion of their equality_.
-* Every function or method call with a [`requires` clause](#sec-requires-clause) yields _one assertion per clause_
-  (special cases such as sequence indexing come with a special require clause that the index is within bounds).
-* Assignments `o.f := E;` yield an _assertion_ that `o.f` is allowed by the enclosing [`modifies` clause](#sec-loop-framing).
-* Assignments by predicate `x :| P(x)` yield an _assertion_ that `exists x :: P(x)`.
-* Every [`ensures` clause](#sec-ensures-clause) yields an _assertion_ at the end of the method.
-* ...
-
-It is useful to mentally visualize all these assertions as a list (an _assertion batch_) that roughly follows the order in the code[^complexity-path-encoding],
-except for `ensures` assertions that appear before in the code but, for verification purposes, would appear at the end.
-Thus, to prove or disprove a single assertion within this list, all the assumptions Dafny needs are 1) the global context,
-and 2) every preceding assumptions (and previous assertions transformed in assumptions).
-
-[^complexity-path-encoding]: All the complexities of the execution paths (if-then-else, loops, goto, break....) are, down the road and for verification purposes, cleverly encoded with variables recording the paths and guarding assumptions made on each path. In practice, a second clever encoding of variables enables grouping many assertions together, and recovers which assertion is failing based on the value of variables that the SMT solver returns.
-
-To achieve higher verification performance, Dafny collects all the assertions of one method into one single conjecture that it sends to the verifier, which tries to prove it correct:
-
-* If the verifier says it is correct[^smt-encoding], it means that all the assertions hold.
-* If the verifier returns a counter-example, this counter-example is used to determine both the failing assertion and the failing path.
-  Dafny will then query again the verifier with the assumption that that particular assert is valid, so that it can retrieve other failing assertions happening afterwards.[^caveat-about-assertion-and-assumption]
-* If the verifier returns `unknown` or times out, or even preemptively for difficult assertions or to reduce the chance that the verifier will ‘be confused’ by the many assertions in a large batch, Dafny partitions the assertions up into smaller batches[^smaller-batches]. An extreme case is the use of the `/vcsSplitOnEveryAssert` command-line option, which causes Dafny to make one batch for each assertion.
-
-[^smt-encoding]: The formula sent to the underlying SMT solver is the negation of the formula that the verifier wants to prove. Hence, if the SMT solver returns "unsat", it means that the SMT formula is always false, meaning the verifier's formula is always true. On the other side, if the SMT solver returns "sat", it means that the SMT formula can be made true with a special variable assignment, which means that the verifier's formula is false under that same variable assignment, meaning it's a counter-example for the verifier. In practice and because of quantifiers, the SMT solver will usually return "unknown" instead of "sat", but will still provide a variable assignment that it couldn't prove that it does not make the formula true. Dafny reports it as a "counter-example" but it might not be a real counter-example, only provide hints about what Dafny knows.
-
-[^caveat-about-assertion-and-assumption]: Caveat about assertion and assumption: One big difference between an "assertion transformed in an assumption" and the original "assertion" is that the original "assertion" can unroll functions twice, whereas the "assumed assertion" can unroll them only once. Hence, Dafny can still continue to analyze assertions after a failing assertion without automatically proving "false" (which would make all further assertions to prove automatically).
-
-[^smaller-batches]: To create a smaller batch, Dafny duplicates the assertion batch, and transforms each assertion into an assumption into exactly one batch, so that assertions are verified only in one batch. This results in "easier" formulas for the verifier because it has less to prove, but it takes more overhead because every verification instance have a common set of axioms and there is no knowledge sharing between instances because they run independently.
-
-This is where the following annotations `{:focus}` and `{:split_here}` come it.
-They enables to manually force the verifier to split assertions into two batches, so that both of them can verify usually independently faster than the original problem, although the total verification time, if not using parallel cores, might increase.
-
-#### 22.2.5.1. `{:focus}`
-`assert {:focus} X;` splits verification into two problems.
+#### 22.2.5.1. `{:focus}` {#sec-focus}
+`assert {:focus} X;` splits verification into two [assertion batches](#sec-assertion-batches).
 The first problem considers all assertions that are on the bloc containing the `assert {:focus} X;`.
 The second problem considers all remaining assertions[^second-focus-assertion-batch].
 
@@ -502,9 +497,11 @@ method doFocus(x: bool) returns (y: int) {
 }
 ```
 
-#### 22.2.5.2. `{:split_here}`
-`assert {:split_here} X;` verifies the code leading to this point and code leading from this point
-to the next `{:split_here}` or until the end as separate pieces. It might help with timeouts.
+#### 22.2.5.2. `{:split_here}` {#sec-split_here}
+`assert {:split_here} X;` splits verification into two [assertion batches](#sec-assertion-batches).
+It verifies the code leading to this point (excluded) in a first assertion batch,
+and the code leading from this point (included) to the next `{:split_here}` or until the end in a second assertion batch.
+It might help with timeouts.
 It might also occasionally double-report errors.
 
 ```
@@ -517,7 +514,7 @@ method doSplitHere(x: bool) returns (y: int) {
 }
 ```
 
-#### 22.2.5.3. `{:subsumption n}`
+#### 22.2.5.4. `{:subsumption n}`
 Overrides the `/subsumption` command-line setting for this assertion.
 
 
