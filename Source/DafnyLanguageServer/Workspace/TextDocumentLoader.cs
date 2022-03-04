@@ -371,24 +371,35 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
       }
 
+      public void ReportMethodsBeingVerified() {
+        var pending = document.VerificationNodeDiagnostic.Children
+          .Where(diagnostic => diagnostic.Started && !diagnostic.Finished)
+          .OrderBy(diagnostic => diagnostic.StartTime)
+          .Select(diagnostic => diagnostic.DisplayName);
+        ReportProgress(string.Join(", ", pending));
+      }
+
       public void ReportStartVerifyImplementation(Implementation implementation) {
         var targetMethodNode = GetTargetMethodNode(implementation, out var implementationNode);
         if (targetMethodNode == null) {
           logger.LogError($"No method node at {implementation.tok.filename}:{implementation.tok.line}:{implementation.tok.col}");
         } else {
-          if (!targetMethodNode.Started) {
-            // The same method could be started multiple times for each implementation
-            targetMethodNode.Start();
-          }
+          lock (LockProcessing) {
+            if (!targetMethodNode.Started) {
+              // The same method could be started multiple times for each implementation
+              targetMethodNode.Start();
+            }
+            ReportMethodsBeingVerified();
 
-          if (implementationNode == null) {
-            logger.LogError($"No implementation at {implementation.tok}");
-          } else {
-            implementationNode.AssertionBatchTimes = new();
-            implementationNode.Start();
-          }
+            if (implementationNode == null) {
+              logger.LogError($"No implementation at {implementation.tok}");
+            } else {
+              implementationNode.AssertionBatchTimes = new();
+              implementationNode.Start();
+            }
 
-          diagnosticPublisher.PublishVerificationDiagnostics(document);
+            diagnosticPublisher.PublishVerificationDiagnostics(document);
+          }
         }
       }
 
@@ -419,11 +430,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         } else if (implementationNode == null) {
           logger.LogError($"No implementation node at {implementation.tok.filename}:{implementation.tok.line}:{implementation.tok.col}");
         } else {
-          implementationNode.Stop();
-          implementationNode.ResourceCount = verificationResult.ResourceCount;
-          implementationNode.SaveNewChildren();
-
           lock (LockProcessing) {
+            implementationNode.Stop();
+            implementationNode.ResourceCount = verificationResult.ResourceCount;
+            implementationNode.SaveNewChildren();
+
             targetMethodNode.ResourceCount += verificationResult.ResourceCount;
             // Will be only executed by the last instance.
             if (!targetMethodNode.Children.All(child => child.Finished)) {
@@ -441,6 +452,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             }
 
             targetMethodNode.RecomputeStatus();
+            ReportMethodsBeingVerified();
             diagnosticPublisher.PublishVerificationDiagnostics(document);
           }
         }
@@ -582,14 +594,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         var implPosition = TokenToPosition(implTok);
         // We might want to simplify this quadratic algorithm
         var method = document.VerificationNodeDiagnostic.Children.FirstOrDefault(node =>
-          node != null && node.Position == implPosition, null);
+          node != null && node.Range.Contains(implPosition), null);
         if (method != null) {
           if (method.Range.Intersects(lastChange)) {
             RememberLastTouchedMethod(method);
             return 10;
           }
           // 0 if not found
-          var priority = 1 + document.LastTouchedMethods.IndexOf(method.Position);
+          var priority = 1 + document.LastTouchedMethodPositions.IndexOf(method.Position);
           return priority;
         }
         // Can we do the call graph?
@@ -597,13 +609,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       private void RememberLastTouchedMethod(NodeDiagnostic method) {
-        var index = document.LastTouchedMethods.IndexOf(method.Position);
+        var index = document.LastTouchedMethodPositions.IndexOf(method.Position);
         if (index != -1) {
-          document.LastTouchedMethods.RemoveAt(index);
+          document.LastTouchedMethodPositions.RemoveAt(index);
         }
-        document.LastTouchedMethods.Add(method.Position);
-        while (document.LastTouchedMethods.Count() > 5) {
-          document.LastTouchedMethods.RemoveAt(0);
+        document.LastTouchedMethodPositions.Add(method.Position);
+        while (document.LastTouchedMethodPositions.Count() > 5) {
+          document.LastTouchedMethodPositions.RemoveAt(0);
         }
       }
     }

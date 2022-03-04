@@ -37,6 +37,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
       return originalNodeDiagnostic;
     }
 
+
+    public List<Position> RelocatePositions(List<Position> originalPositions,
+      DidChangeTextDocumentParams changes, CancellationToken cancellationToken) {
+      var migratePositions = new ChangeProcessor(logger, loggerSymbolTable, changes.ContentChanges, cancellationToken)
+        .MigratePositions(originalPositions);
+      return migratePositions;
+    }
+
     private class ChangeProcessor {
       private readonly ILogger logger;
       private readonly Container<TextDocumentContentChangeEvent> contentChanges;
@@ -59,12 +67,33 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
         return contentChanges.Aggregate(originalDiagnostics, MigrateDiagnostics);
       }
 
+      public List<Position> MigratePositions(List<Position> originalRanges) {
+        return contentChanges.Aggregate(originalRanges, MigratePositions);
+      }
+
       private IReadOnlyList<Diagnostic> MigrateDiagnostics(IReadOnlyList<Diagnostic> originalDiagnostics, TextDocumentContentChangeEvent change) {
         if (change.Range == null) {
-          throw new System.InvalidOperationException("the range of the change must not be null");
+          return new List<Diagnostic>();
         }
 
         return originalDiagnostics.SelectMany(diagnostic => MigrateDiagnostic(change, diagnostic)).ToList();
+      }
+
+      private List<Position> MigratePositions(List<Position> originalRanges, TextDocumentContentChangeEvent change) {
+        if (change.Range == null) {
+          return new List<Position> { };
+        }
+
+        return originalRanges.SelectMany(diagnostic => MigratePosition(change, diagnostic)).ToList();
+      }
+
+      private IEnumerable<Position> MigratePosition(TextDocumentContentChangeEvent change, Position position) {
+        var afterChangeEndOffset = GetPositionAtEndOfAppliedChange(change.Range!, change.Text);
+        if (change.Range!.Contains(position)) {
+          return new List<Position> { };
+        }
+
+        return new List<Position> { MigratePosition(position, change.Range!, afterChangeEndOffset) };
       }
 
       private IEnumerable<Diagnostic> MigrateDiagnostic(TextDocumentContentChangeEvent change, Diagnostic diagnostic) {
@@ -148,6 +177,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
           characterOffset = changeStart.Character + changeEof.Character;
         }
         return new Position(changeStart.Line + changeEof.Line, characterOffset);
+      }
+
+      private static IEnumerable<Range> MigratePositions(Range[] rangesToMigrate, Range changeRange, Position afterChangeEndOffset) {
+        return rangesToMigrate.Select(
+          rangeToMigrate => MigrateRange(rangeToMigrate, changeRange, afterChangeEndOffset)).OfType<Range>();
       }
 
       private static Range? MigrateRange(Range rangeToMigrate, Range changeRange, Position afterChangeEndOffset) {

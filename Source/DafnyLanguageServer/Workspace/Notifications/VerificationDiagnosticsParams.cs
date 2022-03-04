@@ -233,6 +233,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
         NodeVerificationStatus.Verifying => NodeVerificationStatus.Scheduled,
         NodeVerificationStatus.ErrorVerifying => NodeVerificationStatus.ErrorObsolete,
         NodeVerificationStatus.VerifiedVerifying => NodeVerificationStatus.VerifiedObsolete,
+        NodeVerificationStatus.Inconclusive => NodeVerificationStatus.ErrorObsolete,
         NodeVerificationStatus.Scheduled => NodeVerificationStatus.Scheduled,
         NodeVerificationStatus.Unknown => NodeVerificationStatus.Unknown,
         _ => Status
@@ -294,13 +295,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       for (var line = Range.Start.Line - 1; line <= Range.End.Line - 1; line++) {
         LineVerificationStatus targetStatus;
         switch (Status) {
-          case NodeVerificationStatus.Verified when contextHasErrors:
+          case NodeVerificationStatus.Verified when contextHasErrors && !Children.Any():
             targetStatus = LineVerificationStatus.ErrorRangeAssertionVerified;
             break;
-          case NodeVerificationStatus.Verifying when contextHasErrors:
+          case NodeVerificationStatus.Verifying when contextHasErrors && !Children.Any():
             targetStatus = LineVerificationStatus.ErrorRangeAssertionVerifiedVerifying;
             break;
-          case NodeVerificationStatus.VerifiedObsolete when contextHasErrors:
+          case NodeVerificationStatus.VerifiedObsolete when contextHasErrors && !Children.Any():
             targetStatus = LineVerificationStatus.ErrorRangeAssertionVerifiedObsolete;
             break;
           default: {

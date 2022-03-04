@@ -196,10 +196,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
       public void Inform(string s, TextWriter tw) {
         logger.LogInformation(s);
-        var match = Regex.Match(s, "^Verifying .+[.](?<name>[^.]+) [.][.][.]$");
-        if (match.Success) {
-          progressReporter.ReportProgress(match.Groups["name"].Value);
-        }
       }
 
       public void ReportBplError(IToken tok, string message, bool error, TextWriter tw, [AllowNull] string category) {
