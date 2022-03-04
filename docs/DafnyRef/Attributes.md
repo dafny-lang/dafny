@@ -424,7 +424,7 @@ Set the time limit for a given implementation.
 Rewrite the function to built-in prover function symbol 'fn'.
 
 #### 22.2.3.3. `{:inline}`
-`{:inline}` or `{:inline true}` expands function according to its definition before going to the prover.
+`{:inline}` or `{:inline true}` expands a function according to its definition before going to the prover.
 
 #### 22.2.3.4. `{:never_pattern true}`
 Terms starting with this function symbol will never be
