@@ -345,7 +345,7 @@ quantifies over types.
 
 ## 22.2. Boogie-specific verification attributes
 Dafny passes verification attributes that have been specified to its dependency Boogie.
-Use the `/attrHelp` option to get the list of attributes
+Use the `/attrHelp` option to get the list of attributes of both Dafny and Boogie
 recognized by Boogie and their meaning.
 
 ### 22.2.1. Verification attributes on top-level declarations
