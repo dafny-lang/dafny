@@ -381,7 +381,7 @@ Attach a checksum to be used for verification result caching.
 
 #### 22.2.2.1. `{:inline N}`
      
-Inline given procedure (can be also used on implementation).
+Inline a given procedure (can be also used on implementation).
 N should be a non-negative number and represents the inlining depth.
 With `/inline:assume`, call is replaced with `assume false` once inlining depth is reached.
 With `/inline:assert`, call is replaced with `assert false` once inlining depth is reached.
