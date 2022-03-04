@@ -364,15 +364,6 @@ then:
 
 The difference with [`{:axiom}`](#sec-axiom) is that the compiler will still emit code for an [`{:axiom}`](#sec-axiom), if it is a [`function method`, a `method` or a `function by method`](#sec-function-declarations) with a body.
 
-As a side note and for verification only,
-If two top-level declarations introduce the same name (for example, two
-constants with the same name or two procedures with the same name), then
-Boogie usually produces an error message.  However, if at least one of
-the declarations is declared with :extern, one of the declarations is
-ignored.  If both declarations are :extern, Boogie arbitrarily chooses
-one of them to keep; otherwise, Boogie ignore the :extern declaration
-and keeps the other.
-
 #### 22.2.1.3. `{:checksum <string>}`
 
 Attach a checksum to be used for verification result caching.
