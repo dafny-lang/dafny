@@ -206,7 +206,7 @@ That's it! Now the postcondition is not failing anymore, but the `assert` contai
 you can now move to the next section to find out how to debug this `assert`.
 
 #### 24.8.1.1 Failing asserts {#sec-failing-asserts}
-In the section (#sec-failing-postconditions), we arrive to the point where we have a failing assertion:
+In the [previous section](#sec-failing-postconditions), we arrive to the point where we have a failing assertion:
 ```dafny
 method FailingPostcondition(b: bool) returns (i: int)
   ensures i >= 2
@@ -307,6 +307,7 @@ This list is not exhaustive but can definitely be useful to provide the next ste
   <br><br>`assert forall x :: G(i) => R(i);` |  `assert G(i0);`<br>`assert R(i0);`<br>`assert forall i :: G(i) => R(i);` with a guess of the `i0` that makes the second assert to fail.
   <br><br>`assert forall i | 0 < i <= m :: P(i);` |  `assert forall i | 0 < i < m :: P(i);`<br>`assert forall i | i == m :: P(i);`<br>`assert forall i | 0 < i <= m :: P(i);`<br><br>
   <br><br>`assert forall i | i == m :: P(m);` |  `assert P(m);`<br>`assert forall i | i == m :: P(i);`
+  `method m(i) returns (j: T)`<br>&nbsp;&nbsp;`  requires A(i)`<br>&nbsp;&nbsp;`ensures B(i, j)...`<br><br>`method n() {...`<br><br><br>&nbsp;&nbsp;`  var x := m(a);`<br>&nbsp;&nbsp;`  assert P(x);` | `method m(i) returns (j: T)`<br>&nbsp;&nbsp;`  requires A(i)`<br>&nbsp;&nbsp;`ensures B(i, j)...`<br><br>`method n() {...`<br>&nbsp;&nbsp;`  assert A(k);`<br>&nbsp;&nbsp;`  assert forall x :: B(k, x) ==> P(x);`<br>&nbsp;&nbsp;`  var x := m(k);`<br>&nbsp;&nbsp;`  assert P(x);`
 
 ### 24.8.2. Assertion batches {#sec-assertion-batches}
 
