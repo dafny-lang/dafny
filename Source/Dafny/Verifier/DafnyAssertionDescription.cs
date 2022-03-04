@@ -1,8 +1,8 @@
-using Core;
+using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
-public abstract class DafnyAssertionDescription : AssertionDescription {
+public abstract class DafnyAssertionDescription : ProofObligationDescription {
 }
 
 public class DafnyDivisionAssertion : DafnyAssertionDescription {
