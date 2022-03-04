@@ -452,7 +452,7 @@ that makes all verification conditions valid.  Without option
 ### 22.2.5. Verification attributes on assert statements {#sec-verification-attributes-on-assert-statements}
 
 To understand how to tweak verification,
-it is first useful to understand how Dafny verifies functions or methods.
+it is first useful to understand how Dafny verifies functions and methods.
 
 For every method, Dafny extracts _assertions_, as follows:
 
