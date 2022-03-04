@@ -345,7 +345,7 @@ quantifies over types.
 
 ## 22.2. Boogie-specific verification attributes
 Dafny passes verification attributes that have been specified to its dependency Boogie.
-Use the "/attrHelp" option to get the list of attributes
+Use the `/attrHelp` option to get the list of attributes
 recognized by Boogie and their meaning.
 
 ### 22.2.1. Verification attributes on top-level declarations
@@ -391,7 +391,7 @@ With `/inline:none` the entire attribute is ignored.
 
 #### 22.2.2.2. `{:verify false}` {#sec-verify}
      
-Skip verification of an implementation alltogether
+Skip verification of an implementation altogether
 
 #### 22.2.2.3. `{:vcs_max_cost N}`
 #### 22.2.2.4. `{:vcs_max_splits N}`
@@ -438,7 +438,7 @@ If the function annotated with `{:identity}` or `{:identity true}` has 1 argumen
 some X, then the abstract interpreter will treat the function as an
 identity function.  Note, the abstract interpreter trusts the
 attribute--it does not try to verify that the function really is an
-identity function.
+identity function on the abstract domain.
 
 ### 22.2.4. Verification attributes on variables
 
@@ -465,63 +465,64 @@ For every method, Dafny extracts _assertions_, as follows:
 * Every [`ensures` clause](#sec-ensures-clause) yields an _assertion_ at the end of the method.
 * ...
 
-It is useful to mentally visualize all these assertions as a list that roughly follows the order in the code[^complexity-path-encoding],
+It is useful to mentally visualize all these assertions as a list (an _assertion batch_) that roughly follows the order in the code[^complexity-path-encoding],
 except for `ensures` assertions that appear before in the code but, for verification purposes, would appear at the end.
 Thus, to prove or disprove a single assertion within this list, all the assumptions Dafny needs are 1) the global context,
 and 2) every preceding assumptions (and previous assertions transformed in assumptions).
 
 [^complexity-path-encoding]: All the complexities of the execution paths (if-then-else, loops, goto, break....) are, down the road and for verification purposes, cleverly encoded with variables recording the paths and guarding assumptions made on each path. In practice, a second clever encoding of variables enables grouping many assertions together, and recovers which assertion is failing based on the value of variables that the SMT solver returns.
 
-To achieve higher verification performance, Dafny collects all the assertions of one method into one single conjecture (an _assertion batch_) that it sends to the verifier, which tries to prove it correct:
+To achieve higher verification performance, Dafny collects all the assertions of one method into one single conjecture that it sends to the verifier, which tries to prove it correct:
 
 * If the verifier says it is correct[^smt-encoding], it means that all the assertions hold.
 * If the verifier returns a counter-example, this counter-example is used to determine both the failing assertion and the failing path.
   Dafny will then query again the verifier with the assumption that that particular assert is valid, so that it can retrieve other failing assertions happening afterwards.[^caveat-about-assertion-and-assumption]
-* If the verifier returns `unknown` or times out, or even preemptively for difficult assertions or to reduce the chance that the verifier will ‘be confused’ by the many assertions in a large batch, Dafny partitions the assertions up into smaller batches[^smaller-batches]. An extreme case is the use of the `/oneAssertAtATime` command-line option, which causes Dafny to make one batch for each assertion.
+* If the verifier returns `unknown` or times out, or even preemptively for difficult assertions or to reduce the chance that the verifier will ‘be confused’ by the many assertions in a large batch, Dafny partitions the assertions up into smaller batches[^smaller-batches]. An extreme case is the use of the `/vcsSplitOnEveryAssert` command-line option, which causes Dafny to make one batch for each assertion.
 
-[^smt-encoding]: The formula sent to the underlying SMT solver is the negation of the formula that the verifier wants to prove. Hence, if the SMT solver returns "unsat", it means that the SMT formula is always false, meaning the verifier's formula is always true. On the other side, if the SMT solver returns "sat", it means that the SMT formula can be made true with a special variable assignment, which means that the verifier's formula is false under that same variable assignment, meaning it's a counter-example for the verifier.
+[^smt-encoding]: The formula sent to the underlying SMT solver is the negation of the formula that the verifier wants to prove. Hence, if the SMT solver returns "unsat", it means that the SMT formula is always false, meaning the verifier's formula is always true. On the other side, if the SMT solver returns "sat", it means that the SMT formula can be made true with a special variable assignment, which means that the verifier's formula is false under that same variable assignment, meaning it's a counter-example for the verifier. In practice and because of quantifiers, the SMT solver will usually return "unknown" instead of "sat", but will still provide a variable assignment that it couldn't prove that it does not make the formula true. Dafny reports it as a "counter-example" but it might not be a real counter-example, only provide hints about what Dafny knows.
 
 [^caveat-about-assertion-and-assumption]: Caveat about assertion and assumption: One big difference between an "assertion transformed in an assumption" and the original "assertion" is that the original "assertion" can unroll functions twice, whereas the "assumed assertion" can unroll them only once. Hence, Dafny can still continue to analyze assertions after a failing assertion without automatically proving "false" (which would make all further assertions to prove automatically).
 
-[^smaller-batches]: To create a smaller batch, Dafny duplicates the list of assertions, and ensure every assertion is transformed into an assumption in exactly one list, so that the assertions of the two new lists form a partition of the original list. This results in "easier" formulas for the verifier because it has less to prove, but it takes more overhead because every verification instance have a common set of axioms and there is no knowledge sharing between instances because they run independently.
+[^smaller-batches]: To create a smaller batch, Dafny duplicates the assertion batch, and transforms each assertion into an assumption into exactly one batch, so that assertions are verified only in one batch. This results in "easier" formulas for the verifier because it has less to prove, but it takes more overhead because every verification instance have a common set of axioms and there is no knowledge sharing between instances because they run independently.
 
 This is where the following annotations `{:focus}` and `{:split_here}` come it.
-They enables to manually force the verifier to split assertions into two lists, so that both of them can verify usually independently faster than the original problem, although the total verification time, if not using parallel cores, can double at most.
+They enables to manually force the verifier to split assertions into two batches, so that both of them can verify usually independently faster than the original problem, although the total verification time, if not using parallel cores, might increase.
 
 #### 22.2.5.1. `{:focus}`
-Splits verification into two problems. First problem deletes all paths
-that do not have the focus block. Second problem considers the paths
-deleted in the first problem and does not contain either the focus block
-or any block dominated by it.
-For example:
+`assert {:focus} X;` splits verification into two problems.
+The first problem considers all assertions that are on the bloc containing the `assert {:focus} X;`.
+The second problem considers all remaining assertions[^second-focus-assertion-batch].
 
+[^second-focus-assertion-batch]: More precisely, any assertion on an execution path that does not go through the assertion with `{:focus}` will be counted in the second problem, all the others will be counted in the first problem.
+
+For example:
 ```
 method doFocus(x: bool) returns (y: int) {
   y := 1;
-  assert y == 1;    // Assert in list #1, Assume in list #2
+  assert y == 1;    // Assumption in batch #1, Assertion in batch #2
   if(x) {
     assert {:focus} true;
     y := 2;
-    assert y == 2; // Assumed in list #1, Assert in list #2
+    assert y == 2; // Assertion in batch #1, Assumption in batch #2
   } else {
-    assert y == 1; // Assert in list #1, Assume in list #2
+    assert y == 1; // Assumption in batch #1, Assertion in batch #2
   }
-  assert y >= 1;   // Assert in list #1, Assume in list #2
+  assert y >= 1;   // Assumption in batch #1, Assertion in batch #2
 }
 ```
 
 #### 22.2.5.2. `{:split_here}`
-Verifies code leading to this point and code leading from this point
-to the next `{:split_here}` as separate pieces. May help with timeouts.
-May also occasionally double-report errors.
+`assert {:split_here} X;` verifies the code leading to this point and code leading from this point
+to the next `{:split_here}` or until the end as separate pieces. It might help with timeouts.
+It might also occasionally double-report errors.
 
 ```
-method doFocus(x: bool) returns (y: int) {
+method doSplitHere(x: bool) returns (y: int) {
   y := 1;
-  assert y == 1;    // Assert in list #1, Assume in list #2
+  assert y == 1;   // Assertion in batch #1, Assumption in batch #2
   assert {:split_here} true;
-  assert y == 1;   // Assumed in list #1, Assert in list #2
-  assert y >= 1;   // Assumed in list #1, Assert in list #2
+  assert y == 1;   // Assumption in batch #1, Assertion in batch #2
+  assert y >= 1;   // Assumption in batch #1, Assertion in batch #2
 }
 ```
 

@@ -158,6 +158,11 @@ namespace Microsoft.Dafny {
     protected override bool ParseOption(string name, Bpl.CommandLineOptionEngine.CommandLineParseState ps) {
       var args = ps.args; // convenient synonym
       switch (name) {
+        case "OneAssertAtATime":
+        case "oneAssertAtATime":
+          VcsSplitOnEveryAssert = true;
+          return true;
+
         case "dprelude":
           if (ps.ConfirmArgumentCount(1)) {
             DafnyPrelude = args[ps.i];
