@@ -153,18 +153,14 @@ To prevent Dafny from running all these checks, one would use [`{:verify false}`
 ### 22.1.5. `{:compile}`
 The `{:compile}` attribute takes a boolean argument. It may be applied to
 any top-level declaration. If that argument is false, then that declaration
-will not be compiled into .Net code.
+will not be compiled at all.
+The difference with [`{:extern}`](#sec-extern) is that [`{:extern}`](#sec-extern)
+will still emit declaration code if necessary,
+whereas `{:compile false}` will just ignore the declaration for compilation purposes.
 
-### 22.1.6. `{:decl}` (deprecated) {#sec-decl}
-The `{:decl}` attribute may be placed on a method declaration. It
-inhibits the error message that has would be given when the method has an
-[`ensures clauses`](#sec-ensures-clause) but no body. It has been used to declare Dafny interfaces
-in the MSR IronClad and IronFleet projects.
-Instead, the [`{:extern}`](#sec-extern) attribute should be used.
-
-### 22.1.7. `{:fuel X}`
+### 22.1.6. `{:fuel X}`
 The fuel attributes is used to specify how much "fuel" a function should have,
-i.e., how many times the SMT solver is permitted to unfold it's definition.  The
+i.e., how many times the SMT solver is permitted to unfold its definition.  The
 new `{:fuel}` annotation can be added to the function itself, it which
 case it will apply to all uses of that function, or it can overridden
 within the scope of a module, function, method, iterator, calc, forall,
@@ -184,7 +180,7 @@ fewer assert statements), but it may also increase verification time,
 so use it with care.  Setting the fuel to 0,0 is similar to making the
 definition opaque, except when used with all literal arguments.
 
-### 22.1.8. `{:heapQuantifier}`
+### 22.1.7. `{:heapQuantifier}`
 The `{:heapQuantifier}` attribute may be used on a [`QuantifierExpression`](#sec-quantifier-expression).
 When it appears in a quantifier expression, it is as if a new heap-valued
 quantifier variable was added to the quantification. Consider this code
@@ -207,20 +203,7 @@ What this is saying is that the quantified expression, `f(u) == u + r`,
 which may depend on the heap, is also valid for any good heap that is either the
 same as the current heap, or that is derived from it by heap update operations.
 
-### 22.1.9. `{:imported}`
-If a ``MethodDecl`` or ``FunctionDecl`` has an `{:imported}` attribute,
-then it is allowed to have a empty body even though it has an [`ensures clause`](#sec-ensures-clause).
-Ordinarily a body would be required in order to provide the
-proof of the [`ensures clauses`](#sec-ensures-clause) (but the [`{:axiom}`](#sec-axiom) attribute also
-provides this facility, so the need for `(:imported)` is not clear.)
-A method or function declaration may be given the `{:imported}` attribute. This suppresses
-the error message that would be given if a method or function with an [`ensures clause`](#sec-ensures-clause)
-does not have a body.
-
-This seems to duplicate what [`{:extern}`](#sec-extern) and [`{:decl}`](#sec-decl) do and would be a good candidate for
-deprecation.
-
-### 22.1.10. `{:induction}`
+### 22.1.8. `{:induction}`
 The `{:induction}` attribute controls the application of
 proof by induction to two contexts. Given a list of
 variables on which induction might be applied, the
@@ -258,7 +241,7 @@ lemma Fill_J(s: seq<int>)
 }
 ```
 
-### 22.1.11. `{:layerQuantifier}`
+### 22.1.9. `{:layerQuantifier}`
 When Dafny is translating a quantified expression, if it has
 a `{:layerQuantifier}` attribute an additional quantifier
 variable is added to the quantifier bound variables.
@@ -279,7 +262,7 @@ TODO: Need more complete explanation of this attribute.
 Dafny issue [35](https://github.com/Microsoft/dafny/issues/35) tracks
 further effort for this attribute.
 
-### 22.1.12. `{:nativeType}` {#sec-nativetype}
+### 22.1.10. `{:nativeType}` {#sec-nativetype}
 The `{:nativeType}` attribute may only be used on a ``NewtypeDecl``
 where the base type is an integral type. It can take one of the following
 forms:
@@ -298,7 +281,7 @@ An error is reported if the given datatype cannot hold all the
 values that satisfy the constraint.
 
 
-### 22.1.13. `{:opaque}` {#sec-opaque}
+### 22.1.11. `{:opaque}` {#sec-opaque}
 Ordinarily the body of a function is transparent to its users but
 sometimes it is useful to hide it. If a function `foo` or `bar` is given the
 `{:opaque}` attribute, then Dafny hides the body of the function,
@@ -327,7 +310,7 @@ the functionality is already adequately described where
 refinement is described.
 -->
 
-### 22.1.14. `{:tailrecursion true/false}`
+### 22.1.12. `{:tailrecursion true/false}`
 This attribute is used on method declarations. It has a boolean argument.
 
 If specified with a false value, it means the user specifically
@@ -343,7 +326,7 @@ recursion was explicitly requested.
 * If `{:tailrecursion true}` was specified but the code does not allow it,
 an error message is given.
 
-### 22.1.15. `{:timeLimitMultiplier X}`
+### 22.1.13. `{:timeLimitMultiplier X}`
 This attribute may be placed on a method or function declaration
 and has an integer argument. If `{:timeLimitMultiplier X}` was
 specified a `{:timelimit Y}` attributed is passed on to Boogie
@@ -351,11 +334,11 @@ where `Y` is `X` times either the default verification time limit
 for a function or method, or times the value specified by the
 Boogie `timelimit` command-line option.
 
-### 22.1.16. `{:trigger}` {#sec-trigger}
+### 22.1.14. `{:trigger}` {#sec-trigger}
 Trigger attributes are used on quantifiers and comprehensions.
 They are translated into Boogie triggers.
 
-### 22.1.17. `{:typeQuantifier}`
+### 22.1.15. `{:typeQuantifier}`
 The `{:typeQuantifier}` attribute must be used on a quantifier if it
 quantifies over types.
 
@@ -371,6 +354,17 @@ recognized by Boogie and their meaning.
 Ignore the declaration (after checking for duplicate names).
 
 #### 22.2.1.2. `{:extern}` {#sec-extern}
+
+If a ``ClassDecl``, a ``MethodDecl`` or a ``FunctionDecl`` has an `{:extern}` attribute,
+then:
+* The compiler is going to emit nothing for it, it assumes it exists in the linked files
+* Methods and functions can have [`requires` clauses](#sec-requires-clause) and [`ensures` clauses](#sec-ensures-clause).
+* Methods should not have any body, since they are unchecked and opaque.
+* Functions can have a body which is used only for verification purposes.
+
+The difference with [`{:axiom}`](#sec-axiom) is that the compiler will still emit code for an [`{:axiom}`](#sec-axiom), if it is a [`function method`, a `method` or a `function by method`](#sec-function-declarations) with a body.
+
+As a side note and for verification only,
 If two top-level declarations introduce the same name (for example, two
 constants with the same name or two procedures with the same name), then
 Boogie usually produces an error message.  However, if at least one of
