@@ -510,6 +510,11 @@ namespace Microsoft.Dafny {
         return thn;
       }
     }
+
+    protected virtual ConcreteSyntaxTree EmitBlock(ConcreteSyntaxTree wr) {
+      return wr.NewBlock("", open: BlockStyle.Brace);
+    }
+
     protected virtual ConcreteSyntaxTree EmitWhile(Bpl.IToken tok, List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr) {  // returns the guard writer
       ConcreteSyntaxTree guardWriter;
       var wBody = CreateWhileLoop(out guardWriter, wr);
@@ -2802,7 +2807,7 @@ namespace Microsoft.Dafny {
         TrCallStmt(s, null, wr);
 
       } else if (stmt is BlockStmt) {
-        var w = wr.NewBlock("", null, BlockStyle.Brace, BlockStyle.NewlineBrace);
+        var w = EmitBlock(wr);
         TrStmtList(((BlockStmt)stmt).Body, w);
 
       } else if (stmt is IfStmt) {
@@ -2843,7 +2848,7 @@ namespace Microsoft.Dafny {
           TrStmtList(s.Thn.Body, thenWriter);
 
           if (coverageForElse) {
-            wr = wr.NewBlock("", null, BlockStyle.Brace);
+            wr = EmitBlock(wr);
             if (s.Els == null) {
               Coverage.Instrument(s.Tok, "implicit else branch", wr);
             } else {
