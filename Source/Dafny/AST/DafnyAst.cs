@@ -4990,7 +4990,6 @@ namespace Microsoft.Dafny {
     bool ICodeContext.IsGhost { get { return true; } }
     List<TypeParameter> ICodeContext.TypeArgs { get { return new List<TypeParameter>(); } }
     List<Formal> ICodeContext.Ins { get { return new List<Formal>(); } }
-    Specification<Expression> Decreases { get { return new Specification<Expression>(null, null); } }
     ModuleDefinition ICodeContext.EnclosingModule { get { return Module; } }
     bool ICodeContext.MustReverify { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
     public string FullSanitizedName { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
@@ -6996,7 +6995,6 @@ namespace Microsoft.Dafny {
   public class LList<T> {
     public readonly T Data;
     public readonly LList<T> Next;
-    const LList<T> Empty = null;
 
     public LList(T d, LList<T> next) {
       Data = d;

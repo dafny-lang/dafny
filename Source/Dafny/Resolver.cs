@@ -5494,25 +5494,6 @@ namespace Microsoft.Dafny {
         return false;
       }
 
-      bool IsEqDetermined(Type t) {
-        Contract.Requires(t != null);
-        switch (TypeProxy.GetFamily(t)) {
-          case TypeProxy.Family.Bool:
-          case TypeProxy.Family.Char:
-          case TypeProxy.Family.IntLike:
-          case TypeProxy.Family.RealLike:
-          case TypeProxy.Family.Ordinal:
-          case TypeProxy.Family.BitVector:
-            return true;
-          case TypeProxy.Family.ValueType:
-          case TypeProxy.Family.Ref:
-          case TypeProxy.Family.Opaque:
-          case TypeProxy.Family.Unknown:
-          default:
-            return false;  // TODO: could be made more exact
-        }
-      }
-
       internal bool CouldBeAnything() {
         return Types.All(t => t.NormalizeExpand() is TypeProxy);
       }
@@ -17432,8 +17413,6 @@ namespace Microsoft.Dafny {
       }
       return bounds;
     }
-
-    private static Translator translator = new Translator(null);
 
     public static Expression GetImpliedTypeConstraint(IVariable bv, Type ty) {
       return GetImpliedTypeConstraint(Expression.CreateIdentExpr(bv), ty);
