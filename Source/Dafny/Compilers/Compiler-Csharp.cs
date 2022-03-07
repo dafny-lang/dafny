@@ -3441,18 +3441,18 @@ namespace Microsoft.Dafny {
       }
 
       private void MockExpression(ConcreteSyntaxTree wr, ForallExpr forallExpr) {
-        if (forallExpr.Term is not BinaryExpr binaryExpr) {
+        if (forallExpr.Term is not BinaryExpr binaryExpr) { // we only handle binary expressions
           return;
         }
-        var bounds = new List<Tuple<IVariable, string>>();
-        var declarations = new List<string>();
+        var bounds = new List<Tuple<IVariable, string>>(); // initialize bounds list
+        var declarations = new List<string>(); // initialize declarations list
         var matcherName = "matcher" + matcherCount++; // TODO
-        for (int i = 0; i < forallExpr.BoundVars.Count; i++) {
-          var boundVar = forallExpr.BoundVars[i];
-          var varType = compiler.TypeName(boundVar.Type, wr, boundVar.tok);
+        for (int i = 0; i < forallExpr.BoundVars.Count; i++) { // Loop through bound variables
+          var boundVar = forallExpr.BoundVars[i]; // get the var
+          var varType = compiler.TypeName(boundVar.Type, wr, boundVar.tok); // get its type
           bounds.Add(new(boundVar,
-            $"It.Is<{varType}>(x => {matcherName}.Match(x))"));
-          declarations.Add($"var {boundVar.CompileName} = ({varType}) o[{i}];");
+            $"It.Is<{varType}>(x => {matcherName}.Match(x))")); // add to bounds list (tuple of variable, and ...)
+          declarations.Add($"var {boundVar.CompileName} = ({varType}) o[{i}];"); // declare the variable and pull it from o - what is o???
         }
 
         // TODO: what if "o" shadows something?

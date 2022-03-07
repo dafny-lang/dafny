@@ -291,50 +291,13 @@ namespace Microsoft.Dafny {
       return wrOuter;
     }
 
-    private static void AddMultiMatcher(ConcreteSyntaxTree wr) {
-      const string multiMatcher = @"
-      public class MultiMatcher implements ArgumentMatcher<Object> {
-
-          private final int argsTotal;
-          private int argsRead;
-          private final Object[] args;
-          private final Predicate predicate;
-
-          public MultiMatcher(int nOfArgs, Predicate predicate) {
-              this.argsTotal = nOfArgs;
-              this.argsRead = 0;
-              this.args = new Object[nOfArgs];
-              this.predicate = predicate;
-          }
-
-          @Override
-          public boolean matches(Object o) {
-              args[argsRead] = o;
-              argsRead++;
-              if (argsRead < argsTotal)
-                  return true;
-              argsRead = 0;
-              return predicate.p(args);
-          }
-
-          public interface Predicate {
-              boolean p(Object[] args);
-          }
-      }";
-      wr.WriteLine(multiMatcher);
-    }
-
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
       wr.WriteLine($"// Dafny program {program.Name} compiled into Java");
       ModuleName = program.MainMethod != null ? "main" : Path.GetFileNameWithoutExtension(program.Name);
       wr.WriteLine();
       // Keep the import writers so that we can import subsequent modules into the main one
       EmitImports(wr, out RootImportWriter);
-      wr.WriteLine($"import static org.mockito.Mockito.*;"); // TODO: pom file??
-      wr.WriteLine($"import org.mockito.Mockito;");
-      wr.WriteLine($"import org.mockito.ArgumentMatcher;");
       wr.WriteLine();
-      AddMultiMatcher(wr);
     }
 
     // Only exists to make sure method is overriden
@@ -4071,8 +4034,6 @@ namespace Microsoft.Dafny {
     private class MockWriter {
 
       private readonly JavaCompiler compiler;
-      private int matcherCount;
-
       public MockWriter(JavaCompiler compiler) {
         this.compiler = compiler;
       }
@@ -4111,11 +4072,11 @@ namespace Microsoft.Dafny {
 
         // Create the mocks:
         if (returnType != "void") {
-          wr.FormatLine($"  {returnType} {m.Outs[0].Name}Tmp = mock({returnType}.class);");
+          wr.FormatLine($"  {returnType} {m.Outs[0].Name}Tmp = org.mockito.Mockito.mock({returnType}.class);");
         } else {
           foreach (var o in m.Outs) {
             // TODO: keep same name?
-            wr.FormatLine($"  {returnType} {o.Name}Tmp = mock({compiler.TypeName(o.Type, wr, o.tok)}.class);");
+            wr.FormatLine($"  {returnType} {o.Name}Tmp = org.mockito.Mockito.mock({compiler.TypeName(o.Type, wr, o.tok)}.class);");
           }
         }
 
@@ -4160,7 +4121,7 @@ namespace Microsoft.Dafny {
         ApplySuffix applySuffix, List<Tuple<IVariable, string>> bounds = null) {
         var receiver = ((NameSegment)((ExprDotName)applySuffix.Lhs).Lhs).Name;
         var method = ((ExprDotName)applySuffix.Lhs).SuffixName;
-        wr.Format($"  when({receiver}Tmp.{method}(");
+        wr.Format($"  org.mockito.Mockito.when({receiver}Tmp.{method}(");
         for (int i = 0; i < applySuffix.Args.Count; i++) {
           if (bounds != null &&
               applySuffix.Args[i] is NameSegment) {
@@ -4186,67 +4147,35 @@ namespace Microsoft.Dafny {
         if (binaryExpr.Op != BinaryExpr.Opcode.Eq) {
           return;
         }
-        if (binaryExpr.E0 is ExprDotName exprDotName) {
-          var obj = ((NameSegment)(exprDotName).Lhs).Name; ;
-          wr.Format($"  when({obj}Tmp.{exprDotName.SuffixName}).theReturn( ");
-          compiler.TrExpr(binaryExpr.E1, wr, false);
-          wr.WriteLine(");");
-        }
+        // if (binaryExpr.E0 is ExprDotName exprDotName) {
+        //   var obj = ((NameSegment)(exprDotName).Lhs).Name; ;
+        //   wr.Format($"  org.mockito.Mockito.when({obj}Tmp.{exprDotName.SuffixName}).thenReturn( ");
+        //   compiler.TrExpr(binaryExpr.E1, wr, false);
+        //   wr.WriteLine(");");
+        // }
         if (binaryExpr.E0 is not ApplySuffix applySuffix) {
           return;
         }
         MockExpression(wr, applySuffix, bounds);
-        wr.Write(".theReturn(");
-        //var first = true;
-        //if (bounds != null && bounds.Count != 0) {
-        //  wr.Write("(");
-        //  foreach (var (variable, _) in bounds) {
-        //    if (!first) {
-        //      wr.Write(", ");
-        //    }
-
-        //    var typeName = compiler.TypeName(variable.Type, wr, variable.Tok);
-        //    wr.Format($"{typeName} {variable.CompileName}");
-        //    first = false;
-        //  }
-        //  wr.Write(")=>");
-        //}
+        wr.Write(".thenReturn(");
         compiler.TrExpr(binaryExpr.E1, wr, false);
         wr.WriteLine(");");
       }
 
-      //private void MockExpression(ConcreteSyntaxTree wr, ForallExpr forallExpr) {
-      //  if (forallExpr.Term is not BinaryExpr binaryExpr) {
-      //    return;
-      //  }
-      //  var bounds = new List<Tuple<IVariable, string>>();
-      //  var declarations = new List<string>();
-      //  var matcherName = "matcher" + matcherCount++; // TODO
-      //  for (int i = 0; i < forallExpr.BoundVars.Count; i++) {
-      //    var boundVar = forallExpr.BoundVars[i];
-      //    var varType = compiler.TypeName(boundVar.Type, wr, boundVar.tok);
-      //    bounds.Add(new(boundVar,
-      //      $"It.Is<{varType}>(x => {matcherName}.matches(x))"));
-      //    declarations.Add($"{varType} {boundVar.CompileName} = ({varType}) o[{i}];");
-      //  }
-
-      //  // TODO: what if "o" shadows something?
-      //  wr.WriteLine($"MultiMatcher {matcherName} = new MultiMatcher({declarations.Count}, o -> {{");
-      //  foreach (var declaration in declarations) {
-      //    wr.WriteLine($"\t{declaration}");
-      //  }
-
-      //  if (binaryExpr.Op == BinaryExpr.Opcode.Imp) {
-      //    wr.Write("\treturn ");
-      //    compiler.TrExpr(binaryExpr.E0, wr, false);
-      //    wr.WriteLine(";");
-      //    binaryExpr = (BinaryExpr)binaryExpr.E1;
-      //  } else if (binaryExpr.Op == BinaryExpr.Opcode.Eq) {
-      //    wr.WriteLine("\treturn true;");
-      //  } // TODO: other cases
-      //  wr.WriteLine("});");
-      //  MockExpression(wr, binaryExpr, bounds);
-      //}
+      private void MockExpression(ConcreteSyntaxTree wr, ForallExpr forallExpr) {
+        if (forallExpr.Term is not BinaryExpr binaryExpr) {
+          return;
+        }
+        var bounds = new List<Tuple<IVariable, string>>();
+        var declarations = new List<string>();
+        for (int i = 0; i < forallExpr.BoundVars.Count; i++) {
+          var boundVar = forallExpr.BoundVars[i];
+          var varType = compiler.TypeName(boundVar.Type, wr, boundVar.tok);
+          bounds.Add(new(boundVar,
+            $"org.mockito.Mockito.any({varType}.class)"));
+        }
+        MockExpression(wr, binaryExpr, bounds);
+      }
     }
   }
 }
