@@ -279,13 +279,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var compilationStatusAfterVerification = verificationResult.Verified
         ? CompilationStatus.VerificationSucceeded
         : CompilationStatus.VerificationFailed;
-      // All unvisited nodes that were not verified, we need to set them as "verified"
+      // All unvisited nodes need to set them as "verified"
       if (!cancellationToken.IsCancellationRequested) {
         SetAllUnvisitedMethodsAsVerified(document);
       }
 
       notificationPublisher.SendStatusNotification(document.Text, compilationStatusAfterVerification);
-      // TODO: ability to recover previous positions so that we don't need to start from scratch.
       logger.LogDebug($"Finished verification with {document.Errors.ErrorCount} errors.");
       return document with {
         OldVerificationDiagnostics = new List<Diagnostic>(),
@@ -582,9 +581,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       // For realtime per-split verification, when verification is migrated
-      public void ReportErrorFindItsMethod(IToken tok, string message) {
-        // TODO: update node diagnostics
-      }
 
       public int GetVerificationPriority(IToken implTok) {
         var lastChange = document.LastChange;

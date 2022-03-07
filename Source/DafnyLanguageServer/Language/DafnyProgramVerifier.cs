@@ -77,30 +77,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         : Convert.ToInt32(options.VcsCores);
     }
 
-    private static Range? GetMethodRange(string name,
-      Dafny.ModuleDefinition module) {
-      foreach (var topLevelDecl in module.TopLevelDecls) {
-        if (topLevelDecl.FullName == name) {
-          return new Range(topLevelDecl.BodyStartTok.line, topLevelDecl.BodyStartTok.col,
-               topLevelDecl.BodyEndTok.line, topLevelDecl.BodyEndTok.col);
-        }
-      }
-
-      return null;
-    }
-
-
-    private static Range? GetMethodRange(string name, Dafny.Program program) {
-      foreach (var module in program.Modules()) {
-        var range = GetMethodRange(name, module);
-        if (range != null) {
-          return range;
-        }
-      }
-
-      return null;
-    }
-
     public VerificationResult Verify(DafnyDocument document,
                                      IVerificationProgressReporter progressReporter,
                                      CancellationToken cancellationToken) {
@@ -201,7 +177,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       public void ReportBplError(IToken tok, string message, bool error, TextWriter tw, [AllowNull] string category) {
         logger.LogError(message);
         if (error) {
-          progressReporter.ReportErrorFindItsMethod(tok, message);
         }
       }
 
@@ -230,7 +205,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       public void WriteErrorInformation(ErrorInformation errorInfo, TextWriter tw, bool skipExecutionTrace) {
         CaptureCounterExamples(errorInfo);
         errorReporter.ReportBoogieError(errorInfo);
-        progressReporter.ReportErrorFindItsMethod(errorInfo.Tok, errorInfo.Msg);
       }
 
       private void CaptureCounterExamples(ErrorInformation errorInfo) {

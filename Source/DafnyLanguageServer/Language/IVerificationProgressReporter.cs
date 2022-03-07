@@ -18,7 +18,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
     void ReportStartVerifyImplementation(Implementation implToken);
     void ReportEndVerifyImplementation(Implementation implToken, Boogie.VerificationResult verificationResult);
-    void ReportErrorFindItsMethod(IToken tok, string message);
     int GetVerificationPriority(IToken implTok);
     void ReportImplementationsBeforeVerification(Implementation[] implementations);
     void ReportAssertionBatchResult(Split implementation,
