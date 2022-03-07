@@ -14,7 +14,5 @@ FunctionSpecifications.dfy(137,28): Related location: This is the postcondition 
 FunctionSpecifications.dfy(146,2): Error: failure to decrease termination measure
 FunctionSpecifications.dfy(153,2): Error: failure to decrease termination measure
 FunctionSpecifications.dfy(158,2): Error: cannot prove termination; try supplying a decreases clause
-FunctionSpecifications.dfy(164,9): Error: A postcondition might not hold on this return path.
-FunctionSpecifications.dfy(165,14): Related location: This is the postcondition that might not hold.
 
-Dafny program verifier finished with 10 verified, 13 errors
+Dafny program verifier finished with 9 verified, 12 errors

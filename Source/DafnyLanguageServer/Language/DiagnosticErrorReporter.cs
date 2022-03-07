@@ -4,18 +4,19 @@ using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   public class DiagnosticErrorReporter : ErrorReporter {
-    private const MessageSource verifierMessageSource = MessageSource.Other;
+    private const MessageSource VerifierMessageSource = MessageSource.Verifier;
     private const string RelatedLocationCategory = "Related location";
     private const string RelatedLocationMessage = RelatedLocationCategory;
 
     private readonly DocumentUri entryDocumentUri;
     private readonly Dictionary<DocumentUri, List<Diagnostic>> diagnostics = new();
     private readonly Dictionary<DiagnosticSeverity, int> counts = new();
-
-    public IReadOnlyDictionary<DocumentUri, List<Diagnostic>> Diagnostics => diagnostics;
+    private readonly ReaderWriterLockSlim rwLock = new();
 
     /// <summary>
     /// Creates a new instance with the given uri of the entry document.
@@ -28,6 +29,18 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       this.entryDocumentUri = entryDocumentUri;
     }
 
+    public IReadOnlyList<Diagnostic> GetDiagnostics(DocumentUri documentUri) {
+      rwLock.EnterReadLock();
+      try {
+        // Concurrency: Return a copy of the list not to expose a reference to an object that requires synchronization.
+        // LATER: Make the Diagnostic type immutable, since we're not protecting it from concurrent accesses
+        return new List<Diagnostic>(diagnostics.GetValueOrDefault(documentUri) ?? Enumerable.Empty<Diagnostic>());
+      }
+      finally {
+        rwLock.ExitReadLock();
+      }
+    }
+
     public void ReportBoogieError(ErrorInformation error) {
       var relatedInformation = new List<DiagnosticRelatedInformation>();
       foreach (var auxiliaryInformation in error.Aux) {
@@ -38,7 +51,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           // line=0 and character=0. These positions cause errors when exposing them, Furthermore,
           // the execution trace message appears to not have any interesting information.
           if (auxiliaryInformation.Tok.line > 0) {
-            Info(verifierMessageSource, auxiliaryInformation.Tok, auxiliaryInformation.Msg);
+            Info(VerifierMessageSource, auxiliaryInformation.Tok, auxiliaryInformation.Msg);
           }
         }
       }
@@ -48,7 +61,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           Message = error.Msg,
           Range = error.Tok.GetLspRange(),
           RelatedInformation = relatedInformation,
-          Source = verifierMessageSource.ToString()
+          Source = VerifierMessageSource.ToString()
         },
         GetDocumentUriOrDefault(error.Tok)
       );
@@ -80,31 +93,44 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       if (ErrorsOnly && level != ErrorLevel.Error) {
         return false;
       }
-
+      var relatedInformation = new List<DiagnosticRelatedInformation>();
+      if (tok is NestedToken nestedToken) {
+        relatedInformation.AddRange(
+          CreateDiagnosticRelatedInformationFor(
+            nestedToken.Inner, nestedToken.Message ?? "Related location")
+        );
+      }
       var item = new Diagnostic {
         Severity = ToSeverity(level),
         Message = msg,
         Range = tok.GetLspRange(),
-        Source = source.ToString()
+        Source = source.ToString(),
+        RelatedInformation = relatedInformation,
       };
       AddDiagnosticForFile(item, GetDocumentUriOrDefault(tok));
       return true;
     }
 
     public override int Count(ErrorLevel level) {
-      if (counts.TryGetValue(ToSeverity(level), out var count)) {
-        return count;
+      rwLock.EnterReadLock();
+      try {
+        return counts.GetValueOrDefault(ToSeverity(level), 0);
       }
-      return 0;
+      finally {
+        rwLock.ExitReadLock();
+      }
     }
 
     private void AddDiagnosticForFile(Diagnostic item, DocumentUri documentUri) {
-      var fileDiagnostics = diagnostics.GetOrCreate(documentUri, () => new List<Diagnostic>());
-
-      var severity = item.Severity!.Value; // All our diagnostics have a severity.
-      counts.TryGetValue(severity, out var count);
-      counts[severity] = count + 1;
-      fileDiagnostics.Add(item);
+      rwLock.EnterWriteLock();
+      try {
+        var severity = item.Severity!.Value; // All our diagnostics have a severity.
+        counts[severity] = counts.GetValueOrDefault(severity, 0) + 1;
+        diagnostics.GetOrCreate(documentUri, () => new List<Diagnostic>()).Add(item);
+      }
+      finally {
+        rwLock.ExitWriteLock();
+      }
     }
 
     private DocumentUri GetDocumentUriOrDefault(IToken token) {

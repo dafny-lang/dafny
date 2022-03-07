@@ -20,6 +20,6 @@ Termination.dfy(806,2): Error: cannot prove termination; try supplying a decreas
 Termination.dfy(1152,2): Error: cannot prove termination; try supplying a decreases clause for the loop
 Termination.dfy(1168,2): Error: cannot prove termination; try supplying a decreases clause for the loop
 Termination.dfy(361,46): Error: failure to decrease termination measure
-Termination.dfy(577,5): Error: cannot find witness that shows type is inhabited; try giving a hint through a 'witness' or 'ghost witness' clause, or use 'ghost *' to treat as a possibly empty type
+Termination.dfy(577,5): Error: cannot find witness that shows type is inhabited; try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
 
 Dafny program verifier finished with 95 verified, 23 errors

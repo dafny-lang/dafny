@@ -83,6 +83,25 @@ method MultiSets() {
   print "  membership: ", 17 in a, " ", 17 in b, " ", 17 in c, "\n";
   print "  update: ", a[17 := 2], " ", b[17 := 2], " ", c[17 := 2], "\n";
   print "  multiplicity: ", a[17], " ", b[17], " ", c[17], "\n";
+
+  zeroMultiplicity();
+}
+
+method zeroMultiplicity() {
+  var a := multiset{12}[12 := 0];
+  var b := multiset{42};
+  var c := multiset{1, 2}[1 := 0][2 := 0];
+  var d := multiset{12};
+  var e := multiset{null}[null := 0];
+  var f := multiset{null};
+  print "Test zero multiplicity:\n";
+  print "  printing: ", multiset{a, multiset{42}}, " ", a + d, "\n";
+  print "  union: ", |a + d|, " ", |d + a|, " ", |e + f|, " ", |f + e|, "\n";
+  print "  membership: ", 12 in a, " ", null in e, "\n";
+  print "  equality: ", a == b, " ", e == f, "\n";
+  print "  subset: ", a <= b, " ", a <= c, " ", c <= a, " ", e <= f, " ", f <= e, "\n";
+  print "  strict subset: ", a < b, " ", a < c, " ", c < a, " ", e < f, " ", f < e, "\n";
+  print "  disjoint: ", a !! d, " ", d !! a, " ", e !! f, " ", f !! e, "\n";
 }
 
 // -------------------------------------------------------------------------------------------

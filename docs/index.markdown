@@ -21,13 +21,13 @@ This site contains links to Dafny documentation.
 
 * Quick start material:
    * Dafny [Quick Reference](./QuickReference)
-   * [Getting started tutorial](http://rise4fun.com/Dafny/tutorial/guide), focusing mostly on simple imperative programs
+   * [Getting started tutorial](./OnlineTutorial/guide), focusing mostly on simple imperative programs
    * [Cheatsheet](https://docs.google.com/document/d/1kz5_yqzhrEyXII96eCF1YoHZhnb_6dzv-K3u79bMMis/edit?pref=2&pli=1): basic Dafny syntax on two pages
 * Detailed documents for programmers
    * [Dafny Reference Manual](DafnyRef/DafnyRef)
    * Language reference for the [Dafny type system](http://leino.science/papers/krml243.html), which also describes available expressions for each type
    * [Style Guide for Dafny programs](StyleGuide/Style-Guide)
-* [Dafny Tutorials](https://www.rise4fun.com/Dafny/) -- available and meant to be used within the [Rise4Fun web site](https://www.rise4fun.com/Dafny/), though they can be read directly as well.
+* Dafny Tutorials
    * [Introduction to Dafny](OnlineTutorial/guide)
    * [Value Types](OnlineTutorial/ValueTypes)
    * [Sets](OnlineTutorial/Sets)
@@ -44,7 +44,6 @@ There are also publications and lecture notes:
   - Lecture 2: [Binary search](https://youtu.be/-_tx3lk7yn4) (21:14)
   - Lecture 3: [Dutch National Flag algorithm](https://youtu.be/dQC5m-GZYbk) (20:33)
 * Overview article: [Accessible Software Verification with Dafny](https://www.computer.org/csdl/mags/so/2017/06/mso2017060094-abs.html), IEEE Software, Nov/Dec 2017
-* [Online tutorial](http://rise4fun.com/Dafny/tutorial/guide), focusing mostly on simple imperative programs
 * [3-page tutorial notes](http://leino.science/papers/krml233.pdf) with examples (ICSE 2013)
 * [Dafny Power User](http://leino.science/dafny-power-user)
 * Videos at [Verification Corner](https://www.youtube.com/channel/UCP2eLEql4tROYmIYm5mA27A)

@@ -590,6 +590,16 @@ namespace Microsoft.Dafny {
       public ConcreteSyntaxTree/*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
         return Compiler.CreateMethod(m, typeArgs, createBody, MethodWriter, forBodyInheritance, lookasideBody);
       }
+
+      public ConcreteSyntaxTree CreateFreshMethod(Method m) {
+        throw new NotImplementedException();
+      }
+
+      public ConcreteSyntaxTree CreateMockMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance,
+        bool lookasideBody) {
+        throw new NotImplementedException();
+      }
+
       public ConcreteSyntaxTree/*?*/ CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, bool forBodyInheritance, bool lookasideBody) {
         return Compiler.CreateFunction(name, typeArgs, formals, resultType, tok, isStatic, createBody, member, MethodWriter, forBodyInheritance, lookasideBody);
       }
@@ -889,7 +899,10 @@ namespace Microsoft.Dafny {
         return $"{DafnySetClass}.Empty";
       } else if (xType is MultiSetType) {
         return $"{DafnyMultiSetClass}.Empty";
-      } else if (xType is SeqType) {
+      } else if (xType is SeqType seq) {
+        if (seq.Arg.IsCharType) {
+          return "''";
+        }
         return $"{DafnySeqClass}.of()";
       } else if (xType is MapType) {
         return $"{DafnyMapClass}.Empty";
@@ -1123,7 +1136,10 @@ namespace Microsoft.Dafny {
 
     protected override void EmitHalt(Bpl.IToken tok, Expression/*?*/ messageExpr, ConcreteSyntaxTree wr) {
       wr.Write("throw new _dafny.HaltException(");
-      if (tok != null) wr.Write("\"" + Dafny.ErrorReporter.TokenToString(tok) + ": \" + ");
+      if (tok != null) {
+        wr.Write("\"" + Dafny.ErrorReporter.TokenToString(tok) + ": \" + ");
+      }
+
       TrExpr(messageExpr, wr, false);
       wr.WriteLine(");");
     }
@@ -1756,11 +1772,15 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitSeqConstructionExpr(SeqConstructionExpr expr, bool inLetExprBody, ConcreteSyntaxTree wr) {
+      var fromType = (ArrowType)expr.Initializer.Type.NormalizeExpand();
       wr.Write($"{DafnySeqClass}.Create(");
       TrExpr(expr.N, wr, inLetExprBody);
       wr.Write(", ");
       TrExpr(expr.Initializer, wr, inLetExprBody);
       wr.Write(")");
+      if (fromType.Result.IsCharType) {
+        wr.Write(".join('')");
+      }
     }
 
     protected override void EmitMultiSetFormingExpr(MultiSetFormingExpr expr, bool inLetExprBody, ConcreteSyntaxTree wr) {
@@ -2133,9 +2153,15 @@ namespace Microsoft.Dafny {
           if (AsNativeType(e.E.Type) != null || e.E.Type.IsCharType) {
             wr.Write("new BigNumber");
           }
-          if (e.E.Type.IsCharType) wr.Write("(");
+          if (e.E.Type.IsCharType) {
+            wr.Write("(");
+          }
+
           TrParenExpr(e.E, wr, inLetExprBody);
-          if (e.E.Type.IsCharType) wr.Write(".charCodeAt(0))");
+          if (e.E.Type.IsCharType) {
+            wr.Write(".charCodeAt(0))");
+          }
+
           wr.Write(", new BigNumber(1))");
         } else if (e.ToType.IsCharType) {
           wr.Write("String.fromCharCode(");
@@ -2213,9 +2239,14 @@ namespace Microsoft.Dafny {
           }
         }
       } else if (e.E.Type.IsBigOrdinalType) {
-        if (e.ToType.IsCharType) wr.Write("String.fromCharCode((");
+        if (e.ToType.IsCharType) {
+          wr.Write("String.fromCharCode((");
+        }
+
         TrExpr(e.E, wr, inLetExprBody);
-        if (e.ToType.IsCharType) wr.Write(").toNumber())");
+        if (e.ToType.IsCharType) {
+          wr.Write(").toNumber())");
+        }
       } else {
         Contract.Assert(false, $"not implemented for javascript: {e.E.Type} -> {e.ToType}");
       }

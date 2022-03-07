@@ -875,7 +875,10 @@ Dafny
   { TopDecl<defaultModule, membersDefaultClass, /* isTopLevel */ true, /* isAbstract */ false> }
   (. // find the default class in the default module, then append membersDefaultClass to its member list
 		 if (membersDefaultClass.Count == 0 && defaultModule.Includes.Count == 0 && defaultModule.TopLevelDecls.Count == 0) {
-		   errors.Warning(defaultModule.tok, "File contains no code: " + Path.GetRelativePath(Directory.GetCurrentDirectory(), scanner.FullFilename));
+		   var fileName = DafnyOptions.Clo.UseBaseNameForFileName 
+                   ? Path.GetFileName(scanner.FullFilename) 
+                   : Path.GetRelativePath(Directory.GetCurrentDirectory(), scanner.FullFilename);
+		   errors.Warning(defaultModule.tok, "File contains no code: " + fileName);
 		 }
      DefaultClassDecl defaultClass = null;
      foreach (TopLevelDecl topleveldecl in defaultModule.TopLevelDecls) {
@@ -1710,7 +1713,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
                                          SemErr(t, "constructors are allowed only in classes");
                                        }
                                        caption = "constructor";
-                                       allowed = AllowedDeclModifiers.None;
+                                       allowed = AllowedDeclModifiers.Ghost;
                                     .)
   )                                 (. keywordToken = t;
                                        CheckDeclModifiers(dmod, caption, allowed); .)
@@ -1728,7 +1731,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
     [ GenericParameters<typeArgs, false> ]
     [ KType<ref kType>              (. if (!(isGreatestLemma || isLeastLemma)) { SemErr(t, "type of _k can only be specified for least and greatest lemmas"); } .)
     ]
-    (. var isCompilable = (isPlainOlMethod && !dmod.IsGhost) || isConstructor; .)
+    (. var isCompilable = (isPlainOlMethod || isConstructor) && !dmod.IsGhost; .)
     Formals<true, isCompilable, isTwoStateLemma, ins>
     [ "returns"                                 (. if (isConstructor) { SemErr(t, "constructors cannot have out-parameters"); } .)
       Formals<false, isCompilable, false, outs>
@@ -1745,7 +1748,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
   ]
   (. IToken tok = id;
      if (isConstructor) {
-       m = new Constructor(tok, hasName ? id.val : "_ctor", typeArgs, ins,
+       m = new Constructor(tok, hasName ? id.val : "_ctor", dmod.IsGhost, typeArgs, ins,
                            req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), (DividedBlockStmt)body, attrs, signatureEllipsis);
      } else if (isLeastLemma) {
        m = new LeastLemma(tok, id.val, dmod.IsStatic, kType, typeArgs, ins, outs,
@@ -2475,9 +2478,9 @@ BreakStmt<out Statement/*!*/ s>
 = "break"                 (. IToken x = t;
                              IToken id = null;
                              int breakCount = 1;
-                             String label = null;
+                             IToken label = null;
                           .)
-  ( LabelName<out id>     (. label = id.val; .)
+  ( LabelName<out id>     (. label = id; .)
   | { "break"             (. breakCount++; .)
     }
   )
@@ -2999,7 +3002,7 @@ BindingGuard<out Expression e, bool allowLambda>
   { Attribute<ref attrs> }
   ":|"
   Expression<out body, true, allowLambda>
-  (. e = new ExistsExpr(x, bvars, null, body, attrs); .)
+  (. e = new ExistsExpr(x, t, bvars, null, body, attrs); .)
   .
 
 
@@ -3722,7 +3725,7 @@ AsExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitw
 
 /*------------------------------------------------------------------------*/
 UnaryExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwiseOps>
-= (. e = null; Contract.Ensures(Contract.ValueAtReturn(out e) != null); IToken/*!*/ x;  e = dummyExpr; .)
+= (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); IToken/*!*/ x;  e = dummyExpr; .)
   ( "-"                                             (. x = t; .)
     UnaryExpression<out e, allowLemma, allowLambda, allowBitwiseOps>  (. e = new NegationExpression(x, e); .)
   | NegOp                                           (. x = t; .)
@@ -3733,7 +3736,7 @@ UnaryExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowB
 
 /*------------------------------------------------------------------------*/
 PrimaryExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwiseOps>
-= (. e = null; .)
+= (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); e = dummyExpr; .)
   ( IF(IsMapDisplay())  /* this alternative must be checked before going into EndlessExpression, where there is another "map" */
     MapDisplayExpr<out e>
     { IF(IsSuffix()) Suffix<ref e> }
@@ -3847,7 +3850,7 @@ LambdaExpression<out Expression e, bool allowLemma, bool allowBitwiseOps>
   LambdaSpec<ref reads, ref req>
   "=>"
   Expression<out body, allowLemma, true, allowBitwiseOps>
-  (. e = new LambdaExpr(x, bvs, req, reads, body);
+  (. e = new LambdaExpr(x, t, bvs, req, reads, body);
      theBuiltIns.CreateArrowTypeDecl(bvs.Count);
   .)
   .
@@ -4018,7 +4021,7 @@ MapComprehensionExpr<out Expression e, bool allowLemma, bool allowLambda, bool a
        SemErr(t, "a map comprehension with more than one bound variable must have a term expression of the form 'Expr := Expr'");
        e = dummyExpr;
      } else {
-       e = new MapComprehension(mapToken, finite, bvars, range ?? new LiteralExpr(mapToken, true), bodyLeft, bodyRight, attrs);
+       e = new MapComprehension(mapToken, t, finite, bvars, range ?? new LiteralExpr(mapToken, true), bodyLeft, bodyRight, attrs);
      }
   .)
   .
@@ -4474,7 +4477,8 @@ ActualBinding<out ActualBinding binding, bool isGhost = false>
 
 /*------------------------------------------------------------------------*/
 QuantifierExpression<out Expression q, bool allowLemma, bool allowLambda>
-= (. Contract.Ensures(Contract.ValueAtReturn(out q) != null); IToken/*!*/ x = Token.NoToken;
+= (. Contract.Ensures(Contract.ValueAtReturn(out q) != null);
+     IToken/*!*/ x = Token.NoToken;
      bool univ = false;
      List<BoundVar/*!*/> bvars;
      Attributes attrs;
@@ -4488,9 +4492,9 @@ QuantifierExpression<out Expression q, bool allowLemma, bool allowLambda>
   QSep
   Expression<out body, allowLemma, allowLambda>
   (. if (univ) {
-       q = new ForallExpr(x, bvars, range, body, attrs);
+       q = new ForallExpr(x, t, bvars, range, body, attrs);
      } else {
-       q = new ExistsExpr(x, bvars, range, body, attrs);
+       q = new ExistsExpr(x, t, bvars, range, body, attrs);
      }
   .)
   .
@@ -4539,7 +4543,7 @@ SetComprehensionExpr<out Expression q, bool allowLemma, bool allowLambda, bool a
        SemErr(t, "a set comprehension with more than one bound variable must have a term expression");
        q = dummyExpr;
      } else {
-       q = new SetComprehension(setToken, finite, bvars, range, body, attrs);
+       q = new SetComprehension(setToken, t, finite, bvars, range, body, attrs);
      }
   .)
   .

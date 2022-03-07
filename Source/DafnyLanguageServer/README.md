@@ -1,6 +1,6 @@
 # DafnyLS
 
-*DafnyLS* is a [language server](https://microsoft.github.io/language-server-protocol/) for [Dafny](https://github.com/dafny-lang/dafny). It is implemented in C# on .NET 5.0 with OmniSharp's [C# Language Server Protocol](https://github.com/OmniSharp/csharp-language-server-protocol).
+*DafnyLS* is a [language server](https://microsoft.github.io/language-server-protocol/) for [Dafny](https://github.com/dafny-lang/dafny). It is implemented in C# on .NET with OmniSharp's [C# Language Server Protocol](https://github.com/OmniSharp/csharp-language-server-protocol).
 
 
 ## Running
@@ -62,4 +62,16 @@ Options provided through the command line have higher priority than the options 
 # Sets the maximum number of virtual cores to use. 
 # Default: 0 (use half of the available virtual cores).
 --verifier:vcscores=0
+
+# Set the caching policy (like /verifySnapshots for Dafny.exe)
+# Default: 0 (no caching).
+--verifier:verifysnapshots=0
+```
+
+### Ghost Diagnostics
+
+```sh
+# Mark ghost statements
+# Default: true (mark the statements)
+--ghost:markStatements=true
 ```

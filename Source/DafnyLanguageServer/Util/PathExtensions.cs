@@ -1,4 +1,4 @@
-﻿using Microsoft.Dafny.LanguageServer.Language;
+﻿using Microsoft.Dafny.LanguageServer.Workspace;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.IO;
@@ -44,6 +44,16 @@ namespace Microsoft.Dafny.LanguageServer.Util {
     public static bool IsPartOfEntryDocument(this Dafny.Program program, Boogie.IToken token) {
       // The token filename happens to be null if it's representing a default module or class.
       return token.filename == null || token.filename == program.FullName;
+    }
+
+    /// <summary>
+    /// Checks if the given URI is the entrypoint document.
+    /// </summary>
+    /// <param name="program">The dafny program to check the token against.</param>
+    /// <param name="documentUri">The URI to check.</param>
+    /// <returns><c>true</c> if the given URI is the entrypoint document of the given program.</returns>
+    public static bool IsEntryDocument(this Dafny.Program program, DocumentUri documentUri) {
+      return GetFilePath(documentUri) == program.FullName;
     }
 
     /// <summary>

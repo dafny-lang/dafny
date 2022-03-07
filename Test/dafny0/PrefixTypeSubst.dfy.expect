@@ -3,7 +3,7 @@
 /*
 module _System {
   /* CALL GRAPH for module _System:
-   * SCC at height 2:
+   * SCC at height 1:
    *   RotateRight
    * SCC at height 1:
    *   RotateLeft
@@ -132,81 +132,81 @@ module _System {
 */
 
 /* CALL GRAPH for module _module:
- * SCC at height 37:
+ * SCC at height 2:
  *   RstRst10#
- * SCC at height 36:
+ * SCC at height 1:
  *   RstRst10
- * SCC at height 35:
+ * SCC at height 2:
  *   RstRst9
  *   RstRst9#
- * SCC at height 34:
+ * SCC at height 2:
  *   RstRst8
  *   RstRst8#
- * SCC at height 33:
+ * SCC at height 4:
  *   RstRst7#
- * SCC at height 32:
+ * SCC at height 3:
  *   RstRst7
- * SCC at height 31:
+ * SCC at height 2:
  *   RstRst6
  *   RstRst6#
- * SCC at height 30:
+ * SCC at height 2:
  *   RstRst5
  *   RstRst5#
- * SCC at height 29:
- *   RstRst4#
- * SCC at height 28:
- *   RstRst4
- * SCC at height 27:
- *   RstRst3#
- * SCC at height 26:
- *   RstRst3
- * SCC at height 25:
- *   RstRst2#
- * SCC at height 24:
- *   RstRst2
- * SCC at height 23:
- *   RstRst1#
- * SCC at height 22:
- *   RstRst1
- * SCC at height 21:
- *   RstRst0#
- * SCC at height 20:
- *   RstRst0
- * SCC at height 19:
- *   O#
- * SCC at height 18:
- *   O
- * SCC at height 17:
- *   N#
- * SCC at height 16:
- *   N
- * SCC at height 15:
- *   MyClass
- * SCC at height 14:
- *   MyClass.M#
- * SCC at height 13:
- *   MyClass.M
- * SCC at height 12:
- *   MyClass.L#
- * SCC at height 11:
- *   MyClass.L
- * SCC at height 10:
- *   MyClass.RST_Nat#
- * SCC at height 9:
- *   nat
- * SCC at height 8:
- *   MyClass.RST_Nat
- * SCC at height 7:
- *   MyClass.RST#
- * SCC at height 6:
- *   MyClass.RST
- * SCC at height 5:
- *   MyClass.S#
- * SCC at height 4:
- *   MyClass.S
- * SCC at height 3:
- *   MyClass.R#
  * SCC at height 2:
+ *   RstRst4#
+ * SCC at height 1:
+ *   RstRst4
+ * SCC at height 2:
+ *   RstRst3#
+ * SCC at height 1:
+ *   RstRst3
+ * SCC at height 2:
+ *   RstRst2#
+ * SCC at height 1:
+ *   RstRst2
+ * SCC at height 2:
+ *   RstRst1#
+ * SCC at height 1:
+ *   RstRst1
+ * SCC at height 2:
+ *   RstRst0#
+ * SCC at height 1:
+ *   RstRst0
+ * SCC at height 2:
+ *   O#
+ * SCC at height 1:
+ *   O
+ * SCC at height 2:
+ *   N#
+ * SCC at height 1:
+ *   N
+ * SCC at height 0:
+ *   MyClass
+ * SCC at height 3:
+ *   MyClass.M#
+ * SCC at height 2:
+ *   MyClass.M
+ * SCC at height 2:
+ *   MyClass.L#
+ * SCC at height 1:
+ *   MyClass.L
+ * SCC at height 1:
+ *   MyClass.RST_Nat#
+ * SCC at height 0:
+ *   nat
+ * SCC at height 0:
+ *   MyClass.RST_Nat
+ * SCC at height 1:
+ *   MyClass.RST#
+ * SCC at height 0:
+ *   MyClass.RST
+ * SCC at height 1:
+ *   MyClass.S#
+ * SCC at height 0:
+ *   MyClass.S
+ * SCC at height 1:
+ *   MyClass.R#
+ * SCC at height 0:
  *   MyClass.R
  * SCC at height 1:
  *   MyClass.P#

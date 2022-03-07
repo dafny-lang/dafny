@@ -169,7 +169,7 @@ namespace Microsoft.Dafny {
       return Lit(expr, expr.Type);
     }
 
-    Bpl.Expr GetLit(Bpl.Expr expr) {
+    private static Bpl.Expr GetLit(Bpl.Expr expr) {
       if (expr is Bpl.NAryExpr) {
         Bpl.NAryExpr app = (Bpl.NAryExpr)expr;
         switch (app.Fun.FunctionName) {
@@ -184,7 +184,19 @@ namespace Microsoft.Dafny {
       return null;
     }
 
-    Bpl.Expr RemoveLit(Bpl.Expr expr) {
+    public static Bpl.AssumeCmd TrAssumeCmd(Bpl.IToken tok, Bpl.Expr expr, Bpl.QKeyValue attributes = null) {
+      var litArgument = GetLit(expr);
+      if (litArgument is Bpl.LiteralExpr literalExpr && literalExpr.asBool) {
+        // In most cases, we leave any Lit brackets that "expr" may have. In the past, these brackets
+        // had always been removed here. Alas, some brittle test cases stopped verifying if we
+        // keep "assume Lit(true)" instead of simplifying it to "assume true". Therefore, as a
+        // special case, we remove the Lit brackets from the literal "true".
+        expr = litArgument;
+      }
+      return attributes == null ? new Bpl.AssumeCmd(tok, expr) : new Bpl.AssumeCmd(tok, expr, attributes);
+    }
+
+    static Bpl.Expr RemoveLit(Bpl.Expr expr) {
       return GetLit(expr) ?? expr;
     }
 
