@@ -52,15 +52,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// Can be migrated from a previous document
     /// The position and the range are never sent to the client.
     /// </summary>
-    public NodeDiagnostic VerificationNodeDiagnostic { get; init; } = new NodeDiagnostic(
-      "Document",
+    public NodeDiagnostic VerificationNodeDiagnostic { get; init; } = new DocumentNodeDiagnostic(
       Text.Uri.ToString(),
-      Text.Uri.ToString(),
-      new Position(0, 0),
-      null,
-      new Range(new Position(0, 0),
-        new Position(Regex.Matches(Text.Text, "\r?\n").Count + 1, 0)),
-      true
+      Regex.Matches(Text.Text, "\r?\n").Count + 1
     );
 
     // List of last 5 top-level touched verification diagnostics positions

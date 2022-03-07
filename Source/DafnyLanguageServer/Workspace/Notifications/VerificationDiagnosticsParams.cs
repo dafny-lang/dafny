@@ -125,17 +125,17 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     }
   }
 
-  public enum NodeVerificationStatus {
+
+  public enum VerificationStatus {
     Unknown = 0,
-    Scheduled = 1,
-    Verifying = 2,
-    VerifiedObsolete = 3,
-    VerifiedVerifying = 4,
-    Verified = 5,
-    Inconclusive = 6,
-    ErrorObsolete = 7,
-    ErrorVerifying = 8,
-    Error = 9
+    Verified = 200,
+    Error = 400
+  }
+
+  public enum CurrentStatus {
+    Current = 0,
+    Obsolete = 1,
+    Verifying = 2
   }
 
   public enum LineVerificationStatus {
@@ -146,29 +146,27 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     Scheduled = 1,
     // For first-time computations, actively computing
     Verifying = 2,
-    VerifiedObsolete = 3,
-    VerifiedVerifying = 4,
-    // Also applicable for empty spaces if they are not surrounded by errors. 
-    Verified = 5,
-    // Dafny tried to do something but couldn't (timeout, out of resources...)
-    Inconclusive = 6,
+    VerifiedObsolete = 201,
+    VerifiedVerifying = 202,
+    // Also applicable for empty spaces if they are not surrounded by errors.
+    Verified = 200,
     // For containers of other diagnostics nodes (e.g. methods)
-    ErrorRangeObsolete = 7,
-    ErrorRangeVerifying = 8,
-    ErrorRange = 9,
+    ErrorRangeObsolete = 301,
+    ErrorRangeVerifying = 302,
+    ErrorRange = 300,
     // For individual assertions in error ranges
-    ErrorRangeAssertionVerifiedObsolete = 10,
-    ErrorRangeAssertionVerifiedVerifying = 11,
-    ErrorRangeAssertionVerified = 12,
-    // For specific lines which have errors on it.
-    ErrorObsolete = 13,
-    ErrorVerifying = 14,
-    Error = 15,
+    ErrorRangeAssertionVerifiedObsolete = 351,
+    ErrorRangeAssertionVerifiedVerifying = 352,
+    ErrorRangeAssertionVerified = 350,
+    // For specific lines which have errors on it. They take over verified assertions
+    ErrorObsolete = 401,
+    ErrorVerifying = 402,
+    Error = 400,
     // For lines containing resolution or parse errors
     ResolutionError = 16
   }
 
-  public record NodeDiagnostic(
+  public abstract record NodeDiagnostic(
      /// User-facing name
      string DisplayName,
      /// Used to re-trigger the verification of some diagnostics.
@@ -176,13 +174,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
      string Filename,
      // Used to relocate a node diagnostic and to determine which function is currently verifying
      Position Position,
-     // Contains permanent secondary positions to this node (e.g. return branch positions)
-     // Helps to distinguish between assertions with the same position (i.e. ensures for different branches)
-     Position? SecondaryPosition,
      // The range of this node.
-     Range Range,
-     // True if this node is only gathering children feedback.
-     bool IsAlwaysRange
+     Range Range
   ) {
     /// Time and Resource diagnostics
     public bool Started { get; private set; } = false;
@@ -192,13 +185,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     public int TimeSpent => (int)(Finished ? ((TimeSpan)(EndTime - StartTime)).TotalMilliseconds : Started ? (DateTime.Now - StartTime).TotalMilliseconds : 0);
     public int MaximumChildTimeSpent => Children.Any() ? Children.Max(child => child.TimeSpent) : TimeSpent;
     // Resources allocated at the end of the computation.
-    public int VerificationPathTimeLongest => AssertionBatchTimes.Any() ? AssertionBatchTimes.Max() :
+    public virtual int VerificationPathTimeLongest =>
       Children.Any() ? Children.Max(child => child.VerificationPathTimeLongest) : 0;
-    public int VerificationPathTimeCount => AssertionBatchTimes.Any() ? AssertionBatchTimes.Count() :
+    public virtual int VerificationPathTimeCount =>
       Children.Any() ? Children.Sum(child => child.VerificationPathTimeCount) : 0;
+
     public int ResourceCount { get; set; } = 0;
 
-    public List<int> AssertionBatchTimes { get; set; } = new();
+
 
     // If this node is an error, all the trace positions
     public List<Range> RelatedRanges { get; set; } = new();
@@ -224,22 +218,17 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     }
 
     // Overriden by checking children if there are some
-    public NodeVerificationStatus Status { get; set; } = NodeVerificationStatus.Scheduled;
+    public VerificationStatus StatusVerification { get; set; } = VerificationStatus.Unknown;
+
+    // Overriden by checking children if there are some
+    public CurrentStatus StatusCurrent { get; set; } = CurrentStatus.Obsolete;
 
     public NodeDiagnostic SetObsolete() {
-      Status = Status switch {
-        NodeVerificationStatus.Error => NodeVerificationStatus.ErrorObsolete,
-        NodeVerificationStatus.Verified => NodeVerificationStatus.VerifiedObsolete,
-        NodeVerificationStatus.Verifying => NodeVerificationStatus.Scheduled,
-        NodeVerificationStatus.ErrorVerifying => NodeVerificationStatus.ErrorObsolete,
-        NodeVerificationStatus.VerifiedVerifying => NodeVerificationStatus.VerifiedObsolete,
-        NodeVerificationStatus.Inconclusive => NodeVerificationStatus.ErrorObsolete,
-        NodeVerificationStatus.Scheduled => NodeVerificationStatus.Scheduled,
-        NodeVerificationStatus.Unknown => NodeVerificationStatus.Unknown,
-        _ => Status
-      };
-      foreach (var child in Children) {
-        child.SetObsolete();
+      if (StatusCurrent != CurrentStatus.Obsolete) {
+        StatusCurrent = CurrentStatus.Obsolete;
+        foreach (var child in Children) {
+          child.SetObsolete();
+        }
       }
 
       return this;
@@ -247,10 +236,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
     public void Start() {
       StartTime = DateTime.Now;
-      Status = Status is NodeVerificationStatus.Error or NodeVerificationStatus.ErrorObsolete ? NodeVerificationStatus.ErrorVerifying :
-        Status is NodeVerificationStatus.Verified or NodeVerificationStatus.VerifiedObsolete ? NodeVerificationStatus.VerifiedVerifying :
-        NodeVerificationStatus.Verifying;
-      // Until we can track children, if some children were obsolete, should be "Verifying"
+      StatusCurrent = CurrentStatus.Verifying;
       foreach (var child in Children) {
         child.Start();
       }
@@ -258,102 +244,122 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     }
 
     public void Stop() {
-      EndTime = DateTime.Now;
-      foreach (var child in Children) {
-        child.Stop();
+      if (StatusCurrent != CurrentStatus.Current || !Finished) {
+        EndTime = DateTime.Now;
+        StatusCurrent = CurrentStatus.Current;
+        foreach (var child in Children) {
+          child.Stop();
+        }
+        Finished = true;
       }
-      Finished = true;
-    }
-    private static int StatusSeverityOf(NodeVerificationStatus status) {
-      return (int)status;
-    }
-    private static int StatusSeverityOf(LineVerificationStatus status) {
-      return (int)status;
     }
 
-    public void RecomputeStatus() {
-      var childrenStatus = NodeVerificationStatus.Verified;
-      var severity = StatusSeverityOf(childrenStatus);
+    public void PropagateChildrenErrorsUp() {
+      var childrenHaveErrors = false;
       foreach (var child in Children) {
-        child.RecomputeStatus();
-        var childSeverity = StatusSeverityOf(child.Status);
-        if (childSeverity > severity) {
-          childrenStatus = child.Status;
-          severity = childSeverity;
+        child.PropagateChildrenErrorsUp();
+        if (child.StatusVerification == VerificationStatus.Error) {
+          childrenHaveErrors = true;
         }
       }
 
-      if (childrenStatus != NodeVerificationStatus.Verified) {
-        Status = childrenStatus;
+      if (childrenHaveErrors) {
+        StatusVerification = VerificationStatus.Error;
       }
     }
 
+    // Requires PropagateChildrenErrorsUp to have been called before.
     public void RenderInto(LineVerificationStatus[] perLineDiagnostics, bool contextHasErrors = false) {
-      foreach (var child in Children) {
-        child.RenderInto(perLineDiagnostics, IsStatusError());
-      }
+      var isSingleLine = Range.Start.Line == Range.End.Line;
+      // First render the node.
       for (var line = Range.Start.Line - 1; line <= Range.End.Line - 1; line++) {
-        LineVerificationStatus targetStatus;
-        switch (Status) {
-          case NodeVerificationStatus.Verified when contextHasErrors && !Children.Any():
-            targetStatus = LineVerificationStatus.ErrorRangeAssertionVerified;
-            break;
-          case NodeVerificationStatus.Verifying when contextHasErrors && !Children.Any():
-            targetStatus = LineVerificationStatus.ErrorRangeAssertionVerifiedVerifying;
-            break;
-          case NodeVerificationStatus.VerifiedObsolete when contextHasErrors && !Children.Any():
-            targetStatus = LineVerificationStatus.ErrorRangeAssertionVerifiedObsolete;
-            break;
-          default: {
-              if (Children.Count == 0 && !IsAlwaysRange) { // Not a range
-                targetStatus = Status switch {
-                  NodeVerificationStatus.Error => LineVerificationStatus.Error,
-                  NodeVerificationStatus.ErrorVerifying => LineVerificationStatus.ErrorVerifying,
-                  NodeVerificationStatus.ErrorObsolete => LineVerificationStatus.ErrorObsolete,
-                  NodeVerificationStatus.VerifiedObsolete => LineVerificationStatus.VerifiedObsolete,
-                  NodeVerificationStatus.VerifiedVerifying => LineVerificationStatus.VerifiedVerifying,
-                  NodeVerificationStatus.Scheduled => LineVerificationStatus.Scheduled,
-                  NodeVerificationStatus.Verifying => LineVerificationStatus.Verifying,
-                  var status => (LineVerificationStatus)(int)status
-                };
-              } else { // For a range, 
-                targetStatus = Status switch {
-                  NodeVerificationStatus.Error => LineVerificationStatus.ErrorRange,
-                  NodeVerificationStatus.ErrorVerifying => LineVerificationStatus.ErrorRangeVerifying,
-                  NodeVerificationStatus.ErrorObsolete => LineVerificationStatus.ErrorRangeObsolete,
-                  NodeVerificationStatus.VerifiedObsolete => LineVerificationStatus.VerifiedObsolete,
-                  NodeVerificationStatus.VerifiedVerifying => LineVerificationStatus.VerifiedVerifying,
-                  NodeVerificationStatus.Scheduled => LineVerificationStatus.Scheduled,
-                  NodeVerificationStatus.Verifying => LineVerificationStatus.Verifying,
-                  var status => (LineVerificationStatus)(int)status
-                };
-              }
-
-              break;
-            }
-        }
-        if (StatusSeverityOf(perLineDiagnostics[line]) < StatusSeverityOf(targetStatus)) {
+        LineVerificationStatus targetStatus = StatusVerification switch {
+          VerificationStatus.Unknown => StatusCurrent switch {
+            CurrentStatus.Current => LineVerificationStatus.Unknown,
+            CurrentStatus.Obsolete => LineVerificationStatus.Scheduled,
+            CurrentStatus.Verifying => LineVerificationStatus.Verifying,
+            _ => throw new ArgumentOutOfRangeException()
+          },
+          VerificationStatus.Verified => StatusCurrent switch {
+            CurrentStatus.Current => contextHasErrors
+              ? LineVerificationStatus.ErrorRangeAssertionVerified
+              : LineVerificationStatus.Verified,
+            CurrentStatus.Obsolete => contextHasErrors
+              ? LineVerificationStatus.ErrorRangeAssertionVerifiedObsolete
+              : LineVerificationStatus.VerifiedObsolete,
+            CurrentStatus.Verifying => contextHasErrors
+              ? LineVerificationStatus.ErrorRangeAssertionVerifiedVerifying
+              : LineVerificationStatus.VerifiedVerifying,
+            _ => throw new ArgumentOutOfRangeException()
+          },
+          VerificationStatus.Error => StatusCurrent switch {
+            CurrentStatus.Current => isSingleLine ? LineVerificationStatus.Error : LineVerificationStatus.ErrorRange,
+            CurrentStatus.Obsolete => isSingleLine
+              ? LineVerificationStatus.ErrorObsolete
+              : LineVerificationStatus.ErrorRangeObsolete,
+            CurrentStatus.Verifying => isSingleLine
+              ? LineVerificationStatus.ErrorVerifying
+              : LineVerificationStatus.ErrorRangeVerifying,
+            _ => throw new ArgumentOutOfRangeException()
+          },
+          _ => throw new ArgumentOutOfRangeException()
+        };
+        if ((int)perLineDiagnostics[line] < (int)(targetStatus)) {
           perLineDiagnostics[line] = targetStatus;
         }
       }
+      foreach (var child in Children) {
+        child.RenderInto(perLineDiagnostics,
+          contextHasErrors || StatusVerification == VerificationStatus.Error);
+      }
     }
 
-    private bool IsStatusError() {
-      return Status == NodeVerificationStatus.Error ||
-             Status == NodeVerificationStatus.Inconclusive ||
-             Status == NodeVerificationStatus.ErrorObsolete ||
-             Status == NodeVerificationStatus.ErrorVerifying;
-    }
-
+    // If the verification never starts on this node, it means there is nothing to verify about it.
     // Returns true if a status was updated
     public bool SetVerifiedIfPending() {
-      if (Status is NodeVerificationStatus.Scheduled or NodeVerificationStatus.ErrorObsolete or NodeVerificationStatus.VerifiedObsolete) {
-        Status = NodeVerificationStatus.Verified;
+      if (StatusCurrent == CurrentStatus.Obsolete) {
+        StatusCurrent = CurrentStatus.Current;
+        StatusVerification = VerificationStatus.Verified;
         return true;
       }
 
       return false;
     }
+  }
+
+  public sealed record DocumentNodeDiagnostic(
+    string Identifier,
+    int Lines
+  ) : NodeDiagnostic("Document", Identifier, Identifier,
+    new Position(0, 0), new Range(new Position(0, 0),
+      new Position(Lines, 0)));
+
+  public sealed record MethodOrSubsetTypeNodeDiagnostic(
+    string DisplayName,
+    // Used to re-trigger the verification of some diagnostics.
+    string Identifier,
+    string Filename,
+    // Used to relocate a node diagnostic and to determine which function is currently verifying
+    Position Position,
+    // The range of this node.
+    Range Range
+  ) : NodeDiagnostic(DisplayName, Identifier, Filename, Position, Range);
+
+  public sealed record ImplementationNodeDiagnostic(
+    string DisplayName,
+    // Used to re-trigger the verification of some diagnostics.
+    string Identifier,
+    string Filename,
+    // Used to relocate a node diagnostic and to determine which function is currently verifying
+    Position Position,
+    // The range of this node.
+    Range Range
+  ) : NodeDiagnostic(DisplayName, Identifier, Filename, Position, Range) {
+    public override int VerificationPathTimeLongest => AssertionBatchTimes.Any() ? AssertionBatchTimes.Max() :
+      Children.Any() ? Children.Max(child => child.VerificationPathTimeLongest) : 0;
+    public override int VerificationPathTimeCount => AssertionBatchTimes.Any() ? AssertionBatchTimes.Count() :
+      Children.Any() ? Children.Sum(child => child.VerificationPathTimeCount) : 0;
+    public List<int> AssertionBatchTimes { get; set; } = new();
 
     private Implementation? implementation = null;
 
@@ -361,9 +367,33 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       return implementation;
     }
 
-    public NodeDiagnostic WithImplementation(Implementation impl) {
+    public ImplementationNodeDiagnostic WithImplementation(Implementation impl) {
       implementation = impl;
       return this;
     }
-  }
+  };
+
+  public sealed record AssertionNodeDiagnostic(
+    string DisplayName,
+    // Used to re-trigger the verification of some diagnostics.
+    string Identifier,
+    string Filename,
+    // Used to relocate a node diagnostic and to determine which function is currently verifying
+    Position Position,
+    Position? SecondaryPosition,
+    // The range of this node.
+    Range Range
+  ) : NodeDiagnostic(DisplayName, Identifier, Filename, Position, Range) {
+    // Contains permanent secondary positions to this node (e.g. return branch positions)
+    // Helps to distinguish between assertions with the same position (i.e. ensures for different branches)
+    private AssertCmd? assertion = null;
+    public AssertCmd? GetAssertion() {
+      return assertion;
+    }
+
+    public AssertionNodeDiagnostic WithAssertion(AssertCmd cmd) {
+      assertion = cmd;
+      return this;
+    }
+  };
 }

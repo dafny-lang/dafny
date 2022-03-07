@@ -146,10 +146,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       logger.LogDebug($"Migrated {oldVerificationDiagnostics.Count} diagnostics into {migratedVerificationDiagnotics.Count} diagnostics.");
       var oldVerificationNodeDiagnostic =
         oldDocument.VerificationNodeDiagnostic.SetObsolete();
-      if (oldDocument.VerificationNodeDiagnostic.Status == NodeVerificationStatus.Verified) {
-        var migratedVerificationNodeDiagnostics =
-          relocator.RelocateNodeDiagnostic(oldVerificationNodeDiagnostic, documentChange, CancellationToken.None);
-      }
+      var migratedVerificationNodeDiagnostics =
+        relocator.RelocateNodeDiagnostic(oldVerificationNodeDiagnostic, documentChange, CancellationToken.None);
 
       var migratedLastTouchedPositions =
         relocator.RelocatePositions(oldDocument.LastTouchedMethodPositions, documentChange, CancellationToken.None);
@@ -170,8 +168,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         // according to the change.
         return newDocument with {
           SymbolTable = relocator.RelocateSymbols(oldDocument.SymbolTable, documentChange, CancellationToken.None),
-          OldVerificationDiagnostics = migratedVerificationDiagnotics
-          //VerificationNodeDiagnostic = migratedVerificationNodeDiagnostics
+          OldVerificationDiagnostics = migratedVerificationDiagnotics,
+          VerificationNodeDiagnostic = migratedVerificationNodeDiagnostics
         };
       } catch (OperationCanceledException) {
         // The document load was canceled before it could complete. We migrate the document
@@ -182,8 +180,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           SymbolTable = relocator.RelocateSymbols(oldDocument.SymbolTable, documentChange, CancellationToken.None),
           SerializedCounterExamples = null,
           LoadCanceled = true,
-          OldVerificationDiagnostics = migratedVerificationDiagnotics
-          //VerificationNodeDiagnostic = migratedVerificationNodeDiagnostics
+          OldVerificationDiagnostics = migratedVerificationDiagnotics,
+          VerificationNodeDiagnostic = migratedVerificationNodeDiagnostics
         };
       }
     }

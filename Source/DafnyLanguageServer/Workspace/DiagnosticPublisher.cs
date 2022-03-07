@@ -59,14 +59,17 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         .Concat(document.OldVerificationDiagnostics)
         .Where(x => x.Severity == DiagnosticSeverity.Error)
         .ToArray();
-      languageServer.TextDocument.SendNotification(new VerificationDiagnosticsParams {
+      var verificationDiagnosticsParams = new VerificationDiagnosticsParams {
         Uri = document.Uri,
         Version = document.Version,
         Diagnostics = errors,
         NumberOfResolutionErrors = document.ResolutionSucceeded == false ? currentDiagnostics.Count() : 0,
         LinesCount = Regex.Matches(document.Text.Text, "\r?\n").Count + 1,
         PerNodeDiagnostic = document.VerificationNodeDiagnostic.Children.ToArray()
-      });
+      };
+      if (verificationDiagnosticsParams.PerLineDiagnostic.Length > 0) {
+        languageServer.TextDocument.SendNotification(verificationDiagnosticsParams);
+      }
     }
 
     private void PublishGhostDiagnostics(DafnyDocument document) {

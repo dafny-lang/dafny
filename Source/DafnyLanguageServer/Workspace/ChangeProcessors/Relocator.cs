@@ -287,17 +287,23 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
             continue;
           }
           var newPosition = MigratePosition(nodeDiagnostic.Position, change.Range!, afterChangeEndOffset);
-          var newSecondaryPosition = nodeDiagnostic.SecondaryPosition != null ? MigratePosition(nodeDiagnostic.SecondaryPosition, change.Range!, afterChangeEndOffset) : null;
           var newNodeDiagnostic = nodeDiagnostic with {
             Range = newRange,
             Position = newPosition,
-            SecondaryPosition = newSecondaryPosition,
             Children = MigrateNodeDiagnostic(nodeDiagnostic.Children, change).ToList(),
             RelatedRanges = nodeDiagnostic.RelatedRanges
               .Select(pos => MigrateRange(pos, change.Range!, afterChangeEndOffset))
-              .OfType<Range>().ToList()
+              .OfType<Range>().ToList(),
+            StatusVerification = nodeDiagnostic.StatusVerification,
+            StatusCurrent = CurrentStatus.Obsolete
           };
-          newNodeDiagnostic.Status = nodeDiagnostic.Status;
+          if (newNodeDiagnostic is AssertionNodeDiagnostic assertionNodeDiagnostic) {
+            newNodeDiagnostic = assertionNodeDiagnostic with {
+              SecondaryPosition = assertionNodeDiagnostic.SecondaryPosition != null
+                ? MigratePosition(assertionNodeDiagnostic.SecondaryPosition, change.Range!, afterChangeEndOffset)
+                : null
+            };
+          }
           yield return newNodeDiagnostic;
         }
       }

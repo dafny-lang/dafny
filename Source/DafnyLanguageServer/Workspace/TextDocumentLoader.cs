@@ -196,7 +196,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           oldNode => oldNode != null && oldNode.Position == position,
           null);
         if (previousDiagnostic != null) {
-          nodeDiagnostic.Status = previousDiagnostic.Status;
+          previousDiagnostic.SetObsolete();
+          nodeDiagnostic.StatusVerification = previousDiagnostic.StatusVerification;
+          nodeDiagnostic.StatusCurrent = CurrentStatus.Obsolete;
           nodeDiagnostic.Children = previousDiagnostic.Children;
         }
         result.Add(nodeDiagnostic);
@@ -213,25 +215,22 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
                 }
                 var diagnosticPosition = TokenToPosition(member.tok);
                 var diagnosticRange = new Range(diagnosticPosition, TokenToPosition(member.BodyEndTok, true));
-                var diagnostic = new NodeDiagnostic(
+                var diagnostic = new MethodOrSubsetTypeNodeDiagnostic(
                   member.Name,
                   member.CompileName,
                   member.tok.filename,
                   diagnosticPosition,
-                  new(),
-                  diagnosticRange,
-                  true);
+                  diagnosticRange);
                 AddAndPossiblyMigrateDiagnostic(diagnostic);
                 if (member is Function { ByMethodBody: { } } function) {
                   var diagnosticPositionByMethod = TokenToPosition(function.ByMethodTok);
                   var diagnosticRangeByMethod = new Range(diagnosticPositionByMethod, TokenToPosition(function.ByMethodBody.EndTok, true));
-                  var diagnosticByMethod = new NodeDiagnostic(
+                  var diagnosticByMethod = new MethodOrSubsetTypeNodeDiagnostic(
                     member.Name + " by method",
                     member.CompileName + "_by_method",
                     member.tok.filename,
                     diagnosticPositionByMethod,
-                    new(),
-                    diagnosticRangeByMethod, true);
+                    diagnosticRangeByMethod);
                   AddAndPossiblyMigrateDiagnostic(diagnosticByMethod);
                 }
               }
@@ -247,14 +246,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             }
             var diagnosticRange = new Range(diagnosticPosition,
                 TokenToPosition(subsetTypeDecl.Witness.tok, true));
-            var diagnostic = new NodeDiagnostic(
+            var diagnostic = new MethodOrSubsetTypeNodeDiagnostic(
               subsetTypeDecl.Name,
               subsetTypeDecl.CompileName,
               subsetTypeDecl.tok.filename,
               diagnosticPosition,
-              new(),
-              diagnosticRange,
-              true);
+              diagnosticRange);
             AddAndPossiblyMigrateDiagnostic(diagnostic);
           }
         }
@@ -335,6 +332,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       public void ReportImplementationsBeforeVerification(Implementation[] implementations) {
+        if (document.LoadCanceled) {
+          return;
+        }
         // We migrate existing implementations to the new provided ones if they exist.
         // (same child number, same file and same position)
         foreach (var methodNode in document.VerificationNodeDiagnostic.Children) {
@@ -350,14 +350,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           }
           var newDisplayName = targetMethodNode.DisplayName + " #" + (targetMethodNode.Children.Count + 1) + ":" +
                                implementation.Name;
-          var newImplementationNode = new NodeDiagnostic(
+          var newImplementationNode = new ImplementationNodeDiagnostic(
             newDisplayName,
             implementation.Name,
             targetMethodNode.Filename,
             targetMethodNode.Position,
-            new(),
-            targetMethodNode.Range,
-            true
+            targetMethodNode.Range
           ).WithImplementation(implementation);
           if (oldImplementationNode != null) {
             newImplementationNode.Children = oldImplementationNode.Children;
@@ -379,16 +377,20 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       public void ReportStartVerifyImplementation(Implementation implementation) {
-        var targetMethodNode = GetTargetMethodNode(implementation, out var implementationNode);
-        if (targetMethodNode == null) {
-          logger.LogError($"No method node at {implementation.tok.filename}:{implementation.tok.line}:{implementation.tok.col}");
-        } else {
-          lock (LockProcessing) {
+        if (document.LoadCanceled) {
+          return;
+        }
+
+        lock (LockProcessing) {
+          var targetMethodNode = GetTargetMethodNode(implementation, out var implementationNode);
+          if (targetMethodNode == null) {
+            logger.LogError($"No method node at {implementation.tok.filename}:{implementation.tok.line}:{implementation.tok.col}");
+          } else {
             if (!targetMethodNode.Started) {
               // The same method could be started multiple times for each implementation
               targetMethodNode.Start();
+              ReportMethodsBeingVerified();
             }
-            ReportMethodsBeingVerified();
 
             if (implementationNode == null) {
               logger.LogError($"No implementation at {implementation.tok}");
@@ -397,32 +399,36 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
               implementationNode.Start();
             }
 
+            targetMethodNode.PropagateChildrenErrorsUp();
             diagnosticPublisher.PublishVerificationDiagnostics(document);
           }
         }
       }
 
-      private NodeDiagnostic? GetTargetMethodNode(Implementation implementation, out NodeDiagnostic? implementationNode, bool nameBased = false) {
+      private NodeDiagnostic? GetTargetMethodNode(Implementation implementation, out ImplementationNodeDiagnostic? implementationNode, bool nameBased = false) {
         var targetMethodNode = document.VerificationNodeDiagnostic.Children.FirstOrDefault(
           node => node?.Position == TokenToPosition(implementation.tok) && node?.Filename == implementation.tok.filename
           , null);
         if (nameBased) {
-          implementationNode = targetMethodNode?.Children.FirstOrDefault(
+          implementationNode = targetMethodNode?.Children.OfType<ImplementationNodeDiagnostic>().FirstOrDefault(
             node => {
               var nodeImpl = node?.GetImplementation();
               return nodeImpl?.Name == implementation.Name;
             }, null);
         } else {
-          implementationNode = targetMethodNode?.Children.FirstOrDefault(
+          implementationNode = targetMethodNode?.Children.OfType<ImplementationNodeDiagnostic>().FirstOrDefault(
             node => node?.GetImplementation() == implementation, null);
         }
 
         return targetMethodNode;
       }
 
-      private object LockProcessing = new();
+      private readonly object LockProcessing = new();
 
       public void ReportEndVerifyImplementation(Implementation implementation, VerificationResult verificationResult) {
+        if (document.LoadCanceled) {
+          return;
+        }
         var targetMethodNode = GetTargetMethodNode(implementation, out var implementationNode);
         if (targetMethodNode == null) {
           logger.LogError($"No method node at {implementation.tok.filename}:{implementation.tok.line}:{implementation.tok.col}");
@@ -437,57 +443,60 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             targetMethodNode.ResourceCount += verificationResult.ResourceCount;
             // Will be only executed by the last instance.
             if (!targetMethodNode.Children.All(child => child.Finished)) {
-              targetMethodNode.Status = verificationResult.Outcome switch {
-                ConditionGeneration.Outcome.Correct => targetMethodNode.Status,
-                _ => NodeVerificationStatus.Error
+              targetMethodNode.StatusVerification = verificationResult.Outcome switch {
+                ConditionGeneration.Outcome.Correct => targetMethodNode.StatusVerification,
+                _ => VerificationStatus.Error
               };
             } else {
               targetMethodNode.Stop();
               // Later, will be overriden by individual outcomes
-              targetMethodNode.Status = verificationResult.Outcome switch {
-                ConditionGeneration.Outcome.Correct => NodeVerificationStatus.Verified,
-                _ => NodeVerificationStatus.Error
+              targetMethodNode.StatusVerification = verificationResult.Outcome switch {
+                ConditionGeneration.Outcome.Correct => VerificationStatus.Verified,
+                _ => VerificationStatus.Error
               };
             }
 
-            targetMethodNode.RecomputeStatus();
+            targetMethodNode.PropagateChildrenErrorsUp();
             ReportMethodsBeingVerified();
             diagnosticPublisher.PublishVerificationDiagnostics(document);
           }
         }
       }
 
-      public static NodeVerificationStatus GetNodeStatus(ConditionGeneration.Outcome outcome) {
+      private static VerificationStatus GetNodeStatus(ConditionGeneration.Outcome outcome) {
         return outcome switch {
-          ConditionGeneration.Outcome.Correct => NodeVerificationStatus.Verified,
-          ConditionGeneration.Outcome.Errors => NodeVerificationStatus.Error,
-          ConditionGeneration.Outcome.Inconclusive => NodeVerificationStatus.Inconclusive,
-          ConditionGeneration.Outcome.ReachedBound => NodeVerificationStatus.Error,
-          ConditionGeneration.Outcome.SolverException => NodeVerificationStatus.Error,
-          ConditionGeneration.Outcome.TimedOut => NodeVerificationStatus.Error,
-          ConditionGeneration.Outcome.OutOfMemory => NodeVerificationStatus.Error,
-          ConditionGeneration.Outcome.OutOfResource => NodeVerificationStatus.Error,
-          _ => NodeVerificationStatus.Inconclusive
+          ConditionGeneration.Outcome.Correct => VerificationStatus.Verified,
+          ConditionGeneration.Outcome.Errors => VerificationStatus.Error,
+          ConditionGeneration.Outcome.Inconclusive => VerificationStatus.Error,
+          ConditionGeneration.Outcome.ReachedBound => VerificationStatus.Error,
+          ConditionGeneration.Outcome.SolverException => VerificationStatus.Error,
+          ConditionGeneration.Outcome.TimedOut => VerificationStatus.Error,
+          ConditionGeneration.Outcome.OutOfMemory => VerificationStatus.Error,
+          ConditionGeneration.Outcome.OutOfResource => VerificationStatus.Error,
+          _ => VerificationStatus.Error
         };
       }
 
       public void ReportAssertionBatchResult(Split split,
         Dictionary<AssertCmd, ConditionGeneration.Outcome> perAssertOutcome,
         Dictionary<AssertCmd, Counterexample> perAssertCounterExample) {
-        var implementation = split.Implementation;
-        // While there is no error, just add successful nodes.
-        var targetMethodNode = GetTargetMethodNode(implementation, out var implementationNode);
-        if (targetMethodNode == null) {
-          logger.LogError($"No method node at {implementation.tok.filename}:{implementation.tok.line}:{implementation.tok.col}");
-        } else if (implementationNode == null) {
-          logger.LogError($"No implementation node at {implementation.tok.filename}:{implementation.tok.line}:{implementation.tok.col}");
-        } else {
-          lock (LockProcessing) {
+        if (document.LoadCanceled) {
+          return;
+        }
+        lock (LockProcessing) {
+          var implementation = split.Implementation;
+          // While there is no error, just add successful nodes.
+          var targetMethodNode = GetTargetMethodNode(implementation, out var implementationNode);
+          if (targetMethodNode == null) {
+            logger.LogError($"No method node at {implementation.tok.filename}:{implementation.tok.line}:{implementation.tok.col}");
+          } else if (implementationNode == null) {
+            logger.LogError($"No implementation node at {implementation.tok.filename}:{implementation.tok.line}:{implementation.tok.col}");
+          } else {
             implementationNode.AssertionBatchTimes.Add((int)split.Checker.ProverRunTime.TotalMilliseconds);
 
             // Attaches the trace
             void AddChildOutcome(IToken token,
-              NodeVerificationStatus status, IToken? secondaryToken, List<IToken> relatedTokens, string? assertDisplay = "", string assertIdentifier = "") {
+              VerificationStatus status, IToken? secondaryToken, List<IToken> relatedTokens, string? assertDisplay = "", string assertIdentifier = "") {
               if (token.filename != implementationNode.Filename) {
                 return;
               }
@@ -508,29 +517,31 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
               assertIdentifier = assertIdentifier != "" ? "_" + assertIdentifier : "";
 
               var outcomeRange = new Range(outcomePosition, TokenToPosition(token, true));
-              var nodeDiagnostic = new NodeDiagnostic(
+              var nodeDiagnostic = new AssertionNodeDiagnostic(
                 $"{targetMethodNode.DisplayName}{assertDisplay} #{childrenCount}",
                 $"{targetMethodNode.Identifier}_{childrenCount}{assertIdentifier}",
                 token.filename,
                 outcomePosition,
                 secondaryOutcomePosition,
-                outcomeRange,
-                false
+                outcomeRange
               ) {
-                Status = status,
+                StatusVerification = status,
+                StatusCurrent = CurrentStatus.Current,
                 RelatedRanges = relatedRanges
               };
               // Add this diagnostics as the new one to display once the implementation is fully verified
               implementationNode.AddNewChild(nodeDiagnostic);
               // Update any previous pending "verifying" diagnostic as well so that they are updated in real-time
-              var previousChild = implementationNode.Children.FirstOrDefault(child =>
+              var previousChild = implementationNode.Children.OfType<AssertionNodeDiagnostic>()
+                .FirstOrDefault(child =>
                 child != null && child.Position == outcomePosition && (
-                  secondaryOutcomePosition == null ||
                   secondaryOutcomePosition == child.SecondaryPosition), null);
               if (previousChild != null) {
+                // Temporary update of children.
                 implementationNode.Children.Remove(previousChild);
                 implementationNode.Children.Add(previousChild with {
-                  Status = status
+                  StatusCurrent = CurrentStatus.Current,
+                  StatusVerification = status
                 });
               }
             }
@@ -573,10 +584,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
               }
             }
 
-            implementationNode.RecomputeStatus();
+            targetMethodNode.PropagateChildrenErrorsUp();
+            diagnosticPublisher.PublishVerificationDiagnostics(document);
           }
-
-          diagnosticPublisher.PublishVerificationDiagnostics(document);
         }
       }
 
