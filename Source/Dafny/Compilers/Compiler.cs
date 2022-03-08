@@ -93,7 +93,7 @@ namespace Microsoft.Dafny {
     protected abstract string GetHelperModuleName();
     protected interface IClassWriter {
       ConcreteSyntaxTree/*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody);
-      ConcreteSyntaxTree/*?*/ CreateMockMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody);
+      ConcreteSyntaxTree/*?*/ SynthesizeMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody);
       ConcreteSyntaxTree/*?*/ CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody,
         MemberDecl member, bool forBodyInheritance, bool lookasideBody);
       ConcreteSyntaxTree/*?*/ CreateGetter(string name, TopLevelDecl enclosingDecl, Type resultType, Bpl.IToken tok, bool isStatic, bool isConst, bool createBody, MemberDecl/*?*/ member, bool forBodyInheritance);  // returns null iff !createBody
@@ -1264,7 +1264,7 @@ namespace Microsoft.Dafny {
         throw new NotImplementedException();
       }
 
-      public ConcreteSyntaxTree CreateMockMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
+      public ConcreteSyntaxTree SynthesizeMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
         throw new NotImplementedException();
       }
 
@@ -1779,13 +1779,14 @@ namespace Microsoft.Dafny {
           }
           v.Visit(f);
         } else if (member is Method m) {
-          if (Attributes.Contains(m.Attributes, "mock") &&
-              DafnyOptions.O.CompileMocks) {
+          if (Attributes.Contains(m.Attributes, "synthesize") &&
+              DafnyOptions.O.Synthesize) {
             if (m.IsStatic && m.Outs.Count > 0 && m.Body == null) {
-              classWriter.CreateMockMethod(m, CombineAllTypeArguments(m), true, true, false);
+              classWriter.SynthesizeMethod(m, CombineAllTypeArguments(m), true, true, false);
             } else {
-              Error(m.tok, "Method {0} is annotated with mock but does not " +
-                           "have the correct specification or has a body",
+              Error(m.tok, "Method {0} is annotated with :synthesize but " +
+                           "does not have the correct specification or has a " +
+                           "body",
                 errorWr, m.FullName);
             }
           } else if (m.Body == null && !(c is TraitDecl && !m.IsStatic) &&

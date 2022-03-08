@@ -387,8 +387,8 @@ quantifies over types.
 
 ### 22.1.21. mock
 
-The `{:mock}` attribute must be used on methods that have no body and return 
-one or more fresh objects. During compilation, if the `/compileMocks` 
+The `{:synthesize}` attribute must be used on methods that have no body and 
+return one or more fresh objects. During compilation, if the `/synthesize` 
 command-line argument is used, the postconditions associated with such a 
 method are translated to a series of API calls to the target languages's 
 mocking framework. The object returned, therefore, behaves exactly as the 
@@ -399,7 +399,7 @@ through. Currently, this compilation pass is only supported in C# and requires
 adding the latest version of the Moq library to the .csproj file before 
 generating the binary.
 
-Not all Dafny postconditions can be translated to calls in Moq - below is the 
+Not all Dafny postconditions can be successfully compiled - below is the 
 grammar for postconditions that are supported (`S` is the start symbol, `EXPR` 
 stands for an arbitrary Dafny expression, and `ID` stands for 
 variable/method/type identifiers):

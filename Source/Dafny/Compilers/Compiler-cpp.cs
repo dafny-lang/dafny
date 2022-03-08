@@ -689,7 +689,7 @@ namespace Microsoft.Dafny {
         return Compiler.CreateMethod(m, typeArgs, createBody, MethodDeclWriter, MethodWriter, lookasideBody);
       }
 
-      public ConcreteSyntaxTree CreateMockMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
+      public ConcreteSyntaxTree SynthesizeMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
         throw new NotImplementedException();
       }
 

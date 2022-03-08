@@ -74,8 +74,8 @@ namespace Microsoft.Dafny {
       wr.WriteLine();
       wr.WriteLine("using System;");
       wr.WriteLine("using System.Numerics;");
-      if (DafnyOptions.O.CompileMocks) {
-        CsharpMockWriter.EmitImports(wr);
+      if (DafnyOptions.O.Synthesize) {
+        CsharpSynthesizer.EmitImports(wr);
       }
       EmitDafnySourceAttribute(program, wr);
       if (!DafnyOptions.O.UseRuntimeLib) {
@@ -99,7 +99,7 @@ namespace Microsoft.Dafny {
     protected override void EmitBuiltInDecls(BuiltIns builtIns, ConcreteSyntaxTree wr) {
       var dafnyNamespace = CreateModule("Dafny", false, false, null, wr);
       EmitInitNewArrays(builtIns, dafnyNamespace);
-      CsharpMockWriter.EmitMultiMatcher(dafnyNamespace);
+      CsharpSynthesizer.EmitMultiMatcher(dafnyNamespace);
       EmitFuncExtensions(builtIns, wr);
     }
 
@@ -1081,7 +1081,7 @@ namespace Microsoft.Dafny {
       public readonly ConcreteSyntaxTree InstanceMemberWriter;
       public readonly ConcreteSyntaxTree StaticMemberWriter;
       public readonly ConcreteSyntaxTree CtorBodyWriter;
-      private readonly CsharpMockWriter csharpMockWriter;
+      private readonly CsharpSynthesizer csharpSynthesizer;
 
       public ClassWriter(CsharpCompiler compiler, ConcreteSyntaxTree instanceMemberWriter, ConcreteSyntaxTree/*?*/ ctorBodyWriter, ConcreteSyntaxTree/*?*/ staticMemberWriter = null) {
         Contract.Requires(compiler != null);
@@ -1090,7 +1090,7 @@ namespace Microsoft.Dafny {
         this.InstanceMemberWriter = instanceMemberWriter;
         this.CtorBodyWriter = ctorBodyWriter;
         this.StaticMemberWriter = staticMemberWriter ?? instanceMemberWriter;
-        this.csharpMockWriter = new CsharpMockWriter(Compiler, ErrorWriter());
+        this.csharpSynthesizer = new CsharpSynthesizer(Compiler, ErrorWriter());
       }
 
       public ConcreteSyntaxTree Writer(bool isStatic, bool createBody, MemberDecl/*?*/ member) {
@@ -1107,9 +1107,9 @@ namespace Microsoft.Dafny {
         return Compiler.CreateMethod(m, typeArgs, createBody, Writer(m.IsStatic, createBody, m), forBodyInheritance, lookasideBody);
       }
 
-      public ConcreteSyntaxTree CreateMockMethod(Method method, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance,
+      public ConcreteSyntaxTree SynthesizeMethod(Method method, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance,
         bool lookasideBody) {
-        return csharpMockWriter.CreateMockMethod(method, typeArgs, createBody, Writer(method.IsStatic, createBody, method), forBodyInheritance, lookasideBody);
+        return csharpSynthesizer.SynthesizeMethod(method, typeArgs, createBody, Writer(method.IsStatic, createBody, method), forBodyInheritance, lookasideBody);
       }
 
       public ConcreteSyntaxTree /*?*/ CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, bool forBodyInheritance, bool lookasideBody) {
@@ -1167,7 +1167,7 @@ namespace Microsoft.Dafny {
     }
 
     internal static string Keywords(bool isPublic = false, bool isStatic = false, bool isExtern = false) {
-      return (isPublic ? "public " : "") + (isStatic ? "static " : "") + (isExtern ? "extern " : "") + (DafnyOptions.O.CompileMocks && !isStatic && isPublic ? "virtual " : "");
+      return (isPublic ? "public " : "") + (isStatic ? "static " : "") + (isExtern ? "extern " : "") + (DafnyOptions.O.Synthesize && !isStatic && isPublic ? "virtual " : "");
     }
 
     internal ConcreteSyntaxTree GetMethodParameters(Method m, List<TypeArgumentInstantiation> typeArgs, bool lookasideBody, bool customReceiver, string returnType) {
@@ -1641,7 +1641,7 @@ namespace Microsoft.Dafny {
     protected void DeclareField(string name, bool isPublic, bool isStatic, bool isConst, string typeName, string rhs, ClassWriter cw) {
       var publik = isPublic ? "public" : "private";
       var konst = isConst ? " readonly" : "";
-      var virtuall = DafnyOptions.O.CompileMocks ? " virtual" : "";
+      var virtuall = DafnyOptions.O.Synthesize ? " virtual" : "";
       if (isStatic) {
         cw.StaticMemberWriter.Write($"{publik} static{konst} {typeName} {name}");
         if (rhs != null) {

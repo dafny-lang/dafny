@@ -8,29 +8,25 @@ namespace Microsoft.Dafny;
 
 /// <summary>
 /// Below is the full grammar of ensures clauses that can specify
-/// the behavior of an object returned by a mock-annotated method
+/// the behavior of an object returned by a synthesize-annotated method
 /// (S is the starting symbol, ID refers to a variable/field/method/type
-/// identifier, EXP stands for an arbitrary Dafny expression):
+/// identifier, EXPR stands for an arbitrary Dafny expression):
 ///
-/// S       = FORALL
-///         | EQUALS 
-///         | S && S
-/// 
-/// EQUALS  = ID.ID (ARGLIST)  == EXP // stubs a method call
-///         | ID.ID            == EXP // stubs field access
-///         | EQUALS && EQUALS
-/// 
-/// FORALL  = forall BOUND :: EXP ==> EQUALS
-/// 
-/// ARGLIST = ID  // this can be one of the bound variables
-///         | EXP // this exp may not reference any of the bound variables 
-///         | ARG_LIST, ARG_LIST
-/// 
-/// BOUND   = ID : ID 
-///         | BOUND, BOUND
+/// S         = FORALL
+///           | EQUALS 
+///           | S && S
+/// EQUALS    = ID.ID (ARGLIST)  == EXPR // stubs a method call
+///           | ID.ID            == EXPR // stubs field access
+///           | EQUALS && EQUALS
+/// FORALL    = forall BOUNDVARS :: EXPR ==> EQUALS
+/// ARGLIST   = ID   // this can be one of the bound variables
+///           | EXPR // this expr may not reference any of the bound variables 
+///           | ARGLIST, ARGLIST
+/// BOUNDVARS = ID : ID 
+///           | BOUNDVARS, BOUNDVARS
 /// 
 /// </summary>
-public class CsharpMockWriter {
+public class CsharpSynthesizer {
 
   private readonly CsharpCompiler compiler;
   private readonly ConcreteSyntaxTree ErrorWriter;
@@ -38,18 +34,18 @@ public class CsharpMockWriter {
   private Dictionary<IVariable, string> objectToMockName = new();
   // associates a bound variable with the lambda passed to argument matcher
   private Dictionary<IVariable, string> bounds = new();
-  private Method mockMethod = null;
+  private Method lastSynthesizedMethod = null;
 
-  public CsharpMockWriter(CsharpCompiler compiler, ConcreteSyntaxTree errorWriter) {
+  public CsharpSynthesizer(CsharpCompiler compiler, ConcreteSyntaxTree errorWriter) {
     this.compiler = compiler;
     ErrorWriter = errorWriter;
   }
 
   /// <summary>
-  /// Create a body of a method that mocks one or more objects.
+  /// Create a body of a method that synthesizes one or more objects.
   /// For instance, the following Dafny method:
   /// 
-  /// method {:extern} {:mock} CrossReferentialMock()
+  /// method {:synthesize} CrossReferentialMock()
   ///     returns (e1:Even, e2:Even) 
   ///     ensures fresh(e1) && fresh(e2) 
   ///     ensures e1.Next() == e2
@@ -71,11 +67,11 @@ public class CsharpMockWriter {
   ///     e2Return = e2;
   /// }
   /// </summary>
-  public ConcreteSyntaxTree CreateMockMethod(Method method,
+  public ConcreteSyntaxTree SynthesizeMethod(Method method,
     List<Compiler.TypeArgumentInstantiation> typeArgs, bool createBody,
     ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
 
-    mockMethod = method;
+    lastSynthesizedMethod = method;
     // The following few lines are identical to those in CreateMethod above:
     var customReceiver = createBody &&
                          !forBodyInheritance &&
@@ -114,7 +110,7 @@ public class CsharpMockWriter {
     // Stub methods and fields according to the Dafny post-conditions:
     foreach (var ensureClause in method.Ens) {
       bounds = new();
-      MockExpression(wr, ensureClause.E);
+      SynthesizeExpression(wr, ensureClause.E);
     }
 
     // Return the mocked objects:
@@ -144,19 +140,19 @@ public class CsharpMockWriter {
     return new Tuple<IVariable, string>(variable, bounds[variable]);
   }
 
-  private void MockExpression(ConcreteSyntaxTree wr, Expression expr) {
+  private void SynthesizeExpression(ConcreteSyntaxTree wr, Expression expr) {
     switch (expr) {
       case LiteralExpr literalExpr:
         compiler.TrExpr(literalExpr, wr, false);
         break;
       case ApplySuffix applySuffix:
-        MockExpression(wr, applySuffix);
+        SynthesizeExpression(wr, applySuffix);
         break;
       case BinaryExpr binaryExpr:
-        MockExpression(wr, binaryExpr);
+        SynthesizeExpression(wr, binaryExpr);
         break;
       case ForallExpr forallExpr:
-        MockExpression(wr, forallExpr);
+        SynthesizeExpression(wr, forallExpr);
         break;
       case FreshExpr freshExpr:
         break;
@@ -165,7 +161,7 @@ public class CsharpMockWriter {
     }
   }
 
-  private void MockExpression(ConcreteSyntaxTree wr, ApplySuffix applySuffix) {
+  private void SynthesizeExpression(ConcreteSyntaxTree wr, ApplySuffix applySuffix) {
 
     var methodApp = (ExprDotName)applySuffix.Lhs;
     var receiver = ((IdentifierExpr)methodApp.Lhs.Resolved).Var;
@@ -173,10 +169,10 @@ public class CsharpMockWriter {
     var methodName = method.CompileName;
 
     if (((Function)method).Ens.Count != 0) {
-      compiler.Error(mockMethod.tok, "Post-conditions on function {0} might " +
+      compiler.Error(lastSynthesizedMethod.tok, "Post-conditions on function {0} might " +
                                  "be unsatisfied when synthesizing code " +
                                  "for method {1}", ErrorWriter,
-        methodName, mockMethod.Name);
+        methodName, lastSynthesizedMethod.Name);
     }
 
     wr.Format($"{objectToMockName[receiver]}.Setup(x => x.{methodName}(");
@@ -199,13 +195,13 @@ public class CsharpMockWriter {
     wr.Write("))");
   }
 
-  private void MockExpression(ConcreteSyntaxTree wr, BinaryExpr binaryExpr) {
+  private void SynthesizeExpression(ConcreteSyntaxTree wr, BinaryExpr binaryExpr) {
     if (binaryExpr.Op == BinaryExpr.Opcode.And) {
       Dictionary<IVariable, string> oldBounds = bounds
         .ToDictionary(entry => entry.Key, entry => entry.Value);
-      MockExpression(wr, binaryExpr.E0);
+      SynthesizeExpression(wr, binaryExpr.E0);
       bounds = oldBounds;
-      MockExpression(wr, binaryExpr.E1);
+      SynthesizeExpression(wr, binaryExpr.E1);
       return;
     }
     if (binaryExpr.Op != BinaryExpr.Opcode.Eq) {
@@ -215,9 +211,9 @@ public class CsharpMockWriter {
       var obj = ((IdentifierExpr)exprDotName.Lhs.Resolved).Var;
       var field = ((MemberSelectExpr)exprDotName.Resolved).Member;
       var fieldName = field.CompileName;
-      compiler.Error(mockMethod.tok, "Stubbing fields is not recommended " +
+      compiler.Error(lastSynthesizedMethod.tok, "Stubbing fields is not recommended " +
                                 "(field {0} of object {1} inside method {2})",
-        ErrorWriter, fieldName, obj.Name, mockMethod.Name);
+        ErrorWriter, fieldName, obj.Name, lastSynthesizedMethod.Name);
       wr.Format($"{objectToMockName[obj]}.SetupGet({obj.CompileName} => {obj.CompileName}.@{fieldName}).Returns( ");
       compiler.TrExpr(binaryExpr.E1, wr, false);
       wr.WriteLine(");");
@@ -226,7 +222,7 @@ public class CsharpMockWriter {
     if (binaryExpr.E0 is not ApplySuffix applySuffix) {
       throw new NotImplementedException();
     }
-    MockExpression(wr, applySuffix);
+    SynthesizeExpression(wr, applySuffix);
     wr.Write(".Returns(");
     wr.Write("(");
     for (int i = 0; i < applySuffix.Args.Count; i++) {
@@ -249,7 +245,7 @@ public class CsharpMockWriter {
     wr.WriteLine(");");
   }
 
-  private void MockExpression(ConcreteSyntaxTree wr, ForallExpr forallExpr) {
+  private void SynthesizeExpression(ConcreteSyntaxTree wr, ForallExpr forallExpr) {
     if (forallExpr.Term is not BinaryExpr binaryExpr) {
       throw new NotImplementedException();
     }
@@ -286,7 +282,7 @@ public class CsharpMockWriter {
         throw new NotImplementedException();
     }
     wr.WriteLine("});");
-    MockExpression(wr, binaryExpr);
+    SynthesizeExpression(wr, binaryExpr);
   }
 
   /// <summary>

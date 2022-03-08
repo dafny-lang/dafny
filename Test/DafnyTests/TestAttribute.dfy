@@ -1,4 +1,4 @@
-// RUN: %dafny /compileVerbose:1 /compile:0 /spillTargetCode:3 /noVerify /compileMocks "%s" > "%t"
+// RUN: %dafny /compileVerbose:1 /compile:0 /spillTargetCode:3 /noVerify /synthesize "%s" > "%t"
 // RUN: dotnet test -v:q -noLogo %S 2> %t.testresults.raw || true
 // Remove the timestamp prefixes on the expected errors
 // RUN: sed 's/[^]]*\]//' "%t".testresults.raw >> "%t"
@@ -105,7 +105,7 @@ class Even {
     static method AStaticMethod() {}
 }
 
-method {:mock} mockUnsafe() 
+method {:synthesize} mockUnsafe() 
     returns (e:Even) 
     ensures fresh(e) && e.Identity(3) == 2
     
@@ -115,7 +115,7 @@ method {:test} PassingWithError() {
     assert e.Identity(3) != 2;
 }
 
-method {:mock} mockSimple() returns (e:Even) ensures fresh(e)
+method {:synthesize} mockSimple() returns (e:Even) ensures fresh(e)
 
 method {:test} PassingTestUsingMock() {
     var e:Even := mockSimple();
@@ -136,10 +136,10 @@ method {:test} PassingTestWithSideEffectingMethod() {
     expect(e.IsValid());
 }
 
-method {:mock} MockValidEven() returns (e:Even) 
+method {:synthesize} MockValidEven() returns (e:Even) 
     ensures fresh(e) 
     ensures e.IsValid() == true
-method {:mock} MockInValidEven() returns (e:Even) 
+method {:synthesize} MockInValidEven() returns (e:Even) 
     ensures fresh(e) 
     ensures e.IsValid() == false
 
@@ -153,7 +153,7 @@ method {:test} PassingTestUsingInValidMock() {
     expect(!e.IsValid());
 }
 
-method {:mock} MockSum() returns (e:Even) 
+method {:synthesize} MockSum() returns (e:Even) 
     ensures fresh(e) 
     ensures e.Sum(2, 2) == 3
 
@@ -162,7 +162,7 @@ method {:test} PassingTestMockSum() {
     expect(e.Sum(2, 2) == 3);
 }
 
-method {:mock} MockSumForall() returns (e:Even) 
+method {:synthesize} MockSumForall() returns (e:Even) 
     ensures fresh(e) 
     ensures forall a:int, b:int :: e.Sum(a, b) == 3
 
@@ -172,7 +172,7 @@ method {:test} PassingTestMockForall() {
     expect(e.Sum(3, 2) == 3);
 }
 
-method {:mock} MockSumAsMultiplication() returns (e:Even) 
+method {:synthesize} MockSumAsMultiplication() returns (e:Even) 
     ensures fresh(e) 
     ensures forall a:int :: e.Sum(3, a) == a * 3
     
@@ -182,7 +182,7 @@ method {:test} PassingTestMockSumAsMultiplication() {
     expect(e.Sum(3, 0) == 0);
 }
 
-method {:mock} MockSumWithArgumentMatcher() returns (e:Even) 
+method {:synthesize} MockSumWithArgumentMatcher() returns (e:Even) 
     ensures fresh(e) 
     ensures forall a:int, b:int :: (b < a) ==> (e.Sum(a, b) == a * b)
     ensures forall a:int, b:int :: (b >= a) ==> (e.Sum(a, b) == -a * b)
@@ -195,7 +195,7 @@ method {:test} PassingTestMockSumWithArgumentMatcher() {
     expect(e.Sum(5, 1) == 5);
 }
 
-method {:mock} MockField() returns (e:Even) 
+method {:synthesize} MockField() returns (e:Even) 
     ensures fresh(e) 
     ensures e.value == 7;
     
@@ -206,7 +206,7 @@ method {:test} PassingTestMockField() {
     expect(e.value != 5);
 }
 
-method {:mock} ParametrizedMock(a: int) returns (e:Even) 
+method {:synthesize} ParametrizedMock(a: int) returns (e:Even) 
     ensures fresh(e) 
     ensures e.value == a;
     
@@ -216,7 +216,7 @@ method {:test} PassingTestParameterizedMock() {
     expect(e.value != 7);
 }
 
-method {:mock} SelfReferentialMock() returns (e:Even) 
+method {:synthesize} SelfReferentialMock() returns (e:Even) 
     ensures fresh(e)
     ensures e.Next() == e
     
@@ -226,7 +226,7 @@ method {:test} PassingTestSelfReferentialMock() {
     expect(e.Next() != null);
 }
 
-method {:mock} CrossReferentialMock() returns (e1:Even, e2:Even) 
+method {:synthesize} CrossReferentialMock() returns (e1:Even, e2:Even) 
     ensures fresh(e1) && fresh(e2) 
     ensures e1.Next() == e2
     ensures e2.Next() == e1
@@ -259,7 +259,7 @@ class StringMap {
 	}
 }
 
-method {:mock} MockStringMap(k:string, v:string) 
+method {:synthesize} MockStringMap(k:string, v:string) 
 	returns (m:StringMap)
 	ensures m.Contains(k) == true && m.Get(k) == v
 	ensures fresh(m)
