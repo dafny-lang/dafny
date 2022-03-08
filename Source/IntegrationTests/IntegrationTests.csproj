@@ -31,7 +31,7 @@
         <Content Include="..\..\Binaries\z3\**\*.*" LinkBase="z3">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
-        <Content Include="..\..\Test\**\*.*" LinkBase="TestFiles\LitTests\LitTest">
+        <Content Include="..\..\Test\**\*.*" Exclude="..\..\Test\**\.#*" LinkBase="TestFiles\LitTests\LitTest">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
         <Content Include="..\..\docs\DafnyRef\examples\**\*.*" LinkBase="TestFiles\LitTests\LitTest\refman\examples">

@@ -147,8 +147,9 @@ It means that the post-condition may be assumed to be true
 without proof. In that case also the body of the function or
 method may be omitted.
 
-The `{:axiom}` attribute is also used for generated `reveal_*`
-lemmas as shown in Section [#sec-opaque].
+The `{:axiom}` attribute only prevents Dafny from verifying that the body matches the post-condition.
+Dafny still verifies the well-formedness of pre-conditions, of post-conditions, and of the body if provided.
+To prevent Dafny from running all these checks, one would use `{:verify false}`, which is not recommended.
 
 ### 22.1.5. compile
 The `{:compile}` attribute takes a boolean argument. It may be applied to
@@ -300,38 +301,12 @@ values that satisfy the constraint.
 
 ### 22.1.13. opaque {#sec-opaque}
 Ordinarily the body of a function is transparent to its users but
-sometimes it is useful to hide it. If a function `f` is given the
-`{:opaque}` attribute then Dafny hides the body of the function,
+sometimes it is useful to hide it. If a function `foo` or `bar` is given the
+`{:opaque}` attribute, then Dafny hides the body of the function,
 so that it can only be seen within its recursive clique (if any),
-or if the programmer specifically asks to see it via the `reveal_f()` lemma.
+or if the programmer specifically asks to see it via the statement `reveal foo(), bar();`.
 
-We create a lemma to allow the user to selectively reveal the function's body
-That is, given:
-
-```dafny
-  function {:opaque} foo(x:int, y:int) : int
-    requires 0 <= x < 5
-    requires 0 <= y < 5
-    ensures foo(x, y) < 10
-  { x + y }
-```
-
-We produce:
-
-```dafny
-  lemma {:axiom} reveal_foo()
-    ensures forall x:int, y:int {:trigger foo(x,y)} ::
-         0 <= x < 5 && 0 <= y < 5 ==> foo(x,y) == foo_FULL(x,y)
-```
-
-where `foo_FULL` is a copy of `foo` which does not have its body
-hidden. In addition `foo_FULL` is given the
-`{:opaque_full}` and `{:auto_generated}` attributes in addition
-to the `{:opaque}` attribute (which it got because it is a copy of `foo`).
-
-### 22.1.14. opaque_full
-The `{:opaque_full}` attribute is used to mark the _full_ version
-of an opaque function. See [Section 22.1.13](#sec-opaque).
+More information about the Boogie implementation of {:opaque} [here](https://github.com/dafny-lang/dafny/blob/master/docs/Compilation/Boogie.md).
 
 <!--
 Describe this where refinement is described, as appropriate.

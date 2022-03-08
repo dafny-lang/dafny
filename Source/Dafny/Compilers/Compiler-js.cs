@@ -13,6 +13,8 @@ using System.IO;
 using System.Diagnostics.Contracts;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Threading;
+using System.Threading.Tasks;
 using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
@@ -2391,12 +2393,13 @@ namespace Microsoft.Dafny {
         CreateNoWindow = true,
         UseShellExecute = false,
         RedirectStandardInput = true,
-        RedirectStandardOutput = false,
-        RedirectStandardError = false,
+        RedirectStandardOutput = true,
+        RedirectStandardError = true,
       };
 
       try {
-        using var nodeProcess = Process.Start(psi);
+        Process nodeProcess = new Process { StartInfo = psi };
+        nodeProcess.Start();
         foreach (var filename in otherFileNames) {
           WriteFromFile(filename, nodeProcess.StandardInput);
         }
@@ -2406,11 +2409,26 @@ namespace Microsoft.Dafny {
         }
         nodeProcess.StandardInput.Flush();
         nodeProcess.StandardInput.Close();
+        // Fixes a problem of Node on Windows, where Node does not prints to the parent console its standard outputs.
+        var errorProcessing = Task.Run(() => {
+          PassthroughBuffer(nodeProcess.StandardError, Console.Error);
+        });
+        PassthroughBuffer(nodeProcess.StandardOutput, Console.Out);
         nodeProcess.WaitForExit();
+        errorProcessing.Wait();
         return nodeProcess.ExitCode == 0;
       } catch (System.ComponentModel.Win32Exception e) {
         outputWriter.WriteLine("Error: Unable to start node.js ({0}): {1}", psi.FileName, e.Message);
         return false;
+      }
+    }
+
+    // We read character by character because we did not find a way to ensure
+    // final newlines are kept when reading line by line
+    void PassthroughBuffer(StreamReader input, TextWriter output) {
+      int current;
+      while ((current = input.Read()) != -1) {
+        output.Write((char)current);
       }
     }
   }
