@@ -89,7 +89,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return await request.Document.Task;
     }
 
-    private void Run() {
+#pragma warning disable VSTHRD100
+    private async void Run() {
+#pragma warning restore VSTHRD100
       foreach (var request in requestQueue.GetConsumingEnumerable()) {
         if (request.CancellationToken.IsCancellationRequested) {
           request.Document.SetCanceled(request.CancellationToken);
@@ -98,9 +100,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         try {
           var document = request switch {
             LoadRequest loadRequest => LoadInternal(loadRequest),
-#pragma warning disable VSTHRD002
-            VerifyRequest verifyRequest => VerifyInternalAsync(verifyRequest).Result,
-#pragma warning restore VSTHRD002
+            VerifyRequest verifyRequest => await VerifyInternalAsync(verifyRequest),
             _ => throw new ArgumentException($"invalid request type ${request.GetType()}")
           };
           request.Document.SetResult(document);
