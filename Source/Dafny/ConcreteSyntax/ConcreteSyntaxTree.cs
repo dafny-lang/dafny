@@ -8,6 +8,7 @@ using JetBrains.Annotations;
 namespace Microsoft.Dafny {
   public enum BlockStyle {
     Nothing,
+    Space,
     Newline,
     Brace,
     SpaceBrace,

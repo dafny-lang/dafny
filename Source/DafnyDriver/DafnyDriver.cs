@@ -336,13 +336,6 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private static string BoogieProgramSuffix(string printFile, string suffix) {
-      var baseName = Path.GetFileNameWithoutExtension(printFile);
-      var dirName = Path.GetDirectoryName(printFile);
-
-      return Path.Combine(dirName, baseName + "_" + suffix + Path.GetExtension(printFile));
-    }
-
     public static IEnumerable<Tuple<string, Bpl.Program>> Translate(ExecutionEngineOptions options, Program dafnyProgram) {
       var nmodules = Translator.VerifiableModules(dafnyProgram).Count();
 

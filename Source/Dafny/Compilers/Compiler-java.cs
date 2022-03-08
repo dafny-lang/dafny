@@ -2479,15 +2479,6 @@ namespace Microsoft.Dafny {
       return s + ")";
     }
 
-    bool OutContainsParam(List<Formal> l, TypeParameter tp) {
-      foreach (Formal f in l) {
-        if ((f.Type.IsTypeParameter && f.Type.AsTypeParameter.Equals(tp)) || (f.Type.AsCollectionType != null && f.Type.AsCollectionType.Arg.IsTypeParameter && f.Type.AsCollectionType.Arg.AsTypeParameter.Equals(tp))) {
-          return true;
-        }
-      }
-      return false;
-    }
-
     protected override void EmitSetBuilder_New(ConcreteSyntaxTree wr, SetComprehension e, string collectionName) {
       wr.WriteLine($"java.util.ArrayList<{BoxedTypeName(e.Type.AsSetType.Arg, wr, e.tok)}> {collectionName} = new java.util.ArrayList<>();");
     }

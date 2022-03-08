@@ -53,6 +53,17 @@ namespace Microsoft.Dafny {
 
       outer.Write(header);
       switch (open) {
+        case BlockStyle.Nothing:
+          break;
+        case BlockStyle.Space:
+          outer.Write(" ");
+          break;
+        case BlockStyle.Newline:
+          outer.WriteLine();
+          break;
+        case BlockStyle.Brace:
+          outer.WriteLine("{");
+          break;
         case BlockStyle.SpaceBrace:
           outer.Write(" ");
           outer.WriteLine("{");
@@ -61,21 +72,14 @@ namespace Microsoft.Dafny {
           outer.WriteLine();
           outer.WriteLine("{");
           break;
-        case BlockStyle.Newline:
-          outer.WriteLine();
-          break;
-        case BlockStyle.Brace:
-          outer.WriteLine("{");
-          break;
-        case BlockStyle.Nothing:
-          break;
       }
 
 
       body = outer.Fork(1);
       switch (open) {
-        case BlockStyle.Newline:
         case BlockStyle.Nothing:
+        case BlockStyle.Space:
+        case BlockStyle.Newline:
           break;
         default:
           outer.Write("}");
@@ -86,13 +90,12 @@ namespace Microsoft.Dafny {
         outer.Write(footer);
       }
       switch (close) {
+        case BlockStyle.Space:
         case BlockStyle.SpaceBrace:
           outer.Write(" ");
           break;
-        case BlockStyle.NewlineBrace:
-          outer.WriteLine();
-          break;
         case BlockStyle.Newline:
+        case BlockStyle.NewlineBrace:
           outer.WriteLine();
           break;
       }
