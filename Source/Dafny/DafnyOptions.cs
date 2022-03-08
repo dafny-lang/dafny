@@ -15,11 +15,14 @@ using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
   public class DafnyOptions : Bpl.CommandLineOptions {
-    private ErrorReporter errorReporter;
+    public static DafnyOptions Create(params string[] arguments) {
+      var result = new DafnyOptions();
+      result.Parse(arguments);
+      return result;
+    }
 
-    public DafnyOptions(ErrorReporter errorReporter = null)
+    public DafnyOptions()
       : base("Dafny", "Dafny program verifier") {
-      this.errorReporter = errorReporter;
       Prune = true;
       NormalizeNames = true;
       EmitDebugInformation = false;
@@ -49,7 +52,6 @@ namespace Microsoft.Dafny {
     public static void Install(DafnyOptions options) {
       Contract.Requires(options != null);
       clo = options;
-      Bpl.CommandLineOptions.Install(options);
     }
 
     public bool UnicodeOutput = false;
@@ -66,7 +68,7 @@ namespace Microsoft.Dafny {
       DllEmbed,
       NoIncludes,
       NoGhost
-    };
+    }
 
     public PrintModes PrintMode = PrintModes.Everything; // Default to printing everything
     public bool DafnyVerify = true;
@@ -109,6 +111,16 @@ namespace Microsoft.Dafny {
     public bool PrintFunctionCallGraph = false;
     public bool WarnShadowing = false;
     public int DefiniteAssignmentLevel = 1; // [0..4]
+    public FunctionSyntaxOptions FunctionSyntax = FunctionSyntaxOptions.Version3;
+
+    public enum FunctionSyntaxOptions {
+      Version3,
+      Migration3To4,
+      ExperimentalTreatUnspecifiedAsGhost,
+      ExperimentalTreatUnspecifiedAsCompiled,
+      ExperimentalPredicateAlwaysGhost,
+      Version4,
+    }
 
     public bool ForbidNondeterminism {
       get { return DefiniteAssignmentLevel == 3; }
@@ -401,6 +413,26 @@ namespace Microsoft.Dafny {
             return true;
           }
 
+        case "functionSyntax":
+          if (ps.ConfirmArgumentCount(1)) {
+            if (args[ps.i] == "3") {
+              FunctionSyntax = FunctionSyntaxOptions.Version3;
+            } else if (args[ps.i] == "4") {
+              FunctionSyntax = FunctionSyntaxOptions.Version4;
+            } else if (args[ps.i] == "migration3to4") {
+              FunctionSyntax = FunctionSyntaxOptions.Migration3To4;
+            } else if (args[ps.i] == "experimentalDefaultGhost") {
+              FunctionSyntax = FunctionSyntaxOptions.ExperimentalTreatUnspecifiedAsGhost;
+            } else if (args[ps.i] == "experimentalDefaultCompiled") {
+              FunctionSyntax = FunctionSyntaxOptions.ExperimentalTreatUnspecifiedAsCompiled;
+            } else if (args[ps.i] == "experimentalPredicateAlwaysGhost") {
+              FunctionSyntax = FunctionSyntaxOptions.ExperimentalPredicateAlwaysGhost;
+            } else {
+              InvalidArgumentError(name, ps);
+            }
+          }
+          return true;
+
         case "countVerificationErrors": {
             int countErrors = 1; // defaults to reporting verification errors
             if (ps.GetNumericArgument(ref countErrors, 2)) {
@@ -561,12 +593,12 @@ namespace Microsoft.Dafny {
         }
 
         BoogieXmlFilename = Path.GetTempFileName();
-        XmlSink = new Bpl.XmlSink(BoogieXmlFilename);
+        XmlSink = new Bpl.XmlSink(this, BoogieXmlFilename);
       }
 
       // expand macros in filenames, now that LogPrefix is fully determined
-      ExpandFilename(ref DafnyPrelude, LogPrefix, FileTimestamp);
-      ExpandFilename(ref DafnyPrintFile, LogPrefix, FileTimestamp);
+      ExpandFilename(DafnyPrelude, x => DafnyPrelude = x, LogPrefix, FileTimestamp);
+      ExpandFilename(DafnyPrintFile, x => DafnyPrintFile = x, LogPrefix, FileTimestamp);
 
       SetZ3ExecutablePath();
       SetZ3Options();
@@ -999,6 +1031,34 @@ namespace Microsoft.Dafny {
         statements are used; thus, a program that passes at this level 3 is one
         that the language guarantees that values seen during execution will be
         the same in every run of the program
+/functionSyntax:<version>
+    The syntax for functions is changing from Dafny version 3 to version 4.
+    This switch gives early access to the new syntax, and also provides a mode
+    to help with migration.
+    3 (default) - Compiled functions are written `function method` and
+        `predicate method`. Ghost functions are written `function` and `predicate`.
+    4 - Compiled functions are written `function` and `predicate`. Ghost functions
+        are written `ghost function` and `ghost predicate`.
+    migration3to4 - Compiled functions are written `function method` and
+        `predicate method`. Ghost functions are written `ghost function` and
+        `ghost predicate`. To migrate from version 3 to version 4, use this flag
+        on your version 3 program. This will give flag all occurrences of
+        `function` and `predicate` as parsing errors. These are ghost functions,
+        so change those into the new syntax `ghost function` and `ghost predicate`.
+        Then, start using /functionSyntax:4. This will flag all occurrences of
+        `function method` and `predicate method` as parsing errors. So, change
+        those to just `function` and `predicate`. Now, your program uses version 4
+        syntax and has the exact same meaning as your previous version 3 program.
+    experimentalDefaultGhost - like migration3to4, but allow `function` and
+        `predicate` as alternatives to declaring ghost functions and predicates,
+        respectively
+    experimentalDefaultCompiled - like migration3to4, but allow `function` and
+        `predicate` as alternatives to declaring compiled functions and predicates,
+        respectively
+    experimentalPredicateAlwaysGhost - Compiled functions are written `function`.
+        Ghost functions are written `ghost function`. Predicates are always ghost
+        and are written `predicate`.
+
 /deprecation:<n>
     0 - don't give any warnings about deprecated features
     1 (default) - show warnings about deprecated features

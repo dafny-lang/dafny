@@ -3635,3 +3635,216 @@ module FrameTypes {
     true
   }
 }
+
+module Continue0 {
+  method BadTargetsLevels(a: int, b: int, c: int) {
+    for i := 0 to 100 {
+      for j := 0 to 100 {
+        for k := 0 to 100 {
+          if
+          case k == a =>
+            continue;
+          case k == b =>
+            break continue;
+          case k == c =>
+            break break continue;
+          case k == a + b + c =>
+            break break break continue; // error: too many levels
+        }
+      }
+    }
+  }
+
+  method BadTargetsLabels(a: int, b: int, c: int) {
+    label A:
+    for i := 0 to 100 {
+      label B0: label B1:
+      for j := 0 to 100 {
+        label C:
+        for k := 0 to 100 {
+          if
+          case k == a =>
+            continue C;
+          case k == b =>
+            continue B0;
+          case k == b =>
+            continue B1;
+          case k == c =>
+            continue A;
+        }
+      }
+    }
+  }
+
+  method NonLoopLabels(a: int, b: int, c: int) {
+    // the following labels are attached to BlockStmt's, not loops
+    label X: {
+      for i := 0 to 100 {
+        label Y0: label Y1: {
+          for j := 0 to 100 {
+            label Z: {
+              for k := 0 to 100 {
+                if
+                case k == a =>
+                  continue X; // error: X is not a loop label
+                case k == b =>
+                  continue Y0; // error: Y0 is not a loop label
+                case k == b =>
+                  continue Y1; // error: Y1 is not a loop label
+                case k == c =>
+                  continue Z; // error: Z is not a loop label
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  method SimpleBadJumps0() {
+    break; // error: cannot "break" from here
+  }
+
+  method SimpleBadJumps1() {
+    continue; // error: cannot "continue" from here
+  }
+
+  method SimpleBadJumps2() {
+    label X: {
+      if
+      case true => break; // error: cannot "break" from here
+      case true => continue; // error: cannot "continue" from here
+      case true => break X;
+      case true => continue X; // error: X is not a loop label
+    }
+  }
+
+  method GhostContinueAssertBy(ghost t: int, ghost u: nat)
+  {
+    label L:
+    for i := 0 to 100 {
+      assert true by {
+        for j := 0 to 100 {
+          if j == t {
+            break;
+          } else if j == u {
+            continue;
+          }
+        }
+        if
+        case true => break; // error: cannot jump outside the assert-by
+        case true => continue; // error: cannot jump outside the assert-by
+        case true => break L; // error: cannot jump outside the assert-by
+        case true => continue L; // error: cannot jump outside the assert-by
+      }
+    }
+  }
+}
+
+module Continue1 {
+  method GhostContinueLevels(ghost t: int, ghost u: nat)
+  {
+    var m := 0;
+    for i := 0 to 100 {
+      if i == t {
+        // The following "continue" would pass the increment to m
+        continue; // error: continue from ghost context must target a ghost loop
+      }
+      m := m + 1;
+    }
+
+    for i := 0 to 100 {
+      m := m + 1;
+      // The following "break" would potentially pass both increments to m
+      if i == t {
+        break; // error: break from ghost context must target a ghost loop
+      }
+      m := m + 1;
+    }
+
+    for i := 0 to 100 {
+      if i == t {
+        // Even though there's no statement in the loop body after this ghost if, the continue violates the rule
+        continue; // error: continue from ghost context must target a ghost loop
+      }
+    }
+
+    for i := 0 to 100 {
+      for j := 0 to u {
+        if i == t {
+          continue; // fine
+        }
+      }
+    }
+
+    for i := 0 to 100 {
+      for j := 0 to u {
+        if i == t {
+          break continue; // error: continue from ghost context must target a ghost loop
+        }
+      }
+    }
+
+    for i := 0 to 100 + u {
+      for j := 0 to u {
+        if i == t {
+          break continue; // fine
+        }
+      }
+    }
+  }
+
+  method GhostContinueLabels(ghost t: int, ghost u: nat)
+  {
+    label Outer:
+    for i := 0 to 100 {
+      label Inner:
+      for j := 0 to u {
+        if j == t {
+          continue Inner; // fine
+        } else if j == 20 + t {
+          continue Outer; // error: continue from ghost context must target a ghost loop
+        }
+      }
+    }
+  }
+}
+
+module LabelRegressions {
+  // The cases of if-case, while-case, and match statements are List<Statement>'s, which are essentially
+  // a BlockStmt but without the curly braces. Each Statement in such a List can have labels, so
+  // it's important to ResolveStatementWithLabels, not ResolveStatement. Alas, that was once not the
+  // case (pun intended).
+  // There's also something analogous going on in the Verifier, where lists of statements should call
+  // TrStmtList, not just call TrStmt on every Statement in the List. (See method LabelRegressions()
+  // in Test/comp/ForLoops-Compilation.dfy.)
+  method IfCaseRegression() {
+    if
+    case true =>
+      label Loop:
+      for k := 0 to 10 {
+        continue Loop;
+        break Loop;
+      }
+  }
+
+  method WhileCaseRegression() {
+    while
+    case true =>
+      label Loop:
+      for k := 0 to 10 {
+        continue Loop;
+        break Loop;
+      }
+  }
+
+  method Match() {
+    match (0, 0)
+    case (_, _) =>
+      label Loop:
+      for k := 0 to 10 {
+        break Loop;
+        continue Loop;
+      }
+  }
+}

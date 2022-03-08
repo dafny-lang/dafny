@@ -4556,7 +4556,8 @@ namespace Microsoft.Dafny {
       return PossiblyNullTraitsWithArgument(typeArgs);
     }
 
-    TopLevelDecl RevealableTypeDecl.AsTopLevelDecl { get => this; }
+    public TopLevelDecl AsTopLevelDecl => this;
+    public TypeDeclSynonymInfo SynonymInfo { get; set; }
   }
 
   public class DefaultClassDecl : ClassDecl {
@@ -4645,7 +4646,8 @@ namespace Microsoft.Dafny {
       get { return this is IndDatatypeDecl && Ctors.Count == 1; }
     }
 
-    TopLevelDecl RevealableTypeDecl.AsTopLevelDecl { get { return this; } }
+    public TopLevelDecl AsTopLevelDecl => this;
+    public TypeDeclSynonymInfo SynonymInfo { get; set; }
 
     bool ICodeContext.IsGhost { get { return true; } }
     List<TypeParameter> ICodeContext.TypeArgs { get { return TypeArgs; } }
@@ -4670,7 +4672,7 @@ namespace Microsoft.Dafny {
     public abstract DatatypeCtor GetGroundingCtor();
   }
 
-  public class IndDatatypeDecl : DatatypeDecl, RevealableTypeDecl {
+  public class IndDatatypeDecl : DatatypeDecl {
     public override string WhatKind { get { return "datatype"; } }
     public DatatypeCtor GroundingCtor;  // set during resolution
 
@@ -4988,7 +4990,6 @@ namespace Microsoft.Dafny {
     bool ICodeContext.IsGhost { get { return true; } }
     List<TypeParameter> ICodeContext.TypeArgs { get { return new List<TypeParameter>(); } }
     List<Formal> ICodeContext.Ins { get { return new List<Formal>(); } }
-    Specification<Expression> Decreases { get { return new Specification<Expression>(null, null); } }
     ModuleDefinition ICodeContext.EnclosingModule { get { return Module; } }
     bool ICodeContext.MustReverify { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
     public string FullSanitizedName { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
@@ -5502,9 +5503,8 @@ namespace Microsoft.Dafny {
       this.NewSelfSynonym();
     }
 
-    public TopLevelDecl AsTopLevelDecl {
-      get { return this; }
-    }
+    public TopLevelDecl AsTopLevelDecl => this;
+    public TypeDeclSynonymInfo SynonymInfo { get; set; }
   }
 
   public interface RedirectingTypeDecl : ICallable {
@@ -5540,52 +5540,40 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public static class RevealableTypeDeclHelper {
-    private static Dictionary<TopLevelDecl, InternalTypeSynonymDecl> tsdMap = new Dictionary<TopLevelDecl, InternalTypeSynonymDecl>();
+  public class TypeDeclSynonymInfo {
+    public readonly InternalTypeSynonymDecl SelfSynonymDecl;
 
-    public static void NewSelfSynonym(this RevealableTypeDecl rtd) {
-      var d = rtd.AsTopLevelDecl;
-      Contract.Assert(!tsdMap.ContainsKey(d));
+    public TypeDeclSynonymInfo(TopLevelDecl d) {
       var thisType = UserDefinedType.FromTopLevelDecl(d.tok, d);
-      var tsd = new InternalTypeSynonymDecl(d.tok, d.Name, TypeParameter.GetExplicitCharacteristics(d), d.TypeArgs, d.EnclosingModuleDefinition, thisType, d.Attributes);
-      tsd.InheritVisibility(d, false);
-      tsdMap.Add(d, tsd);
+      SelfSynonymDecl = new InternalTypeSynonymDecl(d.tok, d.Name, TypeParameter.GetExplicitCharacteristics(d),
+        d.TypeArgs, d.EnclosingModuleDefinition, thisType, d.Attributes);
+      SelfSynonymDecl.InheritVisibility(d, false);
     }
 
-    public static UserDefinedType SelfSynonym(this RevealableTypeDecl rtd, List<Type> args, Expression/*?*/ namePath = null) {
-      Contract.Requires(args != null);
-      Contract.Requires(namePath == null || namePath is NameSegment || namePath is ExprDotName);
-      var d = rtd.AsTopLevelDecl;
-      Contract.Assert(tsdMap.ContainsKey(d));
-      var typeSynonym = tsdMap[d];
-      Contract.Assert(typeSynonym.TypeArgs.Count == args.Count);
-      return new UserDefinedType(typeSynonym.tok, typeSynonym.Name, typeSynonym, args, namePath);
+    public UserDefinedType SelfSynonym(List<Type> args, Expression /*?*/ namePath = null) {
+      return new UserDefinedType(SelfSynonymDecl.tok, SelfSynonymDecl.Name, SelfSynonymDecl, args, namePath);
     }
+  }
 
-    public static InternalTypeSynonymDecl SelfSynonymDecl(this RevealableTypeDecl rtd) {
-      var d = rtd.AsTopLevelDecl;
-      Contract.Assert(tsdMap.ContainsKey(d));
-      return tsdMap[d];
-    }
+  public static class RevealableTypeDeclHelper {
+    public static InternalTypeSynonymDecl SelfSynonymDecl(this RevealableTypeDecl rtd) =>
+      rtd.SynonymInfo.SelfSynonymDecl;
 
-    public static TopLevelDecl AccessibleDecl(this RevealableTypeDecl rtd, VisibilityScope scope) {
-      var d = rtd.AsTopLevelDecl;
-      if (d.IsRevealedInScope(scope)) {
-        return d;
-      } else {
-        return rtd.SelfSynonymDecl();
-      }
-    }
+    public static UserDefinedType SelfSynonym(this RevealableTypeDecl rtd, List<Type> args, Expression /*?*/ namePath = null) =>
+      rtd.SynonymInfo.SelfSynonym(args, namePath);
 
     //Internal implementations are called before extensions, so this is safe
-    public static bool IsRevealedInScope(this RevealableTypeDecl rtd, VisibilityScope scope) {
-      var d = rtd.AsTopLevelDecl;
-      return d.IsRevealedInScope(scope);
+    public static bool IsRevealedInScope(this RevealableTypeDecl rtd, VisibilityScope scope) =>
+      rtd.AsTopLevelDecl.IsRevealedInScope(scope);
+
+    public static void NewSelfSynonym(this RevealableTypeDecl rtd) {
+      rtd.SynonymInfo = new TypeDeclSynonymInfo(rtd.AsTopLevelDecl);
     }
   }
 
   public interface RevealableTypeDecl {
     TopLevelDecl AsTopLevelDecl { get; }
+    TypeDeclSynonymInfo SynonymInfo { get; set; }
   }
 
   public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, RedirectingTypeDecl {
@@ -5622,7 +5610,9 @@ namespace Microsoft.Dafny {
       this.NewSelfSynonym();
     }
 
-    TopLevelDecl RevealableTypeDecl.AsTopLevelDecl { get { return this; } }
+    public TopLevelDecl AsTopLevelDecl => this;
+    public TypeDeclSynonymInfo SynonymInfo { get; set; }
+
     public TypeParameter.EqualitySupportValue EqualitySupport {
       get {
         if (this.BaseType.SupportsEquality) {
@@ -5757,7 +5747,8 @@ namespace Microsoft.Dafny {
       : base(tok, name, characteristics, typeArgs, module, rhs, attributes) {
       this.NewSelfSynonym();
     }
-    TopLevelDecl RevealableTypeDecl.AsTopLevelDecl { get { return this; } }
+    public TopLevelDecl AsTopLevelDecl => this;
+    public TypeDeclSynonymInfo SynonymInfo { get; set; }
   }
 
   public class InternalTypeSynonymDecl : TypeSynonymDeclBase, RedirectingTypeDecl {
@@ -6204,6 +6195,28 @@ namespace Microsoft.Dafny {
 
   public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
     public override string WhatKind { get { return "function"; } }
+
+    public string FunctionDeclarationKeywords {
+      get {
+        string k;
+        if (this is TwoStateFunction || this is ExtremePredicate || this.ByMethodBody != null) {
+          k = WhatKind;
+        } else if (this is PrefixPredicate) {
+          k = "predicate";
+        } else if (DafnyOptions.O.FunctionSyntax == DafnyOptions.FunctionSyntaxOptions.ExperimentalPredicateAlwaysGhost &&
+                   (this is Predicate || !IsGhost)) {
+          k = WhatKind;
+        } else if (DafnyOptions.O.FunctionSyntax != DafnyOptions.FunctionSyntaxOptions.Version4 && !IsGhost) {
+          k = WhatKind + " method";
+        } else if (DafnyOptions.O.FunctionSyntax != DafnyOptions.FunctionSyntaxOptions.Version3 && IsGhost) {
+          k = "ghost " + WhatKind;
+        } else {
+          k = WhatKind;
+        }
+        return HasStaticKeyword ? "static " + k : k;
+      }
+    }
+
     public override bool CanBeRevealed() { return true; }
     public bool IsRecursive;  // filled in during resolution
     public TailStatus TailRecursion = TailStatus.NotTailRecursive;  // filled in during resolution; NotTailRecursive = no tail recursion; TriviallyTailRecursive is never used here
@@ -6313,9 +6326,6 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Decreases != null);
     }
 
-    /// <summary>
-    /// Note, functions are "ghost" by default; a non-ghost function is called a "function method".
-    /// </summary>
     public Function(IToken tok, string name, bool hasStaticKeyword, bool isGhost,
       List<TypeParameter> typeArgs, List<Formal> formals, Formal result, Type resultType,
       List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
@@ -6985,7 +6995,6 @@ namespace Microsoft.Dafny {
   public class LList<T> {
     public readonly T Data;
     public readonly LList<T> Next;
-    const LList<T> Empty = null;
 
     public LList(T d, LList<T> next) {
       Data = d;
@@ -7187,28 +7196,40 @@ namespace Microsoft.Dafny {
     }
   }
 
+  /// <summary>
+  /// Class "BreakStmt" represents both "break" and "continue" statements.
+  /// </summary>
   public class BreakStmt : Statement {
     public readonly IToken TargetLabel;
-    public readonly int BreakCount;
-    public Statement TargetStmt;  // filled in during resolution
+    public readonly bool IsContinue;
+    public string Kind => IsContinue ? "continue" : "break";
+    public readonly int BreakAndContinueCount;
+    public Statement TargetStmt; // filled in during resolution
     [ContractInvariantMethod]
     void ObjectInvariant() {
-      Contract.Invariant(TargetLabel != null || 1 <= BreakCount);
+      Contract.Invariant(TargetLabel != null || 1 <= BreakAndContinueCount);
     }
 
-    public BreakStmt(IToken tok, IToken endTok, IToken targetLabel)
+    public BreakStmt(IToken tok, IToken endTok, IToken targetLabel, bool isContinue)
       : base(tok, endTok) {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
       Contract.Requires(targetLabel != null);
       this.TargetLabel = targetLabel;
+      this.IsContinue = isContinue;
     }
-    public BreakStmt(IToken tok, IToken endTok, int breakCount)
+
+    /// <summary>
+    /// For "isContinue == false", represents the statement "break ^breakAndContinueCount ;".
+    /// For "isContinue == true", represents the statement "break ^(breakAndContinueCount - 1) continue;".
+    /// </summary>
+    public BreakStmt(IToken tok, IToken endTok, int breakAndContinueCount, bool isContinue)
       : base(tok, endTok) {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
-      Contract.Requires(1 <= breakCount);
-      this.BreakCount = breakCount;
+      Contract.Requires(1 <= breakAndContinueCount);
+      this.BreakAndContinueCount = breakAndContinueCount;
+      this.IsContinue = isContinue;
     }
   }
 
@@ -8799,13 +8820,30 @@ namespace Microsoft.Dafny {
   public class MatchCaseStmt : MatchCase {
     private List<Statement> body;
     public Attributes Attributes;
+    // Has the case for this constructor been generated by the resolver because the pattern was
+    // a bound variable, or was it an explicit constructor case in the source code? E.g.,
+    //
+    // var x: Option<bool>;
+    // match x
+    //   case Some(true) => ... // FromBoundVar == false
+    //   case Some(_)    => ... // FromBoundVar == false
+    //   case v          => ... // FromBoundVar == true
+    //   case _ =>       => ... // FromBoundVar == true (this case would be unreachable; added for illustration purposes)
+    //
+    // The resolved Dafny AST desugars pattern matching in a way that makes it challenging to restore the shape of the
+    // original pattern match; in particular, matching against a bound variable (or underscore) is resolved into a
+    // set of matches against all unmatched constructors. The `FromBoundVar` field provides information to code that
+    // operates on the resolved AST and that is interested in the shape of the parsed AST.
+    // This field is currently not used in the compiler but is useful for extensions and third-party compilers that
+    // use this compiler as a frontend.
+    public readonly bool FromBoundVar;
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(cce.NonNullElements(Body));
     }
 
-    public MatchCaseStmt(IToken tok, DatatypeCtor ctor, [Captured] List<BoundVar> arguments, [Captured] List<Statement> body, Attributes attrs = null)
+    public MatchCaseStmt(IToken tok, DatatypeCtor ctor, bool FromBoundVar, [Captured] List<BoundVar> arguments, [Captured] List<Statement> body, Attributes attrs = null)
       : base(tok, ctor, arguments) {
       Contract.Requires(tok != null);
       Contract.Requires(ctor != null);
@@ -8813,6 +8851,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(body));
       this.body = body;
       this.Attributes = attrs;
+      this.FromBoundVar = FromBoundVar;
     }
 
     public List<Statement> Body {
@@ -9577,7 +9616,7 @@ namespace Microsoft.Dafny {
       var newVars = old_case.Arguments.ConvertAll(cloner.CloneBoundVar);
       new_body = VarSubstituter(old_case.Arguments.ConvertAll<NonglobalVariable>(x => (NonglobalVariable)x), newVars, new_body);
 
-      var new_case = new MatchCaseExpr(old_case.tok, old_case.Ctor, newVars, new_body, old_case.Attributes);
+      var new_case = new MatchCaseExpr(old_case.tok, old_case.Ctor, old_case.FromBoundVar, newVars, new_body, old_case.Attributes);
 
       new_case.Ctor = old_case.Ctor; // resolve here
       return new_case;
@@ -12142,12 +12181,13 @@ namespace Microsoft.Dafny {
   public class MatchCaseExpr : MatchCase {
     private Expression body;
     public Attributes Attributes;
+    public readonly bool FromBoundVar;
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(body != null);
     }
 
-    public MatchCaseExpr(IToken tok, DatatypeCtor ctor, [Captured] List<BoundVar> arguments, Expression body, Attributes attrs = null)
+    public MatchCaseExpr(IToken tok, DatatypeCtor ctor, bool FromBoundVar, [Captured] List<BoundVar> arguments, Expression body, Attributes attrs = null)
       : base(tok, ctor, arguments) {
       Contract.Requires(tok != null);
       Contract.Requires(ctor != null);
@@ -12155,6 +12195,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(body != null);
       this.body = body;
       this.Attributes = attrs;
+      this.FromBoundVar = FromBoundVar;
     }
 
     public Expression Body {
