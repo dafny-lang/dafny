@@ -159,7 +159,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         if (newDocument.SymbolTable.Resolved) {
           return newDocument with {
             OldVerificationDiagnostics = migratedVerificationDiagnotics,
-            //VerificationNodeDiagnostic = migratedVerificationNodeDiagnostics,
+            VerificationNodeDiagnostic = migratedVerificationNodeDiagnostics,
             LastTouchedMethodPositions = migratedLastTouchedPositions
           };
         }

@@ -368,12 +368,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
       }
 
-      public void ReportMethodsBeingVerified() {
+      public void ReportMethodsBeingVerified(string extra = "") {
         var pending = document.VerificationNodeDiagnostic.Children
           .Where(diagnostic => diagnostic.Started && !diagnostic.Finished)
           .OrderBy(diagnostic => diagnostic.StartTime)
           .Select(diagnostic => diagnostic.DisplayName);
-        ReportProgress(string.Join(", ", pending));
+        var message = string.Join(", ", pending) + extra;
+        ReportProgress(message);
       }
 
       public void ReportStartVerifyImplementation(Implementation implementation) {
@@ -449,6 +450,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
               };
             } else {
               targetMethodNode.Stop();
+              ReportMethodsBeingVerified($" ({targetMethodNode.DisplayName} finished)");
               // Later, will be overriden by individual outcomes
               targetMethodNode.StatusVerification = verificationResult.Outcome switch {
                 ConditionGeneration.Outcome.Correct => VerificationStatus.Verified,
@@ -457,7 +459,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             }
 
             targetMethodNode.PropagateChildrenErrorsUp();
-            ReportMethodsBeingVerified();
             diagnosticPublisher.PublishVerificationDiagnostics(document);
           }
         }

@@ -178,8 +178,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
      Range Range
   ) {
     /// Time and Resource diagnostics
-    public bool Started { get; private set; } = false;
-    public bool Finished { get; private set; } = false;
+    public bool Started { get; set; } = false;
+    public bool Finished { get; set; } = false;
     public DateTime StartTime { get; private set; }
     public DateTime EndTime { get; private set; }
     public int TimeSpent => (int)(Finished ? ((TimeSpan)(EndTime - StartTime)).TotalMilliseconds : Started ? (DateTime.Now - StartTime).TotalMilliseconds : 0);
@@ -235,12 +235,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     }
 
     public void Start() {
-      StartTime = DateTime.Now;
-      StatusCurrent = CurrentStatus.Verifying;
-      foreach (var child in Children) {
-        child.Start();
+      if (StatusCurrent != CurrentStatus.Verifying || !Started) {
+        StartTime = DateTime.Now;
+        StatusCurrent = CurrentStatus.Verifying;
+        foreach (var child in Children) {
+          child.Start();
+        }
+        Started = true;
       }
-      Started = true;
     }
 
     public void Stop() {

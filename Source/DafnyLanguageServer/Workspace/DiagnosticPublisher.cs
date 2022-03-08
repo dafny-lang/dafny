@@ -51,6 +51,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public void PublishVerificationDiagnostics(DafnyDocument document) {
+      if (document.LoadCanceled) {
+        // We leave the responsibility to shift the error locations to the LSP clients.
+        // Therefore, we do not republish the errors when the document (re-)load was canceled.
+        return;
+      }
       // Document.GetDiagnostics() returns not only resolution errors, but previous verification errors
       var currentDiagnostics =
         document.Errors.GetDiagnostics(document.GetFilePath())

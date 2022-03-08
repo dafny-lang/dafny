@@ -295,7 +295,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
               .Select(pos => MigrateRange(pos, change.Range!, afterChangeEndOffset))
               .OfType<Range>().ToList(),
             StatusVerification = nodeDiagnostic.StatusVerification,
-            StatusCurrent = CurrentStatus.Obsolete
+            StatusCurrent = CurrentStatus.Obsolete,
+            Finished = false,
+            Started = false
           };
           if (newNodeDiagnostic is AssertionNodeDiagnostic assertionNodeDiagnostic) {
             newNodeDiagnostic = assertionNodeDiagnostic with {
