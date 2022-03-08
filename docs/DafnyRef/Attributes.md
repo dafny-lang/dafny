@@ -458,7 +458,7 @@ annotations to quantifiers.
 
 #### 22.2.3.5. `{:identity}`
 If the function annotated with `{:identity}` or `{:identity true}` has 1 argument and the use of it has type `X->X` for
-some X, then the abstract interpreter will treat the function as an
+some `X`, then the abstract interpreter will treat the function as an
 identity function.  Note, the abstract interpreter trusts the
 attribute--it does not try to verify that the function really is an
 identity function on the abstract domain.
@@ -467,7 +467,7 @@ identity function on the abstract domain.
 
 #### 22.2.4.1. `{:existential true}`
 Marks a global Boolean variable as existentially quantified. If
-used in combination with option `/contractInfer` Boogie will check
+used in combination with option `/contractInfer`, Boogie will check
 whether there exists a Boolean assignment to the existentials
 that makes all verification conditions valid.  Without option
 `/contractInfer` the attribute is ignored.
