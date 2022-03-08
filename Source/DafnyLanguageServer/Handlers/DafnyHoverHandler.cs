@@ -113,12 +113,23 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
               node.Filename == document.Uri.GetFileSystemPath()) {
             var information = "**" + node.DisplayName + "** metrics:\n\n";
             var assertionBatch = AddAssertionBatchUrl("assertion batch");
+            var assertSplitOffset = 0;
+            var newAssertSplitOffset = 0;
+            var firstAssert = node.Children.OfType<ImplementationNodeDiagnostic>().SelectMany(
+                implementationNode => {
+                  assertSplitOffset = newAssertSplitOffset;
+                  newAssertSplitOffset += implementationNode.SplitCount;
+                  return implementationNode.Children.OfType<AssertionNodeDiagnostic>();
+                })
+              .FirstOrDefault(assertionNode =>
+                assertionNode != null && assertionNode.SplitNumber + assertSplitOffset == node.LongestAssertionBatchTimeIndex, null);
+            var lineFirstAssert = firstAssert == null ? "" : " at line " + firstAssert.Position.Line;
             information +=
               !node.Started ? "_Verification not started yet_"
               : !node.Finished ? $"_Still verifying..._  \n{node.TimeSpent:n0}ms elapsed"
               : (node.AssertionBatchCount == 1
                   ? $"{node.LongestAssertionBatchTime:n0}ms in 1 {assertionBatch}  \n"
-                  : $"{node.LongestAssertionBatchTime:n0}ms for the longest {assertionBatch} #{node.LongestAssertionBatchTimeIndex + 1}/{node.AssertionBatchCount}   \n") +
+                  : $"{node.LongestAssertionBatchTime:n0}ms for the longest {assertionBatch} #{node.LongestAssertionBatchTimeIndex + 1}/{node.AssertionBatchCount}{lineFirstAssert}   \n") +
                 $"{node.ResourceCount:n0} resource units";
             return CreateMarkdownHover(information);
           }

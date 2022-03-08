@@ -547,6 +547,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
                   StatusCurrent = CurrentStatus.Current,
                   StatusVerification = status
                 });
+              } else {
+                implementationNode.Children.Add(nodeDiagnostic);
               }
             }
 
