@@ -99,7 +99,9 @@ namespace Microsoft.Dafny {
     protected override void EmitBuiltInDecls(BuiltIns builtIns, ConcreteSyntaxTree wr) {
       var dafnyNamespace = CreateModule("Dafny", false, false, null, wr);
       EmitInitNewArrays(builtIns, dafnyNamespace);
-      CsharpSynthesizer.EmitMultiMatcher(dafnyNamespace);
+      if (DafnyOptions.O.Synthesize) {
+        CsharpSynthesizer.EmitMultiMatcher(dafnyNamespace);
+      }
       EmitFuncExtensions(builtIns, wr);
     }
 
