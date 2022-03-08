@@ -99,9 +99,7 @@ namespace Microsoft.Dafny {
     protected override void EmitBuiltInDecls(BuiltIns builtIns, ConcreteSyntaxTree wr) {
       var dafnyNamespace = CreateModule("Dafny", false, false, null, wr);
       EmitInitNewArrays(builtIns, dafnyNamespace);
-      if (DafnyOptions.O.CompileMocks) {
-        CsharpMockWriter.EmitMultiMatcher(dafnyNamespace);
-      }
+      CsharpMockWriter.EmitMultiMatcher(dafnyNamespace);
       EmitFuncExtensions(builtIns, wr);
     }
 
@@ -1092,7 +1090,7 @@ namespace Microsoft.Dafny {
         this.InstanceMemberWriter = instanceMemberWriter;
         this.CtorBodyWriter = ctorBodyWriter;
         this.StaticMemberWriter = staticMemberWriter ?? instanceMemberWriter;
-        this.csharpMockWriter = new CsharpMockWriter(Compiler);
+        this.csharpMockWriter = new CsharpMockWriter(Compiler, ErrorWriter());
       }
 
       public ConcreteSyntaxTree Writer(bool isStatic, bool createBody, MemberDecl/*?*/ member) {
@@ -1107,10 +1105,6 @@ namespace Microsoft.Dafny {
 
       public ConcreteSyntaxTree /*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
         return Compiler.CreateMethod(m, typeArgs, createBody, Writer(m.IsStatic, createBody, m), forBodyInheritance, lookasideBody);
-      }
-
-      public ConcreteSyntaxTree CreateFreshMethod(Method method) {
-        return csharpMockWriter.CreateFreshMethod(method, Writer(method.IsStatic, true, method));
       }
 
       public ConcreteSyntaxTree CreateMockMethod(Method method, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance,
@@ -1654,25 +1648,25 @@ namespace Microsoft.Dafny {
           cw.StaticMemberWriter.Write($" = {rhs}");
         }
         cw.StaticMemberWriter.WriteLine(";");
-      } else if (cw.CtorBodyWriter == null) {
-        if (isPublic) {
-          cw.InstanceMemberWriter.Write($"{publik}{konst}{virtuall} {typeName} {name} {{get; set;}}");
-        } else {
-          cw.InstanceMemberWriter.Write($"{publik}{konst} {typeName} {name}");
-        }
-        if (rhs != null) {
-          cw.InstanceMemberWriter.Write($" = {rhs}");
-        }
-        cw.InstanceMemberWriter.WriteLine(";");
       } else {
+        string ending = "";
         if (isPublic) {
-          cw.InstanceMemberWriter.WriteLine($"{publik}{virtuall} {typeName} {name} {{get; set;}}");
+          cw.InstanceMemberWriter.Write($"{publik} {virtuall} {typeName} {name} {{get; set;}}");
         } else {
-          cw.InstanceMemberWriter.WriteLine($"{publik} {typeName} {name};");
+          cw.InstanceMemberWriter.WriteLine($"{publik} {typeName} {name}");
+          ending = ";";
         }
-        if (rhs != null) {
-          cw.CtorBodyWriter.WriteLine($"this.{name} = {rhs};");
+        if (cw.CtorBodyWriter == null) {
+          if (rhs != null) {
+            cw.InstanceMemberWriter.Write($" = {rhs}");
+            ending = ";";
+          }
+        } else {
+          if (rhs != null) {
+            cw.CtorBodyWriter.WriteLine($"this.{name} = {rhs};");
+          }
         }
+        cw.InstanceMemberWriter.WriteLine(ending);
       }
     }
 

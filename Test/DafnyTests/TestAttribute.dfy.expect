@@ -1,8 +1,11 @@
 
 Dafny program verifier did not attempt verification
-Wrote textual form of target program to TestAttribute.cs
+TestAttribute.dfy(108,15): Error: Post-conditions on function Identity might be unsatisfied when synthesizing code for method mockUnsafe
+TestAttribute.dfy(198,15): Error: Stubbing fields is not recommended (field value of object e inside method MockField)
+TestAttribute.dfy(209,15): Error: Stubbing fields is not recommended (field value of object e inside method ParametrizedMock)
+Wrote textual form of partial target program to TestAttribute.cs
      _module.__default.FailingTest_CheckForFailureForXunit [FAIL]
-     _module.__default.FailingTestUsingFresh [FAIL]
+     _module.__default.FailingTestUsingMock [FAIL]
      _module.__default.FailingTestUsingExpectWithMessage [FAIL]
      _module.__default.FailingTestUsingExpect [FAIL]
      _module.__default.FailingTestUsingNoLHSAssignOrHalt [FAIL]

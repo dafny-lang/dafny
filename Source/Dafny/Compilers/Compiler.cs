@@ -63,7 +63,7 @@ namespace Microsoft.Dafny {
 
     public CoverageInstrumenter Coverage;
 
-    protected void Error(Bpl.IToken tok, string msg, ConcreteSyntaxTree/*?*/ wr, params object[] args) {
+    public void Error(Bpl.IToken tok, string msg, ConcreteSyntaxTree/*?*/ wr, params object[] args) {
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
 
@@ -93,7 +93,6 @@ namespace Microsoft.Dafny {
     protected abstract string GetHelperModuleName();
     protected interface IClassWriter {
       ConcreteSyntaxTree/*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody);
-      ConcreteSyntaxTree/*?*/ CreateFreshMethod(Method m);
       ConcreteSyntaxTree/*?*/ CreateMockMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody);
       ConcreteSyntaxTree/*?*/ CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody,
         MemberDecl member, bool forBodyInheritance, bool lookasideBody);
@@ -1780,20 +1779,20 @@ namespace Microsoft.Dafny {
           }
           v.Visit(f);
         } else if (member is Method m) {
-          if (m.Body == null && !(c is TraitDecl && !m.IsStatic) &&
-              !(!DafnyOptions.O.DisallowExterns && (Attributes.Contains(m.Attributes, "dllimport") || (IncludeExternMembers && Attributes.Contains(m.Attributes, "extern"))))) {
+          if (Attributes.Contains(m.Attributes, "mock") &&
+              DafnyOptions.O.CompileMocks) {
+            if (m.IsStatic && m.Outs.Count > 0 && m.Body == null) {
+              classWriter.CreateMockMethod(m, CombineAllTypeArguments(m), true, true, false);
+            } else {
+              Error(m.tok, "Method {0} is annotated with mock but does not " +
+                           "have the correct specification or has a body",
+                errorWr, m.FullName);
+            }
+          } else if (m.Body == null && !(c is TraitDecl && !m.IsStatic) &&
+                     !(!DafnyOptions.O.DisallowExterns && (Attributes.Contains(m.Attributes, "dllimport") || (IncludeExternMembers && Attributes.Contains(m.Attributes, "extern"))))) {
             // A (ghost or non-ghost) method must always have a body, except if it's an instance method in a trait.
-            if (Attributes.Contains(m.Attributes, "axiom")) {
+            if (Attributes.Contains(m.Attributes, "axiom") || (!DafnyOptions.O.DisallowExterns && Attributes.Contains(m.Attributes, "extern"))) {
               // suppress error message
-            } else if (!DafnyOptions.O.DisallowExterns && Attributes.Contains(m.Attributes, "extern")) {
-              if (Attributes.Contains(m.Attributes, "fresh") && m.IsStatic &&
-                  m.Outs.Count == 1 && m.Ins.Count == 0 &&
-                  m.Ens.Count == 1 && m.Ens.Any(ensure => ensure.E is FreshExpr)) {
-                classWriter.CreateFreshMethod(m);
-              }
-              if (Attributes.Contains(m.Attributes, "mock") && m.IsStatic && m.Outs.Count > 0 && DafnyOptions.O.CompileMocks) {
-                classWriter.CreateMockMethod(m, CombineAllTypeArguments(m), true, true, false);
-              }
             } else {
               Error(m.tok, "Method {0} has no body", errorWr, m.FullName);
             }

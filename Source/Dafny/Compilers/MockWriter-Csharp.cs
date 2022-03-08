@@ -33,27 +33,16 @@ namespace Microsoft.Dafny;
 public class CsharpMockWriter {
 
   private readonly CsharpCompiler compiler;
+  private readonly ConcreteSyntaxTree ErrorWriter;
   // maps identifiers to the names of the corresponding mock:
   private Dictionary<IVariable, string> objectToMockName = new();
   // associates a bound variable with the lambda passed to argument matcher
   private Dictionary<IVariable, string> bounds = new();
+  private Method mockMethod = null;
 
-  public CsharpMockWriter(CsharpCompiler compiler) {
+  public CsharpMockWriter(CsharpCompiler compiler, ConcreteSyntaxTree errorWriter) {
     this.compiler = compiler;
-  }
-
-  /// <summary>
-  /// Create a body for a method returning a fresh instance of an object 
-  /// </summary>
-  public ConcreteSyntaxTree CreateFreshMethod(Method method,
-    ConcreteSyntaxTree wr) {
-    var keywords = CsharpCompiler.Keywords(true, true);
-    var returnType = compiler.GetTargetReturnTypeReplacement(method, wr);
-    wr.FormatLine($"{keywords}{returnType} {CsharpCompiler.PublicIdProtect(method.CompileName)}() {{");
-    // Exploit the fact that compiler creates zero-arguments constructors:
-    wr.FormatLine($"return new {returnType}();");
-    wr.WriteLine("}");
-    return wr;
+    ErrorWriter = errorWriter;
   }
 
   /// <summary>
@@ -86,6 +75,7 @@ public class CsharpMockWriter {
     List<Compiler.TypeArgumentInstantiation> typeArgs, bool createBody,
     ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
 
+    mockMethod = method;
     // The following few lines are identical to those in CreateMethod above:
     var customReceiver = createBody &&
                          !forBodyInheritance &&
@@ -117,6 +107,7 @@ public class CsharpMockWriter {
     foreach (var (obj, mockName) in objectToMockName) {
       var typeName = compiler.TypeName(obj.Type, wr, obj.Tok);
       wr.FormatLine($"var {mockName} = new Mock<{typeName}>();");
+      wr.FormatLine($"{mockName}.CallBase = true;");
       wr.FormatLine($"var {obj.CompileName} = {mockName}.Object;");
     }
 
@@ -175,10 +166,20 @@ public class CsharpMockWriter {
   }
 
   private void MockExpression(ConcreteSyntaxTree wr, ApplySuffix applySuffix) {
+
     var methodApp = (ExprDotName)applySuffix.Lhs;
     var receiver = ((IdentifierExpr)methodApp.Lhs.Resolved).Var;
-    var method = ((MemberSelectExpr)methodApp.Resolved).Member.CompileName;
-    wr.Format($"{objectToMockName[receiver]}.Setup(x => x.{method}(");
+    var method = ((MemberSelectExpr)methodApp.Resolved).Member;
+    var methodName = method.CompileName;
+
+    if (((Function)method).Ens.Count != 0) {
+      compiler.Error(mockMethod.tok, "Post-conditions on function {0} might " +
+                                 "be unsatisfied when synthesizing code " +
+                                 "for method {1}", ErrorWriter,
+        methodName, mockMethod.Name);
+    }
+
+    wr.Format($"{objectToMockName[receiver]}.Setup(x => x.{methodName}(");
 
     // The remaining part of the method uses Moq's argument matching to
     // describe the arguments for which the method should be stubbed
@@ -212,8 +213,12 @@ public class CsharpMockWriter {
     }
     if (binaryExpr.E0 is ExprDotName exprDotName) { // field stubbing
       var obj = ((IdentifierExpr)exprDotName.Lhs.Resolved).Var;
-      var field = ((MemberSelectExpr)exprDotName.Resolved).Member.CompileName;
-      wr.Format($"{objectToMockName[obj]}.SetupGet({obj.CompileName} => {obj.CompileName}.@{field}).Returns( ");
+      var field = ((MemberSelectExpr)exprDotName.Resolved).Member;
+      var fieldName = field.CompileName;
+      compiler.Error(mockMethod.tok, "Stubbing fields is not recommended " +
+                                "(field {0} of object {1} inside method {2})",
+        ErrorWriter, fieldName, obj.Name, mockMethod.Name);
+      wr.Format($"{objectToMockName[obj]}.SetupGet({obj.CompileName} => {obj.CompileName}.@{fieldName}).Returns( ");
       compiler.TrExpr(binaryExpr.E1, wr, false);
       wr.WriteLine(");");
       return;
@@ -303,28 +308,28 @@ public class CsharpMockWriter {
   /// </summary>
   internal static void EmitMultiMatcher(ConcreteSyntaxTree dafnyNamespace) {
     const string multiMatcher = @"
-      class MultiMatcher {
+    class MultiMatcher {
 
-        private readonly Func<object[], bool> predicate;
-        private readonly int argumentCount;
-        private readonly List<object> collectedArguments;
+      private readonly Func<object[], bool> predicate;
+      private readonly int argumentCount;
+      private readonly List<object> collectedArguments;
 
-        public MultiMatcher(int argumentCount, Func<object[], bool> predicate) {
-          this.predicate = predicate;
-          this.argumentCount = argumentCount;
-          collectedArguments = new();
+      public MultiMatcher(int argumentCount, Func<object[], bool> predicate) {
+        this.predicate = predicate;
+        this.argumentCount = argumentCount;
+        collectedArguments = new();
+      }
+
+      public bool Match(object argument) {
+        collectedArguments.Add(argument);
+        if (collectedArguments.Count != argumentCount) {
+          return true;
         }
-
-        public bool Match(object argument) {
-          collectedArguments.Add(argument);
-          if (collectedArguments.Count != argumentCount) {
-            return true;
-          }
-          bool result = predicate(collectedArguments.ToArray());
-          collectedArguments.Clear();
-          return result;
-        }
-      }";
+        bool result = predicate(collectedArguments.ToArray());
+        collectedArguments.Clear();
+        return result;
+      }
+    }";
     var memberDeclaration = SyntaxFactory.ParseMemberDeclaration(multiMatcher);
     dafnyNamespace.WriteLine(memberDeclaration.ToFullString());
   }
