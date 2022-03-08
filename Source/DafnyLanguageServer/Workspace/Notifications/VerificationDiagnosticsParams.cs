@@ -183,13 +183,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     public DateTime StartTime { get; private set; }
     public DateTime EndTime { get; private set; }
     public int TimeSpent => (int)(Finished ? ((TimeSpan)(EndTime - StartTime)).TotalMilliseconds : Started ? (DateTime.Now - StartTime).TotalMilliseconds : 0);
-    public int MaximumChildTimeSpent => Children.Any() ? Children.Max(child => child.TimeSpent) : TimeSpent;
     // Resources allocated at the end of the computation.
-    public virtual int VerificationPathTimeLongest =>
-      Children.Any() ? Children.Max(child => child.VerificationPathTimeLongest) : 0;
-    public virtual int VerificationPathTimeCount =>
-      Children.Any() ? Children.Sum(child => child.VerificationPathTimeCount) : 0;
-
     public int ResourceCount { get; set; } = 0;
 
 
@@ -234,7 +228,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       return this;
     }
 
-    public void Start() {
+    public virtual void Start() {
       if (StatusCurrent != CurrentStatus.Verifying || !Started) {
         StartTime = DateTime.Now;
         StatusCurrent = CurrentStatus.Verifying;
@@ -345,7 +339,26 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     Position Position,
     // The range of this node.
     Range Range
-  ) : NodeDiagnostic(DisplayName, Identifier, Filename, Position, Range);
+  ) : NodeDiagnostic(DisplayName, Identifier, Filename, Position, Range) {
+    public List<int> AssertionBatchTimes =>
+      Children.OfType<ImplementationNodeDiagnostic>().SelectMany(child => child.AssertionBatchTimes).ToList();
+
+    public int AssertionBatchCount => AssertionBatchTimes.Count;
+    public int LongestAssertionBatchTime {
+      get {
+        var assertionBatchTimes = AssertionBatchTimes;
+        return assertionBatchTimes.Count == 0 ? 0 : assertionBatchTimes.Max();
+      }
+    }
+
+    public int LongestAssertionBatchTimeIndex {
+      get {
+        var longestAssertionBatchTimes = LongestAssertionBatchTime;
+        return longestAssertionBatchTimes != 0 ? AssertionBatchTimes.IndexOf(longestAssertionBatchTimes) : -1;
+      }
+    }
+
+  }
 
   public sealed record ImplementationNodeDiagnostic(
     string DisplayName,
@@ -357,13 +370,18 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     // The range of this node.
     Range Range
   ) : NodeDiagnostic(DisplayName, Identifier, Filename, Position, Range) {
-    public override int VerificationPathTimeLongest => AssertionBatchTimes.Any() ? AssertionBatchTimes.Max() :
-      Children.Any() ? Children.Max(child => child.VerificationPathTimeLongest) : 0;
-    public override int VerificationPathTimeCount => AssertionBatchTimes.Any() ? AssertionBatchTimes.Count() :
-      Children.Any() ? Children.Sum(child => child.VerificationPathTimeCount) : 0;
     public List<int> AssertionBatchTimes { get; set; } = new();
+    public List<int> AssertionBatchCounts { get; set; } = new();
+
+    public int SplitCount => AssertionBatchTimes.Count;
 
     private Implementation? implementation = null;
+
+    public override void Start() {
+      base.Start();
+      AssertionBatchTimes = new();
+      AssertionBatchCounts = new();
+    }
 
     public Implementation? GetImplementation() {
       return implementation;
@@ -389,6 +407,17 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     // Contains permanent secondary positions to this node (e.g. return branch positions)
     // Helps to distinguish between assertions with the same position (i.e. ensures for different branches)
     private AssertCmd? assertion = null;
+
+    /// <summary>
+    /// Which split this assertion was taken from
+    /// </summary>
+    public int SplitNumber { get; set; }
+
+    /// <summary>
+    /// 0-based position of the assertion it is in the assertion batch
+    /// </summary>
+    public int AssertionNumber { get; set; }
+
     public AssertCmd? GetAssertion() {
       return assertion;
     }

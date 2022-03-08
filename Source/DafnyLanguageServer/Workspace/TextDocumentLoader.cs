@@ -396,7 +396,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             if (implementationNode == null) {
               logger.LogError($"No implementation at {implementation.tok}");
             } else {
-              implementationNode.AssertionBatchTimes = new();
               implementationNode.Start();
             }
 
@@ -493,7 +492,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           } else if (implementationNode == null) {
             logger.LogError($"No implementation node at {implementation.tok.filename}:{implementation.tok.line}:{implementation.tok.col}");
           } else {
+            var splitNumber = implementationNode.SplitCount;
             implementationNode.AssertionBatchTimes.Add((int)split.Checker.ProverRunTime.TotalMilliseconds);
+            var thisBatchCount = 0;
 
             // Attaches the trace
             void AddChildOutcome(IToken token,
@@ -528,7 +529,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
               ) {
                 StatusVerification = status,
                 StatusCurrent = CurrentStatus.Current,
-                RelatedRanges = relatedRanges
+                RelatedRanges = relatedRanges,
+                SplitNumber = splitNumber,
+                AssertionNumber = thisBatchCount
               };
               // Add this diagnostics as the new one to display once the implementation is fully verified
               implementationNode.AddNewChild(nodeDiagnostic);
@@ -561,30 +564,31 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
                   }
                   tokens.AddRange(block.cmds.Select(cmd => cmd.tok));
                   return tokens;
-                }).ToList() : new();
+                }).ToList() : new List<IToken>();
               if (assertCmd is AssertEnsuresCmd assertEnsuresCmd) {
                 AddChildOutcome(assertEnsuresCmd.Ensures.tok, status, secondaryToken, RelatedPositions, " ensures", "_ensures");
-                if (secondaryToken == null) {
-                  continue;
-                }
-                var returnPosition = TokenToPosition(secondaryToken);
-                if (returnPosition != implementationNode.Position) {
-                  AddChildOutcome(secondaryToken, status, assertEnsuresCmd.tok, RelatedPositions, "return branch", "_return");
+                if (secondaryToken != null) {
+                  var returnPosition = TokenToPosition(secondaryToken);
+                  if (returnPosition != implementationNode.Position) {
+                    AddChildOutcome(secondaryToken, status, assertEnsuresCmd.tok, RelatedPositions, "return branch",
+                      "_return");
+                  }
                 }
               } else if (assertCmd is AssertRequiresCmd assertRequiresCmd) {
                 AddChildOutcome(assertRequiresCmd.Call.tok, status, secondaryToken, RelatedPositions, "Call", "call");
               } else {
                 AddChildOutcome(assertCmd.tok, status, secondaryToken, RelatedPositions, "Assertion", "assert");
-                if (secondaryToken == null) {
-                  continue;
-                }
-                var requiresPosition = TokenToPosition(secondaryToken);
-                if (targetMethodNode.Range.Contains(requiresPosition)) {
-                  AddChildOutcome(secondaryToken, status, assertCmd.tok, RelatedPositions, "Call precondition", "call_precondition");
+                if (secondaryToken != null) {
+                  var requiresPosition = TokenToPosition(secondaryToken);
+                  if (targetMethodNode.Range.Contains(requiresPosition)) {
+                    AddChildOutcome(secondaryToken, status, assertCmd.tok, RelatedPositions, "Call precondition",
+                      "call_precondition");
+                  }
                 }
               }
+              thisBatchCount += 1;
             }
-
+            implementationNode.AssertionBatchCounts.Add(thisBatchCount);
             targetMethodNode.PropagateChildrenErrorsUp();
             diagnosticPublisher.PublishVerificationDiagnostics(document);
           }
