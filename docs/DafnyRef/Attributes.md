@@ -457,7 +457,7 @@ trigger annotations. Internally it works by adding `{:nopats ...}`
 annotations to quantifiers.
 
 #### 22.2.3.5. `{:identity}`
-If the function annotated with `{:identity}` or `{:identity true}` has 1 argument and the use of it has type X->X for
+If the function annotated with `{:identity}` or `{:identity true}` has 1 argument and the use of it has type `X->X` for
 some X, then the abstract interpreter will treat the function as an
 identity function.  Note, the abstract interpreter trusts the
 attribute--it does not try to verify that the function really is an
