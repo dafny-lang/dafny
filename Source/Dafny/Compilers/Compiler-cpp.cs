@@ -268,6 +268,8 @@ namespace Microsoft.Dafny {
       return String.Format("{0}_{1}{2}", IdProtect(ctor.EnclosingDatatype.CompileName), ctor.CompileName, args);
     }
 
+    protected override bool DatatypeDeclarationAndMemberCompilationAreSeparate => false;
+
     protected override IClassWriter DeclareDatatype(DatatypeDecl dt, ConcreteSyntaxTree writer) {
       if (dt is TupleTypeDecl) {
         // Tuple types are declared once and for all in DafnyRuntime.h
@@ -755,7 +757,7 @@ namespace Microsoft.Dafny {
       }
       wdr.Write(");\n");
 
-      var block = wr.NewBlock(")", null, BraceStyle.Newline, BraceStyle.Newline);
+      var block = wr.NewBlock(")", null, BlockStyle.NewlineBrace, BlockStyle.NewlineBrace);
 
       if (targetReturnTypeReplacement != null) {
         var beforeReturnBlock = block.Fork(0);
@@ -799,7 +801,7 @@ namespace Microsoft.Dafny {
       int nIns = WriteFormals("", formals, wr);
 
       wdr.Write(");");
-      var w = wr.NewBlock(")", null, BraceStyle.Newline, BraceStyle.Newline);
+      var w = wr.NewBlock(")", null, BlockStyle.NewlineBrace, BlockStyle.NewlineBrace);
 
       return w;
     }

@@ -211,29 +211,14 @@ module SomeModule {
       var temp1 = directory + "/proverLog";
       testOutputHelper.WriteLine("proverLog: " + temp1);
       options.ProverLogFilePath = temp1;
-      var engine = ExecutionEngine.CreateWithoutSharedCache(options);
-      foreach (var boogieProgram in boogiePrograms) {
-        var (_, outcome, _) = Main.BoogieOnce(engine, "", "", boogieProgram, "programId").Result;
-        testOutputHelper.WriteLine("outcome: " + outcome);
-        foreach (var proverFile in Directory.GetFiles(directory)) {
-          string content = null;
-          Exception lastException = null;
-          for (var attempt = 0; attempt < 3; attempt++) {
-            try {
-              content = await File.ReadAllTextAsync(proverFile);
-              lastException = null;
-            } catch (IOException e) {
-              lastException = e;
-              await Task.Delay(100);
-            }
-          }
-
-          if (lastException != null) {
-            throw lastException;
-          }
-
-          yield return content;
+      using (var engine = ExecutionEngine.CreateWithoutSharedCache(options)) {
+        foreach (var boogieProgram in boogiePrograms) {
+          var (_, outcome, _) = await Main.BoogieOnce(engine, "", "", boogieProgram, "programId");
+          testOutputHelper.WriteLine("outcome: " + outcome);
         }
+      }
+      foreach (var proverFile in Directory.GetFiles(directory)) {
+        yield return await File.ReadAllTextAsync(proverFile);
       }
     }
 

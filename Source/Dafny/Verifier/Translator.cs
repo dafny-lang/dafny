@@ -83,7 +83,6 @@ namespace Microsoft.Dafny {
     // translation state
     readonly Dictionary<TopLevelDecl/*!*/, Bpl.Constant/*!*/>/*!*/ classes = new Dictionary<TopLevelDecl/*!*/, Bpl.Constant/*!*/>();
     readonly Dictionary<TopLevelDecl, string>/*!*/ classConstants = new Dictionary<TopLevelDecl, string>();
-    readonly Dictionary<int, string> functionConstants = new Dictionary<int, string>();
     readonly Dictionary<Function, string> functionHandles = new Dictionary<Function, string>();
     readonly List<FuelConstant> functionFuel = new List<FuelConstant>();
     readonly Dictionary<Field/*!*/, Bpl.Constant/*!*/>/*!*/ fields = new Dictionary<Field/*!*/, Bpl.Constant/*!*/>();
@@ -91,7 +90,6 @@ namespace Microsoft.Dafny {
     readonly Dictionary<string, Bpl.Constant> fieldConstants = new Dictionary<string, Constant>();
     readonly Dictionary<string, Bpl.Constant> tytagConstants = new Dictionary<string, Constant>();
     readonly ISet<string> abstractTypes = new HashSet<string>();
-    readonly ISet<string> opaqueTypes = new HashSet<string>();
 
     // optimizing translation
     readonly ISet<MemberDecl> referencedMembers = new HashSet<MemberDecl>();

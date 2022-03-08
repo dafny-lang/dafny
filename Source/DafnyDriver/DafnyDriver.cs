@@ -385,7 +385,6 @@ namespace Microsoft.Dafny {
         .Aggregate(PipelineOutcome.VerificationCompleted, MergeOutcomes);
 
       var isVerified = moduleTasks.Select(t => t.Result.IsVerified).All(x => x);
-
       return (isVerified, outcome, concurrentModuleStats);
     }
 

@@ -79,6 +79,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         DafnyOptions.O.TimeLimit = options.TimeLimit;
         DafnyOptions.O.VcsCores = GetConfiguredCoreCount(options);
         DafnyOptions.O.Printer = printer;
+
         var executionEngine = new ExecutionEngine(DafnyOptions.O, cache);
         var translated = Translator.Translate(program, errorReporter, new Translator.TranslatorFlags { InsertChecksums = true });
         var moduleTasks = translated.Select(t => {
@@ -105,10 +106,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       engine.CollectModSets(program);
       engine.CoalesceBlocks(program);
       engine.Inline(program);
-      // TODO Is the programId of any relevance? The requestId is used to cancel a verification.
-      //      However, the cancelling a verification is currently not possible since it blocks a text document
-      //      synchronization event which are serialized. Thus, no event is processed until the pending
-      //      synchronization is completed.
       var uniqueRequestId = Guid.NewGuid().ToString();
       using (cancellationToken.Register(() => CancelVerification(uniqueRequestId))) {
         try {

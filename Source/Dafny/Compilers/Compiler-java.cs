@@ -428,7 +428,7 @@ namespace Microsoft.Dafny {
       bool createBody, ConcreteSyntaxTree wr) {
       wr.Write("public {0}{1} {2}()", isStatic ? "static " : "", TypeName(resultType, wr, tok), name);
       if (createBody) {
-        var w = wr.NewBlock("", null, BraceStyle.Newline, BraceStyle.Newline);
+        var w = wr.NewBlock("", null, BlockStyle.NewlineBrace, BlockStyle.NewlineBrace);
         return w;
       } else {
         wr.WriteLine(";");
@@ -450,13 +450,13 @@ namespace Microsoft.Dafny {
       wr.Write("public {0}{1} {2}()", isStatic ? "static " : "", TypeName(resultType, wr, tok), name);
       ConcreteSyntaxTree wGet = null;
       if (createBody) {
-        wGet = wr.NewBlock("", null, BraceStyle.Newline, BraceStyle.Newline);
+        wGet = wr.NewBlock("", null, BlockStyle.NewlineBrace, BlockStyle.NewlineBrace);
       } else {
         wr.WriteLine(";");
       }
       wr.Write("public {0}void set_{1}({2} value)", isStatic ? "static " : "", name, TypeName(resultType, wr, tok));
       if (createBody) {
-        setterWriter = wr.NewBlock("", null, BraceStyle.Newline, BraceStyle.Newline);
+        setterWriter = wr.NewBlock("", null, BlockStyle.NewlineBrace, BlockStyle.NewlineBrace);
       } else {
         wr.WriteLine(";");
         setterWriter = null;
@@ -499,7 +499,7 @@ namespace Microsoft.Dafny {
         wr.WriteLine(");");
         return null; // We do not want to write a function body, so instead of returning a BTW, we return null.
       } else {
-        return wr.NewBlock(")", null, BraceStyle.Newline, BraceStyle.Newline);
+        return wr.NewBlock(")", null, BlockStyle.NewlineBrace, BlockStyle.NewlineBrace);
       }
     }
 
@@ -547,7 +547,7 @@ namespace Microsoft.Dafny {
       } else {
         ConcreteSyntaxTree w;
         if (argCount > 1) {
-          w = wr.NewBlock(")", null, BraceStyle.Newline, BraceStyle.Newline);
+          w = wr.NewBlock(")", null, BlockStyle.NewlineBrace, BlockStyle.NewlineBrace);
         } else {
           w = wr.NewBlock(")");
         }
@@ -2477,15 +2477,6 @@ namespace Microsoft.Dafny {
       s += $"{TypeMethodName}(";
       s += Util.Comma(relevantTypeArgs, arg => TypeDescriptor(arg, wr, tok));
       return s + ")";
-    }
-
-    bool OutContainsParam(List<Formal> l, TypeParameter tp) {
-      foreach (Formal f in l) {
-        if ((f.Type.IsTypeParameter && f.Type.AsTypeParameter.Equals(tp)) || (f.Type.AsCollectionType != null && f.Type.AsCollectionType.Arg.IsTypeParameter && f.Type.AsCollectionType.Arg.AsTypeParameter.Equals(tp))) {
-          return true;
-        }
-      }
-      return false;
     }
 
     protected override void EmitSetBuilder_New(ConcreteSyntaxTree wr, SetComprehension e, string collectionName) {
