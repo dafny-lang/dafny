@@ -2418,8 +2418,8 @@ namespace Microsoft.Dafny {
       : base() {
       Contract.Requires(0 <= width);
       Width = width;
-      foreach (var nativeType in Resolver.NativeTypes) { // FIXME shouldn't the AST code be agnostic to the choice of backend?
-        if (DafnyOptions.O.CompilerFactoryInstance.SupportedNativeTypes.Contains(nativeType.Name) && width <= nativeType.Bitwidth) {
+      foreach (var nativeType in Resolver.NativeTypes) {
+        if (DafnyOptions.O.Compiler.SupportedNativeTypes.Contains(nativeType.Name) && width <= nativeType.Bitwidth) {
           NativeType = nativeType;
           break;
         }
@@ -3336,7 +3336,7 @@ namespace Microsoft.Dafny {
     }
 
     public static string IdProtect(string name) {
-      return DafnyOptions.O.CompilerFactoryInstance.PublicIdProtect(name);
+      return DafnyOptions.O.Compiler.PublicIdProtect(name);
     }
 
     public IToken tok;
@@ -4300,7 +4300,7 @@ namespace Microsoft.Dafny {
           }
         }
 
-        return DafnyOptions.O.CompilerFactoryInstance.GetCompileName(EnclosingModuleDefinition.IsDefaultModule, 
+        return DafnyOptions.O.Compiler.GetCompileName(EnclosingModuleDefinition.IsDefaultModule,
           EnclosingModuleDefinition.CompileName, CompileName);
       }
     }
@@ -6650,7 +6650,7 @@ namespace Microsoft.Dafny {
     public override string CompileName {
       get {
         var nm = base.CompileName;
-        if (nm == Dafny.SinglePassCompiler.DefaultNameMain && IsStatic && !IsEntryPoint) {
+        if (nm == Dafny.Compilers.SinglePassCompiler.DefaultNameMain && IsStatic && !IsEntryPoint) {
           // for a static method that is named "Main" but is not a legal "Main" method,
           // change its name.
           nm = EnclosingClass.Name + "_" + nm;

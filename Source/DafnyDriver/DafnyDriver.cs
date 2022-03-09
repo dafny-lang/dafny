@@ -151,7 +151,7 @@ namespace Microsoft.Dafny {
           // Fall through and try to handle the file as an "other file"
         }
 
-        var supportedExtensions = DafnyOptions.O.CompilerFactoryInstance.SupportedExtensions;
+        var supportedExtensions = DafnyOptions.O.Compiler.SupportedExtensions;
         if (supportedExtensions.Contains(extension)) {
           otherFiles.Add(file);
         } else if (!isDafnyFile) {
@@ -492,10 +492,10 @@ namespace Microsoft.Dafny {
       public string SourceDirectory => Path.GetDirectoryName(Filename);
     }
 
-    private static TargetPaths GenerateTargetPaths(ICompiler compiler, string dafnyProgramName) {
-      string baseName = compiler.Factory.Basename(Path.GetFileNameWithoutExtension(dafnyProgramName));
-      string targetBaseDir = compiler.Factory.TargetBaseDir(baseName);
-      string targetExtension = compiler.Factory.TargetExtension;
+    private static TargetPaths GenerateTargetPaths(string dafnyProgramName) {
+      string baseName = DafnyOptions.O.Compiler.Basename(Path.GetFileNameWithoutExtension(dafnyProgramName));
+      string targetBaseDir = DafnyOptions.O.Compiler.TargetBaseDir(baseName);
+      string targetExtension = DafnyOptions.O.Compiler.TargetExtension;
 
       // Note that using Path.ChangeExtension here does the wrong thing when dafnyProgramName has multiple periods (e.g., a.b.dfy)
       string targetBaseName = baseName + "." + targetExtension;
@@ -584,10 +584,10 @@ namespace Microsoft.Dafny {
 
       // Compile the Dafny program into a string that contains the target program
       var oldErrorCount = dafnyProgram.reporter.Count(ErrorLevel.Error);
-      Dafny.ICompiler compiler =
-        DafnyOptions.O.CompilerFactoryInstance.CreateInstance(dafnyProgram.reporter, otherFileNames);
+      DafnyOptions.O.Compiler.LateInitialize(dafnyProgram.reporter, otherFileNames);
+      var compiler = DafnyOptions.O.Compiler;
 
-      var hasMain = SinglePassCompiler.HasMain(dafnyProgram, out var mainMethod);
+      var hasMain = Compilers.SinglePassCompiler.HasMain(dafnyProgram, out var mainMethod);
       if (hasMain) {
         mainMethod.IsEntryPoint = true;
         dafnyProgram.MainMethod = mainMethod;
@@ -624,10 +624,10 @@ namespace Microsoft.Dafny {
       compiler.WriteCoverageLegendFile();
 
       // blurt out the code to a file, if requested, or if other target-language files were specified on the command line.
-      var paths = GenerateTargetPaths(compiler, dafnyProgramName);
-      if (DafnyOptions.O.SpillTargetCode > 0 || otherFileNames.Count > 0 || (invokeCompiler && !compiler.Factory.SupportsInMemoryCompilation) ||
-          (invokeCompiler && compiler.Factory.TextualTargetIsExecutable && !DafnyOptions.O.RunAfterCompile)) {
-        compiler.Factory.CleanSourceDirectory(paths.SourceDirectory);
+      var paths = GenerateTargetPaths(dafnyProgramName);
+      if (DafnyOptions.O.SpillTargetCode > 0 || otherFileNames.Count > 0 || (invokeCompiler && !compiler.SupportsInMemoryCompilation) ||
+          (invokeCompiler && compiler.TextualTargetIsExecutable && !DafnyOptions.O.RunAfterCompile)) {
+        compiler.CleanSourceDirectory(paths.SourceDirectory);
         WriteDafnyProgramToFiles(paths, targetProgramHasErrors, targetProgramText, callToMain, otherFiles, outputWriter);
       }
 

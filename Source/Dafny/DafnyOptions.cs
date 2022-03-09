@@ -10,6 +10,7 @@ using System.IO;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using JetBrains.Annotations;
+using Microsoft.Dafny.Compilers.Csharp;
 using Microsoft.Dafny.Plugins;
 using Bpl = Microsoft.Boogie;
 
@@ -76,7 +77,7 @@ namespace Microsoft.Dafny {
     public List<string> DafnyPrintExportedViews = new List<string>();
     public bool Compile = true;
 
-    public CompilerFactory CompilerFactoryInstance;
+    public Compiler Compiler;
     public bool CompileVerbose = true;
     public string DafnyPrintCompiledFile = null;
     public string CoverageLegendFile = null;
@@ -139,7 +140,7 @@ namespace Microsoft.Dafny {
     // Working around the fact that xmlFilename is private
     public string BoogieXmlFilename = null;
 
-    public List<Plugin> Plugins = new();
+    public List<Plugin> Plugins = new() { Compilers.SinglePassCompiler.Plugin };
 
     public virtual TestGenerationOptions TestGenOptions =>
       testGenOptions ??= new TestGenerationOptions();
@@ -206,10 +207,11 @@ namespace Microsoft.Dafny {
         case "compileTarget":
           if (ps.ConfirmArgumentCount(1)) {
             var compileTarget = args[ps.i];
-            try {
-              CompilerFactoryInstance = CompilerFactory.Load(compileTarget);
-            } catch (Exception ex) {
-              ps.Error("Cannot load compileTarget \"{0}\": {1}", compileTarget, ex.Message);
+            var compilers = Plugins.SelectMany(p => p.GetCompilers()).ToList();
+            Compiler = compilers.LastOrDefault(c => c.TargetId == compileTarget);
+            if (Compiler == null) {
+              var known = String.Join(", ", compilers.Select(c => $"'{c.TargetId}' ({c.TargetLanguage})"));
+              ps.Error($"No compiler found for compileTarget \"{compileTarget}\"; expecting one of {known}");
             }
           }
 
@@ -238,7 +240,7 @@ namespace Microsoft.Dafny {
                   // Parse arguments, accepting and remove double quotes that isolate long arguments
                   arguments = ParsePluginArguments(argumentsString);
                 }
-                Plugins.Add(Plugin.Load(pluginPath, arguments));
+                Plugins.Add(AssemblyPlugin.Load(pluginPath, arguments));
               }
             }
 
@@ -570,9 +572,7 @@ namespace Microsoft.Dafny {
         XmlSink = new Bpl.XmlSink(this, BoogieXmlFilename);
       }
 
-      if (CompilerFactoryInstance == null) {
-        CompilerFactoryInstance = CompilerFactory.Load("cs");
-      }
+      Compiler ??= new CsharpCompiler();
 
       // expand macros in filenames, now that LogPrefix is fully determined
       ExpandFilename(DafnyPrelude, x => DafnyPrelude = x, LogPrefix, FileTimestamp);

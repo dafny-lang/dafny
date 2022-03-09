@@ -20,32 +20,31 @@ using Bpl = Microsoft.Boogie;
 using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 
 namespace Microsoft.Dafny.Compilers.Java {
-  public class Factory : CompilerFactory {
+  public class JavaCompiler : SinglePassCompiler {
+    public override void LateInitialize(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
+      base.LateInitialize(reporter, otherFileNames);
+      IntSelect = ",java.math.BigInteger";
+      LambdaExecute = ".apply";
+    }
+
     public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".java" };
 
-    public override String TargetLanguage => "Java";
+    public override string TargetLanguage => "Java";
     public override string TargetExtension => "java";
     public override string Basename(string dafnyProgramName) =>
       TransformToClassName(base.Basename(dafnyProgramName));
     public override string TargetBaseDir(string baseName) => baseName + "-java";
-    public override string TransformToClassName(string baseName) =>
-      System.Text.RegularExpressions.Regex.Replace(baseName, "[^_A-Za-z0-9\\$]", "_");
-
-    public override string PublicIdProtect(string name) => JavaCompiler.PublicIdProtect(name);
+    public string TransformToClassName(string baseName) =>
+      Regex.Replace(baseName, "[^_A-Za-z0-9\\$]", "_");
 
     public override bool SupportsInMemoryCompilation => false;
     public override bool TextualTargetIsExecutable => false;
 
-    public override ICompiler CreateInstance(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
-      return new JavaCompiler(this, reporter);
-    }
-  }
-
-  public class JavaCompiler : SinglePassCompiler {
-    public JavaCompiler(Factory factory, ErrorReporter reporter)
-      : base(factory, reporter) {
-      IntSelect = ",java.math.BigInteger";
-      LambdaExecute = ".apply";
+    public override void CleanSourceDirectory(string sourceDirectory) {
+      try {
+        Directory.Delete(sourceDirectory, true);
+      } catch (DirectoryNotFoundException) {
+      }
     }
 
     const string DafnySetClass = "dafny.DafnySet";
@@ -322,7 +321,7 @@ namespace Microsoft.Dafny.Compilers.Java {
     protected override void EmitBuiltInDecls(BuiltIns builtIns, ConcreteSyntaxTree wr) { }
 
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
-      var className = Factory.TransformToClassName(baseName);
+      var className = TransformToClassName(baseName);
       wr = wr.NewBlock($"public class {className}");
 
       var companion = TypeName_Companion(UserDefinedType.FromTopLevelDeclWithAllBooleanTypeParameters(mainMethod.EnclosingClass), wr, mainMethod.tok, mainMethod);
@@ -2098,7 +2097,7 @@ namespace Microsoft.Dafny.Compilers.Java {
       return PublicIdProtect(name);
     }
 
-    public static string PublicIdProtect(string name) {
+    public override string PublicIdProtect(string name) {
       name = name.Replace("_module", "_System");
       if (name == "" || name.First() == '_') {
         return name; // no need to further protect this name

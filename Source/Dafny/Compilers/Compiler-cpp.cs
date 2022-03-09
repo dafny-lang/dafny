@@ -18,31 +18,22 @@ using System.Runtime.InteropServices;
 using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny.Compilers.Cpp {
-  public class Factory : CompilerFactory {
+  public class CppCompiler : SinglePassCompiler {
+    public override void LateInitialize(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
+      base.LateInitialize(reporter, otherFileNames);
+      datatypeDecls = new List<DatatypeDecl>();
+      classDefaults = new List<string>();
+    }
+
     public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".h" };
 
     public override string TargetLanguage => "Cpp";
     public override string TargetExtension => "cpp";
 
-    public override string PublicIdProtect(string name) => CppCompiler.PublicIdProtect(name);
-
     public override bool SupportsInMemoryCompilation => false;
     public override bool TextualTargetIsExecutable => false;
 
-    public override ICompiler CreateInstance(ErrorReporter reporter, ReadOnlyCollection<string> otherFilenames) {
-      return new CppCompiler(this, reporter, otherFilenames);
-    }
-  }
-
-  public class CppCompiler : SinglePassCompiler {
-    public CppCompiler(Factory factory, ErrorReporter reporter, ReadOnlyCollection<string> otherHeaders)
-    : base(factory, reporter) {
-      this.headers = otherHeaders;
-      this.datatypeDecls = new List<DatatypeDecl>();
-      this.classDefaults = new List<string>();
-    }
-
-    private ReadOnlyCollection<string> headers;
+    private ReadOnlyCollection<string> headers => OtherFileNames;
     private List<DatatypeDecl> datatypeDecls;
     private List<string> classDefaults;
 
@@ -1489,7 +1480,7 @@ namespace Microsoft.Dafny.Compilers.Cpp {
     protected override string IdProtect(string name) {
       return PublicIdProtect(name);
     }
-    public static string PublicIdProtect(string name) {
+    public override string PublicIdProtect(string name) {
       Contract.Requires(name != null);
       switch (name) {
         // Taken from: https://www.w3schools.in/cplusplus-tutorial/keywords/

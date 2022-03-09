@@ -18,31 +18,22 @@ using Bpl = Microsoft.Boogie;
 using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 
 namespace Microsoft.Dafny.Compilers.Go {
-  public class Factory : CompilerFactory {
+  public class GoCompiler : SinglePassCompiler {
+    public override void LateInitialize(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
+      base.LateInitialize(reporter, otherFileNames);
+      if (DafnyOptions.O.CoverageLegendFile != null) {
+        Imports.Add(new Import { Name = "DafnyProfiling", Path = "DafnyProfiling" });
+      }
+    }
+
     public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".go" };
 
     public override string TargetLanguage => "Go";
     public override string TargetExtension => "go";
     public override string TargetBaseDir(string baseName) => baseName + "-go/src";
 
-    public override string PublicIdProtect(string name) => GoCompiler.PublicIdProtect(name);
-
     public override bool SupportsInMemoryCompilation => false;
     public override bool TextualTargetIsExecutable => false;
-
-    public override ICompiler CreateInstance(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
-      return new GoCompiler(this, reporter);
-    }
-  }
-
-  public class GoCompiler : SinglePassCompiler {
-    public GoCompiler(Factory factory, ErrorReporter reporter)
-    : base(factory, reporter) {
-      if (DafnyOptions.O.CoverageLegendFile != null) {
-        Imports.Add(new Import { Name = "DafnyProfiling", Path = "DafnyProfiling" });
-      }
-    }
-
 
     static string FormatDefaultTypeParameterValue(TopLevelDecl tp) {
       Contract.Requires(tp is TypeParameter || tp is OpaqueTypeDecl);
@@ -2198,7 +2189,7 @@ namespace Microsoft.Dafny.Compilers.Go {
     protected override string IdProtect(string name) {
       return PublicIdProtect(name);
     }
-    public static string PublicIdProtect(string name) {
+    public override string PublicIdProtect(string name) {
       Contract.Requires(name != null);
 
       switch (name) {

@@ -22,13 +22,12 @@ using Microsoft.BaseTypes;
 using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 
 namespace Microsoft.Dafny.Compilers.Csharp {
-  public class Factory : CompilerFactory {
+  public class CsharpCompiler : SinglePassCompiler {
     public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".cs", ".dll" };
 
     public override string TargetLanguage => "C#";
     public override string TargetExtension => "cs";
 
-    public override string PublicIdProtect(string name) => CsharpCompiler.PublicIdProtect(name);
     public override string GetCompileName(bool isDefaultModule, string moduleName, string compileName) {
       return isDefaultModule ? PublicIdProtect(compileName) :
         base.GetCompileName(isDefaultModule, moduleName, compileName);
@@ -36,16 +35,6 @@ namespace Microsoft.Dafny.Compilers.Csharp {
 
     public override bool SupportsInMemoryCompilation => true;
     public override bool TextualTargetIsExecutable => false;
-
-    public override ICompiler CreateInstance(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
-      return new CsharpCompiler(this, reporter);
-    }
-  }
-
-  public class CsharpCompiler : SinglePassCompiler {
-    public CsharpCompiler(Factory factory, ErrorReporter reporter)
-      : base(factory, reporter) {
-    }
 
     const string DafnyISet = "Dafny.ISet";
     const string DafnyIMultiset = "Dafny.IMultiSet";
@@ -2119,7 +2108,7 @@ namespace Microsoft.Dafny.Compilers.Csharp {
     protected override string IdProtect(string name) {
       return PublicIdProtect(name);
     }
-    public static string PublicIdProtect(string name) {
+    public override string PublicIdProtect(string name) {
       if (name == "" || name.First() == '_') {
         return name;  // no need to further protect this name -- we know it's not a C# keyword
       }

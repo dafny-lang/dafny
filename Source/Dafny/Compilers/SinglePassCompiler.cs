@@ -14,17 +14,30 @@ using System.IO;
 using System.Diagnostics.Contracts;
 using Bpl = Microsoft.Boogie;
 using System.Collections.ObjectModel;
-using System.Diagnostics.SymbolStore;
-using System.Net.Security;
-using System.Reflection.Metadata.Ecma335;
 using Microsoft.BaseTypes;
 
 
-namespace Microsoft.Dafny {
-  public abstract class SinglePassCompiler : ICompiler {
-    public SinglePassCompiler(CompilerFactory factory, ErrorReporter reporter) {
-      Factory = factory;
-      Reporter = reporter;
+namespace Microsoft.Dafny.Compilers {
+  internal class InternalCompilersPluginConfiguration : Plugins.PluginConfiguration {
+    public static readonly InternalCompilersPluginConfiguration Singleton = new();
+
+    public override Plugins.Compiler[] GetCompilers() {
+      return new Plugins.Compiler[] {
+        new Compilers.Csharp.CsharpCompiler(),
+        new Compilers.Js.JavaScriptCompiler(),
+        new Compilers.Go.GoCompiler(),
+        new Compilers.Java.JavaCompiler(),
+        new Compilers.Python.PythonCompiler(),
+        new Compilers.Cpp.CppCompiler()
+      };
+    }
+  }
+
+  public abstract class SinglePassCompiler : Plugins.Compiler {
+    public static Plugin Plugin =
+      new ConfiguredPlugin(InternalCompilersPluginConfiguration.Singleton);
+
+    public SinglePassCompiler() {
       Coverage = new CoverageInstrumenter(this);
     }
 
@@ -58,10 +71,6 @@ namespace Microsoft.Dafny {
       }
       return n;
     }
-    
-    public CompilerFactory Factory { get; }
-
-    public ErrorReporter Reporter;
 
     public CoverageInstrumenter Coverage;
 
@@ -83,12 +92,9 @@ namespace Microsoft.Dafny {
     protected virtual void EmitHeader(Program program, ConcreteSyntaxTree wr) { }
     protected virtual void EmitFooter(Program program, ConcreteSyntaxTree wr) { }
     protected virtual void EmitBuiltInDecls(BuiltIns builtIns, ConcreteSyntaxTree wr) { }
-    /// <summary>
-    /// Emits a call to "mainMethod" as the program's entry point, if such an explicit call is
-    /// required in the target language.
-    /// </summary>
-    public virtual void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) { }
-    public void WriteCoverageLegendFile() { Coverage.WriteLegendFile(); }
+
+    public override void WriteCoverageLegendFile() { Coverage.WriteLegendFile(); }
+
     /// <summary>
     /// Creates a static Main method. The caller will fill the body of this static Main with a
     /// call to the instance Main method in the enclosing class.
@@ -1126,7 +1132,7 @@ namespace Microsoft.Dafny {
       modules = program.CompileModules;
     }
 
-    public void Compile(Program program, ConcreteSyntaxTree wrx) {
+    public override void Compile(Program program, ConcreteSyntaxTree wrx) {
       Contract.Requires(program != null);
 
       EmitHeader(program, wrx);
@@ -5098,29 +5104,13 @@ namespace Microsoft.Dafny {
       }
     }
 
-    /// <summary>
-    /// Compile the target program known as "dafnyProgramName".
-    /// "targetProgramText" contains the program text.
-    /// If "targetFilename" is non-null, it is the name of the target program text stored as a
-    /// file. "targetFileName" must be non-null if "otherFileNames" is nonempty.
-    /// "otherFileNames" is a list of other files to include in the compilation.
-    ///
-    /// When "callToMain" is non-null, the program contains a "Main()" program.
-    ///
-    /// Upon successful compilation, "runAfterCompile" says whether or not to execute the program.
-    ///
-    /// Output any errors to "outputWriter".
-    /// Returns "false" if there were errors. Then, "compilationResult" should not be used.
-    /// Returns "true" on success. Then, "compilationResult" is a value that can be passed in to
-    /// the instance's "RunTargetProgram" method.
-    /// </summary>
-    public virtual bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
+    public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
       bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
       Contract.Requires(dafnyProgramName != null);
       Contract.Requires(targetProgramText != null);
       Contract.Requires(otherFileNames != null);
       Contract.Requires(otherFileNames.Count == 0 || targetFilename != null);
-      Contract.Requires(this.Factory.SupportsInMemoryCompilation || targetFilename != null);
+      Contract.Requires(this.SupportsInMemoryCompilation || targetFilename != null);
       Contract.Requires(!runAfterCompile || callToMain != null);
       Contract.Requires(outputWriter != null);
 
@@ -5128,15 +5118,7 @@ namespace Microsoft.Dafny {
       return true;
     }
 
-    /// <summary>
-    /// Runs a target program after it has been successfully compiled.
-    /// dafnyProgram, targetProgramText, targetFilename, and otherFileNames are the same as the corresponding parameters to "CompileTargetProgram".
-    /// "callToMain" is an explicit call to Main, as required by the target compilation language.
-    /// "compilationResult" is a value returned by "CompileTargetProgram" for these parameters.
-    ///
-    /// Returns "true" on success, "false" on error. Any errors are output to "outputWriter".
-    /// </summary>
-    public virtual bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
+    public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
       object compilationResult, TextWriter outputWriter) {
       Contract.Requires(dafnyProgramName != null);
       Contract.Requires(targetProgramText != null);

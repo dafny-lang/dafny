@@ -4331,8 +4331,8 @@ namespace Microsoft.Dafny {
 
       // Finally, of the big-enough native types, pick the first one that is
       // supported by the selected target compiler.
-      foreach (var nativeT in bigEnoughNativeTypes) { // FIXME shouldn't the resolver be agnostic to the compilation target?
-        if (DafnyOptions.O.CompilerFactoryInstance.SupportedNativeTypes.Contains(nativeT.Name)) {
+      foreach (var nativeT in bigEnoughNativeTypes) {
+        if (DafnyOptions.O.Compiler.SupportedNativeTypes.Contains(nativeT.Name)) {
           dd.NativeType = nativeT;
           break;
         }
