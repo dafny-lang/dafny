@@ -155,11 +155,7 @@ namespace Microsoft.Dafny {
 
       public void DeclareField(string name, TopLevelDecl enclosingDecl, bool isStatic, bool isConst, Type type,
           IToken tok, string rhs, Field field) {
-<<<<<<< HEAD
         Compiler.DeclareField(name, isStatic, isConst, type, tok, rhs, ConstructorWriter);
-=======
-        Compiler.DeclareField(name, isStatic, isConst, type, tok, rhs, FieldWriter);
->>>>>>> master
       }
 
       public void InitializeField(Field field, Type instantiatedFieldType, TopLevelDeclWithMembers enclosingClass) {
