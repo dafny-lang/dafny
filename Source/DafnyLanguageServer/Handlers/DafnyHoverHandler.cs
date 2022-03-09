@@ -49,40 +49,27 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       var positionStartingWithOne = new Position(position.Line + 1, position.Character + 1);
       foreach (var node in document.VerificationNodeDiagnostic.Children.OfType<MethodOrSubsetTypeNodeDiagnostic>()) {
         if (node.Range.Contains(positionStartingWithOne)) {
-          var implementationNumber = 0;
           var implementations = node.Children.OfType<ImplementationNodeDiagnostic>().ToList();
-          var splitCountOffset = 0;
-          var totalSplitCount = 0;
-          foreach (var implementationNode in implementations) {
-            if (!implementationNode.Range.Contains(positionStartingWithOne)) {
+          var assertionBatchCount = node.AssertionBatchCount;
+          var assertionBatchIndex = 0;
+          foreach (var assertionBatch in node.AssertionBatches) {
+            if (!assertionBatch.Range.Contains(positionStartingWithOne)) {
               continue;
             }
 
-            if (totalSplitCount == 0) {
-              totalSplitCount = implementations.Sum(implementation =>
-                implementation.AssertionBatchCount);
-            }
-
-            var assertionNumber = 0;
-            var assertions = implementationNode.Children.OfType<AssertionNodeDiagnostic>().ToList();
+            var assertionIndex = 0;
+            var assertions = assertionBatch.Children.OfType<AssertionNodeDiagnostic>().ToList();
             var information = "";
             foreach (var assertionNode in assertions) {
               if (assertionNode.Range.Contains(positionStartingWithOne)) {
-                var splitNumber = assertionNode.AssertionBatchIndex;
-                if (splitNumber >= implementationNode.AssertionBatchCount
-                    || splitNumber >= implementationNode.AssertionBatchCounts.Count) {
-                  logger.Log(LogLevel.Error, $"Assertion is referring to split {splitNumber} in {implementationNode.DisplayName} which does not exist.");
-                  return null;
-                }
-
                 var batchRef = AddAssertionBatchDocumentation("batch");
-                var assertionBatchTime = implementationNode.AssertionBatchTimes[splitNumber];
-                var assertionBatchCount = implementationNode.AssertionBatchCounts[splitNumber];
+                var assertionBatchTime = assertionBatch.TimeSpent;
+                var assertionCount = assertionBatch.Children.Count;
                 if (information == "") {
                   information = $"**{node.DisplayName}** metrics:\n\n";
                 }
-                var assertionId = assertionBatchCount == 1 ? "" : $" #{assertionNode.AssertionNumber + 1}/{assertionBatchCount}";
-                var assertionInfo = $" of {batchRef} #{splitCountOffset + splitNumber + 1}/{totalSplitCount} checked in {assertionBatchTime}ms";
+                var assertionId = assertionCount == 1 ? "" : $" #{assertionIndex + 1}/{assertionCount}";
+                var assertionInfo = $" of {batchRef} #{assertionBatchIndex + 1}/{assertionBatchCount} checked in {assertionBatchTime}ms";
 
                 information += $"assertion{assertionId}{assertionInfo}: *";
                 information += assertionNode.StatusVerification switch {
@@ -99,15 +86,14 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
                 information += "*  \n";
               }
 
-              assertionNumber++;
+              assertionIndex++;
             }
 
             if (information != "") {
               return CreateMarkdownHover(information);
             }
 
-            implementationNumber++;
-            splitCountOffset += implementationNode.AssertionBatchCount;
+            assertionBatchIndex++;
           }
           // Ok no assertion here. Maybe a method?
           if (node.Position.Line == positionStartingWithOne.Line &&

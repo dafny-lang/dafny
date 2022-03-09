@@ -10,7 +10,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -369,7 +368,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
       }
 
-      public void ReportMethodsBeingVerified(string extra = "") {
+      private void ReportMethodsBeingVerified(string extra = "") {
         var pending = document.VerificationNodeDiagnostic.Children
           .Where(diagnostic => diagnostic.Started && !diagnostic.Finished)
           .OrderBy(diagnostic => diagnostic.StartTime)
@@ -419,7 +418,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           lock (LockProcessing) {
             implementationNode.Stop();
             implementationNode.ResourceCount = verificationResult.ResourceCount;
-            implementationNode.SaveNewChildren();
 
             targetMethodNode.ResourceCount += verificationResult.ResourceCount;
             // Will be only executed by the last instance.
@@ -460,9 +458,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           } else if (implementationNode == null) {
             logger.LogError($"No implementation node at {implementation.tok.filename}:{implementation.tok.line}:{implementation.tok.col}");
           } else {
-            var splitNumber = implementationNode.AssertionBatchCount;
-            implementationNode.AssertionBatchTimes.Add((int)split.Checker.ProverRunTime.TotalMilliseconds);
-            var thisBatchCount = 0;
+            var assertionBatchIndex = implementationNode.GetNewAssertionBatchCount();
+            implementationNode.AddAssertionBatchTime((int)split.Checker.ProverRunTime.TotalMilliseconds);
 
             // Attaches the trace
             void AddChildOutcome(IToken token,
@@ -498,8 +495,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
                 StatusVerification = status,
                 StatusCurrent = CurrentStatus.Current,
                 RelatedRanges = relatedRanges,
-                AssertionBatchIndex = splitNumber,
-                AssertionNumber = thisBatchCount
+                AssertionBatchIndex = assertionBatchIndex
               };
               // Add this diagnostics as the new one to display once the implementation is fully verified
               implementationNode.AddNewChild(nodeDiagnostic);
@@ -556,9 +552,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
                   }
                 }
               }
-              thisBatchCount += 1;
             }
-            implementationNode.AssertionBatchCounts.Add(thisBatchCount);
             targetMethodNode.PropagateChildrenErrorsUp();
             targetMethodNode.RecomputeAssertionBatchNodeDiagnostics();
             diagnosticPublisher.PublishVerificationDiagnostics(document);

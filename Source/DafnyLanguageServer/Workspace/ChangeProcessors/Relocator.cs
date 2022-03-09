@@ -33,8 +33,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
       DidChangeTextDocumentParams changes, CancellationToken cancellationToken) {
       var migratedChildren = new ChangeProcessor(logger, loggerSymbolTable, changes.ContentChanges, cancellationToken)
         .MigrateNodeDiagnostic(originalNodeDiagnostic.Children);
-      originalNodeDiagnostic.Children = migratedChildren.ToList();
-      return originalNodeDiagnostic;
+      return originalNodeDiagnostic with {
+        Children = migratedChildren.ToList()
+      };
     }
 
 

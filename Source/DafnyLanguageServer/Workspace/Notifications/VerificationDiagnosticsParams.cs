@@ -223,7 +223,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       }
     }
 
-    public void Stop() {
+    public virtual void Stop() {
       if (StatusCurrent != CurrentStatus.Current || !Finished) {
         EndTime = DateTime.Now;
         StatusCurrent = CurrentStatus.Current;
@@ -342,12 +342,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
           var children = implementationNode.Children.OfType<AssertionNodeDiagnostic>().Where(
             assertionNode => assertionNode.AssertionBatchIndex == batchIndex).Cast<NodeDiagnostic>().ToList();
           if (children.Count > 0) {
+            var minPosition = children.MinBy(child => child.Position)!.Position;
+            var maxPosition = children.MaxBy(child => child.Range.End)!.Position;
             result.Add(new AssertionBatchNodeDiagnostic(
               "Assertion batch #" + result.Count,
               "assertion-batch-" + result.Count,
               Filename,
-              children[0].Position,
-              new Range(children[0].Position, children[^1].Range.End)
+              minPosition,
+              new Range(minPosition, maxPosition)
             ) {
               Children = children
             }.WithDuration(implementationNode.StartTime, implementationNode.AssertionBatchTimes[batchIndex]));
@@ -401,17 +403,31 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     // The range of this node.
     Range Range
   ) : NodeDiagnostic(DisplayName, Identifier, Filename, Position, Range) {
-    public List<int> AssertionBatchTimes { get; set; } = new();
-    public List<int> AssertionBatchCounts { get; set; } = new();
-
+    // The index of ImplementationNodeDiagnostic.AssertionBatchTimes
+    // is the same as the AssertionNodeDiagnostic.AssertionBatchIndex
+    public List<int> AssertionBatchTimes { get; private set; } = new();
+    private List<int> NewAssertionBatchTimes { get; set; } = new();
     public int AssertionBatchCount => AssertionBatchTimes.Count;
 
     private Implementation? implementation = null;
 
+    public int GetNewAssertionBatchCount() {
+      return NewAssertionBatchTimes.Count;
+    }
+
+    public void AddAssertionBatchTime(int milliseconds) {
+      NewAssertionBatchTimes.Add(milliseconds);
+    }
+
     public override void Start() {
       base.Start();
-      AssertionBatchTimes = new();
-      AssertionBatchCounts = new();
+      NewAssertionBatchTimes = new();
+    }
+
+    public override void Stop() {
+      base.Stop();
+      AssertionBatchTimes = NewAssertionBatchTimes;
+      SaveNewChildren();
     }
 
     public Implementation? GetImplementation() {
@@ -442,12 +458,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     /// <summary>
     /// Which assertion batch this assertion was taken from in its implementation node
     /// </summary>
-    public int AssertionBatchIndex { get; set; }
-
-    /// <summary>
-    /// 0-based position of the assertion it is in the assertion batch
-    /// </summary>
-    public int AssertionNumber { get; set; }
+    public int AssertionBatchIndex { get; init; }
 
     public AssertCmd? GetAssertion() {
       return assertion;
