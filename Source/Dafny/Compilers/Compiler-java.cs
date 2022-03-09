@@ -401,6 +401,15 @@ namespace Microsoft.Dafny {
       public ConcreteSyntaxTree/*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
         return Compiler.CreateMethod(m, typeArgs, createBody, Writer(m.IsStatic, createBody, m), forBodyInheritance, lookasideBody);
       }
+
+      public ConcreteSyntaxTree CreateFreshMethod(Method m) {
+        throw new NotImplementedException();
+      }
+
+      public ConcreteSyntaxTree CreateMockMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
+        throw new NotImplementedException();
+      }
+
       public ConcreteSyntaxTree/*?*/ CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, bool forBodyInheritance, bool lookasideBody) {
         return Compiler.CreateFunction(name, typeArgs, formals, resultType, tok, isStatic, createBody, member, Writer(isStatic, createBody, member), forBodyInheritance, lookasideBody);
       }
@@ -463,11 +472,73 @@ namespace Microsoft.Dafny {
       }
       return wGet;
     }
+
+    private string WriteDafnyStructure(Method m, ConcreteSyntaxTree wr) {
+      string res = "dafny.DafnySequence<? extends dafny.Tuple" + m.Ins.Count.ToString() + "<";
+      foreach (var o in m.Ins) {
+        res += this.BoxedTypeName(o.Type, wr, o.tok);
+        if (!o.Equals(m.Ins.Last())) {
+          res += ", ";
+        }
+      }
+      res += ">>";
+      return res;
+    }
+
+    private void WriteGlueCode(ConcreteSyntaxTree wr, string methodName, string dafnyStructure, int tupleLength) {
+      wr.WriteLine("public static java.util.Collection<Object[]> " + methodName + "Converter(" + dafnyStructure + "dafnyStructure) {");
+      wr.WriteLine("java.util.List<Object[]> newList = new java.util.ArrayList<>();");
+      wr.WriteLine("for (var tuple : dafnyStructure) {");
+      wr.Write("newList.add(new Object[] {");
+      for (int i = 0; i < tupleLength; i++) {
+        string tupleValue = "tuple.dtor__" + i.ToString() + "()";
+        wr.Write(tupleValue);
+        if (i < tupleLength - 1) {
+          wr.Write(", ");
+        }
+      }
+      wr.WriteLine("});");
+      wr.WriteLine("}");
+      wr.WriteLine("return newList;");
+      wr.WriteLine("}");
+
+      wr.WriteLine("public static java.util.Collection<Object[]> _" + methodName + "() {");
+      wr.WriteLine(dafnyStructure + " retValue =  " + methodName + "();");
+      wr.WriteLine("return " + methodName + "Converter(retValue);");
+      wr.WriteLine("}");
+
+      wr.WriteLine("@org.junit.jupiter.params.ParameterizedTest");
+      wr.WriteLine("@org.junit.jupiter.params.provider.MethodSource(\"_" + methodName + "\")");
+    }
+
+    private void AddTestCheckerIfNeeded(Declaration decl, ConcreteSyntaxTree wr) {
+      if (!Attributes.Contains(decl.Attributes, "test")) {
+        return;
+      }
+      var args = Attributes.FindExpressions(decl.Attributes, "test");
+      Console.Out.WriteLine(decl.Name);
+      if (args.Count == 2 && args[0] is LiteralExpr && args[1] is LiteralExpr) {
+        LiteralExpr sourceType = (LiteralExpr)args[0];
+        if (sourceType.Value.ToString().Equals("MethodSource")) {
+          Method m = (Method) decl;
+          LiteralExpr methodNameExpr = (LiteralExpr) args[1];
+          string dafnyStructure = WriteDafnyStructure(m, wr);
+          WriteGlueCode(wr, methodNameExpr.Value.ToString(), dafnyStructure, m.Ins.Count);
+          return;
+        }
+      }
+      else {
+        wr.WriteLine("@org.junit.jupiter.api.Test");
+        return;
+      }
+    }
+
     protected ConcreteSyntaxTree CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
       if (m.IsExtern(out _, out _) && (m.IsStatic || m is Constructor)) {
         // No need for an abstract version of a static method or a constructor
         return null;
       }
+      AddTestCheckerIfNeeded(m, wr);
       string targetReturnTypeReplacement = null;
       int nonGhostOuts = 0;
       int nonGhostIndex = 0;
@@ -528,6 +599,7 @@ namespace Microsoft.Dafny {
         // No need for abstract version of static method
         return null;
       }
+      AddTestCheckerIfNeeded(member, wr);
       var customReceiver = createBody && !forBodyInheritance && NeedsCustomReceiver(member);
       var receiverType = UserDefinedType.FromTopLevelDecl(member.tok, member.EnclosingClass);
       wr.Write("public {0}{1}", !createBody && !(member.EnclosingClass is TraitDecl) ? "abstract " : "", isStatic || customReceiver ? "static " : "");
@@ -586,7 +658,7 @@ namespace Microsoft.Dafny {
       return $"<{Util.Comma(targs, IdName)}>{suffix}";
     }
 
-    protected override string TypeName(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok, MemberDecl/*?*/ member = null) {
+    internal override string TypeName(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok, MemberDecl/*?*/ member = null) {
       return TypeName(type, wr, tok, boxed: false, member);
     }
 

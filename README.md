@@ -83,6 +83,26 @@ Then run
 
 This will install pre-commit hooks in your .git/hooks directory.
 
+# Unit Testing
+
+The C# and Java compilers can inject test annotations for XUnit and JUnit, respectively.  You must provide the :test attribute for all unit tests you want annotated.
+
+    method {:test} test_example()
+
+# Parameterized Testing
+
+Dafny provides support for unit tests with parameters provided by a method source.  To invoke this behavior, your tests should be of this form.
+
+    method {:test "MethodSource", "MethodSourceName"} test_example([parameters])
+
+Your method source's signature should be of this form
+
+    static method MethodSourceName() returns (inputs : seq<([parameter-types])>)
+
+where the method is static and the return type is a sequence built of types matching the parameters your test is expecting.  
+
+The Java compiler will convert the above code into JUnit; the C# compiler will convert it into XUnit.
+
 # License
 
 Dafny itself is licensed under the MIT license. (See LICENSE.txt in the root directory for details.) The subdirectory `third_party` contains third party material; see NOTICES.txt for more details.
