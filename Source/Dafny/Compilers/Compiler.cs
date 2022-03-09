@@ -38,7 +38,7 @@ namespace Microsoft.Dafny {
     protected Method enclosingMethod;  // non-null when a method body is being translated
     protected Function enclosingFunction;  // non-null when a function body is being translated
 
-    protected readonly FreshIdGenerator idGenerator = new FreshIdGenerator();
+    protected internal readonly FreshIdGenerator idGenerator = new FreshIdGenerator();
 
     static FreshIdGenerator compileNameIdGenerator = new FreshIdGenerator();
     public static string FreshId() {
@@ -242,7 +242,8 @@ namespace Microsoft.Dafny {
     /// </summary>
     protected abstract ConcreteSyntaxTree EmitTailCallStructure(MemberDecl member, ConcreteSyntaxTree wr);
     protected abstract void EmitJumpToTailCallStart(ConcreteSyntaxTree wr);
-    protected abstract string TypeName(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok, MemberDecl/*?*/ member = null);
+
+    internal abstract string TypeName(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok, MemberDecl/*?*/ member = null);
     // For cases where a type looks different when it's an argument, such as (*sigh*) Java primitives
     protected virtual string TypeArgumentName(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok) {
       return TypeName(type, wr, tok);
@@ -483,8 +484,9 @@ namespace Microsoft.Dafny {
     /// Labels the code written to the TargetWriter returned, in such that way that any
     /// emitted break to the label inside that code will abruptly end the execution of the code.
     /// </summary>
-    protected abstract ConcreteSyntaxTree CreateLabeledCode(string label, ConcreteSyntaxTree wr);
+    protected abstract ConcreteSyntaxTree CreateLabeledCode(string label, bool createContinueLabel, ConcreteSyntaxTree wr);
     protected abstract void EmitBreak(string/*?*/ label, ConcreteSyntaxTree wr);
+    protected abstract void EmitContinue(string label, ConcreteSyntaxTree wr);
     protected abstract void EmitYield(ConcreteSyntaxTree wr);
     protected abstract void EmitAbsurd(string/*?*/ message, ConcreteSyntaxTree wr);
     protected virtual void EmitAbsurd(string message, ConcreteSyntaxTree wr, bool needIterLimit) {
@@ -510,16 +512,17 @@ namespace Microsoft.Dafny {
         return thn;
       }
     }
-    protected virtual ConcreteSyntaxTree EmitWhile(Bpl.IToken tok, List<Statement> body, ConcreteSyntaxTree wr) {  // returns the guard writer
+    protected virtual ConcreteSyntaxTree EmitWhile(Bpl.IToken tok, List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr) {  // returns the guard writer
       ConcreteSyntaxTree guardWriter;
       var wBody = CreateWhileLoop(out guardWriter, wr);
+      wBody = EmitContinueLabel(labels, wBody);
       Coverage.Instrument(tok, "while body", wBody);
       TrStmtList(body, wBody);
       return guardWriter;
     }
 
     protected abstract ConcreteSyntaxTree EmitForStmt(Bpl.IToken tok, IVariable loopIndex, bool goingUp, string /*?*/ endVarName,
-      List<Statement> body, ConcreteSyntaxTree wr);
+      List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr);
 
     protected virtual ConcreteSyntaxTree CreateWhileLoop(out ConcreteSyntaxTree guardWriter, ConcreteSyntaxTree wr) {
       wr.Write("while (");
@@ -833,7 +836,7 @@ namespace Microsoft.Dafny {
     /// For a member c, F, or M:
     ///     (co-)datatype/class/trait <<cl>> {
     ///       <<isStatic>> const c ...
-    ///       <<isStatic>> function method F ...
+    ///       <<isStatic>> function F ...
     ///       <<isStatic>> method M ...
     ///     }
     /// does a type parameter of "cl"
@@ -848,7 +851,7 @@ namespace Microsoft.Dafny {
       throw new NotImplementedException();
     }
 
-    protected List<TypeArgumentInstantiation> ForTypeParameters(List<TypeArgumentInstantiation> typeArgs, MemberDecl member, bool lookasideBody) {
+    protected internal List<TypeArgumentInstantiation> ForTypeParameters(List<TypeArgumentInstantiation> typeArgs, MemberDecl member, bool lookasideBody) {
       Contract.Requires(member is ConstantField || member is Function || member is Method);
       Contract.Requires(typeArgs != null);
       var memberHasBody =
@@ -1264,8 +1267,7 @@ namespace Microsoft.Dafny {
         throw new NotImplementedException();
       }
 
-      public ConcreteSyntaxTree CreateMockMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance,
-        bool lookasideBody) {
+      public ConcreteSyntaxTree CreateMockMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
         throw new NotImplementedException();
       }
 
@@ -2713,7 +2715,12 @@ namespace Microsoft.Dafny {
         }
       } else if (stmt is BreakStmt) {
         var s = (BreakStmt)stmt;
-        EmitBreak(s.TargetStmt.Labels.Data.AssignUniqueId(idGenerator), wr);
+        var label = s.TargetStmt.Labels.Data.AssignUniqueId(idGenerator);
+        if (s.IsContinue) {
+          EmitContinue(label, wr);
+        } else {
+          EmitBreak(label, wr);
+        }
       } else if (stmt is ProduceStmt) {
         var s = (ProduceStmt)stmt;
         var isTailRecursiveResult = false;
@@ -2915,10 +2922,10 @@ namespace Microsoft.Dafny {
           ConcreteSyntaxTree guardWriter;
           var wBody = CreateWhileLoop(out guardWriter, wr);
           guardWriter.Write("true");
-          EmitBreak(s.Labels?.Data.AssignUniqueId(idGenerator), wBody);
+          EmitBreak(null, wBody);
           Coverage.UnusedInstrumentationPoint(s.Body.Tok, "while body");
         } else {
-          var guardWriter = EmitWhile(s.Body.Tok, s.Body.Body, wr);
+          var guardWriter = EmitWhile(s.Body.Tok, s.Body.Body, s.Labels, wr);
           TrExpr(s.Guard, guardWriter, false);
         }
 
@@ -2931,6 +2938,7 @@ namespace Microsoft.Dafny {
           ConcreteSyntaxTree whileGuardWriter;
           var w = CreateWhileLoop(out whileGuardWriter, wr);
           whileGuardWriter.Write("true");
+          w = EmitContinueLabel(s.Labels, w);
           foreach (var alternative in s.Alternatives) {
             ConcreteSyntaxTree guardWriter;
             var thn = EmitIf(out guardWriter, true, w);
@@ -2956,7 +2964,7 @@ namespace Microsoft.Dafny {
           wr.Write(GenerateLhsDecl(endVarName, s.End.Type, wr, s.End.tok));
           EmitAssignmentRhs(s.End, false, wr);
         }
-        var startExprWriter = EmitForStmt(s.Tok, s.LoopIndex, s.GoingUp, endVarName, s.Body.Body, wr);
+        var startExprWriter = EmitForStmt(s.Tok, s.LoopIndex, s.GoingUp, endVarName, s.Body.Body, s.Labels, wr);
         TrExpr(s.Start, startExprWriter, false);
 
       } else if (stmt is ForallStmt) {
@@ -3545,7 +3553,7 @@ namespace Microsoft.Dafny {
       var iterLimit = "_iterLimit_" + c;
 
       bool needIterLimit = lhss.Count != 1 && bounds.Exists(bnd => (bnd.Virtues & ComprehensionExpr.BoundedPool.PoolVirtues.Finite) == 0);
-      wr = CreateLabeledCode(doneLabel, wr);
+      wr = CreateLabeledCode(doneLabel, false, wr);
       var wrOuter = wr;
       if (needIterLimit) {
         wr = CreateDoublingForLoop(iterLimit, 5, wr);
@@ -4159,13 +4167,21 @@ namespace Microsoft.Dafny {
         //   ss          // translation of ss has side effect of filling the top copyInstrWriters
         var w = writer;
         if (ss.Labels != null) {
-          w = CreateLabeledCode(ss.Labels.Data.AssignUniqueId(idGenerator), w);
+          w = CreateLabeledCode(ss.Labels.Data.AssignUniqueId(idGenerator), false, w);
         }
         var prelude = w.Fork();
         copyInstrWriters.Push(prelude);
         TrStmt(ss, w);
         copyInstrWriters.Pop();
       }
+    }
+
+    protected ConcreteSyntaxTree EmitContinueLabel(LList<Label> loopLabels, ConcreteSyntaxTree writer) {
+      Contract.Requires(writer != null);
+      if (loopLabels != null) {
+        writer = CreateLabeledCode(loopLabels.Data.AssignUniqueId(idGenerator), true, writer);
+      }
+      return writer;
     }
 
     void TrLocalVar(IVariable v, bool alwaysInitialize, ConcreteSyntaxTree wr) {
@@ -4268,7 +4284,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Before calling TrExpr(expr), the caller must have spilled the let variables declared in "expr".
     /// </summary>
-    protected void TrExpr(Expression expr, ConcreteSyntaxTree wr, bool inLetExprBody) {
+    protected internal void TrExpr(Expression expr, ConcreteSyntaxTree wr, bool inLetExprBody) {
       Contract.Requires(expr != null);
       Contract.Requires(wr != null);
 

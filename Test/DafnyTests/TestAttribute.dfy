@@ -1,4 +1,4 @@
-// RUN: %dafny /compileVerbose:1 /compile:0 /spillTargetCode:3 /noVerify "%s" > "%t"
+// RUN: %dafny /compileVerbose:1 /compile:0 /spillTargetCode:3 /noVerify /compileMocks "%s" > "%t"
 // RUN: dotnet test -v:q -noLogo %S 2> %t.testresults.raw || true
 // Remove the timestamp prefixes on the expected errors
 // RUN: sed 's/[^]]*\]//' "%t".testresults.raw >> "%t"

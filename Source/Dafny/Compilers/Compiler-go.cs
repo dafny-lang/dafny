@@ -1008,8 +1008,7 @@ namespace Microsoft.Dafny {
         throw new NotImplementedException();
       }
 
-      public ConcreteSyntaxTree CreateMockMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance,
-        bool lookasideBody) {
+      public ConcreteSyntaxTree CreateMockMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
         throw new NotImplementedException();
       }
 
@@ -1334,7 +1333,7 @@ namespace Microsoft.Dafny {
       wr.WriteLine("goto TAIL_CALL_START");
     }
 
-    protected override string TypeName(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok, MemberDecl/*?*/ member = null) {
+    internal override string TypeName(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok, MemberDecl/*?*/ member = null) {
       Contract.Ensures(Contract.Result<string>() != null);
       Contract.Assume(type != null);  // precondition; this ought to be declared as a Requires in the superclass
 
@@ -1789,10 +1788,11 @@ namespace Microsoft.Dafny {
       wr.WriteLine();
     }
 
-    protected override ConcreteSyntaxTree CreateLabeledCode(string label, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree CreateLabeledCode(string label, bool createContinueLabel, ConcreteSyntaxTree wr) {
       var w = wr.Fork();
-      wr.WriteLine("goto L{0};", label);
-      wr.Fork(-1).WriteLine("L{0}:", label);
+      var prefix = createContinueLabel ? "C" : "L";
+      wr.WriteLine($"goto {prefix}{label};");
+      wr.Fork(-1).WriteLine($"{prefix}{label}:");
       return w;
     }
 
@@ -1802,6 +1802,10 @@ namespace Microsoft.Dafny {
       } else {
         wr.WriteLine("goto L{0}", label);
       }
+    }
+
+    protected override void EmitContinue(string label, ConcreteSyntaxTree wr) {
+      wr.WriteLine("goto C{0};", label);
     }
 
     protected override void EmitYield(ConcreteSyntaxTree wr) {
@@ -1836,7 +1840,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override ConcreteSyntaxTree EmitForStmt(Bpl.IToken tok, IVariable loopIndex, bool goingUp, string /*?*/ endVarName,
-      List<Statement> body, ConcreteSyntaxTree wr) {
+      List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr) {
 
       wr.Write($"for {loopIndex.CompileName} := ");
       var startWr = wr.Fork();
@@ -1871,6 +1875,7 @@ namespace Microsoft.Dafny {
           bodyWr.WriteLine($"{loopIndex.CompileName}--");
         }
       }
+      bodyWr = EmitContinueLabel(labels, bodyWr);
       TrStmtList(body, bodyWr);
 
       return startWr;

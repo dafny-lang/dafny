@@ -1,8 +1,8 @@
 // RUN: %dafny /verificationLogger:csv;LogFileName="%t.csv" "%s"
 // RUN: %OutputCheck --file-to-check "%t.csv" "%s"
 
-// CHECK: TestResult\.DisplayName,TestResult\.Outcome,TestResult\.Duration
-// CHECK-NEXT: Impl\$\$_module.__default\.ExampleWithSplits\$\$1,Passed,.*
+// CHECK: TestResult\.DisplayName,TestResult\.Outcome,TestResult\.Duration,TestResult\.ResourceCount
+// CHECK-NEXT: Impl\$\$_module.__default\.ExampleWithSplits\$\$1,Passed,.*,.*
 
 method ExampleWithSplits() returns (y: int)
   ensures y >= 0

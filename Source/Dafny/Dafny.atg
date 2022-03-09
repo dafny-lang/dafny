@@ -77,24 +77,24 @@ enum AllowedDeclModifiers {
 /// It is used in error messages.
 /// Any declaration modifiers that are present but not allowed are cleared.
 ///</summary>
-void CheckDeclModifiers(DeclModifierData dmod, string declCaption, AllowedDeclModifiers allowed)
+void CheckDeclModifiers(ref DeclModifierData dmod, string declCaption, AllowedDeclModifiers allowed)
 {
   declCaption = (declCaption.StartsWith("i") || declCaption.StartsWith("o") ? "an " : "a ") + declCaption;
   if (dmod.IsAbstract && ((allowed & AllowedDeclModifiers.Abstract) == 0)) {
-    SemErr(dmod.AbstractToken, $"{declCaption} cannot be declared 'abstract'.");
+    SemErr(dmod.AbstractToken, $"{declCaption} cannot be declared 'abstract'");
     dmod.IsAbstract = false;
   }
   if (dmod.IsGhost) {
     if ((allowed & AllowedDeclModifiers.AlreadyGhost) != 0) {
-      SemErr(dmod.GhostToken, $"{declCaption} cannot be declared ghost (they are 'ghost' by default).");
+      SemErr(dmod.GhostToken, $"{declCaption} cannot be declared 'ghost' (it is 'ghost' by default)");
       dmod.IsGhost = false;
     } else if ((allowed & AllowedDeclModifiers.Ghost) == 0) {
-      SemErr(dmod.GhostToken, $"{declCaption} cannot be declared 'ghost'.");
+      SemErr(dmod.GhostToken, $"{declCaption} cannot be declared 'ghost'");
       dmod.IsGhost = false;
     }
   }
   if (dmod.IsStatic && ((allowed & AllowedDeclModifiers.Static) == 0)) {
-    SemErr(dmod.StaticToken, $"{declCaption} cannot be declared 'static'.");
+    SemErr(dmod.StaticToken, $"{declCaption} cannot be declared 'static'");
     dmod.IsStatic = false;
   }
 }
@@ -874,7 +874,8 @@ Dafny
   }
   { TopDecl<defaultModule, membersDefaultClass, /* isTopLevel */ true, /* isAbstract */ false> }
   (. // find the default class in the default module, then append membersDefaultClass to its member list
-		 if (membersDefaultClass.Count == 0 && defaultModule.Includes.Count == 0 && defaultModule.TopLevelDecls.Count == 0) {
+		 if (membersDefaultClass.Count == 0 && defaultModule.Includes.Count == 0 && defaultModule.TopLevelDecls.Count == 0
+		     && (defaultModule.PrefixNamedModules == null || defaultModule.PrefixNamedModules.Count == 0)) {
 		   var fileName = DafnyOptions.Clo.UseBaseNameForFileName 
                    ? Path.GetFileName(scanner.FullFilename) 
                    : Path.GetRelativePath(Directory.GetCurrentDirectory(), scanner.FullFilename);
@@ -962,7 +963,7 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
      ModuleDefinition module;
      submodule = null; // appease compiler
      bool isAbstract = dmod.IsAbstract;
-     CheckDeclModifiers(dmod, "module", AllowedDeclModifiers.Abstract);
+     CheckDeclModifiers(ref dmod, "module", AllowedDeclModifiers.Abstract);
    .)
    { Attribute<ref attrs> }
    ModuleQualifiedName<out idQualified>
@@ -1120,7 +1121,7 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out TopLevel
      List<TypeParameter> typeArgs = new List<TypeParameter>();
      List<MemberDecl> members = new List<MemberDecl>();
      IToken bodyStart;
-     CheckDeclModifiers(dmodClass, "class", AllowedDeclModifiers.None);
+     CheckDeclModifiers(ref dmodClass, "class", AllowedDeclModifiers.None);
      DeclModifierData dmod;
   .)
   SYNC
@@ -1150,7 +1151,7 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out TopLevel
 TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*!*/ trait>
 = (. Contract.Requires(module != null);
      Contract.Ensures(Contract.ValueAtReturn(out trait) != null);
-     CheckDeclModifiers(dmodIn, "trait", AllowedDeclModifiers.None);
+     CheckDeclModifiers(ref dmodIn, "trait", AllowedDeclModifiers.None);
      IToken/*!*/ id;
      Type parentTrait;
      List<Type> parentTraits = new List<Type>();
@@ -1225,7 +1226,7 @@ DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDe
      IToken bodyStart = Token.NoToken;  // dummy assignment
      bool isRefining = false;
      bool co = false;
-     CheckDeclModifiers(dmod, "datatype or codatatype", AllowedDeclModifiers.None);
+     CheckDeclModifiers(ref dmod, "datatype or codatatype", AllowedDeclModifiers.None);
      var members = new List<MemberDecl>();
   .)
   SYNC
@@ -1283,7 +1284,7 @@ FieldDecl<.DeclModifierData dmod, bool isValueType, List<MemberDecl> mm.>
 = (. Contract.Requires(cce.NonNullElements(mm));
      Attributes attrs = null;
      IToken/*!*/ id;  Type/*!*/ ty;
-     CheckDeclModifiers(dmod, "field", AllowedDeclModifiers.Ghost);
+     CheckDeclModifiers(ref dmod, "field", AllowedDeclModifiers.Ghost);
      if (isValueType) {
        // we're about to produce an error; put fields into a throw-away list, so we don't return them
        mm = new List<MemberDecl>();
@@ -1311,7 +1312,7 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool mo
        errors.Warning(dmod.StaticToken, "module-level const declarations are always non-instance, so the 'static' keyword is not allowed here");
        dmod.IsStatic = false;
      }
-     CheckDeclModifiers(dmod, "field", AllowedDeclModifiers.Ghost | AllowedDeclModifiers.Static);
+     CheckDeclModifiers(ref dmod, "field", AllowedDeclModifiers.Ghost | AllowedDeclModifiers.Static);
   .)
   SYNC
   "const"
@@ -1339,7 +1340,7 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
      Expression constraint;
      Expression witness = null;
      bool isRefining = false;
-     CheckDeclModifiers(dmod, "newtype", AllowedDeclModifiers.None);
+     CheckDeclModifiers(ref dmod, "newtype", AllowedDeclModifiers.None);
      var members = new List<MemberDecl>();
   .)
   "newtype"
@@ -1431,7 +1432,7 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
        td = new OpaqueTypeDecl(id, id.val, module, characteristics, typeArgs, members, attrs, isRefining);
      }
   .)
-  (. CheckDeclModifiers(dmod, kind, AllowedDeclModifiers.None); .)
+  (. CheckDeclModifiers(ref dmod, kind, AllowedDeclModifiers.None); .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -1561,7 +1562,7 @@ IteratorDecl<DeclModifierData dmod, ModuleDefinition module, out IteratorDecl/*!
      IToken signatureEllipsis = null;
      IToken bodyStart = Token.NoToken;
      IToken bodyEnd = Token.NoToken;
-     CheckDeclModifiers(dmod, "iterator", AllowedDeclModifiers.None);
+     CheckDeclModifiers(ref dmod, "iterator", AllowedDeclModifiers.None);
   .)
   SYNC
   "iterator"
@@ -1716,7 +1717,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
                                        allowed = AllowedDeclModifiers.Ghost;
                                     .)
   )                                 (. keywordToken = t;
-                                       CheckDeclModifiers(dmod, caption, allowed); .)
+                                       CheckDeclModifiers(ref dmod, caption, allowed); .)
   { Attribute<ref attrs> }
   [ MethodFunctionName<out id>               (. hasName = true; .)
   ]
@@ -2122,41 +2123,70 @@ GenericInstantiation<.List<Type> gt.>
 
 /*------------------------------------------------------------------------*/
 FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
-= (. Contract.Ensures(Contract.ValueAtReturn(out f)!=null);
+= (. Contract.Ensures(Contract.ValueAtReturn(out f) != null);
      Attributes attrs = null;
      IToken/*!*/ id = Token.NoToken;  // to please compiler
-     List<TypeParameter/*!*/> typeArgs = new List<TypeParameter/*!*/>();
-     List<Formal/*!*/> formals = new List<Formal/*!*/>();
+     List<TypeParameter> typeArgs = new List<TypeParameter>();
+     List<Formal> formals = new List<Formal>();
      Formal/*!*/ result = null;
      Type/*!*/ returnType = new BoolType();
-     List<AttributedExpression/*!*/> reqs = new List<AttributedExpression/*!*/>();
-     List<AttributedExpression/*!*/> ens = new List<AttributedExpression/*!*/>();
-     List<FrameExpression/*!*/> reads = new List<FrameExpression/*!*/>();
-     List<Expression/*!*/> decreases;
+     List<AttributedExpression> reqs = new List<AttributedExpression>();
+     List<AttributedExpression> ens = new List<AttributedExpression>();
+     List<FrameExpression> reads = new List<FrameExpression>();
+     List<Expression> decreases;
      Expression body = null;
      bool isPredicate = false; bool isLeastPredicate = false; bool isGreatestPredicate = false;
-     bool isFunctionMethod = false;
+     IToken/*?*/ headToken = null; // used only for a basic "function" or "predicate"
+     IToken/*?*/ functionMethodToken = null; // used only for a basic "function" or "predicate"
      IToken bodyStart = Token.NoToken;
      IToken bodyEnd = Token.NoToken;
      IToken signatureEllipsis = null;
      bool isTwoState = false;
      ExtremePredicate.KType kType = ExtremePredicate.KType.Unspecified;
   .)
+  /* ========================================
+   * This production parses variations of functions. By the time control reaches this point, modifiers like
+   * "static", "ghost", and "abstract" have already been parsed; these are recorded into parameter "dmod" and
+   * get checked by one of the calls to "CheckDeclModifiers" below. The "ghost" keyword (which was already parsed,
+   * if present in the input) and the next grammar elements to be parsed fall into one of the
+   * following 4 schemas:
+   *
+   *   0:   [ ghost ] [ twostate ] function [ method ]    signature  [ "{" Expr "}" [ by method BlockStmt ] ]
+   *   1:   [ ghost ] [ twostate ] predicate [ method ]   signature  [ "{" Expr "}" [ by method BlockStmt ] ]
+   *   2:   [ ghost ] least predicate                     signature  [ "{" Expr "}" [ by method BlockStmt ] ]
+   *   3:   [ ghost ] greatest predicate                  signature  [ "{" Expr "}" [ by method BlockStmt ] ]
+   *
+   * Parsed below, but not shown in these 4 schemas, are the "..." token, which may be part of the "signature",
+   * and various deprecated synonyms for the least/greatest variations.
+   *
+   * A quick look at the code below suggests that "twostate" may be parsed in all 4 of these schemas, but
+   * the lookahead that has brought control here to the "FunctionDecl" production has already ruled out the
+   * "twostate least" and "twostate greatest" combinations. That's why schemas 2 and 3 above do not mention
+   * the possibility of "twostate".
+   *
+   * Several of the combinations shown in the 4 schemas above are not allowed. In particular:
+   *
+   *     - "ghost" is never allowed together with "twostate", "least", or "greatest"
+   *     - "method" is never allowed together with "twostate", "least", or "greatest"
+   *     - "by method" is never allowed together with "twostate", "least", or "greatest"
+   *     - "by method" is not allowed with either "ghost" or "method"
+   *     - "ghost" and "method" are never allowed together, and which of the combinations
+   *           ghost function/predicate
+   *                 function/predicate
+   *                 function/predicate method
+   *       are allowed depends on the value of command-line option "/functionSyntax".
+   *
+   * Because of when the various keywords and grammar elements are parsed, the parser reads one of the 4 schemas
+   * above in its entirety before the code checks for legal combinations. So, up next is the parsing of each of
+   * the 4 schemas, up until and including "signature".         
+   */
+
   /* ----- function ----- */
-  [ "twostate"               (. isTwoState = true; .)
+  [ "twostate"   (. isTwoState = true; .)
   ]
-  ( "function"
-    [ "method"                 (. if (isTwoState) { SemErr(t, "twostate functions are supported only as a ghosts, not as function methods"); }
-                                  else { isFunctionMethod = true; }
-                               .)
+  ( "function"   (. headToken = t; .)
+    [ "method"   (. functionMethodToken = t; .)
     ]
-    (. AllowedDeclModifiers allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static;
-       string caption = "function";
-       if (isFunctionMethod) {
-         caption = "function method";
-       }
-       CheckDeclModifiers(dmod, caption, allowed);
-    .)
     { Attribute<ref attrs> }
     MethodFunctionName<out id>
     (
@@ -2165,29 +2195,20 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
       ":"
       (  IF(FollowedByColon())
          "("
-           GIdentType<false, false, false, out var resultId, out var ty, out var isGhost, out var isOld, out var isNameOnly>
-           (. Contract.Assert(!isGhost && !isOld && !isNameOnly);
+           GIdentType<false, false, false, out var resultId, out var ty, out var resultIsGhost, out var isOld, out var isNameOnly>
+           (. Contract.Assert(!resultIsGhost && !isOld && !isNameOnly);
               result = new Formal(resultId, resultId.val, ty, false, false, null, false);
            .)
          ")"
          | Type<out returnType>
       )
-    | ellipsis                 (. signatureEllipsis = t; .)
+    | ellipsis   (. signatureEllipsis = t; .)
     )
 
   /* ----- predicate ----- */
-  | "predicate"                (. isPredicate = true; .)
-    [ "method"                 (. if (isTwoState) { SemErr(t, "twostate predicates are supported only as a ghosts, not as predicate methods"); }
-                                  else { isFunctionMethod = true; }
-                               .)
+  | "predicate"  (. headToken = t; isPredicate = true; .)
+    [ "method"   (. functionMethodToken = t; .)
     ]
-    (. AllowedDeclModifiers allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static;
-       string caption = "predicate";
-       if (isFunctionMethod) {
-         caption = "predicate method";
-       }
-       CheckDeclModifiers(dmod, caption, allowed);
-    .)
     { Attribute<ref attrs> }
     MethodFunctionName<out id>
     (
@@ -2196,7 +2217,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
       ]
       [ ":" Type<out returnType> (. SemErr(t, "predicates do not have an explicitly declared return type; it is always bool"); .)
       ]
-    | ellipsis                   (. signatureEllipsis = t; .)
+    | ellipsis   (. signatureEllipsis = t; .)
     )
 
   /* ----- least predicate ----- */
@@ -2206,16 +2227,13 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
     | "inductive"              (. errors.Deprecated(t, "the old keyword phrase 'inductive predicate' has been renamed to 'least predicate'"); .)
     )
     "predicate"
-    (. isLeastPredicate = true;
-       CheckDeclModifiers(dmod, "least predicate",
-         AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static);
-    .)
+    (. isLeastPredicate = true; .)
     { Attribute<ref attrs> }
     MethodFunctionName<out id>
     (
       [ GenericParameters<typeArgs, false> ]
       [ KType<ref kType> ]
-      Formals<true, isFunctionMethod, false, formals>
+      Formals<true, false, false, formals>
       [ ":"                    (. SemErr(t, "least predicates do not have an explicitly declared return type; it is always bool"); .)
       ]
     | ellipsis                 (. signatureEllipsis = t; .)
@@ -2227,16 +2245,13 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
     ( "greatest" "predicate"
     | "copredicate"              (. errors.Deprecated(t, "the old keyword 'copredicate' has been renamed to the keyword phrase 'greatest predicate'"); .)
     )
-    (. isGreatestPredicate = true;
-       CheckDeclModifiers(dmod, "greatest predicate",
-         AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static);
-    .)
+    (. isGreatestPredicate = true; .)
     { Attribute<ref attrs> }
     MethodFunctionName<out id>
     (
       [ GenericParameters<typeArgs, false> ]
       [ KType<ref kType> ]
-      Formals<true, isFunctionMethod, false, formals>
+      Formals<true, false, false, formals>
       [ ":"                    (. SemErr(t, "greatest predicates do not have an explicitly declared return type; it is always bool"); .)
       ]
     | ellipsis                 (. signatureEllipsis = t; .)
@@ -2246,52 +2261,170 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
   (. decreases = isLeastPredicate || isGreatestPredicate ? null : new List<Expression/*!*/>(); .)
   FunctionSpec<reqs, reads, ens, decreases>
   (. IToken byMethodTok = null; BlockStmt byMethodBody = null; .)
-  [ FunctionBody<out body, out bodyStart, out bodyEnd, out byMethodTok, out byMethodBody>
-    (. if (byMethodBody != null) {
-         if (isTwoState) {
-           SemErr(byMethodBody.Tok, "a 'by method' implementation is not allowed on a twostate function");
-         } else if (isLeastPredicate || isGreatestPredicate) {
-           SemErr(byMethodBody.Tok, "a 'by method' implementation is not allowed on an extreme predicate");
-         } else if (isFunctionMethod) {
-           var what = isPredicate ? "predicate" : "function";
-           SemErr(byMethodBody.Tok,
-            $"to use a 'by method' implementation with a {what}, declare {id.val} using '{what}', not '{what} method'");
-         }
+  [ FunctionBody<out body, out bodyStart, out bodyEnd, out byMethodTok, out byMethodBody> ]
+
+  (. /* ========================================
+      * Check if the keywords parsed above are allowed. We divide these checks into two broad categories,
+      * depending on whether or not "by method" was parsed. (For reference, see the 4 schemas above.)
+      */
+
+     if (byMethodBody != null) {
+       /* ----- with "by method" ----- */
+       var what = isPredicate || isLeastPredicate || isGreatestPredicate ? "predicate" : "function";
+ 
+       if (isTwoState) {
+         SemErr(byMethodBody.Tok, $"a 'by method' implementation is not allowed on a twostate {what}");
+         byMethodBody = null;
+         functionMethodToken = null; // to avoid a confusing error message below, drop the "method" keyword, if present
+
+       } else if (isLeastPredicate || isGreatestPredicate) {
+         SemErr(byMethodBody.Tok, "a 'by method' implementation is not allowed on an extreme predicate");
+         byMethodBody = null;
+         functionMethodToken = null; // to avoid a confusing error message below, drop the "method" keyword, if present
        }
-    .)
-  ]
-  (. // Now that we know if there's a "by method" clause, check in-parameters for uses of "ghost"
-     if (byMethodBody == null && !isFunctionMethod) {
+
+       /* Neither "ghost" nor "method" is allowed. After generating the appropriate error messages, update the
+        * "functionMethodToken" and "dmod" variables to erase having seen any illegal tokens.
+        */
+       if (functionMethodToken != null) {
+         SemErr(functionMethodToken,
+           $"to use a 'by method' implementation with a {what}, declare '{id.val}' using '{what}', not '{what} method'");
+         functionMethodToken = null;
+       }
+       AllowedDeclModifiers allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static;
+       CheckDeclModifiers(ref dmod, what + "-by-method", allowed);
+
+     } else {
+       /* ----- without "by method" ----- */
+
+       var what = isPredicate ? "predicate" : "function";
+       if (isTwoState || isLeastPredicate || isGreatestPredicate) {
+         var adjective = isTwoState ? "twostate" : isLeastPredicate ? "least" : "greatest";
+
+         if (functionMethodToken != null) {
+           SemErr(functionMethodToken, $"a {adjective} {what} is supported only as ghost, not as a compiled {what}");
+           functionMethodToken = null;
+         }
+         AllowedDeclModifiers allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static;
+         CheckDeclModifiers(ref dmod, $"{adjective} {what}", allowed);
+
+       } else {
+         // basic function or predicate
+         Contract.Assert(headToken != null);
+         if (functionMethodToken != null) {
+           if (isPredicate && DafnyOptions.O.FunctionSyntax == DafnyOptions.FunctionSyntaxOptions.ExperimentalPredicateAlwaysGhost) {
+             SemErr(t, $"a {what} is always ghost and is declared with '{what}'");
+             functionMethodToken = null;
+             dmod.IsGhost = false; // don't report errors about 'ghost', too
+           } else if (DafnyOptions.O.FunctionSyntax == DafnyOptions.FunctionSyntaxOptions.Version4 ||
+                      DafnyOptions.O.FunctionSyntax == DafnyOptions.FunctionSyntaxOptions.ExperimentalPredicateAlwaysGhost) {
+             SemErr(t, $"the phrase '{what} method' is not allowed; to declare a compiled {what}, use just '{what}'");
+             functionMethodToken = null;
+           } else if (dmod.IsGhost && DafnyOptions.O.FunctionSyntax != DafnyOptions.FunctionSyntaxOptions.Version3) {
+             SemErr(t, $"there is no such thing as a 'ghost {what} method'");
+             functionMethodToken = null;
+           }
+         } else if (!dmod.IsGhost && DafnyOptions.O.FunctionSyntax == DafnyOptions.FunctionSyntaxOptions.Migration3To4) {
+           SemErr(headToken, $"a {what} must be declared as either 'ghost {what}' or '{what} method'");
+         }
+         AllowedDeclModifiers allowed = AllowedDeclModifiers.Static;
+         if (isPredicate && DafnyOptions.O.FunctionSyntax == DafnyOptions.FunctionSyntaxOptions.ExperimentalPredicateAlwaysGhost) {
+           allowed |= AllowedDeclModifiers.AlreadyGhost;
+         } else if (DafnyOptions.O.FunctionSyntax == DafnyOptions.FunctionSyntaxOptions.Version3) {
+           allowed |= AllowedDeclModifiers.AlreadyGhost;
+         } else {
+           allowed |= AllowedDeclModifiers.Ghost;
+         }
+         CheckDeclModifiers(ref dmod, what, allowed);
+       }
+     }
+
+     /* ========================================
+      * The 4 schemas have now been checked for legal combinations. In preparation for creating an AST node for
+      * what was parsed, we determine if the function is considered ghost.
+      * For our purposes here, a function-by-method is considered non-ghost.
+      */
+
+     bool isGhost;
+     if (isTwoState || isLeastPredicate || isGreatestPredicate) {
+       isGhost = true;
+     } else if (byMethodBody != null) {
+       isGhost = false;
+     } else {
+       switch (DafnyOptions.O.FunctionSyntax) {
+         case DafnyOptions.FunctionSyntaxOptions.Version3:
+           isGhost = functionMethodToken == null;
+           break;
+         case DafnyOptions.FunctionSyntaxOptions.Migration3To4:
+         case DafnyOptions.FunctionSyntaxOptions.Version4:
+         case DafnyOptions.FunctionSyntaxOptions.ExperimentalTreatUnspecifiedAsCompiled:
+           isGhost = dmod.IsGhost;
+           break;
+         case DafnyOptions.FunctionSyntaxOptions.ExperimentalTreatUnspecifiedAsGhost:
+           isGhost = dmod.IsGhost || functionMethodToken == null;
+           break;
+         case DafnyOptions.FunctionSyntaxOptions.ExperimentalPredicateAlwaysGhost:
+           isGhost = dmod.IsGhost || isPredicate;
+           break;
+         default:
+           Contract.Assert(false); // unexpected FunctionSyntaxOptions
+           isGhost = false; // to please the compiler
+           break;
+       }
+     }
+     // Some sanity checks
+     Contract.Assert(DafnyOptions.O.FunctionSyntax != DafnyOptions.FunctionSyntaxOptions.Version4 || functionMethodToken == null);
+     Contract.Assert(DafnyOptions.O.FunctionSyntax != DafnyOptions.FunctionSyntaxOptions.Version3 || !dmod.IsGhost);
+     Contract.Assert(byMethodBody == null || (functionMethodToken == null && !dmod.IsGhost));
+     Contract.Assert(byMethodBody == null || !isGhost);
+ 
+     /* ========================================
+      * Having computed "isGhost" for whatever declaration we have parsed, we know whether or not to
+      * allow formal parameters to be "ghost". So, as a last round of checking, we inspect the formal in-parameters
+      * given in the signature. 
+      */
+
+     if (isGhost) {
        foreach (var formal in formals) {
          if (formal.IsGhost) {
            SemErr(formal.tok, "formal cannot be declared 'ghost' in this context");
          }
        }
      }
-  .)
-  (. IToken tok = id;
+
+     /* ========================================
+      * Finally, we create the AST node for the function declaration we parsed.
+      */
+
+     IToken tok = id;
      if (isTwoState && isPredicate) {
-        f = new TwoStatePredicate(tok, id.val, dmod.IsStatic, typeArgs, formals,
-                                  reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs, signatureEllipsis);
-     } else if (isTwoState) {
-        f = new TwoStateFunction(tok, id.val, dmod.IsStatic, typeArgs, formals, result, returnType,
+       Contract.Assert(functionMethodToken == null && !dmod.IsGhost);
+       f = new TwoStatePredicate(tok, id.val, dmod.IsStatic, typeArgs, formals,
                                  reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs, signatureEllipsis);
+     } else if (isTwoState) {
+       Contract.Assert(functionMethodToken == null && !dmod.IsGhost);
+       f = new TwoStateFunction(tok, id.val, dmod.IsStatic, typeArgs, formals, result, returnType,
+                                reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs, signatureEllipsis);
      } else if (isPredicate) {
-        f = new Predicate(tok, id.val, dmod.IsStatic, !isFunctionMethod && byMethodBody == null, typeArgs, formals,
-                          reqs, reads, ens, new Specification<Expression>(decreases, null), body, Predicate.BodyOriginKind.OriginalOrInherited,
-                          byMethodTok, byMethodBody, attrs, signatureEllipsis);
+       Contract.Assert(functionMethodToken == null || !dmod.IsGhost);
+       f = new Predicate(tok, id.val, dmod.IsStatic, isGhost, typeArgs, formals,
+                         reqs, reads, ens, new Specification<Expression>(decreases, null), body, Predicate.BodyOriginKind.OriginalOrInherited,
+                         byMethodTok, byMethodBody, attrs, signatureEllipsis);
      } else if (isLeastPredicate) {
-        f = new LeastPredicate(tok, id.val, dmod.IsStatic, kType, typeArgs, formals,
-                               reqs, reads, ens, body, attrs, signatureEllipsis);
+       Contract.Assert(functionMethodToken == null && !dmod.IsGhost);
+       f = new LeastPredicate(tok, id.val, dmod.IsStatic, kType, typeArgs, formals,
+                              reqs, reads, ens, body, attrs, signatureEllipsis);
      } else if (isGreatestPredicate) {
-        f = new GreatestPredicate(tok, id.val, dmod.IsStatic, kType, typeArgs, formals,
-                                  reqs, reads, ens, body, attrs, signatureEllipsis);
+       Contract.Assert(functionMethodToken == null && !dmod.IsGhost);
+       f = new GreatestPredicate(tok, id.val, dmod.IsStatic, kType, typeArgs, formals,
+                                 reqs, reads, ens, body, attrs, signatureEllipsis);
      } else {
-        f = new Function(tok, id.val, dmod.IsStatic, !isFunctionMethod && byMethodBody == null,
-                         typeArgs, formals, result, returnType,
-                         reqs, reads, ens, new Specification<Expression>(decreases, null), body,
-                         byMethodTok, byMethodBody,
-                         attrs, signatureEllipsis);
+       Contract.Assert(functionMethodToken == null || !dmod.IsGhost);
+       f = new Function(tok, id.val, dmod.IsStatic, isGhost,
+                        typeArgs, formals, result, returnType,
+                        reqs, reads, ens, new Specification<Expression>(decreases, null), body,
+                        byMethodTok, byMethodBody,
+                        attrs, signatureEllipsis);
      }
      f.BodyStartTok = bodyStart;
      f.BodyEndTok = bodyEnd;
@@ -2475,20 +2608,28 @@ SkeletonStmt<out Statement s>
 
 /*------------------------------------------------------------------------*/
 BreakStmt<out Statement/*!*/ s>
-= "break"                 (. IToken x = t;
-                             IToken id = null;
-                             int breakCount = 1;
-                             IToken label = null;
-                          .)
-  ( LabelName<out id>     (. label = id; .)
-  | { "break"             (. breakCount++; .)
-    }
+= (. var isContinue = false;
+     IToken start = Token.NoToken;
+     IToken label = null;
+     int breakAndContinueCount = 1;
+  .)
+  ( "continue"              (. start = t; isContinue = true; .)
+    [ LabelName<out label> ]
+  | "break"                 (. start = t; .)
+    ( LabelName<out label>
+    | { "break"             (. breakAndContinueCount++; .)
+      }
+      [ "continue"          (. breakAndContinueCount++; isContinue = true; .)
+      ]
+    )
   )
   SYNC
   ";"
-  (. s = label != null ?
-     new BreakStmt(x, t, label) :
-     new BreakStmt(x, t, breakCount); .)
+  (. Contract.Assert(label == null || breakAndContinueCount == 1);
+     s = label != null ?
+       new BreakStmt(start, t, label, isContinue) :
+       new BreakStmt(start, t, breakAndContinueCount, isContinue);
+  .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -3569,7 +3710,7 @@ RelationalExpression<out Expression e, bool allowLemma, bool allowLambda, bool a
                                           else if (kind != 2) { SemErr(x, "this operator chain cannot continue with a descending operator"); kind = 3; }
                                           break;
                                         case BinaryExpr.Opcode.Disjoint:
-                                          if (kind != 4) { SemErr(x, "can only chain disjoint (!!) with itself."); kind = 3; }
+                                          if (kind != 4) { SemErr(x, "can only chain disjoint (!!) with itself"); kind = 3; }
                                           break;
                                         default:
                                           SemErr(x, "this operator cannot be part of a chain");

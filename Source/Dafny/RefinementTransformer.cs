@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.Numerics;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using Microsoft.Dafny.Plugins;
 using IToken = Microsoft.Boogie.IToken;
 
 namespace Microsoft.Dafny {
@@ -183,7 +184,7 @@ namespace Microsoft.Dafny {
                     string message = mdecl.Opened
                       ? "{0} in {1} cannot be imported with \"opened\" because it does not match the corresponding import in the refinement base {2}."
                       : "{0} in {1} must be imported with \"opened\"  to match the corresponding import in its refinement base {2}.";
-                    reporter.Error(MessageSource.RefinementTransformer, m.tok, message, im.Name, m.Name,
+                    Reporter.Error(MessageSource.RefinementTransformer, m.tok, message, im.Name, m.Name,
                       m.RefinementQId.ToString());
                   }
                 }
@@ -235,9 +236,9 @@ namespace Microsoft.Dafny {
             MergeTopLevelDecls(m, nw, d, index);
           } else if (nw is TypeSynonymDecl) {
             var msg = $"a type synonym ({nw.Name}) is not allowed to replace a {d.WhatKind} from the refined module ({m.RefinementQId}), even if it denotes the same type";
-            reporter.Error(MessageSource.RefinementTransformer, nw.tok, msg);
+            Reporter.Error(MessageSource.RefinementTransformer, nw.tok, msg);
           } else if (!(d is AbstractModuleDecl)) {
-            reporter.Error(MessageSource.RefinementTransformer, nw.tok, $"to redeclare and refine declaration '{d.Name}' from module '{m.RefinementQId}', you must use the refining (`...`) notation");
+            Reporter.Error(MessageSource.RefinementTransformer, nw.tok, $"to redeclare and refine declaration '{d.Name}' from module '{m.RefinementQId}', you must use the refining (`...`) notation");
           }
         }
       }
@@ -263,14 +264,14 @@ namespace Microsoft.Dafny {
       Contract.Requires(excludeList != null);
       foreach (var d in topLevelDecls) {
         if (d.IsRefining && !excludeList.Contains(d.Name)) {
-          reporter.Error(MessageSource.RefinementTransformer, d.tok, $"declaration '{d.Name}' indicates refining (notation `...`), but does not refine anything");
+          Reporter.Error(MessageSource.RefinementTransformer, d.tok, $"declaration '{d.Name}' indicates refining (notation `...`), but does not refine anything");
         }
       }
     }
 
     private void MergeModuleExports(ModuleExportDecl nw, ModuleExportDecl d) {
       if (nw.IsDefault != d.IsDefault) {
-        reporter.Error(MessageSource.RefinementTransformer, nw, "can't change if a module export is default ({0})", nw.Name);
+        Reporter.Error(MessageSource.RefinementTransformer, nw, "can't change if a module export is default ({0})", nw.Name);
       }
 
       nw.Exports.AddRange(d.Exports);
@@ -282,69 +283,69 @@ namespace Microsoft.Dafny {
 
       if (d is ModuleDecl) {
         if (!(nw is ModuleDecl)) {
-          reporter.Error(MessageSource.RefinementTransformer, nw, "a module ({0}) must refine another module", nw.Name);
+          Reporter.Error(MessageSource.RefinementTransformer, nw, "a module ({0}) must refine another module", nw.Name);
         } else if (d is ModuleExportDecl) {
           if (!(nw is ModuleExportDecl)) {
-            reporter.Error(MessageSource.RefinementTransformer, nw, "a module export ({0}) must refine another export", nw.Name);
+            Reporter.Error(MessageSource.RefinementTransformer, nw, "a module export ({0}) must refine another export", nw.Name);
           } else {
             MergeModuleExports((ModuleExportDecl)nw, (ModuleExportDecl)d);
           }
         } else if (!(d is AbstractModuleDecl)) {
-          reporter.Error(MessageSource.RefinementTransformer, nw, "a module ({0}) can only refine a module facade", nw.Name);
+          Reporter.Error(MessageSource.RefinementTransformer, nw, "a module ({0}) can only refine a module facade", nw.Name);
         } else {
           // check that the new module refines the previous declaration
           if (!CheckIsRefinement((ModuleDecl)nw, (AbstractModuleDecl)d)) {
-            reporter.Error(MessageSource.RefinementTransformer, nw.tok, "a module ({0}) can only be replaced by a refinement of the original module", d.Name);
+            Reporter.Error(MessageSource.RefinementTransformer, nw.tok, "a module ({0}) can only be replaced by a refinement of the original module", d.Name);
           }
         }
       } else if (d is OpaqueTypeDecl) {
         if (nw is ModuleDecl) {
-          reporter.Error(MessageSource.RefinementTransformer, nw, "a module ({0}) must refine another module", nw.Name);
+          Reporter.Error(MessageSource.RefinementTransformer, nw, "a module ({0}) must refine another module", nw.Name);
         } else {
           var od = (OpaqueTypeDecl)d;
           if (nw is OpaqueTypeDecl) {
             if (od.SupportsEquality != ((OpaqueTypeDecl)nw).SupportsEquality) {
-              reporter.Error(MessageSource.RefinementTransformer, nw, "type declaration '{0}' is not allowed to change the requirement of supporting equality", nw.Name);
+              Reporter.Error(MessageSource.RefinementTransformer, nw, "type declaration '{0}' is not allowed to change the requirement of supporting equality", nw.Name);
             }
             if (od.Characteristics.HasCompiledValue != ((OpaqueTypeDecl)nw).Characteristics.HasCompiledValue) {
-              reporter.Error(MessageSource.RefinementTransformer, nw.tok, "type declaration '{0}' is not allowed to change the requirement of supporting auto-initialization", nw.Name);
+              Reporter.Error(MessageSource.RefinementTransformer, nw.tok, "type declaration '{0}' is not allowed to change the requirement of supporting auto-initialization", nw.Name);
             } else if (od.Characteristics.IsNonempty != ((OpaqueTypeDecl)nw).Characteristics.IsNonempty) {
-              reporter.Error(MessageSource.RefinementTransformer, nw.tok, "type declaration '{0}' is not allowed to change the requirement of being nonempty", nw.Name);
+              Reporter.Error(MessageSource.RefinementTransformer, nw.tok, "type declaration '{0}' is not allowed to change the requirement of being nonempty", nw.Name);
             }
           } else {
             if (od.SupportsEquality) {
               if (nw is ClassDecl || nw is NewtypeDecl) {
                 // fine
               } else if (nw is CoDatatypeDecl) {
-                reporter.Error(MessageSource.RefinementTransformer, nw, "a type declaration that requires equality support cannot be replaced by a codatatype");
+                Reporter.Error(MessageSource.RefinementTransformer, nw, "a type declaration that requires equality support cannot be replaced by a codatatype");
               } else {
                 Contract.Assert(nw is IndDatatypeDecl || nw is TypeSynonymDecl);
                 // Here, we need to figure out if the new type supports equality.  But we won't know about that until resolution has
-                // taken place, so we defer it until the PostResolve phase.
+                // taken place, so we defer it until the PostResolveIntermediate phase.
                 var udt = UserDefinedType.FromTopLevelDecl(nw.tok, nw);
                 postTasks.Enqueue(() => {
                   if (!udt.SupportsEquality) {
-                    reporter.Error(MessageSource.RefinementTransformer, udt.tok, "type '{0}', which does not support equality, is used to refine an opaque type with equality support", udt.Name);
+                    Reporter.Error(MessageSource.RefinementTransformer, udt.tok, "type '{0}', which does not support equality, is used to refine an opaque type with equality support", udt.Name);
                   }
                 });
               }
             }
             if (od.Characteristics.HasCompiledValue) {
               // We need to figure out if the new type supports auto-initialization.  But we won't know about that until resolution has
-              // taken place, so we defer it until the PostResolve phase.
+              // taken place, so we defer it until the PostResolveIntermediate phase.
               var udt = UserDefinedType.FromTopLevelDecl(nw.tok, nw);
               postTasks.Enqueue(() => {
                 if (!udt.HasCompilableValue) {
-                  reporter.Error(MessageSource.RefinementTransformer, udt.tok, "type '{0}', which does not support auto-initialization, is used to refine an opaque type that expects auto-initialization", udt.Name);
+                  Reporter.Error(MessageSource.RefinementTransformer, udt.tok, "type '{0}', which does not support auto-initialization, is used to refine an opaque type that expects auto-initialization", udt.Name);
                 }
               });
             } else if (od.Characteristics.IsNonempty) {
               // We need to figure out if the new type is nonempty.  But we won't know about that until resolution has
-              // taken place, so we defer it until the PostResolve phase.
+              // taken place, so we defer it until the PostResolveIntermediate phase.
               var udt = UserDefinedType.FromTopLevelDecl(nw.tok, nw);
               postTasks.Enqueue(() => {
                 if (!udt.IsNonempty) {
-                  reporter.Error(MessageSource.RefinementTransformer, udt.tok, "type '{0}', which may be empty, is used to refine an opaque type expected to be nonempty", udt.Name);
+                  Reporter.Error(MessageSource.RefinementTransformer, udt.tok, "type '{0}', which may be empty, is used to refine an opaque type expected to be nonempty", udt.Name);
                 }
               });
             }
@@ -352,7 +353,7 @@ namespace Microsoft.Dafny {
           if (nw is TopLevelDeclWithMembers) {
             m.TopLevelDecls[index] = MergeClass((TopLevelDeclWithMembers)nw, od);
           } else if (od.Members.Count != 0) {
-            reporter.Error(MessageSource.RefinementTransformer, nw,
+            Reporter.Error(MessageSource.RefinementTransformer, nw,
               "a {0} ({1}) cannot declare members, so it cannot refine an opaque type with members",
               nw.WhatKind, nw.Name);
           } else {
@@ -360,36 +361,36 @@ namespace Microsoft.Dafny {
           }
         }
       } else if (nw is OpaqueTypeDecl) {
-        reporter.Error(MessageSource.RefinementTransformer, nw,
+        Reporter.Error(MessageSource.RefinementTransformer, nw,
           "an opaque type declaration ({0}) in a refining module cannot replace a more specific type declaration in the refinement base", nw.Name);
       } else if ((d is IndDatatypeDecl && nw is IndDatatypeDecl) || (d is CoDatatypeDecl && nw is CoDatatypeDecl)) {
         m.TopLevelDecls[index] = MergeClass((DatatypeDecl)nw, (DatatypeDecl)d);
       } else if (nw is DatatypeDecl) {
-        reporter.Error(MessageSource.RefinementTransformer, nw, commonMsg, nw.WhatKind, nw.Name);
+        Reporter.Error(MessageSource.RefinementTransformer, nw, commonMsg, nw.WhatKind, nw.Name);
       } else if (d is NewtypeDecl && nw is NewtypeDecl) {
         m.TopLevelDecls[index] = MergeClass((NewtypeDecl)nw, (NewtypeDecl)d);
       } else if (nw is NewtypeDecl) {
-        reporter.Error(MessageSource.RefinementTransformer, nw, commonMsg, nw.WhatKind, nw.Name);
+        Reporter.Error(MessageSource.RefinementTransformer, nw, commonMsg, nw.WhatKind, nw.Name);
       } else if (nw is IteratorDecl) {
         if (d is IteratorDecl) {
           m.TopLevelDecls[index] = MergeIterator((IteratorDecl)nw, (IteratorDecl)d);
         } else {
-          reporter.Error(MessageSource.RefinementTransformer, nw, "an iterator declaration ({0}) is a refining module cannot replace a different kind of declaration in the refinement base", nw.Name);
+          Reporter.Error(MessageSource.RefinementTransformer, nw, "an iterator declaration ({0}) is a refining module cannot replace a different kind of declaration in the refinement base", nw.Name);
         }
       } else if (nw is TraitDecl) {
         if (d is TraitDecl) {
           m.TopLevelDecls[index] = MergeClass((TraitDecl)nw, (TraitDecl)d);
         } else {
-          reporter.Error(MessageSource.RefinementTransformer, nw, commonMsg, nw.WhatKind, nw.Name);
+          Reporter.Error(MessageSource.RefinementTransformer, nw, commonMsg, nw.WhatKind, nw.Name);
         }
       } else if (nw is ClassDecl) {
         if (d is ClassDecl && !(d is TraitDecl)) {
           m.TopLevelDecls[index] = MergeClass((ClassDecl)nw, (ClassDecl)d);
         } else {
-          reporter.Error(MessageSource.RefinementTransformer, nw, commonMsg, nw.WhatKind, nw.Name);
+          Reporter.Error(MessageSource.RefinementTransformer, nw, commonMsg, nw.WhatKind, nw.Name);
         }
       } else if (nw is TypeSynonymDecl && d is TypeSynonymDecl && ((TypeSynonymDecl)nw).Rhs != null && ((TypeSynonymDecl)d).Rhs != null) {
-        reporter.Error(MessageSource.RefinementTransformer, d,
+        Reporter.Error(MessageSource.RefinementTransformer, d,
           "a type ({0}) in a refining module may not replace an already defined type (even with the same value)",
           d.Name);
       } else {
@@ -409,7 +410,7 @@ namespace Microsoft.Dafny {
           } else if (derived is AbstractModuleDecl) {
             exports = new HashSet<string>(((AbstractModuleDecl)derived).Exports.ConvertAll(t => t.val));
           } else {
-            reporter.Error(MessageSource.RefinementTransformer, derived, "a module ({0}) can only be refined by an alias module or a module facade", original.Name);
+            Reporter.Error(MessageSource.RefinementTransformer, derived, "a module ({0}) can only be refined by an alias module or a module facade", original.Name);
             return false;
           }
           var oexports = new HashSet<string>(original.Exports.ConvertAll(t => t.val));
@@ -485,7 +486,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    internal override void PostResolve(ModuleDefinition m) {
+    internal override void PostResolveIntermediate(ModuleDefinition m) {
       if (m == moduleUnderConstruction) {
         while (this.postTasks.Count != 0) {
           var a = postTasks.Dequeue();
@@ -621,25 +622,25 @@ namespace Microsoft.Dafny {
       Contract.Requires(prev != null);
 
       if (nw.Requires.Count != 0) {
-        reporter.Error(MessageSource.RefinementTransformer, nw.Requires[0].E.tok, "a refining iterator is not allowed to add preconditions");
+        Reporter.Error(MessageSource.RefinementTransformer, nw.Requires[0].E.tok, "a refining iterator is not allowed to add preconditions");
       }
       if (nw.YieldRequires.Count != 0) {
-        reporter.Error(MessageSource.RefinementTransformer, nw.YieldRequires[0].E.tok, "a refining iterator is not allowed to add yield preconditions");
+        Reporter.Error(MessageSource.RefinementTransformer, nw.YieldRequires[0].E.tok, "a refining iterator is not allowed to add yield preconditions");
       }
       if (nw.Reads.Expressions.Count != 0) {
-        reporter.Error(MessageSource.RefinementTransformer, nw.Reads.Expressions[0].E.tok, "a refining iterator is not allowed to extend the reads clause");
+        Reporter.Error(MessageSource.RefinementTransformer, nw.Reads.Expressions[0].E.tok, "a refining iterator is not allowed to extend the reads clause");
       }
       if (nw.Modifies.Expressions.Count != 0) {
-        reporter.Error(MessageSource.RefinementTransformer, nw.Modifies.Expressions[0].E.tok, "a refining iterator is not allowed to extend the modifies clause");
+        Reporter.Error(MessageSource.RefinementTransformer, nw.Modifies.Expressions[0].E.tok, "a refining iterator is not allowed to extend the modifies clause");
       }
       if (nw.Decreases.Expressions.Count != 0) {
-        reporter.Error(MessageSource.RefinementTransformer, nw.Decreases.Expressions[0].tok, "a refining iterator is not allowed to extend the decreases clause");
+        Reporter.Error(MessageSource.RefinementTransformer, nw.Decreases.Expressions[0].tok, "a refining iterator is not allowed to extend the decreases clause");
       }
 
       if (nw.SignatureIsOmitted) {
         Contract.Assert(nw.Ins.Count == 0);
         Contract.Assert(nw.Outs.Count == 0);
-        reporter.Info(MessageSource.RefinementTransformer, nw.SignatureEllipsis, Printer.IteratorSignatureToString(prev));
+        Reporter.Info(MessageSource.RefinementTransformer, nw.SignatureEllipsis, Printer.IteratorSignatureToString(prev));
       } else {
         CheckAgreement_TypeParameters(nw.tok, prev.TypeArgs, nw.TypeArgs, nw.Name, "iterator");
         CheckAgreement_Parameters(nw.tok, prev.Ins, nw.Ins, nw.Name, "iterator", "in-parameter");
@@ -705,17 +706,17 @@ namespace Microsoft.Dafny {
             var newConst = (ConstantField)nwMember;
             var origConst = member as ConstantField;
             if (origConst == null) {
-              reporter.Error(MessageSource.RefinementTransformer, nwMember, "a const declaration ({0}) in a refining class ({1}) must replace a const in the refinement base", nwMember.Name, nw.Name);
+              Reporter.Error(MessageSource.RefinementTransformer, nwMember, "a const declaration ({0}) in a refining class ({1}) must replace a const in the refinement base", nwMember.Name, nw.Name);
             } else if (!(newConst.Type is InferredTypeProxy) && !TypesAreSyntacticallyEqual(newConst.Type, origConst.Type)) {
-              reporter.Error(MessageSource.RefinementTransformer, nwMember, "the type of a const declaration ({0}) in a refining class ({1}) must be syntactically the same as for the const being refined", nwMember.Name, nw.Name);
+              Reporter.Error(MessageSource.RefinementTransformer, nwMember, "the type of a const declaration ({0}) in a refining class ({1}) must be syntactically the same as for the const being refined", nwMember.Name, nw.Name);
             } else if (newConst.Rhs != null && origConst.Rhs != null) {
-              reporter.Error(MessageSource.RefinementTransformer, nwMember, "a const re-declaration ({0}) can give an initializing expression only if the const in the refinement base does not", nwMember.Name);
+              Reporter.Error(MessageSource.RefinementTransformer, nwMember, "a const re-declaration ({0}) can give an initializing expression only if the const in the refinement base does not", nwMember.Name);
             } else if (newConst.HasStaticKeyword != origConst.HasStaticKeyword) {
-              reporter.Error(MessageSource.RefinementTransformer, nwMember, "a const in a refining module cannot be changed from static to non-static or vice versa: {0}", nwMember.Name);
+              Reporter.Error(MessageSource.RefinementTransformer, nwMember, "a const in a refining module cannot be changed from static to non-static or vice versa: {0}", nwMember.Name);
             } else if (origConst.IsGhost && !newConst.IsGhost) {
-              reporter.Error(MessageSource.RefinementTransformer, nwMember, "a const re-declaration ({0}) is not allowed to un-ghostify the const", nwMember.Name);
+              Reporter.Error(MessageSource.RefinementTransformer, nwMember, "a const re-declaration ({0}) is not allowed to un-ghostify the const", nwMember.Name);
             } else if (newConst.Rhs == null && origConst.IsGhost == newConst.IsGhost) {
-              reporter.Error(MessageSource.RefinementTransformer, nwMember, "a const re-declaration ({0}) must be to ghostify the const{1}", nwMember.Name, origConst.Rhs == null ? " or to provide an initializing expression" : "");
+              Reporter.Error(MessageSource.RefinementTransformer, nwMember, "a const re-declaration ({0}) must be to ghostify the const{1}", nwMember.Name, origConst.Rhs == null ? " or to provide an initializing expression" : "");
             }
             nwMember.RefinementBase = member;
             // we may need to clone the given const declaration if either its type or initializing expression was omitted
@@ -729,11 +730,11 @@ namespace Microsoft.Dafny {
 
           } else if (nwMember is Field) {
             if (!(member is Field) || member is ConstantField) {
-              reporter.Error(MessageSource.RefinementTransformer, nwMember, "a field declaration ({0}) in a refining class ({1}) must replace a field in the refinement base", nwMember.Name, nw.Name);
+              Reporter.Error(MessageSource.RefinementTransformer, nwMember, "a field declaration ({0}) in a refining class ({1}) must replace a field in the refinement base", nwMember.Name, nw.Name);
             } else if (!TypesAreSyntacticallyEqual(((Field)nwMember).Type, ((Field)member).Type)) {
-              reporter.Error(MessageSource.RefinementTransformer, nwMember, "a field declaration ({0}) in a refining class ({1}) must repeat the syntactically same type as the field has in the refinement base", nwMember.Name, nw.Name);
+              Reporter.Error(MessageSource.RefinementTransformer, nwMember, "a field declaration ({0}) in a refining class ({1}) must repeat the syntactically same type as the field has in the refinement base", nwMember.Name, nw.Name);
             } else if (member.IsGhost || !nwMember.IsGhost) {
-              reporter.Error(MessageSource.RefinementTransformer, nwMember, "a field re-declaration ({0}) must be to ghostify the field", nwMember.Name);
+              Reporter.Error(MessageSource.RefinementTransformer, nwMember, "a field re-declaration ({0}) must be to ghostify the field", nwMember.Name);
             }
             nwMember.RefinementBase = member;
 
@@ -748,39 +749,39 @@ namespace Microsoft.Dafny {
               (f is GreatestPredicate) != (member is GreatestPredicate) ||
               (f is TwoStatePredicate) != (member is TwoStatePredicate) ||
               (f is TwoStateFunction) != (member is TwoStateFunction)) {
-              reporter.Error(MessageSource.RefinementTransformer, nwMember, "a {0} declaration ({1}) can only refine a {0}", f.WhatKind, nwMember.Name);
+              Reporter.Error(MessageSource.RefinementTransformer, nwMember, "a {0} declaration ({1}) can only refine a {0}", f.WhatKind, nwMember.Name);
             } else {
               var prevFunction = (Function)member;
               if (f.Req.Count != 0) {
-                reporter.Error(MessageSource.RefinementTransformer, f.Req[0].E.tok, "a refining {0} is not allowed to add preconditions", f.WhatKind);
+                Reporter.Error(MessageSource.RefinementTransformer, f.Req[0].E.tok, "a refining {0} is not allowed to add preconditions", f.WhatKind);
               }
               if (f.Reads.Count != 0) {
-                reporter.Error(MessageSource.RefinementTransformer, f.Reads[0].E.tok, "a refining {0} is not allowed to extend the reads clause", f.WhatKind);
+                Reporter.Error(MessageSource.RefinementTransformer, f.Reads[0].E.tok, "a refining {0} is not allowed to extend the reads clause", f.WhatKind);
               }
               if (f.Decreases.Expressions.Count != 0) {
-                reporter.Error(MessageSource.RefinementTransformer, f.Decreases.Expressions[0].tok, "decreases clause on refining {0} not supported", f.WhatKind);
+                Reporter.Error(MessageSource.RefinementTransformer, f.Decreases.Expressions[0].tok, "decreases clause on refining {0} not supported", f.WhatKind);
               }
 
               if (prevFunction.HasStaticKeyword != f.HasStaticKeyword) {
-                reporter.Error(MessageSource.RefinementTransformer, f, "a function in a refining module cannot be changed from static to non-static or vice versa: {0}", f.Name);
+                Reporter.Error(MessageSource.RefinementTransformer, f, "a function in a refining module cannot be changed from static to non-static or vice versa: {0}", f.Name);
               }
               if (!prevFunction.IsGhost && f.IsGhost) {
-                reporter.Error(MessageSource.RefinementTransformer, f, "a function method cannot be changed into a (ghost) function in a refining module: {0}", f.Name);
+                Reporter.Error(MessageSource.RefinementTransformer, f, "a compiled function cannot be changed into a ghost function in a refining module: {0}", f.Name);
               } else if (prevFunction.IsGhost && !f.IsGhost && prevFunction.Body != null) {
-                reporter.Error(MessageSource.RefinementTransformer, f, "a function can be changed into a function method in a refining module only if the function has not yet been given a body: {0}", f.Name);
+                Reporter.Error(MessageSource.RefinementTransformer, f, "a ghost function can be changed into a compiled function in a refining module only if the function has not yet been given a body: {0}", f.Name);
               }
               if (f.SignatureIsOmitted) {
                 Contract.Assert(f.TypeArgs.Count == 0);
                 Contract.Assert(f.Formals.Count == 0);
-                reporter.Info(MessageSource.RefinementTransformer, f.SignatureEllipsis, Printer.FunctionSignatureToString(prevFunction));
+                Reporter.Info(MessageSource.RefinementTransformer, f.SignatureEllipsis, Printer.FunctionSignatureToString(prevFunction));
               } else {
                 CheckAgreement_TypeParameters(f.tok, prevFunction.TypeArgs, f.TypeArgs, f.Name, "function");
                 CheckAgreement_Parameters(f.tok, prevFunction.Formals, f.Formals, f.Name, "function", "parameter");
                 if (prevFunction.Result != null && f.Result != null && prevFunction.Result.Name != f.Result.Name) {
-                  reporter.Error(MessageSource.RefinementTransformer, f, "the name of function return value '{0}'({1}) differs from the name of corresponding function return value in the module it refines ({2})", f.Name, f.Result.Name, prevFunction.Result.Name);
+                  Reporter.Error(MessageSource.RefinementTransformer, f, "the name of function return value '{0}'({1}) differs from the name of corresponding function return value in the module it refines ({2})", f.Name, f.Result.Name, prevFunction.Result.Name);
                 }
                 if (!TypesAreSyntacticallyEqual(prevFunction.ResultType, f.ResultType)) {
-                  reporter.Error(MessageSource.RefinementTransformer, f, "the result type of function '{0}' ({1}) differs from the result type of the corresponding function in the module it refines ({2})", f.Name, f.ResultType, prevFunction.ResultType);
+                  Reporter.Error(MessageSource.RefinementTransformer, f, "the result type of function '{0}' ({1}) differs from the result type of the corresponding function in the module it refines ({2})", f.Name, f.ResultType, prevFunction.ResultType);
                 }
               }
 
@@ -789,7 +790,7 @@ namespace Microsoft.Dafny {
               if (prevFunction.Body == null) {
                 replacementBody = f.Body;
               } else if (f.Body != null) {
-                reporter.Error(MessageSource.RefinementTransformer, nwMember, $"a refining {f.WhatKind} is not allowed to extend/change the body");
+                Reporter.Error(MessageSource.RefinementTransformer, nwMember, $"a refining {f.WhatKind} is not allowed to extend/change the body");
               }
               var newF = CloneFunction(f.tok, prevFunction, f.IsGhost, f.Ens, f.Result, moreBody, replacementBody, prevFunction.Body == null, f.Attributes);
               newF.RefinementBase = member;
@@ -799,14 +800,14 @@ namespace Microsoft.Dafny {
           } else {
             var m = (Method)nwMember;
             if (!(member is Method)) {
-              reporter.Error(MessageSource.RefinementTransformer, nwMember, "a method declaration ({0}) can only refine a method", nwMember.Name);
+              Reporter.Error(MessageSource.RefinementTransformer, nwMember, "a method declaration ({0}) can only refine a method", nwMember.Name);
             } else {
               var prevMethod = (Method)member;
               if (m.Req.Count != 0) {
-                reporter.Error(MessageSource.RefinementTransformer, m.Req[0].E.tok, "a refining method is not allowed to add preconditions");
+                Reporter.Error(MessageSource.RefinementTransformer, m.Req[0].E.tok, "a refining method is not allowed to add preconditions");
               }
               if (m.Mod.Expressions.Count != 0) {
-                reporter.Error(MessageSource.RefinementTransformer, m.Mod.Expressions[0].E.tok, "a refining method is not allowed to extend the modifies clause");
+                Reporter.Error(MessageSource.RefinementTransformer, m.Mod.Expressions[0].E.tok, "a refining method is not allowed to extend the modifies clause");
               }
               // If the previous method was not specified with "decreases *", then the new method is not allowed to provide any "decreases" clause.
               // Any "decreases *" clause is not inherited, so if the previous method was specified with "decreases *", then the new method needs
@@ -819,23 +820,23 @@ namespace Microsoft.Dafny {
               } else {
                 if (!Contract.Exists(prevMethod.Decreases.Expressions, e => e is WildcardExpr)) {
                   // If the previous loop was not specified with "decreases *", then the new loop is not allowed to provide any "decreases" clause.
-                  reporter.Error(MessageSource.RefinementTransformer, m.Decreases.Expressions[0].tok, "decreases clause on refining method not supported, unless the refined method was specified with 'decreases *'");
+                  Reporter.Error(MessageSource.RefinementTransformer, m.Decreases.Expressions[0].tok, "decreases clause on refining method not supported, unless the refined method was specified with 'decreases *'");
                 }
                 decreases = m.Decreases;
               }
               if (prevMethod.HasStaticKeyword != m.HasStaticKeyword) {
-                reporter.Error(MessageSource.RefinementTransformer, m, "a method in a refining module cannot be changed from static to non-static or vice versa: {0}", m.Name);
+                Reporter.Error(MessageSource.RefinementTransformer, m, "a method in a refining module cannot be changed from static to non-static or vice versa: {0}", m.Name);
               }
               if (prevMethod.IsGhost && !m.IsGhost) {
-                reporter.Error(MessageSource.RefinementTransformer, m, "a method cannot be changed into a ghost method in a refining module: {0}", m.Name);
+                Reporter.Error(MessageSource.RefinementTransformer, m, "a method cannot be changed into a ghost method in a refining module: {0}", m.Name);
               } else if (!prevMethod.IsGhost && m.IsGhost) {
-                reporter.Error(MessageSource.RefinementTransformer, m, "a ghost method cannot be changed into a non-ghost method in a refining module: {0}", m.Name);
+                Reporter.Error(MessageSource.RefinementTransformer, m, "a ghost method cannot be changed into a non-ghost method in a refining module: {0}", m.Name);
               }
               if (m.SignatureIsOmitted) {
                 Contract.Assert(m.TypeArgs.Count == 0);
                 Contract.Assert(m.Ins.Count == 0);
                 Contract.Assert(m.Outs.Count == 0);
-                reporter.Info(MessageSource.RefinementTransformer, m.SignatureEllipsis, Printer.MethodSignatureToString(prevMethod));
+                Reporter.Info(MessageSource.RefinementTransformer, m.SignatureEllipsis, Printer.MethodSignatureToString(prevMethod));
               } else {
                 CheckAgreement_TypeParameters(m.tok, prevMethod.TypeArgs, m.TypeArgs, m.Name, "method");
                 CheckAgreement_Parameters(m.tok, prevMethod.Ins, m.Ins, m.Name, "method", "in-parameter");
@@ -867,13 +868,13 @@ namespace Microsoft.Dafny {
       Contract.Requires(name != null);
       Contract.Requires(thing != null);
       if (old.Count != nw.Count) {
-        reporter.Error(MessageSource.RefinementTransformer, tok, "{0} '{1}' is declared with a different number of type parameters ({2} instead of {3}) than the corresponding {0} in the module it refines", thing, name, nw.Count, old.Count);
+        Reporter.Error(MessageSource.RefinementTransformer, tok, "{0} '{1}' is declared with a different number of type parameters ({2} instead of {3}) than the corresponding {0} in the module it refines", thing, name, nw.Count, old.Count);
       } else {
         for (int i = 0; i < old.Count; i++) {
           var o = old[i];
           var n = nw[i];
           if (o.Name != n.Name && checkNames) { // if checkNames is false, then just treat the parameters positionally.
-            reporter.Error(MessageSource.RefinementTransformer, n.tok, "type parameters are not allowed to be renamed from the names given in the {0} in the module being refined (expected '{1}', found '{2}')", thing, o.Name, n.Name);
+            Reporter.Error(MessageSource.RefinementTransformer, n.tok, "type parameters are not allowed to be renamed from the names given in the {0} in the module being refined (expected '{1}', found '{2}')", thing, o.Name, n.Name);
           } else {
             // This explains what we want to do and why:
             // switch (o.EqualitySupport) {
@@ -893,20 +894,20 @@ namespace Microsoft.Dafny {
             // }
             // Here's how we actually compute it:
             if (o.Characteristics.EqualitySupport != TypeParameter.EqualitySupportValue.InferredRequired && o.Characteristics.EqualitySupport != n.Characteristics.EqualitySupport) {
-              reporter.Error(MessageSource.RefinementTransformer, n.tok, "type parameter '{0}' is not allowed to change the requirement of supporting equality", n.Name);
+              Reporter.Error(MessageSource.RefinementTransformer, n.tok, "type parameter '{0}' is not allowed to change the requirement of supporting equality", n.Name);
             }
             if (o.Characteristics.HasCompiledValue != n.Characteristics.HasCompiledValue) {
-              reporter.Error(MessageSource.RefinementTransformer, n.tok, "type parameter '{0}' is not allowed to change the requirement of supporting auto-initialization", n.Name);
+              Reporter.Error(MessageSource.RefinementTransformer, n.tok, "type parameter '{0}' is not allowed to change the requirement of supporting auto-initialization", n.Name);
             } else if (o.Characteristics.IsNonempty != n.Characteristics.IsNonempty) {
-              reporter.Error(MessageSource.RefinementTransformer, n.tok, "type parameter '{0}' is not allowed to change the requirement of being nonempty", n.Name);
+              Reporter.Error(MessageSource.RefinementTransformer, n.tok, "type parameter '{0}' is not allowed to change the requirement of being nonempty", n.Name);
             }
             if (o.Characteristics.ContainsNoReferenceTypes != n.Characteristics.ContainsNoReferenceTypes) {
-              reporter.Error(MessageSource.RefinementTransformer, n.tok, "type parameter '{0}' is not allowed to change the no-reference-type requirement", n.Name);
+              Reporter.Error(MessageSource.RefinementTransformer, n.tok, "type parameter '{0}' is not allowed to change the no-reference-type requirement", n.Name);
             }
             if (o.Variance != n.Variance) {  // syntax is allowed to be different as long as the meaning is the same (i.e., compare Variance, not VarianceSyntax)
               var ov = o.Variance == TypeParameter.TPVariance.Co ? "+" : o.Variance == TypeParameter.TPVariance.Contra ? "-" : "=";
               var nv = n.Variance == TypeParameter.TPVariance.Co ? "+" : n.Variance == TypeParameter.TPVariance.Contra ? "-" : "=";
-              reporter.Error(MessageSource.RefinementTransformer, n.tok, "type parameter '{0}' is not allowed to change variance (here, from '{1}' to '{2}')", n.Name, ov, nv);
+              Reporter.Error(MessageSource.RefinementTransformer, n.tok, "type parameter '{0}' is not allowed to change variance (here, from '{1}' to '{2}')", n.Name, ov, nv);
             }
           }
         }
@@ -921,25 +922,25 @@ namespace Microsoft.Dafny {
       Contract.Requires(thing != null);
       Contract.Requires(parameterKind != null);
       if (old.Count != nw.Count) {
-        reporter.Error(MessageSource.RefinementTransformer, tok, "{0} '{1}' is declared with a different number of {2} ({3} instead of {4}) than the corresponding {0} in the module it refines", thing, name, parameterKind, nw.Count, old.Count);
+        Reporter.Error(MessageSource.RefinementTransformer, tok, "{0} '{1}' is declared with a different number of {2} ({3} instead of {4}) than the corresponding {0} in the module it refines", thing, name, parameterKind, nw.Count, old.Count);
       } else {
         for (int i = 0; i < old.Count; i++) {
           var o = old[i];
           var n = nw[i];
           if (o.Name != n.Name) {
-            reporter.Error(MessageSource.RefinementTransformer, n.tok, "there is a difference in name of {0} {1} ('{2}' versus '{3}') of {4} {5} compared to corresponding {4} in the module it refines", parameterKind, i, n.Name, o.Name, thing, name);
+            Reporter.Error(MessageSource.RefinementTransformer, n.tok, "there is a difference in name of {0} {1} ('{2}' versus '{3}') of {4} {5} compared to corresponding {4} in the module it refines", parameterKind, i, n.Name, o.Name, thing, name);
           } else if (!o.IsGhost && n.IsGhost) {
-            reporter.Error(MessageSource.RefinementTransformer, n.tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it refines, from non-ghost to ghost", parameterKind, n.Name, thing, name);
+            Reporter.Error(MessageSource.RefinementTransformer, n.tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it refines, from non-ghost to ghost", parameterKind, n.Name, thing, name);
           } else if (o.IsGhost && !n.IsGhost) {
-            reporter.Error(MessageSource.RefinementTransformer, n.tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it refines, from ghost to non-ghost", parameterKind, n.Name, thing, name);
+            Reporter.Error(MessageSource.RefinementTransformer, n.tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it refines, from ghost to non-ghost", parameterKind, n.Name, thing, name);
           } else if (!o.IsOld && n.IsOld) {
-            reporter.Error(MessageSource.RefinementTransformer, n.tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it refines, from non-new to new", parameterKind, n.Name, thing, name);
+            Reporter.Error(MessageSource.RefinementTransformer, n.tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it refines, from non-new to new", parameterKind, n.Name, thing, name);
           } else if (o.IsOld && !n.IsOld) {
-            reporter.Error(MessageSource.RefinementTransformer, n.tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it refines, from new to non-new", parameterKind, n.Name, thing, name);
+            Reporter.Error(MessageSource.RefinementTransformer, n.tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it refines, from new to non-new", parameterKind, n.Name, thing, name);
           } else if (!TypesAreSyntacticallyEqual(o.Type, n.Type)) {
-            reporter.Error(MessageSource.RefinementTransformer, n.tok, "the type of {0} '{1}' is different from the type of the same {0} in the corresponding {2} in the module it refines ('{3}' instead of '{4}')", parameterKind, n.Name, thing, n.Type, o.Type);
+            Reporter.Error(MessageSource.RefinementTransformer, n.tok, "the type of {0} '{1}' is different from the type of the same {0} in the corresponding {2} in the module it refines ('{3}' instead of '{4}')", parameterKind, n.Name, thing, n.Type, o.Type);
           } else if (n.DefaultValue != null) {
-            reporter.Error(MessageSource.RefinementTransformer, n.tok, "a refining formal parameter ('{0}') in a refinement module is not allowed to give a default-value expression", n.Name);
+            Reporter.Error(MessageSource.RefinementTransformer, n.tok, "a refining formal parameter ('{0}') in a refinement module is not allowed to give a default-value expression", n.Name);
           }
         }
       }
@@ -965,18 +966,18 @@ namespace Microsoft.Dafny {
         string hoverText;
         var bodyInit = MergeStmtList(sbsSkeleton.BodyInit, sbsOldStmt.BodyInit, out hoverText);
         if (hoverText.Length != 0) {
-          reporter.Info(MessageSource.RefinementTransformer, sbsSkeleton.SeparatorTok ?? sbsSkeleton.Tok, hoverText);
+          Reporter.Info(MessageSource.RefinementTransformer, sbsSkeleton.SeparatorTok ?? sbsSkeleton.Tok, hoverText);
         }
         var bodyProper = MergeStmtList(sbsSkeleton.BodyProper, sbsOldStmt.BodyProper, out hoverText);
         if (hoverText.Length != 0) {
-          reporter.Info(MessageSource.RefinementTransformer, sbsSkeleton.EndTok, hoverText);
+          Reporter.Info(MessageSource.RefinementTransformer, sbsSkeleton.EndTok, hoverText);
         }
         return new DividedBlockStmt(sbsSkeleton.Tok, sbsSkeleton.EndTok, bodyInit, sbsSkeleton.SeparatorTok, bodyProper);
       } else {
         string hoverText;
         var body = MergeStmtList(skeleton.Body, oldStmt.Body, out hoverText);
         if (hoverText.Length != 0) {
-          reporter.Info(MessageSource.RefinementTransformer, skeleton.EndTok, hoverText);
+          Reporter.Info(MessageSource.RefinementTransformer, skeleton.EndTok, hoverText);
         }
         return new BlockStmt(skeleton.Tok, skeleton.EndTok, body);
       }
@@ -999,7 +1000,7 @@ namespace Microsoft.Dafny {
           } else if (((SkeletonStatement)cur).S == null) {
             // the "..." matches the empty statement sequence
           } else {
-            reporter.Error(MessageSource.RefinementTransformer, cur.Tok, "skeleton statement does not match old statement");
+            Reporter.Error(MessageSource.RefinementTransformer, cur.Tok, "skeleton statement does not match old statement");
           }
           i++;
         } else {
@@ -1061,7 +1062,7 @@ namespace Microsoft.Dafny {
                   oldS = oldStmt[j];
                 }
                 if (hoverTextA.Length != 0) {
-                  reporter.Info(MessageSource.RefinementTransformer, c.Tok, hoverTextA);
+                  Reporter.Info(MessageSource.RefinementTransformer, c.Tok, hoverTextA);
                 }
               }
               i++;
@@ -1071,7 +1072,7 @@ namespace Microsoft.Dafny {
               Contract.Assert(c.ConditionOmitted);
               var oldAssume = oldS as PredicateStmt;
               if (oldAssume == null) {
-                reporter.Error(MessageSource.RefinementTransformer, cur.Tok, "assert template does not match inherited statement");
+                Reporter.Error(MessageSource.RefinementTransformer, cur.Tok, "assert template does not match inherited statement");
                 i++;
               } else {
                 // Clone the expression, but among the new assert's attributes, indicate
@@ -1082,7 +1083,7 @@ namespace Microsoft.Dafny {
                 var attrs = refinementCloner.MergeAttributes(oldAssume.Attributes, skel.Attributes);
                 body.Add(new AssertStmt(new Translator.ForceCheckToken(skel.Tok), new Translator.ForceCheckToken(skel.EndTok),
                   e, skel.Proof, skel.Label, new Attributes("_prependAssertToken", new List<Expression>(), attrs)));
-                reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, "assume->assert: " + Printer.ExprToString(e));
+                Reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, "assume->assert: " + Printer.ExprToString(e));
                 i++; j++;
               }
 
@@ -1091,14 +1092,14 @@ namespace Microsoft.Dafny {
               Contract.Assert(c.ConditionOmitted);
               var oldExpect = oldS as ExpectStmt;
               if (oldExpect == null) {
-                reporter.Error(MessageSource.RefinementTransformer, cur.Tok, "expect template does not match inherited statement");
+                Reporter.Error(MessageSource.RefinementTransformer, cur.Tok, "expect template does not match inherited statement");
                 i++;
               } else {
                 var e = refinementCloner.CloneExpr(oldExpect.Expr);
                 var message = refinementCloner.CloneExpr(oldExpect.Message);
                 var attrs = refinementCloner.MergeAttributes(oldExpect.Attributes, skel.Attributes);
                 body.Add(new ExpectStmt(skel.Tok, skel.EndTok, e, message, attrs));
-                reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, Printer.ExprToString(e));
+                Reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, Printer.ExprToString(e));
                 i++; j++;
               }
 
@@ -1107,13 +1108,13 @@ namespace Microsoft.Dafny {
               Contract.Assert(c.ConditionOmitted);
               var oldAssume = oldS as AssumeStmt;
               if (oldAssume == null) {
-                reporter.Error(MessageSource.RefinementTransformer, cur.Tok, "assume template does not match inherited statement");
+                Reporter.Error(MessageSource.RefinementTransformer, cur.Tok, "assume template does not match inherited statement");
                 i++;
               } else {
                 var e = refinementCloner.CloneExpr(oldAssume.Expr);
                 var attrs = refinementCloner.MergeAttributes(oldAssume.Attributes, skel.Attributes);
                 body.Add(new AssumeStmt(skel.Tok, skel.EndTok, e, attrs));
-                reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, Printer.ExprToString(e));
+                Reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, Printer.ExprToString(e));
                 i++; j++;
               }
 
@@ -1122,7 +1123,7 @@ namespace Microsoft.Dafny {
               Contract.Assert(c.ConditionOmitted);
               var oldIf = oldS as IfStmt;
               if (oldIf == null) {
-                reporter.Error(MessageSource.RefinementTransformer, cur.Tok, "if-statement template does not match inherited statement");
+                Reporter.Error(MessageSource.RefinementTransformer, cur.Tok, "if-statement template does not match inherited statement");
                 i++;
               } else {
                 var resultingThen = MergeBlockStmt(skel.Thn, oldIf.Thn);
@@ -1130,7 +1131,7 @@ namespace Microsoft.Dafny {
                 var e = refinementCloner.CloneExpr(oldIf.Guard);
                 var r = new IfStmt(skel.Tok, skel.EndTok, oldIf.IsBindingGuard, e, resultingThen, resultingElse);
                 body.Add(r);
-                reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, Printer.GuardToString(oldIf.IsBindingGuard, e));
+                Reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, Printer.GuardToString(oldIf.IsBindingGuard, e));
                 i++; j++;
               }
 
@@ -1138,16 +1139,16 @@ namespace Microsoft.Dafny {
               var skel = (WhileStmt)S;
               var oldWhile = oldS as WhileStmt;
               if (oldWhile == null) {
-                reporter.Error(MessageSource.RefinementTransformer, cur.Tok, "while-statement template does not match inherited statement");
+                Reporter.Error(MessageSource.RefinementTransformer, cur.Tok, "while-statement template does not match inherited statement");
                 i++;
               } else {
                 Expression guard;
                 if (c.ConditionOmitted) {
                   guard = refinementCloner.CloneExpr(oldWhile.Guard);
-                  reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, Printer.GuardToString(false, oldWhile.Guard));
+                  Reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, Printer.GuardToString(false, oldWhile.Guard));
                 } else {
                   if (oldWhile.Guard != null) {
-                    reporter.Error(MessageSource.RefinementTransformer, skel.Guard.tok, "a skeleton while statement with a guard can only replace a while statement with a non-deterministic guard");
+                    Reporter.Error(MessageSource.RefinementTransformer, skel.Guard.tok, "a skeleton while statement with a guard can only replace a while statement with a non-deterministic guard");
                   }
                   guard = skel.Guard;
                 }
@@ -1163,7 +1164,7 @@ namespace Microsoft.Dafny {
               Contract.Assert(c.ConditionOmitted);
               var oldModifyStmt = oldS as ModifyStmt;
               if (oldModifyStmt == null) {
-                reporter.Error(MessageSource.RefinementTransformer, cur.Tok, "modify template does not match inherited statement");
+                Reporter.Error(MessageSource.RefinementTransformer, cur.Tok, "modify template does not match inherited statement");
                 i++;
               } else {
                 var mod = refinementCloner.CloneSpecFrameExpr(oldModifyStmt.Mod);
@@ -1176,13 +1177,13 @@ namespace Microsoft.Dafny {
                   // also sets ".ReverifyPost" to "true" for any "return" statements.
                   mbody = MergeBlockStmt(skel.Body, new BlockStmt(oldModifyStmt.Tok, oldModifyStmt.EndTok, new List<Statement>()));
                 } else if (skel.Body == null) {
-                  reporter.Error(MessageSource.RefinementTransformer, cur.Tok, "modify template must have a body if the inherited modify statement does");
+                  Reporter.Error(MessageSource.RefinementTransformer, cur.Tok, "modify template must have a body if the inherited modify statement does");
                   mbody = null;
                 } else {
                   mbody = MergeBlockStmt(skel.Body, oldModifyStmt.Body);
                 }
                 body.Add(new ModifyStmt(skel.Tok, skel.EndTok, mod.Expressions, mod.Attributes, mbody));
-                reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, Printer.FrameExprListToString(mod.Expressions));
+                Reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, Printer.FrameExprListToString(mod.Expressions));
                 i++; j++;
               }
 
@@ -1456,7 +1457,7 @@ namespace Microsoft.Dafny {
       } else {
         if (!Contract.Exists(cOld.Decreases.Expressions, e => e is WildcardExpr)) {
           // If the previous loop was not specified with "decreases *", then the new loop is not allowed to provide any "decreases" clause.
-          reporter.Error(MessageSource.RefinementTransformer, cNew.Decreases.Expressions[0].tok, "a refining loop can provide a decreases clause only if the loop being refined was declared with 'decreases *'");
+          Reporter.Error(MessageSource.RefinementTransformer, cNew.Decreases.Expressions[0].tok, "a refining loop can provide a decreases clause only if the loop being refined was declared with 'decreases *'");
         }
         decr = cNew.Decreases;
       }
@@ -1469,7 +1470,7 @@ namespace Microsoft.Dafny {
       } else if (cOld.Body == null) {
         newBody = MergeBlockStmt(cNew.Body, new BlockStmt(cOld.Tok, cOld.EndTok, new List<Statement>()));
       } else if (cNew.Body == null) {
-        reporter.Error(MessageSource.RefinementTransformer, cNew.Tok, "while template must have a body if the inherited while statement does");
+        Reporter.Error(MessageSource.RefinementTransformer, cNew.Tok, "while template must have a body if the inherited while statement does");
         newBody = null;
       } else {
         newBody = MergeBlockStmt(cNew.Body, cOld.Body);
@@ -1508,9 +1509,9 @@ namespace Microsoft.Dafny {
     void MergeAddStatement(Statement s, List<Statement> stmtList) {
       Contract.Requires(s != null);
       Contract.Requires(stmtList != null);
-      var prevErrorCount = reporter.Count(ErrorLevel.Error);
+      var prevErrorCount = Reporter.Count(ErrorLevel.Error);
       CheckIsOkayNewStatement(s, new Stack<string>(), 0);
-      if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+      if (Reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         stmtList.Add(s);
       }
     }
@@ -1527,29 +1528,29 @@ namespace Microsoft.Dafny {
         labels.Push(n.Data.Name);
       }
       if (s is SkeletonStatement) {
-        reporter.Error(MessageSource.RefinementTransformer, s, "skeleton statement may not be used here; it does not have a matching statement in what is being replaced");
+        Reporter.Error(MessageSource.RefinementTransformer, s, "skeleton statement may not be used here; it does not have a matching statement in what is being replaced");
       } else if (s is ReturnStmt) {
         // allow return statements, but make note of that this requires verifying the postcondition
         ((ReturnStmt)s).ReverifyPost = true;
       } else if (s is YieldStmt) {
-        reporter.Error(MessageSource.RefinementTransformer, s, "yield statements are not allowed in skeletons");
+        Reporter.Error(MessageSource.RefinementTransformer, s, "yield statements are not allowed in skeletons");
       } else if (s is BreakStmt) {
         var b = (BreakStmt)s;
-        if (b.TargetLabel != null ? !labels.Contains(b.TargetLabel.val) : loopLevels < b.BreakCount) {
-          reporter.Error(MessageSource.RefinementTransformer, s, "break statement in skeleton is not allowed to break outside the skeleton fragment");
+        if (b.TargetLabel != null ? !labels.Contains(b.TargetLabel.val) : loopLevels < b.BreakAndContinueCount) {
+          Reporter.Error(MessageSource.RefinementTransformer, s, $"{b.Kind} statement in skeleton is not allowed to break outside the skeleton fragment");
         }
       } else if (s is AssignStmt) {
         // TODO: To be a refinement automatically (that is, without any further verification), only variables and fields defined
         // in this module are allowed.  This needs to be checked.  If the LHS refers to an l-value that was not declared within
         // this module, then either an error should be reported or the Translator needs to know to translate new proof obligations.
         var a = (AssignStmt)s;
-        reporter.Error(MessageSource.RefinementTransformer, a.Tok, "cannot have assignment statement");
+        Reporter.Error(MessageSource.RefinementTransformer, a.Tok, "cannot have assignment statement");
       } else if (s is ConcreteUpdateStatement) {
         postTasks.Enqueue(() => {
           CheckIsOkayUpdateStmt((ConcreteUpdateStatement)s, moduleUnderConstruction);
         });
       } else if (s is CallStmt) {
-        reporter.Error(MessageSource.RefinementTransformer, s.Tok, "cannot have call statement");
+        Reporter.Error(MessageSource.RefinementTransformer, s.Tok, "cannot have call statement");
       } else {
         if (s is WhileStmt || s is AlternativeLoopStmt) {
           loopLevels++;
@@ -1573,23 +1574,23 @@ namespace Microsoft.Dafny {
           Contract.Assert(ident.Var is LocalVariable || ident.Var is Formal); // LHS identifier expressions must be locals or out parameters (ie. formals)
           if ((ident.Var is LocalVariable && RefinementToken.IsInherited(((LocalVariable)ident.Var).Tok, m)) || ident.Var is Formal) {
             // for some reason, formals are not considered to be inherited.
-            reporter.Error(MessageSource.RefinementTransformer, l.tok, "refinement method cannot assign to variable defined in parent module ('{0}')", ident.Var.Name);
+            Reporter.Error(MessageSource.RefinementTransformer, l.tok, "refinement method cannot assign to variable defined in parent module ('{0}')", ident.Var.Name);
           }
         } else if (l is MemberSelectExpr) {
           var member = ((MemberSelectExpr)l).Member;
           if (RefinementToken.IsInherited(member.tok, m)) {
-            reporter.Error(MessageSource.RefinementTransformer, l.tok, "refinement method cannot assign to a field defined in parent module ('{0}')", member.Name);
+            Reporter.Error(MessageSource.RefinementTransformer, l.tok, "refinement method cannot assign to a field defined in parent module ('{0}')", member.Name);
           }
         } else {
           // must be an array element
-          reporter.Error(MessageSource.RefinementTransformer, l.tok, "new assignments in a refinement method can only assign to state that the module defines (which never includes array elements)");
+          Reporter.Error(MessageSource.RefinementTransformer, l.tok, "new assignments in a refinement method can only assign to state that the module defines (which never includes array elements)");
         }
       }
       if (stmt is UpdateStmt) {
         var s = (UpdateStmt)stmt;
         foreach (var rhs in s.Rhss) {
           if (rhs.CanAffectPreviouslyKnownExpressions) {
-            reporter.Error(MessageSource.RefinementTransformer, rhs.Tok, "assignment RHS in refinement method is not allowed to affect previously defined state");
+            Reporter.Error(MessageSource.RefinementTransformer, rhs.Tok, "assignment RHS in refinement method is not allowed to affect previously defined state");
           }
         }
       }
