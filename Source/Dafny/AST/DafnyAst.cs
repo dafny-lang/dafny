@@ -5829,6 +5829,7 @@ namespace Microsoft.Dafny {
     bool HasBeenAssignedUniqueName {  // unique names are not assigned until the Translator; if you don't already know if that stage has run, this boolean method will tell you
       get;
     }
+    static FreshIdGenerator CompileNameIdGenerator = new FreshIdGenerator();
     string AssignUniqueName(FreshIdGenerator generator);
     string CompileName {
       get;
@@ -5952,7 +5953,7 @@ namespace Microsoft.Dafny {
     public string AssignUniqueName(FreshIdGenerator generator) {
       if (uniqueName == null) {
         uniqueName = generator.FreshId(Name + "#");
-        compileName = string.Format("_{0}_{1}", SinglePassCompiler.FreshId(), CompilerizeName(name));
+        compileName = string.Format("_{0}_{1}", IVariable.CompileNameIdGenerator.FreshNumericId(), CompilerizeName(name));
       }
       return UniqueName;
     }
@@ -5996,7 +5997,7 @@ namespace Microsoft.Dafny {
     public virtual string CompileName {
       get {
         if (compileName == null) {
-          compileName = string.Format("_{0}_{1}", SinglePassCompiler.FreshId(), CompilerizeName(name));
+          compileName = string.Format("_{0}_{1}", IVariable.CompileNameIdGenerator.FreshNumericId(), CompilerizeName(name));
         }
         return compileName;
       }
@@ -7808,7 +7809,7 @@ namespace Microsoft.Dafny {
     public string AssignUniqueName(FreshIdGenerator generator) {
       if (uniqueName == null) {
         uniqueName = generator.FreshId(Name + "#");
-        compileName = string.Format("_{0}_{1}", SinglePassCompiler.FreshId(), NonglobalVariable.CompilerizeName(name));
+        compileName = string.Format("_{0}_{1}", IVariable.CompileNameIdGenerator.FreshNumericId(), NonglobalVariable.CompilerizeName(name));
       }
       return UniqueName;
     }
@@ -7816,7 +7817,7 @@ namespace Microsoft.Dafny {
     public string CompileName {
       get {
         if (compileName == null) {
-          compileName = string.Format("_{0}_{1}", SinglePassCompiler.FreshId(), NonglobalVariable.CompilerizeName(name));
+          compileName = string.Format("_{0}_{1}", IVariable.CompileNameIdGenerator.FreshNumericId(), NonglobalVariable.CompilerizeName(name));
         }
         return compileName;
       }
