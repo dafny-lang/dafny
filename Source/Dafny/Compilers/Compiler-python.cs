@@ -22,6 +22,8 @@ namespace Microsoft.Dafny {
     protected override string StmtTerminator { get => ""; }
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
       wr.WriteLine("# Dafny program {0} compiled into Python", program.Name);
+      wr.WriteLine("from typing import Callable");
+      wr.WriteLine();
       ReadRuntimeSystem("DafnyRuntime.py", wr);
       wr.WriteLine();
     }
@@ -51,14 +53,19 @@ namespace Microsoft.Dafny {
 
     protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string fullPrintName,
         List<TypeParameter> typeParameters, TopLevelDecl cls, List<Type> superClasses, IToken tok, ConcreteSyntaxTree wr) {
-      wr.Write("class {0}:", MangleName(name));
-      var methodWriter = wr.NewBlock(open: BlockStyle.Newline, close: BlockStyle.Nothing);
+      var methodWriter = wr.NewBlock(header: $"class {MangleName(name)}:", open: BlockStyle.Newline, close: BlockStyle.Nothing);
+
+      var needsVariables = cls is TopLevelDeclWithMembers decl2 && decl2.Members.FindAll(m => !m.IsGhost && ((m is Field && !m.IsStatic))).Count > 0;
+      var needsConstructor = cls is TopLevelDeclWithMembers decl && decl.Members.FindAll(m => !m.IsGhost && m is Field && !m.IsStatic).Count > 0;
+      var constructorWriter = needsConstructor
+        ? methodWriter.NewBlock(header: "def  __init__(self):", open: BlockStyle.Newline, close: BlockStyle.Newline)
+        : null;
       if (cls is ClassDecl d) {
-        if (d.Members.FindAll(m => !m.IsGhost).Count == 0) {
+        if (!needsConstructor && !needsVariables && d.Members.FindAll(m => !m.IsGhost).Count == 0) {
           methodWriter.WriteLine("pass");
         }
       }
-      return new ClassWriter(this, methodWriter, null);
+      return new ClassWriter(this, constructorWriter: constructorWriter, methodWriter: methodWriter);
     }
 
     protected override IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter> typeParameters,
@@ -82,7 +89,15 @@ namespace Microsoft.Dafny {
     }
 
     protected override IClassWriter DeclareNewtype(NewtypeDecl nt, ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
+      var cw = (ClassWriter)CreateClass(IdProtect(nt.EnclosingModuleDefinition.CompileName), IdName(nt), nt, wr);
+      var w = cw.MethodWriter;
+      var udt = UserDefinedType.FromTopLevelDecl(nt.tok, nt);
+      string d;
+      d = TypeInitializationValue(udt, wr, nt.tok, false, false);
+
+      w.NewBlock("def Default():", "", BlockStyle.Newline, BlockStyle.Newline).WriteLine($"return {d}", "");
+
+      return cw;
     }
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, ConcreteSyntaxTree wr) {
@@ -102,16 +117,16 @@ namespace Microsoft.Dafny {
 
     protected class ClassWriter : IClassWriter {
       public readonly PythonCompiler Compiler;
+      public readonly ConcreteSyntaxTree ConstructorWriter;
       public readonly ConcreteSyntaxTree MethodWriter;
-      public readonly ConcreteSyntaxTree FieldWriter;
 
-      public ClassWriter(PythonCompiler compiler, ConcreteSyntaxTree methodWriter, ConcreteSyntaxTree fieldWriter) {
+      public ClassWriter(PythonCompiler compiler, ConcreteSyntaxTree methodWriter, ConcreteSyntaxTree constructorWriter) {
         Contract.Requires(compiler != null);
         Contract.Requires(methodWriter != null);
-        Contract.Requires(fieldWriter != null);
+        Contract.Requires(constructorWriter != null);
         this.Compiler = compiler;
+        this.ConstructorWriter = constructorWriter;
         this.MethodWriter = methodWriter;
-        this.FieldWriter = fieldWriter;
       }
 
       public ConcreteSyntaxTree CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody,
@@ -135,12 +150,12 @@ namespace Microsoft.Dafny {
       public ConcreteSyntaxTree CreateGetterSetter(string name, Type resultType, IToken tok, bool isStatic,
         bool createBody,
         MemberDecl member, out ConcreteSyntaxTree setterWriter, bool forBodyInheritance) {
-        return Compiler.CreateGetterSetter(name, resultType, tok, isStatic, createBody, out setterWriter, MethodWriter);
+        return Compiler.CreateGetterSetter(name, resultType, tok, isStatic, createBody, out setterWriter, methodWriter: MethodWriter);
       }
 
       public void DeclareField(string name, TopLevelDecl enclosingDecl, bool isStatic, bool isConst, Type type,
           IToken tok, string rhs, Field field) {
-        Compiler.DeclareField(name, isStatic, isConst, type, tok, rhs, FieldWriter);
+        Compiler.DeclareField(name, isStatic, isConst, type, tok, rhs, ConstructorWriter);
       }
 
       public void InitializeField(Field field, Type instantiatedFieldType, TopLevelDeclWithMembers enclosingClass) {
@@ -155,8 +170,12 @@ namespace Microsoft.Dafny {
     }
 
     private void DeclareField(string name, bool isStatic, bool isConst, Type type, IToken tok, string rhs,
-      ConcreteSyntaxTree fieldWriter) {
-      throw new NotImplementedException();
+        ConcreteSyntaxTree fieldWriter) {
+      fieldWriter.Write($"self.{name}: {TypeName(type, fieldWriter, tok)}");
+      if (rhs != null) {
+        fieldWriter.Write($" = {rhs}");
+      }
+      fieldWriter.WriteLine();
     }
 
     private ConcreteSyntaxTree CreateGetterSetter(string name, Type resultType, IToken tok, bool isStatic,
@@ -166,24 +185,35 @@ namespace Microsoft.Dafny {
 
     private ConcreteSyntaxTree CreateGetter(string name, Type resultType, IToken tok, bool isStatic, bool createBody,
         ConcreteSyntaxTree methodWriter) {
-      return methodWriter.NewBlock($"def {name}():", open: BlockStyle.Newline, close: BlockStyle.Nothing);
+      methodWriter.WriteLine("@property");
+      var self = isStatic ? "" : "self";
+      return methodWriter.NewBlock(header: $"def {name}({self}):", open: BlockStyle.Newline, close: BlockStyle.Nothing);
     }
 
     private ConcreteSyntaxTree CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody,
       ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
+      if (m.IsStatic) { wr.WriteLine("@staticmethod"); }
       wr.Write($"def {IdName(m)}(");
+      WriteFormals(m.Ins, m.IsStatic, wr);
+      return wr.NewBlock("):", open: BlockStyle.Newline, close: BlockStyle.Newline);
+    }
 
-      WriteFormals("", m.Ins, wr);
-      var w = wr.NewBlock("):", open: BlockStyle.Newline, close: BlockStyle.Newline);
-      return w;
-
+    private void WriteFormals(List<Formal> formals, bool isStatic, ConcreteSyntaxTree wr) {
+      var self = wr.Fork();
+      if (!isStatic) {
+        self.Write("self");
+      }
+      if (WriteFormals("", formals, wr) > 0 && !isStatic) {
+        self.Write(", ");
+      }
     }
 
     private ConcreteSyntaxTree CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs,
         List<Formal> formals, Type resultType, IToken tok, bool isStatic, bool createBody, MemberDecl member,
         ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
+      if (isStatic || NeedsCustomReceiver(member)) { wr.WriteLine("@staticmethod"); }
       wr.Write($"def {name}(");
-      WriteFormals("", formals, wr);
+      WriteFormals(formals, isStatic, wr);
       return wr.NewBlock("):", open: BlockStyle.Newline, close: BlockStyle.Newline);
     }
 
@@ -249,8 +279,21 @@ namespace Microsoft.Dafny {
         case UserDefinedType udt: {
             var cl = udt.ResolvedClass;
             Contract.Assert(cl != null);
-            if (cl is SubsetTypeDecl td) {
-              return TypeInitializationValue(td.RhsWithArgument(udt.TypeArgs), wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
+            switch (cl) {
+              case SubsetTypeDecl td:
+                return TypeInitializationValue(td.RhsWithArgument(udt.TypeArgs), wr, tok, usePlaceboValue,
+                  constructTypeParameterDefaultsFromTypeDescriptors);
+
+              case NewtypeDecl td: {
+                  if (td.Witness != null) {
+                    throw new NotImplementedException();
+                  } else if (td.NativeType != null) {
+                    throw new NotImplementedException();
+                  } else {
+                    return TypeInitializationValue(td.BaseType, wr, tok, usePlaceboValue,
+                      constructTypeParameterDefaultsFromTypeDescriptors);
+                  }
+                }
             }
             break;
           }
@@ -290,7 +333,9 @@ namespace Microsoft.Dafny {
     }
 
     protected override ConcreteSyntaxTree DeclareLocalVar(string name, Type type, IToken tok, ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
+      var w = new ConcreteSyntaxTree();
+      wr.FormatLine($"{name} = {w}");
+      return w;
     }
 
     protected override bool UseReturnStyleOuts(Method m, int nonGhostOutCount) => true;
@@ -401,8 +446,8 @@ namespace Microsoft.Dafny {
       throw new NotImplementedException();
     }
 
-    protected override void EmitNew(Type type, IToken tok, CallStmt initCall, ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
+    protected override void EmitNew(Type type, IToken tok, CallStmt _, ConcreteSyntaxTree wr) {
+      wr.Write($"{TypeName(type, wr, tok)}()");
     }
 
     protected override void EmitNewArray(Type elmtType, IToken tok, List<Expression> dimensions, bool mustInitialize,
@@ -486,7 +531,8 @@ namespace Microsoft.Dafny {
 
     protected override string FullTypeName(UserDefinedType udt, MemberDecl member = null) {
       if (udt is ArrowType) {
-        return ArrowType.Arrow_FullCompileName;
+        //TODO: Add deeper types
+        return "Callable";
       }
 
       var cl = udt.ResolvedClass;
@@ -500,7 +546,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitThis(ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
+      wr.Write("self");
     }
 
     protected override void EmitDatatypeValue(DatatypeValue dtv, string arguments, ConcreteSyntaxTree wr) {
@@ -525,9 +571,27 @@ namespace Microsoft.Dafny {
     protected override ILvalue EmitMemberSelect(Action<ConcreteSyntaxTree> obj, Type objType, MemberDecl member,
         List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap, Type expectedType,
         string additionalCustomParameter = null, bool internalAccess = false) {
-      return SimpleLvalue(w => {
-        w.Write("{0}.{1}()", TypeName_Companion(objType, w, member.tok, member), IdName(member));
-      });
+      if (internalAccess) {
+        return SimpleLvalue(w => {
+          w.Write($"self._{member.CompileName}");
+        });
+      }
+      switch (member) {
+        case Field: {
+            return SimpleLvalue(w => {
+              if (member.IsStatic) { w.Write(TypeName_Companion(objType, w, member.tok, member)); } else { obj(w); }
+              w.Write($".{IdName(member)}");
+            });
+          }
+        case Function: {
+            var param = additionalCustomParameter == null ? "" : $"({additionalCustomParameter})";
+            return SuffixLvalue(obj, $".{IdName(member)}{param}");
+          }
+        default:
+          return SimpleLvalue(w => {
+            w.Write($"{TypeName_Companion(objType, w, member.tok, member)}.{IdName(member)}({additionalCustomParameter ?? ""})");
+          });
+      }
     }
 
     protected override ConcreteSyntaxTree EmitArraySelect(List<string> indices, Type elmtType, ConcreteSyntaxTree wr) {
@@ -570,9 +634,9 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitApplyExpr(Type functionType, IToken tok, Expression function,
-      List<Expression> arguments, bool inLetExprBody,
-      ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
+        List<Expression> arguments, bool inLetExprBody, ConcreteSyntaxTree wr) {
+      TrExpr(function, wr, inLetExprBody);
+      TrExprList(arguments, wr, inLetExprBody);
     }
 
     protected override ConcreteSyntaxTree EmitBetaRedex(List<string> boundVars, List<Expression> arguments,
@@ -594,9 +658,10 @@ namespace Microsoft.Dafny {
     }
 
     protected override void CreateIIFE(string bvName, Type bvType, IToken bvTok, Type bodyType, IToken bodyTok,
-      ConcreteSyntaxTree wr,
-      out ConcreteSyntaxTree wrRhs, out ConcreteSyntaxTree wrBody) {
-      throw new NotImplementedException();
+      ConcreteSyntaxTree wr, out ConcreteSyntaxTree wrRhs, out ConcreteSyntaxTree wrBody) {
+      wrRhs = new ConcreteSyntaxTree();
+      wrBody = new ConcreteSyntaxTree();
+      wr.Format($"(lambda {bvName}: lambda: {wrBody})({wrRhs})");
     }
 
     protected override ConcreteSyntaxTree CreateIIFE0(Type resultType, IToken resultTok, ConcreteSyntaxTree wr) {
@@ -675,7 +740,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitConversionExpr(ConversionExpr e, bool inLetExprBody, ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
+      TrExpr(e.E, wr, inLetExprBody);
     }
 
     protected override void EmitTypeTest(string localName, Type fromType, Type toType, IToken tok,

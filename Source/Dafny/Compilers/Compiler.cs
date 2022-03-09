@@ -2386,7 +2386,7 @@ namespace Microsoft.Dafny {
         TrExprOpt(e.Thn, resultType, thn, accumulatorVar);
         ConcreteSyntaxTree els = wr;
         if (!(e.Els is ITEExpr)) {
-          els = wr.NewBlock("", null, BlockStyle.Brace);
+          els = EmitBlock(wr);
           Coverage.Instrument(e.Thn.tok, "else branch", els);
         }
         TrExprOpt(e.Els, resultType, els, accumulatorVar);
