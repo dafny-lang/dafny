@@ -180,8 +180,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     /// Time and Resource diagnostics
     public bool Started { get; set; } = false;
     public bool Finished { get; set; } = false;
-    public DateTime StartTime { get; private set; }
-    public DateTime EndTime { get; private set; }
+    public DateTime StartTime { get; protected set; }
+    public DateTime EndTime { get; protected set; }
     public int TimeSpent => (int)(Finished ? ((TimeSpan)(EndTime - StartTime)).TotalMilliseconds : Started ? (DateTime.Now - StartTime).TotalMilliseconds : 0);
     // Resources allocated at the end of the computation.
     public int ResourceCount { get; set; } = 0;
@@ -340,24 +340,63 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     // The range of this node.
     Range Range
   ) : NodeDiagnostic(DisplayName, Identifier, Filename, Position, Range) {
-    public List<int> AssertionBatchTimes =>
-      Children.OfType<ImplementationNodeDiagnostic>().SelectMany(child => child.AssertionBatchTimes).ToList();
+    // Recomputed from the children which are ImplementationNodeDiagnostic
+    public List<AssertionBatchNodeDiagnostic> AssertionBatches { get; set; } = new();
 
-    public int AssertionBatchCount => AssertionBatchTimes.Count;
-    public int LongestAssertionBatchTime {
-      get {
-        var assertionBatchTimes = AssertionBatchTimes;
-        return assertionBatchTimes.Count == 0 ? 0 : assertionBatchTimes.Max();
+    public void RecomputeAssertionBatchNodeDiagnostics() {
+      var result = new List<AssertionBatchNodeDiagnostic>();
+      foreach (var implementationNode in Children.OfType<ImplementationNodeDiagnostic>()) {
+        for (var batchIndex = 0; batchIndex < implementationNode.AssertionBatchCount; batchIndex++) {
+          var children = implementationNode.Children.OfType<AssertionNodeDiagnostic>().Where(
+            assertionNode => assertionNode.AssertionBatchIndex == batchIndex).Cast<NodeDiagnostic>().ToList();
+          if (children.Count > 0) {
+            result.Add(new AssertionBatchNodeDiagnostic(
+              "Assertion batch #" + result.Count,
+              "assertion-batch-" + result.Count,
+              Filename,
+              children[0].Position,
+              new Range(children[0].Position, children[^1].Range.End)
+            ) {
+              Children = children
+            }.WithDuration(implementationNode.StartTime, implementationNode.AssertionBatchTimes[batchIndex]));
+          }
+        }
       }
+
+      AssertionBatches = result;
     }
 
-    public int LongestAssertionBatchTimeIndex {
-      get {
-        var longestAssertionBatchTimes = LongestAssertionBatchTime;
-        return longestAssertionBatchTimes != 0 ? AssertionBatchTimes.IndexOf(longestAssertionBatchTimes) : -1;
-      }
-    }
+    public AssertionBatchNodeDiagnostic? LongestAssertionBatch =>
+      AssertionBatches.MaxBy(assertionBatch => assertionBatch.TimeSpent);
 
+    private IEnumerable<int> AssertionBatchTimes =>
+      AssertionBatches.Select(assertionBatch => assertionBatch.TimeSpent);
+
+    public int AssertionBatchCount => AssertionBatches.Count;
+
+    public int LongestAssertionBatchTime => AssertionBatches.Any() ? AssertionBatchTimes.Max() : 0;
+
+    public int LongestAssertionBatchTimeIndex => LongestAssertionBatchTime != 0 ? AssertionBatchTimes.ToList().IndexOf(LongestAssertionBatchTime) : -1;
+  }
+
+  // Invariant: There is at least 1 child for every assertion batch
+  public sealed record AssertionBatchNodeDiagnostic(
+    string DisplayName,
+    // Used to re-trigger the verification of some diagnostics.
+    string Identifier,
+    string Filename,
+    // Used to relocate a node diagnostic and to determine which function is currently verifying
+    Position Position,
+    // The range of this node.
+    Range Range
+  ) : NodeDiagnostic(DisplayName, Identifier, Filename, Position, Range) {
+    public AssertionBatchNodeDiagnostic WithDuration(DateTime parentStartTime, int implementationNodeAssertionBatchTime) {
+      Started = true;
+      Finished = true;
+      StartTime = parentStartTime;
+      EndTime = parentStartTime.AddMilliseconds(implementationNodeAssertionBatchTime);
+      return this;
+    }
   }
 
   public sealed record ImplementationNodeDiagnostic(
@@ -373,7 +412,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     public List<int> AssertionBatchTimes { get; set; } = new();
     public List<int> AssertionBatchCounts { get; set; } = new();
 
-    public int SplitCount => AssertionBatchTimes.Count;
+    public int AssertionBatchCount => AssertionBatchTimes.Count;
 
     private Implementation? implementation = null;
 
@@ -409,9 +448,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     private AssertCmd? assertion = null;
 
     /// <summary>
-    /// Which split this assertion was taken from
+    /// Which assertion batch this assertion was taken from in its implementation node
     /// </summary>
-    public int SplitNumber { get; set; }
+    public int AssertionBatchIndex { get; set; }
 
     /// <summary>
     /// 0-based position of the assertion it is in the assertion batch

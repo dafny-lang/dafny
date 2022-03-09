@@ -60,7 +60,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
             if (totalSplitCount == 0) {
               totalSplitCount = implementations.Sum(implementation =>
-                implementation.SplitCount);
+                implementation.AssertionBatchCount);
             }
 
             var assertionNumber = 0;
@@ -68,14 +68,14 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
             var information = "";
             foreach (var assertionNode in assertions) {
               if (assertionNode.Range.Contains(positionStartingWithOne)) {
-                var splitNumber = assertionNode.SplitNumber;
-                if (splitNumber >= implementationNode.SplitCount
+                var splitNumber = assertionNode.AssertionBatchIndex;
+                if (splitNumber >= implementationNode.AssertionBatchCount
                     || splitNumber >= implementationNode.AssertionBatchCounts.Count) {
                   logger.Log(LogLevel.Error, $"Assertion is referring to split {splitNumber} in {implementationNode.DisplayName} which does not exist.");
                   return null;
                 }
 
-                var batchRef = AddAssertionBatchUrl("batch");
+                var batchRef = AddAssertionBatchDocumentation("batch");
                 var assertionBatchTime = implementationNode.AssertionBatchTimes[splitNumber];
                 var assertionBatchCount = implementationNode.AssertionBatchCounts[splitNumber];
                 if (information == "") {
@@ -106,23 +106,14 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
             }
 
             implementationNumber++;
-            splitCountOffset += implementationNode.SplitCount;
+            splitCountOffset += implementationNode.AssertionBatchCount;
           }
           // Ok no assertion here. Maybe a method?
           if (node.Position.Line == positionStartingWithOne.Line &&
               node.Filename == document.Uri.GetFileSystemPath()) {
             var information = "**" + node.DisplayName + "** metrics:\n\n";
-            var assertionBatch = AddAssertionBatchUrl("assertion batch");
-            var assertSplitOffset = 0;
-            var newAssertSplitOffset = 0;
-            var firstAssert = node.Children.OfType<ImplementationNodeDiagnostic>().SelectMany(
-                implementationNode => {
-                  assertSplitOffset = newAssertSplitOffset;
-                  newAssertSplitOffset += implementationNode.SplitCount;
-                  return implementationNode.Children.OfType<AssertionNodeDiagnostic>();
-                })
-              .FirstOrDefault(assertionNode =>
-                assertionNode != null && assertionNode.SplitNumber + assertSplitOffset == node.LongestAssertionBatchTimeIndex, null);
+            var assertionBatch = AddAssertionBatchDocumentation("assertion batch");
+            var firstAssert = node.LongestAssertionBatch?.Children[0];
             var lineFirstAssert = firstAssert == null ? "" : " at line " + firstAssert.Position.Line;
             information +=
               !node.Started ? "_Verification not started yet_"
@@ -139,7 +130,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       return null;
     }
 
-    private static string AddAssertionBatchUrl(string batchReference) {
+    private static string AddAssertionBatchDocumentation(string batchReference) {
       return $"[{batchReference}](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-verification-attributes-on-assert-statements)";
     }
 

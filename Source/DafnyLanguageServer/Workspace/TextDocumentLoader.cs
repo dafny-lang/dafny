@@ -363,8 +363,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           targetMethodNode?.AddNewChild(newImplementationNode);
         }
 
-        foreach (var methodNode in document.VerificationNodeDiagnostic.Children) {
+        foreach (var methodNode in document.VerificationNodeDiagnostic.Children.OfType<MethodOrSubsetTypeNodeDiagnostic>()) {
           methodNode.SaveNewChildren();
+          methodNode.RecomputeAssertionBatchNodeDiagnostics();
         }
       }
 
@@ -405,8 +406,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
       }
 
-      private NodeDiagnostic? GetTargetMethodNode(Implementation implementation, out ImplementationNodeDiagnostic? implementationNode, bool nameBased = false) {
-        var targetMethodNode = document.VerificationNodeDiagnostic.Children.FirstOrDefault(
+      private MethodOrSubsetTypeNodeDiagnostic? GetTargetMethodNode(Implementation implementation, out ImplementationNodeDiagnostic? implementationNode, bool nameBased = false) {
+        var targetMethodNode = document.VerificationNodeDiagnostic.Children.OfType<MethodOrSubsetTypeNodeDiagnostic>().FirstOrDefault(
           node => node?.Position == TokenToPosition(implementation.tok) && node?.Filename == implementation.tok.filename
           , null);
         if (nameBased) {
@@ -458,6 +459,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             }
 
             targetMethodNode.PropagateChildrenErrorsUp();
+            targetMethodNode.RecomputeAssertionBatchNodeDiagnostics();
             diagnosticPublisher.PublishVerificationDiagnostics(document);
           }
         }
@@ -492,7 +494,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           } else if (implementationNode == null) {
             logger.LogError($"No implementation node at {implementation.tok.filename}:{implementation.tok.line}:{implementation.tok.col}");
           } else {
-            var splitNumber = implementationNode.SplitCount;
+            var splitNumber = implementationNode.AssertionBatchCount;
             implementationNode.AssertionBatchTimes.Add((int)split.Checker.ProverRunTime.TotalMilliseconds);
             var thisBatchCount = 0;
 
@@ -530,7 +532,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
                 StatusVerification = status,
                 StatusCurrent = CurrentStatus.Current,
                 RelatedRanges = relatedRanges,
-                SplitNumber = splitNumber,
+                AssertionBatchIndex = splitNumber,
                 AssertionNumber = thisBatchCount
               };
               // Add this diagnostics as the new one to display once the implementation is fully verified
@@ -592,6 +594,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             }
             implementationNode.AssertionBatchCounts.Add(thisBatchCount);
             targetMethodNode.PropagateChildrenErrorsUp();
+            targetMethodNode.RecomputeAssertionBatchNodeDiagnostics();
             diagnosticPublisher.PublishVerificationDiagnostics(document);
           }
         }

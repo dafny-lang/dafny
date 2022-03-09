@@ -29,25 +29,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private void PublishDocumentDiagnostics(DafnyDocument document) {
-      var diagnosticParameterss = new PublishDiagnosticsParams {
+      var diagnosticParameters = new PublishDiagnosticsParams {
         Uri = document.Uri,
         Version = document.Version,
         Diagnostics = GetDiagnostics(document).ToArray(),
       };
-      languageServer.TextDocument.PublishDiagnostics(diagnosticParameterss);
-    }
-
-    // TODO: Write in Dafny
-    private bool NoErrorWithin(IToken startTok, IToken endTok, Diagnostic[] errors) {
-      // Errors are in order, we could just bissect them.
-      for (var i = 0; i < errors.Length; i++) {
-        var error = errors[i];
-        if (startTok.line <= error.Range.End.Line && error.Range.Start.Line <= endTok.line) {
-          return false;
-        }
-      }
-
-      return true;
+      languageServer.TextDocument.PublishDiagnostics(diagnosticParameters);
     }
 
     public void PublishVerificationDiagnostics(DafnyDocument document) {

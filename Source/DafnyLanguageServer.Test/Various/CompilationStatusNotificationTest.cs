@@ -177,9 +177,15 @@ lemma {:timeLimit 3} SquareRoot2NotRational(p: nat, q: nat)
       Assert.AreEqual(documentItem.Version, inprogress.Version);
       Assert.AreEqual(CompilationStatus.VerificationStarted, inprogress.Status);
       Assert.AreEqual("SquareRoot2NotRational", inprogress.Message);
+      var temporary = await notificationReceiver.AwaitNextNotificationAsync(CancellationToken);
+      Assert.AreEqual(documentItem.Uri, temporary.Uri);
+      Assert.AreEqual(documentItem.Version, temporary.Version);
+      Assert.AreEqual("", temporary.Message);
+      Assert.AreEqual(CompilationStatus.VerificationStarted, temporary.Status);
       var completed = await notificationReceiver.AwaitNextNotificationAsync(CancellationToken);
       Assert.AreEqual(documentItem.Uri, completed.Uri);
       Assert.AreEqual(documentItem.Version, completed.Version);
+      Assert.AreEqual("", completed.Message);
       Assert.AreEqual(CompilationStatus.VerificationFailed, completed.Status);
     }
 
