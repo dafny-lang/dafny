@@ -527,6 +527,10 @@ namespace Microsoft.Dafny {
           return;
         }
       }
+      else {
+        wr.WriteLine("@org.junit.jupiter.api.Test");
+        return;
+      }
     }
 
     protected ConcreteSyntaxTree CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
