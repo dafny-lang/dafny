@@ -287,10 +287,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
           if (newRange == null) {
             continue;
           }
-          var newPosition = MigratePosition(nodeDiagnostic.Position, change.Range!, afterChangeEndOffset);
           var newNodeDiagnostic = nodeDiagnostic with {
             Range = newRange,
-            Position = newPosition,
             Children = MigrateNodeDiagnostic(nodeDiagnostic.Children, change).ToList(),
             RelatedRanges = nodeDiagnostic.RelatedRanges
               .Select(pos => MigrateRange(pos, change.Range!, afterChangeEndOffset))

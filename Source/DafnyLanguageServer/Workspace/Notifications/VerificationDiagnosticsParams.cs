@@ -104,6 +104,17 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
         resolutionErrorRendered++;
       }
 
+      var existsErrorRange = false;
+      var existsError = false;
+      foreach (var line in result) {
+        existsErrorRange = existsErrorRange || line == LineVerificationStatus.ErrorRange;
+        existsError = existsError || line == LineVerificationStatus.Error;
+      }
+
+      if (existsErrorRange && !existsError) {
+        existsError = false;
+      }
+
       return result;
     }
   }
@@ -151,16 +162,17 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
   }
 
   public abstract record NodeDiagnostic(
-     /// User-facing name
+     // User-facing name
      string DisplayName,
-     /// Used to re-trigger the verification of some diagnostics.
+     // Used to re-trigger the verification of some diagnostics.
      string Identifier,
      string Filename,
-     // Used to relocate a node diagnostic and to determine which function is currently verifying
-     Position Position,
      // The range of this node.
      Range Range
   ) {
+    // Used to relocate a node diagnostic and to determine which function is currently verifying
+    public Position Position => Range.Start;
+
     /// Time and Resource diagnostics
     public bool Started { get; set; } = false;
     public bool Finished { get; set; } = false;
@@ -212,7 +224,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       return this;
     }
 
-    public virtual void Start() {
+    // Returns true if it started the method, false if it was already started
+    public virtual bool Start() {
       if (StatusCurrent != CurrentStatus.Verifying || !Started) {
         StartTime = DateTime.Now;
         StatusCurrent = CurrentStatus.Verifying;
@@ -220,10 +233,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
           child.Start();
         }
         Started = true;
+        return true;
       }
+
+      return false;
     }
 
-    public virtual void Stop() {
+    // Returns true if it did stop the current node, false if it was already stopped
+    public virtual bool Stop() {
       if (StatusCurrent != CurrentStatus.Current || !Finished) {
         EndTime = DateTime.Now;
         StatusCurrent = CurrentStatus.Current;
@@ -231,7 +248,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
           child.Stop();
         }
         Finished = true;
+        return true;
       }
+
+      return false;
     }
 
     public void PropagateChildrenErrorsUp() {
@@ -251,8 +271,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     // Requires PropagateChildrenErrorsUp to have been called before.
     public void RenderInto(LineVerificationStatus[] perLineDiagnostics, bool contextHasErrors = false) {
       var isSingleLine = Range.Start.Line == Range.End.Line;
-      // First render the node.
-      for (var line = Range.Start.Line - 1; line <= Range.End.Line - 1; line++) {
+      for (var line = Range.Start.Line; line <= Range.End.Line; line++) {
         LineVerificationStatus targetStatus = StatusVerification switch {
           VerificationStatus.Unknown => StatusCurrent switch {
             CurrentStatus.Current => LineVerificationStatus.Unknown,
@@ -319,7 +338,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     string Identifier,
     int Lines
   ) : NodeDiagnostic("Document", Identifier, Identifier,
-    new Position(0, 0), new Range(new Position(0, 0),
+    new Range(new Position(0, 0),
       new Position(Lines, 0)));
 
   public sealed record MethodOrSubsetTypeNodeDiagnostic(
@@ -327,11 +346,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     // Used to re-trigger the verification of some diagnostics.
     string Identifier,
     string Filename,
-    // Used to relocate a node diagnostic and to determine which function is currently verifying
-    Position Position,
     // The range of this node.
     Range Range
-  ) : NodeDiagnostic(DisplayName, Identifier, Filename, Position, Range) {
+  ) : NodeDiagnostic(DisplayName, Identifier, Filename, Range) {
     // Recomputed from the children which are ImplementationNodeDiagnostic
     public List<AssertionBatchNodeDiagnostic> AssertionBatches { get; set; } = new();
 
@@ -348,7 +365,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
               "Assertion batch #" + result.Count,
               "assertion-batch-" + result.Count,
               Filename,
-              minPosition,
               new Range(minPosition, maxPosition)
             ) {
               Children = children
@@ -379,11 +395,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     // Used to re-trigger the verification of some diagnostics.
     string Identifier,
     string Filename,
-    // Used to relocate a node diagnostic and to determine which function is currently verifying
-    Position Position,
     // The range of this node.
     Range Range
-  ) : NodeDiagnostic(DisplayName, Identifier, Filename, Position, Range) {
+  ) : NodeDiagnostic(DisplayName, Identifier, Filename, Range) {
     public AssertionBatchNodeDiagnostic WithDuration(DateTime parentStartTime, int implementationNodeAssertionBatchTime) {
       Started = true;
       Finished = true;
@@ -398,11 +412,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     // Used to re-trigger the verification of some diagnostics.
     string Identifier,
     string Filename,
-    // Used to relocate a node diagnostic and to determine which function is currently verifying
-    Position Position,
     // The range of this node.
     Range Range
-  ) : NodeDiagnostic(DisplayName, Identifier, Filename, Position, Range) {
+  ) : NodeDiagnostic(DisplayName, Identifier, Filename, Range) {
     // The index of ImplementationNodeDiagnostic.AssertionBatchTimes
     // is the same as the AssertionNodeDiagnostic.AssertionBatchIndex
     public List<int> AssertionBatchTimes { get; private set; } = new();
@@ -419,15 +431,23 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       NewAssertionBatchTimes.Add(milliseconds);
     }
 
-    public override void Start() {
-      base.Start();
-      NewAssertionBatchTimes = new();
+    public override bool Start() {
+      if (base.Start()) {
+        NewAssertionBatchTimes = new();
+        return true;
+      }
+
+      return false;
     }
 
-    public override void Stop() {
-      base.Stop();
-      AssertionBatchTimes = NewAssertionBatchTimes;
-      SaveNewChildren();
+    public override bool Stop() {
+      if (base.Stop()) {
+        AssertionBatchTimes = NewAssertionBatchTimes;
+        SaveNewChildren();
+        return true;
+      }
+
+      return false;
     }
 
     public Implementation? GetImplementation() {
@@ -446,11 +466,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     string Identifier,
     string Filename,
     // Used to relocate a node diagnostic and to determine which function is currently verifying
-    Position Position,
     Position? SecondaryPosition,
     // The range of this node.
     Range Range
-  ) : NodeDiagnostic(DisplayName, Identifier, Filename, Position, Range) {
+  ) : NodeDiagnostic(DisplayName, Identifier, Filename, Range) {
     // Contains permanent secondary positions to this node (e.g. return branch positions)
     // Helps to distinguish between assertions with the same position (i.e. ensures for different branches)
     private AssertCmd? assertion = null;

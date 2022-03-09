@@ -23,8 +23,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return;
       }
       PublishDocumentDiagnostics(document);
-      PublishVerificationDiagnostics(document);
-
       PublishGhostDiagnostics(document);
     }
 

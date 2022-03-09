@@ -212,23 +212,19 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
                 if (member.tok.filename != documentFilePath) {
                   continue;
                 }
-                var diagnosticPosition = TokenToPosition(member.tok);
-                var diagnosticRange = new Range(diagnosticPosition, TokenToPosition(member.BodyEndTok, true));
+                var diagnosticRange = member.tok.GetLspRange(member.BodyEndTok);
                 var diagnostic = new MethodOrSubsetTypeNodeDiagnostic(
                   member.Name,
                   member.CompileName,
                   member.tok.filename,
-                  diagnosticPosition,
                   diagnosticRange);
                 AddAndPossiblyMigrateDiagnostic(diagnostic);
                 if (member is Function { ByMethodBody: { } } function) {
-                  var diagnosticPositionByMethod = TokenToPosition(function.ByMethodTok);
-                  var diagnosticRangeByMethod = new Range(diagnosticPositionByMethod, TokenToPosition(function.ByMethodBody.EndTok, true));
+                  var diagnosticRangeByMethod = function.ByMethodTok.GetLspRange(function.ByMethodBody.EndTok);
                   var diagnosticByMethod = new MethodOrSubsetTypeNodeDiagnostic(
                     member.Name + " by method",
                     member.CompileName + "_by_method",
                     member.tok.filename,
-                    diagnosticPositionByMethod,
                     diagnosticRangeByMethod);
                   AddAndPossiblyMigrateDiagnostic(diagnosticByMethod);
                 }
@@ -239,27 +235,22 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
               continue;
             }
 
-            var diagnosticPosition = TokenToPosition(subsetTypeDecl.tok);
+            var diagnosticPosition = subsetTypeDecl.tok.GetLspPosition();
             if (subsetTypeDecl.Witness == null) {
               continue;
             }
             var diagnosticRange = new Range(diagnosticPosition,
-                TokenToPosition(subsetTypeDecl.Witness.tok, true));
+                subsetTypeDecl.Witness.tok.GetLspPosition(true));
             var diagnostic = new MethodOrSubsetTypeNodeDiagnostic(
               subsetTypeDecl.Name,
               subsetTypeDecl.CompileName,
               subsetTypeDecl.tok.filename,
-              diagnosticPosition,
               diagnosticRange);
             AddAndPossiblyMigrateDiagnostic(diagnostic);
           }
         }
       }
       document.VerificationNodeDiagnostic.Children = result;
-    }
-
-    private static Position TokenToPosition(IToken token, bool end = false) {
-      return new Position(token.line, token.col + (end ? token.val.Length : 0));
     }
 
     private DafnyDocument VerifyInternal(VerifyRequest verifyRequest) {
@@ -331,7 +322,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       public void ReportImplementationsBeforeVerification(Implementation[] implementations) {
-        if (document.LoadCanceled) {
+        if (document.LoadCanceled || implementations.Length == 0) {
           return;
         }
         // We migrate existing implementations to the new provided ones if they exist.
@@ -353,7 +344,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             newDisplayName,
             implementation.Name,
             targetMethodNode.Filename,
-            targetMethodNode.Position,
             targetMethodNode.Range
           ).WithImplementation(implementation);
           if (oldImplementationNode != null) {
@@ -364,6 +354,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
         foreach (var methodNode in document.VerificationNodeDiagnostic.Children.OfType<MethodOrSubsetTypeNodeDiagnostic>()) {
           methodNode.SaveNewChildren();
+          if (!methodNode.Children.Any()) {
+            methodNode.Start();
+            methodNode.Stop();
+            methodNode.StatusCurrent = CurrentStatus.Current;
+            methodNode.StatusVerification = VerificationStatus.Verified;
+          }
+          methodNode.PropagateChildrenErrorsUp();
           methodNode.RecomputeAssertionBatchNodeDiagnostics();
         }
       }
@@ -468,11 +465,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
                 return;
               }
 
-              var outcomePosition = TokenToPosition(token);
-              var secondaryOutcomePosition = secondaryToken != null ? TokenToPosition(secondaryToken) : null;
+              var outcomePosition = token.GetLspPosition();
+              var secondaryOutcomePosition = secondaryToken?.GetLspPosition();
               var relatedRanges = relatedTokens
                 .Where(tok => tok.filename == implementationNode.Filename)
-                .Select(tok => new Range(TokenToPosition(tok), TokenToPosition(tok, true)))
+                .Select(tok => tok.GetLspRange())
                 .Where(range => range.Start != outcomePosition && range.Start != secondaryOutcomePosition)
                 .ToList().GroupBy(x => x)
                 .Select(grp => grp.FirstOrDefault())
@@ -483,12 +480,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
               assertDisplay = assertDisplay != "" ? " " + assertDisplay : "";
               assertIdentifier = assertIdentifier != "" ? "_" + assertIdentifier : "";
 
-              var outcomeRange = new Range(outcomePosition, TokenToPosition(token, true));
+              var outcomeRange = token.GetLspRange();
               var nodeDiagnostic = new AssertionNodeDiagnostic(
                 $"{targetMethodNode.DisplayName}{assertDisplay} #{childrenCount}",
                 $"{targetMethodNode.Identifier}_{childrenCount}{assertIdentifier}",
                 token.filename,
-                outcomePosition,
                 secondaryOutcomePosition,
                 outcomeRange
               ) {
@@ -534,7 +530,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
               if (assertCmd is AssertEnsuresCmd assertEnsuresCmd) {
                 AddChildOutcome(assertEnsuresCmd.Ensures.tok, status, secondaryToken, RelatedPositions, " ensures", "_ensures");
                 if (secondaryToken != null) {
-                  var returnPosition = TokenToPosition(secondaryToken);
+                  var returnPosition = secondaryToken.GetLspPosition();
                   if (returnPosition != implementationNode.Position) {
                     AddChildOutcome(secondaryToken, status, assertEnsuresCmd.tok, RelatedPositions, "return branch",
                       "_return");
@@ -545,7 +541,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
               } else {
                 AddChildOutcome(assertCmd.tok, status, secondaryToken, RelatedPositions, "Assertion", "assert");
                 if (secondaryToken != null) {
-                  var requiresPosition = TokenToPosition(secondaryToken);
+                  var requiresPosition = secondaryToken.GetLspPosition();
                   if (targetMethodNode.Range.Contains(requiresPosition)) {
                     AddChildOutcome(secondaryToken, status, assertCmd.tok, RelatedPositions, "Call precondition",
                       "call_precondition");
@@ -567,7 +563,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         if (lastChange == null) {
           return 0;
         }
-        var implPosition = TokenToPosition(implTok);
+
+        var implPosition = implTok.GetLspPosition(); ;
         // We might want to simplify this quadratic algorithm
         var method = document.VerificationNodeDiagnostic.Children.FirstOrDefault(node =>
           node != null && node.Range.Contains(implPosition), null);
@@ -599,7 +596,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       private MethodOrSubsetTypeNodeDiagnostic? GetTargetMethodNode(Implementation implementation, out ImplementationNodeDiagnostic? implementationNode, bool nameBased = false) {
         var targetMethodNode = document.VerificationNodeDiagnostic.Children.OfType<MethodOrSubsetTypeNodeDiagnostic>().FirstOrDefault(
-          node => node?.Position == TokenToPosition(implementation.tok) && node?.Filename == implementation.tok.filename
+          node => node?.Position == implementation.tok.GetLspPosition() && node?.Filename == implementation.tok.filename
           , null);
         if (nameBased) {
           implementationNode = targetMethodNode?.Children.OfType<ImplementationNodeDiagnostic>().FirstOrDefault(
