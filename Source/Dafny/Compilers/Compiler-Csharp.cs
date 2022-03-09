@@ -3234,8 +3234,9 @@ namespace Microsoft.Dafny {
       for (int i = 0; i < tupleLength; i++) {
         string tupleValue = "tuple.dtor__" + i.ToString();
         wr.Write(tupleValue);
-        if (i < tupleLength - 1)
+        if (i < tupleLength - 1) {
           wr.Write(", ");
+        }
       }
       wr.WriteLine("});");
       wr.WriteLine("}");
