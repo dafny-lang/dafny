@@ -46,14 +46,13 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     }
 
     private Hover? GetDiagnosticsHover(DafnyDocument document, Position position) {
-      var positionStartingWithOne = new Position(position.Line + 1, position.Character + 1);
       foreach (var node in document.VerificationNodeDiagnostic.Children.OfType<MethodOrSubsetTypeNodeDiagnostic>()) {
-        if (node.Range.Contains(positionStartingWithOne)) {
+        if (node.Range.Contains(position)) {
           var implementations = node.Children.OfType<ImplementationNodeDiagnostic>().ToList();
           var assertionBatchCount = node.AssertionBatchCount;
           var assertionBatchIndex = 0;
           foreach (var assertionBatch in node.AssertionBatches) {
-            if (!assertionBatch.Range.Contains(positionStartingWithOne)) {
+            if (!assertionBatch.Range.Contains(position)) {
               continue;
             }
 
@@ -61,7 +60,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
             var assertions = assertionBatch.Children.OfType<AssertionNodeDiagnostic>().ToList();
             var information = "";
             foreach (var assertionNode in assertions) {
-              if (assertionNode.Range.Contains(positionStartingWithOne)) {
+              if (assertionNode.Range.Contains(position)) {
                 var batchRef = AddAssertionBatchDocumentation("batch");
                 var assertionBatchTime = assertionBatch.TimeSpent;
                 var assertionCount = assertionBatch.Children.Count;
@@ -96,7 +95,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
             assertionBatchIndex++;
           }
           // Ok no assertion here. Maybe a method?
-          if (node.Position.Line == positionStartingWithOne.Line &&
+          if (node.Position.Line == position.Line &&
               node.Filename == document.Uri.GetFileSystemPath()) {
             var information = "**" + node.DisplayName + "** metrics:\n\n";
             var assertionBatch = AddAssertionBatchDocumentation("assertion batch");
