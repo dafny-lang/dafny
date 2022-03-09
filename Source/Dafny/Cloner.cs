@@ -865,8 +865,6 @@ namespace Microsoft.Dafny {
 
     private Dictionary<Declaration, Declaration> reverseMap = new Dictionary<Declaration, Declaration>();
 
-    private HashSet<AliasModuleDecl> extraProvides = new HashSet<AliasModuleDecl>();
-
     private bool isInvisibleClone(Declaration d) {
       Contract.Assert(reverseMap.ContainsKey(d));
       return !reverseMap[d].IsVisibleInScope(scope);
