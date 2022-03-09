@@ -104,24 +104,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
         resolutionErrorRendered++;
       }
 
-      CheckResult(result);
-
       return result;
-    }
-
-    // Given a rendering, verifies that there is no error next to a verified, it should always be after an errorRange
-    private static void CheckResult(LineVerificationStatus[] result) {
-      var previousStatus = LineVerificationStatus.Verified;
-      foreach (var status in result) {
-        if (previousStatus is LineVerificationStatus.Verified or LineVerificationStatus.VerifiedObsolete
-            or LineVerificationStatus.VerifiedVerifying &&
-            status is LineVerificationStatus.Error or LineVerificationStatus.ErrorObsolete or LineVerificationStatus.ErrorVerifying
-            ) {
-          break;
-        }
-
-        previousStatus = status;
-      }
     }
   }
 
@@ -129,6 +112,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
   public enum VerificationStatus {
     Unknown = 0,
     Verified = 200,
+    Inconclusive = 270,
     Error = 400
   }
 
@@ -286,6 +270,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
             CurrentStatus.Verifying => contextHasErrors
               ? LineVerificationStatus.ErrorRangeAssertionVerifiedVerifying
               : LineVerificationStatus.VerifiedVerifying,
+            _ => throw new ArgumentOutOfRangeException()
+          },
+          // We don't display inconclusive on the gutter (user should focus on errors),
+          // We display an error range instead
+          VerificationStatus.Inconclusive => StatusCurrent switch {
+            CurrentStatus.Current => LineVerificationStatus.ErrorRange,
+            CurrentStatus.Obsolete => LineVerificationStatus.ErrorRangeObsolete,
+            CurrentStatus.Verifying => LineVerificationStatus.ErrorRangeVerifying,
             _ => throw new ArgumentOutOfRangeException()
           },
           VerificationStatus.Error => StatusCurrent switch {

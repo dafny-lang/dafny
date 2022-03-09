@@ -87,6 +87,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
                 information += $"assertion{assertionId}{assertionInfo}: *";
                 information += assertionNode.StatusVerification switch {
                   VerificationStatus.Verified => "Verified",
+                  VerificationStatus.Inconclusive => "Could not be checked",
                   VerificationStatus.Error => "Might not hold",
                   _ => "Not checked",
                 };

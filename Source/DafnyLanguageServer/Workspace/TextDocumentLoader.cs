@@ -406,26 +406,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
       }
 
-      private MethodOrSubsetTypeNodeDiagnostic? GetTargetMethodNode(Implementation implementation, out ImplementationNodeDiagnostic? implementationNode, bool nameBased = false) {
-        var targetMethodNode = document.VerificationNodeDiagnostic.Children.OfType<MethodOrSubsetTypeNodeDiagnostic>().FirstOrDefault(
-          node => node?.Position == TokenToPosition(implementation.tok) && node?.Filename == implementation.tok.filename
-          , null);
-        if (nameBased) {
-          implementationNode = targetMethodNode?.Children.OfType<ImplementationNodeDiagnostic>().FirstOrDefault(
-            node => {
-              var nodeImpl = node?.GetImplementation();
-              return nodeImpl?.Name == implementation.Name;
-            }, null);
-        } else {
-          implementationNode = targetMethodNode?.Children.OfType<ImplementationNodeDiagnostic>().FirstOrDefault(
-            node => node?.GetImplementation() == implementation, null);
-        }
-
-        return targetMethodNode;
-      }
-
-      private readonly object LockProcessing = new();
-
       public void ReportEndVerifyImplementation(Implementation implementation, VerificationResult verificationResult) {
         if (document.LoadCanceled) {
           return;
@@ -463,20 +443,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             diagnosticPublisher.PublishVerificationDiagnostics(document);
           }
         }
-      }
-
-      private static VerificationStatus GetNodeStatus(ConditionGeneration.Outcome outcome) {
-        return outcome switch {
-          ConditionGeneration.Outcome.Correct => VerificationStatus.Verified,
-          ConditionGeneration.Outcome.Errors => VerificationStatus.Error,
-          ConditionGeneration.Outcome.Inconclusive => VerificationStatus.Error,
-          ConditionGeneration.Outcome.ReachedBound => VerificationStatus.Error,
-          ConditionGeneration.Outcome.SolverException => VerificationStatus.Error,
-          ConditionGeneration.Outcome.TimedOut => VerificationStatus.Error,
-          ConditionGeneration.Outcome.OutOfMemory => VerificationStatus.Error,
-          ConditionGeneration.Outcome.OutOfResource => VerificationStatus.Error,
-          _ => VerificationStatus.Error
-        };
       }
 
       public void ReportAssertionBatchResult(Split split,
@@ -633,6 +599,43 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         while (document.LastTouchedMethodPositions.Count() > 5) {
           document.LastTouchedMethodPositions.RemoveAt(0);
         }
+      }
+
+
+
+      private MethodOrSubsetTypeNodeDiagnostic? GetTargetMethodNode(Implementation implementation, out ImplementationNodeDiagnostic? implementationNode, bool nameBased = false) {
+        var targetMethodNode = document.VerificationNodeDiagnostic.Children.OfType<MethodOrSubsetTypeNodeDiagnostic>().FirstOrDefault(
+          node => node?.Position == TokenToPosition(implementation.tok) && node?.Filename == implementation.tok.filename
+          , null);
+        if (nameBased) {
+          implementationNode = targetMethodNode?.Children.OfType<ImplementationNodeDiagnostic>().FirstOrDefault(
+            node => {
+              var nodeImpl = node?.GetImplementation();
+              return nodeImpl?.Name == implementation.Name;
+            }, null);
+        } else {
+          implementationNode = targetMethodNode?.Children.OfType<ImplementationNodeDiagnostic>().FirstOrDefault(
+            node => node?.GetImplementation() == implementation, null);
+        }
+
+        return targetMethodNode;
+      }
+
+      private readonly object LockProcessing = new();
+
+
+      private static VerificationStatus GetNodeStatus(ConditionGeneration.Outcome outcome) {
+        return outcome switch {
+          ConditionGeneration.Outcome.Correct => VerificationStatus.Verified,
+          ConditionGeneration.Outcome.Errors => VerificationStatus.Error,
+          ConditionGeneration.Outcome.Inconclusive => VerificationStatus.Inconclusive,
+          ConditionGeneration.Outcome.ReachedBound => VerificationStatus.Error,
+          ConditionGeneration.Outcome.SolverException => VerificationStatus.Error,
+          ConditionGeneration.Outcome.TimedOut => VerificationStatus.Error,
+          ConditionGeneration.Outcome.OutOfMemory => VerificationStatus.Error,
+          ConditionGeneration.Outcome.OutOfResource => VerificationStatus.Error,
+          _ => VerificationStatus.Error
+        };
       }
     }
   }
