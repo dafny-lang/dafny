@@ -3259,7 +3259,6 @@ namespace Microsoft.Dafny {
       var args = Attributes.FindExpressions(decl.Attributes, "test");
       if (args.Count == 2 && args[0] is LiteralExpr && args[1] is LiteralExpr) {
         LiteralExpr sourceType = (LiteralExpr) args[0];
-
         if (sourceType.Value.ToString().Equals("MethodSource")) {
           Method m = (Method) decl;
           LiteralExpr methodNameExpr = (LiteralExpr) args[1];
