@@ -89,7 +89,7 @@ namespace DafnyTestGeneration {
 
           string filename = DafnyOptions.O.TestGenOptions.PrintBoogieFile;
 
-          var tw = filename == "-" ? Console.Out : new StreamWriter(filename.Replace(".", "_modification_" + i + "."));
+          var tw = filename == "-" ? System.Console.Out : new StreamWriter(filename.Replace(".", "_modification_" + i + "."));
           tw.Write(modifications[i].ToString());
           tw.Flush();
         }
