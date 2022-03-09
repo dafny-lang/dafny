@@ -2538,16 +2538,16 @@ namespace Microsoft.Dafny.Compilers.Csharp {
       wr.Format($"((System.Func<{TypeName(new SeqType(body.Type), wr, body.tok)}>) (() =>{ExprBlock(out ConcreteSyntaxTree wrLamBody)}))()");
 
       var indexType = lengthExpr.Type;
-      var lengthVar = FreshId("dim");
+      var lengthVar = idGenerator.FreshId("dim");
       DeclareLocalVar(lengthVar, indexType, lengthExpr.tok, lengthExpr, inLetExprBody, wrLamBody);
-      var arrVar = FreshId("arr");
+      var arrVar = idGenerator.FreshId("arr");
       wrLamBody.Write($"var {arrVar} = ");
       var wrDims = EmitNewArray(body.Type, body.tok, dimCount: 1, mustInitialize: false, wr: wrLamBody);
       Contract.Assert(wrDims.Count == 1);
       wrDims[0].Write(lengthVar);
       wrLamBody.WriteLine(";");
 
-      var intIxVar = FreshId("i");
+      var intIxVar = idGenerator.FreshId("i");
       var wrLoopBody = wrLamBody.NewBlock(string.Format("for (int {0} = 0; {0} < {1}; {0}++)", intIxVar, lengthVar));
       var ixVar = IdName(boundVar);
       wrLoopBody.WriteLine("var {0} = ({1}) {2};",
