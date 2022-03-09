@@ -281,13 +281,19 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
           },
           VerificationStatus.Verified => StatusCurrent switch {
             CurrentStatus.Current => contextHasErrors
-              ? LineVerificationStatus.ErrorRangeAssertionVerified
+              ? isSingleLine // Sub-implementations that are verified do not count
+                ? LineVerificationStatus.ErrorRangeAssertionVerified
+                : LineVerificationStatus.ErrorRange
               : LineVerificationStatus.Verified,
             CurrentStatus.Obsolete => contextHasErrors
-              ? LineVerificationStatus.ErrorRangeAssertionVerifiedObsolete
+              ? isSingleLine
+                ? LineVerificationStatus.ErrorRangeAssertionVerifiedObsolete
+                : LineVerificationStatus.ErrorRangeObsolete
               : LineVerificationStatus.VerifiedObsolete,
             CurrentStatus.Verifying => contextHasErrors
-              ? LineVerificationStatus.ErrorRangeAssertionVerifiedVerifying
+              ? isSingleLine
+                ? LineVerificationStatus.ErrorRangeAssertionVerifiedVerifying
+                : LineVerificationStatus.ErrorRangeVerifying
               : LineVerificationStatus.VerifiedVerifying,
             _ => throw new ArgumentOutOfRangeException()
           },
@@ -470,6 +476,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     // The range of this node.
     Range Range
   ) : NodeDiagnostic(DisplayName, Identifier, Filename, Range) {
+    public AssertionNodeDiagnostic WithDuration(DateTime parentStartTime, int batchTime) {
+      Started = true;
+      Finished = true;
+      StartTime = parentStartTime;
+      EndTime = parentStartTime.AddMilliseconds(batchTime);
+      return this;
+    }
+
     // Contains permanent secondary positions to this node (e.g. return branch positions)
     // Helps to distinguish between assertions with the same position (i.e. ensures for different branches)
     private AssertCmd? assertion = null;

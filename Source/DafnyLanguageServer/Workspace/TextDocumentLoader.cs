@@ -417,6 +417,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             implementationNode.ResourceCount = verificationResult.ResourceCount;
 
             targetMethodNode.ResourceCount += verificationResult.ResourceCount;
+            var finalOutcome = verificationResult.Outcome switch {
+              ConditionGeneration.Outcome.Correct => VerificationStatus.Verified,
+              _ => VerificationStatus.Error
+            };
+
+            implementationNode.StatusVerification = finalOutcome;
             // Will be only executed by the last instance.
             if (!targetMethodNode.Children.All(child => child.Finished)) {
               targetMethodNode.StatusVerification = verificationResult.Outcome switch {
@@ -427,10 +433,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
               targetMethodNode.Stop();
               ReportMethodsBeingVerified($" ({targetMethodNode.DisplayName} finished)");
               // Later, will be overriden by individual outcomes
-              targetMethodNode.StatusVerification = verificationResult.Outcome switch {
-                ConditionGeneration.Outcome.Correct => VerificationStatus.Verified,
-                _ => VerificationStatus.Error
-              };
+              targetMethodNode.StatusVerification = finalOutcome;
             }
 
             targetMethodNode.PropagateChildrenErrorsUp();
@@ -456,7 +459,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             logger.LogError($"No implementation node at {implementation.tok.filename}:{implementation.tok.line}:{implementation.tok.col}");
           } else {
             var assertionBatchIndex = implementationNode.GetNewAssertionBatchCount();
-            implementationNode.AddAssertionBatchTime((int)split.Checker.ProverRunTime.TotalMilliseconds);
+            var assertionBatchTime = (int)split.Checker.ProverRunTime.TotalMilliseconds;
+            implementationNode.AddAssertionBatchTime(assertionBatchTime);
 
             // Attaches the trace
             void AddChildOutcome(IToken token,
@@ -492,7 +496,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
                 StatusCurrent = CurrentStatus.Current,
                 RelatedRanges = relatedRanges,
                 AssertionBatchIndex = assertionBatchIndex
-              };
+              }.WithDuration(implementationNode.StartTime, assertionBatchTime);
               // Add this diagnostics as the new one to display once the implementation is fully verified
               implementationNode.AddNewChild(nodeDiagnostic);
               // Update any previous pending "verifying" diagnostic as well so that they are updated in real-time
