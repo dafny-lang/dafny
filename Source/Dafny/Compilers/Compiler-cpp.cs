@@ -19,8 +19,8 @@ using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny.Compilers {
   public class CppCompiler : SinglePassCompiler {
-    public override void LateInitialize(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
-      base.LateInitialize(reporter, otherFileNames);
+    public override void OnPreCompile(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
+      base.OnPreCompile(reporter, otherFileNames);
       datatypeDecls = new List<DatatypeDecl>();
       classDefaults = new List<string>();
     }

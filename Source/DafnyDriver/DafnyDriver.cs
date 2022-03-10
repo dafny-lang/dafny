@@ -584,7 +584,7 @@ namespace Microsoft.Dafny {
 
       // Compile the Dafny program into a string that contains the target program
       var oldErrorCount = dafnyProgram.reporter.Count(ErrorLevel.Error);
-      DafnyOptions.O.Compiler.LateInitialize(dafnyProgram.reporter, otherFileNames);
+      DafnyOptions.O.Compiler.OnPreCompile(dafnyProgram.reporter, otherFileNames);
       var compiler = DafnyOptions.O.Compiler;
 
       var hasMain = Compilers.SinglePassCompiler.HasMain(dafnyProgram, out var mainMethod);

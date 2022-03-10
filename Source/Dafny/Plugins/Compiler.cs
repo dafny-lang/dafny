@@ -37,6 +37,7 @@ public abstract class Compiler {
   public abstract bool TextualTargetIsExecutable { get; }
   public abstract bool SupportsInMemoryCompilation { get; }
 
+  // The following two fields are not initialized until OnPreCompile
   protected ErrorReporter? Reporter = null;
   protected ReadOnlyCollection<string>? OtherFileNames = null;
 
@@ -44,7 +45,7 @@ public abstract class Compiler {
   // `SupportedExtensions`, `TargetLanguage`, etc.).  C# doesn't support static fields in abstract classes, so we have
   // to create an instance to access these parameters.  The alternative is to have a factory class, but we deemed the
   // added complexity unnecessary.
-  public virtual void LateInitialize(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
+  public virtual void OnPreCompile(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
     Reporter = reporter;
     OtherFileNames = otherFileNames;
   }

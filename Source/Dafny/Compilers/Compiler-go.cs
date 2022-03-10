@@ -19,8 +19,8 @@ using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 
 namespace Microsoft.Dafny.Compilers {
   public class GoCompiler : SinglePassCompiler {
-    public override void LateInitialize(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
-      base.LateInitialize(reporter, otherFileNames);
+    public override void OnPreCompile(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
+      base.OnPreCompile(reporter, otherFileNames);
       if (DafnyOptions.O.CoverageLegendFile != null) {
         Imports.Add(new Import { Name = "DafnyProfiling", Path = "DafnyProfiling" });
       }
