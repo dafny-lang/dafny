@@ -964,9 +964,9 @@ namespace Microsoft.Dafny {
     (use - as <file> to print to console)
 /trackPrintEffects:<n>
     0 (default) - Every compiled method, constructor, and iterator, whether or not
-       it bears a {:print} attribute, may have print effects.
+       it bears a {{:print}} attribute, may have print effects.
     1 - A compiled method, constructor, or iterator is allowed to have print effects
-       only if it is marked with {:print}.
+       only if it is marked with {{:print}}.
 /noCheating:<n>
     0 (default) - allow assume statements and free invariants
     1 - treat all assumptions as asserts, and drop free.
