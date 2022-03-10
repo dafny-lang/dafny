@@ -13,6 +13,8 @@ using System.IO;
 using System.Diagnostics.Contracts;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Threading;
+using System.Threading.Tasks;
 using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
@@ -1101,8 +1103,9 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override ConcreteSyntaxTree CreateLabeledCode(string label, ConcreteSyntaxTree wr) {
-      return wr.NewNamedBlock("L{0}:", label);
+    protected override ConcreteSyntaxTree CreateLabeledCode(string label, bool createContinueLabel, ConcreteSyntaxTree wr) {
+      var prefix = createContinueLabel ? "C" : "L";
+      return wr.NewNamedBlock($"{prefix}{label}:");
     }
 
     protected override void EmitBreak(string/*?*/ label, ConcreteSyntaxTree wr) {
@@ -1111,6 +1114,10 @@ namespace Microsoft.Dafny {
       } else {
         wr.WriteLine("break L{0};", label);
       }
+    }
+
+    protected override void EmitContinue(string label, ConcreteSyntaxTree wr) {
+      wr.WriteLine("break C{0};", label);
     }
 
     protected override void EmitYield(ConcreteSyntaxTree wr) {
@@ -1135,7 +1142,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override ConcreteSyntaxTree EmitForStmt(Bpl.IToken tok, IVariable loopIndex, bool goingUp, string /*?*/ endVarName,
-      List<Statement> body, ConcreteSyntaxTree wr) {
+      List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr) {
 
       var nativeType = AsNativeType(loopIndex.Type);
 
@@ -1172,6 +1179,7 @@ namespace Microsoft.Dafny {
           bodyWr.WriteLine($"{loopIndex.CompileName}--;");
         }
       }
+      bodyWr = EmitContinueLabel(labels, bodyWr);
       TrStmtList(body, bodyWr);
 
       return startWr;
@@ -2396,12 +2404,13 @@ namespace Microsoft.Dafny {
         CreateNoWindow = true,
         UseShellExecute = false,
         RedirectStandardInput = true,
-        RedirectStandardOutput = false,
-        RedirectStandardError = false,
+        RedirectStandardOutput = true,
+        RedirectStandardError = true,
       };
 
       try {
-        using var nodeProcess = Process.Start(psi);
+        Process nodeProcess = new Process { StartInfo = psi };
+        nodeProcess.Start();
         foreach (var filename in otherFileNames) {
           WriteFromFile(filename, nodeProcess.StandardInput);
         }
@@ -2411,11 +2420,26 @@ namespace Microsoft.Dafny {
         }
         nodeProcess.StandardInput.Flush();
         nodeProcess.StandardInput.Close();
+        // Fixes a problem of Node on Windows, where Node does not prints to the parent console its standard outputs.
+        var errorProcessing = Task.Run(() => {
+          PassthroughBuffer(nodeProcess.StandardError, Console.Error);
+        });
+        PassthroughBuffer(nodeProcess.StandardOutput, Console.Out);
         nodeProcess.WaitForExit();
+        errorProcessing.Wait();
         return nodeProcess.ExitCode == 0;
       } catch (System.ComponentModel.Win32Exception e) {
         outputWriter.WriteLine("Error: Unable to start node.js ({0}): {1}", psi.FileName, e.Message);
         return false;
+      }
+    }
+
+    // We read character by character because we did not find a way to ensure
+    // final newlines are kept when reading line by line
+    void PassthroughBuffer(StreamReader input, TextWriter output) {
+      int current;
+      while ((current = input.Read()) != -1) {
+        output.Write((char)current);
       }
     }
   }

@@ -19,10 +19,13 @@ namespace Microsoft.Dafny {
   /// <summary>
   /// Utility to parse the XML format produced by Boogie's /xml option and emit the
   /// results therein as test logger events, allowing us to deliver verification results
-  /// as test results through common loggers on the .NET platform. For now we are just supporting
-  /// outputting TRX files, which can be understood and visualized by various tools.
+  /// as test results through common loggers on the .NET platform. For now we support two formats:
+  ///  * TRX files, which can be understood and visualized by various .NET tools.
+  ///  * CSV files, which are easier to parse and summarize. 
   /// </summary>
   public static class BoogieXmlConvertor {
+
+    public static TestProperty ResourceCountProperty = TestProperty.Register("TestResult.ResourceCount", "TestResult.ResourceCount", typeof(int), typeof(TestResult));
 
     public static void RaiseTestLoggerEvents(string fileName, List<string> loggerConfigs) {
       // Provide just enough configuration for the loggers to work
@@ -92,9 +95,9 @@ namespace Microsoft.Dafny {
 
     private static IEnumerable<TestResult> TestResultsForMethod(XElement method, string currentFileFragment) {
       // Only report the top level method result if there was no splitting
-      var childSplits = method.Nodes().OfType<XElement>().Where(child => child.Name.LocalName == "split").ToList();
-      return childSplits.Count > 1
-        ? childSplits.Select(childSplit => TestResultForSplit(currentFileFragment, method, childSplit))
+      var childBatches = method.Nodes().OfType<XElement>().Where(child => child.Name.LocalName == "assertionBatch").ToList();
+      return childBatches.Count > 1
+        ? childBatches.Select(childBatch => TestResultForBatch(currentFileFragment, method, childBatch))
         : new[] { TestResultForMethod(currentFileFragment, method) };
     }
 
@@ -106,6 +109,7 @@ namespace Microsoft.Dafny {
                                        .Single(n => n.Name.LocalName == "conclusion");
       var endTime = conclusionNode.Attribute("endTime")!.Value;
       var duration = float.Parse(conclusionNode.Attribute("duration")!.Value);
+      var resourceCount = conclusionNode.Attribute("resourceCount")?.Value;
       var outcome = conclusionNode.Attribute("outcome")!.Value;
 
       var testCase = TestCaseForEntry(currentFileFragment, name);
@@ -114,6 +118,10 @@ namespace Microsoft.Dafny {
         Duration = TimeSpan.FromMilliseconds((long)(duration * 1000)),
         EndTime = DateTimeOffset.Parse(endTime)
       };
+
+      if (resourceCount != null) {
+        testResult.SetPropertyValue(ResourceCountProperty, int.Parse(resourceCount));
+      }
 
       if (outcome == "correct") {
         testResult.Outcome = TestOutcome.Passed;
@@ -125,13 +133,13 @@ namespace Microsoft.Dafny {
       return testResult;
     }
 
-    private static TestResult TestResultForSplit(string currentFileFragment, XElement methodNode, XElement splitNode) {
+    private static TestResult TestResultForBatch(string currentFileFragment, XElement methodNode, XElement batchNode) {
       var methodName = methodNode.Attribute("name")!.Value;
-      var splitNumber = splitNode.Attribute("number")!.Value;
-      var name = $"{methodName}$${splitNumber}";
+      var batchNumber = batchNode.Attribute("number")!.Value;
+      var name = $"{methodName}$${batchNumber}";
 
-      var startTime = splitNode.Attribute("startTime")!.Value;
-      var conclusionNode = splitNode.Nodes()
+      var startTime = batchNode.Attribute("startTime")!.Value;
+      var conclusionNode = batchNode.Nodes()
                                             .OfType<XElement>()
                                             .Single(n => n.Name.LocalName == "conclusion");
       var duration = float.Parse(conclusionNode.Attribute("duration")!.Value);

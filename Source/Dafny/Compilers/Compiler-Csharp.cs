@@ -73,9 +73,7 @@ namespace Microsoft.Dafny {
       wr.WriteLine("using System;");
       wr.WriteLine("using System.Numerics;");
       EmitDafnySourceAttribute(program, wr);
-      if (!DafnyOptions.O.UseRuntimeLib) {
-        ReadRuntimeSystem("DafnyRuntime.cs", wr);
-      }
+      ReadRuntimeSystem("DafnyRuntime.cs", wr);
     }
 
     void EmitDafnySourceAttribute(Program program, ConcreteSyntaxTree wr) {
@@ -641,32 +639,38 @@ namespace Microsoft.Dafny {
       wBody.WriteLine($"return new {className}{uTypeArgs}({constructorArgs});");
     }
 
+    // Emits getters for both named and unnamed destructors. The named ones are grouped across constructors by their
+    // name and thus QDtorM = DtorM. This is not possible for unnamed ones, as there is no guarantee about shared return
+    // types, so they are treated individually and their names (QDtorM) are qualified by their respective constructors.
     private void CompileDatatypeDestructorsAndAddToInterface(DatatypeDecl dt, ConcreteSyntaxTree wr,
-      ConcreteSyntaxTree interfaceTree, string DtT_TypeArgs) {
+        ConcreteSyntaxTree interfaceTree, string DtT_TypeArgs) {
       foreach (var ctor in dt.Ctors) {
+        var index = 0;
         foreach (var dtor in ctor.Destructors) {
           if (dtor.EnclosingCtors[0] == ctor) {
             var arg = dtor.CorrespondingFormals[0];
-            if (!arg.IsGhost && arg.HasName) {
-              //   T0 dtor_Dtor0 { get; }
-              interfaceTree.WriteLine($"{TypeName(arg.Type, wr, arg.tok)} dtor_{arg.CompileName} {{ get; }}");
+            if (!arg.IsGhost) {
+              var DtorM = arg.HasName ? arg.CompileName : FormalName(arg, index);
+              //   TN dtor_QDtorM { get; }
+              interfaceTree.WriteLine($"{TypeName(arg.Type, wr, arg.tok)} {DestructorGetterName(arg, ctor, index)} {{ get; }}");
 
-              //   public T0 dtor_Dtor0 { get {
+              //   public TN dtor_QDtorM { get {
               //       var d = this;         // for inductive datatypes
               //       var d = this._Get();  // for co-inductive datatypes
-              //       if (d is DT_Ctor0) { return ((DT_Ctor0)d).Dtor0; }
-              //       if (d is DT_Ctor1) { return ((DT_Ctor1)d).Dtor0; }
+              //       if (d is DT_Ctor0) { return ((DT_Ctor0)d).DtorM; }
+              //       if (d is DT_Ctor1) { return ((DT_Ctor1)d).DtorM; }
               //       ...
-              //       if (d is DT_Ctor(n-2)) { return ((DT_Ctor(n-2))d).Dtor0; }
-              //       return ((DT_Ctor(n-1))d).Dtor0;
+              //       if (d is DT_Ctor(n-2)) { return ((DT_Ctor(n-2))d).DtorM; }
+              //       return ((DT_Ctor(n-1))d).DtorM;
               //    }}
-              var wDtor = wr.NewNamedBlock($"public {TypeName(arg.Type, wr, arg.tok)} dtor_{arg.CompileName}");
+              var wDtor =
+                wr.NewNamedBlock($"public {TypeName(arg.Type, wr, arg.tok)} {DestructorGetterName(arg, ctor, index)}");
               var wGet = wDtor.NewBlock("get");
               if (dt.IsRecordType) {
                 if (dt is CoDatatypeDecl) {
-                  wGet.WriteLine($"return this._Get().{IdName(arg)};");
+                  wGet.WriteLine($"return this._Get().{IdProtect(DtorM)};");
                 } else {
-                  wGet.WriteLine($"return this.{IdName(arg)};");
+                  wGet.WriteLine($"return this.{IdProtect(DtorM)};");
                 }
               } else {
                 if (dt is CoDatatypeDecl) {
@@ -681,13 +685,14 @@ namespace Microsoft.Dafny {
                   Contract.Assert(arg.CompileName == dtor.CorrespondingFormals[i].CompileName);
                   var type = $"{dt.CompileName}_{ctor_i.CompileName}{DtT_TypeArgs}";
                   // TODO use pattern matching to replace cast.
-                  wGet.WriteLine($"if (d is {type}) {{ return (({type})d).{IdName(arg)}; }}");
+                  wGet.WriteLine($"if (d is {type}) {{ return (({type})d).{IdProtect(DtorM)}; }}");
                 }
 
                 Contract.Assert(arg.CompileName == dtor.CorrespondingFormals[n - 1].CompileName);
                 wGet.WriteLine(
-                  $"return (({dt.CompileName}_{dtor.EnclosingCtors[n - 1].CompileName}{DtT_TypeArgs})d).{IdName(arg)};");
+                  $"return (({dt.CompileName}_{dtor.EnclosingCtors[n - 1].CompileName}{DtT_TypeArgs})d).{IdProtect(DtorM)};");
               }
+              index++;
             }
           }
         }
@@ -1144,7 +1149,7 @@ namespace Microsoft.Dafny {
         return null;
       }
 
-      var block = wr.NewBlock(open: BraceStyle.Newline);
+      var block = wr.NewBlock(open: BlockStyle.NewlineBrace);
       if (returnType != "void" && !forBodyInheritance) {
         var beforeReturnBlock = block.Fork();
         EmitReturn(m.Outs, block);
@@ -1217,12 +1222,12 @@ namespace Microsoft.Dafny {
         return null;
       }
 
-      return wr.NewBlock(open: formals.Count > 1 ? BraceStyle.Newline : BraceStyle.Space);
+      return wr.NewBlock(open: formals.Count > 1 ? BlockStyle.NewlineBrace : BlockStyle.SpaceBrace);
     }
 
     protected ConcreteSyntaxTree/*?*/ CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, ConcreteSyntaxTree wr) {
       ConcreteSyntaxTree/*?*/ result = null;
-      var body = createBody ? Block(out result, close: BraceStyle.Nothing) : new ConcreteSyntaxTree().Write(";");
+      var body = createBody ? Block(out result, close: BlockStyle.Brace) : new ConcreteSyntaxTree().Write(";");
       wr.FormatLine($"{Keywords(createBody, isStatic)}{TypeName(resultType, wr, tok)} {name} {{ get{body} }}");
       return result;
     }
@@ -1719,9 +1724,10 @@ namespace Microsoft.Dafny {
       wr.WriteLine($"return {returnExpr};");
     }
 
-    protected override ConcreteSyntaxTree CreateLabeledCode(string label, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree CreateLabeledCode(string label, bool createContinueLabel, ConcreteSyntaxTree wr) {
       var w = wr.Fork();
-      wr.Fork(-1).WriteLine($"after_{label}: ;");
+      var prefix = createContinueLabel ? "continue_" : "after_";
+      wr.Fork(-1).WriteLine($"{prefix}{label}: ;");
       return w;
     }
 
@@ -1731,6 +1737,10 @@ namespace Microsoft.Dafny {
       } else {
         wr.WriteLine("goto after_{0};", label);
       }
+    }
+
+    protected override void EmitContinue(string label, ConcreteSyntaxTree wr) {
+      wr.WriteLine("goto continue_{0};", label);
     }
 
     protected override void EmitYield(ConcreteSyntaxTree wr) {
@@ -1755,7 +1765,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override ConcreteSyntaxTree EmitForStmt(Bpl.IToken tok, IVariable loopIndex, bool goingUp, string /*?*/ endVarName,
-      List<Statement> body, ConcreteSyntaxTree wr) {
+      List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr) {
 
       wr.Write($"for ({TypeName(loopIndex.Type, wr, tok)} {loopIndex.CompileName} = ");
       var startWr = wr.Fork();
@@ -1770,6 +1780,7 @@ namespace Microsoft.Dafny {
         bodyWr = wr.NewBlock($"; )");
         bodyWr.WriteLine($"{loopIndex.CompileName}--;");
       }
+      bodyWr = EmitContinueLabel(labels, bodyWr);
       TrStmtList(body, bodyWr);
 
       return startWr;
@@ -2623,8 +2634,11 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr) {
-      var dtorName = FormalName(dtor, formalNonGhostIndex);
-      wr.Write("(({0}){1}{2}).{3}", DtCtorName(ctor, typeArgs, wr), source, ctor.EnclosingDatatype is CoDatatypeDecl ? "._Get()" : "", dtorName);
+      wr.Write($"{source}.{DestructorGetterName(dtor, ctor, formalNonGhostIndex)}");
+    }
+
+    private string DestructorGetterName(Formal dtor, DatatypeCtor ctor, int index) {
+      return $"dtor_{(dtor.HasName ? dtor.CompileName : ctor.CompileName + FormalName(dtor, index))}";
     }
 
     protected override ConcreteSyntaxTree CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames, Type resultType, ConcreteSyntaxTree wr, bool untyped = false) {

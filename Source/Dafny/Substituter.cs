@@ -258,7 +258,7 @@ namespace Microsoft.Dafny {
           if (newBoundVars != mc.Arguments || body != mc.Body) {
             anythingChanged = true;
           }
-          var newCaseExpr = new MatchCaseExpr(mc.tok, mc.Ctor, newBoundVars, body, mc.Attributes);
+          var newCaseExpr = new MatchCaseExpr(mc.tok, mc.Ctor, mc.FromBoundVar, newBoundVars, body, mc.Attributes);
           newCaseExpr.Ctor = mc.Ctor;  // resolve here
           cases.Add(newCaseExpr);
         }
@@ -678,9 +678,9 @@ namespace Microsoft.Dafny {
         var s = (BreakStmt)stmt;
         BreakStmt rr;
         if (s.TargetLabel != null) {
-          rr = new BreakStmt(s.Tok, s.EndTok, s.TargetLabel);
+          rr = new BreakStmt(s.Tok, s.EndTok, s.TargetLabel, s.IsContinue);
         } else {
-          rr = new BreakStmt(s.Tok, s.EndTok, s.BreakCount);
+          rr = new BreakStmt(s.Tok, s.EndTok, s.BreakAndContinueCount, s.IsContinue);
         }
         // r.TargetStmt will be filled in as later
         List<BreakStmt> breaks;
@@ -870,7 +870,7 @@ namespace Microsoft.Dafny {
     protected MatchCaseStmt SubstMatchCaseStmt(MatchCaseStmt c) {
       Contract.Requires(c != null);
       var newBoundVars = CreateBoundVarSubstitutions(c.Arguments, false);
-      var r = new MatchCaseStmt(c.tok, c.Ctor, newBoundVars, c.Body.ConvertAll(SubstStmt), c.Attributes);
+      var r = new MatchCaseStmt(c.tok, c.Ctor, c.FromBoundVar, newBoundVars, c.Body.ConvertAll(SubstStmt), c.Attributes);
       r.Ctor = c.Ctor;
       // undo any changes to substMap (could be optimized to do this only if newBoundVars != e.Vars)
       foreach (var bv in c.Arguments) {

@@ -14,6 +14,10 @@ using Bpl = Microsoft.Boogie;
 namespace Microsoft.Dafny {
   // FIXME: This should not be duplicated here
   class DafnyConsolePrinter : ConsolePrinter {
+
+    public DafnyConsolePrinter(ExecutionEngineOptions options) : base(options) {
+    }
+
     public override void ReportBplError(IToken tok, string message, bool error, TextWriter tw, string category = null) {
       // Dafny has 0-indexed columns, but Boogie counts from 1
       var realigned_tok = new Token(tok.line, tok.col - 1);
@@ -32,13 +36,15 @@ namespace Microsoft.Dafny {
   class DafnyHelper {
     private string fname;
     private string source;
+    private readonly ExecutionEngine engine;
     private string[] args;
 
     private readonly Dafny.ErrorReporter reporter;
     private Dafny.Program dafnyProgram;
     private IEnumerable<Tuple<string, Bpl.Program>> boogiePrograms;
 
-    public DafnyHelper(string[] args, string fname, string source) {
+    public DafnyHelper(ExecutionEngine engine, string[] args, string fname, string source) {
+      this.engine = engine;
       this.args = args;
       this.fname = fname;
       this.source = source;
@@ -46,7 +52,7 @@ namespace Microsoft.Dafny {
     }
 
     public bool Verify() {
-      ServerUtils.ApplyArgs(args, reporter);
+      ServerUtils.ApplyArgs(args, DafnyOptions.O);
       return Parse() && Resolve() && Translate() && Boogie();
     }
 
@@ -74,14 +80,14 @@ namespace Microsoft.Dafny {
     }
 
     private bool BoogieOnce(string moduleName, Bpl.Program boogieProgram) {
-      if (boogieProgram.Resolve() == 0 && boogieProgram.Typecheck() == 0) { //FIXME ResolveAndTypecheck?
-        ExecutionEngine.EliminateDeadVariables(boogieProgram);
-        ExecutionEngine.CollectModSets(boogieProgram);
-        ExecutionEngine.CoalesceBlocks(boogieProgram);
-        ExecutionEngine.Inline(boogieProgram);
+      if (boogieProgram.Resolve(DafnyOptions.O) == 0 && boogieProgram.Typecheck(DafnyOptions.O) == 0) { //FIXME ResolveAndTypecheck?
+        engine.EliminateDeadVariables(boogieProgram);
+        engine.CollectModSets(boogieProgram);
+        engine.CoalesceBlocks(boogieProgram);
+        engine.Inline(boogieProgram);
 
         //NOTE: We could capture errors instead of printing them (pass a delegate instead of null)
-        switch (ExecutionEngine.InferAndVerify(boogieProgram, new PipelineStatistics(), "ServerProgram_" + moduleName, null, DateTime.UtcNow.Ticks.ToString())) {
+        switch (engine.InferAndVerify(boogieProgram, new PipelineStatistics(), "ServerProgram_" + moduleName, null, DateTime.UtcNow.Ticks.ToString())) {
           case PipelineOutcome.Done:
           case PipelineOutcome.VerificationCompleted:
             return true;
@@ -100,7 +106,7 @@ namespace Microsoft.Dafny {
     }
 
     public void Symbols() {
-      ServerUtils.ApplyArgs(args, reporter);
+      ServerUtils.ApplyArgs(args, DafnyOptions.O);
       if (Parse() && Resolve()) {
         var symbolTable = new SymbolTable(dafnyProgram);
         var symbols = symbolTable.CalculateSymbols();
@@ -113,7 +119,7 @@ namespace Microsoft.Dafny {
     public void CounterExample() {
       var listArgs = args.ToList();
       listArgs.Add("/mv:" + CounterExampleProvider.ModelBvd);
-      ServerUtils.ApplyArgs(listArgs.ToArray(), reporter);
+      ServerUtils.ApplyArgs(listArgs.ToArray(), DafnyOptions.O);
       try {
         if (Parse() && Resolve() && Translate()) {
           var counterExampleProvider = new CounterExampleProvider();
@@ -136,7 +142,7 @@ namespace Microsoft.Dafny {
     }
 
     public void DotGraph() {
-      ServerUtils.ApplyArgs(args, reporter);
+      ServerUtils.ApplyArgs(args, DafnyOptions.O);
 
       if (Parse() && Resolve() && Translate()) {
         foreach (var boogieProgram in boogiePrograms) {
@@ -144,7 +150,7 @@ namespace Microsoft.Dafny {
 
           foreach (var impl in boogieProgram.Item2.Implementations) {
             using (StreamWriter sw = new StreamWriter(fname + impl.Name + ".dot")) {
-              sw.Write(boogieProgram.Item2.ProcessLoops(impl).ToDot());
+              sw.Write(boogieProgram.Item2.ProcessLoops(engine.Options, impl).ToDot());
             }
           }
         }

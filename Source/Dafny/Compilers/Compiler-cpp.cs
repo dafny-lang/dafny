@@ -268,6 +268,8 @@ namespace Microsoft.Dafny {
       return String.Format("{0}_{1}{2}", IdProtect(ctor.EnclosingDatatype.CompileName), ctor.CompileName, args);
     }
 
+    protected override bool DatatypeDeclarationAndMemberCompilationAreSeparate => false;
+
     protected override IClassWriter DeclareDatatype(DatatypeDecl dt, ConcreteSyntaxTree writer) {
       if (dt is TupleTypeDecl) {
         // Tuple types are declared once and for all in DafnyRuntime.h
@@ -755,7 +757,7 @@ namespace Microsoft.Dafny {
       }
       wdr.Write(");\n");
 
-      var block = wr.NewBlock(")", null, BraceStyle.Newline, BraceStyle.Newline);
+      var block = wr.NewBlock(")", null, BlockStyle.NewlineBrace, BlockStyle.NewlineBrace);
 
       if (targetReturnTypeReplacement != null) {
         var beforeReturnBlock = block.Fork(0);
@@ -799,7 +801,7 @@ namespace Microsoft.Dafny {
       int nIns = WriteFormals("", formals, wr);
 
       wdr.Write(");");
-      var w = wr.NewBlock(")", null, BraceStyle.Newline, BraceStyle.Newline);
+      var w = wr.NewBlock(")", null, BlockStyle.NewlineBrace, BlockStyle.NewlineBrace);
 
       return w;
     }
@@ -1233,9 +1235,10 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override ConcreteSyntaxTree CreateLabeledCode(string label, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree CreateLabeledCode(string label, bool createContinueLabel, ConcreteSyntaxTree wr) {
       var w = wr.Fork();
-      wr.Fork(-1).WriteLine("after_{0}: ;", label);
+      var prefix = createContinueLabel ? "continue_" : "after_";
+      wr.Fork(-1).WriteLine($"{prefix}{label}: ;");
       return w;
     }
 
@@ -1245,6 +1248,10 @@ namespace Microsoft.Dafny {
       } else {
         wr.WriteLine("goto after_{0};", label);
       }
+    }
+
+    protected override void EmitContinue(string label, ConcreteSyntaxTree wr) {
+      wr.WriteLine("goto continue_{0};", label);
     }
 
     protected override void EmitYield(ConcreteSyntaxTree wr) {
@@ -1269,7 +1276,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override ConcreteSyntaxTree EmitForStmt(Bpl.IToken tok, IVariable loopIndex, bool goingUp, string /*?*/ endVarName,
-      List<Statement> body, ConcreteSyntaxTree wr) {
+      List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr) {
 
       throw new NotImplementedException("for loops have not yet been implemented");
     }
@@ -2386,7 +2393,7 @@ namespace Microsoft.Dafny {
       Contract.Assert(assemblyLocation != null);
       var codebase = System.IO.Path.GetDirectoryName(assemblyLocation);
       Contract.Assert(codebase != null);
-      var warnings = "-Wall -Wextra -Wpedantic -Wno-unused-variable -Wno-deprecated-copy";
+      var warnings = "-Wall -Wextra -Wpedantic -Wno-unused-variable -Wno-deprecated-copy -Wno-unused-label";
       if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
         warnings += " -Wno-unused-but-set-variable";
       } else {

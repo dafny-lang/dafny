@@ -428,7 +428,7 @@ namespace Microsoft.Dafny {
       bool createBody, ConcreteSyntaxTree wr) {
       wr.Write("public {0}{1} {2}()", isStatic ? "static " : "", TypeName(resultType, wr, tok), name);
       if (createBody) {
-        var w = wr.NewBlock("", null, BraceStyle.Newline, BraceStyle.Newline);
+        var w = wr.NewBlock("", null, BlockStyle.NewlineBrace, BlockStyle.NewlineBrace);
         return w;
       } else {
         wr.WriteLine(";");
@@ -450,13 +450,13 @@ namespace Microsoft.Dafny {
       wr.Write("public {0}{1} {2}()", isStatic ? "static " : "", TypeName(resultType, wr, tok), name);
       ConcreteSyntaxTree wGet = null;
       if (createBody) {
-        wGet = wr.NewBlock("", null, BraceStyle.Newline, BraceStyle.Newline);
+        wGet = wr.NewBlock("", null, BlockStyle.NewlineBrace, BlockStyle.NewlineBrace);
       } else {
         wr.WriteLine(";");
       }
       wr.Write("public {0}void set_{1}({2} value)", isStatic ? "static " : "", name, TypeName(resultType, wr, tok));
       if (createBody) {
-        setterWriter = wr.NewBlock("", null, BraceStyle.Newline, BraceStyle.Newline);
+        setterWriter = wr.NewBlock("", null, BlockStyle.NewlineBrace, BlockStyle.NewlineBrace);
       } else {
         wr.WriteLine(";");
         setterWriter = null;
@@ -499,7 +499,7 @@ namespace Microsoft.Dafny {
         wr.WriteLine(");");
         return null; // We do not want to write a function body, so instead of returning a BTW, we return null.
       } else {
-        return wr.NewBlock(")", null, BraceStyle.Newline, BraceStyle.Newline);
+        return wr.NewBlock(")", null, BlockStyle.NewlineBrace, BlockStyle.NewlineBrace);
       }
     }
 
@@ -547,7 +547,7 @@ namespace Microsoft.Dafny {
       } else {
         ConcreteSyntaxTree w;
         if (argCount > 1) {
-          w = wr.NewBlock(")", null, BraceStyle.Newline, BraceStyle.Newline);
+          w = wr.NewBlock(")", null, BlockStyle.NewlineBrace, BlockStyle.NewlineBrace);
         } else {
           w = wr.NewBlock(")");
         }
@@ -2479,15 +2479,6 @@ namespace Microsoft.Dafny {
       return s + ")";
     }
 
-    bool OutContainsParam(List<Formal> l, TypeParameter tp) {
-      foreach (Formal f in l) {
-        if ((f.Type.IsTypeParameter && f.Type.AsTypeParameter.Equals(tp)) || (f.Type.AsCollectionType != null && f.Type.AsCollectionType.Arg.IsTypeParameter && f.Type.AsCollectionType.Arg.AsTypeParameter.Equals(tp))) {
-          return true;
-        }
-      }
-      return false;
-    }
-
     protected override void EmitSetBuilder_New(ConcreteSyntaxTree wr, SetComprehension e, string collectionName) {
       wr.WriteLine($"java.util.ArrayList<{BoxedTypeName(e.Type.AsSetType.Arg, wr, e.tok)}> {collectionName} = new java.util.ArrayList<>();");
     }
@@ -3360,12 +3351,17 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override ConcreteSyntaxTree CreateLabeledCode(string label, ConcreteSyntaxTree wr) {
-      return wr.NewNamedBlock($"goto_{label}:");
+    protected override ConcreteSyntaxTree CreateLabeledCode(string label, bool createContinueLabel, ConcreteSyntaxTree wr) {
+      var prefix = createContinueLabel ? "continue_" : "goto_";
+      return wr.NewNamedBlock($"{prefix}{label}:");
     }
 
     protected override void EmitBreak(string label, ConcreteSyntaxTree wr) {
       wr.WriteLine(label == null ? "break;" : $"break goto_{label};");
+    }
+
+    protected override void EmitContinue(string label, ConcreteSyntaxTree wr) {
+      wr.WriteLine($"break continue_{label};");
     }
 
     protected override void EmitAbsurd(string message, ConcreteSyntaxTree wr) {
@@ -3536,7 +3532,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override ConcreteSyntaxTree EmitForStmt(Bpl.IToken tok, IVariable loopIndex, bool goingUp, string /*?*/ endVarName,
-      List<Statement> body, ConcreteSyntaxTree wr) {
+      List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr) {
 
       var nativeType = AsNativeType(loopIndex.Type);
 
@@ -3577,6 +3573,7 @@ namespace Microsoft.Dafny {
           bodyWr.WriteLine($"{loopIndex.CompileName}--;");
         }
       }
+      bodyWr = EmitContinueLabel(labels, bodyWr);
       TrStmtList(body, bodyWr);
 
       return startWr;

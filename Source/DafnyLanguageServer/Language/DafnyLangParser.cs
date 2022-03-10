@@ -38,7 +38,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         if (!initialized) {
           // TODO no error reporter is supplied at this time since it appears that there is not any usage inside dafny.
           DafnyOptions.Install(new DafnyOptions());
-          DafnyOptions.Clo.ApplyDefaultOptions();
+          DafnyOptions.O.ApplyDefaultOptions();
           DafnyOptions.O.PrintIncludesMode = DafnyOptions.IncludesModes.None;
           initialized = true;
         }
