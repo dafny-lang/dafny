@@ -35,7 +35,7 @@ namespace Microsoft.Dafny.Compilers.Java {
       TransformToClassName(base.Basename(dafnyProgramName));
     public override string TargetBaseDir(string baseName) => baseName + "-java";
     public string TransformToClassName(string baseName) =>
-      Regex.Replace(baseName, "[^_A-Za-z0-9\\$]", "_");
+      Regex.Replace(baseName, "[^_A-Za-z0-9$]", "_");
 
     public override bool SupportsInMemoryCompilation => false;
     public override bool TextualTargetIsExecutable => false;
