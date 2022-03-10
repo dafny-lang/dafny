@@ -1946,7 +1946,7 @@ namespace Microsoft.Dafny {
       if (boundVarType.IsRefType && !boundVarType.IsNonNullRefType) {
         var wIf = EmitIf($"_dafny.IsDafnyNull({tmpVarName})", true, wr);
         wIf.WriteLine("{0} = ({1})(nil)", boundVarName, TypeName(boundVarType, wr, tok));
-        wr.NewBlock("", open: BraceStyle.Nothing);
+        wr.NewBlock("", open: BlockStyle.Brace);
       }
 
       var cast = boundVarType.Equals(collectionElementType, false)

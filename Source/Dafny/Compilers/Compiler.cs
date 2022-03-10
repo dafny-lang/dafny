@@ -4817,7 +4817,7 @@ namespace Microsoft.Dafny {
         EmitSubtypeCondition(tmpVarName, boundVarType, tok, guardWriter, preconditions);
         if (isReturning) {
           // What do we put in the else branch
-          wr = wr.NewBlock("", null, BraceStyle.Nothing);
+          wr = wr.NewBlock("", null, BlockStyle.Brace);
           wr = EmitReturnExpr(wr);
           TrExpr(new LiteralExpr(tok, elseReturnValue), wr, inLetExprBody);
         }
