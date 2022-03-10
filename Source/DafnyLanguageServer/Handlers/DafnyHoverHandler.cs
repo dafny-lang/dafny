@@ -63,12 +63,14 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
               if (assertionNode.Range.Contains(position)) {
                 var batchRef = AddAssertionBatchDocumentation("batch");
                 var assertionBatchTime = assertionBatch.TimeSpent;
+                var assertionBatchResourceCount = assertionBatch.ResourceCount;
                 var assertionCount = assertionBatch.Children.Count;
                 if (information == "") {
                   information = $"**{node.DisplayName}** metrics:\n\n";
                 }
+
                 var assertionId = assertionCount == 1 ? "" : $" #{assertionIndex + 1}/{assertionCount}";
-                var assertionInfo = $" of {batchRef} #{assertionBatchIndex + 1}/{assertionBatchCount} checked in {assertionBatchTime}ms";
+                var assertionInfo = $" of {batchRef} #{assertionBatchIndex + 1}/{assertionBatchCount} checked in {assertionBatchTime:n0}ms with {assertionBatchResourceCount:n0} resource count";
 
                 information += $"assertion{assertionId}{assertionInfo}: *";
                 information += assertionNode.StatusVerification switch {

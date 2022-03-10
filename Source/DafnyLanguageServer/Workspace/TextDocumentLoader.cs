@@ -460,7 +460,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           } else {
             var assertionBatchIndex = implementationNode.GetNewAssertionBatchCount();
             var assertionBatchTime = (int)split.Checker.ProverRunTime.TotalMilliseconds;
+            var assertionBatchResourceCount = split.Checker.GetProverResourceCount().GetAwaiter().GetResult();
             implementationNode.AddAssertionBatchTime(assertionBatchTime);
+            implementationNode.AddAssertionBatchResourceCount(assertionBatchResourceCount);
 
             // Attaches the trace
             void AddChildOutcome(IToken token,

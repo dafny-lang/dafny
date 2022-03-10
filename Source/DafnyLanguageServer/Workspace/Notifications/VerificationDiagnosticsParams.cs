@@ -269,7 +269,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     }
 
     // Requires PropagateChildrenErrorsUp to have been called before.
-    public void RenderInto(LineVerificationStatus[] perLineDiagnostics, bool contextHasErrors = false) {
+    public void RenderInto(LineVerificationStatus[] perLineDiagnostics, bool contextHasErrors = false, bool contextIsPending = false) {
       var isSingleLine = Range.Start.Line == Range.End.Line;
       for (var line = Range.Start.Line; line <= Range.End.Line; line++) {
         LineVerificationStatus targetStatus = StatusVerification switch {
@@ -279,12 +279,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
             CurrentStatus.Verifying => LineVerificationStatus.Verifying,
             _ => throw new ArgumentOutOfRangeException()
           },
+          // let's be careful to no display "Verified" for a range if the context does not have errors and is pending
+          // because there might be other errors on the same range.
           VerificationStatus.Verified => StatusCurrent switch {
             CurrentStatus.Current => contextHasErrors
               ? isSingleLine // Sub-implementations that are verified do not count
                 ? LineVerificationStatus.ErrorRangeAssertionVerified
                 : LineVerificationStatus.ErrorRange
-              : LineVerificationStatus.Verified,
+              : contextIsPending && !isSingleLine
+                ? LineVerificationStatus.Unknown
+                : LineVerificationStatus.Verified,
             CurrentStatus.Obsolete => contextHasErrors
               ? isSingleLine
                 ? LineVerificationStatus.ErrorRangeAssertionVerifiedObsolete
@@ -323,7 +327,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       }
       foreach (var child in Children) {
         child.RenderInto(perLineDiagnostics,
-          contextHasErrors || StatusVerification == VerificationStatus.Error);
+          contextHasErrors || StatusVerification == VerificationStatus.Error,
+          contextIsPending ||
+            StatusCurrent == CurrentStatus.Obsolete ||
+          StatusCurrent == CurrentStatus.Verifying);
       }
     }
 
@@ -373,7 +380,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
               Filename,
               new Range(minPosition, maxPosition)
             ) {
-              Children = children
+              Children = children,
+              ResourceCount = implementationNode.AssertionBatchResourceCount[batchIndex],
             }.WithDuration(implementationNode.StartTime, implementationNode.AssertionBatchTimes[batchIndex]));
           }
         }
@@ -424,7 +432,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     // The index of ImplementationNodeDiagnostic.AssertionBatchTimes
     // is the same as the AssertionNodeDiagnostic.AssertionBatchIndex
     public List<int> AssertionBatchTimes { get; private set; } = new();
+    public List<int> AssertionBatchResourceCount { get; private set; } = new();
     private List<int> NewAssertionBatchTimes { get; set; } = new();
+    private List<int> NewAssertionBatchResourceCount { get; set; } = new();
     public int AssertionBatchCount => AssertionBatchTimes.Count;
 
     private Implementation? implementation = null;
@@ -432,14 +442,17 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     public int GetNewAssertionBatchCount() {
       return NewAssertionBatchTimes.Count;
     }
-
     public void AddAssertionBatchTime(int milliseconds) {
       NewAssertionBatchTimes.Add(milliseconds);
+    }
+    public void AddAssertionBatchResourceCount(int milliseconds) {
+      NewAssertionBatchResourceCount.Add(milliseconds);
     }
 
     public override bool Start() {
       if (base.Start()) {
         NewAssertionBatchTimes = new();
+        NewAssertionBatchResourceCount = new();
         return true;
       }
 
@@ -449,6 +462,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     public override bool Stop() {
       if (base.Stop()) {
         AssertionBatchTimes = NewAssertionBatchTimes;
+        AssertionBatchResourceCount = NewAssertionBatchResourceCount;
         SaveNewChildren();
         return true;
       }
