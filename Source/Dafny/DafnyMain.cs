@@ -233,6 +233,7 @@ namespace Microsoft.Dafny {
     }
 
     public static async Task<(bool IsVerified, PipelineOutcome Outcome, PipelineStatistics Statistics)> BoogieOnce(
+      TextWriter output,
       ExecutionEngine engine, string baseFile,
       string moduleName,
       Microsoft.Boogie.Program boogieProgram, string programId) {
@@ -248,7 +249,7 @@ namespace Microsoft.Dafny {
       }
 
       bplFilename = BoogieProgramSuffix(bplFilename, moduleName);
-      var (outcome, stats) = await BoogiePipelineWithRerun(engine, boogieProgram, bplFilename,
+      var (outcome, stats) = await BoogiePipelineWithRerun(output, engine, boogieProgram, bplFilename,
         1 < DafnyOptions.O.VerifySnapshots ? programId : null);
       return (IsBoogieVerified(outcome, stats), outcome, stats);
     }
@@ -278,6 +279,7 @@ namespace Microsoft.Dafny {
     /// their error code.
     /// </summary>
     private static async Task<(PipelineOutcome Outcome, PipelineStatistics Statistics)> BoogiePipelineWithRerun(
+      TextWriter output,
       ExecutionEngine engine,
         Microsoft.Boogie.Program/*!*/ program, string/*!*/ bplFileName,
         string programId) {
@@ -312,7 +314,7 @@ namespace Microsoft.Dafny {
           engine.CollectModSets(program);
           engine.CoalesceBlocks(program);
           engine.Inline(program);
-          var outcome = await engine.InferAndVerify(program, stats, programId);
+          var outcome = await engine.InferAndVerify(output, program, stats, programId);
           return (outcome, stats);
 
         default:

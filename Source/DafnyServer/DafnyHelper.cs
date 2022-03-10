@@ -85,7 +85,7 @@ namespace Microsoft.Dafny {
         engine.Inline(boogieProgram);
 
         //NOTE: We could capture errors instead of printing them (pass a delegate instead of null)
-        switch (engine.InferAndVerify(boogieProgram, new PipelineStatistics(),
+        switch (engine.InferAndVerify(Console.Out, boogieProgram, new PipelineStatistics(),
                   "ServerProgram_" + moduleName, null, DateTime.UtcNow.Ticks.ToString()).Result) {
           case PipelineOutcome.Done:
           case PipelineOutcome.VerificationCompleted:

@@ -213,7 +213,7 @@ module SomeModule {
       options.ProverLogFilePath = temp1;
       using (var engine = ExecutionEngine.CreateWithoutSharedCache(options)) {
         foreach (var boogieProgram in boogiePrograms) {
-          var (_, outcome, _) = await Main.BoogieOnce(engine, "", "", boogieProgram, "programId");
+          var (_, outcome, _) = await Main.BoogieOnce(Console.Out, engine, "", "", boogieProgram, "programId");
           testOutputHelper.WriteLine("outcome: " + outcome);
         }
       }

@@ -376,9 +376,13 @@ namespace Microsoft.Dafny {
       IEnumerable<Tuple<string, Bpl.Program>> boogiePrograms, string programId) {
 
       var concurrentModuleStats = new ConcurrentDictionary<string, PipelineStatistics>();
+      var writerManager = new ConcurrentToSequentialWriteManager(Console.Out);
 
-      var moduleTasks = boogiePrograms.Select(program =>
-        BoogieOnceWithTimer(baseName, programId, concurrentModuleStats, program.Item1, program.Item2)).ToList();
+      var moduleTasks = boogiePrograms.Select(async program => {
+        await using var moduleWriter = writerManager.AppendWriter();
+        return await BoogieOnceWithTimer(moduleWriter, baseName, programId, concurrentModuleStats, program.Item1,
+          program.Item2);
+      }).ToList();
 
       await Task.WhenAll(moduleTasks);
       var outcome = moduleTasks.Select(t => t.Result.Outcome)
@@ -389,6 +393,7 @@ namespace Microsoft.Dafny {
     }
 
     private async Task<(bool IsVerified, PipelineOutcome Outcome)> BoogieOnceWithTimer(
+      TextWriter output,
       string baseName, string programId,
       ConcurrentDictionary<string, PipelineStatistics> moduleStats,
       string moduleName,
@@ -397,19 +402,19 @@ namespace Microsoft.Dafny {
       Stopwatch watch = new Stopwatch();
       watch.Start();
       if (DafnyOptions.O.SeparateModuleOutput) {
-        DafnyOptions.O.Printer.AdvisoryWriteLine("For module: {0}", moduleName);
+        DafnyOptions.O.Printer.AdvisoryWriteLine(output, "For module: {0}", moduleName);
       }
 
       cache ??= new VerificationResultCache();
-      var (isVerified, newOutcome, newStats) = await Dafny.Main.BoogieOnce(engine, baseName, moduleName, program, programId);
+      var (isVerified, newOutcome, newStats) = await Dafny.Main.BoogieOnce(output, engine, baseName, moduleName, program, programId);
 
       watch.Stop();
 
       if (DafnyOptions.O.SeparateModuleOutput) {
         TimeSpan ts = watch.Elapsed;
         string elapsedTime = $"{ts.Hours:00}:{ts.Minutes:00}:{ts.Seconds:00}";
-        DafnyOptions.O.Printer.AdvisoryWriteLine("Elapsed time: {0}", elapsedTime);
-        WriteTrailer(newStats);
+        DafnyOptions.O.Printer.AdvisoryWriteLine(output, "Elapsed time: {0}", elapsedTime);
+        WriteTrailer(output, newStats);
       }
 
       moduleStats.TryAdd(moduleName, newStats);
@@ -426,35 +431,35 @@ namespace Microsoft.Dafny {
       return first;
     }
 
-    private static void WriteTrailer(PipelineStatistics stats) {
+    private static void WriteTrailer(TextWriter output, PipelineStatistics stats) {
       if (!DafnyOptions.O.Verify && stats.ErrorCount == 0) {
-        Console.WriteLine();
-        Console.Write("{0} did not attempt verification", DafnyOptions.O.DescriptiveToolName);
+        output.WriteLine();
+        output.Write("{0} did not attempt verification", DafnyOptions.O.DescriptiveToolName);
         if (stats.InconclusiveCount != 0) {
-          Console.Write(", {0} inconclusive{1}", stats.InconclusiveCount, Util.Plural(stats.InconclusiveCount));
+          output.Write(", {0} inconclusive{1}", stats.InconclusiveCount, Util.Plural(stats.InconclusiveCount));
         }
         if (stats.TimeoutCount != 0) {
-          Console.Write(", {0} time out{1}", stats.TimeoutCount, Util.Plural(stats.TimeoutCount));
+          output.Write(", {0} time out{1}", stats.TimeoutCount, Util.Plural(stats.TimeoutCount));
         }
         if (stats.OutOfMemoryCount != 0) {
-          Console.Write(", {0} out of memory", stats.OutOfMemoryCount);
+          output.Write(", {0} out of memory", stats.OutOfMemoryCount);
         }
         if (stats.OutOfResourceCount != 0) {
-          Console.Write(", {0} out of resource", stats.OutOfResourceCount);
+          output.Write(", {0} out of resource", stats.OutOfResourceCount);
         }
         if (stats.SolverExceptionCount != 0) {
-          Console.Write(", {0} solver exceptions", stats.SolverExceptionCount);
+          output.Write(", {0} solver exceptions", stats.SolverExceptionCount);
         }
 
-        Console.WriteLine();
-        Console.Out.Flush();
+        output.WriteLine();
+        output.Flush();
       } else {
         // This calls a routine within Boogie
-        DafnyOptions.O.Printer.WriteTrailer(stats);
+        DafnyOptions.O.Printer.WriteTrailer(output, stats);
       }
     }
 
-    private static void WriteStatss(IDictionary<string, PipelineStatistics> statss) {
+    private static void WriteStatss(TextWriter output, IDictionary<string, PipelineStatistics> statss) {
       var statSum = new PipelineStatistics();
       foreach (var stats in statss) {
         statSum.VerifiedCount += stats.Value.VerifiedCount;
@@ -472,7 +477,7 @@ namespace Microsoft.Dafny {
         statSum.CachedVerifiedCount += stats.Value.CachedVerifiedCount;
         statSum.InconclusiveCount += stats.Value.InconclusiveCount;
       }
-      WriteTrailer(statSum);
+      WriteTrailer(output, statSum);
     }
 
 
@@ -482,7 +487,7 @@ namespace Microsoft.Dafny {
       bool compiled = true;
       switch (oc) {
         case PipelineOutcome.VerificationCompleted:
-          WriteStatss(moduleStats);
+          WriteStatss(Console.Out, moduleStats);
           if ((DafnyOptions.O.Compile && verified && !DafnyOptions.O.UserConstrainedProcsToCheck) || DafnyOptions.O.ForceCompile) {
             compiled = CompileDafnyProgram(dafnyProgram, resultFileName, otherFileNames, true);
           } else if ((2 <= DafnyOptions.O.SpillTargetCode && verified && !DafnyOptions.O.UserConstrainedProcsToCheck) || 3 <= DafnyOptions.O.SpillTargetCode) {
@@ -490,7 +495,7 @@ namespace Microsoft.Dafny {
           }
           break;
         case PipelineOutcome.Done:
-          WriteStatss(moduleStats);
+          WriteStatss(Console.Out, moduleStats);
           if (DafnyOptions.O.ForceCompile || 3 <= DafnyOptions.O.SpillTargetCode) {
             compiled = CompileDafnyProgram(dafnyProgram, resultFileName, otherFileNames, DafnyOptions.O.ForceCompile);
           }

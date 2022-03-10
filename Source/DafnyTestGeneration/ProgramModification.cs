@@ -83,12 +83,17 @@ namespace DafnyTestGeneration {
       engine.CollectModSets(program);
       engine.CoalesceBlocks(program);
       engine.Inline(program);
-      var log = Utils.CaptureConsoleOutput(
-        () => {
-          engine.InferAndVerify(program,
-            new PipelineStatistics(), null,
-            _ => { }, uniqueId).Wait();
-        });
+      var writer = new StringWriter();
+      engine.InferAndVerify(writer, program,
+        new PipelineStatistics(), null,
+        _ => { }, uniqueId).Wait();
+      var log = writer.ToString();
+      // Utils.CaptureConsoleOutput(
+      //   () => {
+      //     engine.InferAndVerify(Console.Out, program,
+      //       new PipelineStatistics(), null,
+      //       _ => { }, uniqueId).Wait();
+      //   });
       DafnyOptions.Install(oldOptions);
       // make sure that there is a counterexample (i.e. no parse errors, etc):
       string? line;
