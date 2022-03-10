@@ -30,7 +30,7 @@ namespace Microsoft.Dafny.Compilers.Go {
 
     public override string TargetLanguage => "Go";
     public override string TargetExtension => "go";
-    public override string TargetBaseDir(string baseName) => baseName + "-go/src";
+    public override string TargetBaseDir(string baseName) => $"{baseName}-go/src";
 
     public override bool SupportsInMemoryCompilation => false;
     public override bool TextualTargetIsExecutable => false;
