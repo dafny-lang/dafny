@@ -4,20 +4,20 @@
     /// Gets the name of the enclosing class (if any). It will return <c>null</c> if
     /// there's no enclosing class or the member is part of the default class.
     /// </summary>
-    public string? EnclosingClassName {
+    public string? EnclosingTypeName {
       get {
-        var className = (Scope as ClassSymbol)?.Name;
-        return className == "_default" ? null : className;
+        var typeName = (Scope as TypeWithMembersSymbolBase)?.Name;
+        return typeName == "_default" ? null : typeName;
       }
     }
 
     /// <summary>
-    /// Gets the class prefix (Classname.} of this member or an empty string if
+    /// Gets the type prefix (Typename.} of this member or an empty string if
     /// the member is part of the default class.
     /// </summary>
-    public string ClassPrefix {
+    public string TypePrefix {
       get {
-        var className = EnclosingClassName;
+        var className = EnclosingTypeName;
         return className == null ? string.Empty : $"{className}.";
       }
     }

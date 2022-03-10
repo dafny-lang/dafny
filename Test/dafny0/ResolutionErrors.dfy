@@ -613,16 +613,16 @@ module NonInferredType {
   }
 }
 
-// ------------ Here are some tests that ghost contexts don't allocate objects -------------
+// ------------ Here are some tests that lemma contexts don't allocate objects -------------
 
 module GhostAllocationTests {
   class G { }
   iterator GIter() { }
-
-  ghost method GhostNew0()
+  class H { constructor () }
+  lemma GhostNew0()
     ensures exists o: G :: fresh(o);
   {
-    var p := new G;  // error: ghost context is not allowed to allocate state
+    var p := new G;  // error: lemma context is not allowed to allocate state
     p := new G;  // error: ditto
   }
 
@@ -632,7 +632,7 @@ module GhostAllocationTests {
       z, t := 5, new G;  // fine
     }
     if n < g {
-      var zz, tt := 5, new G;  // error: 'new' not allowed in ghost contexts
+      var tt := new H();  // error: 'new' not allowed in ghost contexts
     }
   }
 
@@ -642,37 +642,37 @@ module GhostAllocationTests {
       var y := new GIter();  // error: 'new' not allowed in ghost contexts (and a non-ghost method is not allowed to be called here either)
     }
   }
-
-  method GhostNew3(n: nat)
-  {
+}
+module MoreGhostAllocationTests {
+  class G { }
+  method GhostNew3(n: nat) {
     var g := new G;
     calc {
       5;
-      { var y := new G; }  // error: 'new' not allowed in ghost contexts
+      { var y := new G; }  // error: 'new' not allowed in lemma contexts
       2 + 3;
     }
   }
-
   ghost method GhostNew4(g: G)
-    modifies g;
+    modifies g
   {
   }
 }
 
-module NewForall {
+module NewForallAssign {
   class G { }
-  method NewForallTest(n: nat)
-  {
+  method NewForallTest(n: nat) {
     var a := new G[n];
     forall i | 0 <= i < n {
       a[i] := new G;  // error: 'new' is currently not supported in forall statements
-    }
-    forall i | 0 <= i < n
-      ensures true;  // this makes the whole 'forall' statement into a ghost statement
-    {
-      a[i] := new G;  // error: 'new' not allowed in ghost contexts, and proof-forall cannot update state
-    }
-  }
+  } }
+}
+module NewForallProof {
+  class G { }
+  method NewForallTest(n: nat) { var a := new G[n];
+    forall i | 0 <= i < n ensures true { // this makes the whole 'forall' statement into a ghost statement
+      a[i] := new G;  // error: proof-forall cannot update state (and 'new' not allowed in ghost contexts, but that's checked at a later stage)
+  } }
 }
 
 // ------------------------- underspecified types ------------------------------
@@ -780,20 +780,20 @@ module StatementsInExpressions {
       }
       5;
     }
+  }
+}
 
-    ghost method MyLemma()
-    ghost method MyGhostMethod()
-      modifies this;
-    method OrdinaryMethod()
-    ghost method OutParamMethod() returns (y: int)
+module StmtExprOutParams {
 
-    function UseLemma(): int
-    {
-      MyLemma();
-      MyGhostMethod();   // error: modifi2es state
-      OutParamMethod();  // error: has out-parameters
-      10
-    }
+  lemma MyLemma()
+
+  lemma OutParamLemma() returns (y: int)
+
+  function UseLemma(): int
+  {
+    MyLemma();
+    OutParamLemma(); // error: has out-parameters
+    10
   }
 }
 
@@ -930,22 +930,22 @@ module LhsLvalue {
     var c := new MyRecord[29];
 
     mySeq[0] := 5;  // error: cannot assign to a sequence element
-    mySeq[0] := MyLemma();  // error: ditto
+    mySeq[0] := MyMethod();  // error: ditto
     a[0] := 5;
-    a[0] := MyLemma();
+    a[0] := MyMethod();
     b[20, 18] := 5;
-    b[20, 18] := MyLemma();
+    b[20, 18] := MyMethod();
     c[25].x := 5;  // error: cannot assign to a destructor
-    c[25].x := MyLemma();  // error: ditto
+    c[25].x := MyMethod();  // error: ditto
     mySeq[0..4] := 5;  // error: cannot assign to a range
-    mySeq[0..4] := MyLemma();  // error: ditto
+    mySeq[0..4] := MyMethod();  // error: ditto
     a[0..4] := 5;  // error: cannot assign to a range
-    a[0..4] := MyLemma();  // error: ditto
+    a[0..4] := MyMethod();  // error: ditto
   }
 
   datatype MyRecord = Make(x: int, y: int)
 
-  method MyLemma() returns (w: int)
+  method MyMethod() returns (w: int)
 }
 
 // ------------------- dirty loops -------------------
@@ -1547,16 +1547,16 @@ module GhostTests {
       }
       5;
     }
-    ghost method MyLemma()
-    ghost method MyGhostMethod()
-      modifies this;
-    method OrdinaryMethod()
-    ghost method OutParamMethod() returns (y: int)
-
+  }
+}
+module CallsInStmtExpr {
+  class MyClass {
+    lemma MyLemma()
+    ghost method MyEffectlessGhostMethod()
     function UseLemma(): int
     {
+      MyEffectlessGhostMethod(); // error: cannot call ghost methods (only lemmas) from this context
       MyLemma();
-      OrdinaryMethod();  // error: not a ghost
       10
     }
   }
@@ -3633,5 +3633,218 @@ module FrameTypes {
     reads m // error: wrong argument type for reads
   {
     true
+  }
+}
+
+module Continue0 {
+  method BadTargetsLevels(a: int, b: int, c: int) {
+    for i := 0 to 100 {
+      for j := 0 to 100 {
+        for k := 0 to 100 {
+          if
+          case k == a =>
+            continue;
+          case k == b =>
+            break continue;
+          case k == c =>
+            break break continue;
+          case k == a + b + c =>
+            break break break continue; // error: too many levels
+        }
+      }
+    }
+  }
+
+  method BadTargetsLabels(a: int, b: int, c: int) {
+    label A:
+    for i := 0 to 100 {
+      label B0: label B1:
+      for j := 0 to 100 {
+        label C:
+        for k := 0 to 100 {
+          if
+          case k == a =>
+            continue C;
+          case k == b =>
+            continue B0;
+          case k == b =>
+            continue B1;
+          case k == c =>
+            continue A;
+        }
+      }
+    }
+  }
+
+  method NonLoopLabels(a: int, b: int, c: int) {
+    // the following labels are attached to BlockStmt's, not loops
+    label X: {
+      for i := 0 to 100 {
+        label Y0: label Y1: {
+          for j := 0 to 100 {
+            label Z: {
+              for k := 0 to 100 {
+                if
+                case k == a =>
+                  continue X; // error: X is not a loop label
+                case k == b =>
+                  continue Y0; // error: Y0 is not a loop label
+                case k == b =>
+                  continue Y1; // error: Y1 is not a loop label
+                case k == c =>
+                  continue Z; // error: Z is not a loop label
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  method SimpleBadJumps0() {
+    break; // error: cannot "break" from here
+  }
+
+  method SimpleBadJumps1() {
+    continue; // error: cannot "continue" from here
+  }
+
+  method SimpleBadJumps2() {
+    label X: {
+      if
+      case true => break; // error: cannot "break" from here
+      case true => continue; // error: cannot "continue" from here
+      case true => break X;
+      case true => continue X; // error: X is not a loop label
+    }
+  }
+
+  method GhostContinueAssertBy(ghost t: int, ghost u: nat)
+  {
+    label L:
+    for i := 0 to 100 {
+      assert true by {
+        for j := 0 to 100 {
+          if j == t {
+            break;
+          } else if j == u {
+            continue;
+          }
+        }
+        if
+        case true => break; // error: cannot jump outside the assert-by
+        case true => continue; // error: cannot jump outside the assert-by
+        case true => break L; // error: cannot jump outside the assert-by
+        case true => continue L; // error: cannot jump outside the assert-by
+      }
+    }
+  }
+}
+
+module Continue1 {
+  method GhostContinueLevels(ghost t: int, ghost u: nat)
+  {
+    var m := 0;
+    for i := 0 to 100 {
+      if i == t {
+        // The following "continue" would pass the increment to m
+        continue; // error: continue from ghost context must target a ghost loop
+      }
+      m := m + 1;
+    }
+
+    for i := 0 to 100 {
+      m := m + 1;
+      // The following "break" would potentially pass both increments to m
+      if i == t {
+        break; // error: break from ghost context must target a ghost loop
+      }
+      m := m + 1;
+    }
+
+    for i := 0 to 100 {
+      if i == t {
+        // Even though there's no statement in the loop body after this ghost if, the continue violates the rule
+        continue; // error: continue from ghost context must target a ghost loop
+      }
+    }
+
+    for i := 0 to 100 {
+      for j := 0 to u {
+        if i == t {
+          continue; // fine
+        }
+      }
+    }
+
+    for i := 0 to 100 {
+      for j := 0 to u {
+        if i == t {
+          break continue; // error: continue from ghost context must target a ghost loop
+        }
+      }
+    }
+
+    for i := 0 to 100 + u {
+      for j := 0 to u {
+        if i == t {
+          break continue; // fine
+        }
+      }
+    }
+  }
+
+  method GhostContinueLabels(ghost t: int, ghost u: nat)
+  {
+    label Outer:
+    for i := 0 to 100 {
+      label Inner:
+      for j := 0 to u {
+        if j == t {
+          continue Inner; // fine
+        } else if j == 20 + t {
+          continue Outer; // error: continue from ghost context must target a ghost loop
+        }
+      }
+    }
+  }
+}
+
+module LabelRegressions {
+  // The cases of if-case, while-case, and match statements are List<Statement>'s, which are essentially
+  // a BlockStmt but without the curly braces. Each Statement in such a List can have labels, so
+  // it's important to ResolveStatementWithLabels, not ResolveStatement. Alas, that was once not the
+  // case (pun intended).
+  // There's also something analogous going on in the Verifier, where lists of statements should call
+  // TrStmtList, not just call TrStmt on every Statement in the List. (See method LabelRegressions()
+  // in Test/comp/ForLoops-Compilation.dfy.)
+  method IfCaseRegression() {
+    if
+    case true =>
+      label Loop:
+      for k := 0 to 10 {
+        continue Loop;
+        break Loop;
+      }
+  }
+
+  method WhileCaseRegression() {
+    while
+    case true =>
+      label Loop:
+      for k := 0 to 10 {
+        continue Loop;
+        break Loop;
+      }
+  }
+
+  method Match() {
+    match (0, 0)
+    case (_, _) =>
+      label Loop:
+      for k := 0 to 10 {
+        break Loop;
+        continue Loop;
+      }
   }
 }

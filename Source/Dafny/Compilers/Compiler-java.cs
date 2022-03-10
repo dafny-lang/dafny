@@ -246,7 +246,7 @@ namespace Microsoft.Dafny {
         indices.Add(wIndex.ToString());
       }
       var lv = EmitArraySelectAsLvalue(array, indices, tupleTypeArgsList[L - 1]);
-      var wrRhs = EmitAssignment(lv, tupleTypeArgsList[L - 1], null, wr);
+      var wrRhs = EmitAssignment(lv, tupleTypeArgsList[L - 1], null, wr, s0.Tok);
       wrRhs.Write($"(({TypeName(tupleTypeArgsList[L - 1], wrRhs, s0.Tok)})");
       EmitTupleSelect(tup, L - 1, wrRhs);
       wrRhs.Write(")");
@@ -391,7 +391,7 @@ namespace Microsoft.Dafny {
 
       public ConcreteSyntaxTree Writer(bool isStatic, bool createBody, MemberDecl/*?*/ member) {
         if (createBody) {
-          if (isStatic || (member != null && member.EnclosingClass is TraitDecl && NeedsCustomReceiver(member))) {
+          if (isStatic || (member != null && member.EnclosingClass is TraitDecl && Compiler.NeedsCustomReceiver(member))) {
             return StaticMemberWriter;
           }
         }
@@ -428,7 +428,7 @@ namespace Microsoft.Dafny {
       bool createBody, ConcreteSyntaxTree wr) {
       wr.Write("public {0}{1} {2}()", isStatic ? "static " : "", TypeName(resultType, wr, tok), name);
       if (createBody) {
-        var w = wr.NewBlock("", null, BraceStyle.Newline, BraceStyle.Newline);
+        var w = wr.NewBlock("", null, BlockStyle.NewlineBrace, BlockStyle.NewlineBrace);
         return w;
       } else {
         wr.WriteLine(";");
@@ -450,13 +450,13 @@ namespace Microsoft.Dafny {
       wr.Write("public {0}{1} {2}()", isStatic ? "static " : "", TypeName(resultType, wr, tok), name);
       ConcreteSyntaxTree wGet = null;
       if (createBody) {
-        wGet = wr.NewBlock("", null, BraceStyle.Newline, BraceStyle.Newline);
+        wGet = wr.NewBlock("", null, BlockStyle.NewlineBrace, BlockStyle.NewlineBrace);
       } else {
         wr.WriteLine(";");
       }
       wr.Write("public {0}void set_{1}({2} value)", isStatic ? "static " : "", name, TypeName(resultType, wr, tok));
       if (createBody) {
-        setterWriter = wr.NewBlock("", null, BraceStyle.Newline, BraceStyle.Newline);
+        setterWriter = wr.NewBlock("", null, BlockStyle.NewlineBrace, BlockStyle.NewlineBrace);
       } else {
         wr.WriteLine(";");
         setterWriter = null;
@@ -499,14 +499,17 @@ namespace Microsoft.Dafny {
         wr.WriteLine(");");
         return null; // We do not want to write a function body, so instead of returning a BTW, we return null.
       } else {
-        return wr.NewBlock(")", null, BraceStyle.Newline, BraceStyle.Newline);
+        return wr.NewBlock(")", null, BlockStyle.NewlineBrace, BlockStyle.NewlineBrace);
       }
     }
 
     protected override ConcreteSyntaxTree EmitMethodReturns(Method m, ConcreteSyntaxTree wr) {
       int nonGhostOuts = 0;
       foreach (var t in m.Outs) {
-        if (t.IsGhost) continue;
+        if (t.IsGhost) {
+          continue;
+        }
+
         nonGhostOuts += 1;
         break;
       }
@@ -544,7 +547,7 @@ namespace Microsoft.Dafny {
       } else {
         ConcreteSyntaxTree w;
         if (argCount > 1) {
-          w = wr.NewBlock(")", null, BraceStyle.Newline, BraceStyle.Newline);
+          w = wr.NewBlock(")", null, BlockStyle.NewlineBrace, BlockStyle.NewlineBrace);
         } else {
           w = wr.NewBlock(")");
         }
@@ -772,7 +775,10 @@ namespace Microsoft.Dafny {
     }
 
     protected override bool DeclareFormal(string prefix, string name, Type type, Bpl.IToken tok, bool isInParam, ConcreteSyntaxTree wr) {
-      if (!isInParam) return false;
+      if (!isInParam) {
+        return false;
+      }
+
       wr.Write($"{prefix}{TypeName(type, wr, tok)} {name}");
       return true;
     }
@@ -2473,15 +2479,6 @@ namespace Microsoft.Dafny {
       return s + ")";
     }
 
-    bool OutContainsParam(List<Formal> l, TypeParameter tp) {
-      foreach (Formal f in l) {
-        if (f.Type.IsTypeParameter && f.Type.AsTypeParameter.Equals(tp) || f.Type.AsCollectionType != null && f.Type.AsCollectionType.Arg.IsTypeParameter && f.Type.AsCollectionType.Arg.AsTypeParameter.Equals(tp)) {
-          return true;
-        }
-      }
-      return false;
-    }
-
     protected override void EmitSetBuilder_New(ConcreteSyntaxTree wr, SetComprehension e, string collectionName) {
       wr.WriteLine($"java.util.ArrayList<{BoxedTypeName(e.Type.AsSetType.Arg, wr, e.tok)}> {collectionName} = new java.util.ArrayList<>();");
     }
@@ -2948,8 +2945,9 @@ namespace Microsoft.Dafny {
       wrToString.WriteLine("sb.append(\"(\");");
       for (int j = 0; j < i; j++) {
         wrToString.WriteLine($"sb.append(_{j} == null ? \"null\" : _{j}.toString());");
-        if (j != i - 1)
+        if (j != i - 1) {
           wrToString.WriteLine("sb.append(\", \");");
+        }
       }
 
       wrToString.WriteLine("sb.append(\")\");");
@@ -3341,12 +3339,17 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override ConcreteSyntaxTree CreateLabeledCode(string label, ConcreteSyntaxTree wr) {
-      return wr.NewNamedBlock($"goto_{label}:");
+    protected override ConcreteSyntaxTree CreateLabeledCode(string label, bool createContinueLabel, ConcreteSyntaxTree wr) {
+      var prefix = createContinueLabel ? "continue_" : "goto_";
+      return wr.NewNamedBlock($"{prefix}{label}:");
     }
 
     protected override void EmitBreak(string label, ConcreteSyntaxTree wr) {
       wr.WriteLine(label == null ? "break;" : $"break goto_{label};");
+    }
+
+    protected override void EmitContinue(string label, ConcreteSyntaxTree wr) {
+      wr.WriteLine($"break continue_{label};");
     }
 
     protected override void EmitAbsurd(string message, ConcreteSyntaxTree wr) {
@@ -3365,7 +3368,10 @@ namespace Microsoft.Dafny {
 
     protected override void EmitHalt(Bpl.IToken tok, Expression messageExpr, ConcreteSyntaxTree wr) {
       wr.Write("throw new dafny.DafnyHaltException(");
-      if (tok != null) wr.Write("\"" + Dafny.ErrorReporter.TokenToString(tok) + ": \" + ");
+      if (tok != null) {
+        wr.Write("\"" + Dafny.ErrorReporter.TokenToString(tok) + ": \" + ");
+      }
+
       EmitToString(wr, messageExpr);
       wr.WriteLine(");");
     }
@@ -3421,19 +3427,28 @@ namespace Microsoft.Dafny {
       if (nt == null) {
         wr.Write($"{DafnyHelpersClass}.toInt" + (checkRange ? "Checked(" : "("));
         TrParenExpr(expr, wr, inLetExprBody);
-        if (checkRange) wr.Write(msg == null ? ", null" : $", \"{msg}\"");
+        if (checkRange) {
+          wr.Write(msg == null ? ", null" : $", \"{msg}\"");
+        }
+
         wr.Write(")");
       } else if (nt.Sel == NativeType.Selection.Int || nt.Sel == NativeType.Selection.UInt) {
         TrExpr(expr, wr, inLetExprBody);
       } else if (IsUnsignedJavaNativeType(nt)) {
         wr.Write($"{DafnyHelpersClass}.unsignedToInt" + (checkRange ? "Checked(" : "("));
         TrExpr(expr, wr, inLetExprBody);
-        if (checkRange) wr.Write(msg == null ? ", null" : $", \"{msg}\"");
+        if (checkRange) {
+          wr.Write(msg == null ? ", null" : $", \"{msg}\"");
+        }
+
         wr.Write(")");
       } else {
         wr.Write($"{DafnyHelpersClass}.toInt" + (checkRange ? "Checked(" : "("));
         TrExpr(expr, wr, inLetExprBody);
-        if (checkRange) wr.Write(msg == null ? ", null" : $", \"{msg}\"");
+        if (checkRange) {
+          wr.Write(msg == null ? ", null" : $", \"{msg}\"");
+        }
+
         wr.Write(")");
       }
     }
@@ -3505,7 +3520,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override ConcreteSyntaxTree EmitForStmt(Bpl.IToken tok, IVariable loopIndex, bool goingUp, string /*?*/ endVarName,
-      List<Statement> body, ConcreteSyntaxTree wr) {
+      List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr) {
 
       var nativeType = AsNativeType(loopIndex.Type);
 
@@ -3546,6 +3561,7 @@ namespace Microsoft.Dafny {
           bodyWr.WriteLine($"{loopIndex.CompileName}--;");
         }
       }
+      bodyWr = EmitContinueLabel(labels, bodyWr);
       TrStmtList(body, bodyWr);
 
       return startWr;

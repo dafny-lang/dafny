@@ -130,12 +130,6 @@ logical inconsistency.  In general, there
 could be many solutions to an equation like [#eq-general] or there could be none.
 Let's consider two ways to make sure we're defining the function uniquely.
 
-TO BE WRITTEN - two-state functions and predicates
-
-TO BE WRITTEN - functions with named results
-
-TO BE WRITTEN - various kinds of arrow types: ~> -> -->
-
 #### 23.4.1.1. Well-founded Functions
 
 A standard way to ensure that equation [#eq-general] has a unique solution in $f$ is
@@ -520,10 +514,8 @@ and HOL [@Krauss:PhD].
 ## 23.5. Functions in Dafny
 
 In this section, I explain with examples the support in
-Dafny[^fn-on-da-web] for well-founded functions, extreme predicates,
+Dafny for well-founded functions, extreme predicates,
 and proofs regarding these.
-
-[^fn-on-da-web]: Dafny is open source at [dafny.codeplex.com](http://dafny.codeplex.com) and can also be used online at [rise4fun.com/dafny](http://rise4fun.com/dafny).
 
 ### 23.5.1. Well-founded Functions in Dafny
 

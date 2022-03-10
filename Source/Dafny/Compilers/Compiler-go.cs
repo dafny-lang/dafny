@@ -12,6 +12,7 @@ using System.IO;
 using System.Diagnostics.Contracts;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using Bpl = Microsoft.Boogie;
 using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
@@ -1108,7 +1109,7 @@ namespace Microsoft.Dafny {
         if (forBodyInheritance) {
           // don't do any conversions
         } else if (thisContext != null) {
-          w = w.NewBlock("", open: BraceStyle.Nothing);
+          w = w.NewBlock("", open: BlockStyle.Brace);
           for (var i = 0; i < inParams.Count; i++) {
             var p = (overriddenInParams ?? inParams)[i];
             var instantiatedType = Resolver.SubstType(p.Type, thisContext.ParentFormalTypeParametersToActuals);
@@ -1422,7 +1423,10 @@ namespace Microsoft.Dafny {
         return "_dafny.EmptySet";
       } else if (xType is MultiSetType) {
         return "_dafny.EmptyMultiSet";
-      } else if (xType is SeqType) {
+      } else if (xType is SeqType seq) {
+        if (seq.Arg.IsCharType) {
+          return "_dafny.EmptySeq.SetString()";
+        }
         return "_dafny.EmptySeq";
       } else if (xType is MapType) {
         return "_dafny.EmptyMap";
@@ -1775,10 +1779,11 @@ namespace Microsoft.Dafny {
       wr.WriteLine();
     }
 
-    protected override ConcreteSyntaxTree CreateLabeledCode(string label, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree CreateLabeledCode(string label, bool createContinueLabel, ConcreteSyntaxTree wr) {
       var w = wr.Fork();
-      wr.WriteLine("goto L{0};", label);
-      wr.Fork(-1).WriteLine("L{0}:", label);
+      var prefix = createContinueLabel ? "C" : "L";
+      wr.WriteLine($"goto {prefix}{label};");
+      wr.Fork(-1).WriteLine($"{prefix}{label}:");
       return w;
     }
 
@@ -1788,6 +1793,10 @@ namespace Microsoft.Dafny {
       } else {
         wr.WriteLine("goto L{0}", label);
       }
+    }
+
+    protected override void EmitContinue(string label, ConcreteSyntaxTree wr) {
+      wr.WriteLine("goto C{0};", label);
     }
 
     protected override void EmitYield(ConcreteSyntaxTree wr) {
@@ -1805,7 +1814,10 @@ namespace Microsoft.Dafny {
 
     protected override void EmitHalt(Bpl.IToken tok, Expression messageExpr, ConcreteSyntaxTree wr) {
       wr.Write("panic(");
-      if (tok != null) wr.Write("\"" + Dafny.ErrorReporter.TokenToString(tok) + ": \" + ");
+      if (tok != null) {
+        wr.Write("\"" + Dafny.ErrorReporter.TokenToString(tok) + ": \" + ");
+      }
+
       wr.Write("(");
       TrExpr(messageExpr, wr, false);
       wr.WriteLine(").String())");
@@ -1819,7 +1831,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override ConcreteSyntaxTree EmitForStmt(Bpl.IToken tok, IVariable loopIndex, bool goingUp, string /*?*/ endVarName,
-      List<Statement> body, ConcreteSyntaxTree wr) {
+      List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr) {
 
       wr.Write($"for {loopIndex.CompileName} := ");
       var startWr = wr.Fork();
@@ -1854,6 +1866,7 @@ namespace Microsoft.Dafny {
           bodyWr.WriteLine($"{loopIndex.CompileName}--");
         }
       }
+      bodyWr = EmitContinueLabel(labels, bodyWr);
       TrStmtList(body, bodyWr);
 
       return startWr;
@@ -1900,7 +1913,7 @@ namespace Microsoft.Dafny {
         } else {
           wIf.WriteLine("{0} = ({1})(nil)", boundVarName, TypeName(boundVarType, wBody, tok));
         }
-        wIf = wBody.NewBlock("", open: BraceStyle.Nothing);
+        wIf = wBody.NewBlock("", open: BlockStyle.Brace);
         string typeTest;
         if (boundVarType.IsObject || boundVarType.IsObjectQ) {
           // nothing more to test
@@ -2267,14 +2280,6 @@ namespace Microsoft.Dafny {
       } else {
         return UserDefinedTypeName(cl, full, member);
       }
-    }
-
-    private string FullTypeName(TopLevelDecl cl, MemberDecl/*?*/ member = null) {
-      return UserDefinedTypeName(cl, true, member: member);
-    }
-
-    private string UnqualifiedTypeName(TopLevelDecl cl, MemberDecl/*?*/ member = null) {
-      return UserDefinedTypeName(cl, full: false, member: member);
     }
 
     private string UserDefinedTypeName(TopLevelDecl cl, bool full, MemberDecl/*?*/ member = null) {
@@ -2692,13 +2697,16 @@ namespace Microsoft.Dafny {
       wr.Write("_dafny.SeqCreate(");
       TrExpr(expr.N, wr, inLetExprBody);
       wr.Write(", ");
-      var fromType = (UserDefinedType)expr.Initializer.Type.NormalizeExpand();
+      var fromType = (ArrowType)expr.Initializer.Type.NormalizeExpand();
       var atd = (ArrowTypeDecl)fromType.ResolvedClass;
       var tParam = new UserDefinedType(expr.tok, new TypeParameter(expr.tok, "X", TypeParameter.TPVarianceSyntax.NonVariant_Strict));
       var toType = new ArrowType(expr.tok, atd, new List<Type>() { Type.Int }, tParam);
       var initWr = EmitCoercionIfNecessary(fromType, toType, expr.tok, wr);
       TrExpr(expr.Initializer, initWr, inLetExprBody);
       wr.Write(")");
+      if (fromType.Result.IsCharType) {
+        wr.Write(".SetString()");
+      }
     }
 
     protected override void EmitMultiSetFormingExpr(MultiSetFormingExpr expr, bool inLetExprBody, ConcreteSyntaxTree wr) {
@@ -3227,7 +3235,7 @@ namespace Microsoft.Dafny {
 
     private static bool EqualsUpToParameters(Type type1, Type type2) {
       // TODO Consider whether Type.SameHead should return true in this case
-      return Type.SameHead(type1, type2) || type1.IsArrayType && type1.IsArrayType;
+      return Type.SameHead(type1, type2) || (type1.IsArrayType && type1.IsArrayType);
     }
 
     protected override ConcreteSyntaxTree EmitCoercionIfNecessary(Type/*?*/ from, Type/*?*/ to, Bpl.IToken tok, ConcreteSyntaxTree wr) {
@@ -3516,6 +3524,13 @@ namespace Microsoft.Dafny {
       // Dafny compiles to the old Go package system, whereas Go has moved on to a module
       // system. Until Dafny's Go compiler catches up, the GO111MODULE variable has to be set.
       psi.EnvironmentVariables["GO111MODULE"] = "auto";
+      if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+        // On Windows, Path.GetTempPath() returns "c:\Windows" which, being not writable, crashes Go.
+        // Hence we set up a local temporary directory
+        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        psi.EnvironmentVariables["GOTMPDIR"] = localAppData + @"\Temp";
+        psi.EnvironmentVariables["LOCALAPPDATA"] = localAppData + @"\go-build";
+      }
 
       try {
         using var process = Process.Start(psi);

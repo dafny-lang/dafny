@@ -11,6 +11,7 @@ import subprocess
 import sys
 import time
 from urllib import request
+from http.client import IncompleteRead
 import zipfile
 import shutil
 import ntpath
@@ -24,6 +25,8 @@ import ntpath
 Z3_RELEASES_URL = "https://api.github.com/repos/Z3Prover/z3/releases/tags/Z3-4.8.5"
 ## How do we extract info from the name of a Z3 release file?
 Z3_RELEASE_REGEXP = re.compile(r"^(?P<directory>z3-[0-9a-z\.]+-(?P<platform>x86|x64)-(?P<os>[a-z0-9\.\-]+)).zip$", re.IGNORECASE)
+## How many times we allow ourselves to try to download Z3
+Z3_MAX_DOWNLOAD_ATTEMPTS = 5
 
 ## Allowed Dafny release names
 DAFNY_RELEASE_REGEX = re.compile("\\d+\\.\\d+\\.\\d+(-[\w\d_-]+)?$")
@@ -46,8 +49,6 @@ Z3_INTERESTING_FILES = ["LICENSE.txt", "bin/*"]
 
 ## On unix systems, which Dafny files should be marked as executable? (Glob syntax; Z3's permissions are preserved)
 UNIX_EXECUTABLES = ["dafny", "dafny-server"]
-
-ETCs = ["DafnyPrelude.bpl", "DafnyRuntime.js", "DafnyRuntime.go", "DafnyRuntime.jar", "DafnyRuntime.h"]
 
 # Constants
 
@@ -108,15 +109,45 @@ class Release:
             print("cached!")
         else:
             flush("downloading {:.2f}MB...".format(self.MB), end=' ')
-            with request.urlopen(self.url) as reader:
-                with open(self.z3_zip, mode="wb") as writer:
-                    writer.write(reader.read())
-            flush("done!")
+            for currentAttempt in range(Z3_MAX_DOWNLOAD_ATTEMPTS):
+                try:
+                    with request.urlopen(self.url) as reader:
+                        with open(self.z3_zip, mode="wb") as writer:
+                            writer.write(reader.read())
+                    flush("done!")
+                    break
+                except IncompleteRead as e:
+                    if currentAttempt == Z3_MAX_DOWNLOAD_ATTEMPTS - 1:
+                        raise
+            
 
     @staticmethod
     def zipify_path(fpath):
         """Zip entries always use '/' as the path separator."""
         return fpath.replace(os.path.sep, '/')
+
+    def run_publish(self, project):
+        env = dict(os.environ)
+        env["RUNTIME_IDENTIFIER"] = self.target
+        flush("   + Publishing " + project)
+        remaining = 3
+        exitStatus = 1
+        while 0 < remaining and exitStatus != 0:
+            remaining -= 1
+            exitStatus = subprocess.call(["dotnet", "publish", path.join(SOURCE_DIRECTORY, project, project + ".csproj"),
+                "--nologo",
+                "-f", "net6.0",
+                "-o", self.buildDirectory,
+                "-r", self.target,
+                "--self-contained",
+                "-c", "Release"], env=env)
+            if exitStatus != 0:
+                if remaining == 0:
+                    flush("failed! (Is Dafny or the Dafny server running?)")
+                    sys.exit(1)
+                else:
+                   flush("failed! (Retrying another %s)" % ("time" if remaining == 1 else "%i times" % remaining))
+        flush("done!")
 
     def build(self):
         os.chdir(ROOT_DIRECTORY)
@@ -125,25 +156,9 @@ class Release:
         if path.exists(self.buildDirectory):
             shutil.rmtree(self.buildDirectory)
         run(["make", "--quiet", "clean"])
-        run(["make", "--quiet", "runtime"])
-        run(["dotnet", "publish", path.join(SOURCE_DIRECTORY, "DafnyLanguageServer", "DafnyLanguageServer.csproj"),
-            "--nologo",
-            "-f", "net5.0",
-            "-o", self.buildDirectory,
-            "-r", self.target,
-            "-c", "Checked"])
-        run(["dotnet", "publish", path.join(SOURCE_DIRECTORY, "DafnyServer", "DafnyServer.csproj"),
-            "--nologo",
-            "-f", "net5.0",
-            "-o", self.buildDirectory,
-            "-r", self.target,
-            "-c", "Checked"])
-        run(["dotnet", "publish", path.join(SOURCE_DIRECTORY, "DafnyDriver", "DafnyDriver.csproj"),
-            "--nologo",
-            "-f", "net5.0",
-            "-o", self.buildDirectory,
-            "-r", self.target,
-            "-c", "Checked"])
+        self.run_publish("DafnyLanguageServer")
+        self.run_publish("DafnyServer")
+        self.run_publish("DafnyDriver")
 
     def pack(self):
         try:
@@ -166,7 +181,7 @@ class Release:
                 lowercaseDafny = path.join(self.buildDirectory, "dafny")
                 shutil.move(uppercaseDafny, lowercaseDafny)
                 os.chmod(lowercaseDafny, stat.S_IEXEC| os.lstat(lowercaseDafny).st_mode)
-            paths = pathsInDirectory(self.buildDirectory) + list(map(lambda etc: path.join(BINARIES_DIRECTORY, etc), ETCs)) + OTHERS
+            paths = pathsInDirectory(self.buildDirectory) + OTHERS
             for fpath in paths:
                 if os.path.isdir(fpath):
                     continue

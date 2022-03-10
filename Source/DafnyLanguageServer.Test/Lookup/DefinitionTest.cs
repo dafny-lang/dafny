@@ -10,19 +10,23 @@ using System.IO;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
+using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
+using Microsoft.Dafny.LanguageServer.Workspace;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
   [TestClass]
   public class DefinitionTest : DafnyLanguageServerTestBase {
-    private ILanguageClient _client;
+    private ILanguageClient client;
+    private DiagnosticsReceiver diagnosticReceiver;
 
     [TestInitialize]
     public async Task SetUp() {
-      _client = await InitializeClient();
+      diagnosticReceiver = new();
+      client = await InitializeClient();
     }
 
     private IRequestProgressObservable<IEnumerable<LocationOrLocationLink>, LocationOrLocationLinks> RequestDefinition(TextDocumentItem documentItem, Position position) {
-      return _client.RequestDefinition(
+      return client.RequestDefinition(
         new DefinitionParams {
           TextDocument = documentItem.Uri,
           Position = position
@@ -41,11 +45,21 @@ method CallDoIt() returns () {
   var x := DoIt();
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var definition = (await RequestDefinition(documentItem, (4, 14)).AsTask()).Single();
       var location = definition.Location;
       Assert.AreEqual(documentItem.Uri, location.Uri);
       Assert.AreEqual(new Range((0, 7), (0, 11)), location.Range);
+    }
+
+    [TestMethod]
+    public async Task DefinitionReturnsBeforeVerificationIsComplete() {
+      var documentItem = CreateTestDocument(SlowToVerify);
+      client.OpenDocument(documentItem);
+      var verificationTask = diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
+      var definitionTask = RequestDefinition(documentItem, (4, 14)).AsTask();
+      var first = await Task.WhenAny(verificationTask, definitionTask);
+      Assert.AreSame(first, definitionTask);
     }
 
     [TestMethod]
@@ -56,7 +70,7 @@ method DoIt() {
   var y := x.Length;
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       Assert.IsFalse((await RequestDefinition(documentItem, (2, 14)).AsTask()).Any());
     }
 
@@ -70,7 +84,7 @@ method DoIt() returns (x: int) {
   return a.GetX();
 }".TrimStart();
       var documentItem = CreateTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Lookup/TestFiles/test.dfy"));
-      _client.OpenDocument(documentItem);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var definition = (await RequestDefinition(documentItem, (4, 13)).AsTask()).Single();
       var location = definition.Location;
       Assert.AreEqual(DocumentUri.FromFileSystemPath(Path.Combine(Directory.GetCurrentDirectory(), "Lookup/TestFiles/foreign.dfy")), location.Uri);
@@ -84,7 +98,7 @@ method DoIt() returns (x: int) {
   return GetX();
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       Assert.IsFalse((await RequestDefinition(documentItem, (1, 12)).AsTask()).Any());
     }
 
@@ -100,7 +114,7 @@ class Test {
   }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var definition = (await RequestDefinition(documentItem, (5, 10)).AsTask()).Single();
       var location = definition.Location;
       Assert.AreEqual(documentItem.Uri, location.Uri);
@@ -119,7 +133,7 @@ class Test {
   }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var definition = (await RequestDefinition(documentItem, (5, 15)).AsTask()).Single();
       var location = definition.Location;
       Assert.AreEqual(documentItem.Uri, location.Uri);
@@ -141,7 +155,7 @@ class Test {
   }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var definition = (await RequestDefinition(documentItem, (7, 12)).AsTask()).Single();
       var location = definition.Location;
       Assert.AreEqual(documentItem.Uri, location.Uri);
@@ -163,7 +177,7 @@ class Test {
   }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var definition = (await RequestDefinition(documentItem, (8, 10)).AsTask()).Single();
       var location = definition.Location;
       Assert.AreEqual(documentItem.Uri, location.Uri);
@@ -180,7 +194,7 @@ method DoIt() returns (x: int) {
   return a.GetX();
 }".TrimStart();
       var documentItem = CreateTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Lookup/TestFiles/test.dfy"));
-      _client.OpenDocument(documentItem);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var definition = (await RequestDefinition(documentItem, (3, 15)).AsTask()).Single();
       var location = definition.Location;
       Assert.AreEqual(DocumentUri.FromFileSystemPath(Path.Combine(Directory.GetCurrentDirectory(), "Lookup/TestFiles/foreign.dfy")), location.Uri);

@@ -1,6 +1,5 @@
 ﻿using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   public interface ISymbolResolver {
@@ -13,6 +12,6 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     /// <returns>The generated symbol table.</returns>
     /// <exception cref="System.OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
-    Task<CompilationUnit> ResolveSymbolsAsync(TextDocumentItem textDocument, Microsoft.Dafny.Program program, CancellationToken cancellationToken);
+    CompilationUnit ResolveSymbols(TextDocumentItem textDocument, Microsoft.Dafny.Program program, CancellationToken cancellationToken);
   }
 }

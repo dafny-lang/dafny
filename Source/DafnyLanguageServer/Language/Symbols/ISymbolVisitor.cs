@@ -12,6 +12,8 @@
 
     TResult Visit(ClassSymbol classSymbol);
 
+    TResult Visit(DataTypeSymbol dataTypeSymbol);
+
     TResult Visit(ValueTypeSymbol valueTypeSymbol);
 
     TResult Visit(FieldSymbol fieldSymbol);

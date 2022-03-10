@@ -128,7 +128,7 @@ One caveat is that they always need braces around the
 branches, even if the branch only contains a single statement (compound or
 otherwise). Here the `if` statement checks whether `x` is less than
 zero, using the familiar comparison operator syntax, and returns the absolute value as
-appropriate. (Other comparison operators are `<=`, `>`, `<=`, `!=`
+appropriate. (Other comparison operators are `<=`, `>`, `>=`, `!=`
 and `==`, with the expected meaning. See the reference
 for more on operators.)
 
@@ -787,9 +787,6 @@ method Testing() {
 function max(a: int, b: int): int { ... }
 ```
 
-</div>
-
-
 One caveat of functions is that not only can they appear in
 annotations, they can only appear in annotations. One cannot write:
 
@@ -1347,13 +1344,13 @@ are two places Dafny proves termination: loops and recursion. Both of these
 situations require either an explicit annotation or a correct guess by Dafny.
 
 A `decreases` annotation, as its name suggests, gives Dafny
-and expression that decreases with every loop iteration or recursive call.
+an expression that decreases with every loop iteration or recursive call.
 There are two conditions that Dafny needs to verify when using a `decreases`
 expression: that the expression actually gets smaller, and that it is bounded.
 Many times, an integral value (natural or plain integer) is the quantity that
 decreases, but other things that can be used as well. (See the reference for
 details.) In the case of integers, the bound is assumed to be zero. For
-example, the following is a proper use of decreases on a loop (with its own
+example, the following is a proper use of `decreases` on a loop (with its own
 keyword, of course):
 
 ``` {.editonly}
@@ -1477,16 +1474,16 @@ Dafny cannot find it on its own, and it requires an explicit annotation.
 All that we have considered is fine for toy functions and
 little mathematical exercises, but it really isn't helpful for real programs.
 So far we have only considered a handful of values at a time in local
-variables. Now we turn our attention to arrays of data. Arrays are a built in
+variables. Now we turn our attention to arrays of data. Arrays are a built-in
 part of the language, with their own type, `array<T>`,
 where `T` is another type. For now we only consider
 arrays of integers, `array<int>`. Arrays can be `null`, and have a
-built in length field, `a.Length`.
+built-in length field, `a.Length`.
 Element access uses the standard bracket syntax and are indexed from
 zero, so `a[3]` is preceded by the 3 elements `a[0]`,
 `a[1]`, and `a[2]`, in that order.
-All array accesses must be proven to be within bounds, which is part of the
-no-runtime-errors safety guarantee by Dafny. Because bounds checks are proven
+All array accesses must be proven to be within bounds, which is part of Dafny's
+no-runtime-errors safety guarantee. Because bounds checks are proven
 at verification time, no runtime checks need to be made. To create a new array,
 it must be allocated with the `new` keyword, but for now
 we will only work with methods that take a previously allocated array as an
@@ -1559,7 +1556,7 @@ the set it is considering. This is called the bound variable, in this case `k`.
 The bound variable has a type, which is almost always inferred
 rather than given explicitly and is usually `int` anyway.
 (In general, one can have any number of bound variables, a topic we will return
-to later). A pair of colons (`::`) separates the bound
+to later.) A pair of colons (`::`) separates the bound
 variable and its optional type from the quantified property (which must be of
 type `bool`). In this case, the property is that adding
 one to any integer makes a strictly larger integer. Dafny is able to prove this

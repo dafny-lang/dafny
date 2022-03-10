@@ -258,7 +258,7 @@ namespace Microsoft.Dafny {
           if (newBoundVars != mc.Arguments || body != mc.Body) {
             anythingChanged = true;
           }
-          var newCaseExpr = new MatchCaseExpr(mc.tok, mc.Ctor, newBoundVars, body, mc.Attributes);
+          var newCaseExpr = new MatchCaseExpr(mc.tok, mc.Ctor, mc.FromBoundVar, newBoundVars, body, mc.Attributes);
           newCaseExpr.Ctor = mc.Ctor;  // resolve here
           cases.Add(newCaseExpr);
         }
@@ -285,18 +285,18 @@ namespace Microsoft.Dafny {
         var newBounds = SubstituteBoundedPoolList(e.Bounds);
         if (newBoundVars != e.BoundVars || newRange != e.Range || newTerm != e.Term || newAttrs != e.Attributes || newBounds != e.Bounds) {
           if (e is SetComprehension) {
-            newExpr = new SetComprehension(expr.tok, ((SetComprehension)e).Finite, newBoundVars, newRange, newTerm, newAttrs);
+            newExpr = new SetComprehension(e.BodyStartTok, e.BodyEndTok, ((SetComprehension)e).Finite, newBoundVars, newRange, newTerm, newAttrs);
           } else if (e is MapComprehension) {
             var mc = (MapComprehension)e;
             var newTermLeft = mc.IsGeneralMapComprehension ? Substitute(mc.TermLeft) : null;
-            newExpr = new MapComprehension(expr.tok, mc.Finite, newBoundVars, newRange, newTermLeft, newTerm, newAttrs);
-          } else if (expr is ForallExpr) {
-            newExpr = new ForallExpr(expr.tok, ((QuantifierExpr)expr).TypeArgs, newBoundVars, newRange, newTerm, newAttrs);
-          } else if (expr is ExistsExpr) {
-            newExpr = new ExistsExpr(expr.tok, ((QuantifierExpr)expr).TypeArgs, newBoundVars, newRange, newTerm, newAttrs);
+            newExpr = new MapComprehension(e.BodyStartTok, e.BodyEndTok, mc.Finite, newBoundVars, newRange, newTermLeft, newTerm, newAttrs);
+          } else if (expr is ForallExpr forallExpr) {
+            newExpr = new ForallExpr(expr.tok, e.BodyEndTok, forallExpr.TypeArgs, newBoundVars, newRange, newTerm, newAttrs);
+          } else if (expr is ExistsExpr existsExpr) {
+            newExpr = new ExistsExpr(expr.tok, e.BodyEndTok, existsExpr.TypeArgs, newBoundVars, newRange, newTerm, newAttrs);
           } else if (expr is LambdaExpr) {
             var l = (LambdaExpr)expr;
-            newExpr = new LambdaExpr(e.tok, newBoundVars, newRange, l.Reads.ConvertAll(SubstFrameExpr), newTerm);
+            newExpr = new LambdaExpr(e.BodyStartTok, e.BodyEndTok, newBoundVars, newRange, l.Reads.ConvertAll(SubstFrameExpr), newTerm);
           } else {
             Contract.Assert(false);  // unexpected ComprehensionExpr
           }
@@ -396,7 +396,9 @@ namespace Microsoft.Dafny {
         var rhs = Substitute(letExpr.RHSs[0]);
         var body = Substitute(letExpr.Body);
         var newBounds = SubstituteBoundedPoolList(letExpr.Constraint_Bounds);
-        if (rhs == letExpr.RHSs[0] && body == letExpr.Body && newBounds == letExpr.Constraint_Bounds) return null;
+        if (rhs == letExpr.RHSs[0] && body == letExpr.Body && newBounds == letExpr.Constraint_Bounds) {
+          return null;
+        }
 
         // keep copies of the substitution maps so we can reuse them at desugaring time
         var newSubstMap = new Dictionary<IVariable, Expression>(substMap);
@@ -676,9 +678,9 @@ namespace Microsoft.Dafny {
         var s = (BreakStmt)stmt;
         BreakStmt rr;
         if (s.TargetLabel != null) {
-          rr = new BreakStmt(s.Tok, s.EndTok, s.TargetLabel);
+          rr = new BreakStmt(s.Tok, s.EndTok, s.TargetLabel, s.IsContinue);
         } else {
-          rr = new BreakStmt(s.Tok, s.EndTok, s.BreakCount);
+          rr = new BreakStmt(s.Tok, s.EndTok, s.BreakAndContinueCount, s.IsContinue);
         }
         // r.TargetStmt will be filled in as later
         List<BreakStmt> breaks;
@@ -868,7 +870,7 @@ namespace Microsoft.Dafny {
     protected MatchCaseStmt SubstMatchCaseStmt(MatchCaseStmt c) {
       Contract.Requires(c != null);
       var newBoundVars = CreateBoundVarSubstitutions(c.Arguments, false);
-      var r = new MatchCaseStmt(c.tok, c.Ctor, newBoundVars, c.Body.ConvertAll(SubstStmt), c.Attributes);
+      var r = new MatchCaseStmt(c.tok, c.Ctor, c.FromBoundVar, newBoundVars, c.Body.ConvertAll(SubstStmt), c.Attributes);
       r.Ctor = c.Ctor;
       // undo any changes to substMap (could be optimized to do this only if newBoundVars != e.Vars)
       foreach (var bv in c.Arguments) {

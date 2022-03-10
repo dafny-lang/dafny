@@ -1,0 +1,2 @@
+warnings-as-errors.dfy(4,6): Error: Shadowed local-variable name: x
+1 resolution/type errors detected in warnings-as-errors.dfy

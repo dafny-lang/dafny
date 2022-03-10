@@ -1,9 +1,9 @@
 # 6. Types {#sec-types}
 ````grammar
-Type = DomainType_ | FunctionType_
+Type = DomainType_ | ArrowType_
 ````
-A Dafny type is a domain type (i.e., a type that can be the domain of a
-function type) optionally followed by an arrow and a range type.
+A Dafny type is a domain type (i.e., a type that can be the domain of an
+arrow type) optionally followed by an arrow and a range type.
 
 ````grammar
 DomainType_ =
@@ -288,7 +288,7 @@ each other in the two groups.
 The groups are listed in order of
 increasing binding power, with equality binding less strongly than any of these operators.
 There is no implicit conversion between `int` and `real`: use `as int` or
-`as real` conversions to write an explict conversion (cf. [Section 20.10](#sec-as-expression)).
+`as real` conversions to write an explicit conversion (cf. [Section 20.10](#sec-as-expression)).
 
 Modulus is supported only for integer-based numeric types.  Integer
 division and modulus are the _Euclidean division and modulus_.  This
@@ -318,8 +318,6 @@ function `as real` from `int` to `real`, as described in
 [Section 20.10](#sec-as-expression).
 
 TODO: Need syntax for real literals with exponents
-
-TODO: Need double and float machine-precision types, with literals and operations (including NaN, infinities and signed zero).
 
 ## 7.3. Bit-vector Types
 ````grammar
@@ -448,7 +446,7 @@ Sequences of characters represent _strings_, as described in
 Character values can be converted to and from `int` values using the
 `as int` and `as char` conversion operations. The result is what would
 be expected in other programming languages, namely, the `int` value of a
-`char` is the ACSII or unicode numeric value.
+`char` is the ASCII or unicode numeric value.
 
 The only other operations on characters are obtaining a character
 by indexing into a string, and the implicit conversion to string
@@ -481,8 +479,9 @@ cluttered (described in [Section 23.2](#sec-type-inference)).
 
 It is sometimes necessary to restrict type parameters so that
 they can only be instantiated by certain families of types, that is,
-by types that have certain properties. The following subsections
-describe the restrictions Dafny supports.
+by types that have certain properties. These properties are known as
+_type characteristics_. The following subsections
+describe the type characteristics that Dafny supports.
 
 In some cases, type inference will infer that a type-parameter
 must be restricted in a particular way, in which case Dafny
@@ -513,41 +512,71 @@ is a method whose type parameter is restricted to equality-supporting
 types when used in a non-ghost context.
 Again, note that _all_ types support equality in _ghost_
 contexts; the difference is only for non-ghost (that is, compiled)
-code.  Co-inductive datatypes, function types, and inductive
+code.  Co-inductive datatypes, arrow types, and inductive
 datatypes with ghost parameters are examples of types that are not
 equality supporting.
 
 ### 8.1.2. Auto-initializable types: `T(0)`
 
-All Dafny variables of a given type hold a legal value of that type;
-if no explicit initialization is given, then an arbitrary value is
+At every access of a variable `x` of a type `T`, Dafny ensures that
+`x` holds a legal value of type `T`.
+If no explicit initialization is given, then an arbitrary value is
 assumed by the verifier and supplied by the compiler,
- that is, the variable is _auto-initialized_.
-During verification, this means that any subsequent uses of that
-variable must hold for any value.
+that is, the variable is _auto-initialized_.
 For example,
 ```dafny
 method m() {
-  var n: nat; // Initialized to arbitrary value
+  var n: nat; // Auto-initialized to an arbitrary value of type `nat`
   assert n >= 0; // true, regardless of the value of n
   var i: int;
   assert i >= 0; // possibly false, arbitrary ints may be negative
 }
 ```
 
-For some types, the compiler can choose an initial value, but for others
-it does not.
-Variables and fields of a type that the compiler does not auto-initialize
+For some types (known as _auto-init types_), the compiler can choose an
+initial value, but for others it does not.
+Variables and fields whose type the compiler does not auto-initialize
 are subject to _definite-assignment_ rules. These ensure that the program
 explicitly assigns a value to a variable before it is used.
 For more details see [Section 23.6](#sec-definite-assignment) and the `-definiteAssignment` command-line option.
 
-The `(0)` suffix indicates that the type must be one that the compiler knows
-how to auto-initialize, if the type is used to declare a non-ghost variable.
+Dafny supports auto-init as a type characteristic.
+To restrict a type parameter to auto-init types, mark it with the
+`(0)` suffix. For example,
+``` dafny
+method AutoInitExamples<A(0), X>() returns (a: A, x: X)
+{
+  // 'a' does not require an explicit initialization, since A is auto-init
+  // error: out-parameter 'x' has not been given a value
+}
+```
+In this example, an error is reported because out-parameter `x` has not
+been assigned---since nothing is known about type `X`, variables of
+type `X` are subject to definite-assignment rules. In contrast, since
+type parameter `A` is declared to be restricted to auto-init types,
+the program does not need to explicitly assign any value to the
+out-parameter `a`.
 
-### 8.1.3. Non-empty types: `T(00)`
+### 8.1.3. Nonempty types: `T(00)`
 
-TODO
+Auto-init types are important in compiled contexts. In ghost contexts, it
+may still be important to know that a type is nonempty. Dafny supports
+a type characteristic for nonempty types, written with the suffix `(00)`.
+For example,
+``` dafny
+method NonemptyExamples<B(00), X>() returns (b: B, ghost g: B, ghost h: X)
+{
+  // error: non-ghost out-parameter 'b' has not been given a value
+  // ghost out-parameter 'g' is fine, since its type is nonempty
+  // error: 'h' has not been given a value
+}
+```
+Because of `B`'s nonempty type characteristic, ghost parameter `g` does not
+need to be explicitly assigned. However, Dafny reports an error for the
+non-ghost `b`, since `B` is not an auto-init type, and reports an error
+for `h`, since the type `X` could be empty.
+
+Note that every auto-init type is nonempty.
 
 ### 8.1.4. Non-heap based: `T(!new)`
 
@@ -565,7 +594,7 @@ A type parameter characterized by `(!new)` is _recursively_ independent
 of the allocation state. For example, a datatype is not a reference, but for
 a parameterized data type such as
 ```dafny
-dataype Result<T> = Failure(error: string) | Success(value: T)
+datatype Result<T> = Failure(error: string) | Success(value: T)
 ```
 the instantiation `Result<int>` satisfies `(!new)`, whereas
 `Result<array<int>>` does not.
@@ -1051,7 +1080,7 @@ For a sequence, the only difference is the length operator:
 ```
 
 The `forall` statement ([Section 19.21](#sec-forall-statement)) can also be used
-with arrays where parallel assigment is needed:
+with arrays where parallel assignment is needed:
 ```dafny
   var rev := new int[s.Length];
   forall i | 0 <= i < s.Length {
@@ -1061,7 +1090,7 @@ with arrays where parallel assigment is needed:
 
 ### 10.5.2. Sets
 There is no intrinsic order to the elements of a set. Nevertheless, we can
-extract an arbitrary element of a non-empty set, performing an iteration
+extract an arbitrary element of a nonempty set, performing an iteration
 as follows:
 ```dafny
 // s is a set<int>
@@ -1119,19 +1148,6 @@ SynonymTypeDecl_ =
    { TypeParameterCharacteristics }
    [ GenericParameters ]
    "=" Type
-   [ TypeMembers ]
-
-TypeMembers =
-  "{"
-  {
-    { DeclModifier }
-    ClassMemberDecl(allowConstructors: false,
-                    isValueType: true,
-                    moduleLevelDecl: false,
-                    isWithinAbstractModule: module.IsAbstract)
-  }
-  "}"
-
 ````
 
 A _type synonym_ declaration:
@@ -1176,6 +1192,17 @@ OpaqueTypeDecl_ =
    { TypeParameterCharacteristics }
    [ GenericParameters ]
    [ TypeMembers ]
+
+TypeMembers =
+  "{"
+  {
+    { DeclModifier }
+    ClassMemberDecl(allowConstructors: false,
+                    isValueType: true,
+                    moduleLevelDecl: false,
+                    isWithinAbstractModule: module.IsAbstract)
+  }
+  "}"
 ````
 
 An opaque type is a special case of a type synonym that is underspecified.  Such
@@ -1186,7 +1213,7 @@ type Y<T>
 Its definition can be revealed in a
 refining module.  The name `Y` can be immediately followed by
 a type characteristics suffix ([Section 8.1](#sec-type-characteristics)).
-Because there is no defining RHS, the type characterics cannot be inferred and so
+Because there is no defining RHS, the type characteristics cannot be inferred and so
 must be stated. If, in some refining module, a definition of the type is given, the
 type characteristics must match those of the new definition.
 
@@ -1207,7 +1234,6 @@ may be given members such as constants, methods or functions.
 
 
 ## 11.3. Subset types {#sec-subset-types}
-TO BE WRITTEN: add `-->` (subset of `~>`), `->` (subset of `-->`), non-null types subset of nullable types
 
 ````grammar
 SubsetTypeDecl_ =
@@ -1246,9 +1272,17 @@ are never allowed, even if the value assigned is a value of the target
 type.  For such assignments, an explicit conversion must be used, see
 [Section 20.10](#sec-as-expression).)
 
-Dafny supports a built-in subset type, namely the type `nat`,
-whose base type is `int`. Type `nat`
-designates the non-negative subrange of `int`.  A simple example that
+Dafny builds in three families of subset types, as described next.
+
+### 11.3.1. Type `nat`
+
+The built-in type `nat`, which represents the non-negative integers
+(that is, the natural numbers), is a subset type:
+``` dafny
+type nat = n: int | 0 <= n
+```
+
+A simple example that
 puts subset type `nat` to good use is the standard Fibonacci
 function:
 ```dafny
@@ -1266,9 +1300,119 @@ function Fib(n: int): int
   requires 0 <= n  // the function argument must be non-negative
   ensures 0 <= Fib(n)  // the function result is non-negative
 {
-  if n < 2 then n else Fib(n-2) + Fib(n-1)
+  if n < 2 then n else Fib(n - 2) + Fib(n - 1)
 }
 ```
+
+### 11.3.2. Non-null types
+
+Every class, trait, and iterator declaration `C` gives rise to two types.
+
+One type has the name `C?` (that is, the name of the class, trait,
+or iterator declaration with a `?` character appended to the end).
+The values of `C?` are the references to `C` objects, and also
+the value `null`.
+In other words, `C?` is the type of _possibly null_ references
+(aka, _nullable_ references) to `C` objects.
+
+The other type has the name `C` (that is, the same name as the
+class, trait, or iterator declaration).
+Its values are the references to `C` objects, and does not contain
+the value `null`.
+In other words, `C` is the type of _non-null_ references to `C`
+objects.
+
+The type `C` is a subset type of `C?`:
+``` dafny
+type C = c: C? | c != null
+```
+(It may be natural to think of the type `C?` as the union of
+type `C` and the value `null`, but, technically, Dafny defines
+`C` as a subset type with base type `C?`.)
+
+From being a subset type, we get that `C` is a subtype of `C?`.
+Moreover, if a class or trait `C` extends a trait `B`, then
+type `C` is a subtype of `B` and type `C?` is a subtype of `B?`.
+
+Every possibly-null reference type is a subtype of the
+built-in possibly-null trait type `object?`, and
+every non-null reference type is a subtype of the
+built-in non-null trait type `object`. (And, from the fact
+that `object` is a subset type of `object?`, we also have that
+`object` is a subtype of `object?`.)
+
+Arrays are references and array types also come in these two flavors.
+For example,
+`array?` and `array2?` are possibly-null (1- and 2-dimensional) array types, and
+`array` and `array2` are their respective non-null types.
+
+Note that `?` is not an operator. Instead, it is simply the last
+character of the name of these various possibly-null types.
+
+### 11.3.3. Arrow types: `->`, `-->`, and `~>` {#sec-arrow-subset-types}
+
+The built-in type `->` stands for total functions, `-->` stands for
+partial functions (that is, functions with possible `requires` clauses),
+and `~>` stands for all functions. More precisely, these are type constructors
+that exist for any arity (`() -> X`, `A -> X`, `(A, B) -> X`, `(A, B, C) -> X`,
+etc.).
+
+For a list of types `TT` and a type `U`, the values of the arrow type `(TT) ~> U`
+are functions from `TT` to `U. This includes functions that may read the
+heap and functions that are not defined on all inputs. It is not common
+to need this generality (and working with such general functions is
+difficult). Therefore, Dafny defines two subset types that are more common
+(and much easier to work with).
+
+The type `(TT) --> U` denotes the subset of `(TT) ~> U` where the functions
+do not read the (mutable parts of the) heap.
+Values of type `(TT) --> U` are called _partial functions_,
+and the subset type `(TT) --> U` is called the _partial arrow type_.
+(As a mnemonic to help you remember that this is the partial arrow, you may
+think of the little gap between the two hyphens in `-->` as showing a broken
+arrow.)
+
+The built-in partial arrow type is defined as follows (here shown
+for arrows with arity 1):
+``` dafny
+type A --> B = f: A ~> B | forall a :: f.reads(a) == {}
+```
+(except that what is shown here left of the `=` is not legal Dafny syntax).
+That is, the partial arrow type is defined as those functions `f`
+whose reads frame is empty for all inputs.
+More precisely, taking variance into account, the partial arrow type
+is defined as
+``` dafny
+type -A --> +B = f: A ~> B | forall a :: f.reads(a) == {}
+```
+
+The type `(TT) -> U` is, in turn, a subset type of `(TT) --> U`, adding the
+restriction that the functions must not impose any precondition. That is,
+values of type `(TT) -> U` are _total functions_, and the subset type
+`(TT) -> U` is called the _total arrow type_.
+
+The built-in total arrow type is defined as follows (here shown
+for arrows with arity 1):
+``` dafny
+type -A -> +B = f: A --> B | forall a :: f.requires(a)
+```
+That is, the total arrow type is defined as those partial functions `f`
+whose precondition evaluates to `true` for all inputs.
+
+Among these types, the most commonly used are the total arrow types.
+They are also the easiest to work with. Because they are common, they
+have the simplest syntax (`->`).
+
+Note, informally, we tend to speak of all three of these types as arrow types,
+even though, technically, the `~>` types are the arrow types and the
+`-->` and `->` types are subset types thereof. The one place where you may need to
+remember that `-->` and `->` are subset types is in some error messages.
+For example, if you try to assign a partial function to a variable whose
+type is a total arrow type and the verifier is not able to prove that the
+partial function really is total, then you'll get an error say the subset-type
+constraint may not be satisfied.
+
+For more information about arrow types, see [Section 17](#sec-arrow-types).
 
 
 <!--PDF NEWPAGE-->
@@ -1492,33 +1636,34 @@ the field `x` is shadowed by the declaration of the local variable `x`.
 There is no semantic difference between qualified and
 unqualified accesses to the same receiver and member.
 
-A `C` instance is created using `new`, for example:
+A `C` instance is created using `new`. There are three forms of `new`,
+depending on whether or not the class declares any _constructors_
+(see [Section 13.3.2](#sec-constructor-methods)):
+
 ```dafny
 c := new C;
+c := new C.Init(args);
+c := new C(args);
 ```
 
-Note that `new` simply allocates a `C` object and returns a reference
-to it; the initial values of its fields are arbitrary values of their
-respective types.  Therefore, it is common to invoke a method, known
-as an _initialization method_, immediately after creation, for
-example:
+For a class with no constructors, the first two forms can be used.
+The first form simply allocates a new instance of a `C` object, initializing
+its fields to values of their respective types (and initializing each `const` field
+with a RHS to its specified value). The second form additionally invokes
+an _initialization method_ (here, named `Init`) on the newly allocated object
+and the given arguments. It is therefore a shorthand for
 ```dafny
 c := new C;
-c.InitFromList(xs, 3);
+c.Init(args);
 ```
-When an initialization method has no out-parameters and modifies no
-more than `this`, then the two statements above can be combined into
-one:
-```dafny
-c := new C.InitFromList(xs, 3);
-```
-Note that a class can contain several initialization methods, that
-these methods can be invoked at any time, not just as part of a `new`,
-and that `new` does not require that an initialization method be
-invoked at creation.
+An initialization method is an ordinary method that has no out-parameters and
+that modifies no more than `this`.
 
-A class can declare special initializing methods called _constructor methods_.
-See [Section 13.3](#sec-method-declarations).
+For a class that declares one or more constructors, the second and third forms
+of `new` can be used. For such a class, the second form invokes the indicated
+constructor (here, named `Init`), which allocates and initializes the object.
+The third form is the same as the second, but invokes the _anonymous constructor_
+of the class (that is, a constructor declared with the empty-string name).
 
 ## 13.1. Field Declarations
 ````grammar
@@ -1711,57 +1856,79 @@ abstract under the following circumstances:
 Note that when there is no body, Dafny assumes that the *ensures*
 clauses are true without proof. (TODO: `:extern` attribute?)
 
-### 13.3.2. Constructors
+### 13.3.2. Constructors {#sec-constructor-methods}
 To write structured object-oriented programs, one often relies on
 objects being constructed only in certain ways.  For this purpose, Dafny
-provides _constructor (method)s_, which are a restricted form of
-initialization methods.
+provides _constructor (method)s_.
 A constructor is declared with the keyword
-`constructor` instead of `method`; constructors are only permitted in classes.
+`constructor` instead of `method`; constructors are permitted only in classes.
+A constructor is allowed to be declared as `ghost`, in which case it
+can only be used in ghost contexts.
 
-A constructor
-can only be called at the time an object is allocated (see
-object-creation examples below); for a class that contains one or
-more constructors, object creation must be done in conjunction with a
-call to a constructor.
-
-When a class contains a
+A constructor can only be called at the time an object is allocated (see
+object-creation examples below). Moreover, when a class contains a
 constructor, every call to `new` for a class must be accompanied
-by a call to one of its constructors.  Moreover, a constructor
-cannot be called at other times, only during object creation.  Other
-than these restrictions, there is no semantic difference between using
-ordinary initialization methods and using constructors. Classes may
+by a call to one of its constructors. A class may
 declare no constructors or one or more constructors.
 
 #### 13.3.2.1. Classes with no explicit constructors
 
-A class that declares no constructors has a default constructor created
-for it. This constructor is called with the syntax
+For a class that declares no constructors, an instance of the class is
+created with
 ```dafny
 c := new C;
 ```
-This constructor simply initializes the fields of the class.
-The declaration of a const field may include an initializer, that is, a right-hand side (RHS) that specifies the constant's value.
-The RHS of a const field may depend on other constant fields, but circular dependencies are not allowed.
+This allocates an object and initializes its fields to values of their
+respective types (and initializes each `const` field with a RHS to its specified
+value). The RHS of a `const` field may depend on other `const` or `var` fields,
+but circular dependencies are not allowed.
 
-This constructor sets each class field to an arbitrary value
-of the field's type if the field declaration has no initializer
-and to the value of the initializer expression if it does declare an initializer.
-For the purposes of proving Dafny programs
-correct, assigning an arbitrary initial value means that the program must
-be correct for any initial value. Compiled, executable versions of the program
-may use a specific initial value
-(for example, but not necessarily, a zero-equivalent or a declared _witness_ value for the type).
+This simple form of `new` is allowed only if the class declares no constructors,
+which is not possible to determine in every scope.
+It is easy to determine whether or not a class declares any constructors if the
+class is declared in the same module that performs the `new`. If the class is
+declared in a different module and that module exports a constructor, then it is
+also clear that the class has a constructor (and thus this simple form of `new`
+cannot be used). (Note that an export set that `reveals` a class `C` also exports
+the anonymous constructor of `C`, if any.)
+But if the module that declares `C` does not export any constructors
+for `C`, then callers outside the module do not know whether or not `C` has a
+constructor. Therefore, this simple form of `new` is allowed only for classes that
+are declared in the same module as the use of `new`.
+
+The simple `new C` is allowed in ghost contexts. Also, unlike the forms of `new`
+that call a constructor or initialization method, it can be used in a simultaneous
+assignment; for example
+```dafny
+c, d, e := new C, new C, 15;
+```
+is legal.
+
+As a shorthand for writing
+```dafny
+c := new C;
+c.Init(args);
+```
+where `Init` is an initialization method (see the top of Section [#sec-class-types]),
+one can write
+```dafny
+c := new C.Init(args);
+```
+but it is more typical in such a case to declare a constructor for the class.
+
+(The syntactic support for initialization methods is provided for historical
+reasons. It may be deprecated in some future version of Dafny. In most cases,
+a constructor is to be preferred.)
 
 #### 13.3.2.2. Classes with one or more constructors
 
-When one or more constructors are explicitly declared, they are named,
-which promotes using names like `InitFromList` above.
-Constructors must have distinct names, even if their signatures are different.
-Many classes have just
-one constructor or have a typical constructor.  Therefore, Dafny
-allows one _anonymous constructor_, that is, a constructor whose name
-is essentially an empty string.  For example:
+Like other class members, constructors have names. And like other members,
+their names must be distinct, even if their signatures are different.
+Being able to name constructors promotes names like `InitFromList` or
+`InitFromSet` (or just `FromList` and `FromSet`).
+Unlike other members, one constructor is allowed to be _anonymous_;
+in other words, an _anonymous constructor_ is a constructor whose name is
+essentially the empty string.  For example:
 ```dafny
 class Item {
   constructor I(xy: int) // ...
@@ -1792,10 +1959,15 @@ a program may use `this`
  - as the entire RHS of an assignment to a field of `this`,
  - and as a member of a set on the RHS that is being assigned to a field of `this`.
 
-Furthermore, `const` fields may only be assigned to in an initialization phase
-(and may be assigned to more than once)
-of their enclosing class, and then only if they do not already have an initialization
-value in their declaration.
+A `const` field with a RHS is not allowed to be assigned anywhere else.
+A `const` field without a RHS may be assigned only in constructors, and more precisely
+only in the initialization phase of constructors. During this phase, a `const` field
+may be assigned more than once; whatever value the `const` field has at the end of the
+initialization phase is the value it will have forever thereafter.
+
+For a constructor declared as `ghost`, the initialization phase is allowed to assign
+both ghost and non-ghost fields. For such an object, values of non-ghost fields at
+the end of the initialization phase are in effect no longer changeable.
 
 There are no restrictions on expressions or statements in the post-initialization phase.
 
@@ -1810,7 +1982,7 @@ be applied to them.
 For an example, see the `FibProperty` lemma in
 [Section 23.5.2](#sec-proofs-in-dafny).
 
-See [the Dafny Lemmas tutorial](http://rise4fun.com/Dafny/tutorial/Lemmas)
+See [the Dafny Lemmas tutorial](../OnlineTutorial/Lemmas)
 for more examples and hints for using lemmas.
 
 ### 13.3.4. Two-state lemmas and functions {#sec-two-state}
@@ -2121,7 +2293,7 @@ function is defined.
  Y            | N           | N
 
 When `{:opaque}` is specified for function `g`, `g` is opaque,
-however the lemma `reveal_g` is available to give the semantics
+however the statement `reveal g();` is available to give the semantics
 of `g` whether in the defining module or outside.
 
 ### 13.4.4. Least/Greatest (CoInductive) Predicates and Lemmas
@@ -2143,10 +2315,11 @@ TraitDecl =
 ````
 
 A _trait_ is an abstract superclass, similar to an "interface" or
-"mixin".[^fn-traits]
+"mixin". A trait can be _extended_ only by another trait or
+by a class (and in the latter case we say that the class _implements_
+the trait). More specifically, algebraic datatypes cannot extend traits.[^fn-traits]
 
-[^fn-traits]: Traits are new to Dafny and are likely to evolve for a
-while.
+[^fn-traits]: Traits are new to Dafny and are likely to evolve for a while.
 
 The declaration of a trait is much like that of a class:
 ```dafny
@@ -2267,7 +2440,7 @@ inheritance of a method M to a single "chain" of declarations and does not
 permit mixins.
 
 Each of any method declarations explicitly or implicitly
-includes a specification. In simple cases, those syntactially separate
+includes a specification. In simple cases, those syntactically separate
 specifications will be copies of each other (up to renaming to take account
 of differing formal parameter names). However they need not be. The rule is
 that the specifications of M in a given class or trait must be _as strong as_
@@ -2285,7 +2458,7 @@ respectively, then, under the precondition of `P.M`,
 
 Non-static const and field declarations are also inherited from parent traits.
 These may not be redeclared in extending traits and classes.
-However, a trait need not initalize a const field with a value.
+However, a trait need not initialize a const field with a value.
 The class that extends a trait that declares such a const field without an
 initializer can initialize the field in a constructor.
 If the declaring trait does give
@@ -2381,7 +2554,10 @@ A one-dimensional array of `n` `T` elements is created as follows:
 a := new T[n];
 ```
 The initial values of the array elements are arbitrary values of type
-`T`.
+`T`. They can be initialized using an ordered list of expressions enclosed in square brackets, as follows:
+```
+a := new T[] [t1, t2, t3, t4];
+```
 The length of an array is retrieved using the immutable `Length`
 member.  For example, the array allocated above satisfies:
 ```dafny
@@ -2655,7 +2831,7 @@ added.  The iterator body is allowed to remove elements from the
     corresponding keywords, `reads` and `modifies`, as is done for
     function values.  Also, the various `_decreases\(_i_\)` fields can be
     combined into one field named `decreases` whose type is a
-    _n_-tuple. Thse changes may be incorporated into a future version
+    _n_-tuple. These changes may be incorporated into a future version
     of Dafny.
 
 Note, in the precondition of the iterator, which is to hold upon
@@ -2741,24 +2917,56 @@ design of asynchronous methods evolves.
 -->
 
 <!--PDF NEWPAGE-->
-# 17. Function types
+# 17. Arrow types {#sec-arrow-types}
 
 ````grammar
-FunctionType_ = DomainType_ "->" Type
+ArrowType_ = ( DomainType_ "~>" Type
+             | DomainType_ "-->" Type
+             | DomainType_ "->" Type
+             )
 ````
 
-Functions are first-class values in Dafny.  Function types have the form
-`(T) -> U` where `T` is a comma-delimited list of types and `U` is a
-type.  `T` is called the function's _domain type(s)_ and `U` is its
+Functions are first-class values in Dafny. The types of function values
+are called _arrow types_ (aka, _function types_).
+Arrow types have the form `(TT) ~> U` where `TT` is a (possibly empty)
+comma-delimited list of types and `U` is a type.
+`TT` is called the function's _domain type(s)_ and `U` is its
 _range type_.  For example, the type of a function
+```dafny
+function F(x: int, arr: array<bool>): real
+  requires x < 1000
+  reads arr
+```
+is `(int, array<bool>) ~> real`.
+
+As seen in the example above, the functions that are values of a type
+`(TT) ~> U` can have a precondition (as indicated by the `requires` clause)
+and can read values in the heap (as indicated by the `reads` clause).
+As described in [Section 11.3.3](#sec-arrow-subset-types),
+the subset type `(TT) --> U` denotes partial (but heap-independent) functions
+and the subset type `(TT) -> U` denotes total functions.
+
+A function declared without a `reads` clause is known by the type
+checker to be a partial function. For example, the type of
+```dafny
+function F(x: int, b: bool): real
+  requires x < 1000
+```
+is `(int, bool) --> real`.
+Similarly, a function declared with neither a `reads` clause nor a
+`requires` clause is known by the type checker to be a total function.
+For example, the type of
 ```dafny
 function F(x: int, b: bool): real
 ```
-is `(int, bool) -> real`.  Parameters are not allowed to be ghost.
+is `(int, bool) -> real`.
+In addition to functions declared by name, Dafny also supports anonymous
+functions by means of _lambda expressions_ (see [Section 20.13](#sec-lambda-expressions)).
 
 To simplify the appearance of the basic case where a function's
 domain consists of a list of exactly one non-function, non-tuple type, the parentheses around
-the domain type can be dropped in this case, as in `T -> U`.
+the domain type can be dropped in this case. For example, you may
+write just `T -> U` for a total arrow type.
 This innocent simplification requires additional explanation in the
 case where that one type is a tuple type, since tuple types are also
 written with enclosing parentheses.
@@ -2777,9 +2985,11 @@ function Z(unit: ()): real
 ```
 have types `() -> real` and `(()) -> real`, respectively.
 
-The function arrow, `->`, is right associative, so `A -> B -> C` means
-`A -> (B -> C)`.  The other association requires explicit parentheses:
-`(A -> B) -> C`.
+The function arrows are right associative.
+For example, `A -> B -> C` means `A -> (B -> C)`, whereas
+the other association requires explicit parentheses: `(A -> B) -> C`.
+As another example, `A -> B --> C ~> D` means
+`A -> (B --> (C ~> D))`.
 
 Note that the receiver parameter of a named function is not part of
 the type.  Rather, it is used when looking up the function and can
@@ -2795,6 +3005,28 @@ whereas it would have been incorrect to have written something like:
 var f': (C, int, bool) -> real := F;  // not correct
 ```
 
+The arrow types themselves do not divide its parameters into ghost
+versus non-ghost. Instead, a function used as a first-class value is
+considered to be ghost if either the function or any of its arguments
+is ghost. The following example program illustrates:
+``` dafny
+function method F(x: int, ghost y: int): int
+{
+  x
+}
+
+method Example() {
+  ghost var f: (int, int) -> int;
+  var g: (int, int) -> int;
+  var h: (int) -> int;
+  var x: int;
+  f := F;
+  x := F(20, 30);
+  g := F; // error: tries to assign ghost to non-ghost
+  h := F; // error: wrong arity (and also tries to assign ghost to non-ghost)
+}
+```
+
 In addition to its type signature, each function value has three properties,
 described next.
 
@@ -2803,34 +3035,37 @@ ever depends on the _entire_ heap, however.  A property of the
 function is its declared upper bound on the set of heap locations it
 depends on for a given input.  This lets the verifier figure out that
 certain heap modifications have no effect on the value returned by a
-certain function.  For a function `f: T -> U` and a value `t` of type
+certain function.  For a function `f: T ~> U` and a value `t` of type
 `T`, the dependency set is denoted `f.reads(t)` and has type
 `set<object>`.
 
 The second property of functions stems from the fact that every function
 is potentially _partial_. In other words, a property of a function is its
-_precondition_. For a function `f: T -> U`, the precondition of `f` for a
+_precondition_. For a function `f: T ~> U`, the precondition of `f` for a
 parameter value `t` of type `T` is denoted `f.requires(t)` and has type
 `bool`.
 
 The third property of a function is more obvious---the function's
-body.  For a function `f: T -> U`, the value that the function yields
+body.  For a function `f: T ~> U`, the value that the function yields
 for an input `t` of type `T` is denoted `f(t)` and has type `U`.
 
 Note that `f.reads` and `f.requires` are themselves functions.
-Suppose `f` has type `T -> U` and `t` has type `T`.  Then, `f.reads`
-is a function of type `T -> set<object>` whose `reads` and `requires`
+Suppose `f` has type `T ~> U` and `t` has type `T`.  Then, `f.reads`
+is a function of type `T ~> set<object?>` whose `reads` and `requires`
 properties are:
 ```dafny
 f.reads.reads(t) == f.reads(t)
 f.reads.requires(t) == true
 ```
-`f.requires` is a function of type `T -> bool` whose `reads` and
+`f.requires` is a function of type `T ~> bool` whose `reads` and
 `requires` properties are:
 ```dafny
 f.requires.reads(t) == f.reads(t)
 f.requires.requires(t) == true
 ```
+In these examples, if `f` instead had type `T --> U` or `T -> U`,
+then the type of `f.reads` is `T -> set<object?>` and the type
+of `f.requires` is `T -> bool`.
 
 Dafny also supports anonymous functions by means of
 _lambda expressions_. See [Section 20.13](#sec-lambda-expressions).
@@ -2897,7 +3132,7 @@ its parameters.
 
 The values of inductive datatypes can be seen as finite trees where
 the leaves are values of basic types, numeric types, reference types,
-co-inductive datatypes, or function types.  Indeed, values of
+co-inductive datatypes, or arrow types.  Indeed, values of
 inductive datatypes can be compared using Dafny's well-founded
 `<` ordering.
 

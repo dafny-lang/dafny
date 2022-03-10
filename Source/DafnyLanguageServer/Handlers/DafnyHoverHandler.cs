@@ -1,5 +1,4 @@
-﻿using Microsoft.Dafny.LanguageServer.Language;
-using Microsoft.Dafny.LanguageServer.Language.Symbols;
+﻿using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client.Capabilities;
@@ -11,12 +10,12 @@ using System.Threading.Tasks;
 namespace Microsoft.Dafny.LanguageServer.Handlers {
   public class DafnyHoverHandler : HoverHandlerBase {
     // TODO add the range of the name to the hover.
-    private readonly ILogger _logger;
-    private readonly IDocumentDatabase _documents;
+    private readonly ILogger logger;
+    private readonly IDocumentDatabase documents;
 
     public DafnyHoverHandler(ILogger<DafnyHoverHandler> logger, IDocumentDatabase documents) {
-      _logger = logger;
-      _documents = documents;
+      this.logger = logger;
+      this.documents = documents;
     }
 
     protected override HoverRegistrationOptions CreateRegistrationOptions(HoverCapability capability, ClientCapabilities clientCapabilities) {
@@ -25,20 +24,18 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       };
     }
 
-    public override Task<Hover?> Handle(HoverParams request, CancellationToken cancellationToken) {
-      _logger.LogTrace("received hover request for {Document}", request.TextDocument);
-      DafnyDocument? textDocument;
-      if (!_documents.TryGetDocument(request.TextDocument, out textDocument)) {
-        _logger.LogWarning("the document {Document} is not loaded", request.TextDocument);
-        return Task.FromResult<Hover?>(null);
+    public async override Task<Hover?> Handle(HoverParams request, CancellationToken cancellationToken) {
+      logger.LogTrace("received hover request for {Document}", request.TextDocument);
+      var document = await documents.GetDocumentAsync(request.TextDocument);
+      if (document == null) {
+        logger.LogWarning("the document {Document} is not loaded", request.TextDocument);
+        return null;
       }
-
-      ILocalizableSymbol? symbol;
-      if (!textDocument.SymbolTable.TryGetSymbolAt(request.Position, out symbol)) {
-        _logger.LogDebug("no symbol was found at {Position} in {Document}", request.Position, request.TextDocument);
-        return Task.FromResult<Hover?>(null);
+      if (!document.SymbolTable.TryGetSymbolAt(request.Position, out var symbol)) {
+        logger.LogDebug("no symbol was found at {Position} in {Document}", request.Position, request.TextDocument);
+        return null;
       }
-      return Task.FromResult<Hover?>(CreateHover(symbol, cancellationToken));
+      return CreateHover(symbol, cancellationToken);
     }
 
     private static Hover CreateHover(ILocalizableSymbol symbol, CancellationToken cancellationToken) {
