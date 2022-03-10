@@ -59,14 +59,17 @@ public abstract class PluginsTestBase : DafnyLanguageServerTestBase {
 
   protected abstract string[] CommandLineArgument { get; }
 
+  private List<Plugin> defaultPlugins;
+
   public async Task SetUpPlugin() {
     DiagnosticReceiver = new();
     LibraryPath = GetLibrary(LibraryName);
     Client = await InitializeClient(options => options.OnPublishDiagnostics(DiagnosticReceiver.NotificationReceived));
+    defaultPlugins = DafnyOptions.O.Plugins.ToList();
   }
 
   protected void CleanupPlugin() {
-    DafnyOptions.O.Plugins.RemoveAt(0);
+    DafnyOptions.O.Plugins = defaultPlugins.ToList();
   }
 
   protected override IConfiguration CreateConfiguration() {
