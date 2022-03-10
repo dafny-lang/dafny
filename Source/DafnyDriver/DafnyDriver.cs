@@ -493,12 +493,11 @@ namespace Microsoft.Dafny {
     }
 
     private static TargetPaths GenerateTargetPaths(string dafnyProgramName) {
-      string baseName = DafnyOptions.O.Compiler.Basename(Path.GetFileNameWithoutExtension(dafnyProgramName));
-      string targetBaseDir = DafnyOptions.O.Compiler.TargetBaseDir(baseName);
+      string targetBaseDir = DafnyOptions.O.Compiler.TargetBaseDir(dafnyProgramName);
       string targetExtension = DafnyOptions.O.Compiler.TargetExtension;
 
       // Note that using Path.ChangeExtension here does the wrong thing when dafnyProgramName has multiple periods (e.g., a.b.dfy)
-      string targetBaseName = baseName + "." + targetExtension;
+      string targetBaseName = DafnyOptions.O.Compiler.TargetBasename(dafnyProgramName) + "." + targetExtension;
       string targetDir = Path.Combine(Path.GetDirectoryName(dafnyProgramName), targetBaseDir);
 
       string targetFilename = Path.Combine(targetDir, targetBaseName);

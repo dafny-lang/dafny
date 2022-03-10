@@ -36,16 +36,16 @@ public abstract class Compiler {
 
   /// <summary>
   /// Convert a Dafny file name into a file name without extension suitable for the target language (needed in e.g.
-  /// in Java where the file name must match the class name)
+  /// in Java where the file name must match the class name).
   /// </summary>
-  public virtual string Basename(string dafnyProgramName) =>
+  public virtual string TargetBasename(string dafnyProgramName) =>
     Path.GetFileNameWithoutExtension(dafnyProgramName);
   /// <summary>
-  /// Compute where generated code files should be stored.  For most languages there is no need to create a separate
-  /// directory for compilation, so this can be <c>""</c>.
+  /// Compute where to store code files generated from a given Dafny file.  For most languages there is no need to
+  /// create a separate directory for compilation, so this can be <c>""</c>.
   /// </summary>
-  /// <param name="baseName">A value returned by <c>Basename</c></param>
-  public virtual string TargetBaseDir(string baseName) =>
+  /// <returns>A directory name.</returns>
+  public virtual string TargetBaseDir(string dafnyProgramName) =>
     "";
 
   /// <summary>

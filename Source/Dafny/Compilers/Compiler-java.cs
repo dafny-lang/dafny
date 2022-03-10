@@ -31,9 +31,10 @@ namespace Microsoft.Dafny.Compilers {
 
     public override string TargetLanguage => "Java";
     public override string TargetExtension => "java";
-    public override string Basename(string dafnyProgramName) =>
-      TransformToClassName(base.Basename(dafnyProgramName));
-    public override string TargetBaseDir(string baseName) => baseName + "-java";
+    public override string TargetBasename(string dafnyProgramName) =>
+      TransformToClassName(base.TargetBasename(dafnyProgramName));
+    public override string TargetBaseDir(string dafnyProgramName) =>
+      $"{Path.GetFileNameWithoutExtension(dafnyProgramName)}-java";
     public string TransformToClassName(string baseName) =>
       Regex.Replace(baseName, "[^_A-Za-z0-9$]", "_");
 
