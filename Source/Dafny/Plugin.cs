@@ -50,7 +50,7 @@ public class AssemblyPlugin : ConfiguredPlugin {
       // Checks about the plugin to be well-behaved.
       if (Rewriters.Length == 0 && Compilers.Length == 0) {
         throw new Exception($"Plugin {assembly.Location} does not contain any supported plugins.  " +
-                            "Expecting on of the following:\n" +
+                            "Expecting one of the following:\n" +
                             $"- ${typeof(Plugins.Rewriter).FullName}\n" +
                             $"- ${typeof(Plugins.Compiler).FullName}\n" +
                             $"- ${typeof(Plugins.PluginConfiguration).FullName}");
