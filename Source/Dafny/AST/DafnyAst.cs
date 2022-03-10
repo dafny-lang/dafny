@@ -9163,6 +9163,20 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
+    ///  Returns itself and all its sub-expressions in tree traversal order
+    /// </summary>
+    public IEnumerable<Expression> AllSubExpressions {
+      get {
+        yield return this;
+        foreach (var expr in SubExpressions) {
+          foreach (var subExpr in expr.AllSubExpressions) {
+            yield return subExpr;
+          }
+        }
+      }
+    }
+
+    /// <summary>
     /// Returns the list of types that appear in this expression proper (that is, not including types that
     /// may appear in subexpressions). Types occurring in sub-statements of the expression are not included.
     /// To be called after the expression has been resolved.
@@ -11420,7 +11434,35 @@ namespace Microsoft.Dafny {
     public virtual string Keyword => "";
     // The bound vars might need a fix if they are assigned a type that cannot be compiled.
     public readonly List<BoundVar> BoundVars;
-    public readonly Expression Range;
+    public Expression Range { get; private set; }
+
+    /// <summary>
+    /// Set, map, forall and exists comprehensions's range can be typed in two ways.
+    /// When in a non-ghost context (defautl), bounds variables in the range have to be typed  
+    /// with nothing stronger than either the bound variables' supertype that are run-time testable,
+    /// or the collection's type.
+    /// Indeed, for filtering to occur, the filter has to be computable.
+    /// For ghost contexts, the filtering is not actually performed so it's safe to have any subset type,
+    /// even non-computable ones, for bound variables in the range.
+    /// </summary>
+    public Expression RangeIfGhost; // Filled up during resulution
+
+    /// <summary>
+    ///  If we determine that we are in a ghost context, the bound variables are set to their secondary type
+    /// (the ghost type) and the range expression is replaced with the ghost range expression
+    /// </summary>
+    public void SetRangeIsGhost() {
+      if (RangeIfGhost != null) {
+        Range = RangeIfGhost;
+        foreach (var boundVar in BoundVars) {
+          if (boundVar.HasSecondaryType()) {
+            boundVar.ReplaceType();
+          }
+        }
+        RangeIfGhost = null;
+      }
+    }
+
     private Expression term;
     public Expression Term { get { return term; } }
     public IEnumerable<BoundVar> AllBoundVars => BoundVars;
@@ -11758,6 +11800,10 @@ namespace Microsoft.Dafny {
           yield return e;
         }
         if (Range != null) { yield return Range; }
+
+        if (RangeIfGhost != null) {
+          yield return RangeIfGhost;
+        }
         yield return Term;
       }
     }

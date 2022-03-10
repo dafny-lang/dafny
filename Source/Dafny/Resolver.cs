@@ -8800,6 +8800,18 @@ namespace Microsoft.Dafny {
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();
         }
+
+        UpdateGhostComprehensions(stmt);
+      }
+
+      private static void UpdateGhostComprehensions(Statement stmt) {
+        foreach (var expr in stmt.IsGhost ? stmt.SubExpressions : stmt.SpecificationSubExpressions) {
+          foreach (var exprOrDescendant in expr.AllSubExpressions) {
+            if (exprOrDescendant is ComprehensionExpr comprehensionExpr) {
+              comprehensionExpr.SetRangeIsGhost();
+            }
+          }
+        }
       }
 
       private void CheckAssignStmt(AssignStmt s, bool mustBeErasable, [CanBeNull] string proofContext) {
@@ -15206,17 +15218,25 @@ namespace Microsoft.Dafny {
           reporter.Error(MessageSource.Resolver, expr, "a quantifier cannot quantify over types. Possible fix: use the experimental attribute :typeQuantifier");
         }
         scope.PushMarker();
-        var nonRuntimeTestableType = ScopePushBoundVarsForRange(e, opts, option);
+        var nonRuntimeTestableType = ScopePushBoundVarsAssumingNonGhost(e, opts, option);
+        Expr RangeIfGhost = null;
         if (e.Range != null) {
+          var cloner = new Cloner();
+          e.RangeIfGhost = cloner.CloneExpr(e.Range);
           ResolveExpression(e.Range, opts);
           Contract.Assert(e.Range.Type != null);  // follows from postcondition of ResolveExpression
           ConstrainTypeExprBool(e.Range, "range of quantifier must be of type bool (instead got {0})");
         }
-        ResolveAttributes(e.Attributes, e, opts);
-
         scope.PopMarker();
         scope.PushMarker();
-        ScopePushBoundVarsForTerm(e);
+        ScopePushBoundVarsWithoutAssumptions(e);
+        if (e.RangeIfGhost != null) {
+          ResolveExpression(e.RangeIfGhost, opts);
+          Contract.Assert(e.RangeIfGhost != null);  // follows from postcondition of ResolveExpression
+          ConstrainTypeExprBool(e.RangeIfGhost, "range of quantifier must be of type bool (instead got {0})");
+        }
+
+        ResolveAttributes(e.Attributes, e, opts);
 
         ResolveExpression(e.Term, opts);
         Contract.Assert(e.Term.Type != null);  // follows from postcondition of ResolveExpression
@@ -15238,16 +15258,22 @@ namespace Microsoft.Dafny {
         var e = (SetComprehension)expr;
         int prevErrorCount = reporter.Count(ErrorLevel.Error);
         scope.PushMarker();
+        var cloner = new Cloner();
+        e.RangeIfGhost = cloner.CloneExpr(e.Range);
         //For the range, we need to assume that the bound vars have a run-time testable type.
-        ScopePushBoundVarsForRange(e, opts);
+        ScopePushBoundVarsAssumingNonGhost(e, opts);
         ResolveExpression(e.Range, opts);
         Contract.Assert(e.Range.Type != null);  // follows from postcondition of ResolveExpression
         ConstrainTypeExprBool(e.Range, "range of set comprehension must be of type bool (instead got {0})");
-        ResolveAttributes(e.Attributes, e, opts);
-
         scope.PopMarker();
         scope.PushMarker();
-        ScopePushBoundVarsForTerm(e);
+        ResolveAttributes(e.Attributes, e, opts);
+        ScopePushBoundVarsWithoutAssumptions(e);
+        if (e.RangeIfGhost != null) {
+          ResolveExpression(e.RangeIfGhost, opts);
+          Contract.Assert(e.RangeIfGhost != null);  // follows from postcondition of ResolveExpression
+          ConstrainTypeExprBool(e.RangeIfGhost, "range of set comprehension must be of type bool (instead got {0})");
+        }
         ResolveExpression(e.Term, opts);
         Contract.Assert(e.Term.Type != null);  // follows from postcondition of ResolveExpression
 
@@ -15266,7 +15292,9 @@ namespace Microsoft.Dafny {
         int prevErrorCount = reporter.Count(ErrorLevel.Error);
         scope.PushMarker();
         Contract.Assert(e.BoundVars.Count == 1 || (1 < e.BoundVars.Count && e.TermLeft != null));
-        ScopePushBoundVarsForRange(e, opts);
+        var cloner = new Cloner();
+        e.RangeIfGhost = cloner.CloneExpr(e.Range);
+        ScopePushBoundVarsAssumingNonGhost(e, opts);
         ResolveExpression(e.Range, opts);
         Contract.Assert(e.Range.Type != null);  // follows from postcondition of ResolveExpression
         ConstrainTypeExprBool(e.Range, "range of map comprehension must be of type bool (instead got {0})");
@@ -15274,7 +15302,12 @@ namespace Microsoft.Dafny {
 
         scope.PopMarker();
         scope.PushMarker();
-        ScopePushBoundVarsForTerm(e);
+        ScopePushBoundVarsWithoutAssumptions(e);
+        if (e.RangeIfGhost != null) {
+          ResolveExpression(e.RangeIfGhost, opts);
+          Contract.Assert(e.RangeIfGhost != null);  // follows from postcondition of ResolveExpression
+          ConstrainTypeExprBool(e.RangeIfGhost, "range of map comprehension must be of type bool (instead got {0})");
+        }
         if (e.TermLeft != null) {
           ResolveExpression(e.TermLeft, opts);
           Contract.Assert(e.TermLeft.Type != null);  // follows from postcondition of ResolveExpression
@@ -15364,7 +15397,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private void ScopePushBoundVarsForTerm(IBoundVarsBearingExpression e) {
+    private void ScopePushBoundVarsWithoutAssumptions(IBoundVarsBearingExpression e) {
       // For the term only, we can assume the inferred type which has to be proved later
       foreach (BoundVar v in e.AllBoundVars) {
         if (v.HasSecondaryType()) {
@@ -15381,7 +15414,7 @@ namespace Microsoft.Dafny {
 
     /// Returns the first non-runtime testable type of the comprehension if it exists
     /// Ensures ret != null ==> !ret.IsRuntimeTestable() && ret is one of the type of e.AllBoundVars[i]
-    private Type? ScopePushBoundVarsForRange(IBoundVarBearingExpressionWithToken e, ResolveOpts opts, [CanBeNull] ResolveTypeOption resolveTypeOption = null) {
+    private Type? ScopePushBoundVarsAssumingNonGhost(IBoundVarBearingExpressionWithToken e, ResolveOpts opts, [CanBeNull] ResolveTypeOption resolveTypeOption = null) {
       if (resolveTypeOption == null) {
         resolveTypeOption = new ResolveTypeOption(ResolveTypeOptionEnum.InferTypeProxies);
       }
