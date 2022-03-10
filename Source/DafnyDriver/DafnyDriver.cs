@@ -621,7 +621,7 @@ namespace Microsoft.Dafny {
       Contract.Assert(hasMain == (callToMain != null));
       bool targetProgramHasErrors = dafnyProgram.reporter.Count(ErrorLevel.Error) != oldErrorCount;
 
-      compiler.WriteCoverageLegendFile();
+      compiler.OnPostCompile();
 
       // blurt out the code to a file, if requested, or if other target-language files were specified on the command line.
       var paths = GenerateTargetPaths(dafnyProgramName);

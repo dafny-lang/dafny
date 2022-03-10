@@ -23,12 +23,12 @@ namespace Microsoft.Dafny.Compilers {
 
     public override Plugins.Compiler[] GetCompilers() {
       return new Plugins.Compiler[] {
-        new Compilers.Csharp.CsharpCompiler(),
-        new Compilers.Js.JavaScriptCompiler(),
-        new Compilers.Go.GoCompiler(),
-        new Compilers.Java.JavaCompiler(),
-        new Compilers.Python.PythonCompiler(),
-        new Compilers.Cpp.CppCompiler()
+        new Compilers.CsharpCompiler(),
+        new Compilers.JavaScriptCompiler(),
+        new Compilers.GoCompiler(),
+        new Compilers.JavaCompiler(),
+        new Compilers.PythonCompiler(),
+        new Compilers.CppCompiler()
       };
     }
   }
@@ -85,7 +85,7 @@ namespace Microsoft.Dafny.Compilers {
     protected virtual void EmitFooter(Program program, ConcreteSyntaxTree wr) { }
     protected virtual void EmitBuiltInDecls(BuiltIns builtIns, ConcreteSyntaxTree wr) { }
 
-    public override void WriteCoverageLegendFile() { Coverage.WriteLegendFile(); }
+    public override void OnPostCompile() { Coverage.WriteLegendFile(); }
 
     /// <summary>
     /// Creates a static Main method. The caller will fill the body of this static Main with a

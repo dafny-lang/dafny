@@ -16,40 +16,84 @@ namespace Microsoft.Dafny.Plugins;
 /// of Compiler from the plugin.
 /// </summary>
 public abstract class Compiler {
+  /// <summary>
+  /// Supported file extensions for additional compilation units (e.g. <c>.cs</c> for C#).
+  /// </summary>
   public abstract IReadOnlySet<string> SupportedExtensions { get; }
 
+  /// <summary>
+  /// Human-readable string describing the language targeted by this compiler.
+  /// </summary>
   public abstract string TargetLanguage { get; }
+  /// <summary>
+  /// Extension given to generated code files (e.g. `cs` for C#)
+  /// </summary>
   public abstract string TargetExtension { get; }
+  /// <summary>
+  /// Value passed to the <c>/compileTarget:</c> command line flag to select this compiler (e.g. <c>cs</c> for C#)
+  /// </summary>
   public virtual string TargetId => TargetExtension;
 
+  /// <summary>
+  /// Convert a Dafny file name into a file name without extension suitable for the target language (needed in e.g.
+  /// in Java where the file name must match the class name)
+  /// </summary>
   public virtual string Basename(string dafnyProgramName) =>
     Path.GetFileNameWithoutExtension(dafnyProgramName);
+  /// <summary>
+  /// Compute where generated code files should be stored.  For most languages there is no need to create a separate
+  /// directory for compilation, so this can be <c>""</c>.
+  /// </summary>
+  /// <param name="baseName">A value returned by <c>Basename</c></param>
   public virtual string TargetBaseDir(string baseName) =>
     "";
 
+  /// <summary>
+  /// Change <c>name</c> into a valid identifier in the target language.
+  /// </summary>
   public abstract string PublicIdProtect(string name);
+  /// <summary>
+  /// Qualify the name <c>compileName</c> in module <c>moduleName</c>.
+  /// </summary>
   public virtual string GetCompileName(bool isDefaultModule, string moduleName, string compileName) =>
-    PublicIdProtect(moduleName) + "." + PublicIdProtect(compileName);
+    $"{PublicIdProtect(moduleName)}.{PublicIdProtect(compileName)}";
 
+  /// <summary>
+  /// Which native formats this compiler supports (members of <c>Dafny.NativeType.Selection</c>).
+  /// </summary>
   public virtual IReadOnlySet<string> SupportedNativeTypes =>
     new HashSet<string> { "byte", "sbyte", "ushort", "short", "uint", "int", "ulong", "long" };
 
+  /// <summary>
+  /// Whether compiled code can be run without being compiled (e.g. Python but not Java).
+  /// </summary>
   public abstract bool TextualTargetIsExecutable { get; }
+  /// <summary>
+  /// Whether generated code can be compiled without being written to disk.
+  /// </summary>
   public abstract bool SupportsInMemoryCompilation { get; }
 
   // The following two fields are not initialized until OnPreCompile
-  protected ErrorReporter? Reporter = null;
-  protected ReadOnlyCollection<string>? OtherFileNames = null;
+  protected ErrorReporter? Reporter;
+  protected ReadOnlyCollection<string>? OtherFileNames;
 
-  // This method exists because compilers are constructed very early in the pipeline (to consult their
-  // `SupportedExtensions`, `TargetLanguage`, etc.).  C# doesn't support static fields in abstract classes, so we have
-  // to create an instance to access these parameters.  The alternative is to have a factory class, but we deemed the
-  // added complexity unnecessary.
+  /// <summary>
+  /// Initialize <c>Reporter</c> and <c>OtherFileNames</c>.
+  ///
+  /// This method exists because compilers are constructed very early in the pipeline (to consult their
+  /// <c>SupportedExtensions</c>, <c>TargetLanguage</c>, etc.).  C# doesn't support static fields in abstract classes,
+  /// so we have to create an instance to access these parameters.  The alternative is to have a factory class, but we
+  /// deemed the added complexity unnecessary.
+  /// </summary>
   public virtual void OnPreCompile(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
     Reporter = reporter;
     OtherFileNames = otherFileNames;
   }
 
+  /// <summary>
+  /// Perform any required cleanups after generating code with <c>Compile</c> and <c>EmitCallToMain</c>.
+  /// </summary>
+  public virtual void OnPostCompile() { }
 
   /// <summary>
   /// Remove previously generated source files.  This is only applicable to compilers that put sources in a separate
@@ -95,6 +139,4 @@ public abstract class Compiler {
   /// </summary>
   public abstract bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain, string pathsFilename,
     ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter);
-
-  public abstract void WriteCoverageLegendFile();
 }
