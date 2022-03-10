@@ -11,6 +11,7 @@ import subprocess
 import sys
 import time
 from urllib import request
+from http.client import IncompleteRead
 import zipfile
 import shutil
 import ntpath
@@ -115,7 +116,7 @@ class Release:
                             writer.write(reader.read())
                     flush("done!")
                     break
-                except http.client.IncompleteRead as e:
+                except IncompleteRead as e:
                     if currentAttempt == Z3_MAX_DOWNLOAD_ATTEMPTS - 1:
                         raise
             

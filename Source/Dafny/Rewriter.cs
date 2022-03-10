@@ -1098,12 +1098,6 @@ namespace Microsoft.Dafny {
       revealOriginal[reveal] = f;
       reveal.InheritVisibility(f, true);
     }
-
-    class OpaqueFunctionVisitor : TopDownVisitor<bool> {
-      protected override bool VisitOneExpr(Expression expr, ref bool context) {
-        return true;
-      }
-    }
   }
 
 
@@ -1169,21 +1163,6 @@ namespace Microsoft.Dafny {
           }
         }
       }
-    }
-
-    Expression subVars(List<Formal> formals, List<Expression> values, Expression e, Expression f_this) {
-      Contract.Assert(formals != null);
-      Contract.Assert(values != null);
-      Contract.Assert(formals.Count == values.Count);
-      Dictionary<IVariable, Expression/*!*/> substMap = new Dictionary<IVariable, Expression>();
-      Dictionary<TypeParameter, Type> typeMap = new Dictionary<TypeParameter, Type>();
-
-      for (int i = 0; i < formals.Count; i++) {
-        substMap.Add(formals[i], values[i]);
-      }
-
-      Substituter sub = new Substituter(f_this, substMap, typeMap);
-      return sub.Substitute(e);
     }
 
     public void addAutoReqToolTipInfoToFunction(string label, Function f, List<AttributedExpression> reqs) {
@@ -1889,18 +1868,6 @@ namespace Microsoft.Dafny {
         var q = expr as QuantifierExpr;
         if (q != null && q.SplitQuantifier == null) {
           IndRewriter.ComputeInductionVariables(q.tok, q.BoundVars, new List<Expression>() { q.LogicalBody() }, null, ref q.Attributes);
-        }
-      }
-      void VisitInductionStmt(Statement stmt) {
-        Contract.Requires(stmt != null);
-        // visit a selection of subexpressions
-        if (stmt is AssertStmt) {
-          var s = (AssertStmt)stmt;
-          Visit(s.Expr);
-        }
-        // recursively visit all substatements
-        foreach (var s in stmt.SubStatements) {
-          VisitInductionStmt(s);
         }
       }
     }

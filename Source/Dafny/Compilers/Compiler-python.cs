@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.IO;
+using System.Linq;
 using System.Numerics;
 using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
@@ -22,11 +23,12 @@ namespace Microsoft.Dafny {
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
       wr.WriteLine("# Dafny program {0} compiled into Python", program.Name);
       ReadRuntimeSystem("DafnyRuntime.py", wr);
+      wr.WriteLine();
     }
 
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
       Coverage.EmitSetup(wr);
-      wr.WriteLine("_default.Main()", mainMethod.EnclosingClass, mainMethod);
+      wr.WriteLine("_module._default.Main()", mainMethod.EnclosingClass, mainMethod);
     }
 
     protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw) {
@@ -35,25 +37,28 @@ namespace Microsoft.Dafny {
     }
 
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern,
-      string libraryName,
-      ConcreteSyntaxTree wr) {
-      return wr;
+        string libraryName, ConcreteSyntaxTree wr) {
+      return wr.NewBlock($"class {IdProtect(moduleName)}:", open: BlockStyle.Nothing, close: BlockStyle.Newline);
     }
 
     protected override string GetHelperModuleName() {
       throw new NotImplementedException();
     }
 
+    private static string MangleName(string name) {
+      return name.StartsWith("__") ? name[1..] : name;
+    }
+
     protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string fullPrintName,
-      List<TypeParameter> typeParameters,
-      TopLevelDecl cls, List<Type> superClasses, IToken tok, ConcreteSyntaxTree wr) {
-
-      var w = wr.WriteLine("class {0}:", cls);
-
-      var methodWriter = w.NewBlock(open: BraceStyle.NewlineNoBrace, close: BraceStyle.NewlineNoBrace);
-      ConcreteSyntaxTree fieldWriter = w.NewBlock(open: BraceStyle.NewlineNoBrace, close: BraceStyle.NewlineNoBrace);
-      return new ClassWriter(this, methodWriter, fieldWriter);
-
+        List<TypeParameter> typeParameters, TopLevelDecl cls, List<Type> superClasses, IToken tok, ConcreteSyntaxTree wr) {
+      wr.Write("class {0}:", MangleName(name));
+      var methodWriter = wr.NewBlock(open: BlockStyle.Newline, close: BlockStyle.Nothing);
+      if (cls is ClassDecl d) {
+        if (d.Members.FindAll(m => !m.IsGhost).Count == 0) {
+          methodWriter.WriteLine("pass");
+        }
+      }
+      return new ClassWriter(this, methodWriter, null);
     }
 
     protected override IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter> typeParameters,
@@ -87,7 +92,7 @@ namespace Microsoft.Dafny {
       string d;
       d = TypeInitializationValue(udt, wr, sst.tok, false, false);
 
-      w.NewBlock("def Default():", "", BraceStyle.NewlineNoBrace, BraceStyle.NewlineNoBrace).WriteLine($"return {d}", "");
+      w.NewBlock("def Default():", "", BlockStyle.Newline, BlockStyle.Nothing).WriteLine($"return {d}", "");
     }
 
     protected override void GetNativeInfo(NativeType.Selection sel, out string name, out string literalSuffix,
@@ -134,8 +139,7 @@ namespace Microsoft.Dafny {
       }
 
       public void DeclareField(string name, TopLevelDecl enclosingDecl, bool isStatic, bool isConst, Type type,
-        IToken tok,
-        string rhs, Field field) {
+          IToken tok, string rhs, Field field) {
         Compiler.DeclareField(name, isStatic, isConst, type, tok, rhs, FieldWriter);
       }
 
@@ -161,31 +165,16 @@ namespace Microsoft.Dafny {
     }
 
     private ConcreteSyntaxTree CreateGetter(string name, Type resultType, IToken tok, bool isStatic, bool createBody,
-      ConcreteSyntaxTree methodWriter) {
-      throw new NotImplementedException();
+        ConcreteSyntaxTree methodWriter) {
+      return methodWriter.NewBlock($"def {name}():", open: BlockStyle.Newline, close: BlockStyle.Nothing);
     }
 
     private ConcreteSyntaxTree CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody,
       ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
-      if (!createBody) {
-        return null;
-      }
+      wr.Write($"def {IdName(m)}(");
 
-      var customReceiver = !forBodyInheritance && NeedsCustomReceiver(m);
-      wr.Write("{0}{1}(", m.IsStatic || customReceiver ? "def " : "", IdName(m));
-      var sep = "";
-
-      WriteRuntimeTypeDescriptorsFormals(m, ForTypeDescriptors(typeArgs, m, lookasideBody), wr, ref sep,
-        tp => $"rtd$_{tp.CompileName}");
-      if (customReceiver) {
-        var nt = m.EnclosingClass;
-        var receiverType = UserDefinedType.FromTopLevelDecl(m.tok, nt);
-        DeclareFormal(sep, "_this", receiverType, m.tok, true, wr);
-        sep = ", ";
-      }
-
-      WriteFormals(sep, m.Ins, wr);
-      var w = wr.NewBlock("):", open: BraceStyle.NewlineNoBrace, close: BraceStyle.NewlineNoBrace);
+      WriteFormals("", m.Ins, wr);
+      var w = wr.NewBlock("):", open: BlockStyle.Newline, close: BlockStyle.Newline);
       return w;
 
     }
@@ -195,7 +184,7 @@ namespace Microsoft.Dafny {
         ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
       wr.Write($"def {name}(");
       WriteFormals("", formals, wr);
-      return wr.NewBlock("):", open: BraceStyle.NewlineNoBrace, close: BraceStyle.NewlineNoBrace);
+      return wr.NewBlock("):", open: BlockStyle.Newline, close: BlockStyle.Newline);
     }
 
 
@@ -249,7 +238,7 @@ namespace Microsoft.Dafny {
 
       switch (xType) {
         case BoolType: {
-            return "false";
+            return "False";
           }
         case CharType: {
             return CharType.DefaultValueAsString;
@@ -294,9 +283,9 @@ namespace Microsoft.Dafny {
 
     protected override void DeclareLocalVar(string name, Type type, IToken tok, bool leaveRoomForRhs, string rhs,
         ConcreteSyntaxTree wr) {
-      //else part can be used to define class object.
       wr.Write(name);
-      if (type != null) { wr.Write($" = {TypeName(type, wr, tok)}()"); }
+      if (type != null) { wr.Write($": {TypeName(type, wr, tok)}"); }
+      if (rhs != null) { wr.Write($" = {rhs}"); }
       wr.WriteLine();
     }
 
@@ -304,9 +293,12 @@ namespace Microsoft.Dafny {
       throw new NotImplementedException();
     }
 
+    protected override bool UseReturnStyleOuts(Method m, int nonGhostOutCount) => true;
+    protected override bool SupportsMultipleReturns => true;
+
     protected override void DeclareLocalOutVar(string name, Type type, IToken tok, string rhs, bool useReturnStyleOuts,
-      ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
+        ConcreteSyntaxTree wr) {
+      DeclareLocalVar(name, type, tok, false, rhs, wr);
     }
 
     protected override void EmitActualTypeArgs(List<Type> typeArgs, IToken tok, ConcreteSyntaxTree wr) {
@@ -314,21 +306,22 @@ namespace Microsoft.Dafny {
     }
 
     protected override string GenerateLhsDecl(string target, Type type, ConcreteSyntaxTree wr, IToken tok) {
-      throw new NotImplementedException();
+      return $"{target}: {TypeName(type, wr, tok)}";
     }
 
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {
       wr.Write("_dafny.print(");
-      EmitToString(wr, arg);
+      TrExpr(arg, wr, false);
       wr.WriteLine(")");
     }
 
-    private void EmitToString(ConcreteSyntaxTree wr, Expression arg) {
-      TrExpr(arg, wr, false);
-    }
-
     protected override void EmitReturn(List<Formal> outParams, ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
+      outParams = outParams.Where(f => !f.IsGhost).ToList();
+      wr.Write("return");
+      if (outParams.Count > 0) {
+        wr.Write($" {outParams.Comma(IdName)}");
+      }
+      wr.WriteLine();
     }
 
     protected override ConcreteSyntaxTree CreateLabeledCode(string label, bool createContinueLabel, ConcreteSyntaxTree wr) {
@@ -353,6 +346,22 @@ namespace Microsoft.Dafny {
 
     protected override void EmitHalt(IToken tok, Expression messageExpr, ConcreteSyntaxTree wr) {
       throw new NotImplementedException();
+    }
+
+    protected override ConcreteSyntaxTree EmitIf(out ConcreteSyntaxTree guardWriter, bool hasElse, ConcreteSyntaxTree wr) {
+      wr.Write("if ");
+      guardWriter = wr.Fork();
+      if (hasElse) {
+        var thn = wr.NewBlock(":", "el", BlockStyle.Newline, BlockStyle.Nothing);
+        return thn;
+      } else {
+        var thn = wr.NewBlock(":", open: BlockStyle.Newline, close: BlockStyle.Nothing);
+        return thn;
+      }
+    }
+
+    protected override ConcreteSyntaxTree EmitBlock(ConcreteSyntaxTree wr) {
+      return wr.NewBlock("if True:", open: BlockStyle.Newline, close: BlockStyle.Nothing);
     }
 
     protected override ConcreteSyntaxTree EmitForStmt(IToken tok, IVariable loopIndex, bool goingUp, string endVarName,
@@ -471,7 +480,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(name != null);
       switch (name) {
         default:
-          return name;
+          return MangleName(name);
       }
     }
 
@@ -484,7 +493,7 @@ namespace Microsoft.Dafny {
       if (cl is TypeParameter) {
         return IdProtect(udt.CompileName);
       } else {
-        return (cl.Name); //IdProtect(cl.CompileName);
+        return IdProtect(cl.FullCompileName);
       }
 
 
@@ -499,15 +508,26 @@ namespace Microsoft.Dafny {
     }
 
     protected override void GetSpecialFieldInfo(SpecialField.ID id, object idParam, Type receiverType,
-      out string compiledName, out string preString,
-      out string postString) {
-      throw new NotImplementedException();
+        out string compiledName, out string preString, out string postString) {
+      compiledName = "";
+      preString = "";
+      postString = "";
+      switch (id) {
+        case SpecialField.ID.UseIdParam:
+          compiledName = IdProtect((string)idParam);
+          break;
+        default:
+          Contract.Assert(false); // unexpected ID
+          break;
+      }
     }
 
     protected override ILvalue EmitMemberSelect(Action<ConcreteSyntaxTree> obj, Type objType, MemberDecl member,
-      List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap,
-      Type expectedType, string additionalCustomParameter = null, bool internalAccess = false) {
-      throw new NotImplementedException();
+        List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap, Type expectedType,
+        string additionalCustomParameter = null, bool internalAccess = false) {
+      return SimpleLvalue(w => {
+        w.Write("{0}.{1}()", TypeName_Companion(objType, w, member.tok, member), IdName(member));
+      });
     }
 
     protected override ConcreteSyntaxTree EmitArraySelect(List<string> indices, Type elmtType, ConcreteSyntaxTree wr) {
@@ -616,8 +636,13 @@ namespace Microsoft.Dafny {
 
       switch (op) {
         case BinaryExpr.ResolvedOpcode.Add:
-          opString = "+";
-          break;
+          opString = "+"; break;
+
+        case BinaryExpr.ResolvedOpcode.Mul:
+          opString = "*"; break;
+
+        case BinaryExpr.ResolvedOpcode.EqCommon:
+          opString = "=="; break;
 
         default:
           base.CompileBinOp(op, e0, e1, tok, resultType,
@@ -717,16 +742,14 @@ namespace Microsoft.Dafny {
     }
 
     public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string /*?*/ callToMain,
-      string targetFilename, ReadOnlyCollection<string> otherFileNames,
-      object compilationResult, TextWriter outputWriter) {
+        string targetFilename, ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter) {
 
       return SendToNewPythonProcess(dafnyProgramName, targetProgramText, callToMain, targetFilename, otherFileNames,
         outputWriter);
     }
 
     bool SendToNewPythonProcess(string dafnyProgramName, string targetProgramText, string /*?*/ callToMain,
-      string targetFilename, ReadOnlyCollection<string> otherFileNames,
-      TextWriter outputWriter) {
+        string targetFilename, ReadOnlyCollection<string> otherFileNames, TextWriter outputWriter) {
       Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
 
       var psi = new ProcessStartInfo("python3", "") {
