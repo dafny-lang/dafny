@@ -27,7 +27,7 @@ namespace Microsoft.Dafny.Compilers.Cpp {
 
     public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".h" };
 
-    public override string TargetLanguage => "Cpp";
+    public override string TargetLanguage => "C++";
     public override string TargetExtension => "cpp";
 
     public override bool SupportsInMemoryCompilation => false;
