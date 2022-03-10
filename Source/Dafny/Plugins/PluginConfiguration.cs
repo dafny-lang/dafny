@@ -32,7 +32,7 @@ public abstract class PluginConfiguration {
   }
 
   /// <summary>
-  /// Override this method to provide specific compilers to Dafny
+  /// Override this method to provide compilers
   /// </summary>
   /// <returns>A list of compilers implemented by this plugin</returns>
   public virtual Compiler[] GetCompilers() {
