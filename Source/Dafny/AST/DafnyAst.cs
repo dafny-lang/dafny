@@ -7547,13 +7547,15 @@ namespace Microsoft.Dafny {
   public class VarDeclStmt : Statement {
     public readonly List<LocalVariable> Locals;
     public readonly ConcreteUpdateStatement Update;
+    public readonly bool IsDeclaredGhost;
+
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(cce.NonNullElements(Locals));
       Contract.Invariant(Locals.Count != 0);
     }
 
-    public VarDeclStmt(IToken tok, IToken endTok, List<LocalVariable> locals, ConcreteUpdateStatement update)
+    public VarDeclStmt(IToken tok, IToken endTok, List<LocalVariable> locals, ConcreteUpdateStatement update, bool isDeclaredGhost)
       : base(tok, endTok) {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
@@ -7562,6 +7564,7 @@ namespace Microsoft.Dafny {
 
       Locals = locals;
       Update = update;
+      IsDeclaredGhost = isDeclaredGhost;
     }
 
     public override IEnumerable<Statement> SubStatements {

@@ -2730,7 +2730,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
        } else {
          update = new UpdateStmt(assignTok, endTok, lhsExprs, rhss);
        }
-       s = new VarDeclStmt(x, endTok, lhss, update);
+       s = new VarDeclStmt(x, endTok, lhss, update, isGhost);
     .)
   | (. CasePattern<LocalVariable> pat;
        Expression e = dummyExpr;

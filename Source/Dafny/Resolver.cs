@@ -13080,7 +13080,7 @@ namespace Microsoft.Dafny {
       var lhss = new List<LocalVariable>() { locvar };
       var rhss = new List<AssignmentRhs>() { new ExprRhs(ex) };
       var up = new UpdateStmt(s.Tok, s.Tok, idlist, rhss);
-      s.ResolvedStatements.Add(new VarDeclStmt(s.Tok, s.Tok, lhss, up));
+      s.ResolvedStatements.Add(new VarDeclStmt(s.Tok, s.Tok, lhss, up, s.IsGhost));
       return id;
     }
 
@@ -13239,7 +13239,7 @@ namespace Microsoft.Dafny {
       var temp = FreshTempVarName("valueOrError", codeContext);
       var lhss = new List<LocalVariable>() { new LocalVariable(s.Tok, s.Tok, temp, new InferredTypeProxy(), false) };
       // "var temp ;"
-      s.ResolvedStatements.Add(new VarDeclStmt(s.Tok, s.Tok, lhss, null));
+      s.ResolvedStatements.Add(new VarDeclStmt(s.Tok, s.Tok, lhss, null, s.IsGhost));
       var lhss2 = new List<Expression>() { new IdentifierExpr(s.Tok, temp) };
       for (int k = (expectExtract ? 1 : 0); k < s.Lhss.Count; ++k) {
         lhss2.Add(s.Lhss[k]);
