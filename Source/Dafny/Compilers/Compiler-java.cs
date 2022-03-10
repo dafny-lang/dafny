@@ -19,7 +19,7 @@ using System.Reflection;
 using Bpl = Microsoft.Boogie;
 using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 
-namespace Microsoft.Dafny.Compilers.Java {
+namespace Microsoft.Dafny.Compilers {
   public class JavaCompiler : SinglePassCompiler {
     public override void LateInitialize(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
       base.LateInitialize(reporter, otherFileNames);

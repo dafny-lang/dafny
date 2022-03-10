@@ -17,7 +17,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Bpl = Microsoft.Boogie;
 
-namespace Microsoft.Dafny.Compilers.Js {
+namespace Microsoft.Dafny.Compilers {
   public class JavaScriptCompiler : SinglePassCompiler {
     public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".js" };
 
@@ -28,7 +28,7 @@ namespace Microsoft.Dafny.Compilers.Js {
     public override bool TextualTargetIsExecutable => true;
 
     public override IReadOnlySet<string> SupportedNativeTypes =>
-      new HashSet<string>(base.SupportedNativeTypes.Union(new List<string> { "number" }));
+      new HashSet<string>(new List<string> { "number" });
 
     const string DafnySetClass = "_dafny.Set";
     const string DafnyMultiSetClass = "_dafny.MultiSet";

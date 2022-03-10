@@ -17,7 +17,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Bpl = Microsoft.Boogie;
 
-namespace Microsoft.Dafny.Compilers.Cpp {
+namespace Microsoft.Dafny.Compilers {
   public class CppCompiler : SinglePassCompiler {
     public override void LateInitialize(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
       base.LateInitialize(reporter, otherFileNames);

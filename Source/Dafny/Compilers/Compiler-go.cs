@@ -17,7 +17,7 @@ using System.Text.RegularExpressions;
 using Bpl = Microsoft.Boogie;
 using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 
-namespace Microsoft.Dafny.Compilers.Go {
+namespace Microsoft.Dafny.Compilers {
   public class GoCompiler : SinglePassCompiler {
     public override void LateInitialize(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
       base.LateInitialize(reporter, otherFileNames);

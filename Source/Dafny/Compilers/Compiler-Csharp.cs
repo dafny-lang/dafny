@@ -21,7 +21,7 @@ using System.Text.Json;
 using Microsoft.BaseTypes;
 using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 
-namespace Microsoft.Dafny.Compilers.Csharp {
+namespace Microsoft.Dafny.Compilers {
   public class CsharpCompiler : SinglePassCompiler {
     public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".cs", ".dll" };
 

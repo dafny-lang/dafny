@@ -9,7 +9,7 @@ using System.Numerics;
 using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
 
-namespace Microsoft.Dafny.Compilers.Python {
+namespace Microsoft.Dafny.Compilers {
   public class PythonCompiler : SinglePassCompiler {
     public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".py" };
 
