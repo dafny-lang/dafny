@@ -372,8 +372,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
           var children = implementationNode.Children.OfType<AssertionNodeDiagnostic>().Where(
             assertionNode => assertionNode.AssertionBatchIndex == batchIndex).Cast<NodeDiagnostic>().ToList();
           if (children.Count > 0) {
-            var minPosition = children.MinBy(child => child.Position)!.Position;
-            var maxPosition = children.MaxBy(child => child.Range.End)!.Position;
+            var minPosition = children.MinBy(child => child.Position)!.Range.Start;
+            var maxPosition = children.MaxBy(child => child.Range.End)!.Range.End;
             result.Add(new AssertionBatchNodeDiagnostic(
               "Assertion batch #" + result.Count,
               "assertion-batch-" + result.Count,

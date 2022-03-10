@@ -212,7 +212,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
                 if (member.tok.filename != documentFilePath) {
                   continue;
                 }
-                var diagnosticRange = member.tok.GetLspRange(member.BodyEndTok);
+                var diagnosticRange = member.tok.GetLspRange(member.BodyEndTok.line == 0 ? member.tok : member.BodyEndTok);
                 var diagnostic = new MethodOrSubsetTypeNodeDiagnostic(
                   member.Name,
                   member.CompileName,

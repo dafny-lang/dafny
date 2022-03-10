@@ -50,8 +50,9 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         if (node.Range.Contains(position)) {
           var implementations = node.Children.OfType<ImplementationNodeDiagnostic>().ToList();
           var assertionBatchCount = node.AssertionBatchCount;
-          var assertionBatchIndex = 0;
+          var assertionBatchIndex = -1;
           foreach (var assertionBatch in node.AssertionBatches) {
+            assertionBatchIndex += 1;
             if (!assertionBatch.Range.Contains(position)) {
               continue;
             }
@@ -93,8 +94,6 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
             if (information != "") {
               return CreateMarkdownHover(information);
             }
-
-            assertionBatchIndex++;
           }
           // Ok no assertion here. Maybe a method?
           if (node.Position.Line == position.Line &&
@@ -102,7 +101,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
             var information = "**" + node.DisplayName + "** metrics:\n\n";
             var assertionBatch = AddAssertionBatchDocumentation("assertion batch");
             var firstAssert = node.LongestAssertionBatch?.Children[0];
-            var lineFirstAssert = firstAssert == null ? "" : " at line " + firstAssert.Position.Line;
+            var lineFirstAssert = firstAssert == null ? "" : " at line " + (firstAssert.Position.Line + 1);
             information +=
               !node.Started ? "_Verification not started yet_"
               : !node.Finished ? $"_Still verifying..._  \n{node.TimeSpent:n0}ms elapsed"
