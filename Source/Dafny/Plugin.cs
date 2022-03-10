@@ -47,7 +47,9 @@ public class AssemblyPlugin : ConfiguredPlugin {
       Rewriters = FindPluginComponents<Rewriter, Func<ErrorReporter, Rewriter>>(assembly, CreateRewriterFactory);
       Compilers = FindPluginComponents<Compiler, Func<Compiler>>(assembly, CreateCompilerFactory);
 
-      // Checks about the plugin to be well-behaved.
+      // Report an error if this assembly doesn't contain any plugins.  We only
+      // get to this point if we have not found a `PluginConfiguration` either,
+      // so no need to check for one here.
       if (Rewriters.Length == 0 && Compilers.Length == 0) {
         throw new Exception($"Plugin {assembly.Location} does not contain any supported plugins.  " +
                             "Expecting one of the following:\n" +
