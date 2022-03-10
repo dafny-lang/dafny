@@ -1,10 +1,4 @@
-﻿//-----------------------------------------------------------------------------
-//
-// Copyright (C) Microsoft Corporation.  All Rights Reserved.
-// Copyright by the contributors to the Dafny Project
-// SPDX-License-Identifier: MIT
-//
-//-----------------------------------------------------------------------------
+﻿// SPDX-License-Identifier: MIT
 #nullable enable
 
 using System;
