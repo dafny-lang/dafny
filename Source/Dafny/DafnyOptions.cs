@@ -936,7 +936,7 @@ namespace Microsoft.Dafny {
     https://github.com/dafny-lang/dafny/blob/master/Source/DafnyLanguageServer/README.md#about-plugins
 /Main:<name>
     The (fully-qualified) name of the method to use as the executable entry point.
-    Default is the method with the {{:main}} atrribute, or else the method named 'Main'.
+    Default is the method with the {{:main}} attribute, or else the method named 'Main'.
 /compileVerbose:<n>
     0 - don't print status of compilation to the console
     1 (default) - print information such as files being written by
