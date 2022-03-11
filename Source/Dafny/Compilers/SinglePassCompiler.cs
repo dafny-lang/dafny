@@ -37,10 +37,6 @@ namespace Microsoft.Dafny.Compilers {
     public static Plugin Plugin =
       new ConfiguredPlugin(InternalCompilersPluginConfiguration.Singleton);
 
-    public SinglePassCompiler() {
-      Coverage = new CoverageInstrumenter(this);
-    }
-
     public static string DefaultNameMain = "Main";
 
     protected virtual string ModuleSeparator { get => "."; }
@@ -85,7 +81,16 @@ namespace Microsoft.Dafny.Compilers {
     protected virtual void EmitFooter(Program program, ConcreteSyntaxTree wr) { }
     protected virtual void EmitBuiltInDecls(BuiltIns builtIns, ConcreteSyntaxTree wr) { }
 
-    public override void OnPostCompile() { Coverage.WriteLegendFile(); }
+
+    public override void OnPreCompile(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
+      base.OnPreCompile(reporter, otherFileNames);
+      Coverage = new CoverageInstrumenter(this);
+    }
+
+    public override void OnPostCompile() {
+      base.OnPostCompile();
+      Coverage.WriteLegendFile();
+    }
 
     /// <summary>
     /// Creates a static Main method. The caller will fill the body of this static Main with a
