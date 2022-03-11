@@ -3334,7 +3334,7 @@ namespace Microsoft.Dafny {
   }
 
   public interface INamedRegion : IRegion {
-    string Name { get; }
+    string RegionName { get; }
   }
 
   public abstract class Declaration : INamedRegion, IAttributeBearingDeclaration {
@@ -3355,7 +3355,7 @@ namespace Microsoft.Dafny {
     public bool IsRefining;
     IToken IRegion.BodyStartTok { get { return BodyStartTok; } }
     IToken IRegion.BodyEndTok { get { return BodyEndTok; } }
-    string INamedRegion.Name { get { return Name; } }
+    string INamedRegion.RegionName { get { return Name; } }
 
     private VisibilityScope opaqueScope = new VisibilityScope();
     private VisibilityScope revealScope = new VisibilityScope();
@@ -3948,7 +3948,7 @@ namespace Microsoft.Dafny {
                                             // nested module declaration is outside its enclosing module
     IToken IRegion.BodyStartTok { get { return BodyStartTok; } }
     IToken IRegion.BodyEndTok { get { return BodyEndTok; } }
-    string INamedRegion.Name { get { return Name; } }
+    string INamedRegion.RegionName { get { return Name; } }
     public ModuleDefinition EnclosingModule;  // readonly, except can be changed by resolver for prefix-named modules when the real parent is discovered
     public readonly Attributes Attributes;
     Attributes IAttributeBearingDeclaration.Attributes => Attributes;
