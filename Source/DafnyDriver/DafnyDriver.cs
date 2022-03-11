@@ -299,7 +299,7 @@ namespace Microsoft.Dafny {
       } else if (dafnyProgram != null && !DafnyOptions.O.NoResolve && !DafnyOptions.O.NoTypecheck
           && DafnyOptions.O.DafnyVerify) {
 
-        var boogiePrograms = Translate(engine.Options, dafnyProgram);
+        var boogiePrograms = Translate(engine.Options, dafnyProgram).ToList();
 
         string baseName = cce.NonNull(Path.GetFileName(dafnyFileNames[^1]));
         var (verified, oc, moduleStats) = await Boogie(baseName, boogiePrograms, programId);
