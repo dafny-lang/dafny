@@ -14,13 +14,13 @@ namespace Microsoft.Dafny {
   public class DafnyOptions : Bpl.CommandLineOptions {
 
     public static DafnyOptions Create(params string[] arguments) {
-      var result = new DafnyOptions(new DafnyConsolePrinter());
+      var result = new DafnyOptions();
       result.Parse(arguments);
       return result;
     }
 
-    public DafnyOptions(Bpl.OutputPrinter printer)
-      : base("Dafny", "Dafny program verifier", printer) {
+    public DafnyOptions()
+      : base("Dafny", "Dafny program verifier", new DafnyConsolePrinter()) {
       Prune = true;
       NormalizeNames = true;
       EmitDebugInformation = false;
