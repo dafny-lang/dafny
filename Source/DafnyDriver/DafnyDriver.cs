@@ -155,7 +155,7 @@ namespace Microsoft.Dafny {
         if (supportedExtensions.Contains(extension)) {
           otherFiles.Add(file);
         } else if (!isDafnyFile) {
-          if (extension.IsNullOrEmpty() && file.Length > 0 && (file[0] == '/' || file[0] == '-')) {
+          if (string.IsNullOrEmpty(extension) && file.Length > 0 && (file[0] == '/' || file[0] == '-')) {
             ExecutionEngine.printer.ErrorWriteLine(Console.Out,
               "*** Error: Command-line argument '{0}' is neither a recognized option nor a filename with a supported extension ({1}).",
               string.Join(", ", Enumerable.Repeat(".dfy", 1).Concat(supportedExtensions)));

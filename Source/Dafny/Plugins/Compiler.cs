@@ -26,7 +26,7 @@ public abstract class Compiler {
   /// </summary>
   public abstract string TargetLanguage { get; }
   /// <summary>
-  /// Extension given to generated code files (e.g. `cs` for C#)
+  /// Extension given to generated code files (e.g. <c>cs</c> for C#)
   /// </summary>
   public abstract string TargetExtension { get; }
   /// <summary>
@@ -105,37 +105,37 @@ public abstract class Compiler {
   public abstract void Compile(Program dafnyProgram, ConcreteSyntaxTree output);
 
   /// <summary>
-  /// Emits a call to "mainMethod" as the program's entry point, if such an explicit call is
+  /// Emits a call to <c>mainMethod</c> as the program's entry point, if such an explicit call is
   /// required in the target language.
   /// </summary>
   public abstract void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree callToMainTree);
 
   /// <summary>
-  /// Compile the target program known as "dafnyProgramName".
-  /// "targetProgramText" contains the program text.
-  /// If "targetFilename" is non-null, it is the name of the target program text stored as a
-  /// file. "targetFileName" must be non-null if "otherFileNames" is nonempty.
-  /// "otherFileNames" is a list of other files to include in the compilation.
+  /// Compile the target program known as <c>dafnyProgramName</c>.
+  /// <c>targetProgramText</c> contains the program text.
+  /// If <c>targetFilename</c> is non-null, it is the name of the target program text stored as a
+  /// file. <c>targetFileName</c> must be non-null if <c>otherFileNames</c> is nonempty.
+  /// <c>otherFileNames</c> is a list of other files to include in the compilation.
   ///
-  /// When "callToMain" is non-null, the program contains a "Main()" program.
+  /// When <c>callToMain</c> is non-null, the program contains a <c>Main()</c> program.
   ///
-  /// Upon successful compilation, "runAfterCompile" says whether or not to execute the program.
+  /// Upon successful compilation, <c>runAfterCompile</c> says whether or not to execute the program.
   ///
-  /// Output any errors to "outputWriter".
-  /// Returns "false" if there were errors. Then, "compilationResult" should not be used.
-  /// Returns "true" on success. Then, "compilationResult" is a value that can be passed in to
-  /// the instance's "RunTargetProgram" method.
+  /// Output any errors to <c>outputWriter</c>.
+  /// Returns <c>false</c> if there were errors. Then, <c>compilationResult</c> should not be used.
+  /// Returns <c>true</c> on success. Then, <c>compilationResult</c> is a value that can be passed in to
+  /// the instance's <c>RunTargetProgram</c> method.
   /// </summary>
   public abstract bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain, string pathsFilename,
     ReadOnlyCollection<string> otherFileNames, bool runAfterCompile, TextWriter outputWriter, out object compilationResult);
 
   /// <summary>
   /// Runs a target program after it has been successfully compiled.
-  /// dafnyProgram, targetProgramText, targetFilename, and otherFileNames are the same as the corresponding parameters to "CompileTargetProgram".
-  /// "callToMain" is an explicit call to Main, as required by the target compilation language.
-  /// "compilationResult" is a value returned by "CompileTargetProgram" for these parameters.
+  /// dafnyProgram, targetProgramText, targetFilename, and otherFileNames are the same as the corresponding parameters to <c>CompileTargetProgram</c>.
+  /// <c>callToMain</c> is an explicit call to Main, as required by the target compilation language.
+  /// <c>compilationResult</c> is a value returned by <c>CompileTargetProgram</c> for these parameters.
   ///
-  /// Returns "true" on success, "false" on error. Any errors are output to "outputWriter".
+  /// Returns <c>true</c> on success, <c>false</c> on error. Any errors are output to <c>outputWriter</c>.
   /// </summary>
   public abstract bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain, string pathsFilename,
     ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter);
