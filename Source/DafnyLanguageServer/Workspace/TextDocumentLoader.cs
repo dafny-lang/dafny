@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.BaseTypes;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Extensions.Logging;
@@ -333,6 +334,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
 
         foreach (var implementation in implementations) {
+          int priority = GetVerificationPriority(implementation.tok);
+
+          if (priority > 0 && implementation.Priority < priority) {
+            implementation.Attributes =
+              new QKeyValue(implementation.tok, "priority", new List<object>() { new Boogie.LiteralExpr(implementation.tok, BigNum.FromInt(priority)) },
+              implementation.Attributes);
+          }
+
           var targetMethodNode = GetTargetMethodNode(implementation, out var oldImplementationNode, true);
           if (targetMethodNode == null) {
             logger.LogError($"No method node at {implementation.tok.filename}:{implementation.tok.line}:{implementation.tok.col}");
