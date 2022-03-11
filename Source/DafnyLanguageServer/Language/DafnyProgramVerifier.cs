@@ -170,7 +170,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
 
       private void CaptureCounterExamples(ErrorInformation errorInfo) {
-        if (errorInfo.Model is StringWriter modelString) {
+        if (errorInfo.ModelWriter is StringWriter modelString) {
           // We do not know a-priori how many errors we'll receive. Therefore we capture all models
           // in a custom stringbuilder and reset the original one to not duplicate the outputs.
           serializedCounterExamples ??= new StringBuilder();
