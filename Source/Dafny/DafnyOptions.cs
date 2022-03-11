@@ -89,6 +89,7 @@ namespace Microsoft.Dafny {
 
     public CompilationTarget CompileTarget = CompilationTarget.Csharp;
     public bool CompileVerbose = true;
+    public bool EnforcePrintEffects = false;
     public string DafnyPrintCompiledFile = null;
     public string CoverageLegendFile = null;
     public string MainMethod = null;
@@ -264,6 +265,14 @@ namespace Microsoft.Dafny {
               }
             }
 
+            return true;
+          }
+
+        case "trackPrintEffects": {
+            int printEffects = 0;
+            if (ps.GetNumericArgument(ref printEffects, 2)) {
+              EnforcePrintEffects = printEffects == 1;
+            }
             return true;
           }
 
@@ -631,9 +640,6 @@ namespace Microsoft.Dafny {
       Dafny does not perform sanity checks on the arguments---it is the user's responsibility not to generate
       malformed target code.
 
-    {:axiom}
-      TODO
-
     {:handle}
       TODO
 
@@ -647,10 +653,24 @@ namespace Microsoft.Dafny {
       TODO
 
     {:axiom}
-      TODO
+      Ordinarily, the compiler gives an error for every function or
+      method without a body. If the function or method is ghost, then
+      marking it with {:axiom} suppresses the error. The {:axiom}
+      attribute says you're taking responsibility for the existence
+      of a body for the function or method.
 
     {:abstemious}
       TODO
+
+    {:print}
+      This attributes declares that a method may have print effects,
+      that is, it may use 'print' statements and may call other methods
+      that have print effects. The attribute can be applied to compiled
+      methods, constructors, and iterators, and it gives an error if
+      applied to functions or ghost methods. An overriding method is
+      allowed to use a {:print} attribute only if the overridden method
+      does.
+      Print effects are enforced only with /trackPrintEffects:1.
 
     {:nativeType}
       Can be applied to newtype declarations for integer types and
@@ -916,7 +936,7 @@ namespace Microsoft.Dafny {
     https://github.com/dafny-lang/dafny/blob/master/Source/DafnyLanguageServer/README.md#about-plugins
 /Main:<name>
     The (fully-qualified) name of the method to use as the executable entry point.
-    Default is the method with the {{:main}} atrribute, or else the method named 'Main'.
+    Default is the method with the {{:main}} attribute, or else the method named 'Main'.
 /compileVerbose:<n>
     0 - don't print status of compilation to the console
     1 (default) - print information such as files being written by
@@ -942,6 +962,11 @@ namespace Microsoft.Dafny {
     <file> a legend that gives a description of each
     source-location identifier used in the branch-coverage calls.
     (use - as <file> to print to console)
+/trackPrintEffects:<n>
+    0 (default) - Every compiled method, constructor, and iterator, whether or not
+       it bears a {{:print}} attribute, may have print effects.
+    1 - A compiled method, constructor, or iterator is allowed to have print effects
+       only if it is marked with {{:print}}.
 /noCheating:<n>
     0 (default) - allow assume statements and free invariants
     1 - treat all assumptions as asserts, and drop free.
