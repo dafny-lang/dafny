@@ -444,8 +444,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       public void ReportAssertionBatchResult(Split split,
-        Dictionary<AssertCmd, ConditionGeneration.Outcome> perAssertOutcome,
-        Dictionary<AssertCmd, Counterexample> perAssertCounterExample) {
+        VCResult result) {
         if (document.LoadCanceled) {
           return;
         }
@@ -458,9 +457,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           } else if (implementationNode == null) {
             logger.LogError($"No implementation node at {implementation.tok.filename}:{implementation.tok.line}:{implementation.tok.col}");
           } else {
+            result.ComputePerAssertOutcomes(out var perAssertOutcome, out var perAssertCounterExample);
+
             var assertionBatchIndex = implementationNode.GetNewAssertionBatchCount();
-            var assertionBatchTime = (int)split.Checker.ProverRunTime.TotalMilliseconds;
-            var assertionBatchResourceCount = split.Checker.GetProverResourceCount().GetAwaiter().GetResult();
+            var assertionBatchTime = (int)result.runTime.TotalMilliseconds;
+            var assertionBatchResourceCount = result.resourceCount;
             implementationNode.AddAssertionBatchTime(assertionBatchTime);
             implementationNode.AddAssertionBatchResourceCount(assertionBatchResourceCount);
 
@@ -621,16 +622,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       private readonly object LockProcessing = new();
 
 
-      private static VerificationStatus GetNodeStatus(ConditionGeneration.Outcome outcome) {
+      private static VerificationStatus GetNodeStatus(ProverInterface.Outcome outcome) {
         return outcome switch {
-          ConditionGeneration.Outcome.Correct => VerificationStatus.Verified,
-          ConditionGeneration.Outcome.Errors => VerificationStatus.Error,
-          ConditionGeneration.Outcome.Inconclusive => VerificationStatus.Inconclusive,
-          ConditionGeneration.Outcome.ReachedBound => VerificationStatus.Error,
-          ConditionGeneration.Outcome.SolverException => VerificationStatus.Error,
-          ConditionGeneration.Outcome.TimedOut => VerificationStatus.Error,
-          ConditionGeneration.Outcome.OutOfMemory => VerificationStatus.Error,
-          ConditionGeneration.Outcome.OutOfResource => VerificationStatus.Error,
+          ProverInterface.Outcome.Valid => VerificationStatus.Verified,
+          ProverInterface.Outcome.Invalid => VerificationStatus.Error,
+          ProverInterface.Outcome.Undetermined => VerificationStatus.Inconclusive,
+          ProverInterface.Outcome.TimeOut => VerificationStatus.Error,
+          ProverInterface.Outcome.OutOfMemory => VerificationStatus.Error,
+          ProverInterface.Outcome.OutOfResource => VerificationStatus.Error,
+          ProverInterface.Outcome.Bounded => VerificationStatus.Error,
           _ => VerificationStatus.Error
         };
       }

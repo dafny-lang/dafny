@@ -21,7 +21,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     int GetVerificationPriority(IToken implTok);
     void ReportImplementationsBeforeVerification(Implementation[] implementations);
     void ReportAssertionBatchResult(Split implementation,
-      Dictionary<AssertCmd, ConditionGeneration.Outcome> perAssertOutcome,
-      Dictionary<AssertCmd, Counterexample> perAssertCounterExample);
+      VCResult result);
   }
 }
