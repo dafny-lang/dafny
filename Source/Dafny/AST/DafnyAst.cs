@@ -427,7 +427,7 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Returns first occurrence of an attribute named "nm", or "null" if there is no such
+    /// Returns first occurrence of an attribute named <c>nm</c>, or <c>null</c> if there is no such
     /// attribute.
     /// </summary>
     [Pure]
