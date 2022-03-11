@@ -15,6 +15,7 @@ using System.Numerics;
 using System.Linq;
 using Microsoft.Boogie;
 using System.Diagnostics;
+using System.Threading;
 
 namespace Microsoft.Dafny {
   public class Program {
@@ -598,35 +599,33 @@ namespace Microsoft.Dafny {
     public static Type String() { return new UserDefinedType(Token.NoToken, "string", null); }  // note, this returns an unresolved type
     public static readonly BigOrdinalType BigOrdinal = new BigOrdinalType();
 
-    [ThreadStatic]
-    private static List<VisibilityScope> scopes = new List<VisibilityScope>();
+    private static ThreadLocal<List<VisibilityScope>> scopes = new(() => new());
 
     [ThreadStatic]
     private static bool scopesEnabled = false;
 
     public static void PushScope(VisibilityScope scope) {
-      scopes.Add(scope);
+      scopes.Value.Add(scope);
     }
 
     public static void ResetScopes() {
-      scopes = new List<VisibilityScope>();
       scopesEnabled = false;
     }
 
     public static void PopScope() {
-      Contract.Assert(scopes.Count > 0);
-      scopes.RemoveAt(scopes.Count - 1);
+      Contract.Assert(scopes.Value.Count > 0);
+      scopes.Value.RemoveAt(scopes.Value.Count - 1);
     }
 
     public static void PopScope(VisibilityScope expected) {
-      Contract.Assert(scopes.Count > 0);
-      Contract.Assert(scopes[scopes.Count - 1] == expected);
+      Contract.Assert(scopes.Value.Count > 0);
+      Contract.Assert(scopes.Value[scopes.Value.Count - 1] == expected);
       PopScope();
     }
 
     public static VisibilityScope GetScope() {
-      if (scopes.Count > 0 && scopesEnabled) {
-        return scopes[scopes.Count - 1];
+      if (scopesEnabled && scopes.Value.Count > 0) {
+        return scopes.Value[scopes.Value.Count - 1];
       }
       return null;
     }
