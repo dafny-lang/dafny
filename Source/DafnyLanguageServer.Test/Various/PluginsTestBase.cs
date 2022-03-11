@@ -59,7 +59,7 @@ public abstract class PluginsTestBase : DafnyLanguageServerTestBase {
 
   protected abstract string[] CommandLineArgument { get; }
 
-  private List<Plugin> defaultPlugins;
+  protected List<Plugin> defaultPlugins;
 
   public async Task SetUpPlugin() {
     DiagnosticReceiver = new();
