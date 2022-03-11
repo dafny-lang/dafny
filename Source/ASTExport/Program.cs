@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using System.Text.RegularExpressions;
+using Microsoft.Boogie;
 using Microsoft.Build.Locator;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -17,8 +18,7 @@ abstract class PrettyPrintable {
     wr.WriteLine($"{indent}{ChildIndent}{child}");
   }
 
-  protected void PpChildren(TextWriter wr, string indent, IEnumerable<PrettyPrintable> children)
-  {
+  protected void PpChildren(TextWriter wr, string indent, IEnumerable<PrettyPrintable> children) {
     indent += ChildIndent;
     var childrenList = children.ToList();
     for (var idx = 0; idx < childrenList.Count; idx++) {
@@ -37,8 +37,7 @@ abstract class PrettyPrintable {
   protected void PpBlockOpen(TextWriter wr, string indent, object? kind, Name name,
     IEnumerable<string>? parameters,
     Dictionary<string, string?>? attrs,
-    IEnumerable<Type>? inheritance)
-  {
+    IEnumerable<Type>? inheritance) {
     var parts = new List<string>();
     parts.Add($"{kind}");
     if (attrs != null) {
@@ -68,6 +67,10 @@ internal class SemanticModel {
     this.model = model;
   }
 
+  public ISymbol? GetSymbol(SyntaxNode syntax) {
+    return model.GetDeclaredSymbol(syntax);
+  }
+
   private Name GetName(ISymbol? symbol, string fallback) {
     if (symbol == null) {
       return new Name(fallback);
@@ -77,7 +80,7 @@ internal class SemanticModel {
 
     // Not ToString() because that includes type parameters (e.g. System.Collections.Generic.List<T>)
     var cs = symbol.ContainingSymbol;
-    var ns = symbol is ITypeParameterSymbol || cs is INamespaceSymbol {IsGlobalNamespace: true}
+    var ns = symbol is ITypeParameterSymbol || cs is INamespaceSymbol { IsGlobalNamespace: true }
       ? ""
       : cs.ToString() ?? "";
 
@@ -94,8 +97,8 @@ internal class SemanticModel {
   public Name GetName(SyntaxNode node) {
     return node switch {
       EnumMemberDeclarationSyntax s => new Name(s.Identifier),
-      EnumDeclarationSyntax s => GetName(model.GetDeclaredSymbol(s), $"[UNKNOWN ENUM {s.Identifier.Text}]"),
-      TypeDeclarationSyntax s => GetName(model.GetDeclaredSymbol(s), $"[UNKNOWN DECL {s.Identifier.Text}]"),
+      EnumDeclarationSyntax s => GetName(GetSymbol(s), $"[UNKNOWN ENUM {s.Identifier.Text}]"),
+      TypeDeclarationSyntax s => GetName(GetSymbol(s), $"[UNKNOWN DECL {s.Identifier.Text}]"),
       _ => GetName(model.GetSymbolInfo(node).Symbol, $"[UNKNOWN {node.GetType()} {node}]")
     };
   }
@@ -122,7 +125,7 @@ class AST : PrettyPrintable {
 
     //var errors = workspace.Diagnostics.Select()
     if (!workspace.Diagnostics.IsEmpty) {
-      foreach(var diagnostic in workspace.Diagnostics) {
+      foreach (var diagnostic in workspace.Diagnostics) {
         Console.WriteLine("Error in project: {0}", diagnostic.Message);
       }
       throw new Exception("Unexpected errors while building DafnyPipeline.csproj");
@@ -158,15 +161,21 @@ class TypeDecl : PrettyPrintable {
     this.model = model;
   }
 
+  private bool IsInterface => syntax.Keyword.ToString() == "interface";
+
   private IEnumerable<PrettyPrintable> Fields =>
     syntax.ChildNodes().OfType<FieldDeclarationSyntax>().Select(s => new Field(s, model));
+
+  private IEnumerable<PrettyPrintable> Properties =>
+    syntax.ChildNodes().OfType<PropertyDeclarationSyntax>().Select(s => new Property(s, model, IsInterface));
 
   public override void Pp(TextWriter wr, string indent) {
     PpBlockOpen(wr, indent, "trait", Name.OfSyntax(syntax, model),
       syntax.TypeParameterList?.Parameters.Select(s => new Name(s.Identifier).DafnyId),
-      new Dictionary<string, string?> {{"compile", "false"}},
+      new Dictionary<string, string?> { { "compile", "false" } },
       syntax.BaseList?.Types.Select(t => new Type(t.Type, model)));
     PpChildren(wr, indent, Fields);
+    PpChildren(wr, indent, Properties);
     PpBlockClose(wr, indent);
   }
 }
@@ -228,6 +237,57 @@ class Field : PrettyPrintable {
 
   public override void Pp(TextWriter wr, string indent) {
     PpChildren(wr, indent, Variables);
+  }
+}
+
+class Property : PrettyPrintable {
+  private readonly PropertyDeclarationSyntax syntax;
+  private readonly SemanticModel model;
+  private readonly Type type;
+  private readonly bool parentIsInterface;
+
+  protected override string ChildSeparator => "";
+  protected override string ChildIndent => "";
+
+
+  public Property(PropertyDeclarationSyntax syntax, SemanticModel model, bool parentIsInterface) {
+    this.syntax = syntax;
+    this.model = model;
+    this.parentIsInterface = parentIsInterface;
+    this.type = new Type(syntax.Type, model);
+  }
+
+  private bool ExistsInAncestor(ITypeSymbol typeSymbol) {
+    var baseType = typeSymbol?.BaseType;
+
+    if (baseType is null) {
+      return false;
+    }
+
+    var baseMembers = baseType.GetMembers(syntax.Identifier.Text);
+
+    return baseMembers.Length > 0 || ExistsInAncestor(baseType);
+  }
+
+  public override void Pp(TextWriter wr, string indent) {
+    var nameText = syntax.Identifier.Text;
+    var name = new Name(syntax.Identifier);
+    var symbol = model.GetSymbol(syntax);
+    var comment = "";
+    var prefix = "";
+
+    if (parentIsInterface) {
+      name = new Name(nameText, "Interface_" + nameText);
+      comment = " // interface property";
+    } else if (symbol is not null && ExistsInAncestor(symbol.ContainingType)) {
+      prefix = "// ";
+      comment = " // exists in ancestor";
+    } else if (syntax.ExplicitInterfaceSpecifier is not null) {
+      prefix = "// ";
+      comment = " // explicit interface";
+    }
+
+    wr.WriteLine($"{indent}{prefix}var {name.AsDecl()}: {type}{comment}");
   }
 }
 
