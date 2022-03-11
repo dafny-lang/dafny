@@ -48,7 +48,6 @@ namespace Microsoft.Dafny {
 
       var dafnyOptions = new DafnyOptions();
       DafnyOptions.Install(dafnyOptions);
-      ExecutionEngine.printer = new DafnyConsolePrinter(dafnyOptions); // For boogie errors
 
       CommandLineArgumentsResult cliArgumentsResult = ProcessCommandLineArguments(args, out var dafnyFiles, out var otherFiles);
       ExitValue exitValue;
@@ -102,7 +101,7 @@ namespace Microsoft.Dafny {
           return CommandLineArgumentsResult.PREPROCESSING_ERROR;
         }
       } catch (ProverException pe) {
-        ExecutionEngine.printer.ErrorWriteLine(Console.Out, "*** ProverException: {0}", pe.Message);
+        DafnyOptions.O.Printer.ErrorWriteLine(Console.Out, "*** ProverException: {0}", pe.Message);
         return CommandLineArgumentsResult.PREPROCESSING_ERROR;
       }
 
@@ -114,13 +113,13 @@ namespace Microsoft.Dafny {
       if (DafnyOptions.O.UseStdin) {
         dafnyFiles.Add(new DafnyFile("<stdin>", true));
       } else if (DafnyOptions.O.Files.Count == 0) {
-        ExecutionEngine.printer.ErrorWriteLine(Console.Out, "*** Error: No input files were specified.");
+        DafnyOptions.O.Printer.ErrorWriteLine(Console.Out, "*** Error: No input files were specified.");
         return CommandLineArgumentsResult.PREPROCESSING_ERROR;
       }
       if (DafnyOptions.O.XmlSink != null) {
         string errMsg = DafnyOptions.O.XmlSink.Open();
         if (errMsg != null) {
-          ExecutionEngine.printer.ErrorWriteLine(Console.Out, "*** Error: " + errMsg);
+          DafnyOptions.O.Printer.ErrorWriteLine(Console.Out, "*** Error: " + errMsg);
           return CommandLineArgumentsResult.PREPROCESSING_ERROR;
         }
       }
@@ -156,11 +155,11 @@ namespace Microsoft.Dafny {
             otherFiles.Add(file);
           } else if (!isDafnyFile) {
             if (extension == "" && file.Length > 0 && (file[0] == '/' || file[0] == '-')) {
-              ExecutionEngine.printer.ErrorWriteLine(Console.Out,
+              DafnyOptions.O.Printer.ErrorWriteLine(Console.Out,
                 "*** Error: Command-line argument '{0}' is neither a recognized option nor a filename with a supported extension (.dfy, .cs, .dll).",
                 file);
             } else {
-              ExecutionEngine.printer.ErrorWriteLine(Console.Out,
+              DafnyOptions.O.Printer.ErrorWriteLine(Console.Out,
                 "*** Error: '{0}': Filename extension '{1}' is not supported. Input files must be Dafny programs (.dfy) or C# files (.cs) or managed DLLS (.dll)",
                 file,
                 extension == null ? "" : extension);
@@ -171,7 +170,7 @@ namespace Microsoft.Dafny {
           if (extension == ".js") {
             otherFiles.Add(file);
           } else if (!isDafnyFile) {
-            ExecutionEngine.printer.ErrorWriteLine(Console.Out, "*** Error: '{0}': Filename extension '{1}' is not supported. Input files must be Dafny programs (.dfy) or JavaScript files (.js)", file,
+            DafnyOptions.O.Printer.ErrorWriteLine(Console.Out, "*** Error: '{0}': Filename extension '{1}' is not supported. Input files must be Dafny programs (.dfy) or JavaScript files (.js)", file,
               extension == null ? "" : extension);
             return CommandLineArgumentsResult.PREPROCESSING_ERROR;
           }
@@ -179,7 +178,7 @@ namespace Microsoft.Dafny {
           if (extension == ".java") {
             otherFiles.Add(file);
           } else if (!isDafnyFile) {
-            ExecutionEngine.printer.ErrorWriteLine(Console.Out, "*** Error: '{0}': Filename extension '{1}' is not supported. Input files must be Dafny programs (.dfy) or Java files (.java)", file,
+            DafnyOptions.O.Printer.ErrorWriteLine(Console.Out, "*** Error: '{0}': Filename extension '{1}' is not supported. Input files must be Dafny programs (.dfy) or Java files (.java)", file,
               extension == null ? "" : extension);
             return CommandLineArgumentsResult.PREPROCESSING_ERROR;
           }
@@ -187,7 +186,7 @@ namespace Microsoft.Dafny {
           if (extension == ".h") {
             otherFiles.Add(file);
           } else if (!isDafnyFile) {
-            ExecutionEngine.printer.ErrorWriteLine(Console.Out, "*** Error: '{0}': Filename extension '{1}' is not supported. Input files must be Dafny programs (.dfy) or C headers (.h)", file,
+            DafnyOptions.O.Printer.ErrorWriteLine(Console.Out, "*** Error: '{0}': Filename extension '{1}' is not supported. Input files must be Dafny programs (.dfy) or C headers (.h)", file,
               extension == null ? "" : extension);
             return CommandLineArgumentsResult.PREPROCESSING_ERROR;
           }
@@ -195,7 +194,7 @@ namespace Microsoft.Dafny {
           if (extension == ".php") {
             otherFiles.Add(file);
           } else if (!isDafnyFile) {
-            ExecutionEngine.printer.ErrorWriteLine(Console.Out, "*** Error: '{0}': Filename extension '{1}' is not supported. Input files must be Dafny programs (.dfy) or PHP files (.php)", file,
+            DafnyOptions.O.Printer.ErrorWriteLine(Console.Out, "*** Error: '{0}': Filename extension '{1}' is not supported. Input files must be Dafny programs (.dfy) or PHP files (.php)", file,
               extension == null ? "" : extension);
             return CommandLineArgumentsResult.PREPROCESSING_ERROR;
           }
@@ -203,7 +202,7 @@ namespace Microsoft.Dafny {
           if (extension == ".go") {
             otherFiles.Add(file);
           } else if (!isDafnyFile) {
-            ExecutionEngine.printer.ErrorWriteLine(Console.Out, "*** Error: '{0}': Filename extension '{1}' is not supported. Input files must be Dafny programs (.dfy) or Go files (.go)", file,
+            DafnyOptions.O.Printer.ErrorWriteLine(Console.Out, "*** Error: '{0}': Filename extension '{1}' is not supported. Input files must be Dafny programs (.dfy) or Go files (.go)", file,
               extension == null ? "" : extension);
             return CommandLineArgumentsResult.PREPROCESSING_ERROR;
           }
@@ -211,26 +210,26 @@ namespace Microsoft.Dafny {
           if (extension == ".py") {
             otherFiles.Add(file);
           } else if (!isDafnyFile) {
-            ExecutionEngine.printer.ErrorWriteLine(Console.Out, "*** Error: '{0}': Filename extension '{1}' is not supported. Input files must be Dafny programs (.dfy) or Python files (.py)", file,
+            DafnyOptions.O.Printer.ErrorWriteLine(Console.Out, "*** Error: '{0}': Filename extension '{1}' is not supported. Input files must be Dafny programs (.dfy) or Python files (.py)", file,
               extension == null ? "" : extension);
             return CommandLineArgumentsResult.PREPROCESSING_ERROR;
           }
         }
       }
       if (dafnyFiles.Count == 0) {
-        ExecutionEngine.printer.ErrorWriteLine(Console.Out, "*** Error: The command-line contains no .dfy files");
+        DafnyOptions.O.Printer.ErrorWriteLine(Console.Out, "*** Error: The command-line contains no .dfy files");
         return CommandLineArgumentsResult.PREPROCESSING_ERROR;
       }
 
       if (dafnyFiles.Count > 1 &&
           DafnyOptions.O.TestGenOptions.Mode != TestGenerationOptions.Modes.None) {
-        ExecutionEngine.printer.ErrorWriteLine(Console.Out,
+        DafnyOptions.O.Printer.ErrorWriteLine(Console.Out,
           "*** Error: Only one .dfy file can be specified for testing");
         return CommandLineArgumentsResult.PREPROCESSING_ERROR;
       }
 
       if (DafnyOptions.O.ExtractCounterexample && DafnyOptions.O.ModelViewFile == null) {
-        ExecutionEngine.printer.ErrorWriteLine(Console.Out,
+        DafnyOptions.O.Printer.ErrorWriteLine(Console.Out,
           "*** Error: ModelView file must be specified when attempting counterexample extraction");
         return CommandLineArgumentsResult.PREPROCESSING_ERROR;
       }
@@ -290,7 +289,7 @@ namespace Microsoft.Dafny {
       string err = Dafny.Main.ParseCheck(dafnyFiles, programName, reporter, out dafnyProgram);
       if (err != null) {
         exitValue = ExitValue.DAFNY_ERROR;
-        ExecutionEngine.printer.ErrorWriteLine(Console.Out, err);
+        DafnyOptions.O.Printer.ErrorWriteLine(Console.Out, err);
       } else if (dafnyProgram != null && !DafnyOptions.O.NoResolve && !DafnyOptions.O.NoTypecheck
           && DafnyOptions.O.DafnyVerify) {
 
@@ -370,7 +369,7 @@ namespace Microsoft.Dafny {
       var engine = new ExecutionEngine(options, cache);
       foreach (var prog in boogiePrograms) {
         if (DafnyOptions.O.SeparateModuleOutput) {
-          ExecutionEngine.printer.AdvisoryWriteLine("For module: {0}", prog.Item1);
+          DafnyOptions.O.Printer.AdvisoryWriteLine(Console.Out, "For module: {0}", prog.Item1);
         }
 
         isVerified = Dafny.Main.BoogieOnce(engine, baseName, prog.Item1, prog.Item2, programId, out var newstats, out var newOutcome) && isVerified;
@@ -384,7 +383,7 @@ namespace Microsoft.Dafny {
         if (DafnyOptions.O.SeparateModuleOutput) {
           TimeSpan ts = watch.Elapsed;
           string elapsedTime = $"{ts.Hours:00}:{ts.Minutes:00}:{ts.Seconds:00}";
-          ExecutionEngine.printer.AdvisoryWriteLine("Elapsed time: {0}", elapsedTime);
+          DafnyOptions.O.Printer.AdvisoryWriteLine(Console.Out, "Elapsed time: {0}", elapsedTime);
           WriteTrailer(newstats);
         }
 
@@ -420,7 +419,7 @@ namespace Microsoft.Dafny {
         Console.Out.Flush();
       } else {
         // This calls a routine within Boogie
-        ExecutionEngine.printer.WriteTrailer(stats);
+        DafnyOptions.O.Printer.WriteTrailer(Console.Out, stats);
       }
     }
 
@@ -471,68 +470,6 @@ namespace Microsoft.Dafny {
       }
       return compiled;
     }
-
-
-    #region Output
-
-    class DafnyConsolePrinter : ConsolePrinter {
-      private readonly Dictionary<string, List<string>> fsCache = new();
-
-      public DafnyConsolePrinter(ExecutionEngineOptions options) : base(options) {
-      }
-
-      private string GetFileLine(string filename, int lineNumber) {
-        List<string> lines;
-        if (!fsCache.ContainsKey(filename)) {
-          try {
-            // Note: This is not guaranteed to be the same file that Dafny parsed. To ensure that, Dafny should keep
-            // an in-memory version of each file it parses.
-            lines = File.ReadLines(filename).ToList();
-          } catch (Exception) {
-            lines = new List<string>();
-          }
-          fsCache.Add(filename, lines);
-        } else {
-          lines = fsCache[filename];
-        }
-        if (0 <= lineNumber && lineNumber < lines.Count) {
-          return lines[lineNumber];
-        }
-        return "<nonexistent line>";
-      }
-
-      private void WriteSourceCodeSnippet(IToken tok, TextWriter tw) {
-        string line = GetFileLine(tok.filename, tok.line - 1);
-        string lineNumber = tok.line.ToString();
-        string lineNumberSpaces = new string(' ', lineNumber.Length);
-        string columnSpaces = new string(' ', tok.col - 1);
-        tw.WriteLine($"{lineNumberSpaces} |");
-        tw.WriteLine($"{lineNumber      } | {line}");
-        tw.WriteLine($"{lineNumberSpaces} | {columnSpaces}^ here");
-        tw.WriteLine("");
-      }
-
-      public override void ReportBplError(IToken tok, string message, bool error, TextWriter tw, string category = null) {
-        // Dafny has 0-indexed columns, but Boogie counts from 1
-        var realigned_tok = new Token(tok.line, tok.col - 1);
-        realigned_tok.kind = tok.kind;
-        realigned_tok.pos = tok.pos;
-        realigned_tok.val = tok.val;
-        realigned_tok.filename = tok.filename;
-        base.ReportBplError(realigned_tok, message, error, tw, category);
-        if (DafnyOptions.O.ShowSnippets) {
-          WriteSourceCodeSnippet(tok, tw);
-        }
-
-        if (tok is Dafny.NestedToken) {
-          var nt = (Dafny.NestedToken)tok;
-          ReportBplError(nt.Inner, "Related location", false, tw);
-        }
-      }
-    }
-
-    #endregion
-
 
     #region Compilation
 
