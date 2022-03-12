@@ -5092,6 +5092,7 @@ namespace Microsoft.Dafny {
       public readonly List<Bpl.Cmd> Asserts;
       public readonly bool LValueContext;
       public readonly Bpl.QKeyValue AssertKv;
+      public readonly Dictionary<string, BoundVar> SecondaryTypes = new();
 
       public WFOptions() {
       }
@@ -5122,6 +5123,7 @@ namespace Microsoft.Dafny {
         DoOnlyCoarseGrainedTerminationChecks = options.DoOnlyCoarseGrainedTerminationChecks;
         LValueContext = options.LValueContext;
         AssertKv = options.AssertKv;
+        SecondaryTypes = new Dictionary<string, BoundVar>(options.SecondaryTypes);
       }
 
       /// <summary>
@@ -5137,6 +5139,7 @@ namespace Microsoft.Dafny {
         Asserts = options.Asserts;
         LValueContext = lValueContext;
         AssertKv = options.AssertKv;
+        SecondaryTypes = new Dictionary<string, BoundVar>(options.SecondaryTypes);
       }
 
       public Action<IToken, Bpl.Expr, string, Bpl.QKeyValue> AssertSink(Translator tran, BoogieStmtListBuilder builder) {
@@ -5717,6 +5720,20 @@ namespace Microsoft.Dafny {
             foreach (var ss in TrSplitExpr(precond, etran, true, out splitHappened)) {
               if (ss.IsChecked) {
                 var tok = new NestedToken(expr.tok, ss.E.tok);
+                if (options.SecondaryTypes.Any() && errorMessage == null) {
+                  foreach (var entry in options.SecondaryTypes) {
+                    if (e.AllSubExpressions.Any(subExpression =>
+                          subExpression is IdentifierExpr v &&
+                          v.Var.CompileName == entry.Key
+                        )) {
+                      errorMessage = $"possible violation of function precondition." +
+                                     $" Careful: variable {entry.Value.DisplayName} has type {entry.Value.Type}" +
+                                     $" and not {entry.Value.SecondaryType} because the range is compiled" +
+                                     $" and " + entry.Value.SecondaryType + " cannot be tested at run-time";
+                      break;
+                    }
+                  }
+                }
                 if (options.AssertKv != null) {
                   // use the given assert attribute only
                   builder.Add(Assert(tok, ss.E, errorMessage ?? "possible violation of function precondition", options.AssertKv));
@@ -6044,7 +6061,18 @@ namespace Microsoft.Dafny {
             Bpl.Expr guard = null;
             if (e.Range != null) {
               var range = Substitute(e.Range, null, substMap);
-              CheckWellformed(range, newOptions, locals, newBuilder, comprehensionEtran);
+              var rangeOptions = new WFOptions(newOptions);
+              if (e.RangeIfGhost != null) { // Compiled context
+                // We are in a compiled context, we might want to warn the user that variables in a compiled range have a type computable from the collection type.
+                foreach (var variable in e.BoundVars) {
+                  if (variable.HasSecondaryType() && !variable.SecondaryType.Equals(variable.Type, true)) {
+                    if (substMap.TryGetValue(variable, out var interpolatedVariable) && interpolatedVariable is IdentifierExpr identifierExpr) {
+                      rangeOptions.SecondaryTypes.Add(identifierExpr.Var.CompileName, variable);
+                    }
+                  }
+                }
+              }
+              CheckWellformed(range, rangeOptions, locals, newBuilder, comprehensionEtran);
               guard = comprehensionEtran.TrExpr(range);
             }
             Boogie.Expr CheckGhostType(Expression term, Type type = null) {
