@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Diagnostics.Contracts;
@@ -140,7 +141,8 @@ namespace Microsoft.Dafny {
     // Working around the fact that xmlFilename is private
     public string BoogieXmlFilename = null;
 
-    public List<Plugin> Plugins = new() { Compilers.SinglePassCompiler.Plugin };
+    public static readonly ReadOnlyCollection<Plugin> DefaultPlugins = new(new[] {Compilers.SinglePassCompiler.Plugin});
+    public List<Plugin> Plugins = new (DefaultPlugins);
 
     public virtual TestGenerationOptions TestGenOptions =>
       testGenOptions ??= new TestGenerationOptions();
