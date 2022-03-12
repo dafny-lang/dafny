@@ -162,7 +162,7 @@ In this section, we suggest a methodology to figure out [why a single assertion 
 
 Let's assume one assertion is failing ("assertion might not hold" or "postcondition might not hold"). What should you do next?
 
-The following section is textual description of the animation below, which illustrates the principle of debugging an assertion by computing the weakest precondition:
+The following section is textual description of the animation below, which illustrates the principle of debugging an assertion by computing the weakest precondition:  
 ![weakestpreconditionDemo](https://user-images.githubusercontent.com/3601079/157976402-83fe4d37-8042-40fc-940f-bcfc235c7d2b.gif)
 
 #### 24.8.1.1 Failing postconditions {#sec-failing-postconditions}
