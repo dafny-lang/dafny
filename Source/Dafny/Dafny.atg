@@ -2132,6 +2132,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
      List<AttributedExpression> ens = new List<AttributedExpression>();
      List<FrameExpression> reads = new List<FrameExpression>();
      List<Expression> decreases;
+     Attributes decAttrs = null;
      Expression body = null;
      bool isPredicate = false; bool isLeastPredicate = false; bool isGreatestPredicate = false;
      IToken/*?*/ headToken = null; // used only for a basic "function" or "predicate"
@@ -2257,7 +2258,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
   )
 
   (. decreases = isLeastPredicate || isGreatestPredicate ? null : new List<Expression/*!*/>(); .)
-  FunctionSpec<reqs, reads, ens, decreases>
+  FunctionSpec<reqs, reads, ens, decreases, ref decAttrs>
   (. IToken byMethodTok = null; BlockStmt byMethodBody = null; .)
   [ FunctionBody<out body, out bodyStart, out bodyEnd, out byMethodTok, out byMethodBody> ]
 
@@ -2398,15 +2399,15 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
      if (isTwoState && isPredicate) {
        Contract.Assert(functionMethodToken == null && !dmod.IsGhost);
        f = new TwoStatePredicate(tok, id.val, dmod.IsStatic, typeArgs, formals,
-                                 reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs, signatureEllipsis);
+                                 reqs, reads, ens, new Specification<Expression>(decreases, decAttrs), body, attrs, signatureEllipsis);
      } else if (isTwoState) {
        Contract.Assert(functionMethodToken == null && !dmod.IsGhost);
        f = new TwoStateFunction(tok, id.val, dmod.IsStatic, typeArgs, formals, result, returnType,
-                                reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs, signatureEllipsis);
+                                reqs, reads, ens, new Specification<Expression>(decreases, decAttrs), body, attrs, signatureEllipsis);
      } else if (isPredicate) {
        Contract.Assert(functionMethodToken == null || !dmod.IsGhost);
        f = new Predicate(tok, id.val, dmod.IsStatic, isGhost, typeArgs, formals,
-                         reqs, reads, ens, new Specification<Expression>(decreases, null), body, Predicate.BodyOriginKind.OriginalOrInherited,
+                         reqs, reads, ens, new Specification<Expression>(decreases, decAttrs), body, Predicate.BodyOriginKind.OriginalOrInherited,
                          byMethodTok, byMethodBody, attrs, signatureEllipsis);
      } else if (isLeastPredicate) {
        Contract.Assert(functionMethodToken == null && !dmod.IsGhost);
@@ -2420,7 +2421,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
        Contract.Assert(functionMethodToken == null || !dmod.IsGhost);
        f = new Function(tok, id.val, dmod.IsStatic, isGhost,
                         typeArgs, formals, result, returnType,
-                        reqs, reads, ens, new Specification<Expression>(decreases, null), body,
+                        reqs, reads, ens, new Specification<Expression>(decreases, decAttrs), body,
                         byMethodTok, byMethodBody,
                         attrs, signatureEllipsis);
      }
@@ -2435,11 +2436,10 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
   .
 
 /*------------------------------------------------------------------------*/
-FunctionSpec<.List<AttributedExpression/*!*/>/*!*/ reqs, List<FrameExpression/*!*/>/*!*/ reads, List<AttributedExpression/*!*/>/*!*/ ens, List<Expression/*!*/> decreases.>
+FunctionSpec<.List<AttributedExpression> reqs, List<FrameExpression> reads, List<AttributedExpression> ens, List<Expression> decreases, ref Attributes decAttrs.>
 = (. Contract.Requires(cce.NonNullElements(reqs));
      Contract.Requires(cce.NonNullElements(reads));
      Contract.Requires(decreases == null || cce.NonNullElements(decreases));
-     Attributes attrs = null;
   .)
   SYNC
   { RequiresClause<reqs, true>
@@ -2450,7 +2450,7 @@ FunctionSpec<.List<AttributedExpression/*!*/>/*!*/ reqs, List<FrameExpression/*!
          decreases = new List<Expression/*!*/>();
        }
     .)
-    DecreasesClause<decreases, ref attrs, false, false>
+    DecreasesClause<decreases, ref decAttrs, false, false>
   }
   .
 
