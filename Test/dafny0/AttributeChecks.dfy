@@ -1,7 +1,7 @@
 // RUN: %dafny /print:"%t.print" /dprint:- /compile:0 /env:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-
+module JustAboutEverything {
   method If(n: int) returns (k: int)
   {
     var i := 0;
@@ -105,3 +105,4 @@
 
   datatype {:dt 0} {:dt false + 3} AnotherDatatype = // error: false + 3 is ill-typed
     | {:dt 50} Blue | {:dt k} Green // error: k is unknown
+}
