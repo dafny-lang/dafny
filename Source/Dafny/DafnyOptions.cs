@@ -141,8 +141,8 @@ namespace Microsoft.Dafny {
     // Working around the fact that xmlFilename is private
     public string BoogieXmlFilename = null;
 
-    public static readonly ReadOnlyCollection<Plugin> DefaultPlugins = new(new[] {Compilers.SinglePassCompiler.Plugin});
-    public List<Plugin> Plugins = new (DefaultPlugins);
+    public static readonly ReadOnlyCollection<Plugin> DefaultPlugins = new(new[] { Compilers.SinglePassCompiler.Plugin });
+    public List<Plugin> Plugins = new(DefaultPlugins);
 
     public virtual TestGenerationOptions TestGenOptions =>
       testGenOptions ??= new TestGenerationOptions();
