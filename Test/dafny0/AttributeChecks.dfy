@@ -231,6 +231,10 @@ module JustAboutEverything {
     decreases {:myAttr x, y, ys} x // error (x2): y and ys are not in scope here
   {
   }
+
+  method ModifyStatement(s: set<object>) {
+    modify {:myAttr false + 3} s; // error: false + 3 is ill-typed
+  }
 }
 
 module

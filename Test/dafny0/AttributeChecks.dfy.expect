@@ -244,6 +244,11 @@ module JustAboutEverything {
     decreases {:myAttr x, y} x
   {
   }
+
+  method ModifyStatement(s: set<object>)
+  {
+    modify {:myAttr false + 3} s;
+  }
 }
 
 module {:myAttr false + 3} {:myAttr old(3)} {:myAttr k} Modu {
@@ -343,8 +348,10 @@ AttributeChecks.dfy(198,25): Error: unresolved identifier: y
 AttributeChecks.dfy(199,25): Error: unresolved identifier: y
 AttributeChecks.dfy(199,28): Error: twostate lemmas are not allowed to have modifies clauses
 AttributeChecks.dfy(201,26): Error: unresolved identifier: y
-AttributeChecks.dfy(239,11): Error: unresolved identifier: k
-AttributeChecks.dfy(238,11): Error: old expressions are not allowed in this context
-AttributeChecks.dfy(237,17): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
-AttributeChecks.dfy(237,17): Error: type of right argument to + (int) must agree with the result type (bool)
-99 resolution/type errors detected in AttributeChecks.dfy
+AttributeChecks.dfy(236,26): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
+AttributeChecks.dfy(236,26): Error: type of right argument to + (int) must agree with the result type (bool)
+AttributeChecks.dfy(243,11): Error: unresolved identifier: k
+AttributeChecks.dfy(242,11): Error: old expressions are not allowed in this context
+AttributeChecks.dfy(241,17): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
+AttributeChecks.dfy(241,17): Error: type of right argument to + (int) must agree with the result type (bool)
+101 resolution/type errors detected in AttributeChecks.dfy
