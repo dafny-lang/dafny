@@ -1831,10 +1831,8 @@ DecreasesClause<.List<Expression> decreases, ref Attributes attrs,
 /*------------------------------------------------------------------------*/
 ReadsClause<.List<FrameExpression/*!*/>/*!*/ reads,
                   bool allowLemma, bool allowLambda, bool allowWild.>
-= "reads"                                             (. Attributes attrs = null;
-                                                         FrameExpression fe;
-                                                       .)
-  { Attribute<ref attrs> }
+= "reads"
+  (. FrameExpression fe; .)
   PossiblyWildFrameExpression<out fe, allowLemma, allowLambda, allowWild>          (. reads.Add(fe); .)
   { "," PossiblyWildFrameExpression<out fe, allowLemma, allowLambda, allowWild>    (. reads.Add(fe); .)
   }
