@@ -165,7 +165,7 @@ Let's assume one assertion is failing ("assertion might not hold" or "postcondit
 The following section is textual description of the animation below, which illustrates the principle of debugging an assertion by computing the weakest precondition:  
 ![weakestpreconditionDemo](https://user-images.githubusercontent.com/3601079/157976402-83fe4d37-8042-40fc-940f-bcfc235c7d2b.gif)
 
-#### 24.8.1.1 Failing postconditions {#sec-failing-postconditions}
+#### 24.8.1.1. Failing postconditions {#sec-failing-postconditions}
 Let's look at an example of a failing postcondition.
 ```dafny
 method FailingPostcondition(b: bool) returns (i: int)
@@ -208,7 +208,7 @@ method FailingPostcondition(b: bool) returns (i: int)
 That's it! Now the postcondition is not failing anymore, but the `assert` contains the error!
 you can now move to the next section to find out how to debug this `assert`.
 
-#### 24.8.1.1 Failing asserts {#sec-failing-asserts}
+#### 24.8.1.2. Failing asserts {#sec-failing-asserts}
 In the [previous section](#sec-failing-postconditions), we arrive to the point where we have a failing assertion:
 ```dafny
 method FailingPostcondition(b: bool) returns (i: int)
@@ -287,7 +287,7 @@ b ==>  2 <= (if !b then 3 else 1)
 Now we can understand what went wrong: When b is true, all of these formulas above are false, this is why the Dafny verifier was not able to prove them.
 In the next section, we will explain how to `move asserts up` in certain useful patterns.
 
-#### 24.8.1.1 Failing asserts cases {#sec-failing-asserts-special-cases}
+#### 24.8.1.3. Failing asserts cases {#sec-failing-asserts-special-cases}
 
 This list is not exhaustive but can definitely be useful to provide the next step to figure out why Dafny could not prove an assertion.
 

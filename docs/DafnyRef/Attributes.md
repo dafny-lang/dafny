@@ -514,7 +514,7 @@ method doSplitHere(x: bool) returns (y: int) {
 }
 ```
 
-#### 22.2.5.4. `{:subsumption n}`
+#### 22.2.5.3. `{:subsumption n}`
 Overrides the `/subsumption` command-line setting for this assertion.
 
 
