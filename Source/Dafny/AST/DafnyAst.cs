@@ -8042,7 +8042,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class GuardedAlternative {
+  public class GuardedAlternative : IAttributeBearingDeclaration {
     public readonly IToken Tok;
     public readonly bool IsBindingGuard;
     public readonly Expression Guard;
@@ -12478,7 +12478,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class NestedMatchCaseExpr : NestedMatchCase {
+  public class NestedMatchCaseExpr : NestedMatchCase, IAttributeBearingDeclaration {
     public readonly Expression Body;
     public Attributes Attributes;
 
@@ -12489,7 +12489,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class NestedMatchCaseStmt : NestedMatchCase {
+  public class NestedMatchCaseStmt : NestedMatchCase, IAttributeBearingDeclaration {
     public readonly List<Statement> Body;
     public Attributes Attributes;
     public NestedMatchCaseStmt(IToken tok, ExtendedPattern pat, List<Statement> body) : base(tok, pat) {
@@ -12615,7 +12615,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class AttributedExpression {
+  public class AttributedExpression : IAttributeBearingDeclaration {
     public readonly Expression E;
     public readonly AssertLabel/*?*/ Label;
 
@@ -13035,7 +13035,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class Specification<T> where T : class {
+  public class Specification<T> : IAttributeBearingDeclaration where T : class {
     public readonly List<T> Expressions;
 
     [ContractInvariantMethod]
