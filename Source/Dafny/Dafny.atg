@@ -3997,8 +3997,7 @@ LambdaExpression<out Expression e, bool allowLemma, bool allowBitwiseOps>
 // Coco says LambdaSpec is deletable. This is OK (it might be empty).
 LambdaSpec<.ref List<FrameExpression> reads, ref Expression req.>
 = { ReadsClause<reads, true, false, true>
-  | "requires"                             (. Attributes attrs = null; .)
-    { Attribute<ref attrs> }               (. Expression ee; .)
+  | "requires"                             (. Expression ee; .)
     Expression<out ee, true, false>        (. req = req == null ? ee : new BinaryExpr(req.tok, BinaryExpr.Opcode.And, req, ee); .)
   }
   .
