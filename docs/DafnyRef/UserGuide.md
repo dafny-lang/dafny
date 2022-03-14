@@ -347,8 +347,8 @@ TO BE WRITTEN
    * `go` - Go
    * `js` - Javascript
    * `java` - Java
+   * `py` - Python
    * `cpp` - C++
-   * `php` - PHP
 
 * `-spillTargetCode:<n>` - controls whether to write out compiled code in the target language (instead of just holding it in internal temporary memory)
 

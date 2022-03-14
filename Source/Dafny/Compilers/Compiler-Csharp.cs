@@ -21,13 +21,20 @@ using System.Text.Json;
 using Microsoft.BaseTypes;
 using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 
-namespace Microsoft.Dafny {
-  public class CsharpCompiler : Compiler {
-    public CsharpCompiler(ErrorReporter reporter)
-      : base(reporter) {
-    }
+namespace Microsoft.Dafny.Compilers {
+  public class CsharpCompiler : SinglePassCompiler {
+    public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".cs", ".dll" };
 
     public override string TargetLanguage => "C#";
+    public override string TargetExtension => "cs";
+
+    public override string GetCompileName(bool isDefaultModule, string moduleName, string compileName) {
+      return isDefaultModule ? PublicIdProtect(compileName) :
+        base.GetCompileName(isDefaultModule, moduleName, compileName);
+    }
+
+    public override bool SupportsInMemoryCompilation => true;
+    public override bool TextualTargetIsExecutable => false;
 
     const string DafnyISet = "Dafny.ISet";
     const string DafnyIMultiset = "Dafny.IMultiSet";
@@ -1149,7 +1156,7 @@ namespace Microsoft.Dafny {
         return null;
       }
 
-      var block = wr.NewBlock(open: BraceStyle.Newline);
+      var block = wr.NewBlock(open: BlockStyle.NewlineBrace);
       if (returnType != "void" && !forBodyInheritance) {
         var beforeReturnBlock = block.Fork();
         EmitReturn(m.Outs, block);
@@ -1222,12 +1229,12 @@ namespace Microsoft.Dafny {
         return null;
       }
 
-      return wr.NewBlock(open: formals.Count > 1 ? BraceStyle.Newline : BraceStyle.Space);
+      return wr.NewBlock(open: formals.Count > 1 ? BlockStyle.NewlineBrace : BlockStyle.SpaceBrace);
     }
 
     protected ConcreteSyntaxTree/*?*/ CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, ConcreteSyntaxTree wr) {
       ConcreteSyntaxTree/*?*/ result = null;
-      var body = createBody ? Block(out result, close: BraceStyle.Nothing) : new ConcreteSyntaxTree().Write(";");
+      var body = createBody ? Block(out result, close: BlockStyle.Brace) : new ConcreteSyntaxTree().Write(";");
       wr.FormatLine($"{Keywords(createBody, isStatic)}{TypeName(resultType, wr, tok)} {name} {{ get{body} }}");
       return result;
     }
@@ -2101,7 +2108,7 @@ namespace Microsoft.Dafny {
     protected override string IdProtect(string name) {
       return PublicIdProtect(name);
     }
-    public static string PublicIdProtect(string name) {
+    public override string PublicIdProtect(string name) {
       if (name == "" || name.First() == '_') {
         return name;  // no need to further protect this name -- we know it's not a C# keyword
       }
@@ -2531,16 +2538,16 @@ namespace Microsoft.Dafny {
       wr.Format($"((System.Func<{TypeName(new SeqType(body.Type), wr, body.tok)}>) (() =>{ExprBlock(out ConcreteSyntaxTree wrLamBody)}))()");
 
       var indexType = lengthExpr.Type;
-      var lengthVar = FreshId("dim");
+      var lengthVar = idGenerator.FreshId("dim");
       DeclareLocalVar(lengthVar, indexType, lengthExpr.tok, lengthExpr, inLetExprBody, wrLamBody);
-      var arrVar = FreshId("arr");
+      var arrVar = idGenerator.FreshId("arr");
       wrLamBody.Write($"var {arrVar} = ");
       var wrDims = EmitNewArray(body.Type, body.tok, dimCount: 1, mustInitialize: false, wr: wrLamBody);
       Contract.Assert(wrDims.Count == 1);
       wrDims[0].Write(lengthVar);
       wrLamBody.WriteLine(";");
 
-      var intIxVar = FreshId("i");
+      var intIxVar = idGenerator.FreshId("i");
       var wrLoopBody = wrLamBody.NewBlock(string.Format("for (int {0} = 0; {0} < {1}; {0}++)", intIxVar, lengthVar));
       var ixVar = IdName(boundVar);
       wrLoopBody.WriteLine("var {0} = ({1}) {2};",

@@ -438,6 +438,7 @@ namespace Microsoft.Dafny {
       }
 
       rewriters.Add(new InductionRewriter(reporter));
+      rewriters.Add(new PrintEffectEnforcement(reporter));
 
       foreach (var plugin in DafnyOptions.O.Plugins) {
         rewriters.AddRange(plugin.GetRewriters(reporter));
@@ -2046,7 +2047,7 @@ namespace Microsoft.Dafny {
             new Specification<FrameExpression>(new List<FrameExpression>(), null),
             new List<AttributedExpression>(),
             new Specification<Expression>(new List<Expression>(), null),
-            null, null, null);
+            null, Attributes.Find(iter.Attributes, "print"), null);
           // add these implicit members to the class
           init.EnclosingClass = iter;
           init.InheritVisibility(iter);
@@ -2618,15 +2619,15 @@ namespace Microsoft.Dafny {
     }
 
     public static readonly List<NativeType> NativeTypes = new List<NativeType>() {
-      new NativeType("byte", 0, 0x100, 8,NativeType.Selection.Byte, DafnyOptions.CompilationTarget.Csharp | DafnyOptions.CompilationTarget.Go | DafnyOptions.CompilationTarget.Java | DafnyOptions.CompilationTarget.Cpp),
-      new NativeType("sbyte", -0x80, 0x80, 0, NativeType.Selection.SByte, DafnyOptions.CompilationTarget.Csharp | DafnyOptions.CompilationTarget.Go | DafnyOptions.CompilationTarget.Java | DafnyOptions.CompilationTarget.Cpp),
-      new NativeType("ushort", 0, 0x1_0000, 16, NativeType.Selection.UShort, DafnyOptions.CompilationTarget.Csharp | DafnyOptions.CompilationTarget.Go | DafnyOptions.CompilationTarget.Java | DafnyOptions.CompilationTarget.Cpp),
-      new NativeType("short", -0x8000, 0x8000, 0, NativeType.Selection.Short, DafnyOptions.CompilationTarget.Csharp | DafnyOptions.CompilationTarget.Go | DafnyOptions.CompilationTarget.Java | DafnyOptions.CompilationTarget.Cpp),
-      new NativeType("uint", 0, 0x1_0000_0000, 32, NativeType.Selection.UInt, DafnyOptions.CompilationTarget.Csharp | DafnyOptions.CompilationTarget.Go | DafnyOptions.CompilationTarget.Java | DafnyOptions.CompilationTarget.Cpp),
-      new NativeType("int", -0x8000_0000, 0x8000_0000, 0, NativeType.Selection.Int, DafnyOptions.CompilationTarget.Csharp | DafnyOptions.CompilationTarget.Go | DafnyOptions.CompilationTarget.Java | DafnyOptions.CompilationTarget.Cpp),
-      new NativeType("number", -0x1f_ffff_ffff_ffff, 0x20_0000_0000_0000, 0, NativeType.Selection.Number, DafnyOptions.CompilationTarget.JavaScript),  // JavaScript integers
-      new NativeType("ulong", 0, new BigInteger(0x1_0000_0000) * new BigInteger(0x1_0000_0000), 64, NativeType.Selection.ULong, DafnyOptions.CompilationTarget.Csharp | DafnyOptions.CompilationTarget.Go | DafnyOptions.CompilationTarget.Java | DafnyOptions.CompilationTarget.Cpp),
-      new NativeType("long", Int64.MinValue, 0x8000_0000_0000_0000, 0, NativeType.Selection.Long, DafnyOptions.CompilationTarget.Csharp | DafnyOptions.CompilationTarget.Go | DafnyOptions.CompilationTarget.Java | DafnyOptions.CompilationTarget.Cpp),
+      new NativeType("byte", 0, 0x100, 8, NativeType.Selection.Byte),
+      new NativeType("sbyte", -0x80, 0x80, 0, NativeType.Selection.SByte),
+      new NativeType("ushort", 0, 0x1_0000, 16, NativeType.Selection.UShort),
+      new NativeType("short", -0x8000, 0x8000, 0, NativeType.Selection.Short),
+      new NativeType("uint", 0, 0x1_0000_0000, 32, NativeType.Selection.UInt),
+      new NativeType("int", -0x8000_0000, 0x8000_0000, 0, NativeType.Selection.Int),
+      new NativeType("number", -0x1f_ffff_ffff_ffff, 0x20_0000_0000_0000, 0, NativeType.Selection.Number),  // JavaScript integers
+      new NativeType("ulong", 0, new BigInteger(0x1_0000_0000) * new BigInteger(0x1_0000_0000), 64, NativeType.Selection.ULong),
+      new NativeType("long", Int64.MinValue, 0x8000_0000_0000_0000, 0, NativeType.Selection.Long),
     };
 
     public void ResolveTopLevelDecls_Core(List<TopLevelDecl/*!*/>/*!*/ declarations, Graph<IndDatatypeDecl/*!*/>/*!*/ datatypeDependencies, Graph<CoDatatypeDecl/*!*/>/*!*/ codatatypeDependencies, bool isAnExport = false) {
@@ -4332,7 +4333,7 @@ namespace Microsoft.Dafny {
       // Finally, of the big-enough native types, pick the first one that is
       // supported by the selected target compiler.
       foreach (var nativeT in bigEnoughNativeTypes) {
-        if ((nativeT.CompilationTargets & DafnyOptions.O.CompileTarget) != 0) {
+        if (DafnyOptions.O.Compiler.SupportedNativeTypes.Contains(nativeT.Name)) {
           dd.NativeType = nativeT;
           break;
         }
@@ -5492,25 +5493,6 @@ namespace Microsoft.Dafny {
           return true;
         }
         return false;
-      }
-
-      bool IsEqDetermined(Type t) {
-        Contract.Requires(t != null);
-        switch (TypeProxy.GetFamily(t)) {
-          case TypeProxy.Family.Bool:
-          case TypeProxy.Family.Char:
-          case TypeProxy.Family.IntLike:
-          case TypeProxy.Family.RealLike:
-          case TypeProxy.Family.Ordinal:
-          case TypeProxy.Family.BitVector:
-            return true;
-          case TypeProxy.Family.ValueType:
-          case TypeProxy.Family.Ref:
-          case TypeProxy.Family.Opaque:
-          case TypeProxy.Family.Unknown:
-          default:
-            return false;  // TODO: could be made more exact
-        }
       }
 
       internal bool CouldBeAnything() {
@@ -17432,8 +17414,6 @@ namespace Microsoft.Dafny {
       }
       return bounds;
     }
-
-    private static Translator translator = new Translator(null);
 
     public static Expression GetImpliedTypeConstraint(IVariable bv, Type ty) {
       return GetImpliedTypeConstraint(Expression.CreateIdentExpr(bv), ty);
