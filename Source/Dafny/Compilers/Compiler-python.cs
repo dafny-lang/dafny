@@ -4,16 +4,23 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.IO;
+using System.Linq;
 using System.Numerics;
 using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
 
-namespace Microsoft.Dafny {
-  public class PythonCompiler : Compiler {
-    public PythonCompiler(ErrorReporter reporter) : base(reporter) {
-    }
+namespace Microsoft.Dafny.Compilers {
+  public class PythonCompiler : SinglePassCompiler {
+    public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".py" };
 
     public override string TargetLanguage => "Python";
+    public override string TargetExtension => "py";
+
+    public override bool SupportsInMemoryCompilation => true;
+    public override bool TextualTargetIsExecutable => true;
+
+    public override IReadOnlySet<string> SupportedNativeTypes => new HashSet<string> { }; // FIXME
+
     const string DafnySetClass = "_dafny.Set";
     const string DafnyMultiSetClass = "_dafny.MultiSet";
     const string DafnySeqClass = "_dafny.Seq";
@@ -45,7 +52,7 @@ namespace Microsoft.Dafny {
     }
 
     private static string MangleName(string name) {
-      return name.StartsWith("__") ? name.Substring(1) : name;
+      return name.StartsWith("__") ? name[1..] : name;
     }
 
     protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string fullPrintName,
@@ -138,8 +145,7 @@ namespace Microsoft.Dafny {
       }
 
       public void DeclareField(string name, TopLevelDecl enclosingDecl, bool isStatic, bool isConst, Type type,
-        IToken tok,
-        string rhs, Field field) {
+          IToken tok, string rhs, Field field) {
         Compiler.DeclareField(name, isStatic, isConst, type, tok, rhs, FieldWriter);
       }
 
@@ -238,7 +244,7 @@ namespace Microsoft.Dafny {
 
       switch (xType) {
         case BoolType: {
-            return "false";
+            return "False";
           }
         case CharType: {
             return CharType.DefaultValueAsString;
@@ -283,9 +289,9 @@ namespace Microsoft.Dafny {
 
     protected override void DeclareLocalVar(string name, Type type, IToken tok, bool leaveRoomForRhs, string rhs,
         ConcreteSyntaxTree wr) {
-      //else part can be used to define class object.
       wr.Write(name);
-      if (type != null) { wr.Write($" = {TypeName(type, wr, tok)}()"); }
+      if (type != null) { wr.Write($": {TypeName(type, wr, tok)}"); }
+      if (rhs != null) { wr.Write($" = {rhs}"); }
       wr.WriteLine();
     }
 
@@ -293,9 +299,12 @@ namespace Microsoft.Dafny {
       throw new NotImplementedException();
     }
 
+    protected override bool UseReturnStyleOuts(Method m, int nonGhostOutCount) => true;
+    protected override bool SupportsMultipleReturns => true;
+
     protected override void DeclareLocalOutVar(string name, Type type, IToken tok, string rhs, bool useReturnStyleOuts,
-      ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
+        ConcreteSyntaxTree wr) {
+      DeclareLocalVar(name, type, tok, false, rhs, wr);
     }
 
     protected override void EmitActualTypeArgs(List<Type> typeArgs, IToken tok, ConcreteSyntaxTree wr) {
@@ -303,7 +312,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override string GenerateLhsDecl(string target, Type type, ConcreteSyntaxTree wr, IToken tok) {
-      throw new NotImplementedException();
+      return $"{target}: {TypeName(type, wr, tok)}";
     }
 
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {
@@ -313,7 +322,12 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitReturn(List<Formal> outParams, ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
+      outParams = outParams.Where(f => !f.IsGhost).ToList();
+      wr.Write("return");
+      if (outParams.Count > 0) {
+        wr.Write($" {outParams.Comma(IdName)}");
+      }
+      wr.WriteLine();
     }
 
     protected override ConcreteSyntaxTree CreateLabeledCode(string label, bool createContinueLabel, ConcreteSyntaxTree wr) {
@@ -338,6 +352,22 @@ namespace Microsoft.Dafny {
 
     protected override void EmitHalt(IToken tok, Expression messageExpr, ConcreteSyntaxTree wr) {
       throw new NotImplementedException();
+    }
+
+    protected override ConcreteSyntaxTree EmitIf(out ConcreteSyntaxTree guardWriter, bool hasElse, ConcreteSyntaxTree wr) {
+      wr.Write("if ");
+      guardWriter = wr.Fork();
+      if (hasElse) {
+        var thn = wr.NewBlock(":", "el", BlockStyle.Newline, BlockStyle.Nothing);
+        return thn;
+      } else {
+        var thn = wr.NewBlock(":", open: BlockStyle.Newline, close: BlockStyle.Nothing);
+        return thn;
+      }
+    }
+
+    protected override ConcreteSyntaxTree EmitBlock(ConcreteSyntaxTree wr) {
+      return wr.NewBlock("if True:", open: BlockStyle.Newline, close: BlockStyle.Nothing);
     }
 
     protected override ConcreteSyntaxTree EmitForStmt(IToken tok, IVariable loopIndex, bool goingUp, string endVarName,
@@ -452,7 +482,7 @@ namespace Microsoft.Dafny {
     protected override string IdProtect(string name) {
       return PublicIdProtect(name);
     }
-    public static string PublicIdProtect(string name) {
+    public override string PublicIdProtect(string name) {
       Contract.Requires(name != null);
       switch (name) {
         default:
@@ -612,8 +642,13 @@ namespace Microsoft.Dafny {
 
       switch (op) {
         case BinaryExpr.ResolvedOpcode.Add:
-          opString = "+";
-          break;
+          opString = "+"; break;
+
+        case BinaryExpr.ResolvedOpcode.Mul:
+          opString = "*"; break;
+
+        case BinaryExpr.ResolvedOpcode.EqCommon:
+          opString = "=="; break;
 
         default:
           base.CompileBinOp(op, e0, e1, tok, resultType,
@@ -692,8 +727,6 @@ namespace Microsoft.Dafny {
       ConcreteSyntaxTree wr) {
       throw new NotImplementedException();
     }
-
-    public override bool TextualTargetIsExecutable => true;
 
     public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText,
       string /*?*/ callToMain, string /*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
