@@ -438,6 +438,7 @@ namespace Microsoft.Dafny {
       }
 
       rewriters.Add(new InductionRewriter(reporter));
+      rewriters.Add(new PrintEffectEnforcement(reporter));
 
       foreach (var plugin in DafnyOptions.O.Plugins) {
         rewriters.AddRange(plugin.GetRewriters(reporter));
@@ -2046,7 +2047,7 @@ namespace Microsoft.Dafny {
             new Specification<FrameExpression>(new List<FrameExpression>(), null),
             new List<AttributedExpression>(),
             new Specification<Expression>(new List<Expression>(), null),
-            null, null, null);
+            null, Attributes.Find(iter.Attributes, "print"), null);
           // add these implicit members to the class
           init.EnclosingClass = iter;
           init.InheritVisibility(iter);
