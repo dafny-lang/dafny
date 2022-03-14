@@ -1140,6 +1140,9 @@ axiom (forall h: Heap, a: ref, n0, n1: int ::
 axiom (forall<T> s: Seq T, v: T, n: int ::
         { Seq#Drop(Seq#Build(s, v), n) }
         0 <= n && n <= Seq#Length(s) ==> Seq#Drop(Seq#Build(s, v), n) == Seq#Build(Seq#Drop(s, n), v) );
+// take cancels build
+axiom (forall<T> s: Seq T, v: T, n: int :: { Seq#Take(Seq#Build(s, v), n) }
+        0 <= n && n <= Seq#Length(s) ==> Seq#Take(Seq#Build(s, v), n) == Seq#Take(s, n));
 
 function Seq#Rank<T>(Seq T): int;
 axiom (forall s: Seq Box, i: int ::
@@ -1156,6 +1159,10 @@ axiom (forall<T> s: Seq T, i: int, j: int ::
         0 <= i && i < j && j <= Seq#Length(s) ==> Seq#Rank(Seq#Append(Seq#Take(s, i), Seq#Drop(s, j))) < Seq#Rank(s) );
 
 // Additional axioms about common things
+axiom (forall<T> s: Seq T :: { Seq#Take(s, Seq#Length(s)) }
+        Seq#Take(s, Seq#Length(s)) == s);
+axiom (forall<T> s: Seq T :: { Seq#Drop(s, Seq#Length(s)) }
+        Seq#Drop(s, Seq#Length(s)) == Seq#Empty());
 axiom (forall<T> s: Seq T, n: int :: { Seq#Drop(s, n) }
         n == 0 ==> Seq#Drop(s, n) == s);
 axiom (forall<T> s: Seq T, n: int :: { Seq#Take(s, n) }
