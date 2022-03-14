@@ -188,12 +188,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         progressReporter.ReportEndVerifyImplementation(implementation, result);
       }
 
-      public int GetVerificationPriority(IToken implTok) {
-        return progressReporter.GetVerificationPriority(implTok);
-      }
-
-      public void ReportSplitResult(Split split,
-        VCResult vcResult) {
+      public void ReportSplitResult(Split split, VCResult vcResult) {
         progressReporter.ReportAssertionBatchResult(split, vcResult);
       }
 

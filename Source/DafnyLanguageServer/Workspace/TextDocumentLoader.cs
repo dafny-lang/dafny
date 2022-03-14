@@ -574,7 +574,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       // For realtime per-split verification, when verification is migrated
 
-      public int GetVerificationPriority(IToken implTok) {
+      private int GetVerificationPriority(IToken implTok) {
         var lastChange = document.LastChange;
         if (lastChange == null) {
           return 0;
