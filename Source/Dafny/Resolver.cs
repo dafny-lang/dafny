@@ -9928,10 +9928,9 @@ namespace Microsoft.Dafny {
       Contract.Requires(opts != null);
       Contract.Requires(attributeHost != null);
 
-      var attrs = attributeHost.Attributes;
       // order does not matter much for resolution, so resolve them in reverse order
-      foreach (var attr in attrs.AsEnumerable()) {
-        if (attributeHost != null && attr is UserSuppliedAttributes) {
+      foreach (var attr in attributeHost.Attributes.AsEnumerable()) {
+        if (attr is UserSuppliedAttributes) {
           var usa = (UserSuppliedAttributes)attr;
           usa.Recognized = IsRecognizedAttribute(usa, attributeHost);
         }
