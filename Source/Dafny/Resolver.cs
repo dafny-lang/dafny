@@ -9928,6 +9928,7 @@ namespace Microsoft.Dafny {
 
     void ResolveAttributes(Attributes attrs, IAttributeBearingDeclaration attributeHost, ResolveOpts opts) {
       Contract.Requires(opts != null);
+      Contract.Requires(attributeHost != null);
       // order does not matter much for resolution, so resolve them in reverse order
       foreach (var attr in attrs.AsEnumerable()) {
         if (attributeHost != null && attr is UserSuppliedAttributes) {
@@ -11634,7 +11635,7 @@ namespace Microsoft.Dafny {
         ConstrainTypeExprBool(inv.E, "invariant is expected to be of type bool, but is {0}");
       }
 
-      ResolveAttributes(decreases.Attributes, null, new ResolveOpts(codeContext, true));
+      ResolveAttributes(decreases.Attributes, decreases, new ResolveOpts(codeContext, true));
       foreach (Expression e in decreases.Expressions) {
         ResolveExpression(e, new ResolveOpts(codeContext, true));
         if (e is WildcardExpr && !codeContext.AllowsNontermination) {
