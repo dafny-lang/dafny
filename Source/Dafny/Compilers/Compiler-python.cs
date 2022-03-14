@@ -9,12 +9,18 @@ using System.Numerics;
 using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
 
-namespace Microsoft.Dafny {
-  public class PythonCompiler : Compiler {
-    public PythonCompiler(ErrorReporter reporter) : base(reporter) {
-    }
+namespace Microsoft.Dafny.Compilers {
+  public class PythonCompiler : SinglePassCompiler {
+    public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".py" };
 
     public override string TargetLanguage => "Python";
+    public override string TargetExtension => "py";
+
+    public override bool SupportsInMemoryCompilation => true;
+    public override bool TextualTargetIsExecutable => true;
+
+    public override IReadOnlySet<string> SupportedNativeTypes => new HashSet<string> { }; // FIXME
+
     const string DafnySetClass = "_dafny.Set";
     const string DafnyMultiSetClass = "_dafny.MultiSet";
     const string DafnySeqClass = "_dafny.Seq";
@@ -476,7 +482,7 @@ namespace Microsoft.Dafny {
     protected override string IdProtect(string name) {
       return PublicIdProtect(name);
     }
-    public static string PublicIdProtect(string name) {
+    public override string PublicIdProtect(string name) {
       Contract.Requires(name != null);
       switch (name) {
         default:
@@ -721,8 +727,6 @@ namespace Microsoft.Dafny {
       ConcreteSyntaxTree wr) {
       throw new NotImplementedException();
     }
-
-    public override bool TextualTargetIsExecutable => true;
 
     public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText,
       string /*?*/ callToMain, string /*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
