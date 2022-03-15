@@ -12,6 +12,7 @@
 - fix: The error "assertion violation" is replaced by the better wording "assertion might not hold". This indicates better that the verifier is unable to prove the assertion. (https://github.com/dafny-lang/dafny/pull/1862)
 - fix: Plug two memory leaks in Dafny's verification server (#1858, #1863)
 - fix: Generate missing termination measures for subset types on sequences (#1875)
+- fix: Resolve expressions in attributes in all specifications of functions and iterators. (https://github.com/dafny-lang/dafny/pull/1900)
 
 # 3.4.2
 
