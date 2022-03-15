@@ -4096,7 +4096,8 @@ namespace Microsoft.Dafny {
         if (formal.IsOld) {
           Bpl.Expr wh = GetWhereClause(e.tok, etran.TrExpr(e), e.Type, etran.Old, ISALLOC, true);
           if (wh != null) {
-            builder.Add(Assert(e.tok, wh, "default value must be allocated in the two-state function's previous state"));
+            var desc = new DafnyTwoStateAllocatedDescription("default value", "function");
+            builder.Add(AssertDesc(e.tok, wh, desc));
           }
         }
       }
@@ -4355,7 +4356,8 @@ namespace Microsoft.Dafny {
           foreach (var split in ss) {
             if (split.IsChecked) {
               var tok = new NestedToken(witnessCheckTok, split.E.tok);
-              witnessCheckBuilder.Add(AssertNS(tok, split.E, witnessErrorMsg));
+              var desc = new DafnyWitnessCheckDescription(witnessErrorMsg);
+              witnessCheckBuilder.Add(AssertNS(tok, split.E, desc));
             }
           }
         }
@@ -5065,9 +5067,9 @@ namespace Microsoft.Dafny {
       } else if (e is StaticReceiverExpr) {
         // also ok
       } else {
-        builder.Add(Assert(tok, Bpl.Expr.Neq(etran.TrExpr(e), predef.Null), "target object may be null", kv));
+        builder.Add(AssertDesc(tok, Bpl.Expr.Neq(etran.TrExpr(e), predef.Null), new DafnyNonNullDescription("target object"), kv));
         if (!CommonHeapUse) {
-          builder.Add(Assert(tok, MkIsAlloc(etran.TrExpr(e), e.Type, etran.HeapExpr), "target object may not be allocated", kv));
+          builder.Add(AssertDesc(tok, MkIsAlloc(etran.TrExpr(e), e.Type, etran.HeapExpr), new DafnyAllocatedDescription("target object"), kv));
         }
       }
     }
@@ -5407,7 +5409,8 @@ namespace Microsoft.Dafny {
           if (e.Member is TwoStateFunction) {
             Bpl.Expr wh = GetWhereClause(expr.tok, etran.TrExpr(e.Obj), e.Obj.Type, etran.OldAt(e.AtLabel), ISALLOC, true);
             if (wh != null) {
-              builder.Add(Assert(expr.tok, wh, "receiver argument must be allocated in the two-state function's previous state"));
+              var desc = new DafnyTwoStateAllocatedDescription("receiver argument", "function");
+              builder.Add(AssertDesc(expr.tok, wh, desc));
             }
           } else if (etran.UsesOldHeap) {
             Bpl.Expr wh = GetWhereClause(expr.tok, etran.TrExpr(e.Obj), e.Obj.Type, etran, ISALLOC, true);
@@ -5426,9 +5429,9 @@ namespace Microsoft.Dafny {
         CheckWellformed(e.Seq, options, locals, builder, etran);
         Bpl.Expr seq = etran.TrExpr(e.Seq);
         if (eSeqType.IsArrayType) {
-          builder.Add(Assert(e.Seq.tok, Bpl.Expr.Neq(seq, predef.Null), "array may be null"));
+          builder.Add(AssertDesc(e.Seq.tok, Bpl.Expr.Neq(seq, predef.Null), new DafnyNonNullDescription("array")));
           if (!CommonHeapUse || etran.UsesOldHeap) {
-            builder.Add(Assert(e.Seq.tok, MkIsAlloc(seq, eSeqType, etran.HeapExpr), "array may not be allocated"));
+            builder.Add(AssertDesc(e.Seq.tok, MkIsAlloc(seq, eSeqType, etran.HeapExpr), new DafnyAllocatedDescription("array")));
           }
         }
         Bpl.Expr e0 = null;
@@ -5486,9 +5489,9 @@ namespace Microsoft.Dafny {
         MultiSelectExpr e = (MultiSelectExpr)expr;
         CheckWellformed(e.Array, options, locals, builder, etran);
         Bpl.Expr array = etran.TrExpr(e.Array);
-        builder.Add(Assert(e.Array.tok, Bpl.Expr.Neq(array, predef.Null), "array may be null"));
+        builder.Add(AssertDesc(e.Array.tok, Bpl.Expr.Neq(array, predef.Null), new DafnyNonNullDescription("array")));
         if (!CommonHeapUse || etran.UsesOldHeap) {
-          builder.Add(Assert(e.Array.tok, MkIsAlloc(array, e.Array.Type, etran.HeapExpr), "array may not be allocated"));
+          builder.Add(AssertDesc(e.Array.tok, MkIsAlloc(array, e.Array.Type, etran.HeapExpr), new DafnyAllocatedDescription("array")));
         }
         for (int idxId = 0; idxId < e.Indices.Count; idxId++) {
           var idx = e.Indices[idxId];
@@ -5696,7 +5699,8 @@ namespace Microsoft.Dafny {
             if (!e.Function.IsStatic) {
               Bpl.Expr wh = GetWhereClause(e.Receiver.tok, etran.TrExpr(e.Receiver), e.Receiver.Type, etran.OldAt(e.AtLabel), ISALLOC, true);
               if (wh != null) {
-                builder.Add(Assert(e.Receiver.tok, wh, "receiver argument must be allocated in the two-state function's previous state"));
+                var desc = new DafnyTwoStateAllocatedDescription("receiver argument", "function");
+                builder.Add(AssertDesc(e.Receiver.tok, wh, desc));
               }
             }
             Contract.Assert(e.Function.Formals.Count == e.Args.Count);
@@ -5706,8 +5710,9 @@ namespace Microsoft.Dafny {
                 Expression ee = e.Args[i];
                 Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran.OldAt(e.AtLabel), ISALLOC, true);
                 if (wh != null) {
-                  builder.Add(Assert(ee.tok, wh, string.Format("argument{0} ('{1}') must be allocated in the two-state function's previous state",
-                    e.Args.Count == 1 ? "" : " " + i, formal.Name)));
+                  var pIdx = e.Args.Count == 1 ? "" : " " + i;
+                  var desc = new DafnyTwoStateAllocatedDescription($"parameter {pIdx} ('{formal.Name}')", "function");
+                  builder.Add(AssertDesc(ee.tok, wh, desc));
                 }
               }
             }
@@ -5717,14 +5722,15 @@ namespace Microsoft.Dafny {
             Expression precond = Substitute(p.E, e.Receiver, substMap, e.GetTypeArgumentSubstitutions());
             bool splitHappened;  // we don't actually care
             string errorMessage = CustomErrorMessage(p.Attributes);
+            var desc = new DafnyPreconditionCheckDescription(errorMessage);
             foreach (var ss in TrSplitExpr(precond, etran, true, out splitHappened)) {
               if (ss.IsChecked) {
                 var tok = new NestedToken(expr.tok, ss.E.tok);
                 if (options.AssertKv != null) {
                   // use the given assert attribute only
-                  builder.Add(Assert(tok, ss.E, errorMessage ?? "possible violation of function precondition", options.AssertKv));
+                  builder.Add(AssertDesc(tok, ss.E, desc, options.AssertKv));
                 } else {
-                  builder.Add(AssertNS(tok, ss.E, errorMessage ?? "possible violation of function precondition"));
+                  builder.Add(AssertNS(tok, ss.E, desc));
                 }
               }
             }
@@ -5856,7 +5862,7 @@ namespace Microsoft.Dafny {
           } else {
             Contract.Assert(ty.IsRefType);
             nonNull = Bpl.Expr.Neq(r, predef.Null);
-            builder.Add(Assert(fe.E.tok, BplImp(ante, nonNull), $"{description} must be non-null"));
+            builder.Add(AssertDesc(fe.E.tok, BplImp(ante, nonNull), new DafnyNonNullDescription(description)));
           }
           // check that "r" was allocated in the "e.AtLabel" state
           Bpl.Expr wh = GetWhereClause(fe.E.tok, r, ty, etran.OldAt(e.AtLabel), ISALLOC, true);
@@ -5922,7 +5928,7 @@ namespace Microsoft.Dafny {
                 zero = Bpl.Expr.Literal(0);
               }
               CheckWellformed(e.E1, options, locals, builder, etran);
-              builder.Add(AssertDesc(expr.tok, Bpl.Expr.Neq(etran.TrExpr(e.E1), zero), new DafnyDivisionAssertion(), options.AssertKv));
+              builder.Add(AssertDesc(expr.tok, Bpl.Expr.Neq(etran.TrExpr(e.E1), zero), new DafnyDivisionDescription(), options.AssertKv));
               CheckResultToBeInType(expr.tok, expr, expr.Type, locals, builder, etran);
             }
             break;
@@ -5930,7 +5936,7 @@ namespace Microsoft.Dafny {
           case BinaryExpr.ResolvedOpcode.RightShift: {
               CheckWellformed(e.E1, options, locals, builder, etran);
               var w = e.Type.AsBitVectorType.Width;
-              var upperMsg = string.Format("shift amount must not exceed the width of the result ({0})", w);
+              var upperDesc = new DafnyShiftUpperDescription(w);
               if (e.E1.Type.IsBitVectorType) {
                 // Known to be non-negative, so we don't need to check lower bound.
                 // Check upper bound, that is, check "E1 <= w"
@@ -5939,7 +5945,7 @@ namespace Microsoft.Dafny {
                   // w is a number that can be represented in the e.E1.Type, so do the comparison in that bitvector type.
                   var bound = BplBvLiteralExpr(e.tok, BaseTypes.BigNum.FromInt(w), e1Width);
                   var cmp = etran.TrToFunctionCall(expr.tok, "le_bv" + e1Width, Bpl.Type.Bool, etran.TrExpr(e.E1), bound, false);
-                  builder.Add(Assert(expr.tok, cmp, upperMsg, options.AssertKv));
+                  builder.Add(AssertDesc(expr.tok, cmp, upperDesc, options.AssertKv));
                 } else {
                   // In the previous branch, we had:
                   //     w < 2^e1Width               (*)
@@ -5952,8 +5958,9 @@ namespace Microsoft.Dafny {
                   // already holds, so there is no reason to check it.
                 }
               } else {
-                builder.Add(Assert(expr.tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(e.E1)), "shift amount must be non-negative", options.AssertKv));
-                builder.Add(Assert(expr.tok, Bpl.Expr.Le(etran.TrExpr(e.E1), Bpl.Expr.Literal(w)), upperMsg, options.AssertKv));
+                var positiveDesc = new DafnyShiftLowerDescription();
+                builder.Add(AssertDesc(expr.tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(e.E1)), positiveDesc, options.AssertKv));
+                builder.Add(AssertDesc(expr.tok, Bpl.Expr.Le(etran.TrExpr(e.E1), Bpl.Expr.Literal(w)), upperDesc, options.AssertKv));
               }
             }
             break;
@@ -6214,9 +6221,8 @@ namespace Microsoft.Dafny {
       if (name == "RotateLeft" || name == "RotateRight") {
         var w = expr.Type.AsBitVectorType.Width;
         Expression arg = expr.Args[0];
-        builder.Add(Assert(expr.tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(arg)), "shift amount must be non-negative", options.AssertKv));
-        var upperMsg = string.Format("shift amount must not exceed the width of the result ({0})", w);
-        builder.Add(Assert(expr.tok, Bpl.Expr.Le(etran.TrExpr(arg), Bpl.Expr.Literal(w)), upperMsg, options.AssertKv));
+        builder.Add(AssertDesc(expr.tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(arg)), new DafnyShiftLowerDescription(), options.AssertKv));
+        builder.Add(AssertDesc(expr.tok, Bpl.Expr.Le(etran.TrExpr(arg), Bpl.Expr.Literal(w)), new DafnyShiftUpperDescription(w), options.AssertKv));
       }
     }
 
@@ -8265,13 +8271,13 @@ namespace Microsoft.Dafny {
       }
     }
 
-    Bpl.PredicateCmd AssertNS(Bpl.IToken tok, Bpl.Expr condition, string errorMessage) {
-      return AssertNS(tok, condition, errorMessage, tok, null);
+    Bpl.PredicateCmd AssertNS(Bpl.IToken tok, Bpl.Expr condition, ProofObligationDescription desc) {
+      return AssertNS(tok, condition, desc, tok, null);
     }
 
-    Bpl.PredicateCmd AssertNS(Bpl.IToken tok, Bpl.Expr condition, string errorMessage, Bpl.IToken refinesTok, Bpl.QKeyValue kv) {
+    Bpl.PredicateCmd AssertNS(Bpl.IToken tok, Bpl.Expr condition, ProofObligationDescription desc, Bpl.IToken refinesTok, Bpl.QKeyValue kv) {
       Contract.Requires(tok != null);
-      Contract.Requires(errorMessage != null);
+      Contract.Requires(desc != null);
       Contract.Requires(condition != null);
       Contract.Ensures(Contract.Result<Bpl.PredicateCmd>() != null);
 
@@ -8282,8 +8288,7 @@ namespace Microsoft.Dafny {
         tok = ForceCheckToken.Unwrap(tok);
         var args = new List<object>();
         args.Add(Bpl.Expr.Literal(0));
-        Bpl.AssertCmd cmd = TrAssertCmd(tok, condition, new Bpl.QKeyValue(tok, "subsumption", args, kv));
-        cmd.ErrorData = "Error: " + errorMessage;
+        Bpl.AssertCmd cmd = TrAssertCmdDesc(tok, condition, desc, new Bpl.QKeyValue(tok, "subsumption", args, kv));
         return cmd;
       }
     }
@@ -9979,7 +9984,8 @@ namespace Microsoft.Dafny {
       // check precond
       var pre = FunctionCall(tok, Requires(dims.Count), Bpl.Type.Bool, args);
       var q = new Bpl.ForallExpr(tok, bvs, Bpl.Expr.Imp(ante, pre));
-      builder.Add(AssertNS(tok, q, string.Format("all {0} indices must be in the domain of the initialization function", forArray ? "array" : "sequence")));
+      var desc = new DafnyIndicesInDomainDescription(forArray ? "array" : "sequence");
+      builder.Add(AssertNS(tok, q, desc));
       if (!forArray && options.DoReadsChecks) {
         // check read effects
         Type objset = new SetType(true, program.BuiltIns.ObjectQ());
@@ -10004,7 +10010,8 @@ namespace Microsoft.Dafny {
         // assert (forall i0,i1,i2,... ::
         //            0 <= i0 < ... && ... ==> init.requires(i0,i1,i2,...) is Subtype);
         q = new Bpl.ForallExpr(tok, bvs, Bpl.Expr.Imp(ante, cre));
-        builder.Add(AssertNS(init.tok, q, msg));
+        var subrangeDesc = new DafnySubrangeCheckDescription(msg);
+        builder.Add(AssertNS(init.tok, q, subrangeDesc));
       }
 
       if (forArray) {

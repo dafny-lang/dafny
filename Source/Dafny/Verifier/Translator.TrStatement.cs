@@ -58,7 +58,8 @@ namespace Microsoft.Dafny {
             foreach (var split in ss) {
               if (split.IsChecked) {
                 var tok = enclosingToken == null ? split.E.tok : new NestedToken(enclosingToken, split.E.tok);
-                (proofBuilder ?? b).Add(AssertNS(tok, split.E, errorMessage ?? "assertion might not hold", stmt.Tok, etran.TrAttributes(stmt.Attributes, null)));  // attributes go on every split
+                var desc = new DafnyAssertStatementDescription(errorMessage);
+                (proofBuilder ?? b).Add(AssertNS(tok, split.E, desc, stmt.Tok, etran.TrAttributes(stmt.Attributes, null)));  // attributes go on every split
               }
             }
           }
@@ -214,7 +215,9 @@ namespace Microsoft.Dafny {
               // this postcondition was inherited into this module, so just ignore it
             } else if (split.IsChecked) {
               var yieldToken = new NestedToken(s.Tok, split.E.tok);
-              builder.Add(AssertNS(yieldToken, split.E, "possible violation of yield-ensures condition", stmt.Tok, null));
+              var desc = new DafnyYieldEnsuresDescription();
+              var assertCmd = AssertNS(yieldToken, split.E, desc, stmt.Tok, null);
+              builder.Add(assertCmd);
             }
           }
           builder.Add(TrAssumeCmd(stmt.Tok, yeEtran.TrExpr(p.E)));
@@ -729,7 +732,8 @@ namespace Microsoft.Dafny {
                 var index = ((TernaryExpr)s.Steps[i]).E0;
                 TrStmt_CheckWellformed(index, b, locals, etran, false);
                 if (index.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
-                  b.Add(AssertNS(index.tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(index)), "prefix-equality limit must be at least 0"));
+                  var desc = new DafnyPrefixEqualityLimitDescription();
+                  b.Add(AssertNS(index.tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(index)), desc));
                 }
               }
               TrStmt_CheckWellformed(CalcStmt.Rhs(s.Steps[i]), b, locals, etran, false);
@@ -738,11 +742,11 @@ namespace Microsoft.Dafny {
               // assert step:
               AddComment(b, stmt, "assert line" + i.ToString() + " " + (s.StepOps[i] ?? s.Op).ToString() + " line" + (i + 1).ToString());
               if (!splitHappened) {
-                b.Add(AssertNS(s.Lines[i + 1].tok, etran.TrExpr(s.Steps[i]), "the calculation step between the previous line and this line might not hold"));
+                b.Add(AssertNS(s.Lines[i + 1].tok, etran.TrExpr(s.Steps[i]), new DafnyCalculationStepDescription()));
               } else {
                 foreach (var split in ss) {
                   if (split.IsChecked) {
-                    b.Add(AssertNS(s.Lines[i + 1].tok, split.E, "the calculation step between the previous line and this line might not hold"));
+                    b.Add(AssertNS(s.Lines[i + 1].tok, split.E, new DafnyCalculationStepDescription()));
                   }
                 }
               }
@@ -1533,8 +1537,8 @@ namespace Microsoft.Dafny {
               var index = ((TernaryExpr)stmt.Steps[i]).E0;
               TrStmt_CheckWellformed(index, b, locals, etran, false);
               if (index.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
-                b.Add(AssertNS(index.tok, Boogie.Expr.Le(Boogie.Expr.Literal(0), etran.TrExpr(index)),
-                  "prefix-equality limit must be at least 0"));
+                var desc = new DafnyPrefixEqualityLimitDescription();
+                b.Add(AssertNS(index.tok, Boogie.Expr.Le(Boogie.Expr.Literal(0), etran.TrExpr(index)), desc));
               }
             }
 
@@ -1546,12 +1550,12 @@ namespace Microsoft.Dafny {
               "assert line" + i.ToString() + " " + (stmt.StepOps[i] ?? stmt.Op).ToString() + " line" + (i + 1).ToString());
             if (!splitHappened) {
               b.Add(AssertNS(stmt.Lines[i + 1].tok, etran.TrExpr(stmt.Steps[i]),
-                "the calculation step between the previous line and this line might not hold"));
+                new DafnyCalculationStepDescription()));
             } else {
               foreach (var split in ss) {
                 if (split.IsChecked) {
                   b.Add(AssertNS(stmt.Lines[i + 1].tok, split.E,
-                    "the calculation step between the previous line and this line might not hold"));
+                    new DafnyCalculationStepDescription()));
                 }
               }
             }
@@ -1617,7 +1621,7 @@ namespace Microsoft.Dafny {
           foreach (var split in ss) {
             if (split.IsChecked) {
               var tok = enclosingToken == null ? split.E.tok : new NestedToken(enclosingToken, split.E.tok);
-              (proofBuilder ?? b).Add(AssertNS(tok, split.E, errorMessage ?? "assertion might not hold", stmt.Tok,
+              (proofBuilder ?? b).Add(AssertNS(tok, split.E, new DafnyAssertStatementDescription(errorMessage), stmt.Tok,
                 etran.TrAttributes(stmt.Attributes, null))); // attributes go on every split
             }
           }
@@ -2232,7 +2236,8 @@ namespace Microsoft.Dafny {
         if (!method.IsStatic) {
           Bpl.Expr wh = GetWhereClause(receiver.tok, etran.TrExpr(receiver), receiver.Type, etran.OldAt(atLabel), ISALLOC, true);
           if (wh != null) {
-            builder.Add(Assert(receiver.tok, wh, "receiver argument must be allocated in the two-state lemma's previous state"));
+            var desc = new DafnyTwoStateAllocatedDescription("receiver argument", "lemma");
+            builder.Add(AssertDesc(receiver.tok, wh, desc));
           }
         }
         Contract.Assert(callee.Ins.Count == Args.Count);
@@ -2242,8 +2247,9 @@ namespace Microsoft.Dafny {
             Expression ee = Args[i];
             Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran.OldAt(atLabel), ISALLOC, true);
             if (wh != null) {
-              builder.Add(Assert(ee.tok, wh, string.Format("parameter{0} ('{1}') must be allocated in the two-state lemma's previous state",
-                Args.Count == 1 ? "" : " " + i, formal.Name)));
+              var pIdx = Args.Count == 1 ? "" : " " + i;
+              var desc = new DafnyTwoStateAllocatedDescription($"parameter {pIdx} ('{formal.Name}')", "lemma");
+              builder.Add(AssertDesc(ee.tok, wh, desc));
             }
           }
         }

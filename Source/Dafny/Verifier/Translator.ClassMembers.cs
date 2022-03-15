@@ -660,7 +660,8 @@ namespace Microsoft.Dafny {
           if (formal.IsOld) {
             Boogie.Expr wh = GetWhereClause(e.tok, etran.TrExpr(e), e.Type, etran.Old, ISALLOC, true);
             if (wh != null) {
-              builder.Add(Assert(e.tok, wh, "default value must be allocated in the two-state lemma's previous state"));
+              var desc = new DafnyTwoStateAllocatedDescription("default value", "lemma");
+              builder.Add(AssertDesc(e.tok, wh, desc));
             }
           }
         }
@@ -1189,7 +1190,7 @@ namespace Microsoft.Dafny {
         bool splitHappened;  // we actually don't care
         foreach (var s in TrSplitExpr(postcond, etran, false, out splitHappened)) {
           if (s.IsChecked) {
-            builder.Add(Assert(m.tok, s.E, "the method must provide an equal or more detailed postcondition than in its parent trait"));
+            builder.Add(AssertDesc(m.tok, s.E, new DafnyEnsuresStrongerDescription()));
           }
         }
       }
@@ -1210,7 +1211,7 @@ namespace Microsoft.Dafny {
         bool splitHappened;  // we actually don't care
         foreach (var s in TrSplitExpr(req.E, etran, false, out splitHappened)) {
           if (s.IsChecked) {
-            builder.Add(Assert(m.tok, s.E, "the method must provide an equal or more permissive precondition than in its parent trait"));
+            builder.Add(AssertDesc(m.tok, s.E, new DafnyRequiresWeakerDescription()));
           }
         }
       }
@@ -1382,9 +1383,12 @@ namespace Microsoft.Dafny {
         foreach (var formal in m.Ins) {
           if (formal.IsOld) {
             var dafnyFormalIdExpr = new IdentifierExpr(formal.tok, formal);
-            req.Add(Requires(formal.tok, false, MkIsAlloc(etran.TrExpr(dafnyFormalIdExpr), formal.Type, prevHeap),
-              string.Format("parameter{0} ('{1}') must be allocated in the two-state lemma's previous state",
-                m.Ins.Count == 1 ? "" : " " + index, formal.Name), null));
+            var pIdx = m.Ins.Count == 1 ? "" : " " + index;
+            var desc = new DafnyTwoStateAllocatedDescription($"parameter {pIdx} ('{formal.Name}')", "lemma");
+            var require = Requires(formal.tok, false, MkIsAlloc(etran.TrExpr(dafnyFormalIdExpr), formal.Type, prevHeap),
+              desc.FailureDescription, null);
+            require.Description = desc;
+            req.Add(require);
           }
           index++;
         }
