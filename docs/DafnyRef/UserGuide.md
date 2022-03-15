@@ -558,8 +558,8 @@ TO BE WRITTEN
    * `go` - Go
    * `js` - Javascript
    * `java` - Java
+   * `py` - Python
    * `cpp` - C++
-   * `php` - PHP
 
 * `-spillTargetCode:<n>` - controls whether to write out compiled code in the target language (instead of just holding it in internal temporary memory)
 
@@ -568,7 +568,9 @@ TO BE WRITTEN
    * 2 - write the compiled program if it passes verification, regardless of the `-compile` setting
    * 3 - write the compiled program regardless of verification success and the `-compile` setting
 
-* `-out:<file>` - TODO
+* `-out:<file>` - sets the name to use for compiled code files.
+
+By default, Dafny reuses the name of the Dafny file being compiled.  Compilers that generate a single file use the file name as-is (e.g. the C# backend will generate `<file>.dll` and optionally `<file>.cs` with `-spillTargetCode`).  Compilers that generate multiple files use the file name as a directory name (e.g. the Java backend will generate files in directory `<file>-java/`).  Any file extension is ignored, so `-out:<file>` is the same as `-out:<file>.<ext>` if `<file>` contains no periods.
 
 * `-compileVerbose:<n>` - whether to write out compilation information
 
