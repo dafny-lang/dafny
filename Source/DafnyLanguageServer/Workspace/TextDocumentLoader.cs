@@ -378,9 +378,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         var pending = document.VerificationNodeDiagnostic.Children
           .Where(diagnostic => diagnostic.Started && !diagnostic.Finished)
           .OrderBy(diagnostic => diagnostic.StartTime)
-          .Select(diagnostic => diagnostic.DisplayName);
-        var message = string.Join(", ", pending) + extra;
-        ReportProgress(message);
+          .Select(diagnostic => diagnostic.DisplayName)
+          .ToList();
+        var total = document.VerificationNodeDiagnostic.Children.Count();
+        var verified = document.VerificationNodeDiagnostic.Children.Count(diagnostic => diagnostic.Finished);
+        var message = string.Join(", ", pending) + (!pending.Any() ? extra.Trim() : extra);
+        ReportProgress($"{verified}/{total} {message}");
       }
 
       public void ReportStartVerifyImplementation(Implementation implementation) {

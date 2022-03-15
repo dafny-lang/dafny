@@ -108,7 +108,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
               : (node.AssertionBatchCount == 1
                   ? $"{node.LongestAssertionBatchTime:n0}ms in 1 {assertionBatch}  \n"
                   : $"{node.LongestAssertionBatchTime:n0}ms for the longest {assertionBatch} #{node.LongestAssertionBatchTimeIndex + 1}/{node.AssertionBatchCount}{lineFirstAssert}   \n") +
-                $"{node.ResourceCount:n0} resource units";
+                $"{node.ResourceCount:n0} resource count";
             return CreateMarkdownHover(information);
           }
         }
