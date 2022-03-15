@@ -344,7 +344,22 @@ recursion was explicitly requested.
 * If `{:tailrecursion true}` was specified but the code does not allow it,
 an error message is given.
 
-### 22.1.15. timeLimitMultiplier
+### 22.1.15. test
+The C# and Java compilers can inject test annotations for XUnit and JUnit, respectively.  You must provide the :test attribute for all unit tests you want annotated.
+
+    method {:test} test_example()
+
+Dafny also provides support for unit tests with parameters provided by a method source.  To invoke this behavior, your tests should be of this form.
+
+    method {:test "MethodSource", "MethodSourceName"} test_example([parameters])
+
+Your method source's signature should be of this form
+
+    static method MethodSourceName() returns (inputs : seq<([parameter-types])>)
+
+where the method is static and the return type is a sequence built of types matching the parameters your test is expecting.  The Java compiler will convert the above code into JUnit; the C# compiler will convert it into XUnit.
+
+### 22.1.16. timeLimitMultiplier
 This attribute may be placed on a method or function declaration
 and has an integer argument. If `{:timeLimitMultiplier X}` was
 specified a `{:timelimit Y}` attributed is passed on to Boogie
@@ -352,11 +367,11 @@ where `Y` is `X` times either the default verification time limit
 for a function or method, or times the value specified by the
 Boogie `timelimit` command-line option.
 
-### 22.1.16. trigger
+### 22.1.17. trigger
 Trigger attributes are used on quantifiers and comprehensions.
 They are translated into Boogie triggers.
 
-### 22.1.17. typeQuantifier
+### 22.1.18. typeQuantifier
 The `{:typeQuantifier}` attribute must be used on a quantifier if it
 quantifies over types.
 
