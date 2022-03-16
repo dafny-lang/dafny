@@ -5710,7 +5710,7 @@ namespace Microsoft.Dafny {
                 Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran.OldAt(e.AtLabel), ISALLOC, true);
                 if (wh != null) {
                   var pIdx = e.Args.Count == 1 ? "" : " " + i;
-                  var desc = new DafnyTwoStateAllocatedDescription($"parameter {pIdx} ('{formal.Name}')", "function");
+                  var desc = new DafnyTwoStateAllocatedDescription($"argument{pIdx} ('{formal.Name}')", "function");
                   builder.Add(AssertDesc(ee.tok, wh, desc));
                 }
               }

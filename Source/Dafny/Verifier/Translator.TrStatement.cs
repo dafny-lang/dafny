@@ -2244,7 +2244,7 @@ namespace Microsoft.Dafny {
             Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran.OldAt(atLabel), ISALLOC, true);
             if (wh != null) {
               var pIdx = Args.Count == 1 ? "" : " " + i;
-              var desc = new DafnyTwoStateAllocatedDescription($"parameter {pIdx} ('{formal.Name}')", "lemma");
+              var desc = new DafnyTwoStateAllocatedDescription($"parameter{pIdx} ('{formal.Name}')", "lemma");
               builder.Add(AssertDesc(ee.tok, wh, desc));
             }
           }

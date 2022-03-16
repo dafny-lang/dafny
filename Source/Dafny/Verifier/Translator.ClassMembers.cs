@@ -1384,7 +1384,7 @@ namespace Microsoft.Dafny {
           if (formal.IsOld) {
             var dafnyFormalIdExpr = new IdentifierExpr(formal.tok, formal);
             var pIdx = m.Ins.Count == 1 ? "" : " " + index;
-            var desc = new DafnyTwoStateAllocatedDescription($"parameter {pIdx} ('{formal.Name}')", "lemma");
+            var desc = new DafnyTwoStateAllocatedDescription($"parameter{pIdx} ('{formal.Name}')", "lemma");
             var require = Requires(formal.tok, false, MkIsAlloc(etran.TrExpr(dafnyFormalIdExpr), formal.Type, prevHeap),
               desc.FailureDescription, null);
             require.Description = desc;
