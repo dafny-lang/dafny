@@ -123,8 +123,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var (textDocument, cancellationToken) = loadRequest;
       var errorReporter = new DiagnosticErrorReporter(textDocument.Uri);
       var program = parser.Parse(textDocument, errorReporter, cancellationToken);
-      DafnyDocument document;
-      VerificationProgressReporter progressReporter;
       PublishDafnyLanguageServerLoadErrors(errorReporter, program);
       if (errorReporter.HasErrors) {
         notificationPublisher.SendStatusNotification(textDocument, CompilationStatus.ParsingFailed);
@@ -492,8 +490,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             implementationNode.AddAssertionBatchResourceCount(assertionBatchResourceCount);
 
             // Attaches the trace
-            void AddChildOutcome(IToken token,
-              VerificationStatus status, IToken? secondaryToken, List<IToken> relatedTokens, string? assertDisplay = "", string assertIdentifier = "") {
+            void AddChildOutcome(Counterexample? counterexample, AssertCmd assertCmd, IToken token,
+              VerificationStatus status, IToken? secondaryToken, List<IToken> relatedTokens, string? assertDisplay = "",
+              string assertIdentifier = "") {
               if (token.filename != implementationNode.Filename) {
                 return;
               }
@@ -525,7 +524,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
                 StatusCurrent = CurrentStatus.Current,
                 RelatedRanges = relatedRanges,
                 AssertionBatchIndex = assertionBatchIndex
-              }.WithDuration(implementationNode.StartTime, assertionBatchTime);
+              }.WithDuration(implementationNode.StartTime, assertionBatchTime)
+                .WithAssertion(assertCmd)
+                .WithCounterExample(counterexample);
               // Add this diagnostics as the new one to display once the implementation is fully verified
               implementationNode.AddNewChild(nodeDiagnostic);
               // Update any previous pending "verifying" diagnostic as well so that they are updated in real-time
@@ -561,25 +562,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
                   return tokens;
                 }).ToList() : new List<IToken>();
               if (assertCmd is AssertEnsuresCmd assertEnsuresCmd) {
-                AddChildOutcome(assertEnsuresCmd.Ensures.tok, status, secondaryToken, RelatedPositions, " ensures", "_ensures");
-                if (secondaryToken != null) {
-                  var returnPosition = secondaryToken.GetLspPosition();
-                  if (returnPosition != implementationNode.Position) {
-                    AddChildOutcome(secondaryToken, status, assertEnsuresCmd.tok, RelatedPositions, "return branch",
-                      "_return");
-                  }
-                }
+                AddChildOutcome(counterexample, assertCmd, assertEnsuresCmd.Ensures.tok, status, secondaryToken, RelatedPositions, " ensures", "_ensures");
               } else if (assertCmd is AssertRequiresCmd assertRequiresCmd) {
-                AddChildOutcome(assertRequiresCmd.Call.tok, status, secondaryToken, RelatedPositions, "Call", "call");
+                AddChildOutcome(counterexample, assertCmd, assertRequiresCmd.Call.tok, status, secondaryToken, RelatedPositions, assertDisplay: "Call", assertIdentifier: "call");
               } else {
-                AddChildOutcome(assertCmd.tok, status, secondaryToken, RelatedPositions, "Assertion", "assert");
-                if (secondaryToken != null) {
-                  var requiresPosition = secondaryToken.GetLspPosition();
-                  if (targetMethodNode.Range.Contains(requiresPosition)) {
-                    AddChildOutcome(secondaryToken, status, assertCmd.tok, RelatedPositions, "Call precondition",
-                      "call_precondition");
-                  }
-                }
+                AddChildOutcome(counterexample, assertCmd, assertCmd.tok, status, secondaryToken, RelatedPositions, assertDisplay: "Assertion", assertIdentifier: "assert");
               }
             }
             targetMethodNode.PropagateChildrenErrorsUp();

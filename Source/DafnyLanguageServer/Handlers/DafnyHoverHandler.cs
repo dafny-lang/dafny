@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Linq;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace;
@@ -8,6 +9,8 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Boogie;
+using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers {
@@ -48,7 +51,6 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     private Hover? GetDiagnosticsHover(DafnyDocument document, Position position) {
       foreach (var node in document.VerificationNodeDiagnostic.Children.OfType<MethodOrSubsetTypeNodeDiagnostic>()) {
         if (node.Range.Contains(position)) {
-          var implementations = node.Children.OfType<ImplementationNodeDiagnostic>().ToList();
           var assertionBatchCount = node.AssertionBatchCount;
           var assertionBatchIndex = -1;
           foreach (var assertionBatch in node.AssertionBatches) {
@@ -61,25 +63,54 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
             var assertions = assertionBatch.Children.OfType<AssertionNodeDiagnostic>().ToList();
             var information = "";
             foreach (var assertionNode in assertions) {
-              if (assertionNode.Range.Contains(position)) {
+              if (assertionNode.Range.Contains(position) ||
+                  assertionNode.ImmediatelyRelatedRanges.Any(range => range.Contains(position))) {
+                var assertCmd = assertionNode.GetAssertion();
                 var batchRef = AddAssertionBatchDocumentation("batch");
                 var assertionBatchTime = assertionBatch.TimeSpent;
                 var assertionBatchResourceCount = assertionBatch.ResourceCount;
                 var assertionCount = assertionBatch.Children.Count;
-                if (information == "") {
-                  information = $"**{node.DisplayName}** metrics:\n\n";
-                }
 
                 var assertionId = assertionCount == 1 ? "" : $" #{assertionIndex + 1}/{assertionCount}";
                 var assertionInfo = $" of {batchRef} #{assertionBatchIndex + 1}/{assertionBatchCount} checked in {assertionBatchTime:n0}ms with {assertionBatchResourceCount:n0} resource count";
 
-                information += $"assertion{assertionId}{assertionInfo}: *";
-                information += assertionNode.StatusVerification switch {
+                information += $"assertion{assertionId}{assertionInfo}:  \n";
+                // Not the main error displayed in diagnostics
+                if (!(assertionNode.GetCounterExample() is ReturnCounterexample returnCounterexample2 &&
+                      returnCounterexample2.FailingReturn.tok.GetLspRange().Contains(position))) {
+                  information += assertionNode.SecondaryPosition != null
+                    ? $"`{Path.GetFileName(assertionNode.Filename)}({assertionNode.SecondaryPosition.Line + 1}, {assertionNode.SecondaryPosition.Character + 1}): `"
+                    : "";
+                }
+
+                information += "*";
+                var statusMessage = assertionNode.StatusVerification switch {
                   VerificationStatus.Verified => "Verified",
                   VerificationStatus.Inconclusive => "Could not be checked",
-                  VerificationStatus.Error => "Might not hold",
+                  VerificationStatus.Error => assertCmd?.ErrorMessage ?? "Might not hold",
                   _ => "Not checked",
                 };
+                var counterexample = assertionNode.GetCounterExample();
+
+                void SetDescription(ProofObligationDescription? description) {
+                  if (description == null) {
+                    return;
+                  }
+
+                  statusMessage = assertionNode?.StatusVerification switch {
+                    VerificationStatus.Verified => description.SuccessDescription,
+                    VerificationStatus.Error => description.FailureDescription,
+                    _ => statusMessage
+                  };
+                }
+
+                if (counterexample is ReturnCounterexample returnCounterexample) {
+                  SetDescription(returnCounterexample.FailingReturn.Description);
+                } else if (counterexample is CallCounterexample callCounterexample) {
+                  SetDescription(callCounterexample.FailingCall.Description);
+                }
+
+                information += statusMessage;
                 information += assertionNode.StatusCurrent switch {
                   CurrentStatus.Current => "",
                   CurrentStatus.Obsolete => "recently",

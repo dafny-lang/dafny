@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection.Metadata;
 using MediatR;
 using Microsoft.Boogie;
+using Microsoft.Dafny.LanguageServer.Language;
 using OmniSharp.Extensions.JsonRpc;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -51,9 +52,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     /// <summary>
     /// Returns per-line real-time diagnostic
     /// </summary>
-    public LineVerificationStatus[] PerLineDiagnostic =>
-      RenderPerLineDiagnostics(this, PerNodeDiagnostic, LinesCount,
+    public LineVerificationStatus[] PerLineDiagnostic { get; set; } = new LineVerificationStatus[] { };
+
+    public void RecomputePerLineDiagnostics() {
+      PerLineDiagnostic = RenderPerLineDiagnostics(this, PerNodeDiagnostic, LinesCount,
         NumberOfResolutionErrors, Diagnostics);
+    }
 
     static LineVerificationStatus[] RenderPerLineDiagnostics(
       VerificationDiagnosticsParams verificationDiagnosticsParams,
@@ -269,9 +273,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     }
 
     // Requires PropagateChildrenErrorsUp to have been called before.
-    public void RenderInto(LineVerificationStatus[] perLineDiagnostics, bool contextHasErrors = false, bool contextIsPending = false) {
-      var isSingleLine = Range.Start.Line == Range.End.Line;
-      for (var line = Range.Start.Line; line <= Range.End.Line; line++) {
+    public virtual void RenderInto(LineVerificationStatus[] perLineDiagnostics, bool contextHasErrors = false, bool contextIsPending = false, Range? otherRange = null) {
+      Range range = otherRange ?? Range;
+      var isSingleLine = range.Start.Line == range.End.Line;
+      for (var line = range.Start.Line; line <= range.End.Line; line++) {
         LineVerificationStatus targetStatus = StatusVerification switch {
           VerificationStatus.Unknown => StatusCurrent switch {
             CurrentStatus.Current => LineVerificationStatus.Unknown,
@@ -498,9 +503,52 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       return this;
     }
 
+    // Ranges that should also display an error
+    public List<Range> ImmediatelyRelatedRanges {
+      get {
+        if (assertion == null) {
+          return new();
+        }
+
+        var tok = assertion.tok;
+        var result = new List<Range>();
+        while (tok is NestedToken nestedToken) {
+          tok = nestedToken.Inner;
+          result.Add(tok.GetLspRange());
+        }
+        if (counterExample is ReturnCounterexample returnCounterexample) {
+          result.Add(returnCounterexample.FailingReturn.tok.GetLspRange());
+        }
+        return result;
+      }
+    }
+
+    // Ranges that should highlight when stepping on one error.
+    public List<Range> DynamicallyRelatedRanges {
+      get {
+        if (assertion == null) {
+          return new();
+        }
+        var result = new List<Range>();
+        if (counterExample is CallCounterexample callCounterexample) {
+          result.Add(callCounterexample.FailingRequires.tok.GetLspRange());
+        }
+        return result;
+      }
+    }
+
+    public override void RenderInto(LineVerificationStatus[] perLineDiagnostics, bool contextHasErrors = false,
+      bool contextIsPending = false, Range? otherRange = null) {
+      base.RenderInto(perLineDiagnostics, contextHasErrors, contextIsPending, otherRange);
+      foreach (var range in ImmediatelyRelatedRanges) {
+        base.RenderInto(perLineDiagnostics, contextHasErrors, contextIsPending, range);
+      }
+    }
+
     // Contains permanent secondary positions to this node (e.g. return branch positions)
     // Helps to distinguish between assertions with the same position (i.e. ensures for different branches)
-    private AssertCmd? assertion = null;
+    private AssertCmd? assertion;
+    private Counterexample? counterExample;
 
     /// <summary>
     /// Which assertion batch this assertion was taken from in its implementation node
@@ -513,6 +561,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
     public AssertionNodeDiagnostic WithAssertion(AssertCmd cmd) {
       assertion = cmd;
+      return this;
+    }
+
+
+    public Counterexample? GetCounterExample() {
+      return counterExample;
+    }
+
+    public AssertionNodeDiagnostic WithCounterExample(Counterexample? c) {
+      counterExample = c;
       return this;
     }
   };

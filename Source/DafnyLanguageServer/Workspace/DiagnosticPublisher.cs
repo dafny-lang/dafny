@@ -59,6 +59,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         LinesCount = Regex.Matches(document.Text.Text, "\r?\n").Count + 1,
         PerNodeDiagnostic = document.VerificationNodeDiagnostic.Children.ToArray()
       };
+      verificationDiagnosticsParams.RecomputePerLineDiagnostics();
       if (verificationDiagnosticsParams.PerLineDiagnostic.Length > 0) {
         languageServer.TextDocument.SendNotification(verificationDiagnosticsParams);
       }
