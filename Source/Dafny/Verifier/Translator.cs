@@ -4356,8 +4356,7 @@ namespace Microsoft.Dafny {
           foreach (var split in ss) {
             if (split.IsChecked) {
               var tok = new NestedToken(witnessCheckTok, split.E.tok);
-              var desc = new DafnyWitnessCheckDescription(witnessErrorMsg);
-              witnessCheckBuilder.Add(AssertNS(tok, split.E, desc));
+              witnessCheckBuilder.Add(AssertNS(tok, split.E, witnessErrorMsg));
             }
           }
         }
@@ -5722,15 +5721,14 @@ namespace Microsoft.Dafny {
             Expression precond = Substitute(p.E, e.Receiver, substMap, e.GetTypeArgumentSubstitutions());
             bool splitHappened;  // we don't actually care
             string errorMessage = CustomErrorMessage(p.Attributes);
-            var desc = new DafnyPreconditionCheckDescription(errorMessage);
             foreach (var ss in TrSplitExpr(precond, etran, true, out splitHappened)) {
               if (ss.IsChecked) {
                 var tok = new NestedToken(expr.tok, ss.E.tok);
                 if (options.AssertKv != null) {
                   // use the given assert attribute only
-                  builder.Add(AssertDesc(tok, ss.E, desc, options.AssertKv));
+                  builder.Add(Assert(tok, ss.E, errorMessage ?? "possible violation of function precondition", options.AssertKv));
                 } else {
-                  builder.Add(AssertNS(tok, ss.E, desc));
+                  builder.Add(AssertNS(tok, ss.E, errorMessage ?? "possible violation of function precondition"));
                 }
               }
             }
@@ -8271,13 +8269,13 @@ namespace Microsoft.Dafny {
       }
     }
 
-    Bpl.PredicateCmd AssertNS(Bpl.IToken tok, Bpl.Expr condition, ProofObligationDescription desc) {
-      return AssertNS(tok, condition, desc, tok, null);
+    Bpl.PredicateCmd AssertNS(Bpl.IToken tok, Bpl.Expr condition, string errorMessage) {
+      return AssertNS(tok, condition, errorMessage, tok, null);
     }
 
-    Bpl.PredicateCmd AssertNS(Bpl.IToken tok, Bpl.Expr condition, ProofObligationDescription desc, Bpl.IToken refinesTok, Bpl.QKeyValue kv) {
+    Bpl.PredicateCmd AssertNS(Bpl.IToken tok, Bpl.Expr condition, string errorMessage, Bpl.IToken refinesTok, Bpl.QKeyValue kv) {
       Contract.Requires(tok != null);
-      Contract.Requires(desc != null);
+      Contract.Requires(errorMessage != null);
       Contract.Requires(condition != null);
       Contract.Ensures(Contract.Result<Bpl.PredicateCmd>() != null);
 
@@ -8288,7 +8286,8 @@ namespace Microsoft.Dafny {
         tok = ForceCheckToken.Unwrap(tok);
         var args = new List<object>();
         args.Add(Bpl.Expr.Literal(0));
-        Bpl.AssertCmd cmd = TrAssertCmdDesc(tok, condition, desc, new Bpl.QKeyValue(tok, "subsumption", args, kv));
+        Bpl.AssertCmd cmd = TrAssertCmd(tok, condition, new Bpl.QKeyValue(tok, "subsumption", args, kv));
+        cmd.ErrorData = "Error: " + errorMessage;
         return cmd;
       }
     }
@@ -9984,8 +9983,7 @@ namespace Microsoft.Dafny {
       // check precond
       var pre = FunctionCall(tok, Requires(dims.Count), Bpl.Type.Bool, args);
       var q = new Bpl.ForallExpr(tok, bvs, Bpl.Expr.Imp(ante, pre));
-      var desc = new DafnyIndicesInDomainDescription(forArray ? "array" : "sequence");
-      builder.Add(AssertNS(tok, q, desc));
+      builder.Add(AssertNS(tok, q, string.Format("all {0} indices must be in the domain of the initialization function", forArray ? "array" : "sequence")));
       if (!forArray && options.DoReadsChecks) {
         // check read effects
         Type objset = new SetType(true, program.BuiltIns.ObjectQ());
@@ -10010,8 +10008,7 @@ namespace Microsoft.Dafny {
         // assert (forall i0,i1,i2,... ::
         //            0 <= i0 < ... && ... ==> init.requires(i0,i1,i2,...) is Subtype);
         q = new Bpl.ForallExpr(tok, bvs, Bpl.Expr.Imp(ante, cre));
-        var subrangeDesc = new DafnySubrangeCheckDescription(msg);
-        builder.Add(AssertNS(init.tok, q, subrangeDesc));
+        builder.Add(AssertNS(init.tok, q, msg));
       }
 
       if (forArray) {

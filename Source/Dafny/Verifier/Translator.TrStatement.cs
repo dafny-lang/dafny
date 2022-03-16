@@ -58,8 +58,7 @@ namespace Microsoft.Dafny {
             foreach (var split in ss) {
               if (split.IsChecked) {
                 var tok = enclosingToken == null ? split.E.tok : new NestedToken(enclosingToken, split.E.tok);
-                var desc = new DafnyAssertStatementDescription(errorMessage);
-                (proofBuilder ?? b).Add(AssertNS(tok, split.E, desc, stmt.Tok, etran.TrAttributes(stmt.Attributes, null)));  // attributes go on every split
+                (proofBuilder ?? b).Add(AssertNS(tok, split.E, errorMessage ?? "assertion might not hold", stmt.Tok, etran.TrAttributes(stmt.Attributes, null)));  // attributes go on every split
               }
             }
           }
@@ -215,9 +214,7 @@ namespace Microsoft.Dafny {
               // this postcondition was inherited into this module, so just ignore it
             } else if (split.IsChecked) {
               var yieldToken = new NestedToken(s.Tok, split.E.tok);
-              var desc = new DafnyYieldEnsuresDescription();
-              var assertCmd = AssertNS(yieldToken, split.E, desc, stmt.Tok, null);
-              builder.Add(assertCmd);
+              builder.Add(AssertNS(yieldToken, split.E, "possible violation of yield-ensures condition", stmt.Tok, null));
             }
           }
           builder.Add(TrAssumeCmd(stmt.Tok, yeEtran.TrExpr(p.E)));
@@ -732,8 +729,7 @@ namespace Microsoft.Dafny {
                 var index = ((TernaryExpr)s.Steps[i]).E0;
                 TrStmt_CheckWellformed(index, b, locals, etran, false);
                 if (index.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
-                  var desc = new DafnyPrefixEqualityLimitDescription();
-                  b.Add(AssertNS(index.tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(index)), desc));
+                  b.Add(AssertNS(index.tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(index)), "prefix-equality limit must be at least 0"));
                 }
               }
               TrStmt_CheckWellformed(CalcStmt.Rhs(s.Steps[i]), b, locals, etran, false);
@@ -742,11 +738,11 @@ namespace Microsoft.Dafny {
               // assert step:
               AddComment(b, stmt, "assert line" + i.ToString() + " " + (s.StepOps[i] ?? s.Op).ToString() + " line" + (i + 1).ToString());
               if (!splitHappened) {
-                b.Add(AssertNS(s.Lines[i + 1].tok, etran.TrExpr(s.Steps[i]), new DafnyCalculationStepDescription()));
+                b.Add(AssertNS(s.Lines[i + 1].tok, etran.TrExpr(s.Steps[i]), "the calculation step between the previous line and this line might not hold"));
               } else {
                 foreach (var split in ss) {
                   if (split.IsChecked) {
-                    b.Add(AssertNS(s.Lines[i + 1].tok, split.E, new DafnyCalculationStepDescription()));
+                    b.Add(AssertNS(s.Lines[i + 1].tok, split.E, "the calculation step between the previous line and this line might not hold"));
                   }
                 }
               }
@@ -1537,8 +1533,8 @@ namespace Microsoft.Dafny {
               var index = ((TernaryExpr)stmt.Steps[i]).E0;
               TrStmt_CheckWellformed(index, b, locals, etran, false);
               if (index.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
-                var desc = new DafnyPrefixEqualityLimitDescription();
-                b.Add(AssertNS(index.tok, Boogie.Expr.Le(Boogie.Expr.Literal(0), etran.TrExpr(index)), desc));
+                b.Add(AssertNS(index.tok, Boogie.Expr.Le(Boogie.Expr.Literal(0), etran.TrExpr(index)),
+                  "prefix-equality limit must be at least 0"));
               }
             }
 
@@ -1550,12 +1546,12 @@ namespace Microsoft.Dafny {
               "assert line" + i.ToString() + " " + (stmt.StepOps[i] ?? stmt.Op).ToString() + " line" + (i + 1).ToString());
             if (!splitHappened) {
               b.Add(AssertNS(stmt.Lines[i + 1].tok, etran.TrExpr(stmt.Steps[i]),
-                new DafnyCalculationStepDescription()));
+                "the calculation step between the previous line and this line might not hold"));
             } else {
               foreach (var split in ss) {
                 if (split.IsChecked) {
                   b.Add(AssertNS(stmt.Lines[i + 1].tok, split.E,
-                    new DafnyCalculationStepDescription()));
+                    "the calculation step between the previous line and this line might not hold"));
                 }
               }
             }
@@ -1621,7 +1617,7 @@ namespace Microsoft.Dafny {
           foreach (var split in ss) {
             if (split.IsChecked) {
               var tok = enclosingToken == null ? split.E.tok : new NestedToken(enclosingToken, split.E.tok);
-              (proofBuilder ?? b).Add(AssertNS(tok, split.E, new DafnyAssertStatementDescription(errorMessage), stmt.Tok,
+              (proofBuilder ?? b).Add(AssertNS(tok, split.E, errorMessage ?? "assertion might not hold", stmt.Tok,
                 etran.TrAttributes(stmt.Attributes, null))); // attributes go on every split
             }
           }
