@@ -61,12 +61,12 @@ namespace Microsoft.Dafny.Compilers {
         List<TypeParameter> typeParameters, TopLevelDecl cls, List<Type> superClasses, IToken tok, ConcreteSyntaxTree wr) {
       var methodWriter = wr.NewBlock(header: $"class {MangleName(name)}:", open: BlockStyle.Newline, close: BlockStyle.Nothing);
 
-      var needsConstructor = cls is TopLevelDeclWithMembers decl && decl.Members.FindAll(m => !m.IsGhost && m is Field && !m.IsStatic).Count > 0;
+      var needsConstructor = cls is TopLevelDeclWithMembers decl && decl.Members.Any(m => !m.IsGhost && m is Field && !m.IsStatic);
       var constructorWriter = needsConstructor
         ? methodWriter.NewBlock(header: "def  __init__(self):", open: BlockStyle.Newline, close: BlockStyle.Newline)
         : null;
       if (cls is ClassDecl d) {
-        if (!needsConstructor && d.Members.FindAll(m => !m.IsGhost).Count == 0) {
+        if (!needsConstructor && d.Members.All(m => m.IsGhost)) {
           methodWriter.WriteLine("pass");
         }
       }
@@ -97,8 +97,7 @@ namespace Microsoft.Dafny.Compilers {
       var cw = (ClassWriter)CreateClass(IdProtect(nt.EnclosingModuleDefinition.CompileName), IdName(nt), nt, wr);
       var w = cw.MethodWriter;
       var udt = UserDefinedType.FromTopLevelDecl(nt.tok, nt);
-      string d;
-      d = TypeInitializationValue(udt, wr, nt.tok, false, false);
+      var d = TypeInitializationValue(udt, wr, nt.tok, false, false);
 
       w.NewBlock("def Default():", "", BlockStyle.Newline, BlockStyle.Newline).WriteLine($"return {d}", "");
 
