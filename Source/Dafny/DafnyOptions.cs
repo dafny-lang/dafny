@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Diagnostics.Contracts;
@@ -10,6 +11,7 @@ using System.IO;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using JetBrains.Annotations;
+using Microsoft.Dafny.Compilers;
 using Microsoft.Dafny.Plugins;
 using Bpl = Microsoft.Boogie;
 
@@ -76,19 +78,9 @@ namespace Microsoft.Dafny {
     public List<string> DafnyPrintExportedViews = new List<string>();
     public bool Compile = true;
 
-    [Flags]
-    public enum CompilationTarget {
-      Csharp = 1,
-      JavaScript = 2,
-      Go = 4,
-      Java = 8,
-      Cpp = 16,
-      Php = 32,
-      Python = 64
-    }
-
-    public CompilationTarget CompileTarget = CompilationTarget.Csharp;
+    public Compiler Compiler;
     public bool CompileVerbose = true;
+    public bool EnforcePrintEffects = false;
     public string DafnyPrintCompiledFile = null;
     public string CoverageLegendFile = null;
     public string MainMethod = null;
@@ -150,7 +142,8 @@ namespace Microsoft.Dafny {
     // Working around the fact that xmlFilename is private
     public string BoogieXmlFilename = null;
 
-    public List<Plugin> Plugins = new();
+    public static readonly ReadOnlyCollection<Plugin> DefaultPlugins = new(new[] { Compilers.SinglePassCompiler.Plugin });
+    public List<Plugin> Plugins = new(DefaultPlugins);
 
     public virtual TestGenerationOptions TestGenOptions =>
       testGenOptions ??= new TestGenerationOptions();
@@ -216,22 +209,12 @@ namespace Microsoft.Dafny {
 
         case "compileTarget":
           if (ps.ConfirmArgumentCount(1)) {
-            if (args[ps.i].Equals("cs")) {
-              CompileTarget = CompilationTarget.Csharp;
-            } else if (args[ps.i].Equals("js")) {
-              CompileTarget = CompilationTarget.JavaScript;
-            } else if (args[ps.i].Equals("go")) {
-              CompileTarget = CompilationTarget.Go;
-            } else if (args[ps.i].Equals("java")) {
-              CompileTarget = CompilationTarget.Java;
-            } else if (args[ps.i].Equals("cpp")) {
-              CompileTarget = CompilationTarget.Cpp;
-            } else if (args[ps.i].Equals("php")) {
-              CompileTarget = CompilationTarget.Php;
-            } else if (args[ps.i].Equals("py")) {
-              CompileTarget = CompilationTarget.Python;
-            } else {
-              InvalidArgumentError(name, ps);
+            var compileTarget = args[ps.i];
+            var compilers = Plugins.SelectMany(p => p.GetCompilers()).ToList();
+            Compiler = compilers.LastOrDefault(c => c.TargetId == compileTarget);
+            if (Compiler == null) {
+              var known = String.Join(", ", compilers.Select(c => $"'{c.TargetId}' ({c.TargetLanguage})"));
+              ps.Error($"No compiler found for compileTarget \"{compileTarget}\"; expecting one of {known}");
             }
           }
 
@@ -260,10 +243,18 @@ namespace Microsoft.Dafny {
                   // Parse arguments, accepting and remove double quotes that isolate long arguments
                   arguments = ParsePluginArguments(argumentsString);
                 }
-                Plugins.Add(Plugin.Load(pluginPath, arguments));
+                Plugins.Add(AssemblyPlugin.Load(pluginPath, arguments));
               }
             }
 
+            return true;
+          }
+
+        case "trackPrintEffects": {
+            int printEffects = 0;
+            if (ps.GetNumericArgument(ref printEffects, 2)) {
+              EnforcePrintEffects = printEffects == 1;
+            }
             return true;
           }
 
@@ -592,6 +583,8 @@ namespace Microsoft.Dafny {
         XmlSink = new Bpl.XmlSink(this, BoogieXmlFilename);
       }
 
+      Compiler ??= new CsharpCompiler();
+
       // expand macros in filenames, now that LogPrefix is fully determined
       ExpandFilename(DafnyPrelude, x => DafnyPrelude = x, LogPrefix, FileTimestamp);
       ExpandFilename(DafnyPrintFile, x => DafnyPrintFile = x, LogPrefix, FileTimestamp);
@@ -631,9 +624,6 @@ namespace Microsoft.Dafny {
       Dafny does not perform sanity checks on the arguments---it is the user's responsibility not to generate
       malformed target code.
 
-    {:axiom}
-      TODO
-
     {:handle}
       TODO
 
@@ -647,10 +637,24 @@ namespace Microsoft.Dafny {
       TODO
 
     {:axiom}
-      TODO
+      Ordinarily, the compiler gives an error for every function or
+      method without a body. If the function or method is ghost, then
+      marking it with {:axiom} suppresses the error. The {:axiom}
+      attribute says you're taking responsibility for the existence
+      of a body for the function or method.
 
     {:abstemious}
       TODO
+
+    {:print}
+      This attributes declares that a method may have print effects,
+      that is, it may use 'print' statements and may call other methods
+      that have print effects. The attribute can be applied to compiled
+      methods, constructors, and iterators, and it gives an error if
+      applied to functions or ghost methods. An overriding method is
+      allowed to use a {:print} attribute only if the overridden method
+      does.
+      Print effects are enforced only with /trackPrintEffects:1.
 
     {:nativeType}
       Can be applied to newtype declarations for integer types and
@@ -902,8 +906,8 @@ namespace Microsoft.Dafny {
     go - Compilation to Go
     js - Compilation to JavaScript
     java - Compilation to Java
+    py - Compilation to Python
     cpp - Compilation to C++
-    php - Compilation to PHP
 
     Note that the C++ backend has various limitations (see Docs/Compilation/Cpp.md).
     This includes lack of support for BigIntegers (aka int), most higher order
@@ -916,7 +920,7 @@ namespace Microsoft.Dafny {
     https://github.com/dafny-lang/dafny/blob/master/Source/DafnyLanguageServer/README.md#about-plugins
 /Main:<name>
     The (fully-qualified) name of the method to use as the executable entry point.
-    Default is the method with the {{:main}} atrribute, or else the method named 'Main'.
+    Default is the method with the {{:main}} attribute, or else the method named 'Main'.
 /compileVerbose:<n>
     0 - don't print status of compilation to the console
     1 (default) - print information such as files being written by
@@ -942,6 +946,11 @@ namespace Microsoft.Dafny {
     <file> a legend that gives a description of each
     source-location identifier used in the branch-coverage calls.
     (use - as <file> to print to console)
+/trackPrintEffects:<n>
+    0 (default) - Every compiled method, constructor, and iterator, whether or not
+       it bears a {{:print}} attribute, may have print effects.
+    1 - A compiled method, constructor, or iterator is allowed to have print effects
+       only if it is marked with {{:print}}.
 /noCheating:<n>
     0 (default) - allow assume statements and free invariants
     1 - treat all assumptions as asserts, and drop free.
