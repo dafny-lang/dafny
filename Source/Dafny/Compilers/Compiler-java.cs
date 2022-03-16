@@ -19,15 +19,34 @@ using System.Reflection;
 using Bpl = Microsoft.Boogie;
 using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 
-namespace Microsoft.Dafny {
-  public class JavaCompiler : Compiler {
-    public JavaCompiler(ErrorReporter reporter)
-      : base(reporter) {
+namespace Microsoft.Dafny.Compilers {
+  public class JavaCompiler : SinglePassCompiler {
+    public override void OnPreCompile(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
+      base.OnPreCompile(reporter, otherFileNames);
       IntSelect = ",java.math.BigInteger";
       LambdaExecute = ".apply";
     }
 
-    public override String TargetLanguage => "Java";
+    public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".java" };
+
+    public override string TargetLanguage => "Java";
+    public override string TargetExtension => "java";
+    public override string TargetBasename(string dafnyProgramName) =>
+      TransformToClassName(base.TargetBasename(dafnyProgramName));
+    public override string TargetBaseDir(string dafnyProgramName) =>
+      $"{Path.GetFileNameWithoutExtension(dafnyProgramName)}-java";
+    public string TransformToClassName(string baseName) =>
+      Regex.Replace(baseName, "[^_A-Za-z0-9$]", "_");
+
+    public override bool SupportsInMemoryCompilation => false;
+    public override bool TextualTargetIsExecutable => false;
+
+    public override void CleanSourceDirectory(string sourceDirectory) {
+      try {
+        Directory.Delete(sourceDirectory, true);
+      } catch (DirectoryNotFoundException) {
+      }
+    }
 
     const string DafnySetClass = "dafny.DafnySet";
     const string DafnyMultiSetClass = "dafny.DafnyMultiset";
@@ -79,7 +98,6 @@ namespace Microsoft.Dafny {
 
     protected override bool UseReturnStyleOuts(Method m, int nonGhostOutCount) => true;
 
-    public override bool SupportsInMemoryCompilation => false;
 
     protected override bool SupportsAmbiguousTypeDecl => false;
     protected override bool SupportsProperties => false;
@@ -428,7 +446,7 @@ namespace Microsoft.Dafny {
       bool createBody, ConcreteSyntaxTree wr) {
       wr.Write("public {0}{1} {2}()", isStatic ? "static " : "", TypeName(resultType, wr, tok), name);
       if (createBody) {
-        var w = wr.NewBlock("", null, BraceStyle.Newline, BraceStyle.Newline);
+        var w = wr.NewBlock("", null, BlockStyle.NewlineBrace, BlockStyle.NewlineBrace);
         return w;
       } else {
         wr.WriteLine(";");
@@ -450,13 +468,13 @@ namespace Microsoft.Dafny {
       wr.Write("public {0}{1} {2}()", isStatic ? "static " : "", TypeName(resultType, wr, tok), name);
       ConcreteSyntaxTree wGet = null;
       if (createBody) {
-        wGet = wr.NewBlock("", null, BraceStyle.Newline, BraceStyle.Newline);
+        wGet = wr.NewBlock("", null, BlockStyle.NewlineBrace, BlockStyle.NewlineBrace);
       } else {
         wr.WriteLine(";");
       }
       wr.Write("public {0}void set_{1}({2} value)", isStatic ? "static " : "", name, TypeName(resultType, wr, tok));
       if (createBody) {
-        setterWriter = wr.NewBlock("", null, BraceStyle.Newline, BraceStyle.Newline);
+        setterWriter = wr.NewBlock("", null, BlockStyle.NewlineBrace, BlockStyle.NewlineBrace);
       } else {
         wr.WriteLine(";");
         setterWriter = null;
@@ -499,7 +517,7 @@ namespace Microsoft.Dafny {
         wr.WriteLine(");");
         return null; // We do not want to write a function body, so instead of returning a BTW, we return null.
       } else {
-        return wr.NewBlock(")", null, BraceStyle.Newline, BraceStyle.Newline);
+        return wr.NewBlock(")", null, BlockStyle.NewlineBrace, BlockStyle.NewlineBrace);
       }
     }
 
@@ -547,7 +565,7 @@ namespace Microsoft.Dafny {
       } else {
         ConcreteSyntaxTree w;
         if (argCount > 1) {
-          w = wr.NewBlock(")", null, BraceStyle.Newline, BraceStyle.Newline);
+          w = wr.NewBlock(")", null, BlockStyle.NewlineBrace, BlockStyle.NewlineBrace);
         } else {
           w = wr.NewBlock(")");
         }
@@ -2080,7 +2098,7 @@ namespace Microsoft.Dafny {
       return PublicIdProtect(name);
     }
 
-    public static string PublicIdProtect(string name) {
+    public override string PublicIdProtect(string name) {
       name = name.Replace("_module", "_System");
       if (name == "" || name.First() == '_') {
         return name; // no need to further protect this name
@@ -2477,15 +2495,6 @@ namespace Microsoft.Dafny {
       s += $"{TypeMethodName}(";
       s += Util.Comma(relevantTypeArgs, arg => TypeDescriptor(arg, wr, tok));
       return s + ")";
-    }
-
-    bool OutContainsParam(List<Formal> l, TypeParameter tp) {
-      foreach (Formal f in l) {
-        if ((f.Type.IsTypeParameter && f.Type.AsTypeParameter.Equals(tp)) || (f.Type.AsCollectionType != null && f.Type.AsCollectionType.Arg.IsTypeParameter && f.Type.AsCollectionType.Arg.AsTypeParameter.Equals(tp))) {
-          return true;
-        }
-      }
-      return false;
     }
 
     protected override void EmitSetBuilder_New(ConcreteSyntaxTree wr, SetComprehension e, string collectionName) {
@@ -3348,12 +3357,17 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override ConcreteSyntaxTree CreateLabeledCode(string label, ConcreteSyntaxTree wr) {
-      return wr.NewNamedBlock($"goto_{label}:");
+    protected override ConcreteSyntaxTree CreateLabeledCode(string label, bool createContinueLabel, ConcreteSyntaxTree wr) {
+      var prefix = createContinueLabel ? "continue_" : "goto_";
+      return wr.NewNamedBlock($"{prefix}{label}:");
     }
 
     protected override void EmitBreak(string label, ConcreteSyntaxTree wr) {
       wr.WriteLine(label == null ? "break;" : $"break goto_{label};");
+    }
+
+    protected override void EmitContinue(string label, ConcreteSyntaxTree wr) {
+      wr.WriteLine($"break continue_{label};");
     }
 
     protected override void EmitAbsurd(string message, ConcreteSyntaxTree wr) {
@@ -3524,7 +3538,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override ConcreteSyntaxTree EmitForStmt(Bpl.IToken tok, IVariable loopIndex, bool goingUp, string /*?*/ endVarName,
-      List<Statement> body, ConcreteSyntaxTree wr) {
+      List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr) {
 
       var nativeType = AsNativeType(loopIndex.Type);
 
@@ -3565,6 +3579,7 @@ namespace Microsoft.Dafny {
           bodyWr.WriteLine($"{loopIndex.CompileName}--;");
         }
       }
+      bodyWr = EmitContinueLabel(labels, bodyWr);
       TrStmtList(body, bodyWr);
 
       return startWr;
@@ -3939,10 +3954,6 @@ namespace Microsoft.Dafny {
 
     protected override ConcreteSyntaxTree CreateIterator(IteratorDecl iter, ConcreteSyntaxTree wr) {
       throw new NotImplementedException();
-    }
-
-    public override string TransformToClassName(string baseName) {
-      return System.Text.RegularExpressions.Regex.Replace(baseName, "[^_A-Za-z0-9\\$]", "_");
     }
   }
 }

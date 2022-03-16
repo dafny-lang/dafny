@@ -21,13 +21,20 @@ using System.Text.Json;
 using Microsoft.BaseTypes;
 using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 
-namespace Microsoft.Dafny {
-  public class CsharpCompiler : Compiler {
-    public CsharpCompiler(ErrorReporter reporter)
-      : base(reporter) {
-    }
+namespace Microsoft.Dafny.Compilers {
+  public class CsharpCompiler : SinglePassCompiler {
+    public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".cs", ".dll" };
 
     public override string TargetLanguage => "C#";
+    public override string TargetExtension => "cs";
+
+    public override string GetCompileName(bool isDefaultModule, string moduleName, string compileName) {
+      return isDefaultModule ? PublicIdProtect(compileName) :
+        base.GetCompileName(isDefaultModule, moduleName, compileName);
+    }
+
+    public override bool SupportsInMemoryCompilation => true;
+    public override bool TextualTargetIsExecutable => false;
 
     const string DafnyISet = "Dafny.ISet";
     const string DafnyIMultiset = "Dafny.IMultiSet";
@@ -73,9 +80,7 @@ namespace Microsoft.Dafny {
       wr.WriteLine("using System;");
       wr.WriteLine("using System.Numerics;");
       EmitDafnySourceAttribute(program, wr);
-      if (!DafnyOptions.O.UseRuntimeLib) {
-        ReadRuntimeSystem("DafnyRuntime.cs", wr);
-      }
+      ReadRuntimeSystem("DafnyRuntime.cs", wr);
     }
 
     void EmitDafnySourceAttribute(Program program, ConcreteSyntaxTree wr) {
@@ -1151,7 +1156,7 @@ namespace Microsoft.Dafny {
         return null;
       }
 
-      var block = wr.NewBlock(open: BraceStyle.Newline);
+      var block = wr.NewBlock(open: BlockStyle.NewlineBrace);
       if (returnType != "void" && !forBodyInheritance) {
         var beforeReturnBlock = block.Fork();
         EmitReturn(m.Outs, block);
@@ -1224,12 +1229,12 @@ namespace Microsoft.Dafny {
         return null;
       }
 
-      return wr.NewBlock(open: formals.Count > 1 ? BraceStyle.Newline : BraceStyle.Space);
+      return wr.NewBlock(open: formals.Count > 1 ? BlockStyle.NewlineBrace : BlockStyle.SpaceBrace);
     }
 
     protected ConcreteSyntaxTree/*?*/ CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, ConcreteSyntaxTree wr) {
       ConcreteSyntaxTree/*?*/ result = null;
-      var body = createBody ? Block(out result, close: BraceStyle.Nothing) : new ConcreteSyntaxTree().Write(";");
+      var body = createBody ? Block(out result, close: BlockStyle.Brace) : new ConcreteSyntaxTree().Write(";");
       wr.FormatLine($"{Keywords(createBody, isStatic)}{TypeName(resultType, wr, tok)} {name} {{ get{body} }}");
       return result;
     }
@@ -1474,7 +1479,7 @@ namespace Microsoft.Dafny {
         if (Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
           return "0";
         } else {
-          return $"({TypeName(xType, wr, udt.tok)})null";
+          return $"(({TypeName(xType, wr, udt.tok)})null)";
         }
       } else if (cl is DatatypeDecl dt) {
         var s = FullTypeName(udt, ignoreInterface: true);
@@ -1726,9 +1731,10 @@ namespace Microsoft.Dafny {
       wr.WriteLine($"return {returnExpr};");
     }
 
-    protected override ConcreteSyntaxTree CreateLabeledCode(string label, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree CreateLabeledCode(string label, bool createContinueLabel, ConcreteSyntaxTree wr) {
       var w = wr.Fork();
-      wr.Fork(-1).WriteLine($"after_{label}: ;");
+      var prefix = createContinueLabel ? "continue_" : "after_";
+      wr.Fork(-1).WriteLine($"{prefix}{label}: ;");
       return w;
     }
 
@@ -1738,6 +1744,10 @@ namespace Microsoft.Dafny {
       } else {
         wr.WriteLine("goto after_{0};", label);
       }
+    }
+
+    protected override void EmitContinue(string label, ConcreteSyntaxTree wr) {
+      wr.WriteLine("goto continue_{0};", label);
     }
 
     protected override void EmitYield(ConcreteSyntaxTree wr) {
@@ -1762,7 +1772,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override ConcreteSyntaxTree EmitForStmt(Bpl.IToken tok, IVariable loopIndex, bool goingUp, string /*?*/ endVarName,
-      List<Statement> body, ConcreteSyntaxTree wr) {
+      List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr) {
 
       wr.Write($"for ({TypeName(loopIndex.Type, wr, tok)} {loopIndex.CompileName} = ");
       var startWr = wr.Fork();
@@ -1777,6 +1787,7 @@ namespace Microsoft.Dafny {
         bodyWr = wr.NewBlock($"; )");
         bodyWr.WriteLine($"{loopIndex.CompileName}--;");
       }
+      bodyWr = EmitContinueLabel(labels, bodyWr);
       TrStmtList(body, bodyWr);
 
       return startWr;
@@ -2097,7 +2108,7 @@ namespace Microsoft.Dafny {
     protected override string IdProtect(string name) {
       return PublicIdProtect(name);
     }
-    public static string PublicIdProtect(string name) {
+    public override string PublicIdProtect(string name) {
       if (name == "" || name.First() == '_') {
         return name;  // no need to further protect this name -- we know it's not a C# keyword
       }
@@ -2527,16 +2538,16 @@ namespace Microsoft.Dafny {
       wr.Format($"((System.Func<{TypeName(new SeqType(body.Type), wr, body.tok)}>) (() =>{ExprBlock(out ConcreteSyntaxTree wrLamBody)}))()");
 
       var indexType = lengthExpr.Type;
-      var lengthVar = FreshId("dim");
+      var lengthVar = idGenerator.FreshId("dim");
       DeclareLocalVar(lengthVar, indexType, lengthExpr.tok, lengthExpr, inLetExprBody, wrLamBody);
-      var arrVar = FreshId("arr");
+      var arrVar = idGenerator.FreshId("arr");
       wrLamBody.Write($"var {arrVar} = ");
       var wrDims = EmitNewArray(body.Type, body.tok, dimCount: 1, mustInitialize: false, wr: wrLamBody);
       Contract.Assert(wrDims.Count == 1);
       wrDims[0].Write(lengthVar);
       wrLamBody.WriteLine(";");
 
-      var intIxVar = FreshId("i");
+      var intIxVar = idGenerator.FreshId("i");
       var wrLoopBody = wrLamBody.NewBlock(string.Format("for (int {0} = 0; {0} < {1}; {0}++)", intIxVar, lengthVar));
       var ixVar = IdName(boundVar);
       wrLoopBody.WriteLine("var {0} = ({1}) {2};",
@@ -2572,7 +2583,7 @@ namespace Microsoft.Dafny {
 
       var w = new ConcreteSyntaxTree();
       if (to.IsRefType) {
-        wr.Format($"({TypeName(to, wr, tok)})({w})");
+        wr.Format($"(({TypeName(to, wr, tok)})({w}))");
       } else {
         Contract.Assert(Type.SameHead(from, to));
 

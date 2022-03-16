@@ -136,6 +136,7 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
     var resolutionDiagnostics2 = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
 
     Assert.AreEqual(1, resolutionDiagnostics1.Length);
+    Assert.AreEqual(1, resolutionDiagnostics2.Length);
     Assert.AreEqual(resolutionDiagnostics1[0], resolutionDiagnostics2[0]);
   }
 

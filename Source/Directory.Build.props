@@ -7,7 +7,7 @@
 
   <!-- Boogie dependency -->
   <ItemGroup>
-    <PackageReference Include="Boogie.ExecutionEngine" Version="2.11.4" />
+    <PackageReference Include="Boogie.ExecutionEngine" Version="2.13.0" />
   </ItemGroup>
 
 </Project>

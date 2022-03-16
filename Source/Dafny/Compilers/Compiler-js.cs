@@ -17,13 +17,18 @@ using System.Threading;
 using System.Threading.Tasks;
 using Bpl = Microsoft.Boogie;
 
-namespace Microsoft.Dafny {
-  public class JavaScriptCompiler : Compiler {
-    public JavaScriptCompiler(ErrorReporter reporter)
-    : base(reporter) {
-    }
+namespace Microsoft.Dafny.Compilers {
+  public class JavaScriptCompiler : SinglePassCompiler {
+    public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".js" };
 
     public override string TargetLanguage => "JavaScript";
+    public override string TargetExtension => "js";
+
+    public override bool SupportsInMemoryCompilation => true;
+    public override bool TextualTargetIsExecutable => true;
+
+    public override IReadOnlySet<string> SupportedNativeTypes =>
+      new HashSet<string>(new List<string> { "number" });
 
     const string DafnySetClass = "_dafny.Set";
     const string DafnyMultiSetClass = "_dafny.MultiSet";
@@ -1103,8 +1108,9 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override ConcreteSyntaxTree CreateLabeledCode(string label, ConcreteSyntaxTree wr) {
-      return wr.NewNamedBlock("L{0}:", label);
+    protected override ConcreteSyntaxTree CreateLabeledCode(string label, bool createContinueLabel, ConcreteSyntaxTree wr) {
+      var prefix = createContinueLabel ? "C" : "L";
+      return wr.NewNamedBlock($"{prefix}{label}:");
     }
 
     protected override void EmitBreak(string/*?*/ label, ConcreteSyntaxTree wr) {
@@ -1113,6 +1119,10 @@ namespace Microsoft.Dafny {
       } else {
         wr.WriteLine("break L{0};", label);
       }
+    }
+
+    protected override void EmitContinue(string label, ConcreteSyntaxTree wr) {
+      wr.WriteLine("break C{0};", label);
     }
 
     protected override void EmitYield(ConcreteSyntaxTree wr) {
@@ -1137,7 +1147,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override ConcreteSyntaxTree EmitForStmt(Bpl.IToken tok, IVariable loopIndex, bool goingUp, string /*?*/ endVarName,
-      List<Statement> body, ConcreteSyntaxTree wr) {
+      List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr) {
 
       var nativeType = AsNativeType(loopIndex.Type);
 
@@ -1174,6 +1184,7 @@ namespace Microsoft.Dafny {
           bodyWr.WriteLine($"{loopIndex.CompileName}--;");
         }
       }
+      bodyWr = EmitContinueLabel(labels, bodyWr);
       TrStmtList(body, bodyWr);
 
       return startWr;
@@ -1406,7 +1417,7 @@ namespace Microsoft.Dafny {
     protected override string IdProtect(string name) {
       return PublicIdProtect(name);
     }
-    public static string PublicIdProtect(string name) {
+    public override string PublicIdProtect(string name) {
       Contract.Requires(name != null);
       switch (name) {
         case "arguments":
@@ -2356,8 +2367,6 @@ namespace Microsoft.Dafny {
     }
 
     // ----- Target compilation and execution -------------------------------------------------------------
-
-    public override bool TextualTargetIsExecutable => true;
 
     public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
       bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
