@@ -257,15 +257,3 @@ public class DafnyPrefixEqualityLimitDescription : DafnyAssertionDescription {
 
   public override string ShortDescription => "prefix-equality limit";
 }
-
-//// Template
-
-public class DafnyDescription : DafnyAssertionDescription {
-  public override string SuccessDescription =>
-    "";
-
-  public override string FailureDescription =>
-    "";
-
-  public override string ShortDescription => "";
-}
