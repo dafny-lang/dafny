@@ -17,16 +17,23 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Bpl = Microsoft.Boogie;
 
-namespace Microsoft.Dafny {
-  public class CppCompiler : Compiler {
-    public CppCompiler(ErrorReporter reporter, ReadOnlyCollection<string> otherHeaders)
-    : base(reporter) {
-      this.headers = otherHeaders;
-      this.datatypeDecls = new List<DatatypeDecl>();
-      this.classDefaults = new List<string>();
+namespace Microsoft.Dafny.Compilers {
+  public class CppCompiler : SinglePassCompiler {
+    public override void OnPreCompile(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
+      base.OnPreCompile(reporter, otherFileNames);
+      datatypeDecls = new List<DatatypeDecl>();
+      classDefaults = new List<string>();
     }
 
-    private ReadOnlyCollection<string> headers;
+    public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".h" };
+
+    public override string TargetLanguage => "C++";
+    public override string TargetExtension => "cpp";
+
+    public override bool SupportsInMemoryCompilation => false;
+    public override bool TextualTargetIsExecutable => false;
+
+    private ReadOnlyCollection<string> headers => OtherFileNames;
     private List<DatatypeDecl> datatypeDecls;
     private List<string> classDefaults;
 
@@ -54,11 +61,8 @@ namespace Microsoft.Dafny {
     const string DafnySeqClass = "DafnySequence";
     const string DafnyMapClass = "DafnyMap";
 
-    public override string TargetLanguage => "Cpp";
     protected override string ModuleSeparator => "::";
     protected override string ClassAccessor => "->";
-
-    public override bool SupportsInMemoryCompilation => false;
 
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
       wr.WriteLine("// Dafny program {0} compiled into Cpp", program.Name);
@@ -267,6 +271,8 @@ namespace Microsoft.Dafny {
       }
       return String.Format("{0}_{1}{2}", IdProtect(ctor.EnclosingDatatype.CompileName), ctor.CompileName, args);
     }
+
+    protected override bool DatatypeDeclarationAndMemberCompilationAreSeparate => false;
 
     protected override IClassWriter DeclareDatatype(DatatypeDecl dt, ConcreteSyntaxTree writer) {
       if (dt is TupleTypeDecl) {
@@ -755,7 +761,7 @@ namespace Microsoft.Dafny {
       }
       wdr.Write(");\n");
 
-      var block = wr.NewBlock(")", null, BraceStyle.Newline, BraceStyle.Newline);
+      var block = wr.NewBlock(")", null, BlockStyle.NewlineBrace, BlockStyle.NewlineBrace);
 
       if (targetReturnTypeReplacement != null) {
         var beforeReturnBlock = block.Fork(0);
@@ -799,7 +805,7 @@ namespace Microsoft.Dafny {
       int nIns = WriteFormals("", formals, wr);
 
       wdr.Write(");");
-      var w = wr.NewBlock(")", null, BraceStyle.Newline, BraceStyle.Newline);
+      var w = wr.NewBlock(")", null, BlockStyle.NewlineBrace, BlockStyle.NewlineBrace);
 
       return w;
     }
@@ -1233,9 +1239,10 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override ConcreteSyntaxTree CreateLabeledCode(string label, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree CreateLabeledCode(string label, bool createContinueLabel, ConcreteSyntaxTree wr) {
       var w = wr.Fork();
-      wr.Fork(-1).WriteLine("after_{0}: ;", label);
+      var prefix = createContinueLabel ? "continue_" : "after_";
+      wr.Fork(-1).WriteLine($"{prefix}{label}: ;");
       return w;
     }
 
@@ -1245,6 +1252,10 @@ namespace Microsoft.Dafny {
       } else {
         wr.WriteLine("goto after_{0};", label);
       }
+    }
+
+    protected override void EmitContinue(string label, ConcreteSyntaxTree wr) {
+      wr.WriteLine("goto continue_{0};", label);
     }
 
     protected override void EmitYield(ConcreteSyntaxTree wr) {
@@ -1269,7 +1280,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override ConcreteSyntaxTree EmitForStmt(Bpl.IToken tok, IVariable loopIndex, bool goingUp, string /*?*/ endVarName,
-      List<Statement> body, ConcreteSyntaxTree wr) {
+      List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr) {
 
       throw new NotImplementedException("for loops have not yet been implemented");
     }
@@ -1469,7 +1480,7 @@ namespace Microsoft.Dafny {
     protected override string IdProtect(string name) {
       return PublicIdProtect(name);
     }
-    public static string PublicIdProtect(string name) {
+    public override string PublicIdProtect(string name) {
       Contract.Requires(name != null);
       switch (name) {
         // Taken from: https://www.w3schools.in/cplusplus-tutorial/keywords/
@@ -2376,7 +2387,7 @@ namespace Microsoft.Dafny {
       Contract.Assert(assemblyLocation != null);
       var codebase = System.IO.Path.GetDirectoryName(assemblyLocation);
       Contract.Assert(codebase != null);
-      var warnings = "-Wall -Wextra -Wpedantic -Wno-unused-variable -Wno-deprecated-copy";
+      var warnings = "-Wall -Wextra -Wpedantic -Wno-unused-variable -Wno-deprecated-copy -Wno-unused-label";
       if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
         warnings += " -Wno-unused-but-set-variable";
       } else {

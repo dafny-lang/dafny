@@ -14,22 +14,31 @@ using System.IO;
 using System.Diagnostics.Contracts;
 using Bpl = Microsoft.Boogie;
 using System.Collections.ObjectModel;
-using System.Diagnostics.SymbolStore;
-using System.Net.Security;
-using System.Reflection.Metadata.Ecma335;
 using Microsoft.BaseTypes;
 
 
-namespace Microsoft.Dafny {
-  public abstract class Compiler {
-    public Compiler(ErrorReporter reporter) {
-      Reporter = reporter;
-      Coverage = new CoverageInstrumenter(this);
+namespace Microsoft.Dafny.Compilers {
+  internal class InternalCompilersPluginConfiguration : Plugins.PluginConfiguration {
+    public static readonly InternalCompilersPluginConfiguration Singleton = new();
+
+    public override Plugins.Compiler[] GetCompilers() {
+      return new Plugins.Compiler[] {
+        new Compilers.CsharpCompiler(),
+        new Compilers.JavaScriptCompiler(),
+        new Compilers.GoCompiler(),
+        new Compilers.JavaCompiler(),
+        new Compilers.PythonCompiler(),
+        new Compilers.CppCompiler()
+      };
     }
+  }
+
+  public abstract class SinglePassCompiler : Plugins.Compiler {
+    public static Plugin Plugin =
+      new ConfiguredPlugin(InternalCompilersPluginConfiguration.Singleton);
 
     public static string DefaultNameMain = "Main";
 
-    public abstract string TargetLanguage { get; }
     protected virtual string ModuleSeparator { get => "."; }
     protected virtual string ClassAccessor { get => "."; }
 
@@ -39,14 +48,6 @@ namespace Microsoft.Dafny {
     protected Function enclosingFunction;  // non-null when a function body is being translated
 
     protected readonly FreshIdGenerator idGenerator = new FreshIdGenerator();
-
-    static FreshIdGenerator compileNameIdGenerator = new FreshIdGenerator();
-    public static string FreshId() {
-      return compileNameIdGenerator.FreshNumericId();
-    }
-    public static string FreshId(string prefix) {
-      return compileNameIdGenerator.FreshId(prefix);
-    }
 
     Dictionary<Expression, int> uniqueAstNumbers = new Dictionary<Expression, int>();
     int GetUniqueAstNumber(Expression expr) {
@@ -59,18 +60,18 @@ namespace Microsoft.Dafny {
       return n;
     }
 
-    public ErrorReporter Reporter;
-
     public CoverageInstrumenter Coverage;
 
-    protected void Error(Bpl.IToken tok, string msg, ConcreteSyntaxTree/*?*/ wr, params object[] args) {
+    protected static void ReportError(ErrorReporter reporter, Bpl.IToken tok, string msg, ConcreteSyntaxTree/*?*/ wr, params object[] args) {
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
 
-      Reporter.Error(MessageSource.Compiler, tok, msg, args);
-      if (wr != null) {
-        wr.WriteLine("/* {0} */", string.Format("Compilation error: " + msg, args));
-      }
+      reporter.Error(MessageSource.Compiler, tok, msg, args);
+      wr?.WriteLine("/* {0} */", string.Format("Compilation error: " + msg, args));
+    }
+
+    protected void Error(Bpl.IToken tok, string msg, ConcreteSyntaxTree wr, params object[] args) {
+      ReportError(Reporter, tok, msg, wr, args);
     }
 
     protected string IntSelect = ",int";
@@ -79,11 +80,18 @@ namespace Microsoft.Dafny {
     protected virtual void EmitHeader(Program program, ConcreteSyntaxTree wr) { }
     protected virtual void EmitFooter(Program program, ConcreteSyntaxTree wr) { }
     protected virtual void EmitBuiltInDecls(BuiltIns builtIns, ConcreteSyntaxTree wr) { }
-    /// <summary>
-    /// Emits a call to "mainMethod" as the program's entry point, if such an explicit call is
-    /// required in the target language.
-    /// </summary>
-    public virtual void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) { }
+
+
+    public override void OnPreCompile(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
+      base.OnPreCompile(reporter, otherFileNames);
+      Coverage = new CoverageInstrumenter(this);
+    }
+
+    public override void OnPostCompile() {
+      base.OnPostCompile();
+      Coverage.WriteLegendFile();
+    }
+
     /// <summary>
     /// Creates a static Main method. The caller will fill the body of this static Main with a
     /// call to the instance Main method in the enclosing class.
@@ -114,15 +122,6 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Transforms a legal file name (without extension or directory) into
-    /// a legal class name in the target language
-    /// </summary>
-    public virtual string TransformToClassName(string baseName) {
-      Contract.Requires(baseName != null);
-      return baseName;
-    }
-
-    /// <summary>
     /// "tok" can be "null" if "superClasses" is.
     /// </summary>
     protected abstract IClassWriter CreateClass(string moduleName, string name, bool isExtern, string/*?*/ fullPrintName,
@@ -132,13 +131,14 @@ namespace Microsoft.Dafny {
     /// "tok" can be "null" if "superClasses" is.
     /// </summary>
     protected abstract IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, ConcreteSyntaxTree wr);
-    protected virtual bool SupportsProperties { get => true; }
+    protected virtual bool SupportsProperties => true;
     protected abstract ConcreteSyntaxTree CreateIterator(IteratorDecl iter, ConcreteSyntaxTree wr);
     /// <summary>
     /// Returns an IClassWriter that can be used to write additional members. If "dt" is already written
     /// in the DafnyRuntime.targetlanguage file, then returns "null".
     /// </summary>
     protected abstract IClassWriter/*?*/ DeclareDatatype(DatatypeDecl dt, ConcreteSyntaxTree wr);
+    protected virtual bool DatatypeDeclarationAndMemberCompilationAreSeparate => true;
     /// <summary>
     /// Returns an IClassWriter that can be used to write additional members.
     /// </summary>
@@ -481,8 +481,9 @@ namespace Microsoft.Dafny {
     /// Labels the code written to the TargetWriter returned, in such that way that any
     /// emitted break to the label inside that code will abruptly end the execution of the code.
     /// </summary>
-    protected abstract ConcreteSyntaxTree CreateLabeledCode(string label, ConcreteSyntaxTree wr);
+    protected abstract ConcreteSyntaxTree CreateLabeledCode(string label, bool createContinueLabel, ConcreteSyntaxTree wr);
     protected abstract void EmitBreak(string/*?*/ label, ConcreteSyntaxTree wr);
+    protected abstract void EmitContinue(string label, ConcreteSyntaxTree wr);
     protected abstract void EmitYield(ConcreteSyntaxTree wr);
     protected abstract void EmitAbsurd(string/*?*/ message, ConcreteSyntaxTree wr);
     protected virtual void EmitAbsurd(string message, ConcreteSyntaxTree wr, bool needIterLimit) {
@@ -501,23 +502,29 @@ namespace Microsoft.Dafny {
       wr.Write("if (");
       guardWriter = wr.Fork();
       if (hasElse) {
-        var thn = wr.NewBlock(")", " else", BraceStyle.Space, BraceStyle.Space);
+        var thn = wr.NewBlock(")", " else", BlockStyle.SpaceBrace, BlockStyle.SpaceBrace);
         return thn;
       } else {
         var thn = wr.NewBlock(")");
         return thn;
       }
     }
-    protected virtual ConcreteSyntaxTree EmitWhile(Bpl.IToken tok, List<Statement> body, ConcreteSyntaxTree wr) {  // returns the guard writer
+
+    protected virtual ConcreteSyntaxTree EmitBlock(ConcreteSyntaxTree wr) {
+      return wr.NewBlock("", open: BlockStyle.Brace);
+    }
+
+    protected virtual ConcreteSyntaxTree EmitWhile(Bpl.IToken tok, List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr) {  // returns the guard writer
       ConcreteSyntaxTree guardWriter;
       var wBody = CreateWhileLoop(out guardWriter, wr);
+      wBody = EmitContinueLabel(labels, wBody);
       Coverage.Instrument(tok, "while body", wBody);
       TrStmtList(body, wBody);
       return guardWriter;
     }
 
     protected abstract ConcreteSyntaxTree EmitForStmt(Bpl.IToken tok, IVariable loopIndex, bool goingUp, string /*?*/ endVarName,
-      List<Statement> body, ConcreteSyntaxTree wr);
+      List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr);
 
     protected virtual ConcreteSyntaxTree CreateWhileLoop(out ConcreteSyntaxTree guardWriter, ConcreteSyntaxTree wr) {
       wr.Write("while (");
@@ -831,7 +838,7 @@ namespace Microsoft.Dafny {
     /// For a member c, F, or M:
     ///     (co-)datatype/class/trait <<cl>> {
     ///       <<isStatic>> const c ...
-    ///       <<isStatic>> function method F ...
+    ///       <<isStatic>> function F ...
     ///       <<isStatic>> method M ...
     ///     }
     /// does a type parameter of "cl"
@@ -1122,7 +1129,7 @@ namespace Microsoft.Dafny {
       modules = program.CompileModules;
     }
 
-    public void Compile(Program program, ConcreteSyntaxTree wrx) {
+    public override void Compile(Program program, ConcreteSyntaxTree wrx) {
       Contract.Requires(program != null);
 
       EmitHeader(program, wrx);
@@ -1156,7 +1163,7 @@ namespace Microsoft.Dafny {
           if (Attributes.ContainsBool(d.Attributes, "compile", ref compileIt) && !compileIt) {
             continue;
           }
-          wr.WriteLine();
+          var newLineWriter = wr.Fork();
           if (d is OpaqueTypeDecl) {
             var at = (OpaqueTypeDecl)d;
             bool externP = Attributes.Contains(at.Attributes, "extern");
@@ -1177,6 +1184,8 @@ namespace Microsoft.Dafny {
             if (sst != null) {
               DeclareSubsetType(sst, wr);
               v.Visit(sst);
+            } else {
+              continue;
             }
           } else if (d is NewtypeDecl) {
             var nt = (NewtypeDecl)d;
@@ -1192,6 +1201,8 @@ namespace Microsoft.Dafny {
             var w = DeclareDatatype(dt, wr);
             if (w != null) {
               CompileClassMembers(program, dt, w);
+            } else if (DatatypeDeclarationAndMemberCompilationAreSeparate) {
+              continue;
             }
           } else if (d is IteratorDecl) {
             var iter = (IteratorDecl)d;
@@ -1236,9 +1247,13 @@ namespace Microsoft.Dafny {
             }
           } else if (d is ValuetypeDecl) {
             // nop
+            continue;
           } else if (d is ModuleDecl) {
             // nop
+            continue;
           } else { Contract.Assert(false); }
+
+          newLineWriter.WriteLine();
         }
 
         FinishModule();
@@ -1358,7 +1373,7 @@ namespace Microsoft.Dafny {
       return IdProtect(formal.HasName ? formal.CompileName : "_a" + i);
     }
 
-    public bool HasMain(Program program, out Method mainMethod) {
+    public static bool HasMain(Program program, out Method mainMethod) {
       Contract.Ensures(Contract.Result<bool>() == (Contract.ValueAtReturn(out mainMethod) != null));
       mainMethod = null;
       bool hasMain = false;
@@ -1379,7 +1394,7 @@ namespace Microsoft.Dafny {
                 if (member is Method m && member.FullDafnyName == name) {
                   mainMethod = m;
                   if (!IsPermittedAsMain(mainMethod, out string reason)) {
-                    Error(mainMethod.tok, "The method \"{0}\" is not permitted as a main method ({1}).", null, name, reason);
+                    ReportError(program.reporter, mainMethod.tok, "The method \"{0}\" is not permitted as a main method ({1}).", null, name, reason);
                     mainMethod = null;
                     return false;
                   } else {
@@ -1390,7 +1405,7 @@ namespace Microsoft.Dafny {
             }
           }
         }
-        Error(program.DefaultModule.tok, "Could not find the method named by the -Main option: {0}", null, name);
+        ReportError(program.reporter, program.DefaultModule.tok, "Could not find the method named by the -Main option: {0}", null, name);
       }
       foreach (var module in program.CompileModules) {
         if (module.IsAbstract) {
@@ -1408,7 +1423,7 @@ namespace Microsoft.Dafny {
                   hasMain = true;
                 } else {
                   // more than one main in the program
-                  Error(m.tok, "More than one method is marked \"{{:main}}\". First declaration appeared at {0}.", null,
+                  ReportError(program.reporter, m.tok, "More than one method is marked \"{{:main}}\". First declaration appeared at {0}.", null,
                     ErrorReporter.TokenToString(mainMethod.tok));
                   hasMain = false;
                 }
@@ -1419,7 +1434,7 @@ namespace Microsoft.Dafny {
       }
       if (hasMain) {
         if (!IsPermittedAsMain(mainMethod, out string reason)) {
-          Error(mainMethod.tok, "This method marked \"{{:main}}\" is not permitted as a main method ({0}).", null, reason);
+          ReportError(program.reporter, mainMethod.tok, "This method marked \"{{:main}}\" is not permitted as a main method ({0}).", null, reason);
           mainMethod = null;
           return false;
         } else {
@@ -1448,7 +1463,7 @@ namespace Microsoft.Dafny {
                   hasMain = true;
                 } else {
                   // more than one main in the program
-                  Error(m.tok, "More than one method is declared as \"{0}\". First declaration appeared at {1}.", null,
+                  ReportError(program.reporter, m.tok, "More than one method is declared as \"{0}\". First declaration appeared at {1}.", null,
                     DefaultNameMain, ErrorReporter.TokenToString(mainMethod.tok));
                   hasMain = false;
                 }
@@ -1460,7 +1475,7 @@ namespace Microsoft.Dafny {
 
       if (hasMain) {
         if (!IsPermittedAsMain(mainMethod, out string reason)) {
-          Error(mainMethod.tok, "This method \"Main\" is not permitted as a main method ({0}).", null, reason);
+          ReportError(program.reporter, mainMethod.tok, "This method \"Main\" is not permitted as a main method ({0}).", null, reason);
           return false;
         } else {
           return true;
@@ -2370,7 +2385,7 @@ namespace Microsoft.Dafny {
         TrExprOpt(e.Thn, resultType, thn, accumulatorVar);
         ConcreteSyntaxTree els = wr;
         if (!(e.Els is ITEExpr)) {
-          els = wr.NewBlock("", null, BraceStyle.Nothing);
+          els = wr.NewBlock("", null, BlockStyle.Brace);
           Coverage.Instrument(e.Thn.tok, "else branch", els);
         }
         TrExprOpt(e.Els, resultType, els, accumulatorVar);
@@ -2618,9 +2633,9 @@ namespace Microsoft.Dafny {
     // ----- Stmt ---------------------------------------------------------------------------------
 
     public class CheckHasNoAssumes_Visitor : BottomUpVisitor {
-      readonly Compiler compiler;
+      readonly SinglePassCompiler compiler;
       ConcreteSyntaxTree wr;
-      public CheckHasNoAssumes_Visitor(Compiler c, ConcreteSyntaxTree wr) {
+      public CheckHasNoAssumes_Visitor(SinglePassCompiler c, ConcreteSyntaxTree wr) {
         Contract.Requires(c != null);
         compiler = c;
         this.wr = wr;
@@ -2670,7 +2685,12 @@ namespace Microsoft.Dafny {
         }
       } else if (stmt is BreakStmt) {
         var s = (BreakStmt)stmt;
-        EmitBreak(s.TargetStmt.Labels.Data.AssignUniqueId(idGenerator), wr);
+        var label = s.TargetStmt.Labels.Data.AssignUniqueId(idGenerator);
+        if (s.IsContinue) {
+          EmitContinue(label, wr);
+        } else {
+          EmitBreak(label, wr);
+        }
       } else if (stmt is ProduceStmt) {
         var s = (ProduceStmt)stmt;
         var isTailRecursiveResult = false;
@@ -2786,7 +2806,7 @@ namespace Microsoft.Dafny {
         TrCallStmt(s, null, wr);
 
       } else if (stmt is BlockStmt) {
-        var w = wr.NewBlock("", null, BraceStyle.Nothing, BraceStyle.Newline);
+        var w = EmitBlock(wr);
         TrStmtList(((BlockStmt)stmt).Body, w);
 
       } else if (stmt is IfStmt) {
@@ -2827,7 +2847,7 @@ namespace Microsoft.Dafny {
           TrStmtList(s.Thn.Body, thenWriter);
 
           if (coverageForElse) {
-            wr = wr.NewBlock("", null, BraceStyle.Nothing);
+            wr = EmitBlock(wr);
             if (s.Els == null) {
               Coverage.Instrument(s.Tok, "implicit else branch", wr);
             } else {
@@ -2854,7 +2874,7 @@ namespace Microsoft.Dafny {
           Coverage.Instrument(alternative.Tok, "if-case branch", thn);
           TrStmtList(alternative.Body, thn);
         }
-        var wElse = wr.NewBlock("", null, BraceStyle.Nothing);
+        var wElse = wr.NewBlock("", null, BlockStyle.Brace);
         EmitAbsurd("unreachable alternative", wElse);
 
       } else if (stmt is WhileStmt) {
@@ -2872,10 +2892,10 @@ namespace Microsoft.Dafny {
           ConcreteSyntaxTree guardWriter;
           var wBody = CreateWhileLoop(out guardWriter, wr);
           guardWriter.Write("true");
-          EmitBreak(s.Labels?.Data.AssignUniqueId(idGenerator), wBody);
+          EmitBreak(null, wBody);
           Coverage.UnusedInstrumentationPoint(s.Body.Tok, "while body");
         } else {
-          var guardWriter = EmitWhile(s.Body.Tok, s.Body.Body, wr);
+          var guardWriter = EmitWhile(s.Body.Tok, s.Body.Body, s.Labels, wr);
           TrExpr(s.Guard, guardWriter, false);
         }
 
@@ -2888,6 +2908,7 @@ namespace Microsoft.Dafny {
           ConcreteSyntaxTree whileGuardWriter;
           var w = CreateWhileLoop(out whileGuardWriter, wr);
           whileGuardWriter.Write("true");
+          w = EmitContinueLabel(s.Labels, w);
           foreach (var alternative in s.Alternatives) {
             ConcreteSyntaxTree guardWriter;
             var thn = EmitIf(out guardWriter, true, w);
@@ -2913,7 +2934,7 @@ namespace Microsoft.Dafny {
           wr.Write(GenerateLhsDecl(endVarName, s.End.Type, wr, s.End.tok));
           EmitAssignmentRhs(s.End, false, wr);
         }
-        var startExprWriter = EmitForStmt(s.Tok, s.LoopIndex, s.GoingUp, endVarName, s.Body.Body, wr);
+        var startExprWriter = EmitForStmt(s.Tok, s.LoopIndex, s.GoingUp, endVarName, s.Body.Body, s.Labels, wr);
         TrExpr(s.Start, startExprWriter, false);
 
       } else if (stmt is ForallStmt) {
@@ -3502,7 +3523,7 @@ namespace Microsoft.Dafny {
       var iterLimit = "_iterLimit_" + c;
 
       bool needIterLimit = lhss.Count != 1 && bounds.Exists(bnd => (bnd.Virtues & ComprehensionExpr.BoundedPool.PoolVirtues.Finite) == 0);
-      wr = CreateLabeledCode(doneLabel, wr);
+      wr = CreateLabeledCode(doneLabel, false, wr);
       var wrOuter = wr;
       if (needIterLimit) {
         wr = CreateDoublingForLoop(iterLimit, 5, wr);
@@ -3579,16 +3600,16 @@ namespace Microsoft.Dafny {
     }
 
     private class SimpleLvalueImpl : ILvalue {
-      private readonly Compiler Compiler;
+      private readonly SinglePassCompiler Compiler;
       private readonly Action<ConcreteSyntaxTree> LvalueAction, RvalueAction;
 
-      public SimpleLvalueImpl(Compiler compiler, Action<ConcreteSyntaxTree> action) {
+      public SimpleLvalueImpl(SinglePassCompiler compiler, Action<ConcreteSyntaxTree> action) {
         Compiler = compiler;
         LvalueAction = action;
         RvalueAction = action;
       }
 
-      public SimpleLvalueImpl(Compiler compiler, Action<ConcreteSyntaxTree> lvalueAction, Action<ConcreteSyntaxTree> rvalueAction) {
+      public SimpleLvalueImpl(SinglePassCompiler compiler, Action<ConcreteSyntaxTree> lvalueAction, Action<ConcreteSyntaxTree> rvalueAction) {
         Compiler = compiler;
         LvalueAction = lvalueAction;
         RvalueAction = rvalueAction;
@@ -3606,12 +3627,12 @@ namespace Microsoft.Dafny {
     }
 
     private class CoercedLvalueImpl : ILvalue {
-      private readonly Compiler Compiler;
+      private readonly SinglePassCompiler Compiler;
       private readonly ILvalue lvalue;
       private readonly Type /*?*/ from;
       private readonly Type /*?*/ to;
 
-      public CoercedLvalueImpl(Compiler compiler, ILvalue lvalue, Type/*?*/ from, Type/*?*/ to) {
+      public CoercedLvalueImpl(SinglePassCompiler compiler, ILvalue lvalue, Type/*?*/ from, Type/*?*/ to) {
         Compiler = compiler;
         this.lvalue = lvalue;
         this.from = from;
@@ -4116,13 +4137,21 @@ namespace Microsoft.Dafny {
         //   ss          // translation of ss has side effect of filling the top copyInstrWriters
         var w = writer;
         if (ss.Labels != null) {
-          w = CreateLabeledCode(ss.Labels.Data.AssignUniqueId(idGenerator), w);
+          w = CreateLabeledCode(ss.Labels.Data.AssignUniqueId(idGenerator), false, w);
         }
         var prelude = w.Fork();
         copyInstrWriters.Push(prelude);
         TrStmt(ss, w);
         copyInstrWriters.Pop();
       }
+    }
+
+    protected ConcreteSyntaxTree EmitContinueLabel(LList<Label> loopLabels, ConcreteSyntaxTree writer) {
+      Contract.Requires(writer != null);
+      if (loopLabels != null) {
+        writer = CreateLabeledCode(loopLabels.Data.AssignUniqueId(idGenerator), true, writer);
+      }
+      return writer;
     }
 
     void TrLocalVar(IVariable v, bool alwaysInitialize, ConcreteSyntaxTree wr) {
@@ -4149,7 +4178,7 @@ namespace Microsoft.Dafny {
         // Need to avoid if (true) because some languages (Go, someday Java)
         // pretend that an if (true) isn't a certainty, leading to a complaint
         // about a missing return statement
-        w = wr.NewBlock("", null, BraceStyle.Nothing);
+        w = wr.NewBlock("", null, BlockStyle.Brace);
       } else {
         ConcreteSyntaxTree guardWriter;
         w = EmitIf(out guardWriter, !lastCase, wr);
@@ -4777,7 +4806,7 @@ namespace Microsoft.Dafny {
         var thenWriter = EmitIf(out var guardWriter, isReturning, wr);
         TrExpr(constraintInContext, guardWriter, inLetExprBody);
         if (isReturning) {
-          wr = wr.NewBlock("", null, BraceStyle.Nothing);
+          wr = wr.NewBlock("", null, BlockStyle.Brace);
           wr = EmitReturnExpr(wr);
           TrExpr(new LiteralExpr(e.tok, elseReturnValue), wr, inLetExprBody);
           thenWriter = EmitReturnExpr(thenWriter);
@@ -5072,26 +5101,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public virtual bool SupportsInMemoryCompilation => true;
-    public virtual bool TextualTargetIsExecutable => false;
-
-    /// <summary>
-    /// Compile the target program known as "dafnyProgramName".
-    /// "targetProgramText" contains the program text.
-    /// If "targetFilename" is non-null, it is the name of the target program text stored as a
-    /// file. "targetFileName" must be non-null if "otherFileNames" is nonempty.
-    /// "otherFileNames" is a list of other files to include in the compilation.
-    ///
-    /// When "callToMain" is non-null, the program contains a "Main()" program.
-    ///
-    /// Upon successful compilation, "runAfterCompile" says whether or not to execute the program.
-    ///
-    /// Output any errors to "outputWriter".
-    /// Returns "false" if there were errors. Then, "compilationResult" should not be used.
-    /// Returns "true" on success. Then, "compilationResult" is a value that can be passed in to
-    /// the instance's "RunTargetProgram" method.
-    /// </summary>
-    public virtual bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
+    public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
       bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
       Contract.Requires(dafnyProgramName != null);
       Contract.Requires(targetProgramText != null);
@@ -5105,15 +5115,7 @@ namespace Microsoft.Dafny {
       return true;
     }
 
-    /// <summary>
-    /// Runs a target program after it has been successfully compiled.
-    /// dafnyProgram, targetProgramText, targetFilename, and otherFileNames are the same as the corresponding parameters to "CompileTargetProgram".
-    /// "callToMain" is an explicit call to Main, as required by the target compilation language.
-    /// "compilationResult" is a value returned by "CompileTargetProgram" for these parameters.
-    ///
-    /// Returns "true" on success, "false" on error. Any errors are output to "outputWriter".
-    /// </summary>
-    public virtual bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
+    public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
       object compilationResult, TextWriter outputWriter) {
       Contract.Requires(dafnyProgramName != null);
       Contract.Requires(targetProgramText != null);
@@ -5125,10 +5127,10 @@ namespace Microsoft.Dafny {
   }
 
   public class CoverageInstrumenter {
-    private readonly Compiler compiler;
+    private readonly SinglePassCompiler compiler;
     private List<(Bpl.IToken, string)>/*?*/ legend;  // non-null implies DafnyOptions.O.CoverageLegendFile is non-null
 
-    public CoverageInstrumenter(Compiler compiler) {
+    public CoverageInstrumenter(SinglePassCompiler compiler) {
       this.compiler = compiler;
       if (DafnyOptions.O.CoverageLegendFile != null) {
         legend = new List<(Bpl.IToken, string)>();

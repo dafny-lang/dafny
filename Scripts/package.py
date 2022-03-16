@@ -11,6 +11,7 @@ import subprocess
 import sys
 import time
 from urllib import request
+from http.client import IncompleteRead
 import zipfile
 import shutil
 import ntpath
@@ -24,6 +25,8 @@ import ntpath
 Z3_RELEASES_URL = "https://api.github.com/repos/Z3Prover/z3/releases/tags/Z3-4.8.5"
 ## How do we extract info from the name of a Z3 release file?
 Z3_RELEASE_REGEXP = re.compile(r"^(?P<directory>z3-[0-9a-z\.]+-(?P<platform>x86|x64)-(?P<os>[a-z0-9\.\-]+)).zip$", re.IGNORECASE)
+## How many times we allow ourselves to try to download Z3
+Z3_MAX_DOWNLOAD_ATTEMPTS = 5
 
 ## Allowed Dafny release names
 DAFNY_RELEASE_REGEX = re.compile("\\d+\\.\\d+\\.\\d+(-[\w\d_-]+)?$")
@@ -106,10 +109,17 @@ class Release:
             print("cached!")
         else:
             flush("downloading {:.2f}MB...".format(self.MB), end=' ')
-            with request.urlopen(self.url) as reader:
-                with open(self.z3_zip, mode="wb") as writer:
-                    writer.write(reader.read())
-            flush("done!")
+            for currentAttempt in range(Z3_MAX_DOWNLOAD_ATTEMPTS):
+                try:
+                    with request.urlopen(self.url) as reader:
+                        with open(self.z3_zip, mode="wb") as writer:
+                            writer.write(reader.read())
+                    flush("done!")
+                    break
+                except IncompleteRead as e:
+                    if currentAttempt == Z3_MAX_DOWNLOAD_ATTEMPTS - 1:
+                        raise
+            
 
     @staticmethod
     def zipify_path(fpath):
