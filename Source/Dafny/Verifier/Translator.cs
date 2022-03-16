@@ -4348,13 +4348,14 @@ namespace Microsoft.Dafny {
 
         bool splitHappened;
         var ss = TrSplitExpr(witnessExpr, etran, true, out splitHappened);
+        var desc = new DafnyWitnessCheckDescription(witnessErrorMsg);
         if (!splitHappened) {
-          witnessCheckBuilder.Add(Assert(witnessCheckTok, etran.TrExpr(witnessExpr), witnessErrorMsg));
+          witnessCheckBuilder.Add(AssertDesc(witnessCheckTok, etran.TrExpr(witnessExpr), desc));
         } else {
           foreach (var split in ss) {
             if (split.IsChecked) {
               var tok = new NestedToken(witnessCheckTok, split.E.tok);
-              witnessCheckBuilder.Add(AssertNS(tok, split.E, witnessErrorMsg));
+              witnessCheckBuilder.Add(AssertNSDesc(tok, split.E, desc));
             }
           }
         }
@@ -5722,6 +5723,7 @@ namespace Microsoft.Dafny {
             foreach (var ss in TrSplitExpr(precond, etran, true, out splitHappened)) {
               if (ss.IsChecked) {
                 var tok = new NestedToken(expr.tok, ss.E.tok);
+                var desc = new DafnyPreconditionCheckDescription(errorMessage);
                 if (options.AssertKv != null) {
                   // use the given assert attribute only
                   builder.Add(Assert(tok, ss.E, errorMessage ?? "possible violation of function precondition", options.AssertKv));
@@ -6867,12 +6869,12 @@ namespace Microsoft.Dafny {
     ///       -- "obj" as the translation of that reference, and
     ///       -- "antecedent" as "true".
     ///  * If "e" denotes a set of references, then return
-    ///       -- "description" as the string "each set element",
+    ///       -- "description" as the string "some set element",
     ///       -- "type" as the element type of that set,
     ///       -- "obj" as a new identifier of type "type", and
     ///       -- "antecedent" as "obj in e".
     ///  * If "e" denotes a sequence of references, then return
-    ///       -- "description" as the string "each sequence element",
+    ///       -- "description" as the string "some sequence element",
     ///       -- "type" as the element type of that sequence,
     ///       -- "obj" as an expression "e[i]", where "i" is a new identifier, and
     ///       -- "antecedent" as "0 <= i < |e|".
@@ -6907,11 +6909,11 @@ namespace Microsoft.Dafny {
 
       var s = etran.TrExpr(e);
       if (isSetType) {
-        description = "each set element";
+        description = "some set element";
         obj = x;
         antecedent = Bpl.Expr.SelectTok(e.tok, s, BoxIfNecessary(e.tok, x, type));
       } else {
-        description = "each sequence element";
+        description = "some sequence element";
         obj = UnboxIfBoxed(FunctionCall(e.tok, BuiltinFunction.SeqIndex, predef.BoxType, s, x), type);
         antecedent = InSeqRange(e.tok, x, Type.Int, s, true, null, false);
       }
@@ -8290,6 +8292,29 @@ namespace Microsoft.Dafny {
       }
     }
 
+    Bpl.PredicateCmd AssertNSDesc(Bpl.IToken tok, Bpl.Expr condition, DafnyAssertionDescription desc) {
+      return AssertNSDesc(tok, condition, desc, tok, null);
+    }
+
+    Bpl.PredicateCmd AssertNSDesc(Bpl.IToken tok, Bpl.Expr condition, DafnyAssertionDescription desc, Bpl.IToken refinesTok, Bpl.QKeyValue kv) {
+      Contract.Requires(tok != null);
+      Contract.Requires(desc != null);
+      Contract.Requires(condition != null);
+      Contract.Ensures(Contract.Result<Bpl.PredicateCmd>() != null);
+
+      if (RefinementToken.IsInherited(refinesTok, currentModule) && (codeContext == null || !codeContext.MustReverify)) {
+        // produce a "skip" instead
+        return TrAssumeCmd(tok, Bpl.Expr.True, kv);
+      } else {
+        tok = ForceCheckToken.Unwrap(tok);
+        var args = new List<object>();
+        args.Add(Bpl.Expr.Literal(0));
+        Bpl.AssertCmd cmd = TrAssertCmdDesc(tok, condition, desc, new Bpl.QKeyValue(tok, "subsumption", args, kv));
+        return cmd;
+      }
+    }
+
+    // TODO: update to include structured description
     Bpl.Ensures Ensures(IToken tok, bool free, Bpl.Expr condition, string errorMessage, string comment) {
       Contract.Requires(tok != null);
       Contract.Requires(condition != null);
@@ -8302,6 +8327,7 @@ namespace Microsoft.Dafny {
       return ens;
     }
 
+    // TODO: update to include structured description
     Bpl.Requires Requires(IToken tok, bool free, Bpl.Expr condition, string errorMessage, string comment) {
       Contract.Requires(tok != null);
       Contract.Requires(condition != null);
@@ -9981,7 +10007,8 @@ namespace Microsoft.Dafny {
       // check precond
       var pre = FunctionCall(tok, Requires(dims.Count), Bpl.Type.Bool, args);
       var q = new Bpl.ForallExpr(tok, bvs, Bpl.Expr.Imp(ante, pre));
-      builder.Add(AssertNS(tok, q, string.Format("all {0} indices must be in the domain of the initialization function", forArray ? "array" : "sequence")));
+      var desc = new DafnyIndicesInDomainDescription(forArray ? "array" : "sequence");
+      builder.Add(AssertNSDesc(tok, q, desc));
       if (!forArray && options.DoReadsChecks) {
         // check read effects
         Type objset = new SetType(true, program.BuiltIns.ObjectQ());
@@ -10006,7 +10033,8 @@ namespace Microsoft.Dafny {
         // assert (forall i0,i1,i2,... ::
         //            0 <= i0 < ... && ... ==> init.requires(i0,i1,i2,...) is Subtype);
         q = new Bpl.ForallExpr(tok, bvs, Bpl.Expr.Imp(ante, cre));
-        builder.Add(AssertNS(init.tok, q, msg));
+        var subrangeDesc = new DafnySubrangeCheckDescription(msg);
+        builder.Add(AssertNSDesc(init.tok, q, subrangeDesc));
       }
 
       if (forArray) {

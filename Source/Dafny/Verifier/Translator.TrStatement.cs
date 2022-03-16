@@ -101,7 +101,8 @@ namespace Microsoft.Dafny {
               // this postcondition was inherited into this module, so just ignore it
             } else if (split.IsChecked) {
               var yieldToken = new NestedToken(s.Tok, split.E.tok);
-              builder.Add(AssertNS(yieldToken, split.E, "possible violation of yield-ensures condition", stmt.Tok, null));
+              var desc = new DafnyYieldEnsuresDescription();
+              builder.Add(AssertNSDesc(yieldToken, split.E, desc, stmt.Tok, null));
             }
           }
           builder.Add(TrAssumeCmd(stmt.Tok, yeEtran.TrExpr(p.E)));
@@ -546,13 +547,15 @@ namespace Microsoft.Dafny {
         var ss = TrSplitExpr(stmt.Expr, etran, true, out splitHappened);
         if (!splitHappened) {
           var tok = enclosingToken == null ? stmt.Expr.tok : new NestedToken(enclosingToken, stmt.Expr.tok);
-          (proofBuilder ?? b).Add(Assert(tok, etran.TrExpr(stmt.Expr), errorMessage ?? "assertion might not hold", stmt.Tok,
+          var desc = new DafnyAssertStatementDescription(errorMessage);
+          (proofBuilder ?? b).Add(AssertDesc(tok, etran.TrExpr(stmt.Expr), desc, stmt.Tok,
             etran.TrAttributes(stmt.Attributes, null)));
         } else {
           foreach (var split in ss) {
             if (split.IsChecked) {
               var tok = enclosingToken == null ? split.E.tok : new NestedToken(enclosingToken, split.E.tok);
-              (proofBuilder ?? b).Add(AssertNS(tok, split.E, errorMessage ?? "assertion might not hold", stmt.Tok,
+              var desc = new DafnyAssertStatementDescription(errorMessage);
+              (proofBuilder ?? b).Add(AssertNSDesc(tok, split.E, desc, stmt.Tok,
                 etran.TrAttributes(stmt.Attributes, null))); // attributes go on every split
             }
           }
@@ -698,7 +701,8 @@ namespace Microsoft.Dafny {
               var index = ((TernaryExpr)stmt.Steps[i]).E0;
               TrStmt_CheckWellformed(index, b, locals, etran, false);
               if (index.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
-                b.Add(AssertNS(index.tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(index)), "prefix-equality limit must be at least 0"));
+                var desc = new DafnyPrefixEqualityLimitDescription();
+                b.Add(AssertNSDesc(index.tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(index)), desc));
               }
             }
             TrStmt_CheckWellformed(CalcStmt.Rhs(stmt.Steps[i]), b, locals, etran, false);
@@ -707,13 +711,11 @@ namespace Microsoft.Dafny {
             // assert step:
             AddComment(b, stmt, "assert line" + i.ToString() + " " + (stmt.StepOps[i] ?? stmt.Op).ToString() + " line" + (i + 1).ToString());
             if (!splitHappened) {
-              b.Add(AssertNS(stmt.Lines[i + 1].tok, etran.TrExpr(stmt.Steps[i]),
-                "the calculation step between the previous line and this line might not hold"));
+              b.Add(AssertNSDesc(stmt.Lines[i + 1].tok, etran.TrExpr(stmt.Steps[i]), new DafnyCalculationStepDescription()));
             } else {
               foreach (var split in ss) {
                 if (split.IsChecked) {
-                  b.Add(AssertNS(stmt.Lines[i + 1].tok, split.E,
-                    "the calculation step between the previous line and this line might not hold"));
+                  b.Add(AssertNSDesc(stmt.Lines[i + 1].tok, split.E, new DafnyCalculationStepDescription()));
                 }
               }
             }

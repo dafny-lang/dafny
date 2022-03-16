@@ -219,7 +219,7 @@ public class DafnyIndicesInDomainDescription : DafnyAssertionDescription {
 
 public class DafnySubrangeCheckDescription : DafnyAssertionDescription {
   public override string SuccessDescription =>
-    "TODO";
+    $"error is impossible: {msg}";
 
   public override string FailureDescription => msg;
 
@@ -234,7 +234,7 @@ public class DafnySubrangeCheckDescription : DafnyAssertionDescription {
 
 public class DafnyWitnessCheckDescription : DafnyAssertionDescription {
   public override string SuccessDescription =>
-    "TODO";
+    $"error is impossible: {msg}";
 
   public override string FailureDescription => msg;
 
@@ -246,7 +246,6 @@ public class DafnyWitnessCheckDescription : DafnyAssertionDescription {
     this.msg = msg;
   }
 }
-
 
 public class DafnyPrefixEqualityLimitDescription : DafnyAssertionDescription {
   public override string SuccessDescription =>
