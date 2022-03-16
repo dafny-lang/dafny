@@ -1479,7 +1479,7 @@ namespace Microsoft.Dafny.Compilers {
         if (Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
           return "0";
         } else {
-          return $"({TypeName(xType, wr, udt.tok)})null";
+          return $"(({TypeName(xType, wr, udt.tok)})null)";
         }
       } else if (cl is DatatypeDecl dt) {
         var s = FullTypeName(udt, ignoreInterface: true);
@@ -2583,7 +2583,7 @@ namespace Microsoft.Dafny.Compilers {
 
       var w = new ConcreteSyntaxTree();
       if (to.IsRefType) {
-        wr.Format($"({TypeName(to, wr, tok)})({w})");
+        wr.Format($"(({TypeName(to, wr, tok)})({w}))");
       } else {
         Contract.Assert(Type.SameHead(from, to));
 
