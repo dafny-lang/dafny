@@ -1,6 +1,6 @@
 class _dafny:
-    def print(toPrintVal):
-        if type(toPrintVal)== bool:
-            print("true" if toPrintVal else "false", end="")
+    def print(value):
+        if type(value) == bool:
+            print("true" if value else "false", end="")
         else:
-            print(toPrintVal, end="")
+            print(value, end="")

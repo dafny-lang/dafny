@@ -84,7 +84,6 @@ namespace Microsoft.Dafny {
     // translation state
     readonly Dictionary<TopLevelDecl/*!*/, Bpl.Constant/*!*/>/*!*/ classes = new Dictionary<TopLevelDecl/*!*/, Bpl.Constant/*!*/>();
     readonly Dictionary<TopLevelDecl, string>/*!*/ classConstants = new Dictionary<TopLevelDecl, string>();
-    readonly Dictionary<int, string> functionConstants = new Dictionary<int, string>();
     readonly Dictionary<Function, string> functionHandles = new Dictionary<Function, string>();
     readonly List<FuelConstant> functionFuel = new List<FuelConstant>();
     readonly Dictionary<Field/*!*/, Bpl.Constant/*!*/>/*!*/ fields = new Dictionary<Field/*!*/, Bpl.Constant/*!*/>();
@@ -92,7 +91,6 @@ namespace Microsoft.Dafny {
     readonly Dictionary<string, Bpl.Constant> fieldConstants = new Dictionary<string, Constant>();
     readonly Dictionary<string, Bpl.Constant> tytagConstants = new Dictionary<string, Constant>();
     readonly ISet<string> abstractTypes = new HashSet<string>();
-    readonly ISet<string> opaqueTypes = new HashSet<string>();
 
     // optimizing translation
     readonly ISet<MemberDecl> referencedMembers = new HashSet<MemberDecl>();
@@ -10918,7 +10916,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<List<SplitExprInfo>>() != null);
 
       var splits = new List<SplitExprInfo>();
-      var apply_induction = true;/*kind == MethodTranslationKind.Implementation*/;
+      var apply_induction = kind == MethodTranslationKind.Implementation;
       bool splitHappened;  // we don't actually care
       splitHappened = TrSplitExpr(expr, splits, true, int.MaxValue, kind != MethodTranslationKind.Call, apply_induction, etran);
       return splits;
@@ -11173,6 +11171,12 @@ namespace Microsoft.Dafny {
         }
 
         return true;
+
+      } else if (expr is MatchExpr) {
+        var e = (MatchExpr)expr;
+        var ite = etran.DesugarMatchExpr(e);
+        return TrSplitExpr(ite, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
+
       } else if (expr is StmtExpr) {
         var e = (StmtExpr)expr;
         // For an expression S;E in split position, the conclusion of S can be used as an assumption.  Unfortunately,
@@ -11203,96 +11207,8 @@ namespace Microsoft.Dafny {
 
       } else if (expr is FunctionCallExpr && position) {
         var fexp = (FunctionCallExpr)expr;
-        var f = fexp.Function;
-        Contract.Assert(f != null);  // filled in during resolution
-        var module = f.EnclosingClass.EnclosingModuleDefinition;
-        var functionHeight = module.CallGraph.GetSCCRepresentativePredecessorCount(f);
-
-        if (functionHeight < heightLimit && f.Body != null && RevealedInScope(f) && !(f.Body.Resolved is MatchExpr)) {
-          if (RefinementToken.IsInherited(fexp.tok, currentModule) &&
-              f is Predicate && ((Predicate)f).BodyOrigin == Predicate.BodyOriginKind.DelayedDefinition &&
-              (codeContext == null || !codeContext.MustReverify)) {
-            // The function was inherited as body-less but is now given a body. Don't inline the body (since, apparently, everything
-            // that needed to be proved about the function was proved already in the previous module, even without the body definition).
-          } else if (!FunctionBodyIsAvailable(f, currentModule, currentScope, inlineProtectedFunctions)) {
-            // Don't inline opaque functions or foreign protected functions
-          } else if (Attributes.Contains(f.Attributes, "no_inline")) {
-            // User manually prevented inlining
-          } else {
-            // Produce, for a "body" split into b0, b1, b2:
-            //     checked F#canCall(args) ==> F(args) || b0
-            //     checked F#canCall(args) ==> F(args) || b1
-            //     checked F#canCall(args) ==> F(args) || b2
-            //     free F#canCall(args) && F(args) && (b0 && b1 && b2)
-            // For "inCoContext", split into:
-            //     checked F#canCall(args) ==> F'(args) || b0''
-            //     checked F#canCall(args) ==> F'(args) || b1''
-            //     checked F#canCall(args) ==> F'(args) || b2''
-            //     free F#canCall(args) && F'(args)
-            // where the primes indicate certificate translations.
-            // The checked conjuncts of the body make use of the type-specialized body.
-
-            // F#canCall(args)
-            Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(expr.tok, f.FullSanitizedName + "#canCall", Bpl.Type.Bool);
-            List<Bpl.Expr> args = etran.FunctionInvocationArguments(fexp, null);
-            Bpl.Expr canCall = new Bpl.NAryExpr(expr.tok, new Bpl.FunctionCall(canCallFuncID), args);
-
-            Bpl.Expr fargs;
-            // F(args)
-            fargs = etran.TrExpr(fexp);
-
-            if (!CanSafelyInline(fexp, f)) {
-              // Skip inlining, as it would cause arbitrary expressions to pop up in the trigger
-              // TODO this should appear at the outmost call site, not at the innermost. See SnapshotableTrees.dfy
-              reporter.Info(MessageSource.Translator, fexp.tok, "Some instances of this call cannot safely be inlined.");
-              // F#canCall(args) ==> F(args)
-              var p = Bpl.Expr.Binary(fargs.tok, BinaryOperator.Opcode.Imp, canCall, fargs);
-              splits.Add(new SplitExprInfo(SplitExprInfo.K.Checked, p));
-              // F#canCall(args) && F(args)
-              var fr = Bpl.Expr.And(canCall, fargs);
-              splits.Add(new SplitExprInfo(SplitExprInfo.K.Free, fr));
-
-            } else {
-              // inline this body
-              var typeSpecializedBody = GetSubstitutedBody(fexp, f);
-              var typeSpecializedResultType = Resolver.SubstType(f.ResultType, fexp.GetTypeArgumentSubstitutions());
-
-              // recurse on body
-              var ss = new List<SplitExprInfo>();
-              TrSplitExpr(typeSpecializedBody, ss, position, functionHeight, inlineProtectedFunctions, apply_induction, etran);
-              var needsTokenAdjust = TrSplitNeedsTokenAdjustment(typeSpecializedBody);
-              foreach (var s in ss) {
-                if (s.IsChecked) {
-                  var unboxedConjunct = CondApplyUnbox(s.E.tok, s.E, typeSpecializedResultType, expr.Type);
-                  var bodyOrConjunct = Bpl.Expr.Or(fargs, unboxedConjunct);
-                  var tok = needsTokenAdjust ? (IToken)new ForceCheckToken(typeSpecializedBody.tok) : (IToken)new NestedToken(fexp.tok, s.E.tok);
-                  var p = Bpl.Expr.Binary(tok, BinaryOperator.Opcode.Imp, canCall, bodyOrConjunct);
-                  splits.Add(new SplitExprInfo(SplitExprInfo.K.Checked, p));
-                }
-              }
-
-              // allocatedness for arguments to the inlined call in body
-              if (typeSpecializedBody is FunctionCallExpr) {
-                FunctionCallExpr e = (FunctionCallExpr)typeSpecializedBody;
-                for (int i = 0; i < e.Args.Count; i++) {
-                  Expression ee = e.Args[i];
-                  Type t = e.Function.Formals[i].Type;
-                  Expr tr_ee = etran.TrExpr(ee);
-                  Bpl.Expr wh = GetWhereClause(e.tok, tr_ee, cce.NonNull(ee.Type), etran, NOALLOC);
-                  if (wh != null) { fargs = Bpl.Expr.And(fargs, wh); }
-                }
-              }
-
-              // body
-              var trBody = etran.TrExpr(typeSpecializedBody);
-              trBody = CondApplyUnbox(trBody.tok, trBody, typeSpecializedResultType, expr.Type);
-              // F#canCall(args) && F(args) && (b0 && b1 && b2)
-              var fr = Bpl.Expr.And(canCall, BplAnd(fargs, trBody));
-              splits.Add(new SplitExprInfo(SplitExprInfo.K.Free, fr));
-            }
-
-            return true;
-          }
+        if (TrSplitFunctionCallExpr(expr, splits, heightLimit, inlineProtectedFunctions, apply_induction, etran, fexp)) {
+          return true;
         }
 
       } else if (expr is QuantifierExpr && ((QuantifierExpr)expr).SplitQuantifier != null) {
@@ -11451,9 +11367,114 @@ namespace Microsoft.Dafny {
       return splitHappened;
     }
 
+    private bool TrSplitFunctionCallExpr(Expression expr, List<SplitExprInfo> splits, int heightLimit, bool inlineProtectedFunctions,
+      bool apply_induction, ExpressionTranslator etran, FunctionCallExpr fexp) {
+      var f = fexp.Function;
+      Contract.Assert(f != null); // filled in during resolution
+      var module = f.EnclosingClass.EnclosingModuleDefinition;
+      var functionHeight = module.CallGraph.GetSCCRepresentativePredecessorCount(f);
+
+      if (functionHeight < heightLimit && f.Body != null && RevealedInScope(f)) {
+        if (RefinementToken.IsInherited(fexp.tok, currentModule) &&
+            f is Predicate && ((Predicate)f).BodyOrigin == Predicate.BodyOriginKind.DelayedDefinition &&
+            (codeContext == null || !codeContext.MustReverify)) {
+          // The function was inherited as body-less but is now given a body. Don't inline the body (since, apparently, everything
+          // that needed to be proved about the function was proved already in the previous module, even without the body definition).
+        } else if (!FunctionBodyIsAvailable(f, currentModule, currentScope, inlineProtectedFunctions)) {
+          // Don't inline opaque functions
+        } else if (Attributes.Contains(f.Attributes, "no_inline")) {
+          // User manually prevented inlining
+        } else {
+          // Produce, for a "body" split into b0, b1, b2:
+          //     checked F#canCall(args) ==> F(args) || b0
+          //     checked F#canCall(args) ==> F(args) || b1
+          //     checked F#canCall(args) ==> F(args) || b2
+          //     free F#canCall(args) && F(args) && (b0 && b1 && b2)
+          // For "inCoContext", split into:
+          //     checked F#canCall(args) ==> F'(args) || b0''
+          //     checked F#canCall(args) ==> F'(args) || b1''
+          //     checked F#canCall(args) ==> F'(args) || b2''
+          //     free F#canCall(args) && F'(args)
+          // where the primes indicate certificate translations.
+          // The checked conjuncts of the body make use of the type-specialized body.
+
+          // F#canCall(args)
+          Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(expr.tok, f.FullSanitizedName + "#canCall", Bpl.Type.Bool);
+          List<Bpl.Expr> args = etran.FunctionInvocationArguments(fexp, null);
+          Bpl.Expr canCall = new Bpl.NAryExpr(expr.tok, new Bpl.FunctionCall(canCallFuncID), args);
+
+          Bpl.Expr fargs;
+          // F(args)
+          fargs = etran.TrExpr(fexp);
+
+          if (!CanSafelyInline(fexp, f)) {
+            // Skip inlining, as it would cause arbitrary expressions to pop up in the trigger
+            // TODO this should appear at the outmost call site, not at the innermost. See SnapshotableTrees.dfy
+            reporter.Info(MessageSource.Translator, fexp.tok, "Some instances of this call are not inlined.");
+            // F#canCall(args) ==> F(args)
+            var p = Bpl.Expr.Binary(fargs.tok, BinaryOperator.Opcode.Imp, canCall, fargs);
+            splits.Add(new SplitExprInfo(SplitExprInfo.K.Checked, p));
+            // F#canCall(args) && F(args)
+            var fr = Bpl.Expr.And(canCall, fargs);
+            splits.Add(new SplitExprInfo(SplitExprInfo.K.Free, fr));
+          } else {
+            // inline this body
+            var typeSpecializedBody = GetSubstitutedBody(fexp, f);
+            var typeSpecializedResultType = Resolver.SubstType(f.ResultType, fexp.GetTypeArgumentSubstitutions());
+
+            // recurse on body
+            var ss = new List<SplitExprInfo>();
+            TrSplitExpr(typeSpecializedBody, ss, true, functionHeight, inlineProtectedFunctions, apply_induction, etran);
+            var needsTokenAdjust = TrSplitNeedsTokenAdjustment(typeSpecializedBody);
+            foreach (var s in ss) {
+              if (s.IsChecked) {
+                var unboxedConjunct = CondApplyUnbox(s.E.tok, s.E, typeSpecializedResultType, expr.Type);
+                var bodyOrConjunct = Bpl.Expr.Or(fargs, unboxedConjunct);
+                var tok = needsTokenAdjust
+                  ? (IToken)new ForceCheckToken(typeSpecializedBody.tok)
+                  : (IToken)new NestedToken(fexp.tok, s.E.tok);
+                var p = Bpl.Expr.Binary(tok, BinaryOperator.Opcode.Imp, canCall, bodyOrConjunct);
+                splits.Add(new SplitExprInfo(SplitExprInfo.K.Checked, p));
+              }
+            }
+
+            // allocatedness for arguments to the inlined call in body
+            if (typeSpecializedBody is FunctionCallExpr) {
+              FunctionCallExpr e = (FunctionCallExpr)typeSpecializedBody;
+              for (int i = 0; i < e.Args.Count; i++) {
+                Expression ee = e.Args[i];
+                Type t = e.Function.Formals[i].Type;
+                Expr tr_ee = etran.TrExpr(ee);
+                Bpl.Expr wh = GetWhereClause(e.tok, tr_ee, cce.NonNull(ee.Type), etran, NOALLOC);
+                if (wh != null) {
+                  fargs = Bpl.Expr.And(fargs, wh);
+                }
+              }
+            }
+
+            // body
+            var trBody = etran.TrExpr(typeSpecializedBody);
+            trBody = CondApplyUnbox(trBody.tok, trBody, typeSpecializedResultType, expr.Type);
+            // F#canCall(args) && F(args) && (b0 && b1 && b2)
+            var fr = Bpl.Expr.And(canCall, BplAnd(fargs, trBody));
+            splits.Add(new SplitExprInfo(SplitExprInfo.K.Free, fr));
+          }
+
+          return true;
+        }
+      }
+      return false;
+    }
+
     private bool CanSafelyInline(FunctionCallExpr fexp, Function f) {
       var visitor = new TriggersExplorer();
-      visitor.Visit(f);
+      if (f.Body != null) {
+        var body = f.Body;
+        if (f is PrefixPredicate pp) {
+          body = PrefixSubstitution(pp, body);
+        }
+        visitor.Visit(body);
+      }
       return LinqExtender.Zip(f.Formals, fexp.Args).All(formal_concrete => CanSafelySubstitute(visitor.TriggerVariables, formal_concrete.Item1, formal_concrete.Item2));
     }
 
@@ -11479,21 +11500,18 @@ namespace Microsoft.Dafny {
     }
 
     private class TriggersExplorer : BottomUpVisitor {
-      VariablesCollector collector;
+      private readonly VariablesCollector collector;
 
-      internal ISet<IVariable> TriggerVariables { get { return collector.variables; } }
+      internal ISet<IVariable> TriggerVariables => collector.variables;
 
       internal TriggersExplorer() {
         collector = new VariablesCollector();
       }
 
       protected override void VisitOneExpr(Expression expr) {
-        if (expr is QuantifierExpr) {
-          var e = (QuantifierExpr)expr;
-          if (e.SplitQuantifier == null) {
-            foreach (var trigger in (expr as QuantifierExpr).Attributes.AsEnumerable().Where(a => a.Name == "trigger").SelectMany(a => a.Args)) {
-              collector.Visit(trigger);
-            }
+        if (expr is QuantifierExpr quantifierExpr && quantifierExpr.SplitQuantifier == null) {
+          foreach (var trigger in quantifierExpr.Attributes.AsEnumerable().Where(a => a.Name == "trigger").SelectMany(a => a.Args)) {
+            collector.Visit(trigger);
           }
         }
       }
