@@ -17,9 +17,9 @@ LabelsOldAt.dfy(207,31): Error: each set element must be allocated in the old-st
 LabelsOldAt.dfy(236,14): Error: receiver must be allocated in the state in which its fields are accessed
 LabelsOldAt.dfy(242,29): Error: object must be allocated in the old-state of the 'unchanged' predicate
 LabelsOldAt.dfy(244,29): Error: each set element must be allocated in the old-state of the 'unchanged' predicate
-LabelsOldAt.dfy(260,15): Error: object must be non-null
-LabelsOldAt.dfy(261,15): Error: each set element must be non-null
-LabelsOldAt.dfy(262,15): Error: each sequence element must be non-null
+LabelsOldAt.dfy(260,15): Error: object may be null
+LabelsOldAt.dfy(261,15): Error: some set element may be null
+LabelsOldAt.dfy(262,15): Error: some sequence element may be null
 LabelsOldAt.dfy(266,15): Error: object must be allocated in the old-state of the 'unchanged' predicate
 LabelsOldAt.dfy(267,15): Error: each set element must be allocated in the old-state of the 'unchanged' predicate
 LabelsOldAt.dfy(268,15): Error: each sequence element must be allocated in the old-state of the 'unchanged' predicate

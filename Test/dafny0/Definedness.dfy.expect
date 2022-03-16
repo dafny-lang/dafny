@@ -16,8 +16,8 @@ Definedness.dfy(67,21): Related location: This is the postcondition that might n
 Definedness.dfy(88,6): Error: target object may be null
 Definedness.dfy(89,4): Error: possible violation of function precondition
 Definedness.dfy(79,15): Related location
-Definedness.dfy(89,9): Error: assignment may update an object not in the enclosing context's modifies clause
 Definedness.dfy(89,9): Error: target object may be null
+Definedness.dfy(89,9): Error: assignment may update an object not in the enclosing context's modifies clause
 Definedness.dfy(90,9): Error: possible violation of function precondition
 Definedness.dfy(79,15): Related location
 Definedness.dfy(95,13): Error: possible division by zero
