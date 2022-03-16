@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Diagnostics.Contracts;
@@ -10,6 +11,7 @@ using System.IO;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using JetBrains.Annotations;
+using Microsoft.Dafny.Compilers;
 using Microsoft.Dafny.Plugins;
 using Bpl = Microsoft.Boogie;
 
@@ -76,18 +78,7 @@ namespace Microsoft.Dafny {
     public List<string> DafnyPrintExportedViews = new List<string>();
     public bool Compile = true;
 
-    [Flags]
-    public enum CompilationTarget {
-      Csharp = 1,
-      JavaScript = 2,
-      Go = 4,
-      Java = 8,
-      Cpp = 16,
-      Php = 32,
-      Python = 64
-    }
-
-    public CompilationTarget CompileTarget = CompilationTarget.Csharp;
+    public Compiler Compiler;
     public bool CompileVerbose = true;
     public bool EnforcePrintEffects = false;
     public string DafnyPrintCompiledFile = null;
@@ -151,7 +142,8 @@ namespace Microsoft.Dafny {
     // Working around the fact that xmlFilename is private
     public string BoogieXmlFilename = null;
 
-    public List<Plugin> Plugins = new();
+    public static readonly ReadOnlyCollection<Plugin> DefaultPlugins = new(new[] { Compilers.SinglePassCompiler.Plugin });
+    public List<Plugin> Plugins = new(DefaultPlugins);
 
     public virtual TestGenerationOptions TestGenOptions =>
       testGenOptions ??= new TestGenerationOptions();
@@ -217,22 +209,12 @@ namespace Microsoft.Dafny {
 
         case "compileTarget":
           if (ps.ConfirmArgumentCount(1)) {
-            if (args[ps.i].Equals("cs")) {
-              CompileTarget = CompilationTarget.Csharp;
-            } else if (args[ps.i].Equals("js")) {
-              CompileTarget = CompilationTarget.JavaScript;
-            } else if (args[ps.i].Equals("go")) {
-              CompileTarget = CompilationTarget.Go;
-            } else if (args[ps.i].Equals("java")) {
-              CompileTarget = CompilationTarget.Java;
-            } else if (args[ps.i].Equals("cpp")) {
-              CompileTarget = CompilationTarget.Cpp;
-            } else if (args[ps.i].Equals("php")) {
-              CompileTarget = CompilationTarget.Php;
-            } else if (args[ps.i].Equals("py")) {
-              CompileTarget = CompilationTarget.Python;
-            } else {
-              InvalidArgumentError(name, ps);
+            var compileTarget = args[ps.i];
+            var compilers = Plugins.SelectMany(p => p.GetCompilers()).ToList();
+            Compiler = compilers.LastOrDefault(c => c.TargetId == compileTarget);
+            if (Compiler == null) {
+              var known = String.Join(", ", compilers.Select(c => $"'{c.TargetId}' ({c.TargetLanguage})"));
+              ps.Error($"No compiler found for compileTarget \"{compileTarget}\"; expecting one of {known}");
             }
           }
 
@@ -261,7 +243,7 @@ namespace Microsoft.Dafny {
                   // Parse arguments, accepting and remove double quotes that isolate long arguments
                   arguments = ParsePluginArguments(argumentsString);
                 }
-                Plugins.Add(Plugin.Load(pluginPath, arguments));
+                Plugins.Add(AssemblyPlugin.Load(pluginPath, arguments));
               }
             }
 
@@ -601,6 +583,8 @@ namespace Microsoft.Dafny {
         XmlSink = new Bpl.XmlSink(this, BoogieXmlFilename);
       }
 
+      Compiler ??= new CsharpCompiler();
+
       // expand macros in filenames, now that LogPrefix is fully determined
       ExpandFilename(DafnyPrelude, x => DafnyPrelude = x, LogPrefix, FileTimestamp);
       ExpandFilename(DafnyPrintFile, x => DafnyPrintFile = x, LogPrefix, FileTimestamp);
@@ -922,8 +906,8 @@ namespace Microsoft.Dafny {
     go - Compilation to Go
     js - Compilation to JavaScript
     java - Compilation to Java
+    py - Compilation to Python
     cpp - Compilation to C++
-    php - Compilation to PHP
 
     Note that the C++ backend has various limitations (see Docs/Compilation/Cpp.md).
     This includes lack of support for BigIntegers (aka int), most higher order
