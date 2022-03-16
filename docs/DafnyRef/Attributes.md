@@ -360,7 +360,7 @@ This is mostly helpful for debugging which assertion is taking the most time to 
 ## 22.3. Attributes on assertions, preconditions and postconditions {#sec-verification-attributes-on-assert-statements}
 
 
-#### 22.3.1. `{:focus}` {#sec-focus}
+### 22.3.1. `{:focus}` {#sec-focus}
 `assert {:focus} X;` splits verification into two [assertion batches](#sec-assertion-batches).
 The first problem considers all assertions that are on the bloc containing the `assert {:focus} X;`.
 The second problem considers all remaining assertions[^second-focus-assertion-batch].
@@ -383,7 +383,7 @@ method doFocus(x: bool) returns (y: int) {
 }
 ```
 
-#### 22.3.2. `{:split_here}` {#sec-split_here}
+### 22.3.2. `{:split_here}` {#sec-split_here}
 `assert {:split_here} X;` splits verification into two [assertion batches](#sec-assertion-batches).
 It verifies the code leading to this point (excluded) in a first assertion batch,
 and the code leading from this point (included) to the next `{:split_here}` or until the end in a second assertion batch.
@@ -400,13 +400,13 @@ method doSplitHere(x: bool) returns (y: int) {
 }
 ```
 
-#### 22.3.3. `{:subsumption n}`
+### 22.3.3. `{:subsumption n}`
 Overrides the `/subsumption` command-line setting for this assertion.
 
 
 <!--
 This is not working in Dafny and shouldn't be documented until so.
-#### 22.2.5.4. `{:msg <string>}`
+### 22.3.4. `{:msg <string>}`
      
 Prints <string> rather than the standard message for assertion failure.
 Also applicable to requires and ensures declarations.
