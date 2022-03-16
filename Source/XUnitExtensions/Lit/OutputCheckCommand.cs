@@ -153,12 +153,8 @@ namespace XUnitExtensions.Lit {
     }
 
     public override bool FindMatch(IEnumerator<string> lines) {
-      while (lines.MoveNext()) {
-        if (Pattern.IsMatch(lines.Current)) {
-          return true;
-        }
-      }
-      return false;
+      // This directive is tested using a CheckingEnumerator instead.
+      throw new NotImplementedException();
     }
 
     public override string ToString() {
@@ -168,15 +164,12 @@ namespace XUnitExtensions.Lit {
 
   private record CheckNotLiteral(string File, int LineNumber, string Literal) : CheckDirective(File, LineNumber) {
     public new static CheckDirective Parse(string file, int lineNumber, string arguments) {
-      return new CheckNextRegexp(file, lineNumber, new Regex(arguments));
+      return new CheckNotLiteral(file, lineNumber, arguments);
     }
 
     public override bool FindMatch(IEnumerator<string> lines) {
-      if (!lines.MoveNext()) {
-        throw new Exception("No more lines to match against");
-      }
-
-      return Literal == lines.Current.Trim();
+      // This directive is tested using a CheckingEnumerator instead.
+      throw new NotImplementedException();
     }
 
     public override string ToString() {
@@ -216,16 +209,18 @@ namespace XUnitExtensions.Lit {
     IEnumerator<string> lineEnumerator = linesToCheck.GetEnumerator();
     IEnumerator<string>? notCheckingEnumerator = null;
     foreach (var directive in checkDirectives) {
+      // CHECK-NOT[-L] directives apply up until the next directive, so we handle
+      // them by wrapping the line enumerator for the next time through the loop.
       if (directive is CheckNotRegexp(var _, var _, var pattern)) {
         notCheckingEnumerator = new CheckingEnumerator(lineEnumerator, line => {
           if (pattern.IsMatch(line)) {
-            throw new Exception($"Match found for {pattern}: {line}");
+            throw new Exception($"Match found for {directive}: {line}");
           };
         });
       } else if (directive is CheckNotLiteral(var _, var _, var literal)) {
         notCheckingEnumerator = new CheckingEnumerator(lineEnumerator, line => {
           if (literal == line.Trim()) {
-            throw new Exception($"Match found for {literal}: {line}");
+            throw new Exception($"Match found for {directive}: {line}");
           };
         });
       } else {
