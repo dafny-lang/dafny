@@ -13,6 +13,7 @@
 - fix: Regain C# 7.3 compatibility of the compiled code. (https://github.com/dafny-lang/dafny/pull/1877)
 - fix: The error "assertion violation" is replaced by the better wording "assertion might not hold". This indicates better that the verifier is unable to prove the assertion. (https://github.com/dafny-lang/dafny/pull/1862)
 
+
 # 3.4.2
 
 - fix: No output when compiling to JavaScript on Windows (https://github.com/dafny-lang/dafny/pull/1824)
