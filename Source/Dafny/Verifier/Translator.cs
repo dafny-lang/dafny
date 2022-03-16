@@ -4094,7 +4094,7 @@ namespace Microsoft.Dafny {
         if (formal.IsOld) {
           Bpl.Expr wh = GetWhereClause(e.tok, etran.TrExpr(e), e.Type, etran.Old, ISALLOC, true);
           if (wh != null) {
-            var desc = new DafnyTwoStateAllocatedDescription("default value", "function");
+            var desc = new DafnyAllocatedDescription("default value", "in the two-state function's previous state");
             builder.Add(AssertDesc(e.tok, wh, desc));
           }
         }
@@ -5067,7 +5067,7 @@ namespace Microsoft.Dafny {
       } else {
         builder.Add(AssertDesc(tok, Bpl.Expr.Neq(etran.TrExpr(e), predef.Null), new DafnyNonNullDescription("target object"), kv));
         if (!CommonHeapUse) {
-          builder.Add(AssertDesc(tok, MkIsAlloc(etran.TrExpr(e), e.Type, etran.HeapExpr), new DafnyAllocatedDescription("target object"), kv));
+          builder.Add(AssertDesc(tok, MkIsAlloc(etran.TrExpr(e), e.Type, etran.HeapExpr), new DafnyAllocatedDescription("target object", null), kv));
         }
       }
     }
@@ -5407,13 +5407,15 @@ namespace Microsoft.Dafny {
           if (e.Member is TwoStateFunction) {
             Bpl.Expr wh = GetWhereClause(expr.tok, etran.TrExpr(e.Obj), e.Obj.Type, etran.OldAt(e.AtLabel), ISALLOC, true);
             if (wh != null) {
-              var desc = new DafnyTwoStateAllocatedDescription("receiver argument", "function");
+              var desc = new DafnyAllocatedDescription("receiver argument", "in the two-state function's previous state");
               builder.Add(AssertDesc(expr.tok, wh, desc));
             }
           } else if (etran.UsesOldHeap) {
             Bpl.Expr wh = GetWhereClause(expr.tok, etran.TrExpr(e.Obj), e.Obj.Type, etran, ISALLOC, true);
             if (wh != null) {
-              builder.Add(Assert(expr.tok, wh, $"receiver must be allocated in the state in which its {(e.Member is Field ? "fields" : "members")} are accessed"));
+              var desc = new DafnyAllocatedDescription("receiver",
+                $"in the state in which its {(e.Member is Field ? "fields" : "members")} are accessed");
+              builder.Add(AssertDesc(expr.tok, wh, desc));
             }
           }
         }
@@ -5429,7 +5431,7 @@ namespace Microsoft.Dafny {
         if (eSeqType.IsArrayType) {
           builder.Add(AssertDesc(e.Seq.tok, Bpl.Expr.Neq(seq, predef.Null), new DafnyNonNullDescription("array")));
           if (!CommonHeapUse || etran.UsesOldHeap) {
-            builder.Add(AssertDesc(e.Seq.tok, MkIsAlloc(seq, eSeqType, etran.HeapExpr), new DafnyAllocatedDescription("array")));
+            builder.Add(AssertDesc(e.Seq.tok, MkIsAlloc(seq, eSeqType, etran.HeapExpr), new DafnyAllocatedDescription("array", null)));
           }
         }
         Bpl.Expr e0 = null;
@@ -5489,7 +5491,7 @@ namespace Microsoft.Dafny {
         Bpl.Expr array = etran.TrExpr(e.Array);
         builder.Add(AssertDesc(e.Array.tok, Bpl.Expr.Neq(array, predef.Null), new DafnyNonNullDescription("array")));
         if (!CommonHeapUse || etran.UsesOldHeap) {
-          builder.Add(AssertDesc(e.Array.tok, MkIsAlloc(array, e.Array.Type, etran.HeapExpr), new DafnyAllocatedDescription("array")));
+          builder.Add(AssertDesc(e.Array.tok, MkIsAlloc(array, e.Array.Type, etran.HeapExpr), new DafnyAllocatedDescription("array", null)));
         }
         for (int idxId = 0; idxId < e.Indices.Count; idxId++) {
           var idx = e.Indices[idxId];
@@ -5559,13 +5561,15 @@ namespace Microsoft.Dafny {
         if (etran.UsesOldHeap) {
           Bpl.Expr wh = GetWhereClause(e.Function.tok, etran.TrExpr(e.Function), e.Function.Type, etran, ISALLOC, true);
           if (wh != null) {
-            builder.Add(Assert(e.Function.tok, wh, "function must be allocated in the state in which the function is invoked"));
+            var desc = new DafnyAllocatedDescription("function", "in the state in which the function is invoked");
+            builder.Add(AssertDesc(e.Function.tok, wh, desc));
           }
           for (int i = 0; i < e.Args.Count; i++) {
             Expression ee = e.Args[i];
             wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran, ISALLOC, true);
             if (wh != null) {
-              builder.Add(Assert(ee.tok, wh, "argument must be allocated in the state in which the function is invoked"));
+              var desc = new DafnyAllocatedDescription("argument", "in the state in which the function is invoked");
+              builder.Add(AssertDesc(ee.tok, wh, desc));
             }
           }
         }
@@ -5610,7 +5614,7 @@ namespace Microsoft.Dafny {
         if (!fnCoreType.IsArrowTypeWithoutPreconditions) {
           // check precond
           var precond = FunctionCall(e.tok, Requires(arity), Bpl.Type.Bool, args);
-          builder.Add(Assert(expr.tok, precond, "possible violation of function precondition"));
+          builder.Add(AssertDesc(expr.tok, precond, new DafnyPreconditionCheckDescription(null)));
         }
 
         if (options.DoReadsChecks && !fnCoreType.IsArrowTypeWithoutReadEffects) {
@@ -5683,21 +5687,23 @@ namespace Microsoft.Dafny {
             if (!e.Function.IsStatic) {
               Bpl.Expr wh = GetWhereClause(e.Receiver.tok, etran.TrExpr(e.Receiver), e.Receiver.Type, etran, ISALLOC, true);
               if (wh != null) {
-                builder.Add(Assert(e.Receiver.tok, wh, "receiver argument must be allocated in the state in which the function is invoked"));
+                var desc = new DafnyAllocatedDescription("receiver argument", "in the state in which the function is invoked");
+                builder.Add(AssertDesc(e.Receiver.tok, wh, desc));
               }
             }
             for (int i = 0; i < e.Args.Count; i++) {
               Expression ee = e.Args[i];
               Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran, ISALLOC, true);
               if (wh != null) {
-                builder.Add(Assert(ee.tok, wh, "argument must be allocated in the state in which the function is invoked"));
+                var desc = new DafnyAllocatedDescription("argument", "in the state in which the function is invoked");
+                builder.Add(AssertDesc(ee.tok, wh, desc));
               }
             }
           } else if (e.Function is TwoStateFunction) {
             if (!e.Function.IsStatic) {
               Bpl.Expr wh = GetWhereClause(e.Receiver.tok, etran.TrExpr(e.Receiver), e.Receiver.Type, etran.OldAt(e.AtLabel), ISALLOC, true);
               if (wh != null) {
-                var desc = new DafnyTwoStateAllocatedDescription("receiver argument", "function");
+                var desc = new DafnyAllocatedDescription("receiver argument", "in the two-state function's previous state");
                 builder.Add(AssertDesc(e.Receiver.tok, wh, desc));
               }
             }
@@ -5709,7 +5715,7 @@ namespace Microsoft.Dafny {
                 Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran.OldAt(e.AtLabel), ISALLOC, true);
                 if (wh != null) {
                   var pIdx = e.Args.Count == 1 ? "" : " " + i;
-                  var desc = new DafnyTwoStateAllocatedDescription($"argument{pIdx} ('{formal.Name}')", "function");
+                  var desc = new DafnyAllocatedDescription($"argument{pIdx} ('{formal.Name}')", "in the two-state function's previous state");
                   builder.Add(AssertDesc(ee.tok, wh, desc));
                 }
               }
@@ -5726,9 +5732,9 @@ namespace Microsoft.Dafny {
                 var desc = new DafnyPreconditionCheckDescription(errorMessage);
                 if (options.AssertKv != null) {
                   // use the given assert attribute only
-                  builder.Add(Assert(tok, ss.E, errorMessage ?? "possible violation of function precondition", options.AssertKv));
+                  builder.Add(AssertDesc(tok, ss.E, new DafnyPreconditionCheckDescription(errorMessage), options.AssertKv));
                 } else {
-                  builder.Add(AssertNS(tok, ss.E, errorMessage ?? "possible violation of function precondition"));
+                  builder.Add(AssertNSDesc(tok, ss.E, new DafnyPreconditionCheckDescription(errorMessage)));
                 }
               }
             }
@@ -5860,13 +5866,14 @@ namespace Microsoft.Dafny {
           } else {
             Contract.Assert(ty.IsRefType);
             nonNull = Bpl.Expr.Neq(r, predef.Null);
-            builder.Add(AssertDesc(fe.E.tok, BplImp(ante, nonNull), new DafnyNonNullDescription(description)));
+            builder.Add(AssertDesc(fe.E.tok, BplImp(ante, nonNull), new DafnyNonNullDescription(description, description != "object")));
           }
           // check that "r" was allocated in the "e.AtLabel" state
           Bpl.Expr wh = GetWhereClause(fe.E.tok, r, ty, etran.OldAt(e.AtLabel), ISALLOC, true);
           if (wh != null) {
-            builder.Add(Assert(fe.E.tok, BplImp(BplAnd(ante, nonNull), wh),
-              $"{description} must be allocated in the old-state of the 'unchanged' predicate"));
+            var desc = new DafnyAllocatedDescription(description, "in the old-state of the 'unchanged' predicate",
+              description != "object");
+            builder.Add(AssertDesc(fe.E.tok, BplImp(BplAnd(ante, nonNull), wh), desc));
           }
         }
       } else if (expr is UnaryExpr) {
@@ -6148,7 +6155,7 @@ namespace Microsoft.Dafny {
           }
 
           String missingStr = me.Context.FillHole(new IdCtx(new KeyValuePair<string, DatatypeCtor>(missingCtor.Name, missingCtor))).AbstractAllHoles().ToString();
-          b.Add(Assert(me.tok, Bpl.Expr.False, "missing case in match expression: " + missingStr));
+          b.Add(AssertDesc(me.tok, Bpl.Expr.False, new DafnyCompleteMatchDescription("expression", missingStr)));
 
           Bpl.Expr guard = Bpl.Expr.Eq(src, r);
           ifCmd = new Bpl.IfCmd(me.tok, guard, b.Collect(me.tok), ifCmd, els);
@@ -6869,12 +6876,12 @@ namespace Microsoft.Dafny {
     ///       -- "obj" as the translation of that reference, and
     ///       -- "antecedent" as "true".
     ///  * If "e" denotes a set of references, then return
-    ///       -- "description" as the string "some set element",
+    ///       -- "description" as the string "set element",
     ///       -- "type" as the element type of that set,
     ///       -- "obj" as a new identifier of type "type", and
     ///       -- "antecedent" as "obj in e".
     ///  * If "e" denotes a sequence of references, then return
-    ///       -- "description" as the string "some sequence element",
+    ///       -- "description" as the string "sequence element",
     ///       -- "type" as the element type of that sequence,
     ///       -- "obj" as an expression "e[i]", where "i" is a new identifier, and
     ///       -- "antecedent" as "0 <= i < |e|".
@@ -6909,11 +6916,11 @@ namespace Microsoft.Dafny {
 
       var s = etran.TrExpr(e);
       if (isSetType) {
-        description = "some set element";
+        description = "set element";
         obj = x;
         antecedent = Bpl.Expr.SelectTok(e.tok, s, BoxIfNecessary(e.tok, x, type));
       } else {
-        description = "some sequence element";
+        description = "sequence element";
         obj = UnboxIfBoxed(FunctionCall(e.tok, BuiltinFunction.SeqIndex, predef.BoxType, s, x), type);
         antecedent = InSeqRange(e.tok, x, Type.Int, s, true, null, false);
       }

@@ -769,7 +769,8 @@ namespace Microsoft.Dafny {
         }
         String missingStr = stmt.Context.FillHole(new IdCtx(new KeyValuePair<string, DatatypeCtor>(missingCtor.Name, missingCtor))).AbstractAllHoles()
           .ToString();
-        b.Add(Assert(stmt.Tok, Bpl.Expr.False, "missing case in match statement: " + missingStr));
+        var desc = new DafnyCompleteMatchDescription("statement", missingStr);
+        b.Add(AssertDesc(stmt.Tok, Bpl.Expr.False, desc));
 
         Bpl.Expr guard = Bpl.Expr.Eq(source, r);
         ifCmd = new Bpl.IfCmd(stmt.Tok, guard, b.Collect(stmt.Tok), ifCmd, els);
@@ -1025,7 +1026,7 @@ namespace Microsoft.Dafny {
           bool splitHappened;  // we actually don't care
           foreach (var split in TrSplitExpr(ens.E, etran, true, out splitHappened)) {
             if (split.IsChecked) {
-              definedness.Add(Assert(split.E.tok, split.E, "possible violation of postcondition of forall statement"));
+              definedness.Add(AssertDesc(split.E.tok, split.E, new DafnyForallPostDescription()));
             }
           }
         }
@@ -1824,21 +1825,23 @@ namespace Microsoft.Dafny {
         if (!method.IsStatic && !(method is Constructor)) {
           Bpl.Expr wh = GetWhereClause(receiver.tok, etran.TrExpr(receiver), receiver.Type, etran, ISALLOC, true);
           if (wh != null) {
-            builder.Add(Assert(receiver.tok, wh, "receiver argument must be allocated in the state in which the method is invoked"));
+            var desc = new DafnyAllocatedDescription("receiver argument", "in the state in which the method is invoked");
+            builder.Add(AssertDesc(receiver.tok, wh, desc));
           }
         }
         for (int i = 0; i < Args.Count; i++) {
           Expression ee = Args[i];
           Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran, ISALLOC, true);
           if (wh != null) {
-            builder.Add(Assert(ee.tok, wh, "argument must be allocated in the state in which the method is invoked"));
+            var desc = new DafnyAllocatedDescription("argument", "in the state in which the method is invoked");
+            builder.Add(AssertDesc(ee.tok, wh, desc));
           }
         }
       } else if (method is TwoStateLemma) {
         if (!method.IsStatic) {
           Bpl.Expr wh = GetWhereClause(receiver.tok, etran.TrExpr(receiver), receiver.Type, etran.OldAt(atLabel), ISALLOC, true);
           if (wh != null) {
-            var desc = new DafnyTwoStateAllocatedDescription("receiver argument", "lemma");
+            var desc = new DafnyAllocatedDescription("receiver argument", "in the two-state lemma's previous state");
             builder.Add(AssertDesc(receiver.tok, wh, desc));
           }
         }
@@ -1850,7 +1853,7 @@ namespace Microsoft.Dafny {
             Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran.OldAt(atLabel), ISALLOC, true);
             if (wh != null) {
               var pIdx = Args.Count == 1 ? "" : " " + i;
-              var desc = new DafnyTwoStateAllocatedDescription($"parameter{pIdx} ('{formal.Name}')", "lemma");
+              var desc = new DafnyAllocatedDescription($"parameter{pIdx} ('{formal.Name}')", "in the two-state lemma's previous state");
               builder.Add(AssertDesc(ee.tok, wh, desc));
             }
           }

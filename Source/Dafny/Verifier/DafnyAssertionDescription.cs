@@ -48,49 +48,43 @@ public class DafnyShiftUpperDescription : DafnyAssertionDescription {
 
 public class DafnyNonNullDescription : DafnyAssertionDescription {
   public override string SuccessDescription =>
-    $"{what} object is never null";
+    $"{PluralSuccess}{what} object is never null";
 
   public override string FailureDescription =>
-    $"{what} may be null";
+    $"{PluralFailure}{what} may be null";
 
   public override string ShortDescription => $"{what} non-null";
-
   private readonly string what;
-  public DafnyNonNullDescription(string what) {
+  private bool plural;
+  private string PluralSuccess => plural ? "each " : "";
+  private string PluralFailure => plural ? "some " : "";
+
+  public DafnyNonNullDescription(string what, bool plural = false) {
     this.what = what;
+    this.plural = plural;
   }
 }
 
 public class DafnyAllocatedDescription : DafnyAssertionDescription {
   public override string SuccessDescription =>
-    $"{what} is always allocated";
+    $"{PluralSuccess}{what} is always allocated{WhenSuffix}";
 
   public override string FailureDescription =>
-    $"{what} may not be allocated";
+    $"{PluralFailure}{what} may not be allocated{WhenSuffix}";
 
   public override string ShortDescription => $"{what} allocated";
 
   private readonly string what;
-  public DafnyAllocatedDescription(string what) {
+  [CanBeNull] private readonly string when;
+  private bool plural;
+  private string WhenSuffix => when is null ? "" : $" {when}";
+  private string PluralSuccess => plural ? "each " : "";
+  private string PluralFailure => plural ? "some " : "";
+
+  public DafnyAllocatedDescription(string what, string when, bool plural = false) {
     this.what = what;
-  }
-}
-
-public class DafnyTwoStateAllocatedDescription : DafnyAssertionDescription {
-  public override string SuccessDescription =>
-    $"{what} is always allocated in the two-state {abstractionType}'s previous state";
-
-  public override string FailureDescription =>
-    $"{what} must be allocated in the two-state {abstractionType}'s previous state";
-
-  public override string ShortDescription => $"{what} allocated in previous state";
-
-  private readonly string what;
-  private readonly string abstractionType;
-
-  public DafnyTwoStateAllocatedDescription(string what, string abstractionType) {
-    this.what = what;
-    this.abstractionType = abstractionType;
+    this.when = when;
+    this.plural = plural;
   }
 }
 
@@ -128,6 +122,24 @@ public class DafnyAssertStatementDescription : DafnyAssertionDescription {
   private readonly string customErrMsg;
 
   public DafnyAssertStatementDescription([CanBeNull] string customErrMsg) {
+    this.customErrMsg = customErrMsg;
+  }
+}
+
+public class DafnyLoopInvariantDescription : DafnyAssertionDescription {
+  public override string SuccessDescription =>
+    customErrMsg is null ?
+      "loop invariant always holds" :
+      $"error is impossible: {customErrMsg}";
+
+  public override string FailureDescription =>
+    customErrMsg ?? "loop invariant violation";
+
+  public override string ShortDescription => "loop invariant";
+
+  private readonly string customErrMsg;
+
+  public DafnyLoopInvariantDescription([CanBeNull] string customErrMsg) {
     this.customErrMsg = customErrMsg;
   }
 }
@@ -186,15 +198,17 @@ public class DafnyYieldEnsuresDescription : DafnyAssertionDescription {
 
 public class DafnyCompleteMatchDescription : DafnyAssertionDescription {
   public override string SuccessDescription =>
-    "match statement covers all cases";
+    $"match {matchForm} covers all cases";
 
   public override string FailureDescription =>
-    $"missing case in match statement: {missing}";
+    $"missing case in match {matchForm}: {missing}";
 
   public override string ShortDescription => "match complete";
 
+  private readonly string matchForm;
   private readonly string missing;
-  public DafnyCompleteMatchDescription(string missing) {
+  public DafnyCompleteMatchDescription(string matchForm, string missing) {
+    this.matchForm = matchForm;
     this.missing = missing;
   }
 }
