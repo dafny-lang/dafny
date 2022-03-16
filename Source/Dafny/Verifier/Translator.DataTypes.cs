@@ -500,7 +500,7 @@ namespace Microsoft.Dafny {
         AddOtherDefinition(fn, (new Bpl.Axiom(ctor.tok, q, "Constructor injectivity")));
 
         if (dt is IndDatatypeDecl) {
-          var argType = arg.Type.NormalizeExpandKeepConstraints(); // TODO: keep constraints -- really?  Write a test case
+          var argType = arg.Type.NormalizeExpand();
           if (argType.IsDatatype || argType.IsTypeParameter) {
             // for datatype:             axiom (forall params :: {#dt.ctor(params)} DtRank(params_i) < DtRank(#dt.ctor(params)));
             // for type-parameter type:  axiom (forall params :: {#dt.ctor(params)} BoxRank(params_i) < DtRank(#dt.ctor(params)));
