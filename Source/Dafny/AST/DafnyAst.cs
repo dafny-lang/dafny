@@ -395,6 +395,7 @@ namespace Microsoft.Dafny {
   /// A class implementing this interface is one that can carry attributes.
   /// </summary>
   public interface IAttributeBearingDeclaration {
+    Attributes Attributes { get; }
   }
 
   public class Attributes {
@@ -3443,6 +3444,7 @@ namespace Microsoft.Dafny {
       return false;
     }
     public Attributes Attributes;  // readonly, except during class merging in the refinement transformations and when changed by Compiler.MarkCapitalizationConflict
+    Attributes IAttributeBearingDeclaration.Attributes => Attributes;
 
     public Declaration(IToken tok, string name, Attributes attributes, bool isRefining) {
       Contract.Requires(tok != null);
@@ -3949,6 +3951,7 @@ namespace Microsoft.Dafny {
     string INamedRegion.Name { get { return Name; } }
     public ModuleDefinition EnclosingModule;  // readonly, except can be changed by resolver for prefix-named modules when the real parent is discovered
     public readonly Attributes Attributes;
+    Attributes IAttributeBearingDeclaration.Attributes => Attributes;
     public ModuleQualifiedId RefinementQId; // full qualified ID of the refinement parent, null if no refinement base
     public bool SuccessfullyResolved;  // set to true upon successful resolution; modules that import an unsuccessfully resolved module are not themselves resolved
 
@@ -7765,6 +7768,7 @@ namespace Microsoft.Dafny {
     public readonly IToken EndTok;  // typically a terminating semi-colon or end-curly-brace
     readonly string name;
     public Attributes Attributes;
+    Attributes IAttributeBearingDeclaration.Attributes => Attributes;
     public bool IsGhost;
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -8023,12 +8027,14 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class GuardedAlternative {
+  public class GuardedAlternative : IAttributeBearingDeclaration {
     public readonly IToken Tok;
     public readonly bool IsBindingGuard;
     public readonly Expression Guard;
     public readonly List<Statement> Body;
     public Attributes Attributes;
+    Attributes IAttributeBearingDeclaration.Attributes => Attributes;
+
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(Tok != null);
@@ -11234,6 +11240,7 @@ namespace Microsoft.Dafny {
     public readonly Expression Body;
     public readonly bool Exact;  // Exact==true means a regular let expression; Exact==false means an assign-such-that expression
     public readonly Attributes Attributes;
+    Attributes IAttributeBearingDeclaration.Attributes => Attributes;
     public List<ComprehensionExpr.BoundedPool> Constraint_Bounds;  // initialized and filled in by resolver; null for Exact=true and for when expression is in a ghost context
     // invariant Constraint_Bounds == null || Constraint_Bounds.Count == BoundVars.Count;
     private Expression translationDesugaring;  // filled in during translation, lazily; to be accessed only via Translation.LetDesugaring; always null when Exact==true
@@ -11336,6 +11343,7 @@ namespace Microsoft.Dafny {
     }
 
     public Attributes Attributes;
+    Attributes IAttributeBearingDeclaration.Attributes => Attributes;
 
     public abstract class BoundedPool {
       [Flags]
@@ -12459,9 +12467,10 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class NestedMatchCaseExpr : NestedMatchCase {
+  public class NestedMatchCaseExpr : NestedMatchCase, IAttributeBearingDeclaration {
     public readonly Expression Body;
     public Attributes Attributes;
+    Attributes IAttributeBearingDeclaration.Attributes => Attributes;
 
     public NestedMatchCaseExpr(IToken tok, ExtendedPattern pat, Expression body, Attributes attrs) : base(tok, pat) {
       Contract.Requires(body != null);
@@ -12470,9 +12479,10 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class NestedMatchCaseStmt : NestedMatchCase {
+  public class NestedMatchCaseStmt : NestedMatchCase, IAttributeBearingDeclaration {
     public readonly List<Statement> Body;
     public Attributes Attributes;
+    Attributes IAttributeBearingDeclaration.Attributes => Attributes;
     public NestedMatchCaseStmt(IToken tok, ExtendedPattern pat, List<Statement> body) : base(tok, pat) {
       Contract.Requires(body != null);
       this.Body = body;
@@ -12596,7 +12606,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class AttributedExpression {
+  public class AttributedExpression : IAttributeBearingDeclaration {
     public readonly Expression E;
     public readonly AssertLabel/*?*/ Label;
 
@@ -13016,7 +13026,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class Specification<T> where T : class {
+  public class Specification<T> : IAttributeBearingDeclaration where T : class {
     public readonly List<T> Expressions;
 
     [ContractInvariantMethod]
