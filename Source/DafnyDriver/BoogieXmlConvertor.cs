@@ -143,6 +143,7 @@ namespace Microsoft.Dafny {
                                             .OfType<XElement>()
                                             .Single(n => n.Name.LocalName == "conclusion");
       var duration = float.Parse(conclusionNode.Attribute("duration")!.Value);
+      var resourceCount = conclusionNode.Attribute("resourceCount")?.Value;
       var outcome = conclusionNode.Attribute("outcome")!.Value;
 
       var testCase = TestCaseForEntry(currentFileFragment, name);
@@ -150,6 +151,10 @@ namespace Microsoft.Dafny {
         StartTime = DateTimeOffset.Parse(startTime),
         Duration = TimeSpan.FromMilliseconds((long)(duration * 1000))
       };
+
+      if (resourceCount != null) {
+        testResult.SetPropertyValue(ResourceCountProperty, int.Parse(resourceCount));
+      }
 
       if (outcome == "valid") {
         testResult.Outcome = TestOutcome.Passed;
