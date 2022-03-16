@@ -39,5 +39,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// <exception cref="System.OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
     Task<DafnyDocument> VerifyAsync(DafnyDocument document, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Publishes the verification diagnostics for the given document
+    /// The document returned by LoadAsync being further processed (e.g. migrating verification nodes, etc.)
+    /// it's the responsibility of the consumer of the ITextDocumentLoader to call this method
+    /// when loading fails.
+    /// </summary>
+    /// <param name="document">The document to publish realtime diagnostics for.</param>
+    void PublishVerificationDiagnostics(DafnyDocument document);
   }
 }

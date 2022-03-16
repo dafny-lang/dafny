@@ -123,6 +123,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var (textDocument, cancellationToken) = loadRequest;
       var errorReporter = new DiagnosticErrorReporter(textDocument.Uri);
       var program = parser.Parse(textDocument, errorReporter, cancellationToken);
+      DafnyDocument document;
+      VerificationProgressReporter progressReporter;
       PublishDafnyLanguageServerLoadErrors(errorReporter, program);
       if (errorReporter.HasErrors) {
         notificationPublisher.SendStatusNotification(textDocument, CompilationStatus.ParsingFailed);
@@ -183,6 +185,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var request = new VerifyRequest(document, cancellationToken);
       requestQueue.Add(request, cancellationToken);
       return await request.Document.Task;
+    }
+
+    // Called only in the case there is a parsing or resolution error on the document
+    public void PublishVerificationDiagnostics(DafnyDocument document) {
+      diagnosticPublisher.PublishVerificationDiagnostics(document);
     }
 
     private void RecomputeVerificationNodeDiagnostics(DafnyDocument document) {
@@ -259,10 +266,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       notificationPublisher.SendStatusNotification(document.Text, CompilationStatus.VerificationStarted);
       document.VerificationPass = false;
       RecomputeVerificationNodeDiagnostics(document);
-      diagnosticPublisher.PublishVerificationDiagnostics(document);
       var progressReporter = new VerificationProgressReporter(
         loggerFactory.CreateLogger<VerificationProgressReporter>(),
         document, notificationPublisher, diagnosticPublisher);
+      progressReporter.ReportRealtimeDiagnostics(document);
       var verificationResult = verifier.Verify(document, progressReporter, cancellationToken);
       var compilationStatusAfterVerification = verificationResult.Verified
         ? CompilationStatus.VerificationSucceeded
@@ -274,21 +281,18 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       notificationPublisher.SendStatusNotification(document.Text, compilationStatusAfterVerification);
       logger.LogDebug($"Finished verification with {document.Errors.ErrorCount} errors.");
-      return document with {
+      var newDocument = document with {
         OldVerificationDiagnostics = new List<Diagnostic>(),
         SerializedCounterExamples = verificationResult.SerializedCounterExamples,
         VerificationPass = true
       };
+      progressReporter.ReportRealtimeDiagnostics(newDocument);
+      return newDocument;
     }
 
     private void SetAllUnvisitedMethodsAsVerified(DafnyDocument document) {
-      var updated = false;
       foreach (var node in document.VerificationNodeDiagnostic.Children) {
-        updated = node.SetVerifiedIfPending() || updated;
-      }
-
-      if (updated) {
-        diagnosticPublisher.PublishVerificationDiagnostics(document);
+        node.SetVerifiedIfPending();
       }
     }
 
@@ -374,6 +378,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
       }
 
+      public void ReportRealtimeDiagnostics(DafnyDocument? dafnyDocument = null) {
+        lock (LockProcessing) {
+          dafnyDocument ??= document;
+          if (dafnyDocument.LoadCanceled) {
+            return;
+          }
+          diagnosticPublisher.PublishVerificationDiagnostics(dafnyDocument);
+        }
+      }
+
       private void ReportMethodsBeingVerified(string extra = "") {
         var pending = document.VerificationNodeDiagnostic.Children
           .Where(diagnostic => diagnostic.Started && !diagnostic.Finished)
@@ -409,7 +423,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             }
 
             targetMethodNode.PropagateChildrenErrorsUp();
-            diagnosticPublisher.PublishVerificationDiagnostics(document);
+            ReportRealtimeDiagnostics();
           }
         }
       }
@@ -450,7 +464,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
             targetMethodNode.PropagateChildrenErrorsUp();
             targetMethodNode.RecomputeAssertionBatchNodeDiagnostics();
-            diagnosticPublisher.PublishVerificationDiagnostics(document);
+            ReportRealtimeDiagnostics();
           }
         }
       }
@@ -570,7 +584,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             }
             targetMethodNode.PropagateChildrenErrorsUp();
             targetMethodNode.RecomputeAssertionBatchNodeDiagnostics();
-            diagnosticPublisher.PublishVerificationDiagnostics(document);
+            ReportRealtimeDiagnostics();
           }
         }
       }
@@ -632,7 +646,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       private readonly object LockProcessing = new();
-
 
       private static VerificationStatus GetNodeStatus(ProverInterface.Outcome outcome) {
         return outcome switch {

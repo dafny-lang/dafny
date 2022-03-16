@@ -161,7 +161,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     ResolutionError = 16
   }
 
-  public abstract record NodeDiagnostic(
+  public record NodeDiagnostic(
      // User-facing name
      string DisplayName,
      // Used to re-trigger the verification of some diagnostics.
@@ -347,14 +347,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     }
   }
 
-  public sealed record DocumentNodeDiagnostic(
+  public record DocumentNodeDiagnostic(
     string Identifier,
     int Lines
   ) : NodeDiagnostic("Document", Identifier, Identifier,
     new Range(new Position(0, 0),
       new Position(Lines, 0)));
 
-  public sealed record MethodOrSubsetTypeNodeDiagnostic(
+  public record MethodOrSubsetTypeNodeDiagnostic(
     string DisplayName,
     // Used to re-trigger the verification of some diagnostics.
     string Identifier,
@@ -404,7 +404,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
   }
 
   // Invariant: There is at least 1 child for every assertion batch
-  public sealed record AssertionBatchNodeDiagnostic(
+  public record AssertionBatchNodeDiagnostic(
     string DisplayName,
     // Used to re-trigger the verification of some diagnostics.
     string Identifier,
@@ -421,7 +421,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     }
   }
 
-  public sealed record ImplementationNodeDiagnostic(
+  public record ImplementationNodeDiagnostic(
     string DisplayName,
     // Used to re-trigger the verification of some diagnostics.
     string Identifier,
@@ -480,7 +480,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     }
   };
 
-  public sealed record AssertionNodeDiagnostic(
+  public record AssertionNodeDiagnostic(
     string DisplayName,
     // Used to re-trigger the verification of some diagnostics.
     string Identifier,

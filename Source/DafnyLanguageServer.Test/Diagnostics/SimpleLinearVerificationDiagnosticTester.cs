@@ -11,26 +11,31 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Diagnostics;
 
 [TestClass]
 public class SimpleLinearVerificationDiagnosticTester : LinearVerificationDiagnosticTester {
-  [TestMethod]
+  private const int MaxTestExecutionTimeMs = 10000;
+
+  [TestInitialize]
+  public override Task SetUp() => base.SetUp();
+
+  [TestMethod/*, Timeout(MaxTestExecutionTimeMs)*/]
   public async Task EnsureVerificationDiagnosticsAreWorking() {
     var codeAndTrace = @"
-    : s  s  s  |  v  v  v  v  | :predicate Ok() {
-    : s  s  s  |  v  v  v  v  | :  true
-    : s  s  s  |  v  v  v  v  | :}
-    : ?  ?  ?  |  v  v  v  v  | :
-    : s  S | || ||s||s||S| |  | :method Test(x: bool) returns (i: int)
-    : s  S |=||=||-||-||~| |  | :   ensures i == 2
-    : s  S | || ||s||s||S| |  | :{
-    : s  S | || ||s||s||S| |  | :  if x {
-    : s  S | || ||s||s||S| |  | :    i := 2;
-    : s  S |=||=||-||-||~| |  | :  } else {
-    : s  S | || |/!\|s||S| |  | :    i := 1;
-    : s  S | || ||s||s||S| |  | :  }
-    : s  S | || ||s||s||S| |  | :}
-    : ?  ?  ?  |  v  v  v  |  | :    
-    : s  s  s  |  v  v  v  v  | :predicate OkBis() {
-    : s  s  s  |  v  v  v  v  | :  false
-    : s  s  s  |  v  v  v  v  | :}".StripMargin();
+    : s  |  |  |  I  I  |  | :predicate Ok() {
+    : s  |  |  |  I  I  |  | :  true
+    : s  |  |  |  I  I  |  | :}
+    :    |  |  |  I  I  |  | :
+    : s  S [S][ ][I][I][S] | :method Test(x: bool) returns (i: int)
+    : s  S [=][=][-][-][~] | :   ensures i == 2
+    : s  S [S][ ][I][I][S] | :{
+    : s  S [S][ ][I][I][S] | :  if x {
+    : s  S [S][ ][I][I][S] | :    i := 2;
+    : s  S [=][=][-][-][~] | :  } else {
+    : s  S [S][ ]/!\[I][S] | :    i := 1;
+    : s  S [S][ ][I][I][S] | :  }
+    : s  S [S][ ][I][I][S] | :}
+    :    |  |  |  I  I  |  | :    
+    : s  |  |  |  I  I  |  | :predicate OkBis() {
+    : s  |  |  |  I  I  |  | :  false
+    : s  |  |  |  I  I  |  | :}".StripMargin();
     var code = ExtractCode(codeAndTrace);
     var documentItem = CreateTestDocument(code);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);

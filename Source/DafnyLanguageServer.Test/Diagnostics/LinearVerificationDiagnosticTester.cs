@@ -28,25 +28,25 @@ public abstract class LinearVerificationDiagnosticTester : ClientBasedLanguageSe
   }
 
   public static Dictionary<LineVerificationStatus, string> LineVerificationStatusToString = new() {
-    { LineVerificationStatus.Unknown, " ? " },
+    { LineVerificationStatus.Unknown, "   " },
     { LineVerificationStatus.Scheduled, " s " },
     { LineVerificationStatus.Verifying, " S " },
-    { LineVerificationStatus.VerifiedObsolete, " v " },
-    { LineVerificationStatus.VerifiedVerifying, " V " },
+    { LineVerificationStatus.VerifiedObsolete, " I " },
+    { LineVerificationStatus.VerifiedVerifying, " $ " },
     { LineVerificationStatus.Verified, " | " },
-    { LineVerificationStatus.ErrorRangeObsolete, "|s|" },
-    { LineVerificationStatus.ErrorRangeVerifying, "|S|" },
-    { LineVerificationStatus.ErrorRange, "| |" },
-    { LineVerificationStatus.ErrorObsolete, "|-|" },
-    { LineVerificationStatus.ErrorVerifying, "|~|" },
-    { LineVerificationStatus.Error, "|=|" },
-    { LineVerificationStatus.ErrorRangeAssertionVerifiedObsolete, "|v|" },
-    { LineVerificationStatus.ErrorRangeAssertionVerifiedVerifying, "|V|" },
-    { LineVerificationStatus.ErrorRangeAssertionVerified, "|Y|" },
+    { LineVerificationStatus.ErrorRangeObsolete, "[I]" },
+    { LineVerificationStatus.ErrorRangeVerifying, "[S]" },
+    { LineVerificationStatus.ErrorRange, "[ ]" },
+    { LineVerificationStatus.ErrorObsolete, "[-]" },
+    { LineVerificationStatus.ErrorVerifying, "[~]" },
+    { LineVerificationStatus.Error, "[=]" },
+    { LineVerificationStatus.ErrorRangeAssertionVerifiedObsolete, "[o]" },
+    { LineVerificationStatus.ErrorRangeAssertionVerifiedVerifying, "[Q]" },
+    { LineVerificationStatus.ErrorRangeAssertionVerified, "[O]" },
     { LineVerificationStatus.ResolutionError, @"/!\" }
   };
 
-  protected static bool IsNotIndicatingProgress(LineVerificationStatus status) {
+  private static bool IsNotIndicatingProgress(LineVerificationStatus status) {
     return status != LineVerificationStatus.Scheduled &&
            status != LineVerificationStatus.Verifying &&
            status != LineVerificationStatus.ErrorObsolete &&
@@ -100,6 +100,7 @@ public abstract class LinearVerificationDiagnosticTester : ClientBasedLanguageSe
     var previousPerLineDiagnostics
       = previousTraces == null || previousTraces.Count == 0 ? null :
         previousTraces[^1].ToList();
+    var nextDiagnostic = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
     for (; maximumNumberOfTraces > 0; maximumNumberOfTraces--) {
       var verificationDiagnosticReport = await VerificationDiagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
       Assert.AreEqual(documentItem.Uri, verificationDiagnosticReport.Uri);

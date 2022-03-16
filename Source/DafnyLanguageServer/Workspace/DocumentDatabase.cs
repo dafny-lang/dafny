@@ -157,20 +157,20 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           newDocument.LastChange = change.Range;
         }
         if (newDocument.SymbolTable.Resolved) {
-          return newDocument with {
+          return WithRealtimeDiagnosticsPublished(newDocument with {
             OldVerificationDiagnostics = migratedVerificationDiagnotics,
             VerificationNodeDiagnostic = migratedVerificationNodeDiagnostics,
             LastTouchedMethodPositions = migratedLastTouchedPositions
-          };
+          });
         }
         // The document loader failed to create a new symbol table. Since we'd still like to provide
         // features such as code completion and lookup, we re-locate the previously resolved symbols
         // according to the change.
-        return newDocument with {
+        return WithRealtimeDiagnosticsPublished(newDocument with {
           SymbolTable = relocator.RelocateSymbols(oldDocument.SymbolTable, documentChange, CancellationToken.None),
           OldVerificationDiagnostics = migratedVerificationDiagnotics,
           VerificationNodeDiagnostic = migratedVerificationNodeDiagnostics
-        };
+        });
       } catch (OperationCanceledException) {
         // The document load was canceled before it could complete. We migrate the document
         // to re-locate symbols that were resolved previously.
@@ -184,6 +184,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           VerificationNodeDiagnostic = migratedVerificationNodeDiagnostics
         };
       }
+    }
+
+    private DafnyDocument WithRealtimeDiagnosticsPublished(DafnyDocument document) {
+      documentLoader.PublishVerificationDiagnostics(document);
+      return document;
     }
 
     public IObservable<DafnyDocument> SaveDocument(TextDocumentIdentifier documentId) {
