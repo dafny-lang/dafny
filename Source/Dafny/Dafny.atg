@@ -4173,6 +4173,7 @@ EndlessExpression<out Expression e, bool allowLemma, bool allowLambda, bool allo
   | MatchExpression<out e, allowLemma, allowLambda, allowBitwiseOps>
   | QuantifierExpression<out e, allowLemma, allowLambda>  /* types are such that we can allow bitwise operations in the quantifier body */
   | SetComprehensionExpr<out e, allowLemma, allowLambda, allowBitwiseOps>
+  | SeqComprehensionExpr<out e, allowLemma, allowLambda, allowBitwiseOps>
   | StmtInExpr<out s>
     Expression<out e, allowLemma, allowLambda, allowBitwiseOps>    (. e = new StmtExpr(s.Tok, s, e); .)
   | LetExpression<out e, allowLemma, allowLambda, allowBitwiseOps>
@@ -4685,6 +4686,35 @@ SetComprehensionExpr<out Expression q, bool allowLemma, bool allowLambda, bool a
      }
   .)
   .
+  
+/*------------------------------------------------------------------------*/
+SeqComprehensionExpr<out Expression q, bool allowLemma, bool allowLambda, bool allowBitwiseOps>
+= (. Contract.Ensures(Contract.ValueAtReturn(out q) != null);
+     BoundVar bv;
+     List<BoundVar/*!*/> bvars = new List<BoundVar>();
+     Expression range;
+     Expression body = null;
+     Attributes attrs = null;
+  .)
+    "seq"                                        (. IToken setToken = t; .)
+    IdentTypeOptional<out bv>                    (. bvars.Add(bv); .)
+    { ","
+      IdentTypeOptional<out bv>                  (. bvars.Add(bv); .)
+    }
+    { Attribute<ref attrs> }
+    "|" Expression<out range, allowLemma, allowLambda, allowBitwiseOps>
+    [ IF(IsQSep())  /* let any given body bind to the closest enclosing seq comprehension */
+      QSep
+      Expression<out body, allowLemma, allowLambda, allowBitwiseOps>
+    ]
+    (. if (body == null && bvars.Count != 1) {
+         SemErr(t, "a seq comprehension with more than one bound variable must have a term expression");
+         q = dummyExpr;
+       } else {
+         q = new SeqComprehension(setToken, t, bvars, range, body, attrs);
+       }
+    .)
+    .
 
 /*------------------------------------------------------------------------*/
 Expressions<.List<Expression> args.>

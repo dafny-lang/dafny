@@ -11808,10 +11808,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class SetComprehension : ComprehensionExpr {
-    public override string WhatKind => "set comprehension";
-
-    public readonly bool Finite;
+  public class CollectionComprehension : ComprehensionExpr {
     public readonly bool TermIsImplicit;  // records the given syntactic form
     public bool TermIsSimple {
       get {
@@ -11823,7 +11820,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public SetComprehension(IToken tok, IToken endTok, bool finite, List<BoundVar> bvars, Expression range, Expression/*?*/ term, Attributes attrs)
+    public CollectionComprehension(IToken tok, IToken endTok, List<BoundVar> bvars, Expression range, Expression/*?*/ term, Attributes attrs)
       : base(tok, endTok, bvars, range, term ?? new IdentifierExpr(tok, bvars[0].Name), attrs) {
       Contract.Requires(tok != null);
       Contract.Requires(cce.NonNullElements(bvars));
@@ -11832,9 +11829,28 @@ namespace Microsoft.Dafny {
       Contract.Requires(term != null || bvars.Count == 1);
 
       TermIsImplicit = term == null;
+    }
+  }
+
+  public class SetComprehension : CollectionComprehension {
+    public override string WhatKind => "set comprehension";
+
+    public readonly bool Finite;
+
+    public SetComprehension(IToken tok, IToken endTok, bool finite, List<BoundVar> bvars, Expression range, Expression /*?*/ term, Attributes attrs) 
+      : base(tok, endTok, bvars, range, term, attrs) {
       Finite = finite;
     }
   }
+
+  public class SeqComprehension : CollectionComprehension {
+    public override string WhatKind => "seq comprehension";
+    
+    public SeqComprehension(IToken tok, IToken endTok, List<BoundVar> bvars, Expression range, Expression/*?*/ term, Attributes attrs)
+      : base(tok, endTok, bvars, range, term, attrs) {
+    }
+  }
+  
   public class MapComprehension : ComprehensionExpr {
     public override string WhatKind => "map comprehension";
 
