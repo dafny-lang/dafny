@@ -1928,7 +1928,7 @@ namespace Microsoft.Dafny.Compilers {
           conditions.Add(
             $"_dafny.InstanceOfTrait({tmpVarName}.(_dafny.TraitOffspring), {TypeName_Companion(trait, wPreconditions, tok)}.TraitID_");
         } else {
-          var typeAssertSucceeds = FreshId("_typeAssertSucceeds");
+          var typeAssertSucceeds = idGenerator.FreshId("_typeAssertSucceeds");
           wPreconditions.WriteLine(
             $@"{typeAssertSucceeds} := func(param interface{{}}) bool {{ var ok bool; _, ok = param.({TypeName(boundVarType, wPreconditions, tok)}); return ok}}");
           conditions.Add($"{typeAssertSucceeds}({tmpVarName})");
