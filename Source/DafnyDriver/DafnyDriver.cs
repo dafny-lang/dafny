@@ -162,7 +162,7 @@ namespace Microsoft.Dafny {
           // Fall through and try to handle the file as an "other file"
         }
 
-        var supportedExtensions = DafnyOptions.O.Compiler.SupportedExtensions;
+        var supportedExtensions = options.Compiler.SupportedExtensions;
         if (supportedExtensions.Contains(extension)) {
           otherFiles.Add(file);
         } else if (!isDafnyFile) {
