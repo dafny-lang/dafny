@@ -15433,17 +15433,17 @@ namespace Microsoft.Dafny {
         ResolveType(v.tok, v.Type, opts.codeContext, resolveTypeOption, typeArgs);
         // If the type can be tested at run time, we keep the same scope
         // Else, the the scoped type is the upper type that can be tested.
-        //if (!v.Type.IsRuntimeTestable() && !opts.isSpecification && !opts.codeContext.IsGhost) {
-        var collectionVarType = v.Type is InferredTypeProxy ? new InferredTypeProxy() : v.Type.GetRuntimeTestableType(); ;
-        if (v.Type is InferredTypeProxy) {
-          AddXConstraint(e.Token, "SubtypeOfRuntimeTestable", v.Type, collectionVarType,
-            "Collection type '{1}' should be a run-time testable parent of its final element, but got '{0}'"
-          );
-        }
+        if (!v.Type.IsRuntimeTestable() && !opts.isSpecification && !opts.codeContext.IsGhost) {
+          var collectionVarType = v.Type is InferredTypeProxy ? new InferredTypeProxy() : v.Type.GetRuntimeTestableType(); ;
+          if (v.Type is InferredTypeProxy) {
+            AddXConstraint(e.Token, "SubtypeOfRuntimeTestable", v.Type, collectionVarType,
+              "Collection type '{1}' should be a run-time testable parent of its final element, but got '{0}'"
+            );
+          }
 
-        v.ReplaceType(collectionVarType);
-        ResolveType(v.tok, collectionVarType, opts.codeContext, resolveTypeOption, typeArgs);
-        //}
+          v.ReplaceType(collectionVarType);
+          ResolveType(v.tok, collectionVarType, opts.codeContext, resolveTypeOption, typeArgs);
+        }
 
         ScopePushNoReport(scope, v); // Let's not report duplicated and shadowed names twice
       }
