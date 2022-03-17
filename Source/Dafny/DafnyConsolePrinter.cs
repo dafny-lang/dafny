@@ -23,7 +23,7 @@ class DafnyConsolePrinter : ConsolePrinter {
     } else {
       lines = fsCache[filename];
     }
-    if (0 <= lineNumber && lineNumber < lines.Count) {
+    if (0 <= lineIndex && lineIndex < lines.Count) {
       return lines[lineNumber];
     }
     return "<nonexistent line>";
