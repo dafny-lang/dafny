@@ -17,16 +17,23 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Bpl = Microsoft.Boogie;
 
-namespace Microsoft.Dafny {
-  public class CppCompiler : Compiler {
-    public CppCompiler(ErrorReporter reporter, ReadOnlyCollection<string> otherHeaders)
-    : base(reporter) {
-      this.headers = otherHeaders;
-      this.datatypeDecls = new List<DatatypeDecl>();
-      this.classDefaults = new List<string>();
+namespace Microsoft.Dafny.Compilers {
+  public class CppCompiler : SinglePassCompiler {
+    public override void OnPreCompile(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
+      base.OnPreCompile(reporter, otherFileNames);
+      datatypeDecls = new List<DatatypeDecl>();
+      classDefaults = new List<string>();
     }
 
-    private ReadOnlyCollection<string> headers;
+    public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".h" };
+
+    public override string TargetLanguage => "C++";
+    public override string TargetExtension => "cpp";
+
+    public override bool SupportsInMemoryCompilation => false;
+    public override bool TextualTargetIsExecutable => false;
+
+    private ReadOnlyCollection<string> headers => OtherFileNames;
     private List<DatatypeDecl> datatypeDecls;
     private List<string> classDefaults;
 
@@ -54,11 +61,8 @@ namespace Microsoft.Dafny {
     const string DafnySeqClass = "DafnySequence";
     const string DafnyMapClass = "DafnyMap";
 
-    public override string TargetLanguage => "Cpp";
     protected override string ModuleSeparator => "::";
     protected override string ClassAccessor => "->";
-
-    public override bool SupportsInMemoryCompilation => false;
 
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
       wr.WriteLine("// Dafny program {0} compiled into Cpp", program.Name);
@@ -1476,7 +1480,7 @@ namespace Microsoft.Dafny {
     protected override string IdProtect(string name) {
       return PublicIdProtect(name);
     }
-    public static string PublicIdProtect(string name) {
+    public override string PublicIdProtect(string name) {
       Contract.Requires(name != null);
       switch (name) {
         // Taken from: https://www.w3schools.in/cplusplus-tutorial/keywords/

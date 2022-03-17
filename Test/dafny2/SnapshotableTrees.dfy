@@ -615,6 +615,7 @@ module SnapTree {
           stack, N := rest, N+1;
 
           if p.right != null {
+            assert p.right.Contents <= Contents[N..];
             stack := Push(stack, N, p.right, Contents, T.Repr);
           }
           hasCurrent := stack != Nil;
