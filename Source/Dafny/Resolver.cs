@@ -5034,7 +5034,9 @@ namespace Microsoft.Dafny {
           case "SubtypeOfRuntimeTestable": {
               var u = Types[0].NormalizeExpandKeepConstraints();
               // Once we know the 
-              if (!CheckTypeInference_Visitor.IsDetermined(u)) return false;
+              if (!CheckTypeInference_Visitor.IsDetermined(u)) {
+                return false;
+              }
               resolver.ConstrainSubtypeRelation(Types[1], u.GetRuntimeTestableType(), errorMsg, true);
               convertedIntoOtherTypeConstraints = true;
               return true;
