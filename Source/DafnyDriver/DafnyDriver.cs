@@ -345,8 +345,7 @@ namespace Microsoft.Dafny {
       string baseName, string programId,
       ConcurrentDictionary<string, PipelineStatistics> moduleStats,
       string moduleName,
-      Bpl.Program program)
-    {
+      Bpl.Program program) {
       Stopwatch watch = new Stopwatch();
       watch.Start();
       if (DafnyOptions.O.SeparateModuleOutput) {
