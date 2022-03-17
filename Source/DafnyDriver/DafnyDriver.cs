@@ -32,6 +32,13 @@ namespace Microsoft.Dafny {
   public class DafnyDriver {
     public DafnyOptions Options { get; }
 
+    private readonly ExecutionEngine engine;
+
+    private DafnyDriver(DafnyOptions dafnyOptions) {
+      Options = dafnyOptions;
+      engine = ExecutionEngine.CreateWithoutSharedCache(dafnyOptions);
+    }
+
     // TODO: Refactor so that non-errors (NOT_VERIFIED, DONT_PROCESS_FILES) don't result in non-zero exit codes
     public enum ExitValue { SUCCESS = 0, PREPROCESSING_ERROR, DAFNY_ERROR, COMPILE_ERROR, VERIFICATION_ERROR }
 
@@ -44,8 +51,6 @@ namespace Microsoft.Dafny {
       thread.Join();
       return ret;
     }
-
-    private ExecutionEngine engine;
 
     public static int ThreadMain(string[] args) {
       Contract.Requires(cce.NonNullElements(args));
@@ -255,8 +260,8 @@ namespace Microsoft.Dafny {
         var boogiePrograms = Translate(engine.Options, dafnyProgram).ToList();
 
         string baseName = cce.NonNull(Path.GetFileName(dafnyFileNames[^1]));
-        var (verified, oc, moduleStats) = await Boogie(baseName, boogiePrograms, programId);
-        var compiled = Compile(dafnyFileNames[0], otherFileNames, dafnyProgram, oc, moduleStats, verified);
+        var (verified, outcome, moduleStats) = await Boogie(baseName, boogiePrograms, programId);
+        var compiled = Compile(dafnyFileNames[0], otherFileNames, dafnyProgram, outcome, moduleStats, verified);
         exitValue = verified && compiled ? ExitValue.SUCCESS : !verified ? ExitValue.VERIFICATION_ERROR : ExitValue.COMPILE_ERROR;
       }
 
@@ -317,16 +322,8 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private static VerificationResultCache cache;
-
-    private DafnyDriver(DafnyOptions dafnyOptions) {
-      this.Options = dafnyOptions;
-      this.engine = ExecutionEngine.CreateWithoutSharedCache(dafnyOptions);
-    }
-
     public async Task<(bool IsVerified, PipelineOutcome Outcome, IDictionary<string, PipelineStatistics> ModuleStats)>
-      Boogie(string baseName,
-      IEnumerable<Tuple<string, Bpl.Program>> boogiePrograms, string programId) {
+      Boogie(string baseName, IEnumerable<Tuple<string, Bpl.Program>> boogiePrograms, string programId) {
 
       var concurrentModuleStats = new ConcurrentDictionary<string, PipelineStatistics>();
       var writerManager = new ConcurrentToSequentialWriteManager(Console.Out);
@@ -359,7 +356,6 @@ namespace Microsoft.Dafny {
         DafnyOptions.O.Printer.AdvisoryWriteLine(output, "For module: {0}", moduleName);
       }
 
-      cache ??= new VerificationResultCache();
       var (isVerified, newOutcome, newStats) = await Dafny.Main.BoogieOnce(output, engine, baseName, moduleName, program, programId);
 
       watch.Stop();
@@ -413,9 +409,9 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private static void WriteStatss(TextWriter output, IDictionary<string, PipelineStatistics> statss) {
+    private static void WriteModuleStats(TextWriter output, IDictionary<string, PipelineStatistics> moduleStats) {
       var statSum = new PipelineStatistics();
-      foreach (var stats in statss) {
+      foreach (var stats in moduleStats) {
         statSum.VerifiedCount += stats.Value.VerifiedCount;
         statSum.ErrorCount += stats.Value.ErrorCount;
         statSum.TimeoutCount += stats.Value.TimeoutCount;
@@ -441,7 +437,7 @@ namespace Microsoft.Dafny {
       bool compiled = true;
       switch (oc) {
         case PipelineOutcome.VerificationCompleted:
-          WriteStatss(Console.Out, moduleStats);
+          WriteModuleStats(Console.Out, moduleStats);
           if ((DafnyOptions.O.Compile && verified && !DafnyOptions.O.UserConstrainedProcsToCheck) || DafnyOptions.O.ForceCompile) {
             compiled = CompileDafnyProgram(dafnyProgram, resultFileName, otherFileNames, true);
           } else if ((2 <= DafnyOptions.O.SpillTargetCode && verified && !DafnyOptions.O.UserConstrainedProcsToCheck) || 3 <= DafnyOptions.O.SpillTargetCode) {
@@ -449,7 +445,7 @@ namespace Microsoft.Dafny {
           }
           break;
         case PipelineOutcome.Done:
-          WriteStatss(Console.Out, moduleStats);
+          WriteModuleStats(Console.Out, moduleStats);
           if (DafnyOptions.O.ForceCompile || 3 <= DafnyOptions.O.SpillTargetCode) {
             compiled = CompileDafnyProgram(dafnyProgram, resultFileName, otherFileNames, DafnyOptions.O.ForceCompile);
           }

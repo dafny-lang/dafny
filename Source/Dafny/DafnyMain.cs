@@ -279,18 +279,16 @@ namespace Microsoft.Dafny {
     /// their error code.
     /// </summary>
     private static async Task<(PipelineOutcome Outcome, PipelineStatistics Statistics)> BoogiePipelineWithRerun(
-      TextWriter output,
-      ExecutionEngine engine,
-        Microsoft.Boogie.Program/*!*/ program, string/*!*/ bplFileName,
+      TextWriter output, ExecutionEngine engine, Microsoft.Boogie.Program/*!*/ program, string/*!*/ bplFileName,
         string programId) {
       Contract.Requires(program != null);
       Contract.Requires(bplFileName != null);
 
       var stats = new PipelineStatistics();
-      var oc = engine.ResolveAndTypecheck(program, bplFileName, out var ctc);
-      switch (oc) {
+      var outcome = engine.ResolveAndTypecheck(program, bplFileName, out _);
+      switch (outcome) {
         case PipelineOutcome.Done:
-          return (oc, stats);
+          return (outcome, stats);
 
         case PipelineOutcome.ResolutionError:
         case PipelineOutcome.TypeCheckingError:
@@ -300,22 +298,21 @@ namespace Microsoft.Dafny {
             "*** Encountered internal translation error - re-running Boogie to get better debug information");
           Console.WriteLine();
 
-          List<string /*!*/> /*!*/ fileNames = new List<string /*!*/>();
-          fileNames.Add(bplFileName);
+          var /*!*/ fileNames = new List<string /*!*/> { bplFileName };
           var reparsedProgram = engine.ParseBoogieProgram(fileNames, true);
           if (reparsedProgram != null) {
-            engine.ResolveAndTypecheck(reparsedProgram, bplFileName, out ctc);
+            engine.ResolveAndTypecheck(reparsedProgram, bplFileName, out _);
           }
 
-          return (oc, stats);
+          return (outcome, stats);
 
         case PipelineOutcome.ResolvedAndTypeChecked:
           engine.EliminateDeadVariables(program);
           engine.CollectModSets(program);
           engine.CoalesceBlocks(program);
           engine.Inline(program);
-          var outcome = await engine.InferAndVerify(output, program, stats, programId);
-          return (outcome, stats);
+          var inferAndVerifyOutcome = await engine.InferAndVerify(output, program, stats, programId);
+          return (inferAndVerifyOutcome, stats);
 
         default:
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected outcome

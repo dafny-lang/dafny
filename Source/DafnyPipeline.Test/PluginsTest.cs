@@ -2,15 +2,10 @@
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Resources;
-using Microsoft.Boogie;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Xunit;
 using Microsoft.Dafny;
-using Parser = Microsoft.Dafny.Parser;
-using Program = Microsoft.Dafny.Program;
-using Type = Microsoft.Dafny.Type;
 
 namespace DafnyPipeline.Test;
 

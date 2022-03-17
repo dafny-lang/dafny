@@ -88,6 +88,7 @@ namespace DafnyTestGeneration {
         new PipelineStatistics(), null,
         _ => { }, uniqueId).Wait();
       var log = writer.ToString();
+      // TODO determine whether we can use the writer or still need the console.Out hijacking
       // Utils.CaptureConsoleOutput(
       //   () => {
       //     engine.InferAndVerify(Console.Out, program,
