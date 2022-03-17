@@ -18,7 +18,7 @@ namespace XUnitExtensions.Lit {
   }
 
   public readonly record struct OutputCheckCommand(OutputCheckOptions options) : ILitCommand {
-    
+
     private abstract record CheckDirective(string File, int LineNumber) {
 
     private static readonly Dictionary<string, Func<string, int, string, CheckDirective>> DirectiveParsers = new();
@@ -100,7 +100,7 @@ namespace XUnitExtensions.Lit {
       return $"CheckLiteral Directive ({File}:{LineNumber} Literal: '{Literal}')";
     }
   }
-  
+
   private record CheckNextLiteral(string File, int LineNumber, string Literal) : CheckDirective(File, LineNumber) {
     public new static CheckDirective Parse(string file, int lineNumber, string arguments) {
       return new CheckNextLiteral(file, lineNumber, arguments);
@@ -127,7 +127,7 @@ namespace XUnitExtensions.Lit {
       Wrapped = wrapped;
       Check = check;
     }
-    
+
     public bool MoveNext() {
       var result = Wrapped.MoveNext();
       if (result) {
@@ -146,7 +146,7 @@ namespace XUnitExtensions.Lit {
 
     public void Dispose() => Wrapped.Dispose();
   }
-  
+
   private record CheckNotRegexp(string File, int LineNumber, Regex Pattern) : CheckDirective(File, LineNumber) {
     public new static CheckDirective Parse(string file, int lineNumber, string arguments) {
       return new CheckNotRegexp(file, lineNumber, new Regex(arguments));
@@ -176,7 +176,7 @@ namespace XUnitExtensions.Lit {
       return $"CheckNotLiteral Directive ({File}:{LineNumber} Literal: '{Literal}')";
     }
   }
-  
+
   public static ILitCommand Parse(IEnumerable<string> args, LitTestConfiguration config) {
     ILitCommand? result = null;
     Parser.Default.ParseArguments<OutputCheckOptions>(args).WithParsed(o => {
