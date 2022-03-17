@@ -15247,9 +15247,9 @@ namespace Microsoft.Dafny {
           ConstrainTypeExprBool(e.RangeIfGhost, "range of quantifier must be of type bool (instead got {0})");
         }
 
+        ResolveExpression(e.Term, opts);
         ResolveAttributes(e, opts);
 
-        ResolveExpression(e.Term, opts);
         Contract.Assert(e.Term.Type != null);  // follows from postcondition of ResolveExpression
         ConstrainTypeExprBool(e.Term, "body of quantifier must be of type bool (instead got {0})");
         // Since the body is more likely to infer the types of the bound variables, resolve it
@@ -15278,7 +15278,6 @@ namespace Microsoft.Dafny {
         ConstrainTypeExprBool(e.Range, "range of set comprehension must be of type bool (instead got {0})");
         scope.PopMarker();
         scope.PushMarker();
-        ResolveAttributes(e, opts);
         ScopePushBoundVarsWithoutAssumptions(e);
         if (e.RangeIfGhost != null) {
           ResolveExpression(e.RangeIfGhost, opts);
@@ -15286,6 +15285,7 @@ namespace Microsoft.Dafny {
           ConstrainTypeExprBool(e.RangeIfGhost, "range of set comprehension must be of type bool (instead got {0})");
         }
         ResolveExpression(e.Term, opts);
+        ResolveAttributes(e, opts);
         Contract.Assert(e.Term.Type != null);  // follows from postcondition of ResolveExpression
 
         scope.PopMarker();
@@ -15309,7 +15309,6 @@ namespace Microsoft.Dafny {
         ResolveExpression(e.Range, opts);
         Contract.Assert(e.Range.Type != null);  // follows from postcondition of ResolveExpression
         ConstrainTypeExprBool(e.Range, "range of map comprehension must be of type bool (instead got {0})");
-        ResolveAttributes(e, opts);
 
         scope.PopMarker();
         scope.PushMarker();
@@ -15324,6 +15323,7 @@ namespace Microsoft.Dafny {
           Contract.Assert(e.TermLeft.Type != null);  // follows from postcondition of ResolveExpression
         }
         ResolveExpression(e.Term, opts);
+        ResolveAttributes(e, opts);
         Contract.Assert(e.Term.Type != null);  // follows from postcondition of ResolveExpression
 
         scope.PopMarker();
