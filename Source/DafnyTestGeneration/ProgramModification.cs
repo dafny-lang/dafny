@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
 using Program = Microsoft.Boogie.Program;
@@ -71,7 +72,7 @@ namespace DafnyTestGeneration {
     /// version of the original boogie program. Return null if this
     /// counterexample does not cover any new SourceModifications.
     /// </summary>
-    public virtual string? GetCounterExampleLog() {
+    public virtual async Task<string?> GetCounterExampleLog() {
       var oldOptions = DafnyOptions.O;
       var options = SetupOptions(procedure);
       DafnyOptions.Install(options);
@@ -84,9 +85,9 @@ namespace DafnyTestGeneration {
       engine.CoalesceBlocks(program);
       engine.Inline(program);
       var writer = new StringWriter();
-      engine.InferAndVerify(writer, program,
+      await engine.InferAndVerify(writer, program,
         new PipelineStatistics(), null,
-        _ => { }, uniqueId).Wait();
+        _ => { }, uniqueId);
       var log = writer.ToString();
       // TODO determine whether we can use the writer or still need the console.Out hijacking
       // Utils.CaptureConsoleOutput(
@@ -99,7 +100,7 @@ namespace DafnyTestGeneration {
       // make sure that there is a counterexample (i.e. no parse errors, etc):
       string? line;
       var stringReader = new StringReader(log);
-      while ((line = stringReader.ReadLine()) != null) {
+      while ((line = await stringReader.ReadLineAsync()) != null) {
         if (line.StartsWith("Block |")) {
           return log;
         }
