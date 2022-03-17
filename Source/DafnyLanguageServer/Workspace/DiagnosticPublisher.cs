@@ -1,4 +1,5 @@
-﻿using Microsoft.Dafny.LanguageServer.Util;
+﻿using System;
+using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -25,6 +26,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private void PublishDocumentDiagnostics(DafnyDocument document) {
+      Console.WriteLine($"Publishing document version {document.Version} with {GetDiagnostics(document).Count()} diagnostics.");
       languageServer.TextDocument.PublishDiagnostics(new PublishDiagnosticsParams {
         Uri = document.Uri,
         Version = document.Version,

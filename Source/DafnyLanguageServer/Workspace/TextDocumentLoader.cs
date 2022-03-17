@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Boogie;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -56,6 +57,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       this.dafnyPluginsOptions = dafnyPluginsOptions;
     }
 
+    static ThreadTaskScheduler LargeStackScheduler = new ThreadTaskScheduler(16 * 1024 * 1024);
+
     public static TextDocumentLoader Create(
       IDafnyParser parser,
       ISymbolResolver symbolResolver,
@@ -83,15 +86,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       );
     }
 
-    public async Task<DafnyDocument> LoadAsync(TextDocumentItem textDocument, CancellationToken cancellationToken) {
-      var request = new LoadRequest(textDocument, cancellationToken);
-      requestQueue.Add(request, cancellationToken);
-      return await request.Document.Task;
+    public Task<DafnyDocument> LoadAsync(TextDocumentItem textDocument, CancellationToken cancellationToken) {
+      return Task.Factory.StartNew(() => LoadInternal(new LoadRequest(textDocument, cancellationToken)), cancellationToken,
+        TaskCreationOptions.None, LargeStackScheduler);
     }
 
-#pragma warning disable VSTHRD100
     private async void Run() {
-#pragma warning restore VSTHRD100
       foreach (var request in requestQueue.GetConsumingEnumerable()) {
         if (request.CancellationToken.IsCancellationRequested) {
           request.Document.SetCanceled(request.CancellationToken);
@@ -169,9 +169,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public async Task<DafnyDocument> VerifyAsync(DafnyDocument document, CancellationToken cancellationToken) {
-      var request = new VerifyRequest(document, cancellationToken);
-      requestQueue.Add(request, cancellationToken);
-      return await request.Document.Task;
+
+      return await await Task.Factory.StartNew(() => VerifyInternalAsync(new VerifyRequest(document, cancellationToken)), cancellationToken,
+        TaskCreationOptions.None, LargeStackScheduler);
+      // var request = new VerifyRequest(document, cancellationToken);
+      // requestQueue.Add(request, cancellationToken);
+      // return await request.Document.Task;
     }
 
     private async Task<DafnyDocument> VerifyInternalAsync(VerifyRequest verifyRequest) {

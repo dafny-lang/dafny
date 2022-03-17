@@ -1,3 +1,4 @@
+using System;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Workspace;
@@ -8,8 +9,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Boogie;
+using Microsoft.Dafny.LanguageServer.Language;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using VerificationResult = Microsoft.Dafny.LanguageServer.Language.VerificationResult;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
   [TestClass]
@@ -119,10 +126,43 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
       Assert.AreEqual("assertion might not hold", document.Errors.GetDiagnostics(documentItem.Uri)[0].Message);
     }
 
+    class SlowVerifier : IProgramVerifier {
+      public SlowVerifier(ILogger<IProgramVerifier> logger, IOptions<VerifierOptions> options) {
+        verifier = DafnyProgramVerifier.Create(logger, options);
+      }
+
+      private readonly DafnyProgramVerifier verifier;
+
+      public Task<VerificationResult> VerifyAsync(Dafny.Program program, IVerificationProgressReporter progressReporter, CancellationToken cancellationToken) {
+        var attributes = program.Modules().SelectMany(m => {
+          return m.TopLevelDecls.OfType<TopLevelDeclWithMembers>().SelectMany(d => d.Members.Select(member => member.Attributes));
+        }).ToList();
+        if (attributes.Any(a => Attributes.Contains(a, "slow"))) {
+          var source = new TaskCompletionSource<VerificationResult>();
+          cancellationToken.Register(() => {
+            source.SetCanceled(cancellationToken);
+          });
+          return source.Task;
+        }
+
+        return verifier.VerifyAsync(program, progressReporter, cancellationToken);
+      }
+    }
+
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
     public async Task ChangeDocumentCancelsPreviousOpenAndChangeVerification() {
+
+      client = await InitializeClient(options => {
+        options.OnPublishDiagnostics(diagnosticReceiver.NotificationReceived);
+      }, serverOptions => {
+        serverOptions.Services.AddSingleton<IProgramVerifier>(serviceProvider => new SlowVerifier(
+          serviceProvider.GetRequiredService<ILogger<DafnyProgramVerifier>>(),
+          serviceProvider.GetRequiredService<IOptions<VerifierOptions>>()
+        ));
+      });
+
       var source = @"
-lemma {:timeLimit 10} SquareRoot2NotRational(p: nat, q: nat)
+lemma {:slow} SquareRoot2NotRational(p: nat, q: nat)
   requires p > 0 && q > 0
   ensures (p * p) !=  2 * (q * q)
 { 

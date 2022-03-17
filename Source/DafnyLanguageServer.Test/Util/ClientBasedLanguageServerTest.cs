@@ -1,7 +1,10 @@
+using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
+using Microsoft.Dafny.LanguageServer.Language;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
@@ -17,7 +20,9 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
   [TestInitialize]
   public virtual async Task SetUp() {
     diagnosticReceiver = new();
-    client = await InitializeClient(options => options.OnPublishDiagnostics(diagnosticReceiver.NotificationReceived));
+    client = await InitializeClient(options => {
+      options.OnPublishDiagnostics(diagnosticReceiver.NotificationReceived);
+    });
   }
 
   protected void ApplyChange(ref TextDocumentItem documentItem, Range range, string text) {
