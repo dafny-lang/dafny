@@ -183,7 +183,7 @@ See [`{:extern <name>}`](#sec-extern).
 
 ### 22.2.5. `{:fuel X}` {#sec-fuel}
 The fuel attributes is used to specify how much "fuel" a function should have,
-i.e., how many times the SMT solver is permitted to unfold its definition.  The
+i.e., how many times the verifier is permitted to unfold its definition.  The
 new `{:fuel}` annotation can be added to the function itself, it which
 case it will apply to all uses of that function, or it can overridden
 within the scope of a module, function, method, iterator, calc, forall,
