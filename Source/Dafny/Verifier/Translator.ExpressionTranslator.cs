@@ -400,6 +400,10 @@ namespace Microsoft.Dafny {
           }
           return s;
 
+        } else if (expr is SeqComprehension) {
+          // TODO
+          return translator.FunctionCall(expr.tok, BuiltinFunction.SeqEmpty, predef.BoxType);
+
         } else if (expr is MapDisplayExpr) {
           MapDisplayExpr e = (MapDisplayExpr)expr;
           Boogie.Type maptype = predef.MapType(expr.tok, e.Finite, predef.BoxType, predef.BoxType);

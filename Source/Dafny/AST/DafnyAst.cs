@@ -11809,6 +11809,7 @@ namespace Microsoft.Dafny {
   }
 
   public class CollectionComprehension : ComprehensionExpr {
+    public virtual bool Finite => true;
     public readonly bool TermIsImplicit;  // records the given syntactic form
     public bool TermIsSimple {
       get {
@@ -11835,16 +11836,19 @@ namespace Microsoft.Dafny {
   public class SetComprehension : CollectionComprehension {
     public override string WhatKind => "set comprehension";
 
-    public readonly bool Finite;
+    public override bool Finite => finite;
+    private readonly bool finite;
 
     public SetComprehension(IToken tok, IToken endTok, bool finite, List<BoundVar> bvars, Expression range, Expression /*?*/ term, Attributes attrs) 
       : base(tok, endTok, bvars, range, term, attrs) {
-      Finite = finite;
+      this.finite = finite;
     }
   }
 
   public class SeqComprehension : CollectionComprehension {
     public override string WhatKind => "seq comprehension";
+    
+    public override bool Finite => true;
     
     public SeqComprehension(IToken tok, IToken endTok, List<BoundVar> bvars, Expression range, Expression/*?*/ term, Attributes attrs)
       : base(tok, endTok, bvars, range, term, attrs) {

@@ -433,6 +433,8 @@ namespace Microsoft.Dafny {
           return new MapComprehension(tk, tkEnd, mc.Finite, bvs, range, mc.TermLeft == null ? null : CloneExpr(mc.TermLeft), term, CloneAttributes(e.Attributes));
         } else if (e is LambdaExpr l) {
           return new LambdaExpr(tk, tkEnd, bvs, range, l.Reads.ConvertAll(CloneFrameExpr), term);
+        } else if (e is SeqComprehension sc) {
+          return new SeqComprehension(tk, tkEnd, bvs, range, sc.TermIsImplicit ? null : term, CloneAttributes(e.Attributes));
         } else {
           Contract.Assert(e is SetComprehension);
           var tt = (SetComprehension)e;

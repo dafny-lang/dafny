@@ -1149,8 +1149,8 @@ namespace Microsoft.Dafny {
         var e = (QuantifierExpr)expr;
         Contract.Assert(e.SplitQuantifier == null); // No split quantifiers during resolution
         return e.UncompilableBoundVars().Count != 0 || UsesSpecFeatures(e.LogicalBody());
-      } else if (expr is SetComprehension) {
-        var e = (SetComprehension)expr;
+      } else if (expr is CollectionComprehension) {
+        var e = (CollectionComprehension)expr;
         return !e.Finite || e.UncompilableBoundVars().Count != 0 || (e.Range != null && UsesSpecFeatures(e.Range)) || (e.Term != null && UsesSpecFeatures(e.Term));
       } else if (expr is MapComprehension) {
         var e = (MapComprehension)expr;

@@ -6711,8 +6711,8 @@ namespace Microsoft.Dafny {
           if (e is QuantifierExpr quantifierExpr) {
             whereToLookForBounds = quantifierExpr.LogicalBody();
             polarity = quantifierExpr is ExistsExpr;
-          } else if (e is SetComprehension setComprehension) {
-            whereToLookForBounds = setComprehension.Range;
+          } else if (e is CollectionComprehension) {
+            whereToLookForBounds = e.Range;
           } else if (e is MapComprehension) {
             whereToLookForBounds = e.Range;
           } else {
@@ -15208,8 +15208,8 @@ namespace Microsoft.Dafny {
         allTypeParameters.PopMarker();
         expr.Type = Type.Bool;
 
-      } else if (expr is SetComprehension) {
-        var e = (SetComprehension)expr;
+      } else if (expr is ComprehensionExpr) {
+        var e = (ComprehensionExpr)expr;
         int prevErrorCount = reporter.Count(ErrorLevel.Error);
         scope.PushMarker();
         foreach (BoundVar v in e.BoundVars) {
@@ -15228,8 +15228,16 @@ namespace Microsoft.Dafny {
 
         ResolveAttributes(e, opts);
         scope.PopMarker();
-        expr.Type = new SetType(e.Finite, e.Term.Type);
-
+        
+        switch (e) {
+          case SetComprehension se:
+            expr.Type = new SetType(se.Finite, se.Term.Type);
+            break;
+          case SeqComprehension se:
+            expr.Type = new SeqType(se.Term.Type);
+            break;
+        }
+          
       } else if (expr is MapComprehension) {
         var e = (MapComprehension)expr;
         int prevErrorCount = reporter.Count(ErrorLevel.Error);
