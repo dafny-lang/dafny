@@ -9,7 +9,7 @@ namespace Microsoft.Dafny;
 class DafnyConsolePrinter : ConsolePrinter {
   private readonly Dictionary<string, List<string>> fsCache = new();
 
-  private string GetFileLine(string filename, int lineNumber) {
+  private string GetFileLine(string filename, int lineIndex) {
     List<string> lines;
     if (!fsCache.ContainsKey(filename)) {
       try {
