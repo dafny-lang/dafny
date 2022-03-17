@@ -279,20 +279,20 @@ Assign a positive priority 'N' to an implementation to control the order
 in which implementations are verified (default: N = 1).
 
 
-### 22.2.10. `{:selective_checking true}`
+### 22.2.10. `{:selective_checking}`
 Turn all assertions into assumptions except for the ones reachable from after the
 assertions marked with the attribute `{:start_checking_here}`.
 Thus, `assume {:start_checking_here} something;` becomes an inverse
 of `assume false;`: the first one disables all verification before
 it, and the second one disables all verification after.
 
-### 22.2.11. `{:tailrecursion true/false}`
+### 22.2.11. `{:tailrecursion}`
 This attribute is used on method declarations. It has a boolean argument.
 
-If specified with a false value, it means the user specifically
+If specified with a `false` value, it means the user specifically
 requested no tail recursion, so none is done.
 
-If specified with a true value, or if no argument is specified,
+If specified with a `true` value, or if no argument is specified,
 then tail recursive optimization will be attempted subject to
 the following conditions:
 
