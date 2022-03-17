@@ -15227,12 +15227,13 @@ namespace Microsoft.Dafny {
         if (e.TypeArgs.Count > 0 && !typeQuantifier) {
           reporter.Error(MessageSource.Resolver, expr, "a quantifier cannot quantify over types. Possible fix: use the experimental attribute :typeQuantifier");
         }
-        scope.PushMarker();
-        var nonRuntimeTestableType = ScopePushBoundVarsAssumingNonGhost(e, opts, option);
-        Expr RangeIfGhost = null;
         if (e.Range != null) {
           var cloner = new Cloner();
           e.RangeIfGhost = cloner.CloneExpr(e.Range);
+        }
+        scope.PushMarker();
+        ScopePushBoundVarsAssumingNonGhost(e, opts, option, typeQuantifier);
+        if (e.Range != null) {
           ResolveExpression(e.Range, opts);
           Contract.Assert(e.Range.Type != null);  // follows from postcondition of ResolveExpression
           ConstrainTypeExprBool(e.Range, "range of quantifier must be of type bool (instead got {0})");
@@ -15411,12 +15412,11 @@ namespace Microsoft.Dafny {
       // For the term only, we can assume the inferred type which has to be proved later
       foreach (BoundVar v in e.AllBoundVars) {
         if (v.HasSecondaryType()) {
-          v.ReplaceType(); // Reinstate the original type set by the user, only for the term.
+          v.ReplaceType(); // Reinstate the original type set by the user
         }
 
         ScopePushAndReport(scope, v, "bound-variable");
-        var inferredProxy = v.Type as InferredTypeProxy;
-        if (inferredProxy != null) {
+        if (v.Type is InferredTypeProxy inferredProxy) {
           Contract.Assert(!inferredProxy.KeepConstraints); // in general, this proxy is inferred to be a base type
         }
       }
@@ -15424,31 +15424,29 @@ namespace Microsoft.Dafny {
 
     /// Returns the first non-runtime testable type of the comprehension if it exists
     /// Ensures ret != null ==> !ret.IsRuntimeTestable() && ret is one of the type of e.AllBoundVars[i]
-    private Type? ScopePushBoundVarsAssumingNonGhost(IBoundVarBearingExpressionWithToken e, ResolveOpts opts, [CanBeNull] ResolveTypeOption resolveTypeOption = null) {
+    private void ScopePushBoundVarsAssumingNonGhost(IBoundVarBearingExpressionWithToken e, ResolveOpts opts, [CanBeNull] ResolveTypeOption resolveTypeOption = null, bool typeQuantifier = false) {
       if (resolveTypeOption == null) {
         resolveTypeOption = new ResolveTypeOption(ResolveTypeOptionEnum.InferTypeProxies);
       }
-      Type? nonRuntimeTestableType = null;
       foreach (BoundVar v in e.AllBoundVars) {
-        ResolveType(v.tok, v.Type, opts.codeContext, resolveTypeOption, null);
+        var typeArgs = e is QuantifierExpr q ? (typeQuantifier ? q.TypeArgs : null) : null;
+        ResolveType(v.tok, v.Type, opts.codeContext, resolveTypeOption, typeArgs);
         // If the type can be tested at run time, we keep the same scope
         // Else, the the scoped type is the upper type that can be tested.
-        if (!v.Type.IsRuntimeTestable() && !opts.isSpecification && !opts.codeContext.IsGhost) {
-          nonRuntimeTestableType = v.Type;
-          var collectionVarType = v.Type is InferredTypeProxy ? new InferredTypeProxy() : v.Type.GetRuntimeTestableType(); ;
-          if (v.Type is InferredTypeProxy) {
-            AddXConstraint(e.Token, "SubtypeOfRuntimeTestable", v.Type, collectionVarType,
-              "Collection type '{1}' should be a run-time testable parent of its final element, but got '{0}'"
-            );
-          }
-
-          v.ReplaceType(collectionVarType);
+        //if (!v.Type.IsRuntimeTestable() && !opts.isSpecification && !opts.codeContext.IsGhost) {
+        var collectionVarType = v.Type is InferredTypeProxy ? new InferredTypeProxy() : v.Type.GetRuntimeTestableType(); ;
+        if (v.Type is InferredTypeProxy) {
+          AddXConstraint(e.Token, "SubtypeOfRuntimeTestable", v.Type, collectionVarType,
+            "Collection type '{1}' should be a run-time testable parent of its final element, but got '{0}'"
+          );
         }
+
+        v.ReplaceType(collectionVarType);
+        ResolveType(v.tok, collectionVarType, opts.codeContext, resolveTypeOption, typeArgs);
+        //}
 
         ScopePushNoReport(scope, v); // Let's not report duplicated and shadowed names twice
       }
-
-      return nonRuntimeTestableType;
     }
 
     Label/*?*/ ResolveDominatingLabelInExpr(IToken tok, string/*?*/ labelName, string expressionDescription, ResolveOpts opts) {
@@ -16998,8 +16996,9 @@ namespace Microsoft.Dafny {
             bindings.ArgumentBindings.Count(), bindings.ArgumentBindings.IndexOf(b),
             whatKind + (context is Method ? " in-parameter" : " parameter"));
 
+          Type formalType = formal.Type.IsRuntimeTestable() ? formal.Type : formal.Type.NormalizeExpand();
           AddAssignableConstraint(
-            callTok, SubstType(formal.Type.NormalizeExpand(), typeMap), b.Actual.Type,
+            callTok, SubstType(formalType, typeMap), b.Actual.Type,
             $"incorrect argument type {what} (expected {{0}}, found {{1}})");
         } else if (formal.DefaultValue != null) {
           // Note, in the following line, "substMap" is passed in, but it hasn't been fully filled in until the

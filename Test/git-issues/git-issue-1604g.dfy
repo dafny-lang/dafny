@@ -11,8 +11,7 @@ method NatTypeInferenceType() {
   assert forall x: int :: EvenNat(x) && 0 <= x ==> TrueInt(x); // precondition violation (good)
   assert forall n :: EvenNat(n) ==> TrueInt(n); // since n is inferred to be an int, an precondition violation is reported
 
-  // In the following, n used to be inferred as nat (in which case no verification errors were generated), but now
-  // n is inferred as int. Does this breaking change make a difference for many programs?
-  assert forall n :: EvenNat(n) ==> n == n; // since n is inferred to be an int, an precondition violation is reported
-  assert forall n :: EvenNat(n) ==> true; // since n is inferred to be an int, an precondition violation is reported
+  // In the following, n should be inferred as a nat
+  assert forall n | EvenNat(n) :: n == n;
+  assert forall n :: EvenNat(n) ==> true;
 }

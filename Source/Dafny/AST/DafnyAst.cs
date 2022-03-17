@@ -3145,7 +3145,7 @@ namespace Microsoft.Dafny {
   }
 
   public abstract class TypeProxy : Type {
-    public Type T;  // filled in during resolution
+    public Type T { get; set; } // filled in during resolution
     public readonly List<TypeConstraint> SupertypeConstraints = new List<TypeConstraint>();
     public readonly List<TypeConstraint> SubtypeConstraints = new List<TypeConstraint>();
     public IEnumerable<Type> Supertypes {

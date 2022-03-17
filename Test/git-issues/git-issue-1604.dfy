@@ -118,6 +118,11 @@ method Main() {
 
 // This line should work because c is taken from a set of GhostEvenCell already
   b := b && isSetOfGhostEvenCells(set c: GhostEvenCell | c in x2 && ghostEvenCellIsOneOrMore(c) :: c);
+
+  // This line should work because the compiledEvenCellIsOneOrMore asks for a CompilableEvenCell which is run-time testable
+  // so the type of c is inferred to be CompilableEvenCell
+  b := b && isSetOfCompilableEvenCells(set c | c in x && compiledEvenCellIsOneOrMore(c) && c.x % 2 == 0);
+  
   assert b;
 
   print if b then "ok" else "error";

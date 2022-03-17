@@ -4831,7 +4831,7 @@ namespace Microsoft.Dafny.Compilers {
 
     private ConcreteSyntaxTree MaybeInjectSubsetConstraint(
       IVariable boundVar, Type boundVarType, bool inLetExprBody,
-      Bpl.IToken tok, ConcreteSyntaxTree wr, bool isReturning = false, bool elseReturnValue = false
+      Bpl.IToken tok, ConcreteSyntaxTree wr, bool isReturning = false, bool elseReturnValue = false, bool isSubfiltering = false
       ) {
       if (boundVarType.NormalizeExpand(true) is UserDefinedType
         {
@@ -4845,13 +4845,13 @@ namespace Microsoft.Dafny.Compilers {
             Constraint: var constraint
           }
         }) {
-        if (variable.Type.NormalizeExpand(true) is UserDefinedType
+        if (variable.Type.NormalizeExpandKeepConstraints() is UserDefinedType
           {
             ResolvedClass:
               SubsetTypeDecl
           } and var normalizedVariableType) {
           wr = MaybeInjectSubsetConstraint(boundVar, normalizedVariableType,
-            inLetExprBody, tok, wr, isReturning, elseReturnValue);
+            inLetExprBody, tok, wr, isReturning, elseReturnValue, true);
         }
 
         var bvIdentifier = new IdentifierExpr(tok, boundVar);
@@ -4878,7 +4878,7 @@ namespace Microsoft.Dafny.Compilers {
         wr = thenWriter;
       }
 
-      if (isReturning) {
+      if (isReturning && !isSubfiltering) {
         wr = EmitReturnExpr(wr);
       }
       return wr;
