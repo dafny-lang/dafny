@@ -1,4 +1,4 @@
-# 22. Attributes
+# 22. Attributes {#sec-attributes}
 Dafny allows many of its entities to be annotated with _Attributes_.
 Attributes are declared between `{:` and `}` like this:
 ```dafny
@@ -108,25 +108,55 @@ but gives an error if base type is not integral.
 * `{:nativeType false}` - Inhibits using a native type. BigInteger is used
 for integral types and BitRational for real types.
 * `{:nativeType "typename"}` - This form has an native integral
-type name as a string literal. Acceptable values are: "byte",
-"sbyte", "ushort", "short", "uint", "int", "ulong" and "long".
-An error is reported if the given datatype cannot hold all the
-values that satisfy the constraint.
+type name as a string literal. Acceptable values are:
+   * `"byte"`      8 bits, unsigned
+   * `"sbyte"`     8 bits, signed
+   * `"ushort"`    16 bits, unsigned
+   * `"short"`     16 bits, signed
+   * `"uint"`      32 bits, unsigned
+   * `"int"`       32 bits, signed
+   * `"number"`    53 bits, signed
+   * `"ulong"`     64 bits, unsigned
+   * `"long"`      64 bits, signed
+  If the target compiler
+  does not support X, then an error is generated. Also, if, after
+  scrutinizing the constraint predicate, the compiler cannot confirm
+  that the type's values will fit in X, an error is generated.
 
 ### 22.1.3. `{:ignore}`
 Ignore the declaration (after checking for duplicate names).
 
-### 22.1.4. `{:extern <name>}` {#sec-extern}
+### 22.1.4. `{:extern}` {#sec-extern}
 
-If a ``ClassDecl``, a ``MethodDecl`` or a ``FunctionDecl`` has an `{:extern}` attribute,
-then:
-* The compiler generally emits nothing for it and will use <name> instead of the dafny provided name in the generated code referencing it.
-* `{:extern}` Methods and functions can have [`requires` clauses](#sec-requires-clause) and [`ensures` clauses](#sec-ensures-clause).
-* `{:extern}` methods typically do not have any body, since they are unchecked and opaque.
-* `{:extern}` Functions can have a body which is used only for verification purposes.
+`{:extern}`  
+`{:extern <s1:string>}`  
+`{:extern <s1:string>, <s2:string>}`  
 
-The difference with [`{:axiom}`](#sec-axiom) is that the compiler will still emit code for an [`{:axiom}`](#sec-axiom), if it is a [`function method`, a `method` or a `function by method`](#sec-function-declarations) with a body.
+`{:extern}` is a target-language dependent modifier used:
 
+* to alter the CompileName of entities such as modules, classes, methods, etc.,
+* to alter the ReferenceName of the entities,
+* to decide how to define external opaque types,
+* to decide whether to emit target code or not, and
+* to decide whether a declaration is allowed not to have a body.
+
+The `CompileName` is the name for the entity when translating to one of the target languages.
+The `ReferenceName` is the name used to refer to the entity in the target language.
+A common use case of `{:extern}` is to avoid name clashes with existing library functions.
+
+`{:extern}` takes 0, 1, or 2 (possibly empty) string arguments:
+
+- 0 arguments: Dafny will use the Dafny name as the `CompileName` and not affect the `ReferenceName`
+- 1 arguments: Dafny will use `s1` as the `CompileName`, and replaces the last portion of the `ReferenceName` by `s1`.
+     When used on an opaque type, s1 is used as a hint as to how to declare that type when compiling.
+- 2 arguments: Dafny will use `s2` as the `CompileName`.
+     Dafny will use a combination of `s1` and `s2` such as for example `s1.s2` as the `ReferenceName`
+     It may also be the case that one of the arguments is simply ignored.
+
+Dafny does not perform sanity checks on the arguments---it is the user's responsibility not to generate
+  malformed target code.
+
+One difference with [`{:axiom}`](#sec-axiom) is that the compiler will still emit code for an [`{:axiom}`](#sec-axiom), if it is a [`function method`, a `method` or a `function by method`](#sec-function-declarations) with a body.
 
 ## 22.2. Attributes on functions and methods
 
@@ -245,7 +275,17 @@ lemma Fill_J(s: seq<int>)
 }
 ```
 
-### 22.2.8. `{:opaque}` {#sec-opaque}
+### 22.2.8. `{:print}` {#sec-print}
+This attributes declares that a method may have print effects,
+that is, it may use 'print' statements and may call other methods
+that have print effects. The attribute can be applied to compiled
+methods, constructors, and iterators, and it gives an error if
+applied to functions or ghost methods. An overriding method is
+allowed to use a {:print} attribute only if the overridden method
+does.
+Print effects are enforced only with `/trackPrintEffects:1`.
+
+### 22.2.9. `{:opaque}` {#sec-opaque}
 Ordinarily, the body of a function is transparent to its users, but
 sometimes it is useful to hide it. If a function `foo` or `bar` is given the
 `{:opaque}` attribute, then Dafny hides the body of the function,
@@ -274,19 +314,19 @@ the functionality is already adequately described where
 refinement is described.
 -->
 
-### 22.2.9. `{:priority N}`
+### 22.2.10. `{:priority N}`
 Assign a positive priority 'N' to an implementation to control the order
 in which implementations are verified (default: N = 1).
 
 
-### 22.2.10. `{:selective_checking}`
+### 22.2.11. `{:selective_checking}`
 Turn all assertions into assumptions except for the ones reachable from after the
 assertions marked with the attribute `{:start_checking_here}`.
 Thus, `assume {:start_checking_here} something;` becomes an inverse
 of `assume false;`: the first one disables all verification before
 it, and the second one disables all verification after.
 
-### 22.2.11. `{:tailrecursion}`
+### 22.2.12. `{:tailrecursion}`
 This attribute is used on method declarations. It has a boolean argument.
 
 If specified with a `false` value, it means the user specifically
@@ -303,10 +343,10 @@ recursion was explicitly requested.
 an error message is given.
 
 
-### 22.2.12. `{:timeLimit N}`
+### 22.2.13. `{:timeLimit N}`
 Set the time limit for a given function or method.
 
-### 22.2.13. `{:timeLimitMultiplier X}`
+### 22.2.14. `{:timeLimitMultiplier X}`
 This attribute may be placed on a method or function declaration
 and has an integer argument. If `{:timeLimitMultiplier X}` was
 specified a `{:timelimit Y}` attributed is passed on to Boogie
@@ -314,14 +354,14 @@ where `Y` is `X` times either the default verification time limit
 for a function or method, or times the value specified by the
 Boogie `timelimit` command-line option.
 
-### 22.2.14. `{:verify false}` {#sec-verify}
+### 22.2.15. `{:verify false}` {#sec-verify}
      
-Skip verification of a method altogether.
+Skip verification of a function or a method altogether.
 Will not even try to verify well-formedness of postconditions and preconditions.
 We discourage to use this attribute. Prefer [`{:axiom}`](#sec-axiom),
 which performs these minimal checks while not checking that the body satisfies postconditions.
 
-### 22.2.15. `{:vcs_max_cost N}` {#sec-vcs_max_cost}
+### 22.2.16. `{:vcs_max_cost N}` {#sec-vcs_max_cost}
 Per-method version of the command-line option `/vcsMaxCost`.
 
 The [assertion batch](#sec-assertion-batches) of a method
@@ -330,7 +370,7 @@ number, defaults to 2000.0. In
 [keep-going mode](#sec-vcs_max_keep_going_splits), only applies to the first round.
 If [`{:vcs_split_on_every_assert}`](#sec-vcs_split_on_every_assert) is set, then this parameter is useless.
 
-### 22.2.16. `{:vcs_max_keep_going_splits N}` {#sec-vcs_max_keep_going_splits}
+### 22.2.17. `{:vcs_max_keep_going_splits N}` {#sec-vcs_max_keep_going_splits}
 
 Per-method version of the command-line option `/vcsMaxKeepGoingSplits`.
 If set to more than 1, activates the _keep going mode_ where, after the first round of splitting,
@@ -341,7 +381,7 @@ case error is reported for that assertion).
 Defaults to 1.
 If [`{:vcs_split_on_every_assert}`](#sec-vcs_split_on_every_assert) is set, then this parameter is useless.
 
-### 22.2.17. `{:vcs_max_splits N}` {#sec-vcs_max_splits}
+### 22.2.18. `{:vcs_max_splits N}` {#sec-vcs_max_splits}
 
 Per-method version of the command-line option `/vcsMaxSplits`.
 Maximal number of [assertion batches](#sec-assertion-batches) generated for this method.
@@ -349,7 +389,7 @@ In [keep-going mode](#sec-vcs_max_keep_going_splits), only applies to the first 
 Defaults to 1.
 If [`{:vcs_split_on_every_assert}`](#sec-vcs_split_on_every_assert) is set, then this parameter is useless.
 
-### 22.2.18. `{:vcs_split_on_every_assert}` {#sec-vcs_split_on_every_assert}
+### 22.2.19. `{:vcs_split_on_every_assert}` {#sec-vcs_split_on_every_assert}
 Per-method version of the command-line option `/vcsSplitOnEveryAssert`.
 
 In the first verification round, this option will split the original [assertion batch](#sec-assertion-batches)
@@ -362,24 +402,56 @@ This is mostly helpful for debugging which assertion is taking the most time to 
 
 ### 22.3.1. `{:focus}` {#sec-focus}
 `assert {:focus} X;` splits verification into two [assertion batches](#sec-assertion-batches).
-The first problem considers all assertions that are on the bloc containing the `assert {:focus} X;`.
-The second problem considers all remaining assertions[^second-focus-assertion-batch].
+The first batch considers all assertions that are not on the block containing the `assert {:focus} X;`
+The second batch considers all assertions that are on the bloc containing the `assert {:focus} X;` and those that will _always_ follow afterwards.
+Hence, it might also occasionally double-report errors.
+If you truly want a split on the batches, prefer [`{:split_here}`](#sec-split_here).
 
-[^second-focus-assertion-batch]: More precisely, any assertion on an execution path that does not go through the assertion with `{:focus}` will be counted in the second problem, all the others will be counted in the first problem.
-
-For example:
-```
-method doFocus(x: bool) returns (y: int) {
-  y := 1;
-  assert y == 1;    // Assumption in batch #1, Assertion in batch #2
+Here are two examples illustrating how `{:focus}` works, where `--` in the comments stands for `Assumption`:
+```dafny
+method doFocus1(x: bool) returns (y: int) {
+  y := 1;                     // Batch 1    Batch 2
+  assert y == 1;              // Assertion  --
   if x {
-    assert {:focus} true;
-    y := 2;
-    assert y == 2; // Assertion in batch #1, Assumption in batch #2
+    if false {
+      assert y >= 0;          // --         Assertion
+      assert {:focus} y <= 2; // --         Assertion
+      y := 2;
+      assert y == 2;          // --         Assertion
+    }
   } else {
-    assert y == 1; // Assumption in batch #1, Assertion in batch #2
+    assert y == 1;            // Assertion  --
   }
-  assert y >= 1;   // Assumption in batch #1, Assertion in batch #2
+  assert y == 1;              // Assertion  Assertion
+  if !x {
+    assert y >= 1;            // Assertion  Assertion
+  } else {
+    assert y <= 1;            // Assertion  Assertion
+  }
+}
+```
+
+And another one where the focused block is guarded with a `while`, resulting in remaining assertions not being part of the first assertion batch:
+```dafny
+method doFocus2(x: bool) returns (y: int) {
+  y := 1;                     // Batch 1    Batch 2
+  assert y == 1;              // Assertion  --
+  if x {
+    while false {
+      assert y >= 0;          // --         Assertion
+      assert {:focus} y <= 2; // --         Assertion
+      y := 2;
+      assert y == 2;          // --         Assertion
+    }
+  } else {
+    assert y == 1;            // Assertion  --
+  }
+  assert y == 1;              // Assertion  --
+  if !x {
+    assert y >= 1;            // Assertion  --
+  } else {
+    assert y <= 1;            // Assertion  --
+  }
 }
 ```
 
@@ -388,15 +460,26 @@ method doFocus(x: bool) returns (y: int) {
 It verifies the code leading to this point (excluded) in a first assertion batch,
 and the code leading from this point (included) to the next `{:split_here}` or until the end in a second assertion batch.
 It might help with timeouts.
-It might also occasionally double-report errors.
 
-```
+Here is one example, where `--` in the comments stands for `Assumption`:
+```dafny
 method doSplitHere(x: bool) returns (y: int) {
-  y := 1;
-  assert y == 1;   // Assertion in batch #1, Assumption in batch #2
-  assert {:split_here} true;
-  assert y == 1;   // Assumption in batch #1, Assertion in batch #2
-  assert y >= 1;   // Assumption in batch #1, Assertion in batch #2
+  y := 1;                      // Batch 1    Batch 2     Batch 3
+  assert y >= 0;               // Assertion  --          --
+  if x {
+    assert y <= 1;             // Assertion  --          --
+    assert {:split_here} true; // --         Assertion   --
+    assert y <= 2;             // --         Assertion   --
+    assert {:split_here} true; // --         --          Assertion
+    if x {
+      assert y == 1;           // --         --          Assertion
+    } else {
+      assert y >= 1;           // --         --          Assertion
+    }
+  } else {
+    assert y <= 3;             // Assertion  --          --
+  }
+  assert y >= -1;              // Assertion  --          --
 }
 ```
 
