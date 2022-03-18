@@ -3427,7 +3427,7 @@ namespace Microsoft.Dafny {
         bool splitHappened;  // we don't actually care
         foreach (var s in TrSplitExpr(postcond, etran, false, out splitHappened)) {
           if (s.IsChecked) {
-            builder.Add(Assert(f.tok, s.E, "the function must provide an equal or more detailed postcondition than in its parent trait"));
+            builder.Add(AssertDesc(f.tok, s.E, new DafnyFunctionContractOverrideDescription(true)));
           }
         }
       }
@@ -3524,7 +3524,7 @@ namespace Microsoft.Dafny {
         bool splitHappened;  // we actually don't care
         foreach (var s in TrSplitExpr(req.E, etran, false, out splitHappened)) {
           if (s.IsChecked) {
-            builder.Add(Assert(f.tok, s.E, "the function must provide an equal or more permissive precondition than in its parent trait"));
+            builder.Add(AssertDesc(f.tok, s.E, new DafnyFunctionContractOverrideDescription(false)));
           }
         }
       }
@@ -4310,8 +4310,8 @@ namespace Microsoft.Dafny {
       // Check that the type is inhabited.
       // Note, the possible witness in this check should be coordinated with the compiler, so the compiler knows how to do the initialization
       Expression witnessExpr = null;
-      string witnessErrorMsg = null;
       var witnessCheckBuilder = new BoogieStmtListBuilder(this);
+      string witnessString = null;
       if (decl.Witness != null) {
         // check well-formedness of the witness expression (including termination, and reads checks)
         var ghostCodeContext = codeContext;
@@ -4325,30 +4325,26 @@ namespace Microsoft.Dafny {
         }
         // check that the witness expression checks out
         witnessExpr = Substitute(decl.Constraint, decl.Var, decl.Witness);
-        witnessErrorMsg = "the given witness expression might not satisfy constraint";
       } else if (decl.WitnessKind == SubsetTypeDecl.WKind.CompiledZero) {
         var witness = Zero(decl.tok, decl.Var.Type);
-        var errMsg = "cannot find witness that shows type is inhabited";
-        var hintMsg = "; try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type";
         if (witness == null) {
-          witnessCheckBuilder.Add(Assert(decl.tok, Bpl.Expr.False, $"{errMsg}{hintMsg}"));
+          witnessString = "";
+          witnessCheckBuilder.Add(AssertDesc(decl.tok, Bpl.Expr.False, new DafnyWitnessCheckDescription(witnessString)));
         } else {
           // before trying 0 as a witness, check that 0 can be assigned to decl.Var
-          var witnessString = Printer.ExprToString(witness);
+          witnessString = Printer.ExprToString(witness);
           CheckResultToBeInType(decl.tok, witness, decl.Var.Type, locals, witnessCheckBuilder, etran, $"trying witness {witnessString}: ");
           witnessExpr = Substitute(decl.Constraint, decl.Var, witness);
-          witnessErrorMsg = $"{errMsg} (only tried {witnessString}){hintMsg}";
         }
       }
       if (witnessExpr != null) {
-        Contract.Assert(witnessErrorMsg != null);
         var witnessCheckTok = decl.Witness != null ? decl.Witness.tok : decl.tok;
         witnessCheckBuilder.Add(new Bpl.AssumeCmd(witnessCheckTok, CanCallAssumption(witnessExpr, etran)));
         var witnessCheck = etran.TrExpr(witnessExpr);
 
         bool splitHappened;
         var ss = TrSplitExpr(witnessExpr, etran, true, out splitHappened);
-        var desc = new DafnyWitnessCheckDescription(witnessErrorMsg);
+        var desc = new DafnyWitnessCheckDescription(witnessString);
         if (!splitHappened) {
           witnessCheckBuilder.Add(AssertDesc(witnessCheckTok, etran.TrExpr(witnessExpr), desc));
         } else {
@@ -5462,7 +5458,7 @@ namespace Microsoft.Dafny {
             } else {
               lowerBound = e0;
             }
-            builder.Add(Assert(expr.tok, InSeqRange(expr.tok, etran.TrExpr(e.E1), e.E1.Type, seq, isSequence, lowerBound, true), "upper bound below lower bound or above length of " + (isSequence ? "sequence" : "array"), options.AssertKv));
+            builder.Add(AssertDesc(expr.tok, InSeqRange(expr.tok, etran.TrExpr(e.E1), e.E1.Type, seq, isSequence, lowerBound, true), new DafnySequenceSelectRangeDescription(isSequence ? "sequence" : "array"), options.AssertKv));
           }
         }
         if (options.DoReadsChecks && eSeqType.IsArrayType) {
@@ -5542,7 +5538,8 @@ namespace Microsoft.Dafny {
           } else if (collectionType is MapType mapType) {
             CheckSubrange(e.Value.tok, value, e.Value.Type, mapType.Range, builder);
           } else if (collectionType is MultiSetType) {
-            builder.Add(Assert(e.Value.tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), value), "new number of occurrences might be negative", options.AssertKv));
+            var desc = new DafnyNonNegativeDescription("new number of occurrences");
+            builder.Add(AssertDesc(e.Value.tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), value), desc, options.AssertKv));
           } else {
             Contract.Assert(false);
           }
@@ -5847,8 +5844,8 @@ namespace Microsoft.Dafny {
       } else if (expr is SeqConstructionExpr) {
         var e = (SeqConstructionExpr)expr;
         CheckWellformed(e.N, options, locals, builder, etran);
-        builder.Add(Assert(e.N.tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(e.N)),
-          "sequence size might be negative"));
+        var desc = new DafnyNonNegativeDescription("sequence size");
+        builder.Add(AssertDesc(e.N.tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(e.N)), desc));
 
         CheckWellformed(e.Initializer, options, locals, builder, etran);
         var eType = e.Type.AsSeqType.Arg;
@@ -5991,7 +5988,7 @@ namespace Microsoft.Dafny {
           case TernaryExpr.Opcode.PrefixEqOp:
           case TernaryExpr.Opcode.PrefixNeqOp:
             if (e.E0.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
-              builder.Add(Assert(expr.tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(e.E0)), "prefix-equality limit must be at least 0", options.AssertKv));
+              builder.Add(AssertDesc(expr.tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(e.E0)), new DafnyPrefixEqualityLimitDescription(), options.AssertKv));
             }
             break;
           default:
@@ -6102,7 +6099,7 @@ namespace Microsoft.Dafny {
                 var different = BplOr(
                   Bpl.Expr.Neq(comprehensionEtran.TrExpr(bodyLeft), comprehensionEtran.TrExpr(bodyLeftPrime)),
                   Bpl.Expr.Eq(comprehensionEtran.TrExpr(body), comprehensionEtran.TrExpr(bodyPrime)));
-                b.Add(Assert(mc.TermLeft.tok, different, "key expressions may be referring to the same value"));
+                b.Add(AssertDesc(mc.TermLeft.tok, different, new DafnyComprehensionNoAliasDescription()));
               });
             }
           });
@@ -6509,7 +6506,7 @@ namespace Microsoft.Dafny {
         Bpl.Expr from = FunctionCall(tok, BuiltinFunction.RealToInt, null, o);
         Bpl.Expr e = FunctionCall(tok, BuiltinFunction.IntToReal, null, from);
         e = Bpl.Expr.Binary(tok, Bpl.BinaryOperator.Opcode.Eq, e, o);
-        builder.Add(Assert(tok, e, $"{errorMsgPrefix}the real-based number must be an integer (if you want truncation, apply .Floor to the real-based number)"));
+        builder.Add(AssertDesc(tok, e, new DafnyIsIntegerDescription(errorMsgPrefix)));
       }
 
       if (expr.Type.IsBigOrdinalType && !toType.IsBigOrdinalType) {
@@ -6589,13 +6586,15 @@ namespace Microsoft.Dafny {
         if (expr.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
           PutSourceIntoLocal();
           Bpl.Expr boundsCheck = Bpl.Expr.Le(Bpl.Expr.Literal(0), o);
-          builder.Add(Assert(tok, boundsCheck, $"{errorMsgPrefix}a negative integer cannot be converted to an {toType}"));
+          var desc = new DafnyConversionPositiveDescription("integer", toType.ToString(), errorMsgPrefix);
+          builder.Add(AssertDesc(tok, boundsCheck, desc));
         }
         if (expr.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
           PutSourceIntoLocal();
           var oi = FunctionCall(tok, BuiltinFunction.RealToInt, null, o);
           Bpl.Expr boundsCheck = Bpl.Expr.Le(Bpl.Expr.Literal(0), oi);
-          builder.Add(Assert(tok, boundsCheck, $"{errorMsgPrefix}a negative real cannot be converted to an {toType}"));
+          var desc = new DafnyConversionPositiveDescription("real", toType.ToString(), errorMsgPrefix);
+          builder.Add(AssertDesc(tok, boundsCheck, desc));
         }
       } else if (toType.IsNumericBased(Type.NumericPersuasion.Int)) {
         // already checked that BigOrdinal or real inputs are integral
@@ -6658,8 +6657,7 @@ namespace Microsoft.Dafny {
     void CheckFunctionSelectWF(string what, BoogieStmtListBuilder builder, ExpressionTranslator etran, Expression e, string hint) {
       if (e is MemberSelectExpr sel && sel.Member is Function fn) {
         Bpl.Expr assertion = !InVerificationScope(fn) ? Bpl.Expr.True : Bpl.Expr.Not(etran.HeightContext(fn));
-        builder.Add(Assert(e.tok, assertion,
-          "cannot use " + what + " in recursive setting." + hint));
+        builder.Add(AssertDesc(e.tok, assertion, new DafnyNotRecursiveSettingDescription(what, hint)));
       }
     }
 
@@ -8942,11 +8940,7 @@ namespace Microsoft.Dafny {
       if (allowance != null) {
         decrExpr = Bpl.Expr.Or(allowance, decrExpr);
       }
-      string msg = inferredDecreases ? "cannot prove termination; try supplying a decreases clause" : "failure to decrease termination measure";
-      if (hint != null) {
-        msg += " (" + hint + ")";
-      }
-      builder.Add(Assert(tok, decrExpr, msg));
+      builder.Add(AssertDesc(tok, decrExpr, new DafnyTerminationDescription(inferredDecreases, hint)));
     }
 
     /// <summary>
@@ -9898,8 +9892,9 @@ namespace Microsoft.Dafny {
           int i = 0;
           foreach (Expression dim in tRhs.ArrayDimensions) {
             CheckWellformed(dim, new WFOptions(), locals, builder, etran);
-            builder.Add(Assert(dim.tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(dim)),
-              tRhs.ArrayDimensions.Count == 1 ? "array size might be negative" : string.Format("array size (dimension {0}) might be negative", i)));
+            var desc = new DafnyNonNegativeDescription(tRhs.ArrayDimensions.Count == 1
+              ? "array size" : $"array size (dimension {i})");
+            builder.Add(AssertDesc(dim.tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(dim)), desc));
             i++;
           }
           if (tRhs.ElementInit != null) {

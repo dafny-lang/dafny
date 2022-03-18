@@ -248,16 +248,21 @@ public class DafnySubrangeCheckDescription : DafnyAssertionDescription {
 
 public class DafnyWitnessCheckDescription : DafnyAssertionDescription {
   public override string SuccessDescription =>
-    $"error is impossible: {msg}";
+    "type is inhabited";
 
-  public override string FailureDescription => msg;
+  public override string FailureDescription =>
+    witnessString is null
+      ? "the given witness expression might not satisfy constraint"
+      : (witnessString == "" ? $"{errMsg}{hintMsg}" : $"{errMsg} (only tried {witnessString}){hintMsg}");
 
   public override string ShortDescription => "witness check";
 
-  private readonly string msg;
+  private readonly string errMsg = "cannot find witness that shows type is inhabited";
+  private readonly string hintMsg = "; try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type";
+  private readonly string witnessString;
 
-  public DafnyWitnessCheckDescription(string msg) {
-    this.msg = msg;
+  public DafnyWitnessCheckDescription(string witnessString) {
+    this.witnessString = witnessString;
   }
 }
 
@@ -297,21 +302,42 @@ public class DafnyForRangeAssignableDescription : DafnyAssertionDescription {
   }
 }
 
-public class DafnyLoopTerminationDescription : DafnyAssertionDescription {
+public class DafnyNotRecursiveSettingDescription : DafnyAssertionDescription {
   public override string SuccessDescription =>
-    "loop terminates";
+    $"{what} is valid in recursive setting";
 
   public override string FailureDescription =>
-    inferredDescreases ?
-      "cannot prove termination; try supplying a decreases clause for the loop" :
-      "decreases expression might not decrease";
+    $"cannot use {what} in recursive setting.{hint ?? ""}";
 
-  public override string ShortDescription => "loop termination";
+  public override string ShortDescription => "valid in recursion";
+
+  private readonly string what;
+  private readonly string hint;
+
+  public DafnyNotRecursiveSettingDescription(string what, string hint) {
+    this.what = what;
+    this.hint = hint;
+  }
+}
+
+public class DafnyTerminationDescription : DafnyAssertionDescription {
+  public override string SuccessDescription =>
+    "loop or recursion terminates";
+
+  public override string FailureDescription =>
+    (inferredDescreases ?
+       "cannot prove termination; try supplying a decreases clause" :
+       "decreases expression might not decrease") +
+    (hint is null ? "" : " ({hint})");
+
+  public override string ShortDescription => "termination";
 
   private readonly bool inferredDescreases;
+  private readonly string hint;
 
-  public DafnyLoopTerminationDescription(bool inferredDescreases) {
+  public DafnyTerminationDescription(bool inferredDescreases, string hint = null) {
     this.inferredDescreases = inferredDescreases;
+    this.hint = hint;
   }
 }
 
@@ -499,4 +525,100 @@ public class DafnyConversionFitDescription : DafnyAssertionDescription {
     this.what = what;
     this.typeDesc = typeDesc;
   }
+}
+
+public class DafnyNonNegativeDescription : DafnyAssertionDescription {
+  public override string SuccessDescription =>
+    $"{what} is never negative";
+
+  public override string FailureDescription =>
+    $"{what} might be negative";
+
+  public override string ShortDescription => "non-negative";
+
+  private readonly string what;
+
+  public DafnyNonNegativeDescription(string what) {
+    this.what = what;
+  }
+}
+
+public class DafnyConversionPositiveDescription : DafnyAssertionDescription {
+  public override string SuccessDescription =>
+    $"{prefix}{what} is always positive";
+
+  public override string FailureDescription =>
+    $"{prefix}a negative {what} cannot be converted to an {typeDesc}";
+
+  public override string ShortDescription => "conversion positive";
+
+  private readonly string prefix;
+  private readonly string what;
+  private readonly string typeDesc;
+
+  public DafnyConversionPositiveDescription(string what, string typeDesc, string prefix = "") {
+    this.prefix = prefix;
+    this.what = what;
+    this.typeDesc = typeDesc;
+  }
+}
+
+public class DafnyIsIntegerDescription : DafnyAssertionDescription {
+  public override string SuccessDescription =>
+    $"{prefix}the real-based number is an integer";
+
+  public override string FailureDescription =>
+    $"{prefix}the real-based number must be an integer (if you want truncation, apply .Floor to the real-based number)";
+
+  public override string ShortDescription => "is integer";
+
+  private readonly string prefix;
+
+  public DafnyIsIntegerDescription(string prefix = "") {
+    this.prefix = prefix;
+  }
+}
+
+public class DafnyFunctionContractOverrideDescription : DafnyAssertionDescription {
+  public override string SuccessDescription =>
+    $"the function provides an equal or {RestrictionDesc} than in its parent trait";
+
+  public override string FailureDescription =>
+    $"the function must provide an equal or {RestrictionDesc} than in its parent trait";
+
+  public override string ShortDescription => "contract override valid";
+
+  private readonly bool isEnsures;
+  private string RestrictionDesc =>
+    isEnsures ? "more detailed postcondition" : "more permissive precondition";
+
+  public DafnyFunctionContractOverrideDescription(bool isEnsures) {
+    this.isEnsures = isEnsures;
+  }
+}
+
+public class DafnySequenceSelectRangeDescription : DafnyAssertionDescription {
+  public override string SuccessDescription =>
+    $"upper bound within range of {what}";
+
+  public override string FailureDescription =>
+    $"upper bound below lower bound or above length of {what}";
+
+  public override string ShortDescription => "upper bound within range";
+
+  private readonly string what;
+
+  public DafnySequenceSelectRangeDescription(string what) {
+    this.what = what;
+  }
+}
+
+public class DafnyComprehensionNoAliasDescription : DafnyAssertionDescription {
+  public override string SuccessDescription =>
+    "key expressions refer to unique values";
+
+  public override string FailureDescription =>
+    "key expressions may be referring to the same value";
+
+  public override string ShortDescription => "unique key expressions";
 }
