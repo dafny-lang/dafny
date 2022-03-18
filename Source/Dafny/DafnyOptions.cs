@@ -5,10 +5,8 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Text;
 using System.Diagnostics.Contracts;
 using System.IO;
-using System.Reflection;
 using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 using Microsoft.Dafny.Compilers;
@@ -24,7 +22,7 @@ namespace Microsoft.Dafny {
     }
 
     public DafnyOptions()
-      : base("Dafny", "Dafny program verifier") {
+      : base("Dafny", "Dafny program verifier", new DafnyConsolePrinter()) {
       Prune = true;
       NormalizeNames = true;
       EmitDebugInformation = false;
@@ -148,7 +146,7 @@ namespace Microsoft.Dafny {
     public virtual TestGenerationOptions TestGenOptions =>
       testGenOptions ??= new TestGenerationOptions();
 
-    protected override bool ParseOption(string name, Bpl.CommandLineOptionEngine.CommandLineParseState ps) {
+    protected override bool ParseOption(string name, Bpl.CommandLineParseState ps) {
       var args = ps.args; // convenient synonym
       switch (name) {
         case "dprelude":
@@ -567,7 +565,7 @@ namespace Microsoft.Dafny {
       ).ToArray();
     }
 
-    protected void InvalidArgumentError(string name, CommandLineParseState ps) {
+    protected void InvalidArgumentError(string name, Bpl.CommandLineParseState ps) {
       ps.Error("Invalid argument \"{0}\" to option {1}", ps.args[ps.i], name);
     }
 
