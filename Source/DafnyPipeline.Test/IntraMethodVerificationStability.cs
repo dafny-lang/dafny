@@ -169,7 +169,6 @@ module SomeModule {
       var options = DafnyOptions.Create();
       options.ProcsToCheck.Add("*SomeMethod");
       DafnyOptions.Install(options);
-      ExecutionEngine.printer = new ConsolePrinter(options); // For boogie errors
 
       var reorderedProverLog = await GetProverLogForProgram(options, GetBoogie(reorderedProgram));
       var regularProverLog = await GetProverLogForProgram(options, GetBoogie(originalProgram));
@@ -181,7 +180,6 @@ module SomeModule {
       var options = DafnyOptions.Create();
       options.ProcsToCheck.Add("*SomeMethod*");
       DafnyOptions.Install(options);
-      ExecutionEngine.printer = new ConsolePrinter(options); // For boogie errors
 
       var renamedProverLog = await GetProverLogForProgram(options, GetBoogie(renamedProgram));
       var regularProverLog = await GetProverLogForProgram(options, GetBoogie(originalProgram));
@@ -194,7 +192,6 @@ module SomeModule {
       var options = DafnyOptions.Create();
       options.ProcsToCheck.Add("*SomeMethod");
       DafnyOptions.Install(options);
-      ExecutionEngine.printer = new ConsolePrinter(options); // For boogie errors
 
       var renamedProverLog = await GetProverLogForProgram(options, GetBoogie(renamedProgram + originalProgram));
       var regularProverLog = await GetProverLogForProgram(options, GetBoogie(originalProgram));
