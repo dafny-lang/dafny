@@ -5395,8 +5395,8 @@ namespace Microsoft.Dafny {
             // Every constructor has this destructor; might as well assume that here.
             builder.Add(TrAssumeCmd(expr.tok, correctConstructor));
           } else {
-            builder.Add(Assert(expr.tok, correctConstructor,
-              string.Format("destructor '{0}' can only be applied to datatype values constructed by {1}", dtor.Name, dtor.EnclosingCtorNames("or"))));
+            builder.Add(AssertDesc(expr.tok, correctConstructor,
+              new DafnyDestructorValidDescription(dtor.Name, dtor.EnclosingCtorNames("or"))));
           }
         }
         if (!e.Member.IsStatic) {
@@ -9617,9 +9617,8 @@ namespace Microsoft.Dafny {
     void AssertDistinctness(Expression lhsa, Expression lhsb, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
       Bpl.Expr e = CheckDistinctness(lhsa, lhsb, etran);
       if (e != null) {
-        string may = e == Bpl.Expr.False ? "" : "may ";
-        builder.Add(Assert(lhsa.tok, e,
-          ($"left-hand sides {Printer.ExprToString(lhsa)} and {Printer.ExprToString(lhsb)} {may}refer to the same location")));
+        builder.Add(AssertDesc(lhsa.tok, e, new DafnyDistinctLHSDescription(Printer.ExprToString(lhsa),
+          Printer.ExprToString(lhsb), e != Bpl.Expr.False, false)));
       }
     }
 
@@ -9627,8 +9626,8 @@ namespace Microsoft.Dafny {
       Bpl.Expr e = CheckDistinctness(lhsa, lhsb, etran);
       if (e != null) {
         e = Bpl.Expr.Or(e, Bpl.Expr.Eq(rhsa, rhsb));
-        builder.Add(Assert(lhsa.tok, e,
-          ($"when left-hand sides {Printer.ExprToString(lhsa)} and {Printer.ExprToString(lhsb)} refer to the same location, they must be assigned the same value")));
+        builder.Add(AssertDesc(lhsa.tok, e, new DafnyDistinctLHSDescription(Printer.ExprToString(lhsa),
+          Printer.ExprToString(lhsb), false, true)));
       }
     }
 
@@ -9901,8 +9900,8 @@ namespace Microsoft.Dafny {
             CheckWellformed(tRhs.ElementInit, new WFOptions(), locals, builder, etran);
           } else if (tRhs.InitDisplay != null) {
             var dim = tRhs.ArrayDimensions[0];
-            builder.Add(Assert(dim.tok, Bpl.Expr.Eq(etran.TrExpr(dim), Bpl.Expr.Literal(tRhs.InitDisplay.Count)),
-              string.Format("given array size must agree with the number of expressions in the initializing display ({0})", tRhs.InitDisplay.Count)));
+            var desc = new DafnyArrayInitSizeDescription(tRhs.InitDisplay.Count);
+            builder.Add(AssertDesc(dim.tok, Bpl.Expr.Eq(etran.TrExpr(dim), Bpl.Expr.Literal(tRhs.InitDisplay.Count)), desc));
             foreach (var v in tRhs.InitDisplay) {
               CheckWellformed(v, new WFOptions(), locals, builder, etran);
             }
@@ -9914,8 +9913,8 @@ namespace Microsoft.Dafny {
             foreach (Expression dim in tRhs.ArrayDimensions) {
               zeroSize = BplOr(zeroSize, Bpl.Expr.Eq(Bpl.Expr.Literal(0), etran.TrExpr(dim)));
             }
-            builder.Add(Assert(tRhs.Tok, zeroSize,
-              string.Format("unless an initializer is provided for the array elements, a new array of '{0}' must have empty size", tRhs.EType)));
+            var desc = new DafnyArrayInitEmptyDescription(tRhs.EType.ToString());
+            builder.Add(AssertDesc(tRhs.Tok, zeroSize, desc));
           }
         }
 

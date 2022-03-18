@@ -1,3 +1,4 @@
+using System.Configuration;
 using JetBrains.Annotations;
 using Microsoft.Boogie;
 
@@ -92,9 +93,9 @@ public class DafnyAllocatedDescription : DafnyAssertionDescription {
 
 public class DafnyPreconditionCheckDescription : DafnyAssertionDescription {
   public override string SuccessDescription =>
-    customErrMsg is null ?
-      "function precondition satisfied" :
-      $"error is impossible: {customErrMsg}";
+    customErrMsg is null
+      ? "function precondition satisfied"
+      : $"error is impossible: {customErrMsg}";
 
   public override string FailureDescription =>
     customErrMsg ?? "possible violation of function precondition";
@@ -110,9 +111,9 @@ public class DafnyPreconditionCheckDescription : DafnyAssertionDescription {
 
 public class DafnyAssertStatementDescription : DafnyAssertionDescription {
   public override string SuccessDescription =>
-    customErrMsg is null ?
-      "assertion always holds" :
-      $"error is impossible: {customErrMsg}";
+    customErrMsg is null
+      ? "assertion always holds"
+      : $"error is impossible: {customErrMsg}";
 
   public override string FailureDescription =>
     customErrMsg ?? "assertion might not hold";
@@ -128,9 +129,9 @@ public class DafnyAssertStatementDescription : DafnyAssertionDescription {
 
 public class DafnyLoopInvariantDescription : DafnyAssertionDescription {
   public override string SuccessDescription =>
-    customErrMsg is null ?
-      "loop invariant always holds" :
-      $"error is impossible: {customErrMsg}";
+    customErrMsg is null
+      ? "loop invariant always holds"
+      : $"error is impossible: {customErrMsg}";
 
   public override string FailureDescription =>
     customErrMsg ?? "loop invariant violation";
@@ -258,7 +259,8 @@ public class DafnyWitnessCheckDescription : DafnyAssertionDescription {
   public override string ShortDescription => "witness check";
 
   private readonly string errMsg = "cannot find witness that shows type is inhabited";
-  private readonly string hintMsg = "; try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type";
+  private readonly string hintMsg =
+    "; try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type";
   private readonly string witnessString;
 
   public DafnyWitnessCheckDescription(string witnessString) {
@@ -325,9 +327,9 @@ public class DafnyTerminationDescription : DafnyAssertionDescription {
     "loop or recursion terminates";
 
   public override string FailureDescription =>
-    (inferredDescreases ?
-       "cannot prove termination; try supplying a decreases clause" :
-       "decreases expression might not decrease") +
+    (inferredDescreases
+      ? "cannot prove termination; try supplying a decreases clause"
+      : "decreases expression might not decrease") +
     (hint is null ? "" : " ({hint})");
 
   public override string ShortDescription => "termination";
@@ -379,14 +381,14 @@ public class DafnyForallLHSUniqueDescription : DafnyAssertionDescription {
 
 public class DafnyTraitFrameDescription : DafnyAssertionDescription {
   public override string SuccessDescription =>
-    isModify ?
-      "expression abides by trait context's modifies clause" :
-      "expression abides by trait context's reads clause";
+    isModify
+      ? "expression abides by trait context's modifies clause"
+      : "expression abides by trait context's reads clause";
 
   public override string FailureDescription =>
-    isModify ?
-     "expression may read an object not in the parent trait context's reads clause" :
-     "expression may modify an object not in the parent trait context's modifies clause";
+    isModify
+      ? "expression may read an object not in the parent trait context's reads clause"
+      : "expression may modify an object not in the parent trait context's modifies clause";
 
   public override string ShortDescription =>
     isModify ? "trait modifies" : "trait reads";
@@ -416,14 +418,14 @@ public class DafnyTraitDecreasesDescription : DafnyAssertionDescription {
 
 public class DafnyFrameSubsetDescription : DafnyAssertionDescription {
   public override string SuccessDescription =>
-    isWrite ?
-      $"{whatKind} is allowed by context's modifies clause" :
-      $"sufficient reads clause to {whatKind}";
+    isWrite
+      ? $"{whatKind} is allowed by context's modifies clause"
+      : $"sufficient reads clause to {whatKind}";
 
   public override string FailureDescription =>
-    isWrite ?
-      $"{whatKind} may violate context's modifies clause" :
-      $"insufficient reads clause to {whatKind}";
+    isWrite
+      ? $"{whatKind} may violate context's modifies clause"
+      : $"insufficient reads clause to {whatKind}";
 
   public override string ShortDescription => "frame subset";
 
@@ -621,4 +623,79 @@ public class DafnyComprehensionNoAliasDescription : DafnyAssertionDescription {
     "key expressions may be referring to the same value";
 
   public override string ShortDescription => "unique key expressions";
+}
+
+
+public class DafnyDestructorValidDescription : DafnyAssertionDescription {
+  public override string SuccessDescription =>
+    $"destructor '{dtorName}' is only applied to datatype values constructed by {ctorNames}";
+
+  public override string FailureDescription =>
+    $"destructor '{dtorName}' can only be applied to datatype values constructed by {ctorNames}";
+
+  public override string ShortDescription => "destructor valid";
+
+  private readonly string dtorName;
+  private readonly string ctorNames;
+
+  public DafnyDestructorValidDescription(string dtorName, string ctorNames) {
+    this.dtorName = dtorName;
+    this.ctorNames = ctorNames;
+  }
+}
+
+public class DafnyDistinctLHSDescription : DafnyAssertionDescription {
+  public override string SuccessDescription =>
+    $"left-hand sides {lhsa} and {lhsb} are distinct";
+
+  public override string FailureDescription =>
+    $"{when}left-hand sides {lhsa} and {lhsb} {may}refer to the same location{whenSuffix}";
+
+  public override string ShortDescription => "distinct lhs";
+
+  private readonly string lhsa;
+  private readonly string lhsb;
+  private readonly string may;
+  private readonly string when;
+  private readonly string whenSuffix;
+
+  public DafnyDistinctLHSDescription(string lhsa, string lhsb, bool useMay, bool useWhen) {
+    this.lhsa = lhsa;
+    this.lhsb = lhsb;
+    this.may = useMay ? "may " : "";
+    this.when = useWhen ? "when " : "";
+    this.whenSuffix = useWhen ? ", they must be assigned the same value" : "";
+  }
+}
+
+public class DafnyArrayInitSizeDescription : DafnyAssertionDescription {
+  public override string SuccessDescription =>
+    $"given array size agrees with the number of expressions in the initializing display ({size})";
+
+  public override string FailureDescription =>
+    $"given array size must agree with the number of expressions in the initializing display ({size})";
+
+  public override string ShortDescription => "array initializer size";
+
+  private readonly int size;
+
+  public DafnyArrayInitSizeDescription(int size) {
+    this.size = size;
+  }
+}
+
+public class DafnyArrayInitEmptyDescription : DafnyAssertionDescription {
+  public override string SuccessDescription =>
+    "array initializer has empty size";
+
+  public override string FailureDescription =>
+    $"unless an initializer is provided for the array elements, a new array of '{typeDesc}' must have empty size";
+
+  public override string ShortDescription => "array initializer empty";
+
+  private readonly string typeDesc;
+
+  public DafnyArrayInitEmptyDescription(string typeDesc) {
+    this.typeDesc = typeDesc;
+  }
 }
