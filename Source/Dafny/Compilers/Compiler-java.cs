@@ -19,15 +19,34 @@ using System.Reflection;
 using Bpl = Microsoft.Boogie;
 using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 
-namespace Microsoft.Dafny {
-  public class JavaCompiler : Compiler {
-    public JavaCompiler(ErrorReporter reporter)
-      : base(reporter) {
+namespace Microsoft.Dafny.Compilers {
+  public class JavaCompiler : SinglePassCompiler {
+    public override void OnPreCompile(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
+      base.OnPreCompile(reporter, otherFileNames);
       IntSelect = ",java.math.BigInteger";
       LambdaExecute = ".apply";
     }
 
-    public override String TargetLanguage => "Java";
+    public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".java" };
+
+    public override string TargetLanguage => "Java";
+    public override string TargetExtension => "java";
+    public override string TargetBasename(string dafnyProgramName) =>
+      TransformToClassName(base.TargetBasename(dafnyProgramName));
+    public override string TargetBaseDir(string dafnyProgramName) =>
+      $"{Path.GetFileNameWithoutExtension(dafnyProgramName)}-java";
+    public string TransformToClassName(string baseName) =>
+      Regex.Replace(baseName, "[^_A-Za-z0-9$]", "_");
+
+    public override bool SupportsInMemoryCompilation => false;
+    public override bool TextualTargetIsExecutable => false;
+
+    public override void CleanSourceDirectory(string sourceDirectory) {
+      try {
+        Directory.Delete(sourceDirectory, true);
+      } catch (DirectoryNotFoundException) {
+      }
+    }
 
     const string DafnySetClass = "dafny.DafnySet";
     const string DafnyMultiSetClass = "dafny.DafnyMultiset";
@@ -79,7 +98,6 @@ namespace Microsoft.Dafny {
 
     protected override bool UseReturnStyleOuts(Method m, int nonGhostOutCount) => true;
 
-    public override bool SupportsInMemoryCompilation => false;
 
     protected override bool SupportsAmbiguousTypeDecl => false;
     protected override bool SupportsProperties => false;
@@ -2080,7 +2098,7 @@ namespace Microsoft.Dafny {
       return PublicIdProtect(name);
     }
 
-    public static string PublicIdProtect(string name) {
+    public override string PublicIdProtect(string name) {
       name = name.Replace("_module", "_System");
       if (name == "" || name.First() == '_') {
         return name; // no need to further protect this name
@@ -3936,10 +3954,6 @@ namespace Microsoft.Dafny {
 
     protected override ConcreteSyntaxTree CreateIterator(IteratorDecl iter, ConcreteSyntaxTree wr) {
       throw new NotImplementedException();
-    }
-
-    public override string TransformToClassName(string baseName) {
-      return System.Text.RegularExpressions.Regex.Replace(baseName, "[^_A-Za-z0-9\\$]", "_");
     }
   }
 }

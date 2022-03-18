@@ -107,7 +107,9 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       using (cancellationToken.Register(() => CancelVerification(uniqueRequestId))) {
         try {
           var statistics = new PipelineStatistics();
+#pragma warning disable VSTHRD002
           var outcome = engine.InferAndVerify(Console.Out, program, statistics, programId, null, uniqueRequestId).Result;
+#pragma warning restore VSTHRD002
           return Main.IsBoogieVerified(outcome, statistics);
         } catch (Exception e) when (e is not OperationCanceledException) {
           if (!cancellationToken.IsCancellationRequested) {
