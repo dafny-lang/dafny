@@ -224,7 +224,7 @@ method FailingPostcondition(b: bool) returns (i: int)
 }
 ```
 To debug why this assert might not hold, we need to _move this assert up_, which is similar to [_computing the weakest precondition_](https://en.wikipedia.org/wiki/Predicate_transformer_semantics#Weakest_preconditions).
-For example, if we have `x := Y; assert F(x);` and the `assert F(x);` might not hold, the weakest precondition for it to hold before `X := Y;` can be written as the assertion `assert F(Y);`, where we replace every occurence of `x` in `F(x)` into `Y`.
+For example, if we have `x := Y; assert F;` and the `assert F;` might not hold, the weakest precondition for it to hold before `x := Y;` can be written as the assertion `assert F[x:= Y];`, where we replace every occurence of `x` in `F` into `Y`.
 Let's do it in our example:
 ```dafny
 method FailingPostcondition(b: bool) returns (i: int)
@@ -293,7 +293,7 @@ This list is not exhaustive but can definitely be useful to provide the next ste
 
  Failing assert           | Suggested rewriting
 --------------------------|---------------------------------------
- <br>`x := Y;`<br>`assert P[x];` | `assert P[Y];`<br>`x := Y;`<br>`assert P[x];`
+ <br>`x := Y;`<br>`assert P;` | `assert P[x := Y];`<br>`x := Y;`<br>`assert P;`
  <br>`if B {`<br>&nbsp;&nbsp;`  assert P;`<br>&nbsp;&nbsp;`  ...`<br>`}` | `assert B ==> P;`<br>`if B {`<br>&nbsp;&nbsp;`  assert P;`<br>&nbsp;&nbsp;`  ...`<br>`}`
  <br>`if B {`<br>&nbsp;&nbsp;`  ...`<br>`} else {`<br>&nbsp;&nbsp;`  assert P;`<br>&nbsp;&nbsp;`  ...`<br>`}` | `assert !B ==> P;`<br>`if B {`<br>&nbsp;&nbsp;`  ...`<br>`} else {`<br>&nbsp;&nbsp;`  assert P;`<br>&nbsp;&nbsp;`  ...`<br>`}`
  <br><br>`if X {`<br>&nbsp;&nbsp;`  ...`<br>`} else {`<br>&nbsp;&nbsp;`  ...`<br>`}`<br>`assert A;` | `if X {`<br>&nbsp;&nbsp;`  ...`<br>&nbsp;&nbsp;`  assert A;`<br>`} else {`<br>&nbsp;&nbsp;`  ...`<br>&nbsp;&nbsp;`  assert A;`<br>`}`<br>`assert A;`
@@ -322,7 +322,7 @@ it is first useful to understand how Dafny verifies functions and methods.
 For every method (or function, constructor, etc.), Dafny extracts _assertions_, for example:
 
 * any explicit [`assert` statement](#sec-assert-statement) is _an assertion_[^precision-requires-clause].
-* A consecutive pair of lines in a [`calc` statement](#sec-calc-statement) forms _an assertion_.
+* A consecutive pair of lines in a [`calc` statement](#sec-calc-statement) forms _an assertion_ that the expressions are related according to the common operator.
 * Every function or method call with a [`requires` clause](#sec-requires-clause) yields _one assertion per requires clause_[^precision-requires-clause]
   (special cases such as sequence indexing come with a special require clause that the index is within bounds).
 * Assignments `o.f := E;` yield an _assertion_ that `o.f` is allowed by the enclosing [`modifies` clause](#sec-loop-framing).
@@ -333,21 +333,22 @@ For every method (or function, constructor, etc.), Dafny extracts _assertions_, 
 
 [^precision-requires-clause]: Dafny actually breaks things down further. For example, a precondition `requires A && B` or an assert statement `assert A && B;` turns into two assertions, more or less like `requires A requires B` and `assert A; assert B;`.
 
-It is useful to mentally visualize all these assertions as a list (an _assertion batch_) that roughly follows the order in the code[^complexity-path-encoding],
-except for `ensures` assertions that appear earlier in the code but, for verification purposes, would appear at the end.
-Thus, to prove or disprove a single assertion within this list, all the assumptions Dafny needs are 1) the global context,
-and 2) every preceding assumption (and previous assertions transformed in assumptions).
+It is useful to mentally visualize all these assertions as a list that roughly follows the order in the code,
+except for `ensures` or `decreases` that generate assertions that seem earlier in the code but, for verification purposes, would be placed later.
+In this list, each assertion depends on other assertions, statements and expressions that appear earlier in the control flow[^complexity-path-encoding].
 
 [^complexity-path-encoding]: All the complexities of the execution paths (if-then-else, loops, goto, break....) are, down the road and for verification purposes, cleverly encoded with variables recording the paths and guarding assumptions made on each path. In practice, a second clever encoding of variables enables grouping many assertions together, and recovers which assertion is failing based on the value of variables that the SMT solver returns.
 
-To reduce overhead, Dafny collects all the assertions of one method into one single conjecture that it sends to the verifier, which tries to prove it correct:
+The fundamental unit of verification in Dafny is an _assertion batch_, which consists of one or more assertions from this "list", along with all the remaining assertions turned into assumptions. To reduce overhead, by default Dafny collects all the assertions in the body of a given method into a single assertion batch that it sends to the verifier, which tried to prove it correct.
 
 * If the verifier says it is correct[^smt-encoding], it means that all the assertions hold.
-* If the verifier returns a counterexample, this counter-example is used to determine both the failing assertion and the failing path.
-  In order to retrieve additional failing assertions, Dafny will again query the verifier after turning previously failed assertions into assumptions, [like this](https://github.com/dafny-lang/dafny/discussions/1898#discussioncomment-2344533).[^caveat-about-assertion-and-assumption]
+* If the verifier returns a counterexample, this counterexample is used to determine both the failing assertion and the failing path.
+  In order to retrieve additional failing assertions, Dafny will again query the verifier after turning previously failed assertions into assumptions.[^example-assertion-turned-into-assumption] [^caveat-about-assertion-and-assumption]
 * If the verifier returns `unknown` or times out, or even preemptively for difficult assertions or to reduce the chance that the verifier will ‘be confused’ by the many assertions in a large batch, Dafny partitions the assertions up into smaller batches[^smaller-batches]. An extreme case is the use of the `/vcsSplitOnEveryAssert` command-line option or the [`{:vcs_split_on_every_assert}` attribute](#sec-vcs_split_on_every_assert), which causes Dafny to make one batch for each assertion.
 
 [^smt-encoding]: The formula sent to the underlying SMT solver is the negation of the formula that the verifier wants to prove - also called a VC or verification condition. Hence, if the SMT solver returns "unsat", it means that the SMT formula is always false, meaning the verifier's formula is always true. On the other side, if the SMT solver returns "sat", it means that the SMT formula can be made true with a special variable assignment, which means that the verifier's formula is false under that same variable assignment, meaning it's a counter-example for the verifier. In practice and because of quantifiers, the SMT solver will usually return "unknown" instead of "sat", but will still provide a variable assignment that it couldn't prove that it does not make the formula true. Dafny reports it as a "counter-example" but it might not be a real counter-example, only provide hints about what Dafny knows.
+
+[^example-assertion-turned-into-assumption]: This [post](https://github.com/dafny-lang/dafny/discussions/1898#discussioncomment-2344533) gives an overview of how assertions are turned into assumptions for verification purposes.
 
 [^caveat-about-assertion-and-assumption]: Caveat about assertion and assumption: One big difference between an "assertion transformed in an assumption" and the original "assertion" is that the original "assertion" can unroll functions twice, whereas the "assumed assertion" can unroll them only once. Hence, Dafny can still continue to analyze assertions after a failing assertion without automatically proving "false" (which would make all further assertions vacuous).
 
@@ -361,7 +362,8 @@ Here is how you can control how Dafny partition assertions into batches.
 * [`{:split_here}`](#sec-split_here) on an assert generates a separate assertion batch for assertions after this point.
 * [`{:vcs_split_on_every_assert}`](#sec-vcs_split_on_every_assert) on a function or a method generates one assertion batch per assertion
 
-You can also provide _heuristics_ for the verifier to split assertion batches, if you are not using the fine-grained attributes above. The effect of these attributes may vary, because they are low-level attributes and tune low-level heuristics.
+We discourage the use of the following _heuristics attributes_ to partition assertions into batches.
+The effect of these attributes may vary, because they are low-level attributes and tune low-level heuristics, and will result in splits that could be manually controlled anyway.
 * [`{:vcs_max_cost N}`](#sec-vcs_max_cost) on a function or method enables splitting the assertion batch until the "cost" of each batch is below N.
   Usually, you would set [`{:vcs_max_cost 0}`](#sec-vcs_max_cost) and [`{:vcs_max_splits N}`](#sec-vcs_max_splits) to ensure it generates N assertion batches.
 * [`{:vcs_max_keep_going_splits N}`](#sec-vcs_max_keep_going_splits) where N > 1 on a method dynamically splits the initial assertion batch up to N components if the verifier is stuck the first time.
@@ -373,6 +375,7 @@ There are many great options that control various aspects of verifying dafny pro
 - Control of output: [`/dprint`](#sec-controlling-output), [`/rprint`](#sec-controlling-output), `/stats`, [`/compileVerbose`](#sec-controlling-compilation)
 - Whether to print warnings: `/proverWarnings`
 - Control of time: `/timeLimit`
+- Control of resources: `/rLimit` and [`{:rlimit}`](#sec-rlimit)
 - Control of the prover used: `/prover`
 - Control of how many times to _unroll_ functions: [`{:fuel}`](#sec-fuel)
 

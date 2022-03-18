@@ -502,13 +502,6 @@ Boogie output to a declaration followed by an `assume b` command.
 See [@LeinoWuestholz2015], Section 3, for example uses of the `{:assumption}`
 attribute in Boogie.
 
-### 22.4.2. `{:existential}`
-Marks a global Boolean variable as existentially quantified. If
-used in combination with option `/contractInfer`, Boogie will check
-whether there exists a Boolean assignment to the existentials
-that makes all verification conditions valid.  Without option
-`/contractInfer` the attribute is ignored.
-
 ## 22.5. Attributes on quantifier expressions (forall, exists)
 
 ### 22.5.1. `{:heapQuantifier}`
