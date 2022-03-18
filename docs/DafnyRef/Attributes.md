@@ -538,6 +538,7 @@ same as the current heap, or that is derived from it by heap update operations.
 See [`{:induction}`](#sec-induction).
 
 ### 22.5.3. `{:layerQuantifier}`
+The word 'layer' actually refers to the [`{:fuel}`](#sec-fuel).
 When Dafny is translating a quantified expression, if it has
 a `{:layerQuantifier}` attribute an additional quantifier
 variable is added to the quantifier bound variables.
