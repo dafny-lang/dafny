@@ -78,8 +78,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       );
     }
 
-    public Task<DafnyDocument> LoadAsync(TextDocumentItem textDocument, CancellationToken cancellationToken) {
-      return Task.Factory.StartNew(() => LoadInternal(textDocument, cancellationToken), cancellationToken,
+    public async Task<DafnyDocument> LoadAsync(TextDocumentItem textDocument, CancellationToken cancellationToken) {
+      return await await Task.Factory.StartNew(async () => LoadInternal(textDocument, cancellationToken), cancellationToken,
         TaskCreationOptions.None, LargeStackScheduler);
     }
 

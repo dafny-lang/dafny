@@ -16,7 +16,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using VerificationResult = Microsoft.Dafny.LanguageServer.Language.VerificationResult;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
   [TestClass]
@@ -37,6 +36,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     [TestInitialize]
     public override async Task SetUp() {
       await base.SetUp();
+
       // We use a custom cancellation token with a higher timeout to clearly identify where the request got stuck.
       cancellationSource = new();
       cancellationSource.CancelAfter(MaxRequestExecutionTimeMs);
@@ -126,41 +126,8 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
       Assert.AreEqual("assertion might not hold", document.Errors.GetDiagnostics(documentItem.Uri)[0].Message);
     }
 
-    class SlowVerifier : IProgramVerifier {
-      public SlowVerifier(ILogger<IProgramVerifier> logger, IOptions<VerifierOptions> options) {
-        verifier = DafnyProgramVerifier.Create(logger, options);
-      }
-
-      private readonly DafnyProgramVerifier verifier;
-
-      public Task<VerificationResult> VerifyAsync(Dafny.Program program, IVerificationProgressReporter progressReporter, CancellationToken cancellationToken) {
-        var attributes = program.Modules().SelectMany(m => {
-          return m.TopLevelDecls.OfType<TopLevelDeclWithMembers>().SelectMany(d => d.Members.Select(member => member.Attributes));
-        }).ToList();
-        if (attributes.Any(a => Attributes.Contains(a, "slow"))) {
-          var source = new TaskCompletionSource<VerificationResult>();
-          cancellationToken.Register(() => {
-            source.SetCanceled(cancellationToken);
-          });
-          return source.Task;
-        }
-
-        return verifier.VerifyAsync(program, progressReporter, cancellationToken);
-      }
-    }
-
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
     public async Task ChangeDocumentCancelsPreviousOpenAndChangeVerification() {
-
-      client = await InitializeClient(options => {
-        options.OnPublishDiagnostics(diagnosticReceiver.NotificationReceived);
-      }, serverOptions => {
-        serverOptions.Services.AddSingleton<IProgramVerifier>(serviceProvider => new SlowVerifier(
-          serviceProvider.GetRequiredService<ILogger<DafnyProgramVerifier>>(),
-          serviceProvider.GetRequiredService<IOptions<VerifierOptions>>()
-        ));
-      });
-
       var source = @"
 lemma {:slow} SquareRoot2NotRational(p: nat, q: nat)
   requires p > 0 && q > 0

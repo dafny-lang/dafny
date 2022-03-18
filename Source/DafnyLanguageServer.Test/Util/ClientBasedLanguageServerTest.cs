@@ -3,8 +3,11 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
+using Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
@@ -19,9 +22,15 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
 
   [TestInitialize]
   public virtual async Task SetUp() {
+
     diagnosticReceiver = new();
     client = await InitializeClient(options => {
       options.OnPublishDiagnostics(diagnosticReceiver.NotificationReceived);
+    }, serverOptions => {
+      serverOptions.Services.AddSingleton<IProgramVerifier>(serviceProvider => new SlowVerifier(
+        serviceProvider.GetRequiredService<ILogger<DafnyProgramVerifier>>(),
+        serviceProvider.GetRequiredService<IOptions<VerifierOptions>>()
+      ));
     });
   }
 

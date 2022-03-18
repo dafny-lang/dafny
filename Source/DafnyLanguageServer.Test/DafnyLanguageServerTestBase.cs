@@ -24,8 +24,8 @@ using OmniSharp.Extensions.LanguageServer.Client;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest {
   public class DafnyLanguageServerTestBase : LanguageServerTestBase {
-    protected const string SlowToVerify = @"
-lemma {:timeLimit 10} SquareRoot2NotRational(p: nat, q: nat)
+    protected readonly string SlowToVerify = @"
+lemma {:timeLimit 3} SquareRoot2NotRational(p: nat, q: nat)
   requires p > 0 && q > 0
   ensures (p * p) !=  2 * (q * q)
 { 
@@ -38,6 +38,12 @@ lemma {:timeLimit 10} SquareRoot2NotRational(p: nat, q: nat)
       2 * (p - q) * (p - q);
     }
   }
+}".TrimStart();
+
+    protected const string NeverVerifies = @"
+lemma {:slow} HasSlowAttribute(p: nat, q: nat)
+  ensures true
+{
 }";
 
     public const string LanguageId = "dafny";
@@ -53,8 +59,7 @@ lemma {:timeLimit 10} SquareRoot2NotRational(p: nat, q: nat)
 
     protected virtual async Task<ILanguageClient> InitializeClient(
       Action<LanguageClientOptions> clientOptionsAction = null,
-      [CanBeNull] Action<LanguageServerOptions> serverOptionsAction = null)
-    {
+      [CanBeNull] Action<LanguageServerOptions> serverOptionsAction = null) {
       var client = CreateClient(clientOptionsAction, serverOptionsAction);
       await client.Initialize(CancellationToken).ConfigureAwait(false);
 
@@ -63,8 +68,7 @@ lemma {:timeLimit 10} SquareRoot2NotRational(p: nat, q: nat)
 
     protected virtual ILanguageClient CreateClient(
       Action<LanguageClientOptions> clientOptionsAction = null,
-      Action<LanguageServerOptions> serverOptionsAction = null)
-    {
+      Action<LanguageServerOptions> serverOptionsAction = null) {
       var client = LanguageClient.PreInit(
         options => {
           var (reader, writer) = SetupServer(serverOptionsAction);

@@ -54,7 +54,7 @@ method CallDoIt() returns () {
 
     [TestMethod]
     public async Task DefinitionReturnsBeforeVerificationIsComplete() {
-      var documentItem = CreateTestDocument(SlowToVerify);
+      var documentItem = CreateTestDocument(NeverVerifies);
       client.OpenDocument(documentItem);
       var verificationTask = diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
       var definitionTask = RequestDefinition(documentItem, (4, 14)).AsTask();
