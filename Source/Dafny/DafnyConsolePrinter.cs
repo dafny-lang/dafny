@@ -54,7 +54,7 @@ class DafnyConsolePrinter : ConsolePrinter {
 
     if (tok is Dafny.NestedToken) {
       var nt = (Dafny.NestedToken)tok;
-      ReportBplError(nt.Inner, "Related location", false, tw);
+      ReportBplError(nt.Inner, nt.Message ?? "Related location", false, tw);
     }
   }
 }
