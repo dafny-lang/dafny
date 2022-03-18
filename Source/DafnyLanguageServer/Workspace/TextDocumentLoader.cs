@@ -79,7 +79,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public async Task<DafnyDocument> LoadAsync(TextDocumentItem textDocument, CancellationToken cancellationToken) {
+#pragma warning disable CS1998
       return await await Task.Factory.StartNew(async () => LoadInternal(textDocument, cancellationToken), cancellationToken,
+#pragma warning restore CS1998
         TaskCreationOptions.None, LargeStackScheduler);
     }
 
