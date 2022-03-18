@@ -123,7 +123,7 @@ namespace Microsoft.Dafny {
 
       if (options.UseStdin) {
         dafnyFiles.Add(new DafnyFile("<stdin>", true));
-      } else if (DafnyOptions.O.Files.Count == 0) {
+      } else if (options.Files.Count == 0) {
         options.Printer.ErrorWriteLine(Console.Out, "*** Error: No input files were specified.");
         return CommandLineArgumentsResult.PREPROCESSING_ERROR;
       }
