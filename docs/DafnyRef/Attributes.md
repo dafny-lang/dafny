@@ -357,7 +357,7 @@ Your method source's signature should be of this form
 
     static method MethodSourceName() returns (inputs : seq<([parameter-types])>)
 
-where the method is static and the return type is a sequence built of types matching the parameters your test is expecting.  The Java compiler will convert the above code into JUnit; the C# compiler will convert it into XUnit.
+where the method is static and the return type is a sequence of tuples.  The types inside each tuple must match the types of your test method's parameters.  The Java compiler will convert the above code into JUnit; the C# compiler will convert it into XUnit.
 
 ### 22.1.16. timeLimitMultiplier
 This attribute may be placed on a method or function declaration
