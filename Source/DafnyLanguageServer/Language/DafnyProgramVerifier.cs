@@ -25,6 +25,9 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     private readonly ILogger logger;
     private readonly VerifierOptions options;
     private readonly SemaphoreSlim mutex = new(1);
+    private readonly VerificationResultCache cache = new();
+
+    DafnyOptions Options => DafnyOptions.O;
 
     private DafnyProgramVerifier(ILogger<DafnyProgramVerifier> logger, VerifierOptions options) {
       this.logger = logger;
@@ -69,16 +72,19 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         // The printer is responsible for two things: It logs boogie errors and captures the counter example model.
         var errorReporter = (DiagnosticErrorReporter)program.reporter;
         var printer = new ModelCapturingOutputPrinter(logger, errorReporter, progressReporter);
-        ExecutionEngine.printer = printer;
+        DafnyOptions.O.Printer = printer;
         // Do not set these settings within the object's construction. It will break some tests within
         // VerificationNotificationTest and DiagnosticsTest that rely on updating these settings.
         DafnyOptions.O.TimeLimit = options.TimeLimit;
         DafnyOptions.O.VcsCores = GetConfiguredCoreCount(options);
+        var executionEngine = new ExecutionEngine(DafnyOptions.O, cache);
         var translated = Translator.Translate(program, errorReporter, new Translator.TranslatorFlags { InsertChecksums = true });
         bool verified = true;
-        foreach (var (_, boogieProgram) in translated) {
+        var programId = program.FullName;
+        foreach (var (moduleName, boogieProgram) in translated) {
           cancellationToken.ThrowIfCancellationRequested();
-          var verificationResult = VerifyWithBoogie(boogieProgram, cancellationToken);
+          var boogieProgramId = (programId ?? "main_program_id") + "_" + moduleName;
+          var verificationResult = VerifyWithBoogie(executionEngine, boogieProgram, cancellationToken, boogieProgramId);
           verified = verified && verificationResult;
         }
         return new VerificationResult(verified, printer.SerializedCounterExamples);
@@ -88,23 +94,22 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
     }
 
-    private bool VerifyWithBoogie(Boogie.Program program, CancellationToken cancellationToken) {
-      program.Resolve();
-      program.Typecheck();
+    private bool VerifyWithBoogie(ExecutionEngine engine, Boogie.Program program, CancellationToken cancellationToken, string programId) {
+      program.Resolve(engine.Options);
+      program.Typecheck(engine.Options);
 
-      ExecutionEngine.EliminateDeadVariables(program);
-      ExecutionEngine.CollectModSets(program);
-      ExecutionEngine.CoalesceBlocks(program);
-      ExecutionEngine.Inline(program);
-      // TODO Is the programId of any relevance? The requestId is used to cancel a verification.
-      //      However, the cancelling a verification is currently not possible since it blocks a text document
-      //      synchronization event which are serialized. Thus, no event is processed until the pending
-      //      synchronization is completed.
-      var uniqueId = Guid.NewGuid().ToString();
-      using (cancellationToken.Register(() => CancelVerification(uniqueId))) {
+      engine.EliminateDeadVariables(program);
+      engine.CollectModSets(program);
+      engine.CoalesceBlocks(program);
+      engine.Inline(program);
+
+      var uniqueRequestId = Guid.NewGuid().ToString();
+      using (cancellationToken.Register(() => CancelVerification(uniqueRequestId))) {
         try {
           var statistics = new PipelineStatistics();
-          var outcome = ExecutionEngine.InferAndVerify(program, statistics, uniqueId, null, uniqueId);
+#pragma warning disable VSTHRD002
+          var outcome = engine.InferAndVerify(Console.Out, program, statistics, programId, null, uniqueRequestId).Result;
+#pragma warning restore VSTHRD002
           return Main.IsBoogieVerified(outcome, statistics);
         } catch (Exception e) when (e is not OperationCanceledException) {
           if (!cancellationToken.IsCancellationRequested) {
@@ -138,8 +143,10 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         this.progressReporter = progressReporter;
       }
 
-      public void AdvisoryWriteLine(string format, params object[] args) {
+      public void AdvisoryWriteLine(TextWriter writer, string format, params object[] args) {
       }
+
+      public ExecutionEngineOptions? Options { get; set; }
 
       public void ErrorWriteLine(TextWriter tw, string s) {
         logger.LogError(s);
@@ -167,7 +174,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
 
       private void CaptureCounterExamples(ErrorInformation errorInfo) {
-        if (errorInfo.Model is StringWriter modelString) {
+        if (errorInfo.ModelWriter is StringWriter modelString) {
           // We do not know a-priori how many errors we'll receive. Therefore we capture all models
           // in a custom stringbuilder and reset the original one to not duplicate the outputs.
           serializedCounterExamples ??= new StringBuilder();
@@ -176,7 +183,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         }
       }
 
-      public void WriteTrailer(PipelineStatistics stats) {
+      public void WriteTrailer(TextWriter writer, PipelineStatistics stats) {
       }
     }
   }

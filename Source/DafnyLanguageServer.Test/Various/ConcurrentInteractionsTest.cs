@@ -116,7 +116,7 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
       Assert.IsNotNull(document);
       Assert.AreEqual(documentItem.Version + 11, document.Version);
       Assert.AreEqual(1, document.Errors.ErrorCount);
-      Assert.AreEqual("assertion violation", document.Errors.GetDiagnostics(documentItem.Uri)[0].Message);
+      Assert.AreEqual("assertion might not hold", document.Errors.GetDiagnostics(documentItem.Uri)[0].Message);
     }
 
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]

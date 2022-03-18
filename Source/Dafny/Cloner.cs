@@ -865,8 +865,6 @@ namespace Microsoft.Dafny {
 
     private Dictionary<Declaration, Declaration> reverseMap = new Dictionary<Declaration, Declaration>();
 
-    private HashSet<AliasModuleDecl> extraProvides = new HashSet<AliasModuleDecl>();
-
     private bool isInvisibleClone(Declaration d) {
       Contract.Assert(reverseMap.ContainsKey(d));
       return !reverseMap[d].IsVisibleInScope(scope);
@@ -974,9 +972,18 @@ namespace Microsoft.Dafny {
 
     public override Function CloneFunction(Function f, string newName = null) {
       var basef = base.CloneFunction(f, newName);
-      basef.ByMethodTok = null; // never export the method body of a function-by-method
-      basef.ByMethodBody = null; // never export the method body of a function-by-method
-      Contract.Assert(basef.ByMethodDecl == null);
+      if (basef.ByMethodBody != null) {
+        Contract.Assert(!basef.IsGhost); // a function-by-method has .IsGhost == false
+        Contract.Assert(basef.Body != null); // a function-by-method has a nonempty .Body
+        if (RevealedInScope(f)) {
+          // For an "export reveals", use an empty (but not absent) by-method part.
+          basef.ByMethodBody = new BlockStmt(basef.ByMethodBody.Tok, basef.ByMethodBody.EndTok, new List<Statement>());
+        } else {
+          // For an "export provides", remove the by-method part altogether.
+          basef.ByMethodTok = null;
+          basef.ByMethodBody = null;
+        }
+      }
       if (!RevealedInScope(f)) {
         basef.Body = null;
       }

@@ -32,7 +32,7 @@ namespace DafnyTestGeneration {
       DafnyOptions.O.PrintInstrumented = true;
       DafnyOptions.O.PrintFile = "-";
       var textRepresentation = Utils.CaptureConsoleOutput(
-        () => program.Emit(new TokenTextWriter(Console.Out)));
+        () => program.Emit(new TokenTextWriter(Console.Out, DafnyOptions.O)));
       Microsoft.Boogie.Parser.Parse(textRepresentation, "", out var copy);
       DafnyOptions.O.PrintInstrumented = oldPrintInstrumented;
       DafnyOptions.O.PrintFile = oldPrintFile;
@@ -75,17 +75,20 @@ namespace DafnyTestGeneration {
       var oldOptions = DafnyOptions.O;
       var options = SetupOptions(procedure);
       DafnyOptions.Install(options);
+      var engine = ExecutionEngine.CreateWithoutSharedCache(options);
       var uniqueId = Guid.NewGuid().ToString();
-      program.Resolve();
-      program.Typecheck();
-      ExecutionEngine.EliminateDeadVariables(program);
-      ExecutionEngine.CollectModSets(program);
-      ExecutionEngine.CoalesceBlocks(program);
-      ExecutionEngine.Inline(program);
+      program.Resolve(options);
+      program.Typecheck(options);
+      engine.EliminateDeadVariables(program);
+      engine.CollectModSets(program);
+      engine.CoalesceBlocks(program);
+      engine.Inline(program);
       var log = Utils.CaptureConsoleOutput(
-        () => ExecutionEngine.InferAndVerify(program,
-          new PipelineStatistics(), uniqueId,
-          _ => { }, uniqueId));
+        () => {
+          var outcome = engine.InferAndVerify(Console.Out, program,
+            new PipelineStatistics(), null,
+            _ => { }, uniqueId).Result;
+        });
       DafnyOptions.Install(oldOptions);
       // make sure that there is a counterexample (i.e. no parse errors, etc):
       string? line;
