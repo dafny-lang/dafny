@@ -334,9 +334,9 @@ For every method (or function, constructor, etc.), Dafny extracts _assertions_, 
 [^precision-requires-clause]: Dafny actually breaks things down further. For example, a precondition `requires A && B` or an assert statement `assert A && B;` turns into two assertions, more or less like `requires A requires B` and `assert A; assert B;`.
 
 It is useful to mentally visualize all these assertions as a list (an _assertion batch_) that roughly follows the order in the code[^complexity-path-encoding],
-except for `ensures` assertions that appear before in the code but, for verification purposes, would appear at the end.
+except for `ensures` assertions that appear earlier in the code but, for verification purposes, would appear at the end.
 Thus, to prove or disprove a single assertion within this list, all the assumptions Dafny needs are 1) the global context,
-and 2) every preceding assumptions (and previous assertions transformed in assumptions).
+and 2) every preceding assumption (and previous assertions transformed in assumptions).
 
 [^complexity-path-encoding]: All the complexities of the execution paths (if-then-else, loops, goto, break....) are, down the road and for verification purposes, cleverly encoded with variables recording the paths and guarding assumptions made on each path. In practice, a second clever encoding of variables enables grouping many assertions together, and recovers which assertion is failing based on the value of variables that the SMT solver returns.
 

@@ -97,16 +97,21 @@ be added.
 
 ### 22.1.2. `{:nativeType}` {#sec-nativetype}
 The `{:nativeType}` attribute may only be used on a ``NewtypeDecl``
-where the base type is an integral type. It can take one of the following
-forms:
+where the base type is an integral type or a real type. For example:
+
+```dafny
+newtype {:nativeType "byte"} ubyte = x : int | 0 <= x < 256
+newtype {:nativeType "byte"} ubyte = x : int | 0 <= x < 257 // Fails
+```
+
+It can take one of the following forms:
 
 * `{:nativeType}` - With no parameters it has no effect and the ``NewtypeDecl``
-have its default behavior which is to choose a native type that can hold any
+will have its default behavior which is to choose a native type that can hold any
 value satisfying the constraints, if possible, otherwise BigInteger is used.
 * `{:nativeType true}` - Also gives default ``NewtypeDecl`` behavior,
 but gives an error if base type is not integral.
-* `{:nativeType false}` - Inhibits using a native type. BigInteger is used
-for integral types and BitRational for real types.
+* `{:nativeType false}` - Inhibits using a native type. BigInteger is used.
 * `{:nativeType "typename"}` - This form has an native integral
 type name as a string literal. Acceptable values are:
    * `"byte"`      8 bits, unsigned
@@ -123,7 +128,7 @@ type name as a string literal. Acceptable values are:
   scrutinizing the constraint predicate, the compiler cannot confirm
   that the type's values will fit in X, an error is generated.
 
-### 22.1.3. `{:ignore}`
+### 22.1.3. `{:ignore}` (deprecated)
 Ignore the declaration (after checking for duplicate names).
 
 ### 22.1.4. `{:extern}` {#sec-extern}
@@ -214,7 +219,7 @@ See [`{:extern <name>}`](#sec-extern).
 ### 22.2.5. `{:fuel X}` {#sec-fuel}
 The fuel attributes is used to specify how much "fuel" a function should have,
 i.e., how many times the verifier is permitted to unfold its definition.  The
-new `{:fuel}` annotation can be added to the function itself, it which
+`{:fuel}` annotation can be added to the function itself, it which
 case it will apply to all uses of that function, or it can overridden
 within the scope of a module, function, method, iterator, calc, forall,
 while, assert, or assume.  The general format is:
@@ -344,7 +349,7 @@ an error message is given.
 
 
 ### 22.2.13. `{:timeLimit N}`
-Set the time limit for a given function or method.
+Set the time limit for verifying a given function or method.
 
 ### 22.2.14. `{:timeLimitMultiplier X}`
 This attribute may be placed on a method or function declaration
@@ -403,7 +408,7 @@ This is mostly helpful for debugging which assertion is taking the most time to 
 ### 22.3.1. `{:focus}` {#sec-focus}
 `assert {:focus} X;` splits verification into two [assertion batches](#sec-assertion-batches).
 The first batch considers all assertions that are not on the block containing the `assert {:focus} X;`
-The second batch considers all assertions that are on the bloc containing the `assert {:focus} X;` and those that will _always_ follow afterwards.
+The second batch considers all assertions that are on the block containing the `assert {:focus} X;` and those that will _always_ follow afterwards.
 Hence, it might also occasionally double-report errors.
 If you truly want a split on the batches, prefer [`{:split_here}`](#sec-split_here).
 
@@ -486,24 +491,6 @@ method doSplitHere(x: bool) returns (y: int) {
 ### 22.3.3. `{:subsumption n}`
 Overrides the `/subsumption` command-line setting for this assertion.
 
-
-<!--
-This is not working in Dafny and shouldn't be documented until so.
-### 22.3.4. `{:msg <string>}`
-     
-Prints <string> rather than the standard message for assertion failure.
-Also applicable to requires and ensures declarations.
-
-```
-method doFocus(x: bool) returns (y: int) {
-  y := 1;
-  assert {:msg "y is indivisible"} y != 1;    //
-}
-```
--->
-
-
-
 ## 22.4. Attributes on variable declarations
 
 ### 22.4.1. `{:assumption}`
@@ -563,7 +550,7 @@ The Dafny source has the comment that "if a function is recursive,
 then make the reveal lemma quantifier a layerQuantifier."
 And in that case it adds the attribute to the quantifier.
 
-There is no explicit user of the `{:layerQuantifier}` attribute
+There is no explicit use of the `{:layerQuantifier}` attribute
 in the Dafny tests. So I believe this attribute is only used
 internally by Dafny and not externally.
 
@@ -573,8 +560,47 @@ further effort for this attribute.
 
 ### 22.5.4. `{:trigger}` {#sec-trigger}
 Trigger attributes are used on quantifiers and comprehensions.
-They are used for the verifier to know models of expressions that enable to instantiate the quantifier,
-so that it is not instantiated with anything.
+
+The verifier instantiates the body of a quantified expression only when it can find an expression that matches the provided trigger.  
+
+Here is an example:
+```dafny
+predicate P(i: int)
+predicate Q(i: int)
+
+lemma PHoldEvenly()
+  ensures  forall i {:trigger Q(i)} :: P(i) ==> P(i + 2) && Q(i)
+
+lemma PHoldsForTwo()
+  ensures forall i :: P(i) ==> P(i + 4)
+{
+  forall j: int
+    ensures P(j) ==> P(j + 4)
+  {
+    if P(j) {
+      assert P(j); // Trivial assertion
+      
+      PHoldEvenly();
+      // Invoking the lemma assumes `forall i :: P(i) ==> P(i + 4)`,
+      // but it's not instantiated yet
+      
+      // The verifier sees `Q(j)`, so it instantiates
+      // `forall i :: P(i) ==> P(i + 4)` with `j`
+      // and we get the axiom `P(j) ==> P(j + 2) && Q(j)`
+      assert Q(j);     // hence it can prove `Q(j)`
+      assert P(j + 2); //   and it can prove `P(j + 2)`
+      assert P(j + 4); // But it cannot prove this
+      // because it did not instantiate `forall i :: P(i) ==> P(i + 4)` with `j+2`
+    }
+  }
+}
+```
+
+Here are ways one can prove `assert P(j + 4);`:
+* Add `assert Q(j + 2);` just before `assert P(j + 4);`, so that the verifier sees the trigger.
+* Change the trigger `{:trigger Q(i)}` to `{:trigger P(i)}` (replace the trigger)
+* Change the trigger `{:trigger Q(i)}` to `{:trigger Q(i)} {:trigger P(i)}` (add a trigger)
+* Remove `{:trigger Q(i)}` so that it will automatically determine all possible triggers thanks to the option `/autoTriggers:1` which is the default.
 
 ### 22.5.5. `{:typeQuantifier}` (deprecated)
 The `{:typeQuantifier}` attribute must be used on a quantifier if it
