@@ -178,7 +178,7 @@ method FailingPostcondition(b: bool) returns (i: int)
   i := 2;
 }
 ```
-One first thing you can do is replace the sentence `return j;` by two sentences `i := j; return;` to better understand what is wrong:
+One first thing you can do is replace the statement `return j;` by two statements `i := j; return;` to better understand what is wrong:
 ```dafny
 method FailingPostcondition(b: bool) returns (i: int)
   ensures 2 <= i
@@ -339,7 +339,7 @@ In this list, each assertion depends on other assertions, statements and express
 
 [^complexity-path-encoding]: All the complexities of the execution paths (if-then-else, loops, goto, break....) are, down the road and for verification purposes, cleverly encoded with variables recording the paths and guarding assumptions made on each path. In practice, a second clever encoding of variables enables grouping many assertions together, and recovers which assertion is failing based on the value of variables that the SMT solver returns.
 
-The fundamental unit of verification in Dafny is an _assertion batch_, which consists of one or more assertions from this "list", along with all the remaining assertions turned into assumptions. To reduce overhead, by default Dafny collects all the assertions in the body of a given method into a single assertion batch that it sends to the verifier, which tried to prove it correct.
+The fundamental unit of verification in Dafny is an _assertion batch_, which consists of one or more assertions from this "list", along with all the remaining assertions turned into assumptions. To reduce overhead, by default Dafny collects all the assertions in the body of a given method into a single assertion batch that it sends to the verifier, which tries to prove it correct.
 
 * If the verifier says it is correct[^smt-encoding], it means that all the assertions hold.
 * If the verifier returns a counterexample, this counterexample is used to determine both the failing assertion and the failing path.
