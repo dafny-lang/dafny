@@ -1279,7 +1279,7 @@ namespace Microsoft.Dafny {
       //   as "false".
       bool allowNoChange = N == decrCountT && decrCountT <= decrCountC;
       var decrChk = DecreasesCheck(toks, types0, types1, callee, caller, null, null, allowNoChange, false);
-      builder.Add(Assert(original.Tok, decrChk, string.Format("{0}'s decreases clause must be below or equal to that in the trait", original.WhatKind)));
+      builder.Add(AssertDesc(original.Tok, decrChk, new DafnyTraitDecreasesDescription(original.WhatKind)));
     }
 
     private void AddMethodOverrideSubsetChk(Method m, BoogieStmtListBuilder builder, ExpressionTranslator etran, List<Variable> localVariables, Dictionary<IVariable, Expression> substMap) {
@@ -1322,7 +1322,7 @@ namespace Microsoft.Dafny {
       Boogie.Expr consequent2 = InRWClause(tok, o, f, traitFrameExps, etran, null, null);
       Boogie.Expr q = new Boogie.ForallExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar },
         Boogie.Expr.Imp(Boogie.Expr.And(ante, oInCallee), consequent2));
-      builder.Add(Assert(tok, q, "expression may modify an object not in the parent trait context's modifies clause", kv));
+      builder.Add(AssertDesc(tok, q, new DafnyTraitModifiableDescription(), kv));
     }
 
     /// <summary>

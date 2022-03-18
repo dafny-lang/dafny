@@ -3709,24 +3709,23 @@ namespace Microsoft.Dafny {
                           Expression receiverReplacement, Dictionary<IVariable, Expression /*!*/> substMap,
                           ExpressionTranslator /*!*/ etran,
                           BoogieStmtListBuilder /*!*/ builder,
-                          string errorMessage,
+                          DafnyAssertionDescription desc,
                           Bpl.QKeyValue kv) {
       CheckFrameSubset(tok, calleeFrame, receiverReplacement, substMap, etran,
-        (t, e, s, q) => builder.Add(Assert(t, e, s, q)), errorMessage, kv);
+        (t, e, d, q) => builder.Add(AssertDesc(t, e, d, q)), desc, kv);
     }
 
     void CheckFrameSubset(IToken tok, List<FrameExpression> calleeFrame,
                           Expression receiverReplacement, Dictionary<IVariable, Expression/*!*/> substMap,
                           ExpressionTranslator/*!*/ etran,
-                          Action<IToken, Bpl.Expr, string, Bpl.QKeyValue> MakeAssert,
-                          string errorMessage,
+                          Action<IToken, Bpl.Expr, DafnyAssertionDescription, Bpl.QKeyValue> MakeAssert,
+                          DafnyAssertionDescription desc,
                           Bpl.QKeyValue kv) {
       Contract.Requires(tok != null);
       Contract.Requires(calleeFrame != null);
       Contract.Requires(receiverReplacement == null || substMap != null);
       Contract.Requires(etran != null);
       Contract.Requires(MakeAssert != null);
-      Contract.Requires(errorMessage != null);
       Contract.Requires(predef != null);
 
       // emit: assert (forall<alpha> o: ref, f: Field alpha :: o != null && $Heap[o,alloc] && (o,f) in subFrame ==> $_Frame[o,f]);
@@ -3740,7 +3739,7 @@ namespace Microsoft.Dafny {
       Bpl.Expr inEnclosingFrame = Bpl.Expr.Select(etran.TheFrame(tok), o, f);
       Bpl.Expr q = new Bpl.ForallExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar },
                                       Bpl.Expr.Imp(Bpl.Expr.And(ante, oInCallee), inEnclosingFrame));
-      MakeAssert(tok, q, errorMessage, kv);
+      MakeAssert(tok, q, desc, kv);
     }
 
     /// <summary>
@@ -5142,14 +5141,14 @@ namespace Microsoft.Dafny {
         AssertKv = options.AssertKv;
       }
 
-      public Action<IToken, Bpl.Expr, string, Bpl.QKeyValue> AssertSink(Translator tran, BoogieStmtListBuilder builder) {
-        return (t, e, s, qk) => {
+      public Action<IToken, Bpl.Expr, DafnyAssertionDescription, Bpl.QKeyValue> AssertSink(Translator tran, BoogieStmtListBuilder builder) {
+        return (t, e, d, qk) => {
           if (Locals != null) {
             var b = BplLocalVar(tran.CurrentIdGenerator.FreshId("b$reqreads#"), Bpl.Type.Bool, Locals);
-            Asserts.Add(tran.Assert(t, b, s, qk));
+            Asserts.Add(tran.AssertDesc(t, b, d, qk));
             builder.Add(Bpl.Cmd.SimpleAssign(e.tok, (Bpl.IdentifierExpr)b, e));
           } else {
-            builder.Add(tran.Assert(t, e, s, qk));
+            builder.Add(tran.AssertDesc(t, e, d, qk));
           }
         };
       }
@@ -5420,7 +5419,8 @@ namespace Microsoft.Dafny {
           }
         }
         if (options.DoReadsChecks && e.Member is Field && ((Field)e.Member).IsMutable) {
-          options.AssertSink(this, builder)(expr.tok, Bpl.Expr.SelectTok(expr.tok, etran.TheFrame(expr.tok), etran.TrExpr(e.Obj), GetField(e)), "insufficient reads clause to read field", options.AssertKv);
+          options.AssertSink(this, builder)(expr.tok, Bpl.Expr.SelectTok(expr.tok, etran.TheFrame(expr.tok), etran.TrExpr(e.Obj), GetField(e)),
+            new DafnyFrameSubsetDescription("read field", false), options.AssertKv);
         }
       } else if (expr is SeqSelectExpr) {
         SeqSelectExpr e = (SeqSelectExpr)expr;
@@ -5469,7 +5469,8 @@ namespace Microsoft.Dafny {
             var i = etran.TrExpr(e.E0);
             i = ConvertExpression(expr.tok, i, e.E0.Type, Type.Int);
             Bpl.Expr fieldName = FunctionCall(expr.tok, BuiltinFunction.IndexField, null, i);
-            options.AssertSink(this, builder)(expr.tok, Bpl.Expr.SelectTok(expr.tok, etran.TheFrame(expr.tok), seq, fieldName), "insufficient reads clause to read array element", options.AssertKv);
+            options.AssertSink(this, builder)(expr.tok, Bpl.Expr.SelectTok(expr.tok, etran.TheFrame(expr.tok), seq, fieldName),
+              new DafnyFrameSubsetDescription("read array element", false), options.AssertKv);
           } else {
             Bpl.Expr lowerBound = e.E0 == null ? Bpl.Expr.Literal(0) : etran.TrExpr(e.E0);
             Contract.Assert(eSeqType.AsArrayType.Dims == 1);
@@ -5482,7 +5483,9 @@ namespace Microsoft.Dafny {
             var allowedToRead = Bpl.Expr.SelectTok(e.tok, etran.TheFrame(e.tok), seq, fieldName);
             var trigger = BplTrigger(allowedToRead); // Note, the assertion we're about to produce only seems useful in the check-only mode (that is, with subsumption 0), but if it were to be assumed, we'll use this entire RHS as the trigger
             var qq = new Bpl.ForallExpr(e.tok, new List<Variable> { iVar }, trigger, BplImp(range, allowedToRead));
-            options.AssertSink(this, builder)(expr.tok, qq, "insufficient reads clause to read the indicated range of array elements", options.AssertKv);
+            options.AssertSink(this, builder)(expr.tok, qq,
+              new DafnyFrameSubsetDescription("read the indicated range of array elements", false),
+              options.AssertKv);
           }
         }
       } else if (expr is MultiSelectExpr) {
@@ -5508,7 +5511,8 @@ namespace Microsoft.Dafny {
         }
         if (options.DoReadsChecks) {
           Bpl.Expr fieldName = etran.GetArrayIndexFieldName(e.tok, e.Indices);
-          options.AssertSink(this, builder)(expr.tok, Bpl.Expr.SelectTok(expr.tok, etran.TheFrame(expr.tok), array, fieldName), "insufficient reads clause to read array element", options.AssertKv);
+          options.AssertSink(this, builder)(expr.tok, Bpl.Expr.SelectTok(expr.tok, etran.TheFrame(expr.tok), array, fieldName),
+            new DafnyFrameSubsetDescription("read array element", false), options.AssertKv);
         }
       } else if (expr is SeqUpdateExpr) {
         var e = (SeqUpdateExpr)expr;
@@ -5625,7 +5629,7 @@ namespace Microsoft.Dafny {
             objset);
           var reads = new FrameExpression(e.tok, wrap, null);
           CheckFrameSubset(expr.tok, new List<FrameExpression> { reads }, null, null,
-            etran, options.AssertSink(this, builder), "insufficient reads clause to invoke function", options.AssertKv);
+            etran, options.AssertSink(this, builder), new DafnyFrameSubsetDescription("invoke function", false), options.AssertKv);
         }
 
       } else if (expr is FunctionCallExpr) {
@@ -5748,7 +5752,7 @@ namespace Microsoft.Dafny {
             var s = new Substituter(null, new Dictionary<IVariable, Expression>(), e.GetTypeArgumentSubstitutions());
             CheckFrameSubset(expr.tok,
               e.Function.Reads.ConvertAll(s.SubstFrameExpr),
-              e.Receiver, substMap, etran, options.AssertSink(this, builder), "insufficient reads clause to invoke function", options.AssertKv);
+              e.Receiver, substMap, etran, options.AssertSink(this, builder), new DafnyFrameSubsetDescription("invoke function", false), options.AssertKv);
           }
 
           Bpl.Expr allowance = null;
@@ -10023,13 +10027,13 @@ namespace Microsoft.Dafny {
           FunctionCall(tok, Reads(1), TrType(objset), args),
           objset);
         var reads = new FrameExpression(tok, wrap, null);
-        Action<IToken, Bpl.Expr, string, Bpl.QKeyValue> maker = (t, e, s, qk) => {
+        Action<IToken, Bpl.Expr, DafnyAssertionDescription, Bpl.QKeyValue> maker = (t, e, d, qk) => {
           var qe = new Bpl.ForallExpr(t, bvs, Bpl.Expr.Imp(ante, e));
-          options.AssertSink(this, builder)(t, qe, s, qk);
+          options.AssertSink(this, builder)(t, qe, d, qk);
         };
         CheckFrameSubset(tok, new List<FrameExpression> { reads }, null, null,
           etran, maker,
-          "insufficient reads clause to invoke the function passed as an argument to the sequence constructor",
+          new DafnyFrameSubsetDescription("invoke the function passed as an argument to the sequence constructor", false),
           options.AssertKv);
       }
       // Check that the values coming out of the function satisfy any appropriate subset-type constraints

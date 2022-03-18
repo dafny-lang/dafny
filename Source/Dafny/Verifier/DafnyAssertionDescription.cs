@@ -270,3 +270,132 @@ public class DafnyPrefixEqualityLimitDescription : DafnyAssertionDescription {
 
   public override string ShortDescription => "prefix-equality limit";
 }
+
+public class DafnyForRangeBoundsDescription : DafnyAssertionDescription {
+  public override string SuccessDescription =>
+    "lower bound does not exceed upper bound";
+
+  public override string FailureDescription =>
+    "lower bound must not exceed upper bound";
+
+  public override string ShortDescription => "for range bounds";
+}
+
+public class DafnyForRangeAssignableDescription : DafnyAssertionDescription {
+  public override string SuccessDescription =>
+    "entire range is assignable to index variable";
+
+  public override string FailureDescription =>
+    $"entire range must be assignable to index variable, but some {msg}";
+
+  public override string ShortDescription => "for range assignable";
+
+  private readonly string msg;
+
+  public DafnyForRangeAssignableDescription(string msg) {
+    this.msg = msg;
+  }
+}
+
+public class DafnyLoopTerminationDescription : DafnyAssertionDescription {
+  public override string SuccessDescription =>
+    "loop terminates";
+
+  public override string FailureDescription =>
+    inferredDescreases ?
+      "cannot prove termination; try supplying a decreases clause for the loop" :
+      "decreases expression might not decrease";
+
+  public override string ShortDescription => "loop termination";
+
+  private readonly bool inferredDescreases;
+
+  public DafnyLoopTerminationDescription(bool inferredDescreases) {
+    this.inferredDescreases = inferredDescreases;
+  }
+}
+
+public class DafnyDefaultNonrecursiveDescription : DafnyAssertionDescription {
+  public override string SuccessDescription =>
+    "default value is non-recursive";
+
+  public override string FailureDescription =>
+    "default-value expression is not allowed to involve recursive or mutually recursive calls";
+
+  public override string ShortDescription => "default nonrecursive";
+}
+
+public class DafnyModifiableDescription : DafnyAssertionDescription {
+  public override string SuccessDescription =>
+    $"{description} is in the enclosing context's modifies clause";
+
+  public override string FailureDescription =>
+    $"assignment may update {description} not in the enclosing context's modifies clause";
+
+  public override string ShortDescription => "object modifiable";
+
+  private readonly string description;
+
+  public DafnyModifiableDescription(string description) {
+    this.description = description;
+  }
+}
+
+public class DafnyForallLHSUniqueDescription : DafnyAssertionDescription {
+  public override string SuccessDescription =>
+    "left-hand sides of forall-statement bound variables are unique";
+
+  public override string FailureDescription =>
+    "left-hand sides for different forall-statement bound variables may refer to the same location";
+
+  public override string ShortDescription => "forall bound unique";
+}
+
+// TODO below
+public class DafnyTraitModifiableDescription : DafnyAssertionDescription {
+  public override string SuccessDescription =>
+    "expression abides by trait context's modifies clause";
+
+  public override string FailureDescription =>
+    "expression may modify an object not in the parent trait context's modifies clause";
+
+  public override string ShortDescription => "trait modifiable";
+}
+
+public class DafnyTraitDecreasesDescription : DafnyAssertionDescription {
+  public override string SuccessDescription =>
+    $"{whatKind}'s decreases clause is below or equal to that in the trait";
+
+  public override string FailureDescription =>
+    $"{whatKind}'s decreases clause must be below or equal to that in the trait";
+
+  public override string ShortDescription => "trait decreases";
+
+  private readonly string whatKind;
+
+  public DafnyTraitDecreasesDescription(string whatKind) {
+    this.whatKind = whatKind;
+  }
+}
+
+public class DafnyFrameSubsetDescription : DafnyAssertionDescription {
+  public override string SuccessDescription =>
+    isWrite ?
+      $"{whatKind} is allowed by context's modifies clause" :
+      $"sufficient reads clause to {whatKind}";
+
+  public override string FailureDescription =>
+    isWrite ?
+      $"{whatKind} may violate context's modifies clause" :
+      $"insufficient reads clause to {whatKind}";
+
+  public override string ShortDescription => "frame subset";
+
+  private readonly string whatKind;
+  private readonly bool isWrite;
+
+  public DafnyFrameSubsetDescription(string whatKind, bool isWrite) {
+    this.whatKind = whatKind;
+    this.isWrite = isWrite;
+  }
+}

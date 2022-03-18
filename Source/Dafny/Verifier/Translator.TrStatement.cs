@@ -334,7 +334,7 @@ namespace Microsoft.Dafny {
         // check well-formedness of the modifies clauses
         CheckFrameWellFormed(new WFOptions(), s.Mod.Expressions, locals, builder, etran);
         // check that the modifies is a subset
-        CheckFrameSubset(s.Tok, s.Mod.Expressions, null, null, etran, builder, "modify statement may violate context's modifies clause", null);
+        CheckFrameSubset(s.Tok, s.Mod.Expressions, null, null, etran, builder, new DafnyFrameSubsetDescription("modify statement", true), null);
         // cause the change of the heap according to the given frame
         var suffix = CurrentIdGenerator.FreshId("modify#");
         string modifyFrameName = "$Frame$" + suffix;
@@ -849,7 +849,7 @@ namespace Microsoft.Dafny {
 
       // check lo <= hi
       if (lo != null && hi != null) {
-        builder.Add(Assert(lo.tok, Bpl.Expr.Le(bLo, bHi), "lower bound must not exceed upper bound"));
+        builder.Add(AssertDesc(lo.tok, Bpl.Expr.Le(bLo, bHi), new DafnyForRangeBoundsDescription()));
       }
       // check forall x :: lo <= x <= hi ==> Is(x, typ)
       {
@@ -868,7 +868,7 @@ namespace Microsoft.Dafny {
           locals.Add(xVar);
           builder.Add(new Bpl.HavocCmd(tok, new List<Bpl.IdentifierExpr>() { x }));
           builder.Add(new Bpl.AssumeCmd(tok, ForLoopBounds(x, bLo, bHi)));
-          builder.Add(Assert(tok, cre, "entire range must be assignable to index variable, but some " + msg));
+          builder.Add(AssertDesc(tok, cre, new DafnyForRangeAssignableDescription(msg)));
         }
       }
 
@@ -1157,8 +1157,8 @@ namespace Microsoft.Dafny {
       TrStmt_CheckWellformed(lhs, definedness, locals, etran, false);
       Bpl.Expr obj, F;
       string description = GetObjFieldDetails(lhs, etran, out obj, out F);
-      definedness.Add(Assert(lhs.tok, Bpl.Expr.SelectTok(lhs.tok, etran.TheFrame(lhs.tok), obj, F),
-        "assignment may update " + description + " not in the enclosing context's modifies clause"));
+      definedness.Add(AssertDesc(lhs.tok, Bpl.Expr.SelectTok(lhs.tok, etran.TheFrame(lhs.tok), obj, F),
+        new DafnyModifiableDescription(description)));
       if (s0.Rhs is ExprRhs) {
         var r = (ExprRhs)s0.Rhs;
         var rhs = Substitute(r.Expr, null, substMap);
@@ -1202,11 +1202,11 @@ namespace Microsoft.Dafny {
         var Rhs = ((ExprRhs)s0.Rhs).Expr;
         var rhs = etran.TrExpr(Substitute(Rhs, null, substMap));
         var rhsPrime = etran.TrExpr(Substitute(Rhs, null, substMapPrime));
-        definedness.Add(Assert(s0.Tok,
+        definedness.Add(AssertDesc(s0.Tok,
           Bpl.Expr.Or(
             Bpl.Expr.Or(Bpl.Expr.Neq(obj, objPrime), Bpl.Expr.Neq(F, FPrime)),
             Bpl.Expr.Eq(rhs, rhsPrime)),
-          "left-hand sides for different forall-statement bound variables may refer to the same location"));
+          new DafnyForallLHSUniqueDescription()));
       }
 
       definedness.Add(TrAssumeCmd(s.Tok, Bpl.Expr.False));
@@ -1342,7 +1342,7 @@ namespace Microsoft.Dafny {
 
       if (s.Mod.Expressions != null) { // check well-formedness and that the modifies is a subset
         CheckFrameWellFormed(new WFOptions(), s.Mod.Expressions, locals, builder, etran);
-        CheckFrameSubset(s.Tok, s.Mod.Expressions, null, null, etran, builder, "loop modifies clause may violate context's modifies clause", null);
+        CheckFrameSubset(s.Tok, s.Mod.Expressions, null, null, etran, builder, new DafnyFrameSubsetDescription("loop modifies clause", true), null);
         DefineFrame(s.Tok, s.Mod.Expressions, builder, locals, loopFrameName);
       }
       builder.Add(Bpl.Cmd.SimpleAssign(s.Tok, preLoopHeap, etran.HeapExpr));
@@ -1498,13 +1498,7 @@ namespace Microsoft.Dafny {
           if (includeTerminationCheck) {
             AddComment(loopBodyBuilder, s, "loop termination check");
             Bpl.Expr decrCheck = DecreasesCheck(toks, types, types, decrs, oldBfs, loopBodyBuilder, " at end of loop iteration", false, false);
-            string msg;
-            if (s.InferredDecreases) {
-              msg = "cannot prove termination; try supplying a decreases clause for the loop";
-            } else {
-              msg = "decreases expression might not decrease";
-            }
-            loopBodyBuilder.Add(Assert(s.Tok, decrCheck, msg));
+            loopBodyBuilder.Add(AssertDesc(s.Tok, decrCheck, new DafnyLoopTerminationDescription(s.InferredDecreases)));
           }
         }
       } else if (isBodyLessLoop) {
@@ -1864,14 +1858,14 @@ namespace Microsoft.Dafny {
       if (codeContext is IMethodCodeContext) {
         var s = new Substituter(null, new Dictionary<IVariable, Expression>(), tySubst);
         CheckFrameSubset(tok, callee.Mod.Expressions.ConvertAll(s.SubstFrameExpr),
-          receiver, substMap, etran, builder, "call may violate context's modifies clause", null);
+          receiver, substMap, etran, builder, new DafnyFrameSubsetDescription("call", true), null);
       }
 
       // Check termination
       if (isRecursiveCall) {
         Contract.Assert(codeContext != null);
         if (codeContext is DatatypeDecl) {
-          builder.Add(Assert(tok, Bpl.Expr.False, "default-value expression is not allowed to involve recursive or mutually recursive calls"));
+          builder.Add(AssertDesc(tok, Bpl.Expr.False, new DafnyDefaultNonrecursiveDescription()));
         } else {
           List<Expression> contextDecreases = codeContext.Decreases.Expressions;
           List<Expression> calleeDecreases = callee.Decreases.Expressions;
