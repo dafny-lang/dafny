@@ -351,15 +351,25 @@ public class DafnyForallLHSUniqueDescription : DafnyAssertionDescription {
   public override string ShortDescription => "forall bound unique";
 }
 
-// TODO below
-public class DafnyTraitModifiableDescription : DafnyAssertionDescription {
+public class DafnyTraitFrameDescription : DafnyAssertionDescription {
   public override string SuccessDescription =>
-    "expression abides by trait context's modifies clause";
+    isModify ?
+      "expression abides by trait context's modifies clause" :
+      "expression abides by trait context's reads clause";
 
   public override string FailureDescription =>
-    "expression may modify an object not in the parent trait context's modifies clause";
+    isModify ?
+     "expression may read an object not in the parent trait context's reads clause" :
+     "expression may modify an object not in the parent trait context's modifies clause";
 
-  public override string ShortDescription => "trait modifiable";
+  public override string ShortDescription =>
+    isModify ? "trait modifies" : "trait reads";
+
+  private bool isModify;
+
+  public DafnyTraitFrameDescription(bool isModify) {
+    this.isModify = isModify;
+  }
 }
 
 public class DafnyTraitDecreasesDescription : DafnyAssertionDescription {
@@ -417,4 +427,76 @@ public class DafnyElementInDomainDescription : DafnyAssertionDescription {
     "element may not be in domain";
 
   public override string ShortDescription => "element in domain";
+}
+
+public class DafnyDefiniteAssignmentDescription : DafnyAssertionDescription {
+  public override string SuccessDescription =>
+    $"{what}, which is subject to definite-assignment rules, has been defined {where}";
+
+  public override string FailureDescription =>
+    $"{what}, which is subject to definite-assignment rules, might not have been defined {where}";
+
+  public override string ShortDescription => "definite assignment";
+
+  private readonly string what;
+  private readonly string where;
+
+  public DafnyDefiniteAssignmentDescription(string what, string where) {
+    this.what = what;
+    this.where = where;
+  }
+}
+
+public class DafnyInRangeDescription : DafnyAssertionDescription {
+  public override string SuccessDescription => $"{what} in range";
+
+  public override string FailureDescription => $"{what} out of range";
+
+  public override string ShortDescription => "in range";
+
+  private readonly string what;
+
+  public DafnyInRangeDescription(string what) {
+    this.what = what;
+  }
+}
+
+public class DafnyCharOverflowDescription : DafnyAssertionDescription {
+  public override string SuccessDescription =>
+    "char addition will not overflow";
+
+  public override string FailureDescription =>
+    "char addition might overflow";
+
+  public override string ShortDescription => "char overflow";
+}
+
+public class DafnyCharUnderflowDescription : DafnyAssertionDescription {
+  public override string SuccessDescription =>
+    "char subtraction will not underflow";
+
+  public override string FailureDescription =>
+    "char subtraction might underflow";
+
+  public override string ShortDescription => "char underflow";
+}
+
+public class DafnyConversionFitDescription : DafnyAssertionDescription {
+  public override string SuccessDescription =>
+    $"{prefix}{what} to be converted will always fit in {typeDesc}";
+
+  public override string FailureDescription =>
+    $"{prefix}{what} to be converted might not fit in {typeDesc}";
+
+  public override string ShortDescription => "conversion fit";
+
+  private readonly string prefix;
+  private readonly string what;
+  private readonly string typeDesc;
+
+  public DafnyConversionFitDescription(string what, string typeDesc, string prefix = "") {
+    this.prefix = prefix;
+    this.what = what;
+    this.typeDesc = typeDesc;
+  }
 }

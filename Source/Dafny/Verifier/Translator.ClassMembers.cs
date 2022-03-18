@@ -1322,7 +1322,7 @@ namespace Microsoft.Dafny {
       Boogie.Expr consequent2 = InRWClause(tok, o, f, traitFrameExps, etran, null, null);
       Boogie.Expr q = new Boogie.ForallExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar },
         Boogie.Expr.Imp(Boogie.Expr.And(ante, oInCallee), consequent2));
-      builder.Add(AssertDesc(tok, q, new DafnyTraitModifiableDescription(), kv));
+      builder.Add(AssertDesc(tok, q, new DafnyTraitFrameDescription(true), kv));
     }
 
     /// <summary>
