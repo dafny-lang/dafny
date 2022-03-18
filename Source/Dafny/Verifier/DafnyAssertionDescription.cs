@@ -332,7 +332,7 @@ public class DafnyModifiableDescription : DafnyAssertionDescription {
   public override string FailureDescription =>
     $"assignment may update {description} not in the enclosing context's modifies clause";
 
-  public override string ShortDescription => "object modifiable";
+  public override string ShortDescription => "modifiable";
 
   private readonly string description;
 
@@ -398,4 +398,23 @@ public class DafnyFrameSubsetDescription : DafnyAssertionDescription {
     this.whatKind = whatKind;
     this.isWrite = isWrite;
   }
+}
+public class DafnyFrameDereferenceDescription : DafnyAssertionDescription {
+  public override string SuccessDescription =>
+    "frame expression does not dereference null";
+
+  public override string FailureDescription =>
+    "frame expression may dereference null";
+
+  public override string ShortDescription => "frame dereference";
+}
+
+public class DafnyElementInDomainDescription : DafnyAssertionDescription {
+  public override string SuccessDescription =>
+    "element is in domain";
+
+  public override string FailureDescription =>
+    "element may not be in domain";
+
+  public override string ShortDescription => "element in domain";
 }

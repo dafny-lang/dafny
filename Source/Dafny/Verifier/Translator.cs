@@ -3620,7 +3620,7 @@ namespace Microsoft.Dafny {
       foreach (var fe in fes) {
         CheckWellformed(fe.E, wfo, locals, builder, etran);
         if (fe.Field != null && fe.E.Type.IsRefType) {
-          builder.Add(Assert(fe.tok, Bpl.Expr.Neq(etran.TrExpr(fe.E), predef.Null), "frame expression may dereference null"));
+          builder.Add(AssertDesc(fe.tok, Bpl.Expr.Neq(etran.TrExpr(fe.E), predef.Null), new DafnyFrameDereferenceDescription()));
         }
       }
     }
@@ -5442,7 +5442,7 @@ namespace Microsoft.Dafny {
           var f = finite ? BuiltinFunction.MapDomain : BuiltinFunction.IMapDomain;
           Bpl.Expr inDomain = FunctionCall(expr.tok, f, predef.MapType(e.tok, finite, predef.BoxType, predef.BoxType), seq);
           inDomain = Bpl.Expr.Select(inDomain, BoxIfNecessary(e.tok, e0, e.E0.Type));
-          builder.Add(Assert(expr.tok, inDomain, "element may not be in domain", options.AssertKv));
+          builder.Add(AssertDesc(expr.tok, inDomain, new DafnyElementInDomainDescription(), options.AssertKv));
         } else if (eSeqType is MultiSetType) {
           // cool
 
@@ -9711,7 +9711,7 @@ namespace Microsoft.Dafny {
           prevObj[i] = obj;
           if (!useSurrogateLocal) {
             // check that the enclosing modifies clause allows this object to be written:  assert $_Frame[obj]);
-            builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.TheFrame(tok), obj, GetField(fse)), "assignment may update an object not in the enclosing context's modifies clause"));
+            builder.Add(AssertDesc(tok, Bpl.Expr.SelectTok(tok, etran.TheFrame(tok), obj, GetField(fse)), new DafnyModifiableDescription("an object")));
           }
 
           if (useSurrogateLocal) {
@@ -9756,7 +9756,7 @@ namespace Microsoft.Dafny {
           prevObj[i] = obj;
           prevIndex[i] = fieldName;
           // check that the enclosing modifies clause allows this object to be written:  assert $_Frame[obj,index]);
-          builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.TheFrame(tok), obj, fieldName), "assignment may update an array element not in the enclosing context's modifies clause"));
+          builder.Add(AssertDesc(tok, Bpl.Expr.SelectTok(tok, etran.TheFrame(tok), obj, fieldName), new DafnyModifiableDescription("an array element")));
 
           bLhss.Add(null);
           lhsBuilders.Add(delegate (Bpl.Expr rhs, bool origRhsIsHavoc, BoogieStmtListBuilder bldr, ExpressionTranslator et) {
@@ -9779,7 +9779,7 @@ namespace Microsoft.Dafny {
             "$index" + i, predef.FieldName(mse.tok, predef.BoxType), builder, locals);
           prevObj[i] = obj;
           prevIndex[i] = fieldName;
-          builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.TheFrame(tok), obj, fieldName), "assignment may update an array element not in the enclosing context's modifies clause"));
+          builder.Add(AssertDesc(tok, Bpl.Expr.SelectTok(tok, etran.TheFrame(tok), obj, fieldName), new DafnyModifiableDescription("an array element")));
 
           bLhss.Add(null);
           lhsBuilders.Add(delegate (Bpl.Expr rhs, bool origRhsIsHavoc, BoogieStmtListBuilder bldr, ExpressionTranslator et) {
