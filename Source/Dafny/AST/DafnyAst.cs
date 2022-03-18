@@ -11438,7 +11438,7 @@ namespace Microsoft.Dafny {
 
     /// <summary>
     /// Set, map, forall and exists comprehensions's range can be typed in two ways.
-    /// When in a non-ghost context (defautl), bounds variables in the range have to be typed  
+    /// When in a non-ghost context (default), bounds variables in the range have to be typed  
     /// with nothing stronger than either the bound variables' supertype that are run-time testable,
     /// or the collection's type.
     /// Indeed, for filtering to occur, the filter has to be computable.
