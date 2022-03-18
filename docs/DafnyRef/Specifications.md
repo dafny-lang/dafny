@@ -69,7 +69,7 @@ The order of conjunctions
 can be important: earlier conjuncts can set conditions that
 establish that later conjuncts are well-defined.
 
-### 5.1.3. Decreases Clause
+### 5.1.3. Decreases Clause {#sec-decreases-clause}
 ````grammar
 DecreasesClause(allowWildcard, allowLambda) =
   "decreases" { Attribute } DecreasesList(allowWildcard,

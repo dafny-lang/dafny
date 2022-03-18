@@ -328,6 +328,8 @@ For every method (or function, constructor, etc.), Dafny extracts _assertions_, 
 * Assignments `o.f := E;` yield an _assertion_ that `o.f` is allowed by the enclosing [`modifies` clause](#sec-loop-framing).
 * [Assign-such-that operators](#sec-update-and-call-statement) `x :| P(x)` yield an _assertion_ that `exists x :: P(x)`.
 * Every [`ensures` clause](#sec-ensures-clause) yields an _assertion_ at the end of the method and on every return.
+* Every [`decreases` clause](#sec-decreases-clause) yields an _assertion_ at either a call site or at the end of a while loop.
+* Every non-empty [subset type](#sec-subset-types) yields an _assertion_ that its witness satisfies the constraint.
 
 [^precision-requires-clause]: Dafny actually breaks things down further. For example, a precondition `requires A && B` or an assert statement `assert A && B;` turns into two assertions, more or less like `requires A requires B` and `assert A; assert B;`.
 
