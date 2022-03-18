@@ -508,6 +508,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     }
 
     // Ranges that should also display an error
+    // TODO: Will need to compute this statically for the tests
     public List<Range> ImmediatelyRelatedRanges {
       get {
         if (assertion == null) {
@@ -518,10 +519,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
         var result = new List<Range>();
         while (tok is NestedToken nestedToken) {
           tok = nestedToken.Inner;
-          result.Add(tok.GetLspRange());
+          if (tok.filename == assertion.tok.filename) {
+            result.Add(tok.GetLspRange());
+          }
         }
         if (counterExample is ReturnCounterexample returnCounterexample) {
-          result.Add(returnCounterexample.FailingReturn.tok.GetLspRange());
+          tok = returnCounterexample.FailingReturn.tok;
+          if (tok.filename == assertion.tok.filename) {
+            result.Add(returnCounterexample.FailingReturn.tok.GetLspRange());
+          }
         }
         return result;
       }
