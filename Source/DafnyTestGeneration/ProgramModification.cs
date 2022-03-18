@@ -84,9 +84,11 @@ namespace DafnyTestGeneration {
       engine.CoalesceBlocks(program);
       engine.Inline(program);
       var log = Utils.CaptureConsoleOutput(
-        () => engine.InferAndVerify(program,
-          new PipelineStatistics(), null,
-          _ => { }, uniqueId));
+        () => {
+          var outcome = engine.InferAndVerify(Console.Out, program,
+            new PipelineStatistics(), null,
+            _ => { }, uniqueId).Result;
+        });
       DafnyOptions.Install(oldOptions);
       // make sure that there is a counterexample (i.e. no parse errors, etc):
       string? line;
