@@ -277,6 +277,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       Range range = otherRange ?? Range;
       var isSingleLine = range.Start.Line == range.End.Line;
       for (var line = range.Start.Line; line <= range.End.Line; line++) {
+        if (line < 0 || perLineDiagnostics.Length <= line) {
+          // An error occurred? We don't want null pointer exceptions anyway
+          continue;
+        }
         LineVerificationStatus targetStatus = StatusVerification switch {
           VerificationStatus.Unknown => StatusCurrent switch {
             CurrentStatus.Current => LineVerificationStatus.Unknown,
