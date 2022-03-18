@@ -240,7 +240,7 @@ method FailingPostcondition(b: bool) returns (i: int)
   i := 2;
 }
 ```
-Yay ! The assertion `assert 2 <= i;` is not proven wrong, which means that if we manage to prove `assert 2 <= j;`, it will work.
+Yay! The assertion `assert 2 <= i;` is not proven wrong, which means that if we manage to prove `assert 2 <= j;`, it will work.
 Now, this assert should hold only if we are in this branch, so to _move the assert up_, we need to guard it.
 Just before the `if`, we can add the weakest precondition `assert b ==> (2 <= j)`:
 ```dafny
@@ -285,7 +285,7 @@ b ==>  2 <= (if !b then 3 else 1)
 !b;
 ```
 Now we can understand what went wrong: When b is true, all of these formulas above are false, this is why the Dafny verifier was not able to prove them.
-In the next section, we will explain how to `move asserts up` in certain useful patterns.
+In the next section, we will explain how to "move asserts up" in certain useful patterns.
 
 #### 24.8.1.3. Failing asserts cases {#sec-failing-asserts-special-cases}
 
@@ -300,7 +300,7 @@ This list is not exhaustive but can definitely be useful to provide the next ste
  <br><br><br><br><br>`assert forall x :: Q(x);` | [`forall x`](#sec-forall-statement)<br>&nbsp;&nbsp;`  ensures Q(x)`<br>`{`<br>&nbsp;&nbsp;`  assert Q(x);`<br>`};`<br>` assert forall x :: Q(x);`
  <br><br><br><br><br>`assert forall x :: P(x) ==> Q(x);` | [`forall x | P(x)`](#sec-forall-statement)<br>&nbsp;&nbsp;`  ensures Q(x)`<br>`{`<br>&nbsp;&nbsp;`  assert Q(x);`<br>`};`<br>` assert forall x :: P(x) ==> Q(x);`
  <br>`assert exists x :: P(x);`<br> | `assert P(x0);`<br>`assert exists x :: P(x);`<br>for a given expression `x0`.
- <br>`ensures exists i :: P(i);`<br> | `returns (j: int)`<br>`ensures P(j) ensures exists i :: P(i)`<br>in a lemma, so that the `j` can be computed explicitely.
+ <br>`ensures exists i :: P(i);`<br> | `returns (j: int)`<br>`ensures P(j) ensures exists i :: P(i)`<br>in a lemma, so that the `j` can be computed explicitly.
  <br><br>`assert A == B;`<br>`callLemma(x);`<br>`assert B == C;`<br> | [`calc == {`](#sec-calc-statement)<br>&nbsp;&nbsp;`  A;`<br>&nbsp;&nbsp;`  B;`<br>&nbsp;&nbsp;`  { callLemma(x); }`<br>&nbsp;&nbsp;`  C;`<br>`};`<br>`assert A == B;`<br>where the [calc statement](#sec-calc-statement) can be used to make intermediate computation steps explicit. Works with `<`, `>`, `<=`, `>=`, `==>`, `<==` and `<==>` for example.
  <br><br><br>`assert A ==> B;` | `if A {`<br>&nbsp;&nbsp;`  assert B;`<br>`};`<br>`assert A ==> B;`
  <br><br>`assert A && B;` | `assert A;`<br>`assert B;`<br>`assert A && B;`
@@ -323,7 +323,7 @@ For every method (or function, constructor, etc.), Dafny extracts _assertions_, 
 
 * any explicit [`assert` statement](#sec-assert-statement) is _an assertion_[^precision-requires-clause].
 * A consecutive pair of lines in a [`calc` statement](#sec-calc-statement) forms _an assertion_ that the expressions are related according to the common operator.
-* Every function or method call with a [`requires` clause](#sec-requires-clause) yields _one assertion per requires clause_[^precision-requires-clause]
+* Every call to a function or method with a [`requires` clause](#sec-requires-clause) yields _one assertion per requires clause_[^precision-requires-clause]
   (special cases such as sequence indexing come with a special require clause that the index is within bounds).
 * Assignments `o.f := E;` yield an _assertion_ that `o.f` is allowed by the enclosing [`modifies` clause](#sec-loop-framing).
 * [Assign-such-that operators](#sec-update-and-call-statement) `x :| P(x)` yield an _assertion_ that `exists x :: P(x)`.
@@ -356,7 +356,7 @@ The fundamental unit of verification in Dafny is an _assertion batch_, which con
 
 ### 24.8.3. Controlling assertion batches {#sec-assertion-batches-control}
 
-Here is how you can control how Dafny partition assertions into batches.
+Here is how you can control how Dafny partitions assertions into batches.
 
 * [`{:focus}`](#sec-focus) on an assert generates a separate assertion batch for the assertions of the enclosing block.
 * [`{:split_here}`](#sec-split_here) on an assert generates a separate assertion batch for assertions after this point.
