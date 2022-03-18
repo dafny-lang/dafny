@@ -53,6 +53,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         if (node.Range.Contains(position)) {
           var assertionBatchCount = node.AssertionBatchCount;
           var assertionBatchIndex = -1;
+          var information = "";
           foreach (var assertionBatch in node.AssertionBatches) {
             assertionBatchIndex += 1;
             if (!assertionBatch.Range.Contains(position)) {
@@ -61,7 +62,6 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
             var assertionIndex = 0;
             var assertions = assertionBatch.Children.OfType<AssertionNodeDiagnostic>().ToList();
-            var information = "";
             foreach (var assertionNode in assertions) {
               if (assertionNode.Range.Contains(position) ||
                   assertionNode.ImmediatelyRelatedRanges.Any(range => range.Contains(position))) {
@@ -121,15 +121,15 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
               assertionIndex++;
             }
+          }
 
-            if (information != "") {
-              return CreateMarkdownHover(information);
-            }
+          if (information != "") {
+            return CreateMarkdownHover(information);
           }
           // Ok no assertion here. Maybe a method?
           if (node.Position.Line == position.Line &&
               node.Filename == document.Uri.GetFileSystemPath()) {
-            var information = "**" + node.DisplayName + "** metrics:\n\n";
+            information = "**" + node.DisplayName + "** metrics:\n\n";
             var assertionBatch = AddAssertionBatchDocumentation("assertion batch");
             var firstAssert = node.LongestAssertionBatch?.Children[0];
             var lineFirstAssert = firstAssert == null ? "" : " at line " + (firstAssert.Position.Line + 1);
