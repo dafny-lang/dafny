@@ -32,8 +32,9 @@ namespace DafnyTestGeneration {
       var oldPrintFile = DafnyOptions.O.PrintFile;
       DafnyOptions.O.PrintInstrumented = true;
       DafnyOptions.O.PrintFile = "-";
-      var textRepresentation = Utils.CaptureConsoleOutput(
-        () => program.Emit(new TokenTextWriter(Console.Out, DafnyOptions.O)));
+      var output = new StringWriter();
+      program.Emit(new TokenTextWriter(output, DafnyOptions.O));
+      var textRepresentation = output.ToString();
       Microsoft.Boogie.Parser.Parse(textRepresentation, "", out var copy);
       DafnyOptions.O.PrintInstrumented = oldPrintInstrumented;
       DafnyOptions.O.PrintFile = oldPrintFile;
