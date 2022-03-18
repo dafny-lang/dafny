@@ -662,7 +662,7 @@ namespace Microsoft.Dafny {
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
         var lhss = s.Locals.ConvertAll(c => new LocalVariable(Tok(c.Tok), Tok(c.EndTok), c.Name, CloneType(c.OptionalType), c.IsGhost));
-        r = new VarDeclStmt(Tok(s.Tok), Tok(s.EndTok), lhss, (ConcreteUpdateStatement)CloneStmt(s.Update), s.IsDeclaredGhost);
+        r = new VarDeclStmt(Tok(s.Tok), Tok(s.EndTok), lhss, (ConcreteUpdateStatement)CloneStmt(s.Update));
 
       } else if (stmt is VarDeclPattern) {
         var s = (VarDeclPattern)stmt;

@@ -13113,7 +13113,7 @@ namespace Microsoft.Dafny {
       var lhss = new List<LocalVariable>() { locvar };
       var rhss = new List<AssignmentRhs>() { new ExprRhs(ex) };
       var up = new UpdateStmt(s.Tok, s.Tok, idlist, rhss);
-      s.ResolvedStatements.Add(new VarDeclStmt(s.Tok, s.Tok, lhss, up, s.IsGhost));
+      s.ResolvedStatements.Add(new VarDeclStmt(s.Tok, s.Tok, lhss, up));
       return id;
     }
 
@@ -13272,7 +13272,7 @@ namespace Microsoft.Dafny {
       var temp = FreshTempVarName("valueOrError", codeContext);
       var lhss = new List<LocalVariable>() { new LocalVariable(s.Tok, s.Tok, temp, new InferredTypeProxy(), false) };
       // "var temp ;"
-      s.ResolvedStatements.Add(new VarDeclStmt(s.Tok, s.Tok, lhss, null, s.IsGhost));
+      s.ResolvedStatements.Add(new VarDeclStmt(s.Tok, s.Tok, lhss, null));
       var lhss2 = new List<Expression>() { new IdentifierExpr(s.Tok, temp) };
       for (int k = (expectExtract ? 1 : 0); k < s.Lhss.Count; ++k) {
         lhss2.Add(s.Lhss[k]);
@@ -15258,7 +15258,7 @@ namespace Microsoft.Dafny {
         // Discard old type inteference if this type cannot be tested at run-time.
         foreach (BoundVar v in e.BoundVars) {
           if (v.HasSecondaryType()) {
-            v.ReplaceType(); // Reinstate the runtime testable type since verification uses bounded variable
+            v.SwapSecondaryType(); // Reinstate the runtime testable type since verification uses bounded variable
           }
         }
 
@@ -15292,7 +15292,7 @@ namespace Microsoft.Dafny {
         // Discard old type inteference if this type cannot be tested at run-time.
         foreach (BoundVar v in e.BoundVars) {
           if (v.HasSecondaryType()) {
-            v.ReplaceType(); // Reinstate the runtime testable type since verification uses bounded variable
+            v.SwapSecondaryType(); // Reinstate the runtime testable type since verification uses bounded variable
           }
         }
 
@@ -15330,7 +15330,7 @@ namespace Microsoft.Dafny {
         // Discard old type inteference if this type cannot be tested at run-time.
         foreach (BoundVar v in e.BoundVars) {
           if (v.HasSecondaryType()) {
-            v.ReplaceType(); // Reinstate the runtime testable type since verification uses bounded variable
+            v.SwapSecondaryType(); // Reinstate the runtime testable type since verification uses bounded variable
           }
         }
 
@@ -15412,7 +15412,7 @@ namespace Microsoft.Dafny {
       // For the term only, we can assume the inferred type which has to be proved later
       foreach (BoundVar v in e.AllBoundVars) {
         if (v.HasSecondaryType()) {
-          v.ReplaceType(); // Reinstate the original type set by the user
+          v.SwapSecondaryType(); // Reinstate the original type set by the user
         }
 
         ScopePushAndReport(scope, v, "bound-variable");
@@ -15441,7 +15441,7 @@ namespace Microsoft.Dafny {
             );
           }
 
-          v.ReplaceType(collectionVarType);
+          v.SaveTypeAsSecondaryAndSetType(collectionVarType);
           ResolveType(v.tok, collectionVarType, opts.codeContext, resolveTypeOption, typeArgs);
         }
 
@@ -16824,7 +16824,10 @@ namespace Microsoft.Dafny {
           }
           // resolve the arguments, even in the presence of the errors above
           foreach (var binding in e.Bindings.ArgumentBindings) {
-            ResolveExpression(binding.Actual, opts);
+            var bindingOpts = /*!opts.isSpecification && binding.IsGhost
+              ? new ResolveOpts(opts.codeContext, opts.twoState, true, opts.isReveal,
+                opts.isPostCondition, opts.InsideOld) :*/ opts;
+            ResolveExpression(binding.Actual, bindingOpts);
           }
         } else {
           var mse = e.Lhs is NameSegment || e.Lhs is ExprDotName ? e.Lhs.Resolved as MemberSelectExpr : null;
@@ -16940,6 +16943,7 @@ namespace Microsoft.Dafny {
       var bindingIndex = 0;
       foreach (var binding in bindings.ArgumentBindings) {
         var arg = binding.Actual;
+        var isGhostBinding = false;
         // insert the actual into "namesToActuals" under an appropriate name, unless there is an error
         if (binding.FormalParameterName != null) {
           var pname = binding.FormalParameterName.val;
@@ -16949,6 +16953,7 @@ namespace Microsoft.Dafny {
           } else if (b == null) {
             // all is good
             namesToActuals[pname] = binding;
+            isGhostBinding = formals.Any(formal => formal.Name == pname && formal.IsGhost);
           } else if (b.FormalParameterName == null) {
             reporter.Error(MessageSource.Resolver, binding.FormalParameterName, $"the parameter named '{pname}' is already given positionally");
           } else {
@@ -16960,6 +16965,7 @@ namespace Microsoft.Dafny {
           // use the name of formal corresponding to this positional argument, unless the parameter is named-only
           var formal = formals[bindingIndex];
           var pname = formal.Name;
+          isGhostBinding = formal.IsGhost;
           if (formal.IsNameOnly) {
             reporter.Error(MessageSource.Resolver, arg.tok,
               $"nameonly parameter '{pname}' must be passed using a name binding; it cannot be passed positionally");
@@ -16980,7 +16986,10 @@ namespace Microsoft.Dafny {
         }
 
         // resolve argument
-        ResolveExpression(arg, opts);
+        var bindingOpts = !opts.isSpecification && (isGhostBinding || binding.IsGhost)
+          ? new ResolveOpts(opts.codeContext, opts.twoState, true, opts.isReveal,
+            opts.isPostCondition, opts.InsideOld) : opts;
+        ResolveExpression(arg, bindingOpts);
         bindingIndex++;
       }
 

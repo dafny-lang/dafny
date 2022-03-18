@@ -6213,16 +6213,20 @@ namespace Microsoft.Dafny {
     // To use only in special cases where the type is not the same for the range in comprehensions
     // Overally, the typeInRange is the type of the bound variable in the range expression.
 
-    public void ReplaceType(Type secondaryType = null) {
-      Contract.Assert(secondaryType != null || this.SecondaryType != null);
-      //Contract.Assert(adjustedType.IsRuntimeTestable());
-      if (secondaryType == null && this.SecondaryType != null) {
-        var tmp = this.type;
-        this.type = this.SecondaryType;
-        this.SecondaryType = tmp;
-      } else if (secondaryType != null) {
-        this.SecondaryType = this.type;
-        this.type = secondaryType;
+    public void SaveTypeAsSecondaryAndSetType(Type secondaryType) {
+      Contract.Assert(secondaryType != null);
+      SecondaryType = type;
+      type = secondaryType;
+    }
+    public void SwapSecondaryType() {
+      Contract.Assert(SecondaryType != null);
+      (type, SecondaryType) = (SecondaryType, type);
+    }
+
+    public void AcceptSecondaryTypeIfAny() {
+      if (SecondaryType != null) {
+        type = SecondaryType;
+        SecondaryType = null;
       }
     }
 
@@ -7577,7 +7581,6 @@ namespace Microsoft.Dafny {
   public class VarDeclStmt : Statement {
     public readonly List<LocalVariable> Locals;
     public readonly ConcreteUpdateStatement Update;
-    public readonly bool IsDeclaredGhost;
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -7585,7 +7588,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Locals.Count != 0);
     }
 
-    public VarDeclStmt(IToken tok, IToken endTok, List<LocalVariable> locals, ConcreteUpdateStatement update, bool isDeclaredGhost)
+    public VarDeclStmt(IToken tok, IToken endTok, List<LocalVariable> locals, ConcreteUpdateStatement update)
       : base(tok, endTok) {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
@@ -7594,7 +7597,6 @@ namespace Microsoft.Dafny {
 
       Locals = locals;
       Update = update;
-      IsDeclaredGhost = isDeclaredGhost;
     }
 
     public override IEnumerable<Statement> SubStatements {
@@ -11452,12 +11454,10 @@ namespace Microsoft.Dafny {
     public void SetRangeIsGhost() {
       if (RangeIfGhost != null) {
         Range = RangeIfGhost;
-        foreach (var boundVar in BoundVars) {
-          if (boundVar.HasSecondaryType()) {
-            boundVar.ReplaceType();
-          }
-        }
         RangeIfGhost = null;
+      }
+      foreach (var boundVar in BoundVars) {
+        boundVar.AcceptSecondaryTypeIfAny();
       }
     }
 

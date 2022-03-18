@@ -18,6 +18,7 @@ method Main() {
   var y := set c: EvenCell | c in x;
   var z: map<EvenCell, nat> := map c: EvenCell | c in x :: doubleEvenCell(c);
   var b := forall c :: c in y ==> doubleEvenCell(c) > 0;
+  ghost var c := forall c: EvenCell :: c in y ==> doubleEvenCell(c) > 0; // Should not raise an error
   assert b;
   print b;
 }

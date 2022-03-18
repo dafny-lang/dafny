@@ -764,7 +764,7 @@ namespace Microsoft.Dafny {
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
         var lhss = CreateLocalVarSubstitutions(s.Locals, false);
-        var rr = new VarDeclStmt(s.Tok, s.EndTok, lhss, (ConcreteUpdateStatement)SubstStmt(s.Update), s.IsDeclaredGhost);
+        var rr = new VarDeclStmt(s.Tok, s.EndTok, lhss, (ConcreteUpdateStatement)SubstStmt(s.Update));
         r = rr;
       } else if (stmt is RevealStmt) {
         var s = (RevealStmt)stmt;
