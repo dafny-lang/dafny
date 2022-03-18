@@ -145,7 +145,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         this.progressReporter = progressReporter;
       }
 
-      public void AdvisoryWriteLine(TextWriter output, string format, params object[] args) {
+      public void AdvisoryWriteLine(TextWriter writer, string format, params object[] args) {
       }
 
       public ExecutionEngineOptions? Options { get; set; }

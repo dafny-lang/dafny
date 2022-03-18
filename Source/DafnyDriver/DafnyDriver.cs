@@ -57,7 +57,6 @@ namespace Microsoft.Dafny {
       ErrorReporter reporter = new ConsoleErrorReporter();
 
       var dafnyOptions = new DafnyOptions();
-
       CommandLineArgumentsResult cliArgumentsResult = ProcessCommandLineArguments(dafnyOptions, args, out var dafnyFiles, out var otherFiles);
       var driver = new DafnyDriver(dafnyOptions);
       DafnyOptions.Install(dafnyOptions);
@@ -124,7 +123,7 @@ namespace Microsoft.Dafny {
 
       if (options.UseStdin) {
         dafnyFiles.Add(new DafnyFile("<stdin>", true));
-      } else if (options.Files.Count == 0) {
+      } else if (DafnyOptions.O.Files.Count == 0) {
         options.Printer.ErrorWriteLine(Console.Out, "*** Error: No input files were specified.");
         return CommandLineArgumentsResult.PREPROCESSING_ERROR;
       }
@@ -452,7 +451,6 @@ namespace Microsoft.Dafny {
       }
       return compiled;
     }
-
 
     #region Compilation
 
