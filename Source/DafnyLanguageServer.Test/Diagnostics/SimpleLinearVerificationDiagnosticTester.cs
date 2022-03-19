@@ -54,4 +54,17 @@ public class SimpleLinearVerificationDiagnosticTester : LinearVerificationDiagno
 : s  S  | :type IssueId = i : int | isIssueIdValid(i)
 : s  S  | :  witness 101 //Next1:   witness 99 //Next2:   witness 101 ");
   }
+
+  [TestMethod]
+  public async Task EnsureItWorksForPostconditionsRelatedOutside() {
+    await VerifyTrace(@"
+predicate F(i: int) {
+  false // Should not be highlighted in gutter.
+}
+
+method H()
+  ensures F(1)
+{
+}");
+  }
 }
