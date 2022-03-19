@@ -5,10 +5,8 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Text;
 using System.Diagnostics.Contracts;
 using System.IO;
-using System.Reflection;
 using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 using Microsoft.Dafny.Compilers;
@@ -24,7 +22,7 @@ namespace Microsoft.Dafny {
     }
 
     public DafnyOptions()
-      : base("Dafny", "Dafny program verifier") {
+      : base("Dafny", "Dafny program verifier", new DafnyConsolePrinter()) {
       Prune = true;
       NormalizeNames = true;
       EmitDebugInformation = false;
@@ -598,8 +596,10 @@ namespace Microsoft.Dafny {
     }
 
     public override string AttributeHelp =>
-      @"Dafny: The following attributes are supported by this version.
-
+      @"Dafny: The documentation about attributes is best viewed here:
+      https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-attributes
+      
+     The following attributes are supported by this version.
     {:extern}
     {:extern <s1:string>}
     {:extern <s1:string>, <s2:string>}

@@ -86,7 +86,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         // The printer is responsible for two things: It logs boogie errors and captures the counter example model.
         var errorReporter = (DiagnosticErrorReporter)program.reporter;
         var printer = new ModelCapturingOutputPrinter(logger, errorReporter, progressReporter);
-        ExecutionEngine.printer = printer;
+        DafnyOptions.O.Printer = printer;
         // Do not set these settings within the object's construction. It will break some tests within
         // VerificationNotificationTest and DiagnosticsTest that rely on updating these settings.
         DafnyOptions.O.TimeLimit = options.TimeLimit;
@@ -121,7 +121,9 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       using (cancellationToken.Register(() => CancelVerification(uniqueRequestId))) {
         try {
           var statistics = new PipelineStatistics();
-          var outcome = engine.InferAndVerify(program, statistics, programId, null, uniqueRequestId);
+#pragma warning disable VSTHRD002
+          var outcome = engine.InferAndVerify(Console.Out, program, statistics, programId, null, uniqueRequestId).Result;
+#pragma warning restore VSTHRD002
           return Main.IsBoogieVerified(outcome, statistics);
         } catch (Exception e) when (e is not OperationCanceledException) {
           if (!cancellationToken.IsCancellationRequested) {
@@ -155,8 +157,10 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         this.progressReporter = progressReporter;
       }
 
-      public void AdvisoryWriteLine(string format, params object[] args) {
+      public void AdvisoryWriteLine(TextWriter writer, string format, params object[] args) {
       }
+
+      public ExecutionEngineOptions? Options { get; set; }
 
       public void ErrorWriteLine(TextWriter tw, string s) {
         logger.LogError(s);
@@ -207,7 +211,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         }
       }
 
-      public void WriteTrailer(PipelineStatistics stats) {
+      public void WriteTrailer(TextWriter writer, PipelineStatistics stats) {
       }
     }
   }
