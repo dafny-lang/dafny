@@ -277,7 +277,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         SetAllUnvisitedMethodsAsVerified(document);
       }
 
-      notificationPublisher.SendStatusNotification(document.Text, compilationStatusAfterVerification);
+      notificationPublisher.SendStatusNotification(document.Text, compilationStatusAfterVerification, cancellationToken.IsCancellationRequested ? "(cancelled)" : null);
       logger.LogDebug($"Finished verification with {document.Errors.ErrorCount} errors.");
       var newDocument = document with {
         OldVerificationDiagnostics = new List<Diagnostic>(),
