@@ -360,7 +360,7 @@ They are translated into Boogie triggers.
 The `{:typeQuantifier}` attribute must be used on a quantifier if it
 quantifies over types.
 
-### 22.1.21. synthesize
+### 22.1.21. synthesize {#sec-synthesize-attr}
 
 The `{:synthesize}` attribute must be used on methods that have no body and 
 return one or more fresh objects. During compilation, if the `/synthesize` 

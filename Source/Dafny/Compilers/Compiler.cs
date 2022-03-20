@@ -1276,10 +1276,6 @@ namespace Microsoft.Dafny {
         return createBody ? block : null;
       }
 
-      public ConcreteSyntaxTree CreateFreshMethod(Method m) {
-        throw new NotImplementedException();
-      }
-
       public ConcreteSyntaxTree SynthesizeMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
         throw new NotImplementedException();
       }
@@ -1801,8 +1797,8 @@ namespace Microsoft.Dafny {
               classWriter.SynthesizeMethod(m, CombineAllTypeArguments(m), true, true, false);
             } else {
               Error(m.tok, "Method {0} is annotated with :synthesize but " +
-                           "does not have the correct specification or has a " +
-                           "body",
+                           "is not static, has a body, or does not return " +
+                           "anything",
                 errorWr, m.FullName);
             }
           } else if (m.Body == null && !(c is TraitDecl && !m.IsStatic) &&

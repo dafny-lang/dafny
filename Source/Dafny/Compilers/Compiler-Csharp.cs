@@ -1658,9 +1658,15 @@ namespace Microsoft.Dafny {
       } else {
         string ending = "";
         if (isPublic) {
-          cw.InstanceMemberWriter.Write($"{publik} {virtuall} {typeName} {name} {{get; set;}}");
+          if (isConst) {
+            cw.InstanceMemberWriter.Write(
+              $"{publik}{konst} {virtuall} {typeName} {name} {{get;}}");
+          } else {
+            cw.InstanceMemberWriter.Write(
+              $"{publik} {virtuall} {typeName} {name} {{get; set;}}");
+          }
         } else {
-          cw.InstanceMemberWriter.WriteLine($"{publik} {typeName} {name}");
+          cw.InstanceMemberWriter.WriteLine($"{publik}{konst} {typeName} {name}");
           ending = ";";
         }
         if (cw.CtorBodyWriter == null) {
