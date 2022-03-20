@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
 using IToken = Microsoft.Boogie.IToken;
 
@@ -2058,5 +2059,3 @@ namespace Microsoft.Dafny {
     }
   }
 }
-
-

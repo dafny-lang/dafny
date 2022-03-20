@@ -1654,19 +1654,11 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
         if (!omitHeapArgument && (AlwaysUseHeap || e.Function.ReadsHeap)) {
           Contract.Assert(HeapExpr != null);
           args.Add(HeapExpr);
-          // if the function doesn't use heaps, but always use heap as an argument
-          // we want to quantify over the heap so that heap in the trigger can match over
-          // heap modifying operations. (see Dafny4/bug144.dfy)
-          bool useHeap = e.Function.ReadsHeap;
-          if (!useHeap) {
-            foreach (var arg in e.Function.Formals) {
-              if (arg.Type.IsRefType) {
-                useHeap = true;
-                break;
-              }
-            }
-          }
-          if (!useHeap) {
+          // If the function doesn't use the heap, but global settings say to use it,
+          // then we want to quantify over the heap so that heap in the trigger can match over
+          // heap modifying operations. (see Test/dafny4/Bug144.dfy)
+          bool usesHeap = e.Function.ReadsHeap || e.Function.Formals.Any(f => f.Type.IsRefType);
+          if (!usesHeap) {
             Statistics_HeapAsQuantifierCount++;
           }
         }

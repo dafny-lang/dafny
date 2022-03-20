@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis.CSharp;
 
-namespace Microsoft.Dafny; 
+namespace Microsoft.Dafny.Compilers; 
 
 /// <summary>
 /// Below is the full grammar of ensures clauses that can specify
@@ -68,7 +68,7 @@ public class CsharpSynthesizer {
   /// }
   /// </summary>
   public ConcreteSyntaxTree SynthesizeMethod(Method method,
-    List<Compiler.TypeArgumentInstantiation> typeArgs, bool createBody,
+    List<SinglePassCompiler.TypeArgumentInstantiation> typeArgs, bool createBody,
     ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
 
     lastSynthesizedMethod = method;
@@ -78,7 +78,7 @@ public class CsharpSynthesizer {
                          compiler.NeedsCustomReceiver(method);
     var keywords = CsharpCompiler.Keywords(true, true);
     var returnType = compiler.GetTargetReturnTypeReplacement(method, wr);
-    var typeParameters = compiler.TypeParameters(Compiler.TypeArgumentInstantiation.
+    var typeParameters = compiler.TypeParameters(SinglePassCompiler.TypeArgumentInstantiation.
       ToFormals(compiler.ForTypeParameters(typeArgs, method, lookasideBody)));
     var parameters = compiler
       .GetMethodParameters(method, typeArgs, lookasideBody, customReceiver, returnType);
@@ -95,7 +95,7 @@ public class CsharpSynthesizer {
         $"(^|[^a-zA-Z0-9_]){obj.CompileName}([^a-zA-Z0-9_]|$)",
         "$1" + returnName + "$2");
     }
-    wr.FormatLine($"{keywords}{returnType} {CsharpCompiler.PublicIdProtect(method.CompileName)}{typeParameters}({parameterString}) {{");
+    wr.FormatLine($"{keywords}{returnType} {compiler.PublicIdProtect(method.CompileName)}{typeParameters}({parameterString}) {{");
 
     // Initialize the mocks
     objectToMockName = method.Outs.ToDictionary(o => (IVariable)o,

@@ -1,0 +1,50 @@
+git-issue-977.dfy(209,21): Info: _k: ORDINAL
+git-issue-977.dfy(214,21): Info: _k: ORDINAL
+git-issue-977.dfy(232,21): Info: _k: ORDINAL
+git-issue-977.dfy(237,36): Info: _k: ORDINAL
+git-issue-977.dfy(239,15): Info: Pos#[_k]
+git-issue-977.dfy(237,36): Info: Theorem2# with focal predicate Pos
+git-issue-977.dfy(241,4): Info: Theorem2#[_k - 1]
+git-issue-977.dfy(229,13): Info: co-recursive call
+git-issue-977.dfy(234,18): Info: Pos#[_k - 1]
+git-issue-977.dfy(95,19): Info: _k: ORDINAL
+git-issue-977.dfy(113,19): Info: _k: nat
+git-issue-977.dfy(84,10): Info: tail recursive
+git-issue-977.dfy(95,19): Info: tail recursive
+git-issue-977.dfy(113,19): Info: tail recursive
+git-issue-977.dfy(146,10): Info: tail recursive
+git-issue-977.dfy(97,21): Info: GreatestPredOrd#[_k - 1]
+git-issue-977.dfy(115,21): Info: GreatestPredNat#[_k - 1]
+git-issue-977.dfy(217,13): Info: Selected triggers: {AAA#[k](t)}
+git-issue-977.dfy(71,4): Info: Selected triggers:
+   {RicochetOrd(m, num)}, {GreatestManualOrd(m, num)}, {GreatestPredOrd#[m](num)}, {m < k}
+git-issue-977.dfy(138,4): Info: Selected triggers:
+   {GreatestManualOrd(m, num)}, {m < k}
+git-issue-977.dfy(227,11): Info: decreases 1, n
+git-issue-977.dfy(237,36): Info: Theorem2# decreases _k, n
+git-issue-977.dfy(50,9): Info: decreases n
+git-issue-977.dfy(61,6): Info: decreases k, num
+git-issue-977.dfy(84,10): Info: decreases num
+git-issue-977.dfy(129,10): Info: decreases k, num
+git-issue-977.dfy(146,10): Info: decreases k, num
+git-issue-977.dfy(54,6): Info: {:induction num}
+git-issue-977.dfy(61,6): Info: {:induction k, num}
+git-issue-977.dfy(77,6): Info: {:induction k, num}
+git-issue-977.dfy(71,4): Info: ensures GreatestPredOrd#[m](num)
+git-issue-977.dfy(71,4): Info: ensures GreatestManualOrd(m, num)
+git-issue-977.dfy(71,4): Info: ensures RicochetOrd(m, num)
+git-issue-977.dfy(220,11): Info: Some instances of this call are not inlined.
+git-issue-977.dfy(110,9): Info: Some instances of this call are not inlined.
+git-issue-977.dfy(143,9): Info: Some instances of this call are not inlined.
+git-issue-977.dfy(162,2): Info: Some instances of this call are not inlined.
+git-issue-977.dfy(39,11): Error: assertion might not hold
+git-issue-977.dfy(14,20): Related location
+git-issue-977.dfy(9,7): Related location
+git-issue-977.dfy(41,11): Error: assertion might not hold
+git-issue-977.dfy(22,4): Related location
+git-issue-977.dfy(9,7): Related location
+git-issue-977.dfy(43,11): Error: assertion might not hold
+git-issue-977.dfy(30,20): Related location
+git-issue-977.dfy(9,7): Related location
+
+Dafny program verifier finished with 28 verified, 3 errors

@@ -17,13 +17,18 @@ using System.Threading;
 using System.Threading.Tasks;
 using Bpl = Microsoft.Boogie;
 
-namespace Microsoft.Dafny {
-  public class JavaScriptCompiler : Compiler {
-    public JavaScriptCompiler(ErrorReporter reporter)
-    : base(reporter) {
-    }
+namespace Microsoft.Dafny.Compilers {
+  public class JavaScriptCompiler : SinglePassCompiler {
+    public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".js" };
 
     public override string TargetLanguage => "JavaScript";
+    public override string TargetExtension => "js";
+
+    public override bool SupportsInMemoryCompilation => true;
+    public override bool TextualTargetIsExecutable => true;
+
+    public override IReadOnlySet<string> SupportedNativeTypes =>
+      new HashSet<string>(new List<string> { "number" });
 
     const string DafnySetClass = "_dafny.Set";
     const string DafnyMultiSetClass = "_dafny.MultiSet";
@@ -1417,7 +1422,7 @@ namespace Microsoft.Dafny {
     protected override string IdProtect(string name) {
       return PublicIdProtect(name);
     }
-    public static string PublicIdProtect(string name) {
+    public override string PublicIdProtect(string name) {
       Contract.Requires(name != null);
       switch (name) {
         case "arguments":
@@ -2367,8 +2372,6 @@ namespace Microsoft.Dafny {
     }
 
     // ----- Target compilation and execution -------------------------------------------------------------
-
-    public override bool TextualTargetIsExecutable => true;
 
     public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
       bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
