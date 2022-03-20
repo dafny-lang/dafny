@@ -72,7 +72,7 @@ public class CsharpSynthesizer {
     ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
 
     lastSynthesizedMethod = method;
-    // The following few lines are identical to those in CreateMethod above:
+    // The following few lines are identical to those in Compiler.CreateMethod:
     var customReceiver = createBody &&
                          !forBodyInheritance &&
                          compiler.NeedsCustomReceiver(method);
