@@ -154,7 +154,7 @@ public class CsharpSynthesizer {
       case ForallExpr forallExpr:
         SynthesizeExpression(wr, forallExpr);
         break;
-      case FreshExpr freshExpr:
+      case FreshExpr:
         break;
       default:
         throw new NotImplementedException();
