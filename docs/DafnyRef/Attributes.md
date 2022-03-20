@@ -401,8 +401,8 @@ This is mostly helpful for debugging which assertion is taking the most time to 
 ### 22.2.20. synthesize {#sec-synthesize-attr}
 
 The `{:synthesize}` attribute must be used on methods that have no body and
-return one or more fresh objects. During compilation, if the `/synthesize`
-command-line argument is used, the postconditions associated with such a
+return one or more fresh objects. During compilation, 
+the postconditions associated with such a
 method are translated to a series of API calls to the target languages's
 mocking framework. The object returned, therefore, behaves exactly as the
 postconditions specify. If there is a possibility that this behavior violates

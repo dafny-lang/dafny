@@ -29,6 +29,9 @@ namespace Microsoft.Dafny.Compilers {
     public override string TargetLanguage => "C#";
     public override string TargetExtension => "cs";
 
+    // True if the most recently visited AST has a method annotated with {:synthesize}:
+    protected bool Synthesize = false;
+
     public override string GetCompileName(bool isDefaultModule, string moduleName, string compileName) {
       return isDefaultModule ? PublicIdProtect(compileName) :
         base.GetCompileName(isDefaultModule, moduleName, compileName);
@@ -80,11 +83,28 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine();
       wr.WriteLine("using System;");
       wr.WriteLine("using System.Numerics;");
-      if (DafnyOptions.O.Synthesize) {
+      Synthesize = ProgramHasMethodsWithAttr(program, "synthesize");
+      if (Synthesize) {
         CsharpSynthesizer.EmitImports(wr);
       }
       EmitDafnySourceAttribute(program, wr);
       ReadRuntimeSystem("DafnyRuntime.cs", wr);
+    }
+
+    /// <summary>
+    /// Return true if the AST contains a method annotated with an attribute
+    /// </summary>
+    private static bool ProgramHasMethodsWithAttr(Program p, String attr) {
+      foreach (var module in p.Modules()) {
+        foreach (ICallable callable in ModuleDefinition.AllCallables(
+                   module.TopLevelDecls)) {
+          if ((callable is Method method) &&
+              (Attributes.Contains(method.Attributes, attr))) {
+            return true;
+          }
+        }
+      }
+      return false;
     }
 
     void EmitDafnySourceAttribute(Program program, ConcreteSyntaxTree wr) {
@@ -103,7 +123,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitBuiltInDecls(BuiltIns builtIns, ConcreteSyntaxTree wr) {
       var dafnyNamespace = CreateModule("Dafny", false, false, null, wr);
       EmitInitNewArrays(builtIns, dafnyNamespace);
-      if (DafnyOptions.O.Synthesize) {
+      if (Synthesize) {
         CsharpSynthesizer.EmitMultiMatcher(dafnyNamespace);
       }
       EmitFuncExtensions(builtIns, wr);
@@ -1179,8 +1199,8 @@ namespace Microsoft.Dafny.Compilers {
       return block;
     }
 
-    internal static string Keywords(bool isPublic = false, bool isStatic = false, bool isExtern = false) {
-      return (isPublic ? "public " : "") + (isStatic ? "static " : "") + (isExtern ? "extern " : "") + (DafnyOptions.O.Synthesize && !isStatic && isPublic ? "virtual " : "");
+    internal string Keywords(bool isPublic = false, bool isStatic = false, bool isExtern = false) {
+      return (isPublic ? "public " : "") + (isStatic ? "static " : "") + (isExtern ? "extern " : "") + (Synthesize && !isStatic && isPublic ? "virtual " : "");
     }
 
     internal ConcreteSyntaxTree GetMethodParameters(Method m, List<TypeArgumentInstantiation> typeArgs, bool lookasideBody, bool customReceiver, string returnType) {
@@ -1654,7 +1674,7 @@ namespace Microsoft.Dafny.Compilers {
     protected void DeclareField(string name, bool isPublic, bool isStatic, bool isConst, string typeName, string rhs, ClassWriter cw) {
       var publik = isPublic ? "public" : "private";
       var konst = isConst ? " readonly" : "";
-      var virtuall = DafnyOptions.O.Synthesize ? " virtual" : "";
+      var virtuall = Synthesize ? " virtual" : "";
       if (isStatic) {
         cw.StaticMemberWriter.Write($"{publik} static{konst} {typeName} {name}");
         if (rhs != null) {

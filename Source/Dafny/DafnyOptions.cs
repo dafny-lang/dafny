@@ -139,7 +139,6 @@ namespace Microsoft.Dafny {
     public List<string> VerificationLoggerConfigs = new();
     // Working around the fact that xmlFilename is private
     public string BoogieXmlFilename = null;
-    public bool Synthesize = false;
 
     public static readonly ReadOnlyCollection<Plugin> DefaultPlugins = new(new[] { Compilers.SinglePassCompiler.Plugin });
     public List<Plugin> Plugins = new(DefaultPlugins);
@@ -548,9 +547,6 @@ namespace Microsoft.Dafny {
           }
           return true;
 
-        case "synthesize":
-          Synthesize = true;
-          return true;
       }
 
       // Unless this is an option for test generation, defer to superclass
@@ -1129,9 +1125,6 @@ namespace Microsoft.Dafny {
         /verificationLogger:trx;LogFileName=<...>.
     The exact mapping of verification concepts to the TRX and CSV formats is
     experimental and subject to change!
-/synthesize 
-    If true, synthesizes bodies of methods annotated with  {{:synthesize}}
-    during compilation (currently only supported for C#)
 {TestGenOptions.Help}
 
 /mimicVerificationOf:<Dafny version>

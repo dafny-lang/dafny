@@ -76,7 +76,7 @@ public class CsharpSynthesizer {
     var customReceiver = createBody &&
                          !forBodyInheritance &&
                          compiler.NeedsCustomReceiver(method);
-    var keywords = CsharpCompiler.Keywords(true, true);
+    var keywords = compiler.Keywords(true, true);
     var returnType = compiler.GetTargetReturnTypeReplacement(method, wr);
     var typeParameters = compiler.TypeParameters(SinglePassCompiler.TypeArgumentInstantiation.
       ToFormals(compiler.ForTypeParameters(typeArgs, method, lookasideBody)));

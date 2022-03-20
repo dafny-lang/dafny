@@ -1790,8 +1790,7 @@ namespace Microsoft.Dafny.Compilers {
           }
           v.Visit(f);
         } else if (member is Method m) {
-          if (Attributes.Contains(m.Attributes, "synthesize") &&
-              DafnyOptions.O.Synthesize) {
+          if (Attributes.Contains(m.Attributes, "synthesize")) {
             if (m.IsStatic && m.Outs.Count > 0 && m.Body == null) {
               classWriter.SynthesizeMethod(m, CombineAllTypeArguments(m), true, true, false);
             } else {
