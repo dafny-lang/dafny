@@ -99,7 +99,7 @@ namespace Microsoft.Dafny.Compilers {
         foreach (ICallable callable in ModuleDefinition.AllCallables(
                    module.TopLevelDecls)) {
           if ((callable is Method method) &&
-              (Attributes.Contains(method.Attributes, attr))) {
+              Attributes.Contains(method.Attributes, attr)) {
             return true;
           }
         }

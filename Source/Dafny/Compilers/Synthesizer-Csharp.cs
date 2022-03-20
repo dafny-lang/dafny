@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis.CSharp;
 
-namespace Microsoft.Dafny.Compilers; 
+namespace Microsoft.Dafny.Compilers;
 
 /// <summary>
 /// Below is the full grammar of ensures clauses that can specify
