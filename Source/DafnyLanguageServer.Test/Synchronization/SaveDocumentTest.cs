@@ -133,8 +133,8 @@ method DoIt() {
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
       var document = await Documents.GetVerifiedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
-      Assert.AreEqual(1, document.Errors.Count());
-      var message = document.Errors.First();
+      Assert.AreEqual(1, document.Diagnostics.Count());
+      var message = document.Diagnostics.First();
       Assert.AreEqual(MessageSource.Verifier.ToString(), message.Source);
     }
   }

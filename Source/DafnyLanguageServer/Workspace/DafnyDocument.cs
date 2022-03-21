@@ -28,7 +28,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     bool LoadCanceled = false
   ) {
 
-    public IEnumerable<Diagnostic> Errors => ParseAndResolutionDiagnostics.Concat(BoogieProgramDiagnostics)
+    public IEnumerable<Diagnostic> Diagnostics => ParseAndResolutionDiagnostics.Concat(BoogieProgramDiagnostics)
       .Concat(ImplementationDiagnostics.Values.SelectMany(x => x));
     public DocumentUri Uri => Text.Uri;
     public int Version => Text.Version!.Value;

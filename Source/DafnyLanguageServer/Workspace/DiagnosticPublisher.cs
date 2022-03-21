@@ -26,11 +26,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private void PublishDocumentDiagnostics(DafnyDocument document) {
-      Console.WriteLine($"Publishing document version {document.Version} with {GetDiagnostics(document).Count()} diagnostics.");
+      Console.WriteLine($"Publishing document version {document.Version} with {document.Diagnostics.Count()} diagnostics.");
       languageServer.TextDocument.PublishDiagnostics(new PublishDiagnosticsParams {
         Uri = document.Uri,
         Version = document.Version,
-        Diagnostics = document.Errors.ToArray(),
+        Diagnostics = document.Diagnostics.ToArray(),
       });
     }
 
