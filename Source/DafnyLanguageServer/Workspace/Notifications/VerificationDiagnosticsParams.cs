@@ -363,7 +363,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     new Range(new Position(0, 0),
       new Position(Lines, 0)));
 
-  public record MethodOrSubsetTypeNodeDiagnostic(
+  public record TopLevelDeclMemberNodeDiagnostic(
     string DisplayName,
     // Used to re-trigger the verification of some diagnostics.
     string Identifier,

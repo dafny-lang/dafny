@@ -49,7 +49,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     }
 
     private Hover? GetDiagnosticsHover(DafnyDocument document, Position position) {
-      foreach (var node in document.VerificationNodeDiagnostic.Children.OfType<MethodOrSubsetTypeNodeDiagnostic>()) {
+      foreach (var node in document.VerificationNodeDiagnostic.Children.OfType<TopLevelDeclMemberNodeDiagnostic>()) {
         if (node.Range.Contains(position)) {
           var assertionBatchCount = node.AssertionBatchCount;
           var assertionBatchIndex = -1;

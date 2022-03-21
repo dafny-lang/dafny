@@ -214,12 +214,23 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         foreach (var topLevelDecl in module.TopLevelDecls) {
           if (topLevelDecl is TopLevelDeclWithMembers topLevelDeclWithMembers) {
             foreach (var member in topLevelDeclWithMembers.Members) {
-              if (member is Method or Function) {
-                if (member.tok.filename != documentFilePath) {
-                  continue;
+              if (member.tok.filename != documentFilePath) {
+                continue;
+              }
+              if (member is Field) {
+                if (member.BodyEndTok.line == 0) {
+                  continue; // Nothing to verify
                 }
+                var diagnosticRange = member.tok.GetLspRange(member.BodyEndTok);
+                var diagnostic = new TopLevelDeclMemberNodeDiagnostic(
+                  member.Name,
+                  member.CompileName,
+                  member.tok.filename,
+                  diagnosticRange);
+                AddAndPossiblyMigrateDiagnostic(diagnostic);
+              } else if (member is Method or Function) {
                 var diagnosticRange = member.tok.GetLspRange(member.BodyEndTok.line == 0 ? member.tok : member.BodyEndTok);
-                var diagnostic = new MethodOrSubsetTypeNodeDiagnostic(
+                var diagnostic = new TopLevelDeclMemberNodeDiagnostic(
                   member.Name,
                   member.CompileName,
                   member.tok.filename,
@@ -227,7 +238,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
                 AddAndPossiblyMigrateDiagnostic(diagnostic);
                 if (member is Function { ByMethodBody: { } } function) {
                   var diagnosticRangeByMethod = function.ByMethodTok.GetLspRange(function.ByMethodBody.EndTok);
-                  var diagnosticByMethod = new MethodOrSubsetTypeNodeDiagnostic(
+                  var diagnosticByMethod = new TopLevelDeclMemberNodeDiagnostic(
                     member.Name + " by method",
                     member.CompileName + "_by_method",
                     member.tok.filename,
@@ -247,7 +258,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             }
             var diagnosticRange = new Range(diagnosticPosition,
                 subsetTypeDecl.Witness.tok.GetLspPosition(true));
-            var diagnostic = new MethodOrSubsetTypeNodeDiagnostic(
+            var diagnostic = new TopLevelDeclMemberNodeDiagnostic(
               subsetTypeDecl.Name,
               subsetTypeDecl.CompileName,
               subsetTypeDecl.tok.filename,
@@ -363,7 +374,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           targetMethodNode?.AddNewChild(newImplementationNode);
         }
 
-        foreach (var methodNode in document.VerificationNodeDiagnostic.Children.OfType<MethodOrSubsetTypeNodeDiagnostic>()) {
+        foreach (var methodNode in document.VerificationNodeDiagnostic.Children.OfType<TopLevelDeclMemberNodeDiagnostic>()) {
           methodNode.SaveNewChildren();
           if (!methodNode.Children.Any()) {
             methodNode.Start();
@@ -614,8 +625,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
 
 
-      private MethodOrSubsetTypeNodeDiagnostic? GetTargetMethodNode(Implementation implementation, out ImplementationNodeDiagnostic? implementationNode, bool nameBased = false) {
-        var targetMethodNode = document.VerificationNodeDiagnostic.Children.OfType<MethodOrSubsetTypeNodeDiagnostic>().FirstOrDefault(
+      private TopLevelDeclMemberNodeDiagnostic? GetTargetMethodNode(Implementation implementation, out ImplementationNodeDiagnostic? implementationNode, bool nameBased = false) {
+        var targetMethodNode = document.VerificationNodeDiagnostic.Children.OfType<TopLevelDeclMemberNodeDiagnostic>().FirstOrDefault(
           node => node?.Position == implementation.tok.GetLspPosition() && node?.Filename == implementation.tok.filename
           , null);
         if (nameBased) {
