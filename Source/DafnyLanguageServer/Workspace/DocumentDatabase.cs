@@ -58,7 +58,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       if (documents.Remove(documentId.Uri, out var databaseEntry)) {
         databaseEntry.CancelPendingUpdates();
         try {
-          await databaseEntry.VerifiedDocument;
+          await databaseEntry.FullyVerifiedDocument;
         } catch (TaskCanceledException) {
         }
         return true;
@@ -73,6 +73,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var databaseEntry = new DocumentEntry(
         document.Version,
         resolvedDocument,
+        verifiedDocument,
         verifiedDocument,
         cancellationSource
       );
@@ -94,7 +95,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 #pragma warning disable VSTHRD003
       var document = await documentTask;
 #pragma warning restore VSTHRD003
-      if (document.LoadCanceled || !verify || document.ParseAndResolutionErrors.Any()) {
+      if (document.LoadCanceled || !verify || document.ParseAndResolutionDiagnostics.Any(d => d.Severity == DiagnosticSeverity.Error)) {
         throw new TaskCanceledException();
       }
       return await documentLoader.VerifyAsync(document, cancellationToken);
@@ -117,12 +118,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       databaseEntry.CancelPendingUpdates();
       var cancellationSource = new CancellationTokenSource();
-      var previousDocumentTask = databaseEntry.VerifiedDocument.IsCompletedSuccessfully ? databaseEntry.VerifiedDocument : databaseEntry.ResolvedDocument;
+      var previousDocumentTask = databaseEntry.MostVerifiedDocument;
       var resolvedDocumentTask = ApplyChangesAsync(previousDocumentTask, documentChange, cancellationSource.Token);
       var verifiedDocument = VerifyAsync(resolvedDocumentTask, VerifyOnChange, cancellationSource.Token);
       var updatedEntry = new DocumentEntry(
         documentChange.TextDocument.Version,
         resolvedDocumentTask,
+        verifiedDocument,
         verifiedDocument,
         cancellationSource
       );
@@ -138,18 +140,18 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       // We do not pass the cancellation token to the text change processor because the text has to be kept in sync with the LSP client.
       var updatedText = textChangeProcessor.ApplyChange(oldDocument.Text, documentChange, CancellationToken.None);
-      var oldVerificationDiagnostics = oldDocument.BoogieProgramErrors;
+      var oldVerificationDiagnostics = oldDocument.BoogieProgramDiagnostics;
       var migratedVerificationDiagnotics =
         relocator.RelocateDiagnostics(oldVerificationDiagnostics, documentChange, CancellationToken.None);
-      var migratedImplementationDiagnotics = oldDocument.ImplementationErrors.ToDictionary(kv => kv.Key, kv =>
+      var migratedImplementationDiagnotics = oldDocument.ImplementationDiagnostics.ToDictionary(kv => kv.Key, kv =>
         relocator.RelocateDiagnostics(kv.Value, documentChange, CancellationToken.None));
       logger.LogDebug($"Migrated {oldVerificationDiagnostics.Count} diagnostics into {migratedVerificationDiagnotics.Count} diagnostics.");
       try {
         var newDocument = await documentLoader.LoadAsync(updatedText, cancellationToken);
         if (newDocument.SymbolTable.Resolved) {
           return newDocument with {
-            BoogieProgramErrors = migratedVerificationDiagnotics,
-            ImplementationErrors = migratedImplementationDiagnotics
+            BoogieProgramDiagnostics = migratedVerificationDiagnotics,
+            ImplementationDiagnostics = migratedImplementationDiagnotics
           };
         }
         // The document loader failed to create a new symbol table. Since we'd still like to provide
@@ -157,8 +159,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         // according to the change.
         return newDocument with {
           SymbolTable = relocator.RelocateSymbols(oldDocument.SymbolTable, documentChange, CancellationToken.None),
-          BoogieProgramErrors = migratedVerificationDiagnotics,
-          ImplementationErrors = migratedImplementationDiagnotics
+          BoogieProgramDiagnostics = migratedVerificationDiagnotics,
+          ImplementationDiagnostics = migratedImplementationDiagnotics
         };
       } catch (OperationCanceledException) {
         // The document load was canceled before it could complete. We migrate the document
@@ -169,8 +171,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           SymbolTable = relocator.RelocateSymbols(oldDocument.SymbolTable, documentChange, CancellationToken.None),
           SerializedCounterExamples = null,
           LoadCanceled = true,
-          BoogieProgramErrors = migratedVerificationDiagnotics,
-          ImplementationErrors = migratedImplementationDiagnotics
+          BoogieProgramDiagnostics = migratedVerificationDiagnotics,
+          ImplementationDiagnostics = migratedImplementationDiagnotics
         };
       }
     }
@@ -188,6 +190,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var updatedEntry = new DocumentEntry(
         databaseEntry.Version,
         databaseEntry.ResolvedDocument,
+        verifiedDocumentTask,
         verifiedDocumentTask,
         cancellationSource
       );
@@ -217,7 +220,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public async Task<DafnyDocument?> GetVerifiedDocumentAsync(TextDocumentIdentifier documentId) {
       if (documents.TryGetValue(documentId.Uri, out var databaseEntry)) {
-        return await databaseEntry.VerifiedDocument;
+        return await databaseEntry.FullyVerifiedDocument;
       }
       return null;
     }
@@ -226,7 +229,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       documents.ToDictionary(k => k.Key, v => (IDocumentEntry)v.Value);
 
     private record DocumentEntry(int? Version, Task<DafnyDocument> ResolvedDocument,
-      Task<DafnyDocument> VerifiedDocument,
+      Task<DafnyDocument> MostVerifiedDocument,
+      Task<DafnyDocument> FullyVerifiedDocument,
       CancellationTokenSource CancellationSource) : IDocumentEntry {
       public void CancelPendingUpdates() {
         CancellationSource.Cancel();

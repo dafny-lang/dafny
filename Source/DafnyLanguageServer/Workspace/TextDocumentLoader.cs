@@ -163,7 +163,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       notificationPublisher.SendStatusNotification(document.Text, compilationStatusAfterVerification);
       logger.LogDebug($"Finished verification with {errorReporter.ErrorCount} errors.");
       return document with {
-        BoogieProgramErrors = errorReporter.GetDiagnostics(document.Uri),
+        BoogieProgramDiagnostics = errorReporter.GetDiagnostics(document.Uri),
         // ImplementationErrors = new(),
         SerializedCounterExamples = verificationResult.SerializedCounterExamples
       };

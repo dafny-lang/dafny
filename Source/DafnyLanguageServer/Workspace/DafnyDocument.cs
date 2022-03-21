@@ -19,17 +19,17 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <param name="LoadCanceled"><c>true</c> if the document load was canceled for this document.</param>
   public record DafnyDocument(
     TextDocumentItem Text,
-    IReadOnlyList<Diagnostic> ParseAndResolutionErrors,
-    IReadOnlyList<Diagnostic> BoogieProgramErrors,
-    Dictionary<Implementation, IReadOnlyList<Diagnostic>> ImplementationErrors,
+    IReadOnlyList<Diagnostic> ParseAndResolutionDiagnostics,
+    IReadOnlyList<Diagnostic> BoogieProgramDiagnostics,
+    Dictionary<Implementation, IReadOnlyList<Diagnostic>> ImplementationDiagnostics,
     IReadOnlyList<Diagnostic> GhostDiagnostics,
     Dafny.Program Program,
     SymbolTable SymbolTable,
     bool LoadCanceled = false
   ) {
 
-    public IEnumerable<Diagnostic> Errors => ParseAndResolutionErrors.Concat(BoogieProgramErrors)
-      .Concat(ImplementationErrors.Values.SelectMany(x => x));
+    public IEnumerable<Diagnostic> Errors => ParseAndResolutionDiagnostics.Concat(BoogieProgramDiagnostics)
+      .Concat(ImplementationDiagnostics.Values.SelectMany(x => x));
     public DocumentUri Uri => Text.Uri;
     public int Version => Text.Version!.Value;
 

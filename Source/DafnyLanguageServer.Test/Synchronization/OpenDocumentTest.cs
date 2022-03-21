@@ -10,6 +10,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.IO;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
+
   [TestClass]
   public class OpenDocumentTest : DafnyLanguageServerTestBase {
     private ILanguageClient client;
@@ -119,7 +120,7 @@ method Recurse(x: int) returns (r: int) {
       var document = await Documents.GetDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
       // Empty files currently yield only a warning.
-      Assert.IsTrue(!document.Errors.Any());
+      Assert.IsTrue(document.Errors.All(d => d.Severity != DiagnosticSeverity.Error));
     }
 
     [TestMethod]
@@ -129,7 +130,7 @@ method Recurse(x: int) returns (r: int) {
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var document = await Documents.GetDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
-      Assert.IsTrue(!document.Errors.Any());
+      Assert.IsTrue(document.Errors.All(d => d.Severity != DiagnosticSeverity.Error));
     }
 
     [TestMethod]

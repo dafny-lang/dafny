@@ -53,7 +53,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
   public async Task AssertNoDiagnosticsAreComing() {
     foreach (var entry in Documents.Documents.Values) {
       try {
-        await entry.VerifiedDocument;
+        await entry.FullyVerifiedDocument;
       } catch (TaskCanceledException) {
 
       }
