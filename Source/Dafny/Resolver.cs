@@ -15241,10 +15241,12 @@ namespace Microsoft.Dafny {
         scope.PopMarker();
         scope.PushMarker();
         ScopePushBoundVarsWithoutAssumptions(e);
-        if (e.RangeIfGhost != null) {
-          ResolveExpression(e.RangeIfGhost, opts);
-          Contract.Assert(e.RangeIfGhost != null);  // follows from postcondition of ResolveExpression
-          ConstrainTypeExprBool(e.RangeIfGhost, "range of quantifier must be of type bool (instead got {0})");
+        if (e.Range != null) {
+          WithoutReporting(() => {
+            ResolveExpression(e.RangeIfGhost, opts);
+            Contract.Assert(e.RangeIfGhost.Type != null); // follows from postcondition of ResolveExpression
+            ConstrainTypeExprBool(e.RangeIfGhost, "range of quantifier must be of type bool (instead got {0})");
+          });
         }
 
         ResolveExpression(e.Term, opts);
@@ -15279,11 +15281,11 @@ namespace Microsoft.Dafny {
         scope.PopMarker();
         scope.PushMarker();
         ScopePushBoundVarsWithoutAssumptions(e);
-        if (e.RangeIfGhost != null) {
+        WithoutReporting(() => {
           ResolveExpression(e.RangeIfGhost, opts);
-          Contract.Assert(e.RangeIfGhost != null);  // follows from postcondition of ResolveExpression
+          Contract.Assert(e.RangeIfGhost.Type != null); // follows from postcondition of ResolveExpression
           ConstrainTypeExprBool(e.RangeIfGhost, "range of set comprehension must be of type bool (instead got {0})");
-        }
+        });
         ResolveExpression(e.Term, opts);
         ResolveAttributes(e, opts);
         Contract.Assert(e.Term.Type != null);  // follows from postcondition of ResolveExpression
@@ -15313,11 +15315,11 @@ namespace Microsoft.Dafny {
         scope.PopMarker();
         scope.PushMarker();
         ScopePushBoundVarsWithoutAssumptions(e);
-        if (e.RangeIfGhost != null) {
+        WithoutReporting(() => {
           ResolveExpression(e.RangeIfGhost, opts);
-          Contract.Assert(e.RangeIfGhost != null);  // follows from postcondition of ResolveExpression
+          Contract.Assert(e.RangeIfGhost.Type != null);  // follows from postcondition of ResolveExpression
           ConstrainTypeExprBool(e.RangeIfGhost, "range of map comprehension must be of type bool (instead got {0})");
-        }
+        });
         if (e.TermLeft != null) {
           ResolveExpression(e.TermLeft, opts);
           Contract.Assert(e.TermLeft.Type != null);  // follows from postcondition of ResolveExpression
@@ -15406,6 +15408,13 @@ namespace Microsoft.Dafny {
         // some resolution error occurred
         expr.Type = new InferredTypeProxy();
       }
+    }
+
+    private void WithoutReporting(System.Action callback) {
+      var savedReporter = reporter;
+      reporter = new ErrorReporterSink(); // Prevent errors from being duplicated
+      callback();
+      reporter = savedReporter;
     }
 
     private void ScopePushBoundVarsWithoutAssumptions(IBoundVarsBearingExpression e) {
