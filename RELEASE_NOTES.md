@@ -2,6 +2,7 @@
 
 - fix: Miscompilation due to incorrect parenthesization in C# output for casts. (#1908)
 - fix: Populate TestResult.ResourceCount in `/verificationLogger:csv` output correctly when verification condition splitting occurs (e.g. when using `/vcsSplitOnEveryAssert`).
+- fix: Fix `(!new)` checks (https://github.com/dafny-lang/dafny/issues/1419)
 
 # 3.5.0
 
