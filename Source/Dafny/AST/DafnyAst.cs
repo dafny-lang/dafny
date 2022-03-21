@@ -1046,20 +1046,6 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public bool IsAllocFree {
-      get {
-        if (IsRefType) {
-          return false;
-        } else if (IsTypeParameter) {
-          return AsTypeParameter.Characteristics.ContainsNoReferenceTypes;
-        } else if (IsOpaqueType) {
-          return AsOpaqueType.Characteristics.ContainsNoReferenceTypes;
-        } else {
-          return TypeArgs.All(ta => ta.IsAllocFree);
-        }
-      }
-    }
-
     public CollectionType AsCollectionType { get { return NormalizeExpand() as CollectionType; } }
     public SetType AsSetType { get { return NormalizeExpand() as SetType; } }
     public MultiSetType AsMultiSetType { get { return NormalizeExpand() as MultiSetType; } }
@@ -11579,10 +11565,10 @@ namespace Microsoft.Dafny {
       public override int Preference() => 2;
       public override PoolVirtues Virtues {
         get {
-          if (LowerBound.Type.IsAllocFree) {
-            return PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
-          } else {
+          if (LowerBound.Type.MayInvolveReferences) {
             return PoolVirtues.None;
+          } else {
+            return PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
           }
         }
       }

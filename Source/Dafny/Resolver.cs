@@ -3317,7 +3317,7 @@ namespace Microsoft.Dafny {
                 reporter.Error(MessageSource.Resolver, syn.tok,
                   "type '{0}' declared as auto-initialization type, but the RHS type ({1}) does not support auto-initialization", syn.Name, syn.Rhs);
               }
-              if (syn.Characteristics.ContainsNoReferenceTypes && !syn.Rhs.IsAllocFree) {
+              if (syn.Characteristics.ContainsNoReferenceTypes && syn.Rhs.MayInvolveReferences) {
                 reporter.Error(MessageSource.Resolver, syn.tok,
                   "type '{0}' declared as containing no reference types, but the RHS type ({1}) may contain reference types", syn.Name, syn.Rhs);
               }
@@ -8345,7 +8345,7 @@ namespace Microsoft.Dafny {
             string.Format(" (perhaps try declaring {2} '{0}' on line {1} as '{0}(00)', which says it can only be instantiated with a nonempty type)", tp.Name, tp.tok.line, tp.WhatKind);
           return false;
         }
-        if (formal.ContainsNoReferenceTypes && !actual.IsAllocFree) {
+        if (formal.ContainsNoReferenceTypes && actual.MayInvolveReferences) {
           whatIsWrong = "no references";
           hint = tp == null ? "" :
             string.Format(" (perhaps try declaring {2} '{0}' on line {1} as '{0}(!new)', which says it can only be instantiated with a type that contains no references)", tp.Name, tp.tok.line, tp.WhatKind);
@@ -17308,7 +17308,7 @@ namespace Microsoft.Dafny {
         bounds.Add(new ComprehensionExpr.DatatypeBoundedPool(bv.Type.AsDatatype));
       } else if (bv.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
         bounds.Add(new AssignSuchThatStmt.WiggleWaggleBound());
-      } else if (bv.Type.IsAllocFree) {
+      } else if (!bv.Type.MayInvolveReferences) {
         bounds.Add(new ComprehensionExpr.AllocFreeBoundedPool(bv.Type));
       }
 
