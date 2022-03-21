@@ -251,13 +251,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             if (subsetTypeDecl.tok.filename != documentFilePath) {
               continue;
             }
-
-            var diagnosticPosition = subsetTypeDecl.tok.GetLspPosition();
-            if (subsetTypeDecl.Witness == null) {
-              continue;
-            }
-            var diagnosticRange = new Range(diagnosticPosition,
-                subsetTypeDecl.Witness.tok.GetLspPosition(true));
+            var diagnosticRange = subsetTypeDecl.tok.GetLspRange(subsetTypeDecl.BodyEndTok);
             var diagnostic = new TopLevelDeclMemberNodeDiagnostic(
               subsetTypeDecl.Name,
               subsetTypeDecl.CompileName,
