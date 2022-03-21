@@ -699,3 +699,127 @@ public class DafnyArrayInitEmptyDescription : DafnyAssertionDescription {
     this.typeDesc = typeDesc;
   }
 }
+
+public class DafnyPatternShapeDescription : DafnyAssertionDescription {
+  public override string SuccessDescription =>
+    $"RHS will always match the pattern '{ctorName}'";
+
+  public override string FailureDescription =>
+    $"RHS is not certain to look like the pattern '{ctorName}'";
+
+  public override string ShortDescription => "pattern shape valid";
+
+  private readonly string ctorName;
+
+  public DafnyPatternShapeDescription(string ctorName) {
+    this.ctorName = ctorName;
+  }
+}
+
+public class DafnyCorrectConstructorDescription : DafnyAssertionDescription {
+  public override string SuccessDescription =>
+    $"source of datatype update is constructed by {ctorNames}";
+
+  public override string FailureDescription =>
+    $"source of datatype update must be constructed by {ctorNames}";
+
+  public override string ShortDescription => "constructor names valid";
+
+  private readonly string ctorNames;
+
+  public DafnyCorrectConstructorDescription(string ctorNames) {
+    this.ctorNames = ctorNames;
+  }
+}
+
+public class DafnyOrdinalSubtractionIsNatural : DafnyAssertionDescription {
+  public override string SuccessDescription =>
+    "TODO";
+
+  public override string FailureDescription =>
+    "RHS of ORDINAL subtraction must be a natural number, but the given RHS might be larger";
+
+  public override string ShortDescription => "TODO";
+}
+
+public class DafnyOrdinalSubtractionUnderflow : DafnyAssertionDescription {
+  public override string SuccessDescription =>
+    "TODO";
+
+  public override string FailureDescription =>
+    "ORDINAL subtraction might underflow a limit ordinal (that is, RHS might be too large)";
+
+  public override string ShortDescription => "TODO";
+}
+
+public class DafnyLetSuchThanUniqueDescription : DafnyAssertionDescription {
+  public override string SuccessDescription =>
+    "the value of this let-such-that expression is uniquely determined";
+
+  public override string FailureDescription =>
+    "to be compilable, the value of a let-such-that expression must be uniquely determined";
+
+  public override string ShortDescription => "let-such-that unique";
+}
+
+public class DafnyLetSuchThanExistsDescription : DafnyAssertionDescription {
+  public override string SuccessDescription =>
+    "a value exists that satisfies this let-such-that expression";
+
+  public override string FailureDescription =>
+    "cannot establish the existence of LHS values that satisfy the such-that predicate";
+
+  public override string ShortDescription => "let-such-that exists";
+}
+
+public class DafnyAssignmentShrinksDescription : DafnyAssertionDescription {
+  public override string SuccessDescription =>
+    $"the assignment to {fieldName} always shrinks the set";
+
+  public override string FailureDescription =>
+    $"an assignment to {fieldName} is only allowed to shrink the set";
+
+  public override string ShortDescription => "assignment shrinks"; // TODO: better
+
+  private readonly string fieldName;
+
+  public DafnyAssignmentShrinksDescription(string fieldName) {
+    this.fieldName = fieldName;
+  }
+}
+
+public class DafnyConversionIsNaturalDescription : DafnyAssertionDescription {
+  public override string SuccessDescription =>
+    $"{prefix}value to be converted is always a natural number";
+
+  public override string FailureDescription =>
+    $"{prefix}value to be converted might be bigger than every natural number";
+
+  public override string ShortDescription => "converted value is natural";
+
+  private readonly string prefix;
+
+  public DafnyConversionIsNaturalDescription(string prefix) {
+    this.prefix = prefix;
+  }
+}
+
+public class DafnyConversionSatisfiesConstraintsDescription : DafnyAssertionDescription {
+  public override string SuccessDescription =>
+    $"{prefix}result of operation never violates {kind} constraints for '{name}'";
+
+  public override string FailureDescription =>
+    $"{prefix}result of operation might violate {kind} constraint for '{name}'";
+
+  public override string ShortDescription => "conversion satisfies type constraints";
+
+  private readonly string prefix;
+  private readonly string kind;
+  private readonly string name;
+
+  public DafnyConversionSatisfiesConstraintsDescription(string prefix, string kind, string name) {
+    this.prefix = prefix;
+    this.kind = kind;
+    this.name = name;
+  }
+}

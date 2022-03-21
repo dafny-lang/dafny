@@ -5020,7 +5020,7 @@ namespace Microsoft.Dafny {
           // There is only one constructor, so the value must have been constructed by it; might as well assume that here.
           builder.Add(TrAssumeCmd(pat.tok, correctConstructor));
         } else {
-          builder.Add(Assert(pat.tok, correctConstructor, string.Format("RHS is not certain to look like the pattern '{0}'", ctor.Name)));
+          builder.Add(AssertDesc(pat.tok, correctConstructor, new DafnyPatternShapeDescription(ctor.Name)));
         }
         for (int i = 0; i < pat.Arguments.Count; i++) {
           var arg = pat.Arguments[i];
@@ -5911,10 +5911,10 @@ namespace Microsoft.Dafny {
             CheckWellformed(e.E1, options, locals, builder, etran);
             if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.Sub && e.E0.Type.IsBigOrdinalType) {
               var rhsIsNat = FunctionCall(expr.tok, "ORD#IsNat", Bpl.Type.Bool, etran.TrExpr(e.E1));
-              builder.Add(Assert(expr.tok, rhsIsNat, "RHS of ORDINAL subtraction must be a natural number, but the given RHS might be larger"));
+              builder.Add(AssertDesc(expr.tok, rhsIsNat, new DafnyOrdinalSubtractionIsNatural()));
               var offset0 = FunctionCall(expr.tok, "ORD#Offset", Bpl.Type.Int, etran.TrExpr(e.E0));
               var offset1 = FunctionCall(expr.tok, "ORD#Offset", Bpl.Type.Int, etran.TrExpr(e.E1));
-              builder.Add(Assert(expr.tok, Bpl.Expr.Le(offset1, offset0), "ORDINAL subtraction might underflow a limit ordinal (that is, RHS might be too large)"));
+              builder.Add(AssertDesc(expr.tok, Bpl.Expr.Le(offset1, offset0), new DafnyOrdinalSubtractionUnderflow()));
             } else if (e.Type.IsCharType) {
               var e0 = FunctionCall(expr.tok, "char#ToInt", Bpl.Type.Int, etran.TrExpr(e.E0));
               var e1 = FunctionCall(expr.tok, "char#ToInt", Bpl.Type.Int, etran.TrExpr(e.E1));
@@ -6186,8 +6186,8 @@ namespace Microsoft.Dafny {
         if (e.LegalSourceConstructors.Count == e.Type.AsDatatype.Ctors.Count) {
           // Every constructor has this destructor; no need to check anything
         } else {
-          builder.Add(Assert(expr.tok, correctConstructor,
-            string.Format("source of datatype update must be constructed by {0}", DatatypeDestructor.PrintableCtorNameList(e.LegalSourceConstructors, "or"))));
+          builder.Add(AssertDesc(expr.tok, correctConstructor,
+            new DafnyCorrectConstructorDescription(DatatypeDestructor.PrintableCtorNameList(e.LegalSourceConstructors, "or"))));
         }
 
         CheckWellformedWithResult(e.ResolvedExpression, options, result, resultType, locals, builder, etran);
@@ -6300,7 +6300,7 @@ namespace Microsoft.Dafny {
           builder.Add(TrAssumeCmd(e.tok, etran.TrExpr(rhs_prime)));
           builder.Add(TrAssumeCmd(e.tok, CanCallAssumption(letBody_prime, etran)));
           var eq = Expression.CreateEq(letBody, letBody_prime, e.Body.Type);
-          builder.Add(Assert(e.tok, etran.TrExpr(eq), "to be compilable, the value of a let-such-that expression must be uniquely determined"));
+          builder.Add(AssertDesc(e.tok, etran.TrExpr(eq), new DafnyLetSuchThanUniqueDescription()));
         }
         // assume $let$canCall(g);
         LetDesugaring(e);  // call LetDesugaring to prepare the desugaring and populate letSuchThatExprInfo with something for e
@@ -6512,7 +6512,7 @@ namespace Microsoft.Dafny {
       if (expr.Type.IsBigOrdinalType && !toType.IsBigOrdinalType) {
         PutSourceIntoLocal();
         Bpl.Expr boundsCheck = FunctionCall(tok, "ORD#IsNat", Bpl.Type.Bool, o);
-        builder.Add(Assert(tok, boundsCheck, $"{errorMsgPrefix}value to be converted might be bigger than every natural number"));
+        builder.Add(AssertDesc(tok, boundsCheck, new DafnyConversionIsNaturalDescription(errorMsgPrefix)));
       }
 
       if (toType.IsBitVectorType) {
@@ -6649,7 +6649,7 @@ namespace Microsoft.Dafny {
         substMap.Add(rdt.Var, expr);
         var typeMap = Resolver.TypeSubstitutionMap(rdt.TypeArgs, udt.TypeArgs);
         var constraint = etran.TrExpr(Substitute(rdt.Constraint, null, substMap, typeMap));
-        builder.Add(Assert(tok, constraint, $"{errorMsgPrefix}result of operation might violate {kind} constraint for '{rdt.Name}'"));
+        builder.Add(AssertDesc(tok, constraint, new DafnyConversionSatisfiesConstraintsDescription(errorMsgPrefix, kind, rdt.Name)));
       }
     }
 
@@ -8438,7 +8438,7 @@ namespace Microsoft.Dafny {
         }
         w = BplOr(body, w);
       }
-      builder.Add(Assert(tok, w, "cannot establish the existence of LHS values that satisfy the such-that predicate"));
+      builder.Add(AssertDesc(tok, w, new DafnyLetSuchThanExistsDescription()));
     }
 
     private void IntroduceAndAssignExistentialVars(ExistsExpr exists, BoogieStmtListBuilder builder, BoogieStmtListBuilder builderOutsideIfConstruct, List<Variable> locals, ExpressionTranslator etran, bool isGhost) {
@@ -10169,7 +10169,7 @@ namespace Microsoft.Dafny {
         // assert Set#Subset(rhs, obj._new);
         var fId = new Bpl.IdentifierExpr(tok, GetField(f));
         var subset = FunctionCall(tok, BuiltinFunction.SetSubset, null, rhs, ReadHeap(tok, etran.HeapExpr, obj, fId));
-        builder.Add(Assert(tok, subset, "an assignment to " + f.Name + " is only allowed to shrink the set"));
+        builder.Add(AssertDesc(tok, subset, new DafnyAssignmentShrinksDescription(f.Name)));
       }
     }
 
