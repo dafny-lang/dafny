@@ -8999,7 +8999,7 @@ namespace Microsoft.Dafny {
               bounded = Bpl.Expr.Or(bounded, Less[i]);
             }
             string component = N == 1 ? "" : " (component " + k + ")";
-            Bpl.Cmd cmd = Assert(toks[k], Bpl.Expr.Or(bounded, Eq[k]), "decreases expression" + component + " must be bounded below by " + zeroStr + suffixMsg);
+            Bpl.Cmd cmd = Assert(toks[k], Bpl.Expr.Or(bounded, Eq[k]), "decreases clause" + component + " must be bounded below by " + zeroStr + suffixMsg);
             builder.Add(cmd);
           }
         }

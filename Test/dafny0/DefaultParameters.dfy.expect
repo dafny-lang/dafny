@@ -34,10 +34,10 @@ DefaultParameters.dfy(200,34): Error: default-value expression is not allowed to
 DefaultParameters.dfy(211,56): Error: default-value expression is not allowed to involve recursive or mutually recursive calls
 DefaultParameters.dfy(219,23): Error: default-value expression is not allowed to involve recursive or mutually recursive calls
 DefaultParameters.dfy(220,23): Error: default-value expression is not allowed to involve recursive or mutually recursive calls
-DefaultParameters.dfy(229,8): Error: failure to decrease termination measure
-DefaultParameters.dfy(235,4): Error: failure to decrease termination measure
-DefaultParameters.dfy(235,6): Error: failure to decrease termination measure
-DefaultParameters.dfy(241,4): Error: failure to decrease termination measure
+DefaultParameters.dfy(229,8): Error: decreases clause might not decrease
+DefaultParameters.dfy(235,4): Error: decreases clause might not decrease
+DefaultParameters.dfy(235,6): Error: decreases clause might not decrease
+DefaultParameters.dfy(241,4): Error: decreases clause might not decrease
 DefaultParameters.dfy(251,25): Error: insufficient reads clause to read field
 DefaultParameters.dfy(258,34): Error: default-value expression is not allowed to involve recursive or mutually recursive calls
 DefaultParameters.dfy(267,35): Error: possible division by zero

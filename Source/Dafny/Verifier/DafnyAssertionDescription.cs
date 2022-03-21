@@ -329,8 +329,8 @@ public class DafnyTerminationDescription : DafnyAssertionDescription {
   public override string FailureDescription =>
     (inferredDescreases
       ? "cannot prove termination; try supplying a decreases clause"
-      : "decreases expression might not decrease") +
-    (hint is null ? "" : " ({hint})");
+      : "decreases clause might not decrease") +
+    (hint is null ? "" : $" ({hint})");
 
   public override string ShortDescription => "termination";
 
