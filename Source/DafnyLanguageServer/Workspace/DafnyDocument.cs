@@ -3,6 +3,9 @@ using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.Boogie;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
@@ -16,13 +19,17 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <param name="LoadCanceled"><c>true</c> if the document load was canceled for this document.</param>
   public record DafnyDocument(
     TextDocumentItem Text,
-    DiagnosticErrorReporter Errors,
-    IReadOnlyList<Diagnostic> OldVerificationDiagnostics,
+    IReadOnlyList<Diagnostic> ParseAndResolutionErrors,
+    IReadOnlyList<Diagnostic> BoogieProgramErrors,
+    Dictionary<Implementation, IReadOnlyList<Diagnostic>> ImplementationErrors,
     IReadOnlyList<Diagnostic> GhostDiagnostics,
     Dafny.Program Program,
     SymbolTable SymbolTable,
     bool LoadCanceled = false
   ) {
+
+    public IEnumerable<Diagnostic> Errors => ParseAndResolutionErrors.Concat(BoogieProgramErrors)
+      .Concat(ImplementationErrors.Values.SelectMany(x => x));
     public DocumentUri Uri => Text.Uri;
     public int Version => Text.Version!.Value;
 

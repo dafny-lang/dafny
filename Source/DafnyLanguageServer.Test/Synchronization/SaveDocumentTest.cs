@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
@@ -132,8 +133,8 @@ method DoIt() {
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
       var document = await Documents.GetVerifiedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
-      Assert.AreEqual(1, document.Errors.ErrorCount);
-      var message = document.Errors.GetDiagnostics(documentItem.Uri)[0];
+      Assert.AreEqual(1, document.Errors.Count());
+      var message = document.Errors.First();
       Assert.AreEqual(MessageSource.Verifier.ToString(), message.Source);
     }
   }

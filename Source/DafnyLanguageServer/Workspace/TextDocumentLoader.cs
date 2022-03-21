@@ -88,7 +88,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private DafnyDocument LoadInternal(TextDocumentItem textDocument, CancellationToken cancellationToken) {
       var errorReporter = new DiagnosticErrorReporter(textDocument.Uri);
       var program = parser.Parse(textDocument, errorReporter, cancellationToken);
-      PublishDafnyLanguageServerLoadErrors(errorReporter, program);
+      IncludePluginLoadErrors(errorReporter, program);
       if (errorReporter.HasErrors) {
         notificationPublisher.SendStatusNotification(textDocument, CompilationStatus.ParsingFailed);
         return CreateDocumentWithEmptySymbolTable(loggerFactory.CreateLogger<SymbolTable>(), textDocument, errorReporter, program, loadCanceled: false);
@@ -102,11 +102,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         notificationPublisher.SendStatusNotification(textDocument, CompilationStatus.CompilationSucceeded);
       }
       var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(symbolTable, cancellationToken).ToArray();
-      return new DafnyDocument(textDocument, errorReporter, new List<Diagnostic>(), ghostDiagnostics, program, symbolTable);
+
+      return new DafnyDocument(textDocument, errorReporter.GetDiagnostics(textDocument.Uri),
+        new List<Diagnostic>(), new (),
+        ghostDiagnostics, program, symbolTable);
     }
 
-    private static void PublishDafnyLanguageServerLoadErrors(DiagnosticErrorReporter errorReporter, Dafny.Program program) {
-      foreach (var error in DafnyLanguageServer.LoadErrors) {
+    // TODO should we include this for each document? I think it's better not to show these errors as diagnostics, but through something like a showMessage request.
+    private static void IncludePluginLoadErrors(DiagnosticErrorReporter errorReporter, Dafny.Program program) {
+      foreach (var error in DafnyLanguageServer.PluginLoadErrors) {
         errorReporter.Error(MessageSource.Compiler, program.GetFirstTopLevelToken(), error);
       }
     }
@@ -120,8 +124,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     ) {
       return new DafnyDocument(
         textDocument,
-        errorReporter,
+        errorReporter.GetDiagnostics(textDocument.Uri),
         new List<Diagnostic>(),
+        new(),
         Array.Empty<Diagnostic>(),
         program,
         CreateEmptySymbolTable(program, logger),
@@ -149,14 +154,17 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private async Task<DafnyDocument> VerifyInternalAsync(DafnyDocument document, CancellationToken cancellationToken) {
       notificationPublisher.SendStatusNotification(document.Text, CompilationStatus.VerificationStarted);
       var progressReporter = new VerificationProgressReporter(document.Text, notificationPublisher);
+      var errorReporter = new DiagnosticErrorReporter(document.Uri);
+      document.Program.Reporter = errorReporter;
       var verificationResult = await verifier.VerifyAsync(document.Program, progressReporter, cancellationToken);
       var compilationStatusAfterVerification = verificationResult.Verified
         ? CompilationStatus.VerificationSucceeded
         : CompilationStatus.VerificationFailed;
       notificationPublisher.SendStatusNotification(document.Text, compilationStatusAfterVerification);
-      logger.LogDebug($"Finished verification with {document.Errors.ErrorCount} errors.");
+      logger.LogDebug($"Finished verification with {errorReporter.ErrorCount} errors.");
       return document with {
-        OldVerificationDiagnostics = new List<Diagnostic>(),
+        BoogieProgramErrors = errorReporter.GetDiagnostics(document.Uri),
+        // ImplementationErrors = new(),
         SerializedCounterExamples = verificationResult.SerializedCounterExamples
       };
     }

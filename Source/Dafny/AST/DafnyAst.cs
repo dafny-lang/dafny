@@ -36,7 +36,7 @@ namespace Microsoft.Dafny {
     public readonly ModuleDecl DefaultModule;
     public readonly ModuleDefinition DefaultModuleDef;
     public readonly BuiltIns BuiltIns;
-    public readonly ErrorReporter reporter;
+    public ErrorReporter Reporter { get; set; }
 
     public Program(string name, [Captured] ModuleDecl module, [Captured] BuiltIns builtIns, ErrorReporter reporter) {
       Contract.Requires(name != null);
@@ -47,7 +47,7 @@ namespace Microsoft.Dafny {
       DefaultModule = module;
       DefaultModuleDef = (DefaultModuleDecl)((LiteralModuleDecl)module).ModuleDef;
       BuiltIns = builtIns;
-      this.reporter = reporter;
+      this.Reporter = reporter;
       ModuleSigs = new Dictionary<ModuleDefinition, ModuleSignature>();
       CompileModules = new List<ModuleDefinition>();
     }

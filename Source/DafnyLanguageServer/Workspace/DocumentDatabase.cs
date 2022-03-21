@@ -94,7 +94,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 #pragma warning disable VSTHRD003
       var document = await documentTask;
 #pragma warning restore VSTHRD003
-      if (document.LoadCanceled || !verify || document.Errors.HasErrors) {
+      if (document.LoadCanceled || !verify || document.ParseAndResolutionErrors.Any()) {
         throw new TaskCanceledException();
       }
       return await documentLoader.VerifyAsync(document, cancellationToken);
@@ -135,19 +135,21 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 #pragma warning disable VSTHRD003
       var oldDocument = await oldDocumentTask;
 #pragma warning restore VSTHRD003
+
       // We do not pass the cancellation token to the text change processor because the text has to be kept in sync with the LSP client.
       var updatedText = textChangeProcessor.ApplyChange(oldDocument.Text, documentChange, CancellationToken.None);
-      var oldVerificationDiagnostics =
-        oldDocument.Errors.GetDiagnostics(oldDocument.Uri).Where(d => d.Source == MessageSource.Verifier.ToString()).
-          Concat(oldDocument.OldVerificationDiagnostics).ToList();
+      var oldVerificationDiagnostics = oldDocument.BoogieProgramErrors;
       var migratedVerificationDiagnotics =
         relocator.RelocateDiagnostics(oldVerificationDiagnostics, documentChange, CancellationToken.None);
+      var migratedImplementationDiagnotics = oldDocument.ImplementationErrors.ToDictionary(kv => kv.Key, kv =>
+        relocator.RelocateDiagnostics(kv.Value, documentChange, CancellationToken.None));
       logger.LogDebug($"Migrated {oldVerificationDiagnostics.Count} diagnostics into {migratedVerificationDiagnotics.Count} diagnostics.");
       try {
         var newDocument = await documentLoader.LoadAsync(updatedText, cancellationToken);
         if (newDocument.SymbolTable.Resolved) {
           return newDocument with {
-            OldVerificationDiagnostics = migratedVerificationDiagnotics
+            BoogieProgramErrors = migratedVerificationDiagnotics,
+            ImplementationErrors = migratedImplementationDiagnotics
           };
         }
         // The document loader failed to create a new symbol table. Since we'd still like to provide
@@ -155,7 +157,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         // according to the change.
         return newDocument with {
           SymbolTable = relocator.RelocateSymbols(oldDocument.SymbolTable, documentChange, CancellationToken.None),
-          OldVerificationDiagnostics = migratedVerificationDiagnotics
+          BoogieProgramErrors = migratedVerificationDiagnotics,
+          ImplementationErrors = migratedImplementationDiagnotics
         };
       } catch (OperationCanceledException) {
         // The document load was canceled before it could complete. We migrate the document
@@ -166,7 +169,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           SymbolTable = relocator.RelocateSymbols(oldDocument.SymbolTable, documentChange, CancellationToken.None),
           SerializedCounterExamples = null,
           LoadCanceled = true,
-          OldVerificationDiagnostics = migratedVerificationDiagnotics
+          BoogieProgramErrors = migratedVerificationDiagnotics,
+          ImplementationErrors = migratedImplementationDiagnotics
         };
       }
     }

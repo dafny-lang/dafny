@@ -122,8 +122,8 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
       var document = await Documents.GetVerifiedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
       Assert.AreEqual(documentItem.Version + 11, document.Version);
-      Assert.AreEqual(1, document.Errors.ErrorCount);
-      Assert.AreEqual("assertion might not hold", document.Errors.GetDiagnostics(documentItem.Uri)[0].Message);
+      Assert.AreEqual(1, document.Errors.Count());
+      Assert.AreEqual("assertion might not hold", document.Errors.First().Message);
     }
 
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]

@@ -30,7 +30,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       languageServer.TextDocument.PublishDiagnostics(new PublishDiagnosticsParams {
         Uri = document.Uri,
         Version = document.Version,
-        Diagnostics = GetDiagnostics(document).ToArray(),
+        Diagnostics = document.Errors.ToArray(),
       });
     }
 
@@ -47,11 +47,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         Uri = documentId.Uri,
         Diagnostics = new Container<Diagnostic>()
       });
-    }
-
-    private static IEnumerable<Diagnostic> GetDiagnostics(DafnyDocument document) {
-      // Only report errors of the entry-document.
-      return document.Errors.GetDiagnostics(document.GetFilePath()).Concat(document.OldVerificationDiagnostics);
     }
   }
 }

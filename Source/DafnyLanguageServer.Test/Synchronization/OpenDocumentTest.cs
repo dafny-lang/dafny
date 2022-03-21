@@ -39,7 +39,7 @@ function GetConstant(): int {
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var document = await Documents.GetDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
-      Assert.AreEqual(0, document.Errors.ErrorCount);
+      Assert.AreEqual(0, document.Errors.Count());
     }
 
     [TestMethod]
@@ -52,8 +52,8 @@ function GetConstant() int {
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var document = await Documents.GetDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
-      Assert.AreEqual(1, document.Errors.ErrorCount);
-      var message = document.Errors.GetDiagnostics(documentItem.Uri)[0];
+      Assert.AreEqual(1, document.Errors.Count());
+      var message = document.Errors.ElementAt(0);
       Assert.AreEqual(MessageSource.Parser.ToString(), message.Source);
     }
 
@@ -67,8 +67,8 @@ function GetConstant(): int {
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var document = await Documents.GetDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
-      Assert.AreEqual(1, document.Errors.ErrorCount);
-      var message = document.Errors.GetDiagnostics(documentItem.Uri)[0];
+      Assert.AreEqual(1, document.Errors.Count());
+      var message = document.Errors.ElementAt(0);
       Assert.AreEqual(MessageSource.Resolver.ToString(), message.Source);
     }
 
@@ -86,8 +86,8 @@ method Recurse(x: int) returns (r: int) {
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var document = await Documents.GetVerifiedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
-      Assert.AreEqual(1, document.Errors.ErrorCount);
-      var message = document.Errors.GetDiagnostics(documentItem.Uri).First(d => d.Severity!.Value == DiagnosticSeverity.Error);
+      Assert.AreEqual(1, document.Errors.Count());
+      var message = document.Errors.First(d => d.Severity!.Value == DiagnosticSeverity.Error);
       Assert.AreEqual(MessageSource.Verifier.ToString(), message.Source);
     }
 
@@ -108,7 +108,7 @@ method Recurse(x: int) returns (r: int) {
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var document = await Documents.GetDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
-      Assert.IsTrue(!document.Errors.HasErrors);
+      Assert.IsTrue(!document.Errors.Any());
     }
 
     [TestMethod]
@@ -119,7 +119,7 @@ method Recurse(x: int) returns (r: int) {
       var document = await Documents.GetDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
       // Empty files currently yield only a warning.
-      Assert.IsTrue(!document.Errors.HasErrors);
+      Assert.IsTrue(!document.Errors.Any());
     }
 
     [TestMethod]
@@ -129,7 +129,7 @@ method Recurse(x: int) returns (r: int) {
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var document = await Documents.GetDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
-      Assert.IsTrue(!document.Errors.HasErrors);
+      Assert.IsTrue(!document.Errors.Any());
     }
 
     [TestMethod]
@@ -139,7 +139,7 @@ method Recurse(x: int) returns (r: int) {
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var document = await Documents.GetDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
-      Assert.IsTrue(!document.Errors.HasErrors);
+      Assert.IsTrue(!document.Errors.Any());
     }
   }
 }
