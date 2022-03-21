@@ -3068,7 +3068,9 @@ namespace Microsoft.Dafny {
 
     public override bool MayInvolveReferences {
       get {
-        if (ResolvedClass is ClassDecl) {
+        if (ResolvedClass is ArrowTypeDecl) {
+          return TypeArgs.Any(ta => ta.MayInvolveReferences);
+        } else if (ResolvedClass is ClassDecl) {
           return true;
         } else if (ResolvedClass is NewtypeDecl) {
           return false;
@@ -3078,18 +3080,24 @@ namespace Microsoft.Dafny {
             return true;
           }
           Contract.Assert(dt.TypeArgs.Count == TypeArgs.Count);
-          return TypeArgs.TrueForAll(ta => ta.MayInvolveReferences);
+          return TypeArgs.Any(ta => ta.MayInvolveReferences);
         } else if (ResolvedClass is TypeSynonymDeclBase) {
           var t = (TypeSynonymDeclBase)ResolvedClass;
-          // (Note, if type parameters/opaque types could have a may-involve-references characteristic, then it would be consulted here)
-          if (t.IsRevealedInScope(Type.GetScope())) {
+          if (t.Characteristics.ContainsNoReferenceTypes) {
+            // There's an explicit "(!new)" annotation on the type.
+            return false;
+          } else if (t.IsRevealedInScope(Type.GetScope())) {
+            // The type's definition is available in the scope, so consult the RHS type
             return t.RhsWithArgument(TypeArgs).MayInvolveReferences;
           } else {
+            // The type's definition is hidden from the current scope and there's no explicit "(!new)", so we
+            // have to assume the type may involve references.
             return true;
           }
-        } else if (ResolvedClass is TypeParameter || ResolvedClass is OpaqueTypeDecl) {
-          // (Note, if type parameters/opaque types could have a may-involve-references characteristic, then it would be consulted here)
-          return true;
+        } else if (ResolvedClass is TypeParameter typeParameter) {
+          return !typeParameter.Characteristics.ContainsNoReferenceTypes;
+        } else if (ResolvedClass is OpaqueTypeDecl opaqueTypeDecl) {
+          return !opaqueTypeDecl.Characteristics.ContainsNoReferenceTypes;
         }
         Contract.Assume(false);  // the MayInvolveReferences getter requires the Type to have been successfully resolved
         return true;
