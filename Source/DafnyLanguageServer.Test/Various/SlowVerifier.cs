@@ -14,12 +14,12 @@ class SlowVerifier : IProgramVerifier {
 
   private readonly DafnyProgramVerifier verifier;
 
-  public Task<VerificationResult> VerifyAsync(Dafny.Program program, IVerificationProgressReporter progressReporter, CancellationToken cancellationToken) {
+  public Task<ServerVerificationResult> VerifyAsync(Dafny.Program program, IVerificationProgressReporter progressReporter, CancellationToken cancellationToken) {
     var attributes = program.Modules().SelectMany(m => {
       return m.TopLevelDecls.OfType<TopLevelDeclWithMembers>().SelectMany(d => d.Members.Select(member => member.Attributes));
     }).ToList();
     if (attributes.Any(a => Attributes.Contains(a, "slow"))) {
-      var source = new TaskCompletionSource<VerificationResult>();
+      var source = new TaskCompletionSource<ServerVerificationResult>();
       cancellationToken.Register(() => {
         source.SetCanceled(cancellationToken);
       });

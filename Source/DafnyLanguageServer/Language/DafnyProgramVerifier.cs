@@ -66,7 +66,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         : Convert.ToInt32(options.VcsCores);
     }
 
-    public async Task<VerificationResult> VerifyAsync(Dafny.Program program,
+    public async Task<ServerVerificationResult> VerifyAsync(Dafny.Program program,
                                      IVerificationProgressReporter progressReporter,
                                      CancellationToken cancellationToken) {
       await mutex.WaitAsync(cancellationToken);
@@ -90,7 +90,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         }).ToList();
         await Task.WhenAll(moduleTasks);
         var verified = moduleTasks.All(t => t.Result);
-        return new VerificationResult(verified, printer.SerializedCounterExamples);
+        return new ServerVerificationResult(verified, printer.SerializedCounterExamples);
       }
       finally {
         mutex.Release();
