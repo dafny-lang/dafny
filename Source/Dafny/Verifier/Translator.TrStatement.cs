@@ -862,13 +862,12 @@ namespace Microsoft.Dafny {
         var name = indexVarName + "#x";
         var xVar = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, name, Bpl.Type.Int));
         var x = new Bpl.IdentifierExpr(tok, name);
-        string msg;
-        var cre = GetSubrangeCheck(x, Type.Int, indexVar.Type, out msg);
+        var cre = GetSubrangeCheck(x, Type.Int, indexVar.Type, out var desc);
         if (cre != null) {
           locals.Add(xVar);
           builder.Add(new Bpl.HavocCmd(tok, new List<Bpl.IdentifierExpr>() { x }));
           builder.Add(new Bpl.AssumeCmd(tok, ForLoopBounds(x, bLo, bHi)));
-          builder.Add(AssertDesc(tok, cre, new DafnyForRangeAssignableDescription(msg)));
+          builder.Add(AssertDesc(tok, cre, new DafnyForRangeAssignableDescription(desc)));
         }
       }
 
@@ -1384,12 +1383,12 @@ namespace Microsoft.Dafny {
         var ss = TrSplitExpr(loopInv.E, etran, false, out splitHappened);
         if (!splitHappened) {
           var wInv = Bpl.Expr.Imp(w, etran.TrExpr(loopInv.E));
-          invariants.Add(Assert(loopInv.E.tok, wInv, errorMessage ?? "loop invariant violation"));
+          invariants.Add(AssertDesc(loopInv.E.tok, wInv, new DafnyLoopInvariantDescription(errorMessage)));
         } else {
           foreach (var split in ss) {
             var wInv = Bpl.Expr.Binary(split.E.tok, BinaryOperator.Opcode.Imp, w, split.E);
             if (split.IsChecked) {
-              invariants.Add(Assert(split.E.tok, wInv, errorMessage ?? "loop invariant violation"));  // TODO: it would be fine to have this use {:subsumption 0}
+              invariants.Add(AssertDesc(split.E.tok, wInv, new DafnyLoopInvariantDescription(errorMessage)));  // TODO: it would be fine to have this use {:subsumption 0}
             } else {
               invariants.Add(TrAssumeCmd(split.E.tok, wInv));
             }

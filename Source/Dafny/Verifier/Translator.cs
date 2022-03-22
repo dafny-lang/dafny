@@ -10036,13 +10036,11 @@ namespace Microsoft.Dafny {
       }
       // Check that the values coming out of the function satisfy any appropriate subset-type constraints
       var apply = UnboxIfBoxed(FunctionCall(tok, Apply(dims.Count), TrType(elementType), args), elementType);
-      string msg;
-      var cre = GetSubrangeCheck(apply, sourceType.Result, elementType, out msg);
+      var cre = GetSubrangeCheck(apply, sourceType.Result, elementType, out var subrangeDesc);
       if (cre != null) {
         // assert (forall i0,i1,i2,... ::
         //            0 <= i0 < ... && ... ==> init.requires(i0,i1,i2,...) is Subtype);
         q = new Bpl.ForallExpr(tok, bvs, Bpl.Expr.Imp(ante, cre));
-        var subrangeDesc = new DafnySubrangeCheckDescription(msg);
         builder.Add(AssertNSDesc(init.tok, q, subrangeDesc));
       }
 
@@ -10112,32 +10110,36 @@ namespace Microsoft.Dafny {
       return "this." + field.Name;
     }
 
-    Bpl.Expr GetSubrangeCheck(Bpl.Expr bSource, Type sourceType, Type targetType, out string msg) {
+    Bpl.Expr GetSubrangeCheck(Bpl.Expr bSource, Type sourceType, Type targetType, out DafnyAssertionDescription desc, string errorMessagePrefix = "") {
       Contract.Requires(bSource != null);
       Contract.Requires(sourceType != null);
       Contract.Requires(targetType != null);
 
       if (Type.IsSupertype(targetType, sourceType)) {
         // We should always be able to use Is, but this is an optimisation.
-        msg = null;
+        desc = null;
         return null;
       }
       targetType = targetType.NormalizeExpandKeepConstraints();
       var cre = MkIs(bSource, targetType);
       var udt = targetType as UserDefinedType;
       if (udt != null && udt.IsRefType) {
-        msg = string.Format("value of expression (of type '{0}') is not known to be an instance of type '{1}'", sourceType, targetType);
         var s = sourceType.NormalizeExpandKeepConstraints();
+        var certain = false;
+        string cause = null;
         if (s is UserDefinedType sudt && udt.ResolvedClass is NonNullTypeDecl nntd && nntd.Class == sudt.ResolvedClass) {
-          var certain = udt.ResolvedClass.TypeArgs.Count == 0;
-          msg += certain ? ", because it may be null" : " (possible cause: it may be null)";
+          certain = udt.ResolvedClass.TypeArgs.Count == 0;
+          cause = "it may be null";
         }
+        desc = new DafnySubrangeCheckDescription(errorMessagePrefix, sourceType.ToString(), targetType.ToString(), false, certain, cause);
       } else if (udt != null && ArrowType.IsTotalArrowTypeName(udt.Name)) {
-        msg = string.Format("value does not satisfy the subset constraints of '{0}' (possible cause: it may be partial or have read effects)", targetType.Normalize());
+        desc = new DafnySubrangeCheckDescription(errorMessagePrefix, sourceType.ToString(), targetType.ToString(), true, false,
+          "it may be partial or have read effects");
       } else if (udt != null && ArrowType.IsPartialArrowTypeName(udt.Name)) {
-        msg = string.Format("value does not satisfy the subset constraints of '{0}' (possible cause: it may have read effects)", targetType.Normalize());
+        desc = new DafnySubrangeCheckDescription(errorMessagePrefix, sourceType.ToString(), targetType.ToString(), true, false,
+          "it may have read effects");
       } else {
-        msg = string.Format("value does not satisfy the subset constraints of '{0}'", targetType.Normalize());
+        desc = new DafnySubrangeCheckDescription(errorMessagePrefix, sourceType.ToString(), targetType.ToString(), true, false, null);
       }
       return cre;
     }
@@ -10149,10 +10151,9 @@ namespace Microsoft.Dafny {
       Contract.Requires(targetType != null);
       Contract.Requires(builder != null);
 
-      string msg;
-      var cre = GetSubrangeCheck(bSource, sourceType, targetType, out msg);
+      var cre = GetSubrangeCheck(bSource, sourceType, targetType, out var desc, errorMsgPrefix);
       if (cre != null) {
-        builder.Add(Assert(tok, cre, errorMsgPrefix + msg));
+        builder.Add(AssertDesc(tok, cre, desc));
       }
     }
 

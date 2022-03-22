@@ -12,8 +12,6 @@ TypeParameters.dfy(161,11): Error: assertion might not hold
 TypeParameters.dfy(146,7): Related location
 TypeParameters.dfy(175,14): Error: This loop invariant might not be maintained by the loop.
 TypeParameters.dfy(175,37): Related location
-TypeParameters.dfy(175,14): Related message: loop invariant violation
-TypeParameters.dfy(175,37): Related location
 TypeParameters.dfy(44,21): Error: assertion might not hold
 TypeParameters.dfy(66,26): Error: assertion might not hold
 
