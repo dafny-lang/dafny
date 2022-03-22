@@ -4,6 +4,7 @@ using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
@@ -292,7 +293,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
             Children = MigrateNodeDiagnostic(nodeDiagnostic.Children, change).ToList(),
             RelatedRanges = nodeDiagnostic.RelatedRanges
               .Select(pos => MigrateRange(pos, change.Range!, afterChangeEndOffset))
-              .OfType<Range>().ToList(),
+              .OfType<Range>().ToImmutableList(),
             StatusVerification = nodeDiagnostic.StatusVerification,
             StatusCurrent = CurrentStatus.Obsolete,
             Finished = false,

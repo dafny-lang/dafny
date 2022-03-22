@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection.Metadata;
@@ -174,6 +175,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
      // The range of this node.
      Range Range
   ) {
+    // Overriden by checking children if there are some
+    public VerificationStatus StatusVerification { get; set; } = VerificationStatus.Unknown;
+
+    // Overriden by checking children if there are some
+    public CurrentStatus StatusCurrent { get; set; } = CurrentStatus.Obsolete;
+
     // Used to relocate a node diagnostic and to determine which function is currently verifying
     public Position Position => Range.Start;
 
@@ -189,7 +196,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
 
     // If this node is an error, all the trace positions
-    public List<Range> RelatedRanges { get; set; } = new();
+    public ImmutableList<Range> RelatedRanges { get; set; } = ImmutableList<Range>.Empty;
 
     // Sub-diagnostics if any
     public List<NodeDiagnostic> Children { get; set; } = new();
@@ -210,12 +217,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     public void ResetNewChildren() {
       NewChildren = new();
     }
-
-    // Overriden by checking children if there are some
-    public VerificationStatus StatusVerification { get; set; } = VerificationStatus.Unknown;
-
-    // Overriden by checking children if there are some
-    public CurrentStatus StatusCurrent { get; set; } = CurrentStatus.Obsolete;
 
     public NodeDiagnostic SetObsolete() {
       if (StatusCurrent != CurrentStatus.Obsolete) {
@@ -354,6 +355,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
       return false;
     }
+
+    public virtual NodeDiagnostic GetCopyForNotification() {
+      if (Finished) {
+        return this;// Won't be modified anymore, no need to duplicate
+      }
+      return this with {
+        Children = Children.Select(child => child.GetCopyForNotification()).ToList()
+      };
+    }
   }
 
   public record DocumentNodeDiagnostic(
@@ -373,6 +383,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
   ) : NodeDiagnostic(DisplayName, Identifier, Filename, Range) {
     // Recomputed from the children which are ImplementationNodeDiagnostic
     public List<AssertionBatchNodeDiagnostic> AssertionBatches { get; set; } = new();
+
+    public override NodeDiagnostic GetCopyForNotification() {
+      if (Finished) {
+        return this;// Won't be modified anymore, no need to duplicate
+      }
+      return this with {
+        Children = Children.Select(child => child.GetCopyForNotification()).ToList(),
+        AssertionBatches = AssertionBatches.Select(child => (AssertionBatchNodeDiagnostic)child.GetCopyForNotification()).ToList()
+      };
+    }
 
     public void RecomputeAssertionBatchNodeDiagnostics() {
       var result = new List<AssertionBatchNodeDiagnostic>();
@@ -402,14 +422,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     public AssertionBatchNodeDiagnostic? LongestAssertionBatch =>
       AssertionBatches.MaxBy(assertionBatch => assertionBatch.TimeSpent);
 
-    private IEnumerable<int> AssertionBatchTimes =>
-      AssertionBatches.Select(assertionBatch => assertionBatch.TimeSpent);
+    public List<int> AssertionBatchTimes =>
+      AssertionBatches.Select(assertionBatch => assertionBatch.TimeSpent).ToList();
 
     public int AssertionBatchCount => AssertionBatches.Count;
 
     public int LongestAssertionBatchTime => AssertionBatches.Any() ? AssertionBatchTimes.Max() : 0;
 
-    public int LongestAssertionBatchTimeIndex => LongestAssertionBatchTime != 0 ? AssertionBatchTimes.ToList().IndexOf(LongestAssertionBatchTime) : -1;
+    public int LongestAssertionBatchTimeIndex => LongestAssertionBatchTime != 0 ? AssertionBatchTimes.IndexOf(LongestAssertionBatchTime) : -1;
   }
 
   // Invariant: There is at least 1 child for every assertion batch
@@ -428,6 +448,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       EndTime = parentStartTime.AddMilliseconds(implementationNodeAssertionBatchTime);
       return this;
     }
+    public override NodeDiagnostic GetCopyForNotification() {
+      if (Finished) {
+        return this;// Won't be modified anymore, no need to duplicate
+      }
+      return this with {
+        Children = Children.Select(child => child.GetCopyForNotification()).ToList()
+      };
+    }
   }
 
   public record ImplementationNodeDiagnostic(
@@ -445,6 +473,17 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     private List<int> NewAssertionBatchTimes { get; set; } = new();
     private List<int> NewAssertionBatchResourceCount { get; set; } = new();
     public int AssertionBatchCount => AssertionBatchTimes.Count;
+
+    public override NodeDiagnostic GetCopyForNotification() {
+      if (Finished) {
+        return this;// Won't be modified anymore, no need to duplicate
+      }
+      return this with {
+        Children = Children.Select(child => child.GetCopyForNotification()).ToList(),
+        AssertionBatchTimes = new List<int>(AssertionBatchTimes),
+        AssertionBatchResourceCount = new List<int>(AssertionBatchResourceCount),
+      };
+    }
 
     private Implementation? implementation = null;
 
@@ -509,42 +548,59 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
     // Ranges that should also display an error
     // TODO: Will need to compute this statically for the tests
-    public List<Range> ImmediatelyRelatedRanges {
-      get {
-        if (assertion == null) {
-          return new();
-        }
+    public List<Range> ImmediatelyRelatedRanges { get; set; } = new();
+    public List<Range> DynamicallyRelatedRanges { get; set; } = new();
 
-        var tok = assertion.tok;
-        var result = new List<Range>();
-        while (tok is NestedToken nestedToken) {
-          tok = nestedToken.Inner;
-          if (tok.filename == assertion.tok.filename) {
-            result.Add(tok.GetLspRange());
-          }
-        }
-        if (counterExample is ReturnCounterexample returnCounterexample) {
-          tok = returnCounterexample.FailingReturn.tok;
-          if (tok.filename == assertion.tok.filename) {
-            result.Add(returnCounterexample.FailingReturn.tok.GetLspRange());
-          }
-        }
-        return result;
-      }
+    /// <summary>
+    /// Which assertion batch this assertion was taken from in its implementation node
+    /// </summary>
+    public int AssertionBatchIndex { get; init; }
+
+    public AssertionNodeDiagnostic
+      WithAssertionAndCounterExample(AssertCmd? inAssertion, Counterexample? inCounterExample) {
+      this.assertion = inAssertion;
+      this.counterExample = inCounterExample;
+      return WithImmediatelyRelatedChanges().WithDynamicallyRelatedChanges();
     }
 
-    // Ranges that should highlight when stepping on one error.
-    public List<Range> DynamicallyRelatedRanges {
-      get {
-        if (assertion == null) {
-          return new();
-        }
-        var result = new List<Range>();
-        if (counterExample is CallCounterexample callCounterexample) {
-          result.Add(callCounterexample.FailingRequires.tok.GetLspRange());
-        }
-        return result;
+    private AssertionNodeDiagnostic WithImmediatelyRelatedChanges() {
+      if (assertion == null) {
+        ImmediatelyRelatedRanges = new();
+        return this;
       }
+
+      var tok = assertion.tok;
+      var result = new List<Range>();
+      while (tok is NestedToken nestedToken) {
+        tok = nestedToken.Inner;
+        if (tok.filename == assertion.tok.filename) {
+          result.Add(tok.GetLspRange());
+        }
+      }
+
+      if (counterExample is ReturnCounterexample returnCounterexample) {
+        tok = returnCounterexample.FailingReturn.tok;
+        if (tok.filename == assertion.tok.filename) {
+          result.Add(returnCounterexample.FailingReturn.tok.GetLspRange());
+        }
+      }
+
+      ImmediatelyRelatedRanges = result;
+      return this;
+    }
+
+    private AssertionNodeDiagnostic WithDynamicallyRelatedChanges() {
+      // Ranges that should highlight when stepping on one error.
+      if (assertion == null) {
+        DynamicallyRelatedRanges = new();
+        return this;
+      }
+      var result = new List<Range>();
+      if (counterExample is CallCounterexample callCounterexample) {
+        result.Add(callCounterexample.FailingRequires.tok.GetLspRange());
+      }
+      DynamicallyRelatedRanges = result;
+      return this;
     }
 
     public override void RenderInto(LineVerificationStatus[] perLineDiagnostics, bool contextHasErrors = false,
@@ -560,10 +616,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     private AssertCmd? assertion;
     private Counterexample? counterExample;
 
-    /// <summary>
-    /// Which assertion batch this assertion was taken from in its implementation node
-    /// </summary>
-    public int AssertionBatchIndex { get; init; }
 
     public AssertCmd? GetAssertion() {
       return assertion;

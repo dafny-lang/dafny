@@ -6,6 +6,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -344,9 +345,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           int priority = GetVerificationPriority(implementation.tok);
 
           if (priority > 0 && implementation.Priority < priority) {
-            implementation.Attributes =
-              new QKeyValue(implementation.tok, "priority", new List<object>() { new Boogie.LiteralExpr(implementation.tok, BigNum.FromInt(priority)) },
-              implementation.Attributes);
+            implementation.Attributes.AddLast(
+              new QKeyValue(
+                implementation.tok,
+                "priority",
+                new List<object>() {
+                  new Boogie.LiteralExpr(implementation.tok, BigNum.FromInt(priority))
+                }, null));
           }
 
           var targetMethodNode = GetTargetMethodNode(implementation, out var oldImplementationNode, true);
@@ -387,7 +392,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           if (dafnyDocument.LoadCanceled) {
             return;
           }
-          diagnosticPublisher.PublishVerificationDiagnostics(dafnyDocument);
+          diagnosticPublisher.PublishVerificationDiagnostics(document);
         }
       }
 
@@ -491,6 +496,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             var assertionBatchIndex = implementationNode.GetNewAssertionBatchCount();
             var assertionBatchTime = (int)result.runTime.TotalMilliseconds;
             var assertionBatchResourceCount = result.resourceCount;
+            // TODO: Add assertion batches directly instead of indirectly
             implementationNode.AddAssertionBatchTime(assertionBatchTime);
             implementationNode.AddAssertionBatchResourceCount(assertionBatchResourceCount);
 
@@ -527,11 +533,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
               ) {
                 StatusVerification = status,
                 StatusCurrent = CurrentStatus.Current,
-                RelatedRanges = relatedRanges,
-                AssertionBatchIndex = assertionBatchIndex
+                RelatedRanges = relatedRanges.ToImmutableList(),
+                AssertionBatchIndex = assertionBatchIndex,
               }.WithDuration(implementationNode.StartTime, assertionBatchTime)
-                .WithAssertion(assertCmd)
-                .WithCounterExample(counterexample);
+                .WithAssertionAndCounterExample(assertCmd, counterexample);
               // Add this diagnostics as the new one to display once the implementation is fully verified
               implementationNode.AddNewChild(nodeDiagnostic);
               // Update any previous pending "verifying" diagnostic as well so that they are updated in real-time

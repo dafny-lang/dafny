@@ -57,7 +57,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         Diagnostics = errors,
         NumberOfResolutionErrors = document.ResolutionSucceeded == false ? currentDiagnostics.Count() : 0,
         LinesCount = Regex.Matches(document.Text.Text, "\r?\n").Count + 1,
-        PerNodeDiagnostic = document.VerificationNodeDiagnostic.Children.ToArray()
+        PerNodeDiagnostic = document.VerificationNodeDiagnostic.Children.Select(child => child.GetCopyForNotification()).ToArray()
       };
       verificationDiagnosticsParams.RecomputePerLineDiagnostics();
       if (verificationDiagnosticsParams.PerLineDiagnostic.Length > 0) {

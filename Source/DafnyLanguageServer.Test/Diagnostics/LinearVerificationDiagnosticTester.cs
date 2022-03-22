@@ -32,7 +32,7 @@ public abstract class LinearVerificationDiagnosticTester : ClientBasedLanguageSe
 
   public static Dictionary<LineVerificationStatus, string> LineVerificationStatusToString = new() {
     { LineVerificationStatus.Unknown, "   " },
-    { LineVerificationStatus.Scheduled, " s " },
+    { LineVerificationStatus.Scheduled, " . " },
     { LineVerificationStatus.Verifying, " S " },
     { LineVerificationStatus.VerifiedObsolete, " I " },
     { LineVerificationStatus.VerifiedVerifying, " $ " },
@@ -203,9 +203,29 @@ public abstract class LinearVerificationDiagnosticTester : ClientBasedLanguageSe
       ApplyChange(ref documentItem, range, inserted);
       traces.AddRange(await GetAllLineVerificationDiagnostics(documentItem));
     }
-    var expected = RenderTrace(traces, code);
-    AssertWithDiff.Equal(codeAndTrace, expected);
+    var traceObtained = RenderTrace(traces, code);
+    AssertWithDiff.Equal(codeAndTrace, AcceptQuestionMarks(traceObtained, codeAndTrace));
+  }
 
+  // Finds all the "?" at the beginning in expected and replace the characters at the same position in traceObtained
+  // by a question mark, so that we don't care what is verified first.
+  // Do this only if lengths are the same
+  public string AcceptQuestionMarks(string traceObtained, string expected) {
+    if (traceObtained.Length != expected.Length) {
+      return traceObtained;
+    }
+
+    var startOfLine = true;
+    var toFindRegex = new Regex(@"(?<=(?:^|\n)[^:]*)\?");
+    var matches = toFindRegex.Matches(expected);
+    var pattern = "";
+    for (var matchIndex = 0; matchIndex < matches.Count; matchIndex++) {
+      pattern += (pattern == "" ? "" : "|")
+                 + (@"^(?<=[\S\s]{" + matches[matchIndex].Index + @"}).");
+    }
+
+    var toReplaceRegex = new Regex(pattern);
+    return toReplaceRegex.Replace(traceObtained, "?");
   }
 }
 

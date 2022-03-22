@@ -23,36 +23,36 @@ public class SimpleLinearVerificationDiagnosticTester : LinearVerificationDiagno
   [TestMethod, Timeout(MaxTestExecutionTimeMs)]
   public async Task EnsureVerificationDiagnosticsAreWorking() {
     await VerifyTrace(@"
-    : s  |  |  |  I  I  |  | :predicate Ok() {
-    : s  |  |  |  I  I  |  | :  true
-    : s  |  |  |  I  I  |  | :}
+    : .  |  |  |  I  I  |  | :predicate Ok() {
+    : .  |  |  |  I  I  |  | :  true
+    : .  |  |  |  I  I  |  | :}
     :    |  |  |  I  I  |  | :
-    : s  S [S][ ][I][I][S] | :method Test(x: bool) returns (i: int)
-    : s  S [=][=][-][-][~] | :   ensures i == 2
-    : s  S [S][ ][I][I][S] | :{
-    : s  S [S][ ][I][I][S] | :  if x {
-    : s  S [S][ ][I][I][S] | :    i := 2;
-    : s  S [=][=][-][-][~] | :  } else {
-    : s  S [S][ ]/!\[I][S] | :    i := 1; //Next1:   i := /; //Next2:    i := 2;
-    : s  S [S][ ][I][I][S] | :  }
-    : s  S [S][ ][I][I][S] | :}
+    : .  S [S][ ][I][I][S] | :method Test(x: bool) returns (i: int)
+    : .  S [=][=][-][-][~] | :   ensures i == 2
+    : .  S [S][ ][I][I][S] | :{
+    : .  S [S][ ][I][I][S] | :  if x {
+    : .  S [S][ ][I][I][S] | :    i := 2;
+    : .  S [=][=][-][-][~] | :  } else {
+    : .  S [S][ ]/!\[I][S] | :    i := 1; //Next1:   i := /; //Next2:    i := 2;
+    : .  S [S][ ][I][I][S] | :  }
+    : .  S [S][ ][I][I][S] | :}
     :    |  |  |  I  I  |  | :    
-    : s  |  |  |  I  I  |  | :predicate OkBis() {
-    : s  |  |  |  I  I  |  | :  false
-    : s  |  |  |  I  I  |  | :}");
+    : .  |  |  |  I  I  |  | :predicate OkBis() {
+    : .  |  |  |  I  I  |  | :  false
+    : .  |  |  |  I  I  |  | :}");
   }
   [TestMethod]
   public async Task EnsuresItWorksForSubsetTypes() {
     await VerifyTrace(@"
-:    |  | :
-:    |  | :ghost const maxId := 200;
-:    |  | :
-: s  |  | :predicate isIssueIdValid(issueId: int) {
-: s  |  | :  101 <= issueId < maxId
-: s  |  | :}
-:    |  | :
-: s  S  | :type IssueId = i : int | isIssueIdValid(i)
-: s  S  | :  witness 101 //Next1:   witness 99 //Next2:   witness 101 ");
+    |  |  I  I  |  | :
+ .  |  |  I  I  |  | :ghost const maxId := 200;
+    |  |  I  I  |  | :
+ .  |  |  I  I  |  | :predicate isIssueIdValid(issueId: int) {
+ .  |  |  I  I  | [=]:  101 <= issueId < maxId
+ .  |  |  I  I  |  | :}
+    |  |  I  I  |  | :
+ .  S  |  I  .  S [=]:type IssueId = i : int | isIssueIdValid(i)
+ .  S  |  I  .  S [=]:  witness 101 //Next1:   witness 99 //Next2:   witness 101 ");
   }
 
   [TestMethod]
@@ -65,6 +65,18 @@ predicate F(i: int) {
 method H()
   ensures F(1)
 {
-}");
+}".Substring(1));
+  }
+
+  [TestMethod]
+  public async Task EnsuresEditingChangesPriority() {
+    await VerifyTrace(@"
+                |  |  I  I  $  |  |  |  I  $  $             :
+ .  .  S  S  S  |  |  I  I  $  |  |  |  I  $  $ [S][ ][ ][ ]:method {:priority 5} A1() {
+ .  .  S  S  |  |  |  I  I  $  |  |  |  I  $  $ [=][=][=][=]:  assert 1 == 1; //Next2:  assert 1 == 2;
+ .  .  S  S  S  |  |  I  I  $  |  |  |  I  $  $ [S][ ][ ][ ]:}
+ .  S  S  S  S  S  |  I  $  $  $ [S][ ][I][I][S][S][S][S][ ]:method {:priority 1} A2() {
+ .  S  S  |  |  |  |  I  $  $  $ [=][=][-][-][~][~][~][=][=]:  assert 1 == 1; //Next1:  assert 1 == 2;
+ .  S  S  S  S  S  |  I  $  $  $ [S][ ][I][I][S][S][S][S][ ]:}".Substring(1));
   }
 }
