@@ -71,7 +71,6 @@ namespace Microsoft.Dafny {
     public Server(ExecutionEngine engine) {
       this.engine = engine;
       this.running = true;
-      ExecutionEngine.printer = new DafnyConsolePrinter(engine.Options);
       SetupConsole();
     }
 

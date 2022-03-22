@@ -1,6 +1,7 @@
 # Upcoming
 
 - fix: Miscompilation due to incorrect parenthesization in C# output for casts. (#1908)
+- fix: Populate TestResult.ResourceCount in `/verificationLogger:csv` output correctly when verification condition splitting occurs (e.g. when using `/vcsSplitOnEveryAssert`).
 
 # 3.5.0
 
