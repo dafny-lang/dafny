@@ -41,7 +41,7 @@ lemma {:timeLimit 3} SquareRoot2NotRational(p: nat, q: nat)
 }".TrimStart();
 
     protected const string NeverVerifies = @"
-lemma {:_neverVerify} HasSlowAttribute(p: nat, q: nat)
+lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
   ensures true
 {
 }";

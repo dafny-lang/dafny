@@ -4,9 +4,6 @@ using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
 
-  /// <summary>
-  /// An extension of DafnyOptions
-  /// </summary>
   public class TestGenerationOptions {
 
     public bool WarnDeadCode = false;

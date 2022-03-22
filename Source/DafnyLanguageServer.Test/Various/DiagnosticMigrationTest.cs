@@ -111,7 +111,7 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
     var verificationDiagnostics = await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
     Assert.AreEqual(1, verificationDiagnostics.Length);
 
-    ApplyChange(ref documentItem, new Range(0, 7, 0, 7), "{:_neverVerify}");
+    ApplyChange(ref documentItem, new Range(0, 7, 0, 7), "{:neverVerify}");
     var resolutionDiagnostics1 = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     ApplyChange(ref documentItem, new Range(3, 9, 3, 10), "2");
     var resolutionDiagnostics2 = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);

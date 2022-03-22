@@ -129,19 +129,9 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
     public async Task ChangeDocumentCancelsPreviousOpenAndChangeVerification() {
       var source = @"
-lemma {:_neverVerify} SquareRoot2NotRational(p: nat, q: nat)
-  requires p > 0 && q > 0
-  ensures (p * p) !=  2 * (q * q)
-{ 
-  if (p * p) ==  2 * (q * q) {
-    calc == {
-      (2 * q - p) * (2 * q - p);
-      4 * q * q + p * p - 4 * p * q;
-      {assert 2 * q * q == p * p;}
-      2 * q * q + 2 * p * p - 4 * p * q;
-      2 * (p - q) * (p - q);
-    }
-  }".TrimStart();
+lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
+  ensures true
+{".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationTokenWithHighTimeout);
       // The original document contains a syntactic error.
@@ -149,7 +139,7 @@ lemma {:_neverVerify} SquareRoot2NotRational(p: nat, q: nat)
       await AssertNoDiagnosticsAreComing();
       Assert.AreEqual(1, initialLoadDiagnostics.Length);
 
-      ApplyChange(ref documentItem, new Range((12, 3), (12, 3)), "\n}");
+      ApplyChange(ref documentItem, new Range((2, 1), (2, 1)), "\n}");
 
       // Wait for resolution diagnostics now, so they don't get cancelled.
       // After this we still have slow verification diagnostics in the queue.
@@ -157,7 +147,7 @@ lemma {:_neverVerify} SquareRoot2NotRational(p: nat, q: nat)
       Assert.AreEqual(0, parseErrorFixedDiagnostics.Length);
 
       // Cancel the slow verification and start a fast verification
-      ApplyChange(ref documentItem, new Range((0, 0), (13, 1)), "function GetConstant(): int ensures false { 1 }");
+      ApplyChange(ref documentItem, new Range((0, 0), (3, 1)), "function GetConstant(): int ensures false { 1 }");
 
       var parseErrorStillFixedDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout, documentItem);
       Assert.AreEqual(0, parseErrorStillFixedDiagnostics.Length);
