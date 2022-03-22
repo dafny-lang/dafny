@@ -1,4 +1,5 @@
 ByMethod.dfy(38,18): Error: This loop invariant might not be maintained by the loop.
+ByMethod.dfy(38,18): Related message: loop invariant violation
 ByMethod.dfy(42,4): Error: A postcondition might not hold on this return path.
 ByMethod.dfy(35,7): Related location: This is the postcondition that might not hold.
 ByMethod.dfy(47,11): Error: A postcondition might not hold on this return path.
