@@ -277,60 +277,60 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     public virtual void RenderInto(LineVerificationStatus[] perLineDiagnostics, bool contextHasErrors = false, bool contextIsPending = false, Range? otherRange = null) {
       Range range = otherRange ?? Range;
       var isSingleLine = range.Start.Line == range.End.Line;
+      LineVerificationStatus targetStatus = StatusVerification switch {
+        VerificationStatus.Unknown => StatusCurrent switch {
+          CurrentStatus.Current => LineVerificationStatus.Unknown,
+          CurrentStatus.Obsolete => LineVerificationStatus.Scheduled,
+          CurrentStatus.Verifying => LineVerificationStatus.Verifying,
+          _ => throw new ArgumentOutOfRangeException()
+        },
+        // let's be careful to no display "Verified" for a range if the context does not have errors and is pending
+        // because there might be other errors on the same range.
+        VerificationStatus.Verified => StatusCurrent switch {
+          CurrentStatus.Current => contextHasErrors
+            ? isSingleLine // Sub-implementations that are verified do not count
+              ? LineVerificationStatus.ErrorRangeAssertionVerified
+              : LineVerificationStatus.ErrorRange
+            : contextIsPending && !isSingleLine
+              ? LineVerificationStatus.Unknown
+              : LineVerificationStatus.Verified,
+          CurrentStatus.Obsolete => contextHasErrors
+            ? isSingleLine
+              ? LineVerificationStatus.ErrorRangeAssertionVerifiedObsolete
+              : LineVerificationStatus.ErrorRangeObsolete
+            : LineVerificationStatus.VerifiedObsolete,
+          CurrentStatus.Verifying => contextHasErrors
+            ? isSingleLine
+              ? LineVerificationStatus.ErrorRangeAssertionVerifiedVerifying
+              : LineVerificationStatus.ErrorRangeVerifying
+            : LineVerificationStatus.VerifiedVerifying,
+          _ => throw new ArgumentOutOfRangeException()
+        },
+        // We don't display inconclusive on the gutter (user should focus on errors),
+        // We display an error range instead
+        VerificationStatus.Inconclusive => StatusCurrent switch {
+          CurrentStatus.Current => LineVerificationStatus.ErrorRange,
+          CurrentStatus.Obsolete => LineVerificationStatus.ErrorRangeObsolete,
+          CurrentStatus.Verifying => LineVerificationStatus.ErrorRangeVerifying,
+          _ => throw new ArgumentOutOfRangeException()
+        },
+        VerificationStatus.Error => StatusCurrent switch {
+          CurrentStatus.Current => isSingleLine ? LineVerificationStatus.Error : LineVerificationStatus.ErrorRange,
+          CurrentStatus.Obsolete => isSingleLine
+            ? LineVerificationStatus.ErrorObsolete
+            : LineVerificationStatus.ErrorRangeObsolete,
+          CurrentStatus.Verifying => isSingleLine
+            ? LineVerificationStatus.ErrorVerifying
+            : LineVerificationStatus.ErrorRangeVerifying,
+          _ => throw new ArgumentOutOfRangeException()
+        },
+        _ => throw new ArgumentOutOfRangeException()
+      };
       for (var line = range.Start.Line; line <= range.End.Line; line++) {
         if (line < 0 || perLineDiagnostics.Length <= line) {
           // An error occurred? We don't want null pointer exceptions anyway
           continue;
         }
-        LineVerificationStatus targetStatus = StatusVerification switch {
-          VerificationStatus.Unknown => StatusCurrent switch {
-            CurrentStatus.Current => LineVerificationStatus.Unknown,
-            CurrentStatus.Obsolete => LineVerificationStatus.Scheduled,
-            CurrentStatus.Verifying => LineVerificationStatus.Verifying,
-            _ => throw new ArgumentOutOfRangeException()
-          },
-          // let's be careful to no display "Verified" for a range if the context does not have errors and is pending
-          // because there might be other errors on the same range.
-          VerificationStatus.Verified => StatusCurrent switch {
-            CurrentStatus.Current => contextHasErrors
-              ? isSingleLine // Sub-implementations that are verified do not count
-                ? LineVerificationStatus.ErrorRangeAssertionVerified
-                : LineVerificationStatus.ErrorRange
-              : contextIsPending && !isSingleLine
-                ? LineVerificationStatus.Unknown
-                : LineVerificationStatus.Verified,
-            CurrentStatus.Obsolete => contextHasErrors
-              ? isSingleLine
-                ? LineVerificationStatus.ErrorRangeAssertionVerifiedObsolete
-                : LineVerificationStatus.ErrorRangeObsolete
-              : LineVerificationStatus.VerifiedObsolete,
-            CurrentStatus.Verifying => contextHasErrors
-              ? isSingleLine
-                ? LineVerificationStatus.ErrorRangeAssertionVerifiedVerifying
-                : LineVerificationStatus.ErrorRangeVerifying
-              : LineVerificationStatus.VerifiedVerifying,
-            _ => throw new ArgumentOutOfRangeException()
-          },
-          // We don't display inconclusive on the gutter (user should focus on errors),
-          // We display an error range instead
-          VerificationStatus.Inconclusive => StatusCurrent switch {
-            CurrentStatus.Current => LineVerificationStatus.ErrorRange,
-            CurrentStatus.Obsolete => LineVerificationStatus.ErrorRangeObsolete,
-            CurrentStatus.Verifying => LineVerificationStatus.ErrorRangeVerifying,
-            _ => throw new ArgumentOutOfRangeException()
-          },
-          VerificationStatus.Error => StatusCurrent switch {
-            CurrentStatus.Current => isSingleLine ? LineVerificationStatus.Error : LineVerificationStatus.ErrorRange,
-            CurrentStatus.Obsolete => isSingleLine
-              ? LineVerificationStatus.ErrorObsolete
-              : LineVerificationStatus.ErrorRangeObsolete,
-            CurrentStatus.Verifying => isSingleLine
-              ? LineVerificationStatus.ErrorVerifying
-              : LineVerificationStatus.ErrorRangeVerifying,
-            _ => throw new ArgumentOutOfRangeException()
-          },
-          _ => throw new ArgumentOutOfRangeException()
-        };
         if ((int)perLineDiagnostics[line] < (int)(targetStatus)) {
           perLineDiagnostics[line] = targetStatus;
         }
@@ -341,6 +341,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
           contextIsPending ||
             StatusCurrent == CurrentStatus.Obsolete ||
           StatusCurrent == CurrentStatus.Verifying);
+      }
+      // Ensure that if this is an ImplementationNodeDiagnostic, and children "painted" verified,
+      // and this node is still pending
+      // at least the first line should show pending.
+      if (StatusCurrent == CurrentStatus.Verifying &&
+          perLineDiagnostics.ToList().GetRange(range.Start.Line, range.End.Line - range.Start.Line + 1).All(
+            line => line == LineVerificationStatus.Verified)) {
+        perLineDiagnostics[range.Start.Line] = targetStatus;
       }
     }
 
@@ -606,8 +614,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     public override void RenderInto(LineVerificationStatus[] perLineDiagnostics, bool contextHasErrors = false,
       bool contextIsPending = false, Range? otherRange = null) {
       base.RenderInto(perLineDiagnostics, contextHasErrors, contextIsPending, otherRange);
-      foreach (var range in ImmediatelyRelatedRanges) {
-        base.RenderInto(perLineDiagnostics, contextHasErrors, contextIsPending, range);
+      if (StatusVerification == VerificationStatus.Error) {
+        foreach (var range in ImmediatelyRelatedRanges) {
+          base.RenderInto(perLineDiagnostics, contextHasErrors, contextIsPending, range);
+        }
       }
     }
 

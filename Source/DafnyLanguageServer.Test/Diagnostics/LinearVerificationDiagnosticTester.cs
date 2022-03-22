@@ -84,11 +84,12 @@ public abstract class LinearVerificationDiagnosticTester : ClientBasedLanguageSe
   /// <returns></returns>
   public static string ExtractCode(string tracesAndCode) {
     var i = 0;
-    while (tracesAndCode[i] != ':' && tracesAndCode[i] != '\n') {
+    while (tracesAndCode[i] != ':' && tracesAndCode[i] != '\n' && tracesAndCode[i] != '/') {
       i++;
     }
 
-    if (tracesAndCode[i] == '\n') {
+    // For the first time without trace
+    if (tracesAndCode[i] == '\n' || tracesAndCode[i] == '/') {
       return tracesAndCode;
     }
     var pattern = $"(?<newline>^|\r?\n).{{{i}}}:(?<line>.*)";
@@ -137,17 +138,28 @@ public abstract class LinearVerificationDiagnosticTester : ClientBasedLanguageSe
   }
 
   /// <summary>
-  /// Given some code, will emit the edit corresponding to remove the regular expression
-  /// .*?//NextN?:
+  /// Given some code, will emit the edit like this:
+  /// ```
+  /// sentence //Next1:sentence2 //Next2:sentence3
+  /// ^^^^^^^^^^^^^^^^^ remove
+  /// ```
+  /// ```
+  /// sentence //Next1:\nsentence2 //Next2:sentence3
+  /// ^^^^^^^^^^^^^^^^^^^ replace with newline
+  /// ```
+  /// ```
+  /// sentence //Remove1:sentence2 //Next2:sentence3
+  /// ^^^^^^^^^^^^^^^^^^^ remove, including the newline before sentence if any
+  /// ```
   /// </summary>
   /// <param name="code">The original code with the //Next: comments or //NextN:</param>
   /// <returns></returns>
-  public System.Tuple<string, List<System.Tuple<Range, string>>> ExtractCodeAndChanges(string code) {
+  public Tuple<string, List<Tuple<Range, string>>> ExtractCodeAndChanges(string code) {
     var lineMatcher = new Regex(@"\r?\n");
-    var matcher = new Regex(@"(?<previousNewline>^|\r?\n)(?<toRemove>.*?//Next(?<id>\d*):)");
+    var matcher = new Regex(@"(?<previousNewline>^|\r?\n)(?<toRemove>.*?//(?<newtOrRemove>Next|Remove)(?<id>\d*):(?<newline>\\n)?)");
     var originalCode = code;
     var matches = matcher.Matches(code);
-    var changes = new List<System.Tuple<Range, string>>() { };
+    var changes = new List<Tuple<Range, string>>();
     while (matches.Count > 0) {
       var firstChange = 0;
       Match? firstChangeMatch = null;
@@ -158,6 +170,9 @@ public abstract class LinearVerificationDiagnosticTester : ClientBasedLanguageSe
             firstChange = intValue;
             firstChangeMatch = matches[i];
           }
+        } else {
+          firstChangeMatch = matches[i];
+          break;
         }
       }
 
@@ -165,8 +180,11 @@ public abstract class LinearVerificationDiagnosticTester : ClientBasedLanguageSe
         break;
       }
 
-      var startRemove = firstChangeMatch.Groups["toRemove"].Index;
-      var endRemove = startRemove + firstChangeMatch.Groups["toRemove"].Value.Length;
+      var startRemove =
+        firstChangeMatch.Groups["newtOrRemove"].Value == "Next" ?
+        firstChangeMatch.Groups["toRemove"].Index :
+        firstChangeMatch.Groups["previousNewline"].Index;
+      var endRemove = firstChangeMatch.Groups["toRemove"].Index + firstChangeMatch.Groups["toRemove"].Value.Length;
 
       Position IndexToPosition(int index) {
         var before = code.Substring(0, index);
@@ -183,7 +201,7 @@ public abstract class LinearVerificationDiagnosticTester : ClientBasedLanguageSe
 
       // For now, simple: Remove the line
       changes.Add(new Tuple<Range, string>(
-        new Range(IndexToPosition(startRemove), IndexToPosition(endRemove)), ""));
+        new Range(IndexToPosition(startRemove), IndexToPosition(endRemove)), firstChangeMatch.Groups["newline"].Success ? "\n" : ""));
       code = code.Substring(0, startRemove) + code.Substring(endRemove);
       matches = matcher.Matches(code);
     }
@@ -192,7 +210,7 @@ public abstract class LinearVerificationDiagnosticTester : ClientBasedLanguageSe
   }
 
   public async Task VerifyTrace(string codeAndTrace) {
-    codeAndTrace = codeAndTrace.StripMargin();
+    codeAndTrace = codeAndTrace[0] == '\n' ? codeAndTrace.Substring(1) : codeAndTrace;
     var codeAndChanges = ExtractCode(codeAndTrace);
     var (code, changes) = ExtractCodeAndChanges(codeAndChanges);
     var documentItem = CreateTestDocument(code);
@@ -224,18 +242,11 @@ public abstract class LinearVerificationDiagnosticTester : ClientBasedLanguageSe
                  + (@"^(?<=[\S\s]{" + matches[matchIndex].Index + @"}).");
     }
 
+    if (pattern == "") {
+      return traceObtained;
+    }
+
     var toReplaceRegex = new Regex(pattern);
     return toReplaceRegex.Replace(traceObtained, "?");
-  }
-}
-
-public static class StringExtensions {
-  public static string StripMargin(this string s) {
-    if (!Regex.Match(s, @"(?:^\r?\n?)[ \t]*:").Success) {
-      return s;
-    }
-    return Regex.Replace(s, @"(?:(?<init>^\r?\n?)|(?<newline>\r?\n))[ \t]*:", match =>
-      match.Groups["init"].Success ? "" : "\n"
-    );
   }
 }
