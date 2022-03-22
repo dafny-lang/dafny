@@ -78,11 +78,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       );
     }
 
-    public async Task<DafnyDocument> LoadAsync(TextDocumentItem textDocument, CancellationToken cancellationToken) {
+    public Task<DafnyDocument> LoadAsync(TextDocumentItem textDocument, CancellationToken cancellationToken) {
 #pragma warning disable CS1998
-      return await await Task.Factory.StartNew(async () => LoadInternal(textDocument, cancellationToken), cancellationToken,
+      // By using `async`, any OperationCancelledExceptions are converted to a cancelled Task.
+      return Task.Factory.StartNew(async () => LoadInternal(textDocument, cancellationToken), cancellationToken,
+        TaskCreationOptions.None, LargeStackScheduler).Unwrap();
 #pragma warning restore CS1998
-        TaskCreationOptions.None, LargeStackScheduler);
     }
 
     private DafnyDocument LoadInternal(TextDocumentItem textDocument, CancellationToken cancellationToken) {
@@ -140,10 +141,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       );
     }
 
-    public async Task<DafnyDocument> VerifyAsync(DafnyDocument document, CancellationToken cancellationToken) {
+    public Task<DafnyDocument> VerifyAsync(DafnyDocument document, CancellationToken cancellationToken) {
 
-      return await await Task.Factory.StartNew(() => VerifyInternalAsync(document, cancellationToken), cancellationToken,
-        TaskCreationOptions.None, LargeStackScheduler);
+      return Task.Factory.StartNew(() => VerifyInternalAsync(document, cancellationToken), cancellationToken,
+        TaskCreationOptions.None, LargeStackScheduler).Unwrap();
     }
 
     private async Task<DafnyDocument> VerifyInternalAsync(DafnyDocument document, CancellationToken cancellationToken) {

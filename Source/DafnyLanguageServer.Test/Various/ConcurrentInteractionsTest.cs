@@ -129,7 +129,7 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
     public async Task ChangeDocumentCancelsPreviousOpenAndChangeVerification() {
       var source = @"
-lemma {:slow} SquareRoot2NotRational(p: nat, q: nat)
+lemma {:_neverVerify} SquareRoot2NotRational(p: nat, q: nat)
   requires p > 0 && q > 0
   ensures (p * p) !=  2 * (q * q)
 { 
