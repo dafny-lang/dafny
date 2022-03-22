@@ -58,14 +58,14 @@ public class SimpleLinearVerificationDiagnosticTester : LinearVerificationDiagno
   [TestMethod]
   public async Task EnsureItWorksForPostconditionsRelatedOutside() {
     await VerifyTrace(@"
-predicate F(i: int) {
-  false // Should not be highlighted in gutter.
-}
-
-method H()
-  ensures F(1)
-{
-}");
+ .  |  |  | :predicate F(i: int) {
+ .  |  |  | :  false // Should not be highlighted in gutter.
+ .  |  |  | :}
+    |  |  | :
+ .  S [S][ ]:method H()
+ .  S [=][=]:  ensures F(1)
+ .  S [=][=]:{
+ .  S [S][ ]:}");
   }
 
   [TestMethod]

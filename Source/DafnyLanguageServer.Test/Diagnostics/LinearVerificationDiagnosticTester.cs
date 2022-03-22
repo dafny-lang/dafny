@@ -84,12 +84,12 @@ public abstract class LinearVerificationDiagnosticTester : ClientBasedLanguageSe
   /// <returns></returns>
   public static string ExtractCode(string tracesAndCode) {
     var i = 0;
-    while (tracesAndCode[i] != ':' && tracesAndCode[i] != '\n' && tracesAndCode[i] != '/') {
+    while (tracesAndCode[i] != ':' && tracesAndCode[i] != '\n' && tracesAndCode[i] != '/' && tracesAndCode[i] != '(') {
       i++;
     }
 
     // For the first time without trace
-    if (tracesAndCode[i] == '\n' || tracesAndCode[i] == '/') {
+    if (tracesAndCode[i] != ':') {
       return tracesAndCode;
     }
     var pattern = $"(?<newline>^|\r?\n).{{{i}}}:(?<line>.*)";
