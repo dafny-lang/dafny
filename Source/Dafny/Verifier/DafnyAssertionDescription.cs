@@ -432,6 +432,28 @@ public class DafnyTerminationDescription : DafnyAssertionDescription {
   }
 }
 
+public class DafnyDecreasesBoundedBelowDescription : DafnyAssertionDescription {
+  public override string SuccessDescription =>
+    $"decreases clause{component} is bounded below by {zeroStr}";
+
+  public override string FailureDescription =>
+    $"decreases clause{component} must be bounded below by {zeroStr}{suffix}";
+
+  public override string ShortDescription => "bounded decreases clause";
+
+  private string component => N == 1 ? "" : $" (component {k})";
+  private readonly string zeroStr;
+  private readonly string suffix;
+  private readonly int N, k;
+
+  public DafnyDecreasesBoundedBelowDescription(int N, int k, string zeroStr, string suffix) {
+    this.N = N;
+    this.k = k;
+    this.zeroStr = zeroStr;
+    this.suffix = suffix;
+  }
+}
+
 public class DafnyModifiableDescription : DafnyAssertionDescription {
   public override string SuccessDescription =>
     $"{description} is in the enclosing context's modifies clause";
@@ -485,6 +507,16 @@ public class DafnyCompleteMatchDescription : DafnyAssertionDescription {
   }
 }
 
+public class DafnyCompleteAlternativeDescription : DafnyAssertionDescription {
+  public override string SuccessDescription =>
+    $"alternative cases cover all possibilties";
+
+  public override string FailureDescription =>
+    $"alternative cases fail to cover all possibilties";
+
+  public override string ShortDescription => "alternative complete";
+}
+
 public class DafnyPatternShapeDescription : DafnyAssertionDescription {
   public override string SuccessDescription =>
     $"RHS will always match the pattern '{ctorName}'";
@@ -534,6 +566,7 @@ public class DafnyDestructorValidDescription : DafnyAssertionDescription {
     this.ctorNames = ctorNames;
   }
 }
+
 
 //// Misc constraints
 
@@ -838,5 +871,20 @@ public class DafnyAssignmentShrinksDescription : DafnyAssertionDescription {
 
   public DafnyAssignmentShrinksDescription(string fieldName) {
     this.fieldName = fieldName;
+  }
+}
+
+public class DafnyBoilerplateTripleDescription : DafnyAssertionDescription {
+  public override string SuccessDescription =>
+    $"error is impossible: {msg}";
+
+  public override string FailureDescription => msg;
+
+  public override string ShortDescription => "boilerplate triple";
+
+  private readonly string msg;
+
+  public DafnyBoilerplateTripleDescription(string msg) {
+    this.msg = msg;
   }
 }

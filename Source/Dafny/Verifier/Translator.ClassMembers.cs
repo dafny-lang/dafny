@@ -661,7 +661,7 @@ namespace Microsoft.Dafny {
             Boogie.Expr wh = GetWhereClause(e.tok, etran.TrExpr(e), e.Type, etran.Old, ISALLOC, true);
             if (wh != null) {
               var desc = new DafnyAllocatedDescription("default value", "in the two-state lemma's previous state");
-              builder.Add(AssertDesc(e.tok, wh, desc));
+              builder.Add(Assert(e.tok, wh, desc));
             }
           }
         }
@@ -1190,7 +1190,7 @@ namespace Microsoft.Dafny {
         bool splitHappened;  // we actually don't care
         foreach (var s in TrSplitExpr(postcond, etran, false, out splitHappened)) {
           if (s.IsChecked) {
-            builder.Add(AssertDesc(m.tok, s.E, new DafnyEnsuresStrongerDescription()));
+            builder.Add(Assert(m.tok, s.E, new DafnyEnsuresStrongerDescription()));
           }
         }
       }
@@ -1211,7 +1211,7 @@ namespace Microsoft.Dafny {
         bool splitHappened;  // we actually don't care
         foreach (var s in TrSplitExpr(req.E, etran, false, out splitHappened)) {
           if (s.IsChecked) {
-            builder.Add(AssertDesc(m.tok, s.E, new DafnyRequiresWeakerDescription()));
+            builder.Add(Assert(m.tok, s.E, new DafnyRequiresWeakerDescription()));
           }
         }
       }
@@ -1279,7 +1279,7 @@ namespace Microsoft.Dafny {
       //   as "false".
       bool allowNoChange = N == decrCountT && decrCountT <= decrCountC;
       var decrChk = DecreasesCheck(toks, types0, types1, callee, caller, null, null, allowNoChange, false);
-      builder.Add(AssertDesc(original.Tok, decrChk, new DafnyTraitDecreasesDescription(original.WhatKind)));
+      builder.Add(Assert(original.Tok, decrChk, new DafnyTraitDecreasesDescription(original.WhatKind)));
     }
 
     private void AddMethodOverrideSubsetChk(Method m, BoogieStmtListBuilder builder, ExpressionTranslator etran, List<Variable> localVariables, Dictionary<IVariable, Expression> substMap) {
@@ -1322,7 +1322,7 @@ namespace Microsoft.Dafny {
       Boogie.Expr consequent2 = InRWClause(tok, o, f, traitFrameExps, etran, null, null);
       Boogie.Expr q = new Boogie.ForallExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar },
         Boogie.Expr.Imp(Boogie.Expr.And(ante, oInCallee), consequent2));
-      builder.Add(AssertDesc(tok, q, new DafnyTraitFrameDescription(true), kv));
+      builder.Add(Assert(tok, q, new DafnyTraitFrameDescription(true), kv));
     }
 
     /// <summary>

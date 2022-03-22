@@ -102,7 +102,7 @@ namespace Microsoft.Dafny {
             } else if (split.IsChecked) {
               var yieldToken = new NestedToken(s.Tok, split.E.tok);
               var desc = new DafnyYieldEnsuresDescription();
-              builder.Add(AssertNSDesc(yieldToken, split.E, desc, stmt.Tok, null));
+              builder.Add(AssertNS(yieldToken, split.E, desc, stmt.Tok, null));
             }
           }
           builder.Add(TrAssumeCmd(stmt.Tok, yeEtran.TrExpr(p.E)));
@@ -307,7 +307,7 @@ namespace Microsoft.Dafny {
       } else if (stmt is AlternativeStmt) {
         AddComment(builder, stmt, "alternative statement");
         var s = (AlternativeStmt)stmt;
-        var elseCase = Assert(s.Tok, Bpl.Expr.False, "alternative cases fail to cover all possibilties");
+        var elseCase = Assert(s.Tok, Bpl.Expr.False, new DafnyCompleteAlternativeDescription());
         TrAlternatives(s.Alternatives, elseCase, null, builder, locals, etran, stmt.IsGhost);
 
       } else if (stmt is WhileStmt whileStmt) {
@@ -548,14 +548,14 @@ namespace Microsoft.Dafny {
         if (!splitHappened) {
           var tok = enclosingToken == null ? stmt.Expr.tok : new NestedToken(enclosingToken, stmt.Expr.tok);
           var desc = new DafnyAssertStatementDescription(errorMessage);
-          (proofBuilder ?? b).Add(AssertDesc(tok, etran.TrExpr(stmt.Expr), desc, stmt.Tok,
+          (proofBuilder ?? b).Add(Assert(tok, etran.TrExpr(stmt.Expr), desc, stmt.Tok,
             etran.TrAttributes(stmt.Attributes, null)));
         } else {
           foreach (var split in ss) {
             if (split.IsChecked) {
               var tok = enclosingToken == null ? split.E.tok : new NestedToken(enclosingToken, split.E.tok);
               var desc = new DafnyAssertStatementDescription(errorMessage);
-              (proofBuilder ?? b).Add(AssertNSDesc(tok, split.E, desc, stmt.Tok,
+              (proofBuilder ?? b).Add(AssertNS(tok, split.E, desc, stmt.Tok,
                 etran.TrAttributes(stmt.Attributes, null))); // attributes go on every split
             }
           }
@@ -702,7 +702,7 @@ namespace Microsoft.Dafny {
               TrStmt_CheckWellformed(index, b, locals, etran, false);
               if (index.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
                 var desc = new DafnyPrefixEqualityLimitDescription();
-                b.Add(AssertNSDesc(index.tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(index)), desc));
+                b.Add(AssertNS(index.tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(index)), desc));
               }
             }
             TrStmt_CheckWellformed(CalcStmt.Rhs(stmt.Steps[i]), b, locals, etran, false);
@@ -711,11 +711,11 @@ namespace Microsoft.Dafny {
             // assert step:
             AddComment(b, stmt, "assert line" + i.ToString() + " " + (stmt.StepOps[i] ?? stmt.Op).ToString() + " line" + (i + 1).ToString());
             if (!splitHappened) {
-              b.Add(AssertNSDesc(stmt.Lines[i + 1].tok, etran.TrExpr(stmt.Steps[i]), new DafnyCalculationStepDescription()));
+              b.Add(AssertNS(stmt.Lines[i + 1].tok, etran.TrExpr(stmt.Steps[i]), new DafnyCalculationStepDescription()));
             } else {
               foreach (var split in ss) {
                 if (split.IsChecked) {
-                  b.Add(AssertNSDesc(stmt.Lines[i + 1].tok, split.E, new DafnyCalculationStepDescription()));
+                  b.Add(AssertNS(stmt.Lines[i + 1].tok, split.E, new DafnyCalculationStepDescription()));
                 }
               }
             }
@@ -770,7 +770,7 @@ namespace Microsoft.Dafny {
         String missingStr = stmt.Context.FillHole(new IdCtx(new KeyValuePair<string, DatatypeCtor>(missingCtor.Name, missingCtor))).AbstractAllHoles()
           .ToString();
         var desc = new DafnyCompleteMatchDescription("statement", missingStr);
-        b.Add(AssertDesc(stmt.Tok, Bpl.Expr.False, desc));
+        b.Add(Assert(stmt.Tok, Bpl.Expr.False, desc));
 
         Bpl.Expr guard = Bpl.Expr.Eq(source, r);
         ifCmd = new Bpl.IfCmd(stmt.Tok, guard, b.Collect(stmt.Tok), ifCmd, els);
@@ -849,7 +849,7 @@ namespace Microsoft.Dafny {
 
       // check lo <= hi
       if (lo != null && hi != null) {
-        builder.Add(AssertDesc(lo.tok, Bpl.Expr.Le(bLo, bHi), new DafnyForRangeBoundsDescription()));
+        builder.Add(Assert(lo.tok, Bpl.Expr.Le(bLo, bHi), new DafnyForRangeBoundsDescription()));
       }
       // check forall x :: lo <= x <= hi ==> Is(x, typ)
       {
@@ -867,7 +867,7 @@ namespace Microsoft.Dafny {
           locals.Add(xVar);
           builder.Add(new Bpl.HavocCmd(tok, new List<Bpl.IdentifierExpr>() { x }));
           builder.Add(new Bpl.AssumeCmd(tok, ForLoopBounds(x, bLo, bHi)));
-          builder.Add(AssertDesc(tok, cre, new DafnyForRangeAssignableDescription(desc)));
+          builder.Add(Assert(tok, cre, new DafnyForRangeAssignableDescription(desc)));
         }
       }
 
@@ -1025,7 +1025,7 @@ namespace Microsoft.Dafny {
           bool splitHappened;  // we actually don't care
           foreach (var split in TrSplitExpr(ens.E, etran, true, out splitHappened)) {
             if (split.IsChecked) {
-              definedness.Add(AssertDesc(split.E.tok, split.E, new DafnyForallPostDescription()));
+              definedness.Add(Assert(split.E.tok, split.E, new DafnyForallPostDescription()));
             }
           }
         }
@@ -1156,7 +1156,7 @@ namespace Microsoft.Dafny {
       TrStmt_CheckWellformed(lhs, definedness, locals, etran, false);
       Bpl.Expr obj, F;
       string description = GetObjFieldDetails(lhs, etran, out obj, out F);
-      definedness.Add(AssertDesc(lhs.tok, Bpl.Expr.SelectTok(lhs.tok, etran.TheFrame(lhs.tok), obj, F),
+      definedness.Add(Assert(lhs.tok, Bpl.Expr.SelectTok(lhs.tok, etran.TheFrame(lhs.tok), obj, F),
         new DafnyModifiableDescription(description)));
       if (s0.Rhs is ExprRhs) {
         var r = (ExprRhs)s0.Rhs;
@@ -1201,7 +1201,7 @@ namespace Microsoft.Dafny {
         var Rhs = ((ExprRhs)s0.Rhs).Expr;
         var rhs = etran.TrExpr(Substitute(Rhs, null, substMap));
         var rhsPrime = etran.TrExpr(Substitute(Rhs, null, substMapPrime));
-        definedness.Add(AssertDesc(s0.Tok,
+        definedness.Add(Assert(s0.Tok,
           Bpl.Expr.Or(
             Bpl.Expr.Or(Bpl.Expr.Neq(obj, objPrime), Bpl.Expr.Neq(F, FPrime)),
             Bpl.Expr.Eq(rhs, rhsPrime)),
@@ -1383,12 +1383,12 @@ namespace Microsoft.Dafny {
         var ss = TrSplitExpr(loopInv.E, etran, false, out splitHappened);
         if (!splitHappened) {
           var wInv = Bpl.Expr.Imp(w, etran.TrExpr(loopInv.E));
-          invariants.Add(AssertDesc(loopInv.E.tok, wInv, new DafnyLoopInvariantDescription(errorMessage)));
+          invariants.Add(Assert(loopInv.E.tok, wInv, new DafnyLoopInvariantDescription(errorMessage)));
         } else {
           foreach (var split in ss) {
             var wInv = Bpl.Expr.Binary(split.E.tok, BinaryOperator.Opcode.Imp, w, split.E);
             if (split.IsChecked) {
-              invariants.Add(AssertDesc(split.E.tok, wInv, new DafnyLoopInvariantDescription(errorMessage)));  // TODO: it would be fine to have this use {:subsumption 0}
+              invariants.Add(Assert(split.E.tok, wInv, new DafnyLoopInvariantDescription(errorMessage)));  // TODO: it would be fine to have this use {:subsumption 0}
             } else {
               invariants.Add(TrAssumeCmd(split.E.tok, wInv));
             }
@@ -1414,7 +1414,7 @@ namespace Microsoft.Dafny {
             invariants.Add(TrAssumeCmd(s.Tok, tri.Expr));
           } else {
             Contract.Assert(tri.ErrorMessage != null);  // follows from BoilerplateTriple invariant
-            invariants.Add(Assert(s.Tok, tri.Expr, tri.ErrorMessage));
+            invariants.Add(Assert(s.Tok, tri.Expr, new DafnyBoilerplateTripleDescription(tri.ErrorMessage)));
           }
         }
         // add a free invariant which says that the heap hasn't changed outside of the modifies clause.
@@ -1497,7 +1497,7 @@ namespace Microsoft.Dafny {
           if (includeTerminationCheck) {
             AddComment(loopBodyBuilder, s, "loop termination check");
             Bpl.Expr decrCheck = DecreasesCheck(toks, types, types, decrs, oldBfs, loopBodyBuilder, " at end of loop iteration", false, false);
-            loopBodyBuilder.Add(AssertDesc(s.Tok, decrCheck, new DafnyTerminationDescription(s.InferredDecreases)));
+            loopBodyBuilder.Add(Assert(s.Tok, decrCheck, new DafnyTerminationDescription(s.InferredDecreases)));
           }
         }
       } else if (isBodyLessLoop) {
@@ -1819,7 +1819,7 @@ namespace Microsoft.Dafny {
           Bpl.Expr wh = GetWhereClause(receiver.tok, etran.TrExpr(receiver), receiver.Type, etran, ISALLOC, true);
           if (wh != null) {
             var desc = new DafnyAllocatedDescription("receiver argument", "in the state in which the method is invoked");
-            builder.Add(AssertDesc(receiver.tok, wh, desc));
+            builder.Add(Assert(receiver.tok, wh, desc));
           }
         }
         for (int i = 0; i < Args.Count; i++) {
@@ -1827,7 +1827,7 @@ namespace Microsoft.Dafny {
           Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran, ISALLOC, true);
           if (wh != null) {
             var desc = new DafnyAllocatedDescription("argument", "in the state in which the method is invoked");
-            builder.Add(AssertDesc(ee.tok, wh, desc));
+            builder.Add(Assert(ee.tok, wh, desc));
           }
         }
       } else if (method is TwoStateLemma) {
@@ -1835,7 +1835,7 @@ namespace Microsoft.Dafny {
           Bpl.Expr wh = GetWhereClause(receiver.tok, etran.TrExpr(receiver), receiver.Type, etran.OldAt(atLabel), ISALLOC, true);
           if (wh != null) {
             var desc = new DafnyAllocatedDescription("receiver argument", "in the two-state lemma's previous state");
-            builder.Add(AssertDesc(receiver.tok, wh, desc));
+            builder.Add(Assert(receiver.tok, wh, desc));
           }
         }
         Contract.Assert(callee.Ins.Count == Args.Count);
@@ -1847,7 +1847,7 @@ namespace Microsoft.Dafny {
             if (wh != null) {
               var pIdx = Args.Count == 1 ? "" : " " + i;
               var desc = new DafnyAllocatedDescription($"parameter{pIdx} ('{formal.Name}')", "in the two-state lemma's previous state");
-              builder.Add(AssertDesc(ee.tok, wh, desc));
+              builder.Add(Assert(ee.tok, wh, desc));
             }
           }
         }
@@ -1864,7 +1864,7 @@ namespace Microsoft.Dafny {
       if (isRecursiveCall) {
         Contract.Assert(codeContext != null);
         if (codeContext is DatatypeDecl) {
-          builder.Add(AssertDesc(tok, Bpl.Expr.False, new DafnyDefaultNonrecursiveDescription()));
+          builder.Add(Assert(tok, Bpl.Expr.False, new DafnyDefaultNonrecursiveDescription()));
         } else {
           List<Expression> contextDecreases = codeContext.Decreases.Expressions;
           List<Expression> calleeDecreases = callee.Decreases.Expressions;
