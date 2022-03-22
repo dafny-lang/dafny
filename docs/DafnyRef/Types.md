@@ -1850,8 +1850,6 @@ A method without a body is _abstract_. A method is allowed to be
 abstract under the following circumstances:
 
 * It contains an `{:axiom}` attribute
-* It contains an `{:imported}` attribute
-* It contains a `{:decl}` attribute
 * It is a declaration in an abstract module.
 Note that when there is no body, Dafny assumes that the *ensures*
 clauses are true without proof. (TODO: `:extern` attribute?)
@@ -2078,7 +2076,7 @@ The following example illustrates using such an eta-expansion:
 
 TO BE WRITTEN - unchanged predicate
 
-## 13.4. Function Declarations
+## 13.4. Function Declarations {#sec-function-declarations}
 
 ````grammar
 FunctionDecl(isWithinAbstractModule) =

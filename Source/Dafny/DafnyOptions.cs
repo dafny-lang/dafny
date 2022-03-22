@@ -5,10 +5,8 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Text;
 using System.Diagnostics.Contracts;
 using System.IO;
-using System.Reflection;
 using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 using Microsoft.Dafny.Compilers;
@@ -24,7 +22,7 @@ namespace Microsoft.Dafny {
     }
 
     public DafnyOptions()
-      : base("Dafny", "Dafny program verifier") {
+      : base("Dafny", "Dafny program verifier", new DafnyConsolePrinter()) {
       Prune = true;
       NormalizeNames = true;
       EmitDebugInformation = false;
@@ -148,7 +146,7 @@ namespace Microsoft.Dafny {
     public virtual TestGenerationOptions TestGenOptions =>
       testGenOptions ??= new TestGenerationOptions();
 
-    protected override bool ParseOption(string name, Bpl.CommandLineOptionEngine.CommandLineParseState ps) {
+    protected override bool ParseOption(string name, Bpl.CommandLineParseState ps) {
       var args = ps.args; // convenient synonym
       switch (name) {
         case "dprelude":
@@ -567,7 +565,7 @@ namespace Microsoft.Dafny {
       ).ToArray();
     }
 
-    protected void InvalidArgumentError(string name, CommandLineParseState ps) {
+    protected void InvalidArgumentError(string name, Bpl.CommandLineParseState ps) {
       ps.Error("Invalid argument \"{0}\" to option {1}", ps.args[ps.i], name);
     }
 
@@ -598,8 +596,10 @@ namespace Microsoft.Dafny {
     }
 
     public override string AttributeHelp =>
-      @"Dafny: The following attributes are supported by this version.
-
+      @"Dafny: The documentation about attributes is best viewed here:
+      https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-attributes
+      
+     The following attributes are supported by this version.
     {:extern}
     {:extern <s1:string>}
     {:extern <s1:string>, <s2:string>}
@@ -851,18 +851,16 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public override string Help =>
-      base.Help +
+    protected override string HelpBody =>
       $@"
+---- Dafny options ---------------------------------------------------------
 
-  ---- Dafny options ---------------------------------------------------------
+All the .dfy files supplied on the command line along with files recursively
+included by 'include' directives are considered a single Dafny program;
+however only those files listed on the command line are verified.
 
- All the .dfy files supplied on the command line along with files recursively
- included by 'include' directives are considered a single Dafny program;
- however only those files listed on the command line are verified.
-
- Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
-            3 -- compilation errors; 4 -- verification errors
+Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
+           3 -- compilation errors; 4 -- verification errors
 
 /dprelude:<file>
     choose Dafny prelude file
@@ -1138,6 +1136,7 @@ namespace Microsoft.Dafny {
 Dafny generally accepts Boogie options and passes these on to Boogie. However,
 some Boogie options, like /loopUnroll, may not be sound for Dafny or may not
 have the same meaning for a Dafny program as it would for a similar Boogie
-program.";
+program.
+".Replace("\n", "\n  ") + base.HelpBody;
   }
 }

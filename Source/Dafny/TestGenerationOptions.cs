@@ -18,7 +18,7 @@ namespace Microsoft.Dafny {
 
     public override TestGenerationOptions TestGenOptions => null;
 
-    protected override bool ParseOption(string name, CommandLineParseState ps) {
+    protected override bool ParseOption(string name, Bpl.CommandLineParseState ps) {
       var args = ps.args;
 
       switch (name) {

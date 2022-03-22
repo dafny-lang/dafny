@@ -23,7 +23,7 @@ that use them.
 
 ## 5.1. Specification Clauses
 
-### 5.1.1. Requires Clause
+### 5.1.1. Requires Clause {#sec-requires-clause}
 
 ````grammar
 RequiresClause(allowLabel) =
@@ -47,7 +47,7 @@ of all the given Attributes. The order of conjunctions
 can be important: earlier conjuncts can set conditions that
 establish that later conjuncts are well-defined.
 
-### 5.1.2. Ensures Clause
+### 5.1.2. Ensures Clause {#sec-ensures-clause}
 
 ````grammar
 EnsuresClause(allowLambda) =
@@ -69,7 +69,7 @@ The order of conjunctions
 can be important: earlier conjuncts can set conditions that
 establish that later conjuncts are well-defined.
 
-### 5.1.3. Decreases Clause
+### 5.1.3. Decreases Clause {#sec-decreases-clause}
 ````grammar
 DecreasesClause(allowWildcard, allowLambda) =
   "decreases" { Attribute } DecreasesList(allowWildcard,
