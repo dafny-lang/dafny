@@ -1928,7 +1928,7 @@ that are heap-based.
 
 Using `...` as the argument of the statement is part of module refinement, as described in [Section 21](#sec-module-refinement).
 
-## 19.23. Calc Statement
+## 19.23. Calc Statement {#sec-calc-statement}
 ````grammar
 CalcStmt = "calc" { Attribute } [ CalcOp ] "{" CalcBody_ "}"
 
