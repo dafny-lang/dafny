@@ -274,7 +274,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     }
 
     // Requires PropagateChildrenErrorsUp to have been called before.
-    public virtual void RenderInto(LineVerificationStatus[] perLineDiagnostics, bool contextHasErrors = false, bool contextIsPending = false, Range? otherRange = null) {
+    public virtual void RenderInto(LineVerificationStatus[] perLineDiagnostics, bool contextHasErrors = false, bool contextIsPending = false, Range? otherRange = null, Range? contextRange = null) {
       Range range = otherRange ?? Range;
       var isSingleLine = range.Start.Line == range.End.Line;
       LineVerificationStatus targetStatus = StatusVerification switch {
@@ -340,7 +340,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
           contextHasErrors || StatusVerification == VerificationStatus.Error,
           contextIsPending ||
             StatusCurrent == CurrentStatus.Obsolete ||
-          StatusCurrent == CurrentStatus.Verifying);
+          StatusCurrent == CurrentStatus.Verifying,
+          null,
+          Range);
       }
       // Ensure that if this is an ImplementationNodeDiagnostic, and children "painted" verified,
       // and this node is still pending
@@ -612,11 +614,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     }
 
     public override void RenderInto(LineVerificationStatus[] perLineDiagnostics, bool contextHasErrors = false,
-      bool contextIsPending = false, Range? otherRange = null) {
-      base.RenderInto(perLineDiagnostics, contextHasErrors, contextIsPending, otherRange);
+      bool contextIsPending = false, Range? otherRange = null, Range? contextRange = null) {
+      base.RenderInto(perLineDiagnostics, contextHasErrors, contextIsPending, otherRange, contextRange);
       if (StatusVerification == VerificationStatus.Error) {
         foreach (var range in ImmediatelyRelatedRanges) {
-          base.RenderInto(perLineDiagnostics, contextHasErrors, contextIsPending, range);
+          if (contextRange != null && contextRange.Contains(range)) {
+            base.RenderInto(perLineDiagnostics, contextHasErrors, contextIsPending, range, contextRange);
+          }
         }
       }
     }

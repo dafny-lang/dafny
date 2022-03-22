@@ -48,7 +48,7 @@ public class SimpleLinearVerificationDiagnosticTester : LinearVerificationDiagno
  .  |  |  |  I  I  |  |  |  I  I  |  |  | :ghost const maxId := 200;
     |  |  |  I  I  |  |  |  I  I  |  |  | :
  .  |  |  |  I  I  |  |  |  I  I  |  |  | :predicate isIssueIdValid(issueId: int) {
- .  |  |  |  I  I  |  | [=] I  I  |  |  | :  101 <= issueId < maxId
+ .  |  |  |  I  I  |  |  |  I  I  |  |  | :  101 <= issueId < maxId
  .  |  |  |  I  I  |  |  |  I  I  |  |  | :}
     |  |  |  I  I  |  |  |  I  I  |  |  | :
  .  S  S  |  I  .  S  S [=] I  .  S  S  | :type IssueId = i : int | isIssueIdValid(i)
