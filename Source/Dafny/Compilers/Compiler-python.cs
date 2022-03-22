@@ -16,10 +16,15 @@ namespace Microsoft.Dafny.Compilers {
     public override string TargetLanguage => "Python";
     public override string TargetExtension => "py";
 
-    public override bool SupportsInMemoryCompilation => true;
+    public override string TargetBaseDir(string dafnyProgramName) =>
+      $"{Path.GetFileNameWithoutExtension(dafnyProgramName)}-py";
+
+    public override bool SupportsInMemoryCompilation => false;
     public override bool TextualTargetIsExecutable => true;
 
     public override IReadOnlySet<string> SupportedNativeTypes => new HashSet<string> { }; // FIXME
+
+    private readonly List<string> Imports = new List<string> { "_module" };
 
     const string DafnySetClass = "_dafny.Set";
     const string DafnyMultiSetClass = "_dafny.MultiSet";
@@ -28,9 +33,8 @@ namespace Microsoft.Dafny.Compilers {
     protected override string StmtTerminator { get => ""; }
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
       wr.WriteLine("# Dafny program {0} compiled into Python", program.Name);
-      wr.WriteLine("from typing import Callable");
-      wr.WriteLine();
-      ReadRuntimeSystem("DafnyRuntime.py", wr);
+      ReadRuntimeSystem("DafnyRuntime.py", wr.NewFile("_dafny.py"));
+      EmitImports("_dafny", wr);
       wr.WriteLine();
     }
 
@@ -46,7 +50,22 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern,
         string libraryName, ConcreteSyntaxTree wr) {
-      return wr.NewBlock($"class {IdProtect(moduleName)}:", open: BlockStyle.Nothing, close: BlockStyle.Newline);
+      var file = wr.NewFile($"{moduleName}.py");
+      EmitImports(moduleName, file);
+      return file;
+    }
+
+    private void EmitImports(string moduleName, ConcreteSyntaxTree wr) {
+      wr.WriteLine("import sys");
+      wr.WriteLine("from typing import Callable");
+      wr.WriteLine("from collections import namedtuple");
+      wr.WriteLine();
+      Imports.Iter(module => wr.WriteLine($"import {module}"));
+      wr.WriteLine();
+      wr.WriteLine($"{moduleName} = sys.modules[__name__]");
+      //could be globals()[__name__] = sys.modules[__name__], but my ide doesn't pick that up
+
+      Imports.Add(moduleName);
     }
 
     protected override string GetHelperModuleName() {
@@ -87,10 +106,29 @@ namespace Microsoft.Dafny.Compilers {
 
       if (dt is TupleTypeDecl) {
         return null;
-      } else {
-        throw new NotImplementedException();
       }
 
+      var DtT = dt.CompileName;
+
+      var btw = wr.NewBlock($"class {DtT}:", "", BlockStyle.Newline, BlockStyle.Nothing);
+
+      foreach (var ctor in dt.Ctors) {
+        var namedtuple = $"namedtuple(\"{ctor.CompileName}\", [])";
+        var header = $"class {DtCtorDeclarationName(ctor, false)}({DtT}, {namedtuple}):";
+        var constructor = wr.NewBlock(header, "", BlockStyle.Newline, BlockStyle.Newline);
+        DatatypeFieldsAndConstructor(ctor, constructor);
+      }
+
+      return new ClassWriter(this, btw, btw);
+    }
+
+    private void DatatypeFieldsAndConstructor(DatatypeCtor ctor, ConcreteSyntaxTree wr) {
+      wr.WriteLine("pass");
+    }
+
+    private static string DtCtorDeclarationName(DatatypeCtor ctor, bool full = true) {
+      var dt = ctor.EnclosingDatatype;
+      return $"{(full ? dt.FullCompileName : dt.CompileName)}_{ctor.CompileName}";
     }
 
     protected override IClassWriter DeclareNewtype(NewtypeDecl nt, ConcreteSyntaxTree wr) {
@@ -540,7 +578,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitDatatypeValue(DatatypeValue dtv, string arguments, ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
+      wr.Write($"{DtCtorDeclarationName(dtv.Ctor)}({arguments})");
     }
 
     protected override void GetSpecialFieldInfo(SpecialField.ID id, object idParam, Type receiverType,
@@ -791,7 +829,7 @@ namespace Microsoft.Dafny.Compilers {
         string targetFilename, ReadOnlyCollection<string> otherFileNames, TextWriter outputWriter) {
       Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
 
-      var psi = new ProcessStartInfo("python3", "") {
+      var psi = new ProcessStartInfo("python3", targetFilename) {
         CreateNoWindow = true,
         UseShellExecute = false,
         RedirectStandardInput = true,
@@ -801,16 +839,6 @@ namespace Microsoft.Dafny.Compilers {
 
       try {
         using var pythonProcess = Process.Start(psi);
-        foreach (var filename in otherFileNames) {
-          WriteFromFile(filename, pythonProcess.StandardInput);
-        }
-
-        pythonProcess.StandardInput.Write(targetProgramText);
-        if (callToMain != null && DafnyOptions.O.RunAfterCompile) {
-          pythonProcess.StandardInput.Write(callToMain);
-        }
-
-        pythonProcess.StandardInput.Flush();
         pythonProcess.StandardInput.Close();
         pythonProcess.WaitForExit();
         return pythonProcess.ExitCode == 0;
