@@ -541,7 +541,38 @@ Running Dafny with `/verifyAllModules` on the file containing your main result i
 
 ### 24.10.6. Controlling boogie
 
-TO BE WRITTEN
+* `-print:<file>` - print the translation of the Dafny file to a Boogie file.
+
+If you have Boogie installed locally, you can run the printed Boogie file with the following script:
+
+```
+DOTNET=$(which dotnet)
+
+BOOGIE_ROOT="path/to/boogie/Source"
+BOOGIE="$BOOGIE_ROOT/BoogieDriver/bin/Debug/netcoreapp3.1/BoogieDriver.dll"
+
+if [[ ! -x "$DOTNET" ]]; then
+    echo "Error: Dafny requires .NET Core to run on non-Windows systems."
+    exit 1
+fi
+
+#Uncomment if you prefer to use the executable instead of the DLL
+#BOOGIE=$(which boogie)
+
+BOOGIE_OPTIONS="/infer:j"
+PROVER_OPTIONS="\
+  /proverOpt:O:auto_config=false \
+  /proverOpt:O:type_check=true \
+  /proverOpt:O:smt.case_split=3 \
+  /proverOpt:O:smt.qi.eager_threshold=100 \
+  /proverOpt:O:smt.delay_units=true \
+  /proverOpt:O:smt.arith.solver=2 \
+  "
+
+"$DOTNET" "$BOOGIE" $BOOGIE_OPTIONS $PROVER_OPTIONS "$@"
+# Uncomment if you want to use the executable instead of the DLL
+# "$BOOGIE" $BOOGIE_OPTIONS $PROVER_OPTIONS "$@"
+```
 
 ### 24.10.7. Controlling the prover
 
