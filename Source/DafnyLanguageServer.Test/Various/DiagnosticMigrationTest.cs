@@ -36,9 +36,9 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
     var resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.AreEqual(1, resolutionDiagnostics.Length);
     // Verification diagnostic should have been moved.
-    Assert.AreEqual(6, resolutionDiagnostics[0].Range.Start.Line);
+    Assert.AreEqual(5, resolutionDiagnostics[0].Range.Start.Line);
     // Relation information should have been moved.
-    Assert.AreEqual(6, resolutionDiagnostics[0].RelatedInformation!.ElementAt(0).Location.Range.Start.Line);
+    Assert.AreEqual(5, resolutionDiagnostics[0].RelatedInformation!.ElementAt(0).Location.Range.Start.Line);
   }
 
   [TestMethod]

@@ -236,8 +236,7 @@ namespace Microsoft.Dafny {
       TextWriter output,
       ExecutionEngine engine, string baseFile,
       string moduleName,
-      Microsoft.Boogie.Program boogieProgram, string programId)
-    {
+      Microsoft.Boogie.Program boogieProgram, string programId) {
       var moduleId = (programId ?? "main_program_id") + "_" + moduleName;
 
       string bplFilename;

@@ -38,11 +38,11 @@ lemma {:timeLimit 3} SquareRoot2NotRational(p: nat, q: nat)
   }
 }".TrimStart();
 
-    protected const string NeverVerifies = @"
+    protected readonly string NeverVerifies = @"
 lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
   ensures true
 {
-}";
+}".TrimStart();
 
     public const string LanguageId = "dafny";
     protected static int fileIndex;
