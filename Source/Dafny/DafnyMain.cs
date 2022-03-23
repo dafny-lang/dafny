@@ -234,7 +234,8 @@ namespace Microsoft.Dafny {
 
     public static async Task<(PipelineOutcome Outcome, PipelineStatistics Statistics)> BoogieOnce(
       TextWriter output,
-      ExecutionEngine engine, string baseFile,
+      ExecutionEngine engine,
+      string baseFile,
       string moduleName,
       Microsoft.Boogie.Program boogieProgram, string programId) {
       var moduleId = (programId ?? "main_program_id") + "_" + moduleName;
