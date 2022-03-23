@@ -69,6 +69,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     ) {
       var result = new LineVerificationStatus[numberOfLines];
 
+      if (perNodeDiagnostic.Length == 0) {
+        for (var line = 0; line < numberOfLines; line++) {
+          result[line] = LineVerificationStatus.Verified;
+        }
+
+        return result;
+      }
+
       // Render node content into lines.
       foreach (var nodeDiagnostic in perNodeDiagnostic) {
         if (nodeDiagnostic.Filename == verificationDiagnosticsParams.Uri.GetFileSystemPath() ||
@@ -360,6 +368,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       if (StatusCurrent == CurrentStatus.Obsolete) {
         StatusCurrent = CurrentStatus.Current;
         StatusVerification = VerificationStatus.Verified;
+        foreach (var child in Children) {
+          child.SetVerifiedIfPending();
+        }
         return true;
       }
 
