@@ -14,6 +14,6 @@ TypeConversions.dfy(100,20): Error: result of operation might violate newtype co
 TypeConversions.dfy(102,20): Error: result of operation might violate newtype constraint for 'EvenInt'
 TypeConversions.dfy(115,28): Error: value to be converted might not fit in bv7
 TypeConversions.dfy(116,27): Error: value to be converted might not fit in bv0
-TypeConversions.dfy(126,5): Error: trying witness null: value of expression (of type 'Class?') is not known to be an instance of type 'Class', because it may be null
+TypeConversions.dfy(126,5): Error: trying witness null: value of expression (of type 'Class?') is not known to be an instance of type 'Class', because it might be null
 
 Dafny program verifier finished with 3 verified, 17 errors

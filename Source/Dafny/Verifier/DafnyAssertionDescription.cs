@@ -199,7 +199,7 @@ public class DafnyNonNullDescription : DafnyAssertionDescription {
     $"{PluralSuccess}{what} object is never null";
 
   public override string FailureDescription =>
-    $"{PluralFailure}{what} may be null";
+    $"{PluralFailure}{what} might be null";
 
   public override string ShortDescription => $"{what} non-null";
   private readonly string what;
@@ -218,7 +218,7 @@ public class DafnyAllocatedDescription : DafnyAssertionDescription {
     $"{PluralSuccess}{what} is always allocated{WhenSuffix}";
 
   public override string FailureDescription =>
-    $"{PluralFailure}{what} may not be allocated{WhenSuffix}";
+    $"{PluralFailure}{what} might not be allocated{WhenSuffix}";
 
   public override string ShortDescription => $"{what} allocated";
 
@@ -350,8 +350,8 @@ public class DafnyTraitFrameDescription : DafnyAssertionDescription {
 
   public override string FailureDescription =>
     isModify
-      ? "expression may read an object not in the parent trait context's reads clause"
-      : "expression may modify an object not in the parent trait context's modifies clause";
+      ? "expression might read an object not in the parent trait context's reads clause"
+      : "expression might modify an object not in the parent trait context's modifies clause";
 
   public override string ShortDescription =>
     isModify ? "trait modifies" : "trait reads";
@@ -387,7 +387,7 @@ public class DafnyFrameSubsetDescription : DafnyAssertionDescription {
 
   public override string FailureDescription =>
     isWrite
-      ? $"{whatKind} may violate context's modifies clause"
+      ? $"{whatKind} might violate context's modifies clause"
       : $"insufficient reads clause to {whatKind}";
 
   public override string ShortDescription => "frame subset";
@@ -406,7 +406,7 @@ public class DafnyFrameDereferenceDescription : DafnyAssertionDescription {
     "frame expression does not dereference null";
 
   public override string FailureDescription =>
-    "frame expression may dereference null";
+    "frame expression might dereference null";
 
   public override string ShortDescription => "frame dereference";
 }
@@ -459,7 +459,7 @@ public class DafnyModifiableDescription : DafnyAssertionDescription {
     $"{description} is in the enclosing context's modifies clause";
 
   public override string FailureDescription =>
-    $"assignment may update {description} not in the enclosing context's modifies clause";
+    $"assignment might update {description} not in the enclosing context's modifies clause";
 
   public override string ShortDescription => "modifiable";
 
@@ -600,7 +600,7 @@ public class DafnySubrangeCheckDescription : DafnyAssertionDescription {
     isSubset
       ? $"{prefix}value does not satisfy the subset constraints of '{targetType}'"
       : $"{prefix}value of expression (of type '{sourceType}') is not known to be an instance of type '{targetType}'" +
-        (isCertain ? ", because it may be null" : "");
+        (isCertain ? ", because it might be null" : "");
 
   private readonly string prefix;
   private readonly string sourceType;
@@ -709,7 +709,7 @@ public class DafnyForallLHSUniqueDescription : DafnyAssertionDescription {
     "left-hand sides of forall-statement bound variables are unique";
 
   public override string FailureDescription =>
-    "left-hand sides for different forall-statement bound variables may refer to the same location";
+    "left-hand sides for different forall-statement bound variables might refer to the same location";
 
   public override string ShortDescription => "forall bound unique";
 }
@@ -719,7 +719,7 @@ public class DafnyElementInDomainDescription : DafnyAssertionDescription {
     "element is in domain";
 
   public override string FailureDescription =>
-    "element may not be in domain";
+    "element might not be in domain";
 
   public override string ShortDescription => "element in domain";
 }
@@ -777,7 +777,7 @@ public class DafnyComprehensionNoAliasDescription : DafnyAssertionDescription {
     "key expressions refer to unique values";
 
   public override string FailureDescription =>
-    "key expressions may be referring to the same value";
+    "key expressions might be referring to the same value";
 
   public override string ShortDescription => "unique key expressions";
 }
@@ -787,20 +787,20 @@ public class DafnyDistinctLHSDescription : DafnyAssertionDescription {
     $"left-hand sides {lhsa} and {lhsb} are distinct";
 
   public override string FailureDescription =>
-    $"{when}left-hand sides {lhsa} and {lhsb} {may}refer to the same location{whenSuffix}";
+    $"{when}left-hand sides {lhsa} and {lhsb} {might}refer to the same location{whenSuffix}";
 
   public override string ShortDescription => "distinct lhs";
 
   private readonly string lhsa;
   private readonly string lhsb;
-  private readonly string may;
+  private readonly string might;
   private readonly string when;
   private readonly string whenSuffix;
 
-  public DafnyDistinctLHSDescription(string lhsa, string lhsb, bool useMay, bool useWhen) {
+  public DafnyDistinctLHSDescription(string lhsa, string lhsb, bool useMight, bool useWhen) {
     this.lhsa = lhsa;
     this.lhsb = lhsb;
-    this.may = useMay ? "may " : "";
+    this.might = useMight ? "might " : "";
     this.when = useWhen ? "when " : "";
     this.whenSuffix = useWhen ? ", they must be assigned the same value" : "";
   }
