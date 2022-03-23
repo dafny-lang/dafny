@@ -128,10 +128,7 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
 
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
     public async Task ChangeDocumentCancelsPreviousOpenAndChangeVerification() {
-      var source = @"
-lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
-  ensures true
-{".TrimStart();
+      var source = NeverVerifies.Substring(0, NeverVerifies.Length - 2);
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationTokenWithHighTimeout);
       // The original document contains a syntactic error.

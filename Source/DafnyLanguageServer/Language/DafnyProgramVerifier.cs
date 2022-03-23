@@ -31,7 +31,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
     DafnyOptions Options => DafnyOptions.O;
 
-    private DafnyProgramVerifier(ILogger<IProgramVerifier> logger, VerifierOptions options) {
+    private DafnyProgramVerifier(ILogger<DafnyProgramVerifier> logger, VerifierOptions options) {
       this.logger = logger;
       this.options = options;
     }
@@ -43,7 +43,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// <param name="logger">A logger instance that may be used by this verifier instance.</param>
     /// <param name="options">Settings for the verifier.</param>
     /// <returns>A safely created dafny verifier instance.</returns>
-    public static DafnyProgramVerifier Create(ILogger<IProgramVerifier> logger, IOptions<VerifierOptions> options) {
+    public static DafnyProgramVerifier Create(ILogger<DafnyProgramVerifier> logger, IOptions<VerifierOptions> options) {
       lock (InitializationSyncObject) {
         if (!initialized) {
           // TODO This may be subject to change. See Microsoft.Boogie.Counterexample

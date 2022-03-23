@@ -15,11 +15,9 @@ using OmniSharp.Extensions.LanguageServer.Server;
 using System.IO;
 using System.IO.Pipelines;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using MediatR;
-using Microsoft.Dafny.LanguageServer.Language;
 using OmniSharp.Extensions.LanguageServer.Client;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest {

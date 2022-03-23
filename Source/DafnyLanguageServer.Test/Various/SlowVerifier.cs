@@ -11,7 +11,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 /// this verifier will return a task that only completes when cancelled
 /// which can be useful to test against race conditions
 class SlowVerifier : IProgramVerifier {
-  public SlowVerifier(ILogger<IProgramVerifier> logger, IOptions<VerifierOptions> options) {
+  public SlowVerifier(ILogger<DafnyProgramVerifier> logger, IOptions<VerifierOptions> options) {
     verifier = DafnyProgramVerifier.Create(logger, options);
   }
 
