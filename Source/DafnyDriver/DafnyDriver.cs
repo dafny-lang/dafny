@@ -334,6 +334,7 @@ namespace Microsoft.Dafny {
       }).ToList();
 
       await Task.WhenAll(moduleTasks);
+      await Console.Out.FlushAsync();
       var outcome = moduleTasks.Select(t => t.Result.Outcome)
         .Aggregate(PipelineOutcome.VerificationCompleted, MergeOutcomes);
 
