@@ -11,38 +11,32 @@ namespace Microsoft.Dafny.LanguageServer.Workspace;
 /// ThreadPool. Its policy allows it to create thousands of threads
 /// if it chooses.
 /// </summary>
-public class ThreadTaskScheduler : TaskScheduler
-{
+public class ThreadTaskScheduler : TaskScheduler {
   private readonly int stackSize;
 
-  public ThreadTaskScheduler(int stackSize)
-  {
+  public ThreadTaskScheduler(int stackSize) {
     Contract.Requires(stackSize >= 0);
 
     this.stackSize = stackSize;
   }
 
-  protected override IEnumerable<Task> GetScheduledTasks()
-  {
+  protected override IEnumerable<Task> GetScheduledTasks() {
     // There is never a queue of scheduled, but not running, tasks.
     // So return an empty list.
     return new List<Task>();
   }
 
-  protected override void QueueTask(Task task)
-  {
+  protected override void QueueTask(Task task) {
     Thread th = new Thread(TaskMain!, stackSize);
     th.Start(task);
   }
 
-  protected override bool TryExecuteTaskInline(Task task, bool taskWasPreviouslyQueued)
-  {
+  protected override bool TryExecuteTaskInline(Task task, bool taskWasPreviouslyQueued) {
     return false;
   }
 
-  private void TaskMain(object data)
-  {
-    Task t = (Task) data;
+  private void TaskMain(object data) {
+    Task t = (Task)data;
     TryExecuteTask(t);
   }
 }
