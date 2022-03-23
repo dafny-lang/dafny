@@ -1,5 +1,4 @@
-﻿using Microsoft.Boogie;
-using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
+﻿using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OmniSharp.Extensions.LanguageServer.Protocol;
@@ -11,8 +10,6 @@ using System.Reactive.Linq;
 using System.Reactive.Threading.Tasks;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Dafny.LanguageServer.Util;
-using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
@@ -168,7 +165,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         // according to the change.
         return WithRealtimeDiagnosticsPublished(newDocument with {
           SymbolTable = relocator.RelocateSymbols(oldDocument.SymbolTable, documentChange, CancellationToken.None),
-          OldVerificationDiagnostics = migratedVerificationDiagnotics,
+          OldVerificationDiagnostics = migratedVerificationDiagnotics.Select(diagnostic => diagnostic with {
+            Severity = DiagnosticSeverity.Warning,
+            Message = diagnostic.Message.StartsWith("Stale: ") ? diagnostic.Message : "Stale: " + diagnostic.Message
+          }).ToList(),
           VerificationNodeDiagnostic = migratedVerificationNodeDiagnostics
         });
       } catch (OperationCanceledException) {
