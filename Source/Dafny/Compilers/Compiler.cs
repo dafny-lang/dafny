@@ -1803,7 +1803,7 @@ namespace Microsoft.Dafny {
               Error(m.tok, "Method {0} has no body", errorWr, m.FullName);
             }
           } else if (m.Body == null && (!(c is TraitDecl) || m.IsStatic) &&
-            (!DafnyOptions.O.DisallowExterns && (Attributes.Contains(m.Attributes, "dllimport") || (IncludeExternMembers && Attributes.Contains(m.Attributes, "extern")))) &&
+            !DafnyOptions.O.DisallowExterns && (Attributes.Contains(m.Attributes, "dllimport") || (IncludeExternMembers && Attributes.Contains(m.Attributes, "extern"))) &&
             DafnyOptions.O.CompileTarget == DafnyOptions.CompilationTarget.Java) {
             // A (ghost or non-ghost) method must always have a body, except if it's an instance method in a trait.
             if (Attributes.Contains(m.Attributes, "axiom")) {

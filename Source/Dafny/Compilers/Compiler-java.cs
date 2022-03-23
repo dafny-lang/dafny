@@ -521,18 +521,17 @@ namespace Microsoft.Dafny {
         return;
       }
       var args = Attributes.FindExpressions(decl.Attributes, "test");
-      Console.Out.WriteLine(decl.Name);
       if (args.Count == 2 && args[0] is LiteralExpr && args[1] is LiteralExpr) {
         LiteralExpr sourceType = (LiteralExpr)args[0];
         if (sourceType.Value.ToString().Equals("MethodSource")) {
-          Method m = (Method) decl;
-          LiteralExpr methodNameExpr = (LiteralExpr) args[1];
+          Method m = (Method)decl;
+          LiteralExpr methodNameExpr = (LiteralExpr)args[1];
           string dafnyStructure = WriteDafnyStructure(m, wr);
-          WriteGlueCode(wr, methodNameExpr.Value.ToString(), dafnyStructure, m.Ins.Count);
+          string compiledSourceName = NonglobalVariable.CompilerizeName(methodNameExpr.Value.ToString());
+          WriteGlueCode(wr, compiledSourceName, dafnyStructure, m.Ins.Count);
           return;
         }
-      }
-      else {
+      } else {
         wr.WriteLine("@org.junit.jupiter.api.Test");
         return;
       }
