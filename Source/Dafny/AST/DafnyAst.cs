@@ -1405,10 +1405,31 @@ namespace Microsoft.Dafny {
         return true;
       }
     }
-    public virtual bool MayInvolveReferences {
-      get {
-        return false;
-      }
+
+    public bool MayInvolveReferences => ComputeMayInvolveReferences(null);
+
+    /// <summary>
+    /// This is an auxiliary method used to compute the value of MayInvolveReferences (above). It is
+    /// needed to handle datatypes, because determining whether or not a datatype contains references
+    /// involves recursing over the types in the datatype's constructor parameters. Since those types
+    /// may be mutually dependent on the datatype itself, care must be taken to avoid infinite recursion.
+    ///
+    /// Parameter visitedDatatypes is used to prevent infinite recursion. It is passed in as null
+    /// (the "first phase") as long as no datatype has been encountered. From the time a first datatype
+    /// is encountered and through all subsequent recursive calls to ComputeMayInvolveReferences that
+    /// are performed on the types of the parameters of the datatype's constructors, the method enters
+    /// a "second phase", where visitedDatatypes is passed in as a set that records all datatypes visited.
+    /// By not recursing through a datatype that's already being visited, infinite recursion is prevented.
+    ///
+    /// The type parameters to recursive uses of datatypes may be passed in in different ways. In fact,
+    /// there is no bound on the set of different instantiations one can encounter with the recursive uses
+    /// of the datatypes. Rather than keeping track of type instantiations in (some variation of)
+    /// visitedDatatypes, the type arguments passed to a datatype are checked separately. If the datatype
+    /// uses all the type parameters it declares, then this will have the same effect. During the second
+    /// phase, formal type parameters (which necessarily are ones declared in datatypes) are ignored.
+    /// </summary>
+    public virtual bool ComputeMayInvolveReferences(ISet<DatatypeDecl>/*?*/ visitedDatatypes) {
+      return false;
     }
 
     /// <summary>
@@ -2633,10 +2654,8 @@ namespace Microsoft.Dafny {
       this.TypeArgs = new List<Type> { arg, other };
     }
 
-    public override bool MayInvolveReferences {
-      get {
-        return Arg.MayInvolveReferences;
-      }
+    public override bool ComputeMayInvolveReferences(ISet<DatatypeDecl> visitedDatatypes) {
+      return Arg.ComputeMayInvolveReferences(visitedDatatypes);
     }
   }
 
@@ -2737,10 +2756,8 @@ namespace Microsoft.Dafny {
         return range.SupportsEquality;
       }
     }
-    public override bool MayInvolveReferences {
-      get {
-        return Domain.MayInvolveReferences || Range.MayInvolveReferences;
-      }
+    public override bool ComputeMayInvolveReferences(ISet<DatatypeDecl> visitedDatatypes) {
+      return Domain.ComputeMayInvolveReferences(visitedDatatypes) || Range.ComputeMayInvolveReferences(visitedDatatypes);
     }
   }
 
@@ -3052,42 +3069,63 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public override bool MayInvolveReferences {
-      get {
-        if (ResolvedClass is ArrowTypeDecl) {
-          return TypeArgs.Any(ta => ta.MayInvolveReferences);
-        } else if (ResolvedClass is ClassDecl) {
-          return true;
-        } else if (ResolvedClass is NewtypeDecl) {
-          return false;
-        } else if (ResolvedClass is DatatypeDecl) {
-          var dt = (DatatypeDecl)ResolvedClass;
-          if (!dt.IsRevealedInScope(Type.GetScope())) {
-            return true;
-          }
-          Contract.Assert(dt.TypeArgs.Count == TypeArgs.Count);
-          return TypeArgs.Any(ta => ta.MayInvolveReferences);
-        } else if (ResolvedClass is TypeSynonymDeclBase) {
-          var t = (TypeSynonymDeclBase)ResolvedClass;
-          if (t.Characteristics.ContainsNoReferenceTypes) {
-            // There's an explicit "(!new)" annotation on the type.
-            return false;
-          } else if (t.IsRevealedInScope(Type.GetScope())) {
-            // The type's definition is available in the scope, so consult the RHS type
-            return t.RhsWithArgument(TypeArgs).MayInvolveReferences;
-          } else {
-            // The type's definition is hidden from the current scope and there's no explicit "(!new)", so we
-            // have to assume the type may involve references.
-            return true;
-          }
-        } else if (ResolvedClass is TypeParameter typeParameter) {
-          return !typeParameter.Characteristics.ContainsNoReferenceTypes;
-        } else if (ResolvedClass is OpaqueTypeDecl opaqueTypeDecl) {
-          return !opaqueTypeDecl.Characteristics.ContainsNoReferenceTypes;
-        }
-        Contract.Assume(false);  // the MayInvolveReferences getter requires the Type to have been successfully resolved
+    public override bool ComputeMayInvolveReferences(ISet<DatatypeDecl> visitedDatatypes) {
+      if (ResolvedClass is ArrowTypeDecl) {
+        return TypeArgs.Any(ta => ta.ComputeMayInvolveReferences(visitedDatatypes));
+      } else if (ResolvedClass is ClassDecl) {
         return true;
+      } else if (ResolvedClass is NewtypeDecl) {
+        return false;
+      } else if (ResolvedClass is DatatypeDecl) {
+        // Datatype declarations do not support explicit (!new) annotations. Instead, whether or not
+        // a datatype involves references depends on the definition and parametrization of the type.
+        // See ComputeMayInvolveReferences in class Type for more information.
+        // In particular, if one of the datatype's constructors mentions a type that involves
+        // references, then so does the datatype. And if one of the datatype's type arguments involves
+        // references, then we consider the datatype to do so as well (without regard to whether or
+        // not the type parameter is actually used in the definition of the datatype).
+        var dt = (DatatypeDecl)ResolvedClass;
+        if (!dt.IsRevealedInScope(Type.GetScope())) {
+          // The type's definition is hidden from the current scope, so we
+          // have to assume the type may involve references.
+          return true;
+        } else if (TypeArgs.Any(ta => ta.ComputeMayInvolveReferences(visitedDatatypes))) {
+          return true;
+        } else if (visitedDatatypes != null && visitedDatatypes.Contains(dt)) {
+          // we're in the middle of looking through the types involved in dt's definition
+          return false;
+        } else {
+          visitedDatatypes ??= new HashSet<DatatypeDecl>();
+          visitedDatatypes.Add(dt);
+          return dt.Ctors.Any(ctor => ctor.Formals.Any(f => f.Type.ComputeMayInvolveReferences(visitedDatatypes)));
+        }
+      } else if (ResolvedClass is TypeSynonymDeclBase) {
+        var t = (TypeSynonymDeclBase)ResolvedClass;
+        if (t.Characteristics.ContainsNoReferenceTypes) {
+          // There's an explicit "(!new)" annotation on the type.
+          return false;
+        } else if (t.IsRevealedInScope(Type.GetScope())) {
+          // The type's definition is available in the scope, so consult the RHS type
+          return t.RhsWithArgument(TypeArgs).ComputeMayInvolveReferences(visitedDatatypes);
+        } else {
+          // The type's definition is hidden from the current scope and there's no explicit "(!new)", so we
+          // have to assume the type may involve references.
+          return true;
+        }
+      } else if (ResolvedClass is TypeParameter typeParameter) {
+        if (visitedDatatypes != null) {
+          // Datatypes look at the type arguments passed in, so we ignore their formal type parameters.
+          // See comment above and in Type.ComputeMayInvolveReferences.
+          Contract.Assert(typeParameter.Parent is DatatypeDecl);
+          return false;
+        } else {
+          return !typeParameter.Characteristics.ContainsNoReferenceTypes;
+        }
+      } else if (ResolvedClass is OpaqueTypeDecl opaqueTypeDecl) {
+        return !opaqueTypeDecl.Characteristics.ContainsNoReferenceTypes;
       }
+      Contract.Assume(false);  // unexpected or not successfully resolved Type
+      return true;
     }
 
     public override List<Type> ParentTypes() {
@@ -3232,13 +3270,11 @@ namespace Microsoft.Dafny {
         }
       }
     }
-    public override bool MayInvolveReferences {
-      get {
-        if (T != null) {
-          return T.MayInvolveReferences;
-        } else {
-          return true;
-        }
+    public override bool ComputeMayInvolveReferences(ISet<DatatypeDecl> visitedDatatypes) {
+      if (T != null) {
+        return T.ComputeMayInvolveReferences(visitedDatatypes);
+      } else {
+        return true;
       }
     }
     public override bool Equals(Type that, bool keepConstraints = false) {

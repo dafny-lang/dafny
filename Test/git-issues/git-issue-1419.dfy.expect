@@ -34,4 +34,18 @@ git-issue-1419.dfy(146,4): Error: a exists expression involved in a predicate de
 git-issue-1419.dfy(150,4): Error: a exists expression involved in a predicate definition is not allowed to depend on the set of allocated references, but values of 'o' may contain references
 git-issue-1419.dfy(154,4): Error: a exists expression involved in a predicate definition is not allowed to depend on the set of allocated references, but values of 'o' may contain references
 git-issue-1419.dfy(187,16): Error: type parameter (X) passed to type Param must support no references (got object)
-36 resolution/type errors detected in git-issue-1419.dfy
+git-issue-1419.dfy(195,4): Error: a exists expression involved in a predicate definition is not allowed to depend on the set of allocated references, but values of 'o' may contain references
+git-issue-1419.dfy(202,7): Error: type 'X' declared as containing no reference types, but the RHS type (D) may contain reference types
+git-issue-1419.dfy(205,7): Error: type 'SM0' declared as containing no reference types, but the RHS type (M<int>) may contain reference types
+git-issue-1419.dfy(206,7): Error: type 'SM1' declared as containing no reference types, but the RHS type (M<object>) may contain reference types
+git-issue-1419.dfy(210,7): Error: type 'SN1' declared as containing no reference types, but the RHS type (N<object>) may contain reference types
+git-issue-1419.dfy(218,27): Error: type parameter (X) passed to method NoReferencesPlease must support no references (got Y) (perhaps try declaring type parameter 'Y' on line 214 as 'Y(!new)', which says it can only be instantiated with a type that contains no references)
+git-issue-1419.dfy(219,32): Error: type parameter (X) passed to method NoReferencesPlease must support no references (got object)
+git-issue-1419.dfy(252,7): Error: type 'SM0' declared as containing no reference types, but the RHS type (I.M<int>) may contain reference types
+git-issue-1419.dfy(253,7): Error: type 'SM1' declared as containing no reference types, but the RHS type (I.M<object>) may contain reference types
+git-issue-1419.dfy(256,7): Error: type 'SN1' declared as containing no reference types, but the RHS type (I.N<object>) may contain reference types
+git-issue-1419.dfy(262,7): Error: type 'SM0' declared as containing no reference types, but the RHS type (I.M<int>) may contain reference types
+git-issue-1419.dfy(263,7): Error: type 'SM1' declared as containing no reference types, but the RHS type (I.M<object>) may contain reference types
+git-issue-1419.dfy(264,7): Error: type 'SN0' declared as containing no reference types, but the RHS type (I.N<int>) may contain reference types
+git-issue-1419.dfy(265,7): Error: type 'SN1' declared as containing no reference types, but the RHS type (I.N<object>) may contain reference types
+50 resolution/type errors detected in git-issue-1419.dfy

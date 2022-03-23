@@ -187,3 +187,80 @@ module D {
     exists o: A.Param<object> :: o == o // error: function body is not allowed to depend on allocation state
   }
 }
+
+module DatatypeSet {
+  datatype Obs = Obs(s: set<object>)
+
+  predicate LotsOfObjects() {
+    exists o: Obs :: |o.s| > 10 // error: function body is not allowed to depend on allocation state
+  }
+}
+
+module Datatypes {
+  class C {}
+  datatype D = DC(c: C)
+  type X(!new) = D // error: RHS contains references
+
+  datatype M<X> = MA | MB(bv8) | MC(array2<real>) | MD(X)
+  type SM0(!new) = M<int> // error: RHS contains references
+  type SM1(!new) = M<object> // error: RHS contains references
+
+  datatype N<X> = NothingToSee(int)
+  type SN0(!new) = N<int>
+  type SN1(!new) = N<object> // error: RHS contains references (it matters not that the type argument is not used by N)
+}
+
+module DatatypeWithMembers {
+  datatype Datatype<X(!new), Y> = Ctor(X, Y)
+  {
+    method Test() {
+      NoReferencesPlease<X>();
+      NoReferencesPlease<Y>(); // error: Y may contain references
+      NoReferencesPlease<object>(); // error: type argument contains references
+    }
+
+    function ApplyToXSet(S: set<X>, f: X ~> X): set<X>
+      requires forall x :: x in S ==> f.reads(x) == {} && f.requires(x)
+
+    function ApplyToYSet(S: set<Y>, f: Y ~> Y): set<Y>
+      requires forall y :: y in S ==> f.reads(y) == {} && f.requires(y)
+  }
+
+  method NoReferencesPlease<X(!new)>() {
+  }
+
+  function ApplyToSetNoReferences<X(!new)>(S: set<X>, f: X ~> X): set<X>
+    requires forall x :: x in S ==> f.reads(x) == {} && f.requires(x)
+
+  function ApplyToSet<Y>(S: set<Y>, f: Y ~> Y): set<Y>
+    requires forall y :: y in S ==> f.reads(y) == {} && f.requires(y)
+}
+
+module DatatypeExporter {
+  export Revealer
+    reveals M, N
+  export Provider
+    provides M, N
+
+  datatype M<X> = MA | MB(bv8) | MC(array2<real>) | MD(X)
+  datatype N<X> = NothingToSee(int)
+}
+
+module DatatypeImporter0 {
+  import I = DatatypeExporter`Revealer
+
+  type SM0(!new) = I.M<int> // error: RHS contains references
+  type SM1(!new) = I.M<object> // error: RHS contains references
+
+  type SN0(!new) = I.N<int>
+  type SN1(!new) = I.N<object> // error: RHS contains references
+}
+
+module DatatypeImporter1 {
+  import I = DatatypeExporter`Provider
+
+  type SM0(!new) = I.M<int> // error: RHS may contain references
+  type SM1(!new) = I.M<object> // error: RHS may contain references
+  type SN0(!new) = I.N<int> // error: RHS may contain references
+  type SN1(!new) = I.N<object> // error: RHS may contain references
+}
