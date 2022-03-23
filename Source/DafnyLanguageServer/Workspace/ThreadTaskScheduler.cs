@@ -5,6 +5,12 @@ using System.Threading.Tasks;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
+/// <summary>
+/// Each queued task runs on a newly-created thread with the required
+/// stack size. The default .NET task scheduler is built on the .NET
+/// ThreadPool. Its policy allows it to create thousands of threads
+/// if it chooses.
+/// </summary>
 public class ThreadTaskScheduler : TaskScheduler
 {
   private readonly int stackSize;
@@ -25,13 +31,6 @@ public class ThreadTaskScheduler : TaskScheduler
 
   protected override void QueueTask(Task task)
   {
-    // Each queued task runs on a newly-created thread with the required
-    // stack size.  The default .NET task scheduler is built on the .NET
-    // ThreadPool.  Its policy allows it to create thousands of threads
-    // if it chooses.
-    //
-    // Boogie creates tasks which in turn create tasks and wait on them.
-    // So throttling tasks via a queue risks deadlock.
     Thread th = new Thread(TaskMain!, stackSize);
     th.Start(task);
   }
