@@ -1,14 +1,13 @@
 using JetBrains.Annotations;
-using Microsoft.Boogie;
 
-namespace Microsoft.Dafny;
+namespace Microsoft.Dafny.ProofObligationDescription;
 
-public abstract class DafnyAssertionDescription : ProofObligationDescription {
+public abstract class ProofObligationDescription : Boogie.ProofObligationDescription {
 }
 
 //// Arithmetic and logical operators, conversions
 
-public class DafnyDivisionDescription : DafnyAssertionDescription {
+public class DivisorNonZero : ProofObligationDescription {
   public override string SuccessDescription =>
     "divisor is always non-zero.";
 
@@ -18,7 +17,7 @@ public class DafnyDivisionDescription : DafnyAssertionDescription {
   public override string ShortDescription => "non-zero divisor";
 }
 
-public class DafnyShiftLowerDescription : DafnyAssertionDescription {
+public class ShiftLowerBound : ProofObligationDescription {
   public override string SuccessDescription =>
     "shift amount is always non-negative";
 
@@ -28,7 +27,7 @@ public class DafnyShiftLowerDescription : DafnyAssertionDescription {
   public override string ShortDescription => "shift lower bound";
 }
 
-public class DafnyShiftUpperDescription : DafnyAssertionDescription {
+public class ShiftUpperBound : ProofObligationDescription {
   public override string SuccessDescription =>
     $"shift amount is always within the width of the result ({width})";
 
@@ -39,12 +38,12 @@ public class DafnyShiftUpperDescription : DafnyAssertionDescription {
 
   private readonly int width;
 
-  public DafnyShiftUpperDescription(int width) {
+  public ShiftUpperBound(int width) {
     this.width = width;
   }
 }
 
-public class DafnyConversionIsNaturalDescription : DafnyAssertionDescription {
+public class ConversionIsNatural : ProofObligationDescription {
   public override string SuccessDescription =>
     $"{prefix}value to be converted is always a natural number";
 
@@ -55,12 +54,12 @@ public class DafnyConversionIsNaturalDescription : DafnyAssertionDescription {
 
   private readonly string prefix;
 
-  public DafnyConversionIsNaturalDescription(string prefix) {
+  public ConversionIsNatural(string prefix) {
     this.prefix = prefix;
   }
 }
 
-public class DafnyConversionSatisfiesConstraintsDescription : DafnyAssertionDescription {
+public class ConversionSatisfiesConstraints : ProofObligationDescription {
   public override string SuccessDescription =>
     $"{prefix}result of operation never violates {kind} constraints for '{name}'";
 
@@ -73,14 +72,14 @@ public class DafnyConversionSatisfiesConstraintsDescription : DafnyAssertionDesc
   private readonly string kind;
   private readonly string name;
 
-  public DafnyConversionSatisfiesConstraintsDescription(string prefix, string kind, string name) {
+  public ConversionSatisfiesConstraints(string prefix, string kind, string name) {
     this.prefix = prefix;
     this.kind = kind;
     this.name = name;
   }
 }
 
-public class DafnyOrdinalSubtractionIsNatural : DafnyAssertionDescription {
+public class OrdinalSubtractionIsNatural : ProofObligationDescription {
   public override string SuccessDescription =>
     "RHS of ORDINAL subtraction is always a natural number";
 
@@ -90,7 +89,7 @@ public class DafnyOrdinalSubtractionIsNatural : DafnyAssertionDescription {
   public override string ShortDescription => "ordinal subtraction is natural";
 }
 
-public class DafnyOrdinalSubtractionUnderflow : DafnyAssertionDescription {
+public class OrdinalSubtractionUnderflow : ProofObligationDescription {
   public override string SuccessDescription =>
     "ORDINAL subtraction will never go below limit ordinal";
 
@@ -100,7 +99,7 @@ public class DafnyOrdinalSubtractionUnderflow : DafnyAssertionDescription {
   public override string ShortDescription => "ordinal subtraction underflow";
 }
 
-public class DafnyCharOverflowDescription : DafnyAssertionDescription {
+public class CharOverflow : ProofObligationDescription {
   public override string SuccessDescription =>
     "char addition will not overflow";
 
@@ -110,7 +109,7 @@ public class DafnyCharOverflowDescription : DafnyAssertionDescription {
   public override string ShortDescription => "char overflow";
 }
 
-public class DafnyCharUnderflowDescription : DafnyAssertionDescription {
+public class CharUnderflow : ProofObligationDescription {
   public override string SuccessDescription =>
     "char subtraction will not underflow";
 
@@ -120,27 +119,27 @@ public class DafnyCharUnderflowDescription : DafnyAssertionDescription {
   public override string ShortDescription => "char underflow";
 }
 
-public class DafnyConversionFitDescription : DafnyAssertionDescription {
+public class ConversionFit : ProofObligationDescription {
   public override string SuccessDescription =>
-    $"{prefix}{what} to be converted will always fit in {typeDesc}";
+    $"{prefix}{what} to be converted will always fit in {toType}";
 
   public override string FailureDescription =>
-    $"{prefix}{what} to be converted might not fit in {typeDesc}";
+    $"{prefix}{what} to be converted might not fit in {toType}";
 
   public override string ShortDescription => "conversion fit";
 
   private readonly string prefix;
   private readonly string what;
-  private readonly string typeDesc;
+  private readonly Type toType;
 
-  public DafnyConversionFitDescription(string what, string typeDesc, string prefix = "") {
+  public ConversionFit(string what, Type toType, string prefix = "") {
     this.prefix = prefix;
     this.what = what;
-    this.typeDesc = typeDesc;
+    this.toType = toType;
   }
 }
 
-public class DafnyNonNegativeDescription : DafnyAssertionDescription {
+public class NonNegative : ProofObligationDescription {
   public override string SuccessDescription =>
     $"{what} is never negative";
 
@@ -151,32 +150,32 @@ public class DafnyNonNegativeDescription : DafnyAssertionDescription {
 
   private readonly string what;
 
-  public DafnyNonNegativeDescription(string what) {
+  public NonNegative(string what) {
     this.what = what;
   }
 }
 
-public class DafnyConversionPositiveDescription : DafnyAssertionDescription {
+public class ConversionPositive : ProofObligationDescription {
   public override string SuccessDescription =>
     $"{prefix}{what} is always positive";
 
   public override string FailureDescription =>
-    $"{prefix}a negative {what} cannot be converted to an {typeDesc}";
+    $"{prefix}a negative {what} cannot be converted to an {toType}";
 
   public override string ShortDescription => "conversion positive";
 
   private readonly string prefix;
   private readonly string what;
-  private readonly string typeDesc;
+  private readonly Type toType;
 
-  public DafnyConversionPositiveDescription(string what, string typeDesc, string prefix = "") {
+  public ConversionPositive(string what, Type toType, string prefix = "") {
     this.prefix = prefix;
     this.what = what;
-    this.typeDesc = typeDesc;
+    this.toType = toType;
   }
 }
 
-public class DafnyIsIntegerDescription : DafnyAssertionDescription {
+public class IsInteger : ProofObligationDescription {
   public override string SuccessDescription =>
     $"{prefix}the real-based number is an integer";
 
@@ -187,14 +186,14 @@ public class DafnyIsIntegerDescription : DafnyAssertionDescription {
 
   private readonly string prefix;
 
-  public DafnyIsIntegerDescription(string prefix = "") {
+  public IsInteger(string prefix = "") {
     this.prefix = prefix;
   }
 }
 
 //// Object properties
 
-public class DafnyNonNullDescription : DafnyAssertionDescription {
+public class NonNull : ProofObligationDescription {
   public override string SuccessDescription =>
     $"{PluralSuccess}{what} object is never null";
 
@@ -207,13 +206,13 @@ public class DafnyNonNullDescription : DafnyAssertionDescription {
   private string PluralSuccess => plural ? "each " : "";
   private string PluralFailure => plural ? "some " : "";
 
-  public DafnyNonNullDescription(string what, bool plural = false) {
+  public NonNull(string what, bool plural = false) {
     this.what = what;
     this.plural = plural;
   }
 }
 
-public class DafnyAllocatedDescription : DafnyAssertionDescription {
+public class IsAllocated : ProofObligationDescription {
   public override string SuccessDescription =>
     $"{PluralSuccess}{what} is always allocated{WhenSuffix}";
 
@@ -229,7 +228,7 @@ public class DafnyAllocatedDescription : DafnyAssertionDescription {
   private string PluralSuccess => plural ? "each " : "";
   private string PluralFailure => plural ? "some " : "";
 
-  public DafnyAllocatedDescription(string what, string when, bool plural = false) {
+  public IsAllocated(string what, string when, bool plural = false) {
     this.what = what;
     this.when = when;
     this.plural = plural;
@@ -238,7 +237,7 @@ public class DafnyAllocatedDescription : DafnyAssertionDescription {
 
 //// Contract constraints
 
-public class DafnyPreconditionCheckDescription : DafnyAssertionDescription {
+public class PreconditionSatisfied : ProofObligationDescription {
   public override string SuccessDescription =>
     customErrMsg is null
       ? "function precondition satisfied"
@@ -251,12 +250,12 @@ public class DafnyPreconditionCheckDescription : DafnyAssertionDescription {
 
   private readonly string customErrMsg;
 
-  public DafnyPreconditionCheckDescription([CanBeNull] string customErrMsg) {
+  public PreconditionSatisfied([CanBeNull] string customErrMsg) {
     this.customErrMsg = customErrMsg;
   }
 }
 
-public class DafnyAssertStatementDescription : DafnyAssertionDescription {
+public class AssertStatement : ProofObligationDescription {
   public override string SuccessDescription =>
     customErrMsg is null
       ? "assertion always holds"
@@ -269,12 +268,12 @@ public class DafnyAssertStatementDescription : DafnyAssertionDescription {
 
   private readonly string customErrMsg;
 
-  public DafnyAssertStatementDescription([CanBeNull] string customErrMsg) {
+  public AssertStatement([CanBeNull] string customErrMsg) {
     this.customErrMsg = customErrMsg;
   }
 }
 
-public class DafnyLoopInvariantDescription : DafnyAssertionDescription {
+public class LoopInvariant : ProofObligationDescription {
   public override string SuccessDescription =>
     customErrMsg is null
       ? "loop invariant always holds"
@@ -287,12 +286,12 @@ public class DafnyLoopInvariantDescription : DafnyAssertionDescription {
 
   private readonly string customErrMsg;
 
-  public DafnyLoopInvariantDescription([CanBeNull] string customErrMsg) {
+  public LoopInvariant([CanBeNull] string customErrMsg) {
     this.customErrMsg = customErrMsg;
   }
 }
 
-public class DafnyCalculationStepDescription : DafnyAssertionDescription {
+public class CalculationStep : ProofObligationDescription {
   public override string SuccessDescription =>
     "the calculation step between the previous line and this line always holds";
 
@@ -302,7 +301,7 @@ public class DafnyCalculationStepDescription : DafnyAssertionDescription {
   public override string ShortDescription => "calc step";
 }
 
-public class DafnyEnsuresStrongerDescription : DafnyAssertionDescription {
+public class EnsuresStronger : ProofObligationDescription {
   public override string SuccessDescription =>
     "the method provides a postcondition equal to or more detailed than in its parent trait";
 
@@ -312,7 +311,7 @@ public class DafnyEnsuresStrongerDescription : DafnyAssertionDescription {
   public override string ShortDescription => "ensures stronger";
 }
 
-public class DafnyRequiresWeakerDescription : DafnyAssertionDescription {
+public class RequiresWeaker : ProofObligationDescription {
   public override string SuccessDescription =>
     "the method provides a precondition equal to or more permissive than in its parent trait";
 
@@ -322,7 +321,7 @@ public class DafnyRequiresWeakerDescription : DafnyAssertionDescription {
   public override string ShortDescription => "requires weaker";
 }
 
-public class DafnyForallPostDescription : DafnyAssertionDescription {
+public class ForallPostcondition : ProofObligationDescription {
   public override string SuccessDescription =>
     "postcondition of forall statement always holds";
 
@@ -332,7 +331,7 @@ public class DafnyForallPostDescription : DafnyAssertionDescription {
   public override string ShortDescription => "forall ensures";
 }
 
-public class DafnyYieldEnsuresDescription : DafnyAssertionDescription {
+public class YieldEnsures : ProofObligationDescription {
   public override string SuccessDescription =>
     "yield-ensures condition always holds";
 
@@ -342,7 +341,7 @@ public class DafnyYieldEnsuresDescription : DafnyAssertionDescription {
   public override string ShortDescription => "yield ensures";
 }
 
-public class DafnyTraitFrameDescription : DafnyAssertionDescription {
+public class TraitFrame : ProofObligationDescription {
   public override string SuccessDescription =>
     isModify
       ? "expression abides by trait context's modifies clause"
@@ -358,12 +357,12 @@ public class DafnyTraitFrameDescription : DafnyAssertionDescription {
 
   private bool isModify;
 
-  public DafnyTraitFrameDescription(bool isModify) {
+  public TraitFrame(bool isModify) {
     this.isModify = isModify;
   }
 }
 
-public class DafnyTraitDecreasesDescription : DafnyAssertionDescription {
+public class TraitDecreases : ProofObligationDescription {
   public override string SuccessDescription =>
     $"{whatKind}'s decreases clause is below or equal to that in the trait";
 
@@ -374,12 +373,12 @@ public class DafnyTraitDecreasesDescription : DafnyAssertionDescription {
 
   private readonly string whatKind;
 
-  public DafnyTraitDecreasesDescription(string whatKind) {
+  public TraitDecreases(string whatKind) {
     this.whatKind = whatKind;
   }
 }
 
-public class DafnyFrameSubsetDescription : DafnyAssertionDescription {
+public class FrameSubset : ProofObligationDescription {
   public override string SuccessDescription =>
     isWrite
       ? $"{whatKind} is allowed by context's modifies clause"
@@ -395,13 +394,13 @@ public class DafnyFrameSubsetDescription : DafnyAssertionDescription {
   private readonly string whatKind;
   private readonly bool isWrite;
 
-  public DafnyFrameSubsetDescription(string whatKind, bool isWrite) {
+  public FrameSubset(string whatKind, bool isWrite) {
     this.whatKind = whatKind;
     this.isWrite = isWrite;
   }
 }
 
-public class DafnyFrameDereferenceDescription : DafnyAssertionDescription {
+public class FrameDereferenceNonNull : ProofObligationDescription {
   public override string SuccessDescription =>
     "frame expression does not dereference null";
 
@@ -411,7 +410,7 @@ public class DafnyFrameDereferenceDescription : DafnyAssertionDescription {
   public override string ShortDescription => "frame dereference";
 }
 
-public class DafnyTerminationDescription : DafnyAssertionDescription {
+public class Terminates : ProofObligationDescription {
   public override string SuccessDescription =>
     "loop or recursion terminates";
 
@@ -426,13 +425,13 @@ public class DafnyTerminationDescription : DafnyAssertionDescription {
   private readonly bool inferredDescreases;
   private readonly string hint;
 
-  public DafnyTerminationDescription(bool inferredDescreases, string hint = null) {
+  public Terminates(bool inferredDescreases, string hint = null) {
     this.inferredDescreases = inferredDescreases;
     this.hint = hint;
   }
 }
 
-public class DafnyDecreasesBoundedBelowDescription : DafnyAssertionDescription {
+public class DecreasesBoundedBelow : ProofObligationDescription {
   public override string SuccessDescription =>
     $"decreases clause{component} is bounded below by {zeroStr}";
 
@@ -446,7 +445,7 @@ public class DafnyDecreasesBoundedBelowDescription : DafnyAssertionDescription {
   private readonly string suffix;
   private readonly int N, k;
 
-  public DafnyDecreasesBoundedBelowDescription(int N, int k, string zeroStr, string suffix) {
+  public DecreasesBoundedBelow(int N, int k, string zeroStr, string suffix) {
     this.N = N;
     this.k = k;
     this.zeroStr = zeroStr;
@@ -454,7 +453,7 @@ public class DafnyDecreasesBoundedBelowDescription : DafnyAssertionDescription {
   }
 }
 
-public class DafnyModifiableDescription : DafnyAssertionDescription {
+public class Modifiable : ProofObligationDescription {
   public override string SuccessDescription =>
     $"{description} is in the enclosing context's modifies clause";
 
@@ -465,12 +464,12 @@ public class DafnyModifiableDescription : DafnyAssertionDescription {
 
   private readonly string description;
 
-  public DafnyModifiableDescription(string description) {
+  public Modifiable(string description) {
     this.description = description;
   }
 }
 
-public class DafnyFunctionContractOverrideDescription : DafnyAssertionDescription {
+public class FunctionContractOverride : ProofObligationDescription {
   public override string SuccessDescription =>
     $"the function provides an equal or {RestrictionDesc} than in its parent trait";
 
@@ -483,14 +482,14 @@ public class DafnyFunctionContractOverrideDescription : DafnyAssertionDescriptio
   private string RestrictionDesc =>
     isEnsures ? "more detailed postcondition" : "more permissive precondition";
 
-  public DafnyFunctionContractOverrideDescription(bool isEnsures) {
+  public FunctionContractOverride(bool isEnsures) {
     this.isEnsures = isEnsures;
   }
 }
 
 //// Structural constraints
 
-public class DafnyCompleteMatchDescription : DafnyAssertionDescription {
+public class MatchIsComplete : ProofObligationDescription {
   public override string SuccessDescription =>
     $"match {matchForm} covers all cases";
 
@@ -501,13 +500,13 @@ public class DafnyCompleteMatchDescription : DafnyAssertionDescription {
 
   private readonly string matchForm;
   private readonly string missing;
-  public DafnyCompleteMatchDescription(string matchForm, string missing) {
+  public MatchIsComplete(string matchForm, string missing) {
     this.matchForm = matchForm;
     this.missing = missing;
   }
 }
 
-public class DafnyCompleteAlternativeDescription : DafnyAssertionDescription {
+public class AlternativeIsComplete : ProofObligationDescription {
   public override string SuccessDescription =>
     $"alternative cases cover all possibilties";
 
@@ -517,7 +516,7 @@ public class DafnyCompleteAlternativeDescription : DafnyAssertionDescription {
   public override string ShortDescription => "alternative complete";
 }
 
-public class DafnyPatternShapeDescription : DafnyAssertionDescription {
+public class PatternShapeIsValid : ProofObligationDescription {
   public override string SuccessDescription =>
     $"RHS will always match the pattern '{ctorName}'";
 
@@ -528,28 +527,28 @@ public class DafnyPatternShapeDescription : DafnyAssertionDescription {
 
   private readonly string ctorName;
 
-  public DafnyPatternShapeDescription(string ctorName) {
+  public PatternShapeIsValid(string ctorName) {
     this.ctorName = ctorName;
   }
 }
 
-public class DafnyCorrectConstructorDescription : DafnyAssertionDescription {
+public class ValidConstructorNames : ProofObligationDescription {
   public override string SuccessDescription =>
     $"source of datatype update is constructed by {ctorNames}";
 
   public override string FailureDescription =>
     $"source of datatype update must be constructed by {ctorNames}";
 
-  public override string ShortDescription => "constructor names valid";
+  public override string ShortDescription => "valid constructor names";
 
   private readonly string ctorNames;
 
-  public DafnyCorrectConstructorDescription(string ctorNames) {
+  public ValidConstructorNames(string ctorNames) {
     this.ctorNames = ctorNames;
   }
 }
 
-public class DafnyDestructorValidDescription : DafnyAssertionDescription {
+public class DestructorValid : ProofObligationDescription {
   public override string SuccessDescription =>
     $"destructor '{dtorName}' is only applied to datatype values constructed by {ctorNames}";
 
@@ -561,7 +560,7 @@ public class DafnyDestructorValidDescription : DafnyAssertionDescription {
   private readonly string dtorName;
   private readonly string ctorNames;
 
-  public DafnyDestructorValidDescription(string dtorName, string ctorNames) {
+  public DestructorValid(string dtorName, string ctorNames) {
     this.dtorName = dtorName;
     this.ctorNames = ctorNames;
   }
@@ -570,7 +569,7 @@ public class DafnyDestructorValidDescription : DafnyAssertionDescription {
 
 //// Misc constraints
 
-public class DafnyIndicesInDomainDescription : DafnyAssertionDescription {
+public class IndicesInDomain : ProofObligationDescription {
   public override string SuccessDescription =>
     $"all {objType} indices are in the domain of the initialization function";
 
@@ -581,12 +580,12 @@ public class DafnyIndicesInDomainDescription : DafnyAssertionDescription {
 
   private readonly string objType;
 
-  public DafnyIndicesInDomainDescription(string objType) {
+  public IndicesInDomain(string objType) {
     this.objType = objType;
   }
 }
 
-public class DafnySubrangeCheckDescription : DafnyAssertionDescription {
+public class SubrangeCheck : ProofObligationDescription {
   public override string SuccessDescription =>
     isSubset
       ? $"value always satisfies the subset constraints of '{targetType}'"
@@ -609,7 +608,7 @@ public class DafnySubrangeCheckDescription : DafnyAssertionDescription {
   private readonly bool isCertain;
   private readonly string cause;
 
-  public DafnySubrangeCheckDescription(string prefix, string sourceType, string targetType, bool isSubset, bool isCertain, [CanBeNull] string cause) {
+  public SubrangeCheck(string prefix, string sourceType, string targetType, bool isSubset, bool isCertain, [CanBeNull] string cause) {
     this.prefix = prefix;
     this.sourceType = sourceType;
     this.targetType = targetType;
@@ -619,7 +618,7 @@ public class DafnySubrangeCheckDescription : DafnyAssertionDescription {
   }
 }
 
-public class DafnyWitnessCheckDescription : DafnyAssertionDescription {
+public class WitnessCheck : ProofObligationDescription {
   public override string SuccessDescription =>
     "type is inhabited";
 
@@ -635,12 +634,12 @@ public class DafnyWitnessCheckDescription : DafnyAssertionDescription {
     "; try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type";
   private readonly string witnessString;
 
-  public DafnyWitnessCheckDescription(string witnessString) {
+  public WitnessCheck(string witnessString) {
     this.witnessString = witnessString;
   }
 }
 
-public class DafnyPrefixEqualityLimitDescription : DafnyAssertionDescription {
+public class PrefixEqualityLimit : ProofObligationDescription {
   public override string SuccessDescription =>
     "prefix-equality limit is at least 0";
 
@@ -650,7 +649,7 @@ public class DafnyPrefixEqualityLimitDescription : DafnyAssertionDescription {
   public override string ShortDescription => "prefix-equality limit";
 }
 
-public class DafnyForRangeBoundsDescription : DafnyAssertionDescription {
+public class ForRangeBoundsValid : ProofObligationDescription {
   public override string SuccessDescription =>
     "lower bound does not exceed upper bound";
 
@@ -660,7 +659,7 @@ public class DafnyForRangeBoundsDescription : DafnyAssertionDescription {
   public override string ShortDescription => "for range bounds";
 }
 
-public class DafnyForRangeAssignableDescription : DafnyAssertionDescription {
+public class ForRangeAssignable : ProofObligationDescription {
   public override string SuccessDescription =>
     "entire range is assignable to index variable";
 
@@ -669,14 +668,14 @@ public class DafnyForRangeAssignableDescription : DafnyAssertionDescription {
 
   public override string ShortDescription => "for range assignable";
 
-  private readonly DafnyAssertionDescription desc;
+  private readonly ProofObligationDescription desc;
 
-  public DafnyForRangeAssignableDescription(DafnyAssertionDescription desc) {
+  public ForRangeAssignable(ProofObligationDescription desc) {
     this.desc = desc;
   }
 }
 
-public class DafnyNotRecursiveSettingDescription : DafnyAssertionDescription {
+public class ValidInRecursion : ProofObligationDescription {
   public override string SuccessDescription =>
     $"{what} is valid in recursive setting";
 
@@ -688,13 +687,13 @@ public class DafnyNotRecursiveSettingDescription : DafnyAssertionDescription {
   private readonly string what;
   private readonly string hint;
 
-  public DafnyNotRecursiveSettingDescription(string what, string hint) {
+  public ValidInRecursion(string what, string hint) {
     this.what = what;
     this.hint = hint;
   }
 }
 
-public class DafnyDefaultNonrecursiveDescription : DafnyAssertionDescription {
+public class IsNonRecursive : ProofObligationDescription {
   public override string SuccessDescription =>
     "default value is non-recursive";
 
@@ -704,7 +703,7 @@ public class DafnyDefaultNonrecursiveDescription : DafnyAssertionDescription {
   public override string ShortDescription => "default nonrecursive";
 }
 
-public class DafnyForallLHSUniqueDescription : DafnyAssertionDescription {
+public class ForallLHSUnique : ProofObligationDescription {
   public override string SuccessDescription =>
     "left-hand sides of forall-statement bound variables are unique";
 
@@ -714,7 +713,7 @@ public class DafnyForallLHSUniqueDescription : DafnyAssertionDescription {
   public override string ShortDescription => "forall bound unique";
 }
 
-public class DafnyElementInDomainDescription : DafnyAssertionDescription {
+public class ElementInDomain : ProofObligationDescription {
   public override string SuccessDescription =>
     "element is in domain";
 
@@ -724,7 +723,7 @@ public class DafnyElementInDomainDescription : DafnyAssertionDescription {
   public override string ShortDescription => "element in domain";
 }
 
-public class DafnyDefiniteAssignmentDescription : DafnyAssertionDescription {
+public class DefiniteAssignment : ProofObligationDescription {
   public override string SuccessDescription =>
     $"{what}, which is subject to definite-assignment rules, has been defined {where}";
 
@@ -736,13 +735,13 @@ public class DafnyDefiniteAssignmentDescription : DafnyAssertionDescription {
   private readonly string what;
   private readonly string where;
 
-  public DafnyDefiniteAssignmentDescription(string what, string where) {
+  public DefiniteAssignment(string what, string where) {
     this.what = what;
     this.where = where;
   }
 }
 
-public class DafnyInRangeDescription : DafnyAssertionDescription {
+public class InRange : ProofObligationDescription {
   public override string SuccessDescription => $"{what} in range";
 
   public override string FailureDescription => $"{what} out of range";
@@ -751,28 +750,28 @@ public class DafnyInRangeDescription : DafnyAssertionDescription {
 
   private readonly string what;
 
-  public DafnyInRangeDescription(string what) {
+  public InRange(string what) {
     this.what = what;
   }
 }
 
-public class DafnySequenceSelectRangeDescription : DafnyAssertionDescription {
+public class SequenceSelectRangeValid : ProofObligationDescription {
   public override string SuccessDescription =>
     $"upper bound within range of {what}";
 
   public override string FailureDescription =>
     $"upper bound below lower bound or above length of {what}";
 
-  public override string ShortDescription => "upper bound within range";
+  public override string ShortDescription => "sequence select range valid";
 
   private readonly string what;
 
-  public DafnySequenceSelectRangeDescription(string what) {
+  public SequenceSelectRangeValid(string what) {
     this.what = what;
   }
 }
 
-public class DafnyComprehensionNoAliasDescription : DafnyAssertionDescription {
+public class ComprehensionNoAlias : ProofObligationDescription {
   public override string SuccessDescription =>
     "key expressions refer to unique values";
 
@@ -782,7 +781,7 @@ public class DafnyComprehensionNoAliasDescription : DafnyAssertionDescription {
   public override string ShortDescription => "unique key expressions";
 }
 
-public class DafnyDistinctLHSDescription : DafnyAssertionDescription {
+public class DistinctLHS : ProofObligationDescription {
   public override string SuccessDescription =>
     $"left-hand sides {lhsa} and {lhsb} are distinct";
 
@@ -797,7 +796,7 @@ public class DafnyDistinctLHSDescription : DafnyAssertionDescription {
   private readonly string when;
   private readonly string whenSuffix;
 
-  public DafnyDistinctLHSDescription(string lhsa, string lhsb, bool useMight, bool useWhen) {
+  public DistinctLHS(string lhsa, string lhsb, bool useMight, bool useWhen) {
     this.lhsa = lhsa;
     this.lhsb = lhsb;
     this.might = useMight ? "might " : "";
@@ -806,7 +805,7 @@ public class DafnyDistinctLHSDescription : DafnyAssertionDescription {
   }
 }
 
-public class DafnyArrayInitSizeDescription : DafnyAssertionDescription {
+public class ArrayInitSizeValid : ProofObligationDescription {
   public override string SuccessDescription =>
     $"given array size agrees with the number of expressions in the initializing display ({size})";
 
@@ -817,12 +816,12 @@ public class DafnyArrayInitSizeDescription : DafnyAssertionDescription {
 
   private readonly int size;
 
-  public DafnyArrayInitSizeDescription(int size) {
+  public ArrayInitSizeValid(int size) {
     this.size = size;
   }
 }
 
-public class DafnyArrayInitEmptyDescription : DafnyAssertionDescription {
+public class ArrayInitEmpty : ProofObligationDescription {
   public override string SuccessDescription =>
     "array initializer has empty size";
 
@@ -833,12 +832,12 @@ public class DafnyArrayInitEmptyDescription : DafnyAssertionDescription {
 
   private readonly string typeDesc;
 
-  public DafnyArrayInitEmptyDescription(string typeDesc) {
+  public ArrayInitEmpty(string typeDesc) {
     this.typeDesc = typeDesc;
   }
 }
 
-public class DafnyLetSuchThanUniqueDescription : DafnyAssertionDescription {
+public class LetSuchThanUnique : ProofObligationDescription {
   public override string SuccessDescription =>
     "the value of this let-such-that expression is uniquely determined";
 
@@ -848,7 +847,7 @@ public class DafnyLetSuchThanUniqueDescription : DafnyAssertionDescription {
   public override string ShortDescription => "let-such-that unique";
 }
 
-public class DafnyLetSuchThanExistsDescription : DafnyAssertionDescription {
+public class LetSuchThanExists : ProofObligationDescription {
   public override string SuccessDescription =>
     "a value exists that satisfies this let-such-that expression";
 
@@ -858,7 +857,7 @@ public class DafnyLetSuchThanExistsDescription : DafnyAssertionDescription {
   public override string ShortDescription => "let-such-that exists";
 }
 
-public class DafnyAssignmentShrinksDescription : DafnyAssertionDescription {
+public class AssignmentShrinks : ProofObligationDescription {
   public override string SuccessDescription =>
     $"the assignment to {fieldName} always shrinks the set";
 
@@ -869,12 +868,12 @@ public class DafnyAssignmentShrinksDescription : DafnyAssertionDescription {
 
   private readonly string fieldName;
 
-  public DafnyAssignmentShrinksDescription(string fieldName) {
+  public AssignmentShrinks(string fieldName) {
     this.fieldName = fieldName;
   }
 }
 
-public class DafnyBoilerplateTripleDescription : DafnyAssertionDescription {
+public class BoilerplateTriple : ProofObligationDescription {
   public override string SuccessDescription =>
     $"error is impossible: {msg}";
 
@@ -884,7 +883,7 @@ public class DafnyBoilerplateTripleDescription : DafnyAssertionDescription {
 
   private readonly string msg;
 
-  public DafnyBoilerplateTripleDescription(string msg) {
+  public BoilerplateTriple(string msg) {
     this.msg = msg;
   }
 }
