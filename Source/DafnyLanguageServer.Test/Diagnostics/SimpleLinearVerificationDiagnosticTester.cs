@@ -41,7 +41,7 @@ public class SimpleLinearVerificationDiagnosticTester : LinearVerificationDiagno
  .  |  |  |  I  I  |  | :  false
  .  |  |  |  I  I  |  | :}");
   }
-  [TestMethod]
+  [TestMethod, Timeout(MaxTestExecutionTimeMs)]
   public async Task EnsuresItWorksForSubsetTypes() {
     await VerifyTrace(@"
     |  |  |  I  I  |  |  |  I  I  |  |  | :
@@ -55,7 +55,7 @@ public class SimpleLinearVerificationDiagnosticTester : LinearVerificationDiagno
  .  S  |  |  I  .  S  | [=] I  .  S  |  | :  witness 101 //Next1:   witness 99 //Next2:   witness 101 ");
   }
 
-  [TestMethod]
+  [TestMethod, Timeout(MaxTestExecutionTimeMs)]
   public async Task EnsureItWorksForPostconditionsRelatedOutside() {
     await VerifyTrace(@"
  .  |  |  | :predicate F(i: int) {
@@ -68,25 +68,33 @@ public class SimpleLinearVerificationDiagnosticTester : LinearVerificationDiagno
  .  S [S][ ]:}");
   }
 
-  [TestMethod]
-  public async Task EnsureAddingNewlineHighlightsProperly() {
+  [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+  public async Task EnsureNoAssertShowsVerified() {
     await VerifyTrace(@"
-                        ://Next:\n
- .  S [S][ ]            :method Test() {
- .  S [=][=][I][S][S][ ]:  assert 1 == 2;
- .  S [S][ ][-][~][=][=]:}
-            [I][S][S][ ]:");
+ .  |  |  |  I  | :predicate P(x: int)
+    |  |  |  I  | :
+ .  S [S][ ][I] | :method Main() {
+ .  S [=][=][I] | :  ghost var x :| P(x); //Next:  ghost var x := 1;
+ .  S [S][ ][I] | :}
+                | :");
   }
 
-  [TestMethod]
-  public async Task EnsuresEditingChangesPriority() {
+  [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+  public async Task EnsureEmptyDocumentIsVerified() {
     await VerifyTrace(@"
-                |  |  I  I  $  |  |  |  I  $  $             :
- .  S  S  S  S  |  |  I  I  $  |  |  |  I  $  $ [S][ ][ ][ ]:method {:priority 5} A1() {
- .  S  S  S  |  |  |  I  I  $  |  |  |  I  $  $ [=][=][=][=]:  assert 1 == 1; //Next2:  assert 1 == 2;
- .  S  S  S  S  |  |  I  I  $  |  |  |  I  $  $ [S][ ][ ][ ]:}
- .  .  S  S  S  S  |  I  $  $  $ [S][ ][I][I][S][S][S][S][ ]:method {:priority 1} A2() {
- .  .  S  |  |  |  |  I  $  $  $ [=][=][-][-][~][~][~][=][=]:  assert 1 == 1; //Next1:  assert 1 == 2;
- .  .  S  S  S  S  |  I  $  $  $ [S][ ][I][I][S][S][S][S][ ]:}");
+ | :class A {
+ | :}
+ | :");
+  }
+
+
+
+  [TestMethod/*, Timeout(MaxTestExecutionTimeMs)*/]
+  public async Task TopLevelConstantsHaveToBeVerifiedAlso() {
+    await VerifyTrace(@"
+    |  |  | :// The following should trigger only one error
+ .  |  |  | :ghost const a := [1, 2];
+    |  |  | :
+ .  S [~][=]:ghost const b := a[-1];");
   }
 }

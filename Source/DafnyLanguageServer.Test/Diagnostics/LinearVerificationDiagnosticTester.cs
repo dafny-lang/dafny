@@ -57,7 +57,9 @@ public abstract class LinearVerificationDiagnosticTester : ClientBasedLanguageSe
            status != LineVerificationStatus.VerifiedObsolete &&
            status != LineVerificationStatus.VerifiedVerifying &&
            status != LineVerificationStatus.ErrorRangeObsolete &&
-           status != LineVerificationStatus.ErrorRangeVerifying;
+           status != LineVerificationStatus.ErrorRangeVerifying &&
+           status != LineVerificationStatus.ErrorRangeAssertionVerifiedObsolete &&
+           status != LineVerificationStatus.ErrorRangeAssertionVerifiedVerifying;
   }
   public static string RenderTrace(List<LineVerificationStatus[]> statusesTrace, string code) {
     var codeLines = new Regex("\r?\n").Split(code);
@@ -222,7 +224,8 @@ public abstract class LinearVerificationDiagnosticTester : ClientBasedLanguageSe
       traces.AddRange(await GetAllLineVerificationDiagnostics(documentItem));
     }
     var traceObtained = RenderTrace(traces, code);
-    AssertWithDiff.Equal(codeAndTrace, AcceptQuestionMarks(traceObtained, codeAndTrace));
+    var ignoreQuestionMarks = AcceptQuestionMarks(traceObtained, codeAndTrace);
+    AssertWithDiff.Equal("\n" + codeAndTrace + "\n", "\n" + ignoreQuestionMarks + "\n");
   }
 
   // Finds all the "?" at the beginning in expected and replace the characters at the same position in traceObtained
@@ -239,7 +242,7 @@ public abstract class LinearVerificationDiagnosticTester : ClientBasedLanguageSe
     var pattern = "";
     for (var matchIndex = 0; matchIndex < matches.Count; matchIndex++) {
       pattern += (pattern == "" ? "" : "|")
-                 + (@"^(?<=[\S\s]{" + matches[matchIndex].Index + @"}).");
+                 + (@"(?<=^[\S\s]{" + matches[matchIndex].Index + @"}).");
     }
 
     if (pattern == "") {
