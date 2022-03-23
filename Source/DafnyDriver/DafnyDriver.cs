@@ -327,22 +327,24 @@ namespace Microsoft.Dafny {
       var moduleTasks = boogiePrograms.Select(async program => {
         await using var moduleWriter = writerManager.AppendWriter();
         // ReSharper disable once AccessToDisposedClosure
-        return await Task.Run(() => BoogieOnceWithTimer(moduleWriter, baseName, programId, concurrentModuleStats, program.Item1,
-          program.Item2));
+        var result = await Task.Run(() =>
+          BoogieOnceWithTimer(moduleWriter, baseName, programId, program.Item1, program.Item2));
+        concurrentModuleStats.TryAdd(program.Item1, result.Stats);
+        return result;
       }).ToList();
 
       await Task.WhenAll(moduleTasks);
       var outcome = moduleTasks.Select(t => t.Result.Outcome)
         .Aggregate(PipelineOutcome.VerificationCompleted, MergeOutcomes);
 
-      var isVerified = moduleTasks.Select(t => t.Result.IsVerified).All(x => x);
+      var isVerified = moduleTasks.Select(t =>
+        Dafny.Main.IsBoogieVerified(t.Result.Outcome, t.Result.Stats)).All(x => x);
       return (isVerified, outcome, concurrentModuleStats);
     }
 
-    private async Task<(bool IsVerified, PipelineOutcome Outcome)> BoogieOnceWithTimer(
+    private async Task<(PipelineOutcome Outcome, PipelineStatistics Stats)> BoogieOnceWithTimer(
       TextWriter output,
       string baseName, string programId,
-      ConcurrentDictionary<string, PipelineStatistics> moduleStats,
       string moduleName,
       Bpl.Program program) {
       Stopwatch watch = new Stopwatch();
@@ -351,7 +353,8 @@ namespace Microsoft.Dafny {
         DafnyOptions.O.Printer.AdvisoryWriteLine(output, "For module: {0}", moduleName);
       }
 
-      var (isVerified, newOutcome, newStats) = await Dafny.Main.BoogieOnce(output, engine, baseName, moduleName, program, programId);
+      var result =
+        await Dafny.Main.BoogieOnce(output, engine, baseName, moduleName, program, programId);
 
       watch.Stop();
 
@@ -359,11 +362,10 @@ namespace Microsoft.Dafny {
         TimeSpan ts = watch.Elapsed;
         string elapsedTime = $"{ts.Hours:00}:{ts.Minutes:00}:{ts.Seconds:00}";
         DafnyOptions.O.Printer.AdvisoryWriteLine(output, "Elapsed time: {0}", elapsedTime);
-        WriteTrailer(output, newStats);
+        WriteTrailer(output, result.Statistics);
       }
 
-      moduleStats.TryAdd(moduleName, newStats);
-      return (isVerified, newOutcome);
+      return result;
     }
 
     private static PipelineOutcome MergeOutcomes(PipelineOutcome first, PipelineOutcome second) {
