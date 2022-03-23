@@ -14576,6 +14576,10 @@ namespace Microsoft.Dafny {
         this.InsideOld = insideOld;
         this.isSpecification = isSpecification;
       }
+
+      public ResolveOpts WithSpecification() {
+        return new ResolveOpts(codeContext, twoState, true, isReveal, isPostCondition, InsideOld);
+      }
     }
 
     /// <summary>
@@ -15269,10 +15273,12 @@ namespace Microsoft.Dafny {
 
       } else if (expr is SetComprehension) {
         var e = (SetComprehension)expr;
-        int prevErrorCount = reporter.Count(ErrorLevel.Error);
         scope.PushMarker();
         var cloner = new Cloner();
         e.RangeIfGhost = cloner.CloneExpr(e.Range);
+        if (!e.Finite) {
+          opts = opts.WithSpecification();
+        }
         //For the range, we need to assume that the bound vars have a run-time testable type.
         ScopePushBoundVarsAssumingNonGhost(e, opts);
         ResolveExpression(e.Range, opts);
@@ -15302,7 +15308,9 @@ namespace Microsoft.Dafny {
 
       } else if (expr is MapComprehension) {
         var e = (MapComprehension)expr;
-        int prevErrorCount = reporter.Count(ErrorLevel.Error);
+        if (!e.Finite) {
+          opts = opts.WithSpecification();
+        }
         scope.PushMarker();
         Contract.Assert(e.BoundVars.Count == 1 || (1 < e.BoundVars.Count && e.TermLeft != null));
         var cloner = new Cloner();
@@ -16833,9 +16841,8 @@ namespace Microsoft.Dafny {
           }
           // resolve the arguments, even in the presence of the errors above
           foreach (var binding in e.Bindings.ArgumentBindings) {
-            var bindingOpts = /*!opts.isSpecification && binding.IsGhost
-              ? new ResolveOpts(opts.codeContext, opts.twoState, true, opts.isReveal,
-                opts.isPostCondition, opts.InsideOld) :*/ opts;
+            var bindingOpts = !opts.isSpecification && binding.IsGhost
+              ? opts.WithSpecification() : opts;
             ResolveExpression(binding.Actual, bindingOpts);
           }
         } else {
@@ -16996,8 +17003,7 @@ namespace Microsoft.Dafny {
 
         // resolve argument
         var bindingOpts = !opts.isSpecification && (isGhostBinding || binding.IsGhost)
-          ? new ResolveOpts(opts.codeContext, opts.twoState, true, opts.isReveal,
-            opts.isPostCondition, opts.InsideOld) : opts;
+          ? opts.WithSpecification() : opts;
         ResolveExpression(arg, bindingOpts);
         bindingIndex++;
       }

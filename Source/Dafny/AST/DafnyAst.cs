@@ -11798,7 +11798,10 @@ namespace Microsoft.Dafny {
         foreach (var e in Attributes.SubExpressions(Attributes)) {
           yield return e;
         }
-        if (Range != null) { yield return Range; }
+
+        if (Range != null) {
+          yield return Range;
+        }
 
         if (RangeIfGhost != null) {
           yield return RangeIfGhost;
@@ -12034,12 +12037,10 @@ namespace Microsoft.Dafny {
 
     public override IEnumerable<Expression> SubExpressions {
       get {
-        foreach (var e in Attributes.SubExpressions(Attributes)) {
+        foreach (var e in base.SubExpressions) {
           yield return e;
         }
-        if (Range != null) { yield return Range; }
         if (TermLeft != null) { yield return TermLeft; }
-        yield return Term;
       }
     }
   }
@@ -12067,6 +12068,9 @@ namespace Microsoft.Dafny {
         yield return Term;
         if (Range != null) {
           yield return Range;
+        }
+        if (RangeIfGhost != null) {
+          yield return RangeIfGhost;
         }
         foreach (var read in Reads) {
           yield return read.E;

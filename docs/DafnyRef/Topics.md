@@ -10,6 +10,28 @@ TO BE WRITTEN
 
 TO BE WRITTEN
 
+### 23.2.1. Subset types
+
+[Subset types](#sec-subset-types) 
+Most of the time, subset types are carrying extra constraints so, unless it is trivial to infer them, only their base type is inferred, and the verifier checks the constraints.
+
+There is one case where Dafny's resolver may infer a subset type when it's non trivial: it's when their constraint can be compiled. For example:
+```dafny
+ghost const zero := 0;
+
+type GhostNat = x | x >= zero // Not run-time testable
+type CompiledNat = x | x >= 0 // Run-time testable
+
+function method f(n: GhostNat): int { n }
+function method g(n: CompiledNat): int { n }
+
+// Here n is inferred to be an int and the constraint for f fails.
+const m := set x | n in {-1, 0, 1, 2} && f(n) >= 1
+
+// Here n is inferred to be a CompiledNat and the constraint for g is emitted by the compiler, everything succeeds
+const m := set x | n in {-1, 0, 1, 2} && g(n) >= 1
+```
+
 ## 23.3. Ghost Inference
 
 TO BE WRITTEN
