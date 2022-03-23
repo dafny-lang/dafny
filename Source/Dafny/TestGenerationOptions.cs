@@ -36,7 +36,7 @@ namespace Microsoft.Dafny {
 
         case "generateTestSeqLengthLimit":
           var limit = 0;
-          if (ps.GetNumericArgument(ref limit)) {
+          if (ps.GetIntArgument(ref limit)) {
             SeqLengthLimit = (uint)limit;
           }
           return true;
@@ -49,7 +49,7 @@ namespace Microsoft.Dafny {
 
         case "generateTestInlineDepth":
           var depth = 0;
-          if (ps.GetNumericArgument(ref depth)) {
+          if (ps.GetIntArgument(ref depth)) {
             TestInlineDepth = (uint)depth;
           }
           return true;
