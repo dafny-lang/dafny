@@ -178,8 +178,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
       public void ReportBplError(IToken tok, string message, bool error, TextWriter tw, [AllowNull] string category) {
         logger.LogError(message);
-        if (error) {
-        }
       }
 
       public void ReportImplementationsBeforeVerification(Implementation[] implementations) {
