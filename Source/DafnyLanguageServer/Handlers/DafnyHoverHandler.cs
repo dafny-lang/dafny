@@ -30,25 +30,29 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       };
     }
 
-    public async override Task<Hover?> Handle(HoverParams request, CancellationToken cancellationToken) {
+    public override async Task<Hover?> Handle(HoverParams request, CancellationToken cancellationToken) {
       logger.LogTrace("received hover request for {Document}", request.TextDocument);
       var document = await documents.GetDocumentAsync(request.TextDocument);
       if (document == null) {
         logger.LogWarning("the document {Document} is not loaded", request.TextDocument);
         return null;
       }
+      var diagnosticHoverContent = GetDiagnosticsHover(document, request.Position);
       if (!document.SymbolTable.TryGetSymbolAt(request.Position, out var symbol)) {
-        var hover = GetDiagnosticsHover(document, request.Position);
-        if (hover != null) {
-          return hover;
-        }
         logger.LogDebug("no symbol was found at {Position} in {Document}", request.Position, request.TextDocument);
+      }
+
+      var symbolHoverContent = symbol != null ? CreateSymbolMarkdown(symbol, cancellationToken) : null;
+      if (diagnosticHoverContent == null && symbolHoverContent == null) {
         return null;
       }
-      return CreateHover(symbol, cancellationToken);
+
+      var hoverContent = diagnosticHoverContent == null ? "" : diagnosticHoverContent;
+      hoverContent += symbolHoverContent == null ? (hoverContent != "" ? "  \n" : "") : symbolHoverContent;
+      return CreateMarkdownHover(hoverContent);
     }
 
-    private Hover? GetDiagnosticsHover(DafnyDocument document, Position position) {
+    private string? GetDiagnosticsHover(DafnyDocument document, Position position) {
       foreach (var node in document.VerificationNodeDiagnostic.Children.OfType<TopLevelDeclMemberNodeDiagnostic>()) {
         if (node.Range.Contains(position)) {
           var assertionBatchCount = node.AssertionBatchCount;
@@ -124,7 +128,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           }
 
           if (information != "") {
-            return CreateMarkdownHover(information);
+            return information;
           }
           // Ok no assertion here. Maybe a method?
           if (node.Position.Line == position.Line &&
@@ -140,7 +144,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
                   ? $"{node.LongestAssertionBatchTime:n0}ms in 1 {assertionBatch}  \n"
                   : $"{node.LongestAssertionBatchTime:n0}ms for the longest {assertionBatch} #{node.LongestAssertionBatchTimeIndex + 1}/{node.AssertionBatchCount}{lineFirstAssert}   \n") +
                 $"{node.ResourceCount:n0} resource count";
-            return CreateMarkdownHover(information);
+            return information;
           }
         }
       }
@@ -157,22 +161,14 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         Contents = new MarkedStringsOrMarkupContent(
           new MarkupContent {
             Kind = MarkupKind.Markdown,
-            Value = $"{information}"
+            Value = information
           }
         )
       };
     }
 
-    private static Hover CreateHover(ILocalizableSymbol symbol, CancellationToken cancellationToken) {
-      return new Hover {
-        Contents = new MarkedStringsOrMarkupContent(
-          new MarkupContent {
-            // TODO It appears that setting plaintext/markdown doesn't make a difference, at least in VSCode.
-            Kind = MarkupKind.Markdown,
-            Value = $"```dafny\n{symbol.GetDetailText(cancellationToken)}\n```"
-          }
-        )
-      };
+    private static string CreateSymbolMarkdown(ILocalizableSymbol symbol, CancellationToken cancellationToken) {
+      return $"```dafny\n{symbol.GetDetailText(cancellationToken)}\n```";
     }
   }
 }
