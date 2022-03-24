@@ -5,7 +5,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Text;
 using System.Threading;
-using OmniSharp.Extensions.LanguageServer.Protocol.Server;
 using System;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using VC;
@@ -33,7 +32,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
     private DafnyProgramVerifier(
       ILogger<DafnyProgramVerifier> logger,
-      ILanguageServerFacade languageServer,
       VerifierOptions options
       ) {
       this.logger = logger;
@@ -45,11 +43,10 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// settings are set exactly ones.
     /// </summary>
     /// <param name="logger">A logger instance that may be used by this verifier instance.</param>
-    /// <param name="languageServer">A instance of the language server</param>
     /// <param name="options">Settings for the verifier.</param>
     /// <returns>A safely created dafny verifier instance.</returns>
     public static DafnyProgramVerifier Create(
-      ILogger<DafnyProgramVerifier> logger, ILanguageServerFacade languageServer, IOptions<VerifierOptions> options) {
+      ILogger<DafnyProgramVerifier> logger, IOptions<VerifierOptions> options) {
       lock (InitializationSyncObject) {
         if (!initialized) {
           // TODO This may be subject to change. See Microsoft.Boogie.Counterexample
@@ -62,7 +59,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
                           "VerifySnapshots={VerifySnapshots}.",
                           DafnyOptions.O.VerifySnapshots);
         }
-        return new DafnyProgramVerifier(logger, languageServer, options.Value);
+        return new DafnyProgramVerifier(logger, options.Value);
       }
     }
 
