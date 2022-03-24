@@ -4,14 +4,11 @@ using Microsoft.Extensions.Options;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server;
 using System;
-using System.Collections.Generic;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using VC;
-using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
@@ -28,7 +25,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     private static bool initialized;
 
     private readonly ILogger logger;
-    private readonly ILanguageServerFacade languageServer;
     private readonly VerifierOptions options;
     private readonly SemaphoreSlim mutex = new(1);
     private readonly VerificationResultCache cache = new();
@@ -41,7 +37,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       VerifierOptions options
       ) {
       this.logger = logger;
-      this.languageServer = languageServer;
       this.options = options;
     }
 
