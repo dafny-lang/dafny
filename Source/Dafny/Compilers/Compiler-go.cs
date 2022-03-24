@@ -1957,9 +1957,8 @@ namespace Microsoft.Dafny.Compilers {
         wr.NewBlock("", open: BlockStyle.Brace);
       }
 
-      var cast = boundVarType.Equals(collectionElementType, false)
-        ? ""
-        : $".({TypeName(boundVarType, wr, tok)})";
+      var cast = $".({TypeName(boundVarType, wr, tok)})";
+      tmpVarName = $"interface{{}}({tmpVarName})";
       wr.WriteLine("{0} = {1}{2}", boundVarName, tmpVarName, cast);
       return wr;
     }
