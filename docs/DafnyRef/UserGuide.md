@@ -332,7 +332,7 @@ For every method (or function, constructor, etc.), Dafny extracts _assertions_. 
 
 * Every [object property access](#sec-class-types) yields an _assertion_ that the object is not null.
 * Every assignment `o.f := E;` yield an _assertion_ that `o` is among the set of objects of the `modifies` clause of the enclosing [loop](#sec-loop-framing) or [method](#sec-modifies-clause).
-* Every read `o.f` yield an _assertion_ that `o` is among the set of objects of the [`reads`](#sec-reads-clause) clause of the enclosing function or predicate; or the enclosing [`modifies`](#sec-modifies-clause) clause of the enclosing method.
+* Every read `o.f` yield an _assertion_ that `o` is among the set of objects of the [`reads`](#sec-reads-clause) clause of the enclosing function or predicate; or the [`modifies`](#sec-modifies-clause) clause of the enclosing method.
 * Every [array access](#sec-array-types) `a[x]` yield the assertion that `0 <= x < a.Length`.
 * Every [sequence access](#sec-sequences) `a[x]` yield an _assertion_, that `0 <= x < |a|`, because sequences are never null.
 * Every [datatype update expression](#sec-datatype-update-suffix) and [datatype destruction](#sec-algebraic-datatype) yields an _assertion_ that the object has the given property.
