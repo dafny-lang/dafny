@@ -1,7 +1,5 @@
-using System.Collections.Generic;
-using System.Threading;
-using DafnyServer;
 using Microsoft.Boogie;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using VC;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
@@ -15,6 +13,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// <param name="message">A progress message (IDE will prepend “Verifying” header)</param>
     void ReportProgress(string message);
 
+    void RecomputeVerificationNodeDiagnostics();
+    void ReportRealtimeDiagnostics(DafnyDocument document);
 
     void ReportStartVerifyImplementation(Implementation implToken);
     void ReportEndVerifyImplementation(Implementation implToken, Boogie.VerificationResult verificationResult);

@@ -85,7 +85,12 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       try {
         // The printer is responsible for two things: It logs boogie errors and captures the counter example model.
         var errorReporter = (DiagnosticErrorReporter)program.reporter;
-        var printer = new ModelCapturingOutputPrinter(logger, errorReporter, progressReporter);
+        if (options.Diagnostics) {
+          progressReporter.RecomputeVerificationNodeDiagnostics();
+          progressReporter.ReportRealtimeDiagnostics(document);
+        }
+
+        var printer = new ModelCapturingOutputPrinter(logger, errorReporter, progressReporter, options.Diagnostics);
         DafnyOptions.O.Printer = printer;
         // Do not set these settings within the object's construction. It will break some tests within
         // VerificationNotificationTest and DiagnosticsTest that rely on updating these settings.
@@ -147,14 +152,19 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       private readonly DiagnosticErrorReporter errorReporter;
       private readonly IVerificationProgressReporter progressReporter;
       private StringBuilder? serializedCounterExamples;
+      private readonly bool reportVerificationDiagnostics;
 
       public string? SerializedCounterExamples => serializedCounterExamples?.ToString();
 
-      public ModelCapturingOutputPrinter(ILogger logger, DiagnosticErrorReporter errorReporter,
-                                         IVerificationProgressReporter progressReporter) {
+      public ModelCapturingOutputPrinter(
+          ILogger logger,
+          DiagnosticErrorReporter errorReporter,
+          IVerificationProgressReporter progressReporter,
+          bool reportVerificationDiagnostics) {
         this.logger = logger;
         this.errorReporter = errorReporter;
         this.progressReporter = progressReporter;
+        this.reportVerificationDiagnostics = reportVerificationDiagnostics;
       }
 
       public void AdvisoryWriteLine(TextWriter writer, string format, params object[] args) {
@@ -181,19 +191,27 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
 
       public void ReportImplementationsBeforeVerification(Implementation[] implementations) {
-        progressReporter.ReportImplementationsBeforeVerification(implementations);
+        if (reportVerificationDiagnostics) {
+          progressReporter.ReportImplementationsBeforeVerification(implementations);
+        }
       }
 
       public void ReportStartVerifyImplementation(Implementation implementation) {
-        progressReporter.ReportStartVerifyImplementation(implementation);
+        if (reportVerificationDiagnostics) {
+          progressReporter.ReportStartVerifyImplementation(implementation);
+        }
       }
 
       public void ReportEndVerifyImplementation(Implementation implementation, Boogie.VerificationResult result) {
-        progressReporter.ReportEndVerifyImplementation(implementation, result);
+        if (reportVerificationDiagnostics) {
+          progressReporter.ReportEndVerifyImplementation(implementation, result);
+        }
       }
 
       public void ReportSplitResult(Split split, VCResult vcResult) {
-        progressReporter.ReportAssertionBatchResult(split, vcResult);
+        if (reportVerificationDiagnostics) {
+          progressReporter.ReportAssertionBatchResult(split, vcResult);
+        }
       }
 
       public void WriteErrorInformation(ErrorInformation errorInfo, TextWriter tw, bool skipExecutionTrace) {

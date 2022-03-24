@@ -40,7 +40,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private readonly ICompilationStatusNotificationPublisher notificationPublisher;
     private readonly ILoggerFactory loggerFactory;
     private readonly BlockingCollection<Request> requestQueue = new();
-    private readonly IOptions<DafnyPluginsOptions> dafnyPluginsOptions;
     private readonly ILogger<TextDocumentLoader> logger;
     private readonly IDiagnosticPublisher diagnosticPublisher;
 
@@ -61,7 +60,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       this.notificationPublisher = notificationPublisher;
       this.loggerFactory = loggerFactory;
       this.logger = loggerFactory.CreateLogger<TextDocumentLoader>();
-      this.dafnyPluginsOptions = dafnyPluginsOptions;
       this.diagnosticPublisher = diagnosticPublisher;
     }
 
@@ -191,89 +189,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       diagnosticPublisher.PublishVerificationDiagnostics(document);
     }
 
-    private void RecomputeVerificationNodeDiagnostics(DafnyDocument document) {
-      var previousDiagnostics = document.VerificationNodeDiagnostic.Children;
-
-      List<NodeDiagnostic> result = new List<NodeDiagnostic>();
-
-      void AddAndPossiblyMigrateDiagnostic(NodeDiagnostic nodeDiagnostic) {
-        var position = nodeDiagnostic.Position;
-        var previousDiagnostic = previousDiagnostics.FirstOrDefault(
-          oldNode => oldNode != null && oldNode.Position == position,
-          null);
-        if (previousDiagnostic != null) {
-          previousDiagnostic.SetObsolete();
-          nodeDiagnostic.StatusVerification = previousDiagnostic.StatusVerification;
-          nodeDiagnostic.StatusCurrent = CurrentStatus.Obsolete;
-          nodeDiagnostic.Children = previousDiagnostic.Children;
-        }
-        result.Add(nodeDiagnostic);
-      }
-
-      var documentFilePath = document.GetFilePath();
-      foreach (var module in document.Program.Modules()) {
-        foreach (var topLevelDecl in module.TopLevelDecls) {
-          if (topLevelDecl is TopLevelDeclWithMembers topLevelDeclWithMembers) {
-            foreach (var member in topLevelDeclWithMembers.Members) {
-              if (member.tok.filename != documentFilePath) {
-                continue;
-              }
-              if (member is Field) {
-                if (member.BodyEndTok.line == 0) {
-                  continue; // Nothing to verify
-                }
-                var diagnosticRange = member.tok.GetLspRange(member.BodyEndTok);
-                var diagnostic = new TopLevelDeclMemberNodeDiagnostic(
-                  member.Name,
-                  member.CompileName,
-                  member.tok.filename,
-                  diagnosticRange);
-                AddAndPossiblyMigrateDiagnostic(diagnostic);
-              } else if (member is Method or Function) {
-                var diagnosticRange = member.tok.GetLspRange(member.BodyEndTok.line == 0 ? member.tok : member.BodyEndTok);
-                var diagnostic = new TopLevelDeclMemberNodeDiagnostic(
-                  member.Name,
-                  member.CompileName,
-                  member.tok.filename,
-                  diagnosticRange);
-                AddAndPossiblyMigrateDiagnostic(diagnostic);
-                if (member is Function { ByMethodBody: { } } function) {
-                  var diagnosticRangeByMethod = function.ByMethodTok.GetLspRange(function.ByMethodBody.EndTok);
-                  var diagnosticByMethod = new TopLevelDeclMemberNodeDiagnostic(
-                    member.Name + " by method",
-                    member.CompileName + "_by_method",
-                    member.tok.filename,
-                    diagnosticRangeByMethod);
-                  AddAndPossiblyMigrateDiagnostic(diagnosticByMethod);
-                }
-              }
-            }
-          } else if (topLevelDecl is SubsetTypeDecl subsetTypeDecl) {
-            if (subsetTypeDecl.tok.filename != documentFilePath) {
-              continue;
-            }
-            var diagnosticRange = subsetTypeDecl.tok.GetLspRange(subsetTypeDecl.BodyEndTok);
-            var diagnostic = new TopLevelDeclMemberNodeDiagnostic(
-              subsetTypeDecl.Name,
-              subsetTypeDecl.CompileName,
-              subsetTypeDecl.tok.filename,
-              diagnosticRange);
-            AddAndPossiblyMigrateDiagnostic(diagnostic);
-          }
-        }
-      }
-      document.VerificationNodeDiagnostic.Children = result;
-    }
-
     private DafnyDocument VerifyInternal(VerifyRequest verifyRequest) {
       var (document, cancellationToken) = verifyRequest;
       notificationPublisher.SendStatusNotification(document.Text, CompilationStatus.VerificationStarted);
       document.VerificationPass = false;
-      RecomputeVerificationNodeDiagnostics(document);
+
       var progressReporter = new VerificationProgressReporter(
         loggerFactory.CreateLogger<VerificationProgressReporter>(),
         document, notificationPublisher, diagnosticPublisher);
-      progressReporter.ReportRealtimeDiagnostics(document);
       var verificationResult = verifier.Verify(document, progressReporter, cancellationToken);
       var compilationStatusAfterVerification = verificationResult.Verified
         ? CompilationStatus.VerificationSucceeded
@@ -326,10 +249,97 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         this.diagnosticPublisher = diagnosticPublisher;
       }
 
+      /// <summary>
+      /// Sends a more precise verification status message to the client's status bar
+      /// </summary>
       public void ReportProgress(string message) {
         publisher.SendStatusNotification(document.Text, CompilationStatus.VerificationStarted, message);
       }
 
+      /// <summary>
+      /// Fills up the document with empty verification diagnostics, one for each top-level declarations
+      /// Possibly migrates previous diagnostics
+      /// </summary>
+      public void RecomputeVerificationNodeDiagnostics() {
+        var previousDiagnostics = document.VerificationNodeDiagnostic.Children;
+
+        List<NodeDiagnostic> result = new List<NodeDiagnostic>();
+
+        void AddAndPossiblyMigrateDiagnostic(NodeDiagnostic nodeDiagnostic) {
+          var position = nodeDiagnostic.Position;
+          var previousDiagnostic = previousDiagnostics.FirstOrDefault(
+            oldNode => oldNode != null && oldNode.Position == position,
+            null);
+          if (previousDiagnostic != null) {
+            previousDiagnostic.SetObsolete();
+            nodeDiagnostic.StatusVerification = previousDiagnostic.StatusVerification;
+            nodeDiagnostic.StatusCurrent = CurrentStatus.Obsolete;
+            nodeDiagnostic.Children = previousDiagnostic.Children;
+          }
+          result.Add(nodeDiagnostic);
+        }
+
+        var documentFilePath = document.GetFilePath();
+        foreach (var module in document.Program.Modules()) {
+          foreach (var topLevelDecl in module.TopLevelDecls) {
+            if (topLevelDecl is TopLevelDeclWithMembers topLevelDeclWithMembers) {
+              foreach (var member in topLevelDeclWithMembers.Members) {
+                if (member.tok.filename != documentFilePath) {
+                  continue;
+                }
+                if (member is Field) {
+                  if (member.BodyEndTok.line == 0) {
+                    continue; // Nothing to verify
+                  }
+                  var diagnosticRange = member.tok.GetLspRange(member.BodyEndTok);
+                  var diagnostic = new TopLevelDeclMemberNodeDiagnostic(
+                    member.Name,
+                    member.CompileName,
+                    member.tok.filename,
+                    diagnosticRange);
+                  AddAndPossiblyMigrateDiagnostic(diagnostic);
+                } else if (member is Method or Function) {
+                  var diagnosticRange = member.tok.GetLspRange(member.BodyEndTok.line == 0 ? member.tok : member.BodyEndTok);
+                  var diagnostic = new TopLevelDeclMemberNodeDiagnostic(
+                    member.Name,
+                    member.CompileName,
+                    member.tok.filename,
+                    diagnosticRange);
+                  AddAndPossiblyMigrateDiagnostic(diagnostic);
+                  if (member is Function { ByMethodBody: { } } function) {
+                    var diagnosticRangeByMethod = function.ByMethodTok.GetLspRange(function.ByMethodBody.EndTok);
+                    var diagnosticByMethod = new TopLevelDeclMemberNodeDiagnostic(
+                      member.Name + " by method",
+                      member.CompileName + "_by_method",
+                      member.tok.filename,
+                      diagnosticRangeByMethod);
+                    AddAndPossiblyMigrateDiagnostic(diagnosticByMethod);
+                  }
+                }
+              }
+            } else if (topLevelDecl is SubsetTypeDecl subsetTypeDecl) {
+              if (subsetTypeDecl.tok.filename != documentFilePath) {
+                continue;
+              }
+              var diagnosticRange = subsetTypeDecl.tok.GetLspRange(subsetTypeDecl.BodyEndTok);
+              var diagnostic = new TopLevelDeclMemberNodeDiagnostic(
+                subsetTypeDecl.Name,
+                subsetTypeDecl.CompileName,
+                subsetTypeDecl.tok.filename,
+                diagnosticRange);
+              AddAndPossiblyMigrateDiagnostic(diagnostic);
+            }
+          }
+        }
+        document.VerificationNodeDiagnostic.Children = result;
+      }
+
+      /// <summary>
+      /// On receiving all implementations that are going to be verified, assign each implementation
+      /// to its original method node.
+      /// Also set the implementation priority depending on the last edited methods 
+      /// </summary>
+      /// <param name="implementations">The implementations to be verified</param>
       public void ReportImplementationsBeforeVerification(Implementation[] implementations) {
         if (document.LoadCanceled || implementations.Length == 0) {
           return;
@@ -386,6 +396,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
       }
 
+      /// <summary>
+      /// Triggers sending of the current verification diagnostics to the client
+      /// </summary>
+      /// <param name="dafnyDocument">The document to send. Can be a previous document</param>
       public void ReportRealtimeDiagnostics(DafnyDocument? dafnyDocument = null) {
         lock (LockProcessing) {
           dafnyDocument ??= document;
@@ -396,6 +410,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
       }
 
+      /// <summary>
+      /// Helper to send a more precise verification status message, including
+      /// - The number of methods already verified
+      /// - The total number of methods
+      /// - The methods being currently verified
+      /// - Some extra information 
+      /// </summary>
+      /// <param name="extra">Usually the name of the method whose check was just finished, if any</param>
       private void ReportMethodsBeingVerified(string extra = "") {
         var pending = document.VerificationNodeDiagnostic.Children
           .Where(diagnostic => diagnostic.Started && !diagnostic.Finished)
@@ -408,6 +430,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         ReportProgress($"{verified}/{total} {message}");
       }
 
+      /// <summary>
+      /// Called when the verifier starts verifying an implementation
+      /// </summary>
+      /// <param name="implementation">The implementation which is going to be verified next</param>
       public void ReportStartVerifyImplementation(Implementation implementation) {
         if (document.LoadCanceled) {
           return;
@@ -436,6 +462,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
       }
 
+      /// <summary>
+      /// Called when the verifier finished to visit an implementation
+      /// </summary>
+      /// <param name="implementation">The implementation it visited</param>
+      /// <param name="verificationResult">The result of the verification</param>
       public void ReportEndVerifyImplementation(Implementation implementation, VerificationResult verificationResult) {
         if (document.LoadCanceled) {
           return;
@@ -477,6 +508,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
       }
 
+      /// <summary>
+      /// Called when a split is finished to be verified
+      /// </summary>
+      /// <param name="split">The split that was verified</param>
+      /// <param name="result">The verification results for that split and per assert</param>
       public void ReportAssertionBatchResult(Split split,
         VCResult result) {
         if (document.LoadCanceled) {
@@ -586,15 +622,19 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
       }
 
-      // For realtime per-split verification, when verification is migrated
-
-      private int GetVerificationPriority(IToken implTok) {
+      /// <summary>
+      /// Returns the verification priority for a given token, depending on if it's the token
+      /// of a method modified recently (last 5 edits)
+      /// </summary>
+      /// <param name="token">The token to consider</param>
+      /// <returns>The automatically set priority for the underlying method, or 0</returns>
+      private int GetVerificationPriority(IToken token) {
         var lastChange = document.LastChange;
         if (lastChange == null) {
           return 0;
         }
 
-        var implPosition = implTok.GetLspPosition(); ;
+        var implPosition = token.GetLspPosition(); ;
         // We might want to simplify this quadratic algorithm
         var method = document.VerificationNodeDiagnostic.Children.FirstOrDefault(node =>
           node != null && node.Range.Contains(implPosition), null);
@@ -611,6 +651,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return 0;
       }
 
+      /// <summary>
+      /// Helper to remember that a method node was recently modified.
+      /// </summary>
+      /// <param name="method">The node diagnostic of the method that was recently modified</param>
       private void RememberLastTouchedMethod(NodeDiagnostic method) {
         var index = document.LastTouchedMethodPositions.IndexOf(method.Position);
         if (index != -1) {
@@ -622,8 +666,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
       }
 
-
-
+      /// <summary>
+      /// Given an implementation, returns the matching implementation node and its parent method node.
+      /// </summary>
+      /// <param name="implementation">The implementation</param>
+      /// <param name="implementationNode">The returned node of the implementation child of the returned top-level node diagnostic</param>
+      /// <param name="nameBased">Whether it should try to locate the implementation using the name rather than the position. Used to relocate previous diagnostics.</param>
+      /// <returns>The top-level node diagnostic</returns>
       private TopLevelDeclMemberNodeDiagnostic? GetTargetMethodNode(Implementation implementation, out ImplementationNodeDiagnostic? implementationNode, bool nameBased = false) {
         var targetMethodNode = document.VerificationNodeDiagnostic.Children.OfType<TopLevelDeclMemberNodeDiagnostic>().FirstOrDefault(
           node => node?.Position == implementation.tok.GetLspPosition() && node?.Filename == implementation.tok.filename
@@ -642,8 +691,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return targetMethodNode;
       }
 
+      /// <summary>
+      /// An object to lock so that the updating of the node diagnostics is always not concurrent
+      /// </summary>
       private readonly object LockProcessing = new();
 
+      /// <summary>
+      /// Converts a ProverInterface.Outcome to a VerificationStatus
+      /// </summary>
+      /// <param name="outcome">The outcome set by the split result</param>
+      /// <returns>The matching verification status</returns>
       private static VerificationStatus GetNodeStatus(ProverInterface.Outcome outcome) {
         return outcome switch {
           ProverInterface.Outcome.Valid => VerificationStatus.Verified,

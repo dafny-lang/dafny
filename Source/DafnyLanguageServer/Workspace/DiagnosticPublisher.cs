@@ -23,8 +23,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return;
       }
       PublishDocumentDiagnostics(document);
-      // Verification diagnostics are published in real-time.
-      //PublishVerificationDiagnostics(document);
       PublishGhostDiagnostics(document);
     }
 

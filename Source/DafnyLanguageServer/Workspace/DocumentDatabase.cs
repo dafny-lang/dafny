@@ -165,10 +165,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         // according to the change.
         return WithRealtimeDiagnosticsPublished(newDocument with {
           SymbolTable = relocator.RelocateSymbols(oldDocument.SymbolTable, documentChange, CancellationToken.None),
-          OldVerificationDiagnostics = migratedVerificationDiagnotics.Select(diagnostic => diagnostic with {
-            Severity = DiagnosticSeverity.Warning,
-            Message = diagnostic.Message.StartsWith("Stale: ") ? diagnostic.Message : "Stale: " + diagnostic.Message
-          }).ToList(),
+          OldVerificationDiagnostics = migratedVerificationDiagnotics,
           VerificationNodeDiagnostic = migratedVerificationNodeDiagnostics
         });
       } catch (OperationCanceledException) {
