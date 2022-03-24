@@ -324,21 +324,21 @@ For every method (or function, constructor, etc.), Dafny extracts _assertions_. 
 **Integer assertions:**
 
 * Every [division](#sec-numeric-types) yields an _assertion_ that the divisor is never zero.
-* Every [bounded number operation](#sec-numeric-types) yields an _assertion_ that the result will have the same bounds (no overflow, no underflows).
-* Every [conversion](#sec-as-expression) yields an _assertion_ that conversion is compatible
+* Every [bounded number operation](#sec-numeric-types) yields an _assertion_ that the result will be within the same bounds (no overflow, no underflows).
+* Every [conversion](#sec-as-expression) yields an _assertion_ that conversion is compatible.
 * Every [bitvector shift](#sec-bit-vector-types) yields an _assertion_ that the shift amount is never negative, and that the shift amount is within the width of the value.
 
 **Object assertions:**
 
-* Every [object property access](#sec-class-types) yields an _assertion_ that the object is not null
-* Every assignment `o.f := E;` yield an _assertion_ that `o` is among the set of objects of the enclosing [`modifies`](#sec-loop-framing) clause in loops, or the enclosing [`modifies`](#sec-modifies-clause) clause on methods.
-* Every read `o.f` yield an _assertion_ that `o` is among the set of objects of the enclosing [`reads`](#sec-reads-clause) clause on functions and predicates, or the enclosing [`modifies`](#sec-modifies-clause) clause on methods
-* Every [array access](#sec-array-types) `a[x]` yield the assertion that `0 <= x < a.Length`
+* Every [object property access](#sec-class-types) yields an _assertion_ that the object is not null.
+* Every assignment `o.f := E;` yield an _assertion_ that `o` is among the set of objects of the `modifies` clause of the enclosing [loop](#sec-loop-framing) or [method](#sec-modifies-clause).
+* Every read `o.f` yield an _assertion_ that `o` is among the set of objects of the [`reads`](#sec-reads-clause) clause of the enclosing function or predicate; or the enclosing [`modifies`](#sec-modifies-clause) clause of the enclosing method.
+* Every [array access](#sec-array-types) `a[x]` yield the assertion that `0 <= x < a.Length`.
 * Every [sequence access](#sec-sequences) `a[x]` yield an _assertion_, that `0 <= x < |a|`, because sequences are never null.
 * Every [datatype update expression](#sec-datatype-update-suffix) and [datatype destruction](#sec-algebraic-datatype) yields an _assertion_ that the object has the given property.
-* Every method overriding a [`trait`](#sec-trait-types) yield an _assertion_ that it provides a postcondition equal to or more detailed than in its parent trait, and an _assertion_ that it provides a precondition equal to or more permissive than in its parent trait.
+* Every method overriding a [`trait`](#sec-trait-types) yield an _assertion_ that any postcondition it provides is equal to or more detailed than in its parent trait, and an _assertion_ that any precondition it provides is equal to or more permissive than in its parent trait.
 
-**Implicit assertions:**
+**Other implicit assertions:**
 
 * Every value whose type is assigned to a [subset type](#sec-subset-types) yields an _assertion_ that it satisfies the subset type constraint.
 * Every non-empty [subset type](#sec-subset-types) yields an _assertion_ that its witness satisfies the constraint.
