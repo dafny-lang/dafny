@@ -145,7 +145,7 @@ public static Parser SetupParser(string/*!*/ s, string/*!*/ fullFilename, string
   Contract.Requires(errors != null);
   byte[]/*!*/ buffer = cce.NonNull( UTF8Encoding.Default.GetBytes(s));
   MemoryStream ms = new MemoryStream(buffer,false);
-  Scanner scanner = new Scanner(ms, errors, fullFilename, filename);
+  Scanner scanner = new Scanner(ms, errors, fullFilename, filename, firstToken: module.RootToken);
   return new Parser(scanner, errors, include, module, builtIns, verifyThisFile, compileThisFile);
 }
 
@@ -699,6 +699,7 @@ CHARACTERS
   tab       = '\t'.
   space = ' '.
   nondigit = letter + special.
+  nonlf = ANY - lf.
   idchar = nondigit + digit.
   nonidchar = ANY - idchar.
   /* exclude the characters in 'array' and 'bv' and '\'' */
@@ -779,7 +780,7 @@ TOKENS
   doublecolon = "::".
   gets = ":=".
   boredSmiley = ":|".
-  bullet = '\u2022'.
+  bullet = '\u2022'. // •
   dot = '.'.
   backtick = "`".
   semicolon = ';'.
@@ -788,6 +789,7 @@ TOKENS
   assert = "assert".
   calc = "calc".
   case = "case".
+  if = "if".
   then = "then".
   else = "else".
   as = "as".
@@ -837,7 +839,7 @@ TOKENS
   singleeq = "=".
   eq = "==".
   neq = "!=".
-  neqAlt = '\u2260'.
+  neqAlt = '\u2260'. // ≠
   star = '*'.
   at = '@'.
   notIn = "!in" CONTEXT (nonidchar).
@@ -847,6 +849,72 @@ TOKENS
   sarrow = "->".
   qarrow = "~>".
   larrow = "-->".
+  dash = "-".
+  blankFaceSmiley = ":-".
+  excl = "!".
+  doublePeriod = "..".
+  forwardSlash = "/".
+  amp = "&".
+  doubleAmp = "&&".
+  sharp = "#".
+  percent = "%".
+  hat = "^".
+  plus = "+".
+  le = "<=".
+  ge = ">=".
+  doublepipe = "||".
+  uNot = "\u00ac". // ¬
+  uLogAnd = "\u2227". // ∧
+  uLogOr = "\u2228". // ∨
+  uLe = "\u2264". // ≤
+  uGe = "\u2265". // ≥
+  longDoubleLeftArrow = "<==".
+  longDoubleRightArrow = "==>".
+  longDoubleLeftRightArrow = "<==>".
+  uLongDoubleLeftArrow = "\u21d0". // ⇐
+  uLongDoubleRightArrow = "\u21d2". // ⇒
+  uLongDoubleLeftRightArrow = "\u21d4". // ⇔
+  uForall = "\u2200". // ∀
+  uExists = "\u2203". // ∃
+  forall = "forall".
+  exists = "exists".
+  abstract = "abstract".
+  protected = "protected".
+  nameonly = "nameonly".
+  extends = "extends".
+  provides = "provides".
+  reveals = "reveals".
+  refines = "refines".
+  break = "break".
+  continue = "continue".
+  return = "return".
+  yield = "yield".
+  for = "for".
+  match = "match".
+  while = "while".
+  modify = "modify".
+  module = "module".
+  new = "new".
+  print = "print".
+  fresh = "fresh".
+  old = "old".
+  allocated = "allocated".
+  unchanged = "unchanged".
+  include = "include".
+  opened = "opened".
+  true = "true".
+  false = "false".
+  this = "this".
+  null = "null".
+  returns = "returns".
+  yields = "yields".
+  label = "label".
+
+PRAGMAS
+  // This rule will not fire (COMMENTS take priority), but it allocates a token
+  // number (>= maxT) that we use to treat comments as pragmas.
+  commentToken = "//" {nonlf} lf. (. Contract.Assert(_commentToken == maxT + 1); .)
+
 COMMENTS FROM "/*" TO "*/" NESTED
 COMMENTS FROM "//" TO lf
 IGNORE cr + lf + tab
@@ -854,7 +922,7 @@ IGNORE cr + lf + tab
 PRODUCTIONS
 Dafny
 = (. List<MemberDecl/*!*/> membersDefaultClass = new List<MemberDecl/*!*/>();
-     // to support multiple files, create a default module only if theModule is null
+     // This cast happens here to allow theModule to be null when parsing a single expression
      DefaultModuleDecl defaultModule = (DefaultModuleDecl)((LiteralModuleDecl)theModule).ModuleDef;
      // theModule should be a DefaultModuleDecl (actually, the singular DefaultModuleDecl)
      Contract.Assert(defaultModule != null);
