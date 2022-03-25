@@ -15,6 +15,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       return options
         .WithHandler<DafnyTextDocumentHandler>()
         .WithHandler<DafnyDocumentSymbolHandler>()
+        .WithHandler<DafnySemanticTokensHandler>()
         .WithHandler<DafnyHoverHandler>()
         .WithHandler<DafnyDefinitionHandler>()
         .WithHandler<DafnyCompletionHandler>()
