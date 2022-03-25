@@ -13304,11 +13304,15 @@ namespace Microsoft.Dafny {
     }
   }
   public class TopDownVisitor<State> {
+    public virtual IEnumerable<Expression> SubExpressions(Expression expr) {
+      return expr.SubExpressions;
+    }
+
     public void Visit(Expression expr, State st) {
       Contract.Requires(expr != null);
       if (VisitOneExpr(expr, ref st)) {
         // recursively visit all subexpressions and all substatements
-        expr.SubExpressions.Iter(e => Visit(e, st));
+        SubExpressions(expr).Iter(e => Visit(e, st));
         if (expr is StmtExpr) {
           // a StmtExpr also has a sub-statement
           var e = (StmtExpr)expr;

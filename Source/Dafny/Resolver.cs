@@ -8120,6 +8120,15 @@ namespace Microsoft.Dafny {
         return true;
       }
 
+      public override IEnumerable<Expression> SubExpressions(Expression expr) {
+        if (expr is ComprehensionExpr comprehensionExpr) { // avoid RangeIfGhost
+          return comprehensionExpr.SubExpressions.Where(subExpr =>
+            subExpr != comprehensionExpr.RangeIfGhost);
+        } else {
+          return expr.SubExpressions;
+        }
+      }
+
       protected override bool VisitOneExpr(Expression expr, ref bool inGhostContext) {
         // Do two things:
         //  * Call VisitType on any type that occurs in the statement
