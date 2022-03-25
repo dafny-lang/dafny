@@ -4170,8 +4170,8 @@ namespace Microsoft.Dafny {
         // don't fall through to postcondition checks
         bodyCheckBuilder.Add(TrAssumeCmd(f.tok, Bpl.Expr.False));
       } else {
-        Bpl.FunctionCall funcID = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName, TrType(f.ResultType)));
-        List<Bpl.Expr> args = new List<Bpl.Expr>();
+        var funcID = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName, TrType(f.ResultType)));
+        var args = new List<Bpl.Expr>();
         foreach (var p in GetTypeParams(f)) {
           args.Add(trTypeParamOrOpaqueType(p));
         }
@@ -11747,16 +11747,14 @@ namespace Microsoft.Dafny {
     }
 
     List<Bpl.Variable> MkTyParamBinders(List<TypeParameter> args) {
-      List<Bpl.Expr> _scratch;
-      return MkTyParamBinders(args, out _scratch);
+      return MkTyParamBinders(args, out _);
     }
 
     List<Bpl.Variable> MkTyParamBinders(List<TypeParameter> args, out List<Bpl.Expr> exprs) {
-      List<Bpl.Variable> vars = new List<Bpl.Variable>();
+      var vars = new List<Bpl.Variable>();
       exprs = new List<Bpl.Expr>();
       foreach (TypeParameter v in args) {
-        Bpl.Expr e;
-        vars.Add(BplBoundVar(nameTypeParam(v), predef.Ty, out e));
+        vars.Add(BplBoundVar(nameTypeParam(v), predef.Ty, out var e));
         exprs.Add(e);
       }
       return vars;
@@ -11764,17 +11762,15 @@ namespace Microsoft.Dafny {
 
     // For incoming formals
     List<Bpl.Variable> MkTyParamFormals(List<TypeParameter> args, bool named = true) {
-      List<Bpl.Expr> _scratch;
-      return MkTyParamFormals(args, out _scratch, named);
+      return MkTyParamFormals(args, out _, includeWhereClause, named);
     }
 
     // For incoming formals
     List<Bpl.Variable> MkTyParamFormals(List<TypeParameter> args, out List<Bpl.Expr> exprs, bool named = true) {
-      List<Bpl.Variable> vars = new List<Bpl.Variable>();
+      var vars = new List<Bpl.Variable>();
       exprs = new List<Bpl.Expr>();
       foreach (TypeParameter v in args) {
-        Bpl.Expr e;
-        vars.Add(BplFormalVar(named ? nameTypeParam(v) : null, predef.Ty, true, out e));
+        vars.Add(BplFormalVar(named ? nameTypeParam(v) : null, predef.Ty, true, out var e));
         exprs.Add(e);
       }
       return vars;
