@@ -6,8 +6,9 @@ using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
-class DafnyConsolePrinter : ConsolePrinter {
+public class DafnyConsolePrinter : ConsolePrinter {
   private readonly Dictionary<string, List<string>> fsCache = new();
+  private readonly List<(Implementation, VerificationResult)> verificationResults = new();
 
   private string GetFileLine(string filename, int lineIndex) {
     List<string> lines;
@@ -55,6 +56,42 @@ class DafnyConsolePrinter : ConsolePrinter {
     if (tok is Dafny.NestedToken) {
       var nt = (Dafny.NestedToken)tok;
       ReportBplError(nt.Inner, "Related location", false, tw);
+    }
+  }
+
+  private static string GetFileNameForConsole(ExecutionEngineOptions options, string filename) {
+    return options.UseBaseNameForFileName && !string.IsNullOrEmpty(filename) &&
+           filename != "<console>"
+      ? Path.GetFileName(filename)
+      : filename;
+  }
+
+  public override void ReportEndVerifyImplementation(Implementation implementation, Boogie.VerificationResult result) {
+    verificationResults.Add((implementation, result));
+  }
+
+  public void PrintAllVerificationResults(TextWriter tw) {
+    foreach (var (implementation, result) in verificationResults) {
+      tw.WriteLine("");
+      tw.WriteLine($"Results for {implementation.Name}");
+      tw.WriteLine($"  Overall outcome: {result.Outcome}");
+      tw.WriteLine($"  Overall time: {result.End - result.Start}");
+      tw.WriteLine($"  Overall resource count: {result.ResourceCount}");
+      foreach (var vcResult in result.VCResults) {
+        tw.WriteLine("");
+        tw.WriteLine($"  Proof obligation batch {vcResult.vcNum}:");
+        tw.WriteLine($"    Outcome: {vcResult.outcome}");
+        tw.WriteLine($"    Duration: {vcResult.runTime}");
+        tw.WriteLine($"    Resource count: {vcResult.resourceCount}");
+        tw.WriteLine("");
+        tw.WriteLine("    Assertions:");
+        foreach (var cmd in vcResult.asserts) {
+          var filename = GetFileNameForConsole(Options, cmd.tok.filename);
+          tw.WriteLine(
+            $"      {filename}({cmd.tok.line},{cmd.tok.col}): {cmd.Description.SuccessDescription}");
+        }
+
+      }
     }
   }
 }

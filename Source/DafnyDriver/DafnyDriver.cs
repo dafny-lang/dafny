@@ -270,6 +270,9 @@ namespace Microsoft.Dafny {
       if (dafnyProgram != null && DafnyOptions.O.ExtractCounterexample && exitValue == ExitValue.VERIFICATION_ERROR) {
         PrintCounterexample(DafnyOptions.O.ModelViewFile);
       }
+      if (DafnyOptions.O.PrintAllVerificationResults) {
+        (DafnyOptions.O.Printer as DafnyConsolePrinter)?.PrintAllVerificationResults(Console.Out);
+      }
       return exitValue;
     }
 
