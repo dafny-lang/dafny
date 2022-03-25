@@ -41,7 +41,7 @@ method CallDoIt() returns () {
 
     [TestMethod]
     public async Task HoverReturnsBeforeVerificationIsComplete() {
-      var documentItem = CreateTestDocument(SlowToVerify);
+      var documentItem = CreateTestDocument(NeverVerifies);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
       client.OpenDocument(documentItem);

@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Boogie;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -32,8 +33,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private readonly IGhostStateDiagnosticCollector ghostStateDiagnosticCollector;
     private readonly ICompilationStatusNotificationPublisher notificationPublisher;
     private readonly ILoggerFactory loggerFactory;
-    private readonly BlockingCollection<Request> requestQueue = new();
-    private readonly IOptions<DafnyPluginsOptions> dafnyPluginsOptions;
     private readonly ILogger<TextDocumentLoader> logger;
 
     private TextDocumentLoader(
@@ -43,8 +42,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       IProgramVerifier verifier,
       ISymbolTableFactory symbolTableFactory,
       IGhostStateDiagnosticCollector ghostStateDiagnosticCollector,
-      ICompilationStatusNotificationPublisher notificationPublisher,
-      IOptions<DafnyPluginsOptions> dafnyPluginsOptions) {
+      ICompilationStatusNotificationPublisher notificationPublisher) {
       this.parser = parser;
       this.symbolResolver = symbolResolver;
       this.verifier = verifier;
@@ -53,8 +51,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       this.notificationPublisher = notificationPublisher;
       this.loggerFactory = loggerFactory;
       this.logger = loggerFactory.CreateLogger<TextDocumentLoader>();
-      this.dafnyPluginsOptions = dafnyPluginsOptions;
     }
+
+    static readonly ThreadTaskScheduler LargeStackScheduler = new(MaxStackSize);
 
     public static TextDocumentLoader Create(
       IDafnyParser parser,
@@ -63,13 +62,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       ISymbolTableFactory symbolTableFactory,
       IGhostStateDiagnosticCollector ghostStateDiagnosticCollector,
       ICompilationStatusNotificationPublisher notificationPublisher,
-      ILoggerFactory loggerFactory,
-      IOptions<DafnyPluginsOptions> compilerOptions
+      ILoggerFactory loggerFactory
       ) {
-      var loader = new TextDocumentLoader(loggerFactory, parser, symbolResolver, verifier, symbolTableFactory, ghostStateDiagnosticCollector, notificationPublisher, compilerOptions);
-      var loadThread = new Thread(loader.Run, MaxStackSize) { IsBackground = true };
-      loadThread.Start();
-      return loader;
+      return new TextDocumentLoader(loggerFactory, parser, symbolResolver, verifier, symbolTableFactory, ghostStateDiagnosticCollector, notificationPublisher);
     }
 
     public DafnyDocument CreateUnloaded(TextDocumentItem textDocument, CancellationToken cancellationToken) {
@@ -83,35 +78,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       );
     }
 
-    public async Task<DafnyDocument> LoadAsync(TextDocumentItem textDocument, CancellationToken cancellationToken) {
-      var request = new LoadRequest(textDocument, cancellationToken);
-      requestQueue.Add(request, cancellationToken);
-      return await request.Document.Task;
+    public Task<DafnyDocument> LoadAsync(TextDocumentItem textDocument, CancellationToken cancellationToken) {
+#pragma warning disable CS1998
+      // By using `async`, any OperationCancelledExceptions are converted to a cancelled Task.
+      return Task.Factory.StartNew(async () => LoadInternal(textDocument, cancellationToken), cancellationToken,
+        TaskCreationOptions.None, LargeStackScheduler).Unwrap();
+#pragma warning restore CS1998
     }
 
-    private void Run() {
-      foreach (var request in requestQueue.GetConsumingEnumerable()) {
-        if (request.CancellationToken.IsCancellationRequested) {
-          request.Document.SetCanceled(request.CancellationToken);
-          continue;
-        }
-        try {
-          var document = request switch {
-            LoadRequest loadRequest => LoadInternal(loadRequest),
-            VerifyRequest verifyRequest => VerifyInternal(verifyRequest),
-            _ => throw new ArgumentException($"invalid request type ${request.GetType()}")
-          };
-          request.Document.SetResult(document);
-        } catch (OperationCanceledException e) {
-          request.Document.SetCanceled(e.CancellationToken);
-        } catch (Exception e) {
-          request.Document.SetException(e);
-        }
-      }
-    }
-
-    private DafnyDocument LoadInternal(LoadRequest loadRequest) {
-      var (textDocument, cancellationToken) = loadRequest;
+    private DafnyDocument LoadInternal(TextDocumentItem textDocument, CancellationToken cancellationToken) {
       var errorReporter = new DiagnosticErrorReporter(textDocument.Uri);
       var program = parser.Parse(textDocument, errorReporter, cancellationToken);
       PublishDafnyLanguageServerLoadErrors(errorReporter, program);
@@ -166,17 +141,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       );
     }
 
-    public async Task<DafnyDocument> VerifyAsync(DafnyDocument document, CancellationToken cancellationToken) {
-      var request = new VerifyRequest(document, cancellationToken);
-      requestQueue.Add(request, cancellationToken);
-      return await request.Document.Task;
+    public Task<DafnyDocument> VerifyAsync(DafnyDocument document, CancellationToken cancellationToken) {
+
+      return Task.Factory.StartNew(() => VerifyInternalAsync(document, cancellationToken), cancellationToken,
+        TaskCreationOptions.None, LargeStackScheduler).Unwrap();
     }
 
-    private DafnyDocument VerifyInternal(VerifyRequest verifyRequest) {
-      var (document, cancellationToken) = verifyRequest;
+    private async Task<DafnyDocument> VerifyInternalAsync(DafnyDocument document, CancellationToken cancellationToken) {
       notificationPublisher.SendStatusNotification(document.Text, CompilationStatus.VerificationStarted);
       var progressReporter = new VerificationProgressReporter(document.Text, notificationPublisher);
-      var verificationResult = verifier.Verify(document.Program, progressReporter, cancellationToken);
+      var verificationResult = await verifier.VerifyAsync(document.Program, progressReporter, cancellationToken);
       var compilationStatusAfterVerification = verificationResult.Verified
         ? CompilationStatus.VerificationSucceeded
         : CompilationStatus.VerificationFailed;
@@ -191,10 +165,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private record Request(CancellationToken CancellationToken) {
       public TaskCompletionSource<DafnyDocument> Document { get; } = new();
     }
-
-    private record LoadRequest(TextDocumentItem TextDocument, CancellationToken CancellationToken) : Request(CancellationToken);
-
-    private record VerifyRequest(DafnyDocument OriginalDocument, CancellationToken CancellationToken) : Request(CancellationToken);
 
     private class VerificationProgressReporter : IVerificationProgressReporter {
       private ICompilationStatusNotificationPublisher publisher { get; init; }
