@@ -190,6 +190,252 @@ public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, Include include, ModuleD
   theCompileThisFile = compileThisFile;
 }
 
+public enum TokenClass {
+  Other = 0,
+  Ident,
+  Digits,
+  Constant,
+  Special,
+  Comprehension,
+  Type,
+  Macro,
+  Builtin,
+  String,
+  Punctuation,
+  Assertion,
+  Block,
+  ControlFlow,
+  Keyword,
+  Declaration,
+  Modifier,
+  Directive,
+  Specification,
+  Label,
+  Operator,
+  Comment
+}
+
+private static TokenClass ClassifyToken(int kind) { // FIXME rewrite as a dictionary of lists
+  return kind switch {
+    _EOF
+    => TokenClass.Other,
+
+    _ident
+    => TokenClass.Ident,
+
+    _digits
+      or _hexdigits
+      or _decimaldigits
+    => TokenClass.Digits,
+
+    _true
+      or _false
+      or _null
+    => TokenClass.Constant,
+
+    _this
+    => TokenClass.Special,
+
+    _arrayToken
+      or _bvToken
+      or _set
+      or _iset
+      or _multiset
+      or _seq
+      or _map
+      or _imap
+      or _uForall /* ∀ */
+      or _uExists /* ∃ */
+      or _forall
+      or _exists
+    => TokenClass.Comprehension,
+
+    _bool
+      or _char
+      or _int
+      or _nat
+      or _real
+      or _ORDINAL
+      or _object
+      or _string
+    => TokenClass.Type,
+
+    _as
+      or _is
+      or _in
+      or _notIn /* !in */
+      or _object_q /* object? */
+    => TokenClass.Builtin,
+
+    _new
+      or _fresh
+      or _old
+      or _allocated
+      or _unchanged
+    => TokenClass.Macro,
+
+    _charToken /* ' */
+      or _stringToken /* " */
+    => TokenClass.String,
+
+    _colon /* : */
+      or _comma /* , */
+      or _verticalbar /* | */
+      or _doublecolon /* :: */
+      or _gets /* := */
+      or _boredSmiley /* :| */
+      or _bullet /* \u2022 */
+      or _dot /* . */
+      or _backtick /* ` */
+      or _semicolon /* ; */
+      or _darrow /* => */
+      or _lbracecolon /* {: */
+      or _lbrace /* { */
+      or _rbrace /* } */
+      or _lbracket /* [ */
+      or _rbracket /* ] */
+      or _openparen /* ( */
+      or _closeparen /* ) */
+      or _openAngleBracket /* < */
+      or _closeAngleBracket /* > */
+      or _ellipsis /* ... */
+      or _dash /* - */
+      or _blankFaceSmiley /* :- */
+    => TokenClass.Punctuation,
+
+    _assume
+      or _assert
+      or _by
+      or _witness
+      or _expect
+      or _reveal
+    => TokenClass.Assertion,
+
+    _calc
+      or _case
+      or _if
+      or _then
+      or _else
+      or _for
+      or _match
+      or _while
+      or _modify
+    => TokenClass.Block,
+
+    _break
+      or _continue
+      or _return
+      or _yield
+    => TokenClass.ControlFlow,
+
+    _print
+    => TokenClass.Keyword,
+
+    _function
+      or _predicate
+      or _copredicate
+      or _lemma
+      or _class
+      or _trait
+      or _datatype
+      or _codatatype
+      or _var
+      or _const
+      or _newtype
+      or _type
+      or _iterator
+      or _method
+      or _colemma
+      or _constructor
+      or _module
+    => TokenClass.Declaration,
+
+    _least
+      or _greatest
+      or _inductive
+      or _twostate
+      or _static
+      or _ghost
+      or _abstract
+      or _protected
+      or _nameonly
+    => TokenClass.Modifier,
+
+    _import
+    or _export
+    or _include
+    or _opened
+    => TokenClass.Directive,
+
+    _modifies
+      or _reads
+      or _decreases
+      or _invariant
+      or _requires
+      or _ensures
+      or _returns
+      or _yields
+      or _extends
+      or _provides
+      or _reveals
+      or _refines
+    => TokenClass.Specification,
+
+    _label
+    => TokenClass.Label,
+
+    _singleeq /*=*/
+      or _eq /* == */
+      or _neq /* != */
+      or _neqAlt /* ≠ */
+      or _star /* * */
+      or _at /* @ */
+      or _sarrow /* -> */
+      or _qarrow /* ~> */
+      or _larrow /* --> */
+      or _excl /* ! */
+      or _doublePeriod /* .. */
+      or _forwardSlash /* / */
+      or _amp /* & */
+      or _doubleAmp /* && */
+      or _sharp /* # */
+      or _percent /* % */
+      or _hat /* ^ */
+      or _plus /* + */
+      or _le /* <= */
+      or _ge /* >= */
+      or _doublepipe /* || */
+      or _uNot /* ¬ */
+      or _uLogAnd /* ∧ */
+      or _uLogOr /* ∨ */
+      or _uLe /* ≤ */
+      or _uGe /* ≥ */
+      or _longDoubleLeftArrow /* <== */
+      or _longDoubleRightArrow /* ==> */
+      or _longDoubleLeftRightArrow /* <==> */
+      or _uLongDoubleLeftArrow /* ⇐ */
+      or _uLongDoubleRightArrow /* ⇒ */
+      or _uLongDoubleLeftRightArrow /* ⇔ */
+    => TokenClass.Operator,
+
+    maxT
+    => TokenClass.Other, // Placeholder in lookup table
+
+    _commentToken
+    => TokenClass.Comment,
+
+    _ =>
+      // This clause ensures that we don't forget to classify new tokens.
+      // If you reach this point, it means that you have added a new token but not updated this switch.
+      // To fix the issue, make sure that your new token appears in TOKENS and then add it above.
+      throw new ArgumentException($"Unclassified token: {kind}")
+  };
+}
+
+public static TokenClass[] TokenClassificationMap =
+  // [0..maxT) covers all tokens; _commentToken is maxT + 1
+  Enumerable.Range(0, _commentToken + 1).Select(kind => ClassifyToken(kind)).ToArray();
+
 bool IsIdentifier(int kind) {
   return kind == _ident || kind == _least || kind == _greatest;
 }
