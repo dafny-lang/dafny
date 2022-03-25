@@ -49,15 +49,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         .Concat(document.OldVerificationDiagnostics)
         .Where(x => x.Severity == DiagnosticSeverity.Error)
         .ToArray();
+      var linesCount = Regex.Matches(document.Text.Text, "\r?\n").Count + 1;
       var verificationDiagnosticsParams = new VerificationDiagnosticsParams(
+        document.Uri,
+        document.Version,
         document.VerificationNodeDiagnostic.Children.Select(child => child.GetCopyForNotification()).ToArray(),
         errors,
-        Regex.Matches(document.Text.Text, "\r?\n").Count + 1,
+        linesCount,
         document.ResolutionSucceeded == false ? currentDiagnostics.Count() : 0
-      ) {
-        Uri = document.Uri,
-        Version = document.Version,
-      };
+      );
       languageServer.TextDocument.SendNotification(verificationDiagnosticsParams);
     }
 

@@ -21,14 +21,20 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
   [Method(DafnyRequestNames.VerificationDiagnostics, Direction.ServerToClient)]
   public class VerificationDiagnosticsParams : IRequest, IRequest<Unit> {
     public VerificationDiagnosticsParams(
+        DocumentUri uri,
+        int version,
         NodeDiagnostic[] perNodeDiagnostic,
         Container<Diagnostic> diagnostics,
         int linesCount,
         int numberOfResolutionErrors) {
+      Uri = uri;
+      Version = version;
       PerNodeDiagnostic = perNodeDiagnostic;
       Diagnostics = diagnostics;
-      PerLineDiagnostic =
-        RenderPerLineDiagnostics(this, perNodeDiagnostic, linesCount, numberOfResolutionErrors, diagnostics);
+      if (linesCount != 0) { // Deserialization makes linesCount to be equal to zero.
+        PerLineDiagnostic =
+          RenderPerLineDiagnostics(this, perNodeDiagnostic, linesCount, numberOfResolutionErrors, diagnostics);
+      }
     }
 
     /// <summary>
