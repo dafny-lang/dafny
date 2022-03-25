@@ -59,13 +59,6 @@ public class DafnyConsolePrinter : ConsolePrinter {
     }
   }
 
-  private static string GetFileNameForConsole(ExecutionEngineOptions options, string filename) {
-    return options.UseBaseNameForFileName && !string.IsNullOrEmpty(filename) &&
-           filename != "<console>"
-      ? Path.GetFileName(filename)
-      : filename;
-  }
-
   public override void ReportEndVerifyImplementation(Implementation implementation, Boogie.VerificationResult result) {
     verificationResults.Add((implementation, result));
   }
@@ -86,9 +79,8 @@ public class DafnyConsolePrinter : ConsolePrinter {
         tw.WriteLine("");
         tw.WriteLine("    Assertions:");
         foreach (var cmd in vcResult.asserts) {
-          var filename = GetFileNameForConsole(Options, cmd.tok.filename);
           tw.WriteLine(
-            $"      {filename}({cmd.tok.line},{cmd.tok.col}): {cmd.Description.SuccessDescription}");
+            $"      {cmd.tok.filename}({cmd.tok.line},{cmd.tok.col}): {cmd.Description.SuccessDescription}");
         }
 
       }
