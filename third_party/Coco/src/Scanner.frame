@@ -452,17 +452,34 @@ public class Scanner {
 -->literals
   }
 
+  private Token lastCommentToken = null;
+
   Token/*!*/ NextToken() {
     Contract.Ensures(Contract.Result<Token>() != null);
+
+    var _lastCommentToken = lastCommentToken;
+    lastCommentToken = null;
+
+    if (_lastCommentToken != null) {
+      var includeLast = col != 0; // Block comment.
+      // This odd +1 is needed because Coco/R doesn't consume the last character of the comment.
+      _lastCommentToken.val = buffer.GetString(_lastCommentToken.pos, pos + (includeLast ? 1 : 0));
+      return _lastCommentToken;
+    }
+
     while (ch == ' ' ||
 -->scan1
     ) NextCh();
--->scan2
-    int recKind = noSym;
-    int recEnd = pos;
-    t = new Token();
+
+    t = lastCommentToken = new Token();
     t.pos = pos; t.col = col; t.line = line;
     t.filename = this.Filename;
+    t.kind = Parser._commentToken;
+-->scan2
+    lastCommentToken = null;
+
+    int recKind = noSym;
+    int recEnd = pos;
     int state;
     if (start.ContainsKey(ch)) {
       Contract.Assert(start[ch] != null);
