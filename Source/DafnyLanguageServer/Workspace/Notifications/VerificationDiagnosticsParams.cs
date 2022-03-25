@@ -16,10 +16,21 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
   /// <summary>
-  /// DTO used to communicate the current compilation status to the LSP client.
+  /// DTO used to communicate the current verification diagnostics to the LSP client.
   /// </summary>
   [Method(DafnyRequestNames.VerificationDiagnostics, Direction.ServerToClient)]
   public class VerificationDiagnosticsParams : IRequest, IRequest<Unit> {
+    public VerificationDiagnosticsParams(
+        NodeDiagnostic[] perNodeDiagnostic,
+        Container<Diagnostic> diagnostics,
+        int linesCount,
+        int numberOfResolutionErrors) {
+      PerNodeDiagnostic = perNodeDiagnostic;
+      Diagnostics = diagnostics;
+      PerLineDiagnostic =
+        RenderPerLineDiagnostics(this, perNodeDiagnostic, linesCount, numberOfResolutionErrors, diagnostics);
+    }
+
     /// <summary>
     /// Gets the URI of the document whose verification completed.
     /// </summary>
@@ -44,21 +55,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     public NodeDiagnostic[] PerNodeDiagnostic { get; init; }
 
     /// <summary>
-    /// The number of lines in the document
-    /// </summary>
-    public int LinesCount { get; init; }
-
-    public int NumberOfResolutionErrors { get; init; }
-
-    /// <summary>
     /// Returns per-line real-time diagnostic
     /// </summary>
-    public LineVerificationStatus[] PerLineDiagnostic { get; set; } = new LineVerificationStatus[] { };
-
-    public void RecomputePerLineDiagnostics() {
-      PerLineDiagnostic = RenderPerLineDiagnostics(this, PerNodeDiagnostic, LinesCount,
-        NumberOfResolutionErrors, Diagnostics);
-    }
+    public LineVerificationStatus[] PerLineDiagnostic { get; init; }
 
     static LineVerificationStatus[] RenderPerLineDiagnostics(
       VerificationDiagnosticsParams verificationDiagnosticsParams,
@@ -171,7 +170,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     ErrorVerifying = 402,
     Error = 400,
     // For lines containing resolution or parse errors
-    ResolutionError = 16
+    ResolutionError = 500
   }
 
   public record NodeDiagnostic(
@@ -203,7 +202,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
 
 
-    // If this node is an error, all the trace positions
+    /// If this node was an error from a counter-example, RelatedRanges will contain
+    /// all the ranges given by the trace of that counter-example
     public ImmutableList<Range> RelatedRanges { get; set; } = ImmutableList<Range>.Empty;
 
     // Sub-diagnostics if any
@@ -222,6 +222,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       Children = NewChildren;
       ResetNewChildren();
     }
+
     public void ResetNewChildren() {
       NewChildren = new();
     }

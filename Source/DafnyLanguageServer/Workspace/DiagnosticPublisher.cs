@@ -49,18 +49,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         .Concat(document.OldVerificationDiagnostics)
         .Where(x => x.Severity == DiagnosticSeverity.Error)
         .ToArray();
-      var verificationDiagnosticsParams = new VerificationDiagnosticsParams {
+      var verificationDiagnosticsParams = new VerificationDiagnosticsParams(
+        document.VerificationNodeDiagnostic.Children.Select(child => child.GetCopyForNotification()).ToArray(),
+        errors,
+        Regex.Matches(document.Text.Text, "\r?\n").Count + 1,
+        document.ResolutionSucceeded == false ? currentDiagnostics.Count() : 0
+      ) {
         Uri = document.Uri,
         Version = document.Version,
-        Diagnostics = errors,
-        NumberOfResolutionErrors = document.ResolutionSucceeded == false ? currentDiagnostics.Count() : 0,
-        LinesCount = Regex.Matches(document.Text.Text, "\r?\n").Count + 1,
-        PerNodeDiagnostic = document.VerificationNodeDiagnostic.Children.Select(child => child.GetCopyForNotification()).ToArray()
       };
-      verificationDiagnosticsParams.RecomputePerLineDiagnostics();
-      if (verificationDiagnosticsParams.PerLineDiagnostic.Length > 0) {
-        languageServer.TextDocument.SendNotification(verificationDiagnosticsParams);
-      }
+      languageServer.TextDocument.SendNotification(verificationDiagnosticsParams);
     }
 
     private void PublishGhostDiagnostics(DafnyDocument document) {
