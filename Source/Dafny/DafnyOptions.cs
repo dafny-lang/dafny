@@ -101,6 +101,7 @@ namespace Microsoft.Dafny {
     public bool PrintFunctionCallGraph = false;
     public bool WarnShadowing = false;
     public int DefiniteAssignmentLevel = 1; // [0..4]
+    public bool PrintAllVerificationResults = false;
     public FunctionSyntaxOptions FunctionSyntax = FunctionSyntaxOptions.Version3;
 
     public enum FunctionSyntaxOptions {
@@ -535,6 +536,10 @@ namespace Microsoft.Dafny {
 
         case "extractCounterexample":
           ExtractCounterexample = true;
+          return true;
+
+        case "printAllVerificationResults":
+          PrintAllVerificationResults = true;
           return true;
 
         case "verificationLogger":
