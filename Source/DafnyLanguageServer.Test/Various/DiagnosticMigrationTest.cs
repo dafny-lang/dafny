@@ -21,7 +21,7 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
     client.OpenDocument(documentItem);
     var verificationDiagnostics = await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
     Assert.AreEqual(1, verificationDiagnostics.Length);
-    ApplyChange(ref documentItem, new Range(0, 47, 0, 47), "\n\n" + SlowToVerify);
+    ApplyChange(ref documentItem, new Range(0, 47, 0, 47), "\n\n" + NeverVerifies);
     var resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.AreEqual(verificationDiagnostics[0], resolutionDiagnostics[0]);
   }
@@ -32,13 +32,13 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
     client.OpenDocument(documentItem);
     var verificationDiagnostics = await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
     Assert.AreEqual(1, verificationDiagnostics.Length);
-    ApplyChange(ref documentItem, new Range(0, 0, 0, 0), SlowToVerify + "\n\n");
+    ApplyChange(ref documentItem, new Range(0, 0, 0, 0), NeverVerifies + "\n\n");
     var resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.AreEqual(1, resolutionDiagnostics.Length);
     // Verification diagnostic should have been moved.
-    Assert.AreEqual(16, resolutionDiagnostics[0].Range.Start.Line);
+    Assert.AreEqual(5, resolutionDiagnostics[0].Range.Start.Line);
     // Relation information should have been moved.
-    Assert.AreEqual(16, resolutionDiagnostics[0].RelatedInformation!.ElementAt(0).Location.Range.Start.Line);
+    Assert.AreEqual(5, resolutionDiagnostics[0].RelatedInformation!.ElementAt(0).Location.Range.Start.Line);
   }
 
   [TestMethod]
@@ -111,7 +111,7 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
     var verificationDiagnostics = await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
     Assert.AreEqual(1, verificationDiagnostics.Length);
 
-    ApplyChange(ref documentItem, new Range(3, 9, 3, 10), "3");
+    ApplyChange(ref documentItem, new Range(0, 7, 0, 7), "{:neverVerify}");
     var resolutionDiagnostics1 = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     ApplyChange(ref documentItem, new Range(3, 9, 3, 10), "2");
     var resolutionDiagnostics2 = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);

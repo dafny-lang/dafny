@@ -4,9 +4,11 @@ using Microsoft.Extensions.Options;
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
@@ -64,29 +66,30 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         : Convert.ToInt32(options.VcsCores);
     }
 
-    public VerificationResult Verify(Dafny.Program program,
+    public async Task<VerificationResult> VerifyAsync(Dafny.Program program,
                                      IVerificationProgressReporter progressReporter,
                                      CancellationToken cancellationToken) {
-      mutex.Wait(cancellationToken);
+      await mutex.WaitAsync(cancellationToken);
       try {
         // The printer is responsible for two things: It logs boogie errors and captures the counter example model.
         var errorReporter = (DiagnosticErrorReporter)program.reporter;
         var printer = new ModelCapturingOutputPrinter(logger, errorReporter, progressReporter);
-        DafnyOptions.O.Printer = printer;
         // Do not set these settings within the object's construction. It will break some tests within
         // VerificationNotificationTest and DiagnosticsTest that rely on updating these settings.
         DafnyOptions.O.TimeLimit = options.TimeLimit;
         DafnyOptions.O.VcsCores = GetConfiguredCoreCount(options);
+        DafnyOptions.O.Printer = printer;
+
         var executionEngine = new ExecutionEngine(DafnyOptions.O, cache);
         var translated = Translator.Translate(program, errorReporter, new Translator.TranslatorFlags { InsertChecksums = true });
-        bool verified = true;
-        var programId = program.FullName;
-        foreach (var (moduleName, boogieProgram) in translated) {
-          cancellationToken.ThrowIfCancellationRequested();
+        var moduleTasks = translated.Select(t => {
+          var (moduleName, boogieProgram) = t;
+          var programId = program.FullName;
           var boogieProgramId = (programId ?? "main_program_id") + "_" + moduleName;
-          var verificationResult = VerifyWithBoogie(executionEngine, boogieProgram, cancellationToken, boogieProgramId);
-          verified = verified && verificationResult;
-        }
+          return VerifyWithBoogieAsync(TextWriter.Null, executionEngine, boogieProgram, cancellationToken, boogieProgramId);
+        }).ToList();
+        await Task.WhenAll(moduleTasks);
+        var verified = moduleTasks.All(t => t.Result);
         return new VerificationResult(verified, printer.SerializedCounterExamples);
       }
       finally {
@@ -94,7 +97,9 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
     }
 
-    private bool VerifyWithBoogie(ExecutionEngine engine, Boogie.Program program, CancellationToken cancellationToken, string programId) {
+    private async Task<bool> VerifyWithBoogieAsync(TextWriter output,
+      ExecutionEngine engine, Boogie.Program program,
+      CancellationToken cancellationToken, string programId) {
       program.Resolve(engine.Options);
       program.Typecheck(engine.Options);
 
@@ -102,14 +107,11 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       engine.CollectModSets(program);
       engine.CoalesceBlocks(program);
       engine.Inline(program);
-
       var uniqueRequestId = Guid.NewGuid().ToString();
       using (cancellationToken.Register(() => CancelVerification(uniqueRequestId))) {
         try {
           var statistics = new PipelineStatistics();
-#pragma warning disable VSTHRD002
-          var outcome = engine.InferAndVerify(Console.Out, program, statistics, programId, null, uniqueRequestId).Result;
-#pragma warning restore VSTHRD002
+          var outcome = await engine.InferAndVerify(output, program, statistics, programId, null, uniqueRequestId);
           return Main.IsBoogieVerified(outcome, statistics);
         } catch (Exception e) when (e is not OperationCanceledException) {
           if (!cancellationToken.IsCancellationRequested) {
