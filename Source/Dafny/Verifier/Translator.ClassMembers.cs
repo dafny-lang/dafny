@@ -4,9 +4,9 @@ using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Text;
 using Microsoft.Boogie;
-using Microsoft.Dafny.ProofObligationDescription;
 using Bpl = Microsoft.Boogie;
 using static Microsoft.Dafny.Util;
+using PODesc = Microsoft.Dafny.ProofObligationDescription;
 
 namespace Microsoft.Dafny {
   public partial class Translator {
@@ -661,7 +661,7 @@ namespace Microsoft.Dafny {
           if (formal.IsOld) {
             Boogie.Expr wh = GetWhereClause(e.tok, etran.TrExpr(e), e.Type, etran.Old, ISALLOC, true);
             if (wh != null) {
-              var desc = new IsAllocated("default value", "in the two-state lemma's previous state");
+              var desc = new PODesc.IsAllocated("default value", "in the two-state lemma's previous state");
               builder.Add(Assert(e.tok, wh, desc));
             }
           }
@@ -1191,7 +1191,7 @@ namespace Microsoft.Dafny {
         bool splitHappened;  // we actually don't care
         foreach (var s in TrSplitExpr(postcond, etran, false, out splitHappened)) {
           if (s.IsChecked) {
-            builder.Add(Assert(m.tok, s.E, new EnsuresStronger()));
+            builder.Add(Assert(m.tok, s.E, new PODesc.EnsuresStronger()));
           }
         }
       }
@@ -1212,7 +1212,7 @@ namespace Microsoft.Dafny {
         bool splitHappened;  // we actually don't care
         foreach (var s in TrSplitExpr(req.E, etran, false, out splitHappened)) {
           if (s.IsChecked) {
-            builder.Add(Assert(m.tok, s.E, new RequiresWeaker()));
+            builder.Add(Assert(m.tok, s.E, new PODesc.RequiresWeaker()));
           }
         }
       }
@@ -1280,7 +1280,7 @@ namespace Microsoft.Dafny {
       //   as "false".
       bool allowNoChange = N == decrCountT && decrCountT <= decrCountC;
       var decrChk = DecreasesCheck(toks, types0, types1, callee, caller, null, null, allowNoChange, false);
-      builder.Add(Assert(original.Tok, decrChk, new TraitDecreases(original.WhatKind)));
+      builder.Add(Assert(original.Tok, decrChk, new PODesc.TraitDecreases(original.WhatKind)));
     }
 
     private void AddMethodOverrideSubsetChk(Method m, BoogieStmtListBuilder builder, ExpressionTranslator etran, List<Variable> localVariables, Dictionary<IVariable, Expression> substMap) {
@@ -1323,7 +1323,7 @@ namespace Microsoft.Dafny {
       Boogie.Expr consequent2 = InRWClause(tok, o, f, traitFrameExps, etran, null, null);
       Boogie.Expr q = new Boogie.ForallExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar },
         Boogie.Expr.Imp(Boogie.Expr.And(ante, oInCallee), consequent2));
-      builder.Add(Assert(tok, q, new TraitFrame(true), kv));
+      builder.Add(Assert(tok, q, new PODesc.TraitFrame(true), kv));
     }
 
     /// <summary>
@@ -1385,7 +1385,7 @@ namespace Microsoft.Dafny {
           if (formal.IsOld) {
             var dafnyFormalIdExpr = new IdentifierExpr(formal.tok, formal);
             var pIdx = m.Ins.Count == 1 ? "" : " " + index;
-            var desc = new IsAllocated($"parameter{pIdx} ('{formal.Name}')", "in the two-state lemma's previous state");
+            var desc = new PODesc.IsAllocated($"parameter{pIdx} ('{formal.Name}')", "in the two-state lemma's previous state");
             var require = Requires(formal.tok, false, MkIsAlloc(etran.TrExpr(dafnyFormalIdExpr), formal.Type, prevHeap),
               desc.FailureDescription, null);
             require.Description = desc;
