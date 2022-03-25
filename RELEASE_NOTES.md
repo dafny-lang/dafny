@@ -2,8 +2,8 @@
 
 - fix: Miscompilation due to incorrect parenthesization in C# output for casts. (#1908)
 - fix: Populate TestResult.ResourceCount in `/verificationLogger:csv` output correctly when verification condition splitting occurs (e.g. when using `/vcsSplitOnEveryAssert`).
-- fix: Make verifier understand `(!new)`
-- fix: Fix initialization of non-auto-init in-parameters in C#/JavaScript/Go compilers
+- fix: Make verifier understand `(!new)` (https://github.com/dafny-lang/dafny/pull/1935)
+- fix: Fix initialization of non-auto-init in-parameters in C#/JavaScript/Go compilers (https://github.com/dafny-lang/dafny/pull/1935)
 
 # 3.5.0
 
