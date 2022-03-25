@@ -854,7 +854,7 @@ namespace Microsoft.Dafny {
       return BplFormalVar(name, ty, incoming, out _);
     }
 
-    static Bpl.Formal BplFormalVar(string/*?*/ name, Bpl.Type ty, bool incoming, out Bpl.Expr e) {
+    static Bpl.Formal BplFormalVar(string/*?*/ name, Bpl.Type ty, bool incoming, out Bpl.Expr e, Bpl.Expr whereClause = null) {
       if (name == null) {
         name = Bpl.TypedIdent.NoName;
       }
