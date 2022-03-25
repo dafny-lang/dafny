@@ -8782,7 +8782,7 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Clone Dafny variable "v" into a new PODesc. local variable "l".
+    /// Clone Dafny variable "v" into a new Dafny local variable "l".
     /// Add to "substMap" the substitution from "v" to an IdentifierExpr for "l".
     /// Also, generate a Boogie variable "bvar" for "l", add "bvar" to "locals", and
     /// emit to "builder" a havoc statement for "bvar". The type antecedent for "bvar"
