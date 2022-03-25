@@ -1129,6 +1129,14 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
         /verificationLogger:trx;LogFileName=<...>.
     The exact mapping of verification concepts to the TRX and CSV formats is
     experimental and subject to change!
+/printAllVerificationResults
+    Prints a summary of all verification results after verification has
+    completed. For every assertion batch of every method, prints the
+    list of assertions that occur within that batch, the status of the
+    batch, and the resources (in terms of time and solver resources)
+    needed analyze the batch. For fine-grained analysis of the result
+    and cost of verifying every assertion, combine this with the Boogie
+    option /vcsSplitOnEveryAssert.
 {TestGenOptions.Help}
 
 /mimicVerificationOf:<Dafny version>
