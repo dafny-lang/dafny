@@ -44,9 +44,10 @@ namespace Microsoft.Dafny.Compilers {
     const string DafnyMapClass = "_dafny.Map";
     protected override string StmtTerminator { get => ""; }
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
-      wr.WriteLine("# Dafny program {0} compiled into Python", program.Name);
+      wr.WriteLine($"# Dafny program {program.Name} compiled into Python");
       ReadRuntimeSystem("DafnyRuntime.py", wr.NewFile("_dafny.py"));
-      EmitImports("_dafny", wr);
+      Imports.Add("_dafny");
+      EmitImports(null, wr);
       wr.WriteLine();
     }
 
@@ -72,11 +73,13 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine("from typing import Callable, NamedTuple");
       wr.WriteLine();
       Imports.Iter(module => wr.WriteLine($"import {module}"));
-      wr.WriteLine();
-      wr.WriteLine($"{moduleName} = sys.modules[__name__]");
-      //could be globals()[__name__] = sys.modules[__name__], but my ide doesn't pick that up
+      if (moduleName != null) {
+        wr.WriteLine();
+        wr.WriteLine($"assert \"{moduleName}\" == __name__");
+        wr.WriteLine($"{moduleName} = sys.modules[__name__]");
 
-      Imports.Add(moduleName);
+        Imports.Add(moduleName);
+      }
     }
 
     protected override string GetHelperModuleName() {
@@ -236,9 +239,8 @@ namespace Microsoft.Dafny.Compilers {
 
     private ConcreteSyntaxTree CreateGetter(string name, Type resultType, IToken tok, bool isStatic, bool createBody,
         ConcreteSyntaxTree methodWriter) {
-      methodWriter.WriteLine("@property");
-      var self = isStatic ? "" : "self";
-      return methodWriter.NewBlockPy(header: $"def {name}({self}):");
+      methodWriter.WriteLine(isStatic ? "@_dafny.classproperty" : "@property");
+      return methodWriter.NewBlockPy(header: $"def {name}({(isStatic ? "instance" : "self")}):");
     }
 
     private ConcreteSyntaxTree CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody,
@@ -448,6 +450,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree EmitBlock(ConcreteSyntaxTree wr) {
+      //This encoding does not provide a new scope
       return wr.NewBlockPy("if True:");
     }
 
