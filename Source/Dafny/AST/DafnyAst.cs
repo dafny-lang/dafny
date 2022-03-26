@@ -11360,6 +11360,7 @@ namespace Microsoft.Dafny {
       /// 0: AllocFreeBoundedPool
       /// 0: ExplicitAllocatedBoundedPool
       /// 0: SpecialAllocIndependenceAllocatedBoundedPool
+      /// 0: OlderBoundedPool
       ///
       /// 1: WiggleWaggleBound
       ///
@@ -11628,6 +11629,13 @@ namespace Microsoft.Dafny {
       public DatatypeInclusionBoundedPool(bool isIndDatatype) : base() { IsIndDatatype = isIndDatatype; }
       public override PoolVirtues Virtues => (IsIndDatatype ? PoolVirtues.Finite : PoolVirtues.None) | PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
       public override int Preference() => 2;
+    }
+
+    public class OlderBoundedPool : BoundedPool {
+      public OlderBoundedPool() {
+      }
+      public override PoolVirtues Virtues => PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
+      public override int Preference() => 0;
     }
 
     public List<BoundedPool> Bounds;  // initialized and filled in by resolver

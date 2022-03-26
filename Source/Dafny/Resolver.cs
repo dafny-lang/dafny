@@ -7026,6 +7026,26 @@ namespace Microsoft.Dafny {
       }
     }
 
+    /// <summary>
+    /// If f is a predicate with a :older attribute, return the names of the formal parameters (possibly including "this")
+    /// that are given as arguments to the attribute. Otherwise, return null.
+    /// This method assumes the function's attributes have passed the CheckOlderAttribute checks.
+    /// </summary>
+    public static ISet<string> /*?*/ GetOlderParameters(Function f) {
+      Contract.Requires(f != null);
+      var older = Attributes.Find(f.Attributes, "older");
+      if (older == null) {
+        return null;
+      }
+      var givenFormals = new HashSet<string>();
+      foreach (var argument in older.Args) {
+        var arg = argument.Resolved;
+        var name = arg is ThisExpr ? "this" : ((IdentifierExpr)arg).Name;
+        givenFormals.Add(name);
+      }
+      return givenFormals;
+    }
+
     // ------------------------------------------------------------------------------------------------------
     // ----- CheckExpression --------------------------------------------------------------------------------
     // ------------------------------------------------------------------------------------------------------
@@ -17377,6 +17397,30 @@ namespace Microsoft.Dafny {
               } else if (unary.Op == UnaryOpExpr.Opcode.Allocated) {
                 bounds.Add(new ComprehensionExpr.ExplicitAllocatedBoundedPool());
               }
+            }
+          }
+          continue;
+        }
+        if (conjunct is FunctionCallExpr fce) {
+          var older = GetOlderParameters(fce.Function);
+          if (older != null) {
+            bool DoesOlderApply(Expression e, string formalName) {
+              return e.Resolved is IdentifierExpr ide && ide.Var == (IVariable)bv && older.Contains(formalName);
+            }
+            var isOlderArgument = false;
+            if (!fce.Function.IsStatic && DoesOlderApply(fce.Receiver, "this")) {
+              isOlderArgument = true;
+            } else {
+              Contract.Assert(fce.Function.Formals.Count == fce.Args.Count);
+              for (var i = 0; i < fce.Function.Formals.Count; i++) {
+                if (DoesOlderApply(fce.Args[i], fce.Function.Formals[i].Name)) {
+                  isOlderArgument = true;
+                  break;
+                }
+              }
+            }
+            if (isOlderArgument) {
+              bounds.Add(new ComprehensionExpr.OlderBoundedPool());
             }
           }
           continue;
