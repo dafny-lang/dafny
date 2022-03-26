@@ -1999,6 +1999,7 @@ namespace Microsoft.Dafny {
       //       f#canCall(args) || USE_VIA_CONTEXT
       //       ==>
       //       ens &&
+      //       OlderCondition &&
       //       f(s, args)-has-the-expected type);
       //
       // where:
@@ -2015,6 +2016,8 @@ namespace Microsoft.Dafny {
       //   $IsGoodHeap($Heap) && this != null && formals-have-the-expected-types &&
       //   Pre($Heap,formals)
       //
+      // NewCondition is added if the function bears a {:older} attribute.
+      //
       // Note, an antecedent $Heap[this,alloc] is intentionally left out:  including it would only weaken
       // the axiom.  Moreover, leaving it out does not introduce any soundness problem, because the Dafny
       // allocation statement changes only an allocation bit and then re-assumes $IsGoodHeap; so if it is
@@ -2023,6 +2026,7 @@ namespace Microsoft.Dafny {
       List<Bpl.Expr> tyargs;
       var formals = MkTyParamBinders(GetTypeParams(f), out tyargs);
       var args = new List<Bpl.Expr>();
+      var olderInParams = new List<Bpl.Variable>(); // for use with older-condition
       Bpl.BoundVariable layer;
       if (f.IsFuelAware()) {
         layer = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$ly", predef.LayerType));
@@ -2060,6 +2064,7 @@ namespace Microsoft.Dafny {
       if (!f.IsStatic) {
         var bvThis = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, etran.This, TrReceiverType(f)));
         formals.Add(bvThis);
+        olderInParams.Add(bvThis);
         var bvThisIdExpr = new Bpl.IdentifierExpr(f.tok, bvThis);
         args.Add(bvThisIdExpr);
         // add well-typedness conjunct to antecedent
@@ -2074,6 +2079,7 @@ namespace Microsoft.Dafny {
         var bv = new Bpl.BoundVariable(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(currentDeclaration.IdGenerator), TrType(p.Type)));
         Bpl.Expr formal = new Bpl.IdentifierExpr(p.tok, bv);
         formals.Add(bv);
+        olderInParams.Add(bv);
         args.Add(formal);
         // add well-typedness conjunct to antecedent
         Bpl.Expr wh = GetWhereClause(p.tok, formal, p.Type, p.IsOld ? etran.Old : etran, NOALLOC);
@@ -2129,6 +2135,11 @@ namespace Microsoft.Dafny {
         Bpl.Expr q = etran.TrExpr(Substitute(p.E, null, substMap));
         post = BplAnd(post, q);
       }
+      var olderParameters = Resolver.GetOlderParameters(f);
+      if (olderParameters != null) {
+        var q = OlderCondition(f, funcAppl, olderInParams, olderParameters, substMap);
+        post = BplAnd(post, q);
+      }
       Bpl.Expr whr = GetWhereClause(f.tok, funcAppl, f.ResultType, etran, NOALLOC);
       if (whr != null) { post = Bpl.Expr.And(post, whr); }
 
@@ -2150,6 +2161,54 @@ namespace Microsoft.Dafny {
           AddOtherDefinition(boogieFunction, heapConsequenceAxiom);
         }
       }
+    }
+
+    Bpl.Expr OlderCondition(Function f, Bpl.Expr funcAppl, List<Bpl.Variable> inParams, ISet<string> olderParameters, Dictionary<IVariable, Expression> substMap) {
+      Contract.Requires(f != null);
+      Contract.Requires(funcAppl != null);
+      Contract.Requires(inParams != null);
+      Contract.Requires(olderParameters != null);
+      Contract.Requires(substMap != null);
+
+      // For a function F(x: X, y: Y) where x is included in olderParameters and y is not, generate:
+      //     (forall h: Heap :: { OlderTag(h) }
+      //         IsGoodHeap(h) && OlderTag(h) && F(x, y) && IsAlloc(y, Y, h)
+      //         ==>  IsAlloc(x, X, h))
+      var heapVar = BplBoundVar("$olderHeap", predef.HeapType, out var heap);
+      var etran = new ExpressionTranslator(this, predef, heap);
+
+      var isGoodHeap = FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, heap);
+      var olderTag = FunctionCall(f.tok, "$OlderTag", Bpl.Type.Bool, heap);
+      Bpl.Expr older = Bpl.Expr.True;
+      Bpl.Expr newer = Bpl.Expr.True;
+      var i = 0;
+      if (!f.IsStatic) {
+        var th = new Bpl.IdentifierExpr(f.tok, inParams[i]);
+        i++;
+        var wh = GetWhereClause(f.tok, th, Resolver.GetReceiverType(f.tok, f), etran, ISALLOC, true);
+        if (olderParameters.Contains("this")) {
+          older = BplAnd(older, wh);
+        } else {
+          newer = BplAnd(newer, wh);
+        }
+      }
+      foreach (var formal in f.Formals) {
+        var p = new Bpl.IdentifierExpr(f.tok, inParams[i]);
+        i++;
+        var wh = GetWhereClause(formal.tok, p, formal.Type, etran, ISALLOC, true);
+        if (wh != null) {
+          if (olderParameters.Contains(formal.Name)) {
+            older = BplAnd(older, wh);
+          } else {
+            newer = BplAnd(newer, wh);
+          }
+        }
+      }
+      Contract.Assert(i == inParams.Count); // we should have used all the given inParams by now
+
+      var body = BplImp(BplAnd(BplAnd(isGoodHeap, olderTag), BplAnd(funcAppl, newer)), older);
+      var tr = new Bpl.Trigger(f.tok, true, new List<Bpl.Expr> { olderTag });
+      return new Bpl.ForallExpr(f.tok, new List<Bpl.TypeVariable>(), new List<Variable>() { heapVar }, null, tr, body);
     }
 
     Bpl.Expr AxiomActivation(Function f, ExpressionTranslator etran) {
@@ -4202,6 +4261,14 @@ namespace Microsoft.Dafny {
           bodyCheckBuilder.Add(TrAssumeCmd(f.tok, Bpl.Expr.Eq(funcAppl, TrVar(f.tok, f.Result))));
         }
         wfo.ProcessSavedReadsChecks(locals, builderInitializationArea, bodyCheckBuilder);
+
+        // Enforce :older conditions
+        var olderParameters = Resolver.GetOlderParameters(f);
+        if (olderParameters != null) {
+          var q = OlderCondition(f, funcAppl, implInParams, olderParameters, new Dictionary<IVariable, Expression>());
+          bodyCheckBuilder.Add(Assert(f.tok, q,
+            "failed to verify that the ':older' parameters are necessarily older than the other parameters when the predicate returns 'true'"));
+        }
       }
       // Combine the two, letting the postcondition be checked on after the "bodyCheckBuilder" branch
       postCheckBuilder.Add(TrAssumeCmd(f.tok, Bpl.Expr.False));

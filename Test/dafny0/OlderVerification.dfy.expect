@@ -1,2 +1,7 @@
+OlderVerification.dfy(89,23): Error: failed to verify that the ':older' parameters are necessarily older than the other parameters when the predicate returns 'true'
+OlderVerification.dfy(141,23): Error: failed to verify that the ':older' parameters are necessarily older than the other parameters when the predicate returns 'true'
+OlderVerification.dfy(168,23): Error: failed to verify that the ':older' parameters are necessarily older than the other parameters when the predicate returns 'true'
+OlderVerification.dfy(34,21): Error: failed to verify that the ':older' parameters are necessarily older than the other parameters when the predicate returns 'true'
+OlderVerification.dfy(42,21): Error: failed to verify that the ':older' parameters are necessarily older than the other parameters when the predicate returns 'true'
 
-Dafny program verifier finished with 1 verified, 0 errors
+Dafny program verifier finished with 12 verified, 5 errors

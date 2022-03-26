@@ -1,16 +1,186 @@
 // RUN: %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-class Node {
-  var children: seq<Node>
+// ----------------------------------
+
+predicate {:older x} Trivial0(x: int, s: set<int>) {
+  true
 }
 
-datatype Path<T> = Empty | Extend(Path, T)
-
-predicate Reachable(source: Node, sink: Node, S: set<Node>)
-  reads S
-{
-  exists via: Path<Node> :: ReachableVia(source, via, sink, S)
+predicate {:older x} Trivial1(x: int, s: set<int>) {
+  x in s
 }
 
-predicate {:older p} ReachableVia(source: Node, p: Path<Node>, sink: Node, S: set<Node>)
+predicate {:older x} Trivial2(x: int, s: set<int>) {
+  x !in s
+}
+
+// ----------------------------------
+/******************* The following tests depend on https://github.com/dafny-lang/dafny/pull/1935. They should be included once #1935 has been merged.
+predicate {:older x} Trivial3<X(!new)>(x: X, s: set<X>) {
+  true
+}
+
+predicate {:older x} Trivial4<X(!new)>(x: X, s: set<X>) {
+  x in s
+}
+
+predicate {:older x} Trivial5<X(!new)>(x: X, s: set<X>) {
+  x !in s
+}
+*******************/
+// ----------------------------------
+
+predicate {:older x} Simple0<X>(x: X, s: set<X>) { // error: x is not older
+  true
+}
+
+predicate {:older x} Simple1<X>(x: X, s: set<X>) {
+  x in s
+}
+
+predicate {:older x} Simple2<X>(x: X, s: set<X>) { // error: x is not older
+  x !in s
+}
+
+// ----------------------------------
+
+module Reachable0 {
+  // This module shows how to get Reachable and ReachableVia to verify
+
+  class Node {
+    var children: seq<Node>
+  }
+
+  datatype Path<T> = Empty | Extend(Path, T)
+
+  predicate Reachable(source: Node, sink: Node, S: set<Node>)
+    reads S
+  {
+    exists via: Path<Node> :: ReachableVia(source, via, sink, S)
+  }
+
+  predicate {:older p} ReachableVia(source: Node, p: Path<Node>, sink: Node, S: set<Node>)
+    reads S
+    decreases p
+  {
+    match p
+    case Empty => source == sink
+    case Extend(prefix, n) => n in S && sink in n.children && ReachableVia(source, prefix, n, S)
+  }
+}
+
+module Reachable1 {
+  // This module packs more things into the Path, and there's no assurance that "p" in ReachableVia
+  // is older than those things.
+
+  class Node {
+    var children: seq<Node>
+  }
+
+  datatype Path<T, Extra> = Empty | Extend(Path, T, Extra)
+
+  predicate Reachable<Extra>(source: Node, sink: Node, S: set<Node>)
+    reads S
+  {
+    exists via: Path<Node, Extra> :: ReachableVia(source, via, sink, S)
+  }
+
+  predicate {:older p} ReachableVia<Extra>(source: Node, p: Path<Node, Extra>, sink: Node, S: set<Node>) // error: cannot prove p is older
+    reads S
+    decreases p
+  {
+    match p
+    case Empty => source == sink
+    case Extend(prefix, n, extra) => n in S && sink in n.children && ReachableVia(source, prefix, n, S)
+  }
+}
+
+module Reachable2 {
+  // This module is like Reachable1, but the extra stuff is just integers.
+
+  class Node {
+    var children: seq<Node>
+  }
+
+  type Extra = int
+  datatype Path<T, Extra> = Empty | Extend(Path, T, Extra)
+
+  predicate Reachable(source: Node, sink: Node, S: set<Node>)
+    reads S
+  {
+    exists via: Path<Node, Extra> :: ReachableVia(source, via, sink, S)
+  }
+
+  predicate {:older p} ReachableVia(source: Node, p: Path<Node, Extra>, sink: Node, S: set<Node>)
+    reads S
+    decreases p
+  {
+    match p
+    case Empty => source == sink
+    case Extend(prefix, n, extra) => n in S && sink in n.children && ReachableVia(source, prefix, n, S)
+  }
+}
+
+module Reachable3 {
+  // In this module, ReachableVia gives a "yes" answer for any path longer than a given limit. This
+  // means it doesn't inspect all of "p" and hence one cannot conclude that "p" is indeed older.
+
+  class Node {
+    var children: seq<Node>
+  }
+
+  datatype Path<T> = Empty | Extend(Path, T)
+
+  predicate Reachable(source: Node, sink: Node, S: set<Node>)
+    reads S
+  {
+    exists via: Path<Node> :: ReachableVia(source, via, sink, S, 5)
+  }
+
+  predicate {:older p} ReachableVia(source: Node, p: Path<Node>, sink: Node, S: set<Node>, bound: nat) // error: cannot prove p is older
+    reads S
+    decreases p
+  {
+    bound != 0 ==>
+    match p
+    case Empty => source == sink
+    case Extend(prefix, n) => n in S && sink in n.children && ReachableVia(source, prefix, n, S, bound - 1)
+  }
+}
+
+module Reachable4 {
+  // This module is like Reachable1, but ReachableVia always returns false. Therefore, p is indeed considered older.
+  // To prove this requires a postcondition specification of ReachableVia.
+
+  class Node {
+    var children: seq<Node>
+  }
+
+  datatype Path<T, Extra> = Empty | Extend(Path, T, Extra)
+
+  predicate Reachable<Extra>(source: Node, sink: Node, S: set<Node>)
+    reads S
+  {
+    exists via: Path<Node, Extra> :: ReachableVia(source, via, sink, S)
+  }
+
+  predicate {:older p} ReachableVia<Extra>(source: Node, p: Path<Node, Extra>, sink: Node, S: set<Node>) // error: cannot prove p is older
+    reads S
+    decreases p
+  {
+    match p
+    case Empty => false
+    case Extend(prefix, n, extra) => n in S && sink in n.children && ReachableVia(source, prefix, n, S)
+  }
+
+  predicate {:older p} ReachableViaEnsures<Extra>(source: Node, p: Path<Node, Extra>, sink: Node, S: set<Node>)
+    reads S
+    ensures !ReachableViaEnsures(source, p, sink, S)
+    decreases p
+  {
+    match p
+    case Empty => false
+    case Extend(prefix, n, extra) => n in S && sink in n.children && ReachableViaEnsures(source, prefix, n, S)
+  }
+}
