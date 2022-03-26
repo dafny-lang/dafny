@@ -3259,7 +3259,7 @@ namespace Microsoft.Dafny {
             }
           }
         }
-        // Check that functions claiming to be abstemious really are
+        // Check that functions claiming to be abstemious really are, and check that :older attributes are used correctly
         foreach (var fn in ModuleDefinition.AllFunctions(declarations)) {
           if (fn.Body != null) {
             var abstemious = true;
@@ -3271,6 +3271,7 @@ namespace Microsoft.Dafny {
               }
             }
           }
+          CheckOlderAttribute(fn);
         }
         // Check that all == and != operators in non-ghost contexts are applied to equality-supporting types.
         // Note that this check can only be done after determining which expressions are ghosts.
@@ -6982,6 +6983,48 @@ namespace Microsoft.Dafny {
       }
     }
     #endregion CheckTypeInference
+
+    /// <summary>
+    /// If f contains a :older attribute, check that it is used correctly and report any errors of the contrary.
+    /// </summary>
+    void CheckOlderAttribute(Function f) {
+      Contract.Requires(f != null);
+
+      var older = Attributes.Find(f.Attributes, "older");
+      if (older == null) {
+        return;
+      }
+      var attributeToken = older.Args.Count != 0 ? older.Args[0].tok : f.tok;
+
+      // The :older attribute is allowed on predicates and two-state predicates (and ordinary functions and
+      // two-state functions that return bool).
+      if (!f.ResultType.IsBoolType || f is PrefixPredicate || f is ExtremePredicate) {
+        reporter.Error(MessageSource.Resolver, attributeToken, "a :older attribute is allowed only on predicates and two-state predicates");
+        return;
+      } else if (older.Args.Count == 0) {
+        reporter.Error(MessageSource.Resolver, attributeToken, "a :older attribute expects as arguments one or more of the predicate's parameters");
+      }
+
+      var givenFormals = new HashSet<string>();
+      foreach (var argument in older.Args) {
+        var arg = argument.Resolved;
+        string name;
+        if (arg is ThisExpr) {
+          Contract.Assert(!f.IsStatic); // since the attribute has been successfully resolved
+          name = "this";
+        } else if (arg is IdentifierExpr idExpr && ((Formal)idExpr.Var).InParam) { // this cast is expected to pass, since the attribute has been successfully resolved
+          name = idExpr.Name;
+        } else {
+          reporter.Error(MessageSource.Resolver, arg.tok, "each argument to :older is expected to be a parameter of the enclosing predicate");
+          continue;
+        }
+        if (!givenFormals.Contains(name)) {
+          givenFormals.Add(name);
+        } else {
+          reporter.Error(MessageSource.Resolver, arg.tok, ":older attribute has duplicated argument: '{0}'", name);
+        }
+      }
+    }
 
     // ------------------------------------------------------------------------------------------------------
     // ----- CheckExpression --------------------------------------------------------------------------------
