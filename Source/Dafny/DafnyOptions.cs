@@ -798,7 +798,7 @@ namespace Microsoft.Dafny {
 
       Dafny does not allow a function to depend on the allocation state; that
       is, the act of allocating more objects should not change the value
-      of a function. But if X is a type that contains conferences, then,
+      of a function. But if X is a type that contains references, then,
       at first glance, it looks as if this function does depend on the
       allocation state. For instance, if X is a class type, then allocating
       more X objects gives more candidate values for the iset comprehension
