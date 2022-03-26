@@ -2016,7 +2016,7 @@ namespace Microsoft.Dafny {
       //   $IsGoodHeap($Heap) && this != null && formals-have-the-expected-types &&
       //   Pre($Heap,formals)
       //
-      // NewCondition is added if the function bears a {:older} attribute.
+      // OlderCondition is added if the function bears a {:older} attribute.
       //
       // Note, an antecedent $Heap[this,alloc] is intentionally left out:  including it would only weaken
       // the axiom.  Moreover, leaving it out does not introduce any soundness problem, because the Dafny
