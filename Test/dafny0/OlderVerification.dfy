@@ -184,3 +184,53 @@ module Reachable4 {
     case Extend(prefix, n, extra) => n in S && sink in n.children && ReachableViaEnsures(source, prefix, n, S)
   }
 }
+
+// ----------------------------------
+
+module Comprehension {
+  // These tests are mentioned in the documentation for the :older attribute. For a version of
+  // this program with the :older attribute, see RestrictedBoundedPools.dfy.
+
+  class C { }
+  datatype List<T> = Nil | Cons(T, List<T>)
+
+  predicate {:older xs} ElementsContainedIn<X>(xs: List<X>, S: set<X>) {
+    match xs
+    case Nil => true
+    case Cons(x, tail) => x in S && ElementsContainedIn(tail, S)
+  }
+
+  function Collection<X>(S: set<X>): iset<List<X>> {
+    iset xs: List<X> | ElementsContainedIn(xs, S)
+  }
+}
+
+// ----------------------------------
+
+module AttributeDocumentationTests {
+  // These tests are mentioned in the documentation for the :older attribute.
+
+  class C { }
+  datatype List<T> = Nil | Cons(T, List<T>)
+  type Y = set<C>
+  type X = List<C>
+
+  predicate {:older x} P(x: X, y: Y) {
+    match x
+    case Nil => true
+    case Cons(head, tail) => head in y && P(tail, y)
+  }
+
+  function F(y: Y): int {
+    if forall x: X :: P(x, y) ==> G(x, y) == 3 then
+      100
+    else
+      0
+  }
+
+  function G(x: X, y: Y): int
+
+  function Collection(y: Y): iset<X> {
+    iset x: X | P(x, y)
+  }
+}

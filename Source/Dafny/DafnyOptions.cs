@@ -762,6 +762,52 @@ namespace Microsoft.Dafny {
       trait is declared are checked for termination in the usual
       manner.
 
+    {:older <list of formal parameters>}
+      This attribute can be placed on non-extreme predicates, giving
+      as arguments one or more of the predicate's formal parameters.
+      The attribute claims that the truth of the predicate implies
+      that the allocatedness of the listed parameters follows from the
+      allocatedness of the other parameters. This is easier to explain
+      in a formula. For a predicate
+
+          predicate {:older x} P(x: X, y: Y)
+
+      the :older attribute claims
+
+          forall h: Heap :: IsAlloc(y, h) && P(x, y) ==> IsAlloc(x, h)
+
+      That is, if the predicate returns true, then in any heap where
+      y is allocated, then so is x --- in short, x is ""older"" than y.
+
+      The reason for wanting to declare a predicate with :older is so
+      that the predicate can be used as a way to ensure a quantified
+      expression does not depend on the allocation state. For example,
+
+          function F(y: Y): int {
+            if forall x: X :: P(x, y) ==> G(x, y) == 3 then
+              100
+            else
+              0
+          }
+
+      Here is another example, using an iset comprehension:
+
+          function Collection(y: Y): iset<X> {
+            iset x: X | P(x, y)
+          }
+
+      Dafny does not allow a function to depend on the allocation state; that
+      is, the act of allocating more objects should not change the value
+      of a function. But if X is a type that contains conferences, then,
+      at first glance, it looks as if this function does depend on the
+      allocation state. For instance, if X is a class type, then allocating
+      more X objects gives more candidate values for the iset comprehension
+      to consider, and if those X objects satisfy the P constraint, then the
+      iset would become larger. By using the {:older x} annotation on P, it
+      becomes known that any x that satisfies P(x, y) in this comprehension
+      is older than y. Thus, the iset comprehension, in fact, does not depend
+      on the allocation state.
+
     {:warnShadowing}
       TODO
 
