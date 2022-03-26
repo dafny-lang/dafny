@@ -862,7 +862,7 @@ method M1() returns (ghost y: int)
 }
 ```
 
-## 19.11. If Statement
+## 19.11. If Statement {#sec-if-statement}
 ````grammar
 IfStmt = "if"
   ( AlternativeBlock(allowBindingGuards: true)
@@ -1188,7 +1188,7 @@ loop condition). Just as Dafny will not discover properties of a method
 on its own, it will not know that any but the most basic properties of a loop
 are preserved unless it is told via an invariant.
 
-### 19.14.2. Loop termination
+### 19.14.2. Loop termination {#sec-loop-termination}
 
 Dafny proves that code terminates, i.e. does not loop forever, by using
 `decreases` annotations. For many things, Dafny is able to guess the right

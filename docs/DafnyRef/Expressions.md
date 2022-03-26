@@ -1344,7 +1344,7 @@ selected by the ``DotSuffix`` is generic), or
   or colemma. The result is the result of calling the prefix copredicate
   or colemma.
 
-### 20.42.2. Datatype Update Suffix
+### 20.42.2. Datatype Update Suffix {#sec-datatype-update-suffix}
 
 ````grammar
 DatatypeUpdateSuffix_ =
