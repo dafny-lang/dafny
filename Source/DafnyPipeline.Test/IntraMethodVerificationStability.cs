@@ -149,7 +149,7 @@ module SomeModule {
 
     [Fact]
     public void NoUniqueLinesWhenConcatenatingUnrelatedPrograms() {
-      var options = new DafnyOptions();
+      var options = DafnyOptions.Create();
       DafnyOptions.Install(options);
 
       var regularBoogie = GetBoogie(originalProgram).ToList();
@@ -213,7 +213,7 @@ module SomeModule {
       options.ProverLogFilePath = temp1;
       using (var engine = ExecutionEngine.CreateWithoutSharedCache(options)) {
         foreach (var boogieProgram in boogiePrograms) {
-          Main.BoogieOnce(engine, "", "", boogieProgram, "programId", out _, out var outcome);
+          var (outcome, _) = await Main.BoogieOnce(Console.Out, engine, "", "", boogieProgram, "programId");
           testOutputHelper.WriteLine("outcome: " + outcome);
         }
       }
