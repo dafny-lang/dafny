@@ -2,6 +2,7 @@
 
 - fix: Miscompilation due to incorrect parenthesization in C# output for casts. (#1908)
 - fix: Populate TestResult.ResourceCount in `/verificationLogger:csv` output correctly when verification condition splitting occurs (e.g. when using `/vcsSplitOnEveryAssert`).
+- feat: The new `:older` attribute indicates that a predicate ensures the allocatedness of some of its arguments. This allows more functions to show that their quantifiers do not depend on the allocation state. See `/attrHelp` for more information.
 
 # 3.5.0
 
