@@ -1926,7 +1926,7 @@ namespace Microsoft.Dafny.Compilers {
         } else if (boundVarType.IsTraitType) {
           var trait = boundVarType.AsTraitType;
           conditions.Add(
-            $"_dafny.InstanceOfTrait({tmpVarName}.(_dafny.TraitOffspring), {TypeName_Companion(trait, wPreconditions, tok)}.TraitID_");
+            $"_dafny.InstanceOfTrait({tmpVarName}.(_dafny.TraitOffspring), {TypeName_Companion(trait, wPreconditions, tok)}.TraitID_)");
         } else {
           var typeAssertSucceeds = idGenerator.FreshId("_typeAssertSucceeds");
           wPreconditions.WriteLine(
