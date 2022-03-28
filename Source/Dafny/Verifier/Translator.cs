@@ -5092,7 +5092,7 @@ namespace Microsoft.Dafny {
       public readonly List<Bpl.Cmd> Asserts;
       public readonly bool LValueContext;
       public readonly Bpl.QKeyValue AssertKv;
-      public readonly Dictionary<string, BoundVar> SecondaryTypes = new();
+      public readonly Dictionary<string, BoundVar> VariablesWithCompilableTypeAssumptions = new();
 
       public WFOptions() {
       }
@@ -5123,7 +5123,7 @@ namespace Microsoft.Dafny {
         DoOnlyCoarseGrainedTerminationChecks = options.DoOnlyCoarseGrainedTerminationChecks;
         LValueContext = options.LValueContext;
         AssertKv = options.AssertKv;
-        SecondaryTypes = new Dictionary<string, BoundVar>(options.SecondaryTypes);
+        VariablesWithCompilableTypeAssumptions = new Dictionary<string, BoundVar>(options.VariablesWithCompilableTypeAssumptions);
       }
 
       /// <summary>
@@ -5139,7 +5139,7 @@ namespace Microsoft.Dafny {
         Asserts = options.Asserts;
         LValueContext = lValueContext;
         AssertKv = options.AssertKv;
-        SecondaryTypes = new Dictionary<string, BoundVar>(options.SecondaryTypes);
+        VariablesWithCompilableTypeAssumptions = new Dictionary<string, BoundVar>(options.VariablesWithCompilableTypeAssumptions);
       }
 
       public Action<IToken, Bpl.Expr, string, Bpl.QKeyValue> AssertSink(Translator tran, BoogieStmtListBuilder builder) {
@@ -5720,16 +5720,16 @@ namespace Microsoft.Dafny {
             foreach (var ss in TrSplitExpr(precond, etran, true, out splitHappened)) {
               if (ss.IsChecked) {
                 var tok = new NestedToken(expr.tok, ss.E.tok);
-                if (options.SecondaryTypes.Any() && errorMessage == null) {
-                  foreach (var entry in options.SecondaryTypes) {
+                if (options.VariablesWithCompilableTypeAssumptions.Any() && errorMessage == null) {
+                  foreach (var entry in options.VariablesWithCompilableTypeAssumptions) {
                     if (e.AllSubExpressions.Any(subExpression =>
                           subExpression is IdentifierExpr v &&
                           v.Var.CompileName == entry.Key
                         )) {
                       errorMessage = $"possible violation of function precondition." +
-                                     $" Careful: variable {entry.Value.DisplayName} has type {entry.Value.Type}" +
-                                     $" and not {entry.Value.SecondaryType} because the range is compiled" +
-                                     $" and " + entry.Value.SecondaryType + " cannot be tested at run-time";
+                                     $" Careful: variable {entry.Value.DisplayName} has type {entry.Value.CompilableType}" +
+                                     $" and not {entry.Value.OriginalType} because the range is compiled" +
+                                     $" and {entry.Value.OriginalType} cannot be tested at run-time";
                       break;
                     }
                   }
@@ -6065,9 +6065,9 @@ namespace Microsoft.Dafny {
               if (e.RangeIfGhost != null) { // Compiled context
                 // We are in a compiled context, we might want to warn the user that variables in a compiled range have a type computable from the collection type.
                 foreach (var variable in e.BoundVars) {
-                  if (variable.HasSecondaryType() && !variable.SecondaryType.Equals(variable.Type, true)) {
+                  if (variable.CompilableTypeAssumptionIsNotTrivial()) {
                     if (substMap.TryGetValue(variable, out var interpolatedVariable) && interpolatedVariable is IdentifierExpr identifierExpr) {
-                      rangeOptions.SecondaryTypes.Add(identifierExpr.Var.CompileName, variable);
+                      rangeOptions.VariablesWithCompilableTypeAssumptions.Add(identifierExpr.Var.CompileName, variable);
                     }
                   }
                 }
@@ -6080,12 +6080,12 @@ namespace Microsoft.Dafny {
             }
 
             foreach (var boundVar in e.AllBoundVars) {
-              if (boundVar.HasSecondaryType() && !boundVar.SecondaryType.IsRuntimeTestable()) {
+              if (boundVar.NeedsToVerifyOriginalTypeInference()) {
                 // It has a term. We need to verify the term's type.
                 BplIfIf(e.tok, true, guard ?? new Bpl.LiteralExpr(boundVar.tok, true), nextBuilder,
                   b => {
                     var idExpressionToTest = new IdentifierExpr(boundVar.tok, boundVar);
-                    var tokReporting = boundVar.SecondaryType.NormalizeExpandKeepConstraints() is UserDefinedType
+                    var tokReporting = boundVar.OriginalType.NormalizeExpandKeepConstraints() is UserDefinedType
                     {
                       AsSubsetType: SubsetTypeDecl
                       {
@@ -6096,10 +6096,10 @@ namespace Microsoft.Dafny {
                       ? new NestedToken(e.tok, constraintLocation, constraintReason)
                       : e.tok;
                     // Assume at least the collection bound
-                    b.Add(TrAssumeCmd(e.tok, CheckGhostType(idExpressionToTest, boundVar.Type)));
-                    b.Add(Assert(tokReporting, CheckGhostType(idExpressionToTest, boundVar.SecondaryType),
+                    b.Add(TrAssumeCmd(e.tok, CheckGhostType(idExpressionToTest, boundVar.CompilableType)));
+                    b.Add(Assert(tokReporting, CheckGhostType(idExpressionToTest, boundVar.OriginalType),
                       $"Could not prove that the bound variable '{boundVar.DisplayName}' satisfies " +
-                      $"the (non runtime testable) type {boundVar.SecondaryType} after the range, where it's assumed to be of type {boundVar.Type} based on inferred bounds." +
+                      $"the (non runtime testable) type {boundVar.OriginalType} after the range, where it's assumed to be of type {boundVar.CompilableType} based on inferred bounds." +
                       (e.Range != null
                         ? ""
                         : $" Consider expliciting the range of the {e.WhatKind}, i.e. {e.Keyword} {boundVar.DisplayName} | RANGE :: TERM instead of {e.Keyword} {boundVar.DisplayName} :: RANGE_AND_TERM.")));

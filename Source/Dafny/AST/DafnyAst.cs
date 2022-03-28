@@ -1065,7 +1065,7 @@ namespace Microsoft.Dafny {
     }
 
     // Returns true if it's possible to check that a value has this type at run-time.
-    public bool IsRuntimeTestable() {
+    public bool IsCompilable() {
       // It might not be possible to do so if the constraint of this type uses ghost predicates
       if (this.AsSubsetType is SubsetTypeDecl subsetTypeDecl && !subsetTypeDecl.IsConstraintCompilable) {
         return false;
@@ -1077,9 +1077,9 @@ namespace Microsoft.Dafny {
     }
 
     // Returns a parent of this type that can be tested at run time.
-    public Type GetRuntimeTestableType() {
+    public Type GetCompilableParentType() {
       if (this.AsSubsetType is SubsetTypeDecl subsetTypeDecl && !subsetTypeDecl.IsConstraintCompilable) {
-        return subsetTypeDecl.Var.Type.GetRuntimeTestableType();
+        return subsetTypeDecl.Var.Type.GetCompilableParentType();
       }
       if (this.NormalizeExpandKeepConstraints() is InferredTypeProxy) {
         // We need to create another inferred type proxy
@@ -6210,31 +6210,50 @@ namespace Microsoft.Dafny {
       Contract.Requires(type != null);
     }
 
-    // To use only in special cases where the type is not the same for the range in comprehensions
-    // Overally, the typeInRange is the type of the bound variable in the range expression.
+    public bool CurrentTypeAssumedToBeCompilable { get; set; } = false;
 
-    public void SaveTypeAsSecondaryAndSetType(Type secondaryType) {
-      Contract.Assert(secondaryType != null);
-      SecondaryType = type;
-      type = secondaryType;
-    }
-    public void SwapSecondaryType() {
-      Contract.Assert(SecondaryType != null);
-      (type, SecondaryType) = (SecondaryType, type);
+    public void AssumeCompilableType(Type secondaryType) {
+      Contract.Assert(!CurrentTypeAssumedToBeCompilable);
+      otherType = secondaryType;
+      AssumeCompilableTypeIfAny();
     }
 
-    public void AcceptSecondaryTypeIfAny() {
-      if (SecondaryType != null) {
-        type = SecondaryType;
-        SecondaryType = null;
+    public void AssumeCompilableTypeIfAny() {
+      if (!CurrentTypeAssumedToBeCompilable && otherType != null) {
+        (otherType, type) = (type, otherType);
+        CurrentTypeAssumedToBeCompilable = true;
       }
     }
 
-    public bool HasSecondaryType() {
-      return this.SecondaryType != null;
+    public void AssumeOriginalType() {
+      if (CurrentTypeAssumedToBeCompilable) {
+        Contract.Assert(otherType != null);
+        (type, otherType) = (otherType, type);
+        CurrentTypeAssumedToBeCompilable = false;
+      }
     }
 
-    public Type? SecondaryType { get; private set; } = null;
+    public void AcceptOriginalTypeAssumption() {
+      if (CurrentTypeAssumedToBeCompilable) {
+        Contract.Assert(otherType != null);
+        (type, otherType) = (otherType, null);
+        CurrentTypeAssumedToBeCompilable = false;
+      } else {
+        otherType = null;
+      }
+    }
+
+    public Type CompilableType => CurrentTypeAssumedToBeCompilable ? Type : otherType;
+    public Type OriginalType => CurrentTypeAssumedToBeCompilable ? otherType : Type;
+
+    public bool NeedsToVerifyOriginalTypeInference() {
+      return otherType != null && !OriginalType.IsCompilable();
+    }
+    public bool CompilableTypeAssumptionIsNotTrivial() {
+      return otherType != null && !otherType.Equals(Type, true);
+    }
+
+    private Type otherType = null;
   }
 
   public class ActualBinding {
@@ -11457,7 +11476,7 @@ namespace Microsoft.Dafny {
         RangeIfGhost = null;
       }
       foreach (var boundVar in BoundVars) {
-        boundVar.AcceptSecondaryTypeIfAny();
+        boundVar.AcceptOriginalTypeAssumption();
       }
     }
 

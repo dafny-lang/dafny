@@ -5029,13 +5029,12 @@ namespace Microsoft.Dafny {
         bool satisfied;
         Type tUp, uUp;
         switch (ConstraintName) {
-          case "SubtypeOfRuntimeTestable": {
+          case "SubsetTypeOfCompilable": {
               var u = Types[0].NormalizeExpandKeepConstraints();
-              // Once we know the 
               if (!CheckTypeInference_Visitor.IsDetermined(u)) {
                 return false;
               }
-              resolver.ConstrainSubtypeRelation(Types[1], u.GetRuntimeTestableType(), errorMsg, true);
+              resolver.ConstrainSubtypeRelation(Types[1], u.GetCompilableParentType(), errorMsg, true);
               convertedIntoOtherTypeConstraints = true;
               return true;
             }
@@ -11369,7 +11368,7 @@ namespace Microsoft.Dafny {
         scope.PushMarker();
         if (s.IsBindingGuard) {
           var exists = (ExistsExpr)s.Guard;
-          foreach (var v in exists.BoundVars) {
+          foreach (var v in exists!.BoundVars) {
             ScopePushAndReport(scope, v, "bound-variable");
           }
         }
@@ -15245,7 +15244,7 @@ namespace Microsoft.Dafny {
           e.RangeIfGhost = cloner.CloneExpr(e.Range);
         }
         scope.PushMarker();
-        ScopePushBoundVarsAssumingNonGhost(e, opts, option, typeQuantifier);
+        ScopePushBoundVarsAssumingCompilable(e, opts, option, typeQuantifier);
         if (e.Range != null) {
           ResolveExpression(e.Range, opts);
           Contract.Assert(e.Range.Type != null);  // follows from postcondition of ResolveExpression
@@ -15272,9 +15271,7 @@ namespace Microsoft.Dafny {
         scope.PopMarker();
         // Discard old type inteference if this type cannot be tested at run-time.
         foreach (BoundVar v in e.BoundVars) {
-          if (v.HasSecondaryType()) {
-            v.SwapSecondaryType(); // Reinstate the runtime testable type since verification uses bounded variable
-          }
+          v.AssumeCompilableTypeIfAny(); // Reinstate the runtime testable type since verification uses bounded variable
         }
 
         allTypeParameters.PopMarker();
@@ -15288,8 +15285,8 @@ namespace Microsoft.Dafny {
         if (!e.Finite) {
           opts = opts.WithSpecification();
         }
-        //For the range, we need to assume that the bound vars have a run-time testable type.
-        ScopePushBoundVarsAssumingNonGhost(e, opts);
+        //For the range, we need to assume that the bound vars have a compilable type.
+        ScopePushBoundVarsAssumingCompilable(e, opts);
         ResolveExpression(e.Range, opts);
         Contract.Assert(e.Range.Type != null);  // follows from postcondition of ResolveExpression
         ConstrainTypeExprBool(e.Range, "range of set comprehension must be of type bool (instead got {0})");
@@ -15308,9 +15305,7 @@ namespace Microsoft.Dafny {
         scope.PopMarker();
         // Discard old type inteference if this type cannot be tested at run-time.
         foreach (BoundVar v in e.BoundVars) {
-          if (v.HasSecondaryType()) {
-            v.SwapSecondaryType(); // Reinstate the runtime testable type since verification uses bounded variable
-          }
+          v.AssumeCompilableTypeIfAny(); // Reinstate the runtime testable type since verification uses bounded variable
         }
 
         expr.Type = new SetType(e.Finite, e.Term.Type);
@@ -15324,7 +15319,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(e.BoundVars.Count == 1 || (1 < e.BoundVars.Count && e.TermLeft != null));
         var cloner = new Cloner();
         e.RangeIfGhost = cloner.CloneExpr(e.Range);
-        ScopePushBoundVarsAssumingNonGhost(e, opts);
+        ScopePushBoundVarsAssumingCompilable(e, opts);
         ResolveExpression(e.Range, opts);
         Contract.Assert(e.Range.Type != null);  // follows from postcondition of ResolveExpression
         ConstrainTypeExprBool(e.Range, "range of map comprehension must be of type bool (instead got {0})");
@@ -15348,9 +15343,7 @@ namespace Microsoft.Dafny {
         scope.PopMarker();
         // Discard old type inteference if this type cannot be tested at run-time.
         foreach (BoundVar v in e.BoundVars) {
-          if (v.HasSecondaryType()) {
-            v.SwapSecondaryType(); // Reinstate the runtime testable type since verification uses bounded variable
-          }
+          v.AssumeCompilableTypeIfAny(); // Reinstate the runtime testable type since verification uses bounded variable
         }
 
         expr.Type = new MapType(e.Finite, e.TermLeft != null ? e.TermLeft.Type : e.BoundVars[0].Type, e.Term.Type);
@@ -15437,9 +15430,10 @@ namespace Microsoft.Dafny {
     private void ScopePushBoundVarsWithoutAssumptions(IBoundVarsBearingExpression e) {
       // For the term only, we can assume the inferred type which has to be proved later
       foreach (BoundVar v in e.AllBoundVars) {
-        if (v.HasSecondaryType()) {
-          v.SwapSecondaryType(); // Reinstate the original type set by the user
-        }
+        // Previously, the type has to be runtime-testable for the range at least.
+        // Now the verifier will guarantee that the type satisfies all the subset type constraints, if any.
+        // Reinstate the original type set by the user, if any
+        v.AssumeOriginalType();
 
         ScopePushAndReport(scope, v, "bound-variable");
         if (v.Type is InferredTypeProxy inferredProxy) {
@@ -15449,8 +15443,8 @@ namespace Microsoft.Dafny {
     }
 
     /// Returns the first non-runtime testable type of the comprehension if it exists
-    /// Ensures ret != null ==> !ret.IsRuntimeTestable() && ret is one of the type of e.AllBoundVars[i]
-    private void ScopePushBoundVarsAssumingNonGhost(IBoundVarBearingExpressionWithToken e, ResolveOpts opts, [CanBeNull] ResolveTypeOption resolveTypeOption = null, bool typeQuantifier = false) {
+    /// Ensures ret != null ==> !ret.IsCompilable() && ret is one of the type of e.AllBoundVars[i]
+    private void ScopePushBoundVarsAssumingCompilable(IBoundVarBearingExpressionWithToken e, ResolveOpts opts, [CanBeNull] ResolveTypeOption resolveTypeOption = null, bool typeQuantifier = false) {
       if (resolveTypeOption == null) {
         resolveTypeOption = new ResolveTypeOption(ResolveTypeOptionEnum.InferTypeProxies);
       }
@@ -15459,15 +15453,15 @@ namespace Microsoft.Dafny {
         ResolveType(v.tok, v.Type, opts.codeContext, resolveTypeOption, typeArgs);
         // If the type can be tested at run time, we keep the same scope
         // Else, the the scoped type is the upper type that can be tested.
-        if (!v.Type.IsRuntimeTestable() && !opts.isSpecification && !opts.codeContext.IsGhost) {
-          var collectionVarType = v.Type is InferredTypeProxy ? new InferredTypeProxy() : v.Type.GetRuntimeTestableType(); ;
+        if (!v.Type.IsCompilable() && !opts.isSpecification && !opts.codeContext.IsGhost) {
+          var collectionVarType = v.Type is InferredTypeProxy ? new InferredTypeProxy() : v.Type.GetCompilableParentType(); ;
           if (v.Type is InferredTypeProxy) {
-            AddXConstraint(e.Token, "SubtypeOfRuntimeTestable", v.Type, collectionVarType,
+            AddXConstraint(e.Token, "SubsetTypeOfCompilable", v.Type, collectionVarType,
               "Collection type '{1}' should be a run-time testable parent of its final element, but got '{0}'"
             );
           }
 
-          v.SaveTypeAsSecondaryAndSetType(collectionVarType);
+          v.AssumeCompilableType(collectionVarType);
           ResolveType(v.tok, collectionVarType, opts.codeContext, resolveTypeOption, typeArgs);
         }
 
@@ -17029,7 +17023,7 @@ namespace Microsoft.Dafny {
             bindings.ArgumentBindings.Count(), bindings.ArgumentBindings.IndexOf(b),
             whatKind + (context is Method ? " in-parameter" : " parameter"));
 
-          Type formalType = formal.Type.IsRuntimeTestable() ? formal.Type : formal.Type.NormalizeExpand();
+          Type formalType = formal.Type.IsCompilable() ? formal.Type : formal.Type.NormalizeExpand();
           AddAssignableConstraint(
             callTok, SubstType(formalType, typeMap), b.Actual.Type,
             $"incorrect argument type {what} (expected {{0}}, found {{1}})");
