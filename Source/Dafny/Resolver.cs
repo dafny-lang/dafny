@@ -17736,6 +17736,26 @@ namespace Microsoft.Dafny {
             newROp = polarity ? BinaryExpr.ResolvedOpcode.NeqCommon : BinaryExpr.ResolvedOpcode.EqCommon;
             swapOperands = false;
             break;
+          case BinaryExpr.ResolvedOpcode.NotInSet:  // A !in B         yield polarity ? (A !in B) : (A in B);
+            newOp = polarity ? BinaryExpr.Opcode.NotIn : BinaryExpr.Opcode.In;
+            newROp = polarity ? BinaryExpr.ResolvedOpcode.NotInSet : BinaryExpr.ResolvedOpcode.InSet;
+            swapOperands = false;
+            break;
+          case BinaryExpr.ResolvedOpcode.NotInSeq:  // A !in B         yield polarity ? (A !in B) : (A in B);
+            newOp = polarity ? BinaryExpr.Opcode.NotIn : BinaryExpr.Opcode.In;
+            newROp = polarity ? BinaryExpr.ResolvedOpcode.NotInSeq : BinaryExpr.ResolvedOpcode.InSeq;
+            swapOperands = false;
+            break;
+          case BinaryExpr.ResolvedOpcode.NotInMultiSet:  // A !in B         yield polarity ? (A !in B) : (A in B);
+            newOp = polarity ? BinaryExpr.Opcode.NotIn : BinaryExpr.Opcode.In;
+            newROp = polarity ? BinaryExpr.ResolvedOpcode.NotInMultiSet : BinaryExpr.ResolvedOpcode.InMultiSet;
+            swapOperands = false;
+            break;
+          case BinaryExpr.ResolvedOpcode.NotInMap:  // A !in B         yield polarity ? (A !in B) : (A in B);
+            newOp = polarity ? BinaryExpr.Opcode.NotIn : BinaryExpr.Opcode.In;
+            newROp = polarity ? BinaryExpr.ResolvedOpcode.NotInMap : BinaryExpr.ResolvedOpcode.InMap;
+            swapOperands = false;
+            break;
           default:
             goto JUST_RETURN_IT;
         }
