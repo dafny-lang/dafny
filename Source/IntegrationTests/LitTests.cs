@@ -26,6 +26,8 @@ namespace IntegrationTests {
     private static readonly string[] DefaultDafnyArguments = new[] {
       "/countVerificationErrors:0",
 
+      "/vcsCores:2",
+
       // We do not want absolute or relative paths in error messages, just the basename of the file
       "/useBaseNameForFileName",
 

@@ -301,7 +301,7 @@ This list is not exhaustive but can definitely be useful to provide the next ste
  <br><br><br><br><br>`assert forall x :: P(x) ==> Q(x);` | [`forall x | P(x)`](#sec-forall-statement)<br>&nbsp;&nbsp;`  ensures Q(x)`<br>`{`<br>&nbsp;&nbsp;`  assert Q(x);`<br>`};`<br>` assert forall x :: P(x) ==> Q(x);`
  <br>`assert exists x :: P(x);`<br> | `assert P(x0);`<br>`assert exists x :: P(x);`<br>for a given expression `x0`.
  <br>`ensures exists i :: P(i);`<br> | `returns (j: int)`<br>`ensures P(j) ensures exists i :: P(i)`<br>in a lemma, so that the `j` can be computed explicitly.
- <br><br>`assert A == B;`<br>`callLemma(x);`<br>`assert B == C;`<br> | [`calc == {`](#sec-calc-statement)<br>&nbsp;&nbsp;`  A;`<br>&nbsp;&nbsp;`  B;`<br>&nbsp;&nbsp;`  { callLemma(x); }`<br>&nbsp;&nbsp;`  C;`<br>`};`<br>`assert A == B;`<br>where the [calc statement](#sec-calc-statement) can be used to make intermediate computation steps explicit. Works with `<`, `>`, `<=`, `>=`, `==>`, `<==` and `<==>` for example.
+ <br><br>`assert A == B;`<br>`callLemma(x);`<br>`assert B == C;`<br> | [`calc == {`](#sec-calc-statement)<br>&nbsp;&nbsp;`  A;`<br>&nbsp;&nbsp;`  B;`<br>&nbsp;&nbsp;`  { callLemma(x); }`<br>&nbsp;&nbsp;`  C;`<br>`};`<br>`assert A == B;`<br>where the [`calc`](#sec-calc-statement) statement can be used to make intermediate computation steps explicit. Works with `<`, `>`, `<=`, `>=`, `==>`, `<==` and `<==>` for example.
  <br><br><br>`assert A ==> B;` | `if A {`<br>&nbsp;&nbsp;`  assert B;`<br>`};`<br>`assert A ==> B;`
  <br><br>`assert A && B;` | `assert A;`<br>`assert B;`<br>`assert A && B;`
  <br>`assert P(x);`<br>where `P` is an [`{:opaque}`](#sec-opaque) predicate | [`reveal P();`](#sec-reveal-statement)<br>`assert P(x);`<br><br>
@@ -319,17 +319,45 @@ This list is not exhaustive but can definitely be useful to provide the next ste
 To understand how to control verification,
 it is first useful to understand how Dafny verifies functions and methods.
 
-For every method (or function, constructor, etc.), Dafny extracts _assertions_, for example:
+For every method (or function, constructor, etc.), Dafny extracts _assertions_. Here is a non-exhaustive list of such extracted assertions:
 
-* any explicit [`assert` statement](#sec-assert-statement) is _an assertion_[^precision-requires-clause].
-* A consecutive pair of lines in a [`calc` statement](#sec-calc-statement) forms _an assertion_ that the expressions are related according to the common operator.
-* Every call to a function or method with a [`requires` clause](#sec-requires-clause) yields _one assertion per requires clause_[^precision-requires-clause]
-  (special cases such as sequence indexing come with a special require clause that the index is within bounds).
-* Assignments `o.f := E;` yield an _assertion_ that `o.f` is allowed by the enclosing [`modifies` clause](#sec-loop-framing).
-* [Assign-such-that operators](#sec-update-and-call-statement) `x :| P(x)` yield an _assertion_ that `exists x :: P(x)`.
-* Every [`ensures` clause](#sec-ensures-clause) yields an _assertion_ at the end of the method and on every return.
-* Every [`decreases` clause](#sec-decreases-clause) yields an _assertion_ at either a call site or at the end of a while loop.
+**Integer assertions:**
+
+* Every [division](#sec-numeric-types) yields an _assertion_ that the divisor is never zero.
+* Every [bounded number operation](#sec-numeric-types) yields an _assertion_ that the result will be within the same bounds (no overflow, no underflows).
+* Every [conversion](#sec-as-expression) yields an _assertion_ that conversion is compatible.
+* Every [bitvector shift](#sec-bit-vector-types) yields an _assertion_ that the shift amount is never negative, and that the shift amount is within the width of the value.
+
+**Object assertions:**
+
+* Every [object property access](#sec-class-types) yields an _assertion_ that the object is not null.
+* Every assignment `o.f := E;` yield an _assertion_ that `o` is among the set of objects of the `modifies` clause of the enclosing [loop](#sec-loop-framing) or [method](#sec-modifies-clause).
+* Every read `o.f` yield an _assertion_ that `o` is among the set of objects of the [`reads`](#sec-reads-clause) clause of the enclosing function or predicate; or the [`modifies`](#sec-modifies-clause) clause of the enclosing method.
+* Every [array access](#sec-array-types) `a[x]` yield the assertion that `0 <= x < a.Length`.
+* Every [sequence access](#sec-sequences) `a[x]` yield an _assertion_, that `0 <= x < |a|`, because sequences are never null.
+* Every [datatype update expression](#sec-datatype-update-suffix) and [datatype destruction](#sec-algebraic-datatype) yields an _assertion_ that the object has the given property.
+* Every method overriding a [`trait`](#sec-trait-types) yield an _assertion_ that any postcondition it provides is equal to or more detailed than in its parent trait, and an _assertion_ that any precondition it provides is equal to or more permissive than in its parent trait.
+
+**Other implicit assertions:**
+
+* Every value whose type is assigned to a [subset type](#sec-subset-types) yields an _assertion_ that it satisfies the subset type constraint.
 * Every non-empty [subset type](#sec-subset-types) yields an _assertion_ that its witness satisfies the constraint.
+* [Assign-such-that operators](#sec-update-and-call-statement) `x :| P(x)` yield an _assertion_ that `exists x :: P(x)`.
+* Every recursive function yield an _assertion_ that [it terminates](#sec-loop-termination).
+* Every [match expression](#sec-match-expression) or [alternative if statement](#sec-if-statement) yield an _assertion_ that all cases are covered.
+
+**Explicit assertions:**
+
+* Any explicit [`assert`](#sec-assert-statement) statement is _an assertion_[^precision-requires-clause].
+* A consecutive pair of lines in a [`calc`](#sec-calc-statement) statement forms _an assertion_ that the expressions are related according to the common operator.
+* Every call to a function or method with a [`requires`](#sec-requires-clause) clause yields _one assertion per requires clause_[^precision-requires-clause]
+  (special cases such as sequence indexing come with a special require clause that the index is within bounds).
+* Every [`ensures`](#sec-ensures-clause) clause yields an _assertion_ at the end of the method and on every return, and on [`forall`](#sec-forall-statement) statements.
+* Every [`invariant`](#sec-invariant-clause) clause yields an _assertion_ that it holds before the loop and an _assertion_ that it holds at the end of the loop.
+* Every [`decreases`](#sec-decreases-clause) clause yields an _assertion_ at either a call site or at the end of a while loop.
+* Every [`yield ensures`](#sec-iterator-specification) clause on [iterator](#sec-iterator-types) yield _assertions_ that the clause hold at every yielding point.
+* Every [`yield requires`](#sec-iterator-specification) clause on [iterator](#sec-iterator-types) yield _assertions_ that the clause hold at every point when the iterator is called.
+
 
 [^precision-requires-clause]: Dafny actually breaks things down further. For example, a precondition `requires A && B` or an assert statement `assert A && B;` turns into two assertions, more or less like `requires A requires B` and `assert A; assert B;`.
 
@@ -541,7 +569,38 @@ Running Dafny with `/verifyAllModules` on the file containing your main result i
 
 ### 24.10.6. Controlling boogie
 
-TO BE WRITTEN
+* `-print:<file>` - print the translation of the Dafny file to a Boogie file.
+
+If you have Boogie installed locally, you can run the printed Boogie file with the following script:
+
+```
+DOTNET=$(which dotnet)
+
+BOOGIE_ROOT="path/to/boogie/Source"
+BOOGIE="$BOOGIE_ROOT/BoogieDriver/bin/Debug/netcoreapp3.1/BoogieDriver.dll"
+
+if [[ ! -x "$DOTNET" ]]; then
+    echo "Error: Dafny requires .NET Core to run on non-Windows systems."
+    exit 1
+fi
+
+#Uncomment if you prefer to use the executable instead of the DLL
+#BOOGIE=$(which boogie)
+
+BOOGIE_OPTIONS="/infer:j"
+PROVER_OPTIONS="\
+  /proverOpt:O:auto_config=false \
+  /proverOpt:O:type_check=true \
+  /proverOpt:O:smt.case_split=3 \
+  /proverOpt:O:smt.qi.eager_threshold=100 \
+  /proverOpt:O:smt.delay_units=true \
+  /proverOpt:O:smt.arith.solver=2 \
+  "
+
+"$DOTNET" "$BOOGIE" $BOOGIE_OPTIONS $PROVER_OPTIONS "$@"
+# Uncomment if you want to use the executable instead of the DLL
+# "$BOOGIE" $BOOGIE_OPTIONS $PROVER_OPTIONS "$@"
+```
 
 ### 24.10.7. Controlling the prover
 
