@@ -13,6 +13,7 @@ using System.IO;
 using System.Diagnostics.Contracts;
 using Bpl = Microsoft.Boogie;
 using System.Collections.ObjectModel;
+using JetBrains.Annotations;
 using Microsoft.BaseTypes;
 
 
@@ -566,11 +567,13 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     /// <summary>
-    /// Emit a subtype condition like:
+    /// Returns a subtype condition like:
     ///     tmpVarName is member of type boundVarType
+    /// Returns null if no condition is necessary
     /// </summary>
-    protected abstract void EmitSubtypeCondition(
-      string tmpVarName, Type boundVarType, Bpl.IToken tok, ConcreteSyntaxTree wwr, ConcreteSyntaxTree wPreconditions);
+    [CanBeNull]
+    protected abstract string GetSubtypeCondition(
+      string tmpVarName, Type boundVarType, Bpl.IToken tok, ConcreteSyntaxTree wPreconditions);
 
     /// <summary>
     /// Emit an (already verified) downcast assignment like:
@@ -4815,16 +4818,21 @@ namespace Microsoft.Dafny.Compilers {
       if (IsTargetSupertype(collectionElementType, boundVarType)) {
         // That's an issue. We are iterating values that need to be checked.
         var preconditions = wr.Fork();
-        var thenWriter = EmitIf(out var guardWriter, isReturning, wr);
-        EmitSubtypeCondition(tmpVarName, boundVarType, tok, guardWriter, preconditions);
-        if (isReturning) {
-          // What do we put in the else branch
-          wr = wr.NewBlock("", null, BlockStyle.Brace);
-          wr = EmitReturnExpr(wr);
-          TrExpr(new LiteralExpr(tok, elseReturnValue), wr, inLetExprBody);
-        }
+        var conditions = GetSubtypeCondition(tmpVarName, boundVarType, tok, preconditions);
+        if (conditions == null) {
+          preconditions.Empty();
+        } else {
+          var thenWriter = EmitIf(out var guardWriter, isReturning, wr);
+          guardWriter.Write(conditions);
+          if (isReturning) {
+            // What do we put in the else branch
+            wr = wr.NewBlock("", null, BlockStyle.Brace);
+            wr = EmitReturnExpr(wr);
+            TrExpr(new LiteralExpr(tok, elseReturnValue), wr, inLetExprBody);
+          }
 
-        wr = thenWriter;
+          wr = thenWriter;
+        }
       }
       return wr;
     }

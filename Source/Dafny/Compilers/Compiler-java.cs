@@ -3309,15 +3309,14 @@ namespace Microsoft.Dafny.Compilers {
       return wwr;
     }
 
-    protected override void EmitSubtypeCondition(string tmpVarName, Type boundVarType, Bpl.IToken tok, ConcreteSyntaxTree wwr,
-      ConcreteSyntaxTree wPreconditions) {
+    protected override string GetSubtypeCondition(string tmpVarName, Type boundVarType, Bpl.IToken tok, ConcreteSyntaxTree wPreconditions) {
       string typeTest;
 
       if (boundVarType.IsRefType) {
         if (boundVarType.IsObject || boundVarType.IsObjectQ) {
           typeTest = "true";
         } else {
-          typeTest = $"{tmpVarName} instanceof {TypeName(boundVarType, wwr, tok)}";
+          typeTest = $"{tmpVarName} instanceof {TypeName(boundVarType, wPreconditions, tok)}";
         }
         if (boundVarType.IsNonNullRefType) {
           typeTest = $"{tmpVarName} != null && {typeTest}";
@@ -3327,7 +3326,7 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         typeTest = "true";
       }
-      wwr.Write(typeTest);
+      return typeTest;
     }
 
     protected override ConcreteSyntaxTree EmitDowncastVariableAssignment(string boundVarName, Type boundVarType, string tmpVarName,

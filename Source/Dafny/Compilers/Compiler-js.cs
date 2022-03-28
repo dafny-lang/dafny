@@ -15,6 +15,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
+using JetBrains.Annotations;
 using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny.Compilers {
@@ -1224,8 +1225,8 @@ namespace Microsoft.Dafny.Compilers {
       return wr;
     }
 
-    protected override void EmitSubtypeCondition(string tmpVarName, Type boundVarType, Bpl.IToken tok,
-      ConcreteSyntaxTree guardWriter, ConcreteSyntaxTree preconditions) {
+    [CanBeNull]
+    protected override string GetSubtypeCondition(string tmpVarName, Type boundVarType, Bpl.IToken tok, ConcreteSyntaxTree preconditions) {
       string typeTest;
       if (boundVarType.IsRefType) {
         if (boundVarType.IsObject || boundVarType.IsObjectQ) {
@@ -1244,7 +1245,7 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         typeTest = "true";
       }
-      guardWriter.Write(typeTest);
+      return typeTest == "true" ? null : typeTest;
     }
 
     protected override ConcreteSyntaxTree CreateForeachIngredientLoop(string boundVarName, int L, string tupleTypeArgs, out ConcreteSyntaxTree collectionWriter, ConcreteSyntaxTree wr) {

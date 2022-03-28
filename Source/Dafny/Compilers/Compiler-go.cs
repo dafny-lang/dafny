@@ -14,6 +14,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
+using JetBrains.Annotations;
 using Bpl = Microsoft.Boogie;
 using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 
@@ -1913,8 +1914,8 @@ namespace Microsoft.Dafny.Compilers {
       return wBody;
     }
 
-    protected override void EmitSubtypeCondition(string tmpVarName, Type boundVarType, Bpl.IToken tok, ConcreteSyntaxTree wwr,
-      ConcreteSyntaxTree wPreconditions) {
+    [CanBeNull]
+    protected override string GetSubtypeCondition(string tmpVarName, Type boundVarType, Bpl.IToken tok, ConcreteSyntaxTree wPreconditions) {
       var conditions = new List<string> { };
       if (boundVarType.IsNonNullRefType) {
         conditions.Add($"!_dafny.IsDafnyNull({tmpVarName})");
@@ -1926,7 +1927,7 @@ namespace Microsoft.Dafny.Compilers {
         } else if (boundVarType.IsTraitType) {
           var trait = boundVarType.AsTraitType;
           conditions.Add(
-            $"_dafny.InstanceOfTrait({tmpVarName}.(_dafny.TraitOffspring), {TypeName_Companion(trait, wPreconditions, tok)}.TraitID_)");
+            $"_dafny.InstanceOfTrait/*1*/({tmpVarName}.(_dafny.TraitOffspring), {TypeName_Companion(trait, wPreconditions, tok)}.TraitID_)");
         } else {
           var typeAssertSucceeds = idGenerator.FreshId("_typeAssertSucceeds");
           wPreconditions.WriteLine(
@@ -1937,12 +1938,15 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
 
-      if (conditions.Count() == 0) {
+      if (!conditions.Any()) {
         conditions.Add("true");
       }
 
       var typeTest = string.Join("&&", conditions);
-      wwr.Write(typeTest);
+      if (boundVarType.IsRefType && !boundVarType.IsNonNullRefType && typeTest != "true") {
+        typeTest = $"_dafny.IsDafnyNull({tmpVarName}) || " + typeTest;
+      }
+      return typeTest == "true" ? null : typeTest;
     }
 
     protected override ConcreteSyntaxTree EmitDowncastVariableAssignment(string boundVarName, Type boundVarType, string tmpVarName,
@@ -1951,15 +1955,17 @@ namespace Microsoft.Dafny.Compilers {
       if (introduceBoundVar) {
         wr.WriteLine("var {0} {1}", boundVarName, TypeName(boundVarType, wr, tok));
       }
+
+      var wrAssign = wr;
       if (boundVarType.IsRefType && !boundVarType.IsNonNullRefType) {
         var wIf = EmitIf($"_dafny.IsDafnyNull({tmpVarName})", true, wr);
         wIf.WriteLine("{0} = ({1})(nil)", boundVarName, TypeName(boundVarType, wr, tok));
-        wr.NewBlock("", open: BlockStyle.Brace);
+        wrAssign = wr.NewBlock("", open: BlockStyle.Brace);
       }
 
-      var cast = $".({TypeName(boundVarType, wr, tok)})";
+      var cast = $".({TypeName(boundVarType, wrAssign, tok)})";
       tmpVarName = $"interface{{}}({tmpVarName})";
-      wr.WriteLine("{0} = {1}{2}", boundVarName, tmpVarName, cast);
+      wrAssign.WriteLine("{0} = {1}{2}", boundVarName, tmpVarName, cast);
       return wr;
     }
 
