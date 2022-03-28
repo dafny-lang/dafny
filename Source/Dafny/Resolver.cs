@@ -15306,7 +15306,6 @@ namespace Microsoft.Dafny {
         WithoutReporting(() => {
           ResolveExpression(e.RangeIfGhost, opts);
           Contract.Assert(e.RangeIfGhost.Type != null); // follows from postcondition of ResolveExpression
-          ConstrainTypeExprBool(e.RangeIfGhost, "range of set comprehension must be of type bool (instead got {0})");
         });
         ResolveExpression(e.Term, opts);
         ResolveAttributes(e, opts);

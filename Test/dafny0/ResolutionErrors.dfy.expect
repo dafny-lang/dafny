@@ -252,7 +252,7 @@ ResolutionErrors.dfy(1735,27): Error: the type of the bound variable 'u' could n
 ResolutionErrors.dfy(1739,40): Error: the type of the bound variable 'u' could not be determined
 ResolutionErrors.dfy(1741,38): Error: the type of the bound variable 'u' could not be determined
 ResolutionErrors.dfy(1785,19): Error: Undeclared top-level type or type parameter: realint (did you forget to qualify a name or declare a module import 'opened'?)
-ResolutionErrors.dfy(1793,44): Error: range of comprehension must be of type bool (instead got C)
+ResolutionErrors.dfy(1793,44): Error: range of set comprehension must be of type bool (instead got C)
 ResolutionErrors.dfy(1800,21): Error: Duplicate member name: P
 ResolutionErrors.dfy(1802,17): Error: Duplicate member name: L
 ResolutionErrors.dfy(1810,4): Error: second argument to && must be of type bool (instead got int)
