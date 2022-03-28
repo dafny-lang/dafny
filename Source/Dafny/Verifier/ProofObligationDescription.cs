@@ -416,17 +416,19 @@ public class Terminates : ProofObligationDescription {
 
   public override string FailureDescription =>
     (inferredDescreases
-      ? "cannot prove termination; try supplying a decreases clause"
+      ? ("cannot prove termination; try supplying a decreases clause" + (isLoop ? " for the loop" : ""))
       : "decreases clause might not decrease") +
     (hint is null ? "" : $" ({hint})");
 
   public override string ShortDescription => "termination";
 
   private readonly bool inferredDescreases;
+  private readonly bool isLoop;
   private readonly string hint;
 
-  public Terminates(bool inferredDescreases, string hint = null) {
+  public Terminates(bool inferredDescreases, bool isLoop, string hint = null) {
     this.inferredDescreases = inferredDescreases;
+    this.isLoop = isLoop;
     this.hint = hint;
   }
 }

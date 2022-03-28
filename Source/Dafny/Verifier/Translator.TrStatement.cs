@@ -1498,7 +1498,7 @@ namespace Microsoft.Dafny {
           if (includeTerminationCheck) {
             AddComment(loopBodyBuilder, s, "loop termination check");
             Bpl.Expr decrCheck = DecreasesCheck(toks, types, types, decrs, oldBfs, loopBodyBuilder, " at end of loop iteration", false, false);
-            loopBodyBuilder.Add(Assert(s.Tok, decrCheck, new PODesc.Terminates(s.InferredDecreases)));
+            loopBodyBuilder.Add(Assert(s.Tok, decrCheck, new PODesc.Terminates(s.InferredDecreases, true)));
           }
         }
       } else if (isBodyLessLoop) {

@@ -8888,7 +8888,7 @@ namespace Microsoft.Dafny {
       if (allowance != null) {
         decrExpr = Bpl.Expr.Or(allowance, decrExpr);
       }
-      builder.Add(Assert(tok, decrExpr, new PODesc.Terminates(inferredDecreases, hint)));
+      builder.Add(Assert(tok, decrExpr, new PODesc.Terminates(inferredDecreases, false, hint)));
     }
 
     /// <summary>
