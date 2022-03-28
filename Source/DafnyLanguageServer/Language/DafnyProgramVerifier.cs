@@ -149,6 +149,9 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       public void AdvisoryWriteLine(TextWriter writer, string format, params object[] args) {
       }
 
+      public void ReportEndVerifyImplementation(Implementation implementation, Boogie.VerificationResult result) {
+      }
+
       public ExecutionEngineOptions? Options { get; set; }
 
       public void ErrorWriteLine(TextWriter tw, string s) {
@@ -175,9 +178,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
 
       public void ReportStartVerifyImplementation(Implementation implementation) {
-      }
-
-      public void ReportEndVerifyImplementation(Implementation implementation, Boogie.VerificationResult result) {
       }
 
       public void WriteErrorInformation(ErrorInformation errorInfo, TextWriter tw, bool skipExecutionTrace) {
