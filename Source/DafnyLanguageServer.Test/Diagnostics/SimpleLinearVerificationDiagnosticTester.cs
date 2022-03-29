@@ -68,15 +68,17 @@ public class SimpleLinearVerificationDiagnosticTester : LinearVerificationDiagno
  .  S [S][ ]:}");
   }
 
-  [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+  [TestMethod, Timeout(MaxTestExecutionTimeMs * 10)]
   public async Task EnsureNoAssertShowsVerified() {
-    await VerifyTrace(@"
+    for (var i = 0; i < 10; i++) {
+      await VerifyTrace(@"
  .  |  |  |  I  | :predicate P(x: int)
     |  |  |  I  | :
  .  S [S][ ][I] | :method Main() {
  .  S [=][=][I] | :  ghost var x :| P(x); //Next:  ghost var x := 1;
  .  S [S][ ][I] | :}
                 | :");
+    }
   }
 
   [TestMethod, Timeout(MaxTestExecutionTimeMs)]

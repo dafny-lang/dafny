@@ -118,6 +118,9 @@ public abstract class LinearVerificationDiagnosticTester : ClientBasedLanguageSe
     for (; maximumNumberOfTraces > 0; maximumNumberOfTraces--) {
       var verificationDiagnosticReport = await VerificationDiagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
       Assert.AreEqual(documentItem.Uri, verificationDiagnosticReport.Uri);
+      if (documentItem.Version != verificationDiagnosticReport.Version) {
+        continue;
+      }
       var newPerLineDiagnostics = verificationDiagnosticReport.PerLineDiagnostic.ToList();
       if ((previousPerLineDiagnostics != null
           && previousPerLineDiagnostics.SequenceEqual(newPerLineDiagnostics)) ||
@@ -229,7 +232,9 @@ public abstract class LinearVerificationDiagnosticTester : ClientBasedLanguageSe
     }
     var traceObtained = RenderTrace(traces, code);
     var ignoreQuestionMarks = AcceptQuestionMarks(traceObtained, codeAndTrace);
-    AssertWithDiff.Equal("\n" + codeAndTrace + "\n", "\n" + ignoreQuestionMarks + "\n");
+    var expected = "\n" + codeAndTrace + "\n";
+    var actual = "\n" + ignoreQuestionMarks + "\n";
+    AssertWithDiff.Equal(expected, actual);
   }
 
   // Finds all the "?" at the beginning in expected and replace the characters at the same position in traceObtained
