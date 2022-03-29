@@ -27,6 +27,7 @@ namespace Microsoft.Dafny {
       Prune = true;
       NormalizeNames = true;
       EmitDebugInformation = false;
+      Compiler = new PlaceholderCompiler();
     }
 
     public override string VersionNumber {
@@ -582,7 +583,9 @@ namespace Microsoft.Dafny {
         XmlSink = new Bpl.XmlSink(this, BoogieXmlFilename);
       }
 
-      Compiler ??= new CsharpCompiler();
+      if (Compiler == null || Compiler is PlaceholderCompiler) {
+        Compiler = new CsharpCompiler();
+      }
 
       // expand macros in filenames, now that LogPrefix is fully determined
       ExpandFilename(DafnyPrelude, x => DafnyPrelude = x, LogPrefix, FileTimestamp);

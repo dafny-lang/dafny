@@ -140,3 +140,42 @@ public abstract class Compiler {
   public abstract bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain, string pathsFilename,
     ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter);
 }
+
+/// <summary>
+/// A placeholder class used to initialize <c>Dafny.Options.O.Compiler</c>.
+/// </summary>
+class PlaceholderCompiler : Compiler {
+  public override IReadOnlySet<string> SupportedExtensions => new HashSet<string>();
+
+  public override string TargetLanguage => "unset";
+  public override string TargetExtension => "unset";
+
+  private Exception UnimplementedExeception() {
+    return new NotImplementedException("DafnyOptions.O.Compiler unset.\n" +
+                                       "Did you forget to call `DafnyOptions.O.ApplyDefaultOptions()`?.");
+  }
+
+  public override string PublicIdProtect(string name) {
+    throw UnimplementedExeception();
+  }
+
+  public override bool TextualTargetIsExecutable => false;
+  public override bool SupportsInMemoryCompilation => false;
+  public override void Compile(Program dafnyProgram, ConcreteSyntaxTree output) {
+    throw UnimplementedExeception();
+  }
+
+  public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree callToMainTree) {
+    throw UnimplementedExeception();
+  }
+
+  public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain, string pathsFilename,
+    ReadOnlyCollection<string> otherFileNames, bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
+    throw UnimplementedExeception();
+  }
+
+  public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain, string pathsFilename,
+    ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter) {
+    throw UnimplementedExeception();
+  }
+}
