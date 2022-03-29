@@ -88,6 +88,14 @@ public class SimpleLinearVerificationDiagnosticTester : LinearVerificationDiagno
   }
 
 
+  [TestMethod/*, Timeout(MaxTestExecutionTimeMs)*/]
+  public async Task EnsuresEmptyDocumentWithParseErrorShowsError() {
+    await VerifyTrace(@"
+/!\:class A {/
+   :}
+   :");
+  }
+
 
   [TestMethod/*, Timeout(MaxTestExecutionTimeMs)*/]
   public async Task TopLevelConstantsHaveToBeVerifiedAlso() {

@@ -20,20 +20,20 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
   /// </summary>
   [Method(DafnyRequestNames.VerificationDiagnostics, Direction.ServerToClient)]
   public class VerificationDiagnosticsParams : IRequest, IRequest<Unit> {
-    public VerificationDiagnosticsParams(
-        DocumentUri uri,
-        int version,
-        NodeDiagnostic[] perNodeDiagnostic,
-        Container<Diagnostic> diagnostics,
-        int linesCount,
-        int numberOfResolutionErrors) {
+    public VerificationDiagnosticsParams(DocumentUri uri,
+      int version,
+      NodeDiagnostic[] perNodeDiagnostic,
+      Container<Diagnostic> diagnostics,
+      int linesCount,
+      bool verificationStarted,
+      int numberOfResolutionErrors) {
       Uri = uri;
       Version = version;
       PerNodeDiagnostic = perNodeDiagnostic;
       Diagnostics = diagnostics;
       if (linesCount != 0) { // Deserialization makes linesCount to be equal to zero.
         PerLineDiagnostic =
-          RenderPerLineDiagnostics(this, perNodeDiagnostic, linesCount, numberOfResolutionErrors, diagnostics);
+          RenderPerLineDiagnostics(this, perNodeDiagnostic, linesCount, numberOfResolutionErrors, verificationStarted, diagnostics);
       }
     }
 
@@ -70,11 +70,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       NodeDiagnostic[] perNodeDiagnostic,
       int numberOfLines,
       int numberOfResolutionErrors,
-      Container<Diagnostic> diagnostics
-    ) {
+      bool verificationStarted,
+      Container<Diagnostic> diagnostics) {
       var result = new LineVerificationStatus[numberOfLines];
 
-      if (perNodeDiagnostic.Length == 0) {
+      if (perNodeDiagnostic.Length == 0 && numberOfResolutionErrors == 0 && verificationStarted) {
         for (var line = 0; line < numberOfLines; line++) {
           result[line] = LineVerificationStatus.Verified;
         }

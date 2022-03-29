@@ -80,7 +80,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     private async Task<DafnyDocument> OpenAsync(TextDocumentItem textDocument, CancellationToken cancellationToken) {
       try {
-        return await documentLoader.LoadAsync(textDocument, cancellationToken);
+        var newDocument = await documentLoader.LoadAsync(textDocument, cancellationToken);
+        return WithRealtimeDiagnosticsPublished(newDocument);
       } catch (OperationCanceledException) {
         // We do not allow canceling the load of the placeholder document. Otherwise, other components
         // start to have to check for nullability in later stages such as change request processors.

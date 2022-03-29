@@ -86,12 +86,16 @@ public abstract class LinearVerificationDiagnosticTester : ClientBasedLanguageSe
   /// <returns></returns>
   public static string ExtractCode(string tracesAndCode) {
     var i = 0;
-    while (tracesAndCode[i] != ':' && tracesAndCode[i] != '\n' && tracesAndCode[i] != '/' && tracesAndCode[i] != '(') {
+    while (i < tracesAndCode.Length &&
+           tracesAndCode[i] != ':' &&
+           tracesAndCode[i] != '\n' &&
+           (tracesAndCode[i] != '/' || (i + 1 < tracesAndCode.Length && tracesAndCode[i + 1] == '!')) &&
+           tracesAndCode[i] != '(') {
       i++;
     }
 
     // For the first time without trace
-    if (tracesAndCode[i] != ':') {
+    if (i >= tracesAndCode.Length || tracesAndCode[i] != ':') {
       return tracesAndCode;
     }
     var pattern = $"(?<newline>^|\r?\n).{{{i}}}:(?<line>.*)";

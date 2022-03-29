@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.Boogie;
+using Microsoft.Dafny.LanguageServer.Language;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   public class DiagnosticPublisher : IDiagnosticPublisher {
@@ -56,6 +57,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         document.VerificationNodeDiagnostic.Children.Select(child => child.GetCopyForNotification()).ToArray(),
         errors,
         linesCount,
+        document.VerificationPass != null,
         document.ResolutionSucceeded == false ? currentDiagnostics.Count() : 0
       );
       languageServer.TextDocument.SendNotification(verificationDiagnosticsParams);
