@@ -41,5 +41,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
     /// <param name="cancellationToken">A token to stop the relocation prior completion.</param>
     /// <returns></returns>
     VerificationTree RelocateVerificationTree(VerificationTree oldVerificationTree, DidChangeTextDocumentParams documentChange, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Relocate previously recorded positions from a document to the next document.
+    /// </summary>
+    /// <param name="originalPositions">The positions to relocate</param>
+    /// <param name="documentChange">The change in the document</param>
+    /// <param name="cancellationToken">A token to stop the relocation prior completion.</param>
+    /// <returns></returns>
+    List<Position> RelocatePositions(List<Position> originalPositions, DidChangeTextDocumentParams documentChange, CancellationToken cancellationToken);
   }
 }

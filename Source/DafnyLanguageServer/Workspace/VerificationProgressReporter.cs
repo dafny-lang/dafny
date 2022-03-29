@@ -379,12 +379,46 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   }
 
   /// <summary>
-  /// Returns the verification priority for a given token.
+  /// Returns the verification priority for a given token, depending on if it's the token
+  /// of a method modified recently (last 5 edits)
   /// </summary>
   /// <param name="token">The token to consider</param>
   /// <returns>The automatically set priority for the underlying method, or 0</returns>
   private int GetVerificationPriority(IToken token) {
-    return 0;
+    var lastChange = document.LastChange;
+    if (lastChange == null) {
+      return 0;
+    }
+
+    var implPosition = token.GetLspPosition(); ;
+    // We might want to simplify this quadratic algorithm
+    var method = document.VerificationTree.Children.FirstOrDefault(node =>
+      node != null && node.Range.Contains(implPosition), null);
+    if (method != null) {
+      if (method.Range.Intersects(lastChange)) {
+        RememberLastTouchedMethod(method);
+        return 10;
+      }
+      // 0 if not found
+      var priority = 1 + document.LastTouchedVerificationTreePositions.IndexOf(method.Position);
+      return priority;
+    }
+    // Can we do the call graph?
+  }
+
+  /// <summary>
+  /// Helper to remember that a method tree was recently modified.
+  /// </summary>
+  /// <param name="method">The verification tree of the method that was recently modified</param>
+  private void RememberLastTouchedMethod(VerificationTree method) {
+    var index = document.LastTouchedVerificationTreePositions.IndexOf(method.Position);
+    if (index != -1) {
+      document.LastTouchedVerificationTreePositions.RemoveAt(index);
+    }
+    document.LastTouchedVerificationTreePositions.Add(method.Position);
+    while (document.LastTouchedVerificationTreePositions.Count() > 5) {
+      document.LastTouchedVerificationTreePositions.RemoveAt(0);
+    }
   }
 
   /// <summary>

@@ -40,6 +40,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
       };
     }
 
+    public List<Position> RelocatePositions(List<Position> originalPositions,
+      DidChangeTextDocumentParams changes, CancellationToken cancellationToken) {
+      var migratePositions = new ChangeProcessor(logger, loggerSymbolTable, changes.ContentChanges, cancellationToken)
+        .MigratePositions(originalPositions);
+      return migratePositions;
+    }
+
     private class ChangeProcessor {
       private readonly ILogger logger;
       // Invariant: Item1.Range == null <==> Item2 == null 
