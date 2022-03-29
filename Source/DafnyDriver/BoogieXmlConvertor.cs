@@ -54,6 +54,9 @@ namespace Microsoft.Dafny {
         } else if (loggerName == "csv") {
           var csvLogger = new CSVTestLogger();
           csvLogger.Initialize(events, parameters);
+        } else if (loggerName == "text") {
+          (DafnyOptions.O.Printer as DafnyConsolePrinter)?.PrintAllVerificationResults(Console.Out);
+          return;
         } else {
           throw new ArgumentException("Unsupported verification logger config: {loggerConfig}");
         }
