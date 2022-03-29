@@ -17040,7 +17040,7 @@ namespace Microsoft.Dafny {
             bindings.ArgumentBindings.Count(), bindings.ArgumentBindings.IndexOf(b),
             whatKind + (context is Method ? " in-parameter" : " parameter"));
 
-          Type formalType = formal.Type.IsCompilable() ? formal.Type : formal.Type.NormalizeExpand();
+          Type formalType = formal.Type.IsCompilable() || opts.isSpecification ? formal.Type : formal.Type.NormalizeExpand();
           AddAssignableConstraint(
             callTok, SubstType(formalType, typeMap), b.Actual.Type,
             $"incorrect argument type {what} (expected {{0}}, found {{1}})");

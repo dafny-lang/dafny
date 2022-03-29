@@ -15,7 +15,10 @@ TO BE WRITTEN
 [Subset types](#sec-subset-types) 
 Most of the time, subset types are carrying extra constraints so, unless it is trivial to infer them, only their base type is inferred, and the verifier checks the constraints.
 
-There is one case where Dafny's resolver may infer a subset type when it's non trivial: it's when their constraint can be compiled. For example:
+There are two cases where Dafny's resolver may infer a subset type when it's non trivial:
+
+- Either we are in a specification context (the code will never be executed)
+- Or the subset type constraint can be compiled. For example:
 ```dafny
 ghost const zero := 0;
 
