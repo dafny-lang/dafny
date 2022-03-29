@@ -33,6 +33,5 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
     IReadOnlyList<Diagnostic> RelocateDiagnostics(IReadOnlyList<Diagnostic> originalDiagnostics, DidChangeTextDocumentParams changes, CancellationToken cancellationToken);
 
     NodeDiagnostic RelocateNodeDiagnostic(NodeDiagnostic oldVerificationNodeDiagnostic, DidChangeTextDocumentParams documentChange, CancellationToken none);
-    List<Position> RelocatePositions(List<Position> originalPositions, DidChangeTextDocumentParams documentChange, CancellationToken none);
   }
 }

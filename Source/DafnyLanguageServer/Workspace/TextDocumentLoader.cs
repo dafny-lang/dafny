@@ -595,47 +595,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       /// <summary>
-      /// Returns the verification priority for a given token, depending on if it's the token
-      /// of a method modified recently (last 5 edits)
+      /// Returns the verification priority for a given token.
       /// </summary>
       /// <param name="token">The token to consider</param>
       /// <returns>The automatically set priority for the underlying method, or 0</returns>
       private int GetVerificationPriority(IToken token) {
-        var lastChange = document.LastChange;
-        if (lastChange == null) {
-          return 0;
-        }
-
-        var implPosition = token.GetLspPosition(); ;
-        // We might want to simplify this quadratic algorithm
-        var method = document.VerificationNodeDiagnostic.Children.FirstOrDefault(node =>
-          node != null && node.Range.Contains(implPosition), null);
-        if (method != null) {
-          if (method.Range.Intersects(lastChange)) {
-            RememberLastTouchedMethod(method);
-            return 10;
-          }
-          // 0 if not found
-          var priority = 1 + document.LastTouchedMethodPositions.IndexOf(method.Position);
-          return priority;
-        }
-        // Can we do the call graph?
         return 0;
-      }
-
-      /// <summary>
-      /// Helper to remember that a method node was recently modified.
-      /// </summary>
-      /// <param name="method">The node diagnostic of the method that was recently modified</param>
-      private void RememberLastTouchedMethod(NodeDiagnostic method) {
-        var index = document.LastTouchedMethodPositions.IndexOf(method.Position);
-        if (index != -1) {
-          document.LastTouchedMethodPositions.RemoveAt(index);
-        }
-        document.LastTouchedMethodPositions.Add(method.Position);
-        while (document.LastTouchedMethodPositions.Count() > 5) {
-          document.LastTouchedMethodPositions.RemoveAt(0);
-        }
       }
 
       /// <summary>
