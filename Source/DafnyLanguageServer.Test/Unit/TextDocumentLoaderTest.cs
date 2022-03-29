@@ -8,7 +8,6 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
   [TestClass]
@@ -21,7 +20,6 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
     private Mock<ICompilationStatusNotificationPublisher> notificationPublisher;
     private TextDocumentLoader textDocumentLoader;
     private Mock<ILoggerFactory> logger;
-    private Mock<IOptions<DafnyPluginsOptions>> dafnyPluginOptions;
     private Mock<IDiagnosticPublisher> diagnosticPublisher;
 
     [TestInitialize]
@@ -33,7 +31,6 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
       ghostStateDiagnosticCollector = new();
       notificationPublisher = new();
       logger = new Mock<ILoggerFactory>();
-      dafnyPluginOptions = new Mock<IOptions<DafnyPluginsOptions>>();
       diagnosticPublisher = new Mock<IDiagnosticPublisher>();
       textDocumentLoader = TextDocumentLoader.Create(
         parser.Object,
@@ -43,7 +40,6 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
         ghostStateDiagnosticCollector.Object,
         notificationPublisher.Object,
         logger.Object,
-        dafnyPluginOptions.Object,
         diagnosticPublisher.Object
       );
     }
@@ -58,9 +54,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
 
     [TestMethod]
     public async Task LoadReturnsCanceledTaskIfOperationIsCanceled() {
-      parser.Setup(p => p.Parse(It.IsAny<TextDocumentItem>(), It.IsAny<ErrorReporter>(), It.IsAny<CancellationToken>()))
-        .Throws<OperationCanceledException>();
-      var task = textDocumentLoader.LoadAsync(CreateTestDocument(), default);
+      var source = new CancellationTokenSource();
+      parser.Setup(p => p.Parse(It.IsAny<TextDocumentItem>(), It.IsAny<ErrorReporter>(), It.IsAny<CancellationToken>())).Callback(() => source.Cancel())
+        .Throws<TaskCanceledException>();
+      var task = textDocumentLoader.LoadAsync(CreateTestDocument(), source.Token);
       try {
         await task;
         Assert.Fail("document load was not cancelled");

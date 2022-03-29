@@ -5,6 +5,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OmniSharp.Extensions.LanguageServer.Server;
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
@@ -32,7 +34,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         .AddSingleton<IGhostStateDiagnosticCollector, GhostStateDiagnosticCollector>();
     }
 
-    private static DafnyProgramVerifier CreateVerifier(IServiceProvider serviceProvider) {
+    private static IProgramVerifier CreateVerifier(IServiceProvider serviceProvider) {
       return DafnyProgramVerifier.Create(
         serviceProvider.GetRequiredService<ILogger<DafnyProgramVerifier>>(),
         serviceProvider.GetRequiredService<IOptions<VerifierOptions>>()

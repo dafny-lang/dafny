@@ -15,6 +15,7 @@ using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
   public class DafnyOptions : Bpl.CommandLineOptions {
+
     public static DafnyOptions Create(params string[] arguments) {
       var result = new DafnyOptions();
       result.Parse(arguments);
@@ -545,8 +546,8 @@ namespace Microsoft.Dafny {
               InvalidArgumentError(name, ps);
             }
           }
-
           return true;
+
       }
 
       // Unless this is an option for test generation, defer to superclass
