@@ -72,7 +72,7 @@ public class DafnyConsolePrinter : ConsolePrinter {
       tw.WriteLine($"  Overall resource count: {result.ResourceCount}");
       foreach (var vcResult in result.VCResults) {
         tw.WriteLine("");
-        tw.WriteLine($"  Proof obligation batch {vcResult.vcNum}:");
+        tw.WriteLine($"  Assertion batch {vcResult.vcNum}:");
         tw.WriteLine($"    Outcome: {vcResult.outcome}");
         tw.WriteLine($"    Duration: {vcResult.runTime}");
         tw.WriteLine($"    Resource count: {vcResult.resourceCount}");
