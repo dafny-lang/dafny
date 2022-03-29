@@ -2,8 +2,8 @@
 
 - fix: Miscompilation due to incorrect parenthesization in C# output for casts. (#1908)
 - fix: Populate TestResult.ResourceCount in `/verificationLogger:csv` output correctly when verification condition splitting occurs (e.g. when using `/vcsSplitOnEveryAssert`).
-- fix: Fix malformed Java code generated for comprehensions that use maps
-- feat: Recognize `!in` operator when looking for compilable comprehensions
+- fix: Fix malformed Java code generated for comprehensions that use maps (https://github.com/dafny-lang/dafny/pull/1939)
+- feat: Recognize `!in` operator when looking for compilable comprehensions (https://github.com/dafny-lang/dafny/pull/1939)
 
 # 3.5.0
 
