@@ -9,6 +9,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using VC;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
@@ -148,6 +149,9 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       public void AdvisoryWriteLine(TextWriter writer, string format, params object[] args) {
       }
 
+      public void ReportEndVerifyImplementation(Implementation implementation, Boogie.VerificationResult result) {
+      }
+
       public ExecutionEngineOptions? Options { get; set; }
 
       public void ErrorWriteLine(TextWriter tw, string s) {
@@ -170,6 +174,12 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         logger.LogError(message);
       }
 
+      public void ReportImplementationsBeforeVerification(Implementation[] implementations) {
+      }
+
+      public void ReportStartVerifyImplementation(Implementation implementation) {
+      }
+
       public void WriteErrorInformation(ErrorInformation errorInfo, TextWriter tw, bool skipExecutionTrace) {
         CaptureCounterExamples(errorInfo);
         errorReporter.ReportBoogieError(errorInfo);
@@ -186,6 +196,9 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
 
       public void WriteTrailer(TextWriter writer, PipelineStatistics stats) {
+      }
+
+      public void ReportSplitResult(Split split, VCResult splitResult) {
       }
     }
   }
