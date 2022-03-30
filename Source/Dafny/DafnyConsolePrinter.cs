@@ -6,7 +6,7 @@ using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
-public class DafnyConsolePrinter : ConsolePrinter {
+class DafnyConsolePrinter : ConsolePrinter {
   private readonly Dictionary<string, List<string>> fsCache = new();
   public List<(Implementation, VerificationResult)> VerificationResults { get; } = new();
 
@@ -58,8 +58,11 @@ public class DafnyConsolePrinter : ConsolePrinter {
       ReportBplError(nt.Inner, "Related location", false, tw);
     }
   }
+<<<<<<< HEAD
 
   public override void ReportEndVerifyImplementation(Implementation implementation, Boogie.VerificationResult result) {
     VerificationResults.Add((implementation, result));
   }
+=======
+>>>>>>> po-descriptions
 }

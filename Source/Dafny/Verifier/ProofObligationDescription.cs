@@ -727,10 +727,10 @@ public class ElementInDomain : ProofObligationDescription {
 
 public class DefiniteAssignment : ProofObligationDescription {
   public override string SuccessDescription =>
-    $"{what}, which is subject to definite-assignment rules, has been defined {where}";
+    $"{what}, which is subject to definite-assignment rules, is always initialized {where}";
 
   public override string FailureDescription =>
-    $"{what}, which is subject to definite-assignment rules, might not have been defined {where}";
+    $"{what}, which is subject to definite-assignment rules, might be uninitialized {where}";
 
   public override string ShortDescription => "definite assignment";
 
