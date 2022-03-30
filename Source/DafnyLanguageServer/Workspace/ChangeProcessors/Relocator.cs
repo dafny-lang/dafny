@@ -52,29 +52,30 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
 
       private IReadOnlyList<Diagnostic> MigrateDiagnostics(IReadOnlyList<Diagnostic> originalDiagnostics, TextDocumentContentChangeEvent change) {
         if (change.Range == null) {
-          throw new System.InvalidOperationException("the range of the change must not be null");
+          return new List<Diagnostic>();
         }
 
-        return originalDiagnostics.SelectMany(diagnostic => MigrateDiagnostic(change, diagnostic)).ToList();
+        return originalDiagnostics.SelectMany(diagnostic =>
+          MigrateDiagnostic(change.Range, change.Text, diagnostic)).ToList();
       }
 
-      private IEnumerable<Diagnostic> MigrateDiagnostic(TextDocumentContentChangeEvent change, Diagnostic diagnostic) {
+      private IEnumerable<Diagnostic> MigrateDiagnostic(Range changeRange, string changeText, Diagnostic diagnostic) {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var afterChangeEndOffset = GetPositionAtEndOfAppliedChange(change.Range!, change.Text);
-        var newRange = MigrateRange(diagnostic.Range, change.Range!, afterChangeEndOffset);
+        var afterChangeEndOffset = GetPositionAtEndOfAppliedChange(changeRange, changeText);
+        var newRange = MigrateRange(diagnostic.Range, changeRange, afterChangeEndOffset);
         if (newRange == null) {
           yield break;
         }
 
         var newRelatedInformation = diagnostic.RelatedInformation?.SelectMany(related =>
-          MigrateRelatedInformation(change, related, afterChangeEndOffset)).ToList();
+          MigrateRelatedInformation(changeRange, related, afterChangeEndOffset)).ToList();
         yield return diagnostic with { Range = newRange, RelatedInformation = newRelatedInformation };
       }
 
-      private static IEnumerable<DiagnosticRelatedInformation> MigrateRelatedInformation(TextDocumentContentChangeEvent change,
+      private static IEnumerable<DiagnosticRelatedInformation> MigrateRelatedInformation(Range changeRange,
         DiagnosticRelatedInformation related, Position afterChangeEndOffset) {
-        var migratedRange = MigrateRange(related.Location.Range, change.Range!, afterChangeEndOffset);
+        var migratedRange = MigrateRange(related.Location.Range, changeRange, afterChangeEndOffset);
         if (migratedRange == null) {
           yield break;
         }
@@ -91,11 +92,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
         var migratedDeclarations = originalSymbolTable.Locations;
         foreach (var change in contentChanges) {
           cancellationToken.ThrowIfCancellationRequested();
+          Position? afterChangeEndOffset = null;
           if (change.Range == null) {
-            throw new System.InvalidOperationException("the range of the change must not be null");
+            migratedLookupTree = new IntervalTree<Position, ILocalizableSymbol>();
+          } else {
+            afterChangeEndOffset = GetPositionAtEndOfAppliedChange(change.Range, change.Text);
+            migratedLookupTree = ApplyLookupTreeChange(migratedLookupTree, change.Range, afterChangeEndOffset);
           }
-          var afterChangeEndOffset = GetPositionAtEndOfAppliedChange(change.Range, change.Text);
-          migratedLookupTree = ApplyLookupTreeChange(migratedLookupTree, change.Range, afterChangeEndOffset);
           migratedDeclarations = ApplyDeclarationsChange(originalSymbolTable, migratedDeclarations, change.Range, afterChangeEndOffset);
         }
         logger.LogTrace("migrated the lookup tree, lookup before={SymbolsBefore}, after={SymbolsAfter}",
@@ -120,8 +123,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
           cancellationToken.ThrowIfCancellationRequested();
           if (IsPositionBeforeChange(changeRange, entry.To)) {
             migratedLookupTree.Add(entry.From, entry.To, entry.Value);
-          }
-          if (IsPositionAfterChange(changeRange, entry.From)) {
+          } else if (IsPositionAfterChange(changeRange, entry.From)) {
             var beforeChangeEndOffset = changeRange.End;
             var from = GetPositionWithOffset(entry.From, beforeChangeEndOffset, afterChangeEndOffset);
             var to = GetPositionWithOffset(entry.To, beforeChangeEndOffset, afterChangeEndOffset);
@@ -182,14 +184,17 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
       private IDictionary<ISymbol, SymbolLocation> ApplyDeclarationsChange(
         SymbolTable originalSymbolTable,
         IDictionary<ISymbol, SymbolLocation> previousDeclarations,
-        Range changeRange,
-        Position afterChangeEndOffset
+        Range? changeRange,
+        Position? afterChangeEndOffset
       ) {
         var migratedDeclarations = new Dictionary<ISymbol, SymbolLocation>();
         foreach (var (symbol, location) in previousDeclarations) {
           cancellationToken.ThrowIfCancellationRequested();
           if (!originalSymbolTable.CompilationUnit.Program.IsEntryDocument(location.Uri)) {
             migratedDeclarations.Add(symbol, location);
+            continue;
+          }
+          if (changeRange == null || afterChangeEndOffset == null) {
             continue;
           }
           var newLocation = ComputeNewSymbolLocation(location, changeRange, afterChangeEndOffset);
