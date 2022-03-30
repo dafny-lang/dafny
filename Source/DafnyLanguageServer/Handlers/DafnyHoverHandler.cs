@@ -53,7 +53,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     }
 
     private string? GetDiagnosticsHover(DafnyDocument document, Position position) {
-      foreach (var node in document.VerificationNodeDiagnostic.Children.OfType<TopLevelDeclMemberNodeDiagnostic>()) {
+      foreach (var node in document.VerificationTree.Children.OfType<TopLevelDeclMemberVerificationTree>()) {
         if (node.Range.Contains(position)) {
           var assertionBatchCount = node.AssertionBatchCount;
           var assertionBatchIndex = -1;
@@ -65,7 +65,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
             }
 
             var assertionIndex = 0;
-            var assertions = assertionBatch.Children.OfType<AssertionNodeDiagnostic>().ToList();
+            var assertions = assertionBatch.Children.OfType<AssertionVerificationTree>().ToList();
             foreach (var assertionNode in assertions) {
               if (assertionNode.Range.Contains(position) ||
                   assertionNode.ImmediatelyRelatedRanges.Any(range => range.Contains(position))) {
@@ -135,7 +135,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
               node.Filename == document.Uri.GetFileSystemPath()) {
             information = "**" + node.DisplayName + "** metrics:\n\n";
             var assertionBatch = AddAssertionBatchDocumentation("assertion batch");
-            var firstAssert = node.LongestAssertionBatch?.Children[0];
+            var firstAssert = node.GetLongestAssertionBatch()?.Children[0];
             var lineFirstAssert = firstAssert == null ? "" : " at line " + (firstAssert.Position.Line + 1);
             information +=
               !node.Started ? "_Verification not started yet_"

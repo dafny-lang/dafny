@@ -423,6 +423,19 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
       AssertionBatches = result;
     }
+
+    public AssertionBatchVerificationTree? GetLongestAssertionBatch() =>
+      !AssertionBatches.Any() ? null :
+      AssertionBatches.MaxBy(assertionBatch => assertionBatch.TimeSpent);
+
+    public List<int> AssertionBatchTimes =>
+      AssertionBatches.Select(assertionBatch => assertionBatch.TimeSpent).ToList();
+
+    public int AssertionBatchCount => AssertionBatches.Count;
+
+    public int LongestAssertionBatchTime => AssertionBatches.Any() ? AssertionBatchTimes.Max() : 0;
+
+    public int LongestAssertionBatchTimeIndex => LongestAssertionBatchTime != 0 ? AssertionBatchTimes.IndexOf(LongestAssertionBatchTime) : -1;
   }
 
   // Invariant: There is at least 1 child for every assertion batch
