@@ -44,7 +44,7 @@ namespace Microsoft.Dafny {
           foreach (string s in parametersList.Split(",")) {
             var equalsIndex = s.IndexOf("=");
             parameters.Add(s[..equalsIndex], s[(equalsIndex + 1)..]);
-          };
+          }
         } else {
           loggerName = loggerConfig;
         }
@@ -59,15 +59,9 @@ namespace Microsoft.Dafny {
           // This doesn't actually use the XML converter. It instead uses a collection of VerificationResult
           // objects. Ultimately, the other loggers should be converted to use those objects, as well,
           // and then it would make sense to rename this class.
-          TextWriter writer;
-          if (parameters.TryGetValue("LogFileName", out string filename)) {
-            writer = new StreamWriter(filename);
-          } else {
-            writer = Console.Out;
-          }
-          (DafnyOptions.O.Printer as DafnyConsolePrinter)?.PrintAllVerificationResults(writer);
-          writer.Flush();
-          return;
+          var textLogger = new TextLogger();
+          textLogger.Initialize(parameters);
+          textLogger.LogResults((DafnyOptions.O.Printer as DafnyConsolePrinter).VerificationResults);
         } else {
           throw new ArgumentException("Unsupported verification logger config: {loggerConfig}");
         }
