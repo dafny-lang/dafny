@@ -17401,28 +17401,8 @@ namespace Microsoft.Dafny {
           }
           continue;
         }
-        if (conjunct is FunctionCallExpr fce) {
-          var older = GetOlderParameters(fce.Function);
-          if (older != null) {
-            bool DoesOlderApply(Expression e, string formalName) {
-              return e.Resolved is IdentifierExpr ide && ide.Var == (IVariable)bv && older.Contains(formalName);
-            }
-            var isOlderArgument = false;
-            if (!fce.Function.IsStatic && DoesOlderApply(fce.Receiver, "this")) {
-              isOlderArgument = true;
-            } else {
-              Contract.Assert(fce.Function.Formals.Count == fce.Args.Count);
-              for (var i = 0; i < fce.Function.Formals.Count; i++) {
-                if (DoesOlderApply(fce.Args[i], fce.Function.Formals[i].Name)) {
-                  isOlderArgument = true;
-                  break;
-                }
-              }
-            }
-            if (isOlderArgument) {
-              bounds.Add(new ComprehensionExpr.OlderBoundedPool());
-            }
-          }
+        if (conjunct is FunctionCallExpr functionCallExpr) {
+          DiscoverBoundsFunctionCallExpr(functionCallExpr, bv, bounds);
           continue;
         }
         var c = conjunct as BinaryExpr;
@@ -17508,6 +17488,38 @@ namespace Microsoft.Dafny {
         }
       }
       return bounds;
+    }
+
+    private static void DiscoverBoundsFunctionCallExpr<VT>(FunctionCallExpr fce, VT bv, List<ComprehensionExpr.BoundedPool> bounds) where VT : IVariable {
+      Contract.Requires(fce != null);
+      Contract.Requires(bv != null);
+      Contract.Requires(bounds != null);
+
+      var older = GetOlderParameters(fce.Function);
+      if (older == null) {
+        return;
+      }
+
+      // local worker function:
+      bool DoesOlderApply(Expression e, string formalName) {
+        return e.Resolved is IdentifierExpr ide && ide.Var == (IVariable)bv && older.Contains(formalName);
+      }
+
+      var isOlderArgument = false;
+      if (!fce.Function.IsStatic && DoesOlderApply(fce.Receiver, "this")) {
+        isOlderArgument = true;
+      } else {
+        Contract.Assert(fce.Function.Formals.Count == fce.Args.Count);
+        for (var i = 0; i < fce.Function.Formals.Count; i++) {
+          if (DoesOlderApply(fce.Args[i], fce.Function.Formals[i].Name)) {
+            isOlderArgument = true;
+            break;
+          }
+        }
+      }
+      if (isOlderArgument) {
+        bounds.Add(new ComprehensionExpr.OlderBoundedPool());
+      }
     }
 
     public static Expression GetImpliedTypeConstraint(IVariable bv, Type ty) {
