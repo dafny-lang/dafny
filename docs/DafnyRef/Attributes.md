@@ -398,6 +398,40 @@ into one assertion batch per assertion.
 This is mostly helpful for debugging which assertion is taking the most time to prove, e.g. to profile them.
 
 
+### 22.2.20. synthesize {#sec-synthesize-attr}
+
+The `{:synthesize}` attribute must be used on methods that have no body and
+return one or more fresh objects. During compilation, 
+the postconditions associated with such a
+method are translated to a series of API calls to the target languages's
+mocking framework. The object returned, therefore, behaves exactly as the
+postconditions specify. If there is a possibility that this behavior violates
+the specifications on the object's instance methods or hardcodes the values of
+its fields, the compiler will throw an error but the compilation will go
+through. Currently, this compilation pass is only supported in C# and requires
+adding the latest version of the Moq library to the .csproj file before
+generating the binary.
+
+Not all Dafny postconditions can be successfully compiled - below is the
+grammar for postconditions that are supported (`S` is the start symbol, `EXPR`
+stands for an arbitrary Dafny expression, and `ID` stands for
+variable/method/type identifiers):
+
+```
+S         = FORALL
+          | EQUALS
+          | S && S
+EQUALS    = ID.ID (ARGLIST) == EXPR // stubs a function call
+          | ID.ID           == EXPR // stubs field access
+          | EQUALS && EQUALS
+FORALL    = forall BOUNDVARS :: EXPR ==> EQUALS
+ARGLIST   = ID   // this can be one of the bound variables
+          | EXPR // this expr may not reference any of the bound variables
+          | ARGLIST, ARGLIST
+BOUNDVARS = ID : ID
+          | BOUNDVARS, BOUNDVARS
+```
+
 ## 22.3. Attributes on assertions, preconditions and postconditions {#sec-verification-attributes-on-assert-statements}
 
 
