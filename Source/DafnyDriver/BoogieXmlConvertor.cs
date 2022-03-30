@@ -55,6 +55,9 @@ namespace Microsoft.Dafny {
           var csvLogger = new CSVTestLogger();
           csvLogger.Initialize(events, parameters);
         } else if (loggerName == "text") {
+          // This doesn't actually use the XML converter. It instead uses a collection of VerificationResult
+          // objects. Ultimately, the other loggers should be converted to use those objects, as well,
+          // and then it would make sense to rename this class.
           (DafnyOptions.O.Printer as DafnyConsolePrinter)?.PrintAllVerificationResults(Console.Out);
           return;
         } else {
