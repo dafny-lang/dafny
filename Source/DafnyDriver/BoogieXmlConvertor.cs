@@ -7,6 +7,7 @@
 //-----------------------------------------------------------------------------
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Xml.Linq;
 using Microsoft.VisualStudio.TestPlatform.Extensions.TrxLogger;
@@ -58,7 +59,14 @@ namespace Microsoft.Dafny {
           // This doesn't actually use the XML converter. It instead uses a collection of VerificationResult
           // objects. Ultimately, the other loggers should be converted to use those objects, as well,
           // and then it would make sense to rename this class.
-          (DafnyOptions.O.Printer as DafnyConsolePrinter)?.PrintAllVerificationResults(Console.Out);
+          TextWriter writer;
+          if (parameters.TryGetValue("LogFileName", out string filename)) {
+            writer = new StreamWriter(filename);
+          } else {
+            writer = Console.Out;
+          }
+          (DafnyOptions.O.Printer as DafnyConsolePrinter)?.PrintAllVerificationResults(writer);
+          writer.Flush();
           return;
         } else {
           throw new ArgumentException("Unsupported verification logger config: {loggerConfig}");
