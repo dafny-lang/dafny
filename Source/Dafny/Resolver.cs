@@ -15601,16 +15601,23 @@ namespace Microsoft.Dafny {
       candidateResultCtors.Reverse();
       foreach (var crc in candidateResultCtors) {
         // Build the arguments to the datatype constructor, using the updated value in the appropriate slot
-        var ctor_args = new List<Expression>();
+        var ctorArguments = new List<Expression>();
+        var actualBindings = new List<ActualBinding>();
         foreach (var f in crc.Formals) {
-          Tuple<BoundVar/*let variable*/, IdentifierExpr/*id expr for let variable*/, Expression /*RHS in given syntax*/> info;
-          if (rhsBindings.TryGetValue(f.Name, out info)) {
-            ctor_args.Add(info.Item2 ?? info.Item3);
+          Expression ctorArg;
+          if (rhsBindings.TryGetValue(f.Name, out var info)) {
+            ctorArg = info.Item2 ?? info.Item3;
           } else {
-            ctor_args.Add(new ExprDotName(tok, d, f.Name, null));
+            ctorArg = new ExprDotName(tok, d, f.Name, null);
           }
+          ctorArguments.Add(ctorArg);
+          var bindingName = new Token(tok.line, tok.col) {
+            filename = tok.filename,
+            val = f.Name
+          };
+          actualBindings.Add(new ActualBinding(bindingName, ctorArg));
         }
-        var ctor_call = new DatatypeValue(tok, crc.EnclosingDatatype.Name, crc.Name, ctor_args.ConvertAll(e => new ActualBinding(null, e)));
+        var ctor_call = new DatatypeValue(tok, crc.EnclosingDatatype.Name, crc.Name, actualBindings);
         ResolveDatatypeValue(opts, ctor_call, dt, root.Type.NormalizeExpand());  // resolve to root.Type, so that type parameters get filled in appropriately
         if (body == null) {
           body = ctor_call;
