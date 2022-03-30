@@ -185,6 +185,31 @@ module Reachable4 {
   }
 }
 
+module Reachable5 {
+  // This module is like Reachable0, but uses two sets (S and T) instead of one (S)
+
+  class Node {
+    var children: seq<Node>
+  }
+
+  datatype Path<T> = Empty | Extend(Path, T)
+
+  predicate Reachable(source: Node, sink: Node, S: set<Node>)
+    reads S
+  {
+    exists via: Path<Node> :: ReachableVia(source, via, sink, S, S)
+  }
+
+  predicate {:older p} ReachableVia(source: Node, p: Path<Node>, sink: Node, S: set<Node>, T: set<Node>)
+    reads S, T
+    decreases p
+  {
+    match p
+    case Empty => source == sink
+    case Extend(prefix, n) => n in S && sink in n.children && ReachableVia(source, prefix, n, S, T)
+  }
+}
+
 // ----------------------------------
 
 module Comprehension {
