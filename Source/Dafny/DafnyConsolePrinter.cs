@@ -6,7 +6,7 @@ using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
-public class DafnyConsolePrinter : ConsolePrinter {
+class DafnyConsolePrinter : ConsolePrinter {
   private readonly Dictionary<string, List<string>> fsCache = new();
 
   private string GetFileLine(string filename, int lineIndex) {
