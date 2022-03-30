@@ -1429,9 +1429,7 @@ namespace Microsoft.Dafny {
     /// uses all the type parameters it declares, then this will have the same effect. During the second
     /// phase, formal type parameters (which necessarily are ones declared in datatypes) are ignored.
     /// </summary>
-    public virtual bool ComputeMayInvolveReferences(ISet<DatatypeDecl>/*?*/ visitedDatatypes) {
-      return false;
-    }
+    public abstract bool ComputeMayInvolveReferences(ISet<DatatypeDecl> /*?*/ visitedDatatypes);
 
     /// <summary>
     /// Returns true if it is known how to meaningfully compare the type's inhabitants.
@@ -2327,6 +2325,10 @@ namespace Microsoft.Dafny {
   /// these types as the type of literal 6, until a more precise (and non-artificial) type is inferred for it.
   /// </summary>
   public abstract class ArtificialType : Type {
+    public override bool ComputeMayInvolveReferences(ISet<DatatypeDecl>/*?*/ visitedDatatypes) {
+      // ArtificialType's are used only with numeric types.
+      return false;
+    }
   }
   /// <summary>
   /// The type "IntVarietiesSupertype" is used to denote a decimal-less number type, namely an int-based type
@@ -2358,6 +2360,9 @@ namespace Microsoft.Dafny {
   }
 
   public abstract class BasicType : NonProxyType {
+    public override bool ComputeMayInvolveReferences(ISet<DatatypeDecl>/*?*/ visitedDatatypes) {
+      return false;
+    }
   }
 
   public class BoolType : BasicType {
@@ -2474,6 +2479,11 @@ namespace Microsoft.Dafny {
     }
     public override bool Equals(Type that, bool keepConstraints = false) {
       return that.NormalizeExpand(keepConstraints) is SelfType;
+    }
+
+    public override bool ComputeMayInvolveReferences(ISet<DatatypeDecl>/*?*/ visitedDatatypes) {
+      // SelfType is used only with bitvector types
+      return false;
     }
   }
 
@@ -10097,6 +10107,9 @@ namespace Microsoft.Dafny {
     }
 
     public abstract class ResolverType : Type {
+      public override bool ComputeMayInvolveReferences(ISet<DatatypeDecl>/*?*/ visitedDatatypes) {
+        return false;
+      }
     }
     public class ResolverType_Module : ResolverType {
       [Pure]
