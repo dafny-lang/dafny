@@ -4095,7 +4095,6 @@ namespace Microsoft.Dafny {
     ///  
     /// EQUALS =
     ///    FUNCTION_CALL == EXPRESSION
-    ///  | FIELD_ACCESS == EXPRESSION
     /// 
     /// </summary>
     private class MockWriter {
@@ -4214,12 +4213,6 @@ namespace Microsoft.Dafny {
         if (binaryExpr.Op != BinaryExpr.Opcode.Eq) {
           return;
         }
-        // if (binaryExpr.E0 is ExprDotName exprDotName) {
-        //   var obj = ((NameSegment)(exprDotName).Lhs).Name; ;
-        //   wr.Format($"  org.mockito.Mockito.when({obj}Tmp.{exprDotName.SuffixName}).thenReturn( ");
-        //   compiler.TrExpr(binaryExpr.E1, wr, false);
-        //   wr.WriteLine(");");
-        // }
         if (binaryExpr.E0 is not ApplySuffix applySuffix) {
           return;
         }
