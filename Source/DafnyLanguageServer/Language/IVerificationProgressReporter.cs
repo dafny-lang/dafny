@@ -13,7 +13,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// <param name="message">A progress message (IDE will prepend “Verifying” header)</param>
     void ReportProgress(string message);
 
-    void RecomputeVerificationNodeDiagnostics();
+    void RecomputeVerificationTree();
     void ReportRealtimeDiagnostics(DafnyDocument document);
 
     void ReportStartVerifyImplementation(Implementation implToken);

@@ -41,7 +41,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     Task<DafnyDocument> VerifyAsync(DafnyDocument document, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Publishes the verification diagnostics (NodeDiagnostic) for the given document
+    /// Publishes the verification diagnostics (VerificationTree) for the given document
     /// </summary>
     /// <param name="document">The document to publish realtime diagnostics for.</param>
     void PublishVerificationDiagnostics(DafnyDocument document);

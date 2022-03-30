@@ -33,13 +33,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
     IReadOnlyList<Diagnostic> RelocateDiagnostics(IReadOnlyList<Diagnostic> originalDiagnostics, DidChangeTextDocumentParams changes, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Relocate node diagnostics from a document to the next document, prior to verifying the new document.
-    /// That way, we can instantly publish old diagnostics for the positions in the new document
+    /// Relocate verification trees from a document to the next document, prior to verifying the new document.
+    /// That way, we can instantly publish old verifications trees for the positions in the new document
     /// </summary>
-    /// <param name="oldVerificationNodeDiagnostic">The node diagnostic that should be relocated, including its children</param>
+    /// <param name="oldVerificationTree">The verification tree that should be relocated, including its children</param>
     /// <param name="documentChange">The applied changes to the text document that should be used for the relocation.</param>
     /// <param name="cancellationToken">A token to stop the relocation prior completion.</param>
     /// <returns></returns>
-    NodeDiagnostic RelocateNodeDiagnostic(NodeDiagnostic oldVerificationNodeDiagnostic, DidChangeTextDocumentParams documentChange, CancellationToken cancellationToken);
+    VerificationTree RelocateVerificationTree(VerificationTree oldVerificationTree, DidChangeTextDocumentParams documentChange, CancellationToken cancellationToken);
   }
 }

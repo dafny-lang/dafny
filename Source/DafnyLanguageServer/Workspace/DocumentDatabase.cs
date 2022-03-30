@@ -142,16 +142,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var migratedVerificationDiagnotics =
         relocator.RelocateDiagnostics(oldVerificationDiagnostics, documentChange, CancellationToken.None);
       logger.LogDebug($"Migrated {oldVerificationDiagnostics.Count} diagnostics into {migratedVerificationDiagnotics.Count} diagnostics.");
-      var oldVerificationNodeDiagnostic =
-        oldDocument.VerificationNodeDiagnostic.SetObsolete();
-      var migratedVerificationNodeDiagnostics =
-        relocator.RelocateNodeDiagnostic(oldVerificationNodeDiagnostic, documentChange, CancellationToken.None);
+      var oldVerificationTree =
+        oldDocument.VerificationTree.SetObsolete();
+      var migratedVerificationTree =
+        relocator.RelocateVerificationTree(oldVerificationTree, documentChange, CancellationToken.None);
       try {
         var newDocument = await documentLoader.LoadAsync(updatedText, cancellationToken);
         if (newDocument.SymbolTable.Resolved) {
           return WithRealtimeDiagnosticsPublished(newDocument with {
             OldVerificationDiagnostics = migratedVerificationDiagnotics,
-            VerificationNodeDiagnostic = migratedVerificationNodeDiagnostics
+            VerificationTree = migratedVerificationTree
           });
         }
         // The document loader failed to create a new symbol table. Since we'd still like to provide
@@ -160,7 +160,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return WithRealtimeDiagnosticsPublished(newDocument with {
           SymbolTable = relocator.RelocateSymbols(oldDocument.SymbolTable, documentChange, CancellationToken.None),
           OldVerificationDiagnostics = migratedVerificationDiagnotics,
-          VerificationNodeDiagnostic = migratedVerificationNodeDiagnostics
+          VerificationTree = migratedVerificationTree
         });
       } catch (OperationCanceledException) {
         // The document load was canceled before it could complete. We migrate the document
@@ -172,7 +172,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           SerializedCounterExamples = null,
           LoadCanceled = true,
           OldVerificationDiagnostics = migratedVerificationDiagnotics,
-          VerificationNodeDiagnostic = migratedVerificationNodeDiagnostics
+          VerificationTree = migratedVerificationTree
         };
       }
     }

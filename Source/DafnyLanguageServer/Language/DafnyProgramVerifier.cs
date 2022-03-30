@@ -80,7 +80,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         // The printer is responsible for two things: It logs boogie errors and captures the counter example model.
         var errorReporter = (DiagnosticErrorReporter)program.reporter;
         if (options.Diagnostics) {
-          progressReporter.RecomputeVerificationNodeDiagnostics();
+          progressReporter.RecomputeVerificationTree();
           progressReporter.ReportRealtimeDiagnostics(document);
         }
 

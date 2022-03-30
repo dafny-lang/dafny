@@ -82,7 +82,7 @@ public class LinearRenderingTest {
             var contextIsPending = true; do {
               Assert.AreEqual(
                 RenderLineVerificationStatusOriginal(isSingleLine, contextHasError, contextIsPending, currentStatus, verificationStatus),
-                NodeDiagnostic.RenderLineVerificationStatus(isSingleLine, contextHasError, contextIsPending, currentStatus, verificationStatus)
+                VerificationTree.RenderLineVerificationStatus(isSingleLine, contextHasError, contextIsPending, currentStatus, verificationStatus)
                 );
               contextIsPending = !contextIsPending;
             } while (!contextIsPending);

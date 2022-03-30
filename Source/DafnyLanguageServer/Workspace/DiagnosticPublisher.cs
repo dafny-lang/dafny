@@ -55,7 +55,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var verificationDiagnosticsParams = new VerificationDiagnosticsParams(
         document.Uri,
         document.Version,
-        document.VerificationNodeDiagnostic.Children.Select(child => child.GetCopyForNotification()).ToArray(),
+        document.VerificationTree.Children.Select(child => child.GetCopyForNotification()).ToArray(),
         errors,
         linesCount,
         document.VerificationPass != null,

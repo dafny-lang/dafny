@@ -30,11 +30,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
       return new ChangeProcessor(logger, loggerSymbolTable, changes.ContentChanges, cancellationToken).MigrateDiagnostics(originalDiagnostics);
     }
 
-    public NodeDiagnostic RelocateNodeDiagnostic(NodeDiagnostic originalNodeDiagnostic,
+    public VerificationTree RelocateVerificationTree(VerificationTree originalVerificationTree,
       DidChangeTextDocumentParams changes, CancellationToken cancellationToken) {
       var migratedChildren = new ChangeProcessor(logger, loggerSymbolTable, changes.ContentChanges, cancellationToken)
-        .MigrateNodeDiagnostic(originalNodeDiagnostic.Children);
-      return originalNodeDiagnostic with {
+        .MigrateVerificationTree(originalVerificationTree.Children);
+      return originalVerificationTree with {
         Children = migratedChildren.ToList()
       };
     }
@@ -270,28 +270,28 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
         return null;
       }
 
-      public IEnumerable<NodeDiagnostic> MigrateNodeDiagnostic(IEnumerable<NodeDiagnostic> originalDiagnostics) {
-        return contentChanges.Aggregate(originalDiagnostics, MigrateNodeDiagnostic);
+      public IEnumerable<VerificationTree> MigrateVerificationTree(IEnumerable<VerificationTree> originalDiagnostics) {
+        return contentChanges.Aggregate(originalDiagnostics, MigrateVerificationTree);
       }
-      private IEnumerable<NodeDiagnostic> MigrateNodeDiagnostic(IEnumerable<NodeDiagnostic> nodeDiagnostics, TextDocumentContentChangeEvent change) {
+      private IEnumerable<VerificationTree> MigrateVerificationTree(IEnumerable<VerificationTree> verificationTrees, TextDocumentContentChangeEvent change) {
         var afterChangeEndOffset = GetPositionAtEndOfAppliedChange(change.Range!, change.Text);
-        foreach (var nodeDiagnostic in nodeDiagnostics) {
-          var newRange = MigrateRange(nodeDiagnostic.Range, change.Range!, afterChangeEndOffset);
+        foreach (var verificationTree in verificationTrees) {
+          var newRange = MigrateRange(verificationTree.Range, change.Range!, afterChangeEndOffset);
           if (newRange == null) {
             continue;
           }
-          var newNodeDiagnostic = nodeDiagnostic with {
+          var newNodeDiagnostic = verificationTree with {
             Range = newRange,
-            Children = MigrateNodeDiagnostic(nodeDiagnostic.Children, change).ToList(),
-            RelatedRanges = nodeDiagnostic.RelatedRanges
+            Children = MigrateVerificationTree(verificationTree.Children, change).ToList(),
+            RelatedRanges = verificationTree.RelatedRanges
               .Select(pos => MigrateRange(pos, change.Range!, afterChangeEndOffset))
               .OfType<Range>().ToImmutableList(),
-            StatusVerification = nodeDiagnostic.StatusVerification,
+            StatusVerification = verificationTree.StatusVerification,
             StatusCurrent = CurrentStatus.Obsolete,
             Finished = false,
             Started = false
           };
-          if (newNodeDiagnostic is AssertionNodeDiagnostic assertionNodeDiagnostic) {
+          if (newNodeDiagnostic is AssertionVerificationTree assertionNodeDiagnostic) {
             newNodeDiagnostic = assertionNodeDiagnostic with {
               SecondaryPosition = assertionNodeDiagnostic.SecondaryPosition != null
                 ? MigratePosition(assertionNodeDiagnostic.SecondaryPosition, change.Range!, afterChangeEndOffset)

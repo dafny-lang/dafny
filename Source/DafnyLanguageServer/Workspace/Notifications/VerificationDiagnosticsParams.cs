@@ -22,18 +22,18 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
   public class VerificationDiagnosticsParams : IRequest, IRequest<Unit> {
     public VerificationDiagnosticsParams(DocumentUri uri,
       int version,
-      NodeDiagnostic[] perNodeDiagnostic,
+      VerificationTree[] verificationTrees,
       Container<Diagnostic> diagnostics,
       int linesCount,
       bool verificationStarted,
       int numberOfResolutionErrors) {
       Uri = uri;
       Version = version;
-      PerNodeDiagnostic = perNodeDiagnostic;
+      VerificationTrees = verificationTrees;
       Diagnostics = diagnostics;
       if (linesCount != 0) { // Deserialization makes linesCount to be equal to zero.
         PerLineDiagnostic =
-          RenderPerLineDiagnostics(this, perNodeDiagnostic, linesCount, numberOfResolutionErrors, verificationStarted, diagnostics);
+          RenderPerLineDiagnostics(this, verificationTrees, linesCount, numberOfResolutionErrors, verificationStarted, diagnostics);
       }
     }
 
@@ -58,7 +58,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     /// Second-level nodes are preconditions, postconditions, body verification status
     /// Third level nodes are assertions inside functions 
     /// </summary>
-    public NodeDiagnostic[] PerNodeDiagnostic { get; init; }
+    public VerificationTree[] VerificationTrees { get; init; }
 
     /// <summary>
     /// Returns per-line real-time diagnostic
@@ -67,14 +67,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
     static LineVerificationStatus[] RenderPerLineDiagnostics(
       VerificationDiagnosticsParams verificationDiagnosticsParams,
-      NodeDiagnostic[] perNodeDiagnostic,
+      VerificationTree[] verificationTrees,
       int numberOfLines,
       int numberOfResolutionErrors,
       bool verificationStarted,
       Container<Diagnostic> diagnostics) {
       var result = new LineVerificationStatus[numberOfLines];
 
-      if (perNodeDiagnostic.Length == 0 && numberOfResolutionErrors == 0 && verificationStarted) {
+      if (verificationTrees.Length == 0 && numberOfResolutionErrors == 0 && verificationStarted) {
         for (var line = 0; line < numberOfLines; line++) {
           result[line] = LineVerificationStatus.Verified;
         }
@@ -82,11 +82,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
         return result;
       }
 
-      // Render node content into lines.
-      foreach (var nodeDiagnostic in perNodeDiagnostic) {
-        if (nodeDiagnostic.Filename == verificationDiagnosticsParams.Uri.GetFileSystemPath() ||
-            "untitled:" + nodeDiagnostic.Filename == verificationDiagnosticsParams.Uri) {
-          nodeDiagnostic.RenderInto(result);
+      // Render verification tree content into lines.
+      foreach (var verificationTree in verificationTrees) {
+        if (verificationTree.Filename == verificationDiagnosticsParams.Uri.GetFileSystemPath() ||
+            "untitled:" + verificationTree.Filename == verificationDiagnosticsParams.Uri) {
+          verificationTree.RenderInto(result);
         }
       }
 
@@ -163,7 +163,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     VerifiedVerifying = 202,
     // Also applicable for empty spaces if they are not surrounded by errors.
     Verified = 200,
-    // For containers of other diagnostics nodes (e.g. methods)
+    // For trees containing children with errors (e.g. methods)
     ErrorContextObsolete = 301,
     ErrorContextVerifying = 302,
     ErrorContext = 300,
@@ -179,7 +179,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     ResolutionError = 500
   }
 
-  public record NodeDiagnostic(
+  public record VerificationTree(
      // User-facing name
      string DisplayName,
      // Used to re-trigger the verification of some diagnostics.
@@ -194,7 +194,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     // Overriden by checking children if there are some
     public CurrentStatus StatusCurrent { get; set; } = CurrentStatus.Obsolete;
 
-    // Used to relocate a node diagnostic and to determine which function is currently verifying
+    // Used to relocate a verification tree and to determine which function is currently verifying
     public Position Position => Range.Start;
 
     /// Time and Resource diagnostics
@@ -213,14 +213,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     public ImmutableList<Range> RelatedRanges { get; set; } = ImmutableList<Range>.Empty;
 
     // Sub-diagnostics if any
-    public List<NodeDiagnostic> Children { get; set; } = new();
-    private List<NodeDiagnostic> NewChildren { get; set; } = new();
+    public List<VerificationTree> Children { get; set; } = new();
+    private List<VerificationTree> NewChildren { get; set; } = new();
 
     public int GetNewChildrenCount() {
       return NewChildren.Count;
     }
 
-    public void AddNewChild(NodeDiagnostic newChild) {
+    public void AddNewChild(VerificationTree newChild) {
       NewChildren.Add(newChild);
     }
 
@@ -233,7 +233,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       NewChildren = new();
     }
 
-    public NodeDiagnostic SetObsolete() {
+    public VerificationTree SetObsolete() {
       if (StatusCurrent != CurrentStatus.Obsolete) {
         StatusCurrent = CurrentStatus.Obsolete;
         foreach (var child in Children) {
@@ -338,7 +338,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
           null,
           Range);
       }
-      // Ensure that if this is an ImplementationNodeDiagnostic, and children "painted" verified,
+      // Ensure that if this is an ImplementationVerificationTree, and children "painted" verified,
       // and this node is still pending
       // at least the first line should show pending.
       if (StatusCurrent == CurrentStatus.Verifying &&
@@ -363,7 +363,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       return false;
     }
 
-    public virtual NodeDiagnostic GetCopyForNotification() {
+    public virtual VerificationTree GetCopyForNotification() {
       if (Finished) {
         return this;// Won't be modified anymore, no need to duplicate
       }
@@ -373,44 +373,44 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     }
   }
 
-  public record DocumentNodeDiagnostic(
+  public record DocumentVerificationTree(
     string Identifier,
     int Lines
-  ) : NodeDiagnostic("Document", Identifier, Identifier,
+  ) : VerificationTree("Document", Identifier, Identifier,
     new Range(new Position(0, 0),
       new Position(Lines, 0)));
 
-  public record TopLevelDeclMemberNodeDiagnostic(
+  public record TopLevelDeclMemberVerificationTree(
     string DisplayName,
     // Used to re-trigger the verification of some diagnostics.
     string Identifier,
     string Filename,
     // The range of this node.
     Range Range
-  ) : NodeDiagnostic(DisplayName, Identifier, Filename, Range) {
-    // Recomputed from the children which are ImplementationNodeDiagnostic
-    public List<AssertionBatchNodeDiagnostic> AssertionBatches { get; set; } = new();
+  ) : VerificationTree(DisplayName, Identifier, Filename, Range) {
+    // Recomputed from the children which are ImplementationVerificationTree
+    public List<AssertionBatchVerificationTree> AssertionBatches { get; set; } = new();
 
-    public override NodeDiagnostic GetCopyForNotification() {
+    public override VerificationTree GetCopyForNotification() {
       if (Finished) {
         return this;// Won't be modified anymore, no need to duplicate
       }
       return this with {
         Children = Children.Select(child => child.GetCopyForNotification()).ToList(),
-        AssertionBatches = AssertionBatches.Select(child => (AssertionBatchNodeDiagnostic)child.GetCopyForNotification()).ToList()
+        AssertionBatches = AssertionBatches.Select(child => (AssertionBatchVerificationTree)child.GetCopyForNotification()).ToList()
       };
     }
 
     public void RecomputeAssertionBatchNodeDiagnostics() {
-      var result = new List<AssertionBatchNodeDiagnostic>();
-      foreach (var implementationNode in Children.OfType<ImplementationNodeDiagnostic>()) {
+      var result = new List<AssertionBatchVerificationTree>();
+      foreach (var implementationNode in Children.OfType<ImplementationVerificationTree>()) {
         for (var batchIndex = 0; batchIndex < implementationNode.AssertionBatchCount; batchIndex++) {
-          var children = implementationNode.Children.OfType<AssertionNodeDiagnostic>().Where(
-            assertionNode => assertionNode.AssertionBatchIndex == batchIndex).Cast<NodeDiagnostic>().ToList();
+          var children = implementationNode.Children.OfType<AssertionVerificationTree>().Where(
+            assertionNode => assertionNode.AssertionBatchIndex == batchIndex).Cast<VerificationTree>().ToList();
           if (children.Count > 0) {
             var minPosition = children.MinBy(child => child.Position)!.Range.Start;
             var maxPosition = children.MaxBy(child => child.Range.End)!.Range.End;
-            result.Add(new AssertionBatchNodeDiagnostic(
+            result.Add(new AssertionBatchVerificationTree(
               "Assertion batch #" + result.Count,
               "assertion-batch-" + result.Count,
               Filename,
@@ -426,7 +426,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       AssertionBatches = result;
     }
 
-    public AssertionBatchNodeDiagnostic? LongestAssertionBatch =>
+    public AssertionBatchVerificationTree? LongestAssertionBatch =>
       AssertionBatches.MaxBy(assertionBatch => assertionBatch.TimeSpent);
 
     public List<int> AssertionBatchTimes =>
@@ -440,22 +440,22 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
   }
 
   // Invariant: There is at least 1 child for every assertion batch
-  public record AssertionBatchNodeDiagnostic(
+  public record AssertionBatchVerificationTree(
     string DisplayName,
     // Used to re-trigger the verification of some diagnostics.
     string Identifier,
     string Filename,
     // The range of this node.
     Range Range
-  ) : NodeDiagnostic(DisplayName, Identifier, Filename, Range) {
-    public AssertionBatchNodeDiagnostic WithDuration(DateTime parentStartTime, int implementationNodeAssertionBatchTime) {
+  ) : VerificationTree(DisplayName, Identifier, Filename, Range) {
+    public AssertionBatchVerificationTree WithDuration(DateTime parentStartTime, int implementationNodeAssertionBatchTime) {
       Started = true;
       Finished = true;
       StartTime = parentStartTime;
       EndTime = parentStartTime.AddMilliseconds(implementationNodeAssertionBatchTime);
       return this;
     }
-    public override NodeDiagnostic GetCopyForNotification() {
+    public override VerificationTree GetCopyForNotification() {
       if (Finished) {
         return this;// Won't be modified anymore, no need to duplicate
       }
@@ -465,23 +465,23 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     }
   }
 
-  public record ImplementationNodeDiagnostic(
+  public record ImplementationVerificationTree(
     string DisplayName,
     // Used to re-trigger the verification of some diagnostics.
     string Identifier,
     string Filename,
     // The range of this node.
     Range Range
-  ) : NodeDiagnostic(DisplayName, Identifier, Filename, Range) {
-    // The index of ImplementationNodeDiagnostic.AssertionBatchTimes
-    // is the same as the AssertionNodeDiagnostic.AssertionBatchIndex
+  ) : VerificationTree(DisplayName, Identifier, Filename, Range) {
+    // The index of ImplementationVerificationTree.AssertionBatchTimes
+    // is the same as the AssertionVerificationTree.AssertionBatchIndex
     public List<int> AssertionBatchTimes { get; private set; } = new();
     public List<int> AssertionBatchResourceCount { get; private set; } = new();
     private List<int> NewAssertionBatchTimes { get; set; } = new();
     private List<int> NewAssertionBatchResourceCount { get; set; } = new();
     public int AssertionBatchCount => AssertionBatchTimes.Count;
 
-    public override NodeDiagnostic GetCopyForNotification() {
+    public override VerificationTree GetCopyForNotification() {
       if (Finished) {
         return this;// Won't be modified anymore, no need to duplicate
       }
@@ -529,23 +529,23 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       return implementation;
     }
 
-    public ImplementationNodeDiagnostic WithImplementation(Implementation impl) {
+    public ImplementationVerificationTree WithImplementation(Implementation impl) {
       implementation = impl;
       return this;
     }
   };
 
-  public record AssertionNodeDiagnostic(
+  public record AssertionVerificationTree(
     string DisplayName,
     // Used to re-trigger the verification of some diagnostics.
     string Identifier,
     string Filename,
-    // Used to relocate a node diagnostic and to determine which function is currently verifying
+    // Used to relocate a assertion verification tree and to determine which function is currently verifying
     Position? SecondaryPosition,
     // The range of this node.
     Range Range
-  ) : NodeDiagnostic(DisplayName, Identifier, Filename, Range) {
-    public AssertionNodeDiagnostic WithDuration(DateTime parentStartTime, int batchTime) {
+  ) : VerificationTree(DisplayName, Identifier, Filename, Range) {
+    public AssertionVerificationTree WithDuration(DateTime parentStartTime, int batchTime) {
       Started = true;
       Finished = true;
       StartTime = parentStartTime;
@@ -563,14 +563,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     /// </summary>
     public int AssertionBatchIndex { get; init; }
 
-    public AssertionNodeDiagnostic
+    public AssertionVerificationTree
       WithAssertionAndCounterExample(AssertCmd? inAssertion, Counterexample? inCounterExample) {
       this.assertion = inAssertion;
       this.counterExample = inCounterExample;
       return WithImmediatelyRelatedChanges().WithDynamicallyRelatedChanges();
     }
 
-    private AssertionNodeDiagnostic WithImmediatelyRelatedChanges() {
+    private AssertionVerificationTree WithImmediatelyRelatedChanges() {
       if (assertion == null) {
         ImmediatelyRelatedRanges = new();
         return this;
@@ -596,7 +596,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       return this;
     }
 
-    private AssertionNodeDiagnostic WithDynamicallyRelatedChanges() {
+    private AssertionVerificationTree WithDynamicallyRelatedChanges() {
       // Ranges that should highlight when stepping on one error.
       if (assertion == null) {
         DynamicallyRelatedRanges = new();
@@ -632,7 +632,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       return assertion;
     }
 
-    public AssertionNodeDiagnostic WithAssertion(AssertCmd cmd) {
+    public AssertionVerificationTree WithAssertion(AssertCmd cmd) {
       assertion = cmd;
       return this;
     }
@@ -642,7 +642,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       return counterExample;
     }
 
-    public AssertionNodeDiagnostic WithCounterExample(Counterexample? c) {
+    public AssertionVerificationTree WithCounterExample(Counterexample? c) {
       counterExample = c;
       return this;
     }

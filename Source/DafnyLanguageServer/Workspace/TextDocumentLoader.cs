@@ -177,7 +177,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var compilationStatusAfterVerification = verificationResult.Verified
         ? CompilationStatus.VerificationSucceeded
         : CompilationStatus.VerificationFailed;
-      // All unvisited nodes need to set them as "verified"
+      // All unvisited trees need to set them as "verified"
       if (!cancellationToken.IsCancellationRequested) {
         SetAllUnvisitedMethodsAsVerified(document);
       }
@@ -194,8 +194,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private void SetAllUnvisitedMethodsAsVerified(DafnyDocument document) {
-      foreach (var node in document.VerificationNodeDiagnostic.Children) {
-        node.SetVerifiedIfPending();
+      foreach (var tree in document.VerificationTree.Children) {
+        tree.SetVerifiedIfPending();
       }
     }
 
@@ -232,23 +232,23 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       /// Fills up the document with empty verification diagnostics, one for each top-level declarations
       /// Possibly migrates previous diagnostics
       /// </summary>
-      public void RecomputeVerificationNodeDiagnostics() {
-        var previousDiagnostics = document.VerificationNodeDiagnostic.Children;
+      public void RecomputeVerificationTree() {
+        var previousTrees = document.VerificationTree.Children;
 
-        List<NodeDiagnostic> result = new List<NodeDiagnostic>();
+        List<VerificationTree> result = new List<VerificationTree>();
 
-        void AddAndPossiblyMigrateDiagnostic(NodeDiagnostic nodeDiagnostic) {
-          var position = nodeDiagnostic.Position;
-          var previousDiagnostic = previousDiagnostics.FirstOrDefault(
+        void AddAndPossiblyMigrateVerificationTree(VerificationTree verificationTree) {
+          var position = verificationTree.Position;
+          var previousTree = previousTrees.FirstOrDefault(
             oldNode => oldNode != null && oldNode.Position == position,
             null);
-          if (previousDiagnostic != null) {
-            previousDiagnostic.SetObsolete();
-            nodeDiagnostic.StatusVerification = previousDiagnostic.StatusVerification;
-            nodeDiagnostic.StatusCurrent = CurrentStatus.Obsolete;
-            nodeDiagnostic.Children = previousDiagnostic.Children;
+          if (previousTree != null) {
+            previousTree.SetObsolete();
+            verificationTree.StatusVerification = previousTree.StatusVerification;
+            verificationTree.StatusCurrent = CurrentStatus.Obsolete;
+            verificationTree.Children = previousTree.Children;
           }
-          result.Add(nodeDiagnostic);
+          result.Add(verificationTree);
         }
 
         var documentFilePath = document.GetFilePath();
@@ -264,28 +264,28 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
                     continue; // Nothing to verify
                   }
                   var diagnosticRange = member.tok.GetLspRange(member.BodyEndTok);
-                  var diagnostic = new TopLevelDeclMemberNodeDiagnostic(
+                  var diagnostic = new TopLevelDeclMemberVerificationTree(
                     member.Name,
                     member.CompileName,
                     member.tok.filename,
                     diagnosticRange);
-                  AddAndPossiblyMigrateDiagnostic(diagnostic);
+                  AddAndPossiblyMigrateVerificationTree(diagnostic);
                 } else if (member is Method or Function) {
                   var diagnosticRange = member.tok.GetLspRange(member.BodyEndTok.line == 0 ? member.tok : member.BodyEndTok);
-                  var diagnostic = new TopLevelDeclMemberNodeDiagnostic(
+                  var diagnostic = new TopLevelDeclMemberVerificationTree(
                     member.Name,
                     member.CompileName,
                     member.tok.filename,
                     diagnosticRange);
-                  AddAndPossiblyMigrateDiagnostic(diagnostic);
+                  AddAndPossiblyMigrateVerificationTree(diagnostic);
                   if (member is Function { ByMethodBody: { } } function) {
                     var diagnosticRangeByMethod = function.ByMethodTok.GetLspRange(function.ByMethodBody.EndTok);
-                    var diagnosticByMethod = new TopLevelDeclMemberNodeDiagnostic(
+                    var diagnosticByMethod = new TopLevelDeclMemberVerificationTree(
                       member.Name + " by method",
                       member.CompileName + "_by_method",
                       member.tok.filename,
                       diagnosticRangeByMethod);
-                    AddAndPossiblyMigrateDiagnostic(diagnosticByMethod);
+                    AddAndPossiblyMigrateVerificationTree(diagnosticByMethod);
                   }
                 }
               }
@@ -294,21 +294,21 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
                 continue;
               }
               var diagnosticRange = subsetTypeDecl.tok.GetLspRange(subsetTypeDecl.BodyEndTok);
-              var diagnostic = new TopLevelDeclMemberNodeDiagnostic(
+              var diagnostic = new TopLevelDeclMemberVerificationTree(
                 subsetTypeDecl.Name,
                 subsetTypeDecl.CompileName,
                 subsetTypeDecl.tok.filename,
                 diagnosticRange);
-              AddAndPossiblyMigrateDiagnostic(diagnostic);
+              AddAndPossiblyMigrateVerificationTree(diagnostic);
             }
           }
         }
-        document.VerificationNodeDiagnostic.Children = result;
+        document.VerificationTree.Children = result;
       }
 
       /// <summary>
       /// On receiving all implementations that are going to be verified, assign each implementation
-      /// to its original method node.
+      /// to its original method tree.
       /// Also set the implementation priority depending on the last edited methods 
       /// </summary>
       /// <param name="implementations">The implementations to be verified</param>
@@ -318,9 +318,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
         // We migrate existing implementations to the new provided ones if they exist.
         // (same child number, same file and same position)
-        foreach (var methodNode in document.VerificationNodeDiagnostic.Children) {
-          methodNode.ResetNewChildren();
-          methodNode.ResourceCount = 0;
+        foreach (var methodTree in document.VerificationTree.Children) {
+          methodTree.ResetNewChildren();
+          methodTree.ResourceCount = 0;
         }
 
         foreach (var implementation in implementations) {
@@ -336,14 +336,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
                 }, null));
           }
 
-          var targetMethodNode = GetTargetMethodNode(implementation, out var oldImplementationNode, true);
+          var targetMethodNode = GetTargetMethodTree(implementation, out var oldImplementationNode, true);
           if (targetMethodNode == null) {
             logger.LogError($"No method node at {implementation.tok.filename}:{implementation.tok.line}:{implementation.tok.col}");
             continue;
           }
           var newDisplayName = targetMethodNode.DisplayName + " #" + (targetMethodNode.Children.Count + 1) + ":" +
                                implementation.Name;
-          var newImplementationNode = new ImplementationNodeDiagnostic(
+          var newImplementationNode = new ImplementationVerificationTree(
             newDisplayName,
             implementation.Name,
             targetMethodNode.Filename,
@@ -355,7 +355,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           targetMethodNode?.AddNewChild(newImplementationNode);
         }
 
-        foreach (var methodNode in document.VerificationNodeDiagnostic.Children.OfType<TopLevelDeclMemberNodeDiagnostic>()) {
+        foreach (var methodNode in document.VerificationTree.Children.OfType<TopLevelDeclMemberVerificationTree>()) {
           methodNode.SaveNewChildren();
           if (!methodNode.Children.Any()) {
             methodNode.Start();
@@ -391,13 +391,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       /// </summary>
       /// <param name="extra">Usually the name of the method whose check was just finished, if any</param>
       private void ReportMethodsBeingVerified(string extra = "") {
-        var pending = document.VerificationNodeDiagnostic.Children
+        var pending = document.VerificationTree.Children
           .Where(diagnostic => diagnostic.Started && !diagnostic.Finished)
           .OrderBy(diagnostic => diagnostic.StartTime)
           .Select(diagnostic => diagnostic.DisplayName)
           .ToList();
-        var total = document.VerificationNodeDiagnostic.Children.Count();
-        var verified = document.VerificationNodeDiagnostic.Children.Count(diagnostic => diagnostic.Finished);
+        var total = document.VerificationTree.Children.Count();
+        var verified = document.VerificationTree.Children.Count(diagnostic => diagnostic.Finished);
         var message = string.Join(", ", pending) + (!pending.Any() ? extra.Trim() : extra);
         ReportProgress($"{verified}/{total} {message}");
       }
@@ -412,7 +412,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
 
         lock (LockProcessing) {
-          var targetMethodNode = GetTargetMethodNode(implementation, out var implementationNode);
+          var targetMethodNode = GetTargetMethodTree(implementation, out var implementationNode);
           if (targetMethodNode == null) {
             logger.LogError($"No method node at {implementation.tok.filename}:{implementation.tok.line}:{implementation.tok.col}");
           } else {
@@ -443,7 +443,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         if (document.LoadCanceled) {
           return;
         }
-        var targetMethodNode = GetTargetMethodNode(implementation, out var implementationNode);
+        var targetMethodNode = GetTargetMethodTree(implementation, out var implementationNode);
         if (targetMethodNode == null) {
           logger.LogError($"No method node at {implementation.tok.filename}:{implementation.tok.line}:{implementation.tok.col}");
         } else if (implementationNode == null) {
@@ -493,7 +493,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         lock (LockProcessing) {
           var implementation = split.Implementation;
           // While there is no error, just add successful nodes.
-          var targetMethodNode = GetTargetMethodNode(implementation, out var implementationNode);
+          var targetMethodNode = GetTargetMethodTree(implementation, out var implementationNode);
           if (targetMethodNode == null) {
             logger.LogError($"No method node at {implementation.tok.filename}:{implementation.tok.line}:{implementation.tok.col}");
           } else if (implementationNode == null) {
@@ -532,7 +532,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
               assertIdentifier = assertIdentifier != "" ? "_" + assertIdentifier : "";
 
               var outcomeRange = token.GetLspRange();
-              var nodeDiagnostic = new AssertionNodeDiagnostic(
+              var nodeDiagnostic = new AssertionVerificationTree(
                 $"{targetMethodNode.DisplayName}{assertDisplay} #{childrenCount}",
                 $"{targetMethodNode.Identifier}_{childrenCount}{assertIdentifier}",
                 token.filename,
@@ -548,7 +548,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
               // Add this diagnostics as the new one to display once the implementation is fully verified
               implementationNode.AddNewChild(nodeDiagnostic);
               // Update any previous pending "verifying" diagnostic as well so that they are updated in real-time
-              var previousChild = implementationNode.Children.OfType<AssertionNodeDiagnostic>()
+              var previousChild = implementationNode.Children.OfType<AssertionVerificationTree>()
                 .FirstOrDefault(child =>
                 child != null && child.Position == outcomePosition && (
                   secondaryOutcomePosition == child.SecondaryPosition), null);
@@ -604,24 +604,24 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       /// <summary>
-      /// Given an implementation, returns the matching implementation node and its parent method node.
+      /// Given an implementation, returns the top-level verification tree.
       /// </summary>
       /// <param name="implementation">The implementation</param>
-      /// <param name="implementationNode">The returned node of the implementation child of the returned top-level node diagnostic</param>
+      /// <param name="implementationTree">Returns the tree of the implementation child of the returned top-level verification tree</param>
       /// <param name="nameBased">Whether it should try to locate the implementation using the name rather than the position. Used to relocate previous diagnostics.</param>
-      /// <returns>The top-level node diagnostic</returns>
-      private TopLevelDeclMemberNodeDiagnostic? GetTargetMethodNode(Implementation implementation, out ImplementationNodeDiagnostic? implementationNode, bool nameBased = false) {
-        var targetMethodNode = document.VerificationNodeDiagnostic.Children.OfType<TopLevelDeclMemberNodeDiagnostic>().FirstOrDefault(
+      /// <returns>The top-level verification tree</returns>
+      private TopLevelDeclMemberVerificationTree? GetTargetMethodTree(Implementation implementation, out ImplementationVerificationTree? implementationTree, bool nameBased = false) {
+        var targetMethodNode = document.VerificationTree.Children.OfType<TopLevelDeclMemberVerificationTree>().FirstOrDefault(
           node => node?.Position == implementation.tok.GetLspPosition() && node?.Filename == implementation.tok.filename
           , null);
         if (nameBased) {
-          implementationNode = targetMethodNode?.Children.OfType<ImplementationNodeDiagnostic>().FirstOrDefault(
+          implementationTree = targetMethodNode?.Children.OfType<ImplementationVerificationTree>().FirstOrDefault(
             node => {
               var nodeImpl = node?.GetImplementation();
               return nodeImpl?.Name == implementation.Name;
             }, null);
         } else {
-          implementationNode = targetMethodNode?.Children.OfType<ImplementationNodeDiagnostic>().FirstOrDefault(
+          implementationTree = targetMethodNode?.Children.OfType<ImplementationVerificationTree>().FirstOrDefault(
             node => node?.GetImplementation() == implementation, null);
         }
 
@@ -629,7 +629,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       /// <summary>
-      /// An object to lock so that the updating of the node diagnostics is always not concurrent
+      /// An object to lock so that the updating of the verification trees is always not concurrent
       /// </summary>
       private readonly object LockProcessing = new();
 

@@ -52,7 +52,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// Can be migrated from a previous document
     /// The position and the range are never sent to the client.
     /// </summary>
-    public NodeDiagnostic VerificationNodeDiagnostic { get; init; } = new DocumentNodeDiagnostic(
+    public VerificationTree VerificationTree { get; init; } = new DocumentVerificationTree(
       Text.Uri.ToString(),
       Regex.Matches(Text.Text, "\r?\n").Count + 1
     );
