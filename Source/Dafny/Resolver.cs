@@ -5020,6 +5020,7 @@ namespace Microsoft.Dafny {
             case "Innable":
             case "MultiIndexable":
             case "IntOrORDINAL":
+            case "SubsetTypeOfCompilable":
               // have a go downstairs
               break;
             default:
@@ -5032,9 +5033,20 @@ namespace Microsoft.Dafny {
           case "SubsetTypeOfCompilable": {
               var u = Types[0].NormalizeExpandKeepConstraints();
               if (!CheckTypeInference_Visitor.IsDetermined(u)) {
+                if (Types[1] is TypeProxy tp && tp.IsTypeParameter) {
+                  resolver.ConstrainSubtypeRelation_Equal(u, tp, errorMsg);
+                  convertedIntoOtherTypeConstraints = true;
+                  return true;
+                }
                 return false;
               }
-              resolver.ConstrainSubtypeRelation(Types[1], u.GetCompilableParentType(), errorMsg, true);
+
+              t = Types[1].NormalizeExpandKeepConstraints();
+              if (CheckTypeInference_Visitor.IsDetermined(t)) {
+                // No need to add other constraints, the verifier will take care of that.
+                return true;
+              }
+              resolver.ConstrainSubtypeRelation(t, u.GetCompilableParentType(), errorMsg, true);
               convertedIntoOtherTypeConstraints = true;
               return true;
             }
@@ -15473,8 +15485,8 @@ namespace Microsoft.Dafny {
         if (!v.Type.IsCompilable() && !opts.isSpecification && !opts.codeContext.IsGhost) {
           var collectionVarType = v.Type is InferredTypeProxy ? new InferredTypeProxy() : v.Type.GetCompilableParentType(); ;
           if (v.Type is InferredTypeProxy) {
-            AddXConstraint(e.Token, "SubsetTypeOfCompilable", v.Type, collectionVarType,
-              "Collection type '{1}' should be a run-time testable parent of its final element, but got '{0}'"
+            AddXConstraint(v.tok, "SubsetTypeOfCompilable", v.Type, collectionVarType,
+              $"Type of variable {v.DisplayName} in range is '{{1}}', the range should prove it's of type '{{0}}' (requested type), but that's not the case."
             );
           }
 
