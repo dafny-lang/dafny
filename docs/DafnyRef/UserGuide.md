@@ -156,14 +156,258 @@ exit code.
 
 ## 24.8. Verification
 
-There are a great many options that control various aspects of verifying dafny programs. Here we mention only a few:
+In this section, we suggest a methodology to figure out [why a single assertion might not hold](#sec-verification-debugging), we explain how to [make the verifier more focused on particular assertions](#sec-assertion-batches) to devote more time to prove them, and we also give some more examples of [useful options and attributes to control verification](#sec-command-line-options-and-attributes-for-verification).
 
-- Control of output: `-dprint`, `-rprint`, `-stats`, `-compileVerbose`
-- Whether to print warnings: `-proverWarnings`
-- Control of time: `-timeLimit`
-- Control of the prover used: `-prover`
+### 24.8.1. Verification debugging {#sec-verification-debugging}
 
-TO BE WRITTEN - advice on use of verifier, debugging verification problems
+Let's assume one assertion is failing ("assertion might not hold" or "postcondition might not hold"). What should you do next?
+
+The following section is textual description of the animation below, which illustrates the principle of debugging an assertion by computing the weakest precondition:  
+![weakestpreconditionDemo](https://user-images.githubusercontent.com/3601079/157976402-83fe4d37-8042-40fc-940f-bcfc235c7d2b.gif)
+
+#### 24.8.1.1. Failing postconditions {#sec-failing-postconditions}
+Let's look at an example of a failing postcondition.
+```dafny
+method FailingPostcondition(b: bool) returns (i: int)
+  ensures 2 <= i
+{
+  var j := if !b then 3 else 1;
+  if b {
+    return j;
+  }//^^^^^^^ a postcondition might not hold on this return path.
+  i := 2;
+}
+```
+One first thing you can do is replace the statement `return j;` by two statements `i := j; return;` to better understand what is wrong:
+```dafny
+method FailingPostcondition(b: bool) returns (i: int)
+  ensures 2 <= i
+{
+  var j := if !b then 3 else 1;
+  if b {
+    i := j;
+    return;
+  }//^^^^^^^ a postcondition might not hold on this return path.
+  i := 2;
+}
+```
+Now, you can assert the postcondition just before the return:
+```dafny
+method FailingPostcondition(b: bool) returns (i: int)
+  ensures 2 <= i
+{
+  var j := if !b then 3 else 1;
+  if b {
+    i := j;
+    assert 2 <= i; // This assertion might not hold
+    return;
+  }
+  i := 2;
+}
+```
+That's it! Now the postcondition is not failing anymore, but the `assert` contains the error!
+you can now move to the next section to find out how to debug this `assert`.
+
+#### 24.8.1.2. Failing asserts {#sec-failing-asserts}
+In the [previous section](#sec-failing-postconditions), we arrive to the point where we have a failing assertion:
+```dafny
+method FailingPostcondition(b: bool) returns (i: int)
+  ensures 2 <= i
+{
+  var j := if !b then 3 else 1;
+  if b {
+    i := j;
+    assert 2 <= i; // This assertion might not hold
+    return;
+  }
+  i := 2;
+}
+```
+To debug why this assert might not hold, we need to _move this assert up_, which is similar to [_computing the weakest precondition_](https://en.wikipedia.org/wiki/Predicate_transformer_semantics#Weakest_preconditions).
+For example, if we have `x := Y; assert F;` and the `assert F;` might not hold, the weakest precondition for it to hold before `x := Y;` can be written as the assertion `assert F[x:= Y];`, where we replace every occurence of `x` in `F` into `Y`.
+Let's do it in our example:
+```dafny
+method FailingPostcondition(b: bool) returns (i: int)
+  ensures 2 <= i
+{
+  var j := if !b then 3 else 1;
+  if b {
+    assert 2 <= j; // This assertion might not hold
+    i := j;
+    assert 2 <= i;
+    return;
+  }
+  i := 2;
+}
+```
+Yay! The assertion `assert 2 <= i;` is not proven wrong, which means that if we manage to prove `assert 2 <= j;`, it will work.
+Now, this assert should hold only if we are in this branch, so to _move the assert up_, we need to guard it.
+Just before the `if`, we can add the weakest precondition `assert b ==> (2 <= j)`:
+```dafny
+method FailingPostcondition(b: bool) returns (i: int)
+  ensures 2 <= i
+{
+  var j := if !b then 3 else 1;
+  assert b  ==>  2 <= j;  // This assertion might not hold
+  if b {
+    assert 2 <= j;
+    i := j;
+    assert 2 <= i;
+    return;
+  }
+  i := 2;
+}
+```
+Again, now the error is only on the topmost assert, which means that we are making progress.
+Now, either the error is obvious, or we can one more time replace `j` by its value and create the assert `assert b ==> ((if !b then 3 else 1) >= 2);`
+```dafny
+method FailingPostcondition(b: bool) returns (i: int)
+  ensures 2 <= i
+{
+  assert b  ==>  2 <= (if !b then 3 else 1);  // This assertion might not hold
+  var j := if !b then 3 else 1;
+  assert b  ==>  2 <= j;
+  if b {
+    assert 2 <= j;
+    i := j;
+    assert 2 <= i;
+    return;
+  }
+  i := 2;
+}
+```
+At this point, this is pure logic. We can simplify the assumption:
+```
+b ==>  2 <= (if !b then 3 else 1)
+!b ||  (if !b then 2 <= 3 else 2 <= 1)
+!b ||  (if !b then true else false)
+!b || !b;
+!b;
+```
+Now we can understand what went wrong: When b is true, all of these formulas above are false, this is why the Dafny verifier was not able to prove them.
+In the next section, we will explain how to "move asserts up" in certain useful patterns.
+
+#### 24.8.1.3. Failing asserts cases {#sec-failing-asserts-special-cases}
+
+This list is not exhaustive but can definitely be useful to provide the next step to figure out why Dafny could not prove an assertion.
+
+ Failing assert           | Suggested rewriting
+--------------------------|---------------------------------------
+ <br>`x := Y;`<br>`assert P;` | `assert P[x := Y];`<br>`x := Y;`<br>`assert P;`
+ <br>`if B {`<br>&nbsp;&nbsp;`  assert P;`<br>&nbsp;&nbsp;`  ...`<br>`}` | `assert B ==> P;`<br>`if B {`<br>&nbsp;&nbsp;`  assert P;`<br>&nbsp;&nbsp;`  ...`<br>`}`
+ <br>`if B {`<br>&nbsp;&nbsp;`  ...`<br>`} else {`<br>&nbsp;&nbsp;`  assert P;`<br>&nbsp;&nbsp;`  ...`<br>`}` | `assert !B ==> P;`<br>`if B {`<br>&nbsp;&nbsp;`  ...`<br>`} else {`<br>&nbsp;&nbsp;`  assert P;`<br>&nbsp;&nbsp;`  ...`<br>`}`
+ <br><br>`if X {`<br>&nbsp;&nbsp;`  ...`<br>`} else {`<br>&nbsp;&nbsp;`  ...`<br>`}`<br>`assert A;` | `if X {`<br>&nbsp;&nbsp;`  ...`<br>&nbsp;&nbsp;`  assert A;`<br>`} else {`<br>&nbsp;&nbsp;`  ...`<br>&nbsp;&nbsp;`  assert A;`<br>`}`<br>`assert A;`
+ <br><br><br><br><br>`assert forall x :: Q(x);` | [`forall x`](#sec-forall-statement)<br>&nbsp;&nbsp;`  ensures Q(x)`<br>`{`<br>&nbsp;&nbsp;`  assert Q(x);`<br>`};`<br>` assert forall x :: Q(x);`
+ <br><br><br><br><br>`assert forall x :: P(x) ==> Q(x);` | [`forall x | P(x)`](#sec-forall-statement)<br>&nbsp;&nbsp;`  ensures Q(x)`<br>`{`<br>&nbsp;&nbsp;`  assert Q(x);`<br>`};`<br>` assert forall x :: P(x) ==> Q(x);`
+ <br>`assert exists x :: P(x);`<br> | `assert P(x0);`<br>`assert exists x :: P(x);`<br>for a given expression `x0`.
+ <br>`ensures exists i :: P(i);`<br> | `returns (j: int)`<br>`ensures P(j) ensures exists i :: P(i)`<br>in a lemma, so that the `j` can be computed explicitly.
+ <br><br>`assert A == B;`<br>`callLemma(x);`<br>`assert B == C;`<br> | [`calc == {`](#sec-calc-statement)<br>&nbsp;&nbsp;`  A;`<br>&nbsp;&nbsp;`  B;`<br>&nbsp;&nbsp;`  { callLemma(x); }`<br>&nbsp;&nbsp;`  C;`<br>`};`<br>`assert A == B;`<br>where the [`calc`](#sec-calc-statement) statement can be used to make intermediate computation steps explicit. Works with `<`, `>`, `<=`, `>=`, `==>`, `<==` and `<==>` for example.
+ <br><br><br>`assert A ==> B;` | `if A {`<br>&nbsp;&nbsp;`  assert B;`<br>`};`<br>`assert A ==> B;`
+ <br><br>`assert A && B;` | `assert A;`<br>`assert B;`<br>`assert A && B;`
+ <br>`assert P(x);`<br>where `P` is an [`{:opaque}`](#sec-opaque) predicate | [`reveal P();`](#sec-reveal-statement)<br>`assert P(x);`<br><br>
+ `assert P(x);`<br>where `P` is an [`{:opaque}`](#sec-opaque) predicate<br><br> | [`assert P(x) by {`](#sec-assert-statement)<br>[&nbsp;&nbsp;`  reveal P();`](#sec-reveal-statement)<br>`}`
+ `assert P(x);`<br>where `P` is not an [`{:opaque}`](#sec-opaque) predicate with a lot of `&&` in its body and is assumed | Make `P` [`{:opaque}`](#sec-opaque) so that if it's assumed, it can be proven more easily. You can always [reveal](#sec-reveal-statement) it when needed.
+ `ensures P ==> Q` on a lemma<br> | `requires P ensures Q` to avoid accidentally calling the lemma on inputs that do not satisfy `P`
+ `seq(size, i => P)` | `seq(size, i requires 0 <= i < size => P);`
+  <br><br>`assert forall x :: G(i) ==> R(i);` |  `assert G(i0);`<br>`assert R(i0);`<br>`assert forall i :: G(i) ==> R(i);` with a guess of the `i0` that makes the second assert to fail.
+  <br><br>`assert forall i | 0 < i <= m :: P(i);` |  `assert forall i | 0 < i < m :: P(i);`<br>`assert forall i | i == m :: P(i);`<br>`assert forall i | 0 < i <= m :: P(i);`<br><br>
+  <br><br>`assert forall i | i == m :: P(m);` |  `assert P(m);`<br>`assert forall i | i == m :: P(i);`
+  `method m(i) returns (j: T)`<br>&nbsp;&nbsp;`  requires A(i)`<br>&nbsp;&nbsp;`  ensures B(i, j)`<br>`{`<br>&nbsp;&nbsp;`  ...`<br>`}`<br><br>`method n() {`<br>&nbsp;&nbsp;`  ...`<br><br><br>&nbsp;&nbsp;`  var x := m(a);`<br>&nbsp;&nbsp;`  assert P(x);` | `method m(i) returns (j: T)`<br>&nbsp;&nbsp;`  requires A(i)`<br>&nbsp;&nbsp;`  ensures B(i, j)`<br>`{`<br>&nbsp;&nbsp;`  ...`<br>`}`<br><br>`method n() {`<br>&nbsp;&nbsp;`  ...`<br>&nbsp;&nbsp;`  assert A(k);`<br>&nbsp;&nbsp;`  assert forall x :: B(k, x) ==> P(x);`<br>&nbsp;&nbsp;`  var x := m(k);`<br>&nbsp;&nbsp;`  assert P(x);`
+
+### 24.8.2. Assertion batches {#sec-assertion-batches}
+
+To understand how to control verification,
+it is first useful to understand how Dafny verifies functions and methods.
+
+For every method (or function, constructor, etc.), Dafny extracts _assertions_. Here is a non-exhaustive list of such extracted assertions:
+
+**Integer assertions:**
+
+* Every [division](#sec-numeric-types) yields an _assertion_ that the divisor is never zero.
+* Every [bounded number operation](#sec-numeric-types) yields an _assertion_ that the result will be within the same bounds (no overflow, no underflows).
+* Every [conversion](#sec-as-expression) yields an _assertion_ that conversion is compatible.
+* Every [bitvector shift](#sec-bit-vector-types) yields an _assertion_ that the shift amount is never negative, and that the shift amount is within the width of the value.
+
+**Object assertions:**
+
+* Every [object property access](#sec-class-types) yields an _assertion_ that the object is not null.
+* Every assignment `o.f := E;` yield an _assertion_ that `o` is among the set of objects of the `modifies` clause of the enclosing [loop](#sec-loop-framing) or [method](#sec-modifies-clause).
+* Every read `o.f` yield an _assertion_ that `o` is among the set of objects of the [`reads`](#sec-reads-clause) clause of the enclosing function or predicate; or the [`modifies`](#sec-modifies-clause) clause of the enclosing method.
+* Every [array access](#sec-array-types) `a[x]` yield the assertion that `0 <= x < a.Length`.
+* Every [sequence access](#sec-sequences) `a[x]` yield an _assertion_, that `0 <= x < |a|`, because sequences are never null.
+* Every [datatype update expression](#sec-datatype-update-suffix) and [datatype destruction](#sec-algebraic-datatype) yields an _assertion_ that the object has the given property.
+* Every method overriding a [`trait`](#sec-trait-types) yield an _assertion_ that any postcondition it provides is equal to or more detailed than in its parent trait, and an _assertion_ that any precondition it provides is equal to or more permissive than in its parent trait.
+
+**Other implicit assertions:**
+
+* Every value whose type is assigned to a [subset type](#sec-subset-types) yields an _assertion_ that it satisfies the subset type constraint.
+* Every non-empty [subset type](#sec-subset-types) yields an _assertion_ that its witness satisfies the constraint.
+* [Assign-such-that operators](#sec-update-and-call-statement) `x :| P(x)` yield an _assertion_ that `exists x :: P(x)`.
+* Every recursive function yield an _assertion_ that [it terminates](#sec-loop-termination).
+* Every [match expression](#sec-match-expression) or [alternative if statement](#sec-if-statement) yield an _assertion_ that all cases are covered.
+
+**Explicit assertions:**
+
+* Any explicit [`assert`](#sec-assert-statement) statement is _an assertion_[^precision-requires-clause].
+* A consecutive pair of lines in a [`calc`](#sec-calc-statement) statement forms _an assertion_ that the expressions are related according to the common operator.
+* Every call to a function or method with a [`requires`](#sec-requires-clause) clause yields _one assertion per requires clause_[^precision-requires-clause]
+  (special cases such as sequence indexing come with a special require clause that the index is within bounds).
+* Every [`ensures`](#sec-ensures-clause) clause yields an _assertion_ at the end of the method and on every return, and on [`forall`](#sec-forall-statement) statements.
+* Every [`invariant`](#sec-invariant-clause) clause yields an _assertion_ that it holds before the loop and an _assertion_ that it holds at the end of the loop.
+* Every [`decreases`](#sec-decreases-clause) clause yields an _assertion_ at either a call site or at the end of a while loop.
+* Every [`yield ensures`](#sec-iterator-specification) clause on [iterator](#sec-iterator-types) yield _assertions_ that the clause hold at every yielding point.
+* Every [`yield requires`](#sec-iterator-specification) clause on [iterator](#sec-iterator-types) yield _assertions_ that the clause hold at every point when the iterator is called.
+
+
+[^precision-requires-clause]: Dafny actually breaks things down further. For example, a precondition `requires A && B` or an assert statement `assert A && B;` turns into two assertions, more or less like `requires A requires B` and `assert A; assert B;`.
+
+It is useful to mentally visualize all these assertions as a list that roughly follows the order in the code,
+except for `ensures` or `decreases` that generate assertions that seem earlier in the code but, for verification purposes, would be placed later.
+In this list, each assertion depends on other assertions, statements and expressions that appear earlier in the control flow[^complexity-path-encoding].
+
+[^complexity-path-encoding]: All the complexities of the execution paths (if-then-else, loops, goto, break....) are, down the road and for verification purposes, cleverly encoded with variables recording the paths and guarding assumptions made on each path. In practice, a second clever encoding of variables enables grouping many assertions together, and recovers which assertion is failing based on the value of variables that the SMT solver returns.
+
+The fundamental unit of verification in Dafny is an _assertion batch_, which consists of one or more assertions from this "list", along with all the remaining assertions turned into assumptions. To reduce overhead, by default Dafny collects all the assertions in the body of a given method into a single assertion batch that it sends to the verifier, which tries to prove it correct.
+
+* If the verifier says it is correct[^smt-encoding], it means that all the assertions hold.
+* If the verifier returns a counterexample, this counterexample is used to determine both the failing assertion and the failing path.
+  In order to retrieve additional failing assertions, Dafny will again query the verifier after turning previously failed assertions into assumptions.[^example-assertion-turned-into-assumption] [^caveat-about-assertion-and-assumption]
+* If the verifier returns `unknown` or times out, or even preemptively for difficult assertions or to reduce the chance that the verifier will ‘be confused’ by the many assertions in a large batch, Dafny may partition the assertions into smaller batches[^smaller-batches]. An extreme case is the use of the `/vcsSplitOnEveryAssert` command-line option or the [`{:vcs_split_on_every_assert}` attribute](#sec-vcs_split_on_every_assert), which causes Dafny to make one batch for each assertion.
+
+[^smt-encoding]: The formula sent to the underlying SMT solver is the negation of the formula that the verifier wants to prove - also called a VC or verification condition. Hence, if the SMT solver returns "unsat", it means that the SMT formula is always false, meaning the verifier's formula is always true. On the other side, if the SMT solver returns "sat", it means that the SMT formula can be made true with a special variable assignment, which means that the verifier's formula is false under that same variable assignment, meaning it's a counter-example for the verifier. In practice and because of quantifiers, the SMT solver will usually return "unknown" instead of "sat", but will still provide a variable assignment that it couldn't prove that it does not make the formula true. Dafny reports it as a "counter-example" but it might not be a real counter-example, only provide hints about what Dafny knows.
+
+[^example-assertion-turned-into-assumption]: This [post](https://github.com/dafny-lang/dafny/discussions/1898#discussioncomment-2344533) gives an overview of how assertions are turned into assumptions for verification purposes.
+
+[^caveat-about-assertion-and-assumption]: Caveat about assertion and assumption: One big difference between an "assertion transformed in an assumption" and the original "assertion" is that the original "assertion" can unroll functions twice, whereas the "assumed assertion" can unroll them only once. Hence, Dafny can still continue to analyze assertions after a failing assertion without automatically proving "false" (which would make all further assertions vacuous).
+
+[^smaller-batches]: To create a smaller batch, Dafny duplicates the assertion batch, and transforms each assertion into an assumption into exactly one batch, so that assertions are verified only in one batch. This results in "easier" formulas for the verifier because it has less to prove, but it takes more overhead because every verification instance have a common set of axioms and there is no knowledge sharing between instances because they run independently.
+
+### 24.8.3. Controlling assertion batches {#sec-assertion-batches-control}
+
+Here is how you can control how Dafny partitions assertions into batches.
+
+* [`{:focus}`](#sec-focus) on an assert generates a separate assertion batch for the assertions of the enclosing block.
+* [`{:split_here}`](#sec-split_here) on an assert generates a separate assertion batch for assertions after this point.
+* [`{:vcs_split_on_every_assert}`](#sec-vcs_split_on_every_assert) on a function or a method generates one assertion batch per assertion
+
+We discourage the use of the following _heuristics attributes_ to partition assertions into batches.
+The effect of these attributes may vary, because they are low-level attributes and tune low-level heuristics, and will result in splits that could be manually controlled anyway.
+* [`{:vcs_max_cost N}`](#sec-vcs_max_cost) on a function or method enables splitting the assertion batch until the "cost" of each batch is below N.
+  Usually, you would set [`{:vcs_max_cost 0}`](#sec-vcs_max_cost) and [`{:vcs_max_splits N}`](#sec-vcs_max_splits) to ensure it generates N assertion batches.
+* [`{:vcs_max_keep_going_splits N}`](#sec-vcs_max_keep_going_splits) where N > 1 on a method dynamically splits the initial assertion batch up to N components if the verifier is stuck the first time.
+
+### 24.8.4. Command-line options and other attributes to control verification {#sec-command-line-options-and-attributes-for-verification}
+
+There are many great options that control various aspects of verifying dafny programs. Here we mention only a few:
+
+- Control of output: [`/dprint`](#sec-controlling-output), [`/rprint`](#sec-controlling-output), `/stats`, [`/compileVerbose`](#sec-controlling-compilation)
+- Whether to print warnings: `/proverWarnings`
+- Control of time: `/timeLimit`
+- Control of resources: `/rLimit` and [`{:rlimit}`](#sec-rlimit)
+- Control of the prover used: `/prover`
+- Control of how many times to _unroll_ functions: [`{:fuel}`](#sec-fuel)
+
+You can search for them in [this file](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef) as some of them are still documented in raw text format.
 
 ## 24.9. Compilation {#sec-compilation}
 
@@ -293,7 +537,7 @@ Remember that options can be stated with either a leading `/` or a leading `-`.
 
 TO BE WRITTEN
 
-### 24.10.3. Controlling output
+### 24.10.3. Controlling output {#sec-controlling-output}
 
 * `-dprint:<file>` - print the Dafny program after parsing (use `-` for `<file> to print to the console)
 
@@ -325,13 +569,44 @@ Running Dafny with `/verifyAllModules` on the file containing your main result i
 
 ### 24.10.6. Controlling boogie
 
-TO BE WRITTEN
+* `-print:<file>` - print the translation of the Dafny file to a Boogie file.
+
+If you have Boogie installed locally, you can run the printed Boogie file with the following script:
+
+```
+DOTNET=$(which dotnet)
+
+BOOGIE_ROOT="path/to/boogie/Source"
+BOOGIE="$BOOGIE_ROOT/BoogieDriver/bin/Debug/netcoreapp3.1/BoogieDriver.dll"
+
+if [[ ! -x "$DOTNET" ]]; then
+    echo "Error: Dafny requires .NET Core to run on non-Windows systems."
+    exit 1
+fi
+
+#Uncomment if you prefer to use the executable instead of the DLL
+#BOOGIE=$(which boogie)
+
+BOOGIE_OPTIONS="/infer:j"
+PROVER_OPTIONS="\
+  /proverOpt:O:auto_config=false \
+  /proverOpt:O:type_check=true \
+  /proverOpt:O:smt.case_split=3 \
+  /proverOpt:O:smt.qi.eager_threshold=100 \
+  /proverOpt:O:smt.delay_units=true \
+  /proverOpt:O:smt.arith.solver=2 \
+  "
+
+"$DOTNET" "$BOOGIE" $BOOGIE_OPTIONS $PROVER_OPTIONS "$@"
+# Uncomment if you want to use the executable instead of the DLL
+# "$BOOGIE" $BOOGIE_OPTIONS $PROVER_OPTIONS "$@"
+```
 
 ### 24.10.7. Controlling the prover
 
 TO BE WRITTEN
 
-### 24.10.8. Controlling compilation
+### 24.10.8. Controlling compilation {#sec-controlling-compilation}
 
 * `-compile:<n>` - controls whether compilation happens
 

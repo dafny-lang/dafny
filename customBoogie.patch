@@ -10,7 +10,7 @@ index 36bb4d93..7194b644 100644
 +EndProject
 +Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BaseTypes", "..\boogie\Source\BaseTypes\BaseTypes.csproj", "{68721962-0D91-4355-BC94-BE1CCBD30E47}"
 +EndProject
-+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AbsInt", "..\boogie\Source\AbsInt\AbsInt.csproj", "{2A6B36F4-9F15-459A-8EDB-5BAEED98FE17}"
++Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AbstractInterpretation", "..\boogie\Source\AbstractInterpretation\AbstractInterpretation.csproj", "{2A6B36F4-9F15-459A-8EDB-5BAEED98FE17}"
 +EndProject
 +Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CodeContractsExtender", "..\boogie\Source\CodeContractsExtender\CodeContractsExtender.csproj", "{09662044-5640-4785-92E3-2F7CDBA4DDB2}"
 +EndProject
@@ -138,7 +138,7 @@ index 30e67936..64a5a976 100644
  
    <!-- Boogie dependency -->
    <ItemGroup>
--    <PackageReference Include="Boogie.ExecutionEngine" Version="2.13.0" />
+-    <PackageReference Include="Boogie.ExecutionEngine" Version="2.13.4" />
 +    <ProjectReference Include="..\..\boogie\Source\ExecutionEngine\ExecutionEngine.csproj" />
    </ItemGroup>
  

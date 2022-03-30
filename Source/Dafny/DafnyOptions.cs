@@ -5,10 +5,8 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Text;
 using System.Diagnostics.Contracts;
 using System.IO;
-using System.Reflection;
 using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 using Microsoft.Dafny.Compilers;
@@ -17,6 +15,7 @@ using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
   public class DafnyOptions : Bpl.CommandLineOptions {
+
     public static DafnyOptions Create(params string[] arguments) {
       var result = new DafnyOptions();
       result.Parse(arguments);
@@ -24,7 +23,7 @@ namespace Microsoft.Dafny {
     }
 
     public DafnyOptions()
-      : base("Dafny", "Dafny program verifier") {
+      : base("Dafny", "Dafny program verifier", new DafnyConsolePrinter()) {
       Prune = true;
       NormalizeNames = true;
       EmitDebugInformation = false;
@@ -148,7 +147,7 @@ namespace Microsoft.Dafny {
     public virtual TestGenerationOptions TestGenOptions =>
       testGenOptions ??= new TestGenerationOptions();
 
-    protected override bool ParseOption(string name, Bpl.CommandLineOptionEngine.CommandLineParseState ps) {
+    protected override bool ParseOption(string name, Bpl.CommandLineParseState ps) {
       var args = ps.args; // convenient synonym
       switch (name) {
         case "dprelude":
@@ -197,7 +196,7 @@ namespace Microsoft.Dafny {
 
         case "compile": {
             int compile = 0;
-            if (ps.GetNumericArgument(ref compile, 5)) {
+            if (ps.GetIntArgument(ref compile, 5)) {
               // convert option to two booleans
               Compile = compile != 0;
               ForceCompile = compile == 2 || compile == 4;
@@ -222,7 +221,7 @@ namespace Microsoft.Dafny {
 
         case "compileVerbose": {
             int verbosity = 0;
-            if (ps.GetNumericArgument(ref verbosity, 2)) {
+            if (ps.GetIntArgument(ref verbosity, 2)) {
               CompileVerbose = verbosity == 1;
             }
 
@@ -252,7 +251,7 @@ namespace Microsoft.Dafny {
 
         case "trackPrintEffects": {
             int printEffects = 0;
-            if (ps.GetNumericArgument(ref printEffects, 2)) {
+            if (ps.GetIntArgument(ref printEffects, 2)) {
               EnforcePrintEffects = printEffects == 1;
             }
             return true;
@@ -269,7 +268,7 @@ namespace Microsoft.Dafny {
 
         case "dafnyVerify": {
             int verify = 0;
-            if (ps.GetNumericArgument(ref verify, 2)) {
+            if (ps.GetIntArgument(ref verify, 2)) {
               DafnyVerify = verify != 0; // convert to boolean
             }
 
@@ -278,7 +277,7 @@ namespace Microsoft.Dafny {
 
         case "spillTargetCode": {
             int spill = 0;
-            if (ps.GetNumericArgument(ref spill, 4)) {
+            if (ps.GetIntArgument(ref spill, 4)) {
               SpillTargetCode = spill;
             }
 
@@ -302,7 +301,7 @@ namespace Microsoft.Dafny {
 
         case "noCheating": {
             int cheat = 0; // 0 is default, allows cheating
-            if (ps.GetNumericArgument(ref cheat, 2)) {
+            if (ps.GetIntArgument(ref cheat, 2)) {
               DisallowSoundnessCheating = cheat == 1;
             }
 
@@ -318,11 +317,11 @@ namespace Microsoft.Dafny {
           return true;
 
         case "induction":
-          ps.GetNumericArgument(ref Induction, 5);
+          ps.GetIntArgument(ref Induction, 5);
           return true;
 
         case "inductionHeuristic":
-          ps.GetNumericArgument(ref InductionHeuristic, 7);
+          ps.GetIntArgument(ref InductionHeuristic, 7);
           return true;
 
         case "noIncludes":
@@ -339,7 +338,7 @@ namespace Microsoft.Dafny {
 
         case "arith": {
             int a = 0;
-            if (ps.GetNumericArgument(ref a, 11)) {
+            if (ps.GetIntArgument(ref a, 11)) {
               ArithMode = a;
             }
 
@@ -396,7 +395,7 @@ namespace Microsoft.Dafny {
 
         case "deprecation": {
             int d = 1;
-            if (ps.GetNumericArgument(ref d, 3)) {
+            if (ps.GetIntArgument(ref d, 3)) {
               DeprecationNoise = d;
             }
 
@@ -425,7 +424,7 @@ namespace Microsoft.Dafny {
 
         case "countVerificationErrors": {
             int countErrors = 1; // defaults to reporting verification errors
-            if (ps.GetNumericArgument(ref countErrors, 2)) {
+            if (ps.GetIntArgument(ref countErrors, 2)) {
               CountVerificationErrors = countErrors == 1;
             }
 
@@ -438,7 +437,7 @@ namespace Microsoft.Dafny {
 
         case "autoTriggers": {
             int autoTriggers = 0;
-            if (ps.GetNumericArgument(ref autoTriggers, 2)) {
+            if (ps.GetIntArgument(ref autoTriggers, 2)) {
               AutoTriggers = autoTriggers == 1;
             }
 
@@ -447,7 +446,7 @@ namespace Microsoft.Dafny {
 
         case "rewriteFocalPredicates": {
             int rewriteFocalPredicates = 0;
-            if (ps.GetNumericArgument(ref rewriteFocalPredicates, 2)) {
+            if (ps.GetIntArgument(ref rewriteFocalPredicates, 2)) {
               RewriteFocalPredicates = rewriteFocalPredicates == 1;
             }
 
@@ -460,13 +459,13 @@ namespace Microsoft.Dafny {
           }
 
         case "allocated": {
-            ps.GetNumericArgument(ref Allocated, 5);
+            ps.GetIntArgument(ref Allocated, 5);
             return true;
           }
 
         case "optimizeResolution": {
             int d = 2;
-            if (ps.GetNumericArgument(ref d, 3)) {
+            if (ps.GetIntArgument(ref d, 3)) {
               OptimizeResolution = d;
             }
 
@@ -475,7 +474,7 @@ namespace Microsoft.Dafny {
 
         case "definiteAssignment": {
             int da = 0;
-            if (ps.GetNumericArgument(ref da, 4)) {
+            if (ps.GetIntArgument(ref da, 4)) {
               DefiniteAssignmentLevel = da;
             }
 
@@ -547,8 +546,8 @@ namespace Microsoft.Dafny {
               InvalidArgumentError(name, ps);
             }
           }
-
           return true;
+
       }
 
       // Unless this is an option for test generation, defer to superclass
@@ -567,7 +566,7 @@ namespace Microsoft.Dafny {
       ).ToArray();
     }
 
-    protected void InvalidArgumentError(string name, CommandLineParseState ps) {
+    protected void InvalidArgumentError(string name, Bpl.CommandLineParseState ps) {
       ps.Error("Invalid argument \"{0}\" to option {1}", ps.args[ps.i], name);
     }
 
@@ -598,8 +597,10 @@ namespace Microsoft.Dafny {
     }
 
     public override string AttributeHelp =>
-      @"Dafny: The following attributes are supported by this version.
-
+      @"Dafny: The documentation about attributes is best viewed here:
+      https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-attributes
+      
+     The following attributes are supported by this version.
     {:extern}
     {:extern <s1:string>}
     {:extern <s1:string>, <s2:string>}
@@ -851,18 +852,16 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public override string Help =>
-      base.Help +
+    protected override string HelpBody =>
       $@"
+---- Dafny options ---------------------------------------------------------
 
-  ---- Dafny options ---------------------------------------------------------
+All the .dfy files supplied on the command line along with files recursively
+included by 'include' directives are considered a single Dafny program;
+however only those files listed on the command line are verified.
 
- All the .dfy files supplied on the command line along with files recursively
- included by 'include' directives are considered a single Dafny program;
- however only those files listed on the command line are verified.
-
- Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
-            3 -- compilation errors; 4 -- verification errors
+Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
+           3 -- compilation errors; 4 -- verification errors
 
 /dprelude:<file>
     choose Dafny prelude file
@@ -1138,6 +1137,7 @@ namespace Microsoft.Dafny {
 Dafny generally accepts Boogie options and passes these on to Boogie. However,
 some Boogie options, like /loopUnroll, may not be sound for Dafny or may not
 have the same meaning for a Dafny program as it would for a similar Boogie
-program.";
+program.
+".Replace("\n", "\n  ") + base.HelpBody;
   }
 }

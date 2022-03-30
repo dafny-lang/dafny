@@ -149,7 +149,7 @@ module SomeModule {
 
     [Fact]
     public void NoUniqueLinesWhenConcatenatingUnrelatedPrograms() {
-      var options = new DafnyOptions();
+      var options = DafnyOptions.Create();
       DafnyOptions.Install(options);
 
       var regularBoogie = GetBoogie(originalProgram).ToList();
@@ -169,7 +169,6 @@ module SomeModule {
       var options = DafnyOptions.Create();
       options.ProcsToCheck.Add("*SomeMethod");
       DafnyOptions.Install(options);
-      ExecutionEngine.printer = new ConsolePrinter(options); // For boogie errors
 
       var reorderedProverLog = await GetProverLogForProgram(options, GetBoogie(reorderedProgram));
       var regularProverLog = await GetProverLogForProgram(options, GetBoogie(originalProgram));
@@ -181,7 +180,6 @@ module SomeModule {
       var options = DafnyOptions.Create();
       options.ProcsToCheck.Add("*SomeMethod*");
       DafnyOptions.Install(options);
-      ExecutionEngine.printer = new ConsolePrinter(options); // For boogie errors
 
       var renamedProverLog = await GetProverLogForProgram(options, GetBoogie(renamedProgram));
       var regularProverLog = await GetProverLogForProgram(options, GetBoogie(originalProgram));
@@ -194,7 +192,6 @@ module SomeModule {
       var options = DafnyOptions.Create();
       options.ProcsToCheck.Add("*SomeMethod");
       DafnyOptions.Install(options);
-      ExecutionEngine.printer = new ConsolePrinter(options); // For boogie errors
 
       var renamedProverLog = await GetProverLogForProgram(options, GetBoogie(renamedProgram + originalProgram));
       var regularProverLog = await GetProverLogForProgram(options, GetBoogie(originalProgram));
@@ -216,7 +213,7 @@ module SomeModule {
       options.ProverLogFilePath = temp1;
       using (var engine = ExecutionEngine.CreateWithoutSharedCache(options)) {
         foreach (var boogieProgram in boogiePrograms) {
-          Main.BoogieOnce(engine, "", "", boogieProgram, "programId", out _, out var outcome);
+          var (outcome, _) = await Main.BoogieOnce(Console.Out, engine, "", "", boogieProgram, "programId");
           testOutputHelper.WriteLine("outcome: " + outcome);
         }
       }

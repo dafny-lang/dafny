@@ -120,7 +120,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var previousDocumentTask = databaseEntry.VerifiedDocument.IsCompletedSuccessfully ? databaseEntry.VerifiedDocument : databaseEntry.ResolvedDocument;
       var resolvedDocumentTask = ApplyChangesAsync(previousDocumentTask, documentChange, cancellationSource.Token);
       var verifiedDocument = VerifyAsync(resolvedDocumentTask, VerifyOnChange, cancellationSource.Token);
-      var updatedEntry = new DocumentDatabase.DocumentEntry(
+      var updatedEntry = new DocumentEntry(
         documentChange.TextDocument.Version,
         resolvedDocumentTask,
         verifiedDocument,

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
 using Program = Microsoft.Boogie.Program;
@@ -31,8 +32,9 @@ namespace DafnyTestGeneration {
       var oldPrintFile = DafnyOptions.O.PrintFile;
       DafnyOptions.O.PrintInstrumented = true;
       DafnyOptions.O.PrintFile = "-";
-      var textRepresentation = Utils.CaptureConsoleOutput(
-        () => program.Emit(new TokenTextWriter(Console.Out, DafnyOptions.O)));
+      var output = new StringWriter();
+      program.Emit(new TokenTextWriter(output, DafnyOptions.O));
+      var textRepresentation = output.ToString();
       Microsoft.Boogie.Parser.Parse(textRepresentation, "", out var copy);
       DafnyOptions.O.PrintInstrumented = oldPrintInstrumented;
       DafnyOptions.O.PrintFile = oldPrintFile;
@@ -46,7 +48,7 @@ namespace DafnyTestGeneration {
     /// options.Parse() on a new DafnyObject.
     /// </summary>
     private static DafnyOptions SetupOptions(string procedure) {
-      var options = new DafnyOptions();
+      var options = DafnyOptions.Create();
       options.Parse(new[] { "/proc:" + procedure });
       options.NormalizeNames = false;
       options.EmitDebugInformation = true;
@@ -71,7 +73,7 @@ namespace DafnyTestGeneration {
     /// version of the original boogie program. Return null if this
     /// counterexample does not cover any new SourceModifications.
     /// </summary>
-    public virtual string? GetCounterExampleLog() {
+    public virtual async Task<string?> GetCounterExampleLog() {
       var oldOptions = DafnyOptions.O;
       var options = SetupOptions(procedure);
       DafnyOptions.Install(options);
@@ -83,15 +85,23 @@ namespace DafnyTestGeneration {
       engine.CollectModSets(program);
       engine.CoalesceBlocks(program);
       engine.Inline(program);
-      var log = Utils.CaptureConsoleOutput(
-        () => engine.InferAndVerify(program,
-          new PipelineStatistics(), null,
-          _ => { }, uniqueId));
+      var writer = new StringWriter();
+      await engine.InferAndVerify(writer, program,
+        new PipelineStatistics(), null,
+        _ => { }, uniqueId);
+      var log = writer.ToString();
+      // TODO determine whether we can use the writer or still need the console.Out hijacking
+      // Utils.CaptureConsoleOutput(
+      //   () => {
+      //     engine.InferAndVerify(Console.Out, program,
+      //       new PipelineStatistics(), null,
+      //       _ => { }, uniqueId).Wait();
+      //   });
       DafnyOptions.Install(oldOptions);
       // make sure that there is a counterexample (i.e. no parse errors, etc):
       string? line;
       var stringReader = new StringReader(log);
-      while ((line = stringReader.ReadLine()) != null) {
+      while ((line = await stringReader.ReadLineAsync()) != null) {
         if (line.StartsWith("Block |")) {
           return log;
         }
