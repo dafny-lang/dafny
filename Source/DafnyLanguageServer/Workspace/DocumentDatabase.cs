@@ -44,7 +44,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       this.documentLoader = documentLoader;
       this.textChangeProcessor = textChangeProcessor;
       this.relocator = relocator;
-      CommandLineOptions.Clo.ProverOptions = GetProverOptions(this.options);
+      DafnyOptions.O.ProverOptions = GetProverOptions(this.options);
     }
 
     private static List<string> GetProverOptions(DocumentOptions options) {
@@ -120,7 +120,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var previousDocumentTask = databaseEntry.VerifiedDocument.IsCompletedSuccessfully ? databaseEntry.VerifiedDocument : databaseEntry.ResolvedDocument;
       var resolvedDocumentTask = ApplyChangesAsync(previousDocumentTask, documentChange, cancellationSource.Token);
       var verifiedDocument = VerifyAsync(resolvedDocumentTask, VerifyOnChange, cancellationSource.Token);
-      var updatedEntry = new DocumentDatabase.DocumentEntry(
+      var updatedEntry = new DocumentEntry(
         documentChange.TextDocument.Version,
         resolvedDocumentTask,
         verifiedDocument,
@@ -142,6 +142,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           Concat(oldDocument.OldVerificationDiagnostics).ToList();
       var migratedVerificationDiagnotics =
         relocator.RelocateDiagnostics(oldVerificationDiagnostics, documentChange, CancellationToken.None);
+      logger.LogDebug($"Migrated {oldVerificationDiagnostics.Count} diagnostics into {migratedVerificationDiagnotics.Count} diagnostics.");
       try {
         var newDocument = await documentLoader.LoadAsync(updatedText, cancellationToken);
         if (newDocument.SymbolTable.Resolved) {

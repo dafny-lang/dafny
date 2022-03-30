@@ -23,7 +23,7 @@ that use them.
 
 ## 5.1. Specification Clauses
 
-### 5.1.1. Requires Clause
+### 5.1.1. Requires Clause {#sec-requires-clause}
 
 ````grammar
 RequiresClause(allowLabel) =
@@ -47,7 +47,7 @@ of all the given Attributes. The order of conjunctions
 can be important: earlier conjuncts can set conditions that
 establish that later conjuncts are well-defined.
 
-### 5.1.2. Ensures Clause
+### 5.1.2. Ensures Clause {#sec-ensures-clause}
 
 ````grammar
 EnsuresClause(allowLambda) =
@@ -69,7 +69,7 @@ The order of conjunctions
 can be important: earlier conjuncts can set conditions that
 establish that later conjuncts are well-defined.
 
-### 5.1.3. Decreases Clause
+### 5.1.3. Decreases Clause {#sec-decreases-clause}
 ````grammar
 DecreasesClause(allowWildcard, allowLambda) =
   "decreases" { Attribute } DecreasesList(allowWildcard,
@@ -350,7 +350,7 @@ elements---one could imagine
 Also, ``FrameField`` is not taken into consideration for
 lambda expressions.
 
-### 5.1.5. Reads Clause
+### 5.1.5. Reads Clause {#sec-reads-clause}
 ````grammar
 ReadsClause(allowLemma, allowLambda, allowWild) =
   "reads"
@@ -392,7 +392,7 @@ read.
 
 TO BE WRITTEN: multiset of objects allowed in reads clauses
 
-### 5.1.6. Modifies Clause
+### 5.1.6. Modifies Clause {#sec-modifies-clause}
 
 ````grammar
 ModifiesClause(allowLambda) =
@@ -441,7 +441,7 @@ interprets JML's `assigns/modifies` in sense (b).
 ACSL and ACSL++ use the `assigns` keyword, but with _modify_ (b) semantics.
 Ada/SPARK's dataflow contracts encode _write_ (a) semantics.
 
-### 5.1.7. Invariant Clause
+### 5.1.7. Invariant Clause {#sec-invariant-clause}
 ````grammar
 InvariantClause_ =
   "invariant" { Attribute }

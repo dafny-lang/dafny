@@ -54,5 +54,11 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
+  <ItemGroup>
+	  <Compile Remove="_plugins/**" />
+	  <Content Remove="_plugins/**" />
+	  <EmbeddedResource Include="_plugins/**" />
+    <None Remove="_plugins\**" />
+	</ItemGroup>
 
 </Project>

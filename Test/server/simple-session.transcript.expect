@@ -2,34 +2,31 @@
 
 Verifying Impl$$_module.__default.A ...
   [1 proof obligation]  error
-transcript(3,9): Error: assertion violation
+transcript(3,9): Error: assertion might not hold
 Execution trace:
     (0,0): anon0
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 
 Verifying Impl$$_module.__default.A ...
-Retrieving cached verification result for implementation Impl$$_module.__default.A...
   [0 proof obligations]  error
-transcript(3,9): Error: assertion violation
+transcript(3,9): Error: assertion might not hold
 Execution trace:
     (0,0): anon0
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 
 Verifying Impl$$_module.__default.A ...
-Retrieving cached verification result for implementation Impl$$_module.__default.A...
   [0 proof obligations]  error
-transcript(3,9): Error: assertion violation
+transcript(3,9): Error: assertion might not hold
 Execution trace:
     (0,0): anon0
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 
 Verifying Impl$$_module.__default.A ...
-Retrieving cached verification result for implementation Impl$$_module.__default.A...
   [0 proof obligations]  error
-transcript(3,9): Error: assertion violation
+transcript(3,9): Error: assertion might not hold
 Execution trace:
     (0,0): anon0
 Verification completed successfully!
@@ -128,11 +125,11 @@ transcript(10,27): Error: invalid LogicalExpression
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
-transcript(10,9): Info: Selected triggers: {x' * x'} Trigger position: transcript(10,35)
+transcript(10,9): Info: Selected triggers: {x' * x'}
 
 Verifying Impl$$_module.__default.M_k ...
   [1 proof obligation]  error
-transcript(10,9): Error: assertion violation
+transcript(10,9): Error: assertion might not hold
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
@@ -140,16 +137,14 @@ Execution trace:
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
-transcript(10,9): Info: Selected triggers: {x' * x'} Trigger position: transcript(10,35)
+transcript(10,9): Info: Selected triggers: {x' * x'}
 
 Verifying Impl$$_module.__default.M_k ...
   [1 proof obligation]  verified
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
-transcript(10,9): Info: Selected triggers: {x' * x'} Trigger position: transcript(10,35)
-
-Verifying Impl$$_module.__default.M_k ...
+transcript(10,9): Info: Selected triggers: {x' * x'}
 Retrieving cached verification result for implementation Impl$$_module.__default.M_k...
   [1 proof obligation]  verified
 Verification completed successfully!
@@ -159,16 +154,14 @@ transcript(12,0): Error: invalid UpdateStmt
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
-transcript(10,9): Info: Selected triggers: {x' * x'} Trigger position: transcript(10,35)
+transcript(10,9): Info: Selected triggers: {x' * x'}
 
 Verifying Impl$$_module.__default.M_k ...
   [1 proof obligation]  verified
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
-transcript(10,9): Info: Selected triggers: {x' * x'} Trigger position: transcript(10,35)
-
-Verifying Impl$$_module.__default.M_k ...
+transcript(10,9): Info: Selected triggers: {x' * x'}
 Retrieving cached verification result for implementation Impl$$_module.__default.M_k...
   [1 proof obligation]  verified
 Verification completed successfully!
@@ -230,12 +223,10 @@ transcript(5,0): Warning: module-level methods are always non-instance, so the '
 transcript(15,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 transcript(24,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 transcript(33,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
-transcript(10,9): Info: Selected triggers: {x' * x'} Trigger position: transcript(10,35)
-transcript(20,9): Info: Selected triggers: {x' * x'} Trigger position: transcript(20,35)
-transcript(29,9): Info: Selected triggers: {x' * x'} Trigger position: transcript(29,35)
-transcript(38,9): Info: Selected triggers: {x' * x'} Trigger position: transcript(38,35)
-
-Verifying Impl$$_module.__default.M_k ...
+transcript(10,9): Info: Selected triggers: {x' * x'}
+transcript(20,9): Info: Selected triggers: {x' * x'}
+transcript(29,9): Info: Selected triggers: {x' * x'}
+transcript(38,9): Info: Selected triggers: {x' * x'}
 Retrieving cached verification result for implementation Impl$$_module.__default.M_k...
   [1 proof obligation]  verified
 
@@ -253,24 +244,16 @@ transcript(5,0): Warning: module-level methods are always non-instance, so the '
 transcript(15,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 transcript(24,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 transcript(33,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
-transcript(10,9): Info: Selected triggers: {x' * x'} Trigger position: transcript(10,35)
-transcript(20,9): Info: Selected triggers: {x' * x'} Trigger position: transcript(20,35)
-transcript(29,9): Info: Selected triggers: {x' * x'} Trigger position: transcript(29,35)
-transcript(38,9): Info: Selected triggers: {x' * x'} Trigger position: transcript(38,35)
-
-Verifying Impl$$_module.__default.M_k ...
+transcript(10,9): Info: Selected triggers: {x' * x'}
+transcript(20,9): Info: Selected triggers: {x' * x'}
+transcript(29,9): Info: Selected triggers: {x' * x'}
+transcript(38,9): Info: Selected triggers: {x' * x'}
 Retrieving cached verification result for implementation Impl$$_module.__default.M_k...
   [1 proof obligation]  verified
-
-Verifying Impl$$_module.__default.M0 ...
 Retrieving cached verification result for implementation Impl$$_module.__default.M0...
   [2 proof obligations]  verified
-
-Verifying Impl$$_module.__default.M1 ...
 Retrieving cached verification result for implementation Impl$$_module.__default.M1...
   [2 proof obligations]  verified
-
-Verifying Impl$$_module.__default.M2 ...
 Retrieving cached verification result for implementation Impl$$_module.__default.M2...
   [2 proof obligations]  verified
 Verification completed successfully!
@@ -279,26 +262,20 @@ transcript(5,0): Warning: module-level methods are always non-instance, so the '
 transcript(15,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 transcript(24,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 transcript(33,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
-transcript(10,9): Info: Selected triggers: {x' * x'} Trigger position: transcript(10,35)
-transcript(20,9): Info: Selected triggers: {x' * x'} Trigger position: transcript(20,35)
-transcript(29,9): Info: Selected triggers: {x' * x'} Trigger position: transcript(29,35)
-transcript(38,9): Warning: /!\ No terms found to trigger on. Potential trigger not suitable: transcript(38,37)
-
-Verifying Impl$$_module.__default.M_k ...
+transcript(10,9): Info: Selected triggers: {x' * x'}
+transcript(20,9): Info: Selected triggers: {x' * x'}
+transcript(29,9): Info: Selected triggers: {x' * x'}
+transcript(38,9): Warning: /!\ No terms found to trigger on.
 Retrieving cached verification result for implementation Impl$$_module.__default.M_k...
   [1 proof obligation]  verified
-
-Verifying Impl$$_module.__default.M0 ...
 Retrieving cached verification result for implementation Impl$$_module.__default.M0...
   [2 proof obligations]  verified
-
-Verifying Impl$$_module.__default.M1 ...
 Retrieving cached verification result for implementation Impl$$_module.__default.M1...
   [2 proof obligations]  verified
 
 Verifying Impl$$_module.__default.M2 ...
   [2 proof obligations]  error
-transcript(38,9): Error: assertion violation
+transcript(38,9): Error: assertion might not hold
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
@@ -316,26 +293,20 @@ transcript(5,0): Warning: module-level methods are always non-instance, so the '
 transcript(15,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 transcript(24,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 transcript(33,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
-transcript(10,9): Info: Selected triggers: {x' * x'} Trigger position: transcript(10,35)
-transcript(20,9): Info: Selected triggers: {x' * x'} Trigger position: transcript(20,35)
-transcript(29,9): Info: Selected triggers: {x' * x'} Trigger position: transcript(29,35)
-transcript(38,9): Warning: /!\ No terms found to trigger on. Potential trigger not suitable: transcript(38,37)
-
-Verifying Impl$$_module.__default.M_k ...
+transcript(10,9): Info: Selected triggers: {x' * x'}
+transcript(20,9): Info: Selected triggers: {x' * x'}
+transcript(29,9): Info: Selected triggers: {x' * x'}
+transcript(38,9): Warning: /!\ No terms found to trigger on.
 Retrieving cached verification result for implementation Impl$$_module.__default.M_k...
   [1 proof obligation]  verified
-
-Verifying Impl$$_module.__default.M0 ...
 Retrieving cached verification result for implementation Impl$$_module.__default.M0...
   [2 proof obligations]  verified
-
-Verifying Impl$$_module.__default.M1 ...
 Retrieving cached verification result for implementation Impl$$_module.__default.M1...
   [2 proof obligations]  verified
 
 Verifying Impl$$_module.__default.M2 ...
   [2 proof obligations]  error
-transcript(38,9): Error: assertion violation
+transcript(38,9): Error: assertion might not hold
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
@@ -346,20 +317,14 @@ transcript(5,0): Warning: module-level methods are always non-instance, so the '
 transcript(15,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 transcript(24,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 transcript(33,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
-transcript(10,9): Info: Selected triggers: {x' * x'} Trigger position: transcript(10,35)
-transcript(20,9): Info: Selected triggers: {x' * x'} Trigger position: transcript(20,35)
-transcript(29,9): Info: Selected triggers: {x' * x'} Trigger position: transcript(29,35)
-transcript(38,9): Warning: /!\ No terms found to trigger on. Potential trigger not suitable: transcript(38,37)
-
-Verifying Impl$$_module.__default.M_k ...
+transcript(10,9): Info: Selected triggers: {x' * x'}
+transcript(20,9): Info: Selected triggers: {x' * x'}
+transcript(29,9): Info: Selected triggers: {x' * x'}
+transcript(38,9): Warning: /!\ No terms found to trigger on.
 Retrieving cached verification result for implementation Impl$$_module.__default.M_k...
   [1 proof obligation]  verified
-
-Verifying Impl$$_module.__default.M0 ...
 Retrieving cached verification result for implementation Impl$$_module.__default.M0...
   [2 proof obligations]  verified
-
-Verifying Impl$$_module.__default.M1 ...
 Retrieving cached verification result for implementation Impl$$_module.__default.M1...
   [2 proof obligations]  verified
 
@@ -371,24 +336,16 @@ transcript(5,0): Warning: module-level methods are always non-instance, so the '
 transcript(15,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 transcript(24,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 transcript(33,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
-transcript(10,9): Info: Selected triggers: {x' * x'} Trigger position: transcript(10,35)
-transcript(20,9): Info: Selected triggers: {x' * x'} Trigger position: transcript(20,35)
-transcript(29,9): Info: Selected triggers: {x' * x'} Trigger position: transcript(29,35)
-transcript(38,9): Warning: /!\ No terms found to trigger on. Potential trigger not suitable: transcript(38,37)
-
-Verifying Impl$$_module.__default.M_k ...
+transcript(10,9): Info: Selected triggers: {x' * x'}
+transcript(20,9): Info: Selected triggers: {x' * x'}
+transcript(29,9): Info: Selected triggers: {x' * x'}
+transcript(38,9): Warning: /!\ No terms found to trigger on.
 Retrieving cached verification result for implementation Impl$$_module.__default.M_k...
   [1 proof obligation]  verified
-
-Verifying Impl$$_module.__default.M0 ...
 Retrieving cached verification result for implementation Impl$$_module.__default.M0...
   [2 proof obligations]  verified
-
-Verifying Impl$$_module.__default.M1 ...
 Retrieving cached verification result for implementation Impl$$_module.__default.M1...
   [2 proof obligations]  verified
-
-Verifying Impl$$_module.__default.M2 ...
 Retrieving cached verification result for implementation Impl$$_module.__default.M2...
   [2 proof obligations]  verified
 Verification completed successfully!
@@ -418,20 +375,14 @@ transcript(5,0): Warning: module-level methods are always non-instance, so the '
 transcript(15,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 transcript(24,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 transcript(33,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
-transcript(10,9): Info: Selected triggers: {x' * x'} Trigger position: transcript(10,35)
-transcript(20,9): Info: Selected triggers: {x' * x'} Trigger position: transcript(20,35)
-transcript(29,9): Info: Selected triggers: {x' * x'} Trigger position: transcript(29,35)
-transcript(38,9): Warning: /!\ No terms found to trigger on. Potential trigger not suitable: transcript(38,37)
-
-Verifying Impl$$_module.__default.M_k ...
+transcript(10,9): Info: Selected triggers: {x' * x'}
+transcript(20,9): Info: Selected triggers: {x' * x'}
+transcript(29,9): Info: Selected triggers: {x' * x'}
+transcript(38,9): Warning: /!\ No terms found to trigger on.
 Retrieving cached verification result for implementation Impl$$_module.__default.M_k...
   [1 proof obligation]  verified
-
-Verifying Impl$$_module.__default.M0 ...
 Retrieving cached verification result for implementation Impl$$_module.__default.M0...
   [2 proof obligations]  verified
-
-Verifying Impl$$_module.__default.M1 ...
 Retrieving cached verification result for implementation Impl$$_module.__default.M1...
   [2 proof obligations]  verified
 
@@ -464,20 +415,14 @@ transcript(5,0): Warning: module-level methods are always non-instance, so the '
 transcript(15,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 transcript(24,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 transcript(33,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
-transcript(10,9): Info: Selected triggers: {x' * x'} Trigger position: transcript(10,35)
-transcript(20,9): Info: Selected triggers: {x' * x'} Trigger position: transcript(20,35)
-transcript(29,9): Info: Selected triggers: {x' * x'} Trigger position: transcript(29,35)
-transcript(38,9): Warning: /!\ No terms found to trigger on. Potential trigger not suitable: transcript(38,37)
-
-Verifying Impl$$_module.__default.M_k ...
+transcript(10,9): Info: Selected triggers: {x' * x'}
+transcript(20,9): Info: Selected triggers: {x' * x'}
+transcript(29,9): Info: Selected triggers: {x' * x'}
+transcript(38,9): Warning: /!\ No terms found to trigger on.
 Retrieving cached verification result for implementation Impl$$_module.__default.M_k...
   [1 proof obligation]  verified
-
-Verifying Impl$$_module.__default.M0 ...
 Retrieving cached verification result for implementation Impl$$_module.__default.M0...
   [2 proof obligations]  verified
-
-Verifying Impl$$_module.__default.M1 ...
 Retrieving cached verification result for implementation Impl$$_module.__default.M1...
   [2 proof obligations]  verified
 
@@ -489,24 +434,16 @@ transcript(5,0): Warning: module-level methods are always non-instance, so the '
 transcript(15,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 transcript(24,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 transcript(33,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
-transcript(10,9): Info: Selected triggers: {x' * x'} Trigger position: transcript(10,35)
-transcript(20,9): Info: Selected triggers: {x' * x'} Trigger position: transcript(20,35)
-transcript(29,9): Info: Selected triggers: {x' * x'} Trigger position: transcript(29,35)
-transcript(38,9): Warning: /!\ No terms found to trigger on. Potential trigger not suitable: transcript(38,37)
-
-Verifying Impl$$_module.__default.M_k ...
+transcript(10,9): Info: Selected triggers: {x' * x'}
+transcript(20,9): Info: Selected triggers: {x' * x'}
+transcript(29,9): Info: Selected triggers: {x' * x'}
+transcript(38,9): Warning: /!\ No terms found to trigger on.
 Retrieving cached verification result for implementation Impl$$_module.__default.M_k...
   [1 proof obligation]  verified
-
-Verifying Impl$$_module.__default.M0 ...
 Retrieving cached verification result for implementation Impl$$_module.__default.M0...
   [2 proof obligations]  verified
-
-Verifying Impl$$_module.__default.M1 ...
 Retrieving cached verification result for implementation Impl$$_module.__default.M1...
   [2 proof obligations]  verified
-
-Verifying Impl$$_module.__default.M2 ...
 Retrieving cached verification result for implementation Impl$$_module.__default.M2...
   [1 proof obligation]  verified
 Verification completed successfully!

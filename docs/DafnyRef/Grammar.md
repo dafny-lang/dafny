@@ -115,7 +115,7 @@ separates tokens.
 
 A sequence of alphanumeric characters (with no preceding or following additional
 alphanumeric characters) is a _single_ token. This is true even if the token
-is syntactially or semantically invalid and the sequence could be separated into
+is syntactically or semantically invalid and the sequence could be separated into
 more than one valid token. For example, `assert56` is one identifier token,
 not a keyword `assert` followed by a number; `ifb!=0` begins with the token
 `ifb` and not with the keyword `if` and token `b`; `0xFFFFZZ` is an illegal
@@ -473,7 +473,7 @@ ExportId = NoUSIdentOrDigits
 TypeNameOrCtorSuffix = NoUSIdentOrDigits
 ````
 
-Some parsing constexts
+Some parsing contexts
 
 ### 2.6.3. Qualified Names
 ```grammar

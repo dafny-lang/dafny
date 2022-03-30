@@ -26,6 +26,8 @@ namespace IntegrationTests {
     private static readonly string[] DefaultDafnyArguments = new[] {
       "/countVerificationErrors:0",
 
+      "/vcsCores:2",
+
       // We do not want absolute or relative paths in error messages, just the basename of the file
       "/useBaseNameForFileName",
 
@@ -86,7 +88,10 @@ namespace IntegrationTests {
         }
       };
 
-      var passthroughEnvironmentVariables = new[] { "PATH", "HOME" };
+      var passthroughEnvironmentVariables = new[] { "PATH", "HOME", "DOTNET_NOLOGO" };
+
+      // Silence dotnet's welcome message
+      Environment.SetEnvironmentVariable("DOTNET_NOLOGO", "true");
 
       string[] features;
       if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {

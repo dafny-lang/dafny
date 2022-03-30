@@ -1,11 +1,12 @@
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:cs "%s" > "%t"
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:js "%s" >> "%t"
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:go "%s" >> "%t"
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:java "%s" >> "%t"
+// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:js "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:go "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 // The Java compiler lacks support for this (see dafny0/RuntimeTypeTests0.dfy).
 
-datatype Co<+T> = Co(T){
+datatype Co<+T> = Co(z: T) {
     const x: int;
     const y: seq<T>
 
@@ -20,7 +21,7 @@ datatype Co<+T> = Co(T){
     method mD(x: T) returns (r: T) { r := x; }
 }
 
-datatype Non<T> = Non(T){
+datatype Non<T> = Non(T) {
     const x: int;
     const y: seq<T>
 
@@ -35,7 +36,7 @@ datatype Non<T> = Non(T){
     method mD(x: T) returns (r: T) { r := x; }
 }
 
-datatype Cont<-T> = Cont(T -> int) {
+datatype Cont<-T> = Cont(z: T -> int) {
     const x: int;
     const y: seq<T>
 
@@ -50,7 +51,7 @@ datatype Cont<-T> = Cont(T -> int) {
     method mD(x: T) returns (r: T) { r := x; }
 }
 
-codatatype CCo<+T> = CCo(T){
+codatatype CCo<+T> = CCo(T) {
     const x: int;
     const y: seq<T>
 
@@ -65,7 +66,7 @@ codatatype CCo<+T> = CCo(T){
     method mD(x: T) returns (r: T) { r := x; }
 }
 
-codatatype CNon<T> = CNon(T){
+codatatype CNon<T> = CNon(z: T) {
     const x: int;
     const y: seq<T>
 
@@ -129,13 +130,13 @@ method Nonvariant() {
 }
 
 method Contravariant() {
+  var i := new Int.Int();
   var a: Cont<X> := Cont(_ => 0);  // compilation error (java only): compilation does not support trait types as a type parameter; consider introducing a ghost
   var b: Cont<Int>;
   b := a;
-  print a, " and ", b, "\n";
+  print a.z(i), " and ", b.z(i), "\n";
 
   var s: Cont<X> := Cont(_ => 1);
-  var i := new Int.Int();
   var t := s.mD(i);
   var y := s.mA(t);
   print t, y, s.C(s.x), s.B(s.y), s.A(t), Cont.sA(t), s.gA(t), "\n"; 
