@@ -78,16 +78,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
           return new List<Position> { };
         }
 
-        return originalRanges.SelectMany(diagnostic => MigratePosition(change, diagnostic)).ToList();
+        return originalRanges.SelectMany(position => MigratePosition(change.Range, change.Text, position)).ToList();
       }
 
-      private IEnumerable<Position> MigratePosition(TextDocumentContentChangeEvent change, Position position) {
-        var afterChangeEndOffset = GetPositionAtEndOfAppliedChange(change.Range!, change.Text);
-        if (change.Range!.Contains(position)) {
+      private IEnumerable<Position> MigratePosition(Range changeRange, string changeText, Position position) {
+        var afterChangeEndOffset = GetPositionAtEndOfAppliedChange(changeRange, changeText);
+        if (changeRange.Contains(position)) {
           return new List<Position> { };
         }
 
-        return new List<Position> { MigratePosition(position, change.Range!, afterChangeEndOffset) };
+        return new List<Position> { MigratePosition(position, changeRange, afterChangeEndOffset) };
       }
 
       private IEnumerable<Diagnostic> MigrateDiagnostic(Range changeRange, string changeText, Diagnostic diagnostic) {
@@ -278,9 +278,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
         return contentChanges.Aggregate(originalDiagnostics, MigrateVerificationTree);
       }
       private IEnumerable<VerificationTree> MigrateVerificationTree(IEnumerable<VerificationTree> verificationTrees, TextDocumentContentChangeEvent change) {
-        var afterChangeEndOffset = GetPositionAtEndOfAppliedChange(change.Range!, change.Text);
+        if (change.Range == null) {
+          yield break;
+        }
+        var afterChangeEndOffset = GetPositionAtEndOfAppliedChange(change.Range, change.Text);
         foreach (var verificationTree in verificationTrees) {
-          var newRange = MigrateRange(verificationTree.Range, change.Range!, afterChangeEndOffset);
+          var newRange = MigrateRange(verificationTree.Range, change.Range, afterChangeEndOffset);
           if (newRange == null) {
             continue;
           }
@@ -288,7 +291,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
             Range = newRange,
             Children = MigrateVerificationTree(verificationTree.Children, change).ToList(),
             RelatedRanges = verificationTree.RelatedRanges
-              .Select(pos => MigrateRange(pos, change.Range!, afterChangeEndOffset))
+              .Select(pos => MigrateRange(pos, change.Range, afterChangeEndOffset))
               .OfType<Range>().ToImmutableList(),
             StatusVerification = verificationTree.StatusVerification,
             StatusCurrent = CurrentStatus.Obsolete,
@@ -298,7 +301,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
           if (newNodeDiagnostic is AssertionVerificationTree assertionNodeDiagnostic) {
             newNodeDiagnostic = assertionNodeDiagnostic with {
               SecondaryPosition = assertionNodeDiagnostic.SecondaryPosition != null
-                ? MigratePosition(assertionNodeDiagnostic.SecondaryPosition, change.Range!, afterChangeEndOffset)
+                ? MigratePosition(assertionNodeDiagnostic.SecondaryPosition, change.Range, afterChangeEndOffset)
                 : null
             };
           }
