@@ -6,11 +6,13 @@ using System.Linq;
 using JetBrains.Annotations;
 
 namespace Microsoft.Dafny {
-  public enum BraceStyle {
+  public enum BlockStyle {
     Nothing,
     Space,
     Newline,
-    NewlineNoBrace
+    Brace,
+    SpaceBrace,
+    NewlineBrace
   }
 
   public class ConcreteSyntaxTree : ICanRender {
@@ -125,8 +127,8 @@ namespace Microsoft.Dafny {
     }
 
     public ConcreteSyntaxTree NewBlock(string header = "", string footer = "",
-      BraceStyle open = BraceStyle.Space,
-      BraceStyle close = BraceStyle.Newline) {
+      BlockStyle open = BlockStyle.SpaceBrace,
+      BlockStyle close = BlockStyle.NewlineBrace) {
       Contract.Requires(header != null);
       Append(ConcreteSyntaxTreeUtils.Block(out ConcreteSyntaxTree result, header: header, footer: footer, open: open,
         close: close));
@@ -146,7 +148,7 @@ namespace Microsoft.Dafny {
     }
 
     public ConcreteSyntaxTree NewBigExprBlock(string header = "", string /*?*/ footer = "") {
-      return NewBlock(header, footer, BraceStyle.Space, BraceStyle.Nothing);
+      return NewBlock(header, footer, BlockStyle.SpaceBrace, BlockStyle.Brace);
     }
 
     public ConcreteSyntaxTree NewFile(string filename) {

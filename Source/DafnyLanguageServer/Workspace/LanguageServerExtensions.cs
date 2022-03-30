@@ -35,7 +35,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         .AddSingleton<IRelocator, Relocator>()
         .AddSingleton<ISymbolGuesser, SymbolGuesser>()
         .AddSingleton<ICompilationStatusNotificationPublisher, CompilationStatusNotificationPublisher>()
-        .AddSingleton<IDiagnosticPublisher, DiagnosticPublisher>();
+        .AddSingleton<ITelemetryPublisher, TelemetryPublisher>();
     }
 
     private static TextDocumentLoader CreateTextDocumentLoader(IServiceProvider services) {
@@ -46,8 +46,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         services.GetRequiredService<ISymbolTableFactory>(),
         services.GetRequiredService<IGhostStateDiagnosticCollector>(),
         services.GetRequiredService<ICompilationStatusNotificationPublisher>(),
-        services.GetRequiredService<ILoggerFactory>(),
-        services.GetRequiredService<IOptions<DafnyPluginsOptions>>()
+        services.GetRequiredService<ILoggerFactory>()
       );
     }
   }

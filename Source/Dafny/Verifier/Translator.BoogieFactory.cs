@@ -109,7 +109,6 @@ namespace Microsoft.Dafny {
       MapDomain,
       MapElements,
       MapEqual,
-      MapBuild,
       MapDisjoint,
       MapUnion,
       MapGlue,

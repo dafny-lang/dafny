@@ -4,10 +4,7 @@ using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
 
-  /// <summary>
-  /// An extension of DafnyOptions
-  /// </summary>
-  public class TestGenerationOptions : DafnyOptions {
+  public class TestGenerationOptions {
 
     public bool WarnDeadCode = false;
     public enum Modes { None, Block, Path };
@@ -17,9 +14,7 @@ namespace Microsoft.Dafny {
     public uint TestInlineDepth = 0;
     public string PrintBoogieFile = null;
 
-    public override TestGenerationOptions TestGenOptions => null;
-
-    protected override bool ParseOption(string name, CommandLineParseState ps) {
+    public bool ParseOption(string name, Bpl.CommandLineParseState ps) {
       var args = ps.args;
 
       switch (name) {
@@ -48,7 +43,7 @@ namespace Microsoft.Dafny {
 
         case "generateTestSeqLengthLimit":
           var limit = 0;
-          if (ps.GetNumericArgument(ref limit)) {
+          if (ps.GetIntArgument(ref limit)) {
             SeqLengthLimit = (uint)limit;
           }
           return true;
@@ -61,7 +56,7 @@ namespace Microsoft.Dafny {
 
         case "generateTestInlineDepth":
           var depth = 0;
-          if (ps.GetNumericArgument(ref depth)) {
+          if (ps.GetIntArgument(ref depth)) {
             TestInlineDepth = (uint)depth;
           }
           return true;
@@ -70,7 +65,7 @@ namespace Microsoft.Dafny {
       return false;
     }
 
-    public override string Help => @"
+    public string Help => @"
 /generateTestMode:<None|Block|Path>
     None is the default and has no effect.
     Block prints block-coverage tests for the given program.

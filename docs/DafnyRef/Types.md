@@ -319,7 +319,7 @@ function `as real` from `int` to `real`, as described in
 
 TODO: Need syntax for real literals with exponents
 
-## 7.3. Bit-vector Types
+## 7.3. Bit-vector Types {#sec-bit-vector-types}
 ````grammar
 BitVectorType_ = bvToken
 ````
@@ -1850,8 +1850,6 @@ A method without a body is _abstract_. A method is allowed to be
 abstract under the following circumstances:
 
 * It contains an `{:axiom}` attribute
-* It contains an `{:imported}` attribute
-* It contains a `{:decl}` attribute
 * It is a declaration in an abstract module.
 Note that when there is no body, Dafny assumes that the *ensures*
 clauses are true without proof. (TODO: `:extern` attribute?)
@@ -2078,7 +2076,7 @@ The following example illustrates using such an eta-expansion:
 
 TO BE WRITTEN - unchanged predicate
 
-## 13.4. Function Declarations
+## 13.4. Function Declarations {#sec-function-declarations}
 
 ````grammar
 FunctionDecl(isWithinAbstractModule) =
@@ -2301,7 +2299,7 @@ See [Section 23.5.3](#sec-friendliness) for descriptions
 of inductive predicates and lemmas.
 
 <!--PDF NEWPAGE-->
-# 14. Trait Types
+# 14. Trait Types {#sec-trait-types}
 ````grammar
 TraitDecl =
   "trait" { Attribute } ClassName [ GenericParameters ]
@@ -3105,7 +3103,7 @@ var pair: (int, ghost int) := (1, ghost 2);
 ```
 
 <!--PDF NEWPAGE-->
-# 18. Algebraic Datatypes
+# 18. Algebraic Datatypes {#sec-algebraic-datatype}
 
 ````grammar
 DatatypeDecl =
