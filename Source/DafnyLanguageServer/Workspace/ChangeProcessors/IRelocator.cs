@@ -32,6 +32,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
     /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
     IReadOnlyList<Diagnostic> RelocateDiagnostics(IReadOnlyList<Diagnostic> originalDiagnostics, DidChangeTextDocumentParams changes, CancellationToken cancellationToken);
 
-    NodeDiagnostic RelocateNodeDiagnostic(NodeDiagnostic oldVerificationNodeDiagnostic, DidChangeTextDocumentParams documentChange, CancellationToken none);
+    /// <summary>
+    /// Relocate node diagnostics from a document to the next document, prior to verifying the new document.
+    /// That way, we can instantly publish old diagnostics for the positions in the new document
+    /// </summary>
+    /// <param name="oldVerificationNodeDiagnostic">The node diagnostic that should be relocated, including its children</param>
+    /// <param name="documentChange">The applied changes to the text document that should be used for the relocation.</param>
+    /// <param name="cancellationToken">A token to stop the relocation prior completion.</param>
+    /// <returns></returns>
+    NodeDiagnostic RelocateNodeDiagnostic(NodeDiagnostic oldVerificationNodeDiagnostic, DidChangeTextDocumentParams documentChange, CancellationToken cancellationToken);
   }
 }

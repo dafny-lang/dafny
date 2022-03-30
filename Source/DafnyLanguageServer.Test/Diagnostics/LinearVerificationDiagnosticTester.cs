@@ -171,7 +171,7 @@ public abstract class LinearVerificationDiagnosticTester : ClientBasedLanguageSe
     var changes = new List<Tuple<Range, string>>();
     while (matches.Count > 0) {
       var firstChange = 0;
-      Match? firstChangeMatch = null;
+      Match firstChangeMatch = null;
       for (var i = 0; i < matches.Count; i++) {
         if (matches[i].Groups["id"].Value != "") {
           var intValue = Int32.Parse(matches[i].Groups["id"].Value);
@@ -245,7 +245,6 @@ public abstract class LinearVerificationDiagnosticTester : ClientBasedLanguageSe
       return traceObtained;
     }
 
-    var startOfLine = true;
     var toFindRegex = new Regex(@"(?<=(?:^|\n)[^:]*)\?");
     var matches = toFindRegex.Matches(expected);
     var pattern = "";

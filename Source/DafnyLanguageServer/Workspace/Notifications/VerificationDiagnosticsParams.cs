@@ -288,59 +288,38 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       }
     }
 
-    // Requires PropagateChildrenErrorsUp to have been called before.
-    public virtual void RenderInto(LineVerificationStatus[] perLineDiagnostics, bool contextHasErrors = false, bool contextIsPending = false, Range? otherRange = null, Range? contextRange = null) {
-      Range range = otherRange ?? Range;
-      var isSingleLine = range.Start.Line == range.End.Line;
-      LineVerificationStatus targetStatus = StatusVerification switch {
-        VerificationStatus.Unknown => StatusCurrent switch {
-          CurrentStatus.Current => LineVerificationStatus.Unknown,
-          CurrentStatus.Obsolete => LineVerificationStatus.Scheduled,
-          CurrentStatus.Verifying => LineVerificationStatus.Verifying,
-          _ => throw new ArgumentOutOfRangeException()
-        },
+    public static LineVerificationStatus RenderLineVerificationStatus(
+      bool isSingleLine, bool contextHasErrors, bool contextIsPending,
+      CurrentStatus currentStatus, VerificationStatus verificationStatus) {
+      LineVerificationStatus simpleStatus = verificationStatus switch {
+        VerificationStatus.Unknown => LineVerificationStatus.Unknown,
         // let's be careful to no display "Verified" for a range if the context does not have errors and is pending
         // because there might be other errors on the same range.
-        VerificationStatus.Verified => StatusCurrent switch {
-          CurrentStatus.Current => contextHasErrors
+        VerificationStatus.Verified =>
+          contextHasErrors
             ? isSingleLine // Sub-implementations that are verified do not count
               ? LineVerificationStatus.ErrorRangeAssertionVerified
               : LineVerificationStatus.ErrorRange
             : contextIsPending && !isSingleLine
               ? LineVerificationStatus.Unknown
               : LineVerificationStatus.Verified,
-          CurrentStatus.Obsolete => contextHasErrors
-            ? isSingleLine
-              ? LineVerificationStatus.ErrorRangeAssertionVerifiedObsolete
-              : LineVerificationStatus.ErrorRangeObsolete
-            : LineVerificationStatus.VerifiedObsolete,
-          CurrentStatus.Verifying => contextHasErrors
-            ? isSingleLine
-              ? LineVerificationStatus.ErrorRangeAssertionVerifiedVerifying
-              : LineVerificationStatus.ErrorRangeVerifying
-            : LineVerificationStatus.VerifiedVerifying,
-          _ => throw new ArgumentOutOfRangeException()
-        },
         // We don't display inconclusive on the gutter (user should focus on errors),
         // We display an error range instead
-        VerificationStatus.Inconclusive => StatusCurrent switch {
-          CurrentStatus.Current => LineVerificationStatus.ErrorRange,
-          CurrentStatus.Obsolete => LineVerificationStatus.ErrorRangeObsolete,
-          CurrentStatus.Verifying => LineVerificationStatus.ErrorRangeVerifying,
-          _ => throw new ArgumentOutOfRangeException()
-        },
-        VerificationStatus.Error => StatusCurrent switch {
-          CurrentStatus.Current => isSingleLine ? LineVerificationStatus.Error : LineVerificationStatus.ErrorRange,
-          CurrentStatus.Obsolete => isSingleLine
-            ? LineVerificationStatus.ErrorObsolete
-            : LineVerificationStatus.ErrorRangeObsolete,
-          CurrentStatus.Verifying => isSingleLine
-            ? LineVerificationStatus.ErrorVerifying
-            : LineVerificationStatus.ErrorRangeVerifying,
-          _ => throw new ArgumentOutOfRangeException()
-        },
+        VerificationStatus.Inconclusive =>
+          LineVerificationStatus.ErrorRange,
+        VerificationStatus.Error => isSingleLine
+            ? LineVerificationStatus.Error
+            : LineVerificationStatus.ErrorRange,
         _ => throw new ArgumentOutOfRangeException()
       };
+      return (LineVerificationStatus)((int)simpleStatus + (int)currentStatus);
+    }
+
+    // Requires PropagateChildrenErrorsUp to have been called before.
+    public virtual void RenderInto(LineVerificationStatus[] perLineDiagnostics, bool contextHasErrors = false, bool contextIsPending = false, Range? otherRange = null, Range? contextRange = null) {
+      Range range = otherRange ?? Range;
+      var isSingleLine = range.Start.Line == range.End.Line;
+      LineVerificationStatus targetStatus = RenderLineVerificationStatus(isSingleLine, contextHasErrors, contextIsPending, StatusCurrent, StatusVerification);
       for (var line = range.Start.Line; line <= range.End.Line; line++) {
         if (line < 0 || perLineDiagnostics.Length <= line) {
           // An error occurred? We don't want null pointer exceptions anyway
