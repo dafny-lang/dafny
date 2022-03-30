@@ -3252,7 +3252,7 @@ namespace Microsoft.Dafny {
 
       Bpl.IdentifierExpr ie;
       if (definiteAssignmentTrackers.TryGetValue(expr.Var.UniqueName, out ie)) {
-        builder.Add(Assert(expr.tok, ie, new PODesc.DefiniteAssignment($"variable '{expr.Var.Name}'", "before it is used")));
+        builder.Add(Assert(expr.tok, ie, new PODesc.DefiniteAssignment($"variable '{expr.Var.Name}'", "here")));
       }
     }
 
@@ -3276,7 +3276,7 @@ namespace Microsoft.Dafny {
       Bpl.IdentifierExpr ie;
       if (definiteAssignmentTrackers.TryGetValue(nm, out ie)) {
         var desc = new PODesc.DefiniteAssignment($"field '{field.Name}'",
-          atNew ? "at this point in the constructor body" : "before it is used");
+          atNew ? "at this point in the constructor body" : "here");
         builder.Add(Assert(tok, ie, desc));
       }
     }
