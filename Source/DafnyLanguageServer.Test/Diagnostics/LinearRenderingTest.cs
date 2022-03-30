@@ -30,22 +30,22 @@ public class LinearRenderingTest {
       VerificationStatus.Verified => currentStatus switch {
         CurrentStatus.Current => contextHasErrors
           ? isSingleLine // Sub-implementations that are verified do not count
-            ? LineVerificationStatus.ErrorRangeAssertionVerified
-            : LineVerificationStatus.ErrorRange
+            ? LineVerificationStatus.AssertionVerifiedInErrorContext
+            : LineVerificationStatus.ErrorContext
           : contextIsPending && !isSingleLine
             ? LineVerificationStatus.Unknown
             : LineVerificationStatus.Verified,
         CurrentStatus.Obsolete => contextHasErrors
           ? isSingleLine
-            ? LineVerificationStatus.ErrorRangeAssertionVerifiedObsolete
-            : LineVerificationStatus.ErrorRangeObsolete
+            ? LineVerificationStatus.AssertionVerifiedInErrorContextObsolete
+            : LineVerificationStatus.ErrorContextObsolete
           : contextIsPending && !isSingleLine
             ? LineVerificationStatus.Scheduled
             : LineVerificationStatus.VerifiedObsolete,
         CurrentStatus.Verifying => contextHasErrors
           ? isSingleLine
-            ? LineVerificationStatus.ErrorRangeAssertionVerifiedVerifying
-            : LineVerificationStatus.ErrorRangeVerifying
+            ? LineVerificationStatus.AssertionVerifiedInErrorContextVerifying
+            : LineVerificationStatus.ErrorContextVerifying
           : contextIsPending && !isSingleLine ?
             LineVerificationStatus.Verifying
             : LineVerificationStatus.VerifiedVerifying,
@@ -54,19 +54,19 @@ public class LinearRenderingTest {
       // We don't display inconclusive on the gutter (user should focus on errors),
       // We display an error range instead
       VerificationStatus.Inconclusive => currentStatus switch {
-        CurrentStatus.Current => LineVerificationStatus.ErrorRange,
-        CurrentStatus.Obsolete => LineVerificationStatus.ErrorRangeObsolete,
-        CurrentStatus.Verifying => LineVerificationStatus.ErrorRangeVerifying,
+        CurrentStatus.Current => LineVerificationStatus.ErrorContext,
+        CurrentStatus.Obsolete => LineVerificationStatus.ErrorContextObsolete,
+        CurrentStatus.Verifying => LineVerificationStatus.ErrorContextVerifying,
         _ => throw new ArgumentOutOfRangeException()
       },
       VerificationStatus.Error => currentStatus switch {
-        CurrentStatus.Current => isSingleLine ? LineVerificationStatus.Error : LineVerificationStatus.ErrorRange,
+        CurrentStatus.Current => isSingleLine ? LineVerificationStatus.AssertionFailed : LineVerificationStatus.ErrorContext,
         CurrentStatus.Obsolete => isSingleLine
-          ? LineVerificationStatus.ErrorObsolete
-          : LineVerificationStatus.ErrorRangeObsolete,
+          ? LineVerificationStatus.AssertionFailedObsolete
+          : LineVerificationStatus.ErrorContextObsolete,
         CurrentStatus.Verifying => isSingleLine
-          ? LineVerificationStatus.ErrorVerifying
-          : LineVerificationStatus.ErrorRangeVerifying,
+          ? LineVerificationStatus.AssertionFailedVerifying
+          : LineVerificationStatus.ErrorContextVerifying,
         _ => throw new ArgumentOutOfRangeException()
       },
       _ => throw new ArgumentOutOfRangeException()

@@ -125,8 +125,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       var existsErrorRange = false;
       var existsError = false;
       foreach (var line in result) {
-        existsErrorRange = existsErrorRange || line == LineVerificationStatus.ErrorRange;
-        existsError = existsError || line == LineVerificationStatus.Error;
+        existsErrorRange = existsErrorRange || line == LineVerificationStatus.ErrorContext;
+        existsError = existsError || line == LineVerificationStatus.AssertionFailed;
       }
 
       if (existsErrorRange && !existsError) {
@@ -164,17 +164,17 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     // Also applicable for empty spaces if they are not surrounded by errors.
     Verified = 200,
     // For containers of other diagnostics nodes (e.g. methods)
-    ErrorRangeObsolete = 301,
-    ErrorRangeVerifying = 302,
-    ErrorRange = 300,
+    ErrorContextObsolete = 301,
+    ErrorContextVerifying = 302,
+    ErrorContext = 300,
     // For individual assertions in error ranges
-    ErrorRangeAssertionVerifiedObsolete = 351,
-    ErrorRangeAssertionVerifiedVerifying = 352,
-    ErrorRangeAssertionVerified = 350,
+    AssertionVerifiedInErrorContextObsolete = 351,
+    AssertionVerifiedInErrorContextVerifying = 352,
+    AssertionVerifiedInErrorContext = 350,
     // For specific lines which have errors on it. They take over verified assertions
-    ErrorObsolete = 401,
-    ErrorVerifying = 402,
-    Error = 400,
+    AssertionFailedObsolete = 401,
+    AssertionFailedVerifying = 402,
+    AssertionFailed = 400,
     // For lines containing resolution or parse errors
     ResolutionError = 500
   }
@@ -298,18 +298,18 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
         VerificationStatus.Verified =>
           contextHasErrors
             ? isSingleLine // Sub-implementations that are verified do not count
-              ? LineVerificationStatus.ErrorRangeAssertionVerified
-              : LineVerificationStatus.ErrorRange
+              ? LineVerificationStatus.AssertionVerifiedInErrorContext
+              : LineVerificationStatus.ErrorContext
             : contextIsPending && !isSingleLine
               ? LineVerificationStatus.Unknown
               : LineVerificationStatus.Verified,
         // We don't display inconclusive on the gutter (user should focus on errors),
         // We display an error range instead
         VerificationStatus.Inconclusive =>
-          LineVerificationStatus.ErrorRange,
+          LineVerificationStatus.ErrorContext,
         VerificationStatus.Error => isSingleLine
-            ? LineVerificationStatus.Error
-            : LineVerificationStatus.ErrorRange,
+            ? LineVerificationStatus.AssertionFailed
+            : LineVerificationStatus.ErrorContext,
         _ => throw new ArgumentOutOfRangeException()
       };
       return (LineVerificationStatus)((int)simpleStatus + (int)currentStatus);

@@ -37,29 +37,29 @@ public abstract class LinearVerificationDiagnosticTester : ClientBasedLanguageSe
     { LineVerificationStatus.VerifiedObsolete, " I " },
     { LineVerificationStatus.VerifiedVerifying, " $ " },
     { LineVerificationStatus.Verified, " | " },
-    { LineVerificationStatus.ErrorRangeObsolete, "[I]" },
-    { LineVerificationStatus.ErrorRangeVerifying, "[S]" },
-    { LineVerificationStatus.ErrorRange, "[ ]" },
-    { LineVerificationStatus.ErrorObsolete, "[-]" },
-    { LineVerificationStatus.ErrorVerifying, "[~]" },
-    { LineVerificationStatus.Error, "[=]" },
-    { LineVerificationStatus.ErrorRangeAssertionVerifiedObsolete, "[o]" },
-    { LineVerificationStatus.ErrorRangeAssertionVerifiedVerifying, "[Q]" },
-    { LineVerificationStatus.ErrorRangeAssertionVerified, "[O]" },
+    { LineVerificationStatus.ErrorContextObsolete, "[I]" },
+    { LineVerificationStatus.ErrorContextVerifying, "[S]" },
+    { LineVerificationStatus.ErrorContext, "[ ]" },
+    { LineVerificationStatus.AssertionFailedObsolete, "[-]" },
+    { LineVerificationStatus.AssertionFailedVerifying, "[~]" },
+    { LineVerificationStatus.AssertionFailed, "[=]" },
+    { LineVerificationStatus.AssertionVerifiedInErrorContextObsolete, "[o]" },
+    { LineVerificationStatus.AssertionVerifiedInErrorContextVerifying, "[Q]" },
+    { LineVerificationStatus.AssertionVerifiedInErrorContext, "[O]" },
     { LineVerificationStatus.ResolutionError, @"/!\" }
   };
 
   private static bool IsNotIndicatingProgress(LineVerificationStatus status) {
     return status != LineVerificationStatus.Scheduled &&
            status != LineVerificationStatus.Verifying &&
-           status != LineVerificationStatus.ErrorObsolete &&
-           status != LineVerificationStatus.ErrorVerifying &&
+           status != LineVerificationStatus.AssertionFailedObsolete &&
+           status != LineVerificationStatus.AssertionFailedVerifying &&
            status != LineVerificationStatus.VerifiedObsolete &&
            status != LineVerificationStatus.VerifiedVerifying &&
-           status != LineVerificationStatus.ErrorRangeObsolete &&
-           status != LineVerificationStatus.ErrorRangeVerifying &&
-           status != LineVerificationStatus.ErrorRangeAssertionVerifiedObsolete &&
-           status != LineVerificationStatus.ErrorRangeAssertionVerifiedVerifying;
+           status != LineVerificationStatus.ErrorContextObsolete &&
+           status != LineVerificationStatus.ErrorContextVerifying &&
+           status != LineVerificationStatus.AssertionVerifiedInErrorContextObsolete &&
+           status != LineVerificationStatus.AssertionVerifiedInErrorContextVerifying;
   }
   public static string RenderTrace(List<LineVerificationStatus[]> statusesTrace, string code) {
     var codeLines = new Regex("\r?\n").Split(code);
