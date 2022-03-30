@@ -4,21 +4,21 @@ counterexample_commandline.dfy(17,22): Related location: This is the postconditi
 Dafny program verifier finished with 1 verified, 1 error
 Counterexample for first failing assertion: 
 counterexample_commandline.dfy(20,8): initial state:
-	s : seq<char> = [?#0]
+	s : seq<char> = ['A']
 	this : Patterns.Simple? = (p := @2)
 	@2 : seq<char> = ['?']
 counterexample_commandline.dfy(21,22):
-	s : seq<char> = [?#0]
+	s : seq<char> = ['A']
 	this : Patterns.Simple? = (p := @2)
 	i : int = 0
 	@2 : seq<char> = ['?']
 counterexample_commandline.dfy(22,12): after some loop iterations:
-	s : seq<char> = [?#0]
+	s : seq<char> = ['A']
 	this : Patterns.Simple? = (p := @2)
 	i : int = 0
 	@2 : seq<char> = ['?']
 counterexample_commandline.dfy(29,32):
-	s : seq<char> = [?#0]
+	s : seq<char> = ['A']
 	this : Patterns.Simple? = (p := @2)
 	i : int = 0
 	b : bool = false

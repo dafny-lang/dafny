@@ -547,8 +547,8 @@ namespace Microsoft.Dafny {
               InvalidArgumentError(name, ps);
             }
           }
-
           return true;
+
       }
 
       // Unless this is an option for test generation, defer to superclass
