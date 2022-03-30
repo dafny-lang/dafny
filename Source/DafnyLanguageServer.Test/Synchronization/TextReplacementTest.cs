@@ -241,5 +241,17 @@ function GetConstant(): int {
       var expected = "";
       Assert.AreEqual(expected, document.Text.Text);
     }
+
+    [TestMethod]
+    public async Task ReplaceCompleteDocumentContent() {
+      var source = "function GetConstant(): int { 1 }";
+      var change = "function method ReturnSame(x: int): int { x }";
+      var documentItem = CreateTestDocument(source);
+      await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      await ApplyChangeAndWaitCompletionAsync(documentItem, null, change);
+      var document = await Documents.GetDocumentAsync(documentItem.Uri);
+      Assert.IsNotNull(document);
+      Assert.AreEqual(change, document.Text.Text);
+    }
   }
 }
