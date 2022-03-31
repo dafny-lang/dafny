@@ -1139,15 +1139,12 @@ namespace Microsoft.Dafny {
         return;
       }
       if (typeArgs.Count == 0) {
-        var axioms = new List<Bpl.Axiom>();
-        var whereClause = GetTyWhereClause(new Bpl.IdentifierExpr(tok, nm, predef.Ty), characteristics);
-        var axiom = whereClause == null ? null : BplAxiom(whereClause);
-        if (axiom != null) {
-          axioms.Add(axiom);
-          sink.AddTopLevelDeclaration(axiom);
-        }
-        var c = new Bpl.Constant(tok, new TypedIdent(tok, nm, predef.Ty), false /* not unique */, null, false, null, axioms);
+        var c = new Bpl.Constant(tok, new TypedIdent(tok, nm, predef.Ty), false /* not unique */);
         sink.AddTopLevelDeclaration(c);
+        var whereClause = GetTyWhereClause(new Bpl.IdentifierExpr(tok, nm, predef.Ty), characteristics);
+        if (whereClause != null) {
+          AddOtherDefinition(c, BplAxiom(whereClause));
+        }
 
       } else {
         // Note, the function produced is NOT necessarily injective, because the type may be replaced
@@ -1163,8 +1160,7 @@ namespace Microsoft.Dafny {
         if (whereClause != null) {
           var tr = new Bpl.Trigger(tok, true, new List<Bpl.Expr> { funcAppl });
           var axiom = BplAxiom(new Bpl.ForallExpr(tok, new List<Bpl.TypeVariable>(), argBoundVars, null, tr, whereClause));
-          sink.AddTopLevelDeclaration(axiom);
-          func.AddOtherDefinitionAxiom(axiom);
+          AddOtherDefinition(func, axiom);
         }
       }
       abstractTypes.Add(nm);
