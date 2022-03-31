@@ -417,7 +417,7 @@ public class Terminates : ProofObligationDescription {
   public override string FailureDescription =>
     (inferredDescreases
       ? ("cannot prove termination; try supplying a decreases clause" + (isLoop ? " for the loop" : ""))
-      : "decreases clause might not decrease") +
+      : $"decreases {FormDescription} might not decrease") +
     (hint is null ? "" : $" ({hint})");
 
   public override string ShortDescription => "termination";
@@ -425,6 +425,7 @@ public class Terminates : ProofObligationDescription {
   private readonly bool inferredDescreases;
   private readonly bool isLoop;
   private readonly string hint;
+  private string FormDescription => isLoop ? "expression" : "clause";
 
   public Terminates(bool inferredDescreases, bool isLoop, string hint = null) {
     this.inferredDescreases = inferredDescreases;
