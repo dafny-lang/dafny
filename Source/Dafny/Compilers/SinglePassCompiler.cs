@@ -47,7 +47,7 @@ namespace Microsoft.Dafny.Compilers {
     protected Method enclosingMethod;  // non-null when a method body is being translated
     protected Function enclosingFunction;  // non-null when a function body is being translated
 
-    protected readonly FreshIdGenerator idGenerator = new FreshIdGenerator();
+    protected internal readonly FreshIdGenerator idGenerator = new FreshIdGenerator();
 
     Dictionary<Expression, int> uniqueAstNumbers = new Dictionary<Expression, int>();
     int GetUniqueAstNumber(Expression expr) {
@@ -70,7 +70,7 @@ namespace Microsoft.Dafny.Compilers {
       wr?.WriteLine("/* {0} */", string.Format("Compilation error: " + msg, args));
     }
 
-    protected void Error(Bpl.IToken tok, string msg, ConcreteSyntaxTree wr, params object[] args) {
+    public void Error(Bpl.IToken tok, string msg, ConcreteSyntaxTree wr, params object[] args) {
       ReportError(Reporter, tok, msg, wr, args);
     }
 
@@ -101,6 +101,7 @@ namespace Microsoft.Dafny.Compilers {
     protected abstract string GetHelperModuleName();
     protected interface IClassWriter {
       ConcreteSyntaxTree/*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody);
+      ConcreteSyntaxTree/*?*/ SynthesizeMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody);
       ConcreteSyntaxTree/*?*/ CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody,
         MemberDecl member, bool forBodyInheritance, bool lookasideBody);
       ConcreteSyntaxTree/*?*/ CreateGetter(string name, TopLevelDecl enclosingDecl, Type resultType, Bpl.IToken tok, bool isStatic, bool isConst, bool createBody, MemberDecl/*?*/ member, bool forBodyInheritance);  // returns null iff !createBody
@@ -240,7 +241,8 @@ namespace Microsoft.Dafny.Compilers {
     /// </summary>
     protected abstract ConcreteSyntaxTree EmitTailCallStructure(MemberDecl member, ConcreteSyntaxTree wr);
     protected abstract void EmitJumpToTailCallStart(ConcreteSyntaxTree wr);
-    protected abstract string TypeName(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok, MemberDecl/*?*/ member = null);
+
+    internal abstract string TypeName(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok, MemberDecl/*?*/ member = null);
     // For cases where a type looks different when it's an argument, such as (*sigh*) Java primitives
     protected virtual string TypeArgumentName(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok) {
       return TypeName(type, wr, tok);
@@ -853,7 +855,7 @@ namespace Microsoft.Dafny.Compilers {
       throw new NotImplementedException();
     }
 
-    protected List<TypeArgumentInstantiation> ForTypeParameters(List<TypeArgumentInstantiation> typeArgs, MemberDecl member, bool lookasideBody) {
+    protected internal List<TypeArgumentInstantiation> ForTypeParameters(List<TypeArgumentInstantiation> typeArgs, MemberDecl member, bool lookasideBody) {
       Contract.Requires(member is ConstantField || member is Function || member is Method);
       Contract.Requires(typeArgs != null);
       var memberHasBody =
@@ -1272,6 +1274,11 @@ namespace Microsoft.Dafny.Compilers {
       public ConcreteSyntaxTree/*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
         return createBody ? block : null;
       }
+
+      public ConcreteSyntaxTree SynthesizeMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
+        throw new NotImplementedException();
+      }
+
       public ConcreteSyntaxTree/*?*/ CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, bool forBodyInheritance, bool lookasideBody) {
         return createBody ? block : null;
       }
@@ -1783,8 +1790,17 @@ namespace Microsoft.Dafny.Compilers {
           }
           v.Visit(f);
         } else if (member is Method m) {
-          if (m.Body == null && !(c is TraitDecl && !m.IsStatic) &&
-              !(!DafnyOptions.O.DisallowExterns && (Attributes.Contains(m.Attributes, "dllimport") || (IncludeExternMembers && Attributes.Contains(m.Attributes, "extern"))))) {
+          if (Attributes.Contains(m.Attributes, "synthesize")) {
+            if (m.IsStatic && m.Outs.Count > 0 && m.Body == null) {
+              classWriter.SynthesizeMethod(m, CombineAllTypeArguments(m), true, true, false);
+            } else {
+              Error(m.tok, "Method {0} is annotated with :synthesize but " +
+                           "is not static, has a body, or does not return " +
+                           "anything",
+                errorWr, m.FullName);
+            }
+          } else if (m.Body == null && !(c is TraitDecl && !m.IsStatic) &&
+                     !(!DafnyOptions.O.DisallowExterns && (Attributes.Contains(m.Attributes, "dllimport") || (IncludeExternMembers && Attributes.Contains(m.Attributes, "extern"))))) {
             // A (ghost or non-ghost) method must always have a body, except if it's an instance method in a trait.
             if (Attributes.Contains(m.Attributes, "axiom") || (!DafnyOptions.O.DisallowExterns && Attributes.Contains(m.Attributes, "extern"))) {
               // suppress error message
@@ -4254,7 +4270,7 @@ namespace Microsoft.Dafny.Compilers {
     /// <summary>
     /// Before calling TrExpr(expr), the caller must have spilled the let variables declared in "expr".
     /// </summary>
-    protected void TrExpr(Expression expr, ConcreteSyntaxTree wr, bool inLetExprBody) {
+    protected internal void TrExpr(Expression expr, ConcreteSyntaxTree wr, bool inLetExprBody) {
       Contract.Requires(expr != null);
       Contract.Requires(wr != null);
 

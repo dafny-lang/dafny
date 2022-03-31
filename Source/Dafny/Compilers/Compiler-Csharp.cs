@@ -18,6 +18,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis;
 using System.Runtime.Loader;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Microsoft.BaseTypes;
 using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 
@@ -27,6 +28,9 @@ namespace Microsoft.Dafny.Compilers {
 
     public override string TargetLanguage => "C#";
     public override string TargetExtension => "cs";
+
+    // True if the most recently visited AST has a method annotated with {:synthesize}:
+    protected bool Synthesize = false;
 
     public override string GetCompileName(bool isDefaultModule, string moduleName, string compileName) {
       return isDefaultModule ? PublicIdProtect(compileName) :
@@ -79,8 +83,28 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine();
       wr.WriteLine("using System;");
       wr.WriteLine("using System.Numerics;");
+      Synthesize = ProgramHasMethodsWithAttr(program, "synthesize");
+      if (Synthesize) {
+        CsharpSynthesizer.EmitImports(wr);
+      }
       EmitDafnySourceAttribute(program, wr);
       ReadRuntimeSystem("DafnyRuntime.cs", wr);
+    }
+
+    /// <summary>
+    /// Return true if the AST contains a method annotated with an attribute
+    /// </summary>
+    private static bool ProgramHasMethodsWithAttr(Program p, String attr) {
+      foreach (var module in p.Modules()) {
+        foreach (ICallable callable in ModuleDefinition.AllCallables(
+                   module.TopLevelDecls)) {
+          if ((callable is Method method) &&
+              Attributes.Contains(method.Attributes, attr)) {
+            return true;
+          }
+        }
+      }
+      return false;
     }
 
     void EmitDafnySourceAttribute(Program program, ConcreteSyntaxTree wr) {
@@ -97,8 +121,11 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitBuiltInDecls(BuiltIns builtIns, ConcreteSyntaxTree wr) {
-      EmitInitNewArrays(builtIns, wr);
-
+      var dafnyNamespace = CreateModule("Dafny", false, false, null, wr);
+      EmitInitNewArrays(builtIns, dafnyNamespace);
+      if (Synthesize) {
+        CsharpSynthesizer.EmitMultiMatcher(dafnyNamespace);
+      }
       EmitFuncExtensions(builtIns, wr);
     }
 
@@ -149,8 +176,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    private void EmitInitNewArrays(BuiltIns builtIns, ConcreteSyntaxTree wr) {
-      var dafnyNamespace = CreateModule("Dafny", false, false, null, wr);
+    private void EmitInitNewArrays(BuiltIns builtIns, ConcreteSyntaxTree dafnyNamespace) {
       var arrayHelpers = dafnyNamespace.NewNamedBlock("internal class ArrayHelpers");
       foreach (var decl in builtIns.SystemModule.TopLevelDecls) {
         if (decl is ArrayClassDecl classDecl) {
@@ -200,7 +226,7 @@ namespace Microsoft.Dafny.Compilers {
 
     const string DafnyTypeDescriptor = "Dafny.TypeDescriptor";
 
-    private string TypeParameters(List<TypeParameter>/*?*/ targs, bool addVariance = false, bool uniqueNames = false) {
+    internal string TypeParameters(List<TypeParameter>/*?*/ targs, bool addVariance = false, bool uniqueNames = false) {
       Contract.Requires(targs == null || cce.NonNullElements(targs));
       Contract.Ensures(Contract.Result<string>() != null);
 
@@ -1088,6 +1114,7 @@ namespace Microsoft.Dafny.Compilers {
       public readonly ConcreteSyntaxTree InstanceMemberWriter;
       public readonly ConcreteSyntaxTree StaticMemberWriter;
       public readonly ConcreteSyntaxTree CtorBodyWriter;
+      private readonly CsharpSynthesizer csharpSynthesizer;
 
       public ClassWriter(CsharpCompiler compiler, ConcreteSyntaxTree instanceMemberWriter, ConcreteSyntaxTree/*?*/ ctorBodyWriter, ConcreteSyntaxTree/*?*/ staticMemberWriter = null) {
         Contract.Requires(compiler != null);
@@ -1096,6 +1123,7 @@ namespace Microsoft.Dafny.Compilers {
         this.InstanceMemberWriter = instanceMemberWriter;
         this.CtorBodyWriter = ctorBodyWriter;
         this.StaticMemberWriter = staticMemberWriter ?? instanceMemberWriter;
+        this.csharpSynthesizer = new CsharpSynthesizer(Compiler, ErrorWriter());
       }
 
       public ConcreteSyntaxTree Writer(bool isStatic, bool createBody, MemberDecl/*?*/ member) {
@@ -1110,6 +1138,11 @@ namespace Microsoft.Dafny.Compilers {
 
       public ConcreteSyntaxTree /*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
         return Compiler.CreateMethod(m, typeArgs, createBody, Writer(m.IsStatic, createBody, m), forBodyInheritance, lookasideBody);
+      }
+
+      public ConcreteSyntaxTree SynthesizeMethod(Method method, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance,
+        bool lookasideBody) {
+        return csharpSynthesizer.SynthesizeMethod(method, typeArgs, createBody, Writer(method.IsStatic, createBody, method), forBodyInheritance, lookasideBody);
       }
 
       public ConcreteSyntaxTree /*?*/ CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, bool forBodyInheritance, bool lookasideBody) {
@@ -1166,11 +1199,11 @@ namespace Microsoft.Dafny.Compilers {
       return block;
     }
 
-    static string Keywords(bool isPublic = false, bool isStatic = false, bool isExtern = false) {
-      return (isPublic ? "public " : "") + (isStatic ? "static " : "") + (isExtern ? "extern " : "");
+    internal string Keywords(bool isPublic = false, bool isStatic = false, bool isExtern = false) {
+      return (isPublic ? "public " : "") + (isStatic ? "static " : "") + (isExtern ? "extern " : "") + (Synthesize && !isStatic && isPublic ? "virtual " : "");
     }
 
-    private ConcreteSyntaxTree GetMethodParameters(Method m, List<TypeArgumentInstantiation> typeArgs, bool lookasideBody, bool customReceiver, string returnType) {
+    internal ConcreteSyntaxTree GetMethodParameters(Method m, List<TypeArgumentInstantiation> typeArgs, bool lookasideBody, bool customReceiver, string returnType) {
       var parameters = GetFunctionParameters(m.Ins, m, typeArgs, lookasideBody, customReceiver);
       if (returnType == "void") {
         WriteFormals(parameters.Nodes.Any() ? ", " : "", m.Outs, parameters);
@@ -1194,7 +1227,7 @@ namespace Microsoft.Dafny.Compilers {
       return parameters;
     }
 
-    private string GetTargetReturnTypeReplacement(Method m, ConcreteSyntaxTree wr) {
+    internal string GetTargetReturnTypeReplacement(Method m, ConcreteSyntaxTree wr) {
       string/*?*/ targetReturnTypeReplacement = null;
       foreach (var p in m.Outs) {
         if (!p.IsGhost) {
@@ -1305,7 +1338,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine("goto TAIL_CALL_START;");
     }
 
-    protected override string TypeName(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok, MemberDecl/*?*/ member = null) {
+    internal override string TypeName(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok, MemberDecl/*?*/ member = null) {
       Contract.Ensures(Contract.Result<string>() != null);
       Contract.Assume(type != null);  // precondition; this ought to be declared as a Requires in the superclass
 
@@ -1641,23 +1674,38 @@ namespace Microsoft.Dafny.Compilers {
     protected void DeclareField(string name, bool isPublic, bool isStatic, bool isConst, string typeName, string rhs, ClassWriter cw) {
       var publik = isPublic ? "public" : "private";
       var konst = isConst ? " readonly" : "";
+      var virtuall = Synthesize ? " virtual" : "";
       if (isStatic) {
         cw.StaticMemberWriter.Write($"{publik} static{konst} {typeName} {name}");
         if (rhs != null) {
           cw.StaticMemberWriter.Write($" = {rhs}");
         }
         cw.StaticMemberWriter.WriteLine(";");
-      } else if (cw.CtorBodyWriter == null) {
-        cw.InstanceMemberWriter.Write($"{publik}{konst} {typeName} {name}");
-        if (rhs != null) {
-          cw.InstanceMemberWriter.Write($" = {rhs}");
-        }
-        cw.InstanceMemberWriter.WriteLine(";");
       } else {
-        cw.InstanceMemberWriter.WriteLine($"{publik} {typeName} {name};");
-        if (rhs != null) {
-          cw.CtorBodyWriter.WriteLine($"this.{name} = {rhs};");
+        string ending = "";
+        if (isPublic) {
+          if (isConst) {
+            cw.InstanceMemberWriter.Write(
+              $"{publik}{konst} {virtuall} {typeName} {name} {{get;}}");
+          } else {
+            cw.InstanceMemberWriter.Write(
+              $"{publik} {virtuall} {typeName} {name} {{get; set;}}");
+          }
+        } else {
+          cw.InstanceMemberWriter.WriteLine($"{publik}{konst} {typeName} {name}");
+          ending = ";";
         }
+        if (cw.CtorBodyWriter == null) {
+          if (rhs != null) {
+            cw.InstanceMemberWriter.Write($" = {rhs}");
+            ending = ";";
+          }
+        } else {
+          if (rhs != null) {
+            cw.CtorBodyWriter.WriteLine($"this.{name} = {rhs};");
+          }
+        }
+        cw.InstanceMemberWriter.WriteLine(ending);
       }
     }
 
@@ -3195,24 +3243,35 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private void AddTestCheckerIfNeeded(string name, Declaration decl, ConcreteSyntaxTree wr) {
-      if (Attributes.Contains(decl.Attributes, "test")) {
-        // TODO: The resolver needs to check the assumptions about the declaration
-        // (i.e. must be public and static, must return a "result type", etc.)
-        bool hasReturnValue = false;
-        if (decl is Function) {
-          hasReturnValue = true;
-        } else if (decl is Method) {
-          var method = (Method)decl;
-          hasReturnValue = method.Outs.Count > 1;
-        }
+      if (!Attributes.Contains(decl.Attributes, "test")) {
+        return;
+      }
 
-        wr.WriteLine("[Xunit.Fact]");
-        if (hasReturnValue) {
-          wr = wr.NewNamedBlock("public static void {0}_CheckForFailureForXunit()", name);
-          wr.WriteLine("var result = {0}();", name);
-          wr.WriteLine("Xunit.Assert.False(result.IsFailure(), \"Dafny test failed: \" + result);");
+      var firstReturnIsFailureCompatible = false;
+      var returnTypesCount = 0;
+
+      if (decl is Function func) {
+        returnTypesCount = 1;
+        firstReturnIsFailureCompatible =
+          func.ResultType?.AsTopLevelTypeWithMembers?.Members?.Any(m => m.Name == "IsFailure") ?? false;
+      } else if (decl is Method method) {
+        returnTypesCount = method.Outs.Count;
+        if (returnTypesCount > 0) {
+          firstReturnIsFailureCompatible =
+            method.Outs[0].Type?.AsTopLevelTypeWithMembers?.Members?.Any(m => m.Name == "IsFailure") ?? false;
         }
       }
+
+      wr.WriteLine("[Xunit.Fact]");
+      if (!firstReturnIsFailureCompatible) {
+        return;
+      }
+
+      wr = wr.NewNamedBlock("public static void {0}_CheckForFailureForXunit()", name);
+      var returnsString = string.Join(",", Enumerable.Range(0, returnTypesCount).Select(i => $"r{i}"));
+      wr.FormatLine($"var {returnsString} = {name}();");
+      wr.WriteLine("Xunit.Assert.False(r0.IsFailure(), \"Dafny test failed: \" + r0);");
+
     }
 
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {

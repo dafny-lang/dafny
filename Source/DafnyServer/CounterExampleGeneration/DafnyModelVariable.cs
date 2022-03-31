@@ -186,12 +186,12 @@ namespace DafnyServer.CounterexampleGeneration {
 
     public override string Value {
       get {
-        var length = GetLength();
+        int? length = GetLength();
         if (length == null || seqElements.Count != length) {
           return base.Value;
         }
         List<string> result = new();
-        for (var i = 0; i < length; i++) {
+        for (int i = 0; i < length; i++) {
           if (!seqElements.ContainsKey(i)) {
             return base.Value;
           }
