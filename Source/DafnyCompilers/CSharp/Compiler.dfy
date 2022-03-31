@@ -16,6 +16,25 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
     import opened Microsoft
     import C = CSharpDafnyASTModel
 
+    module Type {
+      import C = CSharpDafnyAST
+      datatype Type =
+        | Bool
+        | Char
+        | Int
+        | Real
+        | BigOrdinal
+        | BitVector(width: int)
+        | Collection(finite: bool, kind: CollectionKind, eltType: Type)
+        | UnsupportedType(ty: C.Type)
+
+      datatype CollectionKind =
+        | Map(keyType: Type)
+        | Multiset
+        | Seq
+        | Set
+    }
+
     datatype Tokd<T> =
       Tokd(tok: Boogie.IToken, val: T)
 
@@ -69,6 +88,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
       import Lib.Math
       import Lib.Seq
 
+      import Type
       import UnaryOp
       import BinaryOp
       import C = CSharpDafnyAST
@@ -89,6 +109,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
         | UnaryOp(uop: UnaryOp.Op, e: Expr) // LATER UnaryExpr
         | Binary(bop: BinaryOp.Op, e0: Expr, e1: Expr)
         | Literal(lit: Literal)
+        | Display(ty: Type.Type, exprs: seq<Expr>)
         | Invalid(msg: string)
         | UnsupportedExpr(expr: C.Expression)
         // Statements
@@ -105,6 +126,8 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
               Math.Max(e0.Depth(), e1.Depth())
             case Literal(lit: Literal) =>
               0
+            case Display(_, exprs) =>
+              Seq.MaxF(var f := (e: Expr) requires e in exprs => e.Depth(); f, exprs, 0)
             case UnsupportedExpr(expr: C.Expression) =>
               0
             case Invalid(msg: string) =>
@@ -149,6 +172,49 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
     import opened CSharpDafnyInterop.Microsoft
     import C = CSharpDafnyASTModel
     import D = AST
+
+    function method TranslateType(ty: C.Type): D.Type.Type
+      reads *
+      decreases TypeHeight(ty)
+    {
+      if ty is C.BoolType then
+        D.Type.Bool
+      else if ty is C.CharType then
+        D.Type.Char
+      else if ty is C.IntType then
+        D.Type.Int
+      else if ty is C.RealType then
+        D.Type.Real
+      else if ty is C.BigOrdinalType then
+        D.Type.BigOrdinal
+      else if ty is C.BitvectorType then
+        var bvTy := ty as C.BitvectorType;
+        D.Type.BitVector(bvTy.Width as int)
+      // TODO: the following could be simplified
+      else if ty is C.MapType then
+        var mTy := ty as C.MapType;
+        assume TypeHeight(mTy.Domain) < TypeHeight(mTy);
+        assume TypeHeight(mTy.Range) < TypeHeight(mTy);
+        var domainTy := TranslateType(mTy.Domain);
+        var rangeTy := TranslateType(mTy.Range);
+        D.Type.Collection(mTy.Finite, D.Type.CollectionKind.Map(domainTy), rangeTy)
+      else if ty is C.SetType then
+        var mTy := ty as C.SetType;
+        assume TypeHeight(mTy.Arg) < TypeHeight(mTy);
+        var eltTy := TranslateType(mTy.Arg);
+        D.Type.Collection(mTy.Finite, D.Type.CollectionKind.Set, eltTy)
+      else if ty is C.MultiSetType then
+        var mTy := ty as C.MultiSetType;
+        assume TypeHeight(mTy.Arg) < TypeHeight(mTy);
+        var eltTy := TranslateType(mTy.Arg);
+        D.Type.Collection(true, D.Type.CollectionKind.Multiset, eltTy)
+      else if ty is C.SeqType then
+        var mTy := ty as C.SeqType;
+        assume TypeHeight(mTy.Arg) < TypeHeight(mTy);
+        var eltTy := TranslateType(mTy.Arg);
+        D.Type.Collection(true, D.Type.CollectionKind.Seq, eltTy)
+      else D.Type.UnsupportedType(ty)
+    }
 
     const UnaryOpCodeMap: map<C.UnaryOpExpr__Opcode, D.UnaryOp.Op> :=
       map[C.UnaryOpExpr__Opcode.Not := D.UnaryOp.Not]
@@ -236,6 +302,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
     }
 
     function {:axiom} ASTHeight(c: C.Expression) : nat
+    function {:axiom} TypeHeight(t: C.Type) : nat
 
     function method TranslateBinary(b: C.BinaryExpr) : D.Expr.t
       decreases ASTHeight(b), 0
@@ -268,6 +335,34 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
       else D.Expr.UnsupportedExpr(l)
     }
 
+    function method TranslateDisplayExpr(de: C.DisplayExpression): D.Expr.t
+      reads *
+      decreases ASTHeight(de), 0
+    {
+      var elSeq := ListUtils.ToSeq(de.Elements);
+      var exprs := Seq.Map((e requires e in elSeq reads * =>
+        assume ASTHeight(e) < ASTHeight(de); TranslateExpression(e)), elSeq);
+      var ty := TranslateType(de.Type);
+      D.Expr.Display(ty, exprs)
+    }
+
+    function method TranslateMapDisplayExpr(mde: C.MapDisplayExpr): D.Expr.t
+      reads *
+      decreases ASTHeight(mde), 0
+    {
+      var elSeq := ListUtils.ToSeq(mde.Elements);
+      var exprs := Seq.Map((ep requires ep in elSeq reads * =>
+          var tyA := TranslateType(ep.A.Type);
+          // TODO: This isn't really a sequence of type tyA! It should really construct pairs
+          var ty := D.Type.Collection(true, D.Type.CollectionKind.Seq, tyA);
+          assume ASTHeight(ep.A) < ASTHeight(mde);
+          assume ASTHeight(ep.B) < ASTHeight(mde);
+          D.Expr.Display(ty, [TranslateExpression(ep.A), TranslateExpression(ep.B)])
+        ), elSeq);
+      var ty := TranslateType(mde.Type);
+      D.Expr.Display(ty, exprs)
+    }
+
     function method TranslateExpression(c: C.Expression) : D.Expr.t
       reads *
       decreases ASTHeight(c), 1
@@ -276,6 +371,10 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
         TranslateBinary(c as C.BinaryExpr)
       else if c is C.LiteralExpr then
         TranslateLiteral(c as C.LiteralExpr)
+      else if c is C.MapDisplayExpr then
+        TranslateMapDisplayExpr(c as C.MapDisplayExpr)
+      else if c is C.DisplayExpression then
+        TranslateDisplayExpr(c as C.DisplayExpression)
       else D.Expr.UnsupportedExpr(c)
     }
 
@@ -313,8 +412,8 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
       SepSeq(Some(sep), asts)
     }
 
-    function method Call(fn: string, args: seq<StrTree>) : StrTree {
-      Seq([Str(fn), Str("("), Concat(", ", args), Str(")")])
+    function method Call(fn: StrTree, args: seq<StrTree>) : StrTree {
+      Seq([fn, Str("("), Concat(", ", args), Str(")")])
     }
 
     function method SingleQuote(s: StrTree): StrTree {
@@ -359,7 +458,6 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
       Seq(interleave(splitFormat(s), values, 0))
     }
   }
-
 
   module Predicates {
     function IsMap<T(!new), T'>(f: T --> T') : T' -> bool {
@@ -441,6 +539,8 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
           case Binary(bop: BinaryOp.Op, e0: Expr.t, e1: Expr.t) =>
             All_Expr(e0, P) && All_Expr(e1, P)
           case Literal(lit: Expr.Literal) => true
+          case Display(_, exprs: seq<Expr.t>) =>
+            Seq.All(e requires e in exprs => All_Expr(e, P), exprs)
           case Invalid(msg: string) => true
           case UnsupportedExpr(expr: C.Expression) => true
 
@@ -550,6 +650,10 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
           case Binary(bop, e0, e1) =>
             Expr.Binary(bop, Map_Expr(e0, tr), Map_Expr(e1, tr))
           case Literal(lit_) => e
+          case Display(ty, exprs) =>
+            var exprs' := Seq.Map(e requires e in exprs => Map_Expr(e, tr), exprs);
+            Predicates.Map_All_IsMap(e requires e in exprs => Map_Expr(e, tr), exprs);
+            Expr.Display(ty, exprs')
           case Invalid(msg_) => e
           case UnsupportedExpr(cexpr_) => e
 
@@ -705,6 +809,10 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
             e'
           else
             Expr.Binary(bop, e0', e1')
+        case Display(ty, exprs) =>
+          var exprs' := Seq.Map(e requires e in exprs => EliminateNegatedBinops_Expr_direct(e), exprs);
+          Predicates.Map_All_IsMap(e requires e in exprs => EliminateNegatedBinops_Expr_direct(e), exprs);
+          Expr.Display(ty, exprs')
         case Literal(lit_) => e
         case Invalid(msg_) => e
         case UnsupportedExpr(cexpr_) => e
@@ -740,13 +848,14 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
         case UnaryOp(uop: UnaryOp.Op, e': Expr.t) => [e']
         case Binary(bop: BinaryOp.Op, e0: Expr.t, e1: Expr.t) => [e0, e1]
         case Literal(lit: Expr.Literal) => []
+        case Display(ty_, exprs: seq<Expr.t>) => exprs
         case Invalid(msg: string) => []
         case UnsupportedExpr(expr: C.Expression) => []
 
         // Statements
         case Block(exprs) => exprs
         case Print(exprs) => exprs
-        case UnsupportedStmt => []
+        case UnsupportedStmt(_) => []
       }
     }
 
@@ -779,7 +888,9 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
   module Compiler {
     import Lib
     import Simplifier
+    import Translator
     import opened AST
+    import opened AST.Type
     import opened Target
     import opened Lib.Datatypes
     import opened CSharpInterop
@@ -787,9 +898,29 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
     import Predicates
     import opened Predicates.Deep
 
+    function method CompileType(t: Type.Type): StrTree {
+      match t {
+        case Bool => Str("bool")
+        case Char => Str("char")
+        case Int => Str("BigInteger")
+        case Real => Str("BigRational")
+        case Collection(true, collKind, eltType) =>
+          var eltStr := CompileType(eltType);
+          match collKind {
+            case Map(domType) =>
+              var domStr := CompileType(domType);
+              Format("DafnyRuntime.Map<{},{}>", [domStr, eltStr])
+            case Multiset => Format("DafnyRuntime.MultiSet<{}>", [eltStr])
+            case Seq => Format("DafnyRuntime.Sequence<{}>", [eltStr])
+            case Set => Format("DafnyRuntime.Set<{}>", [eltStr])
+          }
+        case _ => Unsupported
+      }
+    }
+
     function method CompileInt(i: int) : StrTree {
       var istr := Lib.Str.of_int(i, 10);
-      Call("new BigInteger", [Str(istr)])
+      Call(Str("new BigInteger"), [Str(istr)])
     }
 
     function method CompileLiteralExpr(l: Expr.Literal) : StrTree {
@@ -799,10 +930,16 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
         case LitReal(r: real) =>
           var n := TypeConv.Numerator(r);
           var d := TypeConv.Denominator(r);
-          Call("new BigRational", [CompileInt(n), CompileInt(d)])
+          Call(Str("new BigRational"), [CompileInt(n), CompileInt(d)])
         case LitChar(c: string) => SingleQuote(Str(c))
         case LitString(s: string, verbatim: bool) => DoubleQuote(Str(s)) // FIXME verbatim
       }
+    }
+
+    function method CompileDisplayExpr(ty: Type.Type, exprs: seq<StrTree>): StrTree
+    {
+      var tyStr := CompileType(ty);
+      Call(Format("{}.FromElements", [tyStr]), exprs)
     }
 
     function method CompileUnaryOpExpr(op: UnaryOp.Op, c: StrTree) : StrTree {
@@ -894,9 +1031,9 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
 
     function method CompilePrint(e: Expr.t) : StrTree
       decreases e, 1
-      requires Deep.All_Expr(e, Simplifier.NotANegatedBinopExpr)
+      requires All_Expr(e, Simplifier.NotANegatedBinopExpr)
     {
-      Target.Seq([Call("DafnyRuntime.Helpers.Print", [CompileExpr(e)]), Str(";")])
+      Target.Seq([Call(Str("DafnyRuntime.Helpers.Print"), [CompileExpr(e)]), Str(";")])
     }
 
     function method CompileExpr(e: Expr.t) : StrTree
@@ -923,6 +1060,13 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
           }
           var c0, c1 := CompileExpr(e0), CompileExpr(e1);
           CompileBinaryExpr(op, c0, c1)
+        case Display(ty, exprs) =>
+          calc ==> {
+            Deep.All_Expr(e, Simplifier.NotANegatedBinopExpr);
+            Deep.AllChildren_Expr(e, Simplifier.NotANegatedBinopExpr);
+            Seq.All(e => Deep.All_Expr(e, Simplifier.NotANegatedBinopExpr), exprs);
+          }
+          CompileDisplayExpr(ty, Lib.Seq.Map((e requires e in exprs => CompileExpr(e)), exprs))
         case Invalid(_) => Unsupported
         case UnsupportedExpr(_) => Unsupported
 
