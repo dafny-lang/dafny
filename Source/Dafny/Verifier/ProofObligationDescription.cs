@@ -443,7 +443,7 @@ public class DecreasesBoundedBelow : ProofObligationDescription {
 
   public override string ShortDescription => "bounded decreases clause";
 
-  private string component => N == 1 ? "" : $" (component {k})";
+  private string component => N == 1 ? "" : $" (component at index {k})";
   private readonly string zeroStr;
   private readonly string suffix;
   private readonly int N, k;
