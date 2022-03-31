@@ -273,7 +273,7 @@ class Property : PrettyPrintable {
     var nameText = syntax.Identifier.Text;
     var name = new Name(syntax.Identifier);
     var symbol = model.GetSymbol(syntax);
-    var comment = "";
+    var comment = " // property";
     var prefix = "";
 
     if (parentIsInterface) {
@@ -281,10 +281,10 @@ class Property : PrettyPrintable {
       comment = " // interface property";
     } else if (symbol is not null && ExistsInAncestor(symbol.ContainingType)) {
       prefix = "// ";
-      comment = " // exists in ancestor";
+      comment = " // property that exists in ancestor";
     } else if (syntax.ExplicitInterfaceSpecifier is not null) {
       prefix = "// ";
-      comment = " // explicit interface";
+      comment = " // explicit interface property";
     }
 
     wr.WriteLine($"{indent}{prefix}var {name.AsDecl()}: {type}{comment}");
