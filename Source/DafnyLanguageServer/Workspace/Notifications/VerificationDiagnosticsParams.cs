@@ -118,8 +118,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
         if (resolutionErrorRendered >= numberOfResolutionErrors) {
           break;
         }
-        result[diagnostic.Range.Start.Line] = LineVerificationStatus.ResolutionError;
-        resolutionErrorRendered++;
+        if (diagnostic.Range.Start.Line >= 0 && diagnostic.Range.Start.Line < result.Length) {
+          result[diagnostic.Range.Start.Line] = LineVerificationStatus.ResolutionError;
+          resolutionErrorRendered++;
+        }
       }
 
       var existsErrorRange = false;
