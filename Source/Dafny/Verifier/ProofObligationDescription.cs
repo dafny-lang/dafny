@@ -244,7 +244,7 @@ public class PreconditionSatisfied : ProofObligationDescription {
       : $"error is impossible: {customErrMsg}";
 
   public override string FailureDescription =>
-    customErrMsg ?? "possible violation of function precondition";
+    customErrMsg ?? "function precondition might not hold";
 
   public override string ShortDescription => "precondition";
 
