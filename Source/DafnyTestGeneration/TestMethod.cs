@@ -13,12 +13,6 @@ namespace DafnyTestGeneration {
 
     private static int nextId; // next unique id to be assigned
 
-    // maps a basic type (int, real, bv4, etc.) to the set of values that
-    // the model assigns to variables of this type. Values are represented
-    // as integers. For conversion rules, see GetUnspecifiedValue method.
-    private readonly Dictionary<string, HashSet<int>> reservedValues = new();
-    // maps a particular element to a value reserved for it (see above)
-    private readonly Dictionary<Model.Element, int> reservedValuesMap = new();
     // list of values to mock together with their types
     public readonly List<(string id, DafnyModelType type)> ObjectsToMock = new();
     // maps a variable that is mocked to its unique id
@@ -38,7 +32,6 @@ namespace DafnyTestGeneration {
       var dafnyModel = DafnyModel.ExtractModel(log);
       MethodName = Utils.GetDafnyMethodName(argumentNames.First());
       argumentNames.RemoveAt(0);
-      RegisterReservedValues(dafnyModel.Model);
       ArgValues = ExtractInputs(dafnyModel.States.First(), argumentNames, typeNames);
     }
 
@@ -89,10 +82,6 @@ namespace DafnyTestGeneration {
     private string ExtractVariable(DafnyModelVariable variable) {
       if (mockedVarId.ContainsKey(variable)) {
         return mockedVarId[variable];
-      }
-
-      if (variable.Value.StartsWith("?")) {
-        return GetUnspecifiedValue(variable.Type, variable.Element);
       }
 
       if (variable is DuplicateVariable duplicateVariable) {
@@ -158,55 +147,6 @@ namespace DafnyTestGeneration {
     }
 
     /// <summary>
-    /// Return a value that is unique to the given element among elements
-    /// of a particular type. The value must be of a basic type.
-    /// </summary>
-    /// <param name="type"></param>
-    /// <param name="element"></param>
-    /// <returns></returns>
-    private string GetUnspecifiedValue(DafnyModelType type, Model.Element element) {
-      var value = GetUnspecifiedValue(type.Name, element);
-      return type.Name switch {
-        "char" => $"'{Convert.ToChar(value)}'",
-        "int" => value.ToString(),
-        "real" => $"{value}.0",
-        "bool" => (value == 1).ToString(),
-        var bvType when new Regex("bv[0-9]+$").IsMatch(bvType) =>
-          $"({value} as {bvType})",
-        _ => "null" // Shouldn't happen
-      };
-    }
-
-    /// <summary>
-    /// Return an integer for a Model.Element, whose value is unspecified.
-    /// The integer must be unique among elements that represent values of
-    /// the same type. The integer has different meaning depending
-    /// on the type of the element, see GetUnspecifiedValue method.
-    /// </summary>
-    /// <param name="typeName">TypeName of value represented by element</param>
-    /// <param name="element"></param>
-    /// <returns></returns>
-    private int GetUnspecifiedValue(string typeName, Model.Element element) {
-      if (reservedValuesMap.ContainsKey(element)) {
-        return reservedValuesMap[element];
-      }
-
-      if (!reservedValues.ContainsKey(typeName)) {
-        reservedValues[typeName] = new();
-      }
-
-      // 33 is the first non special character (excluding space)
-      var i = typeName == "char" ? 33 : 0;
-      while (reservedValues[typeName].Contains(i)) {
-        i++;
-      }
-
-      reservedValues[typeName].Add(i);
-      reservedValuesMap[element] = i;
-      return i;
-    }
-
-    /// <summary>
     /// Return the default value for a variable of a particular type.
     /// Note that default value is different from unspecified value.
     /// An unspecified value is such a value for which a model does reserve
@@ -232,59 +172,6 @@ namespace DafnyTestGeneration {
       var varId = $"v{ObjectsToMock.Count}";
       ObjectsToMock.Add(new(varId, type));
       return varId;
-    }
-
-    /// <summary>
-    /// Registered all values of basicTypes specified by the model in
-    /// the reservedValues map;
-    /// </summary>
-    private void RegisterReservedValues(Model model) {
-      var fCharToInt = model.MkFunc("char#ToInt", 1);
-      reservedValues["char"] = new();
-      foreach (var app in fCharToInt.Apps) {
-        reservedValues["char"].Add(((Model.Integer)app.Result).AsInt());
-      }
-
-      var fU2Int = model.MkFunc("U_2_int", 1);
-      reservedValues["int"] = new();
-      foreach (var app in fU2Int.Apps) {
-        // this skips negative values
-        if (app.Result is Model.Integer) {
-          reservedValues["int"].Add(app.Result.AsInt());
-        }
-      }
-
-      var fU2Bool = model.MkFunc("U_2_bool", 1);
-      reservedValues["bool"] = new();
-      foreach (var app in fU2Bool.Apps) {
-        reservedValues["bool"].Add(((Model.Boolean)app.Result).Value ? 1 : 0);
-      }
-
-      var fU2Real = model.MkFunc("U_2_real", 1);
-      reservedValues["real"] = new();
-      foreach (var app in fU2Real.Apps) {
-        var resultAsString = app.Result.ToString() ?? "";
-        // this skips fractions and negative values
-        if (app.Result is Model.Real && resultAsString.Contains("/")) {
-          reservedValues["real"].Add(int.Parse(Regex.Replace(
-            resultAsString, "\\.0$", "")));
-        }
-      }
-
-      foreach (var func in model.Functions) {
-        if (!Regex.IsMatch(func.Name, "^U_2_bv[0-9]+$")) {
-          continue;
-        }
-
-        var type = func.Name[4..];
-        if (!reservedValues.ContainsKey(type)) {
-          reservedValues[type] = new();
-        }
-
-        foreach (var app in func.Apps) {
-          reservedValues[type].Add(((Model.BitVector)app.Result).AsInt());
-        }
-      }
     }
 
     /// <summary>

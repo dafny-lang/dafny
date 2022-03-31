@@ -41,7 +41,7 @@ method CallDoIt() returns () {
 
     [TestMethod]
     public async Task HoverReturnsBeforeVerificationIsComplete() {
-      var documentItem = CreateTestDocument(SlowToVerify);
+      var documentItem = CreateTestDocument(NeverVerifies);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
       client.OpenDocument(documentItem);
@@ -69,7 +69,7 @@ method DoIt() {
 
     [TestMethod]
     public async Task HoveringFunctionInvocationOfFunctionDeclaredInForeignDocumentReturnsSignature() {
-      // TODO Actually, the invoked function is a function method.
+      // TODO Actually, the invoked function is a compiled function.
       var source = @"
 include ""foreign.dfy""
 

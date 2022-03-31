@@ -1,9 +1,10 @@
 # 19. Statements
 ````grammar
-Stmt =
+Stmt = { "label" LabelName ":" } NonLabeledStmt
+NonLabeledStmt =
   ( AssertStmt | AssumeStmt | BlockStmt | BreakStmt
   | CalcStmt | ExpectStmt | ForallStmt | IfStmt
-  | LabeledStmt | MatchStmt | ModifyStmt
+  | MatchStmt | ModifyStmt
   | PrintStmt | ReturnStmt | RevealStmt | SkeletonStmt
   | UpdateStmt | UpdateFailureStmt
   | VarDeclStatement | WhileStmt | ForLoopStmt | YieldStmt
@@ -20,46 +21,59 @@ They are described in subsequent sections.
 
 ## 19.1. Labeled Statement {#sec-labeled-stmt}
 ````grammar
-LabeledStmt = "label" LabelName ":" Stmt
+Stmt = { "label" LabelName ":" } NonLabeledStmt
 ````
 A labeled statement is just the keyword `label` followed by an identifier
 which is the label, followed by a colon and a statement. The label may be
-referenced in a break statement  that is within the labeled statement
-to transfer control to the location after
-the labeled statement.
-The label is not allowed to be the same as any previous dominating
-label.
+referenced in a `break` or `continue` statement within the labeled statement
+(see [Section 19.2](#sec-break-continue)). That is, the break or continue that
+mentions the label must be _enclosed_ in the labeled statement.
+The label may also be used in an `old` expression ([Section 20.24](#sec-old-expression)). In this case, the label
+must have been encountered during the control flow en route to the `old`
+expression. We say in this case that the (program point of the) label _dominates_
+the (program point of the) use of the label.
 
-The label may also be used in an `old` expression ([Section 20.24](#sec-old-expression)). In this case the label
-must have been encountered during the control flow in route to the `old`
-expression. That is, again, the label must dominate the use of the label.
+A statement can be given several labels. It makes no difference which of these
+labels is used to reference the statement---they are synonyms of each other.
+The labels must be distinct from each other, and are not allowed to be the
+same as any previous enclosing or dominating label.
 
-## 19.2. Break Statement
+## 19.2. Break and Continue Statements {#sec-break-continue}
 ````grammar
-BreakStmt = "break" ( LabelName | { "break" } ) ";"
+BreakStmt =
+  ( "break" LabelName ";"
+  | "continue" LabelName ";"
+  | { "break" } "break" ";"
+  | { "break" } "continue" ";"
+  )
 ````
-A break statement provides a means to transfer control
+Break and continue statements provide a means to transfer control
 in a way different than the usual nested control structures.
-There are two forms of break statement: with and without a label.
+There are two forms of each of these statements: with and without a label.
 
-If a label is used, the break statement must be enclosed in a statement
-with that label and the result is to transfer control to the statement
-after the labeled statement. For example, such a break statement can be
+If a label is used, the break or continue statement must be enclosed in a statement
+with that label. The enclosing statement is called the _target_ of the break
+or continue.
+
+A `break` statement transfers control to the point immediately
+following the target statement. For example, such a break statement can be
 used to exit a sequence of statements in a block statement before
 reaching the end of the block.
 
 For example,
 ```dafny
-L: {
+label L: {
   var n := ReadNext();
-  if n < 0  { break L; }
+  if n < 0 {
+    break L;
+  }
   DoSomething(n);
 }
 ```
 is equivalent to
 ```dafny
 {
-  var n: ReadNext();
+  var n := ReadNext();
   if 0 <= n {
     DoSomething(n);
   }
@@ -68,25 +82,157 @@ is equivalent to
 
 If no label is specified and the statement lists `n`
 occurrences of `break`, then the statement must be enclosed in
-at least `n` levels of loops. Control continues after exiting `n`
+at least `n` levels of loop statements. Control continues after exiting `n`
 enclosing loops. For example,
 
 ```dafny
-var i := 0;
-while i < 10 {
-  var j := 0;
-  while j < 10 {
-    var k := 0;
-    while k < 10 {
-      if (j + k == 15) break break;
-      k := k + 1;
+for i := 0 to 10 {
+  for j := 0 to 10 {
+    label X: {
+      for k := 0 to 10 {
+        if j + k == 15 {
+          break break;
+        }
+      }
     }
-    j := j + 1;
   }
-  // control continues here after the break, exiting two loops
+  // control continues here after the "break break", exiting two loops
+}
+```
+
+Note that a non-labeled `break` pays attention only to loop, not to labeled
+statements. For example, the labeled block `X` in the previous example
+does not play a role in determining the target statement of the `break break;`.
+
+For a `continue` statement, the target statement must be a loop statement.
+The continue statement transfers control to the point immediately
+before the closing curly-brace of the loop body.
+
+For example,
+```dafny
+for i := 0 to 100 {
+  if i == 17 {
+    continue;
+  }
+  DoSomething(i);
+}
+```
+is equivalent to
+```dafny
+for i := 0 to 100 {
+  if i != 17 {
+    DoSomething(i);
+  }
+}
+```
+The same effect can also be obtained by wrapping the loop body in a labeled
+block statement and then using `break` with a label, but that usually makes
+for a more cluttered program:
+```dafny
+for i := 0 to 100 {
+  label LoopBody: {
+    if i == 17 {
+      break LoopBody;
+    }
+    DoSomething(i);
+  }
+}
+```
+
+Stated differently, `continue` has the effect of ending the current loop iteration,
+after which control continues with any remaining iterations. This is most natural
+for `for` loops. For a `while` loop, be careful to make progress toward termination
+before a `continue` statement. For example, the following program snippet shows
+an easy mistake to make (the verifier will complain that the loop may not terminate):
+
+```dafny
+var i := 0;
+while i < 100 {
+  if i == 17 {
+    continue; // error: this would cause an infinite loop
+  }
+  DoSomething(i);
   i := i + 1;
 }
 ```
+
+The `continue` statement can give a label, provided the label is a label of a loop.
+For example,
+
+```dafny
+label Outer:
+for i := 0 to 100 {
+  for j := 0 to 100 {
+    if i + j == 19 {
+      continue Outer;
+    }
+    WorkIt(i, j);
+  }
+  PostProcess(i);
+  // the "continue Outer" statement above transfers control to here
+}
+```
+
+If a non-labeled continue statement lists `n` occurrences of `break` before the
+`continue` keyword, then the statement must be enclosed in at least `n + 1` levels
+of loop statements. The effect is to `break` out of the `n` most closely enclosing
+loops and then `continue` the iterations of the next loop. That is, `n` occurrences
+of `break` followed by one more `break;` will break out of `n` levels of loops
+and then do a `break`, whereas `n` occurrences of `break` followed by `continue;`
+will break out of `n` levels of loops and then do a `continue`.
+
+For example, the `WorkIt` example above can equivalently be written without labels
+as
+```dafny
+for i := 0 to 100 {
+  for j := 0 to 100 {
+    if i + j == 19 {
+      break continue;
+    }
+    WorkIt(i, j);
+  }
+  PostProcess(i);
+  // the "break continue" statement above transfers control to here
+}
+```
+
+Note that a loop invariant is checked on entry to a loop and at the closing curly-brace
+of the loop body. It is not checked at break statements. It also isn't checked at continue
+statements per se, but the loop invariant is checked as usual at the closing curly-brace
+that the continue statement jumps to.
+This checking ensures that the loop invariant holds at the very top of
+every iteration. Commonly, the only exit out of a loop happens when the loop guard evaluates
+to `false`. Since no state is changed between the top of an iteration (where the loop
+invariant is known to hold) and the evaluation of the loop guard, one can also rely on
+the loop invariant to hold immediately following the loop. But the loop invariant may
+not hold immediately following a loop if a loop iteration changes the program state and
+then exits the loop with a break statement.
+
+For example, the following program verifies:
+```dafny
+var i := 0;
+while i < 10
+  invariant 0 <= i <= 10
+{
+  if P(i) {
+    i := i + 200;
+    break;
+  }
+  i := i + 1;
+}
+assert i == 10 || 200 <= i < 210;
+```
+To explain the example, the loop invariant `0 <= i <= 10` is known to hold at the very top
+of each iteration,
+that is, just before the loop guard `i < 10` is evaluated. If the loop guard evaluates
+to `false`, then the negated guard condition (`10 <= i`) and the invariant hold, so
+`i == 10` will hold immediately after the loop. If the loop guard evaluates to `true`
+(that is, `i < 10` holds), then the loop body is entered. If the test `P(i)` then evaluates
+to `true`, the loop adds `200` to `i` and breaks out of the loop, so on such a
+path, `200 <= i < 210` is known to hold immediately after the loop. This is summarized
+in the assert statement in the example.
+So, remember, a loop invariant holds at the very top of every iteration, not necessarily
+immediately after the loop.
 
 ## 19.3. Block Statement
 ````grammar
@@ -190,7 +336,7 @@ another method call, as if it were an expression.
 ```
     Lhs { , Lhs } ":=" Rhs { "," Rhs } ";"
 ```
-Thise ``UpdateStmt`` is a parallel
+This ``UpdateStmt`` is a parallel
 assignment of right-hand-side values to the left-hand sides. For example,
 `x,y := y,x` swaps the values of `x` and `y`. If more than one
 left-hand side is used, these must denote different l-values, unless the
@@ -467,7 +613,7 @@ if tmp.IsFailure() {
 ```
 ### 19.7.6. Failure with initialized declaration.
 
-The `:-` syntax can also be used in initalization, as in
+The `:-` syntax can also be used in initialization, as in
 ```dafny
 var s :- M();
 ```
@@ -716,7 +862,7 @@ method M1() returns (ghost y: int)
 }
 ```
 
-## 19.11. If Statement
+## 19.11. If Statement {#sec-if-statement}
 ````grammar
 IfStmt = "if"
   ( AlternativeBlock(allowBindingGuards: true)
@@ -1042,7 +1188,7 @@ loop condition). Just as Dafny will not discover properties of a method
 on its own, it will not know that any but the most basic properties of a loop
 are preserved unless it is told via an invariant.
 
-### 19.14.2. Loop termination
+### 19.14.2. Loop termination {#sec-loop-termination}
 
 Dafny proves that code terminates, i.e. does not loop forever, by using
 `decreases` annotations. For many things, Dafny is able to guess the right
@@ -1782,7 +1928,7 @@ that are heap-based.
 
 Using `...` as the argument of the statement is part of module refinement, as described in [Section 21](#sec-module-refinement).
 
-## 19.23. Calc Statement
+## 19.23. Calc Statement {#sec-calc-statement}
 ````grammar
 CalcStmt = "calc" { Attribute } [ CalcOp ] "{" CalcBody_ "}"
 

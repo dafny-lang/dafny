@@ -3,23 +3,27 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
-using System.Text;
 using System.Diagnostics.Contracts;
 using System.IO;
-using System.Reflection;
 using System.Text.RegularExpressions;
 using JetBrains.Annotations;
+using Microsoft.Dafny.Compilers;
 using Microsoft.Dafny.Plugins;
 using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
   public class DafnyOptions : Bpl.CommandLineOptions {
-    private ErrorReporter errorReporter;
 
-    public DafnyOptions(ErrorReporter errorReporter = null)
-      : base("Dafny", "Dafny program verifier") {
-      this.errorReporter = errorReporter;
+    public static DafnyOptions Create(params string[] arguments) {
+      var result = new DafnyOptions();
+      result.Parse(arguments);
+      return result;
+    }
+
+    public DafnyOptions()
+      : base("Dafny", "Dafny program verifier", new DafnyConsolePrinter()) {
       Prune = true;
       NormalizeNames = true;
       EmitDebugInformation = false;
@@ -49,7 +53,6 @@ namespace Microsoft.Dafny {
     public static void Install(DafnyOptions options) {
       Contract.Requires(options != null);
       clo = options;
-      Bpl.CommandLineOptions.Install(options);
     }
 
     public bool UnicodeOutput = false;
@@ -66,7 +69,7 @@ namespace Microsoft.Dafny {
       DllEmbed,
       NoIncludes,
       NoGhost
-    };
+    }
 
     public PrintModes PrintMode = PrintModes.Everything; // Default to printing everything
     public bool DafnyVerify = true;
@@ -74,19 +77,9 @@ namespace Microsoft.Dafny {
     public List<string> DafnyPrintExportedViews = new List<string>();
     public bool Compile = true;
 
-    [Flags]
-    public enum CompilationTarget {
-      Csharp = 1,
-      JavaScript = 2,
-      Go = 4,
-      Java = 8,
-      Cpp = 16,
-      Php = 32,
-      Python = 64
-    }
-
-    public CompilationTarget CompileTarget = CompilationTarget.Csharp;
+    public Compiler Compiler;
     public bool CompileVerbose = true;
+    public bool EnforcePrintEffects = false;
     public string DafnyPrintCompiledFile = null;
     public string CoverageLegendFile = null;
     public string MainMethod = null;
@@ -109,6 +102,16 @@ namespace Microsoft.Dafny {
     public bool PrintFunctionCallGraph = false;
     public bool WarnShadowing = false;
     public int DefiniteAssignmentLevel = 1; // [0..4]
+    public FunctionSyntaxOptions FunctionSyntax = FunctionSyntaxOptions.Version3;
+
+    public enum FunctionSyntaxOptions {
+      Version3,
+      Migration3To4,
+      ExperimentalTreatUnspecifiedAsGhost,
+      ExperimentalTreatUnspecifiedAsCompiled,
+      ExperimentalPredicateAlwaysGhost,
+      Version4,
+    }
 
     public bool ForbidNondeterminism {
       get { return DefiniteAssignmentLevel == 3; }
@@ -138,12 +141,13 @@ namespace Microsoft.Dafny {
     // Working around the fact that xmlFilename is private
     public string BoogieXmlFilename = null;
 
-    public List<Plugin> Plugins = new();
+    public static readonly ReadOnlyCollection<Plugin> DefaultPlugins = new(new[] { Compilers.SinglePassCompiler.Plugin });
+    public List<Plugin> Plugins = new(DefaultPlugins);
 
     public virtual TestGenerationOptions TestGenOptions =>
       testGenOptions ??= new TestGenerationOptions();
 
-    protected override bool ParseOption(string name, Bpl.CommandLineOptionEngine.CommandLineParseState ps) {
+    protected override bool ParseOption(string name, Bpl.CommandLineParseState ps) {
       var args = ps.args; // convenient synonym
       switch (name) {
         case "dprelude":
@@ -192,7 +196,7 @@ namespace Microsoft.Dafny {
 
         case "compile": {
             int compile = 0;
-            if (ps.GetNumericArgument(ref compile, 5)) {
+            if (ps.GetIntArgument(ref compile, 5)) {
               // convert option to two booleans
               Compile = compile != 0;
               ForceCompile = compile == 2 || compile == 4;
@@ -204,22 +208,12 @@ namespace Microsoft.Dafny {
 
         case "compileTarget":
           if (ps.ConfirmArgumentCount(1)) {
-            if (args[ps.i].Equals("cs")) {
-              CompileTarget = CompilationTarget.Csharp;
-            } else if (args[ps.i].Equals("js")) {
-              CompileTarget = CompilationTarget.JavaScript;
-            } else if (args[ps.i].Equals("go")) {
-              CompileTarget = CompilationTarget.Go;
-            } else if (args[ps.i].Equals("java")) {
-              CompileTarget = CompilationTarget.Java;
-            } else if (args[ps.i].Equals("cpp")) {
-              CompileTarget = CompilationTarget.Cpp;
-            } else if (args[ps.i].Equals("php")) {
-              CompileTarget = CompilationTarget.Php;
-            } else if (args[ps.i].Equals("py")) {
-              CompileTarget = CompilationTarget.Python;
-            } else {
-              InvalidArgumentError(name, ps);
+            var compileTarget = args[ps.i];
+            var compilers = Plugins.SelectMany(p => p.GetCompilers()).ToList();
+            Compiler = compilers.LastOrDefault(c => c.TargetId == compileTarget);
+            if (Compiler == null) {
+              var known = String.Join(", ", compilers.Select(c => $"'{c.TargetId}' ({c.TargetLanguage})"));
+              ps.Error($"No compiler found for compileTarget \"{compileTarget}\"; expecting one of {known}");
             }
           }
 
@@ -227,7 +221,7 @@ namespace Microsoft.Dafny {
 
         case "compileVerbose": {
             int verbosity = 0;
-            if (ps.GetNumericArgument(ref verbosity, 2)) {
+            if (ps.GetIntArgument(ref verbosity, 2)) {
               CompileVerbose = verbosity == 1;
             }
 
@@ -238,15 +232,6 @@ namespace Microsoft.Dafny {
         case "plugin": {
             if (ps.ConfirmArgumentCount(1)) {
               var pluginAndArgument = args[ps.i];
-              if (pluginAndArgument.Length > 0 &&
-                  pluginAndArgument[0] == '"' &&
-                  pluginAndArgument[^1] == '"'
-                  ) {
-                var unescapeRegex = new Regex(@"\\""|\\\\");
-                pluginAndArgument = unescapeRegex.Replace(pluginAndArgument.Substring(1, pluginAndArgument.Length - 2),
-                  match => match.Groups[0].Value == @"\""" ? "\"" : @"\"
-                );
-              }
               if (pluginAndArgument.Length > 0) {
                 var pluginArray = pluginAndArgument.Split(',');
                 var pluginPath = pluginArray[0];
@@ -255,17 +240,20 @@ namespace Microsoft.Dafny {
                   // There are no commas in paths, but there can be in arguments
                   var argumentsString = string.Join(',', pluginArray.Skip(1));
                   // Parse arguments, accepting and remove double quotes that isolate long arguments
-                  var splitter = new Regex(@"""((?:[^""]|\\"")*)""|([^ ]+)");
-                  arguments = splitter.Matches(argumentsString).Select(
-                    matchResult => matchResult.Groups[1].Success ?
-                        matchResult.Groups[1].Value.Replace(@"\""", @"""") :
-                        matchResult.Groups[2].Value
-                    ).ToArray();
+                  arguments = ParsePluginArguments(argumentsString);
                 }
-                Plugins.Add(Plugin.Load(pluginPath, arguments));
+                Plugins.Add(AssemblyPlugin.Load(pluginPath, arguments));
               }
             }
 
+            return true;
+          }
+
+        case "trackPrintEffects": {
+            int printEffects = 0;
+            if (ps.GetIntArgument(ref printEffects, 2)) {
+              EnforcePrintEffects = printEffects == 1;
+            }
             return true;
           }
 
@@ -280,7 +268,7 @@ namespace Microsoft.Dafny {
 
         case "dafnyVerify": {
             int verify = 0;
-            if (ps.GetNumericArgument(ref verify, 2)) {
+            if (ps.GetIntArgument(ref verify, 2)) {
               DafnyVerify = verify != 0; // convert to boolean
             }
 
@@ -289,7 +277,7 @@ namespace Microsoft.Dafny {
 
         case "spillTargetCode": {
             int spill = 0;
-            if (ps.GetNumericArgument(ref spill, 4)) {
+            if (ps.GetIntArgument(ref spill, 4)) {
               SpillTargetCode = spill;
             }
 
@@ -313,7 +301,7 @@ namespace Microsoft.Dafny {
 
         case "noCheating": {
             int cheat = 0; // 0 is default, allows cheating
-            if (ps.GetNumericArgument(ref cheat, 2)) {
+            if (ps.GetIntArgument(ref cheat, 2)) {
               DisallowSoundnessCheating = cheat == 1;
             }
 
@@ -329,11 +317,11 @@ namespace Microsoft.Dafny {
           return true;
 
         case "induction":
-          ps.GetNumericArgument(ref Induction, 5);
+          ps.GetIntArgument(ref Induction, 5);
           return true;
 
         case "inductionHeuristic":
-          ps.GetNumericArgument(ref InductionHeuristic, 7);
+          ps.GetIntArgument(ref InductionHeuristic, 7);
           return true;
 
         case "noIncludes":
@@ -350,7 +338,7 @@ namespace Microsoft.Dafny {
 
         case "arith": {
             int a = 0;
-            if (ps.GetNumericArgument(ref a, 11)) {
+            if (ps.GetIntArgument(ref a, 11)) {
               ArithMode = a;
             }
 
@@ -407,16 +395,36 @@ namespace Microsoft.Dafny {
 
         case "deprecation": {
             int d = 1;
-            if (ps.GetNumericArgument(ref d, 3)) {
+            if (ps.GetIntArgument(ref d, 3)) {
               DeprecationNoise = d;
             }
 
             return true;
           }
 
+        case "functionSyntax":
+          if (ps.ConfirmArgumentCount(1)) {
+            if (args[ps.i] == "3") {
+              FunctionSyntax = FunctionSyntaxOptions.Version3;
+            } else if (args[ps.i] == "4") {
+              FunctionSyntax = FunctionSyntaxOptions.Version4;
+            } else if (args[ps.i] == "migration3to4") {
+              FunctionSyntax = FunctionSyntaxOptions.Migration3To4;
+            } else if (args[ps.i] == "experimentalDefaultGhost") {
+              FunctionSyntax = FunctionSyntaxOptions.ExperimentalTreatUnspecifiedAsGhost;
+            } else if (args[ps.i] == "experimentalDefaultCompiled") {
+              FunctionSyntax = FunctionSyntaxOptions.ExperimentalTreatUnspecifiedAsCompiled;
+            } else if (args[ps.i] == "experimentalPredicateAlwaysGhost") {
+              FunctionSyntax = FunctionSyntaxOptions.ExperimentalPredicateAlwaysGhost;
+            } else {
+              InvalidArgumentError(name, ps);
+            }
+          }
+          return true;
+
         case "countVerificationErrors": {
             int countErrors = 1; // defaults to reporting verification errors
-            if (ps.GetNumericArgument(ref countErrors, 2)) {
+            if (ps.GetIntArgument(ref countErrors, 2)) {
               CountVerificationErrors = countErrors == 1;
             }
 
@@ -429,7 +437,7 @@ namespace Microsoft.Dafny {
 
         case "autoTriggers": {
             int autoTriggers = 0;
-            if (ps.GetNumericArgument(ref autoTriggers, 2)) {
+            if (ps.GetIntArgument(ref autoTriggers, 2)) {
               AutoTriggers = autoTriggers == 1;
             }
 
@@ -438,7 +446,7 @@ namespace Microsoft.Dafny {
 
         case "rewriteFocalPredicates": {
             int rewriteFocalPredicates = 0;
-            if (ps.GetNumericArgument(ref rewriteFocalPredicates, 2)) {
+            if (ps.GetIntArgument(ref rewriteFocalPredicates, 2)) {
               RewriteFocalPredicates = rewriteFocalPredicates == 1;
             }
 
@@ -451,13 +459,13 @@ namespace Microsoft.Dafny {
           }
 
         case "allocated": {
-            ps.GetNumericArgument(ref Allocated, 5);
+            ps.GetIntArgument(ref Allocated, 5);
             return true;
           }
 
         case "optimizeResolution": {
             int d = 2;
-            if (ps.GetNumericArgument(ref d, 3)) {
+            if (ps.GetIntArgument(ref d, 3)) {
               OptimizeResolution = d;
             }
 
@@ -466,7 +474,7 @@ namespace Microsoft.Dafny {
 
         case "definiteAssignment": {
             int da = 0;
-            if (ps.GetNumericArgument(ref da, 4)) {
+            if (ps.GetIntArgument(ref da, 4)) {
               DefiniteAssignmentLevel = da;
             }
 
@@ -538,15 +546,27 @@ namespace Microsoft.Dafny {
               InvalidArgumentError(name, ps);
             }
           }
-
           return true;
+
       }
 
       // Unless this is an option for test generation, defer to superclass
       return TestGenOptions.ParseOption(name, ps) || base.ParseOption(name, ps);
     }
 
-    protected void InvalidArgumentError(string name, CommandLineParseState ps) {
+    private static string[] ParsePluginArguments(string argumentsString) {
+      var splitter = new Regex(@"""(?<escapedArgument>(?:[^""\\]|\\\\|\\"")*)""|(?<rawArgument>[^ ]+)");
+      var escapedChars = new Regex(@"(?<escapedDoubleQuote>\\"")|\\\\");
+      return splitter.Matches(argumentsString).Select(
+        matchResult =>
+          matchResult.Groups["escapedArgument"].Success
+          ? escapedChars.Replace(matchResult.Groups["escapedArgument"].Value,
+            matchResult2 => matchResult2.Groups["escapedDoubleQuote"].Success ? "\"" : "\\")
+          : matchResult.Groups["rawArgument"].Value
+      ).ToArray();
+    }
+
+    protected void InvalidArgumentError(string name, Bpl.CommandLineParseState ps) {
       ps.Error("Invalid argument \"{0}\" to option {1}", ps.args[ps.i], name);
     }
 
@@ -559,12 +579,14 @@ namespace Microsoft.Dafny {
         }
 
         BoogieXmlFilename = Path.GetTempFileName();
-        XmlSink = new Bpl.XmlSink(BoogieXmlFilename);
+        XmlSink = new Bpl.XmlSink(this, BoogieXmlFilename);
       }
 
+      Compiler ??= new CsharpCompiler();
+
       // expand macros in filenames, now that LogPrefix is fully determined
-      ExpandFilename(ref DafnyPrelude, LogPrefix, FileTimestamp);
-      ExpandFilename(ref DafnyPrintFile, LogPrefix, FileTimestamp);
+      ExpandFilename(DafnyPrelude, x => DafnyPrelude = x, LogPrefix, FileTimestamp);
+      ExpandFilename(DafnyPrintFile, x => DafnyPrintFile = x, LogPrefix, FileTimestamp);
 
       SetZ3ExecutablePath();
       SetZ3Options();
@@ -575,8 +597,10 @@ namespace Microsoft.Dafny {
     }
 
     public override string AttributeHelp =>
-      @"Dafny: The following attributes are supported by this version.
-
+      @"Dafny: The documentation about attributes is best viewed here:
+      https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-attributes
+      
+     The following attributes are supported by this version.
     {:extern}
     {:extern <s1:string>}
     {:extern <s1:string>, <s2:string>}
@@ -601,9 +625,6 @@ namespace Microsoft.Dafny {
       Dafny does not perform sanity checks on the arguments---it is the user's responsibility not to generate
       malformed target code.
 
-    {:axiom}
-      TODO
-
     {:handle}
       TODO
 
@@ -617,10 +638,24 @@ namespace Microsoft.Dafny {
       TODO
 
     {:axiom}
-      TODO
+      Ordinarily, the compiler gives an error for every function or
+      method without a body. If the function or method is ghost, then
+      marking it with {:axiom} suppresses the error. The {:axiom}
+      attribute says you're taking responsibility for the existence
+      of a body for the function or method.
 
     {:abstemious}
       TODO
+
+    {:print}
+      This attributes declares that a method may have print effects,
+      that is, it may use 'print' statements and may call other methods
+      that have print effects. The attribute can be applied to compiled
+      methods, constructors, and iterators, and it gives an error if
+      applied to functions or ghost methods. An overriding method is
+      allowed to use a {:print} attribute only if the overridden method
+      does.
+      Print effects are enforced only with /trackPrintEffects:1.
 
     {:nativeType}
       Can be applied to newtype declarations for integer types and
@@ -817,18 +852,16 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public override string Help =>
-      base.Help +
+    protected override string HelpBody =>
       $@"
+---- Dafny options ---------------------------------------------------------
 
-  ---- Dafny options ---------------------------------------------------------
+All the .dfy files supplied on the command line along with files recursively
+included by 'include' directives are considered a single Dafny program;
+however only those files listed on the command line are verified.
 
- All the .dfy files supplied on the command line along with files recursively
- included by 'include' directives are considered a single Dafny program;
- however only those files listed on the command line are verified.
-
- Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
-            3 -- compilation errors; 4 -- verification errors
+Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
+           3 -- compilation errors; 4 -- verification errors
 
 /dprelude:<file>
     choose Dafny prelude file
@@ -872,8 +905,8 @@ namespace Microsoft.Dafny {
     go - Compilation to Go
     js - Compilation to JavaScript
     java - Compilation to Java
+    py - Compilation to Python
     cpp - Compilation to C++
-    php - Compilation to PHP
 
     Note that the C++ backend has various limitations (see Docs/Compilation/Cpp.md).
     This includes lack of support for BigIntegers (aka int), most higher order
@@ -886,7 +919,7 @@ namespace Microsoft.Dafny {
     https://github.com/dafny-lang/dafny/blob/master/Source/DafnyLanguageServer/README.md#about-plugins
 /Main:<name>
     The (fully-qualified) name of the method to use as the executable entry point.
-    Default is the method with the {{:main}} atrribute, or else the method named 'Main'.
+    Default is the method with the {{:main}} attribute, or else the method named 'Main'.
 /compileVerbose:<n>
     0 - don't print status of compilation to the console
     1 (default) - print information such as files being written by
@@ -912,6 +945,11 @@ namespace Microsoft.Dafny {
     <file> a legend that gives a description of each
     source-location identifier used in the branch-coverage calls.
     (use - as <file> to print to console)
+/trackPrintEffects:<n>
+    0 (default) - Every compiled method, constructor, and iterator, whether or not
+       it bears a {{:print}} attribute, may have print effects.
+    1 - A compiled method, constructor, or iterator is allowed to have print effects
+       only if it is marked with {{:print}}.
 /noCheating:<n>
     0 (default) - allow assume statements and free invariants
     1 - treat all assumptions as asserts, and drop free.
@@ -997,6 +1035,34 @@ namespace Microsoft.Dafny {
         statements are used; thus, a program that passes at this level 3 is one
         that the language guarantees that values seen during execution will be
         the same in every run of the program
+/functionSyntax:<version>
+    The syntax for functions is changing from Dafny version 3 to version 4.
+    This switch gives early access to the new syntax, and also provides a mode
+    to help with migration.
+    3 (default) - Compiled functions are written `function method` and
+        `predicate method`. Ghost functions are written `function` and `predicate`.
+    4 - Compiled functions are written `function` and `predicate`. Ghost functions
+        are written `ghost function` and `ghost predicate`.
+    migration3to4 - Compiled functions are written `function method` and
+        `predicate method`. Ghost functions are written `ghost function` and
+        `ghost predicate`. To migrate from version 3 to version 4, use this flag
+        on your version 3 program. This will give flag all occurrences of
+        `function` and `predicate` as parsing errors. These are ghost functions,
+        so change those into the new syntax `ghost function` and `ghost predicate`.
+        Then, start using /functionSyntax:4. This will flag all occurrences of
+        `function method` and `predicate method` as parsing errors. So, change
+        those to just `function` and `predicate`. Now, your program uses version 4
+        syntax and has the exact same meaning as your previous version 3 program.
+    experimentalDefaultGhost - like migration3to4, but allow `function` and
+        `predicate` as alternatives to declaring ghost functions and predicates,
+        respectively
+    experimentalDefaultCompiled - like migration3to4, but allow `function` and
+        `predicate` as alternatives to declaring compiled functions and predicates,
+        respectively
+    experimentalPredicateAlwaysGhost - Compiled functions are written `function`.
+        Ghost functions are written `ghost function`. Predicates are always ghost
+        and are written `predicate`.
+
 /deprecation:<n>
     0 - don't give any warnings about deprecated features
     1 (default) - show warnings about deprecated features
@@ -1071,6 +1137,7 @@ namespace Microsoft.Dafny {
 Dafny generally accepts Boogie options and passes these on to Boogie. However,
 some Boogie options, like /loopUnroll, may not be sound for Dafny or may not
 have the same meaning for a Dafny program as it would for a similar Boogie
-program.";
+program.
+".Replace("\n", "\n  ") + base.HelpBody;
   }
 }

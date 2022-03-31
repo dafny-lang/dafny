@@ -1,0 +1,32 @@
+# Step 1: Parse
+cAST =
+  SimpleCompiler.CSharpAST.Prog
+
+# Step 2: Compile (using Dafny)
+translated = 
+  DafnyAST_Compile.Stmt.Seq(DafnyAST_Compile.Stmt.Assign(x, DafnyAST_Compile.Expr.Const(3)), DafnyAST_Compile.Stmt.Seq(DafnyAST_Compile.Stmt.Print(DafnyAST_Compile.Expr.Var(x)), DafnyAST_Compile.Stmt.Seq(DafnyAST_Compile.Stmt.Assign(y, DafnyAST_Compile.Expr.Op(DafnyAST_Compile.BinOp.Add, DafnyAST_Compile.Expr.Var(x), DafnyAST_Compile.Expr.Const(0))), DafnyAST_Compile.Stmt.Seq(DafnyAST_Compile.Stmt.Print(DafnyAST_Compile.Expr.Op(DafnyAST_Compile.BinOp.Add, DafnyAST_Compile.Expr.Var(y), DafnyAST_Compile.Expr.Const(1))), DafnyAST_Compile.Stmt.Skip))))
+interp(translated) = 
+  [3, 4]
+
+optimized = 
+  DafnyAST_Compile.Stmt.Seq(DafnyAST_Compile.Stmt.Assign(x, DafnyAST_Compile.Expr.Const(3)), DafnyAST_Compile.Stmt.Seq(DafnyAST_Compile.Stmt.Print(DafnyAST_Compile.Expr.Var(x)), DafnyAST_Compile.Stmt.Seq(DafnyAST_Compile.Stmt.Assign(y, DafnyAST_Compile.Expr.Var(x)), DafnyAST_Compile.Stmt.Print(DafnyAST_Compile.Expr.Op(DafnyAST_Compile.BinOp.Add, DafnyAST_Compile.Expr.Var(y), DafnyAST_Compile.Expr.Const(1))))))
+interp(optimized) = 
+  [3, 4]
+
+compiled = 
+  LinkedList_Compile.List.Cons(StackMachine_Compile.Instr.PopPrint, LinkedList_Compile.List.Cons(StackMachine_Compile.Instr.PopAdd, LinkedList_Compile.List.Cons(StackMachine_Compile.Instr.PushConst(1), LinkedList_Compile.List.Cons(StackMachine_Compile.Instr.PushVar(y), LinkedList_Compile.List.Cons(StackMachine_Compile.Instr.PopVar(y), LinkedList_Compile.List.Cons(StackMachine_Compile.Instr.PushVar(x), LinkedList_Compile.List.Cons(StackMachine_Compile.Instr.PopPrint, LinkedList_Compile.List.Cons(StackMachine_Compile.Instr.PushVar(x), LinkedList_Compile.List.Cons(StackMachine_Compile.Instr.PopVar(x), LinkedList_Compile.List.Cons(StackMachine_Compile.Instr.PushConst(3), LinkedList_Compile.List.Nil))))))))))
+interp(compiled) = 
+  [3, 4]
+
+
+# Step 3: Print (using C#)
+  PopPrint
+  PopAdd
+  PushConst(1)
+  PushVar(y)
+  PopVar(y)
+  PushVar(x)
+  PopPrint
+  PushVar(x)
+  PopVar(x)
+  PushConst(3)
