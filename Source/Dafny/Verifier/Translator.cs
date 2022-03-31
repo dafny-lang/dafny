@@ -3737,8 +3737,13 @@ namespace Microsoft.Dafny {
       Bpl.Expr ante = Bpl.Expr.And(Bpl.Expr.Neq(o, predef.Null), etran.IsAlloced(tok, o));
       Bpl.Expr oInCallee = InRWClause(tok, o, f, calleeFrame, etran, receiverReplacement, substMap);
       Bpl.Expr inEnclosingFrame = Bpl.Expr.Select(etran.TheFrame(tok), o, f);
+
+      var preCondition = Bpl.Expr.And(ante, oInCallee);
       Bpl.Expr q = new Bpl.ForallExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar },
-                                      Bpl.Expr.Imp(Bpl.Expr.And(ante, oInCallee), inEnclosingFrame));
+                                      Bpl.Expr.Imp(preCondition, inEnclosingFrame));
+      if (preCondition is Bpl.LiteralExpr lit && lit.isBool && lit.asBool == false) {
+        return;
+      }
       MakeAssert(tok, q, errorMessage, kv);
     }
 
