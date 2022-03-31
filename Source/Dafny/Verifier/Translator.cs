@@ -5720,7 +5720,7 @@ namespace Microsoft.Dafny {
                 Expression ee = e.Args[i];
                 Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran.OldAt(e.AtLabel), ISALLOC, true);
                 if (wh != null) {
-                  var pIdx = e.Args.Count == 1 ? "" : " " + i;
+                  var pIdx = e.Args.Count == 1 ? "" : " at index " + i;
                   var desc = new PODesc.IsAllocated($"argument{pIdx} ('{formal.Name}')", "in the two-state function's previous state");
                   builder.Add(Assert(ee.tok, wh, desc));
                 }

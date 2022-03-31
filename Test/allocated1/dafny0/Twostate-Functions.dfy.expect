@@ -6,10 +6,10 @@ Twostate-Functions.dfy(57,14): Related location
 Twostate-Functions.dfy(72,15): Error: assertion might not hold
 Twostate-Functions.dfy(57,14): Related location
 Twostate-Functions.dfy(96,24): Error: argument ('u') might not be allocated in the two-state function's previous state
-Twostate-Functions.dfy(101,40): Error: argument 1 ('x') might not be allocated in the two-state function's previous state
-Twostate-Functions.dfy(107,40): Error: argument 1 ('x') might not be allocated in the two-state function's previous state
+Twostate-Functions.dfy(101,40): Error: argument at index 1 ('x') might not be allocated in the two-state function's previous state
+Twostate-Functions.dfy(107,40): Error: argument at index 1 ('x') might not be allocated in the two-state function's previous state
 Twostate-Functions.dfy(131,61): Error: target object might not be allocated
-Twostate-Functions.dfy(133,46): Error: argument 0 ('c') might not be allocated in the two-state function's previous state
+Twostate-Functions.dfy(133,46): Error: argument at index 0 ('c') might not be allocated in the two-state function's previous state
 Twostate-Functions.dfy(134,42): Error: target object might not be allocated
 Twostate-Functions.dfy(136,33): Error: target object might not be allocated
 Twostate-Functions.dfy(150,12): Error: target object might not be allocated

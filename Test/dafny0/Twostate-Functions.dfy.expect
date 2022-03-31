@@ -6,7 +6,7 @@ Twostate-Functions.dfy(54,14): Related location
 Twostate-Functions.dfy(68,15): Error: assertion might not hold
 Twostate-Functions.dfy(54,14): Related location
 Twostate-Functions.dfy(92,24): Error: argument ('u') might not be allocated in the two-state function's previous state
-Twostate-Functions.dfy(97,40): Error: argument 1 ('x') might not be allocated in the two-state function's previous state
+Twostate-Functions.dfy(97,40): Error: argument at index 1 ('x') might not be allocated in the two-state function's previous state
 Twostate-Functions.dfy(129,25): Error: receiver might not be allocated in the state in which its fields are accessed
 Twostate-Functions.dfy(147,12): Error: receiver might not be allocated in the state in which its fields are accessed
 Twostate-Functions.dfy(164,15): Error: argument ('d') might not be allocated in the two-state function's previous state
