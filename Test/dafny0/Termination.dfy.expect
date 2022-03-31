@@ -3,7 +3,7 @@ Termination.dfy(361,46): Error: decreases clause might not decrease
 Termination.dfy(577,5): Error: cannot find witness that shows type is inhabited; try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
 Termination.dfy(108,2): Error: cannot prove termination; try supplying a decreases clause for the loop
 Termination.dfy(125,2): Error: decreases expression might not decrease
-Termination.dfy(126,16): Error: decreases clause must be bounded below by 0 at end of loop iteration
+Termination.dfy(126,16): Error: decreases expression must be bounded below by 0 at end of loop iteration
 Termination.dfy(255,34): Error: cannot prove termination; try supplying a decreases clause
 Termination.dfy(296,2): Error: decreases expression might not decrease
 Termination.dfy(534,2): Error: decreases expression might not decrease

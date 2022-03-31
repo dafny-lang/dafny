@@ -436,14 +436,14 @@ public class Terminates : ProofObligationDescription {
 
 public class DecreasesBoundedBelow : ProofObligationDescription {
   public override string SuccessDescription =>
-    $"decreases clause{component} is bounded below by {zeroStr}";
+    $"decreases {component} is bounded below by {zeroStr}";
 
   public override string FailureDescription =>
-    $"decreases clause{component} must be bounded below by {zeroStr}{suffix}";
+    $"decreases {component} must be bounded below by {zeroStr}{suffix}";
 
-  public override string ShortDescription => "bounded decreases clause";
+  public override string ShortDescription => "bounded decreases expression";
 
-  private string component => N == 1 ? "" : $" (component at index {k})";
+  private string component => N == 1 ? "expression" : $"clause (component at index {k})";
   private readonly string zeroStr;
   private readonly string suffix;
   private readonly int N, k;
