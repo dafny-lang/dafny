@@ -1313,7 +1313,6 @@ namespace Microsoft.Dafny {
             lbody = new Boogie.ExistsExpr(expr.tok, bvars, triggers, ebody);
           }
           Boogie.QKeyValue kv = TrAttributes(e.Attributes, "trigger");
-
           return new Boogie.LambdaExpr(expr.tok, new List<TypeVariable>(), new List<Variable> { yVar }, kv, lbody);
 
         } else if (expr is MapComprehension) {

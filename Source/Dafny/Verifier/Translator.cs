@@ -6061,7 +6061,7 @@ namespace Microsoft.Dafny {
             Bpl.Expr guard = null;
             if (e.Range != null) {
               var range = Substitute(e.Range, null, substMap);
-              var rangeOptions = new WFOptions(newOptions);
+              var rangeOptions = newOptions;
               if (e.RangeIfGhost != null) { // Compiled context
                 // We are in a compiled context, we might want to warn the user that variables in a compiled range have a type computable from the collection type.
                 foreach (var variable in e.BoundVars) {
