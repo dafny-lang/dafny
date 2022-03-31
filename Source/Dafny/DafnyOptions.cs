@@ -27,6 +27,7 @@ namespace Microsoft.Dafny {
       Prune = true;
       NormalizeNames = true;
       EmitDebugInformation = false;
+      Compiler = new CsharpCompiler();
     }
 
     public override string VersionNumber {
@@ -546,8 +547,8 @@ namespace Microsoft.Dafny {
               InvalidArgumentError(name, ps);
             }
           }
-
           return true;
+
       }
 
       // Unless this is an option for test generation, defer to superclass
