@@ -15,7 +15,7 @@ twostate lemma R<X(!new)>(new c: C, new x: X, new y: Y, new z: Z<object, int>, n
   assert allocated(i);
   assert old(allocated(c)); // error: this may not hold
   assert old(allocated(x));
-//  assert old(allocated(y)); // TODO: this should be fine, but https://github.com/boogie-org/boogie/issues/559 is causing it not to verify
+  assert old(allocated(y));
   assert old(allocated(z));
   assert old(allocated(i));
 }
