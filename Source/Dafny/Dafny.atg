@@ -4080,34 +4080,13 @@ SetDisplayExpr<out Expression e>
 SeqDisplayExpr<out Expression e>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
      IToken x = null;
-     Type explicitTypeArg = null;
-     Expression n, f;
-     e = dummyExpr;
   .)
-  (
-    "seq"                          (. x = t; .)
-    [ (. var gt = new List<Type>(); .)
-    GenericInstantiation<gt>     (. if (gt.Count > 1) {
-                                      SemErr("seq type expects only one type argument");
-                                    } else {
-                                      explicitTypeArg = gt[0];
-                                    }
-                                 .)
-    ]
-    "("
-    Expression<out n, true, true>
-    ","
-    Expression<out f, true, true>
-    ")"                            (. e = new SeqConstructionExpr(x, explicitTypeArg, n, f); .)
-  |
-    "["                                      (. List<Expression> elements = new List<Expression/*!*/>();
-                                                x = t;
-
-                                             .)
-    [ Expressions<elements> ]                (. e = new SeqDisplayExpr(x, elements);
-                                             .)
-    "]"
-  )
+  "["                                      (. List<Expression> elements = new List<Expression/*!*/>();
+                                              x = t;
+                                           .)
+  [ Expressions<elements> ]                (. e = new SeqDisplayExpr(x, elements);
+                                           .)
+  "]"
   .
 
 /*------------------------------------------------------------------------*/
@@ -4690,30 +4669,48 @@ SetComprehensionExpr<out Expression q, bool allowLemma, bool allowLambda, bool a
 /*------------------------------------------------------------------------*/
 SeqComprehensionExpr<out Expression q, bool allowLemma, bool allowLambda, bool allowBitwiseOps>
 = (. Contract.Ensures(Contract.ValueAtReturn(out q) != null);
+     Type explicitTypeArg = null;
+     Expression n, f;
      BoundVar bv;
      List<BoundVar/*!*/> bvars = new List<BoundVar>();
      Expression range;
      Expression body = null;
      Attributes attrs = null;
+     q = dummyExpr;
   .)
-    "seq"                                        (. IToken setToken = t; .)
-    IdentTypeOptional<out bv>                    (. bvars.Add(bv); .)
-    { ","
-      IdentTypeOptional<out bv>                  (. bvars.Add(bv); .)
-    }
-    { Attribute<ref attrs> }
-    "|" Expression<out range, allowLemma, allowLambda, allowBitwiseOps>
-    [ IF(IsQSep())  /* let any given body bind to the closest enclosing seq comprehension */
-      QSep
-      Expression<out body, allowLemma, allowLambda, allowBitwiseOps>
-    ]
-    (. if (body == null && bvars.Count != 1) {
-         SemErr(t, "a seq comprehension with more than one bound variable must have a term expression");
-         q = dummyExpr;
-       } else {
-         q = new SeqComprehension(setToken, t, bvars, range, body, attrs);
-       }
-    .)
+    "seq"                                        (. IToken seqToken = t; .)
+    (
+      [ (. var gt = new List<Type>(); .)
+      GenericInstantiation<gt>     (. if (gt.Count > 1) {
+                                        SemErr("seq type expects only one type argument");
+                                      } else {
+                                        explicitTypeArg = gt[0];
+                                      }
+                                   .)
+      ]
+      "("
+      Expression<out n, true, true>
+      ","
+      Expression<out f, true, true>
+      ")"                            (. q = new SeqConstructionExpr(seqToken, explicitTypeArg, n, f); .)
+    |
+      IdentTypeOptional<out bv>                    (. bvars.Add(bv); .)
+      { ","
+        IdentTypeOptional<out bv>                  (. bvars.Add(bv); .)
+      }
+      { Attribute<ref attrs> }
+      "|" Expression<out range, allowLemma, allowLambda, allowBitwiseOps>
+      [ IF(IsQSep())  /* let any given body bind to the closest enclosing seq comprehension */
+        QSep
+        Expression<out body, allowLemma, allowLambda, allowBitwiseOps>
+      ]
+      (. if (body == null && bvars.Count != 1) {
+           SemErr(t, "a seq comprehension with more than one bound variable must have a term expression");
+         } else {
+           q = new SeqComprehension(seqToken, t, bvars, range, body, attrs);
+         }
+      .)
+    )
     .
 
 /*------------------------------------------------------------------------*/
