@@ -90,7 +90,7 @@ AllocatedCommon.dfyi(199,24): Error: assertion might not hold
 AllocatedCommon.dfyi(200,27): Error: assertion might not hold
 AllocatedCommon.dfyi(216,5): Error: insufficient reads clause to read field
 AllocatedCommon.dfyi(223,5): Error: insufficient reads clause to read field
-AllocatedCommon.dfyi(282,9): Error: possible violation of function precondition
+AllocatedCommon.dfyi(282,9): Error: function precondition might not hold
 AllocatedCommon.dfyi(282,15): Error: assertion might not hold
 AllocatedCommon.dfyi(299,26): Error: assertion might not hold
 AllocatedCommon.dfyi(300,26): Error: assertion might not hold

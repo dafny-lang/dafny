@@ -27,6 +27,7 @@ namespace Microsoft.Dafny {
       Prune = true;
       NormalizeNames = true;
       EmitDebugInformation = false;
+      Compiler = new CsharpCompiler();
     }
 
     public override string VersionNumber {

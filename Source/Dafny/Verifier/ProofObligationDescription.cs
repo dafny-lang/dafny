@@ -244,7 +244,7 @@ public class PreconditionSatisfied : ProofObligationDescription {
       : $"error is impossible: {customErrMsg}";
 
   public override string FailureDescription =>
-    customErrMsg ?? "possible violation of function precondition";
+    customErrMsg ?? "function precondition might not hold";
 
   public override string ShortDescription => "precondition";
 
@@ -417,7 +417,7 @@ public class Terminates : ProofObligationDescription {
   public override string FailureDescription =>
     (inferredDescreases
       ? ("cannot prove termination; try supplying a decreases clause" + (isLoop ? " for the loop" : ""))
-      : "decreases clause might not decrease") +
+      : $"decreases {FormDescription} might not decrease") +
     (hint is null ? "" : $" ({hint})");
 
   public override string ShortDescription => "termination";
@@ -425,6 +425,7 @@ public class Terminates : ProofObligationDescription {
   private readonly bool inferredDescreases;
   private readonly bool isLoop;
   private readonly string hint;
+  private string FormDescription => isLoop ? "expression" : "clause";
 
   public Terminates(bool inferredDescreases, bool isLoop, string hint = null) {
     this.inferredDescreases = inferredDescreases;
@@ -435,14 +436,14 @@ public class Terminates : ProofObligationDescription {
 
 public class DecreasesBoundedBelow : ProofObligationDescription {
   public override string SuccessDescription =>
-    $"decreases clause{component} is bounded below by {zeroStr}";
+    $"decreases {component} is bounded below by {zeroStr}";
 
   public override string FailureDescription =>
-    $"decreases clause{component} must be bounded below by {zeroStr}{suffix}";
+    $"decreases {component} must be bounded below by {zeroStr}{suffix}";
 
-  public override string ShortDescription => "bounded decreases clause";
+  public override string ShortDescription => "bounded decreases expression";
 
-  private string component => N == 1 ? "" : $" (component {k})";
+  private string component => N == 1 ? "expression" : $"expression at index {k}";
   private readonly string zeroStr;
   private readonly string suffix;
   private readonly int N, k;

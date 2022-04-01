@@ -4,6 +4,7 @@
 - feat: The `/verificationLogger:text` option now prints all verification results in a human-readable form, including a description of each assertion in the program.
 - fix: Miscompilation due to incorrect parenthesization in C# output for casts. (#1908)
 - fix: Populate TestResult.ResourceCount in `/verificationLogger:csv` output correctly when verification condition splitting occurs (e.g. when using `/vcsSplitOnEveryAssert`).
+- fix: DafnyOptions.Compiler was null, preventing instantiation of ModuleExportDecl (https://github.com/dafny-lang/dafny/pull/1933)
 
 # 3.5.0
 

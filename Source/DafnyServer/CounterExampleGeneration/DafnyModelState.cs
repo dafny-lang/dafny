@@ -155,7 +155,7 @@ namespace DafnyServer.CounterexampleGeneration {
         if (f.Arity != 0) {
           continue;
         }
-        var n = f.Name.IndexOf('!');
+        int n = f.Name.IndexOf('!');
         if (n == -1) {
           continue;
         }
@@ -172,7 +172,7 @@ namespace DafnyServer.CounterexampleGeneration {
       var loc = TryParseSourceLocation(name);
       if (loc != null) {
         var fn = loc.Filename;
-        var idx = fn.LastIndexOfAny(new[] { '\\', '/' });
+        int idx = fn.LastIndexOfAny(new[] { '\\', '/' });
         if (idx > 0) {
           fn = fn.Substring(idx + 1);
         }
@@ -195,7 +195,7 @@ namespace DafnyServer.CounterexampleGeneration {
     /// The ": random string" part is optional.
     /// </summary>
     private static SourceLocation TryParseSourceLocation(string name) {
-      var par = name.LastIndexOf('(');
+      int par = name.LastIndexOf('(');
       if (par <= 0) {
         return null;
       }
@@ -211,7 +211,7 @@ namespace DafnyServer.CounterexampleGeneration {
           !int.TryParse(words[1], out res.Column)) {
         return null;
       }
-      var colon = name.IndexOf(':', par);
+      int colon = name.IndexOf(':', par);
       res.AddInfo = colon > 0 ? name.Substring(colon + 1).Trim() : "";
       return res;
     }

@@ -1846,7 +1846,7 @@ namespace Microsoft.Dafny {
             Expression ee = Args[i];
             Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran.OldAt(atLabel), ISALLOC, true);
             if (wh != null) {
-              var pIdx = Args.Count == 1 ? "" : " " + i;
+              var pIdx = Args.Count == 1 ? "" : " at index " + i;
               var desc = new PODesc.IsAllocated($"parameter{pIdx} ('{formal.Name}')", "in the two-state lemma's previous state");
               builder.Add(Assert(ee.tok, wh, desc));
             }
