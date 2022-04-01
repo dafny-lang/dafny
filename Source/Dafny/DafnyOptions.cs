@@ -541,7 +541,7 @@ namespace Microsoft.Dafny {
 
         case "verificationLogger":
           if (ps.ConfirmArgumentCount(1)) {
-            if (args[ps.i].StartsWith("trx") || args[ps.i].StartsWith("csv")) {
+            if (args[ps.i].StartsWith("trx") || args[ps.i].StartsWith("csv") || args[ps.i].StartsWith("text")) {
               VerificationLoggerConfigs.Add(args[ps.i]);
             } else {
               InvalidArgumentError(name, ps);
@@ -1118,13 +1118,25 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
     /proverOpt:0:model_compress=false and /proverOpt:0:model.completion=true.
 /verificationLogger:<configuration string>
     Logs verification results to the given test result logger. The currently
-    supported loggers are ""trx"" and ""csv"". The former is the XML-based format
-    commonly used for test results for .NET languages. You can provide
-    configuration using the same string format as when using the --logger
-    option for dotnet test, such as:
+    supported loggers are ""trx"", ""csv"", and ""text"". These are the
+    XML-based format commonly used for test results for .NET languages, a
+    custom CSV schema, and a textual format meant for human consumption. You
+    can provide configuration using the same string format as when using the
+    --logger option for dotnet test, such as:
         /verificationLogger:trx;LogFileName=<...>.
-    The exact mapping of verification concepts to the TRX and CSV formats is
+    The exact mapping of verification concepts to these formats is
     experimental and subject to change!
+
+    The ""trx"" and ""csv"" loggers automatically choose an output file
+    name by default, and print the name of this file to the console. The
+    ""text"" logger prints its output to the console by default, but can
+    send output to a file given the `LogFileName` option.
+
+    The ""text"" logger also includes a more detailed breakdown of what
+    assertions appear in each assertion batch. When combined with the
+    `/vcsSplitOnEveryAssert` option, it will provide approximate time
+    and resource use costs for each assertion, allowing identification
+    of especially expensive assertions.
 {TestGenOptions.Help}
 
 /mimicVerificationOf:<Dafny version>
