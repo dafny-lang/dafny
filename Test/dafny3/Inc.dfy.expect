@@ -18,8 +18,8 @@ Inc.dfy(238,0): Error: A postcondition might not hold on this return path.
 Inc.dfy(237,12): Related location: This is the postcondition that might not hold.
 Inc.dfy(247,2): Error: A postcondition might not hold on this return path.
 Inc.dfy(244,12): Related location: This is the postcondition that might not hold.
-Inc.dfy(318,17): Error: cannot prove termination; try supplying a decreases clause
-Inc.dfy(318,17): Error: decreases expression (component 1) must be bounded below by 0
+Inc.dfy(318,17): Error: decreases expression at index 1 must be bounded below by 0
 Inc.dfy(303,26): Related location
+Inc.dfy(318,17): Error: cannot prove termination; try supplying a decreases clause
 
 Dafny program verifier finished with 11 verified, 12 errors
