@@ -53,11 +53,11 @@ LabeledAssertsResolution.dfy(298,10): Error: a forall statement is not allowed t
 LabeledAssertsResolution.dfy(299,10): Error: a forall statement is not allowed to update a variable it doesn't declare
 LabeledAssertsResolution.dfy(300,10): Error: a forall statement is not allowed to update a variable it doesn't declare
 LabeledAssertsResolution.dfy(310,6): Error: return statement is not allowed in this context (because it is guarded by a specification-only expression)
-LabeledAssertsResolution.dfy(329,14): Error: trying to break out of more loop levels than there are enclosing loops
+LabeledAssertsResolution.dfy(329,14): Error: a non-labeled 'break' statement is allowed only in loops
 LabeledAssertsResolution.dfy(331,20): Error: break label is undefined or not in scope: A
-LabeledAssertsResolution.dfy(336,10): Error: trying to break out of more loop levels than there are enclosing loops
+LabeledAssertsResolution.dfy(336,10): Error: a non-labeled 'break' statement is allowed only in loops
 LabeledAssertsResolution.dfy(337,16): Error: break label is undefined or not in scope: A
-LabeledAssertsResolution.dfy(343,10): Error: trying to break out of more loop levels than there are enclosing loops
+LabeledAssertsResolution.dfy(343,10): Error: a non-labeled 'break' statement is allowed only in loops
 LabeledAssertsResolution.dfy(344,16): Error: break label is undefined or not in scope: A
 LabeledAssertsResolution.dfy(355,8): Error: return statement is allowed only in method
 LabeledAssertsResolution.dfy(370,8): Error: return statement is allowed only in method
