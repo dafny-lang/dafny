@@ -6,8 +6,9 @@ using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
-class DafnyConsolePrinter : ConsolePrinter {
+public class DafnyConsolePrinter : ConsolePrinter {
   private readonly Dictionary<string, List<string>> fsCache = new();
+  public List<(Implementation, VerificationResult)> VerificationResults { get; } = new();
 
   private string GetFileLine(string filename, int lineIndex) {
     List<string> lines;
@@ -56,5 +57,9 @@ class DafnyConsolePrinter : ConsolePrinter {
       var nt = (Dafny.NestedToken)tok;
       ReportBplError(nt.Inner, "Related location", false, tw);
     }
+  }
+
+  public override void ReportEndVerifyImplementation(Implementation implementation, Boogie.VerificationResult result) {
+    VerificationResults.Add((implementation, result));
   }
 }

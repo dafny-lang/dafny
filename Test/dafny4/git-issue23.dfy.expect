@@ -1,4 +1,4 @@
-git-issue23.dfy(14,11): Error: possible violation of function precondition
+git-issue23.dfy(14,11): Error: function precondition might not hold
 git-issue23.dfy(10,13): Related location
 
 Dafny program verifier finished with 1 verified, 1 error

@@ -42,8 +42,8 @@ SubsetTypes.dfy(157,25): Error: value does not satisfy the subset constraints of
 SubsetTypes.dfy(159,25): Error: value does not satisfy the subset constraints of 'nat ~> nat'
 SubsetTypes.dfy(169,20): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 SubsetTypes.dfy(182,11): Error: value does not satisfy the subset constraints of 'int ~> nat'
-SubsetTypes.dfy(199,25): Error: value of expression (of type 'Person?') is not known to be an instance of type 'Person', because it may be null
-SubsetTypes.dfy(204,23): Error: value of expression (of type 'Person?') is not known to be an instance of type 'Person', because it may be null
+SubsetTypes.dfy(199,25): Error: value of expression (of type 'Person?') is not known to be an instance of type 'Person', because it might be null
+SubsetTypes.dfy(204,23): Error: value of expression (of type 'Person?') is not known to be an instance of type 'Person', because it might be null
 SubsetTypes.dfy(213,11): Error: value of expression (of type 'array<Person>') is not known to be an instance of type 'array<Person?>'
 SubsetTypes.dfy(216,11): Error: value of expression (of type 'array<Person?>') is not known to be an instance of type 'array<Person>'
 SubsetTypes.dfy(232,11): Error: value does not satisfy the subset constraints of 'seq<Person>'
@@ -74,7 +74,7 @@ SubsetTypes.dfy(375,19): Error: value does not satisfy the subset constraints of
 SubsetTypes.dfy(377,19): Error: value does not satisfy the subset constraints of 'Y'
 SubsetTypes.dfy(379,19): Error: value does not satisfy the subset constraints of 'Y'
 SubsetTypes.dfy(381,19): Error: value does not satisfy the subset constraints of 'Y'
-SubsetTypes.dfy(383,19): Error: value of expression (of type 'C?') is not known to be an instance of type 'C', because it may be null
+SubsetTypes.dfy(383,19): Error: value of expression (of type 'C?') is not known to be an instance of type 'C', because it might be null
 SubsetTypes.dfy(388,29): Error: value does not satisfy the subset constraints of 'int --> int' (possible cause: it may have read effects)
 SubsetTypes.dfy(390,28): Error: value does not satisfy the subset constraints of 'int -> int' (possible cause: it may be partial or have read effects)
 SubsetTypes.dfy(392,28): Error: value does not satisfy the subset constraints of 'int -> int' (possible cause: it may be partial or have read effects)
