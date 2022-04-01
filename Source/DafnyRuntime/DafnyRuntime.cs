@@ -1510,10 +1510,11 @@ namespace Dafny {
     // that's what C#'s default struct constructor will produce for BigRational. :(
     // To deal with it, we ignore "den" when "num" is 0.
     BigInteger num, den;  // invariant 1 <= den || (num == 0 && den == 0)
+
     /// <summary>
-    /// Return the closest approximation of the given rational as a double.
+    /// Return an approximation of the given rational as a double.
     /// </summary>
-    public double ToDouble() {
+    public double ApproximateToDouble() {
       return ((double)num / (double)den)
     }
     public override string ToString() {
@@ -1558,10 +1559,39 @@ namespace Dafny {
       num = new BigInteger(n);
       den = BigInteger.One;
     }
+    public BigRational(uint n) {
+      num = new BigInteger(n);
+      den = BigInteger.One;
+    }
+    public BigRational(long n) {
+      num = new BigInteger(n);
+      den = BigInteger.One;
+    }
+    public BigRational(ulong n) {
+      num = new BigInteger(n);
+      den = BigInteger.One;
+    }
     public BigRational(BigInteger n, BigInteger d) {
       // requires 1 <= d
       num = n;
       den = d;
+    }
+    public BigRational(double n) {
+      // TODO: check endianness!
+      ulong bits = BitConverter.DoubleToUInt64Bits(n);
+      bool isNeg = (bits & 0x8000000000000000) != 0;
+      long expt = ((long)((bits & 0x7FF0000000000000) >> 52)) - 1023;
+      ulong mant = (bits & 0x000FFFFFFFFFFFFF);
+      var one = BigInteger.One;
+      var two = new BigInteger(2);
+      var exptBI = new BigInteger.Pow(two, Math.Abs(expt));
+      var two52 = new BigInteger.Pow(two, 52);
+      var mantValue = new BigRational(two52 + new BigInteger(mant), two52);
+      var exptFactor = expt < 0
+                         ? new BigRational(one, exptBI)
+                         : new BigRational(exptBI, one)
+      var magnitude = mantValue * exptFactor;
+      return (isNeg ? magnitude.Negate() : magnitude);
     }
     public BigInteger ToBigInteger() {
       if (num.IsZero || den.IsOne) {
