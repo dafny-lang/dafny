@@ -1,8 +1,12 @@
-class _dafny:
-  def print(value):
-    if type(value) == bool:
-      print("true" if value else "false", end="")
-    elif type(value) == property:
-      print(value.fget(), end="")
+"""Runtime enabling Dafny language features."""
+import builtins
+
+class classproperty(property):
+    def __get__(self, instance, owner):
+        return classmethod(self.fget).__get__(None, owner)()
+
+def print(value):
+    if isinstance(value, bool):
+        builtins.print("true" if value else "false", end="")
     else:
-      print(value, end="")
+        builtins.print(value, end="")
