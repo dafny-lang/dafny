@@ -53,6 +53,7 @@ jobs:
       run: dotnet tool run dotnet-format -w -s error --check Source/Dafny.sln --exclude Dafny/Scanner.cs --exclude Dafny/Parser.cs
       
   build:
+    environment: continuous-integration
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:

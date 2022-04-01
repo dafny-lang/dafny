@@ -10,6 +10,7 @@ on:
 jobs:
   report:
     name: Download and Publish Test Results
+    environment: continuous-integration
     runs-on: ubuntu-latest
     if: always()
 
