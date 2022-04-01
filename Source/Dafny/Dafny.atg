@@ -3543,7 +3543,7 @@ EquivExpression<out Expression e0, bool allowLemma, bool allowLambda, bool allow
   ImpliesExpliesExpression<out e0, allowLemma, allowLambda, allowBitwiseOps>
   { IF(IsEquivOp())  /* read an EquivExpression as far as possible */
     EquivOp                                                   (. x = t; .)
-    ImpliesExpliesExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>  (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Iff, e0, e1); .)
+    ImpliesExpliesExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>  (. e0 = new BinaryExpr(Format.Parsed(x), BinaryExpr.Opcode.Iff, e0, e1); .)
   }
   .
 
@@ -3556,14 +3556,14 @@ ImpliesExpliesExpression<out Expression e0, bool allowLemma, bool allowLambda, b
      * implies is right associative whereas reverse implication is left associative
      */
     ( ImpliesOp                                               (. x = t; .)
-      ImpliesExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>       (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Imp, e0, e1); .)
+      ImpliesExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>       (. e0 = new BinaryExpr(Format.Parsed(x), BinaryExpr.Opcode.Imp, e0, e1); .)
     | ExpliesOp                                               (. x = t; .)
       LogicalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>       (. // The order of operands is reversed so that it can be turned into implication during resolution
-                                                                 e0 = new BinaryExpr(x, BinaryExpr.Opcode.Exp, e1, e0); .)
+                                                                 e0 = new BinaryExpr(Format.Parsed(x), BinaryExpr.Opcode.Exp, e1, e0); .)
       { IF(IsExpliesOp())  /* read a reverse implication as far as possible */
         ExpliesOp                                             (. x = t; .)
         LogicalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>     (. //The order of operands is reversed so that it can be turned into implication during resolution
-                                                                 e0 = new BinaryExpr(x, BinaryExpr.Opcode.Exp, e1, e0);
+                                                                 e0 = new BinaryExpr(Format.Parsed(x), BinaryExpr.Opcode.Exp, e1, e0);
                                                               .)
       }
       [ IF(IsImpliesOp()) ImpliesOp (. SemErr(t, "Ambiguous use of ==> and <==. Use parentheses to disambiguate."); .) ]
@@ -3577,7 +3577,7 @@ ImpliesExpression<out Expression e0, bool allowLemma, bool allowLambda, bool all
   LogicalExpression<out e0, allowLemma, allowLambda, allowBitwiseOps>
   [ IF(IsImpliesOp())  /* read an ImpliesExpression as far as possible */
     ImpliesOp                                               (. x = t; .)
-    ImpliesExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>       (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Imp, e0, e1); .)
+    ImpliesExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>       (. e0 = new BinaryExpr(Format.Parsed(x), BinaryExpr.Opcode.Imp, e0, e1); .)
   ]
   [ IF(IsExpliesOp()) ExpliesOp (. SemErr(t, "Ambiguous use of ==> and <==. Use parentheses to disambiguate."); .)
   ]
@@ -3593,42 +3593,42 @@ LogicalExpression<out Expression e0, bool allowLemma, bool allowLambda, bool all
     RelationalExpression<out e0, allowLemma, allowLambda, allowBitwiseOps>        (. first = e0; .)
     { IF(IsAndOp())  /* read a conjunction as far as possible */
       AndOp                                                     (. x = t; .)
-      RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>      (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, e0, e1); .)
+      RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>      (. e0 = new BinaryExpr(Format.Parsed(x), BinaryExpr.Opcode.And, e0, e1); .)
     }
     [ IF(IsOrOp()) OrOp (. SemErr(t, "Ambiguous use of && and ||. Use parentheses to disambiguate."); .) ]
     (. if (e0 == first) {
          // There was only one conjunct. To make sure that the type checker still checks it to
          // be a boolean, we conjoin "true" to its left.
-         e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, new LiteralExpr(x, true), e0);
+         e0 = new BinaryExpr(Format.Parsed(x), BinaryExpr.Opcode.And, new LiteralExpr(x, true), e0);
        }
     .)
   | OrOp                                                        (. x = t; .)
     RelationalExpression<out e0, allowLemma, allowLambda, allowBitwiseOps>        (. first = e0; .)
     { IF(IsOrOp())  /* read a disjunction as far as possible */
       OrOp                                                      (. x = t; .)
-      RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>      (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, e0, e1); .)
+      RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>      (. e0 = new BinaryExpr(Format.Parsed(x), BinaryExpr.Opcode.Or, e0, e1); .)
     }
     [ IF(IsAndOp()) AndOp (. SemErr(t, "Ambiguous use of && and ||. Use parentheses to disambiguate."); .) ]
     (. if (e0 == first) {
          // There was only one disjunct. To make sure that the type checker still checks it to
          // be a boolean, we disjoin [sic] "false" to its left.
-         e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, new LiteralExpr(x, false), e0);
+         e0 = new BinaryExpr(Format.Parsed(x), BinaryExpr.Opcode.Or, new LiteralExpr(x, false), e0);
        }
     .)
   | RelationalExpression<out e0, allowLemma, allowLambda, allowBitwiseOps>
     [ IF(IsAndOp() || IsOrOp())  /* read a LogicalExpression as far as possible */
       ( AndOp                                                   (. x = t; .)
-        RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>    (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, e0, e1); .)
+        RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>    (. e0 = new BinaryExpr(Format.Parsed(x), BinaryExpr.Opcode.And, e0, e1); .)
         { IF(IsAndOp())  /* read a conjunction as far as possible */
           AndOp                                                 (. x = t; .)
-          RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>  (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, e0, e1); .)
+          RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>  (. e0 = new BinaryExpr(Format.Parsed(x), BinaryExpr.Opcode.And, e0, e1); .)
         }
         [ IF(IsOrOp()) OrOp (. SemErr(t, "Ambiguous use of && and ||. Use parentheses to disambiguate."); .) ]
       | OrOp                                                    (. x = t; .)
-        RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>    (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, e0, e1); .)
+        RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>    (. e0 = new BinaryExpr(Format.Parsed(x), BinaryExpr.Opcode.Or, e0, e1); .)
         { IF(IsOrOp())  /* read a disjunction as far as possible */
           OrOp                                                  (. x = t; .)
-          RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>  (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, e0, e1); .)
+          RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>  (. e0 = new BinaryExpr(Format.Parsed(x), BinaryExpr.Opcode.Or, e0, e1); .)
         }
         [ IF(IsAndOp()) AndOp (. SemErr(t, "Ambiguous use of && and ||. Use parentheses to disambiguate."); .) ]
       )
@@ -3658,7 +3658,7 @@ RelationalExpression<out Expression e, bool allowLemma, bool allowLambda, bool a
     RelOp<out x, out op, out k>
     ShiftTerm<out e1, allowLemma, allowLambda, allowBitwiseOps>
                                    (. if (k == null) {
-                                        e = new BinaryExpr(x, op, e0, e1);
+                                        e = new BinaryExpr(Format.Parsed(x), op, e0, e1);
                                       } else {
                                         Contract.Assert(op == BinaryExpr.Opcode.Eq || op == BinaryExpr.Opcode.Neq);
                                         e = new TernaryExpr(x, op == BinaryExpr.Opcode.Eq ? TernaryExpr.Opcode.PrefixEqOp : TernaryExpr.Opcode.PrefixNeqOp, k, e0, e1);
@@ -3775,7 +3775,7 @@ ShiftTerm<out Expression e0, bool allowLemma, bool allowLambda, bool allowBitwis
     | ">"            (. x = t;  op = BinaryExpr.Opcode.RightShift; .)
       ">"            (. x.val = "<<";  Contract.Assert(t.pos == x.pos + 1); .)
     )
-    Term<out e1, allowLemma, allowLambda, allowBitwiseOps> (. e0 = new BinaryExpr(x, op, e0, e1); .)
+    Term<out e1, allowLemma, allowLambda, allowBitwiseOps> (. e0 = new BinaryExpr(Format.Parsed(x), op, e0, e1); .)
   }
   .
 
@@ -3785,7 +3785,7 @@ Term<out Expression e0, bool allowLemma, bool allowLambda, bool allowBitwiseOps>
   Factor<out e0, allowLemma, allowLambda, allowBitwiseOps>
   { IF(IsAddOp())  /* read a Term as far as possible */
     AddOp<out x, out op>
-    Factor<out e1, allowLemma, allowLambda, allowBitwiseOps> (. e0 = new BinaryExpr(x, op, e0, e1); .)
+    Factor<out e1, allowLemma, allowLambda, allowBitwiseOps> (. e0 = new BinaryExpr(Format.Parsed(x), op, e0, e1); .)
   }
   .
 
@@ -3803,7 +3803,7 @@ Factor<out Expression e0, bool allowLemma, bool allowLambda, bool allowBitwiseOp
   BitvectorFactor<out e0, allowLemma, allowLambda, allowBitwiseOps>
   { IF(IsMulOp())  /* read a Factor as far as possible */
     MulOp<out x, out op>
-    BitvectorFactor<out e1, allowLemma, allowLambda, allowBitwiseOps> (. e0 = new BinaryExpr(x, op, e0, e1); .)
+    BitvectorFactor<out e1, allowLemma, allowLambda, allowBitwiseOps> (. e0 = new BinaryExpr(Format.Parsed(x), op, e0, e1); .)
   }
   .
 
@@ -3823,26 +3823,26 @@ BitvectorFactor<out Expression e0, bool allowLemma, bool allowLambda, bool allow
   [ IF(allowBitwiseOps && IsBitwiseOp())  /* read a BitvectorFactor as far as possible, but not in the context inside a |.| size expression */
     ( (. op = BinaryExpr.Opcode.BitwiseAnd; .)
       "&"                                                             (. x = t; .)
-      AsExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>   (. e0 = new BinaryExpr(x, op, e0, e1); .)
+      AsExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>   (. e0 = new BinaryExpr(Format.Parsed(x), op, e0, e1); .)
       { IF(IsBitwiseAndOp())
         "&"                                                           (. x = t; .)
-        AsExpression<out e1, allowLemma, allowLambda, allowBitwiseOps> (. e0 = new BinaryExpr(x, op, e0, e1); .)
+        AsExpression<out e1, allowLemma, allowLambda, allowBitwiseOps> (. e0 = new BinaryExpr(Format.Parsed(x), op, e0, e1); .)
       }
       [ IF(IsBitwiseOp()) ( "|" | "^" )  (. SemErr(t, "Ambiguous use of &, |, ^. Use parentheses to disambiguate."); .) ]
     | (. op = BinaryExpr.Opcode.BitwiseOr; .)
       "|"                                                             (. x = t; .)
-      AsExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>   (. e0 = new BinaryExpr(x, op, e0, e1); .)
+      AsExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>   (. e0 = new BinaryExpr(Format.Parsed(x), op, e0, e1); .)
       { IF(IsBitwiseOrOp())
         "|"                                                           (. x = t; .)
-        AsExpression<out e1, allowLemma, allowLambda, allowBitwiseOps> (. e0 = new BinaryExpr(x, op, e0, e1); .)
+        AsExpression<out e1, allowLemma, allowLambda, allowBitwiseOps> (. e0 = new BinaryExpr(Format.Parsed(x), op, e0, e1); .)
       }
       [ IF(IsBitwiseOp()) ( "^" | "&" )  (. SemErr(t, "Ambiguous use of &, |, ^. Use parentheses to disambiguate."); .) ]
     | (. op = BinaryExpr.Opcode.BitwiseXor; .)
       "^"                                                             (. x = t; .)
-      AsExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>   (. e0 = new BinaryExpr(x, op, e0, e1); .)
+      AsExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>   (. e0 = new BinaryExpr(Format.Parsed(x), op, e0, e1); .)
       { IF(IsBitwiseXorOp())
         "^"                                                           (. x = t; .)
-        AsExpression<out e1, allowLemma, allowLambda, allowBitwiseOps> (. e0 = new BinaryExpr(x, op, e0, e1); .)
+        AsExpression<out e1, allowLemma, allowLambda, allowBitwiseOps> (. e0 = new BinaryExpr(Format.Parsed(x), op, e0, e1); .)
       }
       [ IF(IsBitwiseOp()) ( "&" | "|" )  (. SemErr(t, "Ambiguous use of &, |, ^. Use parentheses to disambiguate."); .) ]
     )
@@ -3998,7 +3998,7 @@ LambdaExpression<out Expression e, bool allowLemma, bool allowBitwiseOps>
 LambdaSpec<.ref List<FrameExpression> reads, ref Expression req.>
 = { ReadsClause<reads, true, false, true>
   | "requires"                             (. Expression ee; .)
-    Expression<out ee, true, false>        (. req = req == null ? ee : new BinaryExpr(req.tok, BinaryExpr.Opcode.And, req, ee); .)
+    Expression<out ee, true, false>        (. req = req == null ? ee : new BinaryExpr(Format.Parsed(req.tok), BinaryExpr.Opcode.And, req, ee); .)
   }
   .
 
@@ -4571,7 +4571,7 @@ Suffix<ref Expression e>
              Expression prev = null;
              List<Expression> seqs = new List<Expression>();
               foreach (var len in multipleLengths) {
-                var end = prev == null ? len : new BinaryExpr(x, BinaryExpr.Opcode.Add, prev, len);
+                var end = prev == null ? len : new BinaryExpr(Format.Parsed(x), BinaryExpr.Opcode.Add, prev, len);
                 seqs.Add(new SeqSelectExpr(x, false, e, prev, end));
                 prev = end;
               }

@@ -5808,7 +5808,7 @@ namespace Microsoft.Dafny {
 
     private NonNullTypeDecl(ClassDecl cl, List<TypeParameter> tps, BoundVar id)
       : base(cl.tok, cl.Name, new TypeParameter.TypeParameterCharacteristics(), tps, cl.EnclosingModuleDefinition, id,
-      new BinaryExpr(cl.tok, BinaryExpr.Opcode.Neq, new IdentifierExpr(cl.tok, id), new LiteralExpr(cl.tok)),
+      new BinaryExpr(Format.Generated(cl.tok), BinaryExpr.Opcode.Neq, new IdentifierExpr(cl.tok, id), new LiteralExpr(cl.tok)),
       SubsetTypeDecl.WKind.Special, null, BuiltIns.AxiomAttribute()) {
       Contract.Requires(cl != null);
       Contract.Requires(tps != null);
@@ -8585,9 +8585,9 @@ namespace Microsoft.Dafny {
       public override Expression StepExpr(Expression line0, Expression line1) {
         if (Op == BinaryExpr.Opcode.Exp) {
           // The order of operands is reversed so that it can be turned into implication during resolution
-          return new BinaryExpr(line0.tok, Op, line1, line0);
+          return new BinaryExpr(Format.Generated(line0.tok), Op, line1, line0);
         } else {
-          return new BinaryExpr(line0.tok, Op, line0, line1);
+          return new BinaryExpr(Format.Generated(line0.tok), Op, line0, line1);
         }
       }
 
@@ -8619,7 +8619,7 @@ namespace Microsoft.Dafny {
         } else if (other is TernaryCalcOp) {
           var a = Index;
           var b = ((TernaryCalcOp)other).Index;
-          var minIndex = new ITEExpr(a.tok, false, new BinaryExpr(a.tok, BinaryExpr.Opcode.Le, a, b), a, b);
+          var minIndex = new ITEExpr(a.tok, false, new BinaryExpr(Format.Generated(a.tok), BinaryExpr.Opcode.Le, a, b), a, b);
           return new TernaryCalcOp(minIndex); // ToDo: if we could compare expressions for syntactic equalty, we could use this here to optimize
         } else {
           Contract.Assert(false);
@@ -8994,10 +8994,84 @@ namespace Microsoft.Dafny {
     }
   }
 
+  // Extended per expression, statement or node
+  public class Format {
+    public IToken tok { get; init; } // Unambiguous "position" of the expression (i.e. the operator for a binary expr)
+    public IToken StartToken { get; init; } // The first start token
+    public IToken EndToken { get; init; } // The final token
+
+    static IToken BorrowTrivia(IToken tok, bool leading = false, bool trailing = false) {
+      if (tok is Token token) {
+        return token.BorrowTrivia(leading, trailing);
+      }
+      if (tok is NestedToken nestedToken) {
+        var newOuter = BorrowTrivia(nestedToken.Outer, leading, trailing);
+        return new NestedToken(newOuter, nestedToken.Inner, nestedToken.Message);
+      }
+      return tok;
+    }
+    public Format CombineWith(IToken opTok, Format other, bool borrowTrivia = true) {
+      return new Format() {
+        tok = opTok,
+        StartToken = BorrowTrivia(StartToken, borrowTrivia),
+        EndToken = BorrowTrivia(other.EndToken, trailing: borrowTrivia)
+      };
+    }
+
+    public static Format Single(IToken tok) {
+      return new Format() {
+        tok = tok,
+        StartToken = tok,
+        EndToken = tok
+      };
+    }
+    public static GeneratedFormat Generated(IToken tok) {
+      return new GeneratedFormat {
+        tok = tok,
+        StartToken = tok,
+        EndToken = tok
+      };
+    }
+    public static ParsingFormat Parsed(IToken tok) {
+      return new ParsingFormat {
+        tok = tok,
+        StartToken = tok,
+        EndToken = tok
+      };
+    }
+  }
+
+  public class FormalListFormat {
+
+  }
+
+  public class FunctionFormat : Format {
+    // The tok represents the ID
+    public IToken LeastGreatestTok;
+    public IToken TwoStateTok;
+    public IToken FunctionPredicateTok;
+    public IToken MethodTok;
+    public FormalListFormat FormalsFormat;
+    public IToken ColonTok;
+    public IToken Paren1Tok;
+    public IToken Paren2Tok;
+  }
+
+  // Pass this format for generated expressions
+  public class GeneratedFormat : Format {
+  }
+
+  // Pass this format for explicitly parsed expressions
+  public class ParsingFormat : Format {
+  }
+
   // ------------------------------------------------------------------------------------------------------
   [DebuggerDisplay("{Printer.ExprToString(this)}")]
   public abstract class Expression {
-    public readonly IToken tok;
+    public IToken tok => format.tok;
+
+    public readonly Format format;
+
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(tok != null);
@@ -9059,11 +9133,23 @@ namespace Microsoft.Dafny {
     }
 #endif
 
+    public Expression(Format format) {
+      Contract.Requires(tok != null);
+      Contract.Ensures(type == null);  // we would have liked to have written Type==null, but that's not admissible or provable
+
+      this.format = format;
+    }
+
+    /// <summary>
+    /// Constructor used for progressively adopt format.
+    /// TODO: Remove when all the expressions accept ranges.
+    /// </summary>
+    /// <param name="tok"></param>
     public Expression(IToken tok) {
       Contract.Requires(tok != null);
       Contract.Ensures(type == null);  // we would have liked to have written Type==null, but that's not admissible or provable
 
-      this.tok = tok;
+      format = Format.Single(tok);
     }
 
     /// <summary>
@@ -9160,7 +9246,7 @@ namespace Microsoft.Dafny {
         (e0.Type.IsNumericBased(Type.NumericPersuasion.Int) && e1.Type.IsNumericBased(Type.NumericPersuasion.Int)) ||
         (e0.Type.IsNumericBased(Type.NumericPersuasion.Real) && e1.Type.IsNumericBased(Type.NumericPersuasion.Real)));
       Contract.Ensures(Contract.Result<Expression>() != null);
-      var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Add, e0, e1);
+      var s = new BinaryExpr(Format.Generated(e0.tok), BinaryExpr.Opcode.Add, e0, e1);
       s.ResolvedOp = BinaryExpr.ResolvedOpcode.Add;  // resolve here
       s.Type = e0.Type.NormalizeExpand();  // resolve here
       return s;
@@ -9176,7 +9262,7 @@ namespace Microsoft.Dafny {
         (e0.Type.IsNumericBased(Type.NumericPersuasion.Int) && e1.Type.IsNumericBased(Type.NumericPersuasion.Int)) ||
         (e0.Type.IsNumericBased(Type.NumericPersuasion.Real) && e1.Type.IsNumericBased(Type.NumericPersuasion.Real)));
       Contract.Ensures(Contract.Result<Expression>() != null);
-      var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Mul, e0, e1);
+      var s = new BinaryExpr(Format.Generated(e0.tok), BinaryExpr.Opcode.Mul, e0, e1);
       s.ResolvedOp = BinaryExpr.ResolvedOpcode.Mul;  // resolve here
       s.Type = e0.Type.NormalizeExpand();  // resolve here
       return s;
@@ -9233,7 +9319,7 @@ namespace Microsoft.Dafny {
         (e0.Type.IsNumericBased(Type.NumericPersuasion.Real) && e1.Type.IsNumericBased(Type.NumericPersuasion.Real)) ||
         (e0.Type.IsBigOrdinalType && e1.Type.IsBigOrdinalType));
       Contract.Ensures(Contract.Result<Expression>() != null);
-      var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Sub, e0, e1);
+      var s = new BinaryExpr(Format.Generated(e0.tok), BinaryExpr.Opcode.Sub, e0, e1);
       s.ResolvedOp = BinaryExpr.ResolvedOpcode.Sub;  // resolve here
       s.Type = e0.Type.NormalizeExpand();  // resolve here (and it's important to remove any constraints)
       return s;
@@ -9253,7 +9339,7 @@ namespace Microsoft.Dafny {
       if (LiteralExpr.IsEmptySet(e0) || LiteralExpr.IsEmptySet(e1)) {
         return e0;
       }
-      var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Sub, e0, e1) {
+      var s = new BinaryExpr(Format.Generated(e0.tok), BinaryExpr.Opcode.Sub, e0, e1) {
         ResolvedOp = BinaryExpr.ResolvedOpcode.SetDifference,
         Type = e0.Type.NormalizeExpand() // important to remove any constraints
       };
@@ -9274,7 +9360,7 @@ namespace Microsoft.Dafny {
       if (LiteralExpr.IsEmptyMultiset(e0) || LiteralExpr.IsEmptyMultiset(e1)) {
         return e0;
       }
-      var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Sub, e0, e1) {
+      var s = new BinaryExpr(Format.Generated(e0.tok), BinaryExpr.Opcode.Sub, e0, e1) {
         ResolvedOp = BinaryExpr.ResolvedOpcode.MultiSetDifference,
         Type = e0.Type.NormalizeExpand() // important to remove any constraints
       };
@@ -9466,7 +9552,7 @@ namespace Microsoft.Dafny {
             break;
         }
         if (negatedOp != BinaryExpr.ResolvedOpcode.Add) {
-          return new BinaryExpr(bin.tok, BinaryExpr.ResolvedOp2SyntacticOp(negatedOp), bin.E0, bin.E1) {
+          return new BinaryExpr(Format.Generated(bin.tok), BinaryExpr.ResolvedOp2SyntacticOp(negatedOp), bin.E0, bin.E1) {
             ResolvedOp = negatedOp,
             Type = bin.Type
           };
@@ -9492,7 +9578,7 @@ namespace Microsoft.Dafny {
         (e0.Type.IsCharType && e1.Type.IsCharType) ||
         (e0.Type.IsBigOrdinalType && e1.Type.IsBigOrdinalType));
       Contract.Ensures(Contract.Result<Expression>() != null);
-      return new BinaryExpr(e0.tok, BinaryExpr.Opcode.Lt, e0, e1) {
+      return new BinaryExpr(Format.Generated(e0.tok), BinaryExpr.Opcode.Lt, e0, e1) {
         ResolvedOp = e0.Type.IsCharType ? BinaryExpr.ResolvedOpcode.LtChar : BinaryExpr.ResolvedOpcode.Lt,
         Type = Type.Bool
       };
@@ -9512,7 +9598,7 @@ namespace Microsoft.Dafny {
         (e0.Type.IsCharType && e1.Type.IsCharType) ||
         (e0.Type.IsBigOrdinalType && e1.Type.IsBigOrdinalType));
       Contract.Ensures(Contract.Result<Expression>() != null);
-      return new BinaryExpr(e0.tok, BinaryExpr.Opcode.Le, e0, e1) {
+      return new BinaryExpr(Format.Generated(e0.tok), BinaryExpr.Opcode.Le, e0, e1) {
         ResolvedOp = e0.Type.IsCharType ? BinaryExpr.ResolvedOpcode.LeChar : BinaryExpr.ResolvedOpcode.Le,
         Type = Type.Bool
       };
@@ -9522,7 +9608,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(e0 != null);
       Contract.Requires(e1 != null);
       Contract.Requires(ty != null);
-      var eq = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Eq, e0, e1);
+      var eq = new BinaryExpr(Format.Generated(e0.tok), BinaryExpr.Opcode.Eq, e0, e1);
       if (ty is SetType) {
         eq.ResolvedOp = BinaryExpr.ResolvedOpcode.SetEq;
       } else if (ty is SeqType) {
@@ -9551,7 +9637,7 @@ namespace Microsoft.Dafny {
       } else if (allowSimplification && LiteralExpr.IsTrue(b)) {
         return a;
       } else {
-        var and = new BinaryExpr(a.tok, BinaryExpr.Opcode.And, a, b);
+        var and = new BinaryExpr(Format.Generated(a.tok), BinaryExpr.Opcode.And, a, b);
         and.ResolvedOp = BinaryExpr.ResolvedOpcode.And;  // resolve here
         and.Type = Type.Bool;  // resolve here
         return and;
@@ -9569,7 +9655,7 @@ namespace Microsoft.Dafny {
       if (allowSimplification && (LiteralExpr.IsTrue(a) || LiteralExpr.IsTrue(b))) {
         return b;
       } else {
-        var imp = new BinaryExpr(a.tok, BinaryExpr.Opcode.Imp, a, b);
+        var imp = new BinaryExpr(Format.Generated(a.tok), BinaryExpr.Opcode.Imp, a, b);
         imp.ResolvedOp = BinaryExpr.ResolvedOpcode.Imp;  // resolve here
         imp.Type = Type.Bool;  // resolve here
         return imp;
@@ -9589,7 +9675,7 @@ namespace Microsoft.Dafny {
       } else if (allowSimplification && LiteralExpr.IsTrue(b)) {
         return b;
       } else {
-        var or = new BinaryExpr(a.tok, BinaryExpr.Opcode.Or, a, b);
+        var or = new BinaryExpr(Format.Generated(a.tok), BinaryExpr.Opcode.Or, a, b);
         or.ResolvedOp = BinaryExpr.ResolvedOpcode.Or;  // resolve here
         or.Type = Type.Bool;  // resolve here
         return or;
@@ -11141,8 +11227,11 @@ namespace Microsoft.Dafny {
       Contract.Invariant(E1 != null);
     }
 
-    public BinaryExpr(IToken tok, Opcode op, Expression e0, Expression e1)
-      : base(tok) {
+    public BinaryExpr(Format format, Opcode op, Expression e0, Expression e1)
+      : base(format is GeneratedFormat ? e0.format.CombineWith(format.tok, e1.format, false) :
+        format is ParsingFormat ? e0.format.CombineWith(format.tok, e1.format) :
+        format
+        ) {
       Contract.Requires(tok != null);
       Contract.Requires(e0 != null);
       Contract.Requires(e1 != null);
@@ -11154,8 +11243,8 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Returns a resolved binary expression
     /// </summary>
-    public BinaryExpr(Boogie.IToken tok, BinaryExpr.ResolvedOpcode rop, Expression e0, Expression e1)
-      : this(tok, BinaryExpr.ResolvedOp2SyntacticOp(rop), e0, e1) {
+    public BinaryExpr(Format format, BinaryExpr.ResolvedOpcode rop, Expression e0, Expression e1)
+      : this(format, BinaryExpr.ResolvedOp2SyntacticOp(rop), e0, e1) {
       ResolvedOp = rop;
       switch (rop) {
         case ResolvedOpcode.EqCommon:
@@ -11687,7 +11776,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(SplitQuantifier != null && SplitQuantifier.Any());
       Expression accumulator = SplitQuantifier[0];
       for (int tid = 1; tid < SplitQuantifier.Count; tid++) {
-        accumulator = new BinaryExpr(Term.tok, SplitResolvedOp, accumulator, SplitQuantifier[tid]);
+        accumulator = new BinaryExpr(Format.Generated(Term.tok), SplitResolvedOp, accumulator, SplitQuantifier[tid]);
       }
       return accumulator;
     }
@@ -11783,7 +11872,7 @@ namespace Microsoft.Dafny {
       if (Range == null) {
         return Term;
       }
-      var body = new BinaryExpr(Term.tok, BinaryExpr.Opcode.Imp, Range, Term);
+      var body = new BinaryExpr(Format.Generated(Term.tok), BinaryExpr.Opcode.Imp, Range, Term);
       body.ResolvedOp = BinaryExpr.ResolvedOpcode.Imp;
       body.Type = Term.Type;
       return body;
@@ -11810,7 +11899,7 @@ namespace Microsoft.Dafny {
       if (Range == null) {
         return Term;
       }
-      var body = new BinaryExpr(Term.tok, BinaryExpr.Opcode.And, Range, Term);
+      var body = new BinaryExpr(Format.Generated(Term.tok), BinaryExpr.Opcode.And, Range, Term);
       body.ResolvedOp = BinaryExpr.ResolvedOpcode.And;
       body.Type = Term.Type;
       return body;
@@ -12904,13 +12993,13 @@ namespace Microsoft.Dafny {
       // Compute the desugaring
       if (operators[0] == BinaryExpr.Opcode.Disjoint) {
         Expression acc = operands[0];  // invariant:  "acc" is the union of all operands[j] where j <= i
-        desugaring = new BinaryExpr(operatorLocs[0], operators[0], operands[0], operands[1]);
+        desugaring = new BinaryExpr(Format.Generated(operatorLocs[0]), operators[0], operands[0], operands[1]);
         for (int i = 0; i < operators.Count; i++) {
           Contract.Assume(operators[i] == BinaryExpr.Opcode.Disjoint);
           var opTok = operatorLocs[i];
-          var e = new BinaryExpr(opTok, BinaryExpr.Opcode.Disjoint, acc, operands[i + 1]);
-          desugaring = new BinaryExpr(opTok, BinaryExpr.Opcode.And, desugaring, e);
-          acc = new BinaryExpr(opTok, BinaryExpr.Opcode.Add, acc, operands[i + 1]);
+          var e = new BinaryExpr(Format.Generated(opTok), BinaryExpr.Opcode.Disjoint, acc, operands[i + 1]);
+          desugaring = new BinaryExpr(Format.Generated(opTok), BinaryExpr.Opcode.And, desugaring, e);
+          acc = new BinaryExpr(Format.Generated(opTok), BinaryExpr.Opcode.Add, acc, operands[i + 1]);
         }
       } else {
         desugaring = null;
@@ -12924,11 +13013,11 @@ namespace Microsoft.Dafny {
           var e1 = operands[i + 1];
           Expression e;
           if (k == null) {
-            e = new BinaryExpr(opTok, op, e0, e1);
+            e = new BinaryExpr(Format.Generated(opTok), op, e0, e1);
           } else {
             e = new TernaryExpr(opTok, op == BinaryExpr.Opcode.Eq ? TernaryExpr.Opcode.PrefixEqOp : TernaryExpr.Opcode.PrefixNeqOp, k, e0, e1);
           }
-          desugaring = desugaring == null ? e : new BinaryExpr(opTok, BinaryExpr.Opcode.And, desugaring, e);
+          desugaring = desugaring == null ? e : new BinaryExpr(Format.Generated(opTok), BinaryExpr.Opcode.And, desugaring, e);
         }
       }
       E = desugaring;

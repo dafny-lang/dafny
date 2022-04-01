@@ -880,11 +880,9 @@ namespace Microsoft.Dafny {
       PrintDecreasesSpec(f.Decreases, ind);
       wr.WriteLine();
       if (f.Body != null && !printSignatureOnly) {
-        Indent(indent);
-        wr.WriteLine("{");
+        PrintWithTrivia(f.BodyStartTok, "{", indent: indent, suffixDefault: Environment.NewLine);
         PrintExtendedExpr(f.Body, ind, true, false);
-        Indent(indent);
-        wr.Write("}");
+        PrintWithTrivia(f.BodyEndTok, "}", indent: indent);
         if (f.ByMethodBody != null) {
           wr.Write(" by method ");
           if (DafnyOptions.O.DafnyPrintResolvedFile != null && f.ByMethodDecl != null) {
@@ -1255,7 +1253,7 @@ namespace Microsoft.Dafny {
         wr.Write("}");
 
       } else if (stmt is BlockStmt) {
-        wr.WriteLine("{");
+        PrintWithTrivia(stmt.Tok, "{");
         int ind = indent + IndentAmount;
         foreach (Statement s in ((BlockStmt)stmt).Body) {
           Indent(ind);
@@ -1263,8 +1261,7 @@ namespace Microsoft.Dafny {
           wr.WriteLine();
         }
         Indent(indent);
-        wr.Write("}");
-
+        PrintWithTrivia(stmt.EndTok, "}");
       } else if (stmt is IfStmt) {
         IfStmt s = (IfStmt)stmt;
         PrintIfStatement(indent, s, false);
@@ -1850,7 +1847,6 @@ namespace Microsoft.Dafny {
     public void PrintExtendedExpr(Expression expr, int indent, bool isRightmost, bool endWithCloseParen) {
       Contract.Requires(expr != null);
       if (expr is ITEExpr) {
-        Indent(indent);
         while (true) {
           var ite = (ITEExpr)expr;
           wr.Write("if ");
@@ -1868,7 +1864,6 @@ namespace Microsoft.Dafny {
             return;
           }
         }
-
       } else if (expr is NestedMatchExpr) {
         var e = (NestedMatchExpr)expr;
         if (e.ResolvedExpression != null && DafnyOptions.O.DafnyPrintResolvedFile != null) {
@@ -1983,6 +1978,32 @@ namespace Microsoft.Dafny {
       }
     }
 
+    private void PrintInitialTrivia(Format exprFormat, int indent = 0, string prefix = null) {
+      if (exprFormat.StartToken.leadingTrivia != null) {
+        wr.Write(exprFormat.StartToken.leadingTrivia);
+      } else {
+        if (indent != 0) {
+          Indent(indent);
+        }
+        if (prefix != null) {
+          wr.Write(prefix);
+        }
+      }
+    }
+
+    private void PrintFinalTrivia(Format exprFormat, int indent = 0, string prefix = null) {
+      if (exprFormat.EndToken.trailingTrivia != null) {
+        wr.Write(exprFormat.EndToken.trailingTrivia);
+      } else {
+        if (indent != 0) {
+          Indent(indent);
+        }
+        if (prefix != null) {
+          wr.Write(prefix);
+        }
+      }
+    }
+
     public void PrintMatchCaseArgument(MatchCase mc) {
       Contract.Assert(mc.Arguments != null);
       if (mc.Arguments.Count != 0) {
@@ -2074,7 +2095,7 @@ namespace Microsoft.Dafny {
             }
           }
         } else {
-          wr.Write((BigInteger)e.Value);
+          PrintWithTrivia(e.format.tok, ((BigInteger)e.Value).ToString());
         }
 
       } else if (expr is ThisExpr) {
@@ -2463,31 +2484,37 @@ namespace Microsoft.Dafny {
         string op = BinaryExpr.OpcodeString(e.Op);
         if (parensNeeded) { wr.Write("("); }
         var sem = !parensNeeded && isFollowedBySemicolon;
+        if (e.format.StartToken.leadingTrivia != null) {
+          wr.Write(e.format.StartToken.leadingTrivia);
+        }
         if (0 <= indent && e.Op == BinaryExpr.Opcode.And) {
           PrintExpr(e.E0, opBindingStrength, fragileLeftContext, false, sem, indent, keyword);
-          wr.WriteLine(" {0}", op);
+          PrintWithTrivia(e.format.tok, op, prefixDefault: " ");
           Indent(indent);
           PrintExpr(e.E1, opBindingStrength, fragileRightContext, parensNeeded || isRightmost, sem, indent, keyword);
         } else if (0 <= indent && e.Op == BinaryExpr.Opcode.Imp) {
           PrintExpr(e.E0, opBindingStrength, fragileLeftContext, false, sem, indent, keyword);
-          wr.WriteLine(" {0}", op);
+          PrintWithTrivia(e.format.tok, op, prefixDefault: " ");
           int ind = indent + IndentAmount;
           Indent(ind);
           PrintExpr(e.E1, opBindingStrength, fragileRightContext, parensNeeded || isRightmost, sem, ind, keyword);
         } else if (0 <= indent && e.Op == BinaryExpr.Opcode.Exp) {
           PrintExpr(e.E1, opBindingStrength, fragileLeftContext, false, sem, indent, keyword);
-          wr.WriteLine(" {0}", op);
+          PrintWithTrivia(e.format.tok, op, prefixDefault: " ");
           int ind = indent + IndentAmount;
           Indent(ind);
           PrintExpr(e.E0, opBindingStrength, fragileRightContext, parensNeeded || isRightmost, sem, ind, keyword);
         } else if (e.Op == BinaryExpr.Opcode.Exp) {
           PrintExpr(e.E1, opBindingStrength, fragileLeftContext, false, sem, -1, keyword);
-          wr.Write(" {0} ", op);
+          PrintWithTrivia(e.format.tok, op, prefixDefault: " ");
           PrintExpr(e.E0, opBindingStrength, fragileRightContext, parensNeeded || isRightmost, sem, -1, keyword);
         } else {
           PrintExpr(e.E0, opBindingStrength, fragileLeftContext, false, sem, -1, keyword);
-          wr.Write(" {0} ", op);
+          PrintWithTrivia(e.format.tok, op, prefixDefault: " ");
           PrintExpr(e.E1, opBindingStrength, fragileRightContext, parensNeeded || isRightmost, sem, -1, keyword);
+        }
+        if (e.format.EndToken.trailingTrivia != null) {
+          wr.Write(e.format.EndToken.trailingTrivia);
         }
         if (parensNeeded) { wr.Write(")"); }
 
@@ -2791,6 +2818,24 @@ namespace Microsoft.Dafny {
         wr.Write("[Resolver_IdentifierExpr]");  // we can get here in the middle of a debugging session
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
+      }
+    }
+
+    private void PrintWithTrivia(Bpl.IToken tok, string op, int indent = 0, string prefixDefault = "", string suffixDefault = "") {
+      if (tok.leadingTrivia != null) {
+        wr.Write(tok.leadingTrivia);
+      } else {
+        if (indent > 0) {
+          Indent(indent);
+        }
+        wr.Write(prefixDefault);
+      }
+
+      wr.WriteLine("{0}", op);
+      if (tok.trailingTrivia != null) {
+        wr.Write(tok.trailingTrivia);
+      } else {
+        wr.Write(suffixDefault);
       }
     }
 

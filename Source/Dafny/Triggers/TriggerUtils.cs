@@ -249,7 +249,7 @@ namespace Microsoft.Dafny.Triggers {
         ret = expr;
         if (expr is BinaryExpr bin) {
           if (bin.Op == BinaryExpr.Opcode.NotIn) {
-            expr = new BinaryExpr(bin.tok, BinaryExpr.Opcode.In, bin.E0, bin.E1) {
+            expr = new BinaryExpr(Format.Generated(bin.tok), BinaryExpr.Opcode.In, bin.E0, bin.E1) {
               ResolvedOp = RemoveNotInBinaryExprIn(bin.ResolvedOp),
               Type = bin.Type
             };
@@ -264,7 +264,7 @@ namespace Microsoft.Dafny.Triggers {
               // For sets, isets, and multisets, change < to <= in triggers (and analogously
               // > to >=), since "a < b" translates as "a <= b && !(b <= a)" or
               // "a <= b && !(a == b)".
-              expr = new BinaryExpr(bin.tok, BinaryExpr.ResolvedOp2SyntacticOp(newOpcode), bin.E0, bin.E1) {
+              expr = new BinaryExpr(Format.Generated(bin.tok), BinaryExpr.ResolvedOp2SyntacticOp(newOpcode), bin.E0, bin.E1) {
                 ResolvedOp = newOpcode,
                 Type = bin.Type
               };

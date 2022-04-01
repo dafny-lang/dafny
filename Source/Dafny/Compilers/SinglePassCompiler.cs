@@ -2493,21 +2493,21 @@ namespace Microsoft.Dafny.Compilers {
         Expression rhs;
         var acc = new IdentifierExpr(expr.tok, accumulatorVar);
         if (bin.AccumulatesForTailRecursion == BinaryExpr.AccumulationOperand.Left) {
-          rhs = new BinaryExpr(bin.tok, bin.ResolvedOp, acc, bin.E0);
+          rhs = new BinaryExpr(Format.Generated(bin.tok), bin.ResolvedOp, acc, bin.E0);
           tailTerm = bin.E1;
         } else {
           switch (bin.ResolvedOp) {
             case BinaryExpr.ResolvedOpcode.Sub:
-              rhs = new BinaryExpr(bin.tok, BinaryExpr.ResolvedOpcode.Add, bin.E1, acc);
+              rhs = new BinaryExpr(Format.Generated(bin.tok), BinaryExpr.ResolvedOpcode.Add, bin.E1, acc);
               break;
             case BinaryExpr.ResolvedOpcode.SetDifference:
-              rhs = new BinaryExpr(bin.tok, BinaryExpr.ResolvedOpcode.Union, bin.E1, acc);
+              rhs = new BinaryExpr(Format.Generated(bin.tok), BinaryExpr.ResolvedOpcode.Union, bin.E1, acc);
               break;
             case BinaryExpr.ResolvedOpcode.MultiSetDifference:
-              rhs = new BinaryExpr(bin.tok, BinaryExpr.ResolvedOpcode.MultiSetUnion, bin.E1, acc);
+              rhs = new BinaryExpr(Format.Generated(bin.tok), BinaryExpr.ResolvedOpcode.MultiSetUnion, bin.E1, acc);
               break;
             default:
-              rhs = new BinaryExpr(bin.tok, bin.ResolvedOp, bin.E1, acc);
+              rhs = new BinaryExpr(Format.Generated(bin.tok), bin.ResolvedOp, bin.E1, acc);
               break;
           }
           tailTerm = bin.E0;
@@ -2526,31 +2526,31 @@ namespace Microsoft.Dafny.Compilers {
           var acc = new IdentifierExpr(expr.tok, accumulatorVar);
           switch (enclosingFunction.TailRecursion) {
             case Function.TailStatus.Accumulate_Add:
-              expr = new BinaryExpr(expr.tok, BinaryExpr.ResolvedOpcode.Add, expr, acc);
+              expr = new BinaryExpr(Format.Generated(expr.tok), BinaryExpr.ResolvedOpcode.Add, expr, acc);
               break;
             case Function.TailStatus.AccumulateRight_Sub:
-              expr = new BinaryExpr(expr.tok, BinaryExpr.ResolvedOpcode.Sub, expr, acc);
+              expr = new BinaryExpr(Format.Generated(expr.tok), BinaryExpr.ResolvedOpcode.Sub, expr, acc);
               break;
             case Function.TailStatus.Accumulate_Mul:
-              expr = new BinaryExpr(expr.tok, BinaryExpr.ResolvedOpcode.Mul, expr, acc);
+              expr = new BinaryExpr(Format.Generated(expr.tok), BinaryExpr.ResolvedOpcode.Mul, expr, acc);
               break;
             case Function.TailStatus.Accumulate_SetUnion:
-              expr = new BinaryExpr(expr.tok, BinaryExpr.ResolvedOpcode.Union, expr, acc);
+              expr = new BinaryExpr(Format.Generated(expr.tok), BinaryExpr.ResolvedOpcode.Union, expr, acc);
               break;
             case Function.TailStatus.AccumulateRight_SetDifference:
-              expr = new BinaryExpr(expr.tok, BinaryExpr.ResolvedOpcode.SetDifference, expr, acc);
+              expr = new BinaryExpr(Format.Generated(expr.tok), BinaryExpr.ResolvedOpcode.SetDifference, expr, acc);
               break;
             case Function.TailStatus.Accumulate_MultiSetUnion:
-              expr = new BinaryExpr(expr.tok, BinaryExpr.ResolvedOpcode.MultiSetUnion, expr, acc);
+              expr = new BinaryExpr(Format.Generated(expr.tok), BinaryExpr.ResolvedOpcode.MultiSetUnion, expr, acc);
               break;
             case Function.TailStatus.AccumulateRight_MultiSetDifference:
-              expr = new BinaryExpr(expr.tok, BinaryExpr.ResolvedOpcode.MultiSetDifference, expr, acc);
+              expr = new BinaryExpr(Format.Generated(expr.tok), BinaryExpr.ResolvedOpcode.MultiSetDifference, expr, acc);
               break;
             case Function.TailStatus.AccumulateLeft_Concat:
-              expr = new BinaryExpr(expr.tok, BinaryExpr.ResolvedOpcode.Concat, acc, expr); // note order of operands
+              expr = new BinaryExpr(Format.Generated(expr.tok), BinaryExpr.ResolvedOpcode.Concat, acc, expr); // note order of operands
               break;
             case Function.TailStatus.AccumulateRight_Concat:
-              expr = new BinaryExpr(expr.tok, BinaryExpr.ResolvedOpcode.Concat, expr, acc);
+              expr = new BinaryExpr(Format.Generated(expr.tok), BinaryExpr.ResolvedOpcode.Concat, expr, acc);
               break;
             default:
               Contract.Assert(false); // unexpected TailStatus
