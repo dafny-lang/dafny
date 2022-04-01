@@ -6,6 +6,7 @@ using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
 using BplParser = Microsoft.Boogie.Parser;
 using static Microsoft.Dafny.Util;
+using PODesc = Microsoft.Dafny.ProofObligationDescription;
 
 namespace Microsoft.Dafny {
   public partial class Translator {
@@ -101,7 +102,8 @@ namespace Microsoft.Dafny {
               // this postcondition was inherited into this module, so just ignore it
             } else if (split.IsChecked) {
               var yieldToken = new NestedToken(s.Tok, split.E.tok);
-              builder.Add(AssertNS(yieldToken, split.E, "possible violation of yield-ensures condition", stmt.Tok, null));
+              var desc = new PODesc.YieldEnsures();
+              builder.Add(AssertNS(yieldToken, split.E, desc, stmt.Tok, null));
             }
           }
           builder.Add(TrAssumeCmd(stmt.Tok, yeEtran.TrExpr(p.E)));
@@ -306,7 +308,7 @@ namespace Microsoft.Dafny {
       } else if (stmt is AlternativeStmt) {
         AddComment(builder, stmt, "alternative statement");
         var s = (AlternativeStmt)stmt;
-        var elseCase = Assert(s.Tok, Bpl.Expr.False, "alternative cases fail to cover all possibilties");
+        var elseCase = Assert(s.Tok, Bpl.Expr.False, new PODesc.AlternativeIsComplete());
         TrAlternatives(s.Alternatives, elseCase, null, builder, locals, etran, stmt.IsGhost);
 
       } else if (stmt is WhileStmt whileStmt) {
@@ -333,7 +335,7 @@ namespace Microsoft.Dafny {
         // check well-formedness of the modifies clauses
         CheckFrameWellFormed(new WFOptions(), s.Mod.Expressions, locals, builder, etran);
         // check that the modifies is a subset
-        CheckFrameSubset(s.Tok, s.Mod.Expressions, null, null, etran, builder, "modify statement may violate context's modifies clause", null);
+        CheckFrameSubset(s.Tok, s.Mod.Expressions, null, null, etran, builder, new PODesc.FrameSubset("modify statement", true), null);
         // cause the change of the heap according to the given frame
         var suffix = CurrentIdGenerator.FreshId("modify#");
         string modifyFrameName = "$Frame$" + suffix;
@@ -546,13 +548,15 @@ namespace Microsoft.Dafny {
         var ss = TrSplitExpr(stmt.Expr, etran, true, out splitHappened);
         if (!splitHappened) {
           var tok = enclosingToken == null ? stmt.Expr.tok : new NestedToken(enclosingToken, stmt.Expr.tok);
-          (proofBuilder ?? b).Add(Assert(tok, etran.TrExpr(stmt.Expr), errorMessage ?? "assertion might not hold", stmt.Tok,
+          var desc = new PODesc.AssertStatement(errorMessage);
+          (proofBuilder ?? b).Add(Assert(tok, etran.TrExpr(stmt.Expr), desc, stmt.Tok,
             etran.TrAttributes(stmt.Attributes, null)));
         } else {
           foreach (var split in ss) {
             if (split.IsChecked) {
               var tok = enclosingToken == null ? split.E.tok : new NestedToken(enclosingToken, split.E.tok);
-              (proofBuilder ?? b).Add(AssertNS(tok, split.E, errorMessage ?? "assertion might not hold", stmt.Tok,
+              var desc = new PODesc.AssertStatement(errorMessage);
+              (proofBuilder ?? b).Add(AssertNS(tok, split.E, desc, stmt.Tok,
                 etran.TrAttributes(stmt.Attributes, null))); // attributes go on every split
             }
           }
@@ -698,7 +702,8 @@ namespace Microsoft.Dafny {
               var index = ((TernaryExpr)stmt.Steps[i]).E0;
               TrStmt_CheckWellformed(index, b, locals, etran, false);
               if (index.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
-                b.Add(AssertNS(index.tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(index)), "prefix-equality limit must be at least 0"));
+                var desc = new PODesc.PrefixEqualityLimit();
+                b.Add(AssertNS(index.tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(index)), desc));
               }
             }
             TrStmt_CheckWellformed(CalcStmt.Rhs(stmt.Steps[i]), b, locals, etran, false);
@@ -707,13 +712,11 @@ namespace Microsoft.Dafny {
             // assert step:
             AddComment(b, stmt, "assert line" + i.ToString() + " " + (stmt.StepOps[i] ?? stmt.Op).ToString() + " line" + (i + 1).ToString());
             if (!splitHappened) {
-              b.Add(AssertNS(stmt.Lines[i + 1].tok, etran.TrExpr(stmt.Steps[i]),
-                "the calculation step between the previous line and this line might not hold"));
+              b.Add(AssertNS(stmt.Lines[i + 1].tok, etran.TrExpr(stmt.Steps[i]), new PODesc.CalculationStep()));
             } else {
               foreach (var split in ss) {
                 if (split.IsChecked) {
-                  b.Add(AssertNS(stmt.Lines[i + 1].tok, split.E,
-                    "the calculation step between the previous line and this line might not hold"));
+                  b.Add(AssertNS(stmt.Lines[i + 1].tok, split.E, new PODesc.CalculationStep()));
                 }
               }
             }
@@ -767,7 +770,8 @@ namespace Microsoft.Dafny {
         }
         String missingStr = stmt.Context.FillHole(new IdCtx(new KeyValuePair<string, DatatypeCtor>(missingCtor.Name, missingCtor))).AbstractAllHoles()
           .ToString();
-        b.Add(Assert(stmt.Tok, Bpl.Expr.False, "missing case in match statement: " + missingStr));
+        var desc = new PODesc.MatchIsComplete("statement", missingStr);
+        b.Add(Assert(stmt.Tok, Bpl.Expr.False, desc));
 
         Bpl.Expr guard = Bpl.Expr.Eq(source, r);
         ifCmd = new Bpl.IfCmd(stmt.Tok, guard, b.Collect(stmt.Tok), ifCmd, els);
@@ -846,7 +850,7 @@ namespace Microsoft.Dafny {
 
       // check lo <= hi
       if (lo != null && hi != null) {
-        builder.Add(Assert(lo.tok, Bpl.Expr.Le(bLo, bHi), "lower bound must not exceed upper bound"));
+        builder.Add(Assert(lo.tok, Bpl.Expr.Le(bLo, bHi), new PODesc.ForRangeBoundsValid()));
       }
       // check forall x :: lo <= x <= hi ==> Is(x, typ)
       {
@@ -859,13 +863,12 @@ namespace Microsoft.Dafny {
         var name = indexVarName + "#x";
         var xVar = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, name, Bpl.Type.Int));
         var x = new Bpl.IdentifierExpr(tok, name);
-        string msg;
-        var cre = GetSubrangeCheck(x, Type.Int, indexVar.Type, out msg);
+        var cre = GetSubrangeCheck(x, Type.Int, indexVar.Type, out var desc);
         if (cre != null) {
           locals.Add(xVar);
           builder.Add(new Bpl.HavocCmd(tok, new List<Bpl.IdentifierExpr>() { x }));
           builder.Add(new Bpl.AssumeCmd(tok, ForLoopBounds(x, bLo, bHi)));
-          builder.Add(Assert(tok, cre, "entire range must be assignable to index variable, but some " + msg));
+          builder.Add(Assert(tok, cre, new PODesc.ForRangeAssignable(desc)));
         }
       }
 
@@ -1023,7 +1026,7 @@ namespace Microsoft.Dafny {
           bool splitHappened;  // we actually don't care
           foreach (var split in TrSplitExpr(ens.E, etran, true, out splitHappened)) {
             if (split.IsChecked) {
-              definedness.Add(Assert(split.E.tok, split.E, "possible violation of postcondition of forall statement"));
+              definedness.Add(Assert(split.E.tok, split.E, new PODesc.ForallPostcondition()));
             }
           }
         }
@@ -1155,7 +1158,7 @@ namespace Microsoft.Dafny {
       Bpl.Expr obj, F;
       string description = GetObjFieldDetails(lhs, etran, out obj, out F);
       definedness.Add(Assert(lhs.tok, Bpl.Expr.SelectTok(lhs.tok, etran.TheFrame(lhs.tok), obj, F),
-        "assignment may update " + description + " not in the enclosing context's modifies clause"));
+        new PODesc.Modifiable(description)));
       if (s0.Rhs is ExprRhs) {
         var r = (ExprRhs)s0.Rhs;
         var rhs = Substitute(r.Expr, null, substMap);
@@ -1203,7 +1206,7 @@ namespace Microsoft.Dafny {
           Bpl.Expr.Or(
             Bpl.Expr.Or(Bpl.Expr.Neq(obj, objPrime), Bpl.Expr.Neq(F, FPrime)),
             Bpl.Expr.Eq(rhs, rhsPrime)),
-          "left-hand sides for different forall-statement bound variables may refer to the same location"));
+          new PODesc.ForallLHSUnique()));
       }
 
       definedness.Add(TrAssumeCmd(s.Tok, Bpl.Expr.False));
@@ -1339,7 +1342,7 @@ namespace Microsoft.Dafny {
 
       if (s.Mod.Expressions != null) { // check well-formedness and that the modifies is a subset
         CheckFrameWellFormed(new WFOptions(), s.Mod.Expressions, locals, builder, etran);
-        CheckFrameSubset(s.Tok, s.Mod.Expressions, null, null, etran, builder, "loop modifies clause may violate context's modifies clause", null);
+        CheckFrameSubset(s.Tok, s.Mod.Expressions, null, null, etran, builder, new PODesc.FrameSubset("loop modifies clause", true), null);
         DefineFrame(s.Tok, s.Mod.Expressions, builder, locals, loopFrameName);
       }
       builder.Add(Bpl.Cmd.SimpleAssign(s.Tok, preLoopHeap, etran.HeapExpr));
@@ -1381,12 +1384,12 @@ namespace Microsoft.Dafny {
         var ss = TrSplitExpr(loopInv.E, etran, false, out splitHappened);
         if (!splitHappened) {
           var wInv = Bpl.Expr.Imp(w, etran.TrExpr(loopInv.E));
-          invariants.Add(Assert(loopInv.E.tok, wInv, errorMessage ?? "loop invariant violation"));
+          invariants.Add(Assert(loopInv.E.tok, wInv, new PODesc.LoopInvariant(errorMessage)));
         } else {
           foreach (var split in ss) {
             var wInv = Bpl.Expr.Binary(split.E.tok, BinaryOperator.Opcode.Imp, w, split.E);
             if (split.IsChecked) {
-              invariants.Add(Assert(split.E.tok, wInv, errorMessage ?? "loop invariant violation"));  // TODO: it would be fine to have this use {:subsumption 0}
+              invariants.Add(Assert(split.E.tok, wInv, new PODesc.LoopInvariant(errorMessage)));  // TODO: it would be fine to have this use {:subsumption 0}
             } else {
               invariants.Add(TrAssumeCmd(split.E.tok, wInv));
             }
@@ -1412,7 +1415,7 @@ namespace Microsoft.Dafny {
             invariants.Add(TrAssumeCmd(s.Tok, tri.Expr));
           } else {
             Contract.Assert(tri.ErrorMessage != null);  // follows from BoilerplateTriple invariant
-            invariants.Add(Assert(s.Tok, tri.Expr, tri.ErrorMessage));
+            invariants.Add(Assert(s.Tok, tri.Expr, new PODesc.BoilerplateTriple(tri.ErrorMessage)));
           }
         }
         // add a free invariant which says that the heap hasn't changed outside of the modifies clause.
@@ -1495,13 +1498,7 @@ namespace Microsoft.Dafny {
           if (includeTerminationCheck) {
             AddComment(loopBodyBuilder, s, "loop termination check");
             Bpl.Expr decrCheck = DecreasesCheck(toks, types, types, decrs, oldBfs, loopBodyBuilder, " at end of loop iteration", false, false);
-            string msg;
-            if (s.InferredDecreases) {
-              msg = "cannot prove termination; try supplying a decreases clause for the loop";
-            } else {
-              msg = "decreases expression might not decrease";
-            }
-            loopBodyBuilder.Add(Assert(s.Tok, decrCheck, msg));
+            loopBodyBuilder.Add(Assert(s.Tok, decrCheck, new PODesc.Terminates(s.InferredDecreases, true)));
           }
         }
       } else if (isBodyLessLoop) {
@@ -1822,21 +1819,24 @@ namespace Microsoft.Dafny {
         if (!method.IsStatic && !(method is Constructor)) {
           Bpl.Expr wh = GetWhereClause(receiver.tok, etran.TrExpr(receiver), receiver.Type, etran, ISALLOC, true);
           if (wh != null) {
-            builder.Add(Assert(receiver.tok, wh, "receiver argument must be allocated in the state in which the method is invoked"));
+            var desc = new PODesc.IsAllocated("receiver argument", "in the state in which the method is invoked");
+            builder.Add(Assert(receiver.tok, wh, desc));
           }
         }
         for (int i = 0; i < Args.Count; i++) {
           Expression ee = Args[i];
           Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran, ISALLOC, true);
           if (wh != null) {
-            builder.Add(Assert(ee.tok, wh, "argument must be allocated in the state in which the method is invoked"));
+            var desc = new PODesc.IsAllocated("argument", "in the state in which the method is invoked");
+            builder.Add(Assert(ee.tok, wh, desc));
           }
         }
       } else if (method is TwoStateLemma) {
         if (!method.IsStatic) {
           Bpl.Expr wh = GetWhereClause(receiver.tok, etran.TrExpr(receiver), receiver.Type, etran.OldAt(atLabel), ISALLOC, true);
           if (wh != null) {
-            builder.Add(Assert(receiver.tok, wh, "receiver argument must be allocated in the two-state lemma's previous state"));
+            var desc = new PODesc.IsAllocated("receiver argument", "in the two-state lemma's previous state");
+            builder.Add(Assert(receiver.tok, wh, desc));
           }
         }
         Contract.Assert(callee.Ins.Count == Args.Count);
@@ -1846,8 +1846,9 @@ namespace Microsoft.Dafny {
             Expression ee = Args[i];
             Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran.OldAt(atLabel), ISALLOC, true);
             if (wh != null) {
-              builder.Add(Assert(ee.tok, wh, string.Format("parameter{0} ('{1}') must be allocated in the two-state lemma's previous state",
-                Args.Count == 1 ? "" : " " + i, formal.Name)));
+              var pIdx = Args.Count == 1 ? "" : " at index " + i;
+              var desc = new PODesc.IsAllocated($"parameter{pIdx} ('{formal.Name}')", "in the two-state lemma's previous state");
+              builder.Add(Assert(ee.tok, wh, desc));
             }
           }
         }
@@ -1857,14 +1858,14 @@ namespace Microsoft.Dafny {
       if (codeContext is IMethodCodeContext) {
         var s = new Substituter(null, new Dictionary<IVariable, Expression>(), tySubst);
         CheckFrameSubset(tok, callee.Mod.Expressions.ConvertAll(s.SubstFrameExpr),
-          receiver, substMap, etran, builder, "call may violate context's modifies clause", null);
+          receiver, substMap, etran, builder, new PODesc.FrameSubset("call", true), null);
       }
 
       // Check termination
       if (isRecursiveCall) {
         Contract.Assert(codeContext != null);
         if (codeContext is DatatypeDecl) {
-          builder.Add(Assert(tok, Bpl.Expr.False, "default-value expression is not allowed to involve recursive or mutually recursive calls"));
+          builder.Add(Assert(tok, Bpl.Expr.False, new PODesc.IsNonRecursive()));
         } else {
           List<Expression> contextDecreases = codeContext.Decreases.Expressions;
           List<Expression> calleeDecreases = callee.Decreases.Expressions;

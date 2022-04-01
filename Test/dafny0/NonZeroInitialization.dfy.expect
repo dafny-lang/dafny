@@ -9,7 +9,7 @@ NonZeroInitialization.dfy(19,8): Error: trying witness 0: result of operation mi
 NonZeroInitialization.dfy(37,5): Error: cannot find witness that shows type is inhabited; try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
 NonZeroInitialization.dfy(38,70): Error: result of operation might violate subset type constraint for 'ListTwo'
 NonZeroInitialization.dfy(39,5): Error: cannot find witness that shows type is inhabited; try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
-NonZeroInitialization.dfy(53,0): Error: out-parameter 'g', which is subject to definite-assignment rules, might not have been defined at this return point
+NonZeroInitialization.dfy(53,0): Error: out-parameter 'g', which is subject to definite-assignment rules, might be uninitialized at this return point
 NonZeroInitialization.dfy(58,7): Error: unless an initializer is provided for the array elements, a new array of 'Yt<GW>' must have empty size
 
 Dafny program verifier finished with 11 verified, 13 errors

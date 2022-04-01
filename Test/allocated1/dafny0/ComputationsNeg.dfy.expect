@@ -1,4 +1,4 @@
-ComputationsNeg.dfy(7,2): Error: failure to decrease termination measure
+ComputationsNeg.dfy(7,2): Error: decreases clause might not decrease
 ComputationsNeg.dfy(11,0): Error: A postcondition might not hold on this return path.
 ComputationsNeg.dfy(10,16): Related location: This is the postcondition that might not hold.
 ComputationsNeg.dfy(23,0): Error: A postcondition might not hold on this return path.
