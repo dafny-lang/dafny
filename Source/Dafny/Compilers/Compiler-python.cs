@@ -27,6 +27,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public override string TargetLanguage => "Python";
     public override string TargetExtension => "py";
+    public override int TargetIndentSize => 4;
 
     public override string TargetBaseDir(string dafnyProgramName) =>
       $"{Path.GetFileNameWithoutExtension(dafnyProgramName)}-py";
@@ -127,6 +128,7 @@ namespace Microsoft.Dafny.Compilers {
       var btw = wr.NewBlockPy($"class {DtT}:");
 
       foreach (var ctor in dt.Ctors) {
+        // Class-level fields don't work in all python version due to metaclasses.
         var namedtuple = $"NamedTuple(\"{ctor.CompileName}\", [])";
         var header = $"class {DtCtorDeclarationName(ctor, false)}({DtT}, {namedtuple}):";
         var constructor = wr.NewBlockPy(header, close: BlockStyle.Newline);
@@ -151,6 +153,7 @@ namespace Microsoft.Dafny.Compilers {
       var udt = UserDefinedType.FromTopLevelDecl(nt.tok, nt);
       var d = TypeInitializationValue(udt, wr, nt.tok, false, false);
 
+      w.WriteLine("@staticmethod");
       w.NewBlockPy("def Default():", close: BlockStyle.Newline).WriteLine($"return {d}", "");
 
       return cw;
@@ -160,9 +163,9 @@ namespace Microsoft.Dafny.Compilers {
       var cw = (ClassWriter)CreateClass(IdProtect(sst.EnclosingModuleDefinition.CompileName), IdName(sst), sst, wr);
       var w = cw.MethodWriter;
       var udt = UserDefinedType.FromTopLevelDecl(sst.tok, sst);
-      string d;
-      d = TypeInitializationValue(udt, wr, sst.tok, false, false);
+      var d = TypeInitializationValue(udt, wr, sst.tok, false, false);
 
+      w.WriteLine("@staticmethod");
       w.NewBlockPy("def Default():").WriteLine($"return {d}", "");
     }
 
