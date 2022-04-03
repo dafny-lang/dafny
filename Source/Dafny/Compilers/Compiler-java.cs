@@ -31,6 +31,9 @@ namespace Microsoft.Dafny.Compilers {
 
     public override string TargetLanguage => "Java";
     public override string TargetExtension => "java";
+
+    // True if the most recently visited AST has a method annotated with {:synthesize}:
+    protected bool Synthesize = false;
     public override string TargetBasename(string dafnyProgramName) =>
       TransformToClassName(base.TargetBasename(dafnyProgramName));
     public override string TargetBaseDir(string dafnyProgramName) =>
@@ -174,6 +177,22 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write($"{returnedTypes[0]} {collectorVarName} = ");
       }
     }
+
+    /// <summary>
+    /// Return true if the AST contains a method annotated with an attribute
+    /// </summary>
+    private static bool ProgramHasMethodsWithAttr(Program p, String attr) {
+      foreach (var module in p.Modules()) {
+        foreach (ICallable callable in ModuleDefinition.AllCallables(
+                   module.TopLevelDecls)) {
+          if ((callable is Method method) &&
+              Attributes.Contains(method.Attributes, attr)) {
+            return true;
+          }
+        }
+      }
+      return false;
+    }
     protected override void EmitCastOutParameterSplits(string outCollector, List<string> lhsNames,
       ConcreteSyntaxTree wr, List<Type> formalTypes, List<Type> lhsTypes, Bpl.IToken tok) {
       var wOuts = new List<ConcreteSyntaxTree>();
@@ -313,6 +332,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine($"// Dafny program {program.Name} compiled into Java");
       ModuleName = program.MainMethod != null ? "main" : Path.GetFileNameWithoutExtension(program.Name);
       wr.WriteLine();
+      Synthesize = ProgramHasMethodsWithAttr(program, "synthesize");
       // Keep the import writers so that we can import subsequent modules into the main one
       EmitImports(wr, out RootImportWriter);
       wr.WriteLine();
@@ -397,7 +417,7 @@ namespace Microsoft.Dafny.Compilers {
       public readonly ConcreteSyntaxTree InstanceMemberWriter;
       public readonly ConcreteSyntaxTree StaticMemberWriter;
       public readonly ConcreteSyntaxTree CtorBodyWriter;
-      private readonly MockWriter mockWriter;
+      private readonly JavaSynthesizer javaSynthesizer;
 
       public ClassWriter(JavaCompiler compiler, ConcreteSyntaxTree instanceMemberWriter, ConcreteSyntaxTree ctorBodyWriter, ConcreteSyntaxTree staticMemberWriter = null) {
         Contract.Requires(compiler != null);
@@ -406,7 +426,7 @@ namespace Microsoft.Dafny.Compilers {
         this.InstanceMemberWriter = instanceMemberWriter;
         this.CtorBodyWriter = ctorBodyWriter;
         this.StaticMemberWriter = staticMemberWriter ?? instanceMemberWriter;
-        this.mockWriter = new MockWriter(this.Compiler);
+        this.javaSynthesizer = new JavaSynthesizer(Compiler, ErrorWriter());
       }
 
       public ConcreteSyntaxTree Writer(bool isStatic, bool createBody, MemberDecl/*?*/ member) {
@@ -424,13 +444,12 @@ namespace Microsoft.Dafny.Compilers {
 
       public ConcreteSyntaxTree CreateFreshMethod(Method m) {
         //  throw new NotImplementedException();
-        return mockWriter.CreateFreshMethod(m, Writer(m.IsStatic, true, m));
+        return javaSynthesizer.CreateFreshMethod(m, Writer(m.IsStatic, true, m));
       }
 
-      public ConcreteSyntaxTree CreateMockMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance,
+      public ConcreteSyntaxTree SynthesizeMethod(Method method, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance,
         bool lookasideBody) {
-        return mockWriter.CreateMockMethod(m, typeArgs, createBody, Writer(m.IsStatic, createBody, m), forBodyInheritance, lookasideBody);
-
+        return javaSynthesizer.SynthesizeMethod(method, typeArgs, createBody, Writer(method.IsStatic, createBody, method), forBodyInheritance, lookasideBody);
       }
 
       public ConcreteSyntaxTree/*?*/ CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, bool forBodyInheritance, bool lookasideBody) {
@@ -596,7 +615,11 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    private ConcreteSyntaxTree GetMethodParameters(Method m, List<TypeArgumentInstantiation> typeArgs, bool lookasideBody, bool customReceiver, string returnType) {
+    internal string Keywords(bool isPublic = false, bool isStatic = false, bool isExtern = false) {
+      return (isPublic ? "public " : "") + (isStatic ? "static " : "") + (isExtern ? "extern " : "") + (Synthesize && !isStatic && isPublic ? "virtual " : "");
+    }
+
+    internal ConcreteSyntaxTree GetMethodParameters(Method m, List<TypeArgumentInstantiation> typeArgs, bool lookasideBody, bool customReceiver, string returnType) {
       //var parameters = GetFunctionParameters(m.Ins, m, typeArgs, lookasideBody, customReceiver);
       var parameters = new ConcreteSyntaxTree();
       var sep = "";
@@ -630,7 +653,7 @@ namespace Microsoft.Dafny.Compilers {
     //  return parameters;
     //}
 
-    private string GetTargetReturnTypeReplacement(Method m, ConcreteSyntaxTree wr) {
+    internal string GetTargetReturnTypeReplacement(Method m, ConcreteSyntaxTree wr) {
       string targetReturnTypeReplacement = null;
       int nonGhostOuts = 0;
       int nonGhostIndex = 0;
@@ -724,7 +747,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine("@SuppressWarnings({\"unchecked\", \"deprecation\"})");
     }
 
-    string TypeParameters(List<TypeParameter>/*?*/ targs, string suffix = "") {
+    internal string TypeParameters(List<TypeParameter>/*?*/ targs, string suffix = "") {
       Contract.Requires(targs == null || cce.NonNullElements(targs));
       Contract.Ensures(Contract.Result<string>() != null);
 
@@ -4086,9 +4109,9 @@ namespace Microsoft.Dafny.Compilers {
       throw new NotImplementedException();
     }
 
-    public override string TransformToClassName(string baseName) {
-      return System.Text.RegularExpressions.Regex.Replace(baseName, "[^_A-Za-z0-9\\$]", "_");
-    }
+    // public override string TransformToClassName(string baseName) {
+    //   return System.Text.RegularExpressions.Regex.Replace(baseName, "[^_A-Za-z0-9\\$]", "_");
+    // }
 
     /// <summary>
     /// Below is the full grammar of ensures clauses that can specify
@@ -4106,145 +4129,145 @@ namespace Microsoft.Dafny.Compilers {
     ///    FUNCTION_CALL == EXPRESSION
     /// 
     /// </summary>
-    private class MockWriter {
+    // private class MockWriter {
 
-      private readonly JavaCompiler compiler;
-      public MockWriter(JavaCompiler compiler) {
-        this.compiler = compiler;
-      }
+    //   private readonly JavaCompiler compiler;
+    //   public MockWriter(JavaCompiler compiler) {
+    //     this.compiler = compiler;
+    //   }
 
-      /// <summary>
-      /// Create a body for a method returning a fresh instance of an object 
-      /// </summary>
-      public ConcreteSyntaxTree CreateFreshMethod(Method m,
-        ConcreteSyntaxTree wr) {
-        var keywords = "public "; // TODO: dis ok?
-        var returnType = compiler.GetTargetReturnTypeReplacement(m, wr);
-        wr.FormatLine($"{keywords}{returnType} {compiler.IdName(m)}() {{");
-        wr.FormatLine($"  return new {returnType}();"); // TODO: make sure this is correct java
-        wr.WriteLine("}");
-        return wr;
-      }
+    //   /// <summary>
+    //   /// Create a body for a method returning a fresh instance of an object 
+    //   /// </summary>
+    //   public ConcreteSyntaxTree CreateFreshMethod(Method m,
+    //     ConcreteSyntaxTree wr) {
+    //     var keywords = "public "; // TODO: dis ok?
+    //     var returnType = compiler.GetTargetReturnTypeReplacement(m, wr);
+    //     wr.FormatLine($"{keywords}{returnType} {compiler.IdName(m)}() {{");
+    //     wr.FormatLine($"  return new {returnType}();"); // TODO: make sure this is correct java
+    //     wr.WriteLine("}");
+    //     return wr;
+    //   }
 
-      /// <summary>
-      /// Create a body of a method that mocks one or more objects
-      /// </summary>
-      public ConcreteSyntaxTree CreateMockMethod(Method m,
-        List<TypeArgumentInstantiation> typeArgs, bool createBody,
-        ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
-        var customReceiver = createBody &&
-                             !forBodyInheritance &&
-                             compiler.NeedsCustomReceiver(m);
-        var keywords = "public "; // TODO: dis ok?
-        var returnType = compiler.GetTargetReturnTypeReplacement(m, wr);
-        var typeParameters = compiler.TypeParameters(TypeArgumentInstantiation.
-          ToFormals(compiler.ForTypeParameters(typeArgs, m, lookasideBody)));
-        var parameters = compiler
-          .GetMethodParameters(m, typeArgs, lookasideBody, customReceiver, returnType);
-        wr.FormatLine($"{keywords}{returnType} {compiler.IdName(m)}{typeParameters}({parameters}) {{");
-        // TODO: name collisions
-        // TODO: ghost variables
+    //   /// <summary>
+    //   /// Create a body of a method that mocks one or more objects
+    //   /// </summary>
+    //   public ConcreteSyntaxTree CreateMockMethod(Method m,
+    //     List<TypeArgumentInstantiation> typeArgs, bool createBody,
+    //     ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
+    //     var customReceiver = createBody &&
+    //                          !forBodyInheritance &&
+    //                          compiler.NeedsCustomReceiver(m);
+    //     var keywords = "public "; // TODO: dis ok?
+    //     var returnType = compiler.GetTargetReturnTypeReplacement(m, wr);
+    //     var typeParameters = compiler.TypeParameters(TypeArgumentInstantiation.
+    //       ToFormals(compiler.ForTypeParameters(typeArgs, m, lookasideBody)));
+    //     var parameters = compiler
+    //       .GetMethodParameters(m, typeArgs, lookasideBody, customReceiver, returnType);
+    //     wr.FormatLine($"{keywords}{returnType} {compiler.IdName(m)}{typeParameters}({parameters}) {{");
+    //     // TODO: name collisions
+    //     // TODO: ghost variables
 
-        // Create the mocks:
-        if (returnType != "void") {
-          wr.FormatLine($"  {returnType} {m.Outs[0].Name}Tmp = org.mockito.Mockito.mock({returnType}.class);");
-        } else {
-          foreach (var o in m.Outs) {
-            // TODO: keep same name?
-            wr.FormatLine($"  {returnType} {o.Name}Tmp = org.mockito.Mockito.mock({compiler.TypeName(o.Type, wr, o.tok)}.class);");
-          }
-        }
+    //     // Create the mocks:
+    //     if (returnType != "void") {
+    //       wr.FormatLine($"  {returnType} {m.Outs[0].Name}Tmp = org.mockito.Mockito.mock({returnType}.class);");
+    //     } else {
+    //       foreach (var o in m.Outs) {
+    //         // TODO: keep same name?
+    //         wr.FormatLine($"  {returnType} {o.Name}Tmp = org.mockito.Mockito.mock({compiler.TypeName(o.Type, wr, o.tok)}.class);");
+    //       }
+    //     }
 
-        // populate the mocks according to the Dafny post-conditions:
-        foreach (var ensureClause in m.Ens) {
-          MockExpression(wr, ensureClause.E);
-        }
+    //     // populate the mocks according to the Dafny post-conditions:
+    //     foreach (var ensureClause in m.Ens) {
+    //       MockExpression(wr, ensureClause.E);
+    //     }
 
-        // Return the mocked objects:
-        if (returnType != "void") {
-          wr.FormatLine($"  return {m.Outs[0].Name}Tmp;");
-        } else {
-          foreach (var o in m.Outs) {
-            wr.FormatLine($"{o.Name} = {m.Outs[0].Name}Tmp;");
-          }
-        }
-        wr.WriteLine("}");
-        return wr;
-      }
+    //     // Return the mocked objects:
+    //     if (returnType != "void") {
+    //       wr.FormatLine($"  return {m.Outs[0].Name}Tmp;");
+    //     } else {
+    //       foreach (var o in m.Outs) {
+    //         wr.FormatLine($"{o.Name} = {m.Outs[0].Name}Tmp;");
+    //       }
+    //     }
+    //     wr.WriteLine("}");
+    //     return wr;
+    //   }
 
-      private void MockExpression(ConcreteSyntaxTree wr, Expression expr) {
-        switch (expr) {
-          case LiteralExpr literalExpr:
-            compiler.EmitLiteralExpr(wr, literalExpr);
-            break;
-          case ApplySuffix applySuffix:
-            MockExpression(wr, applySuffix);
-            break;
-          case BinaryExpr binaryExpr:
-            MockExpression(wr, binaryExpr);
-            break;
-          case ForallExpr forallExpr:
-            MockExpression(wr, forallExpr);
-            break;
-          default:
-            // TODO
-            break;
-        }
-      }
+    //   private void MockExpression(ConcreteSyntaxTree wr, Expression expr) {
+    //     switch (expr) {
+    //       case LiteralExpr literalExpr:
+    //         compiler.EmitLiteralExpr(wr, literalExpr);
+    //         break;
+    //       case ApplySuffix applySuffix:
+    //         MockExpression(wr, applySuffix);
+    //         break;
+    //       case BinaryExpr binaryExpr:
+    //         MockExpression(wr, binaryExpr);
+    //         break;
+    //       case ForallExpr forallExpr:
+    //         MockExpression(wr, forallExpr);
+    //         break;
+    //       default:
+    //         // TODO
+    //         break;
+    //     }
+    //   }
 
-      private void MockExpression(ConcreteSyntaxTree wr,
-        ApplySuffix applySuffix, List<Tuple<IVariable, string>> bounds = null) {
-        var receiver = ((NameSegment)((ExprDotName)applySuffix.Lhs).Lhs).Name;
-        var method = ((ExprDotName)applySuffix.Lhs).SuffixName;
-        wr.Format($"  org.mockito.Mockito.when({receiver}Tmp.{method}(");
-        for (int i = 0; i < applySuffix.Args.Count; i++) {
-          if (bounds != null &&
-              applySuffix.Args[i] is NameSegment) {
-            var bound = bounds.Find(tuple =>
-              (applySuffix.Args[i].Resolved as IdentifierExpr).Var.CompileName ==
-              tuple.Item1.CompileName);
-            if (bound == null) {
-              continue;
-            }
-            wr.Write(bound.Item2);
-          } else {
-            compiler.TrExpr(applySuffix.Args[i], wr, false);
-          }
-          if (i != applySuffix.Args.Count - 1) {
-            wr.Write(", ");
-          }
-        }
-        wr.Write("))");
-      }
+    //   private void MockExpression(ConcreteSyntaxTree wr,
+    //     ApplySuffix applySuffix, List<Tuple<IVariable, string>> bounds = null) {
+    //     var receiver = ((NameSegment)((ExprDotName)applySuffix.Lhs).Lhs).Name;
+    //     var method = ((ExprDotName)applySuffix.Lhs).SuffixName;
+    //     wr.Format($"  org.mockito.Mockito.when({receiver}Tmp.{method}(");
+    //     for (int i = 0; i < applySuffix.Args.Count; i++) {
+    //       if (bounds != null &&
+    //           applySuffix.Args[i] is NameSegment) {
+    //         var bound = bounds.Find(tuple =>
+    //           (applySuffix.Args[i].Resolved as IdentifierExpr).Var.CompileName ==
+    //           tuple.Item1.CompileName);
+    //         if (bound == null) {
+    //           continue;
+    //         }
+    //         wr.Write(bound.Item2);
+    //       } else {
+    //         compiler.TrExpr(applySuffix.Args[i], wr, false);
+    //       }
+    //       if (i != applySuffix.Args.Count - 1) {
+    //         wr.Write(", ");
+    //       }
+    //     }
+    //     wr.Write("))");
+    //   }
 
-      private void MockExpression(ConcreteSyntaxTree wr, BinaryExpr binaryExpr,
-        List<Tuple<IVariable, string>> bounds = null) {
-        if (binaryExpr.Op != BinaryExpr.Opcode.Eq) {
-          return;
-        }
-        if (binaryExpr.E0 is not ApplySuffix applySuffix) {
-          return;
-        }
-        MockExpression(wr, applySuffix, bounds);
-        wr.Write(".thenReturn(");
-        compiler.TrExpr(binaryExpr.E1, wr, false);
-        wr.WriteLine(");");
-      }
+    //   private void MockExpression(ConcreteSyntaxTree wr, BinaryExpr binaryExpr,
+    //     List<Tuple<IVariable, string>> bounds = null) {
+    //     if (binaryExpr.Op != BinaryExpr.Opcode.Eq) {
+    //       return;
+    //     }
+    //     if (binaryExpr.E0 is not ApplySuffix applySuffix) {
+    //       return;
+    //     }
+    //     MockExpression(wr, applySuffix, bounds);
+    //     wr.Write(".thenReturn(");
+    //     compiler.TrExpr(binaryExpr.E1, wr, false);
+    //     wr.WriteLine(");");
+    //   }
 
-      private void MockExpression(ConcreteSyntaxTree wr, ForallExpr forallExpr) {
-        if (forallExpr.Term is not BinaryExpr binaryExpr) {
-          return;
-        }
-        var bounds = new List<Tuple<IVariable, string>>();
-        var declarations = new List<string>();
-        for (int i = 0; i < forallExpr.BoundVars.Count; i++) {
-          var boundVar = forallExpr.BoundVars[i];
-          var varType = compiler.TypeName(boundVar.Type, wr, boundVar.tok);
-          bounds.Add(new(boundVar,
-            $"org.mockito.Mockito.any({varType}.class)"));
-        }
-        MockExpression(wr, binaryExpr, bounds);
-      }
-    }
+    //   private void MockExpression(ConcreteSyntaxTree wr, ForallExpr forallExpr) {
+    //     if (forallExpr.Term is not BinaryExpr binaryExpr) {
+    //       return;
+    //     }
+    //     var bounds = new List<Tuple<IVariable, string>>();
+    //     var declarations = new List<string>();
+    //     for (int i = 0; i < forallExpr.BoundVars.Count; i++) {
+    //       var boundVar = forallExpr.BoundVars[i];
+    //       var varType = compiler.TypeName(boundVar.Type, wr, boundVar.tok);
+    //       bounds.Add(new(boundVar,
+    //         $"org.mockito.Mockito.any({varType}.class)"));
+    //     }
+    //     MockExpression(wr, binaryExpr, bounds);
+    //   }
+    // }
   }
 }

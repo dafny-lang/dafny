@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
 using Program = Microsoft.Boogie.Program;
-using System.Linq;
 
 namespace DafnyTestGeneration {
 
@@ -109,17 +108,5 @@ namespace DafnyTestGeneration {
       }
       return null;
     }
-
-    public override string ToString() {
-      var original = base.ToString() ?? "";
-      var procedureName = procedure ?? "";
-      var implementation = program.Implementations.FirstOrDefault(i => i.Name == procedureName);
-      var textRepresentation = (implementation != null) ?
-        Utils.CaptureConsoleOutput(
-          () => implementation.Emit(new TokenTextWriter(Console.Out), 0))
-        : "";
-      return original + "#" + procedureName + " :\n" + textRepresentation;
-    }
-
   }
 }

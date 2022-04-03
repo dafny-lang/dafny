@@ -1012,16 +1012,13 @@ namespace Microsoft.Dafny.Compilers {
         return Compiler.CreateMethod(m, typeArgs, createBody, ClassName, AbstractMethodWriter, ConcreteMethodWriter, forBodyInheritance, lookasideBody);
       }
 
-<<<<<<< HEAD
-      public ConcreteSyntaxTree CreateFreshMethod(Method m) {
+      public ConcreteSyntaxTree SynthesizeMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
         throw new NotImplementedException();
       }
 
-      public ConcreteSyntaxTree CreateMockMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
-=======
-      public ConcreteSyntaxTree SynthesizeMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
->>>>>>> upstream/master
-        throw new NotImplementedException();
+      public ConcreteSyntaxTree CreateFreshMethod(Method m) {
+         throw new NotImplementedException();
+        // return javaSynthesizer.CreateFreshMethod(m, Writer(m.IsStatic, true, m));
       }
 
       public ConcreteSyntaxTree/*?*/ CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, bool forBodyInheritance, bool lookasideBody) {

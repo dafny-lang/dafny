@@ -10,7 +10,7 @@ module JavaMocksTests {
 
   class EvenTests {
 
-    method {:extern} {:fresh} freshEven() returns (e:Even) ensures fresh(e)
+    static method {:fresh} freshEven() returns (e:Even) ensures fresh(e)
 
     method {:test} PassingTestUsingFresh() {
         var e:Even := freshEven();
@@ -24,11 +24,11 @@ module JavaMocksTests {
         Assertions<bool>.assertFalse(e.value % 2 == 0);
     }
 
-    method {:extern} {:mock} MockValidEven() returns (e:Even) 
+    static method {:synthesize} MockValidEven() returns (e:Even) 
         ensures fresh(e) 
         ensures e.IsValid() == true
 
-    method {:extern} {:mock} MockInValidEven() returns (e:Even) 
+    static method {:synthesize} MockInValidEven() returns (e:Even) 
         ensures fresh(e) 
         ensures e.IsValid() == false
 
@@ -42,7 +42,7 @@ module JavaMocksTests {
         Assertions<bool>.assertFalse(e.IsValid());
     }
 
-    method {:extern} {:mock} MockSum() returns (e:Even) 
+    static method {:synthesize} MockSum() returns (e:Even) 
         ensures fresh(e) 
         ensures e.Sum(2, 2) == 3
 
@@ -51,7 +51,7 @@ module JavaMocksTests {
         Assertions<bool>.assertTrue(e.Sum(2, 2) == 3);
     }
 
-    method {:extern} {:mock} MockSumForall() returns (e:Even) 
+    static method {:synthesize} MockSumForall() returns (e:Even) 
     ensures fresh(e) 
     ensures forall a:int, b:int :: e.Sum(a, b) == 3
 
@@ -62,24 +62,5 @@ module JavaMocksTests {
         Assertions.assertEquals(e.Sum(100, 3), 3);
     }
 
-    method {:extern} {:mock} MockSumAsMultiplication() returns (e:Even) 
-        ensures fresh(e) 
-        ensures forall a:int :: e.Sum(3, a) == a * 3
-        
-    method {:test} PassingTestMockSumAsMultiplication() {
-        var e:Even := MockSumAsMultiplication();
-        Assertions<bool>.assertTrue(e.Sum(3, 2) == 6);
-        Assertions<bool>.assertTrue(e.Sum(3, 0) == 0);
-    }
-
-    // method {:extern} {:mock} ParametrizedMock(a: int) returns (e:Even) 
-    //     ensures fresh(e) 
-    //     ensures e.value == a;
-        
-    // method {:test} PassingParameterizedMock() {
-    //     var e:Even := ParametrizedMock(24);
-    //     expect(e.value == 24);
-    //     expect(e.value != 7);
-    // }
   }
 }
