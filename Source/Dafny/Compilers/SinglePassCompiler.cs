@@ -1797,21 +1797,28 @@ namespace Microsoft.Dafny.Compilers {
           v.Visit(f);
         } else if (member is Method m) {
           if (Attributes.Contains(m.Attributes, "synthesize")) {
-            if (m.IsStatic && m.Outs.Count > 0 && m.Body == null) {
-              classWriter.SynthesizeMethod(m, CombineAllTypeArguments(m), true, true, false);
-            } else {
-              Error(m.tok, "Method {0} is annotated with :synthesize but " +
+            var args = Attributes.FindExpressions(m.Attributes, "synthesize");
+            if (args != null && (string)(args[0] as StringLiteralExpr)?.Value == "mock") {
+              if (m.IsStatic && m.Outs.Count > 0 && m.Body == null) {
+                classWriter.SynthesizeMethod(m, CombineAllTypeArguments(m), true, true, false);
+              } else {
+                Error(m.tok, "Method {0} is annotated with :synthesize but " +
                            "is not static, has a body, or does not return " +
                            "anything",
                 errorWr, m.FullName);
-            }
-          } else if (Attributes.Contains(m.Attributes, "fresh")) {
-            if (m.IsStatic && m.Outs.Count > 0 && m.Body == null) {
-              classWriter.CreateFreshMethod(m);
-            } else {
-              Error(m.tok, "Method {0} is annotated with :fresh but " +
+              }
+            } else if (args != null && (string)(args[0] as StringLiteralExpr)?.Value == "fresh") {
+              if (m.IsStatic && m.Outs.Count > 0 && m.Body == null) {
+                classWriter.CreateFreshMethod(m);
+              } else {
+                Error(m.tok, "Method {0} is annotated with :synthesize but " +
                            "is not static, has a body, or does not return " +
                            "anything",
+                errorWr, m.FullName);
+              }
+            } else {
+              Error(m.tok, "Method {0} is annotated with :synthesize but " +
+                          "does not have the required parameters",
                 errorWr, m.FullName);
             }
           } else if (m.Body == null && !(c is TraitDecl && !m.IsStatic) &&
@@ -1819,19 +1826,7 @@ namespace Microsoft.Dafny.Compilers {
             // A (ghost or non-ghost) method must always have a body, except if it's an instance method in a trait.
             if (Attributes.Contains(m.Attributes, "axiom")) {
               // suppress error message
-            } //else if (!DafnyOptions.O.DisallowExterns && Attributes.Contains(m.Attributes, "extern")) {
-              // if (Attributes.Contains(m.Attributes, "fresh") &&
-              //     m.Outs.Count == 1 && m.Ins.Count == 0 &&
-              //     m.Ens.Count == 1 && m.Ens.Any(ensure => ensure.E is FreshExpr)) {
-              //   classWriter.CreateFreshMethod(m);
-              // }
-              // if (Attributes.Contains(m.Attributes, "mock") &&
-              //     m.Outs.Count > 0 && m.Ens.Count(ensure => ensure.E is FreshExpr) == m.Outs.Count) {
-              //   // TODO: one ensure can contain two fresh expressions
-              //   classWriter.CreateMockMethod(m, CombineAllTypeArguments(m), true, true, false);
-              // }
-            //} 
-            else {
+            } else {
               Error(m.tok, "Method {0} has no body", errorWr, m.FullName);
             }
           } else if (m.IsGhost) {
