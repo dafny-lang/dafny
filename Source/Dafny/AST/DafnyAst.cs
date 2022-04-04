@@ -1061,26 +1061,33 @@ namespace Microsoft.Dafny {
       }
     }
 
-    // Returns true if it's possible to check that a value has this type at run-time.
+    /// <summary>
+    /// Returns true if it's possible to check at run-time that a value has this type
+    /// </summary>
+    /// <returns>A boolean indicating if the type is compilable, meaning run-time checkable.</returns>
     public bool IsCompilable() {
       // It might not be possible to do so if the constraint of this type uses ghost predicates
-      if (this.AsSubsetType is SubsetTypeDecl subsetTypeDecl && !subsetTypeDecl.IsConstraintCompilable) {
+      if (this.AsSubsetType is { IsConstraintCompilable: false }) {
         return false;
-      } else if (this.NormalizeExpandKeepConstraints() is InferredTypeProxy) {
+      } else if (this.NormalizeExpandKeepConstraints() is TypeProxy) {
+        // If we are still in the early resolution phase and no type has been inferred,
+        // then we cannot say for sure that the type is compilable.
         return false;
       } else {
         return true;
       }
     }
 
-    // Returns a parent of this type that can be tested at run time.
+    /// <summary>
+    /// Returns a parent of this type that can be tested at run time.
+    /// To ensure that the returned type .IsCompilable is true, this method
+    /// requires 'this' to be determined, i.e. not a proxy type.
+    /// </summary>
+    /// <returns></returns>
+    /// <exception cref="Exception"></exception>
     public Type GetCompilableParentType() {
       if (this.AsSubsetType is SubsetTypeDecl subsetTypeDecl && !subsetTypeDecl.IsConstraintCompilable) {
         return subsetTypeDecl.Var.Type.GetCompilableParentType();
-      }
-      if (this.NormalizeExpandKeepConstraints() is InferredTypeProxy) {
-        // We need to create another inferred type proxy
-        return new InferredTypeProxy();
       }
       return this;
     }
@@ -5775,6 +5782,7 @@ namespace Microsoft.Dafny {
     }
   }
 
+  public record ConstraintInformation(bool? compilable, string reasonIfNotCompilable, IToken? locationIfNotCompilable);
 
   public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl {
     public override string WhatKind { get { return "subset type"; } }
@@ -5783,45 +5791,42 @@ namespace Microsoft.Dafny {
     public enum WKind { CompiledZero, Compiled, Ghost, OptOut, Special }
     public readonly SubsetTypeDecl.WKind WitnessKind;
     public readonly Expression/*?*/ Witness;  // non-null iff WitnessKind is Compiled or Ghost
-    bool ConstraintIsCompilable; // Will be filled in by the Resolver
-    bool ConstraintIsCompilableComputed = false; // Set to true lazily by the Resolver when the Resolver fills in "ConstraintIsCompilable".
-    public string ConstraintIsCompilableReasonIfNot;
-    public IToken ConstraintIsCompilableLocationIfNot;
+    public ConstraintInformation constraintInformation = new ConstraintInformation(null, null, null);
 
     public bool IsConstraintCompilable {
       get {
-        if (!ConstraintIsCompilableComputed) {
+        if (constraintInformation.compilable == null) {
           // The constraint is not compilable if the parent type is also a subset type whose constraint is not compilable.
           if (Var.Type.NormalizeExpandKeepConstraints() is UserDefinedType
             {
               AsSubsetType: SubsetTypeDecl
               {
-                IsConstraintCompilable: false,
-                ConstraintIsCompilableLocationIfNot: var constraintLocation,
-                ConstraintIsCompilableReasonIfNot: var constraintReason
+                constraintInformation: ConstraintInformation(compilable: false, var constraintReason, var constraintLocation)
               }
             }) {
-            ConstraintIsCompilable = false;
-            ConstraintIsCompilableComputed = true;
             if (constraintLocation != null && constraintReason != null) {
-              ConstraintIsCompilableReasonIfNot =
-                $"[Related location] The constraint of {this.Name} is not run-time testable because it depends on the non-runtime-testable subset type {Var.Type}";
-              ConstraintIsCompilableLocationIfNot = new NestedToken(Var.tok, constraintLocation, constraintReason);
+              constraintInformation = new ConstraintInformation(false,
+                $"[Related location] The constraint of {this.Name} is not run-time testable because it depends on the non-runtime-testable subset type {Var.Type}",
+                new NestedToken(Var.tok, constraintLocation, constraintReason)
+              );
+            } else {
+              constraintInformation = new ConstraintInformation(false, null, null);
             }
           } else {
             var errorCollector = new BatchErrorReporter();
-            ConstraintIsCompilable = ExpressionTester.CheckIsCompilable(null, errorCollector, Constraint, new CodeContextWrapper(this, true));
-            ConstraintIsCompilableComputed = true;
-            if (!ConstraintIsCompilable && errorCollector.AllMessages[ErrorLevel.Error].FirstOrDefault() is var entry) {
-              ConstraintIsCompilableLocationIfNot = entry.token;
-              ConstraintIsCompilableReasonIfNot =
-                $"[Related location] The constraint of {this.Name} cannot be tested at run-time because " +
-                                                  entry.message;
+            var isCompilable = ExpressionTester.CheckIsCompilable(null, errorCollector, Constraint, new CodeContextWrapper(this, true));
+            if (isCompilable == false && errorCollector.AllMessages[ErrorLevel.Error].FirstOrDefault() is var entry) {
+              constraintInformation = new ConstraintInformation(
+                false,
+                $"[Related location] The constraint of {this.Name} cannot be tested at run-time because {entry.message}",
+                entry.token);
+            } else {
+              constraintInformation = new ConstraintInformation(isCompilable, null, null);
             }
           }
         }
 
-        return ConstraintIsCompilable;
+        return constraintInformation.compilable == true;
       }
     }
 
@@ -9065,6 +9070,13 @@ namespace Microsoft.Dafny {
   }
 
   public class NestedToken : TokenWrapper {
+    /// <summary>
+    /// A wrapper around a token that includes an optional message about the inner token
+    /// Used for richer error reporting when pointing to the inner token
+    /// </summary>
+    /// <param name="outer">The token this NestedToken wraps</param>
+    /// <param name="inner">An inner token, usually a related position</param>
+    /// <param name="message">An optional message about what this position represents</param>
     public NestedToken(IToken outer, IToken inner, string message = null)
       : base(outer) {
       Contract.Requires(outer != null);
@@ -11444,7 +11456,7 @@ namespace Microsoft.Dafny {
   /// where "Attributes" is optional, and "| Range(x)" is optional and defaults to "true".
   /// Currently, BINDER is one of the logical quantifiers "exists" or "forall".
   /// </summary>
-  public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclaration {
+  public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBearingExpression {
     public virtual string WhatKind => "comprehension";
 
     public virtual string Keyword => "";
@@ -11483,6 +11495,8 @@ namespace Microsoft.Dafny {
 
     public IToken BodyStartTok = Token.NoToken;
     public IToken BodyEndTok = Token.NoToken;
+    IToken IRegion.BodyStartTok { get { return BodyStartTok; } }
+    IToken IRegion.BodyEndTok { get { return BodyEndTok; } }
 
     public void UpdateTerm(Expression newTerm) {
       term = newTerm;

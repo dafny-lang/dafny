@@ -315,9 +315,9 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         ProcessBoundVariableBearingExpression(letExpression, () => base.Visit(letExpression));
       }
 
-      private void ProcessBoundVariableBearingExpression<TExpr>(
-        TExpr boundVarExpression, System.Action baseVisit
-        ) where TExpr : Expression, IBoundVarsBearingExpression {
+      private void ProcessBoundVariableBearingExpression(
+        IBoundVarsBearingExpression boundVarExpression, System.Action baseVisit
+        ) {
         var oldBlock = block;
         // To prevent two scope symbols from pointing to the same node,
         // (this crashes `declarations[nodes]` later on)

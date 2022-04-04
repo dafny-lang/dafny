@@ -6089,8 +6089,7 @@ namespace Microsoft.Dafny {
                     {
                       AsSubsetType: SubsetTypeDecl
                       {
-                        ConstraintIsCompilableLocationIfNot: var constraintLocation,
-                        ConstraintIsCompilableReasonIfNot: var constraintReason
+                        constraintInformation: ConstraintInformation(_, var constraintReason, var constraintLocation)
                       }
                     } && constraintLocation != null
                       ? new NestedToken(e.tok, constraintLocation, constraintReason)
