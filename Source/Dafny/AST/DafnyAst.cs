@@ -392,10 +392,6 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public interface IBoundVarBearingExpressionWithToken : IBoundVarsBearingExpression {
-    public IToken Token { get; }
-  }
-
   /// <summary>
   /// A class implementing this interface is one that can carry attributes.
   /// </summary>
@@ -11448,7 +11444,7 @@ namespace Microsoft.Dafny {
   /// where "Attributes" is optional, and "| Range(x)" is optional and defaults to "true".
   /// Currently, BINDER is one of the logical quantifiers "exists" or "forall".
   /// </summary>
-  public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclaration, IBoundVarBearingExpressionWithToken {
+  public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclaration {
     public virtual string WhatKind => "comprehension";
 
     public virtual string Keyword => "";
@@ -11487,11 +11483,6 @@ namespace Microsoft.Dafny {
 
     public IToken BodyStartTok = Token.NoToken;
     public IToken BodyEndTok = Token.NoToken;
-    IToken IRegion.BodyStartTok { get { return BodyStartTok; } }
-    IToken IRegion.BodyEndTok { get { return BodyEndTok; } }
-    IToken IBoundVarBearingExpressionWithToken.Token {
-      get => tok;
-    }
 
     public void UpdateTerm(Expression newTerm) {
       term = newTerm;

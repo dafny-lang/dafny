@@ -15437,13 +15437,13 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private void AssumeCompilableTypeForBoundedVariables(IBoundVarBearingExpressionWithToken e) {
+    private void AssumeCompilableTypeForBoundedVariables(ComprehensionExpr e) {
       foreach (BoundVar v in e.AllBoundVars) {
         v.AssumeCompilableTypeIfAny(); // Reinstate the runtime testable type since verification uses bounded variable
       }
     }
 
-    private void AssumeOriginalTypeForBoundedVariables(IBoundVarBearingExpressionWithToken e) {
+    private void AssumeOriginalTypeForBoundedVariables(ComprehensionExpr e) {
       foreach (BoundVar v in e.AllBoundVars) {
         v.AssumeOriginalType(); // Reinstate the runtime testable type since verification uses bounded variable
       }
@@ -15456,7 +15456,7 @@ namespace Microsoft.Dafny {
       reporter = savedReporter;
     }
 
-    private void ScopePushBoundVarsWithoutAssumptions(IBoundVarsBearingExpression e) {
+    private void ScopePushBoundVarsWithoutAssumptions(ComprehensionExpr e) {
       // For the term only, we can assume the inferred type which has to be proved later
       foreach (BoundVar v in e.AllBoundVars) {
         // Previously, the type has to be runtime-testable for the range at least.
@@ -15473,7 +15473,7 @@ namespace Microsoft.Dafny {
 
     /// Returns the first non-runtime testable type of the comprehension if it exists
     /// Ensures ret != null ==> !ret.IsCompilable() && ret is one of the type of e.AllBoundVars[i]
-    private void ScopePushBoundVarsAssumingCompilable(IBoundVarBearingExpressionWithToken e, ResolveOpts opts, [CanBeNull] ResolveTypeOption resolveTypeOption = null, bool typeQuantifier = false) {
+    private void ScopePushBoundVarsAssumingCompilable(ComprehensionExpr e, ResolveOpts opts, [CanBeNull] ResolveTypeOption resolveTypeOption = null, bool typeQuantifier = false) {
       if (resolveTypeOption == null) {
         resolveTypeOption = new ResolveTypeOption(ResolveTypeOptionEnum.InferTypeProxies);
       }
