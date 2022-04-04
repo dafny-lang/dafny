@@ -11460,7 +11460,6 @@ namespace Microsoft.Dafny {
     public virtual string WhatKind => "comprehension";
 
     public virtual string Keyword => "";
-    // The bound vars might need a fix if they are assigned a type that cannot be compiled.
     public readonly List<BoundVar> BoundVars;
     public Expression Range { get; private set; }
 
