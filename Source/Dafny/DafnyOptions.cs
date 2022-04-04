@@ -15,6 +15,7 @@ using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
   public class DafnyOptions : Bpl.CommandLineOptions {
+
     public static DafnyOptions Create(params string[] arguments) {
       var result = new DafnyOptions();
       result.Parse(arguments);
@@ -26,6 +27,7 @@ namespace Microsoft.Dafny {
       Prune = true;
       NormalizeNames = true;
       EmitDebugInformation = false;
+      Compiler = new CsharpCompiler();
     }
 
     public override string VersionNumber {
@@ -195,7 +197,7 @@ namespace Microsoft.Dafny {
 
         case "compile": {
             int compile = 0;
-            if (ps.GetNumericArgument(ref compile, 5)) {
+            if (ps.GetIntArgument(ref compile, 5)) {
               // convert option to two booleans
               Compile = compile != 0;
               ForceCompile = compile == 2 || compile == 4;
@@ -220,7 +222,7 @@ namespace Microsoft.Dafny {
 
         case "compileVerbose": {
             int verbosity = 0;
-            if (ps.GetNumericArgument(ref verbosity, 2)) {
+            if (ps.GetIntArgument(ref verbosity, 2)) {
               CompileVerbose = verbosity == 1;
             }
 
@@ -250,7 +252,7 @@ namespace Microsoft.Dafny {
 
         case "trackPrintEffects": {
             int printEffects = 0;
-            if (ps.GetNumericArgument(ref printEffects, 2)) {
+            if (ps.GetIntArgument(ref printEffects, 2)) {
               EnforcePrintEffects = printEffects == 1;
             }
             return true;
@@ -267,7 +269,7 @@ namespace Microsoft.Dafny {
 
         case "dafnyVerify": {
             int verify = 0;
-            if (ps.GetNumericArgument(ref verify, 2)) {
+            if (ps.GetIntArgument(ref verify, 2)) {
               DafnyVerify = verify != 0; // convert to boolean
             }
 
@@ -276,7 +278,7 @@ namespace Microsoft.Dafny {
 
         case "spillTargetCode": {
             int spill = 0;
-            if (ps.GetNumericArgument(ref spill, 4)) {
+            if (ps.GetIntArgument(ref spill, 4)) {
               SpillTargetCode = spill;
             }
 
@@ -300,7 +302,7 @@ namespace Microsoft.Dafny {
 
         case "noCheating": {
             int cheat = 0; // 0 is default, allows cheating
-            if (ps.GetNumericArgument(ref cheat, 2)) {
+            if (ps.GetIntArgument(ref cheat, 2)) {
               DisallowSoundnessCheating = cheat == 1;
             }
 
@@ -316,11 +318,11 @@ namespace Microsoft.Dafny {
           return true;
 
         case "induction":
-          ps.GetNumericArgument(ref Induction, 5);
+          ps.GetIntArgument(ref Induction, 5);
           return true;
 
         case "inductionHeuristic":
-          ps.GetNumericArgument(ref InductionHeuristic, 7);
+          ps.GetIntArgument(ref InductionHeuristic, 7);
           return true;
 
         case "noIncludes":
@@ -337,7 +339,7 @@ namespace Microsoft.Dafny {
 
         case "arith": {
             int a = 0;
-            if (ps.GetNumericArgument(ref a, 11)) {
+            if (ps.GetIntArgument(ref a, 11)) {
               ArithMode = a;
             }
 
@@ -394,7 +396,7 @@ namespace Microsoft.Dafny {
 
         case "deprecation": {
             int d = 1;
-            if (ps.GetNumericArgument(ref d, 3)) {
+            if (ps.GetIntArgument(ref d, 3)) {
               DeprecationNoise = d;
             }
 
@@ -423,7 +425,7 @@ namespace Microsoft.Dafny {
 
         case "countVerificationErrors": {
             int countErrors = 1; // defaults to reporting verification errors
-            if (ps.GetNumericArgument(ref countErrors, 2)) {
+            if (ps.GetIntArgument(ref countErrors, 2)) {
               CountVerificationErrors = countErrors == 1;
             }
 
@@ -436,7 +438,7 @@ namespace Microsoft.Dafny {
 
         case "autoTriggers": {
             int autoTriggers = 0;
-            if (ps.GetNumericArgument(ref autoTriggers, 2)) {
+            if (ps.GetIntArgument(ref autoTriggers, 2)) {
               AutoTriggers = autoTriggers == 1;
             }
 
@@ -445,7 +447,7 @@ namespace Microsoft.Dafny {
 
         case "rewriteFocalPredicates": {
             int rewriteFocalPredicates = 0;
-            if (ps.GetNumericArgument(ref rewriteFocalPredicates, 2)) {
+            if (ps.GetIntArgument(ref rewriteFocalPredicates, 2)) {
               RewriteFocalPredicates = rewriteFocalPredicates == 1;
             }
 
@@ -458,13 +460,13 @@ namespace Microsoft.Dafny {
           }
 
         case "allocated": {
-            ps.GetNumericArgument(ref Allocated, 5);
+            ps.GetIntArgument(ref Allocated, 5);
             return true;
           }
 
         case "optimizeResolution": {
             int d = 2;
-            if (ps.GetNumericArgument(ref d, 3)) {
+            if (ps.GetIntArgument(ref d, 3)) {
               OptimizeResolution = d;
             }
 
@@ -473,7 +475,7 @@ namespace Microsoft.Dafny {
 
         case "definiteAssignment": {
             int da = 0;
-            if (ps.GetNumericArgument(ref da, 4)) {
+            if (ps.GetIntArgument(ref da, 4)) {
               DefiniteAssignmentLevel = da;
             }
 
@@ -539,14 +541,14 @@ namespace Microsoft.Dafny {
 
         case "verificationLogger":
           if (ps.ConfirmArgumentCount(1)) {
-            if (args[ps.i].StartsWith("trx") || args[ps.i].StartsWith("csv")) {
+            if (args[ps.i].StartsWith("trx") || args[ps.i].StartsWith("csv") || args[ps.i].StartsWith("text")) {
               VerificationLoggerConfigs.Add(args[ps.i]);
             } else {
               InvalidArgumentError(name, ps);
             }
           }
-
           return true;
+
       }
 
       // Unless this is an option for test generation, defer to superclass
@@ -1116,13 +1118,25 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
     /proverOpt:0:model_compress=false and /proverOpt:0:model.completion=true.
 /verificationLogger:<configuration string>
     Logs verification results to the given test result logger. The currently
-    supported loggers are ""trx"" and ""csv"". The former is the XML-based format
-    commonly used for test results for .NET languages. You can provide
-    configuration using the same string format as when using the --logger
-    option for dotnet test, such as:
+    supported loggers are ""trx"", ""csv"", and ""text"". These are the
+    XML-based format commonly used for test results for .NET languages, a
+    custom CSV schema, and a textual format meant for human consumption. You
+    can provide configuration using the same string format as when using the
+    --logger option for dotnet test, such as:
         /verificationLogger:trx;LogFileName=<...>.
-    The exact mapping of verification concepts to the TRX and CSV formats is
+    The exact mapping of verification concepts to these formats is
     experimental and subject to change!
+
+    The ""trx"" and ""csv"" loggers automatically choose an output file
+    name by default, and print the name of this file to the console. The
+    ""text"" logger prints its output to the console by default, but can
+    send output to a file given the `LogFileName` option.
+
+    The ""text"" logger also includes a more detailed breakdown of what
+    assertions appear in each assertion batch. When combined with the
+    `/vcsSplitOnEveryAssert` option, it will provide approximate time
+    and resource use costs for each assertion, allowing identification
+    of especially expensive assertions.
 {TestGenOptions.Help}
 
 /mimicVerificationOf:<Dafny version>
