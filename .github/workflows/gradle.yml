@@ -9,7 +9,6 @@ on:
 jobs:
   build:
 
-    environment: continuous-integration
     runs-on: ubuntu-latest
 
     steps:

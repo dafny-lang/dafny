@@ -11,7 +11,6 @@ on:
 jobs:
   build:
 
-    environment: continuous-integration
     runs-on: macos-latest
 
     steps:
