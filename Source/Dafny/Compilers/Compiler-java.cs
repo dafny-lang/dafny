@@ -3960,5 +3960,9 @@ namespace Microsoft.Dafny.Compilers {
     protected override ConcreteSyntaxTree CreateIterator(IteratorDecl iter, ConcreteSyntaxTree wr) {
       throw new NotImplementedException();
     }
+    
+    protected override ConcreteSyntaxTree EmitInvokeWithHaltHandling(string haltMessageLHS, Method m, ConcreteSyntaxTree wr) {
+      throw new NotImplementedException();
+    }
   }
 }

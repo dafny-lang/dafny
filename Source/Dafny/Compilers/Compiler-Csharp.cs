@@ -3287,5 +3287,16 @@ namespace Microsoft.Dafny.Compilers {
       wBody.WriteLine($"{GetHelperModuleName()}.WithHaltHandling({companion}.{idName});");
       Coverage.EmitTearDown(wBody);
     }
+
+    protected override ConcreteSyntaxTree EmitInvokeWithHaltHandling(string haltMessageLHS, Method m, ConcreteSyntaxTree wr) {
+      wr.WriteLine("try {");
+      wr.WriteLine($"  {m.FullCompileName}();");
+      wr.WriteLine("} catch (HaltException e) {");
+      wr.WriteLine($"  {haltMessageLHS} = e.Message;");
+      var w = wr.Fork();
+      wr.WriteLine("}");
+      return w;
+    }
+
   }
 }

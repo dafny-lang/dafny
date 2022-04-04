@@ -2381,6 +2381,11 @@ namespace Microsoft.Dafny.Compilers {
       throw NotSupported("EmitSingleValueGenerator", e.tok);
     }
 
+    protected override ConcreteSyntaxTree EmitInvokeWithHaltHandling(string haltMessageLHS, Method m, ConcreteSyntaxTree wr) {
+      throw NotSupported("EmitInvokeWithHaltHandling");
+    }
+
+
     // ----- Target compilation and execution -------------------------------------------------------------
     private string ComputeExeName(string targetFilename) {
       return Path.ChangeExtension(Path.GetFullPath(targetFilename), "exe");

@@ -84,6 +84,7 @@ namespace Microsoft.Dafny {
     public string DafnyPrintCompiledFile = null;
     public string CoverageLegendFile = null;
     public string MainMethod = null;
+    public bool RunAllTests = false;
     public bool ForceCompile = false;
     public bool RunAfterCompile = false;
     public int SpillTargetCode = 0; // [0..4]
@@ -266,6 +267,15 @@ namespace Microsoft.Dafny {
 
             return true;
           }
+
+        case "runAllTests": {
+          int runAllTests = 0;
+          if (ps.GetIntArgument(ref runAllTests, 2)) {
+            RunAllTests = runAllTests != 0; // convert to boolean
+          }
+
+          return true;
+        }
 
         case "dafnyVerify": {
             int verify = 0;

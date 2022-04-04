@@ -586,6 +586,15 @@ namespace Microsoft.Dafny {
           otherFiles.Add(file.Filename, otherFileWriter.ToString());
         }
       }
+
+      if (DafnyOptions.O.RunAllTests) {
+        if (hasMain) {
+          throw new Exception("Cannot use /runAllTests on a program with a main method");
+        }
+        
+        
+      }
+      
       string callToMain = null;
       if (hasMain) {
         var callToMainTree = new ConcreteSyntaxTree();

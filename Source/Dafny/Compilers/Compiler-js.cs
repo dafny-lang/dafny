@@ -2370,6 +2370,10 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitSingleValueGenerator(Expression e, bool inLetExprBody, string type, ConcreteSyntaxTree wr) {
       TrParenExpr("_dafny.SingleValue", e, wr, inLetExprBody);
     }
+    
+    protected override ConcreteSyntaxTree EmitInvokeWithHaltHandling(string haltMessageLHS, Method m, ConcreteSyntaxTree wr) {
+      throw new NotImplementedException();
+    }
 
     // ----- Target compilation and execution -------------------------------------------------------------
 

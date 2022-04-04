@@ -2254,7 +2254,11 @@ namespace Microsoft.Dafny.Compilers {
         w = EmitMethodReturns(m, w);
 
         if (m.Body == null) {
-          Error(m.tok, "Method {0} has no body", w, m.FullName);
+          if (Attributes.Contains(m.Attributes, "run_all_tests")) {
+            EmitRunAllTestsMainMethodBody(program, w);
+          } else {
+            Error(m.tok, "Method {0} has no body", w, m.FullName);
+          }
         } else {
           Contract.Assert(enclosingMethod == null);
           enclosingMethod = m;
@@ -5115,6 +5119,62 @@ namespace Microsoft.Dafny.Compilers {
             return false;
         }
       }
+    }
+
+    protected abstract ConcreteSyntaxTree EmitInvokeWithHaltHandling(string haltMessageLHS, Method m, ConcreteSyntaxTree wr);
+    
+    protected void EmitRunAllTestsMainMethodBody(Program program, ConcreteSyntaxTree w) {
+      var successVar = new IdentifierExpr(null, "success");
+      var successVarStmt = new AssignStmt(null, null, successVar, 
+        new ExprRhs(Expression.CreateBoolLiteral(null, true)));
+      TrStmt(successVarStmt, w);
+      
+      foreach (var module in program.Modules()) {
+        foreach (ICallable callable in ModuleDefinition.AllCallables(
+                   module.TopLevelDecls)) {
+          if ((callable is Method method) && Attributes.Contains(method.Attributes, "test")) {
+            EmitPrintStmt(w, new StringLiteralExpr(null, method.FullDafnyName + ": ", true));
+            
+            var haltMessageVar = new IdentifierExpr(null, idGenerator.FreshId("haltMessage"));
+            var emptyStringExpr = new SeqDisplayExpr(null, new List<Expression>());
+            var haltMessageVarStmt = new AssignStmt(null, null, haltMessageVar, new ExprRhs(emptyStringExpr));
+            TrStmt(haltMessageVarStmt, w);
+            EmitInvokeWithHaltHandling(haltMessageVar.Name, method, w);
+            
+            // if haltMessage_X == "" {
+            //   print "PASSED\n";
+            // } else {
+            //   print "FAILED\n\t", haltMessage_X, "\n";
+            //   success := false;
+            // }
+            var passedPrintArgs = new List<Expression>();
+            passedPrintArgs.Add(new StringLiteralExpr(null, "PASSED\n", true));
+            var passedStmt = new PrintStmt(null, null, passedPrintArgs);
+            var passedStmts = new List<Statement>();
+            passedStmts.Add(passedStmt);
+            var passedBlock = new BlockStmt(null, null, passedStmts);
+
+            var failedPrintArgs = new List<Expression>();
+            failedPrintArgs.Add(new StringLiteralExpr(null, "FAILED\n\t", true));
+            failedPrintArgs.Add(haltMessageVar);
+            failedPrintArgs.Add(new StringLiteralExpr(null, "\n", true));
+            var failedPrintStmt = new PrintStmt(null, null, failedPrintArgs);
+            var failSuiteStmt =
+              new AssignStmt(null, null, successVar, new ExprRhs(Expression.CreateBoolLiteral(null, false)));
+            var failedStmts = new List<Statement>();
+            failedStmts.Add(failedPrintStmt);
+            failedStmts.Add(failSuiteStmt);
+            var failedBlock = new BlockStmt(null, null, failedStmts);
+
+            var guardExpr = new BinaryExpr(null, BinaryExpr.Opcode.Eq, haltMessageVar, emptyStringExpr);
+
+            var ifStmt = new IfStmt(null, null, false, guardExpr, passedBlock, failedBlock);
+            TrStmt(ifStmt, w);
+          }
+        }
+      }
+      
+      // TODO: Print summary message and set exit code
     }
 
     public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
