@@ -319,7 +319,7 @@ function `as real` from `int` to `real`, as described in
 
 TODO: Need syntax for real literals with exponents
 
-## 7.3. Bit-vector Types
+## 7.3. Bit-vector Types {#sec-bit-vector-types}
 ````grammar
 BitVectorType_ = bvToken
 ````
@@ -1358,7 +1358,7 @@ that exist for any arity (`() -> X`, `A -> X`, `(A, B) -> X`, `(A, B, C) -> X`,
 etc.).
 
 For a list of types `TT` and a type `U`, the values of the arrow type `(TT) ~> U`
-are functions from `TT` to `U. This includes functions that may read the
+are functions from `TT` to `U`. This includes functions that may read the
 heap and functions that are not defined on all inputs. It is not common
 to need this generality (and working with such general functions is
 difficult). Therefore, Dafny defines two subset types that are more common
@@ -2299,7 +2299,7 @@ See [Section 23.5.3](#sec-friendliness) for descriptions
 of inductive predicates and lemmas.
 
 <!--PDF NEWPAGE-->
-# 14. Trait Types
+# 14. Trait Types {#sec-trait-types}
 ````grammar
 TraitDecl =
   "trait" { Attribute } ClassName [ GenericParameters ]
@@ -3103,7 +3103,7 @@ var pair: (int, ghost int) := (1, ghost 2);
 ```
 
 <!--PDF NEWPAGE-->
-# 18. Algebraic Datatypes
+# 18. Algebraic Datatypes {#sec-algebraic-datatype}
 
 ````grammar
 DatatypeDecl =

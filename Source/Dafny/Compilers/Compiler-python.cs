@@ -6,8 +6,20 @@ using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
 using System.Numerics;
+using ExtensionMethods;
 using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
+
+namespace ExtensionMethods {
+  using Microsoft.Dafny;
+  public static class PythonExtensions {
+    public static ConcreteSyntaxTree NewBlockPy(this ConcreteSyntaxTree tree, string header = "", string footer = "",
+      BlockStyle open = BlockStyle.Newline,
+      BlockStyle close = BlockStyle.Nothing) {
+      return tree.NewBlock(header, footer, open, close);
+    }
+  }
+}
 
 namespace Microsoft.Dafny.Compilers {
   public class PythonCompiler : SinglePassCompiler {
@@ -15,6 +27,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public override string TargetLanguage => "Python";
     public override string TargetExtension => "py";
+    public override int TargetIndentSize => 4;
 
     public override string TargetBaseDir(string dafnyProgramName) =>
       $"{Path.GetFileNameWithoutExtension(dafnyProgramName)}-py";
@@ -32,9 +45,10 @@ namespace Microsoft.Dafny.Compilers {
     const string DafnyMapClass = "_dafny.Map";
     protected override string StmtTerminator { get => ""; }
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
-      wr.WriteLine("# Dafny program {0} compiled into Python", program.Name);
+      wr.WriteLine($"# Dafny program {program.Name} compiled into Python");
       ReadRuntimeSystem("DafnyRuntime.py", wr.NewFile("_dafny.py"));
-      EmitImports("_dafny", wr);
+      Imports.Add("_dafny");
+      EmitImports(null, wr);
       wr.WriteLine();
     }
 
@@ -57,15 +71,16 @@ namespace Microsoft.Dafny.Compilers {
 
     private void EmitImports(string moduleName, ConcreteSyntaxTree wr) {
       wr.WriteLine("import sys");
-      wr.WriteLine("from typing import Callable");
-      wr.WriteLine("from collections import namedtuple");
+      wr.WriteLine("from typing import Callable, NamedTuple");
       wr.WriteLine();
       Imports.Iter(module => wr.WriteLine($"import {module}"));
-      wr.WriteLine();
-      wr.WriteLine($"{moduleName} = sys.modules[__name__]");
-      //could be globals()[__name__] = sys.modules[__name__], but my ide doesn't pick that up
+      if (moduleName != null) {
+        wr.WriteLine();
+        wr.WriteLine($"assert \"{moduleName}\" == __name__");
+        wr.WriteLine($"{moduleName} = sys.modules[__name__]");
 
-      Imports.Add(moduleName);
+        Imports.Add(moduleName);
+      }
     }
 
     protected override string GetHelperModuleName() {
@@ -78,11 +93,11 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string fullPrintName,
         List<TypeParameter> typeParameters, TopLevelDecl cls, List<Type> superClasses, IToken tok, ConcreteSyntaxTree wr) {
-      var methodWriter = wr.NewBlock(header: $"class {MangleName(name)}:", open: BlockStyle.Newline, close: BlockStyle.Nothing);
+      var methodWriter = wr.NewBlockPy(header: $"class {MangleName(name)}:");
 
       var needsConstructor = cls is TopLevelDeclWithMembers decl && decl.Members.Any(m => !m.IsGhost && m is Field && !m.IsStatic);
       var constructorWriter = needsConstructor
-        ? methodWriter.NewBlock(header: "def  __init__(self):", open: BlockStyle.Newline, close: BlockStyle.Newline)
+        ? methodWriter.NewBlockPy(header: "def  __init__(self):", close: BlockStyle.Newline)
         : null;
       if (cls is ClassDecl d) {
         if (!needsConstructor && d.Members.All(m => m.IsGhost)) {
@@ -110,12 +125,13 @@ namespace Microsoft.Dafny.Compilers {
 
       var DtT = dt.CompileName;
 
-      var btw = wr.NewBlock($"class {DtT}:", "", BlockStyle.Newline, BlockStyle.Nothing);
+      var btw = wr.NewBlockPy($"class {DtT}:");
 
       foreach (var ctor in dt.Ctors) {
-        var namedtuple = $"namedtuple(\"{ctor.CompileName}\", [])";
+        // Class-level fields don't work in all python version due to metaclasses.
+        var namedtuple = $"NamedTuple(\"{ctor.CompileName}\", [])";
         var header = $"class {DtCtorDeclarationName(ctor, false)}({DtT}, {namedtuple}):";
-        var constructor = wr.NewBlock(header, "", BlockStyle.Newline, BlockStyle.Newline);
+        var constructor = wr.NewBlockPy(header, close: BlockStyle.Newline);
         DatatypeFieldsAndConstructor(ctor, constructor);
       }
 
@@ -137,7 +153,8 @@ namespace Microsoft.Dafny.Compilers {
       var udt = UserDefinedType.FromTopLevelDecl(nt.tok, nt);
       var d = TypeInitializationValue(udt, wr, nt.tok, false, false);
 
-      w.NewBlock("def Default():", "", BlockStyle.Newline, BlockStyle.Newline).WriteLine($"return {d}", "");
+      w.WriteLine("@staticmethod");
+      w.NewBlockPy("def Default():", close: BlockStyle.Newline).WriteLine($"return {d}", "");
 
       return cw;
     }
@@ -146,10 +163,10 @@ namespace Microsoft.Dafny.Compilers {
       var cw = (ClassWriter)CreateClass(IdProtect(sst.EnclosingModuleDefinition.CompileName), IdName(sst), sst, wr);
       var w = cw.MethodWriter;
       var udt = UserDefinedType.FromTopLevelDecl(sst.tok, sst);
-      string d;
-      d = TypeInitializationValue(udt, wr, sst.tok, false, false);
+      var d = TypeInitializationValue(udt, wr, sst.tok, false, false);
 
-      w.NewBlock("def Default():", "", BlockStyle.Newline, BlockStyle.Nothing).WriteLine($"return {d}", "");
+      w.WriteLine("@staticmethod");
+      w.NewBlockPy("def Default():").WriteLine($"return {d}", "");
     }
 
     protected override void GetNativeInfo(NativeType.Selection sel, out string name, out string literalSuffix,
@@ -174,6 +191,10 @@ namespace Microsoft.Dafny.Compilers {
       public ConcreteSyntaxTree CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody,
         bool forBodyInheritance, bool lookasideBody) {
         return Compiler.CreateMethod(m, typeArgs, createBody, MethodWriter, forBodyInheritance, lookasideBody);
+      }
+
+      public ConcreteSyntaxTree SynthesizeMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
+        throw new NotImplementedException();
       }
 
       public ConcreteSyntaxTree CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs,
@@ -225,9 +246,8 @@ namespace Microsoft.Dafny.Compilers {
 
     private ConcreteSyntaxTree CreateGetter(string name, Type resultType, IToken tok, bool isStatic, bool createBody,
         ConcreteSyntaxTree methodWriter) {
-      methodWriter.WriteLine("@property");
-      var self = isStatic ? "" : "self";
-      return methodWriter.NewBlock(header: $"def {name}({self}):", open: BlockStyle.Newline, close: BlockStyle.Nothing);
+      methodWriter.WriteLine(isStatic ? "@_dafny.classproperty" : "@property");
+      return methodWriter.NewBlockPy(header: $"def {name}({(isStatic ? "instance" : "self")}):");
     }
 
     private ConcreteSyntaxTree CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody,
@@ -235,7 +255,7 @@ namespace Microsoft.Dafny.Compilers {
       if (m.IsStatic) { wr.WriteLine("@staticmethod"); }
       wr.Write($"def {IdName(m)}(");
       WriteFormals(m.Ins, m.IsStatic, wr);
-      return wr.NewBlock("):", open: BlockStyle.Newline, close: BlockStyle.Newline);
+      return wr.NewBlockPy("):", close: BlockStyle.Newline);
     }
 
     protected override ConcreteSyntaxTree EmitMethodReturns(Method m, ConcreteSyntaxTree wr) {
@@ -263,7 +283,7 @@ namespace Microsoft.Dafny.Compilers {
       if (isStatic || NeedsCustomReceiver(member)) { wr.WriteLine("@staticmethod"); }
       wr.Write($"def {name}(");
       WriteFormals(formals, isStatic, wr);
-      return wr.NewBlock("):", open: BlockStyle.Newline, close: BlockStyle.Newline);
+      return wr.NewBlockPy("):", close: BlockStyle.Newline);
     }
 
 
@@ -278,7 +298,8 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitJumpToTailCallStart(ConcreteSyntaxTree wr) {
       throw new NotImplementedException();
     }
-    protected override string TypeName(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok, MemberDecl/*?*/ member = null) {
+
+    internal override string TypeName(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok, MemberDecl/*?*/ member = null) {
       return TypeName(type, wr, tok, boxed: false, member);
     }
     private string TypeName(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok, bool boxed, MemberDecl /*?*/ member = null) {
@@ -432,7 +453,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree CreateLabeledCode(string label, bool createContinueLabel, ConcreteSyntaxTree wr) {
       Contract.Assert(!createContinueLabel);
-      return wr.NewBlock($"with _dafny.label(\"{label}\"):", open: BlockStyle.Newline, close: BlockStyle.Nothing);
+      return wr.NewBlockPy($"with _dafny.label(\"{label}\"):");
     }
 
     protected override void EmitBreak(string label, ConcreteSyntaxTree wr) {
@@ -464,17 +485,12 @@ namespace Microsoft.Dafny.Compilers {
     protected override ConcreteSyntaxTree EmitIf(out ConcreteSyntaxTree guardWriter, bool hasElse, ConcreteSyntaxTree wr) {
       wr.Write("if ");
       guardWriter = wr.Fork();
-      if (hasElse) {
-        var thn = wr.NewBlock(":", "el", BlockStyle.Newline, BlockStyle.Nothing);
-        return thn;
-      } else {
-        var thn = wr.NewBlock(":", open: BlockStyle.Newline, close: BlockStyle.Nothing);
-        return thn;
-      }
+      return wr.NewBlockPy(":", hasElse ? "el" : "");
     }
 
     protected override ConcreteSyntaxTree EmitBlock(ConcreteSyntaxTree wr) {
-      return wr.NewBlock("if True:", open: BlockStyle.Newline, close: BlockStyle.Nothing);
+      //This encoding does not provide a new scope
+      return wr.NewBlockPy("if True:");
     }
 
     protected override ConcreteSyntaxTree EmitForStmt(IToken tok, IVariable loopIndex, bool goingUp, string endVarName,
@@ -508,8 +524,7 @@ namespace Microsoft.Dafny.Compilers {
       collectionWriter = new ConcreteSyntaxTree();
       wr.WriteLine($"{tmpVarName}: {TypeName(collectionElementType, wr, tok)}")
         .Format($"for {tmpVarName} in {collectionWriter}:");
-      return wr.NewBlock(open: BlockStyle.Newline, close: BlockStyle.Nothing)
-        .WriteLine($"{boundVarName}{(introduceBoundVar ? $": {TypeName(boundVarType, wr, tok)}" : "")} = {tmpVarName}");
+      return wr.NewBlockPy().WriteLine($"{boundVarName}{(introduceBoundVar ? $": {TypeName(boundVarType, wr, tok)}" : "")} = {tmpVarName}");
     }
 
     protected override ConcreteSyntaxTree CreateForeachIngredientLoop(string boundVarName, int L, string tupleTypeArgs,
@@ -743,7 +758,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Assert(wStmts != null);
       var functionName = idGenerator.FreshId("_iife");
       wr.WriteLine($"{functionName}()");
-      return wStmts.NewBlock($"def {functionName}():", open: BlockStyle.Newline, close: BlockStyle.Nothing);
+      return wStmts.NewBlockPy($"def {functionName}():");
     }
 
     protected override ConcreteSyntaxTree CreateIIFE1(int source, Type resultType, IToken resultTok, string bvName, ConcreteSyntaxTree wr) {

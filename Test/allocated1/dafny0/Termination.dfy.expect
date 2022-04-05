@@ -1,4 +1,4 @@
-Termination.dfy[TerminationRefinement1](441,5): Error: failure to decrease termination measure
+Termination.dfy[TerminationRefinement1](441,5): Error: decreases clause might not decrease
 Termination.dfy(108,2): Error: cannot prove termination; try supplying a decreases clause for the loop
 Termination.dfy(125,2): Error: decreases expression might not decrease
 Termination.dfy(126,16): Error: decreases expression must be bounded below by 0 at end of loop iteration
@@ -19,7 +19,7 @@ Termination.dfy(730,2): Error: decreases expression might not decrease
 Termination.dfy(806,2): Error: cannot prove termination; try supplying a decreases clause for the loop
 Termination.dfy(1152,2): Error: cannot prove termination; try supplying a decreases clause for the loop
 Termination.dfy(1168,2): Error: cannot prove termination; try supplying a decreases clause for the loop
-Termination.dfy(361,46): Error: failure to decrease termination measure
+Termination.dfy(361,46): Error: decreases clause might not decrease
 Termination.dfy(577,5): Error: cannot find witness that shows type is inhabited; try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
 
 Dafny program verifier finished with 95 verified, 23 errors
