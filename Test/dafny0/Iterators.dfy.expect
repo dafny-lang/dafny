@@ -1,12 +1,12 @@
-Iterators.dfy(251,9): Error: failure to decrease termination measure
-Iterators.dfy(274,9): Error: failure to decrease termination measure
-Iterators.dfy(284,31): Error: failure to decrease termination measure
+Iterators.dfy(251,9): Error: decreases clause might not decrease
+Iterators.dfy(274,9): Error: decreases clause might not decrease
+Iterators.dfy(284,31): Error: decreases clause might not decrease
 Iterators.dfy(296,9): Error: cannot prove termination; try supplying a decreases clause
 Iterators.dfy(317,9): Error: cannot prove termination; try supplying a decreases clause
 Iterators.dfy(326,31): Error: cannot prove termination; try supplying a decreases clause
-Iterators.dfy(343,9): Error: failure to decrease termination measure
+Iterators.dfy(343,9): Error: decreases clause might not decrease
 Iterators.dfy(353,31): Error: cannot prove termination; try supplying a decreases clause
-Iterators.dfy(370,9): Error: failure to decrease termination measure
+Iterators.dfy(370,9): Error: decreases clause might not decrease
 Iterators.dfy(103,21): Error: assertion might not hold
 Iterators.dfy(106,13): Error: assertion might not hold
 Iterators.dfy(177,27): Error: assertion might not hold

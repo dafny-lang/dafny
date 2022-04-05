@@ -575,14 +575,14 @@ namespace Microsoft.Dafny {
         var writerOptions = new WriterState();
         var targetProgramTextWriter = new StringWriter();
         var files = new Queue<FileSyntax>();
-        output.Render(targetProgramTextWriter, 0, writerOptions, files);
+        output.Render(targetProgramTextWriter, 0, writerOptions, files, compiler.TargetIndentSize);
         targetProgramText = targetProgramTextWriter.ToString();
 
         while (files.Count > 0) {
           var file = files.Dequeue();
           var otherFileWriter = new StringWriter();
           writerOptions.HasNewLine = false;
-          file.Tree.Render(otherFileWriter, 0, writerOptions, files);
+          file.Tree.Render(otherFileWriter, 0, writerOptions, files, compiler.TargetIndentSize);
           otherFiles.Add(file.Filename, otherFileWriter.ToString());
         }
       }

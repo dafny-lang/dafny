@@ -1,0 +1,9 @@
+git-issue-1957.dfy(4,23): Info: autocontracts:
+   ghost var Repr: set<object?>
+git-issue-1957.dfy(5,14): Info: autocontracts:
+   reads this, Repr
+   ensures Valid() ==> this in Repr
+git-issue-1957.dfy(5,14): Info: autocontracts:
+   this in Repr && null !in Repr
+
+Dafny program verifier finished with 1 verified, 0 errors
