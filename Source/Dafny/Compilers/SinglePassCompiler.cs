@@ -2801,6 +2801,7 @@ namespace Microsoft.Dafny.Compilers {
         } else {
           var wStmts = wr.Fork();
           var lvalue = CreateLvalue(s.Lhs, wr, wStmts);
+          wStmts = wr.Fork();
           var wRhs = EmitAssignment(lvalue, TypeOfLhs(s.Lhs), TypeOfRhs(s.Rhs), wr, stmt.Tok);
           TrRhs(s.Rhs, wRhs, wStmts);
         }
