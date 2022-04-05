@@ -200,6 +200,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     /// Time and Resource diagnostics
     public bool Started { get; set; } = false;
     public bool Finished { get; set; } = false;
+    public DateTime StartTime { get; protected set; }
+    public DateTime EndTime { get; protected set; }
+    public int TimeSpent => (int)(Finished ? ((TimeSpan)(EndTime - StartTime)).TotalMilliseconds : Started ? (DateTime.Now - StartTime).TotalMilliseconds : 0);
+    // Resources allocated at the end of the computation.
+    public int ResourceCount { get; set; } = 0;
+
+
 
     // Sub-diagnostics if any
     public List<VerificationTree> Children { get; set; } = new();
@@ -236,6 +243,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     // Returns true if it started the method, false if it was already started
     public virtual bool Start() {
       if (StatusCurrent != CurrentStatus.Verifying || !Started) {
+        StartTime = DateTime.Now;
         StatusCurrent = CurrentStatus.Verifying;
         foreach (var child in Children) {
           child.Start();
@@ -250,6 +258,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     // Returns true if it did stop the current node, false if it was already stopped
     public virtual bool Stop() {
       if (StatusCurrent != CurrentStatus.Current || !Finished) {
+        EndTime = DateTime.Now;
         StatusCurrent = CurrentStatus.Current;
         foreach (var child in Children) {
           child.Stop();
@@ -405,8 +414,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
               Filename,
               new Range(minPosition, maxPosition)
             ) {
-              Children = children
-            });
+              Children = children,
+              ResourceCount = implementationNode.AssertionBatchResourceCount[batchIndex],
+            }.WithDuration(implementationNode.StartTime, implementationNode.AssertionBatchTimes[batchIndex]));
           }
         }
       }
@@ -424,6 +434,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     // The range of this node.
     Range Range
   ) : VerificationTree(DisplayName, Identifier, Filename, Range) {
+    public AssertionBatchVerificationTree WithDuration(DateTime parentStartTime, int implementationNodeAssertionBatchTime) {
+      Started = true;
+      Finished = true;
+      StartTime = parentStartTime;
+      EndTime = parentStartTime.AddMilliseconds(implementationNodeAssertionBatchTime);
+      return this;
+    }
     public override VerificationTree GetCopyForNotification() {
       if (Finished) {
         return this;// Won't be modified anymore, no need to duplicate
@@ -442,27 +459,51 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     // The range of this node.
     Range Range
   ) : VerificationTree(DisplayName, Identifier, Filename, Range) {
-    public int AssertionBatchCount { get; set; }
-
-    private int NewAssertionBatchCount { get; set; }
+    // The index of ImplementationVerificationTree.AssertionBatchTimes
+    // is the same as the AssertionVerificationTree.AssertionBatchIndex
+    public List<int> AssertionBatchTimes { get; private set; } = new();
+    public List<int> AssertionBatchResourceCount { get; private set; } = new();
+    private List<int> NewAssertionBatchTimes { get; set; } = new();
+    private List<int> NewAssertionBatchResourceCount { get; set; } = new();
+    public int AssertionBatchCount => AssertionBatchTimes.Count;
 
     public override VerificationTree GetCopyForNotification() {
       if (Finished) {
         return this;// Won't be modified anymore, no need to duplicate
       }
       return this with {
-        Children = Children.Select(child => child.GetCopyForNotification()).ToList()
+        Children = Children.Select(child => child.GetCopyForNotification()).ToList(),
+        AssertionBatchTimes = new List<int>(AssertionBatchTimes),
+        AssertionBatchResourceCount = new List<int>(AssertionBatchResourceCount),
       };
     }
 
     private Implementation? implementation = null;
 
     public int GetNewAssertionBatchCount() {
-      return NewAssertionBatchCount;
+      return NewAssertionBatchTimes.Count;
+    }
+    public void AddAssertionBatchTime(int milliseconds) {
+      NewAssertionBatchTimes.Add(milliseconds);
+    }
+    public void AddAssertionBatchResourceCount(int milliseconds) {
+      NewAssertionBatchResourceCount.Add(milliseconds);
+    }
+
+    public override bool Start() {
+      if (base.Start()) {
+        NewAssertionBatchTimes = new();
+        NewAssertionBatchResourceCount = new();
+        return true;
+      }
+
+      return false;
     }
 
     public override bool Stop() {
       if (base.Stop()) {
+        AssertionBatchTimes = NewAssertionBatchTimes;
+        AssertionBatchResourceCount = NewAssertionBatchResourceCount;
         SaveNewChildren();
         return true;
       }
@@ -478,10 +519,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       implementation = impl;
       return this;
     }
-
-    public void IncreaseNewAssertionBatchCount() {
-      NewAssertionBatchCount++;
-    }
   };
 
   public record AssertionVerificationTree(
@@ -494,6 +531,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     // The range of this node.
     Range Range
   ) : VerificationTree(DisplayName, Identifier, Filename, Range) {
+    public AssertionVerificationTree WithDuration(DateTime parentStartTime, int batchTime) {
+      Started = true;
+      Finished = true;
+      StartTime = parentStartTime;
+      EndTime = parentStartTime.AddMilliseconds(batchTime);
+      return this;
+    }
 
     // Ranges that should also display an error
     // TODO: Will need to compute this statically for the tests

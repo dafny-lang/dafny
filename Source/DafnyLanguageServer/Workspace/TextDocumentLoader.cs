@@ -195,6 +195,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         var outcomeError = result.GetOutcomeError(Options);
         if (outcomeError != null) {
           errorReporter.ReportBoogieError(outcomeError);
+          methodTree.ResourceCount = 0;
         }
 
         var diagnostics = errorReporter.GetDiagnostics(document.Uri).OrderBy(d => d.Range.Start).ToList();
