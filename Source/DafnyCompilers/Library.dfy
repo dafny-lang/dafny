@@ -1,7 +1,7 @@
 module Lib {
   module Seq {
     function method {:opaque} Map<T, Q>(f: T ~> Q, ts: seq<T>) : (qs: seq<Q>)
-      reads f.reads // FIXME: what does this mean?
+      reads f.reads
       requires forall t | t in ts :: f.requires(t)
       ensures |qs| == |ts|
       ensures forall i | 0 <= i < |ts| :: qs[i] == f(ts[i])
@@ -53,6 +53,7 @@ module Lib {
     function method {:opaque} All<T>(P: T ~> bool, ts: seq<T>) : (b: bool)
       reads P.reads // FIXME: what does this mean?
       requires forall t | t in ts :: P.requires(t)
+      ensures b == forall t | t in ts :: P(t)
       ensures b == forall i | 0 <= i < |ts| :: P(ts[i])
     {
       if ts == [] then true else P(ts[0]) && All(P, ts[1..])
@@ -64,12 +65,22 @@ module Lib {
       requires forall t | t in ts :: P(t) ==> Q(t)
       ensures All(P, ts) ==> All(Q, ts)
     {}
+
+    lemma All_weaken_auto<T>(ts: seq<T>)
+      ensures forall P: T ~> bool, Q: T ~> bool |
+        && (forall t: T | t in ts :: P.requires(t))
+        && (forall t: T | t in ts :: Q.requires(t))
+        && (forall t: T | t in ts :: P(t) ==> Q(t)) ::
+       All(P, ts) ==> All(Q, ts)
+    {}
+
     import Math
 
     function method {:opaque} Max(s: seq<int>, default: int) : (m: int)
-      requires forall i | i in s :: i >= default
+      requires forall i | i in s :: default <= i
       ensures if s == [] then m == default else m in s
       ensures forall i | i in s :: i <= m
+      ensures default <= m
     {
       var P := (m, s) =>
         && (if s == [] then m == default else m in s)
@@ -77,6 +88,23 @@ module Lib {
       FoldL_induction(Math.Max, default, s, P);
       FoldL(Math.Max, default, s)
     }
+
+    function method {:opaque} MaxF<T>(f: T ~> int, ts: seq<T>, default: int) : (m: int)
+      reads f.reads
+      requires forall t | t in ts :: f.requires(t)
+      requires forall t | t in ts :: default <= f(t)
+      ensures if ts == [] then m == default else exists t | t in ts :: f(t) == m
+      ensures forall t | t in ts :: f(t) <= m
+      ensures default <= m
+    {
+      var s := Map(f, ts);
+      var m := Max(s, default);
+      assert forall t | t in ts :: f(t) <= m by {
+        forall t | t in ts ensures f(t) <= m { assert f(t) in s; }
+      }
+      m
+    }
+
   }
 
   module Datatypes {

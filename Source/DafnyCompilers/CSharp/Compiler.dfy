@@ -63,65 +63,70 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
         | Fresh
         | Allocated
         | Lit
-
     }
 
-    // public class LiteralExpr : Expression
-    datatype LiteralExpr =
-      | LitBool(b: bool)
-      | LitInt(i: int)
-      | LitReal(r: real)
-      | LitChar(c: string) // FIXME should this use a char?
-      | LitString(s: string, verbatim: bool)
-    {
-      function method Depth() : nat { 1 }
-    }
+    module Expr {
+      import Lib.Math
+      import Lib.Seq
 
-    datatype Expr =
-      | UnaryOpExpr(uop: UnaryOp.Op, e: Expr) // LATER UnaryExpr
-      | BinaryExpr(bop: BinaryOp.Op, e0: Expr, e1: Expr)
-      | LiteralExpr(lit: LiteralExpr)
-      | InvalidExpr(msg: string)
-      | UnsupportedExpr(expr: C.Expression)
-    {
-      function method Depth() : nat {
-        1 + match this {
-          case UnaryOpExpr(uop: UnaryOp.Op, e: Expr) =>
-            e.Depth()
-          case BinaryExpr(bop: BinaryOp.Op, e0: Expr, e1: Expr) =>
-            Math.Max(e0.Depth(), e1.Depth())
-          case LiteralExpr(lit: LiteralExpr) =>
-            0
-          case InvalidExpr(msg: string) =>
-            0
-          case UnsupportedExpr(expr: C.Expression) =>
-            0
+      import UnaryOp
+      import BinaryOp
+      import C = CSharpDafnyAST
+
+      // public class LiteralExpr : Expression
+      datatype Literal =
+        | LitBool(b: bool)
+        | LitInt(i: int)
+        | LitReal(r: real)
+        | LitChar(c: string) // FIXME should this use a char?
+        | LitString(s: string, verbatim: bool)
+      {
+        function method Depth() : nat { 1 }
+      }
+
+      datatype Expr =
+        // Expressions
+        | UnaryOp(uop: UnaryOp.Op, e: Expr) // LATER UnaryExpr
+        | Binary(bop: BinaryOp.Op, e0: Expr, e1: Expr)
+        | Literal(lit: Literal)
+        | Invalid(msg: string)
+        | UnsupportedExpr(expr: C.Expression)
+        // Statements
+        | Block(stmts: seq<Expr>)
+        | Print(exprs: seq<Expr>)
+        | UnsupportedStmt(stmt: C.Statement)
+      {
+        function method Depth() : nat {
+          1 + match this { // FIXME IDE rejects this, command line accepts it
+            // Expressions
+            case UnaryOp(uop: UnaryOp.Op, e: Expr) =>
+              e.Depth()
+            case Binary(bop: BinaryOp.Op, e0: Expr, e1: Expr) =>
+              Math.Max(e0.Depth(), e1.Depth())
+            case Literal(lit: Literal) =>
+              0
+            case UnsupportedExpr(expr: C.Expression) =>
+              0
+            case Invalid(msg: string) =>
+              0
+            // Statements
+            case Block(stmts) =>
+              Seq.MaxF(var f := (e: Expr) requires e in stmts => e.Depth(); f, stmts, 0)
+            case Print(exprs) =>
+              Seq.MaxF(var f := (e: Expr) requires e in exprs => e.Depth(); f, exprs, 0)
+            case UnsupportedStmt(expr: C.Statement) =>
+              0
+          }
         }
       }
+
+      type t = Expr
     }
 
-    datatype Stmt =
-      | PrintStmt(exprs: seq<Expr>)
-      | UnsupportedStmt
-    {
+    datatype Method = Method(CompileName: string, methodBody: Expr.t) {
       function method Depth() : nat {
         1 + match this {
-          case PrintStmt(exprs) =>
-            Seq.Max(Seq.Map((e: Expr) => e.Depth(), exprs), 0)
-          case UnsupportedStmt() =>
-            0
-        }
-      }
-    }
-
-    type BlockStmt = seq<Stmt>
-
-    datatype Method = Method(CompileName: string, methodBody: BlockStmt)
-    {
-      function method Depth() : nat {
-        1 + match this {
-          case Method(CompileName, methodBody) =>
-            Seq.Max(Seq.Map((s: Stmt) => s.Depth(), methodBody), 0)
+          case Method(CompileName, methodBody) => methodBody.Depth()
         }
       }
     }
@@ -217,7 +222,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
          [C.BinaryExpr__ResolvedOpcode.RankLt := D.BinaryOp.Datatypes(D.BinaryOp.RankLt)]
          [C.BinaryExpr__ResolvedOpcode.RankGt := D.BinaryOp.Datatypes(D.BinaryOp.RankGt)];
 
-    function method TranslateUnary(u: C.UnaryExpr) : D.Expr
+    function method TranslateUnary(u: C.UnaryExpr) : D.Expr.t
       decreases ASTHeight(u), 0
       reads *
     {
@@ -225,14 +230,14 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
         var u := u as C.UnaryOpExpr;
         var op, e := u.Op, u.E;
         assume op in UnaryOpCodeMap.Keys; // FIXME expect
-        D.UnaryOpExpr(UnaryOpCodeMap[op], TranslateExpression(e))
+        D.Expr.UnaryOp(UnaryOpCodeMap[op], TranslateExpression(e))
       else
-        D.UnsupportedExpr(u)
+        D.Expr.UnsupportedExpr(u)
     }
 
     function {:axiom} ASTHeight(c: C.Expression) : nat
 
-    function method TranslateBinary(b: C.BinaryExpr) : D.Expr
+    function method TranslateBinary(b: C.BinaryExpr) : D.Expr.t
       decreases ASTHeight(b), 0
       reads *
     {
@@ -241,29 +246,29 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
       assume op in BinaryOpCodeMap.Keys; // FIXME expect
       assume ASTHeight(e0) < ASTHeight(b);
       assume ASTHeight(e1) < ASTHeight(b);
-      D.BinaryExpr(BinaryOpCodeMap[op], TranslateExpression(e0), TranslateExpression(e1))
+      D.Expr.Binary(BinaryOpCodeMap[op], TranslateExpression(e0), TranslateExpression(e1))
     }
 
-    function method TranslateLiteral(l: C.LiteralExpr): D.Expr reads * {
+    function method TranslateLiteral(l: C.LiteralExpr): D.Expr.t reads * {
       if l.Value is Boolean then
-        D.LiteralExpr(D.LitBool(TypeConv.AsBool(l.Value)))
+        D.Expr.Literal(D.Expr.LitBool(TypeConv.AsBool(l.Value)))
       else if l.Value is Numerics.BigInteger then
-        D.LiteralExpr(D.LitInt(TypeConv.AsInt(l.Value)))
+        D.Expr.Literal(D.Expr.LitInt(TypeConv.AsInt(l.Value)))
       else if l.Value is BaseTypes.BigDec then
-        D.LiteralExpr(D.LitReal(TypeConv.AsReal(l.Value))) // TODO test
+        D.Expr.Literal(D.Expr.LitReal(TypeConv.AsReal(l.Value))) // TODO test
       else if l.Value is String then
         var str := TypeConv.AsString(l.Value);
         if l is C.CharLiteralExpr then
-          D.LiteralExpr(D.LitChar(str))
+          D.Expr.Literal(D.Expr.LitChar(str))
         else if l is C.StringLiteralExpr then
           var sl := l as C.StringLiteralExpr;
-          D.LiteralExpr(D.LitString(str, sl.IsVerbatim))
+          D.Expr.Literal(D.Expr.LitString(str, sl.IsVerbatim))
         else
-          D.InvalidExpr("LiteralExpr with .Value of type string must be a char or a string.")
-      else D.UnsupportedExpr(l)
+          D.Expr.Invalid("LiteralExpr with .Value of type string must be a char or a string.")
+      else D.Expr.UnsupportedExpr(l)
     }
 
-    function method TranslateExpression(c: C.Expression) : D.Expr
+    function method TranslateExpression(c: C.Expression) : D.Expr.t
       reads *
       decreases ASTHeight(c), 1
     {
@@ -271,23 +276,20 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
         TranslateBinary(c as C.BinaryExpr)
       else if c is C.LiteralExpr then
         TranslateLiteral(c as C.LiteralExpr)
-      else D.UnsupportedExpr(c)
+      else D.Expr.UnsupportedExpr(c)
     }
 
-    function method TranslateStatement(s: C.Statement) : D.Stmt reads * {
+    function method TranslateStatement(s: C.Statement) : D.Expr.t reads * {
       if s is C.PrintStmt then
         var p := s as C.PrintStmt;
-        D.PrintStmt(Seq.Map(TranslateExpression, ListUtils.ToSeq(p.Args)))
-      else D.UnsupportedStmt
-    }
-
-    function method TranslateBlock(b: C.BlockStmt) : D.BlockStmt reads * {
-      Seq.Map(TranslateStatement, ListUtils.ToSeq(b.Body))
+        D.Expr.Print(Seq.Map(TranslateExpression, ListUtils.ToSeq(p.Args)))
+      else D.Expr.UnsupportedStmt(s)
     }
 
     function method TranslateMethod(m: C.Method) : D.Method reads * {
       // var compileName := m.CompileName;
-      D.Method("Main", TranslateBlock(m.Body)) // FIXME “Main”
+      // FIXME “Main”
+      D.Method("Main", D.Expr.Block(Seq.Map(TranslateStatement, ListUtils.ToSeq(m.Body.Body))))
     }
 
     function method TranslateProgram(p: C.Program) : D.Program reads * {
@@ -360,91 +362,115 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
 
 
   module Predicates {
-    module TopExprs {
+    function IsMap<T(!new), T'>(f: T --> T') : T' -> bool {
+      y => exists x | f.requires(x) :: y == f(x)
+    }
+
+    lemma Map_All_IsMap<A, B>(f: A --> B, xs: seq<A>)
+      requires forall a | a in xs :: f.requires(a)
+      ensures Seq.All(IsMap(f), Seq.Map(f, xs))
+    {}
+
+    lemma Map_All_PC<A, B>(f: A --> B, P: B -> bool, xs: seq<A>)
+      requires forall a | a in xs :: f.requires(a)
+      requires forall a | a in xs :: P(f(a))
+      ensures Seq.All(P, Seq.Map(f, xs))
+    {}
+
+    function method {:opaque} MapWithPC<T, Q>(f: T ~> Q, ghost PC: Q -> bool, ts: seq<T>) : (qs: seq<Q>)
+      reads f.reads // FIXME: what does this mean?
+      requires forall t | t in ts :: f.requires(t)
+      requires forall t | t in ts :: PC(f(t))
+      ensures |qs| == |ts|
+      ensures forall i | 0 <= i < |ts| :: qs[i] == f(ts[i])
+      ensures forall q | q in qs :: PC(q)
+      ensures Seq.All(PC, qs)
+    {
+      Seq.Map(f, ts)
+    }
+
+    datatype Transformer'<!A, !B> =
+      TR(f: A -> B, ghost PC: B -> bool)
+
+    predicate HasValidPC<A(!new), B>(tr: Transformer'<A, B>) {
+      forall a: A :: tr.PC(tr.f(a))
+    }
+
+    type Transformer<!A(!new), !B(0)> = tr: Transformer'<A, B> | HasValidPC(tr)
+      witness *
+
+    type ExprTransformer = Transformer<Expr.t, Expr.t>
+
+    lemma Map_All_TR<A(!new), B(00)>(tr: Transformer<A, B>, ts: seq<A>)
+      ensures Seq.All(tr.PC, Seq.Map(tr.f, ts))
+    {}
+
+    module Shallow {
       import opened Lib
       import opened AST
 
-      function method TopExprs_Stmt(s: Stmt, P: Expr -> bool) : bool {
-        match s {
-          case PrintStmt(exprs) =>
-            Seq.All(P, exprs)
-          case UnsupportedStmt() => true
-        }
-      }
-
-      function method TopExprs_BlockStmt(b: BlockStmt, P: Expr -> bool) : bool {
-        Seq.All((s => TopExprs_Stmt(s, P)), b)
-      }
-
-      function method TopExprs_Method(m: Method, P: Expr -> bool) : bool {
+      function method All_Method(m: Method, P: Expr.t -> bool) : bool {
         match m {
-          case Method(CompileName_, methodBody) => TopExprs_BlockStmt(methodBody, P)
+          case Method(CompileName_, methodBody) => P(methodBody)
         }
       }
 
-      function method TopExprs_Program(p: Program, P: Expr -> bool) : bool {
+      function method All_Program(p: Program, P: Expr.t -> bool) : bool {
         match p {
-          case Program(mainMethod) => TopExprs_Method(mainMethod, P)
+          case Program(mainMethod) => All_Method(mainMethod, P)
         }
       }
 
-      function method TopExprs(p: Program, P: Expr -> bool) : bool {
-        TopExprs_Program(p, P)
+      function method All(p: Program, P: Expr.t -> bool) : bool {
+        All_Program(p, P)
       }
     }
 
-    module AllExprs {
+    module Deep {
       import opened Lib
       import opened AST
+      import Shallow
 
-      // FIXME rewrite in terms of a generic iterator on expressions
-      function method AllExprs_Expr(e: Expr, P: Expr -> bool) : bool {
+      function method AllChildren_Expr(e: Expr.t, P: Expr.t -> bool) : bool
+        decreases e, 0
+      {
+        match e {
+          // Exprs
+          case UnaryOp(uop: UnaryOp.Op, e: Expr.t) =>
+            All_Expr(e, P)
+          case Binary(bop: BinaryOp.Op, e0: Expr.t, e1: Expr.t) =>
+            All_Expr(e0, P) && All_Expr(e1, P)
+          case Literal(lit: Expr.Literal) => true
+          case Invalid(msg: string) => true
+          case UnsupportedExpr(expr: C.Expression) => true
+
+          // Statements
+          case Block(exprs) => Seq.All((e requires e in exprs => All_Expr(e, P)), exprs)
+          case Print(exprs) => Seq.All((e requires e in exprs => All_Expr(e, P)), exprs)
+          case UnsupportedStmt(_) => true
+        }
+      }
+
+      // FIXME rewrite in terms Expr_Children below
+      function method All_Expr(e: Expr.t, P: Expr.t -> bool) : bool {
         && P(e)
-        && match e {
-            case UnaryOpExpr(uop: UnaryOp.Op, e: Expr) =>
-              AllExprs_Expr(e, P)
-            case BinaryExpr(bop: BinaryOp.Op, e0: Expr, e1: Expr) =>
-              AllExprs_Expr(e0, P) && AllExprs_Expr(e1, P)
-            case LiteralExpr(lit: LiteralExpr) => true
-            case InvalidExpr(msg: string) => true
-            case UnsupportedExpr(expr: C.Expression) => true
-          }
+        && AllChildren_Expr(e, P)
       }
 
-      function method AllExprs_Stmt(s: Stmt, P: Expr -> bool) : bool {
-        match s {
-          case PrintStmt(exprs) =>
-            Seq.All((e => AllExprs_Expr(e, P)), exprs)
-          case UnsupportedStmt() => true
-        }
+      function method All_Method(m: Method, P: Expr.t -> bool) : bool {
+        Shallow.All_Method(m, e => All_Expr(e, P))
       }
 
-      function method AllExprs_BlockStmt(b: BlockStmt, P: Expr -> bool) : bool {
-        Seq.All((s => AllExprs_Stmt(s, P)), b)
-      }
-
-      function method AllExprs_Method(m: Method, P: Expr -> bool) : bool {
-        match m {
-          case Method(CompileName_, methodBody) => AllExprs_BlockStmt(methodBody, P)
-        }
-      }
-
-      function method AllExprs_Program(p: Program, P: Expr -> bool) : bool {
-        match p {
-          case Program(mainMethod) => AllExprs_Method(mainMethod, P)
-        }
-      }
-
-      function method AllExprs(p: Program, P: Expr -> bool) : bool {
-        AllExprs_Program(p, P)
+      function method All_Program(p: Program, P: Expr.t -> bool) : bool {
+        Shallow.All_Program(p, e => All_Expr(e, P))
       }
     }
 
     import opened AST
 
-    lemma TopExprs_AllExprs(p: Program, P: Expr -> bool)
-      requires TopExprs.TopExprs_Program(p, (e => AllExprs.AllExprs_Expr(e, P)))
-      ensures AllExprs.AllExprs_Program(p, P)
+    lemma Shallow_Deep(p: Program, P: Expr.t -> bool)
+      requires Shallow.All_Program(p, (e => Deep.All_Expr(e, P)))
+      ensures Deep.All_Program(p, P)
     {}
   }
 
@@ -455,299 +481,114 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
     import opened Lib.Datatypes
     import opened CSharpInterop
 
-    module MapExprs {
+    module Shallow {
       import opened Lib
       import opened AST
-      import opened Predicates.TopExprs
-
-      function IsMap<T(!new), T'>(f: T -> T') : T' -> bool {
-        y => exists x :: y == f(x)
-      }
+      import opened Predicates
 
       // LATER: Explain why this can't be defined: putting `f` on the outside risks breaking the invariant for subterms, and putting f on the inside breaks termination.
-      // function method MapExprs_Expr(e: Expr, f: Expr -> Expr) : (e': Expr)
-      //   ensures AllExprs_Expr(e', IsMap(f))
+      // function method Map_Expr(e: Expr.t, f: Expr.t -> Expr.t) : (e': Expr.t)
+      //   ensures Deep.All_Expr(e', tr.PC)
       // {
       //   var e := f(e);
       //   f(match e {
-      //       case UnaryOpExpr(uop, e) =>
+      //       case UnaryOp(uop, e) =>
       //         // Not using datatype update to ensure that I get a warning if a type gets new arguments
-      //         UnaryOpExpr(uop, MapExprs_Expr(e, f))
-      //       case BinaryExpr(bop, e0, e1) =>
-      //         BinaryExpr(bop, MapExprs_Expr(e0, f), MapExprs_Expr(e1, f))
-      //       case LiteralExpr(lit_) => e
-      //       case InvalidExpr(msg_) => e
+      //         Expr.UnaryOp(uop, Map_Expr(e, f))
+      //       case Binary(bop, e0, e1) =>
+      //         Expr.Binary(bop, Map_Expr(e0, f), Map_Expr(e1, f))
+      //       case Literal(lit_) => e
+      //       case Invalid(msg_) => e
       //       case UnsupportedExpr(cexpr_) => e
       //   })
       // }
 
-      function method {:opaque} MapExprs_Stmt(s: Stmt, f: Expr -> Expr) : (s': Stmt)
-        ensures TopExprs_Stmt(s', IsMap(f))
-      {
-        match s {
-          case PrintStmt(exprs) =>
-            PrintStmt(Seq.Map(f, exprs))
-          case UnsupportedStmt() => s
-        }
-      }
-
-      function method {:opaque} MapExprs_BlockStmt(b: BlockStmt, f: Expr -> Expr) : (b': BlockStmt)
-        ensures TopExprs_BlockStmt(b', IsMap(f))
-      {
-        Seq.Map((s => MapExprs_Stmt(s, f)), b)
-      }
-
-      function method {:opaque} MapExprs_Method(m: Method, f: Expr -> Expr) : (m': Method)
-        ensures TopExprs_Method(m', IsMap(f))
+      function method {:opaque} Map_Method(m: Method, tr: ExprTransformer) : (m': Method)
+        ensures Shallow.All_Method(m', tr.PC) // FIXME Deep
       {
         match m {
           case Method(CompileName, methodBody) =>
-            Method(CompileName, MapExprs_BlockStmt(methodBody, f))
+            Method(CompileName, tr.f(methodBody))
         }
       }
 
-      function method {:opaque} MapExprs_Program(p: Program, f: Expr -> Expr) : (p': Program)
-        ensures TopExprs_Program(p', IsMap(f))
+      function method {:opaque} Map_Program(p: Program, tr: ExprTransformer) : (p': Program)
+        ensures Shallow.All_Program(p', tr.PC)
       {
         match p {
-          case Program(mainMethod) => Program(MapExprs_Method(mainMethod, f))
+          case Program(mainMethod) => Program(Map_Method(mainMethod, tr))
         }
       }
     }
 
-    module Generic {
-      module Things {
-        import opened AST
+    module BottomUp {
+      import opened AST
+      import opened Lib
+      import opened Predicates
+      import Shallow
 
-        datatype DafnyThing =
-          | ExprThing(e: Expr)
-          | StmtThing(s: Stmt)
-          | MethodThing(m: Method)
-          | ProgramThing(p: Program)
-        {
-          function method Depth() : nat {
-            match this {
-              case ExprThing(e: Expr) => e.Depth()
-              case StmtThing(s: Stmt) => s.Depth()
-              case MethodThing(m: Method) => m.Depth()
-              case ProgramThing(p: Program) => p.Depth()
-            }
-          }
-        }
+      predicate IsBottomUpTransformer(f: Expr.t -> Expr.t, PC: Expr.t -> bool) {
+        forall e | Deep.AllChildren_Expr(e, PC) :: Deep.All_Expr(f(e), PC)
+      }
 
-        predicate method SameKind(t1: DafnyThing, t2: DafnyThing) {
-          match (t1, t2) {
-            case (ExprThing(_), ExprThing(_)) => true
-            case (StmtThing(_), StmtThing(_)) => true
-            case (MethodThing(_), MethodThing(_)) => true
-            case (ProgramThing(_), ProgramThing(_)) => true
-            case (_, _) => false
-          }
-        }
+      type BottomUpTransformer = tr: ExprTransformer | IsBottomUpTransformer(tr.f, tr.PC)
+        witness TR(d => d, _ => true)
 
-        predicate IsDafnyTransformer(f: DafnyThing -> DafnyThing) {
-          forall t: DafnyThing :: SameKind(t, f(t))
-        }
+      function method MapChildren_Expr(e: Expr.t, tr: BottomUpTransformer) : (e': Expr.t)
+        decreases e, 0
+        ensures Deep.AllChildren_Expr(e', tr.PC)
+      {
+        // Introducing `Deep.AllChildren_Expr(e, tr.PC)` as a term to unblock
+        // the proof in the `⇒ e` case.
+        ghost var children := Deep.AllChildren_Expr(e, tr.PC);
+        // Not using datatype updates below to ensure that we get a warning if a
+        // type gets new arguments
+        match e {
+          // Expressions
+          case UnaryOp(uop, e) =>
+            Expr.UnaryOp(uop, Map_Expr(e, tr))
+          case Binary(bop, e0, e1) =>
+            Expr.Binary(bop, Map_Expr(e0, tr), Map_Expr(e1, tr))
+          case Literal(lit_) => e
+          case Invalid(msg_) => e
+          case UnsupportedExpr(cexpr_) => e
 
-        type DafnyTransformer = f: DafnyThing -> DafnyThing | IsDafnyTransformer(f)
-          witness (d => d)
-
-        function method unreachable<T>() : T requires false {
-          assert false; unreachable()
-        }
-
-        function method LiftExpr<T>(f: DafnyThing -> T) : Expr -> T {
-          e => f(ExprThing(e))
-        }
-
-        function method LiftStmt<T>(f: DafnyThing -> T) : Stmt -> T {
-          s => f(StmtThing(s))
-        }
-
-        function method LiftMethod<T>(f: DafnyThing -> T) : Method -> T {
-          m => f(MethodThing(m))
-        }
-
-        function method LiftProgram<T>(f: DafnyThing -> T) : Program -> T {
-          p => f(ProgramThing(p))
-        }
-
-        function method BiLiftExpr(f: DafnyTransformer) : Expr -> Expr {
-          e => match LiftExpr(f)(e) { case ExprThing(e') => e' }
-        }
-
-        function method BiLiftStmt(f: DafnyTransformer) : Stmt -> Stmt {
-          s => match LiftStmt(f)(s) { case StmtThing(e') => e' }
-        }
-
-        function method BiLiftMethod(f: DafnyTransformer) : Method -> Method {
-          m => match LiftMethod(f)(m) { case MethodThing(e') => e' }
-        }
-
-        function method BiLiftProgram(f: DafnyTransformer) : Program -> Program {
-          p => match LiftProgram(f)(p) { case ProgramThing(e') => e' }
+          // Statements
+          case Block(exprs) =>
+            var exprs' := Seq.Map(e requires e in exprs => Map_Expr(e, tr), exprs);
+            Predicates.Map_All_IsMap(e requires e in exprs => Map_Expr(e, tr), exprs);
+            Expr.Block(exprs')
+          case Print(exprs) =>
+            var exprs' := Seq.Map(e requires e in exprs => Map_Expr(e, tr), exprs);
+            Predicates.Map_All_IsMap(e requires e in exprs => Map_Expr(e, tr), exprs);
+            Expr.Print(exprs')
+          case UnsupportedStmt(_) =>
+            e
         }
       }
 
-      module All { // FIXME rewrite in terms of a generic iterator on expressions
-        import opened Lib
-        import opened AST
-        import opened Things
-
-        function method AllChildren_Expr(e: Expr, P: DafnyThing -> bool) : bool
-          decreases e, 0
-        {
-          match e {
-            case UnaryOpExpr(uop: UnaryOp.Op, e: Expr) =>
-              All_Expr(e, P)
-            case BinaryExpr(bop: BinaryOp.Op, e0: Expr, e1: Expr) =>
-              All_Expr(e0, P) && All_Expr(e1, P)
-            case LiteralExpr(lit: LiteralExpr) => true
-            case InvalidExpr(msg: string) => true
-            case UnsupportedExpr(expr: C.Expression) => true
-          }
-        }
-
-        function method All_Expr(e: Expr, P: DafnyThing -> bool) : bool
-          decreases e, 1
-        {
-           LiftExpr(P)(e) && AllChildren_Expr(e, P)
-        }
-
-        function method AllChildren_Stmt(s: Stmt, P: DafnyThing -> bool) : bool {
-           match s {
-             case PrintStmt(exprs) =>
-               Seq.All((e => All_Expr(e, P)), exprs)
-             case UnsupportedStmt() => true
-           }
-         }
-
-        function method All_Stmt(s: Stmt, P: DafnyThing -> bool) : bool {
-          LiftStmt(P)(s) && AllChildren_Stmt(s, P)
-        }
-
-        function method AllChildren_Method(m: Method, P: DafnyThing -> bool) : bool {
-          match m {
-            case Method(CompileName_, methodBody) => Seq.All((s => All_Stmt(s, P)), methodBody)
-          }
-        }
-
-        function method All_Method(m: Method, P: DafnyThing -> bool) : bool {
-          LiftMethod(P)(m) && AllChildren_Method(m, P)
-        }
-
-        function method AllChildren_Program(p: Program, P: DafnyThing -> bool) : bool {
-          match p {
-            case Program(mainMethod) => All_Method(mainMethod, P)
-          }
-        }
-
-        function method All_Program(p: Program, P: DafnyThing -> bool) : bool {
-          LiftProgram(P)(p) && AllChildren_Program(p, P)
-        }
-
-        function method AllChildren_Thing(p: DafnyThing, P: DafnyThing -> bool) : bool {
-          match p {
-            case ExprThing(e) => AllChildren_Expr(e, P)
-            case StmtThing(s) => AllChildren_Stmt(s, P)
-            case MethodThing(m) => AllChildren_Method(m, P)
-            case ProgramThing(p) => AllChildren_Program(p, P)
-          }
-        }
-
-        function method All_Thing(p: DafnyThing, P: DafnyThing -> bool) : bool {
-          P(p) && AllChildren_Thing(p, P)
-        }
+      function method Map_Expr(e: Expr.t, tr: BottomUpTransformer) : (e': Expr.t)
+        decreases e, 1
+        ensures Deep.All_Expr(e', tr.PC)
+      {
+        tr.f(MapChildren_Expr(e, tr))
       }
 
-      module BottomUp {
-        import opened AST
-        import opened Lib
-        import opened Things
-        import opened All
+      function method Map_Expr_Transformer(tr: BottomUpTransformer) : (tr': ExprTransformer)
+      {
+        TR(e => Map_Expr(e, tr), e' => Deep.All_Expr(e', tr.PC))
+      }
 
-        function IsMap<T(!new), T'>(f: T -> T') : T' -> bool {
-          y => exists x :: y == f(x)
-        }
+      function method {:opaque} Map_Method(m: Method, tr: BottomUpTransformer) : (m': Method)
+        ensures Deep.All_Method(m', tr.PC)
+      {
+        Shallow.Map_Method(m, Map_Expr_Transformer(tr))
+      }
 
-
-        predicate IsBottomUpTransformer(f: DafnyThing -> DafnyThing) {
-          && IsDafnyTransformer(f)
-          && forall t :: AllChildren_Thing(t, IsMap(f)) ==> All_Thing(f(t), IsMap(f))
-        }
-
-        type BottomUpTransformer = f: DafnyThing -> DafnyThing | IsBottomUpTransformer(f)
-          witness (d => d)
-
-        function method Map_Expr(e: Expr, f: BottomUpTransformer) : (e': Expr)
-          ensures All_Expr(e', IsMap(f))
-        {
-          // Not using datatype updates below to ensure that I get a warning if a
-          // type gets new arguments
-          BiLiftExpr(f)(match e {
-              case UnaryOpExpr(uop, e) =>
-                UnaryOpExpr(uop, Map_Expr(e, f))
-              case BinaryExpr(bop, e0, e1) =>
-                BinaryExpr(bop, Map_Expr(e0, f), Map_Expr(e1, f))
-              case LiteralExpr(lit_) => e
-              case InvalidExpr(msg_) => e
-              case UnsupportedExpr(cexpr_) => e
-          })
-        }
-
-        lemma Map_All_IsMap<T, T'>(f: T -> T', ts: seq<T>)
-          ensures Seq.All(IsMap(f), Seq.Map(f, ts))
-        {}
-
-        function method {:opaque} Map_Stmt(s: Stmt, f: BottomUpTransformer) : (s': Stmt)
-          ensures All_Stmt(s', IsMap(f))
-        {
-          BiLiftStmt(f)(match s {
-            case PrintStmt(exprs) =>
-              var exprs' := Seq.Map(e => Map_Expr(e, f), exprs);
-              assert Seq.All(e => All_Expr(e, IsMap(f)), exprs');
-              PrintStmt(exprs')
-            case UnsupportedStmt() =>
-              s
-          })
-        }
-
-        function method {:opaque} Map_Method(m: Method, f: BottomUpTransformer) : (m': Method)
-          ensures All_Method(m', IsMap(f))
-        {
-          BiLiftMethod(f)(match m {
-            case Method(CompileName, methodBody) =>
-              Method(CompileName, Seq.Map((s => Map_Stmt(s, f)), methodBody))
-          })
-        }
-
-        function method {:opaque} Map_Program(p: Program, f: BottomUpTransformer) : (p': Program)
-          ensures All_Program(p', IsMap(f))
-        {
-          BiLiftProgram(f)(match p {
-            case Program(mainMethod) =>
-              calc {
-                AllChildren_Program(Program(Map_Method(mainMethod, f)), IsMap(f));
-                All_Method(Map_Method(mainMethod, f), IsMap(f));
-                // Follows directly from ensures clause
-              }
-              assert All_Method(Map_Method(mainMethod, f), IsMap(f));
-              assert AllChildren_Program(Program(Map_Method(mainMethod, f)), IsMap(f));
-              assume false;
-              Program(Map_Method(mainMethod, f))
-          })
-        }
-
-        function method {:opaque} Map_Thing(t: DafnyThing, f: BottomUpTransformer) : (t': DafnyThing)
-          ensures All_Thing(t', IsMap(f))
-        {
-          match t {
-            case ExprThing(e) => ExprThing(Map_Expr(e, f))
-            case StmtThing(s) => StmtThing(Map_Stmt(s, f))
-            case MethodThing(m) => MethodThing(Map_Method(m, f))
-            case ProgramThing(p) => ProgramThing(Map_Program(p, f))
-          }
-        }
+      function method {:opaque} Map_Program(p: Program, tr: BottomUpTransformer) : (p': Program)
+        ensures Deep.All_Program(p', tr.PC)
+      {
+        Shallow.Map_Program(p, Map_Expr_Transformer(tr))
       }
     }
   }
@@ -756,11 +597,9 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
     import Lib
     import opened AST
     import opened Lib.Datatypes
-    import opened Rewriter.MapExprs
+    import opened Rewriter.BottomUp
 
-    import Predicates
-    import opened Predicates.AllExprs
-    import opened Predicates.TopExprs
+    import opened Predicates
 
     function method FlipNegatedBinop1(op: BinaryOp.Op) : (op': BinaryOp.Op)
     {
@@ -788,237 +627,154 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
       FlipNegatedBinop1(op) != op
     }
 
-    predicate method IsNegatedBinopExpr(e: Expr) {
-      e.BinaryExpr? && IsNegatedBinop(e.bop)
+    predicate method IsNegatedBinopExpr(e: Expr.t) {
+      e.Binary? && IsNegatedBinop(e.bop)
     }
 
-    predicate NotANegatedBinopExpr(e: Expr) {
+    predicate NotANegatedBinopExpr(e: Expr.t) {
       !IsNegatedBinopExpr(e)
     }
 
-    // function method EliminateNegatedBinops_Expr(e: Expr) : (e': Expr)
+    // function method EliminateNegatedBinops_Expr1(e: Expr.t) : (e': Expr.t)
     //   ensures NotANegatedBinopExpr(e')
     // {
     //   match e {
-    //     case BinaryExpr(bop, e0, e1) =>
+    //     case Binary(bop, e0, e1) =>
     //       if IsNegatedBinop(bop) then
-    //         UnaryOpExpr(UnaryOp.Not, BinaryExpr(FlipNegatedBinop(bop), e0, e1))
+    //         Expr.UnaryOp(UnaryOp.Not, Expr.Binary(FlipNegatedBinop(bop), e0, e1))
     //       else
-    //         BinaryExpr(bop, e0, e1)
+    //         Expr.Binary(bop, e0, e1)
     //     case _ => e
     //   }
     // }
 
+    // FIXME Add `require Deep.AllChildren_Expr(e, NotANegatedBinopExpr)`
+    function method EliminateNegatedBinops_Expr1(e: Expr.t) : (e': Expr.t)
+      ensures NotANegatedBinopExpr(e')
+    {
+      if IsNegatedBinopExpr(e) then
+        Expr.UnaryOp(UnaryOp.Not, Expr.Binary(FlipNegatedBinop(e.bop), e.e0, e.e1))
+      else
+        e
+    }
 
-    function method EliminateNegatedBinops_Expr(e: Expr) : (e': Expr)
-      ensures AllExprs_Expr(e', NotANegatedBinopExpr)
+    lemma EliminateNegatedBinops_Expr'_BU()
+      ensures IsBottomUpTransformer(EliminateNegatedBinops_Expr1, NotANegatedBinopExpr)
+    {
+      var (f, PC) := (EliminateNegatedBinops_Expr1, NotANegatedBinopExpr);
+      forall e | Deep.AllChildren_Expr(e, PC) ensures Deep.AllChildren_Expr(f(e), PC) {
+        if IsNegatedBinopExpr(e) {
+          var e'' := Expr.Binary(FlipNegatedBinop(e.bop), e.e0, e.e1);
+          var e' := Expr.UnaryOp(UnaryOp.Not, e'');
+          calc { // FIXME Automate
+            Deep.All_Expr(f(e), PC);
+            Deep.All_Expr(e', PC);
+            PC(e') && Deep.AllChildren_Expr(e', PC);
+            true && Deep.AllChildren_Expr(e', PC);
+            true && Deep.All_Expr(e'', PC);
+            true && PC(e'') && Deep.AllChildren_Expr(e'', PC);
+            true && true && Deep.All_Expr(e.e0, PC) && Deep.All_Expr(e.e1, PC);
+          }
+        } else {}
+      }
+    }
+
+    const EliminateNegatedBinops_Expr : BottomUpTransformer :=
+      (EliminateNegatedBinops_Expr'_BU();
+       TR(EliminateNegatedBinops_Expr1, NotANegatedBinopExpr))
+
+    function method EliminateNegatedBinops_Expr_direct(e: Expr.t) : (e': Expr.t)
+      ensures Deep.All_Expr(e', NotANegatedBinopExpr)
     {
       match e {
-        case UnaryOpExpr(uop, e) =>
+        // Exprs
+        case UnaryOp(uop, e) =>
           // Not using datatype update to ensure that I get a warning if a type gets new arguments
-          UnaryOpExpr(uop, EliminateNegatedBinops_Expr(e))
-        case BinaryExpr(bop, e0, e1) =>
-          var e0', e1' := EliminateNegatedBinops_Expr(e0), EliminateNegatedBinops_Expr(e1);
+          Expr.UnaryOp(uop, EliminateNegatedBinops_Expr_direct(e))
+        case Binary(bop, e0, e1) =>
+          var e0', e1' := EliminateNegatedBinops_Expr_direct(e0), EliminateNegatedBinops_Expr_direct(e1);
           if IsNegatedBinop(bop) then
-            UnaryOpExpr(UnaryOp.Not, BinaryExpr(FlipNegatedBinop(bop), e0', e1'))
+            var e'' := Expr.Binary(FlipNegatedBinop(bop), e0', e1');
+            assert Deep.All_Expr(e'', NotANegatedBinopExpr);
+            var e' := Expr.UnaryOp(UnaryOp.Not, e'');
+            calc {
+              Deep.All_Expr(e', NotANegatedBinopExpr);
+              NotANegatedBinopExpr(e') && Deep.AllChildren_Expr(e', NotANegatedBinopExpr);
+              NotANegatedBinopExpr(e') && Deep.All_Expr(e'', NotANegatedBinopExpr);
+            }
+            e'
           else
-            BinaryExpr(bop, e0', e1')
-        case LiteralExpr(lit_) => e
-        case InvalidExpr(msg_) => e
+            Expr.Binary(bop, e0', e1')
+        case Literal(lit_) => e
+        case Invalid(msg_) => e
         case UnsupportedExpr(cexpr_) => e
+
+        // Statements
+        case Block(exprs) =>
+          var exprs' := Seq.Map(e requires e in exprs => EliminateNegatedBinops_Expr_direct(e), exprs);
+          Predicates.Map_All_IsMap(e requires e in exprs => EliminateNegatedBinops_Expr_direct(e), exprs);
+          Expr.Block(exprs')
+        case Print(exprs) =>
+          var exprs' := Seq.Map(e requires e in exprs => EliminateNegatedBinops_Expr_direct(e), exprs);
+          Predicates.Map_All_IsMap(e requires e in exprs => EliminateNegatedBinops_Expr_direct(e), exprs);
+          Expr.Print(exprs')
+        case UnsupportedStmt(_) =>
+          e
       }
     }
 
     function method EliminateNegatedBinops(p: Program) : (p': Program)
-      ensures AllExprs_Program(p', NotANegatedBinopExpr)
+      ensures Deep.All_Program(p', NotANegatedBinopExpr)
     {
-      var p' := MapExprs_Program(p, EliminateNegatedBinops_Expr);
+      var p' := Map_Program(p, EliminateNegatedBinops_Expr);
       // LATER: it actually works even without this call; make more things opaque?
-      Predicates.TopExprs_AllExprs(p', NotANegatedBinopExpr);
+      Predicates.Shallow_Deep(p', NotANegatedBinopExpr);
       p'
     }
 
-    import opened Rewriter.Generic.Things
-    import opened Rewriter.Generic.All
-    import opened Rewriter.Generic.BottomUp
-
-    predicate method IsNegatedBinopThing(t: DafnyThing) {
-      (t.ExprThing? && t.e.BinaryExpr? && IsNegatedBinop(t.e.bop))
-    }
-
-    predicate method NotANegatedBinopThing(t: DafnyThing) {
-      !IsNegatedBinopThing(t)
-    }
-
-    function method EliminateNegatedBinops_Thing'(t: DafnyThing) : (t': DafnyThing)
-      ensures NotANegatedBinopThing(t')
+    function method Children(e: Expr.t) : (s: seq<Expr.t>)
+      ensures forall e' | e' in s :: e'.Depth() < e.Depth()
     {
-      if IsNegatedBinopThing(t) then
-        var b := BinaryExpr(FlipNegatedBinop(t.e.bop), t.e.e0, t.e.e1);
-        var u := UnaryOpExpr(UnaryOp.Not, b);
-        ExprThing(u)
-      else t
-    }
+      match e {
+        // Expressions
+        case UnaryOp(uop: UnaryOp.Op, e': Expr.t) => [e']
+        case Binary(bop: BinaryOp.Op, e0: Expr.t, e1: Expr.t) => [e0, e1]
+        case Literal(lit: Expr.Literal) => []
+        case Invalid(msg: string) => []
+        case UnsupportedExpr(expr: C.Expression) => []
 
-    lemma EliminateNegatedBinops_Thing'_ok()
-      ensures IsBottomUpTransformer(EliminateNegatedBinops_Thing')
-    {
-      var f := EliminateNegatedBinops_Thing';
-      assert IsDafnyTransformer(f);
-      var P := BottomUp.IsMap(f);
-      forall t ensures AllChildren_Thing(t, P) ==>
-                       All_Thing(f(t), P) {
-        if (AllChildren_Thing(t, P)) {
-          if IsNegatedBinopThing(t) {
-            calc {
-              AllChildren_Thing(t, P);
-              AllChildren_Expr(t.e, P);
-              All_Expr(t.e.e0, P) && All_Expr(t.e.e1, P); // FIXME why do I need this?
-            }
-            assert P(ExprThing(t.e.e0));
-            assert P(ExprThing(t.e.e1));
-
-            var b := BinaryExpr(FlipNegatedBinop(t.e.bop), t.e.e0, t.e.e1);
-            assert f(ExprThing(b)) == ExprThing(b); // !!
-            assert P(ExprThing(b));
-
-            var u := UnaryOpExpr(UnaryOp.Not, b);
-            assert f(ExprThing(u)) == ExprThing(u); // !!
-            assert P(ExprThing(u));
-
-            calc { // !! Not enough unfolding?
-              All_Thing(f(t), P);
-              All_Thing(ExprThing(u), P);
-              All_Expr(u, P);
-              P(ExprThing(u)) && AllChildren_Expr(u, P);
-              P(ExprThing(u)) && All_Expr(b, P);
-              All_Expr(b, P);
-              P(ExprThing(b)) && AllChildren_Expr(b, P);
-            }
-          } else {
-          }
-        }
+        // Statements
+        case Block(exprs) => exprs
+        case Print(exprs) => exprs
+        case UnsupportedStmt => []
       }
     }
 
-    // NEXT: Rewrite All_thing and other functions as a single recursive function instead of multiple functions, to have a single postcondition?
+    lemma All_Expr_weaken(e: Expr.t, P: Expr.t -> bool, Q: Expr.t -> bool)
+      requires Deep.All_Expr(e, P)
+      requires forall e' :: P(e') ==> Q(e')
+      decreases e
+      ensures Deep.All_Expr(e, Q)
+    { // NEAT
+      forall e' | e' in Children(e) { All_Expr_weaken(e', P, Q); }
+      // match e {
+      //   case UnaryOp(uop: UnaryOp.Op, e': Expr.t) =>
+      //     All_Expr_weaken(e', P, Q);
+      //   case Binary(bop: BinaryOp.Op, e0: Expr.t, e1: Expr.t) =>
+      //     All_Expr_weaken(e0, P, Q); All_Expr_weaken(e1, P, Q);
+      //   case Literal(lit: Expr.Literal) =>
+      //   case Invalid(msg: string) =>
+      //   case UnsupportedExpr(expr: C.Expression) =>
 
-    lemma {:verify false} All_Thing_weaken(t: DafnyThing, P: DafnyThing -> bool, Q: DafnyThing -> bool)
-      requires All_Thing(t, P)
-      requires forall t' :: P(t') ==> Q(t')
-      decreases t.Depth()
-      ensures All_Thing(t, Q)
-    {
-      match t { // How do I automate this lemma so that I don't have to edit it every time I add cases to Expr?
-        case ExprThing(e) =>
-          match e {
-            case UnaryOpExpr(uop: UnaryOp.Op, e': Expr) =>
-              calc {
-                All_Thing(t, P);
-                All_Expr(e, P);
-                All_Expr(e', P);
-                All_Thing(ExprThing(e'), P);
-              }
-              All_Thing_weaken(ExprThing(e'), P, Q);
-              calc {
-                All_Thing(ExprThing(e'), Q);
-                All_Expr(e', Q);
-                All_Expr(e, Q);
-                All_Thing(ExprThing(e), Q);
-                All_Thing(t, Q);
-              }
-              assert All_Expr(e, P);
-              assert All_Thing(ExprThing(e), P);
-            case BinaryExpr(bop: BinaryOp.Op, e0: Expr, e1: Expr) =>
-              calc {
-                All_Thing(t, P);
-                All_Expr(e, P);
-                Q(ExprThing(e)) && All_Expr(e0, P) && All_Expr(e1, P);
-                All_Thing(ExprThing(e0), P) && All_Thing(ExprThing(e1), P);
-              }
-              All_Thing_weaken(ExprThing(e0), P, Q);
-              All_Thing_weaken(ExprThing(e1), P, Q);
-              calc {
-                All_Thing(ExprThing(e0), Q) && All_Thing(ExprThing(e1), Q);
-                Q(ExprThing(e)) && All_Expr(e0, Q) && All_Expr(e1, Q);
-                All_Expr(e, Q);
-                All_Thing(ExprThing(e), Q);
-                All_Thing(t, Q);
-              }
-              assert All_Expr(e, P);
-              assert All_Thing(ExprThing(e), P);
-            case LiteralExpr(lit: LiteralExpr) =>
-            case InvalidExpr(msg: string) =>
-            case UnsupportedExpr(expr: C.Expression) =>
-          }
-        case StmtThing(s) =>
-          match s {
-            case PrintStmt(exprs) =>
-              calc {
-                All_Thing(t, P);
-                All_Stmt(PrintStmt(exprs), P);
-                P(StmtThing(PrintStmt(exprs))) && Seq.All((e => All_Expr(e, P)), exprs);
-                P(StmtThing(PrintStmt(exprs))) && Seq.All((e => All_Thing(ExprThing(e), P)), exprs);
-              }
-              assert forall e | e in exprs :: All_Thing(ExprThing(e), P) ==> All_Thing(ExprThing(e), Q) by {
-                forall e | e in exprs ensures All_Thing(ExprThing(e), P) ==> All_Thing(ExprThing(e), Q) {
-                  assert e in exprs;
-                  assert exists i | 0 <= i < |exprs| :: exprs[i] == e;
-                  assert exists i | 0 <= i < |exprs| :: exprs[i].Depth() == e.Depth();
-                  assert e.Depth() in Seq.Map((e: Expr) => e.Depth(), exprs);
+      //   // Statements
+      //   case Block(exprs) =>
+      //     forall e | e in exprs { All_Expr_weaken(e, P, Q); }
+      //   case Print(exprs) =>
+      //     forall e | e in exprs { All_Expr_weaken(e, P, Q); }
+      //   case UnsupportedStmt =>
+      // }
+    }}
 
-                  var depths := Seq.Map((e: Expr) => e.Depth(), exprs);
-                  var m := Seq.Max(depths, 0);
-                  assert forall i | i in depths :: i <= m;
-                  assert e.Depth() in depths;
-                  assert e.Depth() <= m;
-
-                  calc {
-                    StmtThing(s).Depth();
-                    s.Depth();
-                    1 + match s { // FIXME why?
-                      case PrintStmt(exprs) =>
-                        Seq.Max(Seq.Map((e: Expr) => e.Depth(), exprs), 0)
-                      case UnsupportedStmt() =>
-                        0
-                    };
-                    1 + Seq.Max(Seq.Map((e: Expr) => e.Depth(), exprs), 0);
-                    >
-                    Seq.Max(Seq.Map((e: Expr) => e.Depth(), exprs), 0);
-                    >=
-                    e.Depth();
-                  }
-
-                  assert StmtThing(s).Depth() > ExprThing(e).Depth();
-                  All_Thing_weaken(ExprThing(e), P, Q);
-                }
-              }
-              Seq.All_weaken((e => All_Thing(ExprThing(e), P)),
-                             (e => All_Thing(ExprThing(e), Q)),
-                             exprs);
-              calc {
-                P(StmtThing(PrintStmt(exprs))) && Seq.All((e => All_Thing(ExprThing(e), Q)), exprs);
-                Q(StmtThing(PrintStmt(exprs))) && Seq.All((e => All_Expr(e, Q)), exprs);
-                All_Stmt(PrintStmt(exprs), Q);
-                All_Thing(t, Q);
-              }
-            case UnsupportedStmt =>
-          }
-        case MethodThing(m) =>
-        case ProgramThing(p) =>
-      }
-    }
-
-    function method EliminateNegatedBinops_Thing(t: DafnyThing) : (t': DafnyThing)
-      ensures All_Thing(t', NotANegatedBinopThing)
-    {
-      EliminateNegatedBinops_Thing'_ok();
-      var r := Map_Thing(t, EliminateNegatedBinops_Thing');
-      assert All_Thing(r, BottomUp.IsMap(EliminateNegatedBinops_Thing'));
-      All_Thing_weaken(r, BottomUp.IsMap(EliminateNegatedBinops_Thing'), NotANegatedBinopThing);
-      r
-    }
-  }
 
   module Compiler {
     import Lib
@@ -1029,14 +785,14 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
     import opened CSharpInterop
     import opened CSharpDafnyInterop
     import Predicates
-    import opened Predicates.AllExprs
+    import opened Predicates.Deep
 
     function method CompileInt(i: int) : StrTree {
       var istr := Lib.Str.of_int(i, 10);
       Call("new BigInteger", [Str(istr)])
     }
 
-    function method CompileLiteralExpr(l: LiteralExpr) : StrTree {
+    function method CompileLiteralExpr(l: Expr.Literal) : StrTree {
       match l {
         case LitBool(b: bool) => Str(if b then "true" else "false")
         case LitInt(i: int) => CompileInt(i)
@@ -1096,7 +852,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
         case Char(LeChar) => bin("<=")
         case Char(GeChar) => bin(">=")
         case Char(GtChar) => bin(">")
-        // FIXME: Why is there lt/le/gt/ge for chars but not binops?
+        // FIXME: Why is there lt/le/gt/ge for chars trt not binops?
 
         case Sets(SetEq) => fmt("{}.Equals({})")
         case Sets(ProperSubset) => Unsupported
@@ -1136,49 +892,68 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
       }
     }
 
-    function method CompileExpr(e: Expr) : StrTree
-      requires AllExprs_Expr(e, Simplifier.NotANegatedBinopExpr)
-    {
-      match e {
-        case LiteralExpr(l) =>
-          CompileLiteralExpr(l)
-        case UnaryOpExpr(op, e) =>
-          var c := CompileExpr(e);
-          CompileUnaryOpExpr(op, c)
-        case BinaryExpr(op, e0, e1) =>
-          var c0, c1 := CompileExpr(e0), CompileExpr(e1);
-          CompileBinaryExpr(op, c0, c1)
-        case InvalidExpr(_) => Unsupported
-        case UnsupportedExpr(_) => Unsupported
-      }
-    }
-
-    function method CompilePrint(e: Expr) : StrTree
-      requires AllExprs_Expr(e, Simplifier.NotANegatedBinopExpr)
+    function method CompilePrint(e: Expr.t) : StrTree
+      decreases e, 1
+      requires Deep.All_Expr(e, Simplifier.NotANegatedBinopExpr)
     {
       Target.Seq([Call("DafnyRuntime.Helpers.Print", [CompileExpr(e)]), Str(";")])
     }
 
-    function method CompileStmt(s: Stmt) : StrTree
-      requires AllExprs_Stmt(s, Simplifier.NotANegatedBinopExpr)
-    {
-      match s {
-        case PrintStmt(exprs) =>
-          Concat("\n", Lib.Seq.Map(CompilePrint, exprs))
-        case UnsupportedStmt() => Unsupported
+    function method CompileExpr(e: Expr.t) : StrTree
+      requires Deep.All_Expr(e, Simplifier.NotANegatedBinopExpr)
+      decreases e, 0
+    { // FIXME why are the calcs needed?
+      match e {
+        case Literal(l) =>
+          CompileLiteralExpr(l)
+        case UnaryOp(op, e') =>
+          calc ==> {
+            Deep.All_Expr(e, Simplifier.NotANegatedBinopExpr);
+            Deep.AllChildren_Expr(e, Simplifier.NotANegatedBinopExpr);
+            Deep.All_Expr(e', Simplifier.NotANegatedBinopExpr);
+          }
+          var c := CompileExpr(e');
+          CompileUnaryOpExpr(op, c)
+        case Binary(op, e0, e1) =>
+          calc ==> {
+            Deep.All_Expr(e, Simplifier.NotANegatedBinopExpr);
+            Deep.AllChildren_Expr(e, Simplifier.NotANegatedBinopExpr);
+            && Deep.All_Expr(e0, Simplifier.NotANegatedBinopExpr)
+            && Deep.All_Expr(e1, Simplifier.NotANegatedBinopExpr);
+          }
+          var c0, c1 := CompileExpr(e0), CompileExpr(e1);
+          CompileBinaryExpr(op, c0, c1)
+        case Invalid(_) => Unsupported
+        case UnsupportedExpr(_) => Unsupported
+
+        case Block(exprs) =>
+          calc ==> {
+            Deep.All_Expr(e, Simplifier.NotANegatedBinopExpr);
+            Deep.AllChildren_Expr(e, Simplifier.NotANegatedBinopExpr);
+            Seq.All(e => Deep.All_Expr(e, Simplifier.NotANegatedBinopExpr), exprs);
+          }
+          Concat("\n", Lib.Seq.Map(e requires e in exprs => CompileExpr(e), exprs))
+        case Print(exprs) =>
+          calc ==> {
+            Deep.All_Expr(e, Simplifier.NotANegatedBinopExpr);
+            Deep.AllChildren_Expr(e, Simplifier.NotANegatedBinopExpr);
+            Seq.All(e => Deep.All_Expr(e, Simplifier.NotANegatedBinopExpr), exprs);
+          }
+          Concat("\n", Lib.Seq.Map(e requires e in exprs => CompilePrint(e), exprs))
+        case UnsupportedStmt(_) => Unsupported
       }
     }
 
     function method CompileMethod(m: Method) : StrTree
-      requires AllExprs_Method(m, Simplifier.NotANegatedBinopExpr)
+      requires Deep.All_Method(m, Simplifier.NotANegatedBinopExpr)
     {
       match m {
-        case Method(nm, methodBody) => Concat("\n", Lib.Seq.Map(CompileStmt, methodBody))
+        case Method(nm, methodBody) => CompileExpr(methodBody)
       }
     }
 
     function method CompileProgram(p: Program) : StrTree
-      requires AllExprs_Program(p, Simplifier.NotANegatedBinopExpr)
+      requires Deep.All_Program(p, Simplifier.NotANegatedBinopExpr)
     {
       match p {
         case Program(mainMethod) => CompileMethod(mainMethod)
