@@ -18,9 +18,9 @@ public class LinearRenderingTest {
       bool isSingleLine, bool contextHasErrors, bool contextIsPending,
       CurrentStatus currentStatus, VerificationStatus verificationStatus) {
     return verificationStatus switch {
-      VerificationStatus.Unknown =>
+      VerificationStatus.Nothing =>
         currentStatus switch {
-          CurrentStatus.Current => LineVerificationStatus.Unknown,
+          CurrentStatus.Current => LineVerificationStatus.Nothing,
           CurrentStatus.Obsolete => LineVerificationStatus.Scheduled,
           CurrentStatus.Verifying => LineVerificationStatus.Verifying,
           _ => throw new ArgumentOutOfRangeException()
@@ -33,7 +33,7 @@ public class LinearRenderingTest {
             ? LineVerificationStatus.AssertionVerifiedInErrorContext
             : LineVerificationStatus.ErrorContext
           : contextIsPending && !isSingleLine
-            ? LineVerificationStatus.Unknown
+            ? LineVerificationStatus.Nothing
             : LineVerificationStatus.Verified,
         CurrentStatus.Obsolete => contextHasErrors
           ? isSingleLine

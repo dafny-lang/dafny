@@ -31,7 +31,7 @@ public abstract class LinearVerificationDiagnosticTester : ClientBasedLanguageSe
   }
 
   public static Dictionary<LineVerificationStatus, string> LineVerificationStatusToString = new() {
-    { LineVerificationStatus.Unknown, "   " },
+    { LineVerificationStatus.Nothing, "   " },
     { LineVerificationStatus.Scheduled, " . " },
     { LineVerificationStatus.Verifying, " S " },
     { LineVerificationStatus.VerifiedObsolete, " I " },
@@ -124,7 +124,7 @@ public abstract class LinearVerificationDiagnosticTester : ClientBasedLanguageSe
       var newPerLineDiagnostics = verificationDiagnosticReport.PerLineDiagnostic.ToList();
       if ((previousPerLineDiagnostics != null
           && previousPerLineDiagnostics.SequenceEqual(newPerLineDiagnostics)) ||
-          newPerLineDiagnostics.All(status => status == LineVerificationStatus.Unknown)) {
+          newPerLineDiagnostics.All(status => status == LineVerificationStatus.Nothing)) {
         continue;
       }
 
@@ -143,7 +143,7 @@ public abstract class LinearVerificationDiagnosticTester : ClientBasedLanguageSe
   private static bool NoMoreNotificationsToAwaitFrom(VerificationDiagnosticsParams verificationDiagnosticReport) {
     return verificationDiagnosticReport.PerLineDiagnostic.Contains(LineVerificationStatus.ResolutionError) ||
            verificationDiagnosticReport.PerLineDiagnostic.All(IsNotIndicatingProgress) ||
-           verificationDiagnosticReport.PerLineDiagnostic.All(status => status == LineVerificationStatus.Unknown);
+           verificationDiagnosticReport.PerLineDiagnostic.All(status => status == LineVerificationStatus.Nothing);
   }
 
   /// <summary>

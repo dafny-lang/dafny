@@ -92,21 +92,21 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
       // Fill in the missing "Unknown" based on the surrounding content
       // The filling only takes Verified an Error
-      var previousNotUnknown = LineVerificationStatus.Unknown;
+      var previousNotUnknown = LineVerificationStatus.Nothing;
       var lineDelta = 1;
       // Two passes so that we can fill gaps based on what happened before AND after
       for (var line = 0; 0 <= line; line += lineDelta) {
         if (line == numberOfLines) {
           lineDelta = -1;
-          previousNotUnknown = LineVerificationStatus.Unknown;
+          previousNotUnknown = LineVerificationStatus.Nothing;
           continue;
         }
         if (previousNotUnknown != LineVerificationStatus.Verified &&
             previousNotUnknown != LineVerificationStatus.VerifiedObsolete &&
             previousNotUnknown != LineVerificationStatus.VerifiedVerifying) {
-          previousNotUnknown = LineVerificationStatus.Unknown;
+          previousNotUnknown = LineVerificationStatus.Nothing;
         }
-        if (result[line] == LineVerificationStatus.Unknown) {
+        if (result[line] == LineVerificationStatus.Nothing) {
           result[line] = previousNotUnknown;
         } else {
           previousNotUnknown = result[line];
@@ -141,7 +141,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
 
   public enum VerificationStatus {
-    Unknown = 0,
+    Nothing = 0,
     Verified = 200,
     Inconclusive = 270,
     Error = 400
@@ -155,7 +155,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
   public enum LineVerificationStatus {
     // Default value for every line, before the renderer figures it out.
-    Unknown = 0,
+    Nothing = 0,
     // For first-time computation not actively computing but soon. Synonym of "obsolete"
     // (scheduledComputation)
     Scheduled = 1,
@@ -165,11 +165,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     VerifiedVerifying = 202,
     // Also applicable for empty spaces if they are not surrounded by errors.
     Verified = 200,
-    // For trees containing children with errors (e.g. methods)
+    // For trees containing children with errors (e.g. functions, methods, fields, subset types)
     ErrorContextObsolete = 301,
     ErrorContextVerifying = 302,
     ErrorContext = 300,
-    // For individual assertions in error ranges
+    // For individual assertions in error contexts
     AssertionVerifiedInErrorContextObsolete = 351,
     AssertionVerifiedInErrorContextVerifying = 352,
     AssertionVerifiedInErrorContext = 350,
@@ -181,6 +181,19 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     ResolutionError = 500
   }
 
+  /// <summary>
+  /// A verification tree is an abstraction over the code to represent the verification
+  /// status of a region of the document, useful for IDE verification inspection.
+  /// A verification tree can contain other child trees.
+  /// It can currently be rendered linearly, e.g. for gutter display, or used as a tree in a test-like display. 
+  /// The verification status consists of two orthogonal concepts:
+  /// - StatusVerification: Nothing (initial), Error, Verified, or Inconclusive
+  /// - StatusCurrent: Current (Up-to-date), Obsolete (outdated), and Verifying (as notified by the verifier)
+  /// </summary>
+  /// <param name="DisplayName">A user-facing name of this node, to be displayed in an IDE explorer</param>
+  /// <param name="Identifier">A unique identifier, to be used by the IDE to request re-verification</param>
+  /// <param name="Filename">The name of the file this region of the document is contained in</param>
+  /// <param name="Range">The range of this region of the document</param>
   public record VerificationTree(
      // User-facing name
      string DisplayName,
@@ -191,7 +204,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
      Range Range
   ) {
     // Overriden by checking children if there are some
-    public VerificationStatus StatusVerification { get; set; } = VerificationStatus.Unknown;
+    public VerificationStatus StatusVerification { get; set; } = VerificationStatus.Nothing;
 
     // Overriden by checking children if there are some
     public CurrentStatus StatusCurrent { get; set; } = CurrentStatus.Obsolete;
@@ -294,7 +307,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       bool isSingleLine, bool contextHasErrors, bool contextIsPending,
       CurrentStatus currentStatus, VerificationStatus verificationStatus) {
       LineVerificationStatus simpleStatus = verificationStatus switch {
-        VerificationStatus.Unknown => LineVerificationStatus.Unknown,
+        VerificationStatus.Nothing => LineVerificationStatus.Nothing,
         // let's be careful to no display "Verified" for a range if the context does not have errors and is pending
         // because there might be other errors on the same range.
         VerificationStatus.Verified =>
@@ -303,7 +316,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
               ? LineVerificationStatus.AssertionVerifiedInErrorContext
               : LineVerificationStatus.ErrorContext
             : contextIsPending && !isSingleLine
-              ? LineVerificationStatus.Unknown
+              ? LineVerificationStatus.Nothing
               : LineVerificationStatus.Verified,
         // We don't display inconclusive on the gutter (user should focus on errors),
         // We display an error range instead
