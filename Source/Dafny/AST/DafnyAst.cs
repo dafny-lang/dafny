@@ -6985,6 +6985,23 @@ namespace Microsoft.Dafny {
         }
       }
     }
+    
+    /// <summary>
+    /// Create a resolved statement for a local variable with an initial value.
+    /// </summary>
+    public static (VarDeclStmt, Expression) CrateLocalVariable(IToken tok, string name, Expression value) {
+      Contract.Requires(tok != null);
+      Contract.Requires(name != null);
+      Contract.Requires(value != null);
+      var variable = new LocalVariable(tok, tok, name, value.Type, false);
+      variable.type = value.Type;
+      Expression variableExpr = new IdentifierExpr(tok, variable);
+      var variableUpdateStmt = new UpdateStmt(tok, tok, Util.Singleton(variableExpr),
+        Util.Singleton<AssignmentRhs>(new ExprRhs(value)));
+      var variableAssignStmt = new AssignStmt(tok, tok, variableUpdateStmt.Lhss[0], variableUpdateStmt.Rhss[0]);
+      variableUpdateStmt.ResolvedStatements.Add(variableAssignStmt);
+      return (new VarDeclStmt(tok, tok, Util.Singleton(variable), variableUpdateStmt), variableExpr);
+    }
   }
 
   public class LList<T> {
@@ -9362,6 +9379,16 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       var lit = new LiteralExpr(tok, b);
       lit.Type = Type.Bool;  // resolve here
+      return lit;
+    }
+
+    /// <summary>
+    /// Create a resolved expression for a string s
+    /// </summary>
+    public static LiteralExpr CreateStringLiteral(IToken tok, string s) {
+      Contract.Requires(tok != null);
+      var lit = new StringLiteralExpr(tok, s, true);
+      lit.Type = new SeqType(new CharType());  // resolve here
       return lit;
     }
 

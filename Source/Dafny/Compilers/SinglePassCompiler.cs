@@ -1804,6 +1804,8 @@ namespace Microsoft.Dafny.Compilers {
             // A (ghost or non-ghost) method must always have a body, except if it's an instance method in a trait.
             if (Attributes.Contains(m.Attributes, "axiom") || (!DafnyOptions.O.DisallowExterns && Attributes.Contains(m.Attributes, "extern"))) {
               // suppress error message
+            } else if (Attributes.Contains(m.Attributes, "run_all_tests")) {
+              EmitRunAllTestsMainMethod(program, m, classWriter);
             } else {
               Error(m.tok, "Method {0} has no body", errorWr, m.FullName);
             }
@@ -2254,11 +2256,7 @@ namespace Microsoft.Dafny.Compilers {
         w = EmitMethodReturns(m, w);
 
         if (m.Body == null) {
-          if (Attributes.Contains(m.Attributes, "run_all_tests")) {
-            EmitRunAllTestsMainMethodBody(program, w);
-          } else {
-            Error(m.tok, "Method {0} has no body", w, m.FullName);
-          }
+          Error(m.tok, "Method {0} has no body", w, m.FullName);
         } else {
           Contract.Assert(enclosingMethod == null);
           enclosingMethod = m;
@@ -5123,23 +5121,26 @@ namespace Microsoft.Dafny.Compilers {
 
     protected abstract ConcreteSyntaxTree EmitInvokeWithHaltHandling(string haltMessageLHS, Method m, ConcreteSyntaxTree wr);
     
-    protected void EmitRunAllTestsMainMethodBody(Program program, ConcreteSyntaxTree w) {
-      var successVar = new IdentifierExpr(null, "success");
-      var successVarStmt = new AssignStmt(null, null, successVar, 
-        new ExprRhs(Expression.CreateBoolLiteral(null, true)));
+    protected void EmitRunAllTestsMainMethod(Program program, Method mainMethod, IClassWriter cw) {
+      var w = CreateStaticMain(cw);
+
+      var tok = mainMethod.tok;
+      var stringType = new SeqType(new CharType());
+      
+      var (successVarStmt, successVarExpr) = Statement.CrateLocalVariable(tok, "success", Expression.CreateBoolLiteral(tok, true));
       TrStmt(successVarStmt, w);
       
       foreach (var module in program.Modules()) {
-        foreach (ICallable callable in ModuleDefinition.AllCallables(
-                   module.TopLevelDecls)) {
+        foreach (ICallable callable in ModuleDefinition.AllCallables(module.TopLevelDecls)) {
           if ((callable is Method method) && Attributes.Contains(method.Attributes, "test")) {
-            EmitPrintStmt(w, new StringLiteralExpr(null, method.FullDafnyName + ": ", true));
-            
-            var haltMessageVar = new IdentifierExpr(null, idGenerator.FreshId("haltMessage"));
-            var emptyStringExpr = new SeqDisplayExpr(null, new List<Expression>());
-            var haltMessageVarStmt = new AssignStmt(null, null, haltMessageVar, new ExprRhs(emptyStringExpr));
+            EmitPrintStmt(w, Expression.CreateStringLiteral(tok, method.FullDafnyName + ": "));
+
+            var haltMessageVarName = idGenerator.FreshId("haltMessage");
+            var emptyStringExpr = Expression.CreateStringLiteral(tok, "");
+            var (haltMessageVarStmt, haltMessageVarExpr) = Statement.CrateLocalVariable(tok, haltMessageVarName, emptyStringExpr);
             TrStmt(haltMessageVarStmt, w);
-            EmitInvokeWithHaltHandling(haltMessageVar.Name, method, w);
+            
+            EmitInvokeWithHaltHandling(haltMessageVarName, method, w);
             
             // if haltMessage_X == "" {
             //   print "PASSED\n";
@@ -5148,27 +5149,22 @@ namespace Microsoft.Dafny.Compilers {
             //   success := false;
             // }
             var passedPrintArgs = new List<Expression>();
-            passedPrintArgs.Add(new StringLiteralExpr(null, "PASSED\n", true));
-            var passedStmt = new PrintStmt(null, null, passedPrintArgs);
-            var passedStmts = new List<Statement>();
-            passedStmts.Add(passedStmt);
-            var passedBlock = new BlockStmt(null, null, passedStmts);
+            passedPrintArgs.Add(Expression.CreateStringLiteral(tok, "PASSED\n"));
+            var passedStmt = new PrintStmt(tok, tok, passedPrintArgs);
+            var passedBlock = new BlockStmt(tok, tok, Util.Singleton<Statement>(passedStmt));
 
             var failedPrintArgs = new List<Expression>();
-            failedPrintArgs.Add(new StringLiteralExpr(null, "FAILED\n\t", true));
-            failedPrintArgs.Add(haltMessageVar);
-            failedPrintArgs.Add(new StringLiteralExpr(null, "\n", true));
-            var failedPrintStmt = new PrintStmt(null, null, failedPrintArgs);
+            failedPrintArgs.Add(Expression.CreateStringLiteral(tok, "FAILED\n\t"));
+            failedPrintArgs.Add(haltMessageVarExpr);
+            failedPrintArgs.Add(Expression.CreateStringLiteral(tok, "\n"));
+            var failedPrintStmt = new PrintStmt(tok, tok, failedPrintArgs);
             var failSuiteStmt =
-              new AssignStmt(null, null, successVar, new ExprRhs(Expression.CreateBoolLiteral(null, false)));
-            var failedStmts = new List<Statement>();
-            failedStmts.Add(failedPrintStmt);
-            failedStmts.Add(failSuiteStmt);
-            var failedBlock = new BlockStmt(null, null, failedStmts);
+              new AssignStmt(tok, tok, successVarExpr, new ExprRhs(Expression.CreateBoolLiteral(tok, false)));
+            var failedBlock = new BlockStmt(tok, tok, Util.List<Statement>(failedPrintStmt, failedPrintStmt));
 
-            var guardExpr = new BinaryExpr(null, BinaryExpr.Opcode.Eq, haltMessageVar, emptyStringExpr);
+            var guardExpr = Expression.CreateEq(haltMessageVarExpr, emptyStringExpr, stringType);
 
-            var ifStmt = new IfStmt(null, null, false, guardExpr, passedBlock, failedBlock);
+            var ifStmt = new IfStmt(tok, tok, false, guardExpr, passedBlock, failedBlock);
             TrStmt(ifStmt, w);
           }
         }

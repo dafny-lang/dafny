@@ -95,6 +95,10 @@ namespace Microsoft.Dafny {
       return new List<A> { x };
     }
 
+    public static List<A> List<A>(params A[] xs) {
+      return xs.ToList();
+    }
+
     public static List<A> Cons<A>(A x, List<A> xs) {
       return Concat(Singleton(x), xs);
     }
