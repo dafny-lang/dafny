@@ -2381,7 +2381,7 @@ namespace Microsoft.Dafny.Compilers {
       throw NotSupported("EmitSingleValueGenerator", e.tok);
     }
 
-    protected override ConcreteSyntaxTree EmitInvokeWithHaltHandling(LocalVariable haltMessageVar, Method m, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree EmitInvokeWithHaltHandling(LocalVariable haltMessageVar, ConcreteSyntaxTree wr) {
       throw NotSupported("EmitInvokeWithHaltHandling");
     }
 

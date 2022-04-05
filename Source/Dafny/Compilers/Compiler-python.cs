@@ -767,7 +767,7 @@ namespace Microsoft.Dafny.Compilers {
       throw new NotImplementedException();
     }
     
-    protected override ConcreteSyntaxTree EmitInvokeWithHaltHandling(LocalVariable haltMessageVar, Method m, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree EmitInvokeWithHaltHandling(LocalVariable haltMessageVar, ConcreteSyntaxTree wr) {
       throw new NotImplementedException();
     }
 

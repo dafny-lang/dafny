@@ -3445,8 +3445,16 @@ namespace Microsoft.Dafny.Compilers {
       TrParenExpr("_dafny.SingleValue", e, wr, inLetExprBody);
     }
     
-    protected override ConcreteSyntaxTree EmitInvokeWithHaltHandling(LocalVariable haltMessageVar, Method m, ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
+    protected override ConcreteSyntaxTree EmitInvokeWithHaltHandling(LocalVariable haltMessageVar, ConcreteSyntaxTree wr) {
+      wr.WriteLine("func() {");
+      wr.WriteLine("  defer func() {");
+      wr.WriteLine("    if r := recover(); r != nil {");
+      wr.WriteLine($"      {haltMessageVar.CompileName} = _dafny.SeqOfString(r.(string))");
+      wr.WriteLine("    }");
+      wr.WriteLine("  }()");
+      var w = wr.Fork(1);
+      wr.WriteLine("}()");
+      return w;
     }
 
     // ----- Target compilation and execution -------------------------------------------------------------

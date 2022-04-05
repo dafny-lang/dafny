@@ -9,7 +9,15 @@ method {:test} Passing2() {
   expect 2 + 2 == 4;
 }
 
-method {:test} Failing() {
+method {:test} Failing1() {
+  expect 2 + 2 == 5;
+}
+
+method {:test} Passing3() {
+  expect 2 + 2 == 4;
+}
+
+method {:test} Failing2() {
   expect 2 + 2 == 5;
 }
 
