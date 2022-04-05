@@ -15472,7 +15472,7 @@ namespace Microsoft.Dafny {
     }
 
     /// Returns the first non-runtime testable type of the comprehension if it exists
-    /// Ensures ret != null ==> !ret.IsCompilable() && ret is one of the type of e.AllBoundVars[i]
+    /// Ensures ret != null ==> !ret.DoesNotContainGhostConstraints() && ret is one of the type of e.AllBoundVars[i]
     private void ScopePushBoundVarsAssumingCompilable(ComprehensionExpr e, ResolveOpts opts, [CanBeNull] ResolveTypeOption resolveTypeOption = null, bool typeQuantifier = false) {
       if (resolveTypeOption == null) {
         resolveTypeOption = new ResolveTypeOption(ResolveTypeOptionEnum.InferTypeProxies);
@@ -15482,7 +15482,7 @@ namespace Microsoft.Dafny {
         ResolveType(v.tok, v.Type, opts.codeContext, resolveTypeOption, typeArgs);
         // If the type can be tested at run time, we keep the same scope
         // Else, the the scoped type is the upper type that can be tested.
-        if (!v.Type.IsCompilable() && !opts.isSpecification && !opts.codeContext.IsGhost) {
+        if (!v.Type.DoesNotContainGhostConstraints() && !opts.isSpecification && !opts.codeContext.IsGhost) {
           var collectionVarType = v.Type is InferredTypeProxy ? new InferredTypeProxy() : v.Type.GetCompilableParentType(); ;
           if (v.Type is InferredTypeProxy) {
             AddXConstraint(v.tok, "SubsetTypeOfCompilable", v.Type, collectionVarType,
@@ -17052,7 +17052,7 @@ namespace Microsoft.Dafny {
             bindings.ArgumentBindings.Count(), bindings.ArgumentBindings.IndexOf(b),
             whatKind + (context is Method ? " in-parameter" : " parameter"));
 
-          Type formalType = formal.Type.IsCompilable() || opts.isSpecification ? formal.Type : formal.Type.NormalizeExpand();
+          Type formalType = formal.Type.DoesNotContainGhostConstraints() || opts.isSpecification ? formal.Type : formal.Type.NormalizeExpand();
           AddAssignableConstraint(
             callTok, SubstType(formalType, typeMap), b.Actual.Type,
             $"incorrect argument type {what} (expected {{0}}, found {{1}})");
