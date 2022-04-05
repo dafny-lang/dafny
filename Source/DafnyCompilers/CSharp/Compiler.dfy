@@ -104,11 +104,29 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
         function method Depth() : nat { 1 }
       }
 
+      type Path = seq<string>
+
+      datatype ClassType = ClassType(className: Path, typeArgs: seq<Type.Type>)
+
+      datatype Receiver =
+        | StaticReceiver(classType: ClassType)
+        | InstanceReceiver(obj: Expr) // TODO: also include ClassType?
+
+      datatype ApplyOp =
+        | UnaryOp(uop: UnaryOp.Op)
+        | BinaryOp(bop: BinaryOp.Op)
+        | ClassConstructor(classType: ClassType)
+        | DataConstructor(name: Path, typeArgs: seq<Type.Type>)
+        | ClassMethod(receiver: Receiver, name: Path, typeArgs: seq<Type.Type>)
+        | Function(receiverFn: Expr)
+        // TODO: move DisplayExpr here? It's a constructor application.
+
       datatype Expr =
         // Expressions
         | UnaryOp(uop: UnaryOp.Op, e: Expr) // LATER UnaryExpr
         | Binary(bop: BinaryOp.Op, e0: Expr, e1: Expr)
         | Literal(lit: Literal)
+        | Apply(aop: ApplyOp, args: seq<Expr>)
         | Display(ty: Type.Type, exprs: seq<Expr>)
         | Invalid(msg: string)
         | UnsupportedExpr(expr: C.Expression)
@@ -126,6 +144,13 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
               Math.Max(e0.Depth(), e1.Depth())
             case Literal(lit: Literal) =>
               0
+            case Apply(Function(e), args) =>
+              Math.Max(
+                e.Depth(),
+                Seq.MaxF(var f := (e: Expr) requires e in args => e.Depth(); f, args, 0)
+              )
+            case Apply(_, args) =>
+              Seq.MaxF(var f := (e: Expr) requires e in args => e.Depth(); f, args, 0)
             case Display(_, exprs) =>
               Seq.MaxF(var f := (e: Expr) requires e in exprs => e.Depth(); f, exprs, 0)
             case UnsupportedExpr(expr: C.Expression) =>
@@ -296,7 +321,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
         var u := u as C.UnaryOpExpr;
         var op, e := u.Op, u.E;
         assume op in UnaryOpCodeMap.Keys; // FIXME expect
-        D.Expr.UnaryOp(UnaryOpCodeMap[op], TranslateExpression(e))
+        D.Expr.t.UnaryOp(UnaryOpCodeMap[op], TranslateExpression(e))
       else
         D.Expr.UnsupportedExpr(u)
     }
@@ -335,6 +360,18 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
       else D.Expr.UnsupportedExpr(l)
     }
 
+    function method TranslateFunctionCall(fce: C.FunctionCallExpr): D.Expr.t
+      reads *
+      decreases ASTHeight(fce), 0
+    {
+      assume ASTHeight(fce.Receiver) < ASTHeight(fce);
+      var fnExpr := TranslateExpression(fce.Receiver);
+      var argsC := ListUtils.ToSeq(fce.Args);
+      var argExprs := Seq.Map((e requires e in argsC reads * =>
+        assume ASTHeight(e) < ASTHeight(fce); TranslateExpression(e)), argsC);
+      D.Expr.Apply(D.Expr.Function(fnExpr), argExprs)
+    }
+
     function method TranslateDisplayExpr(de: C.DisplayExpression): D.Expr.t
       reads *
       decreases ASTHeight(de), 0
@@ -371,6 +408,8 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
         TranslateBinary(c as C.BinaryExpr)
       else if c is C.LiteralExpr then
         TranslateLiteral(c as C.LiteralExpr)
+      else if c is C.FunctionCallExpr then
+        TranslateFunctionCall(c as C.FunctionCallExpr)
       else if c is C.MapDisplayExpr then
         TranslateMapDisplayExpr(c as C.MapDisplayExpr)
       else if c is C.DisplayExpression then
@@ -539,6 +578,11 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
           case Binary(bop: BinaryOp.Op, e0: Expr.t, e1: Expr.t) =>
             All_Expr(e0, P) && All_Expr(e1, P)
           case Literal(lit: Expr.Literal) => true
+          case Apply(Function(e), exprs: seq<Expr>) =>
+            All_Expr(e, P) &&
+            Seq.All(e requires e in exprs => All_Expr(e, P), exprs)
+          case Apply(_, exprs: seq<Expr>) =>
+            Seq.All(e requires e in exprs => All_Expr(e, P), exprs)
           case Display(_, exprs: seq<Expr.t>) =>
             Seq.All(e requires e in exprs => All_Expr(e, P), exprs)
           case Invalid(msg: string) => true
@@ -646,10 +690,19 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
         match e {
           // Expressions
           case UnaryOp(uop, e) =>
-            Expr.UnaryOp(uop, Map_Expr(e, tr))
+            Expr.t.UnaryOp(uop, Map_Expr(e, tr))
           case Binary(bop, e0, e1) =>
             Expr.Binary(bop, Map_Expr(e0, tr), Map_Expr(e1, tr))
           case Literal(lit_) => e
+          case Apply(Function(e), exprs) =>
+            var e' := Map_Expr(e, tr);
+            var exprs' := Seq.Map(e requires e in exprs => Map_Expr(e, tr), exprs);
+            Predicates.Map_All_IsMap(e requires e in exprs => Map_Expr(e, tr), exprs);
+            Expr.Apply(Expr.Function(e'), exprs')
+          case Apply(aop, exprs) =>
+            var exprs' := Seq.Map(e requires e in exprs => Map_Expr(e, tr), exprs);
+            Predicates.Map_All_IsMap(e requires e in exprs => Map_Expr(e, tr), exprs);
+            Expr.Apply(aop, exprs')
           case Display(ty, exprs) =>
             var exprs' := Seq.Map(e requires e in exprs => Map_Expr(e, tr), exprs);
             Predicates.Map_All_IsMap(e requires e in exprs => Map_Expr(e, tr), exprs);
@@ -757,7 +810,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
       ensures NotANegatedBinopExpr(e')
     {
       if IsNegatedBinopExpr(e) then
-        Expr.UnaryOp(UnaryOp.Not, Expr.Binary(FlipNegatedBinop(e.bop), e.e0, e.e1))
+        Expr.t.UnaryOp(UnaryOp.Not, Expr.Binary(FlipNegatedBinop(e.bop), e.e0, e.e1))
       else
         e
     }
@@ -769,7 +822,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
       forall e | Deep.AllChildren_Expr(e, PC) ensures Deep.AllChildren_Expr(f(e), PC) {
         if IsNegatedBinopExpr(e) {
           var e'' := Expr.Binary(FlipNegatedBinop(e.bop), e.e0, e.e1);
-          var e' := Expr.UnaryOp(UnaryOp.Not, e'');
+          var e' := Expr.t.UnaryOp(UnaryOp.Not, e'');
           calc { // FIXME Automate
             Deep.All_Expr(f(e), PC);
             Deep.All_Expr(e', PC);
@@ -794,13 +847,13 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
         // Exprs
         case UnaryOp(uop, e) =>
           // Not using datatype update to ensure that I get a warning if a type gets new arguments
-          Expr.UnaryOp(uop, EliminateNegatedBinops_Expr_direct(e))
+          Expr.t.UnaryOp(uop, EliminateNegatedBinops_Expr_direct(e))
         case Binary(bop, e0, e1) =>
           var e0', e1' := EliminateNegatedBinops_Expr_direct(e0), EliminateNegatedBinops_Expr_direct(e1);
           if IsNegatedBinop(bop) then
             var e'' := Expr.Binary(FlipNegatedBinop(bop), e0', e1');
             assert Deep.All_Expr(e'', NotANegatedBinopExpr);
-            var e' := Expr.UnaryOp(UnaryOp.Not, e'');
+            var e' := Expr.t.UnaryOp(UnaryOp.Not, e'');
             calc {
               Deep.All_Expr(e', NotANegatedBinopExpr);
               NotANegatedBinopExpr(e') && Deep.AllChildren_Expr(e', NotANegatedBinopExpr);
@@ -809,6 +862,15 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
             e'
           else
             Expr.Binary(bop, e0', e1')
+        case Apply(Function(fe), exprs) =>
+          var exprs' := Seq.Map(e requires e in exprs => EliminateNegatedBinops_Expr_direct(e), exprs);
+          Predicates.Map_All_IsMap(e requires e in exprs => EliminateNegatedBinops_Expr_direct(e), exprs);
+          var fe' := EliminateNegatedBinops_Expr_direct(fe);
+          Expr.Apply(Expr.Function(fe'), exprs')
+        case Apply(aop, exprs) =>
+          var exprs' := Seq.Map(e requires e in exprs => EliminateNegatedBinops_Expr_direct(e), exprs);
+          Predicates.Map_All_IsMap(e requires e in exprs => EliminateNegatedBinops_Expr_direct(e), exprs);
+          Expr.Apply(aop, exprs')
         case Display(ty, exprs) =>
           var exprs' := Seq.Map(e requires e in exprs => EliminateNegatedBinops_Expr_direct(e), exprs);
           Predicates.Map_All_IsMap(e requires e in exprs => EliminateNegatedBinops_Expr_direct(e), exprs);
@@ -848,6 +910,8 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
         case UnaryOp(uop: UnaryOp.Op, e': Expr.t) => [e']
         case Binary(bop: BinaryOp.Op, e0: Expr.t, e1: Expr.t) => [e0, e1]
         case Literal(lit: Expr.Literal) => []
+        case Apply(Function(e), exprs: seq<Expr.t>) => [e] + exprs
+        case Apply(aop, exprs: seq<Expr.t>) => exprs
         case Display(ty_, exprs: seq<Expr.t>) => exprs
         case Invalid(msg: string) => []
         case UnsupportedExpr(expr: C.Expression) => []
@@ -1063,6 +1127,8 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
           }
           var c0, c1 := CompileExpr(e0), CompileExpr(e1);
           CompileBinaryExpr(op, c0, c1)
+        case Apply(_, _) =>
+          Unsupported
         case Display(ty, exprs) =>
           calc ==> {
             Deep.All_Expr(e, Simplifier.NotANegatedBinopExpr);
