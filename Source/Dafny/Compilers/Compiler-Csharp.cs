@@ -3288,11 +3288,11 @@ namespace Microsoft.Dafny.Compilers {
       Coverage.EmitTearDown(wBody);
     }
 
-    protected override ConcreteSyntaxTree EmitInvokeWithHaltHandling(string haltMessageLHS, Method m, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree EmitInvokeWithHaltHandling(LocalVariable haltMessageVar, Method m, ConcreteSyntaxTree wr) {
       wr.WriteLine("try {");
       wr.WriteLine($"  {m.FullCompileName}();");
       wr.WriteLine("} catch (HaltException e) {");
-      wr.WriteLine($"  {haltMessageLHS} = e.Message;");
+      wr.WriteLine($"  {haltMessageVar.CompileName} = e.Message;");
       var w = wr.Fork();
       wr.WriteLine("}");
       return w;

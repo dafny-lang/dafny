@@ -5119,7 +5119,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected abstract ConcreteSyntaxTree EmitInvokeWithHaltHandling(string haltMessageLHS, Method m, ConcreteSyntaxTree wr);
+    protected abstract ConcreteSyntaxTree EmitInvokeWithHaltHandling(LocalVariable haltMessageVar, Method m, ConcreteSyntaxTree wr);
     
     protected void EmitRunAllTestsMainMethod(Program program, Method mainMethod, IClassWriter cw) {
       var w = CreateStaticMain(cw);
@@ -5127,8 +5127,9 @@ namespace Microsoft.Dafny.Compilers {
       var tok = mainMethod.tok;
       var stringType = new SeqType(new CharType());
       
-      var (successVarStmt, successVarExpr) = Statement.CrateLocalVariable(tok, "success", Expression.CreateBoolLiteral(tok, true));
+      var successVarStmt = Statement.CrateLocalVariable(tok, "success", Expression.CreateBoolLiteral(tok, true));
       TrStmt(successVarStmt, w);
+      var successVarExpr = new IdentifierExpr(tok, successVarStmt.Locals[0]);
       
       foreach (var module in program.Modules()) {
         foreach (ICallable callable in ModuleDefinition.AllCallables(module.TopLevelDecls)) {
@@ -5137,10 +5138,12 @@ namespace Microsoft.Dafny.Compilers {
 
             var haltMessageVarName = idGenerator.FreshId("haltMessage");
             var emptyStringExpr = Expression.CreateStringLiteral(tok, "");
-            var (haltMessageVarStmt, haltMessageVarExpr) = Statement.CrateLocalVariable(tok, haltMessageVarName, emptyStringExpr);
+            var haltMessageVarStmt = Statement.CrateLocalVariable(tok, haltMessageVarName, emptyStringExpr);
             TrStmt(haltMessageVarStmt, w);
+            var haltMessageVar = haltMessageVarStmt.Locals[0];
+            var haltMessageVarExpr = new IdentifierExpr(tok, haltMessageVar);
             
-            EmitInvokeWithHaltHandling(haltMessageVarName, method, w);
+            EmitInvokeWithHaltHandling(haltMessageVar, method, w);
             
             // if haltMessage_X == "" {
             //   print "PASSED\n";
@@ -5148,16 +5151,13 @@ namespace Microsoft.Dafny.Compilers {
             //   print "FAILED\n\t", haltMessage_X, "\n";
             //   success := false;
             // }
-            var passedPrintArgs = new List<Expression>();
-            passedPrintArgs.Add(Expression.CreateStringLiteral(tok, "PASSED\n"));
-            var passedStmt = new PrintStmt(tok, tok, passedPrintArgs);
+            var passedStmt = Statement.CreatePrintStmt(tok, Expression.CreateStringLiteral(tok, "PASSED\n"));
             var passedBlock = new BlockStmt(tok, tok, Util.Singleton<Statement>(passedStmt));
 
-            var failedPrintArgs = new List<Expression>();
-            failedPrintArgs.Add(Expression.CreateStringLiteral(tok, "FAILED\n\t"));
-            failedPrintArgs.Add(haltMessageVarExpr);
-            failedPrintArgs.Add(Expression.CreateStringLiteral(tok, "\n"));
-            var failedPrintStmt = new PrintStmt(tok, tok, failedPrintArgs);
+            var failedPrintStmt = Statement.CreatePrintStmt(tok, 
+              Expression.CreateStringLiteral(tok, "FAILED\n\t"),
+              haltMessageVarExpr,
+              Expression.CreateStringLiteral(tok, "\n"));
             var failSuiteStmt =
               new AssignStmt(tok, tok, successVarExpr, new ExprRhs(Expression.CreateBoolLiteral(tok, false)));
             var failedBlock = new BlockStmt(tok, tok, Util.List<Statement>(failedPrintStmt, failedPrintStmt));

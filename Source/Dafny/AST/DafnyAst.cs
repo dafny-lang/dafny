@@ -6989,7 +6989,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Create a resolved statement for a local variable with an initial value.
     /// </summary>
-    public static (VarDeclStmt, Expression) CrateLocalVariable(IToken tok, string name, Expression value) {
+    public static VarDeclStmt CrateLocalVariable(IToken tok, string name, Expression value) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(value != null);
@@ -7000,7 +7000,11 @@ namespace Microsoft.Dafny {
         Util.Singleton<AssignmentRhs>(new ExprRhs(value)));
       var variableAssignStmt = new AssignStmt(tok, tok, variableUpdateStmt.Lhss[0], variableUpdateStmt.Rhss[0]);
       variableUpdateStmt.ResolvedStatements.Add(variableAssignStmt);
-      return (new VarDeclStmt(tok, tok, Util.Singleton(variable), variableUpdateStmt), variableExpr);
+      return new VarDeclStmt(tok, tok, Util.Singleton(variable), variableUpdateStmt);
+    }
+
+    public static PrintStmt CreatePrintStmt(IToken tok, params Expression[] exprs) {
+      return new PrintStmt(tok, tok, exprs.ToList());
     }
   }
 
