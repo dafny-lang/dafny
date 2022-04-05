@@ -10,10 +10,9 @@ TO BE WRITTEN
 
 TO BE WRITTEN
 
-### 23.2.1. Subset types
+### 23.2.1. Subset types {#sec-subset-type-inference}
 
-[Subset types](#sec-subset-types) 
-Most of the time, subset types are carrying extra constraints so, unless it is trivial to infer them, only their base type is inferred, and the verifier checks the constraints.
+Most of the time, [subset types](#sec-subset-types) are carrying extra constraints so, unless it is trivial to infer them, only their base type is inferred, and the verifier checks the constraints.
 
 There are two cases where Dafny's resolver may infer a subset type when it's non trivial:
 
@@ -34,6 +33,19 @@ const m := set x | n in {-1, 0, 1, 2} && f(n) >= 1
 // Here n is inferred to be a CompiledNat and the constraint for g is emitted by the compiler, everything succeeds
 const m := set x | n in {-1, 0, 1, 2} && g(n) >= 1
 ```
+
+### 23.2.2. Ghost subset types in comprehensions
+
+A ghost [subset type](#sec-subset-types) is a subset type where one of its constraint is ghost.
+For comprehensions ([forall and exists expressions](#sec-quantifier-expression), [set comprehensions](#sec-set-comprehension-expression) and [map comprehensions](#sec-map-comprehension-expression)), variables with a ghost subset type are not problem if they are in a ghost context.
+However, in a compiled context, things are more tricky.
+
+Consider a comprehension like `set c: GhostSubsetType | c in Collection && P(c) :: c` in a compiled context where `Collection: set<T>` and the constraint of `GhostSubsetType` may not be checked at run-time, because it's ghost. Since Dafny cannot emit code to test the constraint at run-time, Dafny needs to verify it statically.
+
+* If the inferred collection `Collection`'s elements of type `T` are a _subtype_ of `GhostSubsetType`, then no check needs to be done.
+* Otherwise, the type of `c` in the range `c in Collection && P(c)` is first inferred to be the type of the collection's elements `T`. That way, it prevents `P(c)` to automatically assume the ghost constraint of `GhostSubsetType` holds, which would result in soundness errors. Second, the verifier checks that `c in S && P(c)` implies that the constraint of `GhostSubsetType` holds for `c`. If yes, the comprehension can be compiled, and if not, the verifier emit an error.
+
+This mechanism is the same for other comprehensions in a compiled context.
 
 ## 23.3. Ghost Inference
 
