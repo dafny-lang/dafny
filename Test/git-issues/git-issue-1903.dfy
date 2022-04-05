@@ -8,9 +8,5 @@ method g<T>(x : seq<T> := [])
 
 
 method {:verify true} Main() { 
-    //g<nat>([]);   // works 
-   g<nat>();   //  compile error
+   g<nat>();
 }
-
-//__default.g<BigInteger>(Dafny.Sequence<BigInteger>.FromElements());
-//__default.g<BigInteger>(Dafny.Sequence<__S>.FromElements());
