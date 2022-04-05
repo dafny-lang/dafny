@@ -5031,7 +5031,7 @@ namespace Microsoft.Dafny.Compilers {
       return wr;
     }
 
-    void CompileSpecialFunctionCallExpr(FunctionCallExpr e, ConcreteSyntaxTree wr, bool inLetExprBody, 
+    void CompileSpecialFunctionCallExpr(FunctionCallExpr e, ConcreteSyntaxTree wr, bool inLetExprBody,
         ConcreteSyntaxTree wStmts, FCE_Arg_Translator tr) {
       string name = e.Function.Name;
 

@@ -3543,7 +3543,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override bool TargetLambdaCanUseEnclosingLocals => false;
 
-    protected override ConcreteSyntaxTree EmitBetaRedex(List<string> boundVars, List<Expression> arguments, List<Type> boundTypes, 
+    protected override ConcreteSyntaxTree EmitBetaRedex(List<string> boundVars, List<Expression> arguments, List<Type> boundTypes,
         Type resultType, Bpl.IToken resultTok, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       if (boundTypes.Count != 1) {
         functions.Add(boundTypes.Count);

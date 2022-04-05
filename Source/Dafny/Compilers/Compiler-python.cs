@@ -259,7 +259,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree EmitMethodReturns(Method m, ConcreteSyntaxTree wr) {
-      if(m.Outs.Any(f => !f.IsGhost)){
+      if (m.Outs.Any(f => !f.IsGhost)) {
         var beforeReturnBlock = wr.Fork();
         EmitReturn(m.Outs, wr);
         return beforeReturnBlock;
@@ -326,8 +326,8 @@ namespace Microsoft.Dafny.Compilers {
             return TypeName_UDT(s, udt, wr, udt.tok);
           }
         case CollectionType: {
-          return TypeHelperName(xType);
-        }
+            return TypeHelperName(xType);
+          }
       }
 
       Contract.Assert(false);
@@ -349,8 +349,8 @@ namespace Microsoft.Dafny.Compilers {
             return "int(0)";
           }
         case CollectionType: {
-          return $"{TypeHelperName(xType)}({{}})";
-        }
+            return $"{TypeHelperName(xType)}({{}})";
+          }
         case UserDefinedType udt: {
             var cl = udt.ResolvedClass;
             Contract.Assert(cl != null);
@@ -459,8 +459,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitBreak(string label, ConcreteSyntaxTree wr) {
       if (label != null) {
         wr.WriteLine($"_dafny._break(\"{label}\")");
-      }
-      else { wr.WriteLine("break"); }
+      } else { wr.WriteLine("break"); }
     }
 
     protected override void EmitContinue(string label, ConcreteSyntaxTree wr) {
@@ -724,7 +723,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree EmitBetaRedex(List<string> boundVars, List<Expression> arguments,
-        List<Type> boundTypes, Type resultType, IToken resultTok, bool inLetExprBody, ConcreteSyntaxTree wr, 
+        List<Type> boundTypes, Type resultType, IToken resultTok, bool inLetExprBody, ConcreteSyntaxTree wr,
         ConcreteSyntaxTree wStmts) {
       var wrBody = new ConcreteSyntaxTree();
       wr.Format($"(lambda {boundVars.Comma()}: {wrBody})");
@@ -863,8 +862,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(")");
     }
 
-    private static string TypeHelperName(Type ct)
-    {
+    private static string TypeHelperName(Type ct) {
       return ct switch {
         SetType => DafnySetClass,
         SeqType => DafnySeqClass,

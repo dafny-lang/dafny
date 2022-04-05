@@ -1811,7 +1811,7 @@ namespace Microsoft.Dafny.Compilers {
       TrExprList(arguments, wr, inLetExprBody, wStmts);
     }
 
-    protected override ConcreteSyntaxTree EmitBetaRedex(List<string> boundVars, List<Expression> arguments, List<Type> boundTypes, 
+    protected override ConcreteSyntaxTree EmitBetaRedex(List<string> boundVars, List<Expression> arguments, List<Type> boundTypes,
         Type resultType, Bpl.IToken tok, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       wr.Write("(({0}) => ", Util.Comma(boundVars));
       var w = wr.Fork();

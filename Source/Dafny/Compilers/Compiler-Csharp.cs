@@ -2735,7 +2735,7 @@ namespace Microsoft.Dafny.Compilers {
       return result;
     }
 
-    protected override void EmitUnaryExpr(ResolvedUnaryOp op, Expression expr, bool inLetExprBody, 
+    protected override void EmitUnaryExpr(ResolvedUnaryOp op, Expression expr, bool inLetExprBody,
         ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       switch (op) {
         case ResolvedUnaryOp.BoolNot:
