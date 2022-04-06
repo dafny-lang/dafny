@@ -880,7 +880,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
       //     forall e | e in exprs { All_Expr_weaken(e, P, Q); }
       //   case Print(exprs) =>
       //     forall e | e in exprs { All_Expr_weaken(e, P, Q); }
-      //   case UnsupportedStmt =>
+      //   case UnsupportedStmt(_) =>
       // }
     }}
 
@@ -900,21 +900,24 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
 
     function method CompileType(t: Type.Type): StrTree {
       match t {
-        case Bool => Str("bool")
-        case Char => Str("char")
-        case Int => Str("BigInteger")
-        case Real => Str("BigRational")
+        case Bool() => Str("bool")
+        case Char() => Str("char")
+        case Int() => Str("BigInteger")
+        case Real() => Str("BigRational")
         case Collection(true, collKind, eltType) =>
           var eltStr := CompileType(eltType);
           match collKind {
             case Map(domType) =>
               var domStr := CompileType(domType);
               Format("DafnyRuntime.Map<{},{}>", [domStr, eltStr])
-            case Multiset => Format("DafnyRuntime.MultiSet<{}>", [eltStr])
-            case Seq => Format("DafnyRuntime.Sequence<{}>", [eltStr])
-            case Set => Format("DafnyRuntime.Set<{}>", [eltStr])
+            case Multiset() => Format("DafnyRuntime.MultiSet<{}>", [eltStr])
+            case Seq() => Format("DafnyRuntime.Sequence<{}>", [eltStr])
+            case Set() => Format("DafnyRuntime.Set<{}>", [eltStr])
           }
-        case _ => Unsupported
+        case BigOrdinal() => Unsupported
+        case BitVector(_) => Unsupported
+        case Collection(false, collKind_, eltType_) => Unsupported
+        case UnsupportedType(_) => Unsupported
       }
     }
 
