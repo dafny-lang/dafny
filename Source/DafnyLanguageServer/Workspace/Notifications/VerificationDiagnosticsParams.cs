@@ -30,7 +30,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       Uri = uri;
       Version = version;
       VerificationTrees = verificationTrees;
-      Diagnostics = diagnostics;
       if (linesCount != 0) { // Deserialization makes linesCount to be equal to zero.
         PerLineDiagnostic =
           RenderPerLineDiagnostics(this, verificationTrees, linesCount, numberOfResolutionErrors, verificationStarted, diagnostics);
@@ -46,11 +45,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     /// Gets the version of the document.
     /// </summary>
     public int? Version { get; init; }
-
-    /// <summary>
-    /// Gets the same diagnostics as displayed in the diagnostics window
-    /// </summary>
-    public Container<Diagnostic> Diagnostics { get; init; }
 
     /// <summary>
     /// Returns a tree of diagnostics that can be used
