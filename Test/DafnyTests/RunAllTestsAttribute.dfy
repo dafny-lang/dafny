@@ -21,4 +21,10 @@ method {:test} Failing2() {
   expect 2 + 2 == 5;
 }
 
+module TestModule {
+  method {:test} Passing1() {
+    expect 2 + 2 == 4;
+  }
+}
+
 method {:run_all_tests} Main()
