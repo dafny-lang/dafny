@@ -3381,7 +3381,15 @@ namespace Microsoft.Dafny {
       KeepConstraints = false; // whether the typeProxy should be inferred to base type or as subset type
     }
     public override bool DoesNotContainGhostConstraints() {
-      return this.NormalizeExpandKeepConstraints() is not TypeProxy;
+      if (this.AsSubsetType is { IsConstraintCompilable: false }) {
+        return false;
+      } else if (this.NormalizeExpandKeepConstraints() is TypeProxy) {
+        // If we are still in the early resolution phase and no type has been inferred,
+        // then we cannot say for sure that the type is compilable.
+        return false;
+      } else {
+        return true;
+      }
     }
   }
 
@@ -3400,7 +3408,15 @@ namespace Microsoft.Dafny {
       this.orig = orig;
     }
     public override bool DoesNotContainGhostConstraints() {
-      return this.NormalizeExpandKeepConstraints() is not TypeProxy;
+      if (this.AsSubsetType is { IsConstraintCompilable: false }) {
+        return false;
+      } else if (this.NormalizeExpandKeepConstraints() is TypeProxy) {
+        // If we are still in the early resolution phase and no type has been inferred,
+        // then we cannot say for sure that the type is compilable.
+        return false;
+      } else {
+        return true;
+      }
     }
   }
 
