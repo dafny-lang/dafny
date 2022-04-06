@@ -6089,6 +6089,7 @@ namespace Microsoft.Dafny {
                     {
                       AsSubsetType: SubsetTypeDecl
                       {
+                        IsConstraintCompilable: false,
                         constraintInformation: ConstraintInformation(_, var constraintReason, var constraintLocation)
                       }
                     } && constraintLocation != null
