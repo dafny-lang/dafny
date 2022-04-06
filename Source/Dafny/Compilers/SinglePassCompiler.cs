@@ -5151,15 +5151,15 @@ namespace Microsoft.Dafny.Compilers {
             methodSelectExpr.TypeApplication_JustMember = new List<Type>();
             methodSelectExpr.TypeApplication_AtEnclosingClass = new List<Type>();
             
+            Expression resultVarExpr = null;
+            var statements = new List<Statement>();
+            var lhss = new List<Expression>();
+
             // If the method returns a value, check for a failure using IsFailure() as if this
             // was an AssignOrReturnStmt (:-).
-            var lhss = new List<Expression>();
             if (method.Outs.Count > 1) {
               throw new NotImplementedException("{:test}");
             }
-
-            Expression resultVarExpr = null;
-            var statements = new List<Statement>();
             if (method.Outs.Count == 1) {
               var resultVarName = idGenerator.FreshId("result");
               var resultVarStmt = Statement.CrateLocalVariable(tok, resultVarName, method.Outs[0].Type);
@@ -5168,10 +5168,27 @@ namespace Microsoft.Dafny.Compilers {
               resultVarExpr = new IdentifierExpr(tok, resultVar);
               lhss.Add(resultVarExpr);
             }
+            
             var callStmt = new CallStmt(tok, tok, lhss, methodSelectExpr, new List<Expression>());
             statements.Add(callStmt);
+            
+            Statement passedStmt = Statement.CreatePrintStmt(tok, Expression.CreateStringLiteral(tok, "PASSED\n"));
+            var passedBlock = new BlockStmt(tok, tok, Util.Singleton(passedStmt));
+
+            if (resultVarExpr != null) {
+              var failureGuardExpr = new FunctionCallExpr(tok, "IsFailure", resultVarExpr, tok, new List<Expression>());
+              var resultClass = (TopLevelDeclWithMembers)((UserDefinedType)resultVarExpr.Type).ResolvedClass;
+              var isFailureMember = resultClass.Members.First(m => m.Name == "IsFailure");
+              failureGuardExpr.Function = (Function)isFailureMember;
+              var failedBlock = PrintTestFailureStatement(tok, successVarExpr, resultVarExpr);
+              statements.Add(new IfStmt(tok, tok, false, failureGuardExpr, failedBlock, passedBlock));
+            } else {
+              statements.Add(passedBlock);
+            }
+            
             TrStmt(new BlockStmt(tok, tok, statements), methodCallWr);
             
+            // TODO: fix
             // if haltMessage_X != "" {
             //   print "FAILED\n\t", haltMessage_X, "\n";
             //   success := false;
@@ -5184,22 +5201,9 @@ namespace Microsoft.Dafny.Compilers {
             //   print "PASSED\n";
             // }
             
-            
-            var passedStmt = Statement.CreatePrintStmt(tok, Expression.CreateStringLiteral(tok, "PASSED\n"));
-            Statement noHaltBlock = new BlockStmt(tok, tok, Util.Singleton<Statement>(passedStmt));
-            
-            if (resultVarExpr != null) {
-              var failureGuardExpr = new FunctionCallExpr(tok, "IsFailure", resultVarExpr, tok, new List<Expression>());
-              var resultClass = (TopLevelDeclWithMembers)((UserDefinedType)resultVarExpr.Type).ResolvedClass;
-              var isFailureMember = resultClass.Members.First(m => m.Name == "IsFailure");
-              failureGuardExpr.Function = (Function)isFailureMember;
-              var failedBlock = PrintTestFailureStatement(tok, successVarExpr, resultVarExpr);
-              noHaltBlock = new IfStmt(tok, tok, false, failureGuardExpr, failedBlock, noHaltBlock);
-            }
-            
             var guardExpr = Expression.CreateNot(tok, Expression.CreateEq(haltMessageVarExpr, emptyStringExpr, stringType));
             var haltedBlock = PrintTestFailureStatement(tok, successVarExpr, haltMessageVarExpr);
-            var ifHaltedStmt = new IfStmt(tok, tok, false, guardExpr, haltedBlock, noHaltBlock);
+            var ifHaltedStmt = new IfStmt(tok, tok, false, guardExpr, haltedBlock, null);
             TrStmt(ifHaltedStmt, w);
           }
         }
