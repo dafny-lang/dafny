@@ -67,11 +67,11 @@ abstract class PrettyPrintable {
 }
 
 internal class SemanticModel {
-  private readonly string cSharpRootNSPrefix;
+  private readonly string cSharpRootNS;
   private readonly CA.SemanticModel model;
 
-  public SemanticModel(string cSharpNS, CA.SemanticModel model) {
-    this.cSharpRootNSPrefix = String.IsNullOrEmpty(cSharpNS) ? "" : cSharpNS + ".";
+  public SemanticModel(string cSharpRootNS, CA.SemanticModel model) {
+    this.cSharpRootNS = cSharpRootNS;
     this.model = model;
   }
 
@@ -80,17 +80,22 @@ internal class SemanticModel {
       return new Name(fallback);
     }
 
-    // REMOVE var parts = symbol.ToDisplayParts();
-    // if (parts[0].ToString() == RootNS) {
+    string WithNs(string ns) => ns == "" ? symbol.Name : $"{ns}.{symbol.Name}";
 
-    var fullName = symbol.ToString();
-    if (fullName != null && fullName.StartsWith(cSharpRootNSPrefix)) {
-      // For local names, return a complete path, minus the module name and period
-      return new Name(fullName.Substring(cSharpRootNSPrefix.Length));
+    // Not ToString() because that includes type parameters (e.g. System.Collections.Generic.List<T>)
+    var ns = symbol.ContainingSymbol switch {
+      INamespaceSymbol {IsGlobalNamespace: true} => "",
+      var s => s.ToString() ?? ""
+    };
+
+    if (ns.StartsWith(cSharpRootNS)) {
+      // For local names return a complete path minus the current module prefix
+      var fullName = WithNs(ns.Substring(cSharpRootNS.Length).TrimStart('.'));
+      return new Name(fullName, fullName.Replace(".", "__"));
     }
 
-    // For local names, strip all qualifiers // FIXME don't
-    return new Name(symbol.Name);
+    // For global names use the fully qualified name
+    return new Name(WithNs(ns));
   }
 
   public Name GetName(SyntaxNode node) {
@@ -153,9 +158,7 @@ class AST : PrettyPrintable {
     PpBlockOpen(wr, indent, "module", new Name(cSharpRootNS, dafnyRootModule),
       null, null, null);
 
-    PpChild(wr, indent, "import opened CSharpGenerics");
-    PpChild(wr, indent, "import opened CSharpSystem");
-    PpChild(wr, indent, "import opened Boogie");
+    PpChild(wr, indent, "import System");
     PpChild(wr, indent, "import opened Dafny");
     wr.WriteLine();
 
@@ -306,10 +309,8 @@ internal class Name {
 
   public Name(string cSharpID, string dafnyID) {
     this.CSharpID = cSharpID;
-    if (dafnyID.StartsWith(EscapePrefix) || DisallowedNameRe.IsMatch(dafnyID)) {
-      dafnyID = EscapePrefix + dafnyID;
-    }
-    this.DafnyId = dafnyID.Replace(".", "__");
+    this.DafnyId = dafnyID.StartsWith(EscapePrefix) || DisallowedNameRe.IsMatch(dafnyID) ?
+      EscapePrefix + dafnyID : dafnyID;
   }
 
   public Name(string cSharpId) : this(cSharpId, cSharpId) {
