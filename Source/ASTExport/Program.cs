@@ -83,10 +83,10 @@ internal class SemanticModel {
     string WithNs(string ns) => ns == "" ? symbol.Name : $"{ns}.{symbol.Name}";
 
     // Not ToString() because that includes type parameters (e.g. System.Collections.Generic.List<T>)
-    var ns = symbol.ContainingSymbol switch {
-      INamespaceSymbol {IsGlobalNamespace: true} => "",
-      var s => s.ToString() ?? ""
-    };
+    var cs = symbol.ContainingSymbol;
+    var ns = symbol is ITypeParameterSymbol || cs is INamespaceSymbol {IsGlobalNamespace: true}
+      ? ""
+      : cs.ToString() ?? "";
 
     if (ns.StartsWith(cSharpRootNS)) {
       // For local names return a complete path minus the current module prefix
@@ -155,11 +155,14 @@ class AST : PrettyPrintable {
     wr.WriteLine("include \"CSharpCompat.dfy\"");
     wr.WriteLine();
 
-    PpBlockOpen(wr, indent, "module", new Name(cSharpRootNS, dafnyRootModule),
+    // Adding __AUTOGEN__ prevents Dafny from complaining about module name collisions
+    PpBlockOpen(wr, indent, "module", new Name("__AUTOGEN__" + cSharpRootNS, dafnyRootModule),
       null, null, null);
 
     PpChild(wr, indent, "import System");
-    PpChild(wr, indent, "import opened Dafny");
+    PpChild(wr, indent, "import Microsoft");
+    PpChild(wr, indent, "import CSharpUtils");
+    PpChild(wr, indent, $"import opened {cSharpRootNS}");
     wr.WriteLine();
 
     PpChildren(wr, indent, Decls);
@@ -263,7 +266,7 @@ internal class Type {
 
   private string GenericNameToString(GenericNameSyntax s) {
     var name = s.Identifier.Text switch {
-      "Tuple" => $"Tuple{s.TypeArgumentList.Arguments.Count}",
+      "Tuple" => $"CSharpUtils.Tuple{s.TypeArgumentList.Arguments.Count}",
       _ => Name.OfSyntax(s, model).DafnyId
     };
     var typeArgs = String.Join(", ", s.TypeArgumentList.Arguments.Select(t => new Type(t, model)));
@@ -302,7 +305,11 @@ internal class Variable : PrettyPrintable {
 
 internal class Name {
   private const string EscapePrefix = "CSharp_";
-  private static readonly Regex DisallowedNameRe = new Regex("^(type$|ORDINAL$|_)");
+
+  private static readonly List<string> DisallowedNameWords = new List<string>
+    {"type", "ORDINAL", "Keys", "Values", "Items", "IsLimit", "IsSucc", "Offset", "IsNat"};
+  private static readonly Regex DisallowedNameRe =
+    new Regex($"^(_|({String.Join("|", DisallowedNameWords)})$)");
 
   public readonly string DafnyId;
   public readonly string CSharpID;
