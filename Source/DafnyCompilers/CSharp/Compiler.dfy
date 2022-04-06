@@ -35,7 +35,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
 
     type BlockStmt = seq<Stmt>
 
-    datatype Method = Method(methodBody: BlockStmt)
+    datatype Method = Method(CompileName: string, methodBody: BlockStmt)
 
     datatype Program = Program(mainMethod: Method)
   }
@@ -123,7 +123,8 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
     }
 
     function method TranslateMethod(m: C.Method) : D.Method reads * {
-      D.Method(TranslateBlock(m.Body))
+      // var compileName := m.CompileName;
+      D.Method("Main", TranslateBlock(m.Body)) // FIXME “Main”
     }
 
     function method TranslateProgram(p: C.Program) : D.Program reads * {
@@ -204,7 +205,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
 
     function method CompileMethod(m: Method) : StrTree {
       match m {
-        case Method(methodBody) => Concat("\n", Lib.Seq.Map(CompileStmt, methodBody))
+        case Method(nm, methodBody) => Concat("\n", Lib.Seq.Map(CompileStmt, methodBody))
       }
     }
 
@@ -215,18 +216,16 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
     }
   }
 
-  method WriteAST(output: ConcreteSyntaxTree, ast: Target.StrTree) {
+  method WriteAST(wr: SyntaxTreeAdapter, ast: Target.StrTree) {
     match ast {
       case Str(s) =>
-        output.Write(StringUtils.ToCString(s));
+        wr.Write(s);
       case SepSeq(sep, asts) =>
-        var i := 0;
-        while i < |asts| {
+        for i := 0 to |asts| {
           if i != 0 && sep.Some? {
-            output.Write(StringUtils.ToCString(sep.t));
+            wr.Write(sep.t);
           }
-          WriteAST(output, asts[i]);
-          i := i + 1;
+          WriteAST(wr, asts[i]);
         }
       case Invalid =>
     }
@@ -237,15 +236,20 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
     }
 
     method Compile(dafnyProgram: CSharpDafnyASTModel.Program,
-                   output: ConcreteSyntaxTree) {
+                   wr: ConcreteSyntaxTree) {
+      var st := new SyntaxTreeAdapter(wr);
       var translated := Translator.TranslateProgram(dafnyProgram);
       var compiled := Compiler.CompileProgram(translated);
-      WriteAST(output, compiled);
+      WriteAST(st, compiled);
     }
 
     method EmitCallToMain(mainMethod: CSharpDafnyASTModel.Method,
                           baseName: System.String,
-                          output: ConcreteSyntaxTree) {
+                          wr: ConcreteSyntaxTree) {
+      // var st := new SyntaxTreeAdapter(wr);
+      // var sClass := st.NewBlock("class __CallToMain");
+      // var sBody := sClass.NewBlock("public static void Main(string[] args)");
+      // sBody.WriteLine("DafnyRuntime.Helpers.WithHaltHandling(_module.Main);");
     }
   }
 }
