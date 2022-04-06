@@ -210,6 +210,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     public bool Started { get; set; } = false;
     public bool Finished { get; set; } = false;
 
+    /// If this node was an error from a counter-example, RelatedRanges will contain
+    /// all the ranges given by the trace of that counter-example
+    public ImmutableList<Range> RelatedRanges { get; set; } = ImmutableList<Range>.Empty;
+
     // Sub-diagnostics if any
     public List<VerificationTree> Children { get; set; } = new();
     private List<VerificationTree> NewChildren { get; set; } = new();

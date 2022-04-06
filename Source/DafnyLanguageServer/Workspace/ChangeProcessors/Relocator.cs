@@ -290,6 +290,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
           var newNodeDiagnostic = verificationTree with {
             Range = newRange,
             Children = MigrateVerificationTree(verificationTree.Children, change).ToList(),
+            RelatedRanges = verificationTree.RelatedRanges
+              .Select(pos => MigrateRange(pos, change.Range, afterChangeEndOffset))
+              .OfType<Range>().ToImmutableList(),
             StatusVerification = verificationTree.StatusVerification,
             StatusCurrent = CurrentStatus.Obsolete,
             Finished = false,

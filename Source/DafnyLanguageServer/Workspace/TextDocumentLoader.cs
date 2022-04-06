@@ -501,7 +501,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
             // Attaches the trace
             void AddChildOutcome(Counterexample? counterexample, AssertCmd assertCmd, IToken token,
-              VerificationStatus status, IToken? secondaryToken, string? assertDisplay = "",
+              VerificationStatus status, IToken? secondaryToken, List<IToken> relatedTokens, string? assertDisplay = "",
               string assertIdentifier = "") {
               if (token.filename != implementationNode.Filename) {
                 return;
@@ -509,6 +509,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
               var outcomePosition = token.GetLspPosition();
               var secondaryOutcomePosition = secondaryToken?.GetLspPosition();
+              var relatedRanges = relatedTokens
+                .Where(tok => tok.filename == implementationNode.Filename)
+                .Select(tok => tok.GetLspRange())
+                .Where(range => range.Start != outcomePosition && range.Start != secondaryOutcomePosition)
+                .ToList().GroupBy(x => x)
+                .Select(grp => grp.FirstOrDefault())
+                .OfType<Range>()
+                .OrderBy(x => x.Start.Line).ToList();
 
               var childrenCount = implementationNode.GetNewChildrenCount();
               assertDisplay = assertDisplay != "" ? " " + assertDisplay : "";
@@ -524,6 +532,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
               ) {
                 StatusVerification = status,
                 StatusCurrent = CurrentStatus.Current,
+                RelatedRanges = relatedRanges.ToImmutableList(),
                 AssertionBatchIndex = assertionBatchIndex,
                 Started = true,
                 Finished = true
@@ -553,12 +562,21 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
               IToken? secondaryToken = counterexample is ReturnCounterexample returnCounterexample ? returnCounterexample.FailingReturn.tok :
                 counterexample is CallCounterexample callCounterexample ? callCounterexample.FailingRequires.tok :
                 null;
+              List<IToken> RelatedPositions = counterexample != null ?
+                counterexample.Trace.SelectMany(block => {
+                  var tokens = new List<IToken>();
+                  if (block.TransferCmd != null) {
+                    tokens.Add(block.TransferCmd.tok);
+                  }
+                  tokens.AddRange(block.cmds.Select(cmd => cmd.tok));
+                  return tokens;
+                }).ToList() : new List<IToken>();
               if (assertCmd is AssertEnsuresCmd assertEnsuresCmd) {
-                AddChildOutcome(counterexample, assertCmd, assertEnsuresCmd.Ensures.tok, status, secondaryToken, " ensures", "_ensures");
+                AddChildOutcome(counterexample, assertCmd, assertEnsuresCmd.Ensures.tok, status, secondaryToken, RelatedPositions, " ensures", "_ensures");
               } else if (assertCmd is AssertRequiresCmd assertRequiresCmd) {
-                AddChildOutcome(counterexample, assertCmd, assertRequiresCmd.Call.tok, status, secondaryToken, assertDisplay: "Call", assertIdentifier: "call");
+                AddChildOutcome(counterexample, assertCmd, assertRequiresCmd.Call.tok, status, secondaryToken, RelatedPositions, assertDisplay: "Call", assertIdentifier: "call");
               } else {
-                AddChildOutcome(counterexample, assertCmd, assertCmd.tok, status, secondaryToken, assertDisplay: "Assertion", assertIdentifier: "assert");
+                AddChildOutcome(counterexample, assertCmd, assertCmd.tok, status, secondaryToken, RelatedPositions, assertDisplay: "Assertion", assertIdentifier: "assert");
               }
             }
             targetMethodNode.PropagateChildrenErrorsUp();
