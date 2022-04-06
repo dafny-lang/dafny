@@ -178,10 +178,9 @@ namespace Microsoft.Dafny {
       return sw.ToString();
     }
 
-    public void Render(TextWriter writer, int indentation, WriterState writerState,
-      Queue<FileSyntax> files) {
+    public void Render(TextWriter writer, int indentation, WriterState writerState, Queue<FileSyntax> files, int indentSize = 2) {
       foreach (var node in _nodes) {
-        node.Render(writer, indentation + RelativeIndentLevel * 2, writerState, files);
+        node.Render(writer, indentation + RelativeIndentLevel * indentSize, writerState, files, indentSize);
       }
     }
   }
