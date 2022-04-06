@@ -5849,7 +5849,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public record ConstraintInformation(bool? compilable, string reasonIfNotCompilable, IToken locationIfNotCompilable);
+  public record ConstraintInformation(bool compilable, string reasonIfNotCompilable, IToken locationIfNotCompilable);
 
   public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl {
     public override string WhatKind { get { return "subset type"; } }
@@ -5858,17 +5858,18 @@ namespace Microsoft.Dafny {
     public enum WKind { CompiledZero, Compiled, Ghost, OptOut, Special }
     public readonly SubsetTypeDecl.WKind WitnessKind;
     public readonly Expression/*?*/ Witness;  // non-null iff WitnessKind is Compiled or Ghost
-    public ConstraintInformation constraintInformation = new ConstraintInformation(null, null, null);
+    public ConstraintInformation constraintInformation;
 
     public bool IsConstraintCompilable {
       get {
-        if (constraintInformation.compilable == null) {
+        if (constraintInformation == null) {
           // The constraint is not compilable if the parent type is also a subset type whose constraint is not compilable.
           if (Var.Type.NormalizeExpandKeepConstraints() is UserDefinedType
             {
               AsSubsetType: SubsetTypeDecl
               {
-                constraintInformation: ConstraintInformation(compilable: false, var constraintReason, var constraintLocation)
+                IsConstraintCompilable: false,
+                constraintInformation: ConstraintInformation(_, var constraintReason, var constraintLocation)
               }
             }) {
             if (constraintLocation != null && constraintReason != null) {
@@ -5893,7 +5894,7 @@ namespace Microsoft.Dafny {
           }
         }
 
-        return constraintInformation.compilable == true;
+        return constraintInformation.compilable;
       }
     }
 
