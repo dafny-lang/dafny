@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:4 /noVerify "%s" > "%t"
+// RUN: %dafny /compile:4 /noVerify /compileTarget:go "%s" > "%t"
 // RUN: %diff "%t" "%s.expect"
 
 method {:test} Passing1() {
