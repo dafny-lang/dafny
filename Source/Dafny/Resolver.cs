@@ -14936,13 +14936,10 @@ namespace Microsoft.Dafny {
 
       } else if (expr is TypeTestExpr) {
         var e = (TypeTestExpr)expr;
-        //Console.WriteLine("PRV -- TypeTestExpr");
         ResolveExpression(e.E, opts);
         var prevErrorCount = reporter.Count(ErrorLevel.Error);
-        ResolveType(e.tok, e.ToType, opts.codeContext, new ResolveTypeOption(ResolveTypeOptionEnum.InferTypeProxies), null);
-        //Console.WriteLine("PRV before AddAssignableConstraint");
+        ResolveType(e.tok, e.ToType, opts.codeContext, new ResolveTypeOption(ResolveTypeOptionEnum.InferTypeProxies), null
         AddAssignableConstraint(expr.tok, e.ToType, e.E.Type, "type test for type '{0}' must be from an expression assignable to it (got '{1}')");
-        //Console.WriteLine("PRV after AddAssignableConstraint");
         e.Type = Type.Bool;
 
       } else if (expr is BinaryExpr) {
@@ -15448,7 +15445,6 @@ namespace Microsoft.Dafny {
       }
     }
     void AddAssignableConstraint(IToken tok, Type lhs, Type rhs, string errMsgFormat) {
-      //Console.WriteLine("PRV --: {0},{1}",lhs,rhs);
       Contract.Requires(tok != null);
       Contract.Requires(lhs != null);
       Contract.Requires(rhs != null);
