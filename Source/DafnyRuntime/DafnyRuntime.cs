@@ -1515,7 +1515,7 @@ namespace Dafny {
     /// Return an approximation of the given rational as a double.
     /// </summary>
     public double ApproximateToDouble() {
-      return ((double)num / (double)den)
+      return ((double)num / (double)den);
     }
     public override string ToString() {
       int log10;
@@ -1577,21 +1577,45 @@ namespace Dafny {
       den = d;
     }
     public BigRational(double n) {
-      // TODO: check endianness!
+      if (Double.IsNaN(n)) {
+        throw new ArgumentException("Can't convert NaN to a rational.");
+      }
+      if (Double.IsInfinity(n)) {
+        throw new ArgumentException(
+          "Can't convert +/- infinity to a rational.");
+      }
+      if (Double.IsSubnormal(n)) {
+        throw new ArgumentException(
+          "Can't convert a subnormal value to a rational (yet).");
+      }
+
+      // Double-specific values
+      const int exptBias = 1023;
+      const ulong signMask = 0x8000000000000000;
+      const ulong exptMask = 0x7FF0000000000000;
+      const ulong mantMask = 0x000FFFFFFFFFFFFF;
+      const int mantBits = 52;
       ulong bits = BitConverter.DoubleToUInt64Bits(n);
-      bool isNeg = (bits & 0x8000000000000000) != 0;
-      long expt = ((long)((bits & 0x7FF0000000000000) >> 52)) - 1023;
-      ulong mant = (bits & 0x000FFFFFFFFFFFFF);
+
+      // Generic conversion
+      bool isNeg = (bits & signMask) != 0;
+      int expt = ((int)((bits & exptMask) >> mantBits)) - exptBias;
+      var mant = (bits & mantMask);
       var one = BigInteger.One;
+      var negFactor = isNeg ? BigInteger.Negate(one) : one;
       var two = new BigInteger(2);
-      var exptBI = new BigInteger.Pow(two, Math.Abs(expt));
-      var two52 = new BigInteger.Pow(two, 52);
-      var mantValue = new BigRational(two52 + new BigInteger(mant), two52);
-      var exptFactor = expt < 0
-                         ? new BigRational(one, exptBI)
-                         : new BigRational(exptBI, one)
-      var magnitude = mantValue * exptFactor;
-      return (isNeg ? magnitude.Negate() : magnitude);
+      var exptBI = BigInteger.Pow(two, Math.Abs(expt));
+      var twoToMantBits = BigInteger.Pow(two, mantBits);
+      var mantNum = negFactor * (twoToMantBits + new BigInteger(mant));
+      if (expt == -exptBias && mant == 0) {
+        num = den = 0;
+      } else if (expt < 0) {
+        num = mantNum;
+        den = twoToMantBits * exptBI;
+      } else {
+        num = exptBI * mantNum;
+        den = twoToMantBits;
+      }
     }
     public BigInteger ToBigInteger() {
       if (num.IsZero || den.IsOne) {
