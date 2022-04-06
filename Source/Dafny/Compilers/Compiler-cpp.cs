@@ -17,16 +17,23 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Bpl = Microsoft.Boogie;
 
-namespace Microsoft.Dafny {
-  public class CppCompiler : Compiler {
-    public CppCompiler(ErrorReporter reporter, ReadOnlyCollection<string> otherHeaders)
-    : base(reporter) {
-      this.headers = otherHeaders;
-      this.datatypeDecls = new List<DatatypeDecl>();
-      this.classDefaults = new List<string>();
+namespace Microsoft.Dafny.Compilers {
+  public class CppCompiler : SinglePassCompiler {
+    public override void OnPreCompile(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
+      base.OnPreCompile(reporter, otherFileNames);
+      datatypeDecls = new List<DatatypeDecl>();
+      classDefaults = new List<string>();
     }
 
-    private ReadOnlyCollection<string> headers;
+    public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".h" };
+
+    public override string TargetLanguage => "C++";
+    public override string TargetExtension => "cpp";
+
+    public override bool SupportsInMemoryCompilation => false;
+    public override bool TextualTargetIsExecutable => false;
+
+    private ReadOnlyCollection<string> headers => OtherFileNames;
     private List<DatatypeDecl> datatypeDecls;
     private List<string> classDefaults;
 
@@ -54,11 +61,8 @@ namespace Microsoft.Dafny {
     const string DafnySeqClass = "DafnySequence";
     const string DafnyMapClass = "DafnyMap";
 
-    public override string TargetLanguage => "Cpp";
     protected override string ModuleSeparator => "::";
     protected override string ClassAccessor => "->";
-
-    public override bool SupportsInMemoryCompilation => false;
 
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
       wr.WriteLine("// Dafny program {0} compiled into Cpp", program.Name);
@@ -267,6 +271,8 @@ namespace Microsoft.Dafny {
       }
       return String.Format("{0}_{1}{2}", IdProtect(ctor.EnclosingDatatype.CompileName), ctor.CompileName, args);
     }
+
+    protected override bool DatatypeDeclarationAndMemberCompilationAreSeparate => false;
 
     protected override IClassWriter DeclareDatatype(DatatypeDecl dt, ConcreteSyntaxTree writer) {
       if (dt is TupleTypeDecl) {
@@ -688,6 +694,11 @@ namespace Microsoft.Dafny {
       public ConcreteSyntaxTree/*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
         return Compiler.CreateMethod(m, typeArgs, createBody, MethodDeclWriter, MethodWriter, lookasideBody);
       }
+
+      public ConcreteSyntaxTree SynthesizeMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
+        throw new NotImplementedException();
+      }
+
       public ConcreteSyntaxTree/*?*/ CreateFunction(string name, List<TypeArgumentInstantiation>/*?*/ typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, bool forBodyInheritance, bool lookasideBody) {
         return Compiler.CreateFunction(member.EnclosingClass.CompileName, member.EnclosingClass.TypeArgs, name, typeArgs, formals, resultType, tok, isStatic, createBody, member, MethodDeclWriter, MethodWriter, lookasideBody);
       }
@@ -755,7 +766,7 @@ namespace Microsoft.Dafny {
       }
       wdr.Write(");\n");
 
-      var block = wr.NewBlock(")", null, BraceStyle.Newline, BraceStyle.Newline);
+      var block = wr.NewBlock(")", null, BlockStyle.NewlineBrace, BlockStyle.NewlineBrace);
 
       if (targetReturnTypeReplacement != null) {
         var beforeReturnBlock = block.Fork(0);
@@ -799,7 +810,7 @@ namespace Microsoft.Dafny {
       int nIns = WriteFormals("", formals, wr);
 
       wdr.Write(");");
-      var w = wr.NewBlock(")", null, BraceStyle.Newline, BraceStyle.Newline);
+      var w = wr.NewBlock(")", null, BlockStyle.NewlineBrace, BlockStyle.NewlineBrace);
 
       return w;
     }
@@ -944,7 +955,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override string TypeName(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok, MemberDecl/*?*/ member = null) {
+    internal override string TypeName(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok, MemberDecl/*?*/ member = null) {
       Contract.Ensures(Contract.Result<string>() != null);
       Contract.Assume(type != null);  // precondition; this ought to be declared as a Requires in the superclass
       return TypeName(type, wr, tok, member, false);
@@ -1474,7 +1485,7 @@ namespace Microsoft.Dafny {
     protected override string IdProtect(string name) {
       return PublicIdProtect(name);
     }
-    public static string PublicIdProtect(string name) {
+    public override string PublicIdProtect(string name) {
       Contract.Requires(name != null);
       switch (name) {
         // Taken from: https://www.w3schools.in/cplusplus-tutorial/keywords/

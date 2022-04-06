@@ -7,6 +7,7 @@
 //-----------------------------------------------------------------------------
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Xml.Linq;
 using Microsoft.VisualStudio.TestPlatform.Extensions.TrxLogger;
@@ -19,8 +20,9 @@ namespace Microsoft.Dafny {
   /// <summary>
   /// Utility to parse the XML format produced by Boogie's /xml option and emit the
   /// results therein as test logger events, allowing us to deliver verification results
-  /// as test results through common loggers on the .NET platform. For now we are just supporting
-  /// outputting TRX files, which can be understood and visualized by various tools.
+  /// as test results through common loggers on the .NET platform. For now we support two formats:
+  ///  * TRX files, which can be understood and visualized by various .NET tools.
+  ///  * CSV files, which are easier to parse and summarize. 
   /// </summary>
   public static class BoogieXmlConvertor {
 
@@ -42,7 +44,7 @@ namespace Microsoft.Dafny {
           foreach (string s in parametersList.Split(",")) {
             var equalsIndex = s.IndexOf("=");
             parameters.Add(s[..equalsIndex], s[(equalsIndex + 1)..]);
-          };
+          }
         } else {
           loggerName = loggerConfig;
         }
@@ -53,6 +55,13 @@ namespace Microsoft.Dafny {
         } else if (loggerName == "csv") {
           var csvLogger = new CSVTestLogger();
           csvLogger.Initialize(events, parameters);
+        } else if (loggerName == "text") {
+          // This doesn't actually use the XML converter. It instead uses a collection of VerificationResult
+          // objects. Ultimately, the other loggers should be converted to use those objects, as well,
+          // and then it would make sense to rename this class.
+          var textLogger = new TextLogger();
+          textLogger.Initialize(parameters);
+          textLogger.LogResults((DafnyOptions.O.Printer as DafnyConsolePrinter).VerificationResults);
         } else {
           throw new ArgumentException("Unsupported verification logger config: {loggerConfig}");
         }
@@ -94,9 +103,9 @@ namespace Microsoft.Dafny {
 
     private static IEnumerable<TestResult> TestResultsForMethod(XElement method, string currentFileFragment) {
       // Only report the top level method result if there was no splitting
-      var childSplits = method.Nodes().OfType<XElement>().Where(child => child.Name.LocalName == "split").ToList();
-      return childSplits.Count > 1
-        ? childSplits.Select(childSplit => TestResultForSplit(currentFileFragment, method, childSplit))
+      var childBatches = method.Nodes().OfType<XElement>().Where(child => child.Name.LocalName == "assertionBatch").ToList();
+      return childBatches.Count > 1
+        ? childBatches.Select(childBatch => TestResultForBatch(currentFileFragment, method, childBatch))
         : new[] { TestResultForMethod(currentFileFragment, method) };
     }
 
@@ -132,16 +141,17 @@ namespace Microsoft.Dafny {
       return testResult;
     }
 
-    private static TestResult TestResultForSplit(string currentFileFragment, XElement methodNode, XElement splitNode) {
+    private static TestResult TestResultForBatch(string currentFileFragment, XElement methodNode, XElement batchNode) {
       var methodName = methodNode.Attribute("name")!.Value;
-      var splitNumber = splitNode.Attribute("number")!.Value;
-      var name = $"{methodName}$${splitNumber}";
+      var batchNumber = batchNode.Attribute("number")!.Value;
+      var name = $"{methodName}$${batchNumber}";
 
-      var startTime = splitNode.Attribute("startTime")!.Value;
-      var conclusionNode = splitNode.Nodes()
+      var startTime = batchNode.Attribute("startTime")!.Value;
+      var conclusionNode = batchNode.Nodes()
                                             .OfType<XElement>()
                                             .Single(n => n.Name.LocalName == "conclusion");
       var duration = float.Parse(conclusionNode.Attribute("duration")!.Value);
+      var resourceCount = conclusionNode.Attribute("resourceCount")?.Value;
       var outcome = conclusionNode.Attribute("outcome")!.Value;
 
       var testCase = TestCaseForEntry(currentFileFragment, name);
@@ -149,6 +159,10 @@ namespace Microsoft.Dafny {
         StartTime = DateTimeOffset.Parse(startTime),
         Duration = TimeSpan.FromMilliseconds((long)(duration * 1000))
       };
+
+      if (resourceCount != null) {
+        testResult.SetPropertyValue(ResourceCountProperty, int.Parse(resourceCount));
+      }
 
       if (outcome == "valid") {
         testResult.Outcome = TestOutcome.Passed;

@@ -6,6 +6,7 @@ using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
 using BplParser = Microsoft.Boogie.Parser;
 using static Microsoft.Dafny.Util;
+using PODesc = Microsoft.Dafny.ProofObligationDescription;
 
 namespace Microsoft.Dafny {
   public partial class Translator {
@@ -19,122 +20,9 @@ namespace Microsoft.Dafny {
 
       stmtContext = StmtType.NONE;
       adjustFuelForExists = true;  // fuel for exists might need to be adjusted based on whether it's in an assert or assume stmt.
-      if (stmt is PredicateStmt) {
-        var stmtBuilder = new BoogieStmtListBuilder(this);
-        string errorMessage = CustomErrorMessage(stmt.Attributes);
-        this.fuelContext = FuelSetting.ExpandFuelContext(stmt.Attributes, stmt.Tok, this.fuelContext, this.reporter);
-        var defineFuel = DefineFuelConstant(stmt.Tok, stmt.Attributes, stmtBuilder, etran);
-        var b = defineFuel ? stmtBuilder : builder;
-        if (stmt is AssertStmt || DafnyOptions.O.DisallowSoundnessCheating) {
-          stmtContext = StmtType.ASSERT;
-          AddComment(b, stmt, "assert statement");
-          PredicateStmt s = (PredicateStmt)stmt;
-          TrStmt_CheckWellformed(s.Expr, b, locals, etran, false);
-          IToken enclosingToken = null;
-          if (Attributes.Contains(stmt.Attributes, "_prependAssertToken")) {
-            enclosingToken = stmt.Tok;
-          }
-          BoogieStmtListBuilder proofBuilder = null;
-          var assertStmt = stmt as AssertStmt;
-          if (assertStmt != null) {
-            if (assertStmt.Proof != null) {
-              proofBuilder = new BoogieStmtListBuilder(this);
-              AddComment(proofBuilder, stmt, "assert statement proof");
-              CurrentIdGenerator.Push();
-              TrStmt(((AssertStmt)stmt).Proof, proofBuilder, locals, etran);
-              CurrentIdGenerator.Pop();
-            } else if (assertStmt.Label != null) {
-              proofBuilder = new BoogieStmtListBuilder(this);
-              AddComment(proofBuilder, stmt, "assert statement proof");
-            }
-          }
+      if (stmt is PredicateStmt predicateStmt) {
+        TrPredicateStmt(predicateStmt, builder, locals, etran);
 
-          bool splitHappened;
-          var ss = TrSplitExpr(s.Expr, etran, true, out splitHappened);
-          if (!splitHappened) {
-            var tok = enclosingToken == null ? s.Expr.tok : new NestedToken(enclosingToken, s.Expr.tok);
-            (proofBuilder ?? b).Add(Assert(tok, etran.TrExpr(s.Expr), errorMessage ?? "assertion violation", stmt.Tok, etran.TrAttributes(stmt.Attributes, null)));
-          } else {
-            foreach (var split in ss) {
-              if (split.IsChecked) {
-                var tok = enclosingToken == null ? split.E.tok : new NestedToken(enclosingToken, split.E.tok);
-                (proofBuilder ?? b).Add(AssertNS(tok, split.E, errorMessage ?? "assertion violation", stmt.Tok, etran.TrAttributes(stmt.Attributes, null)));  // attributes go on every split
-              }
-            }
-          }
-          if (proofBuilder != null) {
-            PathAsideBlock(stmt.Tok, proofBuilder, b);
-          }
-          stmtContext = StmtType.NONE; // done with translating assert stmt
-          if (splitHappened || proofBuilder != null) {
-            if (assertStmt != null && assertStmt.Label != null) {
-              // make copies of the variables used in the assertion
-              var name = "$Heap_at_" + assertStmt.Label.AssignUniqueId(CurrentIdGenerator);
-              var heapAt = new Bpl.LocalVariable(stmt.Tok, new Bpl.TypedIdent(stmt.Tok, name, predef.HeapType));
-              locals.Add(heapAt);
-              var h = new Bpl.IdentifierExpr(stmt.Tok, heapAt);
-              b.Add(Bpl.Cmd.SimpleAssign(stmt.Tok, h, etran.HeapExpr));
-              var substMap = new Dictionary<IVariable, Expression>();
-              foreach (var v in FreeVariablesUtil.ComputeFreeVariables(assertStmt.Expr)) {
-                if (v is LocalVariable) {
-                  var vcopy = new LocalVariable(stmt.Tok, stmt.Tok, string.Format("##{0}#{1}", name, v.Name), v.Type, v.IsGhost);
-                  vcopy.type = vcopy.OptionalType;  // resolve local here
-                  IdentifierExpr ie = new IdentifierExpr(vcopy.Tok, vcopy.AssignUniqueName(currentDeclaration.IdGenerator));
-                  ie.Var = vcopy; ie.Type = ie.Var.Type;  // resolve ie here
-                  substMap.Add(v, ie);
-                  locals.Add(new Bpl.LocalVariable(vcopy.Tok, new Bpl.TypedIdent(vcopy.Tok, vcopy.AssignUniqueName(currentDeclaration.IdGenerator), TrType(vcopy.Type))));
-                  b.Add(Bpl.Cmd.SimpleAssign(stmt.Tok, TrVar(stmt.Tok, vcopy), TrVar(stmt.Tok, v)));
-                }
-              }
-              var exprToBeRevealed = Substitute(assertStmt.Expr, null, substMap);
-              var etr = new ExpressionTranslator(etran, h);
-              assertStmt.Label.E = etr.TrExpr(exprToBeRevealed);
-            } else if (!defineFuel) {
-              // Adding the assume stmt, resetting the stmtContext
-              stmtContext = StmtType.ASSUME;
-              adjustFuelForExists = true;
-              b.Add(TrAssumeCmd(stmt.Tok, etran.TrExpr(s.Expr)));
-              stmtContext = StmtType.NONE;
-            }
-          }
-          if (defineFuel) {
-            var ifCmd = new Bpl.IfCmd(s.Tok, null, b.Collect(s.Tok), null, null);  // BUGBUG: shouldn't this first append "assume false" to "b"? (use PathAsideBlock to do this)  --KRML
-            builder.Add(ifCmd);
-            // Adding the assume stmt, resetting the stmtContext
-            stmtContext = StmtType.ASSUME;
-            adjustFuelForExists = true;
-            builder.Add(TrAssumeCmd(stmt.Tok, etran.TrExpr(s.Expr)));
-            stmtContext = StmtType.NONE;
-          }
-        } else if (stmt is ExpectStmt) {
-          AddComment(builder, stmt, "expect statement");
-          ExpectStmt s = (ExpectStmt)stmt;
-          stmtContext = StmtType.ASSUME;
-          TrStmt_CheckWellformed(s.Expr, builder, locals, etran, false);
-
-          // Need to check the message is well-formed, assuming the expected expression
-          // does NOT hold:
-          //
-          // if Not(TrExpr[[ s.Expr ]]) {
-          //  CheckWellformed[[ s.Message ]]
-          //  assume false;
-          // }
-          BoogieStmtListBuilder thnBuilder = new BoogieStmtListBuilder(this);
-          TrStmt_CheckWellformed(s.Message, thnBuilder, locals, etran, false);
-          thnBuilder.Add(TrAssumeCmd(stmt.Tok, new Bpl.LiteralExpr(stmt.Tok, false), etran.TrAttributes(stmt.Attributes, null)));
-          Bpl.StmtList thn = thnBuilder.Collect(s.Tok);
-          builder.Add(new Bpl.IfCmd(stmt.Tok, Bpl.Expr.Not(etran.TrExpr(s.Expr)), thn, null, null));
-
-          stmtContext = StmtType.NONE;  // done with translating expect stmt.
-        } else if (stmt is AssumeStmt) {
-          AddComment(builder, stmt, "assume statement");
-          AssumeStmt s = (AssumeStmt)stmt;
-          stmtContext = StmtType.ASSUME;
-          TrStmt_CheckWellformed(s.Expr, builder, locals, etran, false);
-          builder.Add(TrAssumeCmd(stmt.Tok, etran.TrExpr(s.Expr), etran.TrAttributes(stmt.Attributes, null)));
-          stmtContext = StmtType.NONE;  // done with translating assume stmt.
-        }
-        this.fuelContext = FuelSetting.PopFuelContext();
       } else if (stmt is PrintStmt) {
         AddComment(builder, stmt, "print statement");
         PrintStmt s = (PrintStmt)stmt;
@@ -214,7 +102,8 @@ namespace Microsoft.Dafny {
               // this postcondition was inherited into this module, so just ignore it
             } else if (split.IsChecked) {
               var yieldToken = new NestedToken(s.Tok, split.E.tok);
-              builder.Add(AssertNS(yieldToken, split.E, "possible violation of yield-ensures condition", stmt.Tok, null));
+              var desc = new PODesc.YieldEnsures();
+              builder.Add(AssertNS(yieldToken, split.E, desc, stmt.Tok, null));
             }
           }
           builder.Add(TrAssumeCmd(stmt.Tok, yeEtran.TrExpr(p.E)));
@@ -412,69 +301,19 @@ namespace Microsoft.Dafny {
         var prevDefiniteAssignmentTrackerCount = definiteAssignmentTrackers.Count;
         TrStmtList(s.Body, builder, locals, etran);
         RemoveDefiniteAssignmentTrackers(s.Body, prevDefiniteAssignmentTrackerCount);
-      } else if (stmt is IfStmt) {
-        AddComment(builder, stmt, "if statement");
-        IfStmt s = (IfStmt)stmt;
-        Expression guard;
-        if (s.Guard == null) {
-          guard = null;
-        } else {
-          guard = s.IsBindingGuard ? AlphaRename((ExistsExpr)s.Guard, "eg$") : s.Guard;
-          TrStmt_CheckWellformed(guard, builder, locals, etran, true);
-        }
-        BoogieStmtListBuilder b = new BoogieStmtListBuilder(this);
-        if (s.IsBindingGuard) {
-          CurrentIdGenerator.Push();
-          var exists = (ExistsExpr)s.Guard;  // the original (that is, not alpha-renamed) guard
-          IntroduceAndAssignExistentialVars(exists, b, builder, locals, etran, stmt.IsGhost);
-          CurrentIdGenerator.Pop();
-        }
-        CurrentIdGenerator.Push();
-        Bpl.StmtList thn = TrStmt2StmtList(b, s.Thn, locals, etran);
-        CurrentIdGenerator.Pop();
-        Bpl.StmtList els;
-        Bpl.IfCmd elsIf = null;
-        b = new BoogieStmtListBuilder(this);
-        if (s.IsBindingGuard) {
-          b.Add(TrAssumeCmd(guard.tok, Bpl.Expr.Not(etran.TrExpr(guard))));
-        }
-        if (s.Els == null) {
-          els = b.Collect(s.Tok);
-        } else {
-          CurrentIdGenerator.Push();
-          els = TrStmt2StmtList(b, s.Els, locals, etran);
-          CurrentIdGenerator.Pop();
-          if (els.BigBlocks.Count == 1) {
-            Bpl.BigBlock bb = els.BigBlocks[0];
-            if (bb.LabelName == null && bb.simpleCmds.Count == 0 && bb.ec is Bpl.IfCmd) {
-              elsIf = (Bpl.IfCmd)bb.ec;
-              els = null;
-            }
-          }
-        }
-        builder.Add(new Bpl.IfCmd(stmt.Tok, guard == null || s.IsBindingGuard ? null : etran.TrExpr(guard), thn, elsIf, els));
+
+      } else if (stmt is IfStmt ifStmt) {
+        TrIfStmt(ifStmt, builder, locals, etran);
+
       } else if (stmt is AlternativeStmt) {
         AddComment(builder, stmt, "alternative statement");
         var s = (AlternativeStmt)stmt;
-        var elseCase = Assert(s.Tok, Bpl.Expr.False, "alternative cases fail to cover all possibilties");
+        var elseCase = Assert(s.Tok, Bpl.Expr.False, new PODesc.AlternativeIsComplete());
         TrAlternatives(s.Alternatives, elseCase, null, builder, locals, etran, stmt.IsGhost);
 
-      } else if (stmt is WhileStmt) {
-        AddComment(builder, stmt, "while statement");
-        this.fuelContext = FuelSetting.ExpandFuelContext(stmt.Attributes, stmt.Tok, this.fuelContext, this.reporter);
-        DefineFuelConstant(stmt.Tok, stmt.Attributes, builder, etran);
-        var s = (WhileStmt)stmt;
-        BodyTranslator bodyTr = null;
-        if (s.Body != null) {
-          bodyTr = delegate (BoogieStmtListBuilder bld, ExpressionTranslator e) {
-            CurrentIdGenerator.Push();
-            TrStmt(s.Body, bld, locals, e);
-            InsertContinueTarget(s, bld);
-            CurrentIdGenerator.Pop();
-          };
-        }
-        TrLoop(s, s.Guard, bodyTr, builder, locals, etran);
-        this.fuelContext = FuelSetting.PopFuelContext();
+      } else if (stmt is WhileStmt whileStmt) {
+        TrWhileStmt(whileStmt, builder, locals, etran);
+
       } else if (stmt is AlternativeLoopStmt) {
         AddComment(builder, stmt, "alternative loop statement");
         var s = (AlternativeLoopStmt)stmt;
@@ -487,98 +326,8 @@ namespace Microsoft.Dafny {
           },
           builder, locals, etran);
 
-      } else if (stmt is ForLoopStmt) {
-        var s = (ForLoopStmt)stmt;
-        AddComment(builder, stmt, "for-loop statement");
-
-        var indexVar = s.LoopIndex;
-        var indexVarName = indexVar.AssignUniqueName(currentDeclaration.IdGenerator);
-        var dIndex = new IdentifierExpr(indexVar.tok, indexVar);
-        var bIndexVar = new Bpl.LocalVariable(indexVar.tok, new Bpl.TypedIdent(indexVar.Tok, indexVarName, TrType(indexVar.Type)));
-        locals.Add(bIndexVar);
-        var bIndex = new Bpl.IdentifierExpr(indexVar.tok, indexVarName);
-
-        var lo = s.GoingUp ? s.Start : s.End;
-        var hi = s.GoingUp ? s.End : s.Start;
-        Expression dLo = null;
-        Expression dHi = null;
-        Bpl.IdentifierExpr bLo = null;
-        Bpl.IdentifierExpr bHi = null;
-        if (lo != null) {
-          var name = indexVarName + "#lo";
-          var bLoVar = new Bpl.LocalVariable(lo.tok, new Bpl.TypedIdent(lo.tok, name, Bpl.Type.Int));
-          locals.Add(bLoVar);
-          bLo = new Bpl.IdentifierExpr(lo.tok, name);
-          CheckWellformed(lo, new WFOptions(null, false), locals, builder, etran);
-          builder.Add(Bpl.Cmd.SimpleAssign(lo.tok, bLo, etran.TrExpr(lo)));
-          dLo = new BoogieWrapper(bLo, lo.Type);
-        }
-        if (hi != null) {
-          var name = indexVarName + "#hi";
-          var bHiVar = new Bpl.LocalVariable(hi.tok, new Bpl.TypedIdent(hi.tok, name, Bpl.Type.Int));
-          locals.Add(bHiVar);
-          bHi = new Bpl.IdentifierExpr(hi.tok, name);
-          CheckWellformed(hi, new WFOptions(null, false), locals, builder, etran);
-          builder.Add(Bpl.Cmd.SimpleAssign(hi.tok, bHi, etran.TrExpr(hi)));
-          dHi = new BoogieWrapper(bHi, hi.Type);
-        }
-
-        // check lo <= hi
-        if (lo != null && hi != null) {
-          builder.Add(Assert(lo.tok, Bpl.Expr.Le(bLo, bHi), "lower bound must not exceed upper bound"));
-        }
-        // check forall x :: lo <= x <= hi ==> Is(x, typ)
-        {
-          // The check, if needed, is performed like this:
-          //   var x: int;
-          //   havoc x;
-          //   assume lo <= x <= hi;
-          //   assert Is(x, typ);
-          var tok = indexVar.tok;
-          var name = indexVarName + "#x";
-          var xVar = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, name, Bpl.Type.Int));
-          var x = new Bpl.IdentifierExpr(tok, name);
-          string msg;
-          var cre = GetSubrangeCheck(x, Type.Int, indexVar.Type, out msg);
-          if (cre != null) {
-            locals.Add(xVar);
-            builder.Add(new Bpl.HavocCmd(tok, new List<Bpl.IdentifierExpr>() { x }));
-            builder.Add(new Bpl.AssumeCmd(tok, ForLoopBounds(x, bLo, bHi)));
-            builder.Add(Assert(tok, cre, "entire range must be assignable to index variable, but some " + msg));
-          }
-        }
-
-        // initialize the index variable
-        builder.Add(Bpl.Cmd.SimpleAssign(indexVar.tok, bIndex, s.GoingUp ? bLo : bHi));
-
-        // build the guard expression
-        Expression guard;
-        if (lo == null || hi == null) {
-          guard = LiteralExpr.CreateBoolLiteral(s.Tok, true);
-        } else {
-          guard = Expression.CreateNot(s.Tok, Expression.CreateEq(dIndex, s.GoingUp ? dHi : dLo, indexVar.Type));
-        }
-
-        // free invariant lo <= i <= hi
-        var freeInvariant = ForLoopBounds(bIndex, bLo, bHi);
-
-        BodyTranslator bodyTr = null;
-        if (s.Body != null) {
-          bodyTr = delegate (BoogieStmtListBuilder bld, ExpressionTranslator e) {
-            CurrentIdGenerator.Push();
-            if (!s.GoingUp) {
-              bld.Add(Bpl.Cmd.SimpleAssign(s.Tok, bIndex, Bpl.Expr.Sub(bIndex, Bpl.Expr.Literal(1))));
-            }
-            TrStmt(s.Body, bld, locals, e);
-            InsertContinueTarget(s, bld);
-            if (s.GoingUp) {
-              bld.Add(Bpl.Cmd.SimpleAssign(s.Tok, bIndex, Bpl.Expr.Add(bIndex, Bpl.Expr.Literal(1))));
-            }
-            CurrentIdGenerator.Pop();
-          };
-        }
-
-        TrLoop(s, guard, bodyTr, builder, locals, etran, freeInvariant, s.Decreases.Expressions.Count != 0);
+      } else if (stmt is ForLoopStmt forLoopStmt) {
+        TrForLoop(forLoopStmt, builder, locals, etran);
 
       } else if (stmt is ModifyStmt) {
         AddComment(builder, stmt, "modify statement");
@@ -586,7 +335,7 @@ namespace Microsoft.Dafny {
         // check well-formedness of the modifies clauses
         CheckFrameWellFormed(new WFOptions(), s.Mod.Expressions, locals, builder, etran);
         // check that the modifies is a subset
-        CheckFrameSubset(s.Tok, s.Mod.Expressions, null, null, etran, builder, "modify statement may violate context's modifies clause", null);
+        CheckFrameSubset(s.Tok, s.Mod.Expressions, null, null, etran, builder, new PODesc.FrameSubset("modify statement", true), null);
         // cause the change of the heap according to the given frame
         var suffix = CurrentIdGenerator.FreshId("modify#");
         string modifyFrameName = "$Frame$" + suffix;
@@ -671,162 +420,16 @@ namespace Microsoft.Dafny {
         }
         CurrentIdGenerator.Pop();
         this.fuelContext = FuelSetting.PopFuelContext();
-      } else if (stmt is CalcStmt) {
-        /* Translate into:
-        if (*) {
-            assert wf(line0);
-        } else if (*) {
-            assume wf(line0);
-            // if op is ==>: assume line0;
-            hint0;
-            assert wf(line1);
-            assert line0 op line1;
-            assume false;
-        } else if (*) { ...
-        } else if (*) {
-            assume wf(line<n-1>);
-            // if op is ==>: assume line<n-1>;
-            hint<n-1>;
-            assert wf(line<n>);
-            assert line<n-1> op line<n>;
-            assume false;
-        }
-        assume line<0> op line<n>;
-        */
-        var s = (CalcStmt)stmt;
-        Contract.Assert(s.Steps.Count == s.Hints.Count); // established by the resolver
-        AddComment(builder, stmt, "calc statement");
-        this.fuelContext = FuelSetting.ExpandFuelContext(stmt.Attributes, stmt.Tok, this.fuelContext, this.reporter);
-        DefineFuelConstant(stmt.Tok, stmt.Attributes, builder, etran);
-        CurrentIdGenerator.Push();  // put the entire calc statement within its own sub-branch
-        if (s.Lines.Count > 0) {
-          Bpl.IfCmd ifCmd = null;
-          BoogieStmtListBuilder b;
-          // if the dangling hint is empty, do not generate anything for the dummy step
-          var stepCount = s.Hints.Last().Body.Count == 0 ? s.Steps.Count - 1 : s.Steps.Count;
-          // check steps:
-          for (int i = stepCount; 0 <= --i;) {
-            b = new BoogieStmtListBuilder(this);
-            // assume wf[line<i>]:
-            AddComment(b, stmt, "assume wf[lhs]");
-            CurrentIdGenerator.Push();
-            assertAsAssume = true;
-            TrStmt_CheckWellformed(CalcStmt.Lhs(s.Steps[i]), b, locals, etran, false);
-            assertAsAssume = false;
-            if (s.Steps[i] is BinaryExpr && (((BinaryExpr)s.Steps[i]).ResolvedOp == BinaryExpr.ResolvedOpcode.Imp)) {
-              // assume line<i>:
-              AddComment(b, stmt, "assume lhs");
-              b.Add(TrAssumeCmd(s.Tok, etran.TrExpr(CalcStmt.Lhs(s.Steps[i]))));
-            }
-            // hint:
-            AddComment(b, stmt, "Hint" + i.ToString());
-            TrStmt(s.Hints[i], b, locals, etran);
-            if (i < s.Steps.Count - 1) { // non-dummy step
-              // check well formedness of the goal line:
-              AddComment(b, stmt, "assert wf[rhs]");
-              if (s.Steps[i] is TernaryExpr) {
-                // check the prefix-equality limit
-                var index = ((TernaryExpr)s.Steps[i]).E0;
-                TrStmt_CheckWellformed(index, b, locals, etran, false);
-                if (index.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
-                  b.Add(AssertNS(index.tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(index)), "prefix-equality limit must be at least 0"));
-                }
-              }
-              TrStmt_CheckWellformed(CalcStmt.Rhs(s.Steps[i]), b, locals, etran, false);
-              bool splitHappened;
-              var ss = TrSplitExpr(s.Steps[i], etran, true, out splitHappened);
-              // assert step:
-              AddComment(b, stmt, "assert line" + i.ToString() + " " + (s.StepOps[i] ?? s.Op).ToString() + " line" + (i + 1).ToString());
-              if (!splitHappened) {
-                b.Add(AssertNS(s.Lines[i + 1].tok, etran.TrExpr(s.Steps[i]), "the calculation step between the previous line and this line might not hold"));
-              } else {
-                foreach (var split in ss) {
-                  if (split.IsChecked) {
-                    b.Add(AssertNS(s.Lines[i + 1].tok, split.E, "the calculation step between the previous line and this line might not hold"));
-                  }
-                }
-              }
-            }
-            b.Add(TrAssumeCmd(s.Tok, Bpl.Expr.False));
-            ifCmd = new Bpl.IfCmd(s.Tok, null, b.Collect(s.Tok), ifCmd, null);
-            CurrentIdGenerator.Pop();
-          }
-          // check well formedness of the first line:
-          b = new BoogieStmtListBuilder(this);
-          AddComment(b, stmt, "assert wf[initial]");
-          Contract.Assert(s.Result != null); // established by the resolver
-          TrStmt_CheckWellformed(CalcStmt.Lhs(s.Result), b, locals, etran, false);
-          b.Add(TrAssumeCmd(s.Tok, Bpl.Expr.False));
-          ifCmd = new Bpl.IfCmd(s.Tok, null, b.Collect(s.Tok), ifCmd, null);
-          builder.Add(ifCmd);
-          // assume result:
-          if (s.Steps.Count > 1) {
-            builder.Add(TrAssumeCmd(s.Tok, etran.TrExpr(s.Result)));
-          }
-        }
-        CurrentIdGenerator.Pop();
-        this.fuelContext = FuelSetting.PopFuelContext();
+
+      } else if (stmt is CalcStmt calcStmt) {
+        TrCalcStmt(calcStmt, builder, locals, etran);
+
       } else if (stmt is ConcreteSyntaxStatement) {
         ConcreteSyntaxStatement s = (ConcreteSyntaxStatement)stmt;
         TrStmt(s.ResolvedStatement, builder, locals, etran);
-      } else if (stmt is MatchStmt) {
-        var s = (MatchStmt)stmt;
-        TrStmt_CheckWellformed(s.Source, builder, locals, etran, true);
-        Bpl.Expr source = etran.TrExpr(s.Source);
-        var b = new BoogieStmtListBuilder(this);
-        b.Add(TrAssumeCmd(stmt.Tok, Bpl.Expr.False));
-        Bpl.StmtList els = b.Collect(stmt.Tok);
-        Bpl.IfCmd ifCmd = null;
-        foreach (var missingCtor in s.MissingCases) {
-          // havoc all bound variables
-          b = new BoogieStmtListBuilder(this);
-          List<Variable> newLocals = new List<Variable>();
-          Bpl.Expr r = CtorInvocation(s.Tok, missingCtor, etran, newLocals, b);
-          locals.AddRange(newLocals);
 
-          if (newLocals.Count != 0) {
-            List<Bpl.IdentifierExpr> havocIds = new List<Bpl.IdentifierExpr>();
-            foreach (Variable local in newLocals) {
-              havocIds.Add(new Bpl.IdentifierExpr(local.tok, local));
-            }
-            builder.Add(new Bpl.HavocCmd(s.Tok, havocIds));
-          }
-          String missingStr = s.Context.FillHole(new IdCtx(new KeyValuePair<string, DatatypeCtor>(missingCtor.Name, missingCtor))).AbstractAllHoles().ToString();
-          b.Add(Assert(s.Tok, Bpl.Expr.False, "missing case in match statement: " + missingStr));
-
-          Bpl.Expr guard = Bpl.Expr.Eq(source, r);
-          ifCmd = new Bpl.IfCmd(s.Tok, guard, b.Collect(s.Tok), ifCmd, els);
-          els = null;
-        }
-        for (int i = s.Cases.Count; 0 <= --i;) {
-          var mc = (MatchCaseStmt)s.Cases[i];
-          CurrentIdGenerator.Push();
-          // havoc all bound variables
-          b = new BoogieStmtListBuilder(this);
-          List<Variable> newLocals = new List<Variable>();
-          Bpl.Expr r = CtorInvocation(mc, s.Source.Type, etran, newLocals, b, s.IsGhost ? NOALLOC : ISALLOC);
-          locals.AddRange(newLocals);
-
-          if (newLocals.Count != 0) {
-            List<Bpl.IdentifierExpr> havocIds = new List<Bpl.IdentifierExpr>();
-            foreach (Variable local in newLocals) {
-              havocIds.Add(new Bpl.IdentifierExpr(local.tok, local));
-            }
-            builder.Add(new Bpl.HavocCmd(mc.tok, havocIds));
-          }
-
-          // translate the body into b
-          var prevDefiniteAssignmentTrackerCount = definiteAssignmentTrackers.Count;
-          TrStmtList(mc.Body, b, locals, etran);
-          RemoveDefiniteAssignmentTrackers(mc.Body, prevDefiniteAssignmentTrackerCount);
-
-          Bpl.Expr guard = Bpl.Expr.Eq(source, r);
-          ifCmd = new Bpl.IfCmd(mc.tok, guard, b.Collect(mc.tok), ifCmd, els);
-          els = null;
-          CurrentIdGenerator.Pop();
-        }
-        Contract.Assert(ifCmd != null);  // follows from the fact that s.Cases.Count + s.MissingCases.Count != 0.
-        builder.Add(ifCmd);
+      } else if (stmt is MatchStmt matchStmt) {
+        TrMatchStmt(matchStmt, builder, locals, etran);
 
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
@@ -907,6 +510,469 @@ namespace Microsoft.Dafny {
       }
     }
 
+    private void TrPredicateStmt(PredicateStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
+      Contract.Requires(stmt != null);
+      Contract.Requires(builder != null);
+      Contract.Requires(locals != null);
+      Contract.Requires(etran != null);
+
+      var stmtBuilder = new BoogieStmtListBuilder(this);
+      string errorMessage = CustomErrorMessage(stmt.Attributes);
+      this.fuelContext = FuelSetting.ExpandFuelContext(stmt.Attributes, stmt.Tok, this.fuelContext, this.reporter);
+      var defineFuel = DefineFuelConstant(stmt.Tok, stmt.Attributes, stmtBuilder, etran);
+      var b = defineFuel ? stmtBuilder : builder;
+      if (stmt is AssertStmt || DafnyOptions.O.DisallowSoundnessCheating) {
+        stmtContext = StmtType.ASSERT;
+        AddComment(b, stmt, "assert statement");
+        TrStmt_CheckWellformed(stmt.Expr, b, locals, etran, false);
+        IToken enclosingToken = null;
+        if (Attributes.Contains(stmt.Attributes, "_prependAssertToken")) {
+          enclosingToken = stmt.Tok;
+        }
+        BoogieStmtListBuilder proofBuilder = null;
+        var assertStmt = stmt as AssertStmt;
+        if (assertStmt != null) {
+          if (assertStmt.Proof != null) {
+            proofBuilder = new BoogieStmtListBuilder(this);
+            AddComment(proofBuilder, stmt, "assert statement proof");
+            CurrentIdGenerator.Push();
+            TrStmt(((AssertStmt)stmt).Proof, proofBuilder, locals, etran);
+            CurrentIdGenerator.Pop();
+          } else if (assertStmt.Label != null) {
+            proofBuilder = new BoogieStmtListBuilder(this);
+            AddComment(proofBuilder, stmt, "assert statement proof");
+          }
+        }
+
+        bool splitHappened;
+        var ss = TrSplitExpr(stmt.Expr, etran, true, out splitHappened);
+        if (!splitHappened) {
+          var tok = enclosingToken == null ? stmt.Expr.tok : new NestedToken(enclosingToken, stmt.Expr.tok);
+          var desc = new PODesc.AssertStatement(errorMessage);
+          (proofBuilder ?? b).Add(Assert(tok, etran.TrExpr(stmt.Expr), desc, stmt.Tok,
+            etran.TrAttributes(stmt.Attributes, null)));
+        } else {
+          foreach (var split in ss) {
+            if (split.IsChecked) {
+              var tok = enclosingToken == null ? split.E.tok : new NestedToken(enclosingToken, split.E.tok);
+              var desc = new PODesc.AssertStatement(errorMessage);
+              (proofBuilder ?? b).Add(AssertNS(tok, split.E, desc, stmt.Tok,
+                etran.TrAttributes(stmt.Attributes, null))); // attributes go on every split
+            }
+          }
+        }
+        if (proofBuilder != null) {
+          PathAsideBlock(stmt.Tok, proofBuilder, b);
+        }
+        stmtContext = StmtType.NONE; // done with translating assert stmt
+        if (splitHappened || proofBuilder != null) {
+          if (assertStmt != null && assertStmt.Label != null) {
+            // make copies of the variables used in the assertion
+            var name = "$Heap_at_" + assertStmt.Label.AssignUniqueId(CurrentIdGenerator);
+            var heapAt = new Bpl.LocalVariable(stmt.Tok, new Bpl.TypedIdent(stmt.Tok, name, predef.HeapType));
+            locals.Add(heapAt);
+            var h = new Bpl.IdentifierExpr(stmt.Tok, heapAt);
+            b.Add(Bpl.Cmd.SimpleAssign(stmt.Tok, h, etran.HeapExpr));
+            var substMap = new Dictionary<IVariable, Expression>();
+            foreach (var v in FreeVariablesUtil.ComputeFreeVariables(assertStmt.Expr)) {
+              if (v is LocalVariable) {
+                var vcopy = new LocalVariable(stmt.Tok, stmt.Tok, string.Format("##{0}#{1}", name, v.Name), v.Type, v.IsGhost);
+                vcopy.type = vcopy.OptionalType; // resolve local here
+                IdentifierExpr ie = new IdentifierExpr(vcopy.Tok, vcopy.AssignUniqueName(currentDeclaration.IdGenerator));
+                ie.Var = vcopy;
+                ie.Type = ie.Var.Type; // resolve ie here
+                substMap.Add(v, ie);
+                locals.Add(new Bpl.LocalVariable(vcopy.Tok,
+                  new Bpl.TypedIdent(vcopy.Tok, vcopy.AssignUniqueName(currentDeclaration.IdGenerator), TrType(vcopy.Type))));
+                b.Add(Bpl.Cmd.SimpleAssign(stmt.Tok, TrVar(stmt.Tok, vcopy), TrVar(stmt.Tok, v)));
+              }
+            }
+            var exprToBeRevealed = Substitute(assertStmt.Expr, null, substMap);
+            var etr = new ExpressionTranslator(etran, h);
+            assertStmt.Label.E = etr.TrExpr(exprToBeRevealed);
+          } else if (!defineFuel) {
+            // Adding the assume stmt, resetting the stmtContext
+            stmtContext = StmtType.ASSUME;
+            adjustFuelForExists = true;
+            b.Add(TrAssumeCmd(stmt.Tok, etran.TrExpr(stmt.Expr)));
+            stmtContext = StmtType.NONE;
+          }
+        }
+        if (defineFuel) {
+          var ifCmd = new Bpl.IfCmd(stmt.Tok, null, b.Collect(stmt.Tok), null,
+            null); // BUGBUG: shouldn't this first append "assume false" to "b"? (use PathAsideBlock to do this)  --KRML
+          builder.Add(ifCmd);
+          // Adding the assume stmt, resetting the stmtContext
+          stmtContext = StmtType.ASSUME;
+          adjustFuelForExists = true;
+          builder.Add(TrAssumeCmd(stmt.Tok, etran.TrExpr(stmt.Expr)));
+          stmtContext = StmtType.NONE;
+        }
+      } else if (stmt is ExpectStmt) {
+        AddComment(builder, stmt, "expect statement");
+        var s = (ExpectStmt)stmt;
+        stmtContext = StmtType.ASSUME;
+        TrStmt_CheckWellformed(s.Expr, builder, locals, etran, false);
+
+        // Need to check the message is well-formed, assuming the expected expression
+        // does NOT hold:
+        //
+        // if Not(TrExpr[[ s.Expr ]]) {
+        //  CheckWellformed[[ s.Message ]]
+        //  assume false;
+        // }
+        BoogieStmtListBuilder thnBuilder = new BoogieStmtListBuilder(this);
+        TrStmt_CheckWellformed(s.Message, thnBuilder, locals, etran, false);
+        thnBuilder.Add(TrAssumeCmd(stmt.Tok, new Bpl.LiteralExpr(stmt.Tok, false), etran.TrAttributes(stmt.Attributes, null)));
+        Bpl.StmtList thn = thnBuilder.Collect(s.Tok);
+        builder.Add(new Bpl.IfCmd(stmt.Tok, Bpl.Expr.Not(etran.TrExpr(s.Expr)), thn, null, null));
+
+        stmtContext = StmtType.NONE; // done with translating expect stmt.
+      } else if (stmt is AssumeStmt) {
+        AddComment(builder, stmt, "assume statement");
+        var s = (AssumeStmt)stmt;
+        stmtContext = StmtType.ASSUME;
+        TrStmt_CheckWellformed(s.Expr, builder, locals, etran, false);
+        builder.Add(TrAssumeCmd(stmt.Tok, etran.TrExpr(s.Expr), etran.TrAttributes(stmt.Attributes, null)));
+        stmtContext = StmtType.NONE; // done with translating assume stmt.
+      }
+      this.fuelContext = FuelSetting.PopFuelContext();
+    }
+
+    private void TrCalcStmt(CalcStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
+      Contract.Requires(stmt != null);
+      Contract.Requires(builder != null);
+      Contract.Requires(locals != null);
+      Contract.Requires(etran != null);
+
+      /* Translate into:
+        if (*) {
+            assert wf(line0);
+        } else if (*) {
+            assume wf(line0);
+            // if op is ==>: assume line0;
+            hint0;
+            assert wf(line1);
+            assert line0 op line1;
+            assume false;
+        } else if (*) { ...
+        } else if (*) {
+            assume wf(line<n-1>);
+            // if op is ==>: assume line<n-1>;
+            hint<n-1>;
+            assert wf(line<n>);
+            assert line<n-1> op line<n>;
+            assume false;
+        }
+        assume line<0> op line<n>;
+        */
+      Contract.Assert(stmt.Steps.Count == stmt.Hints.Count); // established by the resolver
+      AddComment(builder, stmt, "calc statement");
+      this.fuelContext = FuelSetting.ExpandFuelContext(stmt.Attributes, stmt.Tok, this.fuelContext, this.reporter);
+      DefineFuelConstant(stmt.Tok, stmt.Attributes, builder, etran);
+      CurrentIdGenerator.Push(); // put the entire calc statement within its own sub-branch
+      if (stmt.Lines.Count > 0) {
+        Bpl.IfCmd ifCmd = null;
+        BoogieStmtListBuilder b;
+        // if the dangling hint is empty, do not generate anything for the dummy step
+        var stepCount = stmt.Hints.Last().Body.Count == 0 ? stmt.Steps.Count - 1 : stmt.Steps.Count;
+        // check steps:
+        for (int i = stepCount; 0 <= --i;) {
+          b = new BoogieStmtListBuilder(this);
+          // assume wf[line<i>]:
+          AddComment(b, stmt, "assume wf[lhs]");
+          CurrentIdGenerator.Push();
+          assertAsAssume = true;
+          TrStmt_CheckWellformed(CalcStmt.Lhs(stmt.Steps[i]), b, locals, etran, false);
+          assertAsAssume = false;
+          if (stmt.Steps[i] is BinaryExpr && (((BinaryExpr)stmt.Steps[i]).ResolvedOp == BinaryExpr.ResolvedOpcode.Imp)) {
+            // assume line<i>:
+            AddComment(b, stmt, "assume lhs");
+            b.Add(TrAssumeCmd(stmt.Tok, etran.TrExpr(CalcStmt.Lhs(stmt.Steps[i]))));
+          }
+          // hint:
+          AddComment(b, stmt, "Hint" + i.ToString());
+          TrStmt(stmt.Hints[i], b, locals, etran);
+          if (i < stmt.Steps.Count - 1) {
+            // non-dummy step
+            // check well formedness of the goal line:
+            AddComment(b, stmt, "assert wf[rhs]");
+            if (stmt.Steps[i] is TernaryExpr) {
+              // check the prefix-equality limit
+              var index = ((TernaryExpr)stmt.Steps[i]).E0;
+              TrStmt_CheckWellformed(index, b, locals, etran, false);
+              if (index.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
+                var desc = new PODesc.PrefixEqualityLimit();
+                b.Add(AssertNS(index.tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(index)), desc));
+              }
+            }
+            TrStmt_CheckWellformed(CalcStmt.Rhs(stmt.Steps[i]), b, locals, etran, false);
+            bool splitHappened;
+            var ss = TrSplitExpr(stmt.Steps[i], etran, true, out splitHappened);
+            // assert step:
+            AddComment(b, stmt, "assert line" + i.ToString() + " " + (stmt.StepOps[i] ?? stmt.Op).ToString() + " line" + (i + 1).ToString());
+            if (!splitHappened) {
+              b.Add(AssertNS(stmt.Lines[i + 1].tok, etran.TrExpr(stmt.Steps[i]), new PODesc.CalculationStep()));
+            } else {
+              foreach (var split in ss) {
+                if (split.IsChecked) {
+                  b.Add(AssertNS(stmt.Lines[i + 1].tok, split.E, new PODesc.CalculationStep()));
+                }
+              }
+            }
+          }
+          b.Add(TrAssumeCmd(stmt.Tok, Bpl.Expr.False));
+          ifCmd = new Bpl.IfCmd(stmt.Tok, null, b.Collect(stmt.Tok), ifCmd, null);
+          CurrentIdGenerator.Pop();
+        }
+        // check well formedness of the first line:
+        b = new BoogieStmtListBuilder(this);
+        AddComment(b, stmt, "assert wf[initial]");
+        Contract.Assert(stmt.Result != null); // established by the resolver
+        TrStmt_CheckWellformed(CalcStmt.Lhs(stmt.Result), b, locals, etran, false);
+        b.Add(TrAssumeCmd(stmt.Tok, Bpl.Expr.False));
+        ifCmd = new Bpl.IfCmd(stmt.Tok, null, b.Collect(stmt.Tok), ifCmd, null);
+        builder.Add(ifCmd);
+        // assume result:
+        if (stmt.Steps.Count > 1) {
+          builder.Add(TrAssumeCmd(stmt.Tok, etran.TrExpr(stmt.Result)));
+        }
+      }
+      CurrentIdGenerator.Pop();
+      this.fuelContext = FuelSetting.PopFuelContext();
+    }
+
+    private void TrMatchStmt(MatchStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
+      Contract.Requires(stmt != null);
+      Contract.Requires(builder != null);
+      Contract.Requires(locals != null);
+      Contract.Requires(etran != null);
+
+      TrStmt_CheckWellformed(stmt.Source, builder, locals, etran, true);
+      Bpl.Expr source = etran.TrExpr(stmt.Source);
+      var b = new BoogieStmtListBuilder(this);
+      b.Add(TrAssumeCmd(stmt.Tok, Bpl.Expr.False));
+      Bpl.StmtList els = b.Collect(stmt.Tok);
+      Bpl.IfCmd ifCmd = null;
+      foreach (var missingCtor in stmt.MissingCases) {
+        // havoc all bound variables
+        b = new BoogieStmtListBuilder(this);
+        List<Variable> newLocals = new List<Variable>();
+        Bpl.Expr r = CtorInvocation(stmt.Tok, missingCtor, etran, newLocals, b);
+        locals.AddRange(newLocals);
+
+        if (newLocals.Count != 0) {
+          List<Bpl.IdentifierExpr> havocIds = new List<Bpl.IdentifierExpr>();
+          foreach (Variable local in newLocals) {
+            havocIds.Add(new Bpl.IdentifierExpr(local.tok, local));
+          }
+          builder.Add(new Bpl.HavocCmd(stmt.Tok, havocIds));
+        }
+        String missingStr = stmt.Context.FillHole(new IdCtx(new KeyValuePair<string, DatatypeCtor>(missingCtor.Name, missingCtor))).AbstractAllHoles()
+          .ToString();
+        var desc = new PODesc.MatchIsComplete("statement", missingStr);
+        b.Add(Assert(stmt.Tok, Bpl.Expr.False, desc));
+
+        Bpl.Expr guard = Bpl.Expr.Eq(source, r);
+        ifCmd = new Bpl.IfCmd(stmt.Tok, guard, b.Collect(stmt.Tok), ifCmd, els);
+        els = null;
+      }
+      for (int i = stmt.Cases.Count; 0 <= --i;) {
+        var mc = (MatchCaseStmt)stmt.Cases[i];
+        CurrentIdGenerator.Push();
+        // havoc all bound variables
+        b = new BoogieStmtListBuilder(this);
+        List<Variable> newLocals = new List<Variable>();
+        Bpl.Expr r = CtorInvocation(mc, stmt.Source.Type, etran, newLocals, b, stmt.IsGhost ? NOALLOC : ISALLOC);
+        locals.AddRange(newLocals);
+
+        if (newLocals.Count != 0) {
+          List<Bpl.IdentifierExpr> havocIds = new List<Bpl.IdentifierExpr>();
+          foreach (Variable local in newLocals) {
+            havocIds.Add(new Bpl.IdentifierExpr(local.tok, local));
+          }
+          builder.Add(new Bpl.HavocCmd(mc.tok, havocIds));
+        }
+
+        // translate the body into b
+        var prevDefiniteAssignmentTrackerCount = definiteAssignmentTrackers.Count;
+        TrStmtList(mc.Body, b, locals, etran);
+        RemoveDefiniteAssignmentTrackers(mc.Body, prevDefiniteAssignmentTrackerCount);
+
+        Bpl.Expr guard = Bpl.Expr.Eq(source, r);
+        ifCmd = new Bpl.IfCmd(mc.tok, guard, b.Collect(mc.tok), ifCmd, els);
+        els = null;
+        CurrentIdGenerator.Pop();
+      }
+      Contract.Assert(ifCmd != null); // follows from the fact that s.Cases.Count + s.MissingCases.Count != 0.
+      builder.Add(ifCmd);
+    }
+
+    private void TrForLoop(ForLoopStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
+      Contract.Requires(stmt != null);
+      Contract.Requires(builder != null);
+      Contract.Requires(locals != null);
+      Contract.Requires(etran != null);
+
+      AddComment(builder, stmt, "for-loop statement");
+
+      var indexVar = stmt.LoopIndex;
+      var indexVarName = indexVar.AssignUniqueName(currentDeclaration.IdGenerator);
+      var dIndex = new IdentifierExpr(indexVar.tok, indexVar);
+      var bIndexVar = new Bpl.LocalVariable(indexVar.tok, new Bpl.TypedIdent(indexVar.Tok, indexVarName, TrType(indexVar.Type)));
+      locals.Add(bIndexVar);
+      var bIndex = new Bpl.IdentifierExpr(indexVar.tok, indexVarName);
+
+      var lo = stmt.GoingUp ? stmt.Start : stmt.End;
+      var hi = stmt.GoingUp ? stmt.End : stmt.Start;
+      Expression dLo = null;
+      Expression dHi = null;
+      Bpl.IdentifierExpr bLo = null;
+      Bpl.IdentifierExpr bHi = null;
+      if (lo != null) {
+        var name = indexVarName + "#lo";
+        var bLoVar = new Bpl.LocalVariable(lo.tok, new Bpl.TypedIdent(lo.tok, name, Bpl.Type.Int));
+        locals.Add(bLoVar);
+        bLo = new Bpl.IdentifierExpr(lo.tok, name);
+        CheckWellformed(lo, new WFOptions(null, false), locals, builder, etran);
+        builder.Add(Bpl.Cmd.SimpleAssign(lo.tok, bLo, etran.TrExpr(lo)));
+        dLo = new BoogieWrapper(bLo, lo.Type);
+      }
+      if (hi != null) {
+        var name = indexVarName + "#hi";
+        var bHiVar = new Bpl.LocalVariable(hi.tok, new Bpl.TypedIdent(hi.tok, name, Bpl.Type.Int));
+        locals.Add(bHiVar);
+        bHi = new Bpl.IdentifierExpr(hi.tok, name);
+        CheckWellformed(hi, new WFOptions(null, false), locals, builder, etran);
+        builder.Add(Bpl.Cmd.SimpleAssign(hi.tok, bHi, etran.TrExpr(hi)));
+        dHi = new BoogieWrapper(bHi, hi.Type);
+      }
+
+      // check lo <= hi
+      if (lo != null && hi != null) {
+        builder.Add(Assert(lo.tok, Bpl.Expr.Le(bLo, bHi), new PODesc.ForRangeBoundsValid()));
+      }
+      // check forall x :: lo <= x <= hi ==> Is(x, typ)
+      {
+        // The check, if needed, is performed like this:
+        //   var x: int;
+        //   havoc x;
+        //   assume lo <= x <= hi;
+        //   assert Is(x, typ);
+        var tok = indexVar.tok;
+        var name = indexVarName + "#x";
+        var xVar = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, name, Bpl.Type.Int));
+        var x = new Bpl.IdentifierExpr(tok, name);
+        var cre = GetSubrangeCheck(x, Type.Int, indexVar.Type, out var desc);
+        if (cre != null) {
+          locals.Add(xVar);
+          builder.Add(new Bpl.HavocCmd(tok, new List<Bpl.IdentifierExpr>() { x }));
+          builder.Add(new Bpl.AssumeCmd(tok, ForLoopBounds(x, bLo, bHi)));
+          builder.Add(Assert(tok, cre, new PODesc.ForRangeAssignable(desc)));
+        }
+      }
+
+      // initialize the index variable
+      builder.Add(Bpl.Cmd.SimpleAssign(indexVar.tok, bIndex, stmt.GoingUp ? bLo : bHi));
+
+      // build the guard expression
+      Expression guard;
+      if (lo == null || hi == null) {
+        guard = LiteralExpr.CreateBoolLiteral(stmt.Tok, true);
+      } else {
+        guard = Expression.CreateNot(stmt.Tok, Expression.CreateEq(dIndex, stmt.GoingUp ? dHi : dLo, indexVar.Type));
+      }
+
+      // free invariant lo <= i <= hi
+      var freeInvariant = ForLoopBounds(bIndex, bLo, bHi);
+
+      BodyTranslator bodyTr = null;
+      if (stmt.Body != null) {
+        bodyTr = delegate (BoogieStmtListBuilder bld, ExpressionTranslator e) {
+          CurrentIdGenerator.Push();
+          if (!stmt.GoingUp) {
+            bld.Add(Bpl.Cmd.SimpleAssign(stmt.Tok, bIndex, Bpl.Expr.Sub(bIndex, Bpl.Expr.Literal(1))));
+          }
+          TrStmt(stmt.Body, bld, locals, e);
+          InsertContinueTarget(stmt, bld);
+          if (stmt.GoingUp) {
+            bld.Add(Bpl.Cmd.SimpleAssign(stmt.Tok, bIndex, Bpl.Expr.Add(bIndex, Bpl.Expr.Literal(1))));
+          }
+          CurrentIdGenerator.Pop();
+        };
+      }
+
+      TrLoop(stmt, guard, bodyTr, builder, locals, etran, freeInvariant, stmt.Decreases.Expressions.Count != 0);
+    }
+
+    private void TrWhileStmt(WhileStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
+      Contract.Requires(stmt != null);
+      Contract.Requires(builder != null);
+      Contract.Requires(locals != null);
+      Contract.Requires(etran != null);
+
+      AddComment(builder, stmt, "while statement");
+      this.fuelContext = FuelSetting.ExpandFuelContext(stmt.Attributes, stmt.Tok, this.fuelContext, this.reporter);
+      DefineFuelConstant(stmt.Tok, stmt.Attributes, builder, etran);
+      BodyTranslator bodyTr = null;
+      if (stmt.Body != null) {
+        bodyTr = delegate (BoogieStmtListBuilder bld, ExpressionTranslator e) {
+          CurrentIdGenerator.Push();
+          TrStmt(stmt.Body, bld, locals, e);
+          InsertContinueTarget(stmt, bld);
+          CurrentIdGenerator.Pop();
+        };
+      }
+      TrLoop(stmt, stmt.Guard, bodyTr, builder, locals, etran);
+      this.fuelContext = FuelSetting.PopFuelContext();
+    }
+
+    private void TrIfStmt(IfStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
+      Contract.Requires(stmt != null);
+      Contract.Requires(builder != null);
+      Contract.Requires(locals != null);
+      Contract.Requires(etran != null);
+
+      AddComment(builder, stmt, "if statement");
+      Expression guard;
+      if (stmt.Guard == null) {
+        guard = null;
+      } else {
+        guard = stmt.IsBindingGuard ? AlphaRename((ExistsExpr)stmt.Guard, "eg$") : stmt.Guard;
+        TrStmt_CheckWellformed(guard, builder, locals, etran, true);
+      }
+      BoogieStmtListBuilder b = new BoogieStmtListBuilder(this);
+      if (stmt.IsBindingGuard) {
+        CurrentIdGenerator.Push();
+        var exists = (ExistsExpr)stmt.Guard; // the original (that is, not alpha-renamed) guard
+        IntroduceAndAssignExistentialVars(exists, b, builder, locals, etran, stmt.IsGhost);
+        CurrentIdGenerator.Pop();
+      }
+      CurrentIdGenerator.Push();
+      Bpl.StmtList thn = TrStmt2StmtList(b, stmt.Thn, locals, etran);
+      CurrentIdGenerator.Pop();
+      Bpl.StmtList els;
+      Bpl.IfCmd elsIf = null;
+      b = new BoogieStmtListBuilder(this);
+      if (stmt.IsBindingGuard) {
+        b.Add(TrAssumeCmd(guard.tok, Bpl.Expr.Not(etran.TrExpr(guard))));
+      }
+      if (stmt.Els == null) {
+        els = b.Collect(stmt.Tok);
+      } else {
+        CurrentIdGenerator.Push();
+        els = TrStmt2StmtList(b, stmt.Els, locals, etran);
+        CurrentIdGenerator.Pop();
+        if (els.BigBlocks.Count == 1) {
+          Bpl.BigBlock bb = els.BigBlocks[0];
+          if (bb.LabelName == null && bb.simpleCmds.Count == 0 && bb.ec is Bpl.IfCmd) {
+            elsIf = (Bpl.IfCmd)bb.ec;
+            els = null;
+          }
+        }
+      }
+      builder.Add(new Bpl.IfCmd(stmt.Tok, guard == null || stmt.IsBindingGuard ? null : etran.TrExpr(guard), thn, elsIf, els));
+    }
 
 
     void TrForallProof(ForallStmt s, BoogieStmtListBuilder definedness, BoogieStmtListBuilder exporter, List<Variable> locals, ExpressionTranslator etran) {
@@ -960,7 +1026,7 @@ namespace Microsoft.Dafny {
           bool splitHappened;  // we actually don't care
           foreach (var split in TrSplitExpr(ens.E, etran, true, out splitHappened)) {
             if (split.IsChecked) {
-              definedness.Add(Assert(split.E.tok, split.E, "possible violation of postcondition of forall statement"));
+              definedness.Add(Assert(split.E.tok, split.E, new PODesc.ForallPostcondition()));
             }
           }
         }
@@ -1092,7 +1158,7 @@ namespace Microsoft.Dafny {
       Bpl.Expr obj, F;
       string description = GetObjFieldDetails(lhs, etran, out obj, out F);
       definedness.Add(Assert(lhs.tok, Bpl.Expr.SelectTok(lhs.tok, etran.TheFrame(lhs.tok), obj, F),
-        "assignment may update " + description + " not in the enclosing context's modifies clause"));
+        new PODesc.Modifiable(description)));
       if (s0.Rhs is ExprRhs) {
         var r = (ExprRhs)s0.Rhs;
         var rhs = Substitute(r.Expr, null, substMap);
@@ -1140,7 +1206,7 @@ namespace Microsoft.Dafny {
           Bpl.Expr.Or(
             Bpl.Expr.Or(Bpl.Expr.Neq(obj, objPrime), Bpl.Expr.Neq(F, FPrime)),
             Bpl.Expr.Eq(rhs, rhsPrime)),
-          "left-hand sides for different forall-statement bound variables may refer to the same location"));
+          new PODesc.ForallLHSUnique()));
       }
 
       definedness.Add(TrAssumeCmd(s.Tok, Bpl.Expr.False));
@@ -1250,465 +1316,6 @@ namespace Microsoft.Dafny {
       return new Bpl.ForallExpr(tok, xBvars, tr, Bpl.Expr.Imp(xAnte, Bpl.Expr.Eq(xHeapOF, g)));
     }
 
-    private void TrIfStmt(IfStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
-      AddComment(builder, stmt, "if statement");
-      Expression guard;
-      if (stmt.Guard == null) {
-        guard = null;
-      } else {
-        guard = stmt.IsBindingGuard ? AlphaRename((ExistsExpr)stmt.Guard, "eg$") : stmt.Guard;
-        TrStmt_CheckWellformed(guard, builder, locals, etran, true);
-      }
-
-      BoogieStmtListBuilder b = new BoogieStmtListBuilder(this);
-      CurrentIdGenerator.Push();
-      if (stmt.IsBindingGuard) {
-        var exists = (ExistsExpr)stmt.Guard; // the original (that is, not alpha-renamed) guard
-        IntroduceAndAssignExistentialVars(exists, b, builder, locals, etran, stmt.IsGhost);
-      }
-
-      Boogie.StmtList thn = TrStmt2StmtList(b, stmt.Thn, locals, etran);
-      CurrentIdGenerator.Pop();
-      Boogie.StmtList els;
-      Boogie.IfCmd elsIf = null;
-      b = new BoogieStmtListBuilder(this);
-      if (stmt.IsBindingGuard) {
-        b.Add(TrAssumeCmd(guard.tok, Boogie.Expr.Not(etran.TrExpr(guard))));
-      }
-
-      if (stmt.Els == null) {
-        els = b.Collect(stmt.Tok);
-      } else {
-        els = TrStmt2StmtList(b, stmt.Els, locals, etran);
-        if (els.BigBlocks.Count == 1) {
-          Boogie.BigBlock bb = els.BigBlocks[0];
-          if (bb.LabelName == null && bb.simpleCmds.Count == 0 && bb.ec is Boogie.IfCmd) {
-            elsIf = (Boogie.IfCmd)bb.ec;
-            els = null;
-          }
-        }
-      }
-
-      builder.Add(new Boogie.IfCmd(stmt.Tok, guard == null || stmt.IsBindingGuard ? null : etran.TrExpr(guard), thn,
-        elsIf, els));
-    }
-
-    private void TrWhileStmt(BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran, WhileStmt whileStmt) {
-      AddComment(builder, whileStmt, "while statement");
-      this.fuelContext =
-        FuelSetting.ExpandFuelContext(whileStmt.Attributes, whileStmt.Tok, this.fuelContext, this.reporter);
-      DefineFuelConstant(whileStmt.Tok, whileStmt.Attributes, builder, etran);
-      BodyTranslator bodyTr = null;
-      if (whileStmt.Body != null) {
-        bodyTr = delegate (BoogieStmtListBuilder bld, ExpressionTranslator e) {
-          CurrentIdGenerator.Push();
-          TrStmt(whileStmt.Body, bld, locals, e);
-          CurrentIdGenerator.Pop();
-        };
-      }
-
-      TrLoop(whileStmt, whileStmt.Guard, bodyTr, builder, locals, etran);
-      this.fuelContext = FuelSetting.PopFuelContext();
-    }
-
-    private void TrForLoop(ForLoopStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
-      AddComment(builder, stmt, "for-loop statement");
-
-      var indexVar = stmt.LoopIndex;
-      var indexVarName = indexVar.AssignUniqueName(currentDeclaration.IdGenerator);
-      var dIndex = new IdentifierExpr(indexVar.tok, indexVar);
-      var bIndexVar = new Boogie.LocalVariable(indexVar.tok,
-        new Boogie.TypedIdent(indexVar.Tok, indexVarName, TrType(indexVar.Type)));
-      locals.Add(bIndexVar);
-      var bIndex = new Boogie.IdentifierExpr(indexVar.tok, indexVarName);
-
-      var lo = stmt.GoingUp ? stmt.Start : stmt.End;
-      var hi = stmt.GoingUp ? stmt.End : stmt.Start;
-      Expression dLo = null;
-      Expression dHi = null;
-      Boogie.IdentifierExpr bLo = null;
-      Boogie.IdentifierExpr bHi = null;
-      if (lo != null) {
-        var name = indexVarName + "#lo";
-        var bLoVar = new Boogie.LocalVariable(lo.tok, new Boogie.TypedIdent(lo.tok, name, Boogie.Type.Int));
-        locals.Add(bLoVar);
-        bLo = new Boogie.IdentifierExpr(lo.tok, name);
-        CheckWellformed(lo, new WFOptions(null, false), locals, builder, etran);
-        builder.Add(Boogie.Cmd.SimpleAssign(lo.tok, bLo, etran.TrExpr(lo)));
-        dLo = new BoogieWrapper(bLo, lo.Type);
-      }
-
-      if (hi != null) {
-        var name = indexVarName + "#hi";
-        var bHiVar = new Boogie.LocalVariable(hi.tok, new Boogie.TypedIdent(hi.tok, name, Boogie.Type.Int));
-        locals.Add(bHiVar);
-        bHi = new Boogie.IdentifierExpr(hi.tok, name);
-        CheckWellformed(hi, new WFOptions(null, false), locals, builder, etran);
-        builder.Add(Boogie.Cmd.SimpleAssign(hi.tok, bHi, etran.TrExpr(hi)));
-        dHi = new BoogieWrapper(bHi, hi.Type);
-      }
-
-      // check lo <= hi
-      if (lo != null && hi != null) {
-        builder.Add(Assert(lo.tok, Boogie.Expr.Le(bLo, bHi), "lower bound must not exceed upper bound"));
-      }
-
-      // check forall x :: lo <= x <= hi ==> Is(x, typ)
-      {
-        // The check, if needed, is performed like this:
-        //   var x: int;
-        //   havoc x;
-        //   assume lo <= x <= hi;
-        //   assert Is(x, typ);
-        var tok = indexVar.tok;
-        var name = indexVarName + "#x";
-        var xVar = new Boogie.LocalVariable(tok, new Boogie.TypedIdent(tok, name, Boogie.Type.Int));
-        var x = new Boogie.IdentifierExpr(tok, name);
-        string msg;
-        var cre = GetSubrangeCheck(x, Type.Int, indexVar.Type, out msg);
-        if (cre != null) {
-          locals.Add(xVar);
-          builder.Add(new Boogie.HavocCmd(tok, new List<Boogie.IdentifierExpr>() { x }));
-          builder.Add(new Boogie.AssumeCmd(tok, ForLoopBounds(x, bLo, bHi)));
-          builder.Add(Assert(tok, cre, "entire range must be assignable to index variable, but some " + msg));
-        }
-      }
-
-      // initialize the index variable
-      builder.Add(Boogie.Cmd.SimpleAssign(indexVar.tok, bIndex, stmt.GoingUp ? bLo : bHi));
-
-      // build the guard expression
-      Expression guard;
-      if (lo == null || hi == null) {
-        guard = LiteralExpr.CreateBoolLiteral(stmt.Tok, true);
-      } else {
-        guard = Expression.CreateNot(stmt.Tok, Expression.CreateEq(dIndex, stmt.GoingUp ? dHi : dLo, indexVar.Type));
-      }
-
-      // free invariant lo <= i <= hi
-      var freeInvariant = ForLoopBounds(bIndex, bLo, bHi);
-
-      BodyTranslator bodyTr = null;
-      if (stmt.Body != null) {
-        bodyTr = delegate (BoogieStmtListBuilder bld, ExpressionTranslator e) {
-          CurrentIdGenerator.Push();
-          if (!stmt.GoingUp) {
-            bld.Add(Boogie.Cmd.SimpleAssign(stmt.Tok, bIndex, Boogie.Expr.Sub(bIndex, Boogie.Expr.Literal(1))));
-          }
-
-          TrStmt(stmt.Body, bld, locals, e);
-          if (stmt.GoingUp) {
-            bld.Add(Boogie.Cmd.SimpleAssign(stmt.Tok, bIndex, Boogie.Expr.Add(bIndex, Boogie.Expr.Literal(1))));
-          }
-
-          CurrentIdGenerator.Pop();
-        };
-      }
-
-      TrLoop(stmt, guard, bodyTr, builder, locals, etran, freeInvariant, stmt.Decreases.Expressions.Count != 0);
-    }
-
-    private void TrMatchStmt(MatchStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
-      TrStmt_CheckWellformed(stmt.Source, builder, locals, etran, true);
-      Boogie.Expr source = etran.TrExpr(stmt.Source);
-      var b = new BoogieStmtListBuilder(this);
-      b.Add(TrAssumeCmd(stmt.Tok, Boogie.Expr.False));
-      Boogie.StmtList els = b.Collect(stmt.Tok);
-      Boogie.IfCmd ifCmd = null;
-      foreach (var missingCtor in stmt.MissingCases) {
-        // havoc all bound variables
-        b = new BoogieStmtListBuilder(this);
-        List<Variable> newLocals = new List<Variable>();
-        Boogie.Expr r = CtorInvocation(stmt.Tok, missingCtor, etran, newLocals, b);
-        locals.AddRange(newLocals);
-
-        if (newLocals.Count != 0) {
-          List<Boogie.IdentifierExpr> havocIds = new List<Boogie.IdentifierExpr>();
-          foreach (Variable local in newLocals) {
-            havocIds.Add(new Boogie.IdentifierExpr(local.tok, local));
-          }
-
-          builder.Add(new Boogie.HavocCmd(stmt.Tok, havocIds));
-        }
-
-        String missingStr = stmt.Context
-          .FillHole(new IdCtx(new KeyValuePair<string, DatatypeCtor>(missingCtor.Name, missingCtor)))
-          .AbstractAllHoles().ToString();
-        b.Add(Assert(stmt.Tok, Boogie.Expr.False, "missing case in match statement: " + missingStr));
-
-        Boogie.Expr guard = Boogie.Expr.Eq(source, r);
-        ifCmd = new Boogie.IfCmd(stmt.Tok, guard, b.Collect(stmt.Tok), ifCmd, els);
-        els = null;
-      }
-
-      for (int i = stmt.Cases.Count; 0 <= --i;) {
-        var mc = stmt.Cases[i];
-        CurrentIdGenerator.Push();
-        // havoc all bound variables
-        b = new BoogieStmtListBuilder(this);
-        List<Variable> newLocals = new List<Variable>();
-        Boogie.Expr r = CtorInvocation(mc, stmt.Source.Type, etran, newLocals, b, stmt.IsGhost ? NOALLOC : ISALLOC);
-        locals.AddRange(newLocals);
-
-        if (newLocals.Count != 0) {
-          List<Boogie.IdentifierExpr> havocIds = new List<Boogie.IdentifierExpr>();
-          foreach (Variable local in newLocals) {
-            havocIds.Add(new Boogie.IdentifierExpr(local.tok, local));
-          }
-
-          builder.Add(new Boogie.HavocCmd(mc.tok, havocIds));
-        }
-
-        // translate the body into b
-        var prevDefiniteAssignmentTrackerCount = definiteAssignmentTrackers.Count;
-        TrStmtList(mc.Body, b, locals, etran);
-        RemoveDefiniteAssignmentTrackers(mc.Body, prevDefiniteAssignmentTrackerCount);
-
-        Boogie.Expr guard = Boogie.Expr.Eq(source, r);
-        ifCmd = new Boogie.IfCmd(mc.tok, guard, b.Collect(mc.tok), ifCmd, els);
-        els = null;
-        CurrentIdGenerator.Pop();
-      }
-
-      Contract.Assert(ifCmd != null); // follows from the fact that stmt.Cases.Count + stmt.MissingCases.Count != 0.
-      builder.Add(ifCmd);
-    }
-
-    private void TrCalcStmt(CalcStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
-      /* Translate into:
-        if (*) {
-            assert wf(line0);
-        } else if (*) {
-            assume wf(line0);
-            // if op is ==>: assume line0;
-            hint0;
-            assert wf(line1);
-            assert line0 op line1;
-            assume false;
-        } else if (*) { ...
-        } else if (*) {
-            assume wf(line<n-1>);
-            // if op is ==>: assume line<n-1>;
-            hint<n-1>;
-            assert wf(line<n>);
-            assert line<n-1> op line<n>;
-            assume false;
-        }
-        assume line<0> op line<n>;
-        */
-      Contract.Assert(stmt.Steps.Count == stmt.Hints.Count); // established by the resolver
-      AddComment(builder, stmt, "calc statement");
-      this.fuelContext = FuelSetting.ExpandFuelContext(stmt.Attributes, stmt.Tok, this.fuelContext, this.reporter);
-      DefineFuelConstant(stmt.Tok, stmt.Attributes, builder, etran);
-      CurrentIdGenerator.Push(); // put the entire calc statement within its own sub-branch
-      if (stmt.Lines.Count > 0) {
-        Boogie.IfCmd ifCmd = null;
-        BoogieStmtListBuilder b;
-        // if the dangling hint is empty, do not generate anything for the dummy step
-        var stepCount = stmt.Hints.Last().Body.Count == 0 ? stmt.Steps.Count - 1 : stmt.Steps.Count;
-        // check steps:
-        for (int i = stepCount; 0 <= --i;) {
-          b = new BoogieStmtListBuilder(this);
-          // assume wf[line<i>]:
-          AddComment(b, stmt, "assume wf[lhs]");
-          CurrentIdGenerator.Push();
-          assertAsAssume = true;
-          TrStmt_CheckWellformed(CalcStmt.Lhs(stmt.Steps[i]), b, locals, etran, false);
-          assertAsAssume = false;
-          if (stmt.Steps[i] is BinaryExpr && (((BinaryExpr)stmt.Steps[i]).ResolvedOp == BinaryExpr.ResolvedOpcode.Imp)) {
-            // assume line<i>:
-            AddComment(b, stmt, "assume lhs");
-            b.Add(TrAssumeCmd(stmt.Tok, etran.TrExpr(CalcStmt.Lhs(stmt.Steps[i]))));
-          }
-
-          // hint:
-          AddComment(b, stmt, "Hint" + i.ToString());
-          TrStmt(stmt.Hints[i], b, locals, etran);
-          if (i < stmt.Steps.Count - 1) {
-            // non-dummy step
-            // check well formedness of the goal line:
-            AddComment(b, stmt, "assert wf[rhs]");
-            if (stmt.Steps[i] is TernaryExpr) {
-              // check the prefix-equality limit
-              var index = ((TernaryExpr)stmt.Steps[i]).E0;
-              TrStmt_CheckWellformed(index, b, locals, etran, false);
-              if (index.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
-                b.Add(AssertNS(index.tok, Boogie.Expr.Le(Boogie.Expr.Literal(0), etran.TrExpr(index)),
-                  "prefix-equality limit must be at least 0"));
-              }
-            }
-
-            TrStmt_CheckWellformed(CalcStmt.Rhs(stmt.Steps[i]), b, locals, etran, false);
-            bool splitHappened;
-            var ss = TrSplitExpr(stmt.Steps[i], etran, true, out splitHappened);
-            // assert step:
-            AddComment(b, stmt,
-              "assert line" + i.ToString() + " " + (stmt.StepOps[i] ?? stmt.Op).ToString() + " line" + (i + 1).ToString());
-            if (!splitHappened) {
-              b.Add(AssertNS(stmt.Lines[i + 1].tok, etran.TrExpr(stmt.Steps[i]),
-                "the calculation step between the previous line and this line might not hold"));
-            } else {
-              foreach (var split in ss) {
-                if (split.IsChecked) {
-                  b.Add(AssertNS(stmt.Lines[i + 1].tok, split.E,
-                    "the calculation step between the previous line and this line might not hold"));
-                }
-              }
-            }
-          }
-
-          b.Add(TrAssumeCmd(stmt.Tok, Boogie.Expr.False));
-          ifCmd = new Boogie.IfCmd(stmt.Tok, null, b.Collect(stmt.Tok), ifCmd, null);
-          CurrentIdGenerator.Pop();
-        }
-
-        // check well formedness of the first line:
-        b = new BoogieStmtListBuilder(this);
-        AddComment(b, stmt, "assert wf[initial]");
-        Contract.Assert(stmt.Result != null); // established by the resolver
-        TrStmt_CheckWellformed(CalcStmt.Lhs(stmt.Result), b, locals, etran, false);
-        b.Add(TrAssumeCmd(stmt.Tok, Boogie.Expr.False));
-        ifCmd = new Boogie.IfCmd(stmt.Tok, null, b.Collect(stmt.Tok), ifCmd, null);
-        builder.Add(ifCmd);
-        // assume result:
-        if (stmt.Steps.Count > 1) {
-          builder.Add(TrAssumeCmd(stmt.Tok, etran.TrExpr(stmt.Result)));
-        }
-      }
-
-      CurrentIdGenerator.Pop();
-      this.fuelContext = FuelSetting.PopFuelContext();
-    }
-
-    private void TrPredicateStmt(PredicateStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
-      var stmtBuilder = new BoogieStmtListBuilder(this);
-      string errorMessage = CustomErrorMessage(stmt.Attributes);
-      this.fuelContext = FuelSetting.ExpandFuelContext(stmt.Attributes, stmt.Tok, this.fuelContext, this.reporter);
-      var defineFuel = DefineFuelConstant(stmt.Tok, stmt.Attributes, stmtBuilder, etran);
-      var b = defineFuel ? stmtBuilder : builder;
-      if (stmt is AssertStmt || DafnyOptions.O.DisallowSoundnessCheating) {
-        stmtContext = StmtType.ASSERT;
-        AddComment(b, stmt, "assert statement");
-        TrStmt_CheckWellformed(stmt.Expr, b, locals, etran, false);
-        IToken enclosingToken = null;
-        if (Attributes.Contains(stmt.Attributes, "_prependAssertToken")) {
-          enclosingToken = stmt.Tok;
-        }
-
-        BoogieStmtListBuilder proofBuilder = null;
-        var assertStmt = stmt as AssertStmt;
-        if (assertStmt != null) {
-          if (assertStmt.Proof != null) {
-            proofBuilder = new BoogieStmtListBuilder(this);
-            AddComment(proofBuilder, stmt, "assert statement proof");
-            TrStmt(((AssertStmt)stmt).Proof, proofBuilder, locals, etran);
-          } else if (assertStmt.Label != null) {
-            proofBuilder = new BoogieStmtListBuilder(this);
-            AddComment(proofBuilder, stmt, "assert statement proof");
-          }
-        }
-
-        var ss = TrSplitExpr(stmt.Expr, etran, true, out var splitHappened);
-        if (!splitHappened) {
-          var tok = enclosingToken == null ? stmt.Expr.tok : new NestedToken(enclosingToken, stmt.Expr.tok);
-          (proofBuilder ?? b).Add(Assert(tok, etran.TrExpr(stmt.Expr), errorMessage ?? "assertion violation", stmt.Tok,
-            etran.TrAttributes(stmt.Attributes, null)));
-        } else {
-          foreach (var split in ss) {
-            if (split.IsChecked) {
-              var tok = enclosingToken == null ? split.E.tok : new NestedToken(enclosingToken, split.E.tok);
-              (proofBuilder ?? b).Add(AssertNS(tok, split.E, errorMessage ?? "assertion violation", stmt.Tok,
-                etran.TrAttributes(stmt.Attributes, null))); // attributes go on every split
-            }
-          }
-        }
-
-        if (proofBuilder != null) {
-          PathAsideBlock(stmt.Tok, proofBuilder, b);
-        }
-
-        stmtContext = StmtType.NONE; // done with translating assert stmt
-        if (splitHappened || proofBuilder != null) {
-          if (assertStmt != null && assertStmt.Label != null) {
-            // make copies of the variables used in the assertion
-            var name = "$Heap_at_" + assertStmt.Label.AssignUniqueId(CurrentIdGenerator);
-            var heapAt = new Boogie.LocalVariable(stmt.Tok, new Boogie.TypedIdent(stmt.Tok, name, predef.HeapType));
-            locals.Add(heapAt);
-            var h = new Boogie.IdentifierExpr(stmt.Tok, heapAt);
-            b.Add(Boogie.Cmd.SimpleAssign(stmt.Tok, h, etran.HeapExpr));
-            var substMap = new Dictionary<IVariable, Expression>();
-            foreach (var v in FreeVariablesUtil.ComputeFreeVariables(assertStmt.Expr)) {
-              if (v is LocalVariable) {
-                var vcopy = new LocalVariable(stmt.Tok, stmt.Tok, string.Format("##{0}#{1}", name, v.Name), v.Type,
-                  v.IsGhost);
-                vcopy.type = vcopy.OptionalType; // resolve local here
-                IdentifierExpr ie =
-                  new IdentifierExpr(vcopy.Tok, vcopy.AssignUniqueName(currentDeclaration.IdGenerator));
-                ie.Var = vcopy;
-                ie.Type = ie.Var.Type; // resolve ie here
-                substMap.Add(v, ie);
-                locals.Add(new Boogie.LocalVariable(vcopy.Tok,
-                  new Boogie.TypedIdent(vcopy.Tok, vcopy.AssignUniqueName(currentDeclaration.IdGenerator),
-                    TrType(vcopy.Type))));
-                b.Add(Boogie.Cmd.SimpleAssign(stmt.Tok, TrVar(stmt.Tok, vcopy), TrVar(stmt.Tok, v)));
-              }
-            }
-
-            var exprToBeRevealed = Substitute(assertStmt.Expr, null, substMap);
-            var etr = new ExpressionTranslator(etran, h);
-            assertStmt.Label.E = etr.TrExpr(exprToBeRevealed);
-          } else if (!defineFuel) {
-            // Adding the assume stmt, resetting the stmtContext
-            stmtContext = StmtType.ASSUME;
-            adjustFuelForExists = true;
-            b.Add(TrAssumeCmd(stmt.Tok, etran.TrExpr(stmt.Expr)));
-            stmtContext = StmtType.NONE;
-          }
-        }
-
-        if (defineFuel) {
-          var ifCmd = new Boogie.IfCmd(stmt.Tok, null, b.Collect(stmt.Tok), null,
-            null); // BUGBUG: shouldn't this first append "assume false" to "b"? (use PathAsideBlock to do this)  --KRML
-          builder.Add(ifCmd);
-          // Adding the assume stmt, resetting the stmtContext
-          stmtContext = StmtType.ASSUME;
-          adjustFuelForExists = true;
-          builder.Add(TrAssumeCmd(stmt.Tok, etran.TrExpr(stmt.Expr)));
-          stmtContext = StmtType.NONE;
-        }
-      } else if (stmt is ExpectStmt) {
-        AddComment(builder, stmt, "expect statement");
-        ExpectStmt s = (ExpectStmt)stmt;
-        stmtContext = StmtType.ASSUME;
-        TrStmt_CheckWellformed(s.Expr, builder, locals, etran, false);
-
-        // Need to check the message is well-formed, assuming the expected expression
-        // does NOT hold:
-        //
-        // if Not(TrExpr[[ s.Expr ]]) {
-        //  CheckWellformed[[ s.Message ]]
-        //  assume false;
-        // }
-        BoogieStmtListBuilder thnBuilder = new BoogieStmtListBuilder(this);
-        TrStmt_CheckWellformed(s.Message, thnBuilder, locals, etran, false);
-        thnBuilder.Add(TrAssumeCmd(stmt.Tok, new Boogie.LiteralExpr(stmt.Tok, false),
-          etran.TrAttributes(stmt.Attributes, null)));
-        Boogie.StmtList thn = thnBuilder.Collect(s.Tok);
-        builder.Add(new Boogie.IfCmd(stmt.Tok, Boogie.Expr.Not(etran.TrExpr(s.Expr)), thn, null, null));
-
-        stmtContext = StmtType.NONE; // done with translating expect stmt.
-      } else if (stmt is AssumeStmt) {
-        AddComment(builder, stmt, "assume statement");
-        AssumeStmt s = (AssumeStmt)stmt;
-        stmtContext = StmtType.ASSUME;
-        TrStmt_CheckWellformed(s.Expr, builder, locals, etran, false);
-        builder.Add(TrAssumeCmd(stmt.Tok, etran.TrExpr(s.Expr), etran.TrAttributes(stmt.Attributes, null)));
-        stmtContext = StmtType.NONE; // done with translating assume stmt.
-      }
-
-      this.fuelContext = FuelSetting.PopFuelContext();
-    }
-
     void TrLoop(LoopStmt s, Expression Guard, BodyTranslator/*?*/ bodyTr,
                 BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran,
                 Bpl.Expr freeInvariant = null, bool includeTerminationCheck = true) {
@@ -1735,7 +1342,7 @@ namespace Microsoft.Dafny {
 
       if (s.Mod.Expressions != null) { // check well-formedness and that the modifies is a subset
         CheckFrameWellFormed(new WFOptions(), s.Mod.Expressions, locals, builder, etran);
-        CheckFrameSubset(s.Tok, s.Mod.Expressions, null, null, etran, builder, "loop modifies clause may violate context's modifies clause", null);
+        CheckFrameSubset(s.Tok, s.Mod.Expressions, null, null, etran, builder, new PODesc.FrameSubset("loop modifies clause", true), null);
         DefineFrame(s.Tok, s.Mod.Expressions, builder, locals, loopFrameName);
       }
       builder.Add(Bpl.Cmd.SimpleAssign(s.Tok, preLoopHeap, etran.HeapExpr));
@@ -1777,12 +1384,12 @@ namespace Microsoft.Dafny {
         var ss = TrSplitExpr(loopInv.E, etran, false, out splitHappened);
         if (!splitHappened) {
           var wInv = Bpl.Expr.Imp(w, etran.TrExpr(loopInv.E));
-          invariants.Add(Assert(loopInv.E.tok, wInv, errorMessage ?? "loop invariant violation"));
+          invariants.Add(Assert(loopInv.E.tok, wInv, new PODesc.LoopInvariant(errorMessage)));
         } else {
           foreach (var split in ss) {
             var wInv = Bpl.Expr.Binary(split.E.tok, BinaryOperator.Opcode.Imp, w, split.E);
             if (split.IsChecked) {
-              invariants.Add(Assert(split.E.tok, wInv, errorMessage ?? "loop invariant violation"));  // TODO: it would be fine to have this use {:subsumption 0}
+              invariants.Add(Assert(split.E.tok, wInv, new PODesc.LoopInvariant(errorMessage)));  // TODO: it would be fine to have this use {:subsumption 0}
             } else {
               invariants.Add(TrAssumeCmd(split.E.tok, wInv));
             }
@@ -1808,7 +1415,7 @@ namespace Microsoft.Dafny {
             invariants.Add(TrAssumeCmd(s.Tok, tri.Expr));
           } else {
             Contract.Assert(tri.ErrorMessage != null);  // follows from BoilerplateTriple invariant
-            invariants.Add(Assert(s.Tok, tri.Expr, tri.ErrorMessage));
+            invariants.Add(Assert(s.Tok, tri.Expr, new PODesc.BoilerplateTriple(tri.ErrorMessage)));
           }
         }
         // add a free invariant which says that the heap hasn't changed outside of the modifies clause.
@@ -1891,13 +1498,7 @@ namespace Microsoft.Dafny {
           if (includeTerminationCheck) {
             AddComment(loopBodyBuilder, s, "loop termination check");
             Bpl.Expr decrCheck = DecreasesCheck(toks, types, types, decrs, oldBfs, loopBodyBuilder, " at end of loop iteration", false, false);
-            string msg;
-            if (s.InferredDecreases) {
-              msg = "cannot prove termination; try supplying a decreases clause for the loop";
-            } else {
-              msg = "decreases expression might not decrease";
-            }
-            loopBodyBuilder.Add(Assert(s.Tok, decrCheck, msg));
+            loopBodyBuilder.Add(Assert(s.Tok, decrCheck, new PODesc.Terminates(s.InferredDecreases, true)));
           }
         }
       } else if (isBodyLessLoop) {
@@ -2218,21 +1819,24 @@ namespace Microsoft.Dafny {
         if (!method.IsStatic && !(method is Constructor)) {
           Bpl.Expr wh = GetWhereClause(receiver.tok, etran.TrExpr(receiver), receiver.Type, etran, ISALLOC, true);
           if (wh != null) {
-            builder.Add(Assert(receiver.tok, wh, "receiver argument must be allocated in the state in which the method is invoked"));
+            var desc = new PODesc.IsAllocated("receiver argument", "in the state in which the method is invoked");
+            builder.Add(Assert(receiver.tok, wh, desc));
           }
         }
         for (int i = 0; i < Args.Count; i++) {
           Expression ee = Args[i];
           Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran, ISALLOC, true);
           if (wh != null) {
-            builder.Add(Assert(ee.tok, wh, "argument must be allocated in the state in which the method is invoked"));
+            var desc = new PODesc.IsAllocated("argument", "in the state in which the method is invoked");
+            builder.Add(Assert(ee.tok, wh, desc));
           }
         }
       } else if (method is TwoStateLemma) {
         if (!method.IsStatic) {
           Bpl.Expr wh = GetWhereClause(receiver.tok, etran.TrExpr(receiver), receiver.Type, etran.OldAt(atLabel), ISALLOC, true);
           if (wh != null) {
-            builder.Add(Assert(receiver.tok, wh, "receiver argument must be allocated in the two-state lemma's previous state"));
+            var desc = new PODesc.IsAllocated("receiver argument", "in the two-state lemma's previous state");
+            builder.Add(Assert(receiver.tok, wh, desc));
           }
         }
         Contract.Assert(callee.Ins.Count == Args.Count);
@@ -2242,8 +1846,9 @@ namespace Microsoft.Dafny {
             Expression ee = Args[i];
             Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran.OldAt(atLabel), ISALLOC, true);
             if (wh != null) {
-              builder.Add(Assert(ee.tok, wh, string.Format("parameter{0} ('{1}') must be allocated in the two-state lemma's previous state",
-                Args.Count == 1 ? "" : " " + i, formal.Name)));
+              var pIdx = Args.Count == 1 ? "" : " at index " + i;
+              var desc = new PODesc.IsAllocated($"parameter{pIdx} ('{formal.Name}')", "in the two-state lemma's previous state");
+              builder.Add(Assert(ee.tok, wh, desc));
             }
           }
         }
@@ -2253,14 +1858,14 @@ namespace Microsoft.Dafny {
       if (codeContext is IMethodCodeContext) {
         var s = new Substituter(null, new Dictionary<IVariable, Expression>(), tySubst);
         CheckFrameSubset(tok, callee.Mod.Expressions.ConvertAll(s.SubstFrameExpr),
-          receiver, substMap, etran, builder, "call may violate context's modifies clause", null);
+          receiver, substMap, etran, builder, new PODesc.FrameSubset("call", true), null);
       }
 
       // Check termination
       if (isRecursiveCall) {
         Contract.Assert(codeContext != null);
         if (codeContext is DatatypeDecl) {
-          builder.Add(Assert(tok, Bpl.Expr.False, "default-value expression is not allowed to involve recursive or mutually recursive calls"));
+          builder.Add(Assert(tok, Bpl.Expr.False, new PODesc.IsNonRecursive()));
         } else {
           List<Expression> contextDecreases = codeContext.Decreases.Expressions;
           List<Expression> calleeDecreases = callee.Decreases.Expressions;

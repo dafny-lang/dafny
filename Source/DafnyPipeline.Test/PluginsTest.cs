@@ -2,7 +2,6 @@
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Resources;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Xunit;
@@ -57,8 +56,8 @@ public class PluginsTest {
     var library = GetLibrary("simplePlugin");
 
     var reporter = new CollectionErrorReporter();
-    var options = new DafnyOptions(reporter);
-    options.Plugins.Add(Plugin.Load(library, new string[] { "because whatever" }));
+    var options = DafnyOptions.Create();
+    options.Plugins.Add(AssemblyPlugin.Load(library, new string[] { "because whatever" }));
     DafnyOptions.Install(options);
 
     var programString = "function test(): int { 1 }";
@@ -78,8 +77,8 @@ public class PluginsTest {
     var library = GetLibrary("secondPlugin");
 
     var reporter = new CollectionErrorReporter();
-    var options = new DafnyOptions(reporter);
-    options.Plugins.Add(Plugin.Load(library, new string[] { "ignored arguments" }));
+    var options = DafnyOptions.Create();
+    options.Plugins.Add(AssemblyPlugin.Load(library, new string[] { "ignored arguments" }));
     DafnyOptions.Install(options);
 
     var programString = "function test(): int { 1 }";

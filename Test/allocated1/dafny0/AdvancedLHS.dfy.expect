@@ -1,3 +1,3 @@
-AdvancedLHS.dfy(34,22): Error: target object may be null
+AdvancedLHS.dfy(34,22): Error: target object might be null
 
 Dafny program verifier finished with 3 verified, 1 error
