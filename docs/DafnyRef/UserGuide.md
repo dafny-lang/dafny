@@ -504,7 +504,7 @@ A solution for that is to add the attribute [`{:opaque}`](#sec-opaque) right bet
 
 Bitvectors and natural integers are very similar, but they are not treated the same by the Dafny verifier. As such, conversion from `bv8` to an `int` and vice-versa is not straightforward, and can result in slowdowns.
 
-There are two solutions to this for now. First, one can define a [subset type](#sec-subset-type) instead of using the built-in type `bv8`:
+There are two solutions to this for now. First, one can define a [subset type](#sec-subset-types) instead of using the built-in type `bv8`:
 
 ```dafny
 type byte = x | 0 <= x < 256
@@ -636,7 +636,7 @@ The fundamental unit of verification in Dafny is an _assertion batch_, which con
 
 [^smaller-batches]: To create a smaller batch, Dafny duplicates the assertion batch, and transforms each assertion into an assumption into exactly one batch, so that assertions are verified only in one batch. This results in "easier" formulas for the verifier because it has less to prove, but it takes more overhead because every verification instance have a common set of axioms and there is no knowledge sharing between instances because they run independently.
 
-### 24.8.3.1. Controlling assertion batches {#sec-assertion-batches-control}
+#### 24.8.3.1. Controlling assertion batches {#sec-assertion-batches-control}
 
 Here is how you can control how Dafny partitions assertions into batches.
 
@@ -852,8 +852,8 @@ PROVER_OPTIONS="\
   "
 
 "$DOTNET" "$BOOGIE" $BOOGIE_OPTIONS $PROVER_OPTIONS "$@"
-# Uncomment if you want to use the executable instead of the DLL
-# "$BOOGIE" $BOOGIE_OPTIONS $PROVER_OPTIONS "$@"
+#Uncomment if you want to use the executable instead of the DLL
+#"$BOOGIE" $BOOGIE_OPTIONS $PROVER_OPTIONS "$@"
 ```
 
 ### 24.10.7. Controlling the prover
