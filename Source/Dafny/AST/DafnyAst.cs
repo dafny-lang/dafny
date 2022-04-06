@@ -6987,6 +6987,18 @@ namespace Microsoft.Dafny {
     }
     
     /// <summary>
+    /// Create a resolved statement for an ininitialized local variable.
+    /// </summary>
+    public static VarDeclStmt CrateLocalVariable(IToken tok, string name, Type type) {
+      Contract.Requires(tok != null);
+      Contract.Requires(name != null);
+      Contract.Requires(type != null);
+      var variable = new LocalVariable(tok, tok, name, type, false);
+      variable.type = type;
+      return new VarDeclStmt(tok, tok, Util.Singleton(variable), null);
+    }
+    
+    /// <summary>
     /// Create a resolved statement for a local variable with an initial value.
     /// </summary>
     public static VarDeclStmt CrateLocalVariable(IToken tok, string name, Expression value) {

@@ -1,6 +1,9 @@
 // RUN: %dafny /compile:4 /noVerify /compileTarget:go "%s" > "%t"
 // RUN: %diff "%t" "%s.expect"
 
+include "../exceptions/VoidOutcomeDt.dfy"
+include "../exceptions/NatOutcomeDt.dfy"
+
 method {:test} Passing1() {
   expect 2 == 2;
 }
@@ -25,6 +28,10 @@ module TestModule {
   method {:test} Passing1() {
     expect 2 + 2 == 4;
   }
+}
+
+method {:test} FailingReturnValue() returns (result: VoidOutcome) {
+  return VoidFailure("Whoopsie");
 }
 
 method {:run_all_tests} Main()
