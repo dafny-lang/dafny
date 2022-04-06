@@ -3242,9 +3242,59 @@ namespace Microsoft.Dafny.Compilers {
       return false;
     }
 
+    private string WriteDafnyStructure(Method m, ConcreteSyntaxTree wr) {
+      string res = "Dafny.ISequence<_System._ITuple" + m.Ins.Count.ToString() + "<";
+      foreach (var o in m.Ins) {
+        res += this.TypeName(o.Type, wr, o.tok);
+        if (!o.Equals(m.Ins.Last())) {
+          res += ", ";
+        }
+      }
+      res += ">>";
+      return res;
+    }
+
+    private void WriteGlueCode(ConcreteSyntaxTree wr, string methodName, string dafnyStructure, int tupleLength) {
+      var converterWr = wr.Fork();
+      converterWr = converterWr.NewBlock("public static System.Collections.Generic.IEnumerable<object[]> " + methodName + "Converter(" + dafnyStructure + " dafnyStructure)");
+      converterWr.WriteLine("System.Collections.Generic.List<object[]> newList = new ();");
+      var forLoopWr = converterWr.Fork();
+      forLoopWr = forLoopWr.NewBlock("foreach (var tuple in dafnyStructure.UniqueElements)");
+      forLoopWr.Write("newList.Add(new object[] {");
+      for (int i = 0; i < tupleLength; i++) {
+        string tupleValue = "tuple.dtor__" + i.ToString();
+        forLoopWr.Write(tupleValue);
+        if (i < tupleLength - 1) {
+          forLoopWr.Write(", ");
+        }
+      }
+      forLoopWr.WriteLine("});");
+      converterWr.WriteLine("return newList;");
+
+      var sourceWr = wr.Fork();
+      sourceWr = sourceWr.NewBlock("public static System.Collections.Generic.IEnumerable<object[]> _" + methodName + "()");
+      sourceWr.WriteLine(dafnyStructure + " retValue =  " + methodName + "();");
+      sourceWr.WriteLine("return " + methodName + "Converter(retValue);");
+
+      wr.WriteLine("[Xunit.Theory]");
+      wr.WriteLine("[Xunit.MemberData(nameof(_" + methodName + "))]");
+    }
+
     private void AddTestCheckerIfNeeded(string name, Declaration decl, ConcreteSyntaxTree wr) {
       if (!Attributes.Contains(decl.Attributes, "test")) {
         return;
+      }
+      var args = Attributes.FindExpressions(decl.Attributes, "test");
+      if (args.Count == 2 && args[0] is LiteralExpr && args[1] is LiteralExpr) {
+        LiteralExpr sourceType = (LiteralExpr)args[0];
+        if (sourceType.Value.ToString().Equals("MethodSource")) {
+          Method m = (Method)decl;
+          LiteralExpr methodNameExpr = (LiteralExpr)args[1];
+          string dafnyStructure = WriteDafnyStructure(m, wr);
+          string compiledSourceName = NonglobalVariable.CompilerizeName(methodNameExpr.Value.ToString());
+          WriteGlueCode(wr, compiledSourceName, dafnyStructure, m.Ins.Count);
+          return;
+        }
       }
 
       var firstReturnIsFailureCompatible = false;
@@ -3271,7 +3321,6 @@ namespace Microsoft.Dafny.Compilers {
       var returnsString = string.Join(",", Enumerable.Range(0, returnTypesCount).Select(i => $"r{i}"));
       wr.FormatLine($"var {returnsString} = {name}();");
       wr.WriteLine("Xunit.Assert.False(r0.IsFailure(), \"Dafny test failed: \" + r0);");
-
     }
 
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {

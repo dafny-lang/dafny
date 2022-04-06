@@ -343,11 +343,26 @@ recursion was explicitly requested.
 * If `{:tailrecursion true}` was specified but the code does not allow it,
 an error message is given.
 
+### 22.1.13. `{:test}`
+The C# and Java compilers can inject test annotations for XUnit and JUnit, respectively.  You must provide the :test attribute for all unit tests you want annotated.
 
-### 22.2.13. `{:timeLimit N}`
+    method {:test} test_example()
+
+Dafny also provides support for unit tests with parameters provided by a method source.  To invoke this behavior, your tests should be of this form.
+
+    method {:test "MethodSource", "MethodSourceName"} test_example([parameters])
+
+Your method source's signature should be of this form
+
+    static method MethodSourceName() returns (inputs : seq<([parameter-types])>)
+
+where the method is static and the return type is a sequence of tuples.  The types inside each tuple must match the types of your test method's parameters.  The Java compiler will convert the above code into JUnit; the C# compiler will convert it into XUnit.
+
+
+### 22.2.14. `{:timeLimit N}`
 Set the time limit for verifying a given function or method.
 
-### 22.2.14. `{:timeLimitMultiplier X}`
+### 22.2.15. `{:timeLimitMultiplier X}`
 This attribute may be placed on a method or function declaration
 and has an integer argument. If `{:timeLimitMultiplier X}` was
 specified a `{:timelimit Y}` attributed is passed on to Boogie
@@ -355,14 +370,14 @@ where `Y` is `X` times either the default verification time limit
 for a function or method, or times the value specified by the
 Boogie `timelimit` command-line option.
 
-### 22.2.15. `{:verify false}` {#sec-verify}
+### 22.2.16. `{:verify false}` {#sec-verify}
      
 Skip verification of a function or a method altogether.
 Will not even try to verify well-formedness of postconditions and preconditions.
 We discourage to use this attribute. Prefer [`{:axiom}`](#sec-axiom),
 which performs these minimal checks while not checking that the body satisfies postconditions.
 
-### 22.2.16. `{:vcs_max_cost N}` {#sec-vcs_max_cost}
+### 22.2.17. `{:vcs_max_cost N}` {#sec-vcs_max_cost}
 Per-method version of the command-line option `/vcsMaxCost`.
 
 The [assertion batch](#sec-assertion-batches) of a method
@@ -371,7 +386,7 @@ number, defaults to 2000.0. In
 [keep-going mode](#sec-vcs_max_keep_going_splits), only applies to the first round.
 If [`{:vcs_split_on_every_assert}`](#sec-vcs_split_on_every_assert) is set, then this parameter is useless.
 
-### 22.2.17. `{:vcs_max_keep_going_splits N}` {#sec-vcs_max_keep_going_splits}
+### 22.2.18. `{:vcs_max_keep_going_splits N}` {#sec-vcs_max_keep_going_splits}
 
 Per-method version of the command-line option `/vcsMaxKeepGoingSplits`.
 If set to more than 1, activates the _keep going mode_ where, after the first round of splitting,
@@ -382,7 +397,7 @@ case error is reported for that assertion).
 Defaults to 1.
 If [`{:vcs_split_on_every_assert}`](#sec-vcs_split_on_every_assert) is set, then this parameter is useless.
 
-### 22.2.18. `{:vcs_max_splits N}` {#sec-vcs_max_splits}
+### 22.2.19. `{:vcs_max_splits N}` {#sec-vcs_max_splits}
 
 Per-method version of the command-line option `/vcsMaxSplits`.
 Maximal number of [assertion batches](#sec-assertion-batches) generated for this method.
@@ -390,7 +405,7 @@ In [keep-going mode](#sec-vcs_max_keep_going_splits), only applies to the first 
 Defaults to 1.
 If [`{:vcs_split_on_every_assert}`](#sec-vcs_split_on_every_assert) is set, then this parameter is useless.
 
-### 22.2.19. `{:vcs_split_on_every_assert}` {#sec-vcs_split_on_every_assert}
+### 22.2.20. `{:vcs_split_on_every_assert}` {#sec-vcs_split_on_every_assert}
 Per-method version of the command-line option `/vcsSplitOnEveryAssert`.
 
 In the first and only verification round, this option will split the original [assertion batch](#sec-assertion-batches)
@@ -398,7 +413,7 @@ into one assertion batch per assertion.
 This is mostly helpful for debugging which assertion is taking the most time to prove, e.g. to profile them.
 
 
-### 22.2.20. synthesize {#sec-synthesize-attr}
+### 22.2.21. synthesize {#sec-synthesize-attr}
 
 The `{:synthesize}` attribute must be used on methods that have no body and
 return one or more fresh objects. During compilation, 
