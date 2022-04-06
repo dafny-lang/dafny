@@ -1,7 +1,2 @@
-maximum.dfy(11,10): Info: Selected triggers: {values[i]}
-maximum.dfy(18,14): Info: Selected triggers: {values[j]}
-maximum.dfy(28,27): Info: Selected triggers: {values[i]}
-maximum.dfy(29,27): Info: Selected triggers: {values[i]}
-maximum.dfy(15,2): Info: decreases |values| - idx
 
 Dafny program verifier finished with 4 verified, 0 errors
