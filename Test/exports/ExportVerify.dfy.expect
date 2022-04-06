@@ -1,5 +1,5 @@
-ExportVerify.dfy(40,13): Error: variable 'd', which is subject to definite-assignment rules, might be used before it has been assigned
-ExportVerify.dfy(44,4): Error: variable 'd', which is subject to definite-assignment rules, might be used before it has been assigned
+ExportVerify.dfy(40,13): Error: variable 'd', which is subject to definite-assignment rules, might be uninitialized here
+ExportVerify.dfy(44,4): Error: variable 'd', which is subject to definite-assignment rules, might be uninitialized here
 ExportVerify.dfy(52,19): Error: assertion might not hold
 ExportVerify.dfy(54,21): Error: assertion might not hold
 ExportVerify.dfy(55,20): Error: assertion might not hold

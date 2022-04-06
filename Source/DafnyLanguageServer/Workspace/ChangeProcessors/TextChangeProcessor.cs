@@ -23,7 +23,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
 
     private static string ApplyTextChange(string text, TextDocumentContentChangeEvent change, CancellationToken cancellationToken) {
       if (change.Range == null) {
-        throw new InvalidOperationException("the range of the change must not be null");
+        // https://microsoft.github.io/language-server-protocol/specifications/specification-3-17/#textDocumentContentChangeEvent
+        return change.Text;
       }
       int absoluteStart = change.Range.Start.ToAbsolutePosition(text, cancellationToken);
       int absoluteEnd = change.Range.End.ToAbsolutePosition(text, cancellationToken);

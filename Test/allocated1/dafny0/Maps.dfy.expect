@@ -1,15 +1,15 @@
 Maps.dfy(200,11): Warning: /!\ No terms found to trigger on.
-Maps.dfy(78,7): Error: element may not be in domain
+Maps.dfy(78,7): Error: element might not be in domain
 Maps.dfy(128,17): Error: assertion might not hold
-Maps.dfy(220,36): Error: key expressions may be referring to the same value
-Maps.dfy(226,36): Error: key expressions may be referring to the same value
-Maps.dfy(232,37): Error: key expressions may be referring to the same value
-Maps.dfy(234,24): Error: key expressions may be referring to the same value
-Maps.dfy(241,41): Error: possible violation of function precondition
+Maps.dfy(220,36): Error: key expressions might be referring to the same value
+Maps.dfy(226,36): Error: key expressions might be referring to the same value
+Maps.dfy(232,37): Error: key expressions might be referring to the same value
+Maps.dfy(234,24): Error: key expressions might be referring to the same value
+Maps.dfy(241,41): Error: function precondition might not hold
 Maps.dfy(215,13): Related location
-Maps.dfy(243,36): Error: possible violation of function precondition
+Maps.dfy(243,36): Error: function precondition might not hold
 Maps.dfy(215,13): Related location
-Maps.dfy(243,37): Error: key expressions may be referring to the same value
+Maps.dfy(243,37): Error: key expressions might be referring to the same value
 Maps.dfy(264,54): Error: assertion might not hold
 Maps.dfy(309,11): Error: index out of range
 Maps.dfy(311,16): Error: value does not satisfy the subset constraints of 'nat'
@@ -18,11 +18,11 @@ Maps.dfy(319,16): Error: new number of occurrences might be negative
 Maps.dfy(328,11): Error: value does not satisfy the subset constraints of 'nat'
 Maps.dfy(330,17): Error: value does not satisfy the subset constraints of 'nat'
 Maps.dfy(339,11): Error: index out of range
-Maps.dfy(341,16): Error: value of expression (of type 'Elem?') is not known to be an instance of type 'Elem', because it may be null
-Maps.dfy(347,11): Error: value of expression (of type 'Elem?') is not known to be an instance of type 'Elem', because it may be null
+Maps.dfy(341,16): Error: value of expression (of type 'Elem?') is not known to be an instance of type 'Elem', because it might be null
+Maps.dfy(347,11): Error: value of expression (of type 'Elem?') is not known to be an instance of type 'Elem', because it might be null
 Maps.dfy(349,16): Error: new number of occurrences might be negative
-Maps.dfy(358,11): Error: value of expression (of type 'Elem?') is not known to be an instance of type 'Elem', because it may be null
-Maps.dfy(360,16): Error: value of expression (of type 'Elem?') is not known to be an instance of type 'Elem', because it may be null
+Maps.dfy(358,11): Error: value of expression (of type 'Elem?') is not known to be an instance of type 'Elem', because it might be null
+Maps.dfy(360,16): Error: value of expression (of type 'Elem?') is not known to be an instance of type 'Elem', because it might be null
 Maps.dfy(424,13): Error: assertion might not hold
 Maps.dfy(429,17): Error: assertion might not hold
 Maps.dfy(430,13): Error: assertion might not hold

@@ -147,22 +147,7 @@ method Abs(x: int) returns (y: int)
 
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
     public async Task DocumentWithOnlyCodedVerifierTimeoutSendsCompilationSucceededVerificationStartedAndVerificationFailedStatuses() {
-      var source = @"
-lemma {:timeLimit 3} SquareRoot2NotRational(p: nat, q: nat)
-  requires p > 0 && q > 0
-  ensures (p * p) !=  2 * (q * q)
-{ 
-  if (p * p) ==  2 * (q * q) {
-    calc == {
-      (2 * q - p) * (2 * q - p);
-      4 * q * q + p * p - 4 * p * q;
-      {assert 2 * q * q == p * p;}
-      2 * q * q + 2 * p * p - 4 * p * q;
-      2 * (p - q) * (p - q);
-    }
-  }
-}".TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(SlowToVerify);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var compilation = await notificationReceiver.AwaitNextNotificationAsync(CancellationToken);
       Assert.AreEqual(documentItem.Uri, compilation.Uri);
@@ -185,25 +170,10 @@ lemma {:timeLimit 3} SquareRoot2NotRational(p: nat, q: nat)
 
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
     public async Task DocumentWithOnlyConfiguredVerifierTimeoutSendsCompilationSucceededVerificationStartedAndVerificationFailedStatuses() {
-      var source = @"
-lemma SquareRoot2NotRational(p: nat, q: nat)
-  requires p > 0 && q > 0
-  ensures (p * p) !=  2 * (q * q)
-{ 
-  if (p * p) ==  2 * (q * q) {
-    calc == {
-      (2 * q - p) * (2 * q - p);
-      4 * q * q + p * p - 4 * p * q;
-      {assert 2 * q * q == p * p;}
-      2 * q * q + 2 * p * p - 4 * p * q;
-      2 * (p - q) * (p - q);
-    }
-  }
-}".TrimStart();
       await SetUp(new Dictionary<string, string>() {
         { $"{VerifierOptions.Section}:{nameof(VerifierOptions.TimeLimit)}", "3" }
       });
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(SlowToVerify);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var compilation = await notificationReceiver.AwaitNextNotificationAsync(CancellationToken);
       Assert.AreEqual(documentItem.Uri, compilation.Uri);

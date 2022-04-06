@@ -587,7 +587,7 @@ namespace Microsoft.Dafny {
             // We added this function above, so produce a hover text for the entire function signature
             AddHoverText(cl.tok, "{0}", Printer.FunctionSignatureToString(valid));
           } else {
-            AddHoverText(member.tok, $"reads {r0}, {r1}\nensures {post}");
+            AddHoverText(member.tok, "reads {0}, {1}\nensures {2}", r0, r1, post);
           }
         } else if (member is Function && !member.IsStatic) {
           var f = (Function)member;
