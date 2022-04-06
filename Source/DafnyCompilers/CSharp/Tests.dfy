@@ -68,7 +68,26 @@ method Literals_String() {
   print @"Aa\'";
 }
 
-method Literals_Tuples() {
+/// Display expressions
+/// ===================
+
+method Display_Set() {
+  print {1, 2, 3};
+}
+
+method Display_Multiset() {
+  print multiset{1, 2, 3};
+}
+
+method Display_Seq() {
+  print [1, 2, 3];
+}
+
+method Display_Map() {
+  print map[1 := 2, 3 := 4];
+}
+
+method Display_Tuples() {
   print ();
   print (1, 2);
   print ("A", 'B', 0x43);
