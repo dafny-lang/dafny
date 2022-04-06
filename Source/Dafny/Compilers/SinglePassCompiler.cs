@@ -5131,7 +5131,7 @@ namespace Microsoft.Dafny.Compilers {
       TrStmt(successVarStmt, w);
       var successVarExpr = new IdentifierExpr(tok, successVarStmt.Locals[0]);
       
-      foreach (var module in program.Modules()) {
+      foreach (var module in program.CompileModules) {
         foreach (ICallable callable in ModuleDefinition.AllCallables(module.TopLevelDecls)) {
           if ((callable is Method method) && Attributes.Contains(method.Attributes, "test")) {
             EmitPrintStmt(w, Expression.CreateStringLiteral(tok, method.FullDafnyName + ": "));
@@ -5144,9 +5144,11 @@ namespace Microsoft.Dafny.Compilers {
             var haltMessageVarExpr = new IdentifierExpr(tok, haltMessageVar);
             
             var methodCallWr = EmitInvokeWithHaltHandling(haltMessageVar, w);
-            var companion = TypeName_Companion(UserDefinedType.FromTopLevelDeclWithAllBooleanTypeParameters(method.EnclosingClass), w, method.tok, method);
-            methodCallWr.WriteLine($"{companion}.{IdName(method)}()");
-            EndStmt(methodCallWr);
+            var receiverExpr = new StaticReceiverExpr(tok, (TopLevelDeclWithMembers)method.EnclosingClass, true);
+            var methodSelectExpr = new MemberSelectExpr(tok, receiverExpr, method.Name);
+            methodSelectExpr.Member = method;
+            var callStmt = new CallStmt(tok, tok, new List<Expression>(), methodSelectExpr, new List<Expression>());
+            TrStmt(callStmt, methodCallWr);
             
             // if haltMessage_X == "" {
             //   print "PASSED\n";
