@@ -367,7 +367,9 @@ namespace Microsoft.Dafny {
       // Check that none of the modules have the same CompileName.
       Dictionary<string, ModuleDefinition> compileNameMap = new Dictionary<string, ModuleDefinition>();
       foreach (ModuleDefinition m in prog.CompileModules) {
-        if (m.IsAbstract) {
+        var compileIt = true;
+        Attributes.ContainsBool(m.Attributes, "compile", ref compileIt);
+        if (m.IsAbstract || !compileIt) {
           // the purpose of an abstract module is to skip compilation
           continue;
         }
