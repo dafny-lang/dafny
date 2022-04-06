@@ -6119,11 +6119,7 @@ namespace Microsoft.Dafny {
                     // Assume at least the collection bound
                     b.Add(TrAssumeCmd(e.tok, CheckGhostType(idExpressionToTest, boundVar.CompilableType)));
                     b.Add(Assert(tokReporting, CheckGhostType(idExpressionToTest, boundVar.OriginalType),
-                      $"Could not prove that the bound variable '{boundVar.DisplayName}' satisfies " +
-                      $"the (non runtime testable) type {boundVar.OriginalType} after the range, where it's assumed to be of type {boundVar.CompilableType} based on inferred bounds." +
-                      (e.Range != null
-                        ? ""
-                        : $" Consider expliciting the range of the {e.WhatKind}, i.e. {e.Keyword} {boundVar.DisplayName} | RANGE :: TERM instead of {e.Keyword} {boundVar.DisplayName} :: RANGE_AND_TERM.")));
+                      new PODesc.SubsetTypeSatisfiedInComprehension(boundVar, e)));
                   });
               }
             }
