@@ -156,7 +156,7 @@ exit code.
 
 ## 24.8. Verification
 
-In this section, we suggest a methodology to figure out [why a single assertion might not hold](#sec-verification-debugging), we propose methodologies to deal with [assertions that slow a proof down](#sec-verification-debugging-slow), we explain how to [verify assertions in parallel or in a focused way](#sec-assertion-batches) to devote more time to prove them, and we also give some more examples of [useful options and attributes to control verification](#sec-command-line-options-and-attributes-for-verification).
+In this section, we suggest a methodology to figure out [why a single assertion might not hold](#sec-verification-debugging), we propose techniques to deal with [assertions that slow a proof down](#sec-verification-debugging-slow), we explain how to [verify assertions in parallel or in a focused way](#sec-assertion-batches), and we also give some more examples of [useful options and attributes to control verification](#sec-command-line-options-and-attributes-for-verification).
 
 ### 24.8.1. Verification debugging when verification fails {#sec-verification-debugging}
 
@@ -326,7 +326,7 @@ Another similar command, `assert false;`, would also short-circuit the verifier,
 
 [^explainer-assume-false]: `assume false` tells the Dafny verifier "Assume everything is true from this point of the program". The reason is that, 'false' proves anything. For example, `false ==> A` is always true because it is equivalent to `!false || A`, which reduces to `true || A`, which reduces to `true`.
 
-Thus, let us say a program of this shape takes forever to terminate.
+Thus, let us say a program of this shape takes forever to verify.
 
 ```dafny
 method NotTerminating(b: bool) {
@@ -434,7 +434,7 @@ If verification is fast, which of the two assertions `assert Z;` or `assert P;` 
 
 [^answer-slowdown]: `assert P;`.
 
-We now hope you know enough of `assume false;` to locate an assertion that makes verification slow.
+We now hope you know enough of `assume false;` to locate assertions that makes verification slow.
 Nest, we will describe some other strategies at the assertion level to figure out what happens and perhaps fix it.
 
 #### 24.8.2.2. `assert ... by {}` {#sec-verification-debugging-assert-by}
@@ -442,7 +442,7 @@ Nest, we will describe some other strategies at the assertion level to figure ou
 If an assertion `assert X;` is slow, it is possible that calling a lemma or invoking other assertions can help proving it: The postcondition of this lemma, or the added assertions, could help the Dafny verifier figure out faster how to prove the result.
 
 ```dafny
-  assert LEMMA_PRECONDITION;
+  assert SOMETHING_HELPING_TO_PROVE_LEMMA_PRECONDITION;
   LEMMA();
   assert X;
 ...
@@ -458,7 +458,7 @@ A good practice consists of wrapping the intermediate verification steps in an `
 
 ```dafny
   assert X by {
-    assert LEMMA_PRECONDITION;
+    assert SOMETHING_HELPING_TO_PROVE_LEMMA_PRECONDITION;
     LEMMA();
   }
 ```
@@ -475,9 +475,10 @@ Labeling an assertion has the effect of "hiding" its result, until there is a "r
 The example of the [previous section](#sec-verification-debugging-assert-by) could be written like this.
 
 ```dafny
-  assert precond: LEMMA_PRECONDITION;
+  assert p: SOMETHING_HELPING_TO_PROVE_LEMMA_PRECONDITION;
+  // p is not available here.
   assert X by {
-    reveal precond;
+    reveal p;
     LEMMA();
   }
 ```
@@ -497,7 +498,7 @@ method Slow(i: int, j: int)
 #### 24.8.2.4. Non-opaque `function method` {#sec-non-opaque-function-method}
 
 Functions are normally used for specifications, but their functional syntax is sometimes also desirable to write application code.
-However, doing so naively results in the body of a `function method Fun()` be available for every caller, which can result in the verifier to timeout or get extremely slow[^verifier-lost].
+However, doing so naively results in the body of a `function method Fun()` be available for every caller, which can cause the verifier to time out or get extremely slow[^verifier-lost].
 A solution for that is to add the attribute [`{:opaque}`](#sec-opaque) right between `function method` and `Fun()`, and use [`reveal Fun();`](#sec-reveal-statement) in the calling functions or methods when needed.
 
 #### 24.8.2.5. Conversion to and from bitvectors {#sec-conversion-to-and-from-bitvectors}
@@ -532,12 +533,12 @@ newtype {:nativeType "char"} byte = x | 0 <= x < 256
   var f := ((a as int + b as int) % 256) as byte // OK
 ```
 
-One might consider refactoring this code into specific functions if used over and over.
+One might consider refactoring this code into separate functions if used over and over.
 
 #### 24.8.2.6. Nested loops {#sec-nested-loops}
 
 In the case of nested loops, the verifier might timeout sometimes because of the information available[^verifier-lost].
-One way to mitigate this problem, when it happens, is to isolate the inner loop byt refactoring it to another method, with suitable pre and postconditions that will usually assume and prove the invariant again.
+One way to mitigate this problem, when it happens, is to isolate the inner loop by refactoring it into a separate method, with suitable pre and postconditions that will usually assume and prove the invariant again.
 For example,
 
 ```dafny
@@ -566,7 +567,7 @@ method innerLoop()
   ensures Y'
 ```
 
-In the nest section, when everything can be proven in a timely manner, we explain another strategy to decrease proof time by parallelizing it if needed, and making the verifier focused on certain parts.
+In the next section, when everything can be proven in a timely manner, we explain another strategy to decrease proof time by parallelizing it if needed, and making the verifier focus on certain parts.
 
 ### 24.8.3. Assertion batches {#sec-assertion-batches}
 
