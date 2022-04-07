@@ -3752,9 +3752,12 @@ namespace Microsoft.Dafny {
     /// <param name="q">The expression</param>
     /// <param name="truth">The expected truth value that q might always have</param>
     /// <returns>True if q is always of the boolean value "truth"</returns>
-    private bool IsExprAlways(Bpl.Expr q, bool truth) {
-      if (q is Bpl.ForallExpr forallExpr && truth) {
-        return IsExprAlways(forallExpr.Body, true);
+    public static bool IsExprAlways(Bpl.Expr q, bool truth) {
+      if (q is Bpl.ForallExpr forallExpr) {
+        return truth && IsExprAlways(forallExpr.Body, true);
+      }
+      if (q is Bpl.ExistsExpr existsExpr) {
+        return !truth && IsExprAlways(existsExpr.Body, false);
       }
       if (q is Bpl.LiteralExpr { isBool: true } lit && lit.asBool == truth) {
         return true;
