@@ -522,53 +522,311 @@ implementation.
 
 There are many command-line options to the `dafny` tool.
 The most current documentation of the options is within the tool itself,
-using the `/?` option.
+using the `/?` or `/help` option.
 Here we give an expanded description of the most important options.
 
 Remember that options can be stated with either a leading `/` or a leading `-`.
 
-### 24.10.1. Help and version information
+### 24.10.1. Help and version information {#sec-controlling-help}
 
-* `-?` or `-help` : prints out the current list of command-line options and terminates
-* `-version` : prints the version of the executable being invoked and terminates
+These options select output including documentation on command-line
+options or attribute declarations, information on the version of Dafny
+being used, and information about how Dafny was invoked.
 
-### 24.10.2. Controlling errors and exit codes
+* `-?` or `-help` - print out the current list of command-line options
+  and terminate.
 
-* `-countVerificationErrors:<n>` - if 0 then always exit with a 0 exit code, regardless of whether errors are found.  If 1 (the default) then use the usual exit code.  This option is deprecated.
+* `-attrHelp` - print out the current list of supported attribute
+  declarations and terminate.
 
-* `-warningsAsErrors` - treat warnings as errors
+* `-version` - print the version of the executable being invoked and
+  terminate.
 
-### 24.10.3. Controlling output {#sec-controlling-output}
+* `-env:<n>` - print the command-line arguments supplied to the program.
+  Three values of `<n>` are accepted:
 
-* `-dprint:<file>` - print the Dafny program after parsing (use `-` for `<file> to print to the console)
+  * `0` - never print them,
 
-* `-rprint:<file>` - print the Dafny program after type resolution (use `-` for <file> to print to the console)
+  * `1` (default) - print them when printing Boogie (`.bpl`) files and
+    prover logs, or
+
+  * `2` - like `1` but also to standard output.
+
+* `-wait` - wait for the user to press Enter before terminating.
+
+### 24.10.2. Controlling input {#sec-controlling-input}
+
+These options control how Dafny processes its input.
+
+* `-dprelude:<file>` - select an alternative Dafny prelude file.
+
+* `-stdin` - read standard input and treat it as Dafny souce code,
+  instead of reading from a file.
+
+### 24.10.3. Controlling plugins {#sec-controlling-plugins}
 
 TO BE WRITTEN
 
-### 24.10.4. Controlling aspects of the tool being run
+### 24.10.4. Controlling output {#sec-controlling-output}
 
-* `-deprecation:<n>` - controls warnings about deprecated features
+These options instruct Dafny to print various information about your
+program during processing, including variations of the original source
+code (which can be helpful for debugging).
 
-   * 0 - no warnings
-   * 1 (default) - issue warnings
-   * 2 - issue warnings and advise about alternate syntax
+* `-stats` - print various statistics about the Dafny files supplied on
+  the command line.
 
-* `-warnShadowing` - emits a warning if the name of a declared variable caused another variable to be shadowed
+* `-dprint:<file>` - print the Dafny program after parsing (use `-` for
+  `<file>` to print to the console).
+
+* `-rprint:<file>` - print the Dafny program after type resolution (use
+  `-` for `<file>` to print to the console).
+
+* `-printMode:<Everything|DllEmbed|NoIncludes|NoGhost>` - select what to
+  include in the output requested by `-dprint` or `-rprint`. The
+  argument can be one of the following.
+
+  * `Everything` (default) - include everything.
+
+  * `DllEmbed`- print the source that will be included in a compiled DLL.
+
+  * `NoIncludes` - disable printing of methods incorporated via the
+    include mechanism that have the `{:verify false}` attribute, as well
+    as datatypes and fields included from other files.
+
+  * `NoGhost` - disabls printing of functions, ghost methods, and proof
+    statements in implementation methods. Also disable anything
+    `NoIncludes` disables.
+
+* `-printIncludes:<None|Immediate|Transitive>` - slect what information
+  from included files to incorporate into the output selected by
+  `-dprint` or `-rprint`. The argument can be one of the following.
+
+  * `None` (default) - don't print anything from included files.
+
+  * `Immediate` - print files directly included by files specified on
+    the command line. Exit after printing.
+
+  * `Transitive` - print files transitively included by files specified
+    on the command line. Exit after printing.
+
+* `-view:<view1, view2>` - TO BE WRITTEN
+
+* `-funcCallGraph` - print out the function call graph. Format is:
+  `func,mod=callee*`. TODO: explain what this means
+
+* `-showSnippets:<n>` - show a source code snippet for each Dafny
+  message. The argument can be:
+
+  - `0` (default) - don't print snippets, or
+  - `1` - do print snippets.
+
+* `-printTooltips` - dump additional positional information (displayed
+  as mouse-over tooltips by LSP clients) to standard output as `Info`
+  messages.
+
+* `-pmtrace` - print debugging information from the pattern-match
+  compiler. TODO: say what the output means
+
+* `-titrace` - print debugging information during the type inference
+  process. TODO: say what the output means
+
+### 24.10.5. Controlling language features {#sec-controlling-language}
+
+These options allow some Dafny language features to be enabled or
+disabled. Some of these options exist for backward compatibility with
+older versions of Dafny.
+
+* `-noIncludes` - ignore `include` directives in the program.
+
+* `-noExterns` - ignore `extern` and `dllimport` attributes in the
+  program.
+
+* `-functionSyntax:<version>` - select what function syntax to
+  recognize. The syntax for functions is changing from Dafny version 3
+  to version 4. This switch gives early access to the new syntax, and
+  also provides a mode to help with migration. The valid arguments
+  include the following.
+
+  * `3` (default) - compiled functions are written `function method` and
+    `predicate method`. Ghost functions are written `function` and
+    `predicate`.
+
+  * `4` - compiled functions are written `function` and `predicate`.
+    Ghost functions are written `ghost function` and `ghost predicate`.
+
+  * `migration3to4` - compiled functions are written `function method`
+    and `predicate method`. Ghost functions are written `ghost function`
+    and `ghost predicate`. To migrate from version 3 to version 4, use
+    this flag on your version 3 program to flag all occurrences of
+    `function` and `predicate` as parsing errors. These are ghost
+    functions, so change those into the new syntax `ghost function` and
+    `ghost predicate`. Then, start using `/functionSyntax:4`. This will
+    flag all occurrences of `function method` and `predicate method` as
+    parsing errors. So, change those to just `function` and `predicate`.
+    As a result, your program will use version 4 syntax and have the
+    same meaning as your previous version 3 program.
+
+  * `experimentalDefaultGhost` - like `migration3to4`, but allow
+    `function` and `predicate` as alternatives to declaring ghost
+    functions and predicates, respectively
+
+  * `experimentalDefaultCompiled` - like `migration3to4`, but allow
+    `function` and `predicate` as alternatives to declaring compiled
+    functions and predic ates, respectively
+
+  * `experimentalPredicateAlwaysGhost` - compiled functions are written
+    `function`. Ghost functions are written `ghost function`. Predicates
+    are always ghost and are written `predicate`.
+
+* `-disableScopes` - treat all export sets as `export reveal *` to never
+    hide function bodies or type definitions during translation.
+
+* `-allowsGlobals` - allow the implicit class `_default` to contain
+  fields, instance functions, and instance methods. These class members
+  are declared at the module scope, outside of explicit classes. This
+  command-line option is provided to simplify a transition from the
+  behavior in the language prior to version 1.9.3, from which point
+  onward all functions and methods declared at the module scope are
+  implicitly static and fields declarations are not allowed at the
+  module scope.
+
+### 24.10.6. Controlling warnings {#sec-controlling-warnings}
+
+* `-warnShadowing` - emit a warning if the name of a declared variable
+  caused another variable to be shadowed.
+
+* `-deprecation:<n>` - control warnings about deprecated features. The
+  argument can be:
+
+   * `0` - don't issue any warnings,
+   * `1` (default) - issue warnings, or
+   * `2` - issue warnings and advise about alternate syntax.
+
+* `-warningsAsErrors` - treat warnings as errors.
 
 TO BE WRITTEN
 
-### 24.10.5. Controlling verification
+### 24.10.7. Controlling verification {#sec-controlling-verification}
 
-* `-verifyAllModules` - verify modules that come from include directives
+* `-dafnyVerify:<n>` - turn verification of the program on or off. The
+  argument can be:
 
-By default, Dafny only verifies files explicitly listed on the command line: if `a.dfy` includes `b.dfy`, a call to `Dafny a.dfy` will detect and report verification errors from `a.dfy` but not from `b.dfy`'s.
+  * `0` - to stop after type checking, or
+  * `1` - to continue on to verification and compilation.
 
-With this flag, Dafny will instead verify everything: all input modules and all their transitive dependencies.  This way `Dafny a.dfy` will verify `a.dfy` and all files that it includes (here `b.dfy`), as well all files that these files include, etc.
+* `-verifyAllModules` - verify modules that come from include directives.
 
-Running Dafny with `/verifyAllModules` on the file containing your main result is a good way to ensure that all its dependencies verify.
+By default, Dafny only verifies files explicitly listed on the command
+line: if `a.dfy` includes `b.dfy`, a call to `Dafny a.dfy` will detect
+and report verification errors from `a.dfy` but not from `b.dfy`'s.
 
-### 24.10.6. Controlling boogie
+With this flag, Dafny will instead verify everything: all input modules
+and all their transitive dependencies. This way `Dafny a.dfy` will
+verify `a.dfy` and all files that it includes (here `b.dfy`), as well
+all files that these files include, etc.
+
+Running Dafny with `/verifyAllModules` on the file containing your main
+result is a good way to ensure that all its dependencies verify.
+
+* `-separateModuleOutput` - output verification results for each module
+  separately, rather than aggregating them after they are all finished.
+
+* `-verificationLogger:<configuration string>` - logs verification
+  results to the given test result logger. The currently supported
+  loggers are `trx`, `csv`, and `text`. These are the XML-based format
+  commonly used for test results for .NET languages, a custom CSV
+  schema, and a textual format meant for human consumption. You can
+  provide configuration using the same string format as when using the
+  `--logger` option for dotnet test, such as:
+
+        /verificationLogger:trx;LogFileName=<...>
+
+  The exact mapping of verification concepts to these formats is
+  experimental and subject to change!
+
+  The `trx` and `csv` loggers automatically choose an output file name
+  by default, and print the name of this file to the console. The `text`
+  logger prints its output to the console by default, but can send
+  output to a file given the `LogFileName` option.
+
+  The `text` logger also includes a more detailed breakdown of what
+  assertions appear in each assertion batch. When combined with the
+  `/vcsSplitOnEveryAssert` option, it will provide approximate time and
+  resource use costs for each assertion, allowing identification of
+  especially expensive assertions.
+
+* `-mimicVerificationOf:<Dafny version>` - let Dafny attempt to mimic
+  the verification behavior of a previous version of Dafny. This can be
+  useful during migration to a newer version of Dafny when a Dafny
+  program has proofs, such as methods or lemmas, that are unstable in
+  the sense that their verification may become slower or fail altogether
+  after logically irrelevant changes are made in the verification input.
+
+  Accepted versions are: `3.3`. Note that falling back on the behavior
+  of version 3.3 turns off features that prevent certain classes of
+  verification instability.
+
+* `-noCheating:<n>` - control whether certain assumptions are allowed.
+  The argument can be:
+
+  * `0` (default) - allow `assume` statements and free invariants, or
+
+  * `1` - treat all assumptions as `assert` statements, and drop free
+    invariants.
+
+* `-induction:<n>` - control the behavior of induction. The argument can
+  be one of the following.
+
+  * `0` - never do induction, not even when attributes request it.
+
+  * `1` - apply induction only when attributes request it.
+
+  * `2` - apply induction as requested (by attributes) and also for
+    heuristically chosen quantifiers.
+
+  * `3` - apply induction as requested, and for heuristically chosen
+    quantifiers and lemmas.
+
+  * `4` (default) - apply induction as requested, and for all lemmas.
+
+* `-inductionHeuristic:<n>` - control the heuristics used for induction.
+  The argument can be one of the following.
+
+  * `0` - use the least discriminating induction heuristic (that is,
+    lean toward applying induction more often).
+
+  * `1`, `2`, `3`, `4`, `5` - use an intermediate heuristic, ordered as
+    follows as far as how discriminating they are: 0 < 1 < 2 < (3,4) < 5
+    < 6.
+
+  * `6` (default) - use the most discriminating induction heuristic.
+
+* `-trackPrintEffects:<n>` - TO BE WRITTEN
+
+* `-allocated:<n>` - TO BE WRITTEN
+
+* `-definiteAssignment:<n>` - TO BE WRITTEN
+
+* `-noAutoReq` - TO BE WRITTEN
+
+* `-autoReqPrint:<file>` - TO BE WRITTEN
+
+* `-noNLarith` - TO BE WRITTEN
+
+* `-arith:<n>` - TO BE WRITTEN
+
+* `-autoTriggers:<n>` - TO BE WRITTEN
+
+* `-rewriteFocalPredicates:<n>` - TO BE WRITTEN
+
+* `-extractCounterexample` - TO BE WRITTEN
+
+* `-countVerificationErrors:<n>` - if 0 then always exit with a 0 exit
+  code, regardless of whether errors are found. If 1 (the default) then
+  use the usual exit code. This option is deprecated.
+
+### 24.10.8. Controlling boogie {#sec-controlling-boogie}
 
 * `-print:<file>` - print the translation of the Dafny file to a Boogie file.
 
@@ -603,11 +861,15 @@ PROVER_OPTIONS="\
 # "$BOOGIE" $BOOGIE_OPTIONS $PROVER_OPTIONS "$@"
 ```
 
-### 24.10.7. Controlling the prover
+### 24.10.9. Controlling the prover {#sec-controlling-prover}
 
 TO BE WRITTEN
 
-### 24.10.8. Controlling compilation {#sec-controlling-compilation}
+### 24.10.10. Controlling test generation {#sec-controlling-test-gen}
+
+TO BE WRITTEN
+
+### 24.10.11. Controlling compilation {#sec-controlling-compilation}
 
 * `-compile:<n>` - controls whether compilation happens
 
@@ -641,14 +903,6 @@ By default, Dafny reuses the name of the Dafny file being compiled.  Compilers t
 
   * 0 - do not print any information (silent mode)
   * 1 (default) - print information such as the files being created by the compiler
-
-TO BE WRITTEN
-
-### 24.10.9. Options intended for debugging
-
-* `-dprelude:<file>` - choose an alternate prelude file
-* `-pmtrace` - print pattern-match compiler debugging information
-* `-titrace` - print type inference debugging information
 
 TO BE WRITTEN
 
