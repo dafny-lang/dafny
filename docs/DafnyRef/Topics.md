@@ -34,6 +34,20 @@ const m := set x | n in {-1, 0, 1, 2} && f(n) >= 1
 const m := set x | n in {-1, 0, 1, 2} && g(n) >= 1
 ```
 
+A special case to be aware of: if the type in the comprehension differs from the collection,
+but both are compilable, the type of the comprehension will be fully tested, which could be viewed as a performance problem if only one specific trait needed to be tested. For example:
+
+```dafny
+const s: set<nat> := {1, 2, 3}
+type NonNegative = x | x > 0 witness 1
+
+// not only x > 0 will be tested, but also x >= 0 (from nat)
+const m := set x: NonNegative | x in s
+
+// To avoid testing x >= 0, you can use the following trick. It will only test t > 0 and prove that x is nonnegative
+const m := set t: nat, x: NonNegative | t in s && t > 0 && x == t :: x
+```
+
 ### 23.2.2. Ghost subset types in comprehensions
 
 A ghost [subset type](#sec-subset-types) is a subset type where one of its constraint is ghost.
