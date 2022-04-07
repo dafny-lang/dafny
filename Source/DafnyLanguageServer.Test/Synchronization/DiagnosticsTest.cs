@@ -637,7 +637,7 @@ method test() {
       var documentItem = CreateTestDocument(source);
       client.OpenDocument(documentItem);
       var diagnostics = await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
-      Assert.AreEqual(diagnostics.Length, 1);
+      Assert.AreEqual(1, diagnostics.Length);
       Assert.IsTrue(diagnostics[0].Message.Contains("timed out"));
     }
   }

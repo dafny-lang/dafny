@@ -74,7 +74,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         document.Version,
         resolvedDocument,
         verifiedDocument,
-        verifiedDocument,
         cancellationSource
       );
       documents.Add(document.Uri, databaseEntry);
@@ -98,7 +97,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       if (document.LoadCanceled || !verify || document.ParseAndResolutionDiagnostics.Any(d => d.Severity == DiagnosticSeverity.Error)) {
         throw new TaskCanceledException();
       }
-      return await documentLoader.VerifyAsync(document, cancellationToken);
+      return await documentLoader.VerifyAsync(document, cancellationToken); // Awaiting an observable returns the last element (before the OnCompleted)
     }
 
     public IObservable<DafnyDocument> UpdateDocument(DidChangeTextDocumentParams documentChange) {
@@ -125,7 +124,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         documentChange.TextDocument.Version,
         resolvedDocumentTask,
         verifiedDocument,
-        verifiedDocument,
         cancellationSource
       );
       documents[documentUri] = updatedEntry;
@@ -140,18 +138,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       // We do not pass the cancellation token to the text change processor because the text has to be kept in sync with the LSP client.
       var updatedText = textChangeProcessor.ApplyChange(oldDocument.Text, documentChange, CancellationToken.None);
-      var oldVerificationDiagnostics = oldDocument.BoogieProgramDiagnostics;
-      var migratedVerificationDiagnotics =
-        relocator.RelocateDiagnostics(oldVerificationDiagnostics, documentChange, CancellationToken.None);
-      var migratedImplementationDiagnotics = oldDocument.ImplementationDiagnostics.ToDictionary(kv => kv.Key, kv =>
-        relocator.RelocateDiagnostics(kv.Value, documentChange, CancellationToken.None));
+      var oldVerificationDiagnostics = oldDocument.VerificationDiagnostics;
+      var migratedVerificationDiagnotics = relocator.RelocateDiagnostics(oldDocument.VerificationDiagnostics, documentChange, CancellationToken.None);
       logger.LogDebug($"Migrated {oldVerificationDiagnostics.Count} diagnostics into {migratedVerificationDiagnotics.Count} diagnostics.");
       try {
         var newDocument = await documentLoader.LoadAsync(updatedText, cancellationToken);
         if (newDocument.SymbolTable.Resolved) {
           return newDocument with {
-            BoogieProgramDiagnostics = migratedVerificationDiagnotics,
-            ImplementationDiagnostics = migratedImplementationDiagnotics
+            VerificationDiagnostics = migratedVerificationDiagnotics
           };
         }
         // The document loader failed to create a new symbol table. Since we'd still like to provide
@@ -159,8 +153,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         // according to the change.
         return newDocument with {
           SymbolTable = relocator.RelocateSymbols(oldDocument.SymbolTable, documentChange, CancellationToken.None),
-          BoogieProgramDiagnostics = migratedVerificationDiagnotics,
-          ImplementationDiagnostics = migratedImplementationDiagnotics
+          VerificationDiagnostics = migratedVerificationDiagnotics
         };
       } catch (OperationCanceledException) {
         // The document load was canceled before it could complete. We migrate the document
@@ -169,10 +162,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return oldDocument with {
           Text = updatedText,
           SymbolTable = relocator.RelocateSymbols(oldDocument.SymbolTable, documentChange, CancellationToken.None),
-          SerializedCounterExamples = null,
+          CounterExamples = Array.Empty<Counterexample>(),
           LoadCanceled = true,
-          BoogieProgramDiagnostics = migratedVerificationDiagnotics,
-          ImplementationDiagnostics = migratedImplementationDiagnotics
+          VerificationDiagnostics = migratedVerificationDiagnotics
         };
       }
     }
@@ -190,7 +182,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var updatedEntry = new DocumentEntry(
         databaseEntry.Version,
         databaseEntry.ResolvedDocument,
-        verifiedDocumentTask,
         verifiedDocumentTask,
         cancellationSource
       );
@@ -229,12 +220,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       documents.ToDictionary(k => k.Key, v => (IDocumentEntry)v.Value);
 
     private record DocumentEntry(int? Version, Task<DafnyDocument> ResolvedDocument,
-      Task<DafnyDocument> MostVerifiedDocument,
       Task<DafnyDocument> FullyVerifiedDocument,
       CancellationTokenSource CancellationSource) : IDocumentEntry {
       public void CancelPendingUpdates() {
         CancellationSource.Cancel();
       }
+
+      public Task<DafnyDocument> MostVerifiedDocument =>
+        FullyVerifiedDocument.IsCompletedSuccessfully ? FullyVerifiedDocument : ResolvedDocument;
     }
   }
 }

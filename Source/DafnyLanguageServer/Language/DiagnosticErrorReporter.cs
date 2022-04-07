@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using VCGeneration;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   public class DiagnosticErrorReporter : ErrorReporter {
@@ -28,6 +29,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     public DiagnosticErrorReporter(DocumentUri entryDocumentUri) {
       this.entryDocumentUri = entryDocumentUri;
     }
+
+    public IReadOnlyDictionary<DocumentUri, List<Diagnostic>> AllDiagnostics => diagnostics;
 
     public IReadOnlyList<Diagnostic> GetDiagnostics(DocumentUri documentUri) {
       rwLock.EnterReadLock();
@@ -55,15 +58,18 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           }
         }
       }
+
+      var uri = GetDocumentUriOrDefault(error.Tok);
+      var diagnostic = new Diagnostic {
+        Severity = DiagnosticSeverity.Error,
+        Message = error.Msg,
+        Range = error.Tok.GetLspRange(),
+        RelatedInformation = relatedInformation,
+        Source = VerifierMessageSource.ToString()
+      };
       AddDiagnosticForFile(
-        new Diagnostic {
-          Severity = DiagnosticSeverity.Error,
-          Message = error.Msg,
-          Range = error.Tok.GetLspRange(),
-          RelatedInformation = relatedInformation,
-          Source = VerifierMessageSource.ToString()
-        },
-        GetDocumentUriOrDefault(error.Tok)
+        diagnostic,
+        uri
       );
     }
 

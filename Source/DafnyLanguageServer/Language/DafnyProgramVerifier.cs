@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
@@ -9,6 +10,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using VCGeneration;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
@@ -26,7 +28,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
     private readonly ILogger logger;
     private readonly VerifierOptions options;
-    private readonly SemaphoreSlim mutex = new(1);
     private readonly VerificationResultCache cache = new();
 
     DafnyOptions Options => DafnyOptions.O;
@@ -66,63 +67,27 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         : Convert.ToInt32(options.VcsCores);
     }
 
-    public async Task<ServerVerificationResult> VerifyAsync(Dafny.Program program,
+    public IReadOnlyList<IImplementationTask> VerifyAsync(Dafny.Program program,
                                      IVerificationProgressReporter progressReporter,
                                      CancellationToken cancellationToken) {
-      await mutex.WaitAsync(cancellationToken);
-      try {
-        // The printer is responsible for two things: It logs boogie errors and captures the counter example model.
-        var errorReporter = (DiagnosticErrorReporter)program.Reporter;
-        var printer = new ModelCapturingOutputPrinter(logger, errorReporter, progressReporter);
-        // Do not set these settings within the object's construction. It will break some tests within
-        // VerificationNotificationTest and DiagnosticsTest that rely on updating these settings.
-        DafnyOptions.O.TimeLimit = options.TimeLimit;
-        DafnyOptions.O.VcsCores = GetConfiguredCoreCount(options);
-        DafnyOptions.O.Printer = printer;
 
-        var executionEngine = new ExecutionEngine(DafnyOptions.O, cache);
-        var translated = Translator.Translate(program, errorReporter, new Translator.TranslatorFlags { InsertChecksums = true });
-        var moduleTasks = translated.Select(t => {
-          var (moduleName, boogieProgram) = t;
-          var programId = program.FullName;
-          var boogieProgramId = (programId ?? "main_program_id") + "_" + moduleName;
-          return VerifyWithBoogieAsync(TextWriter.Null, executionEngine, boogieProgram, cancellationToken, boogieProgramId);
-        }).ToList();
-        await Task.WhenAll(moduleTasks);
-        var verified = moduleTasks.All(t => t.Result);
-        return new ServerVerificationResult(verified, printer.SerializedCounterExamples);
-      }
-      finally {
-        mutex.Release();
-      }
-    }
+      // The printer is responsible for two things: It logs boogie errors and captures the counter example model.
+      // TODO, use less printer.
+      var errorReporter = (DiagnosticErrorReporter)program.Reporter;
+      var printer = new ModelCapturingOutputPrinter(logger, errorReporter, progressReporter);
+      // Do not set these settings within the object's construction. It will break some tests within
+      // VerificationNotificationTest and DiagnosticsTest that rely on updating these settings.
+      DafnyOptions.O.TimeLimit = options.TimeLimit;
+      DafnyOptions.O.VcsCores = GetConfiguredCoreCount(options);
+      DafnyOptions.O.Printer = printer;
 
-    private async Task<bool> VerifyWithBoogieAsync(TextWriter output,
-      ExecutionEngine engine, Boogie.Program program,
-      CancellationToken cancellationToken, string programId) {
-      program.Resolve(engine.Options);
-      program.Typecheck(engine.Options);
-
-      engine.EliminateDeadVariables(program);
-      engine.CollectModSets(program);
-      engine.CoalesceBlocks(program);
-      engine.Inline(program);
-      var uniqueRequestId = Guid.NewGuid().ToString();
-      using (cancellationToken.Register(() => CancelVerification(uniqueRequestId))) {
-        try {
-          var statistics = new PipelineStatistics();
-          var outcome = await engine.InferAndVerify(output, program, statistics, programId, null, uniqueRequestId);
-          return Main.IsBoogieVerified(outcome, statistics);
-        } catch (Exception e) when (e is not OperationCanceledException) {
-          if (!cancellationToken.IsCancellationRequested) {
-            throw;
-          }
-          // It appears that Boogie disposes resources that are still in use upon cancellation.
-          // Therefore, we log this error and proceed with the cancellation.
-          logger.LogDebug(e, "boogie error occured when cancelling the verification");
-          throw new OperationCanceledException(cancellationToken);
-        }
-      }
+      var executionEngine = new ExecutionEngine(DafnyOptions.O, cache);
+      var translated = Translator.Translate(program, errorReporter, new Translator.TranslatorFlags { InsertChecksums = true });
+      return translated.SelectMany(t => {
+        var (_, boogieProgram) = t;
+        var results = executionEngine.GetImplementationTasks(boogieProgram);
+        return results;
+      }).ToList();
     }
 
     private void CancelVerification(string requestId) {
@@ -135,8 +100,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       private readonly DiagnosticErrorReporter errorReporter;
       private readonly IVerificationProgressReporter progressReporter;
       private StringBuilder? serializedCounterExamples;
-
-      public string? SerializedCounterExamples => serializedCounterExamples?.ToString();
 
       public ModelCapturingOutputPrinter(ILogger logger, DiagnosticErrorReporter errorReporter,
                                          IVerificationProgressReporter progressReporter) {

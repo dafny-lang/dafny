@@ -6,12 +6,16 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Configuration;
+using System.IO;
 using System.Linq;
+using System.Reactive.Linq;
+using System.Reactive.Threading.Tasks;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
+using VC;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
@@ -26,6 +30,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     // 256MB
     private const int MaxStackSize = 0x10000000;
 
+    private DafnyOptions Options => DafnyOptions.O;
     private readonly IDafnyParser parser;
     private readonly ISymbolResolver symbolResolver;
     private readonly ISymbolTableFactory symbolTableFactory;
@@ -103,8 +108,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
       var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(symbolTable, cancellationToken).ToArray();
 
-      return new DafnyDocument(textDocument, errorReporter.GetDiagnostics(textDocument.Uri),
-        new List<Diagnostic>(), new (),
+      return new DafnyDocument(Options, textDocument, errorReporter.GetDiagnostics(textDocument.Uri),
+        Array.Empty<Diagnostic>(), Array.Empty<Counterexample>(),
         ghostDiagnostics, program, symbolTable);
     }
 
@@ -115,7 +120,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
     }
 
-    private static DafnyDocument CreateDocumentWithEmptySymbolTable(
+    private DafnyDocument CreateDocumentWithEmptySymbolTable(
       ILogger<SymbolTable> logger,
       TextDocumentItem textDocument,
       DiagnosticErrorReporter errorReporter,
@@ -123,10 +128,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       bool loadCanceled
     ) {
       return new DafnyDocument(
+        Options,
         textDocument,
         errorReporter.GetDiagnostics(textDocument.Uri),
         new List<Diagnostic>(),
-        new(),
+        Array.Empty<Counterexample>(),
         Array.Empty<Diagnostic>(),
         program,
         CreateEmptySymbolTable(program, logger),
@@ -145,28 +151,46 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       );
     }
 
-    public async Task<DafnyDocument> VerifyAsync(DafnyDocument document, CancellationToken cancellationToken) {
-
-      return await await Task.Factory.StartNew(() => VerifyInternalAsync(document, cancellationToken), cancellationToken,
-        TaskCreationOptions.None, LargeStackScheduler);
-    }
-
-    private async Task<DafnyDocument> VerifyInternalAsync(DafnyDocument document, CancellationToken cancellationToken) {
+    public IObservable<DafnyDocument> VerifyAsync(DafnyDocument document, CancellationToken cancellationToken) {
       notificationPublisher.SendStatusNotification(document.Text, CompilationStatus.VerificationStarted);
       var progressReporter = new VerificationProgressReporter(document.Text, notificationPublisher);
-      var errorReporter = new DiagnosticErrorReporter(document.Uri);
-      document.Program.Reporter = errorReporter;
-      var verificationResult = await verifier.VerifyAsync(document.Program, progressReporter, cancellationToken);
-      var compilationStatusAfterVerification = verificationResult.Verified
-        ? CompilationStatus.VerificationSucceeded
-        : CompilationStatus.VerificationFailed;
-      notificationPublisher.SendStatusNotification(document.Text, compilationStatusAfterVerification);
-      logger.LogDebug($"Finished verification with {errorReporter.ErrorCount} errors.");
-      return document with {
-        BoogieProgramDiagnostics = errorReporter.GetDiagnostics(document.Uri),
-        // ImplementationErrors = new(),
-        SerializedCounterExamples = verificationResult.SerializedCounterExamples
-      };
+      var programErrorReporter = new DiagnosticErrorReporter(document.Uri);
+      document.Program.Reporter = programErrorReporter;
+      var implementationTasks = verifier.VerifyAsync(document.Program, progressReporter, cancellationToken);
+      foreach (var implementationTask in implementationTasks) {
+        implementationTask.Run();
+      }
+
+      Task.WhenAll(implementationTasks.Select(t => t.ActualTask)).ContinueWith(t => {
+        logger.LogDebug($"Finished verification with {t.Result.Sum(r => r.Errors.Count)} errors.");
+        var verified = t.Result.All(r => r.Outcome == ConditionGeneration.Outcome.Correct);
+        var compilationStatusAfterVerification = verified
+          ? CompilationStatus.VerificationSucceeded
+          : CompilationStatus.VerificationFailed;
+        notificationPublisher.SendStatusNotification(document.Text, compilationStatusAfterVerification);
+      }, cancellationToken);
+
+      var concurrentDictionary = new ConcurrentBag<Diagnostic>();
+      var counterExamples = new ConcurrentStack<Counterexample>();
+      var documentTasks = implementationTasks.Select(it => {
+        return it.ActualTask.ContinueWith(t => {
+
+          var errorReporter = new DiagnosticErrorReporter(document.Uri);
+          foreach (var counterExample in t.Result.Errors) {
+            counterExamples.Push(counterExample);
+            errorReporter.ReportBoogieError(counterExample.CreateErrorInformation(t.Result.Outcome, Options.ForceBplErrors));
+          }
+          foreach (var diagnostic in errorReporter.GetDiagnostics(document.Uri)) {
+            concurrentDictionary.Add(diagnostic);
+          }
+
+          return document with {
+            VerificationDiagnostics = concurrentDictionary.ToArray(),
+            CounterExamples = counterExamples.ToArray(),
+          };
+        }, cancellationToken);
+      });
+      return documentTasks.Select(documentTask => documentTask.ToObservable()).Merge();
     }
 
     private record Request(CancellationToken CancellationToken) {

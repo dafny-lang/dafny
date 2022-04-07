@@ -7,6 +7,8 @@ using System.ComponentModel.Design.Serialization;
 using System.Linq;
 using System.Text;
 using System.Diagnostics.Contracts;
+using System.Numerics;
+using System.Threading.Tasks;
 using JetBrains.Annotations;
 using Microsoft.Boogie;
 using Microsoft.Dafny.Triggers;

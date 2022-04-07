@@ -1,11 +1,14 @@
 ﻿using Microsoft.Dafny.LanguageServer.Language;
-using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reactive.Linq;
 using System.Threading.Tasks;
+using DafnyServer;
 using Microsoft.Boogie;
+using VCGeneration;
+using SymbolTable = Microsoft.Dafny.LanguageServer.Language.Symbols.SymbolTable;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
@@ -18,26 +21,22 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <param name="SymbolTable">The symbol table for the symbol lookups.</param>
   /// <param name="LoadCanceled"><c>true</c> if the document load was canceled for this document.</param>
   public record DafnyDocument(
+    DafnyOptions Options,
     TextDocumentItem Text,
     IReadOnlyList<Diagnostic> ParseAndResolutionDiagnostics,
-    IReadOnlyList<Diagnostic> BoogieProgramDiagnostics,
-    Dictionary<Implementation, IReadOnlyList<Diagnostic>> ImplementationDiagnostics,
+    // TODO, add migration code for CounterExamples, and determine VerificationDiagnostics based on CounterExamples
+    IReadOnlyList<Diagnostic> VerificationDiagnostics,
+    IReadOnlyList<Counterexample> CounterExamples,
     IReadOnlyList<Diagnostic> GhostDiagnostics,
     Dafny.Program Program,
     SymbolTable SymbolTable,
     bool LoadCanceled = false
   ) {
 
-    public IEnumerable<Diagnostic> Diagnostics => ParseAndResolutionDiagnostics.Concat(BoogieProgramDiagnostics)
-      .Concat(ImplementationDiagnostics.Values.SelectMany(x => x));
+    public IEnumerable<Diagnostic> Diagnostics => ParseAndResolutionDiagnostics.Concat(VerificationDiagnostics);
+
     public DocumentUri Uri => Text.Uri;
     public int Version => Text.Version!.Value;
-
-    /// <summary>
-    /// Gets the serialized models of the counter examples if the verifier reported issues.
-    /// <c>null</c> if there are no verification errors or no verification was run.
-    /// </summary>
-    public string? SerializedCounterExamples { get; init; }
 
     /// <summary>
     /// Checks if the given document uri is pointing to this dafny document.
