@@ -547,7 +547,7 @@ namespace Microsoft.Dafny {
         bool splitHappened;
         var ss = TrSplitExpr(stmt.Expr, etran, true, out splitHappened);
         if (!splitHappened) {
-          var tok = enclosingToken == null ? stmt.Expr.tok : new NestedToken(enclosingToken, stmt.Expr.tok);
+          var tok = enclosingToken == null ? GetTok(stmt.Expr) : new NestedToken(enclosingToken, GetTok(stmt.Expr));
           var desc = new PODesc.AssertStatement(errorMessage);
           (proofBuilder ?? b).Add(Assert(tok, etran.TrExpr(stmt.Expr), desc, stmt.Tok,
             etran.TrAttributes(stmt.Attributes, null)));

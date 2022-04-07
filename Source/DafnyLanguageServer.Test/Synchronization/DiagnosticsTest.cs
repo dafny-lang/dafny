@@ -199,7 +199,7 @@ method Multiply(x: int, y: int) returns (product: int)
       Assert.AreEqual(1, diagnostics[0].RelatedInformation.Count());
       var relatedInformation = diagnostics[0].RelatedInformation.First();
       Assert.AreEqual("This is the postcondition that might not hold.", relatedInformation.Message);
-      Assert.AreEqual(new Range(new Position(2, 38), new Position(2, 40)), relatedInformation.Location.Range);
+      Assert.AreEqual(new Range(new Position(2, 30), new Position(2, 42)), relatedInformation.Location.Range);
       await AssertNoDiagnosticsAreComing();
     }
 
@@ -582,7 +582,7 @@ class Test {
       Assert.AreEqual("This is the postcondition that might not hold.", relatedInformation[0].Message);
       Assert.AreEqual(new Range((14, 16), (14, 21)), relatedInformation[0].Location.Range);
       Assert.AreEqual("Related location", relatedInformation[1].Message);
-      Assert.AreEqual(new Range((9, 13), (9, 14)), relatedInformation[1].Location.Range);
+      Assert.AreEqual(new Range((9, 11), (9, 16)), relatedInformation[1].Location.Range);
       await AssertNoDiagnosticsAreComing();
     }
 

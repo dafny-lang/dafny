@@ -8957,6 +8957,22 @@ namespace Microsoft.Dafny {
     }
   }
 
+  public class RangeToken : TokenWrapper {
+    // The wrapped token is the startTok
+    private IToken endTok;
+
+    // Used for range reporting
+    override public string val {
+      get {
+        return new string(' ', endTok.pos + endTok.val.Length - pos);
+      }
+    }
+
+    public RangeToken(IToken startTok, IToken endTok) : base(startTok) {
+      this.endTok = endTok;
+    }
+  }
+
   public class NestedToken : TokenWrapper {
     public NestedToken(IToken outer, IToken inner, string message = null)
       : base(outer) {
@@ -9068,6 +9084,48 @@ namespace Microsoft.Dafny {
     /// </summary>
     public virtual IEnumerable<Expression> SubExpressions {
       get { yield break; }
+    }
+
+    private IToken startTok;
+    private IToken endTok;
+
+    // Creates a token on the entire range of the expression.
+    // Used only for error reporting.
+    public IToken RangeToken => new RangeToken(StartTok, EndTok);
+
+    // Computes the start and end token of this expression
+    private void RecomputeStartEnd() {
+      startTok = tok;
+      endTok = tok;
+      foreach (var e in SubExpressions) {
+        if (e.tok.pos < startTok.pos) {
+          startTok = e.tok;
+        } else if (e.tok.pos > endTok.pos) {
+          endTok = e.tok;
+        }
+      }
+    }
+
+    // Never null if tok is not null
+    public IToken StartTok {
+      get {
+        if (startTok == null) {
+          RecomputeStartEnd();
+        }
+
+        return startTok;
+      }
+    }
+
+    // Never null if tok is not null
+    public IToken EndTok {
+      get {
+        if (endTok == null) {
+          RecomputeStartEnd();
+        }
+
+        return endTok;
+      }
     }
 
     /// <summary>
