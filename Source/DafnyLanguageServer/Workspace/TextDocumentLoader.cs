@@ -180,6 +180,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             counterExamples.Push(counterExample);
             errorReporter.ReportBoogieError(counterExample.CreateErrorInformation(t.Result.Outcome, Options.ForceBplErrors));
           }
+          var outcomeError = t.Result.GetOutcomeError(Options);
+          if (outcomeError != null) {
+            errorReporter.ReportBoogieError(outcomeError);
+          }
           foreach (var diagnostic in errorReporter.GetDiagnostics(document.Uri)) {
             concurrentDictionary.Add(diagnostic);
           }

@@ -116,7 +116,6 @@ function GetConstant(): int {
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
       var savedDocument = await Documents.GetVerifiedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(savedDocument);
-      Assert.AreNotSame(openedDocument, savedDocument);
     }
 
     [TestMethod]

@@ -195,7 +195,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         throw new TaskCanceledException();
       }
       var verifiedDocumentTask = documentLoader.VerifyAsync(document, cancellationToken);
-      return await verifiedDocumentTask;
+      return await verifiedDocumentTask.DefaultIfEmpty(document);
     }
 
     private static bool RequiresOnSaveVerification(DafnyDocument document) {
