@@ -34,6 +34,19 @@ const m := set x | n in {-1, 0, 1, 2} && f(n) >= 1
 const m := set x | n in {-1, 0, 1, 2} && g(n) >= 1
 ```
 
+### 23.2.2. Ghost subset types in comprehensions
+
+A ghost [subset type](#sec-subset-types) is a subset type where one of its constraint is ghost.
+For comprehensions ([forall and exists expressions](#sec-quantifier-expression), [set comprehensions](#sec-set-comprehension-expression) and [map comprehensions](#sec-map-comprehension-expression)), variables with a ghost subset type are not problem if they are in a ghost context.
+However, in a compiled context, things are more tricky.
+
+Consider a comprehension like `set c: GhostSubsetType | c in Collection && P(c) :: c` in a compiled context where `Collection: set<T>` and the constraint of `GhostSubsetType` may not be checked at run-time, because it's ghost. Since Dafny cannot emit code to test the constraint at run-time, Dafny needs to verify it statically.
+
+* If the inferred collection `Collection`'s elements of type `T` are a _subtype_ of `GhostSubsetType`, then no check needs to be done, and there is no implicit check.
+* Otherwise, the type of `c` in the range `c in Collection && P(c)` is first inferred to be the type of the collection's elements `T`. That way, it prevents `P(c)` to automatically assume the ghost constraint of `GhostSubsetType` holds, which would result in soundness errors. Second, the verifier checks that `c in S && P(c)` implies that the constraint of `GhostSubsetType` holds for `c`. If yes, the comprehension can be compiled, and if not, the verifier emit an error.
+
+This mechanism is the same for other comprehensions in a compiled context.
+
 A special case to be aware of: if the type in the comprehension differs from the collection,
 but both are compilable, the type of the comprehension will be fully tested, which could be viewed as a performance problem if only one specific trait needed to be tested. For example:
 
@@ -47,19 +60,6 @@ const m := set x: NonNegative | x in s
 // To avoid testing x >= 0, you can use the following trick. It will only test t > 0 and prove that x is nonnegative
 const m := set t: nat, x: NonNegative | t in s && t > 0 && x == t :: x
 ```
-
-### 23.2.2. Ghost subset types in comprehensions
-
-A ghost [subset type](#sec-subset-types) is a subset type where one of its constraint is ghost.
-For comprehensions ([forall and exists expressions](#sec-quantifier-expression), [set comprehensions](#sec-set-comprehension-expression) and [map comprehensions](#sec-map-comprehension-expression)), variables with a ghost subset type are not problem if they are in a ghost context.
-However, in a compiled context, things are more tricky.
-
-Consider a comprehension like `set c: GhostSubsetType | c in Collection && P(c) :: c` in a compiled context where `Collection: set<T>` and the constraint of `GhostSubsetType` may not be checked at run-time, because it's ghost. Since Dafny cannot emit code to test the constraint at run-time, Dafny needs to verify it statically.
-
-* If the inferred collection `Collection`'s elements of type `T` are a _subtype_ of `GhostSubsetType`, then no check needs to be done.
-* Otherwise, the type of `c` in the range `c in Collection && P(c)` is first inferred to be the type of the collection's elements `T`. That way, it prevents `P(c)` to automatically assume the ghost constraint of `GhostSubsetType` holds, which would result in soundness errors. Second, the verifier checks that `c in S && P(c)` implies that the constraint of `GhostSubsetType` holds for `c`. If yes, the comprehension can be compiled, and if not, the verifier emit an error.
-
-This mechanism is the same for other comprehensions in a compiled context.
 
 ## 23.3. Ghost Inference
 
