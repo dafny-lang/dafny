@@ -317,11 +317,11 @@ This list is not exhaustive but can definitely be useful to provide the next ste
 
 ### 24.8.2. Verification debugging when verification is slow {#sec-verification-debugging-slow}
 
-In this section, we describe methodologies to apply in the case when verification is slower than expected, does not terminate, or timeouts.
+In this section, we describe techniques to apply in the case when verification is slower than expected, does not terminate, or timeouts.
 
 #### 24.8.2.1. `assume false;` {#sec-assume-false}
 
-Assuming `false` is a powerful way to short-circuit the verifier and stop verification at a given point[^explainer-assume-false], and since the final compilation steps do not accept this command, it is safe to use it during development.
+Assuming `false` is an empirical way to short-circuit the verifier and usually stop verification at a given point[^explainer-assume-false], and since the final compilation steps do not accept this command, it is safe to use it during development.
 Another similar command, `assert false;`, would also short-circuit the verifier, but it would still make the verifier try to prove `false`, which can also lead to timeouts.
 
 [^explainer-assume-false]: `assume false` tells the Dafny verifier "Assume everything is true from this point of the program". The reason is that, 'false' proves anything. For example, `false ==> A` is always true because it is equivalent to `!false || A`, which reduces to `true || A`, which reduces to `true`.
@@ -635,7 +635,7 @@ The fundamental unit of verification in Dafny is an _assertion batch_, which con
 
 [^caveat-about-assertion-and-assumption]: Caveat about assertion and assumption: One big difference between an "assertion transformed in an assumption" and the original "assertion" is that the original "assertion" can unroll functions twice, whereas the "assumed assertion" can unroll them only once. Hence, Dafny can still continue to analyze assertions after a failing assertion without automatically proving "false" (which would make all further assertions vacuous).
 
-[^smaller-batches]: To create a smaller batch, Dafny duplicates the assertion batch, and transforms each assertion into an assumption into exactly one batch, so that assertions are verified only in one batch. This results in "easier" formulas for the verifier because it has less to prove, but it takes more overhead because every verification instance have a common set of axioms and there is no knowledge sharing between instances because they run independently.
+[^smaller-batches]: To create a smaller batch, Dafny duplicates the assertion batch, and arbitrarily transforms the clones of an assertion into assumptions except in exactly one batch, so that each assertion is verified only in one batch. This results in "easier" formulas for the verifier because it has less to prove, but it takes more overhead because every verification instance have a common set of axioms and there is no knowledge sharing between instances because they run independently.
 
 #### 24.8.3.1. Controlling assertion batches {#sec-assertion-batches-control}
 
