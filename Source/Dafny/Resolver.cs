@@ -5031,24 +5031,7 @@ namespace Microsoft.Dafny {
         Type tUp, uUp;
         switch (ConstraintName) {
           case "SubsetTypeOfCompilable": {
-              var u = Types[0].NormalizeExpandKeepConstraints();
-              if (!CheckTypeInference_Visitor.IsDetermined(u)) {
-                if (Types[1] is TypeProxy tp && tp.IsTypeParameter) {
-                  resolver.ConstrainSubtypeRelation_Equal(u, tp, errorMsg);
-                  convertedIntoOtherTypeConstraints = true;
-                  return true;
-                }
-                return false;
-              }
-
-              t = Types[1].NormalizeExpandKeepConstraints();
-              if (CheckTypeInference_Visitor.IsDetermined(t)) {
-                // No need to add other constraints, the verifier will take care of that.
-                return true;
-              }
-              resolver.ConstrainSubtypeRelation(t, u.GetCompilableParentType(), errorMsg, true);
-              convertedIntoOtherTypeConstraints = true;
-              return true;
+              return ConfirmSubsetTypeOfCompilable(resolver, ref convertedIntoOtherTypeConstraints);
             }
           case "Assignable": {
               Contract.Assert(t == t.Normalize());  // it's already been normalized above
@@ -5491,6 +5474,30 @@ namespace Microsoft.Dafny {
           errorMsg.FlagAsError();
         }
         return true;  // the XConstraint has served its purpose
+      }
+
+      private bool ConfirmSubsetTypeOfCompilable(Resolver resolver, ref bool convertedIntoOtherTypeConstraints) {
+        Type collectionType;
+        var requestedVariableType = Types[0].NormalizeExpandKeepConstraints();
+        if (!CheckTypeInference_Visitor.IsDetermined(requestedVariableType)) {
+          if (Types[1] is TypeProxy tp && tp.IsTypeParameter) {
+            resolver.ConstrainSubtypeRelation_Equal(requestedVariableType, tp, errorMsg);
+            convertedIntoOtherTypeConstraints = true;
+            return true;
+          }
+
+          return false;
+        }
+
+        collectionType = Types[1].NormalizeExpandKeepConstraints();
+        if (CheckTypeInference_Visitor.IsDetermined(collectionType)) {
+          // No need to add other constraints, the verifier will take care of that.
+          return true;
+        }
+
+        resolver.ConstrainSubtypeRelation(collectionType, requestedVariableType.GetCompilableParentType(), errorMsg, true);
+        convertedIntoOtherTypeConstraints = true;
+        return true;
       }
 
       public bool ProxyWithNoSubTypeConstraint(Type u, Resolver resolver) {
