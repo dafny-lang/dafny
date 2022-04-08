@@ -459,7 +459,9 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitBreak(string label, ConcreteSyntaxTree wr) {
       if (label != null) {
         wr.WriteLine($"_dafny._break(\"{label}\")");
-      } else { wr.WriteLine("break"); }
+      } else {
+        wr.WriteLine("break");
+      }
     }
 
     protected override void EmitContinue(string label, ConcreteSyntaxTree wr) {
