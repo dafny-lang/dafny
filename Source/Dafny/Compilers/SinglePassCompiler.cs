@@ -1241,6 +1241,7 @@ namespace Microsoft.Dafny.Compilers {
               var cw = CreateClass(IdProtect(d.EnclosingModuleDefinition.CompileName), IdName(cl), classIsExtern, cl.FullName,
                 cl.TypeArgs, cl, cl.ParentTypeInformation.UniqueParentTraits(), cl.tok, wr);
               CompileClassMembers(program, cl, cw);
+
               cw.Finish();
             } else {
               // still check that given members satisfy compilation rules
@@ -1799,13 +1800,14 @@ namespace Microsoft.Dafny.Compilers {
                            "anything",
                 errorWr, m.FullName);
             }
+          } else if (m.IsEntryPoint && m.Body == null && DafnyOptions.O.RunAllTests) {
+            var w = classWriter.CreateMethod(m, CombineAllTypeArguments(m), true, false, false);
+            EmitRunAllTestsMainMethod(program, w);
           } else if (m.Body == null && !(c is TraitDecl && !m.IsStatic) &&
                      !(!DafnyOptions.O.DisallowExterns && (Attributes.Contains(m.Attributes, "dllimport") || (IncludeExternMembers && Attributes.Contains(m.Attributes, "extern"))))) {
             // A (ghost or non-ghost) method must always have a body, except if it's an instance method in a trait.
             if (Attributes.Contains(m.Attributes, "axiom") || (!DafnyOptions.O.DisallowExterns && Attributes.Contains(m.Attributes, "extern"))) {
               // suppress error message
-            } else if (Attributes.Contains(m.Attributes, "run_all_tests")) {
-              EmitRunAllTestsMainMethod(program, m, classWriter);
             } else {
               Error(m.tok, "Method {0} has no body", errorWr, m.FullName);
             }
@@ -5121,10 +5123,8 @@ namespace Microsoft.Dafny.Compilers {
 
     protected abstract ConcreteSyntaxTree EmitInvokeWithHaltHandling(LocalVariable haltMessageVar, ConcreteSyntaxTree wr);
     
-    protected void EmitRunAllTestsMainMethod(Program program, Method mainMethod, IClassWriter cw) {
-      var w = CreateStaticMain(cw);
-
-      var tok = mainMethod.tok;
+    protected void EmitRunAllTestsMainMethod(Program program, ConcreteSyntaxTree w) {
+      var tok = Bpl.Token.NoToken;
       var stringType = new SeqType(new CharType());
       
       var successVarStmt = Statement.CrateLocalVariable(tok, "success", Expression.CreateBoolLiteral(tok, true));

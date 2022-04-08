@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:4 /noVerify /compileTarget:go "%s" > "%t"
+// RUN: %dafny /runAllTests:1 /compile:3 /compileTarget:go "%s" > "%t"
 // RUN: %diff "%t" "%s.expect"
 
 include "../exceptions/VoidOutcomeDt.dfy"
@@ -33,5 +33,3 @@ module TestModule {
 method {:test} FailingReturnValue() returns (result: VoidOutcome) {
   return VoidFailure("Whoopsie");
 }
-
-method {:run_all_tests} Main()
