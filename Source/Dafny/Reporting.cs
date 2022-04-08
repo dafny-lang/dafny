@@ -152,10 +152,10 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class BatchErrorReporter : ErrorReporter {
-    public readonly Dictionary<ErrorLevel, List<ErrorMessage>> AllMessages;
+  public abstract class BatchErrorReporter : ErrorReporter {
+    protected readonly Dictionary<ErrorLevel, List<ErrorMessage>> AllMessages;
 
-    public BatchErrorReporter() {
+    protected BatchErrorReporter() {
       ErrorsOnly = false;
       AllMessages = new Dictionary<ErrorLevel, List<ErrorMessage>> {
         [ErrorLevel.Error] = new(),

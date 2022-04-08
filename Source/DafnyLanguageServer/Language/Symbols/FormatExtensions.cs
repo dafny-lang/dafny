@@ -29,7 +29,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     /// <returns>The text representation of the variable.</returns>
     public static string AsText(this IVariable variable) {
       var ghost = variable.IsGhost ? "ghost " : "";
-      return $"{ghost}{variable.Name}: {(variable is BoundVar { } bv ? bv.OriginalType : variable.Type)}";
+      return $"{ghost}{variable.Name}: {variable.Type}";
     }
 
     /// <summary>

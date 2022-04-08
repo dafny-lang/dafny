@@ -5092,7 +5092,6 @@ namespace Microsoft.Dafny {
       public readonly List<Bpl.Cmd> Asserts;
       public readonly bool LValueContext;
       public readonly Bpl.QKeyValue AssertKv;
-      public readonly Dictionary<string, BoundVar> VariablesWithCompilableTypeAssumptions = new();
 
       public WFOptions() {
       }
@@ -5123,7 +5122,6 @@ namespace Microsoft.Dafny {
         DoOnlyCoarseGrainedTerminationChecks = options.DoOnlyCoarseGrainedTerminationChecks;
         LValueContext = options.LValueContext;
         AssertKv = options.AssertKv;
-        VariablesWithCompilableTypeAssumptions = new Dictionary<string, BoundVar>(options.VariablesWithCompilableTypeAssumptions);
       }
 
       /// <summary>
@@ -5139,7 +5137,6 @@ namespace Microsoft.Dafny {
         Asserts = options.Asserts;
         LValueContext = lValueContext;
         AssertKv = options.AssertKv;
-        VariablesWithCompilableTypeAssumptions = new Dictionary<string, BoundVar>(options.VariablesWithCompilableTypeAssumptions);
       }
 
       public Action<IToken, Bpl.Expr, PODesc.ProofObligationDescription, Bpl.QKeyValue> AssertSink(Translator tran, BoogieStmtListBuilder builder) {
@@ -5738,20 +5735,6 @@ namespace Microsoft.Dafny {
             foreach (var ss in TrSplitExpr(precond, etran, true, out splitHappened)) {
               if (ss.IsChecked) {
                 var tok = new NestedToken(expr.tok, ss.E.tok);
-                if (options.VariablesWithCompilableTypeAssumptions.Any() && errorMessage == null) {
-                  foreach (var entry in options.VariablesWithCompilableTypeAssumptions) {
-                    if (e.AllSubExpressions.Any(subExpression =>
-                          subExpression is IdentifierExpr v &&
-                          v.Var.CompileName == entry.Key
-                        )) {
-                      errorMessage = $"possible violation of function precondition." +
-                                     $" Careful: variable {entry.Value.DisplayName} has type {entry.Value.CompilableType}" +
-                                     $" and not {entry.Value.OriginalType} because the range is compiled" +
-                                     $" and {entry.Value.OriginalType} cannot be tested at run-time";
-                      break;
-                    }
-                  }
-                }
                 var desc = new PODesc.PreconditionSatisfied(errorMessage);
                 if (options.AssertKv != null) {
                   // use the given assert attribute only
@@ -6082,46 +6065,8 @@ namespace Microsoft.Dafny {
             Bpl.Expr guard = null;
             if (e.Range != null) {
               var range = Substitute(e.Range, null, substMap);
-              var rangeOptions = newOptions;
-              if (e.RangeIfGhost != null) { // Compiled context
-                // We are in a compiled context, we might want to warn the user that variables in a compiled range have a type computable from the collection type.
-                foreach (var variable in e.BoundVars) {
-                  if (variable.CompilableTypeAssumptionIsNotTrivial()) {
-                    if (substMap.TryGetValue(variable, out var interpolatedVariable) && interpolatedVariable is IdentifierExpr identifierExpr) {
-                      rangeOptions.VariablesWithCompilableTypeAssumptions.Add(identifierExpr.Var.CompileName, variable);
-                    }
-                  }
-                }
-              }
-              CheckWellformed(range, rangeOptions, locals, newBuilder, comprehensionEtran);
+              CheckWellformed(range, newOptions, locals, newBuilder, comprehensionEtran);
               guard = comprehensionEtran.TrExpr(range);
-            }
-            Boogie.Expr CheckGhostType(Expression term, Type type = null) {
-              return MkIs(etran.TrExpr(Substitute(term, null, substMap)), type ?? term.Type);
-            }
-
-            foreach (var boundVar in e.AllBoundVars) {
-              if (boundVar.NeedsToVerifyOriginalTypeInference()) {
-                // It has a term. We need to verify the term's type.
-                BplIfIf(e.tok, true, guard ?? new Bpl.LiteralExpr(boundVar.tok, true), nextBuilder,
-                  b => {
-                    var idExpressionToTest = new IdentifierExpr(boundVar.tok, boundVar);
-                    var tokReporting = boundVar.OriginalType.NormalizeExpandKeepConstraints() is UserDefinedType
-                    {
-                      AsSubsetType: SubsetTypeDecl
-                      {
-                        IsConstraintCompilable: false,
-                        ConstraintInformation: ConstraintInformation(_, var constraintReason, var constraintLocation)
-                      }
-                    } && constraintLocation != null
-                      ? new NestedToken(e.tok, constraintLocation, constraintReason)
-                      : e.tok;
-                    // Assume at least the collection bound
-                    b.Add(TrAssumeCmd(e.tok, CheckGhostType(idExpressionToTest, boundVar.CompilableType)));
-                    b.Add(Assert(tokReporting, CheckGhostType(idExpressionToTest, boundVar.OriginalType),
-                      new PODesc.SubsetTypeSatisfiedInComprehension(boundVar, e)));
-                  });
-              }
             }
 
             if (mc != null) {

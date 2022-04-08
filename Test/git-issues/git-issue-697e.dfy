@@ -11,7 +11,7 @@ function method doubleEvenCell(f: EvenCell): int
 
 method Main() {
   var x: set<Cell> := { Cell(1), Cell(2), Cell(3), Cell(4) };
-  var b := forall g: EvenCell :: g in x ==> doubleEvenCell(g) > 0;
+  var b := forall g :: g in x ==> doubleEvenCell(g) > 0;
   assert b;
 }
 

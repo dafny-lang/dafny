@@ -1,5 +1,0 @@
-git-issue-1604h.dfy(7,35): Error: Could not prove that the range constrains the bound variable 'j' to be of type GhostNat, and since GhostNat is a ghost subset type, no runtime type filter can be added on the collection whose elements have the type int.
-git-issue-1604h.dfy(5,31): [Related location] GhostNat is ghost because ghost fields are allowed only in specification contexts
-git-issue-1604h.dfy(14,63): Error: value does not satisfy the subset constraints of 'GhostNat'
-
-Dafny program verifier finished with 2 verified, 2 errors
