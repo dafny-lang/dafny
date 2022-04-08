@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.Data;
-using System.IO;
-using System.Linq;
-using System.Runtime.InteropServices;
+﻿using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Build.Locator;
 using Microsoft.CodeAnalysis;
@@ -110,18 +103,16 @@ internal class SemanticModel {
 
 class AST : PrettyPrintable {
   private readonly string cSharpRootNS;
-  private readonly string dafnyRootModule;
   private readonly SyntaxTree syntax;
   private readonly SemanticModel model;
 
-  public AST(string cSharpRootNS, string dafnyRootModule, SyntaxTree syntax, SemanticModel model) {
+  public AST(string cSharpRootNS, SyntaxTree syntax, SemanticModel model) {
     this.syntax = syntax;
     this.model = model;
     this.cSharpRootNS = cSharpRootNS;
-    this.dafnyRootModule = dafnyRootModule;
   }
 
-  public static AST FromFile(string projectPath, string filePath, string cSharpRootNS, string dafnyRootModule) {
+  public static AST FromFile(string projectPath, string filePath, string cSharpRootNS) {
     // https://github.com/dotnet/roslyn/issues/44586
     MSBuildLocator.RegisterDefaults();
     var workspace = Microsoft.CodeAnalysis.MSBuild.MSBuildWorkspace.Create();
@@ -141,7 +132,7 @@ class AST : PrettyPrintable {
     var fullPath = Path.GetFullPath(filePath);
     var syntax = compilation.SyntaxTrees.First(st => Path.GetFullPath(st.FilePath) == fullPath);
     var model = compilation.GetSemanticModel(syntax);
-    return new AST(cSharpRootNS, dafnyRootModule, syntax, new SemanticModel(cSharpRootNS, model));
+    return new AST(cSharpRootNS, syntax, new SemanticModel(cSharpRootNS, model));
   }
 
   private CompilationUnitSyntax Root => syntax.GetCompilationUnitRoot();
@@ -152,22 +143,7 @@ class AST : PrettyPrintable {
       .Concat(Root.DescendantNodes().OfType<TypeDeclarationSyntax>().Select(s => new TypeDecl(s, model)));
 
   public override void Pp(TextWriter wr, string indent) {
-    wr.WriteLine("include \"CSharpCompat.dfy\"");
-    wr.WriteLine();
-
-    // Adding __AUTOGEN__ prevents Dafny from complaining about module name collisions
-    PpBlockOpen(wr, indent, "module", new Name("__AUTOGEN__" + cSharpRootNS, dafnyRootModule),
-      null, null, null);
-
-    PpChild(wr, indent, "import System");
-    PpChild(wr, indent, "import Microsoft");
-    PpChild(wr, indent, "import CSharpUtils");
-    PpChild(wr, indent, $"import opened {cSharpRootNS}");
-    wr.WriteLine();
-
     PpChildren(wr, indent, Decls);
-
-    PpBlockClose(wr, indent);
   }
 }
 
@@ -266,7 +242,7 @@ internal class Type {
 
   private string GenericNameToString(GenericNameSyntax s) {
     var name = s.Identifier.Text switch {
-      "Tuple" => $"CSharpUtils.Tuple{s.TypeArgumentList.Arguments.Count}",
+      "Tuple" => $"System.Tuple{s.TypeArgumentList.Arguments.Count}",
       _ => Name.OfSyntax(s, model).DafnyId
     };
     var typeArgs = String.Join(", ", s.TypeArgumentList.Arguments.Select(t => new Type(t, model)));
@@ -330,9 +306,6 @@ internal class Name {
     return model.GetName(node);
   }
 
-  //this.id =
-  //model.GetDeclaredSymbol()
-
   public string AsDecl(bool forceExtern = false) {
     var attr = CSharpID != DafnyId ? $"{{:extern \"{CSharpID}\"}} " : forceExtern ? "{:extern} " : "";
     return $"{attr}{DafnyId}";
@@ -340,26 +313,29 @@ internal class Name {
 }
 
 public static class Program {
-  public static void minimal() {
-    // https://stackoverflow.com/questions/37542434/how-to-get-full-name-path-for-method-call-class-declaration-using-roslyn
-      var syntaxTree = CSharpSyntaxTree.ParseText(File.ReadAllText("minimal.cs"));
-      var syntaxTrees = new[] { syntaxTree }; // Add SyntaxTree array from project files.
-      var compilation = CSharpCompilation.Create("tempAssembly", syntaxTrees);
-      var semanticModel = compilation.GetSemanticModel(syntaxTree);
+  private const string Placeholder = "{{{ASTExport}}}";
 
-      //var caretPosition = 50;
-      //var symbol = SymbolFinder.FindSymbolAtPositionAsync(semanticModel, caretPosition, new AdhocWorkspace()).Result;
-      //var location = symbol.Locations.First();
-      //var node = location.SourceTree?.GetRoot()?.FindNode(location.SourceSpan);
-      //var fullName = symbol.ToString(); // fullName is "TestNamespace.Test"
-      //Console.WriteLine(fullName);
-
-      new AST("RootNS", "RootMod", syntaxTree, new SemanticModel("RootNS", semanticModel)).Pp(Console.Out, "");
+  private static void Fail(string msg) {
+    Console.Error.WriteLine("Error: {0}", msg);
+    Environment.Exit(1);
   }
+
   public static void Main(string[] args) {
-    //AST.FromFile(args[0], args[1], args[2]).Pp(Console.Out, "");
-    //return;
-    var ast = AST.FromFile(args[0], args[1], args[2], args[3]);
-    ast.Pp(Console.Out, "");
+    if (args.Length < 4) {
+      Fail("Usage: ASTExport {project.csproj} {file.cs} {Root.Namespace} {TemplateFile.dfy}");
+    }
+
+    var (projectPath, filePath, cSharpRootNS, templatePath) = (args[0], args[1], args[2], args[3]);
+
+    var template = File.ReadAllText(templatePath, Encoding.UTF8);
+    if (!template.Contains(Placeholder)) {
+      Fail($"Template file {template} does not contain {Placeholder} string.");
+    }
+
+    var ast = AST.FromFile(projectPath, filePath, cSharpRootNS);
+    var wr = new StringWriter();
+    ast.Pp(wr, "");
+
+    Console.Out.Write(template.Replace(Placeholder, wr.ToString()));
   }
 }
