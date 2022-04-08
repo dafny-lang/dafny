@@ -5863,7 +5863,7 @@ namespace Microsoft.Dafny {
             }) {
             if (constraintLocation != null && constraintReason != null) {
               constraintInformation = new ConstraintInformation(false,
-                $"[Related location] The constraint of {this.Name} is not run-time testable because it depends on the non-runtime-testable subset type {Var.Type}",
+                $"[Related location] The subset type {this.Name}type GhostOrdinalCell is ghost because it depends on the ghost subset type {Var.Type}",
                 new NestedToken(Var.tok, constraintLocation, constraintReason)
               );
             } else {
@@ -5875,7 +5875,7 @@ namespace Microsoft.Dafny {
             if (isCompilable == false && errorCollector.AllMessages[ErrorLevel.Error].FirstOrDefault() is var entry) {
               constraintInformation = new ConstraintInformation(
                 false,
-                $"[Related location] The constraint of {this.Name} cannot be tested at run-time because {entry.message}",
+                $"[Related location] {this.Name} is ghost because {entry.message}",
                 entry.token);
             } else {
               constraintInformation = new ConstraintInformation(isCompilable, null, null);

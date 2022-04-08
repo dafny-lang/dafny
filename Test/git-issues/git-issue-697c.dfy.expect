@@ -1,7 +1,7 @@
-git-issue-697c.dfy(18,11): Error: Could not prove that the bound variable 'c' satisfies the (non runtime testable) type EvenCell after the range, where it's assumed to be of type Cell based on inferred bounds.
-git-issue-697c.dfy(9,26): [Related location] The constraint of EvenCell cannot be tested at run-time because a call to a ghost function is allowed only in specification contexts (consider declaring the function with 'function method')
-git-issue-697c.dfy(19,31): Error: Could not prove that the bound variable 'c' satisfies the (non runtime testable) type EvenCell after the range, where it's assumed to be of type Cell based on inferred bounds.
-git-issue-697c.dfy(9,26): [Related location] The constraint of EvenCell cannot be tested at run-time because a call to a ghost function is allowed only in specification contexts (consider declaring the function with 'function method')
+git-issue-697c.dfy(18,11): Error: Could not prove that the range constrains the bound variable 'c' to be of type EvenCell, and since EvenCell is a ghost subset type, no runtime type filter can be added on the collection whose elements have the type Cell.
+git-issue-697c.dfy(9,26): [Related location] EvenCell is ghost because a call to a ghost function is allowed only in specification contexts (consider declaring the function with 'function method')
+git-issue-697c.dfy(19,31): Error: Could not prove that the range constrains the bound variable 'c' to be of type EvenCell, and since EvenCell is a ghost subset type, no runtime type filter can be added on the collection whose elements have the type Cell.
+git-issue-697c.dfy(9,26): [Related location] EvenCell is ghost because a call to a ghost function is allowed only in specification contexts (consider declaring the function with 'function method')
 git-issue-697c.dfy(19,31): Error: value does not satisfy the subset constraints of 'map<EvenCell, nat>'
 
 Dafny program verifier finished with 3 verified, 3 errors

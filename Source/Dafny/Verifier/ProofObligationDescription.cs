@@ -897,8 +897,7 @@ public class SubsetTypeSatisfiedInComprehension : ProofObligationDescription {
     $"the constraints of the required (non runtime testable) type {boundVar.OriginalType} after the range, where it was assumed to be of type {boundVar.CompilableType} based on inferred bounds";
 
   public override string FailureDescription =>
-    $"Could not prove that the bound variable '{boundVar.DisplayName}' satisfies " +
-    $"the (non runtime testable) type {boundVar.OriginalType} after the range, where it's assumed to be of type {boundVar.CompilableType} based on inferred bounds." +
+    $"Could not prove that the range constrains the bound variable '{boundVar.DisplayName}' to be of type {boundVar.OriginalType}, and since {boundVar.OriginalType} is a ghost subset type, no runtime type filter can be added on the collection whose elements have the type {boundVar.CompilableType}." +
       (comprehensionExpr.Range != null
        ? ""
        : $" Consider expliciting the range of the {comprehensionExpr.WhatKind}, i.e. {comprehensionExpr.Keyword} {boundVar.DisplayName} | RANGE :: TERM instead of {comprehensionExpr.Keyword} {boundVar.DisplayName} :: RANGE_AND_TERM.");
