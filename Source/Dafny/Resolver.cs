@@ -15485,7 +15485,7 @@ namespace Microsoft.Dafny {
           var collectionVarType = v.Type is InferredTypeProxy ? new InferredTypeProxy() : v.Type.GetCompilableParentType(); ;
           if (v.Type is InferredTypeProxy) {
             AddXConstraint(v.tok, "SubsetTypeOfCompilable", v.Type, collectionVarType,
-              $"Type of variable {v.DisplayName} in range is '{{1}}', the range should prove it's of type '{{0}}' (requested type), but that's not the case."
+              $"Type of variable {v.DisplayName} was requested to be of type {{0}}, but it can only be of type {{1}} based on the range."
             );
           }
 
