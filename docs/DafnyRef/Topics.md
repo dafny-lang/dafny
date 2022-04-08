@@ -62,7 +62,8 @@ var m := set x: BoundedInt | x in s && -5 < x < 5; // Verified because the set c
 This mechanism is the same for other comprehensions in a compiled context.
 
 A special case to be aware of: if the type in the comprehension differs from the collection,
-but both are compilable, the type of the comprehension will be fully tested either until reaching exactly the collection type or until all constraints are emitted, which could be viewed as a performance problem if only one specific condition needed to be tested. For example:
+but both are compilable, at runtime, every subset constraint yields a filter to be applied to the elements from the collection to keep only values of the comprehension type. Filtering starts either at the base type, or at the collection type if it happens to be a parent of the comprehension type.
+In the first case, it is still possible to customize the emission of the filter to avoid testing redundant constraints. For example:
 
 ```dafny
 const s: set<nat> := {1, 2, 3}
