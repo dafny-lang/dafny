@@ -3182,10 +3182,6 @@ namespace Microsoft.Dafny {
       // It might not be possible to do so if the constraint of this type uses ghost predicates
       if (this.AsSubsetType is { IsConstraintCompilable: false }) {
         return true;
-      } else if (this.NormalizeExpandKeepConstraints() is TypeProxy) {
-        // If we are still in the early resolution phase and no type has been inferred,
-        // then we cannot say for sure that the type is compilable.
-        return true;
       } else {
         return false;
       }
