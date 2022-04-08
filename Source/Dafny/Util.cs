@@ -766,9 +766,9 @@ namespace Microsoft.Dafny {
   }
 
   public class ExpressionTester {
-    private bool reportErrors = false;
-    private ErrorReporter reporter = null;
-    private Resolver resolver = null;
+    private readonly bool reportErrors = false;
+    private readonly ErrorReporter reporter = null;
+    private readonly Resolver resolver = null;
 
     public ExpressionTester(Resolver resolver = null, bool reportErrors = false) :
       this(resolver, resolver?.Reporter, reportErrors) {
@@ -787,7 +787,7 @@ namespace Microsoft.Dafny {
     }
     // Static call to CheckIsCompilable
     public static bool CheckIsCompilable(Resolver resolver, ErrorReporter reporter, Expression expr, ICodeContext codeContext) {
-      return new ExpressionTester(resolver, reporter, resolver != null).CheckIsCompilable(expr, codeContext);
+      return new ExpressionTester(resolver, reporter, reporter != null).CheckIsCompilable(expr, codeContext);
     }
 
     /// <summary>

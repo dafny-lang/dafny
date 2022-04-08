@@ -1,0 +1,15 @@
+git-issue-1604b.dfy(54,34): Error: Could not prove that the range constrains the bound variable 'c' to be of type GhostEvenCell, and since GhostEvenCell is a ghost subset type, no runtime type filter can be added on the collection whose elements have the type Cell.
+git-issue-1604b.dfy(10,31): [Related location] GhostEvenCell is ghost because a call to a ghost predicate is allowed only in specification contexts (consider declaring the predicate with 'predicate method')
+git-issue-1604b.dfy(54,77): Error: value does not satisfy the subset constraints of 'GhostEvenCell'
+git-issue-1604b.dfy(57,34): Error: Could not prove that the range constrains the bound variable 'c' to be of type GhostEvenCell, and since GhostEvenCell is a ghost subset type, no runtime type filter can be added on the collection whose elements have the type Cell.
+git-issue-1604b.dfy(10,31): [Related location] GhostEvenCell is ghost because a call to a ghost predicate is allowed only in specification contexts (consider declaring the predicate with 'predicate method')
+git-issue-1604b.dfy(60,34): Error: Could not prove that the range constrains the bound variable 'c' to be of type GhostEvenCell, and since GhostEvenCell is a ghost subset type, no runtime type filter can be added on the collection whose elements have the type Cell.
+git-issue-1604b.dfy(10,31): [Related location] GhostEvenCell is ghost because a call to a ghost predicate is allowed only in specification contexts (consider declaring the predicate with 'predicate method')
+git-issue-1604b.dfy(63,77): Error: value does not satisfy the subset constraints of 'GhostEvenCell'
+git-issue-1604b.dfy(66,34): Error: Could not prove that the range constrains the bound variable 'c' to be of type GhostEvenCell, and since GhostEvenCell is a ghost subset type, no runtime type filter can be added on the collection whose elements have the type Cell.
+git-issue-1604b.dfy(10,31): [Related location] GhostEvenCell is ghost because a call to a ghost predicate is allowed only in specification contexts (consider declaring the predicate with 'predicate method')
+git-issue-1604b.dfy(66,92): Error: value does not satisfy the subset constraints of 'GhostEvenCell'
+git-issue-1604b.dfy(69,92): Error: value does not satisfy the subset constraints of 'GhostEvenCell'
+git-issue-1604b.dfy(71,9): Error: assertion might not hold
+
+Dafny program verifier finished with 9 verified, 9 errors

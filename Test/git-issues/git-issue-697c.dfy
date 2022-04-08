@@ -16,8 +16,9 @@ function method doubleEvenCell(c: EvenCell): int
 method Main() {
   var x: set<Cell> := { Cell(1), Cell(2), Cell(3), Cell(4) };
   var y := set c: EvenCell | c in x;
-  var z: map<EvenCell, nat> := map c: EvenCell | c in x :: c.x;
+  var z: map<EvenCell, nat> := map c: EvenCell | c in x :: doubleEvenCell(c);
   var b := forall c :: c in y ==> doubleEvenCell(c) > 0;
+  ghost var c := forall c: EvenCell :: c in y ==> doubleEvenCell(c) > 0; // Should not raise an error
   assert b;
   print b;
 }

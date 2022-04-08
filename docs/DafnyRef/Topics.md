@@ -10,6 +10,77 @@ TO BE WRITTEN
 
 TO BE WRITTEN
 
+### 23.2.1. Subset types {#sec-subset-type-inference}
+
+Most of the time, [subset types](#sec-subset-types) are carrying extra constraints so, unless it is trivial to infer them, only their base type is inferred, and the verifier checks the constraints.
+
+There are two cases where Dafny's resolver may infer a subset type when it's non trivial:
+
+- Either we are in a specification context (the code will never be executed)
+- Or the subset type constraint can be compiled. For example:
+```dafny
+ghost const zero := 0;
+
+type GhostNat = x | x >= zero // Not run-time testable
+type CompiledNat = x | x >= 0 // Run-time testable
+
+function method f(n: GhostNat): int { n }
+function method g(n: CompiledNat): int { n }
+
+// Here n is inferred to be an int and the constraint for f fails.
+const m := set x | n in {-1, 0, 1, 2} && f(n) >= 1
+
+// Here n is inferred to be a CompiledNat and the constraint for g is emitted by the compiler, everything succeeds
+const m := set x | n in {-1, 0, 1, 2} && g(n) >= 1
+```
+
+### 23.2.2. Ghost subset types in comprehensions
+
+A ghost [subset type](#sec-subset-types) is a subset type where one of its constraint is ghost.
+For comprehensions ([forall and exists expressions](#sec-quantifier-expression), [set comprehensions](#sec-set-comprehension-expression) and [map comprehensions](#sec-map-comprehension-expression)), variables with a ghost subset type are not problem if they are in a ghost context.
+However, in a compiled context, things are more tricky.
+
+Consider a comprehension like `set c: GhostSubsetType | c in Collection && P(c) :: c` in a compiled context where `Collection: set<T>` and the constraint of `GhostSubsetType` is ghost so it may not be checked at run-time. Since Dafny cannot emit code to test the constraint at run-time, Dafny needs to verify it statically.
+
+* If the inferred collection `Collection`'s elements of type `T` are a _subtype_ of `GhostSubsetType`, then no check needs to be done, and there is no implicit check. For example, the following definition of `m` is accepted in a compiled context, although the constraint of `BoundedInt` cannot be checked at run-time
+```dafny
+ghost const Max := 10;
+type BoundedInt = x : int | -Max < x < Max
+var s: set<BoundedInt> := {1, 2, 3};
+var m := set x: BoundedInt | x in s && x % 2 == 0;
+```
+* Otherwise, the type of `c` in the range `c in Collection && P(c)` is first inferred to be the type of the collection's elements `T`. That way, it prevents `P(c)` from automatically assuming that the ghost constraint of `GhostSubsetType` holds, which would result in soundness errors. Second, the verifier checks that `c in S && P(c)` implies that the constraint of `GhostSubsetType` holds for `c`. If yes, the comprehension can be compiled, and if not, the verifier emits an error. For example:
+```dafny
+ghost const Max := 10;
+type BoundedInt = x : int | -Max < x < Max
+var s: set<int> := {1, 2, 3, 12};
+var m := set x: BoundedInt | x in s; // Not allowed
+var m := set x: BoundedInt | x in s && -Max < x < Max; // Not allowed because Max is ghost
+var m := set x: BoundedInt | x in s && -5 < x < 5; // Verified because the set constraints implies the constraint of `BoundedInt`
+```
+
+This mechanism is the same for other comprehensions in a compiled context.
+
+A special case to be aware of: if the type in the comprehension differs from the collection,
+but both are compilable, at runtime, every subset constraint yields a filter to be applied to the elements from the collection to keep only values of the comprehension type. Filtering starts either at the base type, or at the collection type if it happens to be a parent of the comprehension type.
+In the first case, it is still possible to customize the emission of the filter to avoid testing redundant constraints. For example:
+
+```dafny
+const s: set<nat> := {1, 2, 3}
+type CustomNat = x: int | x >= 0
+type CustomNonNegative = x: CustomNat | x > 0 witness 1
+type NonNegative = x: nat | x > 0 witness 1
+
+// not only x > 0 will be tested, but also x >= 0 (from CustomNat)
+const m := set x: CustomNonNegative | x in s
+
+// Here, only > 0 will be tested because then the type `nat` matches the collection's type.
+const m := set x: NonNegative | x in s
+
+// To avoid testing x >= 0 in the earlier case, you can use the following trick. It will only test t > 0 and prove that x is nonnegative
+const m := set t: nat, x: CustomNonNegative | t in s && t > 0 && x == t :: x
+```
+
 ## 23.3. Ghost Inference
 
 TO BE WRITTEN

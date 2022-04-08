@@ -55,7 +55,10 @@ public class DafnyConsolePrinter : ConsolePrinter {
 
     if (tok is Dafny.NestedToken) {
       var nt = (Dafny.NestedToken)tok;
-      ReportBplError(nt.Inner, "Related location", false, tw);
+      // The message 'in sub-expression at' is used only to report sub-expressions used for triggers
+      // We don't want to display it when reporting errors, unless there is something more specific. 
+      var m = nt.Message == "in sub-expression at" ? null : nt.Message;
+      ReportBplError(nt.Inner, m ?? "Related location", false, tw);
     }
   }
 
