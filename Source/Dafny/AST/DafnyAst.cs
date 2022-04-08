@@ -11537,7 +11537,7 @@ namespace Microsoft.Dafny {
     /// For ghost contexts, the filtering is not actually performed so it's safe to have any subset type,
     /// even non-computable ones, for bound variables in the range.
     /// </summary>
-    public Expression RangeIfGhost; // Filled up during resulution
+    [FilledInDuringResolution] public Expression RangeIfGhost;
 
     /// <summary>
     ///  If we determine that we are in a ghost context, the bound variables are set to their secondary type

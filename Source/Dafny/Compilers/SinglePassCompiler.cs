@@ -564,7 +564,7 @@ namespace Microsoft.Dafny.Compilers {
       wr = MaybeInjectSubtypeConstraint(tmpVarName, collectionElementType, boundVar.Type, inLetExprBody, tok, wr);
       wr = EmitDowncastVariableAssignment(IdName(boundVar), boundVar.Type, tmpVarName, collectionElementType,
           introduceBoundVar, tok, wr);
-      wr = MaybeInjectSubsetConstraint(boundVar, boundVar.Type, inLetExprBody, tok, wr);
+      wr = MaybeInjectSubsetConstraint(boundVar, boundVar.Type, collectionElementType, inLetExprBody, tok, wr);
       return wr;
     }
 
@@ -4701,7 +4701,7 @@ namespace Microsoft.Dafny.Compilers {
           newWBody = EmitDowncastVariableAssignment(
             IdName(bv), bv.Type, tmpVarName, collectionElementType, true, e.tok, newWBody);
           newWBody = MaybeInjectSubsetConstraint(
-            bv, bv.Type, inLetExprBody, e.tok, newWBody, true, e is ForallExpr);
+            bv, bv.Type, collectionElementType, inLetExprBody, e.tok, newWBody, true, e is ForallExpr);
           wBody.Write(')');
           wBody = newWBody;
         }
@@ -4853,28 +4853,29 @@ namespace Microsoft.Dafny.Compilers {
       return wr;
     }
 
-    private ConcreteSyntaxTree MaybeInjectSubsetConstraint(
-      IVariable boundVar, Type boundVarType, bool inLetExprBody,
-      Bpl.IToken tok, ConcreteSyntaxTree wr, bool isReturning = false, bool elseReturnValue = false, bool isSubfiltering = false
-      ) {
-      if (boundVarType.NormalizeExpand(true) is UserDefinedType
-        {
-          TypeArgs: var typeArgs,
-          ResolvedClass:
-            SubsetTypeDecl
+    private ConcreteSyntaxTree MaybeInjectSubsetConstraint(IVariable boundVar, Type boundVarType,
+      Type collectionElementType, bool inLetExprBody,
+      Bpl.IToken tok, ConcreteSyntaxTree wr, bool isReturning = false, bool elseReturnValue = false,
+      bool isSubfiltering = false) {
+      if (!boundVarType.Equals(collectionElementType, true) &&
+          boundVarType.NormalizeExpand(true) is UserDefinedType
           {
-            TypeArgs: var typeParametersArgs,
-            Var: var variable,
-            IsConstraintCompilable: true,
-            Constraint: var constraint
-          }
-        }) {
+            TypeArgs: var typeArgs,
+            ResolvedClass:
+            SubsetTypeDecl
+            {
+              TypeArgs: var typeParametersArgs,
+              Var: var variable,
+              IsConstraintCompilable: true,
+              Constraint: var constraint
+            }
+          }) {
         if (variable.Type.NormalizeExpandKeepConstraints() is UserDefinedType
           {
             ResolvedClass:
               SubsetTypeDecl
-          } and var normalizedVariableType) {
-          wr = MaybeInjectSubsetConstraint(boundVar, normalizedVariableType,
+          } normalizedVariableType) {
+          wr = MaybeInjectSubsetConstraint(boundVar, normalizedVariableType, collectionElementType,
             inLetExprBody, tok, wr, isReturning, elseReturnValue, true);
         }
 

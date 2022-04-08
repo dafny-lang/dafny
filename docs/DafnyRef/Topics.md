@@ -62,17 +62,22 @@ var m := set x: BoundedInt | x in s && -5 < x < 5; // Verified because the set c
 This mechanism is the same for other comprehensions in a compiled context.
 
 A special case to be aware of: if the type in the comprehension differs from the collection,
-but both are compilable, the type of the comprehension will be fully tested, which could be viewed as a performance problem if only one specific condition needed to be tested. For example:
+but both are compilable, the type of the comprehension will be fully tested either until reaching exactly the collection type or until all constraints are emitted, which could be viewed as a performance problem if only one specific condition needed to be tested. For example:
 
 ```dafny
 const s: set<nat> := {1, 2, 3}
+type CustomNat = x: int | x >= 0
+type CustomNonNegative = x: CustomNat | x > 0 witness 1
 type NonNegative = x: nat | x > 0 witness 1
 
-// not only x > 0 will be tested, but also x >= 0 (from nat)
+// not only x > 0 will be tested, but also x >= 0 (from CustomNat)
+const m := set x: CustomNonNegative | x in s
+
+// Here, only > 0 will be tested because then the type `nat` matches the collection's type.
 const m := set x: NonNegative | x in s
 
-// To avoid testing x >= 0, you can use the following trick. It will only test t > 0 and prove that x is nonnegative
-const m := set t: nat, x: NonNegative | t in s && t > 0 && x == t :: x
+// To avoid testing x >= 0 in the earlier case, you can use the following trick. It will only test t > 0 and prove that x is nonnegative
+const m := set t: nat, x: CustomNonNegative | t in s && t > 0 && x == t :: x
 ```
 
 ## 23.3. Ghost Inference
