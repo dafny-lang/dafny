@@ -5908,7 +5908,14 @@ namespace Microsoft.Dafny {
     public string AssignUniqueName(FreshIdGenerator generator) {
       return uniqueName ??= generator.FreshId(Name + "#");
     }
-    static char[] specialChars = new char[] { '\'', '_', '?', '\\', '#' };
+
+    static char[] specialChars = { '\'', '_', '?', '\\', '#' };
+    /// <summary>
+    /// Mangle name <c>nm</c> by replacing and escaping characters most likely to cause issues when compiling and
+    /// when translating to Boogie.  This transformation is injective.
+    /// </summary>
+    /// <returns>A string uniquely determined from <c>nm</c>, containing none of the characters in
+    /// <c>specialChars</c>.</returns>
     public static string SanitizeName(string nm) {
       if ('0' <= nm[0] && nm[0] <= '9') {
         // the identifier is one that consists of just digits
