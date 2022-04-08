@@ -18,7 +18,7 @@ using System.Diagnostics;
 using System.Threading;
 
 namespace Microsoft.Dafny {
-  [System.AttributeUsage(System.AttributeTargets.Field)]
+  [System.AttributeUsage(System.AttributeTargets.Field | System.AttributeTargets.Property)]
   public class FilledInDuringResolutionAttribute : System.Attribute { }
 
   public class Program {
@@ -5847,43 +5847,43 @@ namespace Microsoft.Dafny {
     public enum WKind { CompiledZero, Compiled, Ghost, OptOut, Special }
     public readonly SubsetTypeDecl.WKind WitnessKind;
     public readonly Expression/*?*/ Witness;  // non-null iff WitnessKind is Compiled or Ghost
-    [FilledInDuringResolution] public ConstraintInformation constraintInformation;
+    [FilledInDuringResolution] public ConstraintInformation ConstraintInformation { get; private set; }
 
     public bool IsConstraintCompilable {
       get {
-        if (constraintInformation == null) {
+        if (ConstraintInformation == null) {
           // The constraint is not compilable if the parent type is also a subset type whose constraint is not compilable.
           if (Var.Type.NormalizeExpandKeepConstraints() is UserDefinedType
             {
               AsSubsetType: SubsetTypeDecl
               {
                 IsConstraintCompilable: false,
-                constraintInformation: ConstraintInformation(_, var baseTypeReason, var baseTypeLocation)
+                ConstraintInformation: ConstraintInformation(_, var baseTypeReason, var baseTypeLocation)
               }
             }) {
             if (baseTypeLocation != null && baseTypeReason != null) {
-              constraintInformation = new ConstraintInformation(false,
+              ConstraintInformation = new ConstraintInformation(false,
                 $"[Related location] The subset type {this.Name}type GhostOrdinalCell is ghost because it depends on the ghost subset type {Var.Type}",
                 new NestedToken(Var.tok, baseTypeLocation, baseTypeReason)
               );
             } else {
-              constraintInformation = new ConstraintInformation(false, null, null);
+              ConstraintInformation = new ConstraintInformation(false, null, null);
             }
           } else {
             var errorCollector = new BatchErrorReporter();
             var isCompilable = ExpressionTester.CheckIsCompilable(null, errorCollector, Constraint, new CodeContextWrapper(this, true));
             if (isCompilable == false && errorCollector.AllMessages[ErrorLevel.Error].FirstOrDefault() is var entry) {
-              constraintInformation = new ConstraintInformation(
+              ConstraintInformation = new ConstraintInformation(
                 false,
                 $"[Related location] {this.Name} is ghost because {entry.message}",
                 entry.token);
             } else {
-              constraintInformation = new ConstraintInformation(isCompilable, null, null);
+              ConstraintInformation = new ConstraintInformation(isCompilable, null, null);
             }
           }
         }
 
-        return constraintInformation.compilable;
+        return ConstraintInformation.compilable;
       }
     }
 
