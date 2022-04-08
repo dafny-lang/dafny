@@ -1,18 +1,30 @@
-module {:extern "System"} {:compile false} System {
-  trait {:termination false} {:extern} IComparable {}
+module {:compile false} {:extern "System"} System {
+  trait {:compile false} {:termination false} {:extern} IComparable {}
+  trait {:compile false} {:termination false} {:extern} Attribute {}
 
-  class {:extern} Func<TArg, TRet>{}
-  class {:extern} String {}
-  class {:extern} ValueTuple {}
+  class {:compile false} {:extern} Func<TArg, TRet>{}
+  class {:compile false} {:extern} String {}
+  class {:compile false} {:extern} Boolean {}
+  class {:compile false} {:extern} Nullable {}
+  class {:compile false} {:extern} ValueTuple {}
 
-  class {:extern "Tuple"} Tuple2<T1, T2> {}
-  class {:extern "Tuple"} Tuple3<T1, T2, T3> {}
-  class {:extern "Tuple"} Tuple4<T1, T2, T3, T4> {}
+  class {:compile false} {:extern "Tuple"} Tuple2<T1, T2> {}
+  class {:compile false} {:extern "Tuple"} Tuple3<T1, T2, T3> {}
+  class {:compile false} {:extern "Tuple"} Tuple4<T1, T2, T3, T4> {}
 
-  module {:extern "System.Collections.Generic"} Collections.Generic {
-    class {:extern} List<T> {}
-    class {:extern} ISet<T> {}
-    class {:extern} HashSet<T> {}
-    class {:extern} Dictionary<TKey, TValue> {}
+  module {:compile false} {:extern "System.Collections.Generic"} Collections.Generic {
+    class {:compile false} {:extern} List<T> {}
+    class {:compile false} {:extern} IEnumerable<T> {}
+    class {:compile false} {:extern} ISet<T> {}
+    class {:compile false} {:extern} HashSet<T> {}
+    class {:compile false} {:extern} Dictionary<TKey, TValue> {}
+  }
+
+  module {:compile false} {:extern "System.Numerics"} Numerics {
+    class {:compile false} {:extern} BigInteger {}
+  }
+
+  module {:compile false} {:extern "System.Threading"} Threading {
+    class {:compile false} {:extern} AsyncLocal<A> {}
   }
 }
