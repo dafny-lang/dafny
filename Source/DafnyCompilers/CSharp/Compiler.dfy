@@ -17,7 +17,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
     import C = CSharpDafnyASTModel
 
     module Type {
-      import C = CSharpDafnyAST
+      import C = CSharpDafnyASTModel
       datatype Type =
         | Bool
         | Char
@@ -91,7 +91,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
       import Type
       import UnaryOp
       import BinaryOp
-      import C = CSharpDafnyAST
+      import C = CSharpDafnyASTModel
 
       // public class LiteralExpr : Expression
       datatype Literal =
