@@ -5858,13 +5858,13 @@ namespace Microsoft.Dafny {
               AsSubsetType: SubsetTypeDecl
               {
                 IsConstraintCompilable: false,
-                constraintInformation: ConstraintInformation(_, var constraintReason, var constraintLocation)
+                constraintInformation: ConstraintInformation(_, var baseTypeReason, var baseTypeLocation)
               }
             }) {
-            if (constraintLocation != null && constraintReason != null) {
+            if (baseTypeLocation != null && baseTypeReason != null) {
               constraintInformation = new ConstraintInformation(false,
                 $"[Related location] The subset type {this.Name}type GhostOrdinalCell is ghost because it depends on the ghost subset type {Var.Type}",
-                new NestedToken(Var.tok, constraintLocation, constraintReason)
+                new NestedToken(Var.tok, baseTypeLocation, baseTypeReason)
               );
             } else {
               constraintInformation = new ConstraintInformation(false, null, null);
