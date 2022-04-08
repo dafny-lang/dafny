@@ -15471,7 +15471,6 @@ namespace Microsoft.Dafny {
       }
     }
 
-    /// Returns the first non-runtime testable type of the comprehension if it exists
     /// Ensures ret != null ==> !ret.DoesNotContainGhostConstraints() && ret is one of the type of e.AllBoundVars[i]
     private void ScopePushBoundVarsAssumingCompilable(ComprehensionExpr e, ResolveOpts opts, [CanBeNull] ResolveTypeOption resolveTypeOption = null, bool typeQuantifier = false) {
       if (resolveTypeOption == null) {
