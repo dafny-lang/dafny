@@ -1,0 +1,5 @@
+git-issue-1604h.dfy(7,35): Error: Could not prove that the bound variable 'j' satisfies the (non runtime testable) type GhostNat after the range, where it's assumed to be of type int based on inferred bounds.
+git-issue-1604h.dfy(5,31): [Related location] The constraint of GhostNat cannot be tested at run-time because ghost fields are allowed only in specification contexts
+git-issue-1604h.dfy(14,63): Error: value does not satisfy the subset constraints of 'GhostNat'
+
+Dafny program verifier finished with 2 verified, 2 errors
