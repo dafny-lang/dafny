@@ -522,19 +522,16 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree CreateForeachLoop(string tmpVarName, Type collectionElementType, IToken tok,
       out ConcreteSyntaxTree collectionWriter, ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
-    protected override ConcreteSyntaxTree CreateForeachLoop(string tmpVarName, Type collectionElementType,
-        string boundVarName, Type boundVarType, bool introduceBoundVar, IToken tok,
-        out ConcreteSyntaxTree collectionWriter, ConcreteSyntaxTree wr) {
       collectionWriter = new ConcreteSyntaxTree();
       wr.WriteLine($"{tmpVarName}: {TypeName(collectionElementType, wr, tok)}")
         .Format($"for {tmpVarName} in {collectionWriter}:");
-      return wr.NewBlockPy().WriteLine($"{boundVarName}{(introduceBoundVar ? $": {TypeName(boundVarType, wr, tok)}" : "")} = {tmpVarName}");
+      return wr.NewBlockPy();
     }
 
     protected override ConcreteSyntaxTree EmitDowncastVariableAssignment(string boundVarName, Type boundVarType, string tmpVarName,
       Type collectionElementType, bool introduceBoundVar, IToken tok, ConcreteSyntaxTree wwr) {
-      throw new NotImplementedException();
+      wwr.WriteLine($"{boundVarName}{(introduceBoundVar ? $": {TypeName(boundVarType, wwr, tok)}" : "")} = {tmpVarName}");
+      return wwr;
     }
 
     protected override ConcreteSyntaxTree CreateForeachIngredientLoop(string boundVarName, int L, string tupleTypeArgs,

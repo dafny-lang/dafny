@@ -4883,8 +4883,9 @@ namespace Microsoft.Dafny.Compilers {
           if (isReturning) {
             // What do we put in the else branch
             wr = wr.NewBlock("", null, BlockStyle.Brace);
+            var wStmts = wr.Fork();
             wr = EmitReturnExpr(wr);
-            TrExpr(new LiteralExpr(tok, elseReturnValue), wr, inLetExprBody);
+            TrExpr(new LiteralExpr(tok, elseReturnValue), wr, inLetExprBody, wStmts);
           }
 
           wr = thenWriter;
