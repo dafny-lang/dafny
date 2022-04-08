@@ -1,0 +1,12 @@
+include "../AutoExtern/CSharpModel.dfy"
+include "CSharpInterop.dfy"
+include "CSharpDafnyInterop.dfy"
+
+module {:extern "__AUTOGEN__Microsoft.Dafny"} CSharpDafnyASTModel {
+  import System
+  import Microsoft
+  import CSharpInterop
+  import opened Microsoft.Dafny
+
+{{{AutoExtern}}}
+}

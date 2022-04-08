@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Dafny\DafnyPipeline.csproj" />
+    <Compile Include="..\CSharpInterop.cs" />
+    <Compile Include="..\CSharpDafnyInterop.cs" />
+  </ItemGroup>
+</Project>
