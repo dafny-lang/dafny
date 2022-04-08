@@ -5838,7 +5838,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public record ConstraintInformation(bool compilable, string reasonIfNotCompilable, IToken locationIfNotCompilable);
+  public record ConstraintInformation(bool Compilable, string ReasonIfNotCompilable, IToken LocationIfNotCompilable);
 
   public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl {
     public override string WhatKind { get { return "subset type"; } }
@@ -5883,7 +5883,7 @@ namespace Microsoft.Dafny {
           }
         }
 
-        return ConstraintInformation.compilable;
+        return ConstraintInformation.Compilable;
       }
     }
 
