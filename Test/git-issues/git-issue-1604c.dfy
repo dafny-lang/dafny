@@ -1,45 +1,17 @@
-// RUN: %dafny /compile:4 /compileTarget:js "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:1 /compileTarget:go "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
+// RUN: %dafny /compile:1 /errorLimit:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
+predicate EvenNat(n: nat) { n % 2 == 0 }
+predicate TrueInt(x: int) { true }
 
-trait Tr { }
-class A extends Tr { }
-class B extends Tr { }
+method NatTypeInferenceType() {
+  // These behave as they had before
+  assert forall n: nat :: EvenNat(n) ==> TrueInt(n); // correct, since n is nat
+  assert forall x: int :: EvenNat(x) ==> TrueInt(x); // precondition violation, since EvenNat expects a nat and x is int
+  assert forall x: int :: 0 <= x && EvenNat(x) ==> TrueInt(x); // good
+  assert forall x: int :: EvenNat(x) && 0 <= x ==> TrueInt(x); // precondition violation (good)
+  assert forall n :: EvenNat(n) ==> TrueInt(n); // since n is inferred to be an int, an precondition violation is reported
 
-predicate SpecialA(a: A)
-{
-  false
-}
-type Ap  = x : A | SpecialA(x) witness *
-
-function method testSpecial(x: Tr): bool
-  requires x is A && SpecialA(x)
-{
-  1/0 == 0
-}
-
-function method test(x: Tr): bool
-  requires x is A
-{
-  if x is B then 1/0 == 0 else true
-}
-
-method Main() {
-  var a := new A;
-  var b := new B;
-  var s: set<Tr> := {a, b};
-  var s2: set<Ap> := {};
-  var aa := forall a': A :: a' in s ==> test(a');
-
-  // No way to make any of these work, for now ?
-  //ab := forall a': Ap :: !testSpecial(a') ==> !(a' in s2);
-  //ab := forall a': Ap :: a' in s2 ==> testSpecial(a');
-
-  var si: set<int> := {2, 3, 4};
-  var ai:= forall i: nat :: i in si ==> i > 1;
-
-  assert aa;
-  print "ok";
+  // In the following, n should be inferred as a nat
+  assert forall n | EvenNat(n) :: n == n;
+  assert forall n :: EvenNat(n) ==> true;
 }
