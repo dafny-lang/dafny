@@ -42,15 +42,15 @@ However, in a compiled context, things are more tricky.
 
 Consider a comprehension like `set c: GhostSubsetType | c in Collection && P(c) :: c` in a compiled context where `Collection: set<T>` and the constraint of `GhostSubsetType` may not be checked at run-time, because it's ghost. Since Dafny cannot emit code to test the constraint at run-time, Dafny needs to verify it statically.
 
-* If the inferred collection `Collection`'s elements of type `T` are a _subtype_ of `GhostSubsetType`, then no check needs to be done, and there is no implicit check. For example, the following definition of `m` is accepted in a compiled context, although the constraint of `BoundedInt` cannto be checked at run-time
-```
+* If the inferred collection `Collection`'s elements of type `T` are a _subtype_ of `GhostSubsetType`, then no check needs to be done, and there is no implicit check. For example, the following definition of `m` is accepted in a compiled context, although the constraint of `BoundedInt` cannot be checked at run-time
+```dafny
 ghost const Max := 10;
 type BoundedInt = x : int | -Max < x < Max
 var s: set<BoundedInt> := {1, 2, 3};
 var m := set x: BoundedInt | x in s && x % 2 == 0;
 ```
 * Otherwise, the type of `c` in the range `c in Collection && P(c)` is first inferred to be the type of the collection's elements `T`. That way, it prevents `P(c)` to automatically assume the ghost constraint of `GhostSubsetType` holds, which would result in soundness errors. Second, the verifier checks that `c in S && P(c)` implies that the constraint of `GhostSubsetType` holds for `c`. If yes, the comprehension can be compiled, and if not, the verifier emit an error. For example:
-```
+```dafny
 ghost const Max := 10;
 type BoundedInt = x : int | -Max < x < Max
 var s: set<int> := {1, 2, 3, 12};
