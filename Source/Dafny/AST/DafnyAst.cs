@@ -1065,10 +1065,10 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Returns true if it's surely possible to check at run-time that a value has this type
+    /// Returns false if it's surely possible to check at run-time that a value has this type
     /// </summary>
-    /// <returns>A boolean indicating if the type is compilable, meaning run-time checkable.</returns>
-    public abstract bool DoesNotContainGhostConstraints();
+    /// <returns>A boolean indicating if the type might not be compilable, meaning run-time checkable.</returns>
+    public abstract bool MightContainGhostConstraints();
 
     /// <summary>
     /// Returns a parent of this type that can be tested at run time.
@@ -2356,8 +2356,8 @@ namespace Microsoft.Dafny {
     public override bool Equals(Type that, bool keepConstraints = false) {
       return keepConstraints ? this.GetType() == that.GetType() : that is IntVarietiesSupertype;
     }
-    public override bool DoesNotContainGhostConstraints() {
-      return true;
+    public override bool MightContainGhostConstraints() {
+      return false;
     }
   }
   public class RealVarietiesSupertype : ArtificialType {
@@ -2368,8 +2368,8 @@ namespace Microsoft.Dafny {
     public override bool Equals(Type that, bool keepConstraints = false) {
       return keepConstraints ? this.GetType() == that.GetType() : that is RealVarietiesSupertype;
     }
-    public override bool DoesNotContainGhostConstraints() {
-      return true;
+    public override bool MightContainGhostConstraints() {
+      return false;
     }
   }
 
@@ -2390,8 +2390,8 @@ namespace Microsoft.Dafny {
     public override bool Equals(Type that, bool keepConstraints = false) {
       return that.IsBoolType;
     }
-    public override bool DoesNotContainGhostConstraints() {
-      return true;
+    public override bool MightContainGhostConstraints() {
+      return false;
     }
   }
 
@@ -2405,8 +2405,8 @@ namespace Microsoft.Dafny {
     public override bool Equals(Type that, bool keepConstraints = false) {
       return that.IsCharType;
     }
-    public override bool DoesNotContainGhostConstraints() {
-      return true;
+    public override bool MightContainGhostConstraints() {
+      return false;
     }
   }
 
@@ -2418,8 +2418,8 @@ namespace Microsoft.Dafny {
     public override bool Equals(Type that, bool keepConstraints = false) {
       return that.NormalizeExpand(keepConstraints) is IntType;
     }
-    public override bool DoesNotContainGhostConstraints() {
-      return true;
+    public override bool MightContainGhostConstraints() {
+      return false;
     }
     public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments, bool ignoreNullity) {
       if (super is IntVarietiesSupertype) {
@@ -2437,8 +2437,8 @@ namespace Microsoft.Dafny {
     public override bool Equals(Type that, bool keepConstraints = false) {
       return that.NormalizeExpand(keepConstraints) is RealType;
     }
-    public override bool DoesNotContainGhostConstraints() {
-      return true;
+    public override bool MightContainGhostConstraints() {
+      return false;
     }
 
     public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments, bool ignoreNullity) {
@@ -2458,8 +2458,8 @@ namespace Microsoft.Dafny {
       return that.NormalizeExpand(keepConstraints) is BigOrdinalType;
     }
 
-    public override bool DoesNotContainGhostConstraints() {
-      return true;
+    public override bool MightContainGhostConstraints() {
+      return false;
     }
 
     public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments, bool ignoreNullity) {
@@ -2494,8 +2494,8 @@ namespace Microsoft.Dafny {
       return bv != null && bv.Width == Width;
     }
 
-    public override bool DoesNotContainGhostConstraints() {
-      return true;
+    public override bool MightContainGhostConstraints() {
+      return false;
     }
 
     public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments, bool ignoreNullity) {
@@ -2521,8 +2521,8 @@ namespace Microsoft.Dafny {
       return that.NormalizeExpand(keepConstraints) is SelfType;
     }
 
-    public override bool DoesNotContainGhostConstraints() {
-      return true;
+    public override bool MightContainGhostConstraints() {
+      return false;
     }
   }
 
@@ -2709,8 +2709,8 @@ namespace Microsoft.Dafny {
         return Arg.MayInvolveReferences;
       }
     }
-    public override bool DoesNotContainGhostConstraints() {
-      return Arg.DoesNotContainGhostConstraints();
+    public override bool MightContainGhostConstraints() {
+      return Arg.MightContainGhostConstraints();
     }
   }
 
@@ -2816,8 +2816,8 @@ namespace Microsoft.Dafny {
         return Domain.MayInvolveReferences || Range.MayInvolveReferences;
       }
     }
-    public override bool DoesNotContainGhostConstraints() {
-      return Range.DoesNotContainGhostConstraints() && Domain.DoesNotContainGhostConstraints();
+    public override bool MightContainGhostConstraints() {
+      return Range.MightContainGhostConstraints() || Domain.MightContainGhostConstraints();
     }
   }
 
@@ -3178,16 +3178,16 @@ namespace Microsoft.Dafny {
       return base.IsSubtypeOf(super, ignoreTypeArguments, ignoreNullity);
     }
 
-    public override bool DoesNotContainGhostConstraints() {
+    public override bool MightContainGhostConstraints() {
       // It might not be possible to do so if the constraint of this type uses ghost predicates
       if (this.AsSubsetType is { IsConstraintCompilable: false }) {
-        return false;
+        return true;
       } else if (this.NormalizeExpandKeepConstraints() is TypeProxy) {
         // If we are still in the early resolution phase and no type has been inferred,
         // then we cannot say for sure that the type is compilable.
-        return false;
-      } else {
         return true;
+      } else {
+        return false;
       }
     }
   }
@@ -3373,6 +3373,18 @@ namespace Microsoft.Dafny {
       }
       return null;
     }
+
+    public override bool MightContainGhostConstraints() {
+      if (this.AsSubsetType is { IsConstraintCompilable: false }) {
+        return true;
+      } else if (this.NormalizeExpandKeepConstraints() is TypeProxy) {
+        // If we are still in the early resolution phase and no type has been inferred,
+        // then we cannot say for sure that the type is compilable.
+        return true;
+      } else {
+        return false;
+      }
+    }
   }
 
   /// <summary>
@@ -3382,17 +3394,6 @@ namespace Microsoft.Dafny {
     public bool KeepConstraints;
     public InferredTypeProxy() : base() {
       KeepConstraints = false; // whether the typeProxy should be inferred to base type or as subset type
-    }
-    public override bool DoesNotContainGhostConstraints() {
-      if (this.AsSubsetType is { IsConstraintCompilable: false }) {
-        return false;
-      } else if (this.NormalizeExpandKeepConstraints() is TypeProxy) {
-        // If we are still in the early resolution phase and no type has been inferred,
-        // then we cannot say for sure that the type is compilable.
-        return false;
-      } else {
-        return true;
-      }
     }
   }
 
@@ -3409,17 +3410,6 @@ namespace Microsoft.Dafny {
     public ParamTypeProxy(TypeParameter orig) {
       Contract.Requires(orig != null);
       this.orig = orig;
-    }
-    public override bool DoesNotContainGhostConstraints() {
-      if (this.AsSubsetType is { IsConstraintCompilable: false }) {
-        return false;
-      } else if (this.NormalizeExpandKeepConstraints() is TypeProxy) {
-        // If we are still in the early resolution phase and no type has been inferred,
-        // then we cannot say for sure that the type is compilable.
-        return false;
-      } else {
-        return true;
-      }
     }
   }
 
@@ -5216,8 +5206,8 @@ namespace Microsoft.Dafny {
         return that.NormalizeExpand(keepConstraints) is EverIncreasingType;
       }
 
-      public override bool DoesNotContainGhostConstraints() {
-        return true;
+      public override bool MightContainGhostConstraints() {
+        return false;
       }
     }
 
@@ -6320,7 +6310,7 @@ namespace Microsoft.Dafny {
     public Type OriginalType => CurrentTypeAssumedToBeCompilable ? otherType : Type;
 
     public bool NeedsToVerifyOriginalTypeInference() {
-      return otherType != null && !OriginalType.DoesNotContainGhostConstraints();
+      return otherType != null && OriginalType.MightContainGhostConstraints();
     }
     public bool CompilableTypeAssumptionIsNotTrivial() {
       return otherType != null && !otherType.Equals(Type, true);
@@ -10286,8 +10276,8 @@ namespace Microsoft.Dafny {
         return that.NormalizeExpand(keepConstraints) is ResolverType_Module;
       }
 
-      public override bool DoesNotContainGhostConstraints() {
-        return true;
+      public override bool MightContainGhostConstraints() {
+        return false;
       }
     }
     public class ResolverType_Type : ResolverType {
@@ -10299,8 +10289,8 @@ namespace Microsoft.Dafny {
       public override bool Equals(Type that, bool keepConstraints = false) {
         return that.NormalizeExpand(keepConstraints) is ResolverType_Type;
       }
-      public override bool DoesNotContainGhostConstraints() {
-        return true;
+      public override bool MightContainGhostConstraints() {
+        return false;
       }
     }
 

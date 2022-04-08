@@ -5477,7 +5477,7 @@ namespace Microsoft.Dafny {
       }
 
       private bool ConfirmSubsetTypeOfCompilable(Resolver resolver, ref bool convertedIntoOtherTypeConstraints) {
-        Type collectionType;
+        Type collectionElementType;
         var requestedVariableType = Types[0].NormalizeExpandKeepConstraints();
         if (!CheckTypeInference_Visitor.IsDetermined(requestedVariableType)) {
           if (Types[1] is TypeProxy tp && tp.IsTypeParameter) {
@@ -5489,13 +5489,13 @@ namespace Microsoft.Dafny {
           return false;
         }
 
-        collectionType = Types[1].NormalizeExpandKeepConstraints();
-        if (CheckTypeInference_Visitor.IsDetermined(collectionType)) {
+        collectionElementType = Types[1].NormalizeExpandKeepConstraints();
+        if (CheckTypeInference_Visitor.IsDetermined(collectionElementType)) {
           // No need to add other constraints, the verifier will take care of that.
           return true;
         }
 
-        resolver.ConstrainSubtypeRelation(collectionType, requestedVariableType.GetCompilableParentType(), errorMsg, true);
+        resolver.ConstrainSubtypeRelation(collectionElementType, requestedVariableType.GetCompilableParentType(), errorMsg, true);
         convertedIntoOtherTypeConstraints = true;
         return true;
       }
@@ -15488,7 +15488,7 @@ namespace Microsoft.Dafny {
         ResolveType(v.tok, v.Type, opts.codeContext, resolveTypeOption, typeArgs);
         // If the type can be tested at run time, we keep the same scope
         // Else, the the scoped type is the upper type that can be tested.
-        if (!v.Type.DoesNotContainGhostConstraints() && !opts.isSpecification && !opts.codeContext.IsGhost) {
+        if (v.Type.MightContainGhostConstraints() && !opts.isSpecification && !opts.codeContext.IsGhost) {
           var collectionVarType = v.Type is InferredTypeProxy ? new InferredTypeProxy() : v.Type.GetCompilableParentType(); ;
           if (v.Type is InferredTypeProxy) {
             AddXConstraint(v.tok, "SubsetTypeOfCompilable", v.Type, collectionVarType,
@@ -17058,7 +17058,7 @@ namespace Microsoft.Dafny {
             bindings.ArgumentBindings.Count(), bindings.ArgumentBindings.IndexOf(b),
             whatKind + (context is Method ? " in-parameter" : " parameter"));
 
-          Type formalType = formal.Type.DoesNotContainGhostConstraints() || opts.isSpecification ? formal.Type : formal.Type.NormalizeExpand();
+          Type formalType = !formal.Type.MightContainGhostConstraints() || opts.isSpecification ? formal.Type : formal.Type.NormalizeExpand();
           AddAssignableConstraint(
             callTok, SubstType(formalType, typeMap), b.Actual.Type,
             $"incorrect argument type {what} (expected {{0}}, found {{1}})");
