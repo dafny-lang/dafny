@@ -30,9 +30,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DafnyTestGeneration", "Dafn
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DafnyTestGeneration.Test", "DafnyTestGeneration.Test\DafnyTestGeneration.Test.csproj", "{896E7F24-FD59-4B34-A1BF-53C51DDBC9E9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ASTExport", "ASTExport\ASTExport.csproj", "{F185BDC2-1327-47A4-A293-D3FCDC419867}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CSharpCompiler", "DafnyCompilers\CSharp\CSharpCompiler.csproj", "{6BB19571-E291-44DB-8B1E-7CBBEA491B8E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoExtern", "AutoExtern\AutoExtern.csproj", "{F185BDC2-1327-47A4-A293-D3FCDC419867}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -88,10 +86,6 @@ Global
 		{F185BDC2-1327-47A4-A293-D3FCDC419867}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F185BDC2-1327-47A4-A293-D3FCDC419867}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F185BDC2-1327-47A4-A293-D3FCDC419867}.Release|Any CPU.Build.0 = Release|Any CPU
-		{6BB19571-E291-44DB-8B1E-7CBBEA491B8E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{6BB19571-E291-44DB-8B1E-7CBBEA491B8E}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{6BB19571-E291-44DB-8B1E-7CBBEA491B8E}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{6BB19571-E291-44DB-8B1E-7CBBEA491B8E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
