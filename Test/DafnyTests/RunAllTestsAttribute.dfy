@@ -1,5 +1,7 @@
-// RUN: %dafny /runAllTests:1 /compile:3 /compileTarget:go "%s" > "%t"
-// RUN: %diff "%t" "%s.expect"
+// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:cs /runAllTests:1 "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:go /runAllTests:1 "%s" >> "%t"
+// RUN: %diff "%s.expect" "%t" 
 
 include "../exceptions/VoidOutcomeDt.dfy"
 include "../exceptions/NatOutcomeDt.dfy"
