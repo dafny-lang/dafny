@@ -1,6 +1,5 @@
 ﻿using System.Text;
 using System.Text.RegularExpressions;
-using Microsoft.Boogie;
 using Microsoft.Build.Locator;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -8,7 +7,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 using CA = Microsoft.CodeAnalysis;
 
-namespace ASTExport;
+namespace AutoExtern;
 
 abstract class PrettyPrintable {
   protected virtual string ChildIndent => "  ";
@@ -126,9 +125,9 @@ class AST : PrettyPrintable {
     //var errors = workspace.Diagnostics.Select()
     if (!workspace.Diagnostics.IsEmpty) {
       foreach (var diagnostic in workspace.Diagnostics) {
-        Console.WriteLine("Error in project: {0}", diagnostic.Message);
+        Console.Error.WriteLine("Error in project: {0}", diagnostic.Message);
       }
-      throw new Exception("Unexpected errors while building DafnyPipeline.csproj");
+      throw new Exception("Unexpected errors while building project");
     }
 
     var compilation = project.GetCompilationAsync().Result!;
@@ -311,8 +310,12 @@ internal class Type {
 
   public override string ToString() {
     return syntax switch {
-      PredefinedTypeSyntax { Keyword: var kw } =>
-        kw.Text, // FIXME: int, string?
+      PredefinedTypeSyntax { Keyword: { Text : var text } } => text switch {
+        "int"    => "System.Int32",
+        "string" => "System.String",
+        "bool"   => "System.Boolean",
+        _        => text
+      },
       ArrayTypeSyntax s =>
         $"array<{new Type(s.ElementType, model)}>",
       GenericNameSyntax s =>
@@ -373,7 +376,7 @@ internal class Name {
 }
 
 public static class Program {
-  private const string Placeholder = "{{{ASTExport}}}";
+  private const string Placeholder = "{{{AutoExtern}}}";
 
   private static void Fail(string msg) {
     Console.Error.WriteLine("Error: {0}", msg);
@@ -382,7 +385,7 @@ public static class Program {
 
   public static void Main(string[] args) {
     if (args.Length < 4) {
-      Fail("Usage: ASTExport {project.csproj} {file.cs} {Root.Namespace} {TemplateFile.dfy}");
+      Fail("Usage: AutoExtern {project.csproj} {file.cs} {Root.Namespace} {TemplateFile.dfy}");
     }
 
     var (projectPath, filePath, cSharpRootNS, templatePath) = (args[0], args[1], args[2], args[3]);
