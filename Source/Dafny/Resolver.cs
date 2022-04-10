@@ -3005,7 +3005,7 @@ namespace Microsoft.Dafny {
             if (k.Type.IsBigOrdinalType) {
               kk = new MemberSelectExpr(k.tok, new IdentifierExpr(k.tok, k.Name), "Offset");
               // As an "else" branch, we add recursive calls for the limit case.  When automatic induction is on,
-              // this get handled automatically, but we still want it in the case when automatic inductino has been
+              // this get handled automatically, but we still want it in the case when automatic induction has been
               // turned off.
               //     forall k', params | k' < _k && Precondition {
               //       pp(k', params);
