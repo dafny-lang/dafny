@@ -1800,10 +1800,7 @@ namespace Microsoft.Dafny.Compilers {
                            "anything",
                 errorWr, m.FullName);
             }
-          } else if (m.IsEntryPoint && m.Body == null && DafnyOptions.O.RunAllTests) {
-            var w = classWriter.CreateMethod(m, CombineAllTypeArguments(m), true, false, false);
-            EmitRunAllTestsMainMethod(program, w);
-          } else if (m.Body == null && !(c is TraitDecl && !m.IsStatic) &&
+          } else if (m.Body == null && !(c is TraitDecl && !m.IsStatic) && !DafnyOptions.O.RunAllTests &&
                      !(!DafnyOptions.O.DisallowExterns && (Attributes.Contains(m.Attributes, "dllimport") || (IncludeExternMembers && Attributes.Contains(m.Attributes, "extern"))))) {
             // A (ghost or non-ghost) method must always have a body, except if it's an instance method in a trait.
             if (Attributes.Contains(m.Attributes, "axiom") || (!DafnyOptions.O.DisallowExterns && Attributes.Contains(m.Attributes, "extern"))) {
@@ -2241,30 +2238,35 @@ namespace Microsoft.Dafny.Compilers {
 
       var w = cw.CreateMethod(m, CombineAllTypeArguments(m), !m.IsExtern(out _, out _), false, lookasideBody);
       if (w != null) {
-        if (m.IsTailRecursive) {
-          w = EmitTailCallStructure(m, w);
-        }
-        Coverage.Instrument(m.Body.Tok, $"entry to method {m.FullName}", w);
-
-        var nonGhostOutsCount = m.Outs.Count(p => !p.IsGhost);
-
-        var useReturnStyleOuts = UseReturnStyleOuts(m, nonGhostOutsCount);
-        foreach (var p in m.Outs) {
-          if (!p.IsGhost) {
-            DeclareLocalOutVar(IdName(p), p.Type, p.tok, PlaceboValue(p.Type, w, p.tok, true), useReturnStyleOuts, w);
-          }
-        }
-
-        w = EmitMethodReturns(m, w);
-
-        if (m.Body == null) {
-          Error(m.tok, "Method {0} has no body", w, m.FullName);
+        if (m.IsEntryPoint && DafnyOptions.O.RunAllTests) {
+          EmitRunAllTestsMainMethod(program, w);
         } else {
-          Contract.Assert(enclosingMethod == null);
-          enclosingMethod = m;
-          TrStmtList(m.Body.Body, w);
-          Contract.Assert(enclosingMethod == m);
-          enclosingMethod = null;
+          if (m.IsTailRecursive) {
+            w = EmitTailCallStructure(m, w);
+          }
+
+          Coverage.Instrument(m.Body.Tok, $"entry to method {m.FullName}", w);
+
+          var nonGhostOutsCount = m.Outs.Count(p => !p.IsGhost);
+
+          var useReturnStyleOuts = UseReturnStyleOuts(m, nonGhostOutsCount);
+          foreach(var p in m.Outs) {
+            if (!p.IsGhost) {
+              DeclareLocalOutVar(IdName(p), p.Type, p.tok, PlaceboValue(p.Type, w, p.tok, true), useReturnStyleOuts, w);
+            }
+          }
+
+          w = EmitMethodReturns(m, w);
+
+          if (m.Body == null) {
+            Error(m.tok, "Method {0} has no body", w, m.FullName);
+          } else {
+            Contract.Assert(enclosingMethod == null);
+            enclosingMethod = m;
+            TrStmtList(m.Body.Body, w);
+            Contract.Assert(enclosingMethod == m);
+            enclosingMethod = null;
+          }
         }
       }
 

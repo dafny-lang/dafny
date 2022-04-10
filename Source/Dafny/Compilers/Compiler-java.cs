@@ -3962,7 +3962,12 @@ namespace Microsoft.Dafny.Compilers {
     }
     
     protected override ConcreteSyntaxTree EmitInvokeWithHaltHandling(LocalVariable haltMessageVar, ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
+      wr.WriteLine("try {");
+      var w = wr.Fork(1);
+      wr.WriteLine("} catch (dafny.DafnyHaltException e) {");
+      wr.WriteLine($"  {haltMessageVar.CompileName} = dafny.DafnySequence.asString(e.getMessage());");
+      wr.WriteLine("}");
+      return w;
     }
   }
 }
