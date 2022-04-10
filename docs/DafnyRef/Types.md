@@ -1358,7 +1358,7 @@ that exist for any arity (`() -> X`, `A -> X`, `(A, B) -> X`, `(A, B, C) -> X`,
 etc.).
 
 For a list of types `TT` and a type `U`, the values of the arrow type `(TT) ~> U`
-are functions from `TT` to `U. This includes functions that may read the
+are functions from `TT` to `U`. This includes functions that may read the
 heap and functions that are not defined on all inputs. It is not common
 to need this generality (and working with such general functions is
 difficult). Therefore, Dafny defines two subset types that are more common

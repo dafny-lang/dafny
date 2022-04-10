@@ -1,12 +1,12 @@
 
 Verifying CheckWellformed$$_module.__default.CheckReads ...
   [3 proof obligations]  errors
+ArrowTypeOptimizations.dfy(10,2): Error: function precondition might not hold
 ArrowTypeOptimizations.dfy(10,2): Error: insufficient reads clause to invoke function
-ArrowTypeOptimizations.dfy(10,2): Error: possible violation of function precondition
 
 Verifying CheckWellformed$$_module.__default.CheckPre ...
   [2 proof obligations]  error
-ArrowTypeOptimizations.dfy(16,2): Error: possible violation of function precondition
+ArrowTypeOptimizations.dfy(16,2): Error: function precondition might not hold
 
 Verifying CheckWellformed$$_module.__default.CheckReadsTot ...
   [1 proof obligation]  verified

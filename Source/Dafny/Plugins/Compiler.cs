@@ -33,6 +33,10 @@ public abstract class Compiler {
   /// Value passed to the <c>/compileTarget:</c> command line flag to select this compiler (e.g. <c>cs</c> for C#)
   /// </summary>
   public virtual string TargetId => TargetExtension;
+  /// <summary>
+  /// Spaces added by a single indentation level.
+  /// </summary>
+  public virtual int TargetIndentSize => 2;
 
   /// <summary>
   /// Convert a Dafny file name into a file name without extension suitable for the target language (needed in e.g.
