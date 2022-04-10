@@ -43,9 +43,9 @@ DirtyLoops.dfy(515,2): Warning: note, this forall statement has no body
 DirtyLoops.dfy(515,2): Warning: the conclusion of the body of this forall statement will not be known outside the forall statement; consider using an 'ensures' clause
 DirtyLoops.dfy(531,2): Warning: note, this loop has no body (loop frame: x)
 DirtyLoops.dfy(515,2): Warning: /!\ No terms found to trigger on.
-DirtyLoops.dfy(452,6): Error: loop modifies clause may violate context's modifies clause
-DirtyLoops.dfy(468,6): Error: loop modifies clause may violate context's modifies clause
-DirtyLoops.dfy(485,6): Error: loop modifies clause may violate context's modifies clause
+DirtyLoops.dfy(452,6): Error: loop modifies clause might violate context's modifies clause
+DirtyLoops.dfy(468,6): Error: loop modifies clause might violate context's modifies clause
+DirtyLoops.dfy(485,6): Error: loop modifies clause might violate context's modifies clause
 DirtyLoops.dfy(30,11): Error: assertion might not hold
 DirtyLoops.dfy(39,11): Error: assertion might not hold
 DirtyLoops.dfy(48,11): Error: assertion might not hold
@@ -87,7 +87,7 @@ DirtyLoops.dfy(369,13): Error: assertion might not hold
 DirtyLoops.dfy(380,9): Error: assertion might not hold
 DirtyLoops.dfy(401,18): Error: This loop invariant might not hold on entry.
 DirtyLoops.dfy(401,18): Related message: loop invariant violation
-DirtyLoops.dfy(414,16): Error: target object may be null
+DirtyLoops.dfy(414,16): Error: target object might be null
 DirtyLoops.dfy(506,22): Error: assertion might not hold
 DirtyLoops.dfy(533,11): Error: assertion might not hold
 

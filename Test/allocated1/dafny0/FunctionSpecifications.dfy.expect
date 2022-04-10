@@ -11,8 +11,8 @@ FunctionSpecifications.dfy(126,26): Error: assertion might not hold
 FunctionSpecifications.dfy(130,26): Error: assertion might not hold
 FunctionSpecifications.dfy(135,19): Error: A postcondition might not hold on this return path.
 FunctionSpecifications.dfy(137,28): Related location: This is the postcondition that might not hold.
-FunctionSpecifications.dfy(146,2): Error: failure to decrease termination measure
-FunctionSpecifications.dfy(153,2): Error: failure to decrease termination measure
+FunctionSpecifications.dfy(146,2): Error: decreases clause might not decrease
+FunctionSpecifications.dfy(153,2): Error: decreases clause might not decrease
 FunctionSpecifications.dfy(158,2): Error: cannot prove termination; try supplying a decreases clause
 
 Dafny program verifier finished with 9 verified, 12 errors
