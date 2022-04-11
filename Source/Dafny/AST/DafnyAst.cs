@@ -6927,7 +6927,7 @@ namespace Microsoft.Dafny {
         }
       }
     }
-    
+
     /// <summary>
     /// Create a resolved statement for an uninitialized local variable.
     /// </summary>
@@ -6939,7 +6939,7 @@ namespace Microsoft.Dafny {
       variable.type = type;
       return new VarDeclStmt(tok, tok, Util.Singleton(variable), null);
     }
-    
+
     /// <summary>
     /// Create a resolved statement for a local variable with an initial value.
     /// </summary>

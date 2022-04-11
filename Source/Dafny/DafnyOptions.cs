@@ -269,13 +269,13 @@ namespace Microsoft.Dafny {
           }
 
         case "runAllTests": {
-          int runAllTests = 0;
-          if (ps.GetIntArgument(ref runAllTests, 2)) {
-            RunAllTests = runAllTests != 0; // convert to boolean
-          }
+            int runAllTests = 0;
+            if (ps.GetIntArgument(ref runAllTests, 2)) {
+              RunAllTests = runAllTests != 0; // convert to boolean
+            }
 
-          return true;
-        }
+            return true;
+          }
 
         case "dafnyVerify": {
             int verify = 0;

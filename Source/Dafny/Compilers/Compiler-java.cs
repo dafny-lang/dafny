@@ -3979,7 +3979,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override ConcreteSyntaxTree CreateIterator(IteratorDecl iter, ConcreteSyntaxTree wr) {
       throw new NotImplementedException();
     }
-    
+
     protected override ConcreteSyntaxTree EmitHaltHandling(LocalVariable haltMessageVar, ConcreteSyntaxTree wr) {
       var w = wr.NewBlock("try");
       var catchBlock = wr.NewBlock("catch (dafny.DafnyHaltException e)");

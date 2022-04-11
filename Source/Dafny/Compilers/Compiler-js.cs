@@ -2386,7 +2386,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitSingleValueGenerator(Expression e, bool inLetExprBody, string type, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       TrParenExpr("_dafny.SingleValue", e, wr, inLetExprBody, wStmts);
     }
-    
+
     protected override ConcreteSyntaxTree EmitHaltHandling(LocalVariable haltMessageVar, ConcreteSyntaxTree wr) {
       var tryBlock = wr.NewBlock("try");
       var catchBlockWr = wr.NewBlock("catch (e)");

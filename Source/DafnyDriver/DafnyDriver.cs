@@ -580,7 +580,7 @@ namespace Microsoft.Dafny {
         var defaultClass = (DefaultClassDecl)defaultCompileModule.TopLevelDecls.Single(d => d is DefaultClassDecl);
         mainMethod.EnclosingClass = defaultClass;
         defaultClass.Members.Add(mainMethod);
-        
+
         hasMain = true;
       }
       if (hasMain) {
