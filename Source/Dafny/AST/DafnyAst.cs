@@ -9028,8 +9028,8 @@ namespace Microsoft.Dafny {
 
     private RangeToken rangeToken;
 
-    // Creates a token on the entire range of the expression.
-    // Used only for error reporting.
+    /// Creates a token on the entire range of the expression.
+    /// Used only for error reporting.
     public RangeToken RangeToken {
       get {
         if (rangeToken == null) {
