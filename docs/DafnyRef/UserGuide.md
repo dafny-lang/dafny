@@ -107,7 +107,52 @@ Before Dafny [implemented](https://github.com/dafny-lang/dafny/tree/master/Sourc
 
 The Dafny Server has [integration tests](https://github.com/dafny-lang/dafny/tree/master/Test/server) that serve as the basis of the documentation.
 
-The executable DafnyServer is a simple read-eval loop. For example, if you compile and run `DafnyServer.exe`, you could paste the following command:
+The server is essentially a REPL, which produces output in the same format as the Dafny CLI; clients thus
+do not need to understand the internals of Dafny's caching.  A typical editing session proceeds as follows:
+
+* When a new Dafny file is opened, the editor starts a new instance of the
+  Dafny server.  The cache is blank at that point.
+* The editor sends a copy of the buffer for initial verification.  This takes
+  some time, after which the server returns a list of errors.
+* The user makes modifications; the editor periodically sends a new copy of
+  the buffer's contents to the Dafny server, which quickly returns an updated
+  list of errors.
+
+The client-server protocol is sequential, uses JSON, and works over ASCII
+pipes by base64-encoding utf-8 queries.  It defines one type of query, and two
+types of responses:
+
+Queries are of the following form:
+
+     verify
+     <base64 encoded JSON payload>
+     [[DAFNY-CLIENT: EOM]]
+
+Responses are of the following form:
+
+     <list of errors and usual output, as produced by the Dafny CLI>
+     [SUCCESS] [[DAFNY-SERVER: EOM]]
+
+or
+
+     <error message>
+     [FAILURE] [[DAFNY-SERVER: EOM]]
+
+The JSON payload is an utf-8 encoded string resulting of the serialization of
+a dictionary with 4 fields:
+   * args:   An array of Dafny arguments, as passed to the Dafny CLI
+   * source: A Dafny program, or the path to a Dafny source file.
+   * sourceIsFile: A boolean indicating whether the 'source' argument is a
+                   Dafny program or the path to one.
+   * filename:     The name of the original source file, to be used in error
+                   messages
+
+For small files, embedding the Dafny source directly into a message is
+convenient; for larger files, however, it is generally better for performance
+to write the source snapshot to a separate file, and to pass that to Dafny
+by setting the 'sourceIsFile' flag to true.
+
+For example, if you compile and run `DafnyServer.exe`, you could paste the following command:
 
 ```dafny
 verify
@@ -139,7 +184,7 @@ btoa(JSON.stringify({
 ```
 
 Thus to decode such output, you'd manually use `JSON.parse(atob(payload))`.
-The Dafny Server is still supported, but the [Language Server](https://github.com/dafny-lang/dafny/tree/master/Source/DafnyLanguageServer) along with the initial [IDE extension for VSCode](https://marketplace.visualstudio.com/items?itemName=dafny-lang.ide-vscode) provides more features, such as Ghost highlighting or symbol hovering.
+The Dafny Server is still supported, but we recommend using the [Language Server](https://github.com/dafny-lang/dafny/tree/master/Source/DafnyLanguageServer) that is both available in Emacs and [VSCode](https://marketplace.visualstudio.com/items?itemName=dafny-lang.ide-vscode). The Language Server provides also features such as ghost highlighting or symbol hovering.
 
 ## 24.7. Using Dafny From the Command Line
 
