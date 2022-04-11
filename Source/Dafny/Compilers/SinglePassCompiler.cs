@@ -558,6 +558,20 @@ namespace Microsoft.Dafny.Compilers {
       string tmpVarName, Type collectionElementType,
       Bpl.IToken tok, out ConcreteSyntaxTree collectionWriter, ConcreteSyntaxTree wr);
 
+    /// <summary>
+    /// Creates a guarded foreach loop that iterates over a collection, and apply required subtype
+    /// and compiled subset types filters. Will not emit intermediate ifs if there is no need.
+    ///
+    ///     foreach(collectionElementType tmpVarName in collectionWriter) {
+    ///       if(tmpVarName is [boundVar.type]) {
+    ///         var [IDName(boundVar)] = ([boundVar.type])(tmpvarName);
+    ///         if(constraints_of_boundvar.Type([IDName(boundVar)])) {
+    ///           ...
+    ///         }
+    ///       }
+    ///     }
+    /// </summary>
+    /// <returns>A writer to write inside the deepest if-then</returns>
     private ConcreteSyntaxTree CreateGuardedForeachLoop(
       string tmpVarName, Type collectionElementType,
       IVariable boundVar,
@@ -566,7 +580,7 @@ namespace Microsoft.Dafny.Compilers {
       ) {
       wr = CreateForeachLoop(tmpVarName, collectionElementType, tok, out collectionWriter, wr);
       wr = MaybeInjectSubtypeConstraint(tmpVarName, collectionElementType, boundVar.Type, inLetExprBody, tok, wr);
-      wr = EmitDowncastVariableAssignment(IdName(boundVar), boundVar.Type, tmpVarName, collectionElementType,
+      EmitDowncastVariableAssignment(IdName(boundVar), boundVar.Type, tmpVarName, collectionElementType,
           introduceBoundVar, tok, wr);
       wr = MaybeInjectSubsetConstraint(boundVar, boundVar.Type, collectionElementType, inLetExprBody, tok, wr);
       return wr;
@@ -592,8 +606,8 @@ namespace Microsoft.Dafny.Compilers {
     ///   * Type collectionElementType is the type this variable is casted from, in case it is useful.
     ///   * "introduceBoundVar" can be "false", which says to do the assignment to "boundVarName" as
     ///     shown above, but without also declaring the variable "boundVarName".
-    protected abstract ConcreteSyntaxTree EmitDowncastVariableAssignment(
-      string boundVarName, Type boundVarType, string tmpVarName, Type collectionElementType, bool introduceBoundVar, Bpl.IToken tok, ConcreteSyntaxTree wwr);
+    protected abstract void EmitDowncastVariableAssignment(string boundVarName, Type boundVarType, string tmpVarName,
+      Type collectionElementType, bool introduceBoundVar, Bpl.IToken tok, ConcreteSyntaxTree wr);
 
     /// <summary>
     /// Emit a simple foreach loop over the elements (which are known as "ingredients") of a collection assembled for
@@ -4736,7 +4750,7 @@ namespace Microsoft.Dafny.Compilers {
           newWBody = MaybeInjectSubtypeConstraint(
             tmpVarName, collectionElementType, bv.Type,
             inLetExprBody, e.tok, newWBody, true, e is ForallExpr);
-          newWBody = EmitDowncastVariableAssignment(
+          EmitDowncastVariableAssignment(
             IdName(bv), bv.Type, tmpVarName, collectionElementType, true, e.tok, newWBody);
           newWBody = MaybeInjectSubsetConstraint(
             bv, bv.Type, collectionElementType, inLetExprBody, e.tok, newWBody, true, e is ForallExpr);
@@ -4867,21 +4881,44 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    /// <summary>
+    /// When inside an enumeration like this:
+    /// 
+    ///     foreach(var [tmpVarName]: [collectionElementType] in ...) {
+    ///        ...
+    ///     }
+    /// 
+    /// MaybeInjectSubtypeConstraint emits a subtype constraint that tmpVarName should be of type boundVarType, typically of the form
+    /// 
+    ///       if([tmpVarName] is [boundVarType]) {
+    ///         // This is where 'wr' will write
+    ///       }
+    ///
+    /// If isReturning is true, then it will also insert the "return" statements,
+    /// to use in the lambdas used by forall and exists statements:
+    ///
+    ///       if([tmpVarName] is [boundVarType]) {
+    ///         return // This is where 'wr' will write
+    ///       } else {
+    ///         return [elseReturnValue];
+    ///       }
+    ///
+    /// </summary>
+    /// <returns></returns>
     private ConcreteSyntaxTree MaybeInjectSubtypeConstraint(string tmpVarName,
       Type collectionElementType, Type boundVarType, bool inLetExprBody,
       Bpl.IToken tok, ConcreteSyntaxTree wr, bool isReturning = false, bool elseReturnValue = false
       ) {
-      if (IsTargetSupertype(collectionElementType, boundVarType)) {
-        // That's an issue. We are iterating values that need to be checked.
+      var iterationValuesNeedToBeChecked = IsTargetSupertype(collectionElementType, boundVarType);
+      if (iterationValuesNeedToBeChecked) {
         var preconditions = wr.Fork();
         var conditions = GetSubtypeCondition(tmpVarName, boundVarType, tok, preconditions);
         if (conditions == null) {
-          preconditions.Empty();
+          preconditions.Clear();
         } else {
           var thenWriter = EmitIf(out var guardWriter, isReturning, wr);
           guardWriter.Write(conditions);
           if (isReturning) {
-            // What do we put in the else branch
             wr = wr.NewBlock("", null, BlockStyle.Brace);
             var wStmts = wr.Fork();
             wr = EmitReturnExpr(wr);

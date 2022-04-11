@@ -1869,15 +1869,13 @@ namespace Microsoft.Dafny.Compilers {
     protected override ConcreteSyntaxTree CreateForeachLoop(string tmpVarName, Type collectionElementType, Bpl.IToken tok, out ConcreteSyntaxTree collectionWriter, ConcreteSyntaxTree wr) {
       collectionWriter = new ConcreteSyntaxTree();
       wr.Format($"foreach ({TypeName(collectionElementType, wr, tok)} {tmpVarName} in {collectionWriter})");
-      var wwr = wr.NewBlock();
-      return wwr;
+      return wr.NewBlock();
     }
 
-    protected override ConcreteSyntaxTree EmitDowncastVariableAssignment(string boundVarName, Type boundVarType, string tmpVarName,
-      Type collectionElementType, bool introduceBoundVar, Bpl.IToken tok, ConcreteSyntaxTree wwr) {
-      var typeName = TypeName(boundVarType, wwr, tok);
-      wwr.WriteLine("{0}{1} = ({2}){3};", introduceBoundVar ? typeName + " " : "", boundVarName, typeName, tmpVarName);
-      return wwr;
+    protected override void EmitDowncastVariableAssignment(string boundVarName, Type boundVarType, string tmpVarName,
+      Type collectionElementType, bool introduceBoundVar, Bpl.IToken tok, ConcreteSyntaxTree wr) {
+      var typeName = TypeName(boundVarType, wr, tok);
+      wr.WriteLine("{0}{1} = ({2}){3};", introduceBoundVar ? typeName + " " : "", boundVarName, typeName, tmpVarName);
     }
 
     [CanBeNull]
@@ -1885,7 +1883,7 @@ namespace Microsoft.Dafny.Compilers {
       string typeTest;
       if (boundVarType.IsRefType) {
         if (boundVarType.IsObject || boundVarType.IsObjectQ) {
-          typeTest = "true";
+          typeTest = null;
         } else {
           typeTest = $"{tmpVarName} is {TypeName(boundVarType, wPreconditions, tok)}";
         }
@@ -1895,10 +1893,10 @@ namespace Microsoft.Dafny.Compilers {
           typeTest = $"{tmpVarName} == null || {typeTest}";
         }
       } else {
-        typeTest = "true";
+        typeTest = null;
       }
 
-      return typeTest == "true" ? null : typeTest;
+      return typeTest;
     }
 
     protected override ConcreteSyntaxTree CreateForeachIngredientLoop(string boundVarName, int L, string tupleTypeArgs, out ConcreteSyntaxTree collectionWriter, ConcreteSyntaxTree wr) {

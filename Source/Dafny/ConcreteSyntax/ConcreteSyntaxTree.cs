@@ -32,7 +32,7 @@ namespace Microsoft.Dafny {
       return result;
     }
 
-    public void Empty() {
+    public void Clear() {
       while (_nodes.Any()) {
         _nodes.RemoveAt(0);
       }

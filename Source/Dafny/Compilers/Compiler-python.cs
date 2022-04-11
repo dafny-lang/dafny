@@ -528,10 +528,9 @@ namespace Microsoft.Dafny.Compilers {
       return wr.NewBlockPy();
     }
 
-    protected override ConcreteSyntaxTree EmitDowncastVariableAssignment(string boundVarName, Type boundVarType, string tmpVarName,
-      Type collectionElementType, bool introduceBoundVar, IToken tok, ConcreteSyntaxTree wwr) {
-      wwr.WriteLine($"{boundVarName}{(introduceBoundVar ? $": {TypeName(boundVarType, wwr, tok)}" : "")} = {tmpVarName}");
-      return wwr;
+    protected override void EmitDowncastVariableAssignment(string boundVarName, Type boundVarType, string tmpVarName,
+      Type collectionElementType, bool introduceBoundVar, IToken tok, ConcreteSyntaxTree wr) {
+      wr.WriteLine($"{boundVarName}{(introduceBoundVar ? $": {TypeName(boundVarType, wr, tok)}" : "")} = {tmpVarName}");
     }
 
     protected override ConcreteSyntaxTree CreateForeachIngredientLoop(string boundVarName, int L, string tupleTypeArgs,

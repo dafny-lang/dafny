@@ -1943,8 +1943,6 @@ namespace Microsoft.Dafny.Compilers {
           wPreconditions.WriteLine(
             $@"{typeAssertSucceeds} := func(param interface{{}}) bool {{ var ok bool; _, ok = param.({TypeName(boundVarType, wPreconditions, tok)}); return ok}}");
           conditions.Add($"{typeAssertSucceeds}({tmpVarName})");
-          // When Go will support generics
-          //conditions.Add($"typeAssertSucceeds[{TypeName(boundVarType, wr, tok)}]({tmpVarName})");
         }
       }
 
@@ -1959,7 +1957,7 @@ namespace Microsoft.Dafny.Compilers {
       return typeTest == "true" ? null : typeTest;
     }
 
-    protected override ConcreteSyntaxTree EmitDowncastVariableAssignment(string boundVarName, Type boundVarType, string tmpVarName,
+    protected override void EmitDowncastVariableAssignment(string boundVarName, Type boundVarType, string tmpVarName,
       Type collectionElementType, bool introduceBoundVar, Bpl.IToken tok, ConcreteSyntaxTree wr) {
 
       if (introduceBoundVar) {
@@ -1976,7 +1974,6 @@ namespace Microsoft.Dafny.Compilers {
       var cast = $".({TypeName(boundVarType, wrAssign, tok)})";
       tmpVarName = $"interface{{}}({tmpVarName})";
       wrAssign.WriteLine("{0} = {1}{2}", boundVarName, tmpVarName, cast);
-      return wr;
     }
 
     protected override ConcreteSyntaxTree CreateForeachIngredientLoop(string boundVarName, int L, string tupleTypeArgs, out ConcreteSyntaxTree collectionWriter, ConcreteSyntaxTree wr) {
