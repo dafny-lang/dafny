@@ -434,7 +434,7 @@ If verification is fast, which of the two assertions `assert Z;` or `assert P;` 
 
 [^answer-slowdown]: `assert P;`.
 
-We now hope you know enough of `assume false;` to locate assertions that makes verification slow.
+We now hope you know enough of `assume false;` to locate assertions that make verification slow.
 Nest, we will describe some other strategies at the assertion level to figure out what happens and perhaps fix it.
 
 #### 24.8.2.2. `assert ... by {}` {#sec-verification-debugging-assert-by}
