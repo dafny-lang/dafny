@@ -4935,7 +4935,7 @@ namespace Microsoft.Dafny.Compilers {
       Type collectionElementType, bool inLetExprBody,
       Bpl.IToken tok, ConcreteSyntaxTree wr, bool isReturning = false, bool elseReturnValue = false,
       bool isSubfiltering = false) {
-      if (!boundVarType.Equals(collectionElementType, true) &&
+      if (//!boundVarType.Equals(collectionElementType, true) &&
           boundVarType.NormalizeExpand(true) is UserDefinedType
           {
             TypeArgs: var typeArgs,
