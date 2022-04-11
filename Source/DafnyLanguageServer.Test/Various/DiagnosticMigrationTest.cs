@@ -107,13 +107,13 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
     var resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.AreEqual(1, resolutionDiagnostics.Length);
 
-    ApplyChange(ref documentItem, null, "method u() { var x: bool := true; }");
+    ApplyChange(ref documentItem, null, "method u() ensures true; { var x: bool := true; }");
     resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     var verificationDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.AreEqual(0, resolutionDiagnostics.Length);
     Assert.AreEqual(0, verificationDiagnostics.Length);
 
-    ApplyChange(ref documentItem, new Range(0, 28, 0, 32), "1");
+    ApplyChange(ref documentItem, new Range(0, 42, 0, 46), "1");
     resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.AreEqual(1, resolutionDiagnostics.Length);
   }
