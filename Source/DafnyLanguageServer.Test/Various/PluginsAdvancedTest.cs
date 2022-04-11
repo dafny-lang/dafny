@@ -3,7 +3,6 @@ using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Threading;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
-using Microsoft.Extensions.DependencyModel;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;

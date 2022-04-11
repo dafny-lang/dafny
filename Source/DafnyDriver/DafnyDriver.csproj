@@ -38,9 +38,10 @@
     
   <ItemGroup>
     <ProjectReference Include="..\Dafny\DafnyPipeline.csproj" />
-    <ProjectReference Include="..\DafnyRuntime\DafnyRuntime.csproj" />
+    <ProjectReference Include="..\DafnyRuntime\DafnyRuntime.csproj">
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
     <ProjectReference Include="..\DafnyTestGeneration\DafnyTestGeneration.csproj" />
-    <ProjectReference Include="..\DafnyServer\DafnyServer.csproj" />
   </ItemGroup>
 
   <ItemGroup>

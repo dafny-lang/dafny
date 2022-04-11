@@ -14,7 +14,9 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\DafnyRuntime\DafnyRuntime.csproj" />
+        <ProjectReference Include="..\DafnyRuntime\DafnyRuntime.csproj">
+          <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+        </ProjectReference>
         <ProjectReference Include="..\DafnyTestGeneration\DafnyTestGeneration.csproj" />
     </ItemGroup>
 
