@@ -920,7 +920,11 @@ namespace Microsoft.Dafny.Compilers {
 
     [CanBeNull]
     protected override string GetSubtypeCondition(string tmpVarName, Type boundVarType, IToken tok, ConcreteSyntaxTree wPreconditions) {
-      throw new NotImplementedException();
+      if (boundVarType.IsRefType) {
+        throw new NotImplementedException();
+      }
+
+      return "True";
     }
 
     protected override string GetCollectionBuilder_Build(CollectionType ct, IToken tok, string collName, ConcreteSyntaxTree wr) {
