@@ -232,12 +232,13 @@ namespace Microsoft.Dafny {
       return null; // Success
     }
 
-    public static async Task<(bool IsVerified, PipelineOutcome Outcome, PipelineStatistics Statistics)> BoogieOnce(
+    public static async Task<(PipelineOutcome Outcome, PipelineStatistics Statistics)> BoogieOnce(
       TextWriter output,
-      ExecutionEngine engine, string baseFile,
+      ExecutionEngine engine,
+      string baseFile,
       string moduleName,
       Microsoft.Boogie.Program boogieProgram, string programId) {
-      programId ??= "main_program_id" + "_" + moduleName;
+      var moduleId = (programId ?? "main_program_id") + "_" + moduleName;
 
       string bplFilename;
       if (DafnyOptions.O.PrintFile != null) {
@@ -250,8 +251,8 @@ namespace Microsoft.Dafny {
 
       bplFilename = BoogieProgramSuffix(bplFilename, moduleName);
       var (outcome, stats) = await BoogiePipelineWithRerun(output, engine, boogieProgram, bplFilename,
-        1 < DafnyOptions.O.VerifySnapshots ? programId : null);
-      return (IsBoogieVerified(outcome, stats), outcome, stats);
+        1 < DafnyOptions.O.VerifySnapshots ? moduleId : null);
+      return (outcome, stats);
     }
 
     public static string BoogieProgramSuffix(string printFile, string suffix) {

@@ -15,11 +15,9 @@ using OmniSharp.Extensions.LanguageServer.Server;
 using System.IO;
 using System.IO.Pipelines;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using MediatR;
-using Microsoft.Dafny.LanguageServer.Language;
 using OmniSharp.Extensions.LanguageServer.Client;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest {
@@ -40,11 +38,11 @@ lemma {:timeLimit 3} SquareRoot2NotRational(p: nat, q: nat)
   }
 }".TrimStart();
 
-    protected const string NeverVerifies = @"
-lemma {:slow} HasSlowAttribute(p: nat, q: nat)
+    protected readonly string NeverVerifies = @"
+lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
   ensures true
 {
-}";
+}".TrimStart();
 
     public const string LanguageId = "dafny";
     protected static int fileIndex;

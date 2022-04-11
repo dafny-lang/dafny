@@ -36,9 +36,9 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
     var resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.AreEqual(1, resolutionDiagnostics.Length);
     // Verification diagnostic should have been moved.
-    Assert.AreEqual(6, resolutionDiagnostics[0].Range.Start.Line);
+    Assert.AreEqual(5, resolutionDiagnostics[0].Range.Start.Line);
     // Relation information should have been moved.
-    Assert.AreEqual(6, resolutionDiagnostics[0].RelatedInformation!.ElementAt(0).Location.Range.Start.Line);
+    Assert.AreEqual(5, resolutionDiagnostics[0].RelatedInformation!.ElementAt(0).Location.Range.Start.Line);
   }
 
   [TestMethod]
@@ -100,6 +100,25 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
   }
 
   [TestMethod]
+  public async Task PassingANullChangeRangeClearsDiagnostics() {
+    var documentItem = CreateTestDocument("method t() { var x: bool := 0; }");
+    client.OpenDocument(documentItem);
+
+    var resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+    Assert.AreEqual(1, resolutionDiagnostics.Length);
+
+    ApplyChange(ref documentItem, null, "method u() { var x: bool := true; }");
+    resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+    var verificationDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+    Assert.AreEqual(0, resolutionDiagnostics.Length);
+    Assert.AreEqual(0, verificationDiagnostics.Length);
+
+    ApplyChange(ref documentItem, new Range(0, 28, 0, 32), "1");
+    resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+    Assert.AreEqual(1, resolutionDiagnostics.Length);
+  }
+
+  [TestMethod]
   public async Task VerificationDiagnosticsCanBeMigratedAcrossMultipleResolutions() {
     var documentItem = CreateTestDocument(@"method GetConstant() returns (x: int) 
   ensures x == 2 
@@ -111,7 +130,7 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
     var verificationDiagnostics = await GetLastVerificationDiagnostics(documentItem, CancellationToken);
     Assert.AreEqual(1, verificationDiagnostics.Length);
 
-    ApplyChange(ref documentItem, new Range(0, 7, 0, 7), "{:slow}");
+    ApplyChange(ref documentItem, new Range(0, 7, 0, 7), "{:neverVerify}");
     var resolutionDiagnostics1 = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     ApplyChange(ref documentItem, new Range(3, 9, 3, 10), "2");
     var resolutionDiagnostics2 = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);

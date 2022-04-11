@@ -170,11 +170,10 @@ method Abs(x: int) returns (y: int)
 
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
     public async Task DocumentWithOnlyConfiguredVerifierTimeoutSendsCompilationSucceededVerificationStartedAndVerificationFailedStatuses() {
-      var source = SlowToVerify.TrimStart();
       await SetUp(new Dictionary<string, string>() {
         { $"{VerifierOptions.Section}:{nameof(VerifierOptions.TimeLimit)}", "3" }
       });
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(SlowToVerify);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var compilation = await notificationReceiver.AwaitNextNotificationAsync(CancellationToken);
       Assert.AreEqual(documentItem.Uri, compilation.Uri);

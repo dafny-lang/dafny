@@ -1,5 +1,5 @@
-git-issue-1163.dfy(21,42): Error: receiver argument must be allocated in the state in which the function is invoked
-git-issue-1163.dfy(23,44): Error: argument must be allocated in the state in which the function is invoked
-git-issue-1163.dfy(27,40): Error: receiver argument must be allocated in the state in which the function is invoked
+git-issue-1163.dfy(21,42): Error: receiver argument might not be allocated in the state in which the function is invoked
+git-issue-1163.dfy(23,44): Error: argument might not be allocated in the state in which the function is invoked
+git-issue-1163.dfy(27,40): Error: receiver argument might not be allocated in the state in which the function is invoked
 
 Dafny program verifier finished with 3 verified, 3 errors

@@ -23,7 +23,8 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
   public async Task<Diagnostic[]> GetLastVerificationDiagnostics(TextDocumentItem documentItem, CancellationToken cancellationToken = default) {
     await client.WaitForNotificationCompletionAsync(documentItem.Uri, cancellationToken);
     var document = await Documents.GetVerifiedDocumentAsync(documentItem);
-    Diagnostic[] result = Array.Empty<Diagnostic>();
+    await diagnosticReceiver.AwaitNextDiagnosticsAsync(cancellationToken); // Get resolution diagnostics
+    Diagnostic[] result = await diagnosticReceiver.AwaitNextDiagnosticsAsync(cancellationToken); // Get first verification diagnostics
     while(!document!.Diagnostics.SequenceEqual(result)) {
       result = await diagnosticReceiver.AwaitNextDiagnosticsAsync(cancellationToken);
     }

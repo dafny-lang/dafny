@@ -1,6 +1,5 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
