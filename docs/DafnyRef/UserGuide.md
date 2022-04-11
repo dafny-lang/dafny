@@ -103,7 +103,43 @@ on the [Dafny INSTALL page in the wiki](https://github.com/dafny-lang/dafny/wiki
 
 ## 24.6. The Dafny Server
 
-TO BE WRITTEN
+Before Dafny [implemented](https://github.com/dafny-lang/dafny/tree/master/Source/DafnyLanguageServer) the official [Language Server Protocol](https://microsoft.github.io/language-server-protocol/), it implemented its own protocol to offer the [emacs mode](https://github.com/boogie-org/boogie-friends), which resulted in a project called [DafnyServer](https://github.com/dafny-lang/dafny/tree/master/Source/DafnyServer).
+
+The Dafny Server has [integration tests](https://github.com/dafny-lang/dafny/tree/master/Test/server) that serve as the basis of the documentation.
+
+The executable DafnyServer is a simple read-eval loop. For example, if you compile and run `DafnyServer.exe`, you could paste the following command:
+
+```dafny
+verify
+eyJhcmdzIjpbIi9jb21waWxlOjAiLCIvcHJpbnRUb29sdGlwcyIsIi90aW1lTGltaXQ6MjAiXSwi
+ZmlsZW5hbWUiOiJ0cmFuc2NyaXB0Iiwic291cmNlIjoibWV0aG9kIEEoYTppbnQpIHJldHVybnMg
+KGI6IGludCkge1xuICBiIDo9IGE7XG4gIGFzc2VydCBmYWxzZTtcbn1cbiIsInNvdXJjZUlzRmls
+ZSI6ZmFsc2V9
+[[DAFNY-CLIENT: EOM]]
+```
+
+The interpreter sees the command `verify`, and then starts reading every line until it sees `[[DAFNY-CLIENT: EOM]]`
+The payload is a base64 encoded string that you could encode or decode using JavaScript's `atob` and `btoa` function.
+For example, the payload above was generated using the following code:
+```js
+btoa(JSON.stringify({
+  "args": [
+    "/compile:0",
+    "/printTooltips",
+    "/timeLimit:20"
+   ],
+   "filename":"transcript",
+   "source":
+`method A(a:int) returns (b: int) {
+   b := a;
+   assert false;
+}
+`,"sourceIsFile": false}))
+=== "eyJhcmdzIjpbIi9jb21waWxlOjAiLCIvcHJpbnRUb29sdGlwcyIsIi90aW1lTGltaXQ6MjAiXSwiZmlsZW5hbWUiOiJ0cmFuc2NyaXB0Iiwic291cmNlIjoibWV0aG9kIEEoYTppbnQpIHJldHVybnMgKGI6IGludCkge1xuICBiIDo9IGE7XG4gIGFzc2VydCBmYWxzZTtcbn1cbiIsInNvdXJjZUlzRmlsZSI6ZmFsc2V9"
+```
+
+Thus to decode such output, you'd manually use `JSON.parse(atob(payload))`.
+The Dafny Server is still supported, but the [Language Server](https://github.com/dafny-lang/dafny/tree/master/Source/DafnyLanguageServer) along with the initial [IDE extension for VSCode](https://marketplace.visualstudio.com/items?itemName=dafny-lang.ide-vscode) provides more features, such as Ghost highlighting or symbol hovering.
 
 ## 24.7. Using Dafny From the Command Line
 
