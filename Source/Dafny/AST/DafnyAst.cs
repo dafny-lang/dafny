@@ -4951,9 +4951,15 @@ namespace Microsoft.Dafny {
     bool AllowsNontermination { get; }
   }
 
+  public static class ICodeContextExtensions {
+    public static ICodeContext InSpecification(this ICodeContext codeContext, bool isSpecification = true) {
+      return codeContext.IsGhost || !isSpecification ? codeContext : new CodeContextWrapper(codeContext, true);
+    }
+  }
+
   /// <summary>
-  /// Some declarations have more than one context. For example, a subset type has a constraint
-  /// (which is a ghost context) and a witness (which may be a compiled context). To distinguish
+  /// Some statements have more than one context. For example, a for-loop can have invariants
+  /// (which are a ghost context) and a body (which may be a compiled context). To distinguish
   /// between these two, the declaration is wrapped inside a CodeContextWrapper.
   /// </summary>
   public class CodeContextWrapper : ICodeContext {
