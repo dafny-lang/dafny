@@ -34,6 +34,9 @@ module VariableCapture {
       r := [];
       return;
     }
+    // Most target languages have no immediate match for the expressions in the following
+    // lines so the compilation strategies will be informed by the constraints imposed by
+    // the target language.
     var x :| x in S;
     g := x;  // In C#, "g" will be a formal out-parameter
     // C# does not allow formal out-parameters to be captured in a lambda, so "g" is saved
@@ -55,6 +58,9 @@ module VariableCapture {
       r := [];
       return;
     }
+    // Most target languages have no immediate match for the expressions in the following
+    // lines so the compilation strategies will be informed by the constraints imposed by
+    // the target language.
     var x :| x in M.Keys;
     g := x;  // In C#, "g" will be a formal out-parameter
     // C# does not allow formal out-parameters to be captured in a lambda, so "g" is saved

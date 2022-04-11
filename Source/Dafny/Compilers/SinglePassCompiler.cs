@@ -979,7 +979,7 @@ namespace Microsoft.Dafny.Compilers {
     /// Furthermore, EmitDestructor also needs to work for anonymous destructors.
     /// </summary>
     protected abstract void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr);
-    protected virtual bool TargetLambdaRestrictedToExpressions => false;
+    protected virtual bool TargetLambdasRestrictedToExpressions => false;
     protected abstract ConcreteSyntaxTree CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames, Type resultType, ConcreteSyntaxTree wr, bool untyped = false);
 
     /// <summary>
@@ -3363,7 +3363,8 @@ namespace Microsoft.Dafny.Compilers {
       } else if (bound is ComprehensionExpr.MapBoundedPool) {
         var b = (ComprehensionExpr.MapBoundedPool)bound;
         TrParenExpr(su.Substitute(b.Map), collectionWriter, inLetExprBody, wStmts);
-        collectionWriter.Write(".Keys{0}.Elements{0}", propertySuffix);
+        GetSpecialFieldInfo(SpecialField.ID.Keys, null, null, out var keyName, out _, out _);
+        collectionWriter.Write($".{keyName}.Elements{propertySuffix}");
       } else if (bound is ComprehensionExpr.SeqBoundedPool) {
         var b = (ComprehensionExpr.SeqBoundedPool)bound;
         TrParenExpr(su.Substitute(b.Seq), collectionWriter, inLetExprBody, wStmts);
@@ -4307,6 +4308,7 @@ namespace Microsoft.Dafny.Compilers {
 
     /// <summary>
     /// Before calling TrExpr(expr), the caller must have spilled the let variables declared in "expr".
+    /// In order to give the compiler a way to put supporting statements above the current one, wStmts must be passed.
     /// </summary>
     protected internal void TrExpr(Expression expr, ConcreteSyntaxTree wr, bool inLetExprBody, ConcreteSyntaxTree wStmts) {
       Contract.Requires(expr != null);
@@ -4810,7 +4812,7 @@ namespace Microsoft.Dafny.Compilers {
 
         wr = CaptureFreeVariables(e, false, out var su, inLetExprBody, wr, wStmts);
         wr = CreateLambda(e.BoundVars.ConvertAll(bv => bv.Type), Bpl.Token.NoToken, e.BoundVars.ConvertAll(IdName), e.Body.Type, wr);
-        if (!TargetLambdaRestrictedToExpressions) { wr = EmitReturnExpr(wr); }
+        if (!TargetLambdasRestrictedToExpressions) { wr = EmitReturnExpr(wr); }
         TrExpr(su.Substitute(e.Body), wr, inLetExprBody, wStmts);
 
       } else if (expr is StmtExpr) {

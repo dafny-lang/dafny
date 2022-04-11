@@ -462,14 +462,16 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree CreateLabeledCode(string label, bool createContinueLabel, ConcreteSyntaxTree wr) {
-      Contract.Assert(!createContinueLabel);
+      if (createContinueLabel) { throw new NotImplementedException(); }
       return wr.NewBlockPy($"with _dafny.label(\"{label}\"):");
     }
 
     protected override void EmitBreak(string label, ConcreteSyntaxTree wr) {
       if (label != null) {
         wr.WriteLine($"_dafny._break(\"{label}\")");
-      } else { wr.WriteLine("break"); }
+      } else {
+        wr.WriteLine("break");
+      }
     }
 
     protected override void EmitContinue(string label, ConcreteSyntaxTree wr) {
@@ -812,7 +814,7 @@ namespace Microsoft.Dafny.Compilers {
       throw new NotImplementedException();
     }
 
-    protected override bool TargetLambdaRestrictedToExpressions => true;
+    protected override bool TargetLambdasRestrictedToExpressions => true;
     protected override ConcreteSyntaxTree CreateLambda(List<Type> inTypes, IToken tok, List<string> inNames,
         Type resultType, ConcreteSyntaxTree wr, bool untyped = false) {
       var wrBody = new ConcreteSyntaxTree();
@@ -974,11 +976,15 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitCollectionDisplay(CollectionType ct, IToken tok, List<Expression> elements,
       bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      var (open, close) = ct switch {
+        SeqType => ("[", "]"),
+        _ => ("{", "}")
+      };
       wr.Write(TypeHelperName(ct));
       wr.Write("(");
-      wr.Write("{");
+      wr.Write(open);
       TrExprList(elements, wr, inLetExprBody, wStmts, parens: false);
-      wr.Write("}");
+      wr.Write(close);
       wr.Write(")");
     }
 
