@@ -5169,7 +5169,11 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected abstract ConcreteSyntaxTree EmitInvokeWithHaltHandling(LocalVariable haltMessageVar, ConcreteSyntaxTree wr);
+    /// <summary>
+    /// Emits code to recover from halting in the code written to the returned syntax tree,
+    /// and assign the halting message to the given variable.
+    /// </summary>
+    protected abstract ConcreteSyntaxTree EmitHaltHandling(LocalVariable haltMessageVar, ConcreteSyntaxTree wr);
     
     protected void EmitRunAllTestsMainMethod(Program program, ConcreteSyntaxTree w) {
       var tok = Bpl.Token.NoToken;
@@ -5191,7 +5195,7 @@ namespace Microsoft.Dafny.Compilers {
             var haltMessageVar = haltMessageVarStmt.Locals[0];
             var haltMessageVarExpr = new IdentifierExpr(tok, haltMessageVar);
             
-            var methodCallWr = EmitInvokeWithHaltHandling(haltMessageVar, w);
+            var methodCallWr = EmitHaltHandling(haltMessageVar, w);
             
             var receiverExpr = new StaticReceiverExpr(tok, (TopLevelDeclWithMembers)method.EnclosingClass, true);
             var methodSelectExpr = new MemberSelectExpr(tok, receiverExpr, method.Name);

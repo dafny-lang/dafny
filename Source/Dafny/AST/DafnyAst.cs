@@ -6929,7 +6929,7 @@ namespace Microsoft.Dafny {
     }
     
     /// <summary>
-    /// Create a resolved statement for an ininitialized local variable.
+    /// Create a resolved statement for an uninitialized local variable.
     /// </summary>
     public static VarDeclStmt CrateLocalVariable(IToken tok, string name, Type type) {
       Contract.Requires(tok != null);
@@ -9333,6 +9333,7 @@ namespace Microsoft.Dafny {
     /// </summary>
     public static LiteralExpr CreateStringLiteral(IToken tok, string s) {
       Contract.Requires(tok != null);
+      Contract.Requires(s != null);
       var lit = new StringLiteralExpr(tok, s, true);
       lit.Type = new SeqType(new CharType());  // resolve here
       return lit;
