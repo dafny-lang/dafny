@@ -1262,7 +1262,6 @@ namespace Microsoft.Dafny.Compilers {
               var cw = CreateClass(IdProtect(d.EnclosingModuleDefinition.CompileName), IdName(cl), classIsExtern, cl.FullName,
                 cl.TypeArgs, cl, cl.ParentTypeInformation.UniqueParentTraits(), cl.tok, wr);
               CompileClassMembers(program, cl, cw);
-
               cw.Finish();
             } else {
               // still check that given members satisfy compilation rules
@@ -5179,6 +5178,7 @@ namespace Microsoft.Dafny.Compilers {
       var tok = Bpl.Token.NoToken;
       var stringType = new SeqType(new CharType());
       
+      // var success := true;
       var successVarStmt = Statement.CrateLocalVariable(tok, "success", Expression.CreateBoolLiteral(tok, true));
       TrStmt(successVarStmt, w);
       var successVarExpr = new IdentifierExpr(tok, successVarStmt.Locals[0]);
@@ -5188,6 +5188,7 @@ namespace Microsoft.Dafny.Compilers {
           if ((callable is Method method) && Attributes.Contains(method.Attributes, "test")) {
             EmitPrintStmt(w, Expression.CreateStringLiteral(tok, method.FullDafnyName + ": "));
 
+            // var haltMessage42 := "";
             var haltMessageVarName = idGenerator.FreshId("haltMessage");
             var emptyStringExpr = Expression.CreateStringLiteral(tok, "");
             var haltMessageVarStmt = Statement.CrateLocalVariable(tok, haltMessageVarName, emptyStringExpr);
@@ -5195,6 +5196,8 @@ namespace Microsoft.Dafny.Compilers {
             var haltMessageVar = haltMessageVarStmt.Locals[0];
             var haltMessageVarExpr = new IdentifierExpr(tok, haltMessageVar);
             
+            // Emit the surrounding context to recover from any halting and assign
+            // the halt message to haltMessage42
             var methodCallWr = EmitHaltHandling(haltMessageVar, w);
             
             var receiverExpr = new StaticReceiverExpr(tok, (TopLevelDeclWithMembers)method.EnclosingClass, true);
@@ -5228,6 +5231,12 @@ namespace Microsoft.Dafny.Compilers {
             var passedBlock = new BlockStmt(tok, tok, Util.Singleton(passedStmt));
 
             if (resultVarExpr != null) {
+              // if result.IsFailure() {
+              //   print "FAILED\n\t", result, "\n";
+              //   success := false;
+              // } else {
+              //   print "PASSED\n";
+              // }
               var failureGuardExpr = new FunctionCallExpr(tok, "IsFailure", resultVarExpr, tok, new List<Expression>());
               var resultClass = (TopLevelDeclWithMembers)((UserDefinedType)resultVarExpr.Type).ResolvedClass;
               var isFailureMember = resultClass.Members.First(m => m.Name == "IsFailure");
@@ -5240,19 +5249,10 @@ namespace Microsoft.Dafny.Compilers {
             
             TrStmt(new BlockStmt(tok, tok, statements), methodCallWr);
             
-            // TODO: fix
             // if haltMessage_X != "" {
             //   print "FAILED\n\t", haltMessage_X, "\n";
             //   success := false;
-            // [ (if the method returns a value)
-            // } else if result.IsFailure() {
-            //   print "FAILED\n\t", result, "\n";
-            //   success := false;
-            // ]
-            // } else {
-            //   print "PASSED\n";
             // }
-            
             var guardExpr = Expression.CreateNot(tok, Expression.CreateEq(haltMessageVarExpr, emptyStringExpr, stringType));
             var haltedBlock = PrintTestFailureStatement(tok, successVarExpr, haltMessageVarExpr);
             var ifHaltedStmt = new IfStmt(tok, tok, false, guardExpr, haltedBlock, null);
@@ -5261,7 +5261,14 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
       
-      // TODO: Print summary message and set exit code
+      // For now just print a footer to call attention to any failed tests.
+      // Ideally we would also set the process return code, but since Dafny main methods
+      // don't support that yet, that is deferred for now.
+      Statement printFailure = Statement.CreatePrintStmt(tok, 
+        Expression.CreateStringLiteral(tok, "Test failures occurred: see above.\n"));
+      var failuresBlock = new BlockStmt(tok, tok, Util.Singleton(printFailure));
+      var ifNotSuccess = new IfStmt(tok, tok, false, Expression.CreateNot(tok, successVarExpr), failuresBlock, null);
+      TrStmt(ifNotSuccess, w);
     }
 
     private BlockStmt PrintTestFailureStatement(Bpl.IToken tok, Expression successVarExpr, Expression failureValueExpr) {

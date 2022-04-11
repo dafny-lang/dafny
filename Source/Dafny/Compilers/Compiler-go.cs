@@ -3472,7 +3472,6 @@ namespace Microsoft.Dafny.Compilers {
       var ifRecoverBlock = deferBlock.NewBlock("if r := recover(); r != nil");
       ifRecoverBlock.WriteLine($"{haltMessageVar.CompileName} = _dafny.SeqOfString(r.(string))");
       funcBlock.WriteLine("()");
-      var w = wr.Fork(1);
       wr.WriteLine("()");
       return funcBlock;
     }

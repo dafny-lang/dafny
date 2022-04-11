@@ -606,7 +606,6 @@ namespace Microsoft.Dafny {
           otherFiles.Add(file.Filename, otherFileWriter.ToString());
         }
       }
-
       string callToMain = null;
       if (hasMain) {
         var callToMainTree = new ConcreteSyntaxTree();
