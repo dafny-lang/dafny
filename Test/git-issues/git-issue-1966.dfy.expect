@@ -1,0 +1,2 @@
+git-issue-1966.dfy(10,21): Error: modules 'P1' and 'P2' both have CompileName 'P'
+1 resolution/type errors detected in git-issue-1966.dfy

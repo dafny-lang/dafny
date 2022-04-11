@@ -110,7 +110,8 @@ public class CsharpSynthesizer {
     // Stub methods and fields according to the Dafny post-conditions:
     foreach (var ensureClause in method.Ens) {
       bounds = new();
-      SynthesizeExpression(wr, ensureClause.E);
+      var wStmts = wr.Fork();
+      SynthesizeExpression(wr, ensureClause.E, wStmts);
     }
 
     // Return the mocked objects:
@@ -140,19 +141,19 @@ public class CsharpSynthesizer {
     return new Tuple<IVariable, string>(variable, bounds[variable]);
   }
 
-  private void SynthesizeExpression(ConcreteSyntaxTree wr, Expression expr) {
+  private void SynthesizeExpression(ConcreteSyntaxTree wr, Expression expr, ConcreteSyntaxTree wStmts) {
     switch (expr) {
       case LiteralExpr literalExpr:
-        compiler.TrExpr(literalExpr, wr, false);
+        compiler.TrExpr(literalExpr, wr, false, wStmts);
         break;
       case ApplySuffix applySuffix:
-        SynthesizeExpression(wr, applySuffix);
+        SynthesizeExpression(wr, applySuffix, wStmts);
         break;
       case BinaryExpr binaryExpr:
-        SynthesizeExpression(wr, binaryExpr);
+        SynthesizeExpression(wr, binaryExpr, wStmts);
         break;
       case ForallExpr forallExpr:
-        SynthesizeExpression(wr, forallExpr);
+        SynthesizeExpression(wr, forallExpr, wStmts);
         break;
       case FreshExpr:
         break;
@@ -161,7 +162,7 @@ public class CsharpSynthesizer {
     }
   }
 
-  private void SynthesizeExpression(ConcreteSyntaxTree wr, ApplySuffix applySuffix) {
+  private void SynthesizeExpression(ConcreteSyntaxTree wr, ApplySuffix applySuffix, ConcreteSyntaxTree wStmts) {
 
     var methodApp = (ExprDotName)applySuffix.Lhs;
     var receiver = ((IdentifierExpr)methodApp.Lhs.Resolved).Var;
@@ -186,7 +187,7 @@ public class CsharpSynthesizer {
       if (bound != null) { // if true, arg is a bound variable
         wr.Write(bound.Item2);
       } else {
-        compiler.TrExpr(arg, wr, false);
+        compiler.TrExpr(arg, wr, false, wStmts);
       }
       if (i != applySuffix.Args.Count - 1) {
         wr.Write(", ");
@@ -195,13 +196,13 @@ public class CsharpSynthesizer {
     wr.Write("))");
   }
 
-  private void SynthesizeExpression(ConcreteSyntaxTree wr, BinaryExpr binaryExpr) {
+  private void SynthesizeExpression(ConcreteSyntaxTree wr, BinaryExpr binaryExpr, ConcreteSyntaxTree wStmts) {
     if (binaryExpr.Op == BinaryExpr.Opcode.And) {
       Dictionary<IVariable, string> oldBounds = bounds
         .ToDictionary(entry => entry.Key, entry => entry.Value);
-      SynthesizeExpression(wr, binaryExpr.E0);
+      SynthesizeExpression(wr, binaryExpr.E0, wStmts);
       bounds = oldBounds;
-      SynthesizeExpression(wr, binaryExpr.E1);
+      SynthesizeExpression(wr, binaryExpr.E1, wStmts);
       return;
     }
     if (binaryExpr.Op != BinaryExpr.Opcode.Eq) {
@@ -215,14 +216,14 @@ public class CsharpSynthesizer {
                                 "(field {0} of object {1} inside method {2})",
         ErrorWriter, fieldName, obj.Name, lastSynthesizedMethod.Name);
       wr.Format($"{objectToMockName[obj]}.SetupGet({obj.CompileName} => {obj.CompileName}.@{fieldName}).Returns( ");
-      compiler.TrExpr(binaryExpr.E1, wr, false);
+      compiler.TrExpr(binaryExpr.E1, wr, false, wStmts);
       wr.WriteLine(");");
       return;
     }
     if (binaryExpr.E0 is not ApplySuffix applySuffix) {
       throw new NotImplementedException();
     }
-    SynthesizeExpression(wr, applySuffix);
+    SynthesizeExpression(wr, applySuffix, wStmts);
     wr.Write(".Returns(");
     wr.Write("(");
     for (int i = 0; i < applySuffix.Args.Count; i++) {
@@ -241,11 +242,11 @@ public class CsharpSynthesizer {
       }
     }
     wr.Write(")=>");
-    compiler.TrExpr(binaryExpr.E1, wr, false);
+    compiler.TrExpr(binaryExpr.E1, wr, false, wStmts);
     wr.WriteLine(");");
   }
 
-  private void SynthesizeExpression(ConcreteSyntaxTree wr, ForallExpr forallExpr) {
+  private void SynthesizeExpression(ConcreteSyntaxTree wr, ForallExpr forallExpr, ConcreteSyntaxTree wStmts) {
     if (forallExpr.Term is not BinaryExpr binaryExpr) {
       throw new NotImplementedException();
     }
@@ -271,7 +272,7 @@ public class CsharpSynthesizer {
     switch (binaryExpr.Op) {
       case BinaryExpr.Opcode.Imp:
         wr.Write("\treturn ");
-        compiler.TrExpr(binaryExpr.E0, wr, false);
+        compiler.TrExpr(binaryExpr.E0, wr, false, wStmts);
         wr.WriteLine(";");
         binaryExpr = (BinaryExpr)binaryExpr.E1;
         break;
@@ -282,7 +283,7 @@ public class CsharpSynthesizer {
         throw new NotImplementedException();
     }
     wr.WriteLine("});");
-    SynthesizeExpression(wr, binaryExpr);
+    SynthesizeExpression(wr, binaryExpr, wStmts);
   }
 
   /// <summary>
