@@ -1140,6 +1140,13 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 /Main:<name>
     The (fully-qualified) name of the method to use as the executable entry point.
     Default is the method with the {{:main}} attribute, or else the method named 'Main'.
+/runAllTests:<n> (experimental)
+    0 (default) - Annotates compiled methods with the {{:test}} attribute
+        such that they can be tested using a testing framework
+        in the target language (e.g. xUnit for C#).
+    1 - Emits a main method in the target language that will execute every method
+        in the program with the {{:test}} attribute.
+        Cannot be used if the program already contains a main method.
 /compileVerbose:<n>
     0 - don't print status of compilation to the console
     1 (default) - print information such as files being written by
