@@ -19,7 +19,7 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
   public async Task ResolutionDiagnosticsContainPreviousVerificationResultsWhenCodeIsInsertedAfter() {
     var documentItem = CreateTestDocument(FastToFailVerification);
     client.OpenDocument(documentItem);
-    var verificationDiagnostics = await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
+    var verificationDiagnostics = await GetLastVerificationDiagnostics(documentItem, CancellationToken);
     Assert.AreEqual(1, verificationDiagnostics.Length);
     ApplyChange(ref documentItem, new Range(0, 47, 0, 47), "\n\n" + NeverVerifies);
     var resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
@@ -30,7 +30,7 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
   public async Task ResolutionDiagnosticsContainPreviousVerificationResultsWhenCodeIsInsertedBefore() {
     var documentItem = CreateTestDocument(FastToFailVerification);
     client.OpenDocument(documentItem);
-    var verificationDiagnostics = await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
+    var verificationDiagnostics = await GetLastVerificationDiagnostics(documentItem, CancellationToken);
     Assert.AreEqual(1, verificationDiagnostics.Length);
     ApplyChange(ref documentItem, new Range(0, 0, 0, 0), NeverVerifies + "\n\n");
     var resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
@@ -45,7 +45,7 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
   public async Task ResolutionDiagnosticsAreRemovedWhenRangeIsDeleted() {
     var documentItem = CreateTestDocument(FastToFailVerification + "\n" + FastToPassVerification);
     client.OpenDocument(documentItem);
-    var verificationDiagnostics = await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
+    var verificationDiagnostics = await GetLastVerificationDiagnostics(documentItem, CancellationToken);
     Assert.AreEqual(1, verificationDiagnostics.Length);
     ApplyChange(ref documentItem, new Range(0, 0, 1, 0), "");
     var resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
@@ -61,7 +61,7 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
     return;
   }");
     client.OpenDocument(documentItem);
-    var verificationDiagnostics = await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
+    var verificationDiagnostics = await GetLastVerificationDiagnostics(documentItem, CancellationToken);
     Assert.AreEqual(1, verificationDiagnostics.Length);
 
     client.DidChangeTextDocument(new DidChangeTextDocumentParams {
@@ -108,7 +108,7 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
     return;
   }");
     client.OpenDocument(documentItem);
-    var verificationDiagnostics = await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
+    var verificationDiagnostics = await GetLastVerificationDiagnostics(documentItem, CancellationToken);
     Assert.AreEqual(1, verificationDiagnostics.Length);
 
     ApplyChange(ref documentItem, new Range(0, 7, 0, 7), "{:slow}");
@@ -130,11 +130,11 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
     return;
   }");
     client.OpenDocument(documentItem);
-    var verificationDiagnostics1 = await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
+    var verificationDiagnostics1 = await GetLastVerificationDiagnostics(documentItem, CancellationToken);
     Assert.AreEqual(1, verificationDiagnostics1.Length);
 
     ApplyChange(ref documentItem, new Range(3, 9, 3, 10), "3");
-    var verificationDiagnostics2 = await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
+    var verificationDiagnostics2 = await GetLastVerificationDiagnostics(documentItem, CancellationToken);
 
     Assert.AreEqual(verificationDiagnostics1.Length, verificationDiagnostics2.Length);
     Assert.AreEqual(verificationDiagnostics1[0], verificationDiagnostics2[0]);

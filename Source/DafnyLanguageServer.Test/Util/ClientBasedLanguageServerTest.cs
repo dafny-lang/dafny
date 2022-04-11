@@ -20,6 +20,17 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
   protected ILanguageClient client;
   protected DiagnosticsReceiver diagnosticReceiver;
 
+  public async Task<Diagnostic[]> GetLastVerificationDiagnostics(TextDocumentItem documentItem, CancellationToken cancellationToken = default) {
+    await client.WaitForNotificationCompletionAsync(documentItem.Uri, cancellationToken);
+    var document = await Documents.GetVerifiedDocumentAsync(documentItem);
+    Diagnostic[] result = Array.Empty<Diagnostic>();
+    while(!document!.Diagnostics.SequenceEqual(result)) {
+      result = await diagnosticReceiver.AwaitNextDiagnosticsAsync(cancellationToken);
+    }
+
+    return result;
+  }
+
   [TestInitialize]
   public virtual async Task SetUp() {
 

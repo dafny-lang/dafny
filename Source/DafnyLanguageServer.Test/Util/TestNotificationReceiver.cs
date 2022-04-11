@@ -10,11 +10,23 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util {
   public class TestNotificationReceiver<TNotification> {
     private readonly SemaphoreSlim availableNotifications = new(0);
     private readonly ConcurrentQueue<TNotification> notifications = new();
+    private TNotification lastNotification;
 
     public void NotificationReceived(TNotification request) {
+      lastNotification = request;
       notifications.Enqueue(request);
       availableNotifications.Release();
     }
+
+    public async Task<TNotification> GetLastNotification(CancellationToken cancellationToken) {
+        if (lastNotification != null) {
+          return lastNotification;
+        }
+
+        await AwaitNextNotificationAsync(cancellationToken);
+        return lastNotification;
+    }
+
 
     public async Task<TNotification> AwaitNextNotificationAsync(CancellationToken cancellationToken) {
       await availableNotifications.WaitAsync(cancellationToken);
