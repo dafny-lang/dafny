@@ -3251,6 +3251,10 @@ namespace Microsoft.Dafny {
       return flags.ReportRanges ? expression.RangeToken : expression.tok;
     }
 
+    internal IToken GetToken(Statement stmt) {
+      return flags.ReportRanges ? stmt.RangeToken : stmt.Tok;
+    }
+
     void CheckDefiniteAssignment(IdentifierExpr expr, BoogieStmtListBuilder builder) {
       Contract.Requires(expr != null);
       Contract.Requires(builder != null);
@@ -4344,7 +4348,7 @@ namespace Microsoft.Dafny {
         }
       }
       if (witnessExpr != null) {
-        var witnessCheckTok = decl.Witness != null ? decl.Witness.tok : decl.tok;
+        var witnessCheckTok = decl.Witness != null ? GetToken(decl.Witness) : decl.tok;
         witnessCheckBuilder.Add(new Bpl.AssumeCmd(witnessCheckTok, CanCallAssumption(witnessExpr, etran)));
         var witnessCheck = etran.TrExpr(witnessExpr);
 
@@ -5739,7 +5743,7 @@ namespace Microsoft.Dafny {
             string errorMessage = CustomErrorMessage(p.Attributes);
             foreach (var ss in TrSplitExpr(precond, etran, true, out splitHappened)) {
               if (ss.IsChecked) {
-                var tok = new NestedToken(expr.tok, ss.E.tok);
+                var tok = new NestedToken(GetToken(expr), ss.E.tok);
                 var desc = new PODesc.PreconditionSatisfied(errorMessage);
                 if (options.AssertKv != null) {
                   // use the given assert attribute only
@@ -11028,7 +11032,7 @@ namespace Microsoft.Dafny {
         if (position && e.Frame.Count > 1) {
           // split into a number of UnchangeExpr's, one for each FrameExpression
           foreach (var fe in e.Frame) {
-            var tok = new NestedToken(e.tok, fe.tok);
+            var tok = new NestedToken(GetToken(e), fe.tok);
             Expression ee = new UnchangedExpr(tok, new List<FrameExpression> { fe }, e.At) { AtLabel = e.AtLabel };
             ee.Type = Type.Bool;  // resolve here
             TrSplitExpr(ee, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
@@ -11422,7 +11426,7 @@ namespace Microsoft.Dafny {
                 var bodyOrConjunct = Bpl.Expr.Or(fargs, unboxedConjunct);
                 var tok = needsTokenAdjust
                   ? (IToken)new ForceCheckToken(typeSpecializedBody.tok)
-                  : (IToken)new NestedToken(fexp.tok, s.E.tok);
+                  : (IToken)new NestedToken(GetToken(fexp), s.E.tok);
                 var p = Bpl.Expr.Binary(tok, BinaryOperator.Opcode.Imp, canCall, bodyOrConjunct);
                 splits.Add(new SplitExprInfo(SplitExprInfo.K.Checked, p));
               }

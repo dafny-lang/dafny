@@ -6988,6 +6988,16 @@ namespace Microsoft.Dafny {
         }
       }
     }
+
+    [FilledInDuringResolution] private IToken rangeToken;
+    public virtual IToken RangeToken {
+      get {
+        if (rangeToken == null) {
+          rangeToken = new RangeToken(Tok, EndTok);
+        }
+        return rangeToken;
+      }
+    }
   }
 
   public class LList<T> {

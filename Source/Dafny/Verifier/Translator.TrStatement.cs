@@ -1640,7 +1640,7 @@ namespace Microsoft.Dafny {
         builder.Add(Bpl.Cmd.SimpleAssign(s.Tok, initHeap, etran.HeapExpr));
       }
       builder.Add(new CommentCmd("TrCallStmt: Before ProcessCallStmt"));
-      ProcessCallStmt(s.Tok, tySubst, GetTypeParams(s.Method), s.Receiver, actualReceiver, s.Method, s.MethodSelect.AtLabel, s.Args, bLhss, lhsTypes, builder, locals, etran);
+      ProcessCallStmt(GetToken(s), tySubst, GetTypeParams(s.Method), s.Receiver, actualReceiver, s.Method, s.MethodSelect.AtLabel, s.Args, bLhss, lhsTypes, builder, locals, etran);
       builder.Add(new CommentCmd("TrCallStmt: After ProcessCallStmt"));
       for (int i = 0; i < lhsBuilders.Count; i++) {
         var lhs = s.Lhs[i];
