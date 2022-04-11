@@ -15603,16 +15603,23 @@ namespace Microsoft.Dafny {
       candidateResultCtors.Reverse();
       foreach (var crc in candidateResultCtors) {
         // Build the arguments to the datatype constructor, using the updated value in the appropriate slot
-        var ctor_args = new List<Expression>();
+        var ctorArguments = new List<Expression>();
+        var actualBindings = new List<ActualBinding>();
         foreach (var f in crc.Formals) {
-          Tuple<BoundVar/*let variable*/, IdentifierExpr/*id expr for let variable*/, Expression /*RHS in given syntax*/> info;
-          if (rhsBindings.TryGetValue(f.Name, out info)) {
-            ctor_args.Add(info.Item2 ?? info.Item3);
+          Expression ctorArg;
+          if (rhsBindings.TryGetValue(f.Name, out var info)) {
+            ctorArg = info.Item2 ?? info.Item3;
           } else {
-            ctor_args.Add(new ExprDotName(tok, d, f.Name, null));
+            ctorArg = new ExprDotName(tok, d, f.Name, null);
           }
+          ctorArguments.Add(ctorArg);
+          var bindingName = new Token(tok.line, tok.col) {
+            filename = tok.filename,
+            val = f.Name
+          };
+          actualBindings.Add(new ActualBinding(bindingName, ctorArg));
         }
-        var ctor_call = new DatatypeValue(tok, crc.EnclosingDatatype.Name, crc.Name, ctor_args.ConvertAll(e => new ActualBinding(null, e)));
+        var ctor_call = new DatatypeValue(tok, crc.EnclosingDatatype.Name, crc.Name, actualBindings);
         ResolveDatatypeValue(opts, ctor_call, dt, root.Type.NormalizeExpand());  // resolve to root.Type, so that type parameters get filled in appropriately
         if (body == null) {
           body = ctor_call;
@@ -17736,6 +17743,26 @@ namespace Microsoft.Dafny {
           case BinaryExpr.ResolvedOpcode.NeqCommon:  // A != B         yield polarity ? (A != B) : (A == B);
             newOp = polarity ? BinaryExpr.Opcode.Neq : BinaryExpr.Opcode.Eq;
             newROp = polarity ? BinaryExpr.ResolvedOpcode.NeqCommon : BinaryExpr.ResolvedOpcode.EqCommon;
+            swapOperands = false;
+            break;
+          case BinaryExpr.ResolvedOpcode.NotInSet:  // A !in B         yield polarity ? (A !in B) : (A in B);
+            newOp = polarity ? BinaryExpr.Opcode.NotIn : BinaryExpr.Opcode.In;
+            newROp = polarity ? BinaryExpr.ResolvedOpcode.NotInSet : BinaryExpr.ResolvedOpcode.InSet;
+            swapOperands = false;
+            break;
+          case BinaryExpr.ResolvedOpcode.NotInSeq:  // A !in B         yield polarity ? (A !in B) : (A in B);
+            newOp = polarity ? BinaryExpr.Opcode.NotIn : BinaryExpr.Opcode.In;
+            newROp = polarity ? BinaryExpr.ResolvedOpcode.NotInSeq : BinaryExpr.ResolvedOpcode.InSeq;
+            swapOperands = false;
+            break;
+          case BinaryExpr.ResolvedOpcode.NotInMultiSet:  // A !in B         yield polarity ? (A !in B) : (A in B);
+            newOp = polarity ? BinaryExpr.Opcode.NotIn : BinaryExpr.Opcode.In;
+            newROp = polarity ? BinaryExpr.ResolvedOpcode.NotInMultiSet : BinaryExpr.ResolvedOpcode.InMultiSet;
+            swapOperands = false;
+            break;
+          case BinaryExpr.ResolvedOpcode.NotInMap:  // A !in B         yield polarity ? (A !in B) : (A in B);
+            newOp = polarity ? BinaryExpr.Opcode.NotIn : BinaryExpr.Opcode.In;
+            newROp = polarity ? BinaryExpr.ResolvedOpcode.NotInMap : BinaryExpr.ResolvedOpcode.InMap;
             swapOperands = false;
             break;
           default:
