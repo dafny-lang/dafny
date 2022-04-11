@@ -534,9 +534,9 @@ Remember that options can be stated with either a leading `/` or a leading `-`.
 
 ### 24.10.2. Controlling errors and exit codes
 
-* `-countVerificationErrors:<n>` - if 0 then always exit with a 0 exit code; if 1 (the default) then use the usual exit code
+* `-countVerificationErrors:<n>` - if 0 then always exit with a 0 exit code, regardless of whether errors are found.  If 1 (the default) then use the usual exit code.  This option is deprecated.
 
-TO BE WRITTEN
+* `-warningsAsErrors` - treat warnings as errors
 
 ### 24.10.3. Controlling output {#sec-controlling-output}
 

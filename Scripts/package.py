@@ -12,6 +12,7 @@ import sys
 import time
 from urllib import request
 from http.client import IncompleteRead
+from urllib.error import HTTPError
 import zipfile
 import shutil
 import ntpath
@@ -116,10 +117,10 @@ class Release:
                             writer.write(reader.read())
                     flush("done!")
                     break
-                except IncompleteRead as e:
+                except (IncompleteRead, HTTPError):
                     if currentAttempt == Z3_MAX_DOWNLOAD_ATTEMPTS - 1:
                         raise
-            
+
 
     @staticmethod
     def zipify_path(fpath):
@@ -146,7 +147,8 @@ class Release:
                     flush("failed! (Is Dafny or the Dafny server running?)")
                     sys.exit(1)
                 else:
-                   flush("failed! (Retrying another %s)" % ("time" if remaining == 1 else "%i times" % remaining))
+                    flush("failed! (Retrying another %s)" %
+                        ("time" if remaining == 1 else f"{remaining} times"))
         flush("done!")
 
     def build(self):
