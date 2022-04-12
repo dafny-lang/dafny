@@ -1,4 +1,6 @@
-﻿using System.Text;
+﻿#nullable enable
+
+using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Build.Locator;
 using Microsoft.CodeAnalysis;
@@ -160,16 +162,19 @@ class TypeDecl : PrettyPrintable {
     this.model = model;
   }
 
+  public Name IntfName => Name.OfSyntax(syntax, model);
+
   private bool IsInterface => syntax.Keyword.ToString() == "interface";
 
   private IEnumerable<PrettyPrintable> Fields =>
     syntax.ChildNodes().OfType<FieldDeclarationSyntax>().Select(s => new Field(s, model));
 
   private IEnumerable<PrettyPrintable> Properties =>
-    syntax.ChildNodes().OfType<PropertyDeclarationSyntax>().Select(s => new Property(s, model, IsInterface));
+    syntax.ChildNodes().OfType<PropertyDeclarationSyntax>().Select(s =>
+      new Property(s, model, IsInterface ? this : null));
 
   public override void Pp(TextWriter wr, string indent) {
-    PpBlockOpen(wr, indent, "trait", Name.OfSyntax(syntax, model),
+    PpBlockOpen(wr, indent, "trait", IntfName,
       syntax.TypeParameterList?.Parameters.Select(s => new Name(s.Identifier).DafnyId),
       new Dictionary<string, string?> { { "compile", "false" } },
       syntax.BaseList?.Types.Select(t => new Type(t.Type, model)));
@@ -243,40 +248,33 @@ class Property : PrettyPrintable {
   private readonly PropertyDeclarationSyntax syntax;
   private readonly SemanticModel model;
   private readonly Type type;
-  private readonly bool parentIsInterface;
+  private readonly TypeDecl? parentInterface;
 
   protected override string ChildSeparator => "";
   protected override string ChildIndent => "";
 
-
-  public Property(PropertyDeclarationSyntax syntax, SemanticModel model, bool parentIsInterface) {
+  public Property(PropertyDeclarationSyntax syntax, SemanticModel model, TypeDecl? parentInterface) {
     this.syntax = syntax;
     this.model = model;
-    this.parentIsInterface = parentIsInterface;
+    this.parentInterface = parentInterface;
     this.type = new Type(syntax.Type, model);
   }
 
   private bool ExistsInAncestor(ITypeSymbol typeSymbol) {
     var baseType = typeSymbol?.BaseType;
-
-    if (baseType is null) {
-      return false;
-    }
-
-    var baseMembers = baseType.GetMembers(syntax.Identifier.Text);
-
-    return baseMembers.Length > 0 || ExistsInAncestor(baseType);
+    return baseType != null &&
+      (baseType.GetMembers(syntax.Identifier.Text).Length > 0 ||
+       ExistsInAncestor(baseType));
   }
 
   public override void Pp(TextWriter wr, string indent) {
-    var nameText = syntax.Identifier.Text;
     var name = new Name(syntax.Identifier);
     var symbol = model.GetSymbol(syntax);
     var comment = " // property";
     var prefix = "";
 
-    if (parentIsInterface) {
-      name = new Name(nameText, "Interface_" + nameText);
+    if (parentInterface != null) {
+      name = new Name(name.CSharpID, $"{parentInterface.IntfName.CSharpID}_{name.CSharpID}");
       comment = " // interface property";
     } else if (symbol is not null && ExistsInAncestor(symbol.ContainingType)) {
       prefix = "// ";
