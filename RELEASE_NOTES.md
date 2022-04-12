@@ -12,6 +12,8 @@
 - feat: Recognize `!in` operator when looking for compilable comprehensions (https://github.com/dafny-lang/dafny/pull/1939)
 - feat: The dafny language server now returns expressions ranges instead of token ranges to better report errors (https://github.com/dafny-lang/dafny/pull/1985)
 - fix: Comprehensions with nested subset types fully supported, subtype is correctly checked (https://github.com/dafny-lang/dafny/pull/1997)
+- fix: Fix induction hypothesis generated for lemmas with a receiver parameter (https://github.com/dafny-lang/dafny/pull/2002)
+
 
 # 3.5.0
 
@@ -26,6 +28,7 @@
 - fix: Plug two memory leaks in Dafny's verification server (#1858, #1863)
 - fix: Generate missing termination measures for subset types on sequences (#1875)
 - fix: Resolve expressions in attributes in all specifications of functions and iterators. (https://github.com/dafny-lang/dafny/pull/1900)
+
 
 # 3.4.2
 
