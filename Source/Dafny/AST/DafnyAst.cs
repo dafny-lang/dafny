@@ -6938,6 +6938,16 @@ namespace Microsoft.Dafny {
         }
       }
     }
+
+    [FilledInDuringResolution] private IToken rangeToken;
+    public virtual IToken RangeToken {
+      get {
+        if (rangeToken == null) {
+          rangeToken = new RangeToken(Tok, EndTok);
+        }
+        return rangeToken;
+      }
+    }
   }
 
   public class LList<T> {
@@ -8896,6 +8906,25 @@ namespace Microsoft.Dafny {
     }
   }
 
+  public class RangeToken : TokenWrapper {
+    // The wrapped token is the startTok
+    private IToken endTok;
+
+    public IToken StartToken => WrappedToken;
+    public IToken EndToken => endTok;
+
+    // Used for range reporting
+    override public string val {
+      get {
+        return new string(' ', endTok.pos + endTok.val.Length - pos);
+      }
+    }
+
+    public RangeToken(IToken startTok, IToken endTok) : base(startTok) {
+      this.endTok = endTok;
+    }
+  }
+
   public class NestedToken : TokenWrapper {
     public NestedToken(IToken outer, IToken inner, string message = null)
       : base(outer) {
@@ -9008,6 +9037,38 @@ namespace Microsoft.Dafny {
     public virtual IEnumerable<Expression> SubExpressions {
       get { yield break; }
     }
+
+    private RangeToken rangeToken;
+
+    /// Creates a token on the entire range of the expression.
+    /// Used only for error reporting.
+    public RangeToken RangeToken {
+      get {
+        if (rangeToken == null) {
+          var startTok = tok;
+          var endTok = tok;
+          foreach (var e in SubExpressions) {
+            if (e.tok.filename != tok.filename || e.IsImplicit) {
+              // Ignore auto-generated expressions, if any.
+              continue;
+            }
+
+            if (e.StartToken.pos < startTok.pos) {
+              startTok = e.StartToken;
+            } else if (e.EndToken.pos > endTok.pos) {
+              endTok = e.EndToken;
+            }
+          }
+
+          rangeToken = new RangeToken(startTok, endTok);
+        }
+
+        return rangeToken;
+      }
+    }
+
+    public IToken StartToken => RangeToken.StartToken;
+    public IToken EndToken => RangeToken.EndToken;
 
     /// <summary>
     /// Returns the list of types that appear in this expression proper (that is, not including types that
