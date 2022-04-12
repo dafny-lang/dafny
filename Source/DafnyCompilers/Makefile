@@ -29,6 +29,7 @@ CSharp/Compiler.cs: CSharp/Compiler.dfy $(dfy_models) $(dfy_interop) $(DafnyRunt
 	dotnet run --project $(DafnyDriver).csproj -- \
 		/spillTargetCode:3 /compile:0 /noVerify $<
 	sed -i.bak -e 's/__AUTOGEN__//g' "$@"
+	rm "$@.bak" # https://stackoverflow.com/questions/4247068/
 
 # Compile the resulting C# code
 $(CompilerDLL): CSharp/Compiler.cs $(cs_interop)
