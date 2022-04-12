@@ -4958,16 +4958,15 @@ namespace Microsoft.Dafny.Compilers {
         );
         var constraintInContext = subContract.Substitute(constraint);
         var wStmts = wr.Fork();
-        var thenWriter = EmitIf(out var guardWriter, isReturning, wr);
+        var thenWriter = EmitIf(out var guardWriter, hasElse: isReturning, wr);
         TrExpr(constraintInContext, guardWriter, inLetExprBody, wStmts);
         if (isReturning) {
-          // What we put in the else branch
-          wr = wr.NewBlock("", null, BlockStyle.Brace);
-          wr = EmitReturnExpr(wr);
-          wStmts = wr.Fork();
-          TrExpr(new LiteralExpr(tok, elseReturnValue), wr, inLetExprBody, wStmts);
+          var elseBranch = wr;
+          elseBranch = elseBranch.NewBlock("", null, BlockStyle.Brace);
+          elseBranch = EmitReturnExpr(elseBranch);
+          wStmts = elseBranch.Fork();
+          TrExpr(new LiteralExpr(tok, elseReturnValue), elseBranch, inLetExprBody, wStmts);
         }
-        // We continue on the then branch
         wr = thenWriter;
       }
 
