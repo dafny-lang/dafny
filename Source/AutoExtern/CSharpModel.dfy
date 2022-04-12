@@ -2,10 +2,11 @@ module {:compile false} {:extern "System"} System {
   trait {:compile false} {:termination false} {:extern} IComparable {}
   trait {:compile false} {:termination false} {:extern} Attribute {}
 
-  newtype {:compile false} {:extern} {:nativeType "int"} Int32 =
+  newtype {:compile false} {:extern} {:nativeType "int"} int32 =
     x: int | -0x8000_0000 <= x < 0x8000_0000
 
   class {:compile false} {:extern} Func<TArg, TRet>{}
+  class {:compile false} {:extern} Int32 {}
   class {:compile false} {:extern} String {}
   class {:compile false} {:extern} Boolean {}
   class {:compile false} {:extern} Nullable {}

@@ -321,9 +321,9 @@ internal class Type {
   public override string ToString() {
     return syntax switch {
       PredefinedTypeSyntax { Keyword: { Text : var text } } => text switch {
-        "int"    => "System.Int32",
+        "int"    => "System.int32", // Native int32 (a value type), not System.Int32 (an object)
         "string" => "System.String",
-        "bool"   => "System.Boolean",
+        "bool"   => "bool", // Native bool (a value type), not System.Boolean (an object)
         _        => text
       },
       ArrayTypeSyntax s =>
