@@ -2,6 +2,7 @@ include "../CSharpDafnyASTModel.dfy"
 include "../CSharpInterop.dfy"
 include "../CSharpDafnyInterop.dfy"
 include "../Library.dfy"
+include "../StrTree.dfy"
 
 module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
   import System
@@ -9,6 +10,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
   import opened CSharpInterop
   import opened CSharpDafnyInterop
   import opened Microsoft.Dafny
+  import StrTree
 
   module AST {
     import Lib.Math
@@ -435,69 +437,6 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
     }
   }
 
-  module Target {
-    import opened Lib.Datatypes
-
-    datatype StrTree =
-      | Str(s: string)
-      | SepSeq(sep: Option<string>, asts: seq<StrTree>)
-      | Unsupported
-
-    function method Seq(asts: seq<StrTree>) : StrTree {
-      SepSeq(None, asts)
-    }
-
-    function method Concat(sep: string, asts: seq<StrTree>) : StrTree {
-      SepSeq(Some(sep), asts)
-    }
-
-    function method Call(fn: StrTree, args: seq<StrTree>) : StrTree {
-      Seq([fn, Str("("), Concat(", ", args), Str(")")])
-    }
-
-    function method SingleQuote(s: StrTree): StrTree {
-      Seq([Str("'"), s, Str("'")])
-    }
-
-    function method DoubleQuote(s: StrTree): StrTree {
-      Seq([Str("\""), s, Str("\"")])
-    }
-
-    function method interleave<T>(t0: seq<T>, t1: seq<T>, pos: int) : seq<T>
-      requires 0 <= pos
-      requires pos <= |t0| && pos <= |t1|
-      decreases |t0| - pos
-    {
-      if pos >= |t1| then t0[pos..]
-      else if pos >= |t0| then t1[pos..]
-      else [t0[pos], t1[pos]] + interleave(t0, t1, pos + 1)
-    }
-
-
-    function method splitFormat'(formatString: string, prev: int, pos: int) : (parts: seq<StrTree>)
-      requires 0 <= prev <= pos <= |formatString|
-      ensures |parts| > 0
-      decreases |formatString| - pos
-    {
-      if pos >= |formatString| - 1 then
-        [Str(formatString[prev..])]
-      else if formatString[pos] == '{' && formatString[pos + 1] == '}' then
-        [Str(formatString[prev..pos])] + splitFormat'(formatString, pos + 2, pos + 2)
-      else
-        splitFormat'(formatString, prev, pos + 1)
-    }
-
-    function method splitFormat(formatString: string) : seq<StrTree> {
-      splitFormat'(formatString, 0, 0)
-    }
-
-    function method Format(s: string, values: seq<StrTree>): StrTree
-      requires |splitFormat(s)| == |values| + 1
-    {
-      Seq(interleave(splitFormat(s), values, 0))
-    }
-  }
-
   module Predicates {
     function IsMap<T(!new), T'>(f: T --> T') : T' -> bool {
       y => exists x | f.requires(x) :: y == f(x)
@@ -621,7 +560,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
   module Rewriter {
     import Lib
     import opened AST
-    import opened Target
+    import opened StrTree
     import opened Lib.Datatypes
     import opened CSharpInterop
 
@@ -955,7 +894,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
     import Translator
     import opened AST
     import opened AST.Type
-    import opened Target
+    import opened StrTree_ = StrTree
     import opened Lib.Datatypes
     import opened CSharpInterop
     import opened CSharpDafnyInterop
@@ -1022,7 +961,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
     function method CompileBinaryExpr(op: BinaryOp.Op, c0: StrTree, c1: StrTree) : StrTree
       requires !Simplifier.IsNegatedBinop(op)
     {
-      var fmt := str requires |splitFormat(str)| == 3 =>
+      var fmt := str requires countFormat(str) == 2 =>
         Format(str, [c0, c1]); // Cute use of function precondition
       var bin := str =>
         Format("{} {} {}", [c0, Str(str), c1]);
@@ -1100,7 +1039,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
       decreases e, 1
       requires All_Expr(e, Simplifier.NotANegatedBinopExpr)
     {
-      Target.Seq([Call(Str("DafnyRuntime.Helpers.Print"), [CompileExpr(e)]), Str(";")])
+      StrTree_.Seq([Call(Str("DafnyRuntime.Helpers.Print"), [CompileExpr(e)]), Str(";")])
     }
 
     function method CompileExpr(e: Expr.t) : StrTree
@@ -1174,7 +1113,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
     }
   }
 
-  method WriteAST(wr: CSharpDafnyInterop.SyntaxTreeAdapter, ast: Target.StrTree) {
+  method WriteAST(wr: CSharpDafnyInterop.SyntaxTreeAdapter, ast: StrTree.StrTree) {
     match ast {
       case Str(s) =>
         wr.Write(s);
