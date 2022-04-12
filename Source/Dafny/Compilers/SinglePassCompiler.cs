@@ -1180,7 +1180,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected virtual Type EmitIntegerRange(Type type, out ConcreteSyntaxTree wLo, out ConcreteSyntaxTree wHi, ConcreteSyntaxTree wr) {
       Type result;
-      if (type.AsNativeType() != null) {
+      if (AsNativeType(type) != null) {
         wr.Write("{0}.IntegerRange(", IdProtect(type.AsNewtype.FullCompileName));
         result = type;
       } else {
@@ -2648,6 +2648,16 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     // ----- Type ---------------------------------------------------------------------------------
+
+    protected NativeType AsNativeType(Type typ) {
+      Contract.Requires(typ != null);
+      if (typ.AsNewtype != null) {
+        return typ.AsNewtype.NativeType;
+      } else if (typ.IsBitVectorType) {
+        return typ.AsBitVectorType.NativeType;
+      }
+      return null;
+    }
 
     /// <summary>
     /// Note, C# reverses the order of brackets in array type names.
@@ -4576,7 +4586,7 @@ namespace Microsoft.Dafny.Compilers {
           var e0 = reverseArguments ? e.E1 : e.E0;
           var e1 = reverseArguments ? e.E0 : e.E1;
           if (opString != null) {
-            var nativeType = e.Type.AsNativeType();
+            var nativeType = AsNativeType(e.Type);
             string nativeName = null, literalSuffix = null;
             bool needsCast = false;
             if (nativeType != null) {
@@ -4725,7 +4735,7 @@ namespace Microsoft.Dafny.Compilers {
           wBody.Write("{0}(", GetQuantifierName(TypeName(collectionElementType, wBody, bv.tok)));
           wBody.Append(collection);
           wBody.Write(", {0}, ", expr is ForallExpr ? "true" : "false");
-          var native = e.BoundVars[i].Type.AsNativeType();
+          var native = AsNativeType(e.BoundVars[i].Type);
           var tmpVarName = idGenerator.FreshId(e is ForallExpr ? "_forall_var_" : "_exists_var_");
           ConcreteSyntaxTree newWBody = CreateLambda(new List<Type> { collectionElementType }, e.tok, new List<string> { tmpVarName }, Type.Bool, wBody, untyped: true);
           newWBody = MaybeInjectSubtypeConstraint(

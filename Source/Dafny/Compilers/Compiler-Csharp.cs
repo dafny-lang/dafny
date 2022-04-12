@@ -1579,7 +1579,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (type is BitvectorType) {
         var t = (BitvectorType)type;
         if (t.NativeType != null) {
-          return GetNativeTypeDescriptor(type.AsNativeType());
+          return GetNativeTypeDescriptor(AsNativeType(type));
         } else {
           return "Dafny.Helpers.INT";
         }
@@ -2022,10 +2022,10 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write("'{0}'", (string)e.Value);
       } else if (e is StringLiteralExpr str) {
         wr.Format($"{DafnySeqClass}<char>.FromString({StringLiteral(str)})");
-      } else if (e.Type.AsNativeType() != null) {
+      } else if (AsNativeType(e.Type) != null) {
         string nativeName = null, literalSuffix = null;
         bool needsCastAfterArithmetic = false;
-        GetNativeInfo(e.Type.AsNativeType().Sel, out nativeName, out literalSuffix, out needsCastAfterArithmetic);
+        GetNativeInfo(AsNativeType(e.Type).Sel, out nativeName, out literalSuffix, out needsCastAfterArithmetic);
         wr.Write((BigInteger)e.Value + literalSuffix);
       } else if (e.Value is BigInteger bigInteger) {
         EmitIntegerLiteral(bigInteger, wr);
@@ -2108,7 +2108,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitRotate(Expression e0, Expression e1, bool isRotateLeft, ConcreteSyntaxTree wr, bool inLetExprBody, FCE_Arg_Translator tr) {
       string nativeName = null, literalSuffix = null;
       bool needsCast = false;
-      var nativeType = e0.Type.AsNativeType();
+      var nativeType = AsNativeType(e0.Type);
       if (nativeType != null) {
         GetNativeInfo(nativeType.Sel, out nativeName, out literalSuffix, out needsCast);
       }
@@ -2140,12 +2140,12 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override bool CompareZeroUsingSign(Type type) {
-      return type.AsNativeType() == null;
+      return AsNativeType(type) == null;
     }
 
     protected override ConcreteSyntaxTree EmitSign(Type type, ConcreteSyntaxTree wr) {
       // Should only be called when CompareZeroUsingSign is true
-      Contract.Assert(type.AsNativeType() == null);
+      Contract.Assert(AsNativeType(type) == null);
 
       ConcreteSyntaxTree w = wr.Fork();
       wr.Write(".Sign");
@@ -2842,16 +2842,16 @@ namespace Microsoft.Dafny.Compilers {
         case BinaryExpr.ResolvedOpcode.Mul:
           opString = "*"; truncateResult = true; break;
         case BinaryExpr.ResolvedOpcode.Div:
-          if (resultType.IsIntegerType || (resultType.AsNativeType() != null && resultType.AsNativeType().LowerBound < BigInteger.Zero)) {
-            var suffix = resultType.AsNativeType() != null ? "_" + GetNativeTypeName(resultType.AsNativeType()) : "";
+          if (resultType.IsIntegerType || (AsNativeType(resultType) != null && AsNativeType(resultType).LowerBound < BigInteger.Zero)) {
+            var suffix = AsNativeType(resultType) != null ? "_" + GetNativeTypeName(AsNativeType(resultType)) : "";
             staticCallString = $"{DafnyHelpersClass}.EuclideanDivision{suffix}";
           } else {
             opString = "/";  // for reals
           }
           break;
         case BinaryExpr.ResolvedOpcode.Mod:
-          if (resultType.IsIntegerType || (resultType.AsNativeType() != null && resultType.AsNativeType().LowerBound < BigInteger.Zero)) {
-            var suffix = resultType.AsNativeType() != null ? "_" + GetNativeTypeName(resultType.AsNativeType()) : "";
+          if (resultType.IsIntegerType || (AsNativeType(resultType) != null && AsNativeType(resultType).LowerBound < BigInteger.Zero)) {
+            var suffix = AsNativeType(resultType) != null ? "_" + GetNativeTypeName(AsNativeType(resultType)) : "";
             staticCallString = $"{DafnyHelpersClass}.EuclideanModulus{suffix}";
           } else {
             opString = "%";  // for reals
@@ -2919,9 +2919,9 @@ namespace Microsoft.Dafny.Compilers {
       if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Int) || e.E.Type.IsBitVectorType || e.E.Type.IsCharType) {
         if (e.ToType.IsNumericBased(Type.NumericPersuasion.Real)) {
           // (int or bv or char) -> real
-          Contract.Assert(e.ToType.AsNativeType() == null);
+          Contract.Assert(AsNativeType(e.ToType) == null);
           wr.Write("new Dafny.BigRational(");
-          if (e.E.Type.AsNativeType() != null) {
+          if (AsNativeType(e.E.Type) != null) {
             wr.Write("new BigInteger");
           }
           TrParenExpr(e.E, wr, inLetExprBody, wStmts);
@@ -2930,8 +2930,8 @@ namespace Microsoft.Dafny.Compilers {
           wr.Format($"(char)({Expr(e.E, inLetExprBody, wStmts)})");
         } else {
           // (int or bv or char) -> (int or bv or ORDINAL)
-          var fromNative = e.E.Type.AsNativeType();
-          var toNative = e.ToType.AsNativeType();
+          var fromNative = AsNativeType(e.E.Type);
+          var toNative = AsNativeType(e.ToType);
           if (fromNative == null && toNative == null) {
             if (e.E.Type.IsCharType) {
               // char -> big-integer (int or bv or ORDINAL)
@@ -2981,17 +2981,17 @@ namespace Microsoft.Dafny.Compilers {
           }
         }
       } else if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
-        Contract.Assert(e.E.Type.AsNativeType() == null);
+        Contract.Assert(AsNativeType(e.E.Type) == null);
         if (e.ToType.IsNumericBased(Type.NumericPersuasion.Real)) {
           // real -> real
-          Contract.Assert(e.ToType.AsNativeType() == null);
+          Contract.Assert(AsNativeType(e.ToType) == null);
           TrExpr(e.E, wr, inLetExprBody, wStmts);
         } else {
           // real -> (int or bv or char or ordinal)
           if (e.ToType.IsCharType) {
             wr.Write("(char)");
-          } else if (e.ToType.AsNativeType() != null) {
-            wr.Write("({0})", GetNativeTypeName(e.ToType.AsNativeType()));
+          } else if (AsNativeType(e.ToType) != null) {
+            wr.Write("({0})", GetNativeTypeName(AsNativeType(e.ToType)));
           }
           TrParenExpr(e.E, wr, inLetExprBody, wStmts);
           wr.Write(".ToBigInteger()");
@@ -3004,7 +3004,7 @@ namespace Microsoft.Dafny.Compilers {
           TrParenExpr(e.E, wr, inLetExprBody, wStmts);
         } else if (e.ToType.IsNumericBased(Type.NumericPersuasion.Real)) {
           wr.Write("new Dafny.BigRational(");
-          if (e.E.Type.AsNativeType() != null) {
+          if (AsNativeType(e.E.Type) != null) {
             wr.Write("new BigInteger");
             TrParenExpr(e.E, wr, inLetExprBody, wStmts);
             wr.Write(", BigInteger.One)");

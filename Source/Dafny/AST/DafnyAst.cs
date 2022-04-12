@@ -2314,16 +2314,6 @@ namespace Microsoft.Dafny {
       }
       return allGood;
     }
-
-    public NativeType AsNativeType() {
-      Contract.Requires(this != null);
-      if (AsNewtype != null) {
-        return AsNewtype.NativeType;
-      } else if (IsBitVectorType) {
-        return AsBitVectorType.NativeType;
-      }
-      return null;
-    }
   }
 
   /// <summary>
@@ -5528,7 +5518,6 @@ namespace Microsoft.Dafny {
     public readonly Expression Constraint;  // is null iff Var is
     public readonly SubsetTypeDecl.WKind WitnessKind = SubsetTypeDecl.WKind.CompiledZero;
     public readonly Expression/*?*/ Witness;  // non-null iff WitnessKind is Compiled or Ghost
-    [FilledInDuringResolution]
     public NativeType NativeType; // non-null for fixed-size representations (otherwise, use BigIntegers for integers)
     public NewtypeDecl(IToken tok, string name, ModuleDefinition module, Type baseType, List<MemberDecl> members, Attributes attributes, bool isRefining)
       : base(tok, name, module, new List<TypeParameter>(), members, attributes, isRefining) {
@@ -11468,9 +11457,8 @@ namespace Microsoft.Dafny {
       }
       public override int Preference() => LowerBound != null && UpperBound != null ? 5 : 4;
 
-      public override Type ElementType(IVariable bv) => bv.Type.AsNativeType() == null ? new IntType() : bv.Type;
+      public override Type ElementType(IVariable bv) => new IntType();
     }
-
     public abstract class CollectionBoundedPool : BoundedPool {
       public readonly Type BoundVariableType;
       public readonly Type CollectionElementType;
