@@ -233,7 +233,7 @@ class Node {
 
   lemma InstanceAboutUU()
     requires Valid()
-    ensures uu == 0 // regression: once up a time, this used to go through
+    ensures uu == 0 // regression: once upon a time, this used to go through
     decreases Repr
   {
     if left == null {
