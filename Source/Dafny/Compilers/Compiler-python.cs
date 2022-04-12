@@ -6,6 +6,7 @@ using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
 using System.Numerics;
+using JetBrains.Annotations;
 using ExtensionMethods;
 using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
@@ -519,13 +520,17 @@ namespace Microsoft.Dafny.Compilers {
       throw new NotImplementedException();
     }
 
-    protected override ConcreteSyntaxTree CreateForeachLoop(string tmpVarName, Type collectionElementType,
-        string boundVarName, Type boundVarType, bool introduceBoundVar, IToken tok,
-        out ConcreteSyntaxTree collectionWriter, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree CreateForeachLoop(string tmpVarName, Type collectionElementType, IToken tok,
+      out ConcreteSyntaxTree collectionWriter, ConcreteSyntaxTree wr) {
       collectionWriter = new ConcreteSyntaxTree();
       wr.WriteLine($"{tmpVarName}: {TypeName(collectionElementType, wr, tok)}")
         .Format($"for {tmpVarName} in {collectionWriter}:");
-      return wr.NewBlockPy().WriteLine($"{boundVarName}{(introduceBoundVar ? $": {TypeName(boundVarType, wr, tok)}" : "")} = {tmpVarName}");
+      return wr.NewBlockPy();
+    }
+
+    protected override void EmitDowncastVariableAssignment(string boundVarName, Type boundVarType, string tmpVarName,
+      Type collectionElementType, bool introduceBoundVar, IToken tok, ConcreteSyntaxTree wr) {
+      wr.WriteLine($"{boundVarName}{(introduceBoundVar ? $": {TypeName(boundVarType, wr, tok)}" : "")} = {tmpVarName}");
     }
 
     protected override ConcreteSyntaxTree CreateForeachIngredientLoop(string boundVarName, int L, string tupleTypeArgs,
@@ -911,6 +916,15 @@ namespace Microsoft.Dafny.Compilers {
       var wStmts = wr.Fork();
       wr.FormatLine($"{collName}[{termLeftWriter}] = {Expr(term, inLetExprBody, wStmts)}");
       return termLeftWriter;
+    }
+
+    [CanBeNull]
+    protected override string GetSubtypeCondition(string tmpVarName, Type boundVarType, IToken tok, ConcreteSyntaxTree wPreconditions) {
+      if (boundVarType.IsRefType) {
+        throw new NotImplementedException();
+      }
+
+      return "True";
     }
 
     protected override string GetCollectionBuilder_Build(CollectionType ct, IToken tok, string collName, ConcreteSyntaxTree wr) {

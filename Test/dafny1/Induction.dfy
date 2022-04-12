@@ -203,3 +203,51 @@ function FooD(n: nat, d: D): int
   case Something(next) =>
     if n < 100 then n + 12 else FooD(n-13, next)
 }
+
+// ----------------------- Regression: remember to substitute "this" -----------------
+
+class Node {
+  ghost var Repr: set<object>
+  var left: Node?
+  var uu: nat
+
+  predicate Valid()
+    reads this, Repr
+    ensures Valid() ==> this in Repr
+  {
+    this in Repr &&
+    (left != null ==>
+      left in Repr && left.Repr <= Repr &&
+      this !in left.Repr &&
+      left.Valid()) &&
+    ((left == null && uu == 0) || (left != null && uu != 0))
+  }
+
+  constructor ()
+    ensures Valid() && fresh(Repr)
+  {
+    left := null;
+    uu := 0;
+    Repr := {this};
+  }
+
+  lemma InstanceAboutUU()
+    requires Valid()
+    ensures uu == 0 // regression: once upon a time, this used to go through
+    decreases Repr
+  {
+    if left == null {
+    } else { // error: postcondition violation
+    }
+  }
+}
+
+lemma StaticAboutUU(th: Node)
+  requires th.Valid()
+  ensures th.uu == 0
+  decreases th.Repr
+{
+  if th.left == null {
+  } else { // error: postcondition violation
+  }
+}
