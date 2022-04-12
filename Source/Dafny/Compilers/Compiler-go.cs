@@ -14,6 +14,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
+using JetBrains.Annotations;
 using Bpl = Microsoft.Boogie;
 using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 
@@ -1910,8 +1911,8 @@ namespace Microsoft.Dafny.Compilers {
       return "_dafny.Quantifier";
     }
 
-    protected override ConcreteSyntaxTree CreateForeachLoop(string tmpVarName, Type collectionElementType, string boundVarName, Type boundVarType, bool introduceBoundVar,
-      Bpl.IToken tok, out ConcreteSyntaxTree collectionWriter, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree CreateForeachLoop(string tmpVarName, Type collectionElementType, Bpl.IToken tok,
+      out ConcreteSyntaxTree collectionWriter, ConcreteSyntaxTree wr) {
 
       var okVar = idGenerator.FreshId("_ok");
       var iterVar = idGenerator.FreshId("_iter");
@@ -1920,35 +1921,59 @@ namespace Microsoft.Dafny.Compilers {
       var wBody = wr.NewBlock(");;");
       wBody.WriteLine("{0}, {1} := {2}()", tmpVarName, okVar, iterVar);
       wBody.WriteLine("if !{0} {{ break }}", okVar);
+      return wBody;
+    }
 
-      if (introduceBoundVar) {
-        wBody.WriteLine("var {0} {1}", boundVarName, TypeName(boundVarType, wBody, tok));
+    [CanBeNull]
+    protected override string GetSubtypeCondition(string tmpVarName, Type boundVarType, Bpl.IToken tok, ConcreteSyntaxTree wPreconditions) {
+      var conditions = new List<string> { };
+      if (boundVarType.IsNonNullRefType) {
+        conditions.Add($"!_dafny.IsDafnyNull({tmpVarName})");
       }
+
       if (boundVarType.IsRefType) {
-        var wIf = EmitIf($"_dafny.IsDafnyNull({tmpVarName})", true, wBody);
-        if (boundVarType.IsNonNullRefType) {
-          wIf.WriteLine("continue");
-        } else {
-          wIf.WriteLine("{0} = ({1})(nil)", boundVarName, TypeName(boundVarType, wBody, tok));
-        }
-        wIf = wBody.NewBlock("", open: BlockStyle.Brace);
-        string typeTest;
         if (boundVarType.IsObject || boundVarType.IsObjectQ) {
-          // nothing more to test
-          wIf.WriteLine("{0} = {1}.({2})", boundVarName, tmpVarName, TypeName(boundVarType, wIf, tok));
+          // Nothing more to test
         } else if (boundVarType.IsTraitType) {
           var trait = boundVarType.AsTraitType;
-          wIf.WriteLine($"if !_dafny.InstanceOfTrait({tmpVarName}.(_dafny.TraitOffspring), {TypeName_Companion(trait, wBody, tok)}.TraitID_) {{ continue }}");
-          wIf.WriteLine("{0} = {1}.({2})", boundVarName, tmpVarName, TypeName(boundVarType, wIf, tok));
+          conditions.Add(
+            $"_dafny.InstanceOfTrait/*1*/({tmpVarName}.(_dafny.TraitOffspring), {TypeName_Companion(trait, wPreconditions, tok)}.TraitID_)");
         } else {
-          typeTest = $"_dafny.InstanceOf({tmpVarName}, ({TypeName(boundVarType, wBody, tok)})(nil))";
-          wIf.WriteLine("{0}, {1} = {2}.({3})", boundVarName, okVar, tmpVarName, TypeName(boundVarType, wIf, tok));
-          wIf.WriteLine("if !{0} {{ continue }}", okVar);
+          var typeAssertSucceeds = idGenerator.FreshId("_typeAssertSucceeds");
+          wPreconditions.WriteLine(
+            $@"{typeAssertSucceeds} := func(param interface{{}}) bool {{ var ok bool; _, ok = param.({TypeName(boundVarType, wPreconditions, tok)}); return ok}}");
+          conditions.Add($"{typeAssertSucceeds}({tmpVarName})");
         }
-      } else {
-        wBody.WriteLine("{0} = {1}.({2})", boundVarName, tmpVarName, TypeName(boundVarType, wBody, tok));
       }
-      return wBody;
+
+      if (!conditions.Any()) {
+        conditions.Add("true");
+      }
+
+      var typeTest = string.Join("&&", conditions);
+      if (boundVarType.IsRefType && !boundVarType.IsNonNullRefType && typeTest != "true") {
+        typeTest = $"_dafny.IsDafnyNull({tmpVarName}) || " + typeTest;
+      }
+      return typeTest == "true" ? null : typeTest;
+    }
+
+    protected override void EmitDowncastVariableAssignment(string boundVarName, Type boundVarType, string tmpVarName,
+      Type collectionElementType, bool introduceBoundVar, Bpl.IToken tok, ConcreteSyntaxTree wr) {
+
+      if (introduceBoundVar) {
+        wr.WriteLine("var {0} {1}", boundVarName, TypeName(boundVarType, wr, tok));
+      }
+
+      var wrAssign = wr;
+      if (boundVarType.IsRefType && !boundVarType.IsNonNullRefType) {
+        var wIf = EmitIf($"_dafny.IsDafnyNull({tmpVarName})", true, wr);
+        wIf.WriteLine("{0} = ({1})(nil)", boundVarName, TypeName(boundVarType, wr, tok));
+        wrAssign = wr.NewBlock("", open: BlockStyle.Brace);
+      }
+
+      var cast = $".({TypeName(boundVarType, wrAssign, tok)})";
+      tmpVarName = $"interface{{}}({tmpVarName})";
+      wrAssign.WriteLine("{0} = {1}{2}", boundVarName, tmpVarName, cast);
     }
 
     protected override ConcreteSyntaxTree CreateForeachIngredientLoop(string boundVarName, int L, string tupleTypeArgs, out ConcreteSyntaxTree collectionWriter, ConcreteSyntaxTree wr) {
@@ -3450,16 +3475,20 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitIntegerRange(Type type, out ConcreteSyntaxTree wLo, out ConcreteSyntaxTree wHi, ConcreteSyntaxTree wr) {
+    protected override Type EmitIntegerRange(Type type, out ConcreteSyntaxTree wLo, out ConcreteSyntaxTree wHi, ConcreteSyntaxTree wr) {
+      Type result;
       if (AsNativeType(type) != null) {
         wr.Write("{0}.IntegerRange(", TypeName_Companion(type.AsNewtype, wr, tok: Bpl.Token.NoToken));
+        result = type;
       } else {
         wr.Write("_dafny.IntegerRange(");
+        result = new IntType();
       }
       wLo = wr.Fork();
       wr.Write(", ");
       wHi = wr.Fork();
       wr.Write(')');
+      return result;
     }
 
     protected override void EmitSingleValueGenerator(Expression e, bool inLetExprBody, string type, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
