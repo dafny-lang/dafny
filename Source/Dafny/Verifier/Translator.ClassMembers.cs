@@ -547,12 +547,12 @@ namespace Microsoft.Dafny {
       if (!wellformednessProc) {
         var inductionVars = ApplyInduction(m.Ins, m.Attributes);
         if (inductionVars.Count != 0) {
-          // Let the parameters be this,x,y of the method M and suppose ApplyInduction returns y.
+          // Let the parameters be this,x,y of the method M and suppose ApplyInduction returns this,y.
           // Also, let Pre be the precondition and VF be the decreases clause.
           // Then, insert into the method body what amounts to:
           //     assume case-analysis-on-parameter[[ y' ]];
-          //     forall (y' | Pre(this, x, y') && VF(this, x, y') << VF(this, x, y)) {
-          //       this.M(x, y');
+          //     forall this',y' | Pre(this', x, y') && (VF(this', x, y') << VF(this', x, y)) {
+          //       this'.M(x, y');
           //     }
           // Generate bound variables for the forall statement, and a substitution for the Pre and VF
 
