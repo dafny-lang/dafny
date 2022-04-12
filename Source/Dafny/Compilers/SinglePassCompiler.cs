@@ -3368,7 +3368,8 @@ namespace Microsoft.Dafny.Compilers {
       } else if (bound is ComprehensionExpr.MapBoundedPool) {
         var b = (ComprehensionExpr.MapBoundedPool)bound;
         TrParenExpr(su.Substitute(b.Map), collectionWriter, inLetExprBody, wStmts);
-        collectionWriter.Write(".Keys{0}.Elements{0}", propertySuffix);
+        GetSpecialFieldInfo(SpecialField.ID.Keys, null, null, out var keyName, out _, out _);
+        collectionWriter.Write($".{keyName}.Elements{propertySuffix}");
       } else if (bound is ComprehensionExpr.SeqBoundedPool) {
         var b = (ComprehensionExpr.SeqBoundedPool)bound;
         TrParenExpr(su.Substitute(b.Seq), collectionWriter, inLetExprBody, wStmts);
