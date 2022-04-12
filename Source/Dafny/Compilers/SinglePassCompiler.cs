@@ -3406,7 +3406,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (bound is ComprehensionExpr.DatatypeBoundedPool) {
         var b = (ComprehensionExpr.DatatypeBoundedPool)bound;
         collectionWriter.Write("{0}.AllSingletonConstructors{1}", TypeName_Companion(bv.Type, collectionWriter, bv.Tok, null), propertySuffix);
-        return new UserDefinedType(bv.Tok, new StringLiteralExpr(bv.Tok, b.Decl.Name, true)) {
+        return new UserDefinedType(bv.Tok, new NameSegment(bv.Tok, b.Decl.Name, new())) {
           ResolvedClass = b.Decl
         };
       } else {
