@@ -1414,7 +1414,7 @@ namespace Microsoft.Dafny.Compilers {
         var str = (StringLiteralExpr)e;
         // TODO: the string should be converted to a Dafny seq<char>
         TrStringLiteral(str, wr);
-      } else if (AsNativeType(e.Type) is NativeType nt) {
+      } else if (e.Type.AsNativeType() is NativeType nt) {
         wr.Write("({0}){1}", GetNativeTypeName(nt), (BigInteger)e.Value);
         if ((BigInteger)e.Value > 9223372036854775807) {
           // Avoid compiler warning: integer literal is too large to be represented in a signed integer type
@@ -1803,7 +1803,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitExprAsInt(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       TrParenExpr(expr, wr, inLetExprBody, wStmts);
-      if (AsNativeType(expr.Type) == null) {
+      if (expr.Type.AsNativeType() == null) {
         wr.Write(".toNumber()");
       }
     }
@@ -1974,7 +1974,7 @@ namespace Microsoft.Dafny.Compilers {
           TrParenExpr("!", expr, wr, inLetExprBody, wStmts);
           break;
         case ResolvedUnaryOp.BitwiseNot:
-          if (AsNativeType(expr.Type) != null) {
+          if (expr.Type.AsNativeType() != null) {
             wr.Write("~ ");
             TrParenExpr(expr, wr, inLetExprBody, wStmts);
           } else {
@@ -1993,7 +1993,7 @@ namespace Microsoft.Dafny.Compilers {
 
     bool IsDirectlyComparable(Type t) {
       Contract.Requires(t != null);
-      return t.IsBoolType || t.IsCharType || AsNativeType(t) != null;
+      return t.IsBoolType || t.IsCharType || t.AsNativeType() != null;
     }
 
     protected override void CompileBinOp(BinaryExpr.ResolvedOpcode op,
@@ -2027,21 +2027,21 @@ namespace Microsoft.Dafny.Compilers {
         case BinaryExpr.ResolvedOpcode.And:
           opString = "&&"; break;
         case BinaryExpr.ResolvedOpcode.BitwiseAnd:
-          if (AsNativeType(resultType) != null) {
+          if (resultType.AsNativeType() != null) {
             opString = "&";
           } else {
             callString = "And";
           }
           break;
         case BinaryExpr.ResolvedOpcode.BitwiseOr:
-          if (AsNativeType(resultType) != null) {
+          if (resultType.AsNativeType() != null) {
             opString = "|";
           } else {
             callString = "Or";
           }
           break;
         case BinaryExpr.ResolvedOpcode.BitwiseXor:
-          if (AsNativeType(resultType) != null) {
+          if (resultType.AsNativeType() != null) {
             opString = "^";
           } else {
             callString = "Xor";
@@ -2095,16 +2095,16 @@ namespace Microsoft.Dafny.Compilers {
           if (resultType.IsBitVectorType) {
             truncateResult = true;
           }
-          if (AsNativeType(resultType) != null) {
+          if (resultType.AsNativeType() != null) {
             opString = "<<";
           } else {
             throw NotSupported("LeftShift of non-native type", tok);
           }
           break;
         case BinaryExpr.ResolvedOpcode.RightShift:
-          if (AsNativeType(resultType) != null) {
+          if (resultType.AsNativeType() != null) {
             opString = ">>";
-            if (AsNativeType(e1.Type) == null) {
+            if (e1.Type.AsNativeType() == null) {
               postOpString = ".Uint64()";
             }
           } else {
@@ -2115,7 +2115,7 @@ namespace Microsoft.Dafny.Compilers {
           if (resultType.IsBitVectorType) {
             truncateResult = true;
           }
-          if (resultType.IsCharType || AsNativeType(resultType) != null) {
+          if (resultType.IsCharType || resultType.AsNativeType() != null) {
             opString = "+";
           } else {
             throw NotSupported("Add of non-native type", tok);
@@ -2125,7 +2125,7 @@ namespace Microsoft.Dafny.Compilers {
           if (resultType.IsBitVectorType) {
             truncateResult = true;
           }
-          if (resultType.IsCharType || AsNativeType(resultType) != null) {
+          if (resultType.IsCharType || resultType.AsNativeType() != null) {
             opString = "-";
           } else {
             throw NotSupported("Subtraction of non-native type", tok);
@@ -2135,18 +2135,18 @@ namespace Microsoft.Dafny.Compilers {
           if (resultType.IsBitVectorType) {
             truncateResult = true;
           }
-          if (AsNativeType(resultType) != null) {
+          if (resultType.AsNativeType() != null) {
             opString = "*";
           } else {
             throw NotSupported("Multiplication of non-native type", tok);
           }
           break;
         case BinaryExpr.ResolvedOpcode.Div:
-          if (AsNativeType(resultType) != null) {
-            var nt = AsNativeType(resultType);
+          if (resultType.AsNativeType() != null) {
+            var nt = resultType.AsNativeType();
             if (nt.LowerBound < BigInteger.Zero) {
               // Want Euclidean division for signed types
-              staticCallString = "EuclideanDivision_" + GetNativeTypeName(AsNativeType(resultType));
+              staticCallString = "EuclideanDivision_" + GetNativeTypeName(resultType.AsNativeType());
             } else {
               // Native division is fine for unsigned
               opString = "/";
@@ -2156,11 +2156,11 @@ namespace Microsoft.Dafny.Compilers {
           }
           break;
         case BinaryExpr.ResolvedOpcode.Mod:
-          if (AsNativeType(resultType) != null) {
-            var nt = AsNativeType(resultType);
+          if (resultType.AsNativeType() != null) {
+            var nt = resultType.AsNativeType();
             if (nt.LowerBound < BigInteger.Zero) {
               // Want Euclidean division for signed types
-              staticCallString = "_dafny.Mod" + Capitalize(GetNativeTypeName(AsNativeType(resultType)));
+              staticCallString = "_dafny.Mod" + Capitalize(GetNativeTypeName(resultType.AsNativeType()));
             } else {
               // Native division is fine for unsigned
               opString = "%";
@@ -2246,8 +2246,8 @@ namespace Microsoft.Dafny.Compilers {
           wr.Write(".Int32())");
         } else {
           // (int or bv or char) -> (int or bv or ORDINAL)
-          var fromNative = AsNativeType(e.E.Type);
-          var toNative = AsNativeType(e.ToType);
+          var fromNative = e.E.Type.AsNativeType();
+          var toNative = e.ToType.AsNativeType();
           if (fromNative != null && toNative != null) {
             // from a native, to a native -- simple!
             wr.Write(GetNativeTypeName(toNative));
@@ -2301,16 +2301,16 @@ namespace Microsoft.Dafny.Compilers {
           }
         }
       } else if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
-        Contract.Assert(AsNativeType(e.E.Type) == null);
+        Contract.Assert(e.E.Type.AsNativeType() == null);
         if (e.ToType.IsNumericBased(Type.NumericPersuasion.Real)) {
           // real -> real
-          Contract.Assert(AsNativeType(e.ToType) == null);
+          Contract.Assert(e.ToType.AsNativeType() == null);
           TrExpr(e.E, wr, inLetExprBody, wStmts);
         } else {
           // real -> (int or bv)
           TrParenExpr(e.E, wr, inLetExprBody, wStmts);
           wr.Write(".Int()");
-          if (AsNativeType(e.ToType) is NativeType nt) {
+          if (e.ToType.AsNativeType() is NativeType nt) {
             wr.Write(".{0}()", Capitalize(GetNativeTypeName(nt)));
           }
         }
