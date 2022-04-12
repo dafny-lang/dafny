@@ -72,6 +72,16 @@ internal class SemanticModel {
     return model.GetDeclaredSymbol(syntax);
   }
 
+  public bool IsPublic(SyntaxNode syntax, bool fallback = true) {
+    var symbol = GetSymbol(syntax);
+    return symbol switch {
+      null => fallback,
+      { DeclaredAccessibility: Accessibility.Public } => true,
+      IPropertySymbol { ExplicitInterfaceImplementations: { IsEmpty: false } } => true,
+      _ => false
+    };
+  }
+
   private Name GetName(ISymbol? symbol, string fallback) {
     if (symbol == null) {
       return new Name(fallback);
@@ -167,11 +177,12 @@ class TypeDecl : PrettyPrintable {
   private bool IsInterface => syntax.Keyword.ToString() == "interface";
 
   private IEnumerable<PrettyPrintable> Fields =>
-    syntax.ChildNodes().OfType<FieldDeclarationSyntax>().Select(s => new Field(s, model));
+    syntax.ChildNodes().OfType<FieldDeclarationSyntax>() // Filtering for `public` fields is done later
+      .Select(s => new Field(s, model));
 
   private IEnumerable<PrettyPrintable> Properties =>
-    syntax.ChildNodes().OfType<PropertyDeclarationSyntax>().Select(s =>
-      new Property(s, model, IsInterface ? this : null));
+    syntax.ChildNodes().OfType<PropertyDeclarationSyntax>().Where(v => model.IsPublic(v))
+      .Select(s => new Property(s, model, IsInterface ? this : null));
 
   public override void Pp(TextWriter wr, string indent) {
     PpBlockOpen(wr, indent, "trait", IntfName,
@@ -237,7 +248,8 @@ class Field : PrettyPrintable {
   }
 
   private IEnumerable<Variable> Variables =>
-    syntax.Declaration.Variables.Select(v => new Variable(syntax.Declaration.Type, v, model));
+    syntax.Declaration.Variables.Where(v => model.IsPublic(v))
+      .Select(v => new Variable(syntax.Declaration.Type, v, model));
 
   public override void Pp(TextWriter wr, string indent) {
     PpChildren(wr, indent, Variables);
@@ -274,7 +286,7 @@ class Property : PrettyPrintable {
     var prefix = "";
 
     if (parentInterface != null) {
-      name = new Name(name.CSharpID, $"{parentInterface.IntfName.CSharpID}_{name.CSharpID}");
+      name = new Name(name.CSharpID, $"{parentInterface.IntfName.DafnyId}_{name.DafnyId}");
       comment = " // interface property";
     } else if (symbol is not null && ExistsInAncestor(symbol.ContainingType)) {
       prefix = "// ";
