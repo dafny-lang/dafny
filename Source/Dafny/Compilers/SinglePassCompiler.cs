@@ -576,9 +576,10 @@ namespace Microsoft.Dafny.Compilers {
       string tmpVarName, Type collectionElementType,
       IVariable boundVar,
       bool introduceBoundVar, bool inLetExprBody,
-      Bpl.IToken tok, out ConcreteSyntaxTree collectionWriter, ConcreteSyntaxTree wr
+      Bpl.IToken tok, ConcreteSyntaxTree collection, ConcreteSyntaxTree wr
       ) {
-      wr = CreateForeachLoop(tmpVarName, collectionElementType, tok, out collectionWriter, wr);
+      wr = CreateForeachLoop(tmpVarName, collectionElementType, tok, out var collectionWriter, wr);
+      collectionWriter.Append(collection);
       wr = MaybeInjectSubtypeConstraint(tmpVarName, collectionElementType, boundVar.Type, inLetExprBody, tok, wr);
       EmitDowncastVariableAssignment(IdName(boundVar), boundVar.Type, tmpVarName, collectionElementType,
           introduceBoundVar, tok, wr);
@@ -1177,16 +1178,20 @@ namespace Microsoft.Dafny.Compilers {
     /// </summary>
     protected abstract string GetCollectionBuilder_Build(CollectionType ct, Bpl.IToken tok, string collName, ConcreteSyntaxTree wr);
 
-    protected virtual void EmitIntegerRange(Type type, out ConcreteSyntaxTree wLo, out ConcreteSyntaxTree wHi, ConcreteSyntaxTree wr) {
+    protected virtual Type EmitIntegerRange(Type type, out ConcreteSyntaxTree wLo, out ConcreteSyntaxTree wHi, ConcreteSyntaxTree wr) {
+      Type result;
       if (type.AsNativeType() != null) {
         wr.Write("{0}.IntegerRange(", IdProtect(type.AsNewtype.FullCompileName));
+        result = type;
       } else {
         wr.Write("{0}.IntegerRange(", GetHelperModuleName());
+        result = new IntType();
       }
       wLo = wr.Fork();
       wr.Write(", ");
       wHi = wr.Fork();
       wr.Write(')');
+      return result;
     }
     protected abstract void EmitSingleValueGenerator(Expression e, bool inLetExprBody, string type,
       ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts);
@@ -3296,11 +3301,10 @@ namespace Microsoft.Dafny.Compilers {
       for (int i = 0; i < n; i++) {
         var bound = bounds[i];
         var bv = bvs[i];
-        ConcreteSyntaxTree collectionWriter;
         var tmpVar = idGenerator.FreshId("_guard_loop_");
         var wStmtsLoop = wr.Fork();
-        wr = CreateGuardedForeachLoop(tmpVar, bound.ElementType(bv), bv, true, false, range.tok, out collectionWriter, wr);
-        CompileCollection(bound, bv, false, false, null, collectionWriter, wStmtsLoop, bounds, bvs, i);
+        var elementType = CompileCollection(bound, bv, false, false, null, out var collection, wStmtsLoop, bounds, bvs, i);
+        wr = CreateGuardedForeachLoop(tmpVar, elementType, bv, true, false, range.tok, collection, wr);
       }
 
       // if (range) {
@@ -3319,23 +3323,27 @@ namespace Microsoft.Dafny.Compilers {
       return wr;
     }
 
-    void CompileCollection(ComprehensionExpr.BoundedPool bound, IVariable bv, bool inLetExprBody, bool includeDuplicates,
-        Substituter/*?*/ su, ConcreteSyntaxTree collectionWriter, ConcreteSyntaxTree wStmts,
+    Type CompileCollection(ComprehensionExpr.BoundedPool bound, IVariable bv, bool inLetExprBody, bool includeDuplicates,
+        Substituter/*?*/ su, out ConcreteSyntaxTree collectionWriter, ConcreteSyntaxTree wStmts,
         List<ComprehensionExpr.BoundedPool>/*?*/ bounds = null, List<BoundVar>/*?*/ boundVars = null, int boundIndex = 0) {
       Contract.Requires(bound != null);
       Contract.Requires(bounds == null || (boundVars != null && bounds.Count == boundVars.Count && 0 <= boundIndex && boundIndex < bounds.Count));
       Contract.Requires(collectionWriter != null);
+
+      collectionWriter = new ConcreteSyntaxTree();
+
       var propertySuffix = SupportsProperties ? "" : "()";
       su = su ?? new Substituter(null, new Dictionary<IVariable, Expression>(), new Dictionary<TypeParameter, Type>());
 
       if (bound is ComprehensionExpr.BoolBoundedPool) {
         collectionWriter.Write("{0}.AllBooleans()", GetHelperModuleName());
+        return new BoolType();
       } else if (bound is ComprehensionExpr.CharBoundedPool) {
         collectionWriter.Write("{0}.AllChars()", GetHelperModuleName());
+        return new CharType();
       } else if (bound is ComprehensionExpr.IntBoundedPool) {
         var b = (ComprehensionExpr.IntBoundedPool)bound;
-        ConcreteSyntaxTree wLo, wHi;
-        EmitIntegerRange(bv.Type, out wLo, out wHi, collectionWriter);
+        var type = EmitIntegerRange(bv.Type, out var wLo, out var wHi, collectionWriter);
         if (b.LowerBound == null) {
           EmitNull(bv.Type, wLo);
         } else if (bounds != null) {
@@ -3352,35 +3360,45 @@ namespace Microsoft.Dafny.Compilers {
         } else {
           TrExpr(su.Substitute(b.UpperBound), wHi, inLetExprBody, wStmts);
         }
+        return type;
       } else if (bound is AssignSuchThatStmt.WiggleWaggleBound) {
         collectionWriter.Write("{0}.AllIntegers()", GetHelperModuleName());
+        return bv.Type;
       } else if (bound is ComprehensionExpr.ExactBoundedPool) {
         var b = (ComprehensionExpr.ExactBoundedPool)bound;
         EmitSingleValueGenerator(su.Substitute(b.E), inLetExprBody, TypeName(b.E.Type, collectionWriter, b.E.tok), collectionWriter, wStmts);
-      } else if (bound is ComprehensionExpr.SetBoundedPool) {
-        var b = (ComprehensionExpr.SetBoundedPool)bound;
-        TrParenExpr(su.Substitute(b.Set), collectionWriter, inLetExprBody, wStmts);
+        return b.E.Type;
+      } else if (bound is ComprehensionExpr.SetBoundedPool setBoundedPool) {
+        TrParenExpr(su.Substitute(setBoundedPool.Set), collectionWriter, inLetExprBody, wStmts);
         collectionWriter.Write(".Elements" + propertySuffix);
+        return setBoundedPool.CollectionElementType;
       } else if (bound is ComprehensionExpr.MultiSetBoundedPool) {
         var b = (ComprehensionExpr.MultiSetBoundedPool)bound;
         TrParenExpr(su.Substitute(b.MultiSet), collectionWriter, inLetExprBody, wStmts);
         collectionWriter.Write((includeDuplicates ? ".Elements" : ".UniqueElements") + propertySuffix);
+        return b.CollectionElementType;
       } else if (bound is ComprehensionExpr.SubSetBoundedPool) {
         var b = (ComprehensionExpr.SubSetBoundedPool)bound;
         TrParenExpr(su.Substitute(b.UpperBound), collectionWriter, inLetExprBody, wStmts);
         collectionWriter.Write(".AllSubsets" + propertySuffix);
+        return b.UpperBound.Type;
       } else if (bound is ComprehensionExpr.MapBoundedPool) {
         var b = (ComprehensionExpr.MapBoundedPool)bound;
         TrParenExpr(su.Substitute(b.Map), collectionWriter, inLetExprBody, wStmts);
         GetSpecialFieldInfo(SpecialField.ID.Keys, null, null, out var keyName, out _, out _);
         collectionWriter.Write($".{keyName}.Elements{propertySuffix}");
+        return b.CollectionElementType;
       } else if (bound is ComprehensionExpr.SeqBoundedPool) {
         var b = (ComprehensionExpr.SeqBoundedPool)bound;
         TrParenExpr(su.Substitute(b.Seq), collectionWriter, inLetExprBody, wStmts);
         collectionWriter.Write((includeDuplicates ? ".Elements" : ".UniqueElements") + propertySuffix);
+        return b.CollectionElementType;
       } else if (bound is ComprehensionExpr.DatatypeBoundedPool) {
         var b = (ComprehensionExpr.DatatypeBoundedPool)bound;
         collectionWriter.Write("{0}.AllSingletonConstructors{1}", TypeName_Companion(bv.Type, collectionWriter, bv.Tok, null), propertySuffix);
+        return new UserDefinedType(bv.Tok, new StringLiteralExpr(bv.Tok, b.Decl.Name, true)) {
+          ResolvedClass = b.Decl
+        };
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected BoundedPool type
       }
@@ -3597,10 +3615,9 @@ namespace Microsoft.Dafny.Compilers {
           DeclareLocalVar(string.Format("{0}_{1}", iterLimit, i), null, null, false, iterLimit, wr, Type.Int);
         }
         var tmpVar = idGenerator.FreshId("_assign_such_that_");
-        ConcreteSyntaxTree collectionWriter;
         var wStmts = wr.Fork();
-        wr = CreateGuardedForeachLoop(tmpVar, bound.ElementType(bv), bv, false, inLetExprBody, bv.Tok, out collectionWriter, wr);
-        CompileCollection(bound, bv, inLetExprBody, true, null, collectionWriter, wStmts);
+        var elementType = CompileCollection(bound, bv, inLetExprBody, true, null, out var collection, wStmts);
+        wr = CreateGuardedForeachLoop(tmpVar, elementType, bv, false, inLetExprBody, bv.Tok, collection, wr);
         if (needIterLimit) {
           var varName = string.Format("{0}_{1}", iterLimit, i);
           ConcreteSyntaxTree isZeroWriter;
@@ -4703,10 +4720,10 @@ namespace Microsoft.Dafny.Compilers {
         for (int i = 0; i < n; i++) {
           var bound = e.Bounds[i];
           var bv = e.BoundVars[i];
-          var collectionElementType = bound.ElementType(bv);
 
+          var collectionElementType = CompileCollection(bound, bv, inLetExprBody, false, su, out var collection, wStmts, e.Bounds, e.BoundVars, i);
           wBody.Write("{0}(", GetQuantifierName(TypeName(collectionElementType, wBody, bv.tok)));
-          CompileCollection(bound, bv, inLetExprBody, false, su, wBody, wStmts, e.Bounds, e.BoundVars, i);
+          wBody.Append(collection);
           wBody.Write(", {0}, ", expr is ForallExpr ? "true" : "false");
           var native = e.BoundVars[i].Type.AsNativeType();
           var tmpVarName = idGenerator.FreshId(e is ForallExpr ? "_forall_var_" : "_exists_var_");
@@ -4754,11 +4771,10 @@ namespace Microsoft.Dafny.Compilers {
         for (var i = 0; i < n; i++) {
           var bound = e.Bounds[i];
           var bv = e.BoundVars[i];
-          ConcreteSyntaxTree collectionWriter;
           var tmpVar = idGenerator.FreshId("_compr_");
           var wStmtsLoop = wr.Fork();
-          wr = CreateGuardedForeachLoop(tmpVar, bound.ElementType(bv), bv, true, inLetExprBody, e.tok, out collectionWriter, wr);
-          CompileCollection(bound, bv, inLetExprBody, true, null, collectionWriter, wStmtsLoop);
+          var elementType = CompileCollection(bound, bv, inLetExprBody, true, null, out var collection, wStmtsLoop);
+          wr = CreateGuardedForeachLoop(tmpVar, elementType, bv, true, inLetExprBody, e.tok, collection, wr);
         }
         ConcreteSyntaxTree guardWriter;
         var thn = EmitIf(out guardWriter, false, wr);
@@ -4800,11 +4816,10 @@ namespace Microsoft.Dafny.Compilers {
         for (var i = 0; i < n; i++) {
           var bound = e.Bounds[i];
           var bv = e.BoundVars[i];
-          ConcreteSyntaxTree collectionWriter;
           var tmpVar = idGenerator.FreshId("_compr_");
           var wStmtsLoop = wr.Fork();
-          wr = CreateGuardedForeachLoop(tmpVar, bound.ElementType(bv), bv, true, false, bv.tok, out collectionWriter, wr);
-          CompileCollection(bound, bv, inLetExprBody, true, null, collectionWriter, wStmtsLoop);
+          var elementType = CompileCollection(bound, bv, inLetExprBody, true, null, out var collection, wStmtsLoop);
+          wr = CreateGuardedForeachLoop(tmpVar, elementType, bv, true, false, bv.tok, collection, wr);
         }
         ConcreteSyntaxTree guardWriter;
         var thn = EmitIf(out guardWriter, false, wr);
