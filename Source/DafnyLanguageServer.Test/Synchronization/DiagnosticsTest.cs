@@ -199,7 +199,7 @@ method Multiply(x: int, y: int) returns (product: int)
       Assert.AreEqual(1, diagnostics[0].RelatedInformation.Count());
       var relatedInformation = diagnostics[0].RelatedInformation.First();
       Assert.AreEqual("This is the postcondition that might not hold.", relatedInformation.Message);
-      Assert.AreEqual(new Range(new Position(2, 38), new Position(2, 40)), relatedInformation.Location.Range);
+      Assert.AreEqual(new Range(new Position(2, 30), new Position(2, 42)), relatedInformation.Location.Range);
       await AssertNoDiagnosticsAreComing();
     }
 
@@ -582,7 +582,7 @@ class Test {
       Assert.AreEqual("This is the postcondition that might not hold.", relatedInformation[0].Message);
       Assert.AreEqual(new Range((14, 16), (14, 21)), relatedInformation[0].Location.Range);
       Assert.AreEqual("Related location", relatedInformation[1].Message);
-      Assert.AreEqual(new Range((9, 13), (9, 14)), relatedInformation[1].Location.Range);
+      Assert.AreEqual(new Range((9, 11), (9, 16)), relatedInformation[1].Location.Range);
       await AssertNoDiagnosticsAreComing();
     }
 
@@ -639,6 +639,69 @@ method test() {
       var diagnostics = await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(diagnostics.Length, 1);
       Assert.IsTrue(diagnostics[0].Message.Contains("timed out"));
+    }
+
+    [TestMethod]
+    public async Task OpeningDocumentWithComplexExpressionUnderlinesAllOfIt() {
+      var source = @"
+method test(i: int, j: int) {
+  assert i > j || i < j; 
+//       ^^^^^^^^^^^^^^
+}
+".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      client.OpenDocument(documentItem);
+      var diagnostics = await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
+      Assert.AreEqual(1, diagnostics.Length);
+      Assert.AreEqual(MessageSource.Verifier.ToString(), diagnostics[0].Source);
+      Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
+      Assert.AreEqual(new Range((1, 9), (1, 23)), diagnostics[0].Range);
+      await AssertNoDiagnosticsAreComing();
+    }
+
+    [TestMethod]
+    public async Task OpeningDocumentWithFailedCallUnderlinesAllOfIt() {
+      var source = @"
+method test() {
+  other(2, 1);
+//     ^^^^^^^
+}
+
+method other(i: int, j: int)
+  requires i < j {
+}
+".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      client.OpenDocument(documentItem);
+      var diagnostics = await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
+      Assert.AreEqual(1, diagnostics.Length);
+      Assert.AreEqual(MessageSource.Verifier.ToString(), diagnostics[0].Source);
+      Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
+      Assert.AreEqual(new Range((1, 7), (1, 14)), diagnostics[0].Range);
+      await AssertNoDiagnosticsAreComing();
+    }
+
+    [TestMethod]
+    public async Task OpeningDocumentWithFailedCallExpressionUnderlinesAllOfIt() {
+      var source = @"
+method test() {
+  var x := 1 + other(2, 1);
+//             ^^^^^^^^^^
+}
+
+function method other(i: int, j: int): int
+  requires i < j {
+  2
+}
+".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      client.OpenDocument(documentItem);
+      var diagnostics = await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
+      Assert.AreEqual(1, diagnostics.Length);
+      Assert.AreEqual(MessageSource.Verifier.ToString(), diagnostics[0].Source);
+      Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
+      Assert.AreEqual(new Range((1, 15), (1, 25)), diagnostics[0].Range);
+      await AssertNoDiagnosticsAreComing();
     }
   }
 }

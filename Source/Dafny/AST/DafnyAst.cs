@@ -6927,6 +6927,16 @@ namespace Microsoft.Dafny {
         }
       }
     }
+
+    [FilledInDuringResolution] private IToken rangeToken;
+    public virtual IToken RangeToken {
+      get {
+        if (rangeToken == null) {
+          rangeToken = new RangeToken(Tok, EndTok);
+        }
+        return rangeToken;
+      }
+    }
   }
 
   public class LList<T> {
@@ -7518,7 +7528,6 @@ namespace Microsoft.Dafny {
     public class WiggleWaggleBound : ComprehensionExpr.BoundedPool {
       public override PoolVirtues Virtues => PoolVirtues.Enumerable | PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
       public override int Preference() => 1;
-      public override Type ElementType(IVariable boundVar) => boundVar.Type;
     }
 
     /// <summary>
@@ -8885,6 +8894,25 @@ namespace Microsoft.Dafny {
     }
   }
 
+  public class RangeToken : TokenWrapper {
+    // The wrapped token is the startTok
+    private IToken endTok;
+
+    public IToken StartToken => WrappedToken;
+    public IToken EndToken => endTok;
+
+    // Used for range reporting
+    override public string val {
+      get {
+        return new string(' ', endTok.pos + endTok.val.Length - pos);
+      }
+    }
+
+    public RangeToken(IToken startTok, IToken endTok) : base(startTok) {
+      this.endTok = endTok;
+    }
+  }
+
   public class NestedToken : TokenWrapper {
     public NestedToken(IToken outer, IToken inner, string message = null)
       : base(outer) {
@@ -8997,6 +9025,38 @@ namespace Microsoft.Dafny {
     public virtual IEnumerable<Expression> SubExpressions {
       get { yield break; }
     }
+
+    private RangeToken rangeToken;
+
+    /// Creates a token on the entire range of the expression.
+    /// Used only for error reporting.
+    public RangeToken RangeToken {
+      get {
+        if (rangeToken == null) {
+          var startTok = tok;
+          var endTok = tok;
+          foreach (var e in SubExpressions) {
+            if (e.tok.filename != tok.filename || e.IsImplicit) {
+              // Ignore auto-generated expressions, if any.
+              continue;
+            }
+
+            if (e.StartToken.pos < startTok.pos) {
+              startTok = e.StartToken;
+            } else if (e.EndToken.pos > endTok.pos) {
+              endTok = e.EndToken;
+            }
+          }
+
+          rangeToken = new RangeToken(startTok, endTok);
+        }
+
+        return rangeToken;
+      }
+    }
+
+    public IToken StartToken => RangeToken.StartToken;
+    public IToken EndToken => RangeToken.EndToken;
 
     /// <summary>
     /// Returns the list of types that appear in this expression proper (that is, not including types that
@@ -11374,17 +11434,6 @@ namespace Microsoft.Dafny {
         }
         return others;
       }
-
-      /// <summary>
-      /// For a enumerator for the bounded pool "bound" and bounded variable "bv", return the type of the elements
-      /// return from the enumerator. Usually, this is just "bv.Type", since the enumerated values are going to be
-      /// bound to "bv". However, the type may also be a supertype of "bv.Type", in which case a downcast will be
-      /// needed somewhere. For example, for
-      ///     var ts: seq(Trait) := ...;
-      ///     var cs: set(Class) := set bv: Class :: bv in ts;
-      /// the type of "bv" is "Class", but the values returned by the enumeration will have type "Trait".
-      /// </summary>
-      public abstract Type ElementType(IVariable boundVar);
     }
     public class ExactBoundedPool : BoundedPool {
       public readonly Expression E;
@@ -11394,17 +11443,14 @@ namespace Microsoft.Dafny {
       }
       public override PoolVirtues Virtues => PoolVirtues.Finite | PoolVirtues.Enumerable | PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
       public override int Preference() => 15;  // the best of all bounds
-      public override Type ElementType(IVariable bv) => E.Type;
     }
     public class BoolBoundedPool : BoundedPool {
       public override PoolVirtues Virtues => PoolVirtues.Finite | PoolVirtues.Enumerable | PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
       public override int Preference() => 14;
-      public override Type ElementType(IVariable bv) => new BoolType();
     }
     public class CharBoundedPool : BoundedPool {
       public override PoolVirtues Virtues => PoolVirtues.Finite | PoolVirtues.Enumerable | PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
       public override int Preference() => 5;
-      public override Type ElementType(IVariable bv) => new CharType();
     }
     public class AllocFreeBoundedPool : BoundedPool {
       public Type Type;
@@ -11421,22 +11467,18 @@ namespace Microsoft.Dafny {
         }
       }
       public override int Preference() => 0;
-
-      public override Type ElementType(IVariable boundVar) => Type;
     }
     public class ExplicitAllocatedBoundedPool : BoundedPool {
       public ExplicitAllocatedBoundedPool() {
       }
       public override PoolVirtues Virtues => PoolVirtues.Finite | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
       public override int Preference() => 0;
-      public override Type ElementType(IVariable boundVar) => boundVar.Type;
     }
     public class SpecialAllocIndependenceAllocatedBoundedPool : BoundedPool {
       public SpecialAllocIndependenceAllocatedBoundedPool() {
       }
       public override PoolVirtues Virtues => PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
       public override int Preference() => 0;
-      public override Type ElementType(IVariable boundVar) => boundVar.Type;
     }
     public class IntBoundedPool : BoundedPool {
       public readonly Expression LowerBound;
@@ -11456,14 +11498,11 @@ namespace Microsoft.Dafny {
         }
       }
       public override int Preference() => LowerBound != null && UpperBound != null ? 5 : 4;
-
-      public override Type ElementType(IVariable bv) => new IntType();
     }
     public abstract class CollectionBoundedPool : BoundedPool {
       public readonly Type BoundVariableType;
       public readonly Type CollectionElementType;
       public readonly bool IsFiniteCollection;
-      public override Type ElementType(IVariable bv) => CollectionElementType;
 
       public CollectionBoundedPool(Type bvType, Type collectionElementType, bool isFiniteCollection) {
         Contract.Requires(bvType != null);
@@ -11517,8 +11556,6 @@ namespace Microsoft.Dafny {
         }
       }
       public override int Preference() => 3;
-
-      public override Type ElementType(IVariable bv) => UpperBound.Type;
     }
     public class SuperSetBoundedPool : BoundedPool {
       public readonly Expression LowerBound;
@@ -11533,8 +11570,6 @@ namespace Microsoft.Dafny {
           }
         }
       }
-
-      public override Type ElementType(IVariable bv) => LowerBound.Type;
     }
     public class MultiSetBoundedPool : CollectionBoundedPool {
       public readonly Expression MultiSet;
@@ -11578,19 +11613,12 @@ namespace Microsoft.Dafny {
       }
       public override PoolVirtues Virtues => PoolVirtues.Finite | PoolVirtues.Enumerable | PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
       public override int Preference() => 8;
-
-
-      public override Type ElementType(IVariable boundVar) =>
-        new UserDefinedType(boundVar.Tok, new StringLiteralExpr(boundVar.Tok, Decl.Name, true)) {
-          ResolvedClass = Decl
-        };
     }
     public class DatatypeInclusionBoundedPool : BoundedPool {
       public readonly bool IsIndDatatype;
       public DatatypeInclusionBoundedPool(bool isIndDatatype) : base() { IsIndDatatype = isIndDatatype; }
       public override PoolVirtues Virtues => (IsIndDatatype ? PoolVirtues.Finite : PoolVirtues.None) | PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
       public override int Preference() => 2;
-      public override Type ElementType(IVariable boundVar) => boundVar.Type;
     }
 
     [FilledInDuringResolution] public List<BoundedPool> Bounds;

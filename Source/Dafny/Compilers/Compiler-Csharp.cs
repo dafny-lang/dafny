@@ -1883,7 +1883,7 @@ namespace Microsoft.Dafny.Compilers {
       string typeTest;
       if (boundVarType.IsRefType) {
         if (boundVarType.IsObject || boundVarType.IsObjectQ) {
-          typeTest = null;
+          typeTest = "true";
         } else {
           typeTest = $"{tmpVarName} is {TypeName(boundVarType, wPreconditions, tok)}";
         }
@@ -1893,10 +1893,10 @@ namespace Microsoft.Dafny.Compilers {
           typeTest = $"{tmpVarName} == null || {typeTest}";
         }
       } else {
-        typeTest = null;
+        typeTest = "true";
       }
 
-      return typeTest;
+      return typeTest == "true" ? null : typeTest;
     }
 
     protected override ConcreteSyntaxTree CreateForeachIngredientLoop(string boundVarName, int L, string tupleTypeArgs, out ConcreteSyntaxTree collectionWriter, ConcreteSyntaxTree wr) {

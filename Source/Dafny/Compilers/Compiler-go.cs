@@ -3475,16 +3475,20 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitIntegerRange(Type type, out ConcreteSyntaxTree wLo, out ConcreteSyntaxTree wHi, ConcreteSyntaxTree wr) {
+    protected override Type EmitIntegerRange(Type type, out ConcreteSyntaxTree wLo, out ConcreteSyntaxTree wHi, ConcreteSyntaxTree wr) {
+      Type result;
       if (AsNativeType(type) != null) {
         wr.Write("{0}.IntegerRange(", TypeName_Companion(type.AsNewtype, wr, tok: Bpl.Token.NoToken));
+        result = type;
       } else {
         wr.Write("_dafny.IntegerRange(");
+        result = new IntType();
       }
       wLo = wr.Fork();
       wr.Write(", ");
       wHi = wr.Fork();
       wr.Write(')');
+      return result;
     }
 
     protected override void EmitSingleValueGenerator(Expression e, bool inLetExprBody, string type, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
