@@ -24,12 +24,12 @@ module {:extern "DafnyPrinter"} DafnyPrinter {
       print "# Printing a grocery list\n";
 
 /// Surprisingly, the generated trait `LinkedList` refers to the `Length` field
-/// as `Interface_Length`.  This is because C# is more flexible than Dafny, and
+/// as `LinkedList_Length`.  This is because C# is more flexible than Dafny, and
 /// allows a class to define a field with a name that conflicts with that of an
 /// interface property.  `AutoExtern` resolves this by renaming interface
 /// fields.
 
-      print "   (", items.Interface_Length, " items in the list)\n";
+      print "   (", items.LinkedList_Length, " items in the list)\n";
 
       while items is Cons<Entry<Fruit>>
         decreases *

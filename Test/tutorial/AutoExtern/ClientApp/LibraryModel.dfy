@@ -12,7 +12,7 @@ module {:compile false} {:extern "Library"} Library {
   }
 
   trait {:compile false} {:extern} LinkedList<T> {
-    var {:extern "Length"} Interface_Length: System.Int32 // interface property
+    var {:extern "Length"} LinkedList_Length: System.Int32 // interface property
   }
 
   trait {:compile false} {:extern} Nil<T> extends LinkedList<T> {
