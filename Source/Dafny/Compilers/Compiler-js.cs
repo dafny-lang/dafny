@@ -2389,10 +2389,10 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree EmitHaltHandling(LocalVariable haltMessageVar, ConcreteSyntaxTree wr) {
       var tryBlock = wr.NewBlock("try");
-      var catchBlockWr = wr.NewBlock("catch (e)");
-      var ifBlock = catchBlockWr.NewBlock("if (e instanceof _dafny.HaltException)");
+      var catchBlock = wr.NewBlock("catch (e)");
+      var ifBlock = catchBlock.NewBlock("if (e instanceof _dafny.HaltException)");
       ifBlock.WriteLine($"{haltMessageVar.CompileName} = e.message");
-      var elseBlock = catchBlockWr.NewBlock("else");
+      var elseBlock = catchBlock.NewBlock("else");
       elseBlock.WriteLine("throw e");
       return tryBlock;
     }

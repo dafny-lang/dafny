@@ -5179,7 +5179,7 @@ namespace Microsoft.Dafny.Compilers {
       var stringType = new SeqType(new CharType());
 
       // var success := true;
-      var successVarStmt = Statement.CrateLocalVariable(tok, "success", Expression.CreateBoolLiteral(tok, true));
+      var successVarStmt = Statement.CreateLocalVariable(tok, "success", Expression.CreateBoolLiteral(tok, true));
       TrStmt(successVarStmt, w);
       var successVarExpr = new IdentifierExpr(tok, successVarStmt.Locals[0]);
 
@@ -5191,7 +5191,7 @@ namespace Microsoft.Dafny.Compilers {
             // var haltMessage42 := "";
             var haltMessageVarName = idGenerator.FreshId("haltMessage");
             var emptyStringExpr = Expression.CreateStringLiteral(tok, "");
-            var haltMessageVarStmt = Statement.CrateLocalVariable(tok, haltMessageVarName, emptyStringExpr);
+            var haltMessageVarStmt = Statement.CreateLocalVariable(tok, haltMessageVarName, emptyStringExpr);
             TrStmt(haltMessageVarStmt, w);
             var haltMessageVar = haltMessageVarStmt.Locals[0];
             var haltMessageVarExpr = new IdentifierExpr(tok, haltMessageVar);
@@ -5217,7 +5217,7 @@ namespace Microsoft.Dafny.Compilers {
             }
             if (method.Outs.Count == 1) {
               var resultVarName = idGenerator.FreshId("result");
-              var resultVarStmt = Statement.CrateLocalVariable(tok, resultVarName, method.Outs[0].Type);
+              var resultVarStmt = Statement.CreateLocalVariable(tok, resultVarName, method.Outs[0].Type);
               statements.Add(resultVarStmt);
               var resultVar = resultVarStmt.Locals[0];
               resultVarExpr = new IdentifierExpr(tok, resultVar);
