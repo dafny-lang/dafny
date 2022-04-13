@@ -38,4 +38,12 @@ public abstract class PluginConfiguration {
   public virtual Compiler[] GetCompilers() {
     return Array.Empty<Compiler>();
   }
+
+  /// <summary>
+  /// Override this method to provide quick fixers
+  /// </summary>
+  /// <returns>An array of quick fixers implemented by this plugin</returns>
+  public virtual QuickFixer[] GetQuickFixers() {
+    return Array.Empty<QuickFixer>();
+  }
 }

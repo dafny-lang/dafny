@@ -13,15 +13,18 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
+using Microsoft.Dafny.Plugins;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers {
   public class DafnyCodeActionHandler : CodeActionHandlerBase {
     private readonly ILogger logger;
     private readonly IDocumentDatabase documents;
+    private readonly QuickFixer[] quickFixers;
 
     public DafnyCodeActionHandler(ILogger<DafnyCompletionHandler> logger, IDocumentDatabase documents, ISymbolGuesser symbolGuesser) {
       this.logger = logger;
       this.documents = documents;
+      this.quickFixers = DafnyOptions.O.Plugins.SelectMany(plugin => plugin.GetQuickFixers()).ToArray();
     }
 
     public static (IToken, string, string, bool)
@@ -29,7 +32,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       return (position, leftInsert, rightInsert, removeToken);
     }
 
-    public static List<TextEdit> ToTextEdits(params (IToken token, string leftInsert, string rightInsert, bool remove)[] input) {
+    public static (string, TextEdit[]) CodeAction(string title, params QuickFixEdit[] input) {
       var edits = new List<TextEdit>();
       foreach (var (token, leftInsert, rightInsert, removeToken) in input) {
         if (removeToken) {
@@ -57,57 +60,80 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         }
       }
 
-      return edits;
+      return (title, edits.ToArray());
     }
 
     private class CodeActionProcessor {
+      private readonly QuickFixer[] fixers;
       private readonly DafnyDocument document;
       private readonly CodeActionParams request;
       private readonly CancellationToken cancellationToken;
 
-      public CodeActionProcessor(DafnyDocument document, CodeActionParams request, CancellationToken cancellationToken) {
+      public CodeActionProcessor(QuickFixer[] fixers, DafnyDocument document, CodeActionParams request,
+        CancellationToken cancellationToken) {
+        this.fixers = fixers;
         this.document = document;
         this.request = request;
         this.cancellationToken = cancellationToken;
       }
 
-      public WorkspaceEdit ToWorkspaceEdit(params
-        TextEdit[] edits) {
-        return new WorkspaceEdit() {
-          DocumentChanges = new Container<WorkspaceEditDocumentChange>(
-            new WorkspaceEditDocumentChange(new TextDocumentEdit() {
-              TextDocument = new OptionalVersionedTextDocumentIdentifier() {
-                Uri = document.Uri,
-                Version = document.Version
-              },
-              Edits = new TextEditContainer(edits)
-            })
-          )
-        };
+      public (string, WorkspaceEdit)[] ToWorkspaceEdit(params
+        (string, TextEdit[])[] edits) {
+        return edits.Select(titleEdit =>
+            (titleEdit.Item1, new WorkspaceEdit() {
+              DocumentChanges = new Container<WorkspaceEditDocumentChange>(
+                new WorkspaceEditDocumentChange(new TextDocumentEdit() {
+                  TextDocument = new OptionalVersionedTextDocumentIdentifier() {
+                    Uri = document.Uri,
+                    Version = document.Version
+                  },
+                  Edits = new TextEditContainer(titleEdit.Item2)
+                })
+              )
+            })).ToArray();
       }
 
       public CommandOrCodeActionContainer Process() {
         var edits = GetPossibleEdits();
         var workspaceEdit = ToWorkspaceEdit(edits);
-        return new CommandOrCodeActionContainer(
-          new CodeAction() {
+        var codeActions = workspaceEdit.Select(titleEdit => {
+          CommandOrCodeAction t = new CodeAction() {
             Kind = CodeActionKind.QuickFix,
-            Title = "Mark the first token with a comment",
-            Edit = workspaceEdit
-          });
+            Title = titleEdit.Item1,
+            Edit = titleEdit.Item2
+          };
+          return t;
+        }
+        ).ToArray();
+        return new CommandOrCodeActionContainer(codeActions);
       }
 
-      private TextEdit[] GetPossibleEdits() {
-        var firstToken = document.Program.GetFirstTopLevelToken();
-        var position = firstToken.GetLspPosition();
-        if (position.Line == request.Range.Start.Line) {
-          return ToTextEdits(Edit(
-            firstToken,
-            "/* This is the first token */"
-          )).ToArray();
+      private (string, TextEdit[])[] GetPossibleEdits() {
+        var possibleEdits = new List<(string, TextEdit[])>() { };
+
+        var diagnostics = document.Errors.GetDiagnostics(document.Uri.GetFileSystemPath());
+        foreach (var diagnostic in diagnostics) {
+          if (diagnostic.Range.Contains(request.Range)) {
+            possibleEdits.Add(CodeAction("Wrap the error with comments", new QuickFixEdit(
+              diagnostic.Range.ToBoogieToken(document.Text.Text),
+              "/* Beginning of error */",
+              "/* End of error */"
+            )));
+          }
         }
 
-        return new TextEdit[] { };
+        foreach (var fixer in fixers) {
+          var uniqueKey = document.Uri.ToString();
+          // Maybe we could set the program only once, when resolved, insteda of for every code action?
+          fixer.SetProgram(uniqueKey, document.Program, document.Text.Text, cancellationToken);
+          var fixRange = request.Range.ToBoogieToken(document.Text.Text);
+          var quickFixes = fixer.GetQuickFixes(uniqueKey, fixRange);
+          var fixerCodeActions = quickFixes.Select(quickFix =>
+            CodeAction(quickFix.Title, quickFix.Edits));
+          possibleEdits.AddRange(fixerCodeActions);
+        }
+
+        return possibleEdits.ToArray();
       }
     }
 
@@ -126,10 +152,10 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     public override async Task<CommandOrCodeActionContainer> Handle(CodeActionParams request, CancellationToken cancellationToken) {
       var document = await documents.GetDocumentAsync(request.TextDocument);
       if (document == null) {
-        logger.LogWarning("location requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
+        logger.LogWarning("quick fixes requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
         return new CommandOrCodeActionContainer();
       }
-      return new CodeActionProcessor(document, request, cancellationToken).Process();
+      return new CodeActionProcessor(this.quickFixers, document, request, cancellationToken).Process();
     }
 
     public override Task<CodeAction> Handle(CodeAction request, CancellationToken cancellationToken) {

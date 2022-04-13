@@ -1,4 +1,5 @@
 ﻿using Microsoft.Boogie;
+using Microsoft.Dafny.LanguageServer.Util;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
@@ -45,6 +46,21 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// <returns>The given boogie line and column as a LSP position.</returns>
     public static Position ToLspPosition(int boogieLine, int boogieColumn) {
       return new Position(boogieLine + LineOffset, boogieColumn + ColumnOffset);
+    }
+
+    public static IToken ToBoogieToken(this Position position, string document) {
+      return new Token() {
+        line = position.Line - LineOffset,
+        col = position.Character - ColumnOffset,
+        val = "",
+        pos = position.ToAbsolutePosition(document)
+      };
+    }
+
+    public static IToken ToBoogieToken(this Range range, string document) {
+      var start = range.Start.ToBoogieToken(document);
+      var end = range.End.ToBoogieToken(document);
+      return new RangeToken(start, end);
     }
   }
 }

@@ -10,6 +10,7 @@ using Dafny.Plugins;
 public interface Plugin {
   public IEnumerable<Compiler> GetCompilers();
   public IEnumerable<IRewriter> GetRewriters(ErrorReporter reporter);
+  public IEnumerable<QuickFixer> GetQuickFixers();
 }
 
 public class ConfiguredPlugin : Plugin {
@@ -25,6 +26,10 @@ public class ConfiguredPlugin : Plugin {
 
   public IEnumerable<IRewriter> GetRewriters(ErrorReporter reporter) {
     return configuration.GetRewriters(reporter).Select(rewriter => new PluginRewriter(reporter, rewriter));
+  }
+
+  public IEnumerable<QuickFixer> GetQuickFixers() {
+    return configuration.GetQuickFixers();
   }
 }
 
