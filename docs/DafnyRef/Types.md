@@ -1088,6 +1088,13 @@ with arrays where parallel assignment is needed:
   }
 ```
 
+To convert an array `x` to a sequence, use the `[..]` operator:
+```dafny
+  var intArr: array<int> := new int[] [1, 2, 3];
+  var intSeq: seq<int> := intArr[..];
+  assert intSeq == [1, 2, 3];
+```
+
 ### 10.5.2. Sets
 There is no intrinsic order to the elements of a set. Nevertheless, we can
 extract an arbitrary element of a nonempty set, performing an iteration
