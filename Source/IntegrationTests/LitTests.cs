@@ -60,10 +60,13 @@ namespace IntegrationTests {
           DefaultDafnyArguments :
           DefaultDafnyArguments.Append(extraDafnyArguments);
 
+      var repositoryRoot = Path.GetFullPath("../../../../../"); // Up from Source/IntegrationTests/bin/Debug/net6.0/
+
       var substitutions = new Dictionary<string, string> {
         { "%diff", "diff" },
         { "%binaryDir", "." },
         { "%z3", Path.Join("z3", "bin", "z3") },
+        { "%repositoryRoot", repositoryRoot.Replace(@"\", "/") },
         { "%refmanexamples", Path.Join("TestFiles", "LitTests", "LitTest", "refman", "examples") }
       };
 
