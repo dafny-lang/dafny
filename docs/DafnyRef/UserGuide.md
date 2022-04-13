@@ -103,7 +103,88 @@ on the [Dafny INSTALL page in the wiki](https://github.com/dafny-lang/dafny/wiki
 
 ## 24.6. The Dafny Server
 
-TO BE WRITTEN
+Before Dafny [implemented](https://github.com/dafny-lang/dafny/tree/master/Source/DafnyLanguageServer) the official [Language Server Protocol](https://microsoft.github.io/language-server-protocol/), it implemented its own protocol for [Emacs](https://github.com/boogie-org/boogie-friends), which resulted in a project called [DafnyServer](https://github.com/dafny-lang/dafny/tree/master/Source/DafnyServer).
+
+The Dafny Server has [integration tests](https://github.com/dafny-lang/dafny/tree/master/Test/server) that serve as the basis of the documentation.
+
+The server is essentially a REPL, which produces output in the same format as the Dafny CLI; clients thus
+do not need to understand the internals of Dafny's caching.  A typical editing session proceeds as follows:
+
+* When a new Dafny file is opened, the editor starts a new instance of the
+  Dafny server.  The cache is blank at that point.
+* The editor sends a copy of the buffer for initial verification.  This takes
+  some time, after which the server returns a list of errors.
+* The user makes modifications; the editor periodically sends a new copy of
+  the buffer's contents to the Dafny server, which quickly returns an updated
+  list of errors.
+
+The client-server protocol is sequential, uses JSON, and works over ASCII
+pipes by base64-encoding utf-8 queries.  It defines one type of query, and two
+types of responses:
+
+Queries are of the following form:
+
+     verify
+     <base64 encoded JSON payload>
+     [[DAFNY-CLIENT: EOM]]
+
+Responses are of the following form:
+
+     <list of errors and usual output, as produced by the Dafny CLI>
+     [SUCCESS] [[DAFNY-SERVER: EOM]]
+
+or
+
+     <error message>
+     [FAILURE] [[DAFNY-SERVER: EOM]]
+
+The JSON payload is an utf-8 encoded string resulting of the serialization of
+a dictionary with 4 fields:
+   * args:   An array of Dafny arguments, as passed to the Dafny CLI
+   * source: A Dafny program, or the path to a Dafny source file.
+   * sourceIsFile: A boolean indicating whether the 'source' argument is a
+                   Dafny program or the path to one.
+   * filename:     The name of the original source file, to be used in error
+                   messages
+
+For small files, embedding the Dafny source directly into a message is
+convenient; for larger files, however, it is generally better for performance
+to write the source snapshot to a separate file, and to pass that to Dafny
+by setting the 'sourceIsFile' flag to true.
+
+For example, if you compile and run `DafnyServer.exe`, you could paste the following command:
+
+```dafny
+verify
+eyJhcmdzIjpbIi9jb21waWxlOjAiLCIvcHJpbnRUb29sdGlwcyIsIi90aW1lTGltaXQ6MjAiXSwi
+ZmlsZW5hbWUiOiJ0cmFuc2NyaXB0Iiwic291cmNlIjoibWV0aG9kIEEoYTppbnQpIHJldHVybnMg
+KGI6IGludCkge1xuICBiIDo9IGE7XG4gIGFzc2VydCBmYWxzZTtcbn1cbiIsInNvdXJjZUlzRmls
+ZSI6ZmFsc2V9
+[[DAFNY-CLIENT: EOM]]
+```
+
+The interpreter sees the command `verify`, and then starts reading every line until it sees `[[DAFNY-CLIENT: EOM]]`
+The payload is a base64 encoded string that you could encode or decode using JavaScript's `atob` and `btoa` function.
+For example, the payload above was generated using the following code:
+```js
+btoa(JSON.stringify({
+  "args": [
+    "/compile:0",
+    "/printTooltips",
+    "/timeLimit:20"
+   ],
+   "filename":"transcript",
+   "source":
+`method A(a:int) returns (b: int) {
+   b := a;
+   assert false;
+}
+`,"sourceIsFile": false}))
+=== "eyJhcmdzIjpbIi9jb21waWxlOjAiLCIvcHJpbnRUb29sdGlwcyIsIi90aW1lTGltaXQ6MjAiXSwiZmlsZW5hbWUiOiJ0cmFuc2NyaXB0Iiwic291cmNlIjoibWV0aG9kIEEoYTppbnQpIHJldHVybnMgKGI6IGludCkge1xuICBiIDo9IGE7XG4gIGFzc2VydCBmYWxzZTtcbn1cbiIsInNvdXJjZUlzRmlsZSI6ZmFsc2V9"
+```
+
+Thus to decode such output, you'd manually use `JSON.parse(atob(payload))`.
+The Dafny Server is still supported, but we recommend using the [Language Server](https://github.com/dafny-lang/dafny/tree/master/Source/DafnyLanguageServer) that is both available in Emacs and [VSCode](https://marketplace.visualstudio.com/items?itemName=dafny-lang.ide-vscode). The Language Server also provides features such as ghost highlighting or symbol hovering.
 
 ## 24.7. Using Dafny From the Command Line
 
@@ -156,9 +237,9 @@ exit code.
 
 ## 24.8. Verification
 
-In this section, we suggest a methodology to figure out [why a single assertion might not hold](#sec-verification-debugging), we explain how to [make the verifier more focused on particular assertions](#sec-assertion-batches) to devote more time to prove them, and we also give some more examples of [useful options and attributes to control verification](#sec-command-line-options-and-attributes-for-verification).
+In this section, we suggest a methodology to figure out [why a single assertion might not hold](#sec-verification-debugging), we propose techniques to deal with [assertions that slow a proof down](#sec-verification-debugging-slow), we explain how to [verify assertions in parallel or in a focused way](#sec-assertion-batches), and we also give some more examples of [useful options and attributes to control verification](#sec-command-line-options-and-attributes-for-verification).
 
-### 24.8.1. Verification debugging {#sec-verification-debugging}
+### 24.8.1. Verification debugging when verification fails {#sec-verification-debugging}
 
 Let's assume one assertion is failing ("assertion might not hold" or "postcondition might not hold"). What should you do next?
 
@@ -315,7 +396,261 @@ This list is not exhaustive but can definitely be useful to provide the next ste
   <br><br>`assert forall i | i == m :: P(m);` |  `assert P(m);`<br>`assert forall i | i == m :: P(i);`
   `method m(i) returns (j: T)`<br>&nbsp;&nbsp;`  requires A(i)`<br>&nbsp;&nbsp;`  ensures B(i, j)`<br>`{`<br>&nbsp;&nbsp;`  ...`<br>`}`<br><br>`method n() {`<br>&nbsp;&nbsp;`  ...`<br><br><br>&nbsp;&nbsp;`  var x := m(a);`<br>&nbsp;&nbsp;`  assert P(x);` | `method m(i) returns (j: T)`<br>&nbsp;&nbsp;`  requires A(i)`<br>&nbsp;&nbsp;`  ensures B(i, j)`<br>`{`<br>&nbsp;&nbsp;`  ...`<br>`}`<br><br>`method n() {`<br>&nbsp;&nbsp;`  ...`<br>&nbsp;&nbsp;`  assert A(k);`<br>&nbsp;&nbsp;`  assert forall x :: B(k, x) ==> P(x);`<br>&nbsp;&nbsp;`  var x := m(k);`<br>&nbsp;&nbsp;`  assert P(x);`
 
-### 24.8.2. Assertion batches {#sec-assertion-batches}
+### 24.8.2. Verification debugging when verification is slow {#sec-verification-debugging-slow}
+
+In this section, we describe techniques to apply in the case when verification is slower than expected, does not terminate, or timeouts.
+
+#### 24.8.2.1. `assume false;` {#sec-assume-false}
+
+Assuming `false` is an empirical way to short-circuit the verifier and usually stop verification at a given point[^explainer-assume-false], and since the final compilation steps do not accept this command, it is safe to use it during development.
+Another similar command, `assert false;`, would also short-circuit the verifier, but it would still make the verifier try to prove `false`, which can also lead to timeouts.
+
+[^explainer-assume-false]: `assume false` tells the Dafny verifier "Assume everything is true from this point of the program". The reason is that, 'false' proves anything. For example, `false ==> A` is always true because it is equivalent to `!false || A`, which reduces to `true || A`, which reduces to `true`.
+
+Thus, let us say a program of this shape takes forever to verify.
+
+```dafny
+method NotTerminating(b: bool) {
+   assert X;
+   if b {
+     assert Y;
+   } else {
+     assert Z;
+     assert P;
+   }
+}
+```
+
+What we can first do is add an `assume false` at the beginning of the method:
+
+```dafny
+method NotTerminating() {
+   assume false; // Will never compile, but everything verifies instantly
+   assert X;
+   if b {
+     assert Y;
+   } else {
+     assert Z;
+     assert P;
+   }
+   assert W;
+}
+```
+
+This verifies instantly. This gives use a strategy to bissect, or do binary search to find the assertion that slows everything down.
+Now, we move the `assume false;` below the next assertion:
+
+```dafny
+method NotTerminating() {
+   assert X;
+   assume false;
+   if b {
+     assert Y;
+   } else {
+     assert Z;
+     assert P;
+   }
+   assert W;
+}
+```
+
+If verification is slow again, we can use [techniques seen before](#sec-verification-debugging) to decompose the assertion and find which component is slow to prove.
+
+If verification is fast, that's the sign that `X` is probably not the problem,. We now move the `assume false;` after the if/then block:
+
+```dafny
+method NotTerminating() {
+   assert X;
+   if b {
+     assert Y;
+   } else {
+     assert Z;
+     assert P;
+   }
+   assume false;
+   assert W;
+}
+```
+
+Now, if verification is fast, we know that `assert W;` is the problem. If it is slow, we know that one of the two branches of the `if` is the problem.
+The next step is to put an `assume false;` at the end of the `then` branch, and an `assume false` at the beginning of the else branch:
+
+```dafny
+method NotTerminating() {
+   assert X;
+   if b {
+     assert Y;
+     assume false;
+   } else {
+     assume false;
+     assert Z;
+     assert P;
+   }
+   assert W;
+}
+```
+
+Now, if verification is slow, it means that `assert Y;` is the problem.
+If verification is fast, it means that the problem lies in the `else` branch.
+One trick to ensure we measure the verification time of the `else` branch and not the then branch is to move the first `assume false;` to the top of the then branch, along with a comment indicating that we are short-circuiting it for now.
+Then, we can move the second `assume false;` down and identify which of the two assertions makes the verifier to be slow.
+
+
+```dafny
+method NotTerminating() {
+   assert X;
+   if b {
+     assume false; // Short-circuit because this branch is verified anyway
+     assert Y;
+   } else {
+     assert Z;
+     assume false;
+     assert P;
+   }
+   assert W;
+}
+```
+
+If verification is fast, which of the two assertions `assert Z;` or `assert P;` causes the slowdown?[^answer-slowdown]
+
+[^answer-slowdown]: `assert P;`.
+
+We now hope you know enough of `assume false;` to locate assertions that make verification slow.
+Nest, we will describe some other strategies at the assertion level to figure out what happens and perhaps fix it.
+
+#### 24.8.2.2. `assert ... by {}` {#sec-verification-debugging-assert-by}
+
+If an assertion `assert X;` is slow, it is possible that calling a lemma or invoking other assertions can help proving it: The postcondition of this lemma, or the added assertions, could help the Dafny verifier figure out faster how to prove the result.
+
+```dafny
+  assert SOMETHING_HELPING_TO_PROVE_LEMMA_PRECONDITION;
+  LEMMA();
+  assert X;
+...
+lemma () 
+  requires LEMMA_PRECONDITION
+  ensures X { ... }
+```
+
+However, this approach has the problem that it exposes the asserted expressions and lemma postconditions not only for the assertion we want to prove faster,
+but also for every assertion that appears afterwards. This can result in slowdowns[^verifier-lost].
+A good practice consists of wrapping the intermediate verification steps in an `assert ... by {}`, like this:
+
+
+```dafny
+  assert X by {
+    assert SOMETHING_HELPING_TO_PROVE_LEMMA_PRECONDITION;
+    LEMMA();
+  }
+```
+
+Now, only `X` is available for the Dafny Verifier to prove the rest of the method.
+
+[^verifier-lost]: By default, the expression of an assertion or a precondition is added to the knowledge base of the Dafny verifier for further assertions or postconditions. However, this is not always desirable, because if the verifier has too much knowledge, it might get lost trying to prove something in the wrong direction.
+
+#### 24.8.2.3. Labeling and revealing assertions {#sec-labeling-revealing-assertions}
+
+Another way to prevent assertions or preconditions from cluttering the verifier[^verifier-lost] is to label and reveal them.
+Labeling an assertion has the effect of "hiding" its result, until there is a "reveal" calling that label.
+
+The example of the [previous section](#sec-verification-debugging-assert-by) could be written like this.
+
+```dafny
+  assert p: SOMETHING_HELPING_TO_PROVE_LEMMA_PRECONDITION;
+  // p is not available here.
+  assert X by {
+    reveal p;
+    LEMMA();
+  }
+```
+
+Similarly, if a precondition is only needed to prove a specific result in a method, one can label and reveal the precondition, like this:
+
+```dafny
+method Slow(i: int, j: int)
+  requires greater: i > j {
+  
+  assert i >= j by {
+    reveal greater;
+  }
+}
+```
+
+#### 24.8.2.4. Non-opaque `function method` {#sec-non-opaque-function-method}
+
+Functions are normally used for specifications, but their functional syntax is sometimes also desirable to write application code.
+However, doing so naively results in the body of a `function method Fun()` be available for every caller, which can cause the verifier to time out or get extremely slow[^verifier-lost].
+A solution for that is to add the attribute [`{:opaque}`](#sec-opaque) right between `function method` and `Fun()`, and use [`reveal Fun();`](#sec-reveal-statement) in the calling functions or methods when needed.
+
+#### 24.8.2.5. Conversion to and from bitvectors {#sec-conversion-to-and-from-bitvectors}
+
+Bitvectors and natural integers are very similar, but they are not treated the same by the Dafny verifier. As such, conversion from `bv8` to an `int` and vice-versa is not straightforward, and can result in slowdowns.
+
+There are two solutions to this for now. First, one can define a [subset type](#sec-subset-types) instead of using the built-in type `bv8`:
+
+```dafny
+type byte = x | 0 <= x < 256
+```
+
+One of the problems of this approach is that additions, substractions and multiplications do not enforce the result to be in the same bounds, so it would have to be checked, and possibly truncated with modulos. For example:
+
+```dafny
+  var a: byte := 250;
+  var b: byte := 200;
+  var c := b - a;               // inferred to be an 'int', its value will be 50.
+  var d := a + b;               // inferred to be an 'int', its value will be 450.
+  var e := (a + b) % 256;       // still inferred to be an 'int'...
+  var f: byte := (a + b) % 256; // OK
+```
+
+A better solution consists of creating a [newtype](#sec-newtypes) that will have the ability to check bounds of arithmetic expressions, and can actually be compiled to bitvectors as well.
+
+```dafny
+newtype {:nativeType "char"} byte = x | 0 <= x < 256
+  var a: byte := 250;
+  var b: byte := 200;
+  var c := b - a; // OK, inferred to be a byte
+  var d := a + b; // Error: cannot prove that the result of a + b is of type `byte`.
+  var f := ((a as int + b as int) % 256) as byte // OK
+```
+
+One might consider refactoring this code into separate functions if used over and over.
+
+#### 24.8.2.6. Nested loops {#sec-nested-loops}
+
+In the case of nested loops, the verifier might timeout sometimes because of the information available[^verifier-lost].
+One way to mitigate this problem, when it happens, is to isolate the inner loop by refactoring it into a separate method, with suitable pre and postconditions that will usually assume and prove the invariant again.
+For example,
+
+```dafny
+`while X
+   invariant Y
+ {
+   while X'
+     invariant Y'
+   {
+ 
+   }
+ }
+```
+
+could be refactored as this:
+
+```dafny
+`while X
+   invariant Y
+ {
+   innerLoop();
+ }
+...
+method innerLoop()
+  require Y'
+  ensures Y'
+```
+
+In the next section, when everything can be proven in a timely manner, we explain another strategy to decrease proof time by parallelizing it if needed, and making the verifier focus on certain parts.
+
+### 24.8.3. Assertion batches {#sec-assertion-batches}
 
 To understand how to control verification,
 it is first useful to understand how Dafny verifies functions and methods.
@@ -381,9 +716,9 @@ The fundamental unit of verification in Dafny is an _assertion batch_, which con
 
 [^caveat-about-assertion-and-assumption]: Caveat about assertion and assumption: One big difference between an "assertion transformed in an assumption" and the original "assertion" is that the original "assertion" can unroll functions twice, whereas the "assumed assertion" can unroll them only once. Hence, Dafny can still continue to analyze assertions after a failing assertion without automatically proving "false" (which would make all further assertions vacuous).
 
-[^smaller-batches]: To create a smaller batch, Dafny duplicates the assertion batch, and transforms each assertion into an assumption into exactly one batch, so that assertions are verified only in one batch. This results in "easier" formulas for the verifier because it has less to prove, but it takes more overhead because every verification instance have a common set of axioms and there is no knowledge sharing between instances because they run independently.
+[^smaller-batches]: To create a smaller batch, Dafny duplicates the assertion batch, and arbitrarily transforms the clones of an assertion into assumptions except in exactly one batch, so that each assertion is verified only in one batch. This results in "easier" formulas for the verifier because it has less to prove, but it takes more overhead because every verification instance have a common set of axioms and there is no knowledge sharing between instances because they run independently.
 
-### 24.8.3. Controlling assertion batches {#sec-assertion-batches-control}
+#### 24.8.3.1. Controlling assertion batches {#sec-assertion-batches-control}
 
 Here is how you can control how Dafny partitions assertions into batches.
 
@@ -534,9 +869,9 @@ Remember that options can be stated with either a leading `/` or a leading `-`.
 
 ### 24.10.2. Controlling errors and exit codes
 
-* `-countVerificationErrors:<n>` - if 0 then always exit with a 0 exit code; if 1 (the default) then use the usual exit code
+* `-countVerificationErrors:<n>` - if 0 then always exit with a 0 exit code, regardless of whether errors are found.  If 1 (the default) then use the usual exit code.  This option is deprecated.
 
-TO BE WRITTEN
+* `-warningsAsErrors` - treat warnings as errors
 
 ### 24.10.3. Controlling output {#sec-controlling-output}
 
@@ -599,8 +934,8 @@ PROVER_OPTIONS="\
   "
 
 "$DOTNET" "$BOOGIE" $BOOGIE_OPTIONS $PROVER_OPTIONS "$@"
-# Uncomment if you want to use the executable instead of the DLL
-# "$BOOGIE" $BOOGIE_OPTIONS $PROVER_OPTIONS "$@"
+#Uncomment if you want to use the executable instead of the DLL
+#"$BOOGIE" $BOOGIE_OPTIONS $PROVER_OPTIONS "$@"
 ```
 
 ### 24.10.7. Controlling the prover

@@ -367,7 +367,9 @@ namespace Microsoft.Dafny {
       // Check that none of the modules have the same CompileName.
       Dictionary<string, ModuleDefinition> compileNameMap = new Dictionary<string, ModuleDefinition>();
       foreach (ModuleDefinition m in prog.CompileModules) {
-        if (m.IsAbstract) {
+        var compileIt = true;
+        Attributes.ContainsBool(m.Attributes, "compile", ref compileIt);
+        if (m.IsAbstract || !compileIt) {
           // the purpose of an abstract module is to skip compilation
           continue;
         }
@@ -558,7 +560,7 @@ namespace Microsoft.Dafny {
           ModuleSignature p;
           if (ResolveExport(abs, abs.EnclosingModuleDefinition, abs.QId, abs.Exports, out p, reporter)) {
             abs.OriginalSignature = p;
-            abs.Signature = MakeAbstractSignature(p, abs.FullCompileName, abs.Height, prog.ModuleSigs, compilationModuleClones);
+            abs.Signature = MakeAbstractSignature(p, abs.FullSanitizedName, abs.Height, prog.ModuleSigs, compilationModuleClones);
           } else {
             abs.Signature = new ModuleSignature(); // there was an error, give it a valid but empty signature
           }
@@ -3003,7 +3005,7 @@ namespace Microsoft.Dafny {
             if (k.Type.IsBigOrdinalType) {
               kk = new MemberSelectExpr(k.tok, new IdentifierExpr(k.tok, k.Name), "Offset");
               // As an "else" branch, we add recursive calls for the limit case.  When automatic induction is on,
-              // this get handled automatically, but we still want it in the case when automatic inductino has been
+              // this get handled automatically, but we still want it in the case when automatic induction has been
               // turned off.
               //     forall k', params | k' < _k && Precondition {
               //       pp(k', params);
@@ -3029,7 +3031,7 @@ namespace Microsoft.Dafny {
 
               Expression recursiveCallReceiver;
               List<Expression> recursiveCallArgs;
-              Translator.RecursiveCallParameters(com.tok, prefixLemma, prefixLemma.TypeArgs, prefixLemma.Ins, substMap, out recursiveCallReceiver, out recursiveCallArgs);
+              Translator.RecursiveCallParameters(com.tok, prefixLemma, prefixLemma.TypeArgs, prefixLemma.Ins, null, substMap, out recursiveCallReceiver, out recursiveCallArgs);
               var methodSel = new MemberSelectExpr(com.tok, recursiveCallReceiver, prefixLemma.Name);
               methodSel.Member = prefixLemma;  // resolve here
               methodSel.TypeApplication_AtEnclosingClass = prefixLemma.EnclosingClass.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.tok, tp));
@@ -15667,16 +15669,23 @@ namespace Microsoft.Dafny {
       candidateResultCtors.Reverse();
       foreach (var crc in candidateResultCtors) {
         // Build the arguments to the datatype constructor, using the updated value in the appropriate slot
-        var ctor_args = new List<Expression>();
+        var ctorArguments = new List<Expression>();
+        var actualBindings = new List<ActualBinding>();
         foreach (var f in crc.Formals) {
-          Tuple<BoundVar/*let variable*/, IdentifierExpr/*id expr for let variable*/, Expression /*RHS in given syntax*/> info;
-          if (rhsBindings.TryGetValue(f.Name, out info)) {
-            ctor_args.Add(info.Item2 ?? info.Item3);
+          Expression ctorArg;
+          if (rhsBindings.TryGetValue(f.Name, out var info)) {
+            ctorArg = info.Item2 ?? info.Item3;
           } else {
-            ctor_args.Add(new ExprDotName(tok, d, f.Name, null));
+            ctorArg = new ExprDotName(tok, d, f.Name, null);
           }
+          ctorArguments.Add(ctorArg);
+          var bindingName = new Token(tok.line, tok.col) {
+            filename = tok.filename,
+            val = f.Name
+          };
+          actualBindings.Add(new ActualBinding(bindingName, ctorArg));
         }
-        var ctor_call = new DatatypeValue(tok, crc.EnclosingDatatype.Name, crc.Name, ctor_args.ConvertAll(e => new ActualBinding(null, e)));
+        var ctor_call = new DatatypeValue(tok, crc.EnclosingDatatype.Name, crc.Name, actualBindings);
         ResolveDatatypeValue(opts, ctor_call, dt, root.Type.NormalizeExpand());  // resolve to root.Type, so that type parameters get filled in appropriately
         if (body == null) {
           body = ctor_call;
@@ -17297,6 +17306,7 @@ namespace Microsoft.Dafny {
       }
       return Expression.CreateBoolLiteral(e.tok, true);
     }
+
     /// <summary>
     /// Returns the set of free variables in "expr".
     /// Requires "expr" to be successfully resolved.
