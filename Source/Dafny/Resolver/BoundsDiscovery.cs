@@ -251,10 +251,10 @@ namespace Microsoft.Dafny {
       return bounds;
     }
 
-    private static void DiscoverBoundsFunctionCallExpr<VT>(FunctionCallExpr fce, VT bv, List<ComprehensionExpr.BoundedPool> bounds)
+    private static void DiscoverBoundsFunctionCallExpr<VT>(FunctionCallExpr fce, VT boundVariable, List<ComprehensionExpr.BoundedPool> bounds)
       where VT : IVariable {
       Contract.Requires(fce != null);
-      Contract.Requires(bv != null);
+      Contract.Requires(boundVariable != null);
       Contract.Requires(bounds != null);
 
       var older = GetOlderParameters(fce.Function);
@@ -264,7 +264,7 @@ namespace Microsoft.Dafny {
 
       // local worker function:
       bool DoesOlderApply(Expression e, string formalName) {
-        return e.Resolved is IdentifierExpr ide && ide.Var == (IVariable)bv && older.Contains(formalName);
+        return e.Resolved is IdentifierExpr ide && ide.Var == (IVariable)boundVariable && older.Contains(formalName);
       }
 
       var isOlderArgument = false;
