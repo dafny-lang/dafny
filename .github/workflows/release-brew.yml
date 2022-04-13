@@ -31,7 +31,7 @@ jobs:
         dotnet --list-sdks
         go version
         node --version
-        java --version
+        java -version
     - name: Check
       run: dafny /compile:0 a.dfy
     - name: Check bad
