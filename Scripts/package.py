@@ -226,11 +226,7 @@ def path_leaf(path):
     return tail or ntpath.basename(head)
 
 def pathsInDirectory(directory):
-    l1 = list(map(lambda file: path.join(directory, file), os.listdir(directory)))
-    l2 = [path.join(directory, file) for file in os.listdir(directory)]
-    assert l1 == l2
     return [path.join(directory, file) for file in os.listdir(directory) if not file.endswith(".pdb")]
-    return l2
 
 def download(releases):
     flush("  - Downloading {} z3 archives".format(len(releases)))
