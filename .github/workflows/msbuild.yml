@@ -28,7 +28,7 @@ jobs:
       id: boogieVersion
       uses: QwerMike/xpath-action@v1
       with:
-        filename: 'dafny/Source/Directory.Build.props'
+        filename: 'dafny/Source/Dafny/DafnyPipeline.csproj'
         expression: "//PackageReference[@Include='Boogie.ExecutionEngine']/@Version"
 
     - uses: actions-ecosystem/action-regex-match@v2

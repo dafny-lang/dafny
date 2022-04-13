@@ -82,7 +82,10 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         DafnyOptions.O.Printer = printer;
 
         var executionEngine = new ExecutionEngine(DafnyOptions.O, cache);
-        var translated = Translator.Translate(program, errorReporter, new Translator.TranslatorFlags { InsertChecksums = true });
+        var translated = Translator.Translate(program, errorReporter, new Translator.TranslatorFlags {
+          InsertChecksums = true,
+          ReportRanges = true
+        });
         var moduleTasks = translated.Select(t => {
           var (moduleName, boogieProgram) = t;
           var programId = program.FullName;
