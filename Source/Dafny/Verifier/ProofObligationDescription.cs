@@ -235,6 +235,19 @@ public class IsAllocated : ProofObligationDescription {
   }
 }
 
+public class IsOlder : ProofObligationDescription {
+  public override string SuccessDescription =>
+    "the ':older' parameters are not newer than any other parameter when the predicate returns 'true'";
+
+  public override string FailureDescription =>
+    "an ':older' parameter might be newer than all non-':older' parameters when the predicate returns 'true'";
+
+  public override string ShortDescription => ":older parameter";
+
+  public IsOlder() {
+  }
+}
+
 //// Contract constraints
 
 public class PreconditionSatisfied : ProofObligationDescription {

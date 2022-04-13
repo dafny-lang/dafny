@@ -4295,8 +4295,7 @@ namespace Microsoft.Dafny {
         var olderParameters = Resolver.GetOlderParameters(f);
         if (olderParameters != null) {
           var q = OlderCondition(f, funcAppl, implInParams, olderParameters, new Dictionary<IVariable, Expression>());
-          bodyCheckBuilder.Add(Assert(f.tok, q,
-            "failed to verify that the ':older' parameters are not newer than any other parameter when the predicate returns 'true'"));
+          bodyCheckBuilder.Add(Assert(f.tok, q, new PODesc.IsOlder()));
         }
       }
       // Combine the two, letting the postcondition be checked on after the "bodyCheckBuilder" branch
