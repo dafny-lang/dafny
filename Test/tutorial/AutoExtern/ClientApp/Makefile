@@ -1,4 +1,5 @@
-AutoExtern := ../../../../Source/AutoExtern/AutoExtern.csproj
+ROOT ?= ../../../../
+AutoExtern := $(ROOT)/Source/AutoExtern/AutoExtern.csproj
 
 LibraryProjectFile := ../Library/Library.csproj
 LibrarySourceFile := ../Library/Library.cs

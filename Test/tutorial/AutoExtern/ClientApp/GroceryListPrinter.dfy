@@ -1,4 +1,4 @@
-// RUN: make --quiet -C %S dotnet-run > %t
+// RUN: make --quiet ROOT=%repositoryRoot -C %S dotnet-run > %t
 // RUN: %diff "%s.expect" "%t"
 
 /// # C#/Dafny interop: Dafny side
