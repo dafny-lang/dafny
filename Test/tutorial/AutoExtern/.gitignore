@@ -1,3 +1,4 @@
 obj/
 bin/
 !*.cs
+/ClientApp/LibraryModel.dfy
