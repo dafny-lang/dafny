@@ -16,7 +16,7 @@ predicate {:older x} Trivial2(x: int, s: set<int>) {
 }
 
 // ----------------------------------
-/******************* The following tests depend on https://github.com/dafny-lang/dafny/pull/1935. They should be included once #1935 has been merged.
+
 predicate {:older x} Trivial3<X(!new)>(x: X, s: set<X>) {
   true
 }
@@ -28,7 +28,7 @@ predicate {:older x} Trivial4<X(!new)>(x: X, s: set<X>) {
 predicate {:older x} Trivial5<X(!new)>(x: X, s: set<X>) {
   x !in s
 }
-*******************/
+
 // ----------------------------------
 
 predicate {:older x} Simple0<X>(x: X, s: set<X>) { // error: x is not older
