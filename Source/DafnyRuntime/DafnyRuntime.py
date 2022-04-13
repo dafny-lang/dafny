@@ -89,25 +89,21 @@ class BigRational(Fraction):
         return f"{sign}0.{'0' * (shift - len(digits))}{digits}"
 
     @staticmethod
-    def deleteFactor(f, x):
+    def isolateFactor(f, x):
         y = 0
-        while True:
-            if x > 1 and x % f == 0:
-                y += 1
-                x //= f
-            else:
-                return x == 1, x, y
+        while x > 1 and x % f == 0:
+            y += 1
+            x //= f
+        return x, y
 
     @staticmethod
     def devidesAPowerOf10(x):
-        c, rem, expA = BigRational.deleteFactor(10, x)
-        if c:
-            return True, 1, expA
-        if rem % 5 == 0 or rem % 2 == 0:
+        rem, expA = BigRational.isolateFactor(10, x)
+        if rem % 5 == 0 or rem % 2 == 0 or rem == 1:
             major, minor = (5, 2) if rem % 5 == 0 else (2, 5)
-            c, _, expB = BigRational.deleteFactor(major, rem)
-            return c, minor**expB, expA+expB
-        return False, -1, -1
+            rem, expB = BigRational.isolateFactor(major, rem)
+            return rem == 1, minor**expB, expA+expB
+        return False, None, None
 
 def PlusChar(a, b):
     return chr(ord(a) + ord(b))
