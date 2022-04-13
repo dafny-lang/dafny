@@ -1,5 +1,5 @@
 diff --git a/Source/Dafny.sln b/Source/Dafny.sln
-index 36bb4d93..7194b644 100644
+index 36bb4d93b..0dea612cf 100644
 --- a/Source/Dafny.sln
 +++ b/Source/Dafny.sln
 @@ -30,6 +30,34 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DafnyTestGeneration", "Dafn
@@ -130,16 +130,16 @@ index 36bb4d93..7194b644 100644
 +		{1EE372AA-4FF9-47FB-9C04-18CBF219F6E8} = {60332269-9C5D-465E-8582-01F9B738BD90}
 +	EndGlobalSection
  EndGlobal
-diff --git a/Source/Directory.Build.props b/Source/Directory.Build.props
-index 30e67936..64a5a976 100644
---- a/Source/Directory.Build.props
-+++ b/Source/Directory.Build.props
-@@ -7,7 +7,7 @@
- 
-   <!-- Boogie dependency -->
-   <ItemGroup>
--    <PackageReference Include="Boogie.ExecutionEngine" Version="2.13.4" />
-+    <ProjectReference Include="..\..\boogie\Source\ExecutionEngine\ExecutionEngine.csproj" />
+diff --git a/Source/Dafny/DafnyPipeline.csproj b/Source/Dafny/DafnyPipeline.csproj
+index 6ea0de067..ca1e0e527 100644
+--- a/Source/Dafny/DafnyPipeline.csproj
++++ b/Source/Dafny/DafnyPipeline.csproj
+@@ -25,7 +25,7 @@
+       <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="3.7.0" />
+       <PackageReference Include="System.Runtime.Numerics" Version="4.3.0" />
+       <PackageReference Include="System.Collections.Immutable" Version="1.7.0" />
+-      <PackageReference Include="Boogie.ExecutionEngine" Version="2.13.4" />
++      <ProjectReference Include="..\..\boogie\Source\ExecutionEngine\ExecutionEngine.csproj" />
    </ItemGroup>
  
- </Project>
+   <ItemGroup>
