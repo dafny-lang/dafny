@@ -103,7 +103,7 @@ class BigRational(Fraction):
         if rem % 5 == 0 or rem % 2 == 0 or rem == 1:
             major, minor = (5, 2) if rem % 5 == 0 else (2, 5)
             rem, expB = BigRational.isolateFactor(major, rem)
-            return minor**expB, expA+expB if rem == 1 else None
+            return (minor**expB, expA+expB) if rem == 1 else None
         return None
 
 def PlusChar(a, b):
