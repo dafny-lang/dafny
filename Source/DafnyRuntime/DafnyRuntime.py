@@ -105,7 +105,7 @@ class BigRational(Fraction):
             return True, 1, expA
         if rem % 5 == 0 or rem % 2 == 0:
             major, minor = (5, 2) if rem % 5 == 0 else (2, 5)
-            c, rem, expB = BigRational.deleteFactor(major, rem)
+            c, _, expB = BigRational.deleteFactor(major, rem)
             return c, minor**expB, expA+expB
         return False, -1, -1
 
