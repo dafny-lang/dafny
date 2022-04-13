@@ -74,38 +74,40 @@ class BigOrdinal:
 
 class BigRational(Fraction):
     def __str__(self):
-        if (self.denominator == 1):
+        if self.denominator == 1:
             return f"{self.numerator}.0"
-        try:
-            log10 = self.intLog10(self.denominator)
-        except ValueError:
+        decimal, compensation, shift = self.devidesAPowerOf10(self.denominator)
+        if not decimal:
             return f"{self.numerator}.0 / {self.denominator}.0"
-        if(self.numerator < 0):
-            sign = "-"
-            digits = str(-self.numerator)
+        if self.numerator < 0:
+            sign, digits = "-", str(-self.numerator*compensation)
         else:
-            sign = ""
-            digits = str(self.numerator)
-        if log10 < len(digits):
-            n = len(digits) - log10
+            sign, digits = "", str(self.numerator*compensation)
+        if shift < len(digits):
+            n = len(digits) - shift
             return f"{sign}{digits[:n]}.{digits[n:]}"
-        else:
-            return f"{sign}0.{'0' * (log10 - len(digits))}{digits}"
+        return f"{sign}0.{'0' * (shift - len(digits))}{digits}"
 
     @staticmethod
-    def intLog10(i):
-        log10 = 0
-        if i == 0:
-            raise ValueError("must be called with a power of 10")
-        # invariant: x != 0 && x * 10^log10 == old(x)
+    def deleteFactor(f, x):
+        y = 0
         while True:
-            if i == 1:
-                return log10
-            elif i % 10 == 0:
-                log10 += 1
-                i //= 10
+            if x > 1 and x % f == 0:
+                y += 1
+                x //= f
             else:
-                raise ValueError("must be called with a power of 10")
+                return x == 1, x, y
+
+    @staticmethod
+    def devidesAPowerOf10(x):
+        c, rem, expA = BigRational.deleteFactor(10, x)
+        if c:
+            return True, 1, expA
+        if rem % 5 == 0 or rem % 2 == 0:
+            major, minor = (5, 2) if rem % 5 == 0 else (2, 5)
+            c, rem, expB = BigRational.deleteFactor(major, rem)
+            return c, minor**expB, expA+expB
+        return False, -1, -1
 
 def PlusChar(a, b):
     return chr(ord(a) + ord(b))
