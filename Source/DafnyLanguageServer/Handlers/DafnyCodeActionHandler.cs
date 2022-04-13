@@ -14,6 +14,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
 using Microsoft.Dafny.Plugins;
+using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers {
   public class DafnyCodeActionHandler : CodeActionHandlerBase {
@@ -53,7 +54,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           if (rightInsert != "") {
             var endPos = BoogieExtensions.ToLspPosition(token.line, token.col + token.val.Length);
             edits.Add(new TextEdit() {
-              NewText = leftInsert,
+              NewText = rightInsert,
               Range = (endPos, endPos)
             });
           }
@@ -68,6 +69,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       private readonly DafnyDocument document;
       private readonly CodeActionParams request;
       private readonly CancellationToken cancellationToken;
+      private string documentText;
 
       public CodeActionProcessor(QuickFixer[] fixers, DafnyDocument document, CodeActionParams request,
         CancellationToken cancellationToken) {
@@ -75,6 +77,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         this.document = document;
         this.request = request;
         this.cancellationToken = cancellationToken;
+        this.documentText = document.Text.Text;
       }
 
       public (string, WorkspaceEdit)[] ToWorkspaceEdit(params
@@ -108,25 +111,65 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         return new CommandOrCodeActionContainer(codeActions);
       }
 
+      private string Extract(Range range, string text) {
+        var token = range.ToBoogieToken(text);
+        var startTokenPos = token.StartToken.pos;
+        var endTokenPos = token.EndToken.pos + token.EndToken.val.Length;
+        var length = endTokenPos - startTokenPos;
+        if (startTokenPos < 0 || endTokenPos < startTokenPos || endTokenPos >= text.Length) {
+          return ""; // Safeguard
+        }
+
+        return text.Substring(startTokenPos, length);
+      }
+
+      private string GetIndentationAfter(Range rangeToken, string text) {
+        var token = rangeToken.ToBoogieToken(text);
+        var pos = token.pos + token.val.Length;
+        var c = text[pos];
+        var indentation = "";
+        while (pos < text.Length && (text[pos] == ' ' || text[pos] == '\n' || text[pos] == '\r')) {
+          if (text[pos] == ' ') {
+            indentation += " ";
+          } else {
+            indentation = "";
+          }
+          pos++;
+        }
+
+        if (pos < text.Length && text[pos] == '}') {
+          indentation += "  ";
+        }
+
+        return indentation;
+      }
+
       private (string, TextEdit[])[] GetPossibleEdits() {
         var possibleEdits = new List<(string, TextEdit[])>() { };
 
-        var diagnostics = document.Errors.GetDiagnostics(document.Uri.GetFileSystemPath());
+        var uri = document.Uri.GetFileSystemPath();
+        var diagnostics = document.Errors.GetDiagnostics(uri);
         foreach (var diagnostic in diagnostics) {
-          if (diagnostic.Range.Contains(request.Range)) {
-            possibleEdits.Add(CodeAction("Wrap the error with comments", new QuickFixEdit(
-              diagnostic.Range.ToBoogieToken(document.Text.Text),
-              "/* Beginning of error */",
-              "/* End of error */"
-            )));
+          if (diagnostic.Range.Contains(request.Range) && diagnostic.Source == MessageSource.Verifier.ToString()) {
+            if (diagnostic.RelatedInformation?.FirstOrDefault() is { } relatedInformation) {
+              if (relatedInformation.Location.Uri == uri) {
+                var relatedRange = relatedInformation.Location.Range;
+                var expression = Extract(relatedRange, documentText);
+                var indentation = GetIndentationAfter(diagnostic.Range, documentText);
+                possibleEdits.Add(CodeAction("Insert the failing error", new QuickFixEdit(
+                    diagnostic.Range.ToBoogieToken(documentText),
+                    insertAfter: $"\n{indentation}assert {expression};"
+                  )));
+              }
+            }
           }
         }
 
         foreach (var fixer in fixers) {
           var uniqueKey = document.Uri.ToString();
           // Maybe we could set the program only once, when resolved, insteda of for every code action?
-          fixer.SetProgram(uniqueKey, document.Program, document.Text.Text, cancellationToken);
-          var fixRange = request.Range.ToBoogieToken(document.Text.Text);
+          fixer.SetProgram(uniqueKey, document.Program, documentText, cancellationToken);
+          var fixRange = request.Range.ToBoogieToken(documentText);
           var quickFixes = fixer.GetQuickFixes(uniqueKey, fixRange);
           var fixerCodeActions = quickFixes.Select(quickFix =>
             CodeAction(quickFix.Title, quickFix.Edits));

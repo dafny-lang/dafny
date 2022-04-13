@@ -57,7 +57,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       };
     }
 
-    public static IToken ToBoogieToken(this Range range, string document) {
+    public static RangeToken ToBoogieToken(this Range range, string document) {
       var start = range.Start.ToBoogieToken(document);
       var end = range.End.ToBoogieToken(document);
       return new RangeToken(start, end);
