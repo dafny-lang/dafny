@@ -28,7 +28,7 @@ namespace Microsoft.Dafny {
         //this adds: function implements$J(Ty, typeArgs): bool;
         var arg_ref = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, "ty", predef.Ty), true);
         var vars = new List<Bpl.Variable> { arg_ref };
-        vars.AddRange(MkTyParamFormals(GetTypeParams(c)));
+        vars.AddRange(MkTyParamFormals(GetTypeParams(c), false));
         var res = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
         var implement_intr = new Bpl.Function(c.tok, "implements$" + c.FullSanitizedName, vars, res);
         sink.AddTopLevelDeclaration(implement_intr);
@@ -842,7 +842,7 @@ namespace Microsoft.Dafny {
       }
 
       // parameters of the procedure
-      var typeInParams = MkTyParamFormals(GetTypeParams(f));
+      var typeInParams = MkTyParamFormals(GetTypeParams(f), true);
       var inParams = new List<Variable>();
       var outParams = new List<Boogie.Variable>();
       if (!f.IsStatic) {
