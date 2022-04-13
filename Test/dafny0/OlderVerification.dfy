@@ -259,3 +259,43 @@ module AttributeDocumentationTests {
     iset x: X | P(x, y)
   }
 }
+
+// ----------------------------------
+
+module VariationsOnPlurals {
+  type X
+
+  predicate {:older a} One_None(a: X) { // error: x is not older
+    true
+  }
+
+  predicate {:older a} One_One(a: X, b: X) { // error: x is not older
+    true
+  }
+
+  predicate {:older a} One_Many(a: X, b: X, c: X) { // error: x is not older
+    true
+  }
+
+  predicate {:older a, b} Many_None(a: X, b: X) { // error: x is not older
+    true
+  }
+
+  predicate {:older a, b} Many_One(a: X, b: X, c: X) { // error: x is not older
+    true
+  }
+
+  predicate {:older a, b} Many_Many(a: X, b: X, c: X, d: X) { // error: x is not older
+    true
+  }
+
+  class C {
+    predicate {:older a} One_OneWithThis(a: X) { // error: x is not older
+      true
+    }
+
+    predicate {:older a} One_ManyWithThis(a: X, b: X) { // error: x is not older
+      true
+    }
+  }
+}

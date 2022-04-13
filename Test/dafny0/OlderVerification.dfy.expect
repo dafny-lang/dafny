@@ -1,7 +1,15 @@
-OlderVerification.dfy(89,23): Error: an ':older' parameter might be newer than all non-':older' parameters when the predicate returns 'true'
-OlderVerification.dfy(141,23): Error: an ':older' parameter might be newer than all non-':older' parameters when the predicate returns 'true'
-OlderVerification.dfy(168,23): Error: an ':older' parameter might be newer than all non-':older' parameters when the predicate returns 'true'
-OlderVerification.dfy(34,21): Error: an ':older' parameter might be newer than all non-':older' parameters when the predicate returns 'true'
-OlderVerification.dfy(42,21): Error: an ':older' parameter might be newer than all non-':older' parameters when the predicate returns 'true'
+OlderVerification.dfy(89,23): Error: the ':older' parameter might be newer than all non-':older' parameters when the predicate returns 'true'
+OlderVerification.dfy(141,23): Error: the ':older' parameter might be newer than all non-':older' parameters when the predicate returns 'true'
+OlderVerification.dfy(168,23): Error: the ':older' parameter might be newer than all non-':older' parameters when the predicate returns 'true'
+OlderVerification.dfy(293,25): Error: the ':older' parameter might be newer than the other parameter when the predicate returns 'true'
+OlderVerification.dfy(297,25): Error: the ':older' parameter might be newer than all non-':older' parameters when the predicate returns 'true'
+OlderVerification.dfy(268,23): Error: the ':older' parameter might be newer than all non-':older' parameters when the predicate returns 'true'
+OlderVerification.dfy(272,23): Error: the ':older' parameter might be newer than the other parameter when the predicate returns 'true'
+OlderVerification.dfy(276,23): Error: the ':older' parameter might be newer than all non-':older' parameters when the predicate returns 'true'
+OlderVerification.dfy(280,26): Error: an ':older' parameter might be newer than all non-':older' parameters when the predicate returns 'true'
+OlderVerification.dfy(284,26): Error: an ':older' parameter might be newer than the non-':older' parameter when the predicate returns 'true'
+OlderVerification.dfy(288,26): Error: an ':older' parameter might be newer than all non-':older' parameters when the predicate returns 'true'
+OlderVerification.dfy(34,21): Error: the ':older' parameter might be newer than the other parameter when the predicate returns 'true'
+OlderVerification.dfy(42,21): Error: the ':older' parameter might be newer than the other parameter when the predicate returns 'true'
 
-Dafny program verifier finished with 19 verified, 5 errors
+Dafny program verifier finished with 19 verified, 13 errors

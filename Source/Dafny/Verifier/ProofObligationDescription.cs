@@ -1,3 +1,4 @@
+using System.Diagnostics.Contracts;
 using JetBrains.Annotations;
 
 namespace Microsoft.Dafny.ProofObligationDescription;
@@ -237,14 +238,29 @@ public class IsAllocated : ProofObligationDescription {
 
 public class IsOlder : ProofObligationDescription {
   public override string SuccessDescription =>
-    "the ':older' parameters are not newer than any other parameter when the predicate returns 'true'";
+    $"the ':older' parameter{SuccessOlder} not newer than {SuccessOther} other parameter when the predicate returns 'true'";
 
   public override string FailureDescription =>
-    "an ':older' parameter might be newer than all non-':older' parameters when the predicate returns 'true'";
+    $"{FailureOlder} ':older' parameter might be newer than {FailureOther} when the predicate returns 'true'";
 
-  public override string ShortDescription => ":older parameter";
+  public override string ShortDescription => $":older parameter{PluralOlderParameters}";
 
-  public IsOlder() {
+  private readonly int olderParameterCount;
+  private readonly int otherParameterCount;
+  private string SuccessOlder => olderParameterCount == 1 ? " is" : "s are";
+  private string SuccessOther => otherParameterCount == 1 ? "the" : "any";
+  private string FailureOlder => olderParameterCount == 1 ? "the" : "an";
+  private string FailureOther =>
+    olderParameterCount == 1 && otherParameterCount == 1 ? "the other parameter" :
+    otherParameterCount == 1 ? "the non-':older' parameter" :
+    "all non-':older' parameters";
+  private string PluralOlderParameters => 2 <= olderParameterCount ? "s" : "";
+
+  public IsOlder(int olderParameterCount, int allParameterCount) {
+    Contract.Requires(1 <= olderParameterCount);
+    Contract.Requires(olderParameterCount <= allParameterCount);
+    this.olderParameterCount = olderParameterCount;
+    this.otherParameterCount = allParameterCount - olderParameterCount;
   }
 }
 
