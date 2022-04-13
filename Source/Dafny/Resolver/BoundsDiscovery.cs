@@ -270,7 +270,8 @@ namespace Microsoft.Dafny {
       var isOlderArgument = false;
       if (!fce.Function.IsStatic && DoesOlderApply(fce.Receiver, "this")) {
         isOlderArgument = true;
-      } else {
+      }
+      if (!isOlderArgument) {
         Contract.Assert(fce.Function.Formals.Count == fce.Args.Count);
         for (var i = 0; i < fce.Function.Formals.Count; i++) {
           if (DoesOlderApply(fce.Args[i], fce.Function.Formals[i].Name)) {
