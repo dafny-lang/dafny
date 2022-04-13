@@ -76,9 +76,10 @@ class BigRational(Fraction):
     def __str__(self):
         if self.denominator == 1:
             return f"{self.numerator}.0"
-        decimal, compensation, shift = self.devidesAPowerOf10(self.denominator)
-        if not decimal:
+        correction = self.dividesAPowerOf10(self.denominator)
+        if correction is None:
             return f"{self.numerator}.0 / {self.denominator}.0"
+        compensation, shift = correction
         if self.numerator < 0:
             sign, digits = "-", str(-self.numerator*compensation)
         else:
@@ -97,13 +98,13 @@ class BigRational(Fraction):
         return x, y
 
     @staticmethod
-    def devidesAPowerOf10(x):
+    def dividesAPowerOf10(x):
         rem, expA = BigRational.isolateFactor(10, x)
         if rem % 5 == 0 or rem % 2 == 0 or rem == 1:
             major, minor = (5, 2) if rem % 5 == 0 else (2, 5)
             rem, expB = BigRational.isolateFactor(major, rem)
-            return rem == 1, minor**expB, expA+expB
-        return False, None, None
+            return minor**expB, expA+expB if rem == 1 else None
+        return None
 
 def PlusChar(a, b):
     return chr(ord(a) + ord(b))
