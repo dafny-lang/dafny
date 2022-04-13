@@ -11,15 +11,15 @@ AppCSharpFile := Main.cs
 AppDafnyFile := GroceryListPrinter.dfy
 ExpectFile := $(AppDafnyFile).expect
 
-default: $(ExpectFile)
+default: dotnet-run
 
 $(LibraryModelFile): $(LibraryProjectFile) $(LibrarySourceFile) $(LibraryTemplateFile)
 	dotnet run --project $(AutoExtern) -- \
 		$(LibraryProjectFile) $(LibrarySourceFile) $(LibraryRootNamespace) $(LibraryTemplateFile) \
 		> $(LibraryModelFile)
 
-$(ExpectFile): $(LibraryModelFile) $(AppCSharpFile) $(AppDafnyFile)
-	dotnet run > $(ExpectFile)
+dotnet-run: $(LibraryModelFile) $(AppCSharpFile) $(AppDafnyFile)
+	@dotnet run
 
 clean:
 	rm -f $(LibraryModelFile)
