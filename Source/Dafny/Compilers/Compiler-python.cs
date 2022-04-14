@@ -75,6 +75,7 @@ namespace Microsoft.Dafny.Compilers {
     private void EmitImports(string moduleName, ConcreteSyntaxTree wr) {
       wr.WriteLine("import sys");
       wr.WriteLine("from typing import Callable, NamedTuple");
+      wr.WriteLine("from math import floor");
       wr.WriteLine();
       Imports.Iter(module => wr.WriteLine($"import {module}"));
       if (moduleName != null) {
@@ -702,7 +703,7 @@ namespace Microsoft.Dafny.Compilers {
           compiledName = "Keys";
           break;
         case SpecialField.ID.Floor:
-          preString = "int(";
+          preString = "floor(";
           postString = ")";
           break;
         case SpecialField.ID.IsLimit:
@@ -886,24 +887,32 @@ namespace Microsoft.Dafny.Compilers {
 
       switch (op) {
         case BinaryExpr.ResolvedOpcode.And:
-          opString = "and"; break;
+          opString = "and";
+          break;
 
         case BinaryExpr.ResolvedOpcode.Or:
-          opString = "or"; break;
+          opString = "or";
+          break;
 
         case BinaryExpr.ResolvedOpcode.LeftShift:
-          opString = "<<"; break;
+          opString = "<<";
+          break;
 
         case BinaryExpr.ResolvedOpcode.RightShift:
-          opString = ">>"; break;
+          opString = ">>";
+          break;
 
         case BinaryExpr.ResolvedOpcode.Add:
-        case BinaryExpr.ResolvedOpcode.Concat:
+          truncateResult = true;
           if (!resultType.IsCharType) {
             opString = "+";
           } else {
             staticCallString = "_dafny.PlusChar";
           }
+          break;
+
+        case BinaryExpr.ResolvedOpcode.Concat:
+          opString = "+";
           break;
 
         case BinaryExpr.ResolvedOpcode.Sub:
@@ -912,17 +921,29 @@ namespace Microsoft.Dafny.Compilers {
           } else {
             staticCallString = "_dafny.MinusChar";
           }
+          truncateResult = true;
           break;
 
         case BinaryExpr.ResolvedOpcode.Mul:
-          opString = "*"; break;
+          opString = "*";
+          truncateResult = true;
+          break;
 
-        //Fixme: Ints
         case BinaryExpr.ResolvedOpcode.Div:
-          opString = "/"; break;
+          if (resultType.IsIntegerType || resultType.IsBitVectorType || resultType.AsNewtype != null) {
+            staticCallString = "_dafny.euclidianDivision";
+          } else {
+            opString = "/";
+          }
+          break;
 
         case BinaryExpr.ResolvedOpcode.Mod:
-          opString = "%"; break;
+          if (resultType.IsIntegerType || resultType.IsBitVectorType || resultType.AsNewtype != null) {
+            staticCallString = "_dafny.euclidianModulus";
+          } else {
+            opString = "%";
+          }
+          break;
 
         case BinaryExpr.ResolvedOpcode.EqCommon:
         case BinaryExpr.ResolvedOpcode.SeqEq:
@@ -972,7 +993,41 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitConversionExpr(ConversionExpr e, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      TrExpr(e.E, wr, inLetExprBody, wStmts);
+      if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Int) || e.E.Type.IsBitVectorType) {
+        if (e.ToType.IsNumericBased(Type.NumericPersuasion.Real)) {
+          // (int or bv) -> real
+          Contract.Assert(AsNativeType(e.ToType) == null);
+          wr.Write("_dafny.BigRational(");
+          TrExpr(e.E, wr, inLetExprBody, wStmts);
+          wr.Write(", 1)");
+        } else if (e.ToType.IsCharType) {
+          // (int or bv or char) -> char
+          wr.Write("chr(");
+          TrExpr(e.E, wr, inLetExprBody, wStmts);
+          wr.Write(")");
+        } else {
+          TrExpr(e.E, wr, inLetExprBody, wStmts);
+        }
+      } else if (e.E.Type.IsCharType) {
+        wr.Write("ord(");
+        TrExpr(e.E, wr, inLetExprBody, wStmts);
+        wr.Write(")");
+      } else if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
+        if (e.ToType.IsNumericBased(Type.NumericPersuasion.Int) || e.ToType.IsBitVectorType || e.ToType.IsBigOrdinalType) {
+          wr.Write("int(");
+          TrExpr(e.E, wr, inLetExprBody, wStmts);
+          wr.Write(")");
+        } else if (e.ToType.IsCharType) {
+          // (int or bv or char) -> char
+          wr.Write("chr(floor(");
+          TrExpr(e.E, wr, inLetExprBody, wStmts);
+          wr.Write("))");
+        } else {
+          TrExpr(e.E, wr, inLetExprBody, wStmts);
+        }
+      } else {
+        TrExpr(e.E, wr, inLetExprBody, wStmts);
+      }
     }
 
     protected override void EmitTypeTest(string localName, Type fromType, Type toType, IToken tok, ConcreteSyntaxTree wr) {

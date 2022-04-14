@@ -78,7 +78,7 @@ class BigRational(Fraction):
             return f"{self.numerator}.0"
         correction = self.dividesAPowerOf10(self.denominator)
         if correction is None:
-            return f"{self.numerator}.0 / {self.denominator}.0"
+            return f"({self.numerator}.0 / {self.denominator}.0)"
         compensation, shift = correction
         if self.numerator < 0:
             sign, digits = "-", str(-self.numerator*compensation)
@@ -106,8 +106,39 @@ class BigRational(Fraction):
             return (minor**expB, expA+expB) if rem == 1 else None
         return None
 
+    def __add__(self, other):
+        return BigRational(Fraction.__add__(self, other))
+
+    def __sub__(self, other):
+        return BigRational(Fraction.__sub__(self, other))
+
+    def __mul__(self, other):
+        return BigRational(Fraction.__mul__(self, other))
+
+    def __truediv__(self, other):
+        return BigRational(Fraction.__truediv__(self, other))
+
 def PlusChar(a, b):
     return chr(ord(a) + ord(b))
 
 def MinusChar(a, b):
     return chr(ord(a) - ord(b))
+
+def euclidianDivision(a, b):
+    if 0 <= a:
+        if 0 <= b:
+            return a // b
+        else:
+            return -(a // (-b))
+    else:
+        if 0 <= b:
+            return -((-a-1) // b) - 1
+        else:
+            return (-a-1) // (-b) + 1
+
+def euclidianModulus(a, b):
+    bp = abs(b)
+    if 0 <= a:
+        return a % bp
+    c = (-a) % bp
+    return c if c == 0 else bp - c
