@@ -3317,7 +3317,7 @@ namespace Microsoft.Dafny.Compilers {
           Method m = (Method)decl;
           LiteralExpr methodNameExpr = (LiteralExpr)args[1];
           string dafnyStructure = WriteDafnyStructure(m, wr);
-          string compiledSourceName = NonglobalVariable.CompilerizeName(methodNameExpr.Value.ToString());
+          string compiledSourceName = NonglobalVariable.SanitizeName(methodNameExpr.Value.ToString());
           WriteGlueCode(wr, compiledSourceName, dafnyStructure, m.Ins.Count);
           return;
         }
