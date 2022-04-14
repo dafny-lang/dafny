@@ -156,7 +156,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           }
 
           if (!firstNewline) {
-            if (text[pos] == ' ') {
+            if (text[pos] == ' ' || text[pos] == '\t') {
               indentation++;
             } else {
               indentation = 0;

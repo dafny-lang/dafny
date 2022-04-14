@@ -24,12 +24,34 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.CodeActions {
     }
 
     [TestMethod]
-    public async Task CodeActionSuggestsInliningPostcondition() {
+    public async Task CodeActionSuggestsInliningPostCondition() {
       await TestCodeActionHelper(@"
 method f() returns (i: int)
   ensures i > 10 >>>{
 [[Explicit the failing assert|  assert i > 10;
 ]]}");
+    }
+
+    [TestMethod]
+    public async Task CodeActionSuggestsInliningPostConditionWithExtraIndentation() {
+      await TestCodeActionHelper(@"
+const x := 1;
+  method f() returns (i: int)
+    ensures i > 10 >>>{
+  [[Explicit the failing assert|  assert i > 10;
+  ]]}");
+    }
+
+    [TestMethod]
+    public async Task CodeActionSuggestsInliningPostConditionWithExtraTabIndentation() {
+      var t = "\t\t\t";
+      var t2 = "\t\t";
+      await TestCodeActionHelper($@"
+const x := 1;
+  method f() returns (i: int)
+{t}{t}ensures i > 10 >>>{{
+{t}[[Explicit the failing assert|{t}assert i > 10;
+{t}]]}}");
     }
 
     private async Task TestCodeActionHelper(string source) {
