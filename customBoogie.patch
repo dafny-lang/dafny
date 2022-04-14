@@ -1,10 +1,10 @@
 diff --git a/Source/Dafny.sln b/Source/Dafny.sln
-index 29f2330be..7cafcbe2e 100644
+index 88200dcc4..3a75b0cc5 100644
 --- a/Source/Dafny.sln
 +++ b/Source/Dafny.sln
-@@ -32,6 +32,34 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DafnyTestGeneration.Test",
+@@ -34,6 +34,34 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoExtern", "AutoExtern\Au
  EndProject
- Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoExtern", "AutoExtern\AutoExtern.csproj", "{F185BDC2-1327-47A4-A293-D3FCDC419867}"
+ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoExtern.Test", "AutoExtern.Test\AutoExtern.Test.csproj", "{A47E2F45-DEA3-4700-A82F-9506FEEB199A}"
  EndProject
 +Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Boogie", "Boogie", "{60332269-9C5D-465E-8582-01F9B738BD90}"
 +EndProject
@@ -37,10 +37,10 @@ index 29f2330be..7cafcbe2e 100644
  Global
  	GlobalSection(SolutionConfigurationPlatforms) = preSolution
  		Debug|Any CPU = Debug|Any CPU
-@@ -86,6 +114,72 @@ Global
- 		{F185BDC2-1327-47A4-A293-D3FCDC419867}.Debug|Any CPU.Build.0 = Debug|Any CPU
- 		{F185BDC2-1327-47A4-A293-D3FCDC419867}.Release|Any CPU.ActiveCfg = Release|Any CPU
- 		{F185BDC2-1327-47A4-A293-D3FCDC419867}.Release|Any CPU.Build.0 = Release|Any CPU
+@@ -92,6 +120,72 @@ Global
+ 		{A47E2F45-DEA3-4700-A82F-9506FEEB199A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+ 		{A47E2F45-DEA3-4700-A82F-9506FEEB199A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+ 		{A47E2F45-DEA3-4700-A82F-9506FEEB199A}.Release|Any CPU.Build.0 = Release|Any CPU
 +		{50AB7B59-1558-4C7B-ACA4-783FFFE41EE3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 +		{50AB7B59-1558-4C7B-ACA4-783FFFE41EE3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 +		{50AB7B59-1558-4C7B-ACA4-783FFFE41EE3}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -110,7 +110,7 @@ index 29f2330be..7cafcbe2e 100644
  	EndGlobalSection
  	GlobalSection(SolutionProperties) = preSolution
  		HideSolutionNode = FALSE
-@@ -94,5 +188,18 @@ Global
+@@ -100,5 +194,18 @@ Global
  		SolutionGuid = {280F572B-D27A-4613-998F-00B6FFE01187}
  	EndGlobalSection
  	GlobalSection(NestedProjects) = preSolution
