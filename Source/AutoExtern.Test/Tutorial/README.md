@@ -1,6 +1,6 @@
 # Automatically generating Dafny traits from C# code
 
-This directory demonstrates `AutoExtern`, a Dafny too that implements limited
+This directory demonstrates `AutoExtern`, a Dafny tool that implements limited
 support for automatically generating trait hierarchies from C# classes.
 
 For a primer on C#/Dafny interop, see the [`Simple_compiler`
