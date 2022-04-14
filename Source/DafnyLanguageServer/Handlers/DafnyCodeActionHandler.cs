@@ -123,25 +123,80 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         return text.Substring(startTokenPos, length);
       }
 
-      private string GetIndentationAfter(Range rangeToken, string text) {
-        var token = rangeToken.ToBoogieToken(text);
-        var pos = token.pos + token.val.Length;
-        var c = text[pos];
-        var indentation = "";
-        while (pos < text.Length && (text[pos] == ' ' || text[pos] == '\n' || text[pos] == '\r')) {
-          if (text[pos] == ' ') {
-            indentation += " ";
-          } else {
-            indentation = "";
+      private (string, string) GetIndentationBefore(IToken token, string text) {
+        var pos = token.pos + token.val.Length - 1;
+        var indentation = 0;
+        var indentationBrace = token.col - 1;
+        var firstNewline = true;
+        var useTabs = false;
+        // Look for the first newline
+        while (0 <= pos && pos < text.Length && (text[pos] != '\n' || firstNewline)) {
+          if (text[pos] == '\t') {
+            useTabs = true;
           }
-          pos++;
+          if (text[pos] == '\n') {
+            if (!firstNewline) {
+              break;
+            }
+            firstNewline = false;
+          }
+
+          if (!firstNewline) {
+            if (text[pos] == ' ') {
+              indentation++;
+            } else {
+              indentation = 0;
+            }
+          }
+
+          pos--;
         }
 
-        if (pos < text.Length && text[pos] == '}') {
-          indentation += "  ";
+        indentation = Math.Max(indentationBrace, indentation);
+
+        return (
+          new string(useTabs ? '\t' : ' ', indentation - indentationBrace),
+          new string(useTabs ? '\t' : ' ', indentationBrace));
+      }
+
+      public IToken? GetMatchingEndToken(IToken openingBrace) {
+        // Look in methods for BlockStmt with the IToken as opening brace
+        // Return the EndTok of them.
+        var uri = document.Uri.GetFileSystemPath();
+        foreach (var module in document.Program.Modules()) {
+          foreach (var topLevelDecl in module.TopLevelDecls) {
+            if (topLevelDecl is ClassDecl classDecl) {
+              foreach (var member in classDecl.Members) {
+                if (member is Method method && method.tok.filename == uri && method.Body != null &&
+                  GetMatchingEndToken(openingBrace, method.Body) is { } token) {
+                  return token;
+                }
+                if (member is Function { ByMethodBody: { } } function &&
+                    GetMatchingEndToken(openingBrace, function.ByMethodBody) is { } token2) {
+                  return token2;
+                }
+              }
+            }
+          }
         }
 
-        return indentation;
+        return null;
+      }
+
+      private IToken? GetMatchingEndToken(IToken openingBrace, Statement stmt) {
+        // Look in methods for BlockStmt with the IToken as opening brace
+        // Return the EndTok of them.
+        if (stmt is BlockStmt blockStmt && blockStmt.Tok.pos == openingBrace.pos) {
+          return blockStmt.EndTok;
+        }
+
+        foreach (var subStmt in stmt.SubStatements) {
+          if (GetMatchingEndToken(openingBrace, subStmt) is { } token) {
+            return token;
+          }
+        }
+
+        return null;
       }
 
       private (string, TextEdit[])[] GetPossibleEdits() {
@@ -155,11 +210,14 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
               if (relatedInformation.Location.Uri == uri) {
                 var relatedRange = relatedInformation.Location.Range;
                 var expression = Extract(relatedRange, documentText);
-                var indentation = GetIndentationAfter(diagnostic.Range, documentText);
-                possibleEdits.Add(CodeAction("Insert the failing error", new QuickFixEdit(
-                    diagnostic.Range.ToBoogieToken(documentText),
-                    insertAfter: $"\n{indentation}assert {expression};"
+                var endToken = GetMatchingEndToken(diagnostic.Range.Start.ToBoogieToken(documentText));
+                if (endToken != null) {
+                  var (indentation, indentationBrace) = GetIndentationBefore(endToken, documentText);
+                  possibleEdits.Add(CodeAction("Insert the failing error", new QuickFixEdit(
+                    endToken,
+                    insertBefore: $"{indentation}assert {expression};\n{indentationBrace}"
                   )));
+                }
               }
             }
           }
