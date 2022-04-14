@@ -32,6 +32,12 @@ namespace Microsoft.Dafny {
       return result;
     }
 
+    public void Clear() {
+      while (_nodes.Any()) {
+        _nodes.RemoveAt(0);
+      }
+    }
+
     public T Prepend<T>(T node)
       where T : ICanRender {
       _nodes.Insert(0, node);

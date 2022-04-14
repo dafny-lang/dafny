@@ -2788,14 +2788,8 @@ namespace Microsoft.Dafny {
     }
 
     string compileName;
-    public string CompileName {
-      get {
-        if (compileName == null) {
-          compileName = ResolvedClass.CompileName;
-        }
-        return compileName;
-      }
-    }
+    public string CompileName => compileName ??= ResolvedClass.CompileName;
+
     public string FullCompanionCompileName {
       get {
         Contract.Requires(ResolvedClass is TraitDecl || (ResolvedClass is NonNullTypeDecl nntd && nntd.Class is TraitDecl));
@@ -3362,7 +3356,6 @@ namespace Microsoft.Dafny {
     IToken IRegion.BodyStartTok { get { return BodyStartTok; } }
     IToken IRegion.BodyEndTok { get { return BodyEndTok; } }
     string INamedRegion.Name { get { return Name; } }
-    protected string compileName;
 
     private VisibilityScope opaqueScope = new VisibilityScope();
     private VisibilityScope revealScope = new VisibilityScope();
@@ -3409,19 +3402,20 @@ namespace Microsoft.Dafny {
       return IsRevealedInScope(scope) || opaqueScope.VisibleInScope(scope);
     }
 
+    protected string sanitizedName;
+    public virtual string SanitizedName => sanitizedName ??= NonglobalVariable.SanitizeName(Name);
+
+    protected string compileName;
     public virtual string CompileName {
       get {
         if (compileName == null) {
-          string qual;
-          IsExtern(out qual, out compileName);
-          if (compileName == null) {
-            // this is the usual name
-            compileName = NonglobalVariable.CompilerizeName(Name);
-          }
+          IsExtern(out _, out compileName);
+          compileName ??= SanitizedName;
         }
         return compileName;
       }
     }
+
     public bool IsExtern(out string/*?*/ qualification, out string/*?*/ name) {
       // ensures result==false ==> qualification == null && name == null
       Contract.Ensures(Contract.Result<bool>() || (Contract.ValueAtReturn(out qualification) == null && Contract.ValueAtReturn(out name) == null));
@@ -3487,19 +3481,21 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public override string CompileName {
+    public override string SanitizedName {
       get {
-        if (compileName == null) {
+        if (sanitizedName == null) {
           var name = Name;
           if (parent is MemberDecl && !name.StartsWith("_")) {
             // prepend "_" to type parameters of functions and methods, to ensure they don't clash with type parameters of the enclosing type
             name = "_" + name;
           }
-          compileName = NonglobalVariable.CompilerizeName(name);
+          sanitizedName = NonglobalVariable.SanitizeName(name);
         }
-        return compileName;
+        return sanitizedName;
       }
     }
+
+    public override string CompileName => SanitizedName; // Ignore :extern
 
     /// <summary>
     /// NonVariant_Strict     (default) - non-variant, no uses left of an arrow
@@ -3750,7 +3746,7 @@ namespace Microsoft.Dafny {
       Extends = extends;
       ProvideAll = provideAll;
       RevealAll = revealAll;
-      ThisScope = new VisibilityScope(this.FullCompileName);
+      ThisScope = new VisibilityScope(this.FullSanitizedName);
     }
 
     public ModuleExportDecl(IToken tok, string name, ModuleDefinition parent,
@@ -3762,7 +3758,7 @@ namespace Microsoft.Dafny {
       Extends = extends;
       ProvideAll = provideAll;
       RevealAll = revealAll;
-      ThisScope = new VisibilityScope(this.FullCompileName);
+      ThisScope = new VisibilityScope(this.FullSanitizedName);
     }
 
     public void SetupDefaultSignature() {
@@ -4000,21 +3996,36 @@ namespace Microsoft.Dafny {
     }
 
     VisibilityScope visibilityScope;
-
-    public VisibilityScope VisibilityScope {
-      get {
-        if (visibilityScope == null) {
-          visibilityScope = new VisibilityScope(this.CompileName);
-        }
-        return visibilityScope;
-      }
-    }
+    public VisibilityScope VisibilityScope =>
+      visibilityScope ??= new VisibilityScope(this.SanitizedName);
 
     public virtual bool IsDefaultModule {
       get {
         return false;
       }
     }
+
+    private string sanitizedName = null;
+
+    public string SanitizedName {
+      get {
+        if (sanitizedName == null) {
+          if (IsBuiltinName) {
+            sanitizedName = Name;
+          } else if (EnclosingModule != null && EnclosingModule.Name != "_module") {
+            // Include all names in the module tree path, to disambiguate when compiling
+            // a flat list of modules.
+            // Use an "underscore-escaped" character as a module name separator, since
+            // underscores are already used as escape characters in SanitizeName()
+            sanitizedName = EnclosingModule.SanitizedName + "_m" + NonglobalVariable.SanitizeName(Name);
+          } else {
+            sanitizedName = NonglobalVariable.SanitizeName(Name);
+          }
+        }
+        return sanitizedName;
+      }
+    }
+
     string compileName;
     public string CompileName {
       get {
@@ -4022,27 +4033,13 @@ namespace Microsoft.Dafny {
           var externArgs = DafnyOptions.O.DisallowExterns ? null : Attributes.FindExpressions(this.Attributes, "extern");
           if (externArgs != null && 1 <= externArgs.Count && externArgs[0] is StringLiteralExpr) {
             compileName = (string)((StringLiteralExpr)externArgs[0]).Value;
-          } else if (IsBuiltinName || externArgs != null) {
+          } else if (externArgs != null) {
             compileName = Name;
           } else {
-            if (EnclosingModule != null && EnclosingModule.Name != "_module") {
-              // Include all names in the module tree path, to disambiguate when compiling
-              // a flat list of modules.
-              // Use an "underscore-escaped" character as a module name separator, since
-              // underscores are already used as escape characters in CompilerizeName()
-              compileName = EnclosingModule.CompileName + "_m" + NonglobalVariable.CompilerizeName(Name);
-            } else {
-              compileName = NonglobalVariable.CompilerizeName(Name);
-            }
+            compileName = SanitizedName;
           }
         }
         return compileName;
-      }
-    }
-
-    public string RefinementCompileName {
-      get {
-        return this.CompileName;
       }
     }
 
@@ -4291,13 +4288,7 @@ namespace Microsoft.Dafny {
     }
     public string FullSanitizedName {
       get {
-        return EnclosingModuleDefinition.CompileName + "." + CompileName;
-      }
-    }
-
-    public string FullSanitizedRefinementName {
-      get {
-        return EnclosingModuleDefinition.RefinementCompileName + "." + CompileName;
+        return EnclosingModuleDefinition.SanitizedName + "." + SanitizedName;
       }
     }
 
@@ -4755,7 +4746,7 @@ namespace Microsoft.Dafny {
         if (argumentGhostness[i]) {
           // This name is irrelevant, since it won't be used in compilation. Give it a strange name
           // that would alert us of any bug that nevertheless tries to access this name.
-          compileName = "this * is * never * used * " + i.ToString();
+          compileName = "this * ghost * arg * should * never * be * compiled * " + i.ToString();
         } else {
           compileName = nonGhostArgs.ToString();
           nonGhostArgs++;
@@ -4769,11 +4760,10 @@ namespace Microsoft.Dafny {
       return new List<DatatypeCtor>() { ctor };
     }
 
-    public override string CompileName {
-      get {
-        return "Tuple" + BuiltIns.ArgumentGhostnessToString(ArgumentGhostness);
-      }
-    }
+    public override string SanitizedName =>
+      sanitizedName ??= $"Tuple{BuiltIns.ArgumentGhostnessToString(ArgumentGhostness)}";
+    public override string CompileName =>
+      compileName ??= SanitizedName;
   }
 
   public class CoDatatypeDecl : DatatypeDecl {
@@ -5207,6 +5197,13 @@ namespace Microsoft.Dafny {
         return EnclosingClass.FullName + "." + Name;
       }
     }
+
+    public override string SanitizedName =>
+      (Name == EnclosingClass.Name ? "_" : "") + base.SanitizedName;
+
+    public override string CompileName =>
+      (Name == EnclosingClass.Name ? "_" : "") + base.CompileName;
+
     public virtual string FullSanitizedName {
       get {
         Contract.Requires(EnclosingClass != null);
@@ -5217,52 +5214,12 @@ namespace Microsoft.Dafny {
         } else if (Name == "reads") {
           return Translator.Reads(((ArrowTypeDecl)EnclosingClass).Arity);
         } else {
-          return EnclosingClass.FullSanitizedName + "." + CompileName;
+          return EnclosingClass.FullSanitizedName + "." + SanitizedName;
         }
       }
     }
-    public virtual string FullSanitizedRefinementName {
-      get {
-        Contract.Requires(EnclosingClass != null);
-        Contract.Ensures(Contract.Result<string>() != null);
 
-        if (Name == "requires") {
-          return Translator.Requires(((ArrowTypeDecl)EnclosingClass).Arity);
-        } else if (Name == "reads") {
-          return Translator.Reads(((ArrowTypeDecl)EnclosingClass).Arity);
-        } else {
-          return EnclosingClass.FullSanitizedRefinementName + "." + CompileName;
-        }
-      }
-    }
-    public virtual string FullNameInContext(ModuleDefinition context) {
-      Contract.Requires(EnclosingClass != null);
-      Contract.Ensures(Contract.Result<string>() != null);
-
-      return EnclosingClass.FullNameInContext(context) + "." + Name;
-    }
-    public override string CompileName {
-      get {
-        var nm = base.CompileName;
-        if (this.Name == EnclosingClass.Name) {
-          nm = "_" + nm;
-        }
-        return nm;
-      }
-    }
-    public virtual string FullCompileName {
-      get {
-        Contract.Requires(EnclosingClass != null);
-        Contract.Ensures(Contract.Result<string>() != null);
-
-        return EnclosingClass.FullCompileName + "." + Declaration.IdProtect(CompileName);
-      }
-    }
-    public virtual IEnumerable<Expression> SubExpressions {
-      get {
-        yield break;
-      }
-    }
+    public virtual IEnumerable<Expression> SubExpressions => Enumerable.Empty<Expression>();
   }
 
   public class Field : MemberDecl {
@@ -5353,37 +5310,17 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public override string FullSanitizedName {
+    public override string FullSanitizedName { // Override beacuse EnclosingClass may be null
       get {
         Contract.Ensures(Contract.Result<string>() != null);
-        return EnclosingClass != null ? EnclosingClass.FullSanitizedName + "." + CompileName : CompileName;
+        return EnclosingClass != null ? EnclosingClass.FullSanitizedName + "." + SanitizedName : SanitizedName;
       }
-    }
-
-    public override string FullSanitizedRefinementName {
-      get {
-        Contract.Ensures(Contract.Result<string>() != null);
-        return EnclosingClass != null ? EnclosingClass.FullSanitizedRefinementName + "." + CompileName : CompileName;
-      }
-    }
-
-    public override string FullNameInContext(ModuleDefinition context) {
-      Contract.Ensures(Contract.Result<string>() != null);
-      return EnclosingClass != null ? EnclosingClass.FullNameInContext(context) + "." + Name : Name;
     }
 
     public override string CompileName {
       get {
         Contract.Ensures(Contract.Result<string>() != null);
         return EnclosingClass != null ? base.CompileName : Name;
-      }
-    }
-
-    public override string FullCompileName {
-      get {
-        Contract.Ensures(Contract.Result<string>() != null);
-        var cn = Declaration.IdProtect(CompileName);
-        return EnclosingClass != null ? EnclosingClass.FullCompileName + "." + cn : cn;
       }
     }
   }
@@ -5448,7 +5385,7 @@ namespace Microsoft.Dafny {
     public override string WhatKind { get { return "const field"; } }
     public readonly Expression Rhs;
     public ConstantField(IToken tok, string name, Expression/*?*/ rhs, bool hasStaticKeyword, bool isGhost, Type type, Attributes attributes)
-      : base(tok, name, SpecialField.ID.UseIdParam, NonglobalVariable.CompilerizeName(name), hasStaticKeyword, isGhost, false, false, type, attributes) {
+      : base(tok, name, SpecialField.ID.UseIdParam, NonglobalVariable.SanitizeName(name), hasStaticKeyword, isGhost, false, false, type, attributes) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(type != null);
@@ -5848,6 +5785,9 @@ namespace Microsoft.Dafny {
     }
     static FreshIdGenerator CompileNameIdGenerator = new FreshIdGenerator();
     string AssignUniqueName(FreshIdGenerator generator);
+    string SanitizedName {
+      get;
+    }
     string CompileName {
       get;
     }
@@ -5890,6 +5830,12 @@ namespace Microsoft.Dafny {
     }
     public bool HasBeenAssignedUniqueName {
       get {
+        throw new NotImplementedException();  // this getter implementation is here only so that the Ensures contract can be given here
+      }
+    }
+    public string SanitizedName {
+      get {
+        Contract.Ensures(Contract.Result<string>() != null);
         throw new NotImplementedException();  // this getter implementation is here only so that the Ensures contract can be given here
       }
     }
@@ -5953,29 +5899,24 @@ namespace Microsoft.Dafny {
         return name;
       }
     }
-    public string DisplayName {
-      get { return LocalVariable.DisplayNameHelper(this); }
-    }
+    public string DisplayName =>
+      LocalVariable.DisplayNameHelper(this);
+
     private string uniqueName;
-    public string UniqueName {
-      get {
-        return uniqueName;
-      }
-    }
-    public bool HasBeenAssignedUniqueName {
-      get {
-        return uniqueName != null;
-      }
-    }
+    public string UniqueName => uniqueName;
+    public bool HasBeenAssignedUniqueName => uniqueName != null;
     public string AssignUniqueName(FreshIdGenerator generator) {
-      if (uniqueName == null) {
-        uniqueName = generator.FreshId(Name + "#");
-        compileName = string.Format("_{0}_{1}", IVariable.CompileNameIdGenerator.FreshNumericId(), CompilerizeName(name));
-      }
-      return UniqueName;
+      return uniqueName ??= generator.FreshId(Name + "#");
     }
-    static char[] specialChars = new char[] { '\'', '_', '?', '\\', '#' };
-    public static string CompilerizeName(string nm) {
+
+    static char[] specialChars = { '\'', '_', '?', '\\', '#' };
+    /// <summary>
+    /// Mangle name <c>nm</c> by replacing and escaping characters most likely to cause issues when compiling and
+    /// when translating to Boogie.  This transformation is injective.
+    /// </summary>
+    /// <returns>A string uniquely determined from <c>nm</c>, containing none of the characters in
+    /// <c>specialChars</c>.</returns>
+    public static string SanitizeName(string nm) {
       if ('0' <= nm[0] && nm[0] <= '9') {
         // the identifier is one that consists of just digits
         return "_" + nm;
@@ -6010,15 +5951,15 @@ namespace Microsoft.Dafny {
         }
       }
     }
+
+    private string sanitizedName;
+    public virtual string SanitizedName =>
+      sanitizedName ??= $"_{IVariable.CompileNameIdGenerator.FreshNumericId()}_{SanitizeName(Name)}";
+
     protected string compileName;
-    public virtual string CompileName {
-      get {
-        if (compileName == null) {
-          compileName = string.Format("_{0}_{1}", IVariable.CompileNameIdGenerator.FreshNumericId(), CompilerizeName(name));
-        }
-        return compileName;
-      }
-    }
+    public virtual string CompileName =>
+      compileName ??= SanitizedName;
+
     Type type;
     public Type SyntacticType { get { return type; } }  // returns the non-normalized type
     public Type Type {
@@ -6094,14 +6035,12 @@ namespace Microsoft.Dafny {
         return !Name.StartsWith("#");
       }
     }
-    public override string CompileName {
-      get {
-        if (compileName == null) {
-          compileName = CompilerizeName(NameForCompilation);
-        }
-        return compileName;
-      }
-    }
+
+    private string sanitizedName;
+    public override string SanitizedName =>
+      sanitizedName ??= SanitizeName(Name); // No unique-ification
+    public override string CompileName =>
+      compileName ??= SanitizeName(NameForCompilation);
   }
 
   /// <summary>
@@ -6680,7 +6619,7 @@ namespace Microsoft.Dafny {
     public BlockStmt Body {
       get {
         // Lemma from included files do not need to be resolved and translated
-        // so we return emptyBody. This is to speed up resolvor and translator.
+        // so we return emptyBody. This is to speed up resolver and translator.
         if (methodBody != null && IsLemmaLike && this.tok is IncludeToken && !DafnyOptions.O.VerifyAllModules) {
           return Method.emptyBody;
         } else {
@@ -6986,6 +6925,16 @@ namespace Microsoft.Dafny {
         foreach (var e in Attributes.SubExpressions(Attributes)) {
           yield return e;
         }
+      }
+    }
+
+    [FilledInDuringResolution] private IToken rangeToken;
+    public virtual IToken RangeToken {
+      get {
+        if (rangeToken == null) {
+          rangeToken = new RangeToken(Tok, EndTok);
+        }
+        return rangeToken;
       }
     }
   }
@@ -7814,32 +7763,20 @@ namespace Microsoft.Dafny {
       get { return DisplayNameHelper(this); }
     }
     private string uniqueName;
-    public string UniqueName {
-      get {
-        return uniqueName;
-      }
-    }
-    public bool HasBeenAssignedUniqueName {
-      get {
-        return uniqueName != null;
-      }
-    }
+    public string UniqueName => uniqueName;
+    public bool HasBeenAssignedUniqueName => uniqueName != null;
     public string AssignUniqueName(FreshIdGenerator generator) {
-      if (uniqueName == null) {
-        uniqueName = generator.FreshId(Name + "#");
-        compileName = string.Format("_{0}_{1}", IVariable.CompileNameIdGenerator.FreshNumericId(), NonglobalVariable.CompilerizeName(name));
-      }
-      return UniqueName;
+      return uniqueName ??= generator.FreshId(Name + "#");
     }
+
+    private string sanitizedName;
+    public string SanitizedName =>
+      sanitizedName ??= $"_{IVariable.CompileNameIdGenerator.FreshNumericId()}_{NonglobalVariable.SanitizeName(Name)}";
+
     string compileName;
-    public string CompileName {
-      get {
-        if (compileName == null) {
-          compileName = string.Format("_{0}_{1}", IVariable.CompileNameIdGenerator.FreshNumericId(), NonglobalVariable.CompilerizeName(name));
-        }
-        return compileName;
-      }
-    }
+    public string CompileName =>
+      compileName ??= SanitizedName;
+
     public readonly Type OptionalType;  // this is the type mentioned in the declaration, if any
     Type IVariable.OptionalType { get { return this.OptionalType; } }
     internal Type type;  // this is the declared or inferred type of the variable; it is non-null after resolution (even if resolution fails)
@@ -8957,6 +8894,25 @@ namespace Microsoft.Dafny {
     }
   }
 
+  public class RangeToken : TokenWrapper {
+    // The wrapped token is the startTok
+    private IToken endTok;
+
+    public IToken StartToken => WrappedToken;
+    public IToken EndToken => endTok;
+
+    // Used for range reporting
+    override public string val {
+      get {
+        return new string(' ', endTok.pos + endTok.val.Length - pos);
+      }
+    }
+
+    public RangeToken(IToken startTok, IToken endTok) : base(startTok) {
+      this.endTok = endTok;
+    }
+  }
+
   public class NestedToken : TokenWrapper {
     public NestedToken(IToken outer, IToken inner, string message = null)
       : base(outer) {
@@ -9069,6 +9025,38 @@ namespace Microsoft.Dafny {
     public virtual IEnumerable<Expression> SubExpressions {
       get { yield break; }
     }
+
+    private RangeToken rangeToken;
+
+    /// Creates a token on the entire range of the expression.
+    /// Used only for error reporting.
+    public RangeToken RangeToken {
+      get {
+        if (rangeToken == null) {
+          var startTok = tok;
+          var endTok = tok;
+          foreach (var e in SubExpressions) {
+            if (e.tok.filename != tok.filename || e.IsImplicit) {
+              // Ignore auto-generated expressions, if any.
+              continue;
+            }
+
+            if (e.StartToken.pos < startTok.pos) {
+              startTok = e.StartToken;
+            } else if (e.EndToken.pos > endTok.pos) {
+              endTok = e.EndToken;
+            }
+          }
+
+          rangeToken = new RangeToken(startTok, endTok);
+        }
+
+        return rangeToken;
+      }
+    }
+
+    public IToken StartToken => RangeToken.StartToken;
+    public IToken EndToken => RangeToken.EndToken;
 
     /// <summary>
     /// Returns the list of types that appear in this expression proper (that is, not including types that
