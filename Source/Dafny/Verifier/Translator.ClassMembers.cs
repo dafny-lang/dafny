@@ -28,7 +28,7 @@ namespace Microsoft.Dafny {
         //this adds: function implements$J(Ty, typeArgs): bool;
         var arg_ref = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, "ty", predef.Ty), true);
         var vars = new List<Bpl.Variable> { arg_ref };
-        vars.AddRange(MkTyParamFormals(GetTypeParams(c)));
+        vars.AddRange(MkTyParamFormals(GetTypeParams(c), false));
         var res = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
         var implement_intr = new Bpl.Function(c.tok, "implements$" + c.FullSanitizedName, vars, res);
         sink.AddTopLevelDeclaration(implement_intr);
@@ -547,12 +547,12 @@ namespace Microsoft.Dafny {
       if (!wellformednessProc) {
         var inductionVars = ApplyInduction(m.Ins, m.Attributes);
         if (inductionVars.Count != 0) {
-          // Let the parameters be this,x,y of the method M and suppose ApplyInduction returns y.
+          // Let the parameters be this,x,y of the method M and suppose ApplyInduction returns this,y.
           // Also, let Pre be the precondition and VF be the decreases clause.
           // Then, insert into the method body what amounts to:
           //     assume case-analysis-on-parameter[[ y' ]];
-          //     forall (y' | Pre(this, x, y') && VF(this, x, y') << VF(this, x, y)) {
-          //       this.M(x, y');
+          //     forall this',y' | Pre(this', x, y') && (VF(this', x, y') << VF(this', x, y)) {
+          //       this'.M(x, y');
           //     }
           // Generate bound variables for the forall statement, and a substitution for the Pre and VF
 
@@ -591,10 +591,8 @@ namespace Microsoft.Dafny {
             parBounds.Add(new ComprehensionExpr.SpecialAllocIndependenceAllocatedBoundedPool());  // record that we don't want alloc antecedents for these variables
           }
 
-          // Generate a CallStmt for the recursive call
-          Expression recursiveCallReceiver;
-          List<Expression> recursiveCallArgs;
-          RecursiveCallParameters(m.tok, m, m.TypeArgs, m.Ins, substMap, out recursiveCallReceiver, out recursiveCallArgs);
+          // Generate a CallStmt to be used as the body of the 'forall' statement.
+          RecursiveCallParameters(m.tok, m, m.TypeArgs, m.Ins, receiverSubst, substMap, out var recursiveCallReceiver, out var recursiveCallArgs);
           var methodSel = new MemberSelectExpr(m.tok, recursiveCallReceiver, m.Name);
           methodSel.Member = m;  // resolve here
           methodSel.TypeApplication_AtEnclosingClass = m.EnclosingClass.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.tok, tp));
@@ -844,7 +842,7 @@ namespace Microsoft.Dafny {
       }
 
       // parameters of the procedure
-      var typeInParams = MkTyParamFormals(GetTypeParams(f));
+      var typeInParams = MkTyParamFormals(GetTypeParams(f), true);
       var inParams = new List<Variable>();
       var outParams = new List<Boogie.Variable>();
       if (!f.IsStatic) {
