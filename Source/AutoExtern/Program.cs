@@ -319,11 +319,11 @@ internal class Type {
 
   public override string ToString() {
     return syntax switch {
-      PredefinedTypeSyntax { Keyword: { Text : var text } } => text switch {
-        "int"    => "System.int32", // Native int32 (a value type), not System.Int32 (an object)
+      PredefinedTypeSyntax { Keyword: { Text: var text } } => text switch {
+        "int" => "System.int32", // Native int32 (a value type), not System.Int32 (an object)
         "string" => "System.String",
-        "bool"   => "bool", // Native bool (a value type), not System.Boolean (an object)
-        _        => text
+        "bool" => "bool", // Native bool (a value type), not System.Boolean (an object)
+        _ => text
       },
       ArrayTypeSyntax s =>
         $"array<{new Type(s.ElementType, model)}>",
