@@ -393,22 +393,41 @@ public static class Program {
     Environment.Exit(1);
   }
 
-  public static void Main(string[] args) {
-    if (args.Length < 4) {
-      Fail("Usage: AutoExtern {project.csproj} {file.cs} {Root.Namespace} {TemplateFile.dfy}");
-    }
-
-    var (projectPath, filePath, cSharpRootNS, templatePath) = (args[0], args[1], args[2], args[3]);
-
+  public static string ReadTemplate(string templatePath) {
     var template = File.ReadAllText(templatePath, Encoding.UTF8);
     if (!template.Contains(Placeholder)) {
-      Fail($"Template file {template} does not contain {Placeholder} string.");
+      Fail($"Template file {templatePath} does not contain {Placeholder} string.");
     }
+    return template;
+  }
 
+  public static string GenerateDafnyCode(string projectPath, string filePath, string cSharpRootNS) {
     var ast = AST.FromFile(projectPath, filePath, cSharpRootNS);
     var wr = new StringWriter();
     ast.Pp(wr, "");
+    return wr.ToString();
+  }
 
-    Console.Out.Write(template.Replace(Placeholder, wr.ToString()));
+  public static void CopyCSharpModel(string destPath) {
+    if (destPath != "") {
+      var exe = System.Reflection.Assembly.GetExecutingAssembly().Location;
+      var sourcePath = Path.Join(Path.GetDirectoryName(exe), "CSharpModel.dfy");
+      File.Copy(sourcePath, destPath, true);
+    }
+  }
+
+  public static void Main(string[] args) {
+    if (args.Length < 6) {
+      Fail("Usage: AutoExtern {project.csproj} {file.cs} {Root.Namespace} {TemplateFile.dfy} {CSharpModel.dfy} {Output.dfy}");
+    }
+
+    var (projectPath, filePath, cSharpRootNS, templatePath, modelPath, outputPath) =
+      (args[0], args[1], args[2], args[3], args[4], args[5]);
+
+    var dafnyCode = GenerateDafnyCode(projectPath, filePath, cSharpRootNS);
+    var template = ReadTemplate(templatePath);
+    File.WriteAllText(outputPath, template.Replace(Placeholder, dafnyCode), Encoding.UTF8);
+
+    CopyCSharpModel(modelPath);
   }
 }
