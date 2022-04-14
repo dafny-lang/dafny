@@ -115,7 +115,7 @@ internal class SemanticModel {
   }
 }
 
-class AST : PrettyPrintable {
+internal class AST : PrettyPrintable {
   private readonly string cSharpRootNS;
   private readonly SyntaxTree syntax;
   private readonly SemanticModel model;
@@ -161,7 +161,7 @@ class AST : PrettyPrintable {
   }
 }
 
-class TypeDecl : PrettyPrintable {
+internal class TypeDecl : PrettyPrintable {
   private readonly TypeDeclarationSyntax syntax;
   private readonly SemanticModel model;
 
@@ -195,7 +195,7 @@ class TypeDecl : PrettyPrintable {
   }
 }
 
-class Enum : PrettyPrintable {
+internal class Enum : PrettyPrintable {
   private readonly EnumDeclarationSyntax syntax;
   private readonly SemanticModel model;
 
@@ -218,8 +218,7 @@ class Enum : PrettyPrintable {
   }
 }
 
-
-class EnumMember : PrettyPrintable {
+internal class EnumMember : PrettyPrintable {
   private readonly EnumMemberDeclarationSyntax syntax;
   private readonly SemanticModel model;
 
@@ -235,7 +234,7 @@ class EnumMember : PrettyPrintable {
   }
 }
 
-class Field : PrettyPrintable {
+internal class Field : PrettyPrintable {
   private readonly FieldDeclarationSyntax syntax;
   private readonly SemanticModel model;
 
@@ -256,7 +255,7 @@ class Field : PrettyPrintable {
   }
 }
 
-class Property : PrettyPrintable {
+internal class Property : PrettyPrintable {
   private readonly PropertyDeclarationSyntax syntax;
   private readonly SemanticModel model;
   private readonly Type type;
