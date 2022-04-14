@@ -33,6 +33,21 @@ method f() returns (i: int)
     }
 
     [TestMethod]
+    public async Task CodeActionSuggestsInliningPostConditionInIfStatement() {
+      await TestCodeActionHelper(@"
+method f(b: bool) returns (i: int)
+  ensures i > 10 {
+  if b >>>{
+    i := 0;
+  [[Explicit the failing assert|  assert i > 10;
+  ]]} else {
+    i := 10;
+  }
+}");
+    }
+
+
+    [TestMethod]
     public async Task CodeActionSuggestsInliningPostConditionWithExtraIndentation() {
       await TestCodeActionHelper(@"
 const x := 1;
