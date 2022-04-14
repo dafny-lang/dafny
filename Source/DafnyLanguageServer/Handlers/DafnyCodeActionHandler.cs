@@ -99,7 +99,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       }
 
       public CommandOrCodeActionContainer Process() {
-        var edits = GetPossibleEdits();
+        var edits = GetPossibleFixes();
         var workspaceEdit = ToWorkspaceEdit(edits);
         var codeActions = workspaceEdit.Select(titleEdit => {
           CommandOrCodeAction t = new CodeAction() {
@@ -227,8 +227,9 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       /// Returns verification diagnostic fixes for the given document.
       /// </summary>
       /// <param name="uri"></param>
-      private IEnumerable<(string, TextEdit[])> GetVerificationDiagnosticFixes(string uri) {
-        var diagnostics = document.Errors.GetDiagnostics(uri);
+      private IEnumerable<(string, TextEdit[])> GetVerificationDiagnosticFixes() {
+        string uri = documentUri;
+        var diagnostics = document.Errors.GetDiagnostics(document.Uri);
         foreach (var diagnostic in diagnostics) {
           if (diagnostic.Range.Contains(request.Range) && diagnostic.Source == MessageSource.Verifier.ToString()) {
             if (diagnostic.RelatedInformation?.FirstOrDefault() is { } relatedInformation) {
@@ -238,7 +239,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
                 var endToken = GetMatchingEndToken(diagnostic.Range.Start.ToBoogieToken(documentText));
                 if (endToken != null) {
                   var (indentation, indentationBrace) = GetIndentationBefore(endToken, documentText);
-                  yield return CodeAction("Insert the failing error", new QuickFixEdit(
+                  yield return CodeAction("Explicit the failing assert", new QuickFixEdit(
                     endToken,
                     $"{indentation}assert {expression};\n{indentationBrace}"
                   ));
@@ -253,7 +254,8 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       /// Returns the fixes as set up by plugins
       /// </summary>
       /// <param name="uri">The URI of the document, used as an unique key</param>
-      private IEnumerable<(string, TextEdit[])> GetPluginFixes(string uri) {
+      private IEnumerable<(string, TextEdit[])> GetPluginFixes() {
+        string uri = documentUri;
         foreach (var fixer in fixers) {
           // Maybe we could set the program only once, when resolved, insteda of for every code action?
           fixer.SetProgram(uri, document.Program, documentText, cancellationToken);
@@ -271,10 +273,10 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       /// Returns a built-in list of possible code actions
       /// Includes plugin-created code actions
       /// </summary>
-      private (string, TextEdit[])[] GetPossibleEdits() {
+      private (string, TextEdit[])[] GetPossibleFixes() {
         var possibleFixes = new List<(string, TextEdit[])>() { };
-        possibleFixes.AddRange(GetVerificationDiagnosticFixes(documentUri));
-        possibleFixes.AddRange(GetPluginFixes(documentUri));
+        possibleFixes.AddRange(GetVerificationDiagnosticFixes());
+        possibleFixes.AddRange(GetPluginFixes());
         return possibleFixes.ToArray();
       }
     }
