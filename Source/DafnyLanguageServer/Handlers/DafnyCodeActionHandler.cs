@@ -69,7 +69,8 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       private readonly DafnyDocument document;
       private readonly CodeActionParams request;
       private readonly CancellationToken cancellationToken;
-      private string documentText;
+      private readonly string documentUri;
+      private readonly string documentText;
 
       public CodeActionProcessor(QuickFixer[] fixers, DafnyDocument document, CodeActionParams request,
         CancellationToken cancellationToken) {
@@ -78,6 +79,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         this.request = request;
         this.cancellationToken = cancellationToken;
         this.documentText = document.Text.Text;
+        this.documentUri = document.Uri.GetFileSystemPath();
       }
 
       public (string, WorkspaceEdit)[] ToWorkspaceEdit(params
@@ -180,12 +182,11 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       private IToken? GetMatchingEndToken(IToken openingBrace) {
         // Look in methods for BlockStmt with the IToken as opening brace
         // Return the EndTok of them.
-        var uri = document.Uri.GetFileSystemPath();
         foreach (var module in document.Program.Modules()) {
           foreach (var topLevelDecl in module.TopLevelDecls) {
             if (topLevelDecl is ClassDecl classDecl) {
               foreach (var member in classDecl.Members) {
-                if (member is Method method && method.tok.filename == uri && method.Body != null &&
+                if (member is Method method && method.tok.filename == documentUri && method.Body != null &&
                   GetMatchingEndToken(openingBrace, method.Body) is { } token) {
                   return token;
                 }
@@ -222,6 +223,10 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         return null;
       }
 
+      /// <summary>
+      /// Returns verification diagnostic fixes for the given document.
+      /// </summary>
+      /// <param name="uri"></param>
       private IEnumerable<(string, TextEdit[])> GetVerificationDiagnosticFixes(string uri) {
         var diagnostics = document.Errors.GetDiagnostics(uri);
         foreach (var diagnostic in diagnostics) {
@@ -244,7 +249,11 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         }
       }
 
-      public IEnumerable<(string, TextEdit[])> GetPluginFixes(string uri) {
+      /// <summary>
+      /// Returns the fixes as set up by plugins
+      /// </summary>
+      /// <param name="uri">The URI of the document, used as an unique key</param>
+      private IEnumerable<(string, TextEdit[])> GetPluginFixes(string uri) {
         foreach (var fixer in fixers) {
           // Maybe we could set the program only once, when resolved, insteda of for every code action?
           fixer.SetProgram(uri, document.Program, documentText, cancellationToken);
@@ -264,9 +273,8 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       /// </summary>
       private (string, TextEdit[])[] GetPossibleEdits() {
         var possibleFixes = new List<(string, TextEdit[])>() { };
-        var uri = document.Uri.GetFileSystemPath();
-        possibleFixes.AddRange(GetVerificationDiagnosticFixes(uri));
-        possibleFixes.AddRange(GetPluginFixes(uri));
+        possibleFixes.AddRange(GetVerificationDiagnosticFixes(documentUri));
+        possibleFixes.AddRange(GetPluginFixes(documentUri));
         return possibleFixes.ToArray();
       }
     }
