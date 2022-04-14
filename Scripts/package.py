@@ -183,9 +183,8 @@ class Release:
                 lowercaseDafny = path.join(self.buildDirectory, "dafny")
                 shutil.move(uppercaseDafny, lowercaseDafny)
                 os.chmod(lowercaseDafny, stat.S_IEXEC| os.lstat(lowercaseDafny).st_mode)
-            paths = pathsInDirectory(self.buildDirectory) + OTHERS
-            for fpath in paths:
-                if os.path.isdir(fpath):
+            for fpath in pathsInDirectory(self.buildDirectory) + OTHERS:
+                if os.path.isdir(fpath) or fpath.endswith(".pdb"):
                     continue
                 fname = ntpath.basename(fpath)
                 if path.exists(fpath):
@@ -226,7 +225,7 @@ def path_leaf(path):
     return tail or ntpath.basename(head)
 
 def pathsInDirectory(directory):
-    return list(map(lambda file: path.join(directory, file), os.listdir(directory)))
+    return [path.join(directory, file) for file in os.listdir(directory)]
 
 def download(releases):
     flush("  - Downloading {} z3 archives".format(len(releases)))
