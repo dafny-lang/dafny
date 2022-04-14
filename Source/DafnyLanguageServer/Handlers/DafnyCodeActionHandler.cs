@@ -111,6 +111,12 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         return new CommandOrCodeActionContainer(codeActions);
       }
 
+      /// <summary>
+      /// Given a LSP range and some text, extract the corresponding substring
+      /// </summary>
+      /// <param name="range">The range to extract</param>
+      /// <param name="text">The document</param>
+      /// <returns>The substring of the document in the range</returns>
       private string Extract(Range range, string text) {
         var token = range.ToBoogieToken(text);
         var startTokenPos = token.StartToken.pos;
@@ -123,6 +129,12 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         return text.Substring(startTokenPos, length);
       }
 
+      /// <summary>
+      /// Given the position of a closing brace '}', returns spacing that can be used to insert a statement before it
+      /// </summary>
+      /// <param name="token">The position of the closing brace</param>
+      /// <param name="text">The document text</param>
+      /// <returns>(extra indentation for a statement, current indentation)</returns>
       private (string, string) GetIndentationBefore(IToken token, string text) {
         var pos = token.pos + token.val.Length - 1;
         var indentation = 0;
@@ -159,7 +171,13 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           new string(useTabs ? '\t' : ' ', indentationBrace));
       }
 
-      public IToken? GetMatchingEndToken(IToken openingBrace) {
+      /// <summary>
+      /// Given an opening brace (typically where an error is detected),
+      /// finds and returns the closing brace token.
+      /// </summary>
+      /// <param name="openingBrace">A token whose pos is the absolute position of the opening brace</param>
+      /// <returns>The token of a matching closing brace, typically the `ÈndTok` of a BlockStmt</returns>
+      private IToken? GetMatchingEndToken(IToken openingBrace) {
         // Look in methods for BlockStmt with the IToken as opening brace
         // Return the EndTok of them.
         var uri = document.Uri.GetFileSystemPath();
@@ -183,6 +201,11 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         return null;
       }
 
+      /// <summary>
+      /// Given an opening brace and a statement, if the statement's token is openingBrace
+      /// returns the closing brace token, else null.
+      /// Visit sub-statements recursively
+      /// </summary>
       private IToken? GetMatchingEndToken(IToken openingBrace, Statement stmt) {
         // Look in methods for BlockStmt with the IToken as opening brace
         // Return the EndTok of them.
@@ -199,10 +222,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         return null;
       }
 
-      private (string, TextEdit[])[] GetPossibleEdits() {
-        var possibleEdits = new List<(string, TextEdit[])>() { };
-
-        var uri = document.Uri.GetFileSystemPath();
+      private IEnumerable<(string, TextEdit[])> GetVerificationDiagnosticFixes(string uri) {
         var diagnostics = document.Errors.GetDiagnostics(uri);
         foreach (var diagnostic in diagnostics) {
           if (diagnostic.Range.Contains(request.Range) && diagnostic.Source == MessageSource.Verifier.ToString()) {
@@ -213,28 +233,41 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
                 var endToken = GetMatchingEndToken(diagnostic.Range.Start.ToBoogieToken(documentText));
                 if (endToken != null) {
                   var (indentation, indentationBrace) = GetIndentationBefore(endToken, documentText);
-                  possibleEdits.Add(CodeAction("Insert the failing error", new QuickFixEdit(
+                  yield return CodeAction("Insert the failing error", new QuickFixEdit(
                     endToken,
-                    insertBefore: $"{indentation}assert {expression};\n{indentationBrace}"
-                  )));
+                    $"{indentation}assert {expression};\n{indentationBrace}"
+                  ));
                 }
               }
             }
           }
         }
+      }
 
+      public IEnumerable<(string, TextEdit[])> GetPluginFixes(string uri) {
         foreach (var fixer in fixers) {
-          var uniqueKey = document.Uri.ToString();
           // Maybe we could set the program only once, when resolved, insteda of for every code action?
-          fixer.SetProgram(uniqueKey, document.Program, documentText, cancellationToken);
+          fixer.SetProgram(uri, document.Program, documentText, cancellationToken);
           var fixRange = request.Range.ToBoogieToken(documentText);
-          var quickFixes = fixer.GetQuickFixes(uniqueKey, fixRange);
+          var quickFixes = fixer.GetQuickFixes(uri, fixRange);
           var fixerCodeActions = quickFixes.Select(quickFix =>
             CodeAction(quickFix.Title, quickFix.Edits));
-          possibleEdits.AddRange(fixerCodeActions);
+          foreach (var codeAction in fixerCodeActions) {
+            yield return codeAction;
+          }
         }
+      }
 
-        return possibleEdits.ToArray();
+      /// <summary>
+      /// Returns a built-in list of possible code actions
+      /// Includes plugin-created code actions
+      /// </summary>
+      private (string, TextEdit[])[] GetPossibleEdits() {
+        var possibleFixes = new List<(string, TextEdit[])>() { };
+        var uri = document.Uri.GetFileSystemPath();
+        possibleFixes.AddRange(GetVerificationDiagnosticFixes(uri));
+        possibleFixes.AddRange(GetPluginFixes(uri));
+        return possibleFixes.ToArray();
       }
     }
 
