@@ -1,6 +1,5 @@
 ﻿using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
@@ -60,7 +59,6 @@ const x := 1;
     [TestMethod]
     public async Task CodeActionSuggestsInliningPostConditionWithExtraTabIndentation() {
       var t = "\t\t\t";
-      var t2 = "\t\t";
       await TestCodeActionHelper($@"
 const x := 1;
   method f() returns (i: int)
@@ -130,7 +128,7 @@ const x := 1;
       foreach (var completion in completionList) {
         if (completion.CodeAction is { Title: var title } codeAction && title == expectedQuickFixTitle) {
           found = true;
-          var textDocumentEdit = codeAction?.Edit?.DocumentChanges?.Single().TextDocumentEdit;
+          var textDocumentEdit = codeAction.Edit?.DocumentChanges?.Single().TextDocumentEdit;
           if (textDocumentEdit != null) {
             var edit = textDocumentEdit.Edits.Single();
             Assert.AreEqual(expectedQuickFix, edit.NewText);
