@@ -6,6 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
   </PropertyGroup>
 
   <ItemGroup>
@@ -20,4 +21,9 @@
     <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="4.0.1" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="CSharpModel.dfy">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 </Project>

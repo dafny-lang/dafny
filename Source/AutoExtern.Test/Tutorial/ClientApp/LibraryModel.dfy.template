@@ -1,9 +1,6 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
-
 /// # C#/Dafny interop: Dafny model template (filled by AutoExtern from ../Library/Library.cs)
 
-include "../../../../Source/AutoExtern/CSharpModel.dfy"
+include "CSharpModel.dfy"
 
 module {:compile false} {:extern "Library"} Library {
   import opened System

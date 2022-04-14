@@ -1,18 +1,12 @@
 # Automatically generating Dafny traits from C# code
 
 This directory demonstrates `AutoExtern`, a Dafny too that implements limited
-support for automatically generating trait hierarchies from C# classes.  Only
-classes, fields, and properties are exported: functions and methods are not
-reflected in the generated traits.  Hence, this feature is mostly useful for
-data classes.  Internally, we use it to expose `DafnyAst.cs` to Dafny.
+support for automatically generating trait hierarchies from C# classes.
 
 For a primer on C#/Dafny interop, see the [`Simple_compiler`
 tutorial](../Simple_compiler/) instead, which shows how to model C# types and
 functions and access them from Dafny.  This tutorial uses the automated bindings
 generator to save some modeling effort.
-
-`AutoExtern` is an internal tool and is not part of the standard Dafny release;
-hence, it will not run unless you download Dafny from source.
 
 ## Directory listing
 

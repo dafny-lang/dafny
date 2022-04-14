@@ -1,11 +1,4 @@
-ROOT ?= ../../../../
-AutoExtern := $(ROOT)/Source/AutoExtern/AutoExtern.csproj
-
-ifeq (,$(wildcard $(AutoExtern)))
-default: dotnet-run
-else
-default: skip
-endif
+AutoExtern ?= ../../../AutoExtern/AutoExtern.csproj
 
 LibraryProjectFile := ../Library/Library.csproj
 LibrarySourceFile := ../Library/Library.cs
@@ -13,22 +6,25 @@ LibraryRootNamespace := Library
 
 LibraryTemplateFile := LibraryModel.dfy.template
 LibraryModelFile := LibraryModel.dfy
+CSharpModelFile := CSharpModel.dfy
 
 AppCSharpFile := Main.cs
 AppDafnyFile := GroceryListPrinter.dfy
 ExpectFile := $(AppDafnyFile).expect
 
+default: dotnet-run
+
 $(LibraryModelFile): $(LibraryProjectFile) $(LibrarySourceFile) $(LibraryTemplateFile)
 	dotnet run --project $(AutoExtern) -- \
-		$(LibraryProjectFile) $(LibrarySourceFile) $(LibraryRootNamespace) $(LibraryTemplateFile) \
-		> $(LibraryModelFile)
+		$(LibraryProjectFile) \
+		$(LibrarySourceFile) \
+		$(LibraryRootNamespace) \
+		$(LibraryTemplateFile) \
+		$(CSharpModelFile) \
+		$(LibraryModelFile)
 
 dotnet-run: $(LibraryModelFile) $(AppCSharpFile) $(AppDafnyFile)
-	@dotnet run
-
-skip:
-	@echo "$(AutoExtern) not found; skipping this test."
-	@echo "You must build Dafny from source to use AutoExtern."
+	dotnet run
 
 clean:
-	rm -f $(LibraryModelFile)
+	rm -f $(LibraryModelFile) $(CSharpModelFile)
