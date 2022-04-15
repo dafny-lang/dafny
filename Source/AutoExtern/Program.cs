@@ -116,14 +116,12 @@ internal class SemanticModel {
 }
 
 internal class AST : PrettyPrintable {
-  private readonly string cSharpRootNS;
   private readonly SyntaxTree syntax;
   private readonly SemanticModel model;
 
-  public AST(string cSharpRootNS, SyntaxTree syntax, SemanticModel model) {
+  public AST(SyntaxTree syntax, SemanticModel model) {
     this.syntax = syntax;
     this.model = model;
-    this.cSharpRootNS = cSharpRootNS;
   }
 
   public static AST FromFile(string projectPath, string filePath, string cSharpRootNS) {
@@ -146,7 +144,7 @@ internal class AST : PrettyPrintable {
     var fullPath = Path.GetFullPath(filePath);
     var syntax = compilation.SyntaxTrees.First(st => Path.GetFullPath(st.FilePath) == fullPath);
     var model = compilation.GetSemanticModel(syntax);
-    return new AST(cSharpRootNS, syntax, new SemanticModel(cSharpRootNS, model));
+    return new AST(syntax, new SemanticModel(cSharpRootNS, model));
   }
 
   private CompilationUnitSyntax Root => syntax.GetCompilationUnitRoot();
