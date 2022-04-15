@@ -42,7 +42,7 @@ abstract class PrettyPrintable {
     var parts = new List<string>();
     parts.Add($"{kind}");
     if (attrs != null) {
-      parts.Add(FmtAttrs(attrs));
+      parts.Add(FmtAttrs(attrs!)); // `!` to placate dotnet-format
     }
     var paramsStr = parameters == null ? "" : $"<{String.Join(", ", parameters)}>";
     parts.Add($"{name.AsDecl(forceExtern: true)}{paramsStr}");
