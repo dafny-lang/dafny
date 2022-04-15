@@ -11389,7 +11389,6 @@ namespace Microsoft.Dafny {
         scope.PushMarker();
         if (s.IsBindingGuard) {
           var exists = (ExistsExpr)s.Guard;
-          AssumeOriginalTypeForBoundedVariables(exists!);
           foreach (var v in exists!.BoundVars) {
             ScopePushAndReport(scope, v, "bound-variable");
           }
@@ -11398,10 +11397,6 @@ namespace Microsoft.Dafny {
         ResolveBlockStatement(s.Thn, codeContext);
         dominatingStatementLabels.PopMarker();
         scope.PopMarker();
-        if (s.IsBindingGuard) {
-          var exists = (ExistsExpr)s.Guard;
-          AssumeCompilableTypeForBoundedVariables(exists!);
-        }
 
         if (s.Els != null) {
           dominatingStatementLabels.PushMarker();
@@ -13455,7 +13450,6 @@ namespace Microsoft.Dafny {
         dominatingStatementLabels.PushMarker();
         if (alternative.IsBindingGuard) {
           var exists = (ExistsExpr)alternative.Guard;
-          AssumeOriginalTypeForBoundedVariables(exists!);
           foreach (var v in exists.BoundVars) {
             ScopePushAndReport(scope, v, "bound-variable");
           }
@@ -13463,10 +13457,6 @@ namespace Microsoft.Dafny {
         ResolveAttributes(alternative, new ResolveOpts(codeContext, true));
         foreach (Statement ss in alternative.Body) {
           ResolveStatementWithLabels(ss, codeContext);
-        }
-        if (alternative.IsBindingGuard) {
-          var exists = (ExistsExpr)alternative.Guard;
-          AssumeCompilableTypeForBoundedVariables(exists!);
         }
         dominatingStatementLabels.PopMarker();
         scope.PopMarker();
@@ -15299,8 +15289,6 @@ namespace Microsoft.Dafny {
         // Since the body is more likely to infer the types of the bound variables, resolve it
         // first (above) and only then resolve the attributes (below).
         scope.PopMarker();
-        // Reinstate the runtime testable type since verification uses bounded variable
-        AssumeCompilableTypeForBoundedVariables(e);
 
         allTypeParameters.PopMarker();
         expr.Type = Type.Bool;
@@ -15330,8 +15318,6 @@ namespace Microsoft.Dafny {
         Contract.Assert(e.Term.Type != null);  // follows from postcondition of ResolveExpression
 
         scope.PopMarker();
-        // Reinstate the compilable type since verification uses bounded variable
-        AssumeCompilableTypeForBoundedVariables(e);
 
         expr.Type = new SetType(e.Finite, e.Term.Type);
 
@@ -15366,8 +15352,6 @@ namespace Microsoft.Dafny {
         Contract.Assert(e.Term.Type != null);  // follows from postcondition of ResolveExpression
 
         scope.PopMarker();
-        // Reinstate the runtime testable type since verification uses bounded variable
-        AssumeCompilableTypeForBoundedVariables(e);
 
         expr.Type = new MapType(e.Finite, e.TermLeft != null ? e.TermLeft.Type : e.BoundVars[0].Type, e.Term.Type);
 
@@ -15440,18 +15424,6 @@ namespace Microsoft.Dafny {
       if (expr.Type == null) {
         // some resolution error occurred
         expr.Type = new InferredTypeProxy();
-      }
-    }
-
-    private void AssumeCompilableTypeForBoundedVariables(ComprehensionExpr e) {
-      foreach (BoundVar v in e.AllBoundVars) {
-        v.AssumeCompilableTypeIfAny(); // Reinstate the runtime testable type since verification uses bounded variable
-      }
-    }
-
-    private void AssumeOriginalTypeForBoundedVariables(ComprehensionExpr e) {
-      foreach (BoundVar v in e.AllBoundVars) {
-        v.AssumeOriginalType(); // Reinstate the runtime testable type since verification uses bounded variable
       }
     }
 

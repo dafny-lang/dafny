@@ -6222,23 +6222,31 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public Type CompilableTypeIfAny => compilableType != null ? CompilableType : OriginalType;
+
     public bool CurrentTypeAssumedToBeCompilable { get; set; } = false;
 
+    /// <summary>
+    /// Sets a "compilable type" for the range of a bound variable,
+    /// and assumes it
+    /// </summary>
+    /// <param name="compilableType">Typically, a compilable parent of Type</param>
     public void SetAndAssumeCompilableType(Type compilableType) {
       CompilableType = compilableType;
-      AssumeCompilableTypeIfAny();
+      CurrentTypeAssumedToBeCompilable = true;
     }
 
-    public void AssumeCompilableTypeIfAny() {
-      if (compilableType != null) {
-        CurrentTypeAssumedToBeCompilable = true;
-      }
-    }
-
+    /// <summary>
+    /// Ensures that the bound variable's type is the original one, e.g. for the term of a comprehension
+    /// </summary>
     public void AssumeOriginalType() {
       CurrentTypeAssumedToBeCompilable = false;
     }
 
+    /// <summary>
+    /// Completely removes the compilable version of the type
+    /// (e.g. we know we are in a ghost context)
+    /// </summary>
     public void AcceptOriginalTypeAssumption() {
       CompilableType = null;
       CurrentTypeAssumedToBeCompilable = false;

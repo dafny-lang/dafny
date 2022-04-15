@@ -4,12 +4,10 @@ git-issue-1604b2.dfy(13,35): [Related location] GhostNaturalCell is ghost becaus
 git-issue-1604b2.dfy(65,103): Error: value does not satisfy the subset constraints of 'GhostOrdinalCell'
 git-issue-1604b2.dfy(67,37): Error: Could not prove that the range constrains the bound variable 'go2' to be of type GhostOrdinalCell2, and since GhostOrdinalCell2 is a ghost subset type, no runtime type filter can be added on the collection whose elements have the type CompilableNaturalCell.
 git-issue-1604b2.dfy(26,55): [Related location] GhostOrdinalCell2 is ghost because a call to a ghost predicate is allowed only in specification contexts (consider declaring the predicate with 'predicate method')
-git-issue-1604b2.dfy(67,37): Error: value does not satisfy the subset constraints of 'set<GhostOrdinalCell>'
 git-issue-1604b2.dfy(67,106): Error: value does not satisfy the subset constraints of 'GhostOrdinalCell'
 git-issue-1604b2.dfy(69,37): Error: Could not prove that the range constrains the bound variable 'go3' to be of type GhostOrdinalCell3, and since GhostOrdinalCell3 is a ghost subset type, no runtime type filter can be added on the collection whose elements have the type Cell.
 git-issue-1604b2.dfy(28,25): [Related location] The subset type GhostOrdinalCell3type GhostOrdinalCell is ghost because it depends on the ghost subset type GhostNaturalCell
 git-issue-1604b2.dfy(13,35): [Related location] GhostNaturalCell is ghost because a call to a ghost predicate is allowed only in specification contexts (consider declaring the predicate with 'predicate method')
 git-issue-1604b2.dfy(69,106): Error: value does not satisfy the subset constraints of 'GhostOrdinalCell'
-git-issue-1604b2.dfy(71,9): Error: assertion might not hold
 
-Dafny program verifier finished with 12 verified, 8 errors
+Dafny program verifier finished with 12 verified, 6 errors
