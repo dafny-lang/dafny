@@ -230,6 +230,10 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       private IEnumerable<(string, TextEdit[])> GetVerificationDiagnosticFixes() {
         string uri = documentUri;
         var diagnostics = document.Errors.GetDiagnostics(document.Uri);
+        if (diagnostics.Count == 0) {
+          // For anonymous documents opened in VSCode
+          diagnostics = document.Errors.GetDiagnostics(document.Uri.GetFileSystemPath());
+        }
         foreach (var diagnostic in diagnostics) {
           if (diagnostic.Range.Contains(request.Range) && diagnostic.Source == MessageSource.Verifier.ToString()) {
             if (diagnostic.RelatedInformation?.FirstOrDefault() is { } relatedInformation) {
