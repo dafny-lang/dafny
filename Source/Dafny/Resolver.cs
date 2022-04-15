@@ -5497,7 +5497,7 @@ namespace Microsoft.Dafny {
           return true;
         }
 
-        resolver.ConstrainSubtypeRelation(collectionElementType, requestedVariableType.GetCompilableParentType(), errorMsg, true);
+        resolver.ConstrainSubtypeRelation(requestedVariableType.GetCompilableParentType(), collectionElementType, errorMsg, true);
         convertedIntoOtherTypeConstraints = true;
         return true;
       }
