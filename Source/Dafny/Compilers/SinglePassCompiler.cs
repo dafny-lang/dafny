@@ -1820,7 +1820,7 @@ namespace Microsoft.Dafny.Compilers {
                            "anything",
                 errorWr, m.FullName);
             }
-          } else if (m.Body == null && !(c is TraitDecl && !m.IsStatic) && !DafnyOptions.O.RunAllTests &&
+          } else if (m.Body == null && !(c is TraitDecl && !m.IsStatic) &&
                      !(!DafnyOptions.O.DisallowExterns && (Attributes.Contains(m.Attributes, "dllimport") || (IncludeExternMembers && Attributes.Contains(m.Attributes, "extern"))))) {
             // A (ghost or non-ghost) method must always have a body, except if it's an instance method in a trait.
             if (Attributes.Contains(m.Attributes, "axiom") || (!DafnyOptions.O.DisallowExterns && Attributes.Contains(m.Attributes, "extern"))) {
@@ -2258,35 +2258,31 @@ namespace Microsoft.Dafny.Compilers {
 
       var w = cw.CreateMethod(m, CombineAllTypeArguments(m), !m.IsExtern(out _, out _), false, lookasideBody);
       if (w != null) {
-        if (m.IsEntryPoint && DafnyOptions.O.RunAllTests) {
-          EmitRunAllTestsMainMethod(program, w);
+        if (m.IsTailRecursive) {
+          w = EmitTailCallStructure(m, w);
+        }
+
+        Coverage.Instrument(m.Body.Tok, $"entry to method {m.FullName}", w);
+
+        var nonGhostOutsCount = m.Outs.Count(p => !p.IsGhost);
+
+        var useReturnStyleOuts = UseReturnStyleOuts(m, nonGhostOutsCount);
+        foreach (var p in m.Outs) {
+          if (!p.IsGhost) {
+            DeclareLocalOutVar(IdName(p), p.Type, p.tok, PlaceboValue(p.Type, w, p.tok, true), useReturnStyleOuts, w);
+          }
+        }
+
+        w = EmitMethodReturns(m, w);
+
+        if (m.Body == null) {
+          Error(m.tok, "Method {0} has no body", w, m.FullName);
         } else {
-          if (m.IsTailRecursive) {
-            w = EmitTailCallStructure(m, w);
-          }
-
-          Coverage.Instrument(m.Body.Tok, $"entry to method {m.FullName}", w);
-
-          var nonGhostOutsCount = m.Outs.Count(p => !p.IsGhost);
-
-          var useReturnStyleOuts = UseReturnStyleOuts(m, nonGhostOutsCount);
-          foreach (var p in m.Outs) {
-            if (!p.IsGhost) {
-              DeclareLocalOutVar(IdName(p), p.Type, p.tok, PlaceboValue(p.Type, w, p.tok, true), useReturnStyleOuts, w);
-            }
-          }
-
-          w = EmitMethodReturns(m, w);
-
-          if (m.Body == null) {
-            Error(m.tok, "Method {0} has no body", w, m.FullName);
-          } else {
-            Contract.Assert(enclosingMethod == null);
-            enclosingMethod = m;
-            TrStmtList(m.Body.Body, w);
-            Contract.Assert(enclosingMethod == m);
-            enclosingMethod = null;
-          }
+          Contract.Assert(enclosingMethod == null);
+          enclosingMethod = m;
+          TrStmtList(m.Body.Body, w);
+          Contract.Assert(enclosingMethod == m);
+          enclosingMethod = null;
         }
       }
 
@@ -5174,113 +5170,6 @@ namespace Microsoft.Dafny.Compilers {
     /// and assign the halting message to the given variable.
     /// </summary>
     protected abstract ConcreteSyntaxTree EmitHaltHandling(LocalVariable haltMessageVar, ConcreteSyntaxTree wr);
-
-    protected void EmitRunAllTestsMainMethod(Program program, ConcreteSyntaxTree w) {
-      var tok = Bpl.Token.NoToken;
-      var stringType = new SeqType(new CharType());
-
-      // var success := true;
-      var successVarStmt = Statement.CreateLocalVariable(tok, "success", Expression.CreateBoolLiteral(tok, true));
-      TrStmt(successVarStmt, w);
-      var successVarExpr = new IdentifierExpr(tok, successVarStmt.Locals[0]);
-
-      foreach (var module in program.CompileModules) {
-        foreach (ICallable callable in ModuleDefinition.AllCallables(module.TopLevelDecls)) {
-          if ((callable is Method method) && Attributes.Contains(method.Attributes, "test")) {
-            EmitPrintStmt(w, Expression.CreateStringLiteral(tok, method.FullDafnyName + ": "));
-
-            // var haltMessage42 := "";
-            var haltMessageVarName = idGenerator.FreshId("haltMessage");
-            var emptyStringExpr = Expression.CreateStringLiteral(tok, "");
-            var haltMessageVarStmt = Statement.CreateLocalVariable(tok, haltMessageVarName, emptyStringExpr);
-            TrStmt(haltMessageVarStmt, w);
-            var haltMessageVar = haltMessageVarStmt.Locals[0];
-            var haltMessageVarExpr = new IdentifierExpr(tok, haltMessageVar);
-
-            // Emit the surrounding context to recover from any halting and assign
-            // the halt message to haltMessage42
-            var methodCallWr = EmitHaltHandling(haltMessageVar, w);
-
-            var receiverExpr = new StaticReceiverExpr(tok, (TopLevelDeclWithMembers)method.EnclosingClass, true);
-            var methodSelectExpr = new MemberSelectExpr(tok, receiverExpr, method.Name);
-            methodSelectExpr.Member = method;
-            methodSelectExpr.TypeApplication_JustMember = new List<Type>();
-            methodSelectExpr.TypeApplication_AtEnclosingClass = new List<Type>();
-
-            Expression resultVarExpr = null;
-            var statements = new List<Statement>();
-            var lhss = new List<Expression>();
-
-            // If the method returns a value, check for a failure using IsFailure() as if this
-            // was an AssignOrReturnStmt (:-).
-            if (method.Outs.Count > 1) {
-              throw new NotImplementedException("{:test}");
-            }
-            if (method.Outs.Count == 1) {
-              var resultVarName = idGenerator.FreshId("result");
-              var resultVarStmt = Statement.CreateLocalVariable(tok, resultVarName, method.Outs[0].Type);
-              statements.Add(resultVarStmt);
-              var resultVar = resultVarStmt.Locals[0];
-              resultVarExpr = new IdentifierExpr(tok, resultVar);
-              lhss.Add(resultVarExpr);
-            }
-
-            var callStmt = new CallStmt(tok, tok, lhss, methodSelectExpr, new List<Expression>());
-            statements.Add(callStmt);
-
-            Statement passedStmt = Statement.CreatePrintStmt(tok, Expression.CreateStringLiteral(tok, "PASSED\n"));
-            var passedBlock = new BlockStmt(tok, tok, Util.Singleton(passedStmt));
-
-            if (resultVarExpr != null) {
-              // if result.IsFailure() {
-              //   print "FAILED\n\t", result, "\n";
-              //   success := false;
-              // } else {
-              //   print "PASSED\n";
-              // }
-              var failureGuardExpr = new FunctionCallExpr(tok, "IsFailure", resultVarExpr, tok, new List<Expression>());
-              var resultClass = (TopLevelDeclWithMembers)((UserDefinedType)resultVarExpr.Type).ResolvedClass;
-              var isFailureMember = resultClass.Members.First(m => m.Name == "IsFailure");
-              failureGuardExpr.Function = (Function)isFailureMember;
-              var failedBlock = PrintTestFailureStatement(tok, successVarExpr, resultVarExpr);
-              statements.Add(new IfStmt(tok, tok, false, failureGuardExpr, failedBlock, passedBlock));
-            } else {
-              statements.Add(passedBlock);
-            }
-
-            TrStmt(new BlockStmt(tok, tok, statements), methodCallWr);
-
-            // if haltMessage_X != "" {
-            //   print "FAILED\n\t", haltMessage_X, "\n";
-            //   success := false;
-            // }
-            var guardExpr = Expression.CreateNot(tok, Expression.CreateEq(haltMessageVarExpr, emptyStringExpr, stringType));
-            var haltedBlock = PrintTestFailureStatement(tok, successVarExpr, haltMessageVarExpr);
-            var ifHaltedStmt = new IfStmt(tok, tok, false, guardExpr, haltedBlock, null);
-            TrStmt(ifHaltedStmt, w);
-          }
-        }
-      }
-
-      // For now just print a footer to call attention to any failed tests.
-      // Ideally we would also set the process return code, but since Dafny main methods
-      // don't support that yet, that is deferred for now.
-      Statement printFailure = Statement.CreatePrintStmt(tok,
-        Expression.CreateStringLiteral(tok, "Test failures occurred: see above.\n"));
-      var failuresBlock = new BlockStmt(tok, tok, Util.Singleton(printFailure));
-      var ifNotSuccess = new IfStmt(tok, tok, false, Expression.CreateNot(tok, successVarExpr), failuresBlock, null);
-      TrStmt(ifNotSuccess, w);
-    }
-
-    private BlockStmt PrintTestFailureStatement(Bpl.IToken tok, Expression successVarExpr, Expression failureValueExpr) {
-      var failedPrintStmt = Statement.CreatePrintStmt(tok,
-        Expression.CreateStringLiteral(tok, "FAILED\n\t"),
-        failureValueExpr,
-        Expression.CreateStringLiteral(tok, "\n"));
-      var failSuiteStmt =
-        new AssignStmt(tok, tok, successVarExpr, new ExprRhs(Expression.CreateBoolLiteral(tok, false)));
-      return new BlockStmt(tok, tok, Util.List<Statement>(failedPrintStmt, failSuiteStmt));
-    }
 
     public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
       bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {

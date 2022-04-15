@@ -439,6 +439,10 @@ namespace Microsoft.Dafny {
         rewriters.Add(new TriggerGeneratingRewriter(reporter));
       }
 
+      if (DafnyOptions.O.RunAllTests) {
+        rewriters.Add(new RunAllTestsMainMethod(reporter));
+      }
+      
       rewriters.Add(new InductionRewriter(reporter));
       rewriters.Add(new PrintEffectEnforcement(reporter));
 
@@ -463,6 +467,10 @@ namespace Microsoft.Dafny {
       }
 
       ResolveTopLevelDecls_Core(systemModuleClassesWithNonNullTypes, new Graph<IndDatatypeDecl>(), new Graph<CoDatatypeDecl>());
+
+      foreach (var rewriter in rewriters) {
+        rewriter.PreResolve(prog);
+      }
 
       var compilationModuleClones = new Dictionary<ModuleDefinition, ModuleDefinition>();
       foreach (var decl in sortedDecls) {

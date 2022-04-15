@@ -4125,7 +4125,7 @@ namespace Microsoft.Dafny {
 
     /// <summary>
     /// Yields all functions and methods that are members of some type in the given list of
-    /// declarations.
+    /// declarations. 
     /// Note, an iterator declaration is a type, in this sense.
     /// Note, if the given list are the top-level declarations of a module, the yield will include
     /// greatest lemmas but not their associated prefix lemmas (which are tucked into the greatest lemma's
@@ -8876,6 +8876,32 @@ namespace Microsoft.Dafny {
           }
         }
       }
+    }
+  }
+
+  /// <summary>
+  /// A statement something like a try/catch block that recovers from halting.
+  /// Not actually useable in Dafny syntax, but would likely look something like this if it was:
+  ///
+  /// try {
+  ///   <Body>
+  /// } recover (haltMessage: string) {
+  ///   <RecoveryBlock>
+  /// }
+  /// 
+  /// </summary>
+  public class HaltRecoveryStatement : Statement {
+    public readonly Statement Body;
+    public readonly string HaltMessageVarName;
+    public readonly Statement RecoveryBody;
+    public HaltRecoveryStatement(Statement body, string haltMessageVarName, Statement recoveryBody)
+      : base(body.Tok, recoveryBody.EndTok) {
+      Contract.Requires(body != null);
+      Contract.Requires(haltMessageVarName != null);
+      Contract.Requires(recoveryBody != null);
+      Body = body;
+      HaltMessageVarName = haltMessageVarName;
+      RecoveryBody = recoveryBody;
     }
   }
 

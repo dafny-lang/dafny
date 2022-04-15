@@ -564,25 +564,6 @@ namespace Microsoft.Dafny {
       var compiler = DafnyOptions.O.Compiler;
 
       var hasMain = Compilers.SinglePassCompiler.HasMain(dafnyProgram, out var mainMethod);
-      if (DafnyOptions.O.RunAllTests) {
-        if (hasMain) {
-          throw new Exception("Cannot use /runAllTests on a program with a main method");
-        }
-
-        // Create a Method instance just so the driver can emit a call to it if necessary
-        mainMethod = new Method(Bpl.Token.NoToken, "Main", false, false,
-          new List<TypeParameter>(), new List<Formal>(), new List<Formal>(),
-          new List<AttributedExpression>(),
-          new Specification<FrameExpression>(new List<FrameExpression>(), null),
-          new List<AttributedExpression>(), new Specification<Expression>(new List<Expression>(), null),
-          null, null, null);
-        var defaultCompileModule = dafnyProgram.CompileModules.Single(m => m.IsDefaultModule);
-        var defaultClass = (DefaultClassDecl)defaultCompileModule.TopLevelDecls.Single(d => d is DefaultClassDecl);
-        mainMethod.EnclosingClass = defaultClass;
-        defaultClass.Members.Add(mainMethod);
-
-        hasMain = true;
-      }
       if (hasMain) {
         mainMethod.IsEntryPoint = true;
         dafnyProgram.MainMethod = mainMethod;
