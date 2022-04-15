@@ -1,6 +1,5 @@
 using System;
 using JetBrains.Annotations;
-using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
 
@@ -22,12 +21,6 @@ namespace Microsoft.Dafny {
         case "warnDeadCode":
           WarnDeadCode = true;
           Mode = Modes.Block;
-          return true;
-
-        case "generateTestBoogie":
-          if (ps.ConfirmArgumentCount(1)) {
-            PrintBoogieFile = args[ps.i];
-          }
           return true;
 
         case "generateTestMode":

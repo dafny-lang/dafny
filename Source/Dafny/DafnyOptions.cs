@@ -140,7 +140,6 @@ namespace Microsoft.Dafny {
     public List<string> VerificationLoggerConfigs = new();
     // Working around the fact that xmlFilename is private
     public string BoogieXmlFilename = null;
-    public bool CompileMocks = false;
 
     public static readonly ReadOnlyCollection<Plugin> DefaultPlugins = new(new[] { Compilers.SinglePassCompiler.Plugin });
     public List<Plugin> Plugins = new(DefaultPlugins);
@@ -1125,9 +1124,6 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
         /verificationLogger:trx;LogFileName=<...>.
     The exact mapping of verification concepts to the TRX and CSV formats is
     experimental and subject to change!
-/compileMocks 
-    If true, automatically compile external methods annotated with {{:mock}}
-    into the target language (currently only supported for C#)
 {TestGenOptions.Help}
 
 /mimicVerificationOf:<Dafny version>
