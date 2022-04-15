@@ -568,7 +568,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitLiteralExpr(ConcreteSyntaxTree wr, LiteralExpr e) {
       switch (e) {
         case CharLiteralExpr:
-          wr.Write("'{0}'", (string)e.Value);
+          wr.Write($"'{(string)e.Value}'");
           break;
         case StringLiteralExpr str:
           TrStringLiteral(str, wr);
@@ -579,7 +579,7 @@ namespace Microsoft.Dafny.Compilers {
         default:
           switch (e.Value) {
             case bool value:
-              wr.Write("{0}", value);
+              wr.Write($"{value}");
               break;
             case BigInteger integer:
               wr.Write($"{integer}");
@@ -620,7 +620,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree EmitBitvectorTruncation(BitvectorType bvType, bool surroundByUnchecked, ConcreteSyntaxTree wr) {
       var vec = wr.ForkInParens();
-      wr.Write(" & ((int(1) << {0}) - 1)", bvType.Width);
+      wr.Write($" & ((1 << {bvType.Width}) - 1)");
       return vec;
     }
 
@@ -645,7 +645,6 @@ namespace Microsoft.Dafny.Compilers {
         wr = wr.ForkInParens().Write($"{bv.Width} - ");
       }
 
-      wr.Write("(int)");
       tr(e1, wr.ForkInParens(), inLetExprBody);
     }
 
@@ -742,7 +741,8 @@ namespace Microsoft.Dafny.Compilers {
       switch (member) {
         case SpecialField sf: {
             GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, objType, out var compiledName, out _, out _);
-            return compiledName.Length != 0 ? SuffixLvalue(obj, ".{0}", compiledName) : SimpleLvalue(obj);
+            if (compiledName.Length > 0) { compiledName = "." + compiledName; }
+            return SuffixLvalue(obj, compiledName);
           }
         case Field: {
             return SimpleLvalue(w => {
@@ -906,8 +906,8 @@ namespace Microsoft.Dafny.Compilers {
           break;
 
         case BinaryExpr.ResolvedOpcode.Add:
-          truncateResult = true;
           if (!resultType.IsCharType) {
+            truncateResult = true;
             opString = "+";
           } else {
             staticCallString = "_dafny.PlusChar";
@@ -920,11 +920,11 @@ namespace Microsoft.Dafny.Compilers {
 
         case BinaryExpr.ResolvedOpcode.Sub:
           if (!resultType.IsCharType) {
+            truncateResult = true;
             opString = "-";
           } else {
             staticCallString = "_dafny.MinusChar";
           }
-          truncateResult = true;
           break;
 
         case BinaryExpr.ResolvedOpcode.Mul:
@@ -996,41 +996,25 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitConversionExpr(ConversionExpr e, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      var (pre, post) = ("", "");
       if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Int) || e.E.Type.IsBitVectorType) {
         if (e.ToType.IsNumericBased(Type.NumericPersuasion.Real)) {
-          // (int or bv) -> real
-          Contract.Assert(AsNativeType(e.ToType) == null);
-          wr.Write("_dafny.BigRational(");
-          TrExpr(e.E, wr, inLetExprBody, wStmts);
-          wr.Write(", 1)");
+          (pre, post) = ("_dafny.BigRational(", ", 1)");
         } else if (e.ToType.IsCharType) {
-          // (int or bv or char) -> char
-          wr.Write("chr(");
-          TrExpr(e.E, wr, inLetExprBody, wStmts);
-          wr.Write(")");
-        } else {
-          TrExpr(e.E, wr, inLetExprBody, wStmts);
+          (pre, post) = ("chr(", ")");
         }
       } else if (e.E.Type.IsCharType) {
-        wr.Write("ord(");
-        TrExpr(e.E, wr, inLetExprBody, wStmts);
-        wr.Write(")");
+        (pre, post) = ("ord(", ")");
       } else if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
         if (e.ToType.IsNumericBased(Type.NumericPersuasion.Int) || e.ToType.IsBitVectorType || e.ToType.IsBigOrdinalType) {
-          wr.Write("int(");
-          TrExpr(e.E, wr, inLetExprBody, wStmts);
-          wr.Write(")");
+          (pre, post) = ("int(", ")");
         } else if (e.ToType.IsCharType) {
-          // (int or bv or char) -> char
-          wr.Write("chr(floor(");
-          TrExpr(e.E, wr, inLetExprBody, wStmts);
-          wr.Write("))");
-        } else {
-          TrExpr(e.E, wr, inLetExprBody, wStmts);
+          (pre, post) = ("chr(floor(", "))");
         }
-      } else {
-        TrExpr(e.E, wr, inLetExprBody, wStmts);
       }
+      wr.Write(pre);
+      TrExpr(e.E, wr, inLetExprBody, wStmts);
+      wr.Write(post);
     }
 
     protected override void EmitTypeTest(string localName, Type fromType, Type toType, IToken tok, ConcreteSyntaxTree wr) {
