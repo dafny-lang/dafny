@@ -244,14 +244,17 @@ public class PreconditionSatisfied : ProofObligationDescription {
       : $"error is impossible: {customErrMsg}";
 
   public override string FailureDescription =>
-    customErrMsg ?? "function precondition might not hold";
+    (customErrMsg ?? "function precondition might not hold") + (optionalHint ?? "");
 
   public override string ShortDescription => "precondition";
 
   private readonly string customErrMsg;
 
-  public PreconditionSatisfied([CanBeNull] string customErrMsg) {
+  private readonly string optionalHint;
+
+  public PreconditionSatisfied([CanBeNull] string customErrMsg, [CanBeNull] string optionalHint = null) {
     this.customErrMsg = customErrMsg;
+    this.optionalHint = optionalHint;
   }
 }
 

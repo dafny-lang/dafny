@@ -5763,6 +5763,7 @@ namespace Microsoft.Dafny {
             Expression precond = Substitute(p.E, e.Receiver, substMap, e.GetTypeArgumentSubstitutions());
             bool splitHappened;  // we don't actually care
             string errorMessage = CustomErrorMessage(p.Attributes);
+            string optionalHint = null;
             foreach (var ss in TrSplitExpr(precond, etran, true, out splitHappened)) {
               if (ss.IsChecked) {
                 var tok = new NestedToken(GetToken(expr), ss.E.tok);
@@ -5772,20 +5773,19 @@ namespace Microsoft.Dafny {
                           subExpression is IdentifierExpr v &&
                           v.Var.CompileName == entry.Key
                         )) {
-                      errorMessage = $"possible violation of function precondition." +
-                                     $" Careful: variable {entry.Value.DisplayName} has type {entry.Value.CompilableType}" +
+                      optionalHint = $". Careful: variable {entry.Value.DisplayName} has type {entry.Value.CompilableType}" +
                                      $" and not {entry.Value.OriginalType} because the range is compiled" +
                                      $" and {entry.Value.OriginalType} cannot be tested at run-time";
                       break;
                     }
                   }
                 }
-                var desc = new PODesc.PreconditionSatisfied(errorMessage);
+                var desc = new PODesc.PreconditionSatisfied(errorMessage, optionalHint);
                 if (options.AssertKv != null) {
                   // use the given assert attribute only
-                  builder.Add(Assert(tok, ss.E, new PODesc.PreconditionSatisfied(errorMessage), options.AssertKv));
+                  builder.Add(Assert(tok, ss.E, desc, options.AssertKv));
                 } else {
-                  builder.Add(AssertNS(tok, ss.E, new PODesc.PreconditionSatisfied(errorMessage)));
+                  builder.Add(AssertNS(tok, ss.E, desc));
                 }
               }
             }
