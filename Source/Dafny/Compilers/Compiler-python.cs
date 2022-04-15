@@ -573,6 +573,9 @@ namespace Microsoft.Dafny.Compilers {
         case StringLiteralExpr str:
           TrStringLiteral(str, wr);
           break;
+        case StaticReceiverExpr:
+          wr.Write(TypeName(e.Type, wr, e.tok));
+          break;
         default:
           switch (e.Value) {
             case bool value:
