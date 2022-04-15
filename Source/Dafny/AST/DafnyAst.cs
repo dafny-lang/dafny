@@ -6091,7 +6091,7 @@ namespace Microsoft.Dafny {
 
     protected Type type;
     public Type SyntacticType { get { return type; } }  // returns the non-normalized type
-    public Type Type {
+    public virtual Type Type {
       get {
         Contract.Ensures(Contract.Result<Type>() != null);
         return type.Normalize();
@@ -6214,50 +6214,61 @@ namespace Microsoft.Dafny {
       Contract.Requires(type != null);
     }
 
+    public override Type Type {
+      get {
+        Contract.Ensures(Contract.Result<Type>() != null);
+        Contract.Requires(!CurrentTypeAssumedToBeCompilable || compilableType != null);
+        return CurrentTypeAssumedToBeCompilable ? CompilableType : OriginalType;
+      }
+    }
+
     public bool CurrentTypeAssumedToBeCompilable { get; set; } = false;
 
-    public void AssumeCompilableType(Type secondaryType) {
-      Contract.Assert(!CurrentTypeAssumedToBeCompilable);
-      otherType = secondaryType;
+    public void SetAndAssumeCompilableType(Type compilableType) {
+      CompilableType = compilableType;
       AssumeCompilableTypeIfAny();
     }
 
     public void AssumeCompilableTypeIfAny() {
-      if (!CurrentTypeAssumedToBeCompilable && otherType != null) {
-        (otherType, type) = (type, otherType);
+      if (compilableType != null) {
         CurrentTypeAssumedToBeCompilable = true;
       }
     }
 
     public void AssumeOriginalType() {
-      if (CurrentTypeAssumedToBeCompilable) {
-        Contract.Assert(otherType != null);
-        (type, otherType) = (otherType, type);
-        CurrentTypeAssumedToBeCompilable = false;
-      }
+      CurrentTypeAssumedToBeCompilable = false;
     }
 
     public void AcceptOriginalTypeAssumption() {
-      if (CurrentTypeAssumedToBeCompilable) {
-        Contract.Assert(otherType != null);
-        (type, otherType) = (otherType, null);
-        CurrentTypeAssumedToBeCompilable = false;
-      } else {
-        otherType = null;
+      CompilableType = null;
+      CurrentTypeAssumedToBeCompilable = false;
+    }
+
+    // If this CompilableType is null, it means that it's safe to only assume the originalType 
+    private Type compilableType;
+    public Type CompilableType {
+      get {
+        return compilableType?.Normalize();
+      }
+      set {
+        compilableType = value;
+      }
+    }
+    public Type OriginalType {
+      get {
+        return type?.Normalize();
+      }
+      set {
+        type = value;
       }
     }
 
-    public Type CompilableType => CurrentTypeAssumedToBeCompilable ? Type : otherType;
-    public Type OriginalType => CurrentTypeAssumedToBeCompilable ? otherType : Type;
-
     public bool NeedsToVerifyOriginalTypeInference() {
-      return otherType != null && OriginalType.MightContainGhostConstraints();
+      return compilableType != null && OriginalType.MightContainGhostConstraints();
     }
     public bool CompilableTypeAssumptionIsNotTrivial() {
-      return otherType != null && !otherType.Equals(Type, true);
+      return compilableType != null && !compilableType.Equals(type, true);
     }
-
-    private Type otherType = null;
   }
 
   public class ActualBinding {

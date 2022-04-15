@@ -15495,7 +15495,7 @@ namespace Microsoft.Dafny {
             );
           }
 
-          v.AssumeCompilableType(collectionVarType);
+          v.SetAndAssumeCompilableType(collectionVarType);
           ResolveType(v.tok, collectionVarType, opts.codeContext, resolveTypeOption, typeArgs);
         }
 
