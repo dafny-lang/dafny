@@ -2307,7 +2307,7 @@ namespace Microsoft.Dafny {
             extraMember.InheritVisibility(m, false);
             members.Add(extraName, extraMember);
           } else if (m is Function f && f.ByMethodBody != null) {
-            RegisterByMethod(f);
+            RegisterByMethod(f, cl);
           }
         } else if (m is Constructor && !((Constructor)m).HasName) {
           reporter.Error(MessageSource.Resolver, m, "More than one anonymous constructor");
@@ -2317,10 +2317,9 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void RegisterByMethod(Function f) {
+    void RegisterByMethod(Function f, TopLevelDeclWithMembers cl) {
       Contract.Requires(f != null && f.ByMethodBody != null);
 
-      var cl = (TopLevelDeclWithMembers)f.EnclosingClass;
       var tok = f.ByMethodTok;
       var resultVar = f.Result ?? new Formal(tok, "#result", f.ResultType, false, false, null);
       var r = Expression.CreateIdentExpr(resultVar);
