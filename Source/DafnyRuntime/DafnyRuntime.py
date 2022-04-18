@@ -107,7 +107,7 @@ class BigRational(Fraction):
         return None
 
     def __add__(self, other):
-        return BigRational(Fraction.__add__(self, other))
+        return BigRational(super().__add__(other))
 
     def __sub__(self, other):
         return BigRational(Fraction.__sub__(self, other))
