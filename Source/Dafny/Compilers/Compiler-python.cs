@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.IO;
@@ -323,6 +324,9 @@ namespace Microsoft.Dafny.Compilers {
             return "int";
           }
         case UserDefinedType udt: {
+            if (xType.IsArrayType) {
+              return "list";
+            }
             var s = FullTypeName(udt, member);
             return TypeName_UDT(s, udt, wr, udt.tok);
           }
@@ -453,16 +457,14 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree CreateLabeledCode(string label, bool createContinueLabel, ConcreteSyntaxTree wr) {
-      if (createContinueLabel) { throw new NotImplementedException(); }
+      Contract.Assert(!createContinueLabel);
       return wr.NewBlockPy($"with _dafny.label(\"{label}\"):");
     }
 
     protected override void EmitBreak(string label, ConcreteSyntaxTree wr) {
       if (label != null) {
         wr.WriteLine($"_dafny._break(\"{label}\")");
-      } else {
-        wr.WriteLine("break");
-      }
+      } else { wr.WriteLine("break"); }
     }
 
     protected override void EmitContinue(string label, ConcreteSyntaxTree wr) {
@@ -500,8 +502,19 @@ namespace Microsoft.Dafny.Compilers {
       throw new NotImplementedException();
     }
 
+    protected override ConcreteSyntaxTree CreateWhileLoop(out ConcreteSyntaxTree guardWriter, ConcreteSyntaxTree wr) {
+      wr.Write("while ");
+      guardWriter = wr.Fork();
+      var wBody = wr.NewBlockPy(":", "");
+      return wBody;
+    }
+
     protected override ConcreteSyntaxTree CreateForLoop(string indexVar, string bound, ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
+      string headerFormat = "for {0} in range({1}):";
+      object[] headerArgs = { indexVar, bound };
+      return wr.NewBlockPy(string.Format(headerFormat, headerArgs), null);
+
+
     }
 
     protected override ConcreteSyntaxTree CreateDoublingForLoop(string indexVar, int start, ConcreteSyntaxTree wr) {
@@ -544,7 +557,21 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitNewArray(Type elmtType, IToken tok, List<Expression> dimensions, bool mustInitialize,
       ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      throw new NotImplementedException();
+      var initValue = mustInitialize ? DefaultValue(elmtType, wr, tok, true) : null;
+      if (dimensions.Count == 1) {
+        // handle the common case of 1-dimensional arrays separately
+        var arrayType = TypeInitializationValue(elmtType, wr, tok, false, false);
+        wr.Write($"[{arrayType} for _ in range");
+        TrParenExpr(dimensions[0], wr, false, wStmts);
+        wr.Write("]");
+      } else {
+        wr.Write("_dafny.newArray({0}", initValue ?? "None");
+        foreach (var dim in dimensions) {
+          wr.Write(",int ");
+          TrParenExpr(dim, wr, false, wStmts);
+        }
+        wr.Write(")");
+      }
     }
 
     protected override void EmitLiteralExpr(ConcreteSyntaxTree wr, LiteralExpr e) {
@@ -649,6 +676,11 @@ namespace Microsoft.Dafny.Compilers {
         case SpecialField.ID.Keys:
           compiledName = "Keys";
           break;
+        case SpecialField.ID.ArrayLength:
+        case SpecialField.ID.ArrayLengthInt:
+          preString = "len(";
+          postString = ")";
+          break;
         default:
           Contract.Assert(false); // unexpected ID
           break;
@@ -664,6 +696,10 @@ namespace Microsoft.Dafny.Compilers {
         });
       }
       switch (member) {
+        case SpecialField sf: {
+            GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, objType, out var compiledName, out _, out _);
+            return compiledName.Length != 0 ? SuffixLvalue(obj, ".{0}", compiledName) : SimpleLvalue(obj);
+          }
         case Field: {
             return SimpleLvalue(w => {
               if (member.IsStatic) { w.Write(TypeName_Companion(objType, w, member.tok, member)); } else { obj(w); }
@@ -682,12 +718,30 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree EmitArraySelect(List<string> indices, Type elmtType, ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
+      var w = wr.Fork();
+      if (indices.Count == 1) {
+        wr.Write("[{0}]", indices[0]);
+      }
+      return w;
     }
 
     protected override ConcreteSyntaxTree EmitArraySelect(List<Expression> indices, Type elmtType, bool inLetExprBody,
       ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      throw new NotImplementedException();
+      Contract.Assert(indices != null && 1 <= indices.Count);  // follows from precondition
+      var w = wr.Fork();
+      if (indices.Count == 1) {
+        wr.Write("[");
+        TrExpr(indices[0], wr, inLetExprBody, wStmts);
+        wr.Write("]");
+      } else {
+        foreach (var index in indices) {
+          wr.Write("[");
+          TrExpr(index, wr, inLetExprBody, wStmts);
+          wr.Write("]");
+        }
+
+      }
+      return w;
     }
 
     protected override void EmitExprAsInt(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr,
@@ -710,7 +764,31 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitSeqSelectRange(Expression source, Expression lo, Expression hi, bool fromArray,
       bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      throw new NotImplementedException();
+
+      if (fromArray) {
+        wr.Write($"{DafnySeqClass}(");
+      }
+      TrParenExpr(source, wr, inLetExprBody, wStmts);
+      if (lo != null) {
+        wr.Write("[");
+        TrExpr(lo, wr, inLetExprBody, wStmts);
+        if (hi != null) {
+          wr.Write(":");
+          TrExpr(hi, wr, inLetExprBody, wStmts);
+        } else {
+          wr.Write("::");
+        }
+        wr.Write("]");
+      } else if (hi != null) {
+        wr.Write("[0:");
+        TrExpr(hi, wr, inLetExprBody, wStmts);
+        wr.Write("]");
+      } else if (fromArray) {
+        wr.Write("[::]");
+      }
+      if (fromArray) {
+        wr.Write(")");
+      }
     }
 
     protected override void EmitSeqConstructionExpr(SeqConstructionExpr expr, bool inLetExprBody, ConcreteSyntaxTree wr,
@@ -808,7 +886,15 @@ namespace Microsoft.Dafny.Compilers {
         case BinaryExpr.ResolvedOpcode.Mul:
           opString = "*"; break;
 
-        case BinaryExpr.ResolvedOpcode.EqCommon:
+        case BinaryExpr.ResolvedOpcode.EqCommon: {
+            opString = "==";
+            break;
+          }
+
+        case BinaryExpr.ResolvedOpcode.Lt: {
+            opString = "<";
+            break;
+          }
         case BinaryExpr.ResolvedOpcode.SeqEq:
         case BinaryExpr.ResolvedOpcode.SetEq:
         case BinaryExpr.ResolvedOpcode.MapEq:
