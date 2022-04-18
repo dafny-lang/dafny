@@ -8,6 +8,7 @@ using System.Linq;
 using System.Numerics;
 using JetBrains.Annotations;
 using ExtensionMethods;
+using Microsoft.BaseTypes;
 using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
 
@@ -36,7 +37,8 @@ namespace Microsoft.Dafny.Compilers {
     public override bool SupportsInMemoryCompilation => false;
     public override bool TextualTargetIsExecutable => true;
 
-    public override IReadOnlySet<string> SupportedNativeTypes => new HashSet<string> { }; // FIXME
+    public override IReadOnlySet<string> SupportedNativeTypes =>
+      new HashSet<string> { "byte", "sbyte", "ushort", "short", "uint", "int", "number", "ulong", "long" };
 
     private readonly List<string> Imports = new List<string> { "_module" };
 
@@ -55,7 +57,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
       Coverage.EmitSetup(wr);
-      wr.WriteLine("_module._default.Main()", mainMethod.EnclosingClass, mainMethod);
+      wr.WriteLine("_module._default.Main()");
     }
 
     protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw) {
@@ -73,6 +75,7 @@ namespace Microsoft.Dafny.Compilers {
     private void EmitImports(string moduleName, ConcreteSyntaxTree wr) {
       wr.WriteLine("import sys");
       wr.WriteLine("from typing import Callable, NamedTuple");
+      wr.WriteLine("from math import floor");
       wr.WriteLine();
       Imports.Iter(module => wr.WriteLine($"import {module}"));
       if (moduleName != null) {
@@ -155,7 +158,7 @@ namespace Microsoft.Dafny.Compilers {
       var d = TypeInitializationValue(udt, wr, nt.tok, false, false);
 
       w.WriteLine("@staticmethod");
-      w.NewBlockPy("def Default():", close: BlockStyle.Newline).WriteLine($"return {d}", "");
+      w.NewBlockPy("def default():", close: BlockStyle.Newline).WriteLine($"return {d}", "");
 
       return cw;
     }
@@ -167,12 +170,27 @@ namespace Microsoft.Dafny.Compilers {
       var d = TypeInitializationValue(udt, wr, sst.tok, false, false);
 
       w.WriteLine("@staticmethod");
-      w.NewBlockPy("def Default():").WriteLine($"return {d}", "");
+      w.NewBlockPy("def default():").WriteLine($"return {d}", "");
     }
 
-    protected override void GetNativeInfo(NativeType.Selection sel, out string name, out string literalSuffix,
-      out bool needsCastAfterArithmetic) {
-      throw new NotImplementedException();
+    protected override void GetNativeInfo(NativeType.Selection sel, out string name, out string literalSuffix, out bool needsCastAfterArithmetic) {
+      literalSuffix = "";
+      needsCastAfterArithmetic = false;
+      switch (sel) {
+        case NativeType.Selection.Byte:
+        case NativeType.Selection.SByte:
+        case NativeType.Selection.UShort:
+        case NativeType.Selection.Short:
+        case NativeType.Selection.UInt:
+        case NativeType.Selection.Int:
+        case NativeType.Selection.Number:
+        case NativeType.Selection.ULong:
+        case NativeType.Selection.Long:
+          name = "int"; break;
+        default:
+          Contract.Assert(false); // unexpected native type
+          throw new cce.UnreachableException(); // to please the compiler
+      }
     }
 
     protected class ClassWriter : IClassWriter {
@@ -313,22 +331,20 @@ namespace Microsoft.Dafny.Compilers {
       var xType = type.NormalizeExpand();
 
       switch (xType) {
-        case BoolType: {
-            return "bool";
-          }
-        case CharType: {
-            return "char";
-          }
-        case IntType or BigOrdinalType: {
-            return "int";
-          }
+        case BoolType:
+          return "bool";
+        case CharType:
+          return "char";
+        case IntType or BigOrdinalType or BitvectorType:
+          return "int";
+        case RealType:
+          return "_dafny.BigRational";
         case UserDefinedType udt: {
             var s = FullTypeName(udt, member);
             return TypeName_UDT(s, udt, wr, udt.tok);
           }
-        case CollectionType: {
-            return TypeHelperName(xType);
-          }
+        case CollectionType:
+          return TypeHelperName(xType);
       }
 
       Contract.Assert(false);
@@ -340,18 +356,16 @@ namespace Microsoft.Dafny.Compilers {
       var xType = type.NormalizeExpandKeepConstraints();
 
       switch (xType) {
-        case BoolType: {
-            return "False";
-          }
-        case CharType: {
-            return CharType.DefaultValueAsString;
-          }
-        case IntType or BigOrdinalType: {
-            return "int(0)";
-          }
-        case CollectionType: {
-            return $"{TypeHelperName(xType)}({{}})";
-          }
+        case BoolType:
+          return "False";
+        case CharType:
+          return CharType.DefaultValueAsString;
+        case IntType or BigOrdinalType or BitvectorType:
+          return "int(0)";
+        case RealType:
+          return "_dafny.BigRational()";
+        case CollectionType:
+          return $"{TypeHelperName(xType)}({{}})";
         case UserDefinedType udt: {
             var cl = udt.ResolvedClass;
             Contract.Assert(cl != null);
@@ -371,11 +385,8 @@ namespace Microsoft.Dafny.Compilers {
               case NewtypeDecl td: {
                   if (td.Witness != null) {
                     throw new NotImplementedException();
-                  } else if (td.NativeType != null) {
-                    throw new NotImplementedException();
                   } else {
-                    return TypeInitializationValue(td.BaseType, wr, tok, usePlaceboValue,
-                      constructTypeParameterDefaultsFromTypeDescriptors);
+                    return TypeInitializationValue(td.BaseType, wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
                   }
                 }
             }
@@ -500,6 +511,13 @@ namespace Microsoft.Dafny.Compilers {
       throw new NotImplementedException();
     }
 
+    protected override ConcreteSyntaxTree CreateWhileLoop(out ConcreteSyntaxTree guardWriter, ConcreteSyntaxTree wr) {
+      wr.Write("while ");
+      guardWriter = wr.Fork();
+      var wBody = wr.NewBlockPy(":");
+      return wBody;
+    }
+
     protected override ConcreteSyntaxTree CreateForLoop(string indexVar, string bound, ConcreteSyntaxTree wr) {
       throw new NotImplementedException();
     }
@@ -548,15 +566,31 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitLiteralExpr(ConcreteSyntaxTree wr, LiteralExpr e) {
-      if (e.Value is bool value) {
-        wr.Write("{0}", value);
-
-      } else if (e is StringLiteralExpr) {
-        var str = (StringLiteralExpr)e;
-        TrStringLiteral(str, wr);
-      } else if (e.Value is BigInteger) {
-        var i = (BigInteger)e.Value;
-        wr.Write($"{i}");
+      switch (e) {
+        case CharLiteralExpr:
+          wr.Write($"'{(string)e.Value}'");
+          break;
+        case StringLiteralExpr str:
+          TrStringLiteral(str, wr);
+          break;
+        case StaticReceiverExpr:
+          wr.Write(TypeName(e.Type, wr, e.tok));
+          break;
+        default:
+          switch (e.Value) {
+            case bool value:
+              wr.Write($"{value}");
+              break;
+            case BigInteger integer:
+              wr.Write($"{integer}");
+              break;
+            case BigDec n:
+              wr.Write($"_dafny.BigRational('{n.Mantissa}e{n.Exponent}')");
+              break;
+            default:
+              throw new NotImplementedException();
+          }
+          break;
       }
     }
 
@@ -585,12 +619,33 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree EmitBitvectorTruncation(BitvectorType bvType, bool surroundByUnchecked, ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
+      var vec = wr.ForkInParens();
+      wr.Write($" & ((1 << {bvType.Width}) - 1)");
+      return vec;
     }
 
     protected override void EmitRotate(Expression e0, Expression e1, bool isRotateLeft, ConcreteSyntaxTree wr,
         bool inLetExprBody, FCE_Arg_Translator tr) {
-      throw new NotImplementedException();
+      // ( e0 op1 e1) | (e0 op2 (width - e1))
+      EmitShift(e0, e1, isRotateLeft ? "<<" : ">>", isRotateLeft, true, wr.ForkInParens(), inLetExprBody, tr);
+
+      wr.Write(" | ");
+
+      EmitShift(e0, e1, isRotateLeft ? ">>" : "<<", !isRotateLeft, false, wr.ForkInParens(), inLetExprBody, tr);
+    }
+
+    void EmitShift(Expression e0, Expression e1, string op, bool truncate, bool firstOp, ConcreteSyntaxTree wr, bool inLetExprBody, FCE_Arg_Translator tr) {
+      var bv = e0.Type.AsBitVectorType;
+      if (truncate) {
+        wr = EmitBitvectorTruncation(bv, true, wr);
+      }
+      tr(e0, wr, inLetExprBody);
+      wr.Write($" {op} ");
+      if (!firstOp) {
+        wr = wr.ForkInParens().Write($"{bv.Width} - ");
+      }
+
+      tr(e1, wr.ForkInParens(), inLetExprBody);
     }
 
     protected override void EmitEmptyTupleList(string tupleTypeArgs, ConcreteSyntaxTree wr) {
@@ -647,7 +702,27 @@ namespace Microsoft.Dafny.Compilers {
           compiledName = IdProtect((string)idParam);
           break;
         case SpecialField.ID.Keys:
-          compiledName = "Keys";
+          compiledName = "keys";
+          break;
+        case SpecialField.ID.Floor:
+          preString = "floor(";
+          postString = ")";
+          break;
+        case SpecialField.ID.IsLimit:
+          preString = "_dafny.BigOrdinal.is_limit(";
+          postString = ")";
+          break;
+        case SpecialField.ID.IsSucc:
+          preString = "_dafny.BigOrdinal.is_succ(";
+          postString = ")";
+          break;
+        case SpecialField.ID.Offset:
+          preString = "_dafny.BigOrdinal.offset(";
+          postString = ")";
+          break;
+        case SpecialField.ID.IsNat:
+          preString = "_dafny.BigOrdinal.is_nat(";
+          postString = ")";
           break;
         default:
           Contract.Assert(false); // unexpected ID
@@ -664,6 +739,11 @@ namespace Microsoft.Dafny.Compilers {
         });
       }
       switch (member) {
+        case SpecialField sf: {
+            GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, objType, out var compiledName, out _, out _);
+            if (compiledName.Length > 0) { compiledName = "." + compiledName; }
+            return SuffixLvalue(obj, compiledName);
+          }
         case Field: {
             return SimpleLvalue(w => {
               if (member.IsStatic) { w.Write(TypeName_Companion(objType, w, member.tok, member)); } else { obj(w); }
@@ -772,8 +852,19 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitUnaryExpr(ResolvedUnaryOp op, Expression expr, bool inLetExprBody,
-      ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      throw new NotImplementedException();
+        ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      switch (op) {
+        case ResolvedUnaryOp.Cardinality:
+          TrParenExpr("len", expr, wr, inLetExprBody, wStmts);
+          break;
+        case ResolvedUnaryOp.BitwiseNot:
+          TrParenExpr("~", expr, wr, inLetExprBody, wStmts);
+          break;
+        case ResolvedUnaryOp.BoolNot:
+          throw new NotImplementedException();
+        default:
+          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary expression
+      }
     }
 
     protected override void CompileBinOp(BinaryExpr.ResolvedOpcode op,
@@ -799,20 +890,68 @@ namespace Microsoft.Dafny.Compilers {
 
       switch (op) {
         case BinaryExpr.ResolvedOpcode.And:
-          opString = "and"; break;
+          opString = "and";
+          break;
+
+        case BinaryExpr.ResolvedOpcode.Or:
+          opString = "or";
+          break;
+
+        case BinaryExpr.ResolvedOpcode.LeftShift:
+          opString = "<<";
+          break;
+
+        case BinaryExpr.ResolvedOpcode.RightShift:
+          opString = ">>";
+          break;
 
         case BinaryExpr.ResolvedOpcode.Add:
+          if (!resultType.IsCharType) {
+            truncateResult = true;
+            opString = "+";
+          } else {
+            staticCallString = "_dafny.plus_char";
+          }
+          break;
+
         case BinaryExpr.ResolvedOpcode.Concat:
-          opString = "+"; break;
+          opString = "+";
+          break;
+
+        case BinaryExpr.ResolvedOpcode.Sub:
+          if (!resultType.IsCharType) {
+            truncateResult = true;
+            opString = "-";
+          } else {
+            staticCallString = "_dafny.minus_char";
+          }
+          break;
 
         case BinaryExpr.ResolvedOpcode.Mul:
-          opString = "*"; break;
+          opString = "*";
+          truncateResult = true;
+          break;
+
+        case BinaryExpr.ResolvedOpcode.Div:
+          if (resultType.IsIntegerType || resultType.IsBitVectorType || resultType.AsNewtype != null) {
+            staticCallString = "_dafny.euclidian_division";
+          } else {
+            opString = "/";
+          }
+          break;
+
+        case BinaryExpr.ResolvedOpcode.Mod:
+          staticCallString = "_dafny.euclidian_modulus"; break;
 
         case BinaryExpr.ResolvedOpcode.EqCommon:
         case BinaryExpr.ResolvedOpcode.SeqEq:
         case BinaryExpr.ResolvedOpcode.SetEq:
         case BinaryExpr.ResolvedOpcode.MapEq:
           opString = "=="; break;
+
+        case BinaryExpr.ResolvedOpcode.NeqCommon:
+        case BinaryExpr.ResolvedOpcode.SeqNeq:
+          opString = "!="; break;
 
         case BinaryExpr.ResolvedOpcode.Union:
           opString = "|"; break;
@@ -852,7 +991,25 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitConversionExpr(ConversionExpr e, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      var (pre, post) = ("", "");
+      if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Int) || e.E.Type.IsBitVectorType) {
+        if (e.ToType.IsNumericBased(Type.NumericPersuasion.Real)) {
+          (pre, post) = ("_dafny.BigRational(", ", 1)");
+        } else if (e.ToType.IsCharType) {
+          (pre, post) = ("chr(", ")");
+        }
+      } else if (e.E.Type.IsCharType) {
+        (pre, post) = ("ord(", ")");
+      } else if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
+        if (e.ToType.IsNumericBased(Type.NumericPersuasion.Int) || e.ToType.IsBitVectorType || e.ToType.IsBigOrdinalType) {
+          (pre, post) = ("int(", ")");
+        } else if (e.ToType.IsCharType) {
+          (pre, post) = ("chr(floor(", "))");
+        }
+      }
+      wr.Write(pre);
       TrExpr(e.E, wr, inLetExprBody, wStmts);
+      wr.Write(post);
     }
 
     protected override void EmitTypeTest(string localName, Type fromType, Type toType, IToken tok, ConcreteSyntaxTree wr) {
