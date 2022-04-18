@@ -724,26 +724,6 @@ namespace Microsoft.Dafny.Compilers {
           preString = "_dafny.BigOrdinal.is_nat(";
           postString = ")";
           break;
-        case SpecialField.ID.Floor:
-          preString = "floor(";
-          postString = ")";
-          break;
-        case SpecialField.ID.IsLimit:
-          preString = "_dafny.BigOrdinal.IsLimit(";
-          postString = ")";
-          break;
-        case SpecialField.ID.IsSucc:
-          preString = "_dafny.BigOrdinal.IsSucc(";
-          postString = ")";
-          break;
-        case SpecialField.ID.Offset:
-          preString = "_dafny.BigOrdinal.Offset(";
-          postString = ")";
-          break;
-        case SpecialField.ID.IsNat:
-          preString = "_dafny.BigOrdinal.IsNat(";
-          postString = ")";
-          break;
         default:
           Contract.Assert(false); // unexpected ID
           break;
