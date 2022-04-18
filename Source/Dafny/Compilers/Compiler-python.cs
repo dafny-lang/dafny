@@ -57,7 +57,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
       Coverage.EmitSetup(wr);
-      wr.WriteLine("_module._default.Main()", mainMethod.EnclosingClass, mainMethod);
+      wr.WriteLine("_module._default.Main()");
     }
 
     protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw) {
@@ -158,7 +158,7 @@ namespace Microsoft.Dafny.Compilers {
       var d = TypeInitializationValue(udt, wr, nt.tok, false, false);
 
       w.WriteLine("@staticmethod");
-      w.NewBlockPy("def Default():", close: BlockStyle.Newline).WriteLine($"return {d}", "");
+      w.NewBlockPy("def default():", close: BlockStyle.Newline).WriteLine($"return {d}", "");
 
       return cw;
     }
@@ -170,7 +170,7 @@ namespace Microsoft.Dafny.Compilers {
       var d = TypeInitializationValue(udt, wr, sst.tok, false, false);
 
       w.WriteLine("@staticmethod");
-      w.NewBlockPy("def Default():").WriteLine($"return {d}", "");
+      w.NewBlockPy("def default():").WriteLine($"return {d}", "");
     }
 
     protected override void GetNativeInfo(NativeType.Selection sel, out string name, out string literalSuffix, out bool needsCastAfterArithmetic) {
@@ -702,7 +702,27 @@ namespace Microsoft.Dafny.Compilers {
           compiledName = IdProtect((string)idParam);
           break;
         case SpecialField.ID.Keys:
-          compiledName = "Keys";
+          compiledName = "keys";
+          break;
+        case SpecialField.ID.Floor:
+          preString = "floor(";
+          postString = ")";
+          break;
+        case SpecialField.ID.IsLimit:
+          preString = "_dafny.BigOrdinal.is_limit(";
+          postString = ")";
+          break;
+        case SpecialField.ID.IsSucc:
+          preString = "_dafny.BigOrdinal.is_succ(";
+          postString = ")";
+          break;
+        case SpecialField.ID.Offset:
+          preString = "_dafny.BigOrdinal.offset(";
+          postString = ")";
+          break;
+        case SpecialField.ID.IsNat:
+          preString = "_dafny.BigOrdinal.is_nat(";
+          postString = ")";
           break;
         case SpecialField.ID.Floor:
           preString = "floor(";
@@ -910,7 +930,7 @@ namespace Microsoft.Dafny.Compilers {
             truncateResult = true;
             opString = "+";
           } else {
-            staticCallString = "_dafny.PlusChar";
+            staticCallString = "_dafny.plus_char";
           }
           break;
 
@@ -923,7 +943,7 @@ namespace Microsoft.Dafny.Compilers {
             truncateResult = true;
             opString = "-";
           } else {
-            staticCallString = "_dafny.MinusChar";
+            staticCallString = "_dafny.minus_char";
           }
           break;
 
@@ -934,19 +954,14 @@ namespace Microsoft.Dafny.Compilers {
 
         case BinaryExpr.ResolvedOpcode.Div:
           if (resultType.IsIntegerType || resultType.IsBitVectorType || resultType.AsNewtype != null) {
-            staticCallString = "_dafny.euclidianDivision";
+            staticCallString = "_dafny.euclidian_division";
           } else {
             opString = "/";
           }
           break;
 
         case BinaryExpr.ResolvedOpcode.Mod:
-          if (resultType.IsIntegerType || resultType.IsBitVectorType || resultType.AsNewtype != null) {
-            staticCallString = "_dafny.euclidianModulus";
-          } else {
-            opString = "%";
-          }
-          break;
+          staticCallString = "_dafny.euclidian_modulus"; break;
 
         case BinaryExpr.ResolvedOpcode.EqCommon:
         case BinaryExpr.ResolvedOpcode.SeqEq:
