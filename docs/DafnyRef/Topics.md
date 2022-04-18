@@ -663,7 +663,7 @@ that recursive calls to inductive predicates are
 not inside unbounded universal quantifiers and that recursive calls to co-predicates
 are not inside unbounded existential quantifiers [@Milner:CCS; @LeinoMoskal:Coinduction].
 
-### 23.5.4. Proofs about Extreme Predicates
+### 23.5.4. Proofs about Extreme Predicates {#sec-nicer-proofs-of-extremes}
 
 From what I have presented so far, we can do the formal proofs from Sections
 [#sec-example-least-solution] and [#sec-example-greatest-solution].  Here is the
