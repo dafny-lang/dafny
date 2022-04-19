@@ -105,9 +105,10 @@ namespace Microsoft.Dafny {
           return new ClassDecl(Tok(dd.tok), dd.Name, m, tps, mm, CloneAttributes(dd.Attributes), dd.IsRefining, dd.ParentTraits.ConvertAll(CloneType));
         }
       } else if (d is ModuleDecl) {
-        if (d is LiteralModuleDecl) {
-          // TODO: Does not clone any details; is still resolved
-          return new LiteralModuleDecl(((LiteralModuleDecl)d).ModuleDef, m);
+        if (d is LiteralModuleDecl moduleDecl) {
+          return new LiteralModuleDecl(moduleDecl.ModuleDef, m) {
+            DefaultExport = moduleDecl.DefaultExport
+          };
         } else if (d is AliasModuleDecl) {
           var a = (AliasModuleDecl)d;
           return new AliasModuleDecl(a.TargetQId?.Clone(false), a.tok, m, a.Opened, a.Exports);
