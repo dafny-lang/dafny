@@ -942,8 +942,8 @@ and what information it produces about the verification process.
   verification fails, report a detailed counterexample for the first
   failing assertion. Requires specifying the `-mv` option, to specify
   where to write the counterexample, as well as the
-  `-proverOpt:0:model_compress=false` and
-  `-proverOpt:0:model.completion=true` options.
+  `-proverOpt:O:model_compress=false` and
+  `-proverOpt:O:model.completion=true` options.
 
 * `-countVerificationErrors:<n>` - if 0 then always exit with a 0 exit
   code, regardless of whether errors are found. If 1 (the default) then
