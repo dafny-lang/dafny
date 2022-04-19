@@ -1147,6 +1147,8 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
     1 - Emits a main method in the target language that will execute every method
         in the program with the {{:test}} attribute.
         Cannot be used if the program already contains a main method.
+        Note that /compile:3 or 4 must be provided as well to actually execute
+        this main method!
 /compileVerbose:<n>
     0 - don't print status of compilation to the console
     1 (default) - print information such as files being written by
