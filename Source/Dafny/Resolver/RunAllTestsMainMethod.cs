@@ -10,6 +10,10 @@ public class RunAllTestsMainMethod : IRewriter {
   public RunAllTestsMainMethod(ErrorReporter reporter) : base(reporter) {
   }
 
+  /// <summary>
+  /// Verifies that there isn't already a main method, and then creates
+  /// one with no body (to be filled in by PostResolve()).
+  /// </summary>
   internal override void PreResolve(Program program) {
     Method mainMethod;
     var hasMain = Compilers.SinglePassCompiler.HasMain(program, out mainMethod);
@@ -28,7 +32,48 @@ public class RunAllTestsMainMethod : IRewriter {
     var defaultClass = (DefaultClassDecl)defaultCompileModule.TopLevelDecls.Single(d => d is DefaultClassDecl);
     defaultClass.Members.Add(mainMethod);
   }
-
+  
+  /// <summary>
+  /// Generates the main method body that invokes every {:test} method and prints
+  /// out the results.
+  ///
+  /// Note that this needs to be post-resolving so we can determine if each test method
+  /// has a return value we need to check for IsFailure(). That means all the AST nodes
+  /// we create need to be already fully-resolved.
+  ///
+  /// Example output:
+  ///
+  /// var success := true;
+  /// 
+  /// print "SomeModule.TestMethod1: ";
+  /// try {
+  ///   var result := SomeModule.TestMethod1();
+  ///   if result.IsFailure() {
+  ///     print "FAILED\n\t", result, "\n";
+  ///     success := false;
+  ///   } else {
+  ///     print "PASSED\n";
+  ///   }
+  /// } recover (haltMessage: string) {
+  ///   print "FAILED\n\t", haltMessage, "\n";
+  ///   success := false;
+  /// }
+  /// 
+  /// print "SomeOtherModule.TestMethod2NoResultValue: ";
+  /// try {
+  ///   SomeOtherModule.TestMethod2NoResultValue();
+  ///   print "PASSED\n";
+  /// } recover (haltMessage: string) {
+  ///   print "FAILED\n\t", haltMessage, "\n";
+  ///   success := false;
+  /// }
+  /// 
+  /// ...
+  ///
+  /// if !success {
+  ///   print "Test failures occurred: see above.\n";
+  /// }
+  /// </summary>
   internal override void PostResolve(Program program) {
     var tok = Token.NoToken;
     List<Statement> mainMethodStatements = new();
@@ -44,25 +89,23 @@ public class RunAllTestsMainMethod : IRewriter {
       foreach(var callable in ModuleDefinition.AllCallables(moduleDefinition.TopLevelDecls)) {
         if ((callable is Method method) && Attributes.Contains(method.Attributes, "test")) {
           // print "TestMethod: ";
-          // try {
-          //   var result := TestMethod();
-          //   if result.IsFailure() {
-          //     print "FAILED\n\t", result, "\n";
-          //     success := false;
-          //   } else {
-          //     print "PASSED\n";
-          //   }
-          // } recover (haltMessage: string) {
-          //   print "FAILED\n\t", haltMessage, "\n";
-          //   success := false;
-          // }
-          //
-          // If the test method doesn't return a value, then the "try" block
-          // will only contain the test method call and printing success.
-
           mainMethodStatements.Add(Statement.CreatePrintStmt(tok,
             Expression.CreateStringLiteral(tok, $"{method.FullDafnyName}: ")));
 
+          // If the test method returns a value:
+          //
+          // var result := TestMethod();
+          // if result.IsFailure() {
+          //   print "FAILED\n\t", result, "\n";
+          //   success := false;
+          // } else {
+          //   print "PASSED\n";
+          // }
+          //
+          // Otherwise, just:
+          //
+          // TestMethod();
+          // print "PASSED\n";
           var receiverExpr = new StaticReceiverExpr(tok, (TopLevelDeclWithMembers)method.EnclosingClass, true);
           var methodSelectExpr = new MemberSelectExpr(tok, receiverExpr, method.Name) {
             Member = method,
@@ -76,19 +119,20 @@ public class RunAllTestsMainMethod : IRewriter {
 
           // If the method returns a value, check for a failure using IsFailure() as if this
           // was an AssignOrReturnStmt (:-).
-          if (method.Outs.Count > 1) {
-            Reporter.Error(MessageSource.Rewriter, method.tok,
-              "Methods with the {:test} attribute can only have at most one return value");
-            continue;
-          }
-
-          if (method.Outs.Count == 1) {
-            var resultVarName = idGenerator.FreshId("result");
-            var resultVarStmt = Statement.CreateLocalVariable(tok, resultVarName, method.Outs[0].Type);
-            statements.Add(resultVarStmt);
-            resultVarExpr = new IdentifierExpr(tok, resultVarStmt.Locals[0]);
-            resultVarExpr.Type = resultVarStmt.Locals[0].Type;
-            lhss.Add(resultVarExpr);
+          switch (method.Outs.Count) {
+            case > 1:
+              Reporter.Error(MessageSource.Rewriter, method.tok,
+                "Methods with the {:test} attribute can have at most one return value");
+              continue;
+            case 1: {
+              var resultVarName = idGenerator.FreshId("result");
+              var resultVarStmt = Statement.CreateLocalVariable(tok, resultVarName, method.Outs[0].Type);
+              statements.Add(resultVarStmt);
+              resultVarExpr = new IdentifierExpr(tok, resultVarStmt.Locals[0]);
+              resultVarExpr.Type = resultVarStmt.Locals[0].Type;
+              lhss.Add(resultVarExpr);
+              break;
+            }
           }
 
           var callStmt = new CallStmt(tok, tok, lhss, methodSelectExpr, new List<Expression>());
@@ -115,10 +159,18 @@ public class RunAllTestsMainMethod : IRewriter {
 
           var runTestMethodBlock = new BlockStmt(tok, tok, statements);
 
-          // Recovering from halting
-          var haltMessageVarName = "haltMessage";
-          var haltMessageVar = new LocalVariable(tok, tok, haltMessageVarName, Type.String(), false);
-          haltMessageVar.type = Type.String();
+          // Wrap the code above with:
+          //
+          // try {
+          //   ...
+          // } recover (haltMessage: string) {
+          //   print "FAILED\n\t", haltMessage, "\n";
+          //   success := false;
+          // }
+          //
+          var haltMessageVar = new LocalVariable(tok, tok, "haltMessage", Type.String(), false) {
+            type = Type.String()
+          };
           var haltMessageVarExpr = new IdentifierExpr(tok, haltMessageVar);
           var haltedBlock =
             PrintTestFailureStatement(tok, successVarExpr, haltMessageVarExpr);
