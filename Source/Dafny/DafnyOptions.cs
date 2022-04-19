@@ -1093,7 +1093,7 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 /extractCounterexample
     If verification fails, report a detailed counterexample for the first
     failing assertion. Requires specifying the /mv option as well as
-    /proverOpt:0:model_compress=false and /proverOpt:0:model.completion=true.
+    /proverOpt:O:model_compress=false and /proverOpt:O:model.completion=true.
 /countVerificationErrors:<n>
     [ deprecated ]
     0 - Set exit code to 0 regardless of the presence of any other errors.
