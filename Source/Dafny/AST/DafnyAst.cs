@@ -8892,15 +8892,15 @@ namespace Microsoft.Dafny {
   /// </summary>
   public class HaltRecoveryStatement : Statement {
     public readonly Statement Body;
-    public readonly string HaltMessageVarName;
+    public readonly IVariable HaltMessageVar;
     public readonly Statement RecoveryBody;
-    public HaltRecoveryStatement(Statement body, string haltMessageVarName, Statement recoveryBody)
+    public HaltRecoveryStatement(Statement body, IVariable haltMessageVar, Statement recoveryBody)
       : base(body.Tok, recoveryBody.EndTok) {
       Contract.Requires(body != null);
-      Contract.Requires(haltMessageVarName != null);
+      Contract.Requires(haltMessageVar != null);
       Contract.Requires(recoveryBody != null);
       Body = body;
-      HaltMessageVarName = haltMessageVarName;
+      HaltMessageVar = haltMessageVar;
       RecoveryBody = recoveryBody;
     }
   }

@@ -1,18 +1,17 @@
 using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 using System.Linq;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny; 
 
 public class RunAllTestsMainMethod : IRewriter {
-
-  private readonly List<Method> testMethods = new();
-  private Method mainMethod;
   
   public RunAllTestsMainMethod(ErrorReporter reporter) : base(reporter) {
   }
 
   internal override void PreResolve(Program program) {
+    Method mainMethod;
     var hasMain = Compilers.SinglePassCompiler.HasMain(program, out mainMethod);
     if (hasMain) {
       Reporter.Error(MessageSource.Rewriter, mainMethod.tok, "Cannot use /runAllTests on a program with a main method");
@@ -49,80 +48,93 @@ public class RunAllTestsMainMethod : IRewriter {
     var successVar = successVarStmt.Locals[0];
     var successVarExpr = new IdentifierExpr(tok, successVar);
 
-    foreach(var method in testMethods) {
-      // print "TestMethod: ";
-      // try {
-      //   var result := TestMethod();
-      //   if result.IsFailure() {
-      //     print "FAILED\n\t", result, "\n";
-      //     success := false;
-      //   } else {
-      //     print "PASSED\n";
-      //   }
-      // } recover (haltMessage: string) {
-      //   print "FAILED\n\t[Test Method Halted]", haltMessage, "\n";
-      //   success := false;
-      // }
-      //
-      // If the test method doesn't return a value, then the "try" block
-      // will only contain the test method call and printing success.
+    foreach(var moduleDefinition in program.CompileModules) {
+      foreach(var callable in ModuleDefinition.AllCallables(moduleDefinition.TopLevelDecls)) {
+        if ((callable is Method method) && Attributes.Contains(method.Attributes, "test")) {
+          // print "TestMethod: ";
+          // try {
+          //   var result := TestMethod();
+          //   if result.IsFailure() {
+          //     print "FAILED\n\t", result, "\n";
+          //     success := false;
+          //   } else {
+          //     print "PASSED\n";
+          //   }
+          // } recover (haltMessage: string) {
+          //   print "FAILED\n\t", haltMessage, "\n";
+          //   success := false;
+          // }
+          //
+          // If the test method doesn't return a value, then the "try" block
+          // will only contain the test method call and printing success.
 
-      mainMethodStatements.Add(Statement.CreatePrintStmt(tok,
-        Expression.CreateStringLiteral(tok, $"{method.FullDafnyName}: ")));
+          mainMethodStatements.Add(Statement.CreatePrintStmt(tok,
+            Expression.CreateStringLiteral(tok, $"{method.FullDafnyName}: ")));
 
-      var receiverExpr = new StaticReceiverExpr(tok, (TopLevelDeclWithMembers)method.EnclosingClass, true);
-      var methodSelectExpr = new MemberSelectExpr(tok, receiverExpr, method.Name);
-      methodSelectExpr.Member = method;
-      methodSelectExpr.TypeApplication_JustMember = new List<Type>();
-      methodSelectExpr.TypeApplication_AtEnclosingClass = new List<Type>();
+          var receiverExpr = new StaticReceiverExpr(tok, (TopLevelDeclWithMembers)method.EnclosingClass, true);
+          var methodSelectExpr = new MemberSelectExpr(tok, receiverExpr, method.Name) {
+            Member = method,
+            TypeApplication_JustMember = new List<Type>(),
+            TypeApplication_AtEnclosingClass = new List<Type>()
+          };
 
-      Expression resultVarExpr = null;
-      var statements = new List<Statement>();
-      var lhss = new List<Expression>();
+          Expression resultVarExpr = null;
+          var statements = new List<Statement>();
+          var lhss = new List<Expression>();
 
-      // If the method returns a value, check for a failure using IsFailure() as if this
-      // was an AssignOrReturnStmt (:-).
-      if (method.Outs.Count > 1) {
-        Reporter.Error(MessageSource.Rewriter, method.tok,
-          "Methods with the {:test} attribute can only have at most one return value");
-        continue;
+          // If the method returns a value, check for a failure using IsFailure() as if this
+          // was an AssignOrReturnStmt (:-).
+          if (method.Outs.Count > 1) {
+            Reporter.Error(MessageSource.Rewriter, method.tok,
+              "Methods with the {:test} attribute can only have at most one return value");
+            continue;
+          }
+
+          if (method.Outs.Count == 1) {
+            var resultVarName = idGenerator.FreshId("result");
+            var resultVarStmt = Statement.CreateLocalVariable(tok, resultVarName, method.Outs[0].Type);
+            statements.Add(resultVarStmt);
+            resultVarExpr = new IdentifierExpr(tok, resultVarStmt.Locals[0]);
+            resultVarExpr.Type = resultVarStmt.Locals[0].Type;
+            lhss.Add(resultVarExpr);
+          }
+
+          var callStmt = new CallStmt(tok, tok, lhss, methodSelectExpr, new List<Expression>());
+          statements.Add(callStmt);
+
+          Statement passedStmt = Statement.CreatePrintStmt(tok, Expression.CreateStringLiteral(tok, "PASSED\n"));
+          var passedBlock = new BlockStmt(tok, tok, Util.Singleton(passedStmt));
+
+          if (resultVarExpr != null) {
+            var failureGuardExpr =
+              new FunctionCallExpr(tok, "IsFailure", resultVarExpr, tok, new List<Expression>());
+            var resultClass = (TopLevelDeclWithMembers)((UserDefinedType)resultVarExpr.Type).ResolvedClass;
+            var isFailureMember = resultClass.Members.First(m => m.Name == "IsFailure");
+            failureGuardExpr.Function = (Function)isFailureMember;
+            failureGuardExpr.Type = Type.Bool;
+            failureGuardExpr.TypeApplication_JustFunction = new List<Type>();
+            failureGuardExpr.TypeApplication_AtEnclosingClass = new List<Type>();
+
+            var failedBlock = PrintTestFailureStatement(tok, successVarExpr, resultVarExpr);
+            statements.Add(new IfStmt(tok, tok, false, failureGuardExpr, failedBlock, passedBlock));
+          } else {
+            statements.Add(passedBlock);
+          }
+
+          var runTestMethodBlock = new BlockStmt(tok, tok, statements);
+
+          // Recovering from halting
+          var haltMessageVarName = "haltMessage";
+          var haltMessageVar = new LocalVariable(tok, tok, haltMessageVarName, Type.String(), false);
+          haltMessageVar.type = Type.String();
+          var haltMessageVarExpr = new IdentifierExpr(tok, haltMessageVar);
+          var haltedBlock =
+            PrintTestFailureStatement(tok, successVarExpr, haltMessageVarExpr);
+          var haltRecoveryStmt = new HaltRecoveryStatement(runTestMethodBlock, haltMessageVar, haltedBlock);
+
+          mainMethodStatements.Add(haltRecoveryStmt);
+        }
       }
-
-      if (method.Outs.Count == 1) {
-        var resultVarName = idGenerator.FreshId("result");
-        var resultVarStmt = Statement.CreateLocalVariable(tok, resultVarName, method.Outs[0].Type);
-        statements.Add(resultVarStmt);
-        resultVarExpr = new IdentifierExpr(tok, resultVarStmt.Locals[0]);
-        lhss.Add(resultVarExpr);
-      }
-
-      var callStmt = new CallStmt(tok, tok, lhss, methodSelectExpr, new List<Expression>());
-      statements.Add(callStmt);
-
-      Statement passedStmt = Statement.CreatePrintStmt(tok, Expression.CreateStringLiteral(tok, "PASSED\n"));
-      var passedBlock = new BlockStmt(tok, tok, Util.Singleton(passedStmt));
-
-      if (resultVarExpr != null) {
-        var failureGuardExpr =
-          new FunctionCallExpr(tok, "IsFailure", resultVarExpr, tok, new List<Expression>());
-        var resultClass = (TopLevelDeclWithMembers)((UserDefinedType)resultVarExpr.Type).ResolvedClass;
-        var isFailureMember = resultClass.Members.First(m => m.Name == "IsFailure");
-        failureGuardExpr.Function = (Function)isFailureMember;
-        var failedBlock = PrintTestFailureStatement(tok, successVarExpr, resultVarExpr);
-        statements.Add(new IfStmt(tok, tok, false, failureGuardExpr, failedBlock, passedBlock));
-      } else {
-        statements.Add(passedBlock);
-      }
-
-      var runTestMethodBlock = new BlockStmt(tok, tok, statements);
-
-      // Recovering from halting
-      var haltMessageVarName = "haltMessage";
-      var haltedBlock =
-        PrintTestFailureStatement(tok, successVarExpr, new IdentifierExpr(tok, haltMessageVarName));
-      var haltRecoveryStmt = new HaltRecoveryStatement(runTestMethodBlock, haltMessageVarName, haltedBlock);
-
-      mainMethodStatements.Add(haltRecoveryStmt);
     }
 
     // For now just print a footer to call attention to any failed tests.
@@ -138,24 +150,13 @@ public class RunAllTestsMainMethod : IRewriter {
     var ifNotSuccess = new IfStmt(tok, tok, false, Expression.CreateNot(tok, successVarExpr), failuresBlock, null);
     mainMethodStatements.Add(ifNotSuccess);
 
+    // Find the resolved main method to attach the body to (which will be a different instance
+    // than the Method we added in PreResolve).
+    var hasMain = Compilers.SinglePassCompiler.HasMain(program, out var mainMethod);
+    Contract.Assert(hasMain);
     mainMethod.Body = new BlockStmt(tok, tok, mainMethodStatements);
   }
 
-  private VarDeclStmt CreateLocalVariableStmt(IToken tok, string name, Type type) {
-    var variable = new LocalVariable(tok, tok, name, type, false);
-    variable.type = type;
-    return new VarDeclStmt(tok, tok, Util.Singleton(variable), null);
-  }
-  
-  private VarDeclStmt CreateLocalVariableStmt(IToken tok, string name, Expression value) {
-    var variable = new LocalVariable(tok, tok, name, value.Type, false);
-    variable.type = value.Type;
-    Expression variableExpr = new IdentifierExpr(tok, name);
-    var variableUpdateStmt = new UpdateStmt(tok, tok, Util.Singleton(variableExpr),
-      Util.Singleton<AssignmentRhs>(new ExprRhs(value)));
-    return new VarDeclStmt(tok, tok, Util.Singleton(variable), variableUpdateStmt);
-  }
-  
   private BlockStmt PrintTestFailureStatement(IToken tok, Expression successVarExpr, Expression failureValueExpr) {
     var failedPrintStmt = Statement.CreatePrintStmt(tok,
       Expression.CreateStringLiteral(tok, "FAILED\n\t"),

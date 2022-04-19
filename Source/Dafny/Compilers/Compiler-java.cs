@@ -3980,11 +3980,12 @@ namespace Microsoft.Dafny.Compilers {
       throw new NotImplementedException();
     }
 
-    protected override ConcreteSyntaxTree EmitHaltHandling(LocalVariable haltMessageVar, ConcreteSyntaxTree wr) {
-      var w = wr.NewBlock("try");
+    protected override void EmitHaltRecoveryStmt(Statement body, string haltMessageVarName, Statement recoveryBody, ConcreteSyntaxTree wr) {
+      var tryBlock = wr.NewBlock("try");
+      TrStmt(body, tryBlock);
       var catchBlock = wr.NewBlock("catch (dafny.DafnyHaltException e)");
-      catchBlock.WriteLine($"{haltMessageVar.CompileName} = dafny.DafnySequence.asString(e.getMessage());");
-      return w;
+      catchBlock.WriteLine($"{haltMessageVarName} = dafny.DafnySequence.asString(e.getMessage());");
+      TrStmt(recoveryBody, catchBlock);
     }
   }
 }

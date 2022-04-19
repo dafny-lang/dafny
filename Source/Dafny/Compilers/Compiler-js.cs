@@ -2387,14 +2387,15 @@ namespace Microsoft.Dafny.Compilers {
       TrParenExpr("_dafny.SingleValue", e, wr, inLetExprBody, wStmts);
     }
 
-    protected override ConcreteSyntaxTree EmitHaltHandling(LocalVariable haltMessageVar, ConcreteSyntaxTree wr) {
+    protected override void EmitHaltRecoveryStmt(Statement body, string haltMessageVarName, Statement recoveryBody, ConcreteSyntaxTree wr) {
       var tryBlock = wr.NewBlock("try");
+      TrStmt(body, tryBlock);
       var catchBlock = wr.NewBlock("catch (e)");
       var ifBlock = catchBlock.NewBlock("if (e instanceof _dafny.HaltException)");
-      ifBlock.WriteLine($"{haltMessageVar.CompileName} = e.message");
+      ifBlock.WriteLine($"{haltMessageVarName} = e.message");
+      TrStmt(recoveryBody, ifBlock);
       var elseBlock = catchBlock.NewBlock("else");
       elseBlock.WriteLine("throw e");
-      return tryBlock;
     }
 
     // ----- Target compilation and execution -------------------------------------------------------------

@@ -2713,7 +2713,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    void TrStmt(Statement stmt, ConcreteSyntaxTree wr) {
+    protected internal void TrStmt(Statement stmt, ConcreteSyntaxTree wr) {
       Contract.Requires(stmt != null);
       Contract.Requires(wr != null);
 
@@ -3164,7 +3164,8 @@ namespace Microsoft.Dafny.Compilers {
         } else if (DafnyOptions.O.ForbidNondeterminism) {
           Error(s.Tok, "modify statement without a body forbidden by /definiteAssignment:3 option", wr);
         }
-
+      } else if (stmt is HaltRecoveryStatement h) {
+        EmitHaltRecoveryStmt(h.Body, h.HaltMessageVar.CompileName, h.RecoveryBody, wr);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }
@@ -5165,11 +5166,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    /// <summary>
-    /// Emits code to recover from halting in the code written to the returned syntax tree,
-    /// and assign the halting message to the given variable.
-    /// </summary>
-    protected abstract ConcreteSyntaxTree EmitHaltHandling(LocalVariable haltMessageVar, ConcreteSyntaxTree wr);
+    protected abstract void EmitHaltRecoveryStmt(Statement body, string haltMessageVarName, Statement recoveryBody, ConcreteSyntaxTree wr);
 
     public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
       bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
