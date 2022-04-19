@@ -19,7 +19,7 @@ dotnet run <Project.csproj> <SourceFile.cs> <RootNamespace> <Template.dfy> \
     <CSharpModel.dfy> <Output.dfy>
 ```
 
-The tool takes size arguments:
+The tool takes six arguments:
 
 - The name of a C# project.  This is used to compile `SourceFile.cs` and gather
   semantic information about it using Roslyn (the C# compiler).  We need this to
