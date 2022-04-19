@@ -121,9 +121,9 @@ public class RunAllTestsMainMethod : IRewriter {
           // was an AssignOrReturnStmt (:-).
           switch (method.Outs.Count) {
             case > 1:
-                Reporter.Error(MessageSource.Rewriter, method.tok,
-                  "Methods with the {:test} attribute can have at most one return value");
-                continue;
+              Reporter.Error(MessageSource.Rewriter, method.tok,
+                "Methods with the {:test} attribute can have at most one return value");
+              continue;
             case 1: {
                 var resultVarName = idGenerator.FreshId("result");
                 var resultVarStmt = Statement.CreateLocalVariable(tok, resultVarName, method.Outs[0].Type);
