@@ -1088,12 +1088,7 @@ with arrays where parallel assignment is needed:
   }
 ```
 
-To convert an array `x` to a sequence, use the `[..]` operator:
-```dafny
-  var intArr: array<int> := new int[] [1, 2, 3];
-  var intSeq: seq<int> := intArr[..];
-  assert intSeq == [1, 2, 3];
-```
+See [Section 15.3](#sec-array-to-seq) on how to convert an array to a sequence.
 
 ### 10.5.2. Sets
 There is no intrinsic order to the elements of a set. Nevertheless, we can
@@ -2697,6 +2692,14 @@ In contrast to one-dimensional arrays, there is no operation to
 convert stretches of elements from a multi-dimensional array to a
 sequence.
 
+## 15.3 Converting arrays to sequences {#sec-array-to-seq}
+
+To convert an array `x` to a sequence, use the `[..]` operator:
+```dafny
+  var intArr: array<int> := new int[] [1, 2, 3];
+  var intSeq: seq<int> := intArr[..];
+  assert intSeq == [1, 2, 3];
+```
 
 <!--PDF NEWPAGE-->
 # 16. Iterator types {#sec-iterator-types}
