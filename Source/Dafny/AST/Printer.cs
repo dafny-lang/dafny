@@ -1573,12 +1573,12 @@ namespace Microsoft.Dafny {
         // These have no actual syntax for Dafny user code, so emit something
         // clearly not parsable.
         int ind = indent + IndentAmount;
-        
+
         Indent(indent);
         wr.WriteLine("[[ try { ]]");
         PrintStatement(haltRecoveryStatement.Body, ind);
         wr.WriteLine();
-        
+
         Indent(indent);
         wr.WriteLine($"[[ }} recover ({haltRecoveryStatement.HaltMessageVar.Name}) {{ ]]");
         PrintStatement(haltRecoveryStatement.RecoveryBody, ind);

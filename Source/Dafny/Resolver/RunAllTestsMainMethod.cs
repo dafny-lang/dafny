@@ -6,7 +6,7 @@ using Microsoft.Boogie;
 namespace Microsoft.Dafny; 
 
 public class RunAllTestsMainMethod : IRewriter {
-  
+
   public RunAllTestsMainMethod(ErrorReporter reporter) : base(reporter) {
   }
 
@@ -32,7 +32,7 @@ public class RunAllTestsMainMethod : IRewriter {
     var defaultClass = (DefaultClassDecl)defaultCompileModule.TopLevelDecls.Single(d => d is DefaultClassDecl);
     defaultClass.Members.Add(mainMethod);
   }
-  
+
   /// <summary>
   /// Generates the main method body that invokes every {:test} method and prints
   /// out the results.
@@ -78,15 +78,15 @@ public class RunAllTestsMainMethod : IRewriter {
     var tok = Token.NoToken;
     List<Statement> mainMethodStatements = new();
     var idGenerator = new FreshIdGenerator();
-    
+
     // var success := true;
     var successVarStmt = Statement.CreateLocalVariable(tok, "success", Expression.CreateBoolLiteral(tok, true));
     mainMethodStatements.Add(successVarStmt);
     var successVar = successVarStmt.Locals[0];
     var successVarExpr = new IdentifierExpr(tok, successVar);
 
-    foreach(var moduleDefinition in program.CompileModules) {
-      foreach(var callable in ModuleDefinition.AllCallables(moduleDefinition.TopLevelDecls)) {
+    foreach (var moduleDefinition in program.CompileModules) {
+      foreach (var callable in ModuleDefinition.AllCallables(moduleDefinition.TopLevelDecls)) {
         if ((callable is Method method) && Attributes.Contains(method.Attributes, "test")) {
           // print "TestMethod: ";
           mainMethodStatements.Add(Statement.CreatePrintStmt(tok,
@@ -121,18 +121,18 @@ public class RunAllTestsMainMethod : IRewriter {
           // was an AssignOrReturnStmt (:-).
           switch (method.Outs.Count) {
             case > 1:
-              Reporter.Error(MessageSource.Rewriter, method.tok,
-                "Methods with the {:test} attribute can have at most one return value");
-              continue;
+                Reporter.Error(MessageSource.Rewriter, method.tok,
+                  "Methods with the {:test} attribute can have at most one return value");
+                continue;
             case 1: {
-              var resultVarName = idGenerator.FreshId("result");
-              var resultVarStmt = Statement.CreateLocalVariable(tok, resultVarName, method.Outs[0].Type);
-              statements.Add(resultVarStmt);
-              resultVarExpr = new IdentifierExpr(tok, resultVarStmt.Locals[0]);
-              resultVarExpr.Type = resultVarStmt.Locals[0].Type;
-              lhss.Add(resultVarExpr);
-              break;
-            }
+                var resultVarName = idGenerator.FreshId("result");
+                var resultVarStmt = Statement.CreateLocalVariable(tok, resultVarName, method.Outs[0].Type);
+                statements.Add(resultVarStmt);
+                resultVarExpr = new IdentifierExpr(tok, resultVarStmt.Locals[0]);
+                resultVarExpr.Type = resultVarStmt.Locals[0].Type;
+                lhss.Add(resultVarExpr);
+                break;
+              }
           }
 
           var callStmt = new CallStmt(tok, tok, lhss, methodSelectExpr, new List<Expression>());

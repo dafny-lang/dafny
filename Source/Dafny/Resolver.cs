@@ -442,7 +442,7 @@ namespace Microsoft.Dafny {
       if (DafnyOptions.O.RunAllTests) {
         rewriters.Add(new RunAllTestsMainMethod(reporter));
       }
-      
+
       rewriters.Add(new InductionRewriter(reporter));
       rewriters.Add(new PrintEffectEnforcement(reporter));
 

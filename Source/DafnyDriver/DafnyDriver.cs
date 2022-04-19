@@ -15,7 +15,6 @@ using DafnyServer.CounterexampleGeneration;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using System.Linq;
 
 namespace Microsoft.Dafny {
   using System;

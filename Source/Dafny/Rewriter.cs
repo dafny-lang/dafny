@@ -50,7 +50,7 @@ namespace Microsoft.Dafny {
     internal virtual void PreResolve(Program program) {
       Contract.Requires(program != null);
     }
-    
+
     /// <summary>
     /// Phase 2/7
     /// Override this method to obtain a module definition after parsing and built-in pre-resolvers.
