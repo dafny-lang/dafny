@@ -29,14 +29,6 @@ public class RunAllTestsMainMethod : IRewriter {
     defaultClass.Members.Add(mainMethod);
   }
 
-  internal override void PostResolve(ModuleDefinition moduleDefinition) {
-    foreach(ICallable callable in ModuleDefinition.AllCallables(moduleDefinition.TopLevelDecls)) {
-      if ((callable is Method method) && Attributes.Contains(method.Attributes, "test")) {
-        testMethods.Add(method);
-      }
-    }
-  }
-  
   internal override void PostResolve(Program program) {
     var tok = Token.NoToken;
     List<Statement> mainMethodStatements = new();

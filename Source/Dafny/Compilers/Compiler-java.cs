@@ -3984,7 +3984,7 @@ namespace Microsoft.Dafny.Compilers {
       var tryBlock = wr.NewBlock("try");
       TrStmt(body, tryBlock);
       var catchBlock = wr.NewBlock("catch (dafny.DafnyHaltException e)");
-      catchBlock.WriteLine($"{haltMessageVarName} = dafny.DafnySequence.asString(e.getMessage());");
+      catchBlock.WriteLine($"dafny.DafnySequence<Character> {haltMessageVarName} = dafny.DafnySequence.asString(e.getMessage());");
       TrStmt(recoveryBody, catchBlock);
     }
   }

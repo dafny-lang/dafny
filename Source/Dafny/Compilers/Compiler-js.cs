@@ -2392,7 +2392,7 @@ namespace Microsoft.Dafny.Compilers {
       TrStmt(body, tryBlock);
       var catchBlock = wr.NewBlock("catch (e)");
       var ifBlock = catchBlock.NewBlock("if (e instanceof _dafny.HaltException)");
-      ifBlock.WriteLine($"{haltMessageVarName} = e.message");
+      ifBlock.WriteLine($"let {haltMessageVarName} = e.message;");
       TrStmt(recoveryBody, ifBlock);
       var elseBlock = catchBlock.NewBlock("else");
       elseBlock.WriteLine("throw e");
