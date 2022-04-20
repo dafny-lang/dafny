@@ -24,7 +24,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     DafnyOptions Options,
     TextDocumentItem TextDocumentItem,
     IReadOnlyList<Diagnostic> ParseAndResolutionDiagnostics,
-    // TODO, add migration code for CounterExamples, and determine VerificationDiagnostics based on CounterExamples
+    // VerificationDiagnostics can be deduced from CounterExamples,
+    // but they are stored separately because they are be migrated and counterexamples currently are not.
     IReadOnlyList<Diagnostic> VerificationDiagnostics,
     IReadOnlyList<Counterexample> CounterExamples,
     IReadOnlyList<Diagnostic> GhostDiagnostics,

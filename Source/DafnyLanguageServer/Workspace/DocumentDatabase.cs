@@ -99,8 +99,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           return Observable.Empty<DafnyDocument>();
         }
 
-        return documentLoader.Verify(document,
-            cancellationToken); // Awaiting an observable returns the last element (before the OnCompleted)
+        return documentLoader.Verify(document, cancellationToken); 
       }).Replay().RefCount();
     }
 

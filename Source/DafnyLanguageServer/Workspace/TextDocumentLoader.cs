@@ -111,7 +111,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         ghostDiagnostics, program, symbolTable);
     }
 
-    // TODO should we include this for each document? I think it's better not to show these errors as diagnostics, but through something like a showMessage request.
     private static void IncludePluginLoadErrors(DiagnosticErrorReporter errorReporter, Dafny.Program program) {
       foreach (var error in DafnyLanguageServer.PluginLoadErrors) {
         errorReporter.Error(MessageSource.Compiler, program.GetFirstTopLevelToken(), error);
