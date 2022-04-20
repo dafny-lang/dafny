@@ -7,6 +7,10 @@ all: exe refman
 exe:
 	(cd ${DIR} ; dotnet build Source/Dafny.sln ) ## includes parser
 
+boogie: ${DIR}/boogie/Binaries/Boogie.exe
+
+${DIR}/boogie/Binaries/Boogie.exe:
+	(cd ${DIR}/boogie ; dotnet build -c Release Source/Boogie.sln )
 
 refman:
 	make -C ${DIR}/docs/DafnyRef
