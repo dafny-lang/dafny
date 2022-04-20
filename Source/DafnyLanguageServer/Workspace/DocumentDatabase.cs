@@ -98,7 +98,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           return Observable.Empty<DafnyDocument>();
         }
 
-        return documentLoader.Verify(document, cancellationToken); 
+        return documentLoader.Verify(document, cancellationToken);
       }, TaskScheduler.Current).ToObservable().Merge();
     }
 

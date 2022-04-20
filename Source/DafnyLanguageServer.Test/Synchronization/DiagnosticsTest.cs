@@ -706,7 +706,7 @@ function method other(i: int, j: int): int
       Assert.AreEqual(new Range((1, 15), (1, 25)), diagnostics[0].Range);
       await AssertNoDiagnosticsAreComing();
     }
-    
+
     [TestMethod]
     public async Task IncrementalVerificationDiagnostics() {
       var source = SlowToVerify + @"

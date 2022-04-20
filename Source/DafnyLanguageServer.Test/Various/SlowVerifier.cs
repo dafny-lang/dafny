@@ -27,7 +27,7 @@ class SlowVerifier : IProgramVerifier {
       });
       return new List<IImplementationTask> { new NeverVerifiesImplementationTask(cancellationToken) };
     }
-  
+
     return verifier.Verify(program, progressReporter, cancellationToken);
   }
 
