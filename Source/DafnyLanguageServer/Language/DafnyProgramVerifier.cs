@@ -83,9 +83,9 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       DafnyOptions.O.Printer = printer;
 
       var executionEngine = new ExecutionEngine(DafnyOptions.O, cache);
-      var translated = Translator.Translate(program, errorReporter, new Translator.TranslatorFlags { 
+      var translated = Translator.Translate(program, errorReporter, new Translator.TranslatorFlags {
         InsertChecksums = true,
-        ReportRanges = true 
+        ReportRanges = true
       });
       return translated.SelectMany(t => {
         var (_, boogieProgram) = t;

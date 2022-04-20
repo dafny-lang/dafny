@@ -19,12 +19,12 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util {
     }
 
     public async Task<TNotification> GetLastNotification(CancellationToken cancellationToken) {
-        if (lastNotification != null) {
-          return lastNotification;
-        }
-
-        await AwaitNextNotificationAsync(cancellationToken);
+      if (lastNotification != null) {
         return lastNotification;
+      }
+
+      await AwaitNextNotificationAsync(cancellationToken);
+      return lastNotification;
     }
 
 

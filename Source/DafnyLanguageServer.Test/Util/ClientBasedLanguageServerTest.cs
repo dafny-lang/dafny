@@ -25,7 +25,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
     var document = await Documents.GetVerifiedDocumentAsync(documentItem);
     await diagnosticReceiver.AwaitNextDiagnosticsAsync(cancellationToken); // Get resolution diagnostics
     Diagnostic[] result = await diagnosticReceiver.AwaitNextDiagnosticsAsync(cancellationToken); // Get first verification diagnostics
-    while(!document!.Diagnostics.SequenceEqual(result)) {
+    while (!document!.Diagnostics.SequenceEqual(result)) {
       result = await diagnosticReceiver.AwaitNextDiagnosticsAsync(cancellationToken);
     }
 

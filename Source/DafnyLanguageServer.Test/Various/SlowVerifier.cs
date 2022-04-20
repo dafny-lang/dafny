@@ -25,7 +25,7 @@ class SlowVerifier : IProgramVerifier {
       cancellationToken.Register(() => {
         source.SetCanceled(cancellationToken);
       });
-      return new List<IImplementationTask>{ new MyTask(cancellationToken) };
+      return new List<IImplementationTask> { new MyTask(cancellationToken) };
     }
 
     return verifier.Verify(program, progressReporter, cancellationToken);

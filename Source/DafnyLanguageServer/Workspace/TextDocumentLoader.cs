@@ -159,7 +159,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         implementationTask.Run();
       }
 
-      var _= NotifyStatusAsync(document.TextDocumentItem, implementationTasks);
+      var _ = NotifyStatusAsync(document.TextDocumentItem, implementationTasks);
 
       var concurrentDictionary = new ConcurrentBag<Diagnostic>();
       var counterExamples = new ConcurrentStack<Counterexample>();
