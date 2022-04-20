@@ -1,16 +1,11 @@
 DIR=$(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 
-default: parser runtime boogie exe
+default: parser exe
 
-all: runtime boogie exe refman
+all: exe refman
 
 exe:
 	(cd ${DIR} ; dotnet build Source/Dafny.sln ) ## includes parser
-
-boogie: ${DIR}/Source/boogie/Binaries/Boogie.exe
-
-${DIR}/Source/boogie/Binaries/Boogie.exe:
-	(cd ${DIR}/../boogie ; dotnet build Source/boogie/Source/Boogie.sln )
 
 parser:
 	make -C ${DIR}/Source/Dafny -f Makefile.linux all
