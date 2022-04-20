@@ -25,16 +25,16 @@ class SlowVerifier : IProgramVerifier {
       cancellationToken.Register(() => {
         source.SetCanceled(cancellationToken);
       });
-      return new List<IImplementationTask> { new MyTask(cancellationToken) };
+      return new List<IImplementationTask> { new NeverVerifiesImplementationTask(cancellationToken) };
     }
   
     return verifier.Verify(program, progressReporter, cancellationToken);
   }
 
-  class MyTask : IImplementationTask {
+  class NeverVerifiesImplementationTask : IImplementationTask {
     private readonly TaskCompletionSource<VerificationResult> source;
 
-    public MyTask(CancellationToken token) {
+    public NeverVerifiesImplementationTask(CancellationToken token) {
 
       source = new TaskCompletionSource<VerificationResult>();
       token.Register(() => {
