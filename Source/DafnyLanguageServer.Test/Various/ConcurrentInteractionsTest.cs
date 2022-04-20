@@ -139,7 +139,7 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
       ApplyChange(ref documentItem, new Range((2, 1), (2, 1)), "\n}");
 
       // Wait for resolution diagnostics now, so they don't get cancelled.
-      // After this we still have slow verification diagnostics in the queue.
+      // After this we still have never completing verification diagnostics in the queue.
       var parseErrorFixedDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout, documentItem);
       Assert.AreEqual(0, parseErrorFixedDiagnostics.Length);
 

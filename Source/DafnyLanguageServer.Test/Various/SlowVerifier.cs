@@ -20,14 +20,14 @@ class SlowVerifier : IProgramVerifier {
     var attributes = program.Modules().SelectMany(m => {
       return m.TopLevelDecls.OfType<TopLevelDeclWithMembers>().SelectMany(d => d.Members.Select(member => member.Attributes));
     }).ToList();
-    if (attributes.Any(a => Attributes.Contains(a, "slow"))) {
-      TaskCompletionSource<ServerVerificationResult> source = new TaskCompletionSource<ServerVerificationResult>();
+    if (attributes.Any(a => Attributes.Contains(a, "neverVerify"))) {
+      var source = new TaskCompletionSource<ServerVerificationResult>();
       cancellationToken.Register(() => {
         source.SetCanceled(cancellationToken);
       });
       return new List<IImplementationTask> { new MyTask(cancellationToken) };
     }
-
+  
     return verifier.Verify(program, progressReporter, cancellationToken);
   }
 

@@ -92,18 +92,13 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       var translated = Task.Factory.StartNew(() => Translator.Translate(program, errorReporter, new Translator.TranslatorFlags {
         InsertChecksums = true,
         ReportRanges = true
-      }).ToList(), cancellationToken, TaskCreationOptions.None, LargeStackScheduler).Result;
+      }).ToList(), CancellationToken.None, TaskCreationOptions.None, LargeStackScheduler).Result;
 #pragma warning restore VSTHRD002
       return translated.SelectMany(t => {
         var (_, boogieProgram) = t;
         var results = executionEngine.GetImplementationTasks(boogieProgram);
         return results;
       }).ToList();
-    }
-
-    private void CancelVerification(string requestId) {
-      logger.LogDebug("requesting verification cancellation of {RequestId}", requestId);
-      ExecutionEngine.CancelRequest(requestId);
     }
 
     private class ModelCapturingOutputPrinter : OutputPrinter {
