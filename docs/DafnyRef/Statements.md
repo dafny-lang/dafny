@@ -1636,7 +1636,10 @@ indicates to the compiler
 that it should produce target code
 that is correspondingly annotated to mark the method
 as a unit test (e.g., an XUnit test) in the target language.
-Within that method one might use `expect` statements (as well as `print` statements)
+Alternatively, the `/runAllTests` option will produce a main method
+that invokes all methods with the `{:test}` attribute, and hence does not
+depend on any testing framework in the target language.
+Within such methods one might use `expect` statements (as well as `print` statements)
 to insert checks that the target program is behaving as expected.
 
 C) Compiler tests
