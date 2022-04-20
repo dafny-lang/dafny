@@ -91,16 +91,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private IObservable<DafnyDocument> Verify(Task<DafnyDocument> documentTask, bool verify, CancellationToken cancellationToken) {
-#pragma warning disable VSTHRD003
-      return documentTask.ToObservable().SelectMany(document => {
-#pragma warning restore VSTHRD003
+      return documentTask.ContinueWith(t => {
+        var document = t.Result;
         if (document.LoadCanceled || !verify ||
             document.ParseAndResolutionDiagnostics.Any(d => d.Severity == DiagnosticSeverity.Error)) {
           return Observable.Empty<DafnyDocument>();
         }
 
         return documentLoader.Verify(document, cancellationToken); 
-      }).Replay().RefCount();
+      }, TaskScheduler.Current).ToObservable().Merge();
     }
 
     public IObservable<DafnyDocument> UpdateDocument(DidChangeTextDocumentParams documentChange) {
@@ -193,14 +192,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private IObservable<DafnyDocument> VerifyDocumentIfRequired(IDocumentEntry databaseEntry, CancellationToken cancellationToken) {
-      return databaseEntry.ResolvedDocument.ToObservable().SelectMany(document => {
-
+      return databaseEntry.ResolvedDocument.ContinueWith(t => {
+        var document = t.Result;
         if (!RequiresOnSaveVerification(document)) {
           return Observable.Empty<DafnyDocument>();
         }
 
         return documentLoader.Verify(document, cancellationToken);
-      }).Replay().RefCount();
+      }, TaskScheduler.Current).ToObservable().Merge();
     }
 
     private static bool RequiresOnSaveVerification(DafnyDocument document) {
