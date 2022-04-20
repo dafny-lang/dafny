@@ -523,7 +523,6 @@ implementation.
 There are many command-line options to the `dafny` tool.
 The most current documentation of the options is within the tool itself,
 using the `/?` or `/help` option.
-Here we give an expanded description of the most important options.
 
 Remember that options can be stated with either a leading `/` or a leading `-`.
 
