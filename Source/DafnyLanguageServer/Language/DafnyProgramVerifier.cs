@@ -10,6 +10,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using VCGeneration;
 using VC;
 
@@ -68,6 +69,10 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         : Convert.ToInt32(options.VcsCores);
     }
 
+    // 256MB
+    private const int MaxStackSize = 0x10000000;
+    static readonly ThreadTaskScheduler LargeStackScheduler = new(MaxStackSize);
+
     public IReadOnlyList<IImplementationTask> Verify(Dafny.Program program,
                                      IVerificationProgressReporter progressReporter,
                                      CancellationToken cancellationToken) {
@@ -83,10 +88,12 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       DafnyOptions.O.Printer = printer;
 
       var executionEngine = new ExecutionEngine(DafnyOptions.O, cache);
-      var translated = Translator.Translate(program, errorReporter, new Translator.TranslatorFlags {
+#pragma warning disable VSTHRD002
+      var translated = Task.Factory.StartNew(() => Translator.Translate(program, errorReporter, new Translator.TranslatorFlags {
         InsertChecksums = true,
         ReportRanges = true
-      });
+      }).ToList(), cancellationToken, TaskCreationOptions.None, LargeStackScheduler).Result;
+#pragma warning restore VSTHRD002
       return translated.SelectMany(t => {
         var (_, boogieProgram) = t;
         var results = executionEngine.GetImplementationTasks(boogieProgram);
