@@ -557,7 +557,13 @@ being used, and information about how Dafny was invoked.
 
 These options control how Dafny processes its input.
 
-* `-dprelude:<file>` - select an alternative Dafny prelude file.
+* `-dprelude:<file>` - select an alternative Dafny prelude file. This
+  file contains Boogie definitions (including many axioms) required by
+  the translator from Dafny to Boogie. Using an alternative prelude is
+  primarily useful if you're extending the Dafny language or changing
+  how Dafny constructs are modeled. The default prelude is here:
+
+  <https://github.com/dafny-lang/dafny/blob/master/Source/Dafny/DafnyPrelude.bpl>
 
 * `-stdin` - read standard input and treat it as Dafny souce code,
   instead of reading from a file.
