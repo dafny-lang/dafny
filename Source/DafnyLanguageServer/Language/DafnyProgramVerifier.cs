@@ -77,8 +77,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
                                      IVerificationProgressReporter progressReporter,
                                      CancellationToken cancellationToken) {
 
-      // The printer is responsible for two things: It logs boogie errors and captures the counter example model.
-      // TODO, use less printer.
+      // The printer is responsible for reporting "Started verifying X".
       var errorReporter = (DiagnosticErrorReporter)program.Reporter;
       var printer = new ModelCapturingOutputPrinter(logger, errorReporter, progressReporter);
       // Do not set these settings within the object's construction. It will break some tests within
