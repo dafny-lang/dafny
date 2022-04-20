@@ -1,14 +1,12 @@
 DIR=$(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 
-default: parser exe
+default: exe
 
 all: exe refman
 
 exe:
 	(cd ${DIR} ; dotnet build Source/Dafny.sln ) ## includes parser
 
-parser:
-	make -C ${DIR}/Source/Dafny -f Makefile.linux all
 
 refman:
 	make -C ${DIR}/docs/DafnyRef
