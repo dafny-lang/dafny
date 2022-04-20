@@ -149,54 +149,52 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       );
     }
 
-    public IObservable<DafnyDocument> VerifyAsync(DafnyDocument document, CancellationToken cancellationToken) {
-      notificationPublisher.SendStatusNotification(document.Text, CompilationStatus.VerificationStarted);
-      var progressReporter = new VerificationProgressReporter(document.Text, notificationPublisher);
+    public IObservable<DafnyDocument> Verify(DafnyDocument document, CancellationToken cancellationToken) {
+      notificationPublisher.SendStatusNotification(document.TextDocumentItem, CompilationStatus.VerificationStarted);
+      var progressReporter = new VerificationProgressReporter(document.TextDocumentItem, notificationPublisher);
       var programErrorReporter = new DiagnosticErrorReporter(document.Uri);
       document.Program.Reporter = programErrorReporter;
-      var implementationTasks = verifier.VerifyAsync(document.Program, progressReporter, cancellationToken);
+      var implementationTasks = verifier.Verify(document.Program, progressReporter, cancellationToken);
       foreach (var implementationTask in implementationTasks) {
         implementationTask.Run();
       }
 
-      Task.WhenAll(implementationTasks.Select(t => t.ActualTask)).ContinueWith(t => {
-        logger.LogDebug($"Finished verification with {t.Result.Sum(r => r.Errors.Count)} errors.");
-        var verified = t.Result.All(r => r.Outcome == ConditionGeneration.Outcome.Correct);
-        var compilationStatusAfterVerification = verified
-          ? CompilationStatus.VerificationSucceeded
-          : CompilationStatus.VerificationFailed;
-        notificationPublisher.SendStatusNotification(document.Text, compilationStatusAfterVerification);
-      }, cancellationToken);
+      var _= NotifyStatusAsync(document.TextDocumentItem, implementationTasks);
 
       var concurrentDictionary = new ConcurrentBag<Diagnostic>();
       var counterExamples = new ConcurrentStack<Counterexample>();
-      var documentTasks = implementationTasks.Select(it => {
-        return it.ActualTask.ContinueWith(t => {
+      var documentTasks = implementationTasks.Select(async it => {
+        var result = await it.ActualTask;
 
-          var errorReporter = new DiagnosticErrorReporter(document.Uri);
-          foreach (var counterExample in t.Result.Errors) {
-            counterExamples.Push(counterExample);
-            errorReporter.ReportBoogieError(counterExample.CreateErrorInformation(t.Result.Outcome, Options.ForceBplErrors));
-          }
-          var outcomeError = t.Result.GetOutcomeError(Options);
-          if (outcomeError != null) {
-            errorReporter.ReportBoogieError(outcomeError);
-          }
-          foreach (var diagnostic in errorReporter.GetDiagnostics(document.Uri)) {
-            concurrentDictionary.Add(diagnostic);
-          }
+        var errorReporter = new DiagnosticErrorReporter(document.Uri);
+        foreach (var counterExample in result.Errors) {
+          counterExamples.Push(counterExample);
+          errorReporter.ReportBoogieError(counterExample.CreateErrorInformation(result.Outcome, Options.ForceBplErrors));
+        }
+        var outcomeError = result.GetOutcomeError(Options);
+        if (outcomeError != null) {
+          errorReporter.ReportBoogieError(outcomeError);
+        }
+        foreach (var diagnostic in errorReporter.GetDiagnostics(document.Uri)) {
+          concurrentDictionary.Add(diagnostic);
+        }
 
-          return document with {
-            VerificationDiagnostics = concurrentDictionary.ToArray(),
-            CounterExamples = counterExamples.ToArray(),
-          };
-        }, cancellationToken);
+        return document with {
+          VerificationDiagnostics = concurrentDictionary.ToArray(),
+          CounterExamples = counterExamples.ToArray(),
+        };
       });
       return documentTasks.Select(documentTask => documentTask.ToObservable()).Merge();
     }
 
-    private record Request(CancellationToken CancellationToken) {
-      public TaskCompletionSource<DafnyDocument> Document { get; } = new();
+    private async Task NotifyStatusAsync(TextDocumentItem item, IReadOnlyList<IImplementationTask> implementationTasks) {
+      var results = await Task.WhenAll(implementationTasks.Select(t => t.ActualTask));
+      logger.LogDebug($"Finished verification with {results.Sum(r => r.Errors.Count)} errors.");
+      var verified = results.All(r => r.Outcome == ConditionGeneration.Outcome.Correct);
+      var compilationStatusAfterVerification = verified
+        ? CompilationStatus.VerificationSucceeded
+        : CompilationStatus.VerificationFailed;
+      notificationPublisher.SendStatusNotification(item, compilationStatusAfterVerification);
     }
 
     private class VerificationProgressReporter : IVerificationProgressReporter {

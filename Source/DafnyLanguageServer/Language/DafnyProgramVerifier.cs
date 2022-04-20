@@ -68,7 +68,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         : Convert.ToInt32(options.VcsCores);
     }
 
-    public IReadOnlyList<IImplementationTask> VerifyAsync(Dafny.Program program,
+    public IReadOnlyList<IImplementationTask> Verify(Dafny.Program program,
                                      IVerificationProgressReporter progressReporter,
                                      CancellationToken cancellationToken) {
 

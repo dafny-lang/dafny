@@ -14,7 +14,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
   /// Internal representation of a dafny document.
   /// </summary>
-  /// <param name="Text">The text document represented by this dafny document.</param>
+  /// <param name="TextDocumentItem">The text document represented by this dafny document.</param>
   /// <param name="Errors">The diagnostics to report.</param>
   /// <param name="GhostDiagnostics">The ghost state diagnostics of the document.</param>
   /// <param name="Program">The compiled Dafny program.</param>
@@ -22,7 +22,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <param name="LoadCanceled"><c>true</c> if the document load was canceled for this document.</param>
   public record DafnyDocument(
     DafnyOptions Options,
-    TextDocumentItem Text,
+    TextDocumentItem TextDocumentItem,
     IReadOnlyList<Diagnostic> ParseAndResolutionDiagnostics,
     // TODO, add migration code for CounterExamples, and determine VerificationDiagnostics based on CounterExamples
     IReadOnlyList<Diagnostic> VerificationDiagnostics,
@@ -35,8 +35,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public IEnumerable<Diagnostic> Diagnostics => ParseAndResolutionDiagnostics.Concat(VerificationDiagnostics);
 
-    public DocumentUri Uri => Text.Uri;
-    public int Version => Text.Version!.Value;
+    public DocumentUri Uri => TextDocumentItem.Uri;
+    public int Version => TextDocumentItem.Version!.Value;
 
     /// <summary>
     /// Checks if the given document uri is pointing to this dafny document.

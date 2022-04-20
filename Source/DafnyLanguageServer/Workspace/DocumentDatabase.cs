@@ -69,7 +69,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public IObservable<DafnyDocument> OpenDocument(TextDocumentItem document) {
       var cancellationSource = new CancellationTokenSource();
       var resolvedDocument = OpenAsync(document, cancellationSource.Token);
-      var verifiedDocuments = VerifyAsync(resolvedDocument, VerifyOnOpen, cancellationSource.Token);
+      var verifiedDocuments = Verify(resolvedDocument, VerifyOnOpen, cancellationSource.Token);
       var databaseEntry = new DocumentEntry(
         document.Version,
         resolvedDocument,
@@ -90,7 +90,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
     }
 
-    private IObservable<DafnyDocument> VerifyAsync(Task<DafnyDocument> documentTask, bool verify, CancellationToken cancellationToken) {
+    private IObservable<DafnyDocument> Verify(Task<DafnyDocument> documentTask, bool verify, CancellationToken cancellationToken) {
 #pragma warning disable VSTHRD003
       return documentTask.ToObservable().SelectMany(document => {
 #pragma warning restore VSTHRD003
@@ -99,7 +99,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           return Observable.Empty<DafnyDocument>();
         }
 
-        return documentLoader.VerifyAsync(document,
+        return documentLoader.Verify(document,
             cancellationToken); // Awaiting an observable returns the last element (before the OnCompleted)
       }).Replay().RefCount();
     }
@@ -123,7 +123,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var cancellationSource = new CancellationTokenSource();
       var previousDocumentTask = databaseEntry.MostVerifiedDocument;
       var resolvedDocumentTask = ApplyChangesAsync(previousDocumentTask, documentChange, cancellationSource.Token);
-      var verifiedDocuments = VerifyAsync(resolvedDocumentTask, VerifyOnChange, cancellationSource.Token);
+      var verifiedDocuments = Verify(resolvedDocumentTask, VerifyOnChange, cancellationSource.Token);
       var updatedEntry = new DocumentEntry(
         documentChange.TextDocument.Version,
         resolvedDocumentTask,
@@ -141,7 +141,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 #pragma warning restore VSTHRD003
 
       // We do not pass the cancellation token to the text change processor because the text has to be kept in sync with the LSP client.
-      var updatedText = textChangeProcessor.ApplyChange(oldDocument.Text, documentChange, CancellationToken.None);
+      var updatedText = textChangeProcessor.ApplyChange(oldDocument.TextDocumentItem, documentChange, CancellationToken.None);
       var oldVerificationDiagnostics = oldDocument.VerificationDiagnostics;
       var migratedVerificationDiagnotics = relocator.RelocateDiagnostics(oldDocument.VerificationDiagnostics, documentChange, CancellationToken.None);
       logger.LogDebug($"Migrated {oldVerificationDiagnostics.Count} diagnostics into {migratedVerificationDiagnotics.Count} diagnostics.");
@@ -164,7 +164,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         // to re-locate symbols that were resolved previously.
         logger.LogTrace("document loading canceled, applying migration");
         return oldDocument with {
-          Text = updatedText,
+          TextDocumentItem = updatedText,
           SymbolTable = relocator.RelocateSymbols(oldDocument.SymbolTable, documentChange, CancellationToken.None),
           CounterExamples = Array.Empty<Counterexample>(),
           LoadCanceled = true,
@@ -182,7 +182,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       var cancellationSource = new CancellationTokenSource();
-      var verifiedDocuments = VerifyDocumentIfRequiredAsync(databaseEntry, cancellationSource.Token);
+      var verifiedDocuments = VerifyDocumentIfRequired(databaseEntry, cancellationSource.Token);
       var updatedEntry = new DocumentEntry(
         databaseEntry.Version,
         databaseEntry.ResolvedDocument,
@@ -193,14 +193,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return verifiedDocuments;
     }
 
-    private IObservable<DafnyDocument> VerifyDocumentIfRequiredAsync(IDocumentEntry databaseEntry, CancellationToken cancellationToken) {
+    private IObservable<DafnyDocument> VerifyDocumentIfRequired(IDocumentEntry databaseEntry, CancellationToken cancellationToken) {
       return databaseEntry.ResolvedDocument.ToObservable().SelectMany(document => {
 
         if (!RequiresOnSaveVerification(document)) {
           return Observable.Empty<DafnyDocument>();
         }
 
-        return documentLoader.VerifyAsync(document, cancellationToken);
+        return documentLoader.Verify(document, cancellationToken);
       }).Replay().RefCount();
     }
 

@@ -35,7 +35,7 @@ function GetConstant2(): int {
 function GetConstant(): int {
   1
 }".TrimStart();
-      Assert.AreEqual(expected, document.Text.Text);
+      Assert.AreEqual(expected, document.TextDocumentItem.Text);
     }
 
     [TestMethod]
@@ -67,7 +67,7 @@ function GetConstant(): int {
 function GetConstant2(): int {
   2
 }".TrimStart();
-      Assert.AreEqual(expected, document.Text.Text);
+      Assert.AreEqual(expected, document.TextDocumentItem.Text);
     }
 
     [TestMethod]
@@ -107,7 +107,7 @@ function GetConstant2(): int {
 function GetConstant3(): int {
   3
 }".TrimStart();
-      Assert.AreEqual(expected, document.Text.Text);
+      Assert.AreEqual(expected, document.TextDocumentItem.Text);
     }
 
     [TestMethod]
@@ -130,7 +130,7 @@ function GetConstant(): int {
 function GetAnotherConstant(): int {
   1
 }".TrimStart();
-      Assert.AreEqual(expected, document.Text.Text);
+      Assert.AreEqual(expected, document.TextDocumentItem.Text);
     }
 
     [TestMethod]
@@ -161,7 +161,7 @@ function GetIt(): string {
 function SomeConstant(): int {
   1
 }".TrimStart();
-      Assert.AreEqual(expected, document.Text.Text);
+      Assert.AreEqual(expected, document.TextDocumentItem.Text);
     }
 
     [TestMethod]
@@ -198,7 +198,7 @@ function SomeConstant(): int {
 class Test {
   function GetConstant(): int { 1 }
 }".TrimStart();
-      Assert.AreEqual(expected, document.Text.Text);
+      Assert.AreEqual(expected, document.TextDocumentItem.Text);
     }
   }
 }

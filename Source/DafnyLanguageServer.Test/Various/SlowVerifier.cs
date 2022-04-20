@@ -16,7 +16,7 @@ class SlowVerifier : IProgramVerifier {
 
   private readonly DafnyProgramVerifier verifier;
 
-  public IReadOnlyList<IImplementationTask> VerifyAsync(Dafny.Program program, IVerificationProgressReporter progressReporter, CancellationToken cancellationToken) {
+  public IReadOnlyList<IImplementationTask> Verify(Dafny.Program program, IVerificationProgressReporter progressReporter, CancellationToken cancellationToken) {
     var attributes = program.Modules().SelectMany(m => {
       return m.TopLevelDecls.OfType<TopLevelDeclWithMembers>().SelectMany(d => d.Members.Select(member => member.Attributes));
     }).ToList();
@@ -28,7 +28,7 @@ class SlowVerifier : IProgramVerifier {
       return new List<IImplementationTask>{ new MyTask(cancellationToken) };
     }
 
-    return verifier.VerifyAsync(program, progressReporter, cancellationToken);
+    return verifier.Verify(program, progressReporter, cancellationToken);
   }
 
   class MyTask : IImplementationTask {
