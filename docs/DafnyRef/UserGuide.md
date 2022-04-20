@@ -548,12 +548,11 @@ being used, and information about how Dafny was invoked.
 
   * `0` - never print them,
 
-  * `1` (default) - print them when printing Boogie (`.bpl`) files and
-    prover logs, or
+  * `1` (default) - print them to Boogie (`.bpl`) files and prover logs, or
 
   * `2` - like `1` but also to standard output.
 
-* `-wait` - wait for the user to press Enter before terminating.
+* `-wait` - wait for the user to press `Enter` before terminating after a successful execution.
 
 ### 24.10.2. Controlling input {#sec-controlling-input}
 
@@ -694,7 +693,7 @@ older versions of Dafny.
   command-line option is provided to simplify a transition from the
   behavior in the language prior to version 1.9.3, from which point
   onward all functions and methods declared at the module scope are
-  implicitly static and fields declarations are not allowed at the
+  implicitly static and field declarations are not allowed at the
   module scope.
 
 ### 24.10.6. Controlling warnings {#sec-controlling-warnings}
@@ -859,7 +858,7 @@ and what information it produces about the verification process.
     for testing only.
 
   * `1` (default) - enforce definite-assignment rules for compiled
-    variables an d fields whose types do not support auto-initialization
+    variables and fields whose types do not support auto-initialization
     and for ghost variables and fields whose type is possibly empty.
 
   * `2` - enforce definite-assignment for all non-yield-parameter
@@ -945,9 +944,9 @@ and what information it produces about the verification process.
   `-proverOpt:O:model_compress=false` and
   `-proverOpt:O:model.completion=true` options.
 
-* `-countVerificationErrors:<n>` - if 0 then always exit with a 0 exit
-  code, regardless of whether errors are found. If 1 (the default) then
-  use the usual exit code. This option is deprecated.
+* `-countVerificationErrors:<n>` - if `0` then always exit with a 0 exit
+  code, regardless of whether errors are found. If `1` (default) then
+  use the appropriate exit code. This option is deprecated.
 
 ### 24.10.8. Controlling boogie {#sec-controlling-boogie}
 
