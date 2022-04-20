@@ -25,7 +25,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     TextDocumentItem TextDocumentItem,
     IReadOnlyList<Diagnostic> ParseAndResolutionDiagnostics,
     // VerificationDiagnostics can be deduced from CounterExamples,
-    // but they are stored separately because they are be migrated and counterexamples currently are not.
+    // but they are stored separately because they are migrated and counterexamples currently are not.
     IReadOnlyList<Diagnostic> VerificationDiagnostics,
     IReadOnlyList<Counterexample> CounterExamples,
     IReadOnlyList<Diagnostic> GhostDiagnostics,

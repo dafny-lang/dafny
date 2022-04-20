@@ -174,7 +174,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         if (outcomeError != null) {
           errorReporter.ReportBoogieError(outcomeError);
         }
-        foreach (var diagnostic in errorReporter.GetDiagnostics(document.Uri)) {
+
+        var diagnostics = errorReporter.GetDiagnostics(document.Uri).ToList();
+        foreach (var diagnostic in diagnostics) {
           concurrentDictionary.Add(diagnostic);
         }
 
@@ -182,7 +184,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           VerificationDiagnostics = concurrentDictionary.ToArray(),
           CounterExamples = counterExamples.ToArray(),
         };
-      });
+      }).ToList();
       return documentTasks.Select(documentTask => documentTask.ToObservable()).Merge();
     }
 

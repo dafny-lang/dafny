@@ -706,5 +706,24 @@ function method other(i: int, j: int): int
       Assert.AreEqual(new Range((1, 15), (1, 25)), diagnostics[0].Range);
       await AssertNoDiagnosticsAreComing();
     }
+    
+    [TestMethod]
+    public async Task IncrementalVerificationDiagnostics() {
+      var source = SlowToVerify + @"
+method test() {
+  assert false;
+}
+".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      client.OpenDocument(documentItem);
+      var resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken.None, documentItem);
+      Assert.AreEqual(0, resolutionDiagnostics.Length);
+      var firstVerificationDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken.None, documentItem);
+      var secondVerificationDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken.None, documentItem);
+
+      Assert.AreEqual(1, firstVerificationDiagnostics.Length);
+      Assert.AreEqual(2, secondVerificationDiagnostics.Length);
+      await AssertNoDiagnosticsAreComing();
+    }
   }
 }
