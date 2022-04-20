@@ -1569,19 +1569,19 @@ namespace Microsoft.Dafny {
           throw new cce.UnreachableException(); // unexpected skeleton statement
         }
 
-      } else if (stmt is HaltRecoveryStatement haltRecoveryStatement) {
+      } else if (stmt is TryRecoverStatement haltRecoveryStatement) {
         // These have no actual syntax for Dafny user code, so emit something
         // clearly not parsable.
         int ind = indent + IndentAmount;
 
         Indent(indent);
         wr.WriteLine("[[ try { ]]");
-        PrintStatement(haltRecoveryStatement.Body, ind);
+        PrintStatement(haltRecoveryStatement.TryBody, ind);
         wr.WriteLine();
 
         Indent(indent);
         wr.WriteLine($"[[ }} recover ({haltRecoveryStatement.HaltMessageVar.Name}) {{ ]]");
-        PrintStatement(haltRecoveryStatement.RecoveryBody, ind);
+        PrintStatement(haltRecoveryStatement.RecoverBody, ind);
         wr.Write("[[ } ]]");
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement

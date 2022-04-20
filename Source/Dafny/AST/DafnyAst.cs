@@ -8900,18 +8900,18 @@ namespace Microsoft.Dafny {
   /// }
   /// 
   /// </summary>
-  public class HaltRecoveryStatement : Statement {
-    public readonly Statement Body;
+  public class TryRecoverStatement : Statement {
+    public readonly Statement TryBody;
     public readonly IVariable HaltMessageVar;
-    public readonly Statement RecoveryBody;
-    public HaltRecoveryStatement(Statement body, IVariable haltMessageVar, Statement recoveryBody)
-      : base(body.Tok, recoveryBody.EndTok) {
-      Contract.Requires(body != null);
+    public readonly Statement RecoverBody;
+    public TryRecoverStatement(Statement tryBody, IVariable haltMessageVar, Statement recoverBody)
+      : base(tryBody.Tok, recoverBody.EndTok) {
+      Contract.Requires(tryBody != null);
       Contract.Requires(haltMessageVar != null);
-      Contract.Requires(recoveryBody != null);
-      Body = body;
+      Contract.Requires(recoverBody != null);
+      TryBody = tryBody;
       HaltMessageVar = haltMessageVar;
-      RecoveryBody = recoveryBody;
+      RecoverBody = recoverBody;
     }
   }
 

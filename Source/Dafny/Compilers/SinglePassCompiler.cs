@@ -3220,8 +3220,8 @@ namespace Microsoft.Dafny.Compilers {
         } else if (DafnyOptions.O.ForbidNondeterminism) {
           Error(s.Tok, "modify statement without a body forbidden by /definiteAssignment:3 option", wr);
         }
-      } else if (stmt is HaltRecoveryStatement h) {
-        EmitHaltRecoveryStmt(h.Body, h.HaltMessageVar.CompileName, h.RecoveryBody, wr);
+      } else if (stmt is TryRecoverStatement h) {
+        EmitHaltRecoveryStmt(h.TryBody, h.HaltMessageVar.CompileName, h.RecoverBody, wr);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }

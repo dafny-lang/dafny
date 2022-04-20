@@ -13,6 +13,10 @@ public class RunAllTestsMainMethod : IRewriter {
   /// <summary>
   /// Verifies that there isn't already a main method, and then creates
   /// one with no body (to be filled in by PostResolve()).
+  ///
+  /// It might be possible to move this to PostResolve() if we created a resolved
+  /// Method instead, but for now this is a bit easier. It also allows us to produce
+  /// errors much earlier in the pipeline.
   /// </summary>
   internal override void PreResolve(Program program) {
     Method mainMethod;
@@ -22,14 +26,18 @@ public class RunAllTestsMainMethod : IRewriter {
       return;
     }
 
+    // Verifying the method isn't yet possible since the translation of try/recover statments is not implemented,
+    // and would be low-value anyway.
+    var noVerifyAttribute = new Attributes("verify", new List<Expression> { new LiteralExpr(Token.NoToken, false) }, null);
+
     mainMethod = new Method(Token.NoToken, "Main", false, false,
       new List<TypeParameter>(), new List<Formal>(), new List<Formal>(),
       new List<AttributedExpression>(),
       new Specification<FrameExpression>(new List<FrameExpression>(), null),
       new List<AttributedExpression>(), new Specification<Expression>(new List<Expression>(), null),
-      null, null, null);
-    var defaultCompileModule = program.RawModules().Single(m => m.IsDefaultModule);
-    var defaultClass = (DefaultClassDecl)defaultCompileModule.TopLevelDecls.Single(d => d is DefaultClassDecl);
+      null, noVerifyAttribute, null);
+    var defaultModule = program.RawModules().Single(m => m.IsDefaultModule);
+    var defaultClass = (DefaultClassDecl)defaultModule.TopLevelDecls.Single(d => d is DefaultClassDecl);
     defaultClass.Members.Add(mainMethod);
   }
 
@@ -75,6 +83,9 @@ public class RunAllTestsMainMethod : IRewriter {
   /// }
   /// </summary>
   internal override void PostResolve(Program program) {
+
+
+
     var tok = Token.NoToken;
     List<Statement> mainMethodStatements = new();
     var idGenerator = new FreshIdGenerator();
@@ -106,6 +117,8 @@ public class RunAllTestsMainMethod : IRewriter {
           //
           // TestMethod();
           // print "PASSED\n";
+          var tryBodyStatements = new List<Statement>();
+
           var receiverExpr = new StaticReceiverExpr(tok, (TopLevelDeclWithMembers)method.EnclosingClass, true);
           var methodSelectExpr = new MemberSelectExpr(tok, receiverExpr, method.Name) {
             Member = method,
@@ -114,7 +127,6 @@ public class RunAllTestsMainMethod : IRewriter {
           };
 
           Expression resultVarExpr = null;
-          var statements = new List<Statement>();
           var lhss = new List<Expression>();
 
           // If the method returns a value, check for a failure using IsFailure() as if this
@@ -127,7 +139,7 @@ public class RunAllTestsMainMethod : IRewriter {
             case 1: {
                 var resultVarName = idGenerator.FreshId("result");
                 var resultVarStmt = Statement.CreateLocalVariable(tok, resultVarName, method.Outs[0].Type);
-                statements.Add(resultVarStmt);
+                tryBodyStatements.Add(resultVarStmt);
                 resultVarExpr = new IdentifierExpr(tok, resultVarStmt.Locals[0]);
                 resultVarExpr.Type = resultVarStmt.Locals[0].Type;
                 lhss.Add(resultVarExpr);
@@ -136,7 +148,7 @@ public class RunAllTestsMainMethod : IRewriter {
           }
 
           var callStmt = new CallStmt(tok, tok, lhss, methodSelectExpr, new List<Expression>());
-          statements.Add(callStmt);
+          tryBodyStatements.Add(callStmt);
 
           Statement passedStmt = Statement.CreatePrintStmt(tok, Expression.CreateStringLiteral(tok, "PASSED\n"));
           var passedBlock = new BlockStmt(tok, tok, Util.Singleton(passedStmt));
@@ -152,12 +164,12 @@ public class RunAllTestsMainMethod : IRewriter {
             failureGuardExpr.TypeApplication_AtEnclosingClass = new List<Type>();
 
             var failedBlock = PrintTestFailureStatement(tok, successVarExpr, resultVarExpr);
-            statements.Add(new IfStmt(tok, tok, false, failureGuardExpr, failedBlock, passedBlock));
+            tryBodyStatements.Add(new IfStmt(tok, tok, false, failureGuardExpr, failedBlock, passedBlock));
           } else {
-            statements.Add(passedBlock);
+            tryBodyStatements.Add(passedBlock);
           }
 
-          var runTestMethodBlock = new BlockStmt(tok, tok, statements);
+          var tryBody = new BlockStmt(tok, tok, tryBodyStatements);
 
           // Wrap the code above with:
           //
@@ -172,11 +184,11 @@ public class RunAllTestsMainMethod : IRewriter {
             type = Type.String()
           };
           var haltMessageVarExpr = new IdentifierExpr(tok, haltMessageVar);
-          var haltedBlock =
+          var recoverBlock =
             PrintTestFailureStatement(tok, successVarExpr, haltMessageVarExpr);
-          var haltRecoveryStmt = new HaltRecoveryStatement(runTestMethodBlock, haltMessageVar, haltedBlock);
+          var tryRecoverStmt = new TryRecoverStatement(tryBody, haltMessageVar, recoverBlock);
 
-          mainMethodStatements.Add(haltRecoveryStmt);
+          mainMethodStatements.Add(tryRecoverStmt);
         }
       }
     }
