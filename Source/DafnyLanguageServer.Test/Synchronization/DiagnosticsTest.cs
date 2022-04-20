@@ -722,6 +722,7 @@ method test() {
       var secondVerificationDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken.None, documentItem);
 
       Assert.AreEqual(1, firstVerificationDiagnostics.Length);
+      // Second diagnostic is a timeout exception from SlowToVerify
       Assert.AreEqual(2, secondVerificationDiagnostics.Length);
       await AssertNoDiagnosticsAreComing();
     }
