@@ -793,9 +793,9 @@ and what information it produces about the verification process.
 * `-induction:<n>` - control the behavior of induction. The argument can
   be one of the following.
 
-  * `0` - never do induction, not even when attributes request it.
+  * `0` - never do induction, not even when attributes request it,
 
-  * `1` - apply induction only when attributes request it.
+  * `1` - apply induction only when attributes request it, or
 
   * `2` - apply induction as requested (by attributes) and also for
     heuristically chosen quantifiers.
