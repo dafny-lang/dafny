@@ -1,5 +1,6 @@
 using System;
 using JetBrains.Annotations;
+using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
 
@@ -11,7 +12,6 @@ namespace Microsoft.Dafny {
     [CanBeNull] public string TargetMethod = null;
     public uint? SeqLengthLimit = null;
     public uint TestInlineDepth = 0;
-    public string PrintBoogieFile = null;
 
     public bool ParseOption(string name, Bpl.CommandLineParseState ps) {
       var args = ps.args;
