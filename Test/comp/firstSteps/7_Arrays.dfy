@@ -1,6 +1,8 @@
 // RUN: %dafny /compile:0 "%s" > "%t"
 // RUN: %dafny /noVerify /compile:4 /compileTarget:py "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
+//
+// This fragment of comp/Arrays.dfy serves to facilitate incremental compiler development.
 
 method LinearSearch(a: array<int>, key: int) returns (n: nat)
   ensures 0 <= n <= a.Length
@@ -53,10 +55,9 @@ method Main() {
     a[0] := 42;
     print s, "\n";
     MultipleDimensions();
-    
-    
    }
    
    method MultipleDimensions() {
      var matrix := new int[2,8];
+     print matrix;
      }

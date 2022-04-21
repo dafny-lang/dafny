@@ -323,9 +323,6 @@ namespace Microsoft.Dafny.Compilers {
             return "int";
           }
         case UserDefinedType udt: {
-            if (xType.IsArrayType) {
-              return "list";
-            }
             var s = FullTypeName(udt, member);
             return TypeName_UDT(s, udt, wr, udt.tok);
           }
@@ -456,6 +453,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree CreateLabeledCode(string label, bool createContinueLabel, ConcreteSyntaxTree wr) {
+      if (createContinueLabel) { throw new NotImplementedException(); }
       Contract.Assert(!createContinueLabel);
       return wr.NewBlockPy($"with _dafny.label(\"{label}\"):");
     }
@@ -463,7 +461,9 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitBreak(string label, ConcreteSyntaxTree wr) {
       if (label != null) {
         wr.WriteLine($"_dafny._break(\"{label}\")");
-      } else { wr.WriteLine("break"); }
+      } else {
+        wr.WriteLine("break");
+      }
     }
 
     protected override void EmitContinue(string label, ConcreteSyntaxTree wr) {
@@ -509,9 +509,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree CreateForLoop(string indexVar, string bound, ConcreteSyntaxTree wr) {
-      string headerFormat = "for {0} in range({1}):";
-      object[] headerArgs = { indexVar, bound };
-      return wr.NewBlockPy(string.Format(headerFormat, headerArgs), null);
+      return wr.NewBlockPy($"for {indexVar} in range({bound}):");
 
 
     }
@@ -560,7 +558,7 @@ namespace Microsoft.Dafny.Compilers {
       if (dimensions.Count == 1) {
         // handle the common case of 1-dimensional arrays separately
         var arrayType = TypeInitializationValue(elmtType, wr, tok, false, false);
-        wr.Write($"[{arrayType} for _ in range");
+        wr.Write($"[{initValue} for _ in range");
         TrParenExpr(dimensions[0], wr, false, wStmts);
         wr.Write("]");
       } else {
@@ -646,8 +644,10 @@ namespace Microsoft.Dafny.Compilers {
         //TODO: Add deeper types
         return "Callable";
       }
-
       var cl = udt.ResolvedClass;
+      if (cl is ArrayClassDecl) {
+        return "list";
+      }
       if (cl is TypeParameter) {
         return IdProtect(udt.CompileName);
       } else {
@@ -697,7 +697,8 @@ namespace Microsoft.Dafny.Compilers {
       switch (member) {
         case SpecialField sf: {
             GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, objType, out var compiledName, out _, out _);
-            return compiledName.Length != 0 ? SuffixLvalue(obj, ".{0}", compiledName) : SimpleLvalue(obj);
+            if (compiledName.Length > 0) { compiledName = "." + compiledName; }
+            return SuffixLvalue(obj, compiledName);
           }
         case Field: {
             return SimpleLvalue(w => {
@@ -717,6 +718,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree EmitArraySelect(List<string> indices, Type elmtType, ConcreteSyntaxTree wr) {
+      Contract.Assert(indices != null && 1 <= indices.Count);
       var w = wr.Fork();
       if (indices.Count == 1) {
         wr.Write("[{0}]", indices[0]);
@@ -728,17 +730,10 @@ namespace Microsoft.Dafny.Compilers {
       ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       Contract.Assert(indices != null && 1 <= indices.Count);  // follows from precondition
       var w = wr.Fork();
-      if (indices.Count == 1) {
+      foreach (var index in indices) {
         wr.Write("[");
-        TrExpr(indices[0], wr, inLetExprBody, wStmts);
+        TrExpr(index, wr, inLetExprBody, wStmts);
         wr.Write("]");
-      } else {
-        foreach (var index in indices) {
-          wr.Write("[");
-          TrExpr(index, wr, inLetExprBody, wStmts);
-          wr.Write("]");
-        }
-
       }
       return w;
     }
@@ -763,31 +758,15 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitSeqSelectRange(Expression source, Expression lo, Expression hi, bool fromArray,
       bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-
-      if (fromArray) {
-        wr.Write($"{DafnySeqClass}(");
-      }
+      wr.Write($"{DafnySeqClass}(");
       TrParenExpr(source, wr, inLetExprBody, wStmts);
-      if (lo != null) {
-        wr.Write("[");
-        TrExpr(lo, wr, inLetExprBody, wStmts);
-        if (hi != null) {
-          wr.Write(":");
-          TrExpr(hi, wr, inLetExprBody, wStmts);
-        } else {
-          wr.Write("::");
-        }
-        wr.Write("]");
-      } else if (hi != null) {
-        wr.Write("[0:");
-        TrExpr(hi, wr, inLetExprBody, wStmts);
-        wr.Write("]");
-      } else if (fromArray) {
-        wr.Write("[::]");
-      }
-      if (fromArray) {
-        wr.Write(")");
-      }
+      wr.Write("[");
+      if (lo != null) { TrExpr(lo, wr, inLetExprBody, wStmts); }
+      wr.Write(":");
+      if (hi != null) { TrExpr(hi, wr, inLetExprBody, wStmts); }
+      wr.Write(":");
+      wr.Write("]");
+      wr.Write(")");
     }
 
     protected override void EmitSeqConstructionExpr(SeqConstructionExpr expr, bool inLetExprBody, ConcreteSyntaxTree wr,
@@ -886,13 +865,11 @@ namespace Microsoft.Dafny.Compilers {
           opString = "*"; break;
 
         case BinaryExpr.ResolvedOpcode.EqCommon: {
-            opString = "==";
-            break;
+            opString = "=="; break;
           }
 
         case BinaryExpr.ResolvedOpcode.Lt: {
-            opString = "<";
-            break;
+            opString = "<"; break;
           }
         case BinaryExpr.ResolvedOpcode.SeqEq:
         case BinaryExpr.ResolvedOpcode.SetEq:
