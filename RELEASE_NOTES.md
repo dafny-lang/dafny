@@ -1,5 +1,6 @@
 # Upcoming
 
+- feat: The IDE will show verification errors for a method immediately after that method has been verified, instead of after all methods are verified.
 - feat: `synthesize` attribute on methods with no body allows synthesizing objects based on method postconditions at compile time (currently only available for C#). See Section [22.2.20](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-synthesize-attr) of the Reference Manual. (https://github.com/dafny-lang/dafny/pull/1809)
 - feat: The `/verificationLogger:text` option now prints all verification results in a human-readable form, including a description of each assertion in the program.
 - feat: The new `/runAllTests` can be used to execute all methods with the `{:test}` attribute, without depending on a testing framework in the target language.
