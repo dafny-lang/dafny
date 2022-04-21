@@ -1093,6 +1093,10 @@ namespace Microsoft.Dafny.Compilers {
       throw new NotImplementedException();
     }
 
+    protected override void EmitHaltRecoveryStmt(Statement body, string haltMessageVarName, Statement recoveryBody, ConcreteSyntaxTree wr) {
+      throw new NotImplementedException();
+    }
+
     public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText,
         string /*?*/ callToMain, string /*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
         bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
