@@ -2408,6 +2408,11 @@ namespace Microsoft.Dafny.Compilers {
       throw NotSupported("EmitSingleValueGenerator", e.tok);
     }
 
+    protected override void EmitHaltRecoveryStmt(Statement body, string haltMessageVarName, Statement recoveryBody, ConcreteSyntaxTree wr) {
+      throw NotSupported("EmitInvokeWithHaltHandling");
+    }
+
+
     // ----- Target compilation and execution -------------------------------------------------------------
     private string ComputeExeName(string targetFilename) {
       return Path.ChangeExtension(Path.GetFullPath(targetFilename), "exe");
