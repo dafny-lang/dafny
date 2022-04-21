@@ -628,8 +628,9 @@ code (which can be helpful for debugging).
 * `-showSnippets:<n>` - show a source code snippet for each Dafny
   message. The value of `<n>` can be one of the following.
 
-  - `0` (default) - don't print snippets.
-  - `1` - do print snippets.
+  * `0` (default) - don't print snippets.
+
+  * `1` - do print snippets.
 
 * `-printTooltips` - dump additional positional information (displayed
   as mouse-over tooltips by LSP clients) to standard output as `Info`
@@ -713,7 +714,9 @@ warnings as errors.
   value of `<n>` can be any of the following.
 
    * `0` - don't issue any warnings.
+
    * `1` (default) - issue warnings.
+
    * `2` - issue warnings and advise about alternate syntax.
 
 * `-warningsAsErrors` - treat warnings as errors.
@@ -728,6 +731,7 @@ and what information it produces about the verification process.
   value of `<n>` can be any of the following.
 
   * `0` - stop after type checking.
+
   * `1` - continue on to verification and compilation.
 
 * `-verifyAllModules` - verify modules that come from include directives.
@@ -1024,10 +1028,15 @@ immediately executed.
   compiler. The value of `<s>` can be one of the following.
 
    * `cs` - C\#
+
    * `go` - Go
+
    * `js` - Javascript
+
    * `java` - Java
+
    * `py` - Python
+
    * `cpp` - C++
 
 * `-spillTargetCode:<n>` - control whether to write out compiled code in
