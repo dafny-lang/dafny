@@ -4,7 +4,7 @@ Corecursion.dfy(58,4): Error: cannot prove termination; try supplying a decrease
 Corecursion.dfy(71,15): Error: cannot prove termination; try supplying a decreases clause (note that calls cannot be co-recursive in this context)
 Corecursion.dfy(93,14): Error: cannot prove termination; try supplying a decreases clause (note that a call can be co-recursive only if all intra-cluster calls are in non-destructive contexts)
 Corecursion.dfy(103,14): Error: cannot prove termination; try supplying a decreases clause (note that a call can be co-recursive only if all intra-cluster calls are in non-destructive contexts)
-Corecursion.dfy(148,12): Error: failure to decrease termination measure (note that a call can be co-recursive only if all intra-cluster calls are in non-destructive contexts)
-Corecursion.dfy(161,12): Error: failure to decrease termination measure (note that a call can be co-recursive only if all intra-cluster calls are in non-destructive contexts)
+Corecursion.dfy(148,12): Error: decreases clause might not decrease (note that a call can be co-recursive only if all intra-cluster calls are in non-destructive contexts)
+Corecursion.dfy(161,12): Error: decreases clause might not decrease (note that a call can be co-recursive only if all intra-cluster calls are in non-destructive contexts)
 
 Dafny program verifier finished with 16 verified, 8 errors

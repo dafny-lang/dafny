@@ -367,7 +367,9 @@ namespace Microsoft.Dafny {
       // Check that none of the modules have the same CompileName.
       Dictionary<string, ModuleDefinition> compileNameMap = new Dictionary<string, ModuleDefinition>();
       foreach (ModuleDefinition m in prog.CompileModules) {
-        if (m.IsAbstract) {
+        var compileIt = true;
+        Attributes.ContainsBool(m.Attributes, "compile", ref compileIt);
+        if (m.IsAbstract || !compileIt) {
           // the purpose of an abstract module is to skip compilation
           continue;
         }
@@ -437,6 +439,10 @@ namespace Microsoft.Dafny {
         rewriters.Add(new TriggerGeneratingRewriter(reporter));
       }
 
+      if (DafnyOptions.O.RunAllTests) {
+        rewriters.Add(new RunAllTestsMainMethod(reporter));
+      }
+
       rewriters.Add(new InductionRewriter(reporter));
       rewriters.Add(new PrintEffectEnforcement(reporter));
 
@@ -461,6 +467,10 @@ namespace Microsoft.Dafny {
       }
 
       ResolveTopLevelDecls_Core(systemModuleClassesWithNonNullTypes, new Graph<IndDatatypeDecl>(), new Graph<CoDatatypeDecl>());
+
+      foreach (var rewriter in rewriters) {
+        rewriter.PreResolve(prog);
+      }
 
       var compilationModuleClones = new Dictionary<ModuleDefinition, ModuleDefinition>();
       foreach (var decl in sortedDecls) {
@@ -558,7 +568,7 @@ namespace Microsoft.Dafny {
           ModuleSignature p;
           if (ResolveExport(abs, abs.EnclosingModuleDefinition, abs.QId, abs.Exports, out p, reporter)) {
             abs.OriginalSignature = p;
-            abs.Signature = MakeAbstractSignature(p, abs.FullCompileName, abs.Height, prog.ModuleSigs, compilationModuleClones);
+            abs.Signature = MakeAbstractSignature(p, abs.FullSanitizedName, abs.Height, prog.ModuleSigs, compilationModuleClones);
           } else {
             abs.Signature = new ModuleSignature(); // there was an error, give it a valid but empty signature
           }
@@ -2305,7 +2315,7 @@ namespace Microsoft.Dafny {
             extraMember.InheritVisibility(m, false);
             members.Add(extraName, extraMember);
           } else if (m is Function f && f.ByMethodBody != null) {
-            RegisterByMethod(f);
+            RegisterByMethod(f, cl);
           }
         } else if (m is Constructor && !((Constructor)m).HasName) {
           reporter.Error(MessageSource.Resolver, m, "More than one anonymous constructor");
@@ -2315,10 +2325,9 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void RegisterByMethod(Function f) {
+    void RegisterByMethod(Function f, TopLevelDeclWithMembers cl) {
       Contract.Requires(f != null && f.ByMethodBody != null);
 
-      var cl = (TopLevelDeclWithMembers)f.EnclosingClass;
       var tok = f.ByMethodTok;
       var resultVar = f.Result ?? new Formal(tok, "#result", f.ResultType, false, false, null);
       var r = Expression.CreateIdentExpr(resultVar);
@@ -3003,7 +3012,7 @@ namespace Microsoft.Dafny {
             if (k.Type.IsBigOrdinalType) {
               kk = new MemberSelectExpr(k.tok, new IdentifierExpr(k.tok, k.Name), "Offset");
               // As an "else" branch, we add recursive calls for the limit case.  When automatic induction is on,
-              // this get handled automatically, but we still want it in the case when automatic inductino has been
+              // this get handled automatically, but we still want it in the case when automatic induction has been
               // turned off.
               //     forall k', params | k' < _k && Precondition {
               //       pp(k', params);
@@ -3029,7 +3038,7 @@ namespace Microsoft.Dafny {
 
               Expression recursiveCallReceiver;
               List<Expression> recursiveCallArgs;
-              Translator.RecursiveCallParameters(com.tok, prefixLemma, prefixLemma.TypeArgs, prefixLemma.Ins, substMap, out recursiveCallReceiver, out recursiveCallArgs);
+              Translator.RecursiveCallParameters(com.tok, prefixLemma, prefixLemma.TypeArgs, prefixLemma.Ins, null, substMap, out recursiveCallReceiver, out recursiveCallArgs);
               var methodSel = new MemberSelectExpr(com.tok, recursiveCallReceiver, prefixLemma.Name);
               methodSel.Member = prefixLemma;  // resolve here
               methodSel.TypeApplication_AtEnclosingClass = prefixLemma.EnclosingClass.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.tok, tp));
@@ -15601,16 +15610,23 @@ namespace Microsoft.Dafny {
       candidateResultCtors.Reverse();
       foreach (var crc in candidateResultCtors) {
         // Build the arguments to the datatype constructor, using the updated value in the appropriate slot
-        var ctor_args = new List<Expression>();
+        var ctorArguments = new List<Expression>();
+        var actualBindings = new List<ActualBinding>();
         foreach (var f in crc.Formals) {
-          Tuple<BoundVar/*let variable*/, IdentifierExpr/*id expr for let variable*/, Expression /*RHS in given syntax*/> info;
-          if (rhsBindings.TryGetValue(f.Name, out info)) {
-            ctor_args.Add(info.Item2 ?? info.Item3);
+          Expression ctorArg;
+          if (rhsBindings.TryGetValue(f.Name, out var info)) {
+            ctorArg = info.Item2 ?? info.Item3;
           } else {
-            ctor_args.Add(new ExprDotName(tok, d, f.Name, null));
+            ctorArg = new ExprDotName(tok, d, f.Name, null);
           }
+          ctorArguments.Add(ctorArg);
+          var bindingName = new Token(tok.line, tok.col) {
+            filename = tok.filename,
+            val = f.Name
+          };
+          actualBindings.Add(new ActualBinding(bindingName, ctorArg));
         }
-        var ctor_call = new DatatypeValue(tok, crc.EnclosingDatatype.Name, crc.Name, ctor_args.ConvertAll(e => new ActualBinding(null, e)));
+        var ctor_call = new DatatypeValue(tok, crc.EnclosingDatatype.Name, crc.Name, actualBindings);
         ResolveDatatypeValue(opts, ctor_call, dt, root.Type.NormalizeExpand());  // resolve to root.Type, so that type parameters get filled in appropriately
         if (body == null) {
           body = ctor_call;
@@ -17734,6 +17750,26 @@ namespace Microsoft.Dafny {
           case BinaryExpr.ResolvedOpcode.NeqCommon:  // A != B         yield polarity ? (A != B) : (A == B);
             newOp = polarity ? BinaryExpr.Opcode.Neq : BinaryExpr.Opcode.Eq;
             newROp = polarity ? BinaryExpr.ResolvedOpcode.NeqCommon : BinaryExpr.ResolvedOpcode.EqCommon;
+            swapOperands = false;
+            break;
+          case BinaryExpr.ResolvedOpcode.NotInSet:  // A !in B         yield polarity ? (A !in B) : (A in B);
+            newOp = polarity ? BinaryExpr.Opcode.NotIn : BinaryExpr.Opcode.In;
+            newROp = polarity ? BinaryExpr.ResolvedOpcode.NotInSet : BinaryExpr.ResolvedOpcode.InSet;
+            swapOperands = false;
+            break;
+          case BinaryExpr.ResolvedOpcode.NotInSeq:  // A !in B         yield polarity ? (A !in B) : (A in B);
+            newOp = polarity ? BinaryExpr.Opcode.NotIn : BinaryExpr.Opcode.In;
+            newROp = polarity ? BinaryExpr.ResolvedOpcode.NotInSeq : BinaryExpr.ResolvedOpcode.InSeq;
+            swapOperands = false;
+            break;
+          case BinaryExpr.ResolvedOpcode.NotInMultiSet:  // A !in B         yield polarity ? (A !in B) : (A in B);
+            newOp = polarity ? BinaryExpr.Opcode.NotIn : BinaryExpr.Opcode.In;
+            newROp = polarity ? BinaryExpr.ResolvedOpcode.NotInMultiSet : BinaryExpr.ResolvedOpcode.InMultiSet;
+            swapOperands = false;
+            break;
+          case BinaryExpr.ResolvedOpcode.NotInMap:  // A !in B         yield polarity ? (A !in B) : (A in B);
+            newOp = polarity ? BinaryExpr.Opcode.NotIn : BinaryExpr.Opcode.In;
+            newROp = polarity ? BinaryExpr.ResolvedOpcode.NotInMap : BinaryExpr.ResolvedOpcode.InMap;
             swapOperands = false;
             break;
           default:

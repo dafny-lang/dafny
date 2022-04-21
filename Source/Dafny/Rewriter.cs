@@ -42,8 +42,18 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Phase 1/5
-    /// Override this method to obtain a module definition after parsing and built-in pre-resolvers,
+    /// Phase 1/7
+    /// Override this method to obtain the initial program after parsing and built-in pre-resolvers.
+    /// You can then report errors using reporter.Error (see above)
+    /// </summary>
+    /// <param name="program">The entire program</param>
+    internal virtual void PreResolve(Program program) {
+      Contract.Requires(program != null);
+    }
+
+    /// <summary>
+    /// Phase 2/7
+    /// Override this method to obtain a module definition after parsing and built-in pre-resolvers.
     /// You can then report errors using reporter.Error(MessageSource.Resolver, token, "message") (see above)
     /// This is a good place to perform AST rewritings, if necessary
     /// </summary>
@@ -53,8 +63,8 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Phase 2/5
-    /// Override this method to obtain a module definition after bare resolution, if no error were thrown,
+    /// Phase 3/7
+    /// Override this method to obtain a module definition after bare resolution, if no error were thrown.
     /// You can then report errors using reporter.Error (see above)
     /// We heavily discourage AST rewriting after this stage, as automatic type checking will not take place anymore.
     /// </summary>
@@ -64,7 +74,7 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Phase 3/5
+    /// Phase 4/7
     /// Override this method to obtain the module definition after resolution and
     /// SCC/Cyclicity/Recursivity analysis.
     /// You can then report errors using reporter.Error (see above)
@@ -76,7 +86,7 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Phase 4/5
+    /// Phase 5/7
     /// Override this method to obtain the module definition after the phase decreasesResolve
     /// You can then report errors using reporter.Error (see above)
     /// </summary>
@@ -87,7 +97,7 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Phase 5/5
+    /// Phase 6/7
     /// Override this method to obtain a module definition after the entire resolution pipeline
     /// You can then report errors using reporter.Error (see above)
     /// </summary>
@@ -98,7 +108,7 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Phase 5/5
+    /// Phase 7/7
     /// Override this method to obtain the final program after the entire resolution pipeline
     /// after the individual PostResolve on every module
     /// You can then report errors using reporter.Error (see above)
@@ -587,7 +597,7 @@ namespace Microsoft.Dafny {
             // We added this function above, so produce a hover text for the entire function signature
             AddHoverText(cl.tok, "{0}", Printer.FunctionSignatureToString(valid));
           } else {
-            AddHoverText(member.tok, $"reads {r0}, {r1}\nensures {post}");
+            AddHoverText(member.tok, "reads {0}, {1}\nensures {2}", r0, r1, post);
           }
         } else if (member is Function && !member.IsStatic) {
           var f = (Function)member;
