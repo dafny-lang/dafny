@@ -543,13 +543,13 @@ being used, and information about how Dafny was invoked.
   terminate.
 
 * `-env:<n>` - print the command-line arguments supplied to the program.
-  Three values of `<n>` are accepted:
+  The value of `<n>` can be one of the following.
 
-  * `0` - never print them,
+  * `0` - never print command-line arguments.
 
-  * `1` (default) - print them to Boogie (`.bpl`) files and prover logs, or
+  * `1` (default) - print them to Boogie (`.bpl`) files and prover logs.
 
-  * `2` - like `1` but also to standard output.
+  * `2` - operate like with option `1` but also print to standard output.
 
 * `-wait` - wait for the user to press `Enter` before terminating after a successful execution.
 
@@ -626,9 +626,9 @@ code (which can be helpful for debugging).
   space-separated list of the functions that `func` calls.
 
 * `-showSnippets:<n>` - show a source code snippet for each Dafny
-  message. The argument can be:
+  message. The value of `<n>` can be one of the following.
 
-  - `0` (default) - don't print snippets, or
+  - `0` (default) - don't print snippets.
   - `1` - do print snippets.
 
 * `-printTooltips` - dump additional positional information (displayed
@@ -710,10 +710,10 @@ warnings as errors.
   caused another variable to be shadowed.
 
 * `-deprecation:<n>` - control warnings about deprecated features. The
-  argument can be:
+  value of `<n>` can be any of the following.
 
-   * `0` - don't issue any warnings,
-   * `1` (default) - issue warnings, or
+   * `0` - don't issue any warnings.
+   * `1` (default) - issue warnings.
    * `2` - issue warnings and advise about alternate syntax.
 
 * `-warningsAsErrors` - treat warnings as errors.
@@ -725,10 +725,10 @@ how much it verifies, what techniques it uses to perform verification,
 and what information it produces about the verification process.
 
 * `-dafnyVerify:<n>` - turn verification of the program on or off. The
-  argument can be:
+  value of `<n>` can be any of the following.
 
-  * `0` - to stop after type checking, or
-  * `1` - to continue on to verification and compilation.
+  * `0` - stop after type checking.
+  * `1` - continue on to verification and compilation.
 
 * `-verifyAllModules` - verify modules that come from include directives.
 
@@ -783,19 +783,19 @@ and what information it produces about the verification process.
   verification instability.
 
 * `-noCheating:<n>` - control whether certain assumptions are allowed.
-  The argument can be:
+  The value of `<n>` can be one of the following.
 
-  * `0` (default) - allow `assume` statements and free invariants, or
+  * `0` (default) - allow `assume` statements and free invariants.
 
   * `1` - treat all assumptions as `assert` statements, and drop free
     invariants.
 
-* `-induction:<n>` - control the behavior of induction. The argument can
-  be one of the following.
+* `-induction:<n>` - control the behavior of induction. The value of
+  `<n>` can be one of the following.
 
-  * `0` - never do induction, not even when attributes request it,
+  * `0` - never do induction, not even when attributes request it.
 
-  * `1` - apply induction only when attributes request it, or
+  * `1` - apply induction only when attributes request it.
 
   * `2` - apply induction as requested (by attributes) and also for
     heuristically chosen quantifiers.
@@ -806,7 +806,7 @@ and what information it produces about the verification process.
   * `4` (default) - apply induction as requested, and for all lemmas.
 
 * `-inductionHeuristic:<n>` - control the heuristics used for induction.
-  The argument can be one of the following.
+  The value of `<n>` can be one of the following.
 
   * `0` - use the least discriminating induction heuristic (that is,
     lean toward applying induction more often).
@@ -818,7 +818,7 @@ and what information it produces about the verification process.
   * `6` (default) - use the most discriminating induction heuristic.
 
 * `-trackPrintEffects:<n>` - control what implementations are allowed to
-  use `print`. It allows the following options:
+  use `print`. The value of `<n>` can be one of the following.
 
   * `0` (default) - every compiled method, constructor, and iterator,
     whether or not it bears a `{:print}` attribute, may have print
@@ -830,8 +830,8 @@ and what information it produces about the verification process.
 * `-allocated:<n>` - specify defaults for where Dafny should assert and
   assume `allocated(x)` for various parameters `x`, local variables `x`,
   bound variables `x`, etc. Lower `<n>` may require more manual
-  `allocated(x)` annotations and thus may be more difficult to use. It
-  accepts the following values of `<n>`.
+  `allocated(x)` annotations and thus may be more difficult to use. The
+  value of `<n>` can be one of the following.
 
   * `0` - never assume or assert `allocated(x)` by default.
 
@@ -857,7 +857,8 @@ and what information it produces about the verification process.
 
 * `-definiteAssignment:<n>` - control the rules governing definite
   assignment, the property that every variable is eventually assigned a
-  value along every path. It accepts several values of `<n>`.
+  value along every path. The value of `<n>` can be one of the
+  following.
 
   * `0` - ignore definite-assignment rules; this mode is unsound and is
     for testing only.
@@ -890,8 +891,8 @@ and what information it produces about the verification process.
   future. For now, it takes precedence over `-arith`.)
 
 * `-arith:<n>` - control how arithmetic is modeled during verification.
-  This is an experimental switch, and its options may change. For the
-  moment, it accepts the following values of `<n>`.
+  This is an experimental switch, and its options may change. The value
+  of `<n>` can be one of the following.
 
   * `0` - use Boogie/Z3 built-ins for all arithmetic operations.
 
@@ -924,8 +925,8 @@ and what information it produces about the verification process.
     associativity of `*`.
 
 * `-autoTriggers:<n>` - control automatic generation of `{:trigger}`
-  annotations. See Section [#sec-trigger].
-  It accepts the following values of `<n>`.
+  annotations. See Section [#sec-trigger]. The value of `<n>` can be one
+  of the following.
 
   * `0` - do not generate `{:trigger}` annotations for user-level
     quantifiers.
@@ -935,7 +936,7 @@ and what information it produces about the verification process.
 
 * `-rewriteFocalPredicates:<n>` - control rewriting of predicates in the
   body of prefix lemmas. See Section [#sec-nicer-proofs-of-extremes].
-  It accepts the following values of `<n>`.
+  The value of `<n>` can be one of the following.
 
   * `0` - don't rewrite predicates in the body of prefix lemmas.
 
@@ -1002,8 +1003,8 @@ These options control what code gets compiled, what target language is
 used, how compilation proceeds, and whether the compiled program is
 immediately executed.
 
-* `-compile:<n>` - control whether compilation happens. It accepts the
-  following values of `<n>`.
+* `-compile:<n>` - control whether compilation happens. The value of
+  `<n>` can be one of the following.
 
    * `0` - do not compile the program
 
@@ -1020,7 +1021,7 @@ immediately executed.
      `Main` method, attempt to run the program.
 
 * `-compileTarget:<s>` - set the target programming language for the
-  compiler. It accepts the following values of `<s>`.
+  compiler. The value of `<s>` can be one of the following.
 
    * `cs` - C\#
    * `go` - Go
@@ -1029,9 +1030,9 @@ immediately executed.
    * `py` - Python
    * `cpp` - C++
 
-* `-spillTargetCode:<n>` - control whether to write out compiled code
-  in the target language (instead of just holding it in internal
-  temporary memory). It accepts the following values of `<n>`.
+* `-spillTargetCode:<n>` - control whether to write out compiled code in
+  the target language (instead of just holding it in internal temporary
+  memory). The value of `<s>` can be one of the following.
 
    * `0` (default) - don't make any extra effort to write the textual
      target program (but still compile it, if `-compile` indicates to do
@@ -1065,10 +1066,12 @@ directory `<file>-java/`). Any file extension is ignored, so
 periods.
 
 * `-compileVerbose:<n>` - control whether to write out compilation
-  progress information. It accepts the following values of `<n>`.
+  progress information. The value of `<n>` can be one of the following.
 
-  * 0 - do not print any information (silent mode)
-  * 1 (default) - print information such as the files being created by the compiler
+  * `0` - do not print any information (silent mode)
+
+  * `1` (default) - print information such as the files being created by
+    the compiler
 
 * `-coverage:<file>` - emit branch-coverage calls and outputs into
   `<file>`, including a legend that gives a description of each
@@ -1079,7 +1082,7 @@ periods.
   flag to the `csc` executable.
 
 * `-optimizeResolution:<n>` - control optimization of method target
-  resolution. It accepts the following values of `<n>`.
+  resolution. The value of `<n>` can be one of the following.
 
   * `0` - resolve and translate all methods.
 
