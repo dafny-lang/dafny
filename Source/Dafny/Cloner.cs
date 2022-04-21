@@ -105,9 +105,10 @@ namespace Microsoft.Dafny {
           return new ClassDecl(Tok(dd.tok), dd.Name, m, tps, mm, CloneAttributes(dd.Attributes), dd.IsRefining, dd.ParentTraits.ConvertAll(CloneType));
         }
       } else if (d is ModuleDecl) {
-        if (d is LiteralModuleDecl) {
-          // TODO: Does not clone any details; is still resolved
-          return new LiteralModuleDecl(((LiteralModuleDecl)d).ModuleDef, m);
+        if (d is LiteralModuleDecl moduleDecl) {
+          return new LiteralModuleDecl(moduleDecl.ModuleDef, m) {
+            DefaultExport = moduleDecl.DefaultExport
+          };
         } else if (d is AliasModuleDecl) {
           var a = (AliasModuleDecl)d;
           return new AliasModuleDecl(a.TargetQId?.Clone(false), a.tok, m, a.Opened, a.Exports);
@@ -421,11 +422,10 @@ namespace Microsoft.Dafny {
         var range = CloneExpr(e.Range);
         var term = CloneExpr(e.Term);
         if (e is QuantifierExpr q) {
-          var tvs = q.TypeArgs.ConvertAll(CloneTypeParam);
           if (e is ForallExpr) {
-            return new ForallExpr(tk, q.BodyEndTok, tvs, bvs, range, term, CloneAttributes(e.Attributes));
+            return new ForallExpr(tk, q.BodyEndTok, bvs, range, term, CloneAttributes(e.Attributes));
           } else if (e is ExistsExpr) {
-            return new ExistsExpr(tk, q.BodyEndTok, tvs, bvs, range, term, CloneAttributes(e.Attributes));
+            return new ExistsExpr(tk, q.BodyEndTok, bvs, range, term, CloneAttributes(e.Attributes));
           } else {
             Contract.Assert(false); throw new cce.UnreachableException();  // unexpected quantifier expression
           }

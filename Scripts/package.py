@@ -12,6 +12,7 @@ import sys
 import time
 from urllib import request
 from http.client import IncompleteRead
+from urllib.error import HTTPError
 import zipfile
 import shutil
 import ntpath
@@ -116,10 +117,10 @@ class Release:
                             writer.write(reader.read())
                     flush("done!")
                     break
-                except IncompleteRead as e:
+                except (IncompleteRead, HTTPError):
                     if currentAttempt == Z3_MAX_DOWNLOAD_ATTEMPTS - 1:
                         raise
-            
+
 
     @staticmethod
     def zipify_path(fpath):
@@ -146,7 +147,8 @@ class Release:
                     flush("failed! (Is Dafny or the Dafny server running?)")
                     sys.exit(1)
                 else:
-                   flush("failed! (Retrying another %s)" % ("time" if remaining == 1 else "%i times" % remaining))
+                    flush("failed! (Retrying another %s)" %
+                        ("time" if remaining == 1 else f"{remaining} times"))
         flush("done!")
 
     def build(self):
@@ -181,9 +183,8 @@ class Release:
                 lowercaseDafny = path.join(self.buildDirectory, "dafny")
                 shutil.move(uppercaseDafny, lowercaseDafny)
                 os.chmod(lowercaseDafny, stat.S_IEXEC| os.lstat(lowercaseDafny).st_mode)
-            paths = pathsInDirectory(self.buildDirectory) + OTHERS
-            for fpath in paths:
-                if os.path.isdir(fpath):
+            for fpath in pathsInDirectory(self.buildDirectory) + OTHERS:
+                if os.path.isdir(fpath) or fpath.endswith(".pdb"):
                     continue
                 fname = ntpath.basename(fpath)
                 if path.exists(fpath):
@@ -224,7 +225,7 @@ def path_leaf(path):
     return tail or ntpath.basename(head)
 
 def pathsInDirectory(directory):
-    return list(map(lambda file: path.join(directory, file), os.listdir(directory)))
+    return [path.join(directory, file) for file in os.listdir(directory)]
 
 def download(releases):
     flush("  - Downloading {} z3 archives".format(len(releases)))
