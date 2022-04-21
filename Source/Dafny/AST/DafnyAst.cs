@@ -9733,9 +9733,9 @@ namespace Microsoft.Dafny {
 
       QuantifierExpr q;
       if (forall) {
-        q = new ForallExpr(expr.tok, expr.BodyEndTok, new List<TypeParameter>(), newVars, expr.Range, body, expr.Attributes);
+        q = new ForallExpr(expr.tok, expr.BodyEndTok, newVars, expr.Range, body, expr.Attributes);
       } else {
-        q = new ExistsExpr(expr.tok, expr.BodyEndTok, new List<TypeParameter>(), newVars, expr.Range, body, expr.Attributes);
+        q = new ExistsExpr(expr.tok, expr.BodyEndTok, newVars, expr.Range, body, expr.Attributes);
       }
       q.Type = Type.Bool;
 
@@ -11731,7 +11731,6 @@ namespace Microsoft.Dafny {
     public override string WhatKind => "quantifier";
 
     private readonly int UniqueId;
-    public List<TypeParameter> TypeArgs;
     private static int currentQuantId = -1;
 
     protected virtual BinaryExpr.ResolvedOpcode SplitResolvedOp { get { return BinaryExpr.ResolvedOpcode.Or; } }
@@ -11778,17 +11777,11 @@ namespace Microsoft.Dafny {
       cp.Parent = this;
       return cp;
     }
-    [ContractInvariantMethod]
-    void ObjectInvariant() {
-      var _scratch = true;
-      Contract.Invariant(Attributes.ContainsBool(Attributes, "typeQuantifier", ref _scratch) || TypeArgs.Count == 0);
-    }
-    public QuantifierExpr(IToken tok, IToken endTok, List<TypeParameter> tvars, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
+    public QuantifierExpr(IToken tok, IToken endTok, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
       : base(tok, endTok, bvars, range, term, attrs) {
       Contract.Requires(tok != null);
       Contract.Requires(cce.NonNullElements(bvars));
       Contract.Requires(term != null);
-      this.TypeArgs = tvars;
       this.UniqueId = FreshQuantId();
     }
 
@@ -11821,13 +11814,7 @@ namespace Microsoft.Dafny {
     protected override BinaryExpr.ResolvedOpcode SplitResolvedOp { get { return BinaryExpr.ResolvedOpcode.And; } }
 
     public ForallExpr(IToken tok, IToken endTok, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
-      : this(tok, endTok, new List<TypeParameter>(), bvars, range, term, attrs) {
-      Contract.Requires(cce.NonNullElements(bvars));
-      Contract.Requires(tok != null);
-      Contract.Requires(term != null);
-    }
-    public ForallExpr(IToken tok, IToken endTok, List<TypeParameter> tvars, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
-      : base(tok, endTok, tvars, bvars, range, term, attrs) {
+      : base(tok, endTok, bvars, range, term, attrs) {
       Contract.Requires(cce.NonNullElements(bvars));
       Contract.Requires(tok != null);
       Contract.Requires(term != null);
@@ -11848,13 +11835,7 @@ namespace Microsoft.Dafny {
     protected override BinaryExpr.ResolvedOpcode SplitResolvedOp { get { return BinaryExpr.ResolvedOpcode.Or; } }
 
     public ExistsExpr(IToken tok, IToken endTok, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
-      : this(tok, endTok, new List<TypeParameter>(), bvars, range, term, attrs) {
-      Contract.Requires(cce.NonNullElements(bvars));
-      Contract.Requires(tok != null);
-      Contract.Requires(term != null);
-    }
-    public ExistsExpr(IToken tok, IToken endTok, List<TypeParameter> tvars, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
-      : base(tok, endTok, tvars, bvars, range, term, attrs) {
+      : base(tok, endTok, bvars, range, term, attrs) {
       Contract.Requires(cce.NonNullElements(bvars));
       Contract.Requires(tok != null);
       Contract.Requires(term != null);
