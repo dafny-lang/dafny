@@ -72,13 +72,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
       }
 
       private IEnumerable<DafnyModel> GetLanguageSpecificModels(IReadOnlyList<Counterexample> counterExamples) {
-        // TODO, figure out why printing and parsing the model is required. Consuming it immediately causes an exception.
-        var writer = new StringWriter();
-        foreach (var counterExample in counterExamples) {
-          counterExample.PrintModel(writer, counterExample);
-        }
-        using var counterExampleReader = new StringReader(writer.ToString());
-        return Model.ParseModels(counterExampleReader).Select(GetLanguageSpecificModel);
+        return counterExamples.Select(c => GetLanguageSpecificModel(c.Model));
       }
 
       private DafnyModel GetLanguageSpecificModel(Model model) {
