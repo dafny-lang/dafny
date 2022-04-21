@@ -108,11 +108,21 @@ namespace IntegrationTests {
         Environment.SetEnvironmentVariable("HOME",
           Environment.GetEnvironmentVariable("HOMEDRIVE") + Environment.GetEnvironmentVariable("HOMEPATH"));
         passthroughEnvironmentVariables = passthroughEnvironmentVariables
-          .Concat(new[] {
-            "DOTNET_CLI_HOME",
-            "HOMEDRIVE", "HOMEPATH",
+          .Concat(new[] { // Careful: Keep this list in sync with the one in lit.site.cfg
+            "APPDATA",
+            "HOMEDRIVE",
+            "HOMEPATH",
+            "INCLUDE",
+            "LIB",
             "LOCALAPPDATA",
-            "APPDATA", "ProgramFiles", "ProgramFiles(x86)", "SystemRoot", "USERPROFILE"
+            "NODE_PATH",
+            "ProgramFiles",
+            "ProgramFiles(x86)",
+            "SystemRoot",
+            "SystemDrive",
+            "TEMP",
+            "TMP",
+            "USERPROFILE"
           }).ToArray();
       } else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
         features = new[] { "macosx", "posix" };
