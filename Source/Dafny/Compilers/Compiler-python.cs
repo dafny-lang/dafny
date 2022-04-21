@@ -521,8 +521,6 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree CreateForLoop(string indexVar, string bound, ConcreteSyntaxTree wr) {
       return wr.NewBlockPy($"for {indexVar} in range({bound}):");
-
-
     }
 
     protected override ConcreteSyntaxTree CreateDoublingForLoop(string indexVar, int start, ConcreteSyntaxTree wr) {
@@ -987,14 +985,12 @@ namespace Microsoft.Dafny.Compilers {
 
         case BinaryExpr.ResolvedOpcode.Mod:
           staticCallString = "_dafny.euclidian_modulus"; break;
+        case BinaryExpr.ResolvedOpcode.EqCommon:
+          opString = "=="; break;
 
-        case BinaryExpr.ResolvedOpcode.EqCommon: {
-            opString = "=="; break;
-          }
+        case BinaryExpr.ResolvedOpcode.Lt:
+          opString = "<"; break;
 
-        case BinaryExpr.ResolvedOpcode.Lt: {
-            opString = "<"; break;
-          }
         case BinaryExpr.ResolvedOpcode.SeqEq:
         case BinaryExpr.ResolvedOpcode.SetEq:
         case BinaryExpr.ResolvedOpcode.MapEq:
