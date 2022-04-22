@@ -8,6 +8,7 @@
     <RootNamespace>Microsoft.Dafny.LanguageServer</RootNamespace>
     <OutputPath>..\..\Binaries\</OutputPath>
     <ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>
+    <PackageVersion>3.5.0.40314</PackageVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net6.0|AnyCPU'">
