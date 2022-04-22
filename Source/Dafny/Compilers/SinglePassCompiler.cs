@@ -1032,7 +1032,9 @@ namespace Microsoft.Dafny.Compilers {
     /// </summary>
     protected abstract void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr);
     protected virtual bool TargetLambdasRestrictedToExpressions => false;
-    protected abstract ConcreteSyntaxTree CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames, Type resultType, ConcreteSyntaxTree wr, bool untyped = false);
+    protected abstract ConcreteSyntaxTree CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames,
+      Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, bool untyped = false,
+      bool bodyIsExpression = true);
 
     /// <summary>
     /// Emit an "Immediately Invoked Function Expression" with the semantics of
@@ -1040,10 +1042,11 @@ namespace Microsoft.Dafny.Compilers {
     /// where <<wrBody>> will have type "bodyType". In many languages, this IIFE will not be a "let" expression but a "lambda" expression like this:
     ///     ((bvName: bvType) => <<wrBody>>)(<<wrRhs>>)
     /// </summary>
-    protected abstract void CreateIIFE(string bvName, Type bvType, Bpl.IToken bvTok, Type bodyType, Bpl.IToken bodyTok, ConcreteSyntaxTree wr, out ConcreteSyntaxTree wrRhs, out ConcreteSyntaxTree wrBody);
-    protected ConcreteSyntaxTree CreateIIFE_ExprBody(string bvName, Type bvType, Bpl.IToken bvTok, Expression rhs, bool inLetExprBody, Type bodyType, Bpl.IToken bodyTok, ConcreteSyntaxTree wr) {
-      var wStmts = wr.Fork();
-      CreateIIFE(bvName, bvType, bvTok, bodyType, bodyTok, wr, out var wrRhs, out var wrBody);
+    protected abstract void CreateIIFE(string bvName, Type bvType, Bpl.IToken bvTok, Type bodyType, Bpl.IToken bodyTok,
+      ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, out ConcreteSyntaxTree wrRhs, out ConcreteSyntaxTree wrBody);
+    protected ConcreteSyntaxTree CreateIIFE_ExprBody(string bvName, Type bvType, Bpl.IToken bvTok, Expression rhs,
+        bool inLetExprBody, Type bodyType, Bpl.IToken bodyTok, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      CreateIIFE(bvName, bvType, bvTok, bodyType, bodyTok, wr, wStmts, out var wrRhs, out var wrBody);
       TrExpr(rhs, wrRhs, inLetExprBody, wStmts);
       return wrBody;
     }
@@ -4223,7 +4226,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected void TrStmtList(List<Statement> stmts, ConcreteSyntaxTree writer) {
+    protected virtual void TrStmtList(List<Statement> stmts, ConcreteSyntaxTree writer) {
       Contract.Requires(cce.NonNullElements(stmts));
       Contract.Requires(writer != null);
       foreach (Statement ss in stmts) {
@@ -4273,7 +4276,7 @@ namespace Microsoft.Dafny.Compilers {
         // Need to avoid if (true) because some languages (Go, someday Java)
         // pretend that an if (true) isn't a certainty, leading to a complaint
         // about a missing return statement
-        w = wr.NewBlock("", null, BlockStyle.Brace);
+        w = EmitBlock(wr);
       } else {
         ConcreteSyntaxTree guardWriter;
         w = EmitIf(out guardWriter, !lastCase, wr);
@@ -4432,7 +4435,7 @@ namespace Microsoft.Dafny.Compilers {
             if (e.Member is Function && typeArgs.Count != 0) {
               // need to eta-expand wrap the receiver
               var etaReceiver = idGenerator.FreshId("_eta_this");
-              wr = CreateIIFE_ExprBody(etaReceiver, e.Obj.Type, e.Obj.tok, e.Obj, inLetExprBody, Resolver.SubstType(e.Type, typeMap), e.tok, wr);
+              wr = CreateIIFE_ExprBody(etaReceiver, e.Obj.Type, e.Obj.tok, e.Obj, inLetExprBody, Resolver.SubstType(e.Type, typeMap), e.tok, wr, wStmts);
               obj = w => w.Write(etaReceiver);
             } else {
               obj = w => TrExpr(e.Obj, w, inLetExprBody, wStmts);
@@ -4443,7 +4446,7 @@ namespace Microsoft.Dafny.Compilers {
             if (customReceiver && e.Member is Function) {
               // need to eta-expand wrap the receiver
               customReceiverName = idGenerator.FreshId("_eta_this");
-              wr = CreateIIFE_ExprBody(customReceiverName, e.Obj.Type, e.Obj.tok, e.Obj, inLetExprBody, Resolver.SubstType(e.Type, typeMap), e.tok, wr);
+              wr = CreateIIFE_ExprBody(customReceiverName, e.Obj.Type, e.Obj.tok, e.Obj, inLetExprBody, Resolver.SubstType(e.Type, typeMap), e.tok, wr, wStmts);
             }
             Action<ConcreteSyntaxTree> obj = w => w.Write(TypeName_Companion(e.Obj.Type, wr, e.tok, e.Member));
             EmitMemberSelect(obj, e.Obj.Type, e.Member, typeArgs, typeMap, expr.Type, customReceiverName).EmitRead(wr);
@@ -4557,7 +4560,7 @@ namespace Microsoft.Dafny.Compilers {
           TrExpr(Expression.CreateBoolLiteral(e.tok, true), wr, inLetExprBody, wStmts);
         } else {
           var name = $"_is_{GetUniqueAstNumber(e)}";
-          wr = CreateIIFE_ExprBody(name, fromType, e.tok, e.E, inLetExprBody, Type.Bool, e.tok, wr);
+          wr = CreateIIFE_ExprBody(name, fromType, e.tok, e.E, inLetExprBody, Type.Bool, e.tok, wr, wStmts);
           EmitTypeTest(name, e.E.Type, e.ToType, e.tok, wr);
         }
 
@@ -4650,8 +4653,8 @@ namespace Microsoft.Dafny.Compilers {
             var lhs = e.LHSs[i];
             if (Contract.Exists(lhs.Vars, bv => !bv.IsGhost)) {
               var rhsName = string.Format("_pat_let{0}_{1}", GetUniqueAstNumber(e), i);
-              w = CreateIIFE_ExprBody(rhsName, e.RHSs[i].Type, e.RHSs[i].tok, e.RHSs[i], inLetExprBody, e.Body.Type, e.Body.tok, w);
-              w = TrCasePattern(lhs, rhsName, e.RHSs[i].Type, e.Body.Type, w);
+              w = CreateIIFE_ExprBody(rhsName, e.RHSs[i].Type, e.RHSs[i].tok, e.RHSs[i], inLetExprBody, e.Body.Type, e.Body.tok, w, wStmts);
+              w = TrCasePattern(lhs, rhsName, e.RHSs[i].Type, e.Body.Type, w, wStmts);
             }
           }
           TrExpr(e.Body, w, true, wStmts);
@@ -4702,7 +4705,12 @@ namespace Microsoft.Dafny.Compilers {
         // }))(src)
 
         string source = idGenerator.FreshId("_source");
-        var w = CreateLambda(new List<Type>() { e.Source.Type }, e.tok, new List<string>() { source }, e.Type, wr);
+        ConcreteSyntaxTree w;
+        //if (TargetLambdasRestrictedToExpressions) {
+        //  CreateIIFE(source, e.Source.Type, e.tok, e.Type, e.tok, wr, wStmts, out wr, out w);
+        //} else {
+        w = CreateLambda(new List<Type>() { e.Source.Type }, e.tok, new List<string>() { source }, e.Type, wr, wStmts, bodyIsExpression: false);
+        //}
 
         if (e.Cases.Count == 0) {
           // the verifier would have proved we never get here; still, we need some code that will compile
@@ -4742,7 +4750,7 @@ namespace Microsoft.Dafny.Compilers {
           wBody.Write(", {0}, ", expr is ForallExpr ? "true" : "false");
           var native = AsNativeType(e.BoundVars[i].Type);
           var tmpVarName = idGenerator.FreshId(e is ForallExpr ? "_forall_var_" : "_exists_var_");
-          ConcreteSyntaxTree newWBody = CreateLambda(new List<Type> { collectionElementType }, e.tok, new List<string> { tmpVarName }, Type.Bool, wBody, untyped: true);
+          ConcreteSyntaxTree newWBody = CreateLambda(new List<Type> { collectionElementType }, e.tok, new List<string> { tmpVarName }, Type.Bool, wBody, wStmts, untyped: true);
           newWBody = MaybeInjectSubtypeConstraint(
             tmpVarName, collectionElementType, bv.Type,
             inLetExprBody, e.tok, newWBody, true, e is ForallExpr);
@@ -4854,7 +4862,7 @@ namespace Microsoft.Dafny.Compilers {
         var e = (LambdaExpr)expr;
 
         wr = CaptureFreeVariables(e, false, out var su, inLetExprBody, wr, wStmts);
-        wr = CreateLambda(e.BoundVars.ConvertAll(bv => bv.Type), Bpl.Token.NoToken, e.BoundVars.ConvertAll(IdName), e.Body.Type, wr);
+        wr = CreateLambda(e.BoundVars.ConvertAll(bv => bv.Type), Bpl.Token.NoToken, e.BoundVars.ConvertAll(IdName), e.Body.Type, wr, wStmts);
         if (!TargetLambdasRestrictedToExpressions) { wr = EmitReturnExpr(wr); }
         TrExpr(su.Substitute(e.Body), wr, inLetExprBody, wStmts);
 
@@ -5097,7 +5105,8 @@ namespace Microsoft.Dafny.Compilers {
       return null;
     }
 
-    ConcreteSyntaxTree TrCasePattern(CasePattern<BoundVar> pat, string rhsString, Type rhsType, Type bodyType, ConcreteSyntaxTree wr) {
+    ConcreteSyntaxTree TrCasePattern(CasePattern<BoundVar> pat, string rhsString, Type rhsType, Type bodyType,
+        ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       Contract.Requires(pat != null);
       Contract.Requires(rhsString != null);
       Contract.Requires(rhsType != null);
@@ -5107,7 +5116,7 @@ namespace Microsoft.Dafny.Compilers {
       if (pat.Var != null) {
         var bv = pat.Var;
         if (!bv.IsGhost) {
-          CreateIIFE(IdProtect(bv.CompileName), bv.Type, bv.Tok, bodyType, pat.tok, wr, out var wrRhs, out var wrBody);
+          CreateIIFE(IdProtect(bv.CompileName), bv.Type, bv.Tok, bodyType, pat.tok, wr, wStmts, out var wrRhs, out var wrBody);
           wrRhs = EmitDowncastIfNecessary(rhsType, bv.Type, bv.tok, wrRhs);
           wrRhs.Write(rhsString);
           return wrBody;
@@ -5128,7 +5137,7 @@ namespace Microsoft.Dafny.Compilers {
           } else {
             var sw = new ConcreteSyntaxTree(wr.RelativeIndentLevel);
             EmitDestructor(rhsString, formal, k, ctor, ((DatatypeValue)pat.Expr).InferredTypeArgs, arg.Expr.Type, sw);
-            wr = TrCasePattern(arg, sw.ToString(), Resolver.SubstType(formal.Type, typeSubst), bodyType, wr);
+            wr = TrCasePattern(arg, sw.ToString(), Resolver.SubstType(formal.Type, typeSubst), bodyType, wr, wStmts);
             k++;
           }
         }

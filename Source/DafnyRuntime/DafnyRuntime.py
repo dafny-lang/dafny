@@ -18,16 +18,24 @@ def print(value):
 class Break(Exception):
     target: str
 
+class TailCall(Exception):
+    pass
+
 @contextmanager
-def label(name: str):
+def label(name: str = None):
     try:
         yield
     except Break as g:
         if g.target != name:
             raise g
+    except TailCall:
+        pass
 
 def _break(name):
     raise Break(target=name)
+
+def _tail_call():
+    raise TailCall()
 
 class Seq(list):
     @property
