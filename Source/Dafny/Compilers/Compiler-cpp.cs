@@ -2436,7 +2436,7 @@ namespace Microsoft.Dafny.Compilers {
                         "-g",
                         "-std=c++17",
                         "-I", codebase,
-                        "-o", $"{ComputeExeName(targetFilename)}",
+                        "-o", ComputeExeName(targetFilename),
                         targetFilename };
       compilationResult = null;
       var psi = new ProcessStartInfo("g++", string.Join(" ", args)) {
