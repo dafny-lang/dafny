@@ -57,7 +57,8 @@ namespace Microsoft.Dafny.Compilers {
 
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
       Coverage.EmitSetup(wr);
-      wr.NewBlockPy("try:").WriteLine("_module._default.Main()");
+      wr.NewBlockPy("try:")
+        .WriteLine("_module._default.Main()");
       wr.NewBlockPy("except _dafny.HaltException as e:")
         .WriteLine("_dafny.print(\"[Program halted] \" + str(e) + \"\\n\")");
     }
@@ -135,7 +136,7 @@ namespace Microsoft.Dafny.Compilers {
 
       foreach (var ctor in dt.Ctors) {
         // Class-level fields don't work in all python version due to metaclasses.
-        var argList = ctor.Destructors.Select(d => $"(\'{d.CompileName}\', {TypeName(d.Type, wr, d.tok)})").Comma();
+        var argList = ctor.Destructors.Select(d => $"(\'{MangleName(d.CompileName)}\', {TypeName(d.Type, wr, d.tok)})").Comma();
         var namedtuple = $"NamedTuple(\"{MangleName(ctor.CompileName)}\", [{argList}])";
         var header = $"class {DtCtorDeclarationName(ctor, false)}({DtT}, {namedtuple}):";
         var constructor = wr.NewBlockPy(header, close: BlockStyle.Newline);
