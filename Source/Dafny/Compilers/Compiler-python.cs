@@ -57,10 +57,9 @@ namespace Microsoft.Dafny.Compilers {
 
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
       Coverage.EmitSetup(wr);
-      var tryBlock = wr.NewBlockPy("try:");
-      tryBlock.WriteLine("_module._default.Main()");
-      var exceptBlock = wr.NewBlockPy("except _dafny.HaltException as e:");
-      exceptBlock.WriteLine($"_dafny.print(\"[Program halted] \" + str(e) + \"\\n\")");
+      wr.NewBlockPy("try:").WriteLine("_module._default.Main()");
+      wr.NewBlockPy("except _dafny.HaltException as e:")
+        .WriteLine("_dafny.print(\"[Program halted] \" + str(e) + \"\\n\")");
     }
 
     protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw) {
@@ -859,7 +858,7 @@ namespace Microsoft.Dafny.Compilers {
       if (ctor.EnclosingDatatype is CoDatatypeDecl) {
         throw new NotImplementedException();
       }
-      wr.Write("(({0}){1}{2}).{3}", DtCtorDeclarationName(ctor), source, "", dtorName);
+      wr.Write($"(({DtCtorDeclarationName(ctor)}){source}).{dtorName}");
     }
     
     protected override bool TargetLambdasRestrictedToExpressions => true;
