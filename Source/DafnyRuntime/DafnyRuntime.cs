@@ -1509,14 +1509,8 @@ namespace Dafny {
     // We need to deal with the special case "num == 0 && den == 0", because
     // that's what C#'s default struct constructor will produce for BigRational. :(
     // To deal with it, we ignore "den" when "num" is 0.
-    BigInteger num, den;  // invariant 1 <= den || (num == 0 && den == 0)
+    internal BigInteger num, den;  // invariant 1 <= den || (num == 0 && den == 0)
 
-    /// <summary>
-    /// Return an approximation of the given rational as a double.
-    /// </summary>
-    public double ApproximateToDouble() {
-      return ((double)num / (double)den);
-    }
     public override string ToString() {
       int log10;
       if (num.IsZero || den.IsOne) {
