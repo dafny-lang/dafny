@@ -1570,6 +1570,11 @@ namespace Dafny {
       num = n;
       den = d;
     }
+    /// <summary>
+    /// Construct an exact rational representation of a double value.
+    /// Throw an exception on NaN or infinite values. Does not support
+    /// subnormal values, though it would be possible to extend it to.
+    /// </summary>
     public BigRational(double n) {
       if (Double.IsNaN(n)) {
         throw new ArgumentException("Can't convert NaN to a rational.");

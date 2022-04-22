@@ -18,6 +18,9 @@ namespace DafnyRuntime.Tests {
       Assert.Equal(zeroBigRational, negZeroBigRational);
     }
 
+    // These tests were derived from the float-to-rational conversion
+    // in Cryptol (https://cryptol.net) using the :dumptests command
+    // and some textual replacement.
     private readonly (BigRational, Double)[] randomTests = {
       (new BigRational(927296365428443, 1125899906842624), 0.82360462043990434),
       (new BigRational(4447179682496439, 4503599627370496), 0.98747225563054797),
@@ -123,6 +126,8 @@ namespace DafnyRuntime.Tests {
       (new BigRational(4503599681057587, 4294967296), 1048576.0125),
     };
 
+    // This is one of the tests from the previous list with a digit
+    // changed.
     private readonly (BigRational, Double)[] badTests = {
       (new BigRational(-2003460171926342, 2251799813685248),-0.88971504471683938)
     };
