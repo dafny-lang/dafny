@@ -656,10 +656,6 @@ Here are ways one can prove `assert P(j + 4);`:
 * Change the trigger `{:trigger Q(i)}` to `{:trigger Q(i)} {:trigger P(i)}` (add a trigger)
 * Remove `{:trigger Q(i)}` so that it will automatically determine all possible triggers thanks to the option `/autoTriggers:1` which is the default.
 
-### 22.5.5. `{:typeQuantifier}` (deprecated)
-The `{:typeQuantifier}` attribute must be used on a quantifier if it
-quantifies over types.
-
 
 
 ## 22.6. Other undocumented verification attributes
