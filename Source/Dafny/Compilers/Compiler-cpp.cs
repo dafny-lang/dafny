@@ -2435,9 +2435,9 @@ namespace Microsoft.Dafny.Compilers {
                        "-Wno-unknown-warning-option",
                         "-g",
                         "-std=c++17",
-                        "-I", $"{codebase}",
+                        "-I", codebase,
                         "-o", $"{ComputeExeName(targetFilename)}",
-                        $"{targetFilename}" };
+                        targetFilename };
       compilationResult = null;
       var psi = new ProcessStartInfo("g++", string.Join(" ", args)) {
         CreateNoWindow = true,
