@@ -2424,10 +2424,22 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Assert(assemblyLocation != null);
       var codebase = System.IO.Path.GetDirectoryName(assemblyLocation);
       Contract.Assert(codebase != null);
-      var warnings = "-Wall -Wextra -Wpedantic -Wno-unused-variable -Wno-deprecated-copy -Wno-unused-label -Wno-unused-but-set-variable -Wno-unknown-warning-option";
-      var args = warnings + $" -g -std=c++17 -I {codebase} -o {ComputeExeName(targetFilename)} {targetFilename}";
+      var args = new List<string> {
+                       "-Wall",
+                       "-Wextra",
+                       "-Wpedantic",
+                       "-Wno-unused-variable",
+                       "-Wno-deprecated-copy",
+                       "-Wno-unused-label",
+                       "-Wno-unused-but-set-variable",
+                       "-Wno-unknown-warning-option",
+                        "-g",
+                        "-std=c++17",
+                        "-I", $"{codebase}",
+                        "-o", $"{ComputeExeName(targetFilename)}",
+                        $"{targetFilename}" };
       compilationResult = null;
-      var psi = new ProcessStartInfo("g++", args) {
+      var psi = new ProcessStartInfo("g++", string.Join(" ", args)) {
         CreateNoWindow = true,
         UseShellExecute = false,
         RedirectStandardOutput = true,
