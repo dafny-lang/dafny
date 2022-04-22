@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using VCGeneration;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   public class DiagnosticErrorReporter : ErrorReporter {

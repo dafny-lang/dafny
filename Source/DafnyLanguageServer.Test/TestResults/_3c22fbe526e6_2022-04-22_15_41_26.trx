@@ -1,0 +1,569 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="1a24dc95-2f19-4425-b843-f54e65d44917" name="@3c22fbe526e6 2022-04-22 15:41:26" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2022-04-22T15:41:26.5027090+02:00" queuing="2022-04-22T15:41:26.5027090+02:00" start="2022-04-22T15:41:22.0019390+02:00" finish="2022-04-22T15:41:26.5136510+02:00" />
+  <TestSettings name="default" id="fb15126e-10e6-4813-8969-4c3fbe266371">
+    <Deployment runDeploymentRoot="_3c22fbe526e6_2022-04-22_15_41_26" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="72be64d4-e779-4a00-8be1-66e3736d6bfc" testId="48edb072-ed12-4371-9f82-29c76505067c" testName="MultiDimensionalArray" computerName="3c22fbe526e6" duration="00:00:03.4516884" startTime="2022-04-22T15:41:22.8972160+02:00" endTime="2022-04-22T15:41:26.3715690+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="72be64d4-e779-4a00-8be1-66e3736d6bfc">
+      <Output>
+        <StdOut>Publishing document version 1 with 0 diagnostics.
+Publishing document version 1 with 0 diagnostics.
+Publishing document version 1 with 1 diagnostics.
+Counterexample models: *** MODEL
+##_System._tuple#2._#Make2 -&gt; T@U!val!19
+$_Frame -&gt; 
+$_Frame@0 -&gt; T@U!val!27
+$_reverifyPost -&gt; 
+$FunctionContextHeight -&gt; 1
+$Heap -&gt; T@U!val!24
+$Tick -&gt; 
+a#0 -&gt; T@U!val!25
+alloc -&gt; T@U!val!16
+boolType -&gt; T@T!val!2
+BoxType -&gt; T@T!val!17
+charType -&gt; T@T!val!14
+DatatypeTypeType -&gt; T@T!val!13
+DtCtorIdType -&gt; T@T!val!9
+intType -&gt; T@T!val!0
+MapType1Type -&gt; T@T!val!12
+null -&gt; T@U!val!23
+realType -&gt; T@T!val!1
+refType -&gt; T@T!val!11
+regexType -&gt; T@T!val!5
+rmodeType -&gt; T@T!val!3
+stringType -&gt; T@T!val!4
+TagBool -&gt; T@U!val!5
+TagChar -&gt; T@U!val!6
+Tagclass._System.array3 -&gt; T@U!val!18
+Tagclass._System.array3? -&gt; T@U!val!17
+Tagclass._System.Tuple2 -&gt; T@U!val!20
+TagIMap -&gt; T@U!val!15
+TagInt -&gt; T@U!val!7
+TagISet -&gt; T@U!val!11
+TagMap -&gt; T@U!val!14
+TagMultiSet -&gt; T@U!val!12
+TagORDINAL -&gt; T@U!val!9
+TagReal -&gt; T@U!val!8
+TagSeq -&gt; T@U!val!13
+TagSet -&gt; T@U!val!10
+TBool -&gt; T@U!val!0
+TChar -&gt; T@U!val!1
+TInt -&gt; T@U!val!2
+TORDINAL -&gt; T@U!val!4
+TReal -&gt; T@U!val!3
+tytagFamily$_tuple#2 -&gt; T@U!val!22
+tytagFamily$array3 -&gt; T@U!val!21
+TyTagFamilyType -&gt; T@T!val!10
+TyTagType -&gt; T@T!val!7
+TyType -&gt; T@T!val!6
+_System.array3.Length0 -&gt; {
+  T@U!val!25 -&gt; 4
+  else -&gt; 4
+}
+_System.array3.Length1 -&gt; {
+  T@U!val!25 -&gt; 5
+  else -&gt; 5
+}
+_System.array3.Length2 -&gt; {
+  T@U!val!25 -&gt; 6
+  else -&gt; 6
+}
+_System.Tuple2.___hMake2_q -&gt; {
+  else -&gt; false
+}
+_System.Tuple2._0 -&gt; {
+  else -&gt; T@U!val!0
+}
+_System.Tuple2._1 -&gt; {
+  else -&gt; T@U!val!0
+}
+_System.Tuple2#Equal -&gt; {
+  else -&gt; false
+}
+#_System._tuple#2._#Make2 -&gt; {
+  else -&gt; T@U!val!0
+}
+$Box -&gt; {
+  7 -&gt; T@U!val!32
+  else -&gt; T@U!val!32
+}
+$Is -&gt; {
+  4 T@U!val!2 -&gt; true
+  5 T@U!val!2 -&gt; true
+  6 T@U!val!2 -&gt; true
+  7 T@U!val!2 -&gt; true
+  T@U!val!25 T@U!val!26 -&gt; true
+  T@U!val!25 T@U!val!34 -&gt; true
+  else -&gt; true
+}
+$IsAlloc -&gt; {
+  4 T@U!val!2 T@U!val!24 -&gt; true
+  5 T@U!val!2 T@U!val!24 -&gt; true
+  6 T@U!val!2 T@U!val!24 -&gt; true
+  7 T@U!val!2 T@U!val!24 -&gt; true
+  T@U!val!25 T@U!val!26 T@U!val!24 -&gt; true
+  T@U!val!25 T@U!val!34 T@U!val!24 -&gt; true
+  else -&gt; true
+}
+$IsAllocBox -&gt; {
+  T@U!val!32 T@U!val!2 T@U!val!24 -&gt; true
+  else -&gt; true
+}
+$IsBox -&gt; {
+  T@U!val!32 T@U!val!2 -&gt; true
+  else -&gt; true
+}
+$IsGoodHeap -&gt; {
+  T@U!val!24 -&gt; true
+  else -&gt; true
+}
+$IsGoodMultiSet -&gt; {
+  else -&gt; false
+}
+$IsHeapAnchor -&gt; {
+  T@U!val!24 -&gt; true
+  else -&gt; true
+}
+$Unbox -&gt; {
+  T@T!val!0 T@U!val!32 -&gt; 7
+  else -&gt; 7
+}
+bool_2_U -&gt; {
+  true -&gt; true
+  else -&gt; true
+}
+BoxRank -&gt; {
+  else -&gt; 0
+}
+ControlFlow -&gt; {
+  0 0 -&gt; 7
+  0 2 -&gt; (- 1)
+  0 7 -&gt; 2
+  else -&gt; 7
+}
+Ctor -&gt; {
+  T@T!val!0 -&gt; 0
+  T@T!val!1 -&gt; 1
+  T@T!val!10 -&gt; 10
+  T@T!val!11 -&gt; 12
+  T@T!val!12 -&gt; 13
+  T@T!val!13 -&gt; 14
+  T@T!val!14 -&gt; 20
+  T@T!val!15 -&gt; 16
+  T@T!val!16 -&gt; 11
+  T@T!val!17 -&gt; 15
+  T@T!val!18 -&gt; 8
+  T@T!val!2 -&gt; 2
+  T@T!val!3 -&gt; 3
+  T@T!val!4 -&gt; 4
+  T@T!val!5 -&gt; 5
+  T@T!val!6 -&gt; 6
+  T@T!val!7 -&gt; 7
+  T@T!val!8 -&gt; 8
+  T@T!val!9 -&gt; 9
+  else -&gt; 8
+}
+DatatypeCtorId -&gt; {
+  else -&gt; T@U!val!0
+}
+DtRank -&gt; {
+  else -&gt; 0
+}
+dtype -&gt; {
+  T@U!val!25 -&gt; T@U!val!34
+  else -&gt; T@U!val!34
+}
+FDim -&gt; {
+  T@U!val!16 -&gt; 0
+  T@U!val!29 -&gt; 1
+  T@U!val!30 -&gt; 2
+  T@U!val!31 -&gt; 3
+  else -&gt; 0
+}
+FieldType -&gt; {
+  T@T!val!17 -&gt; T@T!val!18
+  T@T!val!2 -&gt; T@T!val!8
+  else -&gt; T@T!val!8
+}
+FieldTypeInv0 -&gt; {
+  T@T!val!18 -&gt; T@T!val!17
+  T@T!val!8 -&gt; T@T!val!2
+  else -&gt; T@T!val!2
+}
+IMap#Domain -&gt; {
+  else -&gt; T@U!val!0
+}
+IMap#Elements -&gt; {
+  else -&gt; T@U!val!0
+}
+IMap#Empty -&gt; {
+  else -&gt; T@U!val!0
+}
+IMap#Items -&gt; {
+  else -&gt; T@U!val!0
+}
+IMap#Values -&gt; {
+  else -&gt; T@U!val!0
+}
+IMapType -&gt; {
+  else -&gt; T@T!val!0
+}
+IMapTypeInv0 -&gt; {
+  else -&gt; T@T!val!0
+}
+IMapTypeInv1 -&gt; {
+  else -&gt; T@T!val!0
+}
+IndexField -&gt; {
+  2 -&gt; T@U!val!29
+  else -&gt; T@U!val!29
+}
+IndexField_Inverse -&gt; {
+  T@U!val!29 -&gt; 2
+  else -&gt; 2
+}
+int_2_U -&gt; {
+  4 -&gt; 4
+  5 -&gt; 5
+  6 -&gt; 6
+  7 -&gt; 7
+  else -&gt; 6
+}
+Inv0_TBitvector -&gt; {
+  else -&gt; 0
+}
+Inv0_TIMap -&gt; {
+  else -&gt; T@U!val!0
+}
+Inv0_TISet -&gt; {
+  else -&gt; T@U!val!0
+}
+Inv0_TMap -&gt; {
+  else -&gt; T@U!val!0
+}
+Inv0_TMultiSet -&gt; {
+  else -&gt; T@U!val!0
+}
+Inv0_TSeq -&gt; {
+  else -&gt; T@U!val!0
+}
+Inv0_TSet -&gt; {
+  else -&gt; T@U!val!0
+}
+Inv1_TIMap -&gt; {
+  else -&gt; T@U!val!0
+}
+Inv1_TMap -&gt; {
+  else -&gt; T@U!val!0
+}
+ISet#Empty -&gt; {
+  else -&gt; T@U!val!0
+}
+lambda#1 -&gt; {
+  T@U!val!23 T@U!val!24 T@U!val!16 false -&gt; T@U!val!27
+  else -&gt; T@U!val!27
+}
+Lit -&gt; {
+  else -&gt; T@U!val!0
+}
+LitInt -&gt; {
+  1 -&gt; 1
+  2 -&gt; 2
+  3 -&gt; 3
+  4 -&gt; 4
+  5 -&gt; 5
+  6 -&gt; 6
+  else -&gt; 4
+}
+Map#Domain -&gt; {
+  else -&gt; T@U!val!0
+}
+Map#Elements -&gt; {
+  else -&gt; T@U!val!0
+}
+Map#Empty -&gt; {
+  else -&gt; T@U!val!0
+}
+Map#Items -&gt; {
+  else -&gt; T@U!val!0
+}
+Map#Values -&gt; {
+  else -&gt; T@U!val!0
+}
+MapType -&gt; {
+  else -&gt; T@T!val!0
+}
+MapType0Select -&gt; {
+  T@U!val!24 T@U!val!25 -&gt; T@U!val!28
+  else -&gt; T@U!val!28
+}
+MapType0Store -&gt; {
+  else -&gt; T@U!val!0
+}
+MapType0Type -&gt; {
+  T@T!val!11 T@T!val!12 -&gt; T@T!val!16
+  else -&gt; T@T!val!16
+}
+MapType0TypeInv0 -&gt; {
+  T@T!val!16 -&gt; T@T!val!11
+  else -&gt; T@T!val!11
+}
+MapType0TypeInv1 -&gt; {
+  T@T!val!16 -&gt; T@T!val!12
+  else -&gt; T@T!val!12
+}
+MapType1Select -&gt; {
+  T@U!val!28 T@U!val!16 -&gt; true
+  T@U!val!28 T@U!val!31 -&gt; T@U!val!32
+  else -&gt; T@U!val!32
+}
+MapType1Store -&gt; {
+  else -&gt; T@U!val!0
+}
+MapType2Select -&gt; {
+  else -&gt; T@U!val!0
+}
+MapType2Store -&gt; {
+  else -&gt; T@U!val!0
+}
+MapType2Type -&gt; {
+  T@T!val!11 T@T!val!2 -&gt; T@T!val!15
+  else -&gt; T@T!val!15
+}
+MapType2TypeInv0 -&gt; {
+  T@T!val!15 -&gt; T@T!val!11
+  else -&gt; T@T!val!11
+}
+MapType2TypeInv1 -&gt; {
+  T@T!val!15 -&gt; T@T!val!2
+  else -&gt; T@T!val!2
+}
+MapTypeInv0 -&gt; {
+  else -&gt; T@T!val!0
+}
+MapTypeInv1 -&gt; {
+  else -&gt; T@T!val!0
+}
+MultiIndexField -&gt; {
+  T@U!val!29 3 -&gt; T@U!val!30
+  T@U!val!30 1 -&gt; T@U!val!31
+  else -&gt; T@U!val!30
+}
+MultiIndexField_Inverse0 -&gt; {
+  T@U!val!30 -&gt; T@U!val!29
+  T@U!val!31 -&gt; T@U!val!30
+  else -&gt; T@U!val!30
+}
+MultiIndexField_Inverse1 -&gt; {
+  T@U!val!30 -&gt; 3
+  T@U!val!31 -&gt; 1
+  else -&gt; 1
+}
+MultiSet#Card -&gt; {
+  else -&gt; 0
+}
+MultiSet#Empty -&gt; {
+  else -&gt; T@U!val!0
+}
+real_2_U -&gt; {
+  else -&gt; T@U!val!0
+}
+real_pow -&gt; {
+  else -&gt; 0.0
+}
+regex_2_U -&gt; {
+  else -&gt; T@U!val!0
+}
+rmode_2_U -&gt; {
+  else -&gt; T@U!val!0
+}
+Seq#Empty -&gt; {
+  else -&gt; T@U!val!0
+}
+Seq#Index -&gt; {
+  else -&gt; T@U!val!0
+}
+Seq#Length -&gt; {
+  else -&gt; 0
+}
+Seq#Rank -&gt; {
+  else -&gt; 0
+}
+SeqType -&gt; {
+  else -&gt; T@T!val!0
+}
+SeqTypeInv0 -&gt; {
+  else -&gt; T@T!val!0
+}
+string_2_U -&gt; {
+  else -&gt; T@U!val!0
+}
+Tag -&gt; {
+  T@U!val!0 -&gt; T@U!val!5
+  T@U!val!1 -&gt; T@U!val!6
+  T@U!val!2 -&gt; T@U!val!7
+  T@U!val!26 -&gt; T@U!val!18
+  T@U!val!3 -&gt; T@U!val!8
+  T@U!val!34 -&gt; T@U!val!17
+  T@U!val!4 -&gt; T@U!val!9
+  else -&gt; T@U!val!5
+}
+TagFamily -&gt; {
+  T@U!val!26 -&gt; T@U!val!21
+  T@U!val!34 -&gt; T@U!val!21
+  else -&gt; T@U!val!21
+}
+TBitvector -&gt; {
+  else -&gt; T@U!val!0
+}
+Tclass._System.array3 -&gt; {
+  T@U!val!2 -&gt; T@U!val!26
+  else -&gt; T@U!val!26
+}
+Tclass._System.array3_0 -&gt; {
+  T@U!val!26 -&gt; T@U!val!2
+  else -&gt; T@U!val!2
+}
+Tclass._System.array3? -&gt; {
+  T@U!val!2 -&gt; T@U!val!34
+  else -&gt; T@U!val!34
+}
+Tclass._System.array3?_0 -&gt; {
+  T@U!val!34 -&gt; T@U!val!2
+  else -&gt; T@U!val!2
+}
+Tclass._System.Tuple2 -&gt; {
+  else -&gt; T@U!val!0
+}
+Tclass._System.Tuple2_0 -&gt; {
+  else -&gt; T@U!val!0
+}
+Tclass._System.Tuple2_1 -&gt; {
+  else -&gt; T@U!val!0
+}
+tickleBool -&gt; {
+  false -&gt; true
+  true -&gt; true
+  else -&gt; true
+}
+TIMap -&gt; {
+  else -&gt; T@U!val!0
+}
+TISet -&gt; {
+  else -&gt; T@U!val!0
+}
+TMap -&gt; {
+  else -&gt; T@U!val!0
+}
+TMultiSet -&gt; {
+  else -&gt; T@U!val!0
+}
+TSeq -&gt; {
+  else -&gt; T@U!val!0
+}
+TSet -&gt; {
+  else -&gt; T@U!val!0
+}
+type -&gt; {
+  4 -&gt; T@T!val!0
+  5 -&gt; T@T!val!0
+  6 -&gt; T@T!val!0
+  7 -&gt; T@T!val!0
+  T@U!val!0 -&gt; T@T!val!6
+  T@U!val!1 -&gt; T@T!val!6
+  T@U!val!10 -&gt; T@T!val!7
+  T@U!val!11 -&gt; T@T!val!7
+  T@U!val!12 -&gt; T@T!val!7
+  T@U!val!13 -&gt; T@T!val!7
+  T@U!val!14 -&gt; T@T!val!7
+  T@U!val!15 -&gt; T@T!val!7
+  T@U!val!16 -&gt; T@T!val!8
+  T@U!val!17 -&gt; T@T!val!7
+  T@U!val!18 -&gt; T@T!val!7
+  T@U!val!19 -&gt; T@T!val!9
+  T@U!val!2 -&gt; T@T!val!6
+  T@U!val!20 -&gt; T@T!val!7
+  T@U!val!21 -&gt; T@T!val!10
+  T@U!val!22 -&gt; T@T!val!10
+  T@U!val!23 -&gt; T@T!val!11
+  T@U!val!24 -&gt; T@T!val!16
+  T@U!val!25 -&gt; T@T!val!11
+  T@U!val!26 -&gt; T@T!val!6
+  T@U!val!27 -&gt; T@T!val!15
+  T@U!val!28 -&gt; T@T!val!12
+  T@U!val!29 -&gt; T@T!val!18
+  T@U!val!3 -&gt; T@T!val!6
+  T@U!val!30 -&gt; T@T!val!18
+  T@U!val!31 -&gt; T@T!val!18
+  T@U!val!32 -&gt; T@T!val!17
+  T@U!val!34 -&gt; T@T!val!6
+  T@U!val!4 -&gt; T@T!val!6
+  T@U!val!5 -&gt; T@T!val!7
+  T@U!val!6 -&gt; T@T!val!7
+  T@U!val!7 -&gt; T@T!val!7
+  T@U!val!8 -&gt; T@T!val!7
+  T@U!val!9 -&gt; T@T!val!7
+  true -&gt; T@T!val!2
+  else -&gt; T@T!val!7
+}
+U_2_bool -&gt; {
+  true -&gt; true
+  else -&gt; true
+}
+U_2_int -&gt; {
+  4 -&gt; 4
+  5 -&gt; 5
+  6 -&gt; 6
+  7 -&gt; 7
+  else -&gt; 7
+}
+U_2_real -&gt; {
+  else -&gt; 0.0
+}
+U_2_regex -&gt; {
+  else -&gt; (str.to.re (""))
+}
+U_2_rmode -&gt; {
+  else -&gt; (roundTowardZero)
+}
+U_2_string -&gt; {
+  else -&gt; ("")
+}
+UOrdering2 -&gt; {
+  else -&gt; false
+}
+UOrdering3 -&gt; {
+  else -&gt; false
+}
+*** STATE &lt;initial&gt;
+  $_Frame -&gt; 
+  $_reverifyPost -&gt; 
+  $Heap -&gt; T@U!val!24
+  $Tick -&gt; 
+  a#0 -&gt; T@U!val!25
+*** END_STATE
+*** STATE /testFile0.dfy(1,96): initial state
+  $_Frame -&gt; T@U!val!27
+*** END_STATE
+*** END_MODEL</StdOut>
+      </Output>
+    </UnitTestResult>
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="MultiDimensionalArray" storage="/users/rwillems/documents/sourcecode/dafny/source/dafnylanguageserver.test/bin/debug/net6.0/dafnylanguageserver.test.dll" id="48edb072-ed12-4371-9f82-29c76505067c">
+      <Execution id="72be64d4-e779-4a00-8be1-66e3736d6bfc" />
+      <TestMethod codeBase="/Users/rwillems/Documents/SourceCode/dafny/Source/DafnyLanguageServer.Test/bin/Debug/net6.0/DafnyLanguageServer.Test.dll" adapterTypeName="executor://mstestadapter/v2" className="Microsoft.Dafny.LanguageServer.IntegrationTest.Various.CounterExampleTest" name="MultiDimensionalArray" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="48edb072-ed12-4371-9f82-29c76505067c" executionId="72be64d4-e779-4a00-8be1-66e3736d6bfc" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="1" executed="1" passed="1" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+  </ResultSummary>
+</TestRun>
