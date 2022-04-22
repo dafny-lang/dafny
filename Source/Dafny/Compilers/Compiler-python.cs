@@ -135,19 +135,12 @@ namespace Microsoft.Dafny.Compilers {
       var btw = wr.NewBlockPy($"class {DtT}:");
 
       foreach (var ctor in dt.Ctors) {
-        var ctorName = MangleName(ctor.CompileName);
-        
         // Class-level fields don't work in all python version due to metaclasses.
-        var argList = ctor.Destructors.Select(d => $"(\'{ctorName}\', {TypeName(d.Type, wr, d.tok)})").Comma();
-        var namedtuple = $"NamedTuple(\"{ctorName}\", [{argList}])";
+        var argList = ctor.Destructors.Select(d => $"(\'{d.CompileName}\', {TypeName(d.Type, wr, d.tok)})").Comma();
+        var namedtuple = $"NamedTuple(\"{MangleName(ctor.CompileName)}\", [{argList}])";
         var header = $"class {DtCtorDeclarationName(ctor, false)}({DtT}, {namedtuple}):";
         var constructor = wr.NewBlockPy(header, close: BlockStyle.Newline);
         DatatypeFieldsAndConstructor(ctor, constructor);
-        
-        // def is_Ctor0(self):
-        //   return isinstance(self, Dt_Ctor0) }
-        var query = btw.NewBlockPy($"def is_{ctorName}(self):");
-        query.WriteLine($"return isinstance(self, {ctorName})");
       }
 
       return new ClassWriter(this, btw, btw);
@@ -843,6 +836,10 @@ namespace Microsoft.Dafny.Compilers {
       wr.Format($"(lambda {boundVars.Comma()}: {wrBody})");
       TrExprList(arguments, wr, inLetExprBody, wStmts);
       return wrBody;
+    }
+
+    protected override void EmitConstructorCheck(string source, DatatypeCtor ctor, ConcreteSyntaxTree wr) {
+      wr.Write($"isinstance({source}, {DtCtorDeclarationName(ctor)})");
     }
 
     protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor,
