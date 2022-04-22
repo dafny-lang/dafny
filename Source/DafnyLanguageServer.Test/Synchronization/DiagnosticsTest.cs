@@ -575,7 +575,7 @@ class Test {
     }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      await client.OpenDocumentAndWaitAsync(documentItem);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics = await GetLastVerificationDiagnostics(documentItem, CancellationToken, 2);
       Assert.AreEqual(1, diagnostics.Length);
       Assert.AreEqual(MessageSource.Verifier.ToString(), diagnostics[0].Source);

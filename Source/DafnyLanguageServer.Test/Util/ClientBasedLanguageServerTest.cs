@@ -25,12 +25,11 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
     var document = await Documents.GetVerifiedDocumentAsync(documentItem);
     await diagnosticReceiver.AwaitNextDiagnosticsAsync(cancellationToken); // Get resolution diagnostics
     var remainingDiagnostics = expectedNumber ?? Int32.MaxValue;
-    var result = await diagnosticReceiver.AwaitNextDiagnosticsAsync(cancellationToken); // Get first verification diagnostics
-    remainingDiagnostics--;
-    while (!document!.Diagnostics.SequenceEqual(result) && remainingDiagnostics > 0) {
+    Diagnostic[] result;
+    do {
       result = await diagnosticReceiver.AwaitNextDiagnosticsAsync(cancellationToken);
       remainingDiagnostics--;
-    }
+    } while (!document!.Diagnostics.SequenceEqual(result) && remainingDiagnostics > 0);
 
     return result;
   }
@@ -43,7 +42,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
       options.OnPublishDiagnostics(diagnosticReceiver.NotificationReceived);
     }, serverOptions => {
       serverOptions.Services.AddSingleton<IProgramVerifier>(serviceProvider => new SlowVerifier(
-        serviceProvider.GetRequiredService<ILogger<DafnyProgramVerifier>>(),
+        serviceProvider.GetRequiredService<ILogger<SlowVerifier>>(),
         serviceProvider.GetRequiredService<IOptions<VerifierOptions>>()
       ));
     });

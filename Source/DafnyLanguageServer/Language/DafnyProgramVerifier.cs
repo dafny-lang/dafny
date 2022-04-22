@@ -69,9 +69,9 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         : Convert.ToInt32(options.VcsCores);
     }
 
-    // 256MB
-    private const int MaxStackSize = 0x10000000;
-    static readonly ThreadTaskScheduler LargeStackScheduler = new(MaxStackSize);
+    
+    private const int TranslatorMaxStackSize = 0x10000000; // 256MB
+    static readonly ThreadTaskScheduler TranslatorScheduler = new(TranslatorMaxStackSize);
 
     public IReadOnlyList<IImplementationTask> Verify(Dafny.Program program,
                                      IVerificationProgressReporter progressReporter,
@@ -91,7 +91,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       var translated = Task.Factory.StartNew(() => Translator.Translate(program, errorReporter, new Translator.TranslatorFlags {
         InsertChecksums = true,
         ReportRanges = true
-      }).ToList(), CancellationToken.None, TaskCreationOptions.None, LargeStackScheduler).Result;
+      }).ToList(), CancellationToken.None, TaskCreationOptions.None, TranslatorScheduler).Result;
 #pragma warning restore VSTHRD002
       return translated.SelectMany(t => {
         var (_, boogieProgram) = t;

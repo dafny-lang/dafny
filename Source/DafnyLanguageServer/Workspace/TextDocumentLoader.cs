@@ -25,8 +25,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// The increased stack size is necessary to solve the issue https://github.com/dafny-lang/dafny/issues/1447.
   /// </remarks>
   public class TextDocumentLoader : ITextDocumentLoader {
-    // 256MB
-    private const int MaxStackSize = 0x10000000;
+    private const int ResolverMaxStackSize = 0x10000000; // 256MB
+    private static readonly ThreadTaskScheduler ResolverScheduler = new(ResolverMaxStackSize);
 
     private DafnyOptions Options => DafnyOptions.O;
     private readonly IDafnyParser parser;
@@ -56,8 +56,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       this.logger = loggerFactory.CreateLogger<TextDocumentLoader>();
     }
 
-    static readonly ThreadTaskScheduler LargeStackScheduler = new(MaxStackSize);
-
     public static TextDocumentLoader Create(
       IDafnyParser parser,
       ISymbolResolver symbolResolver,
@@ -85,7 +83,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 #pragma warning disable CS1998
       return await await Task.Factory.StartNew(async () => LoadInternal(textDocument, cancellationToken), cancellationToken,
 #pragma warning restore CS1998
-        TaskCreationOptions.None, LargeStackScheduler);
+        TaskCreationOptions.None, ResolverScheduler);
     }
 
     private DafnyDocument LoadInternal(TextDocumentItem textDocument, CancellationToken cancellationToken) {

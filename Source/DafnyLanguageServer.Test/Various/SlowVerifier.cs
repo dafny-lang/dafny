@@ -10,7 +10,7 @@ using Microsoft.Extensions.Options;
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 
 class SlowVerifier : IProgramVerifier {
-  public SlowVerifier(ILogger<IProgramVerifier> logger, IOptions<VerifierOptions> options) {
+  public SlowVerifier(ILogger<SlowVerifier> logger, IOptions<VerifierOptions> options) {
     verifier = DafnyProgramVerifier.Create(logger, options);
   }
 
