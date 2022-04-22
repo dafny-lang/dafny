@@ -57,7 +57,10 @@ namespace Microsoft.Dafny.Compilers {
 
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
       Coverage.EmitSetup(wr);
-      wr.WriteLine("_module._default.Main()");
+      var tryBlock = wr.NewBlockPy("try:");
+      tryBlock.WriteLine("_module._default.Main()");
+      var exceptBlock = wr.NewBlockPy("except _dafny.HaltException as e:");
+      exceptBlock.WriteLine($"_dafny.print(\"[Program halted] \" + str(e) + \"\\n\")");
     }
 
     protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw) {
@@ -389,6 +392,15 @@ namespace Microsoft.Dafny.Compilers {
                     return TypeInitializationValue(td.BaseType, wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
                   }
                 }
+              case DatatypeDecl td: {
+                  var dt = (DatatypeDecl)cl;
+                  if (dt is TupleTypeDecl) {
+                    throw new NotImplementedException();
+                  }
+                  var s = DtCtorDeclarationName(dt.GetGroundingCtor());
+                  var relevantTypeArgs = UsedTypeParameters(dt, udt.TypeArgs).ConvertAll(ta => ta.Actual);
+                  return string.Format($"{s}({Util.Comma(relevantTypeArgs, arg => DefaultValue(arg, wr, tok, constructTypeParameterDefaultsFromTypeDescriptors))})");
+                }
             }
             break;
           }
@@ -492,7 +504,14 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitHalt(IToken tok, Expression messageExpr, ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
+      var wStmts = wr.Fork();
+      wr.Write("raise _dafny.HaltException(");
+      if (tok != null) {
+        wr.Write("\"" + Dafny.ErrorReporter.TokenToString(tok) + ": \" + ");
+      }
+
+      TrExpr(messageExpr, wr, false, wStmts);
+      wr.WriteLine(")");
     }
 
     protected override ConcreteSyntaxTree EmitIf(out ConcreteSyntaxTree guardWriter, bool hasElse, ConcreteSyntaxTree wr) {
@@ -820,9 +839,21 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor,
         List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
-    }
+      string dtorName;
+      if (ctor.EnclosingDatatype is TupleTypeDecl) {
+        throw new NotImplementedException();
+      } else if (int.TryParse(dtor.Name, out _)) {
+        throw new NotImplementedException();
+      } else {
+        dtorName = FormalName(dtor, formalNonGhostIndex);
+      }
 
+      if (ctor.EnclosingDatatype is CoDatatypeDecl) {
+        throw new NotImplementedException();
+      }
+      wr.Write("(({0}){1}{2}).{3}", DtCtorDeclarationName(ctor), source, "", dtorName);
+    }
+    
     protected override bool TargetLambdasRestrictedToExpressions => true;
     protected override ConcreteSyntaxTree CreateLambda(List<Type> inTypes, IToken tok, List<string> inNames,
         Type resultType, ConcreteSyntaxTree wr, bool untyped = false) {
@@ -861,7 +892,8 @@ namespace Microsoft.Dafny.Compilers {
           TrParenExpr("~", expr, wr, inLetExprBody, wStmts);
           break;
         case ResolvedUnaryOp.BoolNot:
-          throw new NotImplementedException();
+          TrParenExpr("not", expr, wr, inLetExprBody, wStmts);
+          break;
         default:
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary expression
       }
@@ -1094,7 +1126,11 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitHaltRecoveryStmt(Statement body, string haltMessageVarName, Statement recoveryBody, ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
+      var tryBlock = wr.NewBlockPy("try:");
+      TrStmt(body, tryBlock);
+      var exceptBlock = wr.NewBlockPy("except _dafny.HaltException as e:");
+      exceptBlock.WriteLine($"{haltMessageVarName} = str(e)");
+      TrStmt(recoveryBody, exceptBlock);
     }
 
     public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText,
