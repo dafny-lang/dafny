@@ -135,12 +135,19 @@ namespace Microsoft.Dafny.Compilers {
       var btw = wr.NewBlockPy($"class {DtT}:");
 
       foreach (var ctor in dt.Ctors) {
+        var ctorName = MangleName(ctor.CompileName);
+
         // Class-level fields don't work in all python version due to metaclasses.
         var argList = ctor.Destructors.Select(d => $"(\'{MangleName(d.CompileName)}\', {TypeName(d.Type, wr, d.tok)})").Comma();
-        var namedtuple = $"NamedTuple(\"{MangleName(ctor.CompileName)}\", [{argList}])";
+        var namedtuple = $"NamedTuple(\"{ctorName}\", [{argList}])";
         var header = $"class {DtCtorDeclarationName(ctor, false)}({DtT}, {namedtuple}):";
         var constructor = wr.NewBlockPy(header, close: BlockStyle.Newline);
         DatatypeFieldsAndConstructor(ctor, constructor);
+
+        // def is_Ctor0(self):
+        //   return isinstance(self, Dt_Ctor0) }
+        btw.NewBlockPy($"def is_{ctorName}(self):")
+          .WriteLine($"return isinstance(self, {ctorName})");
       }
 
       return new ClassWriter(this, btw, btw);
@@ -838,10 +845,6 @@ namespace Microsoft.Dafny.Compilers {
       return wrBody;
     }
 
-    protected override void EmitConstructorCheck(string source, DatatypeCtor ctor, ConcreteSyntaxTree wr) {
-      wr.Write($"isinstance({source}, {DtCtorDeclarationName(ctor)})");
-    }
-
     protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor,
         List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr) {
       string dtorName;
@@ -858,7 +861,7 @@ namespace Microsoft.Dafny.Compilers {
       }
       wr.Write($"(({DtCtorDeclarationName(ctor)}){source}).{dtorName}");
     }
-    
+
     protected override bool TargetLambdasRestrictedToExpressions => true;
     protected override ConcreteSyntaxTree CreateLambda(List<Type> inTypes, IToken tok, List<string> inNames,
         Type resultType, ConcreteSyntaxTree wr, bool untyped = false) {
