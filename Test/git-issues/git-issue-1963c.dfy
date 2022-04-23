@@ -4,7 +4,7 @@
 /// This file checks that refinement works for members of newtypes and
 /// datatypes.
 
-module A {
+abstract module A {
   datatype D = D {
     function method f(): int
     function method g(): int { 1 }

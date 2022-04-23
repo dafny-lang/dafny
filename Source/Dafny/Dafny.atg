@@ -1238,6 +1238,9 @@ DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDe
   [ GenericParameters<typeArgs, true> ]
   (
   "="                                      (. bodyStart = t; .)
+  [ ellipsis                               (. SemErr(t, // Help users adjust to the new syntax
+      $"Refinement cannot change the constructors of a `datatype`.  To refine `{id.val}`, either omit this `...` or omit the `=` sign and the datatype constructors."); .)
+  ]
   [ "|" ] DatatypeMemberDecl<ctors>
   { "|" DatatypeMemberDecl<ctors> }
   | ellipsis                               (. isRefining = true; bodyStart = t; .)
@@ -1348,6 +1351,9 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
   NewtypeName<out id>
   (
   "="
+  [ ellipsis                               (. SemErr(t, // Help users adjust to the new syntax
+      $"Refinement cannot change the base type of a `newtype`.  To refine `{id.val}`, either omit this `...` or omit the `=` sign and the parent type's body."); .)
+  ]
   ( IF(IsIdentColonOrBar())
     LocalVarName<out bvId>
     [ ":" Type<out baseType> ]       (. if (baseType == null) { baseType = new InferredTypeProxy(); } .)
