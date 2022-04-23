@@ -2320,6 +2320,7 @@ namespace Microsoft.Dafny.Compilers {
         if (m.IsTailRecursive) {
           w = EmitTailCallStructure(m, w);
         }
+
         Coverage.Instrument(m.Body.Tok, $"entry to method {m.FullName}", w);
 
         var nonGhostOutsCount = m.Outs.Count(p => !p.IsGhost);
@@ -2771,7 +2772,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    void TrStmt(Statement stmt, ConcreteSyntaxTree wr) {
+    protected internal void TrStmt(Statement stmt, ConcreteSyntaxTree wr) {
       Contract.Requires(stmt != null);
       Contract.Requires(wr != null);
 
@@ -3222,7 +3223,8 @@ namespace Microsoft.Dafny.Compilers {
         } else if (DafnyOptions.O.ForbidNondeterminism) {
           Error(s.Tok, "modify statement without a body forbidden by /definiteAssignment:3 option", wr);
         }
-
+      } else if (stmt is TryRecoverStatement h) {
+        EmitHaltRecoveryStmt(h.TryBody, h.HaltMessageVar.CompileName, h.RecoverBody, wr);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }
@@ -5274,6 +5276,8 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
     }
+
+    protected abstract void EmitHaltRecoveryStmt(Statement body, string haltMessageVarName, Statement recoveryBody, ConcreteSyntaxTree wr);
 
     public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
       bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {

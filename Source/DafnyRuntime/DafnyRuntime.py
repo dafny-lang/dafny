@@ -150,3 +150,7 @@ def euclidian_modulus(a, b):
         return a % bp
     c = (-a) % bp
     return c if c == 0 else bp - c
+
+@dataclass
+class HaltException(Exception):
+    message: str
