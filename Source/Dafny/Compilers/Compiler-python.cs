@@ -50,7 +50,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override string StmtTerminator { get => ""; }
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
       wr.WriteLine($"# Dafny program {program.Name} compiled into Python");
-      ReadRuntimeSystem("DafnyRuntime.py", wr.NewFile(DafnyRuntime));
+      ReadRuntimeSystem("DafnyRuntime.py", wr.NewFile($"{DafnyRuntime}.py"));
       Imports.Add(DafnyRuntime);
       EmitImports(null, wr);
       wr.WriteLine();
@@ -58,7 +58,6 @@ namespace Microsoft.Dafny.Compilers {
 
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
       Coverage.EmitSetup(wr);
-      wr.WriteLine("module_.default__.Main()");
       wr.NewBlockPy("try:")
         .WriteLine("module_.default__.Main()");
       wr.NewBlockPy($"except {DafnyRuntime}.HaltException as e:")
@@ -185,6 +184,19 @@ namespace Microsoft.Dafny.Compilers {
 
       var btw = wr.NewBlockPy($"class {DtT}:", close: BlockStyle.Newline);
 
+      if (dt.HasFinitePossibleValues) {
+        btw.WriteLine($"@{DafnyRuntime}.classproperty");
+        var w = btw.NewBlockPy(
+          $"def AllSingletonConstructors(instance):");
+        w.WriteLine($"return [{dt.Ctors.Select(ctor => $"{DtCtorDeclarationName(ctor, false)}()").Comma()}]");
+      }
+
+      btw.NewBlockPy("def __repr__(self) -> str:")
+        .WriteLine($"return self.__str__()");
+
+      btw.NewBlockPy("def __ne__(self, __o: object) -> bool:")
+        .WriteLine($"return not self.__eq__(__o)");
+
       foreach (var ctor in dt.Ctors) {
         var ctorName = MangleName(ctor.CompileName);
 
@@ -195,8 +207,10 @@ namespace Microsoft.Dafny.Compilers {
         var constructor = wr.NewBlockPy(header, close: BlockStyle.Newline);
         DatatypeFieldsAndConstructor(ctor, constructor);
 
-        // def is_Ctor0(self):
+        // @property
+        // def is_Ctor0(self) -> bool:
         //   return isinstance(self, Dt_Ctor0) }
+        btw.WriteLine("@property");
         btw.NewBlockPy($"def is_{ctorName}(self) -> bool:")
           .WriteLine($"return isinstance(self, {DtCtorDeclarationName(ctor)})");
       }
@@ -206,7 +220,8 @@ namespace Microsoft.Dafny.Compilers {
 
     private void DatatypeFieldsAndConstructor(DatatypeCtor ctor, ConcreteSyntaxTree wr) {
       var dt = ctor.EnclosingDatatype;
-      var str = (dt.EnclosingModuleDefinition.IsDefaultModule ? "" : dt.EnclosingModuleDefinition.Name + ".") + dt.Name + "." + ctor.Name;
+      var str = (dt.EnclosingModuleDefinition.IsDefaultModule ? "" : dt.EnclosingModuleDefinition.Name + ".") +
+                dt.Name + "." + ctor.Name;
 
       var args = ctor.Formals
         .Where(f => !f.IsGhost)
@@ -216,11 +231,19 @@ namespace Microsoft.Dafny.Compilers {
       if (args.Length > 0) {
         str += $"({args})";
       }
+
       wr.NewBlockPy("def __str__(self) -> str:")
         .WriteLine($"return f\'{str}\'");
 
-      wr.NewBlockPy("def __repr__(self) -> str:")
-        .WriteLine($"return self.__str__()");
+      var argList = ctor.Formals
+        .Where(f => !f.IsGhost)
+        .Select(f => $"self.{MangleName(f.CompileName)} == __o.{MangleName(f.CompileName)}");
+      var suffix = args.Length > 0 ? $" and {string.Join(" and ", argList)}" : "";
+
+      wr.NewBlockPy("def __eq__(self, __o: object) -> bool:")
+        .WriteLine($"return isinstance(__o, {DtCtorDeclarationName(ctor)}){suffix}");
+
+      wr.WriteLine("__hash__= super.__hash__");
     }
 
     private static string DtCtorDeclarationName(DatatypeCtor ctor, bool full = true) {
@@ -935,7 +958,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor,
         List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr) {
-      wr.Write($"{source}.{FormalName(dtor, formalNonGhostIndex)}");
+      wr.Write($"{source}.{MangleName(dtor.CompileName)}");
     }
 
     protected override bool TargetLambdasRestrictedToExpressions => true;
@@ -957,12 +980,8 @@ namespace Microsoft.Dafny.Compilers {
         ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, out ConcreteSyntaxTree wrRhs, out ConcreteSyntaxTree wrBody) {
       wrRhs = new ConcreteSyntaxTree();
       wrBody = new ConcreteSyntaxTree();
-      wr.Format($"(lambda {bvName}: lambda: {wrBody})({wrRhs})");
+      wr.Format($"(lambda {bvName}: {wrBody})({wrRhs})");
     }
-
-    //var functionName = idGenerator.FreshId("_iife");
-    //wr.Format($"{functionName}({wrRhs})");
-    //wrBody = wStmts.NewBlockPy($"def {functionName}({bvName}):");
 
     protected override ConcreteSyntaxTree CreateIIFE0(Type resultType, IToken resultTok, ConcreteSyntaxTree wr,
         ConcreteSyntaxTree wStmts) {
