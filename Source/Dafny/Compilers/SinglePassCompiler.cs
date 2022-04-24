@@ -49,6 +49,9 @@ namespace Microsoft.Dafny.Compilers {
 
     protected internal readonly FreshIdGenerator idGenerator = new FreshIdGenerator();
 
+    private protected string ProtectedFreshId(string prefix) => IdProtect(idGenerator.FreshId(prefix));
+    private protected string ProtectedFreshNumericId(string prefix) => IdProtect(idGenerator.FreshNumericId(prefix));
+
     Dictionary<Expression, int> uniqueAstNumbers = new Dictionary<Expression, int>();
     int GetUniqueAstNumber(Expression expr) {
       Contract.Requires(expr != null);
@@ -388,7 +391,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected virtual string EmitAssignmentLhs(Expression e, ConcreteSyntaxTree wr) {
       var wStmts = wr.Fork();
-      var target = idGenerator.FreshId("_lhs");
+      var target = ProtectedFreshId("_lhs");
       wr.Write(GenerateLhsDecl(target, e.Type, wr, e.tok));
       wr.Write(" = ");
       TrExpr(e, wr, false, wStmts);
@@ -404,7 +407,7 @@ namespace Microsoft.Dafny.Compilers {
       wRhss = new List<ConcreteSyntaxTree>();
       var rhsVars = new List<string>();
       foreach (var rhsType in rhsTypes) {
-        string target = idGenerator.FreshId("_rhs");
+        string target = ProtectedFreshId("_rhs");
         rhsVars.Add(target);
         wr.Write(GenerateLhsDecl(target, rhsType, wr, Bpl.Token.NoToken));
         wRhss.Add(EmitAssignmentRhs(wr));
@@ -2037,14 +2040,14 @@ namespace Microsoft.Dafny.Compilers {
 
       var nonGhostOutParameterCount = method.Outs.Count(p => !p.IsGhost);
       var returnStyleOuts = UseReturnStyleOuts(method, nonGhostOutParameterCount);
-      var returnStyleOutCollector = nonGhostOutParameterCount > 1 && returnStyleOuts && !SupportsMultipleReturns ? idGenerator.FreshId("_outcollector") : null;
+      var returnStyleOutCollector = nonGhostOutParameterCount > 1 && returnStyleOuts && !SupportsMultipleReturns ? ProtectedFreshId("_outcollector") : null;
 
       var outTmps = new List<string>();  // contains a name for each non-ghost formal out-parameter
       var outTypes = new List<Type>();  // contains a type for each non-ghost formal out-parameter
       for (int i = 0; i < method.Outs.Count; i++) {
         Formal p = method.Outs[i];
         if (!p.IsGhost) {
-          var target = returnStyleOutCollector != null ? IdName(p) : idGenerator.FreshId("_out");
+          var target = returnStyleOutCollector != null ? IdName(p) : ProtectedFreshId("_out");
           outTmps.Add(target);
           outTypes.Add(p.Type);
           DeclareLocalVar(target, p.Type, p.tok, false, null, wr);
@@ -2426,7 +2429,7 @@ namespace Microsoft.Dafny.Compilers {
         Contract.Assert(pat.Arguments.Count == ctor.Formals.Count);  // follows from successful resolution
 
         // Create the temporary variable to hold G
-        var tmp_name = idGenerator.FreshId("_let_tmp_rhs");
+        var tmp_name = ProtectedFreshId("_let_tmp_rhs");
         if (rhs != null) {
           DeclareLocalVar(tmp_name, rhs.Type, rhs.tok, rhs, inLetExprBody, wr);
         } else {
@@ -2502,7 +2505,7 @@ namespace Microsoft.Dafny.Compilers {
         //   } else if (true) {
         //     ...
         //   }
-        string source = idGenerator.FreshId("_source");
+        string source = ProtectedFreshId("_source");
         DeclareLocalVar(source, e.Source.Type, e.Source.tok, e.Source, false, wr);
 
         if (e.Cases.Count == 0) {
@@ -2530,7 +2533,7 @@ namespace Microsoft.Dafny.Compilers {
         var inTmps = new List<string>();
         var inTypes = new List<Type/*?*/>();
         if (!e.Function.IsStatic) {
-          string inTmp = idGenerator.FreshId("_in");
+          string inTmp = ProtectedFreshId("_in");
           inTmps.Add(inTmp);
           inTypes.Add(null);
           DeclareLocalVar(inTmp, null, null, e.Receiver, false, wr);
@@ -2538,7 +2541,7 @@ namespace Microsoft.Dafny.Compilers {
         for (int i = 0; i < e.Function.Formals.Count; i++) {
           Formal p = e.Function.Formals[i];
           if (!p.IsGhost) {
-            string inTmp = idGenerator.FreshId("_in");
+            string inTmp = ProtectedFreshId("_in");
             inTmps.Add(inTmp);
             inTypes.Add(e.Args[i].Type);
             DeclareLocalVar(inTmp, e.Args[i].Type, p.tok, e.Args[i], false, wr);
@@ -3037,7 +3040,7 @@ namespace Microsoft.Dafny.Compilers {
         string endVarName = null;
         if (s.End != null) {
           // introduce a variable to hold the value of the end-expression
-          endVarName = idGenerator.FreshId(s.GoingUp ? "_hi" : "_lo");
+          endVarName = ProtectedFreshId(s.GoingUp ? "_hi" : "_lo");
           wr.Write(GenerateLhsDecl(endVarName, s.End.Type, wr, s.End.tok));
           EmitAssignmentRhs(s.End, false, wr);
         }
@@ -3101,7 +3104,7 @@ namespace Microsoft.Dafny.Compilers {
           // be nested.
 
           // Temporary names
-          var c = idGenerator.FreshNumericId("_ingredients+_tup");
+          var c = ProtectedFreshNumericId("_ingredients+_tup");
           string ingredients = "_ingredients" + c;
           string tup = "_tup" + c;
 
@@ -3180,7 +3183,7 @@ namespace Microsoft.Dafny.Compilers {
         //   ...
         // }
         if (s.Cases.Count != 0) {
-          string source = idGenerator.FreshId("_source");
+          string source = ProtectedFreshId("_source");
           DeclareLocalVar(source, s.Source.Type, s.Source.tok, s.Source, false, wr);
 
           int i = 0;
@@ -3321,7 +3324,7 @@ namespace Microsoft.Dafny.Compilers {
       for (int i = 0; i < n; i++) {
         var bound = bounds[i];
         var bv = bvs[i];
-        var tmpVar = idGenerator.FreshId("_guard_loop_");
+        var tmpVar = ProtectedFreshId("_guard_loop_");
         var wStmtsLoop = wr.Fork();
         var elementType = CompileCollection(bound, bv, false, false, null, out var collection, wStmtsLoop, bounds, bvs, i);
         wr = CreateGuardedForeachLoop(tmpVar, elementType, bv, true, false, range.tok, collection, wr);
@@ -3616,7 +3619,7 @@ namespace Microsoft.Dafny.Compilers {
       //
       var n = lhss.Count;
       Contract.Assert(bounds.Count == n);
-      var c = idGenerator.FreshNumericId("_ASSIGN_SUCH_THAT_+_iterLimit_");
+      var c = ProtectedFreshNumericId("_ASSIGN_SUCH_THAT_+_iterLimit_");
       var doneLabel = "_ASSIGN_SUCH_THAT_" + c;
       var iterLimit = "_iterLimit_" + c;
 
@@ -3634,7 +3637,7 @@ namespace Microsoft.Dafny.Compilers {
         if (needIterLimit) {
           DeclareLocalVar(string.Format("{0}_{1}", iterLimit, i), null, null, false, iterLimit, wr, Type.Int);
         }
-        var tmpVar = idGenerator.FreshId("_assign_such_that_");
+        var tmpVar = ProtectedFreshId("_assign_such_that_");
         var wStmts = wr.Fork();
         var elementType = CompileCollection(bound, bv, inLetExprBody, true, null, out var collection, wStmts);
         wr = CreateGuardedForeachLoop(tmpVar, elementType, bv, false, inLetExprBody, bv.Tok, collection, wr);
@@ -3830,7 +3833,7 @@ namespace Microsoft.Dafny.Compilers {
         TrParenExpr(e, sw, false, wStmts);
         return sw.ToString();
       } else {
-        var v = idGenerator.FreshId(prefix);
+        var v = ProtectedFreshId(prefix);
         DeclareLocalVar(v, null, null, e, false, wr);
         return v;
       }
@@ -3894,7 +3897,7 @@ namespace Microsoft.Dafny.Compilers {
         var eRhs = (ExprRhs)rhs;  // it's not HavocRhs (by the precondition) or TypeRhs (by the "if" test), so it's gotta be ExprRhs
         TrExpr(eRhs.Expr, wr, false, wStmts);
       } else {
-        var nw = idGenerator.FreshId("_nw");
+        var nw = ProtectedFreshId("_nw");
         var wRhs = DeclareLocalVar(nw, tRhs.Type, rhs.Tok, wStmts);
         TrTypeRhs(tRhs, wRhs, wStmts);
 
@@ -3908,10 +3911,10 @@ namespace Microsoft.Dafny.Compilers {
           }
         } else if (tRhs.ElementInit != null) {
           // Compute the array-initializing function once and for all (as required by the language definition)
-          string f = idGenerator.FreshId("_arrayinit");
+          string f = ProtectedFreshId("_arrayinit");
           DeclareLocalVar(f, tRhs.ElementInit.Type, tRhs.ElementInit.tok, tRhs.ElementInit, false, wStmts);
           // Build a loop nest that will call the initializer for all indices
-          var indices = Util.Map(Enumerable.Range(0, tRhs.ArrayDimensions.Count), ii => idGenerator.FreshId("_arrayinit_" + ii));
+          var indices = Util.Map(Enumerable.Range(0, tRhs.ArrayDimensions.Count), ii => ProtectedFreshId("_arrayinit_" + ii));
           var w = wStmts;
           for (var d = 0; d < tRhs.ArrayDimensions.Count; d++) {
             string len, pre, post;
@@ -3999,7 +4002,7 @@ namespace Microsoft.Dafny.Compilers {
         for (int i = 0; i < s.Method.Outs.Count; i++) {
           Formal p = s.Method.Original.Outs[i];
           if (!p.IsGhost) {
-            string target = idGenerator.FreshId("_out");
+            string target = ProtectedFreshId("_out");
             outTmps.Add(target);
             var instantiatedType = Resolver.SubstType(p.Type, s.MethodSelect.TypeArgumentSubstitutionsWithParents());
             Type type;
@@ -4061,7 +4064,7 @@ namespace Microsoft.Dafny.Compilers {
         Contract.Assert(receiverReplacement == null || !customReceiver);  // What would be done in this case? It doesn't ever happen, right?
 
         var returnStyleOuts = UseReturnStyleOuts(s.Method, outTmps.Count);
-        var returnStyleOutCollector = outTmps.Count > 1 && returnStyleOuts && !SupportsMultipleReturns ? idGenerator.FreshId("_outcollector") : null;
+        var returnStyleOutCollector = outTmps.Count > 1 && returnStyleOuts && !SupportsMultipleReturns ? ProtectedFreshId("_outcollector") : null;
         if (returnStyleOutCollector != null) {
           DeclareSpecificOutCollector(returnStyleOutCollector, wr, outFormalTypes, outLhsTypes);
         } else if (outTmps.Count > 0 && returnStyleOuts) {
@@ -4169,7 +4172,7 @@ namespace Microsoft.Dafny.Compilers {
       if (receiverReplacement != null) {
         // TODO:  What to do here?  When does this happen, what does it mean?
       } else if (!method.IsStatic) {
-        string inTmp = idGenerator.FreshId("_in");
+        string inTmp = ProtectedFreshId("_in");
         inTmps.Add(inTmp);
         inTypes.Add(null);
         DeclareLocalVar(inTmp, null, null, receiver, false, wr);
@@ -4177,7 +4180,7 @@ namespace Microsoft.Dafny.Compilers {
       for (int i = 0; i < method.Ins.Count; i++) {
         Formal p = method.Ins[i];
         if (!p.IsGhost) {
-          string inTmp = idGenerator.FreshId("_in");
+          string inTmp = ProtectedFreshId("_in");
           inTmps.Add(inTmp);
           inTypes.Add(args[i].Type);
           DeclareLocalVar(inTmp, args[i].Type, p.tok, args[i], false, wr);
@@ -4436,7 +4439,7 @@ namespace Microsoft.Dafny.Compilers {
             // a lambda expression in the target language.
             if (e.Member is Function && typeArgs.Count != 0) {
               // need to eta-expand wrap the receiver
-              var etaReceiver = idGenerator.FreshId("_eta_this");
+              var etaReceiver = ProtectedFreshId("_eta_this");
               wr = CreateIIFE_ExprBody(etaReceiver, e.Obj.Type, e.Obj.tok, e.Obj, inLetExprBody, Resolver.SubstType(e.Type, typeMap), e.tok, wr, wStmts);
               obj = w => w.Write(etaReceiver);
             } else {
@@ -4447,7 +4450,7 @@ namespace Microsoft.Dafny.Compilers {
             string customReceiverName = null;
             if (customReceiver && e.Member is Function) {
               // need to eta-expand wrap the receiver
-              customReceiverName = idGenerator.FreshId("_eta_this");
+              customReceiverName = ProtectedFreshId("_eta_this");
               wr = CreateIIFE_ExprBody(customReceiverName, e.Obj.Type, e.Obj.tok, e.Obj, inLetExprBody, Resolver.SubstType(e.Type, typeMap), e.tok, wr, wStmts);
             }
             Action<ConcreteSyntaxTree> obj = w => w.Write(TypeName_Companion(e.Obj.Type, wr, e.tok, e.Member));
@@ -4706,7 +4709,7 @@ namespace Microsoft.Dafny.Compilers {
         //   }
         // }))(src)
 
-        string source = idGenerator.FreshId("_source");
+        string source = ProtectedFreshId("_source");
         ConcreteSyntaxTree w;
         //if (TargetLambdasRestrictedToExpressions) {
         //  CreateIIFE(source, e.Source.Type, e.tok, e.Type, e.tok, wr, wStmts, out wr, out w);
@@ -4751,7 +4754,7 @@ namespace Microsoft.Dafny.Compilers {
           wBody.Append(collection);
           wBody.Write(", {0}, ", expr is ForallExpr ? "true" : "false");
           var native = AsNativeType(e.BoundVars[i].Type);
-          var tmpVarName = idGenerator.FreshId(e is ForallExpr ? "_forall_var_" : "_exists_var_");
+          var tmpVarName = ProtectedFreshId(e is ForallExpr ? "_forall_var_" : "_exists_var_");
           ConcreteSyntaxTree newWBody = CreateLambda(new List<Type> { collectionElementType }, e.tok, new List<string> { tmpVarName }, Type.Bool, wBody, wStmts, untyped: true);
           newWBody = MaybeInjectSubtypeConstraint(
             tmpVarName, collectionElementType, bv.Type,
@@ -4787,7 +4790,7 @@ namespace Microsoft.Dafny.Compilers {
         e = (SetComprehension)su.Substitute(e);
 
         Contract.Assert(e.Bounds != null);  // the resolver would have insisted on finding bounds
-        var collectionName = idGenerator.FreshId("_coll");
+        var collectionName = ProtectedFreshId("_coll");
         var bwr = CreateIIFE0(e.Type.AsSetType, e.tok, wr, wStmts);
         wr = bwr;
         EmitSetBuilder_New(wr, e, collectionName);
@@ -4796,7 +4799,7 @@ namespace Microsoft.Dafny.Compilers {
         for (var i = 0; i < n; i++) {
           var bound = e.Bounds[i];
           var bv = e.BoundVars[i];
-          var tmpVar = idGenerator.FreshId("_compr_");
+          var tmpVar = ProtectedFreshId("_compr_");
           var wStmtsLoop = wr.Fork();
           var elementType = CompileCollection(bound, bv, inLetExprBody, true, null, out var collection, wStmtsLoop);
           wr = CreateGuardedForeachLoop(tmpVar, elementType, bv, true, inLetExprBody, e.tok, collection, wr);
@@ -4832,7 +4835,7 @@ namespace Microsoft.Dafny.Compilers {
         Contract.Assert(e.Bounds != null);  // the resolver would have insisted on finding bounds
         var domtypeName = TypeName(e.Type.AsMapType.Domain, wr, e.tok);
         var rantypeName = TypeName(e.Type.AsMapType.Range, wr, e.tok);
-        var collection_name = idGenerator.FreshId("_coll");
+        var collection_name = ProtectedFreshId("_coll");
         var bwr = CreateIIFE0(e.Type.AsMapType, e.tok, wr, wStmts);
         wr = bwr;
         EmitMapBuilder_New(wr, e, collection_name);
@@ -4841,7 +4844,7 @@ namespace Microsoft.Dafny.Compilers {
         for (var i = 0; i < n; i++) {
           var bound = e.Bounds[i];
           var bv = e.BoundVars[i];
-          var tmpVar = idGenerator.FreshId("_compr_");
+          var tmpVar = ProtectedFreshId("_compr_");
           var wStmtsLoop = wr.Fork();
           var elementType = CompileCollection(bound, bv, inLetExprBody, true, null, out var collection, wStmtsLoop);
           wr = CreateGuardedForeachLoop(tmpVar, elementType, bv, true, false, bv.tok, collection, wr);

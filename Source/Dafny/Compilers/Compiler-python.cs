@@ -243,7 +243,8 @@ namespace Microsoft.Dafny.Compilers {
       wr.NewBlockPy("def __eq__(self, __o: object) -> bool:")
         .WriteLine($"return isinstance(__o, {DtCtorDeclarationName(ctor)}){suffix}");
 
-      wr.WriteLine("__hash__= super.__hash__");
+      wr.NewBlockPy("def __hash__(self) -> int:")
+        .WriteLine("return super().__hash__()");
     }
 
     private static string DtCtorDeclarationName(DatatypeCtor ctor, bool full = true) {
@@ -888,9 +889,16 @@ namespace Microsoft.Dafny.Compilers {
               w.Write($".{IdName(member)}");
             });
           }
-        case Function: {
-            var param = additionalCustomParameter == null ? "" : $"({additionalCustomParameter})";
-            return SuffixLvalue(obj, $".{IdName(member)}{param}");
+        case Function fn: {
+            if (additionalCustomParameter == null) {
+              return SuffixLvalue(obj, $".{IdName(fn)}");
+            }
+            var args = fn.Formals
+              .Where(f => !f.IsGhost)
+              .Select(_ => ProtectedFreshId("_eta"))
+              .Comma();
+            if (args.Length > 0) { additionalCustomParameter += ", "; }
+            return EnclosedLvalue($"lambda {args}: ", obj, $".{IdName(fn)}({additionalCustomParameter}{args})");
           }
         default:
           return SimpleLvalue(w => {
@@ -970,7 +978,7 @@ namespace Microsoft.Dafny.Compilers {
         wr.Format($"(lambda{args}: {wrBody})");
         return wrBody;
       } else {
-        var functionName = idGenerator.FreshId("_lambda");
+        var functionName = ProtectedFreshId("_lambda");
         wr.Write($"{functionName}");
         return wStmts.NewBlockPy($"def {functionName}({inNames.Comma()}):");
       }
@@ -985,7 +993,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree CreateIIFE0(Type resultType, IToken resultTok, ConcreteSyntaxTree wr,
         ConcreteSyntaxTree wStmts) {
-      var functionName = idGenerator.FreshId("_iife");
+      var functionName = ProtectedFreshId("_iife");
       wr.WriteLine($"{functionName}()");
       return wStmts.NewBlockPy($"def {functionName}():");
     }
