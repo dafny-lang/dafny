@@ -48,12 +48,7 @@ class Set(set):
         return self
 
     def __str__(self) -> str:
-        s = ""
-        for i, elem in enumerate(self):
-            if i > 0:
-                s += ", "
-            s += str(elem)
-        return f"{{{s}}}"
+        return '{' + ', '.join(map(str, self)) + '}'
 
     def union(self, other):
         return Set(set.union(self, other))
