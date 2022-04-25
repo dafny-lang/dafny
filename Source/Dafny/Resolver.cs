@@ -6739,6 +6739,7 @@ namespace Microsoft.Dafny {
                 if (bv.Type.IsTypeParameter || bv.Type.IsOpaqueType) {
                   msgFormat += " (perhaps declare its type, '{2}', as '{2}(!new)')";
                 }
+                msgFormat += " (see documentation for ':older')";
                 var declKind = CodeContextWrapper.Unwrap(codeContext) is RedirectingTypeDecl redir ? redir.WhatKind : ((MemberDecl)codeContext).WhatKind;
                 resolver.reporter.Error(MessageSource.Resolver, e, msgFormat, what, bv.Name, bv.Type, declKind);
               }
