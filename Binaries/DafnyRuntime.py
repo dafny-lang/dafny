@@ -32,7 +32,6 @@ class Seq(list):
     @property
     def Elements(self):
         return self
-    
 
 class Set(set):
     @property
