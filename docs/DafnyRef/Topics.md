@@ -725,7 +725,7 @@ the proofs do not reflect the intuitive proofs I described in
 Section [#sec-example-least-solution] and [#sec-example-greatest-solution].
 These shortcoming are addressed in the next subsection.
 
-### 23.5.5. Nicer Proofs of Extreme Predicates
+### 23.5.5. Nicer Proofs of Extreme Predicates {#sec-nicer-proofs-of-extremes}
 
 The proofs we just saw follow standard forms:
 use Skolemization to convert the inductive predicate into a prefix predicate for some `k`
