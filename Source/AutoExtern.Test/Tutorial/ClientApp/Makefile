@@ -1,4 +1,4 @@
-AutoExtern ?= ../../../AutoExtern/AutoExtern.csproj
+AutoExtern ?= dotnet run --project ../../../AutoExtern/AutoExtern.csproj
 
 LibraryProjectFile := ../Library/Library.csproj
 LibrarySourceFile := ../Library/Library.cs
@@ -15,7 +15,7 @@ ExpectFile := $(AppDafnyFile).expect
 default: dotnet-run
 
 $(LibraryModelFile): $(LibraryProjectFile) $(LibrarySourceFile) $(LibraryTemplateFile)
-	dotnet run --project $(AutoExtern) -- \
+	$(AutoExtern) -- \
 		$(LibraryProjectFile) \
 		$(LibrarySourceFile) \
 		$(LibraryRootNamespace) \
