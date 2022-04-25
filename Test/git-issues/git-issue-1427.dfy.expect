@@ -1,0 +1,4 @@
+git-issue-1427.dfy(8,2): Error: == can only be applied to expressions of types that support equality (got Datatype)
+git-issue-1427.dfy(12,2): Error: == can only be applied to expressions of types that support equality (got T) (perhaps try declaring opaque type 'T' on line 1 as 'T(==)', which says it can only be instantiated with a type that supports equality)
+git-issue-1427.dfy(16,2): Error: == can only be applied to expressions of types that support equality (got T) (perhaps try declaring opaque type 'T' on line 1 as 'T(==)', which says it can only be instantiated with a type that supports equality)
+3 resolution/type errors detected in git-issue-1427.dfy

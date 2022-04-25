@@ -3036,6 +3036,7 @@ namespace Microsoft.Dafny {
           if (dt.EqualitySupport == IndDatatypeDecl.ES.Never) {
             return false;
           }
+          // FIXME datatype doesn't have type args but is marked as consult type args
           Contract.Assert(dt.TypeArgs.Count == TypeArgs.Count);
           var i = 0;
           foreach (var tp in dt.TypeArgs) {
