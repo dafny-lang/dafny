@@ -28,8 +28,9 @@ def label(name: str = None):
     except Break as g:
         if g.target != name:
             raise g
-    except TailCall:
-        pass
+    except TailCall as g:
+        if name is not None:
+            raise g
 
 def _break(name):
     raise Break(target=name)

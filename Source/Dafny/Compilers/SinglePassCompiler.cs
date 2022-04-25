@@ -2770,7 +2770,8 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(wr != null);
       TrStmt(stmt, wr);
       if (stmt.IsGhost) {
-        wr.WriteLine("{ }");
+        TrStmtList(new List<Statement>(), EmitBlock(wr));
+
       }
     }
 
