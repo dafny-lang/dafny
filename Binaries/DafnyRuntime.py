@@ -52,17 +52,3 @@ class Map(dict):
     @property
     def Keys(self):
         return Seq(self.keys())
-
-def newArray(initValue, *dims): 
-    return buildArray(initValue, dims)
-
-def buildArray(initValue, *dims):
-    b=initValue
-    dimslist = list(dims[0])
-    for i in reversed(dimslist):
-        tmplist =[]
-        for _ in range(i):
-            tmplist.append(b)
-        b= tmplist
-    return b
-   

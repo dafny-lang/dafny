@@ -1227,7 +1227,6 @@ namespace Microsoft.Dafny {
           if (e.SplitQuantifier != null) {
             return TrExpr(e.SplitQuantifierExpression);
           } else {
-            List<Variable> tyvars = translator.MkTyParamBinders(e.TypeArgs);
             List<Variable> bvars = new List<Variable>();
             var bodyEtran = this;
             if (e is ExistsExpr && translator.stmtContext == StmtType.ASSERT && translator.adjustFuelForExists) {
@@ -1277,10 +1276,10 @@ namespace Microsoft.Dafny {
             Boogie.Expr body = bodyEtran.TrExpr(e.Term);
 
             if (e is ForallExpr) {
-              return new Boogie.ForallExpr(GetToken(expr), new List<TypeVariable>(), Concat(tyvars, bvars), kv, tr, Boogie.Expr.Imp(antecedent, body));
+              return new Boogie.ForallExpr(GetToken(expr), new List<TypeVariable>(), bvars, kv, tr, Boogie.Expr.Imp(antecedent, body));
             } else {
               Contract.Assert(e is ExistsExpr);
-              return new Boogie.ExistsExpr(GetToken(expr), new List<TypeVariable>(), Concat(tyvars, bvars), kv, tr, Boogie.Expr.And(antecedent, body));
+              return new Boogie.ExistsExpr(GetToken(expr), new List<TypeVariable>(), bvars, kv, tr, Boogie.Expr.And(antecedent, body));
             }
           }
         } else if (expr is SetComprehension) {
