@@ -168,6 +168,16 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
               0
           }
         }
+
+      }
+
+      function method ValidExpr(e: Expr): bool {
+        match e {
+          case Apply(UnaryOp(_), es) => |es| == 1
+          case Apply(BinaryOp(_), es) => |es| == 2
+          case Invalid(_) => false
+          case _ => true
+        }
       }
 
       type t = Expr
@@ -555,6 +565,12 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
       requires Shallow.All_Program(p, (e => Deep.All_Expr(e, P)))
       ensures Deep.All_Program(p, P)
     {}
+
+    lemma AllImpliesChildren(e: Expr.t, p: Expr.t -> bool)
+      requires Deep.All_Expr(e, p)
+      ensures Deep.AllChildren_Expr(e, p)
+    {}
+
   }
 
   module Rewriter {
@@ -893,6 +909,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
     import Simplifier
     import Translator
     import opened AST
+    import opened AST.Expr
     import opened AST.Type
     import opened StrTree_ = StrTree
     import opened Lib.Datatypes
@@ -1038,59 +1055,43 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
     function method CompilePrint(e: Expr.t) : StrTree
       decreases e, 1
       requires All_Expr(e, Simplifier.NotANegatedBinopExpr)
+      requires All_Expr(e, Expr.ValidExpr)
     {
       StrTree_.Seq([Call(Str("DafnyRuntime.Helpers.Print"), [CompileExpr(e)]), Str(";")])
     }
 
     function method CompileExpr(e: Expr.t) : StrTree
       requires Deep.All_Expr(e, Simplifier.NotANegatedBinopExpr)
+      requires Deep.All_Expr(e, Expr.ValidExpr)
       decreases e, 0
-    { // FIXME why are the calcs needed?
+    {
+      Predicates.AllImpliesChildren(e, Simplifier.NotANegatedBinopExpr);
+      Predicates.AllImpliesChildren(e, Expr.ValidExpr);
       match e {
         case Literal(l) =>
           CompileLiteralExpr(l)
         case UnaryOp(op, e') =>
-          calc ==> {
-            Deep.All_Expr(e, Simplifier.NotANegatedBinopExpr);
-            Deep.AllChildren_Expr(e, Simplifier.NotANegatedBinopExpr);
-            Deep.All_Expr(e', Simplifier.NotANegatedBinopExpr);
-          }
           var c := CompileExpr(e');
           CompileUnaryOpExpr(op, c)
         case Binary(op, e0, e1) =>
-          calc ==> {
-            Deep.All_Expr(e, Simplifier.NotANegatedBinopExpr);
-            Deep.AllChildren_Expr(e, Simplifier.NotANegatedBinopExpr);
-            && Deep.All_Expr(e0, Simplifier.NotANegatedBinopExpr)
-            && Deep.All_Expr(e1, Simplifier.NotANegatedBinopExpr);
-          }
           var c0, c1 := CompileExpr(e0), CompileExpr(e1);
           CompileBinaryExpr(op, c0, c1)
-        case Apply(_, _) =>
-          Unsupported
+        case Apply(UnaryOp(op), es) =>
+          var c := CompileExpr(es[0]);
+          CompileUnaryOpExpr(op, c)
+        case Apply(BinaryOp(op), es) => Unsupported
+        case Apply(Function(e), es) => Unsupported
+        case Apply(ClassConstructor(classType), es) => Unsupported
+        case Apply(DataConstructor(name, typeArgs), es) => Unsupported
+        case Apply(ClassMethod(receiver, name, typeArgs), es) => Unsupported
         case Display(ty, exprs) =>
-          calc ==> {
-            Deep.All_Expr(e, Simplifier.NotANegatedBinopExpr);
-            Deep.AllChildren_Expr(e, Simplifier.NotANegatedBinopExpr);
-            Seq.All(e => Deep.All_Expr(e, Simplifier.NotANegatedBinopExpr), exprs);
-          }
           CompileDisplayExpr(ty, Lib.Seq.Map((e requires e in exprs => CompileExpr(e)), exprs))
         case Invalid(_) => Unsupported
         case UnsupportedExpr(_) => Unsupported
 
         case Block(exprs) =>
-          calc ==> {
-            Deep.All_Expr(e, Simplifier.NotANegatedBinopExpr);
-            Deep.AllChildren_Expr(e, Simplifier.NotANegatedBinopExpr);
-            Seq.All(e => Deep.All_Expr(e, Simplifier.NotANegatedBinopExpr), exprs);
-          }
           Concat("\n", Lib.Seq.Map(e requires e in exprs => CompileExpr(e), exprs))
         case Print(exprs) =>
-          calc ==> {
-            Deep.All_Expr(e, Simplifier.NotANegatedBinopExpr);
-            Deep.AllChildren_Expr(e, Simplifier.NotANegatedBinopExpr);
-            Seq.All(e => Deep.All_Expr(e, Simplifier.NotANegatedBinopExpr), exprs);
-          }
           Concat("\n", Lib.Seq.Map(e requires e in exprs => CompilePrint(e), exprs))
         case UnsupportedStmt(_) => Unsupported
       }
@@ -1098,6 +1099,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
 
     function method CompileMethod(m: Method) : StrTree
       requires Deep.All_Method(m, Simplifier.NotANegatedBinopExpr)
+      requires Deep.All_Method(m, Expr.ValidExpr)
     {
       match m {
         case Method(nm, methodBody) => CompileExpr(methodBody)
@@ -1106,9 +1108,21 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
 
     function method CompileProgram(p: Program) : StrTree
       requires Deep.All_Program(p, Simplifier.NotANegatedBinopExpr)
+      requires Deep.All_Program(p, Expr.ValidExpr)
     {
       match p {
         case Program(mainMethod) => CompileMethod(mainMethod)
+      }
+    }
+
+    method AlwaysCompileProgram(p: Program) returns (st: StrTree)
+      requires Deep.All_Program(p, Simplifier.NotANegatedBinopExpr)
+    {
+      // TODO: this property is tedious to propagate so isn't complete yet
+      if Deep.All_Program(p, ValidExpr) {
+        st := CompileProgram(p);
+      } else {
+        st := StrTree.Str("// Invalid program.");
       }
     }
   }
@@ -1137,7 +1151,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
       var st := new CSharpDafnyInterop.SyntaxTreeAdapter(wr);
       var translated := Translator.TranslateProgram(dafnyProgram);
       var lowered := Simplifier.EliminateNegatedBinops(translated);
-      var compiled := Compiler.CompileProgram(lowered);
+      var compiled := Compiler.AlwaysCompileProgram(lowered);
       WriteAST(st, compiled);
     }
 
