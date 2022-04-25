@@ -1565,9 +1565,24 @@ namespace Microsoft.Dafny {
         } else if (s.S is ModifyStmt) {
           PrintModifyStmt(indent, (ModifyStmt)s.S, true);
         } else {
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected skeleton statement
+          Contract.Assert(false);
+          throw new cce.UnreachableException(); // unexpected skeleton statement
         }
 
+      } else if (stmt is TryRecoverStatement haltRecoveryStatement) {
+        // These have no actual syntax for Dafny user code, so emit something
+        // clearly not parsable.
+        int ind = indent + IndentAmount;
+
+        Indent(indent);
+        wr.WriteLine("[[ try { ]]");
+        PrintStatement(haltRecoveryStatement.TryBody, ind);
+        wr.WriteLine();
+
+        Indent(indent);
+        wr.WriteLine($"[[ }} recover ({haltRecoveryStatement.HaltMessageVar.Name}) {{ ]]");
+        PrintStatement(haltRecoveryStatement.RecoverBody, ind);
+        wr.Write("[[ } ]]");
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }
@@ -2594,7 +2609,6 @@ namespace Microsoft.Dafny {
         bool parensNeeded = !isRightmost;
         if (parensNeeded) { wr.Write("("); }
         wr.Write(e is ForallExpr ? "forall" : "exists");
-        PrintTypeParams(e.TypeArgs); // new!
         wr.Write(" ");
         PrintQuantifierDomain(e.BoundVars, e.Attributes, e.Range);
         if (keyword == null) {

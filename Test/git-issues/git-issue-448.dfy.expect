@@ -1,8 +1,8 @@
-git-issue-448.dfy(18,8): Error: variable 's', which is subject to definite-assignment rules, might be used before it has been assigned
-git-issue-448.dfy(21,4): Error: variable 'c', which is subject to definite-assignment rules, might be used before it has been assigned
-git-issue-448.dfy(23,13): Error: variable 'c', which is subject to definite-assignment rules, might be used before it has been assigned
-git-issue-448.dfy(25,6): Error: variable 'c', which is subject to definite-assignment rules, might be used before it has been assigned
-git-issue-448.dfy(27,13): Error: variable 'c', which is subject to definite-assignment rules, might be used before it has been assigned
+git-issue-448.dfy(18,8): Error: variable 's', which is subject to definite-assignment rules, might be uninitialized here
+git-issue-448.dfy(21,4): Error: variable 'c', which is subject to definite-assignment rules, might be uninitialized here
+git-issue-448.dfy(23,13): Error: variable 'c', which is subject to definite-assignment rules, might be uninitialized here
+git-issue-448.dfy(25,6): Error: variable 'c', which is subject to definite-assignment rules, might be uninitialized here
+git-issue-448.dfy(27,13): Error: variable 'c', which is subject to definite-assignment rules, might be uninitialized here
 git-issue-448.dfy(40,8): Error: possible division by zero
 
 Dafny program verifier finished with 1 verified, 6 errors

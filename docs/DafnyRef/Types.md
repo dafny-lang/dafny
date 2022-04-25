@@ -1358,7 +1358,7 @@ that exist for any arity (`() -> X`, `A -> X`, `(A, B) -> X`, `(A, B, C) -> X`,
 etc.).
 
 For a list of types `TT` and a type `U`, the values of the arrow type `(TT) ~> U`
-are functions from `TT` to `U. This includes functions that may read the
+are functions from `TT` to `U`. This includes functions that may read the
 heap and functions that are not defined on all inputs. It is not common
 to need this generality (and working with such general functions is
 difficult). Therefore, Dafny defines two subset types that are more common
@@ -1516,7 +1516,7 @@ If possible, Dafny compilers will represent values of the newtype using
 a native type for the sake of efficiency. This action can
 be inhibited or a specific native data type selected by
 using the `{:nativeType}` attribute, as explained in
-[Section 22.1.12](#sec-nativetype).
+[Section 22.1.2](#sec-nativetype).
 
 Furthermore, for the compiler to be able to make an appropriate choice of
 representation, the constants in the defining expression as shown above must be
@@ -2279,7 +2279,7 @@ transparent all the way.
 
 But the transparency of a function is affected by
 whether the function was given the `{:opaque}` attribute (as explained
-in [Section 22.1.13](#sec-opaque)).
+in [Section 22.2.9](#sec-opaque)).
 
 The following table summarizes where the function is transparent.
 The module referenced in the table is the module in which the
