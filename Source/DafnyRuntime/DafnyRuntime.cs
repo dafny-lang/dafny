@@ -1187,7 +1187,7 @@ namespace Dafny {
 
     private ImmutableArray<T> ComputeElements() {
       // Traverse the tree formed by all descendants which are ConcatSequences
-      var ansBuilder = ImmutableArray.CreateBuilder<T>();
+      var ansBuilder = ImmutableArray.CreateBuilder<T>(count);
       var toVisit = new Stack<ISequence<T>>();
       var (leftBuffer, rightBuffer) = (left, right);
       if (left == null || right == null) {

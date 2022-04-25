@@ -291,9 +291,9 @@ namespace Microsoft.Dafny {
             var newTermLeft = mc.IsGeneralMapComprehension ? Substitute(mc.TermLeft) : null;
             newExpr = new MapComprehension(e.BodyStartTok, e.BodyEndTok, mc.Finite, newBoundVars, newRange, newTermLeft, newTerm, newAttrs);
           } else if (expr is ForallExpr forallExpr) {
-            newExpr = new ForallExpr(expr.tok, e.BodyEndTok, forallExpr.TypeArgs, newBoundVars, newRange, newTerm, newAttrs);
+            newExpr = new ForallExpr(expr.tok, e.BodyEndTok, newBoundVars, newRange, newTerm, newAttrs);
           } else if (expr is ExistsExpr existsExpr) {
-            newExpr = new ExistsExpr(expr.tok, e.BodyEndTok, existsExpr.TypeArgs, newBoundVars, newRange, newTerm, newAttrs);
+            newExpr = new ExistsExpr(expr.tok, e.BodyEndTok, newBoundVars, newRange, newTerm, newAttrs);
           } else if (expr is LambdaExpr) {
             var l = (LambdaExpr)expr;
             newExpr = new LambdaExpr(e.BodyStartTok, e.BodyEndTok, newBoundVars, newRange, l.Reads.ConvertAll(SubstFrameExpr), newTerm);
