@@ -1840,8 +1840,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames,
-      Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, bool untyped = false,
-      bool bodyIsExpression = true) {
+      Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, bool untyped = false, bool bodyIsExpression = true) {
       wr.Write("function (");
       Contract.Assert(inTypes.Count == inNames.Count);  // guaranteed by precondition
       for (var i = 0; i < inNames.Count; i++) {

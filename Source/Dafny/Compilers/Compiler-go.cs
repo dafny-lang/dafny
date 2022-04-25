@@ -2811,8 +2811,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames,
-      Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, bool untyped = false,
-      bool bodyIsExpression = true) {
+      Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, bool untyped = false, bool bodyIsExpression = true) {
       wr.Write("func (");
       Contract.Assert(inTypes.Count == inNames.Count);  // guaranteed by precondition
       for (var i = 0; i < inNames.Count; i++) {
@@ -3309,6 +3308,7 @@ namespace Microsoft.Dafny.Compilers {
         ArrowType fat = from.AsArrowType, tat = to.AsArrowType;
         // We must wrap the whole conversion in an IIFE to avoid capturing the source expression
         var bvName = idGenerator.FreshId("coer");
+        // wStmts == null is fine as there should not be anything writen to it
         CreateIIFE(bvName, fat, tok, tat, tok, wr, null, out var ans, out wr);
 
         wr.Write("func (");

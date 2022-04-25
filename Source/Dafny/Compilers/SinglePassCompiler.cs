@@ -1036,8 +1036,7 @@ namespace Microsoft.Dafny.Compilers {
     protected abstract void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr);
     protected virtual bool TargetLambdasRestrictedToExpressions => false;
     protected abstract ConcreteSyntaxTree CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames,
-      Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, bool untyped = false,
-      bool bodyIsExpression = true);
+      Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, bool untyped = false, bool bodyIsExpression = true);
 
     /// <summary>
     /// Emit an "Immediately Invoked Function Expression" with the semantics of
@@ -4711,11 +4710,7 @@ namespace Microsoft.Dafny.Compilers {
 
         string source = ProtectedFreshId("_source");
         ConcreteSyntaxTree w;
-        //if (TargetLambdasRestrictedToExpressions) {
-        //  CreateIIFE(source, e.Source.Type, e.tok, e.Type, e.tok, wr, wStmts, out wr, out w);
-        //} else {
         w = CreateLambda(new List<Type>() { e.Source.Type }, e.tok, new List<string>() { source }, e.Type, wr, wStmts, bodyIsExpression: false);
-        //}
 
         if (e.Cases.Count == 0) {
           // the verifier would have proved we never get here; still, we need some code that will compile

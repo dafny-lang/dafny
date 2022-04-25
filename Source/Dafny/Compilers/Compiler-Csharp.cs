@@ -2708,8 +2708,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames,
-      Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, bool untyped = false,
-      bool bodyIsExpression = true) {
+      Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, bool untyped = false, bool bodyIsExpression = true) {
       // (
       //   (System.Func<inTypes,resultType>)  // cast, which tells C# what the various types involved are
       //   (

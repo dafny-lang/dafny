@@ -798,14 +798,11 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       var cl = udt.ResolvedClass;
-      if (cl is TypeParameter) {
-        return IdProtect(udt.CompileName);
-      }
-      if (cl is TupleTypeDecl tp) {
-        return "tuple";
-      } else {
-        return IdProtect(cl.FullCompileName);
-      }
+      return cl switch {
+        TypeParameter => IdProtect(udt.CompileName),
+        TupleTypeDecl => "tuple",
+        _ => IdProtect(cl.FullCompileName)
+      };
     }
 
     protected override void EmitThis(ConcreteSyntaxTree wr) {
@@ -814,12 +811,11 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitDatatypeValue(DatatypeValue dtv, string arguments, ConcreteSyntaxTree wr) {
       if (dtv.IsCoCall) {
-        wr.Write($"{dtv.DatatypeName}__Lazy(lambda: {DtCtorDeclarationName(dtv.Ctor)}({arguments}))");
+        throw new NotImplementedException();
       } else {
         if (dtv.Ctor.EnclosingDatatype is not TupleTypeDecl) {
           wr.Write($"{DtCtorDeclarationName(dtv.Ctor)}");
         }
-
         wr.Write($"({arguments})");
       }
     }
@@ -993,6 +989,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree CreateIIFE0(Type resultType, IToken resultTok, ConcreteSyntaxTree wr,
         ConcreteSyntaxTree wStmts) {
+      Contract.Assert(wStmts != null);
       var functionName = ProtectedFreshId("_iife");
       wr.WriteLine($"{functionName}()");
       return wStmts.NewBlockPy($"def {functionName}():");
@@ -1127,7 +1124,6 @@ namespace Microsoft.Dafny.Compilers {
       if (stmts.Count == 0) {
         writer.WriteLine("pass");
       }
-
       base.TrStmtList(stmts, writer);
     }
 
