@@ -3495,6 +3495,17 @@ namespace Microsoft.Dafny.Compilers {
       TrParenExpr("_dafny.SingleValue", e, wr, inLetExprBody, wStmts);
     }
 
+    protected override void EmitHaltRecoveryStmt(Statement body, string haltMessageVarName, Statement recoveryBody, ConcreteSyntaxTree wr) {
+      var funcBlock = wr.NewBlock("func()", close: BlockStyle.Brace);
+      var deferBlock = funcBlock.NewBlock("defer func()", close: BlockStyle.Brace);
+      var ifRecoverBlock = deferBlock.NewBlock("if r := recover(); r != nil");
+      ifRecoverBlock.WriteLine($"var {haltMessageVarName} = _dafny.SeqOfString(r.(string))");
+      TrStmt(recoveryBody, ifRecoverBlock);
+      funcBlock.WriteLine("()");
+      TrStmt(body, funcBlock);
+      wr.WriteLine("()");
+    }
+
     // ----- Target compilation and execution -------------------------------------------------------------
 
     public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,

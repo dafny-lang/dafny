@@ -439,6 +439,10 @@ namespace Microsoft.Dafny {
         rewriters.Add(new TriggerGeneratingRewriter(reporter));
       }
 
+      if (DafnyOptions.O.RunAllTests) {
+        rewriters.Add(new RunAllTestsMainMethod(reporter));
+      }
+
       rewriters.Add(new InductionRewriter(reporter));
       rewriters.Add(new PrintEffectEnforcement(reporter));
 
@@ -463,6 +467,10 @@ namespace Microsoft.Dafny {
       }
 
       ResolveTopLevelDecls_Core(systemModuleClassesWithNonNullTypes, new Graph<IndDatatypeDecl>(), new Graph<CoDatatypeDecl>());
+
+      foreach (var rewriter in rewriters) {
+        rewriter.PreResolve(prog);
+      }
 
       var compilationModuleClones = new Dictionary<ModuleDefinition, ModuleDefinition>();
       foreach (var decl in sortedDecls) {
@@ -2307,7 +2315,7 @@ namespace Microsoft.Dafny {
             extraMember.InheritVisibility(m, false);
             members.Add(extraName, extraMember);
           } else if (m is Function f && f.ByMethodBody != null) {
-            RegisterByMethod(f);
+            RegisterByMethod(f, cl);
           }
         } else if (m is Constructor && !((Constructor)m).HasName) {
           reporter.Error(MessageSource.Resolver, m, "More than one anonymous constructor");
@@ -2317,10 +2325,9 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void RegisterByMethod(Function f) {
+    void RegisterByMethod(Function f, TopLevelDeclWithMembers cl) {
       Contract.Requires(f != null && f.ByMethodBody != null);
 
-      var cl = (TopLevelDeclWithMembers)f.EnclosingClass;
       var tok = f.ByMethodTok;
       var resultVar = f.Result ?? new Formal(tok, "#result", f.ResultType, false, false, null);
       var r = Expression.CreateIdentExpr(resultVar);
@@ -15248,18 +15255,11 @@ namespace Microsoft.Dafny {
         }
         Contract.Assert(e.SplitQuantifier == null); // No split quantifiers during resolution
         int prevErrorCount = reporter.Count(ErrorLevel.Error);
-        bool _val = true;
-        bool typeQuantifier = Attributes.ContainsBool(e.Attributes, "typeQuantifier", ref _val) && _val;
-        allTypeParameters.PushMarker();
-        ResolveTypeParameters(e.TypeArgs, true, e);
         scope.PushMarker();
         foreach (BoundVar v in e.BoundVars) {
           ScopePushAndReport(scope, v, "bound-variable");
-          var option = typeQuantifier ? new ResolveTypeOption(e) : new ResolveTypeOption(ResolveTypeOptionEnum.InferTypeProxies);
-          ResolveType(v.tok, v.Type, opts.codeContext, option, typeQuantifier ? e.TypeArgs : null);
-        }
-        if (e.TypeArgs.Count > 0 && !typeQuantifier) {
-          reporter.Error(MessageSource.Resolver, expr, "a quantifier cannot quantify over types. Possible fix: use the experimental attribute :typeQuantifier");
+          var option = new ResolveTypeOption(ResolveTypeOptionEnum.InferTypeProxies);
+          ResolveType(v.tok, v.Type, opts.codeContext, option, null);
         }
         if (e.Range != null) {
           ResolveExpression(e.Range, opts);
@@ -15273,7 +15273,6 @@ namespace Microsoft.Dafny {
         // first (above) and only then resolve the attributes (below).
         ResolveAttributes(e, opts);
         scope.PopMarker();
-        allTypeParameters.PopMarker();
         expr.Type = Type.Bool;
 
       } else if (expr is SetComprehension) {
