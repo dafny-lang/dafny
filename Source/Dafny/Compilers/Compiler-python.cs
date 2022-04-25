@@ -71,7 +71,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern,
         string libraryName, ConcreteSyntaxTree wr) {
-      moduleName = MangleName(moduleName);
+      moduleName = IdProtect(moduleName);
       var file = wr.NewFile($"{moduleName}.py");
       EmitImports(moduleName, file);
       return file;
@@ -149,7 +149,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string fullPrintName,
         List<TypeParameter> typeParameters, TopLevelDecl cls, List<Type> superClasses, IToken tok, ConcreteSyntaxTree wr) {
-      var methodWriter = wr.NewBlockPy(header: $"class {MangleName(name)}:");
+      var methodWriter = wr.NewBlockPy(header: $"class {IdProtect(name)}:");
 
       var needsConstructor = cls is TopLevelDeclWithMembers decl && decl.Members.Any(m => !m.IsGhost && m is Field && !m.IsStatic);
       var constructorWriter = needsConstructor
@@ -199,10 +199,10 @@ namespace Microsoft.Dafny.Compilers {
         .WriteLine($"return not self.__eq__(__o)");
 
       foreach (var ctor in dt.Ctors) {
-        var ctorName = MangleName(ctor.CompileName);
+        var ctorName = IdProtect(ctor.CompileName);
 
         // Class-level fields don't work in all python version due to metaclasses.
-        var argList = ctor.Destructors.Select(d => $"(\'{MangleName(d.CompileName)}\', {TypeName(d.Type, wr, d.tok)})").Comma();
+        var argList = ctor.Destructors.Select(d => $"(\'{IdProtect(d.CompileName)}\', {TypeName(d.Type, wr, d.tok)})").Comma();
         var namedtuple = $"NamedTuple(\'{ctorName}\', [{argList}])";
         var header = $"class {DtCtorDeclarationName(ctor, false)}({DtT}, {namedtuple}):";
         var constructor = wr.NewBlockPy(header, close: BlockStyle.Newline);
@@ -229,7 +229,7 @@ namespace Microsoft.Dafny.Compilers {
       // {self.Dtor0}, {self.Dtor1}, ..., {self.DtorN}
       var args = ctor.Formals
         .Where(f => !f.IsGhost)
-        .Select(f => $"{{self.{MangleName(f.CompileName)}}}")
+        .Select(f => $"{{self.{IdProtect(f.CompileName)}}}")
         .Comma();
 
       if (args.Length > 0) {
@@ -241,14 +241,14 @@ namespace Microsoft.Dafny.Compilers {
 
       var argList = ctor.Formals
         .Where(f => !f.IsGhost)
-        .Select(f => $"self.{MangleName(f.CompileName)} == __o.{MangleName(f.CompileName)}");
+        .Select(f => $"self.{IdProtect(f.CompileName)} == __o.{IdProtect(f.CompileName)}");
       var suffix = args.Length > 0 ? $" and {string.Join(" and ", argList)}" : "";
 
-      //wr.NewBlockPy("def __eq__(self, __o: object) -> bool:")
-      //.WriteLine($"return isinstance(__o, {DtCtorDeclarationName(ctor)}){suffix}");
+      wr.NewBlockPy("def __eq__(self, __o: object) -> bool:")
+        .WriteLine($"return isinstance(__o, {DtCtorDeclarationName(ctor)}){suffix}");
 
-      //wr.NewBlockPy("def __hash__(self) -> int:")
-      //.WriteLine("return super().__hash__()");
+      wr.NewBlockPy("def __hash__(self) -> int:")
+        .WriteLine("return super().__hash__()");
     }
 
     private static string DtCtorDeclarationName(DatatypeCtor ctor, bool full = true) {
@@ -966,7 +966,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor,
         List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr) {
-      wr.Write($"{source}.{MangleName(dtor.CompileName)}");
+      wr.Write($"{source}.{IdProtect(dtor.CompileName)}");
     }
 
     protected override bool TargetLambdasRestrictedToExpressions => true;
