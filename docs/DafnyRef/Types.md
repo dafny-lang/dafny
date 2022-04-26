@@ -1756,8 +1756,8 @@ as explained below.
 MethodSignature_(isGhost, isExtreme) =
   [ GenericParameters ]
   [ KType ]    // permitted only if isExtreme == true
-  Formals(allowGhostKeyword: !isGhost, allowNewKeyword: isTwostateLemma, allowDefault: true))
-  [ "returns" Formals(allowGhostKeyword: !isGhost, allowNewKeyword: false, allowDefault: false) ]
+  Formals(allowGhostKeyword: !isGhost, allowNewKeyword: isTwostateLemma, allowOlderKeyword: false, allowDefault: true))
+  [ "returns" Formals(allowGhostKeyword: !isGhost, allowNewKeyword: false, allowOlderKeyword: false, allowDefault: false) ]
 ````
 A method signature specifies the method generic parameters,
 input parameters and return parameters.
@@ -1779,9 +1779,9 @@ The _k-type_ may be specified only for least and greatest lemmas and is describe
 in [Section 18.3](#sec-coinduction). // TODO - check this is the correct reference
 
 ````grammar
-Formals(allowGhostKeyword, allowNewKeyword, allowDefault) =
-  "(" [ GIdentType(allowGhostKeyword, allowNewKeyword, allowNameOnlyKeyword: true, allowDefault)
-        { "," GIdentType(allowGhostKeyword, allowNewKeyword, allowNameOnlyKeyword: true, allowDefault) }
+Formals(allowGhostKeyword, allowNewKeyword, allowOlderKeyword, allowDefault) =
+  "(" [ GIdentType(allowGhostKeyword, allowNewKeyword, allowOlderKeyword, allowNameOnlyKeyword: true, allowDefault)
+        { "," GIdentType(allowGhostKeyword, allowNewKeyword, allowOlderKeyword, allowNameOnlyKeyword: true, allowDefault) }
       ]
   ")"
 ````
@@ -2091,11 +2091,13 @@ FunctionDecl(isWithinAbstractModule) =
     PredicateSignatureOrEllipsis_(allowGhostKeyword:
                                            ("method" present),
                                   allowNewKeyword:
-                                           "twostate" present)
+                                           "twostate" present,
+                                  allowOlderKeyword: true)
   | ( "least" | "greatest" ) "predicate" { Attribute }
     MethodFunctionName
     PredicateSignatureOrEllipsis_(allowGhostKeyword: false,
-                         allowNewKeyword: "twostate" present))
+                         allowNewKeyword: "twostate" present,
+                         allowOlderKeyword: false))
   )
   FunctionSpec
   [ FunctionBody ]
@@ -2105,22 +2107,24 @@ FunctionSignatureOrEllipsis_(allowGhostKeyword) =
 
 FunctionSignature_(allowGhostKeyword, allowNewKeyword) =
   [ GenericParameters ]
-  Formals(allowGhostKeyword, allowNewKeyword)
+  Formals(allowGhostKeyword, allowNewKeyword, allowOlderKeyword: true, allowDefault: true)
   ":"
   ( Type
   | "(" GIdentType(allowGhostKeyword: false,
                    allowNewKeyword: false,
+                   allowOlderKeyword: false,
                    allowNameOnlyKeyword: false,
                    allowDefault: false)
     ")"
   )
 
-PredicateSignatureOrEllipsis_(allowGhostKeyword) =
-  PredicateSignature_(allowGhostKeyword) | ellipsis
+PredicateSignatureOrEllipsis_(allowGhostKeyword, allowNewKeyword, allowOlderKeyword) =
+  PredicateSignature_(allowGhostKeyword, allowNewKeyword, allowOlderKeyword) | ellipsis
 
-PredicateSignature_(allowGhostKeyword) =
-  [ GenericParameters ] [ KType ] Formals(allowGhostKeyword,
-                                          allowNewKeyword)
+PredicateSignature_(allowGhostKeyword, allowNewKeyword, allowOlderKeyword) =
+  [ GenericParameters ]
+  [ KType ]
+  Formals(allowGhostKeyword, allowNewKeyword, allowOlderKeyword, allowDefault: true)
 
 FunctionBody = "{" Expression(allowLemma: true, allowLambda: true)
                "}" [ "by" "method" BlockStmt ]
@@ -2300,17 +2304,11 @@ of inductive predicates and lemmas.
 
 ### 13.4.5. `older` parameters in predicates
 
-The attribute
-
-```
-{:older listOfFormalParameters}
-```
-
-can be placed on non-extreme predicates, giving as arguments one or
-more of the predicate's formal parameters.  The attribute claims that
-the truth of the predicate implies that the allocatedness of the
-listed parameters follows from the allocatedness of the other
-parameters.
+A parameter of any predicate (more precisely, of any
+boolean-returning, non-extreme function) can be marked as
+`older`. This specifies that the truth of the predicate implies that
+the allocatedness of the parameter follows from the allocatedness of
+the non-`older` parameters.
 
 To understand what this means and why this attribute is useful,
 consider the following example, which specifies reachability between
@@ -2475,35 +2473,35 @@ predicate IsCommutativeInS<X>(r: (X, X) -> bool, S: set<X>)
 The simple syntactic analysis that looks for `x in S` finds nothing
 here, because the `in` operator is relegated to the body of predicate
 `In`. To inform the analysis that `In` is a predicate that, in effect,
-is like `in`, you can mark parameter `x` with `:older`:
+is like `in`, you can mark parameter `x` with `older`:
 
 ```
-predicate {:older x} In<X>(x: X, S: set<X>) {
+predicate In<X>(older x: X, S: set<X>) {
   x in S
 }
 ```
 
 This causes the simple syntactic analysis to accept the quantifier in
-`IsCommutativeInS`. Adding `:older` also imposes a semantic check on
+`IsCommutativeInS`. Adding `older` also imposes a semantic check on
 the body of predicate `In`, enforced by the verifier. The semantic
 check is that all the object references in the value `x` are older (or
 equally old as) the object references that are part of the other
 parameters, _in the event that the predicate returns true_. That is,
-`:older` is designed to help the caller only if the predicate returns
+`older` is designed to help the caller only if the predicate returns
 `true`, and the semantic check amounts to nothing if the predicate
 returns `false`.
 
 Finally, let's get back to the motivating example. To allow the quantifier
-in `Reachable`, mark parameter `p` of `ReachableVia` with `:older`:
+in `Reachable`, mark parameter `p` of `ReachableVia` with `older`:
 
 ```
 predicate Reachable(source: Node, sink: Node, S: set<Node>)
   reads S
 {
-  exists p :: ReachableVia(source, p, sink, S) // allowed because of {:older p} on ReachableVia
+  exists p :: ReachableVia(source, p, sink, S) // allowed because of 'older p' on ReachableVia
 }
 
-predicate {:older p} ReachableVia(source: Node, p: Path<Node>, sink: Node, S: set<Node>)
+predicate ReachableVia(source: Node, older p: Path<Node>, sink: Node, S: set<Node>)
   reads S
   decreases p
 {
@@ -2516,9 +2514,9 @@ predicate {:older p} ReachableVia(source: Node, p: Path<Node>, sink: Node, S: se
 ```
 
 This example is more involved than the simpler `In` example
-above. Because of the `:older` annotation, the quantifier in
+above. Because of the `older` modifier on the parameter, the quantifier in
 `Reachable` is allowed. For intuition, you can think of the effect of
-`{:older p}` as adding an antecedent `p in {source} + {sink} + S`
+`older p` as adding an antecedent `p in {source} + {sink} + S`
 (but, as we have seen, this is not type correct). The semantic check
 imposed on the body of `ReachableVia` makes sure that, if the
 predicate returns `true`, then every object reference in `p` is as old
@@ -2923,8 +2921,8 @@ sequence.
 ````grammar
 IteratorDecl = "iterator" { Attribute } IteratorName
   ( [ GenericParameters ]
-    Formals(allowGhostKeyword: true, allowNewKeyword: false)
-    [ "yields" Formals(allowGhostKeyword: true, allowNewKeyword: false) ]
+    Formals(allowGhostKeyword: true, allowNewKeyword: false, allowOlderKeyword: false)
+    [ "yields" Formals(allowGhostKeyword: true, allowNewKeyword: false, allowOlderKeyword: false) ]
   | ellipsis
   )
   IteratorSpec
