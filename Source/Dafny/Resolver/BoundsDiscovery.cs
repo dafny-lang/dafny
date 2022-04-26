@@ -257,31 +257,13 @@ namespace Microsoft.Dafny {
       Contract.Requires(boundVariable != null);
       Contract.Requires(bounds != null);
 
-      var older = GetOlderParameters(fce.Function);
-      if (older == null) {
-        return;
-      }
-
-      // local worker function:
-      bool DoesOlderApply(Expression e, string formalName) {
-        return e.Resolved is IdentifierExpr ide && ide.Var == (IVariable)boundVariable && older.Contains(formalName);
-      }
-
-      var isOlderArgument = false;
-      if (!fce.Function.IsStatic && DoesOlderApply(fce.Receiver, "this")) {
-        isOlderArgument = true;
-      }
-      if (!isOlderArgument) {
-        Contract.Assert(fce.Function.Formals.Count == fce.Args.Count);
-        for (var i = 0; i < fce.Function.Formals.Count; i++) {
-          if (DoesOlderApply(fce.Args[i], fce.Function.Formals[i].Name)) {
-            isOlderArgument = true;
-            break;
-          }
+      var formals = fce.Function.Formals;
+      Contract.Assert(formals.Count == fce.Args.Count);
+      for (var i = 0; i < formals.Count; i++) {
+        if (formals[i].IsOlder && fce.Args[i].Resolved is IdentifierExpr ide && ide.Var == (IVariable)boundVariable) {
+          bounds.Add(new ComprehensionExpr.OlderBoundedPool());
+          return;
         }
-      }
-      if (isOlderArgument) {
-        bounds.Add(new ComprehensionExpr.OlderBoundedPool());
       }
     }
 

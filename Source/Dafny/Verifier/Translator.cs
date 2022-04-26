@@ -2152,10 +2152,9 @@ namespace Microsoft.Dafny {
         Bpl.Expr q = etran.TrExpr(Substitute(p.E, null, substMap));
         post = BplAnd(post, q);
       }
-      var olderParameters = Resolver.GetOlderParameters(f);
-      if (olderParameters != null) {
-        var q = OlderCondition(f, funcAppl, olderInParams, olderParameters, substMap);
-        post = BplAnd(post, q);
+      var olderParameterCount = OlderCondition(f, funcAppl, olderInParams, out var olderCondition);
+      if (olderParameterCount != 0) {
+        post = BplAnd(post, olderCondition);
       }
       Bpl.Expr whr = GetWhereClause(f.tok, funcAppl, f.ResultType, etran, NOALLOC);
       if (whr != null) { post = Bpl.Expr.And(post, whr); }
@@ -2180,14 +2179,19 @@ namespace Microsoft.Dafny {
       }
     }
 
-    Bpl.Expr OlderCondition(Function f, Bpl.Expr funcAppl, List<Bpl.Variable> inParams, ISet<string> olderParameters, Dictionary<IVariable, Expression> substMap) {
+    int OlderCondition(Function f, Bpl.Expr funcAppl, List<Bpl.Variable> inParams, out Bpl.Expr olderCondition) {
       Contract.Requires(f != null);
       Contract.Requires(funcAppl != null);
       Contract.Requires(inParams != null);
-      Contract.Requires(olderParameters != null);
-      Contract.Requires(substMap != null);
 
-      // For a function F(x: X, y: Y) where x is included in olderParameters and y is not, generate:
+      var olderParameterCount = f.Formals.Count(formal => formal.IsOlder);
+      if (olderParameterCount == 0) {
+        // nothing to do
+        olderCondition = Bpl.Expr.True;
+        return olderParameterCount;
+      }
+
+      // For a function F(older x: X, y: Y), generate:
       //     (forall h: Heap :: { OlderTag(h) }
       //         IsGoodHeap(h) && OlderTag(h) && F(x, y) && IsAlloc(y, Y, h)
       //         ==>  IsAlloc(x, X, h))
@@ -2203,18 +2207,14 @@ namespace Microsoft.Dafny {
         var th = new Bpl.IdentifierExpr(f.tok, inParams[i]);
         i++;
         var wh = GetWhereClause(f.tok, th, Resolver.GetReceiverType(f.tok, f), etran, ISALLOC, true);
-        if (olderParameters.Contains("this")) {
-          older = BplAnd(older, wh);
-        } else {
-          newer = BplAnd(newer, wh);
-        }
+        newer = BplAnd(newer, wh);
       }
       foreach (var formal in f.Formals) {
         var p = new Bpl.IdentifierExpr(f.tok, inParams[i]);
         i++;
         var wh = GetWhereClause(formal.tok, p, formal.Type, etran, ISALLOC, true);
         if (wh != null) {
-          if (olderParameters.Contains(formal.Name)) {
+          if (formal.IsOlder) {
             older = BplAnd(older, wh);
           } else {
             newer = BplAnd(newer, wh);
@@ -2225,7 +2225,8 @@ namespace Microsoft.Dafny {
 
       var body = BplImp(BplAnd(BplAnd(isGoodHeap, olderTag), BplAnd(funcAppl, newer)), older);
       var tr = new Bpl.Trigger(f.tok, true, new List<Bpl.Expr> { olderTag });
-      return new Bpl.ForallExpr(f.tok, new List<Bpl.TypeVariable>(), new List<Variable>() { heapVar }, null, tr, body);
+      olderCondition = new Bpl.ForallExpr(f.tok, new List<Bpl.TypeVariable>(), new List<Variable>() { heapVar }, null, tr, body);
+      return olderParameterCount;
     }
 
     Bpl.Expr AxiomActivation(Function f, ExpressionTranslator etran) {
@@ -4292,10 +4293,9 @@ namespace Microsoft.Dafny {
         wfo.ProcessSavedReadsChecks(locals, builderInitializationArea, bodyCheckBuilder);
 
         // Enforce :older conditions
-        var olderParameters = Resolver.GetOlderParameters(f);
-        if (olderParameters != null) {
-          var q = OlderCondition(f, funcAppl, implInParams, olderParameters, new Dictionary<IVariable, Expression>());
-          bodyCheckBuilder.Add(Assert(f.tok, q, new PODesc.IsOlder(olderParameters.Count, f.Formals.Count + (f.IsStatic ? 0 : 1))));
+        var olderParameterCount = OlderCondition(f, funcAppl, implInParams, out var olderCondition);
+        if (olderParameterCount != 0) {
+          bodyCheckBuilder.Add(Assert(f.tok, olderCondition, new PODesc.IsOlder(olderParameterCount, f.Formals.Count + (f.IsStatic ? 0 : 1))));
         }
       }
       // Combine the two, letting the postcondition be checked on after the "bodyCheckBuilder" branch
