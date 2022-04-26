@@ -2424,19 +2424,27 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Assert(assemblyLocation != null);
       var codebase = System.IO.Path.GetDirectoryName(assemblyLocation);
       Contract.Assert(codebase != null);
-      var warnings = "-Wall -Wextra -Wpedantic -Wno-unused-variable -Wno-deprecated-copy -Wno-unused-label";
-      if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-        warnings += " -Wno-unused-but-set-variable";
-      } else {
-        warnings += " -Wno-unknown-warning-option";
-      }
-      var args = warnings + $" -g -std=c++17 -I {codebase} -o {ComputeExeName(targetFilename)} {targetFilename}";
       compilationResult = null;
-      var psi = new ProcessStartInfo("g++", args) {
+      var psi = new ProcessStartInfo("g++") {
         CreateNoWindow = true,
         UseShellExecute = false,
         RedirectStandardOutput = true,
-        RedirectStandardError = true
+        RedirectStandardError = true,
+        ArgumentList = {
+          "-Wall",
+          "-Wextra",
+          "-Wpedantic",
+          "-Wno-unused-variable",
+          "-Wno-deprecated-copy",
+          "-Wno-unused-label",
+          "-Wno-unused-but-set-variable",
+          "-Wno-unknown-warning-option",
+          "-g",
+          "-std=c++17",
+          "-I", codebase,
+          "-o", ComputeExeName(targetFilename),
+          targetFilename
+        }
       };
       var proc = Process.Start(psi);
       while (!proc.StandardOutput.EndOfStream) {
