@@ -740,7 +740,11 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
     }
 
     predicate method IsNegatedBinopExpr(e: Expr.t) {
-      e.Binary? && IsNegatedBinop(e.bop)
+      match e {
+        case Binary(op, _, _) => IsNegatedBinop(op)
+        case Apply(BinaryOp(op), _) => IsNegatedBinop(op)
+        case _ => false
+      }
     }
 
     predicate NotANegatedBinopExpr(e: Expr.t) {
@@ -764,10 +768,13 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
     function method EliminateNegatedBinops_Expr1(e: Expr.t) : (e': Expr.t)
       ensures NotANegatedBinopExpr(e')
     {
-      if IsNegatedBinopExpr(e) then
-        Expr.t.UnaryOp(UnaryOp.Not, Expr.Binary(FlipNegatedBinop(e.bop), e.e0, e.e1))
-      else
-        e
+      match e {
+        case Binary(op, e1, e2) =>
+          Expr.t.UnaryOp(UnaryOp.Not, Expr.Binary(FlipNegatedBinop(op), e1, e2))
+        case Apply(BinaryOp(op), es) =>
+          Expr.t.UnaryOp(UnaryOp.Not, Expr.Apply(Expr.ApplyOp.BinaryOp(FlipNegatedBinop(op)), es))
+        case _ => e
+      }
     }
 
     lemma EliminateNegatedBinops_Expr'_BU()
@@ -776,7 +783,12 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
       var (f, PC) := (EliminateNegatedBinops_Expr1, NotANegatedBinopExpr);
       forall e | Deep.AllChildren_Expr(e, PC) ensures Deep.AllChildren_Expr(f(e), PC) {
         if IsNegatedBinopExpr(e) {
-          var e'' := Expr.Binary(FlipNegatedBinop(e.bop), e.e0, e.e1);
+          var e'' := match e {
+            case Binary(op, e1, e2) =>
+              Expr.Binary(FlipNegatedBinop(op), e1, e2)
+            case Apply(BinaryOp(op), es) =>
+              Expr.Apply(Expr.ApplyOp.BinaryOp(FlipNegatedBinop(op)), es)
+          };
           var e' := Expr.t.UnaryOp(UnaryOp.Not, e'');
           calc { // FIXME Automate
             Deep.All_Expr(f(e), PC);
@@ -785,7 +797,6 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
             true && Deep.AllChildren_Expr(e', PC);
             true && Deep.All_Expr(e'', PC);
             true && PC(e'') && Deep.AllChildren_Expr(e'', PC);
-            true && true && Deep.All_Expr(e.e0, PC) && Deep.All_Expr(e.e1, PC);
           }
         } else {}
       }
@@ -822,6 +833,21 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
           Predicates.Map_All_IsMap(e requires e in exprs => EliminateNegatedBinops_Expr_direct(e), exprs);
           var fe' := EliminateNegatedBinops_Expr_direct(fe);
           Expr.Apply(Expr.Function(fe'), exprs')
+        case Apply(BinaryOp(bop), exprs) =>
+          var exprs' := Seq.Map(e requires e in exprs => EliminateNegatedBinops_Expr_direct(e), exprs);
+          Predicates.Map_All_IsMap(e requires e in exprs => EliminateNegatedBinops_Expr_direct(e), exprs);
+          if IsNegatedBinop(bop) then
+            var e'' := Expr.Apply(Expr.ApplyOp.BinaryOp(FlipNegatedBinop(bop)), exprs');
+            assert Deep.All_Expr(e'', NotANegatedBinopExpr);
+            var e' := Expr.t.UnaryOp(UnaryOp.Not, e'');
+            calc {
+              Deep.All_Expr(e', NotANegatedBinopExpr);
+              NotANegatedBinopExpr(e') && Deep.AllChildren_Expr(e', NotANegatedBinopExpr);
+              NotANegatedBinopExpr(e') && Deep.All_Expr(e'', NotANegatedBinopExpr);
+            }
+            e'
+          else
+            Expr.Apply(Expr.ApplyOp.BinaryOp(bop), exprs')
         case Apply(aop, exprs) =>
           var exprs' := Seq.Map(e requires e in exprs => EliminateNegatedBinops_Expr_direct(e), exprs);
           Predicates.Map_All_IsMap(e requires e in exprs => EliminateNegatedBinops_Expr_direct(e), exprs);
@@ -1079,7 +1105,9 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
         case Apply(UnaryOp(op), es) =>
           var c := CompileExpr(es[0]);
           CompileUnaryOpExpr(op, c)
-        case Apply(BinaryOp(op), es) => Unsupported
+        case Apply(BinaryOp(op), es) =>
+          var c0, c1 := CompileExpr(es[0]), CompileExpr(es[1]);
+          CompileBinaryExpr(op, c0, c1)
         case Apply(Function(e), es) => Unsupported
         case Apply(ClassConstructor(classType), es) => Unsupported
         case Apply(DataConstructor(name, typeArgs), es) => Unsupported
