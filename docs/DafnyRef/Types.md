@@ -578,7 +578,7 @@ for `h`, since the type `X` could be empty.
 
 Note that every auto-init type is nonempty.
 
-### 8.1.4. Non-heap based: `T(!new)`
+### 8.1.4. Non-heap based: `T(!new)` {#sec-non-heap-based}
 
 Dafny makes a distinction between types whose values are on the heap,
 i.e. references, like
