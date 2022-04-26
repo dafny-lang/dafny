@@ -384,6 +384,21 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
       D.Expr.Apply(D.Expr.Function(fnExpr), argExprs)
     }
 
+    function method TranslateDatatypeValue(dtv: C.DatatypeValue): D.Expr.t
+      reads *
+      decreases ASTHeight(dtv), 0
+    {
+      var ctor := dtv.Ctor;
+      var n := TypeConv.AsString(ctor.Name);
+      var typeArgsC := ListUtils.ToSeq(dtv.InferredTypeArgs);
+      var typeArgs := Seq.Map((t requires t in typeArgsC reads * =>
+        TranslateType(t)), typeArgsC);
+      var argsC := ListUtils.ToSeq(dtv.Arguments); // TODO: also include formals
+      var argExprs := Seq.Map((e requires e in argsC reads * =>
+        assume ASTHeight(e) < ASTHeight(dtv); TranslateExpression(e)), argsC);
+      D.Expr.Apply(D.Expr.DataConstructor([n], typeArgs), argExprs) // TODO: proper path
+    }
+
     function method TranslateDisplayExpr(de: C.DisplayExpression): D.Expr.t
       reads *
       decreases ASTHeight(de), 0
@@ -422,6 +437,8 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
         TranslateLiteral(c as C.LiteralExpr)
       else if c is C.FunctionCallExpr then
         TranslateFunctionCall(c as C.FunctionCallExpr)
+      else if c is C.DatatypeValue then
+        TranslateDatatypeValue(c as C.DatatypeValue)
       else if c is C.MapDisplayExpr then
         TranslateMapDisplayExpr(c as C.MapDisplayExpr)
       else if c is C.DisplayExpression then
