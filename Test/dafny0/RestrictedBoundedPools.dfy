@@ -283,21 +283,21 @@ module WithoutOlder {
   }
 
   function Collection<X>(S: set<X>): iset<List<X>> {
-    iset xs: List<X> | ElementsContainedIn(xs, S) // error: needs {:older xs} on ElementsContainedIn
+    iset zs: List<X> | ElementsContainedIn(zs, S) // error: needs 'older zs' for ElementsContainedIn
   }
 }
 
 module WithOlder {
   datatype List<T> = Nil | Cons(T, List<T>)
 
-  // For a proof the :older in the following line, see OlderVerification.dfy.
-  predicate {:older xs} ElementsContainedIn<X>(xs: List<X>, S: set<X>) {
+  // For a proof the 'older' in the following line, see OlderVerification.dfy.
+  predicate ElementsContainedIn<X>(older xs: List<X>, S: set<X>) {
     match xs
     case Nil => true
     case Cons(x, tail) => x in S && ElementsContainedIn(tail, S)
   }
 
   function Collection<X>(S: set<X>): iset<List<X>> {
-    iset xs: List<X> | ElementsContainedIn(xs, S)
+    iset zs: List<X> | ElementsContainedIn(zs, S)
   }
 }

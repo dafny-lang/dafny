@@ -1,9 +1,3 @@
-OlderResolution.dfy(28,29): Error: :older attribute has duplicated argument: 'this'
-OlderResolution.dfy(7,17): Error: a :older attribute is allowed only on predicates and two-state predicates
-OlderResolution.dfy(8,26): Error: a :older attribute is allowed only on predicates and two-state predicates
-OlderResolution.dfy(9,24): Error: a :older attribute is allowed only on predicates and two-state predicates
-OlderResolution.dfy(10,28): Error: a :older attribute is allowed only on predicates and two-state predicates
-OlderResolution.dfy(20,24): Error: :older attribute has duplicated argument: 'x'
-OlderResolution.dfy(21,19): Error: a :older attribute expects as arguments one or more of the predicate's parameters
-OlderResolution.dfy(22,20): Error: each argument to :older is expected to be a parameter of the enclosing predicate
-8 resolution/type errors detected in OlderResolution.dfy
+OlderResolution.dfy(4,18): Error: only predicates and two-state predicates are allowed 'older' parameters
+OlderResolution.dfy(5,27): Error: only predicates and two-state predicates are allowed 'older' parameters
+2 resolution/type errors detected in OlderResolution.dfy

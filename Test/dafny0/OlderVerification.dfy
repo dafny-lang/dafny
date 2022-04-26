@@ -3,43 +3,43 @@
 
 // ----------------------------------
 
-predicate {:older x} Trivial0(x: int, s: set<int>) {
+predicate Trivial0(older x: int, s: set<int>) {
   true
 }
 
-predicate {:older x} Trivial1(x: int, s: set<int>) {
+predicate Trivial1(older x: int, s: set<int>) {
   x in s
 }
 
-predicate {:older x} Trivial2(x: int, s: set<int>) {
+predicate Trivial2(older x: int, s: set<int>) {
   x !in s
 }
 
 // ----------------------------------
 
-predicate {:older x} Trivial3<X(!new)>(x: X, s: set<X>) {
+predicate Trivial3<X(!new)>(older x: X, s: set<X>) {
   true
 }
 
-predicate {:older x} Trivial4<X(!new)>(x: X, s: set<X>) {
+predicate Trivial4<X(!new)>(older x: X, s: set<X>) {
   x in s
 }
 
-predicate {:older x} Trivial5<X(!new)>(x: X, s: set<X>) {
+predicate Trivial5<X(!new)>(older x: X, s: set<X>) {
   x !in s
 }
 
 // ----------------------------------
 
-predicate {:older x} Simple0<X>(x: X, s: set<X>) { // error: x is not older
+predicate Simple0<X>(older x: X, s: set<X>) { // error: x is not older
   true
 }
 
-predicate {:older x} Simple1<X>(x: X, s: set<X>) {
+predicate Simple1<X>(older x: X, s: set<X>) {
   x in s
 }
 
-predicate {:older x} Simple2<X>(x: X, s: set<X>) { // error: x is not older
+predicate Simple2<X>(older x: X, s: set<X>) { // error: x is not older
   x !in s
 }
 
@@ -60,7 +60,7 @@ module Reachable0 {
     exists via: Path<Node> :: ReachableVia(source, via, sink, S)
   }
 
-  predicate {:older p} ReachableVia(source: Node, p: Path<Node>, sink: Node, S: set<Node>)
+  predicate ReachableVia(source: Node, older p: Path<Node>, sink: Node, S: set<Node>)
     reads S
     decreases p
   {
@@ -86,7 +86,7 @@ module Reachable1 {
     exists via: Path<Node, Extra> :: ReachableVia(source, via, sink, S)
   }
 
-  predicate {:older p} ReachableVia<Extra>(source: Node, p: Path<Node, Extra>, sink: Node, S: set<Node>) // error: cannot prove p is older
+  predicate ReachableVia<Extra>(source: Node, older p: Path<Node, Extra>, sink: Node, S: set<Node>) // error: cannot prove p is older
     reads S
     decreases p
   {
@@ -112,7 +112,7 @@ module Reachable2 {
     exists via: Path<Node, Extra> :: ReachableVia(source, via, sink, S)
   }
 
-  predicate {:older p} ReachableVia(source: Node, p: Path<Node, Extra>, sink: Node, S: set<Node>)
+  predicate ReachableVia(source: Node, older p: Path<Node, Extra>, sink: Node, S: set<Node>)
     reads S
     decreases p
   {
@@ -138,7 +138,7 @@ module Reachable3 {
     exists via: Path<Node> :: ReachableVia(source, via, sink, S, 5)
   }
 
-  predicate {:older p} ReachableVia(source: Node, p: Path<Node>, sink: Node, S: set<Node>, bound: nat) // error: cannot prove p is older
+  predicate ReachableVia(source: Node, older p: Path<Node>, sink: Node, S: set<Node>, bound: nat) // error: cannot prove p is older
     reads S
     decreases p
   {
@@ -165,7 +165,7 @@ module Reachable4 {
     exists via: Path<Node, Extra> :: ReachableVia(source, via, sink, S)
   }
 
-  predicate {:older p} ReachableVia<Extra>(source: Node, p: Path<Node, Extra>, sink: Node, S: set<Node>) // error: cannot prove p is older
+  predicate ReachableVia<Extra>(source: Node, older p: Path<Node, Extra>, sink: Node, S: set<Node>) // error: cannot prove p is older
     reads S
     decreases p
   {
@@ -174,7 +174,7 @@ module Reachable4 {
     case Extend(prefix, n, extra) => n in S && sink in n.children && ReachableVia(source, prefix, n, S)
   }
 
-  predicate {:older p} ReachableViaEnsures<Extra>(source: Node, p: Path<Node, Extra>, sink: Node, S: set<Node>)
+  predicate ReachableViaEnsures<Extra>(source: Node, older p: Path<Node, Extra>, sink: Node, S: set<Node>)
     reads S
     ensures !ReachableViaEnsures(source, p, sink, S)
     decreases p
@@ -200,7 +200,7 @@ module Reachable5 {
     exists via: Path<Node> :: ReachableVia(source, via, sink, S, S)
   }
 
-  predicate {:older p} ReachableVia(source: Node, p: Path<Node>, sink: Node, S: set<Node>, T: set<Node>)
+  predicate ReachableVia(source: Node, older p: Path<Node>, sink: Node, S: set<Node>, T: set<Node>)
     reads S, T
     decreases p
   {
@@ -213,13 +213,10 @@ module Reachable5 {
 // ----------------------------------
 
 module Comprehension {
-  // These tests are mentioned in the documentation for the :older attribute. For a version of
-  // this program with the :older attribute, see RestrictedBoundedPools.dfy.
-
   class C { }
   datatype List<T> = Nil | Cons(T, List<T>)
 
-  predicate {:older xs} ElementsContainedIn<X>(xs: List<X>, S: set<X>) {
+  predicate ElementsContainedIn<X>(older xs: List<X>, S: set<X>) {
     match xs
     case Nil => true
     case Cons(x, tail) => x in S && ElementsContainedIn(tail, S)
@@ -232,15 +229,13 @@ module Comprehension {
 
 // ----------------------------------
 
-module AttributeDocumentationTests {
-  // These tests are mentioned in the documentation for the :older attribute.
-
+module MoreTests {
   class C { }
   datatype List<T> = Nil | Cons(T, List<T>)
   type Y = set<C>
   type X = List<C>
 
-  predicate {:older x} P(x: X, y: Y) {
+  predicate P(older x: X, y: Y) {
     match x
     case Nil => true
     case Cons(head, tail) => head in y && P(tail, y)
@@ -265,36 +260,36 @@ module AttributeDocumentationTests {
 module VariationsOnPlurals {
   type X
 
-  predicate {:older a} One_None(a: X) { // error: x is not older
+  predicate One_None(older a: X) { // error: x is not older
     true
   }
 
-  predicate {:older a} One_One(a: X, b: X) { // error: x is not older
+  predicate One_One(older a: X, b: X) { // error: x is not older
     true
   }
 
-  predicate {:older a} One_Many(a: X, b: X, c: X) { // error: x is not older
+  predicate One_Many(older a: X, b: X, c: X) { // error: x is not older
     true
   }
 
-  predicate {:older a, b} Many_None(a: X, b: X) { // error: x is not older
+  predicate Many_None(older a: X, older b: X) { // error: x is not older
     true
   }
 
-  predicate {:older a, b} Many_One(a: X, b: X, c: X) { // error: x is not older
+  predicate Many_One(older a: X, older b: X, c: X) { // error: x is not older
     true
   }
 
-  predicate {:older a, b} Many_Many(a: X, b: X, c: X, d: X) { // error: x is not older
+  predicate Many_Many(older a: X, older b: X, c: X, d: X) { // error: x is not older
     true
   }
 
   class C {
-    predicate {:older a} One_OneWithThis(a: X) { // error: x is not older
+    predicate One_OneWithThis(older a: X) { // error: x is not older
       true
     }
 
-    predicate {:older a} One_ManyWithThis(a: X, b: X) { // error: x is not older
+    predicate One_ManyWithThis(older a: X, b: X) { // error: x is not older
       true
     }
   }
