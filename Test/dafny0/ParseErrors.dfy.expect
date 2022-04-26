@@ -74,4 +74,8 @@ ParseErrors.dfy(246,51): Error: a 'by method' implementation is not allowed on a
 ParseErrors.dfy(246,2): Error: a predicate-by-method cannot be declared 'abstract'
 ParseErrors.dfy(247,54): Error: a 'by method' implementation is not allowed on an extreme predicate
 ParseErrors.dfy(247,2): Error: a predicate-by-method cannot be declared 'abstract'
-71 parse errors detected in ParseErrors.dfy
+ParseErrors.dfy(255,26): Error: colon expected
+ParseErrors.dfy(256,17): Error: colon expected
+ParseErrors.dfy(257,23): Error: colon expected
+ParseErrors.dfy(261,34): Error: colon expected
+75 parse errors detected in ParseErrors.dfy
