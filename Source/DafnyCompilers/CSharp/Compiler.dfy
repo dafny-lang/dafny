@@ -171,11 +171,10 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
 
       }
 
-      function method ValidExpr(e: Expr): bool {
+      function method WellFormed(e: Expr): bool {
         match e {
           case Apply(UnaryOp(_), es) => |es| == 1
           case Apply(BinaryOp(_), es) => |es| == 2
-          case Invalid(_) => false
           case _ => true
         }
       }
@@ -209,6 +208,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
     import opened CSharpDafnyInterop.Microsoft
     import C = CSharpDafnyASTModel
     import D = AST
+    import P = Predicates.Deep
 
     function method TranslateType(ty: C.Type): D.Type.Type
       reads *
@@ -325,15 +325,17 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
          [C.BinaryExpr__ResolvedOpcode.RankLt := D.BinaryOp.Datatypes(D.BinaryOp.RankLt)]
          [C.BinaryExpr__ResolvedOpcode.RankGt := D.BinaryOp.Datatypes(D.BinaryOp.RankGt)];
 
-    function method TranslateUnary(u: C.UnaryExpr) : D.Expr.t
+    function method TranslateUnary(u: C.UnaryExpr) : (e: D.Expr.t)
       decreases ASTHeight(u), 0
       reads *
+      ensures D.Expr.WellFormed(e)
+      ensures P.All_Expr(e, D.Expr.WellFormed)
     {
       if u is C.UnaryOpExpr then
         var u := u as C.UnaryOpExpr;
         var op, e := u.Op, u.E;
         assume op in UnaryOpCodeMap.Keys; // FIXME expect
-        D.Expr.t.UnaryOp(UnaryOpCodeMap[op], TranslateExpression(e))
+        D.Expr.t.Apply(D.Expr.ApplyOp.UnaryOp(UnaryOpCodeMap[op]), [TranslateExpression(e)])
       else
         D.Expr.UnsupportedExpr(u)
     }
@@ -341,19 +343,25 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
     function {:axiom} ASTHeight(c: C.Expression) : nat
     function {:axiom} TypeHeight(t: C.Type) : nat
 
-    function method TranslateBinary(b: C.BinaryExpr) : D.Expr.t
+    function method TranslateBinary(b: C.BinaryExpr) : (e: D.Expr.t)
       decreases ASTHeight(b), 0
       reads *
+      ensures D.Expr.WellFormed(e)
+      ensures P.All_Expr(e, D.Expr.WellFormed)
     {
       var op, e0, e1 := b.ResolvedOp, b.E0, b.E1;
       // LATER b.AccumulatesForTailRecursion
       assume op in BinaryOpCodeMap.Keys; // FIXME expect
       assume ASTHeight(e0) < ASTHeight(b);
       assume ASTHeight(e1) < ASTHeight(b);
-      D.Expr.Binary(BinaryOpCodeMap[op], TranslateExpression(e0), TranslateExpression(e1))
+      D.Expr.Apply(D.Expr.ApplyOp.BinaryOp(BinaryOpCodeMap[op]), [TranslateExpression(e0), TranslateExpression(e1)])
     }
 
-    function method TranslateLiteral(l: C.LiteralExpr): D.Expr.t reads * {
+    function method TranslateLiteral(l: C.LiteralExpr): (e: D.Expr.t)
+      reads *
+      ensures D.Expr.WellFormed(e)
+      ensures P.All_Expr(e, D.Expr.WellFormed)
+    {
       if l.Value is Boolean then
         D.Expr.Literal(D.Expr.LitBool(TypeConv.AsBool(l.Value)))
       else if l.Value is Numerics.BigInteger then
@@ -372,9 +380,11 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
       else D.Expr.UnsupportedExpr(l)
     }
 
-    function method TranslateFunctionCall(fce: C.FunctionCallExpr): D.Expr.t
+    function method TranslateFunctionCall(fce: C.FunctionCallExpr): (e: D.Expr.t)
       reads *
       decreases ASTHeight(fce), 0
+      ensures D.Expr.WellFormed(e)
+      ensures P.All_Expr(e, D.Expr.WellFormed)
     {
       assume ASTHeight(fce.Receiver) < ASTHeight(fce);
       var fnExpr := TranslateExpression(fce.Receiver);
@@ -384,24 +394,29 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
       D.Expr.Apply(D.Expr.Function(fnExpr), argExprs)
     }
 
-    function method TranslateDatatypeValue(dtv: C.DatatypeValue): D.Expr.t
+    function method TranslateDatatypeValue(dtv: C.DatatypeValue): (e: D.Expr.t)
       reads *
       decreases ASTHeight(dtv), 0
+      ensures D.Expr.WellFormed(e)
+      ensures P.All_Expr(e, D.Expr.WellFormed)
     {
       var ctor := dtv.Ctor;
       var n := TypeConv.AsString(ctor.Name);
       var typeArgsC := ListUtils.ToSeq(dtv.InferredTypeArgs);
       var typeArgs := Seq.Map((t requires t in typeArgsC reads * =>
         TranslateType(t)), typeArgsC);
-      var argsC := ListUtils.ToSeq(dtv.Arguments); // TODO: also include formals
+      // TODO: also include formals in the following, and filter out ghost arguments
+      var argsC := ListUtils.ToSeq(dtv.Arguments);
       var argExprs := Seq.Map((e requires e in argsC reads * =>
         assume ASTHeight(e) < ASTHeight(dtv); TranslateExpression(e)), argsC);
       D.Expr.Apply(D.Expr.DataConstructor([n], typeArgs), argExprs) // TODO: proper path
     }
 
-    function method TranslateDisplayExpr(de: C.DisplayExpression): D.Expr.t
+    function method TranslateDisplayExpr(de: C.DisplayExpression): (e: D.Expr.t)
       reads *
       decreases ASTHeight(de), 0
+      ensures D.Expr.WellFormed(e)
+      ensures P.All_Expr(e, D.Expr.WellFormed)
     {
       var elSeq := ListUtils.ToSeq(de.Elements);
       var exprs := Seq.Map((e requires e in elSeq reads * =>
@@ -410,9 +425,11 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
       D.Expr.Display(ty, exprs)
     }
 
-    function method TranslateMapDisplayExpr(mde: C.MapDisplayExpr): D.Expr.t
+    function method TranslateMapDisplayExpr(mde: C.MapDisplayExpr): (e: D.Expr.t)
       reads *
       decreases ASTHeight(mde), 0
+      ensures D.Expr.WellFormed(e)
+      ensures P.All_Expr(e, D.Expr.WellFormed)
     {
       var elSeq := ListUtils.ToSeq(mde.Elements);
       var exprs := Seq.Map((ep requires ep in elSeq reads * =>
@@ -421,15 +438,21 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
           var ty := D.Type.Collection(true, D.Type.CollectionKind.Seq, tyA);
           assume ASTHeight(ep.A) < ASTHeight(mde);
           assume ASTHeight(ep.B) < ASTHeight(mde);
-          D.Expr.Display(ty, [TranslateExpression(ep.A), TranslateExpression(ep.B)])
+          var e := D.Expr.Display(ty, [TranslateExpression(ep.A), TranslateExpression(ep.B)]);
+          assert P.All_Expr(e, D.Expr.WellFormed);
+          e
         ), elSeq);
+      // TODO: this should be provable
+      assume Seq.All(e => P.All_Expr(e, D.Expr.WellFormed), exprs);
       var ty := TranslateType(mde.Type);
       D.Expr.Display(ty, exprs)
     }
 
-    function method TranslateExpression(c: C.Expression) : D.Expr.t
+    function method TranslateExpression(c: C.Expression) : (e: D.Expr.t)
       reads *
       decreases ASTHeight(c), 1
+      ensures D.Expr.WellFormed(e)
+      ensures P.All_Expr(e, D.Expr.WellFormed)
     {
       if c is C.BinaryExpr then
         TranslateBinary(c as C.BinaryExpr)
@@ -1098,18 +1121,18 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
     function method CompilePrint(e: Expr.t) : StrTree
       decreases e, 1
       requires All_Expr(e, Simplifier.NotANegatedBinopExpr)
-      requires All_Expr(e, Expr.ValidExpr)
+      requires All_Expr(e, Expr.WellFormed)
     {
       StrTree_.Seq([Call(Str("DafnyRuntime.Helpers.Print"), [CompileExpr(e)]), Str(";")])
     }
 
     function method CompileExpr(e: Expr.t) : StrTree
       requires Deep.All_Expr(e, Simplifier.NotANegatedBinopExpr)
-      requires Deep.All_Expr(e, Expr.ValidExpr)
+      requires Deep.All_Expr(e, Expr.WellFormed)
       decreases e, 0
     {
       Predicates.AllImpliesChildren(e, Simplifier.NotANegatedBinopExpr);
-      Predicates.AllImpliesChildren(e, Expr.ValidExpr);
+      Predicates.AllImpliesChildren(e, Expr.WellFormed);
       match e {
         case Literal(l) =>
           CompileLiteralExpr(l)
@@ -1144,7 +1167,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
 
     function method CompileMethod(m: Method) : StrTree
       requires Deep.All_Method(m, Simplifier.NotANegatedBinopExpr)
-      requires Deep.All_Method(m, Expr.ValidExpr)
+      requires Deep.All_Method(m, Expr.WellFormed)
     {
       match m {
         case Method(nm, methodBody) => CompileExpr(methodBody)
@@ -1153,7 +1176,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
 
     function method CompileProgram(p: Program) : StrTree
       requires Deep.All_Program(p, Simplifier.NotANegatedBinopExpr)
-      requires Deep.All_Program(p, Expr.ValidExpr)
+      requires Deep.All_Program(p, Expr.WellFormed)
     {
       match p {
         case Program(mainMethod) => CompileMethod(mainMethod)
@@ -1164,7 +1187,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
       requires Deep.All_Program(p, Simplifier.NotANegatedBinopExpr)
     {
       // TODO: this property is tedious to propagate so isn't complete yet
-      if Deep.All_Program(p, ValidExpr) {
+      if Deep.All_Program(p, WellFormed) {
         st := CompileProgram(p);
       } else {
         st := StrTree.Str("// Invalid program.");
