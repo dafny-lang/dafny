@@ -773,9 +773,6 @@ namespace Microsoft.Dafny {
       trait is declared are checked for termination in the usual
       manner.
 
-    {:older <list of formal parameters>}
-      See documentation in the Dafny reference manual.
-
     {:warnShadowing}
       TODO
 

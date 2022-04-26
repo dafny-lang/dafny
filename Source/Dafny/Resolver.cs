@@ -3268,7 +3268,7 @@ namespace Microsoft.Dafny {
             }
           }
         }
-        // Check that functions claiming to be abstemious really are, and check that :older attributes are used correctly
+        // Check that functions claiming to be abstemious really are, and check that 'older' parameters are used only when allowed
         foreach (var fn in ModuleDefinition.AllFunctions(declarations)) {
           if (fn.Body != null) {
             var abstemious = true;
@@ -6739,7 +6739,7 @@ namespace Microsoft.Dafny {
                 if (bv.Type.IsTypeParameter || bv.Type.IsOpaqueType) {
                   msgFormat += " (perhaps declare its type, '{2}', as '{2}(!new)')";
                 }
-                msgFormat += " (see documentation for ':older')";
+                msgFormat += " (see documentation for 'older' parameters)";
                 var declKind = CodeContextWrapper.Unwrap(codeContext) is RedirectingTypeDecl redir ? redir.WhatKind : ((MemberDecl)codeContext).WhatKind;
                 resolver.reporter.Error(MessageSource.Resolver, e, msgFormat, what, bv.Name, bv.Type, declKind);
               }

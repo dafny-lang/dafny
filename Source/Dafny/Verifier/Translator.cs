@@ -2033,7 +2033,7 @@ namespace Microsoft.Dafny {
       //   $IsGoodHeap($Heap) && this != null && formals-have-the-expected-types &&
       //   Pre($Heap,formals)
       //
-      // OlderCondition is added if the function bears a {:older} attribute.
+      // OlderCondition is added if the function has some 'older' parameters.
       //
       // Note, an antecedent $Heap[this,alloc] is intentionally left out:  including it would only weaken
       // the axiom.  Moreover, leaving it out does not introduce any soundness problem, because the Dafny
@@ -4292,7 +4292,7 @@ namespace Microsoft.Dafny {
         }
         wfo.ProcessSavedReadsChecks(locals, builderInitializationArea, bodyCheckBuilder);
 
-        // Enforce :older conditions
+        // Enforce 'older' conditions
         var olderParameterCount = OlderCondition(f, funcAppl, implInParams, out var olderCondition);
         if (olderParameterCount != 0) {
           bodyCheckBuilder.Add(Assert(f.tok, olderCondition, new PODesc.IsOlder(olderParameterCount, f.Formals.Count + (f.IsStatic ? 0 : 1))));

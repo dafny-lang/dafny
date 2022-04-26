@@ -238,12 +238,12 @@ public class IsAllocated : ProofObligationDescription {
 
 public class IsOlder : ProofObligationDescription {
   public override string SuccessDescription =>
-    $"the ':older' parameter{SuccessOlder} not newer than {SuccessOther} other parameter when the predicate returns 'true'";
+    $"the 'older' parameter{SuccessOlder} not newer than {SuccessOther} other parameter when the predicate returns 'true'";
 
   public override string FailureDescription =>
-    $"{FailureOlder} ':older' parameter might be newer than {FailureOther} when the predicate returns 'true'";
+    $"{FailureOlder} 'older' parameter might be newer than {FailureOther} when the predicate returns 'true'";
 
-  public override string ShortDescription => $":older parameter{PluralOlderParameters}";
+  public override string ShortDescription => $"older parameter{PluralOlderParameters}";
 
   private readonly int olderParameterCount;
   private readonly int otherParameterCount;
@@ -252,8 +252,8 @@ public class IsOlder : ProofObligationDescription {
   private string FailureOlder => olderParameterCount == 1 ? "the" : "an";
   private string FailureOther =>
     olderParameterCount == 1 && otherParameterCount == 1 ? "the other parameter" :
-    otherParameterCount == 1 ? "the non-':older' parameter" :
-    "all non-':older' parameters";
+    otherParameterCount == 1 ? "the non-'older' parameter" :
+    "all non-'older' parameters";
   private string PluralOlderParameters => 2 <= olderParameterCount ? "s" : "";
 
   public IsOlder(int olderParameterCount, int allParameterCount) {
