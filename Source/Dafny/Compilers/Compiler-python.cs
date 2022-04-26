@@ -771,7 +771,6 @@ namespace Microsoft.Dafny.Compilers {
         case SpecialField.ID.IsNat:
           preString = "_dafny.BigOrdinal.is_nat(";
           postString = ")";
-          compiledName = "Keys";
           break;
         case SpecialField.ID.ArrayLength:
         case SpecialField.ID.ArrayLengthInt:
@@ -947,7 +946,8 @@ namespace Microsoft.Dafny.Compilers {
           TrParenExpr("~", expr, wr, inLetExprBody, wStmts);
           break;
         case ResolvedUnaryOp.BoolNot:
-          throw new NotImplementedException();
+          TrParenExpr("not", expr, wr, inLetExprBody, wStmts);
+          break;
         default:
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary expression
       }
@@ -1028,6 +1028,7 @@ namespace Microsoft.Dafny.Compilers {
 
         case BinaryExpr.ResolvedOpcode.Mod:
           staticCallString = "_dafny.euclidian_modulus"; break;
+
         case BinaryExpr.ResolvedOpcode.EqCommon:
           opString = "=="; break;
 
