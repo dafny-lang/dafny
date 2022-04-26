@@ -317,8 +317,6 @@ stronger than unary minus.  The fourth line uses the conversion
 function `as real` from `int` to `real`, as described in
 [Section 20.10](#sec-as-expression).
 
-TODO: Need syntax for real literals with exponents
-
 ## 7.3. Bit-vector Types {#sec-bit-vector-types}
 ````grammar
 BitVectorType_ = bvToken
@@ -1053,7 +1051,7 @@ built-in iterator methods, but the idioms by which to do so are straightforward.
 The subsections below give some introductory examples; more
 detail can be found in this [power user note](http://leino.science/papers/krml275.html).
 
-TODO: Add examples of using a iterator class
+TODO: Add examples of using an iterator class
 TODO: Should a foreach statment be added to Dafny
 
 ### 10.5.1. Sequences and arrays
@@ -1776,7 +1774,7 @@ signature.
 KType = "[" ( "nat" | "ORDINAL" ) "]"
 ````
 The _k-type_ may be specified only for least and greatest lemmas and is described
-in [Section 18.3](#sec-coinduction). // TODO - check this is the correct reference
+in [Section 23](#sec-advanced-topics).
 
 ````grammar
 Formals(allowGhostKeyword, allowNewKeyword, allowOlderKeyword, allowDefault) =
@@ -1840,11 +1838,10 @@ A static method M in a class C can be invoked by `C.M(…)`.
 An ordinary method is declared with the `method` keyword.
 Section [#sec-constructors] explains methods that instead use the
 `constructor` keyword. Section [#sec-lemmas] discusses methods that are
-declared with the `lemma` keyword. Methods declared with the `inductive`
-`lemma` keywords are discussed later in the context of inductive
-predicates (see [#sec-inductive-datatypes]). Methods declared with the
-`colemma` keyword are discussed later in the context of co-inductive
-types, in section [#sec-colemmas].
+declared with the `lemma` keyword. Methods declared with the
+`least lemma` or `greatest lemma` keyword phrases
+are discussed later in the context of extreme
+predicates (see section [#sec-colemmas]).
 
 A method without a body is _abstract_. A method is allowed to be
 abstract under the following circumstances:
@@ -2298,9 +2295,9 @@ When `{:opaque}` is specified for function `g`, `g` is opaque,
 however the statement `reveal g();` is available to give the semantics
 of `g` whether in the defining module or outside.
 
-### 13.4.4. Least/Greatest (CoInductive) Predicates and Lemmas
+### 13.4.4. Extreme (Least or Greatest) Predicates and Lemmas
 See [Section 23.5.3](#sec-friendliness) for descriptions
-of inductive predicates and lemmas.
+of extreme predicates and lemmas.
 
 ### 13.4.5. `older` parameters in predicates
 
@@ -2453,8 +2450,8 @@ has type `Path`. We need some other way to justify that the
 quantification in `Reachable` is close-ended.
 
 Dafny offers a way to extend the `x in S` trick to more situations.
-This is where the `:older` attribute comes in. Before we apply
-`:older` to `Reachable`, let's first look at what `:older` does in a
+This is where the `older` modifier comes in. Before we apply `older`
+in the `Reachable` example, let's first look at what `older` does in a
 less cluttered example.
 
 Suppose we rewrite `IsCommutativeInS` using a programmer-defined predicate `In`:
@@ -3512,13 +3509,13 @@ function Mult(a: IStream<int>, b: IStream<int>): IStream<int>
 { ICons(a.head * b.head, Mult(a.tail, b.tail)) }
 
 // lexicographic order on streams
-copredicate Below(a: IStream<int>, b: IStream<int>)
+greatest predicate Below(a: IStream<int>, b: IStream<int>)
 { a.head <= b.head &&
   ((a.head == b.head) ==> Below(a.tail, b.tail))
 }
 
 // a stream is Below its Square
-colemma Theorem_BelowSquare(a: IStream<int>)
+greatest lemma Theorem_BelowSquare(a: IStream<int>)
   ensures Below(a, Mult(a, a))
 { assert a.head <= Mult(a, a).head;
   if a.head == Mult(a, a).head {
@@ -3527,7 +3524,7 @@ colemma Theorem_BelowSquare(a: IStream<int>)
 }
 
 // an incorrect property and a bogus proof attempt
-colemma NotATheorem_SquareBelow(a: IStream<int>)
+greatest lemma NotATheorem_SquareBelow(a: IStream<int>)
   ensures Below(Mult(a, a), a); // ERROR
 {
   NotATheorem_SquareBelow(a);
@@ -3690,15 +3687,15 @@ in Dafny are deterministic. Since there cannot be multiple fix-points,
 the language allows one function to be involved in both recursive and co-recursive calls,
 as we illustrate by the function `FivesUp`.
 
-### 18.3.4. Copredicates {#sec-copredicates}
+### 18.3.4. Greatest predicates {#sec-copredicates}
 Determining properties of co-datatype values may require an infinite
-number of observations. To that end, Dafny provides _co-predicates_
-which are function declarations that use the `copredicate` keyword.
-Self-calls to a co-predicate need not terminate. Instead, the value
+number of observations. To that end, Dafny provides _greatest predicates_
+which are function declarations that use the `greatest predicate` keyword phrase.
+Self-calls to a greatest predicate need not terminate. Instead, the value
 defined is the greatest fix-point of the given recurrence equations.
 Continuing the preceding example, the following code defines a
-co-predicate that holds for exactly those streams whose payload consists
-solely of positive integers. The co-predicate definition implicitly also
+greatest predicate that holds for exactly those streams whose payload consists
+solely of positive integers. The greatest predicate definition implicitly also
 gives rise to a corresponding prefix predicate, `Pos#`. The syntax for
 calling a prefix predicate sets apart the argument that specifies the
 prefix length, as shown in the last line; for this figure, we took the
@@ -3707,7 +3704,7 @@ automatically generated prefix predicate (which is not part of
 Dafny syntax).
 
 ```dafny
-copredicate Pos(s: Stream<int>)
+greatest predicate Pos(s: Stream<int>)
 {
   match s
   case SNil => true
@@ -3742,7 +3739,7 @@ co-predicates, no other kinds of functions.
     rather modest and typical reasoning patterns do not involve them, so this
     restriction is not as limiting as it would have been in, e.g., Coq.
 
-A **copredicate** declaration of `P` defines not just a co-predicate, but
+A **greatest predicate** declaration of `P` defines not just a greatest predicate, but
 also a corresponding _prefix predicate_ `P#`. A prefix predicate is a
 finite unrolling of a co-predicate. The prefix predicate is constructed
 from the co-predicate by
@@ -3753,7 +3750,7 @@ from the co-predicate by
   co-predicate itself is not allowed to have a decreases clause),
 
 * replacing in the body of the co-predicate every intra-cluster
-  call `Q(args)` to a copredicate by a call `Q#[_k - 1](args)`
+  call `Q(args)` to a greatest predicate by a call `Q#[_k - 1](args)`
   to the corresponding prefix predicate, and then
 
 * prepending the body with `if _k = 0 then true else`.
@@ -3824,18 +3821,18 @@ the forall statement to show `? k • Pos#[k](Up(n))`. Finally, the axiom
 `D(Pos)` is used (automatically) to establish the co-predicate.
 
 
-#### 18.3.5.2. Colemmas {#sec-colemmas}
+#### 18.3.5.2. Greatest lemmas {#sec-colemmas}
 As we just showed, with help of the `D` axiom we can now prove a
-co-predicate by inductively proving that the corresponding prefix
+greatest predicate by inductively proving that the corresponding prefix
 predicate holds for all prefix lengths `k`. In this section, we introduce
-_co-lemma_ declarations, which bring about two benefits. The first benefit
-is that co-lemmas are syntactic sugar and reduce the tedium of having to
+_greatest lemma_ declarations, which bring about two benefits. The first benefit
+is that greatest lemmas are syntactic sugar and reduce the tedium of having to
 write explicit quantifications over `k`. The second benefit is that, in
 simple cases, the bodies of co-lemmas can be understood as co-inductive
-proofs directly. As an example consider the following co-lemma.
+proofs directly. As an example consider the following greatest lemma.
 
 ```dafny
-colemma UpPosLemma(n: int)
+greatest lemma UpPosLemma(n: int)
   requires n > 0
   ensures Pos(Up(n))
 {
@@ -3848,14 +3845,14 @@ equals `Up(n+1)`). The proof glue needed to then conclude `Pos(Up(n))` is
 provided automatically, thanks to the power of the SMT-based verifier.
 
 #### 18.3.5.3. Prefix Lemmas {#sec-prefix-lemmas}
-To understand why the above `UpPosLemma` co-lemma code is a sound proof,
-let us now describe the details of the desugaring of co-lemmas. In
-analogy to how a **copredicate** declaration defines both a co-predicate and
-a prefix predicate, a **colemma** declaration defines both a co-lemma and
-_prefix lemma_. In the call graph, the cluster containing a co-lemma must
-contain only co-lemmas and prefix lemmas, no other methods or function.
-By decree, a co-lemma and its corresponding prefix lemma are always
-placed in the same cluster. Both co-lemmas and prefix lemmas are always
+To understand why the above `UpPosLemma` greatest lemma code is a sound proof,
+let us now describe the details of the desugaring of greatest lemmas. In
+analogy to how a **greatest predicate** declaration defines both a greatest predicate and
+a prefix predicate, a **greatest lemma** declaration defines both a greatest lemma and
+_prefix lemma_. In the call graph, the cluster containing a greatest lemma must
+contain only greatest lemmas and prefix lemmas, no other methods or function.
+By decree, a greatest lemma and its corresponding prefix lemma are always
+placed in the same cluster. Both greatest lemmas and prefix lemmas are always
 ghosts.
 
 The prefix lemma is constructed from the co-lemma by
@@ -3869,7 +3866,7 @@ The prefix lemma is constructed from the co-lemma by
 * prepending `_k` to the (typically implicit) **decreases** clause of the co-lemma,
 
 * replacing in the body of the co-lemma every intra-cluster call
-  `M(args)` to a colemma by a call `M#[_k - 1](args)` to the
+  `M(args)` to a greatest lemma by a call `M#[_k - 1](args)` to the
   corresponding prefix lemma, and then
 
 * making the body’s execution conditional on `_k != 0`.
@@ -3887,7 +3884,7 @@ co-lemma.[^fn-co-predicate-co-lemma-diffs]
 
 We can now think of the body of the co-lemma as being replaced by a
 **forall** call, for every _k_ , to the prefix lemma. By construction,
-this new body will establish the colemma’s declared postcondition (on
+this new body will establish the greatest lemma’s declared postcondition (on
 account of the `D` axiom, and remembering that only the positive
 co-friendly occurrences of co-predicates in the co-lemma’s postcondition
 are rewritten), so there is no reason for the program verifier to check
