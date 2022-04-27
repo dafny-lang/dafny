@@ -259,11 +259,9 @@ namespace Microsoft.Dafny {
 
       var formals = fce.Function.Formals;
       Contract.Assert(formals.Count == fce.Args.Count);
-      for (var i = 0; i < formals.Count; i++) {
-        if (formals[i].IsOlder && fce.Args[i].Resolved is IdentifierExpr ide && ide.Var == (IVariable)boundVariable) {
-          bounds.Add(new ComprehensionExpr.OlderBoundedPool());
-          return;
-        }
+      if (LinqExtender.Zip(formals, fce.Args).Any(t => t.Item1.IsOlder && t.Item2.Resolved is IdentifierExpr ide && ide.Var == (IVariable)boundVariable)) {
+        bounds.Add(new ComprehensionExpr.OlderBoundedPool());
+        return;
       }
     }
 

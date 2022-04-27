@@ -2380,8 +2380,9 @@ admit it. The reason is twofold:
 
 * This property is ensured by disallowing _open-ended_ quantifiers.
   More precisely, the object references that a quantifier may range
-  over must be shown to be confined to object references that are
-  already allocated. Quantifiers that are not open-ended are called
+  over must be shown to be confined to object references that were
+  allocated before some of the non-`older` parameters passed to the
+  predicate. Quantifiers that are not open-ended are called
   _close-ended_. Note that close-ended refers only to the object
   references that the quantification or comprehension ranges over---it
   does not say anything about values of other types, like integers.

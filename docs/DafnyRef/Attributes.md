@@ -461,7 +461,6 @@ BOUNDVARS = ID : ID
           | BOUNDVARS, BOUNDVARS
 ```
 
-
 ## 22.3. Attributes on assertions, preconditions and postconditions {#sec-verification-attributes-on-assert-statements}
 
 

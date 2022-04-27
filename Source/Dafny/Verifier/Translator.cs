@@ -2152,7 +2152,7 @@ namespace Microsoft.Dafny {
         Bpl.Expr q = etran.TrExpr(Substitute(p.E, null, substMap));
         post = BplAnd(post, q);
       }
-      var olderParameterCount = OlderCondition(f, funcAppl, olderInParams, out var olderCondition);
+      var (olderParameterCount, olderCondition) = OlderCondition(f, funcAppl, olderInParams);
       if (olderParameterCount != 0) {
         post = BplAnd(post, olderCondition);
       }
@@ -2179,7 +2179,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    int OlderCondition(Function f, Bpl.Expr funcAppl, List<Bpl.Variable> inParams, out Bpl.Expr olderCondition) {
+    (int olderParameterCount, Bpl.Expr olderCondition) OlderCondition(Function f, Bpl.Expr funcAppl, List<Bpl.Variable> inParams) {
       Contract.Requires(f != null);
       Contract.Requires(funcAppl != null);
       Contract.Requires(inParams != null);
@@ -2187,8 +2187,7 @@ namespace Microsoft.Dafny {
       var olderParameterCount = f.Formals.Count(formal => formal.IsOlder);
       if (olderParameterCount == 0) {
         // nothing to do
-        olderCondition = Bpl.Expr.True;
-        return olderParameterCount;
+        return (olderParameterCount, Bpl.Expr.True);
       }
 
       // For a function F(older x: X, y: Y), generate:
@@ -2225,8 +2224,8 @@ namespace Microsoft.Dafny {
 
       var body = BplImp(BplAnd(BplAnd(isGoodHeap, olderTag), BplAnd(funcAppl, newer)), older);
       var tr = new Bpl.Trigger(f.tok, true, new List<Bpl.Expr> { olderTag });
-      olderCondition = new Bpl.ForallExpr(f.tok, new List<Bpl.TypeVariable>(), new List<Variable>() { heapVar }, null, tr, body);
-      return olderParameterCount;
+      var olderCondition = new Bpl.ForallExpr(f.tok, new List<Bpl.TypeVariable>(), new List<Variable>() { heapVar }, null, tr, body);
+      return (olderParameterCount, olderCondition);
     }
 
     Bpl.Expr AxiomActivation(Function f, ExpressionTranslator etran) {
@@ -4293,9 +4292,9 @@ namespace Microsoft.Dafny {
         wfo.ProcessSavedReadsChecks(locals, builderInitializationArea, bodyCheckBuilder);
 
         // Enforce 'older' conditions
-        var olderParameterCount = OlderCondition(f, funcAppl, implInParams, out var olderCondition);
+        var (olderParameterCount, olderCondition) = OlderCondition(f, funcAppl, implInParams);
         if (olderParameterCount != 0) {
-          bodyCheckBuilder.Add(Assert(f.tok, olderCondition, new PODesc.IsOlder(olderParameterCount, f.Formals.Count + (f.IsStatic ? 0 : 1))));
+          bodyCheckBuilder.Add(Assert(f.tok, olderCondition, new PODesc.IsOlderProofObligation(olderParameterCount, f.Formals.Count + (f.IsStatic ? 0 : 1))));
         }
       }
       // Combine the two, letting the postcondition be checked on after the "bodyCheckBuilder" branch

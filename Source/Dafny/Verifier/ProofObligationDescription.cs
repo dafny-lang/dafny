@@ -236,7 +236,7 @@ public class IsAllocated : ProofObligationDescription {
   }
 }
 
-public class IsOlder : ProofObligationDescription {
+public class IsOlderProofObligation : ProofObligationDescription {
   public override string SuccessDescription =>
     $"the 'older' parameter{SuccessOlder} not newer than {SuccessOther} other parameter when the predicate returns 'true'";
 
@@ -256,7 +256,7 @@ public class IsOlder : ProofObligationDescription {
     "all non-'older' parameters";
   private string PluralOlderParameters => 2 <= olderParameterCount ? "s" : "";
 
-  public IsOlder(int olderParameterCount, int allParameterCount) {
+  public IsOlderProofObligation(int olderParameterCount, int allParameterCount) {
     Contract.Requires(1 <= olderParameterCount);
     Contract.Requires(olderParameterCount <= allParameterCount);
     this.olderParameterCount = olderParameterCount;
