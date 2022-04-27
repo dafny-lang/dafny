@@ -13,7 +13,7 @@ datatype S = S(rep: map<nat, R>) {
   function cpy(r: nat, v: nat): R
     requires r in rep
   {
-    launder(rep[r].(v := v))
+    launder(rep[r].(v := v)) // Error: `v` does not satisfy subtype constraints
   }
 
   static method bad() ensures false {

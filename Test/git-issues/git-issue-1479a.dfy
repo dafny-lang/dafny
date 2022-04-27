@@ -10,5 +10,5 @@ type SubsetType = d: BaseType | P(d) witness *
 method m0(dp: SubsetType)
 
 method m1(dp: SubsetType, t: T) {
-  var dp': SubsetType := [dp][0].(t := t);
+  var dp': SubsetType := [dp][0].(t := t); // Error: `t` does not satisfy subtype constraints
 }
