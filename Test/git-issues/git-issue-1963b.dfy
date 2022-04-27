@@ -9,7 +9,7 @@ module A {
 }
 
 module B refines A {
-  datatype D = ... D | D'
+  datatype D = ... D | D' // Error: Cannot change (or repeat) constructors
 }
 
 method M() ensures false {
