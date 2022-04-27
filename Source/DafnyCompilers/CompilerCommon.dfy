@@ -133,8 +133,6 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
 
       datatype Expr =
         // Expressions
-        | UnaryOp(uop: UnaryOp.Op, e: Expr) // LATER UnaryExpr
-        | Binary(bop: BinaryOp.Op, e0: Expr, e1: Expr)
         | Literal(lit: Literal)
         | Apply(aop: ApplyOp, args: seq<Expr>)
         | Invalid(msg: string)
@@ -146,10 +144,6 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         function method Depth() : nat {
           1 + match this { // FIXME IDE rejects this, command line accepts it
             // Expressions
-            case UnaryOp(uop: UnaryOp.Op, e: Expr) =>
-              e.Depth()
-            case Binary(bop: BinaryOp.Op, e0: Expr, e1: Expr) =>
-              Math.Max(e0.Depth(), e1.Depth())
             case Literal(lit: Literal) =>
               0
             case Apply(_, args) =>
@@ -554,10 +548,6 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       {
         match e {
           // Exprs
-          case UnaryOp(uop: UnaryOp.Op, e: Expr.t) =>
-            All_Expr(e, P)
-          case Binary(bop: BinaryOp.Op, e0: Expr.t, e1: Expr.t) =>
-            All_Expr(e0, P) && All_Expr(e1, P)
           case Literal(lit: Expr.Literal) => true
           case Apply(_, exprs) =>
             Seq.All(e requires e in exprs => All_Expr(e, P), exprs)
@@ -670,10 +660,6 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         // type gets new arguments
         match e {
           // Expressions
-          case UnaryOp(uop, e) =>
-            Expr.t.UnaryOp(uop, Map_Expr(e, tr))
-          case Binary(bop, e0, e1) =>
-            Expr.Binary(bop, Map_Expr(e0, tr), Map_Expr(e1, tr))
           case Literal(lit_) => e
           case Apply(aop, exprs) =>
             var exprs' := Seq.Map(e requires e in exprs => Map_Expr(e, tr), exprs);
@@ -754,7 +740,6 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
 
     predicate method IsNegatedBinopExpr(e: Expr.t) {
       match e {
-        case Binary(op, _, _) => IsNegatedBinop(op)
         case Apply(BinaryOp(op), _) => IsNegatedBinop(op)
         case _ => false
       }
@@ -782,10 +767,8 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       ensures NotANegatedBinopExpr(e')
     {
       match e {
-        case Binary(op, e1, e2) =>
-          Expr.t.UnaryOp(UnaryOp.Not, Expr.Binary(FlipNegatedBinop(op), e1, e2))
         case Apply(BinaryOp(op), es) =>
-          Expr.t.UnaryOp(UnaryOp.Not, Expr.Apply(Expr.ApplyOp.BinaryOp(FlipNegatedBinop(op)), es))
+          Expr.t.Apply(Expr.ApplyOp.UnaryOp(UnaryOp.Not), [Expr.Apply(Expr.ApplyOp.BinaryOp(FlipNegatedBinop(op)), es)])
         case _ => e
       }
     }
@@ -797,12 +780,10 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       forall e | Deep.AllChildren_Expr(e, PC) ensures Deep.AllChildren_Expr(f(e), PC) {
         if IsNegatedBinopExpr(e) {
           var e'' := match e {
-            case Binary(op, e1, e2) =>
-              Expr.Binary(FlipNegatedBinop(op), e1, e2)
             case Apply(BinaryOp(op), es) =>
               Expr.Apply(Expr.ApplyOp.BinaryOp(FlipNegatedBinop(op)), es)
           };
-          var e' := Expr.t.UnaryOp(UnaryOp.Not, e'');
+          var e' := Expr.t.Apply(Expr.ApplyOp.UnaryOp(UnaryOp.Not), [e'']);
           calc { // FIXME Automate
             Deep.All_Expr(f(e), PC);
             Deep.All_Expr(e', PC);
@@ -824,30 +805,13 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     {
       match e {
         // Exprs
-        case UnaryOp(uop, e) =>
-          // Not using datatype update to ensure that I get a warning if a type gets new arguments
-          Expr.t.UnaryOp(uop, EliminateNegatedBinops_Expr_direct(e))
-        case Binary(bop, e0, e1) =>
-          var e0', e1' := EliminateNegatedBinops_Expr_direct(e0), EliminateNegatedBinops_Expr_direct(e1);
-          if IsNegatedBinop(bop) then
-            var e'' := Expr.Binary(FlipNegatedBinop(bop), e0', e1');
-            assert Deep.All_Expr(e'', NotANegatedBinopExpr);
-            var e' := Expr.t.UnaryOp(UnaryOp.Not, e'');
-            calc {
-              Deep.All_Expr(e', NotANegatedBinopExpr);
-              NotANegatedBinopExpr(e') && Deep.AllChildren_Expr(e', NotANegatedBinopExpr);
-              NotANegatedBinopExpr(e') && Deep.All_Expr(e'', NotANegatedBinopExpr);
-            }
-            e'
-          else
-            Expr.Binary(bop, e0', e1')
         case Apply(BinaryOp(bop), exprs) =>
           var exprs' := Seq.Map(e requires e in exprs => EliminateNegatedBinops_Expr_direct(e), exprs);
           Predicates.Map_All_IsMap(e requires e in exprs => EliminateNegatedBinops_Expr_direct(e), exprs);
           if IsNegatedBinop(bop) then
             var e'' := Expr.Apply(Expr.ApplyOp.BinaryOp(FlipNegatedBinop(bop)), exprs');
             assert Deep.All_Expr(e'', NotANegatedBinopExpr);
-            var e' := Expr.t.UnaryOp(UnaryOp.Not, e'');
+            var e' := Expr.t.Apply(Expr.ApplyOp.UnaryOp(UnaryOp.Not), [e'']);
             calc {
               Deep.All_Expr(e', NotANegatedBinopExpr);
               NotANegatedBinopExpr(e') && Deep.AllChildren_Expr(e', NotANegatedBinopExpr);
@@ -888,8 +852,6 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     {
       match e {
         // Expressions
-        case UnaryOp(uop: UnaryOp.Op, e': Expr.t) => [e']
-        case Binary(bop: BinaryOp.Op, e0: Expr.t, e1: Expr.t) => [e0, e1]
         case Literal(lit: Expr.Literal) => []
         case Apply(aop, exprs: seq<Expr.t>) => exprs
         case Invalid(msg: string) => []

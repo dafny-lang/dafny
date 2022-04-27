@@ -174,12 +174,6 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
       match e {
         case Literal(l) =>
           CompileLiteralExpr(l)
-        case UnaryOp(op, e') =>
-          var c := CompileExpr(e');
-          CompileUnaryOpExpr(op, c)
-        case Binary(op, e0, e1) =>
-          var c0, c1 := CompileExpr(e0), CompileExpr(e1);
-          CompileBinaryExpr(op, c0, c1)
         case Apply(UnaryOp(op), es) =>
           var c := CompileExpr(es[0]);
           CompileUnaryOpExpr(op, c)
