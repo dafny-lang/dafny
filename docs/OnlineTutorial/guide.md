@@ -1824,9 +1824,9 @@ except they say what can be changed, rather than what the value of the function
 depends on. In combination with reads, modification
 restrictions allow Dafny to prove properties of code that would otherwise be
 very difficult or impossible. `reads` and `modifies` are among the tools that
-make it possible for Dafny to work on one method at a time, because they
-restrict what would otherwise be arbitrary modifications of memory to something
-that Dafny can reason about.
+enable Dafny to work on one method at a time, because they restrict what would
+otherwise be arbitrary modifications of memory to something that Dafny can
+reason about.
 
 
 Note that framing only applies to the *heap*, or memory accessed through
