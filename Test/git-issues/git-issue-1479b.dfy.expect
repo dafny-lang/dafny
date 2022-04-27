@@ -1,3 +1,0 @@
-git-issue-1479b.dfy(16,19): Error: value does not satisfy the subset constraints of 'R'
-
-Dafny program verifier finished with 2 verified, 1 error
