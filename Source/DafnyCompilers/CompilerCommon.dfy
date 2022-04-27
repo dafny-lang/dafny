@@ -114,14 +114,22 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         | StaticReceiver(classType: ClassType)
         | InstanceReceiver(obj: Expr) // TODO: also include ClassType?
 
+      datatype MethodId =
+        | Constructor
+        | StaticMethod(name: string)
+        | InstanceMethod(name: string) // First argument is target object
+
+      datatype BuiltinFunction =
+        | Display(ty: Type.Type)
+        | Print
+
       datatype ApplyOp =
         | UnaryOp(uop: UnaryOp.Op)
         | BinaryOp(bop: BinaryOp.Op)
-        | ClassConstructor(classType: ClassType)
         | DataConstructor(name: Path, typeArgs: seq<Type.Type>)
-        | ClassMethod(receiver: Receiver, name: Path, typeArgs: seq<Type.Type>)
-        | Function(receiverFn: Expr)
-        // TODO: move DisplayExpr here? It's a constructor application.
+        | MethodCall(classType: ClassType, receiver: MethodId, typeArgs: seq<Type.Type>)
+        | FunctionCall // First argument is function
+        | Builtin(fn: BuiltinFunction)
 
       datatype Expr =
         // Expressions
@@ -129,12 +137,10 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         | Binary(bop: BinaryOp.Op, e0: Expr, e1: Expr)
         | Literal(lit: Literal)
         | Apply(aop: ApplyOp, args: seq<Expr>)
-        | Display(ty: Type.Type, exprs: seq<Expr>)
         | Invalid(msg: string)
         | UnsupportedExpr(expr: C.Expression)
         // Statements
         | Block(stmts: seq<Expr>)
-        | Print(exprs: seq<Expr>)
         | UnsupportedStmt(stmt: C.Statement)
       {
         function method Depth() : nat {
@@ -146,15 +152,8 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
               Math.Max(e0.Depth(), e1.Depth())
             case Literal(lit: Literal) =>
               0
-            case Apply(Function(e), args) =>
-              Math.Max(
-                e.Depth(),
-                Seq.MaxF(var f := (e: Expr) requires e in args => e.Depth(); f, args, 0)
-              )
             case Apply(_, args) =>
               Seq.MaxF(var f := (e: Expr) requires e in args => e.Depth(); f, args, 0)
-            case Display(_, exprs) =>
-              Seq.MaxF(var f := (e: Expr) requires e in exprs => e.Depth(); f, exprs, 0)
             case UnsupportedExpr(expr: C.Expression) =>
               0
             case Invalid(msg: string) =>
@@ -162,8 +161,6 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
             // Statements
             case Block(stmts) =>
               Seq.MaxF(var f := (e: Expr) requires e in stmts => e.Depth(); f, stmts, 0)
-            case Print(exprs) =>
-              Seq.MaxF(var f := (e: Expr) requires e in exprs => e.Depth(); f, exprs, 0)
             case UnsupportedStmt(expr: C.Statement) =>
               0
           }
@@ -387,7 +384,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       var argsC := ListUtils.ToSeq(fce.Args);
       var argExprs := Seq.Map((e requires e in argsC reads * =>
         assume ASTHeight(e) < ASTHeight(fce); TranslateExpression(e)), argsC);
-      D.Expr.Apply(D.Expr.Function(fnExpr), argExprs)
+      D.Expr.Apply(D.Expr.ApplyOp.FunctionCall, [fnExpr] + argExprs)
     }
 
     function method TranslateDatatypeValue(dtv: C.DatatypeValue): (e: D.Expr.t)
@@ -416,7 +413,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       var exprs := Seq.Map((e requires e in elSeq reads * =>
         assume ASTHeight(e) < ASTHeight(de); TranslateExpression(e)), elSeq);
       var ty := TranslateType(de.Type);
-      D.Expr.Display(ty, exprs)
+      D.Expr.Apply(D.Expr.ApplyOp.Builtin(D.Expr.Display(ty)), exprs)
     }
 
     function method TranslateExpressionPair(mde: C.MapDisplayExpr, ep: C.ExpressionPair): (e: D.Expr.t)
@@ -428,7 +425,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       var tyA := TranslateType(ep.A.Type);
       // TODO: This isn't really a sequence of type tyA! It should really construct pairs
       var ty := D.Type.Collection(true, D.Type.CollectionKind.Seq, tyA);
-      D.Expr.Display(ty, [TranslateExpression(ep.A), TranslateExpression(ep.B)])
+      D.Expr.Apply(D.Expr.ApplyOp.Builtin(D.Expr.Display(ty)), [TranslateExpression(ep.A), TranslateExpression(ep.B)])
     }
 
     function method TranslateMapDisplayExpr(mde: C.MapDisplayExpr): (e: D.Expr.t)
@@ -441,7 +438,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         assume Math.Max(ASTHeight(ep.A), ASTHeight(ep.B)) < ASTHeight(mde);
         TranslateExpressionPair(mde, ep), elSeq);
       var ty := TranslateType(mde.Type);
-      D.Expr.Display(ty, exprs)
+      D.Expr.Apply(D.Expr.ApplyOp.Builtin(D.Expr.Display(ty)), exprs)
     }
 
     function method TranslateExpression(c: C.Expression) : (e: D.Expr.t)
@@ -467,7 +464,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     function method TranslateStatement(s: C.Statement) : D.Expr.t reads * {
       if s is C.PrintStmt then
         var p := s as C.PrintStmt;
-        D.Expr.Print(Seq.Map(TranslateExpression, ListUtils.ToSeq(p.Args)))
+        D.Expr.Apply(D.Expr.ApplyOp.Builtin(D.Expr.Print), Seq.Map(TranslateExpression, ListUtils.ToSeq(p.Args)))
       else D.Expr.UnsupportedStmt(s)
     }
 
@@ -562,19 +559,13 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
           case Binary(bop: BinaryOp.Op, e0: Expr.t, e1: Expr.t) =>
             All_Expr(e0, P) && All_Expr(e1, P)
           case Literal(lit: Expr.Literal) => true
-          case Apply(Function(e), exprs: seq<Expr>) =>
-            All_Expr(e, P) &&
-            Seq.All(e requires e in exprs => All_Expr(e, P), exprs)
-          case Apply(_, exprs: seq<Expr>) =>
-            Seq.All(e requires e in exprs => All_Expr(e, P), exprs)
-          case Display(_, exprs: seq<Expr.t>) =>
+          case Apply(_, exprs) =>
             Seq.All(e requires e in exprs => All_Expr(e, P), exprs)
           case Invalid(msg: string) => true
           case UnsupportedExpr(expr: C.Expression) => true
 
           // Statements
           case Block(exprs) => Seq.All((e requires e in exprs => All_Expr(e, P)), exprs)
-          case Print(exprs) => Seq.All((e requires e in exprs => All_Expr(e, P)), exprs)
           case UnsupportedStmt(_) => true
         }
       }
@@ -684,19 +675,10 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
           case Binary(bop, e0, e1) =>
             Expr.Binary(bop, Map_Expr(e0, tr), Map_Expr(e1, tr))
           case Literal(lit_) => e
-          case Apply(Function(e), exprs) =>
-            var e' := Map_Expr(e, tr);
-            var exprs' := Seq.Map(e requires e in exprs => Map_Expr(e, tr), exprs);
-            Predicates.Map_All_IsMap(e requires e in exprs => Map_Expr(e, tr), exprs);
-            Expr.Apply(Expr.Function(e'), exprs')
           case Apply(aop, exprs) =>
             var exprs' := Seq.Map(e requires e in exprs => Map_Expr(e, tr), exprs);
             Predicates.Map_All_IsMap(e requires e in exprs => Map_Expr(e, tr), exprs);
             Expr.Apply(aop, exprs')
-          case Display(ty, exprs) =>
-            var exprs' := Seq.Map(e requires e in exprs => Map_Expr(e, tr), exprs);
-            Predicates.Map_All_IsMap(e requires e in exprs => Map_Expr(e, tr), exprs);
-            Expr.Display(ty, exprs')
           case Invalid(msg_) => e
           case UnsupportedExpr(cexpr_) => e
 
@@ -705,10 +687,6 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
             var exprs' := Seq.Map(e requires e in exprs => Map_Expr(e, tr), exprs);
             Predicates.Map_All_IsMap(e requires e in exprs => Map_Expr(e, tr), exprs);
             Expr.Block(exprs')
-          case Print(exprs) =>
-            var exprs' := Seq.Map(e requires e in exprs => Map_Expr(e, tr), exprs);
-            Predicates.Map_All_IsMap(e requires e in exprs => Map_Expr(e, tr), exprs);
-            Expr.Print(exprs')
           case UnsupportedStmt(_) =>
             e
         }
@@ -863,11 +841,6 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
             e'
           else
             Expr.Binary(bop, e0', e1')
-        case Apply(Function(fe), exprs) =>
-          var exprs' := Seq.Map(e requires e in exprs => EliminateNegatedBinops_Expr_direct(e), exprs);
-          Predicates.Map_All_IsMap(e requires e in exprs => EliminateNegatedBinops_Expr_direct(e), exprs);
-          var fe' := EliminateNegatedBinops_Expr_direct(fe);
-          Expr.Apply(Expr.Function(fe'), exprs')
         case Apply(BinaryOp(bop), exprs) =>
           var exprs' := Seq.Map(e requires e in exprs => EliminateNegatedBinops_Expr_direct(e), exprs);
           Predicates.Map_All_IsMap(e requires e in exprs => EliminateNegatedBinops_Expr_direct(e), exprs);
@@ -887,10 +860,6 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
           var exprs' := Seq.Map(e requires e in exprs => EliminateNegatedBinops_Expr_direct(e), exprs);
           Predicates.Map_All_IsMap(e requires e in exprs => EliminateNegatedBinops_Expr_direct(e), exprs);
           Expr.Apply(aop, exprs')
-        case Display(ty, exprs) =>
-          var exprs' := Seq.Map(e requires e in exprs => EliminateNegatedBinops_Expr_direct(e), exprs);
-          Predicates.Map_All_IsMap(e requires e in exprs => EliminateNegatedBinops_Expr_direct(e), exprs);
-          Expr.Display(ty, exprs')
         case Literal(lit_) => e
         case Invalid(msg_) => e
         case UnsupportedExpr(cexpr_) => e
@@ -900,10 +869,6 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
           var exprs' := Seq.Map(e requires e in exprs => EliminateNegatedBinops_Expr_direct(e), exprs);
           Predicates.Map_All_IsMap(e requires e in exprs => EliminateNegatedBinops_Expr_direct(e), exprs);
           Expr.Block(exprs')
-        case Print(exprs) =>
-          var exprs' := Seq.Map(e requires e in exprs => EliminateNegatedBinops_Expr_direct(e), exprs);
-          Predicates.Map_All_IsMap(e requires e in exprs => EliminateNegatedBinops_Expr_direct(e), exprs);
-          Expr.Print(exprs')
         case UnsupportedStmt(_) =>
           e
       }
@@ -926,15 +891,12 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         case UnaryOp(uop: UnaryOp.Op, e': Expr.t) => [e']
         case Binary(bop: BinaryOp.Op, e0: Expr.t, e1: Expr.t) => [e0, e1]
         case Literal(lit: Expr.Literal) => []
-        case Apply(Function(e), exprs: seq<Expr.t>) => [e] + exprs
         case Apply(aop, exprs: seq<Expr.t>) => exprs
-        case Display(ty_, exprs: seq<Expr.t>) => exprs
         case Invalid(msg: string) => []
         case UnsupportedExpr(expr: C.Expression) => []
 
         // Statements
         case Block(exprs) => exprs
-        case Print(exprs) => exprs
         case UnsupportedStmt(_) => []
       }
     }

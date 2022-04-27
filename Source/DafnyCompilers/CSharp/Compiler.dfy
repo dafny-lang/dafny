@@ -186,19 +186,18 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
         case Apply(BinaryOp(op), es) =>
           var c0, c1 := CompileExpr(es[0]), CompileExpr(es[1]);
           CompileBinaryExpr(op, c0, c1)
-        case Apply(Function(e), es) => Unsupported
-        case Apply(ClassConstructor(classType), es) => Unsupported
+        case Apply(FunctionCall, es) => Unsupported
         case Apply(DataConstructor(name, typeArgs), es) => Unsupported
-        case Apply(ClassMethod(receiver, name, typeArgs), es) => Unsupported
-        case Display(ty, exprs) =>
+        case Apply(MethodCall(classType, receiver, typeArgs), es) => Unsupported
+        case Apply(Builtin(Display(ty)), exprs) =>
           CompileDisplayExpr(ty, Lib.Seq.Map((e requires e in exprs => CompileExpr(e)), exprs))
+        case Apply(Builtin(Print), exprs) =>
+          Concat("\n", Lib.Seq.Map(e requires e in exprs => CompilePrint(e), exprs))
         case Invalid(_) => Unsupported
         case UnsupportedExpr(_) => Unsupported
 
         case Block(exprs) =>
           Concat("\n", Lib.Seq.Map(e requires e in exprs => CompileExpr(e), exprs))
-        case Print(exprs) =>
-          Concat("\n", Lib.Seq.Map(e requires e in exprs => CompilePrint(e), exprs))
         case UnsupportedStmt(_) => Unsupported
       }
     }
