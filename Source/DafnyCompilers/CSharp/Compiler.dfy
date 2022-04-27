@@ -425,32 +425,36 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
       D.Expr.Display(ty, exprs)
     }
 
-    function method TranslateMapDisplayExpr(mde: C.MapDisplayExpr): (e: D.Expr.t)
+    function method TranslateExpressionPair(mde: C.MapDisplayExpr, ep: C.ExpressionPair): (e: D.Expr.t)
       reads *
+      requires Math.Max(ASTHeight(ep.A), ASTHeight(ep.B)) < ASTHeight(mde)
       decreases ASTHeight(mde), 0
       ensures D.Expr.WellFormed(e)
       ensures P.All_Expr(e, D.Expr.WellFormed)
     {
+      var tyA := TranslateType(ep.A.Type);
+      // TODO: This isn't really a sequence of type tyA! It should really construct pairs
+      var ty := D.Type.Collection(true, D.Type.CollectionKind.Seq, tyA);
+      D.Expr.Display(ty, [TranslateExpression(ep.A), TranslateExpression(ep.B)])
+    }
+
+    function method TranslateMapDisplayExpr(mde: C.MapDisplayExpr): (e: D.Expr.t)
+      reads *
+      decreases ASTHeight(mde), 1
+      ensures D.Expr.WellFormed(e)
+      ensures P.All_Expr(e, D.Expr.WellFormed)
+    {
       var elSeq := ListUtils.ToSeq(mde.Elements);
-      var exprs := Seq.Map((ep requires ep in elSeq reads * =>
-          var tyA := TranslateType(ep.A.Type);
-          // TODO: This isn't really a sequence of type tyA! It should really construct pairs
-          var ty := D.Type.Collection(true, D.Type.CollectionKind.Seq, tyA);
-          assume ASTHeight(ep.A) < ASTHeight(mde);
-          assume ASTHeight(ep.B) < ASTHeight(mde);
-          var e := D.Expr.Display(ty, [TranslateExpression(ep.A), TranslateExpression(ep.B)]);
-          assert P.All_Expr(e, D.Expr.WellFormed);
-          e
-        ), elSeq);
-      // TODO: this should be provable
-      assume Seq.All(e => P.All_Expr(e, D.Expr.WellFormed), exprs);
+      var exprs := Seq.Map((ep: C.ExpressionPair) reads * =>
+        assume Math.Max(ASTHeight(ep.A), ASTHeight(ep.B)) < ASTHeight(mde);
+        TranslateExpressionPair(mde, ep), elSeq);
       var ty := TranslateType(mde.Type);
       D.Expr.Display(ty, exprs)
     }
 
     function method TranslateExpression(c: C.Expression) : (e: D.Expr.t)
       reads *
-      decreases ASTHeight(c), 1
+      decreases ASTHeight(c), 2
       ensures D.Expr.WellFormed(e)
       ensures P.All_Expr(e, D.Expr.WellFormed)
     {
