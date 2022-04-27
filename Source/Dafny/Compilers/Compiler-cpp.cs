@@ -1937,7 +1937,8 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override ConcreteSyntaxTree CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames, Type resultType, ConcreteSyntaxTree wr, bool untyped = false) {
+    protected override ConcreteSyntaxTree CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames,
+      Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, bool untyped = false, bool bodyIsExpression = true) {
       wr.Write("function (");
       Contract.Assert(inTypes.Count == inNames.Count);  // guaranteed by precondition
       for (var i = 0; i < inNames.Count; i++) {
@@ -1947,7 +1948,8 @@ namespace Microsoft.Dafny.Compilers {
       return w;
     }
 
-    protected override void CreateIIFE(string bvName, Type bvType, Bpl.IToken bvTok, Type bodyType, Bpl.IToken bodyTok, ConcreteSyntaxTree wr, out ConcreteSyntaxTree wrRhs, out ConcreteSyntaxTree wrBody) {
+    protected override void CreateIIFE(string bvName, Type bvType, Bpl.IToken bvTok, Type bodyType, Bpl.IToken bodyTok,
+      ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, out ConcreteSyntaxTree wrRhs, out ConcreteSyntaxTree wrBody) {
       var w = wr.NewExprBlock("[&]({0} {1}) -> {2} ", TypeName(bvType, wr, bvTok), bvName, TypeName(bodyType, wr, bodyTok));
       w.Write("return ");
       wrBody = w.Fork();
@@ -2424,19 +2426,27 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Assert(assemblyLocation != null);
       var codebase = System.IO.Path.GetDirectoryName(assemblyLocation);
       Contract.Assert(codebase != null);
-      var warnings = "-Wall -Wextra -Wpedantic -Wno-unused-variable -Wno-deprecated-copy -Wno-unused-label";
-      if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-        warnings += " -Wno-unused-but-set-variable";
-      } else {
-        warnings += " -Wno-unknown-warning-option";
-      }
-      var args = warnings + $" -g -std=c++17 -I {codebase} -o {ComputeExeName(targetFilename)} {targetFilename}";
       compilationResult = null;
-      var psi = new ProcessStartInfo("g++", args) {
+      var psi = new ProcessStartInfo("g++") {
         CreateNoWindow = true,
         UseShellExecute = false,
         RedirectStandardOutput = true,
-        RedirectStandardError = true
+        RedirectStandardError = true,
+        ArgumentList = {
+          "-Wall",
+          "-Wextra",
+          "-Wpedantic",
+          "-Wno-unused-variable",
+          "-Wno-deprecated-copy",
+          "-Wno-unused-label",
+          "-Wno-unused-but-set-variable",
+          "-Wno-unknown-warning-option",
+          "-g",
+          "-std=c++17",
+          "-I", codebase,
+          "-o", ComputeExeName(targetFilename),
+          targetFilename
+        }
       };
       var proc = Process.Start(psi);
       while (!proc.StandardOutput.EndOfStream) {
