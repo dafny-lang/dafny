@@ -328,7 +328,6 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
     function method TranslateUnary(u: C.UnaryExpr) : (e: D.Expr.t)
       decreases ASTHeight(u), 0
       reads *
-      ensures D.Expr.WellFormed(e)
       ensures P.All_Expr(e, D.Expr.WellFormed)
     {
       if u is C.UnaryOpExpr then
@@ -346,7 +345,6 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
     function method TranslateBinary(b: C.BinaryExpr) : (e: D.Expr.t)
       decreases ASTHeight(b), 0
       reads *
-      ensures D.Expr.WellFormed(e)
       ensures P.All_Expr(e, D.Expr.WellFormed)
     {
       var op, e0, e1 := b.ResolvedOp, b.E0, b.E1;
@@ -359,7 +357,6 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
 
     function method TranslateLiteral(l: C.LiteralExpr): (e: D.Expr.t)
       reads *
-      ensures D.Expr.WellFormed(e)
       ensures P.All_Expr(e, D.Expr.WellFormed)
     {
       if l.Value is Boolean then
@@ -383,7 +380,6 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
     function method TranslateFunctionCall(fce: C.FunctionCallExpr): (e: D.Expr.t)
       reads *
       decreases ASTHeight(fce), 0
-      ensures D.Expr.WellFormed(e)
       ensures P.All_Expr(e, D.Expr.WellFormed)
     {
       assume ASTHeight(fce.Receiver) < ASTHeight(fce);
@@ -397,7 +393,6 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
     function method TranslateDatatypeValue(dtv: C.DatatypeValue): (e: D.Expr.t)
       reads *
       decreases ASTHeight(dtv), 0
-      ensures D.Expr.WellFormed(e)
       ensures P.All_Expr(e, D.Expr.WellFormed)
     {
       var ctor := dtv.Ctor;
@@ -415,7 +410,6 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
     function method TranslateDisplayExpr(de: C.DisplayExpression): (e: D.Expr.t)
       reads *
       decreases ASTHeight(de), 0
-      ensures D.Expr.WellFormed(e)
       ensures P.All_Expr(e, D.Expr.WellFormed)
     {
       var elSeq := ListUtils.ToSeq(de.Elements);
@@ -429,7 +423,6 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
       reads *
       requires Math.Max(ASTHeight(ep.A), ASTHeight(ep.B)) < ASTHeight(mde)
       decreases ASTHeight(mde), 0
-      ensures D.Expr.WellFormed(e)
       ensures P.All_Expr(e, D.Expr.WellFormed)
     {
       var tyA := TranslateType(ep.A.Type);
@@ -441,7 +434,6 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
     function method TranslateMapDisplayExpr(mde: C.MapDisplayExpr): (e: D.Expr.t)
       reads *
       decreases ASTHeight(mde), 1
-      ensures D.Expr.WellFormed(e)
       ensures P.All_Expr(e, D.Expr.WellFormed)
     {
       var elSeq := ListUtils.ToSeq(mde.Elements);
@@ -455,7 +447,6 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
     function method TranslateExpression(c: C.Expression) : (e: D.Expr.t)
       reads *
       decreases ASTHeight(c), 2
-      ensures D.Expr.WellFormed(e)
       ensures P.All_Expr(e, D.Expr.WellFormed)
     {
       if c is C.BinaryExpr then
