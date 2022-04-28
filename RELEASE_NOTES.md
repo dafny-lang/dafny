@@ -15,6 +15,7 @@
 - fix: Comprehensions with nested subset types fully supported, subtype is correctly checked (https://github.com/dafny-lang/dafny/pull/1997)
 - fix: Fix induction hypothesis generated for lemmas with a receiver parameter (https://github.com/dafny-lang/dafny/pull/2002)
 - fix: Make verifier understand `(!new)` (https://github.com/dafny-lang/dafny/pull/1935)
+- fix: Missing subset type check in datatype updates (https://github.com/dafny-lang/dafny/pull/2059)
 - fix: Fix initialization of non-auto-init in-parameters in C#/JavaScript/Go compilers (https://github.com/dafny-lang/dafny/pull/1935)
 - fix: Resolution of static functions-by-method (https://github.com/dafny-lang/dafny/pull/2023)
 - fix: Export sets did not work with inner modules (https://github.com/dafny-lang/dafny/pull/2025)
