@@ -4,7 +4,7 @@
 predicate P(s: seq)
 
 method M(s: seq<int>, i: nat, v: int, n: nat)
-  requires i < |s| == n
+  requires i < n <= |s|
   requires P(s[n..])
 {
   var t := s[i := v];
@@ -13,7 +13,7 @@ method M(s: seq<int>, i: nat, v: int, n: nat)
 }
 
 method Workaround(s: seq<int>, i: nat, v: int, n: nat)
-  requires i < |s| == n
+  requires i < n <= |s|
   requires P(s[n..])
 {
   var t := s[i := v];
