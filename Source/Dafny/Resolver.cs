@@ -15290,7 +15290,7 @@ namespace Microsoft.Dafny {
         scope.PushMarker();
         // No range is like if the range is ghost, we don't do any special check.
         var rangeOpts = e.Range == null ? opts.WithSpecification() : opts;
-        ScopePushBoundVarsAssumingCompilable(e, rangeOpts, option, typeQuantifier);
+        ScopePushBoundVarsAssumingCompilable(e, rangeOpts);
         if (e.Range != null) {
           ResolveExpression(e.Range, opts);
           Contract.Assert(e.Range.Type != null);  // follows from postcondition of ResolveExpression
@@ -15474,13 +15474,12 @@ namespace Microsoft.Dafny {
     }
 
     /// Ensures ret != null ==> !ret.DoesNotContainGhostConstraints() && ret is one of the type of e.AllBoundVars[i]
-    private void ScopePushBoundVarsAssumingCompilable(ComprehensionExpr e, ResolveOpts opts, [CanBeNull] ResolveTypeOption resolveTypeOption = null, bool typeQuantifier = false) {
+    private void ScopePushBoundVarsAssumingCompilable(ComprehensionExpr e, ResolveOpts opts, [CanBeNull] ResolveTypeOption resolveTypeOption = null) {
       if (resolveTypeOption == null) {
         resolveTypeOption = new ResolveTypeOption(ResolveTypeOptionEnum.InferTypeProxies);
       }
       foreach (BoundVar v in e.AllBoundVars) {
-        var typeArgs = e is QuantifierExpr q ? (typeQuantifier ? q.TypeArgs : null) : null;
-        ResolveType(v.tok, v.Type, opts.codeContext, resolveTypeOption, typeArgs);
+        ResolveType(v.tok, v.Type, opts.codeContext, resolveTypeOption, null);
         // If the type can be tested at run time, we keep the same scope
         // Else, the the scoped type is the upper type that can be tested.
         if (v.Type.MightContainGhostConstraints() && !opts.codeContext.IsGhost) {
@@ -15492,7 +15491,7 @@ namespace Microsoft.Dafny {
           }
 
           v.SetAndAssumeCompilableType(collectionVarType);
-          ResolveType(v.tok, collectionVarType, opts.codeContext, resolveTypeOption, typeArgs);
+          ResolveType(v.tok, collectionVarType, opts.codeContext, resolveTypeOption, null);
         }
 
         ScopePushNoReport(scope, v); // Let's not report duplicated and shadowed names twice
