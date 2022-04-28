@@ -79,7 +79,7 @@ module StartingFromDatatype {
     }
   }
   module Datatype refines A {
-    datatype Ty = ... Make(w: int) {
+    datatype Ty ... {
       function method F(x: nat): nat { x } // error: postcondition violation
       method M(x: nat) returns (r: nat) { r := c; } // error: postcondition violation
     }
@@ -99,7 +99,7 @@ module StartingFromNewtype {
     }
   }
   module Newtype refines A {
-    newtype Ty = ... int {
+    newtype Ty ... {
       function method F(x: nat): nat { x } // error: postcondition violation
       method M(x: nat) returns (r: nat) { r := c; } // error: postcondition violation
     }

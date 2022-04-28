@@ -18,16 +18,25 @@ def print(value):
 class Break(Exception):
     target: str
 
+class TailCall(Exception):
+    pass
+
 @contextmanager
-def label(name: str):
+def label(name: str = None):
     try:
         yield
     except Break as g:
         if g.target != name:
             raise g
+    except TailCall as g:
+        if name is not None:
+            raise g
 
 def _break(name):
     raise Break(target=name)
+
+def _tail_call():
+    raise TailCall()
 
 class Seq(list):
     @property
@@ -38,6 +47,9 @@ class Set(set):
     @property
     def Elements(self):
         return self
+
+    def __str__(self) -> str:
+        return '{' + ', '.join(map(str, self)) + '}'
 
     def union(self, other):
         return Set(set.union(self, other))
@@ -142,3 +154,7 @@ def euclidian_modulus(a, b):
         return a % bp
     c = (-a) % bp
     return c if c == 0 else bp - c
+
+@dataclass
+class HaltException(Exception):
+    message: str
