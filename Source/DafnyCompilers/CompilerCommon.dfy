@@ -143,6 +143,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         | UnsupportedExpr(expr: C.Expression)
         // Statements
         | Block(stmts: seq<Expr>)
+        | If(cond: Expr, thn: Expr, els: Expr)
         | UnsupportedStmt(stmt: C.Statement)
       {
         function method Depth() : nat {
@@ -159,6 +160,8 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
             // Statements
             case Block(stmts) =>
               Seq.MaxF(var f := (e: Expr) requires e in stmts => e.Depth(); f, stmts, 0)
+            case If(cond, thn, els) =>
+              Math.Max(cond.Depth(), Math.Max(thn.Depth(), els.Depth()))
             case UnsupportedStmt(expr: C.Statement) =>
               0
           }
@@ -335,6 +338,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     }
 
     function {:axiom} ASTHeight(c: C.Expression) : nat
+    function {:axiom} StmtHeight(t: C.Statement) : nat
     function {:axiom} TypeHeight(t: C.Type) : nat
 
     function method TranslateBinary(b: C.BinaryExpr) : (e: D.Expr.t)
@@ -459,10 +463,29 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       else D.Expr.UnsupportedExpr(c)
     }
 
-    function method TranslateStatement(s: C.Statement) : D.Expr.t reads * {
+    function method TranslateStatement(s: C.Statement) : D.Expr.t
+      reads *
+      decreases StmtHeight(s)
+    {
       if s is C.PrintStmt then
         var p := s as C.PrintStmt;
         D.Expr.Apply(D.Expr.ApplyOp.Builtin(D.Expr.Print), Seq.Map(TranslateExpression, ListUtils.ToSeq(p.Args)))
+      else if s is C.BlockStmt then
+        var b := s as C.BlockStmt;
+        var stmts := ListUtils.ToSeq(b.Body);
+        var stmts' := Seq.Map(s' requires s' in stmts reads * =>
+          assume StmtHeight(s') < StmtHeight(s); TranslateStatement(s'), stmts);
+        D.Expr.Block(stmts')
+      else if s is C.IfStmt then
+        var i := s as C.IfStmt;
+        // TODO: look at i.IsBindingGuard
+        assume ASTHeight(i.Guard) < StmtHeight(i);
+        assume StmtHeight(i.Thn) < StmtHeight(i);
+        assume StmtHeight(i.Els) < StmtHeight(i);
+        var cond := TranslateExpression(i.Guard);
+        var thn := TranslateStatement(i.Thn);
+        var els := TranslateStatement(i.Els);
+        D.Expr.If(cond, thn, els)
       else D.Expr.UnsupportedStmt(s)
     }
 
@@ -560,6 +583,8 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
 
           // Statements
           case Block(exprs) => Seq.All((e requires e in exprs => All_Expr(e, P)), exprs)
+          case If(cond, thn, els) =>
+            All_Expr(cond, P) && All_Expr(thn, P) && All_Expr(els, P)
           case UnsupportedStmt(_) => true
         }
       }
@@ -677,6 +702,8 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
             var exprs' := Seq.Map(e requires e in exprs => Map_Expr(e, tr), exprs);
             Predicates.Map_All_IsMap(e requires e in exprs => Map_Expr(e, tr), exprs);
             Expr.Block(exprs')
+          case If(cond, thn, els) =>
+            Expr.If(Map_Expr(cond, tr), Map_Expr(thn, tr), Map_Expr(els, tr))
           case UnsupportedStmt(_) =>
             e
         }
@@ -839,6 +866,10 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
           var exprs' := Seq.Map(e requires e in exprs => EliminateNegatedBinops_Expr_direct(e), exprs);
           Predicates.Map_All_IsMap(e requires e in exprs => EliminateNegatedBinops_Expr_direct(e), exprs);
           Expr.Block(exprs')
+        case If(cond, thn, els) =>
+          Expr.If(EliminateNegatedBinops_Expr_direct(cond),
+                  EliminateNegatedBinops_Expr_direct(thn),
+                  EliminateNegatedBinops_Expr_direct(els))
         case UnsupportedStmt(_) =>
           e
       }
@@ -865,6 +896,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
 
         // Statements
         case Block(exprs) => exprs
+        case If(cond, thn, els) => [cond, thn, els]
         case UnsupportedStmt(_) => []
       }
     }

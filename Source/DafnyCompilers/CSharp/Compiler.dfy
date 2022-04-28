@@ -41,7 +41,10 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
         case BigOrdinal() => Unsupported
         case BitVector(_) => Unsupported
         case Collection(false, collKind_, eltType_) => Unsupported
-        case UnsupportedType(_) => Unsupported
+        case Class(_) => Unsupported
+        case Nat => Unsupported
+        case Unit => Unsupported
+        case Unsupported(_) => Unsupported
       }
     }
 
@@ -192,6 +195,15 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
 
         case Block(exprs) =>
           Concat("\n", Lib.Seq.Map(e requires e in exprs => CompileExpr(e), exprs))
+        case If(cond, thn, els) =>
+          var cCond := CompileExpr(cond);
+          var cThn := CompileExpr(thn);
+          var cEls := CompileExpr(els);
+          Concat("\n", [SepSeq(Lib.Datatypes.None, [Str("if ("), cCond, Str(") {")]),
+                        SepSeq(Lib.Datatypes.None, [Str("  "), cThn]),
+                        Str("} else {"),
+                        SepSeq(Lib.Datatypes.None, [Str("  "), cEls]),
+                        Str("}")])
         case UnsupportedStmt(_) => Unsupported
       }
     }
