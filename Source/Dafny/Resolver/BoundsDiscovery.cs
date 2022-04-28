@@ -29,7 +29,9 @@ namespace Microsoft.Dafny {
       return bests;
     }
 
-    public static List<ComprehensionExpr.BoundedPool> DiscoverBestBounds_MultipleVars_AllowReordering<VT>(List<VT> bvars, Expression expr, bool polarity, ComprehensionExpr.BoundedPool.PoolVirtues requiredVirtues) where VT : IVariable {
+    public static List<ComprehensionExpr.BoundedPool> DiscoverBestBounds_MultipleVars_AllowReordering<VT>(List<VT> bvars, Expression expr,
+      bool polarity,
+      ComprehensionExpr.BoundedPool.PoolVirtues requiredVirtues) where VT : IVariable {
       Contract.Requires(bvars != null);
       Contract.Requires(expr != null);
       Contract.Ensures(Contract.Result<List<ComprehensionExpr.BoundedPool>>() != null);
@@ -127,7 +129,7 @@ namespace Microsoft.Dafny {
         bounds.Add(new ComprehensionExpr.DatatypeBoundedPool(bv.Type.AsDatatype));
       } else if (bv.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
         bounds.Add(new AssignSuchThatStmt.WiggleWaggleBound());
-      } else if (bv.Type.IsAllocFree) {
+      } else if (!bv.Type.MayInvolveReferences) {
         bounds.Add(new ComprehensionExpr.AllocFreeBoundedPool(bv.Type));
       }
 
