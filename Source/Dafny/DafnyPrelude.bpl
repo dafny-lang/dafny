@@ -329,6 +329,8 @@ function $AlwaysAllocated(Ty): bool uses {
       (forall h: Heap, v: Box  :: { $IsAllocBox(v, ty, h) }  $IsBox(v, ty) ==> $IsAllocBox(v, ty, h)));
 }
 
+function $OlderTag(Heap): bool;
+
 // ---------------------------------------------------------------
 // -- Encoding of type names -------------------------------------
 // ---------------------------------------------------------------
