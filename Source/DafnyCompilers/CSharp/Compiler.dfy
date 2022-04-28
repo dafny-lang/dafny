@@ -85,12 +85,12 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
       var fmt := str requires countFormat(str) == 2 =>
         Format(str, [c0, c1]); // Cute use of function precondition
       var bin := str =>
-        Format("{} {} {}", [c0, Str(str), c1]);
+        Format("({} {} {})", [c0, Str(str), c1]);
       var rbin := str =>
-        Format("{} {} {}", [c1, Str(str), c0]);
+        Format("({} {} {})", [c1, Str(str), c0]);
       match op {
         case Logical(Iff) => bin("==")
-        case Logical(Imp) => fmt("!{} || {}")
+        case Logical(Imp) => fmt("(!{} || {})")
         case Logical(And) => bin("&&")
         case Logical(Or) => bin("||")
 
@@ -100,14 +100,14 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
         case Numeric(Le) => bin("<=")
         case Numeric(Ge) => bin(">=")
         case Numeric(Gt) => bin(">")
-        case Numeric(Add) => Unsupported
-        case Numeric(Sub) => Unsupported
-        case Numeric(Mul) => Unsupported
-        case Numeric(Div) => Unsupported
-        case Numeric(Mod) => Unsupported
+        case Numeric(Add) => bin("+")
+        case Numeric(Sub) => bin("-")
+        case Numeric(Mul) => bin("*")
+        case Numeric(Div) => bin("/")
+        case Numeric(Mod) => bin("%")
 
-        case BV(LeftShift) => Unsupported
-        case BV(RightShift) => Unsupported
+        case BV(LeftShift) => bin("<<")
+        case BV(RightShift) => bin(">>")
         case BV(BitwiseAnd) => bin("&")
         case BV(BitwiseOr) => bin("|")
         case BV(BitwiseXor) => bin("^")
@@ -252,6 +252,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
       var lowered := Simplifier.EliminateNegatedBinops(translated);
       var compiled := Compiler.AlwaysCompileProgram(lowered);
       WriteAST(st, compiled);
+      st.Write("\n");
     }
 
     method EmitCallToMain(mainMethod: CSharpDafnyASTModel.Method,
