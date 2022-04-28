@@ -3,7 +3,7 @@ splitting-triggers-yields-better-precondition-related-errors.dfy(15,11): Warning
 splitting-triggers-yields-better-precondition-related-errors.dfy(11,3): Error: A precondition for this call might not hold.
 splitting-triggers-yields-better-precondition-related-errors.dfy(7,11): Related location: This is the precondition that might not hold.
 splitting-triggers-yields-better-precondition-related-errors.dfy(7,25): Related location
-splitting-triggers-yields-better-precondition-related-errors.dfy(20,2): Error: possible violation of function precondition
+splitting-triggers-yields-better-precondition-related-errors.dfy(20,2): Error: function precondition might not hold
 splitting-triggers-yields-better-precondition-related-errors.dfy(15,11): Related location
 splitting-triggers-yields-better-precondition-related-errors.dfy(15,25): Related location
 

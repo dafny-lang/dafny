@@ -13,10 +13,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Completion {
     // At this time, the main logic happens within ISymbolGuesser since we have to primarily work
     // with migrated symbol tables. Therefore, we apply modifications prior requesting completion
     // just like a user would do.
-    private ILanguageClient _client;
+    private ILanguageClient client;
 
     private void ApplyChanges(TextDocumentItem documentItem, params TextDocumentContentChangeEvent[] changes) {
-      _client.DidChangeTextDocument(new DidChangeTextDocumentParams {
+      client.DidChangeTextDocument(new DidChangeTextDocumentParams {
         TextDocument = new OptionalVersionedTextDocumentIdentifier {
           Uri = documentItem.Uri,
           Version = documentItem.Version + 1
@@ -27,7 +27,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Completion {
 
     private async Task<List<CompletionItem>> RequestCompletionAsync(TextDocumentItem documentItem, Position position) {
       // TODO at this time we do not set the context since it appears that's also the case when used within VSCode.
-      var completionList = await _client.RequestCompletion(
+      var completionList = await client.RequestCompletion(
         new CompletionParams {
           TextDocument = documentItem.Uri,
           Position = position
@@ -39,7 +39,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Completion {
 
     [TestInitialize]
     public async Task SetUp() {
-      _client = await InitializeClient();
+      client = await InitializeClient();
     }
 
     [TestMethod]
@@ -53,7 +53,7 @@ class A {
   }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       ApplyChanges(
         documentItem,
         new TextDocumentContentChangeEvent {
@@ -81,7 +81,7 @@ class A {
   }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       ApplyChanges(
         documentItem,
         new TextDocumentContentChangeEvent {
@@ -105,7 +105,7 @@ class A {
   }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       ApplyChanges(
         documentItem,
         new TextDocumentContentChangeEvent {
@@ -129,7 +129,7 @@ class A {
   }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       ApplyChanges(
         documentItem,
         new TextDocumentContentChangeEvent {
@@ -149,7 +149,7 @@ method DoIt() {
   var x := new int[10];
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       ApplyChanges(
         documentItem,
         new TextDocumentContentChangeEvent {
@@ -182,7 +182,7 @@ class B {
   constructor() { }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       ApplyChanges(
         documentItem,
         new TextDocumentContentChangeEvent {
@@ -215,7 +215,7 @@ class B {
   constructor() { }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       ApplyChanges(
         documentItem,
         new TextDocumentContentChangeEvent {
@@ -270,7 +270,7 @@ class X {
   constructor() { }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       ApplyChanges(
         documentItem,
         new TextDocumentContentChangeEvent {

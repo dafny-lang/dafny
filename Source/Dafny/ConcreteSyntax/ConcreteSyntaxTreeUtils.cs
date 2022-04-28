@@ -43,36 +43,59 @@ namespace Microsoft.Dafny {
       return result;
     }
     public static ConcreteSyntaxTree ExprBlock(out ConcreteSyntaxTree body, string header = "", string footer = "") {
-      return Block(out body, header, footer, BraceStyle.Space, BraceStyle.Nothing);
+      return Block(out body, header, footer, BlockStyle.SpaceBrace, BlockStyle.Brace);
     }
 
     public static ConcreteSyntaxTree Block(out ConcreteSyntaxTree body, string header = "", string footer = "",
-      BraceStyle open = BraceStyle.Space,
-      BraceStyle close = BraceStyle.Newline) {
+      BlockStyle open = BlockStyle.SpaceBrace,
+      BlockStyle close = BlockStyle.NewlineBrace) {
       var outer = new ConcreteSyntaxTree();
 
       outer.Write(header);
       switch (open) {
-        case BraceStyle.Space:
+        case BlockStyle.Nothing:
+          break;
+        case BlockStyle.Space:
           outer.Write(" ");
           break;
-        case BraceStyle.Newline:
+        case BlockStyle.Newline:
           outer.WriteLine();
+          break;
+        case BlockStyle.Brace:
+          outer.WriteLine("{");
+          break;
+        case BlockStyle.SpaceBrace:
+          outer.Write(" ");
+          outer.WriteLine("{");
+          break;
+        case BlockStyle.NewlineBrace:
+          outer.WriteLine();
+          outer.WriteLine("{");
           break;
       }
 
-      outer.WriteLine("{");
+
       body = outer.Fork(1);
-      outer.Write("}");
+      switch (open) {
+        case BlockStyle.Nothing:
+        case BlockStyle.Space:
+        case BlockStyle.Newline:
+          break;
+        default:
+          outer.Write("}");
+          break;
+      }
 
       if (footer != "") {
         outer.Write(footer);
       }
       switch (close) {
-        case BraceStyle.Space:
+        case BlockStyle.Space:
+        case BlockStyle.SpaceBrace:
           outer.Write(" ");
           break;
-        case BraceStyle.Newline:
+        case BlockStyle.Newline:
+        case BlockStyle.NewlineBrace:
           outer.WriteLine();
           break;
       }

@@ -167,9 +167,9 @@ namespace Microsoft.Dafny {
     public void PrintProgram(Program prog, bool afterResolver) {
       Contract.Requires(prog != null);
       this.afterResolver = afterResolver;
-      if (Bpl.CommandLineOptions.Clo.ShowEnv != Bpl.CommandLineOptions.ShowEnvironment.Never) {
-        wr.WriteLine("// " + Bpl.CommandLineOptions.Clo.Version);
-        wr.WriteLine("// " + Bpl.CommandLineOptions.Clo.Environment);
+      if (DafnyOptions.O.ShowEnv != Bpl.ExecutionEngineOptions.ShowEnvironment.Never) {
+        wr.WriteLine("// " + DafnyOptions.O.Version);
+        wr.WriteLine("// " + DafnyOptions.O.Environment);
       }
       if (DafnyOptions.O.PrintMode != DafnyOptions.PrintModes.DllEmbed) {
         wr.WriteLine("// {0}", prog.Name);
@@ -204,7 +204,7 @@ namespace Microsoft.Dafny {
         var SCCs = module.CallGraph.TopologicallySortedComponents();
         SCCs.Reverse();
         foreach (var clbl in SCCs) {
-          Indent(indent); wr.WriteLine(" * SCC at height {0}:", module.CallGraph.GetSCCRepresentativeId(clbl));
+          Indent(indent); wr.WriteLine(" * SCC at height {0}:", module.CallGraph.GetSCCRepresentativePredecessorCount(clbl));
           var r = module.CallGraph.GetSCC(clbl);
           foreach (var m in r) {
             Indent(indent);
@@ -374,9 +374,14 @@ namespace Microsoft.Dafny {
               wr.Write(dd.ResolvedHash);
               wr.Write("*/");
             }
-            wr.Write(" {0} ", dd.Name);
-            wr.Write("= {0}", dd.TargetQId.ToString());
-            if (dd.Exports.Count > 0) {
+            wr.Write(" {0}", dd.Name);
+            if (dd.Name != dd.TargetQId.ToString()) {
+              wr.Write(" = {0}", dd.TargetQId.ToString());
+            }
+            if (dd.Exports.Count == 1) {
+              wr.Write("`{0}", dd.Exports[0].val);
+            }
+            if (dd.Exports.Count > 1) {
               wr.Write("`{{{0}}}", Util.Comma(dd.Exports, id => id.val));
             }
             wr.WriteLine();
@@ -410,7 +415,10 @@ namespace Microsoft.Dafny {
             if (e.IsRefining) {
               wr.Write(" ...");
             }
-            if (e.Extends.Count > 0) wr.Write(" extends {0}", Util.Comma(e.Extends, id => id.val));
+            if (e.Extends.Count > 0) {
+              wr.Write(" extends {0}", Util.Comma(e.Extends, id => id.val));
+            }
+
             wr.WriteLine();
             PrintModuleExportDecl(e, indent + IndentAmount, fileBeingPrinted);
             wr.WriteLine();
@@ -842,12 +850,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(f != null);
 
       if (PrintModeSkipFunctionOrMethod(f.IsGhost, f.Attributes, f.Name)) { return; }
-      var isPredicate = f is Predicate || f is PrefixPredicate;
       Indent(indent);
-      string k = isPredicate ? "predicate" : f.WhatKind;
-      if (f.HasStaticKeyword) { k = "static " + k; }
-      if (!f.IsGhost && f.ByMethodBody == null) { k += " method"; }
-      PrintClassMethodHelper(k, f.Attributes, f.Name, f.TypeArgs);
+      PrintClassMethodHelper(f.FunctionDeclarationKeywords, f.Attributes, f.Name, f.TypeArgs);
       if (f.SignatureIsOmitted) {
         wr.Write(" ...");
       } else {
@@ -855,7 +859,9 @@ namespace Microsoft.Dafny {
           PrintKTypeIndication(((ExtremePredicate)f).TypeOfK);
         }
         PrintFormals(f.Formals, f, f.Name);
-        if (!isPredicate && !(f is ExtremePredicate) && !(f is TwoStatePredicate)) {
+        if (f is Predicate || f is TwoStatePredicate || f is ExtremePredicate || f is PrefixPredicate) {
+          // the result type is tacitly "bool"
+        } else {
           wr.Write(": ");
           if (f.Result != null) {
             wr.Write("(");
@@ -913,7 +919,7 @@ namespace Microsoft.Dafny {
 
     private bool PrintModeSkipGeneral(Bpl.IToken tok, string fileBeingPrinted) {
       return (printMode == DafnyOptions.PrintModes.NoIncludes || printMode == DafnyOptions.PrintModes.NoGhost)
-             && (tok.filename != null && fileBeingPrinted != null && Path.GetFullPath(tok.filename) != fileBeingPrinted);
+             && tok.filename != null && fileBeingPrinted != null && Path.GetFullPath(tok.filename) != fileBeingPrinted;
     }
 
     public void PrintMethod(Method method, int indent, bool printSignatureOnly) {
@@ -928,7 +934,7 @@ namespace Microsoft.Dafny {
         method is TwoStateLemma ? "twostate lemma" :
         "method";
       if (method.HasStaticKeyword) { k = "static " + k; }
-      if (method.IsGhost && !(method is Lemma) && !(method is PrefixLemma) && !(method is TwoStateLemma) && !(method is ExtremeLemma)) {
+      if (method.IsGhost && !method.IsLemmaLike) {
         k = "ghost " + k;
       }
       string nm = method is Constructor && !((Constructor)method).HasName ? "" : method.Name;
@@ -1007,6 +1013,10 @@ namespace Microsoft.Dafny {
       Contract.Requires(f != null);
       if (showNewKeyword && !f.IsOld) {
         wr.Write("new ");
+      }
+      if (f.IsOlder) {
+        Contract.Assert(f.HasName);
+        wr.Write("older ");
       }
       if (f.IsGhost) {
         wr.Write("ghost ");
@@ -1197,16 +1207,14 @@ namespace Microsoft.Dafny {
         wr.Write(";");
 
       } else if (stmt is BreakStmt) {
-        BreakStmt s = (BreakStmt)stmt;
+        var s = (BreakStmt)stmt;
         if (s.TargetLabel != null) {
-          wr.Write("break {0};", s.TargetLabel);
+          wr.Write($"{s.Kind} {s.TargetLabel.val};");
         } else {
-          string sep = "";
-          for (int i = 0; i < s.BreakCount; i++) {
-            wr.Write("{0}break", sep);
-            sep = " ";
+          for (int i = 0; i < s.BreakAndContinueCount - 1; i++) {
+            wr.Write("break ");
           }
-          wr.Write(";");
+          wr.Write($"{s.Kind};");
         }
 
       } else if (stmt is ProduceStmt) {
@@ -1465,7 +1473,10 @@ namespace Microsoft.Dafny {
             wr.Write("case");
             PrintAttributes(mc.Attributes);
             wr.Write(" ");
-            if (!mc.Ctor.Name.StartsWith(BuiltIns.TupleTypeCtorNamePrefix)) wr.Write(mc.Ctor.Name);
+            if (!mc.Ctor.Name.StartsWith(BuiltIns.TupleTypeCtorNamePrefix)) {
+              wr.Write(mc.Ctor.Name);
+            }
+
             PrintMatchCaseArgument(mc);
             wr.Write(" =>");
             foreach (Statement bs in mc.Body) {
@@ -1558,9 +1569,24 @@ namespace Microsoft.Dafny {
         } else if (s.S is ModifyStmt) {
           PrintModifyStmt(indent, (ModifyStmt)s.S, true);
         } else {
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected skeleton statement
+          Contract.Assert(false);
+          throw new cce.UnreachableException(); // unexpected skeleton statement
         }
 
+      } else if (stmt is TryRecoverStatement haltRecoveryStatement) {
+        // These have no actual syntax for Dafny user code, so emit something
+        // clearly not parsable.
+        int ind = indent + IndentAmount;
+
+        Indent(indent);
+        wr.WriteLine("[[ try { ]]");
+        PrintStatement(haltRecoveryStatement.TryBody, ind);
+        wr.WriteLine();
+
+        Indent(indent);
+        wr.WriteLine($"[[ }} recover ({haltRecoveryStatement.HaltMessageVar.Name}) {{ ]]");
+        PrintStatement(haltRecoveryStatement.RecoverBody, ind);
+        wr.Write("[[ } ]]");
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }
@@ -1623,8 +1649,7 @@ namespace Microsoft.Dafny {
         var stmt = (AssignOrReturnStmt)s;
         wr.Write(":- ");
         PrintExpression(stmt.Rhs, true);
-        if (DafnyOptions.O.DafnyPrintResolvedFile != null) {
-          Contract.Assert(stmt.ResolvedStatements.Count > 0);  // filled in during resolution
+        if (DafnyOptions.O.DafnyPrintResolvedFile != null && stmt.ResolvedStatements.Count > 0) {
           wr.WriteLine();
           Indent(indent); wr.WriteLine("/*---------- desugared ----------");
           foreach (Statement r in stmt.ResolvedStatements) {
@@ -2588,7 +2613,6 @@ namespace Microsoft.Dafny {
         bool parensNeeded = !isRightmost;
         if (parensNeeded) { wr.Write("("); }
         wr.Write(e is ForallExpr ? "forall" : "exists");
-        PrintTypeParams(e.TypeArgs); // new!
         wr.Write(" ");
         PrintQuantifierDomain(e.BoundVars, e.Attributes, e.Range);
         if (keyword == null) {
@@ -2832,6 +2856,11 @@ namespace Microsoft.Dafny {
       switch (pat) {
         case IdPattern idPat:
           if (idPat.Id.StartsWith(BuiltIns.TupleTypeCtorNamePrefix)) {
+          } else if (idPat.Id.StartsWith("_")) {
+            // In case of the universal match pattern, print '_' instead of
+            // its node identifier, otherwise the printed program becomes
+            // syntactically incorrect.
+            wr.Write("_");
           } else {
             wr.Write(idPat.Id);
           }

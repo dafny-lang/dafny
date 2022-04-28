@@ -17,7 +17,7 @@
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <DefineConstants>TRACE</DefineConstants>
     <PackageVersion>1.1.0</PackageVersion>
-    <TargetFramework>net5.0</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>
@@ -25,13 +25,13 @@
       <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="3.7.0" />
       <PackageReference Include="System.Runtime.Numerics" Version="4.3.0" />
       <PackageReference Include="System.Collections.Immutable" Version="1.7.0" />
-  </ItemGroup>
-
-  <ItemGroup>
-      <ProjectReference Include="..\DafnyRuntime\DafnyRuntime.csproj" />
+      <PackageReference Include="Boogie.ExecutionEngine" Version="2.13.4" />
   </ItemGroup>
 
   <ItemGroup>
     <Compile Include="..\version.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="DafnyPrelude.bpl" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

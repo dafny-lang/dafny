@@ -11,7 +11,6 @@ Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 
 Verifying Impl$$_module.__default.Abs ...
-Retrieving cached verification result for implementation Impl$$_module.__default.Abs...
   [0 proof obligations]  error
 c:\DEV\Dafny\abs.dfy(4,4): Error: A postcondition might not hold on this return path.
 c:\DEV\Dafny\abs.dfy(3,10): Related location: This is the postcondition that might not hold.

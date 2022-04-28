@@ -416,7 +416,7 @@ module TerminationCheck {
   datatype R = R(x: int := X(); 3) // error: termination violation
   function F(x: int := F(5)): int // error: termination violation
   function G(x: int := X(); 3): int // error: termination violation
-  ghost method M(x: int := X(); 3) // error: termination violation
+  lemma M(x: int := X(); 3) // error: termination violation
 
   method Caller() {
     // No additional errors are reported at the use sites
@@ -505,7 +505,7 @@ module StmtExprCallPreconditionRegression {
 }
 
 module IteratorFrameRegression {
-  ghost method X()
+  lemma X()
   // The following once caused malformed Boogie, because the $_Frame variable had not been declared.
   iterator Iter()
     requires (X(); 3) == 3

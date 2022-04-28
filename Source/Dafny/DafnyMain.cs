@@ -9,9 +9,9 @@ using System;
 using System.IO;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
-using Bpl = Microsoft.Boogie;
 using System.Reflection;
-using DafnyAssembly;
+using System.Threading.Tasks;
+using Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
 
@@ -27,7 +27,7 @@ namespace Microsoft.Dafny {
 
     // Returns a canonical string for the given file path, namely one which is the same
     // for all paths to a given file and different otherwise. The best we can do is to
-    // make the path absolute -- detecting case and canoncializing symbolic and hard
+    // make the path absolute -- detecting case and canonicalizing symbolic and hard
     // links are difficult across file systems (which may mount parts of other filesystems,
     // with different characteristics) and is not supported by .Net libraries
     public static string Canonicalize(String filePath) {
@@ -103,7 +103,7 @@ namespace Microsoft.Dafny {
     /// Returns null on success, or an error string otherwise.
     /// </summary>
     public static string ParseCheck(IList<DafnyFile/*!*/>/*!*/ files, string/*!*/ programName, ErrorReporter reporter, out Program program)
-    //modifies Bpl.CommandLineOptions.Clo.XmlSink.*;
+    //modifies Bpl.DafnyOptions.O.XmlSink.*;
     {
       string err = Parse(files, programName, reporter, out program);
       if (err != null) {
@@ -122,10 +122,10 @@ namespace Microsoft.Dafny {
 
       foreach (DafnyFile dafnyFile in files) {
         Contract.Assert(dafnyFile != null);
-        if (Bpl.CommandLineOptions.Clo.XmlSink != null && Bpl.CommandLineOptions.Clo.XmlSink.IsOpen && !dafnyFile.UseStdin) {
-          Bpl.CommandLineOptions.Clo.XmlSink.WriteFileFragment(dafnyFile.FilePath);
+        if (DafnyOptions.O.XmlSink != null && DafnyOptions.O.XmlSink.IsOpen && !dafnyFile.UseStdin) {
+          DafnyOptions.O.XmlSink.WriteFileFragment(dafnyFile.FilePath);
         }
-        if (Bpl.CommandLineOptions.Clo.Trace) {
+        if (DafnyOptions.O.Trace) {
           Console.WriteLine("Parsing " + dafnyFile.FilePath);
         }
 
@@ -156,7 +156,7 @@ namespace Microsoft.Dafny {
     }
 
     public static string Resolve(Program program, ErrorReporter reporter) {
-      if (Bpl.CommandLineOptions.Clo.NoResolve || Bpl.CommandLineOptions.Clo.NoTypecheck) { return null; }
+      if (DafnyOptions.O.NoResolve || DafnyOptions.O.NoTypecheck) { return null; }
 
       Dafny.Resolver r = new Dafny.Resolver(program);
       r.ResolveProgram(program);
@@ -218,18 +218,106 @@ namespace Microsoft.Dafny {
     }
 
     private static string ParseFile(DafnyFile dafnyFile, Include include, ModuleDecl module, BuiltIns builtIns, Errors errs, bool verifyThisFile = true, bool compileThisFile = true) {
-      var fn = DafnyOptions.Clo.UseBaseNameForFileName ? Path.GetFileName(dafnyFile.FilePath) : dafnyFile.FilePath;
+      var fn = DafnyOptions.O.UseBaseNameForFileName ? Path.GetFileName(dafnyFile.FilePath) : dafnyFile.FilePath;
       try {
         int errorCount = Dafny.Parser.Parse(dafnyFile.UseStdin, dafnyFile.SourceFileName, include, module, builtIns, errs, verifyThisFile, compileThisFile);
         if (errorCount != 0) {
-          return string.Format("{0} parse errors detected in {1}", errorCount, fn);
+          return $"{errorCount} parse errors detected in {fn}";
         }
       } catch (IOException e) {
-        Bpl.IToken tok = include == null ? Bpl.Token.NoToken : include.tok;
+        IToken tok = include == null ? Token.NoToken : include.tok;
         errs.SemErr(tok, "Unable to open included file");
-        return string.Format("Error opening file \"{0}\": {1}", fn, e.Message);
+        return $"Error opening file \"{fn}\": {e.Message}";
       }
       return null; // Success
+    }
+
+    public static async Task<(PipelineOutcome Outcome, PipelineStatistics Statistics)> BoogieOnce(
+      TextWriter output,
+      ExecutionEngine engine,
+      string baseFile,
+      string moduleName,
+      Microsoft.Boogie.Program boogieProgram, string programId) {
+      var moduleId = (programId ?? "main_program_id") + "_" + moduleName;
+
+      string bplFilename;
+      if (DafnyOptions.O.PrintFile != null) {
+        bplFilename = DafnyOptions.O.PrintFile;
+      } else {
+        string baseName = cce.NonNull(Path.GetFileName(baseFile));
+        baseName = cce.NonNull(Path.ChangeExtension(baseName, "bpl"));
+        bplFilename = Path.Combine(Path.GetTempPath(), baseName);
+      }
+
+      bplFilename = BoogieProgramSuffix(bplFilename, moduleName);
+      var (outcome, stats) = await BoogiePipelineWithRerun(output, engine, boogieProgram, bplFilename,
+        1 < DafnyOptions.O.VerifySnapshots ? moduleId : null);
+      return (outcome, stats);
+    }
+
+    public static string BoogieProgramSuffix(string printFile, string suffix) {
+      var baseName = Path.GetFileNameWithoutExtension(printFile);
+      var dirName = Path.GetDirectoryName(printFile);
+
+      return Path.Combine(dirName, baseName + "_" + suffix + Path.GetExtension(printFile));
+    }
+
+    public static bool IsBoogieVerified(PipelineOutcome outcome, PipelineStatistics statistics) {
+      return (outcome == PipelineOutcome.Done || outcome == PipelineOutcome.VerificationCompleted)
+             && statistics.ErrorCount == 0
+             && statistics.InconclusiveCount == 0
+             && statistics.TimeoutCount == 0
+             && statistics.OutOfResourceCount == 0
+             && statistics.OutOfMemoryCount == 0;
+    }
+
+    /// <summary>
+    /// Resolve, type check, infer invariants for, and verify the given Boogie program.
+    /// The intention is that this Boogie program has been produced by translation from something
+    /// else.  Hence, any resolution errors and type checking errors are due to errors in
+    /// the translation.
+    /// The method prints errors for resolution and type checking errors, but still returns
+    /// their error code.
+    /// </summary>
+    private static async Task<(PipelineOutcome Outcome, PipelineStatistics Statistics)> BoogiePipelineWithRerun(
+      TextWriter output, ExecutionEngine engine, Microsoft.Boogie.Program/*!*/ program, string/*!*/ bplFileName,
+        string programId) {
+      Contract.Requires(program != null);
+      Contract.Requires(bplFileName != null);
+
+      var stats = new PipelineStatistics();
+      var outcome = engine.ResolveAndTypecheck(program, bplFileName, out _);
+      switch (outcome) {
+        case PipelineOutcome.Done:
+          return (outcome, stats);
+
+        case PipelineOutcome.ResolutionError:
+        case PipelineOutcome.TypeCheckingError:
+          engine.PrintBplFile(bplFileName, program, false, false, DafnyOptions.O.PrettyPrint);
+          Console.WriteLine();
+          Console.WriteLine(
+            "*** Encountered internal translation error - re-running Boogie to get better debug information");
+          Console.WriteLine();
+
+          var /*!*/ fileNames = new List<string /*!*/> { bplFileName };
+          var reparsedProgram = engine.ParseBoogieProgram(fileNames, true);
+          if (reparsedProgram != null) {
+            engine.ResolveAndTypecheck(reparsedProgram, bplFileName, out _);
+          }
+
+          return (outcome, stats);
+
+        case PipelineOutcome.ResolvedAndTypeChecked:
+          engine.EliminateDeadVariables(program);
+          engine.CollectModSets(program);
+          engine.CoalesceBlocks(program);
+          engine.Inline(program);
+          var inferAndVerifyOutcome = await engine.InferAndVerify(output, program, stats, programId);
+          return (inferAndVerifyOutcome, stats);
+
+        default:
+          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected outcome
+      }
     }
 
   }

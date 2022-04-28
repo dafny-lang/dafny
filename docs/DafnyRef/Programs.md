@@ -12,7 +12,7 @@ and functions.
 
 When asked to compile a program, Dafny looks for the existence of a
 Main() method. If a legal Main() method is found, the compiler will emit
-an executable appropriate to the target langauge; otherwise it will emit
+an executable appropriate to the target language; otherwise it will emit
 a library or individual files.
 The conditions for a legal Main() method are described in the User Guide
 ([Section 24.9.1](#sec-user-guide-main)).
@@ -112,14 +112,15 @@ implicitly ghost (non-ghost).
  synonym types            | -
  iterators                | -
  method                   | ghost static
- lemma, colemma, comethod | already-ghost static
- inductive lemma          | already-ghost static
+ lemma                    | already-ghost static
+ least lemma              | already-ghost static
+ greatest lemma           | already-ghost static
  constructor              | -
  function (non-method)    | already-ghost static
  function method          | already-non-ghost static
  predicate (non-method)   | already-ghost static
  predicate method         | already-non-ghost static
- inductive predicate      | already-ghost static
- copredicate              | already-ghost static
+ least predicate          | already-ghost static
+ greatest predicate       | already-ghost static
 
 

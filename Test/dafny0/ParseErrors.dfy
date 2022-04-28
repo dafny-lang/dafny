@@ -102,7 +102,7 @@ ghost greatest lemma GhCL()  // error: a lemma is not allowed to be declared "gh
 ghost twostate lemma GhL2()  // error: a lemma is not allowed to be declared "ghost" -- it is already ghost
 
 class C {
-  ghost constructor Make()  // error: a constructor is not allowed to be ghost
+  constructor Make()
   ghost method M()
 }
 
@@ -187,4 +187,76 @@ module NameOnlyParameters {
   // yield-parameters
   iterator Iter0(nameonly x: int) yields (y: int)
   iterator Iter0(x: int) yields (nameonly y: int) // error: 'nameonly' not allowed here
+}
+
+// ------------------------- parameters of ghost constructors ------------------------------
+
+module GhostConstructors {
+  class Either {
+    constructor A(x: int) {
+    }
+    ghost constructor B(x: int) {
+    }
+    constructor C(ghost x: int) {
+    }
+    ghost constructor D(ghost x: int) { // error: don't use 'ghost' keyword for ghost constructor parameters
+    }
+}
+}
+
+// ------------------------- static keyword ------------------------------
+
+module IllegalStatic {
+  class C {
+    static constructor () // error: constructor cannot be declared 'static'
+  }
+  static method M() // warning: 'static' not allowed here
+  static function F(): int // warning: 'static' not allowed here
+  static lemma F() // warning: 'static' not allowed here
+  static twostate function F2(): int // warning: 'static' not allowed here
+  static least predicate LP() // warning: 'static' not allowed here
+
+  static datatype D = D // error: cannot be 'static'
+  static module M { } // error: cannot be 'static'
+}
+
+// ------------------------- ghost keyword ------------------------------
+
+module IllegalGhost {
+  ghost datatype D = D // error: cannot be 'ghost'
+  ghost module M { } // error: cannot be 'ghost'
+}
+
+// ------------------------- already-ghost functions ------------------------------
+
+module AlreadyGhost {
+  // a twostate function/predicate cannot be used with ...
+  ghost twostate function F(): int { 2 } by method { } // error (x2): ... with "by method" or "ghost"
+  twostate function method G(): int { 2 } by method { } // error: ... with "by method"
+  ghost twostate predicate P() { true } by method { } // error (x2): ... with "by method" or "ghost"
+  twostate predicate method Q() { true } by method { } // error: ... with "by method"
+
+  // an extreme predicate cannot be used with ...
+  ghost least predicate I() { true } by method { } // error (x2): ... with "by method" or "ghost"
+  ghost greatest predicate J() { true } by method { } // error (x2): ... with "by method" or "ghost"
+
+  // a twostate or extreme predicate is not allowed to be declared with either "by method" or "abstract"
+  abstract twostate function A0(): int { 2 } by method { } // error (x2)
+  abstract twostate predicate A1() { true } by method { } // error (x2)
+  abstract least predicate A2() { true } by method { } // error (x2)
+  abstract greatest predicate A3() { true } by method { } // error (x2)
+}
+
+// ------------------------- 'older' contextual keyword ------------------------------
+
+module Older {
+  function F(older x: X): R
+  predicate P(older older older x: X)
+  least predicate Q(older older older x: X) // error (x3): 'older' is an identifier here
+  method M(older x: X) // error: 'older' is an identifier here
+  function F(): (older r: R) // error: 'older' is an identifier here
+
+  twostate function W(a: A, new older new older b: B, nameonly older nameonly c: C := "hello"): int
+  function method C(a: A, ghost older older b: B, nameonly ghost older nameonly ghost c: C := "hello"): int
+  twostate lemma L(nameonly older nameonly c: C := "hello") // error: 'older' is an identifier here
 }

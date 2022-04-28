@@ -6,10 +6,12 @@ using System.IO;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
 using System.Text;
+using Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
   [Serializable]
   class VerificationTask {
+
     [DataMember]
     string[] args = null;
 
@@ -43,30 +45,30 @@ namespace Microsoft.Dafny {
       }
     }
 
-    internal static void SelfTest() {
+    internal static void SelfTest(ExecutionEngine engine) {
       var task = new VerificationTask(new string[] { }, "<none>", "method selftest() { assert true; }", false);
       try {
-        task.Run();
+        task.Run(engine);
         Interaction.EOM(Interaction.SUCCESS, (string)null);
       } catch (Exception ex) {
         Interaction.EOM(Interaction.FAILURE, ex);
       }
     }
 
-    internal void Run() {
-      new DafnyHelper(args, filename, ProgramSource).Verify();
+    internal void Run(ExecutionEngine engine) {
+      new DafnyHelper(engine, args, filename, ProgramSource).Verify();
     }
 
-    internal void Symbols() {
-      new DafnyHelper(args, filename, ProgramSource).Symbols();
+    internal void Symbols(ExecutionEngine engine) {
+      new DafnyHelper(engine, args, filename, ProgramSource).Symbols();
     }
 
-    public void CounterExample() {
-      new DafnyHelper(args, filename, ProgramSource).CounterExample();
+    public void CounterExample(ExecutionEngine engine) {
+      new DafnyHelper(engine, args, filename, ProgramSource).CounterExample();
     }
 
-    public void DotGraph() {
-      new DafnyHelper(args, filename, ProgramSource).DotGraph();
+    public void DotGraph(ExecutionEngine engine) {
+      new DafnyHelper(engine, args, filename, ProgramSource).DotGraph();
     }
 
     public string EncodeProgram(out string json) {

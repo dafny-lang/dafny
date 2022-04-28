@@ -1,5 +1,6 @@
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace DafnyTestGeneration.Test {
@@ -13,7 +14,7 @@ namespace DafnyTestGeneration.Test {
     }
 
     [TestMethod]
-    public void StringLength() {
+    public async Task StringLength() {
       var source = @"
 class C {
   static method compareStringLengthToOne(s: string) returns (ret: int) {
@@ -29,7 +30,7 @@ class C {
 
 ".TrimStart();
       var program = Utils.Parse(source);
-      var methods = Main.GetTestMethodsForProgram(program).ToList();
+      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.AreEqual(3, methods.Count);
       Assert.IsTrue(methods.All(m =>
         m.MethodName == "C.compareStringLengthToOne"));
@@ -45,7 +46,7 @@ class C {
     }
 
     [TestMethod]
-    public void SeqOfObjects() {
+    public async Task SeqOfObjects() {
       var source = @"
 class CharObject {
    var value:char;
@@ -73,7 +74,7 @@ class SimpleTest {
 }
 ".TrimStart();
       var program = Utils.Parse(source);
-      var methods = Main.GetTestMethodsForProgram(program).ToList();
+      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       // Assert.AreEqual(3, methods.Count);
       Assert.IsTrue(methods.All(m =>
         m.MethodName ==

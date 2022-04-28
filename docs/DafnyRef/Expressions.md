@@ -308,7 +308,7 @@ of conversions are permitted:
 Some of the conversions above are already implicitly allowed, without the
 `as` operation, such as from a subset type to its base. In any case, it
 must be able to be proved that the value of the given expression is a
-legal value of the given type. For example, `5 as MyType` is permited (by the verifier) only if `5` is a legitimate value of`MyType` (which must be a numeric type).
+legal value of the given type. For example, `5 as MyType` is permitted (by the verifier) only if `5` is a legitimate value of`MyType` (which must be a numeric type).
 
 The `as` operation is like a grammatical suffix or postfix operation.
 However, note that the unary operations bind more tightly than does `as`.
@@ -518,7 +518,26 @@ type `nat -> T` where `T` is the array element type:
 ```dafny
 var a := new int[5](i => i*i);
 ```
-TODO: what about multi-dimensional arrays
+
+To allocate a multi-dimensional array, simply give the sizes of
+each dimension. For example,
+```dafny
+var m := new real[640, 480];
+```
+allocates a 640-by-480 two-dimensional array of `real`s. The initialization
+portion cannot give a display of elements like in the one-dimensional
+case, but it can use an initialization function. A function used to initialize
+a n-dimensional array requires a function from n `nat`s to a `T`, where `T`
+is element type of the array. Here is an example:
+```dafny
+var diag := new int[30, 30]((i, j) => if i == j then 1 else 0);
+```
+
+Array allocation is permitted in ghost contexts. If any expression
+used to specify a dimension or initialization value is ghost, then the
+`new` allocation can only be used in ghost contexts. Because the
+elements of an array are non-ghost, an array allocated in a ghost
+context in effect cannot be changed after initialization.
 
 ## 20.17. Object Allocation
 ````grammar
@@ -589,7 +608,16 @@ AllocatedExpression_ =
   "allocated" "(" Expression(allowLemma: true, allowLambda: true) ")"
 ````
 
-TO BE WRITTEN -- allocated predicate
+For any expression `e`, the expression `allocated(e)` evaluates to `true`
+in a state if the value of `e` is available in that state, meaning that
+it could in principle have been the value of a variable in that state.
+This can be useful when, for example, `allocated(e)` is evaluated in an
+`old` state. For instance, if `d` is a local variable holding a datatype value
+`Cons(r, Nil)` where `r` is an object that was allocated in the enclosing
+method, then `old(allocated(d))` is `false`.
+
+If the expression `e` is of a reference type, then `!old(allocated(e))`
+is the same as `fresh(e)`.
 
 ## 20.23. Unchanged Expressions {#sec-unchanged-expression}
 
@@ -1164,8 +1192,6 @@ if-then-else expression. Consequently these two expressions must have types that
 the whole let-or-fail expression. Typically that means that `tmp.PropagateFailure()` is a failure value and
 `E` is a value-carrying success value, both of the same failure-compatible type, as described in [Section 19.7](#sec-update-failure).
 
-TODO: Should the assert/assume/expect variants be permitted?
-
 ## 20.39. Map Comprehension Expression {#sec-map-comprehension-expression}
 ````grammar
 MapComprehensionExpr(allowLemma, allowLambda) =
@@ -1225,7 +1251,7 @@ the type parameters.
 
 To reference a prefix predicate (see [Section 18.3.4](#sec-copredicates)) or
 prefix lemma (see [Section 18.3.5.3](#sec-prefix-lemmas)), the identifier
-must be the name of the copredicate or colemma and it must be
+must be the name of the greatest predicate or greatest lemma and it must be
 followed by a ``HashCall``.
 
 ## 20.41. Hash Call
@@ -1234,11 +1260,11 @@ HashCall = "#" [ GenericInstantiation ]
   "[" Expression(allowLemma: true, allowLambda: true) "]"
   "(" [ Bindings ] ")"
 ````
-A ``HashCall`` is used to call the prefix for a copredicate or colemma.
+A ``HashCall`` is used to call the prefix for a greatest predicate or greatest lemma.
 In the non-generic case, just insert `"#[k]"` before the call argument
 list where k is the number of recursion levels.
 
-In the case where the `colemma` is generic, the generic type
+In the case where the `greatest lemma` is generic, the generic type
 argument is given before. Here is an example:
 
 ```dafny
@@ -1262,14 +1288,14 @@ function ones<T>(s: T): Stream<T>
   Cons(1, s, ones(s))
 }
 
-copredicate atmost(a: Stream, b: Stream)
+greatest predicate atmost(a: Stream, b: Stream)
 {
   match a
   case Nil => true
   case Cons(h,s,t) => b.Cons? && h <= b.head && atmost(t, b.tail)
 }
 
-colemma {:induction false} Theorem0<T>(s: T)
+greatest lemma {:induction false} Theorem0<T>(s: T)
   ensures atmost(zeros(s), ones(s))
 {
   // the following shows two equivalent ways to state the
@@ -1314,11 +1340,11 @@ followed by either
 
 * a ``GenericInstantiation`` (for the case where the item
 selected by the ``DotSuffix`` is generic), or
-* a ``HashCall`` for the case where we want to call a prefix copredicate
-  or colemma. The result is the result of calling the prefix copredicate
-  or colemma.
+* a ``HashCall`` for the case where we want to call a prefix predicate
+  or prefix lemma. The result is the result of calling the prefix predicate
+  or prefix lemma.
 
-### 20.42.2. Datatype Update Suffix
+### 20.42.2. Datatype Update Suffix {#sec-datatype-update-suffix}
 
 ````grammar
 DatatypeUpdateSuffix_ =

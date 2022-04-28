@@ -1,8 +1,12 @@
 ﻿using Microsoft.Dafny.LanguageServer.Language;
+using Microsoft.Dafny.LanguageServer.Language.Symbols;
+using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Server;
+using System;
+using Microsoft.Extensions.Options;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
@@ -22,13 +26,28 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private static IServiceCollection WithDafnyWorkspace(this IServiceCollection services, IConfiguration configuration) {
       return services
         .Configure<DocumentOptions>(configuration.GetSection(DocumentOptions.Section))
+        .Configure<DafnyPluginsOptions>(configuration.GetSection(DafnyPluginsOptions.Section))
         .AddSingleton<IDocumentDatabase, DocumentDatabase>()
         .AddSingleton<IDafnyParser>(serviceProvider => DafnyLangParser.Create(serviceProvider.GetRequiredService<ILogger<DafnyLangParser>>()))
-        .AddSingleton<ITextDocumentLoader, TextDocumentLoader>()
+        .AddSingleton<ITextDocumentLoader>(CreateTextDocumentLoader)
         .AddSingleton<IDiagnosticPublisher, DiagnosticPublisher>()
-        .AddSingleton<IDocumentUpdater, DocumentUpdater>()
+        .AddSingleton<ITextChangeProcessor, TextChangeProcessor>()
+        .AddSingleton<IRelocator, Relocator>()
         .AddSingleton<ISymbolGuesser, SymbolGuesser>()
-        .AddSingleton<ICompilationStatusNotificationPublisher, CompilationStatusNotificationPublisher>();
+        .AddSingleton<ICompilationStatusNotificationPublisher, CompilationStatusNotificationPublisher>()
+        .AddSingleton<ITelemetryPublisher, TelemetryPublisher>();
+    }
+
+    private static TextDocumentLoader CreateTextDocumentLoader(IServiceProvider services) {
+      return TextDocumentLoader.Create(
+        services.GetRequiredService<IDafnyParser>(),
+        services.GetRequiredService<ISymbolResolver>(),
+        services.GetRequiredService<IProgramVerifier>(),
+        services.GetRequiredService<ISymbolTableFactory>(),
+        services.GetRequiredService<IGhostStateDiagnosticCollector>(),
+        services.GetRequiredService<ICompilationStatusNotificationPublisher>(),
+        services.GetRequiredService<ILoggerFactory>()
+      );
     }
   }
 }

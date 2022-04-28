@@ -3,7 +3,7 @@
 /*
 module _System {
   /* CALL GRAPH for module _System:
-   * SCC at height 2:
+   * SCC at height 1:
    *   RotateRight
    * SCC at height 1:
    *   RotateLeft
@@ -116,27 +116,27 @@ module _System {
 */
 
 /* CALL GRAPH for module _module:
- * SCC at height 12:
- *   M5
- * SCC at height 11:
- *   M4
- * SCC at height 10:
- *   M3
- * SCC at height 9:
- *   M2'
- * SCC at height 8:
- *   M2
- * SCC at height 7:
- *   M1
- * SCC at height 6:
- *   M0
- * SCC at height 5:
- *   UseTheVars
- * SCC at height 4:
- *   SmallReal
- * SCC at height 3:
- *   EvenInt
  * SCC at height 2:
+ *   M5
+ * SCC at height 2:
+ *   M4
+ * SCC at height 2:
+ *   M3
+ * SCC at height 2:
+ *   M2'
+ * SCC at height 2:
+ *   M2
+ * SCC at height 2:
+ *   M1
+ * SCC at height 2:
+ *   M0
+ * SCC at height 1:
+ *   UseTheVars
+ * SCC at height 0:
+ *   SmallReal
+ * SCC at height 0:
+ *   EvenInt
+ * SCC at height 0:
  *   nat
  * SCC at height 1:
  *   ClassSubset
@@ -341,7 +341,7 @@ method M5()
       seven := (if 0.0 <= small < 100.0 then small else 100.0) as bv7;
   }
 }
-TypeConversions.dfy(126,5): Error: trying witness null: value of expression (of type 'Class?') is not known to be an instance of type 'Class', because it may be null
+TypeConversions.dfy(126,5): Error: trying witness null: value of expression (of type 'Class?') is not known to be an instance of type 'Class', because it might be null
 TypeConversions.dfy(14,40): Error: value does not satisfy the subset constraints of 'nat'
 TypeConversions.dfy(16,40): Error: the real-based number must be an integer (if you want truncation, apply .Floor to the real-based number)
 TypeConversions.dfy(17,40): Error: value does not satisfy the subset constraints of 'nat'
@@ -353,8 +353,8 @@ TypeConversions.dfy(62,28): Error: value to be converted might not fit in bv7
 TypeConversions.dfy(72,29): Error: value to be converted might not fit in bv0
 TypeConversions.dfy(73,27): Error: value to be converted might not fit in bv0
 TypeConversions.dfy(74,31): Error: value to be converted might not fit in bv0
-TypeConversions.dfy(100,20): Error: result of operation might violate newtype constraint for 'EvenInt'
 TypeConversions.dfy(100,20): Error: the real-based number must be an integer (if you want truncation, apply .Floor to the real-based number)
+TypeConversions.dfy(100,20): Error: result of operation might violate newtype constraint for 'EvenInt'
 TypeConversions.dfy(102,20): Error: result of operation might violate newtype constraint for 'EvenInt'
 TypeConversions.dfy(115,28): Error: value to be converted might not fit in bv7
 TypeConversions.dfy(116,27): Error: value to be converted might not fit in bv0

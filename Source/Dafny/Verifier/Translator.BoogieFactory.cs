@@ -109,7 +109,6 @@ namespace Microsoft.Dafny {
       MapDomain,
       MapElements,
       MapEqual,
-      MapBuild,
       MapDisjoint,
       MapUnion,
       MapGlue,
@@ -169,7 +168,7 @@ namespace Microsoft.Dafny {
       return Lit(expr, expr.Type);
     }
 
-    Bpl.Expr GetLit(Bpl.Expr expr) {
+    private static Bpl.Expr GetLit(Bpl.Expr expr) {
       if (expr is Bpl.NAryExpr) {
         Bpl.NAryExpr app = (Bpl.NAryExpr)expr;
         switch (app.Fun.FunctionName) {
@@ -184,7 +183,19 @@ namespace Microsoft.Dafny {
       return null;
     }
 
-    Bpl.Expr RemoveLit(Bpl.Expr expr) {
+    public static Bpl.AssumeCmd TrAssumeCmd(Bpl.IToken tok, Bpl.Expr expr, Bpl.QKeyValue attributes = null) {
+      var litArgument = GetLit(expr);
+      if (litArgument is Bpl.LiteralExpr literalExpr && literalExpr.asBool) {
+        // In most cases, we leave any Lit brackets that "expr" may have. In the past, these brackets
+        // had always been removed here. Alas, some brittle test cases stopped verifying if we
+        // keep "assume Lit(true)" instead of simplifying it to "assume true". Therefore, as a
+        // special case, we remove the Lit brackets from the literal "true".
+        expr = litArgument;
+      }
+      return attributes == null ? new Bpl.AssumeCmd(tok, expr) : new Bpl.AssumeCmd(tok, expr, attributes);
+    }
+
+    static Bpl.Expr RemoveLit(Bpl.Expr expr) {
       return GetLit(expr) ?? expr;
     }
 
@@ -806,8 +817,7 @@ namespace Microsoft.Dafny {
     }
 
     static Bpl.Expr BplLocalVar(string name, Bpl.Type ty, List<Bpl.Variable> lvars) {
-      Bpl.Expr v;
-      lvars.Add(BplLocalVar(name, ty, out v));
+      lvars.Add(BplLocalVar(name, ty, out var v));
       return v;
     }
 
@@ -835,30 +845,26 @@ namespace Microsoft.Dafny {
     }
 
     static Bpl.Expr BplBoundVar(string name, Bpl.Type ty, List<Bpl.Variable> bvars) {
-      Bpl.Expr e;
-      bvars.Add(BplBoundVar(name, ty, out e));
+      bvars.Add(BplBoundVar(name, ty, out var e));
       return e;
     }
 
     // Makes a formal variable
     static Bpl.Formal BplFormalVar(string/*?*/ name, Bpl.Type ty, bool incoming) {
-      Bpl.Expr _scratch;
-      return BplFormalVar(name, ty, incoming, out _scratch);
+      return BplFormalVar(name, ty, incoming, out _);
     }
 
-    static Bpl.Formal BplFormalVar(string/*?*/ name, Bpl.Type ty, bool incoming, out Bpl.Expr e) {
-      Bpl.Formal res;
+    static Bpl.Formal BplFormalVar(string/*?*/ name, Bpl.Type ty, bool incoming, out Bpl.Expr e, Bpl.Expr whereClause = null) {
       if (name == null) {
         name = Bpl.TypedIdent.NoName;
       }
-      res = new Bpl.Formal(ty.tok, new Bpl.TypedIdent(ty.tok, name, ty), incoming);
+      var res = new Bpl.Formal(ty.tok, new Bpl.TypedIdent(ty.tok, name, ty, whereClause), incoming);
       e = new Bpl.IdentifierExpr(ty.tok, res);
       return res;
     }
 
     static Bpl.Expr BplFormalVar(string name, Bpl.Type ty, bool incoming, List<Bpl.Variable> fvars) {
-      Bpl.Expr e;
-      fvars.Add(BplFormalVar(name, ty, incoming, out e));
+      fvars.Add(BplFormalVar(name, ty, incoming, out var e));
       return e;
     }
   }

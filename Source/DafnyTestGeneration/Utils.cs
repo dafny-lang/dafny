@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using DafnyServer.CounterExampleGeneration;
+using DafnyServer.CounterexampleGeneration;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
 using Action = System.Action;
@@ -31,33 +31,6 @@ namespace DafnyTestGeneration {
       }
       new Resolver(program).ResolveProgram(program);
       return program;
-    }
-
-    /// <summary>
-    /// Redirect console output to capture the result of invoking an action
-    /// </summary>
-    public static string CaptureConsoleOutput(Action action) {
-
-      var printer = new ConsolePrinter();
-      ExecutionEngine.printer = printer;
-      var originalOut = Console.Out;
-      var originalErr = Console.Error;
-      using var stream = new MemoryStream();
-      var writer = new StreamWriter(stream);
-      Console.SetOut(writer);
-      Console.SetError(writer);
-
-      action.Invoke();
-
-      Console.Out.Flush();
-      Console.Error.Flush();
-      var output = Encoding.UTF8.GetString(
-        stream.GetBuffer(),
-        0,
-        (int)stream.Length);
-      Console.SetOut(originalOut);
-      Console.SetError(originalErr);
-      return output;
     }
 
     /// <summary>

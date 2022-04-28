@@ -105,9 +105,10 @@ namespace Microsoft.Dafny {
           return new ClassDecl(Tok(dd.tok), dd.Name, m, tps, mm, CloneAttributes(dd.Attributes), dd.IsRefining, dd.ParentTraits.ConvertAll(CloneType));
         }
       } else if (d is ModuleDecl) {
-        if (d is LiteralModuleDecl) {
-          // TODO: Does not clone any details; is still resolved
-          return new LiteralModuleDecl(((LiteralModuleDecl)d).ModuleDef, m);
+        if (d is LiteralModuleDecl moduleDecl) {
+          return new LiteralModuleDecl(moduleDecl.ModuleDef, m) {
+            DefaultExport = moduleDecl.DefaultExport
+          };
         } else if (d is AliasModuleDecl) {
           var a = (AliasModuleDecl)d;
           return new AliasModuleDecl(a.TargetQId?.Clone(false), a.tok, m, a.Opened, a.Exports);
@@ -198,7 +199,7 @@ namespace Microsoft.Dafny {
 
     public Formal CloneFormal(Formal formal) {
       Formal f = new Formal(Tok(formal.tok), formal.Name, CloneType(formal.Type), formal.InParam, formal.IsGhost,
-        CloneExpr(formal.DefaultValue), formal.IsOld);
+        CloneExpr(formal.DefaultValue), formal.IsOld, formal.IsNameOnly, formal.IsOlder, formal.NameForCompilation);
       return f;
     }
 
@@ -416,29 +417,26 @@ namespace Microsoft.Dafny {
       } else if (expr is ComprehensionExpr) {
         var e = (ComprehensionExpr)expr;
         var tk = Tok(e.tok);
+        var tkEnd = Tok(e.BodyEndTok);
         var bvs = e.BoundVars.ConvertAll(CloneBoundVar);
         var range = CloneExpr(e.Range);
         var term = CloneExpr(e.Term);
-        if (e is QuantifierExpr) {
-          var q = (QuantifierExpr)e;
-          var tvs = q.TypeArgs.ConvertAll(CloneTypeParam);
+        if (e is QuantifierExpr q) {
           if (e is ForallExpr) {
-            return new ForallExpr(tk, tvs, bvs, range, term, CloneAttributes(e.Attributes));
+            return new ForallExpr(tk, q.BodyEndTok, bvs, range, term, CloneAttributes(e.Attributes));
           } else if (e is ExistsExpr) {
-            return new ExistsExpr(tk, tvs, bvs, range, term, CloneAttributes(e.Attributes));
+            return new ExistsExpr(tk, q.BodyEndTok, bvs, range, term, CloneAttributes(e.Attributes));
           } else {
             Contract.Assert(false); throw new cce.UnreachableException();  // unexpected quantifier expression
           }
-        } else if (e is MapComprehension) {
-          var mc = (MapComprehension)e;
-          return new MapComprehension(tk, mc.Finite, bvs, range, mc.TermLeft == null ? null : CloneExpr(mc.TermLeft), term, CloneAttributes(e.Attributes));
-        } else if (e is LambdaExpr) {
-          var l = (LambdaExpr)e;
-          return new LambdaExpr(tk, bvs, range, l.Reads.ConvertAll(CloneFrameExpr), term);
+        } else if (e is MapComprehension mc) {
+          return new MapComprehension(tk, tkEnd, mc.Finite, bvs, range, mc.TermLeft == null ? null : CloneExpr(mc.TermLeft), term, CloneAttributes(e.Attributes));
+        } else if (e is LambdaExpr l) {
+          return new LambdaExpr(tk, tkEnd, bvs, range, l.Reads.ConvertAll(CloneFrameExpr), term);
         } else {
           Contract.Assert(e is SetComprehension);
           var tt = (SetComprehension)e;
-          return new SetComprehension(tk, tt.Finite, bvs, range, tt.TermIsImplicit ? null : term, CloneAttributes(e.Attributes));
+          return new SetComprehension(tk, tkEnd, tt.Finite, bvs, range, tt.TermIsImplicit ? null : term, CloneAttributes(e.Attributes));
         }
 
       } else if (expr is WildcardExpr) {
@@ -480,7 +478,7 @@ namespace Microsoft.Dafny {
     public MatchCaseExpr CloneMatchCaseExpr(MatchCaseExpr c) {
       Contract.Requires(c != null);
       Contract.Requires(c.Arguments != null);
-      return new MatchCaseExpr(Tok(c.tok), c.Ctor, c.Arguments.ConvertAll(CloneBoundVar), CloneExpr(c.Body), CloneAttributes(c.Attributes));
+      return new MatchCaseExpr(Tok(c.tok), c.Ctor, c.FromBoundVar, c.Arguments.ConvertAll(CloneBoundVar), CloneExpr(c.Body), CloneAttributes(c.Attributes));
     }
 
     public NestedMatchCaseExpr CloneNestedMatchCaseExpr(NestedMatchCaseExpr c) {
@@ -580,9 +578,9 @@ namespace Microsoft.Dafny {
       } else if (stmt is BreakStmt) {
         var s = (BreakStmt)stmt;
         if (s.TargetLabel != null) {
-          r = new BreakStmt(Tok(s.Tok), Tok(s.EndTok), s.TargetLabel);
+          r = new BreakStmt(Tok(s.Tok), Tok(s.EndTok), s.TargetLabel, s.IsContinue);
         } else {
-          r = new BreakStmt(Tok(s.Tok), Tok(s.EndTok), s.BreakCount);
+          r = new BreakStmt(Tok(s.Tok), Tok(s.EndTok), s.BreakAndContinueCount, s.IsContinue);
         }
 
       } else if (stmt is ReturnStmt) {
@@ -688,7 +686,7 @@ namespace Microsoft.Dafny {
     public MatchCaseStmt CloneMatchCaseStmt(MatchCaseStmt c) {
       Contract.Requires(c != null);
       Contract.Assert(c.Arguments != null);
-      return new MatchCaseStmt(Tok(c.tok), c.Ctor, c.Arguments.ConvertAll(CloneBoundVar), c.Body.ConvertAll(CloneStmt), CloneAttributes(c.Attributes));
+      return new MatchCaseStmt(Tok(c.tok), c.Ctor, c.FromBoundVar, c.Arguments.ConvertAll(CloneBoundVar), c.Body.ConvertAll(CloneStmt), CloneAttributes(c.Attributes));
     }
 
     public ExtendedPattern CloneExtendedPattern(ExtendedPattern pat) {
@@ -798,7 +796,7 @@ namespace Microsoft.Dafny {
       BlockStmt body = CloneMethodBody(m);
 
       if (m is Constructor) {
-        return new Constructor(Tok(m.tok), m.Name, tps, ins,
+        return new Constructor(Tok(m.tok), m.Name, m.IsGhost, tps, ins,
           req, mod, ens, decreases, (DividedBlockStmt)body, CloneAttributes(m.Attributes), null);
       } else if (m is LeastLemma) {
         return new LeastLemma(Tok(m.tok), m.Name, m.HasStaticKeyword, ((LeastLemma)m).TypeOfK, tps, ins, m.Outs.ConvertAll(CloneFormal),
@@ -867,8 +865,6 @@ namespace Microsoft.Dafny {
 
     private Dictionary<Declaration, Declaration> reverseMap = new Dictionary<Declaration, Declaration>();
 
-    private HashSet<AliasModuleDecl> extraProvides = new HashSet<AliasModuleDecl>();
-
     private bool isInvisibleClone(Declaration d) {
       Contract.Assert(reverseMap.ContainsKey(d));
       return !reverseMap[d].IsVisibleInScope(scope);
@@ -899,8 +895,9 @@ namespace Microsoft.Dafny {
 
       foreach (var top in basem.TopLevelDecls) {
         var import = reverseMap[top] as AliasModuleDecl;
-        if (import == null)
+        if (import == null) {
           continue;
+        }
 
         var def = import.Signature.ModuleDef;
         if (def == null) {
@@ -975,9 +972,18 @@ namespace Microsoft.Dafny {
 
     public override Function CloneFunction(Function f, string newName = null) {
       var basef = base.CloneFunction(f, newName);
-      basef.ByMethodTok = null; // never export the method body of a function-by-method
-      basef.ByMethodBody = null; // never export the method body of a function-by-method
-      Contract.Assert(basef.ByMethodDecl == null);
+      if (basef.ByMethodBody != null) {
+        Contract.Assert(!basef.IsGhost); // a function-by-method has .IsGhost == false
+        Contract.Assert(basef.Body != null); // a function-by-method has a nonempty .Body
+        if (RevealedInScope(f)) {
+          // For an "export reveals", use an empty (but not absent) by-method part.
+          basef.ByMethodBody = new BlockStmt(basef.ByMethodBody.Tok, basef.ByMethodBody.EndTok, new List<Statement>());
+        } else {
+          // For an "export provides", remove the by-method part altogether.
+          basef.ByMethodTok = null;
+          basef.ByMethodBody = null;
+        }
+      }
       if (!RevealedInScope(f)) {
         basef.Body = null;
       }

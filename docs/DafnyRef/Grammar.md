@@ -115,7 +115,7 @@ separates tokens.
 
 A sequence of alphanumeric characters (with no preceding or following additional
 alphanumeric characters) is a _single_ token. This is true even if the token
-is syntactially or semantically invalid and the sequence could be separated into
+is syntactically or semantically invalid and the sequence could be separated into
 more than one valid token. For example, `assert56` is one identifier token,
 not a keyword `assert` followed by a number; `ifb!=0` begins with the token
 `ifb` and not with the keyword `if` and token `b`; `0xFFFFZZ` is an illegal
@@ -293,11 +293,11 @@ reservedword =
     "abstract" | "allocated" | "as" | "assert" | "assume" |
     "bool" | "break" | "by" |
     "calc" | "case" | "char" | "class" | "codatatype" |
-    "colemma" | "const" | "constructor" | "copredicate" |
+    "const" | "constructor" |
     "datatype" | "decreases" |
     "else" | "ensures" | "exists" | "export" | "extends" |
     "false" | "forall" | "fresh" | "function" | "ghost" |
-    "if" | "imap" | "import" | "in" | "include" | "inductive" |
+    "if" | "imap" | "import" | "in" | "include" |
     "int" | "invariant" | "is" | "iset" | "iterator" |
     "label" | "lemma" | "map" | "match" | "method" |
     "modifies" | "modify" | "module" | "multiset" |
@@ -473,7 +473,7 @@ ExportId = NoUSIdentOrDigits
 TypeNameOrCtorSuffix = NoUSIdentOrDigits
 ````
 
-Some parsing constexts
+Some parsing contexts
 
 ### 2.6.3. Qualified Names
 ```grammar
@@ -512,8 +512,8 @@ A `CIdentType` is used for a `const` declaration. The Type is optional because i
 the initializer.
 
 ````grammar
-GIdentType(allowGhostKeyword, allowNewKeyword, allowNameOnlyKeyword, allowDefault) =
-    { "ghost" | "new" | "nameonly" } IdentType
+GIdentType(allowGhostKeyword, allowNewKeyword, allowOlderKeyword, allowNameOnlyKeyword, allowDefault) =
+    { "ghost" | "new" | "nameonly" | "older" } IdentType
     [ ":=" Expression(allowLemma: true, allowLambda: true) ]
 ````
 A ``GIdentType`` is a typed entity declaration optionally preceded by `ghost` or `new`. The _ghost_
@@ -523,6 +523,11 @@ If `allowGhostKeyword` is false, then `ghost` is not allowed.
 If `allowNewKeyword` is false, then `new` is not allowed.
 If `allowNameOnlyKeyword` is false, then `nameonly` is not allowed.
 If `allowDefault` is false, then `:= Expression` is not allowed.
+
+`older` is a context-sensitive keyword. It is recognized as a keyword only by `GIdentType` and
+only when `allowOlderKeyword` is true. If `allowOlderKeyword` is false, then a use of `older`
+is parsed by the `IdentType` production in `GIdentType`.
+
 
 ````grammar
 LocalIdentTypeOptional = WildIdent [ ":" Type ]

@@ -1,0 +1,145 @@
+diff --git a/Source/Dafny.sln b/Source/Dafny.sln
+index 36bb4d93b..0dea612cf 100644
+--- a/Source/Dafny.sln
++++ b/Source/Dafny.sln
+@@ -30,6 +30,34 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DafnyTestGeneration", "Dafn
+ EndProject
+ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DafnyTestGeneration.Test", "DafnyTestGeneration.Test\DafnyTestGeneration.Test.csproj", "{896E7F24-FD59-4B34-A1BF-53C51DDBC9E9}"
+ EndProject
++Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Boogie", "Boogie", "{60332269-9C5D-465E-8582-01F9B738BD90}"
++EndProject
++Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BaseTypes", "..\boogie\Source\BaseTypes\BaseTypes.csproj", "{68721962-0D91-4355-BC94-BE1CCBD30E47}"
++EndProject
++Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AbstractInterpretation", "..\boogie\Source\AbstractInterpretation\AbstractInterpretation.csproj", "{2A6B36F4-9F15-459A-8EDB-5BAEED98FE17}"
++EndProject
++Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CodeContractsExtender", "..\boogie\Source\CodeContractsExtender\CodeContractsExtender.csproj", "{09662044-5640-4785-92E3-2F7CDBA4DDB2}"
++EndProject
++Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Concurrency", "..\boogie\Source\Concurrency\Concurrency.csproj", "{DA8A9BA8-9BBA-4C64-9736-FD967517DCA9}"
++EndProject
++Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Core", "..\boogie\Source\Core\Core.csproj", "{2BF5ECCA-24B2-4A4B-86B6-D0DB17331109}"
++EndProject
++Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExecutionEngine", "..\boogie\Source\ExecutionEngine\ExecutionEngine.csproj", "{0145DC89-7243-41F8-AB3E-F716F04E9BFF}"
++EndProject
++Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Graph", "..\boogie\Source\Graph\Graph.csproj", "{05DE24BB-D639-40C4-894F-701652F51559}"
++EndProject
++Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Houdini", "..\boogie\Source\Houdini\Houdini.csproj", "{51D6B0D1-2D15-40A3-80F4-E32A5C07B0A6}"
++EndProject
++Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Model", "..\boogie\Source\Model\Model.csproj", "{D97C23B6-FB4A-4450-930E-58EC83D308A0}"
++EndProject
++Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Predication", "..\boogie\Source\Predication\Predication.csproj", "{0EDC0584-3567-43B7-AE36-1DAB91ABB2DE}"
++EndProject
++Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SMTLib", "..\boogie\Source\Provers\SMTLib\SMTLib.csproj", "{0EC245EE-54DD-4AE3-9C2E-34E67EE28B9F}"
++EndProject
++Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VCExpr", "..\boogie\Source\VCExpr\VCExpr.csproj", "{E760E37E-0257-4C96-89C4-722F85BABDBB}"
++EndProject
++Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VCGeneration", "..\boogie\Source\VCGeneration\VCGeneration.csproj", "{1EE372AA-4FF9-47FB-9C04-18CBF219F6E8}"
++EndProject
+ Global
+ 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+ 		Debug|Any CPU = Debug|Any CPU
+@@ -80,6 +108,72 @@ Global
+ 		{896E7F24-FD59-4B34-A1BF-53C51DDBC9E9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+ 		{896E7F24-FD59-4B34-A1BF-53C51DDBC9E9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+ 		{896E7F24-FD59-4B34-A1BF-53C51DDBC9E9}.Release|Any CPU.Build.0 = Release|Any CPU
++		{50AB7B59-1558-4C7B-ACA4-783FFFE41EE3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
++		{50AB7B59-1558-4C7B-ACA4-783FFFE41EE3}.Debug|Any CPU.Build.0 = Debug|Any CPU
++		{50AB7B59-1558-4C7B-ACA4-783FFFE41EE3}.Release|Any CPU.ActiveCfg = Release|Any CPU
++		{50AB7B59-1558-4C7B-ACA4-783FFFE41EE3}.Release|Any CPU.Build.0 = Release|Any CPU
++		{38175B4F-AFBA-4A02-BE00-257E85526A3B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
++		{38175B4F-AFBA-4A02-BE00-257E85526A3B}.Debug|Any CPU.Build.0 = Debug|Any CPU
++		{38175B4F-AFBA-4A02-BE00-257E85526A3B}.Release|Any CPU.ActiveCfg = Release|Any CPU
++		{38175B4F-AFBA-4A02-BE00-257E85526A3B}.Release|Any CPU.Build.0 = Release|Any CPU
++		{68721962-0D91-4355-BC94-BE1CCBD30E47}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
++		{68721962-0D91-4355-BC94-BE1CCBD30E47}.Debug|Any CPU.Build.0 = Debug|Any CPU
++		{68721962-0D91-4355-BC94-BE1CCBD30E47}.Release|Any CPU.ActiveCfg = Release|Any CPU
++		{68721962-0D91-4355-BC94-BE1CCBD30E47}.Release|Any CPU.Build.0 = Release|Any CPU
++		{2A6B36F4-9F15-459A-8EDB-5BAEED98FE17}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
++		{2A6B36F4-9F15-459A-8EDB-5BAEED98FE17}.Debug|Any CPU.Build.0 = Debug|Any CPU
++		{2A6B36F4-9F15-459A-8EDB-5BAEED98FE17}.Release|Any CPU.ActiveCfg = Release|Any CPU
++		{2A6B36F4-9F15-459A-8EDB-5BAEED98FE17}.Release|Any CPU.Build.0 = Release|Any CPU
++		{09662044-5640-4785-92E3-2F7CDBA4DDB2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
++		{09662044-5640-4785-92E3-2F7CDBA4DDB2}.Debug|Any CPU.Build.0 = Debug|Any CPU
++		{09662044-5640-4785-92E3-2F7CDBA4DDB2}.Release|Any CPU.ActiveCfg = Release|Any CPU
++		{09662044-5640-4785-92E3-2F7CDBA4DDB2}.Release|Any CPU.Build.0 = Release|Any CPU
++		{DA8A9BA8-9BBA-4C64-9736-FD967517DCA9}.Debug|.NET.ActiveCfg = Debug|Any CPU
++		{DA8A9BA8-9BBA-4C64-9736-FD967517DCA9}.Debug|.NET.Build.0 = Debug|Any CPU
++		{DA8A9BA8-9BBA-4C64-9736-FD967517DCA9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
++		{DA8A9BA8-9BBA-4C64-9736-FD967517DCA9}.Debug|Any CPU.Build.0 = Debug|Any CPU
++		{DA8A9BA8-9BBA-4C64-9736-FD967517DCA9}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
++		{DA8A9BA8-9BBA-4C64-9736-FD967517DCA9}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
++		{DA8A9BA8-9BBA-4C64-9736-FD967517DCA9}.Debug|x86.ActiveCfg = Debug|Any CPU
++		{DA8A9BA8-9BBA-4C64-9736-FD967517DCA9}.Debug|x86.Build.0 = Debug|Any CPU
++		{DA8A9BA8-9BBA-4C64-9736-FD967517DCA9}.Release|Any CPU.ActiveCfg = Release|Any CPU
++		{DA8A9BA8-9BBA-4C64-9736-FD967517DCA9}.Release|Any CPU.Build.0 = Release|Any CPU
++		{2BF5ECCA-24B2-4A4B-86B6-D0DB17331109}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
++		{2BF5ECCA-24B2-4A4B-86B6-D0DB17331109}.Debug|Any CPU.Build.0 = Debug|Any CPU
++		{2BF5ECCA-24B2-4A4B-86B6-D0DB17331109}.Release|Any CPU.ActiveCfg = Release|Any CPU
++		{2BF5ECCA-24B2-4A4B-86B6-D0DB17331109}.Release|Any CPU.Build.0 = Release|Any CPU
++		{0145DC89-7243-41F8-AB3E-F716F04E9BFF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
++		{0145DC89-7243-41F8-AB3E-F716F04E9BFF}.Debug|Any CPU.Build.0 = Debug|Any CPU
++		{0145DC89-7243-41F8-AB3E-F716F04E9BFF}.Release|Any CPU.ActiveCfg = Release|Any CPU
++		{0145DC89-7243-41F8-AB3E-F716F04E9BFF}.Release|Any CPU.Build.0 = Release|Any CPU
++		{05DE24BB-D639-40C4-894F-701652F51559}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
++		{05DE24BB-D639-40C4-894F-701652F51559}.Debug|Any CPU.Build.0 = Debug|Any CPU
++		{05DE24BB-D639-40C4-894F-701652F51559}.Release|Any CPU.ActiveCfg = Release|Any CPU
++		{05DE24BB-D639-40C4-894F-701652F51559}.Release|Any CPU.Build.0 = Release|Any CPU
++		{51D6B0D1-2D15-40A3-80F4-E32A5C07B0A6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
++		{51D6B0D1-2D15-40A3-80F4-E32A5C07B0A6}.Debug|Any CPU.Build.0 = Debug|Any CPU
++		{51D6B0D1-2D15-40A3-80F4-E32A5C07B0A6}.Release|Any CPU.ActiveCfg = Release|Any CPU
++		{51D6B0D1-2D15-40A3-80F4-E32A5C07B0A6}.Release|Any CPU.Build.0 = Release|Any CPU
++		{D97C23B6-FB4A-4450-930E-58EC83D308A0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
++		{D97C23B6-FB4A-4450-930E-58EC83D308A0}.Debug|Any CPU.Build.0 = Debug|Any CPU
++		{D97C23B6-FB4A-4450-930E-58EC83D308A0}.Release|Any CPU.ActiveCfg = Release|Any CPU
++		{D97C23B6-FB4A-4450-930E-58EC83D308A0}.Release|Any CPU.Build.0 = Release|Any CPU
++		{0EDC0584-3567-43B7-AE36-1DAB91ABB2DE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
++		{0EDC0584-3567-43B7-AE36-1DAB91ABB2DE}.Debug|Any CPU.Build.0 = Debug|Any CPU
++		{0EDC0584-3567-43B7-AE36-1DAB91ABB2DE}.Release|Any CPU.ActiveCfg = Release|Any CPU
++		{0EDC0584-3567-43B7-AE36-1DAB91ABB2DE}.Release|Any CPU.Build.0 = Release|Any CPU
++		{0EC245EE-54DD-4AE3-9C2E-34E67EE28B9F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
++		{0EC245EE-54DD-4AE3-9C2E-34E67EE28B9F}.Debug|Any CPU.Build.0 = Debug|Any CPU
++		{0EC245EE-54DD-4AE3-9C2E-34E67EE28B9F}.Release|Any CPU.ActiveCfg = Release|Any CPU
++		{0EC245EE-54DD-4AE3-9C2E-34E67EE28B9F}.Release|Any CPU.Build.0 = Release|Any CPU
++		{E760E37E-0257-4C96-89C4-722F85BABDBB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
++		{E760E37E-0257-4C96-89C4-722F85BABDBB}.Debug|Any CPU.Build.0 = Debug|Any CPU
++		{E760E37E-0257-4C96-89C4-722F85BABDBB}.Release|Any CPU.ActiveCfg = Release|Any CPU
++		{E760E37E-0257-4C96-89C4-722F85BABDBB}.Release|Any CPU.Build.0 = Release|Any CPU
++		{1EE372AA-4FF9-47FB-9C04-18CBF219F6E8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
++		{1EE372AA-4FF9-47FB-9C04-18CBF219F6E8}.Debug|Any CPU.Build.0 = Debug|Any CPU
++		{1EE372AA-4FF9-47FB-9C04-18CBF219F6E8}.Release|Any CPU.ActiveCfg = Release|Any CPU
++		{1EE372AA-4FF9-47FB-9C04-18CBF219F6E8}.Release|Any CPU.Build.0 = Release|Any CPU
+ 	EndGlobalSection
+ 	GlobalSection(SolutionProperties) = preSolution
+ 		HideSolutionNode = FALSE
+@@ -87,4 +181,19 @@ Global
+ 	GlobalSection(ExtensibilityGlobals) = postSolution
+ 		SolutionGuid = {280F572B-D27A-4613-998F-00B6FFE01187}
+ 	EndGlobalSection
++	GlobalSection(NestedProjects) = preSolution
++		{68721962-0D91-4355-BC94-BE1CCBD30E47} = {60332269-9C5D-465E-8582-01F9B738BD90}
++		{2A6B36F4-9F15-459A-8EDB-5BAEED98FE17} = {60332269-9C5D-465E-8582-01F9B738BD90}
++		{09662044-5640-4785-92E3-2F7CDBA4DDB2} = {60332269-9C5D-465E-8582-01F9B738BD90}
++		{DA8A9BA8-9BBA-4C64-9736-FD967517DCA9} = {60332269-9C5D-465E-8582-01F9B738BD90}
++		{2BF5ECCA-24B2-4A4B-86B6-D0DB17331109} = {60332269-9C5D-465E-8582-01F9B738BD90}
++		{0145DC89-7243-41F8-AB3E-F716F04E9BFF} = {60332269-9C5D-465E-8582-01F9B738BD90}
++		{05DE24BB-D639-40C4-894F-701652F51559} = {60332269-9C5D-465E-8582-01F9B738BD90}
++		{51D6B0D1-2D15-40A3-80F4-E32A5C07B0A6} = {60332269-9C5D-465E-8582-01F9B738BD90}
++		{D97C23B6-FB4A-4450-930E-58EC83D308A0} = {60332269-9C5D-465E-8582-01F9B738BD90}
++		{0EDC0584-3567-43B7-AE36-1DAB91ABB2DE} = {60332269-9C5D-465E-8582-01F9B738BD90}
++		{0EC245EE-54DD-4AE3-9C2E-34E67EE28B9F} = {60332269-9C5D-465E-8582-01F9B738BD90}
++		{E760E37E-0257-4C96-89C4-722F85BABDBB} = {60332269-9C5D-465E-8582-01F9B738BD90}
++		{1EE372AA-4FF9-47FB-9C04-18CBF219F6E8} = {60332269-9C5D-465E-8582-01F9B738BD90}
++	EndGlobalSection
+ EndGlobal
+diff --git a/Source/Dafny/DafnyPipeline.csproj b/Source/Dafny/DafnyPipeline.csproj
+index 6ea0de067..ca1e0e527 100644
+--- a/Source/Dafny/DafnyPipeline.csproj
++++ b/Source/Dafny/DafnyPipeline.csproj
+@@ -25,7 +25,7 @@
+       <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="3.7.0" />
+       <PackageReference Include="System.Runtime.Numerics" Version="4.3.0" />
+       <PackageReference Include="System.Collections.Immutable" Version="1.7.0" />
+-      <PackageReference Include="Boogie.ExecutionEngine" Version="2.13.4" />
++      <ProjectReference Include="..\..\boogie\Source\ExecutionEngine\ExecutionEngine.csproj" />
+   </ItemGroup>
+ 
+   <ItemGroup>

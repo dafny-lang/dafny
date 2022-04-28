@@ -12,7 +12,7 @@ namespace Microsoft.Dafny {
 
     public static implicit operator LineSegment(string value) => new LineSegment(value);
 
-    public void Render(TextWriter writer, int indentation, WriterState writerState, Queue<FileSyntax> files) {
+    public void Render(TextWriter writer, int indentation, WriterState writerState, Queue<FileSyntax> files, int indentSize = 2) {
       if (writerState.HasNewLine) {
         writer.Write(new string(' ', indentation));
         writerState.HasNewLine = false;

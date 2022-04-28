@@ -1,8 +1,8 @@
-using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.Dafny;
 using Program = Microsoft.Dafny.Program;
 
@@ -17,7 +17,7 @@ namespace DafnyTestGeneration {
     /// loop unrolling may cause false negatives.
     /// </summary>
     /// <returns></returns>
-    public static IEnumerable<string> GetDeadCodeStatistics(Program program) {
+    public static async IAsyncEnumerable<string> GetDeadCodeStatistics(Program program) {
 
       var modifications = GetModifications(program).ToList();
       var blocksReached = modifications.Count;
@@ -26,9 +26,8 @@ namespace DafnyTestGeneration {
 
       // Generate tests based on counterexamples produced from modifications
       for (var i = modifications.Count - 1; i >= 0; i--) {
-        modifications[i].GetCounterExampleLog();
-        var deadStates = ((BlockBasedModification)modifications[i])
-          .GetKnownDeadStates();
+        await modifications[i].GetCounterExampleLog();
+        var deadStates = ((BlockBasedModification)modifications[i]).GetKnownDeadStates();
         if (deadStates.Count != 0) {
           foreach (var capturedState in deadStates) {
             yield return $"Code at {capturedState} is potentially unreachable.";
@@ -36,8 +35,7 @@ namespace DafnyTestGeneration {
           blocksReached--;
           allDeadStates.UnionWith(deadStates);
         }
-        allStates.UnionWith(((BlockBasedModification)modifications[i])
-          .GetAllStates());
+        allStates.UnionWith(((BlockBasedModification)modifications[i]).GetAllStates());
       }
 
       yield return $"Out of {modifications.Count} basic blocks " +
@@ -47,14 +45,15 @@ namespace DafnyTestGeneration {
                    $"loops. False positives are always possible.";
     }
 
-    public static IEnumerable<string> GetDeadCodeStatistics(string sourceFile) {
-      var source = new StreamReader(sourceFile).ReadToEnd();
+    public static async IAsyncEnumerable<string> GetDeadCodeStatistics(string sourceFile) {
+      var source = await new StreamReader(sourceFile).ReadToEndAsync();
       var program = Utils.Parse(source, sourceFile);
       if (program == null) {
         yield return "Cannot parse program";
         yield break;
       }
-      foreach (var line in GetDeadCodeStatistics(program)) {
+
+      await foreach (var line in GetDeadCodeStatistics(program)) {
         yield return line;
       }
     }
@@ -80,7 +79,7 @@ namespace DafnyTestGeneration {
     /// Generate test methods for a certain Dafny program.
     /// </summary>
     /// <returns></returns>
-    public static IEnumerable<TestMethod> GetTestMethodsForProgram(
+    public static async IAsyncEnumerable<TestMethod> GetTestMethodsForProgram(
       Program program, DafnyInfo? dafnyInfo = null) {
 
       dafnyInfo ??= new DafnyInfo(program);
@@ -89,7 +88,7 @@ namespace DafnyTestGeneration {
       // Generate tests based on counterexamples produced from modifications
       var testMethods = new ConcurrentBag<TestMethod>();
       for (var i = modifications.Count - 1; i >= 0; i--) {
-        var log = modifications[i].GetCounterExampleLog();
+        var log = await modifications[i].GetCounterExampleLog();
         if (log == null) {
           continue;
         }
@@ -105,7 +104,7 @@ namespace DafnyTestGeneration {
     /// <summary>
     /// Return a Dafny class (list of lines) with tests for the given Dafny file
     /// </summary>
-    public static IEnumerable<string> GetTestClassForProgram(string sourceFile) {
+    public static async IAsyncEnumerable<string> GetTestClassForProgram(string sourceFile) {
 
       var source = new StreamReader(sourceFile).ReadToEnd();
       var program = Utils.Parse(source, sourceFile);
@@ -113,15 +112,19 @@ namespace DafnyTestGeneration {
         yield break;
       }
       var dafnyInfo = new DafnyInfo(program);
-      var rawName = sourceFile.Split("/").Last().Split(".").First();
+      var rawName = Path.GetFileName(sourceFile).Split(".").First();
 
-      yield return $"include \"{sourceFile}\"";
+      string EscapeDafnyStringLiteral(string str) {
+        return $"\"{str.Replace(@"\", @"\\")}\"";
+      }
+
+      yield return $"include {EscapeDafnyStringLiteral(sourceFile)}";
       yield return $"module {rawName}UnitTests {{";
       foreach (var module in dafnyInfo.ToImport) {
         yield return $"import {module}";
       }
 
-      foreach (var method in GetTestMethodsForProgram(program, dafnyInfo)) {
+      await foreach (var method in GetTestMethodsForProgram(program, dafnyInfo)) {
         yield return method.ToString();
       }
 

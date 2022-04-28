@@ -4,7 +4,7 @@ git-issue-885.dfy(22,13): Error: value of expression (of type 'Trait?') is not k
 git-issue-885.dfy(29,13): Error: value of expression (of type 'Trait') is not known to be an instance of type 'Class'
 git-issue-885.dfy(35,13): Error: value of expression (of type 'Trait?') is not known to be an instance of type 'Class?'
 git-issue-885.dfy(49,18): Error: value of expression (of type 'Trait') is not known to be an instance of type 'Class'
-git-issue-885.dfy(53,18): Error: value of expression (of type 'Class?') is not known to be an instance of type 'Class', because it may be null
+git-issue-885.dfy(53,18): Error: value of expression (of type 'Class?') is not known to be an instance of type 'Class', because it might be null
 git-issue-885.dfy(59,19): Error: value of expression (of type 'ClassT?<_T0>') is not known to be an instance of type 'ClassT<_T0>' (possible cause: it may be null)
 
 Dafny program verifier finished with 2 verified, 8 errors

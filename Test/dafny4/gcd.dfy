@@ -155,7 +155,7 @@ lemma GcdSubtract(x: pos, y: pos)
 method EuclidGcd(X: pos, Y: pos) returns (gcd: pos)
   ensures gcd == Gcd(X, Y)
 {
-  var x, y := X, Y;
+  var x: pos, y: pos := X, Y;
   while
     invariant Gcd(x, y) == Gcd(X, Y)
     decreases x + y
@@ -226,7 +226,7 @@ lemma GcdSubtractAlt(x: pos, y: pos)
 method EuclidGcdAlt(X: pos, Y: pos) returns (gcd: pos)
   ensures gcd == Gcd(X, Y)
 {
-  var x, y := X, Y;
+  var x: pos, y: pos := X, Y;
   while
     invariant Gcd(x, y) == Gcd(X, Y)
     decreases x + y
