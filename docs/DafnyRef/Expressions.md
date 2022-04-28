@@ -1251,7 +1251,7 @@ the type parameters.
 
 To reference a prefix predicate (see [Section 18.3.4](#sec-copredicates)) or
 prefix lemma (see [Section 18.3.5.3](#sec-prefix-lemmas)), the identifier
-must be the name of the copredicate or colemma and it must be
+must be the name of the greatest predicate or greatest lemma and it must be
 followed by a ``HashCall``.
 
 ## 20.41. Hash Call
@@ -1260,11 +1260,11 @@ HashCall = "#" [ GenericInstantiation ]
   "[" Expression(allowLemma: true, allowLambda: true) "]"
   "(" [ Bindings ] ")"
 ````
-A ``HashCall`` is used to call the prefix for a copredicate or colemma.
+A ``HashCall`` is used to call the prefix for a greatest predicate or greatest lemma.
 In the non-generic case, just insert `"#[k]"` before the call argument
 list where k is the number of recursion levels.
 
-In the case where the `colemma` is generic, the generic type
+In the case where the `greatest lemma` is generic, the generic type
 argument is given before. Here is an example:
 
 ```dafny
@@ -1288,14 +1288,14 @@ function ones<T>(s: T): Stream<T>
   Cons(1, s, ones(s))
 }
 
-copredicate atmost(a: Stream, b: Stream)
+greatest predicate atmost(a: Stream, b: Stream)
 {
   match a
   case Nil => true
   case Cons(h,s,t) => b.Cons? && h <= b.head && atmost(t, b.tail)
 }
 
-colemma {:induction false} Theorem0<T>(s: T)
+greatest lemma {:induction false} Theorem0<T>(s: T)
   ensures atmost(zeros(s), ones(s))
 {
   // the following shows two equivalent ways to state the
@@ -1340,9 +1340,9 @@ followed by either
 
 * a ``GenericInstantiation`` (for the case where the item
 selected by the ``DotSuffix`` is generic), or
-* a ``HashCall`` for the case where we want to call a prefix copredicate
-  or colemma. The result is the result of calling the prefix copredicate
-  or colemma.
+* a ``HashCall`` for the case where we want to call a prefix predicate
+  or prefix lemma. The result is the result of calling the prefix predicate
+  or prefix lemma.
 
 ### 20.42.2. Datatype Update Suffix {#sec-datatype-update-suffix}
 

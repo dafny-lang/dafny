@@ -4662,7 +4662,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(typeArgs));
       Contract.Requires(cce.NonNullElements(ctors));
       Contract.Requires(cce.NonNullElements(members));
-      Contract.Requires(1 <= ctors.Count);
+      Contract.Requires((isRefining && ctors.Count == 0) || (!isRefining && 1 <= ctors.Count));
       Ctors = ctors;
       this.NewSelfSynonym();
     }
@@ -4724,7 +4724,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(typeArgs));
       Contract.Requires(cce.NonNullElements(ctors));
       Contract.Requires(cce.NonNullElements(members));
-      Contract.Requires(1 <= ctors.Count);
+      Contract.Requires((isRefining && ctors.Count == 0) || (!isRefining && 1 <= ctors.Count));
     }
   }
 
@@ -4819,7 +4819,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(typeArgs));
       Contract.Requires(cce.NonNullElements(ctors));
       Contract.Requires(cce.NonNullElements(members));
-      Contract.Requires(1 <= ctors.Count);
+      Contract.Requires((isRefining && ctors.Count == 0) || (!isRefining && 1 <= ctors.Count));
     }
 
     public override DatatypeCtor GetGroundingCtor() {
@@ -5553,18 +5553,18 @@ namespace Microsoft.Dafny {
   public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, RedirectingTypeDecl {
     public override string WhatKind { get { return "newtype"; } }
     public override bool CanBeRevealed() { return true; }
-    public readonly Type BaseType;
-    public readonly BoundVar Var;  // can be null (if non-null, then object.ReferenceEquals(Var.Type, BaseType))
-    public readonly Expression Constraint;  // is null iff Var is
-    public readonly SubsetTypeDecl.WKind WitnessKind = SubsetTypeDecl.WKind.CompiledZero;
-    public readonly Expression/*?*/ Witness;  // non-null iff WitnessKind is Compiled or Ghost
-    public NativeType NativeType; // non-null for fixed-size representations (otherwise, use BigIntegers for integers)
+    public Type BaseType { get; set; } // null when refining
+    public BoundVar Var { get; set; }  // can be null (if non-null, then object.ReferenceEquals(Var.Type, BaseType))
+    public Expression Constraint { get; set; }  // is null iff Var is
+    public SubsetTypeDecl.WKind WitnessKind { get; set; } = SubsetTypeDecl.WKind.CompiledZero;
+    public Expression/*?*/ Witness { get; set; } // non-null iff WitnessKind is Compiled or Ghost
+    [FilledInDuringResolution] public NativeType NativeType; // non-null for fixed-size representations (otherwise, use BigIntegers for integers)
     public NewtypeDecl(IToken tok, string name, ModuleDefinition module, Type baseType, List<MemberDecl> members, Attributes attributes, bool isRefining)
       : base(tok, name, module, new List<TypeParameter>(), members, attributes, isRefining) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(module != null);
-      Contract.Requires(baseType != null);
+      Contract.Requires(isRefining ^ (baseType != null));
       Contract.Requires(members != null);
       BaseType = baseType;
     }
@@ -6053,10 +6053,11 @@ namespace Microsoft.Dafny {
     public readonly bool IsOld;
     public readonly Expression DefaultValue;
     public readonly bool IsNameOnly;
+    public readonly bool IsOlder;
     public readonly string NameForCompilation;
 
     public Formal(IToken tok, string name, Type type, bool inParam, bool isGhost, Expression defaultValue,
-      bool isOld = false, bool isNameOnly = false, string nameForCompilation = null)
+      bool isOld = false, bool isNameOnly = false, bool isOlder = false, string nameForCompilation = null)
       : base(tok, name, type, isGhost) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
@@ -6067,6 +6068,7 @@ namespace Microsoft.Dafny {
       IsOld = isOld;
       DefaultValue = defaultValue;
       IsNameOnly = isNameOnly;
+      IsOlder = isOlder;
       NameForCompilation = nameForCompilation ?? name;
     }
 
@@ -11464,6 +11466,7 @@ namespace Microsoft.Dafny {
       /// 0: AllocFreeBoundedPool
       /// 0: ExplicitAllocatedBoundedPool
       /// 0: SpecialAllocIndependenceAllocatedBoundedPool
+      /// 0: OlderBoundedPool
       ///
       /// 1: WiggleWaggleBound
       ///
@@ -11732,6 +11735,13 @@ namespace Microsoft.Dafny {
       public DatatypeInclusionBoundedPool(bool isIndDatatype) : base() { IsIndDatatype = isIndDatatype; }
       public override PoolVirtues Virtues => (IsIndDatatype ? PoolVirtues.Finite : PoolVirtues.None) | PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
       public override int Preference() => 2;
+    }
+
+    public class OlderBoundedPool : BoundedPool {
+      public OlderBoundedPool() {
+      }
+      public override PoolVirtues Virtues => PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
+      public override int Preference() => 0;
     }
 
     [FilledInDuringResolution] public List<BoundedPool> Bounds;
