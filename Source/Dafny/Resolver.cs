@@ -14843,7 +14843,7 @@ namespace Microsoft.Dafny {
           if (let != null) {
             e.ResolvedExpression = let;
             e.LegalSourceConstructors = legalSourceConstructors;
-            expr.Type = ty;
+            expr.Type = let.Type;
           }
         }
 
