@@ -20,15 +20,23 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
 
     module Type {
       import C = CSharpDafnyASTModel
+
+      type Path = seq<string>
+
+      datatype ClassType = ClassType(className: Path, typeArgs: seq<Type>)
+
       datatype Type =
+        | Unit
         | Bool
         | Char
         | Int
+        | Nat
         | Real
         | BigOrdinal
         | BitVector(width: int)
         | Collection(finite: bool, kind: CollectionKind, eltType: Type)
-        | UnsupportedType(ty: C.Type)
+        | Unsupported(ty: C.Type)
+        | Class(classType: ClassType)
 
       datatype CollectionKind =
         | Map(keyType: Type)
@@ -106,12 +114,8 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         function method Depth() : nat { 1 }
       }
 
-      type Path = seq<string>
-
-      datatype ClassType = ClassType(className: Path, typeArgs: seq<Type.Type>)
-
       datatype Receiver =
-        | StaticReceiver(classType: ClassType)
+        | StaticReceiver(classType: Type.ClassType)
         | InstanceReceiver(obj: Expr) // TODO: also include ClassType?
 
       datatype MethodId =
@@ -126,8 +130,8 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       datatype ApplyOp =
         | UnaryOp(uop: UnaryOp.Op)
         | BinaryOp(bop: BinaryOp.Op)
-        | DataConstructor(name: Path, typeArgs: seq<Type.Type>)
-        | MethodCall(classType: ClassType, receiver: MethodId, typeArgs: seq<Type.Type>)
+        | DataConstructor(name: Type.Path, typeArgs: seq<Type.Type>)
+        | MethodCall(classType: Type.ClassType, receiver: MethodId, typeArgs: seq<Type.Type>)
         | FunctionCall // First argument is function
         | Builtin(fn: BuiltinFunction)
 
@@ -241,7 +245,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         assume TypeHeight(mTy.Arg) < TypeHeight(mTy);
         var eltTy := TranslateType(mTy.Arg);
         D.Type.Collection(true, D.Type.CollectionKind.Seq, eltTy)
-      else D.Type.UnsupportedType(ty)
+      else D.Type.Unsupported(ty)
     }
 
     const UnaryOpCodeMap: map<C.UnaryOpExpr__Opcode, D.UnaryOp.Op> :=
