@@ -808,8 +808,11 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
        TR(EliminateNegatedBinops_Expr1, NotANegatedBinopExpr))
 
     function method EliminateNegatedBinops_Expr_direct(e: Expr.t) : (e': Expr.t)
+      requires Deep.All_Expr(e, Expr.WellFormed)
       ensures Deep.All_Expr(e', NotANegatedBinopExpr)
+      ensures Deep.All_Expr(e', Expr.WellFormed)
     {
+      AllImpliesChildren(e, Expr.WellFormed);
       match e {
         // Exprs
         case Apply(BinaryOp(bop), exprs) =>
@@ -818,12 +821,8 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
           if IsNegatedBinop(bop) then
             var e'' := Expr.Apply(Expr.ApplyOp.BinaryOp(FlipNegatedBinop(bop)), exprs');
             assert Deep.All_Expr(e'', NotANegatedBinopExpr);
+            assert Deep.All_Expr(e'', Expr.WellFormed);
             var e' := Expr.t.Apply(Expr.ApplyOp.UnaryOp(UnaryOp.Not), [e'']);
-            calc {
-              Deep.All_Expr(e', NotANegatedBinopExpr);
-              NotANegatedBinopExpr(e') && Deep.AllChildren_Expr(e', NotANegatedBinopExpr);
-              NotANegatedBinopExpr(e') && Deep.All_Expr(e'', NotANegatedBinopExpr);
-            }
             e'
           else
             Expr.Apply(Expr.ApplyOp.BinaryOp(bop), exprs')
