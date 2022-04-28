@@ -18,8 +18,8 @@
 - fix: Fix initialization of non-auto-init in-parameters in C#/JavaScript/Go compilers (https://github.com/dafny-lang/dafny/pull/1935)
 - fix: Resolution of static functions-by-method (https://github.com/dafny-lang/dafny/pull/2023)
 - fix: Export sets did not work with inner modules (https://github.com/dafny-lang/dafny/pull/2025)
-- feat: The new `:older` attribute indicates that a predicate ensures the allocatedness of some of its arguments. This allows more functions to show that their quantifiers do not depend on the allocation state. See `/attrHelp` for more information.
-
+- fix: Prevent refinements from changing datatype and newtype definitions (https://github.com/dafny-lang/dafny/pull/2038)
+- feat: The new `older` modifier on arguments to predicates indicates that a predicate ensures the allocatedness of some of its arguments. This allows more functions to show that their quantifiers do not depend on the allocation state. For more information, see the reference manual section on `older`. (https://github.com/dafny-lang/dafny/pull/1936)
 
 # 3.5.0
 

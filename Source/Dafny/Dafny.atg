@@ -1251,11 +1251,15 @@ DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDe
   { Attribute<ref attrs> }
   DatatypeName<out id>
   [ GenericParameters<typeArgs, true> ]
+  (
   "="                                      (. bodyStart = t; .)
-  [ ellipsis                               (. isRefining = true; .)
+  [ ellipsis                               (. SemErr(t, // Help users adjust to the new syntax
+      $"Refinement cannot change the constructors of a `datatype`.  To refine `{id.val}`, either omit this `...` or omit the `=` sign and the datatype constructors."); .)
   ]
   [ "|" ] DatatypeMemberDecl<ctors>
   { "|" DatatypeMemberDecl<ctors> }
+  | ellipsis                               (. isRefining = true; bodyStart = t; .)
+  )
   [ TypeMembers<module, members> ]
   (. if (co) {
        dt = new CoDatatypeDecl(id, id.val, module, typeArgs, ctors, members, attrs, isRefining);
@@ -1354,15 +1358,16 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
      Type baseType = null;
      Expression constraint;
      Expression witness = null;
-     bool isRefining = false;
      CheckDeclModifiers(ref dmod, "newtype", AllowedDeclModifiers.None);
      var members = new List<MemberDecl>();
   .)
   "newtype"
   { Attribute<ref attrs> }
   NewtypeName<out id>
+  (
   "="
-  [ ellipsis                         (. isRefining = true; .)
+  [ ellipsis                               (. SemErr(t, // Help users adjust to the new syntax
+      $"Refinement cannot change the base type of a `newtype`.  To refine `{id.val}`, either omit this `...` or omit the `=` sign and the parent type's body."); .)
   ]
   ( IF(IsIdentColonOrBar())
     LocalVarName<out bvId>
@@ -1380,11 +1385,16 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
       )
     ]
     [ TypeMembers<module, members> ]
-    (. td = new NewtypeDecl(id, id.val, module, new BoundVar(bvId, bvId.val, baseType), constraint, witnessKind, witness, members, attrs, isRefining);
+    (. td = new NewtypeDecl(id, id.val, module, new BoundVar(bvId, bvId.val, baseType), constraint, witnessKind, witness, members, attrs, isRefining: false);
     .)
   | Type<out baseType>
     [ TypeMembers<module, members> ]
-    (. td = new NewtypeDecl(id, id.val, module, baseType, members, attrs, isRefining); .)
+    (. td = new NewtypeDecl(id, id.val, module, baseType, members, attrs, isRefining: false); .)
+  )
+  | ellipsis
+    [ TypeMembers<module, members> ]
+    (. baseType = null; // Base type is not known yet
+       td = new NewtypeDecl(id, id.val, module, baseType, members, attrs, isRefining: true); .)
   )
   .
 
