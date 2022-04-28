@@ -191,7 +191,7 @@ public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, Include include, ModuleD
 }
 
 bool IsIdentifier(int kind) {
-  return kind == _ident || kind == _least || kind == _greatest;
+  return kind == _ident || kind == _least || kind == _greatest || kind == _older;
 }
 
 bool IsLabel(bool allowLabel) {
@@ -201,6 +201,18 @@ bool IsLabel(bool allowLabel) {
   scanner.ResetPeek();
   IToken x = scanner.Peek();
   return (IsIdentifier(la.kind) || la.kind == _digits) && x.kind == _colon;
+}
+
+bool IsKeywordForFormal() {
+  scanner.ResetPeek();
+  if (la.kind == _ghost || la.kind == _new || la.kind == _nameonly) {
+    return true;
+  } else if (la.kind == _older) {
+    // "older" is just a contextual keyword, so don't recognize it as a keyword if it must be an identifier
+    IToken x = scanner.Peek();
+    return x.kind != _colon;
+  }
+  return false;
 }
 
 bool IsBinding() {
@@ -824,6 +836,9 @@ TOKENS
   requires = "requires".
   ensures = "ensures".
   ghost = "ghost".
+  new = "new".
+  nameonly = "nameonly".
+  older = "older". /* a keyword only when it appears as a modifier to a parameter of a non-extreme function */
   witness = "witness".
   lbracecolon = "{:".
   lbrace = '{'.
@@ -1236,11 +1251,15 @@ DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDe
   { Attribute<ref attrs> }
   DatatypeName<out id>
   [ GenericParameters<typeArgs, true> ]
+  (
   "="                                      (. bodyStart = t; .)
-  [ ellipsis                               (. isRefining = true; .)
+  [ ellipsis                               (. SemErr(t, // Help users adjust to the new syntax
+      $"Refinement cannot change the constructors of a `datatype`.  To refine `{id.val}`, either omit this `...` or omit the `=` sign and the datatype constructors."); .)
   ]
   [ "|" ] DatatypeMemberDecl<ctors>
   { "|" DatatypeMemberDecl<ctors> }
+  | ellipsis                               (. isRefining = true; bodyStart = t; .)
+  )
   [ TypeMembers<module, members> ]
   (. if (co) {
        dt = new CoDatatypeDecl(id, id.val, module, typeArgs, ctors, members, attrs, isRefining);
@@ -1339,15 +1358,16 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
      Type baseType = null;
      Expression constraint;
      Expression witness = null;
-     bool isRefining = false;
      CheckDeclModifiers(ref dmod, "newtype", AllowedDeclModifiers.None);
      var members = new List<MemberDecl>();
   .)
   "newtype"
   { Attribute<ref attrs> }
   NewtypeName<out id>
+  (
   "="
-  [ ellipsis                         (. isRefining = true; .)
+  [ ellipsis                               (. SemErr(t, // Help users adjust to the new syntax
+      $"Refinement cannot change the base type of a `newtype`.  To refine `{id.val}`, either omit this `...` or omit the `=` sign and the parent type's body."); .)
   ]
   ( IF(IsIdentColonOrBar())
     LocalVarName<out bvId>
@@ -1365,11 +1385,16 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
       )
     ]
     [ TypeMembers<module, members> ]
-    (. td = new NewtypeDecl(id, id.val, module, new BoundVar(bvId, bvId.val, baseType), constraint, witnessKind, witness, members, attrs, isRefining);
+    (. td = new NewtypeDecl(id, id.val, module, new BoundVar(bvId, bvId.val, baseType), constraint, witnessKind, witness, members, attrs, isRefining: false);
     .)
   | Type<out baseType>
     [ TypeMembers<module, members> ]
-    (. td = new NewtypeDecl(id, id.val, module, baseType, members, attrs, isRefining); .)
+    (. td = new NewtypeDecl(id, id.val, module, baseType, members, attrs, isRefining: false); .)
+  )
+  | ellipsis
+    [ TypeMembers<module, members> ]
+    (. baseType = null; // Base type is not known yet
+       td = new NewtypeDecl(id, id.val, module, baseType, members, attrs, isRefining: true); .)
   )
   .
 
@@ -1436,15 +1461,19 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
   .
 
 /*------------------------------------------------------------------------*/
-GIdentType<bool allowGhostKeyword, bool allowNewKeyword, bool allowNameOnlyKeyword,
-           out IToken/*!*/ id, out Type/*!*/ ty, out bool isGhost, out bool isOld, out bool isNameOnly>
+GIdentType<bool allowGhostKeyword, bool allowNewKeyword, bool allowNameOnlyKeyword, bool allowOlderKeyword,
+           out IToken/*!*/ id, out Type/*!*/ ty, out bool isGhost, out bool isOld, out bool isNameOnly, out bool isOlder>
 /* isGhost always returns as false if allowGhostKeyword is false */
 = (. Contract.Ensures(Contract.ValueAtReturn(out id)!=null);
      Contract.Ensures(Contract.ValueAtReturn(out ty)!=null);
-     isGhost = false; isOld = allowNewKeyword; isNameOnly = false; .)
-  { "ghost"                    (. if (allowGhostKeyword) { isGhost = true; } else { SemErr(t, "formal cannot be declared 'ghost' in this context"); } .)
-  | "new"                      (. if (allowNewKeyword) { isOld = false; } else { SemErr(t, "formal cannot be declared 'new' in this context"); } .)
-  | "nameonly"                 (. if (allowNameOnlyKeyword) { isNameOnly = true; } else { SemErr(t, "formal cannot be declared 'nameonly' in this context"); } .)
+     isGhost = false; isOld = allowNewKeyword; isNameOnly = false; isOlder = false;
+  .)
+  { IF(IsKeywordForFormal())
+    ( "ghost"                    (. if (allowGhostKeyword) { isGhost = true; } else { SemErr(t, "formal cannot be declared 'ghost' in this context"); } .)
+    | "new"                      (. if (allowNewKeyword) { isOld = false; } else { SemErr(t, "formal cannot be declared 'new' in this context"); } .)
+    | "nameonly"                 (. if (allowNameOnlyKeyword) { isNameOnly = true; } else { SemErr(t, "formal cannot be declared 'nameonly' in this context"); } .)
+    | "older"                    (. if (allowOlderKeyword) { isOlder = true; } else { SemErr(t, "formal cannot be declared 'older' in this context"); } .)
+    )
   }
   IdentType<out id, out ty, false>
   .
@@ -1570,11 +1599,11 @@ IteratorDecl<DeclModifierData dmod, ModuleDefinition module, out IteratorDecl/*!
   IteratorName<out id>
   (
     [ GenericParameters<typeArgs, true> ]
-    Formals<true, true, false, ins>
+    Formals<true, true, false, false, ins>
     [ ( "yields"
       | "returns"           (. SemErr(t, "iterators don't have a 'returns' clause; did you mean 'yields'?"); .)
       )
-      Formals<false, true, false, outs>
+      Formals<false, true, false, false, outs>
     ]
   | ellipsis                (. signatureEllipsis = t; .)
   )
@@ -1733,9 +1762,9 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
     [ KType<ref kType>              (. if (!(isGreatestLemma || isLeastLemma)) { SemErr(t, "type of _k can only be specified for least and greatest lemmas"); } .)
     ]
     (. var isCompilable = (isPlainOlMethod || isConstructor) && !dmod.IsGhost; .)
-    Formals<true, isCompilable, isTwoStateLemma, ins>
+    Formals<true, isCompilable, isTwoStateLemma, false, ins>
     [ "returns"                                 (. if (isConstructor) { SemErr(t, "constructors cannot have out-parameters"); } .)
-      Formals<false, isCompilable, false, outs>
+      Formals<false, isCompilable, false, false, outs>
     ]
   | ellipsis                                    (. signatureEllipsis = t; .)
   )
@@ -1889,7 +1918,7 @@ IteratorSpec<.List<FrameExpression/*!*/>/*!*/ reads, List<FrameExpression/*!*/>/
   .
 
 /*------------------------------------------------------------------------*/
-Formals<.bool incoming, bool allowGhostKeyword, bool allowNewKeyword, List<Formal> formals.>
+Formals<.bool incoming, bool allowGhostKeyword, bool allowNewKeyword, bool allowOlderKeyword, List<Formal> formals.>
 = (. Contract.Requires(cce.NonNullElements(formals));
      IToken id;
      Type ty;
@@ -1897,15 +1926,16 @@ Formals<.bool incoming, bool allowGhostKeyword, bool allowNewKeyword, List<Forma
      bool isOld;
      Expression defaultValue;
      bool isNameOnly;
+     bool isOlder;
   .)
   "("
   [
-    GIdentType<allowGhostKeyword, allowNewKeyword, incoming, out id, out ty, out isGhost, out isOld, out isNameOnly>
+    GIdentType<allowGhostKeyword, allowNewKeyword, incoming, allowOlderKeyword, out id, out ty, out isGhost, out isOld, out isNameOnly, out isOlder>
     ParameterDefaultValue<incoming, out defaultValue>
-                 (. formals.Add(new Formal(id, id.val, ty, incoming, isGhost, defaultValue, isOld, isNameOnly)); .)
-    { "," GIdentType<allowGhostKeyword, allowNewKeyword, incoming, out id, out ty, out isGhost, out isOld, out isNameOnly>
+                 (. formals.Add(new Formal(id, id.val, ty, incoming, isGhost, defaultValue, isOld, isNameOnly, isOlder)); .)
+    { "," GIdentType<allowGhostKeyword, allowNewKeyword, incoming, allowOlderKeyword, out id, out ty, out isGhost, out isOld, out isNameOnly, out isOlder>
     ParameterDefaultValue<incoming, out defaultValue>
-                 (. formals.Add(new Formal(id, id.val, ty, incoming, isGhost, defaultValue, isOld, isNameOnly)); .)
+                 (. formals.Add(new Formal(id, id.val, ty, incoming, isGhost, defaultValue, isOld, isNameOnly, isOlder)); .)
     }
   ]
   ")"
@@ -2190,12 +2220,12 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
     MethodFunctionName<out id>
     (
       [ GenericParameters<typeArgs, false> ]
-      Formals<true, true, isTwoState, formals>
+      Formals<true, true, isTwoState, true, formals>
       ":"
       (  IF(FollowedByColon())
          "("
-           GIdentType<false, false, false, out var resultId, out var ty, out var resultIsGhost, out var isOld, out var isNameOnly>
-           (. Contract.Assert(!resultIsGhost && !isOld && !isNameOnly);
+           GIdentType<false, false, false, false, out var resultId, out var ty, out var resultIsGhost, out var isOld, out var isNameOnly, out var isOlder>
+           (. Contract.Assert(!resultIsGhost && !isOld && !isNameOnly && !isOlder);
               result = new Formal(resultId, resultId.val, ty, false, false, null, false);
            .)
          ")"
@@ -2212,7 +2242,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
     MethodFunctionName<out id>
     (
       [ GenericParameters<typeArgs, false> ]
-      [ Formals<true, true, isTwoState, formals>
+      [ Formals<true, true, isTwoState, true, formals>
       ]
       [ ":" Type<out returnType> (. SemErr(t, "predicates do not have an explicitly declared return type; it is always bool"); .)
       ]
@@ -2232,7 +2262,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
     (
       [ GenericParameters<typeArgs, false> ]
       [ KType<ref kType> ]
-      Formals<true, false, false, formals>
+      Formals<true, false, false, false, formals>
       [ ":"                    (. SemErr(t, "least predicates do not have an explicitly declared return type; it is always bool"); .)
       ]
     | ellipsis                 (. signatureEllipsis = t; .)
@@ -2250,7 +2280,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
     (
       [ GenericParameters<typeArgs, false> ]
       [ KType<ref kType> ]
-      Formals<true, false, false, formals>
+      Formals<true, false, false, false, formals>
       [ ":"                    (. SemErr(t, "greatest predicates do not have an explicitly declared return type; it is always bool"); .)
       ]
     | ellipsis                 (. signatureEllipsis = t; .)
@@ -4732,6 +4762,7 @@ Ident<out IToken/*!*/ x>
   ( ident
   | "least"      (. t.kind = _ident; .) // convert it to an ident
   | "greatest"   (. t.kind = _ident; .) // convert it to an ident
+  | "older"      (. t.kind = _ident; .) // convert it to an ident
   )
   (. x = t; .)
   .

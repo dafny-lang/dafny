@@ -1,0 +1,28 @@
+
+Dafny program verifier finished with 7 verified, 0 errors
+
+Dafny program verifier did not attempt verification
+List.Nil
+List.Cons(5, List.Nil)
+(List.Nil, List.Cons(5, List.Nil))
+(List.Cons(5, List.Nil), List.Nil)
+()
+5 List.Nil
+List.Cons(0, List.Cons(1, List.Cons(2, List.Cons(3, List.Cons(4, List.Cons(5, List.Cons(6, List.Nil)))))))
+0 + 1 + 2 + 3 + 4 + 5 + 6 == 21 (once more, that's 21)
+{Berry.Hallon, Berry.Smultron, Berry.Jordgubb}
+42 q hello
+1701
+
+Dafny program verifier did not attempt verification
+List.Nil
+List.Cons(5, List.Nil)
+(List.Nil, List.Cons(5, List.Nil))
+(List.Cons(5, List.Nil), List.Nil)
+()
+5 List.Nil
+List.Cons(0, List.Cons(1, List.Cons(2, List.Cons(3, List.Cons(4, List.Cons(5, List.Cons(6, List.Nil)))))))
+0 + 1 + 2 + 3 + 4 + 5 + 6 == 21 (once more, that's 21)
+{Berry.Smultron, Berry.Jordgubb, Berry.Hallon}
+42 q hello
+1701
