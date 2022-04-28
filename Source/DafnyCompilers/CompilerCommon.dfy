@@ -768,7 +768,10 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     {
       match e {
         case Apply(BinaryOp(op), es) =>
-          Expr.t.Apply(Expr.ApplyOp.UnaryOp(UnaryOp.Not), [Expr.Apply(Expr.ApplyOp.BinaryOp(FlipNegatedBinop(op)), es)])
+          if IsNegatedBinop(op) then
+            Expr.t.Apply(Expr.ApplyOp.UnaryOp(UnaryOp.Not), [Expr.Apply(Expr.ApplyOp.BinaryOp(FlipNegatedBinop(op)), es)])
+          else
+            e
         case _ => e
       }
     }
