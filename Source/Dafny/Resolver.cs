@@ -10014,6 +10014,8 @@ namespace Microsoft.Dafny {
           return host is Function;
         case "abstemious":
           return host is Function;
+        case "options":
+          return host is ModuleDefinition;
         default:
           return false;
       }

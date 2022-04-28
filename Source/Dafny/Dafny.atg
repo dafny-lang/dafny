@@ -160,6 +160,29 @@ public static Expression ParseExpression(string/*!*/ s, string/*!*/ fullFilename
   return e;
 }
 
+public void ApplyOptionsFromAttributes(Attributes attrs) {
+  var overrides = attrs.AsEnumerable().Where(a => a.Name == "options")
+    .Reverse().Select(a =>
+      (token: (a as UserSuppliedAttributes)?.tok,
+       options: a.Args.Select(arg => {
+         if (arg is not LiteralExpr {Value: string optStr}) {
+           SemErr(arg.tok, "argument to :options attribute must be a literal string");
+           return null;
+         }
+         return optStr;
+       }).Where(opt => opt != null).ToArray()))
+    .Where(opts => opts.options.Any());
+
+  if (overrides.Any()) {
+    var options = new DafnyAttributeOptions(DafnyOptions.O, errors);
+    foreach (var (token, opts) in overrides) {
+      options.Token = token;
+      options.Parse(opts);
+    }
+    DafnyOptions.Install(options);
+  }
+}
+
 ///<summary>
 /// Parses top-level things (modules, classes, datatypes, class members)
 /// and appends them in appropriate form to "module".
@@ -908,7 +931,7 @@ DeclModifier<ref DeclModifierData dmod>
          "to restrict access from outside the module, use a 'provides' clause in the module's export set; " +
          "if you're trying to add conjuncts to a predicate in a refinement module, see " +
          "Test/dafny3/CachedContainer.dfy, Test/dafny2/StoreAndRetrieve.dfy, and Test/dafny2/MonotonicHeapstate.dfy " +
-         "in the Dafny test suite on github");
+         "in the Dafny test suite on GitHub");
     .)
   )
   .
@@ -963,9 +986,10 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
      ModuleDefinition module;
      submodule = null; // appease compiler
      bool isAbstract = dmod.IsAbstract;
+     var dafnyOptionsBackup = DafnyOptions.O;
      CheckDeclModifiers(ref dmod, "module", AllowedDeclModifiers.Abstract);
    .)
-   { Attribute<ref attrs> }
+   { Attribute<ref attrs> }            (. ApplyOptionsFromAttributes(attrs); .)
    ModuleQualifiedName<out idQualified>
    (. id = idQualified[idQualified.Count-1];
       prefixIds = idQualified.GetRange(0,idQualified.Count-1);
@@ -986,6 +1010,7 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
       module.BodyEndTok = t;
       module.TopLevelDecls.Add(new DefaultClassDecl(module, namedModuleDefaultClassMembers));
       submodule = new LiteralModuleDecl(module, parent);
+      DafnyOptions.Install(dafnyOptionsBackup);
     .)
   .
 

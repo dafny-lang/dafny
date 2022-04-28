@@ -7,8 +7,10 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Diagnostics.Contracts;
 using System.IO;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using JetBrains.Annotations;
+using Microsoft.Dafny;
 using Microsoft.Dafny.Compilers;
 using Microsoft.Dafny.Plugins;
 using Bpl = Microsoft.Boogie;
@@ -145,6 +147,20 @@ namespace Microsoft.Dafny {
 
     public static readonly ReadOnlyCollection<Plugin> DefaultPlugins = new(new[] { Compilers.SinglePassCompiler.Plugin });
     public List<Plugin> Plugins = new(DefaultPlugins);
+
+    /// <summary>
+    /// Automatic shallow-copy constructor
+    /// </summary>
+    protected DafnyOptions(DafnyOptions opts) : this() {
+      var type = typeof(DafnyOptions);
+      while (type != null) {
+        var fields = type.GetFields(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
+        foreach (var fi in fields) {
+          fi.SetValue(this, fi.GetValue(opts));
+        }
+        type = type.BaseType;
+      }
+    }
 
     public virtual TestGenerationOptions TestGenOptions =>
       testGenOptions ??= new TestGenerationOptions();
@@ -1191,5 +1207,62 @@ some Boogie options, like /loopUnroll, may not be sound for Dafny or may not
 have the same meaning for a Dafny program as it would for a similar Boogie
 program.
 ".Replace("\n", "\n  ") + base.HelpBody;
+  }
+}
+
+class ErrorReportingCommandLineParseState : Bpl.CommandLineParseState {
+  private readonly Errors errors;
+  private Bpl.IToken token;
+
+  public ErrorReportingCommandLineParseState(string[] args, string toolName, Errors errors, Bpl.IToken token)
+    : base(args, toolName) {
+    this.errors = errors;
+    this.token = token;
+  }
+
+  public override void Error(string message, params string[] args) {
+    errors.SemErr(token, string.Format(message, args));
+    EncounteredErrors = true;
+  }
+}
+
+/// <summary>
+/// Wrapper object that restricts which options may be applied.
+/// Used by the parser to parse <c>:options</c> strings.
+/// </summary>
+class DafnyAttributeOptions : DafnyOptions {
+  private readonly HashSet<string> KnownOptions = new HashSet<string>() {
+    "functionSyntax"
+  };
+
+  private readonly Errors errors;
+  public Bpl.IToken Token { get; set; }
+
+  public DafnyAttributeOptions(DafnyOptions opts, Errors errors) : base(opts) {
+    this.errors = errors;
+    this.Token = null;
+  }
+
+  protected override Bpl.CommandLineParseState InitializeCommandLineParseState(string[] args) {
+    return new ErrorReportingCommandLineParseState(args, ToolName, errors, Token ?? Bpl.Token.NoToken);
+  }
+
+  private void Unsupported(string name, Bpl.CommandLineParseState ps) {
+    ps.Error($"Option {name} unrecognized or unsupported in ':options' attributes.");
+  }
+
+  protected override void UnknownSwitch(Bpl.CommandLineParseState ps) {
+    Unsupported(ps.s, ps);
+  }
+
+  protected override bool ParseOption(string name, Bpl.CommandLineParseState ps) {
+    if (!KnownOptions.Contains(name)) {
+      return false;
+    }
+    return base.ParseOption(name, ps);
+  }
+
+  protected override void AddFile(string file, Bpl.CommandLineParseState ps) {
+    Unsupported(file, ps);
   }
 }
