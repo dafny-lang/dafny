@@ -151,12 +151,16 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Automatic shallow-copy constructor
     /// </summary>
-    protected DafnyOptions(DafnyOptions opts) : this() {
+    public DafnyOptions(DafnyOptions src) : this() {
+        src.CopyTo(this);
+    }
+
+    public void CopyTo(DafnyOptions dst) {
       var type = typeof(DafnyOptions);
       while (type != null) {
         var fields = type.GetFields(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
         foreach (var fi in fields) {
-          fi.SetValue(this, fi.GetValue(opts));
+          fi.SetValue(dst, fi.GetValue(this));
         }
         type = type.BaseType;
       }
