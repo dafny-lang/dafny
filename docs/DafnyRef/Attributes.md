@@ -426,16 +426,7 @@ In the first and only verification round, this option will split the original [a
 into one assertion batch per assertion.
 This is mostly helpful for debugging which assertion is taking the most time to prove, e.g. to profile them.
 
-### 22.2.21. `{:options OPT0, OPT1, ... }` {#sec-attr-options}
-
-This attribute applies only to modules. It attribute configures Dafny as if
-`OPT0`, `OPT1`, … had been passed on the command line.  Outside of the module,
-options revert to their previous values.
-
-Only a small subset of Dafny's command line options is supported.  Use the
-`/attrHelp` flag to see which ones.
-
-### 22.2.22. synthesize {#sec-synthesize-attr}
+### 22.2.21. `{:synthesize}` {#sec-synthesize-attr}
 
 The `{:synthesize}` attribute must be used on methods that have no body and
 return one or more fresh objects. During compilation, 
@@ -468,6 +459,15 @@ ARGLIST   = ID   // this can be one of the bound variables
 BOUNDVARS = ID : ID
           | BOUNDVARS, BOUNDVARS
 ```
+
+### 22.2.22. `{:options OPT0, OPT1, ... }` {#sec-attr-options}
+
+This attribute applies only to modules. It attribute configures Dafny as if
+`OPT0`, `OPT1`, … had been passed on the command line.  Outside of the module,
+options revert to their previous values.
+
+Only a small subset of Dafny's command line options is supported.  Use the
+`/attrHelp` flag to see which ones.
 
 ## 22.3. Attributes on assertions, preconditions and postconditions {#sec-verification-attributes-on-assert-statements}
 
