@@ -293,11 +293,11 @@ reservedword =
     "abstract" | "allocated" | "as" | "assert" | "assume" |
     "bool" | "break" | "by" |
     "calc" | "case" | "char" | "class" | "codatatype" |
-    "colemma" | "const" | "constructor" | "copredicate" |
+    "const" | "constructor" |
     "datatype" | "decreases" |
     "else" | "ensures" | "exists" | "export" | "extends" |
     "false" | "forall" | "fresh" | "function" | "ghost" |
-    "if" | "imap" | "import" | "in" | "include" | "inductive" |
+    "if" | "imap" | "import" | "in" | "include" |
     "int" | "invariant" | "is" | "iset" | "iterator" |
     "label" | "lemma" | "map" | "match" | "method" |
     "modifies" | "modify" | "module" | "multiset" |
@@ -512,8 +512,8 @@ A `CIdentType` is used for a `const` declaration. The Type is optional because i
 the initializer.
 
 ````grammar
-GIdentType(allowGhostKeyword, allowNewKeyword, allowNameOnlyKeyword, allowDefault) =
-    { "ghost" | "new" | "nameonly" } IdentType
+GIdentType(allowGhostKeyword, allowNewKeyword, allowOlderKeyword, allowNameOnlyKeyword, allowDefault) =
+    { "ghost" | "new" | "nameonly" | "older" } IdentType
     [ ":=" Expression(allowLemma: true, allowLambda: true) ]
 ````
 A ``GIdentType`` is a typed entity declaration optionally preceded by `ghost` or `new`. The _ghost_
@@ -523,6 +523,11 @@ If `allowGhostKeyword` is false, then `ghost` is not allowed.
 If `allowNewKeyword` is false, then `new` is not allowed.
 If `allowNameOnlyKeyword` is false, then `nameonly` is not allowed.
 If `allowDefault` is false, then `:= Expression` is not allowed.
+
+`older` is a context-sensitive keyword. It is recognized as a keyword only by `GIdentType` and
+only when `allowOlderKeyword` is true. If `allowOlderKeyword` is false, then a use of `older`
+is parsed by the `IdentType` production in `GIdentType`.
+
 
 ````grammar
 LocalIdentTypeOptional = WildIdent [ ":" Type ]
