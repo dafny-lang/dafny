@@ -435,7 +435,7 @@ options revert to their previous values.
 Only a small subset of Dafny's command line options is supported.  Use the
 `/attrHelp` flag to see which ones.
 
-### 22.2.21. synthesize {#sec-synthesize-attr}
+### 22.2.22. synthesize {#sec-synthesize-attr}
 
 The `{:synthesize}` attribute must be used on methods that have no body and
 return one or more fresh objects. During compilation, 

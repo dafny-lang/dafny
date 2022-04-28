@@ -10,7 +10,6 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using VC;
-using VCGeneration;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
