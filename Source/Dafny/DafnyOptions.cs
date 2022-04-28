@@ -793,6 +793,12 @@ namespace Microsoft.Dafny {
       trait is declared are checked for termination in the usual
       manner.
 
+    {:options ""/opt0:xyz"", ""/opt1"", ...}
+      When applied to a module, this attribute configures Dafny as if
+      `/opt0:xyz` and `/opt1` had been passed on the command line.
+      Outside of the module, options revert to their previous values.
+      Supported options: %SUPPORTED_OPTIONS%.
+
     {:warnShadowing}
       TODO
 
@@ -821,7 +827,8 @@ namespace Microsoft.Dafny {
       TODO
 
     {:trigger}
-      TODO";
+      TODO".Replace("%SUPPORTED_OPTIONS%",
+        string.Join(", ", DafnyAttributeOptions.KnownOptions));
 
     /// <summary>
     /// Dafny releases come with their own copy of Z3, to save users the trouble of having to install extra dependencies.
@@ -1235,7 +1242,7 @@ class ErrorReportingCommandLineParseState : Bpl.CommandLineParseState {
 /// Used by the parser to parse <c>:options</c> strings.
 /// </summary>
 class DafnyAttributeOptions : DafnyOptions {
-  private readonly HashSet<string> KnownOptions = new HashSet<string>() {
+  public static readonly HashSet<string> KnownOptions = new() {
     "functionSyntax"
   };
 

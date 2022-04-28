@@ -9,9 +9,9 @@ In general an attribute may have any name the user chooses. It may be
 followed by a comma-separated list of expressions. These expressions will
 be resolved and type-checked in the context where the attribute appears.
 
-In general, any Dafny entity may have a list of attributes.
+Any Dafny entity may have a list of attributes.
 Dafny does not check that the attributes listed for an entity
-are appropriate for that entity (which means that misspellings may
+are appropriate for it (which means that misspellings may
 go silently unnoticed).
 
 The grammar shows where the attribute annotations may appear:
@@ -19,12 +19,11 @@ The grammar shows where the attribute annotations may appear:
 Attribute = "{:" AttributeName [ Expressions ] "}"
 ````
 
-Dafny has special processing for some attributes[^boogie-attributes]. For some attributes, the
-setting is only looked for on the entity with the attribute. For others, we start
-at the entity and if the attribute is not there, look up in the hierarchy
-(enclosing class and enclosing modules).
-The attribute
-declaration closest to the entity overrides those further away.
+Dafny has special processing for some attributes[^boogie-attributes].  Of those,
+some apply only to the entity bearing the attribute, while others (inherited
+attributes) apply to the entity and its descendants (such as nested modules,
+types, or declarations).  The attribute declaration closest to the entity
+overrides those further away.
 
 [^boogie-attributes]: All entities that Dafny translates to Boogie have their attributes passed on to Boogie except for the [`{:axiom}`](#sec-axiom) attribute (which conflicts with Boogie usage) and the [`{:trigger}`](#sec-trigger) attribute which is instead converted into a Boogie quantifier _trigger_. See Section 11 of [@Leino:Boogie2-RefMan].
 
@@ -427,6 +426,14 @@ In the first and only verification round, this option will split the original [a
 into one assertion batch per assertion.
 This is mostly helpful for debugging which assertion is taking the most time to prove, e.g. to profile them.
 
+### 22.2.21. `{:options OPT0, OPT1, ... }` {#sec-attr-options}
+
+This attribute applies only to modules. It attribute configures Dafny as if
+`OPT0`, `OPT1`, … had been passed on the command line.  Outside of the module,
+options revert to their previous values.
+
+Only a small subset of Dafny's command line options is supported.  Use the
+`/attrHelp` flag to see which ones.
 
 ### 22.2.21. synthesize {#sec-synthesize-attr}
 
