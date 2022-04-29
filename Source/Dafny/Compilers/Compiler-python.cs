@@ -48,7 +48,6 @@ namespace Microsoft.Dafny.Compilers {
     const string DafnySeqClass = $"{DafnyRuntimeModule}.Seq";
     const string DafnyMapClass = $"{DafnyRuntimeModule}.Map";
     const string DafnyArrayClass = $"{DafnyRuntimeModule}.Array";
-
     protected override string StmtTerminator { get => ""; }
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
       wr.WriteLine($"# Dafny program {program.Name} compiled into Python");
@@ -202,7 +201,6 @@ namespace Microsoft.Dafny.Compilers {
         .WriteLine($"return not self.__eq__(__o)");
 
       foreach (var ctor in dt.Ctors) {
-
         var ctorName = IdProtect(ctor.CompileName);
 
         // Class-level fields don't work in all python version due to metaclasses.
@@ -1020,19 +1018,8 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor,
         List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr) {
-      string dtorName;
-      if (ctor.EnclosingDatatype is TupleTypeDecl) {
-        throw new NotImplementedException();
-      } else if (int.TryParse(dtor.Name, out _)) {
-        throw new NotImplementedException();
-      } else {
-        dtorName = FormalName(dtor, formalNonGhostIndex);
-      }
-
-      if (ctor.EnclosingDatatype is CoDatatypeDecl) {
-        throw new NotImplementedException();
-      }
-      wr.Write($"(({DtCtorDeclarationName(ctor)}){source}).{dtorName}");
+      wr.Write(source);
+      wr.Write(ctor.EnclosingDatatype is TupleTypeDecl ? $"[{dtor.Name}]" : $".{IdProtect(dtor.CompileName)}");
     }
 
     protected override bool TargetLambdasRestrictedToExpressions => true;
