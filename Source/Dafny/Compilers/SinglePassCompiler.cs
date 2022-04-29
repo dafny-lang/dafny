@@ -333,6 +333,8 @@ namespace Microsoft.Dafny.Compilers {
     /// The punctuation that comes at the end of a statement.  Note that
     /// statements are followed by newlines regardless.
     protected virtual string StmtTerminator { get => ";"; }
+    protected virtual string True { get => "true"; }
+    protected virtual string False { get => "false"; }
     public void EndStmt(ConcreteSyntaxTree wr) { wr.WriteLine(StmtTerminator); }
     protected abstract void DeclareLocalOutVar(string name, Type type, Bpl.IToken tok, string rhs, bool useReturnStyleOuts, ConcreteSyntaxTree wr);
     protected virtual void EmitActualOutArg(string actualOutParamName, ConcreteSyntaxTree wr) { }  // actualOutParamName is always the name of a local variable; called only for non-return-style outs
@@ -643,9 +645,10 @@ namespace Microsoft.Dafny.Compilers {
     protected abstract void EmitLiteralExpr(ConcreteSyntaxTree wr, LiteralExpr e);
     protected abstract void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr);
     protected abstract ConcreteSyntaxTree EmitBitvectorTruncation(BitvectorType bvType, bool surroundByUnchecked, ConcreteSyntaxTree wr);
-    protected delegate void FCE_Arg_Translator(Expression e, ConcreteSyntaxTree wr, bool inLetExpr = false, ConcreteSyntaxTree wStmts = null);
+    protected delegate void FCE_Arg_Translator(Expression e, ConcreteSyntaxTree wr, bool inLetExpr, ConcreteSyntaxTree wStmts);
 
-    protected abstract void EmitRotate(Expression e0, Expression e1, bool isRotateLeft, ConcreteSyntaxTree wr, bool inLetExprBody, FCE_Arg_Translator tr);
+    protected abstract void EmitRotate(Expression e0, Expression e1, bool isRotateLeft, ConcreteSyntaxTree wr,
+      bool inLetExprBody, ConcreteSyntaxTree wStmts, FCE_Arg_Translator tr);
     /// <summary>
     /// Return true if x < 0 should be rendered as sign(x) < 0 when x has the
     /// given type.  Typically, this is only a win at non-native types, since
@@ -1036,7 +1039,7 @@ namespace Microsoft.Dafny.Compilers {
     protected abstract void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr);
     protected virtual bool TargetLambdasRestrictedToExpressions => false;
     protected abstract ConcreteSyntaxTree CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames,
-      Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, bool untyped = false, bool bodyIsExpression = true);
+      Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, bool untyped = false);
 
     /// <summary>
     /// Emit an "Immediately Invoked Function Expression" with the semantics of
@@ -1055,7 +1058,8 @@ namespace Microsoft.Dafny.Compilers {
 
     protected abstract ConcreteSyntaxTree CreateIIFE0(Type resultType, Bpl.IToken resultTok, ConcreteSyntaxTree wr,
       ConcreteSyntaxTree wStmts);  // Immediately Invoked Function Expression
-    protected abstract ConcreteSyntaxTree CreateIIFE1(int source, Type resultType, Bpl.IToken resultTok, string bvName, ConcreteSyntaxTree wr);  // Immediately Invoked Function Expression
+    protected abstract ConcreteSyntaxTree CreateIIFE1(int source, Type resultType, Bpl.IToken resultTok, string bvName,
+      ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts);  // Immediately Invoked Function Expression
     public enum ResolvedUnaryOp { BoolNot, BitwiseNot, Cardinality }
     protected abstract void EmitUnaryExpr(ResolvedUnaryOp op, Expression expr, bool inLetExprBody,
       ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts);
@@ -4659,7 +4663,15 @@ namespace Microsoft.Dafny.Compilers {
             if (Contract.Exists(lhs.Vars, bv => !bv.IsGhost)) {
               var rhsName = string.Format("_pat_let{0}_{1}", GetUniqueAstNumber(e), i);
               w = CreateIIFE_ExprBody(rhsName, e.RHSs[i].Type, e.RHSs[i].tok, e.RHSs[i], inLetExprBody, e.Body.Type, e.Body.tok, w, wStmts);
+              if (TargetLambdasRestrictedToExpressions) {
+                wStmts = w.Fork();
+                w = EmitReturnExpr(w);
+              }
               w = TrCasePattern(lhs, rhsName, e.RHSs[i].Type, e.Body.Type, w, wStmts);
+              if (TargetLambdasRestrictedToExpressions) {
+                wStmts = w.Fork();
+                w = EmitReturnExpr(w);
+              }
             }
           }
           TrExpr(e.Body, w, true, wStmts);
@@ -4687,7 +4699,7 @@ namespace Microsoft.Dafny.Compilers {
               Error(e.tok, "this let-such-that expression is too advanced for the current compiler; Dafny's heuristics cannot find any bound for variable '{0}'", wr, bv.Name);
             }
           } else {
-            var w = CreateIIFE1(0, e.Body.Type, e.Body.tok, "_let_dummy_" + GetUniqueAstNumber(e), wr);
+            var w = CreateIIFE1(0, e.Body.Type, e.Body.tok, "_let_dummy_" + GetUniqueAstNumber(e), wr, wStmts);
             foreach (var bv in e.BoundVars) {
               DeclareLocalVar(IdName(bv), bv.Type, bv.tok, false, PlaceboValue(bv.Type, wr, bv.tok, true), w);
             }
@@ -4711,7 +4723,7 @@ namespace Microsoft.Dafny.Compilers {
 
         string source = ProtectedFreshId("_source");
         ConcreteSyntaxTree w;
-        w = CreateLambda(new List<Type>() { e.Source.Type }, e.tok, new List<string>() { source }, e.Type, wr, wStmts, bodyIsExpression: false);
+        w = CreateLambda(new List<Type>() { e.Source.Type }, e.tok, new List<string>() { source }, e.Type, wr, wStmts);
 
         if (e.Cases.Count == 0) {
           // the verifier would have proved we never get here; still, we need some code that will compile
@@ -4748,7 +4760,7 @@ namespace Microsoft.Dafny.Compilers {
           var collectionElementType = CompileCollection(bound, bv, inLetExprBody, false, su, out var collection, wStmts, e.Bounds, e.BoundVars, i);
           wBody.Write("{0}(", GetQuantifierName(TypeName(collectionElementType, wBody, bv.tok)));
           wBody.Append(collection);
-          wBody.Write(", {0}, ", expr is ForallExpr ? "true" : "false");
+          wBody.Write(", {0}, ", expr is ForallExpr ? True : False);
           var native = AsNativeType(e.BoundVars[i].Type);
           var tmpVarName = ProtectedFreshId(e is ForallExpr ? "_forall_var_" : "_exists_var_");
           ConcreteSyntaxTree newWBody = CreateLambda(new List<Type> { collectionElementType }, e.tok, new List<string> { tmpVarName }, Type.Bool, wBody, wStmts, untyped: true);
@@ -4863,8 +4875,12 @@ namespace Microsoft.Dafny.Compilers {
         var e = (LambdaExpr)expr;
 
         wr = CaptureFreeVariables(e, false, out var su, inLetExprBody, wr, wStmts);
+        if (su != Substituter.EMPTY && TargetLambdasRestrictedToExpressions) {
+          wStmts = wr.Fork();
+          wr = EmitReturnExpr(wr);
+        }
         wr = CreateLambda(e.BoundVars.ConvertAll(bv => bv.Type), Bpl.Token.NoToken, e.BoundVars.ConvertAll(IdName), e.Body.Type, wr, wStmts);
-        if (!TargetLambdasRestrictedToExpressions) { wr = EmitReturnExpr(wr); }
+        wr = EmitReturnExpr(wr);
         TrExpr(su.Substitute(e.Body), wr, inLetExprBody, wStmts);
 
       } else if (expr is StmtExpr) {
@@ -4922,7 +4938,7 @@ namespace Microsoft.Dafny.Compilers {
           var thenWriter = EmitIf(out var guardWriter, isReturning, wr);
           guardWriter.Write(conditions);
           if (isReturning) {
-            wr = wr.NewBlock("", null, BlockStyle.Brace);
+            wr = EmitBlock(wr);
             var wStmts = wr.Fork();
             wr = EmitReturnExpr(wr);
             TrExpr(new LiteralExpr(tok, elseReturnValue), wr, inLetExprBody, wStmts);
@@ -5151,9 +5167,9 @@ namespace Microsoft.Dafny.Compilers {
       string name = e.Function.Name;
 
       if (name == "RotateLeft") {
-        EmitRotate(e.Receiver, e.Args[0], true, wr, inLetExprBody, tr);
+        EmitRotate(e.Receiver, e.Args[0], true, wr, inLetExprBody, wStmts, tr);
       } else if (name == "RotateRight") {
-        EmitRotate(e.Receiver, e.Args[0], false, wr, inLetExprBody, tr);
+        EmitRotate(e.Receiver, e.Args[0], false, wr, inLetExprBody, wStmts, tr);
       } else {
         CompileFunctionCallExpr(e, wr, inLetExprBody, wStmts, tr);
       }
@@ -5179,7 +5195,7 @@ namespace Microsoft.Dafny.Compilers {
         compileName = IdName(f);
       } else {
         wr.Write("(");
-        tr(e.Receiver, wr, inLetExprBody);
+        tr(e.Receiver, wr, inLetExprBody, wStmts);
         wr.Write("){0}", ClassAccessor);
         compileName = IdName(f);
       }
@@ -5201,7 +5217,7 @@ namespace Microsoft.Dafny.Compilers {
           var w = EmitCoercionIfNecessary(fromType, e.Function.Formals[i].Type, tok: e.tok, wr: wr);
           var instantiatedToType = Resolver.SubstType(e.Function.Formals[i].Type, e.TypeArgumentSubstitutionsWithParents());
           w = EmitDowncastIfNecessary(fromType, instantiatedToType, e.tok, w);
-          tr(e.Args[i], w, inLetExprBody);
+          tr(e.Args[i], w, inLetExprBody, wStmts);
           sep = ", ";
         }
       }

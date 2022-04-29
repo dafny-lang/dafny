@@ -43,6 +43,21 @@ class Seq(list):
     def Elements(self):
         return self
 
+    @property
+    def UniqueElements(self):
+        return Seq(set(self))
+
+    def __repr__(self) -> str:
+        if len(self) > 0 and isinstance(self[0], str):
+          return ''.join(self)
+        return super().__repr__()
+
+    def __add__(self, other):
+        return Seq(super().__add__(other))
+
+    def __hash__(self) -> int:
+        return hash(tuple(self))
+
 class Set(set):
     @property
     def Elements(self):
@@ -158,3 +173,12 @@ def euclidian_modulus(a, b):
 @dataclass
 class HaltException(Exception):
     message: str
+
+def quantifier(vals, frall, pred):
+    for u in vals:
+        if pred(u) != frall:
+            return not frall
+    return frall
+
+def AllChars():
+    return [chr(i) for i in range(0x10000)]
