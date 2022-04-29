@@ -89,7 +89,7 @@ jobs:
     - name: Running Go artifacts
       if: runner.os != 'Windows'
       run: |
-        GOPATH=$PWD/a-go go run a-go/src/a.go > actual.txt
+        GO111MODULE=auto GOPATH=$PWD/a-go go run a-go/src/a.go > actual.txt
         diff expect.txt actual.txt
     - name: Running Go artifacts - Windows
       shell: pwsh
