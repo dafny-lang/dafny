@@ -36,6 +36,9 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           // because it must not be null.
           return new CompilationUnit(program);
         }
+      } catch (Exception e) {
+        program.reporter.Error(MessageSource.Resolver, program.GetFirstTopLevelToken(), "Internal error:" + e.Message);
+        return new CompilationUnit(program);
       }
       finally {
         resolverMutex.Release();
