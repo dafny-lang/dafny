@@ -41,10 +41,10 @@ jobs:
         repo: dafny-lang/dafny
         file: "dafny-.*-${{matrix.osn}}\\.zip"
         regex: true
-        target: "."
+        target: "subdir"
     - if: runner.os != 'Windows'
       run: |
-        unzip dafny*.zip && rm dafny*.zip
+        unzip subdir/dafny*.zip && rm subdir/dafny*.zip
     - if: runner.os == 'Windows'
       shell: pwsh
       run: |
