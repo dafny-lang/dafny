@@ -79,3 +79,9 @@ jobs:
         make -C dafny/docs/DafnyRef
     - name: Check
       run: ls -la dafny/docs/DafnyRef/DafnyRef.pdf
+    # Building the reference manual may update files,
+    # such as renumbering sections or updating Options.txt.
+    # These changes should have been checked in earlier,
+    # so fail the build if anything changed.
+    - name: Check for modifications
+      run: git diff --exit-code
