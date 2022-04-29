@@ -40,6 +40,7 @@ jobs:
       with:
         file: "dafny-.*-${{matrix.osn}}.zip"
         regex: true
+        target: "."
     - if: runner.os != 'Windows'
       run: |
         unzip dafny*.zip && rm dafny*.zip
