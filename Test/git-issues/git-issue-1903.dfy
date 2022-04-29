@@ -7,6 +7,6 @@ method g<T>(x : seq<T> := [])
 }
 
 
-method {:verify true} Main() { 
+method Main() { 
    g<nat>();
 }
