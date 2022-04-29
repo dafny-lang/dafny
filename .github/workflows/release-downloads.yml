@@ -39,12 +39,12 @@ jobs:
       uses: dsaltares/fetch-gh-release-asset@master
       with:
         repo: dafny-lang/dafny
-        file: "dafny-.*-${{matrix.osn}}\\.zip"
+        file: "dafny\-.*\-${{matrix.osn}}\\.zip"
         regex: true
-        target: "subdir"
+        target: "."
     - if: runner.os != 'Windows'
       run: |
-        unzip subdir/dafny*.zip && rm subdir/dafny*.zip
+        unzip dafny*.zip && rm dafny*.zip
     - if: runner.os == 'Windows'
       shell: pwsh
       run: |
