@@ -45,24 +45,54 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
     public async Task HoverGetsBasicAssertionInformation() {
       var documentItem = await GetDocumentItem(@"
 method Abs(x: int) returns (y: int)
-//     ^ hover #2
+//     ^ Hover #4
     ensures y >= 0
 { //           ^ hover #1
-  if x < 2 {
+  if x < 2 { // Hover #2 on the brace
     return -x;
   }
+  assert x > 2; // Hover #3 on the '>'
   return x;
 }
 ", CompilationStatus.VerificationFailed);
+      // When hovering the postcondition, it should display the position of the failing path
       await AssertHoverMatches(documentItem, (2, 15),
-        @"assertion of [batch](???) #1/1 checked in ???ms with ??? resource count:  
+        @"assertion #1/2 of [batch](???) #1/1 checked in ???ms with ??? resource count:  
 `testFile0.dfy(6, 5): `*A postcondition might not hold on this return path.*"
+      );
+      // When hovering the failing path, it does not display the position of the failing postcondition
+      // because the IDE extension already does it.
+      await AssertHoverMatches(documentItem, (5, 4),
+        @"assertion #1/2 of [batch](???) #1/1 checked in ???ms with ??? resource count:  
+*A postcondition might not hold on this return path.*"
+      );
+      await AssertHoverMatches(documentItem, (7, 11),
+        @"assertion #2/2 of [batch](???) #1/1 checked in ???ms with ??? resource count:  
+*Might not hold*"
       );
       await AssertHoverMatches(documentItem, (0, 7),
         @"**Abs** metrics:
 
 ???ms in 1 [assertion batch](???)  
 ??? resource count"
+      );
+    }
+
+    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    public async Task BetterMessageWhenOneAssertPerBatch() {
+      var documentItem = await GetDocumentItem(@"
+method {:vcs_split_on_every_assert} f(x: int) {
+  assert x >= 2; // Hover #1
+  assert x >= 1; // Hover #2
+}
+", CompilationStatus.VerificationFailed);
+      await AssertHoverMatches(documentItem, (1, 12),
+        @"assertion of [batch](???) #???/2 checked in ???ms with ??? resource count:  
+*Might not hold*"
+      );
+      await AssertHoverMatches(documentItem, (2, 12),
+        @"assertion of [batch](???) #???/2 checked in ???ms with ??? resource count:  
+*Verified*"
       );
     }
 
@@ -85,7 +115,7 @@ method Abs(x: int) returns (y: int)
     }
 
     private void AssertMatchRegex(string expected, string value) {
-      var regexExpected = Regex.Escape(expected).Replace(@"\?\?\?", ".+");
+      var regexExpected = Regex.Escape(expected).Replace(@"\?\?\?", ".*");
       var matched = new Regex(regexExpected).Match(value).Success;
       if (!matched) {
         // A simple helper to determine what portion of the regex did not match
