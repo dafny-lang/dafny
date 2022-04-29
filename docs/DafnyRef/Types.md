@@ -317,8 +317,6 @@ stronger than unary minus.  The fourth line uses the conversion
 function `as real` from `int` to `real`, as described in
 [Section 20.10](#sec-as-expression).
 
-TODO: Need syntax for real literals with exponents
-
 ## 7.3. Bit-vector Types {#sec-bit-vector-types}
 ````grammar
 BitVectorType_ = bvToken
@@ -578,7 +576,7 @@ for `h`, since the type `X` could be empty.
 
 Note that every auto-init type is nonempty.
 
-### 8.1.4. Non-heap based: `T(!new)`
+### 8.1.4. Non-heap based: `T(!new)` {#sec-non-heap-based}
 
 Dafny makes a distinction between types whose values are on the heap,
 i.e. references, like
@@ -1053,7 +1051,7 @@ built-in iterator methods, but the idioms by which to do so are straightforward.
 The subsections below give some introductory examples; more
 detail can be found in this [power user note](http://leino.science/papers/krml275.html).
 
-TODO: Add examples of using a iterator class
+TODO: Add examples of using an iterator class
 TODO: Should a foreach statment be added to Dafny
 
 ### 10.5.1. Sequences and arrays
@@ -1087,6 +1085,8 @@ with arrays where parallel assignment is needed:
     rev[i] := s[s.Length-i-1];
   }
 ```
+
+See [Section 15.3](#sec-array-to-seq) on how to convert an array to a sequence.
 
 ### 10.5.2. Sets
 There is no intrinsic order to the elements of a set. Nevertheless, we can
@@ -1756,8 +1756,8 @@ as explained below.
 MethodSignature_(isGhost, isExtreme) =
   [ GenericParameters ]
   [ KType ]    // permitted only if isExtreme == true
-  Formals(allowGhostKeyword: !isGhost, allowNewKeyword: isTwostateLemma, allowDefault: true))
-  [ "returns" Formals(allowGhostKeyword: !isGhost, allowNewKeyword: false, allowDefault: false) ]
+  Formals(allowGhostKeyword: !isGhost, allowNewKeyword: isTwostateLemma, allowOlderKeyword: false, allowDefault: true))
+  [ "returns" Formals(allowGhostKeyword: !isGhost, allowNewKeyword: false, allowOlderKeyword: false, allowDefault: false) ]
 ````
 A method signature specifies the method generic parameters,
 input parameters and return parameters.
@@ -1776,12 +1776,12 @@ signature.
 KType = "[" ( "nat" | "ORDINAL" ) "]"
 ````
 The _k-type_ may be specified only for least and greatest lemmas and is described
-in [Section 18.3](#sec-coinduction). // TODO - check this is the correct reference
+in [Section 23](#sec-advanced-topics).
 
 ````grammar
-Formals(allowGhostKeyword, allowNewKeyword, allowDefault) =
-  "(" [ GIdentType(allowGhostKeyword, allowNewKeyword, allowNameOnlyKeyword: true, allowDefault)
-        { "," GIdentType(allowGhostKeyword, allowNewKeyword, allowNameOnlyKeyword: true, allowDefault) }
+Formals(allowGhostKeyword, allowNewKeyword, allowOlderKeyword, allowDefault) =
+  "(" [ GIdentType(allowGhostKeyword, allowNewKeyword, allowOlderKeyword, allowNameOnlyKeyword: true, allowDefault)
+        { "," GIdentType(allowGhostKeyword, allowNewKeyword, allowOlderKeyword, allowNameOnlyKeyword: true, allowDefault) }
       ]
   ")"
 ````
@@ -1840,11 +1840,10 @@ A static method M in a class C can be invoked by `C.M(…)`.
 An ordinary method is declared with the `method` keyword.
 Section [#sec-constructors] explains methods that instead use the
 `constructor` keyword. Section [#sec-lemmas] discusses methods that are
-declared with the `lemma` keyword. Methods declared with the `inductive`
-`lemma` keywords are discussed later in the context of inductive
-predicates (see [#sec-inductive-datatypes]). Methods declared with the
-`colemma` keyword are discussed later in the context of co-inductive
-types, in section [#sec-colemmas].
+declared with the `lemma` keyword. Methods declared with the
+`least lemma` or `greatest lemma` keyword phrases
+are discussed later in the context of extreme
+predicates (see section [#sec-colemmas]).
 
 A method without a body is _abstract_. A method is allowed to be
 abstract under the following circumstances:
@@ -2091,11 +2090,13 @@ FunctionDecl(isWithinAbstractModule) =
     PredicateSignatureOrEllipsis_(allowGhostKeyword:
                                            ("method" present),
                                   allowNewKeyword:
-                                           "twostate" present)
+                                           "twostate" present,
+                                  allowOlderKeyword: true)
   | ( "least" | "greatest" ) "predicate" { Attribute }
     MethodFunctionName
     PredicateSignatureOrEllipsis_(allowGhostKeyword: false,
-                         allowNewKeyword: "twostate" present))
+                         allowNewKeyword: "twostate" present,
+                         allowOlderKeyword: false))
   )
   FunctionSpec
   [ FunctionBody ]
@@ -2105,22 +2106,24 @@ FunctionSignatureOrEllipsis_(allowGhostKeyword) =
 
 FunctionSignature_(allowGhostKeyword, allowNewKeyword) =
   [ GenericParameters ]
-  Formals(allowGhostKeyword, allowNewKeyword)
+  Formals(allowGhostKeyword, allowNewKeyword, allowOlderKeyword: true, allowDefault: true)
   ":"
   ( Type
   | "(" GIdentType(allowGhostKeyword: false,
                    allowNewKeyword: false,
+                   allowOlderKeyword: false,
                    allowNameOnlyKeyword: false,
                    allowDefault: false)
     ")"
   )
 
-PredicateSignatureOrEllipsis_(allowGhostKeyword) =
-  PredicateSignature_(allowGhostKeyword) | ellipsis
+PredicateSignatureOrEllipsis_(allowGhostKeyword, allowNewKeyword, allowOlderKeyword) =
+  PredicateSignature_(allowGhostKeyword, allowNewKeyword, allowOlderKeyword) | ellipsis
 
-PredicateSignature_(allowGhostKeyword) =
-  [ GenericParameters ] [ KType ] Formals(allowGhostKeyword,
-                                          allowNewKeyword)
+PredicateSignature_(allowGhostKeyword, allowNewKeyword, allowOlderKeyword) =
+  [ GenericParameters ]
+  [ KType ]
+  Formals(allowGhostKeyword, allowNewKeyword, allowOlderKeyword, allowDefault: true)
 
 FunctionBody = "{" Expression(allowLemma: true, allowLambda: true)
                "}" [ "by" "method" BlockStmt ]
@@ -2294,9 +2297,231 @@ When `{:opaque}` is specified for function `g`, `g` is opaque,
 however the statement `reveal g();` is available to give the semantics
 of `g` whether in the defining module or outside.
 
-### 13.4.4. Least/Greatest (CoInductive) Predicates and Lemmas
+### 13.4.4. Extreme (Least or Greatest) Predicates and Lemmas
 See [Section 23.5.3](#sec-friendliness) for descriptions
-of inductive predicates and lemmas.
+of extreme predicates and lemmas.
+
+### 13.4.5. `older` parameters in predicates
+
+A parameter of any predicate (more precisely, of any
+boolean-returning, non-extreme function) can be marked as
+`older`. This specifies that the truth of the predicate implies that
+the allocatedness of the parameter follows from the allocatedness of
+the non-`older` parameters.
+
+To understand what this means and why this attribute is useful,
+consider the following example, which specifies reachability between
+nodes in a directed graph. A `Node` is declared to have any number of
+children:
+
+```
+class Node {
+  var children: seq<Node>
+}
+```
+
+There are several ways one could specify reachability between
+nodes. One way (which is used in `Test/dafny1/SchorrWaite.dfy` in the
+Dafny test suite) is to define a type `Path`, representing lists of
+`Node`s, and to define a predicate that checks if a given list of
+`Node`s is indeed a path between two given nodes:
+
+```
+datatype Path = Empty | Extend(Path, Node)
+
+predicate ReachableVia(source: Node, p: Path, sink: Node, S: set<Node>)
+  reads S
+  decreases p
+{
+  match p
+  case Empty =>
+    source == sink
+  case Extend(prefix, n) =>
+    n in S && sink in n.children && ReachableVia(source, prefix, n, S)
+}
+```
+
+In a nutshell, the definition of `ReachableVia` says
+
+* An empty path lets `source` reach `sink` just when
+  `source` and `sink` are the same node.
+* A path `Extend(prefix, n)` lets `source` reach `sink` just when
+  the path `prefix` lets `source` reach `n` and `sink` is one of
+  the children nodes of `n`.
+
+To be admissible by Dafny, the recursive predicate must be shown to
+terminate. Termination is assured by the specification `decreases p`,
+since every such datatype value has a finite structure and every
+recursive call passes in a path that is structurally included in the
+previous. Predicate `ReachableVia` must also declare (an upper bound
+on) which heap objects that it depends on. For this purpose, the
+predicate takes an additional parameter `S`, which is used to limit
+the set of intermediate nodes in the path. More precisely, predicate
+`ReachableVia(source, p, sink, S)` returns `true` if and only if `p`
+is a list of nodes in `S` and `source` can reach `sink` via `p`.
+
+Using predicate `ReachableVia`, we can now define reachability in `S`:
+
+```
+predicate Reachable(source: Node, sink: Node, S: set<Node>)
+  reads S
+{
+  exists p :: ReachableVia(source, p, sink, S)
+}
+```
+
+This looks like a good definition of reachability, but Dafny won't
+admit it. The reason is twofold:
+
+* Quantifiers and comprehensions are allowed to range only over
+  allocated state. Ater all, Dafny is a type-safe language where every
+  object reference is _valid_ (that is, a pointer to allocated storage
+  of the right type)---it should not be possible, not even through a
+  bound variable in a quantifier or comprehension, for a program to
+  obtain an object reference that isn't valid.
+
+* This property is ensured by disallowing _open-ended_ quantifiers.
+  More precisely, the object references that a quantifier may range
+  over must be shown to be confined to object references that were
+  allocated before some of the non-`older` parameters passed to the
+  predicate. Quantifiers that are not open-ended are called
+  _close-ended_. Note that close-ended refers only to the object
+  references that the quantification or comprehension ranges over---it
+  does not say anything about values of other types, like integers.
+
+Often, it is easy to show that a quantifier is close-ended. In fact,
+if the type of a bound variable does not contain any object
+references, then the quantifier is trivially close-ended. For example,
+
+```
+forall x: int :: x <= Square(x)
+```
+
+is trivially close-ended.
+
+Another innocent-looking quantifier occurs in the following example:
+
+```
+predicate IsCommutative<X>(r: (X, X) -> bool)
+{
+  forall x, y :: r(x, y) == r(y, x) // error: open-ended quantifier
+}
+```
+
+Since nothing is known about type `X`, this quantifier might be
+open-ended.  For example, if `X` were passed in as a class type, then
+the quantifier would be open-ended. One way to fix this predicate is
+to restrict it to non-heap based types, which is indicated with the
+`(!new)` type characteristic (see [Section 8.1.4](#sec-non-heap-based)):
+
+```
+predicate IsCommutative<X(!new)>(r: (X, X) -> bool) // X is restricted to non-heap types
+{
+  forall x, y :: r(x, y) == r(y, x) // allowed
+}
+```
+
+Another way to make `IsCommutative` close-ended is to constrain the values
+of the bound variables `x` and `y`. This can be done by adding a parameter
+to the predicate and limiting the quantified values to ones in the given set:
+
+```
+predicate IsCommutativeInS<X>(r: (X, X) -> bool, S: set<X>)
+{
+  forall x, y :: x in S && y in S ==> r(x, y) == r(y, x) // close-ended
+}
+```
+
+Through a simple syntactic analysis, Dafny detects the antecedents
+`x in S` and `y in S`, and since `S` is a parameter and thus can only be
+passed in as something that the caller has already allocated, the
+quantifier in `IsCommutativeInS` is determined to be close-ended.
+
+Note, the `x in S` trick does not work for the motivating example,
+`Reachable`. If you try to write
+
+```
+predicate Reachable(source: Node, sink: Node, S: set<Node>)
+  reads S
+{
+  exists p :: p in S && ReachableVia(source, p, sink, S) // type error: p
+}
+```
+
+you will get a type error, because `p in S` does not make sense if `p`
+has type `Path`. We need some other way to justify that the
+quantification in `Reachable` is close-ended.
+
+Dafny offers a way to extend the `x in S` trick to more situations.
+This is where the `older` modifier comes in. Before we apply `older`
+in the `Reachable` example, let's first look at what `older` does in a
+less cluttered example.
+
+Suppose we rewrite `IsCommutativeInS` using a programmer-defined predicate `In`:
+
+```
+predicate In<X>(x: X, S: set<X>) {
+  x in S
+}
+
+predicate IsCommutativeInS<X>(r: (X, X) -> bool, S: set<X>)
+{
+  forall x, y :: In(x, S) && In(y, S) ==> r(x, y) == r(y, x) // error: open-ended?
+}
+```
+
+The simple syntactic analysis that looks for `x in S` finds nothing
+here, because the `in` operator is relegated to the body of predicate
+`In`. To inform the analysis that `In` is a predicate that, in effect,
+is like `in`, you can mark parameter `x` with `older`:
+
+```
+predicate In<X>(older x: X, S: set<X>) {
+  x in S
+}
+```
+
+This causes the simple syntactic analysis to accept the quantifier in
+`IsCommutativeInS`. Adding `older` also imposes a semantic check on
+the body of predicate `In`, enforced by the verifier. The semantic
+check is that all the object references in the value `x` are older (or
+equally old as) the object references that are part of the other
+parameters, _in the event that the predicate returns true_. That is,
+`older` is designed to help the caller only if the predicate returns
+`true`, and the semantic check amounts to nothing if the predicate
+returns `false`.
+
+Finally, let's get back to the motivating example. To allow the quantifier
+in `Reachable`, mark parameter `p` of `ReachableVia` with `older`:
+
+```
+predicate Reachable(source: Node, sink: Node, S: set<Node>)
+  reads S
+{
+  exists p :: ReachableVia(source, p, sink, S) // allowed because of 'older p' on ReachableVia
+}
+
+predicate ReachableVia(source: Node, older p: Path<Node>, sink: Node, S: set<Node>)
+  reads S
+  decreases p
+{
+  match p
+  case Empty =>
+    source == sink
+  case Extend(prefix, n) =>
+    n in S && sink in n.children && ReachableVia(source, prefix, n, S)
+}
+```
+
+This example is more involved than the simpler `In` example
+above. Because of the `older` modifier on the parameter, the quantifier in
+`Reachable` is allowed. For intuition, you can think of the effect of
+`older p` as adding an antecedent `p in {source} + {sink} + S`
+(but, as we have seen, this is not type correct). The semantic check
+imposed on the body of `ReachableVia` makes sure that, if the
+predicate returns `true`, then every object reference in `p` is as old
+as some object reference in another parameter to the predicate.
+
 
 <!--PDF NEWPAGE-->
 # 14. Trait Types {#sec-trait-types}
@@ -2690,14 +2915,22 @@ In contrast to one-dimensional arrays, there is no operation to
 convert stretches of elements from a multi-dimensional array to a
 sequence.
 
+## 15.3 Converting arrays to sequences {#sec-array-to-seq}
+
+To convert an array `x` to a sequence, use the `[..]` operator:
+```dafny
+  var intArr: array<int> := new int[] [1, 2, 3];
+  var intSeq: seq<int> := intArr[..];
+  assert intSeq == [1, 2, 3];
+```
 
 <!--PDF NEWPAGE-->
 # 16. Iterator types {#sec-iterator-types}
 ````grammar
 IteratorDecl = "iterator" { Attribute } IteratorName
   ( [ GenericParameters ]
-    Formals(allowGhostKeyword: true, allowNewKeyword: false)
-    [ "yields" Formals(allowGhostKeyword: true, allowNewKeyword: false) ]
+    Formals(allowGhostKeyword: true, allowNewKeyword: false, allowOlderKeyword: false)
+    [ "yields" Formals(allowGhostKeyword: true, allowNewKeyword: false, allowOlderKeyword: false) ]
   | ellipsis
   )
   IteratorSpec
@@ -3287,13 +3520,13 @@ function Mult(a: IStream<int>, b: IStream<int>): IStream<int>
 { ICons(a.head * b.head, Mult(a.tail, b.tail)) }
 
 // lexicographic order on streams
-copredicate Below(a: IStream<int>, b: IStream<int>)
+greatest predicate Below(a: IStream<int>, b: IStream<int>)
 { a.head <= b.head &&
   ((a.head == b.head) ==> Below(a.tail, b.tail))
 }
 
 // a stream is Below its Square
-colemma Theorem_BelowSquare(a: IStream<int>)
+greatest lemma Theorem_BelowSquare(a: IStream<int>)
   ensures Below(a, Mult(a, a))
 { assert a.head <= Mult(a, a).head;
   if a.head == Mult(a, a).head {
@@ -3302,7 +3535,7 @@ colemma Theorem_BelowSquare(a: IStream<int>)
 }
 
 // an incorrect property and a bogus proof attempt
-colemma NotATheorem_SquareBelow(a: IStream<int>)
+greatest lemma NotATheorem_SquareBelow(a: IStream<int>)
   ensures Below(Mult(a, a), a); // ERROR
 {
   NotATheorem_SquareBelow(a);
@@ -3465,15 +3698,15 @@ in Dafny are deterministic. Since there cannot be multiple fix-points,
 the language allows one function to be involved in both recursive and co-recursive calls,
 as we illustrate by the function `FivesUp`.
 
-### 18.3.4. Copredicates {#sec-copredicates}
+### 18.3.4. Greatest predicates {#sec-copredicates}
 Determining properties of co-datatype values may require an infinite
-number of observations. To that end, Dafny provides _co-predicates_
-which are function declarations that use the `copredicate` keyword.
-Self-calls to a co-predicate need not terminate. Instead, the value
+number of observations. To that end, Dafny provides _greatest predicates_
+which are function declarations that use the `greatest predicate` keyword phrase.
+Self-calls to a greatest predicate need not terminate. Instead, the value
 defined is the greatest fix-point of the given recurrence equations.
 Continuing the preceding example, the following code defines a
-co-predicate that holds for exactly those streams whose payload consists
-solely of positive integers. The co-predicate definition implicitly also
+greatest predicate that holds for exactly those streams whose payload consists
+solely of positive integers. The greatest predicate definition implicitly also
 gives rise to a corresponding prefix predicate, `Pos#`. The syntax for
 calling a prefix predicate sets apart the argument that specifies the
 prefix length, as shown in the last line; for this figure, we took the
@@ -3482,7 +3715,7 @@ automatically generated prefix predicate (which is not part of
 Dafny syntax).
 
 ```dafny
-copredicate Pos(s: Stream<int>)
+greatest predicate Pos(s: Stream<int>)
 {
   match s
   case SNil => true
@@ -3517,7 +3750,7 @@ co-predicates, no other kinds of functions.
     rather modest and typical reasoning patterns do not involve them, so this
     restriction is not as limiting as it would have been in, e.g., Coq.
 
-A **copredicate** declaration of `P` defines not just a co-predicate, but
+A **greatest predicate** declaration of `P` defines not just a greatest predicate, but
 also a corresponding _prefix predicate_ `P#`. A prefix predicate is a
 finite unrolling of a co-predicate. The prefix predicate is constructed
 from the co-predicate by
@@ -3528,7 +3761,7 @@ from the co-predicate by
   co-predicate itself is not allowed to have a decreases clause),
 
 * replacing in the body of the co-predicate every intra-cluster
-  call `Q(args)` to a copredicate by a call `Q#[_k - 1](args)`
+  call `Q(args)` to a greatest predicate by a call `Q#[_k - 1](args)`
   to the corresponding prefix predicate, and then
 
 * prepending the body with `if _k = 0 then true else`.
@@ -3599,18 +3832,18 @@ the forall statement to show `? k • Pos#[k](Up(n))`. Finally, the axiom
 `D(Pos)` is used (automatically) to establish the co-predicate.
 
 
-#### 18.3.5.2. Colemmas {#sec-colemmas}
+#### 18.3.5.2. Greatest lemmas {#sec-colemmas}
 As we just showed, with help of the `D` axiom we can now prove a
-co-predicate by inductively proving that the corresponding prefix
+greatest predicate by inductively proving that the corresponding prefix
 predicate holds for all prefix lengths `k`. In this section, we introduce
-_co-lemma_ declarations, which bring about two benefits. The first benefit
-is that co-lemmas are syntactic sugar and reduce the tedium of having to
+_greatest lemma_ declarations, which bring about two benefits. The first benefit
+is that greatest lemmas are syntactic sugar and reduce the tedium of having to
 write explicit quantifications over `k`. The second benefit is that, in
 simple cases, the bodies of co-lemmas can be understood as co-inductive
-proofs directly. As an example consider the following co-lemma.
+proofs directly. As an example consider the following greatest lemma.
 
 ```dafny
-colemma UpPosLemma(n: int)
+greatest lemma UpPosLemma(n: int)
   requires n > 0
   ensures Pos(Up(n))
 {
@@ -3623,14 +3856,14 @@ equals `Up(n+1)`). The proof glue needed to then conclude `Pos(Up(n))` is
 provided automatically, thanks to the power of the SMT-based verifier.
 
 #### 18.3.5.3. Prefix Lemmas {#sec-prefix-lemmas}
-To understand why the above `UpPosLemma` co-lemma code is a sound proof,
-let us now describe the details of the desugaring of co-lemmas. In
-analogy to how a **copredicate** declaration defines both a co-predicate and
-a prefix predicate, a **colemma** declaration defines both a co-lemma and
-_prefix lemma_. In the call graph, the cluster containing a co-lemma must
-contain only co-lemmas and prefix lemmas, no other methods or function.
-By decree, a co-lemma and its corresponding prefix lemma are always
-placed in the same cluster. Both co-lemmas and prefix lemmas are always
+To understand why the above `UpPosLemma` greatest lemma code is a sound proof,
+let us now describe the details of the desugaring of greatest lemmas. In
+analogy to how a **greatest predicate** declaration defines both a greatest predicate and
+a prefix predicate, a **greatest lemma** declaration defines both a greatest lemma and
+_prefix lemma_. In the call graph, the cluster containing a greatest lemma must
+contain only greatest lemmas and prefix lemmas, no other methods or function.
+By decree, a greatest lemma and its corresponding prefix lemma are always
+placed in the same cluster. Both greatest lemmas and prefix lemmas are always
 ghosts.
 
 The prefix lemma is constructed from the co-lemma by
@@ -3644,7 +3877,7 @@ The prefix lemma is constructed from the co-lemma by
 * prepending `_k` to the (typically implicit) **decreases** clause of the co-lemma,
 
 * replacing in the body of the co-lemma every intra-cluster call
-  `M(args)` to a colemma by a call `M#[_k - 1](args)` to the
+  `M(args)` to a greatest lemma by a call `M#[_k - 1](args)` to the
   corresponding prefix lemma, and then
 
 * making the body’s execution conditional on `_k != 0`.
@@ -3662,7 +3895,7 @@ co-lemma.[^fn-co-predicate-co-lemma-diffs]
 
 We can now think of the body of the co-lemma as being replaced by a
 **forall** call, for every _k_ , to the prefix lemma. By construction,
-this new body will establish the colemma’s declared postcondition (on
+this new body will establish the greatest lemma’s declared postcondition (on
 account of the `D` axiom, and remembering that only the positive
 co-friendly occurrences of co-predicates in the co-lemma’s postcondition
 are rewritten), so there is no reason for the program verifier to check
