@@ -516,3 +516,47 @@ module TwoStateAt {
     9
   }
 }
+
+module OlderParameters {
+  class C { }
+  trait Tr {
+    predicate P(a: C)
+    predicate Q(older a: C)
+    twostate predicate X(a: C)
+    twostate predicate Y(new a: C)
+  }
+  class Good extends Tr {
+    predicate P(a: C)
+    predicate Q(older a: C)
+    twostate predicate X(a: C)
+    twostate predicate Y(new a: C)
+  }
+  class Bad extends Tr {
+    predicate P(older a: C) // error: cannot change non-older to older
+    predicate Q(a: C) // error: cannot change older to non-older
+    twostate predicate X(new a: C) // error: cannot change from non-new to new
+    twostate predicate Y(a: C) // error: cannot change from new to non-new
+  }
+}
+
+module RefinementBase {
+  class C { }
+  predicate P(a: C)
+  predicate Q(older a: C)
+  twostate predicate X(a: C)
+  twostate predicate Y(new a: C)
+}
+
+module GoodRefinement refines RefinementBase {
+  predicate P(a: C) { true }
+  predicate Q(older a: C) { true }
+  twostate predicate X(a: C) { true }
+  twostate predicate Y(new a: C) { true }
+}
+
+module BadRefinement refines RefinementBase {
+  predicate P(older a: C) { true } // error: cannot change non-older to older
+  predicate Q(a: C) { true } // error: cannot change older to non-older
+  twostate predicate X(new a: C) { true } // error: cannot change non-new to new
+  twostate predicate Y(a: C) { true } // error: cannot change new to non-new
+}

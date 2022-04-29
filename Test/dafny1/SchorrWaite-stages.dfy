@@ -24,7 +24,7 @@ abstract module M0 {
     exists via :: ReachableVia(source, via, sink, S)
   }
 
-  predicate ReachableVia(source: Node, p: Path, sink: Node, S: set<Node>)
+  predicate ReachableVia(source: Node, older p: Path, sink: Node, S: set<Node>)
     reads S
     decreases p
   {
