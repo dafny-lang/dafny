@@ -61,7 +61,7 @@ namespace Microsoft.Dafny.Compilers {
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
       Coverage.EmitSetup(wr);
       wr.NewBlockPy("try:")
-        
+
         .WriteLine("module_.default__.Main()");
       wr.NewBlockPy($"except {DafnyRuntimeModule}.HaltException as e:")
         .WriteLine($"{DafnyRuntimeModule}.print(\"[Program halted] \" + str(e) + \"\\n\")");
@@ -881,7 +881,14 @@ namespace Microsoft.Dafny.Compilers {
         case SpecialField.ID.ArrayLength:
         case SpecialField.ID.ArrayLengthInt:
           preString = "len(";
-          postString = ")";
+          if (idParam == null) {
+            postString = ")";
+          } else {
+            if ((int)idParam == 0) {
+              postString = ")";
+            }
+            postString = String.Concat(Enumerable.Repeat("[0]", (int)idParam)) + ")";
+          }
           break;
         default:
           Contract.Assert(false); // unexpected ID
