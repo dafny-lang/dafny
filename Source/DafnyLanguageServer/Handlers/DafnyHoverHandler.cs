@@ -88,33 +88,24 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
                 }
 
                 information += "*";
-                var statusMessage = assertionNode.StatusVerification switch {
-                  VerificationStatus.Verified => assertCmd?.Description.SuccessDescription ?? "Verified",
-                  VerificationStatus.Inconclusive => "Could not be checked",
-                  VerificationStatus.Error => assertCmd?.Description.FailureDescription ?? "Might not hold",
-                  _ => "Not checked",
-                };
-                var counterexample = assertionNode.GetCounterExample();
-
-                void SetDescription(Boogie.ProofObligationDescription? description) {
-                  if (description == null) {
-                    return;
-                  }
-
-                  statusMessage = assertionNode?.StatusVerification switch {
-                    VerificationStatus.Verified => description.SuccessDescription,
-                    VerificationStatus.Error => description.FailureDescription,
-                    _ => statusMessage
+                string GetDescription(Boogie.ProofObligationDescription? description) {
+                  return assertionNode?.StatusVerification switch {
+                    VerificationStatus.Verified => description?.SuccessDescription ?? "Verified",
+                    VerificationStatus.Inconclusive => "Could not be checked",
+                    VerificationStatus.Error => description?.FailureDescription ?? "Might not hold",
+                    _ => "Not checked",
                   };
                 }
+                var counterexample = assertionNode.GetCounterExample();
 
                 if (counterexample is ReturnCounterexample returnCounterexample) {
-                  SetDescription(returnCounterexample.FailingReturn.Description);
+                  information += GetDescription(returnCounterexample.FailingReturn.Description);
                 } else if (counterexample is CallCounterexample callCounterexample) {
-                  SetDescription(callCounterexample.FailingCall.Description);
+                  information += GetDescription(callCounterexample.FailingCall.Description);
+                } else {
+                  information += GetDescription(assertCmd?.Description);
                 }
 
-                information += statusMessage;
                 information += assertionNode.StatusCurrent switch {
                   CurrentStatus.Current => "",
                   CurrentStatus.Obsolete => "recently",
