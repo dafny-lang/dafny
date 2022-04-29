@@ -86,7 +86,17 @@ method Abs(x: int) returns (y: int)
 
     private void AssertMatchRegex(string expected, string value) {
       var regexExpected = Regex.Escape(expected).Replace(@"\?\?\?", ".+");
-      Assert.IsTrue(new Regex(regexExpected).Match(value).Success, "{0} did not match {1}", value, regexExpected);
+      var matched = new Regex(regexExpected).Match(value).Success;
+      if (!matched) {
+        // A simple helper to determine what portion of the regex did not match
+        var helper = "";
+        foreach (var chunk in expected.Split("???")) {
+          if (!value.Contains(chunk)) {
+            helper += $"\nThe result string did not contain '{chunk}'";
+          }
+        }
+        Assert.IsTrue(false, "{0} did not match {1}." + helper, value, regexExpected);
+      }
     }
 
     private async Task<CompilationStatus> WaitUntilDafnyFinishes(TextDocumentItem documentItem) {
