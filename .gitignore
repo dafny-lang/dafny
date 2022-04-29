@@ -28,9 +28,9 @@ Binaries/*
 
 Package/
 
-Source/*/bin/
-Source/*/obj/
-Source/*/obj_core/
+Source/**/bin/
+Source/**/obj/
+Source/**/obj_core/
 Source/packages
 
 Source/Dafny/Parser.cs.old

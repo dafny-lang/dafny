@@ -11,6 +11,9 @@ DafnyRuntime := ../DafnyRuntime/DafnyRuntime.cs
 ASTModel := CSharpDafnyASTModel.dfy
 CompilerDLL := CSharp/bin/Debug/net6.0/CSharpCompiler.dll
 
+dafny := dotnet run --project $(DafnyDriver).csproj --
+dafny2cs := $(dafny) /spillTargetCode:3 /compile:0 /noVerify
+
 # Model files contain traits that give type signatures of existing C# and Dafny/Boogie classes
 dfy_models := $(AutoExtern)/CSharpModel.dfy CSharpDafnyModel.dfy CSharpDafnyASTModel.dfy
 
@@ -26,8 +29,7 @@ $(ASTModel): $(DafnyPipeline).csproj $(DafnyAST).cs $(ASTModel).template $(AutoE
 
 # Translate the compiler from Dafny to C#
 CSharp/Compiler.cs: CSharp/Compiler.dfy $(dfy_models) $(dfy_interop) $(DafnyRuntime)
-	dotnet run --project $(DafnyDriver).csproj -- \
-		/spillTargetCode:3 /compile:0 /noVerify $<
+	$(dafny2cs) $<
 	sed -i.bak -e 's/__AUTOGEN__//g' "$@"
 	rm "$@.bak" # https://stackoverflow.com/questions/4247068/
 
@@ -41,6 +43,23 @@ run: $(CompilerDLL) $(DafnyRuntime)
 		/plugin:$(CompilerDLL) /compileTarget:cs \
 		/spillTargetCode:3 /compile:0 /noVerify \
 		minimal.dfy
+
+# Compile the REPL
+REPL/Repl.cs: REPL/Repl.dfy
+	$(dafny2cs) $<
+	sed -i.bak -e 's/__AUTOGEN__//g' "$@"
+	rm "$@.bak"
+
+repl_dll := REPL/bin/Debug/net6.0/Repl.dll
+
+$(repl_dll): REPL/Repl.cs REPL/ReplHelper.cs $(cs_interop)
+	dotnet build REPL/REPL.csproj
+
+FORCE:
+
+# Run it
+repl: $(repl_dll) FORCE
+	dotnet exec $<
 
 build: $(CompilerDLL)
 

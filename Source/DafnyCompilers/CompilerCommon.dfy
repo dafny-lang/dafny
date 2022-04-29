@@ -33,7 +33,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         | Nat
         | Real
         | BigOrdinal
-        | BitVector(width: int)
+        | BitVector(width: nat)
         | Collection(finite: bool, kind: CollectionKind, eltType: Type)
         | Unsupported(ty: C.Type)
         | Class(classType: ClassType)
@@ -109,7 +109,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         | LitInt(i: int)
         | LitReal(r: real)
         | LitChar(c: string) // FIXME should this use a char?
-        | LitString(s: string, verbatim: bool)
+        | LitString(s: string, verbatim: bool) // FIXME get rid of verbatim flag by unescaping
       {
         function method Depth() : nat { 1 }
       }
@@ -135,34 +135,29 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         | FunctionCall // First argument is function
         | Builtin(fn: BuiltinFunction)
 
-      datatype Expr =
-        // Expressions
-        | Literal(lit: Literal)
-        | Apply(aop: ApplyOp, args: seq<Expr>)
+      datatype UnsupportedExpr =
         | Invalid(msg: string)
         | UnsupportedExpr(expr: C.Expression)
-        // Statements
+        | UnsupportedStmt(stmt: C.Statement)
+
+      datatype Expr =
+        | Literal(lit: Literal)
+        | Apply(aop: ApplyOp, args: seq<Expr>)
         | Block(stmts: seq<Expr>)
         | If(cond: Expr, thn: Expr, els: Expr)
-        | UnsupportedStmt(stmt: C.Statement)
+        | Unsupported(e: UnsupportedExpr)
       {
         function method Depth() : nat {
           1 + match this { // FIXME IDE rejects this, command line accepts it
-            // Expressions
             case Literal(lit: Literal) =>
               0
             case Apply(_, args) =>
               Seq.MaxF(var f := (e: Expr) requires e in args => e.Depth(); f, args, 0)
-            case UnsupportedExpr(expr: C.Expression) =>
-              0
-            case Invalid(msg: string) =>
-              0
-            // Statements
             case Block(stmts) =>
               Seq.MaxF(var f := (e: Expr) requires e in stmts => e.Depth(); f, stmts, 0)
             case If(cond, thn, els) =>
               Math.Max(cond.Depth(), Math.Max(thn.Depth(), els.Depth()))
-            case UnsupportedStmt(expr: C.Statement) =>
+            case Unsupported(e: UnsupportedExpr) =>
               0
           }
         }
@@ -334,7 +329,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         assume op in UnaryOpCodeMap.Keys; // FIXME expect
         D.Expr.t.Apply(D.Expr.ApplyOp.UnaryOp(UnaryOpCodeMap[op]), [TranslateExpression(e)])
       else
-        D.Expr.UnsupportedExpr(u)
+        D.Expr.Unsupported(D.Expr.UnsupportedExpr(u))
     }
 
     function {:axiom} ASTHeight(c: C.Expression) : nat
@@ -372,8 +367,8 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
           var sl := l as C.StringLiteralExpr;
           D.Expr.Literal(D.Expr.LitString(str, sl.IsVerbatim))
         else
-          D.Expr.Invalid("LiteralExpr with .Value of type string must be a char or a string.")
-      else D.Expr.UnsupportedExpr(l)
+          D.Expr.Unsupported(D.Expr.Invalid("LiteralExpr with .Value of type string must be a char or a string."))
+      else D.Expr.Unsupported(D.Expr.UnsupportedExpr(l))
     }
 
     function method TranslateFunctionCall(fce: C.FunctionCallExpr): (e: D.Expr.t)
@@ -460,7 +455,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         TranslateMapDisplayExpr(c as C.MapDisplayExpr)
       else if c is C.DisplayExpression then
         TranslateDisplayExpr(c as C.DisplayExpression)
-      else D.Expr.UnsupportedExpr(c)
+      else D.Expr.Unsupported(D.Expr.UnsupportedExpr(c))
     }
 
     function method TranslateStatement(s: C.Statement) : D.Expr.t
@@ -486,7 +481,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         var thn := TranslateStatement(i.Thn);
         var els := TranslateStatement(i.Els);
         D.Expr.If(cond, thn, els)
-      else D.Expr.UnsupportedStmt(s)
+      else D.Expr.Unsupported(D.Expr.UnsupportedStmt(s))
     }
 
     function method TranslateMethod(m: C.Method) : D.Method reads * {
@@ -517,7 +512,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     {}
 
     function method {:opaque} MapWithPC<T, Q>(f: T ~> Q, ghost PC: Q -> bool, ts: seq<T>) : (qs: seq<Q>)
-      reads f.reads // FIXME: what does this mean?
+      reads f.reads
       requires forall t | t in ts :: f.requires(t)
       requires forall t | t in ts :: PC(f(t))
       ensures |qs| == |ts|
@@ -574,18 +569,13 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         decreases e, 0
       {
         match e {
-          // Exprs
           case Literal(lit: Expr.Literal) => true
           case Apply(_, exprs) =>
             Seq.All(e requires e in exprs => All_Expr(e, P), exprs)
-          case Invalid(msg: string) => true
-          case UnsupportedExpr(expr: C.Expression) => true
-
-          // Statements
           case Block(exprs) => Seq.All((e requires e in exprs => All_Expr(e, P)), exprs)
           case If(cond, thn, els) =>
             All_Expr(cond, P) && All_Expr(thn, P) && All_Expr(els, P)
-          case UnsupportedStmt(_) => true
+          case Unsupported(e) => true
         }
       }
 
@@ -694,8 +684,6 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
             var exprs' := Seq.Map(e requires e in exprs => Map_Expr(e, tr), exprs);
             Predicates.Map_All_IsMap(e requires e in exprs => Map_Expr(e, tr), exprs);
             Expr.Apply(aop, exprs')
-          case Invalid(msg_) => e
-          case UnsupportedExpr(cexpr_) => e
 
           // Statements
           case Block(exprs) =>
@@ -704,7 +692,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
             Expr.Block(exprs')
           case If(cond, thn, els) =>
             Expr.If(Map_Expr(cond, tr), Map_Expr(thn, tr), Map_Expr(els, tr))
-          case UnsupportedStmt(_) =>
+          case Unsupported(_) =>
             e
         }
       }
@@ -841,7 +829,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     {
       AllImpliesChildren(e, Expr.WellFormed);
       match e {
-        // Exprs
+        case Literal(lit_) => e
         case Apply(BinaryOp(bop), exprs) =>
           var exprs' := Seq.Map(e requires e in exprs => EliminateNegatedBinops_Expr_direct(e), exprs);
           Predicates.Map_All_IsMap(e requires e in exprs => EliminateNegatedBinops_Expr_direct(e), exprs);
@@ -857,11 +845,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
           var exprs' := Seq.Map(e requires e in exprs => EliminateNegatedBinops_Expr_direct(e), exprs);
           Predicates.Map_All_IsMap(e requires e in exprs => EliminateNegatedBinops_Expr_direct(e), exprs);
           Expr.Apply(aop, exprs')
-        case Literal(lit_) => e
-        case Invalid(msg_) => e
-        case UnsupportedExpr(cexpr_) => e
 
-        // Statements
         case Block(exprs) =>
           var exprs' := Seq.Map(e requires e in exprs => EliminateNegatedBinops_Expr_direct(e), exprs);
           Predicates.Map_All_IsMap(e requires e in exprs => EliminateNegatedBinops_Expr_direct(e), exprs);
@@ -870,7 +854,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
           Expr.If(EliminateNegatedBinops_Expr_direct(cond),
                   EliminateNegatedBinops_Expr_direct(thn),
                   EliminateNegatedBinops_Expr_direct(els))
-        case UnsupportedStmt(_) =>
+        case Unsupported(_) =>
           e
       }
     }
@@ -888,16 +872,11 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       ensures forall e' | e' in s :: e'.Depth() < e.Depth()
     {
       match e {
-        // Expressions
         case Literal(lit: Expr.Literal) => []
         case Apply(aop, exprs: seq<Expr.t>) => exprs
-        case Invalid(msg: string) => []
-        case UnsupportedExpr(expr: C.Expression) => []
-
-        // Statements
         case Block(exprs) => exprs
         case If(cond, thn, els) => [cond, thn, els]
-        case UnsupportedStmt(_) => []
+        case Unsupported(_) => []
       }
     }
 

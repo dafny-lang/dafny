@@ -1,12 +1,23 @@
 include "Library.dfy"
 
 module StrTree {
+  import Lib
   import opened Lib.Datatypes
 
   datatype StrTree =
     | Str(s: string)
     | SepSeq(sep: Option<string>, asts: seq<StrTree>)
     | Unsupported
+  {
+    function method ToString() : string {
+      match this
+        case Str(s) => s
+        case SepSeq(sep, asts) =>
+          var strs := Lib.Seq.Map(s requires s in asts => s.ToString(), asts);
+          Lib.Str.Join(sep.OrElse(""), strs)
+        case Unsupported => "<*>"
+    }
+  }
 
   function method Seq(asts: seq<StrTree>) : StrTree {
     SepSeq(None, asts)

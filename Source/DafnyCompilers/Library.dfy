@@ -111,6 +111,11 @@ module Lib {
     datatype Option<T> =
       | Some(t: T)
       | None
+    {
+      function method OrElse(t: T) : T {
+        if this.Some? then this.t else t
+      }
+    }
   }
 
   module Str {
@@ -158,7 +163,7 @@ module Lib {
       '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
       'A', 'B', 'C', 'D', 'E', 'F']
 
-    function method of_int(n: int, base: int) : string
+    function method of_int(n: int, base: int := 10) : string
       requires 2 <= base <= 16
     {
       of_int_any(n, HEX_DIGITS[..base])
@@ -170,6 +175,24 @@ module Lib {
       expect of_int(302, 10) == "302";
       expect of_int(-3, 10) == "-3";
       expect of_int(-302, 10) == "-302";
+    }
+
+    function method of_bool(b: bool) : string {
+      if b then "true" else "false"
+    }
+
+    function method of_char(c: char) : string {
+      [c]
+    }
+
+    function method Join(sep: string, strs: seq<string>) : string {
+      if |strs| == 0 then ""
+      else if |strs| == 1 then strs[0]
+      else strs[0] + sep + Join(sep, strs[1..])
+    }
+
+    function method Concat(strs: seq<string>) : string {
+      Join("", strs)
     }
   }
 

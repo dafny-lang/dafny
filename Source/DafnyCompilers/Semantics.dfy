@@ -1,62 +1,61 @@
 include "CompilerCommon.dfy"
 
-module Interp {
-  module Value {
-    import Ty = DafnyCompilerCommon.AST.Type
+module Values {
+  import Ty = DafnyCompilerCommon.AST.Type
 
-    datatype T =
-      | Bool(b: bool)
-      | Char(c: char)
-      | Int(i: int)
-      | Real(r: real)
-      | BigOrdinal(o: ORDINAL)
-      | BitVector(value: int)
-      | Map(m: map<T, T>)
-      | Multiset(ms: multiset<T>)
-      | Seq(sq: seq<T>)
-      | Set(st: set<T>)
-    {
-      predicate HasType(ty: Ty.Type) {
-        match (this, ty) // FIXME tests on other side
-          case (Bool(b), Bool()) => true
-          case (Char(c), Char()) => true
-          case (Int(i), Int()) => true
-          case (Real(r), Real()) => true
-          case (BigOrdinal(o), BigOrdinal()) => true
-          case (BitVector(value), BitVector(width)) =>
-            0 <= value < Pow2(width)
-          case (Map(m), Collection(true, Map(kT), eT)) =>
-            forall x | x in m :: x.HasType(kT) && m[x].HasType(eT)
-          case (Multiset(ms), Collection(true, Multiset, eT)) =>
-            forall x | x in ms :: x.HasType(eT)
-          case (Seq(sq), Collection(true, Seq, eT)) =>
-            forall x | x in sq :: x.HasType(eT)
-          case (Set(st), Collection(true, Set, eT)) =>
-            forall x | x in st :: x.HasType(eT)
-          case (_, _) => false
-      }
+  datatype T =
+    | Bool(b: bool)
+    | Char(c: char)
+    | Int(i: int)
+    | Real(r: real)
+    | BigOrdinal(o: ORDINAL)
+    | BitVector(value: int)
+    | Map(m: map<T, T>)
+    | Multiset(ms: multiset<T>)
+    | Seq(sq: seq<T>)
+    | Set(st: set<T>)
+  {
+    predicate HasType(ty: Ty.Type) {
+      match (this, ty) // FIXME tests on other side
+        case (Bool(b), Bool()) => true
+        case (Char(c), Char()) => true
+        case (Int(i), Int()) => true
+        case (Real(r), Real()) => true
+        case (BigOrdinal(o), BigOrdinal()) => true
+        case (BitVector(value), BitVector(width)) =>
+          0 <= value < Pow2(width)
+        case (Map(m), Collection(true, Map(kT), eT)) =>
+          forall x | x in m :: x.HasType(kT) && m[x].HasType(eT)
+        case (Multiset(ms), Collection(true, Multiset, eT)) =>
+          forall x | x in ms :: x.HasType(eT)
+        case (Seq(sq), Collection(true, Seq, eT)) =>
+          forall x | x in sq :: x.HasType(eT)
+        case (Set(st), Collection(true, Set, eT)) =>
+          forall x | x in st :: x.HasType(eT)
+        case (_, _) => false
     }
-
-    function method Pow2(n: nat): nat
-
-    datatype Value = Value(ty: Ty.Type, v: T) {
-      predicate Wf() { v.HasType(ty) }
-    }
-
-    // FIXME how do we define the interpreter to support :| without committing to a single interpretation of :|?
   }
 
+  function method Pow2(n: nat): nat
+
+  datatype Value = Value(ty: Ty.Type, v: T) {
+    predicate Wf() { v.HasType(ty) }
+  }
+
+  // FIXME how do we define the interpreter to support :| without committing to a single interpretation of :|?
+}
+
+module Interp {
   import opened DafnyCompilerCommon.AST
   import opened DafnyCompilerCommon.Predicates
   type Expr = AST.Expr.Expr
   type Type = AST.Type.Type
-  import V = Value
+  import V = Values
   // FIXME reduce indirection
 
   datatype Result =
-    | OK(v: Value.Value)
+    | OK(v: V.Value)
     | TypeError(e: Expr, t: Type) // FIXME rule out type errors through Wf predicate
-
 
   predicate method Pure1(e: Expr) {
     match e {

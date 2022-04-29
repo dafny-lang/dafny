@@ -21,6 +21,12 @@ module {:extern "CSharpDafnyInterop"} CSharpDafnyInterop {
     static function method {:extern} Denominator(r: real) : int
   }
 
+  class Reals { // DISCUSS: Not a module to be able to refer to TypeConv
+    static function method AsIntegerRatio(r: real) : (int, int) {
+      (TypeConv.Numerator(r), TypeConv.Denominator(r))
+    }
+  }
+
   class SyntaxTreeAdapter {
     var wr: Microsoft.Dafny.ConcreteSyntaxTree
 
