@@ -89,9 +89,9 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
                 information += "*";
                 var statusMessage = assertionNode.StatusVerification switch {
-                  VerificationStatus.Verified => "Verified",
+                  VerificationStatus.Verified => assertCmd?.Description.SuccessDescription ?? "Verified",
                   VerificationStatus.Inconclusive => "Could not be checked",
-                  VerificationStatus.Error => assertCmd?.ErrorMessage ?? "Might not hold",
+                  VerificationStatus.Error => assertCmd?.Description.FailureDescription ?? "Might not hold",
                   _ => "Not checked",
                 };
                 var counterexample = assertionNode.GetCounterExample();

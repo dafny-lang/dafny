@@ -68,7 +68,7 @@ method Abs(x: int) returns (y: int)
       );
       await AssertHoverMatches(documentItem, (7, 11),
         @"assertion #2/2 of [batch](???) #1/1 checked in ???ms with ??? resource count:  
-*Might not hold*"
+*assertion might not hold*"
       );
       await AssertHoverMatches(documentItem, (0, 7),
         @"**Abs** metrics:
@@ -88,11 +88,11 @@ method {:vcs_split_on_every_assert} f(x: int) {
 ", CompilationStatus.VerificationFailed);
       await AssertHoverMatches(documentItem, (1, 12),
         @"assertion of [batch](???) #???/2 checked in ???ms with ??? resource count:  
-*Might not hold*"
+*assertion might not hold*"
       );
       await AssertHoverMatches(documentItem, (2, 12),
         @"assertion of [batch](???) #???/2 checked in ???ms with ??? resource count:  
-*Verified*"
+*assertion always holds*"
       );
     }
 
