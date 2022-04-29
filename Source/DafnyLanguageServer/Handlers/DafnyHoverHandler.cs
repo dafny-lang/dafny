@@ -96,7 +96,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
                 };
                 var counterexample = assertionNode.GetCounterExample();
 
-                void SetDescription(ProofObligationDescription? description) {
+                void SetDescription(Boogie.ProofObligationDescription? description) {
                   if (description == null) {
                     return;
                   }
