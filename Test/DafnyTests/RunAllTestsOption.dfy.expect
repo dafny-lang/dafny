@@ -63,5 +63,5 @@ Passing3: PASSED
 Failing2: FAILED
 	RunAllTestsOption.dfy(29,2): expectation violation
 FailingReturnValue: FAILED
-	VoidOutcome_VoidFailure(error='Whoopsie')
+	VoidOutcome.VoidFailure(Whoopsie)
 Test failures occurred: see above.
