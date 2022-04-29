@@ -21,7 +21,7 @@ jobs:
         - os:  'ubuntu-18.04'
           osn: 'ubuntu\-16.04'
         - os:  'macos-latest'
-          osn: 'osx'
+          osn: 'osx-.*'
         - os:  'windows-2019'
           osn: 'win'
     # There is no hosted environment for Unbuntu 14.04 or for debian
@@ -42,6 +42,7 @@ jobs:
         file: "dafny-.*-${{ matrix.osn }}\\.zip"
         regex: true
         target: "./"
+    - run: ls
     - if: runner.os != 'Windows'
       run: |
         unzip dafny*.zip && rm dafny*.zip
