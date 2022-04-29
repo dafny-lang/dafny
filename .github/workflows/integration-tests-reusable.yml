@@ -49,7 +49,7 @@ jobs:
     - name: Setup dotnet
       uses: actions/setup-dotnet@v1.9.0
       with:
-        dotnet-version: ${{env.dotnet-version}}
+        dotnet-version: ${{ env.dotnet-version }}
     - name: C++ for ubuntu 18.04
       if: matrix.os == 'ubuntu-18.04'
       run: |
