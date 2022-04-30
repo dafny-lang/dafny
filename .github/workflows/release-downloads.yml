@@ -49,7 +49,7 @@ jobs:
     - if: runner.os == 'Windows'
       shell: pwsh
       run: |
-        Expand-Archive dafny*.zip
+        Get-ChildItem *.zip | Expand-Archive
 
     ## Create a simple smoke test program
     - name: Make test program
