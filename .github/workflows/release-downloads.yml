@@ -50,8 +50,6 @@ jobs:
       shell: pwsh
       run: |
         Expand-Archive dafny*.zip
-        ls
-        ls dafny*
         mv dafny*/dafny dafny
 
     ## Create a simple smoke test program
@@ -98,7 +96,7 @@ jobs:
       shell: pwsh
       if: runner.os == 'Windows'
       run: |
-        $Env:GOPATH="$PWD/a-go"
+        $Env:GO111MODULE=auto GOPATH="$PWD/a-go"
         go run a-go/src/a.go > actual.txt
         diff expect.txt actual.txt
     - name: Check Javascript compile
