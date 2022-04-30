@@ -85,3 +85,4 @@ jobs:
     # so fail the build if anything changed.
     - name: Check for modifications
       run: git diff --exit-code
+      working-directory: dafny
