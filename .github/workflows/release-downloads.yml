@@ -50,6 +50,7 @@ jobs:
       shell: pwsh
       run: |
         Expand-Archive dafny-3.5.0-x64-win.zip
+        ls
         mv dafny/dafny dafny
 
     ## Create a simple smoke test program
