@@ -84,5 +84,5 @@ jobs:
     # These changes should have been checked in earlier,
     # so fail the build if anything changed.
     - name: Check for modifications
-      run: 'git diff --exit-code || echo "ERROR: Source changes detected (see above). Build the reference manual locally and commit these changes." && exit 1'
+      run: 'git diff --exit-code || (echo "ERROR: Source changes detected (see above). Build the reference manual locally and commit these changes." && exit 1')
       working-directory: dafny
