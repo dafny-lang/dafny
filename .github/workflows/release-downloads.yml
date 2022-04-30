@@ -50,7 +50,6 @@ jobs:
       shell: pwsh
       run: |
         Expand-Archive dafny*.zip
-        mv dafnyX/dafny dafny
 
     ## Create a simple smoke test program
     - name: Make test program
