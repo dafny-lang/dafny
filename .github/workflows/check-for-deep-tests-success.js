@@ -3,7 +3,7 @@ module.exports = ({github, context, core}) => {
   // fetch the first page and scan manually.
   // That means if the run is fairly old it may be missed,
   // but that should be rare.
-  const result = await github.rest.actions.listWorkflowRuns({
+  const result = github.rest.actions.listWorkflowRuns({
     owner: context.repo.owner,
     repo: context.repo.repo,
     workflow_id: 'deep-tests.yml',
