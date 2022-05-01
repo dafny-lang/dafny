@@ -12,6 +12,7 @@ module.exports = ({github, context, core}) => {
   // These are ordered by creation time, so decide based on the first
   // run for this SHA we see.
   console.log(result)
+  console.log(result.data)
   for (const run of result.data.workflow_runs) {
     console.log(run)
     if (run.sha == context.sha) {
