@@ -1,0 +1,19 @@
+name: Integration Tests (Reusable Workflow)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  check-deep-tests:
+    runs-on: ubuntu-18.04
+    steps:
+    - name: Checkout Dafny
+      uses: actions/checkout@v2
+      with:
+        path: dafny
+        submodules: true
+    - uses: actions/github-script@v6
+      with:
+        script: |
+          const script = require('${{ github.workspace }}/dafny/.github/workflowscheck-for-deep-tests-success.js')
+          console.log(script({github, context, core}))
