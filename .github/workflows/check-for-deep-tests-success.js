@@ -17,12 +17,12 @@ module.exports = async ({github, context, core}) => {
     console.log(run)
     if (run.sha == context.sha) {
       if (run.conclusion != "success") {
-        core.setFailed(`Last run of deep tests on $context.sha did not succeed!`)
+        core.setFailed(`Last run of deep tests on ${context.sha} did not succeed!`)
       } else {
         // The SHA is fully-tested, exit with success
         return
       }
     }
   }
-  core.setFailed(`No run of deep tests found for $context.sha!`)
+  core.setFailed(`No run of deep tests found for ${context.sha}!`)
 }
