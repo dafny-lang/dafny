@@ -1,9 +1,9 @@
-module.exports = ({github, context, core}) => {
+module.exports = async ({github, context, core}) => {
   // This API doesn't support filtering by SHA, so we just
   // fetch the first page and scan manually.
   // That means if the run is fairly old it may be missed,
   // but that should be rare.
-  const result = github.rest.actions.listWorkflowRuns({
+  const result = await github.rest.actions.listWorkflowRuns({
     owner: context.repo.owner,
     repo: context.repo.repo,
     workflow_id: 'deep-tests.yml',
