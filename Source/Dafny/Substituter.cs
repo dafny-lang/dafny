@@ -466,6 +466,8 @@ namespace Microsoft.Dafny {
         return bound;  // nothing to substitute
       } else if (bound is ComprehensionExpr.SpecialAllocIndependenceAllocatedBoundedPool) {
         return bound;  // nothing to substitute
+      } else if (bound is ComprehensionExpr.OlderBoundedPool) {
+        return bound;  // nothing to substitute
       } else {
         Contract.Assume(false);  // unexpected ComprehensionExpr.BoundedPool
         throw new cce.UnreachableException();  // to please compiler
