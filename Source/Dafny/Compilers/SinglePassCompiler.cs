@@ -4456,6 +4456,9 @@ namespace Microsoft.Dafny.Compilers {
               // need to eta-expand wrap the receiver
               customReceiverName = ProtectedFreshId("_eta_this");
               wr = CreateIIFE_ExprBody(customReceiverName, e.Obj.Type, e.Obj.tok, e.Obj, inLetExprBody, Resolver.SubstType(e.Type, typeMap), e.tok, wr, wStmts);
+              if (TargetLambdasRestrictedToExpressions) {
+                wr = EmitReturnExpr(wr);
+              }
             }
             Action<ConcreteSyntaxTree> obj = w => w.Write(TypeName_Companion(e.Obj.Type, wr, e.tok, e.Member));
             EmitMemberSelect(obj, e.Obj.Type, e.Member, typeArgs, typeMap, expr.Type, customReceiverName).EmitRead(wr);
@@ -4570,6 +4573,9 @@ namespace Microsoft.Dafny.Compilers {
         } else {
           var name = $"_is_{GetUniqueAstNumber(e)}";
           wr = CreateIIFE_ExprBody(name, fromType, e.tok, e.E, inLetExprBody, Type.Bool, e.tok, wr, wStmts);
+          if (TargetLambdasRestrictedToExpressions) {
+            wr = EmitReturnExpr(wr);
+          }
           EmitTypeTest(name, e.E.Type, e.ToType, e.tok, wr);
         }
 

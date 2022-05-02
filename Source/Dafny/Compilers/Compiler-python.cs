@@ -1122,7 +1122,7 @@ namespace Microsoft.Dafny.Compilers {
         case BinaryExpr.ResolvedOpcode.SetDifference:
         case BinaryExpr.ResolvedOpcode.Sub:
           if (!resultType.IsCharType) {
-            if (resultType.IsNumericBased()) {
+            if (resultType.IsNumericBased() || resultType.IsBitVectorType || resultType.IsBigOrdinalType) {
               truncateResult = true;
             }
             opString = "-";
