@@ -9,6 +9,7 @@ on:
 
 env:
   dotnet-version: 6.0.x # SDK Version for building Dafny
+defaults:
   single-platform:
     - ubuntu-18.04
   all-platforms:
@@ -32,11 +33,11 @@ jobs:
       - name: Populate OS list
         id: populate-os-list
         run: |
-          echo "::set-output name=os-list::${{ toJSON(env.all-platforms) }}
+          echo "::set-output name=os-list::${{ toJSON(all-platforms) }}
       - name: Populate OS mapping for package.py
         id: populate-os-mapping
         run: |
-          echo "::set-output name=os-mapping::${{ toJSON(env.os-mapping) }}
+          echo "::set-output name=os-mapping::${{ toJSON(os-mapping) }}
       - name: Populate shard list
         id: populate-shard-list
         run: |
