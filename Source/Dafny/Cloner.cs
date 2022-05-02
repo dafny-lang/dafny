@@ -199,7 +199,7 @@ namespace Microsoft.Dafny {
 
     public Formal CloneFormal(Formal formal) {
       Formal f = new Formal(Tok(formal.tok), formal.Name, CloneType(formal.Type), formal.InParam, formal.IsGhost,
-        CloneExpr(formal.DefaultValue), formal.IsOld, formal.IsNameOnly, formal.NameForCompilation);
+        CloneExpr(formal.DefaultValue), formal.IsOld, formal.IsNameOnly, formal.IsOlder, formal.NameForCompilation);
       return f;
     }
 

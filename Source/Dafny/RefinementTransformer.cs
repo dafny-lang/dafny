@@ -171,7 +171,7 @@ namespace Microsoft.Dafny {
 
         Contract.Assert(RefinedSig.ModuleDef != null);
         Contract.Assert(m.RefinementQId.Def == RefinedSig.ModuleDef);
-        // check that the openess in the imports between refinement and its base matches
+        // check that the openness in the imports between refinement and its base matches
         List<TopLevelDecl> declarations = m.TopLevelDecls;
         List<TopLevelDecl> baseDeclarations = m.RefinementQId.Def.TopLevelDecls;
         foreach (var im in declarations) {
@@ -196,7 +196,8 @@ namespace Microsoft.Dafny {
         PreResolveWorker(m);
       } else {
         // do this also for non-refining modules
-        CheckSuperflousRefiningMarks(m.TopLevelDecls, new List<string>());
+        CheckSuperfluousRefiningMarks(m.TopLevelDecls, new List<string>());
+        AddDefaultBaseTypeToUnresolvedNewtypes(m.TopLevelDecls);
       }
     }
 
@@ -242,7 +243,8 @@ namespace Microsoft.Dafny {
           }
         }
       }
-      CheckSuperflousRefiningMarks(m.TopLevelDecls, processedDecl);
+      CheckSuperfluousRefiningMarks(m.TopLevelDecls, processedDecl);
+      AddDefaultBaseTypeToUnresolvedNewtypes(m.TopLevelDecls);
 
       // Merge the imports of prev
       var prevTopLevelDecls = RefinedSig.TopLevels.Values;
@@ -259,12 +261,25 @@ namespace Microsoft.Dafny {
       Contract.Assert(moduleUnderConstruction == m);  // this should be as it was set earlier in this method
     }
 
-    private void CheckSuperflousRefiningMarks(List<TopLevelDecl> topLevelDecls, List<string> excludeList) {
+    private void CheckSuperfluousRefiningMarks(List<TopLevelDecl> topLevelDecls, List<string> excludeList) {
       Contract.Requires(topLevelDecls != null);
       Contract.Requires(excludeList != null);
       foreach (var d in topLevelDecls) {
         if (d.IsRefining && !excludeList.Contains(d.Name)) {
           Reporter.Error(MessageSource.RefinementTransformer, d.tok, $"declaration '{d.Name}' indicates refining (notation `...`), but does not refine anything");
+        }
+      }
+    }
+
+    /// <summary>
+    /// Give unresolved newtypes a reasonable default type (<c>int</c>), to avoid having to support `null` in the
+    /// rest of the resolution pipeline.
+    /// </summary>
+    private void AddDefaultBaseTypeToUnresolvedNewtypes(List<TopLevelDecl> topLevelDecls) {
+      foreach (var d in topLevelDecls) {
+        if (d is NewtypeDecl { IsRefining: true, BaseType: null } decl) {
+          Reporter.Info(MessageSource.RefinementTransformer, decl.tok, $"defaulting to 'int' for unspecified base type of '{decl.Name}'");
+          decl.BaseType = new IntType(); // Set `BaseType` to some reasonable default to allow resolution to proceed
         }
       }
     }
@@ -364,18 +379,30 @@ namespace Microsoft.Dafny {
         Reporter.Error(MessageSource.RefinementTransformer, nw,
           "an opaque type declaration ({0}) in a refining module cannot replace a more specific type declaration in the refinement base", nw.Name);
       } else if ((d is IndDatatypeDecl && nw is IndDatatypeDecl) || (d is CoDatatypeDecl && nw is CoDatatypeDecl)) {
+        var (dd, nwd) = ((DatatypeDecl)d, (DatatypeDecl)nw);
+        Contract.Assert(!nwd.Ctors.Any());
+        nwd.Ctors.AddRange(dd.Ctors.Select(refinementCloner.CloneCtor));
         m.TopLevelDecls[index] = MergeClass((DatatypeDecl)nw, (DatatypeDecl)d);
       } else if (nw is DatatypeDecl) {
         Reporter.Error(MessageSource.RefinementTransformer, nw, commonMsg, nw.WhatKind, nw.Name);
       } else if (d is NewtypeDecl && nw is NewtypeDecl) {
+        var (dn, nwn) = ((NewtypeDecl)d, (NewtypeDecl)nw);
+        Contract.Assert(nwn.BaseType == null && nwn.Var == null &&
+                        nwn.Constraint == null && nwn.Witness == null);
+        nwn.Var = dn.Var == null ? null : refinementCloner.CloneBoundVar(dn.Var);
+        nwn.BaseType = nwn.Var?.Type ?? refinementCloner.CloneType(dn.BaseType); // Preserve newtype invariant that Var.Type is BaseType
+        nwn.Constraint = dn.Constraint == null ? null : refinementCloner.CloneExpr(dn.Constraint);
+        nwn.WitnessKind = dn.WitnessKind;
+        nwn.Witness = dn.Witness == null ? null : refinementCloner.CloneExpr(dn.Witness);
         m.TopLevelDecls[index] = MergeClass((NewtypeDecl)nw, (NewtypeDecl)d);
       } else if (nw is NewtypeDecl) {
+        // `.Basetype` will be set in AddDefaultBaseTypeToUnresolvedNewtypes
         Reporter.Error(MessageSource.RefinementTransformer, nw, commonMsg, nw.WhatKind, nw.Name);
       } else if (nw is IteratorDecl) {
         if (d is IteratorDecl) {
           m.TopLevelDecls[index] = MergeIterator((IteratorDecl)nw, (IteratorDecl)d);
         } else {
-          Reporter.Error(MessageSource.RefinementTransformer, nw, "an iterator declaration ({0}) is a refining module cannot replace a different kind of declaration in the refinement base", nw.Name);
+          Reporter.Error(MessageSource.RefinementTransformer, nw, "an iterator declaration ({0}) in a refining module cannot replace a different kind of declaration in the refinement base", nw.Name);
         }
       } else if (nw is TraitDecl) {
         if (d is TraitDecl) {
@@ -934,9 +961,13 @@ namespace Microsoft.Dafny {
           } else if (o.IsGhost && !n.IsGhost) {
             Reporter.Error(MessageSource.RefinementTransformer, n.tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it refines, from ghost to non-ghost", parameterKind, n.Name, thing, name);
           } else if (!o.IsOld && n.IsOld) {
-            Reporter.Error(MessageSource.RefinementTransformer, n.tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it refines, from non-new to new", parameterKind, n.Name, thing, name);
-          } else if (o.IsOld && !n.IsOld) {
             Reporter.Error(MessageSource.RefinementTransformer, n.tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it refines, from new to non-new", parameterKind, n.Name, thing, name);
+          } else if (o.IsOld && !n.IsOld) {
+            Reporter.Error(MessageSource.RefinementTransformer, n.tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it refines, from non-new to new", parameterKind, n.Name, thing, name);
+          } else if (!o.IsOlder && n.IsOlder) {
+            Reporter.Error(MessageSource.RefinementTransformer, n.tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it refines, from non-older to older", parameterKind, n.Name, thing, name);
+          } else if (o.IsOlder && !n.IsOlder) {
+            Reporter.Error(MessageSource.RefinementTransformer, n.tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it refines, from older to non-older", parameterKind, n.Name, thing, name);
           } else if (!TypesAreSyntacticallyEqual(o.Type, n.Type)) {
             Reporter.Error(MessageSource.RefinementTransformer, n.tok, "the type of {0} '{1}' is different from the type of the same {0} in the corresponding {2} in the module it refines ('{3}' instead of '{4}')", parameterKind, n.Name, thing, n.Type, o.Type);
           } else if (n.DefaultValue != null) {

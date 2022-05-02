@@ -112,14 +112,15 @@ implicitly ghost (non-ghost).
  synonym types            | -
  iterators                | -
  method                   | ghost static
- lemma, colemma, comethod | already-ghost static
- inductive lemma          | already-ghost static
+ lemma                    | already-ghost static
+ least lemma              | already-ghost static
+ greatest lemma           | already-ghost static
  constructor              | -
  function (non-method)    | already-ghost static
  function method          | already-non-ghost static
  predicate (non-method)   | already-ghost static
  predicate method         | already-non-ghost static
- inductive predicate      | already-ghost static
- copredicate              | already-ghost static
+ least predicate          | already-ghost static
+ greatest predicate       | already-ghost static
 
 
