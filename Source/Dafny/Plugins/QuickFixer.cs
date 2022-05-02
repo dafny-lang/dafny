@@ -1,12 +1,13 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Threading;
+using JetBrains.Annotations;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny.Plugins;
 
-public interface IQuickFixCache {
-  Program Program { get; set; }
-  string Document { get; set; }
+public interface IQuickFixInput {
+  string Code { get; }
+  [CanBeNull] Program Program { get; }
 }
 
 /// <summary>
@@ -18,18 +19,16 @@ public interface IQuickFixCache {
 /// that stores the program, the document, and any information you'd like.
 /// </summary>
 public abstract class QuickFixer {
-
   /// <summary>
   /// When the code is parsed, this method is provided both the code and ParsedProgram along with an unique key
   /// This unique keys serves to identity the program and the code both when removing it from any cache with UnsetProrgam,
   /// and when querying the plugin for quick fixes with ``GetQuickFixes`
   /// </summary>
   /// <param name="uniqueKey">The unique key</param>
-  /// <param name="program">The program, might not be fully resolved</param>
-  /// <param name="code">The textual representation of the program</param>
+  /// <param name="input">The code, the program if parsed (and possibly resolved), and other data</param>
   /// <param name="cancellationToken">Regularly call cancellationToken.ThrowIfCancellationRequested()
   /// to ensure the plugin does not continue to compute something that won't be useful.</param>
-  public abstract void SetProgram(string uniqueKey, Program program, string code, CancellationToken cancellationToken);
+  public abstract void SetQuickFixInput(string uniqueKey, IQuickFixInput input, CancellationToken cancellationToken);
 
   /// <summary>
   /// Optionally remove the unique key (e.g. when the user performs an edit in the program)
@@ -53,7 +52,7 @@ public abstract class QuickFixer {
 /// You only need to implement `GetQuickFixes`
 /// </summary>
 /// <typeparam name="T"></typeparam>
-public abstract class CachedQuickFixer<T> : QuickFixer where T : class, IQuickFixCache {
+public abstract class CachedQuickFixer<T> : QuickFixer where T : class, IQuickFixInput {
   private readonly ConditionalWeakTable<string, T> cache;
 
   protected CachedQuickFixer() {
@@ -64,11 +63,10 @@ public abstract class CachedQuickFixer<T> : QuickFixer where T : class, IQuickFi
   /// Compute the cache associated to the given program and document
   /// Regularly call cancellationToken.ThrowIfCancellationRequested() to stop any computation if it becomes obsolete.
   /// </summary>
-  /// <param name="program">The program</param>
-  /// <param name="document"></param>
+  /// <param name="input">The input for all quick fix actions</param>
   /// <param name="cancellationToken"></param>
   /// <returns></returns>
-  public abstract T ComputeCache(Program program, string document, CancellationToken cancellationToken);
+  public abstract T ComputeCache(IQuickFixInput input, CancellationToken cancellationToken);
 
   /// <summary>
   /// Given some computed cache on a program and a document, returns an array of `QuickFix`
@@ -79,11 +77,10 @@ public abstract class CachedQuickFixer<T> : QuickFixer where T : class, IQuickFi
   protected abstract QuickFix[] GetQuickFixes(T cachedData, IToken selection);
 
   // Overrides so that you don't need to implement them.
-  public override void SetProgram(string uniqueKey, Program resolvedProgram, string resolvedCode, CancellationToken cancellationToken) {
+  public override void SetQuickFixInput(string uniqueKey, IQuickFixInput input, CancellationToken cancellationToken) {
     UnsetProgram(uniqueKey);
-    // Make sure the cache is not set if we recompute a program.
     // ComputeCache might take some time, and we don't want GetQuickFixes to return something if it's outdated.
-    cache.Add(uniqueKey, ComputeCache(resolvedProgram, resolvedCode, cancellationToken));
+    cache.Add(uniqueKey, ComputeCache(input, cancellationToken));
   }
 
   public override void UnsetProgram(string uniqueKey) {
@@ -106,5 +103,31 @@ public class QuickFix {
   public QuickFixEdit[] Edits;
 }
 
-public record QuickFixEdit(IToken token, string insertBefore = "", string insertAfter = "", bool removeToken = false);
+public record QuickFixEdit(IToken token, string replaceWith = "");
 
+public static class TokenExtensions {
+  /// <summary>
+  /// Get the virtual token corresponding to the start of a token
+  /// </summary>
+  public static IToken Start(this IToken token) {
+    return new Token() {
+      pos = token.pos,
+      line = token.line,
+      col = token.col,
+      val = ""
+    };
+  }
+
+  /// <summary>
+  /// Get the virtual token corresponding to the start of a token
+  /// Use only for the QuickFix
+  /// </summary>
+  public static IToken End(this IToken token) {
+    return new Token {
+      pos = token.pos + token.val.Length,
+      line = token.line,
+      col = token.col + token.val.Length,
+      val = ""
+    };
+  }
+}
