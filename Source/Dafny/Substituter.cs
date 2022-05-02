@@ -59,7 +59,7 @@ namespace Microsoft.Dafny {
       } else if (expr is DisplayExpression) {
         DisplayExpression e = (DisplayExpression)expr;
         List<Expression> newElements = SubstituteExprList(e.Elements);
-        if (newElements != e.Elements || !Resolver.SubstType(expr.Type, typeMap).Equals(e.Type)) {
+        if (newElements != e.Elements || !Resolver.SubstType(e.Type, typeMap).Equals(e.Type)) {
           if (expr is SetDisplayExpr) {
             newExpr = new SetDisplayExpr(expr.tok, ((SetDisplayExpr)expr).Finite, newElements);
           } else if (expr is MultiSetDisplayExpr) {
