@@ -22,7 +22,7 @@
 - fix: Prevent refinements from changing datatype and newtype definitions (https://github.com/dafny-lang/dafny/pull/2038)
 - feat: The new `older` modifier on arguments to predicates indicates that a predicate ensures the allocatedness of some of its arguments. This allows more functions to show that their quantifiers do not depend on the allocation state. For more information, see the reference manual section on `older`. (https://github.com/dafny-lang/dafny/pull/1936)
 - fix: Fix `(!new)` checks (https://github.com/dafny-lang/dafny/issues/1419)
-- fix: multiset keyword no more crashes the parser (https://github.com/dafny-lang/dafny/pull/2079)
+- fix: multiset keyword no longer crashes the parser (https://github.com/dafny-lang/dafny/pull/2079)
 
 # 3.5.0
 

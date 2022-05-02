@@ -386,8 +386,7 @@ bool IsSetDisplay() {
   if (la.kind == _lbrace) return true;
   int k = scanner.Peek().kind;
   if (la.kind == _iset && k == _lbrace) return true;
-  // Until there is a multiset comprehension, there is no point in checking the next item.
-  if (la.kind == _multiset/* && (k == _lbrace || k == _openparen)*/) return true;
+  if (la.kind == _multiset) return true;
   return false;
 }
 
