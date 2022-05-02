@@ -17,8 +17,9 @@
    the number of years since 2018 and "mmdd" the month and day portions
    of the release date (e.g., a release on January 12th, 2022 would be
    x.y.z.40112). Edit the internal version number in
-   `Source/version.cs`, and replace the "Upcoming" header in `RELEASE_NOTES.md`
-   with the the public version number. Push and cut a PR, get it approved,
+   `Source/version.cs`, replace the "Upcoming" header in `RELEASE_NOTES.md`
+   with the the public version number, and add a new "Upcoming" header above it.
+   Push and cut a PR, get it approved,
    and squash and merge those changes to the `master` branch.
 
 3. Create a fresh clone of the repo locally, making sure the latest commit

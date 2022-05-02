@@ -285,5 +285,22 @@ method Abs(x: int) returns (y: int)
       Assert.AreEqual(documentItem2.Version, compilation2.Version);
       Assert.AreEqual(CompilationStatus.CompilationSucceeded, compilation2.Status);
     }
+
+    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    public async Task MultisetShouldNotCrashParser() {
+      var source = @"
+    lemma Something(i: int)
+    {
+      calc {
+        multiset
+      }
+    }";
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var compilation = await notificationReceiver.AwaitNextNotificationAsync(CancellationToken);
+      Assert.AreEqual(documentItem.Uri, compilation.Uri);
+      Assert.AreEqual(documentItem.Version, compilation.Version);
+      Assert.AreEqual(CompilationStatus.ParsingFailed, compilation.Status);
+    }
   }
 }
