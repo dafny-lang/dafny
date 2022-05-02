@@ -10,19 +10,17 @@ module.exports = async ({github, context, core}, workflowID, branch, sha = null)
     repo: context.repo.repo,
     branch,
     workflow_id: workflowID,
-
   })
   // These are ordered by creation time, so decide based on the first
   // run for this SHA we see.
   const runFilterDesc = sha ? `${workflowID} on ${sha}` : workflowID
   for (const run of result.data.workflow_runs) {
-    console.log(run)
     if (!sha || run.head_sha == sha) {
       if (run.conclusion != "success") {
         core.setFailed(`Last run of ${runFilterDesc} did not succeed: ${run.html_url}`)
       } else {
-        // The SHA is fully-tested, exit with success
-        console.log(`Found successful run of ${runFilterDesc}: ${run.html_url}`)
+        // The SHA is fully tested, exit with success
+        console.log(`Last run of ${runFilterDesc} succeeded: ${run.html_url}`)
         return
       }
     }

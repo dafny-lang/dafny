@@ -1,10 +1,6 @@
 name: Check Deep Tests (Reusable Workflow)
 
 on:
-  workflow_dispatch:
-    inputs:
-      sha:
-        type: string
   workflow_call:
     inputs:
       sha:
@@ -22,5 +18,5 @@ jobs:
     - uses: actions/github-script@v6
       with:
         script: |
-          const script = require('${{ github.workspace }}/dafny/.github/workflows/check-for-deep-tests-success.js')
-          console.log(script({github, context, core}, workflowID = 'deep-tests.yml', branch = 'master', sha = '${{ github.event.inputs.sha }}'))
+          const script = require('${{ github.workspace }}/dafny/.github/workflows/check-for-workflow-run.js')
+          console.log(script({github, context, core}, workflowID = 'deep-tests.yml', branch = 'master', sha = '${{ inputs.sha }}'))

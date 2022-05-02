@@ -9,7 +9,19 @@ on:
 
 env:
   dotnet-version: 6.0.x # SDK Version for building Dafny
-  
+  single-platform:
+    - ubuntu-18.04
+  all-platforms:
+    - ubuntu-latest
+    - ubuntu-18.04
+    - macos-latest
+    - windows-latest
+  os-mapping:
+    ubuntu-latest: ubuntu
+    ubuntu-18.04: ubuntu
+    macos-latest: osx
+    windows-latest: win
+
 jobs:
   # This workflow is used to dynamically calculate the matrix dimensions.
   # For now that just makes the sharding a little cleaner, but it will shortly
@@ -20,11 +32,11 @@ jobs:
       - name: Populate OS list
         id: populate-os-list
         run: |
-          echo "::set-output name=os-list::[\"ubuntu-latest\", \"ubuntu-18.04\", \"macos-latest\", \"windows-latest\"]"
+          echo "::set-output name=os-list::${{ toJSON(env.all-platforms) }}
       - name: Populate OS mapping for package.py
         id: populate-os-mapping
         run: |
-          echo "::set-output name=os-mapping::{\"ubuntu-latest\": \"ubuntu\", \"ubuntu-18.04\": \"ubuntu\", \"macos-latest\": \"osx\", \"windows-latest\": \"win\"}"
+          echo "::set-output name=os-mapping::${{ toJSON(env.os-mapping) }}
       - name: Populate shard list
         id: populate-shard-list
         run: |
