@@ -42,6 +42,18 @@ public class CsharpSynthesizer {
   }
 
   /// <summary>
+  /// Create a body for a method returning a fresh instance of an object 
+  /// </summary>
+  public ConcreteSyntaxTree CreateFreshMethod(Method m,
+    ConcreteSyntaxTree wr) {
+    var keywords = "public static ";
+    var returnType = compiler.GetTargetReturnTypeReplacement(m, wr);
+    wr = wr.NewBlock($"{keywords}{returnType} {m.CompileName}()");
+    wr.FormatLine($"return new {returnType}();");
+    return wr;
+  }
+
+  /// <summary>
   /// Create a body of a method that synthesizes one or more objects.
   /// For instance, the following Dafny method:
   /// 

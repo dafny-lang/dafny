@@ -445,7 +445,6 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       public ConcreteSyntaxTree CreateFreshMethod(Method m) {
-        //  throw new NotImplementedException();
         return javaSynthesizer.CreateFreshMethod(m, Writer(m.IsStatic, true, m));
       }
 

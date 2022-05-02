@@ -1149,7 +1149,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       public ConcreteSyntaxTree CreateFreshMethod(Method m) {
-         throw new NotImplementedException();
+         return csharpSynthesizer.CreateFreshMethod(m, Writer(m.IsStatic, true, m));
       }
 
       public ConcreteSyntaxTree /*?*/ CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, bool forBodyInheritance, bool lookasideBody) {
