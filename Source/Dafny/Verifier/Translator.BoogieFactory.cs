@@ -817,8 +817,7 @@ namespace Microsoft.Dafny {
     }
 
     static Bpl.Expr BplLocalVar(string name, Bpl.Type ty, List<Bpl.Variable> lvars) {
-      Bpl.Expr v;
-      lvars.Add(BplLocalVar(name, ty, out v));
+      lvars.Add(BplLocalVar(name, ty, out var v));
       return v;
     }
 
@@ -846,30 +845,26 @@ namespace Microsoft.Dafny {
     }
 
     static Bpl.Expr BplBoundVar(string name, Bpl.Type ty, List<Bpl.Variable> bvars) {
-      Bpl.Expr e;
-      bvars.Add(BplBoundVar(name, ty, out e));
+      bvars.Add(BplBoundVar(name, ty, out var e));
       return e;
     }
 
     // Makes a formal variable
     static Bpl.Formal BplFormalVar(string/*?*/ name, Bpl.Type ty, bool incoming) {
-      Bpl.Expr _scratch;
-      return BplFormalVar(name, ty, incoming, out _scratch);
+      return BplFormalVar(name, ty, incoming, out _);
     }
 
-    static Bpl.Formal BplFormalVar(string/*?*/ name, Bpl.Type ty, bool incoming, out Bpl.Expr e) {
-      Bpl.Formal res;
+    static Bpl.Formal BplFormalVar(string/*?*/ name, Bpl.Type ty, bool incoming, out Bpl.Expr e, Bpl.Expr whereClause = null) {
       if (name == null) {
         name = Bpl.TypedIdent.NoName;
       }
-      res = new Bpl.Formal(ty.tok, new Bpl.TypedIdent(ty.tok, name, ty), incoming);
+      var res = new Bpl.Formal(ty.tok, new Bpl.TypedIdent(ty.tok, name, ty, whereClause), incoming);
       e = new Bpl.IdentifierExpr(ty.tok, res);
       return res;
     }
 
     static Bpl.Expr BplFormalVar(string name, Bpl.Type ty, bool incoming, List<Bpl.Variable> fvars) {
-      Bpl.Expr e;
-      fvars.Add(BplFormalVar(name, ty, incoming, out e));
+      fvars.Add(BplFormalVar(name, ty, incoming, out var e));
       return e;
     }
   }

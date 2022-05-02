@@ -320,8 +320,7 @@ namespace Microsoft.Dafny.Triggers {
         return ShallowEq_Top(expr1.SplitQuantifierExpression, expr2.SplitQuantifierExpression);
       }
 
-      if (expr1.TypeArgs.Count != expr2.TypeArgs.Count ||
-          !TriggerUtils.SameNullity(expr1.Range, expr2.Range)) {
+      if (!TriggerUtils.SameNullity(expr1.Range, expr2.Range)) {
         return false;
       }
 

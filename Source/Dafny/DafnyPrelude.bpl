@@ -277,7 +277,7 @@ function $Is<T>(T,Ty): bool uses {           // no heap for now
         $Is(IMap#Values(v), TISet(t1)) &&
         $Is(IMap#Items(v), TISet(Tclass._System.Tuple2(t0, t1))));
 }
-function  $IsAlloc<T>(T,Ty,Heap): bool uses {
+function $IsAlloc<T>(T,Ty,Heap): bool uses {
     axiom(forall h : Heap, v : int  :: { $IsAlloc(v,TInt,h) }  $IsAlloc(v,TInt,h));
     axiom(forall h : Heap, v : real :: { $IsAlloc(v,TReal,h) } $IsAlloc(v,TReal,h));
     axiom(forall h : Heap, v : bool :: { $IsAlloc(v,TBool,h) } $IsAlloc(v,TBool,h));
@@ -322,6 +322,14 @@ function  $IsAlloc<T>(T,Ty,Heap): bool uses {
             $IsAllocBox(IMap#Elements(v)[bx], t1, h) &&
             $IsAllocBox(bx, t0, h)));
 }
+
+function $AlwaysAllocated(Ty): bool uses {
+    axiom (forall ty: Ty :: { $AlwaysAllocated(ty) }
+      $AlwaysAllocated(ty) ==>
+      (forall h: Heap, v: Box  :: { $IsAllocBox(v, ty, h) }  $IsBox(v, ty) ==> $IsAllocBox(v, ty, h)));
+}
+
+function $OlderTag(Heap): bool;
 
 // ---------------------------------------------------------------
 // -- Encoding of type names -------------------------------------
@@ -1131,7 +1139,7 @@ axiom (forall<T> s: Seq T, i: int, v: T, n: int ::
         0 <= n && n <= i && i < Seq#Length(s) ==> Seq#Drop(Seq#Update(s, i, v), n) == Seq#Update(Seq#Drop(s, n), i-n, v) );
 axiom (forall<T> s: Seq T, i: int, v: T, n: int ::
         { Seq#Drop(Seq#Update(s, i, v), n) }
-        0 <= i && i < n && n < Seq#Length(s) ==> Seq#Drop(Seq#Update(s, i, v), n) == Seq#Drop(s, n));
+        0 <= i && i < n && n <= Seq#Length(s) ==> Seq#Drop(Seq#Update(s, i, v), n) == Seq#Drop(s, n));
 // Extension axiom, triggers only on Takes from arrays.
 axiom (forall h: Heap, a: ref, n0, n1: int ::
         { Seq#Take(Seq#FromArray(h, a), n0), Seq#Take(Seq#FromArray(h, a), n1) }
