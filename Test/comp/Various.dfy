@@ -26,8 +26,7 @@ method {:tailrecursion true} Countdown(x: nat) {
 datatype A = A(val: int)
 
 method LetExpr() {
-  var a := A(0);
-  print (var A(zero) := a; zero), "\n";
+  print (var a := A(0); var A(zero) := a; zero), "\n";
 }
 
 method Main() {
