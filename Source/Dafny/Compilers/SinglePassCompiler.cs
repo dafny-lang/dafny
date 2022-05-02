@@ -102,7 +102,6 @@ namespace Microsoft.Dafny.Compilers {
     protected interface IClassWriter {
       ConcreteSyntaxTree/*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody);
       ConcreteSyntaxTree/*?*/ SynthesizeMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody);
-      // ConcreteSyntaxTree/*?*/ FreshMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody);
       ConcreteSyntaxTree/*?*/ CreateFreshMethod(Method m);
       ConcreteSyntaxTree/*?*/ CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody,
         MemberDecl member, bool forBodyInheritance, bool lookasideBody);
