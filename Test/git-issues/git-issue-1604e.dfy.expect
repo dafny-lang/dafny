@@ -11,4 +11,4 @@ git-issue-1604e.dfy(10,31): [Related location] GhostEvenCell is ghost because a 
 git-issue-1604e.dfy(66,92): Error: value does not satisfy the subset constraints of 'GhostEvenCell'
 git-issue-1604e.dfy(69,92): Error: value does not satisfy the subset constraints of 'GhostEvenCell'
 
-Dafny program verifier finished with 9 verified, 8 errors
+Dafny program verifier finished with 8 verified, 8 errors

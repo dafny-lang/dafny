@@ -15001,9 +15001,10 @@ namespace Microsoft.Dafny {
           case UnaryOpExpr.Opcode.Allocated:
             // the argument is allowed to have any type at all
             expr.Type = Type.Bool;
+            var codeContextUnwrapped = CodeContextWrapper.Unwrap(opts.codeContext);
             if (2 <= DafnyOptions.O.Allocated &&
-              ((opts.codeContext is Function && !opts.InsideOld) || opts.codeContext is ConstantField || CodeContextWrapper.Unwrap(opts.codeContext) is RedirectingTypeDecl)) {
-              var declKind = CodeContextWrapper.Unwrap(opts.codeContext) is RedirectingTypeDecl redir ? redir.WhatKind : ((MemberDecl)opts.codeContext).WhatKind;
+              ((codeContextUnwrapped is Function && !opts.InsideOld) || codeContextUnwrapped is ConstantField || codeContextUnwrapped is RedirectingTypeDecl)) {
+              var declKind = codeContextUnwrapped is RedirectingTypeDecl redir ? redir.WhatKind : ((MemberDecl)codeContextUnwrapped).WhatKind;
               reporter.Error(MessageSource.Resolver, expr, "a {0} definition is not allowed to depend on the set of allocated references", declKind);
             }
             break;

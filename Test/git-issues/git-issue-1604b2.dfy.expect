@@ -10,4 +10,4 @@ git-issue-1604b2.dfy(28,25): [Related location] The subset type GhostOrdinalCell
 git-issue-1604b2.dfy(13,35): [Related location] GhostNaturalCell is ghost because a call to a ghost predicate is allowed only in specification contexts (consider declaring the predicate with 'predicate method')
 git-issue-1604b2.dfy(69,106): Error: value does not satisfy the subset constraints of 'GhostOrdinalCell'
 
-Dafny program verifier finished with 12 verified, 6 errors
+Dafny program verifier finished with 11 verified, 6 errors

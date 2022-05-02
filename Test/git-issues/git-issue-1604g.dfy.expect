@@ -17,4 +17,4 @@ git-issue-1604g.dfy(19,11): Related location
 git-issue-1604g.dfy(13,2): Related location
 git-issue-1604g.dfy(9,19): Related location
 
-Dafny program verifier finished with 4 verified, 5 errors
+Dafny program verifier finished with 3 verified, 5 errors
