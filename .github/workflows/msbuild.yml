@@ -60,4 +60,5 @@ jobs:
     needs: check-deep-tests
     uses: ./.github/workflows/integration-tests-reusable.yml
     with:
+      all_platforms: false
       num_shards: 5
