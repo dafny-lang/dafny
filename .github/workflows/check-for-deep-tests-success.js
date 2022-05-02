@@ -1,4 +1,6 @@
-module.exports = async ({github, context, core}) => {
+// Check for a successful previous run of a workflow.
+// This could make a decent reusable action itself.
+module.exports = async ({github, context, core}, workflowID, branch, sha = null) => {
   // This API doesn't support filtering by SHA, so we just
   // fetch the first page and scan manually.
   // That means if the run is fairly old it may be missed,
@@ -6,23 +8,23 @@ module.exports = async ({github, context, core}) => {
   const result = await github.rest.actions.listWorkflowRuns({
     owner: context.repo.owner,
     repo: context.repo.repo,
-    workflow_id: 'deep-tests.yml',
+    branch,
+    workflow_id: workflowID,
 
   })
   // These are ordered by creation time, so decide based on the first
   // run for this SHA we see.
-  console.log(result)
-  console.log(result.data)
+  const runFilterDesc = sha ? `${workflowID} on ${sha}` : workflowID
   for (const run of result.data.workflow_runs) {
-    console.log(run)
-    if (run.sha == context.sha) {
+    if (sha == null || run.sha == sha) {
       if (run.conclusion != "success") {
-        core.setFailed(`Last run of deep tests on ${context.sha} did not succeed!`)
+        core.setFailed(`Last run of ${runFilterDesc} did not succeed: ${run.html_url}`)
       } else {
         // The SHA is fully-tested, exit with success
+        console.log(`Found successful run of ${runFilterDesc}: ${run.html_url}`)
         return
       }
     }
   }
-  core.setFailed(`No run of deep tests found for ${context.sha}!`)
+  core.setFailed(`No runs of ${runFilterDesc} found!`)
 }
