@@ -427,7 +427,6 @@ In the first and only verification round, this option will split the original [a
 into one assertion batch per assertion.
 This is mostly helpful for debugging which assertion is taking the most time to prove, e.g. to profile them.
 
-
 ### 22.2.21. synthesize {#sec-synthesize-attr}
 
 The `{:synthesize}` attribute must be used on methods that have no body and
