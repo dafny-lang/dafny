@@ -512,7 +512,7 @@ method returnBiggerThan(n: nat) returns (y: int)
       Assert.IsNotNull(hover);
       var markup = hover.Contents.MarkupContent;
       Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
-      Assert.AreEqual("```dafny\ny: int\n```", markup.Value);
+      Assert.AreEqual("```dafny\nghost y: int\n```", markup.Value);
       hover = await RequestHover(documentItem, (1, 33));
       Assert.IsNotNull(hover);
       markup = hover.Contents.MarkupContent;
