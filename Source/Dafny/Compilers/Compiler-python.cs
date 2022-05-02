@@ -47,7 +47,6 @@ namespace Microsoft.Dafny.Compilers {
     const string DafnyMultiSetClass = $"{DafnyRuntimeModule}.MultiSet";
     const string DafnySeqClass = $"{DafnyRuntimeModule}.Seq";
     const string DafnyMapClass = $"{DafnyRuntimeModule}.Map";
-    const string DafnyArrayClass = $"{DafnyRuntimeModule}.Array";
     protected override string StmtTerminator { get => ""; }
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
       wr.WriteLine($"# Dafny program {program.Name} compiled into Python");
@@ -60,7 +59,6 @@ namespace Microsoft.Dafny.Compilers {
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
       Coverage.EmitSetup(wr);
       wr.NewBlockPy("try:")
-
         .WriteLine("module_.default__.Main()");
       wr.NewBlockPy($"except {DafnyRuntimeModule}.HaltException as e:")
         .WriteLine($"{DafnyRuntimeModule}.print(\"[Program halted] \" + str(e) + \"\\n\")");
@@ -152,7 +150,6 @@ namespace Microsoft.Dafny.Compilers {
     protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string fullPrintName,
         List<TypeParameter> typeParameters, TopLevelDecl cls, List<Type> superClasses, IToken tok, ConcreteSyntaxTree wr) {
       var methodWriter = wr.NewBlockPy(header: $"class {IdProtect(name)}:");
-
       var needsConstructor = cls is TopLevelDeclWithMembers decl && decl.Members.Any(m => !m.IsGhost && m is Field && !m.IsStatic);
       var constructorWriter = needsConstructor
         ? methodWriter.NewBlockPy(header: "def  __init__(self):", close: BlockStyle.Newline)
@@ -688,7 +685,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitNewArray(Type elmtType, IToken tok, List<Expression> dimensions, bool mustInitialize,
       ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      var initValue = mustInitialize ? DefaultValue(elmtType, wr, tok, true) : null;
+      var initValue = mustInitialize ? DefaultValue(elmtType, wr, tok, true) : "None";
       if (dimensions.Count == 1) {
         // handle the common case of 1-dimensional arrays separately
         var arrayType = TypeInitializationValue(elmtType, wr, tok, false, false);
@@ -696,9 +693,9 @@ namespace Microsoft.Dafny.Compilers {
         TrParenExpr(dimensions[0], wr, false, wStmts);
         wr.Write("]");
       } else {
-        wr.Write("{0}.newArray({1}", DafnyArrayClass, initValue ?? "None");
+        wr.Write("_dafny.newArray({0}", initValue ?? "None");
         foreach (var dim in dimensions) {
-          wr.Write(",int ");
+          wr.Write(",int");
           TrParenExpr(dim, wr, false, wStmts);
         }
         wr.Write(")");
@@ -728,7 +725,7 @@ namespace Microsoft.Dafny.Compilers {
               wr.Write($"{DafnyRuntimeModule}.BigRational('{n.Mantissa}e{n.Exponent}')");
               break;
             case null:
-              wr.Write("");
+              wr.Write("None");
               break;
             default:
               throw new NotImplementedException();
@@ -943,7 +940,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Assert(indices != null && 1 <= indices.Count);
       var w = wr.Fork();
       if (indices.Count == 1) {
-        wr.Write("[{0}]", indices[0]);
+        wr.Write($"[{indices[0]}]");
       }
       return w;
     }
@@ -986,9 +983,7 @@ namespace Microsoft.Dafny.Compilers {
       if (lo != null) { TrExpr(lo, wr, inLetExprBody, wStmts); }
       wr.Write(":");
       if (hi != null) { TrExpr(hi, wr, inLetExprBody, wStmts); }
-      wr.Write(":");
-      wr.Write("]");
-      wr.Write(")");
+      wr.Write(":])");
     }
 
     protected override void EmitSeqConstructionExpr(SeqConstructionExpr expr, bool inLetExprBody, ConcreteSyntaxTree wr,
@@ -1149,15 +1144,13 @@ namespace Microsoft.Dafny.Compilers {
         case BinaryExpr.ResolvedOpcode.Mod:
           staticCallString = $"{DafnyRuntimeModule}.euclidian_modulus"; break;
 
-        case BinaryExpr.ResolvedOpcode.EqCommon:
-          opString = "=="; break;
-
         case BinaryExpr.ResolvedOpcode.Lt:
           opString = "<"; break;
 
         case BinaryExpr.ResolvedOpcode.SeqEq:
         case BinaryExpr.ResolvedOpcode.SetEq:
         case BinaryExpr.ResolvedOpcode.MapEq:
+        case BinaryExpr.ResolvedOpcode.EqCommon:
           opString = "=="; break;
 
         case BinaryExpr.ResolvedOpcode.NeqCommon:

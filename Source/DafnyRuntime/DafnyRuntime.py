@@ -66,18 +66,6 @@ class Map(dict):
     def keys(self):
         return Seq(dict.keys(self))
 
-class Array(list):
-
-    def newArray(initValue, *dims):
-        b=initValue
-        dimslist = list(dims)
-        for i in reversed(dimslist):
-            tmplist =[]
-            for _ in range(i):
-                tmplist.append(b)
-            b= tmplist
-        return b
-
 class BigOrdinal:
     @staticmethod
     def is_limit(ord):
@@ -166,6 +154,16 @@ def euclidian_modulus(a, b):
         return a % bp
     c = (-a) % bp
     return c if c == 0 else bp - c
+
+def newArray(initValue, *dims):
+    b = initValue
+    dimslist = list(dims)
+    for i in reversed(dimslist):
+        tmplist = []
+        for _ in range(i):
+            tmplist.append(b)
+        b= tmplist
+    return b
 
 @dataclass
 class HaltException(Exception):
