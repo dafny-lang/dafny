@@ -15,6 +15,5 @@ jobs:
   deep-integration-tests:
     uses: ./.github/workflows/integration-tests-reusable.yml
     with:
+      all_platforms: true
       num_shards: 5
-      # TEMPORARY FOR TESTING
-      all_platforms: false
