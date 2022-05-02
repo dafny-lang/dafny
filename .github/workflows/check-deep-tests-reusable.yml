@@ -23,4 +23,4 @@ jobs:
       with:
         script: |
           const script = require('${{ github.workspace }}/dafny/.github/workflows/check-for-deep-tests-success.js')
-          console.log(script({github, context, core}, workflowID = 'deep-tests.yml', branch = 'master', sha = ${{ inputs.sha }}))
+          console.log(script({github, context, core}, workflowID = 'deep-tests.yml', branch = 'master', sha = ${{ context.payload.inputs.sha }}))
