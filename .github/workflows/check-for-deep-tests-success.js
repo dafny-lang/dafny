@@ -16,6 +16,7 @@ module.exports = async ({github, context, core}, workflowID, branch, sha = null)
   // run for this SHA we see.
   const runFilterDesc = sha ? `${workflowID} on ${sha}` : workflowID
   for (const run of result.data.workflow_runs) {
+    console.log(run)
     if (sha == null || run.sha == sha) {
       if (run.conclusion != "success") {
         core.setFailed(`Last run of ${runFilterDesc} did not succeed: ${run.html_url}`)
