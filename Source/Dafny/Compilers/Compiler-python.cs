@@ -527,7 +527,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override bool DeclareFormal(string prefix, string name, Type type, IToken tok, bool isInParam, ConcreteSyntaxTree wr) {
       if (isInParam) {
-        wr.Write("{0}{1}", prefix, name);
+        wr.Write($"{prefix}{name}");
         return true;
       } else {
         return false;
@@ -643,7 +643,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree CreateForLoop(string indexVar, string bound, ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
+      return wr.NewBlockPy($"for {indexVar} in range({bound}):");
     }
 
     protected override ConcreteSyntaxTree CreateDoublingForLoop(string indexVar, int start, ConcreteSyntaxTree wr) {
@@ -686,7 +686,20 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitNewArray(Type elmtType, IToken tok, List<Expression> dimensions, bool mustInitialize,
       ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      throw new NotImplementedException();
+      var initValue = mustInitialize ? DefaultValue(elmtType, wr, tok, true) : "None";
+      if (dimensions.Count == 1) {
+        // handle the common case of 1-dimensional arrays separately
+        wr.Write($"[{initValue} for _ in range");
+        TrParenExpr(dimensions[0], wr, false, wStmts);
+        wr.Write("]");
+      } else {
+        wr.Write($"{DafnyRuntimeModule}.newArray({initValue}");
+        foreach (var dim in dimensions) {
+          wr.Write(", int");
+          TrParenExpr(dim, wr, false, wStmts);
+        }
+        wr.Write(")");
+      }
     }
 
     protected override void EmitLiteralExpr(ConcreteSyntaxTree wr, LiteralExpr e) {
@@ -711,6 +724,9 @@ namespace Microsoft.Dafny.Compilers {
             case BigDec n:
               wr.Write($"{DafnyRuntimeModule}.BigRational('{n.Mantissa}e{n.Exponent}')");
               break;
+            case null:
+              wr.Write("None");
+              break;
             default:
               throw new NotImplementedException();
           }
@@ -720,7 +736,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr) {
       if (!isVerbatim) {
-        wr.Write("\"{0}\"", str);
+        wr.Write($"\"{str}\"");
       } else {
         var n = str.Length;
         wr.Write("\"");
@@ -803,6 +819,7 @@ namespace Microsoft.Dafny.Compilers {
 
       var cl = udt.ResolvedClass;
       return cl switch {
+        ArrayClassDecl => DafnySeqClass,
         TypeParameter => IdProtect(udt.CompileName),
         TupleTypeDecl => "tuple",
         _ => IdProtect(cl.FullCompileName)
@@ -856,6 +873,14 @@ namespace Microsoft.Dafny.Compilers {
           preString = $"{DafnyRuntimeModule}.BigOrdinal.is_nat(";
           postString = ")";
           break;
+        case SpecialField.ID.ArrayLength:
+        case SpecialField.ID.ArrayLengthInt:
+          preString = "len(";
+          postString = ")";
+          if (idParam != null && (int)idParam > 0) {
+            postString = string.Concat(Enumerable.Repeat("[0]", (int)idParam)) + postString;
+          }
+          break;
         default:
           Contract.Assert(false); // unexpected ID
           break;
@@ -908,12 +933,20 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree EmitArraySelect(List<string> indices, Type elmtType, ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
+      Contract.Assert(indices != null && 1 <= indices.Count);
+      var w = wr.Fork();
+      foreach (var index in indices) {
+        wr.Write($"[{index}]");
+      }
+
+      return w;
     }
 
     protected override ConcreteSyntaxTree EmitArraySelect(List<Expression> indices, Type elmtType, bool inLetExprBody,
       ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      throw new NotImplementedException();
+      Contract.Assert(indices != null && 1 <= indices.Count);  // follows from precondition
+      var strings = indices.Select(index => Expr(indices[0], inLetExprBody, wStmts).ToString());
+      return EmitArraySelect(strings.ToList(), elmtType, wr);
     }
 
     protected override void EmitExprAsInt(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr,
@@ -936,7 +969,13 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitSeqSelectRange(Expression source, Expression lo, Expression hi, bool fromArray,
       bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      throw new NotImplementedException();
+      wr.Write($"{DafnySeqClass}(");
+      TrParenExpr(source, wr, inLetExprBody, wStmts);
+      wr.Write("[");
+      if (lo != null) { TrExpr(lo, wr, inLetExprBody, wStmts); }
+      wr.Write(":");
+      if (hi != null) { TrExpr(hi, wr, inLetExprBody, wStmts); }
+      wr.Write(":])");
     }
 
     protected override void EmitSeqConstructionExpr(SeqConstructionExpr expr, bool inLetExprBody, ConcreteSyntaxTree wr,
@@ -1097,10 +1136,13 @@ namespace Microsoft.Dafny.Compilers {
         case BinaryExpr.ResolvedOpcode.Mod:
           staticCallString = $"{DafnyRuntimeModule}.euclidian_modulus"; break;
 
-        case BinaryExpr.ResolvedOpcode.EqCommon:
+        case BinaryExpr.ResolvedOpcode.Lt:
+          opString = "<"; break;
+
         case BinaryExpr.ResolvedOpcode.SeqEq:
         case BinaryExpr.ResolvedOpcode.SetEq:
         case BinaryExpr.ResolvedOpcode.MapEq:
+        case BinaryExpr.ResolvedOpcode.EqCommon:
           opString = "=="; break;
 
         case BinaryExpr.ResolvedOpcode.NeqCommon:
