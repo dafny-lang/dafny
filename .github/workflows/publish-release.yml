@@ -10,6 +10,11 @@ env:
   dotnet-version: 6.0.x # SDK Version for building Dafny
   
 jobs:
+  check-deep-tests:
+    uses: ./.github/workflows/check-deep-tests-reusable.yml
+    with:
+      sha: ${{ github.sha }}
+
   publish-release:
     runs-on: macos-latest
     steps:
@@ -52,7 +57,7 @@ jobs:
         sudo gem install rouge
     - name: Package release files
       run: |
-        python dafny/Scripts/package.py ${{ steps.get-version.outputs.version-without-v }} --skip_manual=true --trial=true --github_secret=${{ secrets.GITHUB_TOKEN }}
+        python dafny/Scripts/package.py ${{ steps.get-version.outputs.version-without-v }} --skip_manual=true --github_secret=${{ secrets.GITHUB_TOKEN }}
     # We build the reference manual separately because that depends on evaluating the path_helper script,
     # but that perturbs the path enough that `python` above would resolve to an older built-in Python version.
     - name: Build reference manual
