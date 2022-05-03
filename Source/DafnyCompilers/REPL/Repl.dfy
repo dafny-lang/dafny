@@ -1,4 +1,4 @@
-include "../Semantics.dfy"
+include "../Interp.dfy"
 include "../CompilerCommon.dfy"
 include "../Printer.dfy"
 include "../Library.dfy"
