@@ -11,8 +11,10 @@ module Interp {
   predicate method Pure1(e: Expr) {
     match e {
       case Literal(lit) => true
-      case Apply(aop, args: seq<Expr>) =>
-        match aop {
+      case Apply(Lazy(op), args: seq<Expr>) =>
+        true
+      case Apply(Eager(op), args: seq<Expr>) =>
+        match op {
           case UnaryOp(uop: UnaryOp.Op) => true
           case BinaryOp(bop: BinaryOp) => true
           case DataConstructor(name: Path, typeArgs: seq<Type.Type>) => true
@@ -36,8 +38,10 @@ module Interp {
     var FALSE := false;
     match e {
       case Literal(lit) => true
-      case Apply(aop, args: seq<Expr>) =>
-        match aop {
+      case Apply(Lazy(op), args: seq<Expr>) =>
+        true
+      case Apply(Eager(op), args: seq<Expr>) =>
+        match op {
           case UnaryOp(uop: UnaryOp.Op) => FALSE
           case BinaryOp(bop: BinaryOp) => true
           case DataConstructor(name: Path, typeArgs: seq<Type.Type>) => FALSE
@@ -100,29 +104,30 @@ module Interp {
 
   function method InterpExpr(e: Expr, ctx: Context := map[]) : InterpResult<V.T>
     requires SupportsInterp(e)
-    decreases e, 0
+    decreases e, 1
   {
     Predicates.Deep.AllImpliesChildren(e, SupportsInterp1);
     match e {
       case Literal(lit) => Success(OK(InterpLiteral(lit), ctx))
-      case Apply(aop, args: seq<Expr>) =>
-        // FIXME short-circuiting operators should be separate
+      case Apply(Lazy(op), args: seq<Expr>) =>
+        InterpLazy(e, ctx)
+      case Apply(Eager(op), args: seq<Expr>) =>
         var OK(argsv, ctx) :- InterpExprs(args, ctx);
-        match aop {
+        match op {
           case BinaryOp(bop: BinaryOp) =>
             assert |argsv| == 2;
             LiftPureResult(ctx, InterpBinaryOp(e, bop, argsv[0], argsv[1]))
         }
       case If(cond, thn, els) =>
-        var OK(condv, ctx) :- InterExprWithType(cond, Type.Bool, ctx);
+        var OK(condv, ctx) :- InterpExprWithType(cond, Type.Bool, ctx);
         if condv.b then InterpExpr(thn, ctx) else InterpExpr(els, ctx)
     }
   }
 
-  function method InterExprWithType(e: Expr, ty: Type, ctx: Context := map[])
+  function method InterpExprWithType(e: Expr, ty: Type, ctx: Context := map[])
     : (r: InterpResult<V.T>)
     requires SupportsInterp(e)
-    decreases e, 1
+    decreases e, 2
     ensures r.Success? ==> r.value.v.HasType(ty)
   {
     var OK(val, ctx) :- InterpExpr(e, ctx);
@@ -141,6 +146,54 @@ module Interp {
       var OK(vs, ctx) :- InterpExprs(es[1..], ctx);
       Success(OK([v] + vs, ctx))
   }
+
+  function method InterpLazy(e: Expr, ctx: Context)
+    : InterpResult<V.T>
+    requires e.Apply? && e.aop.Lazy? && SupportsInterp(e)
+    decreases e, 0
+  {
+    // DISCUSS: An alternative implementation would be to evaluate but discard
+    // the second context if a short-circuit happens.
+    Predicates.Deep.AllImpliesChildren(e, SupportsInterp1);
+    var op, e0, e1 := e.aop.lOp, e.args[0], e.args[1];
+    var OK(v0, ctx0) :- InterpExprWithType(e0, Type.Bool, ctx);
+    match (op, v0)
+      case (And, Bool(false)) => Success(OK(V.Bool(false), ctx0))
+      case (Or,  Bool(true))  => Success(OK(V.Bool(true), ctx0))
+      case (Imp, Bool(false)) => Success(OK(V.Bool(true), ctx0))
+      case (_,   Bool(b)) =>
+        assert op in {Exprs.And, Exprs.Or, Exprs.Imp};
+        InterpExprWithType(e1, Type.Bool, ctx0)
+  }
+
+  // Alternate implementation of ``InterpLazy``; less efficient, but more
+  // closely matches intuition.
+  function method InterpLazy_Eagerly(e: Expr, ctx: Context)
+    : InterpResult<V.T>
+    requires e.Apply? && e.aop.Lazy? && SupportsInterp(e)
+    decreases e, 0
+  {
+    Predicates.Deep.AllImpliesChildren(e, SupportsInterp1);
+    var op, e0, e1 := e.aop.lOp, e.args[0], e.args[1];
+    var OK(v0, ctx0) :- InterpExprWithType(e0, Type.Bool, ctx);
+    var OK(v1, ctx1) :- InterpExprWithType(e1, Type.Bool, ctx0);
+    match (op, v0, v1)
+      case (And, Bool(b0), Bool(b1)) => Success(OK(V.Bool(b0 && b1), if b0 then ctx1 else ctx0))
+      case (Or,  Bool(b0), Bool(b1)) => Success(OK(V.Bool(b0 || b1), if b0 then ctx0 else ctx1))
+      case (Imp, Bool(b0), Bool(b1)) => Success(OK(V.Bool(b0 ==> b1), if b0 then ctx1 else ctx0))
+  }
+
+  lemma InterpLazy_Complete(e: Expr, ctx: Context)
+    requires e.Apply? && e.aop.Lazy? && SupportsInterp(e)
+    requires InterpLazy(e, ctx).Failure?
+    ensures InterpLazy_Eagerly(e, ctx) == InterpLazy(e, ctx)
+  {}
+
+  lemma InterpLazy_Eagerly_Sound(e: Expr, ctx: Context)
+    requires e.Apply? && e.aop.Lazy? && SupportsInterp(e)
+    requires InterpLazy_Eagerly(e, ctx).Success?
+    ensures InterpLazy_Eagerly(e, ctx) == InterpLazy(e, ctx)
+  {}
 
   function method InterpBinaryOp(expr: Expr, bop: AST.BinaryOp, v0: V.T, v1: V.T)
     : PureInterpResult<V.T>
@@ -237,9 +290,6 @@ module Interp {
       case (Bool(b1), Bool(b2)) =>
         match op {
           case Iff() => Success(V.Bool(b1 <==> b2))
-          case Or() => Failure(Unsupported(expr)) // FIXME move to top-level AST
-          case And() => Failure(Unsupported(expr)) // FIXME move to top-level AST
-          case Imp() => Failure(Unsupported(expr)) // FIXME move to top-level AST
         }
       case _ => Failure(InvalidExpression(expr)) // FIXME: Wf
     }

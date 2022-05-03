@@ -55,7 +55,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
 
     module BinaryOps {
       datatype Logical =
-        Iff | Imp | And | Or
+        Iff // And, Or, and Imp are in LazyOp
       datatype Eq =
         EqCommon | NeqCommon
       datatype Numeric =
@@ -114,7 +114,6 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       import BinaryOps
       import C = CSharpDafnyASTModel
 
-      // public class LiteralExpr : Expression
       datatype Literal =
         | LitBool(b: bool)
         | LitInt(i: int)
@@ -138,13 +137,22 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         | Display(ty: Types.Type)
         | Print
 
-      datatype ApplyOp =
+      datatype EagerOp =
         | UnaryOp(uop: UnaryOps.UnaryOp)
         | BinaryOp(bop: BinaryOps.BinaryOp)
         | DataConstructor(name: Types.Path, typeArgs: seq<Types.Type>)
         | MethodCall(classType: Types.ClassType, receiver: MethodId, typeArgs: seq<Types.Type>)
         | FunctionCall // First argument is function
         | Builtin(fn: BuiltinFunction)
+
+      datatype LazyOp =
+        | And
+        | Or
+        | Imp
+
+      datatype ApplyOp =
+        | Lazy(lOp: LazyOp)
+        | Eager(eOp: EagerOp)
 
       datatype UnsupportedExpr =
         | Invalid(msg: string)
@@ -188,8 +196,9 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
 
       function method WellFormed(e: Expr): bool {
         match e {
-          case Apply(UnaryOp(_), es) => |es| == 1
-          case Apply(BinaryOp(_), es) => |es| == 2
+          case Apply(Lazy(_), es) => |es| == 2
+          case Apply(Eager(UnaryOp(_)), es) => |es| == 1
+          case Apply(Eager(BinaryOp(_)), es) => |es| == 2
           case _ => true
         }
       }
@@ -225,26 +234,28 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     import opened CSharpDafnyInterop.Microsoft
     import C = CSharpDafnyASTModel
     import D = AST
+    import DE = AST.Exprs
+    import DT = AST.Types
     import P = Predicates.Deep
 
-    function method TranslateType(ty: C.Type): D.Types.Type
+    function method TranslateType(ty: C.Type): DT.Type
       reads *
       decreases TypeHeight(ty)
     {
       if ty is C.BoolType then
-        D.Types.Bool
+        DT.Bool
       else if ty is C.CharType then
-        D.Types.Char
+        DT.Char
       else if ty is C.IntType then
-        D.Types.Int
+        DT.Int
       else if ty is C.RealType then
-        D.Types.Real
+        DT.Real
       else if ty is C.BigOrdinalType then
-        D.Types.BigOrdinal
+        DT.BigOrdinal
       else if ty is C.BitvectorType then
         var bvTy := ty as C.BitvectorType;
-        if bvTy.Width >= 0 then D.Types.BitVector(bvTy.Width as int)
-        else D.Types.Invalid(ty)
+        if bvTy.Width >= 0 then DT.BitVector(bvTy.Width as int)
+        else DT.Invalid(ty)
       // TODO: the following could be simplified
       else if ty is C.MapType then
         var mTy := ty as C.MapType;
@@ -252,37 +263,39 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         assume TypeHeight(mTy.Range) < TypeHeight(mTy);
         var domainTy := TranslateType(mTy.Domain);
         var rangeTy := TranslateType(mTy.Range);
-        D.Types.Collection(mTy.Finite, D.Types.CollectionKind.Map(domainTy), rangeTy)
+        DT.Collection(mTy.Finite, DT.CollectionKind.Map(domainTy), rangeTy)
       else if ty is C.SetType then
         var mTy := ty as C.SetType;
         assume TypeHeight(mTy.Arg) < TypeHeight(mTy);
         var eltTy := TranslateType(mTy.Arg);
-        D.Types.Collection(mTy.Finite, D.Types.CollectionKind.Set, eltTy)
+        DT.Collection(mTy.Finite, DT.CollectionKind.Set, eltTy)
       else if ty is C.MultiSetType then
         var mTy := ty as C.MultiSetType;
         assume TypeHeight(mTy.Arg) < TypeHeight(mTy);
         var eltTy := TranslateType(mTy.Arg);
-        D.Types.Collection(true, D.Types.CollectionKind.Multiset, eltTy)
+        DT.Collection(true, DT.CollectionKind.Multiset, eltTy)
       else if ty is C.SeqType then
         var mTy := ty as C.SeqType;
         assume TypeHeight(mTy.Arg) < TypeHeight(mTy);
         var eltTy := TranslateType(mTy.Arg);
-        D.Types.Collection(true, D.Types.CollectionKind.Seq, eltTy)
-      else D.Types.Unsupported(ty)
+        DT.Collection(true, DT.CollectionKind.Seq, eltTy)
+      else DT.Unsupported(ty)
     }
 
-    const UnaryOpCodeMap: map<C.UnaryOpExpr__Opcode, D.UnaryOps.UnaryOp> :=
+    const UnaryOpMap: map<C.UnaryOpExpr__Opcode, D.UnaryOp> :=
       map[C.UnaryOpExpr__Opcode.Not := D.UnaryOps.Not]
          [C.UnaryOpExpr__Opcode.Cardinality := D.UnaryOps.Cardinality]
          [C.UnaryOpExpr__Opcode.Fresh := D.UnaryOps.Fresh]
          [C.UnaryOpExpr__Opcode.Allocated := D.UnaryOps.Allocated]
          [C.UnaryOpExpr__Opcode.Lit := D.UnaryOps.Lit]
 
-    const BinaryOpCodeMap: map<C.BinaryExpr__ResolvedOpcode, D.BinaryOp> :=
+    const LazyBinopMap: map<C.BinaryExpr__ResolvedOpcode, DE.LazyOp> :=
+      map[C.BinaryExpr__ResolvedOpcode.Imp := DE.Imp]
+         [C.BinaryExpr__ResolvedOpcode.And := DE.And]
+         [C.BinaryExpr__ResolvedOpcode.Or := DE.Or]
+
+    const EagerBinopMap: map<C.BinaryExpr__ResolvedOpcode, DE.BinaryOps.T> :=
       map[C.BinaryExpr__ResolvedOpcode.Iff := D.BinaryOps.Logical(D.BinaryOps.Iff)]
-         [C.BinaryExpr__ResolvedOpcode.Imp := D.BinaryOps.Logical(D.BinaryOps.Imp)]
-         [C.BinaryExpr__ResolvedOpcode.And := D.BinaryOps.Logical(D.BinaryOps.And)]
-         [C.BinaryExpr__ResolvedOpcode.Or := D.BinaryOps.Logical(D.BinaryOps.Or)]
          [C.BinaryExpr__ResolvedOpcode.EqCommon := D.BinaryOps.Eq(D.BinaryOps.EqCommon)]
          [C.BinaryExpr__ResolvedOpcode.NeqCommon := D.BinaryOps.Eq(D.BinaryOps.NeqCommon)]
          [C.BinaryExpr__ResolvedOpcode.Lt := D.BinaryOps.Numeric(D.BinaryOps.Lt)]
@@ -343,77 +356,83 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
          [C.BinaryExpr__ResolvedOpcode.RankLt := D.BinaryOps.Datatypes(D.BinaryOps.RankLt)]
          [C.BinaryExpr__ResolvedOpcode.RankGt := D.BinaryOps.Datatypes(D.BinaryOps.RankGt)];
 
-    function method TranslateUnary(u: C.UnaryExpr) : (e: D.Exprs.T)
+    const BinaryOpCodeMap: map<C.BinaryExpr__ResolvedOpcode, DE.ApplyOp> :=
+      (map k | k in LazyBinopMap  :: DE.Lazy(LazyBinopMap[k])) +
+      (map k | k in EagerBinopMap :: DE.Eager(DE.BinaryOp(EagerBinopMap[k])))
+
+    function method TranslateUnary(u: C.UnaryExpr) : (e: DE.T)
       decreases ASTHeight(u), 0
       reads *
-      ensures P.All_Expr(e, D.Exprs.WellFormed)
+      ensures P.All_Expr(e, DE.WellFormed)
     {
       if u is C.UnaryOpExpr then
         var u := u as C.UnaryOpExpr;
         var op, e := u.Op, u.E;
-        assume op in UnaryOpCodeMap.Keys; // FIXME expect
-        D.Exprs.Apply(D.Exprs.ApplyOp.UnaryOp(UnaryOpCodeMap[op]), [TranslateExpression(e)])
+        assume op in UnaryOpMap.Keys; // FIXME expect
+        DE.Apply(DE.Eager(DE.UnaryOp(UnaryOpMap[op])), [TranslateExpression(e)])
       else
-        D.Exprs.Unsupported(D.Exprs.UnsupportedExpr(u))
+        DE.Unsupported(DE.UnsupportedExpr(u))
     }
 
     function {:axiom} ASTHeight(c: C.Expression) : nat
     function {:axiom} StmtHeight(t: C.Statement) : nat
     function {:axiom} TypeHeight(t: C.Type) : nat
 
-    function method TranslateBinary(b: C.BinaryExpr) : (e: D.Exprs.T)
+    function method TranslateBinary(b: C.BinaryExpr) : (e: DE.T)
       decreases ASTHeight(b), 0
       reads *
-      ensures P.All_Expr(e, D.Exprs.WellFormed)
+      ensures P.All_Expr(e, DE.WellFormed)
     {
       var op, e0, e1 := b.ResolvedOp, b.E0, b.E1;
       // LATER b.AccumulatesForTailRecursion
-      assume op in BinaryOpCodeMap.Keys; // FIXME expect
       assume ASTHeight(e0) < ASTHeight(b);
       assume ASTHeight(e1) < ASTHeight(b);
-      D.Exprs.Apply(D.Exprs.ApplyOp.BinaryOp(BinaryOpCodeMap[op]), [TranslateExpression(e0), TranslateExpression(e1)])
+      if op in BinaryOpCodeMap then
+        DE.Apply(BinaryOpCodeMap[op], [TranslateExpression(e0), TranslateExpression(e1)])
+      else
+        DE.Unsupported(DE.UnsupportedExpr(b))
     }
 
-    function method TranslateLiteral(l: C.LiteralExpr): (e: D.Exprs.T)
+    function method TranslateLiteral(l: C.LiteralExpr): (e: DE.T)
       reads *
-      ensures P.All_Expr(e, D.Exprs.WellFormed)
+      ensures P.All_Expr(e, DE.WellFormed)
     {
       if l.Value is Boolean then
-        D.Exprs.Literal(D.Exprs.LitBool(TypeConv.AsBool(l.Value)))
+        DE.Literal(DE.LitBool(TypeConv.AsBool(l.Value)))
       else if l.Value is Numerics.BigInteger then
-        D.Exprs.Literal(D.Exprs.LitInt(TypeConv.AsInt(l.Value)))
+        DE.Literal(DE.LitInt(TypeConv.AsInt(l.Value)))
       else if l.Value is BaseTypes.BigDec then
-        D.Exprs.Literal(D.Exprs.LitReal(TypeConv.AsReal(l.Value))) // TODO test
+        DE.Literal(DE.LitReal(TypeConv.AsReal(l.Value))) // TODO test
       else if l.Value is String then
         var str := TypeConv.AsString(l.Value);
         if l is C.CharLiteralExpr then
-          if |str| == 1 then D.Exprs.Literal(D.Exprs.LitChar(str[0]))
-          else D.Exprs.Unsupported(D.Exprs.Invalid("CharLiteralExpr must contain a single character."))
+          if |str| == 1 then DE.Literal(DE.LitChar(str[0]))
+          else DE.Unsupported(DE.Invalid("CharLiteralExpr must contain a single character."))
         else if l is C.StringLiteralExpr then
           var sl := l as C.StringLiteralExpr;
-          D.Exprs.Literal(D.Exprs.LitString(str, sl.IsVerbatim))
+          DE.Literal(DE.LitString(str, sl.IsVerbatim))
         else
-          D.Exprs.Unsupported(D.Exprs.Invalid("LiteralExpr with .Value of type string must be a char or a string."))
-      else D.Exprs.Unsupported(D.Exprs.UnsupportedExpr(l))
+          DE.Unsupported(DE.Invalid("LiteralExpr with .Value of type string must be a char or a string."))
+      else DE.Unsupported(DE.UnsupportedExpr(l))
     }
 
-    function method TranslateFunctionCall(fce: C.FunctionCallExpr): (e: D.Exprs.T)
+    function method TranslateFunctionCall(fce: C.FunctionCallExpr): (e: DE.T)
       reads *
       decreases ASTHeight(fce), 0
-      ensures P.All_Expr(e, D.Exprs.WellFormed)
+      ensures P.All_Expr(e, DE.WellFormed)
     {
       assume ASTHeight(fce.Receiver) < ASTHeight(fce);
       var fnExpr := TranslateExpression(fce.Receiver);
       var argsC := ListUtils.ToSeq(fce.Args);
       var argExprs := Seq.Map((e requires e in argsC reads * =>
         assume ASTHeight(e) < ASTHeight(fce); TranslateExpression(e)), argsC);
-      D.Exprs.Apply(D.Exprs.ApplyOp.FunctionCall, [fnExpr] + argExprs)
+      DE.Apply(DE.Eager(DE.FunctionCall), [fnExpr] + argExprs)
     }
 
-    function method TranslateDatatypeValue(dtv: C.DatatypeValue): (e: D.Exprs.T)
+    function method TranslateDatatypeValue(dtv: C.DatatypeValue): (e: DE.T)
       reads *
       decreases ASTHeight(dtv), 0
-      ensures P.All_Expr(e, D.Exprs.WellFormed)
+      ensures P.All_Expr(e, DE.WellFormed)
     {
       var ctor := dtv.Ctor;
       var n := TypeConv.AsString(ctor.Name);
@@ -424,50 +443,50 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       var argsC := ListUtils.ToSeq(dtv.Arguments);
       var argExprs := Seq.Map((e requires e in argsC reads * =>
         assume ASTHeight(e) < ASTHeight(dtv); TranslateExpression(e)), argsC);
-      D.Exprs.Apply(D.Exprs.DataConstructor([n], typeArgs), argExprs) // TODO: proper path
+      DE.Apply(DE.Eager(DE.DataConstructor([n], typeArgs)), argExprs) // TODO: proper path
     }
 
-    function method TranslateDisplayExpr(de: C.DisplayExpression): (e: D.Exprs.T)
+    function method TranslateDisplayExpr(de: C.DisplayExpression): (e: DE.T)
       reads *
       decreases ASTHeight(de), 0
-      ensures P.All_Expr(e, D.Exprs.WellFormed)
+      ensures P.All_Expr(e, DE.WellFormed)
     {
       var elSeq := ListUtils.ToSeq(de.Elements);
       var exprs := Seq.Map((e requires e in elSeq reads * =>
         assume ASTHeight(e) < ASTHeight(de); TranslateExpression(e)), elSeq);
       var ty := TranslateType(de.Type);
-      D.Exprs.Apply(D.Exprs.ApplyOp.Builtin(D.Exprs.Display(ty)), exprs)
+      DE.Apply(DE.Eager(DE.Builtin(DE.Display(ty))), exprs)
     }
 
-    function method TranslateExpressionPair(mde: C.MapDisplayExpr, ep: C.ExpressionPair): (e: D.Exprs.T)
+    function method TranslateExpressionPair(mde: C.MapDisplayExpr, ep: C.ExpressionPair): (e: DE.T)
       reads *
       requires Math.Max(ASTHeight(ep.A), ASTHeight(ep.B)) < ASTHeight(mde)
       decreases ASTHeight(mde), 0
-      ensures P.All_Expr(e, D.Exprs.WellFormed)
+      ensures P.All_Expr(e, DE.WellFormed)
     {
       var tyA := TranslateType(ep.A.Type);
       // TODO: This isn't really a sequence of type tyA! It should really construct pairs
-      var ty := D.Types.Collection(true, D.Types.CollectionKind.Seq, tyA);
-      D.Exprs.Apply(D.Exprs.ApplyOp.Builtin(D.Exprs.Display(ty)), [TranslateExpression(ep.A), TranslateExpression(ep.B)])
+      var ty := DT.Collection(true, DT.CollectionKind.Seq, tyA);
+      DE.Apply(DE.Eager(DE.Builtin(DE.Display(ty))), [TranslateExpression(ep.A), TranslateExpression(ep.B)])
     }
 
-    function method TranslateMapDisplayExpr(mde: C.MapDisplayExpr): (e: D.Exprs.T)
+    function method TranslateMapDisplayExpr(mde: C.MapDisplayExpr): (e: DE.T)
       reads *
       decreases ASTHeight(mde), 1
-      ensures P.All_Expr(e, D.Exprs.WellFormed)
+      ensures P.All_Expr(e, DE.WellFormed)
     {
       var elSeq := ListUtils.ToSeq(mde.Elements);
       var exprs := Seq.Map((ep: C.ExpressionPair) reads * =>
         assume Math.Max(ASTHeight(ep.A), ASTHeight(ep.B)) < ASTHeight(mde);
         TranslateExpressionPair(mde, ep), elSeq);
       var ty := TranslateType(mde.Type);
-      D.Exprs.Apply(D.Exprs.ApplyOp.Builtin(D.Exprs.Display(ty)), exprs)
+      DE.Apply(DE.Eager(DE.Builtin(DE.Display(ty))), exprs)
     }
 
-    function method TranslateExpression(c: C.Expression) : (e: D.Exprs.T)
+    function method TranslateExpression(c: C.Expression) : (e: DE.T)
       reads *
       decreases ASTHeight(c), 2
-      ensures P.All_Expr(e, D.Exprs.WellFormed)
+      ensures P.All_Expr(e, DE.WellFormed)
     {
       if c is C.BinaryExpr then
         TranslateBinary(c as C.BinaryExpr)
@@ -481,22 +500,22 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         TranslateMapDisplayExpr(c as C.MapDisplayExpr)
       else if c is C.DisplayExpression then
         TranslateDisplayExpr(c as C.DisplayExpression)
-      else D.Exprs.Unsupported(D.Exprs.UnsupportedExpr(c))
+      else DE.Unsupported(DE.UnsupportedExpr(c))
     }
 
-    function method TranslateStatement(s: C.Statement) : D.Exprs.T
+    function method TranslateStatement(s: C.Statement) : DE.T
       reads *
       decreases StmtHeight(s)
     {
       if s is C.PrintStmt then
         var p := s as C.PrintStmt;
-        D.Exprs.Apply(D.Exprs.ApplyOp.Builtin(D.Exprs.Print), Seq.Map(TranslateExpression, ListUtils.ToSeq(p.Args)))
+        DE.Apply(DE.Eager(DE.Builtin(DE.Print)), Seq.Map(TranslateExpression, ListUtils.ToSeq(p.Args)))
       else if s is C.BlockStmt then
         var b := s as C.BlockStmt;
         var stmts := ListUtils.ToSeq(b.Body);
         var stmts' := Seq.Map(s' requires s' in stmts reads * =>
           assume StmtHeight(s') < StmtHeight(s); TranslateStatement(s'), stmts);
-        D.Exprs.Block(stmts')
+        DE.Block(stmts')
       else if s is C.IfStmt then
         var i := s as C.IfStmt;
         // TODO: look at i.IsBindingGuard
@@ -506,14 +525,14 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         var cond := TranslateExpression(i.Guard);
         var thn := TranslateStatement(i.Thn);
         var els := TranslateStatement(i.Els);
-        D.Exprs.If(cond, thn, els)
-      else D.Exprs.Unsupported(D.Exprs.UnsupportedStmt(s))
+        DE.If(cond, thn, els)
+      else DE.Unsupported(DE.UnsupportedStmt(s))
     }
 
     function method TranslateMethod(m: C.Method) : D.Method reads * {
       // var compileName := m.CompileName;
       // FIXME “Main”
-      D.Method("Main", D.Exprs.Block(Seq.Map(TranslateStatement, ListUtils.ToSeq(m.Body.Body))))
+      D.Method("Main", DE.Block(Seq.Map(TranslateStatement, ListUtils.ToSeq(m.Body.Body))))
     }
 
     function method TranslateProgram(p: C.Program) : D.Program reads * {
@@ -822,7 +841,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
 
     predicate method IsNegatedBinopExpr(e: Exprs.T) {
       match e {
-        case Apply(BinaryOp(op), _) => IsNegatedBinop(op)
+        case Apply(Eager(BinaryOp(op)), _) => IsNegatedBinop(op)
         case _ => false
       }
     }
@@ -849,9 +868,10 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       ensures NotANegatedBinopExpr(e')
     {
       match e {
-        case Apply(BinaryOp(op), es) =>
+        case Apply(Eager(BinaryOp(op)), es) =>
           if IsNegatedBinop(op) then
-            Exprs.Apply(Exprs.ApplyOp.UnaryOp(UnaryOps.Not), [Expr.Apply(Exprs.ApplyOp.BinaryOp(FlipNegatedBinop(op)), es)])
+            Exprs.Apply(Exprs.Eager(Exprs.UnaryOp(UnaryOps.Not)),
+                        [Exprs.Apply(Exprs.Eager(Exprs.BinaryOp(FlipNegatedBinop(op))), es)])
           else
             e
         case _ => e
@@ -865,10 +885,10 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       forall e | Deep.AllChildren_Expr(e, PC) ensures Deep.AllChildren_Expr(f(e), PC) {
         if IsNegatedBinopExpr(e) {
           var e'' := match e {
-            case Apply(BinaryOp(op), es) =>
-              Expr.Apply(Exprs.ApplyOp.BinaryOp(FlipNegatedBinop(op)), es)
+            case Apply(Eager(BinaryOp(op)), es) =>
+              Expr.Apply(Exprs.Eager(Exprs.BinaryOp(FlipNegatedBinop(op))), es)
           };
-          var e' := Exprs.Apply(Exprs.ApplyOp.UnaryOp(UnaryOps.Not), [e'']);
+          var e' := Exprs.Apply(Exprs.Eager(Exprs.UnaryOp(UnaryOps.Not)), [e'']);
           calc { // FIXME Automate
             Deep.All_Expr(f(e), PC);
             Deep.All_Expr(e', PC);
@@ -893,17 +913,17 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       Deep.AllImpliesChildren(e, Exprs.WellFormed);
       match e {
         case Literal(lit_) => e
-        case Apply(BinaryOp(bop), exprs) =>
+        case Apply(Eager(BinaryOp(bop)), exprs) =>
           var exprs' := Seq.Map(e requires e in exprs => EliminateNegatedBinops_Expr_direct(e), exprs);
           Predicates.Map_All_IsMap(e requires e in exprs => EliminateNegatedBinops_Expr_direct(e), exprs);
           if IsNegatedBinop(bop) then
-            var e'' := Expr.Apply(Exprs.ApplyOp.BinaryOp(FlipNegatedBinop(bop)), exprs');
+            var e'' := Exprs.Apply(Exprs.Eager(Exprs.BinaryOp(FlipNegatedBinop(bop))), exprs');
             assert Deep.All_Expr(e'', NotANegatedBinopExpr);
             assert Deep.All_Expr(e'', Exprs.WellFormed);
-            var e' := Exprs.Apply(Exprs.ApplyOp.UnaryOp(UnaryOps.Not), [e'']);
+            var e' := Exprs.Apply(Exprs.Eager(Exprs.UnaryOp(UnaryOps.Not)), [e'']);
             e'
           else
-            Expr.Apply(Exprs.ApplyOp.BinaryOp(bop), exprs')
+            Expr.Apply(Exprs.Eager(Exprs.BinaryOp(bop)), exprs')
         case Apply(aop, exprs) =>
           var exprs' := Seq.Map(e requires e in exprs => EliminateNegatedBinops_Expr_direct(e), exprs);
           Predicates.Map_All_IsMap(e requires e in exprs => EliminateNegatedBinops_Expr_direct(e), exprs);
