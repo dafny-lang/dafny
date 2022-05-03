@@ -527,7 +527,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override bool DeclareFormal(string prefix, string name, Type type, IToken tok, bool isInParam, ConcreteSyntaxTree wr) {
       if (isInParam) {
-        wr.Write("{0}{1}", prefix, name);
+        wr.Write($"{prefix}{name}");
         return true;
       } else {
         return false;
@@ -693,7 +693,7 @@ namespace Microsoft.Dafny.Compilers {
         TrParenExpr(dimensions[0], wr, false, wStmts);
         wr.Write("]");
       } else {
-        wr.Write($"{DafnyRuntimeModule}.newArray({0}", initValue);
+        wr.Write($"{DafnyRuntimeModule}.newArray({initValue}");
         foreach (var dim in dimensions) {
           wr.Write(", int");
           TrParenExpr(dim, wr, false, wStmts);
@@ -736,7 +736,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr) {
       if (!isVerbatim) {
-        wr.Write("\"{0}\"", str);
+        wr.Write($"\"{str}\"");
       } else {
         var n = str.Length;
         wr.Write("\"");

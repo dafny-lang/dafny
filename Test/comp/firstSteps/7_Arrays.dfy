@@ -39,22 +39,22 @@ method Main() {
     a[i] := i;
     i := i + 1;
   }
-    PrintArray(a);
-    var n := LinearSearch(a, 17);
-    print n, "\n";
-    var s : seq<int> := a[..];
-    print s, "\n";
-    s := a[2..16];
-    print s, "\n";
-    s := a[20..];
-    print s, "\n";
-    s := a[..8];
-    print s, "\n";
+  PrintArray(a);
+  var n := LinearSearch(a, 17);
+  print n, "\n";
+  var s : seq<int> := a[..];
+  print s, "\n";
+  s := a[2..16];
+  print s, "\n";
+  s := a[20..];
+  print s, "\n";
+  s := a[..8];
+  print s, "\n";
     
-    // Conversion to sequence should copy elements (sequences are immutable!)
-    a[0] := 42;
-    print s, "\n";
-    MultipleDimensions();
+  // Conversion to sequence should copy elements (sequences are immutable!)
+  a[0] := 42;
+  print s, "\n";
+  MultipleDimensions();
 }
      
 method PrintMatrix<A>(m: array2<A>) {
@@ -89,4 +89,4 @@ method PrintArrayArray<A>(a: array<array<A>>) {
     i := i + 1;
   }
   print "\n";
-} 
+}
