@@ -14,15 +14,14 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
   import DafnyCompilerCommon.Translator
 
   module Compiler {
-    import opened DafnyCompilerCommon.AST
-    import opened AST.Expr
     import opened StrTree_ = StrTree
     import opened CSharpDafnyInterop
+    import opened DafnyCompilerCommon.AST
     import DafnyCompilerCommon.Predicates
     import DafnyCompilerCommon.Simplifier
     import opened Predicates.Deep
 
-    function method CompileType(t: Type.Type): StrTree {
+    function method CompileType(t: Type): StrTree {
       match t {
         case Bool() => Str("bool")
         case Char() => Str("char")
@@ -53,7 +52,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
       Call(Str("new BigInteger"), [Str(istr)])
     }
 
-    function method CompileLiteralExpr(l: Expr.Literal) : StrTree {
+    function method CompileLiteralExpr(l: Exprs.Literal) : StrTree {
       match l {
         case LitBool(b: bool) => Str(if b then "true" else "false")
         case LitInt(i: int) => CompileInt(i)
@@ -66,13 +65,13 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
       }
     }
 
-    function method CompileDisplayExpr(ty: Type.Type, exprs: seq<StrTree>): StrTree
+    function method CompileDisplayExpr(ty: Type, exprs: seq<StrTree>): StrTree
     {
       var tyStr := CompileType(ty);
       Call(Format("{}.FromElements", [tyStr]), exprs)
     }
 
-    function method CompileUnaryOpExpr(op: UnaryOp.Op, c: StrTree) : StrTree {
+    function method CompileUnaryOpExpr(op: UnaryOp, c: StrTree) : StrTree {
       match op {
         case Not() => Format("!{}", [c]) // LATER use resolved op, which distinguishes between BV and boolean
         case Cardinality() => Unsupported
@@ -82,7 +81,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
       }
     }
 
-    function method CompileBinaryExpr(op: BinaryOp.Op, c0: StrTree, c1: StrTree) : StrTree
+    function method CompileBinaryExpr(op: BinaryOp, c0: StrTree, c1: StrTree) : StrTree
       requires !Simplifier.IsNegatedBinop(op)
     {
       var fmt := str requires countFormat(str) == 2 =>
@@ -159,21 +158,21 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
       }
     }
 
-    function method CompilePrint(e: Expr.t) : StrTree
+    function method CompilePrint(e: Expr) : StrTree
       decreases e, 1
       requires All_Expr(e, Simplifier.NotANegatedBinopExpr)
-      requires All_Expr(e, Expr.WellFormed)
+      requires All_Expr(e, Exprs.WellFormed)
     {
       StrTree_.Seq([Call(Str("DafnyRuntime.Helpers.Print"), [CompileExpr(e)]), Str(";")])
     }
 
-    function method CompileExpr(e: Expr.t) : StrTree
+    function method CompileExpr(e: Expr) : StrTree
       requires Deep.All_Expr(e, Simplifier.NotANegatedBinopExpr)
-      requires Deep.All_Expr(e, Expr.WellFormed)
+      requires Deep.All_Expr(e, Exprs.WellFormed)
       decreases e, 0
     {
       Predicates.AllImpliesChildren(e, Simplifier.NotANegatedBinopExpr);
-      Predicates.AllImpliesChildren(e, Expr.WellFormed);
+      Predicates.AllImpliesChildren(e, Exprs.WellFormed);
       match e {
         case Literal(l) =>
           CompileLiteralExpr(l)
@@ -190,8 +189,6 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
           CompileDisplayExpr(ty, Lib.Seq.Map((e requires e in exprs => CompileExpr(e)), exprs))
         case Apply(Builtin(Print), exprs) =>
           Concat("\n", Lib.Seq.Map(e requires e in exprs => CompilePrint(e), exprs))
-        case Invalid(_) => Unsupported
-        case UnsupportedExpr(_) => Unsupported
 
         case Block(exprs) =>
           Concat("\n", Lib.Seq.Map(e requires e in exprs => CompileExpr(e), exprs))
@@ -204,13 +201,13 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
                         Str("} else {"),
                         SepSeq(Lib.Datatypes.None, [Str("  "), cEls]),
                         Str("}")])
-        case UnsupportedStmt(_) => Unsupported
+        case Unsupported(_) => Unsupported
       }
     }
 
     function method CompileMethod(m: Method) : StrTree
       requires Deep.All_Method(m, Simplifier.NotANegatedBinopExpr)
-      requires Deep.All_Method(m, Expr.WellFormed)
+      requires Deep.All_Method(m, Exprs.WellFormed)
     {
       match m {
         case Method(nm, methodBody) => CompileExpr(methodBody)
@@ -219,7 +216,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
 
     function method CompileProgram(p: Program) : StrTree
       requires Deep.All_Program(p, Simplifier.NotANegatedBinopExpr)
-      requires Deep.All_Program(p, Expr.WellFormed)
+      requires Deep.All_Program(p, Exprs.WellFormed)
     {
       match p {
         case Program(mainMethod) => CompileMethod(mainMethod)
@@ -230,7 +227,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
       requires Deep.All_Program(p, Simplifier.NotANegatedBinopExpr)
     {
       // TODO: this property is tedious to propagate so isn't complete yet
-      if Deep.All_Program(p, WellFormed) {
+      if Deep.All_Program(p, Exprs.WellFormed) {
         st := CompileProgram(p);
       } else {
         st := StrTree.Str("// Invalid program.");
@@ -245,7 +242,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
       case SepSeq(sep, asts) =>
         for i := 0 to |asts| {
           if i != 0 && sep.Some? {
-            wr.Write(sep.t);
+            wr.Write(sep.value);
           }
           WriteAST(wr, asts[i]);
         }

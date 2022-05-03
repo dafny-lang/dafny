@@ -3,19 +3,19 @@ include "Library.dfy"
 
 module Values {
   import opened Lib.Datatypes
-  import Ty = DafnyCompilerCommon.AST.Type
+  import Ty = DafnyCompilerCommon.AST.Types
 
-  datatype T =
+  datatype Value =
     | Bool(b: bool)
     | Char(c: char)
     | Int(i: int)
     | Real(r: real)
     | BigOrdinal(o: ORDINAL)
     | BitVector(value: int)
-    | Map(m: map<T, T>)
-    | MultiSet(ms: multiset<T>)
-    | Seq(sq: seq<T>)
-    | Set(st: set<T>)
+    | Map(m: map<Value, Value>)
+    | MultiSet(ms: multiset<Value>)
+    | Seq(sq: seq<Value>)
+    | Set(st: set<Value>)
   {
     predicate method HasType(ty: Ty.Type) {
       match (this, ty) // FIXME tests on other side
@@ -47,16 +47,18 @@ module Values {
         case (Set(st), _) => false
     }
 
-    function method Cast(ty: Ty.Type) : (v: Option<T>)
+    function method Cast(ty: Ty.Type) : (v: Option<Value>)
       ensures v.Some? ==> HasType(ty)
     {
       if HasType(ty) then Some(this) else None
     }
   }
 
+  type T = Value
+
   function method Pow2(n: nat): nat
 
-  datatype Value = Value(ty: Ty.Type, v: T) {
+  datatype TypedValue = Value(ty: Ty.Type, v: T) {
     predicate Wf() { v.HasType(ty) }
   }
 
@@ -64,14 +66,13 @@ module Values {
   // NOTE: Maybe tag each syntactic :| with a distinct color and add the color somehow into the Dafny-side :| used to implement it.  Pro: it allows inlining.
 }
 
+type Value = Values.T
+
 module Interp {
   import opened Lib.Datatypes
   import opened DafnyCompilerCommon.AST
   import opened DafnyCompilerCommon.Predicates
-  type Expr = Expr
-  type Type = AST.Type.Type
   import V = Values
-  // DISCUSS reduce indirection
 
   predicate method Pure1(e: Expr) {
     match e {
@@ -79,7 +80,7 @@ module Interp {
       case Apply(aop, args: seq<Expr>) =>
         match aop {
           case UnaryOp(uop: UnaryOp.Op) => true
-          case BinaryOp(bop: BinaryOp.Op) => true
+          case BinaryOp(bop: BinaryOp) => true
           case DataConstructor(name: Path, typeArgs: seq<Type.Type>) => true
           case Builtin(Display(_)) => true
           case Builtin(Print) => false
@@ -97,14 +98,14 @@ module Interp {
   }
 
   predicate method SupportsInterp1(e: Expr) {
-    AST.Expr.WellFormed(e) &&
+    AST.Exprs.WellFormed(e) &&
     var FALSE := false;
     match e {
       case Literal(lit) => true
       case Apply(aop, args: seq<Expr>) =>
         match aop {
           case UnaryOp(uop: UnaryOp.Op) => FALSE
-          case BinaryOp(bop: BinaryOp.Op) => true
+          case BinaryOp(bop: BinaryOp) => true
           case DataConstructor(name: Path, typeArgs: seq<Type.Type>) => FALSE
           case Builtin(Display(_)) => FALSE
           case Builtin(Print) => false
@@ -128,7 +129,7 @@ module Interp {
 
   }
 
-  function method InterpLiteral(a: AST.Expr.Literal) : V.T {
+  function method InterpLiteral(a: AST.Exprs.Literal) : V.T {
     match a
       case LitBool(b: bool) => V.Bool(b)
       case LitInt(i: int) => V.Int(i)
@@ -143,7 +144,7 @@ module Interp {
   datatype InterpError =
     | TypeError(e: Expr, value: V.T, expected: Type) // TODO rule out type errors through Wf predicate?
     | InvalidExpression(e: Expr) // TODO rule out in Wf predicate?
-    | Unsupported(e: Expr) // TODO rule out in SupportsExpr predicate
+    | Unsupported(e: Expr) // TODO rule out in SupportsInterp predicate
     | Overflow(x: int, low: int, high: int)
     | DivisionByZero
 
@@ -156,7 +157,9 @@ module Interp {
   type PureInterpResult<A> =
     Result<A, InterpError>
 
-  function method LiftPureResult<A>(ctx: Context, r: PureInterpResult<A>) : InterpResult<A> {
+  function method LiftPureResult<A>(ctx: Context, r: PureInterpResult<A>)
+    : InterpResult<A>
+  {
     var v :- r;
     Success(OK(v, ctx))
   }
@@ -172,7 +175,7 @@ module Interp {
         // FIXME short-circuiting operators should be separate
         var OK(argsv, ctx) :- InterpExprs(args, ctx);
         match aop {
-          case BinaryOp(bop: BinaryOp.Op) =>
+          case BinaryOp(bop: BinaryOp) =>
             assert |argsv| == 2;
             LiftPureResult(ctx, InterpBinaryOp(e, bop, argsv[0], argsv[1]))
         }
@@ -182,7 +185,8 @@ module Interp {
     }
   }
 
-  function method InterExprWithType(e: Expr, ty: Type, ctx: Context := map[]) : (r: InterpResult<V.T>)
+  function method InterExprWithType(e: Expr, ty: Type, ctx: Context := map[])
+    : (r: InterpResult<V.T>)
     requires SupportsInterp(e)
     decreases e, 1
     ensures r.Success? ==> r.value.v.HasType(ty)
@@ -192,7 +196,8 @@ module Interp {
     Success(OK(val, ctx))
   }
 
-  function method InterpExprs(es: seq<Expr>, ctx: Context) : (r: InterpResult<seq<V.T>>)
+  function method InterpExprs(es: seq<Expr>, ctx: Context)
+    : (r: InterpResult<seq<V.T>>)
     requires forall e | e in es :: SupportsInterp(e)
     ensures r.Success? ==> |r.value.v| == |es|
   {
@@ -203,7 +208,9 @@ module Interp {
       Success(OK([v] + vs, ctx))
   }
 
-  function method InterpBinaryOp(expr: Expr, bop: AST.BinaryOp.Op, v0: V.T, v1: V.T) : PureInterpResult<V.T> {
+  function method InterpBinaryOp(expr: Expr, bop: AST.BinaryOp, v0: V.T, v1: V.T)
+    : PureInterpResult<V.T>
+  {
     match bop
       case Numeric(op) => InterpNumeric(expr, op, v0, v1)
       case Logical(op) => InterpLogical(expr, op, v0, v1)
@@ -221,7 +228,9 @@ module Interp {
 
   }
 
-  function method InterpNumeric(expr: Expr, op: BinaryOp.Numeric, v0: V.T, v1: V.T) : PureInterpResult<V.T> {
+  function method InterpNumeric(expr: Expr, op: BinaryOps.Numeric, v0: V.T, v1: V.T)
+    : PureInterpResult<V.T>
+  {
     match (v0, v1) {
       // Separate functions to more easily check exhaustiveness
       case (Int(x1), Int(x2)) => InterpInt(expr, op, x1, x2)
@@ -235,7 +244,9 @@ module Interp {
     if b then Fail(DivisionByZero) else Pass
   }
 
-  function method InterpInt(expr: Expr, bop: AST.BinaryOp.Numeric, x1: int, x2: int) : PureInterpResult<V.T> {
+  function method InterpInt(expr: Expr, bop: AST.BinaryOps.Numeric, x1: int, x2: int)
+    : PureInterpResult<V.T>
+  {
     match bop {
       case Lt() => Success(V.Bool(x1 < x2))
       case Le() => Success(V.Bool(x1 <= x2))
@@ -253,7 +264,9 @@ module Interp {
     if low <= x < high then Success(x) else Failure(Overflow(x, low, high))
   }
 
-  function method InterpNumericChar(expr: Expr, bop: AST.BinaryOp.Numeric, x1: char, x2: char) : PureInterpResult<V.T> {
+  function method InterpNumericChar(expr: Expr, bop: AST.BinaryOps.Numeric, x1: char, x2: char)
+    : PureInterpResult<V.T>
+  {
     match bop { // FIXME: These first four cases are not used (see InterpChar instead)
       case Lt() => Success(V.Bool(x1 < x2))
       case Le() => Success(V.Bool(x1 <= x2))
@@ -267,7 +280,9 @@ module Interp {
     }
   }
 
-  function method InterpReal(expr: Expr, bop: AST.BinaryOp.Numeric, x1: real, x2: real) : PureInterpResult<V.T> {
+  function method InterpReal(expr: Expr, bop: AST.BinaryOps.Numeric, x1: real, x2: real)
+    : PureInterpResult<V.T>
+  {
     match bop {
       case Lt() => Success(V.Bool(x1 < x2))
       case Le() => Success(V.Bool(x1 <= x2))
@@ -281,7 +296,9 @@ module Interp {
     }
   }
 
-  function method InterpLogical(expr: Expr, op: BinaryOp.Logical, v0: V.T, v1: V.T) : PureInterpResult<V.T> {
+  function method InterpLogical(expr: Expr, op: BinaryOps.Logical, v0: V.T, v1: V.T)
+    : PureInterpResult<V.T>
+  {
     match (v0, v1) {
       case (Bool(b1), Bool(b2)) =>
         match op {
@@ -294,7 +311,9 @@ module Interp {
     }
   }
 
-  function method InterpChar(expr: Expr, op: AST.BinaryOp.Char, v0: V.T, v1: V.T) : PureInterpResult<V.T> { // FIXME eliminate distinction between GtChar and GT?
+  function method InterpChar(expr: Expr, op: AST.BinaryOps.Char, v0: V.T, v1: V.T)
+    : PureInterpResult<V.T>
+  { // FIXME eliminate distinction between GtChar and GT?
     match (v0, v1) {
       case (Char(x1), Char(x2)) =>
         match op {
@@ -307,7 +326,9 @@ module Interp {
     }
   }
 
-  function method InterpSets(expr: Expr, op: BinaryOp.Sets, v0: V.T, v1: V.T) : PureInterpResult<V.T> {
+  function method InterpSets(expr: Expr, op: BinaryOps.Sets, v0: V.T, v1: V.T)
+    : PureInterpResult<V.T>
+  {
     match (v0, v1)
       case (Set(s0), Set(s1)) =>
         match op {
@@ -333,7 +354,9 @@ module Interp {
       case _ => Failure(InvalidExpression(expr))
   }
 
-  function method InterpMultiSets(expr: Expr, op: BinaryOp.MultiSets, v0: V.T, v1: V.T) : PureInterpResult<V.T> {
+  function method InterpMultiSets(expr: Expr, op: BinaryOps.MultiSets, v0: V.T, v1: V.T)
+    : PureInterpResult<V.T>
+  {
     match (v0, v1)
       case (MultiSet(m0), MultiSet(m1)) =>
         match op {
@@ -359,7 +382,9 @@ module Interp {
       case _ => Failure(InvalidExpression(expr))
   }
 
-  function method InterpSequences(expr: Expr, op: BinaryOp.Sequences, v0: V.T, v1: V.T) : PureInterpResult<V.T> {
+  function method InterpSequences(expr: Expr, op: BinaryOps.Sequences, v0: V.T, v1: V.T)
+    : PureInterpResult<V.T>
+  {
     match (v0, v1)
       case (Seq(s0), Seq(s1)) =>
         match op {
@@ -380,7 +405,9 @@ module Interp {
       case _ => Failure(InvalidExpression(expr))
   }
 
-  function method InterpMaps(expr: Expr, op: BinaryOp.Maps, v0: V.T, v1: V.T) : PureInterpResult<V.T> {
+  function method InterpMaps(expr: Expr, op: BinaryOps.Maps, v0: V.T, v1: V.T)
+    : PureInterpResult<V.T>
+  {
     match (v0, v1)
       case (Map(m0), Map(m1)) =>
         match op {

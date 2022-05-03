@@ -23,6 +23,15 @@ module Lib {
       {
         value
       }
+
+      // FIXME: Port
+      function method MapFailure<R'>(f: R --> R') : Result<T, R'>
+        requires this.Failure? ==> f.requires(this.error)
+      {
+        match this
+          case Success(value) => Success(value)
+          case Failure(error) => Failure(f(error))
+      }
     }
 
     datatype Outcome<E> = Pass | Fail(error: E)
