@@ -693,7 +693,7 @@ namespace Microsoft.Dafny.Compilers {
         TrParenExpr(dimensions[0], wr, false, wStmts);
         wr.Write("]");
       } else {
-        wr.Write("_dafny.newArray({0}", initValue);
+        wr.Write($"{DafnyRuntimeModule}.newArray({0}", initValue);
         foreach (var dim in dimensions) {
           wr.Write(", int");
           TrParenExpr(dim, wr, false, wStmts);

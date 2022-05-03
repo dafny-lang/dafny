@@ -3,6 +3,7 @@ import builtins
 from dataclasses import dataclass
 from contextlib import contextmanager
 from fractions import Fraction
+import copy
 
 class classproperty(property):
     def __get__(self, instance, owner):
@@ -157,12 +158,8 @@ def euclidian_modulus(a, b):
 
 def newArray(initValue, *dims):
     b = initValue
-    dimslist = list(dims)
-    for i in reversed(dimslist):
-        tmplist = []
-        for _ in range(i):
-            tmplist.append(b)
-        b = tmplist
+    for i in reversed(list(dims)):
+        b = [copy.deepcopy(b) for _ in range(i)]
     return b
 
 @dataclass

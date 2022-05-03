@@ -35,10 +35,10 @@ method PrintArray<A>(a: array?<A>) {
 method Main() {
   var a := new int[23];
   var i := 0;
-    while i < 23 {
-      a[i] := i;
-      i := i + 1;
-    }
+  while i < 23 {
+    a[i] := i;
+    i := i + 1;
+  }
     PrintArray(a);
     var n := LinearSearch(a, 17);
     print n, "\n";
@@ -89,5 +89,4 @@ method PrintArrayArray<A>(a: array<array<A>>) {
     i := i + 1;
   }
   print "\n";
-}
- 
+} 
