@@ -45,7 +45,7 @@ method CallDoIt() returns () {
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
       client.OpenDocument(documentItem);
-      var verificationTask = diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
+      var verificationTask = GetLastVerificationDiagnostics(documentItem, CancellationToken);
       var definitionTask = RequestHover(documentItem, (4, 14));
       var first = await Task.WhenAny(verificationTask, definitionTask);
       Assert.AreSame(first, definitionTask);

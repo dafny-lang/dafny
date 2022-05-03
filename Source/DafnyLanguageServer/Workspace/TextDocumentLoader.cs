@@ -7,11 +7,13 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reactive.Linq;
+using System.Reactive.Threading.Tasks;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
+using VC;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
@@ -23,9 +25,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// The increased stack size is necessary to solve the issue https://github.com/dafny-lang/dafny/issues/1447.
   /// </remarks>
   public class TextDocumentLoader : ITextDocumentLoader {
-    // 256MB
-    private const int MaxStackSize = 0x10000000;
+    private const int ResolverMaxStackSize = 0x10000000; // 256MB
+    private static readonly ThreadTaskScheduler ResolverScheduler = new(ResolverMaxStackSize);
 
+    private DafnyOptions Options => DafnyOptions.O;
     private readonly IDafnyParser parser;
     private readonly ISymbolResolver symbolResolver;
     private readonly ISymbolTableFactory symbolTableFactory;
@@ -53,8 +56,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       this.logger = loggerFactory.CreateLogger<TextDocumentLoader>();
     }
 
-    static readonly ThreadTaskScheduler LargeStackScheduler = new(MaxStackSize);
-
     public static TextDocumentLoader Create(
       IDafnyParser parser,
       ISymbolResolver symbolResolver,
@@ -78,18 +79,17 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       );
     }
 
-    public Task<DafnyDocument> LoadAsync(TextDocumentItem textDocument, CancellationToken cancellationToken) {
+    public async Task<DafnyDocument> LoadAsync(TextDocumentItem textDocument, CancellationToken cancellationToken) {
 #pragma warning disable CS1998
-      // By using `async`, any OperationCancelledExceptions are converted to a cancelled Task.
-      return Task.Factory.StartNew(async () => LoadInternal(textDocument, cancellationToken), cancellationToken,
-        TaskCreationOptions.None, LargeStackScheduler).Unwrap();
+      return await await Task.Factory.StartNew(async () => LoadInternal(textDocument, cancellationToken), cancellationToken,
 #pragma warning restore CS1998
+        TaskCreationOptions.None, ResolverScheduler);
     }
 
     private DafnyDocument LoadInternal(TextDocumentItem textDocument, CancellationToken cancellationToken) {
       var errorReporter = new DiagnosticErrorReporter(textDocument.Uri);
       var program = parser.Parse(textDocument, errorReporter, cancellationToken);
-      PublishDafnyLanguageServerLoadErrors(errorReporter, program);
+      IncludePluginLoadErrors(errorReporter, program);
       if (errorReporter.HasErrors) {
         notificationPublisher.SendStatusNotification(textDocument, CompilationStatus.ParsingFailed);
         return CreateDocumentWithEmptySymbolTable(loggerFactory.CreateLogger<SymbolTable>(), textDocument, errorReporter, program, loadCanceled: false);
@@ -103,16 +103,19 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         notificationPublisher.SendStatusNotification(textDocument, CompilationStatus.CompilationSucceeded);
       }
       var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(symbolTable, cancellationToken).ToArray();
-      return new DafnyDocument(textDocument, errorReporter, new List<Diagnostic>(), ghostDiagnostics, program, symbolTable);
+
+      return new DafnyDocument(Options, textDocument, errorReporter.GetDiagnostics(textDocument.Uri),
+        Array.Empty<Diagnostic>(), Array.Empty<Counterexample>(),
+        ghostDiagnostics, program, symbolTable);
     }
 
-    private static void PublishDafnyLanguageServerLoadErrors(DiagnosticErrorReporter errorReporter, Dafny.Program program) {
-      foreach (var error in DafnyLanguageServer.LoadErrors) {
+    private static void IncludePluginLoadErrors(DiagnosticErrorReporter errorReporter, Dafny.Program program) {
+      foreach (var error in DafnyLanguageServer.PluginLoadErrors) {
         errorReporter.Error(MessageSource.Compiler, program.GetFirstTopLevelToken(), error);
       }
     }
 
-    private static DafnyDocument CreateDocumentWithEmptySymbolTable(
+    private DafnyDocument CreateDocumentWithEmptySymbolTable(
       ILogger<SymbolTable> logger,
       TextDocumentItem textDocument,
       DiagnosticErrorReporter errorReporter,
@@ -120,9 +123,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       bool loadCanceled
     ) {
       return new DafnyDocument(
+        Options,
         textDocument,
-        errorReporter,
+        errorReporter.GetDiagnostics(textDocument.Uri),
         new List<Diagnostic>(),
+        Array.Empty<Counterexample>(),
         Array.Empty<Diagnostic>(),
         program,
         CreateEmptySymbolTable(program, logger),
@@ -141,29 +146,54 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       );
     }
 
-    public Task<DafnyDocument> VerifyAsync(DafnyDocument document, CancellationToken cancellationToken) {
+    public IObservable<DafnyDocument> Verify(DafnyDocument document, CancellationToken cancellationToken) {
+      notificationPublisher.SendStatusNotification(document.TextDocumentItem, CompilationStatus.VerificationStarted);
+      var progressReporter = new VerificationProgressReporter(document.TextDocumentItem, notificationPublisher);
+      var programErrorReporter = new DiagnosticErrorReporter(document.Uri);
+      document.Program.Reporter = programErrorReporter;
+      var implementationTasks = verifier.Verify(document.Program, progressReporter, cancellationToken);
+      foreach (var implementationTask in implementationTasks) {
+        implementationTask.Run();
+      }
 
-      return Task.Factory.StartNew(() => VerifyInternalAsync(document, cancellationToken), cancellationToken,
-        TaskCreationOptions.None, LargeStackScheduler).Unwrap();
+      var _ = NotifyStatusAsync(document.TextDocumentItem, implementationTasks);
+
+      var concurrentDictionary = new ConcurrentBag<Diagnostic>();
+      var counterExamples = new ConcurrentStack<Counterexample>();
+      var documentTasks = implementationTasks.Select(async it => {
+        var result = await it.ActualTask;
+
+        var errorReporter = new DiagnosticErrorReporter(document.Uri);
+        foreach (var counterExample in result.Errors) {
+          counterExamples.Push(counterExample);
+          errorReporter.ReportBoogieError(counterExample.CreateErrorInformation(result.Outcome, Options.ForceBplErrors));
+        }
+        var outcomeError = result.GetOutcomeError(Options);
+        if (outcomeError != null) {
+          errorReporter.ReportBoogieError(outcomeError);
+        }
+
+        var diagnostics = errorReporter.GetDiagnostics(document.Uri).ToList();
+        foreach (var diagnostic in diagnostics) {
+          concurrentDictionary.Add(diagnostic);
+        }
+
+        return document with {
+          VerificationDiagnostics = concurrentDictionary.ToArray(),
+          CounterExamples = counterExamples.ToArray(),
+        };
+      }).ToList();
+      return documentTasks.Select(documentTask => documentTask.ToObservable()).Merge();
     }
 
-    private async Task<DafnyDocument> VerifyInternalAsync(DafnyDocument document, CancellationToken cancellationToken) {
-      notificationPublisher.SendStatusNotification(document.Text, CompilationStatus.VerificationStarted);
-      var progressReporter = new VerificationProgressReporter(document.Text, notificationPublisher);
-      var verificationResult = await verifier.VerifyAsync(document.Program, progressReporter, cancellationToken);
-      var compilationStatusAfterVerification = verificationResult.Verified
+    private async Task NotifyStatusAsync(TextDocumentItem item, IReadOnlyList<IImplementationTask> implementationTasks) {
+      var results = await Task.WhenAll(implementationTasks.Select(t => t.ActualTask));
+      logger.LogDebug($"Finished verification with {results.Sum(r => r.Errors.Count)} errors.");
+      var verified = results.All(r => r.Outcome == ConditionGeneration.Outcome.Correct);
+      var compilationStatusAfterVerification = verified
         ? CompilationStatus.VerificationSucceeded
         : CompilationStatus.VerificationFailed;
-      notificationPublisher.SendStatusNotification(document.Text, compilationStatusAfterVerification);
-      logger.LogDebug($"Finished verification with {document.Errors.ErrorCount} errors.");
-      return document with {
-        OldVerificationDiagnostics = new List<Diagnostic>(),
-        SerializedCounterExamples = verificationResult.SerializedCounterExamples
-      };
-    }
-
-    private record Request(CancellationToken CancellationToken) {
-      public TaskCompletionSource<DafnyDocument> Document { get; } = new();
+      notificationPublisher.SendStatusNotification(item, compilationStatusAfterVerification);
     }
 
     private class VerificationProgressReporter : IVerificationProgressReporter {

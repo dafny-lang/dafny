@@ -20,7 +20,7 @@ namespace Microsoft.Dafny {
 
     public static DafnyOptions Create(params string[] arguments) {
       var result = new DafnyOptions();
-      result.Parse(arguments);
+      result.Parse(arguments ?? Array.Empty<string>());
       return result;
     }
 

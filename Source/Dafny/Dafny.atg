@@ -401,17 +401,17 @@ bool IsNonFinalColon() {
   return la.kind == _colon && scanner.Peek().kind != _rbracket;
 }
 
-bool IsMapDisplay() {
+bool ExprIsMapDisplay() {
   scanner.ResetPeek();
   return (la.kind == _map || la.kind == _imap) && scanner.Peek().kind == _lbracket;
 }
 
-bool IsSetDisplay() {
+bool ExprIsSetDisplay() {
   scanner.ResetPeek();
   if (la.kind == _lbrace) return true;
   int k = scanner.Peek().kind;
   if (la.kind == _iset && k == _lbrace) return true;
-  if (la.kind == _multiset && (k == _lbrace || k == _openparen)) return true;
+  if (la.kind == _multiset) return true;
   return false;
 }
 
@@ -3933,10 +3933,10 @@ UnaryExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowB
 /*------------------------------------------------------------------------*/
 PrimaryExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwiseOps>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); e = dummyExpr; .)
-  ( IF(IsMapDisplay())  /* this alternative must be checked before going into EndlessExpression, where there is another "map" */
+  ( IF(ExprIsMapDisplay())  /* this alternative must be checked before going into EndlessExpression, where there is another "map" */
     MapDisplayExpr<out e>
     { IF(IsSuffix()) Suffix<ref e> }
-  | IF(IsSetDisplay())  /* this alternative must be checked before going into EndlessExpression, where there is another "iset" */
+  | IF(ExprIsSetDisplay())  /* this alternative must be checked before going into EndlessExpression, where there is another "iset" */
     SetDisplayExpr<out e>
     { IF(IsSuffix()) Suffix<ref e> }
   | IF(IsLambda(allowLambda))
