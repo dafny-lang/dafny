@@ -1,4 +1,4 @@
-# 20. Expressions
+# 20. Expressions {#sec-expressions}
 The grammar of Dafny expressions follows a hierarchy that
 reflects the precedence of Dafny operators. The following
 table shows the Dafny operators and their precedence
@@ -602,7 +602,7 @@ freshly allocated since control flow reached label `L`.
 The argument of `fresh` must be either an object reference
 or a set or sequence of object references.
 
-## 20.22. Allocated Expressions
+## 20.22. Allocated Expressions {#sec-allocated-expression}
 ````grammar
 AllocatedExpression_ =
   "allocated" "(" Expression(allowLemma: true, allowLambda: true) ")"
@@ -1090,7 +1090,7 @@ at the point in program execution that `test` is evaluated. This could be
 no instances, one per value of `x.i` in the stated range, multiple instances
 of `I` for each value of `x.i`, or any other combination.
 
-## 20.36. Statements in an Expression
+## 20.36. Statements in an Expression {#sec-statement-in-an-expression}
 ````grammar
 StmtInExpr = ( AssertStmt | AssumeStmt | ExpectStmt
              | RevealStmt | CalcStmt
@@ -1251,20 +1251,20 @@ the type parameters.
 
 To reference a prefix predicate (see [Section 18.3.4](#sec-copredicates)) or
 prefix lemma (see [Section 18.3.5.3](#sec-prefix-lemmas)), the identifier
-must be the name of the copredicate or colemma and it must be
+must be the name of the greatest predicate or greatest lemma and it must be
 followed by a ``HashCall``.
 
-## 20.41. Hash Call
+## 20.41. Hash Call {#sec-hash-call}
 ````grammar
 HashCall = "#" [ GenericInstantiation ]
   "[" Expression(allowLemma: true, allowLambda: true) "]"
   "(" [ Bindings ] ")"
 ````
-A ``HashCall`` is used to call the prefix for a copredicate or colemma.
+A ``HashCall`` is used to call the prefix for a greatest predicate or greatest lemma.
 In the non-generic case, just insert `"#[k]"` before the call argument
 list where k is the number of recursion levels.
 
-In the case where the `colemma` is generic, the generic type
+In the case where the `greatest lemma` is generic, the generic type
 argument is given before. Here is an example:
 
 ```dafny
@@ -1288,14 +1288,14 @@ function ones<T>(s: T): Stream<T>
   Cons(1, s, ones(s))
 }
 
-copredicate atmost(a: Stream, b: Stream)
+greatest predicate atmost(a: Stream, b: Stream)
 {
   match a
   case Nil => true
   case Cons(h,s,t) => b.Cons? && h <= b.head && atmost(t, b.tail)
 }
 
-colemma {:induction false} Theorem0<T>(s: T)
+greatest lemma {:induction false} Theorem0<T>(s: T)
   ensures atmost(zeros(s), ones(s))
 {
   // the following shows two equivalent ways to state the
@@ -1340,9 +1340,9 @@ followed by either
 
 * a ``GenericInstantiation`` (for the case where the item
 selected by the ``DotSuffix`` is generic), or
-* a ``HashCall`` for the case where we want to call a prefix copredicate
-  or colemma. The result is the result of calling the prefix copredicate
-  or colemma.
+* a ``HashCall`` for the case where we want to call a prefix predicate
+  or prefix lemma. The result is the result of calling the prefix predicate
+  or prefix lemma.
 
 ### 20.42.2. Datatype Update Suffix {#sec-datatype-update-suffix}
 
@@ -1582,3 +1582,13 @@ In Dafny, the following expressions are compile-time constants[^CTC], recursivel
 [^CTC]: This set of operations that are constant-folded may be enlarged in
 future versions of Dafny.
 
+## 20.47. List of specification expressions {#sec-list-of-specification-expressions}
+
+The following is a list of expressions that can only appear in specification contexts or in ghost blocks.
+
+* [Fresh expressions](#sec-fresh-expression)
+* [Allocated expressions](#sec-allocated-expression)
+* [Unchanged expressions](#sec-unchanged-expression)
+* [Old expressions](#sec-old-expression)
+* [Assert and calc expressions](#sec-statement-in-an-expression)
+* [Hash Calls](#sec-hash-call)

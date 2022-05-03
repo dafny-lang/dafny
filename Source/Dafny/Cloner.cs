@@ -199,7 +199,7 @@ namespace Microsoft.Dafny {
 
     public Formal CloneFormal(Formal formal) {
       Formal f = new Formal(Tok(formal.tok), formal.Name, CloneType(formal.Type), formal.InParam, formal.IsGhost,
-        CloneExpr(formal.DefaultValue), formal.IsOld, formal.IsNameOnly, formal.NameForCompilation);
+        CloneExpr(formal.DefaultValue), formal.IsOld, formal.IsNameOnly, formal.IsOlder, formal.NameForCompilation);
       return f;
     }
 
@@ -422,11 +422,10 @@ namespace Microsoft.Dafny {
         var range = CloneExpr(e.Range);
         var term = CloneExpr(e.Term);
         if (e is QuantifierExpr q) {
-          var tvs = q.TypeArgs.ConvertAll(CloneTypeParam);
           if (e is ForallExpr) {
-            return new ForallExpr(tk, q.BodyEndTok, tvs, bvs, range, term, CloneAttributes(e.Attributes));
+            return new ForallExpr(tk, q.BodyEndTok, bvs, range, term, CloneAttributes(e.Attributes));
           } else if (e is ExistsExpr) {
-            return new ExistsExpr(tk, q.BodyEndTok, tvs, bvs, range, term, CloneAttributes(e.Attributes));
+            return new ExistsExpr(tk, q.BodyEndTok, bvs, range, term, CloneAttributes(e.Attributes));
           } else {
             Contract.Assert(false); throw new cce.UnreachableException();  // unexpected quantifier expression
           }

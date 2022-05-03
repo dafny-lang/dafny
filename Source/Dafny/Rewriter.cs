@@ -1426,7 +1426,7 @@ namespace Microsoft.Dafny {
         //reqs.AddRange(generateAutoReqs(e.Range));
         var auto_reqs = generateAutoReqs(e.Term);
         if (auto_reqs.Count > 0) {
-          reqs.Add(Expression.CreateQuantifier(new ForallExpr(e.tok, e.BodyEndTok, new List<TypeParameter>(), e.BoundVars, e.Range, andify(e.Term.tok, auto_reqs), e.Attributes), true));
+          reqs.Add(Expression.CreateQuantifier(new ForallExpr(e.tok, e.BodyEndTok, e.BoundVars, e.Range, andify(e.Term.tok, auto_reqs), e.Attributes), true));
         }
       } else if (expr is MapComprehension) {
         var e = (MapComprehension)expr;
@@ -1439,7 +1439,7 @@ namespace Microsoft.Dafny {
         }
         auto_reqs.AddRange(generateAutoReqs(e.Term));
         if (auto_reqs.Count > 0) {
-          reqs.Add(Expression.CreateQuantifier(new ForallExpr(e.tok, e.BodyEndTok, new List<TypeParameter>(), e.BoundVars, e.Range, andify(e.Term.tok, auto_reqs), e.Attributes), true));
+          reqs.Add(Expression.CreateQuantifier(new ForallExpr(e.tok, e.BodyEndTok, e.BoundVars, e.Range, andify(e.Term.tok, auto_reqs), e.Attributes), true));
         }
       } else if (expr is StmtExpr) {
         var e = (StmtExpr)expr;

@@ -427,7 +427,6 @@ In the first and only verification round, this option will split the original [a
 into one assertion batch per assertion.
 This is mostly helpful for debugging which assertion is taking the most time to prove, e.g. to profile them.
 
-
 ### 22.2.21. synthesize {#sec-synthesize-attr}
 
 The `{:synthesize}` attribute must be used on methods that have no body and
@@ -655,10 +654,6 @@ Here are ways one can prove `assert P(j + 4);`:
 * Change the trigger `{:trigger Q(i)}` to `{:trigger P(i)}` (replace the trigger)
 * Change the trigger `{:trigger Q(i)}` to `{:trigger Q(i)} {:trigger P(i)}` (add a trigger)
 * Remove `{:trigger Q(i)}` so that it will automatically determine all possible triggers thanks to the option `/autoTriggers:1` which is the default.
-
-### 22.5.5. `{:typeQuantifier}` (deprecated)
-The `{:typeQuantifier}` attribute must be used on a quantifier if it
-quantifies over types.
 
 
 
