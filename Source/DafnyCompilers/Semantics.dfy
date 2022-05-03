@@ -2,6 +2,7 @@ include "CompilerCommon.dfy"
 include "Library.dfy"
 
 module Values {
+  import Lib.Math
   import opened Lib.Datatypes
   import Ty = DafnyCompilerCommon.AST.Types
 
@@ -25,7 +26,7 @@ module Values {
         case (Real(r), Real()) => true
         case (BigOrdinal(o), BigOrdinal()) => true
         case (BitVector(value), BitVector(width)) =>
-          0 <= value < Pow2(width)
+          0 <= value < Math.IntPow(2, width)
         case (Map(m), Collection(true, Map(kT), eT)) =>
           forall x | x in m :: x.HasType(kT) && m[x].HasType(eT)
         case (MultiSet(ms), Collection(true, MultiSet, eT)) =>
@@ -55,8 +56,6 @@ module Values {
   }
 
   type T = Value
-
-  function method Pow2(n: nat): nat
 
   datatype TypedValue = Value(ty: Ty.Type, v: T) {
     predicate Wf() { v.HasType(ty) }
