@@ -593,7 +593,7 @@ class Test {
       var sourceWithHighTimeout = new CancellationTokenSource();
       sourceWithHighTimeout.CancelAfter(TimeSpan.FromSeconds(120));
       var cancellationToken = sourceWithHighTimeout.Token;
-      
+
       var source = @"
 method t0() { assert true; }
 method t1() { assert true; }
