@@ -591,7 +591,7 @@ class Test {
     [TestMethod]
     public async Task OpeningDocumentWithMultipleVerificationCoresReturnsStableDiagnostics() {
       var sourceWithHighTimeout = new CancellationTokenSource();
-      sourceWithHighTimeout.CancelAfter(TimeSpan.FromSeconds(120));
+      sourceWithHighTimeout.CancelAfter(TimeSpan.FromSeconds(240));
       var cancellationToken = sourceWithHighTimeout.Token;
 
       var source = @"
