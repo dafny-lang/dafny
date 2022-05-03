@@ -612,6 +612,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
           Shallow.All_Program(p, e => All_Expr(e, P))
         }
 
+        // This lemma allows callers to force one level of unfolding of All_Expr
         lemma AllImpliesChildren(e: Expr, p: Expr -> bool)
           requires All_Expr(e, p)
           ensures AllChildren_Expr(e, p)
@@ -681,6 +682,9 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       }
     }
 
+    // Both implementations of Deep should work, but NonRec can be somewhat
+    // simpler to work with.  If needed, use ``DeepImpl.Equiv.All_Expr`` to
+    // switch between implementations.
     module Deep refines DeepImpl.NonRec {}
   }
 
