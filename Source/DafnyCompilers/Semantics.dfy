@@ -133,12 +133,12 @@ module Interp {
       case LitBool(b: bool) => V.Bool(b)
       case LitInt(i: int) => V.Int(i)
       case LitReal(r: real) => V.Real(r)
-      case LitChar(c: string) => assume c != []; V.Char(c[0]) // FIXME
+      case LitChar(c: char) => V.Char(c)
       case LitString(s: string, verbatim: bool) =>
         V.Seq(seq(|s|, i requires 0 <= i < |s| => V.Char(s[i])))
   }
 
-  type Context = map<string, V.Value> // FIXME V.T or Value?
+  type Context = map<string, V.T>
 
   datatype InterpError =
     | TypeError(e: Expr, value: V.T, expected: Type) // TODO rule out type errors through Wf predicate?

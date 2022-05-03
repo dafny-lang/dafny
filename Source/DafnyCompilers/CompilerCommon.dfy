@@ -119,7 +119,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         | LitBool(b: bool)
         | LitInt(i: int)
         | LitReal(r: real)
-        | LitChar(c: string) // FIXME should this use a char?
+        | LitChar(c: char)
         | LitString(s: string, verbatim: bool) // FIXME get rid of verbatim flag by unescaping
       {
         function method Depth() : nat { 1 }
@@ -376,7 +376,8 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       else if l.Value is String then
         var str := TypeConv.AsString(l.Value);
         if l is C.CharLiteralExpr then
-          D.Exprs.Literal(D.Exprs.LitChar(str))
+          if |str| == 1 then D.Exprs.Literal(D.Exprs.LitChar(str[0]))
+          else D.Exprs.Unsupported(D.Exprs.Invalid("CharLiteralExpr must contain a single character."))
         else if l is C.StringLiteralExpr then
           var sl := l as C.StringLiteralExpr;
           D.Exprs.Literal(D.Exprs.LitString(str, sl.IsVerbatim))
