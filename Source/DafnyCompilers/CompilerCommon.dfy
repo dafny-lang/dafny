@@ -173,6 +173,17 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
           }
         }
 
+        function method Children() : (s: seq<Expr>)
+          ensures forall e' | e' in s :: e'.Depth() < this.Depth()
+        {
+          match this {
+            case Literal(lit: Literal) => []
+            case Apply(aop, exprs: seq<Expr>) => exprs
+            case Block(exprs) => exprs
+            case If(cond, thn, els) => [cond, thn, els]
+            case Unsupported(_) => []
+          }
+        }
       }
 
       function method WellFormed(e: Expr): bool {
@@ -511,6 +522,8 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
   }
 
   module Predicates {
+    import opened AST
+
     function IsMap<T(!new), T'>(f: T --> T') : T' -> bool {
       y => exists x | f.requires(x) :: y == f(x)
     }
@@ -575,52 +588,100 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       }
     }
 
-    module Deep {
-      import opened Lib
-      import opened AST
-      import Shallow
+    module DeepImpl {
+      abstract module Base {
+        import opened Lib
+        import opened AST
+        import Shallow
 
-      function method AllChildren_Expr(e: Expr, P: Expr -> bool) : bool
-        decreases e, 0
-      {
-        match e {
-          case Literal(lit: Exprs.Literal) => true
-          case Apply(_, exprs) =>
-            Seq.All(e requires e in exprs => All_Expr(e, P), exprs)
-          case Block(exprs) => Seq.All((e requires e in exprs => All_Expr(e, P)), exprs)
-          case If(cond, thn, els) =>
-            All_Expr(cond, P) && All_Expr(thn, P) && All_Expr(els, P)
-          case Unsupported(e) => true
+        function method AllChildren_Expr(e: Expr, P: Expr -> bool) : bool
+          decreases e.Depth(), 0
+
+        function method All_Expr(e: Expr, P: Expr -> bool) : bool
+          decreases e.Depth(), 1
+        {
+          && P(e)
+          && AllChildren_Expr(e, P)
+        }
+
+        function method All_Method(m: Method, P: Expr -> bool) : bool {
+          Shallow.All_Method(m, e => All_Expr(e, P))
+        }
+
+        function method All_Program(p: Program, P: Expr -> bool) : bool {
+          Shallow.All_Program(p, e => All_Expr(e, P))
+        }
+
+        lemma AllImpliesChildren(e: Expr, p: Expr -> bool)
+          requires All_Expr(e, p)
+          ensures AllChildren_Expr(e, p)
+        {}
+
+        lemma AllChildren_Expr_weaken(e: Exprs.T, P: Exprs.T -> bool, Q: Exprs.T -> bool)
+          requires AllChildren_Expr(e, P)
+          requires forall e' :: P(e') ==> Q(e')
+          decreases e
+          ensures AllChildren_Expr(e, Q)
+
+        lemma All_Expr_weaken(e: Exprs.T, P: Exprs.T -> bool, Q: Exprs.T -> bool)
+          requires All_Expr(e, P)
+          requires forall e' :: P(e') ==> Q(e')
+          ensures All_Expr(e, Q)
+        {
+          AllChildren_Expr_weaken(e, P, Q);
         }
       }
 
-      // FIXME rewrite in terms Expr_Children below
-      function method All_Expr(e: Expr, P: Expr -> bool) : bool {
-        && P(e)
-        && AllChildren_Expr(e, P)
+      module Rec refines Base { // DISCUSS
+        function method AllChildren_Expr(e: Expr, P: Expr -> bool) : bool {
+          match e {
+            case Literal(lit: Exprs.Literal) => true
+            case Apply(_, exprs) =>
+              Seq.All(e requires e in exprs => All_Expr(e, P), exprs)
+            case Block(exprs) => Seq.All((e requires e in exprs => All_Expr(e, P)), exprs)
+            case If(cond, thn, els) =>
+              All_Expr(cond, P) && All_Expr(thn, P) && All_Expr(els, P)
+            case Unsupported(e) => true
+          }
+        }
+
+        lemma AllChildren_Expr_weaken ... { // NEAT
+          forall e' | e' in e.Children() { All_Expr_weaken(e', P, Q); }
+        }
       }
 
-      function method All_Method(m: Method, P: Expr -> bool) : bool {
-        Shallow.All_Method(m, e => All_Expr(e, P))
+      module NonRec refines Base {
+        function method AllChildren_Expr(e: Expr, P: Expr -> bool) : bool {
+          forall e' | e' in e.Children() :: All_Expr(e', P)
+        }
+
+        lemma AllChildren_Expr_weaken ... {
+          forall e' | e' in e.Children() { All_Expr_weaken(e', P, Q); }
+        }
       }
 
-      function method All_Program(p: Program, P: Expr -> bool) : bool {
-        Shallow.All_Program(p, e => All_Expr(e, P))
+      module Equiv {
+        import Rec
+        import NonRec
+        import opened AST
+
+        lemma AllChildren_Expr(e: Expr, P: Expr -> bool)
+          decreases e.Depth(), 0
+          ensures Rec.AllChildren_Expr(e, P) == NonRec.AllChildren_Expr(e, P)
+        {
+          forall e' | e' in e.Children() { All_Expr(e', P); }
+        }
+
+        lemma All_Expr(e: Expr, P: Expr -> bool)
+          decreases e.Depth(), 1
+          ensures Rec.All_Expr(e, P) == NonRec.All_Expr(e, P)
+        {
+          AllChildren_Expr(e, P);
+        }
       }
     }
 
-    import opened AST
-
-    lemma Shallow_Deep(p: Program, P: Expr -> bool)
-      requires Shallow.All_Program(p, (e => Deep.All_Expr(e, P)))
-      ensures Deep.All_Program(p, P)
-    {}
-
-    lemma AllImpliesChildren(e: Expr, p: Expr -> bool)
-      requires Deep.All_Expr(e, p)
-      ensures Deep.AllChildren_Expr(e, p)
-    {}
-
+    module Deep refines DeepImpl.NonRec {}
   }
 
   module Rewriter {
@@ -634,23 +695,6 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       import opened Lib
       import opened AST
       import opened Predicates
-
-      // LATER: Explain why this can't be defined: putting `f` on the outside risks breaking the invariant for subterms, and putting f on the inside breaks termination.
-      // function method Map_Expr(e: Expr, f: Expr -> Expr) : (e': Expr)
-      //   ensures Deep.All_Expr(e', tr.PC)
-      // {
-      //   var e := f(e);
-      //   f(match e {
-      //       case UnaryOp(uop, e) =>
-      //         // Not using datatype update to ensure that I get a warning if a type gets new arguments
-      //         Expr.UnaryOp(uop, Map_Expr(e, f))
-      //       case Binary(bop, e0, e1) =>
-      //         Expr.Binary(bop, Map_Expr(e0, f), Map_Expr(e1, f))
-      //       case Literal(lit_) => e
-      //       case Invalid(msg_) => e
-      //       case UnsupportedExpr(cexpr_) => e
-      //   })
-      // }
 
       function method {:opaque} Map_Method(m: Method, tr: ExprTransformer) : (m': Method)
         ensures Shallow.All_Method(m', tr.PC) // FIXME Deep
@@ -842,7 +886,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       ensures Deep.All_Expr(e', NotANegatedBinopExpr)
       ensures Deep.All_Expr(e', Exprs.WellFormed)
     {
-      AllImpliesChildren(e, Exprs.WellFormed);
+      Deep.AllImpliesChildren(e, Exprs.WellFormed);
       match e {
         case Literal(lit_) => e
         case Apply(BinaryOp(bop), exprs) =>
@@ -877,46 +921,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     function method EliminateNegatedBinops(p: Program) : (p': Program)
       ensures Deep.All_Program(p', NotANegatedBinopExpr)
     {
-      var p' := Map_Program(p, EliminateNegatedBinops_Expr);
-      // LATER: it actually works even without this call; make more things opaque?
-      Predicates.Shallow_Deep(p', NotANegatedBinopExpr);
-      p'
+      Map_Program(p, EliminateNegatedBinops_Expr)
     }
-
-    function method Children(e: Exprs.T) : (s: seq<Exprs.T>)
-      ensures forall e' | e' in s :: e'.Depth() < e.Depth()
-    {
-      match e {
-        case Literal(lit: Exprs.Literal) => []
-        case Apply(aop, exprs: seq<Exprs.T>) => exprs
-        case Block(exprs) => exprs
-        case If(cond, thn, els) => [cond, thn, els]
-        case Unsupported(_) => []
-      }
-    }
-
-    lemma All_Expr_weaken(e: Exprs.T, P: Exprs.T -> bool, Q: Exprs.T -> bool)
-      requires Deep.All_Expr(e, P)
-      requires forall e' :: P(e') ==> Q(e')
-      decreases e
-      ensures Deep.All_Expr(e, Q)
-    { // NEAT
-      forall e' | e' in Children(e) { All_Expr_weaken(e', P, Q); }
-      // match e {
-      //   case UnaryOp(uop: UnaryOps.UnaryOp, e': Exprs.T) =>
-      //     All_Expr_weaken(e', P, Q);
-      //   case Binary(bop: BinaryOps.BinaryOp, e0: Exprs.T, e1: Exprs.T) =>
-      //     All_Expr_weaken(e0, P, Q); All_Expr_weaken(e1, P, Q);
-      //   case Literal(lit: Expr.Literal) =>
-      //   case Invalid(msg: string) =>
-      //   case UnsupportedExpr(expr: C.Expression) =>
-
-      //   // Statements
-      //   case Block(exprs) =>
-      //     forall e | e in exprs { All_Expr_weaken(e, P, Q); }
-      //   case Print(exprs) =>
-      //     forall e | e in exprs { All_Expr_weaken(e, P, Q); }
-      //   case UnsupportedStmt(_) =>
-      // }
-    }}
+  }
 }
