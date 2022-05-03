@@ -591,6 +591,10 @@ class Test {
 
     [TestMethod]
     public async Task OpeningDocumentWithMultipleVerificationCoresReturnsStableDiagnostics() {
+      var sourceWithHighTimeout = new CancellationTokenSource();
+      sourceWithHighTimeout.CancelAfter(TimeSpan.FromSeconds(240));
+      var cancellationToken = sourceWithHighTimeout.Token;
+
       var source = @"
 method t0() { assert true; }
 method t1() { assert true; }
@@ -609,7 +613,7 @@ method t10() { assert false; }".TrimStart();
       for (int i = 0; i < 10; i++) {
         var documentItem = CreateTestDocument(source, $"test_{i}.dfy");
         client.OpenDocument(documentItem);
-        var diagnostics = await GetLastVerificationDiagnostics(documentItem, CancellationToken);
+        var diagnostics = await GetLastVerificationDiagnostics(documentItem, cancellationToken);
         Assert.AreEqual(5, diagnostics.Length);
         Assert.AreEqual(MessageSource.Verifier.ToString(), diagnostics[0].Source);
         Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
