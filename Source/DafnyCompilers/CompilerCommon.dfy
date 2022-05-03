@@ -42,6 +42,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         | BitVector(width: nat)
         | Collection(finite: bool, kind: CollectionKind, eltType: Type)
         | Unsupported(ty: C.Type)
+        | Invalid(ty: C.Type)
         | Class(classType: ClassType)
 
       type T = Type
@@ -231,7 +232,8 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         D.Types.BigOrdinal
       else if ty is C.BitvectorType then
         var bvTy := ty as C.BitvectorType;
-        D.Types.BitVector(bvTy.Width as int)
+        if bvTy.Width >= 0 then D.Types.BitVector(bvTy.Width as int)
+        else D.Types.Invalid(ty)
       // TODO: the following could be simplified
       else if ty is C.MapType then
         var mTy := ty as C.MapType;
