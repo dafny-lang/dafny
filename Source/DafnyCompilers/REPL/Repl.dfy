@@ -6,19 +6,37 @@ include "../CSharpDafnyASTModel.dfy"
 include "../CSharpDafnyInterop.dfy"
 include "../../AutoExtern/CSharpModel.dfy"
 
-import C = CSharpDafnyASTModel
 import DafnyCompilerCommon.AST
 import opened Lib.Datatypes
 
-method {:extern "ParseExpression"} ParseExpression(s: System.String)
-  returns (e: C.Expression?)
+module {:extern "REPL"} REPL {
+  import System
+  import C = CSharpDafnyASTModel
 
-method {:extern "Input"} Input()
-  returns (e: System.String?)
+  class {:extern} {:compile false} ReplHelper {
+    constructor {:extern} (input: System.String)
+
+    var {:extern} Expression: C.Expression;
+
+    static method {:extern} Setup()
+
+    static method {:extern} Input()
+      returns (e: System.String?)
+
+    method {:extern} Parse()
+      returns (b: bool)
+
+    method {:extern} Resolve()
+      returns (b: bool)
+  }
+}
+
+datatype ReadError = EOF | MissingInput
 
 datatype REPLError =
-  | ReadError
+  | ReadError(re: ReadError)
   | ParseError
+  | ResolutionError
   | InterpError(ie: Interp.InterpError)
 
 type REPLResult<+A> = Result<A, REPLError>
@@ -26,12 +44,15 @@ type REPLResult<+A> = Result<A, REPLError>
 method Read() returns (r: REPLResult<AST.Expr>)
   ensures r.Success? ==> Interp.SupportsInterp(r.value)
 {
-  var cStr := Input();
-  :- Need (cStr != null, ReadError);
-  :- Need (CSharpDafnyInterop.TypeConv.AsString(cStr) != "", ReadError);
-  var cExpr := ParseExpression(cStr);
-  :- Need (cExpr != null, ParseError);
-  var expr := DafnyCompilerCommon.Translator.TranslateExpression(cExpr);
+  var cStr := REPL.ReplHelper.Input();
+  :- Need (cStr != null, ReadError(EOF));
+  :- Need (CSharpDafnyInterop.TypeConv.AsString(cStr) != "", ReadError(MissingInput));
+  var helper := new REPL.ReplHelper(cStr);
+  var parseOk := helper.Parse();
+  :- Need (parseOk, ParseError);
+  var tcOk := helper.Resolve();
+  :- Need (tcOk, ResolutionError);
+  var expr := DafnyCompilerCommon.Translator.TranslateExpression(helper.Expression);
   :- Need(Interp.SupportsInterp(expr), InterpError(Interp.Unsupported(expr)));
   return Success(expr);
 }
@@ -49,10 +70,12 @@ method ReadEval() returns (r: REPLResult<Values.T>) {
   return Success(val);
 }
 
-method ReportError(err: REPLError) {
+method ReportError(err: REPLError)
+  requires !err.ReadError?
+{
   match err
-    case ReadError => // Ignore silently
-    case ParseError => print "Parse error";
+    case ParseError() => print "Parse error";
+    case ResolutionError() => print "Resolution error";
     case InterpError(ie: Interp.InterpError) =>
       print "Execution error: ";
       match ie
@@ -60,18 +83,23 @@ method ReportError(err: REPLError) {
         case InvalidExpression(e: Expr) => print "Invalid expression";
         case Unsupported(e: Expr) => print "Unsupported expression";
         case Overflow(x: int, low: int, high: int) => print "Overflow";
-        case DivisionByZero => print "Division by zero";
+        case DivisionByZero() => print "Division by zero";
 }
 
 method Main()
   decreases *
 {
+  REPL.ReplHelper.Setup();
   while true
     decreases *
   {
-    print "∂~ ";
+    print "dfy~ ";
     var r := ReadEval();
     match r {
+      case Failure(ReadError(EOF)) =>
+        return;
+      case Failure(ReadError(MissingInput)) =>
+        continue;
       case Failure(err) =>
         ReportError(err);
       case Success(val) =>
