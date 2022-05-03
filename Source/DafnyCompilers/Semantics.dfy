@@ -214,8 +214,8 @@ module Interp {
       case Numeric(op) => InterpNumeric(expr, op, v0, v1)
       case Logical(op) => InterpLogical(expr, op, v0, v1)
       case Eq(op) => match op { // FIXME which types is this Eq applicable to (vs. the type-specific ones?)
-        case EqCommon => Success(V.Bool(v0 == v1))
-        case NeqCommon => Success(V.Bool(v0 != v1))
+        case EqCommon() => Success(V.Bool(v0 == v1))
+        case NeqCommon() => Success(V.Bool(v0 != v1))
       }
       case BV(op) => Failure(Unsupported(expr))
       case Char(op) => InterpChar(expr, op, v0, v1)
@@ -331,23 +331,23 @@ module Interp {
     match (v0, v1)
       case (Set(s0), Set(s1)) =>
         match op {
-          case SetEq => Success(V.Bool(s0 == s1))
-          case SetNeq => Success(V.Bool(s0 != s1))
-          case Subset => Success(V.Bool(s0 <= s1))
-          case Superset => Success(V.Bool(s0 >= s1))
-          case ProperSubset => Success(V.Bool(s0 < s1))
-          case ProperSuperset => Success(V.Bool(s0 > s1))
-          case Disjoint => Success(V.Bool(s0 !! s1))
-          case Union => Success(V.Set(s0 + s1))
-          case Intersection => Success(V.Set(s0 * s1))
-          case SetDifference => Success(V.Set(s0 - s1))
-          case InSet => Failure(InvalidExpression(expr))
-          case NotInSet => Failure(InvalidExpression(expr))
+          case SetEq() => Success(V.Bool(s0 == s1))
+          case SetNeq() => Success(V.Bool(s0 != s1))
+          case Subset() => Success(V.Bool(s0 <= s1))
+          case Superset() => Success(V.Bool(s0 >= s1))
+          case ProperSubset() => Success(V.Bool(s0 < s1))
+          case ProperSuperset() => Success(V.Bool(s0 > s1))
+          case Disjoint() => Success(V.Bool(s0 !! s1))
+          case Union() => Success(V.Set(s0 + s1))
+          case Intersection() => Success(V.Set(s0 * s1))
+          case SetDifference() => Success(V.Set(s0 - s1))
+          case InSet() => Failure(InvalidExpression(expr))
+          case NotInSet() => Failure(InvalidExpression(expr))
         }
       case (_, Set(s1)) =>
         match op {
-          case InSet => Success(V.Bool(v0 in s1))
-          case NotInSet => Success(V.Bool(v0 !in s1))
+          case InSet() => Success(V.Bool(v0 in s1))
+          case NotInSet() => Success(V.Bool(v0 !in s1))
           case _ => Failure(InvalidExpression(expr))
         }
       case _ => Failure(InvalidExpression(expr))
@@ -359,23 +359,23 @@ module Interp {
     match (v0, v1)
       case (MultiSet(m0), MultiSet(m1)) =>
         match op {
-          case MultiSetEq => Success(V.Bool(m0 == m1))
-          case MultiSetNeq => Success(V.Bool(m0 != m1))
-          case MultiSubset => Success(V.Bool(m0 <= m1))
-          case MultiSuperset => Success(V.Bool(m0 >= m1))
-          case ProperMultiSubset => Success(V.Bool(m0 < m1))
-          case ProperMultiSuperset => Success(V.Bool(m0 > m1))
-          case MultiSetDisjoint => Success(V.Bool(m0 !! m1))
-          case MultiSetUnion => Success(V.MultiSet(m0 + m1))
-          case MultiSetIntersection => Success(V.MultiSet(m0 * m1))
-          case MultiSetDifference => Success(V.MultiSet(m0 - m1))
-          case InMultiSet => Failure(InvalidExpression(expr))
-          case NotInMultiSet => Failure(InvalidExpression(expr))
+          case MultiSetEq() => Success(V.Bool(m0 == m1))
+          case MultiSetNeq() => Success(V.Bool(m0 != m1))
+          case MultiSubset() => Success(V.Bool(m0 <= m1))
+          case MultiSuperset() => Success(V.Bool(m0 >= m1))
+          case ProperMultiSubset() => Success(V.Bool(m0 < m1))
+          case ProperMultiSuperset() => Success(V.Bool(m0 > m1))
+          case MultiSetDisjoint() => Success(V.Bool(m0 !! m1))
+          case MultiSetUnion() => Success(V.MultiSet(m0 + m1))
+          case MultiSetIntersection() => Success(V.MultiSet(m0 * m1))
+          case MultiSetDifference() => Success(V.MultiSet(m0 - m1))
+          case InMultiSet() => Failure(InvalidExpression(expr))
+          case NotInMultiSet() => Failure(InvalidExpression(expr))
         }
       case (_, MultiSet(s1)) =>
         match op {
-          case InMultiSet => Success(V.Bool(v0 in s1))
-          case NotInMultiSet => Success(V.Bool(v0 !in s1))
+          case InMultiSet() => Success(V.Bool(v0 in s1))
+          case NotInMultiSet() => Success(V.Bool(v0 !in s1))
           case _ => Failure(InvalidExpression(expr))
         }
       case _ => Failure(InvalidExpression(expr))
@@ -387,18 +387,18 @@ module Interp {
     match (v0, v1)
       case (Seq(s0), Seq(s1)) =>
         match op {
-          case SeqEq => Success(V.Bool(s0 == s1))
-          case SeqNeq => Success(V.Bool(s0 != s1))
-          case Prefix => Success(V.Bool(s0 <= s1))
-          case ProperPrefix => Success(V.Bool(s0 < s1))
-          case Concat => Success(V.Seq(s0 + s1))
-          case InSeq => Failure(InvalidExpression(expr))
-          case NotInSeq => Failure(InvalidExpression(expr))
+          case SeqEq() => Success(V.Bool(s0 == s1))
+          case SeqNeq() => Success(V.Bool(s0 != s1))
+          case Prefix() => Success(V.Bool(s0 <= s1))
+          case ProperPrefix() => Success(V.Bool(s0 < s1))
+          case Concat() => Success(V.Seq(s0 + s1))
+          case InSeq() => Failure(InvalidExpression(expr))
+          case NotInSeq() => Failure(InvalidExpression(expr))
         }
       case (_, Seq(s1)) =>
         match op {
-          case InSeq => Success(V.Bool(v0 in s1))
-          case NotInSeq => Success(V.Bool(v0 !in s1))
+          case InSeq() => Success(V.Bool(v0 in s1))
+          case NotInSeq() => Success(V.Bool(v0 !in s1))
           case _ => Failure(InvalidExpression(expr))
         }
       case _ => Failure(InvalidExpression(expr))
@@ -410,22 +410,22 @@ module Interp {
     match (v0, v1)
       case (Map(m0), Map(m1)) =>
         match op {
-          case MapEq => Success(V.Bool(m0 == m1))
-          case MapNeq => Success(V.Bool(m0 != m1))
-          case MapMerge => Success(V.Map(m0 + m1))
-          case MapSubtraction => Failure(InvalidExpression(expr))
-          case InMap => Failure(InvalidExpression(expr))
-          case NotInMap => Failure(InvalidExpression(expr))
+          case MapEq() => Success(V.Bool(m0 == m1))
+          case MapNeq() => Success(V.Bool(m0 != m1))
+          case MapMerge() => Success(V.Map(m0 + m1))
+          case MapSubtraction() => Failure(InvalidExpression(expr))
+          case InMap() => Failure(InvalidExpression(expr))
+          case NotInMap() => Failure(InvalidExpression(expr))
         }
       case (Map(m0), Set(s1)) =>
         match op {
-          case MapSubtraction => Success(V.Map(m0 - s1))
+          case MapSubtraction() => Success(V.Map(m0 - s1))
           case _ => Failure(InvalidExpression(expr))
         }
       case (_, Map(m1)) =>
         match op {
-          case InMap => Success(V.Bool(v0 in m1))
-          case NotInMap => Success(V.Bool(v0 !in m1))
+          case InMap() => Success(V.Bool(v0 in m1))
+          case NotInMap() => Success(V.Bool(v0 !in m1))
           case _ => Failure(InvalidExpression(expr))
         }
       case _ => Failure(InvalidExpression(expr))
