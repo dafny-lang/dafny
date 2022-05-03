@@ -2915,7 +2915,7 @@ In contrast to one-dimensional arrays, there is no operation to
 convert stretches of elements from a multi-dimensional array to a
 sequence.
 
-## 15.3 Converting arrays to sequences {#sec-array-to-seq}
+## 15.3. Converting arrays to sequences {#sec-array-to-seq}
 
 To convert an array `x` to a sequence, use the `[..]` operator:
 ```dafny

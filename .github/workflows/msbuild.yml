@@ -1,8 +1,6 @@
 name: Build and Test
 
 on:
-  push:
-    branches: [ master ]
   pull_request:
     branches: [ master ]
 
@@ -51,8 +49,14 @@ jobs:
     - name: Check whitespace and style
       working-directory: dafny
       run: dotnet tool run dotnet-format -w -s error --check Source/Dafny.sln --exclude Dafny/Scanner.cs --exclude Dafny/Parser.cs
-      
+  
+  check-deep-tests:
+    uses: ./.github/workflows/check-deep-tests-reusable.yml
+    if: "!(contains(github.event.pull_request.labels.*.name, 'skip-deep-tests-check'))"
+ 
   integration-tests:
+    needs: check-deep-tests
     uses: ./.github/workflows/integration-tests-reusable.yml
     with:
+      all_platforms: false
       num_shards: 5
