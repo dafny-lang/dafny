@@ -5,7 +5,9 @@ module {:extern "CSharpInterop"} CSharpInterop {
   import opened System.Collections.Generic
 
   class ListUtils {
-    static function method {:extern} FoldR<A, B>(f: (A, B) -> B, b0: B, l: List<A>) : B
+    constructor {:extern} () requires false // Prevent instantiation
+
+    static function method {:extern} FoldR<A, B(!new)>(f: (A, B) -> B, b0: B, l: List<A>) : B
 
     static method {:extern} Mk<T>() returns (l: List<T>)
     static method {:extern} Append<T>(l: List<T>, t: T)

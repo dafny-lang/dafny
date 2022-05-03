@@ -7,11 +7,15 @@ module {:extern "CSharpDafnyInterop"} CSharpDafnyInterop {
   import opened CSharpInterop
 
   class {:extern} StringUtils {
+    constructor {:extern} () requires false // Prevent instantiation
+
     static function method {:extern} ToCString(s: string) : System.String
     static function method {:extern} OfCString(s: System.String) : string
   }
 
   class {:extern} TypeConv {
+    constructor {:extern} () requires false // Prevent instantiation
+
     static function method {:extern} AsBool(o: System.Boolean) : bool
     static function method {:extern} AsInt(o: System.Numerics.BigInteger) : int
     static function method {:extern} AsReal(o: Microsoft.BaseTypes.BigDec) : real
@@ -19,9 +23,7 @@ module {:extern "CSharpDafnyInterop"} CSharpDafnyInterop {
 
     static function method {:extern} Numerator(r: real) : int
     static function method {:extern} Denominator(r: real) : int
-  }
 
-  class Reals { // DISCUSS: Not a module to be able to refer to TypeConv
     static function method AsIntegerRatio(r: real) : (int, int) {
       (TypeConv.Numerator(r), TypeConv.Denominator(r))
     }

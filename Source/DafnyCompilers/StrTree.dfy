@@ -14,7 +14,7 @@ module StrTree {
         case Str(s) => s
         case SepSeq(sep, asts) =>
           var strs := Lib.Seq.Map(s requires s in asts => s.ToString(), asts);
-          Lib.Str.Join(sep.OrElse(""), strs)
+          Lib.Str.Join(sep.UnwrapOr(""), strs)
         case Unsupported => "<*>"
     }
   }

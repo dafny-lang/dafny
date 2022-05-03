@@ -60,14 +60,14 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       datatype Char =
         LtChar | LeChar | GeChar | GtChar
       datatype Sets =
-        SetEq | SetNeq | ProperSubset | Subset | Superset | ProperSuperset |
+        SetEq | SetNeq | Subset | Superset | ProperSubset | ProperSuperset |
         Disjoint | InSet | NotInSet | Union | Intersection | SetDifference
       datatype MultiSets =
         MultiSetEq | MultiSetNeq | MultiSubset | MultiSuperset |
         ProperMultiSubset | ProperMultiSuperset | MultiSetDisjoint | InMultiSet |
         NotInMultiSet | MultiSetUnion | MultiSetIntersection | MultiSetDifference
       datatype Sequences =
-        SeqEq | SeqNeq | ProperPrefix | Prefix | Concat | InSeq | NotInSeq
+        SeqEq | SeqNeq | Prefix | ProperPrefix | Concat | InSeq | NotInSeq
       datatype Maps =
         MapEq | MapNeq | InMap | NotInMap | MapMerge | MapSubtraction
       datatype Datatypes =

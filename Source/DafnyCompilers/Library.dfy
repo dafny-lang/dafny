@@ -1,5 +1,56 @@
 module Lib {
+  module Datatypes {
+    datatype Option<+T> = | Some(value: T) | None
+    {
+      function method UnwrapOr(default: T) : T {
+        if this.Some? then value else default
+      }
+    }
+
+    datatype Result<+T, +R> = | Success(value: T) | Failure(error: R) {
+      predicate method IsFailure() {
+        Failure?
+      }
+
+      function method PropagateFailure<U>(): Result<U, R>
+        requires Failure?
+      {
+        Failure(this.error)
+      }
+
+      function method Extract(): T
+        requires Success?
+      {
+        value
+      }
+    }
+
+    datatype Outcome<E> = Pass | Fail(error: E)
+    {
+      predicate method IsFailure() {
+        Fail?
+      }
+      // Note: PropagateFailure returns a Result, not an Outcome.
+      function method PropagateFailure<U>(): Result<U, E>
+        requires Fail?
+      {
+        Failure(this.error)
+      }
+      // Note: no Extract method
+    }
+
+    // A helper function to ensure a requirement is true at runtime
+    // :- Need(5 == |mySet|, "The set MUST have 5 elements.")
+    // FIXME: Move to library (added opaque)
+    function method {:opaque} Need<E>(condition: bool, error: E): (result: Outcome<E>)
+      ensures condition <==> result.Pass?
+    {
+      if condition then Pass else Fail(error)
+    }
+  }
+
   module Seq {
+    // FIXME why not use a comprehension directly?
     function method {:opaque} Map<T, Q>(f: T ~> Q, ts: seq<T>) : (qs: seq<Q>)
       reads f.reads
       requires forall t | t in ts :: f.requires(t)
@@ -10,7 +61,7 @@ module Lib {
     }
 
     function method FoldL<TAcc(!new), T>(f: (TAcc, T) ~> TAcc, a0: TAcc, ts: seq<T>) : TAcc
-      reads f.reads // FIXME: what does this mean?
+      reads f.reads
       requires forall a, t | t in ts :: f.requires(a, t)
     {
       if ts == [] then a0 else FoldL(f, f(a0, ts[0]), ts[1..])
@@ -50,8 +101,9 @@ module Lib {
       FoldL_induction'(f, a0, ts, [], P);
     }
 
+    // TODO: Why not use forall directly?
     function method {:opaque} All<T>(P: T ~> bool, ts: seq<T>) : (b: bool)
-      reads P.reads // FIXME: what does this mean?
+      reads P.reads
       requires forall t | t in ts :: P.requires(t)
       ensures b == forall t | t in ts :: P(t)
       ensures b == forall i | 0 <= i < |ts| :: P(ts[i])
@@ -105,17 +157,6 @@ module Lib {
       m
     }
 
-  }
-
-  module Datatypes {
-    datatype Option<T> =
-      | Some(t: T)
-      | None
-    {
-      function method OrElse(t: T) : T {
-        if this.Some? then this.t else t
-      }
-    }
   }
 
   module Str {
@@ -203,6 +244,11 @@ module Lib {
       ensures x == m || y == m
     {
       if (x <= y) then y else x
+    }
+
+    function method {:opaque} IntPow(x: int, n: nat) : int {
+      if n == 0 then 1
+      else x * IntPow(x, n - 1)
     }
   }
 }
