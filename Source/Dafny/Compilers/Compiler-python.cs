@@ -150,6 +150,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string fullPrintName,
         List<TypeParameter> typeParameters, TopLevelDecl cls, List<Type> superClasses, IToken tok, ConcreteSyntaxTree wr) {
       var methodWriter = wr.NewBlockPy(header: $"class {IdProtect(name)}:");
+
       var needsConstructor = cls is TopLevelDeclWithMembers decl && decl.Members.Any(m => !m.IsGhost && m is Field && !m.IsStatic);
       var constructorWriter = needsConstructor
         ? methodWriter.NewBlockPy(header: "def  __init__(self):", close: BlockStyle.Newline)
@@ -688,14 +689,13 @@ namespace Microsoft.Dafny.Compilers {
       var initValue = mustInitialize ? DefaultValue(elmtType, wr, tok, true) : "None";
       if (dimensions.Count == 1) {
         // handle the common case of 1-dimensional arrays separately
-        var arrayType = TypeInitializationValue(elmtType, wr, tok, false, false);
         wr.Write($"[{initValue} for _ in range");
         TrParenExpr(dimensions[0], wr, false, wStmts);
         wr.Write("]");
       } else {
-        wr.Write("_dafny.newArray({0}", initValue ?? "None");
+        wr.Write("_dafny.newArray({0}", initValue);
         foreach (var dim in dimensions) {
-          wr.Write(",int");
+          wr.Write(", int");
           TrParenExpr(dim, wr, false, wStmts);
         }
         wr.Write(")");
@@ -816,10 +816,10 @@ namespace Microsoft.Dafny.Compilers {
         //TODO: Add deeper types
         return "Callable";
       }
-      var cl = udt.ResolvedClass;
 
+      var cl = udt.ResolvedClass;
       return cl switch {
-        ArrayClassDecl => "list",
+        ArrayClassDecl => DafnySeqClass,
         TypeParameter => IdProtect(udt.CompileName),
         TupleTypeDecl => "tuple",
         _ => IdProtect(cl.FullCompileName)
@@ -876,13 +876,9 @@ namespace Microsoft.Dafny.Compilers {
         case SpecialField.ID.ArrayLength:
         case SpecialField.ID.ArrayLengthInt:
           preString = "len(";
-          if (idParam == null) {
-            postString = ")";
-          } else {
-            if ((int)idParam == 0) {
-              postString = ")";
-            }
-            postString = String.Concat(Enumerable.Repeat("[0]", (int)idParam)) + ")";
+          postString = ")";
+          if (idParam != null && (int)idParam > 0) {
+            postString = string.Concat(Enumerable.Repeat("[0]", (int)idParam)) + postString;
           }
           break;
         default:
@@ -939,22 +935,18 @@ namespace Microsoft.Dafny.Compilers {
     protected override ConcreteSyntaxTree EmitArraySelect(List<string> indices, Type elmtType, ConcreteSyntaxTree wr) {
       Contract.Assert(indices != null && 1 <= indices.Count);
       var w = wr.Fork();
-      if (indices.Count == 1) {
-        wr.Write($"[{indices[0]}]");
+      foreach (var index in indices) {
+        wr.Write($"[{index}]");
       }
+
       return w;
     }
 
     protected override ConcreteSyntaxTree EmitArraySelect(List<Expression> indices, Type elmtType, bool inLetExprBody,
       ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       Contract.Assert(indices != null && 1 <= indices.Count);  // follows from precondition
-      var w = wr.Fork();
-      foreach (var index in indices) {
-        wr.Write("[");
-        TrExpr(index, wr, inLetExprBody, wStmts);
-        wr.Write("]");
-      }
-      return w;
+      var strings = indices.Select(index => Expr(indices[0], inLetExprBody, wStmts).ToString());
+      return EmitArraySelect(strings.ToList(), elmtType, wr);
     }
 
     protected override void EmitExprAsInt(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr,

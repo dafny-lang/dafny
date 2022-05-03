@@ -55,39 +55,39 @@ method Main() {
     a[0] := 42;
     print s, "\n";
     MultipleDimensions();
-    }
+}
      
-   method PrintMatrix<A>(m: array2<A>) {
-     var i := 0;
-     while i < m.Length0 {
-       var j := 0;
-       while j < m.Length1 {
-         print m[i,j], " ";
-         j := j + 1;
-       }
-       print "\n";
-       i := i + 1;
-     }
-   }
+method PrintMatrix<A>(m: array2<A>) {
+  var i := 0;
+  while i < m.Length0 {
+    var j := 0;
+    while j < m.Length1 {
+      print m[i,j], " ";
+      j := j + 1;
+    }
+   print "\n";
+   i := i + 1;
+  }
+}
    
-   method MultipleDimensions() {
-     var matrix := new int[2,8];
-     PrintMatrix(matrix);
-     var jagged := new array<int>[5];
-     var i := 0;
-     while i < 5 {
-       jagged[i] := new int[i];
-       i := i + 1;
-      
-     }
-     PrintArrayArray(jagged);
-   }
+method MultipleDimensions() {
+  var matrix := new int[2,8];
+  PrintMatrix(matrix);
+  var jagged := new array<int>[5];
+  var i := 0;
+  while i < 5 {
+    jagged[i] := new int[i];
+    i := i + 1;
+  }
+  PrintArrayArray(jagged);
+}
    
-   method PrintArrayArray<A>(a: array<array<A>>) {
-     var i := 0;
-     while i < a.Length {
-       print a[i][..], " ";
-       i := i + 1;
-     }
-     print "\n";
-   }
+method PrintArrayArray<A>(a: array<array<A>>) {
+  var i := 0;
+  while i < a.Length {
+    print a[i][..], " ";
+    i := i + 1;
+  }
+  print "\n";
+}
+ 

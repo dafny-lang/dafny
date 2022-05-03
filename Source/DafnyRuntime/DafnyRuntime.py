@@ -162,7 +162,7 @@ def newArray(initValue, *dims):
         tmplist = []
         for _ in range(i):
             tmplist.append(b)
-        b= tmplist
+        b = tmplist
     return b
 
 @dataclass
