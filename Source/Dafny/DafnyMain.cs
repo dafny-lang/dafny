@@ -264,11 +264,11 @@ namespace Microsoft.Dafny {
 
     public static bool IsBoogieVerified(PipelineOutcome outcome, PipelineStatistics statistics) {
       return (outcome == PipelineOutcome.Done || outcome == PipelineOutcome.VerificationCompleted)
-             && statistics.ErrorCount == 0
-             && statistics.InconclusiveCount == 0
-             && statistics.TimeoutCount == 0
-             && statistics.OutOfResourceCount == 0
-             && statistics.OutOfMemoryCount == 0;
+         && statistics.ErrorCount == 0
+         && statistics.InconclusiveCount == 0
+         && statistics.TimeoutCount == 0
+         && statistics.OutOfResourceCount == 0
+         && statistics.OutOfMemoryCount == 0;
     }
 
     /// <summary>
