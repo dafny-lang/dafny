@@ -26,7 +26,6 @@ module Interp {
         }
       case Block(stmts: seq<Expr>) => true
       case If(cond: Expr, thn: Expr, els: Expr) => true
-      case Unsupported(_) => false
     }
   }
 
@@ -54,7 +53,6 @@ module Interp {
         }
       case Block(stmts: seq<Expr>) => false
       case If(cond: Expr, thn: Expr, els: Expr) => true
-      case Unsupported(_) => false
     }
   }
 
@@ -88,6 +86,17 @@ module Interp {
     | IntOverflow(x: int, low: Option<int>, high: Option<int>)
     | OutOfBounds(idx: V.T, collection: V.T)
     | DivisionByZero
+  {
+    function method ToString() : string {
+      match this
+        case TypeError(e, value, expected) => "Type mismatch"
+        case InvalidExpression(e) => "Invalid expression"
+        case Unsupported(e) => "Unsupported expression"
+        case IntOverflow(x, low, high) => "Overflow"
+        case OutOfBounds(i, v) => "Out-of-bounds index"
+        case DivisionByZero() => "Division by zero"
+    }
+  }
 
   datatype InterpSuccess<A> =
     | OK(v: A, ctx: Context)
@@ -168,7 +177,7 @@ module Interp {
     : (r: InterpResult<seq<V.T>>)
     requires forall e | e in es :: SupportsInterp(e)
     ensures r.Success? ==> |r.value.v| == |es|
-  {
+  { // TODO generalize into a FoldResult function
     if es == [] then Success(OK([], ctx))
     else
       var OK(v, ctx) :- InterpExpr(es[0], ctx);

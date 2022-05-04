@@ -41,8 +41,6 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         | BigOrdinal
         | BitVector(width: nat)
         | Collection(finite: bool, kind: CollectionKind, eltType: Type)
-        | Unsupported // DISCUSS: !new (ty: C.Type)
-        | Invalid // DISCUSS: !new (ty: C.Type)
         | Class(classType: ClassType)
 
       type T(!new,00,==) = Type
@@ -176,17 +174,11 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         | Lazy(lOp: LazyOp)
         | Eager(eOp: EagerOp)
 
-      datatype UnsupportedExpr =
-        | Invalid(msg: string)
-        | UnsupportedExpr // DISCUSS: !new (expr: C.Expression)
-        | UnsupportedStmt // DISCUSS: !new (stmt: C.Statement)
-
       datatype Expr =
         | Literal(lit: Literal)
         | Apply(aop: ApplyOp, args: seq<Expr>)
         | Block(stmts: seq<Expr>)
         | If(cond: Expr, thn: Expr, els: Expr)
-        | Unsupported(e: UnsupportedExpr)
       {
         function method Depth() : nat {
           1 + match this { // FIXME IDE rejects this, command line accepts it
@@ -198,8 +190,6 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
               Seq.MaxF(var f := (e: Expr) requires e in stmts => e.Depth(); f, stmts, 0)
             case If(cond, thn, els) =>
               Math.Max(cond.Depth(), Math.Max(thn.Depth(), els.Depth()))
-            case Unsupported(e: UnsupportedExpr) =>
-              0
           }
         }
 
@@ -211,7 +201,6 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
             case Apply(aop, exprs: seq<Expr>) => exprs
             case Block(exprs) => exprs
             case If(cond, thn, els) => [cond, thn, els]
-            case Unsupported(_) => []
           }
         }
       }
@@ -257,6 +246,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
 
   module Translator {
     import opened Lib
+    import opened Lib.Datatypes
     import opened CSharpInterop
     import opened CSharpInterop.System
     import opened CSharpDafnyInterop
@@ -267,48 +257,71 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     import DT = AST.Types
     import P = Predicates.Deep
 
-    function method TranslateType(ty: C.Type): DT.Type
+    datatype TranslationError =
+      | Invalid(msg: string)
+      | UnsupportedType(ty: C.Type)
+      | UnsupportedExpr(expr: C.Expression)
+      | UnsupportedStmt(stmt: C.Statement)
+    {
+      function method ToString() : string {
+        match this
+          case Invalid(msg) =>
+            "Invalid term: " + msg
+          case UnsupportedType(ty) =>
+            "Unsupported type: " + TypeConv.ObjectToString(ty)
+          case UnsupportedExpr(expr) =>
+            "Unsupported expression: " + TypeConv.ObjectToString(expr)
+          case UnsupportedStmt(stmt) =>
+            "Unsupported statement: " + TypeConv.ObjectToString(stmt)
+      }
+    }
+
+    type TranslationResult<+A> =
+      Result<A, TranslationError>
+
+    function method TranslateType(ty: C.Type): TranslationResult<DT.Type>
       reads *
       decreases TypeHeight(ty)
     {
       if ty is C.BoolType then
-        DT.Bool
+        Success(DT.Bool)
       else if ty is C.CharType then
-        DT.Char
+        Success(DT.Char)
       else if ty is C.IntType then
-        DT.Int
+        Success(DT.Int)
       else if ty is C.RealType then
-        DT.Real
+        Success(DT.Real)
       else if ty is C.BigOrdinalType then
-        DT.BigOrdinal
+        Success(DT.BigOrdinal)
       else if ty is C.BitvectorType then
         var bvTy := ty as C.BitvectorType;
-        if bvTy.Width >= 0 then DT.BitVector(bvTy.Width as int)
-        else DT.Invalid//(ty)
+        :- Need(bvTy.Width >= 0, Invalid("BV width must be >= 0"));
+        Success(DT.BitVector(bvTy.Width as int))
       // TODO: the following could be simplified
       else if ty is C.MapType then
         var mTy := ty as C.MapType;
         assume TypeHeight(mTy.Domain) < TypeHeight(mTy);
         assume TypeHeight(mTy.Range) < TypeHeight(mTy);
-        var domainTy := TranslateType(mTy.Domain);
-        var rangeTy := TranslateType(mTy.Range);
-        DT.Collection(mTy.Finite, DT.CollectionKind.Map(domainTy), rangeTy)
+        var domainTy :- TranslateType(mTy.Domain);
+        var rangeTy :- TranslateType(mTy.Range);
+        Success(DT.Collection(mTy.Finite, DT.CollectionKind.Map(domainTy), rangeTy))
       else if ty is C.SetType then
         var mTy := ty as C.SetType;
         assume TypeHeight(mTy.Arg) < TypeHeight(mTy);
-        var eltTy := TranslateType(mTy.Arg);
-        DT.Collection(mTy.Finite, DT.CollectionKind.Set, eltTy)
+        var eltTy :- TranslateType(mTy.Arg);
+        Success(DT.Collection(mTy.Finite, DT.CollectionKind.Set, eltTy))
       else if ty is C.MultiSetType then
         var mTy := ty as C.MultiSetType;
         assume TypeHeight(mTy.Arg) < TypeHeight(mTy);
-        var eltTy := TranslateType(mTy.Arg);
-        DT.Collection(true, DT.CollectionKind.Multiset, eltTy)
+        var eltTy :- TranslateType(mTy.Arg);
+        Success(DT.Collection(true, DT.CollectionKind.Multiset, eltTy))
       else if ty is C.SeqType then
         var mTy := ty as C.SeqType;
         assume TypeHeight(mTy.Arg) < TypeHeight(mTy);
-        var eltTy := TranslateType(mTy.Arg);
-        DT.Collection(true, DT.CollectionKind.Seq, eltTy)
-      else DT.Unsupported//(ty)
+        var eltTy :- TranslateType(mTy.Arg);
+        Success(DT.Collection(true, DT.CollectionKind.Seq, eltTy))
+      else
+        Failure(UnsupportedType(ty))
     }
 
     const UnaryOpMap: map<C.UnaryOpExpr__Opcode, D.UnaryOp> :=
@@ -389,159 +402,169 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       (map k | k in LazyBinopMap  :: DE.Lazy(LazyBinopMap[k])) +
       (map k | k in EagerBinopMap :: DE.Eager(DE.BinaryOp(EagerBinopMap[k])))
 
-    function method TranslateUnary(u: C.UnaryExpr) : (e: DE.T)
+    function method TranslateUnary(u: C.UnaryExpr) : (e: TranslationResult<DE.T>)
       decreases ASTHeight(u), 0
       reads *
-      ensures P.All_Expr(e, DE.WellFormed)
+      ensures e.Success? ==> P.All_Expr(e.value, DE.WellFormed)
     {
-      if u is C.UnaryOpExpr then
-        var u := u as C.UnaryOpExpr;
-        var op, e := u.Op, u.E;
-        assume op in UnaryOpMap.Keys; // FIXME expect
-        DE.Apply(DE.Eager(DE.UnaryOp(UnaryOpMap[op])), [TranslateExpression(e)])
-      else
-        DE.Unsupported(DE.UnsupportedExpr)//(u))
+      :- Need(u is C.UnaryOpExpr, UnsupportedExpr(u));
+      var u := u as C.UnaryOpExpr;
+      var op, e := u.Op, u.E;
+      :- Need(op in UnaryOpMap.Keys, UnsupportedExpr(u));
+      var te :- TranslateExpression(e);
+      Success(DE.Apply(DE.Eager(DE.UnaryOp(UnaryOpMap[op])), [te]))
     }
 
     function {:axiom} ASTHeight(c: C.Expression) : nat
     function {:axiom} StmtHeight(t: C.Statement) : nat
     function {:axiom} TypeHeight(t: C.Type) : nat
 
-    function method TranslateBinary(b: C.BinaryExpr) : (e: DE.T)
+    function method TranslateBinary(b: C.BinaryExpr) : (e: TranslationResult<DE.T>)
       decreases ASTHeight(b), 0
       reads *
-      ensures P.All_Expr(e, DE.WellFormed)
+      ensures e.Success? ==> P.All_Expr(e.value, DE.WellFormed)
     {
       var op, e0, e1 := b.ResolvedOp, b.E0, b.E1;
       // LATER b.AccumulatesForTailRecursion
       assume ASTHeight(e0) < ASTHeight(b);
       assume ASTHeight(e1) < ASTHeight(b);
-      if op in BinaryOpCodeMap then
-        DE.Apply(BinaryOpCodeMap[op], [TranslateExpression(e0), TranslateExpression(e1)])
-      else
-        DE.Unsupported(DE.UnsupportedExpr)//(b))
+      :- Need(op in BinaryOpCodeMap, UnsupportedExpr(b));
+      var t0 :- TranslateExpression(e0);
+      var t1 :- TranslateExpression(e1);
+      Success(DE.Apply(BinaryOpCodeMap[op], [t0, t1]))
     }
 
-    function method TranslateLiteral(l: C.LiteralExpr): (e: DE.T)
+    function method TranslateLiteral(l: C.LiteralExpr): (e: TranslationResult<DE.T>)
       reads *
-      ensures P.All_Expr(e, DE.WellFormed)
+      ensures e.Success? ==> P.All_Expr(e.value, DE.WellFormed)
     {
       if l.Value is Boolean then
-        DE.Literal(DE.LitBool(TypeConv.AsBool(l.Value)))
+        Success(DE.Literal(DE.LitBool(TypeConv.AsBool(l.Value))))
       else if l.Value is Numerics.BigInteger then
-        DE.Literal(DE.LitInt(TypeConv.AsInt(l.Value)))
+        Success(DE.Literal(DE.LitInt(TypeConv.AsInt(l.Value))))
       else if l.Value is BaseTypes.BigDec then
-        DE.Literal(DE.LitReal(TypeConv.AsReal(l.Value))) // TODO test
+        Success(DE.Literal(DE.LitReal(TypeConv.AsReal(l.Value)))) // TODO test
       else if l.Value is String then
         var str := TypeConv.AsString(l.Value);
         if l is C.CharLiteralExpr then
-          if |str| == 1 then DE.Literal(DE.LitChar(str[0]))
-          else DE.Unsupported(DE.Invalid("CharLiteralExpr must contain a single character."))
+          :- Need(|str| == 1, Invalid("CharLiteralExpr must contain a single character."));
+          Success(DE.Literal(DE.LitChar(str[0])))
         else if l is C.StringLiteralExpr then
           var sl := l as C.StringLiteralExpr;
-          DE.Literal(DE.LitString(str, sl.IsVerbatim))
+          Success(DE.Literal(DE.LitString(str, sl.IsVerbatim)))
         else
-          DE.Unsupported(DE.Invalid("LiteralExpr with .Value of type string must be a char or a string."))
-      else DE.Unsupported(DE.UnsupportedExpr)//(l))
+          Failure(Invalid("LiteralExpr with .Value of type string must be a char or a string."))
+      else
+        Failure(UnsupportedExpr(l))
     }
 
-    function method TranslateFunctionCall(fce: C.FunctionCallExpr): (e: DE.T)
+    function method TranslateExpressions(exprs: seq<C.Expression>): (texprs: TranslationResult<seq<DE.T>>)
+      reads *
+      decreases exprs
+      ensures texprs.Success? ==> forall e | e in texprs.value :: P.All_Expr(e, DE.WellFormed)
+    {
+      if exprs == [] then
+        Success([])
+      else
+        var te :- TranslateExpression(exprs[0]);
+        var tes :- TranslateExpressions(exprs[1..]);
+        Success([te] + tes)
+    }
+
+    function method TranslateFunctionCall(fce: C.FunctionCallExpr): (e: TranslationResult<DE.T>)
       reads *
       decreases ASTHeight(fce), 0
-      ensures P.All_Expr(e, DE.WellFormed)
+      ensures e.Success? ==> P.All_Expr(e.value, DE.WellFormed)
     {
       assume ASTHeight(fce.Receiver) < ASTHeight(fce);
-      var fnExpr := TranslateExpression(fce.Receiver);
+      var fnExpr :- TranslateExpression(fce.Receiver);
       var argsC := ListUtils.ToSeq(fce.Args);
-      var argExprs := Seq.Map((e requires e in argsC reads * =>
+      var argExprs :- Seq.MapResult((e requires e in argsC reads * =>
         assume ASTHeight(e) < ASTHeight(fce); TranslateExpression(e)), argsC);
-      DE.Apply(DE.Eager(DE.FunctionCall), [fnExpr] + argExprs)
+      Success(DE.Apply(DE.Eager(DE.FunctionCall), [fnExpr] + argExprs))
     }
 
-    function method TranslateDatatypeValue(dtv: C.DatatypeValue): (e: DE.T)
+    function method TranslateDatatypeValue(dtv: C.DatatypeValue): (e: TranslationResult<DE.T>)
       reads *
       decreases ASTHeight(dtv), 0
-      ensures P.All_Expr(e, DE.WellFormed)
+      ensures e.Success? ==> P.All_Expr(e.value, DE.WellFormed)
     {
       var ctor := dtv.Ctor;
       var n := TypeConv.AsString(ctor.Name);
       var typeArgsC := ListUtils.ToSeq(dtv.InferredTypeArgs);
-      var typeArgs := Seq.Map((t requires t in typeArgsC reads * =>
+      var typeArgs :- Seq.MapResult((t requires t in typeArgsC reads * =>
         TranslateType(t)), typeArgsC);
       // TODO: also include formals in the following, and filter out ghost arguments
       var argsC := ListUtils.ToSeq(dtv.Arguments);
-      var argExprs := Seq.Map((e requires e in argsC reads * =>
+      var argExprs :- Seq.MapResult((e requires e in argsC reads * =>
         assume ASTHeight(e) < ASTHeight(dtv); TranslateExpression(e)), argsC);
-      DE.Apply(DE.Eager(DE.DataConstructor([n], typeArgs)), argExprs) // TODO: proper path
+      Success(DE.Apply(DE.Eager(DE.DataConstructor([n], typeArgs)), argExprs)) // TODO: proper path
     }
 
-    function method TranslateDisplayExpr(de: C.DisplayExpression): (e: DE.T)
+    function method TranslateDisplayExpr(de: C.DisplayExpression): (e: TranslationResult<DE.T>)
       reads *
       decreases ASTHeight(de), 0
-      ensures P.All_Expr(e, DE.WellFormed)
+      ensures e.Success? ==> P.All_Expr(e.value, DE.WellFormed)
     {
-      var ty := TranslateType(de.Type);
-      if ty.Collection? && ty.finite then
-        var elSeq := ListUtils.ToSeq(de.Elements);
-        var exprs := Seq.Map((e requires e in elSeq reads * =>
-          assume ASTHeight(e) < ASTHeight(de); TranslateExpression(e)), elSeq);
-        DE.Apply(DE.Eager(DE.Builtin(DE.Display(ty))), exprs)
-      else
-        DE.Unsupported(DE.Invalid("`DisplayExpr` must be a finite collection."))
+      var ty :- TranslateType(de.Type);
+      :- Need(ty.Collection? && ty.finite, Invalid("`DisplayExpr` must be a finite collection."));
+      var elSeq := ListUtils.ToSeq(de.Elements);
+      var exprs :- Seq.MapResult((e requires e in elSeq reads * =>
+        assume ASTHeight(e) < ASTHeight(de); TranslateExpression(e)), elSeq);
+      Success(DE.Apply(DE.Eager(DE.Builtin(DE.Display(ty))), exprs))
     }
 
-    function method TranslateExpressionPair(mde: C.MapDisplayExpr, ep: C.ExpressionPair): (e: DE.T)
+    function method TranslateExpressionPair(mde: C.MapDisplayExpr, ep: C.ExpressionPair): (e: TranslationResult<DE.T>)
       reads *
       requires Math.Max(ASTHeight(ep.A), ASTHeight(ep.B)) < ASTHeight(mde)
       decreases ASTHeight(mde), 0
-      ensures P.All_Expr(e, DE.WellFormed)
+      ensures e.Success? ==> P.All_Expr(e.value, DE.WellFormed)
     {
-      var tyA := TranslateType(ep.A.Type);
+      var tyA :- TranslateType(ep.A.Type);
       // TODO: This isn't really a sequence of type tyA! It should really construct pairs
       var ty := DT.Collection(true, DT.CollectionKind.Seq, tyA);
-      DE.Apply(DE.Eager(DE.Builtin(DE.Display(ty))), [TranslateExpression(ep.A), TranslateExpression(ep.B)])
+      var tA :- TranslateExpression(ep.A);
+      var tB :- TranslateExpression(ep.B);
+      Success(DE.Apply(DE.Eager(DE.Builtin(DE.Display(ty))), [tA, tB]))
     }
 
-    function method TranslateMapDisplayExpr(mde: C.MapDisplayExpr): (e: DE.T)
+    function method TranslateMapDisplayExpr(mde: C.MapDisplayExpr): (e: TranslationResult<DE.T>)
       reads *
       decreases ASTHeight(mde), 1
-      ensures P.All_Expr(e, DE.WellFormed)
+      ensures e.Success? ==> P.All_Expr(e.value, DE.WellFormed)
     {
-      var ty := TranslateType(mde.Type);
-      if ty.Collection? && ty.kind.Map? && ty.finite then
-        var elSeq := ListUtils.ToSeq(mde.Elements);
-        var exprs := Seq.Map((ep: C.ExpressionPair) reads * =>
-          assume Math.Max(ASTHeight(ep.A), ASTHeight(ep.B)) < ASTHeight(mde);
-          TranslateExpressionPair(mde, ep), elSeq);
-        DE.Apply(DE.Eager(DE.Builtin(DE.Display(ty))), exprs)
-      else
-        DE.Unsupported(DE.Invalid("`MapDisplayExpr` must be a map."))
+      var ty :- TranslateType(mde.Type);
+      :- Need(ty.Collection? && ty.kind.Map? && ty.finite, Invalid("`MapDisplayExpr` must be a map."));
+      var elSeq := ListUtils.ToSeq(mde.Elements);
+      var exprs :- Seq.MapResult((ep: C.ExpressionPair) reads * =>
+        assume Math.Max(ASTHeight(ep.A), ASTHeight(ep.B)) < ASTHeight(mde);
+        TranslateExpressionPair(mde, ep), elSeq);
+      Success(DE.Apply(DE.Eager(DE.Builtin(DE.Display(ty))), exprs))
     }
 
-    function method TranslateSeqUpdateExpr(se: C.SeqUpdateExpr): (e: DE.T)
+    function method TranslateSeqUpdateExpr(se: C.SeqUpdateExpr): (e: TranslationResult<DE.T>)
       reads *
       decreases ASTHeight(se), 0
-      ensures P.All_Expr(e, DE.WellFormed)
+      ensures e.Success? ==> P.All_Expr(e.value, DE.WellFormed)
     {
-      var ty := TranslateType(se.Type);
-      if ty.Collection? && ty.kind != DT.Set() then
-        assume Math.Max(ASTHeight(se.Seq), Math.Max(ASTHeight(se.Index), ASTHeight(se.Value))) < ASTHeight(se);
-        var op := match ty.kind
-          case Seq() => DE.TernaryOps.Sequences(DE.TernaryOps.SeqUpdate)
-          case Map(_) => DE.TernaryOps.Maps(DE.TernaryOps.MapUpdate)
-          case Multiset() => DE.TernaryOps.Multisets(DE.TernaryOps.MultisetUpdate);
-        DE.Apply(DE.Eager(DE.TernaryOp(op)),
-                 [TranslateExpression(se.Seq),
-                  TranslateExpression(se.Index),
-                  TranslateExpression(se.Value)])
-      else
-        DE.Unsupported(DE.Invalid("`SeqUpdate` must be a map, sequence, or multiset."))
+      var ty :- TranslateType(se.Type);
+      :- Need(ty.Collection? && ty.kind != DT.Set(),
+              Invalid("`SeqUpdate` must be a map, sequence, or multiset."));
+      assume Math.Max(ASTHeight(se.Seq), Math.Max(ASTHeight(se.Index), ASTHeight(se.Value))) < ASTHeight(se);
+      var tSeq :- TranslateExpression(se.Seq);
+      var tIndex :- TranslateExpression(se.Index);
+      var tValue :- TranslateExpression(se.Value);
+      var op := match ty.kind
+        case Seq() => DE.TernaryOps.Sequences(DE.TernaryOps.SeqUpdate)
+        case Map(_) => DE.TernaryOps.Maps(DE.TernaryOps.MapUpdate)
+        case Multiset() => DE.TernaryOps.Multisets(DE.TernaryOps.MultisetUpdate);
+      Success(DE.Apply(DE.Eager(DE.TernaryOp(op)), [tSeq, tIndex, tValue]))
     }
 
-    function method TranslateExpression(c: C.Expression) : (e: DE.T)
+    function method TranslateExpression(c: C.Expression) : (e: TranslationResult<DE.T>)
       reads *
       decreases ASTHeight(c), 2
-      ensures P.All_Expr(e, DE.WellFormed)
+      ensures e.Success? ==> P.All_Expr(e.value, DE.WellFormed)
     {
       if c is C.BinaryExpr then // TODO Unary
         TranslateBinary(c as C.BinaryExpr)
@@ -557,43 +580,46 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         TranslateDisplayExpr(c as C.DisplayExpression)
       else if c is C.SeqUpdateExpr then
         TranslateSeqUpdateExpr(c as C.SeqUpdateExpr)
-      else DE.Unsupported(DE.UnsupportedExpr)//(c))
+      else Failure(UnsupportedExpr(c))
     }
 
-    function method TranslateStatement(s: C.Statement) : DE.T
+    function method TranslateStatement(s: C.Statement) : TranslationResult<DE.T>
       reads *
       decreases StmtHeight(s)
     {
       if s is C.PrintStmt then
         var p := s as C.PrintStmt;
-        DE.Apply(DE.Eager(DE.Builtin(DE.Print)), Seq.Map(TranslateExpression, ListUtils.ToSeq(p.Args)))
+        var exprs :- Seq.MapResult(TranslateExpression, ListUtils.ToSeq(p.Args));
+        Success(DE.Apply(DE.Eager(DE.Builtin(DE.Print)), exprs))
       else if s is C.BlockStmt then
         var b := s as C.BlockStmt;
         var stmts := ListUtils.ToSeq(b.Body);
-        var stmts' := Seq.Map(s' requires s' in stmts reads * =>
+        var stmts' :- Seq.MapResult(s' requires s' in stmts reads * =>
           assume StmtHeight(s') < StmtHeight(s); TranslateStatement(s'), stmts);
-        DE.Block(stmts')
+        Success(DE.Block(stmts'))
       else if s is C.IfStmt then
         var i := s as C.IfStmt;
         // TODO: look at i.IsBindingGuard
         assume ASTHeight(i.Guard) < StmtHeight(i);
         assume StmtHeight(i.Thn) < StmtHeight(i);
         assume StmtHeight(i.Els) < StmtHeight(i);
-        var cond := TranslateExpression(i.Guard);
-        var thn := TranslateStatement(i.Thn);
-        var els := TranslateStatement(i.Els);
-        DE.If(cond, thn, els)
-      else DE.Unsupported(DE.UnsupportedStmt)//(s))
+        var cond :- TranslateExpression(i.Guard);
+        var thn :- TranslateStatement(i.Thn);
+        var els :- TranslateStatement(i.Els);
+        Success(DE.If(cond, thn, els))
+      else Failure(UnsupportedStmt(s))
     }
 
-    function method TranslateMethod(m: C.Method) : D.Method reads * {
+    function method TranslateMethod(m: C.Method) : TranslationResult<D.Method> reads * {
       // var compileName := m.CompileName;
       // FIXME “Main”
-      D.Method("Main", DE.Block(Seq.Map(TranslateStatement, ListUtils.ToSeq(m.Body.Body))))
+      var stmts :- Seq.MapResult(TranslateStatement, ListUtils.ToSeq(m.Body.Body));
+      Success(D.Method("Main", DE.Block(stmts)))
     }
 
-    function method TranslateProgram(p: C.Program) : D.Program reads * {
-      D.Program(TranslateMethod(p.MainMethod))
+    function method TranslateProgram(p: C.Program) : TranslationResult<D.Program> reads * {
+      var tm :- TranslateMethod(p.MainMethod);
+      Success(D.Program(tm))
     }
   }
 
@@ -718,7 +744,6 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
             case Block(exprs) => Seq.All((e requires e in exprs => All_Expr(e, P)), exprs)
             case If(cond, thn, els) =>
               All_Expr(cond, P) && All_Expr(thn, P) && All_Expr(els, P)
-            case Unsupported(e) => true
           }
         }
 
@@ -831,8 +856,6 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
             Expr.Block(exprs')
           case If(cond, thn, els) =>
             Expr.If(Map_Expr(cond, tr), Map_Expr(thn, tr), Map_Expr(els, tr))
-          case Unsupported(_) =>
-            e
         }
       }
 
@@ -994,8 +1017,6 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
           Expr.If(EliminateNegatedBinops_Expr_direct(cond),
                   EliminateNegatedBinops_Expr_direct(thn),
                   EliminateNegatedBinops_Expr_direct(els))
-        case Unsupported(_) =>
-          e
       }
     }
 

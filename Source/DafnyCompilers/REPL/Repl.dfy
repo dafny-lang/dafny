@@ -7,6 +7,7 @@ include "../CSharpDafnyInterop.dfy"
 include "../../AutoExtern/CSharpModel.dfy"
 
 import DafnyCompilerCommon.AST
+import DafnyCompilerCommon.Translator
 import opened Lib.Datatypes
 
 module {:extern "REPL"} REPL {
@@ -37,9 +38,16 @@ datatype REPLError =
   | ReadError(re: ReadError)
   | ParseError
   | ResolutionError
+  | TranslationError(te: Translator.TranslationError)
   | InterpError(ie: Interp.InterpError)
 
 type REPLResult<+A> = Result<A, REPLError>
+
+function method TranslateExpression(cExpr: CSharpDafnyASTModel.Expression) : REPLResult<AST.Expr>
+  reads *
+{
+  Translator.TranslateExpression(cExpr).MapFailure(e => TranslationError(e))
+}
 
 method Read() returns (r: REPLResult<AST.Expr>)
   ensures r.Success? ==> Interp.SupportsInterp(r.value)
@@ -52,7 +60,7 @@ method Read() returns (r: REPLResult<AST.Expr>)
   :- Need (parseOk, ParseError);
   var tcOk := helper.Resolve();
   :- Need (tcOk, ResolutionError);
-  var expr := DafnyCompilerCommon.Translator.TranslateExpression(helper.Expression);
+  var expr :- TranslateExpression(helper.Expression);
   :- Need(Interp.SupportsInterp(expr), InterpError(Interp.Unsupported(expr)));
   return Success(expr);
 }
@@ -60,7 +68,7 @@ method Read() returns (r: REPLResult<AST.Expr>)
 function method Eval(e: AST.Expr) : REPLResult<Values.T>
   requires Interp.SupportsInterp(e)
 {
-  var OK(val, ctx) :- Interp.InterpExpr(e).MapFailure(e => InterpError(e)); // Map error
+  var OK(val, ctx) :- Interp.InterpExpr(e).MapFailure(e => InterpError(e));
   Success(val)
 }
 
@@ -76,15 +84,10 @@ method ReportError(err: REPLError)
   match err
     case ParseError() => print "Parse error";
     case ResolutionError() => print "Resolution error";
-    case InterpError(ie: Interp.InterpError) =>
-      print "Execution error: ";
-      match ie
-        case TypeError(e, value, expected) => print "Type mismatch";
-        case InvalidExpression(e) => print "Invalid expression";
-        case Unsupported(e) => print "Unsupported expression";
-        case IntOverflow(x, low, high) => print "Overflow";
-        case OutOfBounds(i, v) => print "Out-of-bounds index";
-        case DivisionByZero() => print "Division by zero";
+    case TranslationError(te) =>
+      print "Translation error: " + te.ToString();
+    case InterpError(ie) =>
+      print "Execution error: " + ie.ToString();
 }
 
 method Main()

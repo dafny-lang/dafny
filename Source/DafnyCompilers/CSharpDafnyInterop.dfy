@@ -27,6 +27,8 @@ module {:extern "CSharpDafnyInterop"} CSharpDafnyInterop {
     static function method AsIntegerRatio(r: real) : (int, int) {
       (TypeConv.Numerator(r), TypeConv.Denominator(r))
     }
+
+    static function method {:extern} ObjectToString(o: object) : string
   }
 
   class SyntaxTreeAdapter {

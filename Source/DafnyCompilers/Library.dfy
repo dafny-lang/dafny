@@ -166,6 +166,24 @@ module Lib {
       m
     }
 
+    import Datatypes
+
+    function method {:opaque} MapResult<T, Q, E>(f: T ~> Datatypes.Result<Q, E>, ts: seq<T>)
+      : (qs: Datatypes.Result<seq<Q>, E>)
+      reads f.reads
+      requires forall t | t in ts :: f.requires(t)
+      decreases ts
+      ensures qs.Success? ==> |qs.value| == |ts|
+      ensures qs.Success? ==> forall i | 0 <= i < |ts| :: f(ts[i]).Success? && qs.value[i] == f(ts[i]).value
+      ensures qs.Failure? ==> exists i | 0 <= i < |ts| :: f(ts[i]).Failure? && qs.error == f(ts[i]).error
+    {
+      if ts == [] then
+        Datatypes.Success([])
+      else
+        var hd :- f(ts[0]);
+        var tl :- MapResult(f, ts[1..]);
+        Datatypes.Success([hd] + tl)
+    }
   }
 
   module Str {
