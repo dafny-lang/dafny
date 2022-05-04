@@ -41,11 +41,11 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         | BigOrdinal
         | BitVector(width: nat)
         | Collection(finite: bool, kind: CollectionKind, eltType: Type)
-        | Unsupported(ty: C.Type)
-        | Invalid(ty: C.Type)
+        | Unsupported // DISCUSS: !new (ty: C.Type)
+        | Invalid // DISCUSS: !new (ty: C.Type)
         | Class(classType: ClassType)
 
-      type T = Type
+      type T(!new,00,==) = Type
     }
 
     type Type = Types.T
@@ -88,7 +88,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         | Sequences(oSequences: Sequences)
         | Maps(oMaps: Maps)
         | Datatypes(oDatatypes: Datatypes)
-      type T = BinaryOp
+      type T(!new,00,==) = BinaryOp
     }
 
     type BinaryOp = BinaryOps.T
@@ -100,7 +100,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         | Fresh
         | Allocated
         | Lit
-      type T = UnaryOp
+      type T(!new,00,==) = UnaryOp
     }
 
     type UnaryOp = UnaryOps.T
@@ -156,8 +156,8 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
 
       datatype UnsupportedExpr =
         | Invalid(msg: string)
-        | UnsupportedExpr(expr: C.Expression)
-        | UnsupportedStmt(stmt: C.Statement)
+        | UnsupportedExpr // DISCUSS: !new (expr: C.Expression)
+        | UnsupportedStmt // DISCUSS: !new (stmt: C.Statement)
 
       datatype Expr =
         | Literal(lit: Literal)
@@ -205,7 +205,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         }
       }
 
-      type T = Expr
+      type T(!new,00,==) = Expr
     }
 
     type Expr = Exprs.T
@@ -257,7 +257,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       else if ty is C.BitvectorType then
         var bvTy := ty as C.BitvectorType;
         if bvTy.Width >= 0 then DT.BitVector(bvTy.Width as int)
-        else DT.Invalid(ty)
+        else DT.Invalid//(ty)
       // TODO: the following could be simplified
       else if ty is C.MapType then
         var mTy := ty as C.MapType;
@@ -281,7 +281,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         assume TypeHeight(mTy.Arg) < TypeHeight(mTy);
         var eltTy := TranslateType(mTy.Arg);
         DT.Collection(true, DT.CollectionKind.Seq, eltTy)
-      else DT.Unsupported(ty)
+      else DT.Unsupported//(ty)
     }
 
     const UnaryOpMap: map<C.UnaryOpExpr__Opcode, D.UnaryOp> :=
@@ -373,7 +373,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         assume op in UnaryOpMap.Keys; // FIXME expect
         DE.Apply(DE.Eager(DE.UnaryOp(UnaryOpMap[op])), [TranslateExpression(e)])
       else
-        DE.Unsupported(DE.UnsupportedExpr(u))
+        DE.Unsupported(DE.UnsupportedExpr)//(u))
     }
 
     function {:axiom} ASTHeight(c: C.Expression) : nat
@@ -392,7 +392,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       if op in BinaryOpCodeMap then
         DE.Apply(BinaryOpCodeMap[op], [TranslateExpression(e0), TranslateExpression(e1)])
       else
-        DE.Unsupported(DE.UnsupportedExpr(b))
+        DE.Unsupported(DE.UnsupportedExpr)//(b))
     }
 
     function method TranslateLiteral(l: C.LiteralExpr): (e: DE.T)
@@ -415,7 +415,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
           DE.Literal(DE.LitString(str, sl.IsVerbatim))
         else
           DE.Unsupported(DE.Invalid("LiteralExpr with .Value of type string must be a char or a string."))
-      else DE.Unsupported(DE.UnsupportedExpr(l))
+      else DE.Unsupported(DE.UnsupportedExpr)//(l))
     }
 
     function method TranslateFunctionCall(fce: C.FunctionCallExpr): (e: DE.T)
@@ -490,7 +490,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       decreases ASTHeight(c), 2
       ensures P.All_Expr(e, DE.WellFormed)
     {
-      if c is C.BinaryExpr then
+      if c is C.BinaryExpr then // TODO Unary
         TranslateBinary(c as C.BinaryExpr)
       else if c is C.LiteralExpr then
         TranslateLiteral(c as C.LiteralExpr)
@@ -503,6 +503,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       else if c is C.DisplayExpression then
         TranslateDisplayExpr(c as C.DisplayExpression)
       else DE.Unsupported(DE.UnsupportedExpr(c))
+      else DE.Unsupported(DE.UnsupportedExpr)//(c))
     }
 
     function method TranslateStatement(s: C.Statement) : DE.T
@@ -528,7 +529,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         var thn := TranslateStatement(i.Thn);
         var els := TranslateStatement(i.Els);
         DE.If(cond, thn, els)
-      else DE.Unsupported(DE.UnsupportedStmt(s))
+      else DE.Unsupported(DE.UnsupportedStmt)//(s))
     }
 
     function method TranslateMethod(m: C.Method) : D.Method reads * {
