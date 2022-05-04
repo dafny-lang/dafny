@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -7,12 +8,11 @@ using Microsoft.Boogie;
 namespace Microsoft.Dafny;
 
 public class DafnyConsolePrinter : ConsolePrinter {
-  private readonly Dictionary<string, List<string>> fsCache = new();
+  private readonly ConcurrentDictionary<string, List<string>> fsCache = new();
   public List<(Implementation, VerificationResult)> VerificationResults { get; } = new();
 
   private string GetFileLine(string filename, int lineIndex) {
-    List<string> lines;
-    if (!fsCache.ContainsKey(filename)) {
+    if (!fsCache.TryGetValue(filename, out var lines)) {
       try {
         // Note: This is not guaranteed to be the same file that Dafny parsed. To ensure that, Dafny should keep
         // an in-memory version of each file it parses.
@@ -20,9 +20,7 @@ public class DafnyConsolePrinter : ConsolePrinter {
       } catch (Exception) {
         lines = new List<string>();
       }
-      fsCache.Add(filename, lines);
-    } else {
-      lines = fsCache[filename];
+      fsCache.TryAdd(filename, lines);
     }
     if (0 <= lineIndex && lineIndex < lines.Count) {
       return lines[lineIndex];

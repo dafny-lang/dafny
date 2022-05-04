@@ -16,7 +16,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions {
       });
     }
 
-    public static Task OpenDocumentAndWaitAsync(this ILanguageClient client, TextDocumentItem documentItem, CancellationToken cancellationToken) {
+    public static Task OpenDocumentAndWaitAsync(this ILanguageClient client, TextDocumentItem documentItem, CancellationToken cancellationToken = default) {
       client.OpenDocument(documentItem);
       return client.WaitForNotificationCompletionAsync(documentItem.Uri, cancellationToken);
     }
