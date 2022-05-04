@@ -30,8 +30,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       this.entryDocumentUri = entryDocumentUri;
     }
 
-    public IReadOnlyDictionary<DocumentUri, List<Diagnostic>> AllDiagnostics => diagnostics;
-
     public IReadOnlyList<Diagnostic> GetDiagnostics(DocumentUri documentUri) {
       rwLock.EnterReadLock();
       try {
@@ -58,18 +56,15 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           }
         }
       }
-
-      var uri = GetDocumentUriOrDefault(error.Tok);
-      var diagnostic = new Diagnostic {
-        Severity = DiagnosticSeverity.Error,
-        Message = error.Msg,
-        Range = error.Tok.GetLspRange(),
-        RelatedInformation = relatedInformation,
-        Source = VerifierMessageSource.ToString()
-      };
       AddDiagnosticForFile(
-        diagnostic,
-        uri
+        new Diagnostic {
+          Severity = DiagnosticSeverity.Error,
+          Message = error.Msg,
+          Range = error.Tok.GetLspRange(),
+          RelatedInformation = relatedInformation,
+          Source = VerifierMessageSource.ToString()
+        },
+        GetDocumentUriOrDefault(error.Tok)
       );
     }
 
