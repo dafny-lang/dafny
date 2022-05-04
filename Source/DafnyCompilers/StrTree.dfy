@@ -31,12 +31,12 @@ module StrTree {
     Seq([fn, Str("("), Concat(", ", args), Str(")")])
   }
 
-  function method SingleQuote(s: StrTree): StrTree {
-    Seq([Str("'"), s, Str("'")])
+  function method SingleQuote(s: char): StrTree {
+    Seq([Str("'"), Str([s]), Str("'")])
   }
 
-  function method DoubleQuote(s: StrTree): StrTree {
-    Seq([Str("\""), s, Str("\"")])
+  function method DoubleQuote(s: string): StrTree {
+    Seq([Str("\""), Str(s), Str("\"")])
   }
 
   function method interleave<T>(

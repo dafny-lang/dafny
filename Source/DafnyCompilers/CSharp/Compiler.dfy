@@ -43,7 +43,6 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
         case Class(_) => Unsupported
         case Nat => Unsupported
         case Unit => Unsupported
-        case Unsupported(_) => Unsupported
       }
     }
 
@@ -60,8 +59,8 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
           var n := TypeConv.Numerator(r);
           var d := TypeConv.Denominator(r);
           Call(Str("new BigRational"), [CompileInt(n), CompileInt(d)])
-        case LitChar(c: string) => SingleQuote(Str(c))
-        case LitString(s: string, verbatim: bool) => DoubleQuote(Str(s)) // FIXME verbatim
+        case LitChar(c: char) => SingleQuote(c)
+        case LitString(s: string, verbatim: bool) => DoubleQuote(s) // FIXME verbatim
       }
     }
 
@@ -69,6 +68,21 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
     {
       var tyStr := CompileType(ty);
       Call(Format("{}.FromElements", [tyStr]), exprs)
+    }
+
+    function method CompileLazyExpr(op: Exprs.LazyOp, c0: StrTree, c1: StrTree) : StrTree
+    {
+      var fmt := str requires countFormat(str) == 2 =>
+        Format(str, [c0, c1]);
+      var bin := str =>
+        Format("({} {} {})", [c0, Str(str), c1]);
+      var rbin := str =>
+        Format("({} {} {})", [c1, Str(str), c0]);
+      match op {
+        case Imp => fmt("(!{} || {})")
+        case And => bin("&&")
+        case Or => bin("||")
+      }
     }
 
     function method CompileUnaryOpExpr(op: UnaryOp, c: StrTree) : StrTree {
@@ -92,9 +106,6 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
         Format("({} {} {})", [c1, Str(str), c0]);
       match op {
         case Logical(Iff) => bin("==")
-        case Logical(Imp) => fmt("(!{} || {})")
-        case Logical(And) => bin("&&")
-        case Logical(Or) => bin("||")
 
         case Eq(EqCommon) => Unsupported
 
@@ -118,7 +129,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
         case Char(LeChar) => bin("<=")
         case Char(GeChar) => bin(">=")
         case Char(GtChar) => bin(">")
-        // FIXME: Why is there lt/le/gt/ge for chars trt not binops?
+        // FIXME: Why is there lt/le/gt/ge for chars?
 
         case Sets(SetEq) => fmt("{}.Equals({})")
         case Sets(ProperSubset) => Unsupported
@@ -171,37 +182,43 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
       requires Deep.All_Expr(e, Exprs.WellFormed)
       decreases e, 0
     {
-      Predicates.AllImpliesChildren(e, Simplifier.NotANegatedBinopExpr);
-      Predicates.AllImpliesChildren(e, Exprs.WellFormed);
+      Predicates.Deep.AllImpliesChildren(e, Simplifier.NotANegatedBinopExpr);
+      Predicates.Deep.AllImpliesChildren(e, Exprs.WellFormed);
       match e {
         case Literal(l) =>
           CompileLiteralExpr(l)
-        case Apply(UnaryOp(op), es) =>
-          var c := CompileExpr(es[0]);
-          CompileUnaryOpExpr(op, c)
-        case Apply(BinaryOp(op), es) =>
-          var c0, c1 := CompileExpr(es[0]), CompileExpr(es[1]);
-          CompileBinaryExpr(op, c0, c1)
-        case Apply(FunctionCall, es) => Unsupported
-        case Apply(DataConstructor(name, typeArgs), es) => Unsupported
-        case Apply(MethodCall(classType, receiver, typeArgs), es) => Unsupported
-        case Apply(Builtin(Display(ty)), exprs) =>
-          CompileDisplayExpr(ty, Lib.Seq.Map((e requires e in exprs => CompileExpr(e)), exprs))
-        case Apply(Builtin(Print), exprs) =>
-          Concat("\n", Lib.Seq.Map(e requires e in exprs => CompilePrint(e), exprs))
-
+        case Apply(op, es) =>
+          match op {
+            case Lazy(op) =>
+              var c0, c1 := CompileExpr(es[0]), CompileExpr(es[1]);
+              CompileLazyExpr(op, c0, c1) // FIXME should be lazy
+            case Eager(UnaryOp(op)) =>
+              var c := CompileExpr(es[0]);
+              CompileUnaryOpExpr(op, c)
+            case Eager(BinaryOp(op)) =>
+              var c0, c1 := CompileExpr(es[0]), CompileExpr(es[1]);
+              CompileBinaryExpr(op, c0, c1)
+            case Eager(TernaryOp(op)) => Unsupported
+            case Eager(FunctionCall) => Unsupported
+            case Eager(DataConstructor(name, typeArgs)) => Unsupported
+            case Eager(MethodCall(classType, receiver, typeArgs)) => Unsupported
+            case Eager(Builtin(Display(ty))) =>
+              CompileDisplayExpr(ty, Lib.Seq.Map((e requires e in es => CompileExpr(e)), es))
+            case Eager(Builtin(Print)) =>
+              Concat("\n", Lib.Seq.Map(e requires e in es => CompilePrint(e), es))
+          }
         case Block(exprs) =>
           Concat("\n", Lib.Seq.Map(e requires e in exprs => CompileExpr(e), exprs))
         case If(cond, thn, els) =>
           var cCond := CompileExpr(cond);
           var cThn := CompileExpr(thn);
           var cEls := CompileExpr(els);
+          // FIXME block structure
           Concat("\n", [SepSeq(Lib.Datatypes.None, [Str("if ("), cCond, Str(") {")]),
                         SepSeq(Lib.Datatypes.None, [Str("  "), cThn]),
                         Str("} else {"),
                         SepSeq(Lib.Datatypes.None, [Str("  "), cEls]),
                         Str("}")])
-        case Unsupported(_) => Unsupported
       }
     }
 
@@ -257,10 +274,14 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
     method Compile(dafnyProgram: CSharpDafnyASTModel.Program,
                    wr: ConcreteSyntaxTree) {
       var st := new CSharpDafnyInterop.SyntaxTreeAdapter(wr);
-      var translated := Translator.TranslateProgram(dafnyProgram);
-      var lowered := Simplifier.EliminateNegatedBinops(translated);
-      var compiled := Compiler.AlwaysCompileProgram(lowered);
-      WriteAST(st, compiled);
+      match Translator.TranslateProgram(dafnyProgram) {
+        case Success(translated) =>
+          var lowered := Simplifier.EliminateNegatedBinops(translated);
+          var compiled := Compiler.AlwaysCompileProgram(lowered);
+          WriteAST(st, compiled);
+        case Failure(err) => // FIXME return an error
+          st.Write("!! Translation error: " + err.ToString());
+      }
       st.Write("\n");
     }
 
