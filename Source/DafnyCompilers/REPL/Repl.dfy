@@ -89,6 +89,7 @@ method ReportError(err: REPLError)
 method Main()
   decreases *
 {
+  // FIXME: Missing type check means [true, "A", 3] is accepted
   REPL.ReplHelper.Setup();
   while true
     decreases *

@@ -199,6 +199,8 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
           case Apply(Lazy(_), es) => |es| == 2
           case Apply(Eager(UnaryOp(_)), es) => |es| == 1
           case Apply(Eager(BinaryOp(_)), es) => |es| == 2
+          case Apply(Eager(Builtin(Display(ty))), es) =>
+            ty.Collection? && ty.finite
           case _ => true
         }
       }

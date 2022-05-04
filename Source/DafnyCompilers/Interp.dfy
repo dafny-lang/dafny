@@ -42,11 +42,11 @@ module Interp {
         true
       case Apply(Eager(op), args: seq<Expr>) =>
         match op {
-          case UnaryOp(uop: UnaryOp.Op) => FALSE
-          case BinaryOp(bop: BinaryOp) => true
+          case UnaryOp(uop) => FALSE
+          case BinaryOp(bop) => true
           case DataConstructor(name: Path, typeArgs: seq<Type.Type>) => FALSE
-          case Builtin(Display(_)) => FALSE
-          case Builtin(Print) => false
+          case Builtin(Display(_)) => true
+          case Builtin(Print()) => false
           case MethodCall(classType, receiver, typeArgs) => false
           case FunctionCall() => FALSE
         }
@@ -112,19 +112,22 @@ module Interp {
       case Apply(Lazy(op), args: seq<Expr>) =>
         InterpLazy(e, ctx)
       case Apply(Eager(op), args: seq<Expr>) =>
-        var OK(argsv, ctx) :- InterpExprs(args, ctx);
-        match op {
-          case BinaryOp(bop: BinaryOp) =>
-            assert |argsv| == 2;
-            LiftPureResult(ctx, InterpBinaryOp(e, bop, argsv[0], argsv[1]))
-        }
+        var OK(argvs, ctx) :- InterpExprs(args, ctx);
+        LiftPureResult(ctx, match op {
+            case BinaryOp(bop: BinaryOp) =>
+              assert |argvs| == 2;
+              InterpBinaryOp(e, bop, argvs[0], argvs[1])
+            case Builtin(Display(ty)) =>
+              assert ty.Collection?;
+              InterpDisplay(e, ty.kind, argvs)
+          })
       case If(cond, thn, els) =>
         var OK(condv, ctx) :- InterpExprWithType(cond, Type.Bool, ctx);
         if condv.b then InterpExpr(thn, ctx) else InterpExpr(els, ctx)
     }
   }
 
-  function method InterpExprWithType(e: Expr, ty: Type, ctx: Context := map[])
+  function method InterpExprWithType(e: Expr, ty: Type, ctx: Context)
     : (r: InterpResult<V.T>)
     requires SupportsInterp(e)
     decreases e, 2
@@ -133,6 +136,29 @@ module Interp {
     var OK(val, ctx) :- InterpExpr(e, ctx);
     :- Need(val.HasType(ty), TypeError(e, val, ty));
     Success(OK(val, ctx))
+  }
+
+  function method NeedTypes(es: seq<Expr>, vs: seq<V.T>, ty: Type)
+    : (r: Outcome<InterpError>)
+    requires |es| == |vs|
+    decreases |es|
+    // DISCUSS: Replacing this with <==> doesn't verify
+    ensures r.Pass? ==> forall v | v in vs :: v.HasType(ty)
+    ensures r.Pass? <== forall v | v in vs :: v.HasType(ty)
+  {
+    if es == [] then
+      assert vs == []; Pass
+    else
+      // DISCUSS: No `:-` for outcomes?
+      // DISCUSS: should match accept multiple discriminands? (with lazy evaluation?)
+      match Need(vs[0].HasType(ty), TypeError(es[0], vs[0], ty))
+        case Pass =>
+          assert vs[0].HasType(ty);
+          match NeedTypes(es[1..], vs[1..], ty) { // TODO check that compiler does this efficiently
+            case Pass => assert forall v | v in vs[1..] :: v.HasType(ty); Pass
+            case fail => fail
+          }
+        case fail => fail
   }
 
   function method InterpExprs(es: seq<Expr>, ctx: Context)
@@ -414,5 +440,26 @@ module Interp {
           case _ => Failure(InvalidExpression(expr))
         }
       case _ => Failure(InvalidExpression(expr))
+  }
+
+  function method MapOfSeq(e: Expr, argvs: seq<V.T>, acc: map<V.T, V.T> := map[])
+    : PureInterpResult<V.T>
+  {
+    // TODO This will need to change once we get a better representation for pairs
+    if argvs == [] then Success(V.Map(acc))
+    else
+      var v0 := argvs[0];
+      :- Need(v0.Seq? && |v0.sq| == 2, InvalidExpression(e));
+      MapOfSeq(e, argvs[1..], acc[v0.sq[0] := v0.sq[1]])
+  }
+
+  function method InterpDisplay(e: Expr, kind: Types.CollectionKind, argvs: seq<V.T>)
+    : PureInterpResult<V.T>
+  {
+    match kind
+      case Map(_) => MapOfSeq(e, argvs)
+      case Multiset() => Success(V.MultiSet(multiset(argvs)))
+      case Seq() => Success(V.Seq(argvs))
+      case Set() => Success(V.Set(set s | s in argvs))
   }
 }

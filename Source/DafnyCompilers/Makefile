@@ -45,6 +45,7 @@ run: $(CompilerDLL) $(DafnyRuntime)
 		minimal.dfy
 
 # Compile the REPL
+# FIXME missing dependencies
 REPL/Repl.cs: REPL/Repl.dfy
 	$(dafny2cs) $<
 	sed -i.bak -e 's/__AUTOGEN__//g' "$@"
