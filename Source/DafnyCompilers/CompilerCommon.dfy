@@ -96,8 +96,17 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     module TernaryOps {
       import Types
 
-      datatype TernaryOp = // FIXME: BinaryOps are sorted by kind but ternary ones are grouped by operation
-        | CollectionUpdate(kind: Types.CollectionKind)
+      datatype Multisets =
+        MultisetUpdate
+      datatype Sequences =
+        SeqUpdate
+      datatype Maps =
+        MapUpdate
+
+      datatype TernaryOp =
+        | Multisets(oMultisets: Multisets)
+        | Sequences(oSequences: Sequences)
+        | Maps(oMaps: Maps)
 
       type T(!new,00,==) = TernaryOp
     }
@@ -216,8 +225,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
           case Apply(Eager(BinaryOp(_)), es) =>
             |es| == 2
           case Apply(Eager(TernaryOp(top)), es) =>
-            |es| == 3 &&
-            (top.CollectionUpdate? ==> top.kind != Types.Set())
+            |es| == 3
           case Apply(Eager(Builtin(Display(ty))), es) =>
             ty.Collection? && ty.finite
           case _ => true
@@ -518,7 +526,11 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       var ty := TranslateType(se.Type);
       if ty.Collection? && ty.kind != DT.Set() then
         assume Math.Max(ASTHeight(se.Seq), Math.Max(ASTHeight(se.Index), ASTHeight(se.Value))) < ASTHeight(se);
-        DE.Apply(DE.Eager(DE.TernaryOp(DE.TernaryOps.CollectionUpdate(ty.kind))),
+        var op := match ty.kind
+          case Seq() => DE.TernaryOps.Sequences(DE.TernaryOps.SeqUpdate)
+          case Map(_) => DE.TernaryOps.Maps(DE.TernaryOps.MapUpdate)
+          case Multiset() => DE.TernaryOps.Multisets(DE.TernaryOps.MultisetUpdate);
+        DE.Apply(DE.Eager(DE.TernaryOp(op)),
                  [TranslateExpression(se.Seq),
                   TranslateExpression(se.Index),
                   TranslateExpression(se.Value)])

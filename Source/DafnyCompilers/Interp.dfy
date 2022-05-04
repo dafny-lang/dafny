@@ -228,29 +228,29 @@ module Interp {
     : PureInterpResult<V.T>
   {
     match bop
-      case Numeric(op) => InterpNumeric(expr, op, v0, v1)
-      case Logical(op) => InterpLogical(expr, op, v0, v1)
+      case Numeric(op) => InterpBinaryNumeric(expr, op, v0, v1)
+      case Logical(op) => InterpBinaryLogical(expr, op, v0, v1)
       case Eq(op) => match op { // FIXME which types is this Eq applicable to (vs. the type-specific ones?)
         case EqCommon() => Success(V.Bool(v0 == v1))
         case NeqCommon() => Success(V.Bool(v0 != v1))
       }
       case BV(op) => Failure(Unsupported(expr))
-      case Char(op) => InterpChar(expr, op, v0, v1)
-      case Sets(op) => InterpSets(expr, op, v0, v1)
-      case Multisets(op) => InterpMultisets(expr, op, v0, v1)
-      case Sequences(op) => InterpSequences(expr, op, v0, v1)
-      case Maps(op) => InterpMaps(expr, op, v0, v1)
+      case Char(op) => InterpBinaryChar(expr, op, v0, v1)
+      case Sets(op) => InterpBinarySets(expr, op, v0, v1)
+      case Multisets(op) => InterpBinaryMultisets(expr, op, v0, v1)
+      case Sequences(op) => InterpBinarySequences(expr, op, v0, v1)
+      case Maps(op) => InterpBinaryMaps(expr, op, v0, v1)
       case Datatypes(op) => Failure(Unsupported(expr))
   }
 
-  function method InterpNumeric(expr: Expr, op: BinaryOps.Numeric, v0: V.T, v1: V.T)
+  function method InterpBinaryNumeric(expr: Expr, op: BinaryOps.Numeric, v0: V.T, v1: V.T)
     : PureInterpResult<V.T>
   {
     match (v0, v1) {
       // Separate functions to more easily check exhaustiveness
-      case (Int(x1), Int(x2)) => InterpInt(expr, op, x1, x2)
-      case (Char(x1), Char(x2)) => InterpNumericChar(expr, op, x1, x2)
-      case (Real(x1), Real(x2)) => InterpReal(expr, op, x1, x2)
+      case (Int(x1), Int(x2)) => InterpBinaryInt(expr, op, x1, x2)
+      case (Char(x1), Char(x2)) => InterpBinaryNumericChar(expr, op, x1, x2)
+      case (Real(x1), Real(x2)) => InterpBinaryReal(expr, op, x1, x2)
       case _ => Failure(InvalidExpression(expr)) // FIXME: Wf
     }
   }
@@ -259,7 +259,7 @@ module Interp {
     if b then Fail(DivisionByZero) else Pass
   }
 
-  function method InterpInt(expr: Expr, bop: AST.BinaryOps.Numeric, x1: int, x2: int)
+  function method InterpBinaryInt(expr: Expr, bop: AST.BinaryOps.Numeric, x1: int, x2: int)
     : PureInterpResult<V.T>
   {
     match bop {
@@ -279,10 +279,10 @@ module Interp {
     if low <= x < high then Success(x) else Failure(IntOverflow(x, Some(low), Some(high)))
   }
 
-  function method InterpNumericChar(expr: Expr, bop: AST.BinaryOps.Numeric, x1: char, x2: char)
+  function method InterpBinaryNumericChar(expr: Expr, bop: AST.BinaryOps.Numeric, x1: char, x2: char)
     : PureInterpResult<V.T>
   {
-    match bop { // FIXME: These first four cases are not used (see InterpChar instead)
+    match bop { // FIXME: These first four cases are not used (see InterpBinaryChar instead)
       case Lt() => Success(V.Bool(x1 < x2))
       case Le() => Success(V.Bool(x1 <= x2))
       case Ge() => Success(V.Bool(x1 >= x2))
@@ -295,7 +295,7 @@ module Interp {
     }
   }
 
-  function method InterpReal(expr: Expr, bop: AST.BinaryOps.Numeric, x1: real, x2: real)
+  function method InterpBinaryReal(expr: Expr, bop: AST.BinaryOps.Numeric, x1: real, x2: real)
     : PureInterpResult<V.T>
   {
     match bop {
@@ -311,7 +311,7 @@ module Interp {
     }
   }
 
-  function method InterpLogical(expr: Expr, op: BinaryOps.Logical, v0: V.T, v1: V.T)
+  function method InterpBinaryLogical(expr: Expr, op: BinaryOps.Logical, v0: V.T, v1: V.T)
     : PureInterpResult<V.T>
   {
     match (v0, v1) {
@@ -323,7 +323,7 @@ module Interp {
     }
   }
 
-  function method InterpChar(expr: Expr, op: AST.BinaryOps.Char, v0: V.T, v1: V.T)
+  function method InterpBinaryChar(expr: Expr, op: AST.BinaryOps.Char, v0: V.T, v1: V.T)
     : PureInterpResult<V.T>
   { // FIXME eliminate distinction between GtChar and GT?
     match (v0, v1) {
@@ -338,7 +338,7 @@ module Interp {
     }
   }
 
-  function method InterpSets(expr: Expr, op: BinaryOps.Sets, v0: V.T, v1: V.T)
+  function method InterpBinarySets(expr: Expr, op: BinaryOps.Sets, v0: V.T, v1: V.T)
     : PureInterpResult<V.T>
   {
     match (v0, v1)
@@ -366,7 +366,7 @@ module Interp {
       case _ => Failure(InvalidExpression(expr))
   }
 
-  function method InterpMultisets(expr: Expr, op: BinaryOps.Multisets, v0: V.T, v1: V.T)
+  function method InterpBinaryMultisets(expr: Expr, op: BinaryOps.Multisets, v0: V.T, v1: V.T)
     : PureInterpResult<V.T>
   {
     match (v0, v1)
@@ -394,7 +394,7 @@ module Interp {
       case _ => Failure(InvalidExpression(expr))
   }
 
-  function method InterpSequences(expr: Expr, op: BinaryOps.Sequences, v0: V.T, v1: V.T)
+  function method InterpBinarySequences(expr: Expr, op: BinaryOps.Sequences, v0: V.T, v1: V.T)
     : PureInterpResult<V.T>
   {
     match (v0, v1)
@@ -417,7 +417,7 @@ module Interp {
       case _ => Failure(InvalidExpression(expr))
   }
 
-  function method InterpMaps(expr: Expr, op: BinaryOps.Maps, v0: V.T, v1: V.T)
+  function method InterpBinaryMaps(expr: Expr, op: BinaryOps.Maps, v0: V.T, v1: V.T)
     : PureInterpResult<V.T>
   {
     match (v0, v1)
@@ -446,24 +446,44 @@ module Interp {
 
   function method InterpTernaryOp(expr: Expr, top: AST.TernaryOp, v0: V.T, v1: V.T, v2: V.T)
     : PureInterpResult<V.T>
-    requires top.CollectionUpdate? ==> top.kind != Types.Set
   {
     match top
-      case CollectionUpdate(kind) =>
-        match (kind, v0)
-          case (Seq(), Seq(s))=>
-            :- Need(v1.Int?, InvalidExpression(expr));
-            :- Need(0 <= v1.i < |s|, OutOfBounds(v1, v0));
-            Success(V.Seq(s[v1.i := v2]))
-          case (Multiset(), Multiset(s)) =>
-            :- Need(v2.Int? && v2.i >= 0, InvalidExpression(expr));
-            Success(V.Multiset(s[v1 := v2.i]))
-          case (Map(_), Map(m)) =>
-            Success(V.Map(m[v1 := v2]))
+      case Sequences(op) => InterpTernarySequences(expr, op, v0, v1, v2)
+      case Multisets(op) => InterpTernaryMultisets(expr, op, v0, v1, v2)
+      case Maps(op) => InterpTernaryMaps(expr, op, v0, v1, v2)
+  }
 
-          case (kd, _) =>
-            assert kd.Seq? || kd.Multiset? || kd.Map?;
-            Failure(InvalidExpression(expr))
+  function method InterpTernarySequences(expr: Expr, op: AST.TernaryOps.Sequences, v0: V.T, v1: V.T, v2: V.T)
+    : PureInterpResult<V.T>
+  {
+    match (op, v0)
+      case (SeqUpdate(), Seq(s))=>
+        :- Need(v1.Int?, InvalidExpression(expr));
+        :- Need(0 <= v1.i < |s|, OutOfBounds(v1, v0));
+        Success(V.Seq(s[v1.i := v2]))
+      case (SeqUpdate(), _) =>
+        Failure(InvalidExpression(expr))
+  }
+
+  function method InterpTernaryMultisets(expr: Expr, op: AST.TernaryOps.Multisets, v0: V.T, v1: V.T, v2: V.T)
+    : PureInterpResult<V.T>
+  {
+    match (op, v0)
+      case (MultisetUpdate(), Multiset(s))=>
+        :- Need(v2.Int? && v2.i >= 0, InvalidExpression(expr));
+        Success(V.Multiset(s[v1 := v2.i]))
+      case (MultisetUpdate(), _) =>
+        Failure(InvalidExpression(expr))
+  }
+
+  function method InterpTernaryMaps(expr: Expr, op: AST.TernaryOps.Maps, v0: V.T, v1: V.T, v2: V.T)
+    : PureInterpResult<V.T>
+  {
+    match (op, v0)
+      case (MapUpdate(), Map(m))=>
+        Success(V.Map(m[v1 := v2]))
+      case (MapUpdate(), _) =>
+        Failure(InvalidExpression(expr))
   }
 
   function method MapOfSeq(e: Expr, argvs: seq<V.T>, acc: map<V.T, V.T> := map[])
