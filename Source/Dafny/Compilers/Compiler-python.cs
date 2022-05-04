@@ -737,9 +737,6 @@ namespace Microsoft.Dafny.Compilers {
             case BigDec n:
               wr.Write($"{DafnyRuntimeModule}.BigRational('{n.Mantissa}e{n.Exponent}')");
               break;
-            case null:
-              wr.Write("None");
-              break;
             default:
               throw new NotImplementedException();
           }
@@ -866,11 +863,6 @@ namespace Microsoft.Dafny.Compilers {
           break;
         case SpecialField.ID.Keys:
           compiledName = "keys";
-          break;
-        case SpecialField.ID.ArrayLength:
-        case SpecialField.ID.ArrayLengthInt:
-          preString = "len(";
-          postString = ")";
           break;
         case SpecialField.ID.Floor:
           preString = "floor(";
