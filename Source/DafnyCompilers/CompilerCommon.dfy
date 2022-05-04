@@ -453,11 +453,14 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       decreases ASTHeight(de), 0
       ensures P.All_Expr(e, DE.WellFormed)
     {
-      var elSeq := ListUtils.ToSeq(de.Elements);
-      var exprs := Seq.Map((e requires e in elSeq reads * =>
-        assume ASTHeight(e) < ASTHeight(de); TranslateExpression(e)), elSeq);
       var ty := TranslateType(de.Type);
-      DE.Apply(DE.Eager(DE.Builtin(DE.Display(ty))), exprs)
+      if ty.Collection? && ty.finite then
+        var elSeq := ListUtils.ToSeq(de.Elements);
+        var exprs := Seq.Map((e requires e in elSeq reads * =>
+          assume ASTHeight(e) < ASTHeight(de); TranslateExpression(e)), elSeq);
+        DE.Apply(DE.Eager(DE.Builtin(DE.Display(ty))), exprs)
+      else
+        DE.Unsupported(DE.Invalid("`DisplayExpr` must be a finite collection."))
     }
 
     function method TranslateExpressionPair(mde: C.MapDisplayExpr, ep: C.ExpressionPair): (e: DE.T)
@@ -477,12 +480,15 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       decreases ASTHeight(mde), 1
       ensures P.All_Expr(e, DE.WellFormed)
     {
-      var elSeq := ListUtils.ToSeq(mde.Elements);
-      var exprs := Seq.Map((ep: C.ExpressionPair) reads * =>
-        assume Math.Max(ASTHeight(ep.A), ASTHeight(ep.B)) < ASTHeight(mde);
-        TranslateExpressionPair(mde, ep), elSeq);
       var ty := TranslateType(mde.Type);
-      DE.Apply(DE.Eager(DE.Builtin(DE.Display(ty))), exprs)
+      if ty.Collection? && ty.kind.Map? && ty.finite then
+        var elSeq := ListUtils.ToSeq(mde.Elements);
+        var exprs := Seq.Map((ep: C.ExpressionPair) reads * =>
+          assume Math.Max(ASTHeight(ep.A), ASTHeight(ep.B)) < ASTHeight(mde);
+          TranslateExpressionPair(mde, ep), elSeq);
+        DE.Apply(DE.Eager(DE.Builtin(DE.Display(ty))), exprs)
+      else
+        DE.Unsupported(DE.Invalid("`MapDisplayExpr` must be a map."))
     }
 
     function method TranslateExpression(c: C.Expression) : (e: DE.T)
