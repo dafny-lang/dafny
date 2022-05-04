@@ -23,8 +23,14 @@ method {:tailrecursion true} Countdown(x: nat) {
   }
 }
 
+datatype A = A(val: int)
+
+method LetExpr() {
+  print (var a := A(0); var A(zero) := a; zero), "\n";
+}
 
 method Main() {
   Match((0,1));
   Countdown(1);
+  LetExpr();
 }
