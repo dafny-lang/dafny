@@ -90,10 +90,18 @@ namespace DafnyTestGeneration {
         new PipelineStatistics(), null,
         _ => { }, uniqueId);
       var log = writer.ToString();
+      // TODO determine whether we can use the writer or still need the console.Out hijacking
+      // Utils.CaptureConsoleOutput(
+      //   () => {
+      //     engine.InferAndVerify(Console.Out, program,
+      //       new PipelineStatistics(), null,
+      //       _ => { }, uniqueId).Wait();
+      //   });
       DafnyOptions.Install(oldOptions);
       // make sure that there is a counterexample (i.e. no parse errors, etc):
+      string? line;
       var stringReader = new StringReader(log);
-      while (await stringReader.ReadLineAsync() is { } line) {
+      while ((line = await stringReader.ReadLineAsync()) != null) {
         if (line.StartsWith("Block |")) {
           return log;
         }
