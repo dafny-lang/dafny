@@ -41,7 +41,6 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
         case BitVector(_) => Unsupported
         case Collection(false, collKind_, eltType_) => Unsupported
         case Class(_) => Unsupported
-        case Nat => Unsupported
         case Unit => Unsupported
       }
     }
