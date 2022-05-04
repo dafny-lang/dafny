@@ -4745,9 +4745,6 @@ namespace Microsoft.Dafny {
         return total;
       } else if (expr is SeqUpdateExpr) {
         SeqUpdateExpr e = (SeqUpdateExpr)expr;
-        if (e.ResolvedUpdateExpr != null) {
-          return CanCallAssumption(e.ResolvedUpdateExpr, etran);
-        }
         Bpl.Expr total = CanCallAssumption(e.Seq, etran);
         total = BplAnd(total, CanCallAssumption(e.Index, etran));
         total = BplAnd(total, CanCallAssumption(e.Value, etran));
@@ -5597,34 +5594,30 @@ namespace Microsoft.Dafny {
         }
       } else if (expr is SeqUpdateExpr) {
         var e = (SeqUpdateExpr)expr;
-        if (e.ResolvedUpdateExpr != null) {
-          CheckWellformedWithResult(e.ResolvedUpdateExpr, options, result, resultType, locals, builder, etran);
+        CheckWellformed(e.Seq, options, locals, builder, etran);
+        Bpl.Expr seq = etran.TrExpr(e.Seq);
+        Bpl.Expr index = etran.TrExpr(e.Index);
+        Bpl.Expr value = etran.TrExpr(e.Value);
+        var collectionType = (CollectionType)e.Seq.Type.NormalizeExpand();
+        // validate index
+        CheckWellformed(e.Index, options, locals, builder, etran);
+        if (collectionType is SeqType) {
+          var desc = new PODesc.InRange("index");
+          builder.Add(Assert(GetToken(e.Index), InSeqRange(expr.tok, index, e.Index.Type, seq, true, null, false), desc, options.AssertKv));
         } else {
-          CheckWellformed(e.Seq, options, locals, builder, etran);
-          Bpl.Expr seq = etran.TrExpr(e.Seq);
-          Bpl.Expr index = etran.TrExpr(e.Index);
-          Bpl.Expr value = etran.TrExpr(e.Value);
-          var collectionType = (CollectionType)e.Seq.Type.NormalizeExpand();
-          // validate index
-          CheckWellformed(e.Index, options, locals, builder, etran);
-          if (collectionType is SeqType) {
-            var desc = new PODesc.InRange("index");
-            builder.Add(Assert(GetToken(e.Index), InSeqRange(expr.tok, index, e.Index.Type, seq, true, null, false), desc, options.AssertKv));
-          } else {
-            CheckSubrange(e.Index.tok, index, e.Index.Type, collectionType.Arg, builder);
-          }
-          // validate value
-          CheckWellformed(e.Value, options, locals, builder, etran);
-          if (collectionType is SeqType) {
-            CheckSubrange(e.Value.tok, value, e.Value.Type, collectionType.Arg, builder);
-          } else if (collectionType is MapType mapType) {
-            CheckSubrange(e.Value.tok, value, e.Value.Type, mapType.Range, builder);
-          } else if (collectionType is MultiSetType) {
-            var desc = new PODesc.NonNegative("new number of occurrences");
-            builder.Add(Assert(GetToken(e.Value), Bpl.Expr.Le(Bpl.Expr.Literal(0), value), desc, options.AssertKv));
-          } else {
-            Contract.Assert(false);
-          }
+          CheckSubrange(e.Index.tok, index, e.Index.Type, collectionType.Arg, builder);
+        }
+        // validate value
+        CheckWellformed(e.Value, options, locals, builder, etran);
+        if (collectionType is SeqType) {
+          CheckSubrange(e.Value.tok, value, e.Value.Type, collectionType.Arg, builder);
+        } else if (collectionType is MapType mapType) {
+          CheckSubrange(e.Value.tok, value, e.Value.Type, mapType.Range, builder);
+        } else if (collectionType is MultiSetType) {
+          var desc = new PODesc.NonNegative("new number of occurrences");
+          builder.Add(Assert(GetToken(e.Value), Bpl.Expr.Le(Bpl.Expr.Literal(0), value), desc, options.AssertKv));
+        } else {
+          Contract.Assert(false);
         }
       } else if (expr is ApplyExpr) {
         var e = (ApplyExpr)expr;

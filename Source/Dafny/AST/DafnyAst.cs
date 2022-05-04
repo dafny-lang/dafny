@@ -10574,7 +10574,6 @@ namespace Microsoft.Dafny {
     public readonly Expression Seq;
     public readonly Expression Index;
     public readonly Expression Value;
-    [FilledInDuringResolution] public Expression ResolvedUpdateExpr; // if the SeqUpdateExpr corresponds to a datatype update
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(Seq != null);
@@ -10595,15 +10594,9 @@ namespace Microsoft.Dafny {
 
     public override IEnumerable<Expression> SubExpressions {
       get {
-        if (ResolvedUpdateExpr == null) {
-          yield return Seq;
-          yield return Index;
-          yield return Value;
-        } else {
-          foreach (var e in ResolvedUpdateExpr.SubExpressions) {
-            yield return e;
-          }
-        }
+        yield return Seq;
+        yield return Index;
+        yield return Value;
       }
     }
   }
