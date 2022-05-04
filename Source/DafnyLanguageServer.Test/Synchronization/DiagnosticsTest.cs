@@ -783,9 +783,6 @@ method test() {
 method test2() {
   assert false;
 }
-method test3() {
-  assert false;
-}
 ".TrimStart();
       await SetUp(new Dictionary<string, string>() {
         { $"{VerifierOptions.Section}:{nameof(VerifierOptions.VcsCores)}", "1" }
@@ -796,32 +793,26 @@ method test3() {
       Assert.AreEqual(0, resolutionDiagnostics.Length);
       var firstVerificationDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       var secondVerificationDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
-      var thirdVerificationDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       Assert.AreEqual(1, firstVerificationDiagnostics.Length);
       Assert.AreEqual(2, secondVerificationDiagnostics.Length);
-      Assert.AreEqual(3, thirdVerificationDiagnostics.Length);
 
       /*
        * New source becomes
        * method test() {
            assert false;
-         }
-         method test2() {
-           assert false;
            assert false;
          }
        */
-      ApplyChange(ref documentItem, new Range((5, 0), (7, 0)), ""); 
+      ApplyChange(ref documentItem, new Range((2, 0), (4, 0)), ""); 
       
       var resolutionDiagnostics2 = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       
-      // Resolution diagnostics still contain migrated verification diagnostics of the deleted method.
-      AssertDiagnosticListsAreEqualBesidesMigration(thirdVerificationDiagnostics, resolutionDiagnostics2);
+      // Resolution diagnostics still contain those of the deleted method.
+      AssertDiagnosticListsAreEqualBesidesMigration(secondVerificationDiagnostics, resolutionDiagnostics2);
       var firstVerificationDiagnostics2 = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
-      Assert.AreEqual(2, firstVerificationDiagnostics2.Length);
-      var secondVerificationDiagnostics2 = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
-      // The second assert doesn't create a separate error.
-      Assert.AreEqual(2, secondVerificationDiagnostics2.Length);
+      // The second assert doesn't create a separate error since it's hidden by the first one.
+      // The diagnostics of test2 has not been migrated since test2 no longer exists.
+      Assert.AreEqual(1, firstVerificationDiagnostics2.Length);
       
       await AssertNoDiagnosticsAreComing();
     }
