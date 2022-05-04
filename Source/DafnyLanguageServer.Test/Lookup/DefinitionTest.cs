@@ -15,15 +15,7 @@ using Microsoft.Dafny.LanguageServer.Workspace;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
   [TestClass]
-  public class DefinitionTest : DafnyLanguageServerTestBase {
-    private ILanguageClient client;
-    private DiagnosticsReceiver diagnosticReceiver;
-
-    [TestInitialize]
-    public async Task SetUp() {
-      diagnosticReceiver = new();
-      client = await InitializeClient();
-    }
+  public class DefinitionTest : ClientBasedLanguageServerTest {
 
     private IRequestProgressObservable<IEnumerable<LocationOrLocationLink>, LocationOrLocationLinks> RequestDefinition(TextDocumentItem documentItem, Position position) {
       return client.RequestDefinition(
@@ -56,7 +48,7 @@ method CallDoIt() returns () {
     public async Task DefinitionReturnsBeforeVerificationIsComplete() {
       var documentItem = CreateTestDocument(NeverVerifies);
       client.OpenDocument(documentItem);
-      var verificationTask = diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
+      var verificationTask = GetLastVerificationDiagnostics(documentItem, CancellationToken);
       var definitionTask = RequestDefinition(documentItem, (4, 14)).AsTask();
       var first = await Task.WhenAny(verificationTask, definitionTask);
       Assert.AreSame(first, definitionTask);

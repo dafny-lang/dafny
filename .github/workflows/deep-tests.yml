@@ -1,0 +1,19 @@
+
+# This workflow is currently identical to what is run on every PR, but will diverge in the near
+# future to include more expensive tests that are unlikely to break on most changes.
+name: Deep Integration Tests
+
+on:
+  schedule:
+    # Chosen to be hopefully outside of business hours for most contributors'
+    # time zones, and not on the hour to avoid heavy scheduled-job times:
+    # https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#schedule
+    - cron: "30 6 * * *"
+  workflow_dispatch:
+
+jobs:
+  deep-integration-tests:
+    uses: ./.github/workflows/integration-tests-reusable.yml
+    with:
+      all_platforms: true
+      num_shards: 5

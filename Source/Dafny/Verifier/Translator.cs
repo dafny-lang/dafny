@@ -3824,9 +3824,57 @@ namespace Microsoft.Dafny {
       Bpl.Expr ante = Bpl.Expr.And(Bpl.Expr.Neq(o, predef.Null), etran.IsAlloced(tok, o));
       Bpl.Expr oInCallee = InRWClause(tok, o, f, calleeFrame, etran, receiverReplacement, substMap);
       Bpl.Expr inEnclosingFrame = Bpl.Expr.Select(etran.TheFrame(tok), o, f);
+
       Bpl.Expr q = new Bpl.ForallExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar },
                                       Bpl.Expr.Imp(Bpl.Expr.And(ante, oInCallee), inEnclosingFrame));
+      if (IsExprAlways(q, true)) {
+        return;
+      }
       MakeAssert(tok, q, desc, kv);
+    }
+
+    /// <summary>
+    /// Returns true if it can statically determine that the expression q always evaluates to truth
+    /// </summary>
+    /// <param name="q">The expression</param>
+    /// <param name="truth">The expected truth value that q might always have</param>
+    /// <returns>True if q is always of the boolean value "truth"</returns>
+    public static bool IsExprAlways(Bpl.Expr q, bool truth) {
+      if (q is Bpl.ForallExpr forallExpr) {
+        return truth && IsExprAlways(forallExpr.Body, true);
+      }
+      if (q is Bpl.ExistsExpr existsExpr) {
+        return !truth && IsExprAlways(existsExpr.Body, false);
+      }
+      if (q is Bpl.LiteralExpr { isBool: true } lit && lit.asBool == truth) {
+        return true;
+      }
+
+      if (q is Bpl.NAryExpr n) {
+        if (n.Fun is Bpl.BinaryOperator op && n.Args.Count == 2) {
+          switch (op.Op) {
+            case BinaryOperator.Opcode.And:
+              return truth
+                ? IsExprAlways(n.Args[0], true) && IsExprAlways(n.Args[1], true)
+                : IsExprAlways(n.Args[0], false) || IsExprAlways(n.Args[1], false);
+            case BinaryOperator.Opcode.Or:
+              return truth
+                ? IsExprAlways(n.Args[0], true) || IsExprAlways(n.Args[1], true)
+                : IsExprAlways(n.Args[0], false) && IsExprAlways(n.Args[1], false);
+            case BinaryOperator.Opcode.Imp:
+              return truth
+                ? IsExprAlways(n.Args[0], false) || IsExprAlways(n.Args[1], true)
+                : IsExprAlways(n.Args[0], true) && IsExprAlways(n.Args[1], false);
+          }
+        } else if (n.Fun is Bpl.UnaryOperator uop && n.Args.Count == 1) {
+          switch (uop.Op) {
+            case UnaryOperator.Opcode.Not:
+              return IsExprAlways(n.Args[0], !truth);
+          }
+        }
+      }
+
+      return false;
     }
 
     /// <summary>
