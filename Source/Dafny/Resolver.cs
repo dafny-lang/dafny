@@ -248,7 +248,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(prog != null);
 
       builtIns = prog.BuiltIns;
-      reporter = prog.Reporter;
+      reporter = prog.reporter;
 
       // Map#Items relies on the two destructors for 2-tuples
       builtIns.TupleType(Token.NoToken, 2, true);

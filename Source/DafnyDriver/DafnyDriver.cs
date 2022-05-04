@@ -304,7 +304,7 @@ namespace Microsoft.Dafny {
       var nmodules = Translator.VerifiableModules(dafnyProgram).Count();
 
 
-      foreach (var prog in Translator.Translate(dafnyProgram, dafnyProgram.Reporter)) {
+      foreach (var prog in Translator.Translate(dafnyProgram, dafnyProgram.reporter)) {
 
         if (DafnyOptions.O.PrintFile != null) {
 
@@ -558,8 +558,8 @@ namespace Microsoft.Dafny {
       }
 
       // Compile the Dafny program into a string that contains the target program
-      var oldErrorCount = dafnyProgram.Reporter.Count(ErrorLevel.Error);
-      DafnyOptions.O.Compiler.OnPreCompile(dafnyProgram.Reporter, otherFileNames);
+      var oldErrorCount = dafnyProgram.reporter.Count(ErrorLevel.Error);
+      DafnyOptions.O.Compiler.OnPreCompile(dafnyProgram.reporter, otherFileNames);
       var compiler = DafnyOptions.O.Compiler;
 
       var hasMain = Compilers.SinglePassCompiler.HasMain(dafnyProgram, out var mainMethod);
@@ -594,7 +594,7 @@ namespace Microsoft.Dafny {
         callToMain = callToMainTree.ToString(); // assume there aren't multiple files just to call main
       }
       Contract.Assert(hasMain == (callToMain != null));
-      bool targetProgramHasErrors = dafnyProgram.Reporter.Count(ErrorLevel.Error) != oldErrorCount;
+      bool targetProgramHasErrors = dafnyProgram.reporter.Count(ErrorLevel.Error) != oldErrorCount;
 
       compiler.OnPostCompile();
 

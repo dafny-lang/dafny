@@ -2,7 +2,6 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using System.IO;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
@@ -53,7 +52,7 @@ method test() {
       await client.WaitForNotificationCompletionAsync(documentItem.Uri, CancellationToken);
       var document = await Documents.GetDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
-      Assert.IsTrue(!document.Diagnostics.Any());
+      Assert.IsTrue(!document.Errors.HasErrors);
       client.DidChangeTextDocument(new DidChangeTextDocumentParams {
         TextDocument = new OptionalVersionedTextDocumentIdentifier {
           Uri = documentItem.Uri,
@@ -67,7 +66,7 @@ method test() {
       await client.WaitForNotificationCompletionAsync(documentItem.Uri, CancellationToken);
       document = await Documents.GetDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
-      Assert.IsTrue(document.Diagnostics.Any());
+      Assert.IsTrue(document.Errors.HasErrors);
     }
   }
 }
