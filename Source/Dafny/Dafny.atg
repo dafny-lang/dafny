@@ -27,6 +27,7 @@ readonly ModuleDecl theModule;
 readonly BuiltIns theBuiltIns;
 readonly bool theVerifyThisFile;
 readonly bool theCompileThisFile;
+DafnyOptions theOptions;
 int anonymousIds = 0;
 
 /// <summary>
@@ -160,6 +161,29 @@ public static Expression ParseExpression(string/*!*/ s, string/*!*/ fullFilename
   return e;
 }
 
+public void ApplyOptionsFromAttributes(Attributes attrs) {
+  var overrides = attrs.AsEnumerable().Where(a => a.Name == "options")
+    .Reverse().Select(a =>
+      (token: (a as UserSuppliedAttributes)?.tok,
+       options: a.Args.Select(arg => {
+         if (arg is not LiteralExpr {Value: string optStr}) {
+           SemErr(arg.tok, "argument to :options attribute must be a literal string");
+           return null;
+         }
+         return optStr;
+       }).Where(opt => opt != null).ToArray()))
+    .Where(opts => opts.options.Any());
+
+  if (overrides.Any()) {
+    var options = new DafnyAttributeOptions(theOptions, errors);
+    foreach (var (token, opts) in overrides) {
+      options.Token = token;
+      options.Parse(opts);
+    }
+    theOptions = options;
+  }
+}
+
 ///<summary>
 /// Parses top-level things (modules, classes, datatypes, class members)
 /// and appends them in appropriate form to "module".
@@ -188,6 +212,7 @@ public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, Include include, ModuleD
   theBuiltIns = builtIns;
   theVerifyThisFile = verifyThisFile;
   theCompileThisFile = compileThisFile;
+  theOptions = new DafnyOptions(DafnyOptions.O);
 }
 
 bool IsIdentifier(int kind) {
@@ -891,7 +916,7 @@ Dafny
   (. // find the default class in the default module, then append membersDefaultClass to its member list
 		 if (membersDefaultClass.Count == 0 && defaultModule.Includes.Count == 0 && defaultModule.TopLevelDecls.Count == 0
 		     && (defaultModule.PrefixNamedModules == null || defaultModule.PrefixNamedModules.Count == 0)) {
-		   var fileName = DafnyOptions.O.UseBaseNameForFileName
+		   var fileName = theOptions.UseBaseNameForFileName
                    ? Path.GetFileName(scanner.FullFilename) 
                    : Path.GetRelativePath(Directory.GetCurrentDirectory(), scanner.FullFilename);
 		   errors.Warning(defaultModule.tok, "File contains no code: " + fileName);
@@ -923,7 +948,7 @@ DeclModifier<ref DeclModifierData dmod>
          "to restrict access from outside the module, use a 'provides' clause in the module's export set; " +
          "if you're trying to add conjuncts to a predicate in a refinement module, see " +
          "Test/dafny3/CachedContainer.dfy, Test/dafny2/StoreAndRetrieve.dfy, and Test/dafny2/MonotonicHeapstate.dfy " +
-         "in the Dafny test suite on github");
+         "in the Dafny test suite on GitHub");
     .)
   )
   .
@@ -950,7 +975,7 @@ TopDecl<. ModuleDefinition module, List<MemberDecl/*!*/> membersDefaultClass, bo
   | SynonymTypeDecl<dmod, module, out td>      (. module.TopLevelDecls.Add(td); .)
   | IteratorDecl<dmod, module, out iter>       (. module.TopLevelDecls.Add(iter); .)
   | TraitDecl<dmod, module, out trait>         (. module.TopLevelDecls.Add(trait); .)
-  | ClassMemberDecl<dmod, membersDefaultClass, false, true, !DafnyOptions.O.AllowGlobals>
+  | ClassMemberDecl<dmod, membersDefaultClass, false, true, !theOptions.AllowGlobals>
   )
   .
 
@@ -978,9 +1003,10 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
      ModuleDefinition module;
      submodule = null; // appease compiler
      bool isAbstract = dmod.IsAbstract;
+     var dafnyOptionsBackup = theOptions;
      CheckDeclModifiers(ref dmod, "module", AllowedDeclModifiers.Abstract);
    .)
-   { Attribute<ref attrs> }
+   { Attribute<ref attrs> }            (. ApplyOptionsFromAttributes(attrs); .)
    ModuleQualifiedName<out idQualified>
    (. id = idQualified[idQualified.Count-1];
       prefixIds = idQualified.GetRange(0,idQualified.Count-1);
@@ -1001,6 +1027,7 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
       module.BodyEndTok = t;
       module.TopLevelDecls.Add(new DefaultClassDecl(module, namedModuleDefaultClassMembers));
       submodule = new LiteralModuleDecl(module, parent);
+      theOptions = dafnyOptionsBackup;
     .)
   .
 
@@ -2341,25 +2368,25 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
          // basic function or predicate
          Contract.Assert(headToken != null);
          if (functionMethodToken != null) {
-           if (isPredicate && DafnyOptions.O.FunctionSyntax == DafnyOptions.FunctionSyntaxOptions.ExperimentalPredicateAlwaysGhost) {
+           if (isPredicate && theOptions.FunctionSyntax == DafnyOptions.FunctionSyntaxOptions.ExperimentalPredicateAlwaysGhost) {
              SemErr(t, $"a {what} is always ghost and is declared with '{what}'");
              functionMethodToken = null;
              dmod.IsGhost = false; // don't report errors about 'ghost', too
-           } else if (DafnyOptions.O.FunctionSyntax == DafnyOptions.FunctionSyntaxOptions.Version4 ||
-                      DafnyOptions.O.FunctionSyntax == DafnyOptions.FunctionSyntaxOptions.ExperimentalPredicateAlwaysGhost) {
+           } else if (theOptions.FunctionSyntax == DafnyOptions.FunctionSyntaxOptions.Version4 ||
+                      theOptions.FunctionSyntax == DafnyOptions.FunctionSyntaxOptions.ExperimentalPredicateAlwaysGhost) {
              SemErr(t, $"the phrase '{what} method' is not allowed; to declare a compiled {what}, use just '{what}'");
              functionMethodToken = null;
-           } else if (dmod.IsGhost && DafnyOptions.O.FunctionSyntax != DafnyOptions.FunctionSyntaxOptions.Version3) {
+           } else if (dmod.IsGhost && theOptions.FunctionSyntax != DafnyOptions.FunctionSyntaxOptions.Version3) {
              SemErr(t, $"there is no such thing as a 'ghost {what} method'");
              functionMethodToken = null;
            }
-         } else if (!dmod.IsGhost && DafnyOptions.O.FunctionSyntax == DafnyOptions.FunctionSyntaxOptions.Migration3To4) {
+         } else if (!dmod.IsGhost && theOptions.FunctionSyntax == DafnyOptions.FunctionSyntaxOptions.Migration3To4) {
            SemErr(headToken, $"a {what} must be declared as either 'ghost {what}' or '{what} method'");
          }
          AllowedDeclModifiers allowed = AllowedDeclModifiers.Static;
-         if (isPredicate && DafnyOptions.O.FunctionSyntax == DafnyOptions.FunctionSyntaxOptions.ExperimentalPredicateAlwaysGhost) {
+         if (isPredicate && theOptions.FunctionSyntax == DafnyOptions.FunctionSyntaxOptions.ExperimentalPredicateAlwaysGhost) {
            allowed |= AllowedDeclModifiers.AlreadyGhost;
-         } else if (DafnyOptions.O.FunctionSyntax == DafnyOptions.FunctionSyntaxOptions.Version3) {
+         } else if (theOptions.FunctionSyntax == DafnyOptions.FunctionSyntaxOptions.Version3) {
            allowed |= AllowedDeclModifiers.AlreadyGhost;
          } else {
            allowed |= AllowedDeclModifiers.Ghost;
@@ -2380,7 +2407,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
      } else if (byMethodBody != null) {
        isGhost = false;
      } else {
-       switch (DafnyOptions.O.FunctionSyntax) {
+       switch (theOptions.FunctionSyntax) {
          case DafnyOptions.FunctionSyntaxOptions.Version3:
            isGhost = functionMethodToken == null;
            break;
@@ -2402,8 +2429,8 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
        }
      }
      // Some sanity checks
-     Contract.Assert(DafnyOptions.O.FunctionSyntax != DafnyOptions.FunctionSyntaxOptions.Version4 || functionMethodToken == null);
-     Contract.Assert(DafnyOptions.O.FunctionSyntax != DafnyOptions.FunctionSyntaxOptions.Version3 || !dmod.IsGhost);
+     Contract.Assert(theOptions.FunctionSyntax != DafnyOptions.FunctionSyntaxOptions.Version4 || functionMethodToken == null);
+     Contract.Assert(theOptions.FunctionSyntax != DafnyOptions.FunctionSyntaxOptions.Version3 || !dmod.IsGhost);
      Contract.Assert(byMethodBody == null || (functionMethodToken == null && !dmod.IsGhost));
      Contract.Assert(byMethodBody == null || !isGhost);
  
@@ -3382,7 +3409,7 @@ ForallStmt<out Statement/*!*/ s>
   [ IF(la.kind == _lbrace)  /* if the input continues like a block statement, take it to be the body of the forall statement; a body-less forall statement must continue in some other way */
     BlockStmt<out block, out bodyStart, out bodyEnd>
   ]
-  (. if (DafnyOptions.O.DisallowSoundnessCheating && block == null && 0 < ens.Count) {
+  (. if (theOptions.DisallowSoundnessCheating && block == null && 0 < ens.Count) {
         SemErr(t, "a forall statement with an ensures clause must have a body");
      }
 
