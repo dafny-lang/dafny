@@ -730,5 +730,48 @@ method test() {
       Assert.AreEqual(2, secondVerificationDiagnostics.Length);
       await AssertNoDiagnosticsAreComing();
     }
+    
+    [TestMethod]
+    public async Task NoDiagnosticFlickeringWhenIncremental() {
+      var source = @"
+method test() {
+  assert false;
+}
+method test2() {
+  assert false;
+}
+".TrimStart();
+      await SetUp(new Dictionary<string, string>() {
+        { $"{VerifierOptions.Section}:{nameof(VerifierOptions.VcsCores)}", "1" }
+      });
+      var documentItem = CreateTestDocument(source);
+      client.OpenDocument(documentItem);
+      var resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      Assert.AreEqual(0, resolutionDiagnostics.Length);
+      var firstVerificationDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      var secondVerificationDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      Assert.AreEqual(1, firstVerificationDiagnostics.Length);
+      Assert.AreEqual(2, secondVerificationDiagnostics.Length);
+
+      ApplyChange(ref documentItem, new Range((1, 9), (1, 14)), "true"); ;
+      
+      var resolutionDiagnostics2 = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      Assert.AreEqual(2, resolutionDiagnostics2.Length);
+      var firstVerificationDiagnostics2 = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      var secondVerificationDiagnostics2 = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      Assert.AreEqual(1, firstVerificationDiagnostics2.Length); // Still contains second failing method
+      Assert.AreEqual(1, secondVerificationDiagnostics2.Length);
+      
+      ApplyChange(ref documentItem, new Range((4, 9), (4, 4)), "true");
+      
+      var resolutionDiagnostics3 = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      Assert.AreEqual(1, resolutionDiagnostics2.Length);
+      var firstVerificationDiagnostics3 = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      var secondVerificationDiagnostics3 = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      Assert.AreEqual(1, firstVerificationDiagnostics3.Length); // Still contains second failing method
+      Assert.AreEqual(0, secondVerificationDiagnostics3.Length);
+      
+      await AssertNoDiagnosticsAreComing();
+    }
   }
 }
