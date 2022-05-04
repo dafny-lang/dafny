@@ -69,7 +69,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
       private string GetTriggerCharacter() {
         // Cannot use _request.Context.TriggerCharacter at this time, since _request.Context appears to be always null.
-        var documentText = document.TextDocumentItem.Text;
+        var documentText = document.Text.Text;
         int absolutePosition = request.Position.ToAbsolutePosition(documentText, cancellationToken) - 1;
         return documentText[absolutePosition].ToString();
       }
