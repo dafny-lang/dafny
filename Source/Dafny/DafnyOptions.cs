@@ -152,7 +152,7 @@ namespace Microsoft.Dafny {
     /// Automatic shallow-copy constructor
     /// </summary>
     public DafnyOptions(DafnyOptions src) : this() {
-        src.CopyTo(this);
+      src.CopyTo(this);
     }
 
     public void CopyTo(DafnyOptions dst) {
