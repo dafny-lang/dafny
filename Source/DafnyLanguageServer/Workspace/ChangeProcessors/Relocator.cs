@@ -20,6 +20,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
       this.loggerSymbolTable = loggerSymbolTable;
     }
 
+    public Position RelocatePosition(Position position, DidChangeTextDocumentParams changes, CancellationToken cancellationToken) {
+      return new ChangeProcessor(logger, loggerSymbolTable, changes.ContentChanges, cancellationToken).MigratePosition(position);
+    }
     public SymbolTable RelocateSymbols(SymbolTable originalSymbolTable, DidChangeTextDocumentParams changes, CancellationToken cancellationToken) {
       return new ChangeProcessor(logger, loggerSymbolTable, changes.ContentChanges, cancellationToken).MigrateSymbolTable(originalSymbolTable);
     }
@@ -46,6 +49,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
         this.loggerSymbolTable = loggerSymbolTable;
       }
 
+      public Position MigratePosition(Position position) {
+        return contentChanges.Aggregate(position, (partiallyMigratedPosition, change) => {
+          if (change.Range == null) {
+            return partiallyMigratedPosition;
+          }
+
+          return MigratePosition(position, change.Range, GetPositionAtEndOfAppliedChange(change));
+        });
+      }
+
       public IReadOnlyList<Diagnostic> MigrateDiagnostics(IReadOnlyList<Diagnostic> originalDiagnostics) {
         return contentChanges.Aggregate(originalDiagnostics, MigrateDiagnostics);
       }
@@ -56,20 +69,20 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
         }
 
         return originalDiagnostics.SelectMany(diagnostic =>
-          MigrateDiagnostic(change.Range, change.Text, diagnostic)).ToList();
+          MigrateDiagnostic(change, diagnostic)).ToList();
       }
 
-      private IEnumerable<Diagnostic> MigrateDiagnostic(Range changeRange, string changeText, Diagnostic diagnostic) {
+      private IEnumerable<Diagnostic> MigrateDiagnostic(TextDocumentContentChangeEvent change, Diagnostic diagnostic) {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var afterChangeEndOffset = GetPositionAtEndOfAppliedChange(changeRange, changeText);
-        var newRange = MigrateRange(diagnostic.Range, changeRange, afterChangeEndOffset);
+        var afterChangeEndOffset = GetPositionAtEndOfAppliedChange(change);
+        var newRange = MigrateRange(diagnostic.Range, change.Range!, afterChangeEndOffset);
         if (newRange == null) {
           yield break;
         }
 
         var newRelatedInformation = diagnostic.RelatedInformation?.SelectMany(related =>
-          MigrateRelatedInformation(changeRange, related, afterChangeEndOffset)).ToList();
+          MigrateRelatedInformation(change.Range!, related, afterChangeEndOffset)).ToList();
         yield return diagnostic with { Range = newRange, RelatedInformation = newRelatedInformation };
       }
 
@@ -86,7 +99,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
           }
         };
       }
-
+      
       public SymbolTable MigrateSymbolTable(SymbolTable originalSymbolTable) {
         var migratedLookupTree = originalSymbolTable.LookupTree;
         var migratedDeclarations = originalSymbolTable.Locations;
@@ -96,7 +109,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
           if (change.Range == null) {
             migratedLookupTree = new IntervalTree<Position, ILocalizableSymbol>();
           } else {
-            afterChangeEndOffset = GetPositionAtEndOfAppliedChange(change.Range, change.Text);
+            afterChangeEndOffset = GetPositionAtEndOfAppliedChange(change);
             migratedLookupTree = ApplyLookupTreeChange(migratedLookupTree, change.Range, afterChangeEndOffset);
           }
           migratedDeclarations = ApplyDeclarationsChange(originalSymbolTable, migratedDeclarations, change.Range, afterChangeEndOffset);
@@ -133,9 +146,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
         return migratedLookupTree;
       }
 
-      private static Position GetPositionAtEndOfAppliedChange(Range changeRange, string changeText) {
-        var changeStart = changeRange.Start;
-        var changeEof = changeText.GetEofPosition();
+      private static Position GetPositionAtEndOfAppliedChange(TextDocumentContentChangeEvent change) {
+        var changeStart = change.Range!.Start;
+        var changeEof = change.Text.GetEofPosition();
         var characterOffset = changeEof.Character;
         if (changeEof.Line == 0) {
           characterOffset = changeStart.Character + changeEof.Character;

@@ -26,7 +26,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     IReadOnlyList<Diagnostic> ParseAndResolutionDiagnostics,
     // VerificationDiagnostics can be deduced from CounterExamples,
     // but they are stored separately because they are migrated and counterexamples currently are not.
-    IReadOnlyDictionary<string, IReadOnlyList<Diagnostic>> VerificationDiagnostics,
+    IReadOnlyDictionary<Position, IReadOnlyList<Diagnostic>> VerificationDiagnosticsPerMethod,
     IReadOnlyList<Counterexample> CounterExamples,
     IReadOnlyList<Diagnostic> GhostDiagnostics,
     Dafny.Program Program,
@@ -34,7 +34,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     bool LoadCanceled = false
   ) {
 
-    public IEnumerable<Diagnostic> Diagnostics => ParseAndResolutionDiagnostics.Concat(VerificationDiagnostics.SelectMany(kv => kv.Value));
+    public IEnumerable<Diagnostic> Diagnostics => ParseAndResolutionDiagnostics.Concat(VerificationDiagnosticsPerMethod.SelectMany(kv => kv.Value));
 
     public DocumentUri Uri => TextDocumentItem.Uri;
     public int Version => TextDocumentItem.Version!.Value;
