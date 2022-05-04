@@ -52,7 +52,7 @@ class Seq(list):
 
     @property
     def UniqueElements(self):
-        return Seq(set(self))
+        return set(self)
 
     def __repr__(self) -> str:
         if self.isStr:

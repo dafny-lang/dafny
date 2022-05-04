@@ -4669,13 +4669,13 @@ namespace Microsoft.Dafny.Compilers {
             if (Contract.Exists(lhs.Vars, bv => !bv.IsGhost)) {
               var rhsName = string.Format("_pat_let{0}_{1}", GetUniqueAstNumber(e), i);
               w = CreateIIFE_ExprBody(rhsName, e.RHSs[i].Type, e.RHSs[i].tok, e.RHSs[i], inLetExprBody, e.Body.Type, e.Body.tok, w, wStmts);
+              wStmts = w.Fork();
               if (TargetLambdasRestrictedToExpressions) {
-                wStmts = w.Fork();
                 w = EmitReturnExpr(w);
               }
               w = TrCasePattern(lhs, rhsName, e.RHSs[i].Type, e.Body.Type, w, wStmts);
+              wStmts = w.Fork();
               if (TargetLambdasRestrictedToExpressions) {
-                wStmts = w.Fork();
                 w = EmitReturnExpr(w);
               }
             }
