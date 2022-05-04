@@ -366,8 +366,6 @@ namespace Microsoft.Dafny.Triggers {
     }
 
     private static bool ShallowEq(BinaryExpr expr1, BinaryExpr expr2) {
-      Contract.Requires(expr1.ResolvedOp != BinaryExpr.ResolvedOpcode.YetUndetermined);
-      Contract.Requires(expr2.ResolvedOp != BinaryExpr.ResolvedOpcode.YetUndetermined);
       return expr1.ResolvedOp == expr2.ResolvedOp;
     }
 
@@ -380,7 +378,7 @@ namespace Microsoft.Dafny.Triggers {
     }
 
     private static bool ShallowEq(UnaryOpExpr expr1, UnaryOpExpr expr2) {
-      return expr1.Op == expr2.Op;
+      return expr1.ResolvedOp == expr2.ResolvedOp;
     }
 
     private static bool ShallowEq(UnaryExpr expr1, UnaryExpr expr2) {

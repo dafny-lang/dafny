@@ -1052,6 +1052,16 @@ namespace Microsoft.Dafny.Compilers {
       ConcreteSyntaxTree wStmts);  // Immediately Invoked Function Expression
     protected abstract ConcreteSyntaxTree CreateIIFE1(int source, Type resultType, Bpl.IToken resultTok, string bvName, ConcreteSyntaxTree wr);  // Immediately Invoked Function Expression
     public enum ResolvedUnaryOp { BoolNot, BitwiseNot, Cardinality }
+
+    protected static readonly Dictionary<UnaryOpExpr.ResolvedOpcode, ResolvedUnaryOp> UnaryOpCodeMap = new() {
+      [UnaryOpExpr.ResolvedOpcode.BVNot] = ResolvedUnaryOp.BitwiseNot,
+      [UnaryOpExpr.ResolvedOpcode.BoolNot] = ResolvedUnaryOp.BoolNot,
+      [UnaryOpExpr.ResolvedOpcode.SeqLength] = ResolvedUnaryOp.Cardinality,
+      [UnaryOpExpr.ResolvedOpcode.SetCard] = ResolvedUnaryOp.Cardinality,
+      [UnaryOpExpr.ResolvedOpcode.MultiSetCard] = ResolvedUnaryOp.Cardinality,
+      [UnaryOpExpr.ResolvedOpcode.MapCard] = ResolvedUnaryOp.Cardinality
+    };
+
     protected abstract void EmitUnaryExpr(ResolvedUnaryOp op, Expression expr, bool inLetExprBody,
       ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts);
 
@@ -4518,23 +4528,10 @@ namespace Microsoft.Dafny.Compilers {
 
       } else if (expr is UnaryOpExpr) {
         var e = (UnaryOpExpr)expr;
-        switch (e.Op) {
-          case UnaryOpExpr.Opcode.Not:
-            if (e.Type.IsBitVectorType) {
-              var bvType = e.Type.AsBitVectorType;
-              var wrTruncOperand = EmitBitvectorTruncation(bvType, false, wr);
-              EmitUnaryExpr(ResolvedUnaryOp.BitwiseNot, e.E, inLetExprBody, wrTruncOperand, wStmts);
-            } else {
-              EmitUnaryExpr(ResolvedUnaryOp.BoolNot, e.E, inLetExprBody, wr, wStmts);
-            }
-            break;
-          case UnaryOpExpr.Opcode.Cardinality:
-            EmitUnaryExpr(ResolvedUnaryOp.Cardinality, e.E, inLetExprBody, wr, wStmts);
-            break;
-          default:
-            Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary expression
+        if (e.ResolvedOp == UnaryOpExpr.ResolvedOpcode.BVNot) {
+          wr = EmitBitvectorTruncation(e.Type.AsBitVectorType, false, wr);
         }
-
+        EmitUnaryExpr(UnaryOpCodeMap[e.ResolvedOp], e.E, inLetExprBody, wr, wStmts);
       } else if (expr is ConversionExpr) {
         var e = (ConversionExpr)expr;
         Contract.Assert(e.ToType.IsRefType == e.E.Type.IsRefType);

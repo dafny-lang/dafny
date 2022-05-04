@@ -10759,6 +10759,44 @@ namespace Microsoft.Dafny {
     }
     public readonly Opcode Op;
 
+    public enum ResolvedOpcode {
+      YetUndetermined,
+      BVNot,
+      BoolNot,
+      SeqLength,
+      SetCard,
+      MultiSetCard,
+      MapCard,
+      Fresh,
+      Allocated,
+      Lit
+    }
+
+    public ResolvedOpcode _ResolvedOp = ResolvedOpcode.YetUndetermined;
+    public ResolvedOpcode ResolvedOp => ResolveOp();
+
+    public ResolvedOpcode ResolveOp() {
+      if (_ResolvedOp == ResolvedOpcode.YetUndetermined) {
+        Contract.Assert(Type != null);
+        Contract.Assert(Type is not TypeProxy);
+        _ResolvedOp = (Op, E.Type.NormalizeExpand()) switch {
+          (Opcode.Not, BoolType _) => ResolvedOpcode.BoolNot,
+          (Opcode.Not, BitvectorType _) => ResolvedOpcode.BVNot,
+          (Opcode.Cardinality, SeqType _) => ResolvedOpcode.SeqLength,
+          (Opcode.Cardinality, SetType _) => ResolvedOpcode.SetCard,
+          (Opcode.Cardinality, MultiSetType _) => ResolvedOpcode.MultiSetCard,
+          (Opcode.Cardinality, MapType _) => ResolvedOpcode.MapCard,
+          (Opcode.Fresh, _) => ResolvedOpcode.Fresh,
+          (Opcode.Allocated, _) => ResolvedOpcode.Allocated,
+          (Opcode.Lit, _) => ResolvedOpcode.Lit,
+          _ => ResolvedOpcode.YetUndetermined // Unreachable
+        };
+        Contract.Assert(_ResolvedOp != ResolvedOpcode.YetUndetermined);
+      }
+
+      return _ResolvedOp;
+    }
+
     public UnaryOpExpr(IToken tok, Opcode op, Expression e)
       : base(tok, e) {
       Contract.Requires(tok != null);
