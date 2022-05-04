@@ -93,6 +93,17 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
 
     type BinaryOp = BinaryOps.T
 
+    module TernaryOps {
+      import Types
+
+      datatype TernaryOp =
+        | CollectionUpdate(kind: Types.CollectionKind)
+
+      type T(!new,00,==) = TernaryOp
+    }
+
+    type TernaryOp = TernaryOps.T
+
     module UnaryOps { // FIXME should be resolved ResolvedUnaryOp (see SinglePassCompiler.cs)
       datatype UnaryOp =
         | Not
@@ -112,6 +123,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       import Types
       import UnaryOps
       import BinaryOps
+      import TernaryOps
       import C = CSharpDafnyASTModel
 
       datatype Literal =
@@ -138,8 +150,9 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         | Print
 
       datatype EagerOp =
-        | UnaryOp(uop: UnaryOps.UnaryOp)
-        | BinaryOp(bop: BinaryOps.BinaryOp)
+        | UnaryOp(uop: UnaryOps.T)
+        | BinaryOp(bop: BinaryOps.T)
+        | TernaryOp(top: TernaryOps.T)
         | DataConstructor(name: Types.Path, typeArgs: seq<Types.Type>)
         | MethodCall(classType: Types.ClassType, receiver: MethodId, typeArgs: seq<Types.Type>)
         | FunctionCall // First argument is function
@@ -196,9 +209,15 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
 
       function method WellFormed(e: Expr): bool {
         match e {
-          case Apply(Lazy(_), es) => |es| == 2
-          case Apply(Eager(UnaryOp(_)), es) => |es| == 1
-          case Apply(Eager(BinaryOp(_)), es) => |es| == 2
+          case Apply(Lazy(_), es) =>
+            |es| == 2
+          case Apply(Eager(UnaryOp(_)), es) =>
+            |es| == 1
+          case Apply(Eager(BinaryOp(_)), es) =>
+            |es| == 2
+          case Apply(Eager(TernaryOp(top)), es) =>
+            |es| == 3 &&
+            (top.CollectionUpdate? ==> top.kind != Types.Set())
           case Apply(Eager(Builtin(Display(ty))), es) =>
             ty.Collection? && ty.finite
           case _ => true
@@ -491,6 +510,22 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         DE.Unsupported(DE.Invalid("`MapDisplayExpr` must be a map."))
     }
 
+    function method TranslateSeqUpdateExpr(se: C.SeqUpdateExpr): (e: DE.T)
+      reads *
+      decreases ASTHeight(se), 0
+      ensures P.All_Expr(e, DE.WellFormed)
+    {
+      var ty := TranslateType(se.Type);
+      if ty.Collection? && ty.kind != DT.Set() then
+        assume Math.Max(ASTHeight(se.Seq), Math.Max(ASTHeight(se.Index), ASTHeight(se.Value))) < ASTHeight(se);
+        DE.Apply(DE.Eager(DE.TernaryOp(DE.TernaryOps.CollectionUpdate(ty.kind))),
+                 [TranslateExpression(se.Seq),
+                  TranslateExpression(se.Index),
+                  TranslateExpression(se.Value)])
+      else
+        DE.Unsupported(DE.Invalid("`SeqUpdate` must be a map, sequence, or multiset."))
+    }
+
     function method TranslateExpression(c: C.Expression) : (e: DE.T)
       reads *
       decreases ASTHeight(c), 2
@@ -508,7 +543,8 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         TranslateMapDisplayExpr(c as C.MapDisplayExpr)
       else if c is C.DisplayExpression then
         TranslateDisplayExpr(c as C.DisplayExpression)
-      else DE.Unsupported(DE.UnsupportedExpr(c))
+      else if c is C.SeqUpdateExpr then
+        TranslateSeqUpdateExpr(c as C.SeqUpdateExpr)
       else DE.Unsupported(DE.UnsupportedExpr)//(c))
     }
 
