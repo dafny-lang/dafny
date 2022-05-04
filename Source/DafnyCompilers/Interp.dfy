@@ -17,6 +17,7 @@ module Interp {
         match op {
           case UnaryOp(uop: UnaryOp.Op) => true
           case BinaryOp(bop: BinaryOp) => true
+          case TernaryOp(top: TernaryOp) => true
           case DataConstructor(name: Path, typeArgs: seq<Type.Type>) => true
           case Builtin(Display(_)) => true
           case Builtin(Print) => false
@@ -44,6 +45,7 @@ module Interp {
         match op {
           case UnaryOp(uop) => FALSE
           case BinaryOp(bop) => true
+          case TernaryOp(top: TernaryOp) => true
           case DataConstructor(name: Path, typeArgs: seq<Type.Type>) => FALSE
           case Builtin(Display(_)) => true
           case Builtin(Print()) => false
@@ -83,7 +85,8 @@ module Interp {
     | TypeError(e: Expr, value: V.T, expected: Type) // TODO rule out type errors through Wf predicate?
     | InvalidExpression(e: Expr) // TODO rule out in Wf predicate?
     | Unsupported(e: Expr) // TODO rule out in SupportsInterp predicate
-    | Overflow(x: int, low: int, high: int)
+    | IntOverflow(x: int, low: Option<int>, high: Option<int>)
+    | OutOfBounds(idx: V.T, collection: V.T)
     | DivisionByZero
 
   datatype InterpSuccess<A> =
@@ -115,10 +118,10 @@ module Interp {
         var OK(argvs, ctx) :- InterpExprs(args, ctx);
         LiftPureResult(ctx, match op {
             case BinaryOp(bop: BinaryOp) =>
-              assert |argvs| == 2;
               InterpBinaryOp(e, bop, argvs[0], argvs[1])
+            case TernaryOp(top: TernaryOp) =>
+              InterpTernaryOp(e, top, argvs[0], argvs[1], argvs[2])
             case Builtin(Display(ty)) =>
-              assert ty.Collection?;
               InterpDisplay(e, ty.kind, argvs)
           })
       case If(cond, thn, els) =>
@@ -273,7 +276,7 @@ module Interp {
   }
 
   function method CheckOverflow(x: int, low: int, high: int) : PureInterpResult<int> {
-    if low <= x < high then Success(x) else Failure(Overflow(x, low, high))
+    if low <= x < high then Success(x) else Failure(IntOverflow(x, Some(low), Some(high)))
   }
 
   function method InterpNumericChar(expr: Expr, bop: AST.BinaryOps.Numeric, x1: char, x2: char)
@@ -439,6 +442,28 @@ module Interp {
           case _ => Failure(InvalidExpression(expr))
         }
       case _ => Failure(InvalidExpression(expr))
+  }
+
+  function method InterpTernaryOp(expr: Expr, top: AST.TernaryOp, v0: V.T, v1: V.T, v2: V.T)
+    : PureInterpResult<V.T>
+    requires top.CollectionUpdate? ==> top.kind != Types.Set
+  {
+    match top
+      case CollectionUpdate(kind) =>
+        match (kind, v0)
+          case (Seq(), Seq(s))=>
+            :- Need(v1.Int?, InvalidExpression(expr));
+            :- Need(0 <= v1.i < |s|, OutOfBounds(v1, v0));
+            Success(V.Seq(s[v1.i := v2]))
+          case (Multiset(), Multiset(s)) =>
+            :- Need(v2.Int? && v2.i >= 0, InvalidExpression(expr));
+            Success(V.Multiset(s[v1 := v2.i]))
+          case (Map(_), Map(m)) =>
+            Success(V.Map(m[v1 := v2]))
+
+          case (kd, _) =>
+            assert kd.Seq? || kd.Multiset? || kd.Map?;
+            Failure(InvalidExpression(expr))
   }
 
   function method MapOfSeq(e: Expr, argvs: seq<V.T>, acc: map<V.T, V.T> := map[])

@@ -79,17 +79,18 @@ method ReportError(err: REPLError)
     case InterpError(ie: Interp.InterpError) =>
       print "Execution error: ";
       match ie
-        case TypeError(e: Expr, value: V.T, expected: Type) => print "Type mismatch";
-        case InvalidExpression(e: Expr) => print "Invalid expression";
-        case Unsupported(e: Expr) => print "Unsupported expression";
-        case Overflow(x: int, low: int, high: int) => print "Overflow";
+        case TypeError(e, value, expected) => print "Type mismatch";
+        case InvalidExpression(e) => print "Invalid expression";
+        case Unsupported(e) => print "Unsupported expression";
+        case IntOverflow(x, low, high) => print "Overflow";
+        case OutOfBounds(i, v) => print "Out-of-bounds index";
         case DivisionByZero() => print "Division by zero";
 }
 
 method Main()
   decreases *
 {
-  // FIXME: Missing type check means [true, "A", 3] is accepted
+  // FIXME: Missing type check means `[true, "A", 3]` is accepted, and so is `[1 := 2]`
   REPL.ReplHelper.Setup();
   while true
     decreases *
