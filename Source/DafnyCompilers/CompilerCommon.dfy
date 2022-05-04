@@ -96,7 +96,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     module TernaryOps {
       import Types
 
-      datatype TernaryOp =
+      datatype TernaryOp = // FIXME: BinaryOps are sorted by kind but ternary ones are grouped by operation
         | CollectionUpdate(kind: Types.CollectionKind)
 
       type T(!new,00,==) = TernaryOp
