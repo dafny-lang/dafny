@@ -6,6 +6,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Reactive.Threading.Tasks;
@@ -105,7 +106,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(symbolTable, cancellationToken).ToArray();
 
       return new DafnyDocument(Options, textDocument, errorReporter.GetDiagnostics(textDocument.Uri),
-        Array.Empty<Diagnostic>(), Array.Empty<Counterexample>(),
+        new Dictionary<string, IReadOnlyList<Diagnostic>>(), 
+        Array.Empty<Counterexample>(),
         ghostDiagnostics, program, symbolTable);
     }
 
@@ -126,7 +128,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         Options,
         textDocument,
         errorReporter.GetDiagnostics(textDocument.Uri),
-        new List<Diagnostic>(),
+        new Dictionary<string, IReadOnlyList<Diagnostic>>(),
         Array.Empty<Counterexample>(),
         Array.Empty<Diagnostic>(),
         program,
@@ -158,10 +160,17 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       var _ = NotifyStatusAsync(document.TextDocumentItem, implementationTasks);
 
-      var concurrentDictionary = new ConcurrentBag<Diagnostic>();
+      var concurrentDictionary = new ConcurrentDictionary<string, IReadOnlyList<Diagnostic>>();
+      foreach (var task in implementationTasks) {
+        var implementationName = task.Implementation.Name;
+        if (document.VerificationDiagnostics.TryGetValue(implementationName, out var existingDiagnostics)) {
+          concurrentDictionary.TryAdd(implementationName, existingDiagnostics);
+        }
+      }
       var counterExamples = new ConcurrentStack<Counterexample>();
       var documentTasks = implementationTasks.Select(async it => {
         var result = await it.ActualTask;
+        var implementationName = it.Implementation.Name;
 
         var errorReporter = new DiagnosticErrorReporter(document.Uri);
         foreach (var counterExample in result.Errors) {
@@ -174,12 +183,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
 
         var diagnostics = errorReporter.GetDiagnostics(document.Uri).ToList();
-        foreach (var diagnostic in diagnostics) {
-          concurrentDictionary.Add(diagnostic);
-        }
+        concurrentDictionary.AddOrUpdate(implementationName, diagnostics, (_, _) => diagnostics);
 
         return document with {
-          VerificationDiagnostics = concurrentDictionary.ToArray(),
+          VerificationDiagnostics = concurrentDictionary.ToImmutableDictionary(),
           CounterExamples = counterExamples.ToArray(),
         };
       }).ToList();

@@ -12,7 +12,6 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Boogie;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
@@ -756,22 +755,31 @@ method test2() {
       ApplyChange(ref documentItem, new Range((1, 9), (1, 14)), "true"); ;
       
       var resolutionDiagnostics2 = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
-      Assert.AreEqual(2, resolutionDiagnostics2.Length);
+      AssertDiagnosticListsAreEqualBesidesMigration(secondVerificationDiagnostics, resolutionDiagnostics2);
       var firstVerificationDiagnostics2 = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       var secondVerificationDiagnostics2 = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       Assert.AreEqual(1, firstVerificationDiagnostics2.Length); // Still contains second failing method
       Assert.AreEqual(1, secondVerificationDiagnostics2.Length);
       
-      ApplyChange(ref documentItem, new Range((4, 9), (4, 4)), "true");
+      ApplyChange(ref documentItem, new Range((4, 9), (4, 14)), "true");
       
       var resolutionDiagnostics3 = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
-      Assert.AreEqual(1, resolutionDiagnostics2.Length);
+      AssertDiagnosticListsAreEqualBesidesMigration(secondVerificationDiagnostics2, resolutionDiagnostics3);
       var firstVerificationDiagnostics3 = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       var secondVerificationDiagnostics3 = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       Assert.AreEqual(1, firstVerificationDiagnostics3.Length); // Still contains second failing method
       Assert.AreEqual(0, secondVerificationDiagnostics3.Length);
       
       await AssertNoDiagnosticsAreComing();
+    }
+
+    private static void AssertDiagnosticListsAreEqualBesidesMigration(Diagnostic[] secondVerificationDiagnostics2,
+      Diagnostic[] resolutionDiagnostics3)
+    {
+      Assert.AreEqual(secondVerificationDiagnostics2.Length, resolutionDiagnostics3.Length);
+      foreach (var t in secondVerificationDiagnostics2.Zip(resolutionDiagnostics3)) {
+        Assert.AreEqual(t.First.Message, t.Second.Message);
+      }
     }
   }
 }

@@ -141,7 +141,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       // We do not pass the cancellation token to the text change processor because the text has to be kept in sync with the LSP client.
       var updatedText = textChangeProcessor.ApplyChange(oldDocument.TextDocumentItem, documentChange, CancellationToken.None);
       var oldVerificationDiagnostics = oldDocument.VerificationDiagnostics;
-      var migratedVerificationDiagnotics = relocator.RelocateDiagnostics(oldDocument.VerificationDiagnostics, documentChange, CancellationToken.None);
+      var migratedVerificationDiagnotics = oldDocument.VerificationDiagnostics.ToDictionary(
+        kv => kv.Key, 
+        kv => relocator.RelocateDiagnostics(kv.Value, documentChange, CancellationToken.None));
       logger.LogDebug($"Migrated {oldVerificationDiagnostics.Count} diagnostics into {migratedVerificationDiagnotics.Count} diagnostics.");
       try {
         var newDocument = await documentLoader.LoadAsync(updatedText, cancellationToken);
