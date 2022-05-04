@@ -33,7 +33,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
             case Map(domType) =>
               var domStr := CompileType(domType);
               Format("DafnyRuntime.Map<{},{}>", [domStr, eltStr])
-            case Multiset() => Format("DafnyRuntime.MultiSet<{}>", [eltStr])
+            case Multiset() => Format("DafnyRuntime.Multiset<{}>", [eltStr])
             case Seq() => Format("DafnyRuntime.Sequence<{}>", [eltStr])
             case Set() => Format("DafnyRuntime.Set<{}>", [eltStr])
           }
@@ -131,16 +131,16 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
         case Sets(Intersection) => Unsupported
         case Sets(SetDifference) => Unsupported
 
-        case MultiSets(MultiSetEq) => fmt("{}.Equals({})")
-        case MultiSets(MultiSubset) => Unsupported
-        case MultiSets(MultiSuperset) => Unsupported
-        case MultiSets(ProperMultiSubset) => Unsupported
-        case MultiSets(ProperMultiSuperset) => Unsupported
-        case MultiSets(MultiSetDisjoint) => Unsupported
-        case MultiSets(InMultiSet) => rbin("{}.Contains({})")
-        case MultiSets(MultiSetUnion) => Unsupported
-        case MultiSets(MultiSetIntersection) => Unsupported
-        case MultiSets(MultiSetDifference) => Unsupported
+        case Multisets(MultisetEq) => fmt("{}.Equals({})")
+        case Multisets(MultiSubset) => Unsupported
+        case Multisets(MultiSuperset) => Unsupported
+        case Multisets(ProperMultiSubset) => Unsupported
+        case Multisets(ProperMultiSuperset) => Unsupported
+        case Multisets(MultisetDisjoint) => Unsupported
+        case Multisets(InMultiset) => rbin("{}.Contains({})")
+        case Multisets(MultisetUnion) => Unsupported
+        case Multisets(MultisetIntersection) => Unsupported
+        case Multisets(MultisetDifference) => Unsupported
 
         case Sequences(SeqEq) => fmt("{}.Equals({})")
         case Sequences(ProperPrefix) => Unsupported

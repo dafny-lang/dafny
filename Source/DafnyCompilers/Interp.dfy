@@ -234,11 +234,10 @@ module Interp {
       case BV(op) => Failure(Unsupported(expr))
       case Char(op) => InterpChar(expr, op, v0, v1)
       case Sets(op) => InterpSets(expr, op, v0, v1)
-      case MultiSets(op) => InterpMultiSets(expr, op, v0, v1)
+      case Multisets(op) => InterpMultisets(expr, op, v0, v1)
       case Sequences(op) => InterpSequences(expr, op, v0, v1)
       case Maps(op) => InterpMaps(expr, op, v0, v1)
       case Datatypes(op) => Failure(Unsupported(expr))
-
   }
 
   function method InterpNumeric(expr: Expr, op: BinaryOps.Numeric, v0: V.T, v1: V.T)
@@ -364,29 +363,29 @@ module Interp {
       case _ => Failure(InvalidExpression(expr))
   }
 
-  function method InterpMultiSets(expr: Expr, op: BinaryOps.MultiSets, v0: V.T, v1: V.T)
+  function method InterpMultisets(expr: Expr, op: BinaryOps.Multisets, v0: V.T, v1: V.T)
     : PureInterpResult<V.T>
   {
     match (v0, v1)
-      case (MultiSet(m0), MultiSet(m1)) =>
+      case (Multiset(m0), Multiset(m1)) =>
         match op {
-          case MultiSetEq() => Success(V.Bool(m0 == m1))
-          case MultiSetNeq() => Success(V.Bool(m0 != m1))
+          case MultisetEq() => Success(V.Bool(m0 == m1))
+          case MultisetNeq() => Success(V.Bool(m0 != m1))
           case MultiSubset() => Success(V.Bool(m0 <= m1))
           case MultiSuperset() => Success(V.Bool(m0 >= m1))
           case ProperMultiSubset() => Success(V.Bool(m0 < m1))
           case ProperMultiSuperset() => Success(V.Bool(m0 > m1))
-          case MultiSetDisjoint() => Success(V.Bool(m0 !! m1))
-          case MultiSetUnion() => Success(V.MultiSet(m0 + m1))
-          case MultiSetIntersection() => Success(V.MultiSet(m0 * m1))
-          case MultiSetDifference() => Success(V.MultiSet(m0 - m1))
-          case InMultiSet() => Failure(InvalidExpression(expr))
-          case NotInMultiSet() => Failure(InvalidExpression(expr))
+          case MultisetDisjoint() => Success(V.Bool(m0 !! m1))
+          case MultisetUnion() => Success(V.Multiset(m0 + m1))
+          case MultisetIntersection() => Success(V.Multiset(m0 * m1))
+          case MultisetDifference() => Success(V.Multiset(m0 - m1))
+          case InMultiset() => Failure(InvalidExpression(expr))
+          case NotInMultiset() => Failure(InvalidExpression(expr))
         }
-      case (_, MultiSet(s1)) =>
+      case (_, Multiset(s1)) =>
         match op {
-          case InMultiSet() => Success(V.Bool(v0 in s1))
-          case NotInMultiSet() => Success(V.Bool(v0 !in s1))
+          case InMultiset() => Success(V.Bool(v0 in s1))
+          case NotInMultiset() => Success(V.Bool(v0 !in s1))
           case _ => Failure(InvalidExpression(expr))
         }
       case _ => Failure(InvalidExpression(expr))
@@ -458,7 +457,7 @@ module Interp {
   {
     match kind
       case Map(_) => MapOfSeq(e, argvs)
-      case Multiset() => Success(V.MultiSet(multiset(argvs)))
+      case Multiset() => Success(V.Multiset(multiset(argvs)))
       case Seq() => Success(V.Seq(argvs))
       case Set() => Success(V.Set(set s | s in argvs))
   }

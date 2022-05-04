@@ -26,10 +26,10 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       datatype ClassType = ClassType(className: Path, typeArgs: seq<Type>)
 
       datatype CollectionKind =
-        | Map(keyType: Type)
-        | Multiset
         | Seq
         | Set
+        | Multiset
+        | Map(keyType: Type)
 
       datatype Type =
         | Unit
@@ -67,10 +67,10 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       datatype Sets =
         SetEq | SetNeq | Subset | Superset | ProperSubset | ProperSuperset |
         Disjoint | InSet | NotInSet | Union | Intersection | SetDifference
-      datatype MultiSets =
-        MultiSetEq | MultiSetNeq | MultiSubset | MultiSuperset |
-        ProperMultiSubset | ProperMultiSuperset | MultiSetDisjoint | InMultiSet |
-        NotInMultiSet | MultiSetUnion | MultiSetIntersection | MultiSetDifference
+      datatype Multisets =
+        MultisetEq | MultisetNeq | MultiSubset | MultiSuperset |
+        ProperMultiSubset | ProperMultiSuperset | MultisetDisjoint | InMultiset |
+        NotInMultiset | MultisetUnion | MultisetIntersection | MultisetDifference
       datatype Sequences =
         SeqEq | SeqNeq | Prefix | ProperPrefix | Concat | InSeq | NotInSeq
       datatype Maps =
@@ -84,7 +84,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         | BV(oBV: BV)
         | Char(oChar: Char)
         | Sets(oSets: Sets)
-        | MultiSets(oMultiSets: MultiSets)
+        | Multisets(oMultisets: Multisets)
         | Sequences(oSequences: Sequences)
         | Maps(oMaps: Maps)
         | Datatypes(oDatatypes: Datatypes)
@@ -349,18 +349,18 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
           C.BinaryExpr__ResolvedOpcode.Union := D.BinaryOps.Sets(D.BinaryOps.Union),
           C.BinaryExpr__ResolvedOpcode.Intersection := D.BinaryOps.Sets(D.BinaryOps.Intersection),
           C.BinaryExpr__ResolvedOpcode.SetDifference := D.BinaryOps.Sets(D.BinaryOps.SetDifference),
-          C.BinaryExpr__ResolvedOpcode.MultiSetEq := D.BinaryOps.MultiSets(D.BinaryOps.MultiSetEq),
-          C.BinaryExpr__ResolvedOpcode.MultiSetNeq := D.BinaryOps.MultiSets(D.BinaryOps.MultiSetNeq),
-          C.BinaryExpr__ResolvedOpcode.MultiSubset := D.BinaryOps.MultiSets(D.BinaryOps.MultiSubset),
-          C.BinaryExpr__ResolvedOpcode.MultiSuperset := D.BinaryOps.MultiSets(D.BinaryOps.MultiSuperset),
-          C.BinaryExpr__ResolvedOpcode.ProperMultiSubset := D.BinaryOps.MultiSets(D.BinaryOps.ProperMultiSubset),
-          C.BinaryExpr__ResolvedOpcode.ProperMultiSuperset := D.BinaryOps.MultiSets(D.BinaryOps.ProperMultiSuperset),
-          C.BinaryExpr__ResolvedOpcode.MultiSetDisjoint := D.BinaryOps.MultiSets(D.BinaryOps.MultiSetDisjoint),
-          C.BinaryExpr__ResolvedOpcode.InMultiSet := D.BinaryOps.MultiSets(D.BinaryOps.InMultiSet),
-          C.BinaryExpr__ResolvedOpcode.NotInMultiSet := D.BinaryOps.MultiSets(D.BinaryOps.NotInMultiSet),
-          C.BinaryExpr__ResolvedOpcode.MultiSetUnion := D.BinaryOps.MultiSets(D.BinaryOps.MultiSetUnion),
-          C.BinaryExpr__ResolvedOpcode.MultiSetIntersection := D.BinaryOps.MultiSets(D.BinaryOps.MultiSetIntersection),
-          C.BinaryExpr__ResolvedOpcode.MultiSetDifference := D.BinaryOps.MultiSets(D.BinaryOps.MultiSetDifference),
+          C.BinaryExpr__ResolvedOpcode.MultiSetEq := D.BinaryOps.Multisets(D.BinaryOps.MultisetEq),
+          C.BinaryExpr__ResolvedOpcode.MultiSetNeq := D.BinaryOps.Multisets(D.BinaryOps.MultisetNeq),
+          C.BinaryExpr__ResolvedOpcode.MultiSubset := D.BinaryOps.Multisets(D.BinaryOps.MultiSubset),
+          C.BinaryExpr__ResolvedOpcode.MultiSuperset := D.BinaryOps.Multisets(D.BinaryOps.MultiSuperset),
+          C.BinaryExpr__ResolvedOpcode.ProperMultiSubset := D.BinaryOps.Multisets(D.BinaryOps.ProperMultiSubset),
+          C.BinaryExpr__ResolvedOpcode.ProperMultiSuperset := D.BinaryOps.Multisets(D.BinaryOps.ProperMultiSuperset),
+          C.BinaryExpr__ResolvedOpcode.MultiSetDisjoint := D.BinaryOps.Multisets(D.BinaryOps.MultisetDisjoint),
+          C.BinaryExpr__ResolvedOpcode.InMultiSet := D.BinaryOps.Multisets(D.BinaryOps.InMultiset),
+          C.BinaryExpr__ResolvedOpcode.NotInMultiSet := D.BinaryOps.Multisets(D.BinaryOps.NotInMultiset),
+          C.BinaryExpr__ResolvedOpcode.MultiSetUnion := D.BinaryOps.Multisets(D.BinaryOps.MultisetUnion),
+          C.BinaryExpr__ResolvedOpcode.MultiSetIntersection := D.BinaryOps.Multisets(D.BinaryOps.MultisetIntersection),
+          C.BinaryExpr__ResolvedOpcode.MultiSetDifference := D.BinaryOps.Multisets(D.BinaryOps.MultisetDifference),
           C.BinaryExpr__ResolvedOpcode.SeqEq := D.BinaryOps.Sequences(D.BinaryOps.SeqEq),
           C.BinaryExpr__ResolvedOpcode.SeqNeq := D.BinaryOps.Sequences(D.BinaryOps.SeqNeq),
           C.BinaryExpr__ResolvedOpcode.ProperPrefix := D.BinaryOps.Sequences(D.BinaryOps.ProperPrefix),
@@ -864,8 +864,8 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         case Eq(NeqCommon) => BinaryOps.Eq(BinaryOps.EqCommon)
         case Maps(MapNeq) => BinaryOps.Maps(BinaryOps.MapEq)
         case Maps(NotInMap) => BinaryOps.Maps(BinaryOps.InMap)
-        case MultiSets(MultiSetNeq) => BinaryOps.MultiSets(BinaryOps.MultiSetEq)
-        case MultiSets(NotInMultiSet) => BinaryOps.MultiSets(BinaryOps.InMultiSet)
+        case Multisets(MultisetNeq) => BinaryOps.Multisets(BinaryOps.MultisetEq)
+        case Multisets(NotInMultiset) => BinaryOps.Multisets(BinaryOps.InMultiset)
         case Sequences(SeqNeq) => BinaryOps.Sequences(BinaryOps.SeqEq)
         case Sets(SetNeq) => BinaryOps.Sets(BinaryOps.SetEq)
         case Sets(NotInSet) => BinaryOps.Sets(BinaryOps.InSet)

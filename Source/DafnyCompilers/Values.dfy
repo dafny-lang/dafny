@@ -14,7 +14,7 @@ module Values {
     | BigOrdinal(o: ORDINAL)
     | BitVector(value: int)
     | Map(m: map<Value, Value>)
-    | MultiSet(ms: multiset<Value>)
+    | Multiset(ms: multiset<Value>)
     | Seq(sq: seq<Value>)
     | Set(st: set<Value>)
   {
@@ -29,7 +29,7 @@ module Values {
           0 <= value < Math.IntPow(2, width)
         case (Map(m), Collection(true, Map(kT), eT)) =>
           forall x | x in m :: x.HasType(kT) && m[x].HasType(eT)
-        case (MultiSet(ms), Collection(true, MultiSet, eT)) =>
+        case (Multiset(ms), Collection(true, Multiset, eT)) =>
           forall x | x in ms :: x.HasType(eT)
         case (Seq(sq), Collection(true, Seq, eT)) =>
           forall x | x in sq :: x.HasType(eT)
@@ -43,7 +43,7 @@ module Values {
         case (BigOrdinal(o), _) => false
         case (BitVector(value), _) => false
         case (Map(m), _) => false
-        case (MultiSet(ms), _) => false
+        case (Multiset(ms), _) => false
         case (Seq(sq), _) => false
         case (Set(st), _) => false
     }
