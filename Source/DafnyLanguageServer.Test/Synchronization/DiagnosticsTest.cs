@@ -1,4 +1,5 @@
-﻿using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
+﻿using System;
+using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace;
@@ -9,6 +10,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
@@ -588,6 +590,10 @@ class Test {
 
     [TestMethod]
     public async Task OpeningDocumentWithMultipleVerificationCoresReturnsStableDiagnostics() {
+      var sourceWithHighTimeout = new CancellationTokenSource();
+      sourceWithHighTimeout.CancelAfter(TimeSpan.FromSeconds(240));
+      var cancellationToken = sourceWithHighTimeout.Token;
+
       var source = @"
 method t0() { assert true; }
 method t1() { assert true; }
@@ -606,7 +612,7 @@ method t10() { assert false; }".TrimStart();
       for (int i = 0; i < 20; i++) {
         var documentItem = CreateTestDocument(source, $"test_{i}.dfy");
         client.OpenDocument(documentItem);
-        var diagnostics = await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
+        var diagnostics = await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(cancellationToken);
         Assert.AreEqual(5, diagnostics.Length);
         Assert.AreEqual(MessageSource.Verifier.ToString(), diagnostics[0].Source);
         Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
