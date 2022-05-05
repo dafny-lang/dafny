@@ -1,4 +1,12 @@
 module Lib {
+  module ControlFlow {
+    function method Unreachable<A>() : A
+      requires false
+    {
+      match () {}
+    }
+  }
+
   module Datatypes {
     datatype Option<+T> = | Some(value: T) | None
     {
@@ -110,6 +118,13 @@ module Lib {
       FoldL_induction'(f, a0, ts, [], P);
     }
 
+    function method FoldR<TAcc(!new), T>(f: (TAcc, T) ~> TAcc, a0: TAcc, ts: seq<T>) : TAcc
+      reads f.reads
+      requires forall a, t | t in ts :: f.requires(a, t)
+    {
+      if ts == [] then a0 else f(FoldL(f, a0, ts[1..]), ts[0])
+    }
+
     // TODO: Why not use forall directly?
     function method {:opaque} All<T>(P: T ~> bool, ts: seq<T>) : (b: bool)
       reads P.reads
@@ -166,6 +181,17 @@ module Lib {
       m
     }
 
+    function method {:opaque} Zip<T, Q>(ts: seq<T>, qs: seq<Q>)
+      : (tqs: seq<(T, Q)>)
+      requires |ts| == |qs|
+      ensures |ts| == |tqs| == |qs|
+      ensures forall i | 0 <= i < |tqs| :: tqs[i] == (ts[i], qs[i])
+      ensures forall tq | tq in tqs :: tq.0 in ts && tq.1 in qs
+    {
+      if ts == [] then []
+      else [(ts[0], qs[0])] + Zip(ts[1..], qs[1..])
+    }
+
     import Datatypes
 
     function method {:opaque} MapResult<T, Q, E>(f: T ~> Datatypes.Result<Q, E>, ts: seq<T>)
@@ -183,6 +209,17 @@ module Lib {
         var hd :- f(ts[0]);
         var tl :- MapResult(f, ts[1..]);
         Datatypes.Success([hd] + tl)
+    }
+
+    function method FoldLResult<TAcc(!new), T, TErr>(f: (TAcc, T) ~> Datatypes.Result<TAcc, TErr>, a0: TAcc, ts: seq<T>)
+      : (acc: Datatypes.Result<TAcc, TErr>)
+      reads f.reads
+      requires forall a, t | t in ts :: f.requires(a, t)
+    {
+      if ts == [] then Datatypes.Success(a0)
+      else
+        var a0 :- f(a0, ts[0]);
+        FoldLResult(f, a0, ts[1..])
     }
   }
 

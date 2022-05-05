@@ -68,11 +68,14 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       datatype Multisets =
         MultisetEq | MultisetNeq | MultiSubset | MultiSuperset |
         ProperMultiSubset | ProperMultiSuperset | MultisetDisjoint | InMultiset |
-        NotInMultiset | MultisetUnion | MultisetIntersection | MultisetDifference
+        NotInMultiset | MultisetUnion | MultisetIntersection | MultisetDifference |
+        MultisetSelect // Separate node in DafnyAST.cs
       datatype Sequences =
-        SeqEq | SeqNeq | Prefix | ProperPrefix | Concat | InSeq | NotInSeq
+        SeqEq | SeqNeq | Prefix | ProperPrefix | Concat | InSeq | NotInSeq |
+        SeqSelect | SeqTake | SeqDrop // Separate nodes in DafnyAST.cs
       datatype Maps =
-        MapEq | MapNeq | InMap | NotInMap | MapMerge | MapSubtraction
+        MapEq | MapNeq | InMap | NotInMap | MapMerge | MapSubtraction |
+        MapSelect // Separate node in DafnyAST.cs
       datatype Datatypes =
         RankLt | RankGt
       datatype BinaryOp =
@@ -97,7 +100,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       datatype Multisets =
         MultisetUpdate
       datatype Sequences =
-        SeqUpdate
+        SeqUpdate | SeqSubseq
       datatype Maps =
         MapUpdate
 
