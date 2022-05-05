@@ -116,7 +116,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
         case Numeric(Sub) => bin("-")
         case Numeric(Mul) => bin("*")
         case Numeric(Div) => bin("/")
-        case Numeric(Mod) => bin("%")
+        case Numeric(Mod) => bin("%") // FIXME
 
         case BV(LeftShift) => bin("<<")
         case BV(RightShift) => bin(">>")
