@@ -7960,9 +7960,6 @@ namespace Microsoft.Dafny {
       }
       if (includeInParams) {
         foreach (Formal p in m.Ins) {
-          if (!VisibleInScope(p.Type)) {
-            Contract.Assert(false);
-          }
           Contract.Assert(VisibleInScope(p.Type));
           Bpl.Type varType = TrType(p.Type);
           Bpl.Expr wh = GetExtendedWhereClause(p.tok,
