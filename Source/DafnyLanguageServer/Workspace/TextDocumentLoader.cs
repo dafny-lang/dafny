@@ -106,7 +106,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(symbolTable, cancellationToken).ToArray();
 
       return new DafnyDocument(Options, textDocument, errorReporter.GetDiagnostics(textDocument.Uri),
-        new Dictionary<Position, IReadOnlyList<Diagnostic>>(), 
+        new Dictionary<Position, IReadOnlyList<Diagnostic>>(),
         Array.Empty<Counterexample>(),
         ghostDiagnostics, program, symbolTable);
     }

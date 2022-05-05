@@ -100,7 +100,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
           }
         };
       }
-      
+
       public SymbolTable MigrateSymbolTable(SymbolTable originalSymbolTable) {
         var migratedLookupTree = originalSymbolTable.LookupTree;
         var migratedDeclarations = originalSymbolTable.Locations;

@@ -142,7 +142,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var updatedText = textChangeProcessor.ApplyChange(oldDocument.TextDocumentItem, documentChange, CancellationToken.None);
       var oldVerificationDiagnostics = oldDocument.VerificationDiagnosticsPerMethod;
       var migratedVerificationDiagnotics = oldDocument.VerificationDiagnosticsPerMethod.ToDictionary(
-        kv => relocator.RelocatePosition(kv.Key, documentChange, CancellationToken.None), 
+        kv => relocator.RelocatePosition(kv.Key, documentChange, CancellationToken.None),
         kv => relocator.RelocateDiagnostics(kv.Value, documentChange, CancellationToken.None));
       logger.LogDebug($"Migrated {oldVerificationDiagnostics.Count} diagnostics into {migratedVerificationDiagnotics.Count} diagnostics.");
       try {

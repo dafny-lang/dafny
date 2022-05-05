@@ -55,7 +55,7 @@ class SlowVerifier : IProgramVerifier {
     public Task<VerificationResult> ActualTask => source.Task;
 
     public void Run() {
-      
+
     }
 
     public void InitialiseStatus() {

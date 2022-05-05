@@ -729,7 +729,7 @@ method test() {
       Assert.AreEqual(2, secondVerificationDiagnostics.Length);
       await AssertNoDiagnosticsAreComing();
     }
-    
+
     [TestMethod]
     public async Task NoDiagnosticFlickeringWhenIncremental() {
       var source = @"
@@ -753,27 +753,27 @@ method test2() {
       Assert.AreEqual(2, secondVerificationDiagnostics.Length);
 
       ApplyChange(ref documentItem, new Range((1, 9), (1, 14)), "true"); ;
-      
+
       var resolutionDiagnostics2 = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       AssertDiagnosticListsAreEqualBesidesMigration(secondVerificationDiagnostics, resolutionDiagnostics2);
       var firstVerificationDiagnostics2 = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       var secondVerificationDiagnostics2 = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       Assert.AreEqual(1, firstVerificationDiagnostics2.Length); // Still contains second failing method
       Assert.AreEqual(1, secondVerificationDiagnostics2.Length);
-      
+
       ApplyChange(ref documentItem, new Range((4, 9), (4, 14)), "true");
-      
+
       var resolutionDiagnostics3 = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       AssertDiagnosticListsAreEqualBesidesMigration(secondVerificationDiagnostics2, resolutionDiagnostics3);
       var firstVerificationDiagnostics3 = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       var secondVerificationDiagnostics3 = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       Assert.AreEqual(1, firstVerificationDiagnostics3.Length); // Still contains second failing method
       Assert.AreEqual(0, secondVerificationDiagnostics3.Length);
-      
+
       await AssertNoDiagnosticsAreComing();
     }
-    
-    
+
+
     [TestMethod]
     public async Task DoNotMigrateDiagnosticsOfRemovedMethod() {
       var source = @"
@@ -803,23 +803,22 @@ method test2() {
            assert false;
          }
        */
-      ApplyChange(ref documentItem, new Range((2, 0), (4, 0)), ""); 
-      
+      ApplyChange(ref documentItem, new Range((2, 0), (4, 0)), "");
+
       var resolutionDiagnostics2 = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
-      
+
       // Resolution diagnostics still contain those of the deleted method.
       AssertDiagnosticListsAreEqualBesidesMigration(secondVerificationDiagnostics, resolutionDiagnostics2);
       var firstVerificationDiagnostics2 = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       // The second assert doesn't create a separate error since it's hidden by the first one.
       // The diagnostics of test2 has not been migrated since test2 no longer exists.
       Assert.AreEqual(1, firstVerificationDiagnostics2.Length);
-      
+
       await AssertNoDiagnosticsAreComing();
     }
 
     private static void AssertDiagnosticListsAreEqualBesidesMigration(Diagnostic[] secondVerificationDiagnostics2,
-      Diagnostic[] resolutionDiagnostics3)
-    {
+      Diagnostic[] resolutionDiagnostics3) {
       Assert.AreEqual(secondVerificationDiagnostics2.Length, resolutionDiagnostics3.Length);
       foreach (var t in secondVerificationDiagnostics2.Zip(resolutionDiagnostics3)) {
         Assert.AreEqual(t.First.Message, t.Second.Message);
