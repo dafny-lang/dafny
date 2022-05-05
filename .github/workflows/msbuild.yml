@@ -52,11 +52,14 @@ jobs:
   
   check-deep-tests:
     uses: ./.github/workflows/check-deep-tests-reusable.yml
-    if: "!(contains(github.event.pull_request.labels.*.name, 'skip-deep-tests-check'))"
+    if: "!(contains(github.event.pull_request.labels.*.name, 'run-deep-tests'))"
  
   integration-tests:
     needs: check-deep-tests
     uses: ./.github/workflows/integration-tests-reusable.yml
     with:
-      all_platforms: false
+      # By default only run on one platform, but run on all platforms if the PR has the "run-deep-tests"
+      # labe, and skip checking the nightly build above.
+      # This is the best way to fix an issue in master that was only caught by the nightly build.
+      all_platforms: ${{ contains(github.event.pull_request.labels.*.name, 'run-deep-tests') }}
       num_shards: 5
