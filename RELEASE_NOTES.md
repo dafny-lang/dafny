@@ -15,10 +15,13 @@
 - fix: Comprehensions with nested subset types fully supported, subtype is correctly checked (https://github.com/dafny-lang/dafny/pull/1997)
 - fix: Fix induction hypothesis generated for lemmas with a receiver parameter (https://github.com/dafny-lang/dafny/pull/2002)
 - fix: Make verifier understand `(!new)` (https://github.com/dafny-lang/dafny/pull/1935)
+- fix: Missing subset type check in datatype updates (https://github.com/dafny-lang/dafny/pull/2059)
 - fix: Fix initialization of non-auto-init in-parameters in C#/JavaScript/Go compilers (https://github.com/dafny-lang/dafny/pull/1935)
 - fix: Resolution of static functions-by-method (https://github.com/dafny-lang/dafny/pull/2023)
 - fix: Export sets did not work with inner modules (https://github.com/dafny-lang/dafny/pull/2025)
-
+- fix: Prevent refinements from changing datatype and newtype definitions (https://github.com/dafny-lang/dafny/pull/2038)
+- feat: The new `older` modifier on arguments to predicates indicates that a predicate ensures the allocatedness of some of its arguments. This allows more functions to show that their quantifiers do not depend on the allocation state. For more information, see the reference manual section on `older`. (https://github.com/dafny-lang/dafny/pull/1936)
+- fix: Fix `(!new)` checks (https://github.com/dafny-lang/dafny/issues/1419)
 
 # 3.5.0
 
