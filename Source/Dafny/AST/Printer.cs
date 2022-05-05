@@ -1014,6 +1014,10 @@ namespace Microsoft.Dafny {
       if (showNewKeyword && !f.IsOld) {
         wr.Write("new ");
       }
+      if (f.IsOlder) {
+        Contract.Assert(f.HasName);
+        wr.Write("older ");
+      }
       if (f.IsGhost) {
         wr.Write("ghost ");
       }

@@ -2142,17 +2142,17 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitRotate(Expression e0, Expression e1, bool isRotateLeft, ConcreteSyntaxTree wr, bool inLetExprBody, FCE_Arg_Translator tr) {
+    protected override void EmitRotate(Expression e0, Expression e1, bool isRotateLeft, ConcreteSyntaxTree wr,
+        bool inLetExprBody, ConcreteSyntaxTree wStmts, FCE_Arg_Translator tr) {
       bool needsCast = false;
       var nativeType = AsNativeType(e0.Type);
       if (nativeType != null) {
         GetNativeInfo(nativeType.Sel, out _, out _, out needsCast);
       }
-      var wStmts = wr.Fork();
 
       var bv = e0.Type.AsBitVectorType;
       if (bv.Width == 0) {
-        tr(e0, wr, inLetExprBody);
+        tr(e0, wr, inLetExprBody, wStmts);
       } else {
         ConcreteSyntaxTree wFirstArg;
         if (bv.NativeType != null) {
@@ -2810,7 +2810,8 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override ConcreteSyntaxTree CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames, Type resultType, ConcreteSyntaxTree wr, bool untyped = false) {
+    protected override ConcreteSyntaxTree CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames,
+      Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, bool untyped = false) {
       wr.Write("func (");
       Contract.Assert(inTypes.Count == inNames.Count);  // guaranteed by precondition
       for (var i = 0; i < inNames.Count; i++) {
@@ -2820,7 +2821,8 @@ namespace Microsoft.Dafny.Compilers {
       return w;
     }
 
-    protected override void CreateIIFE(string bvName, Type bvType, Bpl.IToken bvTok, Type bodyType, Bpl.IToken bodyTok, ConcreteSyntaxTree wr, out ConcreteSyntaxTree wrRhs, out ConcreteSyntaxTree wrBody) {
+    protected override void CreateIIFE(string bvName, Type bvType, Bpl.IToken bvTok, Type bodyType, Bpl.IToken bodyTok,
+      ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, out ConcreteSyntaxTree wrRhs, out ConcreteSyntaxTree wrBody) {
       var w = wr.NewExprBlock("func ({0} {1}) {2}", bvName, TypeName(bvType, wr, bvTok), TypeName(bodyType, wr, bodyTok));
       w.Write("return ");
       wrBody = w.Fork();
@@ -2831,12 +2833,13 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree CreateIIFE0(Type resultType, Bpl.IToken resultTok, ConcreteSyntaxTree wr,
-      ConcreteSyntaxTree wStmts = null) {
+      ConcreteSyntaxTree wStmts) {
       var w = wr.NewBigExprBlock("func () " + TypeName(resultType, wr, resultTok), "()");
       return w;
     }
 
-    protected override ConcreteSyntaxTree CreateIIFE1(int source, Type resultType, Bpl.IToken resultTok, string bvName, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree CreateIIFE1(int source, Type resultType, Bpl.IToken resultTok, string bvName,
+        ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       var w = wr.NewExprBlock("func ({0} int) {1}", bvName, TypeName(resultType, wr, resultTok));
       wr.Write("({0})", source);
       return w;
@@ -3306,7 +3309,8 @@ namespace Microsoft.Dafny.Compilers {
         ArrowType fat = from.AsArrowType, tat = to.AsArrowType;
         // We must wrap the whole conversion in an IIFE to avoid capturing the source expression
         var bvName = idGenerator.FreshId("coer");
-        CreateIIFE(bvName, fat, tok, tat, tok, wr, out var ans, out wr);
+        // wStmts == null is fine as there should not be anything writen to it
+        CreateIIFE(bvName, fat, tok, tat, tok, wr, null, out var ans, out wr);
 
         wr.Write("func (");
         var sep = "";

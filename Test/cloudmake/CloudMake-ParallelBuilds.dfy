@@ -150,7 +150,7 @@ abstract module M0 {
 
   datatype Reason = rCompatibility | rValidity
 
-  type Path(==,00)
+  type Path(==,00,!new)
   function Loc(cmd: string, deps: set<Path>, exp: string): Path
 
   type Artifact(00)
