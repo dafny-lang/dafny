@@ -20,20 +20,6 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
   protected ILanguageClient client;
   protected DiagnosticsReceiver diagnosticReceiver;
 
-  public async Task<Diagnostic[]> GetLastVerificationDiagnostics(TextDocumentItem documentItem, CancellationToken cancellationToken = default, int? expectedNumber = null) {
-    await client.WaitForNotificationCompletionAsync(documentItem.Uri, cancellationToken);
-    var document = await Documents.GetVerifiedDocumentAsync(documentItem);
-    await diagnosticReceiver.AwaitNextDiagnosticsAsync(cancellationToken); // Get resolution diagnostics
-    var remainingDiagnostics = expectedNumber ?? Int32.MaxValue;
-    Diagnostic[] result;
-    do {
-      result = await diagnosticReceiver.AwaitNextDiagnosticsAsync(cancellationToken);
-      remainingDiagnostics--;
-    } while (!document!.Diagnostics.SequenceEqual(result) && remainingDiagnostics > 0);
-
-    return result;
-  }
-
   [TestInitialize]
   public virtual async Task SetUp() {
 
@@ -42,7 +28,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
       options.OnPublishDiagnostics(diagnosticReceiver.NotificationReceived);
     }, serverOptions => {
       serverOptions.Services.AddSingleton<IProgramVerifier>(serviceProvider => new SlowVerifier(
-        serviceProvider.GetRequiredService<ILogger<SlowVerifier>>(),
+        serviceProvider.GetRequiredService<ILogger<DafnyProgramVerifier>>(),
         serviceProvider.GetRequiredService<IOptions<VerifierOptions>>()
       ));
     });
@@ -67,7 +53,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
   public async Task AssertNoDiagnosticsAreComing() {
     foreach (var entry in Documents.Documents.Values) {
       try {
-        await entry.FullyVerifiedDocument;
+        await entry.VerifiedDocument;
       } catch (TaskCanceledException) {
 
       }

@@ -1,6 +1,5 @@
 # Upcoming
 
-- feat: The IDE will show verification errors for a method immediately after that method has been verified, instead of after all methods are verified.
 - feat: `synthesize` attribute on methods with no body allows synthesizing objects based on method postconditions at compile time (currently only available for C#). See Section [22.2.20](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-synthesize-attr) of the Reference Manual. (https://github.com/dafny-lang/dafny/pull/1809)
 - feat: The `/verificationLogger:text` option now prints all verification results in a human-readable form, including a description of each assertion in the program.
 - feat: The `/randomSeedIterations:<n>` option (from Boogie) now tries to prove each verification condition `n` times with a different random seed each time, to help efficiently and conveniently measure the stability of verification. (https://github.com/boogie-org/boogie/pull/567)
@@ -17,6 +16,7 @@
 - fix: Comprehensions with nested subset types fully supported, subtype is correctly checked (https://github.com/dafny-lang/dafny/pull/1997)
 - fix: Fix induction hypothesis generated for lemmas with a receiver parameter (https://github.com/dafny-lang/dafny/pull/2002)
 - fix: Make verifier understand `(!new)` (https://github.com/dafny-lang/dafny/pull/1935)
+- feat: Some command-line options can now be applied to individual modules, using the `{:options}` attribute. (https://github.com/dafny-lang/dafny/pull/2073)
 - fix: Missing subset type check in datatype updates (https://github.com/dafny-lang/dafny/pull/2059)
 - fix: Fix initialization of non-auto-init in-parameters in C#/JavaScript/Go compilers (https://github.com/dafny-lang/dafny/pull/1935)
 - fix: Resolution of static functions-by-method (https://github.com/dafny-lang/dafny/pull/2023)
