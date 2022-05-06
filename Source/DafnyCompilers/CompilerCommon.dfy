@@ -294,7 +294,8 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     type TranslationResult<+A> =
       Result<A, TranslationError>
 
-    function method TranslateType(ty: C.Type): TranslationResult<DT.Type>
+    function method TranslateType(ty: C.Type)
+      : TranslationResult<DT.Type>
       reads *
       decreases TypeHeight(ty)
     {
@@ -418,7 +419,8 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       (map k | k in LazyBinopMap  :: DE.Lazy(LazyBinopMap[k])) +
       (map k | k in EagerBinopMap :: DE.Eager(DE.BinaryOp(EagerBinopMap[k])))
 
-    function method TranslateUnary(u: C.UnaryExpr) : (e: TranslationResult<DE.T>)
+    function method TranslateUnary(u: C.UnaryExpr)
+      : (e: TranslationResult<DE.T>)
       decreases ASTHeight(u), 0
       reads *
       ensures e.Success? ==> P.All_Expr(e.value, DE.WellFormed)
@@ -484,7 +486,8 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         Failure(UnsupportedExpr(l))
     }
 
-    function method TranslateExpressions(exprs: seq<C.Expression>): (texprs: TranslationResult<seq<DE.T>>)
+    function method TranslateExpressions(exprs: seq<C.Expression>)
+      : (texprs: TranslationResult<seq<DE.T>>)
       reads *
       decreases exprs
       ensures texprs.Success? ==> forall e | e in texprs.value :: P.All_Expr(e, DE.WellFormed)
@@ -525,7 +528,8 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       Success(DE.Apply(DE.Eager(DE.FunctionCall), [fnExpr] + argExprs))
     }
 
-    function method TranslateDatatypeValue(dtv: C.DatatypeValue): (e: TranslationResult<DE.T>)
+    function method TranslateDatatypeValue(dtv: C.DatatypeValue)
+      : (e: TranslationResult<DE.T>)
       reads *
       decreases ASTHeight(dtv), 0
       ensures e.Success? ==> P.All_Expr(e.value, DE.WellFormed)
@@ -542,7 +546,8 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       Success(DE.Apply(DE.Eager(DE.DataConstructor([n], typeArgs)), argExprs)) // TODO: proper path
     }
 
-    function method TranslateDisplayExpr(de: C.DisplayExpression): (e: TranslationResult<DE.T>)
+    function method TranslateDisplayExpr(de: C.DisplayExpression)
+      : (e: TranslationResult<DE.T>)
       reads *
       decreases ASTHeight(de), 0
       ensures e.Success? ==> P.All_Expr(e.value, DE.WellFormed)
@@ -555,7 +560,8 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       Success(DE.Apply(DE.Eager(DE.Builtin(DE.Display(ty))), exprs))
     }
 
-    function method TranslateExpressionPair(mde: C.MapDisplayExpr, ep: C.ExpressionPair): (e: TranslationResult<DE.T>)
+    function method TranslateExpressionPair(mde: C.MapDisplayExpr, ep: C.ExpressionPair)
+      : (e: TranslationResult<DE.T>)
       reads *
       requires Math.Max(ASTHeight(ep.A), ASTHeight(ep.B)) < ASTHeight(mde)
       decreases ASTHeight(mde), 0
@@ -569,7 +575,8 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       Success(DE.Apply(DE.Eager(DE.Builtin(DE.Display(ty))), [tA, tB]))
     }
 
-    function method TranslateMapDisplayExpr(mde: C.MapDisplayExpr): (e: TranslationResult<DE.T>)
+    function method TranslateMapDisplayExpr(mde: C.MapDisplayExpr)
+      : (e: TranslationResult<DE.T>)
       reads *
       decreases ASTHeight(mde), 1
       ensures e.Success? ==> P.All_Expr(e.value, DE.WellFormed)
@@ -583,7 +590,8 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       Success(DE.Apply(DE.Eager(DE.Builtin(DE.Display(ty))), exprs))
     }
 
-    function method TranslateSeqUpdateExpr(se: C.SeqUpdateExpr): (e: TranslationResult<DE.T>)
+    function method TranslateSeqUpdateExpr(se: C.SeqUpdateExpr)
+      : (e: TranslationResult<DE.T>)
       reads *
       decreases ASTHeight(se), 0
       ensures e.Success? ==> P.All_Expr(e.value, DE.WellFormed)
@@ -649,10 +657,15 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         TranslateDisplayExpr(c as C.DisplayExpression)
       else if c is C.SeqUpdateExpr then
         TranslateSeqUpdateExpr(c as C.SeqUpdateExpr)
+      else if c is C.LambdaExpr then
+        TranslateLambdaExpr(c as C.LambdaExpr)
+      else if c is C.ConcreteSyntaxExpression then
+        TranslateConcreteSyntaxExpression(c as C.ConcreteSyntaxExpression)
       else Failure(UnsupportedExpr(c))
     }
 
-    function method TranslateStatement(s: C.Statement) : TranslationResult<DE.T>
+    function method TranslateStatement(s: C.Statement)
+      : TranslationResult<DE.T>
       reads *
       decreases StmtHeight(s)
     {
@@ -679,14 +692,20 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       else Failure(UnsupportedStmt(s))
     }
 
-    function method TranslateMethod(m: C.Method) : TranslationResult<D.Method> reads * {
+    function method TranslateMethod(m: C.Method)
+      : TranslationResult<D.Method>
+      reads *
+    {
       // var compileName := m.CompileName;
       // FIXME “Main”
       var stmts :- Seq.MapResult(TranslateStatement, ListUtils.ToSeq(m.Body.Body));
       Success(D.Method("Main", DE.Block(stmts)))
     }
 
-    function method TranslateProgram(p: C.Program) : TranslationResult<D.Program> reads * {
+    function method TranslateProgram(p: C.Program)
+      : TranslationResult<D.Program>
+      reads *
+    {
       var tm :- TranslateMethod(p.MainMethod);
       Success(D.Program(tm))
     }
