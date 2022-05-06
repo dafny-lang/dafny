@@ -161,12 +161,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       );
     }
 
-    public DafnyDocument PrepareVerificationTasks(DafnyDocument document, CancellationToken cancellationToken) {
-      return document with {
-        VerificationTasks = verifier.Verify(document.Program, cancellationToken),
-      };
-    }
-
     public IObservable<DafnyDocument> Verify(DafnyDocument document, CancellationToken cancellationToken) {
       notificationPublisher.SendStatusNotification(document.TextDocumentItem, CompilationStatus.VerificationStarted);
 
