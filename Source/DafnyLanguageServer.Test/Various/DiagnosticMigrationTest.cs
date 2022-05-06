@@ -1,4 +1,5 @@
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
@@ -22,8 +23,7 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
     var verificationDiagnostics = await GetLastVerificationDiagnostics(documentItem, CancellationToken);
     Assert.AreEqual(1, verificationDiagnostics.Length);
     ApplyChange(ref documentItem, new Range(0, 47, 0, 47), "\n\n" + NeverVerifies);
-    var resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
-    Assert.AreEqual(verificationDiagnostics[0], resolutionDiagnostics[0]);
+    await AssertNoDiagnosticsAreComing(CancellationToken);
   }
 
   [TestMethod]
@@ -108,9 +108,7 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
     Assert.AreEqual(1, resolutionDiagnostics.Length);
 
     ApplyChange(ref documentItem, null, "method u() ensures true; { var x: bool := true; }");
-    resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
-    var verificationDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
-    Assert.AreEqual(0, resolutionDiagnostics.Length);
+    var verificationDiagnostics = await GetLastVerificationDiagnostics(documentItem, CancellationToken);
     Assert.AreEqual(0, verificationDiagnostics.Length);
 
     ApplyChange(ref documentItem, new Range(0, 42, 0, 46), "1");
@@ -131,13 +129,9 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
     Assert.AreEqual(1, verificationDiagnostics.Length);
 
     ApplyChange(ref documentItem, new Range(0, 7, 0, 7), "{:neverVerify}");
-    var resolutionDiagnostics1 = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     ApplyChange(ref documentItem, new Range(3, 9, 3, 10), "2");
-    var resolutionDiagnostics2 = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
 
-    Assert.AreEqual(1, resolutionDiagnostics1.Length);
-    Assert.AreEqual(1, resolutionDiagnostics2.Length);
-    Assert.AreEqual(resolutionDiagnostics1[0], resolutionDiagnostics2[0]);
+    await AssertNoDiagnosticsAreComing(CancellationToken);
   }
 
   [TestMethod]
@@ -153,9 +147,7 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
     Assert.AreEqual(1, verificationDiagnostics1.Length);
 
     ApplyChange(ref documentItem, new Range(3, 9, 3, 10), "3");
-    var verificationDiagnostics2 = await GetLastVerificationDiagnostics(documentItem, CancellationToken);
 
-    Assert.AreEqual(verificationDiagnostics1.Length, verificationDiagnostics2.Length);
-    Assert.AreEqual(verificationDiagnostics1[0], verificationDiagnostics2[0]);
+    await AssertNoDiagnosticsAreComing(CancellationToken);
   }
 }

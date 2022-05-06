@@ -53,14 +53,13 @@ method Bar() { assert false; }";
 
     var queued = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.AreEqual(barRange, queued.NamedVerifiables[1].NameRange);
-    Assert.AreEqual(PublishedVerificationStatus.Queued, queued.NamedVerifiables[1].Status);
     Assert.AreEqual(PublishedVerificationStatus.Running, queued.NamedVerifiables[0].Status);
+    Assert.AreEqual(PublishedVerificationStatus.Queued, queued.NamedVerifiables[1].Status);
 
     var running = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.AreEqual(barRange, running.NamedVerifiables[1].NameRange);
-    if (running.NamedVerifiables[0].Status == PublishedVerificationStatus.Queued) {
-      // We received a notification for the other method.
-      Assert.AreEqual(PublishedVerificationStatus.Error, running.NamedVerifiables[1].Status);
+    if (running.NamedVerifiables[0].Status > PublishedVerificationStatus.Running && running.NamedVerifiables[1].Status != PublishedVerificationStatus.Running) {
+      // We received a notification for the second method without the first changing status
       running = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     }
     Assert.AreEqual(PublishedVerificationStatus.Running, running.NamedVerifiables[1].Status);
@@ -113,10 +112,7 @@ method Bar() { assert true; }";
     var documentItem = CreateTestDocument(source);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
-    FileVerificationStatus beforeChangeStatus;
-    do {
-      beforeChangeStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-    } while (beforeChangeStatus.NamedVerifiables.Any(method => method.Status < PublishedVerificationStatus.Correct));
+    await WaitUntilAllStatusAreCompleted();
 
     await GetLastVerificationDiagnostics(documentItem, CancellationToken);
     ApplyChange(ref documentItem, new Range(new Position(1, 22), new Position(1, 26)), "false");
@@ -124,6 +120,13 @@ method Bar() { assert true; }";
     var correct = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.AreEqual(PublishedVerificationStatus.Correct, correct.NamedVerifiables[0].Status);
     Assert.AreEqual(PublishedVerificationStatus.Stale, correct.NamedVerifiables[1].Status);
+  }
+
+  private async Task WaitUntilAllStatusAreCompleted() {
+    FileVerificationStatus beforeChangeStatus;
+    do {
+      beforeChangeStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+    } while (beforeChangeStatus.NamedVerifiables.Any(method => method.Status < PublishedVerificationStatus.Correct));
   }
 
   [TestMethod]
@@ -215,6 +218,19 @@ iterator ThatIterator(x: int) yields (y: int, z: int)
     Assert.AreEqual(new Range(33, 9, 33, 21), status.NamedVerifiables[7].NameRange);
   }
 
-  // Test to ensure no duplicate ghost diagnostics
-  // TODO add test related to resolution errors? Also resolution warnings
+  /**
+   * It would be better if the previously verified method is still detected after getting a resolution error,
+   * but since currently we can not translate to Boogie when there is a resolution error,
+   * we can't detected the named verification tasks such as methods.
+   */
+  [TestMethod]
+  public async Task VerifiedMethodIsNotDetectedOnResolutionError() {
+    var source = @"method Foo() { assert true; }";
+    var documentItem = CreateTestDocument(source);
+    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+    await WaitUntilAllStatusAreCompleted();
+    ApplyChange(ref documentItem, new Range(0, 0, 0, 1), ""); // Remove 'm'
+    var status = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+    Assert.AreEqual(0, status.NamedVerifiables.Count);
+  }
 }

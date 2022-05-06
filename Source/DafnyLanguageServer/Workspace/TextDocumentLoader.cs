@@ -10,6 +10,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Reactive.Threading.Tasks;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
@@ -209,7 +210,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
         if (it.CurrentStatus is VerificationStatus.Running) {
           // For backwards compatibility
-          notificationPublisher.SendStatusNotification(document.TextDocumentItem, CompilationStatus.VerificationStarted, it.Implementation.Name);
+
+          var match = Regex.Match(it.Implementation.Name, "^.+[.](?<name>[^.]+)$");
+          if (match.Success) {
+            notificationPublisher.SendStatusNotification(document.TextDocumentItem, CompilationStatus.VerificationStarted, match.Groups["name"].Value);
+          }
         }
 
         return document with {

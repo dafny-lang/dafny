@@ -106,8 +106,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
     Assert.AreEqual(verificationDocumentItem.Uri, hideReport.Uri);
   }
 
-  protected async Task AssertNoResolutionErrors(TextDocumentItem documentItem)
-  {
+  protected async Task AssertNoResolutionErrors(TextDocumentItem documentItem) {
     var resolutionDiagnostics = (await Documents.GetDocumentAsync(documentItem))!.Diagnostics;
     Assert.AreEqual(0, resolutionDiagnostics.Count());
   }
