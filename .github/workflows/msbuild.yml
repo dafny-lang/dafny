@@ -49,7 +49,7 @@ jobs:
     - name: Check whitespace and style
       working-directory: dafny
       run: dotnet tool run dotnet-format -w -s error --check Source/Dafny.sln --exclude Dafny/Scanner.cs --exclude Dafny/Parser.cs
-  
+
   check-deep-tests:
     uses: ./.github/workflows/check-deep-tests-reusable.yml
 
