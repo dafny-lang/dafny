@@ -19,6 +19,6 @@ module Interp.Printer {
       case Multiset(ms) => "multiset{" + "<*>" + "}]" // FIXME iterate over multiset (convert to map?)
       case Seq(sq) => "[" + Lib.Str.Join(", ", Lib.Seq.Map(v requires v in sq => ToString(v), sq)) + "]"
       case Set(st) => "set{" + "<*>" + "}" // FIXME iterate over set
-      case Abs(vars, body) => "(" + Lib.Str.Join(", ", vars) + ") => <*>"
+      case Closure(ctx, vars, body) => "(" + Lib.Str.Join(", ", vars) + ") => <*>" // FIXME print context
   }
 }

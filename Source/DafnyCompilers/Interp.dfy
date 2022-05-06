@@ -69,11 +69,10 @@ module Interp {
     ensures Pure1(e)
   {}
 
-  type Context = map<string, V.T>
-
   // FIXME many "Invalid" below should really be type errors
 
   datatype InterpError =
+    | OutOfFuel(fn: V.T)
     | TypeError(e: Expr, value: V.T, expected: Type) // TODO rule out type errors through Wf predicate?
     | Invalid(e: Expr) // TODO rule out in Wf predicate?
     | Unsupported(e: Expr) // TODO rule out in SupportsInterp predicate
@@ -85,6 +84,7 @@ module Interp {
   {
     function method ToString() : string {
       match this // TODO include values in messages
+        case OutOfFuel(fn) => "Too many function evaluations"
         case TypeError(e, value, expected) => "Type mismatch"
         case Invalid(e) => "Invalid expression"
         case Unsupported(e) => "Unsupported expression"
@@ -96,39 +96,73 @@ module Interp {
     }
   }
 
+  datatype State =
+    State(locals: V.Context := map[])
+  {
+    static const Empty := State()
+  }
+
   datatype InterpSuccess<A> =
-    | OK(v: A, ctx: Context)
+    | OK(ret: A, ctx: State)
 
   type InterpResult<A> =
     Result<InterpSuccess<A>, InterpError>
 
+  // DISCUSS: How can I set up the recursion so that I can call
+  // WellFormedContext instead of inlining it?
+  predicate method WellFormedValue(v: V.T) {
+    v.Closure? ==>
+      && SupportsInterp(v.body)
+      && forall v' | v' in v.ctx.Values :: WellFormedValue(v')
+  }
+
+  predicate method WellFormedContext(ctx: V.Context) {
+    forall v' | v' in ctx.Values :: WellFormedValue(v')
+  }
+
+  predicate method WellFormedState(ctx: State) {
+    WellFormedContext(ctx.locals)
+  }
+
+  predicate method WellFormedSuccess(ok: InterpSuccess<V.T>) {
+    && WellFormedValue(ok.ret)
+    && WellFormedState(ok.ctx)
+  }
+
+  predicate method WellFormedResult(r: InterpResult<V.T>) {
+    r.Success? ==> WellFormedSuccess(r.value)
+  }
+
   type PureInterpResult<A> =
     Result<A, InterpError>
 
-  function method LiftPureResult<A>(ctx: Context, r: PureInterpResult<A>)
+  function method LiftPureResult<A>(ctx: State, r: PureInterpResult<A>)
     : InterpResult<A>
   {
     var v :- r;
     Success(OK(v, ctx))
   }
 
-  function method InterpExpr(e: Expr, ctx: Context := map[]) : InterpResult<V.T>
+  function method InterpExpr(e: Expr, fuel: nat, ctx: State := State.Empty)
+    : (r: InterpResult<V.T>)
     requires SupportsInterp(e)
-    decreases e, 1
+    requires WellFormedState(ctx)
+    ensures WellFormedResult(r)
+    decreases fuel, e, 1
   {
     Predicates.Deep.AllImpliesChildren(e, SupportsInterp1);
     match e {
       case Var(v) =>
-        var val :- TryGet(ctx, v, UnboundVariable(v));
+        var val :- TryGetLocal(ctx, v, UnboundVariable(v));
         Success(OK(val, ctx))
       case Abs(vars, body) =>
-        Success(OK(V.Abs(vars, body), ctx))
+        Success(OK(V.Closure(ctx.locals, vars, body), ctx))
       case Literal(lit) =>
         Success(OK(InterpLiteral(lit), ctx))
       case Apply(Lazy(op), args: seq<Expr>) =>
-        InterpLazy(e, ctx)
+        InterpLazy(e, fuel, ctx)
       case Apply(Eager(op), args: seq<Expr>) =>
-        var OK(argvs, ctx) :- InterpExprs(args, ctx);
+        var OK(argvs, ctx) :- InterpExprs(args, fuel, ctx);
         LiftPureResult(ctx, match op {
             case BinaryOp(bop: BinaryOp) =>
               InterpBinaryOp(e, bop, argvs[0], argvs[1])
@@ -137,13 +171,18 @@ module Interp {
             case Builtin(Display(ty)) =>
               InterpDisplay(e, ty.kind, argvs)
             case FunctionCall() =>
-              :- Need(args[0].Abs?, Invalid(e));
-              InterpFunctionCall(e, args[0], argvs[1..])
+              InterpFunctionCall(e, fuel, argvs[0], argvs[1..])
           })
       case If(cond, thn, els) =>
-        var OK(condv, ctx) :- InterpExprWithType(cond, Type.Bool, ctx);
-        if condv.b then InterpExpr(thn, ctx) else InterpExpr(els, ctx)
+        var OK(condv, ctx) :- InterpExprWithType(cond, Type.Bool, fuel, ctx);
+        if condv.b then InterpExpr(thn, fuel, ctx) else InterpExpr(els, fuel, ctx)
     }
+  }
+
+  function method {:opaque} TryGetLocal(ctx: State, k: string, err: InterpError)
+    : (r: PureInterpResult<V.T>)
+  {
+    TryGet(ctx.locals, k, err)
   }
 
   function method {:opaque} TryGet<K, V>(m: map<K, V>, k: K, err: InterpError)
@@ -169,15 +208,24 @@ module Interp {
     else MapOfPairs(pairs[1..], acc[pairs[0].0 := pairs[0].1])
   }
 
-  function method InterpExprWithType(e: Expr, ty: Type, ctx: Context)
+  function method InterpExprWithType(e: Expr, ty: Type, fuel: nat, ctx: State)
     : (r: InterpResult<V.T>)
     requires SupportsInterp(e)
-    decreases e, 2
-    ensures r.Success? ==> r.value.v.HasType(ty)
+    requires WellFormedState(ctx)
+    decreases fuel, e, 2
+    ensures WellFormedResult(r)
+    ensures r.Success? ==> r.value.ret.HasType(ty)
   {
-    var OK(val, ctx) :- InterpExpr(e, ctx);
+    var OK(val, ctx) :- InterpExpr(e, fuel, ctx);
     :- Need(val.HasType(ty), TypeError(e, val, ty));
     Success(OK(val, ctx))
+  }
+
+  function method NeedType(e: Expr, val: V.T, ty: Type)
+    : (r: Outcome<InterpError>)
+    ensures r.Pass? ==> val.HasType(ty)
+  {
+    Need(val.HasType(ty), TypeError(e, val, ty))
   }
 
   function method NeedTypes(es: seq<Expr>, vs: seq<V.T>, ty: Type)
@@ -193,7 +241,7 @@ module Interp {
     else
       // DISCUSS: No `:-` for outcomes?
       // DISCUSS: should match accept multiple discriminands? (with lazy evaluation?)
-      match Need(vs[0].HasType(ty), TypeError(es[0], vs[0], ty))
+      match NeedType(es[0], vs[0], ty)
         case Pass =>
           assert vs[0].HasType(ty);
           match NeedTypes(es[1..], vs[1..], ty) { // TODO check that compiler does this efficiently
@@ -203,15 +251,21 @@ module Interp {
         case fail => fail
   }
 
-  function method InterpExprs(es: seq<Expr>, ctx: Context)
+  function method InterpExprs(es: seq<Expr>, fuel: nat, ctx: State)
     : (r: InterpResult<seq<V.T>>)
     requires forall e | e in es :: SupportsInterp(e)
-    ensures r.Success? ==> |r.value.v| == |es|
+    requires WellFormedState(ctx)
+    decreases fuel, es
+    // ensures WellFormedResult(r)
+    ensures r.Success? ==>
+      && |r.value.ret| == |es|
+      && WellFormedState(r.value.ctx)
+      && forall v | v in r.value.ret :: WellFormedValue(v)
   { // TODO generalize into a FoldResult function
     if es == [] then Success(OK([], ctx))
     else
-      var OK(v, ctx) :- InterpExpr(es[0], ctx);
-      var OK(vs, ctx) :- InterpExprs(es[1..], ctx);
+      var OK(v, ctx) :- InterpExpr(es[0], fuel, ctx);
+      var OK(vs, ctx) :- InterpExprs(es[1..], fuel, ctx);
       Success(OK([v] + vs, ctx))
   }
 
@@ -225,36 +279,35 @@ module Interp {
         V.Seq(seq(|s|, i requires 0 <= i < |s| => V.Char(s[i])))
   }
 
-  function method InterpLazy(e: Expr, ctx: Context)
+  function method InterpLazy(e: Expr, fuel: nat, ctx: State)
     : InterpResult<V.T>
     requires e.Apply? && e.aop.Lazy? && SupportsInterp(e)
-    decreases e, 0
+    requires WellFormedState(ctx)
+    decreases fuel, e, 0
   {
-    // DISCUSS: An alternative implementation would be to evaluate but discard
-    // the second context if a short-circuit happens.
     Predicates.Deep.AllImpliesChildren(e, SupportsInterp1);
     var op, e0, e1 := e.aop.lOp, e.args[0], e.args[1];
-    var OK(v0, ctx0) :- InterpExprWithType(e0, Type.Bool, ctx);
+    var OK(v0, ctx0) :- InterpExprWithType(e0, Type.Bool, fuel, ctx);
     match (op, v0)
       case (And, Bool(false)) => Success(OK(V.Bool(false), ctx0))
       case (Or,  Bool(true))  => Success(OK(V.Bool(true), ctx0))
       case (Imp, Bool(false)) => Success(OK(V.Bool(true), ctx0))
       case (_,   Bool(b)) =>
         assert op in {Exprs.And, Exprs.Or, Exprs.Imp};
-        InterpExprWithType(e1, Type.Bool, ctx0)
+        InterpExprWithType(e1, Type.Bool, fuel, ctx0)
   }
 
   // Alternate implementation of ``InterpLazy``: less efficient but more closely
   // matching intuition.
-  function method InterpLazy_Eagerly(e: Expr, ctx: Context)
+  function method InterpLazy_Eagerly(e: Expr, fuel: nat, ctx: State)
     : InterpResult<V.T>
     requires e.Apply? && e.aop.Lazy? && SupportsInterp(e)
-    decreases e, 0
+    decreases fuel, e, 0
   {
     Predicates.Deep.AllImpliesChildren(e, SupportsInterp1);
     var op, e0, e1 := e.aop.lOp, e.args[0], e.args[1];
-    var OK(v0, ctx0) :- InterpExprWithType(e0, Type.Bool, ctx);
-    var OK(v1, ctx1) :- InterpExprWithType(e1, Type.Bool, ctx0);
+    var OK(v0, ctx0) :- InterpExprWithType(e0, Type.Bool, fuel, ctx);
+    var OK(v1, ctx1) :- InterpExprWithType(e1, Type.Bool, fuel, ctx0);
     match (op, v0, v1)
       case (And, Bool(b0), Bool(b1)) =>
         Success(OK(V.Bool(b0 && b1), if b0 then ctx1 else ctx0))
@@ -264,16 +317,16 @@ module Interp {
         Success(OK(V.Bool(b0 ==> b1), if b0 then ctx1 else ctx0))
   }
 
-  lemma InterpLazy_Complete(e: Expr, ctx: Context)
+  lemma InterpLazy_Complete(e: Expr, fuel: nat, ctx: State)
     requires e.Apply? && e.aop.Lazy? && SupportsInterp(e)
-    requires InterpLazy(e, ctx).Failure?
-    ensures InterpLazy_Eagerly(e, ctx) == InterpLazy(e, ctx)
+    requires InterpLazy(e, fuel, ctx).Failure?
+    ensures InterpLazy_Eagerly(e, fuel, ctx) == InterpLazy(e, fuel, ctx)
   {}
 
-  lemma InterpLazy_Eagerly_Sound(e: Expr, ctx: Context)
+  lemma InterpLazy_Eagerly_Sound(e: Expr, fuel: nat, ctx: State)
     requires e.Apply? && e.aop.Lazy? && SupportsInterp(e)
-    requires InterpLazy_Eagerly(e, ctx).Success?
-    ensures InterpLazy_Eagerly(e, ctx) == InterpLazy(e, ctx)
+    requires InterpLazy_Eagerly(e, fuel, ctx).Success?
+    ensures InterpLazy_Eagerly(e, fuel, ctx) == InterpLazy(e, fuel, ctx)
   {}
 
   function method InterpBinaryOp(expr: Expr, bop: AST.BinaryOp, v0: V.T, v1: V.T)
@@ -342,9 +395,9 @@ module Interp {
       case Gt() => Success(V.Bool(x1 > x2))
       case Add() => var x :- NeedIntBounds(x1 as int + x2 as int, 0, 256); Success(V.Char(x as char))
       case Sub() => var x :- NeedIntBounds(x1 as int - x2 as int, 0, 256); Success(V.Char(x as char))
-      case Mul() => Failure(Unsupported(expr))
-      case Div() => Failure(Unsupported(expr))
-      case Mod() => Failure(Unsupported(expr))
+      case Mul() => Failure(Invalid(expr))
+      case Div() => Failure(Invalid(expr))
+      case Mod() => Failure(Invalid(expr))
     }
   }
 
@@ -360,7 +413,7 @@ module Interp {
       case Sub() => Success(V.Real(x1 - x2))
       case Mul() => Success(V.Real(x1 * x2))
       case Div() => :- CheckDivisionByZero(x2 == 0 as real); Success(V.Real(x1 / x2))
-      case Mod() => Failure(Unsupported(expr))
+      case Mod() => Failure(Invalid(expr))
     }
   }
 
@@ -582,23 +635,24 @@ module Interp {
     Success((argv.sq[0], argv.sq[1]))
   }
 
-  function method BuildCallContext(vars: seq<string>, vals: seq<V.T>)
-    : Context
+  function method BuildCallState(captured: V.Context, vars: seq<string>, vals: seq<V.T>)
+    : State
     requires |vars| == |vals|
   {
-    var acc: Context := map[]; // FIXME removing this map triggers a compilation bug in C#
-    MapOfPairs(Seq.Zip(vars, vals), acc)
+    State(MapOfPairs(Seq.Zip(vars, vals), captured))
   }
 
-  function method InterpFunctionCall(e: Expr, fn: Expr, argvs: seq<V.T>)
+  function method InterpFunctionCall(e: Expr, fuel: nat, fn: V.T, argvs: seq<V.T>)
     : PureInterpResult<V.T>
-    requires fn.Abs?
-    requires SupportsInterp(fn)
-    decreases fn
+    requires fn.Closure? ==> SupportsInterp(fn.body)
+    decreases fuel, e, 0
   {
-    Predicates.Deep.AllImpliesChildren(fn, SupportsInterp1);
+    :- Need(fuel > 0, OutOfFuel(fn));
+    :- Need(fn.Closure?, Invalid(e));
+    Predicates.Deep.AllImpliesChildren(fn.body, SupportsInterp1);
     :- Need(|fn.vars| == |argvs|, SignatureMismatch(fn.vars, argvs));
-    var OK(val, ctx) :- InterpExpr(fn.body, BuildCallContext(fn.vars, argvs));
+    var ctx := BuildCallState(fn.ctx, fn.vars, argvs);
+    var OK(val, ctx) :- InterpExpr(fn.body, fuel - 1, ctx);
     Success(val)
   }
 }
