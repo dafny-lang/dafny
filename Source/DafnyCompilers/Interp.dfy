@@ -10,7 +10,9 @@ module Interp {
 
   predicate method Pure1(e: Expr) {
     match e {
+      case Var(_) => true
       case Literal(lit) => true
+      case Abs(vars, body) => true
       case Apply(Lazy(op), args: seq<Expr>) =>
         true
       case Apply(Eager(op), args: seq<Expr>) =>
@@ -37,7 +39,9 @@ module Interp {
     AST.Exprs.WellFormed(e) &&
     var FALSE := false;
     match e {
+      case Var(_) => true
       case Literal(lit) => true
+      case Abs(vars, body) => true
       case Apply(Lazy(op), args: seq<Expr>) =>
         true
       case Apply(Eager(op), args: seq<Expr>) =>
@@ -76,6 +80,7 @@ module Interp {
     | OutOfIntBounds(x: int, low: Option<int>, high: Option<int>)
     | OutOfSeqBounds(collection: V.T, idx: V.T)
     | UnboundVariable(v: string)
+    | SignatureMismatch(vars: seq<string>, argvs: seq<V.T>)
     | DivisionByZero
   {
     function method ToString() : string {
@@ -86,6 +91,7 @@ module Interp {
         case OutOfIntBounds(x, low, high) => "Out-of-bounds value"
         case OutOfSeqBounds(v, i) => "Out-of-bounds index"
         case UnboundVariable(v) => "Unbound variable '" + v + "'"
+        case SignatureMismatch(vars, argvs) => "Wrong number of arguments in function call"
         case DivisionByZero() => "Division by zero"
     }
   }
@@ -112,7 +118,13 @@ module Interp {
   {
     Predicates.Deep.AllImpliesChildren(e, SupportsInterp1);
     match e {
-      case Literal(lit) => Success(OK(InterpLiteral(lit), ctx))
+      case Var(v) =>
+        var val :- TryGet(ctx, v, UnboundVariable(v));
+        Success(OK(val, ctx))
+      case Abs(vars, body) =>
+        Success(OK(V.Abs(vars, body), ctx))
+      case Literal(lit) =>
+        Success(OK(InterpLiteral(lit), ctx))
       case Apply(Lazy(op), args: seq<Expr>) =>
         InterpLazy(e, ctx)
       case Apply(Eager(op), args: seq<Expr>) =>
@@ -124,6 +136,9 @@ module Interp {
               InterpTernaryOp(e, top, argvs[0], argvs[1], argvs[2])
             case Builtin(Display(ty)) =>
               InterpDisplay(e, ty.kind, argvs)
+            case FunctionCall() =>
+              :- Need(args[0].Abs?, Invalid(e));
+              InterpFunctionCall(e, args[0], argvs[1..])
           })
       case If(cond, thn, els) =>
         var OK(condv, ctx) :- InterpExprWithType(cond, Type.Bool, ctx);
@@ -152,14 +167,6 @@ module Interp {
   {
     if pairs == [] then acc
     else MapOfPairs(pairs[1..], acc[pairs[0].0 := pairs[0].1])
-  }
-
-  function method BuildCallContext(vars: seq<string>, vals: seq<V.T>)
-    : Context
-    requires |vars| == |vals|
-  {
-    var acc: Context := map[]; // FIXME removing this map triggers a compilation bug in C#
-    MapOfPairs(Seq.Zip(vars, vals), acc)
   }
 
   function method InterpExprWithType(e: Expr, ty: Type, ctx: Context)
@@ -573,5 +580,25 @@ module Interp {
   {
     :- Need(argv.Seq? && |argv.sq| == 2, Invalid(e));
     Success((argv.sq[0], argv.sq[1]))
+  }
+
+  function method BuildCallContext(vars: seq<string>, vals: seq<V.T>)
+    : Context
+    requires |vars| == |vals|
+  {
+    var acc: Context := map[]; // FIXME removing this map triggers a compilation bug in C#
+    MapOfPairs(Seq.Zip(vars, vals), acc)
+  }
+
+  function method InterpFunctionCall(e: Expr, fn: Expr, argvs: seq<V.T>)
+    : PureInterpResult<V.T>
+    requires fn.Abs?
+    requires SupportsInterp(fn)
+    decreases fn
+  {
+    Predicates.Deep.AllImpliesChildren(fn, SupportsInterp1);
+    :- Need(|fn.vars| == |argvs|, SignatureMismatch(fn.vars, argvs));
+    var OK(val, ctx) :- InterpExpr(fn.body, BuildCallContext(fn.vars, argvs));
+    Success(val)
   }
 }

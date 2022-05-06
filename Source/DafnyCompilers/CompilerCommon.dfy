@@ -41,6 +41,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         | BigOrdinal
         | BitVector(width: nat)
         | Collection(finite: bool, kind: CollectionKind, eltType: Type)
+        | Function(args: seq<Type>, ret: Type) // TODO
         | Class(classType: ClassType)
 
       type T(!new,00,==) = Type
@@ -178,15 +179,21 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         | Eager(eOp: EagerOp)
 
       datatype Expr =
+        | Var(name: string)
         | Literal(lit: Literal)
+        | Abs(vars: seq<string>, body: Expr)
         | Apply(aop: ApplyOp, args: seq<Expr>)
         | Block(stmts: seq<Expr>)
         | If(cond: Expr, thn: Expr, els: Expr)
       {
         function method Depth() : nat {
           1 + match this { // FIXME IDE rejects this, command line accepts it
+            case Var(_) =>
+              0
             case Literal(lit: Literal) =>
               0
+            case Abs(vars, body) =>
+              body.Depth()
             case Apply(_, args) =>
               Seq.MaxF(var f := (e: Expr) requires e in args => e.Depth(); f, args, 0)
             case Block(stmts) =>
@@ -200,8 +207,10 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
           ensures forall e' | e' in s :: e'.Depth() < this.Depth()
         {
           match this {
-            case Literal(lit: Literal) => []
-            case Apply(aop, exprs: seq<Expr>) => exprs
+            case Var(_) => []
+            case Literal(lit) => []
+            case Abs(vars, body) => [body]
+            case Apply(aop, exprs) => exprs
             case Block(exprs) => exprs
             case If(cond, thn, els) => [cond, thn, els]
           }
@@ -218,6 +227,8 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
             |es| == 2
           case Apply(Eager(TernaryOp(top)), es) =>
             |es| == 3
+          case Apply(Eager(FunctionCall()), es) =>
+            |es| >= 1 // Need a function to call
           case Apply(Eager(Builtin(Display(ty))), es) =>
             ty.Collection? && ty.finite
           case _ => true
@@ -424,7 +435,16 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     function {:axiom} StmtHeight(t: C.Statement) : nat
     function {:axiom} TypeHeight(t: C.Type) : nat
 
-    function method TranslateBinary(b: C.BinaryExpr) : (e: TranslationResult<DE.T>)
+    function method TranslateIdentifierExpr(ie: C.IdentifierExpr)
+      : (e: TranslationResult<DE.T>)
+      reads *
+      ensures e.Success? ==> P.All_Expr(e.value, DE.WellFormed)
+    {
+      Success(DE.Var(TypeConv.AsString(ie.Name)))
+    }
+
+    function method TranslateBinary(b: C.BinaryExpr)
+      : (e: TranslationResult<DE.T>)
       decreases ASTHeight(b), 0
       reads *
       ensures e.Success? ==> P.All_Expr(e.value, DE.WellFormed)
@@ -439,7 +459,8 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       Success(DE.Apply(BinaryOpCodeMap[op], [t0, t1]))
     }
 
-    function method TranslateLiteral(l: C.LiteralExpr): (e: TranslationResult<DE.T>)
+    function method TranslateLiteral(l: C.LiteralExpr)
+      : (e: TranslationResult<DE.T>)
       reads *
       ensures e.Success? ==> P.All_Expr(e.value, DE.WellFormed)
     {
@@ -476,7 +497,22 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         Success([te] + tes)
     }
 
-    function method TranslateFunctionCall(fce: C.FunctionCallExpr): (e: TranslationResult<DE.T>)
+    function method TranslateApplyExpr(ae: C.ApplyExpr)
+      : (e: TranslationResult<DE.T>)
+      reads *
+      decreases ASTHeight(ae), 0
+      ensures e.Success? ==> P.All_Expr(e.value, DE.WellFormed)
+    {
+      assume ASTHeight(ae.Function) < ASTHeight(ae);
+      var fnExpr :- TranslateExpression(ae.Function);
+      var argsC := ListUtils.ToSeq(ae.Args);
+      var argExprs :- Seq.MapResult((e requires e in argsC reads * =>
+        assume ASTHeight(e) < ASTHeight(ae); TranslateExpression(e)), argsC);
+      Success(DE.Apply(DE.Eager(DE.FunctionCall), [fnExpr] + argExprs))
+    }
+
+    function method TranslateFunctionCall(fce: C.FunctionCallExpr)
+      : (e: TranslationResult<DE.T>)
       reads *
       decreases ASTHeight(fce), 0
       ensures e.Success? ==> P.All_Expr(e.value, DE.WellFormed)
@@ -566,15 +602,43 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       Success(DE.Apply(DE.Eager(DE.TernaryOp(op)), [tSeq, tIndex, tValue]))
     }
 
-    function method TranslateExpression(c: C.Expression) : (e: TranslationResult<DE.T>)
+    function method TranslateLambdaExpr(le: C.LambdaExpr)
+      : (e: TranslationResult<DE.T>)
+      reads *
+      decreases ASTHeight(le), 0
+      ensures e.Success? ==> P.All_Expr(e.value, DE.WellFormed)
+    {
+      var bvars := Seq.Map((bv: C.BoundVar) => TypeConv.AsString(bv.Name),
+        ListUtils.ToSeq(le.BoundVars));
+      assume ASTHeight(le.Term) < ASTHeight(le);
+      var body :- TranslateExpression(le.Term);
+      Success(DE.Abs(bvars, body))
+    }
+
+    function method TranslateConcreteSyntaxExpression(ce: C.ConcreteSyntaxExpression)
+      : (e: TranslationResult<DE.T>)
+      reads *
+      decreases ASTHeight(ce), 0
+      ensures e.Success? ==> P.All_Expr(e.value, DE.WellFormed)
+    {
+      assume ASTHeight(ce.ResolvedExpression) < ASTHeight(ce);
+      TranslateExpression(ce.ResolvedExpression)
+    }
+
+    function method TranslateExpression(c: C.Expression)
+      : (e: TranslationResult<DE.T>)
       reads *
       decreases ASTHeight(c), 2
       ensures e.Success? ==> P.All_Expr(e.value, DE.WellFormed)
     {
-      if c is C.BinaryExpr then // TODO Unary
+      if c is C.IdentifierExpr then
+        TranslateIdentifierExpr(c as C.IdentifierExpr)
+      else if c is C.BinaryExpr then // TODO Unary
         TranslateBinary(c as C.BinaryExpr)
       else if c is C.LiteralExpr then
         TranslateLiteral(c as C.LiteralExpr)
+      else if c is C.ApplyExpr then
+        TranslateApplyExpr(c as C.ApplyExpr)
       else if c is C.FunctionCallExpr then
         TranslateFunctionCall(c as C.FunctionCallExpr)
       else if c is C.DatatypeValue then
@@ -743,7 +807,9 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       module Rec refines Base { // DISCUSS
         function method AllChildren_Expr(e: Expr, P: Expr -> bool) : bool {
           match e {
-            case Literal(lit: Exprs.Literal) => true
+            case Var(_) => true
+            case Literal(lit) => true
+            case Abs(vars, body) => All_Expr(body, P)
             case Apply(_, exprs) =>
               Seq.All(e requires e in exprs => All_Expr(e, P), exprs)
             case Block(exprs) => Seq.All((e requires e in exprs => All_Expr(e, P)), exprs)
@@ -848,7 +914,9 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         // type gets new arguments
         match e {
           // Expressions
+          case Var(_) => e
           case Literal(lit_) => e
+          case Abs(vars, body) => Expr.Abs(vars, Map_Expr(body, tr))
           case Apply(aop, exprs) =>
             var exprs' := Seq.Map(e requires e in exprs => Map_Expr(e, tr), exprs);
             Predicates.Map_All_IsMap(e requires e in exprs => Map_Expr(e, tr), exprs);
@@ -997,7 +1065,9 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     {
       Deep.AllImpliesChildren(e, Exprs.WellFormed);
       match e {
+        case Var(_) => e
         case Literal(lit_) => e
+        case Abs(vars, body) => Exprs.Abs(vars, EliminateNegatedBinops_Expr_direct(body))
         case Apply(Eager(BinaryOp(bop)), exprs) =>
           var exprs' := Seq.Map(e requires e in exprs => EliminateNegatedBinops_Expr_direct(e), exprs);
           Predicates.Map_All_IsMap(e requires e in exprs => EliminateNegatedBinops_Expr_direct(e), exprs);

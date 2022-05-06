@@ -4,6 +4,7 @@ include "Library.dfy"
 module Values {
   import Lib.Math
   import opened Lib.Datatypes
+  import DafnyCompilerCommon.AST.Exprs
   import DafnyCompilerCommon.AST.Types
 
   datatype Value =
@@ -17,6 +18,7 @@ module Values {
     | Multiset(ms: multiset<Value>)
     | Seq(sq: seq<Value>)
     | Set(st: set<Value>)
+    | Abs(vars: seq<string>, body: Exprs.T)
   {
     predicate method HasType(ty: Types.T) {
       match (this, ty) // FIXME tests on other side
@@ -35,7 +37,10 @@ module Values {
           forall x | x in sq :: x.HasType(eT)
         case (Set(st), Collection(true, Set, eT)) =>
           forall x | x in st :: x.HasType(eT)
+        case (Abs(vars, body), Function(args, ret)) =>
+          true // FIXME: Need a typing relation on terms, not just values
 
+        // DISCUSS: Better way to write this?  Need exhaustivity checking
         case (Bool(b), _) => false
         case (Char(c), _) => false
         case (Int(i), _) => false
@@ -46,6 +51,7 @@ module Values {
         case (Multiset(ms), _) => false
         case (Seq(sq), _) => false
         case (Set(st), _) => false
+        case (Abs(vars, body), _) => false
     }
 
     function method Cast(ty: Types.T) : (v: Option<Value>)
