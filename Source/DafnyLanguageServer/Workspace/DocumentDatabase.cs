@@ -67,16 +67,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public IObservable<DafnyDocument> OpenDocument(TextDocumentItem document) {
       var cancellationSource = new CancellationTokenSource();
-      var resolvedDocument = OpenAsync(document, cancellationSource.Token);
-      var verifiedDocuments = Verify(resolvedDocument, VerifyOnOpen, cancellationSource.Token);
-      var databaseEntry = new DocumentEntry(
+      var resolvedDocumentTask = OpenAsync(document, cancellationSource.Token);
+      var verifiedDocuments = Verify(resolvedDocumentTask, VerifyOnOpen, cancellationSource.Token);
+      documents.Add(document.Uri, new DocumentEntry(
         document.Version,
-        resolvedDocument,
-        verifiedDocuments.Select(Task.FromResult).DefaultIfEmpty(resolvedDocument).ToTask(cancellationSource.Token).Unwrap(),
+        resolvedDocumentTask,
+        verifiedDocuments,
         cancellationSource
-      );
-      documents.Add(document.Uri, databaseEntry);
-      return resolvedDocument.ToObservable().Where(d => !d.LoadCanceled).Concat(verifiedDocuments);
+      ));
+      return resolvedDocumentTask.ToObservable().Where(d => !d.LoadCanceled).Concat(verifiedDocuments);
     }
 
     private async Task<DafnyDocument> OpenAsync(TextDocumentItem textDocument, CancellationToken cancellationToken) {
@@ -121,13 +120,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var previousDocumentTask = databaseEntry.MostVerifiedDocument;
       var resolvedDocumentTask = ApplyChangesAsync(previousDocumentTask, documentChange, cancellationSource.Token);
       var verifiedDocuments = Verify(resolvedDocumentTask, VerifyOnChange, cancellationSource.Token);
-      var updatedEntry = new DocumentEntry(
+      documents[documentUri] = new DocumentEntry(
         documentChange.TextDocument.Version,
         resolvedDocumentTask,
-        verifiedDocuments.Select(Task.FromResult).DefaultIfEmpty(resolvedDocumentTask).ToTask(cancellationSource.Token).Unwrap(),
+        verifiedDocuments,
         cancellationSource
       );
-      documents[documentUri] = updatedEntry;
       return resolvedDocumentTask.ToObservable().Concat(verifiedDocuments);
     }
 
@@ -181,15 +179,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       var cancellationSource = new CancellationTokenSource();
       var verifiedDocuments = VerifyDocumentIfRequired(databaseEntry, cancellationSource.Token);
-      var updatedEntry = new DocumentEntry(
+      documents[documentId.Uri] = new DocumentEntry(
         databaseEntry.Version,
         databaseEntry.ResolvedDocument,
-        verifiedDocuments.Select(Task.FromResult).DefaultIfEmpty(databaseEntry.ResolvedDocument).ToTask(cancellationSource.Token).Unwrap(),
-        // TODO there seems to be some duplication between here and somewhere else in this file.
-        //databaseEntry.ResolvedDocument.ToObservable().Concat(verifiedDocuments).LastAsync().ToTask(cancellationSource.Token),
+        verifiedDocuments,
         cancellationSource
       );
-      documents[documentId.Uri] = updatedEntry;
       return verifiedDocuments;
     }
 
@@ -225,16 +220,30 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public IReadOnlyDictionary<DocumentUri, IDocumentEntry> Documents =>
       documents.ToDictionary(k => k.Key, v => (IDocumentEntry)v.Value);
 
-    private record DocumentEntry(int? Version,
-      Task<DafnyDocument> ResolvedDocument,
-      Task<DafnyDocument> FullyVerifiedDocument,
-      CancellationTokenSource CancellationSource) : IDocumentEntry {
-      public void CancelPendingUpdates() {
-        CancellationSource.Cancel();
+    private class DocumentEntry : IDocumentEntry {
+      private readonly CancellationTokenSource cancellationSource;
+      public int? Version { get; }
+      public Task<DafnyDocument> ResolvedDocument { get; }
+
+      public DocumentEntry(int? version, Task<DafnyDocument> resolvedDocument,
+        IObservable<DafnyDocument> verifiedDocuments,
+        CancellationTokenSource cancellationSource) {
+        this.cancellationSource = cancellationSource;
+        Version = version;
+        ResolvedDocument = resolvedDocument;
+        MostVerifiedDocument = resolvedDocument;
+        verifiedDocuments.Subscribe(update => MostVerifiedDocument = Task.FromResult(update));
+        FullyVerifiedDocument =
+          verifiedDocuments.Select(Task.FromResult).DefaultIfEmpty(ResolvedDocument).ToTask().Unwrap();
       }
 
-      public Task<DafnyDocument> MostVerifiedDocument =>
-        FullyVerifiedDocument.IsCompletedSuccessfully ? FullyVerifiedDocument : ResolvedDocument;
+      public void CancelPendingUpdates() {
+        cancellationSource.Cancel();
+      }
+
+      public Task<DafnyDocument> MostVerifiedDocument { get; private set; }
+
+      public Task<DafnyDocument> FullyVerifiedDocument { get; }
     }
   }
 }

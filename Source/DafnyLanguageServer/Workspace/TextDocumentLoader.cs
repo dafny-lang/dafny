@@ -184,6 +184,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var diagnostics = implementationTasks.ToDictionary(it => it, async it => {
         var result = await it.ActualTask;
 
+        cancellationToken.ThrowIfCancellationRequested();
+
         var errorReporter = new DiagnosticErrorReporter(document.Uri);
         foreach (var counterExample in result.Errors) {
           counterExamples.Push(counterExample);

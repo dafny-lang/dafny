@@ -762,6 +762,35 @@ method test2() {
 
 
     [TestMethod]
+    public async Task ApplyChangeBeforeVerificationFinishes() {
+      var source = @"
+method test() {
+  assert false;
+}
+".TrimStart() + SlowToVerify;
+      await SetUp(new Dictionary<string, string>() {
+        { $"{VerifierOptions.Section}:{nameof(VerifierOptions.VcsCores)}", "1" }
+      });
+      var documentItem = CreateTestDocument(source);
+      client.OpenDocument(documentItem);
+      var resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      Assert.AreEqual(0, resolutionDiagnostics.Length);
+      var firstVerificationDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      Assert.AreEqual(1, firstVerificationDiagnostics.Length);
+      ApplyChange(ref documentItem, new Range((1, 9), (1, 14)), "true");
+
+      var resolutionDiagnostics2 = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      AssertDiagnosticListsAreEqualBesidesMigration(firstVerificationDiagnostics, resolutionDiagnostics2);
+      var firstVerificationDiagnostics2 = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      var secondVerificationDiagnostics2 = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      Assert.AreEqual(0, firstVerificationDiagnostics2.Length); // Still contains second failing method
+      Assert.AreEqual(1, secondVerificationDiagnostics2.Length);
+
+      await AssertNoDiagnosticsAreComing();
+    }
+
+
+    [TestMethod]
     public async Task DoNotMigrateDiagnosticsOfRemovedMethod() {
       var source = @"
 method test() {
