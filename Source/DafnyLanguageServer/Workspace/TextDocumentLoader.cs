@@ -172,6 +172,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         var result = await it.ActualTask;
         var methodPosition = it.Implementation.tok.GetLspPosition();
 
+        cancellationToken.ThrowIfCancellationRequested();
+
         var errorReporter = new DiagnosticErrorReporter(document.Uri);
         foreach (var counterExample in result.Errors) {
           counterExamples.Push(counterExample);
