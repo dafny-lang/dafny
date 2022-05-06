@@ -548,34 +548,29 @@ namespace Microsoft.Dafny {
 
         } else if (expr is SeqUpdateExpr) {
           SeqUpdateExpr e = (SeqUpdateExpr)expr;
-          if (e.ResolvedUpdateExpr != null) {
-            return TrExpr(e.ResolvedUpdateExpr);
+          Boogie.Expr seq = TrExpr(e.Seq);
+          var seqType = e.Seq.Type.NormalizeExpand();
+          if (seqType is SeqType) {
+            Type elmtType = cce.NonNull((SeqType)seqType).Arg;
+            Boogie.Expr index = TrExpr(e.Index);
+            index = translator.ConvertExpression(GetToken(e.Index), index, e.Index.Type, Type.Int);
+            Boogie.Expr val = BoxIfNecessary(GetToken(expr), TrExpr(e.Value), elmtType);
+            return translator.FunctionCall(GetToken(expr), BuiltinFunction.SeqUpdate, predef.BoxType, seq, index, val);
+          } else if (seqType is MapType) {
+            MapType mt = (MapType)seqType;
+            Boogie.Type maptype = predef.MapType(GetToken(expr), mt.Finite, predef.BoxType, predef.BoxType);
+            Boogie.Expr index = BoxIfNecessary(GetToken(expr), TrExpr(e.Index), mt.Domain);
+            Boogie.Expr val = BoxIfNecessary(GetToken(expr), TrExpr(e.Value), mt.Range);
+            return FunctionCall(GetToken(expr), mt.Finite ? "Map#Build" : "IMap#Build", maptype, seq, index, val);
+          } else if (seqType is MultiSetType) {
+            Type elmtType = cce.NonNull((MultiSetType)seqType).Arg;
+            Boogie.Expr index = BoxIfNecessary(GetToken(expr), TrExpr(e.Index), elmtType);
+            Boogie.Expr val = TrExpr(e.Value);
+            return Boogie.Expr.StoreTok(GetToken(expr), seq, index, val);
           } else {
-            Boogie.Expr seq = TrExpr(e.Seq);
-            var seqType = e.Seq.Type.NormalizeExpand();
-            if (seqType is SeqType) {
-              Type elmtType = cce.NonNull((SeqType)seqType).Arg;
-              Boogie.Expr index = TrExpr(e.Index);
-              index = translator.ConvertExpression(GetToken(e.Index), index, e.Index.Type, Type.Int);
-              Boogie.Expr val = BoxIfNecessary(GetToken(expr), TrExpr(e.Value), elmtType);
-              return translator.FunctionCall(GetToken(expr), BuiltinFunction.SeqUpdate, predef.BoxType, seq, index, val);
-            } else if (seqType is MapType) {
-              MapType mt = (MapType)seqType;
-              Boogie.Type maptype = predef.MapType(GetToken(expr), mt.Finite, predef.BoxType, predef.BoxType);
-              Boogie.Expr index = BoxIfNecessary(GetToken(expr), TrExpr(e.Index), mt.Domain);
-              Boogie.Expr val = BoxIfNecessary(GetToken(expr), TrExpr(e.Value), mt.Range);
-              return FunctionCall(GetToken(expr), mt.Finite ? "Map#Build" : "IMap#Build", maptype, seq, index, val);
-            } else if (seqType is MultiSetType) {
-              Type elmtType = cce.NonNull((MultiSetType)seqType).Arg;
-              Boogie.Expr index = BoxIfNecessary(GetToken(expr), TrExpr(e.Index), elmtType);
-              Boogie.Expr val = TrExpr(e.Value);
-              return Boogie.Expr.StoreTok(GetToken(expr), seq, index, val);
-            } else {
-              Contract.Assert(false);
-              throw new cce.UnreachableException();
-            }
+            Contract.Assert(false);
+            throw new cce.UnreachableException();
           }
-
         } else if (expr is MultiSelectExpr) {
           MultiSelectExpr e = (MultiSelectExpr)expr;
           Type elmtType = UserDefinedType.ArrayElementType(e.Array.Type); ;

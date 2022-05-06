@@ -22,8 +22,15 @@
    Push and cut a PR, get it approved,
    and squash and merge those changes to the `master` branch.
 
-3. Create a fresh clone of the repo locally, making sure the latest commit
-   is the squashed commit you just merged, and push the tag for this release.
+3. Kick off the deep test suite by navigating to
+   https://github.com/dafny-lang/dafny/actions/workflows/deep-tests.yml,
+   clicking the "Run workflow" dropdown, ensuring `master` is selected,
+   and clicking the "Run workflow" button. The automation for releasing
+   below will check for a run of this workflow on the exact commit
+   to release.
+
+4. Create a fresh clone of the repo locally, making sure the latest commit
+   is the squashed commit you just merged and tested, and push the tag for this release.
 
    ```
    git clone git@github.com:dafny-lang/dafny.git dafny-for-tagging
@@ -32,35 +39,35 @@
    git push v<$VER>
    ```
 
-4. A GitHub action will automatically run in reaction to the tag being pushed,
+5. A GitHub action will automatically run in reaction to the tag being pushed,
    which will build the artifacts and reference manual and then create a draft
    GitHub release. You can find and watch the progress of this workflow at
    https://github.com/dafny-lang/dafny/actions.
 
-5. Once the action completes, you should find the draft release at
+6. Once the action completes, you should find the draft release at
    https://github.com/dafny-lang/dafny/releases. Edit the release body
    to add in the release notes from `RELEASE_NOTES.md`. 
    Also check the box to create a new discussion based on
    the release, if this is not a pre-release.
 
-6. Push the "Publish" button. This will trigger yet another workflow
+7. Push the "Publish" button. This will trigger yet another workflow
    that will download the published artifacts and run a smoke test
    on multiple platforms. Again you can watch for this workflow at
    https://github.com/dafny-lang/dafny/actions.
 
-7. If preparing a pre-release, stop here, as
+8. If preparing a pre-release, stop here, as
    the following steps declare the release as the latest version, which
    is not the intention.
 
-8. If something goes wrong, delete the tag and release in GitHub, fix the
+9. If something goes wrong, delete the tag and release in GitHub, fix the
    problem and try again.
 
-9. Update the Homebrew formula for Dafny (see below).
+10. Update the Homebrew formula for Dafny (see below).
    Note that it is fine to leave this for the next day,
    and other members of the community may update the formula
    in the meantime anyway.
 
-10. Announce the new release to the world.
+11. Announce the new release to the world.
 
 ## Updating Dafny on Homebrew
 

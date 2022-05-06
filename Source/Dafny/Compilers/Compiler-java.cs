@@ -1601,7 +1601,8 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(")");
     }
 
-    protected override void EmitRotate(Expression e0, Expression e1, bool isRotateLeft, ConcreteSyntaxTree wr, bool inLetExprBody, FCE_Arg_Translator tr) {
+    protected override void EmitRotate(Expression e0, Expression e1, bool isRotateLeft, ConcreteSyntaxTree wr,
+      bool inLetExprBody, ConcreteSyntaxTree wStmts, FCE_Arg_Translator tr) {
       string nativeName = null, literalSuffix = null;
       bool needsCast = false;
       var nativeType = AsNativeType(e0.Type);
@@ -1615,7 +1616,7 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write("(" + nativeName + ")(" + CastIfSmallNativeType(e0.Type) + "(");
       }
       wr.Write("(");
-      EmitShift(e0, e1, isRotateLeft ? leftShift : rightShift, isRotateLeft, nativeType, true, wr, inLetExprBody, tr);
+      EmitShift(e0, e1, isRotateLeft ? leftShift : rightShift, isRotateLeft, nativeType, true, wr, inLetExprBody, wStmts, tr);
       wr.Write(")");
       if (nativeType == null) {
         wr.Write(".or");
@@ -1623,25 +1624,26 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write("|");
       }
       wr.Write("(");
-      EmitShift(e0, e1, isRotateLeft ? rightShift : leftShift, !isRotateLeft, nativeType, false, wr, inLetExprBody, tr);
+      EmitShift(e0, e1, isRotateLeft ? rightShift : leftShift, !isRotateLeft, nativeType, false, wr, inLetExprBody, wStmts, tr);
       wr.Write(")))");
       if (needsCast) {
         wr.Write("))");
       }
     }
 
-    void EmitShift(Expression e0, Expression e1, string op, bool truncate, NativeType/*?*/ nativeType, bool firstOp, ConcreteSyntaxTree wr, bool inLetExprBody, FCE_Arg_Translator tr) {
+    void EmitShift(Expression e0, Expression e1, string op, bool truncate, NativeType nativeType /*?*/, bool firstOp,
+        ConcreteSyntaxTree wr, bool inLetExprBody, ConcreteSyntaxTree wStmts, FCE_Arg_Translator tr) {
       var bv = e0.Type.AsBitVectorType;
       if (truncate) {
         wr = EmitBitvectorTruncation(bv, true, wr);
       }
-      tr(e0, wr, inLetExprBody);
+      tr(e0, wr, inLetExprBody, wStmts);
       wr.Write($" {op} ");
       if (!firstOp) {
         wr.Write($"({bv.Width} - ");
       }
       wr.Write("((");
-      tr(e1, wr, inLetExprBody);
+      tr(e1, wr, inLetExprBody, wStmts);
       wr.Write(")");
       if (AsNativeType(e1.Type) == null) {
         wr.Write(".intValue()");
@@ -2565,7 +2567,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames,
-      Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, bool untyped = false, bool bodyIsExpression = true) {
+        Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, bool untyped = false) {
       if (inTypes.Count != 1) {
         functions.Add(inTypes.Count);
       }
@@ -3714,7 +3716,8 @@ namespace Microsoft.Dafny.Compilers {
       TrParenExpr(e, wr, inLetExprBody, wStmts);
     }
 
-    protected override ConcreteSyntaxTree CreateIIFE1(int source, Type resultType, Bpl.IToken resultTok, string bvName, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree CreateIIFE1(int source, Type resultType, Bpl.IToken resultTok, string bvName,
+        ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       wr.Write($"((java.util.function.Function<java.math.BigInteger, {BoxedTypeName(resultType, wr, resultTok)}>)(({bvName}) ->");
       var w = wr.NewBigExprBlock("", $")).apply(java.math.BigInteger.valueOf({source}))");
       return w;
