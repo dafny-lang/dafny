@@ -796,7 +796,7 @@ method test() {
       AssertDiagnosticListsAreEqualBesidesMigration(firstVerificationDiagnostics, resolutionDiagnostics2);
       var firstVerificationDiagnostics2 = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       var secondVerificationDiagnostics2 = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
-      Assert.AreEqual(1, firstVerificationDiagnostics2.Length); // Still contains second failing method
+      Assert.AreEqual(0, firstVerificationDiagnostics2.Length); // Still contains second failing method
       Assert.AreEqual(1, secondVerificationDiagnostics2.Length);
 
       await AssertNoDiagnosticsAreComing();
