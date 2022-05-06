@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using VC;
 using System;
 using Microsoft.Dafny.LanguageServer.Workspace;
+using VCGeneration;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
