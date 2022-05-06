@@ -182,7 +182,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           errorReporter.ReportBoogieError(outcomeError);
         }
 
-        var diagnostics = errorReporter.GetDiagnostics(document.Uri).ToList();
+        var diagnostics = errorReporter.GetDiagnostics(document.Uri).OrderBy(d => d.Range.Start).ToList();
         concurrentDictionary.AddOrUpdate(methodPosition, diagnostics, (_, _) => diagnostics);
 
         return document with {
