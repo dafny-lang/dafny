@@ -858,8 +858,8 @@ method test2() {
     public async Task DiagnosticsInDifferentImplementationUnderOneNamedVerificationTask() {
 
       var source = @"
-method test() {
-  var x := 3 / 0;
+method test() 
+  ensures 3 / 0 == 2 {
   assert false;
 }
 ".TrimStart();
