@@ -18,9 +18,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
   /// <summary>
   /// DTO used to communicate the current verification diagnostics to the LSP client.
   /// </summary>
-  [Method(DafnyRequestNames.VerificationDiagnostics, Direction.ServerToClient)]
-  public class VerificationDiagnosticsParams : IRequest, IRequest<Unit> {
-    public VerificationDiagnosticsParams(DocumentUri uri,
+  [Method(DafnyRequestNames.VerificationStatusGutter, Direction.ServerToClient)]
+  public class VerificationStatusGutter : IRequest, IRequest<Unit> {
+    public VerificationStatusGutter(DocumentUri uri,
       int version,
       VerificationTree[] verificationTrees,
       Container<Diagnostic> diagnostics,
@@ -29,9 +29,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       int numberOfResolutionErrors) {
       Uri = uri;
       Version = version;
-      VerificationTrees = verificationTrees;
       if (linesCount != 0) { // Deserialization makes linesCount to be equal to zero.
-        PerLineDiagnostic =
+        PerLineStatus =
           RenderPerLineDiagnostics(this, verificationTrees, linesCount, numberOfResolutionErrors, verificationStarted, diagnostics);
       }
     }
@@ -47,20 +46,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     public int? Version { get; init; }
 
     /// <summary>
-    /// Returns a tree of diagnostics that can be used
-    /// First-level nodes are methods, or witness subset type checks
-    /// Second-level nodes are preconditions, postconditions, body verification status
-    /// Third level nodes are assertions inside functions 
-    /// </summary>
-    public VerificationTree[] VerificationTrees { get; init; }
-
-    /// <summary>
     /// Returns per-line real-time diagnostic
     /// </summary>
-    public LineVerificationStatus[] PerLineDiagnostic { get; init; }
+    public LineVerificationStatus[] PerLineStatus { get; init; }
 
     static LineVerificationStatus[] RenderPerLineDiagnostics(
-      VerificationDiagnosticsParams verificationDiagnosticsParams,
+      VerificationStatusGutter verificationDiagnosticsParams,
       VerificationTree[] verificationTrees,
       int numberOfLines,
       int numberOfResolutionErrors,

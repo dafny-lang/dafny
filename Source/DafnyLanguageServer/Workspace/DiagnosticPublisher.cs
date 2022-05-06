@@ -52,7 +52,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         .Where(x => x.Severity == DiagnosticSeverity.Error)
         .ToArray();
       var linesCount = Regex.Matches(document.Text.Text, "\r?\n").Count + 1;
-      var verificationDiagnosticsParams = new VerificationDiagnosticsParams(
+      var verificationStatusGutter = new VerificationStatusGutter(
         document.Uri,
         document.Version,
         document.VerificationTree.Children.Select(child => child.GetCopyForNotification()).ToArray(),
@@ -61,7 +61,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         document.VerificationPass != null,
         document.ResolutionSucceeded == false ? currentDiagnostics.Count() : 0
       );
-      languageServer.TextDocument.SendNotification(verificationDiagnosticsParams);
+      languageServer.TextDocument.SendNotification(verificationStatusGutter);
     }
 
     private void PublishGhostDiagnostics(DafnyDocument document) {

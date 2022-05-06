@@ -17,7 +17,7 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Diagnostics;
 
 public abstract class LinearVerificationDiagnosticTester : ClientBasedLanguageServerTest {
-  protected TestNotificationReceiver<VerificationDiagnosticsParams> VerificationDiagnosticReceiver;
+  protected TestNotificationReceiver<VerificationStatusGutter> VerificationDiagnosticReceiver;
   [TestInitialize]
   public override async Task SetUp() {
     diagnosticReceiver = new();
@@ -25,8 +25,8 @@ public abstract class LinearVerificationDiagnosticTester : ClientBasedLanguageSe
     client = await InitializeClient(options =>
       options
         .OnPublishDiagnostics(diagnosticReceiver.NotificationReceived)
-        .AddHandler(DafnyRequestNames.VerificationDiagnostics,
-          NotificationHandler.For<VerificationDiagnosticsParams>(VerificationDiagnosticReceiver.NotificationReceived))
+        .AddHandler(DafnyRequestNames.VerificationStatusGutter,
+          NotificationHandler.For<VerificationStatusGutter>(VerificationDiagnosticReceiver.NotificationReceived))
       );
   }
 
@@ -121,14 +121,14 @@ public abstract class LinearVerificationDiagnosticTester : ClientBasedLanguageSe
       if (documentItem.Version != verificationDiagnosticReport.Version) {
         continue;
       }
-      var newPerLineDiagnostics = verificationDiagnosticReport.PerLineDiagnostic.ToList();
+      var newPerLineDiagnostics = verificationDiagnosticReport.PerLineStatus.ToList();
       if ((previousPerLineDiagnostics != null
           && previousPerLineDiagnostics.SequenceEqual(newPerLineDiagnostics)) ||
           newPerLineDiagnostics.All(status => status == LineVerificationStatus.Nothing)) {
         continue;
       }
 
-      traces.Add(verificationDiagnosticReport.PerLineDiagnostic);
+      traces.Add(verificationDiagnosticReport.PerLineStatus);
       if (NoMoreNotificationsToAwaitFrom(verificationDiagnosticReport)) {
         break;
       }
@@ -140,10 +140,10 @@ public abstract class LinearVerificationDiagnosticTester : ClientBasedLanguageSe
     return traces;
   }
 
-  private static bool NoMoreNotificationsToAwaitFrom(VerificationDiagnosticsParams verificationDiagnosticReport) {
-    return verificationDiagnosticReport.PerLineDiagnostic.Contains(LineVerificationStatus.ResolutionError) ||
-           verificationDiagnosticReport.PerLineDiagnostic.All(IsNotIndicatingProgress) ||
-           verificationDiagnosticReport.PerLineDiagnostic.All(status => status == LineVerificationStatus.Nothing);
+  private static bool NoMoreNotificationsToAwaitFrom(VerificationStatusGutter verificationDiagnosticReport) {
+    return verificationDiagnosticReport.PerLineStatus.Contains(LineVerificationStatus.ResolutionError) ||
+           verificationDiagnosticReport.PerLineStatus.All(IsNotIndicatingProgress) ||
+           verificationDiagnosticReport.PerLineStatus.All(status => status == LineVerificationStatus.Nothing);
   }
 
   /// <summary>
