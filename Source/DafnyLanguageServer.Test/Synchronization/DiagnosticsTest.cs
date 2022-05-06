@@ -853,5 +853,23 @@ method test2() {
         Assert.AreEqual(t.First.Message, t.Second.Message);
       }
     }
+
+    [TestMethod]
+    public async Task DiagnosticsInDifferentImplementationUnderOneNamedVerificationTask() {
+
+      var source = @"
+method test() {
+  var x := 3 / 0;
+  assert false;
+}
+".TrimStart();
+      await SetUp(new Dictionary<string, string>() {
+        { $"{VerifierOptions.Section}:{nameof(VerifierOptions.VcsCores)}", "1" }
+      });
+      var documentItem = CreateTestDocument(source);
+      client.OpenDocument(documentItem);
+      var resolutionDiagnostics = await GetLastVerificationDiagnostics(documentItem, CancellationToken);
+      Assert.AreEqual(2, resolutionDiagnostics.Length);
+    }
   }
 }
