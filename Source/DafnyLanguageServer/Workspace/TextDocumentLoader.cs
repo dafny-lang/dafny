@@ -82,6 +82,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public async Task<DafnyDocument> LoadAndPrepareVerificationTasksAsync(TextDocumentItem textDocument, CancellationToken cancellationToken) {
       var loaded = await LoadAsync(textDocument, cancellationToken);
+      if (loaded.ParseAndResolutionDiagnostics.Any()) {
+        return loaded;
+      }
       return loaded with {
         VerificationTasks = verifier.Verify(loaded.Program, cancellationToken),
       };
