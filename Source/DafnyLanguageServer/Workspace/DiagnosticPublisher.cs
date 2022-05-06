@@ -21,7 +21,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     private readonly ConcurrentDictionary<DocumentUri, DafnyDocument> previouslyPublishedDocuments = new();
     private readonly ConcurrentDictionary<DocumentUri, FileVerificationStatus> previouslyVerificationStatus = new();
-    
+
     public void PublishDiagnostics(DafnyDocument document) {
       if (document.LoadCanceled) {
         // We leave the responsibility to shift the error locations to the LSP clients.
@@ -32,7 +32,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       PublishVerificationStatus(document);
       PublishDocumentDiagnostics(document);
       PublishGhostDiagnostics(document);
-    
+
       previouslyPublishedDocuments.AddOrUpdate(document.Uri, _ => document, (_, _) => document);
     }
 
@@ -59,11 +59,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return PublishedVerificationStatus.Error;
       }
 
-      return new [] { first, second }.Min();
+      return new[] { first, second }.Min();
     }
 
-    private void PublishVerificationStatus(DafnyDocument document)
-    {
+    private void PublishVerificationStatus(DafnyDocument document) {
       var namedVerifiableGroups = document.VerificationTasks.GroupBy(task => task.Implementation.tok.GetLspRange());
       var namedVerifiableStatusList = namedVerifiableGroups.Select(taskGroup => {
         var statuses = taskGroup.Select(FromImplementationTask);
@@ -100,7 +99,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       if (previouslyPublishedDocuments.TryGetValue(document.Uri, out var previousDocument) && previousDocument.GhostDiagnostics.Equals(document.GhostDiagnostics)) {
         return;
       }
-      
+
       languageServer.TextDocument.SendNotification(new GhostDiagnosticsParams {
         Uri = document.Uri,
         Version = document.Version,

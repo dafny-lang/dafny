@@ -225,7 +225,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public IReadOnlyDictionary<DocumentUri, IDocumentEntry> Documents =>
       documents.ToDictionary(k => k.Key, v => (IDocumentEntry)v.Value);
 
-    private record DocumentEntry(int? Version, 
+    private record DocumentEntry(int? Version,
       Task<DafnyDocument> ResolvedDocument,
       Task<DafnyDocument> FullyVerifiedDocument,
       CancellationTokenSource CancellationSource) : IDocumentEntry {

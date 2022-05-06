@@ -75,7 +75,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       DafnyOptions.O.TimeLimit = options.TimeLimit;
       DafnyOptions.O.VcsCores = GetConfiguredCoreCount(options);
       DafnyOptions.O.VerifySnapshots = (int)options.VerifySnapshots;
-      
+
 #pragma warning disable VSTHRD002
       var translated = Task.Factory.StartNew(() => Translator.Translate(program, errorReporter, new Translator.TranslatorFlags {
         InsertChecksums = true,

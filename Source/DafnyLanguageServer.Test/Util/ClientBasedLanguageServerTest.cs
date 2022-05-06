@@ -48,13 +48,13 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
     this.configuration = configuration;
     await SetUp();
   }
-  
+
   protected override IConfiguration CreateConfiguration() {
     return configuration == null
       ? base.CreateConfiguration()
       : new ConfigurationBuilder().AddInMemoryCollection(configuration).Build();
   }
-  
+
   [TestInitialize]
   public virtual async Task SetUp() {
 

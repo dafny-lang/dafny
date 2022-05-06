@@ -12,8 +12,7 @@ public record FileVerificationStatus(
   int? Version,
   IReadOnlyList<NamedVerifiableStatus> NamedVerifiables) : IRequest {
 
-  public virtual bool Equals(FileVerificationStatus? other)
-  {
+  public virtual bool Equals(FileVerificationStatus? other) {
     if (ReferenceEquals(null, other)) {
       return false;
     }
@@ -25,8 +24,7 @@ public record FileVerificationStatus(
     return Uri.Equals(other.Uri) && Version == other.Version && NamedVerifiables.SequenceEqual(other.NamedVerifiables);
   }
 
-  public override int GetHashCode()
-  {
+  public override int GetHashCode() {
     return HashCode.Combine(Uri, Version, NamedVerifiables);
   }
 }
@@ -40,8 +38,7 @@ public record FileVerificationStatus(
  * types definitions (for example the verification of a witness of a subset type)
  */
 public record NamedVerifiableStatus(Range NameRange, PublishedVerificationStatus Status) {
-  public virtual bool Equals(NamedVerifiableStatus? other)
-  {
+  public virtual bool Equals(NamedVerifiableStatus? other) {
     if (ReferenceEquals(null, other)) {
       return false;
     }
@@ -53,8 +50,7 @@ public record NamedVerifiableStatus(Range NameRange, PublishedVerificationStatus
     return NameRange.Equals(other.NameRange) && Status == other.Status;
   }
 
-  public override int GetHashCode()
-  {
+  public override int GetHashCode() {
     return HashCode.Combine(NameRange, (int)Status);
   }
 }

@@ -12,11 +12,11 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization;
 
 [TestClass]
 public class VerificationStatusTest : ClientBasedLanguageServerTest {
-  
+
   [TestMethod]
   public async Task SingleMethodGoesThroughAllPhasesExceptQueued() {
     var source = @"method Foo() { assert false; }";
-    
+
     await SetUp(new Dictionary<string, string> {
       { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.OnSave) }
     });
@@ -32,12 +32,12 @@ public class VerificationStatusTest : ClientBasedLanguageServerTest {
     var errored = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.AreEqual(PublishedVerificationStatus.Error, errored.NamedVerifiables[0].Status);
   }
-  
+
   [TestMethod]
   public async Task QueuedMethodGoesThroughAllPhases() {
     var source = @"method Foo() { assert false; }
 method Bar() { assert false; }";
-    
+
     await SetUp(new Dictionary<string, string>() {
       { $"{VerifierOptions.Section}:{nameof(VerifierOptions.VcsCores)}", 1.ToString() }
     });
@@ -45,17 +45,17 @@ method Bar() { assert false; }";
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     var resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.AreEqual(0, resolutionDiagnostics.Length);
-    
+
     var stale = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     var barRange = new Range(new Position(1, 7), new Position(1, 10));
     Assert.AreEqual(barRange, stale.NamedVerifiables[1].NameRange);
     Assert.AreEqual(PublishedVerificationStatus.Stale, stale.NamedVerifiables[1].Status);
-    
+
     var queued = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.AreEqual(barRange, queued.NamedVerifiables[1].NameRange);
     Assert.AreEqual(PublishedVerificationStatus.Queued, queued.NamedVerifiables[1].Status);
     Assert.AreEqual(PublishedVerificationStatus.Running, queued.NamedVerifiables[0].Status);
-    
+
     var running = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.AreEqual(barRange, running.NamedVerifiables[1].NameRange);
     if (running.NamedVerifiables[0].Status == PublishedVerificationStatus.Queued) {
@@ -64,12 +64,12 @@ method Bar() { assert false; }";
       running = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     }
     Assert.AreEqual(PublishedVerificationStatus.Running, running.NamedVerifiables[1].Status);
-    
+
     var errored = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.AreEqual(barRange, errored.NamedVerifiables[1].NameRange);
     Assert.AreEqual(PublishedVerificationStatus.Error, errored.NamedVerifiables[1].Status);
   }
-  
+
   [TestMethod]
   public async Task WhenUsingOnSaveMethodStaysStaleUntilSave() {
     var source = @"method Foo() { assert false; }
@@ -86,7 +86,7 @@ method Bar() { assert false; }";
     Assert.AreEqual(PublishedVerificationStatus.Stale, stale.NamedVerifiables[0].Status);
 
     // Send a change to enable getting a new status notification.
-    ApplyChange(ref documentItem, new Range(new Position(1,0), new Position(1,0)), "\n");
+    ApplyChange(ref documentItem, new Range(new Position(1, 0), new Position(1, 0)), "\n");
 
     var stillStale = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.AreEqual(PublishedVerificationStatus.Stale, stillStale.NamedVerifiables[0].Status);
@@ -104,7 +104,7 @@ method Bar() { assert false; }";
   public async Task CachingWorks() {
     var source = @"method Foo() { assert true; }
 method Bar() { assert true; }";
-    
+
     await SetUp(new Dictionary<string, string>() {
       { $"{VerifierOptions.Section}:{nameof(VerifierOptions.VcsCores)}", 1.ToString() },
       { $"{VerifierOptions.Section}:{nameof(VerifierOptions.VerifySnapshots)}", 1.ToString() }
@@ -112,7 +112,7 @@ method Bar() { assert true; }";
 
     var documentItem = CreateTestDocument(source);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-    
+
     var resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.AreEqual(0, resolutionDiagnostics.Length);
 
@@ -120,9 +120,9 @@ method Bar() { assert true; }";
     do {
       beforeChangeStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     } while (beforeChangeStatus.NamedVerifiables.Any(method => method.Status < PublishedVerificationStatus.Correct));
-    
+
     await GetLastVerificationDiagnostics(documentItem, CancellationToken, 2);
-    ApplyChange(ref documentItem, new Range(new Position(1,22), new Position(1,26)), "false");
+    ApplyChange(ref documentItem, new Range(new Position(1, 22), new Position(1, 26)), "false");
     var resolutionDiagnostics2 = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.AreEqual(0, resolutionDiagnostics2.Length);
     var correct = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
@@ -208,14 +208,14 @@ iterator ThatIterator(x: int) yields (y: int, z: int)
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     var status = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
 
-    Assert.AreEqual(8,status.NamedVerifiables.Count);
-    Assert.AreEqual(new Range(1, 17, 1, 23),status.NamedVerifiables[0].NameRange);
-    Assert.AreEqual(new Range(7, 11, 7, 34),status.NamedVerifiables[1].NameRange);
-    Assert.AreEqual(new Range(12, 8, 12, 17),status.NamedVerifiables[2].NameRange);
-    Assert.AreEqual(new Range(15, 9, 15, 30),status.NamedVerifiables[3].NameRange);
-    Assert.AreEqual(new Range(20, 11, 20, 34),status.NamedVerifiables[4].NameRange);
-    Assert.AreEqual(new Range(27, 5, 27, 10),status.NamedVerifiables[5].NameRange);
-    Assert.AreEqual(new Range(30, 8, 30, 16),status.NamedVerifiables[6].NameRange);
-    Assert.AreEqual(new Range(33, 9, 33, 21),status.NamedVerifiables[7].NameRange);
+    Assert.AreEqual(8, status.NamedVerifiables.Count);
+    Assert.AreEqual(new Range(1, 17, 1, 23), status.NamedVerifiables[0].NameRange);
+    Assert.AreEqual(new Range(7, 11, 7, 34), status.NamedVerifiables[1].NameRange);
+    Assert.AreEqual(new Range(12, 8, 12, 17), status.NamedVerifiables[2].NameRange);
+    Assert.AreEqual(new Range(15, 9, 15, 30), status.NamedVerifiables[3].NameRange);
+    Assert.AreEqual(new Range(20, 11, 20, 34), status.NamedVerifiables[4].NameRange);
+    Assert.AreEqual(new Range(27, 5, 27, 10), status.NamedVerifiables[5].NameRange);
+    Assert.AreEqual(new Range(30, 8, 30, 16), status.NamedVerifiables[6].NameRange);
+    Assert.AreEqual(new Range(33, 9, 33, 21), status.NamedVerifiables[7].NameRange);
   }
 }

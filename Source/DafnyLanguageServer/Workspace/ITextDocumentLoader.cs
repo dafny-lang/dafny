@@ -31,7 +31,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
 
     Task<DafnyDocument> LoadAndPrepareVerificationTasksAsync(TextDocumentItem textDocument, CancellationToken cancellationToken);
-    
+
     /// <summary>
     /// Verifies the given document.
     /// </summary>

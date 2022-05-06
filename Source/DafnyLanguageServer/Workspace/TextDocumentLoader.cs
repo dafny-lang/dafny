@@ -193,12 +193,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
         return errorReporter.GetDiagnostics(document.Uri).OrderBy(d => d.Range.Start).ToList();
       });
-      
+
       var result = implementationTasks.Select(it => it.ObservableStatus.Select(async _ => {
         if (it.CurrentStatus is VerificationStatus.Completed) {
           var itDiagnostics = await diagnostics[it];
           var methodPosition = it.Implementation.tok.GetLspPosition();
-          
+
           concurrentDictionary.AddOrUpdate(methodPosition, itDiagnostics, (_, _) => itDiagnostics);
         }
 
@@ -206,7 +206,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           // For backwards compatibility
           notificationPublisher.SendStatusNotification(document.TextDocumentItem, CompilationStatus.VerificationStarted, it.Implementation.Name);
         }
-      
+
         return document with {
           VerificationTasks = implementationTasks,
           VerificationDiagnosticsPerMethod = concurrentDictionary.ToImmutableDictionary(),
@@ -214,7 +214,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         };
       }).SelectMany(t => t.ToObservable())).Merge().Replay();
       result.Connect();
-      
+
       foreach (var implementationTask in document.VerificationTasks) {
         implementationTask.Run();
       }
