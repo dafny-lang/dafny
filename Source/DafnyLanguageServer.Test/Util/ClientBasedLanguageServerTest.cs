@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -30,7 +31,6 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
   public async Task<Diagnostic[]> GetLastVerificationDiagnostics(TextDocumentItem documentItem, CancellationToken cancellationToken = default, int? expectedNumber = null) {
     await client.WaitForNotificationCompletionAsync(documentItem.Uri, cancellationToken);
     var document = await Documents.GetVerifiedDocumentAsync(documentItem);
-    await diagnosticReceiver.AwaitNextDiagnosticsAsync(cancellationToken); // Get resolution diagnostics
     var remainingDiagnostics = expectedNumber ?? Int32.MaxValue;
     Diagnostic[] result = null;
     do {
@@ -87,7 +87,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
     });
   }
 
-  public async Task AssertNoDiagnosticsAreComing() {
+  public async Task AssertNoDiagnosticsAreComing(CancellationToken cancellationToken) {
     foreach (var entry in Documents.Documents.Values) {
       try {
         await entry.FullyVerifiedDocument;
@@ -97,12 +97,18 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
     }
     var verificationDocumentItem = CreateTestDocument("class X {does not parse", $"verification{fileIndex++}.dfy");
     await client.OpenDocumentAndWaitAsync(verificationDocumentItem, CancellationToken.None);
-    var resolutionReport = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken.None);
+    var resolutionReport = await diagnosticReceiver.AwaitNextNotificationAsync(cancellationToken);
     Assert.AreEqual(verificationDocumentItem.Uri, resolutionReport.Uri);
     client.DidCloseTextDocument(new DidCloseTextDocumentParams {
       TextDocument = verificationDocumentItem
     });
-    var hideReport = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken.None);
+    var hideReport = await diagnosticReceiver.AwaitNextNotificationAsync(cancellationToken);
     Assert.AreEqual(verificationDocumentItem.Uri, hideReport.Uri);
+  }
+
+  protected async Task AssertNoResolutionErrors(TextDocumentItem documentItem)
+  {
+    var resolutionDiagnostics = (await Documents.GetDocumentAsync(documentItem))!.Diagnostics;
+    Assert.AreEqual(0, resolutionDiagnostics.Count());
   }
 }

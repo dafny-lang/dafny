@@ -121,7 +121,7 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationTokenWithHighTimeout);
       // The original document contains a syntactic error.
       var initialLoadDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout, documentItem);
-      await AssertNoDiagnosticsAreComing();
+      await AssertNoDiagnosticsAreComing(CancellationToken);
       Assert.AreEqual(1, initialLoadDiagnostics.Length);
 
       ApplyChange(ref documentItem, new Range((2, 1), (2, 1)), "\n}");
@@ -140,7 +140,7 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
       var verificationDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout, documentItem);
       Assert.AreEqual(1, verificationDiagnostics.Length);
 
-      await AssertNoDiagnosticsAreComing();
+      await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
     /// <summary>
@@ -167,7 +167,7 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
       var verificationDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       Assert.AreEqual(0, verificationDiagnostics.Length);
 
-      await AssertNoDiagnosticsAreComing();
+      await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
@@ -204,7 +204,7 @@ method Multiply(x: int, y: int) returns (product: int)
       foreach (var loadingDocument in loadingDocuments) {
         await Documents.CloseDocumentAsync(loadingDocument);
       }
-      await AssertNoDiagnosticsAreComing();
+      await AssertNoDiagnosticsAreComing(CancellationToken);
     }
   }
 }

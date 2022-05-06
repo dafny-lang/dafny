@@ -113,18 +113,14 @@ method Bar() { assert true; }";
     var documentItem = CreateTestDocument(source);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
-    var resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
-    Assert.AreEqual(0, resolutionDiagnostics.Length);
-
     FileVerificationStatus beforeChangeStatus;
     do {
       beforeChangeStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     } while (beforeChangeStatus.NamedVerifiables.Any(method => method.Status < PublishedVerificationStatus.Correct));
 
-    await GetLastVerificationDiagnostics(documentItem, CancellationToken, 2);
+    await GetLastVerificationDiagnostics(documentItem, CancellationToken);
     ApplyChange(ref documentItem, new Range(new Position(1, 22), new Position(1, 26)), "false");
-    var resolutionDiagnostics2 = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
-    Assert.AreEqual(0, resolutionDiagnostics2.Length);
+    await AssertNoResolutionErrors(documentItem);
     var correct = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.AreEqual(PublishedVerificationStatus.Correct, correct.NamedVerifiables[0].Status);
     Assert.AreEqual(PublishedVerificationStatus.Stale, correct.NamedVerifiables[1].Status);
