@@ -52,7 +52,7 @@ jobs:
   
   check-deep-tests:
     uses: ./.github/workflows/check-deep-tests-reusable.yml
- 
+
   integration-tests:
     needs: check-deep-tests
     if: always() && (needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests'))
