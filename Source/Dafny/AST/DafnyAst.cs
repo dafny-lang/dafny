@@ -10562,19 +10562,19 @@ namespace Microsoft.Dafny {
   }
 
   /// <summary>
-  /// Represents an expression of the form A[B := C], where, syntactically, A, B, and C are expressions.
+  /// Represents an expression of the form S[I := V], where, syntactically, S, I, and V are expressions.
+  ///
   /// Successfully resolved, the expression stands for one of the following:
-  /// * if A is a sequence, then B is an integer-based index into the sequence and C's type is the sequence element type
-  /// * if A is a map(T,U), then B is a key of type T and C is a value of type U
-  /// * if A is a multiset, then B's type is the multiset element type and C is an integer-based numeric
-  /// * if A is a datatype, then B is the name of a destructor of A's type and C's type is the type of that destructor -- in
-  ///   this case, the resolver will set the ResolvedUpdateExpr to an expression that constructs an appropriate datatype value
+  /// * if S is a seq<T>, then I is an integer-based index into the sequence and V is of type T
+  /// * if S is a map<T, U>, then I is a key of type T and V is a value of type U
+  /// * if S is a multiset<T>, then I is an element of type T and V has an integer-based numeric type.
+  ///
+  /// Datatype updates are represented by <c>DatatypeUpdateExpr</c> nodes.
   /// </summary>
   public class SeqUpdateExpr : Expression {
     public readonly Expression Seq;
     public readonly Expression Index;
     public readonly Expression Value;
-    [FilledInDuringResolution] public Expression ResolvedUpdateExpr; // if the SeqUpdateExpr corresponds to a datatype update
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(Seq != null);
@@ -10595,15 +10595,9 @@ namespace Microsoft.Dafny {
 
     public override IEnumerable<Expression> SubExpressions {
       get {
-        if (ResolvedUpdateExpr == null) {
-          yield return Seq;
-          yield return Index;
-          yield return Value;
-        } else {
-          foreach (var e in ResolvedUpdateExpr.SubExpressions) {
-            yield return e;
-          }
-        }
+        yield return Seq;
+        yield return Index;
+        yield return Value;
       }
     }
   }
