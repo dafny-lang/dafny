@@ -221,7 +221,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     ImplementationId GetImplementationId(Implementation implementation) {
-      var prefix = implementation.Name.Split("$$")[0];
+      var prefix = implementation.Name.Split(Translator.NameSeparator)[0];
       return new ImplementationId(implementation.tok.GetLspPosition(), prefix);
     }
   }

@@ -20,6 +20,8 @@ using PODesc = Microsoft.Dafny.ProofObligationDescription;
 
 namespace Microsoft.Dafny {
   public partial class Translator {
+    public const string NameSeparator = "$$";
+
     ErrorReporter reporter;
     // TODO(wuestholz): Enable this once Dafny's recommended Z3 version includes changeset 0592e765744497a089c42021990740f303901e67.
     public bool UseOptimizationInZ3 { get; set; }
@@ -4188,7 +4190,7 @@ namespace Microsoft.Dafny {
           }
         }
       }
-      var proc = new Bpl.Procedure(f.tok, "CheckWellformed$$" + f.FullSanitizedName, new List<Bpl.TypeVariable>(),
+      var proc = new Bpl.Procedure(f.tok, "CheckWellformed" + NameSeparator + f.FullSanitizedName, new List<Bpl.TypeVariable>(),
         Concat(Concat(typeInParams, inParams_Heap), inParams), outParams,
         req, mod, ens, etran.TrAttributes(f.Attributes, null));
       sink.AddTopLevelDeclaration(proc);
@@ -4411,7 +4413,7 @@ namespace Microsoft.Dafny {
         (Bpl.IdentifierExpr /*TODO: this cast is rather dubious*/)etran.HeapExpr,
         etran.Tick()
       };
-      var proc = new Bpl.Procedure(decl.tok, "CheckWellformed$$" + decl.FullSanitizedName, new List<Bpl.TypeVariable>(),
+      var proc = new Bpl.Procedure(decl.tok, "CheckWellformed" + NameSeparator + decl.FullSanitizedName, new List<Bpl.TypeVariable>(),
         inParams, new List<Variable>(),
         req, mod, new List<Bpl.Ensures>(), etran.TrAttributes(decl.Attributes, null));
       sink.AddTopLevelDeclaration(proc);
@@ -4565,7 +4567,7 @@ namespace Microsoft.Dafny {
       req.Add(Requires(decl.tok, true, etran.HeightContext(decl), null, null));
       var heapVar = new Bpl.IdentifierExpr(decl.tok, "$Heap", false);
       var varlist = new List<Bpl.IdentifierExpr> { heapVar, etran.Tick() };
-      var proc = new Bpl.Procedure(decl.tok, "CheckWellformed$$" + decl.FullSanitizedName, new List<Bpl.TypeVariable>(),
+      var proc = new Bpl.Procedure(decl.tok, "CheckWellformed" + NameSeparator + decl.FullSanitizedName, new List<Bpl.TypeVariable>(),
         inParams, new List<Variable>(),
         req, varlist, new List<Bpl.Ensures>(), etran.TrAttributes(decl.Attributes, null));
       sink.AddTopLevelDeclaration(proc);
@@ -4636,7 +4638,7 @@ namespace Microsoft.Dafny {
       req.Add(Requires(ctor.tok, true, etran.HeightContext(ctor.EnclosingDatatype), null, null));
       var heapVar = new Bpl.IdentifierExpr(ctor.tok, "$Heap", false);
       var varlist = new List<Bpl.IdentifierExpr> { heapVar, etran.Tick() };
-      var proc = new Bpl.Procedure(ctor.tok, "CheckWellformed$$" + ctor.FullName, new List<Bpl.TypeVariable>(),
+      var proc = new Bpl.Procedure(ctor.tok, "CheckWellformed" + NameSeparator + ctor.FullName, new List<Bpl.TypeVariable>(),
         inParams, new List<Variable>(),
         req, varlist, new List<Bpl.Ensures>(), etran.TrAttributes(ctor.Attributes, null));
       sink.AddTopLevelDeclaration(proc);
@@ -7898,15 +7900,15 @@ namespace Microsoft.Dafny {
       Contract.Requires(m != null);
       switch (kind) {
         case MethodTranslationKind.SpecWellformedness:
-          return "CheckWellformed$$" + m.FullSanitizedName;
+          return "CheckWellformed" + NameSeparator + m.FullSanitizedName;
         case MethodTranslationKind.Call:
-          return "Call$$" + m.FullSanitizedName;
+          return "Call" + NameSeparator + m.FullSanitizedName;
         case MethodTranslationKind.CoCall:
-          return "CoCall$$" + m.FullSanitizedName;
+          return "CoCall" + NameSeparator + m.FullSanitizedName;
         case MethodTranslationKind.Implementation:
-          return "Impl$$" + m.FullSanitizedName;
+          return "Impl" + NameSeparator + m.FullSanitizedName;
         case MethodTranslationKind.OverrideCheck:
-          return "OverrideCheck$$" + m.FullSanitizedName;
+          return "OverrideCheck" + NameSeparator + m.FullSanitizedName;
         default:
           Contract.Assert(false);  // unexpected kind
           throw new cce.UnreachableException();
