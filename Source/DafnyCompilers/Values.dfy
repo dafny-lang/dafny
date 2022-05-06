@@ -56,6 +56,32 @@ module Values {
         case (Closure(ctx, vars, body), _) => false
     }
 
+    function method Children() : (cs: set<Value>)
+      ensures forall c | c in cs :: c < this
+    {
+      match this
+        case Bool(b) => {}
+        case Char(c) => {}
+        case Int(i) => {}
+        case Real(r) => {}
+        case BigOrdinal(o) => {}
+        case BitVector(value) => {}
+        case Map(m) => m.Values
+        case Multiset(ms) => set x | x in ms
+        case Seq(sq) => set x | x in sq
+        case Set(st) => st
+        case Closure(ctx, vars_, body_) => ctx.Values
+    }
+
+    predicate method All(P: Value -> bool) {
+      P(this) && forall c | c in this.Children() :: c.All(P)
+    }
+
+    lemma AllImpliesChildren(P: Value -> bool)
+      requires All(P)
+      ensures forall c | c in Children() :: c.All(P)
+    {}
+
     function method Cast(ty: Types.T) : (v: Option<Value>)
       ensures v.Some? ==> HasType(ty)
     {

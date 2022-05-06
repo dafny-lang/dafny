@@ -74,7 +74,7 @@ method Eval(e: AST.Expr) returns (r: REPLResult<Values.T>)
     decreases *
   {
     match Interp.InterpExpr(e, fuel)
-      case Success(OK(val, _)) => return Success(val);
+      case Success(Return(val, _)) => return Success(val);
       case Failure(OutOfFuel(_)) =>
         print "Trying again with fuel := ", fuel;
         fuel := fuel * 2;

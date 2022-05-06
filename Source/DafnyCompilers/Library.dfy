@@ -90,6 +90,7 @@ module Lib {
       if ts == [] then [] else [f(ts[0])] + Map(f, ts[1..])
     }
 
+    // DISCUSS: How would one rewrite this function to not need !new?
     function method FoldL<TAcc(!new), T>(f: (TAcc, T) ~> TAcc, a0: TAcc, ts: seq<T>) : TAcc
       reads f.reads
       requires forall a, t | t in ts :: f.requires(a, t)
