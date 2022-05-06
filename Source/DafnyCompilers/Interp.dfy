@@ -3,6 +3,7 @@ include "Library.dfy"
 include "Values.dfy"
 
 module Interp {
+  import Lib.Debug
   import opened Lib.Datatypes
   import opened DafnyCompilerCommon.AST
   import opened DafnyCompilerCommon.Predicates
@@ -37,7 +38,6 @@ module Interp {
 
   predicate method SupportsInterp1(e: Expr) {
     AST.Exprs.WellFormed(e) &&
-    var FALSE := false;
     match e {
       case Var(_) => true
       case Literal(lit) => true
@@ -46,16 +46,16 @@ module Interp {
         true
       case Apply(Eager(op), args: seq<Expr>) =>
         match op {
-          case UnaryOp(uop) => FALSE
+          case UnaryOp(uop) => Debug.TODO(false)
           case BinaryOp(bop) => true
           case TernaryOp(top: TernaryOp) => true
-          case DataConstructor(name: Path, typeArgs: seq<Type.Type>) => FALSE
+          case DataConstructor(name: Path, typeArgs: seq<Type.Type>) => Debug.TODO(false)
           case Builtin(Display(_)) => true
           case Builtin(Print()) => false
           case MethodCall(classType, receiver, typeArgs) => false
-          case FunctionCall() => FALSE
+          case FunctionCall() => true
         }
-      case Block(stmts: seq<Expr>) => false
+      case Block(stmts: seq<Expr>) => Debug.TODO(false)
       case If(cond: Expr, thn: Expr, els: Expr) => true
     }
   }

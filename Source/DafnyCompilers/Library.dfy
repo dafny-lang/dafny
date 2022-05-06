@@ -7,6 +7,19 @@ module Lib {
     }
   }
 
+  module Debug {
+    class {:compile false} Debugger {
+      static method {:extern "System.Diagnostics.Debugger", "Break"} Break() {}
+    }
+
+    function TODO<A>(a : A) : A {
+      a
+    } by method {
+      Debugger.Break();
+      return a;
+    }
+  }
+
   module Datatypes {
     datatype Option<+T> = | Some(value: T) | None
     {
