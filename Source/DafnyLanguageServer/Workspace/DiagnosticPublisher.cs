@@ -19,7 +19,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       this.languageServer = languageServer;
     }
 
-    private readonly ConcurrentDictionary<DocumentUri, DafnyDocument> previouslyPublishedDocuments = new();
+    private readonly ConcurrentDictionary<DocumentUri, PublishDiagnosticsParams> previouslyPublishedDiagnostics = new();
+    private readonly ConcurrentDictionary<DocumentUri, GhostDiagnosticsParams> previouslyPublishedGhostDiagnostics = new();
     private readonly ConcurrentDictionary<DocumentUri, FileVerificationStatus> previouslyVerificationStatus = new();
 
     public void PublishDiagnostics(DafnyDocument document) {
@@ -32,8 +33,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       PublishVerificationStatus(document);
       PublishDocumentDiagnostics(document);
       PublishGhostDiagnostics(document);
-
-      previouslyPublishedDocuments.AddOrUpdate(document.Uri, _ => document, (_, _) => document);
     }
 
     PublishedVerificationStatus FromImplementationTask(IImplementationTask task) {
@@ -79,32 +78,32 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
     }
 
-    private static Location LocationFromToken(DocumentUri uri, IToken token) {
-      return new Location { Uri = uri, Range = token.GetLspRange() };
-    }
-
     private void PublishDocumentDiagnostics(DafnyDocument document) {
-      if (previouslyPublishedDocuments.TryGetValue(document.Uri, out var previousDocument) && previousDocument.Diagnostics.Equals(document.Diagnostics)) {
-        return;
-      }
-
-      languageServer.TextDocument.PublishDiagnostics(new PublishDiagnosticsParams {
+      var newParams = new PublishDiagnosticsParams {
         Uri = document.Uri,
         Version = document.Version,
         Diagnostics = document.Diagnostics.ToArray(),
-      });
-    }
-
-    private void PublishGhostDiagnostics(DafnyDocument document) {
-      if (previouslyPublishedDocuments.TryGetValue(document.Uri, out var previousDocument) && previousDocument.GhostDiagnostics.Equals(document.GhostDiagnostics)) {
+      };
+      if (previouslyPublishedDiagnostics.TryGetValue(document.Uri, out var previousParams) && previousParams.Diagnostics.Equals(newParams.Diagnostics)) {
         return;
       }
 
-      languageServer.TextDocument.SendNotification(new GhostDiagnosticsParams {
+      previouslyPublishedDiagnostics.AddOrUpdate(document.Uri, _ => newParams, (_, _) => newParams);
+      languageServer.TextDocument.PublishDiagnostics(newParams);
+    }
+
+    private void PublishGhostDiagnostics(DafnyDocument document) {
+
+      var newParams = new GhostDiagnosticsParams {
         Uri = document.Uri,
         Version = document.Version,
         Diagnostics = document.GhostDiagnostics.ToArray(),
-      });
+      };
+      if (previouslyPublishedGhostDiagnostics.TryGetValue(document.Uri, out var previousParams) && previousParams.Diagnostics.Equals(newParams.Diagnostics)) {
+        return;
+      }
+      previouslyPublishedGhostDiagnostics.AddOrUpdate(document.Uri, _ => newParams, (_, _) => newParams);
+      languageServer.TextDocument.SendNotification(newParams);
     }
 
     public void HideDiagnostics(TextDocumentIdentifier documentId) {

@@ -82,7 +82,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public async Task<DafnyDocument> LoadAndPrepareVerificationTasksAsync(TextDocumentItem textDocument, CancellationToken cancellationToken) {
       var loaded = await LoadAsync(textDocument, cancellationToken);
-      if (loaded.ParseAndResolutionDiagnostics.Any()) {
+      if (loaded.ParseAndResolutionDiagnostics.Any(d => d.Severity == DiagnosticSeverity.Error)) {
         return loaded;
       }
       return loaded with {
