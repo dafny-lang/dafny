@@ -90,7 +90,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private IObservable<DafnyDocument> Verify(Task<DafnyDocument> documentTask, bool verify, CancellationToken cancellationToken) {
-      var connectableObservable = documentTask.ContinueWith(t => {
+      return documentTask.ContinueWith(t => {
         var document = t.Result;
         if (document.LoadCanceled || !verify ||
             document.ParseAndResolutionDiagnostics.Any(d => d.Severity == DiagnosticSeverity.Error)) {
@@ -98,9 +98,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
 
         return documentLoader.Verify(document, cancellationToken);
-      }, TaskScheduler.Current).ToObservable().Merge().Replay();
-      connectableObservable.Connect();
-      return connectableObservable;
+      }, TaskScheduler.Current).ToObservable().Merge();
     }
 
     public IObservable<DafnyDocument> UpdateDocument(DidChangeTextDocumentParams documentChange) {
