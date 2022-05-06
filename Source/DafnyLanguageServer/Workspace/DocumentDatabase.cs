@@ -136,8 +136,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       // We do not pass the cancellation token to the text change processor because the text has to be kept in sync with the LSP client.
       var updatedText = textChangeProcessor.ApplyChange(oldDocument.TextDocumentItem, documentChange, CancellationToken.None);
-      var oldVerificationDiagnostics = oldDocument.VerificationDiagnosticsPerMethod;
-      var migratedVerificationDiagnotics = oldDocument.VerificationDiagnosticsPerMethod.ToDictionary(
+      var oldVerificationDiagnostics = oldDocument.VerificationDiagnosticsPerImplementation;
+      var migratedVerificationDiagnotics = oldDocument.VerificationDiagnosticsPerImplementation.ToDictionary(
         kv => kv.Key with {
           NamedVerificationTask = relocator.RelocatePosition(kv.Key.NamedVerificationTask, documentChange, CancellationToken.None)
         },
@@ -147,7 +147,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         var newDocument = await documentLoader.LoadAsync(updatedText, cancellationToken);
         if (newDocument.SymbolTable.Resolved) {
           return newDocument with {
-            VerificationDiagnosticsPerMethod = migratedVerificationDiagnotics
+            VerificationDiagnosticsPerImplementation = migratedVerificationDiagnotics
           };
         }
         // The document loader failed to create a new symbol table. Since we'd still like to provide
@@ -155,7 +155,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         // according to the change.
         return newDocument with {
           SymbolTable = relocator.RelocateSymbols(oldDocument.SymbolTable, documentChange, CancellationToken.None),
-          VerificationDiagnosticsPerMethod = migratedVerificationDiagnotics
+          VerificationDiagnosticsPerImplementation = migratedVerificationDiagnotics
         };
       } catch (OperationCanceledException) {
         // The document load was canceled before it could complete. We migrate the document
@@ -166,7 +166,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           SymbolTable = relocator.RelocateSymbols(oldDocument.SymbolTable, documentChange, CancellationToken.None),
           CounterExamples = Array.Empty<Counterexample>(),
           LoadCanceled = true,
-          VerificationDiagnosticsPerMethod = migratedVerificationDiagnotics
+          VerificationDiagnosticsPerImplementation = migratedVerificationDiagnotics
         };
       }
     }

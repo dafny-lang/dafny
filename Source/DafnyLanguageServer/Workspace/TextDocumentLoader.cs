@@ -163,7 +163,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var concurrentDictionary = new ConcurrentDictionary<ImplementationId, IReadOnlyList<Diagnostic>>();
       foreach (var task in implementationTasks) {
         var id = GetImplementationId(task.Implementation);
-        if (document.VerificationDiagnosticsPerMethod.TryGetValue(id, out var existingDiagnostics)) {
+        if (document.VerificationDiagnosticsPerImplementation.TryGetValue(id, out var existingDiagnostics)) {
           concurrentDictionary.TryAdd(id, existingDiagnostics);
         }
       }
@@ -187,8 +187,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         var diagnostics = errorReporter.GetDiagnostics(document.Uri).OrderBy(d => d.Range.Start).ToList();
         concurrentDictionary.AddOrUpdate(id, diagnostics, (_, _) => diagnostics);
 
-        return document with {
-          VerificationDiagnosticsPerMethod = concurrentDictionary.ToImmutableDictionary(),
+          return document with {
+          VerificationDiagnosticsPerImplementation = concurrentDictionary.ToImmutableDictionary(),
           CounterExamples = counterExamples.ToArray(),
         };
       }).ToList();
