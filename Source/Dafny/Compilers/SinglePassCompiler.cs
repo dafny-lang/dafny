@@ -4495,14 +4495,9 @@ namespace Microsoft.Dafny.Compilers {
 
       } else if (expr is SeqUpdateExpr) {
         SeqUpdateExpr e = (SeqUpdateExpr)expr;
-        if (e.ResolvedUpdateExpr != null) {
-          TrExpr(e.ResolvedUpdateExpr, wr, inLetExprBody, wStmts);
-        } else {
-          var collectionType = e.Type.AsCollectionType;
-          Contract.Assert(collectionType != null);
-          EmitIndexCollectionUpdate(e.Seq, e.Index, e.Value, collectionType, inLetExprBody, wr, wStmts);
-        }
-
+        var collectionType = e.Type.AsCollectionType;
+        Contract.Assert(collectionType != null);
+        EmitIndexCollectionUpdate(e.Seq, e.Index, e.Value, collectionType, inLetExprBody, wr, wStmts);
       } else if (expr is FunctionCallExpr) {
         FunctionCallExpr e = (FunctionCallExpr)expr;
         if (e.Function is SpecialFunction) {
