@@ -80,6 +80,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       );
     }
 
+    public async Task<DafnyDocument> LoadAndPrepareVerificationTasksAsync(TextDocumentItem textDocument, CancellationToken cancellationToken) {
+      var loaded = await LoadAsync(textDocument, cancellationToken);
+      return loaded with {
+        VerificationTasks = verifier.Verify(loaded.Program, cancellationToken),
+      };
+    }
+
     public async Task<DafnyDocument> LoadAsync(TextDocumentItem textDocument, CancellationToken cancellationToken) {
 #pragma warning disable CS1998
       return await await Task.Factory.StartNew(async () => LoadInternal(textDocument, cancellationToken), cancellationToken,
@@ -106,6 +113,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(symbolTable, cancellationToken).ToArray();
 
       return new DafnyDocument(Options, textDocument, errorReporter.GetDiagnostics(textDocument.Uri),
+        Array.Empty<IImplementationTask>(),
         new Dictionary<Position, IReadOnlyList<Diagnostic>>(),
         Array.Empty<Counterexample>(),
         ghostDiagnostics, program, symbolTable);
@@ -128,6 +136,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         Options,
         textDocument,
         errorReporter.GetDiagnostics(textDocument.Uri),
+        Array.Empty<IImplementationTask>(),
         new Dictionary<Position, IReadOnlyList<Diagnostic>>(),
         Array.Empty<Counterexample>(),
         Array.Empty<Diagnostic>(),
@@ -148,16 +157,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       );
     }
 
+    public DafnyDocument PrepareVerificationTasks(DafnyDocument document, CancellationToken cancellationToken) {
+      return document with {
+        VerificationTasks = verifier.Verify(document.Program, cancellationToken),
+      };
+    }
+
     public IObservable<DafnyDocument> Verify(DafnyDocument document, CancellationToken cancellationToken) {
       notificationPublisher.SendStatusNotification(document.TextDocumentItem, CompilationStatus.VerificationStarted);
-      var progressReporter = new VerificationProgressReporter(document.TextDocumentItem, notificationPublisher);
-      var programErrorReporter = new DiagnosticErrorReporter(document.Uri);
-      document.Program.Reporter = programErrorReporter;
-      var implementationTasks = verifier.Verify(document.Program, progressReporter, cancellationToken);
-      foreach (var implementationTask in implementationTasks) {
-        implementationTask.Run();
-      }
 
+      var implementationTasks = document.VerificationTasks;
       var _ = NotifyStatusAsync(document.TextDocumentItem, implementationTasks);
 
       var concurrentDictionary = new ConcurrentDictionary<Position, IReadOnlyList<Diagnostic>>();
@@ -168,9 +177,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
       }
       var counterExamples = new ConcurrentStack<Counterexample>();
-      var documentTasks = implementationTasks.Select(async it => {
+
+      var diagnostics = implementationTasks.ToDictionary(it => it, async it => {
         var result = await it.ActualTask;
-        var methodPosition = it.Implementation.tok.GetLspPosition();
 
         var errorReporter = new DiagnosticErrorReporter(document.Uri);
         foreach (var counterExample in result.Errors) {
@@ -182,15 +191,35 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           errorReporter.ReportBoogieError(outcomeError);
         }
 
-        var diagnostics = errorReporter.GetDiagnostics(document.Uri).OrderBy(d => d.Range.Start).ToList();
-        concurrentDictionary.AddOrUpdate(methodPosition, diagnostics, (_, _) => diagnostics);
+        return errorReporter.GetDiagnostics(document.Uri).OrderBy(d => d.Range.Start).ToList();
+      });
+      
+      var result = implementationTasks.Select(it => it.ObservableStatus.Select(async _ => {
+        if (it.CurrentStatus is VerificationStatus.Completed) {
+          var itDiagnostics = await diagnostics[it];
+          var methodPosition = it.Implementation.tok.GetLspPosition();
+          
+          concurrentDictionary.AddOrUpdate(methodPosition, itDiagnostics, (_, _) => itDiagnostics);
+        }
 
+        if (it.CurrentStatus is VerificationStatus.Running) {
+          // For backwards compatibility
+          notificationPublisher.SendStatusNotification(document.TextDocumentItem, CompilationStatus.VerificationStarted, it.Implementation.Name);
+        }
+      
         return document with {
+          VerificationTasks = implementationTasks,
           VerificationDiagnosticsPerMethod = concurrentDictionary.ToImmutableDictionary(),
           CounterExamples = counterExamples.ToArray(),
         };
-      }).ToList();
-      return documentTasks.Select(documentTask => documentTask.ToObservable()).Merge();
+      }).SelectMany(t => t.ToObservable())).Merge().Replay();
+      result.Connect();
+      
+      foreach (var implementationTask in document.VerificationTasks) {
+        implementationTask.Run();
+      }
+
+      return result;
     }
 
     private async Task NotifyStatusAsync(TextDocumentItem item, IReadOnlyList<IImplementationTask> implementationTasks) {
@@ -201,21 +230,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         ? CompilationStatus.VerificationSucceeded
         : CompilationStatus.VerificationFailed;
       notificationPublisher.SendStatusNotification(item, compilationStatusAfterVerification);
-    }
-
-    private class VerificationProgressReporter : IVerificationProgressReporter {
-      private ICompilationStatusNotificationPublisher publisher { get; init; }
-      private TextDocumentItem document { get; init; }
-
-      public VerificationProgressReporter(TextDocumentItem document,
-                                          ICompilationStatusNotificationPublisher publisher) {
-        this.document = document;
-        this.publisher = publisher;
-      }
-
-      public void ReportProgress(string message) {
-        publisher.SendStatusNotification(document, CompilationStatus.VerificationStarted, message);
-      }
     }
   }
 }

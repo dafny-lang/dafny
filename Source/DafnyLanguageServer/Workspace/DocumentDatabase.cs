@@ -11,7 +11,6 @@ using System.Reactive.Linq;
 using System.Reactive.Threading.Tasks;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Dafny.LanguageServer.Util;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
@@ -23,7 +22,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   public class DocumentDatabase : IDocumentDatabase {
     private readonly ILogger logger;
     private readonly DocumentOptions options;
-    private readonly Dictionary<DocumentUri, DocumentDatabase.DocumentEntry> documents = new();
+    private readonly Dictionary<DocumentUri, DocumentEntry> documents = new();
     private readonly ITextDocumentLoader documentLoader;
     private readonly ITextChangeProcessor textChangeProcessor;
     private readonly IRelocator relocator;
@@ -82,7 +81,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     private async Task<DafnyDocument> OpenAsync(TextDocumentItem textDocument, CancellationToken cancellationToken) {
       try {
-        return await documentLoader.LoadAsync(textDocument, cancellationToken);
+        return await documentLoader.LoadAndPrepareVerificationTasksAsync(textDocument, cancellationToken);
       } catch (OperationCanceledException) {
         // We do not allow canceling the load of the placeholder document. Otherwise, other components
         // start to have to check for nullability in later stages such as change request processors.
@@ -132,7 +131,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return resolvedDocumentTask.ToObservable().Concat(verifiedDocuments);
     }
 
-
     private async Task<DafnyDocument> ApplyChangesAsync(Task<DafnyDocument> oldDocumentTask, DidChangeTextDocumentParams documentChange, CancellationToken cancellationToken) {
 #pragma warning disable VSTHRD003
       var oldDocument = await oldDocumentTask;
@@ -146,7 +144,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         kv => relocator.RelocateDiagnostics(kv.Value, documentChange, CancellationToken.None));
       logger.LogDebug($"Migrated {oldVerificationDiagnostics.Count} diagnostics into {migratedVerificationDiagnotics.Count} diagnostics.");
       try {
-        var newDocument = await documentLoader.LoadAsync(updatedText, cancellationToken);
+        var newDocument = await documentLoader.LoadAndPrepareVerificationTasksAsync(updatedText, cancellationToken);
         if (newDocument.SymbolTable.Resolved) {
           return newDocument with {
             VerificationDiagnosticsPerMethod = migratedVerificationDiagnotics
@@ -187,6 +185,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         databaseEntry.Version,
         databaseEntry.ResolvedDocument,
         verifiedDocuments.Select(Task.FromResult).DefaultIfEmpty(databaseEntry.ResolvedDocument).ToTask(cancellationSource.Token).Unwrap(),
+        // TODO there seems to be some duplication between here and somewhere else in this file.
+        //databaseEntry.ResolvedDocument.ToObservable().Concat(verifiedDocuments).LastAsync().ToTask(cancellationSource.Token),
         cancellationSource
       );
       documents[documentId.Uri] = updatedEntry;
@@ -225,7 +225,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public IReadOnlyDictionary<DocumentUri, IDocumentEntry> Documents =>
       documents.ToDictionary(k => k.Key, v => (IDocumentEntry)v.Value);
 
-    private record DocumentEntry(int? Version, Task<DafnyDocument> ResolvedDocument,
+    private record DocumentEntry(int? Version, 
+      Task<DafnyDocument> ResolvedDocument,
       Task<DafnyDocument> FullyVerifiedDocument,
       CancellationTokenSource CancellationSource) : IDocumentEntry {
       public void CancelPendingUpdates() {

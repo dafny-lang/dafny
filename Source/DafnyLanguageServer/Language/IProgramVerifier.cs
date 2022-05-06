@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Threading;
 using Microsoft.Boogie;
 
@@ -15,8 +15,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// <returns>The result of the verification run.</returns>
     /// <exception cref="System.OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
-    IReadOnlyList<IImplementationTask> Verify(Dafny.Program program,
-                              IVerificationProgressReporter progressReporter,
-                              CancellationToken cancellationToken);
+    IReadOnlyList<IImplementationTask> Verify(Dafny.Program program, CancellationToken cancellationToken);
   }
 }

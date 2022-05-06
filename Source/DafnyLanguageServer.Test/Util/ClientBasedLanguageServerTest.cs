@@ -1,14 +1,19 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 using Microsoft.Dafny.LanguageServer.Language;
+using Microsoft.Dafny.LanguageServer.Workspace;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using OmniSharp.Extensions.JsonRpc;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -19,27 +24,45 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
   protected ILanguageClient client;
   protected DiagnosticsReceiver diagnosticReceiver;
+  protected TestNotificationReceiver<FileVerificationStatus> verificationStatusReceiver;
+  private IDictionary<string, string> configuration;
 
   public async Task<Diagnostic[]> GetLastVerificationDiagnostics(TextDocumentItem documentItem, CancellationToken cancellationToken = default, int? expectedNumber = null) {
     await client.WaitForNotificationCompletionAsync(documentItem.Uri, cancellationToken);
     var document = await Documents.GetVerifiedDocumentAsync(documentItem);
     await diagnosticReceiver.AwaitNextDiagnosticsAsync(cancellationToken); // Get resolution diagnostics
     var remainingDiagnostics = expectedNumber ?? Int32.MaxValue;
-    Diagnostic[] result;
+    Diagnostic[] result = null;
     do {
-      result = await diagnosticReceiver.AwaitNextDiagnosticsAsync(cancellationToken);
+      var newDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(cancellationToken);
+      if (result != null) {
+        Assert.AreNotEqual(result, newDiagnostics);
+      }
+      result = newDiagnostics;
       remainingDiagnostics--;
     } while (!document!.Diagnostics.SequenceEqual(result) && remainingDiagnostics > 0);
-
     return result;
   }
 
+  public async Task SetUp(IDictionary<string, string> configuration) {
+    this.configuration = configuration;
+    await SetUp();
+  }
+  
+  protected override IConfiguration CreateConfiguration() {
+    return configuration == null
+      ? base.CreateConfiguration()
+      : new ConfigurationBuilder().AddInMemoryCollection(configuration).Build();
+  }
+  
   [TestInitialize]
   public virtual async Task SetUp() {
 
     diagnosticReceiver = new();
+    verificationStatusReceiver = new();
     client = await InitializeClient(options => {
       options.OnPublishDiagnostics(diagnosticReceiver.NotificationReceived);
+      options.AddHandler(DiagnosticPublisher.VerificationStatusNotification, NotificationHandler.For<FileVerificationStatus>(verificationStatusReceiver.NotificationReceived));
     }, serverOptions => {
       serverOptions.Services.AddSingleton<IProgramVerifier>(serviceProvider => new SlowVerifier(
         serviceProvider.GetRequiredService<ILogger<SlowVerifier>>(),

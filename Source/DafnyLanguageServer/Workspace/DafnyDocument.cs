@@ -24,6 +24,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     DafnyOptions Options,
     TextDocumentItem TextDocumentItem,
     IReadOnlyList<Diagnostic> ParseAndResolutionDiagnostics,
+    IReadOnlyList<IImplementationTask> VerificationTasks,
     // VerificationDiagnostics can be deduced from CounterExamples,
     // but they are stored separately because they are migrated and counterexamples currently are not.
     IReadOnlyDictionary<Position, IReadOnlyList<Diagnostic>> VerificationDiagnosticsPerMethod,
