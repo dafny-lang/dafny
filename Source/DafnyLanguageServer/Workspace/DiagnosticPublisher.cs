@@ -26,7 +26,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private void PublishDocumentDiagnostics(DafnyDocument document) {
-      Console.WriteLine($"Publishing document version {document.Version} with {document.Diagnostics.Count()} diagnostics.");
       languageServer.TextDocument.PublishDiagnostics(new PublishDiagnosticsParams {
         Uri = document.Uri,
         Version = document.Version,
