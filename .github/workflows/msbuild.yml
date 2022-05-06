@@ -6,7 +6,7 @@ on:
 
 env:
   dotnet-version: 6.0.x # SDK Version for building Dafny
-  
+
 jobs:
   singletons:
     runs-on: ubuntu-18.04
