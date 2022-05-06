@@ -53,26 +53,39 @@ method Read() returns (r: REPLResult<AST.Expr>)
   ensures r.Success? ==> Interp.SupportsInterp(r.value)
 {
   var cStr := REPL.ReplHelper.Input();
-  :- Need (cStr != null, ReadError(EOF));
-  :- Need (CSharpDafnyInterop.TypeConv.AsString(cStr) != "", ReadError(MissingInput));
+  :- Need(cStr != null, ReadError(EOF));
+  :- Need(CSharpDafnyInterop.TypeConv.AsString(cStr) != "", ReadError(MissingInput));
   var helper := new REPL.ReplHelper(cStr);
   var parseOk := helper.Parse();
-  :- Need (parseOk, ParseError);
+  :- Need(parseOk, ParseError);
   var tcOk := helper.Resolve();
-  :- Need (tcOk, ResolutionError);
+  :- Need(tcOk, ResolutionError);
   var expr :- TranslateExpression(helper.Expression);
   :- Need(Interp.SupportsInterp(expr), InterpError(Interp.Unsupported(expr)));
   return Success(expr);
 }
 
-function method Eval(e: AST.Expr) : REPLResult<Values.T>
+method Eval(e: AST.Expr) returns (r: REPLResult<Values.T>)
   requires Interp.SupportsInterp(e)
+  decreases *
 {
-  var OK(val, ctx) :- Interp.InterpExpr(e).MapFailure(e => InterpError(e));
-  Success(val)
+  var fuel: nat := 1024;
+  while true
+    decreases *
+  {
+    match Interp.InterpExpr(e, fuel)
+      case Success(OK(val, _)) => return Success(val);
+      case Failure(OutOfFuel(_)) =>
+        print "Trying again with fuel := ", fuel;
+        fuel := fuel * 2;
+      case Failure(err) =>
+        return Failure(InterpError(err));
+  }
 }
 
-method ReadEval() returns (r: REPLResult<Values.T>) {
+method ReadEval() returns (r: REPLResult<Values.T>)
+  decreases *
+{
   var expr :- Read();
   var val :- Eval(expr);
   return Success(val);
