@@ -10,5 +10,6 @@
     <ProjectReference Include="..\..\Dafny\DafnyPipeline.csproj" />
     <Compile Include="..\CSharpInterop.cs" />
     <Compile Include="..\CSharpDafnyInterop.cs" />
+    <Compile Include="..\CSharpDafnyASTInterop.cs" />
   </ItemGroup>
 </Project>

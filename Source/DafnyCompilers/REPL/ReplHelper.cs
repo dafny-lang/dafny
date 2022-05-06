@@ -5,7 +5,6 @@ namespace REPL;
 
 public class ReplHelper {
   private static readonly string fname = "<input>";
-  private static readonly ErrorReporter reporter = new ErrorReporterSink();
 
   private readonly DefaultClassDecl defaultClass;
   private readonly LiteralModuleDecl defaultModuleDecl;
@@ -34,9 +33,10 @@ public class ReplHelper {
 
   public bool Parse() {
     Contract.Assert(Expression == null);
+    var reporter = new ConsoleErrorReporter();
     var errors = new Errors(reporter);
     Expression = Parser.ParseExpression(source, fname, fname, null, defaultModuleDecl, builtIns, errors);
-    return Expression != null;
+    return reporter.Count(ErrorLevel.Error) == 0;
   }
 
   private static MemberDecl MakeConstantField(Expression expr) {
@@ -46,8 +46,9 @@ public class ReplHelper {
 
   public bool Resolve() {
     Contract.Assert(Expression is {Type: null});
+    var reporter = new ConsoleErrorReporter();
     var dafnyProgram = new Program(fname, defaultModuleDecl, builtIns, reporter);
-    defaultClass.Members.Add(MakeConstantField(Expression));
+    defaultClass.Members.Add(MakeConstantField(Expression)); // FIXME do this better?
     var resolver = new Resolver(dafnyProgram);
     resolver.ResolveProgram(dafnyProgram);
     return reporter.Count(ErrorLevel.Error) == 0;
