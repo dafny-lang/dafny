@@ -52,10 +52,10 @@ jobs:
   
   check-deep-tests:
     uses: ./.github/workflows/check-deep-tests-reusable.yml
-    if: "!(contains(github.event.pull_request.labels.*.name, 'run-deep-tests'))"
  
   integration-tests:
     needs: check-deep-tests
+    if: always() && (needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests'))
     uses: ./.github/workflows/integration-tests-reusable.yml
     with:
       # By default run only on one platform, but run on all platforms if the PR has the "run-deep-tests"
