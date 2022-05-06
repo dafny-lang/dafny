@@ -218,4 +218,6 @@ iterator ThatIterator(x: int) yields (y: int, z: int)
     Assert.AreEqual(new Range(30, 8, 30, 16), status.NamedVerifiables[6].NameRange);
     Assert.AreEqual(new Range(33, 9, 33, 21), status.NamedVerifiables[7].NameRange);
   }
+
+  // TODO add test related to resolution errors?
 }
