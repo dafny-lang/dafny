@@ -115,13 +115,18 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
 
     type TernaryOp = TernaryOps.T
 
-    module UnaryOps { // FIXME should be resolved ResolvedUnaryOp (see SinglePassCompiler.cs)
+    module UnaryOps {
       datatype UnaryOp =
-        | Not
-        | Cardinality
-        | Fresh
-        | Allocated
-        | Lit
+        | BVNot
+        | BoolNot
+        | SeqLength
+        | SetCard
+        | MultisetCard
+        | MapCard
+        // Ghost operators
+        // | Fresh
+        // | Allocated
+        // | Lit
       type T(!new,00,==) = UnaryOp
     }
 
@@ -274,6 +279,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
 
     datatype TranslationError =
       | Invalid(msg: string)
+      | GhostExpr(expr: C.Expression)
       | UnsupportedType(ty: C.Type)
       | UnsupportedExpr(expr: C.Expression)
       | UnsupportedStmt(stmt: C.Statement)
@@ -282,6 +288,8 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         match this
           case Invalid(msg) =>
             "Invalid term: " + msg
+          case GhostExpr(expr) =>
+            "Ghost expression: " + TypeConv.ObjectToString(expr)
           case UnsupportedType(ty) =>
             "Unsupported type: " + TypeConv.ObjectToString(ty)
           case UnsupportedExpr(expr) =>
@@ -344,12 +352,18 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         Failure(UnsupportedType(ty))
     }
 
-    const UnaryOpMap: map<C.UnaryOpExpr__Opcode, D.UnaryOp> :=
-      map[C.UnaryOpExpr__Opcode.Not := D.UnaryOps.Not,
-          C.UnaryOpExpr__Opcode.Cardinality := D.UnaryOps.Cardinality,
-          C.UnaryOpExpr__Opcode.Fresh := D.UnaryOps.Fresh,
-          C.UnaryOpExpr__Opcode.Allocated := D.UnaryOps.Allocated,
-          C.UnaryOpExpr__Opcode.Lit := D.UnaryOps.Lit]
+    const GhostUnaryOps: set<C.UnaryOpExpr__ResolvedOpcode> :=
+      {C.UnaryOpExpr__ResolvedOpcode.Fresh,
+       C.UnaryOpExpr__ResolvedOpcode.Allocated,
+       C.UnaryOpExpr__ResolvedOpcode.Lit}
+
+    const UnaryOpMap: map<C.UnaryOpExpr__ResolvedOpcode, D.UnaryOp> :=
+      map[C.UnaryOpExpr__ResolvedOpcode.BVNot := D.UnaryOps.BVNot,
+          C.UnaryOpExpr__ResolvedOpcode.BoolNot := D.UnaryOps.BoolNot,
+          C.UnaryOpExpr__ResolvedOpcode.SeqLength := D.UnaryOps.SeqLength,
+          C.UnaryOpExpr__ResolvedOpcode.SetCard := D.UnaryOps.SetCard,
+          C.UnaryOpExpr__ResolvedOpcode.MultiSetCard := D.UnaryOps.MultisetCard,
+          C.UnaryOpExpr__ResolvedOpcode.MapCard := D.UnaryOps.MapCard]
 
     const LazyBinopMap: map<C.BinaryExpr__ResolvedOpcode, DE.LazyOp> :=
       map[C.BinaryExpr__ResolvedOpcode.Imp := DE.Imp,
@@ -422,6 +436,13 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       (map k | k in LazyBinopMap  :: DE.Lazy(LazyBinopMap[k])) +
       (map k | k in EagerBinopMap :: DE.Eager(DE.BinaryOp(EagerBinopMap[k])))
 
+    function method TranslateIdentifierExpr(ie: C.IdentifierExpr)
+      : (e: TranslationResult<WfExpr>)
+      reads *
+    {
+      Success(DE.Var(TypeConv.AsString(ie.Name)))
+    }
+
     function method TranslateUnary(u: C.UnaryExpr)
       : (e: TranslationResult<WfExpr>)
       decreases ASTHeight(u), 0
@@ -429,17 +450,11 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     {
       :- Need(u is C.UnaryOpExpr, UnsupportedExpr(u));
       var u := u as C.UnaryOpExpr;
-      var op, e := u.Op, u.E;
+      var op, e := u.ResolvedOp, u.E;
+      :- Need(op !in GhostUnaryOps, GhostExpr(u));
       :- Need(op in UnaryOpMap.Keys, UnsupportedExpr(u));
       var te :- TranslateExpression(e);
       Success(DE.Apply(DE.Eager(DE.UnaryOp(UnaryOpMap[op])), [te]))
-    }
-
-    function method TranslateIdentifierExpr(ie: C.IdentifierExpr)
-      : (e: TranslationResult<WfExpr>)
-      reads *
-    {
-      Success(DE.Var(TypeConv.AsString(ie.Name)))
     }
 
     function method TranslateBinary(b: C.BinaryExpr)
@@ -640,7 +655,9 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     {
       if c is C.IdentifierExpr then
         TranslateIdentifierExpr(c as C.IdentifierExpr)
-      else if c is C.BinaryExpr then // TODO Unary
+      else if c is C.UnaryExpr then
+        TranslateUnary(c as C.UnaryExpr)
+      else if c is C.BinaryExpr then
         TranslateBinary(c as C.BinaryExpr)
       else if c is C.LiteralExpr then
         TranslateLiteral(c as C.LiteralExpr)
@@ -1078,7 +1095,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     //   match e {
     //     case Binary(bop, e0, e1) =>
     //       if IsNegatedBinop(bop) then
-    //         Expr.UnaryOp(UnaryOps.Not, Expr.Binary(FlipNegatedBinop(bop), e0, e1))
+    //         Expr.UnaryOp(UnaryOps.BoolNot, Expr.Binary(FlipNegatedBinop(bop), e0, e1))
     //       else
     //         Expr.Binary(bop, e0, e1)
     //     case _ => e
@@ -1092,7 +1109,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       match e {
         case Apply(Eager(BinaryOp(op)), es) =>
           if IsNegatedBinop(op) then
-            Exprs.Apply(Exprs.Eager(Exprs.UnaryOp(UnaryOps.Not)),
+            Exprs.Apply(Exprs.Eager(Exprs.UnaryOp(UnaryOps.BoolNot)),
                         [Exprs.Apply(Exprs.Eager(Exprs.BinaryOp(FlipNegatedBinop(op))), es)])
           else
             e
@@ -1110,7 +1127,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
             case Apply(Eager(BinaryOp(op)), es) =>
               Expr.Apply(Exprs.Eager(Exprs.BinaryOp(FlipNegatedBinop(op))), es)
           };
-          var e' := Exprs.Apply(Exprs.Eager(Exprs.UnaryOp(UnaryOps.Not)), [e'']);
+          var e' := Exprs.Apply(Exprs.Eager(Exprs.UnaryOp(UnaryOps.BoolNot)), [e'']);
           calc { // FIXME Automate
             Deep.All_Expr(f(e), PC);
             Deep.All_Expr(e', PC);
@@ -1144,7 +1161,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
             var e'' := Exprs.Apply(Exprs.Eager(Exprs.BinaryOp(FlipNegatedBinop(bop))), exprs');
             assert Deep.All_Expr(e'', NotANegatedBinopExpr);
             assert Deep.All_Expr(e'', Exprs.WellFormed);
-            var e' := Exprs.Apply(Exprs.Eager(Exprs.UnaryOp(UnaryOps.Not)), [e'']);
+            var e' := Exprs.Apply(Exprs.Eager(Exprs.UnaryOp(UnaryOps.BoolNot)), [e'']);
             e'
           else
             Expr.Apply(Exprs.Eager(Exprs.BinaryOp(bop)), exprs')

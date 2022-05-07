@@ -18,7 +18,7 @@ dafny2cs := $(dafny) /spillTargetCode:3 /compile:0 /noVerify
 dfy_models := $(AutoExtern)/CSharpModel.dfy CSharpDafnyModel.dfy CSharpDafnyASTModel.dfy
 
 # Interop files contain Dafny functions implemented in C# that help interop with the models
-dfy_interop := CSharpInterop.dfy CSharpDafnyInterop.dfy
+dfy_interop := CSharpInterop.dfy CSharpDafnyInterop.dfy CSharpDafnyASTInterop.dfy
 cs_interop := $(dfy_interop:.dfy=.cs)
 
 # Auto-generate a model of DafnyAST.sc
@@ -45,8 +45,8 @@ run: $(CompilerDLL) $(DafnyRuntime)
 		minimal.dfy
 
 # Compile the REPL
-# FIXME missing dependencies
-REPL/Repl.cs: REPL/Repl.dfy
+# DISCUSS: Dependency tracking in Dafny
+REPL/Repl.cs: REPL/Repl.dfy $(ASTModel) $(cs_interop) $(DafnyRuntime)
 	$(dafny2cs) $<
 	sed -i.bak -e 's/__AUTOGEN__//g' "$@"
 	rm "$@.bak"

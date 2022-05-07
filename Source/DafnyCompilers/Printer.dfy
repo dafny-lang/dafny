@@ -14,7 +14,7 @@ module Interp.Printer {
       case Int(i) => Str.of_int(i)
       case Real(r) => var (n, d) := Interop.TypeConv.AsIntegerRatio(r); Str.of_int(n) + "/" + Str.of_int(d)
       case BigOrdinal(o) => "<*>" // FIXME
-      case BitVector(value) => "bv(" + Str.of_int(value, 16) + ")"
+      case BitVector(width, value) => "bv" + Str.of_int(width, 10) + "(0x" + Str.of_int(value, 16) + ")"
       case Map(m) => "map[" + "<*>" + "]" // FIXME iterate over map
       case Multiset(ms) => "multiset{" + "<*>" + "}]" // FIXME iterate over multiset (convert to map?)
       case Seq(sq) => "[" + Lib.Str.Join(", ", Lib.Seq.Map(v requires v in sq => ToString(v), sq)) + "]"

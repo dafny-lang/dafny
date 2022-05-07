@@ -15,7 +15,7 @@ module Values {
     | Int(i: int)
     | Real(r: real)
     | BigOrdinal(o: ORDINAL)
-    | BitVector(value: int)
+    | BitVector(width: nat, value: int)
     | Map(m: map<Value, Value>)
     | Multiset(ms: multiset<Value>)
     | Seq(sq: seq<Value>)
@@ -23,14 +23,15 @@ module Values {
     | Closure(ctx: Context, vars: seq<string>, body: Exprs.T)
   {
     predicate method HasType(ty: Types.T) {
+      this.WellFormed1() &&
       match (this, ty) // FIXME tests on other side
         case (Bool(b), Bool()) => true
         case (Char(c), Char()) => true
         case (Int(i), Int()) => true
         case (Real(r), Real()) => true
         case (BigOrdinal(o), BigOrdinal()) => true
-        case (BitVector(value), BitVector(width)) =>
-          0 <= value < Math.IntPow(2, width)
+        case (BitVector(width, value), BitVector(twidth)) =>
+          width == twidth
         case (Map(m), Collection(true, Map(kT), eT)) =>
           forall x | x in m :: x.HasType(kT) && m[x].HasType(eT)
         case (Multiset(ms), Collection(true, Multiset, eT)) =>
@@ -48,7 +49,7 @@ module Values {
         case (Int(i), _) => false
         case (Real(r), _) => false
         case (BigOrdinal(o), _) => false
-        case (BitVector(value), _) => false
+        case (BitVector(width, value), _) => false
         case (Map(m), _) => false
         case (Multiset(ms), _) => false
         case (Seq(sq), _) => false
@@ -65,12 +66,19 @@ module Values {
         case Int(i) => {}
         case Real(r) => {}
         case BigOrdinal(o) => {}
-        case BitVector(value) => {}
+        case BitVector(width, value) => {}
         case Map(m) => m.Values
         case Multiset(ms) => set x | x in ms
         case Seq(sq) => set x | x in sq
         case Set(st) => st
         case Closure(ctx, vars_, body_) => ctx.Values
+    }
+
+    predicate method WellFormed1() {
+      match this
+        case BitVector(width, val) =>
+          0 <= value < Math.IntPow(2, width)
+        case _ => true
     }
 
     predicate method All(P: Value -> bool) {

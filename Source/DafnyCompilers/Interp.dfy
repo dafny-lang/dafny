@@ -3,6 +3,7 @@ include "Library.dfy"
 include "Values.dfy"
 
 module Interp {
+  import Lib.Math
   import Lib.Debug
   import opened Lib.Datatypes
   import opened DafnyCompilerCommon.AST
@@ -46,7 +47,7 @@ module Interp {
         true
       case Apply(Eager(op), args: seq<Expr>) =>
         match op {
-          case UnaryOp(uop) => Debug.TODO(false)
+          case UnaryOp(uop) => true
           case BinaryOp(bop) => true
           case TernaryOp(top: TernaryOp) => true
           case DataConstructor(name: Path, typeArgs: seq<Type.Type>) => Debug.TODO(false)
@@ -97,7 +98,8 @@ module Interp {
   }
 
   predicate method WellFormedValue1(v: V.T)  {
-    v.Closure? ==> SupportsInterp(v.body)
+    && v.Closure? ==> SupportsInterp(v.body)
+    && v.WellFormed1()
   }
 
   predicate method WellFormedValue(v: V.T) {
@@ -170,6 +172,8 @@ module Interp {
       case Apply(Eager(op), args: seq<Expr>) =>
         var Return(argvs, ctx) :- InterpExprs(args, fuel, ctx);
         LiftPureResult(ctx, match op {
+            case UnaryOp(op: UnaryOp) =>
+              InterpUnaryOp(e, op, argvs[0])
             case BinaryOp(bop: BinaryOp) =>
               InterpBinaryOp(e, bop, argvs[0], argvs[1])
             case TernaryOp(top: TernaryOp) =>
@@ -333,6 +337,24 @@ module Interp {
     requires InterpLazy_Eagerly(e, fuel, ctx).Success?
     ensures InterpLazy_Eagerly(e, fuel, ctx) == InterpLazy(e, fuel, ctx)
   {}
+
+  function method InterpUnaryOp(expr: Expr, op: AST.UnaryOp, v0: WV)
+    : (r: PureInterpResult<WV>)
+  {
+    match op
+      case BVNot => :- Need(v0.BitVector?, Invalid(expr));
+        Success(V.BitVector(v0.width, Math.IntPow(2, v0.width) - 1 - v0.value))
+      case BoolNot => :- Need(v0.Bool?, Invalid(expr));
+        Success(V.Bool(!v0.b))
+      case SeqLength => :- Need(v0.Seq?, Invalid(expr));
+        Success(V.Int(|v0.sq|))
+      case SetCard => :- Need(v0.Set?, Invalid(expr));
+        Success(V.Int(|v0.st|))
+      case MultisetCard => :- Need(v0.Multiset?, Invalid(expr));
+        Success(V.Int(|v0.ms|))
+      case MapCard => :- Need(v0.Map?, Invalid(expr));
+        Success(V.Int(|v0.m|))
+  }
 
   function method InterpBinaryOp(expr: Expr, bop: AST.BinaryOp, v0: WV, v1: WV)
     : (r: PureInterpResult<WV>)
