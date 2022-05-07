@@ -553,7 +553,7 @@ it is done via an `import` declaration of the parent module.
 
 The effect of declaring an import as `opened` is confined to the importing module. That
 is, the ability of use such imported names as unqualified is not passed on to further
-imports. The following example illustrates:
+imports, as the following example illustrates:
 
 ```dafny
 module Library {
