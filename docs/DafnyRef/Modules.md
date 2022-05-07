@@ -534,7 +534,7 @@ type Tr {
 }
 ```
 
-There is no syntax (for example, `Tr.*`) for export all members of a type.
+There is no syntax (for example, `Tr.*`) to export all members of a type.
 
 Some members are exported automatically when the type is revealed.
 Specifically:
