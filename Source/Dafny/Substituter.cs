@@ -103,17 +103,12 @@ namespace Microsoft.Dafny {
 
       } else if (expr is SeqUpdateExpr) {
         var sse = (SeqUpdateExpr)expr;
-        if (sse.ResolvedUpdateExpr != null) {
-          return Substitute(sse.ResolvedUpdateExpr);
-        } else {
-          Expression seq = Substitute(sse.Seq);
-          Expression index = Substitute(sse.Index);
-          Expression val = Substitute(sse.Value);
-          if (seq != sse.Seq || index != sse.Index || val != sse.Value) {
-            newExpr = new SeqUpdateExpr(sse.tok, seq, index, val);
-          }
+        Expression seq = Substitute(sse.Seq);
+        Expression index = Substitute(sse.Index);
+        Expression val = Substitute(sse.Value);
+        if (seq != sse.Seq || index != sse.Index || val != sse.Value) {
+          newExpr = new SeqUpdateExpr(sse.tok, seq, index, val);
         }
-
       } else if (expr is MultiSelectExpr) {
         MultiSelectExpr mse = (MultiSelectExpr)expr;
         Expression array = Substitute(mse.Array);
