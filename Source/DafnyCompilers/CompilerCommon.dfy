@@ -291,6 +291,9 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       }
     }
 
+    type WfExpr = e: DE.Expr | P.All_Expr(e, DE.WellFormed)
+      witness DE.Block([])
+
     type TranslationResult<+A> =
       Result<A, TranslationError>
 
@@ -316,26 +319,26 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         Success(DT.BitVector(bvTy.Width as int))
       // TODO: the following could be simplified
       else if ty is C.MapType then
-        var mTy := ty as C.MapType;
-        assume TypeHeight(mTy.Domain) < TypeHeight(mTy);
-        assume TypeHeight(mTy.Range) < TypeHeight(mTy);
-        var domainTy :- TranslateType(mTy.Domain);
-        var rangeTy :- TranslateType(mTy.Range);
-        Success(DT.Collection(mTy.Finite, DT.CollectionKind.Map(domainTy), rangeTy))
+        var ty := ty as C.MapType;
+        assume TypeHeight(ty.Domain) < TypeHeight(ty);
+        assume TypeHeight(ty.Range) < TypeHeight(ty);
+        var domainTy :- TranslateType(ty.Domain);
+        var rangeTy :- TranslateType(ty.Range);
+        Success(DT.Collection(ty.Finite, DT.CollectionKind.Map(domainTy), rangeTy))
       else if ty is C.SetType then
-        var mTy := ty as C.SetType;
-        assume TypeHeight(mTy.Arg) < TypeHeight(mTy);
-        var eltTy :- TranslateType(mTy.Arg);
-        Success(DT.Collection(mTy.Finite, DT.CollectionKind.Set, eltTy))
+        var ty := ty as C.SetType;
+        assume TypeHeight(ty.Arg) < TypeHeight(ty);
+        var eltTy :- TranslateType(ty.Arg);
+        Success(DT.Collection(ty.Finite, DT.CollectionKind.Set, eltTy))
       else if ty is C.MultiSetType then
-        var mTy := ty as C.MultiSetType;
-        assume TypeHeight(mTy.Arg) < TypeHeight(mTy);
-        var eltTy :- TranslateType(mTy.Arg);
+        var ty := ty as C.MultiSetType;
+        assume TypeHeight(ty.Arg) < TypeHeight(ty);
+        var eltTy :- TranslateType(ty.Arg);
         Success(DT.Collection(true, DT.CollectionKind.Multiset, eltTy))
       else if ty is C.SeqType then
-        var mTy := ty as C.SeqType;
-        assume TypeHeight(mTy.Arg) < TypeHeight(mTy);
-        var eltTy :- TranslateType(mTy.Arg);
+        var ty := ty as C.SeqType;
+        assume TypeHeight(ty.Arg) < TypeHeight(ty);
+        var eltTy :- TranslateType(ty.Arg);
         Success(DT.Collection(true, DT.CollectionKind.Seq, eltTy))
       else
         Failure(UnsupportedType(ty))
@@ -420,10 +423,9 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       (map k | k in EagerBinopMap :: DE.Eager(DE.BinaryOp(EagerBinopMap[k])))
 
     function method TranslateUnary(u: C.UnaryExpr)
-      : (e: TranslationResult<DE.T>)
+      : (e: TranslationResult<WfExpr>)
       decreases ASTHeight(u), 0
       reads *
-      ensures e.Success? ==> P.All_Expr(e.value, DE.WellFormed)
     {
       :- Need(u is C.UnaryOpExpr, UnsupportedExpr(u));
       var u := u as C.UnaryOpExpr;
@@ -433,23 +435,17 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       Success(DE.Apply(DE.Eager(DE.UnaryOp(UnaryOpMap[op])), [te]))
     }
 
-    function {:axiom} ASTHeight(c: C.Expression) : nat
-    function {:axiom} StmtHeight(t: C.Statement) : nat
-    function {:axiom} TypeHeight(t: C.Type) : nat
-
     function method TranslateIdentifierExpr(ie: C.IdentifierExpr)
-      : (e: TranslationResult<DE.T>)
+      : (e: TranslationResult<WfExpr>)
       reads *
-      ensures e.Success? ==> P.All_Expr(e.value, DE.WellFormed)
     {
       Success(DE.Var(TypeConv.AsString(ie.Name)))
     }
 
     function method TranslateBinary(b: C.BinaryExpr)
-      : (e: TranslationResult<DE.T>)
+      : (e: TranslationResult<WfExpr>)
       decreases ASTHeight(b), 0
       reads *
-      ensures e.Success? ==> P.All_Expr(e.value, DE.WellFormed)
     {
       var op, e0, e1 := b.ResolvedOp, b.E0, b.E1;
       // LATER b.AccumulatesForTailRecursion
@@ -462,9 +458,8 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     }
 
     function method TranslateLiteral(l: C.LiteralExpr)
-      : (e: TranslationResult<DE.T>)
+      : (e: TranslationResult<WfExpr>)
       reads *
-      ensures e.Success? ==> P.All_Expr(e.value, DE.WellFormed)
     {
       if l.Value is Boolean then
         Success(DE.Literal(DE.LitBool(TypeConv.AsBool(l.Value))))
@@ -487,10 +482,9 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     }
 
     function method TranslateExpressions(exprs: seq<C.Expression>)
-      : (texprs: TranslationResult<seq<DE.T>>)
+      : (texprs: TranslationResult<seq<WfExpr>>)
       reads *
       decreases exprs
-      ensures texprs.Success? ==> forall e | e in texprs.value :: P.All_Expr(e, DE.WellFormed)
     {
       if exprs == [] then
         Success([])
@@ -501,10 +495,9 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     }
 
     function method TranslateApplyExpr(ae: C.ApplyExpr)
-      : (e: TranslationResult<DE.T>)
+      : (e: TranslationResult<WfExpr>)
       reads *
       decreases ASTHeight(ae), 0
-      ensures e.Success? ==> P.All_Expr(e.value, DE.WellFormed)
     {
       assume ASTHeight(ae.Function) < ASTHeight(ae);
       var fnExpr :- TranslateExpression(ae.Function);
@@ -515,10 +508,9 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     }
 
     function method TranslateFunctionCall(fce: C.FunctionCallExpr)
-      : (e: TranslationResult<DE.T>)
+      : (e: TranslationResult<WfExpr>)
       reads *
       decreases ASTHeight(fce), 0
-      ensures e.Success? ==> P.All_Expr(e.value, DE.WellFormed)
     {
       assume ASTHeight(fce.Receiver) < ASTHeight(fce);
       var fnExpr :- TranslateExpression(fce.Receiver);
@@ -529,10 +521,9 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     }
 
     function method TranslateDatatypeValue(dtv: C.DatatypeValue)
-      : (e: TranslationResult<DE.T>)
+      : (e: TranslationResult<WfExpr>)
       reads *
       decreases ASTHeight(dtv), 0
-      ensures e.Success? ==> P.All_Expr(e.value, DE.WellFormed)
     {
       var ctor := dtv.Ctor;
       var n := TypeConv.AsString(ctor.Name);
@@ -547,10 +538,9 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     }
 
     function method TranslateDisplayExpr(de: C.DisplayExpression)
-      : (e: TranslationResult<DE.T>)
+      : (e: TranslationResult<WfExpr>)
       reads *
       decreases ASTHeight(de), 0
-      ensures e.Success? ==> P.All_Expr(e.value, DE.WellFormed)
     {
       var ty :- TranslateType(de.Type);
       :- Need(ty.Collection? && ty.finite, Invalid("`DisplayExpr` must be a finite collection."));
@@ -561,11 +551,10 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     }
 
     function method TranslateExpressionPair(mde: C.MapDisplayExpr, ep: C.ExpressionPair)
-      : (e: TranslationResult<DE.T>)
+      : (e: TranslationResult<WfExpr>)
       reads *
       requires Math.Max(ASTHeight(ep.A), ASTHeight(ep.B)) < ASTHeight(mde)
       decreases ASTHeight(mde), 0
-      ensures e.Success? ==> P.All_Expr(e.value, DE.WellFormed)
     {
       var tyA :- TranslateType(ep.A.Type);
       // TODO: This isn't really a sequence of type tyA! It should really construct pairs
@@ -576,10 +565,9 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     }
 
     function method TranslateMapDisplayExpr(mde: C.MapDisplayExpr)
-      : (e: TranslationResult<DE.T>)
+      : (e: TranslationResult<WfExpr>)
       reads *
       decreases ASTHeight(mde), 1
-      ensures e.Success? ==> P.All_Expr(e.value, DE.WellFormed)
     {
       var ty :- TranslateType(mde.Type);
       :- Need(ty.Collection? && ty.kind.Map? && ty.finite, Invalid("`MapDisplayExpr` must be a map."));
@@ -591,10 +579,9 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     }
 
     function method TranslateSeqUpdateExpr(se: C.SeqUpdateExpr)
-      : (e: TranslationResult<DE.T>)
+      : (e: TranslationResult<WfExpr>)
       reads *
       decreases ASTHeight(se), 0
-      ensures e.Success? ==> P.All_Expr(e.value, DE.WellFormed)
     {
       var ty :- TranslateType(se.Type);
       :- Need(ty.Collection? && ty.kind != DT.Set(),
@@ -611,12 +598,11 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     }
 
     function method TranslateLambdaExpr(le: C.LambdaExpr)
-      : (e: TranslationResult<DE.T>)
+      : (e: TranslationResult<WfExpr>)
       reads *
       decreases ASTHeight(le), 0
-      ensures e.Success? ==> P.All_Expr(e.value, DE.WellFormed)
     {
-      var bvars := Seq.Map((bv: C.BoundVar) => TypeConv.AsString(bv.Name),
+      var bvars := Seq.Map((bv: C.BoundVar) reads * => TypeConv.AsString(bv.Name),
         ListUtils.ToSeq(le.BoundVars));
       assume ASTHeight(le.Term) < ASTHeight(le);
       var body :- TranslateExpression(le.Term);
@@ -624,20 +610,33 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     }
 
     function method TranslateConcreteSyntaxExpression(ce: C.ConcreteSyntaxExpression)
-      : (e: TranslationResult<DE.T>)
+      : (e: TranslationResult<WfExpr>)
       reads *
       decreases ASTHeight(ce), 0
-      ensures e.Success? ==> P.All_Expr(e.value, DE.WellFormed)
     {
       assume ASTHeight(ce.ResolvedExpression) < ASTHeight(ce);
       TranslateExpression(ce.ResolvedExpression)
     }
 
+    function method TranslateITEExpr(ie: C.ITEExpr)
+      : (e: TranslationResult<WfExpr>)
+      reads *
+      decreases ASTHeight(ie), 0
+    {
+      // TODO: look at i.IsBindingGuard
+      assume ASTHeight(ie.Test) < ASTHeight(ie);
+      assume ASTHeight(ie.Thn) < ASTHeight(ie);
+      assume ASTHeight(ie.Els) < ASTHeight(ie);
+      var cond :- TranslateExpression(ie.Test);
+      var thn :- TranslateExpression(ie.Thn);
+      var els :- TranslateExpression(ie.Els);
+      Success(DE.If(cond, thn, els))
+    }
+
     function method TranslateExpression(c: C.Expression)
-      : (e: TranslationResult<DE.T>)
+      : (e: TranslationResult<WfExpr>)
       reads *
       decreases ASTHeight(c), 2
-      ensures e.Success? ==> P.All_Expr(e.value, DE.WellFormed)
     {
       if c is C.IdentifierExpr then
         TranslateIdentifierExpr(c as C.IdentifierExpr)
@@ -661,34 +660,58 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         TranslateLambdaExpr(c as C.LambdaExpr)
       else if c is C.ConcreteSyntaxExpression then
         TranslateConcreteSyntaxExpression(c as C.ConcreteSyntaxExpression)
+      else if c is C.ITEExpr then
+        TranslateITEExpr(c as C.ITEExpr)
       else Failure(UnsupportedExpr(c))
     }
 
-    function method TranslateStatement(s: C.Statement)
-      : TranslationResult<DE.T>
+    function method TranslatePrintStmt(p: C.PrintStmt)
+      : (e: TranslationResult<WfExpr>)
       reads *
-      decreases StmtHeight(s)
+      decreases ASTHeight(p), 0
+    {
+      var exprs :- Seq.MapResult(TranslateExpression, ListUtils.ToSeq(p.Args));
+      Success(DE.Apply(DE.Eager(DE.Builtin(DE.Print)), exprs))
+    }
+
+    function method TranslateBlockStmt(b: C.BlockStmt)
+      : (e: TranslationResult<WfExpr>)
+      reads *
+      decreases ASTHeight(b), 0
+    {
+      var stmts := ListUtils.ToSeq(b.Body);
+      var stmts' :- Seq.MapResult(s' requires s' in stmts reads * =>
+        assume ASTHeight(s') < ASTHeight(b); TranslateStatement(s'), stmts);
+        Success(DE.Block(stmts'))
+
+    }
+
+    function method TranslateIfStmt(i: C.IfStmt)
+      : (e: TranslationResult<WfExpr>)
+      reads *
+      decreases ASTHeight(i), 0
+    {
+      // TODO: look at i.IsBindingGuard
+      assume ASTHeight(i.Guard) < ASTHeight(i);
+      assume ASTHeight(i.Thn) < ASTHeight(i);
+      assume ASTHeight(i.Els) < ASTHeight(i);
+      var cond :- TranslateExpression(i.Guard);
+      var thn :- TranslateStatement(i.Thn);
+      var els :- TranslateStatement(i.Els);
+      Success(DE.If(cond, thn, els))
+    }
+
+    function method TranslateStatement(s: C.Statement)
+      : TranslationResult<WfExpr>
+      reads *
+      decreases ASTHeight(s), 1
     {
       if s is C.PrintStmt then
-        var p := s as C.PrintStmt;
-        var exprs :- Seq.MapResult(TranslateExpression, ListUtils.ToSeq(p.Args));
-        Success(DE.Apply(DE.Eager(DE.Builtin(DE.Print)), exprs))
+        TranslatePrintStmt(s as C.PrintStmt)
       else if s is C.BlockStmt then
-        var b := s as C.BlockStmt;
-        var stmts := ListUtils.ToSeq(b.Body);
-        var stmts' :- Seq.MapResult(s' requires s' in stmts reads * =>
-          assume StmtHeight(s') < StmtHeight(s); TranslateStatement(s'), stmts);
-        Success(DE.Block(stmts'))
+        TranslateBlockStmt(s as C.BlockStmt)
       else if s is C.IfStmt then
-        var i := s as C.IfStmt;
-        // TODO: look at i.IsBindingGuard
-        assume ASTHeight(i.Guard) < StmtHeight(i);
-        assume StmtHeight(i.Thn) < StmtHeight(i);
-        assume StmtHeight(i.Els) < StmtHeight(i);
-        var cond :- TranslateExpression(i.Guard);
-        var thn :- TranslateStatement(i.Thn);
-        var els :- TranslateStatement(i.Els);
-        Success(DE.If(cond, thn, els))
+        TranslateIfStmt(s as C.IfStmt)
       else Failure(UnsupportedStmt(s))
     }
 
@@ -702,6 +725,9 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       Success(D.Method("Main", DE.Block(stmts)))
     }
 
+    // DISCUSS: It should be possible to ensure termination by checking for
+    // cycles instead of assuming that ASTHeight decreases.  Would that be
+    // enough? (Does Dafny assume that allocated memory is finite?)
     function method TranslateProgram(p: C.Program)
       : TranslationResult<D.Program>
       reads *
@@ -787,12 +813,9 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         function method AllChildren_Expr(e: Expr, P: Expr -> bool) : bool
           decreases e.Depth(), 0
 
-        function method All_Expr(e: Expr, P: Expr -> bool) : bool
+        function method All_Expr(e: Expr, P: Expr -> bool)
+          : (b: bool)
           decreases e.Depth(), 1
-        {
-          && P(e)
-          && AllChildren_Expr(e, P)
-        }
 
         function method All_Method(m: Method, P: Expr -> bool) : bool {
           Shallow.All_Method(m, e => All_Expr(e, P))
@@ -806,24 +829,25 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         lemma AllImpliesChildren(e: Expr, p: Expr -> bool)
           requires All_Expr(e, p)
           ensures AllChildren_Expr(e, p)
-        {}
 
         lemma AllChildren_Expr_weaken(e: Exprs.T, P: Exprs.T -> bool, Q: Exprs.T -> bool)
           requires AllChildren_Expr(e, P)
           requires forall e' :: P(e') ==> Q(e')
-          decreases e
+          decreases e, 0
           ensures AllChildren_Expr(e, Q)
 
         lemma All_Expr_weaken(e: Exprs.T, P: Exprs.T -> bool, Q: Exprs.T -> bool)
           requires All_Expr(e, P)
           requires forall e' :: P(e') ==> Q(e')
+          decreases e, 1
           ensures All_Expr(e, Q)
-        {
-          AllChildren_Expr_weaken(e, P, Q);
-        }
       }
 
       module Rec refines Base { // DISCUSS
+        function method All_Expr(e: Expr, P: Expr -> bool) : (b: bool) {
+          P(e) && AllChildren_Expr(e, P)
+        }
+
         function method AllChildren_Expr(e: Expr, P: Expr -> bool) : bool {
           match e {
             case Var(_) => true
@@ -837,18 +861,36 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
           }
         }
 
+        lemma AllImpliesChildren ... {}
+
+        lemma All_Expr_weaken ... {
+          AllChildren_Expr_weaken(e, P, Q);
+        }
+
         lemma AllChildren_Expr_weaken ... { // NEAT
           forall e' | e' in e.Children() { All_Expr_weaken(e', P, Q); }
         }
       }
 
       module NonRec refines Base {
+        // https://github.com/dafny-lang/dafny/issues/2107
+        // https://github.com/dafny-lang/dafny/issues/2109
+        function method All_Expr(e: Expr, P: Expr -> bool) : (b: bool) {
+          P(e) && forall e' | e' in e.Children() :: All_Expr(e', P)
+        }
+
         function method AllChildren_Expr(e: Expr, P: Expr -> bool) : bool {
           forall e' | e' in e.Children() :: All_Expr(e', P)
         }
 
+        lemma AllImpliesChildren ... {}
+
         lemma AllChildren_Expr_weaken ... {
           forall e' | e' in e.Children() { All_Expr_weaken(e', P, Q); }
+        }
+
+        lemma All_Expr_weaken ... {
+          AllChildren_Expr_weaken(e, P, Q);
         }
       }
 
@@ -918,9 +960,17 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       predicate IsBottomUpTransformer(f: Expr -> Expr, PC: Expr -> bool) {
         forall e | Deep.AllChildren_Expr(e, PC) :: Deep.All_Expr(f(e), PC)
       }
+      const IdentityTransformer: Transformer'<Expr, Expr> :=
+        TR(d => d, _ => true)
+
+      lemma IsBottomUpTransformer_Id(tr: ExprTransformer)
+        requires forall x :: tr.f(x) == x
+        requires forall x :: tr.PC(x)
+        ensures IsBottomUpTransformer(tr.f, tr.PC)
+      {}
 
       type BottomUpTransformer = tr: ExprTransformer | IsBottomUpTransformer(tr.f, tr.PC)
-        witness TR(d => d, _ => true)
+        witness (IsBottomUpTransformer_Id(IdentityTransformer); IdentityTransformer)
 
       function method MapChildren_Expr(e: Expr, tr: BottomUpTransformer) : (e': Expr)
         decreases e, 0
