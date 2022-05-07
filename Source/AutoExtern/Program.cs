@@ -41,8 +41,8 @@ abstract class PrettyPrintable {
     IEnumerable<Type>? inheritance) {
     var parts = new List<string>();
     parts.Add($"{kind}");
-    if (attrs != null) {
-      parts.Add(FmtAttrs(attrs!)); // `!` to placate dotnet-format
+    if (attrs is { } nattrs) { // Pattern match instead of != null to placate dotnet-format
+      parts.Add(FmtAttrs(nattrs));
     }
     var paramsStr = parameters == null ? "" : $"<{String.Join(", ", parameters)}>";
     parts.Add($"{name.AsDecl(forceExtern: true)}{paramsStr}");
