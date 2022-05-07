@@ -52,8 +52,8 @@ jobs:
   
   check-deep-tests:
     uses: ./.github/workflows/check-deep-tests-reusable.yml
-    if: ${{ !(contains(github.event.pull_request.labels.*.name, 'run-deep-tests')) }}
-
+    if: "!(contains(github.event.pull_request.labels.*.name, 'run-deep-tests'))"
+  
   integration-tests:
     needs: check-deep-tests
     uses: ./.github/workflows/integration-tests-reusable.yml
