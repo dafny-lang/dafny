@@ -1,4 +1,5 @@
-AutoExtern ?= dotnet run --project ../../../AutoExtern/AutoExtern.csproj
+AutoExtern ?= dotnet run --project ../../../AutoExtern/AutoExtern.csproj --
+Dafny ?= dotnet run --project ../../../DafnyDriver/DafnyDriver.csproj --
 
 LibraryProjectFile := ../Library/Library.csproj
 LibrarySourceFile := ../Library/Library.cs
@@ -10,12 +11,13 @@ CSharpModelFile := CSharpModel.dfy
 
 AppCSharpFile := Main.cs
 AppDafnyFile := GroceryListPrinter.dfy
+AppDafnyCSharpFile := GroceryListPrinter.cs
 ExpectFile := $(AppDafnyFile).expect
 
 default: dotnet-run
 
 $(LibraryModelFile): $(LibraryProjectFile) $(LibrarySourceFile) $(LibraryTemplateFile)
-	$(AutoExtern) -- \
+	$(AutoExtern) \
 		$(LibraryProjectFile) \
 		$(LibrarySourceFile) \
 		$(LibraryRootNamespace) \
@@ -23,8 +25,11 @@ $(LibraryModelFile): $(LibraryProjectFile) $(LibrarySourceFile) $(LibraryTemplat
 		$(CSharpModelFile) \
 		$(LibraryModelFile)
 
-dotnet-run: $(LibraryModelFile) $(AppCSharpFile) $(AppDafnyFile)
+$(AppDafnyCSharpFile): $(AppDafnyFile)
+	$(Dafny) /compile:0 /spillTargetCode:2 "$<"
+
+dotnet-run: $(LibraryModelFile) $(AppCSharpFile) $(AppDafnyCSharpFile)
 	dotnet run
 
 clean:
-	rm -f $(LibraryModelFile) $(CSharpModelFile)
+	rm -f $(LibraryModelFile) $(CSharpModelFile) $(AppDafnyCSharpFile)

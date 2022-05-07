@@ -1,3 +1,6 @@
+
+Dafny program verifier finished with 1 verified, 0 errors
+Wrote textual form of target program to GroceryListPrinter.cs
 # Printing a grocery list
    (2 items in the list)
 ## Apple: 3

@@ -8,9 +8,12 @@
     <!-- <Nullable>enable</Nullable> -->
   </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="dafny.msbuild" Version="1.0.0" />
-  </ItemGroup>
+  <!-- Not using dafny.msbuild since it relies on Dafny begin called `dafny` on
+       Linux, whereas we build a binary called `Dafny` there (so, it doesn't
+       work with local builds). -->
+  <!-- <ItemGroup> -->
+  <!--   <PackageReference Include="dafny.msbuild" Version="1.0.0" /> -->
+  <!-- </ItemGroup> -->
 
   <ItemGroup>
     <ProjectReference Include="..\Library\Library.csproj" />

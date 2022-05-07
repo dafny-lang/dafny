@@ -51,24 +51,35 @@ public class IntegrationTests {
     var tutorialDirectory = Path.GetFullPath("Tutorial/ClientApp");
     var expectedOutput = File.ReadAllText(Path.Join(tutorialDirectory, "GroceryListPrinter.dfy.expect"));
 
-    var startInfo = new ProcessStartInfo("make") {
-      RedirectStandardOutput = true,
-      UseShellExecute = false
+    Process? Make(IEnumerable<string> args) {
+      var startInfo = new ProcessStartInfo("make") {
+        RedirectStandardOutput = true,
+        UseShellExecute = false
+      };
+      foreach (var arg in args) {
+        startInfo.ArgumentList.Add(arg);
+      }
+      return Process.Start(startInfo);
     };
 
-    startInfo.ArgumentList.Add("--quiet");
-    startInfo.ArgumentList.Add("-C");
-    startInfo.ArgumentList.Add(tutorialDirectory);
-    startInfo.ArgumentList.Add($"AutoExtern=dotnet ../../AutoExtern.dll");
-    var make = Process.Start(startInfo);
+    var makeArgs = new string[] {"--quiet", "-C", tutorialDirectory};
 
-    Assert.NotNull(make);
-    Debug.Assert(make != null);
+    // Ensure clean build
+    Make(makeArgs.Concat(new[] {"clean"}))?.WaitForExit();
 
-    var actualOutput = make.StandardOutput.ReadToEnd();
+    // Run and capture output
+    var run = Make(makeArgs.Concat(new [] {
+      $"AutoExtern=dotnet ../../AutoExtern.dll",
+      $"Dafny=dotnet ../../Dafny.dll"
+    }));
+
+    Assert.NotNull(run);
+    Debug.Assert(run != null);
+
+    var actualOutput = run.StandardOutput.ReadToEnd();
     AssertWithDiff.Equal(expectedOutput.ReplaceLineEndings(), actualOutput.ReplaceLineEndings());
 
-    make.WaitForExit();
-    Assert.Equal(0, make.ExitCode);
+    run.WaitForExit();
+    Assert.Equal(0, run.ExitCode);
   }
 }
