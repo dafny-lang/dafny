@@ -25,6 +25,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\AutoExtern\AutoExtern.csproj" />
+    <ProjectReference Include="..\XUnitExtensions\XUnitExtensions.csproj" />
   </ItemGroup>
 
   <ItemGroup>

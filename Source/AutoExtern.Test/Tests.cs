@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using Microsoft.Build.Evaluation;
 using Xunit;
+using XUnitExtensions;
 
 namespace AutoExtern.Test;
 
@@ -37,7 +38,7 @@ public class IntegrationTests {
 
     var actualOutput = File.ReadAllText(Path.Join(minimalDirectory, "Library.dfy"));
     var expectedOutput = File.ReadAllText(Path.Join(minimalDirectory, "Library.dfy.expect"));
-    Assert.Equal(expectedOutput, actualOutput);
+    AssertWithDiff.Equal(expectedOutput, actualOutput);
   }
 
   /// <summary>
@@ -65,7 +66,7 @@ public class IntegrationTests {
     Debug.Assert(make != null);
 
     var actualOutput = make.StandardOutput.ReadToEnd();
-    Assert.Equal(expectedOutput.ReplaceLineEndings(), actualOutput.ReplaceLineEndings());
+    AssertWithDiff.Equal(expectedOutput.ReplaceLineEndings(), actualOutput.ReplaceLineEndings());
 
     make.WaitForExit();
     Assert.Equal(0, make.ExitCode);
