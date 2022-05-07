@@ -289,9 +289,9 @@ ModuleExport =
   [ ExportId ]
   [ "..." ]
   {
-    "provides" ( ExportSignature { "," ExportSignature } | "*" )
+    "extends"  ExportId { "," ExportId }
+  | "provides" ( ExportSignature { "," ExportSignature } | "*" )
   | "reveals"  ( ExportSignature { "," ExportSignature } | "*" )
-  | "extends"  ExportId { "," ExportId }
   }
 
 ExportSignature = TypeNameOrCtorSuffix [ "." TypeNameOrCtorSuffix ]
@@ -419,34 +419,187 @@ its value is known and the assertion can be proved.
 {% include_relative examples/Example-ExportSet2.dfy %}
 ```
 
-The following list presents the difference between _provides_ and _reveals_ for each kind of declaration.
+The following table shows which parts of a declaration are exported by an
+export set that `provides` or `reveals` the declaration.
 
-* const: type always known, but value not known when only provided
-* function, predicate: signature always known, but body not known when not revealed
-* method: TODO
-* lemma: TODO
-* iterator: TODO
-* class, trait: TODO
-* opaque type: TODO
-* subset type, newtype: TODO
-* datatype: TODO
-* module: module names may only be provided
-* export set: names of export sets are always visible and are not subject to export set rules, that is, export set names may not be put in the provides or
-reveals lists in export set declarations.
+ declaration    | what is exported with `provides`  | what is exported with `reveals`
+--------------------|----------------|-----------------------------------------------
+`const x: X := E`   | `const x: X`   | `const x: X := E`
+--------------------|----------------|-------------------
+`var x: X`          | `var x: X`     | not allowed
+-----------------------|-----------------------|----------------------
+`function F(x: X): Y`  | `function F(x: X): Y` | `function F(x: X): Y`
+`  specification...`   | `  specification...`  | `  specification...`
+`{`                    |                       | `{`
+`  Body`               |                       | `  Body`
+`}`                    |                       | `}`
+-----------------------|-----------------------|-------------------------------
+`method M(x: X) returns (y: Y)` | `method M(x: X) returns (y: Y)` | not allowed
+`  specification...`            | `  specification...`            |
+`{`                             |                                 |
+`  Body;`                       |                                 |
+`}`                             |                                 |
+----------------------|----------------|-------------------
+`type Opaque`         | `type Opaque`  | `type Opaque`
+`{`                   |                |
+`  // members...`     |                |
+`}`                   |                |
+----------------------|----------------|-------------------
+`type Synonym = T`    | `type Synonym` | `type Synonym = T`
+---------------------|--------------|----------------------
+`type S = x: X | P witness E`    | `type S` | `type S = x: X | P witness E`
+---------------------------------|----------|---------------------------------
+`newtype N = x: X | P witness E` | `type N` | `newtype N = x: X | P witness E`
+`{`                              |          |
+`  // members...`                |          |
+`}`                              |          |
+-------------------------------|--------|-------------------------------
+`datatype D = Ctor0(x0: X0) | Ctor1(x1: X1) | ...` | `type D` | `datatype D = Ctor0(x0: X0) | Ctor1(x1: X1) | ...`
+`{`                                                |          |
+`  // members...`                                  |          |
+`}`                                                |          |
+-------------------------|---------|-------------------------------
+`class Cl extends T0, ...` | `type Cl` | `class Cl extends T0, ...`
+`{`                        |           | `{`
+`  constructor ()`         |           | `  constructor ()`
+`    specification...`     |           | `    specification...`
+`  {`                      |           | 
+`    Body;`                |           | 
+`  }`                      |           | 
+`  // other members...`    |           | 
+`}`                        |           | `}`
+-------------------------|---------|-------------------------------
+`trait Tr extends T0, ...` | `type Tr` | `trait Tr extends T0, ...`
+`{`                        |           |
+`  // members...`          |           |
+`}`                        |           |
+------------------------------------|-------------|------------------------------------
+`iterator Iter(x: X) yields (y: Y)` | `type Iter` | `iterator Iter(x: X) yields (y: Y)`
+`  specification...`                |             | `  specification...`
+`{`                                 |             |
+`  Body;`                           |             |
+`}`                                 |             |
+-----------------------|--------------|----------------------
+`module SubModule ...`   | `module SubModule ...`   | not allowed
+`{`                      | `{`                      |
+`  export SubModule ...` | `  export SubModule ...` |
+`  export A ...`         |                          |
+`  // declarations...`   | `  // declarations...`   |
+`}`                      | `}`                      |
+-----------------------|------------------------|------------
+``import L = M`S``     | ``import L = M`S``     | not allowed
+-----------------------|------------------------|------------
+
+Variations of functions (e.g., `predicate`, `twostate function`) are
+handled like `function` above, and variations of methods (e.g.,
+`lemma` and `twostate lemma`) are treated like `method` above. Since
+the whole signature is exported, a function or method is exported to
+be of the same kind, even through `provides`. For example, an exported
+`twostate lemma` is exported as a `twostate lemma` (and thus is known
+by importers to have two implicit heap parameters), and an exported
+`least predicate P` is exported as a `least predicate P` (and thus
+importers can use both `P` and its prefix predicate `P#`).
+
+If `C` is a `class`, `trait`, or `iterator`, then `provides C` exports
+the non-null reference type `C` as an opaque type. This does not reveal
+that `C` is a reference type, nor does it export the nullable type `C?`.
+
+In most cases, exporting a `class`, `trait`, `datatype`, `codatatype`, or
+opaque type does not automatically export its members. Instead, any member
+to be exported must be listed explicitly. For example, consider the type
+declaration
+
+```dafny
+trait Tr {
+  function F(x: int): int { 10 }
+  function G(x: int): int { 12 }
+  function H(x: int): int { 14 }
+}
+```
+
+An export set that contains only `reveals Tr` has the effect of exporting
+
+```dafny
+trait Tr {
+}
+```
+
+and an export set that contains only `provides Tr, Tr.F reveals Tr.H` has
+the effect of exporting
+
+```dafny
+type Tr {
+  function F(x: int): int
+  function H(x: int): int { 14 }
+}
+```
+
+There is no syntax (for example, `Tr.*`) to export all members of a type.
+
+Some members are exported automatically when the type is revealed.
+Specifically:
+- Revealing a `datatype` or `codatatype` automatically exports the type's
+  discriminators and destructors.
+- Revealing an `iterator` automatically exports the iterator's members.
+- Revealing a class automatically exports the class's anonymous constructor, if any.
+
+For a `class`, a `constructor` member can be exported only if the class is revealed.
+For a `class` or `trait`, a `var` member can be exported only if the class or trait is revealed
+(but a `const` member can be exported even if the enclosing class or trait is only provided).
+
+When exporting a sub-module, only the sub-module's eponymous export set is exported.
+There is no way for a parent module to export any other export set of a sub-module, unless
+it is done via an `import` declaration of the parent module.
+
+The effect of declaring an import as `opened` is confined to the importing module. That
+is, the ability of use such imported names as unqualified is not passed on to further
+imports, as the following example illustrates:
+
+```dafny
+module Library {
+  const xyz := 16
+}
+
+module M {
+  export
+    provides Lib
+    provides xyz // error: 'xyz' is not declared locally
+
+  import opened Lib = Library
+
+  const k0 := Lib.xyz
+  const k1 := xyz
+}
+
+module Client {
+  import opened M
+
+  const a0 := M.Lib.xyz
+  const a1 := Lib.xyz
+  const a2 := M.xyz // error: M does not have a declaration 'xyz'
+  const a3 := xyz // error: unresolved identifier 'xyz'
+}
+```
+
+As highlighted in this example, module `M` can use `xyz` as if it were a local
+name (see declaration `k1`), but the unqualified name `xyz` is not made available
+to importers of `M` (see declarations `a2` and `a3`), nor is it possible for
+`M` to export the name `xyz`.
 
 A few other notes:
 
-* Using a `*` instead of a list of names means that all local names
-(except export set names) in the
-module are exported.
+* A `provides` list can mention `*`, which means that all local names
+  (except export set names) in the module are exported as `provides`.
+* A `reveals` list can mention `*`, which means that all local names
+  (except export set names) in the module are exported as `reveals`, if
+  the declaration is allowed to appear in a `reveals` clause, or as
+  `provides`, if the declaration is not allowed to appear in a `reveals`
+  clause.
 * If no export sets are declared, then the implicit
-export set is `export reveals *`
-* A module acquires all the export sets from its refinement parent.
+  export set is `export reveals *`
+* A refinement module acquires all the export sets from its refinement parent.
 * Names acquired by a module from its refinement parent are also subject to
-export lists. (These are local names just like those declared directly.)
-* Names acquired by a module via an `import opened` declaration are not
-re-exportable, though the new module alias name (such as the `C` in `import C = A.B`)
-is a local name.
+  export lists. (These are local names just like those declared directly.)
 
 ### 4.5.2. Extends list
 An export set declaration may include an _extends_ list, which is a list of
@@ -462,7 +615,8 @@ module M {
   const c := 10;
   export A reveals a
   export B reveals b
-  export C reveals c extends A, B
+  export C extends A, B
+    reveals c
 }
 ```
 export set C will contain the names `a`, `b`, and `c`.
