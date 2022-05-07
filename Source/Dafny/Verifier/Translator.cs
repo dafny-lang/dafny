@@ -729,11 +729,11 @@ namespace Microsoft.Dafny {
         if (d is OpaqueTypeDecl) {
           var dd = (OpaqueTypeDecl)d;
           AddTypeDecl(dd);
-          AddClassMembers(dd, true);
+          AddClassMembers(dd, true, true);
         } else if (d is NewtypeDecl) {
           var dd = (NewtypeDecl)d;
           AddTypeDecl(dd);
-          AddClassMembers(dd, true);
+          AddClassMembers(dd, true, true);
         } else if (d is SubsetTypeDecl) {
           AddTypeDecl((SubsetTypeDecl)d);
         } else if (d is TypeSynonymDecl) {
@@ -741,14 +741,14 @@ namespace Microsoft.Dafny {
         } else if (d is DatatypeDecl) {
           var dd = (DatatypeDecl)d;
           AddDatatype(dd);
-          AddClassMembers(dd, true);
+          AddClassMembers(dd, true, true);
         } else if (d is ArrowTypeDecl) {
           var ad = (ArrowTypeDecl)d;
           GetClassTyCon(ad);
           AddArrowTypeAxioms(ad);
         } else if (d is ClassDecl) {
           var cl = (ClassDecl)d;
-          AddClassMembers(cl, true);
+          AddClassMembers(cl, true, true);
           if (cl.NonNullTypeDecl != null) {
             AddTypeDecl(cl.NonNullTypeDecl);
           }
@@ -770,7 +770,7 @@ namespace Microsoft.Dafny {
           if (d is OpaqueTypeDecl) {
             var dd = (OpaqueTypeDecl)d;
             AddTypeDecl(dd);
-            AddClassMembers(dd, true);
+            AddClassMembers(dd, true, true);
           } else if (d is ModuleDecl) {
             // submodules have already been added as a top level module, ignore this.
           } else if (d is RevealableTypeDecl) {
@@ -1187,10 +1187,10 @@ namespace Microsoft.Dafny {
         if (d is NewtypeDecl) {
           var dd = (NewtypeDecl)d;
           AddTypeDecl(dd);
-          AddClassMembers(dd, true);
+          AddClassMembers(dd, true, true);
         } else if (d is ClassDecl) {
           var cl = (ClassDecl)d;
-          AddClassMembers(cl, DafnyOptions.O.OptimizeResolution < 1);
+          AddClassMembers(cl, DafnyOptions.O.OptimizeResolution < 1, true);
           if (cl.NonNullTypeDecl != null) {
             AddTypeDecl(cl.NonNullTypeDecl);
           }
@@ -1200,7 +1200,7 @@ namespace Microsoft.Dafny {
         } else if (d is DatatypeDecl) {
           var dd = (DatatypeDecl)d;
           AddDatatype(dd);
-          AddClassMembers(dd, true);
+          AddClassMembers(dd, true, true);
         } else if (d is SubsetTypeDecl) {
           AddTypeDecl((SubsetTypeDecl)d);
         } else if (d is TypeSynonymDecl) {
@@ -1212,7 +1212,7 @@ namespace Microsoft.Dafny {
         AddTypeDecl(d.SelfSynonymDecl());
         var dd = d as TopLevelDeclWithMembers;
         if (dd != null) {
-          AddClassMembers(dd, true);
+          AddClassMembers(dd, true, false);
         }
       }
     }
@@ -4793,9 +4793,6 @@ namespace Microsoft.Dafny {
         return total;
       } else if (expr is SeqUpdateExpr) {
         SeqUpdateExpr e = (SeqUpdateExpr)expr;
-        if (e.ResolvedUpdateExpr != null) {
-          return CanCallAssumption(e.ResolvedUpdateExpr, etran);
-        }
         Bpl.Expr total = CanCallAssumption(e.Seq, etran);
         total = BplAnd(total, CanCallAssumption(e.Index, etran));
         total = BplAnd(total, CanCallAssumption(e.Value, etran));
@@ -5645,34 +5642,30 @@ namespace Microsoft.Dafny {
         }
       } else if (expr is SeqUpdateExpr) {
         var e = (SeqUpdateExpr)expr;
-        if (e.ResolvedUpdateExpr != null) {
-          CheckWellformedWithResult(e.ResolvedUpdateExpr, options, result, resultType, locals, builder, etran);
+        CheckWellformed(e.Seq, options, locals, builder, etran);
+        Bpl.Expr seq = etran.TrExpr(e.Seq);
+        Bpl.Expr index = etran.TrExpr(e.Index);
+        Bpl.Expr value = etran.TrExpr(e.Value);
+        var collectionType = (CollectionType)e.Seq.Type.NormalizeExpand();
+        // validate index
+        CheckWellformed(e.Index, options, locals, builder, etran);
+        if (collectionType is SeqType) {
+          var desc = new PODesc.InRange("index");
+          builder.Add(Assert(GetToken(e.Index), InSeqRange(expr.tok, index, e.Index.Type, seq, true, null, false), desc, options.AssertKv));
         } else {
-          CheckWellformed(e.Seq, options, locals, builder, etran);
-          Bpl.Expr seq = etran.TrExpr(e.Seq);
-          Bpl.Expr index = etran.TrExpr(e.Index);
-          Bpl.Expr value = etran.TrExpr(e.Value);
-          var collectionType = (CollectionType)e.Seq.Type.NormalizeExpand();
-          // validate index
-          CheckWellformed(e.Index, options, locals, builder, etran);
-          if (collectionType is SeqType) {
-            var desc = new PODesc.InRange("index");
-            builder.Add(Assert(GetToken(e.Index), InSeqRange(expr.tok, index, e.Index.Type, seq, true, null, false), desc, options.AssertKv));
-          } else {
-            CheckSubrange(e.Index.tok, index, e.Index.Type, collectionType.Arg, builder);
-          }
-          // validate value
-          CheckWellformed(e.Value, options, locals, builder, etran);
-          if (collectionType is SeqType) {
-            CheckSubrange(e.Value.tok, value, e.Value.Type, collectionType.Arg, builder);
-          } else if (collectionType is MapType mapType) {
-            CheckSubrange(e.Value.tok, value, e.Value.Type, mapType.Range, builder);
-          } else if (collectionType is MultiSetType) {
-            var desc = new PODesc.NonNegative("new number of occurrences");
-            builder.Add(Assert(GetToken(e.Value), Bpl.Expr.Le(Bpl.Expr.Literal(0), value), desc, options.AssertKv));
-          } else {
-            Contract.Assert(false);
-          }
+          CheckSubrange(e.Index.tok, index, e.Index.Type, collectionType.Arg, builder);
+        }
+        // validate value
+        CheckWellformed(e.Value, options, locals, builder, etran);
+        if (collectionType is SeqType) {
+          CheckSubrange(e.Value.tok, value, e.Value.Type, collectionType.Arg, builder);
+        } else if (collectionType is MapType mapType) {
+          CheckSubrange(e.Value.tok, value, e.Value.Type, mapType.Range, builder);
+        } else if (collectionType is MultiSetType) {
+          var desc = new PODesc.NonNegative("new number of occurrences");
+          builder.Add(Assert(GetToken(e.Value), Bpl.Expr.Le(Bpl.Expr.Literal(0), value), desc, options.AssertKv));
+        } else {
+          Contract.Assert(false);
         }
       } else if (expr is ApplyExpr) {
         var e = (ApplyExpr)expr;
@@ -7960,9 +7953,6 @@ namespace Microsoft.Dafny {
       }
       if (includeInParams) {
         foreach (Formal p in m.Ins) {
-          if (!VisibleInScope(p.Type)) {
-            Contract.Assert(false);
-          }
           Contract.Assert(VisibleInScope(p.Type));
           Bpl.Type varType = TrType(p.Type);
           Bpl.Expr wh = GetExtendedWhereClause(p.tok,
