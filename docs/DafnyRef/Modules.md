@@ -538,10 +538,10 @@ There is no syntax (for example, `Tr.*`) to export all members of a type.
 
 Some members are exported automatically when the type is revealed.
 Specifically:
-Revealing a `datatype` or `codatatype` automatically exports the type's
-discriminators and destructors.
-Revealing an `iterator` automatically exports the iterator's members.
-Revealing a class automatically exports the class's anonymous constructor, if any.
+- Revealing a `datatype` or `codatatype` automatically exports the type's
+  discriminators and destructors.
+- Revealing an `iterator` automatically exports the iterator's members.
+- Revealing a class automatically exports the class's anonymous constructor, if any.
 
 For a `class`, a `constructor` member can be exported only if the class is revealed.
 For a `class` or `trait`, a `var` member can be exported only if the class or trait is revealed
