@@ -4523,7 +4523,7 @@ namespace Microsoft.Dafny.Compilers {
 
       } else if (expr is UnaryOpExpr) {
         var e = (UnaryOpExpr)expr;
-        switch (e.Op) { // FIXME this should be done by resolver!
+        switch (e.Op) {
           case UnaryOpExpr.Opcode.Not:
             if (e.Type.IsBitVectorType) {
               var bvType = e.Type.AsBitVectorType;
