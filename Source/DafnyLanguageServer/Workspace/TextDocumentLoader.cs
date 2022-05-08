@@ -187,7 +187,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         var diagnostics = errorReporter.GetDiagnostics(document.Uri).OrderBy(d => d.Range.Start).ToList();
         concurrentDictionary.AddOrUpdate(id, diagnostics, (_, _) => diagnostics);
 
-          return document with {
+        return document with {
           VerificationDiagnosticsPerImplementation = concurrentDictionary.ToImmutableDictionary(),
           CounterExamples = counterExamples.ToArray(),
         };
