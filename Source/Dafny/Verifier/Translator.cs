@@ -731,11 +731,11 @@ namespace Microsoft.Dafny {
         if (d is OpaqueTypeDecl) {
           var dd = (OpaqueTypeDecl)d;
           AddTypeDecl(dd);
-          AddClassMembers(dd, true);
+          AddClassMembers(dd, true, true);
         } else if (d is NewtypeDecl) {
           var dd = (NewtypeDecl)d;
           AddTypeDecl(dd);
-          AddClassMembers(dd, true);
+          AddClassMembers(dd, true, true);
         } else if (d is SubsetTypeDecl) {
           AddTypeDecl((SubsetTypeDecl)d);
         } else if (d is TypeSynonymDecl) {
@@ -743,14 +743,14 @@ namespace Microsoft.Dafny {
         } else if (d is DatatypeDecl) {
           var dd = (DatatypeDecl)d;
           AddDatatype(dd);
-          AddClassMembers(dd, true);
+          AddClassMembers(dd, true, true);
         } else if (d is ArrowTypeDecl) {
           var ad = (ArrowTypeDecl)d;
           GetClassTyCon(ad);
           AddArrowTypeAxioms(ad);
         } else if (d is ClassDecl) {
           var cl = (ClassDecl)d;
-          AddClassMembers(cl, true);
+          AddClassMembers(cl, true, true);
           if (cl.NonNullTypeDecl != null) {
             AddTypeDecl(cl.NonNullTypeDecl);
           }
@@ -772,7 +772,7 @@ namespace Microsoft.Dafny {
           if (d is OpaqueTypeDecl) {
             var dd = (OpaqueTypeDecl)d;
             AddTypeDecl(dd);
-            AddClassMembers(dd, true);
+            AddClassMembers(dd, true, true);
           } else if (d is ModuleDecl) {
             // submodules have already been added as a top level module, ignore this.
           } else if (d is RevealableTypeDecl) {
@@ -1189,10 +1189,10 @@ namespace Microsoft.Dafny {
         if (d is NewtypeDecl) {
           var dd = (NewtypeDecl)d;
           AddTypeDecl(dd);
-          AddClassMembers(dd, true);
+          AddClassMembers(dd, true, true);
         } else if (d is ClassDecl) {
           var cl = (ClassDecl)d;
-          AddClassMembers(cl, DafnyOptions.O.OptimizeResolution < 1);
+          AddClassMembers(cl, DafnyOptions.O.OptimizeResolution < 1, true);
           if (cl.NonNullTypeDecl != null) {
             AddTypeDecl(cl.NonNullTypeDecl);
           }
@@ -1202,7 +1202,7 @@ namespace Microsoft.Dafny {
         } else if (d is DatatypeDecl) {
           var dd = (DatatypeDecl)d;
           AddDatatype(dd);
-          AddClassMembers(dd, true);
+          AddClassMembers(dd, true, true);
         } else if (d is SubsetTypeDecl) {
           AddTypeDecl((SubsetTypeDecl)d);
         } else if (d is TypeSynonymDecl) {
@@ -1214,7 +1214,7 @@ namespace Microsoft.Dafny {
         AddTypeDecl(d.SelfSynonymDecl());
         var dd = d as TopLevelDeclWithMembers;
         if (dd != null) {
-          AddClassMembers(dd, true);
+          AddClassMembers(dd, true, false);
         }
       }
     }
@@ -7955,9 +7955,6 @@ namespace Microsoft.Dafny {
       }
       if (includeInParams) {
         foreach (Formal p in m.Ins) {
-          if (!VisibleInScope(p.Type)) {
-            Contract.Assert(false);
-          }
           Contract.Assert(VisibleInScope(p.Type));
           Bpl.Type varType = TrType(p.Type);
           Bpl.Expr wh = GetExtendedWhereClause(p.tok,
