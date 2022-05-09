@@ -69,7 +69,7 @@ Options provided through the command line have higher priority than the options 
 
 # Set whether or not to compute and report verification diagnostics
 # (i.e. gutter highlight, dynamic highlighting, per-assert stat reporting)
-# Default: 0 (no caching).
+# Default: 0 (no diagnostics).
 --verifier:diagnostics=true
 ```
 
