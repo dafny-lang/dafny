@@ -22,11 +22,10 @@ module Interp {
           case UnaryOp(uop: UnaryOp.Op) => true
           case BinaryOp(bop: BinaryOp) => true
           case TernaryOp(top: TernaryOp) => true
-          case DataConstructor(name: Path, typeArgs: seq<Type.Type>) => true
           case Builtin(Display(_)) => true
           case Builtin(Print) => false
-          case MethodCall(classType, receiver, typeArgs) => false
           case FunctionCall() => true
+          case DataConstructor(name: Path, typeArgs: seq<Type.Type>) => true
         }
       case Block(stmts: seq<Expr>) => true
       case If(cond: Expr, thn: Expr, els: Expr) => true
@@ -47,14 +46,13 @@ module Interp {
         true
       case Apply(Eager(op), args: seq<Expr>) =>
         match op {
-          case UnaryOp(uop) => true
-          case BinaryOp(bop) => true
+          case UnaryOp(uop) => !uop.MemberSelect?
+          case BinaryOp(bop) => !bop.BV? && !bop.Datatypes?
           case TernaryOp(top: TernaryOp) => true
-          case DataConstructor(name: Path, typeArgs: seq<Type.Type>) => Debug.TODO(false)
           case Builtin(Display(_)) => true
           case Builtin(Print()) => false
-          case MethodCall(classType, receiver, typeArgs) => false
           case FunctionCall() => true
+          case DataConstructor(name: Path, typeArgs: seq<Type.Type>) => Debug.TODO(false)
         }
       case Block(stmts: seq<Expr>) => Debug.TODO(false)
       case If(cond: Expr, thn: Expr, els: Expr) => true
@@ -76,7 +74,6 @@ module Interp {
     | OutOfFuel(fn: V.T)
     | TypeError(e: Expr, value: V.T, expected: Type) // TODO rule out type errors through Wf predicate?
     | Invalid(e: Expr) // TODO rule out in Wf predicate?
-    | Unsupported(e: Expr) // TODO rule out in SupportsInterp predicate
     | OutOfIntBounds(x: int, low: Option<int>, high: Option<int>)
     | OutOfSeqBounds(collection: V.T, idx: V.T)
     | UnboundVariable(v: string)
@@ -88,7 +85,6 @@ module Interp {
         case OutOfFuel(fn) => "Too many function evaluations"
         case TypeError(e, value, expected) => "Type mismatch"
         case Invalid(e) => "Invalid expression"
-        case Unsupported(e) => "Unsupported expression"
         case OutOfIntBounds(x, low, high) => "Out-of-bounds value"
         case OutOfSeqBounds(v, i) => "Out-of-bounds index"
         case UnboundVariable(v) => "Unbound variable '" + v + "'"
@@ -175,6 +171,7 @@ module Interp {
             case UnaryOp(op: UnaryOp) =>
               InterpUnaryOp(e, op, argvs[0])
             case BinaryOp(bop: BinaryOp) =>
+              assert !bop.BV? && !bop.Datatypes?;
               InterpBinaryOp(e, bop, argvs[0], argvs[1])
             case TernaryOp(top: TernaryOp) =>
               InterpTernaryOp(e, top, argvs[0], argvs[1], argvs[2])
@@ -340,6 +337,7 @@ module Interp {
 
   function method InterpUnaryOp(expr: Expr, op: AST.UnaryOp, v0: WV)
     : (r: PureInterpResult<WV>)
+    requires !op.MemberSelect?
   {
     match op
       case BVNot => :- Need(v0.BitVector?, Invalid(expr));
@@ -358,6 +356,7 @@ module Interp {
 
   function method InterpBinaryOp(expr: Expr, bop: AST.BinaryOp, v0: WV, v1: WV)
     : (r: PureInterpResult<WV>)
+    requires !bop.BV? && !bop.Datatypes?
   {
     match bop
       case Numeric(op) => InterpBinaryNumeric(expr, op, v0, v1)
@@ -366,13 +365,13 @@ module Interp {
         case EqCommon() => Success(V.Bool(v0 == v1))
         case NeqCommon() => Success(V.Bool(v0 != v1))
       }
-      case BV(op) => Failure(Unsupported(expr))
+      // case BV(op) =>
       case Char(op) => InterpBinaryChar(expr, op, v0, v1)
       case Sets(op) => InterpBinarySets(expr, op, v0, v1)
       case Multisets(op) => InterpBinaryMultisets(expr, op, v0, v1)
       case Sequences(op) => InterpBinarySequences(expr, op, v0, v1)
       case Maps(op) => InterpBinaryMaps(expr, op, v0, v1)
-      case Datatypes(op) => Failure(Unsupported(expr))
+      // case Datatypes(op) =>
   }
 
   function method InterpBinaryNumeric(expr: Expr, op: BinaryOps.Numeric, v0: WV, v1: WV)
@@ -650,7 +649,7 @@ module Interp {
   function method InterpMapDisplay(e: Expr, argvs: seq<WV>)
     : PureInterpResult<map<WV, WV>>
   {
-    var pairs :- Seq.MapResult(argv => PairOfMapDisplaySeq(e, argv), argvs);
+    var pairs :- Seq.MapResult(argvs, argv => PairOfMapDisplaySeq(e, argv));
     Success(MapOfPairs(pairs))
   }
 

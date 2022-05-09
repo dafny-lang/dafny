@@ -208,7 +208,7 @@ module Lib {
 
     import Datatypes
 
-    function method {:opaque} MapResult<T, Q, E>(f: T ~> Datatypes.Result<Q, E>, ts: seq<T>)
+    function method {:opaque} MapResult<T, Q, E>(ts: seq<T>, f: T ~> Datatypes.Result<Q, E>)
       : (qs: Datatypes.Result<seq<Q>, E>)
       reads f.reads
       requires forall t | t in ts :: f.requires(t)
@@ -221,7 +221,7 @@ module Lib {
         Datatypes.Success([])
       else
         var hd :- f(ts[0]);
-        var tl :- MapResult(f, ts[1..]);
+        var tl :- MapResult(ts[1..], f);
         Datatypes.Success([hd] + tl)
     }
 

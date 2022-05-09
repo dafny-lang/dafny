@@ -63,6 +63,9 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         LeftShift | RightShift | BitwiseAnd | BitwiseOr | BitwiseXor
       datatype Char =
         LtChar | LeChar | GeChar | GtChar
+      datatype Sequences =
+        SeqEq | SeqNeq | Prefix | ProperPrefix | Concat | InSeq | NotInSeq |
+        SeqSelect | SeqTake | SeqDrop // Separate nodes in DafnyAST.cs
       datatype Sets =
         SetEq | SetNeq | Subset | Superset | ProperSubset | ProperSuperset |
         Disjoint | InSet | NotInSet | Union | Intersection | SetDifference
@@ -71,9 +74,6 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         ProperMultiSubset | ProperMultiSuperset | MultisetDisjoint | InMultiset |
         NotInMultiset | MultisetUnion | MultisetIntersection | MultisetDifference |
         MultisetSelect // Separate node in DafnyAST.cs
-      datatype Sequences =
-        SeqEq | SeqNeq | Prefix | ProperPrefix | Concat | InSeq | NotInSeq |
-        SeqSelect | SeqTake | SeqDrop // Separate nodes in DafnyAST.cs
       datatype Maps =
         MapEq | MapNeq | InMap | NotInMap | MapMerge | MapSubtraction |
         MapSelect // Separate node in DafnyAST.cs
@@ -85,9 +85,9 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         | Numeric(oNumeric: Numeric)
         | BV(oBV: BV)
         | Char(oChar: Char)
+        | Sequences(oSequences: Sequences)
         | Sets(oSets: Sets)
         | Multisets(oMultisets: Multisets)
-        | Sequences(oSequences: Sequences)
         | Maps(oMaps: Maps)
         | Datatypes(oDatatypes: Datatypes)
       type T(!new,00,==) = BinaryOp
@@ -98,16 +98,16 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     module TernaryOps {
       import Types
 
-      datatype Multisets =
-        MultisetUpdate
       datatype Sequences =
         SeqUpdate | SeqSubseq
+      datatype Multisets =
+        MultisetUpdate
       datatype Maps =
         MapUpdate
 
       datatype TernaryOp =
-        | Multisets(oMultisets: Multisets)
         | Sequences(oSequences: Sequences)
+        | Multisets(oMultisets: Multisets)
         | Maps(oMaps: Maps)
 
       type T(!new,00,==) = TernaryOp
@@ -123,6 +123,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         | SetCard
         | MultisetCard
         | MapCard
+        | MemberSelect(name: string)
         // Ghost operators
         // | Fresh
         // | Allocated
@@ -142,6 +143,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       import TernaryOps
       import C = CSharpDafnyASTModel
 
+      // FIXME should literals just be Values.T?
       datatype Literal =
         | LitBool(b: bool)
         | LitInt(i: int)
@@ -152,27 +154,18 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         function method Depth() : nat { 1 }
       }
 
-      datatype Receiver =
-        | StaticReceiver(classType: Types.ClassType)
-        | InstanceReceiver(obj: Expr) // TODO: also include ClassType?
-
-      datatype MethodId =
-        | Constructor
-        | StaticMethod(name: string)
-        | InstanceMethod(name: string) // First argument is target object
-
       datatype BuiltinFunction =
         | Display(ty: Types.Type)
         | Print
 
+      // DafnyAst.cs handles `f(1)` differently from `(var g := f; g)(1)`, but not us
       datatype EagerOp =
         | UnaryOp(uop: UnaryOps.T)
         | BinaryOp(bop: BinaryOps.T)
         | TernaryOp(top: TernaryOps.T)
+        | Builtin(builtin: BuiltinFunction)
+        | FunctionCall() // First argument is expression that resolves to function or method
         | DataConstructor(name: Types.Path, typeArgs: seq<Types.Type>)
-        | MethodCall(classType: Types.ClassType, receiver: MethodId, typeArgs: seq<Types.Type>)
-        | FunctionCall // First argument is function
-        | Builtin(fn: BuiltinFunction)
 
       datatype LazyOp =
         | And
@@ -233,7 +226,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
           case Apply(Eager(TernaryOp(top)), es) =>
             |es| == 3
           case Apply(Eager(FunctionCall()), es) =>
-            |es| >= 1 // Need a function to call
+            |es| >= 1 // Needs a function to call
           case Apply(Eager(Builtin(Display(ty))), es) =>
             ty.Collection? && ty.finite
           case _ => true
@@ -392,6 +385,13 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
           C.BinaryExpr__ResolvedOpcode.LeChar := D.BinaryOps.Char(D.BinaryOps.LeChar),
           C.BinaryExpr__ResolvedOpcode.GeChar := D.BinaryOps.Char(D.BinaryOps.GeChar),
           C.BinaryExpr__ResolvedOpcode.GtChar := D.BinaryOps.Char(D.BinaryOps.GtChar),
+          C.BinaryExpr__ResolvedOpcode.SeqEq := D.BinaryOps.Sequences(D.BinaryOps.SeqEq),
+          C.BinaryExpr__ResolvedOpcode.SeqNeq := D.BinaryOps.Sequences(D.BinaryOps.SeqNeq),
+          C.BinaryExpr__ResolvedOpcode.ProperPrefix := D.BinaryOps.Sequences(D.BinaryOps.ProperPrefix),
+          C.BinaryExpr__ResolvedOpcode.Prefix := D.BinaryOps.Sequences(D.BinaryOps.Prefix),
+          C.BinaryExpr__ResolvedOpcode.Concat := D.BinaryOps.Sequences(D.BinaryOps.Concat),
+          C.BinaryExpr__ResolvedOpcode.InSeq := D.BinaryOps.Sequences(D.BinaryOps.InSeq),
+          C.BinaryExpr__ResolvedOpcode.NotInSeq := D.BinaryOps.Sequences(D.BinaryOps.NotInSeq),
           C.BinaryExpr__ResolvedOpcode.SetEq := D.BinaryOps.Sets(D.BinaryOps.SetEq),
           C.BinaryExpr__ResolvedOpcode.SetNeq := D.BinaryOps.Sets(D.BinaryOps.SetNeq),
           C.BinaryExpr__ResolvedOpcode.ProperSubset := D.BinaryOps.Sets(D.BinaryOps.ProperSubset),
@@ -416,13 +416,6 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
           C.BinaryExpr__ResolvedOpcode.MultiSetUnion := D.BinaryOps.Multisets(D.BinaryOps.MultisetUnion),
           C.BinaryExpr__ResolvedOpcode.MultiSetIntersection := D.BinaryOps.Multisets(D.BinaryOps.MultisetIntersection),
           C.BinaryExpr__ResolvedOpcode.MultiSetDifference := D.BinaryOps.Multisets(D.BinaryOps.MultisetDifference),
-          C.BinaryExpr__ResolvedOpcode.SeqEq := D.BinaryOps.Sequences(D.BinaryOps.SeqEq),
-          C.BinaryExpr__ResolvedOpcode.SeqNeq := D.BinaryOps.Sequences(D.BinaryOps.SeqNeq),
-          C.BinaryExpr__ResolvedOpcode.ProperPrefix := D.BinaryOps.Sequences(D.BinaryOps.ProperPrefix),
-          C.BinaryExpr__ResolvedOpcode.Prefix := D.BinaryOps.Sequences(D.BinaryOps.Prefix),
-          C.BinaryExpr__ResolvedOpcode.Concat := D.BinaryOps.Sequences(D.BinaryOps.Concat),
-          C.BinaryExpr__ResolvedOpcode.InSeq := D.BinaryOps.Sequences(D.BinaryOps.InSeq),
-          C.BinaryExpr__ResolvedOpcode.NotInSeq := D.BinaryOps.Sequences(D.BinaryOps.NotInSeq),
           C.BinaryExpr__ResolvedOpcode.MapEq := D.BinaryOps.Maps(D.BinaryOps.MapEq),
           C.BinaryExpr__ResolvedOpcode.MapNeq := D.BinaryOps.Maps(D.BinaryOps.MapNeq),
           C.BinaryExpr__ResolvedOpcode.InMap := D.BinaryOps.Maps(D.BinaryOps.InMap),
@@ -443,6 +436,13 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       Success(DE.Var(TypeConv.AsString(ie.Name)))
     }
 
+    predicate Decreases(u: object, v: object)
+      requires u is C.Expression || u is C.Statement
+      requires v is C.Expression || v is C.Statement
+    {
+      ASTHeight(u) < ASTHeight(v)
+    }
+
     function method TranslateUnary(u: C.UnaryExpr)
       : (e: TranslationResult<WfExpr>)
       decreases ASTHeight(u), 0
@@ -451,6 +451,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       :- Need(u is C.UnaryOpExpr, UnsupportedExpr(u));
       var u := u as C.UnaryOpExpr;
       var op, e := u.ResolvedOp, u.E;
+      assume Decreases(e, u);
       :- Need(op !in GhostUnaryOps, GhostExpr(u));
       :- Need(op in UnaryOpMap.Keys, UnsupportedExpr(u));
       var te :- TranslateExpression(e);
@@ -464,8 +465,8 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     {
       var op, e0, e1 := b.ResolvedOp, b.E0, b.E1;
       // LATER b.AccumulatesForTailRecursion
-      assume ASTHeight(e0) < ASTHeight(b);
-      assume ASTHeight(e1) < ASTHeight(b);
+      assume Decreases(e0, b);
+      assume Decreases(e1, b);
       :- Need(op in BinaryOpCodeMap, UnsupportedExpr(b));
       var t0 :- TranslateExpression(e0);
       var t1 :- TranslateExpression(e1);
@@ -496,30 +497,17 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         Failure(UnsupportedExpr(l))
     }
 
-    function method TranslateExpressions(exprs: seq<C.Expression>)
-      : (texprs: TranslationResult<seq<WfExpr>>)
-      reads *
-      decreases exprs
-    {
-      if exprs == [] then
-        Success([])
-      else
-        var te :- TranslateExpression(exprs[0]);
-        var tes :- TranslateExpressions(exprs[1..]);
-        Success([te] + tes)
-    }
-
     function method TranslateApplyExpr(ae: C.ApplyExpr)
       : (e: TranslationResult<WfExpr>)
       reads *
       decreases ASTHeight(ae), 0
     {
-      assume ASTHeight(ae.Function) < ASTHeight(ae);
-      var fnExpr :- TranslateExpression(ae.Function);
-      var argsC := ListUtils.ToSeq(ae.Args);
-      var argExprs :- Seq.MapResult((e requires e in argsC reads * =>
-        assume ASTHeight(e) < ASTHeight(ae); TranslateExpression(e)), argsC);
-      Success(DE.Apply(DE.Eager(DE.FunctionCall), [fnExpr] + argExprs))
+      assume Decreases(ae.Function, ae);
+      var fn :- TranslateExpression(ae.Function);
+      var args := ListUtils.ToSeq(ae.Args);
+      var args :- Seq.MapResult(args, e requires e in args reads * =>
+        assume Decreases(e, ae); TranslateExpression(e));
+      Success(DE.Apply(DE.Eager(DE.FunctionCall), [fn] + args))
     }
 
     function method TranslateFunctionCall(fce: C.FunctionCallExpr)
@@ -527,12 +515,18 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       reads *
       decreases ASTHeight(fce), 0
     {
-      assume ASTHeight(fce.Receiver) < ASTHeight(fce);
-      var fnExpr :- TranslateExpression(fce.Receiver);
-      var argsC := ListUtils.ToSeq(fce.Args);
-      var argExprs :- Seq.MapResult((e requires e in argsC reads * =>
-        assume ASTHeight(e) < ASTHeight(fce); TranslateExpression(e)), argsC);
-      Success(DE.Apply(DE.Eager(DE.FunctionCall), [fnExpr] + argExprs))
+      // FIXME do we need to consider the receiver?
+      var fname := TypeConv.AsString(fce.Function.FullName);
+      var fn :- if fce.Receiver.Resolved is C.StaticReceiverExpr then
+          Success(DE.Var(fname))
+        else
+          assume Decreases(fce.Receiver, fce);
+          var receiver :- TranslateExpression(fce.Receiver);
+          Success(DE.Apply(DE.Eager(DE.UnaryOp(DE.UnaryOps.MemberSelect(fname))), [receiver]));
+      var args := ListUtils.ToSeq(fce.Args);
+      var args :- Seq.MapResult(args, e requires e in args reads * =>
+        assume Decreases(e, fce); TranslateExpression(e));
+      Success(DE.Apply(DE.Eager(DE.FunctionCall()), [fn] + args))
     }
 
     function method TranslateDatatypeValue(dtv: C.DatatypeValue)
@@ -542,14 +536,12 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     {
       var ctor := dtv.Ctor;
       var n := TypeConv.AsString(ctor.Name);
-      var typeArgsC := ListUtils.ToSeq(dtv.InferredTypeArgs);
-      var typeArgs :- Seq.MapResult((t requires t in typeArgsC reads * =>
-        TranslateType(t)), typeArgsC);
+      var typeArgs :- Seq.MapResult(ListUtils.ToSeq(dtv.InferredTypeArgs), TranslateType);
       // TODO: also include formals in the following, and filter out ghost arguments
-      var argsC := ListUtils.ToSeq(dtv.Arguments);
-      var argExprs :- Seq.MapResult((e requires e in argsC reads * =>
-        assume ASTHeight(e) < ASTHeight(dtv); TranslateExpression(e)), argsC);
-      Success(DE.Apply(DE.Eager(DE.DataConstructor([n], typeArgs)), argExprs)) // TODO: proper path
+      var args := ListUtils.ToSeq(dtv.Arguments);
+      var args :- Seq.MapResult(args, e requires e in args reads * =>
+        assume Decreases(e, dtv); TranslateExpression(e));
+      Success(DE.Apply(DE.Eager(DE.DataConstructor([n], typeArgs)), args)) // TODO: proper path
     }
 
     function method TranslateDisplayExpr(de: C.DisplayExpression)
@@ -559,10 +551,10 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     {
       var ty :- TranslateType(de.Type);
       :- Need(ty.Collection? && ty.finite, Invalid("`DisplayExpr` must be a finite collection."));
-      var elSeq := ListUtils.ToSeq(de.Elements);
-      var exprs :- Seq.MapResult((e requires e in elSeq reads * =>
-        assume ASTHeight(e) < ASTHeight(de); TranslateExpression(e)), elSeq);
-      Success(DE.Apply(DE.Eager(DE.Builtin(DE.Display(ty))), exprs))
+      var elems := ListUtils.ToSeq(de.Elements);
+      var elems :- Seq.MapResult(elems, e requires e in elems reads * =>
+        assume Decreases(e, de); TranslateExpression(e));
+      Success(DE.Apply(DE.Eager(DE.Builtin(DE.Display(ty))), elems))
     }
 
     function method TranslateExpressionPair(mde: C.MapDisplayExpr, ep: C.ExpressionPair)
@@ -586,11 +578,11 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     {
       var ty :- TranslateType(mde.Type);
       :- Need(ty.Collection? && ty.kind.Map? && ty.finite, Invalid("`MapDisplayExpr` must be a map."));
-      var elSeq := ListUtils.ToSeq(mde.Elements);
-      var exprs :- Seq.MapResult((ep: C.ExpressionPair) reads * =>
+      var elems := ListUtils.ToSeq(mde.Elements);
+      var elems :- Seq.MapResult(elems, (ep: C.ExpressionPair) requires ep in elems reads * =>
         assume Math.Max(ASTHeight(ep.A), ASTHeight(ep.B)) < ASTHeight(mde);
-        TranslateExpressionPair(mde, ep), elSeq);
-      Success(DE.Apply(DE.Eager(DE.Builtin(DE.Display(ty))), exprs))
+        TranslateExpressionPair(mde, ep));
+      Success(DE.Apply(DE.Eager(DE.Builtin(DE.Display(ty))), elems))
     }
 
     function method TranslateSeqUpdateExpr(se: C.SeqUpdateExpr)
@@ -619,7 +611,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     {
       var bvars := Seq.Map((bv: C.BoundVar) reads * => TypeConv.AsString(bv.Name),
         ListUtils.ToSeq(le.BoundVars));
-      assume ASTHeight(le.Term) < ASTHeight(le);
+      assume Decreases(le.Term, le);
       var body :- TranslateExpression(le.Term);
       Success(DE.Abs(bvars, body))
     }
@@ -629,7 +621,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       reads *
       decreases ASTHeight(ce), 0
     {
-      assume ASTHeight(ce.ResolvedExpression) < ASTHeight(ce);
+      assume Decreases(ce.ResolvedExpression, ce);
       TranslateExpression(ce.ResolvedExpression)
     }
 
@@ -639,9 +631,9 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       decreases ASTHeight(ie), 0
     {
       // TODO: look at i.IsBindingGuard
-      assume ASTHeight(ie.Test) < ASTHeight(ie);
-      assume ASTHeight(ie.Thn) < ASTHeight(ie);
-      assume ASTHeight(ie.Els) < ASTHeight(ie);
+      assume Decreases(ie.Test, ie);
+      assume Decreases(ie.Thn, ie);
+      assume Decreases(ie.Els, ie);
       var cond :- TranslateExpression(ie.Test);
       var thn :- TranslateExpression(ie.Thn);
       var els :- TranslateExpression(ie.Els);
@@ -687,7 +679,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       reads *
       decreases ASTHeight(p), 0
     {
-      var exprs :- Seq.MapResult(TranslateExpression, ListUtils.ToSeq(p.Args));
+      var exprs :- Seq.MapResult(ListUtils.ToSeq(p.Args), TranslateExpression);
       Success(DE.Apply(DE.Eager(DE.Builtin(DE.Print)), exprs))
     }
 
@@ -697,10 +689,9 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       decreases ASTHeight(b), 0
     {
       var stmts := ListUtils.ToSeq(b.Body);
-      var stmts' :- Seq.MapResult(s' requires s' in stmts reads * =>
-        assume ASTHeight(s') < ASTHeight(b); TranslateStatement(s'), stmts);
-        Success(DE.Block(stmts'))
-
+      var stmts' :- Seq.MapResult(stmts, s' requires s' in stmts reads * =>
+        assume Decreases(s', b); TranslateStatement(s'));
+      Success(DE.Block(stmts'))
     }
 
     function method TranslateIfStmt(i: C.IfStmt)
@@ -709,9 +700,9 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       decreases ASTHeight(i), 0
     {
       // TODO: look at i.IsBindingGuard
-      assume ASTHeight(i.Guard) < ASTHeight(i);
-      assume ASTHeight(i.Thn) < ASTHeight(i);
-      assume ASTHeight(i.Els) < ASTHeight(i);
+      assume Decreases(i.Guard, i);
+      assume Decreases(i.Thn, i);
+      assume Decreases(i.Els, i);
       var cond :- TranslateExpression(i.Guard);
       var thn :- TranslateStatement(i.Thn);
       var els :- TranslateStatement(i.Els);
@@ -738,7 +729,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     {
       // var compileName := m.CompileName;
       // FIXME “Main”
-      var stmts :- Seq.MapResult(TranslateStatement, ListUtils.ToSeq(m.Body.Body));
+      var stmts :- Seq.MapResult(ListUtils.ToSeq(m.Body.Body), TranslateStatement);
       Success(D.Method("Main", DE.Block(stmts)))
     }
 
@@ -1056,14 +1047,14 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     {
       match op {
         case Eq(NeqCommon) => BinaryOps.Eq(BinaryOps.EqCommon)
-        case Maps(MapNeq) => BinaryOps.Maps(BinaryOps.MapEq)
-        case Maps(NotInMap) => BinaryOps.Maps(BinaryOps.InMap)
-        case Multisets(MultisetNeq) => BinaryOps.Multisets(BinaryOps.MultisetEq)
-        case Multisets(NotInMultiset) => BinaryOps.Multisets(BinaryOps.InMultiset)
         case Sequences(SeqNeq) => BinaryOps.Sequences(BinaryOps.SeqEq)
+        case Sequences(NotInSeq) => BinaryOps.Sequences(BinaryOps.InSeq)
         case Sets(SetNeq) => BinaryOps.Sets(BinaryOps.SetEq)
         case Sets(NotInSet) => BinaryOps.Sets(BinaryOps.InSet)
-        case Sequences(NotInSeq) => BinaryOps.Sequences(BinaryOps.InSeq)
+        case Multisets(MultisetNeq) => BinaryOps.Multisets(BinaryOps.MultisetEq)
+        case Multisets(NotInMultiset) => BinaryOps.Multisets(BinaryOps.InMultiset)
+        case Maps(MapNeq) => BinaryOps.Maps(BinaryOps.MapEq)
+        case Maps(NotInMap) => BinaryOps.Maps(BinaryOps.InMap)
         case _ => op
       }
     }

@@ -41,6 +41,7 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
         case BitVector(_) => Unsupported
         case Collection(false, collKind_, eltType_) => Unsupported
         case Class(_) => Unsupported
+        case Function(_, _) => Unsupported
         case Unit => Unsupported
       }
     }
@@ -86,11 +87,13 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
 
     function method CompileUnaryOpExpr(op: UnaryOp, c: StrTree) : StrTree {
       match op {
-        case Not() => Format("!{}", [c]) // LATER use resolved op, which distinguishes between BV and boolean
-        case Cardinality() => Unsupported
-        case Fresh() => Unsupported
-        case Allocated() => Unsupported
-        case Lit() => Unsupported
+        case BoolNot() => Format("!{}", [c])
+        case BVNot() => Format("!{}", [c])
+        case SeqLength() => Unsupported
+        case SetCard() => Unsupported
+        case MultisetCard() => Unsupported
+        case MapCard() => Unsupported
+        case MemberSelect(_) => Unsupported
       }
     }
 
@@ -130,6 +133,15 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
         case Char(GtChar) => bin(">")
         // FIXME: Why is there lt/le/gt/ge for chars?
 
+        case Sequences(SeqEq) => fmt("{}.Equals({})")
+        case Sequences(ProperPrefix) => Unsupported
+        case Sequences(Prefix) => Unsupported
+        case Sequences(Concat) => Unsupported
+        case Sequences(InSeq) => Unsupported
+        case Sequences(SeqSelect) => Unsupported
+        case Sequences(SeqTake) => Unsupported
+        case Sequences(SeqDrop) => Unsupported
+
         case Sets(SetEq) => fmt("{}.Equals({})")
         case Sets(ProperSubset) => Unsupported
         case Sets(Subset) => Unsupported
@@ -151,17 +163,13 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
         case Multisets(MultisetUnion) => Unsupported
         case Multisets(MultisetIntersection) => Unsupported
         case Multisets(MultisetDifference) => Unsupported
-
-        case Sequences(SeqEq) => fmt("{}.Equals({})")
-        case Sequences(ProperPrefix) => Unsupported
-        case Sequences(Prefix) => Unsupported
-        case Sequences(Concat) => Unsupported
-        case Sequences(InSeq) => Unsupported
+        case Multisets(MultisetSelect) => Unsupported
 
         case Maps(MapEq) => fmt("{}.Equals({})")
         case Maps(InMap) => rbin("{}.Contains({})")
         case Maps(MapMerge) => Unsupported
         case Maps(MapSubtraction) => Unsupported
+        case Maps(MapSelect) => Unsupported
 
         case Datatypes(RankLt) => Unsupported
         case Datatypes(RankGt) => Unsupported
@@ -184,8 +192,12 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
       Predicates.Deep.AllImpliesChildren(e, Simplifier.NotANegatedBinopExpr);
       Predicates.Deep.AllImpliesChildren(e, Exprs.WellFormed);
       match e {
+        case Var(_) =>
+          Unsupported
         case Literal(l) =>
           CompileLiteralExpr(l)
+        case Abs(_, _) =>
+          Unsupported
         case Apply(op, es) =>
           match op {
             case Lazy(op) =>
@@ -198,13 +210,12 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
               var c0, c1 := CompileExpr(es[0]), CompileExpr(es[1]);
               CompileBinaryExpr(op, c0, c1)
             case Eager(TernaryOp(op)) => Unsupported
-            case Eager(FunctionCall) => Unsupported
-            case Eager(DataConstructor(name, typeArgs)) => Unsupported
-            case Eager(MethodCall(classType, receiver, typeArgs)) => Unsupported
             case Eager(Builtin(Display(ty))) =>
               CompileDisplayExpr(ty, Lib.Seq.Map((e requires e in es => CompileExpr(e)), es))
             case Eager(Builtin(Print)) =>
               Concat("\n", Lib.Seq.Map(e requires e in es => CompilePrint(e), es))
+            case Eager(DataConstructor(name, typeArgs)) => Unsupported
+            case Eager(FunctionCall()) => Unsupported
           }
         case Block(exprs) =>
           Concat("\n", Lib.Seq.Map(e requires e in exprs => CompileExpr(e), exprs))
