@@ -14,7 +14,9 @@ using System.Collections.Concurrent;
 using DafnyServer.CounterexampleGeneration;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Dafny.LanguageServer.Workspace;
 
 namespace Microsoft.Dafny {
   using System;
@@ -43,11 +45,11 @@ namespace Microsoft.Dafny {
 
     public static int Main(string[] args) {
       int ret = 0;
-      var thread = new System.Threading.Thread(
-        new System.Threading.ThreadStart(() => { ret = ThreadMain(args); }),
-          0x10000000); // 256MB stack size to prevent stack overflow
-      thread.Start();
-      thread.Join();
+
+      int MaxStackSize = 0x10000000; // 256MB
+      var largeThreadTaskScheduler = new ThreadTaskScheduler(MaxStackSize);
+      Task.Factory.StartNew(() => ThreadMain(args), CancellationToken.None, TaskCreationOptions.None,
+        largeThreadTaskScheduler).Wait();
       return ret;
     }
 
