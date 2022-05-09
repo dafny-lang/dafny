@@ -62,7 +62,7 @@ FORCE:
 repl: $(repl_dll) FORCE
 	dotnet exec $<
 
-entry_points := REPL.dfy CSharp/Compiler.dfy
+entry_points := REPL/Repl.dfy CSharp/Compiler.dfy
 
 typecheck:
 	$(dafny) -dafnyVerify:0 $(entry_points)

@@ -32,7 +32,16 @@ module {:extern "REPL"} REPL {
   }
 }
 
-datatype ReadError = EOF | MissingInput
+datatype ReadError =
+  EOF | MissingInput
+{
+  function method ToString() : string {
+    match this {
+      case EOF => "End of file"
+      case MissingInput => "Missing input"
+    }
+  }
+}
 
 datatype REPLError =
   | ReadError(re: ReadError)
@@ -40,6 +49,25 @@ datatype REPLError =
   | ResolutionError
   | TranslationError(te: Translator.TranslationError)
   | InterpError(ie: Interp.InterpError)
+  | Unsupported(e: AST.Expr)
+{
+  function method ToString() : string {
+    match this
+      case ReadError(re) =>
+        "Read error: " + re.ToString()
+      case ParseError() =>
+        "Parse error"
+      case ResolutionError() =>
+        "Resolution error"
+      case TranslationError(te) =>
+        "Translation error: " + te.ToString()
+      case InterpError(ie) =>
+        "Execution error: " + ie.ToString()
+      case Unsupported(ex) =>
+        "Unsupported expression" // FIXME change checker to return the unsupported subexpression
+  }
+}
+
 
 type REPLResult<+A> = Result<A, REPLError>
 
@@ -61,7 +89,7 @@ method Read() returns (r: REPLResult<AST.Expr>)
   var tcOk := helper.Resolve();
   :- Need(tcOk, ResolutionError);
   var expr :- TranslateExpression(helper.Expression);
-  :- Need(Interp.SupportsInterp(expr), InterpError(Interp.Unsupported(expr)));
+  :- Need(Interp.SupportsInterp(expr), Unsupported(expr));
   return Success(expr);
 }
 
@@ -91,18 +119,6 @@ method ReadEval() returns (r: REPLResult<Values.T>)
   return Success(val);
 }
 
-method ReportError(err: REPLError)
-  requires !err.ReadError?
-{
-  match err
-    case ParseError() => print "Parse error";
-    case ResolutionError() => print "Resolution error";
-    case TranslationError(te) =>
-      print "Translation error: " + te.ToString();
-    case InterpError(ie) =>
-      print "Execution error: " + ie.ToString();
-}
-
 method Main()
   decreases *
 {
@@ -119,7 +135,7 @@ method Main()
       case Failure(ReadError(MissingInput)) =>
         continue;
       case Failure(err) =>
-        ReportError(err);
+        print err.ToString();
       case Success(val) =>
         print Interp.Printer.ToString(val);
     }
