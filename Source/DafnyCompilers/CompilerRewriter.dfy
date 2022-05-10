@@ -234,7 +234,6 @@ module CompilerRewriter {
         // Not using datatype updates below to ensure that we get a warning if a
         // type gets new arguments
         match e {
-          // Expressions
           case Var(_) => e
           case Literal(lit_) => e
           case Abs(vars, body) => Expr.Abs(vars, Map_Expr(body, tr))
@@ -244,8 +243,6 @@ module CompilerRewriter {
             var e' := Expr.Apply(aop, exprs');
             assert Exprs.ConstructorsMatch(e, e');
             e'
-
-          // Statements
           case Block(exprs) =>
             var exprs' := Seq.Map(e requires e in exprs => Map_Expr(e, tr), exprs);
             Transformer.Map_All_IsMap(e requires e in exprs => Map_Expr(e, tr), exprs);
@@ -353,6 +350,11 @@ module CompilerRewriter {
     import opened Interp
     import opened Values
 
+    type Expr = AST.Expr
+    type WV = Interp.Value // FIXME
+    type EqWV = Interp.EqWV // FIXME
+    type Context = Values.Context
+
     // We introduce ``Equivs`` because in some situations we want to make ``EqValue``
     // and ``EqState`` opaque, and we can't (at least ``EqValue`` - see the comments for
     // this definition).
@@ -369,7 +371,7 @@ module CompilerRewriter {
       requires WellFormedContext(ctx')
     {
       && ctx.Keys == ctx'.Keys
-      && (forall x | x in ctx.Keys :: eq_value(ctx[x], ctx'[x])) 
+      && (forall x | x in ctx.Keys :: eq_value(ctx[x], ctx'[x]))
     }
 
     predicate GEqState(
@@ -400,7 +402,7 @@ module CompilerRewriter {
       }
     }
 
-    function method {:opaque} InterpCallFunctionBody(fn: WV, fuel: nat, argvs: seq<WV>)
+    function method {:opaque} InterpCallFunctionBody(fn: WV, env: Environment, argvs: seq<WV>)
       : (r: PureInterpResult<WV>)
       requires fn.Closure?
       requires |fn.vars| == |argvs|
@@ -410,7 +412,7 @@ module CompilerRewriter {
     // attribute, than to add one and fix the proofs by adding the proper calls to ``reveal``).
     {
         var ctx := BuildCallState(fn.ctx, fn.vars, argvs);
-        var Return(val, ctx) :- InterpExpr(fn.body, fuel, ctx);
+        var Return(val, ctx) :- InterpExpr(fn.body, env, ctx);
         Success(val)
     }
 
@@ -493,15 +495,15 @@ module CompilerRewriter {
       var Closure(ctx', vars', body') := v';
       && |vars| == |vars'|
       && (
-      forall fuel:nat, argvs: seq<WV>, argvs': seq<WV> |
+      forall env: Environment, argvs: seq<WV>, argvs': seq<WV> |
         && |argvs| == |argvs'| == |vars| // no partial applications are allowed in Dafny
         // We need the argument types to be smaller than the closure types, to prove termination.\
         // In effect, the arguments types should be given by the closure's input types.
         && (forall i | 0 <= i < |vars| :: ValueTypeHeight(argvs[i]) < ValueTypeHeight(v))
         && (forall i | 0 <= i < |vars| :: ValueTypeHeight(argvs'[i]) < ValueTypeHeight(v'))
         && (forall i | 0 <= i < |vars| :: EqValue(argvs[i], argvs'[i])) ::
-        var res := InterpCallFunctionBody(v, fuel, argvs);
-        var res' := InterpCallFunctionBody(v', fuel, argvs');
+        var res := InterpCallFunctionBody(v, env, argvs);
+        var res' := InterpCallFunctionBody(v', env, argvs');
         // We can't use naked functions in recursive setting: this forces us to write the expanded
         // match rather than using an auxiliary function like `EqPureInterpResult`.
         match (res, res') {
@@ -556,10 +558,10 @@ module CompilerRewriter {
     }
 
     // TODO: move
-    lemma EqInterp_Expr_EqState_Lem(e: Exprs.T, fuel: nat, ctx: State, ctx': State)
+    lemma EqInterp_Expr_EqState_Lem(e: Exprs.T, env: Environment, ctx: State, ctx': State)
       requires SupportsInterp(e)
       requires EqState(ctx, ctx')
-      ensures EqInterpResultValue(InterpExpr(e, fuel, ctx), InterpExpr(e, fuel, ctx'))
+      ensures EqInterpResultValue(InterpExpr(e, env, ctx), InterpExpr(e, env, ctx'))
     // The proof should be similar to ``EqInterp_Expr_CanBeMapLifted_Lem`` (and actually
     // simpler), but I'm not sure how to efficiently factorize the two.
     {
@@ -597,8 +599,7 @@ module CompilerRewriter {
       }
     }
 
-    lemma
-    BuildCallState_EqState_Lem(ctx: Context, ctx': Context, vars: seq<string>, argvs: seq<WV>, argvs': seq<WV>)
+    lemma BuildCallState_EqState_Lem(ctx: Context, ctx': Context, vars: seq<string>, argvs: seq<WV>, argvs': seq<WV>)
       requires WellFormedContext(ctx)
       requires WellFormedContext(ctx')
       requires |argvs| == |argvs'| == |vars|
@@ -629,18 +630,18 @@ module CompilerRewriter {
 
       var Closure(ctx, vars, body) := v;
 
-      forall fuel:nat, argvs: seq<WV>, argvs': seq<WV> |
+      forall env: Environment, argvs: seq<WV>, argvs': seq<WV> |
         && |argvs| == |argvs'| == |vars|
         && (forall i | 0 <= i < |vars| :: ValueTypeHeight(argvs[i]) < ValueTypeHeight(v))
         && (forall i | 0 <= i < |vars| :: ValueTypeHeight(argvs'[i]) < ValueTypeHeight(v))
         && (forall i | 0 <= i < |vars| :: EqValue(argvs[i], argvs'[i]))
         ensures
-          var res := InterpCallFunctionBody(v, fuel, argvs);
-          var res' := InterpCallFunctionBody(v, fuel, argvs');
+          var res := InterpCallFunctionBody(v, env, argvs);
+          var res' := InterpCallFunctionBody(v, env, argvs');
           EqPureInterpResultValue(res, res')
       {
-          var res := InterpCallFunctionBody(v, fuel, argvs);
-          var res' := InterpCallFunctionBody(v, fuel, argvs');
+          var res := InterpCallFunctionBody(v, env, argvs);
+          var res' := InterpCallFunctionBody(v, env, argvs');
 
           assert EqCtx(ctx, ctx) by {
             // It would be difficult to call a lemma like ``EqState_Refl_Lem`` here, because
@@ -659,7 +660,7 @@ module CompilerRewriter {
           assert EqState(ctx1, ctx1');
 
           reveal InterpCallFunctionBody();
-          EqInterp_Expr_EqState_Lem(body, fuel, ctx1, ctx1');
+          EqInterp_Expr_EqState_Lem(body, env, ctx1, ctx1');
           assert EqPureInterpResultValue(res, res');
       }
     }
@@ -719,18 +720,18 @@ module CompilerRewriter {
       var Closure(ctx1, vars1, body1) := v1;
       var Closure(ctx2, vars2, body2) := v2;
 
-      forall fuel:nat, argvs0: seq<WV>, argvs2: seq<WV> |
+      forall env: Environment, argvs0: seq<WV>, argvs2: seq<WV> |
         && |argvs0| == |argvs2| == |vars0|
         && (forall i | 0 <= i < |vars0| :: ValueTypeHeight(argvs0[i]) < ValueTypeHeight(v0))
         && (forall i | 0 <= i < |vars0| :: ValueTypeHeight(argvs2[i]) < ValueTypeHeight(v2))
         && (forall i | 0 <= i < |vars0| :: EqValue(argvs0[i], argvs2[i]))
         ensures
-          var res0 := InterpCallFunctionBody(v0, fuel, argvs0);
-          var res2 := InterpCallFunctionBody(v2, fuel, argvs2);
+          var res0 := InterpCallFunctionBody(v0, env, argvs0);
+          var res2 := InterpCallFunctionBody(v2, env, argvs2);
           EqPureInterpResultValue(res0, res2)
       {
-          var res0 := InterpCallFunctionBody(v0, fuel, argvs0);
-          var res2 := InterpCallFunctionBody(v2, fuel, argvs2);
+          var res0 := InterpCallFunctionBody(v0, env, argvs0);
+          var res2 := InterpCallFunctionBody(v2, env, argvs2);
 
           // Termination issue: we need to assume that the arguments' types have the
           // proper height. In practice, if the program is properly type checked, we
@@ -744,7 +745,7 @@ module CompilerRewriter {
             EqValue_Refl_Lem(argvs0[i]);
           }
 
-          var res1 := InterpCallFunctionBody(v1, fuel, argvs0);
+          var res1 := InterpCallFunctionBody(v1, env, argvs0);
           if res0.Success? {
             var ov0 := res0.value;
             var ov1 := res1.value;
@@ -933,10 +934,10 @@ module CompilerRewriter {
     {
       SupportsInterp(e) ==>
       (&& SupportsInterp(e')
-       && forall fuel, ctx, ctx' | eq.eq_state(ctx, ctx') ::
+       && forall env, ctx, ctx' | eq.eq_state(ctx, ctx') ::
          GEqInterpResult(eq.eq_state, eq.eq_value,
-                         InterpExpr(e, fuel, ctx),
-                         InterpExpr(e', fuel, ctx')))
+                         InterpExpr(e, env, ctx),
+                         InterpExpr(e', env, ctx')))
     }
 
     function Mk_EqInterp(eq: Equivs): (Expr, Expr) -> bool {
@@ -954,13 +955,13 @@ module CompilerRewriter {
       ensures EqInterp(e, e)
     {
       if SupportsInterp(e) {
-        forall fuel, ctx, ctx' | EqState(ctx, ctx')
+        forall env, ctx, ctx' | EqState(ctx, ctx')
           ensures
             EqInterpResultValue(
-                         InterpExpr(e, fuel, ctx),
-                         InterpExpr(e, fuel, ctx'))
+                         InterpExpr(e, env, ctx),
+                         InterpExpr(e, env, ctx'))
         {
-          EqInterp_Expr_EqState_Lem(e, fuel, ctx, ctx'); 
+          EqInterp_Expr_EqState_Lem(e, env, ctx, ctx');
         }
       }
     }
@@ -979,13 +980,13 @@ module CompilerRewriter {
       ensures EqInterp(e0, e2)
     {
       if SupportsInterp(e0) {
-        forall fuel, ctx, ctx' | EqState(ctx, ctx')
-          ensures EqInterpResultValue(InterpExpr(e0, fuel, ctx), InterpExpr(e2, fuel, ctx')) {
+        forall env, ctx, ctx' | EqState(ctx, ctx')
+          ensures EqInterpResultValue(InterpExpr(e0, env, ctx), InterpExpr(e2, env, ctx')) {
           EqState_Refl_Lem(ctx);
           assert EqState(ctx, ctx);
-          var res0 := InterpExpr(e0, fuel, ctx);
-          var res1 := InterpExpr(e1, fuel, ctx);
-          var res2 := InterpExpr(e2, fuel, ctx');
+          var res0 := InterpExpr(e0, env, ctx);
+          var res1 := InterpExpr(e1, env, ctx);
+          var res2 := InterpExpr(e2, env, ctx');
           assert EqInterpResultValue(res0, res1);
           assert EqInterpResultValue(res1, res2);
 
@@ -1007,10 +1008,10 @@ module CompilerRewriter {
       }
     }
 
-    lemma InterpExprs1_Strong_Lem(e: Expr, fuel: nat, ctx: State)
+    lemma InterpExprs1_Strong_Lem(e: Expr, env: Environment, ctx: State)
       requires SupportsInterp(e)
       ensures forall e' | e' in [e] :: SupportsInterp(e')
-      ensures EqInterpResultSeq1Value_Strong(InterpExpr(e, fuel, ctx), InterpExprs([e], fuel, ctx))
+      ensures EqInterpResultSeq1Value_Strong(InterpExpr(e, env, ctx), InterpExprs([e], env, ctx))
       // Auxiliary lemma: evaluating a sequence of one expression is equivalent to evaluating
       // the single expression.
     {
@@ -1019,13 +1020,13 @@ module CompilerRewriter {
       var es' := es[1..];
       assert es' == [];
 
-      var e_res := InterpExpr(e, fuel, ctx);
-      var es_res := InterpExprs([e], fuel, ctx);
+      var e_res := InterpExpr(e, env, ctx);
+      var es_res := InterpExprs([e], env, ctx);
 
       if e_res.Success? {
         var Return(v, ctx1) := e_res.value;
         
-        assert InterpExprs(es', fuel, ctx1) == Success(Return([], ctx1));
+        assert InterpExprs(es', env, ctx1) == Success(Return([], ctx1));
         assert es_res == Success(Return([v] + [], ctx1));
       }
       else {
@@ -1033,23 +1034,22 @@ module CompilerRewriter {
       }
     }
 
-    lemma EqInterp_Lem(e: Exprs.T, e': Exprs.T, fuel: nat, ctx: State, ctx': State)
+    lemma EqInterp_Lem(e: Exprs.T, e': Exprs.T, env: Environment, ctx: State, ctx': State)
       requires SupportsInterp(e)
       requires EqInterp(e, e')
       requires EqState(ctx, ctx')
       ensures SupportsInterp(e')
-      ensures EqInterpResultValue(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx'))
+      ensures EqInterpResultValue(InterpExpr(e, env, ctx), InterpExpr(e', env, ctx'))
     // We use this lemma because sometimes quantifiers are are not triggered.
     {}
 
-    lemma
-      InterpExprs_GEqInterp_Lem(
-      eq: Equivs, es: seq<Expr>, es': seq<Expr>, fuel: nat, ctx: State, ctx': State)
+    lemma InterpExprs_GEqInterp_Lem(
+      eq: Equivs, es: seq<Expr>, es': seq<Expr>, env: Environment, ctx: State, ctx': State)
       requires forall e | e in es :: SupportsInterp(e)
       requires All_Rel_Forall(Mk_EqInterp(eq), es, es')
       requires eq.eq_state(ctx, ctx')
       ensures forall e | e in es' :: SupportsInterp(e)
-      ensures GEqInterpResultSeq(eq, InterpExprs(es, fuel, ctx), InterpExprs(es', fuel, ctx'))
+      ensures GEqInterpResultSeq(eq, InterpExprs(es, env, ctx), InterpExprs(es', env, ctx'))
     // Auxiliary lemma: if two sequences contain equivalent expressions, evaluating those two
     // sequences in equivalent contexts leads to equivalent results.
     // This lemma is written generically over the equivalence relations over the states and
@@ -1059,8 +1059,8 @@ module CompilerRewriter {
     {
       reveal InterpExprs();
 
-      var res := InterpExprs(es, fuel, ctx);
-      var res' := InterpExprs(es', fuel, ctx');
+      var res := InterpExprs(es, env, ctx);
+      var res' := InterpExprs(es', env, ctx');
       if es == [] {
         assert res == Success(Return([], ctx));
         assert res' == Success(Return([], ctx'));
@@ -1068,8 +1068,8 @@ module CompilerRewriter {
       }
       else {
         // Evaluate the first expression in the sequence
-        var res1 := InterpExpr(es[0], fuel, ctx);
-        var res1' := InterpExpr(es'[0], fuel, ctx');
+        var res1 := InterpExpr(es[0], env, ctx);
+        var res1' := InterpExpr(es'[0], env, ctx');
         
         match res1 {
           case Success(Return(v, ctx1)) => {
@@ -1081,11 +1081,11 @@ module CompilerRewriter {
             assert eq.eq_state(ctx1, ctx1');
 
             // Evaluate the rest of the sequence
-            var res2 := InterpExprs(es[1..], fuel, ctx1);
-            var res2' := InterpExprs(es'[1..], fuel, ctx1');
+            var res2 := InterpExprs(es[1..], env, ctx1);
+            var res2' := InterpExprs(es'[1..], env, ctx1');
 
             // Recursive call
-            InterpExprs_GEqInterp_Lem(eq, es[1..], es'[1..], fuel, ctx1, ctx1');
+            InterpExprs_GEqInterp_Lem(eq, es[1..], es'[1..], env, ctx1, ctx1');
 
             match res2 {
               case Success(Return(vs, ctx2)) => {
@@ -1106,17 +1106,16 @@ module CompilerRewriter {
       }
     }
 
-    lemma
-    InterpExprs_EqInterp_Lem(es: seq<Expr>, es': seq<Expr>, fuel: nat, ctx: State, ctx': State)
+    lemma InterpExprs_EqInterp_Lem(es: seq<Expr>, es': seq<Expr>, env: Environment, ctx: State, ctx': State)
       requires forall e | e in es :: SupportsInterp(e)
       requires All_Rel_Forall(EqInterp, es, es')
       requires EqState(ctx, ctx')
       ensures forall e | e in es' :: SupportsInterp(e)
-      ensures EqInterpResultSeqValue(InterpExprs(es, fuel, ctx), InterpExprs(es', fuel, ctx'))
+      ensures EqInterpResultSeqValue(InterpExprs(es, env, ctx), InterpExprs(es', env, ctx'))
     // Auxiliary lemma: if two sequences contain equivalent expressions, evaluating those two
     // sequences in equivalent contexts leads to equivalent results.
     {
-      InterpExprs_GEqInterp_Lem(EQ(EqValue, EqState), es, es', fuel, ctx, ctx');
+      InterpExprs_GEqInterp_Lem(EQ(EqValue, EqState), es, es', env, ctx, ctx');
     }
 
     lemma Map_PairOfMapDisplaySeq_Lem(e: Expr, e': Expr, argvs: seq<WV>, argvs': seq<WV>)
@@ -1187,7 +1186,7 @@ module CompilerRewriter {
     }
 
     // TODO: maybe not necessary to make this opaque
-    predicate {:opaque} EqInterp_CanBeMapLifted_Pre(e: Expr, e': Expr, fuel: nat, ctx: State, ctx': State)
+    predicate {:opaque} EqInterp_CanBeMapLifted_Pre(e: Expr, e': Expr, env: Environment, ctx: State, ctx': State)
     {
       && EqState(ctx, ctx')
       && Exprs.ConstructorsMatch(e, e')
@@ -1197,17 +1196,17 @@ module CompilerRewriter {
     }
 
     // TODO: maybe not necessary to make this opaque
-    predicate {:opaque} EqInterp_CanBeMapLifted_Post(e: Expr, e': Expr, fuel: nat, ctx: State, ctx': State)
-      requires EqInterp_CanBeMapLifted_Pre(e, e', fuel, ctx, ctx')
+    predicate {:opaque} EqInterp_CanBeMapLifted_Post(e: Expr, e': Expr, env: Environment, ctx: State, ctx': State)
+      requires EqInterp_CanBeMapLifted_Pre(e, e', env, ctx, ctx')
     {
       reveal EqInterp_CanBeMapLifted_Pre();
-      EqInterpResultValue(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx'))
+      EqInterpResultValue(InterpExpr(e, env, ctx), InterpExpr(e', env, ctx'))
     }
 
-    lemma EqInterp_Expr_CanBeMapLifted_Lem(e: Expr, e': Expr, fuel: nat, ctx: State, ctx': State)
-      requires EqInterp_CanBeMapLifted_Pre(e, e', fuel, ctx, ctx')
-      ensures EqInterp_CanBeMapLifted_Post(e, e', fuel, ctx, ctx')
-      decreases e, fuel, 1
+    lemma EqInterp_Expr_CanBeMapLifted_Lem(e: Expr, e': Expr, env: Environment, ctx: State, ctx': State)
+      requires EqInterp_CanBeMapLifted_Pre(e, e', env, ctx, ctx')
+      ensures EqInterp_CanBeMapLifted_Post(e, e', env, ctx, ctx')
+      decreases e, env, 1
     {
       // Note that we don't need to reveal ``InterpExpr``: we just match on the first
       // expression and call the appropriate auxiliary lemma.
@@ -1222,22 +1221,22 @@ module CompilerRewriter {
 
       match e {
         case Var(_) => {
-          EqInterp_Expr_Var_CanBeMapLifted_Lem(e, e', fuel, ctx, ctx');
+          EqInterp_Expr_Var_CanBeMapLifted_Lem(e, e', env, ctx, ctx');
         }
         case Literal(_) => {
-          EqInterp_Expr_Literal_CanBeMapLifted_Lem(e, e', fuel, ctx, ctx');
+          EqInterp_Expr_Literal_CanBeMapLifted_Lem(e, e', env, ctx, ctx');
         }
         case Abs(_, _) => {
-          EqInterp_Expr_Abs_CanBeMapLifted_Lem(e, e', fuel, ctx, ctx');
+          EqInterp_Expr_Abs_CanBeMapLifted_Lem(e, e', env, ctx, ctx');
         }
         case Apply(Lazy(_), _) => {
-          EqInterp_Expr_ApplyLazy_CanBeMapLifted_Lem(e, e', fuel, ctx, ctx');
+          EqInterp_Expr_ApplyLazy_CanBeMapLifted_Lem(e, e', env, ctx, ctx');
         }
         case Apply(Eager(_), _) => {
-          EqInterp_Expr_ApplyEager_CanBeMapLifted_Lem(e, e', fuel, ctx, ctx');
+          EqInterp_Expr_ApplyEager_CanBeMapLifted_Lem(e, e', env, ctx, ctx');
         }
         case If(_, _, _) => {
-          EqInterp_Expr_If_CanBeMapLifted_Lem(e, e', fuel, ctx, ctx');
+          EqInterp_Expr_If_CanBeMapLifted_Lem(e, e', env, ctx, ctx');
         }
         case _ => {
           // Unsupported branch
@@ -1247,29 +1246,27 @@ module CompilerRewriter {
       }
     }
 
-    lemma
-    EqInterp_Expr_Var_CanBeMapLifted_Lem(e: Expr, e': Expr, fuel: nat, ctx: State, ctx': State)
+    lemma EqInterp_Expr_Var_CanBeMapLifted_Lem(e: Expr, e': Expr, env: Environment, ctx: State, ctx': State)
       requires e.Var?
       requires e'.Var?
-      requires EqInterp_CanBeMapLifted_Pre(e, e', fuel, ctx, ctx')
-      ensures EqInterp_CanBeMapLifted_Post(e, e', fuel, ctx, ctx')
-      decreases e, fuel, 0
+      requires EqInterp_CanBeMapLifted_Pre(e, e', env, ctx, ctx')
+      ensures EqInterp_CanBeMapLifted_Post(e, e', env, ctx, ctx')
+      decreases e, env, 0
     {
       reveal EqInterp_CanBeMapLifted_Pre();
       reveal EqInterp_CanBeMapLifted_Post();
-        
+
       reveal InterpExpr();
-      reveal TryGetLocal();
+      reveal TryGetVariable();
       reveal GEqCtx();
     }
 
-    lemma
-    EqInterp_Expr_Literal_CanBeMapLifted_Lem(e: Expr, e': Expr, fuel: nat, ctx: State, ctx': State)
+    lemma EqInterp_Expr_Literal_CanBeMapLifted_Lem(e: Expr, e': Expr, env: Environment, ctx: State, ctx': State)
       requires e.Literal?
       requires e'.Literal?
-      requires EqInterp_CanBeMapLifted_Pre(e, e', fuel, ctx, ctx')
-      ensures EqInterp_CanBeMapLifted_Post(e, e', fuel, ctx, ctx')
-      decreases e, fuel, 0
+      requires EqInterp_CanBeMapLifted_Pre(e, e', env, ctx, ctx')
+      ensures EqInterp_CanBeMapLifted_Post(e, e', env, ctx, ctx')
+      decreases e, env, 0
     {
       reveal EqInterp_CanBeMapLifted_Pre();
       reveal EqInterp_CanBeMapLifted_Post();
@@ -1278,13 +1275,12 @@ module CompilerRewriter {
       reveal InterpLiteral();
     }
 
-    lemma
-    EqInterp_Expr_Abs_CanBeMapLifted_Lem(e: Expr, e': Expr, fuel: nat, ctx: State, ctx': State)
+    lemma EqInterp_Expr_Abs_CanBeMapLifted_Lem(e: Expr, e': Expr, env: Environment, ctx: State, ctx': State)
       requires e.Abs?
       requires e'.Abs?
-      requires EqInterp_CanBeMapLifted_Pre(e, e', fuel, ctx, ctx')
-      ensures EqInterp_CanBeMapLifted_Post(e, e', fuel, ctx, ctx')
-      decreases e, fuel, 0
+      requires EqInterp_CanBeMapLifted_Pre(e, e', env, ctx, ctx')
+      ensures EqInterp_CanBeMapLifted_Post(e, e', env, ctx, ctx')
+      decreases e, env, 0
     {
       reveal EqInterp_CanBeMapLifted_Pre();
       reveal EqInterp_CanBeMapLifted_Post();
@@ -1298,17 +1294,17 @@ module CompilerRewriter {
 
       var cv := Closure(ctx.locals, vars, body);
       var cv' := Closure(ctx'.locals, vars', body');
-      assert InterpExpr(e, fuel, ctx) == Success(Return(cv, ctx)) by { reveal InterpExpr(); }
-      assert InterpExpr(e', fuel, ctx') == Success(Return(cv', ctx')) by {reveal InterpExpr(); }
+      assert InterpExpr(e, env, ctx) == Success(Return(cv, ctx)) by { reveal InterpExpr(); }
+      assert InterpExpr(e', env, ctx') == Success(Return(cv', ctx')) by {reveal InterpExpr(); }
 
-      forall fuel: nat, argvs: seq<WV>, argvs': seq<WV> |
+      forall env: Environment, argvs: seq<WV>, argvs': seq<WV> |
         && |argvs| == |argvs'| == |vars|
         && (forall i | 0 <= i < |vars| :: EqValue(argvs[i], argvs'[i]))
         ensures
-          var res := InterpCallFunctionBody(cv, fuel, argvs);
-          var res' := InterpCallFunctionBody(cv', fuel, argvs');
+          var res := InterpCallFunctionBody(cv, env, argvs);
+          var res' := InterpCallFunctionBody(cv', env, argvs');
           EqPureInterpResultValue(res, res') {
-        EqInterp_Expr_AbsClosure_CanBeMapLifted_Lem(cv, cv', fuel, argvs, argvs');
+        EqInterp_Expr_AbsClosure_CanBeMapLifted_Lem(cv, cv', env, argvs, argvs');
       }
 
       assert EqValue_Closure(cv, cv') by {
@@ -1316,8 +1312,7 @@ module CompilerRewriter {
       }
     }
 
-    lemma
-    EqInterp_Expr_AbsClosure_CanBeMapLifted_Lem(cv: WV, cv': WV, fuel: nat, argvs: seq<WV>, argvs': seq<WV>)
+    lemma EqInterp_Expr_AbsClosure_CanBeMapLifted_Lem(cv: WV, cv': WV, env: Environment, argvs: seq<WV>, argvs': seq<WV>)
       requires cv.Closure?
       requires cv'.Closure?
       requires |argvs| == |argvs'| == |cv.vars|
@@ -1326,12 +1321,12 @@ module CompilerRewriter {
       requires EqCtx(cv.ctx, cv'.ctx)
       requires EqInterp(cv.body, cv'.body)
       ensures
-          var res := InterpCallFunctionBody(cv, fuel, argvs);
-          var res' := InterpCallFunctionBody(cv', fuel, argvs');
+          var res := InterpCallFunctionBody(cv, env, argvs);
+          var res' := InterpCallFunctionBody(cv', env, argvs');
           EqPureInterpResultValue(res, res')
     {
-      var res := InterpCallFunctionBody(cv, fuel, argvs);
-      var res' := InterpCallFunctionBody(cv', fuel, argvs');
+      var res := InterpCallFunctionBody(cv, env, argvs);
+      var res' := InterpCallFunctionBody(cv', env, argvs');
 
       var ctx1 := BuildCallState(cv.ctx, cv.vars, argvs);
       var ctx1' := BuildCallState(cv'.ctx, cv'.vars, argvs');
@@ -1343,8 +1338,7 @@ module CompilerRewriter {
       }
     }
 
-    lemma
-    MapOfPairs_EqCtx_Lem(pl: seq<(string, WV)>, pl': seq<(string, WV)>)
+    lemma MapOfPairs_EqCtx_Lem(pl: seq<(string, WV)>, pl': seq<(string, WV)>)
       requires |pl| == |pl'|
       requires (forall i | 0 <= i < |pl| :: pl[i].0 == pl'[i].0)
       requires (forall i | 0 <= i < |pl| :: EqValue(pl[i].1, pl'[i].1))
@@ -1383,12 +1377,12 @@ module CompilerRewriter {
       MapOfPairs_EqCtx_Lem(pl, pl');
     }
 
-    lemma EqInterp_Expr_ApplyLazy_CanBeMapLifted_Lem(e: Expr, e': Expr, fuel: nat, ctx: State, ctx': State)
+    lemma EqInterp_Expr_ApplyLazy_CanBeMapLifted_Lem(e: Expr, e': Expr, env: Environment, ctx: State, ctx': State)
       requires e.Apply? && e.aop.Lazy?
       requires e'.Apply? && e'.aop.Lazy?
-      requires EqInterp_CanBeMapLifted_Pre(e, e', fuel, ctx, ctx')
-      ensures EqInterp_CanBeMapLifted_Post(e, e', fuel, ctx, ctx')
-      decreases e, fuel, 0
+      requires EqInterp_CanBeMapLifted_Pre(e, e', env, ctx, ctx')
+      ensures EqInterp_CanBeMapLifted_Post(e, e', env, ctx, ctx')
+      decreases e, env, 0
     {
       reveal EqInterp_CanBeMapLifted_Pre();
       reveal EqInterp_CanBeMapLifted_Post();
@@ -1398,11 +1392,11 @@ module CompilerRewriter {
 
       reveal SupportsInterp();
       
-      var res := InterpExpr(e, fuel, ctx);
-      var res' := InterpExpr(e', fuel, ctx');
+      var res := InterpExpr(e, env, ctx);
+      var res' := InterpExpr(e', env, ctx');
       
-      assert res == InterpLazy(e, fuel, ctx);
-      assert res' == InterpLazy(e', fuel, ctx');
+      assert res == InterpLazy(e, env, ctx);
+      assert res' == InterpLazy(e', env, ctx');
 
       // Both expressions should be booleans
       var op, e0, e1 := e.aop.lOp, e.args[0], e.args[1];
@@ -1410,19 +1404,19 @@ module CompilerRewriter {
       assert op == op';
 
       // Evaluate the first boolean
-      EqInterp_Lem(e0, e0', fuel, ctx, ctx');
-      var res0 := InterpExprWithType(e0, Type.Bool, fuel, ctx);
-      var res0' := InterpExprWithType(e0', Type.Bool, fuel, ctx');
+      EqInterp_Lem(e0, e0', env, ctx, ctx');
+      var res0 := InterpExprWithType(e0, Type.Bool, env, ctx);
+      var res0' := InterpExprWithType(e0', Type.Bool, env, ctx');
       assert EqInterpResultValue(res0, res0');
 
       match res0 {
         case Success(Return(v0, ctx0)) => {
           var Return(v0', ctx0') := res0'.value;
 
-          EqInterp_Lem(e1, e1', fuel, ctx0, ctx0');
+          EqInterp_Lem(e1, e1', env, ctx0, ctx0');
           // The proof fails if we don't introduce res1 and res1'
-          var res1 := InterpExprWithType(e1, Type.Bool, fuel, ctx0);
-          var res1' := InterpExprWithType(e1', Type.Bool, fuel, ctx0');
+          var res1 := InterpExprWithType(e1, Type.Bool, env, ctx0);
+          var res1' := InterpExprWithType(e1', Type.Bool, env, ctx0');
           assert EqInterpResultValue(res1, res1');
           assert EqInterpResultValue(res, res');
         }
@@ -1433,12 +1427,12 @@ module CompilerRewriter {
       }
     }
 
-    lemma EqInterp_Expr_ApplyEager_CanBeMapLifted_Lem(e: Expr, e': Expr, fuel: nat, ctx: State, ctx': State)
+    lemma EqInterp_Expr_ApplyEager_CanBeMapLifted_Lem(e: Expr, e': Expr, env: Environment, ctx: State, ctx': State)
       requires e.Apply? && e.aop.Eager?
       requires e'.Apply? && e'.aop.Eager?
-      requires EqInterp_CanBeMapLifted_Pre(e, e', fuel, ctx, ctx')
-      ensures EqInterp_CanBeMapLifted_Post(e, e', fuel, ctx, ctx')
-      decreases e, fuel, 0
+      requires EqInterp_CanBeMapLifted_Pre(e, e', env, ctx, ctx')
+      ensures EqInterp_CanBeMapLifted_Post(e, e', env, ctx, ctx')
+      decreases e, env, 0
     {
       reveal EqInterp_CanBeMapLifted_Pre();
       reveal EqInterp_CanBeMapLifted_Post();
@@ -1446,16 +1440,16 @@ module CompilerRewriter {
       reveal InterpExpr();
       reveal SupportsInterp();
 
-      var res := InterpExpr(e, fuel, ctx);
-      var res' := InterpExpr(e', fuel, ctx');
+      var res := InterpExpr(e, env, ctx);
+      var res' := InterpExpr(e', env, ctx');
 
       var Apply(Eager(op), args) := e;
       var Apply(Eager(op'), args') := e';
 
       // The arguments evaluate to similar results
-      var res0 := InterpExprs(args, fuel, ctx);
-      var res0' := InterpExprs(args', fuel, ctx');
-      InterpExprs_EqInterp_Lem(args, args', fuel, ctx, ctx');
+      var res0 := InterpExprs(args, env, ctx);
+      var res0' := InterpExprs(args', env, ctx');
+      InterpExprs_EqInterp_Lem(args, args', env, ctx, ctx');
       assert EqInterpResult(EqSeqValue, res0, res0');
 
       match (res0, res0') {
@@ -1487,7 +1481,7 @@ module CompilerRewriter {
               assert EqInterpResultValue(res, res');
             }
             case (FunctionCall(), FunctionCall()) => {
-              EqInterp_Expr_FunctionCall_CanBeMapLifted_Lem(e, e', fuel, argvs[0], argvs'[0], argvs[1..], argvs'[1..]);
+              EqInterp_Expr_FunctionCall_CanBeMapLifted_Lem(e, e', env, argvs[0], argvs'[0], argvs[1..], argvs'[1..]);
               assert EqInterpResultValue(res, res');
             }
             case _ => {
@@ -1509,8 +1503,7 @@ module CompilerRewriter {
     }
 
     // TODO: e and e' should be the same actually
-    lemma
-    EqInterp_Expr_UnaryOp_CanBeMapLifted_Lem(
+    lemma EqInterp_Expr_UnaryOp_CanBeMapLifted_Lem(
       e: Expr, e': Expr, op: UnaryOp, v: WV, v': WV)
       requires !op.MemberSelect?
       requires EqValue(v, v')
@@ -1567,8 +1560,7 @@ module CompilerRewriter {
     // TODO: we could split this lemma, whose proof is big (though straightforward),
     // but it is a bit annoying to do...
     // TODO: e and e' should be the same actually
-    lemma
-    EqInterp_Expr_BinaryOp_CanBeMapLifted_Lem(
+    lemma EqInterp_Expr_BinaryOp_CanBeMapLifted_Lem(
       e: Expr, e': Expr, bop: BinaryOp, v0: WV, v1: WV, v0': WV, v1': WV)
       requires !bop.BV? && !bop.Datatypes?
       requires EqValue(v0, v0')
@@ -1739,8 +1731,7 @@ module CompilerRewriter {
     }
 
     // TODO: e and e' should be the same actually
-    lemma
-    EqInterp_Expr_TernaryOp_CanBeMapLifted_Lem(
+    lemma EqInterp_Expr_TernaryOp_CanBeMapLifted_Lem(
       e: Expr, e': Expr, top: TernaryOp, v0: WV, v1: WV, v2: WV, v0': WV, v1': WV, v2': WV)
       requires EqValue(v0, v0')
       requires EqValue(v1, v1')
@@ -1762,8 +1753,7 @@ module CompilerRewriter {
       }
     }
 
-    lemma
-    EqInterp_Expr_Display_CanBeMapLifted_Lem(
+    lemma EqInterp_Expr_Display_CanBeMapLifted_Lem(
       e: Expr, e': Expr, kind: Types.CollectionKind, vs: seq<WV>, vs': seq<WV>)
       requires EqSeqValue(vs, vs')
       ensures EqPureInterpResultValue(InterpDisplay(e, kind, vs), InterpDisplay(e', kind, vs')) {
@@ -1799,14 +1789,13 @@ module CompilerRewriter {
       }
     }
 
-    lemma
-    EqInterp_Expr_FunctionCall_CanBeMapLifted_Lem(
-      e: Expr, e': Expr, fuel: nat, f: WV, f': WV, argvs: seq<WV>, argvs': seq<WV>)
+    lemma EqInterp_Expr_FunctionCall_CanBeMapLifted_Lem(
+      e: Expr, e': Expr, env: Environment, f: WV, f': WV, argvs: seq<WV>, argvs': seq<WV>)
       requires EqValue(f, f')
       requires EqSeqValue(argvs, argvs')
-      ensures EqPureInterpResultValue(InterpFunctionCall(e, fuel, f, argvs), InterpFunctionCall(e', fuel, f', argvs')) {      
-      var res := InterpFunctionCall(e, fuel, f, argvs);
-      var res' := InterpFunctionCall(e', fuel, f', argvs');
+      ensures EqPureInterpResultValue(InterpFunctionCall(e, env, f, argvs), InterpFunctionCall(e', env, f', argvs')) {
+      var res := InterpFunctionCall(e, env, f, argvs);
+      var res' := InterpFunctionCall(e', env, f', argvs');
 
       if res.Success? || res'.Success? {
         reveal InterpFunctionCall();
@@ -1824,8 +1813,8 @@ module CompilerRewriter {
         assume (forall i | 0 <= i < |vars| :: ValueTypeHeight(argvs[i]) < ValueTypeHeight(f));
         assume (forall i | 0 <= i < |vars| :: ValueTypeHeight(argvs'[i]) < ValueTypeHeight(f'));
 
-        var res0 := InterpCallFunctionBody(f, fuel - 1, argvs);
-        var res0' := InterpCallFunctionBody(f', fuel - 1, argvs');
+        var res0 := InterpCallFunctionBody(f, env.(fuel := env.fuel - 1), argvs);
+        var res0' := InterpCallFunctionBody(f', env.(fuel := env.fuel - 1), argvs');
         // This comes from EqValue_Closure
         assert EqPureInterpResultValue(res0, res0');
 
@@ -1840,12 +1829,12 @@ module CompilerRewriter {
       }
     }
 
-    lemma EqInterp_Expr_If_CanBeMapLifted_Lem(e: Expr, e': Expr, fuel: nat, ctx: State, ctx': State)
+    lemma EqInterp_Expr_If_CanBeMapLifted_Lem(e: Expr, e': Expr, env: Environment, ctx: State, ctx': State)
       requires e.If?
       requires e'.If?
-      requires EqInterp_CanBeMapLifted_Pre(e, e', fuel, ctx, ctx')
-      ensures EqInterp_CanBeMapLifted_Post(e, e', fuel, ctx, ctx')
-      decreases e, fuel, 0
+      requires EqInterp_CanBeMapLifted_Pre(e, e', env, ctx, ctx')
+      ensures EqInterp_CanBeMapLifted_Post(e, e', env, ctx, ctx')
+      decreases e, env, 0
     {
       reveal EqInterp_CanBeMapLifted_Pre();
       reveal EqInterp_CanBeMapLifted_Post();
@@ -1853,8 +1842,8 @@ module CompilerRewriter {
       reveal InterpExpr();
       reveal SupportsInterp();
 
-      var res := InterpExpr(e, fuel, ctx);
-      var res' := InterpExpr(e', fuel, ctx');
+      var res := InterpExpr(e, env, ctx);
+      var res' := InterpExpr(e', env, ctx');
 
       var If(cond, thn, els) := e;
       var If(cond', thn', els') := e';
@@ -1873,18 +1862,18 @@ module CompilerRewriter {
 
       assert SupportsInterp(e');
 
-      var res0 := InterpExprWithType(cond, Type.Bool, fuel, ctx);
-      var res0' := InterpExprWithType(cond', Type.Bool, fuel, ctx');
+      var res0 := InterpExprWithType(cond, Type.Bool, env, ctx);
+      var res0' := InterpExprWithType(cond', Type.Bool, env, ctx');
 
-      EqInterp_Lem(cond, cond', fuel, ctx, ctx');
+      EqInterp_Lem(cond, cond', env, ctx, ctx');
       assert EqInterpResultValue(res0, res0');
 
       if res0.Success? {
         var Return(condv, ctx0) := res0.value;
         var Return(condv', ctx0') := res0'.value;
 
-        EqInterp_Lem(thn, thn', fuel, ctx0, ctx0'); // Proof fails without this
-        EqInterp_Lem(els, els', fuel, ctx0, ctx0'); // Proof fails without this
+        EqInterp_Lem(thn, thn', env, ctx0, ctx0'); // Proof fails without this
+        EqInterp_Lem(els, els', env, ctx0, ctx0'); // Proof fails without this
       }
       else {
         // Trivial
@@ -1906,11 +1895,11 @@ module CompilerRewriter {
             reveal SupportsInterp();
             assert SupportsInterp(e');
 
-            forall fuel, ctx, ctx' | EqState(ctx, ctx') ensures
-              EqInterpResultValue(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx')) {
+            forall env, ctx, ctx' | EqState(ctx, ctx') ensures
+              EqInterpResultValue(InterpExpr(e, env, ctx), InterpExpr(e', env, ctx')) {
               reveal EqInterp_CanBeMapLifted_Pre();
               reveal EqInterp_CanBeMapLifted_Post();
-              EqInterp_Expr_CanBeMapLifted_Lem(e, e', fuel, ctx, ctx');
+              EqInterp_Expr_CanBeMapLifted_Lem(e, e', env, ctx, ctx');
             }
           }
           else {}
@@ -1967,9 +1956,13 @@ module CompilerRewriter {
     import opened Values
     import opened Equiv
 
-    function method FlipNegatedBinop_Aux(op: BinaryOps.BinaryOp) :
-      (op': BinaryOps.BinaryOp)
-    // Auxiliary function (no postcondition)
+    type Expr = AST.Expr
+
+    function method FlipNegatedBinop_Aux(op: BinaryOps.BinaryOp)
+      : (op': BinaryOps.BinaryOp)
+      // Auxiliary function (no postcondition) to avoid non-termination.
+      // Without this there is a loop between the ``requires`` of
+      // FlipNegatedBinop and the body of ``IsNegatedBinop``.
     {
       match op {
         case Eq(NeqCommon) => BinaryOps.Eq(BinaryOps.EqCommon)
@@ -1985,8 +1978,8 @@ module CompilerRewriter {
       }
     }
 
-    function method FlipNegatedBinop(op: BinaryOps.BinaryOp) :
-      (op': BinaryOps.BinaryOp)
+    function method FlipNegatedBinop(op: BinaryOps.BinaryOp)
+      : (op': BinaryOps.BinaryOp)
       ensures !IsNegatedBinop(op')
     {
       FlipNegatedBinop_Aux(op)
@@ -2078,19 +2071,19 @@ module CompilerRewriter {
         assert SupportsInterp(e');
 
         // Prove that for every fuel and context, the interpreter returns the same result
-        forall fuel, ctx, ctx' | EqState(ctx, ctx')
-          ensures EqInterpResultValue(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx')) {
-          var res := InterpExpr(e, fuel, ctx);
-          var res' := InterpExpr(e', fuel, ctx');
+        forall env, ctx, ctx' | EqState(ctx, ctx')
+          ensures EqInterpResultValue(InterpExpr(e, env, ctx), InterpExpr(e', env, ctx')) {
+          var res := InterpExpr(e, env, ctx);
+          var res' := InterpExpr(e', env, ctx');
 
-          var args_res := InterpExprs(args, fuel, ctx);
-          var args_res' := InterpExprs(args, fuel, ctx');
+          var args_res := InterpExprs(args, env, ctx);
+          var args_res' := InterpExprs(args, env, ctx');
           EqInterp_Seq_Refl_Lem(args);
-          InterpExprs_EqInterp_Lem(args, args, fuel, ctx, ctx');
+          InterpExprs_EqInterp_Lem(args, args, env, ctx, ctx');
           assert EqInterpResultSeqValue(args_res, args_res');
 
           var flipped := Exprs.Apply(Exprs.Eager(bop'), args);
-          InterpExprs1_Strong_Lem(flipped, fuel, ctx');
+          InterpExprs1_Strong_Lem(flipped, env, ctx');
 
           if args_res.Success? {
             assert args_res'.Success?;
