@@ -149,15 +149,22 @@ public static Parser SetupParser(string/*!*/ s, string/*!*/ fullFilename, string
   return new Parser(scanner, errors, include, module, builtIns, verifyThisFile, compileThisFile);
 }
 
+public void PreParse() {
+  la = new Token();
+  la.val = "";
+  Get();
+}
+
+public Expression ParseExpression() {
+  Expression(out var e, true, true, true);
+  return e;
+}
+
 public static Expression ParseExpression(string/*!*/ s, string/*!*/ fullFilename, string/*!*/ filename, Include include, ModuleDecl module,
                                          BuiltIns builtIns, Errors/*!*/ errors, bool verifyThisFile=true, bool compileThisFile=true) {
   Parser parser = SetupParser(s, fullFilename, filename, include, module, builtIns, errors, verifyThisFile, compileThisFile);
-  parser.la = new Token();
-  parser.la.val = "";
-  parser.Get();
-  Expression e;
-  parser.Expression(out e, true, true, true);
-  return e;
+  parser.PreParse();
+  return parser.ParseExpression();
 }
 
 ///<summary>
