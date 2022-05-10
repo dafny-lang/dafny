@@ -584,20 +584,35 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       Success(DE.Apply(DE.Eager(DE.FunctionCall()), [fn] + args))
     }
 
-    function method TranslateFunctionCall(fce: C.FunctionCallExpr)
+    function method TranslateMemberSelect(obj: C.Expression, fullName: System.String)
+      : (e: TranslationResult<WfExpr>)
+      reads *
+      decreases ASTHeight(obj), 3
+    {
+      var fname := TypeConv.AsString(fullName);
+      if obj.Resolved is C.StaticReceiverExpr then
+        Success(DE.Var(fname))
+      else
+        var obj :- TranslateExpression(obj);
+        Success(DE.Apply(DE.Eager(DE.UnaryOp(DE.UnaryOps.MemberSelect(fname))), [obj]))
+    }
+
+    function method TranslateMemberSelectExpr(me: C.MemberSelectExpr)
+      : (e: TranslationResult<WfExpr>)
+      reads *
+      decreases ASTHeight(me), 0
+    {
+      assume Decreases(me.Obj, me);
+      TranslateMemberSelect(me.Obj, me.Member.FullName)
+    }
+
+    function method TranslateFunctionCallExpr(fce: C.FunctionCallExpr)
       : (e: TranslationResult<WfExpr>)
       reads *
       decreases ASTHeight(fce), 0
     {
-      // FIXME do we need to consider the receiver?
-      var fname := TypeConv.AsString(fce.Function.FullName);
-      var fn :- if fce.Receiver.Resolved is C.StaticReceiverExpr then
-          Success(DE.Var(fname))
-        else
-          assume Decreases(fce.Receiver, fce);
-          var receiver :- TranslateExpression(fce.Receiver);
-          Success(DE.Apply(DE.Eager(DE.UnaryOp(DE.UnaryOps.MemberSelect(fname))), [receiver]));
-      assert P.All_Expr(fn, DE.WellFormed);
+      assume Decreases(fce.Receiver, fce);
+      var fn :- TranslateMemberSelect(fce.Receiver, fce.Function.FullName);
       var args := ListUtils.ToSeq(fce.Args);
       var args :- Seq.MapResult(args, e requires e in args reads * =>
         assume Decreases(e, fce); TranslateExpression(e));
@@ -730,8 +745,10 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         TranslateLiteral(c as C.LiteralExpr)
       else if c is C.ApplyExpr then
         TranslateApplyExpr(c as C.ApplyExpr)
+      else if c is C.MemberSelectExpr then
+        TranslateMemberSelectExpr(c as C.MemberSelectExpr)
       else if c is C.FunctionCallExpr then
-        TranslateFunctionCall(c as C.FunctionCallExpr)
+        TranslateFunctionCallExpr(c as C.FunctionCallExpr)
       else if c is C.DatatypeValue then
         TranslateDatatypeValue(c as C.DatatypeValue)
       else if c is C.MapDisplayExpr then
