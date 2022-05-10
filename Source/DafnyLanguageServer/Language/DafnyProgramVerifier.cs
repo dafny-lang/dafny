@@ -82,7 +82,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         var errorReporter = (DiagnosticErrorReporter)program.reporter;
         if (options.GutterStatus) {
           progressReporter.RecomputeVerificationTree();
-          progressReporter.ReportRealtimeDiagnostics(document);
+          progressReporter.ReportRealtimeDiagnostics(false, document);
         }
 
         var printer = new ModelCapturingOutputPrinter(logger, errorReporter, progressReporter, options.GutterStatus);

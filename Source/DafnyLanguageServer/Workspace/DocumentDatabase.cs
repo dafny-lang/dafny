@@ -82,7 +82,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private async Task<DafnyDocument> OpenAsync(TextDocumentItem textDocument, CancellationToken cancellationToken) {
       try {
         var newDocument = await documentLoader.LoadAsync(textDocument, cancellationToken);
-        PublishVerificationDiagnostics(newDocument);
+        PublishVerificationDiagnostics(newDocument, false);
         return newDocument;
       } catch (OperationCanceledException) {
         // We do not allow canceling the load of the placeholder document. Otherwise, other components
@@ -153,7 +153,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             OldVerificationDiagnostics = migratedVerificationDiagnotics,
             VerificationTree = migratedVerificationTree
           };
-          PublishVerificationDiagnostics(resolvedDocument);
+          PublishVerificationDiagnostics(resolvedDocument, false);
           return resolvedDocument;
         }
         // The document loader failed to create a new symbol table. Since we'd still like to provide
@@ -164,7 +164,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           OldVerificationDiagnostics = migratedVerificationDiagnotics,
           VerificationTree = migratedVerificationTree
         };
-        PublishVerificationDiagnostics(failedDocument);
+        PublishVerificationDiagnostics(failedDocument, false);
         return failedDocument;
       } catch (OperationCanceledException) {
         // The document load was canceled before it could complete. We migrate the document
@@ -181,8 +181,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
     }
 
-    private void PublishVerificationDiagnostics(DafnyDocument document) {
-      documentLoader.PublishVerificationDiagnostics(document);
+    private void PublishVerificationDiagnostics(DafnyDocument document, bool verificationStarted) {
+      documentLoader.PublishVerificationDiagnostics(document, verificationStarted);
     }
 
     public IObservable<DafnyDocument> SaveDocument(TextDocumentIdentifier documentId) {

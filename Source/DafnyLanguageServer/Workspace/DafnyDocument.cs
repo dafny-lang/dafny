@@ -40,13 +40,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// True is the resolution succeeded, false if resolution failed
     /// <c>null</c> If the verification did not start (e.g. because of resolution errors)
     /// </summary>
-    public bool? ResolutionSucceeded { get; set; } = null;
-
-    /// <summary>
-    /// True is the verification pass went through, false if it failed because of verification errors
-    /// <c>null</c> If the verification did not start (e.g. because of resolution errors or verification deactivated)
-    /// </summary>
-    public bool? VerificationPass { get; set; } = null;
+    public bool? ResolutionSucceeded { get; init; } = null;
 
     /// <summary>
     /// Contains the real-time status of all verification efforts.

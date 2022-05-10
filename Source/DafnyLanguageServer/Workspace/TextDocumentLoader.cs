@@ -157,13 +157,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     // Called only in the case there is a parsing or resolution error on the document
-    public void PublishVerificationDiagnostics(DafnyDocument document) {
-      diagnosticPublisher.PublishVerificationDiagnostics(document);
+    public void PublishVerificationDiagnostics(DafnyDocument document, bool verificationStarted) {
+      diagnosticPublisher.PublishVerificationDiagnostics(document, verificationStarted);
     }
 
     private async Task<DafnyDocument> VerifyInternalAsync(DafnyDocument document, CancellationToken cancellationToken) {
       notificationPublisher.SendStatusNotification(document.Text, CompilationStatus.VerificationStarted);
-      document.VerificationPass = false;
 
       var progressReporter = new VerificationProgressReporter(
         loggerFactory.CreateLogger<VerificationProgressReporter>(),
@@ -182,9 +181,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var newDocument = document with {
         OldVerificationDiagnostics = new List<Diagnostic>(),
         SerializedCounterExamples = verificationResult.SerializedCounterExamples,
-        VerificationPass = true
       };
-      progressReporter.ReportRealtimeDiagnostics(newDocument);
+      progressReporter.ReportRealtimeDiagnostics(true, newDocument);
       return newDocument;
     }
 

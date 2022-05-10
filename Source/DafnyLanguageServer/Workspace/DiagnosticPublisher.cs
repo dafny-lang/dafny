@@ -37,7 +37,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       languageServer.TextDocument.PublishDiagnostics(diagnosticParameters);
     }
 
-    public void PublishVerificationDiagnostics(DafnyDocument document) {
+    public void PublishVerificationDiagnostics(DafnyDocument document, bool verificationStarted) {
       if (document.LoadCanceled) {
         // We leave the responsibility to shift the error locations to the LSP clients.
         // Therefore, we do not republish the errors when the document (re-)load was canceled.
@@ -58,7 +58,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         document.VerificationTree.Children.Select(child => child.GetCopyForNotification()).ToArray(),
         errors,
         linesCount,
-        document.VerificationPass != null,
+        verificationStarted,
         document.ResolutionSucceeded == false ? currentDiagnostics.Count() : 0
       );
       languageServer.TextDocument.SendNotification(verificationStatusGutter);

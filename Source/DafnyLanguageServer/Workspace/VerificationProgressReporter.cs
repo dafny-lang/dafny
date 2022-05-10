@@ -179,13 +179,13 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   /// Triggers sending of the current verification diagnostics to the client
   /// </summary>
   /// <param name="dafnyDocument">The document to send. Can be a previous document</param>
-  public void ReportRealtimeDiagnostics(DafnyDocument? dafnyDocument = null) {
+  public void ReportRealtimeDiagnostics(bool verificationStarted, DafnyDocument? dafnyDocument = null) {
     lock (LockProcessing) {
       dafnyDocument ??= document;
       if (dafnyDocument.LoadCanceled) {
         return;
       }
-      diagnosticPublisher.PublishVerificationDiagnostics(document);
+      diagnosticPublisher.PublishVerificationDiagnostics(document, verificationStarted);
     }
   }
 
@@ -235,7 +235,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
         }
 
         targetMethodNode.PropagateChildrenErrorsUp();
-        ReportRealtimeDiagnostics();
+        ReportRealtimeDiagnostics(true);
       }
     }
   }
@@ -278,7 +278,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
 
         targetMethodNode.PropagateChildrenErrorsUp();
         targetMethodNode.RecomputeAssertionBatchNodeDiagnostics();
-        ReportRealtimeDiagnostics();
+        ReportRealtimeDiagnostics(true);
       }
     }
   }
@@ -371,7 +371,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
         }
         targetMethodNode.PropagateChildrenErrorsUp();
         targetMethodNode.RecomputeAssertionBatchNodeDiagnostics();
-        ReportRealtimeDiagnostics();
+        ReportRealtimeDiagnostics(true);
       }
     }
   }
