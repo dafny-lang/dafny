@@ -10,30 +10,32 @@ using PODesc = Microsoft.Dafny.ProofObligationDescription;
 
 namespace Microsoft.Dafny {
   public partial class Translator {
-    void AddClassMembers(TopLevelDeclWithMembers c, bool includeAllMethods) {
+    void AddClassMembers(TopLevelDeclWithMembers c, bool includeAllMethods, bool includeInformationAboutType) {
       Contract.Requires(sink != null && predef != null);
       Contract.Requires(c != null);
       Contract.Ensures(fuelContext == Contract.OldValue(fuelContext));
       Contract.Assert(VisibleInScope(c));
 
-      sink.AddTopLevelDeclaration(GetClass(c));
-      if (c is ArrayClassDecl) {
-        // classes.Add(c, predef.ClassDotArray);
-        AddAllocationAxiom(null, null, (ArrayClassDecl)c, true);
-      }
+      if (includeInformationAboutType) {
+        sink.AddTopLevelDeclaration(GetClass(c));
+        if (c is ArrayClassDecl) {
+          // classes.Add(c, predef.ClassDotArray);
+          AddAllocationAxiom(null, null, (ArrayClassDecl)c, true);
+        }
 
-      AddIsAndIsAllocForClassLike(c);
+        AddIsAndIsAllocForClassLike(c);
 
-      if (c is TraitDecl) {
-        //this adds: function implements$J(Ty, typeArgs): bool;
-        var arg_ref = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, "ty", predef.Ty), true);
-        var vars = new List<Bpl.Variable> { arg_ref };
-        vars.AddRange(MkTyParamFormals(GetTypeParams(c), false));
-        var res = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
-        var implement_intr = new Bpl.Function(c.tok, "implements$" + c.FullSanitizedName, vars, res);
-        sink.AddTopLevelDeclaration(implement_intr);
-      } else if (c is ClassDecl classDecl) {
-        AddImplementsAxioms(classDecl);
+        if (c is TraitDecl) {
+          //this adds: function implements$J(Ty, typeArgs): bool;
+          var arg_ref = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, "ty", predef.Ty), true);
+          var vars = new List<Bpl.Variable> { arg_ref };
+          vars.AddRange(MkTyParamFormals(GetTypeParams(c), false));
+          var res = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
+          var implement_intr = new Bpl.Function(c.tok, "implements$" + c.FullSanitizedName, vars, res);
+          sink.AddTopLevelDeclaration(implement_intr);
+        } else if (c is ClassDecl classDecl) {
+          AddImplementsAxioms(classDecl);
+        }
       }
 
       foreach (MemberDecl member in c.Members.FindAll(VisibleInScope)) {
