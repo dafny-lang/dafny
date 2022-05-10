@@ -3,6 +3,7 @@ using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 
@@ -54,7 +55,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// </summary>
     public VerificationTree VerificationTree { get; init; } = new DocumentVerificationTree(
       Text.Uri.ToString(),
-      Regex.Matches(Text.Text, "\r?\n").Count + 1
+      Text.Text.Count(c => c == '\n') + 1
     );
 
     /// <summary>
@@ -65,5 +66,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public bool IsDocument(DocumentUri documentUri) {
       return documentUri == Uri;
     }
+
+    public int LinesCount => VerificationTree.Range.End.Line;
   }
 }

@@ -51,7 +51,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         .Concat(document.OldVerificationDiagnostics)
         .Where(x => x.Severity == DiagnosticSeverity.Error)
         .ToArray();
-      var linesCount = Regex.Matches(document.Text.Text, "\r?\n").Count + 1;
+      var linesCount = document.LinesCount;
       var verificationStatusGutter = new VerificationStatusGutter(
         document.Uri,
         document.Version,

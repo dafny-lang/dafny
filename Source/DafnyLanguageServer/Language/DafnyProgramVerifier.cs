@@ -79,12 +79,12 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       try {
         // The printer is responsible for two things: It logs boogie errors and captures the counter example model.
         var errorReporter = (DiagnosticErrorReporter)program.reporter;
-        if (options.Diagnostics) {
+        if (options.GutterStatus) {
           progressReporter.RecomputeVerificationTree();
           progressReporter.ReportRealtimeDiagnostics(document);
         }
 
-        var printer = new ModelCapturingOutputPrinter(logger, errorReporter, progressReporter, options.Diagnostics);
+        var printer = new ModelCapturingOutputPrinter(logger, errorReporter, progressReporter, options.GutterStatus);
         // Do not set these settings within the object's construction. It will break some tests within
         // VerificationNotificationTest and DiagnosticsTest that rely on updating these settings.
         DafnyOptions.O.TimeLimit = options.TimeLimit;

@@ -24,8 +24,8 @@
     public uint VerifySnapshots { get; set; } = 0;
 
     /// <summary>
-    /// Gets or sets the display of verification diagnostics (gutter highlight, tree verification results)
+    /// Gets or sets the display policy of verification result in the gutter.
     /// </summary>
-    public bool Diagnostics { get; set; } = true;
+    public bool GutterStatus { get; set; } = true;
   }
 }

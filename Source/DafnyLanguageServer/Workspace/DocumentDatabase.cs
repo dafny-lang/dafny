@@ -10,6 +10,7 @@ using System.Reactive.Linq;
 using System.Reactive.Threading.Tasks;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
@@ -81,7 +82,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private async Task<DafnyDocument> OpenAsync(TextDocumentItem textDocument, CancellationToken cancellationToken) {
       try {
         var newDocument = await documentLoader.LoadAsync(textDocument, cancellationToken);
-        return WithRealtimeDiagnosticsPublished(newDocument);
+        PublishVerificationDiagnostics(newDocument);
+        return newDocument;
       } catch (OperationCanceledException) {
         // We do not allow canceling the load of the placeholder document. Otherwise, other components
         // start to have to check for nullability in later stages such as change request processors.
@@ -142,26 +144,28 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var migratedVerificationDiagnotics =
         relocator.RelocateDiagnostics(oldVerificationDiagnostics, documentChange, CancellationToken.None);
       logger.LogDebug($"Migrated {oldVerificationDiagnostics.Count} diagnostics into {migratedVerificationDiagnotics.Count} diagnostics.");
-      var oldVerificationTree =
-        oldDocument.VerificationTree.SetObsolete();
       var migratedVerificationTree =
-        relocator.RelocateVerificationTree(oldVerificationTree, documentChange, CancellationToken.None);
+        relocator.RelocateVerificationTree(oldDocument.VerificationTree, documentChange, CancellationToken.None);
       try {
         var newDocument = await documentLoader.LoadAsync(updatedText, cancellationToken);
         if (newDocument.SymbolTable.Resolved) {
-          return WithRealtimeDiagnosticsPublished(newDocument with {
+          var resolvedDocument = newDocument with {
             OldVerificationDiagnostics = migratedVerificationDiagnotics,
             VerificationTree = migratedVerificationTree
-          });
+          };
+          PublishVerificationDiagnostics(resolvedDocument);
+          return resolvedDocument;
         }
         // The document loader failed to create a new symbol table. Since we'd still like to provide
         // features such as code completion and lookup, we re-locate the previously resolved symbols
         // according to the change.
-        return WithRealtimeDiagnosticsPublished(newDocument with {
+        var failedDocument = newDocument with {
           SymbolTable = relocator.RelocateSymbols(oldDocument.SymbolTable, documentChange, CancellationToken.None),
           OldVerificationDiagnostics = migratedVerificationDiagnotics,
           VerificationTree = migratedVerificationTree
-        });
+        };
+        PublishVerificationDiagnostics(failedDocument);
+        return failedDocument;
       } catch (OperationCanceledException) {
         // The document load was canceled before it could complete. We migrate the document
         // to re-locate symbols that were resolved previously.
@@ -177,9 +181,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
     }
 
-    private DafnyDocument WithRealtimeDiagnosticsPublished(DafnyDocument document) {
+    private void PublishVerificationDiagnostics(DafnyDocument document) {
       documentLoader.PublishVerificationDiagnostics(document);
-      return document;
     }
 
     public IObservable<DafnyDocument> SaveDocument(TextDocumentIdentifier documentId) {
