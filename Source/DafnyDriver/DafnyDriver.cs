@@ -48,7 +48,7 @@ namespace Microsoft.Dafny {
 
       int MaxStackSize = 0x10000000; // 256MB
       var largeThreadTaskScheduler = new ThreadTaskScheduler(MaxStackSize);
-      Task.Factory.StartNew(() => ThreadMain(args), CancellationToken.None, TaskCreationOptions.None,
+      Task.Factory.StartNew(() => ret = ThreadMain(args), CancellationToken.None, TaskCreationOptions.None,
         largeThreadTaskScheduler).Wait();
       return ret;
     }
