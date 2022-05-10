@@ -7,7 +7,7 @@ using Xunit.Sdk;
 namespace XUnitExtensions {
   public class AssertWithDiff {
     public static void Equal(string expected, string actual) {
-      var diff = InlineDiffBuilder.Instance.BuildDiffModel(expected, actual);
+      var diff = InlineDiffBuilder.Instance.BuildDiffModel(expected, actual, false);
       if (!diff.HasDifferences) {
         return;
       }
