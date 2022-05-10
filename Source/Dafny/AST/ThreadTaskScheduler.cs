@@ -3,7 +3,7 @@ using System.Diagnostics.Contracts;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Microsoft.Dafny.LanguageServer.Workspace;
+namespace Microsoft.Dafny;
 
 /// <summary>
 /// Each queued task runs on a newly-created thread with the required

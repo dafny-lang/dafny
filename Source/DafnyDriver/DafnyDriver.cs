@@ -16,7 +16,6 @@ using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Dafny.LanguageServer.Workspace;
 
 namespace Microsoft.Dafny {
   using System;
