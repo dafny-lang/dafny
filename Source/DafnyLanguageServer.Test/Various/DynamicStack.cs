@@ -3,88 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Microsoft.Dafny;
 
-[AsyncMethodBuilder(typeof(DynamicStackBuilder))]
-class DynamicStack {
-  public void Run() {
-    DynamicStackBuilder.Builder.Value!.Run();
-  }
-
-  public DynamicStackBuilder GetAwaiter() {
-    return DynamicStackBuilder.Builder.Value;
-  }
-}
-
-
-class DynamicStackBuilder : INotifyCompletion {
-  public static readonly ThreadLocal<DynamicStackBuilder> Builder = new(() => new DynamicStackBuilder());
-  private static DynamicStack TheOne = new();
-
-  public static DynamicStackBuilder Create() {
-    return Builder.Value;
-  }
-
-  private readonly Stack<IAsyncStateMachine> todos = new();
-
-  public void Run() {
-    var todo = todos.Pop();
-    todo.MoveNext();
-
-    while (todos.Any()) {
-      var machine = todos.Pop();
-      machine.MoveNext();
-    }
-  }
-
-  public void Start<TStateMachine>(ref TStateMachine stateMachine)
-    where TStateMachine : IAsyncStateMachine {
-    todos.Push(stateMachine);
-  }
-
-  public void SetException(Exception exception) {
-    throw exception;
-  }
-
-  public void SetResult() {
-  }
-
-  public void SetStateMachine(IAsyncStateMachine stateMachine) {
-  }
-
-  public void AwaitOnCompleted<TAwaiter, TStateMachine>(
-    ref TAwaiter awaiter, ref TStateMachine stateMachine)
-    where TAwaiter : INotifyCompletion
-    where TStateMachine : IAsyncStateMachine {
-    // Place action is on top of continuation
-    var action = todos.Pop();
-    todos.Push(stateMachine);
-    todos.Push(action);
-  }
-
-  public void AwaitUnsafeOnCompleted<TAwaiter, TStateMachine>(
-    ref TAwaiter awaiter, ref TStateMachine stateMachine)
-    where TAwaiter : ICriticalNotifyCompletion
-    where TStateMachine : IAsyncStateMachine {
-    // Place action is on top of continuation
-    var action = todos.Pop();
-    todos.Push(stateMachine);
-    todos.Push(action);
-  }
-
-  public DynamicStack Task => TheOne;
-
-  public bool IsCompleted => false;
-
-  public void GetResult() {
-  }
-
-  public void OnCompleted(System.Action continuation) {
-    throw new NotImplementedException();
-  }
-}
 
 [TestClass]
 public class TestExperiment {
@@ -117,6 +40,17 @@ public class TestExperiment {
   private void Boom(int iterations) {
     if (iterations > 0) {
       Boom(iterations - 1);
+    }
+  }
+
+
+  [TestMethod]
+  public void TaskBoomTest() {
+    TaskBoom(100_000).Wait();
+  }
+  private async Task TaskBoom(int iterations) {
+    if (iterations > 0) {
+      await TaskBoom(iterations - 1).ConfigureAwait(false);
     }
   }
 }
