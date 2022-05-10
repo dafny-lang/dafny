@@ -67,10 +67,9 @@ Options provided through the command line have higher priority than the options 
 # Default: 0 (no caching).
 --verifier:verifysnapshots=0
 
-# Set whether or not to compute and report verification diagnostics
-# (i.e. gutter highlight, dynamic highlighting, per-assert stat reporting)
-# Default: 0 (no diagnostics).
---verifier:diagnostics=true
+# Set whether or not to compute and report verification gutter statuses
+# Default: 0 (no gutter status reported).
+--verifier:gutterStatus=true
 ```
 
 ### Ghost Diagnostics
