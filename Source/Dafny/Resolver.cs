@@ -1394,7 +1394,7 @@ namespace Microsoft.Dafny {
           var wr = Console.Out;
           wr.WriteLine("/* ===== export set {0}", exportDecl.FullName);
           var pr = new Printer(wr);
-          pr.PrintTopLevelDecls(exportView.TopLevelDecls, 0, null, null);
+          pr.PrintTopLevelDecls(exportView.TopLevelDecls, 0, null, null).Run();
           wr.WriteLine("*/");
         }
 

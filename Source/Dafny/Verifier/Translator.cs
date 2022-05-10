@@ -3635,7 +3635,7 @@ namespace Microsoft.Dafny {
       byte[] data;
       using (var writer = new System.IO.StringWriter()) {
         var printer = new Printer(writer);
-        printer.PrintDatatype(d, 0, null);
+        printer.PrintDatatype(d, 0, null).Run();
         data = Encoding.UTF8.GetBytes(writer.ToString());
       }
 
@@ -3646,7 +3646,7 @@ namespace Microsoft.Dafny {
       byte[] data;
       using (var writer = new System.IO.StringWriter()) {
         var printer = new Printer(writer);
-        printer.PrintExpression(e, false);
+        printer.PrintExpression(e, false).Run();
         data = Encoding.UTF8.GetBytes(writer.ToString());
       }
 
@@ -3661,17 +3661,17 @@ namespace Microsoft.Dafny {
       using (var writer = new System.IO.StringWriter()) {
         var printer = new Printer(writer);
         writer.Write(f.FunctionDeclarationKeywords);
-        printer.PrintAttributes(f.Attributes);
-        printer.PrintFormals(f.Formals, f);
+        printer.PrintAttributes(f.Attributes).Run();
+        printer.PrintFormals(f.Formals, f).Run();
         writer.Write(": ");
         printer.PrintType(f.ResultType);
-        printer.PrintSpec("", f.Req, 0);
-        printer.PrintFrameSpecLine("", f.Reads, 0, null);
-        printer.PrintSpec("", f.Ens, 0);
-        printer.PrintDecreasesSpec(f.Decreases, 0);
+        printer.PrintSpec("", f.Req, 0).Run();
+        printer.PrintFrameSpecLine("", f.Reads, 0, null).Run();
+        printer.PrintSpec("", f.Ens, 0).Run();
+        printer.PrintDecreasesSpec(f.Decreases, 0).Run();
         writer.WriteLine();
         if (!specificationOnly && f.Body != null && RevealedInScope(f)) {
-          printer.PrintExpression(f.Body, false);
+          printer.PrintExpression(f.Body, false).Run();
         }
         data = Encoding.UTF8.GetBytes(writer.ToString());
       }
