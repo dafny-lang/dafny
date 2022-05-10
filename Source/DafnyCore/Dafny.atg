@@ -31,6 +31,10 @@ readonly BuiltIns theBuiltIns;
 readonly bool theVerifyThisFile;
 readonly bool theCompileThisFile;
 DafnyOptions theOptions;
+
+readonly bool isREPLParser;
+readonly List<Expression> topLevelExprs;
+
 int anonymousIds = 0;
 
 /// <summary>
@@ -155,7 +159,8 @@ public static int Parse (string/*!*/ s, string/*!*/ fullFilename, string/*!*/ fi
 }
 
 public static Parser SetupParser(string/*!*/ s, string/*!*/ fullFilename, string/*!*/ filename, Include include, ModuleDecl module,
-                                 BuiltIns builtIns, Errors/*!*/ errors, bool verifyThisFile=true, bool compileThisFile=true) {
+                                 BuiltIns builtIns, Errors/*!*/ errors, bool verifyThisFile=true, bool compileThisFile=true,
+                                 bool isREPLParser=false, List<Expression> topLevelExprs=null) {
   Contract.Requires(s != null);
   Contract.Requires(filename != null);
   Contract.Requires(module != null);
@@ -163,18 +168,32 @@ public static Parser SetupParser(string/*!*/ s, string/*!*/ fullFilename, string
   byte[]/*!*/ buffer = cce.NonNull( UTF8Encoding.Default.GetBytes(s));
   MemoryStream ms = new MemoryStream(buffer,false);
   Scanner scanner = new Scanner(ms, errors, fullFilename, filename);
-  return new Parser(scanner, errors, include, module, builtIns, verifyThisFile, compileThisFile);
+  return new Parser(scanner, errors, include, module, builtIns,
+                    verifyThisFile, compileThisFile, isREPLParser, topLevelExprs);
+}
+
+public static Parser SetupParserForREPL(string s, ModuleDecl module, BuiltIns builtIns, Errors errors, List<Expression> topLevelExprs) {
+  return SetupParser(s, "<input>", "<input>", include: null, module, builtIns, errors,
+                     verifyThisFile: true, compileThisFile: true, isREPLParser: true,
+                     topLevelExprs: topLevelExprs);
+}
+
+public void PreParse() {
+  la = new Token();
+  la.val = "";
+  Get();
+}
+
+public Expression ParseExpression() {
+  Expression(out var e, true, true, true);
+  return e;
 }
 
 public static Expression ParseExpression(string/*!*/ s, string/*!*/ fullFilename, string/*!*/ filename, Include include, ModuleDecl module,
                                          BuiltIns builtIns, Errors/*!*/ errors, bool verifyThisFile=true, bool compileThisFile=true) {
   Parser parser = SetupParser(s, fullFilename, filename, include, module, builtIns, errors, verifyThisFile, compileThisFile);
-  parser.la = new Token();
-  parser.la.val = "";
-  parser.Get();
-  Expression e;
-  parser.Expression(out e, true, true, true);
-  return e;
+  parser.PreParse();
+  return parser.ParseExpression();
 }
 
 public void ApplyOptionsFromAttributes(Attributes attrs) {
@@ -228,10 +247,13 @@ public static int Parse (string/*!*/ s, string/*!*/ fullFilename, string/*!*/ fi
   return parser.errors.ErrorCount;
 }
 
-public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, Include include, ModuleDecl module, BuiltIns builtIns, bool verifyThisFile=true, bool compileThisFile=true)
+public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, Include include, ModuleDecl module, BuiltIns builtIns,
+              bool verifyThisFile=true, bool compileThisFile=true,
+              bool isREPLParser=false, List<Expression> topLevelExprs=null)
   : this(scanner, errors)  // the real work
 {
   // initialize readonly fields
+  Contract.Assert(!(isREPLParser && topLevelExprs == null));
   dummyExpr = new LiteralExpr(Token.NoToken);
   dummyRhs = new ExprRhs(dummyExpr);
   dummyFrameExpr = new FrameExpression(dummyExpr.tok, dummyExpr, null);
@@ -244,6 +266,8 @@ public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, Include include, ModuleD
   theVerifyThisFile = verifyThisFile;
   theCompileThisFile = compileThisFile;
   theOptions = new DafnyOptions(DafnyOptions.O);
+  this.isREPLParser = isREPLParser;
+  this.topLevelExprs = topLevelExprs;
 }
 
 bool IsIdentifier(int kind) {
@@ -991,26 +1015,9 @@ Dafny
      DefaultModuleDecl defaultModule = (DefaultModuleDecl)((LiteralModuleDecl)theModule).ModuleDef;
      // theModule should be a DefaultModuleDecl (actually, the singular DefaultModuleDecl)
      Contract.Assert(defaultModule != null);
-     IToken startToken;
   .)
-  { "include"                 (. startToken = t; .)
-    stringToken               (. {
-                                 string parsedFile = scanner.FullFilename;
-                                 bool isVerbatimString;
-                                 string includedFile = Util.RemoveParsedStringQuotes(t.val, out isVerbatimString);
-                                 Util.ValidateEscaping(t, includedFile, isVerbatimString, errors);
-                                 includedFile = Util.RemoveEscaping(includedFile, isVerbatimString);
-                                 if (!Path.IsPathRooted(includedFile)) {
-                                   string basePath = Path.GetDirectoryName(parsedFile);
-                                   includedFile = Path.Combine(basePath, includedFile);
-                                 }
-                                 var oneInclude = new Include(t, parsedFile, includedFile, theCompileThisFile);
-                                 oneInclude.RangeToken = new RangeToken(startToken, t);
-                                 defaultModule.Includes.Add(oneInclude);
-                               }
-                            .)
-  }
-  { TopDecl<defaultModule, membersDefaultClass, /* isTopLevel */ true, /* isAbstract */ false> }
+  ( IF(isREPLParser) REPLInput<defaultModule, membersDefaultClass>
+  | DafnyFile<defaultModule, membersDefaultClass> )
   (. // find the default class in the default module, then append membersDefaultClass to its member list
 		 if (membersDefaultClass.Count == 0 && defaultModule.Includes.Count == 0 && defaultModule.TopLevelDecls.Count == 0
 		     && (defaultModule.PrefixNamedModules == null || defaultModule.PrefixNamedModules.Count == 0)) {
@@ -1033,6 +1040,38 @@ Dafny
      } .)
   SYNC
   EOF
+  .
+
+REPLInput<. ModuleDefinition module, List<MemberDecl/*!*/> membersDefaultClass .>
+= ( Expression<out var e,
+               /* allowLemma */ false,
+               /* allowLambda */ true,
+               /* allowBitwiseOps */ true> (. topLevelExprs.Add(e); .)
+  | DafnyFile<module, membersDefaultClass> )
+  .
+
+DafnyFile<. ModuleDefinition module, List<MemberDecl/*!*/> membersDefaultClass .>
+= (.
+     IToken startToken;
+  .)
+  { "include"                 (. startToken = t; .)
+    stringToken               (. {
+                                 string parsedFile = scanner.FullFilename;
+                                 bool isVerbatimString;
+                                 string includedFile = Util.RemoveParsedStringQuotes(t.val, out isVerbatimString);
+                                 Util.ValidateEscaping(t, includedFile, isVerbatimString, errors);
+                                 includedFile = Util.RemoveEscaping(includedFile, isVerbatimString);
+                                 if (!Path.IsPathRooted(includedFile)) {
+                                   string basePath = Path.GetDirectoryName(parsedFile);
+                                   includedFile = Path.Combine(basePath, includedFile);
+                                 }
+                                 var oneInclude = new Include(t, parsedFile, includedFile, theCompileThisFile);
+                                 oneInclude.RangeToken = new RangeToken(startToken, t);
+                                 module.Includes.Add(oneInclude);
+                               }
+                            .)
+  }
+  { TopDecl<module, membersDefaultClass, /* isTopLevel */ true, /* isAbstract */ false> }
   .
 
 /*------------------------------------------------------------------------*/
