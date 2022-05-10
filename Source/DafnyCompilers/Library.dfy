@@ -90,7 +90,6 @@ module Lib {
       if ts == [] then [] else [f(ts[0])] + Map(f, ts[1..])
     }
 
-    // DISCUSS: How would one rewrite this function to not need !new?
     function method FoldL<TAcc(!new), T>(f: (TAcc, T) ~> TAcc, a0: TAcc, ts: seq<T>) : TAcc
       reads f.reads
       requires forall a, t | t in ts :: f.requires(a, t)
@@ -282,6 +281,7 @@ module Lib {
       '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
       'A', 'B', 'C', 'D', 'E', 'F']
 
+    // FIXME rename
     function method of_int(n: int, base: int := 10) : string
       requires 2 <= base <= 16
     {

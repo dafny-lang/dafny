@@ -53,7 +53,7 @@ REPL/Repl.cs: REPL/Repl.dfy $(ASTModel) $(cs_interop) $(DafnyRuntime)
 
 repl_dll := REPL/bin/Debug/net6.0/Repl.dll
 
-$(repl_dll): REPL/Repl.cs REPL/ReplHelper.cs $(cs_interop)
+$(repl_dll): REPL/Repl.cs REPL/ReplInterop.cs $(cs_interop)
 	dotnet build REPL/REPL.csproj
 
 FORCE:
