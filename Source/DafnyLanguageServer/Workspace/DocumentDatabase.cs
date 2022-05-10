@@ -82,7 +82,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private async Task<DafnyDocument> OpenAsync(TextDocumentItem textDocument, CancellationToken cancellationToken) {
       try {
         var newDocument = await documentLoader.LoadAsync(textDocument, cancellationToken);
-        PublishVerificationDiagnostics(newDocument, false);
+        documentLoader.PublishVerificationDiagnostics(newDocument, false);
         return newDocument;
       } catch (OperationCanceledException) {
         // We do not allow canceling the load of the placeholder document. Otherwise, other components
@@ -153,7 +153,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             OldVerificationDiagnostics = migratedVerificationDiagnotics,
             VerificationTree = migratedVerificationTree
           };
-          PublishVerificationDiagnostics(resolvedDocument, false);
+          documentLoader.PublishVerificationDiagnostics(resolvedDocument, false);
           return resolvedDocument;
         }
         // The document loader failed to create a new symbol table. Since we'd still like to provide
@@ -164,7 +164,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           OldVerificationDiagnostics = migratedVerificationDiagnotics,
           VerificationTree = migratedVerificationTree
         };
-        PublishVerificationDiagnostics(failedDocument, false);
+        documentLoader.PublishVerificationDiagnostics(failedDocument, false);
         return failedDocument;
       } catch (OperationCanceledException) {
         // The document load was canceled before it could complete. We migrate the document
@@ -179,10 +179,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           VerificationTree = migratedVerificationTree
         };
       }
-    }
-
-    private void PublishVerificationDiagnostics(DafnyDocument document, bool verificationStarted) {
-      documentLoader.PublishVerificationDiagnostics(document, verificationStarted);
     }
 
     public IObservable<DafnyDocument> SaveDocument(TextDocumentIdentifier documentId) {

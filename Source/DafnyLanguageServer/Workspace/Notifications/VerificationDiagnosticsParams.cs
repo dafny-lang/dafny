@@ -328,10 +328,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       // Ensure that if this is an ImplementationVerificationTree, and children "painted" verified,
       // and this node is still pending
       // at least the first line should show pending.
-      if (StatusCurrent == CurrentStatus.Verifying &&
-          perLineDiagnostics.ToList().GetRange(range.Start.Line, range.End.Line - range.Start.Line + 1).All(
-            line => line == LineVerificationStatus.Verified)) {
-        perLineDiagnostics[range.Start.Line] = targetStatus;
+      if (range.Start.Line >= 0 && range.End.Line - range.Start.Line + 1 < perLineDiagnostics.Length) {
+        if (StatusCurrent == CurrentStatus.Verifying &&
+            perLineDiagnostics.ToList().GetRange(range.Start.Line, range.End.Line - range.Start.Line + 1).All(
+              line => line == LineVerificationStatus.Verified)) {
+          perLineDiagnostics[range.Start.Line] = targetStatus;
+        }
       }
     }
 
