@@ -185,7 +185,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         | If(cond: Expr, thn: Expr, els: Expr)
       {
         function method Depth() : nat {
-          1 + match this { // FIXME IDE rejects this, command line accepts it
+          1 + match this {
             case Var(_) =>
               0
             case Literal(lit: Literal) =>
@@ -230,6 +230,23 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
           case Apply(Eager(Builtin(Display(ty))), es) =>
             ty.Collection? && ty.finite
           case _ => true
+        }
+      }
+
+      function method ConstructorsMatch(e: Expr, e': Expr): bool {
+        match e {
+          case Var(name) =>
+            e'.Var? && name == e'.name
+          case Literal(l) =>
+            e'.Literal? && l == e'.lit
+          case Abs(vars, body) =>
+            e'.Abs? && vars == e'.vars
+          case Apply(aop, args) =>
+            e'.Apply? && aop == e'.aop && |args| == |e'.args|
+          case Block(stmts) =>
+            e'.Block? && |stmts| == |e'.stmts|
+          case If(cond, thn, els) =>
+            e'.If?
         }
       }
 
@@ -507,7 +524,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       var args := ListUtils.ToSeq(ae.Args);
       var args :- Seq.MapResult(args, e requires e in args reads * =>
         assume Decreases(e, ae); TranslateExpression(e));
-      Success(DE.Apply(DE.Eager(DE.FunctionCall), [fn] + args))
+      Success(DE.Apply(DE.Eager(DE.FunctionCall()), [fn] + args))
     }
 
     function method TranslateFunctionCall(fce: C.FunctionCallExpr)
@@ -523,6 +540,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
           assume Decreases(fce.Receiver, fce);
           var receiver :- TranslateExpression(fce.Receiver);
           Success(DE.Apply(DE.Eager(DE.UnaryOp(DE.UnaryOps.MemberSelect(fname))), [receiver]));
+      assert P.All_Expr(fn, DE.WellFormed);
       var args := ListUtils.ToSeq(fce.Args);
       var args :- Seq.MapResult(args, e requires e in args reads * =>
         assume Decreases(e, fce); TranslateExpression(e));
@@ -776,10 +794,10 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     }
 
     datatype Transformer'<!A, !B> =
-      TR(f: A -> B, ghost PC: B -> bool)
+      TR(f: A --> B, ghost Post: B -> bool)
 
     predicate HasValidPC<A(!new), B>(tr: Transformer'<A, B>) {
-      forall a: A :: tr.PC(tr.f(a))
+      forall a: A :: tr.f.requires(a) ==> tr.Post(tr.f(a))
     }
 
     type Transformer<!A(!new), !B(0)> = tr: Transformer'<A, B> | HasValidPC(tr)
@@ -788,7 +806,8 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     type ExprTransformer = Transformer<Expr, Expr>
 
     lemma Map_All_TR<A(!new), B(00)>(tr: Transformer<A, B>, ts: seq<A>)
-      ensures Seq.All(tr.PC, Seq.Map(tr.f, ts))
+      requires forall x | x in ts :: tr.f.requires(x)
+      ensures Seq.All(tr.Post, Seq.Map(tr.f, ts))
     {}
 
     module Shallow {
@@ -853,7 +872,20 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
 
       module Rec refines Base { // DISCUSS
         function method All_Expr(e: Expr, P: Expr -> bool) : (b: bool) {
-          P(e) && AllChildren_Expr(e, P)
+          P(e) &&
+          // https://github.com/dafny-lang/dafny/issues/2107
+          // https://github.com/dafny-lang/dafny/issues/2109
+          // Duplicated to avoid mutual recursion with AllChildren_Expr
+          match e {
+            case Var(_) => true
+            case Literal(lit) => true
+            case Abs(vars, body) => All_Expr(body, P)
+            case Apply(_, exprs) =>
+              Seq.All(e requires e in exprs => All_Expr(e, P), exprs)
+            case Block(exprs) => Seq.All((e requires e in exprs => All_Expr(e, P)), exprs)
+            case If(cond, thn, els) =>
+              All_Expr(cond, P) && All_Expr(thn, P) && All_Expr(els, P)
+          }
         }
 
         function method AllChildren_Expr(e: Expr, P: Expr -> bool) : bool {
@@ -868,6 +900,10 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
               All_Expr(cond, P) && All_Expr(thn, P) && All_Expr(els, P)
           }
         }
+
+        lemma AllExprTrue(e: Expr)
+          ensures All_Expr(e, _ => true)
+        {}
 
         lemma AllImpliesChildren ... {}
 
@@ -926,7 +962,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     // Both implementations of Deep should work, but NonRec can be somewhat
     // simpler to work with.  If needed, use ``DeepImpl.Equiv.All_Expr`` to
     // switch between implementations.
-    module Deep refines DeepImpl.NonRec {}
+    module Deep refines DeepImpl.Rec {}
   }
 
   module Rewriter {
@@ -942,7 +978,8 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       import opened Predicates
 
       function method {:opaque} Map_Method(m: Method, tr: ExprTransformer) : (m': Method)
-        ensures Shallow.All_Method(m', tr.PC) // FIXME Deep
+        requires Shallow.All_Method(m, tr.f.requires)
+        ensures Shallow.All_Method(m', tr.Post) // FIXME Deep
       {
         match m {
           case Method(CompileName, methodBody) =>
@@ -951,7 +988,8 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       }
 
       function method {:opaque} Map_Program(p: Program, tr: ExprTransformer) : (p': Program)
-        ensures Shallow.All_Program(p', tr.PC)
+        requires Shallow.All_Program(p, tr.f.requires)
+        ensures Shallow.All_Program(p', tr.Post)
       {
         match p {
           case Program(mainMethod) => Program(Map_Method(mainMethod, tr))
@@ -965,28 +1003,47 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       import opened Predicates
       import Shallow
 
-      predicate IsBottomUpTransformer(f: Expr -> Expr, PC: Expr -> bool) {
-        forall e | Deep.AllChildren_Expr(e, PC) :: Deep.All_Expr(f(e), PC)
+      predicate MapChildrenPreservesPre(f: Expr --> Expr, post: Expr -> bool) {
+        forall e, e' ::
+          (&& Exprs.ConstructorsMatch(e, e')
+           && f.requires(e)
+           && Deep.AllChildren_Expr(e', post)) ==> f.requires(e')
+       }
+
+      predicate TransformerMatchesPrePost(f: Expr --> Expr, post: Expr -> bool) {
+        forall e: Expr | Deep.AllChildren_Expr(e, post) && f.requires(e) ::
+          Deep.All_Expr(f(e), post)
       }
-      const IdentityTransformer: Transformer'<Expr, Expr> :=
+
+      predicate IsBottomUpTransformer(f: Expr --> Expr, post: Expr -> bool) {
+        && TransformerMatchesPrePost(f, post)
+        && MapChildrenPreservesPre(f, post)
+      }
+
+      const IdentityTransformer: ExprTransformer :=
         TR(d => d, _ => true)
 
-      lemma IsBottomUpTransformer_Id(tr: ExprTransformer)
-        requires forall x :: tr.f(x) == x
-        requires forall x :: tr.PC(x)
-        ensures IsBottomUpTransformer(tr.f, tr.PC)
-      {}
+      lemma IdentityMatchesPrePost()
+        ensures TransformerMatchesPrePost(IdentityTransformer.f, IdentityTransformer.Post)
+      { }
 
-      type BottomUpTransformer = tr: ExprTransformer | IsBottomUpTransformer(tr.f, tr.PC)
-        witness (IsBottomUpTransformer_Id(IdentityTransformer); IdentityTransformer)
+      lemma IdentityPreservesPre()
+        ensures MapChildrenPreservesPre(IdentityTransformer.f, IdentityTransformer.Post)
+      { }
 
-      function method MapChildren_Expr(e: Expr, tr: BottomUpTransformer) : (e': Expr)
+      type BottomUpTransformer = tr: ExprTransformer | IsBottomUpTransformer(tr.f, tr.Post)
+        witness (IdentityMatchesPrePost();
+                 IdentityPreservesPre();
+                 IdentityTransformer)
+
+      function method {:vcs_split_on_every_assert} MapChildren_Expr(e: Expr, tr: BottomUpTransformer) : (e': Expr)
         decreases e, 0
-        ensures Deep.AllChildren_Expr(e', tr.PC)
+        requires Deep.All_Expr(e, tr.f.requires)
+        ensures Deep.AllChildren_Expr(e', tr.Post)
+        ensures Exprs.ConstructorsMatch(e, e')
       {
-        // Introducing `Deep.AllChildren_Expr(e, tr.PC)` as a term to unblock
-        // the proof in the `⇒ e` case.
-        ghost var children := Deep.AllChildren_Expr(e, tr.PC);
+        Deep.AllImpliesChildren(e, tr.f.requires);
+
         // Not using datatype updates below to ensure that we get a warning if a
         // type gets new arguments
         match e {
@@ -997,38 +1054,49 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
           case Apply(aop, exprs) =>
             var exprs' := Seq.Map(e requires e in exprs => Map_Expr(e, tr), exprs);
             Predicates.Map_All_IsMap(e requires e in exprs => Map_Expr(e, tr), exprs);
-            Expr.Apply(aop, exprs')
+            var e' := Expr.Apply(aop, exprs');
+            assert Exprs.ConstructorsMatch(e, e');
+            e'
 
           // Statements
           case Block(exprs) =>
             var exprs' := Seq.Map(e requires e in exprs => Map_Expr(e, tr), exprs);
             Predicates.Map_All_IsMap(e requires e in exprs => Map_Expr(e, tr), exprs);
-            Expr.Block(exprs')
+            var e' := Expr.Block(exprs');
+            assert Exprs.ConstructorsMatch(e, e');
+            e'
           case If(cond, thn, els) =>
-            Expr.If(Map_Expr(cond, tr), Map_Expr(thn, tr), Map_Expr(els, tr))
+            var e' := Expr.If(Map_Expr(cond, tr), Map_Expr(thn, tr), Map_Expr(els, tr));
+            assert Exprs.ConstructorsMatch(e, e');
+            e'
         }
       }
 
       function method Map_Expr(e: Expr, tr: BottomUpTransformer) : (e': Expr)
         decreases e, 1
-        ensures Deep.All_Expr(e', tr.PC)
+        requires Deep.All_Expr(e, tr.f.requires)
+        ensures Deep.All_Expr(e', tr.Post)
       {
+        Deep.AllImpliesChildren(e, tr.f.requires);
         tr.f(MapChildren_Expr(e, tr))
       }
 
       function method Map_Expr_Transformer(tr: BottomUpTransformer) : (tr': ExprTransformer)
       {
-        TR(e => Map_Expr(e, tr), e' => Deep.All_Expr(e', tr.PC))
+        TR(e requires Deep.All_Expr(e, tr.f.requires) => Map_Expr(e, tr),
+           e' => Deep.All_Expr(e', tr.Post))
       }
 
       function method {:opaque} Map_Method(m: Method, tr: BottomUpTransformer) : (m': Method)
-        ensures Deep.All_Method(m', tr.PC)
+        requires Deep.All_Method(m, tr.f.requires)
+        ensures Deep.All_Method(m', tr.Post)
       {
         Shallow.Map_Method(m, Map_Expr_Transformer(tr))
       }
 
       function method {:opaque} Map_Program(p: Program, tr: BottomUpTransformer) : (p': Program)
-        ensures Deep.All_Program(p', tr.PC)
+        requires Deep.All_Program(p, tr.f.requires)
+        ensures Deep.All_Program(p', tr.Post)
       {
         Shallow.Map_Program(p, Map_Expr_Transformer(tr))
       }
@@ -1093,47 +1161,39 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     //   }
     // }
 
-    // FIXME Add `require Deep.AllChildren_Expr(e, NotANegatedBinopExpr)`
     function method EliminateNegatedBinops_Expr1(e: Exprs.T) : (e': Exprs.T)
       ensures NotANegatedBinopExpr(e')
     {
       match e {
         case Apply(Eager(BinaryOp(op)), es) =>
           if IsNegatedBinop(op) then
-            Exprs.Apply(Exprs.Eager(Exprs.UnaryOp(UnaryOps.BoolNot)),
-                        [Exprs.Apply(Exprs.Eager(Exprs.BinaryOp(FlipNegatedBinop(op))), es)])
+            var flipped := Exprs.Apply(Exprs.Eager(Exprs.BinaryOp(FlipNegatedBinop(op))), es);
+            var negated := Exprs.Apply(Exprs.Eager(Exprs.UnaryOp(UnaryOps.BoolNot)), [flipped]);
+            negated
           else
             e
         case _ => e
       }
     }
 
-    lemma EliminateNegatedBinops_Expr'_BU()
-      ensures IsBottomUpTransformer(EliminateNegatedBinops_Expr1, NotANegatedBinopExpr)
-    {
-      var (f, PC) := (EliminateNegatedBinops_Expr1, NotANegatedBinopExpr);
-      forall e | Deep.AllChildren_Expr(e, PC) ensures Deep.AllChildren_Expr(f(e), PC) {
-        if IsNegatedBinopExpr(e) {
-          var e'' := match e {
-            case Apply(Eager(BinaryOp(op)), es) =>
-              Expr.Apply(Exprs.Eager(Exprs.BinaryOp(FlipNegatedBinop(op))), es)
-          };
-          var e' := Exprs.Apply(Exprs.Eager(Exprs.UnaryOp(UnaryOps.BoolNot)), [e'']);
-          calc { // FIXME Automate
-            Deep.All_Expr(f(e), PC);
-            Deep.All_Expr(e', PC);
-            PC(e') && Deep.AllChildren_Expr(e', PC);
-            true && Deep.AllChildren_Expr(e', PC);
-            true && Deep.All_Expr(e'', PC);
-            true && PC(e'') && Deep.AllChildren_Expr(e'', PC);
-          }
-        } else {}
-      }
-    }
+    lemma EliminateNegatedBinopsMatchesPrePost()
+      ensures TransformerMatchesPrePost(EliminateNegatedBinops_Expr1, NotANegatedBinopExpr)
+      {}
 
-    const EliminateNegatedBinops_Expr : BottomUpTransformer :=
-      (EliminateNegatedBinops_Expr'_BU();
-       TR(EliminateNegatedBinops_Expr1, NotANegatedBinopExpr))
+    lemma EliminateNegatedBinopsPreservesPre()
+      ensures MapChildrenPreservesPre(EliminateNegatedBinops_Expr1, NotANegatedBinopExpr)
+    { forall e, e'
+        ensures ((Exprs.ConstructorsMatch(e, e') &&
+                  EliminateNegatedBinops_Expr1.requires(e) &&
+                  Deep.AllChildren_Expr(e', NotANegatedBinopExpr)) ==>
+                  EliminateNegatedBinops_Expr1.requires(e'))
+        { Deep.AllExprTrue(e'); }
+     }
+
+     const EliminateNegatedBinops_Expr : BottomUpTransformer :=
+      ( EliminateNegatedBinopsMatchesPrePost();
+        EliminateNegatedBinopsPreservesPre();
+        TR(EliminateNegatedBinops_Expr1, NotANegatedBinopExpr))
 
     function method EliminateNegatedBinops_Expr_direct(e: Exprs.T) : (e': Exprs.T)
       requires Deep.All_Expr(e, Exprs.WellFormed)
@@ -1150,8 +1210,6 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
           Predicates.Map_All_IsMap(e requires e in exprs => EliminateNegatedBinops_Expr_direct(e), exprs);
           if IsNegatedBinop(bop) then
             var e'' := Exprs.Apply(Exprs.Eager(Exprs.BinaryOp(FlipNegatedBinop(bop))), exprs');
-            assert Deep.All_Expr(e'', NotANegatedBinopExpr);
-            assert Deep.All_Expr(e'', Exprs.WellFormed);
             var e' := Exprs.Apply(Exprs.Eager(Exprs.UnaryOp(UnaryOps.BoolNot)), [e'']);
             e'
           else
@@ -1173,6 +1231,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     }
 
     function method EliminateNegatedBinops(p: Program) : (p': Program)
+      requires Deep.All_Program(p, EliminateNegatedBinops_Expr.f.requires)
       ensures Deep.All_Program(p', NotANegatedBinopExpr)
     {
       Map_Program(p, EliminateNegatedBinops_Expr)
