@@ -1493,19 +1493,19 @@ namespace Microsoft.Dafny {
       byte[] data;
       using (var writer = new System.IO.StringWriter()) {
         var printer = new Printer(writer);
-        printer.PrintAttributes(m.Attributes);
-        printer.PrintFormals(m.Ins, m);
+        printer.PrintAttributes(m.Attributes).Run();
+        printer.PrintFormals(m.Ins, m).Run();
         if (m.Outs.Any()) {
           writer.Write("returns ");
-          printer.PrintFormals(m.Outs, m);
+          printer.PrintFormals(m.Outs, m).Run();
         }
-        printer.PrintSpec("", m.Req, 0);
-        printer.PrintFrameSpecLine("", m.Mod.Expressions, 0, null);
-        printer.PrintSpec("", m.Ens, 0);
-        printer.PrintDecreasesSpec(m.Decreases, 0);
+        printer.PrintSpec("", m.Req, 0).Run();
+        printer.PrintFrameSpecLine("", m.Mod.Expressions, 0, null).Run();
+        printer.PrintSpec("", m.Ens, 0).Run();
+        printer.PrintDecreasesSpec(m.Decreases, 0).Run();
         writer.WriteLine();
         if (!specificationOnly && m.Body != null && RevealedInScope(m)) {
-          printer.PrintStatement(m.Body, 0);
+          printer.PrintStatement(m.Body, 0).Run();
         }
         data = Encoding.UTF8.GetBytes(writer.ToString());
       }
