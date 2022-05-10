@@ -64,11 +64,13 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
       foreach (var topLevelDecl in module.TopLevelDecls) {
         if (topLevelDecl is TopLevelDeclWithMembers topLevelDeclWithMembers) {
           foreach (var member in topLevelDeclWithMembers.Members) {
-            if (member.tok.filename != documentFilePath) {
+            var memberWasNotIncluded = member.tok.filename != documentFilePath;
+            if (memberWasNotIncluded) {
               continue;
             }
             if (member is Field) {
-              if (member.BodyEndTok.line == 0) {
+              var constantHasNoBody = member.BodyEndTok.line == 0.
+              if (constantHasNoBody) {
                 continue; // Nothing to verify
               }
               var verificationTreeRange = member.tok.GetLspRange(member.BodyEndTok);
