@@ -117,7 +117,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       databaseEntry.CancelPendingUpdates();
       var cancellationSource = new CancellationTokenSource();
-      var previousDocumentTask = databaseEntry.MostVerifiedDocument;
+      var previousDocumentTask = databaseEntry.LatestDocument;
       var resolvedDocumentTask = ApplyChangesAsync(previousDocumentTask, documentChange, cancellationSource.Token);
       var verifiedDocuments = Verify(resolvedDocumentTask, VerifyOnChange, cancellationSource.Token);
       documents[documentUri] = new DocumentEntry(
@@ -233,8 +233,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         this.cancellationSource = cancellationSource;
         Version = version;
         ResolvedDocument = resolvedDocument;
-        MostVerifiedDocument = resolvedDocument;
-        verifiedDocuments.Subscribe(update => MostVerifiedDocument = Task.FromResult(update));
+        LatestDocument = resolvedDocument;
+        verifiedDocuments.Subscribe(update => LatestDocument = Task.FromResult(update));
         FullyVerifiedDocument =
           verifiedDocuments.Select(Task.FromResult).DefaultIfEmpty(ResolvedDocument).ToTask().Unwrap();
       }
@@ -243,7 +243,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         cancellationSource.Cancel();
       }
 
-      public Task<DafnyDocument> MostVerifiedDocument { get; private set; }
+      public Task<DafnyDocument> LatestDocument { get; private set; }
 
       public Task<DafnyDocument> FullyVerifiedDocument { get; }
     }
