@@ -55,7 +55,7 @@ namespace Microsoft.Dafny {
       CompileModules = new List<ModuleDefinition>();
     }
 
-    //Set appropriate visibilty before presenting module
+    // Sets appropriate visibility before presenting module
     public IEnumerable<ModuleDefinition> Modules() {
 
       foreach (var msig in ModuleSigs) {
