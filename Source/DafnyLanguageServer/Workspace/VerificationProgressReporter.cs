@@ -69,7 +69,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
               continue;
             }
             if (member is Field) {
-              var constantHasNoBody = member.BodyEndTok.line == 0.
+              var constantHasNoBody = member.BodyEndTok.line == 0;
               if (constantHasNoBody) {
                 continue; // Nothing to verify
               }
