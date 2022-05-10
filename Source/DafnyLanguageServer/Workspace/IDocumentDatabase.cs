@@ -69,7 +69,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
   public interface IDocumentEntry {
     Task<DafnyDocument> ResolvedDocument { get; }
-    Task<DafnyDocument> LatestDocument { get; set; }
+    Task<DafnyDocument> LatestDocument { get; }
     Task<DafnyDocument> FullyVerifiedDocument { get; }
   }
 }

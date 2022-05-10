@@ -901,7 +901,6 @@ method test2() {
 
     [TestMethod]
     public async Task DiagnosticsInDifferentImplementationUnderOneNamedVerificationTask() {
-
       var source = @"
 method test() 
   ensures 3 / 0 == 2 {
@@ -913,8 +912,46 @@ method test()
       });
       var documentItem = CreateTestDocument(source);
       client.OpenDocument(documentItem);
-      var resolutionDiagnostics = await GetLastVerificationDiagnostics(documentItem, CancellationToken);
-      Assert.AreEqual(2, resolutionDiagnostics.Length);
+      var diagnostics = await GetLastVerificationDiagnostics(documentItem, CancellationToken);
+      Assert.AreEqual(1, diagnostics.Length);
+    }
+
+    [TestMethod]
+    public async Task MethodRenameDoesNotAffectMigration() {
+      var source = @"
+method Foo() {
+  assert false;
+}
+".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      client.OpenDocument(documentItem);
+      var preChangeDiagnostics = await GetLastVerificationDiagnostics(documentItem, CancellationToken);
+      await AssertNoDiagnosticsAreComing();
+      ApplyChange(ref documentItem, new Range(0, 7, 0, 10), "Bar");
+      var resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      Assert.AreEqual(preChangeDiagnostics[0], resolutionDiagnostics[0]);
+      var finalDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      Assert.AreEqual(resolutionDiagnostics[0], finalDiagnostics[0]);
+    }
+
+    [TestMethod]
+    public async Task ModuleRenameDoesNotAffectMigration() {
+      var source = @"
+module Foo {
+  method Bar() {
+    assert false;
+  }
+}
+".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      client.OpenDocument(documentItem);
+      var preChangeDiagnostics = await GetLastVerificationDiagnostics(documentItem, CancellationToken);
+      await AssertNoDiagnosticsAreComing();
+      ApplyChange(ref documentItem, new Range(0, 7, 0, 10), "Zap");
+      var resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      Assert.AreEqual(preChangeDiagnostics[0], resolutionDiagnostics[0]);
+      var finalDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      Assert.AreEqual(resolutionDiagnostics[0], finalDiagnostics[0]);
     }
   }
 }
