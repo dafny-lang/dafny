@@ -219,7 +219,9 @@ public abstract class LinearVerificationDiagnosticTester : ClientBasedLanguageSe
   }
 
   public async Task VerifyTrace(string codeAndTrace) {
-    codeAndTrace = codeAndTrace[0] == '\n' ? codeAndTrace.Substring(1) : codeAndTrace;
+    codeAndTrace = codeAndTrace[0] == '\n' ? codeAndTrace.Substring(1) :
+      codeAndTrace.Substring(0, 2) == "\r\n" ? codeAndTrace.Substring(2) :
+      codeAndTrace;
     var codeAndChanges = ExtractCode(codeAndTrace);
     var (code, changes) = ExtractCodeAndChanges(codeAndChanges);
     var documentItem = CreateTestDocument(code);
