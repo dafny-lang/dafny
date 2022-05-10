@@ -6,103 +6,60 @@ using Microsoft.Boogie;
 namespace Microsoft.Dafny.Plugins;
 
 public interface IQuickFixInput {
+  /// <summary>
+  /// The URI of the document being considered
+  /// </summary>
+  string Uri { get; }
+  /// <summary>
+  /// The version of the document being considered. Always increasing
+  /// If it did not change, it guarantees that Code is the same.
+  /// This might be helpful for caching any pre-computation.
+  /// </summary>
+  int Version { get; }
   string Code { get; }
   [CanBeNull] Program Program { get; }
 }
 
 /// <summary>
 /// Plugins implement one or more QuickFixer to offer "quick code fixes",
-/// They should return very quickly, so most of the processing has to be done the first time
-/// SetProgram is called with a new program.
-/// The best way to implement a QuickFixer is to extend CachedQuickFixer,*
-/// which takes care of associating keys to any data structure implementing IQuickFixCache
-/// that stores the program, the document, and any information you'd like.
+/// They should return very quickly, so most of the processing has to be done in the GetEdit()
 /// </summary>
 public abstract class QuickFixer {
   /// <summary>
-  /// When the code is parsed, this method is provided both the code and ParsedProgram along with an unique key
-  /// This unique keys serves to identity the program and the code both when removing it from any cache with UnsetProrgam,
-  /// and when querying the plugin for quick fixes with ``GetQuickFixes`
-  /// </summary>
-  /// <param name="uniqueKey">The unique key</param>
-  /// <param name="input">The code, the program if parsed (and possibly resolved), and other data</param>
-  /// <param name="cancellationToken">Regularly call cancellationToken.ThrowIfCancellationRequested()
-  /// to ensure the plugin does not continue to compute something that won't be useful.</param>
-  public abstract void SetQuickFixInput(string uniqueKey, IQuickFixInput input, CancellationToken cancellationToken);
-
-  /// <summary>
-  /// Optionally remove the unique key (e.g. when the user performs an edit in the program)
-  /// It is possible for a uniqueKey to be overriden, so this method might not be called when editing a program.
-  /// </summary>
-  /// <param name="uniqueKey">The unique key representing the program and the document</param>
-  public abstract void UnsetProgram(string uniqueKey);
-
-  /// <summary>
   /// Returns the quick fixes associated to the provided selection, which could be a RangeToken
   /// </summary>
-  /// <param name="uniqueKey">The unique key representing the program and the document</param>
+  /// <param name="input">The code, the program if parsed (and possibly resolved), and other data</param>
   /// <param name="selection">The current selection</param>
   /// <returns>A list of potential quickfixes</returns>
-  public abstract QuickFix[] GetQuickFixes(string uniqueKey, IToken selection);
+  public abstract QuickFix[] GetQuickFixes(IQuickFixInput input, IToken selection);
 }
 
-/// <summary>
-/// Plugin-friendly implementation of QuickFixer that takes care of caching the data you'd compute
-/// from a Program and a Document;
-/// You only need to implement `GetQuickFixes`
-/// </summary>
-/// <typeparam name="T"></typeparam>
-public abstract class CachedQuickFixer<T> : QuickFixer where T : class, IQuickFixInput {
-  private readonly ConditionalWeakTable<string, T> cache;
-
-  protected CachedQuickFixer() {
-    cache = new ConditionalWeakTable<string, T>();
-  }
-
-  /// <summary>
-  /// Compute the cache associated to the given program and document
-  /// Regularly call cancellationToken.ThrowIfCancellationRequested() to stop any computation if it becomes obsolete.
-  /// </summary>
-  /// <param name="input">The input for all quick fix actions</param>
-  /// <param name="cancellationToken"></param>
-  /// <returns></returns>
-  public abstract T ComputeCache(IQuickFixInput input, CancellationToken cancellationToken);
-
-  /// <summary>
-  /// Given some computed cache on a program and a document, returns an array of `QuickFix`
-  /// </summary>
-  /// <param name="cachedData">The data as returned by ComputeCache</param>
-  /// <param name="selection">The current user selection (selection.val == "" if nothing is selected)</param>
-  /// <returns>An array of independent `QuickFix` that each could applied independently on the document</returns>
-  protected abstract QuickFix[] GetQuickFixes(T cachedData, IToken selection);
-
-  // Overrides so that you don't need to implement them.
-  public override void SetQuickFixInput(string uniqueKey, IQuickFixInput input, CancellationToken cancellationToken) {
-    UnsetProgram(uniqueKey);
-    // ComputeCache might take some time, and we don't want GetQuickFixes to return something if it's outdated.
-    cache.Add(uniqueKey, ComputeCache(input, cancellationToken));
-  }
-
-  public override void UnsetProgram(string uniqueKey) {
-    cache.Remove(uniqueKey);
-  }
-
-  public override QuickFix[] GetQuickFixes(string uniqueKey, IToken selection) {
-    if (cache.TryGetValue(uniqueKey, out var cachedData)) {
-      return GetQuickFixes(cachedData, selection);
-    }
-
-    return new QuickFix[] { };
-  }
-}
-
-public class QuickFix {
+public abstract class QuickFix {
   // The title to display in the quickfix interface
   public string Title;
   // Edits are all performed at the same time
-  public QuickFixEdit[] Edits;
+  // They are lazily invoked, so that they can be as complex as needed.
+  public abstract QuickFixEdit[] GetEdits();
 }
 
+// This class enables returning quick fixes instantly.
+public class InstantQuickFix : QuickFix {
+  private readonly QuickFixEdit[] edits;
+
+  public InstantQuickFix(string title, QuickFixEdit[] edits) {
+    this.Title = title;
+    this.edits = edits;
+  }
+  public override QuickFixEdit[] GetEdits() {
+    return edits;
+  }
+}
+
+/// <summary>
+/// A quick fix replaces a range (represented as a token) with the replacing text.
+/// </summary>
+/// <param name="token">The range to replace. The start is given by the token's start, and the length is given by the val's length.</param>
+/// <param name="replaceWith"></param>
 public record QuickFixEdit(IToken token, string replaceWith = "");
 
 public static class TokenExtensions {
