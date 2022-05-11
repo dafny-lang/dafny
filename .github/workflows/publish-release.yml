@@ -10,10 +10,10 @@ env:
   dotnet-version: 6.0.x # SDK Version for building Dafny
   
 jobs:
-  # check-deep-tests:
-  #   uses: ./.github/workflows/check-deep-tests-reusable.yml
-  #   with:
-  #     sha: ${{ github.sha }}
+  check-deep-tests:
+    uses: ./.github/workflows/check-deep-tests-reusable.yml
+    with:
+      sha: ${{ github.sha }}
 
   publish-release:
     runs-on: macos-latest
