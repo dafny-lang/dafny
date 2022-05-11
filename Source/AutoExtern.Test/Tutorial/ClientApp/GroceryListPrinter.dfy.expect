@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 1 verified, 0 errors
+Dafny program verifier did not attempt verification
 Wrote textual form of target program to GroceryListPrinter.cs
 # Printing a grocery list
    (2 items in the list)

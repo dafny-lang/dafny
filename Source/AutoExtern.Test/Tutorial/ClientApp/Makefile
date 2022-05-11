@@ -26,10 +26,11 @@ $(LibraryModelFile): $(LibraryProjectFile) $(LibrarySourceFile) $(LibraryTemplat
 		$(LibraryModelFile)
 
 $(AppDafnyCSharpFile): $(AppDafnyFile)
-	$(Dafny) /compile:0 /spillTargetCode:2 "$<"
+	$(Dafny) -compile:0 -noVerify -spillTargetCode:3 "$<"
 
 dotnet-run: $(LibraryModelFile) $(AppCSharpFile) $(AppDafnyCSharpFile)
 	dotnet run
 
 clean:
+	rm -fr obj bin
 	rm -f $(LibraryModelFile) $(CSharpModelFile) $(AppDafnyCSharpFile)
