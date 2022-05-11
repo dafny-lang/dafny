@@ -739,7 +739,7 @@ There are many great options that control various aspects of verifying dafny pro
 - Control of output: [`/dprint`](#sec-controlling-output), [`/rprint`](#sec-controlling-output), `/stats`, [`/compileVerbose`](#sec-controlling-compilation)
 - Whether to print warnings: `/proverWarnings`
 - Control of time: `/timeLimit`
-- Control of resources: `/rLimit` and [`{:rlimit}`](#sec-rlimit)
+- Control of resources: `/rLimit` and `{:rlimit}`
 - Control of the prover used: `/prover`
 - Control of how many times to _unroll_ functions: [`{:fuel}`](#sec-fuel)
 
