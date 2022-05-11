@@ -79,7 +79,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
         return originalDiagnostics.SelectMany(diagnostic =>
           MigrateDiagnostic(changeEndOffset, diagnostic)).ToList();
       }
-      private List<Position> MigratePositions(List<Position> originalRanges, (TextDocumentContentChangeEvent change, Position position) changeEndOffset) {
+      private List<Position> MigratePositions(List<Position> originalRanges, (TextDocumentContentChangeEvent change, Position? position) changeEndOffset) {
         if (changeEndOffset.change.Range == null) {
           return new List<Position> { };
         }
@@ -88,12 +88,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
       }
 
       // Requires changeEndOffset.change.Range to be not null
-      private IEnumerable<Position> MigratePosition((TextDocumentContentChangeEvent change, Position afterChangeEndOffset) changeEndOffset, Position position) {
+      private IEnumerable<Position> MigratePosition((TextDocumentContentChangeEvent change, Position? afterChangeEndOffset) changeEndOffset, Position position) {
         if (changeEndOffset.change.Range!.Contains(position)) {
           return new List<Position> { };
         }
 
-        return new List<Position> { MigratePosition(position, changeEndOffset.change.Range, changeEndOffset.afterChangeEndOffset) };
+        return new List<Position> { MigratePosition(position, changeEndOffset.change.Range, changeEndOffset.afterChangeEndOffset!) };
       }
 
       private IEnumerable<Diagnostic> MigrateDiagnostic((TextDocumentContentChangeEvent change, Position? afterChangeEndOffset) changeEndOffset, Diagnostic diagnostic) {
@@ -132,7 +132,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
           if (change.Range == null) {
             migratedLookupTree = new IntervalTree<Position, ILocalizableSymbol>();
           } else {
-            migratedLookupTree = ApplyLookupTreeChange(migratedLookupTree, change.Range, afterChangeEndOffset);
+            migratedLookupTree = ApplyLookupTreeChange(migratedLookupTree, change.Range, afterChangeEndOffset!);
           }
           migratedDeclarations = ApplyDeclarationsChange(originalSymbolTable, migratedDeclarations, change.Range, afterChangeEndOffset);
         }
@@ -276,14 +276,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
       public IEnumerable<VerificationTree> MigrateVerificationTree(IEnumerable<VerificationTree> originalDiagnostics) {
         return contentChanges.Aggregate(originalDiagnostics, MigrateVerificationTree);
       }
-      private IEnumerable<VerificationTree> MigrateVerificationTree(IEnumerable<VerificationTree> verificationTrees, (TextDocumentContentChangeEvent change, Position afterChangeEndOffset) changeEndOffset) {
+      private IEnumerable<VerificationTree> MigrateVerificationTree(IEnumerable<VerificationTree> verificationTrees, (TextDocumentContentChangeEvent change, Position? afterChangeEndOffset) changeEndOffset) {
         if (changeEndOffset.change.Range == null) {
           yield break;
         }
 
         var afterChangeEndOffset = changeEndOffset.afterChangeEndOffset;
         foreach (var verificationTree in verificationTrees) {
-          var newRange = MigrateRange(verificationTree.Range, changeEndOffset.change.Range, afterChangeEndOffset);
+          var newRange = MigrateRange(verificationTree.Range, changeEndOffset.change.Range, afterChangeEndOffset!);
           if (newRange == null) {
             continue;
           }
@@ -299,7 +299,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
             newNodeDiagnostic = assertionNodeDiagnostic with {
               SecondaryPosition = assertionNodeDiagnostic.SecondaryPosition != null
                 ? MigratePosition(assertionNodeDiagnostic.SecondaryPosition,
-                  changeEndOffset.change.Range, changeEndOffset.afterChangeEndOffset)
+                  changeEndOffset.change.Range, changeEndOffset.afterChangeEndOffset!)
                 : null
             };
           }
