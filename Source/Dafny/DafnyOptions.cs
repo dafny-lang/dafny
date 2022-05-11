@@ -827,7 +827,7 @@ namespace Microsoft.Dafny {
       TODO
 
     {:no_inline}
-      When predicates such as `function P(x: int) { x % 2 == 0 }`
+      When predicates such as `predicate P(x: int) { x % 2 == 0 }`
       are used in assertions like `assert P(6);`, Dafny
       will by default try to figure out if it can split the call
       into multiple assertions that are easier for the verifier.
