@@ -22,16 +22,10 @@ namespace Microsoft.Dafny.LanguageServer.Handlers;
 public class DafnyCodeActionHandler : CodeActionHandlerBase {
   private readonly ILogger<DafnyCodeActionHandler> logger;
   private readonly IDocumentDatabase documents;
-  private readonly QuickFixer[] quickFixers;
 
   public DafnyCodeActionHandler(ILogger<DafnyCodeActionHandler> logger, IDocumentDatabase documents, ISymbolGuesser symbolGuesser) {
     this.logger = logger;
     this.documents = documents;
-    quickFixers =
-      new List<QuickFixer>() {
-        new VerificationQuickFixer(documents, logger)
-      }.Concat(
-        DafnyOptions.O.Plugins.SelectMany(plugin => plugin.GetQuickFixers())).ToArray();
   }
 
   public static (IToken, string, string, bool)
@@ -113,6 +107,8 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
       logger.LogWarning("quick fixes requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
       return new CommandOrCodeActionContainer();
     }
+    var quickFixers = GetQuickFixers();
+
     var pluginQuickFixes = new CodeActionProcessor(quickFixers, document, request, cancellationToken).GetPluginFixes().ToArray();
 
     var documentUri = document.Uri.ToString();
@@ -127,6 +123,13 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
     }
     ).ToArray();
     return new CommandOrCodeActionContainer(codeActions);
+  }
+
+  private QuickFixer[] GetQuickFixers() {
+    return new List<QuickFixer>() {
+      new VerificationQuickFixer(documents, logger)
+    }.Concat(
+      DafnyOptions.O.Plugins.SelectMany(plugin => plugin.GetQuickFixers())).ToArray();
   }
 
   public override Task<CodeAction> Handle(CodeAction request, CancellationToken cancellationToken) {

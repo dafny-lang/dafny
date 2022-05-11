@@ -30,7 +30,7 @@ public abstract class QuickFixer {
   /// </summary>
   /// <param name="input">The code, the program if parsed (and possibly resolved), and other data</param>
   /// <param name="selection">The current selection</param>
-  /// <returns>A list of potential quickfixes</returns>
+  /// <returns>A list of potential quickfixes, possibly computed lazily</returns>
   public abstract QuickFix[] GetQuickFixes(IQuickFixInput input, IToken selection);
 }
 

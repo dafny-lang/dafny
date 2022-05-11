@@ -71,7 +71,6 @@ const x := 1;
 {t}{t}{t}]]}}");
     }
 
-
     [TestMethod]
     public async Task CodeActionSuggestsInliningPostConditionWithExtraIndentation2() {
       await TestCodeActionHelper(@"
