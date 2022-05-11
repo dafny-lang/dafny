@@ -832,7 +832,7 @@ namespace Microsoft.Dafny {
       will by default try to figure out if it can split the call
       into multiple assertions that are easier for the verifier.
       Hence, sometimes, if sound to do so (e.g. no `{:opaque}`),
-      Dafny will inline the function, resulting in, for example,
+      Dafny will inline the predicate, resulting in, for example,
       `assert 6 % 2 == 0`.
       
       Adding the attribute `{:no_inline}` to a function will result
