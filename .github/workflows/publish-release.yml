@@ -10,10 +10,10 @@ env:
   dotnet-version: 6.0.x # SDK Version for building Dafny
   
 jobs:
-  check-deep-tests:
-    uses: ./.github/workflows/check-deep-tests-reusable.yml
-    with:
-      sha: ${{ github.sha }}
+  # check-deep-tests:
+  #   uses: ./.github/workflows/check-deep-tests-reusable.yml
+  #   with:
+  #     sha: ${{ github.sha }}
 
   publish-release:
     runs-on: macos-latest
@@ -55,11 +55,16 @@ jobs:
         which latex || echo NOT FOUND latex
         which xelatex || echo NOT FOUND xelatex
         sudo gem install rouge
+    # First we build the ZIPs (which do not include the refman)
     - name: Package release files
       run: |
         python dafny/Scripts/package.py ${{ steps.get-version.outputs.version-without-v }} --skip_manual=true --github_secret=${{ secrets.GITHUB_TOKEN }}
-    # We build the reference manual separately because that depends on evaluating the path_helper script,
-    # but that perturbs the path enough that `python` above would resolve to an older built-in Python version.
+    # Then we build the reference manual separately, because that depends on evaluating the path_helper script,
+    # and that perturbs the path enough that `python` above would resolve to an older built-in Python version.
+    # Additionally, since the refman build scripts expect to find Dafny in its usual Binaries/ folder (not in
+    # a platform-specific directory), we build Dafny once here.
+    - name: Build Dafny
+      run: dotnet build dafny/Source/Dafny.sln
     - name: Build reference manual
       run: |
         eval "$(/usr/libexec/path_helper)"
