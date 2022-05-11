@@ -21,10 +21,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <param name="SymbolTable">The symbol table for the symbol lookups.</param>
   /// <param name="LoadCanceled"><c>true</c> if the document load was canceled for this document.</param>
   public record DafnyDocument(
-    DafnyOptions Options,
     TextDocumentItem TextDocumentItem,
     IReadOnlyList<Diagnostic> ParseAndResolutionDiagnostics,
-    IReadOnlyList<IImplementationTask> VerificationTasks,
+    IReadOnlyList<IImplementationTask> VerificationTasks, // TODO move this to the DocumentEntry because it's mutable?
     // VerificationDiagnostics can be deduced from CounterExamples,
     // but they are stored separately because they are migrated and counterexamples currently are not.
     IReadOnlyDictionary<ImplementationId, IReadOnlyList<Diagnostic>> VerificationDiagnosticsPerImplementation,

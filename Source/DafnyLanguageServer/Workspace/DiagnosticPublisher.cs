@@ -11,7 +11,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol;
 using VC;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
-  public class DiagnosticPublisher : IDiagnosticPublisher {
+  public class DiagnosticPublisher : IDiagnosticPublisher { // TODO rename to NotificationPublisher
     public const string VerificationStatusNotification = "textDocument/verificationStatus";
     private readonly ILanguageServerFacade languageServer;
 
