@@ -3,6 +3,9 @@ name: Integration Tests (Reusable Workflow)
 on:
   workflow_call:
     inputs:
+      all_platforms:
+        required: true
+        type: boolean
       num_shards:
         required: true
         type: number
@@ -11,16 +14,20 @@ env:
   dotnet-version: 6.0.x # SDK Version for building Dafny
   
 jobs:
-  # This workflow is used to dynamically calculate the matrix dimensions.
+  # This job is used to dynamically calculate the matrix dimensions.
   # For now that just makes the sharding a little cleaner, but it will shortly
   # be used to switch between one platform and all platforms based on an input parameter.
   populate-matrix-dimensions:
     runs-on: ubuntu-latest
     steps:
-      - name: Populate OS list
-        id: populate-os-list
-        run: |
-          echo "::set-output name=os-list::[\"ubuntu-latest\", \"ubuntu-18.04\", \"macos-latest\", \"windows-latest\"]"
+      - name: Populate OS list (all platforms)
+        id: populate-os-list-all
+        if: inputs.all_platforms
+        run: echo "::set-output name=os-list::[\"ubuntu-latest\", \"ubuntu-18.04\", \"macos-latest\", \"windows-latest\"]"
+      - name: Populate OS list (one platform)
+        id: populate-os-list-one
+        if: "!inputs.all_platforms"
+        run: echo "::set-output name=os-list::[\"ubuntu-18.04\"]"
       - name: Populate OS mapping for package.py
         id: populate-os-mapping
         run: |
@@ -30,7 +37,7 @@ jobs:
         run: |
           echo "::set-output name=shard-list::[" $(seq -s , 1 ${{ inputs.num_shards }}) "]"
     outputs:
-      os-list: ${{ steps.populate-os-list.outputs.os-list }}
+      os-list: ${{ steps.populate-os-list-all.outputs.os-list }} ${{ steps.populate-os-list-one.outputs.os-list }}
       os-mapping: ${{ steps.populate-os-mapping.outputs.os-mapping }}
       shard-list: ${{ steps.populate-shard-list.outputs.shard-list }}
   test:
