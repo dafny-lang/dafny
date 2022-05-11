@@ -206,7 +206,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         } else {
           viewDictionary.AddOrUpdate(id,
             _ => new ImplementationView(lspRange, status, Array.Empty<Diagnostic>()),
-            (_, previousView) => previousView with { Status = status});
+            (_, previousView) => previousView with { Status = status });
         }
 
         if (implementationTask.CurrentStatus is VerificationStatus.Running) {

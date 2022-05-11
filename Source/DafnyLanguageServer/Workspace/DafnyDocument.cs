@@ -23,7 +23,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   public record DafnyDocument(
     TextDocumentItem TextDocumentItem,
     IReadOnlyList<Diagnostic> ParseAndResolutionDiagnostics,
-    IReadOnlyList<IImplementationTask> VerificationTasks, // TODO move this to the DocumentEntry because it's mutable?
+    // TODO move this to the DocumentEntry because it's mutable?
+    IReadOnlyList<IImplementationTask> VerificationTasks,
     // VerificationDiagnostics can be deduced from CounterExamples,
     // but they are stored separately because they are migrated and counterexamples currently are not.
     IReadOnlyDictionary<ImplementationId, ImplementationView> ImplementationViews,
