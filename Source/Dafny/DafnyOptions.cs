@@ -827,8 +827,8 @@ namespace Microsoft.Dafny {
       TODO
 
     {:no_inline}
-      When functions such as `function f(x: int) { x % 2 == 0 }`
-      are used in assertions like `assert f(6);`, Dafny
+      When predicates such as `function P(x: int) { x % 2 == 0 }`
+      are used in assertions like `assert P(6);`, Dafny
       will by default try to figure out if it can split the call
       into multiple assertions that are easier for the verifier.
       Hence, sometimes, if sound to do so (e.g. no `{:opaque}`),
@@ -842,7 +842,7 @@ namespace Microsoft.Dafny {
       
       This trick can be helpful if for a huge conjunct predicate `P`,
       assuming that `P(x)` already hold, if we don't want `P`
-      to be opaque, and we `assert f(x)` again. Inlining might result
+      to be opaque, and we `assert P(x)` again. Inlining might result
       in performance issues because it will have to infer every single
       conjunct. Adding `{:no_inline}` to the predicate can result
       in such cases in the verifier to be faster.
