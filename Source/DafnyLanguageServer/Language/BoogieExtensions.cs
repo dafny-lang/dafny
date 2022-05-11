@@ -1,6 +1,8 @@
-﻿using Microsoft.Boogie;
+﻿using System;
+using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Util;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
@@ -49,17 +51,24 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     }
 
     public static IToken ToBoogieToken(this Position position, string document) {
-      return new Token() {
-        line = position.Line - LineOffset,
-        col = position.Character - ColumnOffset,
-        val = "",
-        pos = position.ToAbsolutePosition(document)
-      };
+      try {
+        return new Token() {
+          line = position.Line - LineOffset,
+          col = position.Character - ColumnOffset,
+          val = "",
+          pos = position.ToAbsolutePosition(document)
+        };
+      } catch (ArgumentException e) {
+        return Token.NoToken;
+      }
     }
 
     public static RangeToken ToBoogieToken(this Range range, string document) {
       var start = range.Start.ToBoogieToken(document);
       var end = range.End.ToBoogieToken(document);
+      if (end.line == 0) { // Sometimes the end is not a valid token because of over approximation
+        end = start;
+      }
       return new RangeToken(start, end);
     }
   }
