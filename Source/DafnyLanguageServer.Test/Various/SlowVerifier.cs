@@ -2,6 +2,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.Language;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -17,7 +18,8 @@ class SlowVerifier : IProgramVerifier {
 
   private readonly DafnyProgramVerifier verifier;
 
-  public Task<VerificationResult> VerifyAsync(Dafny.Program program, IVerificationProgressReporter progressReporter, CancellationToken cancellationToken) {
+  public Task<VerificationResult> VerifyAsync(DafnyDocument document, IVerificationProgressReporter progressReporter, CancellationToken cancellationToken) {
+    var program = document.Program;
     var attributes = program.Modules().SelectMany(m => {
       return m.TopLevelDecls.OfType<TopLevelDeclWithMembers>().SelectMany(d => d.Members.Select(member => member.Attributes));
     }).ToList();
@@ -29,6 +31,6 @@ class SlowVerifier : IProgramVerifier {
       return source.Task;
     }
 
-    return verifier.VerifyAsync(program, progressReporter, cancellationToken);
+    return verifier.VerifyAsync(document, progressReporter, cancellationToken);
   }
 }
