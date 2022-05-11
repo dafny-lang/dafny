@@ -26,7 +26,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     IReadOnlyList<IImplementationTask> VerificationTasks, // TODO move this to the DocumentEntry because it's mutable?
     // VerificationDiagnostics can be deduced from CounterExamples,
     // but they are stored separately because they are migrated and counterexamples currently are not.
-    IReadOnlyDictionary<ImplementationId, IReadOnlyList<Diagnostic>> VerificationDiagnosticsPerImplementation,
+    IReadOnlyDictionary<ImplementationId, ImplementationView> ImplementationViews,
     IReadOnlyList<Counterexample> CounterExamples,
     IReadOnlyList<Diagnostic> GhostDiagnostics,
     Dafny.Program Program,
@@ -34,7 +34,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     bool LoadCanceled = false
   ) {
 
-    public IEnumerable<Diagnostic> Diagnostics => ParseAndResolutionDiagnostics.Concat(VerificationDiagnosticsPerImplementation.SelectMany(kv => kv.Value));
+    public IEnumerable<Diagnostic> Diagnostics => ParseAndResolutionDiagnostics.Concat(ImplementationViews.SelectMany(kv => kv.Value.Diagnostics));
 
     public DocumentUri Uri => TextDocumentItem.Uri;
     public int Version => TextDocumentItem.Version!.Value;
@@ -48,4 +48,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return documentUri == Uri;
     }
   }
+
+  public record ImplementationView(Range Range, PublishedVerificationStatus Status,
+    IReadOnlyList<Diagnostic> Diagnostics);
 }

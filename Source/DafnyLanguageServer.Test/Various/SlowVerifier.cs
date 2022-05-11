@@ -19,12 +19,12 @@ class SlowVerifier : IProgramVerifier {
 
   private readonly DafnyProgramVerifier verifier;
 
-  public IReadOnlyList<IImplementationTask> Verify(Dafny.Program program, CancellationToken cancellationToken) {
+  public IReadOnlyList<IImplementationTask> GetImplementationTasks(Dafny.Program program, CancellationToken cancellationToken) {
     var attributes = program.Modules().SelectMany(m => {
       return m.TopLevelDecls.OfType<TopLevelDeclWithMembers>().SelectMany(d => d.Members.Select(member => member.Attributes));
     }).ToList();
 
-    var originalResult = verifier.Verify(program, cancellationToken);
+    var originalResult = verifier.GetImplementationTasks(program, cancellationToken);
     if (attributes.Any(a => Attributes.Contains(a, "neverVerify"))) {
       var source = new TaskCompletionSource<ServerVerificationResult>();
       cancellationToken.Register(() => { source.SetCanceled(cancellationToken); });

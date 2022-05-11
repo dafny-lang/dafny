@@ -67,7 +67,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     private const int TranslatorMaxStackSize = 0x10000000; // 256MB
     static readonly ThreadTaskScheduler TranslatorScheduler = new(TranslatorMaxStackSize);
 
-    public IReadOnlyList<IImplementationTask> Verify(Dafny.Program program, CancellationToken cancellationToken) {
+    public IReadOnlyList<IImplementationTask> GetImplementationTasks(Dafny.Program program, CancellationToken cancellationToken) {
 
       var errorReporter = (DiagnosticErrorReporter)program.Reporter;
       // Do not set these settings within the object's construction. It will break some tests within

@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Boogie;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>

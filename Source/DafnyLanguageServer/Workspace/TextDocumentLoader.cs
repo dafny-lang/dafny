@@ -87,7 +87,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return loaded;
       }
       return loaded with {
-        VerificationTasks = verifier.Verify(loaded.Program, cancellationToken),
+        VerificationTasks = verifier.GetImplementationTasks(loaded.Program, cancellationToken),
       };
     }
 
@@ -118,7 +118,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       return new DafnyDocument(textDocument, errorReporter.GetDiagnostics(textDocument.Uri),
         Array.Empty<IImplementationTask>(),
-        new Dictionary<ImplementationId, IReadOnlyList<Diagnostic>>(),
+        new Dictionary<ImplementationId, ImplementationView>(),
         Array.Empty<Counterexample>(),
         ghostDiagnostics, program, symbolTable);
     }
@@ -140,7 +140,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         textDocument,
         errorReporter.GetDiagnostics(textDocument.Uri),
         Array.Empty<IImplementationTask>(),
-        new Dictionary<ImplementationId, IReadOnlyList<Diagnostic>>(),
+        new Dictionary<ImplementationId, ImplementationView>(),
         Array.Empty<Counterexample>(),
         Array.Empty<Diagnostic>(),
         program,
@@ -166,11 +166,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var implementationTasks = document.VerificationTasks;
       var _ = NotifyStatusAsync(document.TextDocumentItem, implementationTasks);
 
-      var concurrentDictionary = new ConcurrentDictionary<ImplementationId, IReadOnlyList<Diagnostic>>();
+      var viewDictionary = new ConcurrentDictionary<ImplementationId, ImplementationView>();
       foreach (var task in implementationTasks) {
         var id = GetImplementationId(task.Implementation);
-        if (document.VerificationDiagnosticsPerImplementation.TryGetValue(id, out var existingDiagnostics)) {
-          concurrentDictionary.TryAdd(id, existingDiagnostics);
+        if (document.ImplementationViews.TryGetValue(id, out var existingView)) {
+          viewDictionary.TryAdd(id, existingView);
         }
       }
       var counterExamples = new ConcurrentStack<Counterexample>();
@@ -195,12 +195,18 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       });
 
       var result = implementationTasks.Select(implementationTask => implementationTask.ObservableStatus.Select(async _ => {
+        var id = GetImplementationId(implementationTask.Implementation);
+        var status = FromImplementationTask(implementationTask);
+        var lspRange = implementationTask.Implementation.tok.GetLspRange();
         if (implementationTask.CurrentStatus is VerificationStatus.Completed) {
           var itDiagnostics = await diagnostics[implementationTask];
-          var id = GetImplementationId(implementationTask.Implementation);
 
-
-          concurrentDictionary.AddOrUpdate(id, itDiagnostics, (_, _) => itDiagnostics);
+          var view = new ImplementationView(lspRange, status, itDiagnostics);
+          viewDictionary.AddOrUpdate(id, view, (_, _) => view);
+        } else {
+          viewDictionary.AddOrUpdate(id,
+            _ => new ImplementationView(lspRange, status, Array.Empty<Diagnostic>()),
+            (_, previousView) => previousView with { Status = status});
         }
 
         if (implementationTask.CurrentStatus is VerificationStatus.Running) {
@@ -212,19 +218,37 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           }
         }
 
+
         return document with {
-          VerificationTasks = implementationTasks,
-          VerificationDiagnosticsPerImplementation = concurrentDictionary.ToImmutableDictionary(),
+          ImplementationViews = viewDictionary.ToImmutableDictionary(),
           CounterExamples = counterExamples.ToArray(),
         };
       }).SelectMany(t => t.ToObservable())).Merge().Replay();
       result.Connect();
 
-      foreach (var implementationTask in document.VerificationTasks) {
+      foreach (var implementationTask in implementationTasks) {
         implementationTask.Run();
       }
 
       return result;
+    }
+
+    PublishedVerificationStatus FromImplementationTask(IImplementationTask task) {
+      switch (task.CurrentStatus) {
+        case VerificationStatus.Stale: return PublishedVerificationStatus.Stale;
+        case VerificationStatus.Queued:
+          return PublishedVerificationStatus.Queued;
+        case VerificationStatus.Running:
+          return PublishedVerificationStatus.Running;
+        case VerificationStatus.Completed:
+#pragma warning disable VSTHRD002
+          return task.ActualTask.Result.Outcome == ConditionGeneration.Outcome.Correct
+#pragma warning restore VSTHRD002
+            ? PublishedVerificationStatus.Correct
+            : PublishedVerificationStatus.Error;
+        default:
+          throw new ArgumentOutOfRangeException();
+      }
     }
 
     private async Task NotifyStatusAsync(TextDocumentItem item, IReadOnlyList<IImplementationTask> implementationTasks) {

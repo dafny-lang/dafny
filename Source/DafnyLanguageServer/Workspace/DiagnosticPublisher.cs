@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -11,6 +12,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol;
 using VC;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
+
   public class DiagnosticPublisher : IDiagnosticPublisher { // TODO rename to NotificationPublisher
     public const string VerificationStatusNotification = "textDocument/verificationStatus";
     private readonly ILanguageServerFacade languageServer;
@@ -35,21 +37,17 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       PublishGhostDiagnostics(document);
     }
 
-    PublishedVerificationStatus FromImplementationTask(IImplementationTask task) {
-      switch (task.CurrentStatus) {
-        case VerificationStatus.Stale: return PublishedVerificationStatus.Stale;
-        case VerificationStatus.Queued:
-          return PublishedVerificationStatus.Queued;
-        case VerificationStatus.Running:
-          return PublishedVerificationStatus.Running;
-        case VerificationStatus.Completed:
-#pragma warning disable VSTHRD002
-          return task.ActualTask.Result.Outcome == ConditionGeneration.Outcome.Correct
-#pragma warning restore VSTHRD002
-            ? PublishedVerificationStatus.Correct
-            : PublishedVerificationStatus.Error;
-        default:
-          throw new ArgumentOutOfRangeException();
+    private void PublishVerificationStatus(DafnyDocument document) {
+      var namedVerifiableGroups = document.ImplementationViews.GroupBy(task => task.Value.Range);
+      var namedVerifiableStatusList = namedVerifiableGroups.Select(taskGroup => {
+        var status = taskGroup.Select(kv => kv.Value.Status).Aggregate(Combine);
+        return new NamedVerifiableStatus(taskGroup.Key, status);
+      }).ToList();
+      var notification = new FileVerificationStatus(document.Uri, document.Version, namedVerifiableStatusList);
+
+      if (!previouslyVerificationStatus.TryGetValue(document.Uri, out var previous) || !previous.Equals(notification)) {
+        languageServer.TextDocument.SendNotification(VerificationStatusNotification, notification);
+        previouslyVerificationStatus.AddOrUpdate(document.Uri, _ => notification, (_, _) => notification);
       }
     }
 
@@ -59,23 +57,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       return new[] { first, second }.Min();
-    }
-
-    private void PublishVerificationStatus(DafnyDocument document) {
-      var namedVerifiableGroups = document.VerificationTasks.GroupBy(task => task.Implementation.tok.GetLspRange());
-      var namedVerifiableStatusList = namedVerifiableGroups.Select(taskGroup => {
-        var statuses = taskGroup.Select(FromImplementationTask);
-        var status = statuses.Aggregate(Combine);
-        return new NamedVerifiableStatus(taskGroup.Key, status);
-      }).ToList();
-      var notification = new FileVerificationStatus(document.Uri, document.Version, namedVerifiableStatusList);
-
-      if (previouslyVerificationStatus.TryGetValue(document.Uri, out var previous) && previous.Equals(notification)) {
-        Console.Write("");
-      } else {
-        languageServer.TextDocument.SendNotification(VerificationStatusNotification, notification);
-        previouslyVerificationStatus.AddOrUpdate(document.Uri, _ => notification, (_, _) => notification);
-      }
     }
 
     private void PublishDocumentDiagnostics(DafnyDocument document) {
