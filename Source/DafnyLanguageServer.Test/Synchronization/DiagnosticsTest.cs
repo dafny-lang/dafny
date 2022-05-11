@@ -913,7 +913,7 @@ method test()
       var documentItem = CreateTestDocument(source);
       client.OpenDocument(documentItem);
       var diagnostics = await GetLastVerificationDiagnostics(documentItem, CancellationToken);
-      Assert.AreEqual(1, diagnostics.Length);
+      Assert.AreEqual(2, diagnostics.Length);
     }
 
     [TestMethod]
