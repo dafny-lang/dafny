@@ -33,9 +33,10 @@ class VerificationQuickFixer : QuickFixer {
           if (relatedInformation.Location.Uri == uri) {
             var relatedRange = relatedInformation.Location.Range;
             var expression = Extract(relatedRange, cachedData.Code);
-            var endToken = GetMatchingEndToken(document, uri, diagnostic.Range.Start.ToBoogieToken(cachedData.Code));
+            var startToken = diagnostic.Range.Start.ToBoogieToken(cachedData.Code);
+            var endToken = GetMatchingEndToken(document, uri, startToken);
             if (endToken != null) {
-              var (indentation, indentationBrace) = GetIndentationBefore(endToken, cachedData.Code);
+              var (indentation, indentationBrace) = GetIndentationBefore(endToken, startToken, cachedData.Code);
               result.Add(new InstantQuickFix(
                 "Explicit the failing assert",
                 new[] {
@@ -72,15 +73,17 @@ class VerificationQuickFixer : QuickFixer {
   }
 
   /// <summary>
-  /// Given the position of a closing brace '}', returns spacing that can be used to insert a statement before it
+  /// Given the position of a closing brace '}' and the position of the opening brace '{',
+  /// returns spacing that can be used to insert a statement before it,
+  /// as well as spacing for after the statement
   /// </summary>
-  /// <param name="token">The position of the closing brace</param>
+  /// <param name="endToken">The position of the closing brace</param>
   /// <param name="text">The document text</param>
   /// <returns>(extra indentation for a statement, current indentation)</returns>
-  private (string, string) GetIndentationBefore(IToken token, string text) {
-    var pos = token.pos + token.val.Length - 1;
+  private (string, string) GetIndentationBefore(IToken endToken, IToken startToken, string text) {
+    var pos = endToken.pos + endToken.val.Length - 1;
     var indentation = 0;
-    var indentationBrace = token.col - 1;
+    var indentationBrace = endToken.col - 1;
     var firstNewline = true;
     var useTabs = false;
     // Look for the first newline
@@ -100,15 +103,21 @@ class VerificationQuickFixer : QuickFixer {
       if (!firstNewline) {
         if (text[pos] == ' ' || text[pos] == '\t') {
           indentation++;
-        } else if (text[pos] == '{') {
-          indentation = indentationBrace + 2;
-          break;
         } else {
           indentation = 0;
         }
       }
 
       pos--;
+    }
+
+    if (startToken.line == endToken.line - 1) {
+      // Override case {\n} with some spacing, we return a default value of 2 spaces or 1 tab, if we find some
+      indentation = indentationBrace + (useTabs ? 1 : 2);
+    } else if (startToken.line == endToken.line) {
+      // Override case { ... } on one line.
+      indentationBrace = startToken.col - 1;
+      indentation = indentationBrace + 1;
     }
 
     indentation = Math.Max(indentationBrace, indentation);

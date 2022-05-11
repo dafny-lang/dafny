@@ -62,13 +62,13 @@ const x := 1;
 
     [TestMethod]
     public async Task CodeActionSuggestsInliningPostConditionWithExtraTabIndentation() {
-      var t = "\t\t\t";
+      var t = "\t";
       await TestCodeActionHelper($@"
 const x := 1;
   method f() returns (i: int)
-{t}{t}ensures i > 10 >>>{{
-{t}[[Explicit the failing assert|{t}assert i > 10;
-{t}]]}}");
+{t}{t}{t}{t}{t}{t}ensures i > 10 >>>{{
+{t}{t}{t}[[Explicit the failing assert|{t}assert i > 10;
+{t}{t}{t}]]}}");
     }
 
 
@@ -83,6 +83,28 @@ const x := 1;
 ]]}");
     }
 
+    [TestMethod]
+    public async Task CodeActionSuggestsInliningPostConditionWithExtraIndentation2bis() {
+      await TestCodeActionHelper(@"
+const x := 1;
+  method f() returns (i: int)
+    ensures i > 10
+>>>{
+    assert 1 == 1; /* a commented { that should not prevent indentation to be 4 */
+[[Explicit the failing assert|    assert i > 10;
+]]}");
+    }
+
+
+    [TestMethod]
+    public async Task CodeActionSuggestsInliningPostConditionWithExtraIndentation2C() {
+      await TestCodeActionHelper(@"
+const x := 1;
+  method f() returns (i: int)
+    ensures i > 10
+  >>>{[[Explicit the failing assert| assert i > 10;
+  ]]}");
+    }
 
     [TestMethod]
     public async Task CodeActionSuggestsInliningPostConditionWithExtraIndentation3() {
