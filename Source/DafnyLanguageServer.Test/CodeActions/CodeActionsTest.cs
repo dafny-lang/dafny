@@ -22,6 +22,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.CodeActions {
       return completionList.ToList();
     }
 
+    private async Task<CodeAction> RequestResolveCodeAction(CodeAction codeAction) {
+      return await client.ResolveCodeAction(codeAction, CancellationToken);
+    }
+
     [TestMethod]
     public async Task CodeActionSuggestsInliningPostCondition() {
       await TestCodeActionHelper(@"
@@ -128,12 +132,12 @@ const x := 1;
       foreach (var completion in completionList) {
         if (completion.CodeAction is { Title: var title } codeAction && title == expectedQuickFixTitle) {
           found = true;
+          codeAction = await RequestResolveCodeAction(codeAction);
           var textDocumentEdit = codeAction.Edit?.DocumentChanges?.Single().TextDocumentEdit;
-          if (textDocumentEdit != null) {
-            var edit = textDocumentEdit.Edits.Single();
-            Assert.AreEqual(expectedQuickFix, edit.NewText);
-            Assert.AreEqual(expectedQuickFixRange, edit.Range);
-          }
+          Assert.IsNotNull(textDocumentEdit);
+          var edit = textDocumentEdit.Edits.Single();
+          Assert.AreEqual(expectedQuickFix, edit.NewText);
+          Assert.AreEqual(expectedQuickFixRange, edit.Range);
         }
       }
 

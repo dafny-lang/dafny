@@ -23,34 +23,11 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
   private readonly ILogger<DafnyCodeActionHandler> logger;
   private readonly IDocumentDatabase documents;
   private readonly QuickFixer[] quickFixers;
-  /*
-    class Test : CodeActionPartialHandlerBase {
-      public Test(Guid id, [NotNull] IProgressManager progressManager) : base(id, progressManager)
-      {
-      }
-
-      public Test([NotNull] IProgressManager progressManager) : base(progressManager)
-      {
-      }
-
-      protected override CodeActionRegistrationOptions CreateRegistrationOptions(CodeActionCapability capability,
-        ClientCapabilities clientCapabilities) {
-        throw new NotImplementedException();
-      }
-
-      protected override void Handle(CodeActionParams request, IObserver<IEnumerable<CommandOrCodeAction>> results, CancellationToken cancellationToken) {
-        throw new NotImplementedException();
-      }
-
-      public override Task<CodeAction> Handle(CodeAction request, CancellationToken cancellationToken) {
-        throw new NotImplementedException();
-      }
-    }*/
 
   public DafnyCodeActionHandler(ILogger<DafnyCodeActionHandler> logger, IDocumentDatabase documents, ISymbolGuesser symbolGuesser) {
     this.logger = logger;
     this.documents = documents;
-    this.quickFixers =
+    quickFixers =
       new List<QuickFixer>() {
         new VerificationQuickFixer(documents, logger)
       }.Concat(
@@ -136,7 +113,7 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
       logger.LogWarning("quick fixes requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
       return new CommandOrCodeActionContainer();
     }
-    var pluginQuickFixes = new CodeActionProcessor(this.quickFixers, document, request, cancellationToken).GetPluginFixes().ToArray();
+    var pluginQuickFixes = new CodeActionProcessor(quickFixers, document, request, cancellationToken).GetPluginFixes().ToArray();
 
     var documentUri = document.Uri.ToString();
     ConcurrentDictionary.AddOrUpdate(documentUri,
