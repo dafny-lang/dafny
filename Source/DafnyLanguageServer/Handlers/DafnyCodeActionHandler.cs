@@ -1,27 +1,53 @@
-﻿using Microsoft.Dafny.LanguageServer.Language;
-using Microsoft.Dafny.LanguageServer.Language.Symbols;
-using Microsoft.Dafny.LanguageServer.Util;
+﻿using System;
+using System.Collections.Concurrent;
+using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client.Capabilities;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using MediatR;
 using Microsoft.Boogie;
 using Microsoft.Dafny.Plugins;
+using Newtonsoft.Json.Linq;
+using OmniSharp.Extensions.LanguageServer.Protocol;
+using OmniSharp.Extensions.LanguageServer.Protocol.Workspace;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers; 
 
 public class DafnyCodeActionHandler : CodeActionHandlerBase {
-  private readonly ILogger logger;
+  private readonly ILogger<DafnyCodeActionHandler> logger;
   private readonly IDocumentDatabase documents;
   private readonly QuickFixer[] quickFixers;
+  /*
+    class Test : CodeActionPartialHandlerBase {
+      public Test(Guid id, [NotNull] IProgressManager progressManager) : base(id, progressManager)
+      {
+      }
 
-  public DafnyCodeActionHandler(ILogger<DafnyCompletionHandler> logger, IDocumentDatabase documents, ISymbolGuesser symbolGuesser) {
+      public Test([NotNull] IProgressManager progressManager) : base(progressManager)
+      {
+      }
+
+      protected override CodeActionRegistrationOptions CreateRegistrationOptions(CodeActionCapability capability,
+        ClientCapabilities clientCapabilities) {
+        throw new NotImplementedException();
+      }
+
+      protected override void Handle(CodeActionParams request, IObserver<IEnumerable<CommandOrCodeAction>> results, CancellationToken cancellationToken) {
+        throw new NotImplementedException();
+      }
+
+      public override Task<CodeAction> Handle(CodeAction request, CancellationToken cancellationToken) {
+        throw new NotImplementedException();
+      }
+    }*/
+
+  public DafnyCodeActionHandler(ILogger<DafnyCodeActionHandler> logger, IDocumentDatabase documents, ISymbolGuesser symbolGuesser) {
     this.logger = logger;
     this.documents = documents;
     this.quickFixers =
@@ -67,72 +93,34 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
       this.documentUri = document.Uri.GetFileSystemPath();
     }
 
-    public (string, WorkspaceEdit)[] ToWorkspaceEdit(params
-      (string, TextEdit[])[] edits) {
-      return edits.Select(titleEdit =>
-        (titleEdit.Item1, new WorkspaceEdit() {
-          DocumentChanges = new Container<WorkspaceEditDocumentChange>(
-            new WorkspaceEditDocumentChange(new TextDocumentEdit() {
-              TextDocument = new OptionalVersionedTextDocumentIdentifier() {
-                Uri = document.Uri,
-                Version = document.Version
-              },
-              Edits = new TextEditContainer(titleEdit.Item2)
-            })
-          )
-        })).ToArray();
-    }
-
-    public CommandOrCodeActionContainer GetCommandOrCodeActionContainer() {
-      var edits = GetPossibleFixes();
-      var workspaceEdit = ToWorkspaceEdit(edits);
-      var codeActions = workspaceEdit.Select(titleEdit => {
-        CommandOrCodeAction t = new CodeAction() {
-          Kind = CodeActionKind.QuickFix,
-          Title = titleEdit.Item1,
-          Edit = titleEdit.Item2
-        };
-        return t;
-      }
-      ).ToArray();
-      return new CommandOrCodeActionContainer(codeActions);
-    }
-
     /// <summary>
     /// Returns the fixes as set up by plugins
     /// </summary>
     /// <param name="uri">The URI of the document, used as an unique key</param>
-    private IEnumerable<(string, TextEdit[])> GetPluginFixes() {
+    public IEnumerable<PluginQuickFix> GetPluginFixes() {
+      var ID = 0;
       foreach (var fixer in fixers) {
         // Maybe we could set the program only once, when resolved, instead of for every code action?
         var fixerInput = new VerificationQuickFixerInput(document);
-        fixer.SetQuickFixInput(fixerInput.DocumentUri, fixerInput, CancellationToken.None);
         var fixRange = request.Range.ToBoogieToken(documentText);
-        var quickFixes = fixer.GetQuickFixes(documentUri, fixRange);
+        var quickFixes = fixer.GetQuickFixes(fixerInput, fixRange);
         var fixerCodeActions = quickFixes.Select(quickFix =>
-          CodeAction(quickFix.Title, quickFix.Edits));
+          new PluginQuickFix(quickFix, ID++));
         foreach (var codeAction in fixerCodeActions) {
           yield return codeAction;
         }
       }
     }
-
-    /// <summary>
-    /// Returns a built-in list of possible code actions
-    /// Includes plugin-created code actions
-    /// </summary>
-    private (string, TextEdit[])[] GetPossibleFixes() {
-      var possibleFixes = new List<(string, TextEdit[])>() { };
-      possibleFixes.AddRange(GetPluginFixes());
-      return possibleFixes.ToArray();
-    }
   }
+
+
+  public record PluginQuickFix(QuickFix QuickFix, int Id);
 
   protected override CodeActionRegistrationOptions CreateRegistrationOptions(CodeActionCapability capability,
     ClientCapabilities clientCapabilities) {
     return new CodeActionRegistrationOptions {
       DocumentSelector = DocumentSelector.ForLanguage("dafny"),
-      ResolveProvider = false,
+      ResolveProvider = true,
       CodeActionKinds = Container<CodeActionKind>.From(
         CodeActionKind.QuickFix
       ),
@@ -140,17 +128,64 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
     };
   }
 
+  public ConcurrentDictionary<string, IReadOnlyList<PluginQuickFix>> ConcurrentDictionary = new();
+
   public override async Task<CommandOrCodeActionContainer> Handle(CodeActionParams request, CancellationToken cancellationToken) {
     var document = await documents.GetDocumentAsync(request.TextDocument);
     if (document == null) {
       logger.LogWarning("quick fixes requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
       return new CommandOrCodeActionContainer();
     }
-    return new CodeActionProcessor(this.quickFixers, document, request, cancellationToken).GetCommandOrCodeActionContainer();
+    var pluginQuickFixes = new CodeActionProcessor(this.quickFixers, document, request, cancellationToken).GetPluginFixes().ToArray();
+
+    var documentUri = document.Uri.ToString();
+    ConcurrentDictionary.AddOrUpdate(documentUri,
+      _ => pluginQuickFixes, (_, _) => pluginQuickFixes);
+    var codeActions = pluginQuickFixes.Select(pluginQuickFix => {
+      CommandOrCodeAction t = new CodeAction {
+        Title = pluginQuickFix.QuickFix.Title,
+        Data = new JArray(documentUri, pluginQuickFix.Id)
+      };
+      return t;
+    }
+    ).ToArray();
+    return new CommandOrCodeActionContainer(codeActions);
   }
 
   public override Task<CodeAction> Handle(CodeAction request, CancellationToken cancellationToken) {
+    var command = request.Data;
+    string documentUri = command[0].Value<string>();
+    int id = command[1].Value<int>();
+    if (ConcurrentDictionary.TryGetValue(documentUri, out var quickFixes)) {
+      var selectedQuickFix = quickFixes.Where(pluginQuickFix => pluginQuickFix.Id == id).FirstOrDefault((PluginQuickFix)null!);
+      if (selectedQuickFix != null) {
+        return Task.FromResult(new CodeAction() {
+          Edit = new WorkspaceEdit() {
+            DocumentChanges = new Container<WorkspaceEditDocumentChange>(
+              new WorkspaceEditDocumentChange(new TextDocumentEdit() {
+                TextDocument = new OptionalVersionedTextDocumentIdentifier() {
+                  Uri = documentUri
+                },
+                Edits = new TextEditContainer(GetTextEdits(selectedQuickFix.QuickFix.GetEdits()))
+              }))
+          }
+        });
+      }
+    }
+
     return Task.FromResult(request);
+  }
+
+  private IEnumerable<TextEdit> GetTextEdits(QuickFixEdit[] quickFixEdits) {
+    var edits = new List<TextEdit>();
+    foreach (var (token, toReplace) in quickFixEdits) {
+      var range = token.GetLspRange();
+      edits.Add(new TextEdit() {
+        NewText = toReplace,
+        Range = range
+      });
+    }
+    return edits.ToArray();
   }
 }
 
@@ -160,6 +195,8 @@ internal class VerificationQuickFixerInput : IQuickFixInput {
     Document = document;
   }
 
+  public string Uri => Document.Uri.GetFileSystemPath();
+  public int Version => Document.Version;
   public string Code => Document.Text.Text;
   public Dafny.Program Program => Document.Program;
   public DafnyDocument Document { get; }

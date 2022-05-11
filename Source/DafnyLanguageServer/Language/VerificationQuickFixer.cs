@@ -11,21 +11,17 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Language;
 
-class VerificationQuickFixer : CachedQuickFixer<VerificationQuickFixerInput> {
+class VerificationQuickFixer : QuickFixer {
   private readonly IDocumentDatabase documents;
-  private readonly ILogger<DafnyCompletionHandler> logger;
+  private readonly ILogger<DafnyCodeActionHandler> logger;
 
-  public VerificationQuickFixer(IDocumentDatabase documents, ILogger<DafnyCompletionHandler> logger) {
+  public VerificationQuickFixer(IDocumentDatabase documents, ILogger<DafnyCodeActionHandler> logger) {
     this.documents = documents;
     this.logger = logger;
   }
 
-  public override VerificationQuickFixerInput
-    ComputeCache(IQuickFixInput input, CancellationToken cancellationToken) {
-    return (VerificationQuickFixerInput)input;
-  }
-
-  protected override QuickFix[] GetQuickFixes(VerificationQuickFixerInput cachedData, IToken selection) {
+  public override QuickFix[] GetQuickFixes(IQuickFixInput input, IToken selection) {
+    var cachedData = (VerificationQuickFixerInput)input;
     string uri = cachedData.DocumentUri;
     var document = cachedData.Document;
     var diagnostics = cachedData.Diagnostics;
@@ -40,13 +36,13 @@ class VerificationQuickFixer : CachedQuickFixer<VerificationQuickFixerInput> {
             var endToken = GetMatchingEndToken(document, uri, diagnostic.Range.Start.ToBoogieToken(cachedData.Code));
             if (endToken != null) {
               var (indentation, indentationBrace) = GetIndentationBefore(endToken, cachedData.Code);
-              result.Add(new QuickFix {
-                Title = "Explicit the failing assert",
-                Edits = new[] {
+              result.Add(new InstantQuickFix(
+                "Explicit the failing assert",
+                new[] {
                   new QuickFixEdit(
                     endToken.Start(), $"{indentation}assert {expression};\n{indentationBrace}")
                 }
-              });
+              ));
             }
           }
         }
