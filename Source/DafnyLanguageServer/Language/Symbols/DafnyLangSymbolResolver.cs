@@ -37,7 +37,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           return new CompilationUnit(program);
         }
       } catch (Exception e) {
-        program.reporter.Error(MessageSource.Resolver, program.GetFirstTopLevelToken(), $"Dafny encountered an error.  Please report it at <https://github.com/dafny-lang/dafny/issues>:\n{e}");
+        program.Reporter.Error(MessageSource.Resolver, program.GetFirstTopLevelToken(), $"Dafny encountered an error.  Please report it at <https://github.com/dafny-lang/dafny/issues>:\n{e}");
         return new CompilationUnit(program);
       }
       finally {
