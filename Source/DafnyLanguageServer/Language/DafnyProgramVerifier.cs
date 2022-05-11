@@ -1,15 +1,15 @@
 ﻿using Microsoft.Boogie;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using VC;
+using System;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using VCGeneration;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
@@ -33,7 +33,10 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
     DafnyOptions Options => DafnyOptions.O;
 
-    private DafnyProgramVerifier(ILogger<DafnyProgramVerifier> logger, VerifierOptions options) {
+    private DafnyProgramVerifier(
+      ILogger<DafnyProgramVerifier> logger,
+      VerifierOptions options
+      ) {
       this.logger = logger;
       this.options = options;
     }
@@ -45,7 +48,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// <param name="logger">A logger instance that may be used by this verifier instance.</param>
     /// <param name="options">Settings for the verifier.</param>
     /// <returns>A safely created dafny verifier instance.</returns>
-    public static DafnyProgramVerifier Create(ILogger<DafnyProgramVerifier> logger, IOptions<VerifierOptions> options) {
+    public static DafnyProgramVerifier Create(
+      ILogger<DafnyProgramVerifier> logger, IOptions<VerifierOptions> options) {
       lock (InitializationSyncObject) {
         if (!initialized) {
           // TODO This may be subject to change. See Microsoft.Boogie.Counterexample
@@ -68,14 +72,20 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         : Convert.ToInt32(options.VcsCores);
     }
 
-    public async Task<VerificationResult> VerifyAsync(Dafny.Program program,
+    public async Task<VerificationResult> VerifyAsync(DafnyDocument document,
                                      IVerificationProgressReporter progressReporter,
                                      CancellationToken cancellationToken) {
       await mutex.WaitAsync(cancellationToken);
+      var program = document.Program;
       try {
         // The printer is responsible for two things: It logs boogie errors and captures the counter example model.
         var errorReporter = (DiagnosticErrorReporter)program.reporter;
-        var printer = new ModelCapturingOutputPrinter(logger, errorReporter, progressReporter);
+        if (options.GutterStatus) {
+          progressReporter.RecomputeVerificationTree();
+          progressReporter.ReportRealtimeDiagnostics(false, document);
+        }
+
+        var printer = new ModelCapturingOutputPrinter(logger, errorReporter, progressReporter, options.GutterStatus);
         // Do not set these settings within the object's construction. It will break some tests within
         // VerificationNotificationTest and DiagnosticsTest that rely on updating these settings.
         DafnyOptions.O.TimeLimit = options.TimeLimit;
@@ -140,20 +150,22 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       private readonly DiagnosticErrorReporter errorReporter;
       private readonly IVerificationProgressReporter progressReporter;
       private StringBuilder? serializedCounterExamples;
+      private readonly bool reportVerificationDiagnostics;
 
       public string? SerializedCounterExamples => serializedCounterExamples?.ToString();
 
-      public ModelCapturingOutputPrinter(ILogger logger, DiagnosticErrorReporter errorReporter,
-                                         IVerificationProgressReporter progressReporter) {
+      public ModelCapturingOutputPrinter(
+          ILogger logger,
+          DiagnosticErrorReporter errorReporter,
+          IVerificationProgressReporter progressReporter,
+          bool reportVerificationDiagnostics) {
         this.logger = logger;
         this.errorReporter = errorReporter;
         this.progressReporter = progressReporter;
+        this.reportVerificationDiagnostics = reportVerificationDiagnostics;
       }
 
       public void AdvisoryWriteLine(TextWriter writer, string format, params object[] args) {
-      }
-
-      public void ReportEndVerifyImplementation(Implementation implementation, Boogie.VerificationResult result) {
       }
 
       public ExecutionEngineOptions? Options { get; set; }
@@ -168,10 +180,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
       public void Inform(string s, TextWriter tw) {
         logger.LogInformation(s);
-        var match = Regex.Match(s, "^Verifying .+[.](?<name>[^.]+) [.][.][.]$");
-        if (match.Success) {
-          progressReporter.ReportProgress(match.Groups["name"].Value);
-        }
       }
 
       public void ReportBplError(IToken tok, string message, bool error, TextWriter tw, [AllowNull] string category) {
@@ -179,9 +187,27 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
 
       public void ReportImplementationsBeforeVerification(Implementation[] implementations) {
+        if (reportVerificationDiagnostics) {
+          progressReporter.ReportImplementationsBeforeVerification(implementations);
+        }
       }
 
       public void ReportStartVerifyImplementation(Implementation implementation) {
+        if (reportVerificationDiagnostics) {
+          progressReporter.ReportStartVerifyImplementation(implementation);
+        }
+      }
+
+      public void ReportEndVerifyImplementation(Implementation implementation, Boogie.VerificationResult result) {
+        if (reportVerificationDiagnostics) {
+          progressReporter.ReportEndVerifyImplementation(implementation, result);
+        }
+      }
+
+      public void ReportSplitResult(Split split, VCResult vcResult) {
+        if (reportVerificationDiagnostics) {
+          progressReporter.ReportAssertionBatchResult(split, vcResult);
+        }
       }
 
       public void WriteErrorInformation(ErrorInformation errorInfo, TextWriter tw, bool skipExecutionTrace) {
@@ -200,9 +226,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
 
       public void WriteTrailer(TextWriter writer, PipelineStatistics stats) {
-      }
-
-      public void ReportSplitResult(Split split, VCResult splitResult) {
       }
     }
   }

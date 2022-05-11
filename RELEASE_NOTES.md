@@ -1,5 +1,8 @@
 # Upcoming
 
+- feat: Live verification diagnostics for the language server (https://github.com/dafny-lang/dafny/pull/1942)
+- fix: Prevent the language server from crashing and not responding on resolution or ghost diagnostics errors (https://github.com/dafny-lang/dafny/pull/2080)
+
 # 3.6.0
 
 - feat: The `synthesize` attribute on methods with no body allows synthesizing objects based on method postconditions at compile time (currently only available for C#). See Section [22.2.20](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-synthesize-attr) of the Reference Manual. (https://github.com/dafny-lang/dafny/pull/1809)
