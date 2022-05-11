@@ -71,6 +71,30 @@ const x := 1;
 {t}]]}}");
     }
 
+
+    [TestMethod]
+    public async Task CodeActionSuggestsInliningPostConditionWithExtraIndentation2() {
+      await TestCodeActionHelper(@"
+const x := 1;
+  method f() returns (i: int)
+    ensures i > 10
+>>>{
+[[Explicit the failing assert|  assert i > 10;
+]]}");
+    }
+
+
+    [TestMethod]
+    public async Task CodeActionSuggestsInliningPostConditionWithExtraIndentation3() {
+      await TestCodeActionHelper(@"
+const x := 1;
+  method f() returns (i: int)
+    ensures i > 10
+  >>>{
+  [[Explicit the failing assert|  assert i > 10;
+  ]]}");
+    }
+
     private async Task TestCodeActionHelper(string source) {
       source = source.TrimStart();
       var extractCodeAction =

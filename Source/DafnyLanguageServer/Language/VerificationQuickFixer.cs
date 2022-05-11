@@ -100,6 +100,9 @@ class VerificationQuickFixer : QuickFixer {
       if (!firstNewline) {
         if (text[pos] == ' ' || text[pos] == '\t') {
           indentation++;
+        } else if (text[pos] == '{') {
+          indentation = indentationBrace + 2;
+          break;
         } else {
           indentation = 0;
         }
