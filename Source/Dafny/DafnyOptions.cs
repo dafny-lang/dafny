@@ -20,7 +20,7 @@ namespace Microsoft.Dafny {
 
     public static DafnyOptions Create(params string[] arguments) {
       var result = new DafnyOptions();
-      result.Parse(arguments ?? Array.Empty<string>());
+      result.Parse(arguments);
       return result;
     }
 
@@ -812,7 +812,16 @@ namespace Microsoft.Dafny {
       TODO
 
     {:autoReq}
-      TODO
+      When applied to a function definition, Dafny automatically
+      strengthens that function's `requires` clause sufficiently so that
+      it may call each of the functions that it calls.
+
+      When applied to a module, this attribute is inherited by every
+      function in the module.
+
+      The `/autoReqPrint:<file>` option will print out the inferred,
+      stronger requires clauses to the given file. The `/noAutoReq`
+      option instructs Dafny to ignore any `{:autoReq}` attributes.
 
     {:timeLimitMultiplier}
       TODO

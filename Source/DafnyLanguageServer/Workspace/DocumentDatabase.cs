@@ -117,7 +117,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       databaseEntry.CancelPendingUpdates();
       var cancellationSource = new CancellationTokenSource();
-      var previousDocumentTask = databaseEntry.MostVerifiedDocument;
+      var previousDocumentTask = databaseEntry.LatestDocument;
       var resolvedDocumentTask = ApplyChangesAsync(previousDocumentTask, documentChange, cancellationSource.Token);
       var verifiedDocuments = Verify(resolvedDocumentTask, VerifyOnChange, cancellationSource.Token);
       documents[documentUri] = new DocumentEntry(
@@ -136,16 +136,18 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       // We do not pass the cancellation token to the text change processor because the text has to be kept in sync with the LSP client.
       var updatedText = textChangeProcessor.ApplyChange(oldDocument.TextDocumentItem, documentChange, CancellationToken.None);
-      var oldVerificationDiagnostics = oldDocument.VerificationDiagnosticsPerMethod;
-      var migratedVerificationDiagnotics = oldDocument.VerificationDiagnosticsPerMethod.ToDictionary(
-        kv => relocator.RelocatePosition(kv.Key, documentChange, CancellationToken.None),
+      var oldVerificationDiagnostics = oldDocument.VerificationDiagnosticsPerImplementation;
+      var migratedVerificationDiagnotics = oldDocument.VerificationDiagnosticsPerImplementation.ToDictionary(
+        kv => kv.Key with {
+          NamedVerificationTask = relocator.RelocatePosition(kv.Key.NamedVerificationTask, documentChange, CancellationToken.None)
+        },
         kv => relocator.RelocateDiagnostics(kv.Value, documentChange, CancellationToken.None));
       logger.LogDebug($"Migrated {oldVerificationDiagnostics.Count} diagnostics into {migratedVerificationDiagnotics.Count} diagnostics.");
       try {
         var newDocument = await documentLoader.LoadAndPrepareVerificationTasksAsync(updatedText, cancellationToken);
         if (newDocument.SymbolTable.Resolved) {
           return newDocument with {
-            VerificationDiagnosticsPerMethod = migratedVerificationDiagnotics
+            VerificationDiagnosticsPerImplementation = migratedVerificationDiagnotics
           };
         }
         // The document loader failed to create a new symbol table. Since we'd still like to provide
@@ -153,7 +155,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         // according to the change.
         return newDocument with {
           SymbolTable = relocator.RelocateSymbols(oldDocument.SymbolTable, documentChange, CancellationToken.None),
-          VerificationDiagnosticsPerMethod = migratedVerificationDiagnotics
+          VerificationDiagnosticsPerImplementation = migratedVerificationDiagnotics
         };
       } catch (OperationCanceledException) {
         // The document load was canceled before it could complete. We migrate the document
@@ -164,7 +166,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           SymbolTable = relocator.RelocateSymbols(oldDocument.SymbolTable, documentChange, CancellationToken.None),
           CounterExamples = Array.Empty<Counterexample>(),
           LoadCanceled = true,
-          VerificationDiagnosticsPerMethod = migratedVerificationDiagnotics
+          VerificationDiagnosticsPerImplementation = migratedVerificationDiagnotics
         };
       }
     }
@@ -231,8 +233,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         this.cancellationSource = cancellationSource;
         Version = version;
         ResolvedDocument = resolvedDocument;
-        MostVerifiedDocument = resolvedDocument;
-        verifiedDocuments.Subscribe(update => MostVerifiedDocument = Task.FromResult(update));
+        LatestDocument = resolvedDocument;
+        verifiedDocuments.Subscribe(update => LatestDocument = Task.FromResult(update));
         FullyVerifiedDocument =
           verifiedDocuments.Select(Task.FromResult).DefaultIfEmpty(ResolvedDocument).ToTask().Unwrap();
       }
@@ -241,7 +243,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         cancellationSource.Cancel();
       }
 
-      public Task<DafnyDocument> MostVerifiedDocument { get; private set; }
+      public Task<DafnyDocument> LatestDocument { get; private set; }
 
       public Task<DafnyDocument> FullyVerifiedDocument { get; }
     }

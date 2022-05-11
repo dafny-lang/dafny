@@ -693,7 +693,7 @@ function method other(i: int, j: int): int
     }
 
     [TestMethod]
-    public async Task IncrementalVerificationDiagnostics() {
+    public async Task IncrementalVerificationDiagnosticsBetweenMethods() {
       var source = SlowToVerify + @"
 method test() {
   assert false;
@@ -709,6 +709,51 @@ method test() {
       Assert.AreEqual(1, firstVerificationDiagnostics.Length);
       // Second diagnostic is a timeout exception from SlowToVerify
       Assert.AreEqual(2, secondVerificationDiagnostics.Length);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
+    }
+
+    [TestMethod]
+    public async Task IncrementalVerificationDiagnosticsBetweenMethodAssertionsAndWellformedNess() {
+      var source = @"
+method test() 
+  ensures 3 / 0 == 1 {
+  assert false;
+}
+".TrimStart();
+      await SetUp(new Dictionary<string, string>() {
+        { $"{VerifierOptions.Section}:{nameof(VerifierOptions.VcsCores)}", "1" }
+      });
+      var documentItem = CreateTestDocument(source);
+      client.OpenDocument(documentItem);
+      var resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken.None, documentItem);
+      Assert.AreEqual(0, resolutionDiagnostics.Length);
+      var firstVerificationDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken.None, documentItem);
+      var secondVerificationDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken.None, documentItem);
+
+      Assert.AreEqual(1, firstVerificationDiagnostics.Length);
+      Assert.AreEqual(2, secondVerificationDiagnostics.Length);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
+    }
+
+    [TestMethod]
+    public async Task NoIncrementalVerificationDiagnosticsBetweenAssertionBatches() {
+      var source = @"
+method test(x: int) {
+  assert x != 2;
+  assert {:split_here} true;
+  assert x != 3;
+}
+".TrimStart();
+      await SetUp(new Dictionary<string, string>() {
+        { $"{VerifierOptions.Section}:{nameof(VerifierOptions.VcsCores)}", "1" }
+      });
+      var documentItem = CreateTestDocument(source);
+      client.OpenDocument(documentItem);
+      var resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken.None, documentItem);
+      Assert.AreEqual(0, resolutionDiagnostics.Length);
+      var firstVerificationDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken.None, documentItem);
+
+      Assert.AreEqual(2, firstVerificationDiagnostics.Length);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
@@ -831,6 +876,61 @@ method test2() {
       foreach (var t in secondVerificationDiagnostics2.Zip(resolutionDiagnostics3)) {
         Assert.AreEqual(t.First.Message, t.Second.Message);
       }
+    }
+
+    [TestMethod]
+    public async Task DiagnosticsInDifferentImplementationUnderOneNamedVerificationTask() {
+      var source = @"
+method test() 
+  ensures 3 / 0 == 2 {
+  assert false;
+}
+".TrimStart();
+      await SetUp(new Dictionary<string, string>() {
+        { $"{VerifierOptions.Section}:{nameof(VerifierOptions.VcsCores)}", "1" }
+      });
+      var documentItem = CreateTestDocument(source);
+      client.OpenDocument(documentItem);
+      var diagnostics = await GetLastVerificationDiagnostics(documentItem, CancellationToken);
+      Assert.AreEqual(2, diagnostics.Length);
+    }
+
+    [TestMethod]
+    public async Task MethodRenameDoesNotAffectMigration() {
+      var source = @"
+method Foo() {
+  assert false;
+}
+".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      client.OpenDocument(documentItem);
+      var preChangeDiagnostics = await GetLastVerificationDiagnostics(documentItem, CancellationToken);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
+      ApplyChange(ref documentItem, new Range(0, 7, 0, 10), "Bar");
+      var resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      Assert.AreEqual(preChangeDiagnostics[0], resolutionDiagnostics[0]);
+      var finalDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      Assert.AreEqual(resolutionDiagnostics[0], finalDiagnostics[0]);
+    }
+
+    [TestMethod]
+    public async Task ModuleRenameDoesNotAffectMigration() {
+      var source = @"
+module Foo {
+  method Bar() {
+    assert false;
+  }
+}
+".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      client.OpenDocument(documentItem);
+      var preChangeDiagnostics = await GetLastVerificationDiagnostics(documentItem, CancellationToken);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
+      ApplyChange(ref documentItem, new Range(0, 7, 0, 10), "Zap");
+      var resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      Assert.AreEqual(preChangeDiagnostics[0], resolutionDiagnostics[0]);
+      var finalDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      Assert.AreEqual(resolutionDiagnostics[0], finalDiagnostics[0]);
     }
   }
 }

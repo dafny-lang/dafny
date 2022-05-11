@@ -12,7 +12,7 @@ public class DafnyConsolePrinter : ConsolePrinter {
   public List<(Implementation, VerificationResult)> VerificationResults { get; } = new();
 
   private string GetFileLine(string filename, int lineIndex) {
-    if (!fsCache.TryGetValue(filename, out var lines)) {
+    List<string> lines = fsCache.GetOrAdd(filename, key => {
       try {
         // Note: This is not guaranteed to be the same file that Dafny parsed. To ensure that, Dafny should keep
         // an in-memory version of each file it parses.
@@ -20,8 +20,8 @@ public class DafnyConsolePrinter : ConsolePrinter {
       } catch (Exception) {
         lines = new List<string>();
       }
-      fsCache.TryAdd(filename, lines);
-    }
+      return lines;
+    });
     if (0 <= lineIndex && lineIndex < lines.Count) {
       return lines[lineIndex];
     }
