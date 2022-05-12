@@ -20,9 +20,9 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
   protected ILanguageClient client;
   protected DiagnosticsReceiver diagnosticReceiver;
 
-  public async Task<Diagnostic[]> GetLastVerificationDiagnostics(TextDocumentItem documentItem, CancellationToken cancellationToken = default) {
+  public async Task<Diagnostic[]> GetLastDiagnostics(TextDocumentItem documentItem, CancellationToken cancellationToken = default) {
     await client.WaitForNotificationCompletionAsync(documentItem.Uri, cancellationToken);
-    var document = await Documents.GetVerifiedDocumentAsync(documentItem);
+    var document = await Documents.GetLastDocumentAsync(documentItem);
     Diagnostic[] result;
     do {
       result = await diagnosticReceiver.AwaitNextDiagnosticsAsync(cancellationToken);
@@ -64,7 +64,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
   public async Task AssertNoDiagnosticsAreComing(CancellationToken cancellationToken) {
     foreach (var entry in Documents.Documents.Values) {
       try {
-        await entry.FullyVerifiedDocument;
+        await entry.LastDocument;
       } catch (TaskCanceledException) {
 
       }
