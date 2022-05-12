@@ -6,12 +6,13 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Boogie;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
@@ -34,6 +35,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private readonly ICompilationStatusNotificationPublisher notificationPublisher;
     private readonly ILoggerFactory loggerFactory;
     private readonly ILogger<TextDocumentLoader> logger;
+    private readonly IDiagnosticPublisher diagnosticPublisher;
 
     private TextDocumentLoader(
       ILoggerFactory loggerFactory,
@@ -42,7 +44,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       IProgramVerifier verifier,
       ISymbolTableFactory symbolTableFactory,
       IGhostStateDiagnosticCollector ghostStateDiagnosticCollector,
-      ICompilationStatusNotificationPublisher notificationPublisher) {
+      ICompilationStatusNotificationPublisher notificationPublisher,
+      IDiagnosticPublisher diagnosticPublisher) {
       this.parser = parser;
       this.symbolResolver = symbolResolver;
       this.verifier = verifier;
@@ -51,6 +54,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       this.notificationPublisher = notificationPublisher;
       this.loggerFactory = loggerFactory;
       this.logger = loggerFactory.CreateLogger<TextDocumentLoader>();
+      this.diagnosticPublisher = diagnosticPublisher;
     }
 
     static readonly ThreadTaskScheduler LargeStackScheduler = new(MaxStackSize);
@@ -62,9 +66,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       ISymbolTableFactory symbolTableFactory,
       IGhostStateDiagnosticCollector ghostStateDiagnosticCollector,
       ICompilationStatusNotificationPublisher notificationPublisher,
-      ILoggerFactory loggerFactory
+      ILoggerFactory loggerFactory,
+      IDiagnosticPublisher diagnosticPublisher
       ) {
-      return new TextDocumentLoader(loggerFactory, parser, symbolResolver, verifier, symbolTableFactory, ghostStateDiagnosticCollector, notificationPublisher);
+      return new TextDocumentLoader(loggerFactory, parser, symbolResolver, verifier, symbolTableFactory, ghostStateDiagnosticCollector, notificationPublisher, diagnosticPublisher);
     }
 
     public DafnyDocument CreateUnloaded(TextDocumentItem textDocument, CancellationToken cancellationToken) {
@@ -103,7 +108,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         notificationPublisher.SendStatusNotification(textDocument, CompilationStatus.CompilationSucceeded);
       }
       var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(symbolTable, cancellationToken).ToArray();
-      return new DafnyDocument(textDocument, errorReporter, new List<Diagnostic>(), ghostDiagnostics, program, symbolTable);
+      return new DafnyDocument(textDocument, errorReporter, new List<Diagnostic>(), ghostDiagnostics, program, symbolTable) {
+        ResolutionSucceeded = !errorReporter.HasErrors
+      };
     }
 
     private static void PublishDafnyLanguageServerLoadErrors(DiagnosticErrorReporter errorReporter, Dafny.Program program) {
@@ -127,7 +134,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         program,
         CreateEmptySymbolTable(program, logger),
         loadCanceled
-      );
+      ) {
+        ResolutionSucceeded = loadCanceled ? null : false
+      };
     }
 
     private static SymbolTable CreateEmptySymbolTable(Dafny.Program program, ILogger<SymbolTable> logger) {
@@ -147,38 +156,44 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         TaskCreationOptions.None, LargeStackScheduler).Unwrap();
     }
 
+    // Called only in the case there is a parsing or resolution error on the document
+    public void PublishVerificationDiagnostics(DafnyDocument document, bool verificationStarted) {
+      diagnosticPublisher.PublishVerificationDiagnostics(document, verificationStarted);
+    }
+
     private async Task<DafnyDocument> VerifyInternalAsync(DafnyDocument document, CancellationToken cancellationToken) {
       notificationPublisher.SendStatusNotification(document.Text, CompilationStatus.VerificationStarted);
-      var progressReporter = new VerificationProgressReporter(document.Text, notificationPublisher);
-      var verificationResult = await verifier.VerifyAsync(document.Program, progressReporter, cancellationToken);
+
+      var progressReporter = new VerificationProgressReporter(
+        loggerFactory.CreateLogger<VerificationProgressReporter>(),
+        document, notificationPublisher, diagnosticPublisher);
+      var verificationResult = await verifier.VerifyAsync(document, progressReporter, cancellationToken);
       var compilationStatusAfterVerification = verificationResult.Verified
         ? CompilationStatus.VerificationSucceeded
         : CompilationStatus.VerificationFailed;
-      notificationPublisher.SendStatusNotification(document.Text, compilationStatusAfterVerification);
+      // All unvisited trees need to set them as "verified"
+      if (!cancellationToken.IsCancellationRequested) {
+        SetAllUnvisitedMethodsAsVerified(document);
+      }
+
+      notificationPublisher.SendStatusNotification(document.Text, compilationStatusAfterVerification, cancellationToken.IsCancellationRequested ? "(cancelled)" : null);
       logger.LogDebug($"Finished verification with {document.Errors.ErrorCount} errors.");
-      return document with {
+      var newDocument = document with {
         OldVerificationDiagnostics = new List<Diagnostic>(),
-        SerializedCounterExamples = verificationResult.SerializedCounterExamples
+        SerializedCounterExamples = verificationResult.SerializedCounterExamples,
       };
+      progressReporter.ReportRealtimeDiagnostics(true, newDocument);
+      return newDocument;
+    }
+
+    private void SetAllUnvisitedMethodsAsVerified(DafnyDocument document) {
+      foreach (var tree in document.VerificationTree.Children) {
+        tree.SetVerifiedIfPending();
+      }
     }
 
     private record Request(CancellationToken CancellationToken) {
       public TaskCompletionSource<DafnyDocument> Document { get; } = new();
-    }
-
-    private class VerificationProgressReporter : IVerificationProgressReporter {
-      private ICompilationStatusNotificationPublisher publisher { get; init; }
-      private TextDocumentItem document { get; init; }
-
-      public VerificationProgressReporter(TextDocumentItem document,
-                                          ICompilationStatusNotificationPublisher publisher) {
-        this.document = document;
-        this.publisher = publisher;
-      }
-
-      public void ReportProgress(string message) {
-        publisher.SendStatusNotification(document, CompilationStatus.VerificationStarted, message);
-      }
     }
   }
 }

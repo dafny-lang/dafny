@@ -3,6 +3,9 @@ using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text.RegularExpressions;
+using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
@@ -32,6 +35,23 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// </summary>
     public string? SerializedCounterExamples { get; init; }
 
+
+    /// <summary>
+    /// True is the resolution succeeded, false if resolution failed
+    /// <c>null</c> If the verification did not start (e.g. because of resolution errors)
+    /// </summary>
+    public bool? ResolutionSucceeded { get; init; } = null;
+
+    /// <summary>
+    /// Contains the real-time status of all verification efforts.
+    /// Can be migrated from a previous document
+    /// The position and the range are never sent to the client.
+    /// </summary>
+    public VerificationTree VerificationTree { get; init; } = new DocumentVerificationTree(
+      Text.Uri.ToString(),
+      Text.Text.Count(c => c == '\n') + 1
+    );
+
     /// <summary>
     /// Checks if the given document uri is pointing to this dafny document.
     /// </summary>
@@ -40,5 +60,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public bool IsDocument(DocumentUri documentUri) {
       return documentUri == Uri;
     }
+
+    public int LinesCount => VerificationTree.Range.End.Line;
   }
 }
