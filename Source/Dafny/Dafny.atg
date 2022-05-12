@@ -1369,7 +1369,11 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool mo
                                              (. if (e == null && ty is InferredTypeProxy) {
                                                   SemErr(id, "a const declaration must have a type or a RHS value");
                                                 }
-                                                mm.Add(new ConstantField(id, id.val, e, dmod.IsStatic, dmod.IsGhost, ty, attrs));
+                                                var c = new ConstantField(id, id.val, e, dmod.IsStatic, dmod.IsGhost, ty, attrs);
+                                                if (e != null) {
+                                                  c.BodyEndTok = t; // Until we have proper ranges
+                                                }
+                                                mm.Add(c);
                                              .)
   OldSemi
   .
@@ -1483,6 +1487,7 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
        }
        td = new OpaqueTypeDecl(id, id.val, module, characteristics, typeArgs, members, attrs, isRefining);
      }
+     td.BodyEndTok = t;
   .)
   (. CheckDeclModifiers(ref dmod, kind, AllowedDeclModifiers.None); .)
   .

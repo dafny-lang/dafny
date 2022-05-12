@@ -1,14 +1,10 @@
-﻿using Microsoft.Dafny.LanguageServer.Language;
-using OmniSharp.Extensions.LanguageServer.Protocol;
+﻿using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reactive.Linq;
-using System.Threading.Tasks;
-using DafnyServer;
 using Microsoft.Boogie;
-using VCGeneration;
 using SymbolTable = Microsoft.Dafny.LanguageServer.Language.Symbols.SymbolTable;
+using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
@@ -31,6 +27,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     IReadOnlyList<Diagnostic> GhostDiagnostics,
     Dafny.Program Program,
     SymbolTable SymbolTable,
+
     bool LoadCanceled = false
   ) {
 
@@ -38,6 +35,17 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public DocumentUri Uri => TextDocumentItem.Uri;
     public int Version => TextDocumentItem.Version!.Value;
+
+
+    /// <summary>
+    /// Contains the real-time status of all verification efforts.
+    /// Can be migrated from a previous document
+    /// The position and the range are never sent to the client.
+    /// </summary>
+    public VerificationTree VerificationTree { get; init; } = new DocumentVerificationTree(
+      TextDocumentItem.Uri.ToString(),
+      TextDocumentItem.Text.Count(c => c == '\n') + 1
+    );
 
     /// <summary>
     /// Checks if the given document uri is pointing to this dafny document.
@@ -47,5 +55,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public bool IsDocument(DocumentUri documentUri) {
       return documentUri == Uri;
     }
+
+    public int LinesCount => VerificationTree.Range.End.Line;
   }
 }

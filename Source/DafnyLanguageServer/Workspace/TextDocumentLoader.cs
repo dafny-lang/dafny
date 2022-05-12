@@ -38,6 +38,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private readonly ICompilationStatusNotificationPublisher notificationPublisher;
     private readonly ILoggerFactory loggerFactory;
     private readonly ILogger<TextDocumentLoader> logger;
+    private readonly IDiagnosticPublisher diagnosticPublisher;
 
     private TextDocumentLoader(
       ILoggerFactory loggerFactory,
@@ -46,7 +47,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       IProgramVerifier verifier,
       ISymbolTableFactory symbolTableFactory,
       IGhostStateDiagnosticCollector ghostStateDiagnosticCollector,
-      ICompilationStatusNotificationPublisher notificationPublisher) {
+      ICompilationStatusNotificationPublisher notificationPublisher,
+      IDiagnosticPublisher diagnosticPublisher) {
       this.parser = parser;
       this.symbolResolver = symbolResolver;
       this.verifier = verifier;
@@ -55,6 +57,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       this.notificationPublisher = notificationPublisher;
       this.loggerFactory = loggerFactory;
       this.logger = loggerFactory.CreateLogger<TextDocumentLoader>();
+      this.diagnosticPublisher = diagnosticPublisher;
     }
 
     public static TextDocumentLoader Create(
@@ -64,9 +67,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       ISymbolTableFactory symbolTableFactory,
       IGhostStateDiagnosticCollector ghostStateDiagnosticCollector,
       ICompilationStatusNotificationPublisher notificationPublisher,
-      ILoggerFactory loggerFactory
+      ILoggerFactory loggerFactory,
+      IDiagnosticPublisher diagnosticPublisher
       ) {
-      return new TextDocumentLoader(loggerFactory, parser, symbolResolver, verifier, symbolTableFactory, ghostStateDiagnosticCollector, notificationPublisher);
+      return new TextDocumentLoader(loggerFactory, parser, symbolResolver, verifier, symbolTableFactory, ghostStateDiagnosticCollector, notificationPublisher, diagnosticPublisher);
     }
 
     public DafnyDocument CreateUnloaded(TextDocumentItem textDocument, CancellationToken cancellationToken) {
@@ -108,7 +112,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return new DafnyDocument(Options, textDocument, errorReporter.GetDiagnostics(textDocument.Uri),
         new Dictionary<ImplementationId, IReadOnlyList<Diagnostic>>(),
         Array.Empty<Counterexample>(),
-        ghostDiagnostics, program, symbolTable);
+        ghostDiagnostics, program, symbolTable, !errorReporter.HasErrors);
     }
 
     private static void IncludePluginLoadErrors(DiagnosticErrorReporter errorReporter, Dafny.Program program) {
@@ -150,15 +154,18 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public IObservable<DafnyDocument> Verify(DafnyDocument document, CancellationToken cancellationToken) {
       notificationPublisher.SendStatusNotification(document.TextDocumentItem, CompilationStatus.VerificationStarted);
-      var progressReporter = new VerificationProgressReporter(document.TextDocumentItem, notificationPublisher);
+      var progressReporter = new VerificationProgressReporter(
+        loggerFactory.CreateLogger<VerificationProgressReporter>(),
+        document, notificationPublisher, diagnosticPublisher);
+
       var programErrorReporter = new DiagnosticErrorReporter(document.Uri);
       document.Program.Reporter = programErrorReporter;
-      var implementationTasks = verifier.Verify(document.Program, progressReporter, cancellationToken);
+      var implementationTasks = verifier.Verify(document, progressReporter, cancellationToken);
       foreach (var implementationTask in implementationTasks) {
         implementationTask.Run();
       }
 
-      var _ = NotifyStatusAsync(document.TextDocumentItem, implementationTasks);
+      var _ = NotifyStatusAsync(document.TextDocumentItem, implementationTasks, cancellationToken);
 
       var concurrentDictionary = new ConcurrentDictionary<ImplementationId, IReadOnlyList<Diagnostic>>();
       foreach (var task in implementationTasks) {
@@ -192,35 +199,42 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           CounterExamples = counterExamples.ToArray(),
         };
       }).ToList();
-      return documentTasks.Select(documentTask => documentTask.ToObservable()).Merge();
+      var result = documentTasks.Select(documentTask => documentTask.ToObservable()).Merge();
+      result.LastAsync().Subscribe(finalDocument => {
+
+        // All unvisited trees need to set them as "verified"
+        if (!cancellationToken.IsCancellationRequested) {
+          SetAllUnvisitedMethodsAsVerified(document);
+        }
+
+        progressReporter.ReportRealtimeDiagnostics(true, finalDocument);
+      });
+      return result;
     }
 
-    private async Task NotifyStatusAsync(TextDocumentItem item, IReadOnlyList<IImplementationTask> implementationTasks) {
+    private async Task NotifyStatusAsync(TextDocumentItem item, IReadOnlyList<IImplementationTask> implementationTasks, CancellationToken cancellationToken) {
       var results = await Task.WhenAll(implementationTasks.Select(t => t.ActualTask));
       logger.LogDebug($"Finished verification with {results.Sum(r => r.Errors.Count)} errors.");
       var verified = results.All(r => r.Outcome == ConditionGeneration.Outcome.Correct);
       var compilationStatusAfterVerification = verified
         ? CompilationStatus.VerificationSucceeded
         : CompilationStatus.VerificationFailed;
-      notificationPublisher.SendStatusNotification(item, compilationStatusAfterVerification);
+      notificationPublisher.SendStatusNotification(item, compilationStatusAfterVerification,
+        cancellationToken.IsCancellationRequested ? "(cancelled)" : null); // TODO what's the effect of this change in UI ?
     }
 
-    private class VerificationProgressReporter : IVerificationProgressReporter {
-      private ICompilationStatusNotificationPublisher publisher { get; init; }
-      private TextDocumentItem document { get; init; }
+    // Called only in the case there is a parsing or resolution error on the document
+    public void PublishVerificationDiagnostics(DafnyDocument document, bool verificationStarted) {
+      diagnosticPublisher.PublishVerificationDiagnostics(document, verificationStarted);
+    }
 
-      public VerificationProgressReporter(TextDocumentItem document,
-                                          ICompilationStatusNotificationPublisher publisher) {
-        this.document = document;
-        this.publisher = publisher;
-      }
-
-      public void ReportProgress(string message) {
-        publisher.SendStatusNotification(document, CompilationStatus.VerificationStarted, message);
+    private void SetAllUnvisitedMethodsAsVerified(DafnyDocument document) {
+      foreach (var tree in document.VerificationTree.Children) {
+        tree.SetVerifiedIfPending();
       }
     }
 
-    ImplementationId GetImplementationId(Implementation implementation) {
+    static ImplementationId GetImplementationId(Implementation implementation) {
       var prefix = implementation.Name.Split(Translator.NameSeparator)[0];
       return new ImplementationId(implementation.tok.GetLspPosition(), prefix);
     }

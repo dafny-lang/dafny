@@ -42,7 +42,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
       options.OnPublishDiagnostics(diagnosticReceiver.NotificationReceived);
     }, serverOptions => {
       serverOptions.Services.AddSingleton<IProgramVerifier>(serviceProvider => new SlowVerifier(
-        serviceProvider.GetRequiredService<ILogger<SlowVerifier>>(),
+        serviceProvider.GetRequiredService<ILogger<DafnyProgramVerifier>>(),
         serviceProvider.GetRequiredService<IOptions<VerifierOptions>>()
       ));
     });

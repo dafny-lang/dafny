@@ -6,24 +6,26 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 
 class SlowVerifier : IProgramVerifier {
-  public SlowVerifier(ILogger<SlowVerifier> logger, IOptions<VerifierOptions> options) {
+  public SlowVerifier(ILogger<DafnyProgramVerifier> logger, IOptions<VerifierOptions> options) {
     verifier = DafnyProgramVerifier.Create(logger, options);
   }
 
   private readonly DafnyProgramVerifier verifier;
 
-  public IReadOnlyList<IImplementationTask> Verify(Dafny.Program program, IVerificationProgressReporter progressReporter, CancellationToken cancellationToken) {
+  public IReadOnlyList<IImplementationTask> Verify(DafnyDocument document, IVerificationProgressReporter progressReporter, CancellationToken cancellationToken) {
+    var program = document.Program;
     var attributes = program.Modules().SelectMany(m => {
       return m.TopLevelDecls.OfType<TopLevelDeclWithMembers>().SelectMany(d => d.Members.Select(member => member.Attributes));
     }).ToList();
 
-    var originalResult = verifier.Verify(program, progressReporter, cancellationToken);
+    var originalResult = verifier.Verify(document, progressReporter, cancellationToken);
     if (attributes.Any(a => Attributes.Contains(a, "neverVerify"))) {
       var source = new TaskCompletionSource<ServerVerificationResult>();
       cancellationToken.Register(() => { source.SetCanceled(cancellationToken); });
