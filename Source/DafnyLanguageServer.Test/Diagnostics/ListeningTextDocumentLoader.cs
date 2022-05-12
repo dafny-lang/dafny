@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿#nullable enable
+using System.Collections.Generic;
 using System.Linq;
 using JetBrains.Annotations;
 using Microsoft.Boogie;
@@ -17,13 +18,13 @@ public class ListeningTextDocumentLoader : TextDocumentLoader {
   public List<List<int>> LinearPriorities = new List<List<int>>();
 
   public ListeningTextDocumentLoader(
-    [NotNull] ILoggerFactory loggerFactory, [NotNull] IDafnyParser parser,
-    [NotNull] ISymbolResolver symbolResolver, [NotNull] IProgramVerifier verifier,
-    [NotNull] ISymbolTableFactory symbolTableFactory,
-    [NotNull] IGhostStateDiagnosticCollector ghostStateDiagnosticCollector,
-    [NotNull] ICompilationStatusNotificationPublisher notificationPublisher,
-    [NotNull] IDiagnosticPublisher diagnosticPublisher,
-    [NotNull] VerifierOptions verifierOptions) : base(loggerFactory, parser, symbolResolver, verifier,
+    ILoggerFactory loggerFactory, IDafnyParser parser,
+    ISymbolResolver symbolResolver, IProgramVerifier verifier,
+    ISymbolTableFactory symbolTableFactory,
+    IGhostStateDiagnosticCollector ghostStateDiagnosticCollector,
+    ICompilationStatusNotificationPublisher notificationPublisher,
+    IDiagnosticPublisher diagnosticPublisher,
+    VerifierOptions verifierOptions) : base(loggerFactory, parser, symbolResolver, verifier,
     symbolTableFactory, ghostStateDiagnosticCollector, notificationPublisher, diagnosticPublisher,
     verifierOptions) {
   }

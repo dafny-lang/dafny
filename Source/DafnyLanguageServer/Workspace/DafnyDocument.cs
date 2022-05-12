@@ -48,7 +48,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       TextDocumentItem.Text.Count(c => c == '\n') + 1
     );
 
-    // List of last 5 touched method positions
+    // List of a few last touched method positions
     public ImmutableList<Position> LastTouchedMethodPositions { get; set; } = new List<Position>() { }.ToImmutableList();
 
     // Used to prioritize verification to one method and its dependencies

@@ -128,13 +128,17 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
     if (document.LoadCanceled || implementations.Length == 0) {
       return;
     }
-    var newLastTouchedMethods = document.LastTouchedMethodPositions.ToList();
+    var newLastTouchedMethodPositions = document.LastTouchedMethodPositions.ToList();
     var newlyTouchedVerificationTree = document.VerificationTree.Children.FirstOrDefault(node =>
       node != null && document.LastChange != null && node.Range.Contains(document.LastChange), null);
     if (newlyTouchedVerificationTree != null) {
-      RememberLastTouchedMethod(newlyTouchedVerificationTree, newLastTouchedMethods);
-      document.LastTouchedMethodPositions = newLastTouchedMethods.ToImmutableList();
+      RememberLastTouchedMethodPositions(newlyTouchedVerificationTree.Position, newLastTouchedMethodPositions);
+      document.LastTouchedMethodPositions = newLastTouchedMethodPositions.TakeLast(5).ToImmutableList();
     }
+
+    var positionToVerificationTree = document.VerificationTree.Children.ToImmutableDictionary(
+      verificationTree => verificationTree.Position,
+      verificationTree => verificationTree);
 
     // We migrate existing implementations to the new provided ones if they exist.
     // (same child number, same file and same position)
@@ -143,7 +147,8 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
     }
 
     foreach (var implementation in implementations) {
-      int priority = GetVerificationPriority(implementation.tok);
+      var verificationTree = positionToVerificationTree!.GetValueOrDefault(implementation.tok.GetLspPosition(), null);
+      int priority = GetVerificationPriority(verificationTree);
 
       if (priority > 0 && implementation.Priority < priority) {
         implementation.Attributes.AddLast(
@@ -389,17 +394,11 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   }
 
   /// <summary>
-  /// Returns the verification priority for a given token, depending on if it's the token
-  /// of a method modified recently (last 5 edits)
+  /// Returns the verification priority for a given method, depending on if it was recently (last 5 edits)
   /// </summary>
-  /// <param name="token">The token to consider</param>
-  /// <param name="newLastTouchedMethods"></param>
+  /// <param name="method">The method to consider</param>
   /// <returns>The automatically set priority for the underlying method, or 0</returns>
-  private int GetVerificationPriority(IToken token) {
-    var implPosition = token.GetLspPosition(); ;
-    // We might want to simplify this quadratic algorithm
-    var method = document.VerificationTree.Children.FirstOrDefault(node =>
-      node != null && node.Range.Contains(implPosition), null);
+  private int GetVerificationPriority(VerificationTree? method) {
     if (method != null) {
       var lastTouchedIndex = document.LastTouchedMethodPositions.IndexOf(method.Position);
       // 0 if not found
@@ -417,17 +416,14 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   /// <summary>
   /// Helper to remember that a method tree was recently modified.
   /// </summary>
-  /// <param name="method">The verification tree of the method that was recently modified</param>
-  /// <param name="newLastTouchedMethods"></param>
-  private void RememberLastTouchedMethod(VerificationTree method, List<Position> newLastTouchedMethods) {
-    var index = newLastTouchedMethods.IndexOf(method.Position);
+  /// <param name="methodPosition">The verification tree of the method that was recently modified</param>
+  /// <param name="newLastTouchedMethodPositions">The positions of recently touched methods</param>
+  private void RememberLastTouchedMethodPositions(Position methodPosition, List<Position> newLastTouchedMethodPositions) {
+    var index = newLastTouchedMethodPositions.IndexOf(methodPosition);
     if (index != -1) {
-      newLastTouchedMethods.RemoveAt(index);
+      newLastTouchedMethodPositions.RemoveAt(index);
     }
-    newLastTouchedMethods.Add(method.Position);
-    while (newLastTouchedMethods.Count() > 5) {
-      newLastTouchedMethods.RemoveAt(0);
-    }
+    newLastTouchedMethodPositions.Add(methodPosition);
   }
 
   /// <summary>

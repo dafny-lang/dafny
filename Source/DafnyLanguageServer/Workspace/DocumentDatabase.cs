@@ -152,11 +152,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         relocator.RelocatePositions(oldDocument.LastTouchedMethodPositions, documentChange, CancellationToken.None);
       try {
         var newDocument = await documentLoader.LoadAsync(updatedText, cancellationToken);
-        var lastchange = newDocument.LastChange;
-        foreach (var change in documentChange.ContentChanges) {
-          lastchange = change.Range;
-        }
-        newDocument = newDocument with { LastChange = lastchange };
+        var lastChange =
+          documentChange.ContentChanges
+            .Select(contentChange => contentChange.Range)
+            .LastOrDefault(newDocument.LastChange);
+        newDocument = newDocument with { LastChange = lastChange };
         if (newDocument.SymbolTable.Resolved) {
           var resolvedDocument = newDocument with {
             VerificationDiagnosticsPerImplementation = migratedVerificationDiagnotics,
