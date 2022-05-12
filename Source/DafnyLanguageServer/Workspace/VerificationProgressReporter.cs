@@ -202,6 +202,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   private void ReportMethodsBeingVerified(string extra = "") {
     var pending = document.VerificationTree.Children
       .Where(diagnostic => diagnostic.Started && !diagnostic.Finished)
+      .OrderBy(diagnostic => diagnostic.StartTime)
       .Select(diagnostic => diagnostic.DisplayName)
       .ToList();
     var total = document.VerificationTree.Children.Count();
@@ -259,6 +260,8 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
     } else {
       lock (LockProcessing) {
         implementationNode.Stop();
+        implementationNode.ResourceCount = verificationResult.ResourceCount;
+        targetMethodNode.ResourceCount += verificationResult.ResourceCount;
         var finalOutcome = verificationResult.Outcome switch {
           ConditionGeneration.Outcome.Correct => VerificationStatus.Verified,
           _ => VerificationStatus.Error
@@ -307,7 +310,10 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
         result.ComputePerAssertOutcomes(out var perAssertOutcome, out var perAssertCounterExample);
 
         var assertionBatchIndex = implementationNode.GetNewAssertionBatchCount();
-        implementationNode.IncreaseNewAssertionBatchCount();
+        var assertionBatchTime = (int)result.runTime.TotalMilliseconds;
+        var assertionBatchResourceCount = result.resourceCount;
+        implementationNode.AddAssertionBatchTime(assertionBatchTime);
+        implementationNode.AddAssertionBatchResourceCount(assertionBatchResourceCount);
 
         // Attaches the trace
         void AddChildOutcome(Counterexample? counterexample, AssertCmd assertCmd, IToken token,
@@ -337,7 +343,8 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
             AssertionBatchIndex = assertionBatchIndex,
             Started = true,
             Finished = true
-          }.WithAssertionAndCounterExample(assertCmd, counterexample);
+          }.WithDuration(implementationNode.StartTime, assertionBatchTime)
+            .WithAssertionAndCounterExample(assertCmd, counterexample);
           // Add this diagnostics as the new one to display once the implementation is fully verified
           implementationNode.AddNewChild(nodeDiagnostic);
           // Update any previous pending "verifying" diagnostic as well so that they are updated in real-time
