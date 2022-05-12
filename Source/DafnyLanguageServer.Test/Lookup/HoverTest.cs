@@ -44,7 +44,7 @@ method CallDoIt() returns () {
       var documentItem = CreateTestDocument(NeverVerifies);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
-      var verificationTask = GetLastVerificationDiagnostics(documentItem, CancellationToken);
+      var verificationTask = GetLastDiagnostics(documentItem, CancellationToken);
       var definitionTask = RequestHover(documentItem, (4, 14));
       var first = await Task.WhenAny(verificationTask, definitionTask);
       Assert.IsFalse(verificationTask.IsCompleted);

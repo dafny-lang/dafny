@@ -114,7 +114,7 @@ method Bar() { assert true; }";
 
     await WaitUntilAllStatusAreCompleted();
 
-    await GetLastVerificationDiagnostics(documentItem, CancellationToken);
+    await GetLastDiagnostics(documentItem, CancellationToken);
     ApplyChange(ref documentItem, new Range(new Position(1, 22), new Position(1, 26)), "false");
     await AssertNoResolutionErrors(documentItem);
     var correct = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);

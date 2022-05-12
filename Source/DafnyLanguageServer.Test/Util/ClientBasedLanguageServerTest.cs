@@ -28,7 +28,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
   protected TestNotificationReceiver<FileVerificationStatus> verificationStatusReceiver;
   private IDictionary<string, string> configuration;
 
-  public async Task<Diagnostic[]> GetLastVerificationDiagnostics(TextDocumentItem documentItem, CancellationToken cancellationToken = default, int? expectedNumber = null) {
+  public async Task<Diagnostic[]> GetLastDiagnostics(TextDocumentItem documentItem, CancellationToken cancellationToken = default, int? expectedNumber = null) {
     await client.WaitForNotificationCompletionAsync(documentItem.Uri, cancellationToken);
     var document = await Documents.GetLastDocumentAsync(documentItem);
     var remainingDiagnostics = expectedNumber ?? Int32.MaxValue;
