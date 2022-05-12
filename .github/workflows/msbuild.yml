@@ -52,6 +52,8 @@ jobs:
 
   check-deep-tests:
     uses: ./.github/workflows/check-deep-tests-reusable.yml
+    with:
+      branch: master
 
   integration-tests:
     needs: check-deep-tests
