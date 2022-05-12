@@ -98,6 +98,46 @@ method m5() {
       " 8, 7, 9, 6,10");
   }
 
+  [TestMethod]
+  public async Task EnsuresPriorityWorksEvenIfRemovingMethods() {
+    await TestPriorities(@"
+method m1() { assert true; }
+method m2() { assert true; }
+method m3() { assert true; } //Remove3:
+method m4() {
+  assert true;//Next1:  assert  true;
+} 
+method m5() {
+  assert true;//Next2:  assert  true;
+}
+", expectedPriorities:
+      " 1, 1, 1, 1, 1 " +
+      " 1, 1, 1,10, 1 " +
+      " 1, 1, 1, 9,10 " +
+      " 1, 1, 9,10");
+  }
+
+
+  [TestMethod]
+  public async Task EnsuresPriorityWorksEvenIfRemovingMethodsWhileTypo() {
+    await TestPriorities(@"
+method m1() { assert true; }
+method m2() {
+  assert true;//Next3:  typo//Next5:  assert true;
+}
+method m3() { assert true; } //Remove4:
+method m4() {
+  assert true;//Next1:  assert  true;
+} 
+method m5() {
+  assert true;//Next2:  assert  true;
+}
+", expectedPriorities:
+      " 1, 1, 1, 1, 1 " +
+      " 1, 1, 1,10, 1 " +
+      " 1, 1, 1, 9,10 " +// No priorities set for the two edits when there is a parse error.
+      " 1,10, 8, 9");
+  }
 
   private async Task TestPriorities(string code, string expectedPriorities) {
     textDocumentLoader.LinearPriorities = new List<List<int>>();
