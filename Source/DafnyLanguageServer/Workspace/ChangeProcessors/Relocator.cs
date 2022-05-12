@@ -184,8 +184,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
         }
         return getPositionAtEndOfAppliedChangeCache.GetOrCreate(change, Compute);
 
-        Position Compute()
-        {
+        Position Compute() {
           var changeStart = change.Range!.Start;
           var changeEof = change.Text.GetEofPosition();
           var characterOffset = changeEof.Character;
