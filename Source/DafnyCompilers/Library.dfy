@@ -86,6 +86,7 @@ module Lib {
       requires forall t | t in ts :: f.requires(t)
       ensures |qs| == |ts|
       ensures forall i | 0 <= i < |ts| :: qs[i] == f(ts[i])
+      ensures forall q | q in qs :: exists t | t in ts :: q == f(t)
     {
       if ts == [] then [] else [f(ts[0])] + Map(f, ts[1..])
     }

@@ -224,6 +224,8 @@ module {:extern "DafnyInDafny.CSharp"} CSharpDafnyCompiler {
           }
         case Block(exprs) =>
           Concat("\n", Lib.Seq.Map(e requires e in exprs => CompileExpr(e), exprs))
+        case Bind(vars, vals, body) =>
+          Unsupported
         case If(cond, thn, els) =>
           var cCond := CompileExpr(cond);
           var cThn := CompileExpr(thn);

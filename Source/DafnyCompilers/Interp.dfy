@@ -32,6 +32,7 @@ module Interp {
           case FunctionCall() => true
           case DataConstructor(name, typeArgs) => true
         }
+      case Bind(vars, vals, body) => true
       case Block(stmts) => true
       case If(cond, thn, els) => true
     }
@@ -61,6 +62,7 @@ module Interp {
       case Abs(vars, body) => true
       case Apply(Lazy(op), args) => true
       case Apply(Eager(op), args) => EagerOpSupportsInterp(op)
+      case Bind(vars, vals, body) => true
       case Block(stmts) => Debug.TODO(false)
       case If(cond, thn, els) => true
     }
@@ -274,6 +276,9 @@ module Interp {
             case FunctionCall() =>
               InterpFunctionCall(e, env, argvs[0], argvs[1..])
           })
+      case Bind(vars, exprs, body) =>
+        var Return(vals, ctx) :- InterpExprs(exprs, env, ctx);
+        InterpBind(e, env, ctx, vars, vals, body)
       case If(cond, thn, els) =>
         var Return(condv, ctx) :- InterpExprWithType(cond, Type.Bool, env, ctx);
         if condv.b then InterpExpr(thn, env, ctx) else InterpExpr(els, env, ctx)
@@ -849,11 +854,11 @@ module Interp {
     Success((argv.sq[0], argv.sq[1]))
   }
 
-  function method {:opaque} BuildCallState(captured: Context, vars: seq<string>, vals: seq<Value>)
-    : (ctx: State)
+  function method AugmentContext(base: Context, vars: seq<string>, vals: seq<Value>)
+    : (ctx: Context)
     requires |vars| == |vals|
   {
-    State().(locals := captured + MapOfPairs(Seq.Zip(vars, vals)))
+    base + MapOfPairs(Seq.Zip(vars, vals))
   }
 
   function method {:opaque} BuildCallState(base: Context, vars: seq<string>, vals: seq<Value>)
@@ -872,8 +877,20 @@ module Interp {
     reveal SupportsInterp();
     Predicates.Deep.AllImpliesChildren(fn.body, SupportsInterp1);
     :- Need(|fn.vars| == |argvs|, SignatureMismatch(fn.vars, argvs));
-    var ctx := BuildCallState(fn.ctx, fn.vars, argvs);
+    var ctx := State(locals := AugmentContext(fn.ctx, fn.vars, argvs));
     var Return(val, ctx) :- InterpExpr(fn.body, env.(fuel := env.fuel - 1), ctx);
     Success(val)
+  }
+
+  function method InterpBind(e: Expr, env: Environment, ctx: State, vars: seq<string>, vals: seq<Value>, body: Expr)
+    : (r: InterpResult<Value>)
+    requires body < e
+    requires |vars| == |vals|
+    decreases env.fuel, e, 0
+  {
+    var bodyCtx := ctx.(locals := AugmentContext(ctx.locals, vars, vals));
+    var Return(val, bodyCtx) :- InterpExpr(body, env, bodyCtx);
+    var ctx := ctx.(locals := ctx.locals + (bodyCtx.locals - set v | v in vars)); // Preserve mutation
+    Success(Return(val, ctx))
   }
 }

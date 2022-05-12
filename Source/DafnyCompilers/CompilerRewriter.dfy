@@ -249,6 +249,12 @@ module CompilerRewriter {
             var e' := Expr.Block(exprs');
             assert Exprs.ConstructorsMatch(e, e');
             e'
+          case Bind(vars, vals, body) =>
+            var vals' := Seq.Map(e requires e in vals => Map_Expr(e, tr), vals);
+            Transformer.Map_All_IsMap(e requires e in vals => Map_Expr(e, tr), vals);
+            var e' := Expr.Bind(vars, vals', Map_Expr(body, tr));
+            assert Exprs.ConstructorsMatch(e, e');
+            e'
           case If(cond, thn, els) =>
             var e' := Expr.If(Map_Expr(cond, tr), Map_Expr(thn, tr), Map_Expr(els, tr));
             assert Exprs.ConstructorsMatch(e, e');
@@ -411,9 +417,9 @@ module CompilerRewriter {
     // proofs work with it, we might as well keep it (it is easier to remove an opaque
     // attribute, than to add one and fix the proofs by adding the proper calls to ``reveal``).
     {
-        var ctx := BuildCallState(fn.ctx, fn.vars, argvs);
-        var Return(val, ctx) :- InterpExpr(fn.body, env, ctx);
-        Success(val)
+      var ctx := BuildCallState(fn.ctx, fn.vars, argvs);
+      var Return(val, ctx) :- InterpExpr(fn.body, env, ctx);
+      Success(val)
     }
 
     predicate EqValue(v: WV, v': WV)
@@ -1942,7 +1948,7 @@ module CompilerRewriter {
     // ```
     // x !in set    ~~>   !(x in set)
     // ```
-    
+
     import DCC = DafnyCompilerCommon
     import Lib
     import Lib.Debug
