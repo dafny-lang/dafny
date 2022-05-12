@@ -51,22 +51,21 @@ method Bar() { assert false; }";
     Assert.AreEqual(barRange, stale.NamedVerifiables[1].NameRange);
     Assert.AreEqual(PublishedVerificationStatus.Stale, stale.NamedVerifiables[1].Status);
 
-    var queued = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-    Assert.AreEqual(barRange, queued.NamedVerifiables[1].NameRange);
-    Assert.AreEqual(PublishedVerificationStatus.Running, queued.NamedVerifiables[0].Status);
-    Assert.AreEqual(PublishedVerificationStatus.Queued, queued.NamedVerifiables[1].Status);
-
+    var firstRunning = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+    Assert.AreEqual(PublishedVerificationStatus.Running, firstRunning.NamedVerifiables[0].Status);
+    var secondQueued = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+    Assert.AreEqual(barRange, secondQueued.NamedVerifiables[1].NameRange);
+    Assert.AreEqual(PublishedVerificationStatus.Queued, secondQueued.NamedVerifiables[1].Status);
     var running = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+
     Assert.AreEqual(barRange, running.NamedVerifiables[1].NameRange);
-    if (running.NamedVerifiables[0].Status > PublishedVerificationStatus.Running && running.NamedVerifiables[1].Status != PublishedVerificationStatus.Running) {
-      // We received a notification for the second method without the first changing status
-      running = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-    }
     Assert.AreEqual(PublishedVerificationStatus.Running, running.NamedVerifiables[1].Status);
 
-    var errored = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-    Assert.AreEqual(barRange, errored.NamedVerifiables[1].NameRange);
-    Assert.AreEqual(PublishedVerificationStatus.Error, errored.NamedVerifiables[1].Status);
+    var firstErrored = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+    Assert.AreEqual(PublishedVerificationStatus.Error, firstErrored.NamedVerifiables[0].Status);
+    var secondErrored = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+    Assert.AreEqual(barRange, secondErrored.NamedVerifiables[1].NameRange);
+    Assert.AreEqual(PublishedVerificationStatus.Error, secondErrored.NamedVerifiables[1].Status);
   }
 
   [TestMethod]
@@ -220,15 +219,13 @@ iterator ThatIterator(x: int) yields (y: int, z: int)
   }
 
   [TestMethod]
-  public async Task VerificationStatusIsMigratedAfterResolutionError() {
+  public async Task VerificationStatusNotUpdatedOnResolutionError() {
     var source = @"method Foo() { assert false; }";
     var documentItem = CreateTestDocument(source);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     await WaitUntilAllStatusAreCompleted();
     ApplyChange(ref documentItem, new Range(0, 0, 0, 1), ""); // Remove 'm'
-    var status = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-    Assert.AreEqual(1, status.NamedVerifiables.Count);
-    Assert.AreEqual(PublishedVerificationStatus.Error, status.NamedVerifiables[0].Status);
+    await AssertNoVerificationStatusIsComing(documentItem, CancellationToken);
   }
 
   [TestMethod]

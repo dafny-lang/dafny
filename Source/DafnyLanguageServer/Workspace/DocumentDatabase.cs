@@ -139,23 +139,19 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       // We do not pass the cancellation token to the text change processor because the text has to be kept in sync with the LSP client.
       var updatedText = textChangeProcessor.ApplyChange(oldDocument.TextDocumentItem, documentChange, CancellationToken.None);
-      var oldVerificationDiagnostics = oldDocument.ImplementationViews;
-      var migratedImplementationDiagnostics = oldDocument.ImplementationViews.ToDictionary(
+      var oldVerificationDiagnostics = oldDocument.ImplementationViews ?? new Dictionary<ImplementationId, ImplementationView>();
+      var migratedImplementationDiagnostics = oldVerificationDiagnostics.ToDictionary(
         kv => kv.Key with {
           NamedVerificationTask = relocator.RelocatePosition(kv.Key.NamedVerificationTask, documentChange, CancellationToken.None)
         },
         kv => relocator.RelocateDiagnostics(kv.Value.Diagnostics, documentChange, CancellationToken.None));
-      logger.LogDebug($"Migrated {oldVerificationDiagnostics.Count} diagnostics into {migratedImplementationDiagnostics.Count} diagnostics.");
       var migratedVerificationTree =
         relocator.RelocateVerificationTree(oldDocument.VerificationTree, documentChange, CancellationToken.None);
-      var migratedImplementationViews = oldDocument.ImplementationViews.ToDictionary(
-        kv => kv.Key,
-        kv => kv.Value with { Status = PublishedVerificationStatus.Stale});
       try {
         var newDocument = await documentLoader.LoadAndPrepareVerificationTasksAsync(updatedText, cancellationToken);
         if (newDocument.SymbolTable.Resolved) {
           var resolvedDocument = newDocument with {
-            ImplementationViews = newDocument.ImplementationViews.ToDictionary(
+            ImplementationViews = newDocument.ImplementationViews!.ToDictionary(
               kv => kv.Key,
               kv => kv.Value with { Diagnostics = migratedImplementationDiagnostics.GetValueOrDefault(kv.Key, kv.Value.Diagnostics)}), // TODO merge in views from newDocument. Prefer the migrated ones????
             VerificationTree = migratedVerificationTree
@@ -168,7 +164,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         // according to the change.
         var failedDocument = newDocument with {
           SymbolTable = relocator.RelocateSymbols(oldDocument.SymbolTable, documentChange, CancellationToken.None),
-          ImplementationViews = migratedImplementationViews,
+          ImplementationViews = null,
           VerificationTree = migratedVerificationTree
         };
         documentLoader.PublishGutterIcons(failedDocument, false);
@@ -183,7 +179,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           CounterExamples = Array.Empty<Counterexample>(),
           VerificationTree = migratedVerificationTree,
           LoadCanceled = true,
-          ImplementationViews = migratedImplementationViews
+          ImplementationViews = null
         };
       }
     }

@@ -33,11 +33,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private void PublishVerificationStatus(DafnyDocument document) {
+      if (document.ImplementationViews == null) {
+        return;
+      }
+
       var namedVerifiableGroups = document.ImplementationViews.GroupBy(task => task.Value.Range);
       var namedVerifiableStatusList = namedVerifiableGroups.Select(taskGroup => {
         var status = taskGroup.Select(kv => kv.Value.Status).Aggregate(Combine);
         return new NamedVerifiableStatus(taskGroup.Key, status);
-      }).ToList();
+      }).OrderBy(v => v.NameRange.Start).ToList();
       var notification = new FileVerificationStatus(document.Uri, document.Version, namedVerifiableStatusList);
 
       if (!previouslyVerificationStatus.TryGetValue(document.Uri, out var previous) || !previous.Equals(notification)) {

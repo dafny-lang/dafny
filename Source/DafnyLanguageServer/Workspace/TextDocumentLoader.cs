@@ -108,7 +108,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       var initialViews = new Dictionary<ImplementationId, ImplementationView>();
       foreach (var task in implementationTasks) {
-        var status = await StatusFromImplementationTask(task);
+        var status = await StatusFromImplementationTaskAsync(task);
         var view = new ImplementationView(task.Implementation.tok.GetLspRange(), status, Array.Empty<Diagnostic>());
         initialViews.Add(GetImplementationId(task.Implementation), view);
       }
@@ -197,7 +197,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       var result = implementationTasks.Select(implementationTask => implementationTask.ObservableStatus.Select(async boogieStatus => {
         var id = GetImplementationId(implementationTask.Implementation);
-        var status = await StatusFromImplementationTask(implementationTask);
+        var status = await StatusFromImplementationTaskAsync(implementationTask);
         var lspRange = implementationTask.Implementation.tok.GetLspRange();
         if (boogieStatus is VerificationStatus.Completed) {
 
@@ -254,7 +254,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var viewDictionary = new ConcurrentDictionary<ImplementationId, ImplementationView>();
       foreach (var task in implementationTasks) {
         var id = GetImplementationId(task.Implementation);
-        if (document.ImplementationViews.TryGetValue(id, out var existingView)) {
+        if (document.ImplementationViews!.TryGetValue(id, out var existingView)) {
           viewDictionary.TryAdd(id, existingView);
         }
       }
@@ -277,7 +277,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return errorReporter.GetDiagnostics(document.Uri).OrderBy(d => d.Range.Start).ToList();
     }
 
-    private async Task<PublishedVerificationStatus> StatusFromImplementationTask(IImplementationTask task) {
+    private async Task<PublishedVerificationStatus> StatusFromImplementationTaskAsync(IImplementationTask task) {
       switch (task.CurrentStatus) {
         case VerificationStatus.Stale: return PublishedVerificationStatus.Stale;
         case VerificationStatus.Queued:

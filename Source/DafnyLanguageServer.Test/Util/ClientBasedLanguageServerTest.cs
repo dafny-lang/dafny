@@ -87,6 +87,28 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
     });
   }
 
+  public async Task AssertNoVerificationStatusIsComing(TextDocumentItem documentItem, CancellationToken cancellationToken) {
+    foreach (var entry in Documents.Documents.Values) {
+      try {
+        await entry.LastDocument;
+      } catch (TaskCanceledException) {
+
+      }
+    }
+    await GetLastDiagnostics(documentItem, cancellationToken);
+    var verificationDocumentItem = CreateTestDocument("class X {does not parse", $"verification{fileIndex++}.dfy");
+    await client.OpenDocumentAndWaitAsync(verificationDocumentItem, CancellationToken.None);
+    var statusReport = await verificationStatusReceiver.AwaitNextNotificationAsync(cancellationToken);
+    var resolutionReport = await diagnosticReceiver.AwaitNextNotificationAsync(cancellationToken);
+    Assert.AreEqual(verificationDocumentItem.Uri, resolutionReport.Uri);
+    Assert.AreEqual(verificationDocumentItem.Uri, statusReport.Uri);
+    client.DidCloseTextDocument(new DidCloseTextDocumentParams {
+      TextDocument = verificationDocumentItem
+    });
+    var hideReport = await diagnosticReceiver.AwaitNextNotificationAsync(cancellationToken);
+    Assert.AreEqual(verificationDocumentItem.Uri, hideReport.Uri);
+  }
+
   public async Task AssertNoDiagnosticsAreComing(CancellationToken cancellationToken) {
     foreach (var entry in Documents.Documents.Values) {
       try {

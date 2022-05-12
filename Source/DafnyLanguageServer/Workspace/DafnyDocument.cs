@@ -1,10 +1,12 @@
-﻿using OmniSharp.Extensions.LanguageServer.Protocol;
+﻿using System;
+using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Boogie;
 using SymbolTable = Microsoft.Dafny.LanguageServer.Language.Symbols.SymbolTable;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
+using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
@@ -23,7 +25,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     IReadOnlyList<IImplementationTask> VerificationTasks,
     // VerificationDiagnostics can be deduced from CounterExamples,
     // but they are stored separately because they are migrated and counterexamples currently are not.
-    IReadOnlyDictionary<ImplementationId, ImplementationView> ImplementationViews,
+    IReadOnlyDictionary<ImplementationId, ImplementationView>? ImplementationViews,
     IReadOnlyList<Counterexample> CounterExamples,
     IReadOnlyList<Diagnostic> GhostDiagnostics,
     Dafny.Program Program,
@@ -32,7 +34,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     bool LoadCanceled = false
   ) {
 
-    public IEnumerable<Diagnostic> Diagnostics => ParseAndResolutionDiagnostics.Concat(ImplementationViews.SelectMany(kv => kv.Value.Diagnostics));
+    public IEnumerable<Diagnostic> Diagnostics => ParseAndResolutionDiagnostics.Concat(
+      ImplementationViews == null
+        ? ArraySegment<Diagnostic>.Empty
+        : ImplementationViews.SelectMany(kv => kv.Value.Diagnostics));
 
     public DocumentUri Uri => TextDocumentItem.Uri;
     public int Version => TextDocumentItem.Version!.Value;
