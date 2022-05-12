@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Collections.Immutable;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading;
@@ -49,6 +50,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
     /// <param name="documentChange">The change in the document</param>
     /// <param name="cancellationToken">A token to stop the relocation prior completion.</param>
     /// <returns></returns>
-    List<Position> RelocatePositions(List<Position> originalPositions, DidChangeTextDocumentParams documentChange, CancellationToken cancellationToken);
+    ImmutableList<Position> RelocatePositions(ImmutableList<Position> originalPositions, DidChangeTextDocumentParams documentChange, CancellationToken cancellationToken);
   }
 }

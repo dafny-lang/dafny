@@ -148,17 +148,19 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         relocator.RelocateVerificationTree(oldDocument.VerificationTree, documentChange, CancellationToken.None);
 
       var migratedLastTouchedPositions =
-        relocator.RelocatePositions(oldDocument.LastTouchedVerificationTreePositions, documentChange, CancellationToken.None);
+        relocator.RelocatePositions(oldDocument.LastTouchedMethodPositions, documentChange, CancellationToken.None);
       try {
         var newDocument = await documentLoader.LoadAsync(updatedText, cancellationToken);
+        var lastchange = newDocument.LastChange;
         foreach (var change in documentChange.ContentChanges) {
-          newDocument.LastChange = change.Range;
+          lastchange = change.Range;
         }
+        newDocument = newDocument with { LastChange = lastchange };
         if (newDocument.SymbolTable.Resolved) {
           var resolvedDocument = newDocument with {
             OldVerificationDiagnostics = migratedVerificationDiagnotics,
             VerificationTree = migratedVerificationTree,
-            LastTouchedVerificationTreePositions = migratedLastTouchedPositions
+            LastTouchedMethodPositions = migratedLastTouchedPositions
           };
           documentLoader.PublishVerificationDiagnostics(resolvedDocument, false);
           return resolvedDocument;

@@ -3,6 +3,7 @@ using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
@@ -53,10 +54,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     );
 
     // List of last 5 top-level touched verification tree positions
-    public List<Position> LastTouchedVerificationTreePositions { get; init; } = new();
+    public ImmutableList<Position> LastTouchedMethodPositions { get; set; } = new List<Position>() { }.ToImmutableList();
 
     // Used to prioritize verification to one method and its dependencies
-    public Range? LastChange { get; set; } = null;
+    public Range? LastChange { get; init; } = null;
 
     /// <summary>
     /// Checks if the given document uri is pointing to this dafny document.

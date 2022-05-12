@@ -32,12 +32,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private readonly ISymbolTableFactory symbolTableFactory;
     private readonly IProgramVerifier verifier;
     private readonly IGhostStateDiagnosticCollector ghostStateDiagnosticCollector;
-    private readonly ICompilationStatusNotificationPublisher notificationPublisher;
-    private readonly ILoggerFactory loggerFactory;
+    protected readonly ICompilationStatusNotificationPublisher notificationPublisher;
+    protected readonly ILoggerFactory loggerFactory;
     private readonly ILogger<TextDocumentLoader> logger;
-    private readonly IDiagnosticPublisher diagnosticPublisher;
+    protected readonly IDiagnosticPublisher diagnosticPublisher;
 
-    private TextDocumentLoader(
+    protected TextDocumentLoader(
       ILoggerFactory loggerFactory,
       IDafnyParser parser,
       ISymbolResolver symbolResolver,
@@ -161,12 +161,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       diagnosticPublisher.PublishVerificationDiagnostics(document, verificationStarted);
     }
 
-    private async Task<DafnyDocument> VerifyInternalAsync(DafnyDocument document, CancellationToken cancellationToken) {
-      notificationPublisher.SendStatusNotification(document.Text, CompilationStatus.VerificationStarted);
-
-      var progressReporter = new VerificationProgressReporter(
+    public virtual VerificationProgressReporter CreateVerificationProgressReporter(DafnyDocument document) {
+      return new VerificationProgressReporter(
         loggerFactory.CreateLogger<VerificationProgressReporter>(),
         document, notificationPublisher, diagnosticPublisher);
+    }
+
+    private async Task<DafnyDocument> VerifyInternalAsync(DafnyDocument document, CancellationToken cancellationToken) {
+      notificationPublisher.SendStatusNotification(document.Text, CompilationStatus.VerificationStarted);
+      var progressReporter = CreateVerificationProgressReporter(document);
       var verificationResult = await verifier.VerifyAsync(document, progressReporter, cancellationToken);
       var compilationStatusAfterVerification = verificationResult.Verified
         ? CompilationStatus.VerificationSucceeded
