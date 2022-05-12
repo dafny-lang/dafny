@@ -14,6 +14,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using VC;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
@@ -26,6 +27,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// The increased stack size is necessary to solve the issue https://github.com/dafny-lang/dafny/issues/1447.
   /// </remarks>
   public class TextDocumentLoader : ITextDocumentLoader {
+    public VerifierOptions VerifierOptions { get; }
     private const int ResolverMaxStackSize = 0x10000000; // 256MB
     private static readonly ThreadTaskScheduler ResolverScheduler = new(ResolverMaxStackSize);
 
@@ -48,7 +50,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       ISymbolTableFactory symbolTableFactory,
       IGhostStateDiagnosticCollector ghostStateDiagnosticCollector,
       ICompilationStatusNotificationPublisher notificationPublisher,
-      IDiagnosticPublisher diagnosticPublisher) {
+      IDiagnosticPublisher diagnosticPublisher,
+      VerifierOptions verifierOptions) {
+      VerifierOptions = verifierOptions;
       this.parser = parser;
       this.symbolResolver = symbolResolver;
       this.verifier = verifier;
@@ -68,9 +72,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       IGhostStateDiagnosticCollector ghostStateDiagnosticCollector,
       ICompilationStatusNotificationPublisher notificationPublisher,
       ILoggerFactory loggerFactory,
-      IDiagnosticPublisher diagnosticPublisher
+      IDiagnosticPublisher diagnosticPublisher,
+      VerifierOptions verifierOptions
       ) {
-      return new TextDocumentLoader(loggerFactory, parser, symbolResolver, verifier, symbolTableFactory, ghostStateDiagnosticCollector, notificationPublisher, diagnosticPublisher);
+      return new TextDocumentLoader(loggerFactory, parser, symbolResolver, verifier, symbolTableFactory, ghostStateDiagnosticCollector, notificationPublisher, diagnosticPublisher, verifierOptions);
     }
 
     public DafnyDocument CreateUnloaded(TextDocumentItem textDocument, CancellationToken cancellationToken) {
@@ -112,7 +117,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return new DafnyDocument(Options, textDocument, errorReporter.GetDiagnostics(textDocument.Uri),
         new Dictionary<ImplementationId, IReadOnlyList<Diagnostic>>(),
         Array.Empty<Counterexample>(),
-        ghostDiagnostics, program, symbolTable, !errorReporter.HasErrors);
+        ghostDiagnostics, program, symbolTable);
     }
 
     private static void IncludePluginLoadErrors(DiagnosticErrorReporter errorReporter, Dafny.Program program) {
@@ -200,14 +205,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         };
       }).ToList();
       var result = documentTasks.Select(documentTask => documentTask.ToObservable()).Merge();
-      result.LastAsync().Subscribe(finalDocument => {
+      result.DefaultIfEmpty(document).LastAsync().Subscribe(finalDocument => {
 
         // All unvisited trees need to set them as "verified"
         if (!cancellationToken.IsCancellationRequested) {
           SetAllUnvisitedMethodsAsVerified(document);
         }
 
-        progressReporter.ReportRealtimeDiagnostics(true, finalDocument);
+        if (VerifierOptions.GutterStatus) {
+          progressReporter.ReportRealtimeDiagnostics(true, finalDocument);
+        }
       });
       return result;
     }

@@ -17,7 +17,6 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   [TestClass]
   public class DiagnosticsTest : ClientBasedLanguageServerTest {
-    // TODO test locations as well?
     private IDictionary<string, string> configuration;
 
     public async Task SetUp(IDictionary<string, string> configuration) {

@@ -73,7 +73,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
             return partiallyMigratedPosition;
           }
 
-          return MigratePosition(position, change.change.Range, change.afterChangeEndOffset);
+          return MigratePosition(position, change.change.Range, change.afterChangeEndOffset!);
         });
       }
 

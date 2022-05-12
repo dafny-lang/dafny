@@ -89,7 +89,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           progressReporter.ReportRealtimeDiagnostics(false, document); // TODO curious what it needs the document for
         }
 
-        var printer = new ModelCapturingOutputPrinter(logger, errorReporter, progressReporter, options.GutterStatus);
+        var printer = new ModelCapturingOutputPrinter(logger, progressReporter, options.GutterStatus);
         // Do not set these settings within the object's construction. It will break some tests within
         // VerificationNotificationTest and DiagnosticsTest that rely on updating these settings.
         DafnyOptions.O.TimeLimit = options.TimeLimit;
@@ -97,19 +97,17 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         DafnyOptions.O.Printer = printer;
 
         var executionEngine = new ExecutionEngine(DafnyOptions.O, cache);
+#pragma warning disable VSTHRD002
         var translated = Task.Factory.StartNew(() => Translator.Translate(program, errorReporter, new Translator.TranslatorFlags {
           InsertChecksums = true,
           ReportRanges = true
         }).ToList(), CancellationToken.None, TaskCreationOptions.None, TranslatorScheduler).Result;
+#pragma warning restore VSTHRD002
         return translated.SelectMany(t => {
           var (_, boogieProgram) = t;
           var results = executionEngine.GetImplementationTasks(boogieProgram);
           return results;
         }).ToList();
-      // }
-      // finally {
-      //   mutex.Release();
-      // }
     }
 
 
@@ -139,18 +137,14 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
     private class ModelCapturingOutputPrinter : OutputPrinter {
       private readonly ILogger logger;
-      private readonly DiagnosticErrorReporter errorReporter;
       private readonly IVerificationProgressReporter progressReporter;
-      private StringBuilder? serializedCounterExamples;
       private readonly bool reportVerificationDiagnostics;
 
       public ModelCapturingOutputPrinter(
           ILogger logger,
-          DiagnosticErrorReporter errorReporter,
           IVerificationProgressReporter progressReporter,
           bool reportVerificationDiagnostics) {
         this.logger = logger;
-        this.errorReporter = errorReporter; // TODO remove this field
         this.progressReporter = progressReporter;
         this.reportVerificationDiagnostics = reportVerificationDiagnostics;
       }
@@ -201,7 +195,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
 
       public void WriteErrorInformation(ErrorInformation errorInfo, TextWriter tw, bool skipExecutionTrace) {
-        errorReporter.ReportBoogieError(errorInfo);
       }
 
       public void WriteTrailer(TextWriter writer, PipelineStatistics stats) {
