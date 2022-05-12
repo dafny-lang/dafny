@@ -3802,6 +3802,7 @@ namespace Microsoft.Dafny {
           if (un.ResolvedOp == UnaryOpExpr.ResolvedOpcode.BVNot && GetAnyConst(un.E, consts) is BigInteger i) {
             return ((BigInteger.One << un.Type.AsBitVectorType.Width) - 1) ^ i;
           }
+          // TODO: This only handles strings; generalize to other collections?
           if (un.ResolvedOp == UnaryOpExpr.ResolvedOpcode.SeqLength && GetAnyConst(un.E, consts) is string ss) {
             return (BigInteger)(ss.Length);
           }
