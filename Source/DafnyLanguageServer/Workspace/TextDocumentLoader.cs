@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Reactive.Linq;
+using System.Reactive.Subjects;
 using System.Reactive.Threading.Tasks;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -102,7 +103,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       var implementationTasks = verifier.GetImplementationTasks(loaded, progressReporter);
       foreach (var task in implementationTasks) {
-
         // TODO remove reflection once https://github.com/boogie-org/boogie/pull/573 is implemented.
         cancellationToken.Register(() => task.GetType().GetMethod("Cancel")!.Invoke(task, null));
       }
@@ -185,13 +185,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       var implementationTasks = document.VerificationTasks;
       var _ = NotifyStatusAsync(document.TextDocumentItem, implementationTasks, cancellationToken);
-      var viewDictionary = new ConcurrentDictionary<ImplementationId, ImplementationView>();
-      foreach (var task in implementationTasks) {
-        var id = GetImplementationId(task.Implementation);
-        if (document.ImplementationViews.TryGetValue(id, out var existingView)) {
-          viewDictionary.TryAdd(id, existingView);
-        }
-      }
+      var implementationViews = GetExistingViews(document, implementationTasks);
       var counterExamples = new ConcurrentStack<Counterexample>();
 
       var result = implementationTasks.Select(implementationTask => implementationTask.ObservableStatus.Select(async boogieStatus => {
@@ -207,9 +201,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
           var itDiagnostics = GetDiagnosticsFromResult(document, result);
           var view = new ImplementationView(lspRange, status, itDiagnostics);
-          viewDictionary.AddOrUpdate(id, view, (_, _) => view);
+          implementationViews.AddOrUpdate(id, view, (_, _) => view);
         } else {
-          viewDictionary.AddOrUpdate(id,
+          implementationViews.AddOrUpdate(id,
             _ => new ImplementationView(lspRange, status, Array.Empty<Diagnostic>()),
             (_, previousView) => previousView with { Status = status });
         }
@@ -223,7 +217,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
 
         return document with {
-          ImplementationViews = viewDictionary.ToImmutableDictionary(),
+          ImplementationViews = implementationViews.ToImmutableDictionary(),
           CounterExamples = counterExamples.ToArray(),
         };
       }).SelectMany(t => t.ToObservable())).Merge().Replay();
@@ -233,21 +227,40 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         implementationTask.Run();
       }
 
-      result.DefaultIfEmpty(document).LastAsync().Subscribe(finalDocument => {
+      if (VerifierOptions.GutterStatus) {
+        ReportRealtimeDiagnostics(document, result, cancellationToken);
+      }
+      return result;
+    }
 
+    private void ReportRealtimeDiagnostics(DafnyDocument document, IObservable<DafnyDocument> result,
+      CancellationToken cancellationToken)
+    {
+      result.DefaultIfEmpty(document).LastAsync().Subscribe(finalDocument =>
+      {
         // All unvisited trees need to set them as "verified"
         if (!cancellationToken.IsCancellationRequested) {
           SetAllUnvisitedMethodsAsVerified(document);
         }
 
-        if (VerifierOptions.GutterStatus) {
-          var progressReporter = new VerificationProgressReporter(
-            loggerFactory.CreateLogger<VerificationProgressReporter>(),
-            document, notificationPublisher, diagnosticPublisher);
-          progressReporter.ReportRealtimeDiagnostics(true, finalDocument);
-        }
+        var progressReporter = new VerificationProgressReporter(
+          loggerFactory.CreateLogger<VerificationProgressReporter>(),
+          document, notificationPublisher, diagnosticPublisher);
+        progressReporter.ReportRealtimeDiagnostics(true, finalDocument);
       });
-      return result;
+    }
+
+    private static ConcurrentDictionary<ImplementationId, ImplementationView> GetExistingViews(DafnyDocument document, IReadOnlyList<IImplementationTask> implementationTasks)
+    {
+      var viewDictionary = new ConcurrentDictionary<ImplementationId, ImplementationView>();
+      foreach (var task in implementationTasks) {
+        var id = GetImplementationId(task.Implementation);
+        if (document.ImplementationViews.TryGetValue(id, out var existingView)) {
+          viewDictionary.TryAdd(id, existingView);
+        }
+      }
+
+      return viewDictionary;
     }
 
     private List<Diagnostic> GetDiagnosticsFromResult(DafnyDocument document, VerificationResult result)

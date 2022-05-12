@@ -169,8 +169,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
           } else if (IsPositionAfterChange(change.Range!, entry.From)) {
             var beforeChangeEndOffset = change.Range!.End;
             var afterChangeEndOffset = GetPositionAtEndOfAppliedChange(change);
-            var from = GetPositionWithOffset(entry.From, beforeChangeEndOffset, afterChangeEndOffset);
-            var to = GetPositionWithOffset(entry.To, beforeChangeEndOffset, afterChangeEndOffset);
+            var from = GetPositionWithOffset(entry.From, beforeChangeEndOffset, afterChangeEndOffset!);
+            var to = GetPositionWithOffset(entry.To, beforeChangeEndOffset, afterChangeEndOffset!);
             migratedLookupTree.Add(from, to, entry.Value);
           }
         }
@@ -178,7 +178,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
       }
 
       private readonly Dictionary<TextDocumentContentChangeEvent, Position> getPositionAtEndOfAppliedChangeCache = new();
-      private Position GetPositionAtEndOfAppliedChange(TextDocumentContentChangeEvent change) {
+      private Position? GetPositionAtEndOfAppliedChange(TextDocumentContentChangeEvent change) {
+        if (change.Range == null) {
+          return null;
+        }
         return getPositionAtEndOfAppliedChangeCache.GetOrCreate(change, Compute);
 
         Position Compute()
@@ -211,7 +214,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
           return position;
         }
 
-        return GetPositionWithOffset(position, change.Range!.End, GetPositionAtEndOfAppliedChange(change));
+        return GetPositionWithOffset(position, change.Range!.End, GetPositionAtEndOfAppliedChange(change)!);
       }
 
       private static Position GetPositionWithOffset(Position position, Position originalOffset, Position changeOffset) {
