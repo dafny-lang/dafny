@@ -1,6 +1,6 @@
 # Upcoming
 
-- feat: The IDE will show verification errors for a method immediately after that method has been verified, instead of after all methods are verified. (https://github.com/dafny-lang/dafny/pull/1944)
+- feat: The IDE will show verification errors for a method immediately after that method has been verified, instead of waiting for all methods to be verified. (https://github.com/dafny-lang/dafny/pull/1944)
 - feat: Live verification diagnostics for the language server (https://github.com/dafny-lang/dafny/pull/1942)
 - fix: Prevent the language server from crashing and not responding on resolution or ghost diagnostics errors (https://github.com/dafny-lang/dafny/pull/2080)
 
