@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using Microsoft.Build.Evaluation;
 using Xunit;
 using XUnitExtensions;
 
@@ -16,7 +15,7 @@ public class IntegrationTests {
 
     var startInfo = new ProcessStartInfo("dotnet") {
       UseShellExecute = false,
-      WorkingDirectory = minimalDirectory,
+      WorkingDirectory = minimalDirectory
     };
 
     startInfo.ArgumentList.Add("../AutoExtern.dll");
@@ -60,17 +59,17 @@ public class IntegrationTests {
         startInfo.ArgumentList.Add(arg);
       }
       return Process.Start(startInfo);
-    };
+    }
 
-    var makeArgs = new string[] {"--quiet", "-C", tutorialDirectory};
+    var makeArgs = new[] { "--quiet", "-C", tutorialDirectory };
 
     // Ensure clean build
-    Make(makeArgs.Concat(new[] {"clean"}))?.WaitForExit();
+    Make(makeArgs.Concat(new[] { "clean" }))?.WaitForExit();
 
     // Run and capture output
-    var run = Make(makeArgs.Concat(new [] {
-      $"AutoExtern=dotnet ../../AutoExtern.dll",
-      $"Dafny=dotnet ../../Dafny.dll"
+    var run = Make(makeArgs.Concat(new[] {
+      "AutoExtern=dotnet ../../AutoExtern.dll",
+      "Dafny=dotnet ../../Dafny.dll"
     }));
 
     Assert.NotNull(run);
