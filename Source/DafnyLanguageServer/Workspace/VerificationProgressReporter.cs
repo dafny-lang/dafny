@@ -15,6 +15,19 @@ using VerificationStatus = Microsoft.Dafny.LanguageServer.Workspace.Notification
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 public class VerificationProgressReporter : IVerificationProgressReporter {
+  /// The last [MaxLastTouchedMethods] recently modified methods will be
+  /// automatically assigned a priority ranging from
+  /// [MaxLastTouchedMethodPriority - MaxLastTouchedMethods + 1]
+  /// to [MaxLastTouchedMethodPriority] (below, from 6 to 10)
+  /// Since priorities range from 1 to infinite, the only requirement is
+  /// that [MaxLastTouchedMethods] is less than [MaxLastTouchedMethodPriority]
+  /// 10 is a nice priority, not too high so that it can be overriden easily
+  /// to always trigger the verifier to verify them first (for any reason) 
+  /// and not too low so that it's still possible to manually set up priorities 1-5 to
+  /// methods that are not being modified.
+  private const int MaxLastTouchedMethodPriority = 10;
+  private const int MaxLastTouchedMethods = 5;
+
   private readonly ICompilationStatusNotificationPublisher publisher;
   private readonly DafnyDocument document;
   private readonly ILogger<VerificationProgressReporter> logger;
@@ -133,7 +146,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
       node != null && document.LastChange != null && node.Range.Contains(document.LastChange), null);
     if (newlyTouchedVerificationTree != null) {
       RememberLastTouchedMethodPositions(newlyTouchedVerificationTree.Position, newLastTouchedMethodPositions);
-      document.LastTouchedMethodPositions = newLastTouchedMethodPositions.TakeLast(5).ToImmutableList();
+      document.LastTouchedMethodPositions = newLastTouchedMethodPositions.TakeLast(MaxLastTouchedMethods).ToImmutableList();
     }
 
     var positionToVerificationTree = document.VerificationTree.Children.ToImmutableDictionary(
@@ -394,7 +407,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   }
 
   /// <summary>
-  /// Returns the verification priority for a given method, depending on if it was recently (last 5 edits)
+  /// Returns the verification priority for a given method, depending on if it was recently modified
   /// </summary>
   /// <param name="method">The method to consider</param>
   /// <returns>The automatically set priority for the underlying method, or 0</returns>
@@ -406,8 +419,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
         return 0;
       }
       var lastTouchedCount = document.LastTouchedMethodPositions.Count;
-      // 10 if last edited.
-      var priority = 11 + lastTouchedIndex - lastTouchedCount;
+      var priority = MaxLastTouchedMethodPriority + lastTouchedIndex + 1 - lastTouchedCount;
       return priority;
     }
     return 0;
