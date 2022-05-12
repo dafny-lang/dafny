@@ -20,16 +20,13 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
   protected ILanguageClient client;
   protected DiagnosticsReceiver diagnosticReceiver;
 
-  public async Task<Diagnostic[]> GetLastVerificationDiagnostics(TextDocumentItem documentItem, CancellationToken cancellationToken = default, int? expectedNumber = null) {
+  public async Task<Diagnostic[]> GetLastVerificationDiagnostics(TextDocumentItem documentItem, CancellationToken cancellationToken = default) {
     await client.WaitForNotificationCompletionAsync(documentItem.Uri, cancellationToken);
     var document = await Documents.GetVerifiedDocumentAsync(documentItem);
-    await diagnosticReceiver.AwaitNextDiagnosticsAsync(cancellationToken); // Get resolution diagnostics
-    var remainingDiagnostics = expectedNumber ?? Int32.MaxValue;
     Diagnostic[] result;
     do {
       result = await diagnosticReceiver.AwaitNextDiagnosticsAsync(cancellationToken);
-      remainingDiagnostics--;
-    } while (!document!.Diagnostics.SequenceEqual(result) && remainingDiagnostics > 0);
+    } while (!document!.Diagnostics.SequenceEqual(result));
 
     return result;
   }
@@ -64,7 +61,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
     });
   }
 
-  public async Task AssertNoDiagnosticsAreComing() {
+  public async Task AssertNoDiagnosticsAreComing(CancellationToken cancellationToken) {
     foreach (var entry in Documents.Documents.Values) {
       try {
         await entry.FullyVerifiedDocument;
@@ -74,12 +71,12 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
     }
     var verificationDocumentItem = CreateTestDocument("class X {does not parse", $"verification{fileIndex++}.dfy");
     await client.OpenDocumentAndWaitAsync(verificationDocumentItem, CancellationToken.None);
-    var resolutionReport = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken.None);
+    var resolutionReport = await diagnosticReceiver.AwaitNextNotificationAsync(cancellationToken);
     Assert.AreEqual(verificationDocumentItem.Uri, resolutionReport.Uri);
     client.DidCloseTextDocument(new DidCloseTextDocumentParams {
       TextDocument = verificationDocumentItem
     });
-    var hideReport = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken.None);
+    var hideReport = await diagnosticReceiver.AwaitNextNotificationAsync(cancellationToken);
     Assert.AreEqual(verificationDocumentItem.Uri, hideReport.Uri);
   }
 }
