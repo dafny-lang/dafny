@@ -16,6 +16,7 @@ using System.Threading.Tasks;
 using Microsoft.Boogie;
 using Microsoft.Extensions.Logging;
 using VC;
+using VerificationStatus = Microsoft.Boogie.VerificationStatus;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
@@ -27,6 +28,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// The increased stack size is necessary to solve the issue https://github.com/dafny-lang/dafny/issues/1447.
   /// </remarks>
   public class TextDocumentLoader : ITextDocumentLoader {
+    private VerifierOptions VerifierOptions { get; }
     private const int ResolverMaxStackSize = 0x10000000; // 256MB
     private static readonly ThreadTaskScheduler ResolverScheduler = new(ResolverMaxStackSize);
 
@@ -39,6 +41,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private readonly ICompilationStatusNotificationPublisher notificationPublisher;
     private readonly ILoggerFactory loggerFactory;
     private readonly ILogger<TextDocumentLoader> logger;
+    private readonly IDiagnosticPublisher diagnosticPublisher;
 
     private TextDocumentLoader(
       ILoggerFactory loggerFactory,
@@ -47,7 +50,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       IProgramVerifier verifier,
       ISymbolTableFactory symbolTableFactory,
       IGhostStateDiagnosticCollector ghostStateDiagnosticCollector,
-      ICompilationStatusNotificationPublisher notificationPublisher) {
+      ICompilationStatusNotificationPublisher notificationPublisher,
+      IDiagnosticPublisher diagnosticPublisher,
+      VerifierOptions verifierOptions) {
+      VerifierOptions = verifierOptions;
       this.parser = parser;
       this.symbolResolver = symbolResolver;
       this.verifier = verifier;
@@ -56,6 +62,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       this.notificationPublisher = notificationPublisher;
       this.loggerFactory = loggerFactory;
       this.logger = loggerFactory.CreateLogger<TextDocumentLoader>();
+      this.diagnosticPublisher = diagnosticPublisher;
     }
 
     public static TextDocumentLoader Create(
@@ -65,9 +72,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       ISymbolTableFactory symbolTableFactory,
       IGhostStateDiagnosticCollector ghostStateDiagnosticCollector,
       ICompilationStatusNotificationPublisher notificationPublisher,
-      ILoggerFactory loggerFactory
+      ILoggerFactory loggerFactory,
+      IDiagnosticPublisher diagnosticPublisher,
+      VerifierOptions verifierOptions
       ) {
-      return new TextDocumentLoader(loggerFactory, parser, symbolResolver, verifier, symbolTableFactory, ghostStateDiagnosticCollector, notificationPublisher);
+      return new TextDocumentLoader(loggerFactory, parser, symbolResolver, verifier, symbolTableFactory, ghostStateDiagnosticCollector, notificationPublisher, diagnosticPublisher, verifierOptions);
     }
 
     public DafnyDocument CreateUnloaded(TextDocumentItem textDocument, CancellationToken cancellationToken) {
@@ -86,8 +95,19 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       if (loaded.ParseAndResolutionDiagnostics.Any(d => d.Severity == DiagnosticSeverity.Error)) {
         return loaded;
       }
+
+      var progressReporter = new VerificationProgressReporter(
+        loggerFactory.CreateLogger<VerificationProgressReporter>(),
+        loaded, notificationPublisher, diagnosticPublisher);
+
+      var implementationTasks = verifier.GetImplementationTasks(loaded, progressReporter);
+      foreach (var task in implementationTasks) {
+
+        // TODO remove reflection once https://github.com/boogie-org/boogie/pull/573 is implemented.
+        cancellationToken.Register(() => task.GetType().GetMethod("Cancel")!.Invoke(task, null));
+      }
       return loaded with {
-        VerificationTasks = verifier.GetImplementationTasks(loaded.Program, cancellationToken),
+        VerificationTasks = implementationTasks,
       };
     }
 
@@ -164,8 +184,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       notificationPublisher.SendStatusNotification(document.TextDocumentItem, CompilationStatus.VerificationStarted);
 
       var implementationTasks = document.VerificationTasks;
-      var _ = NotifyStatusAsync(document.TextDocumentItem, implementationTasks);
-
+      var _ = NotifyStatusAsync(document.TextDocumentItem, implementationTasks, cancellationToken);
       var viewDictionary = new ConcurrentDictionary<ImplementationId, ImplementationView>();
       foreach (var task in implementationTasks) {
         var id = GetImplementationId(task.Implementation);
@@ -178,8 +197,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       // TODO consider moving this inside the `result definition
       var diagnostics = implementationTasks.ToDictionary(it => it, async implementationTask => {
         var result = await implementationTask.ActualTask;
-
-        cancellationToken.ThrowIfCancellationRequested();
 
         var errorReporter = new DiagnosticErrorReporter(document.Uri);
         foreach (var counterExample in result.Errors) {
@@ -230,6 +247,20 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         implementationTask.Run();
       }
 
+      result.DefaultIfEmpty(document).LastAsync().Subscribe(finalDocument => {
+
+        // All unvisited trees need to set them as "verified"
+        if (!cancellationToken.IsCancellationRequested) {
+          SetAllUnvisitedMethodsAsVerified(document);
+        }
+
+        if (VerifierOptions.GutterStatus) {
+          var progressReporter = new VerificationProgressReporter(
+            loggerFactory.CreateLogger<VerificationProgressReporter>(),
+            document, notificationPublisher, diagnosticPublisher);
+          progressReporter.ReportRealtimeDiagnostics(true, finalDocument);
+        }
+      });
       return result;
     }
 
@@ -251,17 +282,29 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
     }
 
-    private async Task NotifyStatusAsync(TextDocumentItem item, IReadOnlyList<IImplementationTask> implementationTasks) {
+    private async Task NotifyStatusAsync(TextDocumentItem item, IReadOnlyList<IImplementationTask> implementationTasks, CancellationToken cancellationToken) {
       var results = await Task.WhenAll(implementationTasks.Select(t => t.ActualTask));
       logger.LogDebug($"Finished verification with {results.Sum(r => r.Errors.Count)} errors.");
       var verified = results.All(r => r.Outcome == ConditionGeneration.Outcome.Correct);
       var compilationStatusAfterVerification = verified
         ? CompilationStatus.VerificationSucceeded
         : CompilationStatus.VerificationFailed;
-      notificationPublisher.SendStatusNotification(item, compilationStatusAfterVerification);
+      notificationPublisher.SendStatusNotification(item, compilationStatusAfterVerification,
+        cancellationToken.IsCancellationRequested ? "(cancelled)" : null);
     }
 
-    ImplementationId GetImplementationId(Implementation implementation) {
+    // Called only in the case there is a parsing or resolution error on the document
+    public void PublishVerificationDiagnostics(DafnyDocument document, bool verificationStarted) {
+      diagnosticPublisher.PublishVerificationDiagnostics(document, verificationStarted);
+    }
+
+    private void SetAllUnvisitedMethodsAsVerified(DafnyDocument document) {
+      foreach (var tree in document.VerificationTree.Children) {
+        tree.SetVerifiedIfPending();
+      }
+    }
+
+    static ImplementationId GetImplementationId(Implementation implementation) {
       var prefix = implementation.Name.Split(Translator.NameSeparator)[0];
       return new ImplementationId(implementation.tok.GetLspPosition(), prefix);
     }

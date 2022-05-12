@@ -12,25 +12,25 @@ using Microsoft.Extensions.Options;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 
+/// If any top-level declaration has an attribute `{:neverVerify}`,
+/// this verifier will return a task that only completes when cancelled
+/// which can be useful to test against race conditions
 class SlowVerifier : IProgramVerifier {
-  public SlowVerifier(ILogger<SlowVerifier> logger, IOptions<VerifierOptions> options) {
+  public SlowVerifier(ILogger<DafnyProgramVerifier> logger, IOptions<VerifierOptions> options) {
     verifier = DafnyProgramVerifier.Create(logger, options);
   }
 
   private readonly DafnyProgramVerifier verifier;
 
-  public IReadOnlyList<IImplementationTask> GetImplementationTasks(Dafny.Program program, CancellationToken cancellationToken) {
+  public IReadOnlyList<IImplementationTask> GetImplementationTasks(DafnyDocument document, IVerificationProgressReporter progressReporter) {
+    var program = document.Program;
     var attributes = program.Modules().SelectMany(m => {
       return m.TopLevelDecls.OfType<TopLevelDeclWithMembers>().SelectMany(d => d.Members.Select(member => member.Attributes));
     }).ToList();
 
-    var originalResult = verifier.GetImplementationTasks(program, cancellationToken);
+    var originalResult = verifier.GetImplementationTasks(document, progressReporter);
     if (attributes.Any(a => Attributes.Contains(a, "neverVerify"))) {
-      var source = new TaskCompletionSource<ServerVerificationResult>();
-      cancellationToken.Register(() => { source.SetCanceled(cancellationToken); });
-
-      return new List<IImplementationTask>
-        { new NeverVerifiesImplementationTask(originalResult[0], cancellationToken) };
+      return new List<IImplementationTask> { new NeverVerifiesImplementationTask(originalResult[0]) };
     }
 
     return originalResult;
@@ -40,12 +40,9 @@ class SlowVerifier : IProgramVerifier {
     private readonly IImplementationTask original;
     private readonly TaskCompletionSource<VerificationResult> source;
 
-    public NeverVerifiesImplementationTask(IImplementationTask original, CancellationToken token) {
+    public NeverVerifiesImplementationTask(IImplementationTask original) {
       this.original = original;
       source = new TaskCompletionSource<VerificationResult>();
-      token.Register(() => {
-        source.SetCanceled(token);
-      });
     }
 
     public IObservable<VerificationStatus> ObservableStatus => Observable.Empty<VerificationStatus>();
@@ -56,6 +53,10 @@ class SlowVerifier : IProgramVerifier {
 
     public void Run() {
 
+    }
+
+    public void Cancel() {
+      source.SetCanceled();
     }
   }
 }

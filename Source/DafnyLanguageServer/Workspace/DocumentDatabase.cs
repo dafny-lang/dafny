@@ -1,5 +1,4 @@
-﻿using Microsoft.Boogie;
-using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
+﻿using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OmniSharp.Extensions.LanguageServer.Protocol;
@@ -12,6 +11,7 @@ using System.Reactive.Threading.Tasks;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.Language;
+using Microsoft.Boogie;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
@@ -81,7 +81,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     private async Task<DafnyDocument> OpenAsync(TextDocumentItem textDocument, CancellationToken cancellationToken) {
       try {
-        return await documentLoader.LoadAndPrepareVerificationTasksAsync(textDocument, cancellationToken);
+        var newDocument = await documentLoader.LoadAndPrepareVerificationTasksAsync(textDocument, cancellationToken);
+        documentLoader.PublishVerificationDiagnostics(newDocument, false);
+        return newDocument;
       } catch (OperationCanceledException) {
         // We do not allow canceling the load of the placeholder document. Otherwise, other components
         // start to have to check for nullability in later stages such as change request processors.
@@ -143,24 +145,32 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           NamedVerificationTask = relocator.RelocatePosition(kv.Key.NamedVerificationTask, documentChange, CancellationToken.None)
         },
         kv => {
-          var migratedDiagnostics = relocator.RelocateDiagnostics(kv.Value.Diagnostics, documentChange, CancellationToken.None);
-          return kv.Value with { Diagnostics = migratedDiagnostics };
-        });
+           var migratedDiagnostics = relocator.RelocateDiagnostics(kv.Value.Diagnostics, documentChange, CancellationToken.None);
+           return kv.Value with { Diagnostics = migratedDiagnostics };
+         });
       logger.LogDebug($"Migrated {oldVerificationDiagnostics.Count} diagnostics into {migratedViews.Count} diagnostics.");
+      var migratedVerificationTree =
+        relocator.RelocateVerificationTree(oldDocument.VerificationTree, documentChange, CancellationToken.None);
       try {
         var newDocument = await documentLoader.LoadAndPrepareVerificationTasksAsync(updatedText, cancellationToken);
         if (newDocument.SymbolTable.Resolved) {
-          return newDocument with {
-            ImplementationViews = migratedViews
+          var resolvedDocument = newDocument with {
+            ImplementationViews = migratedViews,
+            VerificationTree = migratedVerificationTree
           };
+          documentLoader.PublishVerificationDiagnostics(resolvedDocument, false);
+          return resolvedDocument;
         }
         // The document loader failed to create a new symbol table. Since we'd still like to provide
         // features such as code completion and lookup, we re-locate the previously resolved symbols
         // according to the change.
-        return newDocument with {
+        var failedDocument = newDocument with {
           SymbolTable = relocator.RelocateSymbols(oldDocument.SymbolTable, documentChange, CancellationToken.None),
-          ImplementationViews = migratedViews
+          ImplementationViews = migratedViews,
+          VerificationTree = migratedVerificationTree
         };
+        documentLoader.PublishVerificationDiagnostics(failedDocument, false);
+        return failedDocument;
       } catch (OperationCanceledException) {
         // The document load was canceled before it could complete. We migrate the document
         // to re-locate symbols that were resolved previously.
@@ -169,6 +179,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           TextDocumentItem = updatedText,
           SymbolTable = relocator.RelocateSymbols(oldDocument.SymbolTable, documentChange, CancellationToken.None),
           CounterExamples = Array.Empty<Counterexample>(),
+          VerificationTree = migratedVerificationTree,
           LoadCanceled = true,
           ImplementationViews = migratedViews
         };

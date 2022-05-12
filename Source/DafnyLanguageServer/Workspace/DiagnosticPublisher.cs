@@ -1,15 +1,10 @@
-﻿using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server;
 using System.Linq;
-using Microsoft.Boogie;
-using Microsoft.Dafny.LanguageServer.Language;
 using OmniSharp.Extensions.LanguageServer.Protocol;
-using VC;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
 
@@ -60,17 +55,37 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private void PublishDocumentDiagnostics(DafnyDocument document) {
-      var newParams = new PublishDiagnosticsParams {
+      var diagnosticParameters = new PublishDiagnosticsParams {
         Uri = document.Uri,
         Version = document.Version,
         Diagnostics = document.Diagnostics.ToArray(),
       };
-      if (previouslyPublishedDiagnostics.TryGetValue(document.Uri, out var previousParams) && previousParams.Diagnostics.Equals(newParams.Diagnostics)) {
+      if (previouslyPublishedDiagnostics.TryGetValue(document.Uri, out var previousParams) && previousParams.Diagnostics.Equals(diagnosticParameters.Diagnostics)) {
         return;
       }
 
-      previouslyPublishedDiagnostics.AddOrUpdate(document.Uri, _ => newParams, (_, _) => newParams);
-      languageServer.TextDocument.PublishDiagnostics(newParams);
+      previouslyPublishedDiagnostics.AddOrUpdate(document.Uri, _ => diagnosticParameters, (_, _) => diagnosticParameters);
+      languageServer.TextDocument.PublishDiagnostics(diagnosticParameters);
+    }
+
+    public void PublishVerificationDiagnostics(DafnyDocument document, bool verificationStarted) {
+      if (document.LoadCanceled) {
+        // We leave the responsibility to shift the error locations to the LSP clients.
+        // Therefore, we do not republish the errors when the document (re-)load was canceled.
+        return;
+      }
+      var errors = document.Diagnostics.Where(x => x.Severity == DiagnosticSeverity.Error).ToList();
+      var linesCount = document.LinesCount;
+      var verificationStatusGutter = new VerificationStatusGutter(
+        document.Uri,
+        document.Version,
+        document.VerificationTree.Children.Select(child => child.GetCopyForNotification()).ToArray(),
+        errors,
+        linesCount,
+        verificationStarted,
+        document.ParseAndResolutionDiagnostics.Count
+      );
+      languageServer.TextDocument.SendNotification(verificationStatusGutter);
     }
 
     private void PublishGhostDiagnostics(DafnyDocument document) {

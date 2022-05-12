@@ -80,7 +80,6 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           if (typeSymbol is TypeWithMembersSymbolBase typeWithMembersSymbol) {
             members = typeWithMembersSymbol.Members;
           } else {
-            // TODO This should never happen at this time.
             throw new InvalidOperationException($"received a type symbol of type {typeSymbol.GetType()}, but expected a ClassSymbol");
           }
         } else {
