@@ -227,7 +227,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         ? CompilationStatus.VerificationSucceeded
         : CompilationStatus.VerificationFailed;
       notificationPublisher.SendStatusNotification(item, compilationStatusAfterVerification,
-        cancellationToken.IsCancellationRequested ? "(cancelled)" : null); // TODO what's the effect of this change in UI ?
+        cancellationToken.IsCancellationRequested ? "(cancelled)" : null);
     }
 
     // Called only in the case there is a parsing or resolution error on the document

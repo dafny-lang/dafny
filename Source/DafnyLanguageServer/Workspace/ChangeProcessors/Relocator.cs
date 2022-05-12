@@ -168,8 +168,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
             migratedLookupTree.Add(entry.From, entry.To, entry.Value);
           } else if (IsPositionAfterChange(change.Range!, entry.From)) {
             var beforeChangeEndOffset = change.Range!.End;
-            var from = GetPositionWithOffset(entry.From, beforeChangeEndOffset, GetPositionAtEndOfAppliedChange(change));
-            var to = GetPositionWithOffset(entry.To, beforeChangeEndOffset, GetPositionAtEndOfAppliedChange(change));
+            var afterChangeEndOffset = GetPositionAtEndOfAppliedChange(change);
+            var from = GetPositionWithOffset(entry.From, beforeChangeEndOffset, afterChangeEndOffset);
+            var to = GetPositionWithOffset(entry.To, beforeChangeEndOffset, afterChangeEndOffset);
             migratedLookupTree.Add(from, to, entry.Value);
           }
         }
