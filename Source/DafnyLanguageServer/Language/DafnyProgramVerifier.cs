@@ -79,61 +79,33 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     public IReadOnlyList<IImplementationTask> Verify(DafnyDocument document,
                                      IVerificationProgressReporter progressReporter,
                                      CancellationToken cancellationToken) {
-      // await mutex.WaitAsync(cancellationToken);
       var program = document.Program;
-      // try {
-        // The printer is responsible for two things: It logs boogie errors and captures the counter example model.
-        var errorReporter = (DiagnosticErrorReporter)program.Reporter;
-        if (options.GutterStatus) {
-          progressReporter.RecomputeVerificationTree();
-          progressReporter.ReportRealtimeDiagnostics(false, document); // TODO curious what it needs the document for
-        }
+      var errorReporter = (DiagnosticErrorReporter)program.Reporter;
+      if (options.GutterStatus) {
+        progressReporter.RecomputeVerificationTree();
+        progressReporter.ReportRealtimeDiagnostics(false, document);
+      }
 
-        var printer = new ModelCapturingOutputPrinter(logger, progressReporter, options.GutterStatus);
-        // Do not set these settings within the object's construction. It will break some tests within
-        // VerificationNotificationTest and DiagnosticsTest that rely on updating these settings.
-        DafnyOptions.O.TimeLimit = options.TimeLimit;
-        DafnyOptions.O.VcsCores = GetConfiguredCoreCount(options);
-        DafnyOptions.O.Printer = printer;
+      var printer = new ModelCapturingOutputPrinter(logger, progressReporter, options.GutterStatus);
+      // Do not set these settings within the object's construction. It will break some tests within
+      // VerificationNotificationTest and DiagnosticsTest that rely on updating these settings.
+      DafnyOptions.O.TimeLimit = options.TimeLimit;
+      DafnyOptions.O.VcsCores = GetConfiguredCoreCount(options);
+      DafnyOptions.O.Printer = printer;
 
-        var executionEngine = new ExecutionEngine(DafnyOptions.O, cache);
+      var executionEngine = new ExecutionEngine(DafnyOptions.O, cache);
 #pragma warning disable VSTHRD002
-        var translated = Task.Factory.StartNew(() => Translator.Translate(program, errorReporter, new Translator.TranslatorFlags {
-          InsertChecksums = true,
-          ReportRanges = true
-        }).ToList(), CancellationToken.None, TaskCreationOptions.None, TranslatorScheduler).Result;
+      var translated = Task.Factory.StartNew(() => Translator.Translate(program, errorReporter, new Translator.TranslatorFlags {
+        InsertChecksums = true,
+        ReportRanges = true
+      }).ToList(), CancellationToken.None, TaskCreationOptions.None, TranslatorScheduler).Result;
 #pragma warning restore VSTHRD002
-        return translated.SelectMany(t => {
-          var (_, boogieProgram) = t;
-          var results = executionEngine.GetImplementationTasks(boogieProgram);
-          return results;
-        }).ToList();
+      return translated.SelectMany(t => {
+        var (_, boogieProgram) = t;
+        var results = executionEngine.GetImplementationTasks(boogieProgram);
+        return results;
+      }).ToList();
     }
-
-
-//     // The printer is responsible for reporting "Started verifying X".
-//     var errorReporter = (DiagnosticErrorReporter)program.Reporter;
-//     var printer = new ModelCapturingOutputPrinter(logger, errorReporter, progressReporter);
-//     // Do not set these settings within the object's construction. It will break some tests within
-//     // VerificationNotificationTest and DiagnosticsTest that rely on updating these settings.
-//     DafnyOptions.O.TimeLimit = options.TimeLimit;
-//     DafnyOptions.O.VcsCores = GetConfiguredCoreCount(options);
-//     DafnyOptions.O.Printer = printer;
-//
-//     var executionEngine = new ExecutionEngine(DafnyOptions.O, cache);
-// #pragma warning disable VSTHRD002
-//     var translated = Task.Factory.StartNew(() => Translator.Translate(program, errorReporter, new Translator.TranslatorFlags {
-//         InsertChecksums = true,
-//         ReportRanges = true
-//       }).ToList(), CancellationToken.None, TaskCreationOptions.None, TranslatorScheduler).Result;
-// #pragma warning restore VSTHRD002
-//       return translated.SelectMany(t => {
-//       var (_, boogieProgram) = t;
-//       var results = executionEngine.GetImplementationTasks(boogieProgram);
-//       return results;
-//     }).ToList();
-//   }
-
 
     private class ModelCapturingOutputPrinter : OutputPrinter {
       private readonly ILogger logger;

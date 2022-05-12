@@ -91,16 +91,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
         }
 
         return originalDiagnostics.SelectMany(diagnostic =>
-// <<<<<<< HEAD
-//           MigrateDiagnostic(change, diagnostic)).ToList();
-//       }
-//
-//       private IEnumerable<Diagnostic> MigrateDiagnostic(TextDocumentContentChangeEvent change, Diagnostic diagnostic) {
-//         cancellationToken.ThrowIfCancellationRequested();
-//
-//         var afterChangeEndOffset = GetPositionAtEndOfAppliedChange(change);
-//         var newRange = MigrateRange(diagnostic.Range, change.Range!, afterChangeEndOffset);
-// =======
+          // <<<<<<< HEAD
+          //           MigrateDiagnostic(change, diagnostic)).ToList();
+          //       }
+          //
+          //       private IEnumerable<Diagnostic> MigrateDiagnostic(TextDocumentContentChangeEvent change, Diagnostic diagnostic) {
+          //         cancellationToken.ThrowIfCancellationRequested();
+          //
+          //         var afterChangeEndOffset = GetPositionAtEndOfAppliedChange(change);
+          //         var newRange = MigrateRange(diagnostic.Range, change.Range!, afterChangeEndOffset);
+          // =======
           MigrateDiagnostic(changeEndOffset, diagnostic)).ToList();
       }
       private List<Position> MigratePositions(List<Position> originalRanges, (TextDocumentContentChangeEvent change, Position? position) changeEndOffset) {
@@ -157,12 +157,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
           if (change.Range == null) {
             migratedLookupTree = new IntervalTree<Position, ILocalizableSymbol>();
           } else {
-// <<<<<<< HEAD
-//             afterChangeEndOffset = GetPositionAtEndOfAppliedChange(change);
-//             migratedLookupTree = ApplyLookupTreeChange(migratedLookupTree, change.Range, afterChangeEndOffset);
-// =======
+            // <<<<<<< HEAD
+            //             afterChangeEndOffset = GetPositionAtEndOfAppliedChange(change);
+            //             migratedLookupTree = ApplyLookupTreeChange(migratedLookupTree, change.Range, afterChangeEndOffset);
+            // =======
             migratedLookupTree = ApplyLookupTreeChange(migratedLookupTree, change.Range, afterChangeEndOffset!);
-// >>>>>>> origin/master
+            // >>>>>>> origin/master
           }
           migratedDeclarations = ApplyDeclarationsChange(originalSymbolTable, migratedDeclarations, change.Range, afterChangeEndOffset);
         }
