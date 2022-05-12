@@ -27,6 +27,7 @@ public class ReorderingVerificationDiagnosticTester : LinearVerificationDiagnost
 
   [TestInitialize]
   public override async Task SetUp() {
+    DafnyOptions.Install(DafnyOptions.Create("-proverOpt:SOLVER=noop"));
     diagnosticReceiver = new();
     VerificationDiagnosticReceiver = new();
     client = await InitializeClient(options =>
@@ -141,11 +142,14 @@ method m5() {
 
   private async Task TestPriorities(string code, string expectedPriorities) {
     textDocumentLoader.LinearPriorities = new List<List<int>>();
-    DafnyOptions.Install(DafnyOptions.Create("-proverOpt:SOLVER=noop"));
     await VerifyTrace(code, testTrace: false);
     var priorities = string.Join(" ", textDocumentLoader.LinearPriorities.Select(priorities =>
       string.Join(",", priorities.Select(priority => priority.ToString().PadLeft(2)))));
     Assert.AreEqual(expectedPriorities, priorities);
   }
 
+  [TestCleanup]
+  public void Cleanup() {
+    DafnyOptions.Install(DafnyOptions.Create());
+  }
 }

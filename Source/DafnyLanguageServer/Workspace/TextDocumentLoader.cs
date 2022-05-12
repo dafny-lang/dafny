@@ -157,12 +157,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       );
     }
 
-    public virtual VerificationProgressReporter CreateVerificationProgressReporter(DafnyDocument document) {
-      return new VerificationProgressReporter(
-        loggerFactory.CreateLogger<VerificationProgressReporter>(),
-        document, notificationPublisher, diagnosticPublisher);
-    }
-
     public IObservable<DafnyDocument> Verify(DafnyDocument document, CancellationToken cancellationToken) {
       notificationPublisher.SendStatusNotification(document.TextDocumentItem, CompilationStatus.VerificationStarted);
       var progressReporter = CreateVerificationProgressReporter(document);
@@ -221,6 +215,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
       });
       return result;
+    }
+
+    protected virtual VerificationProgressReporter CreateVerificationProgressReporter(DafnyDocument document) {
+      return new VerificationProgressReporter(
+        loggerFactory.CreateLogger<VerificationProgressReporter>(),
+        document, notificationPublisher, diagnosticPublisher);
     }
 
     private async Task NotifyStatusAsync(TextDocumentItem item, IReadOnlyList<IImplementationTask> implementationTasks, CancellationToken cancellationToken) {

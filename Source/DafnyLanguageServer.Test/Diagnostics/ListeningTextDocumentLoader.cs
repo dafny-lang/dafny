@@ -30,8 +30,7 @@ public class ListeningTextDocumentLoader : TextDocumentLoader {
   }
 
 
-
-  public override VerificationProgressReporter CreateVerificationProgressReporter(DafnyDocument document) {
+  protected override VerificationProgressReporter CreateVerificationProgressReporter(DafnyDocument document) {
     return new ListeningVerificationProgressReporter(
       loggerFactory.CreateLogger<ListeningVerificationProgressReporter>(),
       document, notificationPublisher, diagnosticPublisher, this);
