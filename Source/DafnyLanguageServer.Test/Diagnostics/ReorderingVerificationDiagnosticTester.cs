@@ -39,7 +39,8 @@ public class ReorderingVerificationDiagnosticTester : LinearVerificationDiagnost
             serviceProvider.GetRequiredService<ISymbolTableFactory>(),
             serviceProvider.GetRequiredService<IGhostStateDiagnosticCollector>(),
             serviceProvider.GetRequiredService<ICompilationStatusNotificationPublisher>(),
-            serviceProvider.GetRequiredService<IDiagnosticPublisher>()
+            serviceProvider.GetRequiredService<IDiagnosticPublisher>(),
+            serviceProvider.GetRequiredService<IOptions<VerifierOptions>>().Value
           );
           return textDocumentLoader;
         });
@@ -49,6 +50,7 @@ public class ReorderingVerificationDiagnosticTester : LinearVerificationDiagnost
   [TestMethod/*, Timeout(MaxTestExecutionTimeMs * 10)*/]
   public async Task EnsuresPriorityDependsOnEditing() {
     textDocumentLoader.LinearPriorities = new List<List<int>>();
+    DafnyOptions.Install(DafnyOptions.Create("-proverOpt:SOLVER=noop"));
     await VerifyTrace(@"
 method m1() {
   assert 1 == 0;//Next2:  assert 2 == 0;
@@ -65,6 +67,7 @@ method m2() {
   [TestMethod]
   public async Task EnsuresPriorityDependsOnEditingWhileEditingSameMethod() {
     textDocumentLoader.LinearPriorities = new List<List<int>>();
+    DafnyOptions.Install(DafnyOptions.Create("-proverOpt:SOLVER=noop"));
     await VerifyTrace(@"
 method m1() {
   assert true;//Next7:  assert  true;//Next8:  assert true;
@@ -92,8 +95,8 @@ method m5() {
                     " 1,10, 8, 9, 7 " +
                     " 1, 9, 7, 8,10 " +
                     "10, 8, 6, 7, 9 " +
-                    "10, 7, 5, 6, 8 " +
+                    "10, 8, 6, 7, 9 " +
                     " 9, 7,10, 6, 8 " +
-                    " 8, 6, 9, 5,10", priorities);
+                    " 8, 7, 9, 6,10", priorities);
   }
 }

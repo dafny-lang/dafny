@@ -18,8 +18,10 @@ public class ListeningTextDocumentLoader : TextDocumentLoader {
     [NotNull] ISymbolTableFactory symbolTableFactory,
     [NotNull] IGhostStateDiagnosticCollector ghostStateDiagnosticCollector,
     [NotNull] ICompilationStatusNotificationPublisher notificationPublisher,
-    [NotNull] IDiagnosticPublisher diagnosticPublisher) : base(loggerFactory, parser, symbolResolver, verifier,
-    symbolTableFactory, ghostStateDiagnosticCollector, notificationPublisher, diagnosticPublisher) {
+    [NotNull] IDiagnosticPublisher diagnosticPublisher,
+    [NotNull] VerifierOptions verifierOptions) : base(loggerFactory, parser, symbolResolver, verifier,
+    symbolTableFactory, ghostStateDiagnosticCollector, notificationPublisher, diagnosticPublisher,
+    verifierOptions) {
   }
 
 
