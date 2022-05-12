@@ -58,7 +58,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       if (documents.Remove(documentId.Uri, out var databaseEntry)) {
         databaseEntry.CancelPendingUpdates();
         try {
-          await databaseEntry.FullyVerifiedDocument;
+          await databaseEntry.LastDocument;
         } catch (TaskCanceledException) {
         }
         return true;
@@ -82,7 +82,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private async Task<DafnyDocument> OpenAsync(TextDocumentItem textDocument, CancellationToken cancellationToken) {
       try {
         var newDocument = await documentLoader.LoadAndPrepareVerificationTasksAsync(textDocument, cancellationToken);
-        documentLoader.PublishVerificationDiagnostics(newDocument, false);
+        documentLoader.PublishGutterIcons(newDocument, false);
         return newDocument;
       } catch (OperationCanceledException) {
         // We do not allow canceling the load of the placeholder document. Otherwise, other components
@@ -140,25 +140,27 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       // We do not pass the cancellation token to the text change processor because the text has to be kept in sync with the LSP client.
       var updatedText = textChangeProcessor.ApplyChange(oldDocument.TextDocumentItem, documentChange, CancellationToken.None);
       var oldVerificationDiagnostics = oldDocument.ImplementationViews;
-      var migratedViews = oldDocument.ImplementationViews.ToDictionary(
+      var migratedImplementationDiagnostics = oldDocument.ImplementationViews.ToDictionary(
         kv => kv.Key with {
           NamedVerificationTask = relocator.RelocatePosition(kv.Key.NamedVerificationTask, documentChange, CancellationToken.None)
         },
-        kv => {
-           var migratedDiagnostics = relocator.RelocateDiagnostics(kv.Value.Diagnostics, documentChange, CancellationToken.None);
-           return kv.Value with { Diagnostics = migratedDiagnostics };
-         });
-      logger.LogDebug($"Migrated {oldVerificationDiagnostics.Count} diagnostics into {migratedViews.Count} diagnostics.");
+        kv => relocator.RelocateDiagnostics(kv.Value.Diagnostics, documentChange, CancellationToken.None));
+      logger.LogDebug($"Migrated {oldVerificationDiagnostics.Count} diagnostics into {migratedImplementationDiagnostics.Count} diagnostics.");
       var migratedVerificationTree =
         relocator.RelocateVerificationTree(oldDocument.VerificationTree, documentChange, CancellationToken.None);
+      var migratedImplementationViews = oldDocument.ImplementationViews.ToDictionary(
+        kv => kv.Key,
+        kv => kv.Value with { Status = PublishedVerificationStatus.Stale});
       try {
         var newDocument = await documentLoader.LoadAndPrepareVerificationTasksAsync(updatedText, cancellationToken);
         if (newDocument.SymbolTable.Resolved) {
           var resolvedDocument = newDocument with {
-            ImplementationViews = migratedViews,
+            ImplementationViews = newDocument.ImplementationViews.ToDictionary(
+              kv => kv.Key,
+              kv => kv.Value with { Diagnostics = migratedImplementationDiagnostics.GetValueOrDefault(kv.Key, kv.Value.Diagnostics)}), // TODO merge in views from newDocument. Prefer the migrated ones????
             VerificationTree = migratedVerificationTree
           };
-          documentLoader.PublishVerificationDiagnostics(resolvedDocument, false);
+          documentLoader.PublishGutterIcons(resolvedDocument, false);
           return resolvedDocument;
         }
         // The document loader failed to create a new symbol table. Since we'd still like to provide
@@ -166,10 +168,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         // according to the change.
         var failedDocument = newDocument with {
           SymbolTable = relocator.RelocateSymbols(oldDocument.SymbolTable, documentChange, CancellationToken.None),
-          ImplementationViews = migratedViews,
+          ImplementationViews = migratedImplementationViews,
           VerificationTree = migratedVerificationTree
         };
-        documentLoader.PublishVerificationDiagnostics(failedDocument, false);
+        documentLoader.PublishGutterIcons(failedDocument, false);
         return failedDocument;
       } catch (OperationCanceledException) {
         // The document load was canceled before it could complete. We migrate the document
@@ -181,7 +183,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           CounterExamples = Array.Empty<Counterexample>(),
           VerificationTree = migratedVerificationTree,
           LoadCanceled = true,
-          ImplementationViews = migratedViews
+          ImplementationViews = migratedImplementationViews
         };
       }
     }
@@ -227,9 +229,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return null;
     }
 
-    public async Task<DafnyDocument?> GetVerifiedDocumentAsync(TextDocumentIdentifier documentId) {
+    public async Task<DafnyDocument?> GetLastDocumentAsync(TextDocumentIdentifier documentId) {
       if (documents.TryGetValue(documentId.Uri, out var databaseEntry)) {
-        return await databaseEntry.FullyVerifiedDocument;
+        return await databaseEntry.LastDocument;
       }
       return null;
     }
@@ -250,7 +252,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         ResolvedDocument = resolvedDocument;
         LatestDocument = resolvedDocument;
         verifiedDocuments.Subscribe(update => LatestDocument = Task.FromResult(update));
-        FullyVerifiedDocument =
+        LastDocument =
           verifiedDocuments.Select(Task.FromResult).DefaultIfEmpty(ResolvedDocument).ToTask().Unwrap();
       }
 
@@ -260,7 +262,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       public Task<DafnyDocument> LatestDocument { get; private set; }
 
-      public Task<DafnyDocument> FullyVerifiedDocument { get; }
+      public Task<DafnyDocument> LastDocument { get; }
     }
   }
 }

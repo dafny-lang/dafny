@@ -60,6 +60,5 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public int LinesCount => VerificationTree.Range.End.Line;
   }
 
-  public record ImplementationView(Range Range, PublishedVerificationStatus Status,
-    IReadOnlyList<Diagnostic> Diagnostics);
+  public record ImplementationView(Range Range, PublishedVerificationStatus Status, IReadOnlyList<Diagnostic> Diagnostics);
 }

@@ -30,7 +30,7 @@ class SlowVerifier : IProgramVerifier {
 
     var originalResult = verifier.GetImplementationTasks(document, progressReporter);
     if (attributes.Any(a => Attributes.Contains(a, "neverVerify"))) {
-      return new List<IImplementationTask> { new NeverVerifiesImplementationTask(originalResult[0]) };
+      return originalResult.Select(t => new NeverVerifiesImplementationTask(t)).ToList();
     }
 
     return originalResult;

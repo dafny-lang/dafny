@@ -205,6 +205,7 @@ iterator ThatIterator(x: int) yields (y: int, z: int)
 
     var documentItem = CreateTestDocument(source);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+    await AssertNoResolutionErrors(documentItem);
     var status = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
 
     Assert.AreEqual(8, status.NamedVerifiables.Count);
@@ -228,5 +229,19 @@ iterator ThatIterator(x: int) yields (y: int, z: int)
     var status = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.AreEqual(1, status.NamedVerifiables.Count);
     Assert.AreEqual(PublishedVerificationStatus.Error, status.NamedVerifiables[0].Status);
+  }
+
+  [TestMethod]
+  public async Task AddedMethodIsShownBeforeItVerifies() {
+    var source = @"method Foo() { assert false; }
+";
+    var documentItem = CreateTestDocument(source);
+    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+    var status1 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+    Assert.AreEqual(1, status1.NamedVerifiables.Count);
+    await WaitUntilAllStatusAreCompleted();
+    ApplyChange(ref documentItem, new Range(1, 0, 1, 0), "\n" + NeverVerifies); // Remove 'm'
+    var status2 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+    Assert.AreEqual(2, status2.NamedVerifiables.Count);
   }
 }

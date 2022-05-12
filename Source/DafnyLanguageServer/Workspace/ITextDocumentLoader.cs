@@ -47,6 +47,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// Publishes the verification diagnostics (VerificationTree) for the given document
     /// </summary>
     /// <param name="document">The document to publish realtime diagnostics for.</param>
-    void PublishVerificationDiagnostics(DafnyDocument document, bool verificationStarted);
+    void PublishGutterIcons(DafnyDocument document, bool verificationStarted);
   }
 }

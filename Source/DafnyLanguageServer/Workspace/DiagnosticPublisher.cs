@@ -68,7 +68,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       languageServer.TextDocument.PublishDiagnostics(diagnosticParameters);
     }
 
-    public void PublishVerificationDiagnostics(DafnyDocument document, bool verificationStarted) {
+    public void PublishGutterIcons(DafnyDocument document, bool verificationStarted) {
       if (document.LoadCanceled) {
         // We leave the responsibility to shift the error locations to the LSP clients.
         // Therefore, we do not republish the errors when the document (re-)load was canceled.

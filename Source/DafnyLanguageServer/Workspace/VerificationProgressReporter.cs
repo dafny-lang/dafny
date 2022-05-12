@@ -186,7 +186,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
       if (dafnyDocument.LoadCanceled) {
         return;
       }
-      diagnosticPublisher.PublishVerificationDiagnostics(document, verificationStarted);
+      diagnosticPublisher.PublishGutterIcons(document, verificationStarted);
     }
   }
 

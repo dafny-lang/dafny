@@ -30,7 +30,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
 
   public async Task<Diagnostic[]> GetLastVerificationDiagnostics(TextDocumentItem documentItem, CancellationToken cancellationToken = default, int? expectedNumber = null) {
     await client.WaitForNotificationCompletionAsync(documentItem.Uri, cancellationToken);
-    var document = await Documents.GetVerifiedDocumentAsync(documentItem);
+    var document = await Documents.GetLastDocumentAsync(documentItem);
     var remainingDiagnostics = expectedNumber ?? Int32.MaxValue;
     Diagnostic[] result = null;
     do {
@@ -90,7 +90,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
   public async Task AssertNoDiagnosticsAreComing(CancellationToken cancellationToken) {
     foreach (var entry in Documents.Documents.Values) {
       try {
-        await entry.FullyVerifiedDocument;
+        await entry.LastDocument;
       } catch (TaskCanceledException) {
 
       }
@@ -108,6 +108,6 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
 
   protected async Task AssertNoResolutionErrors(TextDocumentItem documentItem) {
     var resolutionDiagnostics = (await Documents.GetDocumentAsync(documentItem))!.Diagnostics;
-    Assert.AreEqual(0, resolutionDiagnostics.Count());
+    Assert.AreEqual(0, resolutionDiagnostics.Count(d => d.Severity == DiagnosticSeverity.Error));
   }
 }

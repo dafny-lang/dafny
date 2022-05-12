@@ -396,7 +396,7 @@ method Multiply(x: int, y: int) returns (product: int)
       // a report without any diagnostics/errors.
       // Otherwise, we'd have to wait for a signal/diagnostic that should never be sent, e.g.
       // with a timeout.
-      await Documents.GetVerifiedDocumentAsync(newVersion); // For debug purposes.
+      await Documents.GetLastDocumentAsync(newVersion); // For debug purposes.
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
@@ -905,12 +905,10 @@ method Foo() {
       var documentItem = CreateTestDocument(source);
       client.OpenDocument(documentItem);
       var preChangeDiagnostics = await GetLastVerificationDiagnostics(documentItem, CancellationToken);
+      Assert.AreEqual(1, preChangeDiagnostics.Length);
       await AssertNoDiagnosticsAreComing(CancellationToken);
       ApplyChange(ref documentItem, new Range(0, 7, 0, 10), "Bar");
-      var resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
-      Assert.AreEqual(preChangeDiagnostics[0], resolutionDiagnostics[0]);
-      var finalDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
-      Assert.AreEqual(resolutionDiagnostics[0], finalDiagnostics[0]);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
     [TestMethod]
@@ -925,12 +923,10 @@ module Foo {
       var documentItem = CreateTestDocument(source);
       client.OpenDocument(documentItem);
       var preChangeDiagnostics = await GetLastVerificationDiagnostics(documentItem, CancellationToken);
+      Assert.AreEqual(1, preChangeDiagnostics.Length);
       await AssertNoDiagnosticsAreComing(CancellationToken);
       ApplyChange(ref documentItem, new Range(0, 7, 0, 10), "Zap");
-      var resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
-      Assert.AreEqual(preChangeDiagnostics[0], resolutionDiagnostics[0]);
-      var finalDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
-      Assert.AreEqual(resolutionDiagnostics[0], finalDiagnostics[0]);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
     }
   }
 }

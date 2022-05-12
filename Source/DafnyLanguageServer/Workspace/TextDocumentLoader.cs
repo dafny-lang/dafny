@@ -105,8 +105,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       foreach (var task in implementationTasks) {
         cancellationToken.Register(task.Cancel);
       }
+
+      var initialViews = new Dictionary<ImplementationId, ImplementationView>();
+      foreach (var task in implementationTasks) {
+        var status = await StatusFromImplementationTask(task);
+        var view = new ImplementationView(task.Implementation.tok.GetLspRange(), status, Array.Empty<Diagnostic>());
+        initialViews.Add(GetImplementationId(task.Implementation), view);
+      }
       return loaded with {
         VerificationTasks = implementationTasks,
+        ImplementationViews = initialViews,
       };
     }
 
@@ -300,8 +308,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     // Called only in the case there is a parsing or resolution error on the document
-    public void PublishVerificationDiagnostics(DafnyDocument document, bool verificationStarted) {
-      diagnosticPublisher.PublishVerificationDiagnostics(document, verificationStarted);
+    public void PublishGutterIcons(DafnyDocument document, bool verificationStarted) {
+      diagnosticPublisher.PublishGutterIcons(document, verificationStarted);
     }
 
     private void SetAllUnvisitedMethodsAsVerified(DafnyDocument document) {

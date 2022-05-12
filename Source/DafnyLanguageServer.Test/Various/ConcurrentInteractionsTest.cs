@@ -107,7 +107,7 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
       // Save and wait for the final result
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationTokenWithHighTimeout);
 
-      var document = await Documents.GetVerifiedDocumentAsync(documentItem.Uri);
+      var document = await Documents.GetLastDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
       Assert.AreEqual(documentItem.Version + 11, document.Version);
       Assert.AreEqual(1, document.Diagnostics.Count());
