@@ -22,19 +22,17 @@ class SlowVerifier : IProgramVerifier {
 
   private readonly DafnyProgramVerifier verifier;
 
-  public IReadOnlyList<IImplementationTask> Verify(DafnyDocument document, IVerificationProgressReporter progressReporter, CancellationToken cancellationToken) {
+  public IReadOnlyList<IImplementationTask> Verify(DafnyDocument document,
+    IVerificationProgressReporter progressReporter) {
     var program = document.Program;
     var attributes = program.Modules().SelectMany(m => {
       return m.TopLevelDecls.OfType<TopLevelDeclWithMembers>().SelectMany(d => d.Members.Select(member => member.Attributes));
     }).ToList();
 
-    var originalResult = verifier.Verify(document, progressReporter, cancellationToken);
+    var originalResult = verifier.Verify(document, progressReporter);
     if (attributes.Any(a => Attributes.Contains(a, "neverVerify"))) {
-      var source = new TaskCompletionSource<ServerVerificationResult>();
-      cancellationToken.Register(() => { source.SetCanceled(cancellationToken); });
-
       return new List<IImplementationTask>
-        { new NeverVerifiesImplementationTask(originalResult[0], cancellationToken) };
+        { new NeverVerifiesImplementationTask(originalResult[0]) };
     }
 
     return originalResult;
@@ -44,13 +42,9 @@ class SlowVerifier : IProgramVerifier {
     private readonly IImplementationTask original;
     private readonly TaskCompletionSource<VerificationResult> source;
 
-
-    public NeverVerifiesImplementationTask(IImplementationTask original, CancellationToken token) {
+    public NeverVerifiesImplementationTask(IImplementationTask original) {
       this.original = original;
       source = new TaskCompletionSource<VerificationResult>();
-      token.Register(() => {
-        source.SetCanceled(token);
-      });
     }
 
     public IObservable<VerificationStatus> ObservableStatus => Observable.Empty<VerificationStatus>();
@@ -63,7 +57,8 @@ class SlowVerifier : IProgramVerifier {
 
     }
 
-    public void InitialiseStatus() {
+    public void Cancel() {
+      source.SetCanceled();
     }
   }
 }

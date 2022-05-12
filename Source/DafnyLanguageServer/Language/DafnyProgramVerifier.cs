@@ -77,8 +77,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     static readonly ThreadTaskScheduler TranslatorScheduler = new(TranslatorMaxStackSize);
 
     public IReadOnlyList<IImplementationTask> Verify(DafnyDocument document,
-                                     IVerificationProgressReporter progressReporter,
-                                     CancellationToken cancellationToken) {
+      IVerificationProgressReporter progressReporter) {
       var program = document.Program;
       var errorReporter = (DiagnosticErrorReporter)program.Reporter;
       if (options.GutterStatus) {

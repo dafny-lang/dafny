@@ -165,7 +165,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       var programErrorReporter = new DiagnosticErrorReporter(document.Uri);
       document.Program.Reporter = programErrorReporter;
-      var implementationTasks = verifier.Verify(document, progressReporter, cancellationToken);
+      var implementationTasks = verifier.Verify(document, progressReporter);
+      foreach (var task in implementationTasks) {
+        // TODO remove reflection once https://github.com/boogie-org/boogie/pull/573 is implemented.
+        cancellationToken.Register(() => task.GetType().GetMethod("Cancel")!.Invoke(task, null));
+      }
       foreach (var implementationTask in implementationTasks) {
         implementationTask.Run();
       }
@@ -183,8 +187,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var documentTasks = implementationTasks.Select(async implementationTask => {
         var result = await implementationTask.ActualTask;
         var id = GetImplementationId(implementationTask.Implementation);
-
-        cancellationToken.ThrowIfCancellationRequested();
 
         var errorReporter = new DiagnosticErrorReporter(document.Uri);
         foreach (var counterExample in result.Errors) {
