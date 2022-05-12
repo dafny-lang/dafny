@@ -12,6 +12,9 @@ using Microsoft.Extensions.Options;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 
+/// If any top-level declaration has an attribute `{:neverVerify}`,
+/// this verifier will return a task that only completes when cancelled
+/// which can be useful to test against race conditions
 class SlowVerifier : IProgramVerifier {
   public SlowVerifier(ILogger<DafnyProgramVerifier> logger, IOptions<VerifierOptions> options) {
     verifier = DafnyProgramVerifier.Create(logger, options);

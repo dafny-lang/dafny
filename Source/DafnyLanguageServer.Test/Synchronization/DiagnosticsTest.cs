@@ -730,7 +730,7 @@ method test() {
     }
 
     [TestMethod]
-    public async Task IncrementalVerificationDiagnosticsBetweenMethodAssertionsAndWellformedNess() {
+    public async Task IncrementalVerificationDiagnosticsBetweenAssertionsAndWellFormedness() {
       var source = @"
 method test() 
   ensures 3 / 0 == 1 {

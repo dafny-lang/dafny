@@ -90,18 +90,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
           return new List<Diagnostic>();
         }
 
-        return originalDiagnostics.SelectMany(diagnostic =>
-          // <<<<<<< HEAD
-          //           MigrateDiagnostic(change, diagnostic)).ToList();
-          //       }
-          //
-          //       private IEnumerable<Diagnostic> MigrateDiagnostic(TextDocumentContentChangeEvent change, Diagnostic diagnostic) {
-          //         cancellationToken.ThrowIfCancellationRequested();
-          //
-          //         var afterChangeEndOffset = GetPositionAtEndOfAppliedChange(change);
-          //         var newRange = MigrateRange(diagnostic.Range, change.Range!, afterChangeEndOffset);
-          // =======
-          MigrateDiagnostic(changeEndOffset, diagnostic)).ToList();
+        return originalDiagnostics.SelectMany(diagnostic => MigrateDiagnostic(changeEndOffset, diagnostic)).ToList();
       }
       private List<Position> MigratePositions(List<Position> originalRanges, (TextDocumentContentChangeEvent change, Position? position) changeEndOffset) {
         if (changeEndOffset.change.Range == null) {
