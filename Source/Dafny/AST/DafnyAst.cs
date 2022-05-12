@@ -10887,7 +10887,7 @@ namespace Microsoft.Dafny {
       Lit
     }
 
-    public ResolvedOpcode _ResolvedOp = ResolvedOpcode.YetUndetermined;
+    private ResolvedOpcode _ResolvedOp = ResolvedOpcode.YetUndetermined;
     public ResolvedOpcode ResolvedOp => ResolveOp();
 
     public ResolvedOpcode ResolveOp() {
