@@ -172,7 +172,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         var failedDocument = newDocument with {
           SymbolTable = relocator.RelocateSymbols(oldDocument.SymbolTable, documentChange, CancellationToken.None),
           VerificationDiagnosticsPerImplementation = migratedVerificationDiagnotics,
-          VerificationTree = migratedVerificationTree
+          VerificationTree = migratedVerificationTree,
+          LastTouchedMethodPositions = migratedLastTouchedPositions
         };
         documentLoader.PublishVerificationDiagnostics(failedDocument, false);
         return failedDocument;
@@ -186,7 +187,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           CounterExamples = Array.Empty<Counterexample>(),
           VerificationTree = migratedVerificationTree,
           LoadCanceled = true,
-          VerificationDiagnosticsPerImplementation = migratedVerificationDiagnotics
+          VerificationDiagnosticsPerImplementation = migratedVerificationDiagnotics,
+          LastTouchedMethodPositions = migratedLastTouchedPositions
         };
       }
     }
