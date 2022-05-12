@@ -194,30 +194,18 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
       var counterExamples = new ConcurrentStack<Counterexample>();
 
-      // TODO consider moving this inside the `result definition
-      var diagnostics = implementationTasks.ToDictionary(it => it, async implementationTask => {
-        var result = await implementationTask.ActualTask;
-
-        var errorReporter = new DiagnosticErrorReporter(document.Uri);
-        foreach (var counterExample in result.Errors) {
-          counterExamples.Push(counterExample);
-          errorReporter.ReportBoogieError(counterExample.CreateErrorInformation(result.Outcome, Options.ForceBplErrors));
-        }
-        var outcomeError = result.GetOutcomeError(Options);
-        if (outcomeError != null) {
-          errorReporter.ReportBoogieError(outcomeError);
-        }
-
-        return errorReporter.GetDiagnostics(document.Uri).OrderBy(d => d.Range.Start).ToList();
-      });
-
-      var result = implementationTasks.Select(implementationTask => implementationTask.ObservableStatus.Select(async _ => {
+      var result = implementationTasks.Select(implementationTask => implementationTask.ObservableStatus.Select(async boogieStatus => {
         var id = GetImplementationId(implementationTask.Implementation);
         var status = FromImplementationTask(implementationTask);
         var lspRange = implementationTask.Implementation.tok.GetLspRange();
-        if (implementationTask.CurrentStatus is VerificationStatus.Completed) {
-          var itDiagnostics = await diagnostics[implementationTask];
+        if (boogieStatus is VerificationStatus.Completed) {
 
+          var result = await implementationTask.ActualTask;
+          foreach (var counterExample in result.Errors) {
+            counterExamples.Push(counterExample);
+          }
+
+          var itDiagnostics = GetDiagnosticsFromResult(document, result);
           var view = new ImplementationView(lspRange, status, itDiagnostics);
           viewDictionary.AddOrUpdate(id, view, (_, _) => view);
         } else {
@@ -226,15 +214,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             (_, previousView) => previousView with { Status = status });
         }
 
-        if (implementationTask.CurrentStatus is VerificationStatus.Running) {
+        if (boogieStatus is VerificationStatus.Running) {
           // For backwards compatibility
-
           var match = Regex.Match(implementationTask.Implementation.Name, "^.+[.](?<name>[^.]+)$");
           if (match.Success) {
             notificationPublisher.SendStatusNotification(document.TextDocumentItem, CompilationStatus.VerificationStarted, match.Groups["name"].Value);
           }
         }
-
 
         return document with {
           ImplementationViews = viewDictionary.ToImmutableDictionary(),
@@ -262,6 +248,21 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
       });
       return result;
+    }
+
+    private List<Diagnostic> GetDiagnosticsFromResult(DafnyDocument document, VerificationResult result)
+    {
+      var errorReporter = new DiagnosticErrorReporter(document.Uri);
+      foreach (var counterExample in result.Errors) {
+        errorReporter.ReportBoogieError(counterExample.CreateErrorInformation(result.Outcome, Options.ForceBplErrors));
+      }
+
+      var outcomeError = result.GetOutcomeError(Options);
+      if (outcomeError != null) {
+        errorReporter.ReportBoogieError(outcomeError);
+      }
+
+      return errorReporter.GetDiagnostics(document.Uri).OrderBy(d => d.Range.Start).ToList();
     }
 
     PublishedVerificationStatus FromImplementationTask(IImplementationTask task) {
