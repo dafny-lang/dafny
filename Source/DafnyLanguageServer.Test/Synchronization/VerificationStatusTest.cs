@@ -218,19 +218,15 @@ iterator ThatIterator(x: int) yields (y: int, z: int)
     Assert.AreEqual(new Range(33, 9, 33, 21), status.NamedVerifiables[7].NameRange);
   }
 
-  /**
-   * It would be better if the previously verified method is still detected after getting a resolution error,
-   * but since currently we can not translate to Boogie when there is a resolution error,
-   * we can't detected the named verification tasks such as methods.
-   */
   [TestMethod]
-  public async Task VerifiedMethodIsNotDetectedOnResolutionError() {
-    var source = @"method Foo() { assert true; }";
+  public async Task VerificationStatusIsMigratedAfterResolutionError() {
+    var source = @"method Foo() { assert false; }";
     var documentItem = CreateTestDocument(source);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     await WaitUntilAllStatusAreCompleted();
     ApplyChange(ref documentItem, new Range(0, 0, 0, 1), ""); // Remove 'm'
     var status = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-    Assert.AreEqual(0, status.NamedVerifiables.Count);
+    Assert.AreEqual(1, status.NamedVerifiables.Count);
+    Assert.AreEqual(PublishedVerificationStatus.Error, status.NamedVerifiables[0].Status);
   }
 }

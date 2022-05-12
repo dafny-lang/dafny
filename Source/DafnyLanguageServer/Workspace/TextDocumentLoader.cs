@@ -189,7 +189,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       var result = implementationTasks.Select(implementationTask => implementationTask.ObservableStatus.Select(async boogieStatus => {
         var id = GetImplementationId(implementationTask.Implementation);
-        var status = FromImplementationTask(implementationTask);
+        var status = await StatusFromImplementationTask(implementationTask);
         var lspRange = implementationTask.Implementation.tok.GetLspRange();
         if (boogieStatus is VerificationStatus.Completed) {
 
@@ -269,7 +269,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return errorReporter.GetDiagnostics(document.Uri).OrderBy(d => d.Range.Start).ToList();
     }
 
-    PublishedVerificationStatus FromImplementationTask(IImplementationTask task) {
+    private async Task<PublishedVerificationStatus> StatusFromImplementationTask(IImplementationTask task) {
       switch (task.CurrentStatus) {
         case VerificationStatus.Stale: return PublishedVerificationStatus.Stale;
         case VerificationStatus.Queued:
@@ -278,7 +278,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           return PublishedVerificationStatus.Running;
         case VerificationStatus.Completed:
 #pragma warning disable VSTHRD002
-          return task.ActualTask.Result.Outcome == ConditionGeneration.Outcome.Correct
+          var verificationResult = await task.ActualTask;
+          return verificationResult.Outcome == ConditionGeneration.Outcome.Correct
 #pragma warning restore VSTHRD002
             ? PublishedVerificationStatus.Correct
             : PublishedVerificationStatus.Error;
