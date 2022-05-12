@@ -190,6 +190,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
     }
   }
 
+  // TODO for backwards compatibility. No longer needed when the IDE switches to the textDocument/verificationStatus API
   /// <summary>
   /// Helper to send a more precise verification status message, including
   /// - The number of methods already verified

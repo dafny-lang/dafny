@@ -208,14 +208,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             (_, previousView) => previousView with { Status = status });
         }
 
-        if (boogieStatus is VerificationStatus.Running) {
-          // For backwards compatibility
-          var match = Regex.Match(implementationTask.Implementation.Name, "^.+[.](?<name>[^.]+)$");
-          if (match.Success) {
-            notificationPublisher.SendStatusNotification(document.TextDocumentItem, CompilationStatus.VerificationStarted, match.Groups["name"].Value);
-          }
-        }
-
         return document with {
           ImplementationViews = implementationViews.ToImmutableDictionary(),
           CounterExamples = counterExamples.ToArray(),
