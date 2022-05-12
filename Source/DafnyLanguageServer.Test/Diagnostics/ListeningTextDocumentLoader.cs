@@ -9,6 +9,10 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Diagnostics;
 
+/// <summary>
+/// This class extends the TextDocumentLoader but can record internals for testing purposes:
+/// It currently records the priorities set before every verification round.
+/// </summary>
 public class ListeningTextDocumentLoader : TextDocumentLoader {
   public List<List<int>> LinearPriorities = new List<List<int>>();
 

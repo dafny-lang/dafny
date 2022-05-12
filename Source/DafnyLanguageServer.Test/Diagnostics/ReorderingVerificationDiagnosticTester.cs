@@ -16,6 +16,10 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Diagnostics;
 
+/// <summary>
+/// This class tests whether editing a file results in
+/// methods priorities for verification being set automatically.
+/// </summary>
 [TestClass]
 public class ReorderingVerificationDiagnosticTester : LinearVerificationDiagnosticTester {
   private ListeningTextDocumentLoader textDocumentLoader;
@@ -49,26 +53,23 @@ public class ReorderingVerificationDiagnosticTester : LinearVerificationDiagnost
 
   [TestMethod/*, Timeout(MaxTestExecutionTimeMs * 10)*/]
   public async Task EnsuresPriorityDependsOnEditing() {
-    textDocumentLoader.LinearPriorities = new List<List<int>>();
-    DafnyOptions.Install(DafnyOptions.Create("-proverOpt:SOLVER=noop"));
-    await VerifyTrace(@"
+    await TestPriorities(@"
 method m1() {
   assert 1 == 0;//Next2:  assert 2 == 0;
 }
 
 method m2() {
   assert 1 == 0;//Next1:  assert 2 == 0;
-}", testTrace: false);
-    var priorities = string.Join(" ", textDocumentLoader.LinearPriorities.Select(priorities =>
-      string.Join(",", priorities.Select(priority => priority.ToString()))));
-    Assert.AreEqual("1,1 1,10 10,9", priorities);
+}",
+      expectedPriorities:
+      " 1, 1 " +
+      " 1,10 " +
+      "10, 9");
   }
 
   [TestMethod]
   public async Task EnsuresPriorityDependsOnEditingWhileEditingSameMethod() {
-    textDocumentLoader.LinearPriorities = new List<List<int>>();
-    DafnyOptions.Install(DafnyOptions.Create("-proverOpt:SOLVER=noop"));
-    await VerifyTrace(@"
+    await TestPriorities(@"
 method m1() {
   assert true;//Next7:  assert  true;//Next8:  assert true;
 }
@@ -83,20 +84,28 @@ method m4() {
 }
 method m5() {
   assert true;//Next1:  assert  true;//Next6:  assert true;//Next10:  assert  true;
-}", testTrace: false);
+}", expectedPriorities:
+      " 1, 1, 1, 1, 1 " +
+      " 1, 1, 1, 1,10 " +
+      " 1, 1,10, 1, 9 " +
+      " 1, 1, 9,10, 8 " +
+      " 1, 1, 9,10, 8 " +
+      " 1,10, 8, 9, 7 " +
+      " 1, 9, 7, 8,10 " +
+      "10, 8, 6, 7, 9 " +
+      "10, 8, 6, 7, 9 " +
+      " 9, 7,10, 6, 8 " +
+      " 8, 7, 9, 6,10");
+  }
+
+
+  private async Task TestPriorities(string code, string expectedPriorities) {
+    textDocumentLoader.LinearPriorities = new List<List<int>>();
+    DafnyOptions.Install(DafnyOptions.Create("-proverOpt:SOLVER=noop"));
+    await VerifyTrace(code, testTrace: false);
     var priorities = string.Join(" ", textDocumentLoader.LinearPriorities.Select(priorities =>
       string.Join(",", priorities.Select(priority => priority.ToString().PadLeft(2)))));
-    Assert.AreEqual(expected:
-                    " 1, 1, 1, 1, 1 " +
-                    " 1, 1, 1, 1,10 " +
-                    " 1, 1,10, 1, 9 " +
-                    " 1, 1, 9,10, 8 " +
-                    " 1, 1, 9,10, 8 " +
-                    " 1,10, 8, 9, 7 " +
-                    " 1, 9, 7, 8,10 " +
-                    "10, 8, 6, 7, 9 " +
-                    "10, 8, 6, 7, 9 " +
-                    " 9, 7,10, 6, 8 " +
-                    " 8, 7, 9, 6,10", priorities);
+    Assert.AreEqual(expectedPriorities, priorities);
   }
+
 }
