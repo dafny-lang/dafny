@@ -9,7 +9,6 @@ module {:extern "CSharpDafnyInterop"} CSharpDafnyInterop {
   class {:extern} StringUtils {
     constructor {:extern} () requires false // Prevent instantiation
 
-    // DISCUSS: this function should be memoized, but would that be enough?
     static function method {:extern} ToCString(s: string) : System.String
     static function method {:extern} OfCString(s: System.String) : string
   }

@@ -3,7 +3,8 @@ using System.Numerics;
 namespace CSharpDafnyInterop {
   public partial class StringUtils {
     public static string ToCString(Dafny.ISequence<char> s) {
-      return s.ToString() ?? "null";
+      // Interning guarantees that this behaves like a "function method" in Dafny
+      return string.Intern(s.ToString() ?? "null");
     }
 
     public static Dafny.ISequence<char> OfCString(string s) {
