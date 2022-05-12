@@ -1168,8 +1168,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         case Apply(Eager(BinaryOp(op)), es) =>
           if IsNegatedBinop(op) then
             var flipped := Exprs.Apply(Exprs.Eager(Exprs.BinaryOp(FlipNegatedBinop(op))), es);
-            var negated := Exprs.Apply(Exprs.Eager(Exprs.UnaryOp(UnaryOps.BoolNot)), [flipped]);
-            negated
+            Exprs.Apply(Exprs.Eager(Exprs.UnaryOp(UnaryOps.BoolNot)), [flipped])
           else
             e
         case _ => e
@@ -1178,17 +1177,11 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
 
     lemma EliminateNegatedBinopsMatchesPrePost()
       ensures TransformerMatchesPrePost(EliminateNegatedBinops_Expr1, NotANegatedBinopExpr)
-      {}
+    {}
 
     lemma EliminateNegatedBinopsPreservesPre()
       ensures MapChildrenPreservesPre(EliminateNegatedBinops_Expr1, NotANegatedBinopExpr)
-    { forall e, e'
-        ensures ((Exprs.ConstructorsMatch(e, e') &&
-                  EliminateNegatedBinops_Expr1.requires(e) &&
-                  Deep.AllChildren_Expr(e', NotANegatedBinopExpr)) ==>
-                  EliminateNegatedBinops_Expr1.requires(e'))
-        { Deep.AllExprTrue(e'); }
-     }
+    {}
 
      const EliminateNegatedBinops_Expr : BottomUpTransformer :=
       ( EliminateNegatedBinopsMatchesPrePost();
