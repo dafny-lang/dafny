@@ -11,6 +11,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
   /// to their new positions according to the given <see cref="DidChangeTextDocumentParams"/>.
   /// </summary>
   public interface IRelocator {
+    Position RelocatePosition(Position position, DidChangeTextDocumentParams changes, CancellationToken cancellationToken);
+
     /// <summary>
     /// Relocates the symbols of the given table with the given text changes.
     /// </summary>

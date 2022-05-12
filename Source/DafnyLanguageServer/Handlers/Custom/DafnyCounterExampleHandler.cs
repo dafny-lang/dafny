@@ -60,21 +60,19 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
       }
 
       public CounterExampleList GetCounterExamples() {
-        if (document.SerializedCounterExamples == null) {
+        if (!document.CounterExamples.Any()) {
           logger.LogDebug("got no counter-examples for document {DocumentUri}", document.Uri);
           return new CounterExampleList();
         }
-        var counterExamples = GetLanguageSpecificModels(document.SerializedCounterExamples)
+        var counterExamples = GetLanguageSpecificModels(document.CounterExamples)
           .SelectMany(GetCounterExamples)
+          .WithCancellation(cancellationToken)
           .ToArray();
         return new CounterExampleList(counterExamples);
       }
 
-      private IEnumerable<DafnyModel> GetLanguageSpecificModels(string serializedCounterExamples) {
-        using var counterExampleReader = new StringReader(serializedCounterExamples);
-        return Model.ParseModels(counterExampleReader)
-          .WithCancellation(cancellationToken)
-          .Select(GetLanguageSpecificModel);
+      private IEnumerable<DafnyModel> GetLanguageSpecificModels(IReadOnlyList<Counterexample> counterExamples) {
+        return counterExamples.Select(c => GetLanguageSpecificModel(c.Model));
       }
 
       private DafnyModel GetLanguageSpecificModel(Model model) {
@@ -83,8 +81,6 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
 
       private IEnumerable<CounterExampleItem> GetCounterExamples(DafnyModel model) {
         return model.States
-          .WithCancellation(cancellationToken)
-          .OfType<DafnyModelState>()
           .Where(state => !state.IsInitialState)
           .Select(GetCounterExample);
       }

@@ -10,15 +10,15 @@ using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using VC;
 using VerificationResult = Microsoft.Boogie.VerificationResult;
+using VerificationStatus = Microsoft.Dafny.LanguageServer.Workspace.Notifications.VerificationStatus;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 public class VerificationProgressReporter : IVerificationProgressReporter {
-  private ICompilationStatusNotificationPublisher publisher { get; }
-  private DafnyDocument document { get; }
-
-  private ILogger<VerificationProgressReporter> logger { get; }
-  private IDiagnosticPublisher diagnosticPublisher { get; }
+  private readonly ICompilationStatusNotificationPublisher publisher;
+  private readonly DafnyDocument document;
+  private readonly ILogger<VerificationProgressReporter> logger;
+  private readonly IDiagnosticPublisher diagnosticPublisher;
 
   public VerificationProgressReporter(ILogger<VerificationProgressReporter> logger,
     DafnyDocument document,
@@ -35,7 +35,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   /// Sends a more precise verification status message to the client's status bar
   /// </summary>
   public void ReportProgress(string message) {
-    publisher.SendStatusNotification(document.Text, CompilationStatus.VerificationStarted, message);
+    publisher.SendStatusNotification(document.TextDocumentItem, CompilationStatus.VerificationStarted, message);
   }
 
   /// <summary>
