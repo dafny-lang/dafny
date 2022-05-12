@@ -633,9 +633,10 @@ namespace DafnyServer.CounterexampleGeneration {
       if (var.Element.Kind != Model.ElementKind.Uninterpreted) {
         return result;  // primitive types can't have fields
       }
+
       if (datatypeValues.TryGetValue(var.Element, out var fnTuple)) {
         // Elt is a datatype value
-        var destructors = GetDestructorFunctions(var.Element, var.Type.Name);
+        var destructors = GetDestructorFunctions(var.Element, var.Type.Name).OrderBy(f => f.Name).ToList();
         if (destructors.Count == fnTuple.Args.Length) {
           // we know all destructor names
           foreach (var func in destructors) {

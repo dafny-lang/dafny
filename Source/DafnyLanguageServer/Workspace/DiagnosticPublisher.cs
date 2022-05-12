@@ -1,14 +1,9 @@
-﻿using System;
-using Microsoft.Dafny.LanguageServer.Util;
+﻿using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
-using Microsoft.Boogie;
-using Microsoft.Dafny.LanguageServer.Language;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   public class DiagnosticPublisher : IDiagnosticPublisher {
@@ -32,7 +27,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var diagnosticParameters = new PublishDiagnosticsParams {
         Uri = document.Uri,
         Version = document.Version,
-        Diagnostics = GetDiagnostics(document).ToArray(),
+        Diagnostics = document.Diagnostics.ToArray(),
       };
       languageServer.TextDocument.PublishDiagnostics(diagnosticParameters);
     }
@@ -43,14 +38,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         // Therefore, we do not republish the errors when the document (re-)load was canceled.
         return;
       }
-      // Document.GetDiagnostics() returns not only resolution errors, but previous verification errors
-      var currentDiagnostics =
-        document.Errors.GetDiagnostics(document.GetFilePath())
-          .Where(x => x.Severity == DiagnosticSeverity.Error).ToList();
-      var errors = currentDiagnostics
-        .Concat(document.OldVerificationDiagnostics)
-        .Where(x => x.Severity == DiagnosticSeverity.Error)
-        .ToArray();
+      var errors = document.Diagnostics.Where(x => x.Severity == DiagnosticSeverity.Error).ToList();
       var linesCount = document.LinesCount;
       var verificationStatusGutter = new VerificationStatusGutter(
         document.Uri,
@@ -59,7 +47,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         errors,
         linesCount,
         verificationStarted,
-        document.ResolutionSucceeded == false ? currentDiagnostics.Count() : 0
+        document.ParseAndResolutionDiagnostics.Count
       );
       languageServer.TextDocument.SendNotification(verificationStatusGutter);
     }
@@ -77,11 +65,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         Uri = documentId.Uri,
         Diagnostics = new Container<Diagnostic>()
       });
-    }
-
-    private static IEnumerable<Diagnostic> GetDiagnostics(DafnyDocument document) {
-      // Only report errors of the entry-document.
-      return document.Errors.GetDiagnostics(document.GetFilePath()).Concat(document.OldVerificationDiagnostics);
     }
   }
 }

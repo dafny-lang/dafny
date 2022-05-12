@@ -122,8 +122,8 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
       var document = await Documents.GetVerifiedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
       Assert.AreEqual(documentItem.Version + 11, document.Version);
-      Assert.AreEqual(1, document.Errors.ErrorCount);
-      Assert.AreEqual("assertion might not hold", document.Errors.GetDiagnostics(documentItem.Uri)[0].Message);
+      Assert.AreEqual(1, document.Diagnostics.Count());
+      Assert.AreEqual("assertion might not hold", document.Diagnostics.First().Message);
     }
 
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
@@ -139,7 +139,7 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
       ApplyChange(ref documentItem, new Range((2, 1), (2, 1)), "\n}");
 
       // Wait for resolution diagnostics now, so they don't get cancelled.
-      // After this we still have slow verification diagnostics in the queue.
+      // After this we still have never completing verification diagnostics in the queue.
       var parseErrorFixedDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout, documentItem);
       Assert.AreEqual(0, parseErrorFixedDiagnostics.Length);
 
@@ -188,7 +188,7 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
       // exclusive to themselves. This "stress test" ensures that loading multiple documents at once is possible.
       // To be more specific, this test should ensure that there is no state discarded/overriden between the three steps within
       // the Dafny Compiler itself.
-      int documentsToLoadConcurrently = 100;
+      int documentsToLoadConcurrently = 50;
       var source = @"
 method Multiply(x: int, y: int) returns (product: int)
   requires y >= 0 && x >= 0
@@ -209,7 +209,7 @@ method Multiply(x: int, y: int) returns (product: int)
         loadingDocuments.Add(documentItem);
       }
       for (int i = 0; i < documentsToLoadConcurrently; i++) {
-        var report = await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationTokenWithHighTimeout);
+        var report = await GetLastVerificationDiagnostics(loadingDocuments[i], CancellationTokenWithHighTimeout);
         Assert.AreEqual(0, report.Length);
       }
 
