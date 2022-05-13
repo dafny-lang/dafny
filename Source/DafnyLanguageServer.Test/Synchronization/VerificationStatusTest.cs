@@ -8,7 +8,7 @@ using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
-namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization; 
+namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization;
 
 [TestClass]
 public class VerificationStatusTest : ClientBasedLanguageServerTest {
@@ -240,5 +240,36 @@ iterator ThatIterator(x: int) yields (y: int, z: int)
     ApplyChange(ref documentItem, new Range(1, 0, 1, 0), "\n" + NeverVerifies); // Remove 'm'
     var status2 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.AreEqual(2, status2.NamedVerifiables.Count);
+  }
+
+  /// <summary>
+  /// The token of refining declarations is set to the token of their base declaration during refinement.
+  /// The original source location is no longer available.
+  /// Without changing that, we can not show the status of individual refining declarations.q
+  /// </summary>
+  [TestMethod]
+  public async Task RefiningDeclarationStatusIsFoldedIntoTheBase() {
+    var source = @"
+abstract module BaseModule {
+  method Foo() returns (x: int) ensures x > 2 
+}
+
+module Refinement1 refines BaseModule {
+  method Foo() returns (x: int) ensures x > 2 {
+    return 3;
+  }
+}
+
+module Refinement2 refines BaseModule {
+  method Foo() returns (x: int) ensures x > 2 {
+    return 1;
+  }
+}".TrimStart();
+    var documentItem = CreateTestDocument(source);
+    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+    var status = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+
+    Assert.AreEqual(1, status.NamedVerifiables.Count);
+    Assert.AreEqual(new Range(1,9,1,12), status.NamedVerifiables[0].NameRange);
   }
 }

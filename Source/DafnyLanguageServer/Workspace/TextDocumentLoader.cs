@@ -320,6 +320,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     static ImplementationId GetImplementationId(Implementation implementation) {
       var prefix = implementation.Name.Split(Translator.NameSeparator)[0];
+
+      if (implementation.tok is RefinementToken refinementToken) {
+        prefix += "." + refinementToken.InheritingModule.Name;
+      }
       return new ImplementationId(implementation.tok.GetLspPosition(), prefix);
     }
   }
