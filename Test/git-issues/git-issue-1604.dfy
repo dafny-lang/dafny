@@ -33,6 +33,9 @@ method Main() {
   var s2: set<Ap> := {};
   var aa := forall a': A :: a' in s ==> test(a');
 
+  // Fine because Ap has the same type as elements of s2
+  var ab := forall a': Ap | a' in s2 :: testSpecial(a');
+
   // No way to make any of these work, for now ?
   //ab := forall a': Ap :: !testSpecial(a') ==> !(a' in s2);
   //ab := forall a': Ap :: a' in s2 ==> testSpecial(a');
@@ -41,5 +44,6 @@ method Main() {
   var ai:= forall i: nat :: i in si ==> i > 1;
 
   assert aa;
+  assert ab;
   print "ok";
 }

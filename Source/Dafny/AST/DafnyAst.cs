@@ -18,7 +18,7 @@ using System.Diagnostics;
 using System.Threading;
 
 namespace Microsoft.Dafny {
-  [System.AttributeUsage(System.AttributeTargets.Field)]
+  [System.AttributeUsage(System.AttributeTargets.Field | System.AttributeTargets.Property)]
   public class FilledInDuringResolutionAttribute : System.Attribute { }
 
   public class Program {
@@ -1048,6 +1048,26 @@ namespace Microsoft.Dafny {
         }
         return false;
       }
+    }
+
+    /// <summary>
+    /// Returns false if it's surely possible to check at run-time that a value has this type
+    /// </summary>
+    /// <returns>A boolean indicating if the type might not be compilable, meaning run-time checkable.</returns>
+    public abstract bool MightContainGhostConstraints();
+
+    /// <summary>
+    /// Returns a parent of this type that can be tested at run time.
+    /// To ensure that the returned type .DoesNotContainGhostConstraints is true, this method
+    /// requires 'this' to be determined, i.e. not a proxy type.
+    /// </summary>
+    /// <returns></returns>
+    /// <exception cref="Exception"></exception>
+    public Type GetCompilableParentType() {
+      if (this.AsSubsetType is SubsetTypeDecl subsetTypeDecl && !subsetTypeDecl.IsConstraintCompilable) {
+        return subsetTypeDecl.Var.Type.GetCompilableParentType();
+      }
+      return this;
     }
 
     public CollectionType AsCollectionType { get { return NormalizeExpand() as CollectionType; } }
@@ -2345,6 +2365,9 @@ namespace Microsoft.Dafny {
     public override bool Equals(Type that, bool keepConstraints = false) {
       return keepConstraints ? this.GetType() == that.GetType() : that is IntVarietiesSupertype;
     }
+    public override bool MightContainGhostConstraints() {
+      return false;
+    }
   }
   public class RealVarietiesSupertype : ArtificialType {
     [Pure]
@@ -2353,6 +2376,9 @@ namespace Microsoft.Dafny {
     }
     public override bool Equals(Type that, bool keepConstraints = false) {
       return keepConstraints ? this.GetType() == that.GetType() : that is RealVarietiesSupertype;
+    }
+    public override bool MightContainGhostConstraints() {
+      return false;
     }
   }
 
@@ -2376,6 +2402,9 @@ namespace Microsoft.Dafny {
     public override bool Equals(Type that, bool keepConstraints = false) {
       return that.IsBoolType;
     }
+    public override bool MightContainGhostConstraints() {
+      return false;
+    }
   }
 
   public class CharType : BasicType {
@@ -2388,6 +2417,9 @@ namespace Microsoft.Dafny {
     public override bool Equals(Type that, bool keepConstraints = false) {
       return that.IsCharType;
     }
+    public override bool MightContainGhostConstraints() {
+      return false;
+    }
   }
 
   public class IntType : BasicType {
@@ -2397,6 +2429,9 @@ namespace Microsoft.Dafny {
     }
     public override bool Equals(Type that, bool keepConstraints = false) {
       return that.NormalizeExpand(keepConstraints) is IntType;
+    }
+    public override bool MightContainGhostConstraints() {
+      return false;
     }
     public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments, bool ignoreNullity) {
       if (super is IntVarietiesSupertype) {
@@ -2414,6 +2449,10 @@ namespace Microsoft.Dafny {
     public override bool Equals(Type that, bool keepConstraints = false) {
       return that.NormalizeExpand(keepConstraints) is RealType;
     }
+    public override bool MightContainGhostConstraints() {
+      return false;
+    }
+
     public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments, bool ignoreNullity) {
       if (super is RealVarietiesSupertype) {
         return true;
@@ -2430,6 +2469,11 @@ namespace Microsoft.Dafny {
     public override bool Equals(Type that, bool keepConstraints = false) {
       return that.NormalizeExpand(keepConstraints) is BigOrdinalType;
     }
+
+    public override bool MightContainGhostConstraints() {
+      return false;
+    }
+
     public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments, bool ignoreNullity) {
       if (super is IntVarietiesSupertype) {
         return true;
@@ -2461,6 +2505,11 @@ namespace Microsoft.Dafny {
       var bv = that.NormalizeExpand(keepConstraints) as BitvectorType;
       return bv != null && bv.Width == Width;
     }
+
+    public override bool MightContainGhostConstraints() {
+      return false;
+    }
+
     public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments, bool ignoreNullity) {
       if (super is IntVarietiesSupertype) {
         return true;
@@ -2486,6 +2535,10 @@ namespace Microsoft.Dafny {
 
     public override bool ComputeMayInvolveReferences(ISet<DatatypeDecl>/*?*/ visitedDatatypes) {
       // SelfType is used only with bitvector types
+      return false;
+    }
+
+    public override bool MightContainGhostConstraints() {
       return false;
     }
   }
@@ -2671,6 +2724,9 @@ namespace Microsoft.Dafny {
     public override bool ComputeMayInvolveReferences(ISet<DatatypeDecl> visitedDatatypes) {
       return Arg.ComputeMayInvolveReferences(visitedDatatypes);
     }
+    public override bool MightContainGhostConstraints() {
+      return Arg.MightContainGhostConstraints();
+    }
   }
 
   public class SetType : CollectionType {
@@ -2772,6 +2828,9 @@ namespace Microsoft.Dafny {
     }
     public override bool ComputeMayInvolveReferences(ISet<DatatypeDecl> visitedDatatypes) {
       return Domain.ComputeMayInvolveReferences(visitedDatatypes) || Range.ComputeMayInvolveReferences(visitedDatatypes);
+    }
+    public override bool MightContainGhostConstraints() {
+      return Range.MightContainGhostConstraints() || Domain.MightContainGhostConstraints();
     }
   }
 
@@ -3154,6 +3213,15 @@ namespace Microsoft.Dafny {
 
       return base.IsSubtypeOf(super, ignoreTypeArguments, ignoreNullity);
     }
+
+    public override bool MightContainGhostConstraints() {
+      // It might not be possible to do so if the constraint of this type uses ghost predicates
+      if (this.AsSubsetType is { IsConstraintCompilable: false }) {
+        return true;
+      } else {
+        return false;
+      }
+    }
   }
 
   public abstract class TypeProxy : Type {
@@ -3334,6 +3402,18 @@ namespace Microsoft.Dafny {
         }
       }
       return null;
+    }
+
+    public override bool MightContainGhostConstraints() {
+      if (this.AsSubsetType is { IsConstraintCompilable: false }) {
+        return true;
+      } else if (this.NormalizeExpandKeepConstraints() is TypeProxy) {
+        // If we are still in the early resolution phase and no type has been inferred,
+        // then we cannot say for sure that the type is compilable.
+        return true;
+      } else {
+        return false;
+      }
     }
   }
 
@@ -4911,9 +4991,15 @@ namespace Microsoft.Dafny {
     bool AllowsNontermination { get; }
   }
 
+  public static class ICodeContextExtensions {
+    public static ICodeContext InSpecification(this ICodeContext codeContext, bool isSpecification = true) {
+      return codeContext.IsGhost || !isSpecification ? codeContext : new CodeContextWrapper(codeContext, true);
+    }
+  }
+
   /// <summary>
-  /// Some declarations have more than one context. For example, a subset type has a constraint
-  /// (which is a ghost context) and a witness (which may be a compiled context). To distinguish
+  /// Some statements have more than one context. For example, a for-loop can have invariants
+  /// (which are a ghost context) and a body (which may be a compiled context). To distinguish
   /// between these two, the declaration is wrapped inside a CodeContextWrapper.
   /// </summary>
   public class CodeContextWrapper : ICodeContext {
@@ -5150,6 +5236,10 @@ namespace Microsoft.Dafny {
       }
       public override bool Equals(Type that, bool keepConstraints = false) {
         return that.NormalizeExpand(keepConstraints) is EverIncreasingType;
+      }
+
+      public override bool MightContainGhostConstraints() {
+        return false;
       }
     }
 
@@ -5731,6 +5821,7 @@ namespace Microsoft.Dafny {
     }
   }
 
+  public record ConstraintInformation(bool Compilable, string ReasonIfNotCompilable, IToken LocationIfNotCompilable);
 
   public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl {
     public override string WhatKind { get { return "subset type"; } }
@@ -5739,8 +5830,46 @@ namespace Microsoft.Dafny {
     public enum WKind { CompiledZero, Compiled, Ghost, OptOut, Special }
     public readonly SubsetTypeDecl.WKind WitnessKind;
     public readonly Expression/*?*/ Witness;  // non-null iff WitnessKind is Compiled or Ghost
-    [FilledInDuringResolution] public bool ConstraintIsCompilable;
-    [FilledInDuringResolution] public bool CheckedIfConstraintIsCompilable = false; // Set to true lazily by the Resolver when the Resolver fills in "ConstraintIsCompilable".
+    [FilledInDuringResolution] public ConstraintInformation ConstraintInformation { get; private set; }
+
+    public bool IsConstraintCompilable {
+      get {
+        if (ConstraintInformation == null) {
+          // The constraint is not compilable if the parent type is also a subset type whose constraint is not compilable.
+          if (Var.Type.NormalizeExpandKeepConstraints() is UserDefinedType
+            {
+              AsSubsetType: SubsetTypeDecl
+              {
+                IsConstraintCompilable: false,
+                ConstraintInformation: ConstraintInformation(_, var baseTypeReason, var baseTypeLocation)
+              }
+            }) {
+            if (baseTypeLocation != null && baseTypeReason != null) {
+              ConstraintInformation = new ConstraintInformation(false,
+                $"[Related location] The subset type {this.Name}type GhostOrdinalCell is ghost because it depends on the ghost subset type {Var.Type}",
+                new NestedToken(Var.tok, baseTypeLocation, baseTypeReason)
+              );
+            } else {
+              ConstraintInformation = new ConstraintInformation(false, null, null);
+            }
+          } else {
+            var errorCollector = new BatchErrorReporter();
+            var isCompilable = ExpressionTester.CheckIsCompilable(null, errorCollector, Constraint, new CodeContextWrapper(this, true));
+            if (isCompilable == false && errorCollector.AllMessages[ErrorLevel.Error].FirstOrDefault() is var entry) {
+              ConstraintInformation = new ConstraintInformation(
+                false,
+                $"[Related location] {this.Name} is ghost because {entry.message}",
+                entry.token);
+            } else {
+              ConstraintInformation = new ConstraintInformation(isCompilable, null, null);
+            }
+          }
+        }
+
+        return ConstraintInformation.Compilable;
+      }
+    }
+
     public SubsetTypeDecl(IToken tok, string name, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, ModuleDefinition module,
       BoundVar id, Expression constraint, WKind witnessKind, Expression witness,
       Attributes attributes)
@@ -6000,9 +6129,9 @@ namespace Microsoft.Dafny {
     public virtual string CompileName =>
       compileName ??= SanitizedName;
 
-    Type type;
+    protected Type type;
     public Type SyntacticType { get { return type; } }  // returns the non-normalized type
-    public Type Type {
+    public virtual Type Type {
       get {
         Contract.Ensures(Contract.Result<Type>() != null);
         return type.Normalize();
@@ -6125,6 +6254,70 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(type != null);
+    }
+
+    public override Type Type {
+      get {
+        Contract.Ensures(Contract.Result<Type>() != null);
+        Contract.Requires(!CurrentTypeAssumedToBeCompilable || compilableType != null);
+        return CurrentTypeAssumedToBeCompilable ? CompilableType : OriginalType;
+      }
+    }
+
+    public Type CompilableTypeIfAny => compilableType != null ? CompilableType : OriginalType;
+
+    public bool CurrentTypeAssumedToBeCompilable { get; set; } = false;
+
+    /// <summary>
+    /// Sets a "compilable type" for the range of a bound variable,
+    /// and assumes it
+    /// </summary>
+    /// <param name="compilableType">Typically, a compilable parent of Type</param>
+    public void SetAndAssumeCompilableType(Type compilableType) {
+      CompilableType = compilableType;
+      CurrentTypeAssumedToBeCompilable = true;
+    }
+
+    /// <summary>
+    /// Ensures that the bound variable's type is the original one, e.g. for the term of a comprehension
+    /// </summary>
+    public void AssumeOriginalType() {
+      CurrentTypeAssumedToBeCompilable = false;
+    }
+
+    /// <summary>
+    /// Completely removes the compilable version of the type
+    /// (e.g. we know we are in a ghost context)
+    /// </summary>
+    public void AcceptOriginalTypeAssumption() {
+      CompilableType = null;
+      CurrentTypeAssumedToBeCompilable = false;
+    }
+
+    // If this CompilableType is null, it means that it's safe to only assume the originalType 
+    private Type compilableType;
+    public Type CompilableType {
+      get {
+        return compilableType?.Normalize();
+      }
+      set {
+        compilableType = value;
+      }
+    }
+    public Type OriginalType {
+      get {
+        return type?.Normalize();
+      }
+      set {
+        type = value;
+      }
+    }
+
+    public bool NeedsToVerifyOriginalTypeInference() {
+      return compilableType != null && OriginalType.MightContainGhostConstraints();
+    }
+    public bool CompilableTypeAssumptionIsNotTrivial() {
+      return compilableType != null && !compilableType.Equals(type, true);
     }
   }
 
@@ -7515,6 +7708,7 @@ namespace Microsoft.Dafny {
   public class VarDeclStmt : Statement {
     public readonly List<LocalVariable> Locals;
     public readonly ConcreteUpdateStatement Update;
+
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(cce.NonNullElements(Locals));
@@ -9015,6 +9209,14 @@ namespace Microsoft.Dafny {
   }
 
   public class NestedToken : TokenWrapper {
+    /// <summary>
+    /// A wrapper around a token that includes an optional message about the inner token
+    /// In the case of error reporting, and if 'message' is specified, it replaces the generic
+    /// "Related location" error message by the given string.
+    /// </summary>
+    /// <param name="outer">The token this NestedToken wraps</param>
+    /// <param name="inner">An inner token, usually a related position</param>
+    /// <param name="message">An optional message about what this position represents</param>
     public NestedToken(IToken outer, IToken inner, string message = null)
       : base(outer) {
       Contract.Requires(outer != null);
@@ -9158,6 +9360,20 @@ namespace Microsoft.Dafny {
 
     public IToken StartToken => RangeToken.StartToken;
     public IToken EndToken => RangeToken.EndToken;
+
+    /// <summary>
+    ///  Returns itself and all its sub-expressions in tree traversal order
+    /// </summary>
+    public IEnumerable<Expression> AllSubExpressions {
+      get {
+        yield return this;
+        foreach (var expr in SubExpressions) {
+          foreach (var subExpr in expr.AllSubExpressions) {
+            yield return subExpr;
+          }
+        }
+      }
+    }
 
     /// <summary>
     /// Returns the list of types that appear in this expression proper (that is, not including types that
@@ -10183,6 +10399,10 @@ namespace Microsoft.Dafny {
       public override bool Equals(Type that, bool keepConstraints = false) {
         return that.NormalizeExpand(keepConstraints) is ResolverType_Module;
       }
+
+      public override bool MightContainGhostConstraints() {
+        return false;
+      }
     }
     public class ResolverType_Type : ResolverType {
       [Pure]
@@ -10192,6 +10412,9 @@ namespace Microsoft.Dafny {
       }
       public override bool Equals(Type that, bool keepConstraints = false) {
         return that.NormalizeExpand(keepConstraints) is ResolverType_Type;
+      }
+      public override bool MightContainGhostConstraints() {
+        return false;
       }
     }
 
@@ -11460,8 +11683,36 @@ namespace Microsoft.Dafny {
   /// </summary>
   public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBearingExpression {
     public virtual string WhatKind => "comprehension";
+
+    public virtual string Keyword => "";
     public readonly List<BoundVar> BoundVars;
-    public readonly Expression Range;
+    public Expression Range { get; private set; }
+
+    /// <summary>
+    /// Set, map, forall and exists comprehensions's range can be typed in two ways.
+    /// When in a non-ghost context (default), bounds variables in the range have to be typed  
+    /// with nothing stronger than either the bound variables' supertype that are run-time testable,
+    /// or the collection's type.
+    /// Indeed, for filtering to occur, the filter has to be computable.
+    /// For ghost contexts, the filtering is not actually performed so it's safe to have any subset type,
+    /// even non-computable ones, for bound variables in the range.
+    /// </summary>
+    [FilledInDuringResolution] public Expression RangeIfGhost;
+
+    /// <summary>
+    ///  If we determine that we are in a ghost context, the bound variables are set to their secondary type
+    /// (the ghost type) and the range expression is replaced with the ghost range expression
+    /// </summary>
+    public void SetRangeIsGhost() {
+      if (RangeIfGhost != null) {
+        Range = RangeIfGhost;
+        RangeIfGhost = null;
+      }
+      foreach (var boundVar in BoundVars) {
+        boundVar.AcceptOriginalTypeAssumption();
+      }
+    }
+
     private Expression term;
     public Expression Term { get { return term; } }
     public IEnumerable<BoundVar> AllBoundVars => BoundVars;
@@ -11804,7 +12055,14 @@ namespace Microsoft.Dafny {
         foreach (var e in Attributes.SubExpressions(Attributes)) {
           yield return e;
         }
-        if (Range != null) { yield return Range; }
+
+        if (Range != null) {
+          yield return Range;
+        }
+
+        if (RangeIfGhost != null) {
+          yield return RangeIfGhost;
+        }
         yield return Term;
       }
     }
@@ -11896,6 +12154,8 @@ namespace Microsoft.Dafny {
 
   public class ForallExpr : QuantifierExpr {
     public override string WhatKind => "forall expression";
+    public override string Keyword => "forall";
+
     protected override BinaryExpr.ResolvedOpcode SplitResolvedOp { get { return BinaryExpr.ResolvedOpcode.And; } }
 
     public ForallExpr(IToken tok, IToken endTok, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
@@ -11917,6 +12177,8 @@ namespace Microsoft.Dafny {
 
   public class ExistsExpr : QuantifierExpr {
     public override string WhatKind => "exists expression";
+    public override string Keyword => "exists";
+
     protected override BinaryExpr.ResolvedOpcode SplitResolvedOp { get { return BinaryExpr.ResolvedOpcode.Or; } }
 
     public ExistsExpr(IToken tok, IToken endTok, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
@@ -11938,6 +12200,7 @@ namespace Microsoft.Dafny {
 
   public class SetComprehension : ComprehensionExpr {
     public override string WhatKind => "set comprehension";
+    public override string Keyword => Finite ? "set" : "iset";
 
     public readonly bool Finite;
     public readonly bool TermIsImplicit;  // records the given syntactic form
@@ -11965,6 +12228,7 @@ namespace Microsoft.Dafny {
   }
   public class MapComprehension : ComprehensionExpr {
     public override string WhatKind => "map comprehension";
+    public override string Keyword => Finite ? "map" : "imap";
 
     public readonly bool Finite;
     public readonly Expression TermLeft;
@@ -12011,12 +12275,10 @@ namespace Microsoft.Dafny {
 
     public override IEnumerable<Expression> SubExpressions {
       get {
-        foreach (var e in Attributes.SubExpressions(Attributes)) {
+        foreach (var e in base.SubExpressions) {
           yield return e;
         }
-        if (Range != null) { yield return Range; }
         if (TermLeft != null) { yield return TermLeft; }
-        yield return Term;
       }
     }
   }
@@ -12044,6 +12306,9 @@ namespace Microsoft.Dafny {
         yield return Term;
         if (Range != null) {
           yield return Range;
+        }
+        if (RangeIfGhost != null) {
+          yield return RangeIfGhost;
         }
         foreach (var read in Reads) {
           yield return read.E;
@@ -13072,7 +13337,7 @@ namespace Microsoft.Dafny {
   /// these into:
   ///   0. IdentifierExpr or MemberSelectExpr (with .Lhs set to ImplicitThisExpr or StaticReceiverExpr)
   ///   1. IdentifierExpr or MemberSelectExpr
-  ///   2. FuncionCallExpr or ApplyExpr
+  ///   2. FunctionCallExpr or ApplyExpr
   ///
   /// The IdentifierExpr's that forms 0 and 1 can turn into sometimes denote the name of a module or
   /// type.  The .Type field of the corresponding resolved expressions are then the special Type subclasses
@@ -13277,11 +13542,15 @@ namespace Microsoft.Dafny {
     }
   }
   public class TopDownVisitor<State> {
+    public virtual IEnumerable<Expression> SubExpressions(Expression expr) {
+      return expr.SubExpressions;
+    }
+
     public void Visit(Expression expr, State st) {
       Contract.Requires(expr != null);
       if (VisitOneExpr(expr, ref st)) {
         // recursively visit all subexpressions and all substatements
-        expr.SubExpressions.Iter(e => Visit(e, st));
+        SubExpressions(expr).Iter(e => Visit(e, st));
         if (expr is StmtExpr) {
           // a StmtExpr also has a sub-statement
           var e = (StmtExpr)expr;
