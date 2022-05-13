@@ -109,12 +109,7 @@ method f(x: int) {
 No assertion to check."
       );
       await AssertHoverMatches(documentItem, (0, 10),
-        @"**f** metrics:
-
-No assertion to check.  
-```dafny
-x: int
-```");
+        "```dafny\nx: int\n```");
     }
 
     private async Task<TextDocumentItem> GetDocumentItem(string source, string filename, CompilationStatus expectedStatus) {

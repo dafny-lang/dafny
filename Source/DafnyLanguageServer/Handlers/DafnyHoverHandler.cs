@@ -38,7 +38,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         logger.LogWarning("the document {Document} is not loaded", request.TextDocument);
         return null;
       }
-      var diagnosticHoverContent = GetDiagnosticsHover(document, request.Position);
+      var diagnosticHoverContent = GetDiagnosticsHover(document, request.Position, out var areMethodStatistics);
       if (!document.SymbolTable.TryGetSymbolAt(request.Position, out var symbol)) {
         logger.LogDebug("no symbol was found at {Position} in {Document}", request.Position, request.TextDocument);
       }
@@ -48,12 +48,15 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         return null;
       }
 
-      var hoverContent = diagnosticHoverContent ?? "";
+      // If diagnostics are method diagnostics, we prioritize displaying the symbol information.
+      // This makes testing easier and less surprise for the user.
+      var hoverContent = areMethodStatistics && symbolHoverContent != null ? "" : (diagnosticHoverContent ?? "");
       hoverContent = symbolHoverContent != null ? hoverContent + (hoverContent != "" ? "  \n" : "") + symbolHoverContent : hoverContent;
       return CreateMarkdownHover(hoverContent);
     }
 
-    private string? GetDiagnosticsHover(DafnyDocument document, Position position) {
+    private string? GetDiagnosticsHover(DafnyDocument document, Position position, out bool areMethodStatistics) {
+      areMethodStatistics = false;
       foreach (var node in document.VerificationTree.Children.OfType<TopLevelDeclMemberVerificationTree>()) {
         if (node.Range.Contains(position)) {
           var assertionBatchCount = node.AssertionBatchCount;
@@ -129,6 +132,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
             var assertionBatch = AddAssertionBatchDocumentation("assertion batch");
             var firstAssert = node.GetLongestAssertionBatch()?.Children[0];
             var lineFirstAssert = firstAssert == null ? "" : " at line " + (firstAssert.Position.Line + 1);
+            areMethodStatistics = true;
             information +=
               !node.Started ? "_Verification not started yet_"
               : !node.Finished ? $"_Still verifying..._  \n{node.TimeSpent:n0}ms elapsed"
