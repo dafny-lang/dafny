@@ -7,12 +7,36 @@ namespace REPLInterop;
 
 public class Utils {
   public static void Initialize() {
+    // FIXME make C-c exit current prompt
     Console.OutputEncoding = System.Text.Encoding.UTF8;
     DafnyOptions.Install(DafnyOptions.Create());
   }
 
   public static string? ReadLine() {
     return Console.In.ReadLine();
+  }
+}
+
+class DafnyError : Exception {
+  internal readonly MessageSource source;
+  internal readonly ErrorLevel level;
+  internal readonly Microsoft.Boogie.IToken tok;
+  internal readonly string msg;
+
+  public DafnyError(MessageSource source, ErrorLevel level, Microsoft.Boogie.IToken tok, string msg) {
+    this.source = source;
+    this.level = level;
+    this.tok = tok;
+    this.msg = msg;
+  }
+
+  public bool ReachedEOF(string input) {
+    if (source == MessageSource.Parser && tok.kind == Parser._EOF) {
+      var lines = input.Split("\n");
+      var col = System.Text.Encoding.UTF8.GetByteCount(lines[^1]);
+      return tok.line == lines.Length && tok.col == col + 1;
+    }
+    return false;
   }
 }
 
@@ -23,21 +47,23 @@ class REPLErrorReporter : BatchErrorReporter {
     }
   }
 
-  // DISCUSS: Better heuristic for reaching EOF?
-  public bool ReachedEOF(int endPos) =>
-    AllMessages[ErrorLevel.Error].Any(msg =>
-      msg.source == MessageSource.Parser &&
-      msg.token.kind == Parser._EOF);
-
   public string Format(ErrorLevel level) {
     return String.Join(Environment.NewLine,
       AllMessages[level].Select(msg => ErrorToString(level, msg.token, msg.message)));
   }
+
+  public override bool Message(MessageSource source, ErrorLevel level, Microsoft.Boogie.IToken tok, string msg) {
+    var b = base.Message(source, level, tok, msg);
+    if (level == ErrorLevel.Error && source == MessageSource.Parser) {
+      // Fail fast in the parser to disable error recovery
+      throw new DafnyError(source, level, tok, msg);
+    }
+    return b;
+  }
 }
 
 public interface ParseResult {}
-public record IncompleteParse : ParseResult;
-public record ParseError(string Message) : ParseResult;
+public record FailedParse(bool Incomplete, string Message) : ParseResult;
 public record SuccessfulParse(REPLState ReplState, Program UnresolvedProgram, List<UserInput> NewInputs) : ParseResult {
   public ResolutionResult Resolve() {
     return ReplState.TryResolve(UnresolvedProgram) as ResolutionResult ?? new TypecheckedProgram(NewInputs);
@@ -59,37 +85,47 @@ internal record ExprInput(ConstantField Decl) : UserInput {
   public Expression Body => Decl.Rhs;
 }
 
-record Utf8Source(string Text) {
-  public readonly int UTF8Length = System.Text.Encoding.UTF8.GetByteCount(Text);
-}
-
 internal class REPLInputParser {
   private static int exprCounter = 0;
 
   private readonly Parser parser;
   
-  private readonly Utf8Source source;
+  private readonly string source;
   private readonly REPLState replState;
 
   private readonly Program unresolvedProgram;
   private readonly List<Expression> topLevelExprs;
 
-  internal REPLInputParser(REPLState replState, Utf8Source source) {
+  internal REPLInputParser(REPLState replState, string source) {
     this.source = source;
     this.replState = replState;
     topLevelExprs = new List<Expression>();
     unresolvedProgram = replState.CloneUnresolvedProgram();
     var errors = new Errors(replState.Reporter);
-    parser = Parser.SetupParser(source.Text, fullFilename: REPLState.Fname, filename: REPLState.Fname,
+    parser = Parser.SetupParser(source, fullFilename: REPLState.Fname, filename: REPLState.Fname,
       include: null, unresolvedProgram.DefaultModule, unresolvedProgram.BuiltIns, errors,
       verifyThisFile: true, compileThisFile: true,
       isREPLParser: true, topLevelExprs);
   }
 
-  private static IEnumerable<A> SkipPrefix<A>(List<A> list, List<A> prefix) {
+  private static IEnumerable<A> SkipPrefix<A>(List<A>? prefix, List<A> list) {
+    if (prefix == null) {
+      return list;
+    }
     Debug.Assert(prefix.Count <= list.Count);
-    Debug.Assert(Enumerable.Range(0, prefix.Count).All(i => ReferenceEquals(prefix[i], list[i])));
     return list.Skip(prefix.Count);
+  }
+
+  private static void Deduplicate(List<MemberDecl> items) {
+    HashSet<string> names = new();
+    for (var pos = items.Count - 1; pos >= 0; pos--) {
+      var name = items[pos].Name;
+      if (names.Contains(name)) {
+        items.RemoveAt(pos);
+      } else {
+        names.Add(name);
+      }
+    }
   }
 
   private static List<MemberDecl>? GetDefaultClassMembers(Program prog) {
@@ -99,8 +135,16 @@ internal class REPLInputParser {
   private List<UserInput> CollectNewParseResults(Program previous) {
     var newInputs = new List<UserInput>();
 
-    var defaultMembersBefore = GetDefaultClassMembers(previous)!;
+    var defaultMembersBefore = GetDefaultClassMembers(previous);
     var defaultMembersAfter = GetDefaultClassMembers(unresolvedProgram)!;
+
+    foreach (var newMember in SkipPrefix(defaultMembersBefore, defaultMembersAfter)) {
+      if (newMember is ConstantField field) {
+        newInputs.Add(new ExprInput(field));
+      }
+    }
+
+    Deduplicate(defaultMembersAfter);
 
     foreach (var expr in topLevelExprs) {
       var field = new ConstantField(expr.tok, $"_{exprCounter++}", expr, true, false,
@@ -114,20 +158,21 @@ internal class REPLInputParser {
 
   internal ParseResult TryParse() {
     replState.Reporter.Clear();
-    parser.Parse();
-    if (replState.Reporter.Count(ErrorLevel.Error) == 0) {
-      var newInputs = CollectNewParseResults(replState.UnresolvedProgram);
-      return new SuccessfulParse(replState, unresolvedProgram, newInputs);
+
+    try {
+      parser.Parse();
+    } catch (DafnyError err) {
+      var incomplete = err.ReachedEOF(source);
+      return new FailedParse(incomplete, replState.Reporter.Format(ErrorLevel.Error));
     }
-    if (replState.Reporter.ReachedEOF(source.UTF8Length)) {
-      return new IncompleteParse();
-    }
-    return new ParseError(replState.Reporter.Format(ErrorLevel.Error));
+
+    var newInputs = CollectNewParseResults(replState.UnresolvedProgram);
+    return new SuccessfulParse(replState, unresolvedProgram, newInputs);
   }
 }
 
 public class REPLState {
-  internal REPLErrorReporter Reporter { get; private init; }
+  internal REPLErrorReporter Reporter { get; }
 
   internal static readonly string Fname = "<input>";
 
@@ -155,7 +200,7 @@ public class REPLState {
   } 
   
   public ParseResult TryParse(string input) {
-    return new REPLInputParser(this, new Utf8Source(input.Trim())).TryParse();
+    return new REPLInputParser(this, input.TrimEnd()).TryParse();
   }
 
   public ResolutionError? TryResolve(Program prog) {

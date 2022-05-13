@@ -26,6 +26,12 @@ module Lib {
       function method UnwrapOr(default: T) : T {
         if this.Some? then value else default
       }
+
+      function method ToSuccessOr<E>(f: E): Result<T, E> {
+        match this
+          case Some(v) => Success(v)
+          case None() => Failure(f)
+      }
     }
 
     datatype Result<+T, +R> = | Success(value: T) | Failure(error: R) {

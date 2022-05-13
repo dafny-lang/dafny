@@ -911,7 +911,7 @@ Dafny
 
 REPLInput<. ModuleDefinition module, List<MemberDecl/*!*/> membersDefaultClass .>
 = ( Expression<out var e,
-               /* allowLemma */ true,
+               /* allowLemma */ false,
                /* allowLambda */ true,
                /* allowBitwiseOps */ true> (. topLevelExprs.Add(e); .)
   | DafnyFile<module, membersDefaultClass> )

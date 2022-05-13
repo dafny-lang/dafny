@@ -27,17 +27,13 @@ module {:extern "REPLInterop"} {:compile false} REPLInterop {
 
   trait {:compile false} {:extern} ParseResult {
     lemma Sealed()
-      ensures || this is IncompleteParse
-              || this is ParseError
+      ensures || this is FailedParse
               || this is SuccessfulParse
   }
-  class {:compile false} {:extern} IncompleteParse extends ParseResult {
+  class {:compile false} {:extern} FailedParse extends ParseResult {
     lemma Sealed() {}
     constructor {:extern} () requires false
-  }
-  class {:compile false} {:extern} ParseError extends ParseResult {
-    lemma Sealed() {}
-    constructor {:extern} () requires false
+    var {:extern} Incomplete: bool;
     var {:extern} Message: System.String;
   }
   class {:compile false} {:extern} SuccessfulParse extends ParseResult {
@@ -81,7 +77,7 @@ module {:extern "REPLInterop"} {:compile false} REPLInterop {
 
 datatype REPLError =
   | EOF()
-  | ParseError(pmsg: string)
+  | FailedParse(pmsg: string)
   | ResolutionError(rmsg: string)
   | TranslationError(te: Translator.TranslationError)
   | InterpError(ie: Interp.InterpError)
@@ -91,7 +87,7 @@ datatype REPLError =
     match this
       case EOF() =>
         "EOF"
-      case ParseError(msg) =>
+      case FailedParse(msg) =>
         "Parse error:\n" + msg
       case ResolutionError(msg) =>
         "Resolution error:\n" + msg
@@ -121,7 +117,6 @@ class REPL {
 
   static method ReadLine(prompt: string)
     returns (o: Option<string>)
-    ensures o.Some? ==> o.value != ""
     decreases *
   {
     while true
@@ -135,9 +130,8 @@ class REPL {
         var line := TypeConv.AsString(line);
         if line == "" {
           continue;
-        } else {
-          return Some(line);
         }
+        return Some(line);
       }
     }
   }
@@ -153,22 +147,21 @@ class REPL {
       invariant |prompt| > 0
       decreases *
     {
-      var line := ReadLine(prompt);
-      match line {
-        case Some(l) =>
-          input := input + l + "\n";
-        case None =>
-          return Failure(EOF());
-      }
+      var ln := ReadLine(prompt);
+      var line :- ln.ToSuccessOr(EOF());
 
+      input := input + line + "\n";
       var parsed: REPLInterop.ParseResult :=
         state.TryParse(StringUtils.ToCString(input));
-      if parsed is REPLInterop.IncompleteParse {
-        prompt := if prompt[0] == '.' then prompt else seq(|prompt| - 1, _ => '.') + " ";
-        continue;
-      } else if parsed is REPLInterop.ParseError {
-        var p := parsed as REPLInterop.ParseError; // BUG(1731)
-        return Failure(ParseError(TypeConv.AsString(p.Message)));
+
+      if parsed is REPLInterop.FailedParse {
+        var p := parsed as REPLInterop.FailedParse; // BUG(https://github.com/dafny-lang/dafny/issues/1731)
+        if p.Incomplete {
+          prompt := if prompt[0] == '.' then prompt
+                   else seq(|prompt| - 1, _ => '.') + " ";
+          continue;
+        }
+        return Failure(FailedParse(TypeConv.AsString(p.Message)));
       } else {
         parsed.Sealed();
         return Success(parsed as REPLInterop.SuccessfulParse);
