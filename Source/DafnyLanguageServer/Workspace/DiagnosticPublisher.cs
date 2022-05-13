@@ -35,11 +35,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         Version = document.Version,
         Diagnostics = document.Diagnostics.ToArray(),
       };
-      if (previouslyPublishedDiagnostics.TryGetValue(document.Uri, out var previousParams) && previousParams.Diagnostics.Equals(diagnosticParameters.Diagnostics)) {
+      if (previouslyPublishedDiagnostics.TryGetValue(document.Uri, out var previousParams) && previousParams.Diagnostics.SequenceEqual(diagnosticParameters.Diagnostics)) {
         return;
       }
 
-      previouslyPublishedDiagnostics.AddOrUpdate(document.Uri, _ => diagnosticParameters, (_, _) => diagnosticParameters);
+      previouslyPublishedDiagnostics[document.Uri] = diagnosticParameters;
       languageServer.TextDocument.PublishDiagnostics(diagnosticParameters);
     }
 
@@ -70,10 +70,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         Version = document.Version,
         Diagnostics = document.GhostDiagnostics.ToArray(),
       };
-      if (previouslyPublishedGhostDiagnostics.TryGetValue(document.Uri, out var previousParams) && previousParams.Diagnostics.Equals(newParams.Diagnostics)) {
+      if (previouslyPublishedGhostDiagnostics.TryGetValue(document.Uri, out var previousParams) && previousParams.Diagnostics.SequenceEqual(newParams.Diagnostics)) {
         return;
       }
-      previouslyPublishedGhostDiagnostics.AddOrUpdate(document.Uri, _ => newParams, (_, _) => newParams);
+      previouslyPublishedGhostDiagnostics[document.Uri] = newParams;
       languageServer.TextDocument.SendNotification(newParams);
     }
 
