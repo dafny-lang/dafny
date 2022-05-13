@@ -48,8 +48,8 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         return null;
       }
 
-      var hoverContent = diagnosticHoverContent == null ? "" : diagnosticHoverContent;
-      hoverContent += symbolHoverContent == null ? (hoverContent != "" ? "  \n" : "") : symbolHoverContent;
+      var hoverContent = diagnosticHoverContent ?? "";
+      hoverContent = symbolHoverContent != null ? hoverContent + (hoverContent != "" ? "  \n" : "") + symbolHoverContent : hoverContent;
       return CreateMarkdownHover(hoverContent);
     }
 
@@ -133,9 +133,11 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
               !node.Started ? "_Verification not started yet_"
               : !node.Finished ? $"_Still verifying..._  \n{node.TimeSpent:n0}ms elapsed"
               : (node.AssertionBatchCount == 1
-                  ? $"{node.LongestAssertionBatchTime:n0}ms in 1 {assertionBatch}  \n"
-                  : $"{node.LongestAssertionBatchTime:n0}ms for the longest {assertionBatch} #{node.LongestAssertionBatchTimeIndex + 1}/{node.AssertionBatchCount}{lineFirstAssert}   \n") +
-                $"{node.ResourceCount:n0} resource count";
+                  ? $"{node.LongestAssertionBatchTime:n0}ms in 1 {assertionBatch}"
+                  : node.AssertionBatchCount == 0
+                  ? $"No assertion to check."
+                  : $"{node.LongestAssertionBatchTime:n0}ms for the longest {assertionBatch} #{node.LongestAssertionBatchTimeIndex + 1}/{node.AssertionBatchCount}{lineFirstAssert}") +
+                (node.AssertionBatchCount > 0 ? $"  \n{node.ResourceCount:n0} resource count" : "");
             return information;
           }
         }

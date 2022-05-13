@@ -244,7 +244,12 @@ method DoIt(a: A) {}".TrimStart();
       Assert.IsNotNull(hover);
       var markup = hover.Contents.MarkupContent;
       Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
-      Assert.AreEqual("```dafny\nclass A\n```", markup.Value);
+      Assert.AreEqual(@"**DoIt** metrics:
+
+_Verification not started yet_  
+```dafny
+class A
+```", markup.Value);
     }
 
     [TestMethod]

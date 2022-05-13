@@ -54,11 +54,11 @@ method Abs(x: int) returns (y: int)
   assert x > 2; // Hover #3 on the '>'
   return x;
 }
-", CompilationStatus.VerificationFailed);
+", "testFile.dfy", CompilationStatus.VerificationFailed);
       // When hovering the postcondition, it should display the position of the failing path
       await AssertHoverMatches(documentItem, (2, 15),
         @"assertion #1/2 of [batch](???) #1/1 checked in ???ms with ??? resource count:  
-`testFile0.dfy(6, 5): `*A postcondition might not hold on this return path.*"
+`testFile.dfy(6, 5): `*A postcondition might not hold on this return path.*"
       );
       // When hovering the failing path, it does not display the position of the failing postcondition
       // because the IDE extension already does it.
@@ -85,7 +85,7 @@ method {:vcs_split_on_every_assert} f(x: int) {
   assert x >= 2; // Hover #1
   assert x >= 1; // Hover #2
 }
-", CompilationStatus.VerificationFailed);
+", "testfile.dfy", CompilationStatus.VerificationFailed);
       await AssertHoverMatches(documentItem, (1, 12),
         @"assertion of [batch](???) #???/2 checked in ???ms with ??? resource count:  
 *assertion might not hold*"
@@ -96,9 +96,30 @@ method {:vcs_split_on_every_assert} f(x: int) {
       );
     }
 
-    private async Task<TextDocumentItem> GetDocumentItem(string source, CompilationStatus expectedStatus) {
+    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    public async Task MeaningfulMessageWhenMethodWithoutAssert() {
+      var documentItem = await GetDocumentItem(@"
+method f(x: int) {
+  print x;
+}", "testfile.dfy", CompilationStatus.VerificationSucceeded);
+      await Task.Delay(100); // Just time for the diagnostics to be updated
+      await AssertHoverMatches(documentItem, (0, 7),
+        @"**f** metrics:
+
+No assertion to check."
+      );
+      await AssertHoverMatches(documentItem, (0, 10),
+        @"**f** metrics:
+
+No assertion to check.  
+```dafny
+x: int
+```");
+    }
+
+    private async Task<TextDocumentItem> GetDocumentItem(string source, string filename, CompilationStatus expectedStatus) {
       source = source.TrimStart();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, filename);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var lastStatus = await WaitUntilDafnyFinishes(documentItem);
       Assert.AreEqual(expectedStatus, lastStatus);

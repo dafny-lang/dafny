@@ -123,7 +123,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   /// </summary>
   /// <param name="implementations">The implementations to be verified</param>
   public void ReportImplementationsBeforeVerification(Implementation[] implementations) {
-    if (document.LoadCanceled || implementations.Length == 0) {
+    if (document.LoadCanceled) {
       return;
     }
     // We migrate existing implementations to the new provided ones if they exist.
