@@ -375,8 +375,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     string Identifier,
     int Lines
   ) : VerificationTree("Document", Identifier, Identifier,
-    new Range(new Position(0, 0),
-      new Position(Lines, 0)));
+    LinesToRange(Lines)) {
+
+    public static Range LinesToRange(int lines) {
+      return new Range(new Position(0, 0),
+        new Position(lines, 0));
+    }
+  }
 
   public record TopLevelDeclMemberVerificationTree(
     string DisplayName,

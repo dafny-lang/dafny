@@ -4,7 +4,6 @@ using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
@@ -35,11 +34,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
     }
 
     public VerificationTree RelocateVerificationTree(VerificationTree originalVerificationTree,
+      int lines,
       DidChangeTextDocumentParams changes, CancellationToken cancellationToken) {
-      var migratedChildren = new ChangeProcessor(logger, loggerSymbolTable, changes.ContentChanges, cancellationToken)
-        .MigrateVerificationTree(originalVerificationTree.Children);
+      var changeProcessor = new ChangeProcessor(logger, loggerSymbolTable, changes.ContentChanges, cancellationToken);
+      var migratedChildren = changeProcessor.MigrateVerificationTrees(originalVerificationTree.Children);
       return originalVerificationTree with {
         Children = migratedChildren.ToList(),
+        Range = DocumentVerificationTree.LinesToRange(lines),
         StatusCurrent = CurrentStatus.Obsolete
       };
     }
@@ -291,10 +292,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
         return null;
       }
 
-      public IEnumerable<VerificationTree> MigrateVerificationTree(IEnumerable<VerificationTree> originalDiagnostics) {
-        return contentChanges.Aggregate(originalDiagnostics, MigrateVerificationTree);
+      public IEnumerable<VerificationTree> MigrateVerificationTrees(IEnumerable<VerificationTree> originalDiagnostics) {
+        return contentChanges.Aggregate(originalDiagnostics, MigrateVerificationTrees);
       }
-      private IEnumerable<VerificationTree> MigrateVerificationTree(IEnumerable<VerificationTree> verificationTrees, TextDocumentContentChangeEvent change) {
+      private IEnumerable<VerificationTree> MigrateVerificationTrees(IEnumerable<VerificationTree> verificationTrees, TextDocumentContentChangeEvent change) {
         if (change.Range == null) {
           yield break;
         }
@@ -306,7 +307,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
           }
           var newNodeDiagnostic = verificationTree with {
             Range = newRange,
-            Children = MigrateVerificationTree(verificationTree.Children, change).ToList(),
+            Children = MigrateVerificationTrees(verificationTree.Children, change).ToList(),
             StatusVerification = verificationTree.StatusVerification,
             StatusCurrent = CurrentStatus.Obsolete,
             Finished = false,

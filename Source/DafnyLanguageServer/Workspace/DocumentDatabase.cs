@@ -145,8 +145,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         },
         kv => relocator.RelocateDiagnostics(kv.Value, documentChange, CancellationToken.None));
       logger.LogDebug($"Migrated {oldVerificationDiagnostics.Count} diagnostics into {migratedVerificationDiagnotics.Count} diagnostics.");
+      var newLines = DafnyDocument.NumberOfLines(updatedText.Text);
       var migratedVerificationTree =
-        relocator.RelocateVerificationTree(oldDocument.VerificationTree, documentChange, CancellationToken.None);
+        relocator.RelocateVerificationTree(oldDocument.VerificationTree, newLines, documentChange, CancellationToken.None);
       try {
         var newDocument = await documentLoader.LoadAsync(updatedText, cancellationToken);
         if (newDocument.SymbolTable.Resolved) {

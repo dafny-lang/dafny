@@ -44,7 +44,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// </summary>
     public VerificationTree VerificationTree { get; init; } = new DocumentVerificationTree(
       TextDocumentItem.Uri.ToString(),
-      TextDocumentItem.Text.Count(c => c == '\n') + 1
+      NumberOfLines(TextDocumentItem.Text)
     );
 
     /// <summary>
@@ -57,5 +57,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public int LinesCount => VerificationTree.Range.End.Line;
+
+    public static int NumberOfLines(string text) {
+      return text.Count(c => c == '\n') + 1;
+    }
   }
 }
