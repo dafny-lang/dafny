@@ -2,6 +2,7 @@ include "../Interp.dfy"
 include "../CompilerCommon.dfy"
 include "../Printer.dfy"
 include "../Library.dfy"
+include "../CSharpInterop.dfy"
 include "../CSharpDafnyASTModel.dfy"
 include "../CSharpDafnyInterop.dfy"
 include "../../AutoExtern/CSharpModel.dfy"
@@ -28,23 +29,20 @@ module {:extern "REPLInterop"} {:compile false} REPLInterop {
     lemma Sealed()
       ensures || this is IncompleteParse
               || this is ParseError
-              || this is ParsedDeclaration
+              || this is SuccessfulParse
   }
   class {:compile false} {:extern} IncompleteParse extends ParseResult {
-    constructor {:extern} () requires false
     lemma Sealed() {}
+    constructor {:extern} () requires false
   }
   class {:compile false} {:extern} ParseError extends ParseResult {
-    constructor {:extern} () requires false
     lemma Sealed() {}
+    constructor {:extern} () requires false
     var {:extern} Message: System.String;
   }
-  trait {:compile false} {:extern} ParsedDeclaration extends ParseResult {
-    lemma Sealed() {}
-    var {:extern} FullName: System.String;
-    var {:extern} ShortName: System.String;
-    var {:extern} Body: C.Expression;
+  class {:compile false} {:extern} SuccessfulParse extends ParseResult {
     method {:extern} Resolve() returns (r: ResolutionResult)
+    lemma Sealed() {}
   }
 
   trait {:compile false} {:extern} ResolutionResult {
@@ -53,13 +51,26 @@ module {:extern "REPLInterop"} {:compile false} REPLInterop {
               || this is TypecheckedProgram
   }
   class {:compile false} {:extern} ResolutionError extends ResolutionResult {
-    constructor {:extern} () requires false
     lemma Sealed() {}
+    constructor {:extern} () requires false
     var {:extern} Message: System.String;
   }
   class {:compile false} {:extern} TypecheckedProgram extends ResolutionResult {
-    constructor {:extern} () requires false
     lemma Sealed() {}
+    constructor {:extern} () requires false
+    var {:extern} NewInputs: System.Collections.Generic.List<UserInput>;
+  }
+
+  trait {:compile false} {:extern} UserInput {
+    lemma Sealed()
+      ensures || this is ExprInput
+    var {:extern} FullName: System.String;
+    var {:extern} ShortName: System.String;
+  }
+  class {:compile false} {:extern} ExprInput extends UserInput {
+    lemma Sealed() {}
+    constructor {:extern} () requires false
+    var {:extern} Body: C.Expression;
   }
 
   class {:compile false} {:extern} REPLState {
@@ -131,7 +142,7 @@ class REPL {
     }
   }
 
-  method Read() returns (r: REPLResult<REPLInterop.ParsedDeclaration>)
+  method Read() returns (r: REPLResult<REPLInterop.SuccessfulParse>)
     modifies this`counter // DISCUSS: Order?
     decreases *
   {
@@ -160,33 +171,49 @@ class REPL {
         return Failure(ParseError(TypeConv.AsString(p.Message)));
       } else {
         parsed.Sealed();
-        return Success(parsed as REPLInterop.ParsedDeclaration);
+        return Success(parsed as REPLInterop.SuccessfulParse);
       }
     }
   }
 
-  method ReadResolve() returns (r: REPLResult<Named<Interp.Expr>>)
-    ensures r.Success? ==> Interp.SupportsInterp(r.value.body)
+  function method TranslateInput(input: REPLInterop.UserInput)
+    : REPLResult<Named<Interp.Expr>>
+    reads *
+  {
+    var fullName := TypeConv.AsString(input.FullName);
+    var shortName := TypeConv.AsString(input.ShortName);
+    var body :-
+      if input is REPLInterop.ExprInput then
+        var ei := input as REPLInterop.ExprInput;
+        DafnyCompilerCommon.Translator.TranslateExpression(ei.Body)
+          .MapFailure(e => TranslationError(e))
+      else
+        (input.Sealed();
+         Lib.ControlFlow.Unreachable());
+    :- Need(Interp.SupportsInterp(body), Unsupported(body));
+    Success(Named(fullName, shortName, body))
+  }
+
+  method ReadResolve() returns (r: REPLResult<seq<Named<Interp.Expr>>>)
+    modifies this`counter
     decreases *
   {
-    var input :- Read();
+    var inputs :- Read();
 
-    var tcRes: REPLInterop.ResolutionResult := input.Resolve();
+    var tcRes: REPLInterop.ResolutionResult := inputs.Resolve();
     if tcRes is REPLInterop.ResolutionError {
       var err := tcRes as REPLInterop.ResolutionError;
       return Failure(ResolutionError(TypeConv.AsString(err.Message)));
     }
 
-    var body :- Translator.TranslateExpression(input.Body)
-                  .MapFailure(e => TranslationError(e));
-    :- Need(Interp.SupportsInterp(body), Unsupported(body));
-    var fullName := TypeConv.AsString(input.FullName);
-    var shortName := TypeConv.AsString(input.ShortName);
-    return Success(Named(fullName, shortName, body));
+    tcRes.Sealed();
+    var newInputs :=
+      var tp := tcRes as REPLInterop.TypecheckedProgram;
+      CSharpInterop.ListUtils.ToSeq(tp.NewInputs);
+    return Lib.Seq.MapResult(newInputs, TranslateInput);
   }
 
-  static method Eval(e: AST.Expr, globals: Interp.Context) returns (r: REPLResult<Interp.Value>)
-    requires Interp.SupportsInterp(e)
+  static method Eval(e: Interp.Expr, globals: Interp.Context) returns (r: REPLResult<Interp.Value>)
     decreases *
   {
     var fuel: nat := 4;
@@ -206,15 +233,22 @@ class REPL {
   }
 
   method ReadEval()
-    returns (r: REPLResult<Named<Interp.Value>>)
-    modifies this`globals
+    returns (r: REPLResult<seq<Named<Interp.Value>>>)
+    modifies this`counter, this`globals
     decreases *
   {
-    var rd :- ReadResolve();
-    var Named(fullName, shortName, body) := rd; // BUG(https://github.com/dafny-lang/dafny/issues/2123)
-    var val :- Eval(body, globals);
-    globals := globals[fullName := val];
-    return Success(Named(fullName, shortName, val));
+    var rds :- ReadResolve();
+
+    var idx := 0;
+    var outputs := [];
+    for idx := 0 to |rds| {
+      var Named(fullName, shortName, body) := rds[idx];
+      var val :- Eval(body, globals);
+      globals := globals[fullName := val];
+      outputs := outputs + [Named(fullName, shortName, val)];
+    }
+
+    return Success(outputs);
   }
 }
 
@@ -231,8 +265,11 @@ method Main()
         return;
       case Failure(err) =>
         print err.ToString();
-      case Success(Named(_, shortName, val)) =>
-        print shortName, " := ", Interp.Printer.ToString(val);
+      case Success(results) =>
+        for idx := 0 to |results| {
+          var Named(_, shortName, val) := results[idx];
+          print shortName, " := ", Interp.Printer.ToString(val);
+        }
     }
     print "\n";
   }

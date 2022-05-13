@@ -1,5 +1,6 @@
 ﻿#nullable enable
 
+using System.Diagnostics;
 using Microsoft.Dafny;
 
 namespace REPLInterop;
@@ -37,83 +38,88 @@ class REPLErrorReporter : BatchErrorReporter {
 public interface ParseResult {}
 public record IncompleteParse : ParseResult;
 public record ParseError(string Message) : ParseResult;
-public interface ParsedDeclaration : ParseResult { // FIXME supports more than one in a definition
-  string FullName { get; }
-  string ShortName { get; }
-  Expression Body { get; }
-  ResolutionResult Resolve();
+public record SuccessfulParse(REPLState ReplState, Program UnresolvedProgram, List<UserInput> NewInputs) : ParseResult {
+  public ResolutionResult Resolve() {
+    return ReplState.TryResolve(UnresolvedProgram) as ResolutionResult ?? new TypecheckedProgram(NewInputs);
+  }
 }
 
 public interface ResolutionResult {}
 public record ResolutionError(string Message) : ResolutionResult;
-public record TypecheckedProgram : ResolutionResult;
+public record TypecheckedProgram(List<UserInput> NewInputs) : ResolutionResult;
+
+public interface UserInput {
+  string FullName { get; }
+  string ShortName { get; }
+}
+
+internal record ExprInput(ConstantField Decl) : UserInput {
+  public string FullName => Decl.FullName;
+  public string ShortName => Decl.Name;
+  public Expression Body => Decl.Rhs;
+}
 
 record Utf8Source(string Text) {
   public readonly int UTF8Length = System.Text.Encoding.UTF8.GetByteCount(Text);
 }
 
-internal abstract class ParserWrapper {
-  protected readonly Parser parser;
+internal class REPLInputParser {
+  private static int exprCounter = 0;
+
+  private readonly Parser parser;
   
   private readonly Utf8Source source;
-  public readonly REPLState replState;
-  
-  public readonly Program UnresolvedProgram;
+  private readonly REPLState replState;
 
-  internal ParserWrapper(REPLState replState, Utf8Source source) {
+  private readonly Program unresolvedProgram;
+  private readonly List<Expression> topLevelExprs;
+
+  internal REPLInputParser(REPLState replState, Utf8Source source) {
     this.source = source;
     this.replState = replState;
-    UnresolvedProgram = replState.CloneUnresolvedProgram();
+    topLevelExprs = new List<Expression>();
+    unresolvedProgram = replState.CloneUnresolvedProgram();
     var errors = new Errors(replState.Reporter);
     parser = Parser.SetupParser(source.Text, fullFilename: REPLState.Fname, filename: REPLState.Fname,
-      include: null, UnresolvedProgram.DefaultModule, UnresolvedProgram.BuiltIns, errors);
-    parser.PreParse();
+      include: null, unresolvedProgram.DefaultModule, unresolvedProgram.BuiltIns, errors,
+      verifyThisFile: true, compileThisFile: true,
+      isREPLParser: true, topLevelExprs);
   }
 
-  protected bool ReachedEOF =>
-    replState.Reporter.ReachedEOF(source.UTF8Length);
-
-  internal abstract ParseResult TryParse();
-}
-
-internal class ExprParseResult : ParsedDeclaration {
-  private static int counter = 0;
-
-  private readonly MemberDecl memberDecl;
-  private readonly ParserWrapper parser;
-
-  public string FullName => memberDecl.FullName;
-  public string ShortName => memberDecl.Name;
-  public Expression Body { get; init; }
-  
-  public ExprParseResult(ParserWrapper parser, Expression expr) {
-    this.parser = parser;
-    memberDecl = new ConstantField(expr.tok, $"_{counter++}", expr, true, false, new InferredTypeProxy(), null);
-    var members = GetDefaultClassMembers(parser.UnresolvedProgram)!;
-    members.RemoveAll(m => m.Name == ShortName);
-    members.Add(memberDecl);
-    this.Body = expr;
+  private static IEnumerable<A> SkipPrefix<A>(List<A> list, List<A> prefix) {
+    Debug.Assert(prefix.Count <= list.Count);
+    Debug.Assert(Enumerable.Range(0, prefix.Count).All(i => ReferenceEquals(prefix[i], list[i])));
+    return list.Skip(prefix.Count);
   }
 
   private static List<MemberDecl>? GetDefaultClassMembers(Program prog) {
     return prog.DefaultModuleDef.TopLevelDecls.OfType<DefaultClassDecl>().FirstOrDefault()?.Members;
   }
 
-  public ResolutionResult Resolve() {
-    return parser.replState.TryResolve(parser.UnresolvedProgram);
-  }
-}
+  private List<UserInput> CollectNewParseResults(Program previous) {
+    var newInputs = new List<UserInput>();
 
-internal class ExprParser : ParserWrapper {
-  internal ExprParser(REPLState replState, Utf8Source source) : base(replState, source) {}
+    var defaultMembersBefore = GetDefaultClassMembers(previous)!;
+    var defaultMembersAfter = GetDefaultClassMembers(unresolvedProgram)!;
 
-  internal override ParseResult TryParse() {
-    replState.Reporter.Clear();
-    var expr = parser.ParseExpression();
-    if (replState.Reporter.Count(ErrorLevel.Error) == 0) {
-      return new ExprParseResult(this, expr);
+    foreach (var expr in topLevelExprs) {
+      var field = new ConstantField(expr.tok, $"_{exprCounter++}", expr, true, false,
+        new InferredTypeProxy(), null);
+      defaultMembersAfter.Add(field);
+      newInputs.Add(new ExprInput(field));
     }
-    if (ReachedEOF) {
+
+    return newInputs;
+  }
+
+  internal ParseResult TryParse() {
+    replState.Reporter.Clear();
+    parser.Parse();
+    if (replState.Reporter.Count(ErrorLevel.Error) == 0) {
+      var newInputs = CollectNewParseResults(replState.UnresolvedProgram);
+      return new SuccessfulParse(replState, unresolvedProgram, newInputs);
+    }
+    if (replState.Reporter.ReachedEOF(source.UTF8Length)) {
       return new IncompleteParse();
     }
     return new ParseError(replState.Reporter.Format(ErrorLevel.Error));
@@ -121,23 +127,22 @@ internal class ExprParser : ParserWrapper {
 }
 
 public class REPLState {
-  internal readonly REPLErrorReporter Reporter;
+  internal REPLErrorReporter Reporter { get; private init; }
 
   internal static readonly string Fname = "<input>";
 
-  // FIXME(performance): Dafny doesn't support incremental resolution, so we redo the full parsing + resolution every time
-  private Program unresolvedProgram;
-  internal Program? ResolvedProgram { get; private set; }
+  // FIXME(performance): Dafny doesn't support incremental resolution, so we redo the full resolution every time
+  internal Program UnresolvedProgram;
 
   public REPLState() {
     Reporter = new REPLErrorReporter();
     var defaultModule = new DefaultModuleDecl();
     var defaultModuleDecl = new LiteralModuleDecl(defaultModule, null);
-    defaultModule.TopLevelDecls.Add(new DefaultClassDecl(defaultModule, new List<MemberDecl>()));
-    unresolvedProgram = new Program(Fname, defaultModuleDecl, new BuiltIns(), Reporter);
+    //defaultModule.TopLevelDecls.Add(new DefaultClassDecl(defaultModule, new List<MemberDecl>()));
+    UnresolvedProgram = new Program(Fname, defaultModuleDecl, new BuiltIns(), Reporter);
   }
 
-  private Program Clone(Program prog) {
+  private static Program Clone(Program prog) {
     var cloner = new Cloner();
     var defaultModule = cloner.CloneModuleDefinition(prog.DefaultModuleDef, prog.DefaultModuleDef.Name);
     var defaultModuleDecl = new LiteralModuleDecl(defaultModule, null);
@@ -146,22 +151,20 @@ public class REPLState {
   }
 
   public Program CloneUnresolvedProgram() {
-    return Clone(unresolvedProgram);
+    return Clone(UnresolvedProgram);
   } 
   
   public ParseResult TryParse(string input) {
-    // FIXME: Really needs new rule in DafnyAtg; otherwise we don't know which error messages to return
-    return new ExprParser(this, new Utf8Source(input.Trim())).TryParse();
+    return new REPLInputParser(this, new Utf8Source(input.Trim())).TryParse();
   }
 
-  public ResolutionResult TryResolve(Program prog) {
+  public ResolutionError? TryResolve(Program prog) {
     Reporter.Clear();
     var unresolvedWithDecls = Clone(prog);
     new Resolver(prog).ResolveProgram(prog);
     if (Reporter.Count(ErrorLevel.Error) == 0) {
-      unresolvedProgram = unresolvedWithDecls;
-      ResolvedProgram = prog;
-      return new TypecheckedProgram();
+      UnresolvedProgram = unresolvedWithDecls;
+      return null;
     }
     return new ResolutionError(Reporter.Format(ErrorLevel.Error));
   }
