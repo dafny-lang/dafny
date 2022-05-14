@@ -11,6 +11,7 @@ import DafnyCompilerCommon.AST
 import DafnyCompilerCommon.Translator
 import opened Lib.Datatypes
 import opened CSharpDafnyInterop
+import C = CSharpDafnyASTModel
 
 module {:extern "REPLInterop"} {:compile false} REPLInterop {
   import System
@@ -63,14 +64,15 @@ module {:extern "REPLInterop"} {:compile false} REPLInterop {
 
   trait {:compile false} {:extern} UserInput {
     lemma Sealed()
-      ensures || this is ExprInput
+      ensures || this is MemberDeclInput
     var {:extern} FullName: System.String;
     var {:extern} ShortName: System.String;
   }
-  class {:compile false} {:extern} ExprInput extends UserInput {
+  class {:compile false} {:extern} MemberDeclInput extends UserInput {
     lemma Sealed() {}
     constructor {:extern} () requires false
-    var {:extern} Body: C.Expression;
+    var {:extern} IsTopLevelExpr: bool;
+    var {:extern} Decl: C.MemberDecl;
   }
 
   class {:compile false} {:extern} REPLState {
@@ -144,7 +146,7 @@ class REPL {
   }
 
   method Read() returns (r: REPLResult<REPLInterop.SuccessfulParse>)
-    modifies this`counter // DISCUSS: Order?
+    modifies this`counter
     decreases *
   {
     var prompt := "dfy[" + Lib.Str.of_int(counter) + "] ";
@@ -176,20 +178,41 @@ class REPL {
     }
   }
 
+  function method AbsOfFunction(fn: C.Function)
+    : Result<AST.Expr, Translator.TranslationError>
+    reads *
+  {
+    var inParams := Lib.Seq.MapFilter(CSharpInterop.ListUtils.ToSeq(fn.Formals), (f: C.Formal) reads * =>
+      if f.InParam then Some(TypeConv.AsString(f.Name)) else None);
+    var body :- Translator.TranslateExpression(fn.Body);
+    Success(AST.Exprs.Abs(inParams, body))
+  }
+
+  function method TranslateBody(input: REPLInterop.UserInput)
+    : Result<AST.Expr, Translator.TranslationError>
+    reads *
+  {
+    if input is REPLInterop.MemberDeclInput then
+      var ei := input as REPLInterop.MemberDeclInput;
+      if ei.Decl is C.ConstantField then
+        var cf := ei.Decl as C.ConstantField;
+        Translator.TranslateExpression(cf.Rhs)
+      else if ei.Decl is C.Function then
+        AbsOfFunction(ei.Decl as C.Function)
+      else
+        Failure(Translator.UnsupportedMember(ei.Decl))
+    else
+      (input.Sealed();
+       Lib.ControlFlow.Unreachable())
+  }
+
   function method TranslateInput(input: REPLInterop.UserInput)
     : REPLResult<Named<Interp.Expr>>
     reads *
   {
     var fullName := TypeConv.AsString(input.FullName);
     var shortName := TypeConv.AsString(input.ShortName);
-    var body :-
-      if input is REPLInterop.ExprInput then
-        var ei := input as REPLInterop.ExprInput;
-        DafnyCompilerCommon.Translator.TranslateExpression(ei.Body)
-          .MapFailure(e => TranslationError(e))
-      else
-        (input.Sealed();
-         Lib.ControlFlow.Unreachable());
+    var body :- TranslateBody(input).MapFailure(e => TranslationError(e));
     :- Need(Interp.SupportsInterp(body), Unsupported(body));
     Success(Named(fullName, shortName, body))
   }

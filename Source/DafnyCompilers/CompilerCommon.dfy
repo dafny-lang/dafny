@@ -361,6 +361,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       | UnsupportedType(ty: C.Type)
       | UnsupportedExpr(expr: C.Expression)
       | UnsupportedStmt(stmt: C.Statement)
+      | UnsupportedMember(decl: C.MemberDecl)
     {
       function method ToString() : string {
         match this
@@ -374,6 +375,8 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
             "Unsupported expression: " + TypeConv.ObjectToString(expr)
           case UnsupportedStmt(stmt) =>
             "Unsupported statement: " + TypeConv.ObjectToString(stmt)
+          case UnsupportedMember(decl) =>
+            "Unsupported declaration: " + TypeConv.ObjectToString(decl)
       }
     }
 

@@ -87,28 +87,29 @@ public interface UserInput {
   string ShortName { get; }
 }
 
-internal record ExprInput(ConstantField Decl) : UserInput {
+internal record MemberDeclInput(MemberDecl Decl) : UserInput {
   public string FullName => Decl.FullName;
   public string ShortName => Decl.Name;
-  public Expression Body => Decl.Rhs;
 }
 
 internal class REPLInputParser {
-  private static int exprCounter = 0;
+  private static int inputCounter = 0;
 
-  private readonly Parser parser;
-  
   private readonly string source;
   private readonly REPLState replState;
 
-  private readonly Program unresolvedProgram;
   private readonly List<Expression> topLevelExprs;
+  private readonly Program unresolvedProgram;
+
+  private int inputId;
+  private readonly Parser parser;
 
   internal REPLInputParser(REPLState replState, string source) {
     this.source = source;
     this.replState = replState;
     topLevelExprs = new List<Expression>();
     unresolvedProgram = replState.CloneUnresolvedProgram();
+    inputId = inputCounter;
     var errors = new Errors(replState.Reporter);
     parser = Parser.SetupParser(source, fullFilename: REPLState.Fname, filename: REPLState.Fname,
       include: null, unresolvedProgram.DefaultModule, unresolvedProgram.BuiltIns, errors,
@@ -146,21 +147,19 @@ internal class REPLInputParser {
     var defaultMembersBefore = GetDefaultClassMembers(previous);
     var defaultMembersAfter = GetDefaultClassMembers(unresolvedProgram)!;
 
-    foreach (var newMember in SkipPrefix(defaultMembersBefore, defaultMembersAfter)) {
-      if (newMember is ConstantField field) {
-        newInputs.Add(new ExprInput(field));
-      }
-    }
+    newInputs.AddRange(SkipPrefix(defaultMembersBefore, defaultMembersAfter)
+      .Select(m => new MemberDeclInput(m)));
 
     Deduplicate(defaultMembersAfter);
 
     foreach (var expr in topLevelExprs) {
-      var field = new ConstantField(expr.tok, $"_{exprCounter++}", expr, true, false,
+      var field = new ConstantField(expr.tok, $"_{inputId++}", expr, true, false,
         new InferredTypeProxy(), null);
       defaultMembersAfter.Add(field);
-      newInputs.Add(new ExprInput(field));
+      newInputs.Add(new MemberDeclInput(field));
     }
 
+    inputCounter += newInputs.Count;
     return newInputs;
   }
 
