@@ -329,7 +329,6 @@ module Interp {
 
   function method InterpExprWithType(e: Expr, ty: Type, env: Environment, ctx: State)
     : (r: InterpResult<Value>)
-    requires SupportsInterp(e)
     decreases env.fuel, e, 2
     ensures r.Success? ==> r.value.ret.HasType(ty)
   {
@@ -371,7 +370,6 @@ module Interp {
 
   function method {:opaque} InterpExprs(es: seq<Expr>, env: Environment, ctx: State)
     : (r: InterpResult<seq<Value>>)
-    requires forall e | e in es :: SupportsInterp(e)
     decreases env.fuel, es
     ensures r.Success? ==> |r.value.ret| == |es|
   { // TODO generalize into a FoldResult function
@@ -400,7 +398,7 @@ module Interp {
 
   function method {:opaque} InterpLazy(e: Expr, env: Environment, ctx: State)
     : (r: InterpResult<Value>)
-    requires e.Apply? && e.aop.Lazy? && SupportsInterp(e)
+    requires e.Apply? && e.aop.Lazy?
     decreases env.fuel, e, 0
   {
     reveal SupportsInterp();
@@ -438,7 +436,7 @@ module Interp {
   }
 
   lemma InterpLazy_Complete(e: Expr, env: Environment, ctx: State)
-    requires e.Apply? && e.aop.Lazy? && SupportsInterp(e)
+    requires e.Apply? && e.aop.Lazy?
     requires InterpLazy(e, env, ctx).Failure?
     ensures InterpLazy_Eagerly(e, env, ctx) == InterpLazy(e, env, ctx)
   {
@@ -448,7 +446,7 @@ module Interp {
   }
 
   lemma InterpLazy_Eagerly_Sound(e: Expr, env: Environment, ctx: State)
-    requires e.Apply? && e.aop.Lazy? && SupportsInterp(e)
+    requires e.Apply? && e.aop.Lazy?
     requires InterpLazy_Eagerly(e, env, ctx).Success?
     ensures InterpLazy_Eagerly(e, env, ctx) == InterpLazy(e, env, ctx)
   {
