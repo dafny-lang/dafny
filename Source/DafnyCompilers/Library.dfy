@@ -212,6 +212,18 @@ module Lib {
       else [(ts[0], qs[0])] + Zip(ts[1..], qs[1..])
     }
 
+    // TODO: Merge.  Removed unnecessary trigger and strengthened postcondition
+    function method {:opaque} Filter<T>(s: seq<T>, f: (T ~> bool)): (result: seq<T>)
+      requires forall i | 0 <= i < |s| :: f.requires(s[i])
+      ensures |result| <= |s| // DISCUSS: This allows duplication / unifiqation
+      ensures forall x | x in result :: f.requires(x) && x in s && f(x)
+      ensures forall x | x in s && f(x) :: x in result
+      reads f.reads
+    {
+      if |s| == 0 then []
+      else (if f(s[0]) then [s[0]] else []) + Filter(s[1..], f)
+    }
+
     import Datatypes
 
     function method {:opaque} MapResult<T, Q, E>(ts: seq<T>, f: T ~> Datatypes.Result<Q, E>)
@@ -240,6 +252,19 @@ module Lib {
       else
         var a0 :- f(a0, ts[0]);
         FoldLResult(f, a0, ts[1..])
+    }
+
+    function method {:opaque} MapFilter<T, Q>(s: seq<T>, f: (T ~> Datatypes.Option<Q>)): (result: seq<Q>)
+      requires forall i | 0 <= i < |s| :: f.requires(s[i])
+      ensures |result| <= |s|
+      ensures forall y | y in result :: exists x | x in s :: f.requires(x) && f(x) == Datatypes.Some(y)
+      ensures forall x | x in s && f(x).Some? :: f(x).value in result
+      reads f.reads
+    {
+      if |s| == 0 then []
+      else (match f(s[0])
+              case Some(y) => [y]
+              case None => []) + MapFilter(s[1..], f)
     }
   }
 
