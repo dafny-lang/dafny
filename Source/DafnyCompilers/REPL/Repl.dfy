@@ -23,6 +23,10 @@ module {:extern "REPLInterop"} {:compile false} REPLInterop {
 
     static method {:extern} ReadLine()
       returns (e: System.String?)
+
+    static method {:extern} RunWithCustomStack<A, B>(f: A -> B, a0: A, size: System.int32)
+      returns (b: B)
+      ensures b == f(a0)
   }
 
   trait {:compile false} {:extern} ParseResult {
@@ -77,6 +81,7 @@ module {:extern "REPLInterop"} {:compile false} REPLInterop {
 
 datatype REPLError =
   | EOF()
+  | StackOverflow()
   | FailedParse(pmsg: string)
   | ResolutionError(rmsg: string)
   | TranslationError(te: Translator.TranslationError)
@@ -87,6 +92,8 @@ datatype REPLError =
     match this
       case EOF() =>
         "EOF"
+      case StackOverflow() =>
+        "Stack overflow"
       case FailedParse(msg) =>
         "Parse error:\n" + msg
       case ResolutionError(msg) =>
@@ -206,22 +213,40 @@ class REPL {
     return Lib.Seq.MapResult(newInputs, TranslateInput);
   }
 
+  static const MAX_FUEL := 1024;
+  static const FRAME_SIZE := 1024 * 1024;
+
+  static method InterpExpr(e: Interp.Expr, env: Interp.Environment)
+    returns (r: REPLResult<Interp.InterpReturn<Interp.Value>>)
+    requires env.fuel < MAX_FUEL
+  {
+    var stackSize := FRAME_SIZE * env.fuel;
+    var fn := (_: ()) => Interp.InterpExpr(e, env).MapFailure(e => InterpError(e));
+    r := REPLInterop.Utils.RunWithCustomStack(fn, (), stackSize as System.int32);
+  }
+
   static method Eval(e: Interp.Expr, globals: Interp.Context) returns (r: REPLResult<Interp.Value>)
     decreases *
   {
     var fuel: nat := 4;
     while true
+      invariant fuel < MAX_FUEL
       decreases *
     {
       var env := Interp.Environment(fuel := fuel, globals := globals);
-      match Interp.InterpExpr(e, env)
+      var v := InterpExpr(e, env);
+      match v
         case Success(Return(val, _)) =>
           return Success(val);
-        case Failure(OutOfFuel(_)) =>
-          print "Trying again with fuel := ", fuel;
+        case Failure(InterpError(OutOfFuel(_))) =>
           fuel := fuel * 2;
+          if fuel >= MAX_FUEL {
+            return Failure(StackOverflow);
+          } else {
+            print "Fuel exhausted, trying again with fuel := ", fuel, "\n";
+          }
         case Failure(err) =>
-          return Failure(InterpError(err));
+          return Failure(err);
     }
   }
 

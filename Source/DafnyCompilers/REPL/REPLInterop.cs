@@ -5,7 +5,7 @@ using Microsoft.Dafny;
 
 namespace REPLInterop;
 
-public class Utils {
+public partial class Utils {
   public static void Initialize() {
     // FIXME make C-c exit current prompt
     Console.OutputEncoding = System.Text.Encoding.UTF8;
@@ -14,6 +14,14 @@ public class Utils {
 
   public static string? ReadLine() {
     return Console.In.ReadLine();
+  }
+
+  public static B RunWithCustomStack<A, B>(Func<A, B> f, A a0, int stackSize) {
+    B retVal = default(B);
+    var thread = new Thread(() => { retVal = f(a0); }, stackSize);
+    thread.Start();
+    thread.Join();
+    return retVal;
   }
 }
 
