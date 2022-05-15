@@ -138,9 +138,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
 
       public void ReportImplementationsBeforeVerification(Implementation[] implementations) {
-        if (reportVerificationDiagnostics) {
-          progressReporter.ReportImplementationsBeforeVerification(implementations);
-        }
       }
 
       public void ReportStartVerifyImplementation(Implementation implementation) {

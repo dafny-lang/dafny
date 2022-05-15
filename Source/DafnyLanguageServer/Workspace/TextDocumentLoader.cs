@@ -197,6 +197,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       if (VerifierOptions.GutterStatus) {
         progressReporter.RecomputeVerificationTree();
         progressReporter.ReportRealtimeDiagnostics(false, document);
+        progressReporter.ReportImplementationsBeforeVerification(
+          document.VerificationTasks.Select(t => t.Implementation).ToArray());
       }
 
       var implementationTasks = document.VerificationTasks;
