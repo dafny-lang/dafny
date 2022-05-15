@@ -6,6 +6,7 @@ using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
 using System.Numerics;
+using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 using ExtensionMethods;
 using Microsoft.BaseTypes;
@@ -1340,10 +1341,50 @@ namespace Microsoft.Dafny.Compilers {
       TrStmt(recoveryBody, exceptBlock);
     }
 
+    private static readonly Regex ModuleLine = new(@"^\s*assert\s+""([a-zA-Z0-9_]+)""\s*==\s*__name__\s*$");
+
+    private static string FindModuleName(string externFilename) {
+      using var rd = new StreamReader(new FileStream(externFilename, FileMode.Open, FileAccess.Read));
+      while (rd.ReadLine() is { } line) {
+        var match = ModuleLine.Match(line);
+        if (match.Success) {
+          return match.Groups[1].Value;
+        }
+      }
+      return null;
+    }
+
+    static bool CopyExternLibraryIntoPlace(string externFilename, string mainProgram, TextWriter outputWriter) {
+      // Grossly, we need to look in the file to figure out where to put it
+      var moduleName = FindModuleName(externFilename);
+      if (moduleName == null) {
+        outputWriter.WriteLine($"Unable to determine module name: {externFilename}");
+        return false;
+      }
+      var mainDir = Path.GetDirectoryName(mainProgram);
+      Contract.Assert(mainDir != null);
+      var tgtFilename = Path.Combine(mainDir, moduleName + ".py");
+      var file = new FileInfo(externFilename);
+      file.CopyTo(tgtFilename, true);
+      if (DafnyOptions.O.CompileVerbose) {
+        outputWriter.WriteLine($"Additional input {externFilename} copied to {tgtFilename}");
+      }
+      return true;
+    }
+
     public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText,
         string /*?*/ callToMain, string /*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
         bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
       compilationResult = null;
+      foreach (var otherFileName in otherFileNames) {
+        if (Path.GetExtension(otherFileName) != ".py") {
+          outputWriter.WriteLine($"Unrecognized file as extra input for Python compilation: {otherFileName}");
+          return false;
+        }
+        if (!CopyExternLibraryIntoPlace(otherFileName, targetFilename, outputWriter)) {
+          return false;
+        }
+      }
       if (runAfterCompile) {
         Contract.Assert(callToMain != null); // this is part of the contract of CompileTargetProgram
         // Since the program is to be run soon, nothing further is done here. Any compilation errors (that is, any errors
