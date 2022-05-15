@@ -1,8 +1,6 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Reactive.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
@@ -22,18 +20,19 @@ class SlowVerifier : IProgramVerifier {
 
   private readonly DafnyProgramVerifier verifier;
 
-  public IReadOnlyList<IImplementationTask> GetImplementationTasks(DafnyDocument document, IVerificationProgressReporter progressReporter) {
+  public ProgramVerificationObjects GetImplementationTasks(DafnyDocument document)
+  {
     var program = document.Program;
     var attributes = program.Modules().SelectMany(m => {
       return m.TopLevelDecls.OfType<TopLevelDeclWithMembers>().SelectMany(d => d.Members.Select(member => member.Attributes));
     }).ToList();
 
-    var originalResult = verifier.GetImplementationTasks(document, progressReporter);
+    var (tasks, observer) = verifier.GetImplementationTasks(document);
     if (attributes.Any(a => Attributes.Contains(a, "neverVerify"))) {
-      return originalResult.Select(t => new NeverVerifiesImplementationTask(t)).ToList();
+      tasks = tasks.Select(t => new NeverVerifiesImplementationTask(t)).ToList();
     }
 
-    return originalResult;
+    return new ProgramVerificationObjects(tasks, observer);
   }
 
   class NeverVerifiesImplementationTask : IImplementationTask {

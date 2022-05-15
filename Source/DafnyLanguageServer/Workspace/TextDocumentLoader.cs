@@ -92,7 +92,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       );
     }
 
-    private ConditionalWeakTable<Dafny.Program, VerificationProgressReporter> reporters = new();
+    private readonly ConditionalWeakTable<Dafny.Program, VerificationProgressReporter> reporters = new();
     public async Task<DafnyDocument> LoadAndPrepareVerificationTasksAsync(TextDocumentItem textDocument, CancellationToken cancellationToken) {
       var loaded = await LoadAsync(textDocument, cancellationToken);
       if (loaded.ParseAndResolutionDiagnostics.Any(d => d.Severity == DiagnosticSeverity.Error)) {
@@ -104,7 +104,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         loaded, notificationPublisher, diagnosticPublisher);
       reporters.Add(loaded.Program, progressReporter);
 
-      var implementationTasks = verifier.GetImplementationTasks(loaded, progressReporter);
+      var (implementationTasks, batchObserver) = verifier.GetImplementationTasks(loaded);
+      batchObserver.Subscribe(progressReporter.ReportAssertionBatchResult);
+
       foreach (var task in implementationTasks) {
         cancellationToken.Register(task.Cancel);
       }
@@ -194,7 +196,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       notificationPublisher.SendStatusNotification(document.TextDocumentItem, CompilationStatus.VerificationStarted);
 
       reporters.TryGetValue(document.Program, out var progressReporter);
-      progressReporter.SetDocument(document);
+      progressReporter!.SetDocument(document);
       if (VerifierOptions.GutterStatus) {
         progressReporter.RecomputeVerificationTree();
         progressReporter.ReportRealtimeDiagnostics(false, document);

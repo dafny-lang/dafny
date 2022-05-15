@@ -3,14 +3,10 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using VC;
 using Microsoft.Dafny.LanguageServer.Workspace;
-using VCGeneration;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
@@ -74,17 +70,17 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     private const int TranslatorMaxStackSize = 0x10000000; // 256MB
     static readonly ThreadTaskScheduler TranslatorScheduler = new(TranslatorMaxStackSize);
 
-    public IReadOnlyList<IImplementationTask> GetImplementationTasks(DafnyDocument document, IVerificationProgressReporter progressReporter) {
+    public ProgramVerificationObjects GetImplementationTasks(DafnyDocument document) {
       var program = document.Program;
       var errorReporter = (DiagnosticErrorReporter)program.Reporter;
 
-      var printer = new ModelCapturingOutputPrinter(logger, progressReporter, options.GutterStatus);
+      var batchObserver = new AssertionBatchCompletedObserver(logger, options.GutterStatus);
 
       // Do not set these settings within the object's construction. It will break some tests within
       // VerificationNotificationTest and DiagnosticsTest that rely on updating these settings.
       DafnyOptions.O.TimeLimit = options.TimeLimit;
       DafnyOptions.O.VcsCores = GetConfiguredCoreCount(options);
-      DafnyOptions.O.Printer = printer;
+      DafnyOptions.O.Printer = batchObserver;
       DafnyOptions.O.VerifySnapshots = (int)options.VerifySnapshots;
 
 #pragma warning disable VSTHRD002
@@ -99,64 +95,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         var results = executionEngine.GetImplementationTasks(boogieProgram);
         return results;
       }).ToList();
-      return result;
-    }
-
-    private class ModelCapturingOutputPrinter : OutputPrinter {
-      private readonly ILogger logger;
-      private readonly IVerificationProgressReporter progressReporter;
-      private readonly bool reportVerificationDiagnostics;
-
-      public ModelCapturingOutputPrinter(
-          ILogger logger,
-          IVerificationProgressReporter progressReporter,
-          bool reportVerificationDiagnostics) {
-        this.logger = logger;
-        this.progressReporter = progressReporter;
-        this.reportVerificationDiagnostics = reportVerificationDiagnostics;
-      }
-
-      public void AdvisoryWriteLine(TextWriter writer, string format, params object[] args) {
-      }
-
-      public ExecutionEngineOptions? Options { get; set; }
-
-      public void ErrorWriteLine(TextWriter tw, string s) {
-        logger.LogError(s);
-      }
-
-      public void ErrorWriteLine(TextWriter tw, string format, params object[] args) {
-        logger.LogError(format, args);
-      }
-
-      public void Inform(string s, TextWriter tw) {
-        logger.LogInformation(s);
-      }
-
-      public void ReportBplError(IToken tok, string message, bool error, TextWriter tw, [AllowNull] string category) {
-        logger.LogError(message);
-      }
-
-      public void ReportImplementationsBeforeVerification(Implementation[] implementations) {
-      }
-
-      public void ReportStartVerifyImplementation(Implementation implementation) {
-      }
-
-      public void ReportEndVerifyImplementation(Implementation implementation, Boogie.VerificationResult result) {
-      }
-
-      public void ReportSplitResult(Split split, VCResult vcResult) {
-        if (reportVerificationDiagnostics) {
-          progressReporter.ReportAssertionBatchResult(split, vcResult);
-        }
-      }
-
-      public void WriteErrorInformation(ErrorInformation errorInfo, TextWriter tw, bool skipExecutionTrace) {
-      }
-
-      public void WriteTrailer(TextWriter writer, PipelineStatistics stats) {
-      }
+      return new ProgramVerificationObjects(result, batchObserver.CompletedBatches);
     }
   }
 }
