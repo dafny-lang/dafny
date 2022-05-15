@@ -11,6 +11,7 @@ using System.Linq;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Reactive.Threading.Tasks;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -91,6 +92,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       );
     }
 
+    private ConditionalWeakTable<Dafny.Program, VerificationProgressReporter> reporters = new();
     public async Task<DafnyDocument> LoadAndPrepareVerificationTasksAsync(TextDocumentItem textDocument, CancellationToken cancellationToken) {
       var loaded = await LoadAsync(textDocument, cancellationToken);
       if (loaded.ParseAndResolutionDiagnostics.Any(d => d.Severity == DiagnosticSeverity.Error)) {
@@ -100,6 +102,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var progressReporter = new VerificationProgressReporter(
         loggerFactory.CreateLogger<VerificationProgressReporter>(),
         loaded, notificationPublisher, diagnosticPublisher);
+      reporters.Add(loaded.Program, progressReporter);
 
       var implementationTasks = verifier.GetImplementationTasks(loaded, progressReporter);
       foreach (var task in implementationTasks) {
@@ -190,10 +193,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public IObservable<DafnyDocument> Verify(DafnyDocument document, CancellationToken cancellationToken) {
       notificationPublisher.SendStatusNotification(document.TextDocumentItem, CompilationStatus.VerificationStarted);
 
-      var progressReporter = new VerificationProgressReporter(
-        loggerFactory.CreateLogger<VerificationProgressReporter>(),
-        document, notificationPublisher, diagnosticPublisher);
-
+      reporters.TryGetValue(document.Program, out var progressReporter);
+      progressReporter.SetDocument(document);
       if (VerifierOptions.GutterStatus) {
         progressReporter.RecomputeVerificationTree();
         progressReporter.ReportRealtimeDiagnostics(false, document);
@@ -220,6 +221,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           var itDiagnostics = GetDiagnosticsFromResult(document, result);
           var view = new ImplementationView(lspRange, status, itDiagnostics);
           implementationViews.AddOrUpdate(id, view, (_, _) => view);
+          if (VerifierOptions.GutterStatus) {
+            progressReporter.ReportEndVerifyImplementation(implementationTask.Implementation, result);
+          }
         } else {
           implementationViews.AddOrUpdate(id,
             _ => new ImplementationView(lspRange, status, Array.Empty<Diagnostic>()),
@@ -235,6 +239,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       foreach (var implementationTask in implementationTasks) {
         implementationTask.Run();
+        if (VerifierOptions.GutterStatus) {
+          progressReporter.ReportStartVerifyImplementation(implementationTask.Implementation);
+        }
       }
 
       if (VerifierOptions.GutterStatus) {

@@ -13,7 +13,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 public class VerificationProgressReporter : IVerificationProgressReporter {
   private readonly ICompilationStatusNotificationPublisher publisher;
-  private readonly DafnyDocument document;
+  private DafnyDocument document;
   private readonly ILogger<VerificationProgressReporter> logger;
   private readonly IDiagnosticPublisher diagnosticPublisher;
 
@@ -433,5 +433,9 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
       ProverInterface.Outcome.Bounded => GutterVerificationStatus.Error,
       _ => GutterVerificationStatus.Error
     };
+  }
+
+  public void SetDocument(DafnyDocument dafnyDocument) {
+    this.document = dafnyDocument;
   }
 }

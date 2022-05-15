@@ -141,15 +141,9 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
 
       public void ReportStartVerifyImplementation(Implementation implementation) {
-        if (reportVerificationDiagnostics) {
-          progressReporter.ReportStartVerifyImplementation(implementation);
-        }
       }
 
       public void ReportEndVerifyImplementation(Implementation implementation, Boogie.VerificationResult result) {
-        if (reportVerificationDiagnostics) {
-          progressReporter.ReportEndVerifyImplementation(implementation, result);
-        }
       }
 
       public void ReportSplitResult(Split split, VCResult vcResult) {
