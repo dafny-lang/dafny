@@ -1168,6 +1168,8 @@ namespace Microsoft.Dafny.Compilers {
 
         case BinaryExpr.ResolvedOpcode.NeqCommon:
         case BinaryExpr.ResolvedOpcode.SeqNeq:
+        case BinaryExpr.ResolvedOpcode.SetNeq:
+        case BinaryExpr.ResolvedOpcode.MapNeq:
           opString = "!="; break;
 
         case BinaryExpr.ResolvedOpcode.Union:
