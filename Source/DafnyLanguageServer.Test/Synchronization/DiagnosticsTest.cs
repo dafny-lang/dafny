@@ -350,6 +350,7 @@ method Multiply(x: int, y: int) returns (product: int)
           }
         }
       });
+
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
@@ -557,7 +558,7 @@ class Test {
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken, 2);
+      var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
       Assert.AreEqual(1, diagnostics.Length);
       Assert.AreEqual(MessageSource.Verifier.ToString(), diagnostics[0].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
@@ -906,7 +907,6 @@ method Foo() {
       client.OpenDocument(documentItem);
       var preChangeDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
       Assert.AreEqual(1, preChangeDiagnostics.Length);
-      await AssertNoDiagnosticsAreComing(CancellationToken);
       ApplyChange(ref documentItem, new Range(0, 7, 0, 10), "Bar");
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }

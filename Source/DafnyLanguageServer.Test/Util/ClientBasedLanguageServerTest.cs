@@ -28,19 +28,14 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
   protected TestNotificationReceiver<FileVerificationStatus> verificationStatusReceiver;
   private IDictionary<string, string> configuration;
 
-  public async Task<Diagnostic[]> GetLastDiagnostics(TextDocumentItem documentItem, CancellationToken cancellationToken = default, int? expectedNumber = null) {
+  public async Task<Diagnostic[]> GetLastDiagnostics(TextDocumentItem documentItem, CancellationToken cancellationToken = default) {
     await client.WaitForNotificationCompletionAsync(documentItem.Uri, cancellationToken);
     var document = await Documents.GetLastDocumentAsync(documentItem);
-    var remainingDiagnostics = expectedNumber ?? Int32.MaxValue;
-    Diagnostic[] result = null;
+    Diagnostic[] result;
     do {
-      var newDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(cancellationToken);
-      if (result != null) {
-        Assert.AreNotEqual(result, newDiagnostics);
-      }
-      result = newDiagnostics;
-      remainingDiagnostics--;
-    } while (!document!.Diagnostics.SequenceEqual(result) && remainingDiagnostics > 0);
+      result = await diagnosticReceiver.AwaitNextDiagnosticsAsync(cancellationToken);
+    } while (!document!.Diagnostics.SequenceEqual(result));
+
     return result;
   }
 

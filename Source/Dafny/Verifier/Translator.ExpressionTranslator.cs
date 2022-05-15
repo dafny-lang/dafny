@@ -705,35 +705,32 @@ namespace Microsoft.Dafny {
         } else if (expr is UnaryOpExpr) {
           var e = (UnaryOpExpr)expr;
           Boogie.Expr arg = TrExpr(e.E);
-          switch (e.Op) {
-            case UnaryOpExpr.Opcode.Lit:
+          switch (e.ResolvedOp) {
+            case UnaryOpExpr.ResolvedOpcode.Lit:
               return MaybeLit(arg);
-            case UnaryOpExpr.Opcode.Not:
-              if (expr.Type.IsBitVectorType) {
-                var bvWidth = expr.Type.AsBitVectorType.Width;
-                var bvType = translator.BplBvType(bvWidth);
-                Boogie.Expr r = FunctionCall(GetToken(expr), "not_bv" + bvWidth, bvType, arg);
-                if (translator.IsLit(arg)) {
-                  r = MaybeLit(r, bvType);
-                }
-                return r;
-              } else {
-                return Boogie.Expr.Unary(GetToken(expr), UnaryOperator.Opcode.Not, arg);
+            case UnaryOpExpr.ResolvedOpcode.BVNot:
+              var bvWidth = expr.Type.AsBitVectorType.Width;
+              var bvType = translator.BplBvType(bvWidth);
+              Boogie.Expr r = FunctionCall(GetToken(expr), "not_bv" + bvWidth, bvType, arg);
+              if (translator.IsLit(arg)) {
+                r = MaybeLit(r, bvType);
               }
-            case UnaryOpExpr.Opcode.Cardinality:
-              var eType = e.E.Type.NormalizeExpand();
-              if (eType is SeqType) {
-                return translator.FunctionCall(GetToken(expr), BuiltinFunction.SeqLength, null, arg);
-              } else if (eType is SetType && ((SetType)eType).Finite) {
-                return translator.FunctionCall(GetToken(expr), BuiltinFunction.SetCard, null, arg);
-              } else if (eType is MultiSetType) {
-                return translator.FunctionCall(GetToken(expr), BuiltinFunction.MultiSetCard, null, arg);
-              } else if (eType is MapType && ((MapType)eType).Finite) {
-                return translator.FunctionCall(GetToken(expr), BuiltinFunction.MapCard, null, arg);
-              } else {
-                Contract.Assert(false); throw new cce.UnreachableException();  // unexpected sized type
-              }
-            case UnaryOpExpr.Opcode.Fresh:
+              return r;
+            case UnaryOpExpr.ResolvedOpcode.BoolNot:
+              return Boogie.Expr.Unary(GetToken(expr), UnaryOperator.Opcode.Not, arg);
+            case UnaryOpExpr.ResolvedOpcode.SeqLength:
+              Contract.Assert(e.E.Type.NormalizeExpand() is SeqType);
+              return translator.FunctionCall(GetToken(expr), BuiltinFunction.SeqLength, null, arg);
+            case UnaryOpExpr.ResolvedOpcode.SetCard:
+              Contract.Assert(e.E.Type.NormalizeExpand() is SetType { Finite: true });
+              return translator.FunctionCall(GetToken(expr), BuiltinFunction.SetCard, null, arg);
+            case UnaryOpExpr.ResolvedOpcode.MultiSetCard:
+              Contract.Assert(e.E.Type.NormalizeExpand() is MultiSetType);
+              return translator.FunctionCall(GetToken(expr), BuiltinFunction.MultiSetCard, null, arg);
+            case UnaryOpExpr.ResolvedOpcode.MapCard:
+              Contract.Assert(e.E.Type.NormalizeExpand() is MapType { Finite: true });
+              return translator.FunctionCall(GetToken(expr), BuiltinFunction.MapCard, null, arg);
+            case UnaryOpExpr.ResolvedOpcode.Fresh:
               var freshLabel = ((FreshExpr)e).AtLabel;
               var eeType = e.E.Type.NormalizeExpand();
               if (eeType is SetType) {
@@ -770,7 +767,7 @@ namespace Microsoft.Dafny {
                 Boogie.Expr oIsFresh = Boogie.Expr.Not(OldAt(freshLabel).IsAlloced(GetToken(expr), TrExpr(e.E)));
                 return Boogie.Expr.Binary(GetToken(expr), BinaryOperator.Opcode.And, oNull, oIsFresh);
               }
-            case UnaryOpExpr.Opcode.Allocated: {
+            case UnaryOpExpr.ResolvedOpcode.Allocated: {
                 var aType = e.E.Type.NormalizeExpand();
                 return translator.MkIsAlloc(TrExpr(e.E), aType, HeapExpr);
               }
