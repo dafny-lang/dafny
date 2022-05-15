@@ -77,10 +77,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     public IReadOnlyList<IImplementationTask> GetImplementationTasks(DafnyDocument document, IVerificationProgressReporter progressReporter) {
       var program = document.Program;
       var errorReporter = (DiagnosticErrorReporter)program.Reporter;
-      if (options.GutterStatus) {
-        progressReporter.RecomputeVerificationTree();
-        progressReporter.ReportRealtimeDiagnostics(false, document);
-      }
 
       var printer = new ModelCapturingOutputPrinter(logger, progressReporter, options.GutterStatus);
 

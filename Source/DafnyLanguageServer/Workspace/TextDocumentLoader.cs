@@ -190,6 +190,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public IObservable<DafnyDocument> Verify(DafnyDocument document, CancellationToken cancellationToken) {
       notificationPublisher.SendStatusNotification(document.TextDocumentItem, CompilationStatus.VerificationStarted);
 
+      var progressReporter = new VerificationProgressReporter(
+        loggerFactory.CreateLogger<VerificationProgressReporter>(),
+        document, notificationPublisher, diagnosticPublisher);
+
+      if (VerifierOptions.GutterStatus) {
+        progressReporter.RecomputeVerificationTree();
+        progressReporter.ReportRealtimeDiagnostics(false, document);
+      }
+
       var implementationTasks = document.VerificationTasks;
       var _ = NotifyStatusAsync(document.TextDocumentItem, implementationTasks, cancellationToken);
       var implementationViews = GetExistingViews(document, implementationTasks);
@@ -227,13 +236,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       if (VerifierOptions.GutterStatus) {
-        ReportRealtimeDiagnostics(document, result, cancellationToken);
+        ReportRealtimeDiagnostics(document, result, progressReporter, cancellationToken);
       }
       return result;
     }
 
     private void ReportRealtimeDiagnostics(DafnyDocument document, IObservable<DafnyDocument> result,
-      CancellationToken cancellationToken)
+      IVerificationProgressReporter progressReporter, CancellationToken cancellationToken)
     {
       result.DefaultIfEmpty(document).LastAsync().Subscribe(finalDocument =>
       {
@@ -242,9 +251,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           SetAllUnvisitedMethodsAsVerified(document);
         }
 
-        var progressReporter = new VerificationProgressReporter(
-          loggerFactory.CreateLogger<VerificationProgressReporter>(),
-          document, notificationPublisher, diagnosticPublisher);
         progressReporter.ReportRealtimeDiagnostics(true, finalDocument);
       });
     }
