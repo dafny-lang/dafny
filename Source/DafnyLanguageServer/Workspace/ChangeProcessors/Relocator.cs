@@ -44,6 +44,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
       };
     }
 
+    public ImmutableList<Position> RelocatePositions(ImmutableList<Position> originalPositions,
+      DidChangeTextDocumentParams changes, CancellationToken cancellationToken) {
+      var migratePositions = new ChangeProcessor(logger, loggerSymbolTable, changes.ContentChanges, cancellationToken)
+        .MigratePositions(originalPositions);
+      return migratePositions;
+    }
+
     private class ChangeProcessor {
       private readonly ILogger logger;
       // Invariant: Item1.Range == null <==> Item2 == null 
@@ -77,7 +84,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
         return contentChanges.Aggregate(originalDiagnostics, MigrateDiagnostics);
       }
 
-      public List<Position> MigratePositions(List<Position> originalRanges) {
+      public ImmutableList<Position> MigratePositions(ImmutableList<Position> originalRanges) {
         return contentChanges.Aggregate(originalRanges, MigratePositions);
       }
 
@@ -88,12 +95,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
 
         return originalDiagnostics.SelectMany(diagnostic => MigrateDiagnostic(change, diagnostic)).ToList();
       }
-      private List<Position> MigratePositions(List<Position> originalRanges, TextDocumentContentChangeEvent change) {
+      private ImmutableList<Position> MigratePositions(ImmutableList<Position> originalRanges, TextDocumentContentChangeEvent change) {
         if (change.Range == null) {
-          return new List<Position> { };
+          return new List<Position> { }.ToImmutableList();
         }
 
-        return originalRanges.SelectMany(position => MigratePosition(change, position)).ToList();
+        return originalRanges.SelectMany(position => MigratePosition(change, position)).ToImmutableList();
       }
 
       // Requires changeEndOffset.change.Range to be not null

@@ -221,7 +221,8 @@ public abstract class LinearVerificationDiagnosticTester : ClientBasedLanguageSe
     return new Tuple<string, List<Tuple<Range, string>>>(originalCode, changes);
   }
 
-  public async Task VerifyTrace(string codeAndTrace, string fileName = null,
+  // If testTrace is false, codeAndTree should not contain a trace to test.
+  public async Task VerifyTrace(string codeAndTrace, string fileName = null, bool testTrace = true,
       DiagnosticsReceiver diagnosticsReceiver = null,
       TestNotificationReceiver<VerificationStatusGutter> verificationDiagnosticsReceiver = null
     ) {
@@ -232,7 +233,7 @@ public abstract class LinearVerificationDiagnosticTester : ClientBasedLanguageSe
     codeAndTrace = codeAndTrace[0] == '\n' ? codeAndTrace.Substring(1) :
       codeAndTrace.Substring(0, 2) == "\r\n" ? codeAndTrace.Substring(2) :
       codeAndTrace;
-    var codeAndChanges = ExtractCode(codeAndTrace);
+    var codeAndChanges = testTrace ? ExtractCode(codeAndTrace) : codeAndTrace;
     var (code, changes) = ExtractCodeAndChanges(codeAndChanges);
     var documentItem = CreateTestDocument(code, fileName);
     client.OpenDocument(documentItem);
@@ -242,11 +243,14 @@ public abstract class LinearVerificationDiagnosticTester : ClientBasedLanguageSe
       ApplyChange(ref documentItem, range, inserted);
       traces.AddRange(await GetAllLineVerificationDiagnostics(documentItem, diagnosticsReceiver, verificationDiagnosticsReceiver));
     }
-    var traceObtained = RenderTrace(traces, code);
-    var ignoreQuestionMarks = AcceptQuestionMarks(traceObtained, codeAndTrace);
-    var expected = "\n" + codeAndTrace + "\n";
-    var actual = "\n" + ignoreQuestionMarks + "\n";
-    AssertWithDiff.Equal(expected, actual);
+
+    if (testTrace) {
+      var traceObtained = RenderTrace(traces, code);
+      var ignoreQuestionMarks = AcceptQuestionMarks(traceObtained, codeAndTrace);
+      var expected = "\n" + codeAndTrace + "\n";
+      var actual = "\n" + ignoreQuestionMarks + "\n";
+      AssertWithDiff.Equal(expected, actual);
+    }
   }
 
   // Finds all the "?" at the beginning in expected and replace the characters at the same position in traceObtained
