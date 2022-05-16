@@ -108,7 +108,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         initialViews.Add(GetImplementationId(task.Implementation), view);
       }
       return loaded with {
-        VerificationView = verificationView,
+        VerificationTasks = verificationView,
         ImplementationViews = initialViews,
       };
     }
@@ -187,8 +187,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var progressReporter = new VerificationProgressReporter(
         loggerFactory.CreateLogger<VerificationProgressReporter>(),
         document, notificationPublisher, diagnosticPublisher);
-      document.VerificationView!.BatchCompletions.Subscribe(progressReporter.ReportAssertionBatchResult);
-      var implementationTasks = document.VerificationView!.Tasks;
+      document.VerificationTasks!.BatchCompletions.Subscribe(progressReporter.ReportAssertionBatchResult);
+      var implementationTasks = document.VerificationTasks!.Tasks;
 
       progressReporter!.SetDocument(document);
       if (VerifierOptions.GutterStatus) {

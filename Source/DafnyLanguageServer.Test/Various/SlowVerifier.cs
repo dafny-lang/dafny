@@ -20,7 +20,7 @@ class SlowVerifier : IProgramVerifier {
 
   private readonly DafnyProgramVerifier verifier;
 
-  public ProgramVerificationView GetVerificationView(DafnyDocument document)
+  public ProgramVerificationTasks GetVerificationView(DafnyDocument document)
   {
     var program = document.Program;
     var attributes = program.Modules().SelectMany(m => {
@@ -32,7 +32,7 @@ class SlowVerifier : IProgramVerifier {
       tasks = tasks.Select(t => new NeverVerifiesImplementationTask(t)).ToList();
     }
 
-    return new ProgramVerificationView(tasks, observer);
+    return new ProgramVerificationTasks(tasks, observer);
   }
 
   class NeverVerifiesImplementationTask : IImplementationTask {
