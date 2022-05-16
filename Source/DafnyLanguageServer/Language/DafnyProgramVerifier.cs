@@ -70,7 +70,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     private const int TranslatorMaxStackSize = 0x10000000; // 256MB
     static readonly ThreadTaskScheduler TranslatorScheduler = new(TranslatorMaxStackSize);
 
-    public ProgramVerificationObjects GetImplementationTasks(DafnyDocument document) {
+    public ProgramVerificationView GetVerificationView(DafnyDocument document) {
       var program = document.Program;
       var errorReporter = (DiagnosticErrorReporter)program.Reporter;
 
@@ -95,7 +95,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         var results = executionEngine.GetImplementationTasks(boogieProgram);
         return results;
       }).ToList();
-      return new ProgramVerificationObjects(result, batchObserver.CompletedBatches);
+      return new ProgramVerificationView(result, batchObserver.CompletedBatches);
     }
   }
 }

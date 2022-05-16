@@ -9,10 +9,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Reactive.Linq;
-using System.Reactive.Subjects;
 using System.Reactive.Threading.Tasks;
-using System.Runtime.CompilerServices;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
@@ -92,33 +89,26 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       );
     }
 
-    private readonly ConditionalWeakTable<Dafny.Program, VerificationProgressReporter> reporters = new();
     public async Task<DafnyDocument> LoadAndPrepareVerificationTasksAsync(TextDocumentItem textDocument, CancellationToken cancellationToken) {
       var loaded = await LoadAsync(textDocument, cancellationToken);
       if (loaded.ParseAndResolutionDiagnostics.Any(d => d.Severity == DiagnosticSeverity.Error)) {
         return loaded;
       }
 
-      var progressReporter = new VerificationProgressReporter(
-        loggerFactory.CreateLogger<VerificationProgressReporter>(),
-        loaded, notificationPublisher, diagnosticPublisher);
-      reporters.Add(loaded.Program, progressReporter);
+      var verificationView = verifier.GetVerificationView(loaded);
 
-      var (implementationTasks, batchObserver) = verifier.GetImplementationTasks(loaded);
-      batchObserver.Subscribe(progressReporter.ReportAssertionBatchResult);
-
-      foreach (var task in implementationTasks) {
+      foreach (var task in verificationView.Tasks) {
         cancellationToken.Register(task.Cancel);
       }
 
       var initialViews = new Dictionary<ImplementationId, ImplementationView>();
-      foreach (var task in implementationTasks) {
+      foreach (var task in verificationView.Tasks) {
         var status = await StatusFromImplementationTaskAsync(task);
         var view = new ImplementationView(task.Implementation.tok.GetLspRange(), status, Array.Empty<Diagnostic>());
         initialViews.Add(GetImplementationId(task.Implementation), view);
       }
       return loaded with {
-        VerificationTasks = implementationTasks,
+        VerificationView = verificationView,
         ImplementationViews = initialViews,
       };
     }
@@ -149,7 +139,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(symbolTable, cancellationToken).ToArray();
 
       return new DafnyDocument(textDocument, errorReporter.GetDiagnostics(textDocument.Uri),
-        Array.Empty<IImplementationTask>(),
         new Dictionary<ImplementationId, ImplementationView>(),
         Array.Empty<Counterexample>(),
         ghostDiagnostics, program, symbolTable);
@@ -171,12 +160,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return new DafnyDocument(
         textDocument,
         errorReporter.GetDiagnostics(textDocument.Uri),
-        Array.Empty<IImplementationTask>(),
         new Dictionary<ImplementationId, ImplementationView>(),
         Array.Empty<Counterexample>(),
         Array.Empty<Diagnostic>(),
         program,
         CreateEmptySymbolTable(program, logger),
+        null,
         loadCanceled
       );
     }
@@ -195,16 +184,20 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public IObservable<DafnyDocument> Verify(DafnyDocument document, CancellationToken cancellationToken) {
       notificationPublisher.SendStatusNotification(document.TextDocumentItem, CompilationStatus.VerificationStarted);
 
-      reporters.TryGetValue(document.Program, out var progressReporter);
+      var progressReporter = new VerificationProgressReporter(
+        loggerFactory.CreateLogger<VerificationProgressReporter>(),
+        document, notificationPublisher, diagnosticPublisher);
+      document.VerificationView!.BatchCompletions.Subscribe(progressReporter.ReportAssertionBatchResult);
+      var implementationTasks = document.VerificationView!.Tasks;
+
       progressReporter!.SetDocument(document);
       if (VerifierOptions.GutterStatus) {
         progressReporter.RecomputeVerificationTree();
         progressReporter.ReportRealtimeDiagnostics(false, document);
         progressReporter.ReportImplementationsBeforeVerification(
-          document.VerificationTasks.Select(t => t.Implementation).ToArray());
+          implementationTasks.Select(t => t.Implementation).ToArray());
       }
 
-      var implementationTasks = document.VerificationTasks;
       var _ = NotifyStatusAsync(document.TextDocumentItem, implementationTasks, cancellationToken);
       var implementationViews = GetExistingViews(document, implementationTasks);
       var counterExamples = new ConcurrentStack<Counterexample>();

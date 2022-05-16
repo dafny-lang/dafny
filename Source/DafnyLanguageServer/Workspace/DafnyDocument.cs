@@ -4,6 +4,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Boogie;
+using Microsoft.Dafny.LanguageServer.Language;
 using SymbolTable = Microsoft.Dafny.LanguageServer.Language.Symbols.SymbolTable;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
@@ -21,8 +22,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   public record DafnyDocument(
     TextDocumentItem TextDocumentItem,
     IReadOnlyList<Diagnostic> ParseAndResolutionDiagnostics,
-    // TODO move this to the DocumentEntry because it's mutable?
-    IReadOnlyList<IImplementationTask> VerificationTasks,
     // VerificationDiagnostics can be deduced from CounterExamples,
     // but they are stored separately because they are migrated and counterexamples currently are not.
     IReadOnlyDictionary<ImplementationId, ImplementationView>? ImplementationViews,
@@ -30,7 +29,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     IReadOnlyList<Diagnostic> GhostDiagnostics,
     Dafny.Program Program,
     SymbolTable SymbolTable,
-
+    ProgramVerificationView? VerificationView = null,
     bool LoadCanceled = false
   ) {
 
