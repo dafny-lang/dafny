@@ -245,7 +245,7 @@ iterator ThatIterator(x: int) yields (y: int, z: int)
   /// <summary>
   /// The token of refining declarations is set to the token of their base declaration during refinement.
   /// The original source location is no longer available.
-  /// Without changing that, we can not show the status of individual refining declarations.q
+  /// Without changing that, we can not show the status of individual refining declarations.
   /// </summary>
   [TestMethod]
   public async Task RefiningDeclarationStatusIsFoldedIntoTheBase() {
