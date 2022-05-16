@@ -75,7 +75,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
               }
               var verificationTreeRange = member.tok.GetLspRange(member.BodyEndTok);
               var verificationTree = new TopLevelDeclMemberVerificationTree(
-                member.Name,
+                $"constant {member.Name}",
                 member.CompileName,
                 member.tok.filename,
                 verificationTreeRange);
@@ -83,7 +83,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
             } else if (member is Method or Function) {
               var verificationTreeRange = member.tok.GetLspRange(member.BodyEndTok.line == 0 ? member.tok : member.BodyEndTok);
               var verificationTree = new TopLevelDeclMemberVerificationTree(
-                member.Name,
+                (member is Method ? "method " : "function ") + member.Name,
                 member.CompileName,
                 member.tok.filename,
                 verificationTreeRange);
@@ -91,7 +91,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
               if (member is Function { ByMethodBody: { } } function) {
                 var verificationTreeRangeByMethod = function.ByMethodTok.GetLspRange(function.ByMethodBody.EndTok);
                 var verificationTreeByMethod = new TopLevelDeclMemberVerificationTree(
-                  member.Name + " by method",
+                  "function by method " + member.Name,
                   member.CompileName + "_by_method",
                   member.tok.filename,
                   verificationTreeRangeByMethod);
@@ -105,7 +105,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
           }
           var verificationTreeRange = subsetTypeDecl.tok.GetLspRange(subsetTypeDecl.BodyEndTok);
           var verificationTree = new TopLevelDeclMemberVerificationTree(
-            subsetTypeDecl.Name,
+            $"subset type {subsetTypeDecl.Name}",
             subsetTypeDecl.CompileName,
             subsetTypeDecl.tok.filename,
             verificationTreeRange);

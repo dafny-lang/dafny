@@ -429,9 +429,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       AssertionBatches = result;
     }
 
-    public AssertionBatchVerificationTree? GetLongestAssertionBatch() =>
+    public AssertionBatchVerificationTree? GetCostlierAssertionBatch() =>
       !AssertionBatches.Any() ? null :
-      AssertionBatches.MaxBy(assertionBatch => assertionBatch.TimeSpent);
+      AssertionBatches.MaxBy(assertionBatch => assertionBatch.ResourceCount);
 
     public List<int> AssertionBatchTimes =>
       AssertionBatches.Select(assertionBatch => assertionBatch.TimeSpent).ToList();
