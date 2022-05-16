@@ -61,7 +61,7 @@ public class ConcurrentLinearVerificationDiagnosticTester : LinearVerificationDi
  .  S [S][ ][I][S][ ]:method H()
  .  S [=][=][-][~][O]:  ensures F(1)
  .  S [=][=][-][~][=]:{//Next: { assert false;
- .  S [S][ ][I][S][ ]:}", $"testfile{i}.dfy", diagnosticsReceivers[i], verificationDiagnosticsReceivers[i]));
+ .  S [S][ ][I][S][ ]:}", $"testfile{i}.dfy", true, diagnosticsReceivers[i], verificationDiagnosticsReceivers[i]));
     }
 
     for (var i = 0; i < MaxSimultaneousVerificationTasks; i++) {
