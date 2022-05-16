@@ -187,6 +187,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   /// <summary>
   /// Triggers sending of the current verification diagnostics to the client
   /// </summary>
+  /// <param name="verificationStarted">Whether verification already started at this point</param>
   /// <param name="dafnyDocument">The document to send. Can be a previous document</param>
   public void ReportRealtimeDiagnostics(bool verificationStarted, DafnyDocument? dafnyDocument = null) {
     lock (LockProcessing) {
@@ -212,7 +213,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
       .OrderBy(diagnostic => diagnostic.StartTime)
       .Select(diagnostic => diagnostic.DisplayName)
       .ToList();
-    var total = document.VerificationTree.Children.Count();
+    var total = document.VerificationTree.Children.Count;
     var verified = document.VerificationTree.Children.Count(diagnostic => diagnostic.Finished);
     var message = string.Join(", ", pending) + (!pending.Any() ? extra.Trim() : extra);
     ReportProgress($"{verified}/{total} {message}");
