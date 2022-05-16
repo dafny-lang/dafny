@@ -91,8 +91,10 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       DafnyOptions.O.TimeLimit = options.TimeLimit;
       DafnyOptions.O.VcsCores = GetConfiguredCoreCount(options);
       DafnyOptions.O.Printer = printer;
+      var engineOptions = new DafnyOptions(DafnyOptions.O);
+      engineOptions.Printer = printer;
 
-      var executionEngine = new ExecutionEngine(DafnyOptions.O, cache);
+      var executionEngine = new ExecutionEngine(engineOptions, cache);
 #pragma warning disable VSTHRD002
       var translated = Task.Factory.StartNew(() => Translator.Translate(program, errorReporter, new Translator.TranslatorFlags {
         InsertChecksums = true,
