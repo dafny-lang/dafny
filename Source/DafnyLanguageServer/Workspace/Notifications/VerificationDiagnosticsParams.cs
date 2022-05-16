@@ -407,9 +407,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     public void RecomputeAssertionBatchNodeDiagnostics() {
       var result = new List<AssertionBatchVerificationTree>();
       foreach (var implementationNode in Children.OfType<ImplementationVerificationTree>()) {
-        for (var batchIndex = 0; batchIndex < implementationNode.AssertionBatchCount; batchIndex++) {
+        foreach (var vcNum in implementationNode.AssertionBatchMetrics.Keys) {
           var children = implementationNode.Children.OfType<AssertionVerificationTree>().Where(
-            assertionNode => assertionNode.AssertionBatchIndex == batchIndex).Cast<VerificationTree>().ToList();
+            assertionNode => assertionNode.AssertionBatchNum == vcNum).Cast<VerificationTree>().ToList();
           if (children.Count > 0) {
             var minPosition = children.MinBy(child => child.Position)!.Range.Start;
             var maxPosition = children.MaxBy(child => child.Range.End)!.Range.End;
@@ -420,8 +420,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
               new Range(minPosition, maxPosition)
             ) {
               Children = children,
-              ResourceCount = implementationNode.AssertionBatchResourceCount[batchIndex],
-            }.WithDuration(implementationNode.StartTime, implementationNode.AssertionBatchTimes[batchIndex]));
+              ResourceCount = implementationNode.AssertionBatchMetrics[vcNum].ResourceCount,
+            }.WithDuration(implementationNode.StartTime, implementationNode.AssertionBatchMetrics[vcNum].Time));
           }
         }
       }
@@ -469,6 +469,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     }
   }
 
+  public record AssertionBatchMetrics(
+    int Time,
+    int ResourceCount
+  );
+
   public record ImplementationVerificationTree(
     string DisplayName,
     // Used to re-trigger the verification of some diagnostics.
@@ -479,11 +484,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
   ) : VerificationTree(DisplayName, Identifier, Filename, Range) {
     // The index of ImplementationVerificationTree.AssertionBatchTimes
     // is the same as the AssertionVerificationTree.AssertionBatchIndex
-    public List<int> AssertionBatchTimes { get; private set; } = new();
-    public List<int> AssertionBatchResourceCount { get; private set; } = new();
-    private List<int> NewAssertionBatchTimes { get; set; } = new();
-    private List<int> NewAssertionBatchResourceCount { get; set; } = new();
-    public int AssertionBatchCount => AssertionBatchTimes.Count;
+    public ImmutableDictionary<int, AssertionBatchMetrics> AssertionBatchMetrics { get; private set; } =
+      new Dictionary<int, AssertionBatchMetrics>().ToImmutableDictionary();
+    private Dictionary<int, AssertionBatchMetrics> NewAssertionBatchMetrics { get; set; } =
+      new Dictionary<int, AssertionBatchMetrics>();
 
     public override VerificationTree GetCopyForNotification() {
       if (Finished) {
@@ -491,27 +495,19 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       }
       return this with {
         Children = Children.Select(child => child.GetCopyForNotification()).ToList(),
-        AssertionBatchTimes = new List<int>(AssertionBatchTimes),
-        AssertionBatchResourceCount = new List<int>(AssertionBatchResourceCount),
+        AssertionBatchMetrics = new Dictionary<int, AssertionBatchMetrics>(AssertionBatchMetrics).ToImmutableDictionary()
       };
     }
 
     private Implementation? implementation = null;
 
-    public int GetNewAssertionBatchCount() {
-      return NewAssertionBatchTimes.Count;
-    }
-    public void AddAssertionBatchTime(int milliseconds) {
-      NewAssertionBatchTimes.Add(milliseconds);
-    }
-    public void AddAssertionBatchResourceCount(int milliseconds) {
-      NewAssertionBatchResourceCount.Add(milliseconds);
+    public void AddAssertionBatchMetrics(int vcNum, int milliseconds, int resourceCount) {
+      NewAssertionBatchMetrics[vcNum] = new AssertionBatchMetrics(milliseconds, resourceCount);
     }
 
     public override bool Start() {
       if (base.Start()) {
-        NewAssertionBatchTimes = new();
-        NewAssertionBatchResourceCount = new();
+        NewAssertionBatchMetrics = new Dictionary<int, AssertionBatchMetrics>();
         return true;
       }
 
@@ -520,8 +516,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
     public override bool Stop() {
       if (base.Stop()) {
-        AssertionBatchTimes = NewAssertionBatchTimes;
-        AssertionBatchResourceCount = NewAssertionBatchResourceCount;
+        AssertionBatchMetrics = NewAssertionBatchMetrics.ToImmutableDictionary();
+        NewAssertionBatchMetrics = new Dictionary<int, AssertionBatchMetrics>();
         SaveNewChildren();
         return true;
       }
@@ -565,7 +561,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     /// <summary>
     /// Which assertion batch this assertion was taken from in its implementation node
     /// </summary>
-    public int AssertionBatchIndex { get; init; }
+    public int AssertionBatchNum { get; init; }
 
     public AssertionVerificationTree
       WithAssertionAndCounterExample(AssertCmd? inAssertion, Counterexample? inCounterExample) {

@@ -309,11 +309,9 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
       } else {
         result.ComputePerAssertOutcomes(out var perAssertOutcome, out var perAssertCounterExample);
 
-        var assertionBatchIndex = implementationNode.GetNewAssertionBatchCount();
         var assertionBatchTime = (int)result.runTime.TotalMilliseconds;
         var assertionBatchResourceCount = result.resourceCount;
-        implementationNode.AddAssertionBatchTime(assertionBatchTime);
-        implementationNode.AddAssertionBatchResourceCount(assertionBatchResourceCount);
+        implementationNode.AddAssertionBatchMetrics(result.vcNum, assertionBatchTime, assertionBatchResourceCount);
 
         // Attaches the trace
         void AddChildOutcome(Counterexample? counterexample, AssertCmd assertCmd, IToken token,
@@ -340,7 +338,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
           ) {
             StatusVerification = status,
             StatusCurrent = CurrentStatus.Current,
-            AssertionBatchIndex = assertionBatchIndex,
+            AssertionBatchNum = result.vcNum,
             Started = true,
             Finished = true
           }.WithDuration(implementationNode.StartTime, assertionBatchTime)
