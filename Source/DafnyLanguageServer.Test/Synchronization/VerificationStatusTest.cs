@@ -270,6 +270,6 @@ module Refinement2 refines BaseModule {
     var status = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
 
     Assert.AreEqual(1, status.NamedVerifiables.Count);
-    Assert.AreEqual(new Range(1,9,1,12), status.NamedVerifiables[0].NameRange);
+    Assert.AreEqual(new Range(1, 9, 1, 12), status.NamedVerifiables[0].NameRange);
   }
 }

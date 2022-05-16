@@ -246,10 +246,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private void ReportRealtimeDiagnostics(DafnyDocument document, IObservable<DafnyDocument> result,
-      IVerificationProgressReporter progressReporter, CancellationToken cancellationToken)
-    {
-      result.DefaultIfEmpty(document).LastAsync().Subscribe(finalDocument =>
-      {
+      IVerificationProgressReporter progressReporter, CancellationToken cancellationToken) {
+      result.DefaultIfEmpty(document).LastAsync().Subscribe(finalDocument => {
         // All unvisited trees need to set them as "verified"
         if (!cancellationToken.IsCancellationRequested) {
           SetAllUnvisitedMethodsAsVerified(document);
@@ -259,8 +257,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       });
     }
 
-    private static ConcurrentDictionary<ImplementationId, ImplementationView> GetExistingViews(DafnyDocument document, IReadOnlyList<IImplementationTask> implementationTasks)
-    {
+    private static ConcurrentDictionary<ImplementationId, ImplementationView> GetExistingViews(DafnyDocument document, IReadOnlyList<IImplementationTask> implementationTasks) {
       var viewDictionary = new ConcurrentDictionary<ImplementationId, ImplementationView>();
       foreach (var task in implementationTasks) {
         var id = GetImplementationId(task.Implementation);
@@ -272,8 +269,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return viewDictionary;
     }
 
-    private List<Diagnostic> GetDiagnosticsFromResult(DafnyDocument document, VerificationResult result)
-    {
+    private List<Diagnostic> GetDiagnosticsFromResult(DafnyDocument document, VerificationResult result) {
       var errorReporter = new DiagnosticErrorReporter(document.Uri);
       foreach (var counterExample in result.Errors) {
         errorReporter.ReportBoogieError(counterExample.CreateErrorInformation(result.Outcome, Options.ForceBplErrors));

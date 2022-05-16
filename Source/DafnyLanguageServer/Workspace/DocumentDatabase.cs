@@ -153,7 +153,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           var resolvedDocument = newDocument with {
             ImplementationViews = newDocument.ImplementationViews!.ToDictionary(
               kv => kv.Key,
-              kv => kv.Value with { Diagnostics = migratedImplementationDiagnostics.GetValueOrDefault(kv.Key, kv.Value.Diagnostics)}), // TODO merge in views from newDocument. Prefer the migrated ones????
+              kv =>
+                kv.Value with { Diagnostics = migratedImplementationDiagnostics.GetValueOrDefault(kv.Key, kv.Value.Diagnostics) }),
             VerificationTree = migratedVerificationTree
           };
           documentLoader.PublishGutterIcons(resolvedDocument, false);

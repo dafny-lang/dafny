@@ -12,7 +12,7 @@ namespace Microsoft.Dafny.LanguageServer.Language;
 public class AssertionBatchCompletedObserver : OutputPrinter {
   private readonly ILogger logger;
   private readonly bool reportVerificationDiagnostics;
-  private readonly Subject<AssertionBatchResult> completedBatches = new ();
+  private readonly Subject<AssertionBatchResult> completedBatches = new();
 
   public AssertionBatchCompletedObserver(
     ILogger logger,

@@ -20,8 +20,7 @@ class SlowVerifier : IProgramVerifier {
 
   private readonly DafnyProgramVerifier verifier;
 
-  public ProgramVerificationTasks GetVerificationView(DafnyDocument document)
-  {
+  public ProgramVerificationTasks GetVerificationView(DafnyDocument document) {
     var program = document.Program;
     var attributes = program.Modules().SelectMany(m => {
       return m.TopLevelDecls.OfType<TopLevelDeclWithMembers>().SelectMany(d => d.Members.Select(member => member.Attributes));
