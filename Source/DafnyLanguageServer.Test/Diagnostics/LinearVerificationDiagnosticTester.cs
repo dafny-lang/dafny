@@ -17,16 +17,16 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Diagnostics;
 
 public abstract class LinearVerificationDiagnosticTester : ClientBasedLanguageServerTest {
-  protected TestNotificationReceiver<VerificationStatusGutter> VerificationDiagnosticReceiver;
+  protected TestNotificationReceiver<VerificationStatusGutter> verificationDiagnosticsReceiver;
   [TestInitialize]
   public override async Task SetUp() {
-    diagnosticReceiver = new();
-    VerificationDiagnosticReceiver = new();
+    diagnosticsReceiver = new();
+    verificationDiagnosticsReceiver = new();
     client = await InitializeClient(options =>
       options
-        .OnPublishDiagnostics(diagnosticReceiver.NotificationReceived)
+        .OnPublishDiagnostics(diagnosticsReceiver.NotificationReceived)
         .AddHandler(DafnyRequestNames.VerificationStatusGutter,
-          NotificationHandler.For<VerificationStatusGutter>(VerificationDiagnosticReceiver.NotificationReceived))
+          NotificationHandler.For<VerificationStatusGutter>(verificationDiagnosticsReceiver.NotificationReceived))
       );
   }
 
@@ -108,7 +108,11 @@ public abstract class LinearVerificationDiagnosticTester : ClientBasedLanguageSe
 
   protected List<LineVerificationStatus[]> previousTraces = null;
 
-  protected async Task<List<LineVerificationStatus[]>> GetAllLineVerificationDiagnostics(TextDocumentItem documentItem) {
+  protected async Task<List<LineVerificationStatus[]>> GetAllLineVerificationDiagnostics(
+      TextDocumentItem documentItem,
+      DiagnosticsReceiver diagnosticReceiver,
+      TestNotificationReceiver<VerificationStatusGutter> VerificationDiagnosticReceiver
+      ) {
     var traces = new List<LineVerificationStatus[]>();
     var maximumNumberOfTraces = 50;
     var previousPerLineDiagnostics
@@ -117,8 +121,7 @@ public abstract class LinearVerificationDiagnosticTester : ClientBasedLanguageSe
     var nextDiagnostic = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
     for (; maximumNumberOfTraces > 0; maximumNumberOfTraces--) {
       var verificationDiagnosticReport = await VerificationDiagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
-      Assert.AreEqual(documentItem.Uri, verificationDiagnosticReport.Uri);
-      if (documentItem.Version != verificationDiagnosticReport.Version) {
+      if (documentItem.Uri != verificationDiagnosticReport.Uri || documentItem.Version != verificationDiagnosticReport.Version) {
         continue;
       }
       var newPerLineDiagnostics = verificationDiagnosticReport.PerLineStatus.ToList();
@@ -218,19 +221,26 @@ public abstract class LinearVerificationDiagnosticTester : ClientBasedLanguageSe
     return new Tuple<string, List<Tuple<Range, string>>>(originalCode, changes);
   }
 
-  public async Task VerifyTrace(string codeAndTrace) {
+  public async Task VerifyTrace(string codeAndTrace, string fileName = null,
+      DiagnosticsReceiver diagnosticsReceiver = null,
+      TestNotificationReceiver<VerificationStatusGutter> verificationDiagnosticsReceiver = null
+    ) {
+    if (diagnosticsReceiver == null || verificationDiagnosticsReceiver == null) {
+      diagnosticsReceiver = this.diagnosticsReceiver;
+      verificationDiagnosticsReceiver = this.verificationDiagnosticsReceiver;
+    }
     codeAndTrace = codeAndTrace[0] == '\n' ? codeAndTrace.Substring(1) :
       codeAndTrace.Substring(0, 2) == "\r\n" ? codeAndTrace.Substring(2) :
       codeAndTrace;
     var codeAndChanges = ExtractCode(codeAndTrace);
     var (code, changes) = ExtractCodeAndChanges(codeAndChanges);
-    var documentItem = CreateTestDocument(code);
-    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+    var documentItem = CreateTestDocument(code, fileName);
+    client.OpenDocument(documentItem);
     var traces = new List<LineVerificationStatus[]>();
-    traces.AddRange(await GetAllLineVerificationDiagnostics(documentItem));
+    traces.AddRange(await GetAllLineVerificationDiagnostics(documentItem, diagnosticsReceiver, verificationDiagnosticsReceiver));
     foreach (var (range, inserted) in changes) {
       ApplyChange(ref documentItem, range, inserted);
-      traces.AddRange(await GetAllLineVerificationDiagnostics(documentItem));
+      traces.AddRange(await GetAllLineVerificationDiagnostics(documentItem, diagnosticsReceiver, verificationDiagnosticsReceiver));
     }
     var traceObtained = RenderTrace(traces, code);
     var ignoreQuestionMarks = AcceptQuestionMarks(traceObtained, codeAndTrace);
