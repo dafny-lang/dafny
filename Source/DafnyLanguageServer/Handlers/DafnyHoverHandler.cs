@@ -71,7 +71,8 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           var information = "";
           var orderedAssertionBatches =
             node.AssertionBatches
-              .OrderBy(keyValue => keyValue.Key, new TupleComparer()).Select(keyValuePair => keyValuePair.Value);
+              .OrderBy(keyValue => keyValue.Key, new TupleComparer()).Select(keyValuePair => keyValuePair.Value)
+              .ToList();
           foreach (var assertionBatch in orderedAssertionBatches) {
             if (!assertionBatch.Range.Contains(position)) {
               continue;
@@ -84,8 +85,6 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
                   assertionNode.ImmediatelyRelatedRanges.Any(range => range.Contains(position))) {
                 var assertCmd = assertionNode.GetAssertion();
                 var batchRef = AddAssertionBatchDocumentation("batch");
-                var assertionBatchTime = assertionBatch.TimeSpent;
-                var assertionBatchResourceCount = assertionBatch.ResourceCount;
                 var assertionCount = assertionBatch.Children.Count;
 
                 var obsolescence = assertionNode.StatusCurrent switch {
@@ -171,24 +170,30 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
               information += $"- Total resource usage: {formatResourceCount(node.ResourceCount)}  \n";
               if (assertionBatchesToReport.Count == 1) {
                 var assertionBatch = AddAssertionBatchDocumentation("assertion batch");
-                information += $"- Only one {assertionBatch}";
+                information += $"- Only one {assertionBatch} containing {orderedAssertionBatches.First().NumberOfAssertions} assertions.";
               } else {
                 var assertionBatches = AddAssertionBatchDocumentation("assertion batches");
                 information += $"- Most costly {assertionBatches}:";
-                var result = new List<(String index, String line, String resourceCount, bool overcostly)>();
+                var result = new List<(String index, String line, String numberOfAssertions, String assertionPlural, String resourceCount, bool overcostly)>();
                 foreach (var costlierAssertionBatch in assertionBatchesToReport) {
-                  var item = costlierAssertionBatch.Children[0].Position.Line;
+                  var item = costlierAssertionBatch.Range.Start.Line + 1;
                   var overcostly = costlierAssertionBatch.ResourceCount > 3 * node.ResourceCount / assertionBatchCount;
-                  result.Add(("#" + costlierAssertionBatch.RelativeNumber, item.ToString(),
+                  result.Add(("#" + costlierAssertionBatch.RelativeNumber, item.ToString(), costlierAssertionBatch.Children.Count + "",
+                    costlierAssertionBatch.Children.Count != 1 ? "s" : "",
                     formatResourceCount(costlierAssertionBatch.ResourceCount), overcostly));
                 }
 
                 var maxIndexLength = result.Select(item => item.index.Length).Max();
                 var maxLineLength = result.Select(item => item.line.Length).Max();
+                var maxNumberOfAssertionsLength = result.Select(item => item.numberOfAssertions.Length).Max();
+                var maxAssertionsPluralLength = result.Select(item => item.assertionPlural.Length).Max();
                 var maxResourceLength = result.Select(item => item.resourceCount.Length).Max();
-                foreach (var (index, line, resource, overcostly) in result) {
+                foreach (var (index, line, numberOfAssertions, assertionPlural, resource, overcostly) in result) {
                   information +=
-                    $"  \n  - {index.PadLeft(maxIndexLength)}/{assertionBatchCount} at line {line.PadLeft(maxLineLength)}, {resource.PadLeft(maxResourceLength)}";
+                    $"  \n  - {index.PadLeft(maxIndexLength)}/{assertionBatchCount}" +
+                    $" with {numberOfAssertions.PadLeft(maxNumberOfAssertionsLength)} assertion" +
+                    assertionPlural.PadRight(maxAssertionsPluralLength) +
+                    $" at line {line.PadLeft(maxLineLength)}, {resource.PadLeft(maxResourceLength)}";
                   if (overcostly) {
                     information +=
                       @" [/!\](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-verification-debugging-slow)";

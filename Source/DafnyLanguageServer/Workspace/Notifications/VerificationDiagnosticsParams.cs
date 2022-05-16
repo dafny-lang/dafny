@@ -422,20 +422,18 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
         foreach (var vcNum in implementationNode.AssertionBatchMetrics.Keys.OrderBy(x => x)) {
           var children = implementationNode.Children.OfType<AssertionVerificationTree>().Where(
             assertionNode => assertionNode.AssertionBatchNum == vcNum).Cast<VerificationTree>().ToList();
-          if (children.Count > 0) {
-            var minPosition = children.MinBy(child => child.Position)!.Range.Start;
-            var maxPosition = children.MaxBy(child => child.Range.End)!.Range.End;
-            result[(implementationNumber, vcNum)] = new AssertionBatchVerificationTree(
-              $"Assertion batch #{result.Count}",
-              $"assertion-batch-{implementationNumber}-{vcNum}",
-              Filename,
-              new Range(minPosition, maxPosition)
-            ) {
-              Children = children,
-              ResourceCount = implementationNode.AssertionBatchMetrics[vcNum].ResourceCount,
-              RelativeNumber = result.Count,
-            }.WithDuration(implementationNode.StartTime, implementationNode.AssertionBatchMetrics[vcNum].Time);
-          }
+          var minPosition = children.Count > 0 ? children.MinBy(child => child.Position)!.Range.Start : Range.Start;
+          var maxPosition = children.Count > 0 ? children.MaxBy(child => child.Range.End)!.Range.End : Range.Start;
+          result[(implementationNumber, vcNum)] = new AssertionBatchVerificationTree(
+            $"Assertion batch #{result.Count + 1}",
+            $"assertion-batch-{implementationNumber}-{vcNum}",
+            Filename,
+            new Range(minPosition, maxPosition)
+          ) {
+            Children = children,
+            ResourceCount = implementationNode.AssertionBatchMetrics[vcNum].ResourceCount,
+            RelativeNumber = result.Count + 1,
+          }.WithDuration(implementationNode.StartTime, implementationNode.AssertionBatchMetrics[vcNum].Time);
         }
       }
 
@@ -468,6 +466,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     // The range of this node.
     Range Range
   ) : VerificationTree("Assertion Batch", DisplayName, Identifier, Filename, Range) {
+    public int NumberOfAssertions => Children.Count;
+
     public AssertionBatchVerificationTree WithDuration(DateTime parentStartTime, int implementationNodeAssertionBatchTime) {
       Started = true;
       Finished = true;

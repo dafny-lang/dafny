@@ -92,13 +92,54 @@ method {:vcs_split_on_every_assert} f(x: int) {
 ", "testfile.dfy", CompilationStatus.VerificationFailed);
       await AssertHoverMatches(documentItem, (1, 12),
         @"[Error:](???) assertion might not hold  
-This is the only assertion in [batch](???) #1 of 2 in method f  
-[Batch](???) #1 resource usage: 8K RU"
+This is the only assertion in [batch](???) #2 of 3 in method f  
+[Batch](???) #2 resource usage: ??? RU"
       );
       await AssertHoverMatches(documentItem, (2, 12),
         @"<span style='color:green'>**Success:**</span> assertion always holds  
-This is the only assertion in [batch](???) #2 of 2 in method f  
-[Batch](???) #2 resource usage: 8K RU  "
+This is the only assertion in [batch](???) #3 of 3 in method f  
+[Batch](???) #3 resource usage: ??? RU  "
+      );
+      await AssertHoverMatches(documentItem, (0, 36),
+        @"**Verification performance metrics for method f**:
+
+- Total resource usage: ??? RU  
+- Most costly [assertion batches](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-verification-attributes-on-assert-statements):  
+  - #3/3 with 1 assertion  at line 3, ??? RU  
+  - #2/3 with 1 assertion  at line 2, ??? RU  
+  - #1/3 with 0 assertions at line 1, ??? RU"
+      );
+    }
+
+
+    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    public async Task MessagesWhenMultipleAssertionsPerBatch() {
+      var documentItem = await GetDocumentItem(@"
+function f(x: int): int {
+  assert x >= 4;
+  assert x >= 2; // Hover #1
+  assert {:split_here} x >= 5; // hover #2
+  assert x >= 1;
+  x
+}
+", "testfile.dfy", CompilationStatus.VerificationFailed);
+      await AssertHoverMatches(documentItem, (2, 12),
+        @"???Success??? assertion always holds  
+This is assertion #2 of 2 in [batch](???) #1 of 2 in function f  
+[Batch](???) #1 resource usage: ??? RU"
+      );
+      await AssertHoverMatches(documentItem, (3, 26),
+        @"[Error:](???) assertion might not hold  
+This is assertion #1 of 2 in [batch](???) #2 of 2 in function f  
+[Batch](???) #2 resource usage: ??? RU  "
+      );
+      await AssertHoverMatches(documentItem, (0, 36),
+        @"**Verification performance metrics for function f**:
+
+- Total resource usage: ??? RU  
+- Most costly [assertion batches](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-verification-attributes-on-assert-statements):  
+  - #???/2 with 2 assertions at line ???, ??? RU  
+  - #???/2 with 2 assertions at line ???, ??? RU"
       );
     }
 
