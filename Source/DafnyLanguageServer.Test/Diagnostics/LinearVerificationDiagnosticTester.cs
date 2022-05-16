@@ -117,8 +117,7 @@ public abstract class LinearVerificationDiagnosticTester : ClientBasedLanguageSe
     var nextDiagnostic = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
     for (; maximumNumberOfTraces > 0; maximumNumberOfTraces--) {
       var verificationDiagnosticReport = await VerificationDiagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
-      Assert.AreEqual(documentItem.Uri, verificationDiagnosticReport.Uri);
-      if (documentItem.Version != verificationDiagnosticReport.Version) {
+      if (documentItem.Uri != verificationDiagnosticReport.Uri || documentItem.Version != verificationDiagnosticReport.Version) {
         continue;
       }
       var newPerLineDiagnostics = verificationDiagnosticReport.PerLineStatus.ToList();
@@ -219,11 +218,12 @@ public abstract class LinearVerificationDiagnosticTester : ClientBasedLanguageSe
     return new Tuple<string, List<Tuple<Range, string>>>(originalCode, changes);
   }
 
-  public async Task VerifyTrace(string codeAndTrace) {
+  // If testTrace is false, codeAndTree should not contain a trace to test.
+  public async Task VerifyTrace(string codeAndTrace, bool testTrace = true) {
     codeAndTrace = codeAndTrace[0] == '\n' ? codeAndTrace.Substring(1) :
       codeAndTrace.Substring(0, 2) == "\r\n" ? codeAndTrace.Substring(2) :
       codeAndTrace;
-    var codeAndChanges = ExtractCode(codeAndTrace);
+    var codeAndChanges = testTrace ? ExtractCode(codeAndTrace) : codeAndTrace;
     var (code, changes) = ExtractCodeAndChanges(codeAndChanges);
     var documentItem = CreateTestDocument(code);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
@@ -233,11 +233,14 @@ public abstract class LinearVerificationDiagnosticTester : ClientBasedLanguageSe
       ApplyChange(ref documentItem, range, inserted);
       traces.AddRange(await GetAllLineVerificationDiagnostics(documentItem));
     }
-    var traceObtained = RenderTrace(traces, code);
-    var ignoreQuestionMarks = AcceptQuestionMarks(traceObtained, codeAndTrace);
-    var expected = "\n" + codeAndTrace + "\n";
-    var actual = "\n" + ignoreQuestionMarks + "\n";
-    AssertWithDiff.Equal(expected, actual);
+
+    if (testTrace) {
+      var traceObtained = RenderTrace(traces, code);
+      var ignoreQuestionMarks = AcceptQuestionMarks(traceObtained, codeAndTrace);
+      var expected = "\n" + codeAndTrace + "\n";
+      var actual = "\n" + ignoreQuestionMarks + "\n";
+      AssertWithDiff.Equal(expected, actual);
+    }
   }
 
   // Finds all the "?" at the beginning in expected and replace the characters at the same position in traceObtained

@@ -148,12 +148,21 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var newLines = DafnyDocument.NumberOfLines(updatedText.Text);
       var migratedVerificationTree =
         relocator.RelocateVerificationTree(oldDocument.VerificationTree, newLines, documentChange, CancellationToken.None);
+
+      var migratedLastTouchedPositions =
+        relocator.RelocatePositions(oldDocument.LastTouchedMethodPositions, documentChange, CancellationToken.None);
       try {
         var newDocument = await documentLoader.LoadAsync(updatedText, cancellationToken);
+        var lastChange =
+          documentChange.ContentChanges
+            .Select(contentChange => contentChange.Range)
+            .LastOrDefault(newDocument.LastChange);
+        newDocument = newDocument with { LastChange = lastChange };
         if (newDocument.SymbolTable.Resolved) {
           var resolvedDocument = newDocument with {
             VerificationDiagnosticsPerImplementation = migratedVerificationDiagnotics,
-            VerificationTree = migratedVerificationTree
+            VerificationTree = migratedVerificationTree,
+            LastTouchedMethodPositions = migratedLastTouchedPositions
           };
           documentLoader.PublishVerificationDiagnostics(resolvedDocument, false);
           return resolvedDocument;
@@ -164,7 +173,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         var failedDocument = newDocument with {
           SymbolTable = relocator.RelocateSymbols(oldDocument.SymbolTable, documentChange, CancellationToken.None),
           VerificationDiagnosticsPerImplementation = migratedVerificationDiagnotics,
-          VerificationTree = migratedVerificationTree
+          VerificationTree = migratedVerificationTree,
+          LastTouchedMethodPositions = migratedLastTouchedPositions
         };
         documentLoader.PublishVerificationDiagnostics(failedDocument, false);
         return failedDocument;
@@ -178,7 +188,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           CounterExamples = Array.Empty<Counterexample>(),
           VerificationTree = migratedVerificationTree,
           LoadCanceled = true,
-          VerificationDiagnosticsPerImplementation = migratedVerificationDiagnotics
+          VerificationDiagnosticsPerImplementation = migratedVerificationDiagnotics,
+          LastTouchedMethodPositions = migratedLastTouchedPositions
         };
       }
     }

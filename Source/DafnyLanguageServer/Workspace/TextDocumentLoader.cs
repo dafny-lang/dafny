@@ -37,12 +37,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private readonly ISymbolTableFactory symbolTableFactory;
     private readonly IProgramVerifier verifier;
     private readonly IGhostStateDiagnosticCollector ghostStateDiagnosticCollector;
-    private readonly ICompilationStatusNotificationPublisher notificationPublisher;
-    private readonly ILoggerFactory loggerFactory;
+    protected readonly ICompilationStatusNotificationPublisher notificationPublisher;
+    protected readonly ILoggerFactory loggerFactory;
     private readonly ILogger<TextDocumentLoader> logger;
-    private readonly IDiagnosticPublisher diagnosticPublisher;
+    protected readonly IDiagnosticPublisher diagnosticPublisher;
 
-    private TextDocumentLoader(
+    protected TextDocumentLoader(
       ILoggerFactory loggerFactory,
       IDafnyParser parser,
       ISymbolResolver symbolResolver,
@@ -159,10 +159,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public IObservable<DafnyDocument> Verify(DafnyDocument document, CancellationToken cancellationToken) {
       notificationPublisher.SendStatusNotification(document.TextDocumentItem, CompilationStatus.VerificationStarted);
-      var progressReporter = new VerificationProgressReporter(
-        loggerFactory.CreateLogger<VerificationProgressReporter>(),
-        document, notificationPublisher, diagnosticPublisher);
-
+      var progressReporter = CreateVerificationProgressReporter(document);
       var programErrorReporter = new DiagnosticErrorReporter(document.Uri);
       document.Program.Reporter = programErrorReporter;
       var implementationTasks = verifier.Verify(document, progressReporter);
@@ -218,6 +215,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
       });
       return result;
+    }
+
+    protected virtual VerificationProgressReporter CreateVerificationProgressReporter(DafnyDocument document) {
+      return new VerificationProgressReporter(
+        loggerFactory.CreateLogger<VerificationProgressReporter>(),
+        document, notificationPublisher, diagnosticPublisher);
     }
 
     private async Task NotifyStatusAsync(TextDocumentItem item, IReadOnlyList<IImplementationTask> implementationTasks, CancellationToken cancellationToken) {
