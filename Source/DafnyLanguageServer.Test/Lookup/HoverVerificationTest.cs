@@ -151,12 +151,16 @@ No assertion to check."
         lastResult = await notificationReceiver.AwaitNextNotificationAsync(CancellationToken);
         Assert.AreEqual(documentItem.Uri, lastResult.Uri);
         Assert.AreEqual(documentItem.Version, lastResult.Version);
-      } while (lastResult.Status != CompilationStatus.VerificationFailed &&
-               lastResult.Status != CompilationStatus.VerificationSucceeded &&
-               lastResult.Status != CompilationStatus.ParsingFailed &&
-               lastResult.Status != CompilationStatus.ResolutionFailed);
+      } while (IsNotDoneYet(lastResult));
 
       return lastResult.Status;
+    }
+
+    private static bool IsNotDoneYet(CompilationStatusParams lastResult) {
+      return lastResult.Status != CompilationStatus.VerificationFailed &&
+             lastResult.Status != CompilationStatus.VerificationSucceeded &&
+             lastResult.Status != CompilationStatus.ParsingFailed &&
+             lastResult.Status != CompilationStatus.ResolutionFailed;
     }
 
     private Task<Hover> RequestHover(TextDocumentItem documentItem, Position position) {
