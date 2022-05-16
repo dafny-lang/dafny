@@ -185,7 +185,7 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
       // exclusive to themselves. This "stress test" ensures that loading multiple documents at once is possible.
       // To be more specific, this test should ensure that there is no state discarded/overriden between the three steps within
       // the Dafny Compiler itself.
-      int documentsToLoadConcurrently = 40;
+      int documentsToLoadConcurrently = 20;
       var source = @"
 method Multiply(x: int, y: int) returns (product: int)
   requires y >= 0 && x >= 0
