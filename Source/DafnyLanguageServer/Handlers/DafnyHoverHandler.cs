@@ -57,15 +57,23 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       return CreateMarkdownHover(hoverContent);
     }
 
+    class TupleComparer : IComparer<(int, int)> {
+      public int Compare((int, int) key1, (int, int) key2) {
+        return key1.Item1 < key2.Item1 ? -1 :
+          key1.Item1 == key2.Item1 ? key1.Item2 - key2.Item1 : 1;
+      }
+    }
+
     private string? GetDiagnosticsHover(DafnyDocument document, Position position, out bool areMethodStatistics) {
       areMethodStatistics = false;
       foreach (var node in document.VerificationTree.Children.OfType<TopLevelDeclMemberVerificationTree>()) {
         if (node.Range.Contains(position)) {
           var assertionBatchCount = node.AssertionBatchCount;
-          var assertionBatchIndex = -1;
           var information = "";
-          foreach (var assertionBatch in node.AssertionBatches) {
-            assertionBatchIndex += 1;
+          var orderedAssertionBatches =
+            node.AssertionBatches
+              .OrderBy(keyValue => keyValue.Key, new TupleComparer()).Select(keyValuePair => keyValuePair.Value);
+          foreach (var assertionBatch in orderedAssertionBatches) {
             if (!assertionBatch.Range.Contains(position)) {
               continue;
             }
@@ -116,12 +124,12 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
                   ? "the only assertion"
                   : $"assertion #{assertionIndex + 1} of {assertionCount}");
                 if (assertionBatchCount > 1) {
-                  information += $" in {batchRef} #{assertionBatchIndex + 1} of {assertionBatchCount}";
+                  information += $" in {batchRef} #{assertionBatch.RelativeNumber} of {assertionBatchCount}";
                 }
-                information += " in " + node.DisplayName + "  \n";
+                information += " in " + node.PrefixedDisplayName + "  \n";
                 if (assertionBatchCount > 1) {
                   information += AddAssertionBatchDocumentation("Batch") +
-                                 $"#{assertionBatchIndex + 1} resource usage: " +
+                                 $" #{assertionBatch.RelativeNumber} resource usage: " +
                                  formatResourceCount(assertionBatch.ResourceCount);
                 } else {
                   information += "Resource usage: " +
@@ -132,7 +140,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
                 if (!(assertionNode.GetCounterExample() is ReturnCounterexample returnCounterexample2 &&
                       returnCounterexample2.FailingReturn.tok.GetLspRange().Contains(position))) {
                   information += "  \n" + (assertionNode.SecondaryPosition != null
-                    ? $"`{Path.GetFileName(assertionNode.Filename)}({assertionNode.SecondaryPosition.Line + 1}, {assertionNode.SecondaryPosition.Character + 1}): `"
+                    ? $"Related location: {Path.GetFileName(assertionNode.Filename)}({assertionNode.SecondaryPosition.Line + 1}, {assertionNode.SecondaryPosition.Character + 1})"
                     : "");
                 }
               }
@@ -147,38 +155,45 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           // Ok no assertion here. Maybe a method?
           if (node.Position.Line == position.Line &&
               node.Filename == document.Uri.GetFileSystemPath()) {
-            information = $"**Verification performance metrics for {node.DisplayName}**:\n\n";
+            areMethodStatistics = true;
+            information = $"**Verification performance metrics for {node.PrefixedDisplayName}**:\n\n";
             if (!node.Started) {
               information += "_Verification not started yet_";
             } else if (!node.Finished) {
               information += "_Still verifying..._";
-            } else {
-
             }
 
 
-            var assertionBatchesToReport = node.AssertionBatches.OrderByDescending(a => a.ResourceCount).Take(3).ToList();
+            var assertionBatchesToReport =
+              node.AssertionBatches.Values.OrderByDescending(a => a.ResourceCount).Take(3).ToList();
             if (assertionBatchesToReport.Count == 0) {
               information += "No assertions.";
             } else {
-              var assertionBatch = AddAssertionBatchDocumentation("assertion batches");
               information += $"- Total resource usage: {formatResourceCount(node.ResourceCount)}  \n";
-              information += $"- Most costly {assertionBatch}:";
-              var result = new List<(String index, String line, String resourceCount, bool overcostly)>();
-              foreach (var costlierAssertionBatch in assertionBatchesToReport) {
-                var index = node.AssertionBatches.IndexOf(costlierAssertionBatch) + 1;
-                var item = costlierAssertionBatch.Children[0].Position.Line;
-                var overcostly = costlierAssertionBatch.ResourceCount > 3 * node.ResourceCount / assertionBatchCount;
-                result.Add(("#" + index.ToString(), item.ToString(), formatResourceCount(costlierAssertionBatch.ResourceCount), overcostly));
-              }
-              var maxIndexLength = result.Select(item => item.index.Length).Max();
-              var maxLineLength = result.Select(item => item.line.Length).Max();
-              var maxResourceLength = result.Select(item => item.resourceCount.Length).Max();
-              foreach (var (index, line, resource, overcostly) in result) {
-                information +=
-                  $"  \n  - {index.PadLeft(maxIndexLength)}/{assertionBatchCount} at line {line.PadLeft(maxLineLength)}, {resource.PadLeft(maxResourceLength)}";
-                if (overcostly) {
-                  information += @" [/!\](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-verification-debugging-slow)";
+              if (assertionBatchesToReport.Count == 1) {
+                var assertionBatch = AddAssertionBatchDocumentation("assertion batch");
+                information += $"- Only one {assertionBatch}";
+              } else {
+                var assertionBatches = AddAssertionBatchDocumentation("assertion batches");
+                information += $"- Most costly {assertionBatches}:";
+                var result = new List<(String index, String line, String resourceCount, bool overcostly)>();
+                foreach (var costlierAssertionBatch in assertionBatchesToReport) {
+                  var item = costlierAssertionBatch.Children[0].Position.Line;
+                  var overcostly = costlierAssertionBatch.ResourceCount > 3 * node.ResourceCount / assertionBatchCount;
+                  result.Add(("#" + costlierAssertionBatch.RelativeNumber, item.ToString(),
+                    formatResourceCount(costlierAssertionBatch.ResourceCount), overcostly));
+                }
+
+                var maxIndexLength = result.Select(item => item.index.Length).Max();
+                var maxLineLength = result.Select(item => item.line.Length).Max();
+                var maxResourceLength = result.Select(item => item.resourceCount.Length).Max();
+                foreach (var (index, line, resource, overcostly) in result) {
+                  information +=
+                    $"  \n  - {index.PadLeft(maxIndexLength)}/{assertionBatchCount} at line {line.PadLeft(maxLineLength)}, {resource.PadLeft(maxResourceLength)}";
+                  if (overcostly) {
+                    information +=
+                      @" [/!\](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-verification-debugging-slow)";
+                  }
                 }
               }
             }

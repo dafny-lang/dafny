@@ -75,7 +75,8 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
               }
               var verificationTreeRange = member.tok.GetLspRange(member.BodyEndTok);
               var verificationTree = new TopLevelDeclMemberVerificationTree(
-                $"constant {member.Name}",
+                "constant",
+                member.Name,
                 member.CompileName,
                 member.tok.filename,
                 verificationTreeRange);
@@ -83,7 +84,8 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
             } else if (member is Method or Function) {
               var verificationTreeRange = member.tok.GetLspRange(member.BodyEndTok.line == 0 ? member.tok : member.BodyEndTok);
               var verificationTree = new TopLevelDeclMemberVerificationTree(
-                (member is Method ? "method " : "function ") + member.Name,
+                (member is Method ? "method" : "function"),
+                member.Name,
                 member.CompileName,
                 member.tok.filename,
                 verificationTreeRange);
@@ -91,7 +93,8 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
               if (member is Function { ByMethodBody: { } } function) {
                 var verificationTreeRangeByMethod = function.ByMethodTok.GetLspRange(function.ByMethodBody.EndTok);
                 var verificationTreeByMethod = new TopLevelDeclMemberVerificationTree(
-                  "function by method " + member.Name,
+                  "by method part of function",
+                  member.Name,
                   member.CompileName + "_by_method",
                   member.tok.filename,
                   verificationTreeRangeByMethod);
@@ -105,7 +108,8 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
           }
           var verificationTreeRange = subsetTypeDecl.tok.GetLspRange(subsetTypeDecl.BodyEndTok);
           var verificationTree = new TopLevelDeclMemberVerificationTree(
-            $"subset type {subsetTypeDecl.Name}",
+            $"subset type",
+            subsetTypeDecl.Name,
             subsetTypeDecl.CompileName,
             subsetTypeDecl.tok.filename,
             verificationTreeRange);
@@ -147,7 +151,10 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
 
       var targetMethodNode = GetTargetMethodTree(implementation, out var oldImplementationNode, true);
       if (targetMethodNode == null) {
-        logger.LogError($"No method node at {implementation.tok.filename}:{implementation.tok.line}:{implementation.tok.col}");
+        var position = implementation.tok.GetLspPosition();
+        var availableMethodNodes = string.Join(",", document.VerificationTree.Children.Select(vt =>
+          $"{vt.Kind} {vt.DisplayName} at {vt.Filename}:{vt.Position.Line}"));
+        logger.LogError($"In document {document.Uri} and filename {document.VerificationTree.Filename}, no method node at {implementation.tok.filename}:{position.Line}:{position.Character}.\nAvailable:" + availableMethodNodes);
         continue;
       }
       var newDisplayName = targetMethodNode.DisplayName + " #" + (targetMethodNode.Children.Count + 1) + ":" +

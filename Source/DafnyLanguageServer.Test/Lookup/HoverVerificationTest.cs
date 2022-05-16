@@ -57,24 +57,28 @@ method Abs(x: int) returns (y: int)
 ", "testFile.dfy", CompilationStatus.VerificationFailed);
       // When hovering the postcondition, it should display the position of the failing path
       await AssertHoverMatches(documentItem, (2, 15),
-        @"assertion #1/2 of [batch](???) #1/1 checked in ???ms with ??? resource count:  
-`testFile.dfy(6, 5): `*A postcondition might not hold on this return path.*"
+        @"[Error:](???) A postcondition might not hold on this return path.  
+This is assertion #1 of 2 in method Abs  
+Resource usage: ??? RU  
+Related location: testFile.dfy(6, 5)"
       );
       // When hovering the failing path, it does not display the position of the failing postcondition
       // because the IDE extension already does it.
       await AssertHoverMatches(documentItem, (5, 4),
-        @"assertion #1/2 of [batch](???) #1/1 checked in ???ms with ??? resource count:  
-*A postcondition might not hold on this return path.*"
+        @"[Error:](???) A postcondition might not hold on this return path.  
+This is assertion #1 of 2 in method Abs  
+Resource usage: ??? RU"
       );
       await AssertHoverMatches(documentItem, (7, 11),
-        @"assertion #2/2 of [batch](???) #1/1 checked in ???ms with ??? resource count:  
-*assertion might not hold*"
+        @"[Error:](???) assertion might not hold  
+This is assertion #2 of 2 in method Abs  
+Resource usage: 9K RU"
       );
       await AssertHoverMatches(documentItem, (0, 7),
-        @"**Abs** metrics:
+        @"**Verification performance metrics for method Abs**:
 
-???ms in 1 [assertion batch](???)  
-??? resource count"
+- Total resource usage: ??? RU  
+- Only one [assertion batch](???)"
       );
     }
 
@@ -87,12 +91,14 @@ method {:vcs_split_on_every_assert} f(x: int) {
 }
 ", "testfile.dfy", CompilationStatus.VerificationFailed);
       await AssertHoverMatches(documentItem, (1, 12),
-        @"assertion of [batch](???) #???/2 checked in ???ms with ??? resource count:  
-*assertion might not hold*"
+        @"[Error:](???) assertion might not hold  
+This is the only assertion in [batch](???) #1 of 2 in method f  
+[Batch](???) #1 resource usage: 8K RU"
       );
       await AssertHoverMatches(documentItem, (2, 12),
-        @"assertion of [batch](???) #???/2 checked in ???ms with ??? resource count:  
-*assertion always holds*"
+        @"<span style='color:green'>**Success:**</span> assertion always holds  
+This is the only assertion in [batch](???) #2 of 2 in method f  
+[Batch](???) #2 resource usage: 8K RU  "
       );
     }
 
@@ -104,9 +110,9 @@ method f(x: int) {
 }", "testfile.dfy", CompilationStatus.VerificationSucceeded);
       await Task.Delay(100); // Just time for the diagnostics to be updated
       await AssertHoverMatches(documentItem, (0, 7),
-        @"**f** metrics:
+        @"**Verification performance metrics for method f**:
 
-No assertion to check."
+No assertions."
       );
       await AssertHoverMatches(documentItem, (0, 10),
         "```dafny\nx: int\n```");

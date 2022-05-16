@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Reflection.Metadata;
 using MediatR;
@@ -180,7 +181,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
   /// <param name="Filename">The name of the file this region of the document is contained in</param>
   /// <param name="Range">The range of this region of the document</param>
   public record VerificationTree(
-     // User-facing name
+     // Method, Function, Subset type, Constant, Document, Assertion...
+     string Kind,
+     // User-facing short name
      string DisplayName,
      // Used to re-trigger the verification of some diagnostics.
      string Identifier,
@@ -188,6 +191,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
      // The range of this node.
      Range Range
   ) {
+    public string PrefixedDisplayName => Kind + " " + DisplayName;
+
     // Overriden by checking children if there are some
     public VerificationStatus StatusVerification { get; set; } = VerificationStatus.Nothing;
 
@@ -374,7 +379,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
   public record DocumentVerificationTree(
     string Identifier,
     int Lines
-  ) : VerificationTree("Document", Identifier, Identifier,
+  ) : VerificationTree("Document", Identifier, Identifier, Identifier,
     LinesToRange(Lines)) {
 
     public static Range LinesToRange(int lines) {
@@ -384,15 +389,17 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
   }
 
   public record TopLevelDeclMemberVerificationTree(
+    string Kind,
     string DisplayName,
     // Used to re-trigger the verification of some diagnostics.
     string Identifier,
     string Filename,
     // The range of this node.
     Range Range
-  ) : VerificationTree(DisplayName, Identifier, Filename, Range) {
+  ) : VerificationTree(Kind, DisplayName, Identifier, Filename, Range) {
     // Recomputed from the children which are ImplementationVerificationTree
-    public List<AssertionBatchVerificationTree> AssertionBatches { get; set; } = new();
+    public ImmutableDictionary<(int, int), AssertionBatchVerificationTree> AssertionBatches { get; private set; } =
+      new Dictionary<(int, int), AssertionBatchVerificationTree>().ToImmutableDictionary();
 
     public override VerificationTree GetCopyForNotification() {
       if (Finished) {
@@ -400,43 +407,52 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       }
       return this with {
         Children = Children.Select(child => child.GetCopyForNotification()).ToList(),
-        AssertionBatches = AssertionBatches.Select(child => (AssertionBatchVerificationTree)child.GetCopyForNotification()).ToList()
+        AssertionBatches = AssertionBatches
+          .Select(keyValuePair =>
+            (keyValuePair.Key, (AssertionBatchVerificationTree)keyValuePair.Value.GetCopyForNotification()))
+          .ToImmutableDictionary(keyValuePair => keyValuePair.Item1, KeyValuePair => KeyValuePair.Item2)
       };
     }
 
     public void RecomputeAssertionBatchNodeDiagnostics() {
-      var result = new List<AssertionBatchVerificationTree>();
+      var result = new Dictionary<(int, int), AssertionBatchVerificationTree>();
+      var implementationNumber = 0;
       foreach (var implementationNode in Children.OfType<ImplementationVerificationTree>()) {
-        foreach (var vcNum in implementationNode.AssertionBatchMetrics.Keys) {
+        implementationNumber++;
+        foreach (var vcNum in implementationNode.AssertionBatchMetrics.Keys.OrderBy(x => x)) {
           var children = implementationNode.Children.OfType<AssertionVerificationTree>().Where(
             assertionNode => assertionNode.AssertionBatchNum == vcNum).Cast<VerificationTree>().ToList();
           if (children.Count > 0) {
             var minPosition = children.MinBy(child => child.Position)!.Range.Start;
             var maxPosition = children.MaxBy(child => child.Range.End)!.Range.End;
-            result.Add(new AssertionBatchVerificationTree(
-              "Assertion batch #" + result.Count,
-              "assertion-batch-" + result.Count,
+            result[(implementationNumber, vcNum)] = new AssertionBatchVerificationTree(
+              $"Assertion batch #{result.Count}",
+              $"assertion-batch-{implementationNumber}-{vcNum}",
               Filename,
               new Range(minPosition, maxPosition)
             ) {
               Children = children,
               ResourceCount = implementationNode.AssertionBatchMetrics[vcNum].ResourceCount,
-            }.WithDuration(implementationNode.StartTime, implementationNode.AssertionBatchMetrics[vcNum].Time));
+              RelativeNumber = result.Count,
+            }.WithDuration(implementationNode.StartTime, implementationNode.AssertionBatchMetrics[vcNum].Time);
           }
         }
       }
 
-      AssertionBatches = result;
+      AssertionBatches = result.ToImmutableDictionary();
     }
 
     public AssertionBatchVerificationTree? GetCostlierAssertionBatch() =>
       !AssertionBatches.Any() ? null :
-      AssertionBatches.MaxBy(assertionBatch => assertionBatch.ResourceCount);
+      AssertionBatches.Values.MaxBy(assertionBatch => assertionBatch.ResourceCount);
 
     public List<int> AssertionBatchTimes =>
-      AssertionBatches.Select(assertionBatch => assertionBatch.TimeSpent).ToList();
+      AssertionBatches.Values.Select(assertionBatch => assertionBatch.TimeSpent).ToList();
 
-    public int AssertionBatchCount => AssertionBatches.Count;
+    // Currently the best estimate of the number of assertion batches
+    public int AssertionBatchCount =>
+      AssertionBatches.Keys.GroupBy(key => key.Item1).Select(group =>
+        group.Select(key => key.Item2).Max()).Sum();
 
     public int LongestAssertionBatchTime => AssertionBatches.Any() ? AssertionBatchTimes.Max() : 0;
 
@@ -451,7 +467,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     string Filename,
     // The range of this node.
     Range Range
-  ) : VerificationTree(DisplayName, Identifier, Filename, Range) {
+  ) : VerificationTree("Assertion Batch", DisplayName, Identifier, Filename, Range) {
     public AssertionBatchVerificationTree WithDuration(DateTime parentStartTime, int implementationNodeAssertionBatchTime) {
       Started = true;
       Finished = true;
@@ -467,6 +483,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
         Children = Children.Select(child => child.GetCopyForNotification()).ToList()
       };
     }
+
+    public int RelativeNumber { get; init; }
   }
 
   public record AssertionBatchMetrics(
@@ -481,7 +499,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     string Filename,
     // The range of this node.
     Range Range
-  ) : VerificationTree(DisplayName, Identifier, Filename, Range) {
+  ) : VerificationTree("Implementation", DisplayName, Identifier, Filename, Range) {
     // The index of ImplementationVerificationTree.AssertionBatchTimes
     // is the same as the AssertionVerificationTree.AssertionBatchIndex
     public ImmutableDictionary<int, AssertionBatchMetrics> AssertionBatchMetrics { get; private set; } =
@@ -544,7 +562,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     Position? SecondaryPosition,
     // The range of this node.
     Range Range
-  ) : VerificationTree(DisplayName, Identifier, Filename, Range) {
+  ) : VerificationTree("Assertion", DisplayName, Identifier, Filename, Range) {
     public AssertionVerificationTree WithDuration(DateTime parentStartTime, int batchTime) {
       Started = true;
       Finished = true;
