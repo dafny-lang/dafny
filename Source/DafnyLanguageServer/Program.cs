@@ -3,11 +3,11 @@ using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Server;
 using Serilog;
 using System;
-using System.Diagnostics;
 using System.IO;
 using System.Reflection;
-using System.Threading;
+using System.Text;
 using System.Threading.Tasks;
+using Serilog.Events;
 using OmniSharpLanguageServer = OmniSharp.Extensions.LanguageServer.Server.LanguageServer;
 
 namespace Microsoft.Dafny.LanguageServer {
@@ -27,6 +27,8 @@ namespace Microsoft.Dafny.LanguageServer {
             // ReSharper disable once AccessToModifiedClosure
             .WithDafnyLanguageServer(configuration, () => shutdownServer!())
         );
+        // Prevent any other parts of the language server to actually write to standard output.
+        Console.SetOut(new LogWriter());
         shutdownServer = () => server.ForcefulShutdown();
         await server.WaitForExit;
       }
@@ -59,5 +61,16 @@ namespace Microsoft.Dafny.LanguageServer {
         .ClearProviders()
         .AddSerilog(Log.Logger);
     }
+  }
+  internal class LogWriter : TextWriter {
+    public override void Write(char value) {
+      Log.Write(LogEventLevel.Verbose, value.ToString());
+    }
+
+    public override void Write(string? value) {
+      Log.Write(LogEventLevel.Verbose, value);
+    }
+
+    public override Encoding Encoding { get; } = Encoding.ASCII;
   }
 }
