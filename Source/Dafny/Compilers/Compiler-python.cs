@@ -689,8 +689,16 @@ namespace Microsoft.Dafny.Compilers {
       throw new NotImplementedException();
     }
 
-    protected override void EmitNew(Type type, IToken tok, CallStmt _, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      wr.Write($"{TypeName(type, wr, tok)}()");
+    protected override void EmitNew(Type type, IToken tok, CallStmt initCall, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      var ctor = (Constructor)initCall?.Method;  // correctness of cast follows from precondition of "EmitNew"
+      var arguments = Enumerable.Empty<string>();
+      if (ctor != null && ctor.IsExtern(out _, out _)) {
+        // the arguments of any external constructor are placed here
+        arguments = ctor.Ins.Select((f, i) => (f, i))
+          .Where(tp => !tp.f.IsGhost)
+          .Select(tp => Expr(initCall.Args[tp.i], false, wStmts).ToString());
+      }
+      wr.Write($"{TypeName(type, wr, tok)}({arguments.Comma()})");
     }
 
     protected override void EmitNewArray(Type elmtType, IToken tok, List<Expression> dimensions, bool mustInitialize,
