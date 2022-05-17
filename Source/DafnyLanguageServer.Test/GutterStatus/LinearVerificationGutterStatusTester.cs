@@ -16,15 +16,13 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Diagnostics;
 
-public abstract class LinearVerificationDiagnosticTester : ClientBasedLanguageServerTest {
+public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguageServerTest {
   protected TestNotificationReceiver<VerificationStatusGutter> verificationStatusGutterReceiver;
   [TestInitialize]
   public override async Task SetUp() {
-    diagnosticsReceiver = new();
     verificationStatusGutterReceiver = new();
     client = await InitializeClient(options =>
       options
-        .OnPublishDiagnostics(diagnosticsReceiver.NotificationReceived)
         .AddHandler(DafnyRequestNames.VerificationStatusGutter,
           NotificationHandler.For<VerificationStatusGutter>(verificationStatusGutterReceiver.NotificationReceived))
       );
@@ -108,31 +106,29 @@ public abstract class LinearVerificationDiagnosticTester : ClientBasedLanguageSe
 
   protected List<LineVerificationStatus[]> previousTraces = null;
 
-  protected async Task<List<LineVerificationStatus[]>> GetAllLineVerificationDiagnostics(
+  protected async Task<List<LineVerificationStatus[]>> GetAllLineVerificationStatuses(
       TextDocumentItem documentItem,
-      DiagnosticsReceiver diagnosticReceiver,
-      TestNotificationReceiver<VerificationStatusGutter> VerificationDiagnosticReceiver
+      TestNotificationReceiver<VerificationStatusGutter> verificationStatusGutterReceiver
       ) {
     var traces = new List<LineVerificationStatus[]>();
     var maximumNumberOfTraces = 50;
     var previousPerLineDiagnostics
       = previousTraces == null || previousTraces.Count == 0 ? null :
         previousTraces[^1].ToList();
-    var nextDiagnostic = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
     for (; maximumNumberOfTraces > 0; maximumNumberOfTraces--) {
-      var verificationDiagnosticReport = await VerificationDiagnosticReceiver.AwaitNextNotificationAsync(CancellationToken);
-      if (documentItem.Uri != verificationDiagnosticReport.Uri || documentItem.Version != verificationDiagnosticReport.Version) {
+      var verificationStatusGutter = await verificationStatusGutterReceiver.AwaitNextNotificationAsync(CancellationToken);
+      if (documentItem.Uri != verificationStatusGutter.Uri || documentItem.Version != verificationStatusGutter.Version) {
         continue;
       }
-      var newPerLineDiagnostics = verificationDiagnosticReport.PerLineStatus.ToList();
+      var newPerLineDiagnostics = verificationStatusGutter.PerLineStatus.ToList();
       if ((previousPerLineDiagnostics != null
           && previousPerLineDiagnostics.SequenceEqual(newPerLineDiagnostics)) ||
           newPerLineDiagnostics.All(status => status == LineVerificationStatus.Nothing)) {
         continue;
       }
 
-      traces.Add(verificationDiagnosticReport.PerLineStatus);
-      if (NoMoreNotificationsToAwaitFrom(verificationDiagnosticReport)) {
+      traces.Add(verificationStatusGutter.PerLineStatus);
+      if (NoMoreNotificationsToAwaitFrom(verificationStatusGutter)) {
         break;
       }
 
@@ -143,10 +139,10 @@ public abstract class LinearVerificationDiagnosticTester : ClientBasedLanguageSe
     return traces;
   }
 
-  private static bool NoMoreNotificationsToAwaitFrom(VerificationStatusGutter verificationDiagnosticReport) {
-    return verificationDiagnosticReport.PerLineStatus.Contains(LineVerificationStatus.ResolutionError) ||
-           verificationDiagnosticReport.PerLineStatus.All(IsNotIndicatingProgress) ||
-           verificationDiagnosticReport.PerLineStatus.All(status => status == LineVerificationStatus.Nothing);
+  private static bool NoMoreNotificationsToAwaitFrom(VerificationStatusGutter verificationGutterStatus) {
+    return verificationGutterStatus.PerLineStatus.Contains(LineVerificationStatus.ResolutionError) ||
+           verificationGutterStatus.PerLineStatus.All(IsNotIndicatingProgress) ||
+           verificationGutterStatus.PerLineStatus.All(status => status == LineVerificationStatus.Nothing);
   }
 
   /// <summary>
@@ -223,12 +219,10 @@ public abstract class LinearVerificationDiagnosticTester : ClientBasedLanguageSe
 
   // If testTrace is false, codeAndTree should not contain a trace to test.
   public async Task VerifyTrace(string codeAndTrace, string fileName = null, bool testTrace = true,
-      DiagnosticsReceiver diagnosticsReceiver = null,
-      TestNotificationReceiver<VerificationStatusGutter> verificationDiagnosticsReceiver = null
+    TestNotificationReceiver<VerificationStatusGutter> verificationStatusGutterReceiver = null
     ) {
-    if (diagnosticsReceiver == null || verificationDiagnosticsReceiver == null) {
-      diagnosticsReceiver = this.diagnosticsReceiver;
-      verificationDiagnosticsReceiver = this.verificationStatusGutterReceiver;
+    if (verificationStatusGutterReceiver == null) {
+      verificationStatusGutterReceiver = this.verificationStatusGutterReceiver;
     }
     codeAndTrace = codeAndTrace[0] == '\n' ? codeAndTrace.Substring(1) :
       codeAndTrace.Substring(0, 2) == "\r\n" ? codeAndTrace.Substring(2) :
@@ -238,10 +232,10 @@ public abstract class LinearVerificationDiagnosticTester : ClientBasedLanguageSe
     var documentItem = CreateTestDocument(code, fileName);
     client.OpenDocument(documentItem);
     var traces = new List<LineVerificationStatus[]>();
-    traces.AddRange(await GetAllLineVerificationDiagnostics(documentItem, diagnosticsReceiver, verificationDiagnosticsReceiver));
+    traces.AddRange(await GetAllLineVerificationStatuses(documentItem, verificationStatusGutterReceiver));
     foreach (var (range, inserted) in changes) {
       ApplyChange(ref documentItem, range, inserted);
-      traces.AddRange(await GetAllLineVerificationDiagnostics(documentItem, diagnosticsReceiver, verificationDiagnosticsReceiver));
+      traces.AddRange(await GetAllLineVerificationStatuses(documentItem, verificationStatusGutterReceiver));
     }
 
     if (testTrace) {

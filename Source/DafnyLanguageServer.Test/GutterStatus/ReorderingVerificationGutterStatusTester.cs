@@ -21,18 +21,16 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Diagnostics;
 /// methods priorities for verification being set automatically.
 /// </summary>
 [TestClass]
-public class ReorderingVerificationDiagnosticTester : LinearVerificationDiagnosticTester {
+public class ReorderingVerificationGutterStatusTester : LinearVerificationGutterStatusTester {
   private ListeningTextDocumentLoader textDocumentLoader;
   private const int MaxTestExecutionTimeMs = 10000;
 
   [TestInitialize]
   public override async Task SetUp() {
     DafnyOptions.Install(DafnyOptions.Create("-proverOpt:SOLVER=noop"));
-    diagnosticsReceiver = new();
     verificationStatusGutterReceiver = new();
     client = await InitializeClient(options =>
         options
-          .OnPublishDiagnostics(diagnosticsReceiver.NotificationReceived)
           .AddHandler(DafnyRequestNames.VerificationStatusGutter,
             NotificationHandler.For<VerificationStatusGutter>(verificationStatusGutterReceiver.NotificationReceived))
       , serverOptions => {

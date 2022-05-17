@@ -15,20 +15,13 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Diagnostics;
 
 [TestClass]
-public class ConcurrentLinearVerificationDiagnosticTester : LinearVerificationDiagnosticTester {
+public class ConcurrentLinearVerificationGutterStatusTester : LinearVerificationGutterStatusTester {
   private const int MaxSimultaneousVerificationTasks = 3;
 
-  protected DiagnosticsReceiver[] diagnosticsReceivers = new DiagnosticsReceiver[MaxSimultaneousVerificationTasks];
   protected TestNotificationReceiver<VerificationStatusGutter>[] verificationStatusGutterReceivers =
     new TestNotificationReceiver<VerificationStatusGutter>[MaxSimultaneousVerificationTasks];
 
-  private void NotifyAllDiagnosticsReceivers(PublishDiagnosticsParams request) {
-    foreach (var receiver in diagnosticsReceivers) {
-      receiver.NotificationReceived(request);
-    }
-  }
-
-  private void NotifyAllVerificationDiagnosticsReceivers(VerificationStatusGutter request) {
+  private void NotifyAllVerificationGutterStatusReceivers(VerificationStatusGutter request) {
     foreach (var receiver in verificationStatusGutterReceivers) {
       receiver.NotificationReceived(request);
     }
@@ -36,16 +29,14 @@ public class ConcurrentLinearVerificationDiagnosticTester : LinearVerificationDi
 
   [TestInitialize]
   public override async Task SetUp() {
-    for (var i = 0; i < diagnosticsReceivers.Length; i++) {
-      diagnosticsReceivers[i] = new();
+    for (var i = 0; i < verificationStatusGutterReceivers.Length; i++) {
       verificationStatusGutterReceivers[i] = new();
     }
     verificationStatusGutterReceiver = new();
     client = await InitializeClient(options =>
       options
-        .OnPublishDiagnostics(NotifyAllDiagnosticsReceivers)
         .AddHandler(DafnyRequestNames.VerificationStatusGutter,
-          NotificationHandler.For<VerificationStatusGutter>(NotifyAllVerificationDiagnosticsReceivers))
+          NotificationHandler.For<VerificationStatusGutter>(NotifyAllVerificationGutterStatusReceivers))
     );
   }
 
@@ -61,7 +52,7 @@ public class ConcurrentLinearVerificationDiagnosticTester : LinearVerificationDi
  .  S [S][ ][I][S][ ]:method H()
  .  S [=][=][-][~][O]:  ensures F(1)
  .  S [=][=][-][~][=]:{//Next: { assert false;
- .  S [S][ ][I][S][ ]:}", $"testfile{i}.dfy", true, diagnosticsReceivers[i], verificationStatusGutterReceivers[i]));
+ .  S [S][ ][I][S][ ]:}", $"testfile{i}.dfy", true, verificationStatusGutterReceivers[i]));
     }
 
     for (var i = 0; i < MaxSimultaneousVerificationTasks; i++) {
