@@ -19,39 +19,26 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
   /// DTO used to communicate the current verification diagnostics to the LSP client.
   /// </summary>
   [Method(DafnyRequestNames.VerificationStatusGutter, Direction.ServerToClient)]
-  public class VerificationStatusGutter : IRequest, IRequest<Unit> {
-    public VerificationStatusGutter(DocumentUri uri,
-      int version,
-      VerificationTree[] verificationTrees,
-      Container<Diagnostic> diagnostics,
-      int linesCount,
-      bool verificationStarted,
-      int numberOfResolutionErrors) {
-      Uri = uri;
-      Version = version;
-      if (linesCount != 0) { // Deserialization makes linesCount to be equal to zero.
-        PerLineStatus =
-          RenderPerLineDiagnostics(this, verificationTrees, linesCount, numberOfResolutionErrors, verificationStarted, diagnostics);
-      }
+  public record VerificationStatusGutter(
+    DocumentUri Uri,
+    int? Version,
+    LineVerificationStatus[] PerLineStatus
+    ) : IRequest {
+
+    public static VerificationStatusGutter ComputeFrom(
+        DocumentUri uri,
+        int version,
+        VerificationTree[] verificationTrees,
+        Container<Diagnostic> diagnostics,
+        int linesCount,
+        bool verificationStarted,
+        int numberOfResolutionErrors) {
+      var perLineStatus = RenderPerLineDiagnostics(uri, verificationTrees, linesCount, numberOfResolutionErrors, verificationStarted, diagnostics);
+      return new VerificationStatusGutter(uri, version, perLineStatus);
     }
 
-    /// <summary>
-    /// Gets the URI of the document whose verification completed.
-    /// </summary>
-    public DocumentUri Uri { get; init; }
-
-    /// <summary>
-    /// Gets the version of the document.
-    /// </summary>
-    public int? Version { get; init; }
-
-    /// <summary>
-    /// Returns per-line real-time diagnostic
-    /// </summary>
-    public LineVerificationStatus[] PerLineStatus { get; init; }
-
-    static LineVerificationStatus[] RenderPerLineDiagnostics(
-      VerificationStatusGutter verificationDiagnosticsParams,
+    public static LineVerificationStatus[] RenderPerLineDiagnostics(
+      DocumentUri uri,
       VerificationTree[] verificationTrees,
       int numberOfLines,
       int numberOfResolutionErrors,
@@ -69,8 +56,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
       // Render verification tree content into lines.
       foreach (var verificationTree in verificationTrees) {
-        if (verificationTree.Filename == verificationDiagnosticsParams.Uri.GetFileSystemPath() ||
-            "untitled:" + verificationTree.Filename == verificationDiagnosticsParams.Uri) {
+        if (verificationTree.Filename == uri.GetFileSystemPath() ||
+            "untitled:" + verificationTree.Filename == uri) {
           verificationTree.RenderInto(result);
         }
       }
