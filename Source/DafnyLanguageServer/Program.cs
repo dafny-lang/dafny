@@ -28,7 +28,8 @@ namespace Microsoft.Dafny.LanguageServer {
             .WithDafnyLanguageServer(configuration, () => shutdownServer!())
         );
         // Prevent any other parts of the language server to actually write to standard output.
-        Console.SetOut(new LogWriter());
+        await using var logWriter = new LogWriter();
+        Console.SetOut(logWriter);
         shutdownServer = () => server.ForcefulShutdown();
         await server.WaitForExit;
       }
