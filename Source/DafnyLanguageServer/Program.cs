@@ -62,16 +62,17 @@ namespace Microsoft.Dafny.LanguageServer {
         .ClearProviders()
         .AddSerilog(Log.Logger);
     }
-  }
-  internal class LogWriter : TextWriter {
-    public override void Write(char value) {
-      Log.Write(LogEventLevel.Verbose, value.ToString());
-    }
 
-    public override void Write(string? value) {
-      Log.Write(LogEventLevel.Verbose, value);
-    }
+    private class LogWriter : TextWriter {
+      public override void Write(char value) {
+        Log.Logger.Verbose("Unexpected console output: {value}", value);
+      }
 
-    public override Encoding Encoding { get; } = Encoding.ASCII;
+      public override void Write(string? value) {
+        Log.Logger.Verbose("Unexpected console output: {value}", value);
+      }
+
+      public override Encoding Encoding { get; } = Encoding.ASCII;
+    }
   }
 }
