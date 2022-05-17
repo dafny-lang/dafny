@@ -159,6 +159,69 @@ No assertions."
         "```dafny\nx: int\n```");
     }
 
+
+    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    public async Task MeaningfulMessageWhenMethodWithOneAssert() {
+      var documentItem = await GetDocumentItem(@"
+method f(x: int) {
+  assert false;
+}", "testfile1.dfy", CompilationStatus.VerificationFailed);
+      await Task.Delay(100); // Just time for the diagnostics to be updated
+      await AssertHoverMatches(documentItem, (0, 7),
+        @"**Verification performance metrics for method f**:
+
+- Total resource usage: 8K RU  
+- Only one [assertion batch](???) containing 1 assertion."
+      );
+    }
+
+
+    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    public async Task MeaningfulMessageWhenMethodWithTwoAsserts() {
+      var documentItem = await GetDocumentItem(@"
+method f(x: int) {
+  assert false;
+  assert false;
+}", "testfile2.dfy", CompilationStatus.VerificationFailed);
+      await Task.Delay(100); // Just time for the diagnostics to be updated
+      await AssertHoverMatches(documentItem, (0, 7),
+        @"**Verification performance metrics for method f**:
+
+- Total resource usage: 8K RU  
+- Only one [assertion batch](???) containing 2 assertions."
+      );
+    }
+
+    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    public async Task IndicateSlowHints() {
+      var documentItem = await GetDocumentItem(@"
+lemma {:timeLimit 6} SquareRoot2NotRational(p: nat, q: nat)
+  requires p > 0 && q > 0
+  ensures (p * p) !=  2 * (q * q)
+{ 
+  if (p * p) ==  2 * (q * q) {
+    calc == {
+      (2 * q - p) * (2 * q - p);
+      4 * q * q + p * p - 4 * p * q;
+      {assert {:split_here} 2 * q * q == p * p;}
+      2 * q * q + 2 * p * p - 4 * p * q;
+      2 * (p - q) * (p - q);
+    }
+  }
+  assert {:split_here} true;
+} ", "testfileSlow.dfy", CompilationStatus.VerificationFailed);
+      await Task.Delay(100); // Just time for the diagnostics to be updated
+      await AssertHoverMatches(documentItem, (0, 22),
+        @"**Verification performance metrics for method SquareRoot2NotRational**:
+
+- Total resource usage: ??? RU [⚠](???)  
+- Most costly [assertion batches](???):  
+  - #2/3 with 2 assertions at line 3, ??? RU [⚠](???)  
+  - #???/3 with 2 assertions at line ???, ??? RU  
+  - #???/3 with 2 assertions at line ???9, ??? RU"
+      );
+    }
+
     private async Task<TextDocumentItem> GetDocumentItem(string source, string filename, CompilationStatus expectedStatus) {
       source = source.TrimStart();
       var documentItem = CreateTestDocument(source, filename);

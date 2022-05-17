@@ -21,6 +21,10 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     private readonly ILogger logger;
     private readonly IDocumentDatabase documents;
 
+    private const int RuLimitToBeOverCostly = 10000000;
+    private const string OverCostlyMessage =
+      " [⚠](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-verification-debugging-slow)";
+
     public DafnyHoverHandler(ILogger<DafnyHoverHandler> logger, IDocumentDatabase documents) {
       this.logger = logger;
       this.documents = documents;
@@ -156,31 +160,35 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
             areMethodStatistics = true;
             information = $"**Verification performance metrics for {node.PrefixedDisplayName}**:\n\n";
             if (!node.Started) {
-              information += "_Verification not started yet_";
+              information += "_Verification not started yet_  \n";
             } else if (!node.Finished) {
-              information += "_Still verifying..._";
+              information += "_Still verifying..._  \n";
             }
-
 
             var assertionBatchesToReport =
               node.AssertionBatches.Values.OrderByDescending(a => a.ResourceCount).Take(3).ToList();
-            if (assertionBatchesToReport.Count == 0) {
+            if (assertionBatchesToReport.Count == 0 && node.Finished) {
               information += "No assertions.";
-            } else {
-              information += $"- Total resource usage: {formatResourceCount(node.ResourceCount)}  \n";
+            } else if (assertionBatchesToReport.Count >= 1) {
+              information += $"- Total resource usage: {formatResourceCount(node.ResourceCount)}";
+              if (node.ResourceCount > RuLimitToBeOverCostly) {
+                information += OverCostlyMessage;
+              }
+              information += "  \n";
               if (assertionBatchesToReport.Count == 1) {
                 var assertionBatch = AddAssertionBatchDocumentation("assertion batch");
-                information += $"- Only one {assertionBatch} containing {orderedAssertionBatches.First().NumberOfAssertions} assertions.";
+                var numberOfAssertions = orderedAssertionBatches.First().NumberOfAssertions;
+                information += $"- Only one {assertionBatch} containing {numberOfAssertions} assertion{(numberOfAssertions == 1 ? "" : "s")}.";
               } else {
                 var assertionBatches = AddAssertionBatchDocumentation("assertion batches");
                 information += $"- Most costly {assertionBatches}:";
-                var result = new List<(String index, String line, String numberOfAssertions, String assertionPlural, String resourceCount, bool overcostly)>();
+                var result = new List<(string index, string line, string numberOfAssertions, string assertionPlural, string resourceCount, bool overCostly)>();
                 foreach (var costlierAssertionBatch in assertionBatchesToReport) {
                   var item = costlierAssertionBatch.Range.Start.Line + 1;
-                  var overcostly = costlierAssertionBatch.ResourceCount > 3 * node.ResourceCount / assertionBatchCount;
+                  var overCostly = costlierAssertionBatch.ResourceCount > RuLimitToBeOverCostly;
                   result.Add(("#" + costlierAssertionBatch.RelativeNumber, item.ToString(), costlierAssertionBatch.Children.Count + "",
                     costlierAssertionBatch.Children.Count != 1 ? "s" : "",
-                    formatResourceCount(costlierAssertionBatch.ResourceCount), overcostly));
+                    formatResourceCount(costlierAssertionBatch.ResourceCount), overCostly));
                 }
 
                 var maxIndexLength = result.Select(item => item.index.Length).Max();
@@ -188,15 +196,14 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
                 var maxNumberOfAssertionsLength = result.Select(item => item.numberOfAssertions.Length).Max();
                 var maxAssertionsPluralLength = result.Select(item => item.assertionPlural.Length).Max();
                 var maxResourceLength = result.Select(item => item.resourceCount.Length).Max();
-                foreach (var (index, line, numberOfAssertions, assertionPlural, resource, overcostly) in result) {
+                foreach (var (index, line, numberOfAssertions, assertionPlural, resource, overCostly) in result) {
                   information +=
                     $"  \n  - {index.PadLeft(maxIndexLength)}/{assertionBatchCount}" +
                     $" with {numberOfAssertions.PadLeft(maxNumberOfAssertionsLength)} assertion" +
                     assertionPlural.PadRight(maxAssertionsPluralLength) +
                     $" at line {line.PadLeft(maxLineLength)}, {resource.PadLeft(maxResourceLength)}";
-                  if (overcostly) {
-                    information +=
-                      @" [/!\](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-verification-debugging-slow)";
+                  if (overCostly) {
+                    information += OverCostlyMessage;
                   }
                 }
               }
@@ -212,14 +219,15 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     private string formatResourceCount(int nodeResourceCount) {
       var suffix = 0;
-      while (nodeResourceCount / 1000 >= 1 && suffix < 3) {
+      while (nodeResourceCount / 1000 >= 1 && suffix < 4) {
         nodeResourceCount /= 1000;
         suffix += 1;
       }
       var letterSuffix = suffix switch {
         0 => "",
         1 => "K",
-        2 => "G",
+        2 => "M",
+        3 => "G",
         _ => "T"
       };
       return $"{nodeResourceCount:n0}{letterSuffix} RU";
