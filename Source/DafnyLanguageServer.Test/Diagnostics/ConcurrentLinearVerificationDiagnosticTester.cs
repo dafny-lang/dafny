@@ -19,7 +19,7 @@ public class ConcurrentLinearVerificationDiagnosticTester : LinearVerificationDi
   private const int MaxSimultaneousVerificationTasks = 3;
 
   protected DiagnosticsReceiver[] diagnosticsReceivers = new DiagnosticsReceiver[MaxSimultaneousVerificationTasks];
-  protected TestNotificationReceiver<VerificationStatusGutter>[] verificationDiagnosticsReceivers =
+  protected TestNotificationReceiver<VerificationStatusGutter>[] verificationStatusGutterReceivers =
     new TestNotificationReceiver<VerificationStatusGutter>[MaxSimultaneousVerificationTasks];
 
   private void NotifyAllDiagnosticsReceivers(PublishDiagnosticsParams request) {
@@ -29,7 +29,7 @@ public class ConcurrentLinearVerificationDiagnosticTester : LinearVerificationDi
   }
 
   private void NotifyAllVerificationDiagnosticsReceivers(VerificationStatusGutter request) {
-    foreach (var receiver in verificationDiagnosticsReceivers) {
+    foreach (var receiver in verificationStatusGutterReceivers) {
       receiver.NotificationReceived(request);
     }
   }
@@ -38,9 +38,9 @@ public class ConcurrentLinearVerificationDiagnosticTester : LinearVerificationDi
   public override async Task SetUp() {
     for (var i = 0; i < diagnosticsReceivers.Length; i++) {
       diagnosticsReceivers[i] = new();
-      verificationDiagnosticsReceivers[i] = new();
+      verificationStatusGutterReceivers[i] = new();
     }
-    verificationDiagnosticsReceiver = new();
+    verificationStatusGutterReceiver = new();
     client = await InitializeClient(options =>
       options
         .OnPublishDiagnostics(NotifyAllDiagnosticsReceivers)
@@ -49,7 +49,7 @@ public class ConcurrentLinearVerificationDiagnosticTester : LinearVerificationDi
     );
   }
 
-  [TestMethod/*, Timeout(MaxTestExecutionTimeMs)*/]
+  [TestMethod]
   public async Task EnsuresManyDocumentsCanBeVerifiedAtOnce() {
     var result = new List<Task>();
     for (var i = 0; i < MaxSimultaneousVerificationTasks; i++) {
@@ -61,7 +61,7 @@ public class ConcurrentLinearVerificationDiagnosticTester : LinearVerificationDi
  .  S [S][ ][I][S][ ]:method H()
  .  S [=][=][-][~][O]:  ensures F(1)
  .  S [=][=][-][~][=]:{//Next: { assert false;
- .  S [S][ ][I][S][ ]:}", $"testfile{i}.dfy", true, diagnosticsReceivers[i], verificationDiagnosticsReceivers[i]));
+ .  S [S][ ][I][S][ ]:}", $"testfile{i}.dfy", true, diagnosticsReceivers[i], verificationStatusGutterReceivers[i]));
     }
 
     for (var i = 0; i < MaxSimultaneousVerificationTasks; i++) {

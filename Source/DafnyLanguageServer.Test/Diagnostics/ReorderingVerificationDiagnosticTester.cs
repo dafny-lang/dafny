@@ -29,12 +29,12 @@ public class ReorderingVerificationDiagnosticTester : LinearVerificationDiagnost
   public override async Task SetUp() {
     DafnyOptions.Install(DafnyOptions.Create("-proverOpt:SOLVER=noop"));
     diagnosticsReceiver = new();
-    verificationDiagnosticsReceiver = new();
+    verificationStatusGutterReceiver = new();
     client = await InitializeClient(options =>
         options
           .OnPublishDiagnostics(diagnosticsReceiver.NotificationReceived)
           .AddHandler(DafnyRequestNames.VerificationStatusGutter,
-            NotificationHandler.For<VerificationStatusGutter>(verificationDiagnosticsReceiver.NotificationReceived))
+            NotificationHandler.For<VerificationStatusGutter>(verificationStatusGutterReceiver.NotificationReceived))
       , serverOptions => {
         serverOptions.Services.AddSingleton<ITextDocumentLoader>(serviceProvider => {
           textDocumentLoader = new ListeningTextDocumentLoader(

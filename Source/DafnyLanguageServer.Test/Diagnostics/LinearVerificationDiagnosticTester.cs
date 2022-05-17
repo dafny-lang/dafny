@@ -17,16 +17,16 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Diagnostics;
 
 public abstract class LinearVerificationDiagnosticTester : ClientBasedLanguageServerTest {
-  protected TestNotificationReceiver<VerificationStatusGutter> verificationDiagnosticsReceiver;
+  protected TestNotificationReceiver<VerificationStatusGutter> verificationStatusGutterReceiver;
   [TestInitialize]
   public override async Task SetUp() {
     diagnosticsReceiver = new();
-    verificationDiagnosticsReceiver = new();
+    verificationStatusGutterReceiver = new();
     client = await InitializeClient(options =>
       options
         .OnPublishDiagnostics(diagnosticsReceiver.NotificationReceived)
         .AddHandler(DafnyRequestNames.VerificationStatusGutter,
-          NotificationHandler.For<VerificationStatusGutter>(verificationDiagnosticsReceiver.NotificationReceived))
+          NotificationHandler.For<VerificationStatusGutter>(verificationStatusGutterReceiver.NotificationReceived))
       );
   }
 
@@ -228,7 +228,7 @@ public abstract class LinearVerificationDiagnosticTester : ClientBasedLanguageSe
     ) {
     if (diagnosticsReceiver == null || verificationDiagnosticsReceiver == null) {
       diagnosticsReceiver = this.diagnosticsReceiver;
-      verificationDiagnosticsReceiver = this.verificationDiagnosticsReceiver;
+      verificationDiagnosticsReceiver = this.verificationStatusGutterReceiver;
     }
     codeAndTrace = codeAndTrace[0] == '\n' ? codeAndTrace.Substring(1) :
       codeAndTrace.Substring(0, 2) == "\r\n" ? codeAndTrace.Substring(2) :
