@@ -174,7 +174,7 @@ No assertions."
       var markup = hover.Contents.MarkupContent;
       Assert.IsNotNull(markup);
       Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
-      AssertMatchRegex(expected, markup.Value);
+      AssertMatchRegex(expected.ReplaceLineEndings("\n"), markup.Value);
     }
 
     private void AssertMatchRegex(string expected, string value) {
