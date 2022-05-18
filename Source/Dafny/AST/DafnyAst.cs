@@ -39,7 +39,7 @@ namespace Microsoft.Dafny {
     public readonly ModuleDecl DefaultModule;
     public readonly ModuleDefinition DefaultModuleDef;
     public readonly BuiltIns BuiltIns;
-    public readonly ErrorReporter reporter;
+    public ErrorReporter Reporter { get; set; }
 
     public Program(string name, [Captured] ModuleDecl module, [Captured] BuiltIns builtIns, ErrorReporter reporter) {
       Contract.Requires(name != null);
@@ -50,7 +50,7 @@ namespace Microsoft.Dafny {
       DefaultModule = module;
       DefaultModuleDef = (DefaultModuleDecl)((LiteralModuleDecl)module).ModuleDef;
       BuiltIns = builtIns;
-      this.reporter = reporter;
+      this.Reporter = reporter;
       ModuleSigs = new Dictionary<ModuleDefinition, ModuleSignature>();
       CompileModules = new List<ModuleDefinition>();
     }
@@ -5500,7 +5500,7 @@ namespace Microsoft.Dafny {
     public readonly string Name;
     public readonly BigInteger LowerBound;
     public readonly BigInteger UpperBound;
-    public readonly int Bitwidth;  // for unasigned types, this shows the number of bits in the type; else is 0
+    public readonly int Bitwidth;  // for unassigned types, this shows the number of bits in the type; else is 0
     public enum Selection { Byte, SByte, UShort, Short, UInt, Int, Number, ULong, Long }
     public readonly Selection Sel;
     public NativeType(string Name, BigInteger LowerBound, BigInteger UpperBound, int bitwidth, Selection sel) {
@@ -10873,6 +10873,44 @@ namespace Microsoft.Dafny {
       Lit,  // there is no syntax for this operator, but it is sometimes introduced during translation
     }
     public readonly Opcode Op;
+
+    public enum ResolvedOpcode {
+      YetUndetermined,
+      BVNot,
+      BoolNot,
+      SeqLength,
+      SetCard,
+      MultiSetCard,
+      MapCard,
+      Fresh,
+      Allocated,
+      Lit
+    }
+
+    private ResolvedOpcode _ResolvedOp = ResolvedOpcode.YetUndetermined;
+    public ResolvedOpcode ResolvedOp => ResolveOp();
+
+    public ResolvedOpcode ResolveOp() {
+      if (_ResolvedOp == ResolvedOpcode.YetUndetermined) {
+        Contract.Assert(Type != null);
+        Contract.Assert(Type is not TypeProxy);
+        _ResolvedOp = (Op, E.Type.NormalizeExpand()) switch {
+          (Opcode.Not, BoolType _) => ResolvedOpcode.BoolNot,
+          (Opcode.Not, BitvectorType _) => ResolvedOpcode.BVNot,
+          (Opcode.Cardinality, SeqType _) => ResolvedOpcode.SeqLength,
+          (Opcode.Cardinality, SetType _) => ResolvedOpcode.SetCard,
+          (Opcode.Cardinality, MultiSetType _) => ResolvedOpcode.MultiSetCard,
+          (Opcode.Cardinality, MapType _) => ResolvedOpcode.MapCard,
+          (Opcode.Fresh, _) => ResolvedOpcode.Fresh,
+          (Opcode.Allocated, _) => ResolvedOpcode.Allocated,
+          (Opcode.Lit, _) => ResolvedOpcode.Lit,
+          _ => ResolvedOpcode.YetUndetermined // Unreachable
+        };
+        Contract.Assert(_ResolvedOp != ResolvedOpcode.YetUndetermined);
+      }
+
+      return _ResolvedOp;
+    }
 
     public UnaryOpExpr(IToken tok, Opcode op, Expression e)
       : base(tok, e) {

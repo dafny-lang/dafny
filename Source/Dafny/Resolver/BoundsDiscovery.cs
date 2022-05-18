@@ -149,10 +149,9 @@ namespace Microsoft.Dafny {
           if (unary != null) {
             var ide = unary.E.Resolved as IdentifierExpr;
             if (ide != null && ide.Var == (IVariable)bv) {
-              if (unary.Op == UnaryOpExpr.Opcode.Not) {
-                Contract.Assert(bv.Type.IsBoolType);
+              if (unary.ResolvedOp == UnaryOpExpr.ResolvedOpcode.BoolNot) {
                 bounds.Add(new ComprehensionExpr.ExactBoundedPool(Expression.CreateBoolLiteral(Token.NoToken, false)));
-              } else if (unary.Op == UnaryOpExpr.Opcode.Allocated) {
+              } else if (unary.ResolvedOp == UnaryOpExpr.ResolvedOpcode.Allocated) {
                 bounds.Add(new ComprehensionExpr.ExplicitAllocatedBoundedPool());
               }
             }

@@ -26,7 +26,7 @@ function GetConstant(): int {
 function GetIt():int {
   1
 }".TrimStart();
-      Assert.AreEqual(expected, document.Text.Text);
+      Assert.AreEqual(expected, document.TextDocumentItem.Text);
     }
 
     [TestMethod]
@@ -52,7 +52,7 @@ function Get21(): int
 {
   21
 }".TrimStart();
-      Assert.AreEqual(expected, document.Text.Text);
+      Assert.AreEqual(expected, document.TextDocumentItem.Text);
     }
 
     [TestMethod]
@@ -75,7 +75,7 @@ function GetConstant(): int {
 function GetConstant(): int {
   1
 /* test */ }".TrimStart();
-      Assert.AreEqual(expected, document.Text.Text);
+      Assert.AreEqual(expected, document.TextDocumentItem.Text);
     }
 
     [TestMethod]
@@ -100,7 +100,7 @@ function GetConstant(): int {
 function GetConstant(): int {
   23
 /* test */ }".TrimStart();
-      Assert.AreEqual(expected, document.Text.Text);
+      Assert.AreEqual(expected, document.TextDocumentItem.Text);
     }
 
     [TestMethod]
@@ -165,7 +165,7 @@ class Test {
         this.y
     }
 }".TrimStart();
-      Assert.AreEqual(expected, document.Text.Text);
+      Assert.AreEqual(expected, document.TextDocumentItem.Text);
     }
 
     [TestMethod]
@@ -188,7 +188,7 @@ function GetConstant(): int {
 function GetAnother(): int {
   1
 }".TrimStart();
-      Assert.AreEqual(expected, document.Text.Text);
+      Assert.AreEqual(expected, document.TextDocumentItem.Text);
     }
 
     [TestMethod]
@@ -219,7 +219,7 @@ function It(): string {
 function Some(): int {
   1
 }".TrimStart();
-      Assert.AreEqual(expected, document.Text.Text);
+      Assert.AreEqual(expected, document.TextDocumentItem.Text);
     }
 
     [TestMethod]
@@ -239,7 +239,7 @@ function GetConstant(): int {
       var document = await Documents.GetDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
       var expected = "";
-      Assert.AreEqual(expected, document.Text.Text);
+      Assert.AreEqual(expected, document.TextDocumentItem.Text);
     }
 
     [TestMethod]
@@ -251,7 +251,7 @@ function GetConstant(): int {
       await ApplyChangeAndWaitCompletionAsync(documentItem, null, change);
       var document = await Documents.GetDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
-      Assert.AreEqual(change, document.Text.Text);
+      Assert.AreEqual(change, document.TextDocumentItem.Text);
     }
   }
 }

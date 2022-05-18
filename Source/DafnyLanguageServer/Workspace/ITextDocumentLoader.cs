@@ -1,4 +1,5 @@
-﻿using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+﻿using System;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -38,6 +39,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// <returns>A new document instance including the verification results.</returns>
     /// <exception cref="System.OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
-    Task<DafnyDocument> VerifyAsync(DafnyDocument document, CancellationToken cancellationToken);
+    IObservable<DafnyDocument> Verify(DafnyDocument document, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Publishes the verification diagnostics (VerificationTree) for the given document
+    /// </summary>
+    /// <param name="document">The document to publish realtime diagnostics for.</param>
+    void PublishVerificationDiagnostics(DafnyDocument document, bool verificationStarted);
   }
 }
