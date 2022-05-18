@@ -58,8 +58,6 @@ public class ConcurrentLinearVerificationGutterStatusTester : LinearVerification
     for (var i = 0; i < MaxSimultaneousVerificationTasks; i++) {
       await result[i];
     }
-
-    //await Task.WhenAll(result.ToArray());
   }
 
 }
