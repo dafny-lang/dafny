@@ -795,14 +795,14 @@ method test2() {
 
       var resolutionDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       AssertDiagnosticListsAreEqualBesidesMigration(secondVerificationDiagnostics, resolutionDiagnostics2);
-      var firstVerificationDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      var firstVerificationDiagnostics2 = await GetLastDiagnostics(documentItem, CancellationToken);
       Assert.AreEqual(1, firstVerificationDiagnostics2.Length); // Still contains second failing method
 
       ApplyChange(ref documentItem, new Range((4, 9), (4, 14)), "true");
 
       var resolutionDiagnostics3 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       AssertDiagnosticListsAreEqualBesidesMigration(firstVerificationDiagnostics2, resolutionDiagnostics3);
-      var secondVerificationDiagnostics3 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      var secondVerificationDiagnostics3 = await GetLastDiagnostics(documentItem, CancellationToken);
       Assert.AreEqual(0, secondVerificationDiagnostics3.Length);
 
       await AssertNoDiagnosticsAreComing(CancellationToken);
