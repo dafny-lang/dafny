@@ -1,14 +1,12 @@
 name: Build and Test
 
 on:
-  push:
-    branches: [ master ]
   pull_request:
     branches: [ master ]
 
 env:
   dotnet-version: 6.0.x # SDK Version for building Dafny
-  
+
 jobs:
   singletons:
     runs-on: ubuntu-18.04
@@ -51,8 +49,17 @@ jobs:
     - name: Check whitespace and style
       working-directory: dafny
       run: dotnet tool run dotnet-format -w -s error --check Source/Dafny.sln --exclude Dafny/Scanner.cs --exclude Dafny/Parser.cs
-      
+
+  check-deep-tests:
+    uses: ./.github/workflows/check-deep-tests-reusable.yml
+
   integration-tests:
+    needs: check-deep-tests
+    if: always() && (needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests'))
     uses: ./.github/workflows/integration-tests-reusable.yml
     with:
+      # By default run only on one platform, but run on all platforms if the PR has the "run-deep-tests"
+      # label, and skip checking the nightly build above.
+      # This is the best way to fix an issue in master that was only caught by the nightly build.
+      all_platforms: ${{ contains(github.event.pull_request.labels.*.name, 'run-deep-tests') }}
       num_shards: 5

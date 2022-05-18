@@ -3,6 +3,7 @@ import builtins
 from dataclasses import dataclass
 from contextlib import contextmanager
 from fractions import Fraction
+import copy
 
 class classproperty(property):
     def __get__(self, instance, owner):
@@ -39,9 +40,30 @@ def _tail_call():
     raise TailCall()
 
 class Seq(list):
+    def __init__(self, __iterable = None, isStr = False):
+        if __iterable is None:
+            __iterable = []
+        self.isStr = isinstance(__iterable, str) or isStr
+        super().__init__(__iterable)
+
     @property
     def Elements(self):
         return self
+
+    @property
+    def UniqueElements(self):
+        return set(self)
+
+    def __repr__(self) -> str:
+        if self.isStr:
+          return ''.join(self)
+        return super().__repr__()
+
+    def __add__(self, other):
+        return Seq(super().__add__(other), isStr=self.isStr and other.isStr)
+
+    def __hash__(self) -> int:
+        return hash(tuple(self))
 
 class Set(set):
     @property
@@ -155,6 +177,21 @@ def euclidian_modulus(a, b):
     c = (-a) % bp
     return c if c == 0 else bp - c
 
+def newArray(initValue, *dims):
+    b = initValue
+    for i in reversed(list(dims)):
+        b = [copy.deepcopy(b) for _ in range(i)]
+    return b
+
 @dataclass
 class HaltException(Exception):
     message: str
+
+def quantifier(vals, frall, pred):
+    for u in vals:
+        if pred(u) != frall:
+            return not frall
+    return frall
+
+def AllChars():
+    return [chr(i) for i in range(0x10000)]
