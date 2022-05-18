@@ -23,7 +23,6 @@ public class PluginsAdvancedTest : PluginsTestBase {
 
   [TestMethod]
   public async Task EnsureErrorMessageCanBeComplexAndTakeIntoAccountConfiguration() {
-    DafnyOptions.O.Parse(new[] { "-plugin:" + LibraryPath });
     var documentItem = CreateTestDocument(@"
 method {:extern} myMethod(i: int) returns (j: int)
 
