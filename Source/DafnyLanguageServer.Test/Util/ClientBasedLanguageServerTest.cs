@@ -18,16 +18,16 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 
 public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
   protected ILanguageClient client;
-  protected DiagnosticsReceiver diagnosticReceiver;
+  protected DiagnosticsReceiver diagnosticsReceiver;
 
   public async Task<Diagnostic[]> GetLastVerificationDiagnostics(TextDocumentItem documentItem, CancellationToken cancellationToken = default, int? expectedNumber = null) {
     await client.WaitForNotificationCompletionAsync(documentItem.Uri, cancellationToken);
     var document = await Documents.GetVerifiedDocumentAsync(documentItem);
-    await diagnosticReceiver.AwaitNextDiagnosticsAsync(cancellationToken); // Get resolution diagnostics
+    await diagnosticsReceiver.AwaitNextDiagnosticsAsync(cancellationToken); // Get resolution diagnostics
     var remainingDiagnostics = expectedNumber ?? Int32.MaxValue;
     Diagnostic[] result;
     do {
-      result = await diagnosticReceiver.AwaitNextDiagnosticsAsync(cancellationToken);
+      result = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(cancellationToken);
       remainingDiagnostics--;
     } while (!document!.Diagnostics.SequenceEqual(result) && remainingDiagnostics > 0);
 
@@ -37,9 +37,9 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
   [TestInitialize]
   public virtual async Task SetUp() {
 
-    diagnosticReceiver = new();
+    diagnosticsReceiver = new();
     client = await InitializeClient(options => {
-      options.OnPublishDiagnostics(diagnosticReceiver.NotificationReceived);
+      options.OnPublishDiagnostics(diagnosticsReceiver.NotificationReceived);
     }, serverOptions => {
       serverOptions.Services.AddSingleton<IProgramVerifier>(serviceProvider => new SlowVerifier(
         serviceProvider.GetRequiredService<ILogger<DafnyProgramVerifier>>(),
@@ -74,7 +74,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
     }
     var verificationDocumentItem = CreateTestDocument("class X {does not parse", $"verification{fileIndex++}.dfy");
     await client.OpenDocumentAndWaitAsync(verificationDocumentItem, CancellationToken.None);
-    var resolutionReport = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken.None);
+    var resolutionReport = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken.None);
     Assert.AreEqual(verificationDocumentItem.Uri, resolutionReport.Uri,
       "Unexpected diagnostics were received whereas none were expected:\n" +
       string.Join(",", resolutionReport.Diagnostics.Select(diagnostic =>
@@ -82,7 +82,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
     client.DidCloseTextDocument(new DidCloseTextDocumentParams {
       TextDocument = verificationDocumentItem
     });
-    var hideReport = await diagnosticReceiver.AwaitNextNotificationAsync(CancellationToken.None);
+    var hideReport = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken.None);
     Assert.AreEqual(verificationDocumentItem.Uri, hideReport.Uri);
   }
 }

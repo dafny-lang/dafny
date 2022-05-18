@@ -13,7 +13,7 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Diagnostics;
 
 [TestClass]
-public class SimpleLinearVerificationDiagnosticTester : LinearVerificationDiagnosticTester {
+public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutterStatusTester {
   private const int MaxTestExecutionTimeMs = 10000;
 
   // To add a new test, just call VerifyTrace on a given program,
@@ -21,7 +21,7 @@ public class SimpleLinearVerificationDiagnosticTester : LinearVerificationDiagno
   // Add '//Next<n>:' to edit a line multiple times
 
   [TestMethod, Timeout(MaxTestExecutionTimeMs)]
-  public async Task EnsureVerificationDiagnosticsAreWorking() {
+  public async Task EnsureVerificationGutterStatusIsWorking() {
     await VerifyTrace(@"
  .  |  |  |  I  I  |  | :predicate Ok() {
  .  |  |  |  I  I  |  | :  true
