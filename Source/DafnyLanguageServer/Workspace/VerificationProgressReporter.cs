@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.BaseTypes;
 using Microsoft.Boogie;
@@ -6,6 +7,7 @@ using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.Extensions.Logging;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using VC;
 using VerificationResult = Microsoft.Boogie.VerificationResult;
 using VerificationStatus = Microsoft.Dafny.LanguageServer.Workspace.Notifications.VerificationStatus;
@@ -13,6 +15,19 @@ using VerificationStatus = Microsoft.Dafny.LanguageServer.Workspace.Notification
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 public class VerificationProgressReporter : IVerificationProgressReporter {
+  /// The last [MaxLastTouchedMethods] recently modified methods will be
+  /// automatically assigned a priority ranging from
+  /// [MaxLastTouchedMethodPriority - MaxLastTouchedMethods + 1]
+  /// to [MaxLastTouchedMethodPriority] (below, from 6 to 10)
+  /// Since priorities range from 1 to infinite, the only requirement is
+  /// that [MaxLastTouchedMethods] is less than [MaxLastTouchedMethodPriority]
+  /// 10 is a nice priority, not too high so that it can be overriden easily
+  /// to always trigger the verifier to verify them first (for any reason) 
+  /// and not too low so that it's still possible to manually set up priorities 1-5 to
+  /// methods that are not being modified.
+  private const int MaxLastTouchedMethodPriority = 10;
+  private const int MaxLastTouchedMethods = 5;
+
   private readonly ICompilationStatusNotificationPublisher publisher;
   private readonly DafnyDocument document;
   private readonly ILogger<VerificationProgressReporter> logger;
@@ -122,10 +137,22 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   /// Also set the implementation priority depending on the last edited methods 
   /// </summary>
   /// <param name="implementations">The implementations to be verified</param>
-  public void ReportImplementationsBeforeVerification(Implementation[] implementations) {
+  public virtual void ReportImplementationsBeforeVerification(Implementation[] implementations) {
     if (document.LoadCanceled || implementations.Length == 0) {
       return;
     }
+    var newLastTouchedMethodPositions = document.LastTouchedMethodPositions.ToList();
+    var newlyTouchedVerificationTree = document.VerificationTree.Children.FirstOrDefault(node =>
+      node != null && document.LastChange != null && node.Range.Contains(document.LastChange), null);
+    if (newlyTouchedVerificationTree != null) {
+      RememberLastTouchedMethodPositions(newlyTouchedVerificationTree.Position, newLastTouchedMethodPositions);
+      document.LastTouchedMethodPositions = newLastTouchedMethodPositions.TakeLast(MaxLastTouchedMethods).ToImmutableList();
+    }
+
+    var positionToVerificationTree = document.VerificationTree.Children.ToImmutableDictionary(
+      verificationTree => verificationTree.Position,
+      verificationTree => verificationTree);
+
     // We migrate existing implementations to the new provided ones if they exist.
     // (same child number, same file and same position)
     foreach (var methodTree in document.VerificationTree.Children) {
@@ -133,7 +160,8 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
     }
 
     foreach (var implementation in implementations) {
-      int priority = GetVerificationPriority(implementation.tok);
+      var verificationTree = positionToVerificationTree!.GetValueOrDefault(implementation.tok.GetLspPosition(), null);
+      int priority = GetVerificationPriority(verificationTree);
 
       if (priority > 0 && implementation.Priority < priority) {
         implementation.Attributes.AddLast(
@@ -379,12 +407,35 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   }
 
   /// <summary>
-  /// Returns the verification priority for a given token.
+  /// Returns the verification priority for a given method, depending on if it was recently modified
   /// </summary>
-  /// <param name="token">The token to consider</param>
+  /// <param name="method">The method to consider</param>
   /// <returns>The automatically set priority for the underlying method, or 0</returns>
-  private int GetVerificationPriority(IToken token) {
+  private int GetVerificationPriority(VerificationTree? method) {
+    if (method != null) {
+      var lastTouchedIndex = document.LastTouchedMethodPositions.IndexOf(method.Position);
+      // 0 if not found
+      if (lastTouchedIndex == -1) {
+        return 0;
+      }
+      var lastTouchedCount = document.LastTouchedMethodPositions.Count;
+      var priority = MaxLastTouchedMethodPriority + lastTouchedIndex + 1 - lastTouchedCount;
+      return priority;
+    }
     return 0;
+  }
+
+  /// <summary>
+  /// Helper to remember that a method tree was recently modified.
+  /// </summary>
+  /// <param name="methodPosition">The verification tree of the method that was recently modified</param>
+  /// <param name="newLastTouchedMethodPositions">The positions of recently touched methods</param>
+  private void RememberLastTouchedMethodPositions(Position methodPosition, List<Position> newLastTouchedMethodPositions) {
+    var index = newLastTouchedMethodPositions.IndexOf(methodPosition);
+    if (index != -1) {
+      newLastTouchedMethodPositions.RemoveAt(index);
+    }
+    newLastTouchedMethodPositions.Add(methodPosition);
   }
 
   /// <summary>
