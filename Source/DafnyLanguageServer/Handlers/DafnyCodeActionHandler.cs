@@ -60,7 +60,7 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
       this.document = document;
       this.request = request;
       this.cancellationToken = cancellationToken;
-      this.documentText = document.Text.Text;
+      this.documentText = document.TextDocumentItem.Text;
       this.documentUri = document.Uri.GetFileSystemPath();
     }
 
@@ -134,22 +134,24 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
 
   public override Task<CodeAction> Handle(CodeAction request, CancellationToken cancellationToken) {
     var command = request.Data;
-    string documentUri = command[0].Value<string>();
-    int id = command[1].Value<int>();
-    if (ConcurrentDictionary.TryGetValue(documentUri, out var quickFixes)) {
-      var selectedQuickFix = quickFixes.Where(pluginQuickFix => pluginQuickFix.Id == id).FirstOrDefault((PluginQuickFix)null!);
-      if (selectedQuickFix != null) {
-        return Task.FromResult(new CodeAction() {
-          Edit = new WorkspaceEdit() {
-            DocumentChanges = new Container<WorkspaceEditDocumentChange>(
-              new WorkspaceEditDocumentChange(new TextDocumentEdit() {
-                TextDocument = new OptionalVersionedTextDocumentIdentifier() {
-                  Uri = documentUri
-                },
-                Edits = new TextEditContainer(GetTextEdits(selectedQuickFix.QuickFix.GetEdits()))
-              }))
-          }
-        });
+    if (command != null) {
+      string documentUri = command[0].Value<string>();
+      int id = command[1].Value<int>();
+      if (ConcurrentDictionary.TryGetValue(documentUri, out var quickFixes)) {
+        PluginQuickFix? selectedQuickFix = quickFixes.Where(pluginQuickFix => pluginQuickFix.Id == id).FirstOrDefault((PluginQuickFix?)null!);
+        if (selectedQuickFix != null) {
+          return Task.FromResult(new CodeAction() {
+            Edit = new WorkspaceEdit() {
+              DocumentChanges = new Container<WorkspaceEditDocumentChange>(
+                new WorkspaceEditDocumentChange(new TextDocumentEdit() {
+                  TextDocument = new OptionalVersionedTextDocumentIdentifier() {
+                    Uri = documentUri
+                  },
+                  Edits = new TextEditContainer(GetTextEdits(selectedQuickFix.QuickFix.GetEdits()))
+                }))
+            }
+          });
+        }
       }
     }
 
@@ -177,16 +179,16 @@ internal class VerificationQuickFixerInput : IQuickFixInput {
 
   public string Uri => Document.Uri.GetFileSystemPath();
   public int Version => Document.Version;
-  public string Code => Document.Text.Text;
+  public string Code => Document.TextDocumentItem.Text;
   public Dafny.Program Program => Document.Program;
   public DafnyDocument Document { get; }
 
   public Diagnostic[] Diagnostics {
     get {
-      var result = Document.Errors.GetDiagnostics(Document.Uri).ToArray();
+      var result = Document.Diagnostics.ToArray();
       if (result.Length == 0) {
         // For anonymous documents opened in VSCode
-        result = Document.Errors.GetDiagnostics(DocumentUri).ToArray();
+        result = Document.Diagnostics.ToArray();
       }
 
       return result;

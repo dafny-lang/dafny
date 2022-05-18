@@ -61,7 +61,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           val = "",
           pos = position.ToAbsolutePosition(document)
         };
-      } catch (ArgumentException e) {
+      } catch (ArgumentException) {
         return Token.NoToken;
       }
     }
