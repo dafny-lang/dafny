@@ -35,9 +35,13 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     public IReadOnlyList<Diagnostic> GetDiagnostics(DocumentUri documentUri) {
       rwLock.EnterReadLock();
       try {
+        var alternativeUntitled = documentUri.GetFileSystemPath();
         // Concurrency: Return a copy of the list not to expose a reference to an object that requires synchronization.
         // LATER: Make the Diagnostic type immutable, since we're not protecting it from concurrent accesses
-        return new List<Diagnostic>(diagnostics.GetValueOrDefault(documentUri) ?? Enumerable.Empty<Diagnostic>());
+        return new List<Diagnostic>(
+          diagnostics.GetValueOrDefault(documentUri) ??
+          diagnostics.GetValueOrDefault(alternativeUntitled) ??
+          Enumerable.Empty<Diagnostic>());
       }
       finally {
         rwLock.ExitReadLock();
