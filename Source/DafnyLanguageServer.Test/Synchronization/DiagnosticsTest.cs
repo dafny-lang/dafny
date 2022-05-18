@@ -610,8 +610,8 @@ method t10() { assert false; }".TrimStart();
         Assert.AreEqual(5, diagnostics.Length);
         Assert.AreEqual(MessageSource.Verifier.ToString(), diagnostics[0].Source);
         Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
+        await AssertNoDiagnosticsAreComing(CancellationToken);
       }
-      await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
     [TestMethod]
