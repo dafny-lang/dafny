@@ -69,7 +69,7 @@ method Multiply(x: int, y: int) returns (product: int
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var diagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(1, diagnostics.Length);
       Assert.AreEqual("Parser", diagnostics[0].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
@@ -93,7 +93,7 @@ method Multiply(x: int, y: int) returns (product: int)
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var diagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(1, diagnostics.Length);
       Assert.AreEqual("Resolver", diagnostics[0].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
@@ -117,7 +117,7 @@ method Multiply(x: int, y: int) returns (product: int)
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var diagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(2, diagnostics.Length);
       Assert.AreEqual("Resolver", diagnostics[0].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
@@ -170,7 +170,7 @@ method Multiply(x: int, y: int) returns (product: int)
       });
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var diagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(0, diagnostics.Length);
       await AssertNoDiagnosticsAreComing();
     }
@@ -237,7 +237,7 @@ method Multiply(x: int, y: int) returns (product: int)
         }
       });
 
-      var diagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(1, diagnostics.Length);
       Assert.AreEqual("Parser", diagnostics[0].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
@@ -264,7 +264,7 @@ method Multiply(x: int, y: int) returns (product: int)
       });
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var diagnosticsAfterOpening = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      var diagnosticsAfterOpening = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(0, diagnosticsAfterOpening.Length);
 
       client.DidChangeTextDocument(new DidChangeTextDocumentParams {
@@ -280,7 +280,7 @@ method Multiply(x: int, y: int) returns (product: int)
         }
       });
 
-      var diagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(1, diagnostics.Length);
       Assert.AreEqual("Parser", diagnostics[0].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
@@ -347,7 +347,7 @@ method Multiply(x: int, y: int) returns (product: int)
       });
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var diagnosticsAfterOpening = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      var diagnosticsAfterOpening = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(0, diagnosticsAfterOpening.Length);
 
       client.DidChangeTextDocument(new DidChangeTextDocumentParams {
@@ -363,7 +363,7 @@ method Multiply(x: int, y: int) returns (product: int)
         }
       });
 
-      var diagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(0, diagnostics.Length);
       await AssertNoDiagnosticsAreComing();
     }
@@ -434,9 +434,9 @@ method Multiply(x: int, y: int) returns (product: int
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       client.DidCloseTextDocument(new DidCloseTextDocumentParams { TextDocument = documentItem });
-      var diagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(0, diagnostics.Length);
       await AssertNoDiagnosticsAreComing();
     }
@@ -446,7 +446,7 @@ method Multiply(x: int, y: int) returns (product: int
       var source = "include \"doesNotExist.dfy\"";
       var documentItem = CreateTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles/test.dfy"));
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var diagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(1, diagnostics.Length);
       Assert.AreEqual("Parser", diagnostics[0].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
@@ -459,7 +459,7 @@ method Multiply(x: int, y: int) returns (product: int
       var source = "include \"syntaxError.dfy\"";
       var documentItem = CreateTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles/test.dfy"));
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var diagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(1, diagnostics.Length);
       Assert.AreEqual("Parser", diagnostics[0].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
@@ -472,7 +472,7 @@ method Multiply(x: int, y: int) returns (product: int
       var source = "include \"syntaxError.dfy\"";
       var documentItem = CreateTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles/test.dfy"));
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var diagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(1, diagnostics.Length);
       Assert.AreEqual("Parser", diagnostics[0].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
@@ -485,7 +485,7 @@ method Multiply(x: int, y: int) returns (product: int
       var source = "include \"semanticError.dfy\"";
       var documentItem = CreateTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles/test.dfy"));
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var diagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(1, diagnostics.Length);
       Assert.AreEqual("Resolver", diagnostics[0].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
@@ -539,10 +539,10 @@ method Multiply(x: int, y: int) returns (product: int)
       });
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var changeDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      var changeDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(0, changeDiagnostics.Length);
       client.SaveDocument(documentItem);
-      var saveDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      var saveDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(1, saveDiagnostics.Length);
       Assert.AreEqual(MessageSource.Verifier.ToString(), saveDiagnostics[0].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, saveDiagnostics[0].Severity);
@@ -718,10 +718,10 @@ method test() {
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
       client.OpenDocument(documentItem);
-      var resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken.None, documentItem);
+      var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken.None, documentItem);
       Assert.AreEqual(0, resolutionDiagnostics.Length);
-      var firstVerificationDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken.None, documentItem);
-      var secondVerificationDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken.None, documentItem);
+      var firstVerificationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken.None, documentItem);
+      var secondVerificationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken.None, documentItem);
 
       Assert.AreEqual(1, firstVerificationDiagnostics.Length);
       // Second diagnostic is a timeout exception from SlowToVerify
@@ -742,10 +742,10 @@ method test()
       });
       var documentItem = CreateTestDocument(source);
       client.OpenDocument(documentItem);
-      var resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken.None, documentItem);
+      var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken.None, documentItem);
       Assert.AreEqual(0, resolutionDiagnostics.Length);
-      var firstVerificationDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken.None, documentItem);
-      var secondVerificationDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken.None, documentItem);
+      var firstVerificationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken.None, documentItem);
+      var secondVerificationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken.None, documentItem);
 
       Assert.AreEqual(1, firstVerificationDiagnostics.Length);
       Assert.AreEqual(2, secondVerificationDiagnostics.Length);
@@ -766,9 +766,9 @@ method test(x: int) {
       });
       var documentItem = CreateTestDocument(source);
       client.OpenDocument(documentItem);
-      var resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken.None, documentItem);
+      var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken.None, documentItem);
       Assert.AreEqual(0, resolutionDiagnostics.Length);
-      var firstVerificationDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken.None, documentItem);
+      var firstVerificationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken.None, documentItem);
 
       Assert.AreEqual(2, firstVerificationDiagnostics.Length);
       await AssertNoDiagnosticsAreComing();
@@ -789,29 +789,29 @@ method test2() {
       });
       var documentItem = CreateTestDocument(source);
       client.OpenDocument(documentItem);
-      var resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       Assert.AreEqual(0, resolutionDiagnostics.Length);
-      var firstVerificationDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
-      var secondVerificationDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      var firstVerificationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      var secondVerificationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       Assert.AreEqual(1, firstVerificationDiagnostics.Length);
       Assert.AreEqual(2, secondVerificationDiagnostics.Length);
 
       ApplyChange(ref documentItem, new Range((1, 9), (1, 14)), "true"); ;
 
-      var resolutionDiagnostics2 = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      var resolutionDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       AssertDiagnosticListsAreEqualBesidesMigration(secondVerificationDiagnostics, resolutionDiagnostics2);
-      var firstVerificationDiagnostics2 = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
-      var secondVerificationDiagnostics2 = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      var firstVerificationDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      var secondVerificationDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       //Reordering means the assert false could be solved first
       //Assert.AreEqual(1, firstVerificationDiagnostics2.Length); // Still contains second failing method
       Assert.AreEqual(1, secondVerificationDiagnostics2.Length);
 
       ApplyChange(ref documentItem, new Range((4, 9), (4, 14)), "true");
 
-      var resolutionDiagnostics3 = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      var resolutionDiagnostics3 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       AssertDiagnosticListsAreEqualBesidesMigration(secondVerificationDiagnostics2, resolutionDiagnostics3);
-      var firstVerificationDiagnostics3 = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
-      var secondVerificationDiagnostics3 = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      var firstVerificationDiagnostics3 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      var secondVerificationDiagnostics3 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       //Reordering means the error could be solved first
       //Assert.AreEqual(1, firstVerificationDiagnostics3.Length); // Still contains second failing method
       Assert.AreEqual(0, secondVerificationDiagnostics3.Length);
@@ -832,16 +832,16 @@ method test() {
       });
       var documentItem = CreateTestDocument(source);
       client.OpenDocument(documentItem);
-      var resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       Assert.AreEqual(0, resolutionDiagnostics.Length);
-      var firstVerificationDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      var firstVerificationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       Assert.AreEqual(1, firstVerificationDiagnostics.Length);
       ApplyChange(ref documentItem, new Range((1, 9), (1, 14)), "true");
 
-      var resolutionDiagnostics2 = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      var resolutionDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       AssertDiagnosticListsAreEqualBesidesMigration(firstVerificationDiagnostics, resolutionDiagnostics2);
-      var firstVerificationDiagnostics2 = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
-      var secondVerificationDiagnostics2 = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      var firstVerificationDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      var secondVerificationDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       Assert.AreEqual(0, firstVerificationDiagnostics2.Length); // Still contains second failing method
       Assert.AreEqual(1, secondVerificationDiagnostics2.Length);
 
@@ -864,10 +864,10 @@ method test2() {
       });
       var documentItem = CreateTestDocument(source);
       client.OpenDocument(documentItem);
-      var resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       Assert.AreEqual(0, resolutionDiagnostics.Length);
-      var firstVerificationDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
-      var secondVerificationDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      var firstVerificationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      var secondVerificationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       Assert.AreEqual(1, firstVerificationDiagnostics.Length);
       Assert.AreEqual(2, secondVerificationDiagnostics.Length);
 
@@ -880,11 +880,11 @@ method test2() {
        */
       ApplyChange(ref documentItem, new Range((2, 0), (4, 0)), "");
 
-      var resolutionDiagnostics2 = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      var resolutionDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
 
       // Resolution diagnostics still contain those of the deleted method.
       AssertDiagnosticListsAreEqualBesidesMigration(secondVerificationDiagnostics, resolutionDiagnostics2);
-      var firstVerificationDiagnostics2 = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      var firstVerificationDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       // The second assert doesn't create a separate error since it's hidden by the first one.
       // The diagnostics of test2 has not been migrated since test2 no longer exists.
       Assert.AreEqual(1, firstVerificationDiagnostics2.Length);
@@ -929,9 +929,9 @@ method Foo() {
       var preChangeDiagnostics = await GetLastVerificationDiagnostics(documentItem, CancellationToken);
       await AssertNoDiagnosticsAreComing();
       ApplyChange(ref documentItem, new Range(0, 7, 0, 10), "Bar");
-      var resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       Assert.AreEqual(preChangeDiagnostics[0], resolutionDiagnostics[0]);
-      var finalDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      var finalDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(resolutionDiagnostics[0], finalDiagnostics[0]);
     }
 
@@ -949,9 +949,9 @@ module Foo {
       var preChangeDiagnostics = await GetLastVerificationDiagnostics(documentItem, CancellationToken);
       await AssertNoDiagnosticsAreComing();
       ApplyChange(ref documentItem, new Range(0, 7, 0, 10), "Zap");
-      var resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       Assert.AreEqual(preChangeDiagnostics[0], resolutionDiagnostics[0]);
-      var finalDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      var finalDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(resolutionDiagnostics[0], finalDiagnostics[0]);
     }
   }
