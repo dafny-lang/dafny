@@ -5,6 +5,14 @@ using JetBrains.Annotations;
 namespace Microsoft.Dafny.ProofObligationDescription;
 
 public abstract class ProofObligationDescription : Boogie.ProofObligationDescription {
+  public abstract Expression GetAssertedExpr(DafnyOptions options);
+}
+
+// When there is no way to translate the asserted constraint in Dafny
+public abstract class ProofObligationDescriptionNotInDafny : ProofObligationDescription {
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return null;
+  }
 }
 
 //// Arithmetic and logical operators, conversions
@@ -17,9 +25,19 @@ public class DivisorNonZero : ProofObligationDescription {
     "possible division by zero";
 
   public override string ShortDescription => "non-zero divisor";
+
+  private readonly Expression divisor;
+
+  public DivisorNonZero(Expression divisor) {
+    this.divisor = divisor;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return new BinaryExpr(divisor.tok, BinaryExpr.Opcode.Neq, divisor, new LiteralExpr(divisor.tok, 0));
+  }
 }
 
-public class ShiftLowerBound : ProofObligationDescription {
+public class ShiftLowerBound : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     "shift amount is always non-negative";
 
@@ -29,7 +47,7 @@ public class ShiftLowerBound : ProofObligationDescription {
   public override string ShortDescription => "shift lower bound";
 }
 
-public class ShiftUpperBound : ProofObligationDescription {
+public class ShiftUpperBound : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     $"shift amount is always within the width of the result ({width})";
 
@@ -45,7 +63,7 @@ public class ShiftUpperBound : ProofObligationDescription {
   }
 }
 
-public class ConversionIsNatural : ProofObligationDescription {
+public class ConversionIsNatural : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     $"{prefix}value to be converted is always a natural number";
 
@@ -61,7 +79,7 @@ public class ConversionIsNatural : ProofObligationDescription {
   }
 }
 
-public class ConversionSatisfiesConstraints : ProofObligationDescription {
+public class ConversionSatisfiesConstraints : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     $"{prefix}result of operation never violates {kind} constraints for '{name}'";
 
@@ -81,7 +99,7 @@ public class ConversionSatisfiesConstraints : ProofObligationDescription {
   }
 }
 
-public class OrdinalSubtractionIsNatural : ProofObligationDescription {
+public class OrdinalSubtractionIsNatural : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     "RHS of ORDINAL subtraction is always a natural number";
 
@@ -91,7 +109,7 @@ public class OrdinalSubtractionIsNatural : ProofObligationDescription {
   public override string ShortDescription => "ordinal subtraction is natural";
 }
 
-public class OrdinalSubtractionUnderflow : ProofObligationDescription {
+public class OrdinalSubtractionUnderflow : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     "ORDINAL subtraction will never go below limit ordinal";
 
@@ -101,7 +119,7 @@ public class OrdinalSubtractionUnderflow : ProofObligationDescription {
   public override string ShortDescription => "ordinal subtraction underflow";
 }
 
-public class CharOverflow : ProofObligationDescription {
+public class CharOverflow : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     "char addition will not overflow";
 
@@ -111,7 +129,7 @@ public class CharOverflow : ProofObligationDescription {
   public override string ShortDescription => "char overflow";
 }
 
-public class CharUnderflow : ProofObligationDescription {
+public class CharUnderflow : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     "char subtraction will not underflow";
 
@@ -121,7 +139,7 @@ public class CharUnderflow : ProofObligationDescription {
   public override string ShortDescription => "char underflow";
 }
 
-public class ConversionFit : ProofObligationDescription {
+public class ConversionFit : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     $"{prefix}{what} to be converted will always fit in {toType}";
 
@@ -141,7 +159,7 @@ public class ConversionFit : ProofObligationDescription {
   }
 }
 
-public class NonNegative : ProofObligationDescription {
+public class NonNegative : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     $"{what} is never negative";
 
@@ -157,7 +175,7 @@ public class NonNegative : ProofObligationDescription {
   }
 }
 
-public class ConversionPositive : ProofObligationDescription {
+public class ConversionPositive : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     $"{prefix}{what} is always positive";
 
@@ -177,7 +195,7 @@ public class ConversionPositive : ProofObligationDescription {
   }
 }
 
-public class IsInteger : ProofObligationDescription {
+public class IsInteger : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     $"{prefix}the real-based number is an integer";
 
@@ -195,7 +213,7 @@ public class IsInteger : ProofObligationDescription {
 
 //// Object properties
 
-public class NonNull : ProofObligationDescription {
+public class NonNull : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     $"{PluralSuccess}{what} object is never null";
 
@@ -214,7 +232,7 @@ public class NonNull : ProofObligationDescription {
   }
 }
 
-public class IsAllocated : ProofObligationDescription {
+public class IsAllocated : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     $"{PluralSuccess}{what} is always allocated{WhenSuffix}";
 
@@ -237,7 +255,7 @@ public class IsAllocated : ProofObligationDescription {
   }
 }
 
-public class IsOlderProofObligation : ProofObligationDescription {
+public class IsOlderProofObligation : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription {
     get {
       var successOlder = olderParameterCount == 1 ? " is" : "s are";
@@ -272,7 +290,7 @@ public class IsOlderProofObligation : ProofObligationDescription {
 
 //// Contract constraints
 
-public class PreconditionSatisfied : ProofObligationDescription {
+public class PreconditionSatisfied : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     customErrMsg is null
       ? "function precondition satisfied"
@@ -290,7 +308,7 @@ public class PreconditionSatisfied : ProofObligationDescription {
   }
 }
 
-public class AssertStatement : ProofObligationDescription {
+public class AssertStatement : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     customErrMsg is null
       ? "assertion always holds"
@@ -308,7 +326,7 @@ public class AssertStatement : ProofObligationDescription {
   }
 }
 
-public class LoopInvariant : ProofObligationDescription {
+public class LoopInvariant : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     customErrMsg is null
       ? "loop invariant always holds"
@@ -326,7 +344,7 @@ public class LoopInvariant : ProofObligationDescription {
   }
 }
 
-public class CalculationStep : ProofObligationDescription {
+public class CalculationStep : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     "the calculation step between the previous line and this line always holds";
 
@@ -336,7 +354,7 @@ public class CalculationStep : ProofObligationDescription {
   public override string ShortDescription => "calc step";
 }
 
-public class EnsuresStronger : ProofObligationDescription {
+public class EnsuresStronger : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     "the method provides a postcondition equal to or more detailed than in its parent trait";
 
@@ -346,7 +364,7 @@ public class EnsuresStronger : ProofObligationDescription {
   public override string ShortDescription => "ensures stronger";
 }
 
-public class RequiresWeaker : ProofObligationDescription {
+public class RequiresWeaker : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     "the method provides a precondition equal to or more permissive than in its parent trait";
 
@@ -356,7 +374,7 @@ public class RequiresWeaker : ProofObligationDescription {
   public override string ShortDescription => "requires weaker";
 }
 
-public class ForallPostcondition : ProofObligationDescription {
+public class ForallPostcondition : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     "postcondition of forall statement always holds";
 
@@ -366,7 +384,7 @@ public class ForallPostcondition : ProofObligationDescription {
   public override string ShortDescription => "forall ensures";
 }
 
-public class YieldEnsures : ProofObligationDescription {
+public class YieldEnsures : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     "yield-ensures condition always holds";
 
@@ -376,7 +394,7 @@ public class YieldEnsures : ProofObligationDescription {
   public override string ShortDescription => "yield ensures";
 }
 
-public class TraitFrame : ProofObligationDescription {
+public class TraitFrame : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     isModify
       ? $"{whatKind} abides by trait context's modifies clause"
@@ -399,7 +417,7 @@ public class TraitFrame : ProofObligationDescription {
   }
 }
 
-public class TraitDecreases : ProofObligationDescription {
+public class TraitDecreases : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     $"{whatKind}'s decreases clause is below or equal to that in the trait";
 
@@ -415,7 +433,7 @@ public class TraitDecreases : ProofObligationDescription {
   }
 }
 
-public class FrameSubset : ProofObligationDescription {
+public class FrameSubset : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     isWrite
       ? $"{whatKind} is allowed by context's modifies clause"
@@ -437,7 +455,7 @@ public class FrameSubset : ProofObligationDescription {
   }
 }
 
-public class FrameDereferenceNonNull : ProofObligationDescription {
+public class FrameDereferenceNonNull : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     "frame expression does not dereference null";
 
@@ -447,7 +465,7 @@ public class FrameDereferenceNonNull : ProofObligationDescription {
   public override string ShortDescription => "frame dereference";
 }
 
-public class Terminates : ProofObligationDescription {
+public class Terminates : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     "loop or recursion terminates";
 
@@ -471,7 +489,7 @@ public class Terminates : ProofObligationDescription {
   }
 }
 
-public class DecreasesBoundedBelow : ProofObligationDescription {
+public class DecreasesBoundedBelow : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     $"decreases {component} is bounded below by {zeroStr}";
 
@@ -493,7 +511,7 @@ public class DecreasesBoundedBelow : ProofObligationDescription {
   }
 }
 
-public class Modifiable : ProofObligationDescription {
+public class Modifiable : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     $"{description} is in the enclosing context's modifies clause";
 
@@ -509,7 +527,7 @@ public class Modifiable : ProofObligationDescription {
   }
 }
 
-public class FunctionContractOverride : ProofObligationDescription {
+public class FunctionContractOverride : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     $"the function provides an equal or {RestrictionDesc} than in its parent trait";
 
@@ -529,7 +547,7 @@ public class FunctionContractOverride : ProofObligationDescription {
 
 //// Structural constraints
 
-public class MatchIsComplete : ProofObligationDescription {
+public class MatchIsComplete : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     $"match {matchForm} covers all cases";
 
@@ -546,7 +564,7 @@ public class MatchIsComplete : ProofObligationDescription {
   }
 }
 
-public class AlternativeIsComplete : ProofObligationDescription {
+public class AlternativeIsComplete : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     $"alternative cases cover all possibilties";
 
@@ -556,7 +574,7 @@ public class AlternativeIsComplete : ProofObligationDescription {
   public override string ShortDescription => "alternative complete";
 }
 
-public class PatternShapeIsValid : ProofObligationDescription {
+public class PatternShapeIsValid : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     $"RHS will always match the pattern '{ctorName}'";
 
@@ -572,7 +590,7 @@ public class PatternShapeIsValid : ProofObligationDescription {
   }
 }
 
-public class ValidConstructorNames : ProofObligationDescription {
+public class ValidConstructorNames : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     $"source of datatype update is constructed by {ctorNames}";
 
@@ -588,7 +606,7 @@ public class ValidConstructorNames : ProofObligationDescription {
   }
 }
 
-public class DestructorValid : ProofObligationDescription {
+public class DestructorValid : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     $"destructor '{dtorName}' is only applied to datatype values constructed by {ctorNames}";
 
@@ -606,7 +624,7 @@ public class DestructorValid : ProofObligationDescription {
   }
 }
 
-public class NotGhostVariant : ProofObligationDescription {
+public class NotGhostVariant : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     $"in a compiled context, {subject} is not applied to a datatype value of a ghost variant (ghost constructor {ctorNames})";
 
@@ -632,7 +650,7 @@ public class NotGhostVariant : ProofObligationDescription {
 
 //// Misc constraints
 
-public class IndicesInDomain : ProofObligationDescription {
+public class IndicesInDomain : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     $"all {objType} indices are in the domain of the initialization function";
 
@@ -648,7 +666,7 @@ public class IndicesInDomain : ProofObligationDescription {
   }
 }
 
-public class SubrangeCheck : ProofObligationDescription {
+public class SubrangeCheck : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     isSubset
       ? $"value always satisfies the subset constraints of '{targetType}'"
@@ -681,7 +699,7 @@ public class SubrangeCheck : ProofObligationDescription {
   }
 }
 
-public class WitnessCheck : ProofObligationDescription {
+public class WitnessCheck : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     "type is inhabited";
 
@@ -702,7 +720,7 @@ public class WitnessCheck : ProofObligationDescription {
   }
 }
 
-public class PrefixEqualityLimit : ProofObligationDescription {
+public class PrefixEqualityLimit : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     "prefix-equality limit is at least 0";
 
@@ -712,7 +730,7 @@ public class PrefixEqualityLimit : ProofObligationDescription {
   public override string ShortDescription => "prefix-equality limit";
 }
 
-public class ForRangeBoundsValid : ProofObligationDescription {
+public class ForRangeBoundsValid : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     "lower bound does not exceed upper bound";
 
@@ -722,7 +740,7 @@ public class ForRangeBoundsValid : ProofObligationDescription {
   public override string ShortDescription => "for range bounds";
 }
 
-public class ForRangeAssignable : ProofObligationDescription {
+public class ForRangeAssignable : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     "entire range is assignable to index variable";
 
@@ -738,7 +756,7 @@ public class ForRangeAssignable : ProofObligationDescription {
   }
 }
 
-public class ValidInRecursion : ProofObligationDescription {
+public class ValidInRecursion : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     $"{what} is valid in recursive setting";
 
@@ -756,7 +774,7 @@ public class ValidInRecursion : ProofObligationDescription {
   }
 }
 
-public class IsNonRecursive : ProofObligationDescription {
+public class IsNonRecursive : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     "default value is non-recursive";
 
@@ -766,7 +784,7 @@ public class IsNonRecursive : ProofObligationDescription {
   public override string ShortDescription => "default nonrecursive";
 }
 
-public class ForallLHSUnique : ProofObligationDescription {
+public class ForallLHSUnique : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     "left-hand sides of forall-statement bound variables are unique";
 
@@ -776,7 +794,7 @@ public class ForallLHSUnique : ProofObligationDescription {
   public override string ShortDescription => "forall bound unique";
 }
 
-public class ElementInDomain : ProofObligationDescription {
+public class ElementInDomain : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     "element is in domain";
 
@@ -786,7 +804,7 @@ public class ElementInDomain : ProofObligationDescription {
   public override string ShortDescription => "element in domain";
 }
 
-public class DefiniteAssignment : ProofObligationDescription {
+public class DefiniteAssignment : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     $"{what}, which is subject to definite-assignment rules, is always initialized {where}";
 
@@ -804,7 +822,7 @@ public class DefiniteAssignment : ProofObligationDescription {
   }
 }
 
-public class InRange : ProofObligationDescription {
+public class InRange : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription => $"{what} in range";
 
   public override string FailureDescription => $"{what} out of range";
@@ -818,7 +836,7 @@ public class InRange : ProofObligationDescription {
   }
 }
 
-public class SequenceSelectRangeValid : ProofObligationDescription {
+public class SequenceSelectRangeValid : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     $"upper bound within range of {what}";
 
@@ -834,7 +852,7 @@ public class SequenceSelectRangeValid : ProofObligationDescription {
   }
 }
 
-public class ComprehensionNoAlias : ProofObligationDescription {
+public class ComprehensionNoAlias : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     "key expressions refer to unique values";
 
@@ -844,7 +862,7 @@ public class ComprehensionNoAlias : ProofObligationDescription {
   public override string ShortDescription => "unique key expressions";
 }
 
-public class DistinctLHS : ProofObligationDescription {
+public class DistinctLHS : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     $"left-hand sides {lhsa} and {lhsb} are distinct";
 
@@ -868,7 +886,7 @@ public class DistinctLHS : ProofObligationDescription {
   }
 }
 
-public class ArrayInitSizeValid : ProofObligationDescription {
+public class ArrayInitSizeValid : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     $"given array size agrees with the number of expressions in the initializing display ({size})";
 
@@ -884,7 +902,7 @@ public class ArrayInitSizeValid : ProofObligationDescription {
   }
 }
 
-public class ArrayInitEmpty : ProofObligationDescription {
+public class ArrayInitEmpty : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     "array initializer has empty size";
 
@@ -900,7 +918,7 @@ public class ArrayInitEmpty : ProofObligationDescription {
   }
 }
 
-public class LetSuchThanUnique : ProofObligationDescription {
+public class LetSuchThanUnique : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     "the value of this let-such-that expression is uniquely determined";
 
@@ -910,7 +928,7 @@ public class LetSuchThanUnique : ProofObligationDescription {
   public override string ShortDescription => "let-such-that unique";
 }
 
-public class LetSuchThanExists : ProofObligationDescription {
+public class LetSuchThatExists : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     "a value exists that satisfies this let-such-that expression";
 
@@ -920,7 +938,7 @@ public class LetSuchThanExists : ProofObligationDescription {
   public override string ShortDescription => "let-such-that exists";
 }
 
-public class AssignmentShrinks : ProofObligationDescription {
+public class AssignmentShrinks : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     $"the assignment to {fieldName} always shrinks the set";
 
@@ -936,7 +954,7 @@ public class AssignmentShrinks : ProofObligationDescription {
   }
 }
 
-public class BoilerplateTriple : ProofObligationDescription {
+public class BoilerplateTriple : ProofObligationDescriptionNotInDafny {
   public override string SuccessDescription =>
     $"error is impossible: {msg}";
 
