@@ -114,7 +114,7 @@ function GetConstant(): int {
       var openedDocument = await Documents.GetDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(openedDocument);
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
-      var savedDocument = await Documents.GetVerifiedDocumentAsync(documentItem.Uri);
+      var savedDocument = await Documents.GetLastDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(savedDocument);
     }
 
@@ -130,7 +130,7 @@ method DoIt() {
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
-      var document = await Documents.GetVerifiedDocumentAsync(documentItem.Uri);
+      var document = await Documents.GetLastDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
       Assert.AreEqual(1, document.Diagnostics.Count());
       var message = document.Diagnostics.First();

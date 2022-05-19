@@ -24,7 +24,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
 
     public async Task<CounterExampleList> Handle(CounterExampleParams request, CancellationToken cancellationToken) {
       try {
-        var document = await documents.GetVerifiedDocumentAsync(request.TextDocument);
+        var document = await documents.GetLastDocumentAsync(request.TextDocument);
         if (document != null) {
           return new CounterExampleLoader(logger, document, request.CounterExampleDepth, cancellationToken)
             .GetCounterExamples();

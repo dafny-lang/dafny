@@ -20,16 +20,13 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
   protected ILanguageClient client;
   protected DiagnosticsReceiver diagnosticsReceiver;
 
-  public async Task<Diagnostic[]> GetLastVerificationDiagnostics(TextDocumentItem documentItem, CancellationToken cancellationToken = default, int? expectedNumber = null) {
+  public async Task<Diagnostic[]> GetLastDiagnostics(TextDocumentItem documentItem, CancellationToken cancellationToken = default) {
     await client.WaitForNotificationCompletionAsync(documentItem.Uri, cancellationToken);
-    var document = await Documents.GetVerifiedDocumentAsync(documentItem);
-    await diagnosticsReceiver.AwaitNextDiagnosticsAsync(cancellationToken); // Get resolution diagnostics
-    var remainingDiagnostics = expectedNumber ?? Int32.MaxValue;
+    var document = await Documents.GetLastDocumentAsync(documentItem);
     Diagnostic[] result;
     do {
       result = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(cancellationToken);
-      remainingDiagnostics--;
-    } while (!document!.Diagnostics.SequenceEqual(result) && remainingDiagnostics > 0);
+    } while (!document!.Diagnostics.SequenceEqual(result));
 
     return result;
   }
@@ -64,17 +61,17 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
     });
   }
 
-  public async Task AssertNoDiagnosticsAreComing() {
+  public async Task AssertNoDiagnosticsAreComing(CancellationToken cancellationToken) {
     foreach (var entry in Documents.Documents.Values) {
       try {
-        await entry.FullyVerifiedDocument;
+        await entry.LastDocument;
       } catch (TaskCanceledException) {
 
       }
     }
     var verificationDocumentItem = CreateTestDocument("class X {does not parse", $"verification{fileIndex++}.dfy");
     await client.OpenDocumentAndWaitAsync(verificationDocumentItem, CancellationToken.None);
-    var resolutionReport = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken.None);
+    var resolutionReport = await diagnosticsReceiver.AwaitNextNotificationAsync(cancellationToken);
     Assert.AreEqual(verificationDocumentItem.Uri, resolutionReport.Uri,
       "Unexpected diagnostics were received whereas none were expected:\n" +
       string.Join(",", resolutionReport.Diagnostics.Select(diagnostic =>
@@ -82,7 +79,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
     client.DidCloseTextDocument(new DidCloseTextDocumentParams {
       TextDocument = verificationDocumentItem
     });
-    var hideReport = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken.None);
+    var hideReport = await diagnosticsReceiver.AwaitNextNotificationAsync(cancellationToken);
     Assert.AreEqual(verificationDocumentItem.Uri, hideReport.Uri);
   }
 }
