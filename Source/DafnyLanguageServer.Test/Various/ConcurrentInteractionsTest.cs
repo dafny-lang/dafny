@@ -1,4 +1,3 @@
-using System;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Workspace;
@@ -9,13 +8,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Boogie;
-using Microsoft.Dafny.LanguageServer.Language;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
   [TestClass]
@@ -119,7 +113,7 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
       // Save and wait for the final result
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationTokenWithHighTimeout);
 
-      var document = await Documents.GetVerifiedDocumentAsync(documentItem.Uri);
+      var document = await Documents.GetLastDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
       Assert.AreEqual(documentItem.Version + 11, document.Version);
       Assert.AreEqual(1, document.Diagnostics.Count());
@@ -133,7 +127,7 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationTokenWithHighTimeout);
       // The original document contains a syntactic error.
       var initialLoadDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout, documentItem);
-      await AssertNoDiagnosticsAreComing();
+      await AssertNoDiagnosticsAreComing(CancellationToken);
       Assert.AreEqual(1, initialLoadDiagnostics.Length);
 
       ApplyChange(ref documentItem, new Range((2, 1), (2, 1)), "\n}");
@@ -146,13 +140,10 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
       // Cancel the slow verification and start a fast verification
       ApplyChange(ref documentItem, new Range((0, 0), (3, 1)), "function GetConstant(): int ensures false { 1 }");
 
-      var parseErrorStillFixedDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout, documentItem);
-      Assert.AreEqual(0, parseErrorStillFixedDiagnostics.Length);
-
       var verificationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout, documentItem);
       Assert.AreEqual(1, verificationDiagnostics.Length);
 
-      await AssertNoDiagnosticsAreComing();
+      await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
     /// <summary>
@@ -179,7 +170,7 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
       var verificationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       Assert.AreEqual(0, verificationDiagnostics.Length);
 
-      await AssertNoDiagnosticsAreComing();
+      await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
@@ -209,14 +200,14 @@ method Multiply(x: int, y: int) returns (product: int)
         loadingDocuments.Add(documentItem);
       }
       for (int i = 0; i < documentsToLoadConcurrently; i++) {
-        var report = await GetLastVerificationDiagnostics(loadingDocuments[i], CancellationTokenWithHighTimeout);
+        var report = await GetLastDiagnostics(loadingDocuments[i], CancellationTokenWithHighTimeout);
         Assert.AreEqual(0, report.Length);
       }
 
       foreach (var loadingDocument in loadingDocuments) {
         await Documents.CloseDocumentAsync(loadingDocument);
       }
-      await AssertNoDiagnosticsAreComing();
+      await AssertNoDiagnosticsAreComing(CancellationTokenWithHighTimeout);
     }
   }
 }
