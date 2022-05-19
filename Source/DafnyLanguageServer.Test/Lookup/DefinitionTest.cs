@@ -48,7 +48,7 @@ method CallDoIt() returns () {
     public async Task DefinitionReturnsBeforeVerificationIsComplete() {
       var documentItem = CreateTestDocument(NeverVerifies);
       client.OpenDocument(documentItem);
-      var verificationTask = GetLastVerificationDiagnostics(documentItem, CancellationToken);
+      var verificationTask = GetLastDiagnostics(documentItem, CancellationToken);
       var definitionTask = RequestDefinition(documentItem, (4, 14)).AsTask();
       var first = await Task.WhenAny(verificationTask, definitionTask);
       Assert.AreSame(first, definitionTask);

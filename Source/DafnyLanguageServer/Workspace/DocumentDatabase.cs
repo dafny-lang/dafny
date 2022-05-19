@@ -57,7 +57,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       if (documents.Remove(documentId.Uri, out var databaseEntry)) {
         databaseEntry.CancelPendingUpdates();
         try {
-          await databaseEntry.FullyVerifiedDocument;
+          await databaseEntry.LastDocument;
         } catch (TaskCanceledException) {
         }
         return true;
@@ -234,9 +234,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return null;
     }
 
-    public async Task<DafnyDocument?> GetVerifiedDocumentAsync(TextDocumentIdentifier documentId) {
+    public async Task<DafnyDocument?> GetLastDocumentAsync(TextDocumentIdentifier documentId) {
       if (documents.TryGetValue(documentId.Uri, out var databaseEntry)) {
-        return await databaseEntry.FullyVerifiedDocument;
+        return await databaseEntry.LastDocument;
       }
       return null;
     }
@@ -257,7 +257,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         ResolvedDocument = resolvedDocument;
         LatestDocument = resolvedDocument;
         verifiedDocuments.Subscribe(update => LatestDocument = Task.FromResult(update));
-        FullyVerifiedDocument =
+        LastDocument =
           verifiedDocuments.Select(Task.FromResult).DefaultIfEmpty(ResolvedDocument).ToTask().Unwrap();
       }
 
@@ -267,7 +267,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       public Task<DafnyDocument> LatestDocument { get; private set; }
 
-      public Task<DafnyDocument> FullyVerifiedDocument { get; }
+      public Task<DafnyDocument> LastDocument { get; }
     }
   }
 }
