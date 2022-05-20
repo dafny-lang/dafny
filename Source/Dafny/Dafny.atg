@@ -4635,7 +4635,9 @@ QuantifierVariableDecl<.out QuantifiedVar qvar, ref Attributes attrs, bool allow
   .)
   IdentTypeOptional<out bv>
   [ "<-"
-    Expression<out domain, allowLemma, allowLambda, allowBitwiseOps>
+    /* We can't allow bitwise ops here since otherwise we'll swallow up any
+       optional "| <Range>" suffix */ 
+    Expression<out domain, allowLemma, allowLambda, false>
   ]
   { Attribute<ref attrs> }
   [ "|"
