@@ -35,6 +35,9 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     public IReadOnlyList<Diagnostic> GetDiagnostics(DocumentUri documentUri) {
       rwLock.EnterReadLock();
       try {
+        // For untitled documents, the URI needs to have a "untitled" scheme
+        // to match what the client requires in the `diagnostics` dictionary.
+        // We achieve this by expanding it into a file system path and parsing it again.
         var alternativeUntitled = documentUri.GetFileSystemPath();
         // Concurrency: Return a copy of the list not to expose a reference to an object that requires synchronization.
         // LATER: Make the Diagnostic type immutable, since we're not protecting it from concurrent accesses
