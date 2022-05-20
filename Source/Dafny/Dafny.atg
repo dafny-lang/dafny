@@ -3337,9 +3337,9 @@ ForallStmt<out Statement/*!*/ s>
   "forall"                                  (. x = t; tok = x; .)
 
   ( IF(la.kind == _openparen)  /* disambiguation needed, because of the possibility of a body-less forall statement */
-    "(" [ QuantifierDomain<out bvars, out qattrs, out range> ] ")"
+    "(" [ QuantifierDomain<out bvars, out qattrs, out range, true, true, true> ] ")"
   |     [ IF(IsIdentifier(la.kind))  /* disambiguation needed, because of the possibility of a body-less forall statement */
-          QuantifierDomain<out bvars, out qattrs, out range>
+          QuantifierDomain<out bvars, out qattrs, out range, true, true, true>
         ]
   )
   (. if (bvars == null) { bvars = new List<BoundVar>(); }
@@ -4114,7 +4114,6 @@ MapLiteralExpressions<.out List<ExpressionPair> elements.>
 /*------------------------------------------------------------------------*/
 MapComprehensionExpr<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwiseOps>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
-     BoundVar bv;
      List<BoundVar> bvars = new List<BoundVar>();
      Expression range = null;
      Expression bodyLeft = null;
@@ -4123,12 +4122,7 @@ MapComprehensionExpr<out Expression e, bool allowLemma, bool allowLambda, bool a
      bool finite = true;
   .)
   ( "map" | "imap" (. finite = false; .) )     (. IToken mapToken = t; .)
-  IdentTypeOptional<out bv>                    (. bvars.Add(bv); .)
-  { ","
-    IdentTypeOptional<out bv>                  (. bvars.Add(bv); .)
-  }
-  { Attribute<ref attrs> }
-  [ "|" Expression<out range, true, true, true> ]
+  QuantifierDomain<out bvars, out attrs, out range, allowLemma, allowLambda, allowBitwiseOps>
   QSep
   Expression<out bodyRight, allowLemma, allowLambda, allowBitwiseOps>
   [ IF(IsGets())  /* greedily parse ":=" */    (. bodyLeft = bodyRight; .)
@@ -4606,7 +4600,7 @@ QuantifierExpression<out Expression q, bool allowLemma, bool allowLambda>
   ( Forall                                     (. x = t;  univ = true; .)
   | Exists                                     (. x = t; .)
   )
-  QuantifierDomain<out bvars, out attrs, out range>
+  QuantifierDomain<out bvars, out attrs, out range, allowLemma, allowLambda, true>
   QSep
   Expression<out body, allowLemma, allowLambda>
   (. if (univ) {
@@ -4618,22 +4612,22 @@ QuantifierExpression<out Expression q, bool allowLemma, bool allowLambda>
   .
 
 /*------------------------------------------------------------------------*/
-QuantifierDomain<.out List<BoundVar> bvars, out Attributes attrs, out Expression range.>
+QuantifierDomain<.out List<BoundVar> bvars, out Attributes attrs, out Expression range, bool allowLemma, bool allowLambda, bool allowBitwiseOps.>
 = (.
      List<QuantifiedVar> qvars = new List<QuantifiedVar>();
      QuantifiedVar/*!*/ qv;
      attrs = null;
      range = null;
   .)
-  QuantifierVariableDecl<out qv, ref attrs>         (. qvars.Add(qv); .)
+  QuantifierVariableDecl<out qv, ref attrs, allowLemma, allowLambda, allowBitwiseOps>         (. qvars.Add(qv); .)
   { ","
-    QuantifierVariableDecl<out qv, ref attrs>       (. qvars.Add(qv); .)
+    QuantifierVariableDecl<out qv, ref attrs, allowLemma, allowLambda, allowBitwiseOps>       (. qvars.Add(qv); .)
   }
   (. QuantifiedVar.ExtractSingleRange(qvars, out bvars, out range); .)
   .
   
 /*------------------------------------------------------------------------*/
-QuantifierVariableDecl<.out QuantifiedVar qvar, ref Attributes attrs.>
+QuantifierVariableDecl<.out QuantifiedVar qvar, ref Attributes attrs, bool allowLemma, bool allowLambda, bool allowBitwiseOps.>
 = (.
      BoundVar/*!*/ bv;
      Expression domain = null;
@@ -4641,11 +4635,11 @@ QuantifierVariableDecl<.out QuantifiedVar qvar, ref Attributes attrs.>
   .)
   IdentTypeOptional<out bv>
   [ "<-"
-    Expression<out domain, true, true>
+    Expression<out domain, allowLemma, allowLambda, allowBitwiseOps>
   ]
   { Attribute<ref attrs> }
   [ "|"
-    Expression<out range, true, true>
+    Expression<out range, allowLemma, allowLambda, allowBitwiseOps>
   ]
   (. qvar = new QuantifiedVar(bv.tok, bv.Name, bv.Type, domain, range); .)
   .
@@ -4653,7 +4647,6 @@ QuantifierVariableDecl<.out QuantifiedVar qvar, ref Attributes attrs.>
 /*------------------------------------------------------------------------*/
 SetComprehensionExpr<out Expression q, bool allowLemma, bool allowLambda, bool allowBitwiseOps>
 = (. Contract.Ensures(Contract.ValueAtReturn(out q) != null);
-     BoundVar bv;
      List<BoundVar/*!*/> bvars = new List<BoundVar>();
      Expression range;
      Expression body = null;
@@ -4661,12 +4654,7 @@ SetComprehensionExpr<out Expression q, bool allowLemma, bool allowLambda, bool a
      bool finite = true;
   .)
   ( "set" | "iset" (. finite = false; .) )     (. IToken setToken = t; .)
-  IdentTypeOptional<out bv>                    (. bvars.Add(bv); .)
-  { ","
-    IdentTypeOptional<out bv>                  (. bvars.Add(bv); .)
-  }
-  { Attribute<ref attrs> }
-  "|" Expression<out range, allowLemma, allowLambda, allowBitwiseOps>
+  QuantifierDomain<out bvars, out attrs, out range, allowLemma, allowLambda, allowBitwiseOps>
   [ IF(IsQSep())  /* let any given body bind to the closest enclosing set comprehension */
     QSep
     Expression<out body, allowLemma, allowLambda, allowBitwiseOps || !finite>
@@ -4685,7 +4673,6 @@ SeqComprehensionExpr<out Expression q, bool allowLemma, bool allowLambda, bool a
 = (. Contract.Ensures(Contract.ValueAtReturn(out q) != null);
      Type explicitTypeArg = null;
      Expression n, f;
-     BoundVar bv;
      List<BoundVar/*!*/> bvars = new List<BoundVar>();
      Expression range;
      Expression body = null;
@@ -4708,12 +4695,7 @@ SeqComprehensionExpr<out Expression q, bool allowLemma, bool allowLambda, bool a
       Expression<out f, true, true>
       ")"                            (. q = new SeqConstructionExpr(seqToken, explicitTypeArg, n, f); .)
     |
-      IdentTypeOptional<out bv>                    (. bvars.Add(bv); .)
-      { ","
-        IdentTypeOptional<out bv>                  (. bvars.Add(bv); .)
-      }
-      { Attribute<ref attrs> }
-      "|" Expression<out range, allowLemma, allowLambda, allowBitwiseOps>
+      QuantifierDomain<out bvars, out attrs, out range, allowLemma, allowLambda, allowBitwiseOps>
       [ IF(IsQSep())  /* let any given body bind to the closest enclosing seq comprehension */
         QSep
         Expression<out body, allowLemma, allowLambda, allowBitwiseOps>

@@ -6163,9 +6163,14 @@ namespace Microsoft.Dafny {
       foreach(var qvar in qvars) {
         BoundVar bvar = new BoundVar(qvar.tok, qvar.Name, qvar.Type);
         bvars.Add(bvar);
-        range = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, range,
-          new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.In, new IdentifierExpr(bvar.tok, bvar), qvar.Domain));
-        range = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, range, qvar.Range);
+        if (qvar.Domain != null) {
+          range = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, range,
+            new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.In, new IdentifierExpr(bvar.tok, bvar), qvar.Domain));
+        }
+
+        if (qvar.Range != null) {
+          range = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, range, qvar.Range);
+        }
       }
     }
   }
