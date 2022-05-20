@@ -6142,6 +6142,33 @@ namespace Microsoft.Dafny {
       Contract.Requires(type != null);
     }
   }
+  
+  [DebuggerDisplay("Quantified<{name}>")]
+  public class QuantifiedVar : BoundVar {
+    public readonly Expression Domain;
+    public readonly Expression Range;
+    
+    public QuantifiedVar(IToken tok, string name, Type type, Expression domain, Expression range)
+      : base(tok, name, type) {
+      Contract.Requires(tok != null);
+      Contract.Requires(name != null);
+      Contract.Requires(type != null);
+      Domain = domain;
+      Range = range;
+    }
+
+    public static void ExtractSingleRange(List<QuantifiedVar> qvars, out List<BoundVar> bvars, out Expression range) {
+      bvars = new List<BoundVar>();
+      range = new LiteralExpr(Token.NoToken, true);
+      foreach(var qvar in qvars) {
+        BoundVar bvar = new BoundVar(qvar.tok, qvar.Name, qvar.Type);
+        bvars.Add(bvar);
+        range = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, range,
+          new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.In, new IdentifierExpr(bvar.tok, bvar), qvar.Domain));
+        range = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, range, qvar.Range);
+      }
+    }
+  }
 
   public class ActualBinding {
     public readonly IToken /*?*/ FormalParameterName;

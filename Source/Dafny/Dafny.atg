@@ -4620,20 +4620,34 @@ QuantifierExpression<out Expression q, bool allowLemma, bool allowLambda>
 /*------------------------------------------------------------------------*/
 QuantifierDomain<.out List<BoundVar> bvars, out Attributes attrs, out Expression range.>
 = (.
-     bvars = new List<BoundVar>();
-     BoundVar/*!*/ bv;
+     List<QuantifiedVar> qvars = new List<QuantifiedVar>();
+     QuantifiedVar/*!*/ qv;
      attrs = null;
      range = null;
   .)
-  IdentTypeOptional<out bv>                    (. bvars.Add(bv); .)
+  QuantifierVariableDecl<out qv, ref attrs>         (. qvars.Add(qv); .)
   { ","
-    IdentTypeOptional<out bv>                  (. bvars.Add(bv); .)
+    QuantifierVariableDecl<out qv, ref attrs>       (. qvars.Add(qv); .)
   }
+  (. QuantifiedVar.ExtractSingleRange(qvars, out bvars, out range); .)
+  .
+  
+/*------------------------------------------------------------------------*/
+QuantifierVariableDecl<.out QuantifiedVar qvar, ref Attributes attrs.>
+= (.
+     BoundVar/*!*/ bv;
+     Expression domain = null;
+     Expression range = null;
+  .)
+  IdentTypeOptional<out bv>
+  [ "<-"
+    Expression<out domain, true, true>
+  ]
   { Attribute<ref attrs> }
-  [ IF(la.kind == _verticalbar)   /* Coco complains about this ambiguity, thinking that a "|" can follow a body-less forall statement; I don't see how that's possible, but this IF is good and suppresses the reported ambiguity */
-    "|"
+  [ "|"
     Expression<out range, true, true>
   ]
+  (. qvar = new QuantifiedVar(bv.tok, bv.Name, bv.Type, domain, range); .)
   .
 
 /*------------------------------------------------------------------------*/
