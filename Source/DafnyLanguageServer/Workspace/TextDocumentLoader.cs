@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Reactive.Linq;
+using System.Reactive.Subjects;
 using System.Reactive.Threading.Tasks;
 using System.Threading;
 using System.Threading.Tasks;
@@ -195,7 +196,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           implementationTasks.Select(t => t.Implementation).ToArray());
       }
 
-      var _ = NotifyStatusAsync(document.TextDocumentItem, implementationTasks, cancellationToken);
       var implementationViews = GetExistingViews(document, implementationTasks);
       var counterExamples = new ConcurrentStack<Counterexample>();
 
@@ -239,6 +239,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       if (VerifierOptions.GutterStatus) {
         ReportRealtimeDiagnostics(document, result, progressReporter, cancellationToken);
       }
+
+      var _ = NotifyStatusAsync(document.TextDocumentItem, result, cancellationToken);
       return result;
     }
 
@@ -305,8 +307,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         document, notificationPublisher, diagnosticPublisher);
     }
 
-    private async Task NotifyStatusAsync(TextDocumentItem item, IReadOnlyList<IImplementationTask> implementationTasks, CancellationToken cancellationToken) {
-      var results = await Task.WhenAll(implementationTasks.Select(t => t.ActualTask));
+    private async Task NotifyStatusAsync(TextDocumentItem item, IObservable<DafnyDocument> implementationTasks, CancellationToken cancellationToken) {
+      var finalDocument = await implementationTasks.ToTask(cancellationToken);
+      var results = await Task.WhenAll(finalDocument.VerificationTasks!.Tasks.Select(t => t.ActualTask));
       logger.LogDebug($"Finished verification with {results.Sum(r => r.Errors.Count)} errors.");
       var verified = results.All(r => r.Outcome == ConditionGeneration.Outcome.Correct);
       var compilationStatusAfterVerification = verified
