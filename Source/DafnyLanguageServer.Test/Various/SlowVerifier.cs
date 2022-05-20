@@ -43,7 +43,7 @@ class SlowVerifier : IProgramVerifier {
       source = new TaskCompletionSource<VerificationResult>();
     }
 
-    public IObservable<VerificationStatus> ObservableStatus => Observable.Empty<VerificationStatus>();
+    public IObservable<VerificationStatus> ObservableStatus => Observable.Never<VerificationStatus>();
     public VerificationStatus CurrentStatus => VerificationStatus.Running;
     public ProcessedProgram ProcessedProgram => original.ProcessedProgram;
     public Implementation Implementation => original.Implementation;
