@@ -74,14 +74,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       var program = document.Program;
       var errorReporter = (DiagnosticErrorReporter)program.Reporter;
 
-      var batchObserver = new AssertionBatchCompletedObserver(logger, options.GutterStatus);
-
-      // Do not set these settings within the object's construction. It will break some tests within
-      // VerificationNotificationTest and DiagnosticsTest that rely on updating these settings.
-      DafnyOptions.O.TimeLimit = options.TimeLimit;
-      DafnyOptions.O.VcsCores = GetConfiguredCoreCount(options);
-      DafnyOptions.O.Printer = batchObserver;
-      DafnyOptions.O.VerifySnapshots = (int)options.VerifySnapshots;
 
 #pragma warning disable VSTHRD002
       var translated = Task.Factory.StartNew(() => Translator.Translate(program, errorReporter, new Translator.TranslatorFlags {
@@ -89,7 +81,16 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         ReportRanges = true
       }).ToList(), CancellationToken.None, TaskCreationOptions.None, TranslatorScheduler).Result;
 #pragma warning restore VSTHRD002
-      var executionEngine = new ExecutionEngine(DafnyOptions.O, cache);
+
+      var batchObserver = new AssertionBatchCompletedObserver(logger, options.GutterStatus);
+      // Do not set these settings within the object's construction. It will break some tests within
+      // VerificationNotificationTest and DiagnosticsTest that rely on updating these settings.
+      var engineOptions = new DafnyOptions(DafnyOptions.O);
+      engineOptions.Printer = batchObserver;
+      engineOptions.TimeLimit = options.TimeLimit;
+      engineOptions.VerifySnapshots = (int)options.VerifySnapshots;
+
+      var executionEngine = new ExecutionEngine(engineOptions, cache);
       var result = translated.SelectMany(t => {
         var (_, boogieProgram) = t;
         var results = executionEngine.GetImplementationTasks(boogieProgram);

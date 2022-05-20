@@ -147,15 +147,24 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         kv => relocator.RelocateDiagnostics(kv.Value.Diagnostics, documentChange, CancellationToken.None));
       var migratedVerificationTree =
         relocator.RelocateVerificationTree(oldDocument.VerificationTree, documentChange, CancellationToken.None);
+
+      var migratedLastTouchedPositions =
+        relocator.RelocatePositions(oldDocument.LastTouchedMethodPositions, documentChange, CancellationToken.None);
       try {
         var newDocument = await documentLoader.LoadAndPrepareVerificationTasksAsync(updatedText, cancellationToken);
+        var lastChange =
+          documentChange.ContentChanges
+            .Select(contentChange => contentChange.Range)
+            .LastOrDefault(newDocument.LastChange);
+        newDocument = newDocument with { LastChange = lastChange };
         if (newDocument.SymbolTable.Resolved) {
           var resolvedDocument = newDocument with {
             ImplementationViews = newDocument.ImplementationViews!.ToDictionary(
               kv => kv.Key,
               kv =>
                 kv.Value with { Diagnostics = migratedImplementationDiagnostics.GetValueOrDefault(kv.Key, kv.Value.Diagnostics) }),
-            VerificationTree = migratedVerificationTree
+            VerificationTree = migratedVerificationTree,
+            LastTouchedMethodPositions = migratedLastTouchedPositions
           };
           documentLoader.PublishGutterIcons(resolvedDocument, false);
           return resolvedDocument;
@@ -166,7 +175,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         var failedDocument = newDocument with {
           SymbolTable = relocator.RelocateSymbols(oldDocument.SymbolTable, documentChange, CancellationToken.None),
           ImplementationViews = null,
-          VerificationTree = migratedVerificationTree
+          VerificationTree = migratedVerificationTree,
+          LastTouchedMethodPositions = migratedLastTouchedPositions
         };
         documentLoader.PublishGutterIcons(failedDocument, false);
         return failedDocument;
@@ -180,7 +190,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           CounterExamples = Array.Empty<Counterexample>(),
           VerificationTree = migratedVerificationTree,
           LoadCanceled = true,
-          ImplementationViews = null
+          ImplementationViews = null,
+          LastTouchedMethodPositions = migratedLastTouchedPositions
         };
       }
     }

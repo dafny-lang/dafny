@@ -33,7 +33,7 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
     var verificationDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
     Assert.AreEqual(1, verificationDiagnostics.Length);
     ApplyChange(ref documentItem, new Range(0, 0, 0, 0), NeverVerifies + "\n\n");
-    var resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+    var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.AreEqual(1, resolutionDiagnostics.Length);
     // Verification diagnostic should have been moved.
     Assert.AreEqual(5, resolutionDiagnostics[0].Range.Start.Line);
@@ -48,7 +48,7 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
     var verificationDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
     Assert.AreEqual(1, verificationDiagnostics.Length);
     ApplyChange(ref documentItem, new Range(0, 0, 1, 0), "");
-    var resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+    var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.AreEqual(0, resolutionDiagnostics.Length);
   }
 
@@ -92,7 +92,7 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
       }
     });
 
-    var resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+    var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.AreEqual(verificationDiagnostics.Length, resolutionDiagnostics.Length);
     Assert.AreEqual(verificationDiagnostics[0].Message, resolutionDiagnostics[0].Message);
     Assert.AreEqual(verificationDiagnostics[0].RelatedInformation, resolutionDiagnostics[0].RelatedInformation);
@@ -104,7 +104,7 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
     var documentItem = CreateTestDocument("method t() { var x: bool := 0; }");
     client.OpenDocument(documentItem);
 
-    var resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+    var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.AreEqual(1, resolutionDiagnostics.Length);
 
     ApplyChange(ref documentItem, null, "method u() ensures true; { var x: bool := true; }");
@@ -112,7 +112,7 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
     Assert.AreEqual(0, verificationDiagnostics.Length);
 
     ApplyChange(ref documentItem, new Range(0, 42, 0, 46), "1");
-    resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+    resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.AreEqual(1, resolutionDiagnostics.Length);
   }
 

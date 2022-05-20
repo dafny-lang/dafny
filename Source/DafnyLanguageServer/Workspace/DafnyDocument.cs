@@ -2,6 +2,7 @@
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
@@ -51,6 +52,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       TextDocumentItem.Uri.ToString(),
       TextDocumentItem.Text.Count(c => c == '\n') + 1
     );
+
+    // List of a few last touched method positions
+    public ImmutableList<Position> LastTouchedMethodPositions { get; set; } = new List<Position>() { }.ToImmutableList();
+
+    // Used to prioritize verification to one method and its dependencies
+    public Range? LastChange { get; init; } = null;
 
     /// <summary>
     /// Checks if the given document uri is pointing to this dafny document.

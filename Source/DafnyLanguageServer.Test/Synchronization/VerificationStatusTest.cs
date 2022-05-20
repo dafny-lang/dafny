@@ -22,7 +22,7 @@ public class VerificationStatusTest : ClientBasedLanguageServerTest {
     });
     var documentItem = CreateTestDocument(source);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-    var diagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+    var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.AreEqual(0, diagnostics.Length);
     var stale = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.AreEqual(PublishedVerificationStatus.Stale, stale.NamedVerifiables[0].Status);
@@ -43,7 +43,7 @@ method Bar() { assert false; }";
     });
     var documentItem = CreateTestDocument(source);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-    var resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+    var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.AreEqual(0, resolutionDiagnostics.Length);
 
     var stale = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
@@ -78,7 +78,7 @@ method Bar() { assert false; }";
     });
     var documentItem = CreateTestDocument(source);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-    var resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+    var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.AreEqual(0, resolutionDiagnostics.Length);
     var stale = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.AreEqual(PublishedVerificationStatus.Stale, stale.NamedVerifiables[0].Status);

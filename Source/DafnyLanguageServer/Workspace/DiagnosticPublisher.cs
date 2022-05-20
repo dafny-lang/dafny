@@ -80,7 +80,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
       var errors = document.Diagnostics.Where(x => x.Severity == DiagnosticSeverity.Error).ToList();
       var linesCount = document.LinesCount;
-      var verificationStatusGutter = new VerificationStatusGutter(
+      var verificationStatusGutter = VerificationStatusGutter.ComputeFrom(
         document.Uri,
         document.Version,
         document.VerificationTree.Children.Select(child => child.GetCopyForNotification()).ToArray(),
