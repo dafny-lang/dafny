@@ -2221,13 +2221,13 @@ namespace Microsoft.Dafny.Compilers {
       };
       psi.EnvironmentVariables["CLASSPATH"] = classpath;
       var proc = Process.Start(psi);
-      while (!proc.StandardOutput.EndOfStream) {
-        outputWriter.WriteLine(proc.StandardOutput.ReadLine());
-      }
-      while (!proc.StandardError.EndOfStream) {
-        outputWriter.WriteLine(proc.StandardError.ReadLine());
-      }
+      var printer = (sender, e) => { outputWriter.Write(e.Data + Environment.NewLine); };
+      proc.ErrorDataReceived += printer;
+      proc.OutputDataReceived += printer;
+      proc.BeginErrorReadLine();
+      proc.BeginOutputReadLine();
       proc.WaitForExit();
+
       if (proc.ExitCode != 0) {
         outputWriter.WriteLine($"Error while compiling Java files. Process exited with exit code {proc.ExitCode}");
         return false;
