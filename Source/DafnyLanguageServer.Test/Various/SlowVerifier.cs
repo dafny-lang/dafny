@@ -20,13 +20,13 @@ class SlowVerifier : IProgramVerifier {
 
   private readonly DafnyProgramVerifier verifier;
 
-  public ProgramVerificationTasks GetVerificationView(DafnyDocument document) {
+  public ProgramVerificationTasks GetVerificationTasks(DafnyDocument document) {
     var program = document.Program;
     var attributes = program.Modules().SelectMany(m => {
       return m.TopLevelDecls.OfType<TopLevelDeclWithMembers>().SelectMany(d => d.Members.Select(member => member.Attributes));
     }).ToList();
 
-    var (tasks, observer) = verifier.GetVerificationView(document);
+    var (tasks, observer) = verifier.GetVerificationTasks(document);
     if (attributes.Any(a => Attributes.Contains(a, "neverVerify"))) {
       tasks = tasks.Select(t => new NeverVerifiesImplementationTask(t)).ToList();
     }

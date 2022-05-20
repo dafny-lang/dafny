@@ -66,11 +66,10 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         : Convert.ToInt32(options.VcsCores);
     }
 
-    // 256MB
     private const int TranslatorMaxStackSize = 0x10000000; // 256MB
     static readonly ThreadTaskScheduler TranslatorScheduler = new(TranslatorMaxStackSize);
 
-    public ProgramVerificationTasks GetVerificationView(DafnyDocument document) {
+    public ProgramVerificationTasks GetVerificationTasks(DafnyDocument document) {
       var program = document.Program;
       var errorReporter = (DiagnosticErrorReporter)program.Reporter;
 

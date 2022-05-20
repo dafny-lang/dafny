@@ -28,7 +28,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   private const int MaxLastTouchedMethods = 5;
 
   private readonly ICompilationStatusNotificationPublisher publisher;
-  private DafnyDocument document;
+  private readonly DafnyDocument document;
   private readonly ILogger<VerificationProgressReporter> logger;
   private readonly IDiagnosticPublisher diagnosticPublisher;
 
@@ -485,9 +485,5 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
       ProverInterface.Outcome.Bounded => GutterVerificationStatus.Error,
       _ => GutterVerificationStatus.Error
     };
-  }
-
-  public void SetDocument(DafnyDocument dafnyDocument) {
-    this.document = dafnyDocument;
   }
 }

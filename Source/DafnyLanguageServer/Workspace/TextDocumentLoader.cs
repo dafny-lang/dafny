@@ -95,7 +95,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return loaded;
       }
 
-      var verificationView = verifier.GetVerificationView(loaded);
+      var verificationView = verifier.GetVerificationTasks(loaded);
 
       foreach (var task in verificationView.Tasks) {
         cancellationToken.Register(task.Cancel);
@@ -188,7 +188,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       document.VerificationTasks!.BatchCompletions.Subscribe(progressReporter.ReportAssertionBatchResult);
       var implementationTasks = document.VerificationTasks!.Tasks;
 
-      progressReporter!.SetDocument(document);
       if (VerifierOptions.GutterStatus) {
         progressReporter.RecomputeVerificationTree();
         progressReporter.ReportRealtimeDiagnostics(false, document);
@@ -331,6 +330,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     static ImplementationId GetImplementationId(Implementation implementation) {
       var prefix = implementation.Name.Split(Translator.NameSeparator)[0];
 
+      // Refining declarations get the token of what they're refining, so to distinguish them we need to
+      // Add the refining module name to the prefix.
       if (implementation.tok is RefinementToken refinementToken) {
         prefix += "." + refinementToken.InheritingModule.Name;
       }
