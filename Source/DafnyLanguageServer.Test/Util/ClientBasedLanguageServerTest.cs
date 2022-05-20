@@ -28,6 +28,17 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
   private IDictionary<string, string> configuration;
   protected DiagnosticsReceiver diagnosticsReceiver;
 
+  public async Task<NamedVerifiableStatus> WaitForStatus(Range nameRange, PublishedVerificationStatus statusToFind,
+    CancellationToken cancellationToken) {
+    while(true) {
+      var foundStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(cancellationToken);
+      var namedVerifiableStatus = foundStatus.NamedVerifiables.FirstOrDefault(n => n.NameRange == nameRange);
+      if (namedVerifiableStatus?.Status == statusToFind) {
+        return namedVerifiableStatus;
+      }
+    }
+  }
+
   public async Task<Diagnostic[]> GetLastDiagnostics(TextDocumentItem documentItem, CancellationToken cancellationToken = default) {
     await client.WaitForNotificationCompletionAsync(documentItem.Uri, cancellationToken);
     var document = await Documents.GetLastDocumentAsync(documentItem);

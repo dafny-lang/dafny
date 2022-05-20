@@ -860,13 +860,8 @@ method test2() {
 
       var resolutionDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
 
-      // Resolution diagnostics still contain those of the deleted method.
-      AssertDiagnosticListsAreEqualBesidesMigration(secondVerificationDiagnostics, resolutionDiagnostics2);
-      var firstVerificationDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
-      // The second assert doesn't create a separate error since it's hidden by the first one.
       // The diagnostics of test2 has not been migrated since test2 no longer exists.
-      Assert.AreEqual(1, firstVerificationDiagnostics2.Length);
-
+      Assert.AreEqual(1, resolutionDiagnostics2.Length);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 

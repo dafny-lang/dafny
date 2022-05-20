@@ -46,26 +46,12 @@ method Bar() { assert false; }";
     var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.AreEqual(0, resolutionDiagnostics.Length);
 
-    var stale = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     var barRange = new Range(new Position(1, 7), new Position(1, 10));
-    Assert.AreEqual(barRange, stale.NamedVerifiables[1].NameRange);
-    Assert.AreEqual(PublishedVerificationStatus.Stale, stale.NamedVerifiables[1].Status);
 
-    var firstRunning = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-    Assert.AreEqual(PublishedVerificationStatus.Running, firstRunning.NamedVerifiables[0].Status);
-    var secondQueued = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-    Assert.AreEqual(barRange, secondQueued.NamedVerifiables[1].NameRange);
-    Assert.AreEqual(PublishedVerificationStatus.Queued, secondQueued.NamedVerifiables[1].Status);
-    var running = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-
-    Assert.AreEqual(barRange, running.NamedVerifiables[1].NameRange);
-    Assert.AreEqual(PublishedVerificationStatus.Running, running.NamedVerifiables[1].Status);
-
-    var firstErrored = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-    Assert.AreEqual(PublishedVerificationStatus.Error, firstErrored.NamedVerifiables[0].Status);
-    var secondErrored = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-    Assert.AreEqual(barRange, secondErrored.NamedVerifiables[1].NameRange);
-    Assert.AreEqual(PublishedVerificationStatus.Error, secondErrored.NamedVerifiables[1].Status);
+    await WaitForStatus(barRange, PublishedVerificationStatus.Stale, CancellationToken);
+    await WaitForStatus(barRange, PublishedVerificationStatus.Queued, CancellationToken);
+    await WaitForStatus(barRange, PublishedVerificationStatus.Running, CancellationToken);
+    await WaitForStatus(barRange, PublishedVerificationStatus.Error, CancellationToken);
   }
 
   [TestMethod]
