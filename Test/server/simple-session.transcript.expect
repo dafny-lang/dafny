@@ -3,6 +3,7 @@
 Verifying Impl$$_module.__default.A ...
   [1 proof obligation]  error
 transcript(3,9): Error: assertion might not hold
+Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 
 Verifying Impl$$_module.__default.A ...
