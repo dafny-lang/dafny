@@ -30,7 +30,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
 
   public async Task<NamedVerifiableStatus> WaitForStatus(Range nameRange, PublishedVerificationStatus statusToFind,
     CancellationToken cancellationToken) {
-    while(true) {
+    while (true) {
       var foundStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(cancellationToken);
       var namedVerifiableStatus = foundStatus.NamedVerifiables.FirstOrDefault(n => n.NameRange == nameRange);
       if (namedVerifiableStatus?.Status == statusToFind) {
