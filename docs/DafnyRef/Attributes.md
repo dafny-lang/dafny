@@ -373,6 +373,20 @@ There are also two different approaches to executing all tests in a program:
    This runner is currently very basic, but avoids introducing any additional target
    language dependencies in the compiled code.
 
+The C# and Java compilers can inject test annotations for XUnit and JUnit, respectively.  You must provide the :test attribute for all unit tests you want annotated.
+
+    method {:test} test_example()
+
+Dafny also provides support for unit tests with parameters provided by a method source.  To invoke this behavior, your tests should be of this form.
+
+    method {:test "MethodSource", "MethodSourceName"} test_example([parameters])
+
+Your method source's signature should be of this form
+
+    static method MethodSourceName() returns (inputs : seq<([parameter-types])>)
+
+where the method is static and the return type is a sequence of tuples.  The types inside each tuple must match the types of your test method's parameters.  The Java compiler will convert the above code into JUnit; the C# compiler will convert it into XUnit.
+
 ### 22.2.14. `{:timeLimit N}`
 Set the time limit for verifying a given function or method.
 
