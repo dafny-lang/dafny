@@ -7,8 +7,10 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Diagnostics.Contracts;
 using System.IO;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using JetBrains.Annotations;
+using Microsoft.Dafny;
 using Microsoft.Dafny.Compilers;
 using Microsoft.Dafny.Plugins;
 using Bpl = Microsoft.Boogie;
@@ -24,6 +26,7 @@ namespace Microsoft.Dafny {
 
     public DafnyOptions()
       : base("Dafny", "Dafny program verifier", new DafnyConsolePrinter()) {
+      ErrorTrace = 0;
       Prune = true;
       NormalizeNames = true;
       EmitDebugInformation = false;
@@ -84,6 +87,7 @@ namespace Microsoft.Dafny {
     public string DafnyPrintCompiledFile = null;
     public string CoverageLegendFile = null;
     public string MainMethod = null;
+    public bool RunAllTests = false;
     public bool ForceCompile = false;
     public bool RunAfterCompile = false;
     public int SpillTargetCode = 0; // [0..4]
@@ -144,6 +148,24 @@ namespace Microsoft.Dafny {
 
     public static readonly ReadOnlyCollection<Plugin> DefaultPlugins = new(new[] { Compilers.SinglePassCompiler.Plugin });
     public List<Plugin> Plugins = new(DefaultPlugins);
+
+    /// <summary>
+    /// Automatic shallow-copy constructor
+    /// </summary>
+    public DafnyOptions(DafnyOptions src) : this() {
+      src.CopyTo(this);
+    }
+
+    public void CopyTo(DafnyOptions dst) {
+      var type = typeof(DafnyOptions);
+      while (type != null) {
+        var fields = type.GetFields(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
+        foreach (var fi in fields) {
+          fi.SetValue(dst, fi.GetValue(this));
+        }
+        type = type.BaseType;
+      }
+    }
 
     public virtual TestGenerationOptions TestGenOptions =>
       testGenOptions ??= new TestGenerationOptions();
@@ -262,6 +284,15 @@ namespace Microsoft.Dafny {
         case "main": {
             if (ps.ConfirmArgumentCount(1)) {
               MainMethod = args[ps.i];
+            }
+
+            return true;
+          }
+
+        case "runAllTests": {
+            int runAllTests = 0;
+            if (ps.GetIntArgument(ref runAllTests, 2)) {
+              RunAllTests = runAllTests != 0; // convert to boolean
             }
 
             return true;
@@ -763,6 +794,12 @@ namespace Microsoft.Dafny {
       trait is declared are checked for termination in the usual
       manner.
 
+    {:options ""/opt0:xyz"", ""/opt1"", ...}
+      When applied to a module, this attribute configures Dafny as if
+      `/opt0:xyz` and `/opt1` had been passed on the command line.
+      Outside of the module, options revert to their previous values.
+      Supported options: %SUPPORTED_OPTIONS%.
+
     {:warnShadowing}
       TODO
 
@@ -776,7 +813,16 @@ namespace Microsoft.Dafny {
       TODO
 
     {:autoReq}
-      TODO
+      When applied to a function definition, Dafny automatically
+      strengthens that function's `requires` clause sufficiently so that
+      it may call each of the functions that it calls.
+
+      When applied to a module, this attribute is inherited by every
+      function in the module.
+
+      The `/autoReqPrint:<file>` option will print out the inferred,
+      stronger requires clauses to the given file. The `/noAutoReq`
+      option instructs Dafny to ignore any `{:autoReq}` attributes.
 
     {:timeLimitMultiplier}
       TODO
@@ -791,7 +837,8 @@ namespace Microsoft.Dafny {
       TODO
 
     {:trigger}
-      TODO";
+      TODO".Replace("%SUPPORTED_OPTIONS%",
+        string.Join(", ", DafnyAttributeOptions.KnownOptions));
 
     /// <summary>
     /// Dafny releases come with their own copy of Z3, to save users the trouble of having to install extra dependencies.
@@ -1093,7 +1140,7 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 /extractCounterexample
     If verification fails, report a detailed counterexample for the first
     failing assertion. Requires specifying the /mv option as well as
-    /proverOpt:0:model_compress=false and /proverOpt:0:model.completion=true.
+    /proverOpt:O:model_compress=false and /proverOpt:O:model.completion=true.
 /countVerificationErrors:<n>
     [ deprecated ]
     0 - Set exit code to 0 regardless of the presence of any other errors.
@@ -1130,6 +1177,15 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 /Main:<name>
     The (fully-qualified) name of the method to use as the executable entry point.
     Default is the method with the {{:main}} attribute, or else the method named 'Main'.
+/runAllTests:<n> (experimental)
+    0 (default) - Annotates compiled methods with the {{:test}} attribute
+        such that they can be tested using a testing framework
+        in the target language (e.g. xUnit for C#).
+    1 - Emits a main method in the target language that will execute every method
+        in the program with the {{:test}} attribute.
+        Cannot be used if the program already contains a main method.
+        Note that /compile:3 or 4 must be provided as well to actually execute
+        this main method!
 /compileVerbose:<n>
     0 - don't print status of compilation to the console
     1 (default) - print information such as files being written by
@@ -1172,5 +1228,62 @@ some Boogie options, like /loopUnroll, may not be sound for Dafny or may not
 have the same meaning for a Dafny program as it would for a similar Boogie
 program.
 ".Replace("\n", "\n  ") + base.HelpBody;
+  }
+}
+
+class ErrorReportingCommandLineParseState : Bpl.CommandLineParseState {
+  private readonly Errors errors;
+  private Bpl.IToken token;
+
+  public ErrorReportingCommandLineParseState(string[] args, string toolName, Errors errors, Bpl.IToken token)
+    : base(args, toolName) {
+    this.errors = errors;
+    this.token = token;
+  }
+
+  public override void Error(string message, params string[] args) {
+    errors.SemErr(token, string.Format(message, args));
+    EncounteredErrors = true;
+  }
+}
+
+/// <summary>
+/// Wrapper object that restricts which options may be applied.
+/// Used by the parser to parse <c>:options</c> strings.
+/// </summary>
+class DafnyAttributeOptions : DafnyOptions {
+  public static readonly HashSet<string> KnownOptions = new() {
+    "functionSyntax"
+  };
+
+  private readonly Errors errors;
+  public Bpl.IToken Token { get; set; }
+
+  public DafnyAttributeOptions(DafnyOptions opts, Errors errors) : base(opts) {
+    this.errors = errors;
+    this.Token = null;
+  }
+
+  protected override Bpl.CommandLineParseState InitializeCommandLineParseState(string[] args) {
+    return new ErrorReportingCommandLineParseState(args, ToolName, errors, Token ?? Bpl.Token.NoToken);
+  }
+
+  private void Unsupported(string name, Bpl.CommandLineParseState ps) {
+    ps.Error($"Option {name} unrecognized or unsupported in ':options' attributes.");
+  }
+
+  protected override void UnknownSwitch(Bpl.CommandLineParseState ps) {
+    Unsupported(ps.s, ps);
+  }
+
+  protected override bool ParseOption(string name, Bpl.CommandLineParseState ps) {
+    if (!KnownOptions.Contains(name)) {
+      return false;
+    }
+    return base.ParseOption(name, ps);
+  }
+
+  protected override void AddFile(string file, Bpl.CommandLineParseState ps) {
+    Unsupported(file, ps);
   }
 }

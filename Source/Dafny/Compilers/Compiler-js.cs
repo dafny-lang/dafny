@@ -1397,7 +1397,8 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitRotate(Expression e0, Expression e1, bool isRotateLeft, ConcreteSyntaxTree wr, bool inLetExprBody, FCE_Arg_Translator tr) {
+    protected override void EmitRotate(Expression e0, Expression e1, bool isRotateLeft, ConcreteSyntaxTree wr,
+        bool inLetExprBody, ConcreteSyntaxTree wStmts, FCE_Arg_Translator tr) {
       string nativeName = null, literalSuffix = null;
       bool needsCast = false;
       var nativeType = AsNativeType(e0.Type);
@@ -1407,12 +1408,12 @@ namespace Microsoft.Dafny.Compilers {
 
       var bv = e0.Type.AsBitVectorType;
       if (bv.Width == 0) {
-        tr(e0, wr, inLetExprBody);
+        tr(e0, wr, inLetExprBody, wStmts);
       } else {
         wr.Write("_dafny.{0}(", isRotateLeft ? "RotateLeft" : "RotateRight");
-        tr(e0, wr, inLetExprBody);
+        tr(e0, wr, inLetExprBody, wStmts);
         wr.Write(", (");
-        tr(e1, wr, inLetExprBody);
+        tr(e1, wr, inLetExprBody, wStmts);
         wr.Write(").toNumber(), {0})", bv.Width);
         if (needsCast) {
           wr.Write(".toNumber()");
@@ -1839,7 +1840,8 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override ConcreteSyntaxTree CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames, Type resultType, ConcreteSyntaxTree wr, bool untyped = false) {
+    protected override ConcreteSyntaxTree CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames,
+        Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, bool untyped = false) {
       wr.Write("function (");
       Contract.Assert(inTypes.Count == inNames.Count);  // guaranteed by precondition
       for (var i = 0; i < inNames.Count; i++) {
@@ -1849,7 +1851,8 @@ namespace Microsoft.Dafny.Compilers {
       return w;
     }
 
-    protected override void CreateIIFE(string bvName, Type bvType, Bpl.IToken bvTok, Type bodyType, Bpl.IToken bodyTok, ConcreteSyntaxTree wr, out ConcreteSyntaxTree wrRhs, out ConcreteSyntaxTree wrBody) {
+    protected override void CreateIIFE(string bvName, Type bvType, Bpl.IToken bvTok, Type bodyType, Bpl.IToken bodyTok,
+      ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, out ConcreteSyntaxTree wrRhs, out ConcreteSyntaxTree wrBody) {
       var w = wr.NewExprBlock("function ({0})", bvName);
       w.Write("return ");
       wrBody = w.Fork();
@@ -1864,7 +1867,8 @@ namespace Microsoft.Dafny.Compilers {
       return w;
     }
 
-    protected override ConcreteSyntaxTree CreateIIFE1(int source, Type resultType, Bpl.IToken resultTok, string bvName, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree CreateIIFE1(int source, Type resultType, Bpl.IToken resultTok, string bvName,
+        ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       var w = wr.NewExprBlock("function ({0})", bvName);
       wr.Write("({0})", source);
       return w;
@@ -2395,6 +2399,17 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitSingleValueGenerator(Expression e, bool inLetExprBody, string type, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       TrParenExpr("_dafny.SingleValue", e, wr, inLetExprBody, wStmts);
+    }
+
+    protected override void EmitHaltRecoveryStmt(Statement body, string haltMessageVarName, Statement recoveryBody, ConcreteSyntaxTree wr) {
+      var tryBlock = wr.NewBlock("try");
+      TrStmt(body, tryBlock);
+      var catchBlock = wr.NewBlock("catch (e)");
+      var ifBlock = catchBlock.NewBlock("if (e instanceof _dafny.HaltException)");
+      ifBlock.WriteLine($"let {haltMessageVarName} = e.message;");
+      TrStmt(recoveryBody, ifBlock);
+      var elseBlock = catchBlock.NewBlock("else");
+      elseBlock.WriteLine("throw e");
     }
 
     // ----- Target compilation and execution -------------------------------------------------------------

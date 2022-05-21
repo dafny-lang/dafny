@@ -74,4 +74,10 @@ ParseErrors.dfy(246,51): Error: a 'by method' implementation is not allowed on a
 ParseErrors.dfy(246,2): Error: a predicate-by-method cannot be declared 'abstract'
 ParseErrors.dfy(247,54): Error: a 'by method' implementation is not allowed on an extreme predicate
 ParseErrors.dfy(247,2): Error: a predicate-by-method cannot be declared 'abstract'
-71 parse errors detected in ParseErrors.dfy
+ParseErrors.dfy(255,20): Error: formal cannot be declared 'older' in this context
+ParseErrors.dfy(255,26): Error: formal cannot be declared 'older' in this context
+ParseErrors.dfy(255,32): Error: formal cannot be declared 'older' in this context
+ParseErrors.dfy(256,11): Error: formal cannot be declared 'older' in this context
+ParseErrors.dfy(257,17): Error: formal cannot be declared 'older' in this context
+ParseErrors.dfy(261,28): Error: formal cannot be declared 'older' in this context
+77 parse errors detected in ParseErrors.dfy

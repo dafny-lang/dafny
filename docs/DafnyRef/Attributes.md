@@ -9,9 +9,9 @@ In general an attribute may have any name the user chooses. It may be
 followed by a comma-separated list of expressions. These expressions will
 be resolved and type-checked in the context where the attribute appears.
 
-In general, any Dafny entity may have a list of attributes.
+Any Dafny entity may have a list of attributes.
 Dafny does not check that the attributes listed for an entity
-are appropriate for that entity (which means that misspellings may
+are appropriate for it (which means that misspellings may
 go silently unnoticed).
 
 The grammar shows where the attribute annotations may appear:
@@ -19,12 +19,11 @@ The grammar shows where the attribute annotations may appear:
 Attribute = "{:" AttributeName [ Expressions ] "}"
 ````
 
-Dafny has special processing for some attributes[^boogie-attributes]. For some attributes, the
-setting is only looked for on the entity with the attribute. For others, we start
-at the entity and if the attribute is not there, look up in the hierarchy
-(enclosing class and enclosing modules).
-The attribute
-declaration closest to the entity overrides those further away.
+Dafny has special processing for some attributes[^boogie-attributes].  Of those,
+some apply only to the entity bearing the attribute, while others (inherited
+attributes) apply to the entity and its descendants (such as nested modules,
+types, or declarations).  The attribute declaration closest to the entity
+overrides those further away.
 
 [^boogie-attributes]: All entities that Dafny translates to Boogie have their attributes passed on to Boogie except for the [`{:axiom}`](#sec-axiom) attribute (which conflicts with Boogie usage) and the [`{:trigger}`](#sec-trigger) attribute which is instead converted into a Boogie quantifier _trigger_. See Section 11 of [@Leino:Boogie2-RefMan].
 
@@ -343,7 +342,37 @@ recursion was explicitly requested.
 * If `{:tailrecursion true}` was specified but the code does not allow it,
 an error message is given.
 
-### 22.1.13. `{:test}`
+### 22.2.13. `{:test}`
+This attribute indicates the target function or method is meant
+to be executed at runtime in order to test that the program is working as intended.
+
+There are two different ways to dynamically test functionality in a test:
+
+1. A test can optionally return a single value to indicate success or failure.
+   If it does, this must be a _failure-compatible_ type
+   just as the [update-with-failure statement](#sec-update-failure) requires. That is,
+   the returned type must define a `IsFailure()` function method. If `IsFailure()`
+   evaluates to `true` on the return value, the test will be marked a failure, and this
+   return value used as the failure message.
+2. Code in the control flow of the test can use [`expect` statements](#sec-expect-statement)
+   to dynamically test if a boolean expression is true, and cause the test to halt
+   if not (but not the overall testing process). The optional second argument to 
+   a failed `expect` statement will be used as the test failure message.
+
+Note that the `expect` keyword can also be used to form "assign or halt" statements
+such as `var x :- expect CalculateX();`, which is a convenient way to invoke a method
+that may produce a failure within a test without having to return a value from the test.
+
+There are also two different approaches to executing all tests in a program:
+
+1. By default, the compiler will mark each compiled method as necessary so that
+   a designated target language testing framework will discover and run it.
+   This is currently only implemented for C#, using the xUnit `[Fact]` annotation.
+2. If the `/runAllTests:1` option is provided, Dafny will instead produce a main method
+   that invokes each test and prints the results.
+   This runner is currently very basic, but avoids introducing any additional target
+   language dependencies in the compiled code.
+
 The C# and Java compilers can inject test annotations for XUnit and JUnit, respectively.  You must provide the :test attribute for all unit tests you want annotated.
 
     method {:test} test_example()
@@ -357,7 +386,6 @@ Your method source's signature should be of this form
     static method MethodSourceName() returns (inputs : seq<([parameter-types])>)
 
 where the method is static and the return type is a sequence of tuples.  The types inside each tuple must match the types of your test method's parameters.  The Java compiler will convert the above code into JUnit; the C# compiler will convert it into XUnit.
-
 
 ### 22.2.14. `{:timeLimit N}`
 Set the time limit for verifying a given function or method.
@@ -412,8 +440,7 @@ In the first and only verification round, this option will split the original [a
 into one assertion batch per assertion.
 This is mostly helpful for debugging which assertion is taking the most time to prove, e.g. to profile them.
 
-
-### 22.2.21. synthesize {#sec-synthesize-attr}
+### 22.2.21. `{:synthesize}` {#sec-synthesize-attr}
 
 The `{:synthesize}` attribute must be used on methods that have no body and
 return one or more fresh objects. During compilation, 
@@ -446,6 +473,15 @@ ARGLIST   = ID   // this can be one of the bound variables
 BOUNDVARS = ID : ID
           | BOUNDVARS, BOUNDVARS
 ```
+
+### 22.2.22. `{:options OPT0, OPT1, ... }` {#sec-attr-options}
+
+This attribute applies only to modules. It attribute configures Dafny as if
+`OPT0`, `OPT1`, … had been passed on the command line.  Outside of the module,
+options revert to their previous values.
+
+Only a small subset of Dafny's command line options is supported.  Use the
+`/attrHelp` flag to see which ones.
 
 ## 22.3. Attributes on assertions, preconditions and postconditions {#sec-verification-attributes-on-assert-statements}
 
@@ -640,10 +676,6 @@ Here are ways one can prove `assert P(j + 4);`:
 * Change the trigger `{:trigger Q(i)}` to `{:trigger P(i)}` (replace the trigger)
 * Change the trigger `{:trigger Q(i)}` to `{:trigger Q(i)} {:trigger P(i)}` (add a trigger)
 * Remove `{:trigger Q(i)}` so that it will automatically determine all possible triggers thanks to the option `/autoTriggers:1` which is the default.
-
-### 22.5.5. `{:typeQuantifier}` (deprecated)
-The `{:typeQuantifier}` attribute must be used on a quantifier if it
-quantifies over types.
 
 
 

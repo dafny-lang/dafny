@@ -27,7 +27,7 @@ namespace Microsoft.Dafny {
 
     // Returns a canonical string for the given file path, namely one which is the same
     // for all paths to a given file and different otherwise. The best we can do is to
-    // make the path absolute -- detecting case and canoncializing symbolic and hard
+    // make the path absolute -- detecting case and canonicalizing symbolic and hard
     // links are difficult across file systems (which may mount parts of other filesystems,
     // with different characteristics) and is not supported by .Net libraries
     public static string Canonicalize(String filePath) {
@@ -264,11 +264,11 @@ namespace Microsoft.Dafny {
 
     public static bool IsBoogieVerified(PipelineOutcome outcome, PipelineStatistics statistics) {
       return (outcome == PipelineOutcome.Done || outcome == PipelineOutcome.VerificationCompleted)
-             && statistics.ErrorCount == 0
-             && statistics.InconclusiveCount == 0
-             && statistics.TimeoutCount == 0
-             && statistics.OutOfResourceCount == 0
-             && statistics.OutOfMemoryCount == 0;
+         && statistics.ErrorCount == 0
+         && statistics.InconclusiveCount == 0
+         && statistics.TimeoutCount == 0
+         && statistics.OutOfResourceCount == 0
+         && statistics.OutOfMemoryCount == 0;
     }
 
     /// <summary>

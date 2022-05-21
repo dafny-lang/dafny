@@ -69,6 +69,9 @@ The order of conjunctions
 can be important: earlier conjuncts can set conditions that
 establish that later conjuncts are well-defined.
 
+Within an ensures clause, you can of course make use of
+[specification expressions](#sec-list-of-specification-expressions) along with any [other expressions](#sec-expressions) you need.
+
 ### 5.1.3. Decreases Clause {#sec-decreases-clause}
 ````grammar
 DecreasesClause(allowWildcard, allowLambda) =
