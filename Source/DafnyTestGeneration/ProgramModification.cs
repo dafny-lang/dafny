@@ -52,6 +52,7 @@ namespace DafnyTestGeneration {
       options.Parse(new[] { "/proc:" + procedure });
       options.NormalizeNames = false;
       options.EmitDebugInformation = true;
+      options.ErrorTrace = 1;
       options.EnhancedErrorMessages = 1;
       options.ModelViewFile = "-";
       options.ProverOptions = new List<string>() {
