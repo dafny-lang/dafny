@@ -307,8 +307,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         document, notificationPublisher, diagnosticPublisher);
     }
 
-    private async Task NotifyStatusAsync(TextDocumentItem item, IObservable<DafnyDocument> implementationTasks, CancellationToken cancellationToken) {
-      var finalDocument = await implementationTasks.ToTask(cancellationToken);
+    private async Task NotifyStatusAsync(TextDocumentItem item, IObservable<DafnyDocument> documents, CancellationToken cancellationToken) {
+      var finalDocument = await documents.ToTask(cancellationToken);
       var results = await Task.WhenAll(finalDocument.VerificationTasks!.Tasks.Select(t => t.ActualTask));
       logger.LogDebug($"Finished verification with {results.Sum(r => r.Errors.Count)} errors.");
       var verified = results.All(r => r.Outcome == ConditionGeneration.Outcome.Correct);

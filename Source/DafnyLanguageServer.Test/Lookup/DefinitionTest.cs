@@ -52,7 +52,7 @@ method CallDoIt() returns () {
       var definitionTask = RequestDefinition(documentItem, (4, 14)).AsTask();
       var first = await Task.WhenAny(verificationTask, definitionTask);
       Assert.IsFalse(verificationTask.IsCompleted);
-      Assert.AreSame(first, definitionTask, first.ToString());
+      Assert.AreSame(first, definitionTask);
     }
 
     [TestMethod]
