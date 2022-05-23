@@ -26,3 +26,14 @@ All other pull requests and issues can be submitted here.
 ## Code of Conduct
 
 See [`CODE_OF_CONDUCT.md`](./CODE_OF_CONDUCT.md).
+
+## FAQ
+
+### What to do if the nightly build failed but because of a "download failure"?
+
+If the test in a PR named `Build and Test / check-deep-tests / check-deep-tests` failed, clicking on its "details" reveals a view (view 1) in which you can see a failed run with the failure being something like "Error: Last run of deep-tests.yml did not succeed (some URL in parentheses).
+
+Clicking on this URL will reveal the deep tests that were run (view 2). If one of this test is just a "download failure", then one simply needs to re-run it (button on the top right).
+Once it succeeds, one has to go back to (view 1) and re-run the failed jobs, so that it will retrieve the latest successful deep tests.
+
+After doing these steps once, for other PRs, one only needs to re-run deep checks in (view 1)
