@@ -78,6 +78,25 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
     foreach (var module in document.Program.Modules()) {
       foreach (var topLevelDecl in module.TopLevelDecls) {
         if (topLevelDecl is TopLevelDeclWithMembers topLevelDeclWithMembers) {
+          if (topLevelDecl is DatatypeDecl datatypeDecl) {
+            foreach (DatatypeCtor ctor in datatypeDecl.Ctors) {
+              var aFormalHasADefaultValue = ctor.Destructors.Any(
+                destructor => destructor.CorrespondingFormals.Any(
+                  formal => formal.DefaultValue != null
+                )
+              );
+              if (aFormalHasADefaultValue) {
+                var verificationTreeRange = ctor.tok.GetLspRange(ctor.BodyEndTok);
+                var verificationTree = new TopLevelDeclMemberVerificationTree(
+                  ctor.Name,
+                  ctor.CompileName,
+                  ctor.tok.filename,
+                  verificationTreeRange);
+                AddAndPossiblyMigrateVerificationTree(verificationTree);
+              }
+            }
+          }
+
           foreach (var member in topLevelDeclWithMembers.Members) {
             var memberWasNotIncluded = member.tok.filename != documentFilePath;
             if (memberWasNotIncluded) {
