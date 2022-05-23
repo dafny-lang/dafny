@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Collections.Immutable;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading;
@@ -10,6 +11,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
   /// to their new positions according to the given <see cref="DidChangeTextDocumentParams"/>.
   /// </summary>
   public interface IRelocator {
+    Position RelocatePosition(Position position, DidChangeTextDocumentParams changes, CancellationToken cancellationToken);
+
     /// <summary>
     /// Relocates the symbols of the given table with the given text changes.
     /// </summary>
@@ -41,5 +44,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
     /// <param name="cancellationToken">A token to stop the relocation prior completion.</param>
     /// <returns></returns>
     VerificationTree RelocateVerificationTree(VerificationTree oldVerificationTree, DidChangeTextDocumentParams documentChange, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Relocate previously recorded positions from a document to the next document.
+    /// </summary>
+    /// <param name="originalPositions">The positions to relocate</param>
+    /// <param name="documentChange">The change in the document</param>
+    /// <param name="cancellationToken">A token to stop the relocation prior completion.</param>
+    /// <returns></returns>
+    ImmutableList<Position> RelocatePositions(ImmutableList<Position> originalPositions, DidChangeTextDocumentParams documentChange, CancellationToken cancellationToken);
   }
 }

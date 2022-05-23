@@ -153,7 +153,7 @@ namespace Microsoft.Dafny {
     }
 
     public RefinementTransformer(Program p)
-      : this(p.reporter) {
+      : this(p.Reporter) {
       Contract.Requires(p != null);
       program = p;
     }

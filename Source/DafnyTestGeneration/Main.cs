@@ -63,7 +63,7 @@ namespace DafnyTestGeneration {
       var oldPrintInstrumented = DafnyOptions.O.PrintInstrumented;
       DafnyOptions.O.PrintInstrumented = true;
       var boogiePrograms = Translator
-        .Translate(program, program.reporter)
+        .Translate(program, program.Reporter)
         .ToList().ConvertAll(tuple => tuple.Item2);
       DafnyOptions.O.PrintInstrumented = oldPrintInstrumented;
 

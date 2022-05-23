@@ -1,22 +1,22 @@
-﻿using System;
-using Microsoft.Dafny.LanguageServer.Util;
+﻿using System.Collections.Concurrent;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
-using Microsoft.Boogie;
-using Microsoft.Dafny.LanguageServer.Language;
+using OmniSharp.Extensions.LanguageServer.Protocol;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
-  public class DiagnosticPublisher : IDiagnosticPublisher {
+
+  public class DiagnosticPublisher : IDiagnosticPublisher { // TODO rename to NotificationPublisher
     private readonly ILanguageServerFacade languageServer;
 
     public DiagnosticPublisher(ILanguageServerFacade languageServer) {
       this.languageServer = languageServer;
     }
+
+    private readonly ConcurrentDictionary<DocumentUri, PublishDiagnosticsParams> previouslyPublishedDiagnostics = new();
+    private readonly ConcurrentDictionary<DocumentUri, GhostDiagnosticsParams> previouslyPublishedGhostDiagnostics = new();
 
     public void PublishDiagnostics(DafnyDocument document) {
       if (document.LoadCanceled) {
@@ -24,6 +24,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         // Therefore, we do not republish the errors when the document (re-)load was canceled.
         return;
       }
+
       PublishDocumentDiagnostics(document);
       PublishGhostDiagnostics(document);
     }
@@ -32,8 +33,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var diagnosticParameters = new PublishDiagnosticsParams {
         Uri = document.Uri,
         Version = document.Version,
-        Diagnostics = GetDiagnostics(document).ToArray(),
+        Diagnostics = document.Diagnostics.ToArray(),
       };
+      if (previouslyPublishedDiagnostics.TryGetValue(document.Uri, out var previousParams) && previousParams.Diagnostics.SequenceEqual(diagnosticParameters.Diagnostics)) {
+        return;
+      }
+
+      previouslyPublishedDiagnostics[document.Uri] = diagnosticParameters;
       languageServer.TextDocument.PublishDiagnostics(diagnosticParameters);
     }
 
@@ -43,33 +49,32 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         // Therefore, we do not republish the errors when the document (re-)load was canceled.
         return;
       }
-      // Document.GetDiagnostics() returns not only resolution errors, but previous verification errors
-      var currentDiagnostics =
-        document.Errors.GetDiagnostics(document.GetFilePath())
-          .Where(x => x.Severity == DiagnosticSeverity.Error).ToList();
-      var errors = currentDiagnostics
-        .Concat(document.OldVerificationDiagnostics)
-        .Where(x => x.Severity == DiagnosticSeverity.Error)
-        .ToArray();
+      var errors = document.Diagnostics.Where(x => x.Severity == DiagnosticSeverity.Error).ToList();
       var linesCount = document.LinesCount;
-      var verificationStatusGutter = new VerificationStatusGutter(
+      var verificationStatusGutter = VerificationStatusGutter.ComputeFrom(
         document.Uri,
         document.Version,
         document.VerificationTree.Children.Select(child => child.GetCopyForNotification()).ToArray(),
         errors,
         linesCount,
         verificationStarted,
-        document.ResolutionSucceeded == false ? currentDiagnostics.Count() : 0
+        document.ParseAndResolutionDiagnostics.Count
       );
       languageServer.TextDocument.SendNotification(verificationStatusGutter);
     }
 
     private void PublishGhostDiagnostics(DafnyDocument document) {
-      languageServer.TextDocument.SendNotification(new GhostDiagnosticsParams {
+
+      var newParams = new GhostDiagnosticsParams {
         Uri = document.Uri,
         Version = document.Version,
         Diagnostics = document.GhostDiagnostics.ToArray(),
-      });
+      };
+      if (previouslyPublishedGhostDiagnostics.TryGetValue(document.Uri, out var previousParams) && previousParams.Diagnostics.SequenceEqual(newParams.Diagnostics)) {
+        return;
+      }
+      previouslyPublishedGhostDiagnostics[document.Uri] = newParams;
+      languageServer.TextDocument.SendNotification(newParams);
     }
 
     public void HideDiagnostics(TextDocumentIdentifier documentId) {
@@ -77,11 +82,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         Uri = documentId.Uri,
         Diagnostics = new Container<Diagnostic>()
       });
-    }
-
-    private static IEnumerable<Diagnostic> GetDiagnostics(DafnyDocument document) {
-      // Only report errors of the entry-document.
-      return document.Errors.GetDiagnostics(document.GetFilePath()).Concat(document.OldVerificationDiagnostics);
     }
   }
 }
