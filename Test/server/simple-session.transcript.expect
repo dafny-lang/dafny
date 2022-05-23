@@ -3,32 +3,24 @@
 Verifying Impl$$_module.__default.A ...
   [1 proof obligation]  error
 transcript(3,9): Error: assertion might not hold
-Execution trace:
-    (0,0): anon0
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 
 Verifying Impl$$_module.__default.A ...
   [0 proof obligations]  error
 transcript(3,9): Error: assertion might not hold
-Execution trace:
-    (0,0): anon0
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 
 Verifying Impl$$_module.__default.A ...
   [0 proof obligations]  error
 transcript(3,9): Error: assertion might not hold
-Execution trace:
-    (0,0): anon0
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 
 Verifying Impl$$_module.__default.A ...
   [0 proof obligations]  error
 transcript(3,9): Error: assertion might not hold
-Execution trace:
-    (0,0): anon0
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 Verification completed successfully!
@@ -130,10 +122,6 @@ transcript(10,9): Info: Selected triggers: {x' * x'}
 Verifying Impl$$_module.__default.M_k ...
   [1 proof obligation]  error
 transcript(10,9): Error: assertion might not hold
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
-    (0,0): anon2
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
@@ -276,10 +264,6 @@ Retrieving cached verification result for implementation Impl$$_module.__default
 Verifying Impl$$_module.__default.M2 ...
   [2 proof obligations]  error
 transcript(38,9): Error: assertion might not hold
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
-    (0,0): anon2
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
@@ -307,10 +291,6 @@ Retrieving cached verification result for implementation Impl$$_module.__default
 Verifying Impl$$_module.__default.M2 ...
   [2 proof obligations]  error
 transcript(38,9): Error: assertion might not hold
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
-    (0,0): anon2
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
