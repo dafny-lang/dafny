@@ -826,10 +826,10 @@ the set of allowed identifiers) vary between languages, Dafny allows
 additional forms for the `{:extern}` attribute.
 
 The form `{:extern <s1>}` instructs Dafny to compile references to most
-declarations using the name `s1` instead of the Dafny name. For opaque
-types, however, `s1` is sometimes used as a hint as to how to declare
-that type when compiling. This hint is interpreted differently by each
-compiler.
+declarations using the name `s1` instead of the Dafny name. For [opaque
+types](#sec-opaque-types), however, `s1` is sometimes used as a hint as
+to how to declare that type when compiling. This hint is interpreted
+differently by each compiler.
 
 Finally, the form `{:extern <s1>, <s2>}` instructs Dafny to use `s2` as
 the direct name of the declaration. Dafny will typically use a
