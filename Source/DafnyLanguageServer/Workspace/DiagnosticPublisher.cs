@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -9,7 +10,6 @@ using OmniSharp.Extensions.LanguageServer.Protocol;
 namespace Microsoft.Dafny.LanguageServer.Workspace {
 
   public class DiagnosticPublisher : IDiagnosticPublisher { // TODO rename to NotificationPublisher
-    public const string VerificationStatusNotification = "textDocument/verificationStatus";
     private readonly ILanguageServerFacade languageServer;
 
     public DiagnosticPublisher(ILanguageServerFacade languageServer) {
@@ -37,24 +37,25 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return;
       }
 
-      var namedVerifiableGroups = document.ImplementationViews.GroupBy(task => task.Value.Range);
-      var namedVerifiableStatusList = namedVerifiableGroups.Select(taskGroup => {
-        var status = taskGroup.Select(kv => kv.Value.Status).Aggregate(Combine);
-        return new NamedVerifiableStatus(taskGroup.Key, status);
-      }).OrderBy(v => v.NameRange.Start).ToList();
-      var notification = new FileVerificationStatus(document.Uri, document.Version, namedVerifiableStatusList);
+      var notification = new FileVerificationStatus(document.Uri, document.Version, GetNamedVerifiableStatuses(document.ImplementationViews));
 
       if (!previouslyVerificationStatus.TryGetValue(document.Uri, out var previous) || !previous.Equals(notification)) {
-        languageServer.TextDocument.SendNotification(VerificationStatusNotification, notification);
+        languageServer.TextDocument.SendNotification(DafnyRequestNames.VerificationStatusNotification, notification);
         previouslyVerificationStatus[document.Uri] = notification;
       }
     }
 
-    static PublishedVerificationStatus Combine(PublishedVerificationStatus first, PublishedVerificationStatus second) {
-      if (first == PublishedVerificationStatus.Error || second == PublishedVerificationStatus.Error) {
-        return PublishedVerificationStatus.Error;
-      }
+    private static List<NamedVerifiableStatus> GetNamedVerifiableStatuses(IReadOnlyDictionary<ImplementationId, ImplementationView> implementationViews)
+    {
+      var namedVerifiableGroups = implementationViews.GroupBy(task => task.Value.Range);
+      return namedVerifiableGroups.Select(taskGroup =>
+      {
+        var status = taskGroup.Select(kv => kv.Value.Status).Aggregate(Combine);
+        return new NamedVerifiableStatus(taskGroup.Key, status);
+      }).OrderBy(v => v.NameRange.Start).ToList();
+    }
 
+    static PublishedVerificationStatus Combine(PublishedVerificationStatus first, PublishedVerificationStatus second) {
       return new[] { first, second }.Min();
     }
 

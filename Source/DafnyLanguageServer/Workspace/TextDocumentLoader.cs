@@ -299,10 +299,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         case VerificationStatus.Running:
           return PublishedVerificationStatus.Running;
         case VerificationStatus.Completed:
-#pragma warning disable VSTHRD002
           var verificationResult = await task.ActualTask;
           return verificationResult.Outcome == ConditionGeneration.Outcome.Correct
-#pragma warning restore VSTHRD002
             ? PublishedVerificationStatus.Correct
             : PublishedVerificationStatus.Error;
         default:
