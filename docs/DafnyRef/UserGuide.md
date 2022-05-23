@@ -807,20 +807,20 @@ provides a `main` entry point.
 
 ### 24.9.2. `extern` declarations
 
-A Dafny declaration can be marked with the `{:extern}` attribute to
+A Dafny declaration can be marked with the [`{:extern}`](#sec-extern) attribute to
 indicate that it refers to an external definition that is already
 present in the language that the Dafny code will be compiled to (or will
 be present by the time the final target-language program is compiled or
 run).
 
-Because the `{:extern}` attribute controls interaction with code written
+Because the [`{:extern}`](#sec-extern) attribute controls interaction with code written
 in one of many languages, it has some language-specific behavior,
 documented in the following sections. However, some aspects are
 target-language-independent and documented here.
 
 The attribute can also take several forms, each defining a different
 relationship between a Dafny name and a target language name. In the
-form `{:extern}`, the external definition is assumed to have the same
+form [`{:extern}`](#sec-extern), the external definition is assumed to have the same
 name as the Dafny declaration. However, because naming conventions (and
 the set of allowed identifiers) vary between languages, Dafny allows
 additional forms for the `{:extern}` attribute.
