@@ -820,8 +820,9 @@ target-language-independent and documented here.
 
 The attribute can also take several forms, each defining a different
 relationship between a Dafny name and a target language name. In the
-form [`{:extern}`](#sec-extern), the external definition is assumed to have the same
-name as the Dafny declaration. However, because naming conventions (and
+form [`{:extern}`](#sec-extern), the name of the external definition is
+assumed to be the name of the Dafny declaration after some
+target-specific name mangling. However, because naming conventions (and
 the set of allowed identifiers) vary between languages, Dafny allows
 additional forms for the `{:extern}` attribute.
 
@@ -838,12 +839,30 @@ declaration. It may also be the case that one of the arguments is simply
 ignored, depending on the target language.
 
 The recommended style is to prefer `{:extern}` when possible, and use
-the same names across languages. This is usually feasible because
+similar names across languages. This is usually feasible because
 existing external code is expected to have the same interface as the
-code that Dafny would generate for a declaration of that form. This
-means that it's typically necessary to write wrappers by hand that
+code that Dafny would generate for a declaration of that form. Because
+many Dafny types compile down to custom types defined in the Dafny
+runtime library, it's typically necessary to write wrappers by hand that
 encapsulate existing external code using a compatible interface, and
-those wrappers can have names chosen for compatibility.
+those wrappers can have names chosen for compatibility. For example,
+retrieving the list of command line arguments when compiling to C\#
+requires a wrapper such as the following:
+
+``` cs
+using icharseq = Dafny.ISequence<char>;
+using charseq = Dafny.Sequence<char>;
+
+namespace Externs_Compile {
+  public partial class __default {
+    public static Dafny.ISequence<icharseq> GetCommandLineArgs() {
+      var dafnyArgs = Environment
+                      .GetCommandLineArgs()
+                      .Select(charseq.FromString);
+      return Dafny.Sequence<icharseq>.FromArray(dafnyArgs.ToArray());
+    }
+}
+```
 
 Note that Dafny does not check the arguments to `{:extern}`, so it is
 the user's responsibility to ensure that the provided names result in
