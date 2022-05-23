@@ -158,6 +158,8 @@ Dafny does not perform sanity checks on the arguments---it is the user's respons
 
 One difference with [`{:axiom}`](#sec-axiom) is that the compiler will still emit code for an [`{:axiom}`](#sec-axiom), if it is a [`function method`, a `method` or a `function by method`](#sec-function-declarations) with a body.
 
+For more detail on the use of `{:extern}`, see the corresponding [section](#sec-extern-decls) in the user's guide.
+
 ## 22.2. Attributes on functions and methods
 
 ### 22.2.1. `{:autoReq}`
