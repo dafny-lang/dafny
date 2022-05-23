@@ -132,7 +132,7 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
       return new TextDocumentItem {
         LanguageId = LanguageId,
         Text = source,
-        Uri = DocumentUri.FromFileSystemPath(filePath),
+        Uri = filePath.StartsWith("untitled:") ? DocumentUri.Parse(filePath) : DocumentUri.FromFileSystemPath(filePath),
         Version = version
       };
     }
