@@ -816,7 +816,7 @@ run).
 Because the [`{:extern}`](#sec-extern) attribute controls interaction with code written
 in one of many languages, it has some language-specific behavior,
 documented in the following sections. However, some aspects are
-target-language-independent and documented here.
+target-language independent and documented here.
 
 The attribute can also take several forms, each defining a different
 relationship between a Dafny name and a target language name. In the
@@ -876,7 +876,7 @@ Marking a module with `{:extern}` indicates that the declarations
 contained within can be found within the given module, namespace, or
 similar construct within the target language. Some members of the Dafny
 module may contain definitions, in which case code for those definitions
-will be generated.  Whether this results in valid target code may depend
+will be generated. Whether this results in valid target code may depend
 on some target language support for something resembling "partial"
 modules, where different subsets of the contents are defined in
 different places.
