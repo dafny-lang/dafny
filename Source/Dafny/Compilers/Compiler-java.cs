@@ -2221,7 +2221,11 @@ namespace Microsoft.Dafny.Compilers {
       };
       psi.EnvironmentVariables["CLASSPATH"] = classpath;
       var proc = Process.Start(psi)!;
-      DataReceivedEventHandler printer = (sender, e) => { outputWriter.Write(e.Data + Environment.NewLine); };
+      DataReceivedEventHandler printer = (sender, e) => {
+        if (e.Data is not null) {
+          outputWriter.WriteLine(e.Data);
+        }
+      };
       proc.ErrorDataReceived += printer;
       proc.OutputDataReceived += printer;
       proc.BeginErrorReadLine();
