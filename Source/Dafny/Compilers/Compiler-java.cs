@@ -2220,8 +2220,8 @@ namespace Microsoft.Dafny.Compilers {
         WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename))
       };
       psi.EnvironmentVariables["CLASSPATH"] = classpath;
-      var proc = Process.Start(psi);
-      var printer = (sender, e) => { outputWriter.Write(e.Data + Environment.NewLine); };
+      var proc = Process.Start(psi)!;
+      DataReceivedEventHandler printer = (sender, e) => { outputWriter.Write(e.Data + Environment.NewLine); };
       proc.ErrorDataReceived += printer;
       proc.OutputDataReceived += printer;
       proc.BeginErrorReadLine();
