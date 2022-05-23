@@ -19,7 +19,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <param name="LoadCanceled"><c>true</c> if the document load was canceled for this document.</param>
   public record DafnyDocument(
     DafnyOptions Options,
-    TextDocumentItem TextDocumentItem,
+    DocumentTextBuffer TextDocumentItem,
     IReadOnlyList<Diagnostic> ParseAndResolutionDiagnostics,
     // VerificationDiagnostics can be deduced from CounterExamples,
     // but they are stored separately because they are migrated and counterexamples currently are not.
@@ -45,7 +45,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// </summary>
     public VerificationTree VerificationTree { get; init; } = new DocumentVerificationTree(
       TextDocumentItem.Uri.ToString(),
-      NumberOfLines(TextDocumentItem.Text)
+      TextDocumentItem.NumberOfLines
     );
 
     // List of a few last touched method positions
@@ -64,9 +64,26 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public int LinesCount => VerificationTree.Range.End.Line;
+  }
 
-    public static int NumberOfLines(string text) {
-      return text.Count(c => c == '\n') + 1;
+  public record DocumentTextBuffer : TextDocumentItem {
+    public static DocumentTextBuffer From(TextDocumentItem textDocumentItem) {
+      return new DocumentTextBuffer {
+        Text = textDocumentItem.Text,
+        Uri = textDocumentItem.Uri,
+        NumberOfLines = ComputeNumberOfLines(textDocumentItem.Text),
+        Version = textDocumentItem.Version,
+        LanguageId = textDocumentItem.LanguageId
+      };
+    }
+
+    public int NumberOfLines { get; init; } //
+
+    public static int ComputeNumberOfLines(string text) {
+      return ComputeNumberOfNewlines(text) + 1;
+    }
+    public static int ComputeNumberOfNewlines(string text) {
+      return text.Count(c => c == '\n');
     }
   }
 }

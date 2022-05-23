@@ -385,8 +385,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     Range Range
   ) : VerificationTree(Kind, DisplayName, Identifier, Filename, Range) {
     // Recomputed from the children which are ImplementationVerificationTree
-    public ImmutableDictionary<(int, int), AssertionBatchVerificationTree> AssertionBatches { get; private set; } =
-      new Dictionary<(int, int), AssertionBatchVerificationTree>().ToImmutableDictionary();
+    public ImmutableDictionary<AssertionBatchIndex, AssertionBatchVerificationTree> AssertionBatches { get; private set; } =
+      new Dictionary<AssertionBatchIndex, AssertionBatchVerificationTree>().ToImmutableDictionary();
 
     public override VerificationTree GetCopyForNotification() {
       if (Finished) {
@@ -402,7 +402,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     }
 
     public void RecomputeAssertionBatchNodeDiagnostics() {
-      var result = new Dictionary<(int, int), AssertionBatchVerificationTree>();
+      var result = new Dictionary<AssertionBatchIndex, AssertionBatchVerificationTree>();
       var implementationNumber = 0;
       foreach (var implementationNode in Children.OfType<ImplementationVerificationTree>()) {
         implementationNumber++;
@@ -411,7 +411,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
             assertionNode => assertionNode.AssertionBatchNum == vcNum).Cast<VerificationTree>().ToList();
           var minPosition = children.Count > 0 ? children.MinBy(child => child.Position)!.Range.Start : Range.Start;
           var maxPosition = children.Count > 0 ? children.MaxBy(child => child.Range.End)!.Range.End : Range.Start;
-          result[(implementationNumber, vcNum)] = new AssertionBatchVerificationTree(
+          result[new AssertionBatchIndex(implementationNumber, vcNum)] = new AssertionBatchVerificationTree(
             $"Assertion batch #{result.Count + 1}",
             $"assertion-batch-{implementationNumber}-{vcNum}",
             Filename,
@@ -436,8 +436,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
     // Currently the best estimate of the number of assertion batches
     public int AssertionBatchCount =>
-      AssertionBatches.Keys.GroupBy(key => key.Item1).Select(group =>
-        group.Select(key => key.Item2).Max()).Sum();
+      AssertionBatches.Keys.GroupBy(key => key.ImplementationIndex).Select(group =>
+        group.Select(key => key.RelativeIndex).Max()).Sum();
 
     public int LongestAssertionBatchTime => AssertionBatches.Any() ? AssertionBatchTimes.Max() : 0;
 
@@ -651,5 +651,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       counterExample = c;
       return this;
     }
-  };
+  }
+
+  public record AssertionBatchIndex(int ImplementationIndex, int RelativeIndex);
 }

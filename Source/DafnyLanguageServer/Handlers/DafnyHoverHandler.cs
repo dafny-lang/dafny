@@ -60,10 +60,11 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       return CreateMarkdownHover(hoverContent);
     }
 
-    class TupleComparer : IComparer<(int, int)> {
-      public int Compare((int, int) key1, (int, int) key2) {
-        return key1.Item1 < key2.Item1 ? -1 :
-          key1.Item1 == key2.Item1 ? key1.Item2 - key2.Item1 : 1;
+    class AssertionBatchIndexComparer : IComparer<AssertionBatchIndex> {
+      public int Compare(AssertionBatchIndex? key1, AssertionBatchIndex? key2) {
+        return key1 == null || key2 == null ? -1 :
+          key1.ImplementationIndex < key2.ImplementationIndex ? -1 :
+          key1.ImplementationIndex == key2.ImplementationIndex ? key1.RelativeIndex - key2.RelativeIndex : 1;
       }
     }
 
@@ -75,7 +76,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           var information = "";
           var orderedAssertionBatches =
             node.AssertionBatches
-              .OrderBy(keyValue => keyValue.Key, new TupleComparer()).Select(keyValuePair => keyValuePair.Value)
+              .OrderBy(keyValue => keyValue.Key, new AssertionBatchIndexComparer()).Select(keyValuePair => keyValuePair.Value)
               .ToList();
           foreach (var assertionBatch in orderedAssertionBatches) {
             if (!assertionBatch.Range.Contains(position)) {
@@ -87,64 +88,10 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
             foreach (var assertionNode in assertions) {
               if (assertionNode.Range.Contains(position) ||
                   assertionNode.ImmediatelyRelatedRanges.Any(range => range.Contains(position))) {
-                var assertCmd = assertionNode.GetAssertion();
-                var batchRef = AddAssertionBatchDocumentation("batch");
-                var assertionCount = assertionBatch.Children.Count;
-
-                var obsolescence = assertionNode.StatusCurrent switch {
-                  CurrentStatus.Current => "",
-                  CurrentStatus.Obsolete => "(obsolete) ",
-                  _ => "(verifying) "
-                };
-
-                string GetDescription(Boogie.ProofObligationDescription? description) {
-                  return assertionNode?.StatusVerification switch {
-                    VerificationStatus.Verified => $"{obsolescence}<span style='color:green'>**Success:**</span> " +
-                                                   (description?.SuccessDescription ?? "_no message_"),
-                    VerificationStatus.Error => $"{obsolescence}[Error:](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-verification-debugging) " +
-                                                (description?.FailureDescription ?? "_no message_"),
-                    VerificationStatus.Inconclusive => $"{obsolescence}**Ignored or could not reach conclusion**",
-                    _ => $"{obsolescence}**Waiting to be verified...**",
-                  };
-                }
-                var counterexample = assertionNode.GetCounterExample();
-
                 if (information != "") {
                   information += "\n\n";
                 }
-
-                if (counterexample is ReturnCounterexample returnCounterexample) {
-                  information += GetDescription(returnCounterexample.FailingReturn.Description);
-                } else if (counterexample is CallCounterexample callCounterexample) {
-                  information += GetDescription(callCounterexample.FailingCall.Description);
-                } else {
-                  information += GetDescription(assertCmd?.Description);
-                }
-
-                information += "  \n";
-                information += "This is " + (assertionCount == 1
-                  ? "the only assertion"
-                  : $"assertion #{assertionIndex + 1} of {assertionCount}");
-                if (assertionBatchCount > 1) {
-                  information += $" in {batchRef} #{assertionBatch.RelativeNumber} of {assertionBatchCount}";
-                }
-                information += " in " + node.PrefixedDisplayName + "  \n";
-                if (assertionBatchCount > 1) {
-                  information += AddAssertionBatchDocumentation("Batch") +
-                                 $" #{assertionBatch.RelativeNumber} resource usage: " +
-                                 formatResourceCount(assertionBatch.ResourceCount);
-                } else {
-                  information += "Resource usage: " +
-                                 formatResourceCount(assertionBatch.ResourceCount);
-                }
-
-                // Not the main error displayed in diagnostics
-                if (!(assertionNode.GetCounterExample() is ReturnCounterexample returnCounterexample2 &&
-                      returnCounterexample2.FailingReturn.tok.GetLspRange().Contains(position))) {
-                  information += "  \n" + (assertionNode.SecondaryPosition != null
-                    ? $"Related location: {Path.GetFileName(assertionNode.Filename)}({assertionNode.SecondaryPosition.Line + 1}, {assertionNode.SecondaryPosition.Character + 1})"
-                    : "");
-                }
+                information += GetAssertionInformation(position, assertionNode, assertionBatch, assertionIndex, assertionBatchCount, node);
               }
 
               assertionIndex++;
@@ -158,63 +105,139 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           if (node.Position.Line == position.Line &&
               node.Filename == document.Uri.GetFileSystemPath()) {
             areMethodStatistics = true;
-            information = $"**Verification performance metrics for {node.PrefixedDisplayName}**:\n\n";
-            if (!node.Started) {
-              information += "_Verification not started yet_  \n";
-            } else if (!node.Finished) {
-              information += "_Still verifying..._  \n";
-            }
-
-            var assertionBatchesToReport =
-              node.AssertionBatches.Values.OrderByDescending(a => a.ResourceCount).Take(3).ToList();
-            if (assertionBatchesToReport.Count == 0 && node.Finished) {
-              information += "No assertions.";
-            } else if (assertionBatchesToReport.Count >= 1) {
-              information += $"- Total resource usage: {formatResourceCount(node.ResourceCount)}";
-              if (node.ResourceCount > RuLimitToBeOverCostly) {
-                information += OverCostlyMessage;
-              }
-              information += "  \n";
-              if (assertionBatchesToReport.Count == 1) {
-                var assertionBatch = AddAssertionBatchDocumentation("assertion batch");
-                var numberOfAssertions = orderedAssertionBatches.First().NumberOfAssertions;
-                information += $"- Only one {assertionBatch} containing {numberOfAssertions} assertion{(numberOfAssertions == 1 ? "" : "s")}.";
-              } else {
-                var assertionBatches = AddAssertionBatchDocumentation("assertion batches");
-                information += $"- Most costly {assertionBatches}:";
-                var result = new List<(string index, string line, string numberOfAssertions, string assertionPlural, string resourceCount, bool overCostly)>();
-                foreach (var costlierAssertionBatch in assertionBatchesToReport) {
-                  var item = costlierAssertionBatch.Range.Start.Line + 1;
-                  var overCostly = costlierAssertionBatch.ResourceCount > RuLimitToBeOverCostly;
-                  result.Add(("#" + costlierAssertionBatch.RelativeNumber, item.ToString(), costlierAssertionBatch.Children.Count + "",
-                    costlierAssertionBatch.Children.Count != 1 ? "s" : "",
-                    formatResourceCount(costlierAssertionBatch.ResourceCount), overCostly));
-                }
-
-                var maxIndexLength = result.Select(item => item.index.Length).Max();
-                var maxLineLength = result.Select(item => item.line.Length).Max();
-                var maxNumberOfAssertionsLength = result.Select(item => item.numberOfAssertions.Length).Max();
-                var maxAssertionsPluralLength = result.Select(item => item.assertionPlural.Length).Max();
-                var maxResourceLength = result.Select(item => item.resourceCount.Length).Max();
-                foreach (var (index, line, numberOfAssertions, assertionPlural, resource, overCostly) in result) {
-                  information +=
-                    $"  \n  - {index.PadLeft(maxIndexLength)}/{assertionBatchCount}" +
-                    $" with {numberOfAssertions.PadLeft(maxNumberOfAssertionsLength)} assertion" +
-                    assertionPlural.PadRight(maxAssertionsPluralLength) +
-                    $" at line {line.PadLeft(maxLineLength)}, {resource.PadLeft(maxResourceLength)}";
-                  if (overCostly) {
-                    information += OverCostlyMessage;
-                  }
-                }
-              }
-            }
-
-            return information;
+            return GetTopLevelInformation(node, orderedAssertionBatches);
           }
         }
       }
 
       return null;
+    }
+
+    private string GetTopLevelInformation(TopLevelDeclMemberVerificationTree node, List<AssertionBatchVerificationTree> orderedAssertionBatches) {
+      int assertionBatchCount = orderedAssertionBatches.Count;
+      var information = $"**Verification performance metrics for {node.PrefixedDisplayName}**:\n\n";
+      if (!node.Started) {
+        information += "_Verification not started yet_  \n";
+      } else if (!node.Finished) {
+        information += "_Still verifying..._  \n";
+      }
+
+      var assertionBatchesToReport =
+        node.AssertionBatches.Values.OrderByDescending(a => a.ResourceCount).Take(3).ToList();
+      if (assertionBatchesToReport.Count == 0 && node.Finished) {
+        information += "No assertions.";
+      } else if (assertionBatchesToReport.Count >= 1) {
+        information += $"- Total resource usage: {formatResourceCount(node.ResourceCount)}";
+        if (node.ResourceCount > RuLimitToBeOverCostly) {
+          information += OverCostlyMessage;
+        }
+
+        information += "  \n";
+        if (assertionBatchesToReport.Count == 1) {
+          var assertionBatch = AddAssertionBatchDocumentation("assertion batch");
+          var numberOfAssertions = orderedAssertionBatches.First().NumberOfAssertions;
+          information +=
+            $"- Only one {assertionBatch} containing {numberOfAssertions} assertion{(numberOfAssertions == 1 ? "" : "s")}.";
+        } else {
+          var assertionBatches = AddAssertionBatchDocumentation("assertion batches");
+          information += $"- Most costly {assertionBatches}:";
+          var result =
+            new List<(string index, string line, string numberOfAssertions, string assertionPlural, string
+              resourceCount, bool overCostly)>();
+          foreach (var costlierAssertionBatch in assertionBatchesToReport) {
+            var item = costlierAssertionBatch.Range.Start.Line + 1;
+            var overCostly = costlierAssertionBatch.ResourceCount > RuLimitToBeOverCostly;
+            result.Add(("#" + costlierAssertionBatch.RelativeNumber, item.ToString(),
+              costlierAssertionBatch.Children.Count + "",
+              costlierAssertionBatch.Children.Count != 1 ? "s" : "",
+              formatResourceCount(costlierAssertionBatch.ResourceCount), overCostly));
+          }
+
+          var maxIndexLength = result.Select(item => item.index.Length).Max();
+          var maxLineLength = result.Select(item => item.line.Length).Max();
+          var maxNumberOfAssertionsLength = result.Select(item => item.numberOfAssertions.Length).Max();
+          var maxAssertionsPluralLength = result.Select(item => item.assertionPlural.Length).Max();
+          var maxResourceLength = result.Select(item => item.resourceCount.Length).Max();
+          foreach (var (index, line, numberOfAssertions, assertionPlural, resource, overCostly) in result) {
+            information +=
+              $"  \n  - {index.PadLeft(maxIndexLength)}/{assertionBatchCount}" +
+              $" with {numberOfAssertions.PadLeft(maxNumberOfAssertionsLength)} assertion" +
+              assertionPlural.PadRight(maxAssertionsPluralLength) +
+              $" at line {line.PadLeft(maxLineLength)}, {resource.PadLeft(maxResourceLength)}";
+            if (overCostly) {
+              information += OverCostlyMessage;
+            }
+          }
+        }
+      }
+
+      return information;
+    }
+
+    private string GetAssertionInformation(Position position, AssertionVerificationTree assertionNode,
+      AssertionBatchVerificationTree assertionBatch, int assertionIndex, int assertionBatchCount,
+      TopLevelDeclMemberVerificationTree node) {
+      var assertCmd = assertionNode.GetAssertion();
+      var batchRef = AddAssertionBatchDocumentation("batch");
+      var assertionCount = assertionBatch.Children.Count;
+
+      var obsolescence = assertionNode.StatusCurrent switch {
+        CurrentStatus.Current => "",
+        CurrentStatus.Obsolete => "(obsolete) ",
+        _ => "(verifying) "
+      };
+
+      string GetDescription(Boogie.ProofObligationDescription? description) {
+        return assertionNode?.StatusVerification switch {
+          VerificationStatus.Verified => $"{obsolescence}<span style='color:green'>**Success:**</span> " +
+                                         (description?.SuccessDescription ?? "_no message_"),
+          VerificationStatus.Error =>
+            $"{obsolescence}[Error:](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-verification-debugging) " +
+            (description?.FailureDescription ?? "_no message_"),
+          VerificationStatus.Inconclusive => $"{obsolescence}**Ignored or could not reach conclusion**",
+          _ => $"{obsolescence}**Waiting to be verified...**",
+        };
+      }
+
+      var counterexample = assertionNode.GetCounterExample();
+
+      string information = "";
+
+      if (counterexample is ReturnCounterexample returnCounterexample) {
+        information += GetDescription(returnCounterexample.FailingReturn.Description);
+      } else if (counterexample is CallCounterexample callCounterexample) {
+        information += GetDescription(callCounterexample.FailingCall.Description);
+      } else {
+        information += GetDescription(assertCmd?.Description);
+      }
+
+      information += "  \n";
+      information += "This is " + (assertionCount == 1
+        ? "the only assertion"
+        : $"assertion #{assertionIndex + 1} of {assertionCount}");
+      if (assertionBatchCount > 1) {
+        information += $" in {batchRef} #{assertionBatch.RelativeNumber} of {assertionBatchCount}";
+      }
+
+      information += " in " + node.PrefixedDisplayName + "  \n";
+      if (assertionBatchCount > 1) {
+        information += AddAssertionBatchDocumentation("Batch") +
+                       $" #{assertionBatch.RelativeNumber} resource usage: " +
+                       formatResourceCount(assertionBatch.ResourceCount);
+      } else {
+        information += "Resource usage: " +
+                       formatResourceCount(assertionBatch.ResourceCount);
+      }
+
+      // Not the main error displayed in diagnostics
+      if (!(assertionNode.GetCounterExample() is ReturnCounterexample returnCounterexample2 &&
+            returnCounterexample2.FailingReturn.tok.GetLspRange().Contains(position))) {
+        information += "  \n" + (assertionNode.SecondaryPosition != null
+          ? $"Related location: {Path.GetFileName(assertionNode.Filename)}({assertionNode.SecondaryPosition.Line + 1}, {assertionNode.SecondaryPosition.Character + 1})"
+          : "");
+      }
+
+      return information;
     }
 
     private string formatResourceCount(int nodeResourceCount) {

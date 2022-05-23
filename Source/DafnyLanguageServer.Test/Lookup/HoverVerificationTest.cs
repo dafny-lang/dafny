@@ -192,10 +192,10 @@ method f(x: int) {
       );
     }
 
-    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    [TestMethod, Timeout(5 * MaxTestExecutionTimeMs)]
     public async Task IndicateSlowHints() {
       var documentItem = await GetDocumentItem(@"
-lemma {:timeLimit 6} SquareRoot2NotRational(p: nat, q: nat)
+lemma {:timeLimit 3} SquareRoot2NotRational(p: nat, q: nat)
   requires p > 0 && q > 0
   ensures (p * p) !=  2 * (q * q)
 { 

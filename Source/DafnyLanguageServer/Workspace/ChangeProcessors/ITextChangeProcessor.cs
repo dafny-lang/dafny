@@ -16,6 +16,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
     /// <returns>The updated text document.</returns>
     /// <exception cref="System.OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
-    TextDocumentItem ApplyChange(TextDocumentItem originalTextDocument, DidChangeTextDocumentParams documentChange, CancellationToken cancellationToken);
+    DocumentTextBuffer ApplyChange(DocumentTextBuffer originalTextDocument, DidChangeTextDocumentParams documentChange, CancellationToken cancellationToken);
   }
 }
