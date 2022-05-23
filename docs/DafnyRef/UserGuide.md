@@ -805,7 +805,7 @@ If no legal candidate entry point is identified, `dafny` will still produce exec
 they will need to be linked with some other code in the target language that
 provides a `main` entry point.
 
-### 24.9.2. `extern` declarations
+### 24.9.2. `extern` declarations {#sec-extern-decls}
 
 A Dafny declaration can be marked with the [`{:extern}`](#sec-extern) attribute to
 indicate that it refers to an external definition that is already
