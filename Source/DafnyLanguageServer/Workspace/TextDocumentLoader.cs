@@ -334,7 +334,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var prefix = implementation.Name.Split(Translator.NameSeparator)[0];
 
       // Refining declarations get the token of what they're refining, so to distinguish them we need to
-      // Add the refining module name to the prefix.
+      // add the refining module name to the prefix.
       if (implementation.tok is RefinementToken refinementToken) {
         prefix += "." + refinementToken.InheritingModule.Name;
       }
