@@ -1665,7 +1665,7 @@ constructor (here, named `Init`), which allocates and initializes the object.
 The third form is the same as the second, but invokes the _anonymous constructor_
 of the class (that is, a constructor declared with the empty-string name).
 
-## 13.1. Field Declarations
+## 13.1. Field Declarations {#sec-field-declarations}
 ````grammar
 FieldDecl(isValueType) =
   "var" { Attribute } FIdentType { "," FIdentType }
@@ -1698,7 +1698,7 @@ not in code that will be compiled into executable code.
 
 Fields may not be declared static.
 
-## 13.2. Constant Field Declarations
+## 13.2. Constant Field Declarations {#sec-constant-field-declarations}
 ````grammar
 ConstantFieldDecl(moduleLeavelDecl) =
   "const" { Attribute } CIdentType [ ellipsis ]
@@ -1968,7 +1968,7 @@ the end of the initialization phase are in effect no longer changeable.
 
 There are no restrictions on expressions or statements in the post-initialization phase.
 
-### 13.3.3. Lemmas
+### 13.3.3. Lemmas {#sec-lemmas}
 Sometimes there are steps of logic required to prove a program correct,
 but they are too complex for Dafny to discover and use on its own. When
 this happens, we can often give Dafny assistance by providing a lemma.
