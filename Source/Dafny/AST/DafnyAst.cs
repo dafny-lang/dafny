@@ -6161,15 +6161,15 @@ namespace Microsoft.Dafny {
       bvars = new List<BoundVar>();
       range = new LiteralExpr(Token.NoToken, true);
       foreach(var qvar in qvars) {
-        BoundVar bvar = new BoundVar(qvar.tok, qvar.Name, qvar.Type);
+        BoundVar bvar = new BoundVar(qvar.tok, qvar.Name, qvar.SyntacticType);
         bvars.Add(bvar);
         if (qvar.Domain != null) {
-          range = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, range,
-            new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.In, new IdentifierExpr(bvar.tok, bvar), qvar.Domain));
+          var inDomainExpr = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.In, new IdentifierExpr(bvar.tok, bvar), qvar.Domain); 
+          range = range == null ? inDomainExpr :  new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, range, inDomainExpr);
         }
 
         if (qvar.Range != null) {
-          range = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, range, qvar.Range);
+          range = range == null ? qvar.Range :  new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, range, qvar.Range);
         }
       }
     }

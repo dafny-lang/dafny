@@ -4643,7 +4643,7 @@ QuantifierVariableDecl<.out QuantifiedVar qvar, ref Attributes attrs, bool allow
   [ "|"
     Expression<out range, allowLemma, allowLambda, allowBitwiseOps>
   ]
-  (. qvar = new QuantifiedVar(bv.tok, bv.Name, bv.Type, domain, range); .)
+  (. qvar = new QuantifiedVar(bv.tok, bv.Name, bv.SyntacticType, domain, range); .)
   .
 
 /*------------------------------------------------------------------------*/
