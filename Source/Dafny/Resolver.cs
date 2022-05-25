@@ -15208,8 +15208,8 @@ namespace Microsoft.Dafny {
         allTypeParameters.PopMarker();
         expr.Type = Type.Bool;
 
-      } else if (expr is ComprehensionExpr) {
-        var e = (ComprehensionExpr)expr;
+      } else if (expr is CollectionComprehension) {
+        var e = (CollectionComprehension)expr;
         int prevErrorCount = reporter.Count(ErrorLevel.Error);
         scope.PushMarker();
         foreach (BoundVar v in e.BoundVars) {
