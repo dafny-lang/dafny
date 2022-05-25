@@ -90,26 +90,22 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       );
     }
 
-    public async Task<DafnyDocument> LoadAndPrepareVerificationTasksAsync(TextDocumentItem textDocument, CancellationToken cancellationToken) {
-      var loaded = await LoadAsync(textDocument, cancellationToken);
+
+    public async Task<DafnyDocument> PrepareVerificationTasksAsync(DafnyDocument loaded) {
       if (loaded.ParseAndResolutionDiagnostics.Any(d => d.Severity == DiagnosticSeverity.Error)) {
-        return loaded;
+        throw new TaskCanceledException();
       }
 
-      var verificationView = verifier.GetVerificationTasks(loaded);
-
-      foreach (var task in verificationView.Tasks) {
-        cancellationToken.Register(task.Cancel);
-      }
+      var verificationTasks = verifier.GetVerificationTasks(loaded);
 
       var initialViews = new Dictionary<ImplementationId, ImplementationView>();
-      foreach (var task in verificationView.Tasks) {
+      foreach (var task in verificationTasks.Tasks) {
         var status = await StatusFromImplementationTaskAsync(task);
         var view = new ImplementationView(task.Implementation.tok.GetLspRange(), status, Array.Empty<Diagnostic>());
         initialViews.Add(GetImplementationId(task.Implementation), view);
       }
       return loaded with {
-        VerificationTasks = verificationView,
+        VerificationTasks = verificationTasks,
         ImplementationViews = initialViews,
       };
     }
@@ -199,7 +195,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var result = GetVerifiedDafnyDocuments(document, implementationTasks, progressReporter);
 
       foreach (var implementationTask in implementationTasks) {
-        implementationTask.Run();
+        cancellationToken.Register(implementationTask.Cancel);
+        try {
+          implementationTask.Run();
+        } catch (InvalidOperationException) {
+          // Thrown in case the task was already cancelled. Requires a Boogie fix to remove.
+        }
         if (VerifierOptions.GutterStatus) {
           progressReporter.ReportStartVerifyImplementation(implementationTask.Implementation);
         }

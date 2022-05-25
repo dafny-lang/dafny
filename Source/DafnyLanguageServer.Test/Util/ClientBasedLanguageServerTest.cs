@@ -63,7 +63,6 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
 
   [TestInitialize]
   public virtual async Task SetUp() {
-
     diagnosticsReceiver = new();
     verificationStatusReceiver = new();
     client = await InitializeClient(options => {
@@ -103,7 +102,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
       }
     }
     await GetLastDiagnostics(documentItem, cancellationToken);
-    var verificationDocumentItem = CreateTestDocument("class X {does not parse", $"verification{fileIndex++}.dfy");
+    var verificationDocumentItem = CreateTestDocument("method Foo() { assert true; }", $"verification{fileIndex++}.dfy");
     await client.OpenDocumentAndWaitAsync(verificationDocumentItem, CancellationToken.None);
     var statusReport = await verificationStatusReceiver.AwaitNextNotificationAsync(cancellationToken);
     var resolutionReport = await diagnosticsReceiver.AwaitNextNotificationAsync(cancellationToken);
@@ -112,8 +111,6 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
     client.DidCloseTextDocument(new DidCloseTextDocumentParams {
       TextDocument = verificationDocumentItem
     });
-    var hideReport = await diagnosticsReceiver.AwaitNextNotificationAsync(cancellationToken);
-    Assert.AreEqual(verificationDocumentItem.Uri, hideReport.Uri);
   }
 
   public async Task AssertNoDiagnosticsAreComing(CancellationToken cancellationToken) {

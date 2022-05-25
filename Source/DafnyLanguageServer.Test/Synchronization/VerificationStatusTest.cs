@@ -72,8 +72,7 @@ method Bar() { assert false; }";
     // Send a change to enable getting a new status notification.
     ApplyChange(ref documentItem, new Range(new Position(1, 0), new Position(1, 0)), "\n");
 
-    var stillStale = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-    Assert.AreEqual(PublishedVerificationStatus.Stale, stillStale.NamedVerifiables[0].Status);
+    AssertNoVerificationStatusIsComing(documentItem, CancellationToken);
 
     await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
 
@@ -111,7 +110,7 @@ method Bar() { assert true; }";
     FileVerificationStatus beforeChangeStatus;
     do {
       beforeChangeStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-    } while (beforeChangeStatus.NamedVerifiables.Any(method => method.Status < PublishedVerificationStatus.Correct));
+    } while (beforeChangeStatus.NamedVerifiables.Any(method => method.Status < PublishedVerificationStatus.Error));
   }
 
   [TestMethod]

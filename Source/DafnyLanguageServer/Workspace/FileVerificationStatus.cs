@@ -10,24 +10,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace;
 public record FileVerificationStatus(
   DocumentUri Uri,
   int? Version,
-  IReadOnlyList<NamedVerifiableStatus> NamedVerifiables) : IRequest {
-
-  public virtual bool Equals(FileVerificationStatus? other) {
-    if (ReferenceEquals(null, other)) {
-      return false;
-    }
-
-    if (ReferenceEquals(this, other)) {
-      return true;
-    }
-
-    return Uri.Equals(other.Uri) && Version == other.Version && NamedVerifiables.SequenceEqual(other.NamedVerifiables);
-  }
-
-  public override int GetHashCode() {
-    return HashCode.Combine(Uri, Version, NamedVerifiables);
-  }
-}
+  IReadOnlyList<NamedVerifiableStatus> NamedVerifiables) : IRequest;
 
 /**
  * Groups Boogie verification tasks by named Dafny declarations such as:

@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -38,11 +39,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       var notification = new FileVerificationStatus(document.Uri, document.Version, GetNamedVerifiableStatuses(document.ImplementationViews));
-
-      if (!previouslyVerificationStatus.TryGetValue(document.Uri, out var previous) || !previous.Equals(notification)) {
-        languageServer.TextDocument.SendNotification(DafnyRequestNames.VerificationStatusNotification, notification);
-        previouslyVerificationStatus[document.Uri] = notification;
+      var previous = previouslyVerificationStatus.GetValueOrDefault(document.Uri)?.NamedVerifiables ?? ImmutableArray<NamedVerifiableStatus>.Empty;
+      if (previous.SequenceEqual(notification.NamedVerifiables)) {
+          return;
       }
+      languageServer.TextDocument.SendNotification(DafnyRequestNames.VerificationStatusNotification, notification);
+      previouslyVerificationStatus[document.Uri] = notification;
     }
 
     private static List<NamedVerifiableStatus> GetNamedVerifiableStatuses(IReadOnlyDictionary<ImplementationId, ImplementationView> implementationViews)
@@ -65,7 +67,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         Version = document.Version,
         Diagnostics = document.Diagnostics.ToArray(),
       };
-      if (previouslyPublishedDiagnostics.TryGetValue(document.Uri, out var previousParams) && previousParams.Diagnostics.SequenceEqual(diagnosticParameters.Diagnostics)) {
+      if (previouslyPublishedDiagnostics.TryGetValue(document.Uri, out var previousParams) &&
+          (previousParams.Version > diagnosticParameters.Version ||
+           previousParams.Diagnostics.SequenceEqual(diagnosticParameters.Diagnostics))) {
         return;
       }
 
