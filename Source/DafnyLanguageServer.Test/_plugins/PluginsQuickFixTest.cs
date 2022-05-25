@@ -17,12 +17,9 @@ namespace PluginsQuickFixTest {
 
   public class DummyQuickFixer : QuickFixer {
     public override QuickFix[] GetQuickFixes(IQuickFixInput input, Range selection) {
-      var firstToken = input.Program.GetFirstTopLevelToken();
-      var firstRange = firstToken.GetLspRange();
-      var range = firstRange.EndRange();
       return new QuickFix[] {
         new InstantQuickFix("Insert file header", new QuickFixEdit[] {
-          new QuickFixEdit(range, "/*First comment*/")
+          new QuickFixEdit(input.Program.GetFirstTopLevelToken().GetLspRange().GetEndRange(), "/*First comment*/")
         })
       };
     }
