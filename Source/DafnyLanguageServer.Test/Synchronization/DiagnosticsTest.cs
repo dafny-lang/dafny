@@ -934,7 +934,7 @@ method Foo() {
       Assert.IsTrue(brokenSyntaxDiagnostics.Length > 1);
       documentItem = documentItem with { Version = documentItem.Version + 1 };
       // Fix syntax error and replace method header so verification diagnostics are not migrated.
-      ApplyChange(ref documentItem, new Range(0,0,1,0), "method Bar() {\n");
+      ApplyChange(ref documentItem, new Range(0, 0, 1, 0), "method Bar() {\n");
       var fixedSyntaxDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       // Resolution diagnostics are returned, verification diagnostics were migrated so we have one error.
       Assert.AreEqual(1, fixedSyntaxDiagnostics.Length);

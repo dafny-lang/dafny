@@ -215,14 +215,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private IObservable<DafnyDocument> GetVerifiedDafnyDocuments(DafnyDocument document, IReadOnlyList<IImplementationTask> implementationTasks,
-      VerificationProgressReporter progressReporter)
-    {
+      VerificationProgressReporter progressReporter) {
       var implementationViews = GetExistingViews(document, implementationTasks);
       var counterExamples = new ConcurrentStack<Counterexample>();
 
       var result = implementationTasks.Select(implementationTask => implementationTask.ObservableStatus.Select(
-        async boogieStatus =>
-        {
+        async boogieStatus => {
           var id = GetImplementationId(implementationTask.Implementation);
           var status = await StatusFromImplementationTaskAsync(implementationTask);
           var lspRange = implementationTask.Implementation.tok.GetLspRange();
@@ -244,8 +242,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
               (_, previousView) => previousView with { Status = status });
           }
 
-          return document with
-          {
+          return document with {
             ImplementationViews = implementationViews.ToImmutableDictionary(),
             CounterExamples = counterExamples.ToArray(),
           };

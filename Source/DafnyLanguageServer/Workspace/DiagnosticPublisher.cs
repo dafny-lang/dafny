@@ -41,17 +41,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var notification = new FileVerificationStatus(document.Uri, document.Version, GetNamedVerifiableStatuses(document.ImplementationViews));
       var previous = previouslyVerificationStatus.GetValueOrDefault(document.Uri)?.NamedVerifiables ?? ImmutableArray<NamedVerifiableStatus>.Empty;
       if (previous.SequenceEqual(notification.NamedVerifiables)) {
-          return;
+        return;
       }
       languageServer.TextDocument.SendNotification(DafnyRequestNames.VerificationStatusNotification, notification);
       previouslyVerificationStatus[document.Uri] = notification;
     }
 
-    private static List<NamedVerifiableStatus> GetNamedVerifiableStatuses(IReadOnlyDictionary<ImplementationId, ImplementationView> implementationViews)
-    {
+    private static List<NamedVerifiableStatus> GetNamedVerifiableStatuses(IReadOnlyDictionary<ImplementationId, ImplementationView> implementationViews) {
       var namedVerifiableGroups = implementationViews.GroupBy(task => task.Value.Range);
-      return namedVerifiableGroups.Select(taskGroup =>
-      {
+      return namedVerifiableGroups.Select(taskGroup => {
         var status = taskGroup.Select(kv => kv.Value.Status).Aggregate(Combine);
         return new NamedVerifiableStatus(taskGroup.Key, status);
       }).OrderBy(v => v.NameRange.Start).ToList();

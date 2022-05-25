@@ -72,7 +72,7 @@ method Bar() { assert false; }";
     // Send a change to enable getting a new status notification.
     ApplyChange(ref documentItem, new Range(new Position(1, 0), new Position(1, 0)), "\n");
 
-    AssertNoVerificationStatusIsComing(documentItem, CancellationToken);
+    await AssertNoVerificationStatusIsComing(documentItem, CancellationToken);
 
     await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
 
