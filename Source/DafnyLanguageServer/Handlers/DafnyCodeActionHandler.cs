@@ -83,7 +83,7 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
 
   private QuickFixer[] GetQuickFixers() {
     return new List<QuickFixer>() {
-      new VerificationQuickFixer(documents, logger)
+      new VerificationQuickFixer()
     }.Concat(
       DafnyOptions.O.Plugins.SelectMany(plugin =>
         plugin is ConfiguredPlugin configuredPlugin &&

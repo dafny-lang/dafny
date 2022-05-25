@@ -170,6 +170,9 @@ const x := 1;
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var verificationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      if (0 == verificationDiagnostics.Length) {
+        verificationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      }
       Assert.AreEqual(1, verificationDiagnostics.Length);
 
       var completionList = await RequestCodeActionAsync(documentItem, requestPosition);
