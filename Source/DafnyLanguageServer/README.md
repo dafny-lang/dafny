@@ -105,11 +105,20 @@ Hence, always recompile your plugin against the binary of Dafny that will be imp
 Plugins are libraries linked to a `Dafny.dll` of the same version than the language server.
 A plugin typically defines:
 
-* Zero or one class extending `Microsoft.Dafny.Plugins.Configuration` which receives plugins arguments in their method `ParseArguments`,
-  and returns a list of `Microsoft.Dafny.Plugins.Rewriter` when their method `GetRewriters()` is called by Dafny.
+* Zero or one class extending `Microsoft.Dafny.Plugins.PluginConfiguration` which receives plugins arguments in their method `ParseArguments`, and
+  1) Can return a list of `Microsoft.Dafny.Plugins.Rewriter` when their method `GetRewriters()` is called by Dafny,
+  2) Can return a list of `Microsoft.Dafny.Plugins.Compiler` when their method `GetCompilers()` is called by Dafny,
+  3) If the configuration extends the subclass `Microsoft.Dafny.LanguageServer.Plugins.PluginConfiguration`,
+     then it can return a list of `Microsoft.Dafny.LanguageServer.Plugins.QuickFixer` when their method `GetQuickFixers()` is called by the Dafny Language Server.
+
 * Zero or more classes extending `Microsoft.Dafny.Plugins.Rewriter`.
   If a configuration class is provided, it is responsible for instantiating them and returning them in `GetRewriters()`.
   If no configuration class is provided, an automatic configuration will load every defined `Rewriter`s automatically.
+* Zero or more classes extending `Microsoft.Dafny.Plugins.Compiler`.
+  If a configuration class is provided, it is responsible for instantiating them and returning them in `GetCompilers()`.
+  If no configuration class is provided, an automatic configuration will load every defined `Compiler`s automatically.
+* Zero or more classes extending `Microsoft.Dafny.LanguageServer.Plugins.QuickFixer`.
+  Only a configuration class of type `Microsoft.Dafny.LanguageServer.Plugins.PluginConfiguration` can be responsible for instantiating them and returning them in `GetQuickFixers()`.
 
 The most important methods of the class `Rewriter` that plugins override are
 * (experimental) `PreResolve(ModuleDefinition)`: Here you can optionally modify the AST before it is resolved.
@@ -120,5 +129,3 @@ The most important methods of the class `Rewriter` that plugins override are
 Plugins are typically used to report additional diagnostics such as unsupported constructs for specific compilers (through the methods `Èrror(...)` and `Warning(...)` of the field `Reporter` of the class `Rewriter`)
 
 Note that all plugin errors should use the original program's expressions' token and NOT `Token.NoToken`, else no error will be displayed in the IDE.
-
-Morover, plugins should not write anything to `stdout` as it interferes with the communication protocol with the IDE.
