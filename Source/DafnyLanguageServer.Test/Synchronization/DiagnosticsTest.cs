@@ -915,6 +915,10 @@ module Foo {
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
+    /**
+     * This test is an indirect way to test performance. It tests that the diagnostics of
+     * resolution, verification task determination, and verification itself, are returned separately.
+     */
     [TestMethod]
     public async Task ResolutionDiagnosticsAreReturnedBeforeComputingVerificationTasks() {
       var source = @"
@@ -929,14 +933,16 @@ method Foo() {
       var brokenSyntaxDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.IsTrue(brokenSyntaxDiagnostics.Length > 1);
       documentItem = documentItem with { Version = documentItem.Version + 1 };
-      // Fix syntax error and add noVerify so verification task disappears. We add neverVerify to ensure we're not getting back any verification diagnostics.
-      ApplyChange(ref documentItem, new Range(0,0,0,5), "method {:noVerify} {:neverVerify}");
+      // Fix syntax error and replace method header so verification diagnostics are not migrated.
+      ApplyChange(ref documentItem, new Range(0,0,1,0), "method Bar() {\n");
       var fixedSyntaxDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       // Resolution diagnostics are returned, verification diagnostics were migrated so we have one error.
       Assert.AreEqual(1, fixedSyntaxDiagnostics.Length);
       var verificationTaskDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       // Verification diagnostics were removed since task no longer exists.
       Assert.AreEqual(0, verificationTaskDiagnostics.Length);
+      var verificationDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      Assert.AreEqual(1, verificationDiagnostics2.Length);
     }
   }
 }
