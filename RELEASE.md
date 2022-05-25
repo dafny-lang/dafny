@@ -146,7 +146,7 @@ with git commands and concepts is helpful.
 
 ## Updating and releasing a new version of VSCode plugin
 
-1. Build the Ide-vscode locally from https://github.com/dafny-lang/ide-vscode .
+1. Build ide-vscode locally from https://github.com/dafny-lang/ide-vscode .
 
 2. Prepare the repository:
 
@@ -154,20 +154,20 @@ with git commands and concepts is helpful.
        git pull origin
        git checkout -b <some new branch name>
 
-3. add the new Dafny version number under `dafny.preferredVersion` list in file `package.json`  .
+3. Add the new Dafny version number to the `dafny.preferredVersion` list in the `package.json` file.
 
-4. Update the value of constant `LatestVersion` In the file `src/constants.ts` to new version number (.
+4. Update the value of the constant `LatestVersion` in the file `src/constants.ts` to the new version number.
 
-5. Before releasing a new version of the VSCode plugin, Make sure to add the Release notes  in file `CHANGELOG.md`
+5. Before releasing a new version of the VSCode plugin, make sure to add to the release notes in `CHANGELOG.md`
 
 6. Select a new version number $VER for Plugin(e.g. "2.4.0") and change the value of the constant `version` in the file `package,json`
-   to $VER and commit the changes.
+   to `$VER` and commit the changes.
 
 7. Then tag and push the changes:
 
        git tag v<$VER>
        git push v<$VER>
 
-8. Create a pull request and once merged ,A GitHub action will automatically run in reaction to the tag being pushed to master, which will create a new release in the VSCode marketplace.
+8. Create a pull request and, once merged, a GitHub action will automatically run in reaction to the tag being pushed to master, which will create a new release in the VSCode marketplace.
 
 9. Announce the release to the world.
