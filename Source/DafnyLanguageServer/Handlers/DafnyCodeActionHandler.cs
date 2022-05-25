@@ -59,7 +59,7 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
   private readonly ConcurrentDictionary<string, IReadOnlyList<QuickFixWithId>> documentUriToQuickFixes = new();
 
   public override async Task<CommandOrCodeActionContainer> Handle(CodeActionParams request, CancellationToken cancellationToken) {
-    var document = await documents.GetDocumentAsync(request.TextDocument);
+    var document = await documents.GetLatestDocumentAsync(request.TextDocument);
     if (document == null) {
       logger.LogWarning("quick fixes requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
       return new CommandOrCodeActionContainer();

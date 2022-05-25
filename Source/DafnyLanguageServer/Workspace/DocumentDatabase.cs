@@ -234,6 +234,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return null;
     }
 
+    public async Task<DafnyDocument?> GetLatestDocumentAsync(TextDocumentIdentifier documentId) {
+      if (documents.TryGetValue(documentId.Uri, out var databaseEntry)) {
+        return await databaseEntry.LatestDocument;
+      }
+      return null;
+    }
+
     public async Task<DafnyDocument?> GetVerifiedDocumentAsync(TextDocumentIdentifier documentId) {
       if (documents.TryGetValue(documentId.Uri, out var databaseEntry)) {
         return await databaseEntry.FullyVerifiedDocument;

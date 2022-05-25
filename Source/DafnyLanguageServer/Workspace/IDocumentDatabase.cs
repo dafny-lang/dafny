@@ -58,6 +58,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     Task<DafnyDocument?> GetDocumentAsync(TextDocumentIdentifier documentId);
 
     /// <summary>
+    /// Gets the last version of this document
+    /// </summary>
+    /// <param name="documentId">The ID of the document to resolve.</param>
+    /// <returns>An instance of the managed document, <c>null</c> if the specified document was not found.</returns>
+    Task<DafnyDocument?> GetLatestDocumentAsync(TextDocumentIdentifier documentId);
+
+    /// <summary>
     /// Tries to resolve a verified document with the specified identifier.
     /// </summary>
     /// <param name="documentId">The ID of the document to resolve.</param>
