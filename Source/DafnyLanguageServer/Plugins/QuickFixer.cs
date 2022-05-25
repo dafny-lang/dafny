@@ -1,9 +1,7 @@
-﻿using System.Runtime.CompilerServices;
-using System.Threading;
-using JetBrains.Annotations;
-using Microsoft.Boogie;
+﻿using Microsoft.Boogie;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
-namespace Microsoft.Dafny.Plugins;
+namespace Microsoft.Dafny.LanguageServer.Plugins;
 
 public interface IQuickFixInput {
   /// <summary>
@@ -17,7 +15,8 @@ public interface IQuickFixInput {
   /// </summary>
   int Version { get; }
   string Code { get; }
-  [CanBeNull] Program Program { get; }
+  Dafny.Program? Program { get; }
+  Diagnostic[] Diagnostics { get; }
 }
 
 /// <summary>
@@ -31,7 +30,18 @@ public abstract class QuickFixer {
   /// <param name="input">The code, the program if parsed (and possibly resolved), and other data</param>
   /// <param name="selection">The current selection</param>
   /// <returns>A list of potential quickfixes, possibly computed lazily</returns>
-  public abstract QuickFix[] GetQuickFixes(IQuickFixInput input, IToken selection);
+  public abstract QuickFix[] GetQuickFixes(IQuickFixInput input, Range selection);
+}
+
+public static class RangeExtensions {
+  public static Range StartRange(this Range range) {
+    var start = range.Start;
+    return new Range(start, start);
+  }
+  public static Range EndRange(this Range range) {
+    var end = range.End;
+    return new Range(end, end);
+  }
 }
 
 public abstract class QuickFix {
@@ -56,11 +66,11 @@ public class InstantQuickFix : QuickFix {
 }
 
 /// <summary>
-/// A quick fix replaces a range (represented as a token) with the replacing text.
+/// A quick fix replaces a range with the replacing text.
 /// </summary>
-/// <param name="token">The range to replace. The start is given by the token's start, and the length is given by the val's length.</param>
-/// <param name="replaceWith"></param>
-public record QuickFixEdit(IToken token, string replaceWith = "");
+/// <param name="Range">The range to replace. The start is given by the token's start, and the length is given by the val's length.</param>
+/// <param name="Replacement"></param>
+public record QuickFixEdit(Range Range, string Replacement = "");
 
 public static class TokenExtensions {
   /// <summary>

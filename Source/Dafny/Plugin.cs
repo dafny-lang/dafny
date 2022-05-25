@@ -10,26 +10,21 @@ using Dafny.Plugins;
 public interface Plugin {
   public IEnumerable<Compiler> GetCompilers();
   public IEnumerable<IRewriter> GetRewriters(ErrorReporter reporter);
-  public IEnumerable<QuickFixer> GetQuickFixers();
 }
 
 public class ConfiguredPlugin : Plugin {
-  private readonly PluginConfiguration configuration;
+  public readonly PluginConfiguration Configuration;
 
   public ConfiguredPlugin(PluginConfiguration configuration) {
-    this.configuration = configuration;
+    this.Configuration = configuration;
   }
 
   public IEnumerable<Compiler> GetCompilers() {
-    return configuration.GetCompilers();
+    return Configuration.GetCompilers();
   }
 
   public IEnumerable<IRewriter> GetRewriters(ErrorReporter reporter) {
-    return configuration.GetRewriters(reporter).Select(rewriter => new PluginRewriter(reporter, rewriter));
-  }
-
-  public IEnumerable<QuickFixer> GetQuickFixers() {
-    return configuration.GetQuickFixers();
+    return Configuration.GetRewriters(reporter).Select(rewriter => new PluginRewriter(reporter, rewriter));
   }
 }
 
@@ -51,22 +46,20 @@ public class AssemblyPlugin : ConfiguredPlugin {
 
       Rewriters = FindPluginComponents<Rewriter, Func<ErrorReporter, Rewriter>>(assembly, CreateRewriterFactory);
       Compilers = FindPluginComponents<Compiler, Func<Compiler>>(assembly, CreateCompilerFactory);
-      QuickFixers = FindPluginComponents<QuickFixer, Func<QuickFixer>>(assembly, CreateQuickFixerFactory);
 
       // Report an error if this assembly doesn't contain any plugins.  We only
       // get to this point if we have not found a `PluginConfiguration` either,
       // so no need to check for one here.
-      if (Rewriters.Length == 0 && Compilers.Length == 0 && QuickFixers.Length == 0) {
+      if (Rewriters.Length == 0 && Compilers.Length == 0) {
         throw new Exception($"Plugin {assembly.Location} does not contain any supported plugin classes.  " +
                             "Expecting one of the following:\n" +
                             $"- ${typeof(Plugins.Rewriter).FullName}\n" +
                             $"- ${typeof(Plugins.Compiler).FullName}\n" +
-                            $"- ${typeof(Plugins.QuickFixer).FullName}\n" +
                             $"- ${typeof(Plugins.PluginConfiguration).FullName}");
       }
     }
 
-    private TFactory[] FindPluginComponents<TSource, TFactory>(Assembly assembly, Func<System.Type, TFactory> createFactory) {
+    protected TFactory[] FindPluginComponents<TSource, TFactory>(Assembly assembly, Func<System.Type, TFactory> createFactory) {
       return assembly.GetTypes()
           .Where(type => type.IsAssignableTo(typeof(TSource)))
           .Select(createFactory).ToArray();
@@ -81,20 +74,12 @@ public class AssemblyPlugin : ConfiguredPlugin {
     Func<Compiler> CreateCompilerFactory(System.Type type) =>
       () => (Compiler)Activator.CreateInstance(type);
 
-    private Func<QuickFixer>[] QuickFixers { get; init; }
-
-    Func<QuickFixer> CreateQuickFixerFactory(System.Type type) =>
-      () => (QuickFixer)Activator.CreateInstance(type);
-
     public override Rewriter[] GetRewriters(ErrorReporter errorReporter) =>
       Rewriters.Select(funcErrorReporterRewriter =>
         funcErrorReporterRewriter(errorReporter)).ToArray();
 
     public override Compiler[] GetCompilers() =>
       Compilers.Select(c => c()).ToArray();
-
-    public override QuickFixer[] GetQuickFixers() =>
-      QuickFixers.Select(q => q()).ToArray();
   }
 
   public static IEnumerable<System.Type> GetConfigurationsTypes(Assembly assembly) {

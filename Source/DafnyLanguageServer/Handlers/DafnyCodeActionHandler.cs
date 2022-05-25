@@ -10,12 +10,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using MediatR;
-using Microsoft.Boogie;
-using Microsoft.Dafny.Plugins;
+using Microsoft.Dafny.LanguageServer.Plugins;
 using Newtonsoft.Json.Linq;
-using OmniSharp.Extensions.LanguageServer.Protocol;
-using OmniSharp.Extensions.LanguageServer.Protocol.Workspace;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers; 
 
@@ -26,24 +22,6 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
   public DafnyCodeActionHandler(ILogger<DafnyCodeActionHandler> logger, IDocumentDatabase documents, ISymbolGuesser symbolGuesser) {
     this.logger = logger;
     this.documents = documents;
-  }
-
-  public static (IToken, string, string, bool)
-    Edit(IToken position, string leftInsert = "", string rightInsert = "", bool removeToken = false) {
-    return (position, leftInsert, rightInsert, removeToken);
-  }
-
-  public static (string, TextEdit[]) CodeAction(string title, params QuickFixEdit[] input) {
-    var edits = new List<TextEdit>();
-    foreach (var (token, toReplace) in input) {
-      var range = token.GetLspRange();
-      edits.Add(new TextEdit() {
-        NewText = toReplace,
-        Range = range
-      });
-    }
-
-    return (title, edits.ToArray());
   }
 
   private class CodeActionProcessor {
@@ -73,8 +51,7 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
       foreach (var fixer in fixers) {
         // Maybe we could set the program only once, when resolved, instead of for every code action?
         var fixerInput = new VerificationQuickFixerInput(document);
-        var fixRange = request.Range.ToBoogieToken(documentText);
-        var quickFixes = fixer.GetQuickFixes(fixerInput, fixRange);
+        var quickFixes = fixer.GetQuickFixes(fixerInput, request.Range);
         var fixerCodeActions = quickFixes.Select(quickFix =>
           new PluginQuickFix(quickFix, ID++));
         foreach (var codeAction in fixerCodeActions) {
@@ -129,7 +106,10 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
     return new List<QuickFixer>() {
       new VerificationQuickFixer(documents, logger)
     }.Concat(
-      DafnyOptions.O.Plugins.SelectMany(plugin => plugin.GetQuickFixers())).ToArray();
+      DafnyOptions.O.Plugins.SelectMany(plugin =>
+        plugin is ConfiguredPlugin configuredPlugin &&
+          configuredPlugin.Configuration is PluginConfiguration configuration ?
+            configuration.GetQuickFixers() : new QuickFixer[] { })).ToArray();
   }
 
   public override Task<CodeAction> Handle(CodeAction request, CancellationToken cancellationToken) {
@@ -160,8 +140,7 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
 
   private IEnumerable<TextEdit> GetTextEdits(QuickFixEdit[] quickFixEdits) {
     var edits = new List<TextEdit>();
-    foreach (var (token, toReplace) in quickFixEdits) {
-      var range = token.GetLspRange();
+    foreach (var (range, toReplace) in quickFixEdits) {
       edits.Add(new TextEdit() {
         NewText = toReplace,
         Range = range
@@ -171,7 +150,7 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
   }
 }
 
-internal class VerificationQuickFixerInput : IQuickFixInput {
+public class VerificationQuickFixerInput : IQuickFixInput {
   public VerificationQuickFixerInput(
     DafnyDocument document) {
     Document = document;
@@ -180,7 +159,7 @@ internal class VerificationQuickFixerInput : IQuickFixInput {
   public string Uri => Document.Uri.GetFileSystemPath();
   public int Version => Document.Version;
   public string Code => Document.TextDocumentItem.Text;
-  public Dafny.Program Program => Document.Program;
+  public Dafny.Program? Program => Document.Program;
   public DafnyDocument Document { get; }
 
   public Diagnostic[] Diagnostics {

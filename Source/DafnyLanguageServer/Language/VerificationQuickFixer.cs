@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Handlers;
+using Microsoft.Dafny.LanguageServer.Plugins;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Dafny.Plugins;
 using Microsoft.Extensions.Logging;
@@ -20,12 +21,11 @@ class VerificationQuickFixer : QuickFixer {
     this.logger = logger;
   }
 
-  public override QuickFix[] GetQuickFixes(IQuickFixInput input, IToken selection) {
+  public override QuickFix[] GetQuickFixes(IQuickFixInput input, Range range) {
     var cachedData = (VerificationQuickFixerInput)input;
     string uri = cachedData.DocumentUri;
     var document = cachedData.Document;
     var diagnostics = cachedData.Diagnostics;
-    var range = selection.GetLspRange();
     var result = new List<QuickFix>() { };
     foreach (var diagnostic in diagnostics) {
       if (diagnostic.Range.Contains(range) && diagnostic.Source == MessageSource.Verifier.ToString()) {
@@ -37,11 +37,13 @@ class VerificationQuickFixer : QuickFixer {
             var endToken = GetMatchingEndToken(document, uri, startToken);
             if (endToken != null) {
               var (indentation, indentationBrace) = GetIndentationBefore(endToken, startToken, cachedData.Code);
+              var beforeClosingBrace = endToken.GetLspRange().Start;
               result.Add(new InstantQuickFix(
                 "Explicit the failing assert",
                 new[] {
                   new QuickFixEdit(
-                    endToken.Start(), $"{indentation}assert {expression};\n{indentationBrace}")
+                    (beforeClosingBrace, beforeClosingBrace),
+                    $"{indentation}assert {expression};\n{indentationBrace}")
                 }
               ));
             }

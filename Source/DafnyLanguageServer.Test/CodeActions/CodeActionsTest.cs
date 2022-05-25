@@ -169,7 +169,7 @@ const x := 1;
       Range expectedQuickFixRange) {
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var verificationDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      var verificationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(1, verificationDiagnostics.Length);
 
       var completionList = await RequestCodeActionAsync(documentItem, requestPosition);
