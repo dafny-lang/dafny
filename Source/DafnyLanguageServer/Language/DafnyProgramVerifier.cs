@@ -69,17 +69,18 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     private const int TranslatorMaxStackSize = 0x10000000; // 256MB
     static readonly ThreadTaskScheduler TranslatorScheduler = new(TranslatorMaxStackSize);
 
-    public ProgramVerificationTasks GetVerificationTasks(DafnyDocument document) {
+    public async Task<ProgramVerificationTasks> GetVerificationTasksAsync(DafnyDocument document, CancellationToken cancellationToken) {
       var program = document.Program;
       var errorReporter = (DiagnosticErrorReporter)program.Reporter;
 
+      cancellationToken.ThrowIfCancellationRequested();
 
-#pragma warning disable VSTHRD002
-      var translated = Task.Factory.StartNew(() => Translator.Translate(program, errorReporter, new Translator.TranslatorFlags {
+      var translated = await Task.Factory.StartNew(() => Translator.Translate(program, errorReporter, new Translator.TranslatorFlags {
         InsertChecksums = true,
         ReportRanges = true
-      }).ToList(), CancellationToken.None, TaskCreationOptions.None, TranslatorScheduler).Result;
-#pragma warning restore VSTHRD002
+      }).ToList(), cancellationToken, TaskCreationOptions.None, TranslatorScheduler);
+
+      cancellationToken.ThrowIfCancellationRequested();
 
       var batchObserver = new AssertionBatchCompletedObserver(logger, options.GutterStatus);
       // Do not set these settings within the object's construction. It will break some tests within

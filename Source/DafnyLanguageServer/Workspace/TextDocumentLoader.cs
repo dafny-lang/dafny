@@ -91,12 +91,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
 
-    public async Task<DafnyDocument> PrepareVerificationTasksAsync(DafnyDocument loaded) {
+    public async Task<DafnyDocument> PrepareVerificationTasksAsync(DafnyDocument loaded, CancellationToken cancellationToken) {
       if (loaded.ParseAndResolutionDiagnostics.Any(d => d.Severity == DiagnosticSeverity.Error)) {
         throw new TaskCanceledException();
       }
 
-      var verificationTasks = verifier.GetVerificationTasks(loaded);
+      var verificationTasks = await verifier.GetVerificationTasksAsync(loaded, cancellationToken);
 
       var initialViews = new Dictionary<ImplementationId, ImplementationView>();
       foreach (var task in verificationTasks.Tasks) {

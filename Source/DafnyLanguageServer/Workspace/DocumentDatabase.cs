@@ -69,7 +69,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var cancellationSource = new CancellationTokenSource();
       var resolvedDocumentTask = OpenAsync(document, cancellationSource.Token);
 
-      var translatedDocument = LoadVerificationTasksAsync(resolvedDocumentTask);
+      var translatedDocument = LoadVerificationTasksAsync(resolvedDocumentTask, cancellationSource.Token);
       var verifiedDocuments = Verify(translatedDocument, VerifyOnOpen, cancellationSource.Token);
 
       documents.Add(document.Uri, new DocumentEntry(
@@ -84,10 +84,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         Concat(verifiedDocuments);
     }
 
-    private Task<DafnyDocument> LoadVerificationTasksAsync(Task<DafnyDocument> resolvedDocumentTask) {
+    private Task<DafnyDocument> LoadVerificationTasksAsync(Task<DafnyDocument> resolvedDocumentTask, CancellationToken cancellationToken) {
+
 #pragma warning disable VSTHRD003
       return resolvedDocumentTask.SelectMany(resolvedDocument =>
-        documentLoader.PrepareVerificationTasksAsync(resolvedDocument));
+        documentLoader.PrepareVerificationTasksAsync(resolvedDocument, cancellationToken));
 #pragma warning restore VSTHRD003
     }
 
@@ -226,7 +227,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var oldDocument = await oldDocumentTask;
       var resolvedDocument = await resolvedDocumentTask;
 #pragma warning restore VSTHRD003
-      var withVerificationTasks = await documentLoader.PrepareVerificationTasksAsync(resolvedDocument);
+      var withVerificationTasks = await documentLoader.PrepareVerificationTasksAsync(resolvedDocument, cancellationToken);
       var oldViews = oldDocument.ImplementationViews ?? new Dictionary<ImplementationId, ImplementationView>();
       return withVerificationTasks with {
         ImplementationViews = withVerificationTasks.ImplementationViews!.ToDictionary(
