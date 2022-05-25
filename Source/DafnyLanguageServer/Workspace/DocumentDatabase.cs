@@ -93,8 +93,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private IObservable<DafnyDocument> Verify(Task<DafnyDocument> documentTask, bool verify, CancellationToken cancellationToken) {
       return documentTask.ContinueWith(t => {
         var document = t.Result;
-        if (document.LoadCanceled || !verify ||
-            document.ParseAndResolutionDiagnostics.Any(d => d.Severity == DiagnosticSeverity.Error)) {
+        if (document.LoadCanceled || !verify || !document.CanDoVerification) {
           return Observable.Empty<DafnyDocument>();
         }
 

@@ -105,7 +105,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return CreateDocumentWithEmptySymbolTable(loggerFactory.CreateLogger<SymbolTable>(), textDocument, errorReporter, program, loadCanceled: false);
       }
 
-      var compilationUnit = symbolResolver.ResolveSymbols(textDocument, program, cancellationToken);
+      var compilationUnit = symbolResolver.ResolveSymbols(textDocument, program, out var canDoVerification, cancellationToken);
       var symbolTable = symbolTableFactory.CreateFrom(program, compilationUnit, cancellationToken);
       if (errorReporter.HasErrors) {
         notificationPublisher.SendStatusNotification(textDocument, CompilationStatus.ResolutionFailed);
@@ -114,7 +114,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
       var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(symbolTable, cancellationToken).ToArray();
 
-      return new DafnyDocument(Options, textDocument, errorReporter.GetDiagnostics(textDocument.Uri),
+      return new DafnyDocument(Options, textDocument,
+        errorReporter.GetDiagnostics(textDocument.Uri),
+        canDoVerification,
         new Dictionary<ImplementationId, IReadOnlyList<Diagnostic>>(),
         Array.Empty<Counterexample>(),
         ghostDiagnostics, program, symbolTable);
@@ -133,10 +135,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       Dafny.Program program,
       bool loadCanceled
     ) {
+      var parseAndResolutionDiagnostics = errorReporter.GetDiagnostics(textDocument.Uri);
       return new DafnyDocument(
         Options,
         textDocument,
-        errorReporter.GetDiagnostics(textDocument.Uri),
+        parseAndResolutionDiagnostics,
+        parseAndResolutionDiagnostics.Any(d => d.Severity == DiagnosticSeverity.Error),
         new Dictionary<ImplementationId, IReadOnlyList<Diagnostic>>(),
         Array.Empty<Counterexample>(),
         Array.Empty<Diagnostic>(),
