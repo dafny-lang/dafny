@@ -10,9 +10,50 @@ TO BE WRITTEN
 
 TO BE WRITTEN
 
-## 23.3. Ghost Inference
+## 23.3. Ghost Inference {#sec-ghost-inference}
 
-TO BE WRITTEN
+After[^why-after-type-inference] [type inference](#sec-type-inference), Dafny revisits the program
+and makes a final decision about which statements are to be compiled,
+and which statements are ghost.
+The ghost statements form what is called the _ghost context_ of expressions.
+
+[^why-after-type-inference]: Ghost inference has to be performed after type inference, at least because it is not possible to determine if a member access `a.b` refers to a ghost variable until the type of `a` is determined.
+
+These statements are determined to be ghost:
+
+- [`assert`](#sec-assert-statement), [`assume`](#sec-assume-statement), [`reveal`](#sec-reveal-statement), and [`calc`](#sec-calc-statement) statements.
+- The body of the `by` of an [`assert`](#sec-assert-statement) statement.
+- Calls to ghost methods, including [lemmas](#sec-lemmas).
+- [`if`](#sec-if-statement), [`match`](#sec-match-statement), and [`while`](#sec-while-statement) statements with condition expressions or alternatives containing ghost expressions. Their bodies are also ghost.
+- [`for`](#sec-for-loops) loops whose start expression contains ghost expressions.
+- [Variable declarations](#sec-var-decl-statement) if they are explicitly ghost or if their respective right-hand side is a ghost expression.
+- [Assignments or update statement](#sec-update-and-call-statement) if all updated variables are ghost.
+- [`forall`](#sec-forall-statement) statements, unless there is exactly one assignment to an non-ghost array in its body.
+
+These statements always non-ghost:
+
+- [`expect`](#sec-expect-statement) statements.
+- [`print`](#sec-print-statement) statements.
+
+The following expressions are ghost, which is used in some of the tests above:
+
+- All [specification expressions](#sec-list-of-specification-expressions)
+- All calls to functions and predicates not marked as `method`
+- All variables, [constants](#sec-constant-field-declarations) and [fields](#sec-field-declarations) declared using the `ghost` keyword
+
+Note that inferring ghostness can uncover other errors, such as updating non-ghost variables in ghost contexts.
+For example, if `f` is a ghost function, in the presence of the following code:
+
+```dafny
+var x := 1;
+if(f(x)) {
+  x := 2;
+}
+```
+
+Dafny will infer that the entire `if` is ghost because the condition uses a ghost function,
+and will then raise the error that it's not possible to update the non-ghost variable `x` in a ghost context.
+
 
 ## 23.4. Well-founded Functions and Extreme Predicates
 
