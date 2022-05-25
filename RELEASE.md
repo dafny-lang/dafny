@@ -160,7 +160,7 @@ with git commands and concepts is helpful.
 
 5. Before releasing a new version of the VSCode plugin, make sure to add to the release notes in `CHANGELOG.md`
 
-6. Select a new version number $VER for Plugin(e.g. "2.4.0") and change the value of the constant `version` in the file `package,json`
+6. Select a new version number `$VER` for the plugin (e.g. "2.4.0") and change the value of the constant `version` in the file `package.json`
    to `$VER` and commit the changes.
 
 7. Then tag and push the changes:
