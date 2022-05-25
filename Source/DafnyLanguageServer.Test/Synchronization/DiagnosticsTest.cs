@@ -916,8 +916,27 @@ module Foo {
     }
 
     [TestMethod]
-    public async Task ResolutionDiagnosticsAreReturnedBeforeGetVerificationTaskReturns() {
-      Assert.Fail();
+    public async Task ResolutionDiagnosticsAreReturnedBeforeComputingVerificationTasks() {
+      var source = @"
+method Foo() { 
+  assert false; 
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      client.OpenDocument(documentItem);
+      var verificationDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+      Assert.AreEqual(1, verificationDiagnostics.Length);
+      ApplyChange(ref documentItem, new Range(0, 0, 0, 1), "");
+      var brokenSyntaxDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      Assert.IsTrue(brokenSyntaxDiagnostics.Length > 1);
+      documentItem = documentItem with { Version = documentItem.Version + 1 };
+      // Fix syntax error and add noVerify so verification task disappears. We add neverVerify to ensure we're not getting back any verification diagnostics.
+      ApplyChange(ref documentItem, new Range(0,0,0,5), "method {:noVerify} {:neverVerify}");
+      var fixedSyntaxDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      // Resolution diagnostics are returned, verification diagnostics were migrated so we have one error.
+      Assert.AreEqual(1, fixedSyntaxDiagnostics.Length);
+      var verificationTaskDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      // Verification diagnostics were removed since task no longer exists.
+      Assert.AreEqual(0, verificationTaskDiagnostics.Length);
     }
   }
 }
