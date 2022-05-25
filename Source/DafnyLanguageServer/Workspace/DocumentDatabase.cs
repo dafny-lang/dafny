@@ -69,18 +69,18 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var cancellationSource = new CancellationTokenSource();
       var resolvedDocumentTask = OpenAsync(document, cancellationSource.Token);
 
-      var withVerificationTasks = LoadVerificationTasksAsync(resolvedDocumentTask);
-      var verifiedDocuments = Verify(withVerificationTasks, VerifyOnOpen, cancellationSource.Token);
+      var translatedDocument = LoadVerificationTasksAsync(resolvedDocumentTask);
+      var verifiedDocuments = Verify(translatedDocument, VerifyOnOpen, cancellationSource.Token);
 
       documents.Add(document.Uri, new DocumentEntry(
         document.Version,
         resolvedDocumentTask,
-        withVerificationTasks,
+        translatedDocument,
         verifiedDocuments,
         cancellationSource
       ));
       return resolvedDocumentTask.ToObservable().Where(d => !d.LoadCanceled).
-        Concat(withVerificationTasks.ToObservable()).
+        Concat(translatedDocument.ToObservable()).
         Concat(verifiedDocuments);
     }
 
@@ -141,18 +141,18 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var cancellationSource = new CancellationTokenSource();
       var previousDocumentTask = databaseEntry.LatestDocument;
       var resolvedDocumentTask = ApplyChangesAsync(previousDocumentTask, documentChange, cancellationSource.Token);
-      var withVerificationTasks =
+      var translatedDocument =
         LoadVerificationTasksAsync(previousDocumentTask, resolvedDocumentTask, cancellationSource.Token);
-      var verifiedDocuments = Verify(withVerificationTasks, VerifyOnChange, cancellationSource.Token);
+      var verifiedDocuments = Verify(translatedDocument, VerifyOnChange, cancellationSource.Token);
       documents[documentUri] = new DocumentEntry(
         documentChange.TextDocument.Version,
         resolvedDocumentTask,
-        withVerificationTasks,
+        translatedDocument,
         verifiedDocuments,
         cancellationSource
       );
       return resolvedDocumentTask.ToObservable().
-        Concat(withVerificationTasks.ToObservable()).
+        Concat(translatedDocument.ToObservable()).
         Concat(verifiedDocuments);
     }
 
@@ -248,11 +248,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       var cancellationSource = new CancellationTokenSource();
-      var verifiedDocuments = Verify(databaseEntry.WithVerificationTasks, true, cancellationSource.Token);
+      var verifiedDocuments = Verify(databaseEntry.TranslatedDocument, true, cancellationSource.Token);
       documents[documentId.Uri] = new DocumentEntry(
         databaseEntry.Version,
         databaseEntry.ResolvedDocument,
-        databaseEntry.WithVerificationTasks,
+        databaseEntry.TranslatedDocument,
         verifiedDocuments,
         cancellationSource
       );
@@ -284,19 +284,19 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       private readonly CancellationTokenSource cancellationSource;
       public int? Version { get; }
       public Task<DafnyDocument> ResolvedDocument { get; }
-      public Task<DafnyDocument> WithVerificationTasks { get; }
+      public Task<DafnyDocument> TranslatedDocument { get; }
 
       public DocumentEntry(int? version,
         Task<DafnyDocument> resolvedDocument,
-        Task<DafnyDocument> withVerificationTasks,
+        Task<DafnyDocument> translatedDocument,
         IObservable<DafnyDocument> verifiedDocuments,
         CancellationTokenSource cancellationSource) {
         this.cancellationSource = cancellationSource;
-        WithVerificationTasks = withVerificationTasks;
+        TranslatedDocument = translatedDocument;
         Version = version;
         ResolvedDocument = resolvedDocument;
         LatestDocument = resolvedDocument;
-        WithVerificationTasks.ToObservable().Concat(verifiedDocuments).Subscribe(update => LatestDocument = Task.FromResult(update));
+        TranslatedDocument.ToObservable().Concat(verifiedDocuments).Subscribe(update => LatestDocument = Task.FromResult(update));
         LastDocument = ResolvedDocument.ToObservable().Concat(verifiedDocuments).ToTask();
       }
 
