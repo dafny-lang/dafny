@@ -24,31 +24,38 @@ class VerificationQuickFixer : DiagnosticQuickFixer {
 
   protected override IEnumerable<QuickFix>? GetQuickFixes(IQuickFixInput input, Diagnostic diagnostic, Range selection) {
     var uri = input.Uri;
-    if (diagnostic.Source == MessageSource.Verifier.ToString()) {
-      if (diagnostic.RelatedInformation?.FirstOrDefault() is { } relatedInformation) {
-        if (relatedInformation.Location.Uri == uri) {
-          var relatedRange = relatedInformation.Location.Range;
-          var expression = QuickFixerHelpers.Extract(relatedRange, input.Code);
-          var startToken = diagnostic.Range.Start.ToBoogieToken(input.Code);
-          var endToken = QuickFixerHelpers.GetMatchingEndToken(input.Program!, uri, startToken);
-          if (endToken != null) {
-            var (indentation, indentationBrace) = QuickFixerHelpers.GetIndentationBefore(endToken, startToken, input.Code);
-            var beforeClosingBrace = endToken.GetLspRange().Start;
-            return new QuickFix[] {
-              new InstantQuickFix(
-                "Explicit the failing assert",
-                new[] {
-                  new QuickFixEdit(
-                    (beforeClosingBrace, beforeClosingBrace),
-                    $"{indentation}assert {expression};\n{indentationBrace}")
-                }
-              )
-            };
-          }
-        }
-      }
+    if (diagnostic.Source != MessageSource.Verifier.ToString()) {
+      return null;
     }
 
-    return null;
+    if (diagnostic.RelatedInformation?.FirstOrDefault() is not { } relatedInformation) {
+      return null;
+    }
+
+    if (relatedInformation.Location.Uri != uri) {
+      return null;
+    }
+
+    var relatedRange = relatedInformation.Location.Range;
+    var expression = QuickFixerHelpers.Extract(relatedRange, input.Code);
+    var startToken = diagnostic.Range.Start.ToBoogieToken(input.Code);
+    var endToken = QuickFixerHelpers.GetMatchingEndToken(input.Program!, uri, startToken);
+    if (endToken == null) {
+      return null;
+    }
+
+    var (extraIndentation, indentationBrace) = QuickFixerHelpers.GetIndentationBefore(endToken, startToken, input.Code);
+    var beforeClosingBrace = endToken.GetLspRange().Start;
+    return new QuickFix[] {
+      new InstantQuickFix(
+        "Explicit the failing assert",
+        new[] {
+          new QuickFixEdit(
+            (beforeClosingBrace, beforeClosingBrace),
+            $"{extraIndentation}assert {expression};\n{indentationBrace}")
+        }
+      )
+    };
+
   }
 }
