@@ -41,11 +41,11 @@ method CallDoIt() returns () {
 
     [TestMethod]
     public async Task HoverReturnsBeforeVerificationIsComplete() {
-      var documentItem = CreateTestDocument(SlowToVerify);
+      var documentItem = CreateTestDocument(NeverVerifies);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
       client.OpenDocument(documentItem);
-      var verificationTask = diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationToken);
+      var verificationTask = GetLastDiagnostics(documentItem, CancellationToken);
       var definitionTask = RequestHover(documentItem, (4, 14));
       var first = await Task.WhenAny(verificationTask, definitionTask);
       Assert.AreSame(first, definitionTask);

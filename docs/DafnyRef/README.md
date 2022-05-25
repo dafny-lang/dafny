@@ -42,8 +42,7 @@ directives, such as page breaks.
 
 You might want to apply this diff to the file `../GemFile`
 ```diff
--gem "kramdown", ">= 2.3.1"
-+gem "kramdown", ">= 2.3.0"
+gem "kramdown", ">= 2.3.1"
 +gem "webrick"
 ```
 

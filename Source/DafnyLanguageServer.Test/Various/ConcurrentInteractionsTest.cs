@@ -30,6 +30,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     [TestInitialize]
     public override async Task SetUp() {
       await base.SetUp();
+
       // We use a custom cancellation token with a higher timeout to clearly identify where the request got stuck.
       cancellationSource = new();
       cancellationSource.CancelAfter(MaxRequestExecutionTimeMs);
@@ -112,53 +113,37 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
       // Save and wait for the final result
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationTokenWithHighTimeout);
 
-      var document = await Documents.GetVerifiedDocumentAsync(documentItem.Uri);
+      var document = await Documents.GetLastDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
       Assert.AreEqual(documentItem.Version + 11, document.Version);
-      Assert.AreEqual(1, document.Errors.ErrorCount);
-      Assert.AreEqual("assertion might not hold", document.Errors.GetDiagnostics(documentItem.Uri)[0].Message);
+      Assert.AreEqual(1, document.Diagnostics.Count());
+      Assert.AreEqual("assertion might not hold", document.Diagnostics.First().Message);
     }
 
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
     public async Task ChangeDocumentCancelsPreviousOpenAndChangeVerification() {
-      var source = @"
-lemma {:timeLimit 10} SquareRoot2NotRational(p: nat, q: nat)
-  requires p > 0 && q > 0
-  ensures (p * p) !=  2 * (q * q)
-{ 
-  if (p * p) ==  2 * (q * q) {
-    calc == {
-      (2 * q - p) * (2 * q - p);
-      4 * q * q + p * p - 4 * p * q;
-      {assert 2 * q * q == p * p;}
-      2 * q * q + 2 * p * p - 4 * p * q;
-      2 * (p - q) * (p - q);
-    }
-  }".TrimStart();
+      var source = NeverVerifies.Substring(0, NeverVerifies.Length - 2);
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationTokenWithHighTimeout);
       // The original document contains a syntactic error.
-      var initialLoadDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout, documentItem);
-      await AssertNoDiagnosticsAreComing();
+      var initialLoadDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout, documentItem);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
       Assert.AreEqual(1, initialLoadDiagnostics.Length);
 
-      ApplyChange(ref documentItem, new Range((12, 3), (12, 3)), "\n}");
+      ApplyChange(ref documentItem, new Range((2, 1), (2, 1)), "\n}");
 
       // Wait for resolution diagnostics now, so they don't get cancelled.
-      // After this we still have slow verification diagnostics in the queue.
-      var parseErrorFixedDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout, documentItem);
+      // After this we still have never completing verification diagnostics in the queue.
+      var parseErrorFixedDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout, documentItem);
       Assert.AreEqual(0, parseErrorFixedDiagnostics.Length);
 
       // Cancel the slow verification and start a fast verification
-      ApplyChange(ref documentItem, new Range((0, 0), (13, 1)), "function GetConstant(): int ensures false { 1 }");
+      ApplyChange(ref documentItem, new Range((0, 0), (3, 1)), "function GetConstant(): int ensures false { 1 }");
 
-      var parseErrorStillFixedDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout, documentItem);
-      Assert.AreEqual(0, parseErrorStillFixedDiagnostics.Length);
-
-      var verificationDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout, documentItem);
+      var verificationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout, documentItem);
       Assert.AreEqual(1, verificationDiagnostics.Length);
 
-      await AssertNoDiagnosticsAreComing();
+      await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
     /// <summary>
@@ -179,13 +164,13 @@ lemma {:timeLimit 10} SquareRoot2NotRational(p: nat, q: nat)
       // Fix resolution error, cancel previous diagnostics
       ApplyChange(ref documentItem, new Range((0, 30), (0, 31)), "1");
 
-      var resolutionDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       Assert.AreEqual(0, resolutionDiagnostics.Length);
 
-      var verificationDiagnostics = await diagnosticReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      var verificationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       Assert.AreEqual(0, verificationDiagnostics.Length);
 
-      await AssertNoDiagnosticsAreComing();
+      await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
@@ -194,7 +179,7 @@ lemma {:timeLimit 10} SquareRoot2NotRational(p: nat, q: nat)
       // exclusive to themselves. This "stress test" ensures that loading multiple documents at once is possible.
       // To be more specific, this test should ensure that there is no state discarded/overriden between the three steps within
       // the Dafny Compiler itself.
-      int documentsToLoadConcurrently = 100;
+      int documentsToLoadConcurrently = 50;
       var source = @"
 method Multiply(x: int, y: int) returns (product: int)
   requires y >= 0 && x >= 0
@@ -215,14 +200,14 @@ method Multiply(x: int, y: int) returns (product: int)
         loadingDocuments.Add(documentItem);
       }
       for (int i = 0; i < documentsToLoadConcurrently; i++) {
-        var report = await diagnosticReceiver.AwaitVerificationDiagnosticsAsync(CancellationTokenWithHighTimeout);
+        var report = await GetLastDiagnostics(loadingDocuments[i], CancellationTokenWithHighTimeout);
         Assert.AreEqual(0, report.Length);
       }
 
       foreach (var loadingDocument in loadingDocuments) {
         await Documents.CloseDocumentAsync(loadingDocument);
       }
-      await AssertNoDiagnosticsAreComing();
+      await AssertNoDiagnosticsAreComing(CancellationTokenWithHighTimeout);
     }
   }
 }

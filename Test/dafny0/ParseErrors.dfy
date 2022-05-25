@@ -246,3 +246,17 @@ module AlreadyGhost {
   abstract least predicate A2() { true } by method { } // error (x2)
   abstract greatest predicate A3() { true } by method { } // error (x2)
 }
+
+// ------------------------- 'older' contextual keyword ------------------------------
+
+module Older {
+  function F(older x: X): R
+  predicate P(older older older x: X)
+  least predicate Q(older older older x: X) // error (x3): 'older' is an identifier here
+  method M(older x: X) // error: 'older' is an identifier here
+  function F(): (older r: R) // error: 'older' is an identifier here
+
+  twostate function W(a: A, new older new older b: B, nameonly older nameonly c: C := "hello"): int
+  function method C(a: A, ghost older older b: B, nameonly ghost older nameonly ghost c: C := "hello"): int
+  twostate lemma L(nameonly older nameonly c: C := "hello") // error: 'older' is an identifier here
+}

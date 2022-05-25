@@ -2,8 +2,6 @@ Processing command (at Snapshots8.v0.dfy(2,37)) assert x#0 < 20 || LitInt(10) <=
   >>> DoNothingToAssert
 Processing command (at Snapshots8.v0.dfy(3,12)) assert x#0 < 10;
   >>> DoNothingToAssert
-Processing command (at Snapshots8.v0.dfy(4,8)) assert (forall<alpha> $o: ref, $f: Field alpha :: false ==> $_Frame[$o, $f]);
-  >>> DoNothingToAssert
 Processing command (at Snapshots8.v0.dfy(4,8)) assert LitInt(0) <= call0formal#AT#y#0;
   >>> DoNothingToAssert
 Snapshots8.v0.dfy(3,11): Error: assertion might not hold
@@ -27,8 +25,6 @@ Processing command (at Snapshots8.v1.dfy(3,15)) assert x#0 < 20 || LitInt(10) <=
   >>> MarkAsFullyVerified
 Processing command (at Snapshots8.v1.dfy(5,17)) assert x#0 < 10;
   >>> RecycleError
-Processing command (at Snapshots8.v1.dfy(6,8)) assert (forall<alpha> $o: ref, $f: Field alpha :: false ==> $_Frame[$o, $f]);
-  >>> MarkAsFullyVerified
 Processing command (at Snapshots8.v1.dfy(6,8)) assert LitInt(0) <= call0formal#AT#y#0;
   >>> RecycleError
 Processing command (at Snapshots8.v1.dfy(7,12)) assert x#0 == LitInt(7);

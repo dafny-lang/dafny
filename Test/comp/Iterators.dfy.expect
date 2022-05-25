@@ -1,18 +1,21 @@
 
-Dafny program verifier finished with 5 verified, 0 errors
+Dafny program verifier finished with 8 verified, 0 errors
 hello, instance
 x is 0
 0.0 1.0 2.0 3.0 4.0 5.0 
 0.0 1.0 2.0 
+false
 
-Dafny program verifier finished with 5 verified, 0 errors
+Dafny program verifier finished with 8 verified, 0 errors
 hello, instance
 x is 0
 0.0 1.0 2.0 3.0 4.0 5.0 
 0.0 1.0 2.0 
+false
 
-Dafny program verifier finished with 5 verified, 0 errors
+Dafny program verifier finished with 8 verified, 0 errors
 hello, instance
 x is 0
 0.0 1.0 2.0 3.0 4.0 5.0 
 0.0 1.0 2.0 
+false

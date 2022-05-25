@@ -1014,6 +1014,10 @@ namespace Microsoft.Dafny {
       if (showNewKeyword && !f.IsOld) {
         wr.Write("new ");
       }
+      if (f.IsOlder) {
+        Contract.Assert(f.HasName);
+        wr.Write("older ");
+      }
       if (f.IsGhost) {
         wr.Write("ghost ");
       }
@@ -1565,9 +1569,24 @@ namespace Microsoft.Dafny {
         } else if (s.S is ModifyStmt) {
           PrintModifyStmt(indent, (ModifyStmt)s.S, true);
         } else {
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected skeleton statement
+          Contract.Assert(false);
+          throw new cce.UnreachableException(); // unexpected skeleton statement
         }
 
+      } else if (stmt is TryRecoverStatement haltRecoveryStatement) {
+        // These have no actual syntax for Dafny user code, so emit something
+        // clearly not parsable.
+        int ind = indent + IndentAmount;
+
+        Indent(indent);
+        wr.WriteLine("[[ try { ]]");
+        PrintStatement(haltRecoveryStatement.TryBody, ind);
+        wr.WriteLine();
+
+        Indent(indent);
+        wr.WriteLine($"[[ }} recover ({haltRecoveryStatement.HaltMessageVar.Name}) {{ ]]");
+        PrintStatement(haltRecoveryStatement.RecoverBody, ind);
+        wr.Write("[[ } ]]");
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }
@@ -2226,23 +2245,18 @@ namespace Microsoft.Dafny {
 
       } else if (expr is SeqUpdateExpr) {
         SeqUpdateExpr e = (SeqUpdateExpr)expr;
-        if (e.ResolvedUpdateExpr != null) {
-          PrintExpr(e.ResolvedUpdateExpr, contextBindingStrength, fragileContext, isRightmost, isFollowedBySemicolon, indent, keyword);
-        } else {
-          // determine if parens are needed
-          int opBindingStrength = 0x90;
-          bool parensNeeded = ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
+        // determine if parens are needed
+        int opBindingStrength = 0x90;
+        bool parensNeeded = ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
 
-          if (parensNeeded) { wr.Write("("); }
-          PrintExpr(e.Seq, opBindingStrength, false, false, !parensNeeded && isFollowedBySemicolon, indent, keyword);
-          wr.Write("[");
-          PrintExpression(e.Index, false);
-          wr.Write(" := ");
-          PrintExpression(e.Value, false);
-          wr.Write("]");
-          if (parensNeeded) { wr.Write(")"); }
-        }
-
+        if (parensNeeded) { wr.Write("("); }
+        PrintExpr(e.Seq, opBindingStrength, false, false, !parensNeeded && isFollowedBySemicolon, indent, keyword);
+        wr.Write("[");
+        PrintExpression(e.Index, false);
+        wr.Write(" := ");
+        PrintExpression(e.Value, false);
+        wr.Write("]");
+        if (parensNeeded) { wr.Write(")"); }
       } else if (expr is DatatypeUpdateExpr) {
         var e = (DatatypeUpdateExpr)expr;
         // determine if parens are needed
@@ -2594,7 +2608,6 @@ namespace Microsoft.Dafny {
         bool parensNeeded = !isRightmost;
         if (parensNeeded) { wr.Write("("); }
         wr.Write(e is ForallExpr ? "forall" : "exists");
-        PrintTypeParams(e.TypeArgs); // new!
         wr.Write(" ");
         PrintQuantifierDomain(e.BoundVars, e.Attributes, e.Range);
         if (keyword == null) {

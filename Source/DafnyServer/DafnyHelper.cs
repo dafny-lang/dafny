@@ -12,27 +12,6 @@ using DafnyServer;
 using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
-  // FIXME: This should not be duplicated here
-  class DafnyConsolePrinter : ConsolePrinter {
-
-    public DafnyConsolePrinter(ExecutionEngineOptions options) : base(options) {
-    }
-
-    public override void ReportBplError(IToken tok, string message, bool error, TextWriter tw, string category = null) {
-      // Dafny has 0-indexed columns, but Boogie counts from 1
-      var realigned_tok = new Token(tok.line, tok.col - 1);
-      realigned_tok.kind = tok.kind;
-      realigned_tok.pos = tok.pos;
-      realigned_tok.val = tok.val;
-      realigned_tok.filename = tok.filename;
-      base.ReportBplError(realigned_tok, message, error, tw, category);
-
-      if (tok is Dafny.NestedToken) {
-        var nt = (Dafny.NestedToken)tok;
-        ReportBplError(nt.Inner, "Related location", false, tw);
-      }
-    }
-  }
 
   class DafnyHelper {
     private string fname;
@@ -88,7 +67,8 @@ namespace Microsoft.Dafny {
         engine.Inline(boogieProgram);
 
         //NOTE: We could capture errors instead of printing them (pass a delegate instead of null)
-        switch (engine.InferAndVerify(boogieProgram, new PipelineStatistics(), "ServerProgram_" + moduleName, null, DateTime.UtcNow.Ticks.ToString())) {
+        switch (engine.InferAndVerify(Console.Out, boogieProgram, new PipelineStatistics(),
+                  "ServerProgram_" + moduleName, null, DateTime.UtcNow.Ticks.ToString()).Result) {
           case PipelineOutcome.Done:
           case PipelineOutcome.VerificationCompleted:
             return true;
