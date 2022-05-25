@@ -98,6 +98,11 @@ public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutt
    :");
   }
 
+  [TestMethod/*, Timeout(MaxTestExecutionTimeMs)*/]
+  public async Task EnsuresDefaultArgumentsShowsError() {
+    await VerifyTrace(@"
+ .  S [~][=]:datatype D = T(i: nat := -2)");
+  }
 
   [TestMethod/*, Timeout(MaxTestExecutionTimeMs)*/]
   public async Task TopLevelConstantsHaveToBeVerifiedAlso() {
