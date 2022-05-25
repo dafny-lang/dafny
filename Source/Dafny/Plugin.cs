@@ -59,7 +59,7 @@ public class AssemblyPlugin : ConfiguredPlugin {
       }
     }
 
-    protected TFactory[] FindPluginComponents<TSource, TFactory>(Assembly assembly, Func<System.Type, TFactory> createFactory) {
+    private TFactory[] FindPluginComponents<TSource, TFactory>(Assembly assembly, Func<System.Type, TFactory> createFactory) {
       return assembly.GetTypes()
           .Where(type => type.IsAssignableTo(typeof(TSource)))
           .Select(createFactory).ToArray();

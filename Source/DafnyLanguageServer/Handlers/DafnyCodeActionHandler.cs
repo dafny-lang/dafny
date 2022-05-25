@@ -24,45 +24,7 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
     this.documents = documents;
   }
 
-  private class CodeActionProcessor {
-    private readonly QuickFixer[] fixers;
-    private readonly DafnyDocument document;
-    private readonly CodeActionParams request;
-    private readonly CancellationToken cancellationToken;
-    private readonly string documentUri;
-    private readonly string documentText;
-
-    public CodeActionProcessor(QuickFixer[] fixers, DafnyDocument document, CodeActionParams request,
-      CancellationToken cancellationToken) {
-      this.fixers = fixers;
-      this.document = document;
-      this.request = request;
-      this.cancellationToken = cancellationToken;
-      this.documentText = document.TextDocumentItem.Text;
-      this.documentUri = document.Uri.GetFileSystemPath();
-    }
-
-    /// <summary>
-    /// Returns the fixes as set up by plugins
-    /// </summary>
-    /// <param name="uri">The URI of the document, used as an unique key</param>
-    public IEnumerable<PluginQuickFix> GetPluginFixes() {
-      var ID = 0;
-      foreach (var fixer in fixers) {
-        // Maybe we could set the program only once, when resolved, instead of for every code action?
-        var fixerInput = new VerificationQuickFixerInput(document);
-        var quickFixes = fixer.GetQuickFixes(fixerInput, request.Range);
-        var fixerCodeActions = quickFixes.Select(quickFix =>
-          new PluginQuickFix(quickFix, ID++));
-        foreach (var codeAction in fixerCodeActions) {
-          yield return codeAction;
-        }
-      }
-    }
-  }
-
-
-  public record PluginQuickFix(QuickFix QuickFix, int Id);
+  public record QuickFixWithId(QuickFix QuickFix, int Id);
 
   protected override CodeActionRegistrationOptions CreateRegistrationOptions(CodeActionCapability capability,
     ClientCapabilities clientCapabilities) {
@@ -76,7 +38,25 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
     };
   }
 
-  public ConcurrentDictionary<string, IReadOnlyList<PluginQuickFix>> ConcurrentDictionary = new();
+
+  /// <summary>
+  /// Returns the fixes along with a unique identifier
+  /// </summary>
+  public IEnumerable<QuickFixWithId> GetFixesWithIds(QuickFixer[] fixers, DafnyDocument document, CodeActionParams request) {
+    var ID = 0;
+    foreach (var fixer in fixers) {
+      // Maybe we could set the program only once, when resolved, instead of for every code action?
+      var fixerInput = new VerificationQuickFixerInput(document);
+      var quickFixes = fixer.GetQuickFixes(fixerInput, request.Range);
+      var fixerCodeActions = quickFixes.Select(quickFix =>
+        new QuickFixWithId(quickFix, ID++));
+      foreach (var codeAction in fixerCodeActions) {
+        yield return codeAction;
+      }
+    }
+  }
+
+  private readonly ConcurrentDictionary<string, IReadOnlyList<QuickFixWithId>> documentUriToQuickFixes = new();
 
   public override async Task<CommandOrCodeActionContainer> Handle(CodeActionParams request, CancellationToken cancellationToken) {
     var document = await documents.GetDocumentAsync(request.TextDocument);
@@ -85,16 +65,15 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
       return new CommandOrCodeActionContainer();
     }
     var quickFixers = GetQuickFixers();
-
-    var pluginQuickFixes = new CodeActionProcessor(quickFixers, document, request, cancellationToken).GetPluginFixes().ToArray();
+    var fixesWithId = GetFixesWithIds(quickFixers, document, request).ToArray();
 
     var documentUri = document.Uri.ToString();
-    ConcurrentDictionary.AddOrUpdate(documentUri,
-      _ => pluginQuickFixes, (_, _) => pluginQuickFixes);
-    var codeActions = pluginQuickFixes.Select(pluginQuickFix => {
+    documentUriToQuickFixes.AddOrUpdate(documentUri,
+      _ => fixesWithId, (_, _) => fixesWithId);
+    var codeActions = fixesWithId.Select(fixWithId => {
       CommandOrCodeAction t = new CodeAction {
-        Title = pluginQuickFix.QuickFix.Title,
-        Data = new JArray(documentUri, pluginQuickFix.Id)
+        Title = fixWithId.QuickFix.Title,
+        Data = new JArray(documentUri, fixWithId.Id)
       };
       return t;
     }
@@ -117,8 +96,8 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
     if (command != null) {
       string documentUri = command[0].Value<string>();
       int id = command[1].Value<int>();
-      if (ConcurrentDictionary.TryGetValue(documentUri, out var quickFixes)) {
-        PluginQuickFix? selectedQuickFix = quickFixes.Where(pluginQuickFix => pluginQuickFix.Id == id).FirstOrDefault((PluginQuickFix?)null!);
+      if (documentUriToQuickFixes.TryGetValue(documentUri, out var quickFixes)) {
+        QuickFixWithId? selectedQuickFix = quickFixes.Where(pluginQuickFix => pluginQuickFix.Id == id).FirstOrDefault((QuickFixWithId?)null!);
         if (selectedQuickFix != null) {
           return Task.FromResult(new CodeAction() {
             Edit = new WorkspaceEdit() {
