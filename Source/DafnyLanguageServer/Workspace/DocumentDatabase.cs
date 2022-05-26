@@ -303,7 +303,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         Version = version;
         ResolvedDocument = resolvedDocument;
         LatestDocument = resolvedDocument;
-        TranslatedDocument.ToObservable().Concat(verifiedDocuments).Subscribe(update => LatestDocument = Task.FromResult(update));
+        TranslatedDocument.ToObservable().Concat(verifiedDocuments).
+          Subscribe(update => LatestDocument = Task.FromResult(update), e => { });
         LastDocument = ResolvedDocument.ToObservable().Concat(verifiedDocuments).ToTask();
       }
 
