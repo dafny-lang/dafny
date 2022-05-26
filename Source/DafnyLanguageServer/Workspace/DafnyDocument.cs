@@ -6,6 +6,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
+using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
 using SymbolTable = Microsoft.Dafny.LanguageServer.Language.Symbols.SymbolTable;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
@@ -21,7 +22,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <param name="SymbolTable">The symbol table for the symbol lookups.</param>
   /// <param name="LoadCanceled"><c>true</c> if the document load was canceled for this document.</param>
   public record DafnyDocument(
-    TextDocumentItem TextDocumentItem,
+    DocumentTextBuffer TextDocumentItem,
     IReadOnlyList<Diagnostic> ParseAndResolutionDiagnostics,
     // VerificationDiagnostics can be deduced from CounterExamples,
     // but they are stored separately because they are migrated and counterexamples currently are not.
@@ -50,7 +51,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// </summary>
     public VerificationTree VerificationTree { get; init; } = new DocumentVerificationTree(
       TextDocumentItem.Uri.ToString(),
-      TextDocumentItem.Text.Count(c => c == '\n') + 1
+      TextDocumentItem.NumberOfLines
     );
 
     // List of a few last touched method positions
@@ -72,4 +73,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   }
 
   public record ImplementationView(Range Range, PublishedVerificationStatus Status, IReadOnlyList<Diagnostic> Diagnostics);
+
+  public record DocumentTextBuffer(int NumberOfLines) : TextDocumentItem {
+    public static DocumentTextBuffer From(TextDocumentItem textDocumentItem) {
+      return new DocumentTextBuffer(TextChangeProcessor.ComputeNumberOfLines(textDocumentItem.Text)) {
+        Text = textDocumentItem.Text,
+        Uri = textDocumentItem.Uri,
+        Version = textDocumentItem.Version,
+        LanguageId = textDocumentItem.LanguageId
+      };
+    }
+  }
 }

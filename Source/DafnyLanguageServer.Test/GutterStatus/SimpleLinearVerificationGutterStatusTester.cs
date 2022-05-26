@@ -112,4 +112,14 @@ public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutt
     |  |  | :
  .  S [~][=]:ghost const b := a[-1];");
   }
+
+  [TestMethod/*, Timeout(MaxTestExecutionTimeMs)*/]
+  public async Task EnsuresAddingNewlinesMigratesPositions() {
+    await VerifyTrace(@"
+ .  S [S][ ][I][S][S][ ][I][S][S][ ]:method f(x: int) {
+ .  S [S][ ][I][S][S][ ][I][S][S][ ]:  //Next1:\n  //Next2:\n  
+ .  S [=][=][I][S][S][ ][I][S][S][ ]:  assert x == 2; }
+            [-][~][=][=][I][S][S][ ]:
+                        [-][~][=][=]:");
+  }
 }

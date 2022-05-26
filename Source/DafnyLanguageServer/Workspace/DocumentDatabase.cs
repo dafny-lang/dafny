@@ -68,7 +68,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     [MethodImpl(MethodImplOptions.Synchronized)]
-    public IObservable<DafnyDocument> OpenDocument(TextDocumentItem document) {
+    public IObservable<DafnyDocument> OpenDocument(DocumentTextBuffer document) {
       var cancellationSource = new CancellationTokenSource();
       var resolvedDocumentTask = OpenAsync(document, cancellationSource.Token);
 
@@ -95,7 +95,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 #pragma warning restore VSTHRD003
     }
 
-    private async Task<DafnyDocument> OpenAsync(TextDocumentItem textDocument, CancellationToken cancellationToken) {
+    private async Task<DafnyDocument> OpenAsync(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
       try {
         var newDocument = await documentLoader.LoadAsync(textDocument, cancellationToken);
         documentLoader.PublishGutterIcons(newDocument, false);
@@ -178,7 +178,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           Diagnostics = relocator.RelocateDiagnostics(kv.Value.Diagnostics, documentChange, CancellationToken.None)
         });
       var migratedVerificationTree =
-        relocator.RelocateVerificationTree(oldDocument.VerificationTree, documentChange, CancellationToken.None);
+        relocator.RelocateVerificationTree(oldDocument.VerificationTree, updatedText.NumberOfLines, documentChange, CancellationToken.None);
 
       var migratedLastTouchedPositions =
         relocator.RelocatePositions(oldDocument.LastTouchedMethodPositions, documentChange, CancellationToken.None);
