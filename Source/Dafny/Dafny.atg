@@ -417,7 +417,8 @@ bool ExprIsSetDisplay() {
 
 bool IsSeqConstruction() {
   scanner.ResetPeek();
-  return la.kind == _seq && scanner.Peek().kind == _openparen;
+  int k = scanner.Peek().kind;
+  return la.kind == _seq && (k == _openparen || k == _openAngleBracket);
 }
 
 bool IsSuffix() {
