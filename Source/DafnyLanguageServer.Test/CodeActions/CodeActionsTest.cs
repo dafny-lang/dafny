@@ -31,7 +31,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.CodeActions {
       await TestCodeActionHelper(@"
 method f() returns (i: int)
   ensures i > 10 >>>{
-[[Explicit the failing assert|  assert i > 10;
+[[Make the failing assertion explicit|  assert i > 10;
 ]]}");
     }
 
@@ -42,7 +42,7 @@ method f(b: bool) returns (i: int)
   ensures i > 10 {
   if b >>>{
     i := 0;
-  [[Explicit the failing assert|  assert i > 10;
+  [[Make the failing assertion explicit|  assert i > 10;
   ]]} else {
     i := 10;
   }
@@ -56,7 +56,7 @@ method f(b: bool) returns (i: int)
 const x := 1;
   method f() returns (i: int)
     ensures i > 10 >>>{
-  [[Explicit the failing assert|  assert i > 10;
+  [[Make the failing assertion explicit|  assert i > 10;
   ]]}");
     }
 
@@ -67,7 +67,7 @@ const x := 1;
 const x := 1;
   method f() returns (i: int)
 {t}{t}{t}{t}{t}{t}ensures i > 10 >>>{{
-{t}{t}{t}[[Explicit the failing assert|{t}assert i > 10;
+{t}{t}{t}[[Make the failing assertion explicit|{t}assert i > 10;
 {t}{t}{t}]]}}");
     }
 
@@ -78,7 +78,7 @@ const x := 1;
   method f() returns (i: int)
     ensures i > 10
 >>>{
-[[Explicit the failing assert|  assert i > 10;
+[[Make the failing assertion explicit|  assert i > 10;
 ]]}");
     }
 
@@ -90,7 +90,7 @@ const x := 1;
     ensures i > 10
 >>>{
     assert 1 == 1; /* a commented { that should not prevent indentation to be 4 */
-[[Explicit the failing assert|    assert i > 10;
+[[Make the failing assertion explicit|    assert i > 10;
 ]]}");
     }
 
@@ -101,7 +101,7 @@ const x := 1;
 const x := 1;
   method f() returns (i: int)
     ensures i > 10
-  >>>{[[Explicit the failing assert| assert i > 10;
+  >>>{[[Make the failing assertion explicit| assert i > 10;
   ]]}");
     }
 
@@ -112,7 +112,7 @@ const x := 1;
   method f() returns (i: int)
     ensures i > 10
   >>>{
-  [[Explicit the failing assert|  assert i > 10;
+  [[Make the failing assertion explicit|  assert i > 10;
   ]]}");
     }
 

@@ -37,7 +37,7 @@ class VerificationQuickFixer : DiagnosticQuickFixer {
     var beforeClosingBrace = endToken.GetLspRange().GetStartRange();
     return new QuickFix[] {
       new InstantQuickFix(
-        "Explicit the failing assert",
+        "Make the failing assertion explicit",
         new[] {
           new QuickFixEdit(beforeClosingBrace,
             $"{extraIndentation}assert {expression};\n{indentationUntilBrace}")
