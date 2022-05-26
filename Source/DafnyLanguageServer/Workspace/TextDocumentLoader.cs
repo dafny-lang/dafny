@@ -209,7 +209,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         ReportRealtimeDiagnostics(document, result, progressReporter, cancellationToken);
       }
 
-      var _ = NotifyStatusAsync(document.TextDocumentItem, result, cancellationToken);
+      var _ = NotifyStatusAsync(document.TextDocumentItem, result.DefaultIfEmpty(document), cancellationToken);
       return result;
     }
 
