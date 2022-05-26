@@ -34,9 +34,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
       }
       int absoluteStart = change.Range.Start.ToAbsolutePosition(text, cancellationToken);
       int absoluteEnd = change.Range.End.ToAbsolutePosition(text, cancellationToken);
-      numberOfLines -=
-        DocumentTextBuffer.ComputeNumberOfNewlines(text.Substring(absoluteStart, absoluteEnd - absoluteStart));
-      numberOfLines += DocumentTextBuffer.ComputeNumberOfNewlines(change.Text);
+      numberOfLines += DocumentTextBuffer.ComputeNumberOfNewlines(change.Text) -
+                       DocumentTextBuffer.ComputeNumberOfNewlines(text.Substring(absoluteStart, absoluteEnd - absoluteStart));
       return text[..absoluteStart] + change.Text + text[absoluteEnd..];
     }
   }
