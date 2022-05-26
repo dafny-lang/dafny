@@ -32,9 +32,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
         VerificationTree[] verificationTrees,
         Container<Diagnostic> diagnostics,
         int linesCount,
-        bool verificationStarted,
-        int numberOfResolutionErrors) {
-      var perLineStatus = RenderPerLineDiagnostics(uri, verificationTrees, linesCount, numberOfResolutionErrors, verificationStarted, diagnostics);
+        bool verificationStarted) {
+      var perLineStatus = RenderPerLineDiagnostics(uri, verificationTrees, linesCount, verificationStarted, diagnostics);
       return new VerificationStatusGutter(uri, version, perLineStatus);
     }
 
@@ -42,12 +41,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       DocumentUri uri,
       VerificationTree[] verificationTrees,
       int numberOfLines,
-      int numberOfResolutionErrors,
       bool verificationStarted,
-      Container<Diagnostic> diagnostics) {
+      Container<Diagnostic> parseAndResolutionErrors) {
       var result = new LineVerificationStatus[numberOfLines];
 
-      if (verificationTrees.Length == 0 && numberOfResolutionErrors == 0 && verificationStarted) {
+      if (verificationTrees.Length == 0 && !parseAndResolutionErrors.Any() && verificationStarted) {
         for (var line = 0; line < numberOfLines; line++) {
           result[line] = LineVerificationStatus.Verified;
         }
@@ -86,28 +84,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
         }
       }
 
-      var resolutionErrorRendered = 0;
-      foreach (var diagnostic in diagnostics) {
-        if (resolutionErrorRendered >= numberOfResolutionErrors) {
-          break;
-        }
+      foreach (var diagnostic in parseAndResolutionErrors) {
         if (diagnostic.Range.Start.Line >= 0 && diagnostic.Range.Start.Line < result.Length) {
           result[diagnostic.Range.Start.Line] = LineVerificationStatus.ResolutionError;
-          resolutionErrorRendered++;
         }
       }
-
-      var existsErrorRange = false;
-      var existsError = false;
-      foreach (var line in result) {
-        existsErrorRange = existsErrorRange || line == LineVerificationStatus.ErrorContext;
-        existsError = existsError || line == LineVerificationStatus.AssertionFailed;
-      }
-
-      if (existsErrorRange && !existsError) {
-        existsError = false;
-      }
-
       return result;
     }
   }
