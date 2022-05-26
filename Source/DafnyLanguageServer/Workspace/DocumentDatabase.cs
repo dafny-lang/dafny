@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
+
   /// <summary>
   /// Database that cancels pending document updates when new changes are incoming.
   /// </summary>
@@ -26,6 +27,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private readonly ITextDocumentLoader documentLoader;
     private readonly ITextChangeProcessor textChangeProcessor;
     private readonly IRelocator relocator;
+    private EasyReadWriteLock rwLock = new();
 
     private bool VerifyOnOpen => options.Verify == AutoVerification.OnChange;
     private bool VerifyOnChange => options.Verify == AutoVerification.OnChange;
@@ -66,6 +68,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public IObservable<DafnyDocument> OpenDocument(TextDocumentItem document) {
+      using var _ = rwLock.EnterWriteLock();
       var cancellationSource = new CancellationTokenSource();
       var resolvedDocumentTask = OpenAsync(document, cancellationSource.Token);
 
@@ -128,6 +131,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       if (!documents.TryGetValue(documentUri, out var databaseEntry)) {
         throw new ArgumentException($"the document {documentUri} was not loaded before");
       }
+      using var _ = rwLock.EnterWriteLock();
 
       // According to the LSP specification, document versions should increase monotonically but may be non-consecutive.
       // See: https://github.com/microsoft/language-server-protocol/blob/gh-pages/_specifications/specification-3-16.md?plain=1#L1195
@@ -265,6 +269,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public async Task<DafnyDocument?> GetDocumentAsync(TextDocumentIdentifier documentId) {
+      using var _ = rwLock.EnterReadLock();
       if (documents.TryGetValue(documentId.Uri, out var databaseEntry)) {
         return await databaseEntry.ResolvedDocument;
       }
@@ -272,6 +277,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public async Task<DafnyDocument?> GetLastDocumentAsync(TextDocumentIdentifier documentId) {
+      using var _ = rwLock.EnterReadLock();
       if (documents.TryGetValue(documentId.Uri, out var databaseEntry)) {
         return await databaseEntry.LastDocument;
       }
