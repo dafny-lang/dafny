@@ -39,10 +39,18 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       var notification = new FileVerificationStatus(document.Uri, document.Version, GetNamedVerifiableStatuses(document.ImplementationViews));
-      var previous = previouslyVerificationStatus.GetValueOrDefault(document.Uri)?.NamedVerifiables ?? ImmutableArray<NamedVerifiableStatus>.Empty;
-      if (previous.SequenceEqual(notification.NamedVerifiables)) {
-        return;
+
+      if (previouslyVerificationStatus.TryGetValue(document.Uri, out var previousParams)) {
+        if (previousParams.Version > notification.Version ||
+            previousParams.NamedVerifiables.SequenceEqual(notification.NamedVerifiables)) {
+          return;
+        }
+      } else {
+        if (!notification.NamedVerifiables.Any()) {
+          return;
+        }
       }
+
       languageServer.TextDocument.SendNotification(DafnyRequestNames.VerificationStatusNotification, notification);
       previouslyVerificationStatus[document.Uri] = notification;
     }
