@@ -65,7 +65,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return false;
     }
 
-    public IObservable<DafnyDocument> OpenDocument(TextDocumentItem document) {
+    public IObservable<DafnyDocument> OpenDocument(DocumentTextBuffer document) {
       var cancellationSource = new CancellationTokenSource();
       var resolvedDocumentTask = OpenAsync(document, cancellationSource.Token);
       var verifiedDocuments = Verify(resolvedDocumentTask, VerifyOnOpen, cancellationSource.Token);
@@ -78,7 +78,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return resolvedDocumentTask.ToObservable().Where(d => !d.LoadCanceled).Concat(verifiedDocuments);
     }
 
-    private async Task<DafnyDocument> OpenAsync(TextDocumentItem textDocument, CancellationToken cancellationToken) {
+    private async Task<DafnyDocument> OpenAsync(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
       try {
         var newDocument = await documentLoader.LoadAsync(textDocument, cancellationToken);
         documentLoader.PublishVerificationDiagnostics(newDocument, false);
@@ -146,7 +146,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         kv => relocator.RelocateDiagnostics(kv.Value, documentChange, CancellationToken.None));
       logger.LogDebug($"Migrated {oldVerificationDiagnostics.Count} diagnostics into {migratedVerificationDiagnotics.Count} diagnostics.");
       var migratedVerificationTree =
-        relocator.RelocateVerificationTree(oldDocument.VerificationTree, documentChange, CancellationToken.None);
+        relocator.RelocateVerificationTree(oldDocument.VerificationTree, updatedText.NumberOfLines, documentChange, CancellationToken.None);
 
       var migratedLastTouchedPositions =
         relocator.RelocatePositions(oldDocument.LastTouchedMethodPositions, documentChange, CancellationToken.None);
