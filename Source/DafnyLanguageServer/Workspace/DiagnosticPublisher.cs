@@ -89,7 +89,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         // Therefore, we do not republish the errors when the document (re-)load was canceled.
         return;
       }
-      var errors = document.Diagnostics.Where(x => x.Severity == DiagnosticSeverity.Error).ToList();
+      var errors = document.ParseAndResolutionDiagnostics.Where(x => x.Severity == DiagnosticSeverity.Error).ToList();
       var linesCount = document.LinesCount;
       var verificationStatusGutter = VerificationStatusGutter.ComputeFrom(
         document.Uri,
@@ -97,8 +97,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         document.VerificationTree.Children.Select(child => child.GetCopyForNotification()).ToArray(),
         errors,
         linesCount,
-        verificationStarted,
-        document.ParseAndResolutionDiagnostics.Count
+        verificationStarted
       );
       languageServer.TextDocument.SendNotification(verificationStatusGutter);
     }
