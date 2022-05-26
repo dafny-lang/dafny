@@ -85,6 +85,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
             if (aFormalHasADefaultValue) {
               var verificationTreeRange = ctor.tok.GetLspRange(ctor.BodyEndTok);
               var verificationTree = new TopLevelDeclMemberVerificationTree(
+                "datatype",
                 ctor.Name,
                 ctor.CompileName,
                 ctor.tok.filename,

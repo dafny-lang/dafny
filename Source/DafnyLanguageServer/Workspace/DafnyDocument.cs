@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Boogie;
+using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
 using SymbolTable = Microsoft.Dafny.LanguageServer.Language.Symbols.SymbolTable;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 
@@ -66,24 +67,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public int LinesCount => VerificationTree.Range.End.Line;
   }
 
-  public record DocumentTextBuffer : TextDocumentItem {
+  public record DocumentTextBuffer(int NumberOfLines) : TextDocumentItem {
     public static DocumentTextBuffer From(TextDocumentItem textDocumentItem) {
-      return new DocumentTextBuffer {
+      return new DocumentTextBuffer(TextChangeProcessor.ComputeNumberOfLines(textDocumentItem.Text)) {
         Text = textDocumentItem.Text,
         Uri = textDocumentItem.Uri,
-        NumberOfLines = ComputeNumberOfLines(textDocumentItem.Text),
         Version = textDocumentItem.Version,
         LanguageId = textDocumentItem.LanguageId
       };
-    }
-
-    public int NumberOfLines { get; init; } //
-
-    public static int ComputeNumberOfLines(string text) {
-      return ComputeNumberOfNewlines(text) + 1;
-    }
-    public static int ComputeNumberOfNewlines(string text) {
-      return text.Count(c => c == '\n');
     }
   }
 }

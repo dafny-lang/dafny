@@ -1,6 +1,7 @@
 ﻿using Microsoft.Dafny.LanguageServer.Util;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
+using System.Linq;
 using System.Threading;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
@@ -28,15 +29,23 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
     private static string ApplyTextChange(string text, TextDocumentContentChangeEvent change, ref int numberOfLines,
       CancellationToken cancellationToken) {
       if (change.Range == null) {
-        numberOfLines = DocumentTextBuffer.ComputeNumberOfLines(change.Text);
+        numberOfLines = ComputeNumberOfLines(change.Text);
         // https://microsoft.github.io/language-server-protocol/specifications/specification-3-17/#textDocumentContentChangeEvent
         return change.Text;
       }
       int absoluteStart = change.Range.Start.ToAbsolutePosition(text, cancellationToken);
       int absoluteEnd = change.Range.End.ToAbsolutePosition(text, cancellationToken);
-      numberOfLines += DocumentTextBuffer.ComputeNumberOfNewlines(change.Text) -
-                       DocumentTextBuffer.ComputeNumberOfNewlines(text.Substring(absoluteStart, absoluteEnd - absoluteStart));
+      numberOfLines += ComputeNumberOfNewlines(change.Text) -
+                       ComputeNumberOfNewlines(text.Substring(absoluteStart, absoluteEnd - absoluteStart));
       return text[..absoluteStart] + change.Text + text[absoluteEnd..];
     }
+    public static int ComputeNumberOfLines(string text) {
+      return ComputeNumberOfNewlines(text) + 1;
+    }
+
+    private static int ComputeNumberOfNewlines(string text) {
+      return text.Count(c => c == '\n');
+    }
   }
+
 }

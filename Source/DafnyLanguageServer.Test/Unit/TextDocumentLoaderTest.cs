@@ -48,11 +48,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
     }
 
     private static DocumentTextBuffer CreateTestDocument() {
-      return new DocumentTextBuffer {
+      return new DocumentTextBuffer(0) {
         LanguageId = "dafny",
         Version = 1,
-        Text = "",
-        NumberOfLines = 0
+        Text = ""
       };
     }
 
