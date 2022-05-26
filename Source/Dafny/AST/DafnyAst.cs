@@ -6144,7 +6144,7 @@ namespace Microsoft.Dafny {
 
     public static void ExtractSingleRange(List<QuantifiedVar> qvars, out List<BoundVar> bvars, out Expression range) {
       bvars = new List<BoundVar>();
-      range = new LiteralExpr(Token.NoToken, true);
+      range = null;
       foreach(var qvar in qvars) {
         BoundVar bvar = new BoundVar(qvar.tok, qvar.Name, qvar.SyntacticType);
         bvars.Add(bvar);
