@@ -67,7 +67,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return false;
     }
 
-    [MethodImpl(MethodImplOptions.Synchronized)]
     public IObservable<DafnyDocument> OpenDocument(DocumentTextBuffer document) {
       var cancellationSource = new CancellationTokenSource();
       var resolvedDocumentTask = OpenAsync(document, cancellationSource.Token);
@@ -126,7 +125,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }, TaskScheduler.Current).ToObservable().Merge();
     }
 
-    [MethodImpl(MethodImplOptions.Synchronized)]
     public IObservable<DafnyDocument> UpdateDocument(DidChangeTextDocumentParams documentChange) {
       var documentUri = documentChange.TextDocument.Uri;
       if (!documents.TryGetValue(documentUri, out var databaseEntry)) {
@@ -268,7 +266,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return document.LoadCanceled || document.SymbolTable.Resolved;
     }
 
-    [MethodImpl(MethodImplOptions.Synchronized)]
     public Task<DafnyDocument?> GetDocumentAsync(TextDocumentIdentifier documentId) {
       if (documents.TryGetValue(documentId.Uri, out var databaseEntry)) {
         return databaseEntry.ResolvedDocument!;
@@ -276,7 +273,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return Task.FromResult<DafnyDocument?>(null);
     }
 
-    [MethodImpl(MethodImplOptions.Synchronized)]
     public Task<DafnyDocument?> GetLastDocumentAsync(TextDocumentIdentifier documentId) {
       if (documents.TryGetValue(documentId.Uri, out var databaseEntry)) {
         return databaseEntry.LastDocument!;
