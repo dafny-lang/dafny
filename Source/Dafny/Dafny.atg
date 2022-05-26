@@ -1671,9 +1671,6 @@ GenericParameters<.List<TypeParameter/*!*/>/*!*/ typeArgs, bool allowVariance.>
      TypeParameter.TPVarianceSyntax variance = TypeParameter.TPVarianceSyntax.NonVariant_Strict;  // assignment is to please compiler
      characteristics = new TypeParameter.TypeParameterCharacteristics(false);
   .)
-  // If a "<" combined with a Variance symbol could be a new token, then the parser here will need to be more complex,
-  // since, for example, a < followed immediately by a Variance symbol would scan as the wrong token.
-  // Fortunately that is not currently the case.
   "<"
   [ Variance<out variance>  (. if (!allowVariance) { SemErr(t, "type-parameter variance is not allowed to be specified in this context"); } .)
   ]
@@ -4730,7 +4727,9 @@ QuantifierVariableDecl<.out QuantifiedVar qvar, ref Attributes attrs, bool allow
      Expression range = null;
   .)
   IdentTypeOptional<out bv>
-  [ "<-"
+  [ // "<-" can also appear in GenericParameters in something like "<-T>",
+    // so we parse it as two separate tokens.
+    "<" "-"
     /* We can't allow bitwise ops here since otherwise we'll swallow up any
        optional "| <Range>" suffix */ 
     Expression<out domain, allowLemma, allowLambda, false>
