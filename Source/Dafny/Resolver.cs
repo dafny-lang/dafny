@@ -447,12 +447,9 @@ namespace Microsoft.Dafny {
       rewriters.Add(new PrintEffectEnforcement(reporter));
 
       var builtInRewritersCount = rewriters.Count;
-      var pluginRewriters = new List<IRewriter>() { };
       foreach (var plugin in DafnyOptions.O.Plugins) {
-        pluginRewriters.AddRange(plugin.GetRewriters(reporter));
+        rewriters.AddRange(plugin.GetRewriters(reporter));
       }
-      var pluginRewritersCount = pluginRewriters.Count;
-      rewriters.AddRange(pluginRewriters);
 
       systemNameInfo = RegisterTopLevelDecls(prog.BuiltIns.SystemModule, false);
       prog.CompileModules.Add(prog.BuiltIns.SystemModule);

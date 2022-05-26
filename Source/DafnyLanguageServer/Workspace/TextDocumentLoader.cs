@@ -140,7 +140,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         Options,
         textDocument,
         parseAndResolutionDiagnostics,
-        parseAndResolutionDiagnostics.Any(d => d.Severity == DiagnosticSeverity.Error),
+        false,
         new Dictionary<ImplementationId, IReadOnlyList<Diagnostic>>(),
         Array.Empty<Counterexample>(),
         Array.Empty<Diagnostic>(),
