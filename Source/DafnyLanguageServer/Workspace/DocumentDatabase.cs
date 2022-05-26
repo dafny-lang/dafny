@@ -269,19 +269,19 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     [MethodImpl(MethodImplOptions.Synchronized)]
-    public async Task<DafnyDocument?> GetDocumentAsync(TextDocumentIdentifier documentId) {
+    public Task<DafnyDocument?> GetDocumentAsync(TextDocumentIdentifier documentId) {
       if (documents.TryGetValue(documentId.Uri, out var databaseEntry)) {
-        return await databaseEntry.ResolvedDocument;
+        return databaseEntry.ResolvedDocument!;
       }
-      return null;
+      return Task.FromResult<DafnyDocument?>(null);
     }
 
     [MethodImpl(MethodImplOptions.Synchronized)]
-    public async Task<DafnyDocument?> GetLastDocumentAsync(TextDocumentIdentifier documentId) {
+    public Task<DafnyDocument?> GetLastDocumentAsync(TextDocumentIdentifier documentId) {
       if (documents.TryGetValue(documentId.Uri, out var databaseEntry)) {
-        return await databaseEntry.LastDocument;
+        return databaseEntry.LastDocument!;
       }
-      return null;
+      return Task.FromResult<DafnyDocument?>(null);
     }
 
     public IReadOnlyDictionary<DocumentUri, IDocumentEntry> Documents =>
