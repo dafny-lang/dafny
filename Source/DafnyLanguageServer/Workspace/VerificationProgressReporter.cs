@@ -77,6 +77,22 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
     var documentFilePath = document.GetFilePath();
     foreach (var module in document.Program.Modules()) {
       foreach (var topLevelDecl in module.TopLevelDecls) {
+        if (topLevelDecl is DatatypeDecl datatypeDecl) {
+          foreach (DatatypeCtor ctor in datatypeDecl.Ctors) {
+            var aFormalHasADefaultValue = ctor.Destructors.SelectMany(
+              destructor => destructor.CorrespondingFormals).Any(
+              formal => formal.DefaultValue != null);
+            if (aFormalHasADefaultValue) {
+              var verificationTreeRange = ctor.tok.GetLspRange(ctor.BodyEndTok);
+              var verificationTree = new TopLevelDeclMemberVerificationTree(
+                ctor.Name,
+                ctor.CompileName,
+                ctor.tok.filename,
+                verificationTreeRange);
+              AddAndPossiblyMigrateVerificationTree(verificationTree);
+            }
+          }
+        }
         if (topLevelDecl is TopLevelDeclWithMembers topLevelDeclWithMembers) {
           foreach (var member in topLevelDeclWithMembers.Members) {
             var memberWasNotIncluded = member.tok.filename != documentFilePath;
@@ -117,7 +133,8 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
               }
             }
           }
-        } else if (topLevelDecl is SubsetTypeDecl subsetTypeDecl) {
+        }
+        if (topLevelDecl is SubsetTypeDecl subsetTypeDecl) {
           if (subsetTypeDecl.tok.filename != documentFilePath) {
             continue;
           }
