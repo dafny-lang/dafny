@@ -51,7 +51,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
       }
 
-      languageServer.TextDocument.SendNotification(DafnyRequestNames.VerificationStatusNotification, notification);
+      languageServer.TextDocument.SendNotification(DafnyRequestNames.VerificationSymbolStatus, notification);
       previouslyVerificationStatus[document.Uri] = notification;
     }
 

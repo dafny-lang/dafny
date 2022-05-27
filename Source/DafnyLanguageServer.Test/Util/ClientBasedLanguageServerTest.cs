@@ -67,7 +67,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
     verificationStatusReceiver = new();
     client = await InitializeClient(options => {
       options.OnPublishDiagnostics(diagnosticsReceiver.NotificationReceived);
-      options.AddHandler(DafnyRequestNames.VerificationStatusNotification, NotificationHandler.For<FileVerificationStatus>(verificationStatusReceiver.NotificationReceived));
+      options.AddHandler(DafnyRequestNames.VerificationSymbolStatus, NotificationHandler.For<FileVerificationStatus>(verificationStatusReceiver.NotificationReceived));
 
     }, serverOptions => {
       serverOptions.Services.AddSingleton<IProgramVerifier>(serviceProvider => new SlowVerifier(
