@@ -10,7 +10,6 @@ using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using VC;
 using VerificationResult = Microsoft.Boogie.VerificationResult;
-using VerificationStatus = Microsoft.Dafny.LanguageServer.Workspace.Notifications.VerificationStatus;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
@@ -223,7 +222,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
         methodNode.Start();
         methodNode.Stop();
         methodNode.StatusCurrent = CurrentStatus.Current;
-        methodNode.StatusVerification = VerificationStatus.Verified;
+        methodNode.StatusVerification = GutterVerificationStatus.Verified;
       }
       methodNode.PropagateChildrenErrorsUp();
       methodNode.RecomputeAssertionBatchNodeDiagnostics();
@@ -241,10 +240,11 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
       if (dafnyDocument.LoadCanceled) {
         return;
       }
-      diagnosticPublisher.PublishVerificationDiagnostics(document, verificationStarted);
+      diagnosticPublisher.PublishGutterIcons(document, verificationStarted);
     }
   }
 
+  // TODO for backwards compatibility. No longer needed when the IDE switches to the textDocument/verificationStatus API
   /// <summary>
   /// Helper to send a more precise verification status message, including
   /// - The number of methods already verified
@@ -317,8 +317,8 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
         implementationNode.ResourceCount = verificationResult.ResourceCount;
         targetMethodNode.ResourceCount += verificationResult.ResourceCount;
         var finalOutcome = verificationResult.Outcome switch {
-          ConditionGeneration.Outcome.Correct => VerificationStatus.Verified,
-          _ => VerificationStatus.Error
+          ConditionGeneration.Outcome.Correct => GutterVerificationStatus.Verified,
+          _ => GutterVerificationStatus.Error
         };
 
         implementationNode.StatusVerification = finalOutcome;
@@ -326,7 +326,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
         if (!targetMethodNode.Children.All(child => child.Finished)) {
           targetMethodNode.StatusVerification = verificationResult.Outcome switch {
             ConditionGeneration.Outcome.Correct => targetMethodNode.StatusVerification,
-            _ => VerificationStatus.Error
+            _ => GutterVerificationStatus.Error
           };
         } else {
           targetMethodNode.Stop();
@@ -347,12 +347,13 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   /// </summary>
   /// <param name="split">The split that was verified</param>
   /// <param name="result">The verification results for that split and per assert</param>
-  public void ReportAssertionBatchResult(Split split,
-    VCResult result) {
+  public void ReportAssertionBatchResult(AssertionBatchResult batchResult) {
     if (document.LoadCanceled) {
       return;
     }
     lock (LockProcessing) {
+      var split = batchResult.Split;
+      var result = batchResult.Result;
       var implementation = split.Implementation;
       // While there is no error, just add successful nodes.
       var targetMethodNode = GetTargetMethodTree(implementation, out var implementationNode);
@@ -369,7 +370,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
 
         // Attaches the trace
         void AddChildOutcome(Counterexample? counterexample, AssertCmd assertCmd, IToken token,
-          VerificationStatus status, IToken? secondaryToken, string? assertDisplay = "",
+          GutterVerificationStatus status, IToken? secondaryToken, string? assertDisplay = "",
           string assertIdentifier = "") {
           if (token.filename != implementationNode.Filename) {
             return;
@@ -504,16 +505,16 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   /// </summary>
   /// <param name="outcome">The outcome set by the split result</param>
   /// <returns>The matching verification status</returns>
-  private static VerificationStatus GetNodeStatus(ProverInterface.Outcome outcome) {
+  private static GutterVerificationStatus GetNodeStatus(ProverInterface.Outcome outcome) {
     return outcome switch {
-      ProverInterface.Outcome.Valid => VerificationStatus.Verified,
-      ProverInterface.Outcome.Invalid => VerificationStatus.Error,
-      ProverInterface.Outcome.Undetermined => VerificationStatus.Inconclusive,
-      ProverInterface.Outcome.TimeOut => VerificationStatus.Error,
-      ProverInterface.Outcome.OutOfMemory => VerificationStatus.Error,
-      ProverInterface.Outcome.OutOfResource => VerificationStatus.Error,
-      ProverInterface.Outcome.Bounded => VerificationStatus.Error,
-      _ => VerificationStatus.Error
+      ProverInterface.Outcome.Valid => GutterVerificationStatus.Verified,
+      ProverInterface.Outcome.Invalid => GutterVerificationStatus.Error,
+      ProverInterface.Outcome.Undetermined => GutterVerificationStatus.Inconclusive,
+      ProverInterface.Outcome.TimeOut => GutterVerificationStatus.Error,
+      ProverInterface.Outcome.OutOfMemory => GutterVerificationStatus.Error,
+      ProverInterface.Outcome.OutOfResource => GutterVerificationStatus.Error,
+      ProverInterface.Outcome.Bounded => GutterVerificationStatus.Error,
+      _ => GutterVerificationStatus.Error
     };
   }
 }

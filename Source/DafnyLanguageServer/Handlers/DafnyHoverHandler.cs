@@ -13,7 +13,6 @@ using System.Threading.Tasks;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
-using VerificationStatus = Microsoft.Dafny.LanguageServer.Workspace.Notifications.VerificationStatus;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers {
   public class DafnyHoverHandler : HoverHandlerBase {
@@ -189,12 +188,12 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
       string GetDescription(Boogie.ProofObligationDescription? description) {
         return assertionNode?.StatusVerification switch {
-          VerificationStatus.Verified => $"{obsolescence}<span style='color:green'>**Success:**</span> " +
-                                         (description?.SuccessDescription ?? "_no message_"),
-          VerificationStatus.Error =>
+          GutterVerificationStatus.Verified => $"{obsolescence}<span style='color:green'>**Success:**</span> " +
+                                                       (description?.SuccessDescription ?? "_no message_"),
+          GutterVerificationStatus.Error =>
             $"{obsolescence}[Error:](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-verification-debugging) " +
             (description?.FailureDescription ?? "_no message_"),
-          VerificationStatus.Inconclusive => $"{obsolescence}**Ignored or could not reach conclusion**",
+          GutterVerificationStatus.Inconclusive => $"{obsolescence}**Ignored or could not reach conclusion**",
           _ => $"{obsolescence}**Waiting to be verified...**",
         };
       }

@@ -17,18 +17,6 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   [TestClass]
   public class DiagnosticsTest : ClientBasedLanguageServerTest {
-    private IDictionary<string, string> configuration;
-
-    public async Task SetUp(IDictionary<string, string> configuration) {
-      this.configuration = configuration;
-      await SetUp();
-    }
-
-    protected override IConfiguration CreateConfiguration() {
-      return configuration == null
-        ? base.CreateConfiguration()
-        : new ConfigurationBuilder().AddInMemoryCollection(configuration).Build();
-    }
 
     [TestMethod]
     public async Task OpeningFlawlessDocumentReportsEmptyDiagnostics() {
@@ -266,21 +254,11 @@ method Multiply(x: int, y: int) returns (product: int)
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnosticsAfterOpening = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(0, diagnosticsAfterOpening.Length);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
 
-      client.DidChangeTextDocument(new DidChangeTextDocumentParams {
-        TextDocument = new OptionalVersionedTextDocumentIdentifier {
-          Uri = documentItem.Uri,
-          Version = documentItem.Version + 1
-        },
-        ContentChanges = new[] {
-          new TextDocumentContentChangeEvent {
-            Range = new Range((0, 53), (0, 54)),
-            Text = ""
-          }
-        }
-      });
+      ApplyChange(ref documentItem, new Range(0, 53, 0, 54), "");
 
-      var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       Assert.AreEqual(1, diagnostics.Length);
       Assert.AreEqual("Parser", diagnostics[0].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
@@ -409,6 +387,7 @@ method Multiply(x: int, y: int) returns (product: int)
       // a report without any diagnostics/errors.
       // Otherwise, we'd have to wait for a signal/diagnostic that should never be sent, e.g.
       // with a timeout.
+      await Documents.GetLastDocumentAsync(newVersion); // For debug purposes.
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
@@ -829,6 +808,7 @@ method test() {
 
       var resolutionDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       AssertDiagnosticListsAreEqualBesidesMigration(firstVerificationDiagnostics, resolutionDiagnostics2);
+      await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       var firstVerificationDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       var secondVerificationDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
       Assert.AreEqual(0, firstVerificationDiagnostics2.Length); // Still contains second failing method
@@ -869,15 +849,11 @@ method test2() {
        */
       ApplyChange(ref documentItem, new Range((2, 0), (4, 0)), "");
 
-      var resolutionDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      var verificationTaskDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
 
-      // Resolution diagnostics still contain those of the deleted method.
-      AssertDiagnosticListsAreEqualBesidesMigration(secondVerificationDiagnostics, resolutionDiagnostics2);
-      var firstVerificationDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
-      // The second assert doesn't create a separate error since it's hidden by the first one.
       // The diagnostics of test2 has not been migrated since test2 no longer exists.
-      Assert.AreEqual(1, firstVerificationDiagnostics2.Length);
-
+      Assert.AreEqual(1, verificationTaskDiagnostics.Length);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
@@ -915,7 +891,8 @@ method Foo() {
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
       client.OpenDocument(documentItem);
-      await GetLastDiagnostics(documentItem, CancellationToken);
+      var preChangeDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+      Assert.AreEqual(1, preChangeDiagnostics.Length);
       ApplyChange(ref documentItem, new Range(0, 7, 0, 10), "Bar");
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
@@ -931,9 +908,41 @@ module Foo {
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
       client.OpenDocument(documentItem);
-      await GetLastDiagnostics(documentItem, CancellationToken);
+      var preChangeDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+      Assert.AreEqual(1, preChangeDiagnostics.Length);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
       ApplyChange(ref documentItem, new Range(0, 7, 0, 10), "Zap");
       await AssertNoDiagnosticsAreComing(CancellationToken);
+    }
+
+    /**
+     * This test is an indirect way to test performance. It tests that the diagnostics of
+     * resolution, verification task determination, and verification itself, are returned separately.
+     */
+    [TestMethod]
+    public async Task ResolutionDiagnosticsAreReturnedBeforeComputingVerificationTasks() {
+      var source = @"
+method Foo() { 
+  assert false; 
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      client.OpenDocument(documentItem);
+      var verificationDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+      Assert.AreEqual(1, verificationDiagnostics.Length);
+      ApplyChange(ref documentItem, new Range(0, 0, 0, 1), "");
+      var brokenSyntaxDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      Assert.IsTrue(brokenSyntaxDiagnostics.Length > 1);
+      documentItem = documentItem with { Version = documentItem.Version + 1 };
+      // Fix syntax error and replace method header so verification diagnostics are not migrated.
+      ApplyChange(ref documentItem, new Range(0, 0, 1, 0), "method Bar() {\n");
+      var fixedSyntaxDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      // Resolution diagnostics are returned, verification diagnostics were migrated so we have one error.
+      Assert.AreEqual(1, fixedSyntaxDiagnostics.Length);
+      var verificationTaskDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      // Verification diagnostics were removed since task no longer exists.
+      Assert.AreEqual(0, verificationTaskDiagnostics.Length);
+      var verificationDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      Assert.AreEqual(1, verificationDiagnostics2.Length);
     }
   }
 }
