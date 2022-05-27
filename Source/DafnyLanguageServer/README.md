@@ -129,3 +129,123 @@ The most important methods of the class `Rewriter` that plugins override are
 Plugins are typically used to report additional diagnostics such as unsupported constructs for specific compilers (through the methods `Èrror(...)` and `Warning(...)` of the field `Reporter` of the class `Rewriter`)
 
 Note that all plugin errors should use the original program's expressions' token and NOT `Token.NoToken`, else no error will be displayed in the IDE.
+
+## Code actions plugin tutorial
+
+In this section, we will create a plugin to provide more code actions to Dafny.
+The code actions will be simple: Add a dummy comment in front of the first method name,
+if the selection is on the line of the method.
+
+Assuming the Dafny source code is installed in the folder `dafny/`
+start by creating an empty folder next to it, e.g. `PluginTutorial/`
+
+```
+> mkdir PluginTutorial
+> cd PluginTutorial
+```
+Then, create a dotnet class project
+```
+> dotnet new classlib
+```
+It will create a file `Class1.cs` that you can rename
+```
+> mv Class1.cs PluginAddComment.cs
+```
+Open the newly created file `PluginTutorial.csproj`, and add the following after `</PropertyGroup>`:
+```
+  <ItemGroup>
+    <ProjectReference Include="../dafny/source/DafnyLanguageServer/DafnyLanguageServer.csproj" />
+  </ItemGroup>
+```
+
+
+Then, open the file `PluginAddComment.cs`, remove everything, and write the imports and a namespace:
+
+```csharp
+using Microsoft.Dafny;
+using Microsoft.Dafny.LanguageServer.Plugins;
+using Microsoft.Boogie;
+using Microsoft.Dafny.LanguageServer.Language;
+using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
+
+namespace PluginAddComment;
+```
+
+After that, add a `PluginConfiguration` that will expose all the quickfixers of your plugin.
+This class will be discovered and instantiated automatically by Dafny.
+```
+public class TestConfiguration : PluginConfiguration {
+  public override QuickFixer[] GetQuickFixers() {
+    return new QuickFixer[] { new AddCommentQuickFixer() };
+  }
+}
+```
+Note that you could also override the methods `GetRewriters()` and `GetCompilers()` for other purposes, but this is out of scope for this tutorial.
+
+Then, we need to create the quickFixer `AddCommentQuickFixer` itself:
+
+```
+public class AddCommentQuickFixer : QuickFixer {
+  public override QuickFix[] GetQuickFixes(IQuickFixInput input, Range selection) {
+    return new QuickFix[] {
+    };
+  }
+}
+```
+
+For now, this quick fixer returns nothing. `input` is the program state, and `selection` is where the caret is.
+We replace the return statement with a conditional that tests whether the selection is on the first line:
+```
+    var firstTokenRange = input.Program?.GetFirstTopLevelToken()?.GetLspRange();
+    if(firstTokenRange != null && firstTokenRange.Start.Line == selection.Start.Line) {
+      return new QuickFix[] {
+        // TODO
+      };
+    } else {
+      return new QuickFix[] { };
+    }
+```
+
+Every quick fix consists of a title (provided immediately), and zero or more `QuickFixEdit` (computed lazily).
+An `QuickFixEdit` has a `Range` to remove and some `string` to insert instead. All `QuickFixEdit`
+of the same `QuickFix` are applied at the same time if selected.
+
+To create a `QuickFix`, we can either use the easy-to-use `ÌnstantQuickFix`, which accepts a title and an array of edits:
+```
+  return new QuickFix[] {
+    new InstantQuickFix("Insert comment", new QuickFixEdit[] {
+      new QuickFixEdit(firstTokenRange.GetStartRange(), "/*First comment*/")
+    })
+  };
+```
+
+or we can implement our custom inherited class of `QuickFix`:
+```
+public class CustomQuickFix: QuickFix {
+  public Range whereToInsert;
+  
+  public CustomQuickFix(Range whereToInsert): base("Insert comment") {
+    this.whereToInsert = whereToInsert;
+  }
+  public override QuickFixEdit[] GetEdits() {
+    return new QuickFixEdit[] {
+      new QuickFixEdit(whereToInsert.GetStartRange(), "/*A comment*/")
+    };
+  }
+}
+```
+In that case, we could return:
+```
+  return new QuickFix[] {
+    new CustomQuickFix(firstTokenRange)
+  };
+```
+
+That's it! Now, build your library while inside your folder:
+```
+> dotnet build
+```
+
+This will create the file `PluginTutorial/bin/Debug/net6.0/PluginTutorial.dll`.
+Now, open VSCode, open Dafny settings, and enter the absolute path to this DLL in the plugins section.
+Restart VSCode, it should work!

@@ -11,6 +11,11 @@ namespace Microsoft.Dafny.LanguageServer.Plugins;
 public abstract class QuickFix {
   // The title to display in the quickfix interface
   public string Title;
+
+  protected QuickFix(string title) {
+    Title = title;
+  }
+
   // Edits are all performed at the same time
   // They are lazily invoked, so that they can be as complex as needed.
   public abstract QuickFixEdit[] GetEdits();
@@ -20,8 +25,7 @@ public abstract class QuickFix {
 public class InstantQuickFix : QuickFix {
   private readonly QuickFixEdit[] edits;
 
-  public InstantQuickFix(string title, QuickFixEdit[] edits) {
-    this.Title = title;
+  public InstantQuickFix(string title, QuickFixEdit[] edits) : base(title) {
     this.edits = edits;
   }
   public override QuickFixEdit[] GetEdits() {

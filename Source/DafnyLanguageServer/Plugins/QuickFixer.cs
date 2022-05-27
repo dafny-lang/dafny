@@ -5,7 +5,7 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 namespace Microsoft.Dafny.LanguageServer.Plugins;
 
 /// <summary>
-/// Plugins implement one or more QuickFixer to offer "quick code fixes",
+/// Plugins implement one or more QuickFixer to offer "quick code fixes".
 /// They should return very quickly, so most of the processing has to be done in the GetEdit()
 /// of every QuickFix.
 ///
@@ -16,7 +16,7 @@ namespace Microsoft.Dafny.LanguageServer.Plugins;
 /// and use `token.GetLspRange()`
 ///
 /// To get the start or end of a range as another range, use
-///   QuickFixerHelpers.GetStartRange(range) or ``range.GetStartRange()`
+///   QuickFixerHelpers.GetStartRange(range) or `range.GetStartRange()`
 /// </summary>
 public abstract class QuickFixer {
   /// <summary>

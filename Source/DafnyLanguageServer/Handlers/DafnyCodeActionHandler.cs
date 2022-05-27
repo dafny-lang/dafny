@@ -45,7 +45,6 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
   public IEnumerable<QuickFixWithId> GetFixesWithIds(QuickFixer[] fixers, DafnyDocument document, CodeActionParams request) {
     var ID = 0;
     foreach (var fixer in fixers) {
-      // Maybe we could set the program only once, when resolved, instead of for every code action?
       var fixerInput = new VerificationQuickFixerInput(document);
       var quickFixes = fixer.GetQuickFixes(fixerInput, request.Range);
       var fixerCodeActions = quickFixes.Select(quickFix =>
@@ -59,7 +58,7 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
   private readonly ConcurrentDictionary<string, IReadOnlyList<QuickFixWithId>> documentUriToQuickFixes = new();
 
   public override async Task<CommandOrCodeActionContainer> Handle(CodeActionParams request, CancellationToken cancellationToken) {
-    var document = await documents.GetLatestDocumentAsync(request.TextDocument);
+    var document = await documents.GetLastDocumentAsync(request.TextDocument);
     if (document == null) {
       logger.LogWarning("quick fixes requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
       return new CommandOrCodeActionContainer();

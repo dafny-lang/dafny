@@ -10,6 +10,10 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Language;
 
+/// <summary>
+/// A verification quick fixers provides quick "fixes" for verification errors.
+/// For now, it offers to inline a failing postcondition if there is no "return" keyword.
+/// </summary>
 class VerificationQuickFixer : DiagnosticQuickFixer {
   protected override IEnumerable<QuickFix>? GetQuickFixes(IQuickFixInput input, Diagnostic diagnostic, Range selection) {
     var uri = input.Uri;
