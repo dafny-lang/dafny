@@ -86,7 +86,7 @@ method Recurse(x: int) returns (r: int) {
 }".Trim();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var document = await Documents.GetVerifiedDocumentAsync(documentItem.Uri);
+      var document = await Documents.GetLastDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
       Assert.AreEqual(1, document.Diagnostics.Count(d => d.Severity == DiagnosticSeverity.Error));
       var message = document.Diagnostics.First(d => d.Severity!.Value == DiagnosticSeverity.Error);

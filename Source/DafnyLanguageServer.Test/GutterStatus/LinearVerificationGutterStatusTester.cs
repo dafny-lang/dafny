@@ -207,10 +207,11 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
         return new Position(line, character);
       }
 
+      var optionalNewLine = firstChangeMatch.Groups["newline"].Success ? "\n" : "";
       // For now, simple: Remove the line
       changes.Add(new Tuple<Range, string>(
-        new Range(IndexToPosition(startRemove), IndexToPosition(endRemove)), firstChangeMatch.Groups["newline"].Success ? "\n" : ""));
-      code = code.Substring(0, startRemove) + code.Substring(endRemove);
+        new Range(IndexToPosition(startRemove), IndexToPosition(endRemove)), optionalNewLine));
+      code = code.Substring(0, startRemove) + optionalNewLine + code.Substring(endRemove);
       matches = matcher.Matches(code);
     }
 

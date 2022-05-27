@@ -40,10 +40,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
     /// That way, we can instantly publish old verifications trees for the positions in the new document
     /// </summary>
     /// <param name="oldVerificationTree">The verification tree that should be relocated, including its children</param>
+    /// <param name="lines">The number of lines in the new document</param>
     /// <param name="documentChange">The applied changes to the text document that should be used for the relocation.</param>
     /// <param name="cancellationToken">A token to stop the relocation prior completion.</param>
     /// <returns></returns>
-    VerificationTree RelocateVerificationTree(VerificationTree oldVerificationTree, DidChangeTextDocumentParams documentChange, CancellationToken cancellationToken);
+    VerificationTree RelocateVerificationTree(VerificationTree oldVerificationTree, int lines, DidChangeTextDocumentParams documentChange, CancellationToken cancellationToken);
 
     /// <summary>
     /// Relocate previously recorded positions from a document to the next document.
