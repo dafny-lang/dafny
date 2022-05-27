@@ -12,7 +12,7 @@ namespace Microsoft.Dafny.LanguageServer.Plugins;
 /// To provide quick fixes for diagnostics related to the selection,
 /// implement the subclass 'DiagnosticQuickFixer'
 ///
-/// To convert a token to a LSP Range include `using Microsoft.Dafny.LanguageServer.Language;`
+/// To convert a token to an LSP Range include `using Microsoft.Dafny.LanguageServer.Language;`
 /// and use `token.GetLspRange()`
 ///
 /// To get the start or end of a range as another range, use

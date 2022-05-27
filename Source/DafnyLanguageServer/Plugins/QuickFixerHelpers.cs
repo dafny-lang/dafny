@@ -1,6 +1,8 @@
 ﻿using System;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
+using OmniSharp.Extensions.LanguageServer.Protocol;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Plugins;
@@ -10,7 +12,7 @@ namespace Microsoft.Dafny.LanguageServer.Plugins;
 /// </summary>
 public static class QuickFixerHelpers {
   /// <summary>
-  /// Given a LSP range and some text, extract the corresponding substring
+  /// Given an LSP range and some text, extract the corresponding substring
   /// </summary>
   /// <param name="range">The range to extract</param>
   /// <param name="text">The document</param>
@@ -29,8 +31,24 @@ public static class QuickFixerHelpers {
 
   /// <summary>
   /// Given the position of a closing brace '}' and the position of the opening brace '{',
-  /// returns spacing that can be used to insert a statement before it,
+  /// returns spacing that can be used to insert a statement before the closing brace,
   /// as well as spacing for after the statement
+  ///
+  /// For example, given:
+  /// ```
+  ///     {
+  ///       Some code here:
+  ///     }
+  /// ```
+  /// the method will return ("  ", "    "), so that it someone inserted the first value,
+  /// "assert X;\n" and the second value, the resulting code would be
+  /// ```
+  ///     {
+  ///       Some code here:
+  ///       assert X;
+  ///     }
+  /// ```
+  /// 
   /// </summary>
   /// <param name="endToken">The position of the closing brace</param>
   /// <param name="text">The document text</param>
@@ -83,14 +101,35 @@ public static class QuickFixerHelpers {
   }
 
   /// <summary>
-  /// Given an opening brace (typically where an error is detected),
+  /// Given the position of an opening brace of a Block, returns the range for the position just before the closing brace,
+  /// and indentation helpers as defined by GetIndentationBefore()
+  /// </summary>
+  /// <param name="input"></param>
+  /// <param name="openingBracePosition"></param>
+  /// <returns></returns>
+  public static (Range? beforeEndBrace, string indentationExtra, string indentationUntilBrace)
+      GetInformationToInsertAtEndOfBlock(IQuickFixInput input, Position openingBracePosition) {
+
+    var startToken = openingBracePosition.ToBoogieToken(input.Code);
+    var endToken = GetMatchingEndToken(input.Program!, input.Uri, startToken);
+    if (endToken == null) {
+      return (null, "", "");
+    }
+
+    var (extraIndentation, indentationUntilBrace) = GetIndentationBefore(endToken, startToken, input.Code);
+    var beforeClosingBrace = endToken.GetLspRange().GetStartRange();
+    return (beforeClosingBrace, extraIndentation, indentationUntilBrace);
+  }
+
+  /// <summary>
+  /// Given an opening brace of a Block (typically where an error is detected),
   /// finds and returns the closing brace token.
   /// </summary>
   /// <param name="program">The program</param>
   /// <param name="documentUri">The document URI</param>
   /// <param name="openingBrace">A token whose pos is the absolute position of the opening brace</param>
   /// <returns>The token of a matching closing brace, typically the `ÈndTok` of a BlockStmt</returns>
-  public static IToken? GetMatchingEndToken(Dafny.Program program, string documentUri, IToken openingBrace) {
+  private static IToken? GetMatchingEndToken(Dafny.Program program, string documentUri, IToken openingBrace) {
     // Look in methods for BlockStmt with the IToken as opening brace
     // Return the EndTok of them.
     foreach (var module in program.Modules()) {
@@ -119,7 +158,7 @@ public static class QuickFixerHelpers {
   /// returns the closing brace token, else null.
   /// Visit sub-statements recursively
   /// </summary>
-  public static IToken? GetMatchingEndToken(IToken openingBrace, Statement stmt) {
+  private static IToken? GetMatchingEndToken(IToken openingBrace, Statement stmt) {
     // Look in methods for BlockStmt with the IToken as opening brace
     // Return the EndTok of them.
     if (stmt is BlockStmt blockStmt && blockStmt.Tok.pos == openingBrace.pos) {

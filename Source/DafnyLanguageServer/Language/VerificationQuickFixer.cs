@@ -29,22 +29,19 @@ class VerificationQuickFixer : DiagnosticQuickFixer {
       return null;
     }
 
-    var relatedRange = relatedInformation.Location.Range;
-    var expression = QuickFixerHelpers.Extract(relatedRange, input.Code);
-    var startToken = diagnostic.Range.Start.ToBoogieToken(input.Code);
-    var endToken = QuickFixerHelpers.GetMatchingEndToken(input.Program!, uri, startToken);
-    if (endToken == null) {
+    var expression = QuickFixerHelpers.Extract(relatedInformation.Location.Range, input.Code);
+    var (beforeEndBrace, indentationExtra, indentationUntilBrace) =
+      QuickFixerHelpers.GetInformationToInsertAtEndOfBlock(input, diagnostic.Range.Start);
+    if (beforeEndBrace == null) {
       return null;
     }
 
-    var (extraIndentation, indentationUntilBrace) = QuickFixerHelpers.GetIndentationBefore(endToken, startToken, input.Code);
-    var beforeClosingBrace = endToken.GetLspRange().GetStartRange();
     return new QuickFix[] {
       new InstantQuickFix(
         "Make the failing assertion explicit",
         new[] {
-          new QuickFixEdit(beforeClosingBrace,
-            $"{extraIndentation}assert {expression};\n{indentationUntilBrace}")
+          new QuickFixEdit(beforeEndBrace,
+            $"{indentationExtra}assert {expression};\n{indentationUntilBrace}")
         }
       )
     };

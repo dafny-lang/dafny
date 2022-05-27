@@ -7,7 +7,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace PluginsQuickFixTest {
   /// <summary>
-  ///  Small plugin that detects all extern methods and verifies that there are test methods that actually invoke them.
+  ///  Small plugin that provides a code action to add a dummy comment in front of the first token of the program
   /// </summary>
   public class TestConfiguration : Microsoft.Dafny.LanguageServer.Plugins.PluginConfiguration {
     public override QuickFixer[] GetQuickFixers() {
