@@ -4,6 +4,6 @@
     public const string CompilationStatus = "dafny/compilation/status";
     public const string GhostDiagnostics = "dafny/ghost/diagnostics";
     public const string VerificationStatusGutter = "dafny/verification/status/gutter";
-    public const string VerificationSymbolStatus = "textDocument/dafny/symbolStatus";
+    public const string VerificationSymbolStatus = "dafny/textDocument/symbolStatus";
   }
 }
