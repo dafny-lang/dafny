@@ -446,7 +446,6 @@ namespace Microsoft.Dafny {
       rewriters.Add(new InductionRewriter(reporter));
       rewriters.Add(new PrintEffectEnforcement(reporter));
 
-      var builtInRewritersCount = rewriters.Count;
       foreach (var plugin in DafnyOptions.O.Plugins) {
         rewriters.AddRange(plugin.GetRewriters(reporter));
       }
@@ -713,16 +712,10 @@ namespace Microsoft.Dafny {
         }
       }
 
-      foreach (var rewriter in rewriters.Take(builtInRewritersCount)) {
-        rewriter.PostResolve(prog);
-      }
-      ErrorsCountWithoutPlugin = reporter.ErrorCount;
-      foreach (var rewriter in rewriters.Skip(builtInRewritersCount)) {
+      foreach (var rewriter in rewriters) {
         rewriter.PostResolve(prog);
       }
     }
-
-    public int ErrorsCountWithoutPlugin { get; private set; }
 
     void FillInDefaultDecreasesClauses(Program prog) {
       Contract.Requires(prog != null);
@@ -18006,6 +17999,10 @@ namespace Microsoft.Dafny {
 
       public override int Count(ErrorLevel level) {
         return level == ErrorLevel.Error && Collected ? 1 : 0;
+      }
+
+      public override int CountExceptVerifierAndCompiler(ErrorLevel level) {
+        return Count(level);
       }
     }
 

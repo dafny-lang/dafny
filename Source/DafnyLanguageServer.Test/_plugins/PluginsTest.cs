@@ -22,7 +22,7 @@ namespace PluginsTest {
     }
 
     public override void PostResolve(ModuleDefinition moduleDefinition) {
-      Reporter.Error(MessageSource.Compiler, moduleDefinition.GetFirstTopLevelToken(), "Impossible to continue " + configuration.Argument);
+      Reporter.Error(MessageSource.Resolver, moduleDefinition.GetFirstTopLevelToken(), "Impossible to continue " + configuration.Argument);
     }
   }
 

@@ -52,7 +52,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     private bool RunDafnyResolver(TextDocumentItem document, Dafny.Program program) {
       var resolver = new Resolver(program);
       resolver.ResolveProgram(program);
-      int resolverErrors = resolver.ErrorsCountWithoutPlugin;
+      int resolverErrors = resolver.Reporter.CountExceptVerifierAndCompiler(ErrorLevel.Error);
       if (resolverErrors > 0) {
         logger.LogDebug("encountered {ErrorCount} errors while resolving {DocumentUri}", resolverErrors, document.Uri);
         return false;
