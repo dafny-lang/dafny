@@ -219,10 +219,31 @@ bool IsIdentifier(int kind) {
   return kind == _ident || kind == _least || kind == _greatest || kind == _older;
 }
 
-bool IsCommaIdentifier() {
+bool IsQuantifierVariableDecl(bool requireTypeOrDomain) {
   scanner.ResetPeek();
+  
+  if (la.kind != _comma) {
+    return false;
+  }
+  
   IToken x = scanner.Peek();
-  return la.kind == _comma && IsIdentifier(x.kind);
+  if (!IsIdentifier(x.kind)) {
+    return false;
+  }
+  
+  if (!requireTypeOrDomain) {
+    return true;
+  }
+  
+  x = scanner.Peek();
+  if (x.kind == _colon) {
+    return true;
+  } else if (x.kind == _openAngleBracket) {
+    x = scanner.Peek();
+    return x.kind == _minus;
+  } else {
+    return false;
+  }
 }
 
 
@@ -900,6 +921,7 @@ TOKENS
   sarrow = "->".
   qarrow = "~>".
   larrow = "-->".
+  minus = "-".
 COMMENTS FROM "/*" TO "*/" NESTED
 COMMENTS FROM "//" TO lf
 IGNORE cr + lf + tab
@@ -4720,7 +4742,16 @@ QuantifierDomain<.out List<BoundVar> bvars, out Attributes attrs, out Expression
      range = null;
   .)
   QuantifierVariableDecl<out qv, ref attrs, allowLemma, allowLambda, allowBitwiseOps>         (. qvars.Add(qv); .)
-  { IF(IsCommaIdentifier())
+  { // This predicate requires an explicit domain (<- C) or an explicit type (: T),
+    // to disambiguate comprehensions with multiple variables from comma-separated lists of expressions.
+    // The following will be parsed as two arguments to the print statement, as opposed to a single
+    // comprehension of two variables (and an invalid one to boot, since it would need an explicit term).
+    // 
+    // print set x: x | E, y;
+    //
+    // This is partially due to the ambiguity of | as either a delimiter for a quantified variable range
+    // or a bitwise "or" operator.
+    IF(IsQuantifierVariableDecl(qv.Range != null))
     ","
     QuantifierVariableDecl<out qv, ref attrs, allowLemma, allowLambda, allowBitwiseOps>       (. qvars.Add(qv); .)
   }
