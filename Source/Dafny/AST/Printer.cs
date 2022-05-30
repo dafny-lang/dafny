@@ -2626,21 +2626,14 @@ namespace Microsoft.Dafny {
         }
         if (parensNeeded) { wr.Write(")"); }
 
-      } else if (expr is CollectionComprehension) {
-        var e = (CollectionComprehension)expr;
+      } else if (expr is SetComprehension) {
+        var e = (SetComprehension)expr;
         bool parensNeeded = !isRightmost;
         if (parensNeeded) { wr.Write("("); }
-        switch (e) {
-          case SetComprehension se:
-            if (e.Finite) {
-              wr.Write("set ");
-            } else {
-              wr.Write("iset ");
-            }
-            break;
-          case SeqComprehension se:
-            wr.Write("seq ");
-            break;
+        if (e.Finite) {
+          wr.Write("set ");
+        } else {
+          wr.Write("iset ");
         }
         
         string sep = "";

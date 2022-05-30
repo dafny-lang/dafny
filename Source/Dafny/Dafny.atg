@@ -443,12 +443,6 @@ bool ExprIsSetDisplay() {
   return false;
 }
 
-bool IsSeqConstruction() {
-  scanner.ResetPeek();
-  int k = scanner.Peek().kind;
-  return la.kind == _seq && (k == _openparen || k == _openAngleBracket);
-}
-
 bool IsSuffix() {
   return la.kind == _dot || la.kind == _lbracket || la.kind == _openparen;
 }
@@ -3978,9 +3972,6 @@ PrimaryExpression<out Expression e, bool allowLemma, bool allowLambda, bool allo
   | IF(ExprIsSetDisplay())  /* this alternative must be checked before going into EndlessExpression, where there is another "iset" */
     SetDisplayExpr<out e>
     { IF(IsSuffix()) Suffix<ref e> }
-  | IF(IsSeqConstruction())  /* this alternative must be checked before going into EndlessExpression, where there is another "seq" */
-    SeqConstructionExpr<out e>
-    { IF(IsSuffix()) Suffix<ref e> }
   | IF(IsLambda(allowLambda))
     LambdaExpression<out e, allowLemma, allowBitwiseOps>  /* this is an endless expression */
   | EndlessExpression<out e, allowLemma, allowLambda, allowBitwiseOps>
@@ -4179,36 +4170,34 @@ SetDisplayExpr<out Expression e>
 SeqDisplayExpr<out Expression e>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
      IToken x = null;
-  .)
-  "["                                      (. List<Expression> elements = new List<Expression/*!*/>();
-                                              x = t;
-                                           .)
-  [ Expressions<elements> ]                (. e = new SeqDisplayExpr(x, elements);
-                                           .)
-  "]"
-  .
-
-/*------------------------------------------------------------------------*/
-SeqConstructionExpr<out Expression e>
-= (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
-     IToken x = null;
      Type explicitTypeArg = null;
      Expression n, f;
+     e = dummyExpr;
   .)
-  "seq"                          (. x = t; .)
-  [ (. var gt = new List<Type>(); .)
-  GenericInstantiation<gt>     (. if (gt.Count > 1) {
-                                    SemErr("seq type expects only one type argument");
-                                  } else {
-                                    explicitTypeArg = gt[0];
-                                  }
-                               .)
-  ]
-  "("
-  Expression<out n, true, true>
-  ","
-  Expression<out f, true, true>
-  ")"                            (. e = new SeqConstructionExpr(x, explicitTypeArg, n, f); .)
+  (
+    "seq"                          (. x = t; .)
+    [ (. var gt = new List<Type>(); .)
+    GenericInstantiation<gt>     (. if (gt.Count > 1) {
+                                      SemErr("seq type expects only one type argument");
+                                    } else {
+                                      explicitTypeArg = gt[0];
+                                    }
+                                 .)
+    ]
+    "("
+    Expression<out n, true, true>
+    ","
+    Expression<out f, true, true>
+    ")"                            (. e = new SeqConstructionExpr(x, explicitTypeArg, n, f); .)
+  |
+    "["                                      (. List<Expression> elements = new List<Expression/*!*/>();
+                                                x = t;
+
+                                             .)
+    [ Expressions<elements> ]                (. e = new SeqDisplayExpr(x, elements);
+                                             .)
+    "]"
+  )
   .
 
 /*------------------------------------------------------------------------*/
@@ -4268,7 +4257,6 @@ EndlessExpression<out Expression e, bool allowLemma, bool allowLambda, bool allo
   | MatchExpression<out e, allowLemma, allowLambda, allowBitwiseOps>
   | QuantifierExpression<out e, allowLemma, allowLambda>  /* types are such that we can allow bitwise operations in the quantifier body */
   | SetComprehensionExpr<out e, allowLemma, allowLambda, allowBitwiseOps>
-  | SeqComprehensionExpr<out e, allowLemma, allowLambda, allowBitwiseOps>
   | StmtInExpr<out s>
     Expression<out e, allowLemma, allowLambda, allowBitwiseOps>    (. e = new StmtExpr(s.Tok, s, e); .)
   | LetExpression<out e, allowLemma, allowLambda, allowBitwiseOps>
@@ -4804,29 +4792,6 @@ SetComprehensionExpr<out Expression q, bool allowLemma, bool allowLambda, bool a
   .)
   .
   
-/*------------------------------------------------------------------------*/
-SeqComprehensionExpr<out Expression q, bool allowLemma, bool allowLambda, bool allowBitwiseOps>
-= (. Contract.Ensures(Contract.ValueAtReturn(out q) != null);
-     List<BoundVar/*!*/> bvars = new List<BoundVar>();
-     Expression range;
-     Expression body = null;
-     Attributes attrs = null;
-  .)
-  "seq"                                        (. IToken seqToken = t; .)
-  QuantifierDomain<out bvars, out attrs, out range, allowLemma, allowLambda, allowBitwiseOps>
-  [ IF(IsQSep())  /* let any given body bind to the closest enclosing seq comprehension */
-    QSep
-    Expression<out body, allowLemma, allowLambda, allowBitwiseOps>
-  ]
-  (. if (body == null && bvars.Count != 1) {
-       SemErr(t, "a seq comprehension with more than one bound variable must have a term expression");
-       q = dummyExpr;
-     } else {
-       q = new SeqComprehension(seqToken, t, bvars, range, body, attrs);
-     }
-  .)
-  .
-
 /*------------------------------------------------------------------------*/
 Expressions<.List<Expression> args.>
 = (. Expression e; .)
