@@ -5465,7 +5465,7 @@ namespace Microsoft.Dafny {
                   return false;  // there is not enough information
                 }
               }
-              if (t.IsRefType) {
+              if (t.IsRefType && (arrTy == null || collType != null)) {
                 resolver.ConstrainSubtypeRelation_Equal(u, t, errorMsg);
                 convertedIntoOtherTypeConstraints = true;
                 return true;
