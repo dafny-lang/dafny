@@ -15260,7 +15260,7 @@ namespace Microsoft.Dafny {
         ResolveAttributes(e, opts);
         scope.PopMarker();
         expr.Type = new SetType(e.Finite, e.Term.Type);
-          
+
       } else if (expr is MapComprehension) {
         var e = (MapComprehension)expr;
         int prevErrorCount = reporter.Count(ErrorLevel.Error);

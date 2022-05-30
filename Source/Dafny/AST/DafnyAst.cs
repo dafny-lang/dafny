@@ -11995,7 +11995,6 @@ namespace Microsoft.Dafny {
       Finite = finite;
     }
   }
-
   public class MapComprehension : ComprehensionExpr {
     public override string WhatKind => "map comprehension";
 

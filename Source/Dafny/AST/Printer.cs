@@ -2635,7 +2635,6 @@ namespace Microsoft.Dafny {
         } else {
           wr.Write("iset ");
         }
-        
         string sep = "";
         foreach (BoundVar bv in e.BoundVars) {
           wr.Write("{0}{1}", sep, bv.DisplayName);

@@ -4791,7 +4791,7 @@ SetComprehensionExpr<out Expression q, bool allowLemma, bool allowLambda, bool a
      }
   .)
   .
-  
+
 /*------------------------------------------------------------------------*/
 Expressions<.List<Expression> args.>
 = (. Expression e; .)
