@@ -875,7 +875,10 @@ namespace Microsoft.Dafny {
               new ApplyExpr(e.tok, e, bexprs) {
                 Type = new SetType(true, builtIns.ObjectQ())
               }) {
-              ResolvedOp = BinaryExpr.ResolvedOpcode.InSet,
+              ResolvedOp =
+                arrTy.Result.AsMultiSetType != null ? BinaryExpr.ResolvedOpcode.InMultiSet :
+                arrTy.Result.AsSeqType != null ? BinaryExpr.ResolvedOpcode.InSeq :
+                BinaryExpr.ResolvedOpcode.InSet,
               Type = Type.Bool
             }, obj, null) {
             Type = new SetType(true, builtIns.ObjectQ())
