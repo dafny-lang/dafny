@@ -55,6 +55,27 @@ method Bar() { assert false; }";
   }
 
   [TestMethod]
+  public async Task OnceFirstIsRunningSecondShouldBeQueued() {
+    var source = @"method Foo() { assert false; }
+method Bar() { assert false; }";
+
+    await SetUp(new Dictionary<string, string>() {
+      { $"{VerifierOptions.Section}:{nameof(VerifierOptions.VcsCores)}", 1.ToString() }
+    });
+    var documentItem = CreateTestDocument(source);
+    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+    var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+    Assert.AreEqual(0, resolutionDiagnostics.Length);
+
+    FileVerificationStatus status;
+    do {
+      status = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+    } while (status.NamedVerifiables.All(v => v.Status != PublishedVerificationStatus.Running));
+
+    Assert.IsTrue(status.NamedVerifiables.All(v => v.Status != PublishedVerificationStatus.Stale));
+  }
+
+  [TestMethod]
   public async Task WhenUsingOnSaveMethodStaysStaleUntilSave() {
     var source = @"method Foo() { assert false; }
 ";

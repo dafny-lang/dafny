@@ -191,8 +191,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           implementationTasks.Select(t => t.Implementation).ToArray());
       }
 
-      var result = GetVerifiedDafnyDocuments(document, implementationTasks, progressReporter);
-
       foreach (var implementationTask in implementationTasks) {
         cancellationToken.Register(implementationTask.Cancel);
         try {
@@ -204,6 +202,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           progressReporter.ReportStartVerifyImplementation(implementationTask.Implementation);
         }
       }
+      var result = GetVerifiedDafnyDocuments(document, implementationTasks, progressReporter);
 
       if (VerifierOptions.GutterStatus) {
         ReportRealtimeDiagnostics(document, result, progressReporter, cancellationToken);
@@ -220,12 +219,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var counterExamples = new ConcurrentStack<Counterexample>();
 
       var implementationsUpdates = implementationTasks.Select(implementationTask =>
-        implementationTask.ObservableStatus.SelectMany(boogieStatus =>
+        implementationTask.ObservableStatus.SelectMany(boogieStatus => boogieStatus == VerificationStatus.Stale ? Observable.Empty<DafnyDocument>() :
           HandleStatusUpdate(implementationTask, boogieStatus).ToObservable()));
       var result = implementationsUpdates.Merge().Replay();
       result.Connect();
-      return result;
 
+      var initial = document with {
+        ImplementationViews = implementationViews.ToImmutableDictionary(),
+      };
+      return Observable.Return(initial).Concat(result);
 
       async Task<DafnyDocument> HandleStatusUpdate(IImplementationTask implementationTask, VerificationStatus boogieStatus) {
         var id = GetImplementationId(implementationTask.Implementation);
@@ -268,12 +270,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       });
     }
 
-    private static ConcurrentDictionary<ImplementationId, ImplementationView> GetExistingViews(DafnyDocument document, IReadOnlyList<IImplementationTask> implementationTasks) {
+    private ConcurrentDictionary<ImplementationId, ImplementationView> GetExistingViews(DafnyDocument document, IReadOnlyList<IImplementationTask> implementationTasks) {
       var viewDictionary = new ConcurrentDictionary<ImplementationId, ImplementationView>();
       foreach (var task in implementationTasks) {
         var id = GetImplementationId(task.Implementation);
         if (document.ImplementationViews!.TryGetValue(id, out var existingView)) {
-          viewDictionary.TryAdd(id, existingView);
+          viewDictionary.TryAdd(id, existingView with { Status = StatusFromImplementationTaskAsync(task).Result });
         }
       }
 
