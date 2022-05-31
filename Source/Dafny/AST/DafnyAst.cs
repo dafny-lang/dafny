@@ -6157,6 +6157,10 @@ namespace Microsoft.Dafny {
           range = range == null ? qvar.Range :  new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, range, qvar.Range);
         }
       }
+
+      if (range == null) {
+        range = LiteralExpr.CreateBoolLiteral(Token.NoToken, true);
+      }
     }
   }
 
@@ -11484,11 +11488,19 @@ namespace Microsoft.Dafny {
 
   /// <summary>
   /// A ComprehensionExpr has the form:
-  ///   BINDER x Attributes | Range(x) :: Term(x)
-  /// When BINDER is "forall" or "exists", the range may be "null" (which stands for the logical value "true").
-  /// For other BINDERs (currently, "set"), the range is non-null.
-  /// where "Attributes" is optional, and "| Range(x)" is optional and defaults to "true".
-  /// Currently, BINDER is one of the logical quantifiers "exists" or "forall".
+  ///   BINDER { x [: Type] [<- Domain] [Attributes] [| Range] } [:: Term(x)]
+  /// Where BINDER is currently "forall", "exists", "iset"/"set", or "imap"/"map".
+  ///
+  /// Quantifications used to only support a single range, but now each
+  /// quantified variable can have a range attached.
+  /// The overall Range is now filled in by the resolver by extracting any implicit
+  /// "x in Domain" constraints and per-variable Range constraints into a single conjunct.
+  ///
+  /// The Term is optional if the expression only has one quantified variable,
+  /// but required otherwise.
+  /// 
+  /// LambdaExpr also inherits from this base class but isn't really a comprehension,
+  /// and should be considered implementation inheritance.
   /// </summary>
   public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBearingExpression {
     public virtual string WhatKind => "comprehension";
