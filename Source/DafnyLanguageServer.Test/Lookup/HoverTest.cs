@@ -44,11 +44,11 @@ method CallDoIt() returns () {
       var documentItem = CreateTestDocument(NeverVerifies);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
-      client.OpenDocument(documentItem);
       var verificationTask = GetLastDiagnostics(documentItem, CancellationToken);
       var definitionTask = RequestHover(documentItem, (4, 14));
       var first = await Task.WhenAny(verificationTask, definitionTask);
-      Assert.AreSame(first, definitionTask);
+      Assert.IsFalse(verificationTask.IsCompleted);
+      Assert.AreSame(first, definitionTask, first.ToString());
     }
 
     [TestMethod]
