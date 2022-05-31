@@ -301,7 +301,10 @@ method Inner(x: nat, y: nat)
 ```
 The ingredients are simple, but the end result may seem like magic. For many users, however, there may be no magic at all -- the end result may be so natural that the user never even has to be bothered to think about that there was a need to prove termination in the first place.
 
-TODO: Should there be user-level syntax to invoke this termination ordering
+Though Dafny fixes a well-founded order that it uses when checking
+termination, Dafny does not surface this ordering directly in
+expressions. That is, syntactically, there is no single operator that
+stands for the well-founded ordering.
 
 ### 5.1.4. Framing {#sec-frame-expression}
 ````grammar
