@@ -108,6 +108,7 @@ namespace Microsoft.Dafny {
     public bool WarnShadowing = false;
     public int DefiniteAssignmentLevel = 1; // [0..4]
     public FunctionSyntaxOptions FunctionSyntax = FunctionSyntaxOptions.Version3;
+    public QuantifierSyntaxOptions QuantifierSyntax = QuantifierSyntaxOptions.Version3;
 
     public enum FunctionSyntaxOptions {
       Version3,
@@ -115,6 +116,11 @@ namespace Microsoft.Dafny {
       ExperimentalTreatUnspecifiedAsGhost,
       ExperimentalTreatUnspecifiedAsCompiled,
       ExperimentalPredicateAlwaysGhost,
+      Version4,
+    }
+    
+    public enum QuantifierSyntaxOptions {
+      Version3,
       Version4,
     }
 
@@ -448,6 +454,18 @@ namespace Microsoft.Dafny {
               FunctionSyntax = FunctionSyntaxOptions.ExperimentalTreatUnspecifiedAsCompiled;
             } else if (args[ps.i] == "experimentalPredicateAlwaysGhost") {
               FunctionSyntax = FunctionSyntaxOptions.ExperimentalPredicateAlwaysGhost;
+            } else {
+              InvalidArgumentError(name, ps);
+            }
+          }
+          return true;
+
+        case "quantifierSyntax":
+          if (ps.ConfirmArgumentCount(1)) {
+            if (args[ps.i] == "3") {
+              QuantifierSyntax = QuantifierSyntaxOptions.Version3;
+            } else if (args[ps.i] == "4") {
+              QuantifierSyntax = QuantifierSyntaxOptions.Version4;
             } else {
               InvalidArgumentError(name, ps);
             }

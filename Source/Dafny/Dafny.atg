@@ -219,31 +219,32 @@ bool IsIdentifier(int kind) {
   return kind == _ident || kind == _least || kind == _greatest || kind == _older;
 }
 
-bool IsQuantifierVariableDecl(bool requireTypeOrDomain) {
+bool IsQuantifierVariableDecl(QuantifiedVar previousVar) {
+  // Introducing per-quantified variable ranges creates some ambiguities in the grammar,
+  // since before that the range would terminate the quantifed domain. For example, the following statement:
+  //
+  // print set x: x | E, y;
+  //
+  // This would previously parse as two separate arguments to the print statement, but
+  // could now also be parsed as a single set comprehension argument with two quantified variables
+  // (and an invalid one since it would need an explicit ":: <Term>" section).
+  // Even worse:
+  //
+  // print set x: x | E, y <- C;
+  //
+  // This was a valid statement before as well, because "y <- C" would be parsed as the expression
+  // "y < (-C)".
+  //
+  // The /quantifierSyntax option is used to help migrate this otherwise breaking change:
+  // * /quantifierSyntax:3 keeps the old behaviour where a "| <Range>" always terminates the list of quantified variables.
+  // * /quantifierSyntax:4 instead attempts to parse additional quantified variables.
+  if (previousVar.Range != null && theOptions.QuantifierSyntax == DafnyOptions.QuantifierSyntaxOptions.Version3) {
+    return false;
+  }
+
   scanner.ResetPeek();
-  
-  if (la.kind != _comma) {
-    return false;
-  }
-  
   IToken x = scanner.Peek();
-  if (!IsIdentifier(x.kind)) {
-    return false;
-  }
-  
-  if (!requireTypeOrDomain) {
-    return true;
-  }
-  
-  x = scanner.Peek();
-  if (x.kind == _colon) {
-    return true;
-  } else if (x.kind == _openAngleBracket) {
-    x = scanner.Peek();
-    return x.kind == _minus;
-  } else {
-    return false;
-  }
+  return la.kind == _comma && IsIdentifier(x.kind);
 }
 
 
@@ -1694,6 +1695,10 @@ GenericParameters<.List<TypeParameter/*!*/>/*!*/ typeArgs, bool allowVariance.>
      TypeParameter.TPVarianceSyntax variance = TypeParameter.TPVarianceSyntax.NonVariant_Strict;  // assignment is to please compiler
      characteristics = new TypeParameter.TypeParameterCharacteristics(false);
   .)
+  // If a "<" combined with a Variance symbol could be a new token, then the parser here will need to be more complex,
+  // since, for example, a < followed immediately by a Variance symbol would scan as the wrong token.
+  // Fortunately that is not currently the case.
+  // (Only because we parse the new "<-" symbol as separate "<" "-" tokens precisely to avoid this issue :)
   "<"
   [ Variance<out variance>  (. if (!allowVariance) { SemErr(t, "type-parameter variance is not allowed to be specified in this context"); } .)
   ]
@@ -4730,16 +4735,7 @@ QuantifierDomain<.out List<BoundVar> bvars, out Attributes attrs, out Expression
      range = null;
   .)
   QuantifierVariableDecl<out qv, ref attrs, allowLemma, allowLambda, allowBitwiseOps>         (. qvars.Add(qv); .)
-  { // This predicate requires an explicit domain (<- C) or an explicit type (: T),
-    // to disambiguate comprehensions with multiple variables from comma-separated lists of expressions.
-    // The following will be parsed as two arguments to the print statement, as opposed to a single
-    // comprehension of two variables (and an invalid one to boot, since it would need an explicit term).
-    // 
-    // print set x: x | E, y;
-    //
-    // This is partially due to the ambiguity of | as either a delimiter for a quantified variable range
-    // or a bitwise "or" operator.
-    IF(IsQuantifierVariableDecl(qv.Range != null))
+  { IF(IsQuantifierVariableDecl(qv))
     ","
     QuantifierVariableDecl<out qv, ref attrs, allowLemma, allowLambda, allowBitwiseOps>       (. qvars.Add(qv); .)
   }
@@ -4749,11 +4745,15 @@ QuantifierDomain<.out List<BoundVar> bvars, out Attributes attrs, out Expression
 /*------------------------------------------------------------------------*/
 QuantifierVariableDecl<.out QuantifiedVar qvar, ref Attributes attrs, bool allowLemma, bool allowLambda, bool allowBitwiseOps.>
 = (.
-     BoundVar/*!*/ bv;
+     IToken tok;
+     IToken id;
+     Type optType = null;
      Expression domain = null;
      Expression range = null;
   .)
-  IdentTypeOptional<out bv>
+  WildIdent<out id, true>
+  [ ":" TypeAndToken<out tok, out optType, true>
+  ]
   [ // "<-" can also appear in GenericParameters in something like "<-T>",
     // so we parse it as two separate tokens.
     "<" "-"
@@ -4765,7 +4765,7 @@ QuantifierVariableDecl<.out QuantifiedVar qvar, ref Attributes attrs, bool allow
   [ "|"
     Expression<out range, allowLemma, allowLambda, allowBitwiseOps>
   ]
-  (. qvar = new QuantifiedVar(bv.tok, bv.Name, bv.SyntacticType, domain, range); .)
+  (. qvar = new QuantifiedVar(id, id.val, optType == null ? new InferredTypeProxy() : optType, domain, range); .)
   .
 
 /*------------------------------------------------------------------------*/
