@@ -118,7 +118,7 @@ namespace Microsoft.Dafny {
       ExperimentalPredicateAlwaysGhost,
       Version4,
     }
-    
+
     public enum QuantifierSyntaxOptions {
       Version3,
       Version4,

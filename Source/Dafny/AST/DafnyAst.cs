@@ -6127,12 +6127,12 @@ namespace Microsoft.Dafny {
       Contract.Requires(type != null);
     }
   }
-  
+
   [DebuggerDisplay("Quantified<{name}>")]
   public class QuantifiedVar : BoundVar {
     public readonly Expression Domain;
     public readonly Expression Range;
-    
+
     public QuantifiedVar(IToken tok, string name, Type type, Expression domain, Expression range)
       : base(tok, name, type) {
       Contract.Requires(tok != null);
@@ -6145,16 +6145,16 @@ namespace Microsoft.Dafny {
     public static void ExtractSingleRange(List<QuantifiedVar> qvars, out List<BoundVar> bvars, out Expression range) {
       bvars = new List<BoundVar>();
       range = null;
-      foreach(var qvar in qvars) {
+      foreach (var qvar in qvars) {
         BoundVar bvar = new BoundVar(qvar.tok, qvar.Name, qvar.SyntacticType);
         bvars.Add(bvar);
         if (qvar.Domain != null) {
-          var inDomainExpr = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.In, new IdentifierExpr(bvar.tok, bvar), qvar.Domain); 
-          range = range == null ? inDomainExpr :  new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, range, inDomainExpr);
+          var inDomainExpr = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.In, new IdentifierExpr(bvar.tok, bvar), qvar.Domain);
+          range = range == null ? inDomainExpr : new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, range, inDomainExpr);
         }
 
         if (qvar.Range != null) {
-          range = range == null ? qvar.Range :  new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, range, qvar.Range);
+          range = range == null ? qvar.Range : new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, range, qvar.Range);
         }
       }
 
