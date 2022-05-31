@@ -16,9 +16,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Diagnostics;
 public class LinearRenderingTest {
   public static LineVerificationStatus RenderLineVerificationStatusOriginal(
       bool isSingleLine, bool contextHasErrors, bool contextIsPending,
-      CurrentStatus currentStatus, VerificationStatus verificationStatus) {
+      CurrentStatus currentStatus, GutterVerificationStatus verificationStatus) {
     return verificationStatus switch {
-      VerificationStatus.Nothing =>
+      GutterVerificationStatus.Nothing =>
         currentStatus switch {
           CurrentStatus.Current => LineVerificationStatus.Nothing,
           CurrentStatus.Obsolete => LineVerificationStatus.Scheduled,
@@ -27,7 +27,7 @@ public class LinearRenderingTest {
         },
       // let's be careful to no display "Verified" for a range if the context does not have errors and is pending
       // because there might be other errors on the same range.
-      VerificationStatus.Verified => currentStatus switch {
+      GutterVerificationStatus.Verified => currentStatus switch {
         CurrentStatus.Current => contextHasErrors
           ? isSingleLine // Sub-implementations that are verified do not count
             ? LineVerificationStatus.AssertionVerifiedInErrorContext
@@ -53,13 +53,13 @@ public class LinearRenderingTest {
       },
       // We don't display inconclusive on the gutter (user should focus on errors),
       // We display an error range instead
-      VerificationStatus.Inconclusive => currentStatus switch {
+      GutterVerificationStatus.Inconclusive => currentStatus switch {
         CurrentStatus.Current => LineVerificationStatus.ErrorContext,
         CurrentStatus.Obsolete => LineVerificationStatus.ErrorContextObsolete,
         CurrentStatus.Verifying => LineVerificationStatus.ErrorContextVerifying,
         _ => throw new ArgumentOutOfRangeException()
       },
-      VerificationStatus.Error => currentStatus switch {
+      GutterVerificationStatus.Error => currentStatus switch {
         CurrentStatus.Current => isSingleLine ? LineVerificationStatus.AssertionFailed : LineVerificationStatus.ErrorContext,
         CurrentStatus.Obsolete => isSingleLine
           ? LineVerificationStatus.AssertionFailedObsolete
@@ -75,7 +75,7 @@ public class LinearRenderingTest {
 
   [TestMethod]
   public void EnsureRenderingIsCoherent() {
-    foreach (VerificationStatus verificationStatus in Enum.GetValues(typeof(VerificationStatus))) {
+    foreach (GutterVerificationStatus verificationStatus in Enum.GetValues(typeof(GutterVerificationStatus))) {
       foreach (CurrentStatus currentStatus in Enum.GetValues(typeof(CurrentStatus))) {
         var isSingleLine = true; do {
           var contextHasError = true; do {

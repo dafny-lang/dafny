@@ -2,15 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
-using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.JsonRpc;
-using OmniSharp.Extensions.LanguageServer.Protocol.Client;
-using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
@@ -207,10 +204,11 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
         return new Position(line, character);
       }
 
+      var optionalNewLine = firstChangeMatch.Groups["newline"].Success ? "\n" : "";
       // For now, simple: Remove the line
       changes.Add(new Tuple<Range, string>(
-        new Range(IndexToPosition(startRemove), IndexToPosition(endRemove)), firstChangeMatch.Groups["newline"].Success ? "\n" : ""));
-      code = code.Substring(0, startRemove) + code.Substring(endRemove);
+        new Range(IndexToPosition(startRemove), IndexToPosition(endRemove)), optionalNewLine));
+      code = code.Substring(0, startRemove) + optionalNewLine + code.Substring(endRemove);
       matches = matcher.Matches(code);
     }
 

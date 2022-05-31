@@ -28,7 +28,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// A dafny document representing the loaded text document.
     /// If there was a newer existing text document already loaded, it will be returned instead.
     /// </returns>
-    IObservable<DafnyDocument> OpenDocument(TextDocumentItem document);
+    IObservable<DafnyDocument> OpenDocument(DocumentTextBuffer document);
 
     /// <summary>
     /// Updates a document with the specified changes.
@@ -69,6 +69,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
   public interface IDocumentEntry {
     Task<DafnyDocument> ResolvedDocument { get; }
+    Task<DafnyDocument> TranslatedDocument { get; }
     Task<DafnyDocument> LatestDocument { get; }
     Task<DafnyDocument> LastDocument { get; }
   }
