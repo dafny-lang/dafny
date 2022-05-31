@@ -28,6 +28,7 @@ namespace Microsoft.Dafny {
 
     public bool HasErrors => ErrorCount > 0;
     public int ErrorCount => Count(ErrorLevel.Error);
+    public bool HasErrorsUntilResolver => ErrorCountUntilResolver > 0;
     public int ErrorCountUntilResolver => CountExceptVerifierAndCompiler(ErrorLevel.Error);
 
 

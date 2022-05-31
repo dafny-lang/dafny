@@ -91,7 +91,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public async Task<DafnyDocument> PrepareVerificationTasksAsync(DafnyDocument loaded, CancellationToken cancellationToken) {
-      if (loaded.ParseAndResolutionDiagnostics.Any(d => d.Severity == DiagnosticSeverity.Error)) {
+      if (loaded.ParseAndResolutionDiagnostics.Any(d =>
+            d.Severity == DiagnosticSeverity.Error &&
+            d.Source != MessageSource.Compiler.ToString() &&
+            d.Source != MessageSource.Verifier.ToString())) {
         throw new TaskCanceledException();
       }
 
@@ -135,8 +138,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(symbolTable, cancellationToken).ToArray();
 
       return new DafnyDocument(textDocument,
-        canDoVerification,
         errorReporter.GetDiagnostics(textDocument.Uri),
+        canDoVerification,
         new Dictionary<ImplementationId, ImplementationView>(),
         Array.Empty<Counterexample>(),
         ghostDiagnostics, program, symbolTable);
@@ -159,7 +162,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return new DafnyDocument(
         textDocument,
         errorReporter.GetDiagnostics(textDocument.Uri),
-        new Dictionary<ImplementationId, IReadOnlyList<Diagnostic>>(),
+        false,
+        new Dictionary<ImplementationId, ImplementationView>(),
         Array.Empty<Counterexample>(),
         Array.Empty<Diagnostic>(),
         program,
