@@ -20,7 +20,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     private readonly ILogger logger;
     private readonly IDocumentDatabase documents;
 
-    private const int RuLimitToBeOverCostly = 10000000;
+    public static int RuLimitToBeOverCostly = 10000000;
     private const string OverCostlyMessage =
       " [⚠](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-verification-debugging-slow)";
 

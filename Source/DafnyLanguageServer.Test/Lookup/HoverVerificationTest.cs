@@ -2,6 +2,7 @@
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
+using Microsoft.Dafny.LanguageServer.Handlers;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Language;
@@ -194,7 +195,10 @@ method f(x: int) {
 
     [TestMethod, Timeout(5 * MaxTestExecutionTimeMs)]
     public async Task IndicateSlowHints() {
-      var documentItem = await GetDocumentItem(@"
+      var original = DafnyHoverHandler.RuLimitToBeOverCostly;
+      DafnyHoverHandler.RuLimitToBeOverCostly = 500000;
+      try {
+        var documentItem = await GetDocumentItem(@"
 lemma {:timeLimit 3} SquareRoot2NotRational(p: nat, q: nat)
   requires p > 0 && q > 0
   ensures (p * p) !=  2 * (q * q)
@@ -210,16 +214,20 @@ lemma {:timeLimit 3} SquareRoot2NotRational(p: nat, q: nat)
   }
   assert {:split_here} true;
 } ", "testfileSlow.dfy", CompilationStatus.VerificationFailed);
-      await Task.Delay(100); // Just time for the diagnostics to be updated
-      await AssertHoverMatches(documentItem, (0, 22),
-        @"**Verification performance metrics for method SquareRoot2NotRational**:
+        await Task.Delay(100); // Just time for the diagnostics to be updated
+        await AssertHoverMatches(documentItem, (0, 22),
+          @"**Verification performance metrics for method SquareRoot2NotRational**:
 
 - Total resource usage: ??? RU [⚠](???)  
 - Most costly [assertion batches](???):  
   - #2/3 with 2 assertions at line 3, ??? RU [⚠](???)  
   - #???/3 with 2 assertions at line ???, ??? RU  
   - #???/3 with 2 assertions at line ???9, ??? RU"
-      );
+        );
+      }
+      finally {
+        DafnyHoverHandler.RuLimitToBeOverCostly = original;
+      }
     }
 
     private async Task<TextDocumentItem> GetDocumentItem(string source, string filename, CompilationStatus expectedStatus) {
