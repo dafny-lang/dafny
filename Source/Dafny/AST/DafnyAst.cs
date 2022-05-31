@@ -13136,6 +13136,7 @@ namespace Microsoft.Dafny {
   /// </summary>
   public class ApplySuffix : SuffixExpr {
     public readonly IToken/*?*/ AtTok;
+    public readonly IToken ClosingParens;
     public readonly ActualBindings Bindings;
     public List<Expression> Args => Bindings.Arguments;
 
@@ -13144,12 +13145,13 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Args != null);
     }
 
-    public ApplySuffix(IToken tok, IToken/*?*/ atLabel, Expression lhs, List<ActualBinding> args)
+    public ApplySuffix(IToken tok, IToken/*?*/ atLabel, Expression lhs, List<ActualBinding> args, IToken closingParens)
       : base(tok, lhs) {
       Contract.Requires(tok != null);
       Contract.Requires(lhs != null);
       Contract.Requires(cce.NonNullElements(args));
       AtTok = atLabel;
+      ClosingParens = closingParens;
       Bindings = new ActualBindings(args);
     }
   }

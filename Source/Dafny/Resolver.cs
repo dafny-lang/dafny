@@ -13101,7 +13101,7 @@ namespace Microsoft.Dafny {
     }
 
     private Expression VarDotMethod(IToken tok, string varname, string methodname) {
-      return new ApplySuffix(tok, null, new ExprDotName(tok, new IdentifierExpr(tok, varname), methodname, null), new List<ActualBinding>());
+      return new ApplySuffix(tok, null, new ExprDotName(tok, new IdentifierExpr(tok, varname), methodname, null), new List<ActualBinding>(), tok);
     }
 
     private Expression makeTemp(String prefix, AssignOrReturnStmt s, ICodeContext codeContext, Expression ex) {
@@ -15378,7 +15378,7 @@ namespace Microsoft.Dafny {
     }
 
     private Expression VarDotFunction(IToken tok, string varname, string functionname) {
-      return new ApplySuffix(tok, null, new ExprDotName(tok, new IdentifierExpr(tok, varname), functionname, null), new List<ActualBinding>());
+      return new ApplySuffix(tok, null, new ExprDotName(tok, new IdentifierExpr(tok, varname), functionname, null), new List<ActualBinding>(), tok);
     }
 
     // TODO search for occurrences of "new LetExpr" which could benefit from this helper
@@ -16753,7 +16753,7 @@ namespace Microsoft.Dafny {
           }
           if (callee != null) {
             // produce a FunctionCallExpr instead of an ApplyExpr(MemberSelectExpr)
-            var rr = new FunctionCallExpr(e.Lhs.tok, callee.Name, mse.Obj, e.tok, e.Bindings, atLabel);
+            var rr = new FunctionCallExpr(new RangeToken(e.Lhs.tok, e.ClosingParens), callee.Name, mse.Obj, e.tok, e.Bindings, atLabel);
             rr.Function = callee;
             rr.TypeApplication_AtEnclosingClass = mse.TypeApplication_AtEnclosingClass;
             rr.TypeApplication_JustFunction = mse.TypeApplication_JustMember;

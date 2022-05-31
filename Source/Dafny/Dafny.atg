@@ -4494,7 +4494,7 @@ NameSegment<out Expression e>
   /* Note, since HashCall updates id.val, we make sure not to use id.val until after the possibility of calling HashCall. */
   (. e = new NameSegment(id, id.val, typeArgs);
      if (openParen != null) {
-       e = new ApplySuffix(openParen, atLabel, e, args);
+       e = new ApplySuffix(openParen, atLabel, e, args, t);
      } else {
        Contract.Assert(atLabel == null);
      }
@@ -4581,7 +4581,7 @@ Suffix<ref Expression e>
       )
       (. e = new ExprDotName(id, e, id.val, typeArgs);
          if (openParen != null) {
-           e = new ApplySuffix(openParen, atLabel, e, args);
+           e = new ApplySuffix(openParen, atLabel, e, args, t);
          } else {
            Contract.Assert(atLabel == null);
          }
@@ -4655,7 +4655,7 @@ Suffix<ref Expression e>
     "]"
   | "("                                    (. IToken openParen = t; var args = new List<ActualBinding>(); .)
     [ ActualBindings<args> ]
-    ")"                                    (. e = new ApplySuffix(openParen, null, e, args); .)
+    ")"                                    (. e = new ApplySuffix(openParen, null, e, args, t); .)
   )
   .
 

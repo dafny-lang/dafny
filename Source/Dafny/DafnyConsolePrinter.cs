@@ -33,9 +33,10 @@ public class DafnyConsolePrinter : ConsolePrinter {
     string lineNumber = tok.line.ToString();
     string lineNumberSpaces = new string(' ', lineNumber.Length);
     string columnSpaces = new string(' ', tok.col - 1);
+    string underline = new string('^', Math.Max(1, tok.val.Length));
     tw.WriteLine($"{lineNumberSpaces} |");
     tw.WriteLine($"{lineNumber      } | {line}");
-    tw.WriteLine($"{lineNumberSpaces} | {columnSpaces}^ here");
+    tw.WriteLine($"{lineNumberSpaces} | {columnSpaces}{underline}");
     tw.WriteLine("");
   }
 
