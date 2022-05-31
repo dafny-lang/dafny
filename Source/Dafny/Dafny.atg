@@ -534,13 +534,13 @@ bool IsNotEndOfCase() {
  */
 bool IsGenericInstantiation(bool inExpressionContext) {
   scanner.ResetPeek();
-  if (!inExpressionContext) {
-    return la.kind == _openAngleBracket;
-  }
   IToken pt = la;
   if (!IsTypeList(ref pt)) {
     return false;
   }
+  if (!inExpressionContext) {
+    return true;
+  }  
   /* There are ambiguities in the parsing.  For example:
    *     F( a < b , c > (d) )
    * can either be a unary function F whose argument is a function "a" with type arguments "<b,c>" and
@@ -4752,7 +4752,7 @@ QuantifierVariableDecl<.out QuantifiedVar qvar, ref Attributes attrs, bool allow
      Expression range = null;
   .)
   WildIdent<out id, true>
-  [ ":" TypeAndToken<out tok, out optType, true>
+  [ ":" TypeAndToken<out tok, out optType, false>
   ]
   [ // "<-" can also appear in GenericParameters in something like "<-T>",
     // so we parse it as two separate tokens.
