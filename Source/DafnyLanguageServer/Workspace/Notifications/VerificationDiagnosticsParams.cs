@@ -94,7 +94,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
   }
 
 
-  public enum VerificationStatus {
+  public enum GutterVerificationStatus {
     Nothing = 0,
     Verified = 200,
     Inconclusive = 270,
@@ -162,7 +162,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     public string PrefixedDisplayName => Kind + " " + DisplayName;
 
     // Overriden by checking children if there are some
-    public VerificationStatus StatusVerification { get; set; } = VerificationStatus.Nothing;
+    public GutterVerificationStatus StatusVerification { get; set; } = GutterVerificationStatus.Nothing;
 
     // Overriden by checking children if there are some
     public CurrentStatus StatusCurrent { get; set; } = CurrentStatus.Obsolete;
@@ -247,24 +247,24 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       var childrenHaveErrors = false;
       foreach (var child in Children) {
         child.PropagateChildrenErrorsUp();
-        if (child.StatusVerification == VerificationStatus.Error) {
+        if (child.StatusVerification == GutterVerificationStatus.Error) {
           childrenHaveErrors = true;
         }
       }
 
       if (childrenHaveErrors) {
-        StatusVerification = VerificationStatus.Error;
+        StatusVerification = GutterVerificationStatus.Error;
       }
     }
 
     public static LineVerificationStatus RenderLineVerificationStatus(
       bool isSingleLine, bool contextHasErrors, bool contextIsPending,
-      CurrentStatus currentStatus, VerificationStatus verificationStatus) {
+      CurrentStatus currentStatus, GutterVerificationStatus verificationStatus) {
       LineVerificationStatus simpleStatus = verificationStatus switch {
-        VerificationStatus.Nothing => LineVerificationStatus.Nothing,
+        GutterVerificationStatus.Nothing => LineVerificationStatus.Nothing,
         // let's be careful to no display "Verified" for a range if the context does not have errors and is pending
         // because there might be other errors on the same range.
-        VerificationStatus.Verified =>
+        GutterVerificationStatus.Verified =>
           contextHasErrors
             ? isSingleLine // Sub-implementations that are verified do not count
               ? LineVerificationStatus.AssertionVerifiedInErrorContext
@@ -274,9 +274,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
               : LineVerificationStatus.Verified,
         // We don't display inconclusive on the gutter (user should focus on errors),
         // We display an error range instead
-        VerificationStatus.Inconclusive =>
+        GutterVerificationStatus.Inconclusive =>
           LineVerificationStatus.ErrorContext,
-        VerificationStatus.Error => isSingleLine
+        GutterVerificationStatus.Error => isSingleLine
             ? LineVerificationStatus.AssertionFailed
             : LineVerificationStatus.ErrorContext,
         _ => throw new ArgumentOutOfRangeException()
@@ -300,7 +300,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       }
       foreach (var child in Children) {
         child.RenderInto(perLineDiagnostics,
-          contextHasErrors || StatusVerification == VerificationStatus.Error,
+          contextHasErrors || StatusVerification == GutterVerificationStatus.Error,
           contextIsPending ||
             StatusCurrent == CurrentStatus.Obsolete ||
           StatusCurrent == CurrentStatus.Verifying,
@@ -324,7 +324,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     public bool SetVerifiedIfPending() {
       if (StatusCurrent == CurrentStatus.Obsolete) {
         StatusCurrent = CurrentStatus.Current;
-        StatusVerification = VerificationStatus.Verified;
+        StatusVerification = GutterVerificationStatus.Verified;
         foreach (var child in Children) {
           child.SetVerifiedIfPending();
         }
@@ -599,7 +599,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     public override void RenderInto(LineVerificationStatus[] perLineDiagnostics, bool contextHasErrors = false,
       bool contextIsPending = false, Range? otherRange = null, Range? contextRange = null) {
       base.RenderInto(perLineDiagnostics, contextHasErrors, contextIsPending, otherRange, contextRange);
-      if (StatusVerification == VerificationStatus.Error) {
+      if (StatusVerification == GutterVerificationStatus.Error) {
         foreach (var range in ImmediatelyRelatedRanges) {
           if (contextRange != null && contextRange.Contains(range)) {
             base.RenderInto(perLineDiagnostics, contextHasErrors, contextIsPending, range, contextRange);

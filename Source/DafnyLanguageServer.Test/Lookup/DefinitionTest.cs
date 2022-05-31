@@ -51,6 +51,7 @@ method CallDoIt() returns () {
       var verificationTask = GetLastDiagnostics(documentItem, CancellationToken);
       var definitionTask = RequestDefinition(documentItem, (4, 14)).AsTask();
       var first = await Task.WhenAny(verificationTask, definitionTask);
+      Assert.IsFalse(verificationTask.IsCompleted);
       Assert.AreSame(first, definitionTask);
     }
 

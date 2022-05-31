@@ -33,6 +33,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
         // https://microsoft.github.io/language-server-protocol/specifications/specification-3-17/#textDocumentContentChangeEvent
         return change.Text;
       }
+
       int absoluteStart = change.Range.Start.ToAbsolutePosition(text, cancellationToken);
       int absoluteEnd = change.Range.End.ToAbsolutePosition(text, cancellationToken);
       numberOfLines += ComputeNumberOfNewlines(change.Text) -

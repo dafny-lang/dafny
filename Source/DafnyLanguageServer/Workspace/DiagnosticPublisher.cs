@@ -1,4 +1,6 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Collections.Immutable;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -17,6 +19,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     private readonly ConcurrentDictionary<DocumentUri, PublishDiagnosticsParams> previouslyPublishedDiagnostics = new();
     private readonly ConcurrentDictionary<DocumentUri, GhostDiagnosticsParams> previouslyPublishedGhostDiagnostics = new();
+    private readonly ConcurrentDictionary<DocumentUri, FileVerificationStatus> previouslyVerificationStatus = new();
 
     public void PublishDiagnostics(DafnyDocument document) {
       if (document.LoadCanceled) {
@@ -25,8 +28,43 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return;
       }
 
+      PublishVerificationStatus(document);
       PublishDocumentDiagnostics(document);
       PublishGhostDiagnostics(document);
+    }
+
+    private void PublishVerificationStatus(DafnyDocument document) {
+      if (document.ImplementationViews == null) {
+        return;
+      }
+
+      var notification = new FileVerificationStatus(document.Uri, document.Version, GetNamedVerifiableStatuses(document.ImplementationViews));
+
+      if (previouslyVerificationStatus.TryGetValue(document.Uri, out var previousParams)) {
+        if (previousParams.Version > notification.Version ||
+            previousParams.NamedVerifiables.SequenceEqual(notification.NamedVerifiables)) {
+          return;
+        }
+      } else {
+        if (!notification.NamedVerifiables.Any()) {
+          return;
+        }
+      }
+
+      languageServer.TextDocument.SendNotification(DafnyRequestNames.VerificationSymbolStatus, notification);
+      previouslyVerificationStatus[document.Uri] = notification;
+    }
+
+    private static List<NamedVerifiableStatus> GetNamedVerifiableStatuses(IReadOnlyDictionary<ImplementationId, ImplementationView> implementationViews) {
+      var namedVerifiableGroups = implementationViews.GroupBy(task => task.Value.Range);
+      return namedVerifiableGroups.Select(taskGroup => {
+        var status = taskGroup.Select(kv => kv.Value.Status).Aggregate(Combine);
+        return new NamedVerifiableStatus(taskGroup.Key, status);
+      }).OrderBy(v => v.NameRange.Start).ToList();
+    }
+
+    static PublishedVerificationStatus Combine(PublishedVerificationStatus first, PublishedVerificationStatus second) {
+      return new[] { first, second }.Min();
     }
 
     private void PublishDocumentDiagnostics(DafnyDocument document) {
@@ -35,7 +73,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         Version = document.Version,
         Diagnostics = document.Diagnostics.ToArray(),
       };
-      if (previouslyPublishedDiagnostics.TryGetValue(document.Uri, out var previousParams) && previousParams.Diagnostics.SequenceEqual(diagnosticParameters.Diagnostics)) {
+      if (previouslyPublishedDiagnostics.TryGetValue(document.Uri, out var previousParams) &&
+          (previousParams.Version > diagnosticParameters.Version ||
+           previousParams.Diagnostics.SequenceEqual(diagnosticParameters.Diagnostics))) {
         return;
       }
 
@@ -43,7 +83,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       languageServer.TextDocument.PublishDiagnostics(diagnosticParameters);
     }
 
-    public void PublishVerificationDiagnostics(DafnyDocument document, bool verificationStarted) {
+    public void PublishGutterIcons(DafnyDocument document, bool verificationStarted) {
       if (document.LoadCanceled) {
         // We leave the responsibility to shift the error locations to the LSP clients.
         // Therefore, we do not republish the errors when the document (re-)load was canceled.

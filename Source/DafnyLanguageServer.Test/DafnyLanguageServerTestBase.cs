@@ -53,8 +53,6 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
 
     public DafnyLanguageServerTestBase() : base(new JsonRpcTestOptions(LoggerFactory.Create(builder => builder.AddConsole().SetMinimumLevel(LogLevel.Warning)))) { }
 
-
-
     protected virtual async Task<ILanguageClient> InitializeClient(
       Action<LanguageClientOptions> clientOptionsAction = null,
       [CanBeNull] Action<LanguageServerOptions> serverOptionsAction = null) {
