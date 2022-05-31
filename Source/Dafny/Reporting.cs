@@ -28,6 +28,7 @@ namespace Microsoft.Dafny {
 
     public bool HasErrors => ErrorCount > 0;
     public int ErrorCount => Count(ErrorLevel.Error);
+    public int ErrorCountUntilResolver => CountExceptVerifierAndCompiler(ErrorLevel.Error);
 
 
     public abstract bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg);
@@ -167,7 +168,7 @@ namespace Microsoft.Dafny {
         // discard the message
         return false;
       }
-      AllMessages[level].Add(new ErrorMessage { token = tok, message = msg });
+      AllMessages[level].Add(new ErrorMessage { token = tok, message = msg, source = source });
       return true;
     }
 
@@ -176,9 +177,8 @@ namespace Microsoft.Dafny {
     }
 
     public override int CountExceptVerifierAndCompiler(ErrorLevel level) {
-      return AllMessages[level].Select(message =>
-        message.source != MessageSource.Verifier &&
-        message.source != MessageSource.Compiler).Count();
+      return AllMessages[level].Count(message => message.source != MessageSource.Verifier &&
+                                                 message.source != MessageSource.Compiler);
     }
   }
 
