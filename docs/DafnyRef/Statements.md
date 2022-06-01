@@ -932,7 +932,7 @@ statements must be exhaustive: the guards must cover all cases).
 
 TODO: Describe the ... refinement
 
-## 19.12. While Statement
+## 19.12. While Statement {#sec-while-statement}
 ````grammar
 WhileStmt =
   "while"
@@ -1007,7 +1007,7 @@ loop execution is terminated.
 
 TODO: Describe ... refinement
 
-## 19.13. For Loops
+## 19.13. For Loops {#sec-for-loops}
 ````grammar
 ForLoopStmt =
   "for" IdentTypeOptional ":="
@@ -1670,7 +1670,7 @@ Describe where refinement is described.
 If the proposition is `...` then (TODO: what does this mean?).
 -->
 
-## 19.19. Print Statement
+## 19.19. Print Statement {#sec-print-statement}
 ````grammar
 PrintStmt =
     "print"

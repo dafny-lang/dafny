@@ -26,6 +26,7 @@ namespace Microsoft.Dafny {
 
     public DafnyOptions()
       : base("Dafny", "Dafny program verifier", new DafnyConsolePrinter()) {
+      ErrorTrace = 0;
       Prune = true;
       NormalizeNames = true;
       EmitDebugInformation = false;
