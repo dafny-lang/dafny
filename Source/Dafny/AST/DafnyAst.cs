@@ -6145,21 +6145,19 @@ namespace Microsoft.Dafny {
     public static void ExtractSingleRange(List<QuantifiedVar> qvars, out List<BoundVar> bvars, out Expression range) {
       bvars = new List<BoundVar>();
       range = null;
-      var domainCloner = new QuantifiedVariableDomainCloner();
-      var rangeCloner = new QuantifiedVariableRangeCloner();
-      
+
       foreach (var qvar in qvars) {
         BoundVar bvar = new BoundVar(qvar.tok, qvar.Name, qvar.SyntacticType);
         bvars.Add(bvar);
 
         if (qvar.Domain != null) {
-          var domainWithToken = domainCloner.CloneExpr(qvar.Domain);
+          var domainWithToken = QuantifiedVariableDomainCloner.Instance.CloneExpr(qvar.Domain);
           var inDomainExpr = new BinaryExpr(domainWithToken.tok, BinaryExpr.Opcode.In, new IdentifierExpr(bvar.tok, bvar), domainWithToken);
           range = range == null ? inDomainExpr : new BinaryExpr(domainWithToken.tok, BinaryExpr.Opcode.And, range, inDomainExpr);
         }
 
         if (qvar.Range != null) {
-          var rangeWithToken = rangeCloner.CloneExpr(qvar.Range);
+          var rangeWithToken = QuantifiedVariableRangeCloner.Instance.CloneExpr(qvar.Range);
           range = range == null ? qvar.Range : new BinaryExpr(rangeWithToken.tok, BinaryExpr.Opcode.And, range, rangeWithToken);
         }
       }
@@ -9113,12 +9111,16 @@ namespace Microsoft.Dafny {
   }
 
   class QuantifiedVariableDomainCloner : Cloner {
+    public static readonly QuantifiedVariableDomainCloner Instance = new QuantifiedVariableDomainCloner();
+    private QuantifiedVariableDomainCloner() {}
     public override IToken Tok(IToken tok) {
       return new QuantifiedVariableDomainToken(tok);
     }
   }
   
   class QuantifiedVariableRangeCloner : Cloner {
+    public static readonly QuantifiedVariableRangeCloner Instance = new QuantifiedVariableRangeCloner();
+    private QuantifiedVariableRangeCloner() {}
     public override IToken Tok(IToken tok) {
       return new QuantifiedVariableRangeToken(tok);
     }
