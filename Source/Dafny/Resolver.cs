@@ -16734,7 +16734,8 @@ namespace Microsoft.Dafny {
               }
               if (allowMethodCall) {
                 Contract.Assert(!e.Bindings.WasResolved); // we expect that .Bindings has not yet been processed, so we use just .ArgumentBindings in the next line
-                var cRhs = new MethodCallInformation(e.tok, mse, e.Bindings.ArgumentBindings);
+                var tok = DafnyOptions.O.ShowSnippets ? new RangeToken(e.Lhs.tok, e.ClosingParens) : e.tok;
+                var cRhs = new MethodCallInformation(tok, mse, e.Bindings.ArgumentBindings);
                 return cRhs;
               } else {
                 reporter.Error(MessageSource.Resolver, e.tok, "{0} call is not allowed to be used in an expression context ({1})", mse.Member.WhatKind, mse.Member.Name);
@@ -16756,7 +16757,8 @@ namespace Microsoft.Dafny {
           }
           if (callee != null) {
             // produce a FunctionCallExpr instead of an ApplyExpr(MemberSelectExpr)
-            var rr = new FunctionCallExpr(new RangeToken(e.Lhs.tok, e.ClosingParens), callee.Name, mse.Obj, e.tok, e.Bindings, atLabel);
+            var tok = DafnyOptions.O.ShowSnippets ? new RangeToken(e.Lhs.tok, e.ClosingParens) : e.tok;
+            var rr = new FunctionCallExpr(tok, callee.Name, mse.Obj, e.tok, e.Bindings, atLabel);
             rr.Function = callee;
             rr.TypeApplication_AtEnclosingClass = mse.TypeApplication_AtEnclosingClass;
             rr.TypeApplication_JustFunction = mse.TypeApplication_JustMember;
@@ -16786,7 +16788,7 @@ namespace Microsoft.Dafny {
               }
             }
             ResolveActualParameters(e.Bindings, formals, e.tok, fnType, opts, new Dictionary<TypeParameter, Type>(), null);
-            r = new ApplyExpr(e.Lhs.tok, e.Lhs, e.Args);
+            r = new ApplyExpr(new RangeToken(e.Lhs.tok, e.ClosingParens), e.Lhs, e.Args);
             r.Type = fnType.Result;
           }
         }
