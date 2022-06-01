@@ -8,7 +8,147 @@ TO BE WRITTEN
 
 ## 23.2. Type Inference {#sec-type-inference}
 
-TO BE WRITTEN
+Signatures of methods, functions, fields (except `const` fields with a
+RHS), and datatype constructors have to declare the types of their
+parameters. In other places, types can be omitted, in which case
+Dafny attempts to infer them. Type inference is "best effort" and may
+fail. If it fails to infer a type, the remedy is simply for the
+program to give the type explicitly.
+
+Despite being just "best effort", the types of most local variables,
+bound variables, and the type parameters of calls are usually inferred
+without the need for a program to give the types explicitly. Here are
+some notes about type inference:
+
+* With some exceptions, type inference is performed across a whole
+  method body. In some cases, the information needed to infer a local
+  variable's type may be found after the variable has been declared
+  and used. For example, the nonsensical program
+
+    ```dafny
+    method M(n: nat) returns (y: int)
+    {
+      var a, b;
+      for i := 0 to n {
+        if i % 2 == 0 {
+          a := a + b;
+        }
+      }
+      y := a;
+    }
+    ```
+
+  uses `a` and `b` after their declarations. Still, their types are
+  inferred to be `int`, because of the presence of the assignment `y := a;`.
+
+  A more useful example is this:
+
+    ```dafny
+    class Cell {
+      var data: int
+    }
+    
+    method LastFive(a: array<int>) returns (r: int)
+    {
+      var u := null;
+      for i := 0 to a.Length {
+        if a[i] == 5 {
+          u := new Cell;
+          u.data := i;
+        }
+      }
+      r := if u == null then a.Length else u.data;
+    }
+    ```
+
+  Here, using only the assignment `u := null;` to infer the type of
+  `u` would not be helpful. But Dafny looks past the initial
+  assignment and infers the type of `u` to be `Cell?`.
+
+* The primary example where type inference does not inspect the entire
+  context before giving up on inference is when there is a member
+  lookup. For example,
+
+    ```dafny
+    datatype List<T> = Nil | Cons(T, List<T>)
+
+    method Tutone() {
+      assert forall pair :: pair.0 == 867 && pair.1 == 5309 ==> pair == (867, 5309); // error: members .0 and .1 not found
+      assert forall pair: (int, int) :: pair.0 == 867 && pair.1 == 5309 ==> pair == (867, 5309);
+    }
+    ```
+
+  In the first quantifier, type inference fails to infer the type of
+  `pair` before it tries to look up the members `.0` and `.1`, which
+  results in a "type of the receiver not fully determined" error. The
+  rememdy is to provide the type of `pair` explicitly, as is done in the
+  second quantifier.
+
+  (In the future, Dafny may do more type inference before giving up on the member lookup.)
+
+* If type parameters cannot be inferred, then they can be given
+  explicitly in angle brackets. For example, in
+
+    ```dafny
+    datatype Option<T> = None | Some(T)
+    
+    method M() {
+      var a: Option<int> := None;
+      var b := None; // error: type is underspecified
+      var c := Option<int>.None;
+      var d := None;
+      d := Some(400);
+    }
+    ```
+
+  the type of `b` cannot be inferred, because it is underspecified.
+  However, the types of `c` and `d` are inferred to be `Option<int>`.
+
+  Here is another example:
+
+    ```dafny
+    function EmptySet<T>(): set<T> {
+      {}
+    }
+
+    method M() {
+      var a := EmptySet(); // error: type is underspecified
+      var b := EmptySet();
+      b := b + {2, 3, 5};
+      var c := EmptySet<int>();
+    }
+    ```
+
+  The type instantiation in the initial assignment to `a` cannot
+  be inferred, because it is underspecified. However, the type
+  instantiation in the initial assignment to `b` is inferred to
+  be `int`, and the types of `b` and `c` are inferred to be
+  `set<int>`.
+
+* Even the element type of `new` is optional, if it can be inferred. For example, in
+
+    ```dafny
+    method NewArrays()
+    {
+      var a := new int[3];
+      var b: array<int> := new [3];
+      var c := new [3];
+      c[0] := 200;
+      var d := new [3] [200, 800, 77];
+      var e := new [] [200, 800, 77];
+      var f := new [3](_ => 990);
+    }
+    ```
+
+  the omitted types of local variables are all inferred as
+  `array<int>` and the omitted element type of each `new` is inferred
+  to be `int`.
+
+* In the absence of any other information, integer-looking literals
+  (like `5` and `7`) are inferred to have type `int` (and not, say,
+  `bv128` or `ORDINAL`).
+
+* Many of the types inferred can be inspected in the IDE.
 
 ## 23.3. Ghost Inference {#sec-ghost-inference}
 
