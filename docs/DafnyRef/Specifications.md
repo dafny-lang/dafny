@@ -434,7 +434,7 @@ read. More precise would be to specify that `Sum` reads only what `f`
 reads on the values from `lo` to `hi`, but the larger set denoted by
 `reads f.reads` is easier to write down and is often good enough.)
 
-Note, only `reads` clauses, not `modifies` clauses`, are allowed to
+Note, only `reads` clauses, not `modifies` clauses, are allowed to
 include functions as just described.
 
 ### 5.1.6. Modifies Clause {#sec-modifies-clause}
