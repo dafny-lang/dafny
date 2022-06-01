@@ -53,8 +53,6 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
 
     public DafnyLanguageServerTestBase() : base(new JsonRpcTestOptions(LoggerFactory.Create(builder => builder.AddConsole().SetMinimumLevel(LogLevel.Warning)))) { }
 
-
-
     protected virtual async Task<ILanguageClient> InitializeClient(
       Action<LanguageClientOptions> clientOptionsAction = null,
       [CanBeNull] Action<LanguageServerOptions> serverOptionsAction = null) {
@@ -132,7 +130,7 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
       return new TextDocumentItem {
         LanguageId = LanguageId,
         Text = source,
-        Uri = DocumentUri.FromFileSystemPath(filePath),
+        Uri = filePath.StartsWith("untitled:") ? DocumentUri.Parse(filePath) : DocumentUri.FromFileSystemPath(filePath),
         Version = version
       };
     }

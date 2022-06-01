@@ -3,17 +3,23 @@
 
 using System;
 using System.Collections.Generic;
-using System.ComponentModel.Design.Serialization;
 using System.Linq;
 using System.Text;
 using System.Diagnostics.Contracts;
+using System.Threading.Tasks;
 using JetBrains.Annotations;
 using Microsoft.Boogie;
-using Microsoft.Dafny.Triggers;
-
 
 namespace Microsoft.Dafny {
   public static class Util {
+
+    public static Task<U> SelectMany<T, U>(this Task<T> task, Func<T, Task<U>> f) {
+      return Select(task, f).Unwrap();
+    }
+
+    public static Task<U> Select<T, U>(this Task<T> task, Func<T, U> f) {
+      return task.ContinueWith(completedTask => f(completedTask.Result), TaskContinuationOptions.OnlyOnRanToCompletion);
+    }
 
     public static string Comma(this IEnumerable<string> l) {
       return Comma(l, s => s);
@@ -1109,7 +1115,7 @@ namespace Microsoft.Dafny {
         return true;
       } else if (expr is UnaryExpr) {
         var e = (UnaryExpr)expr;
-        if (e is UnaryOpExpr unaryOpExpr && (unaryOpExpr.Op == UnaryOpExpr.Opcode.Fresh || unaryOpExpr.Op == UnaryOpExpr.Opcode.Allocated)) {
+        if (e is UnaryOpExpr { Op: UnaryOpExpr.Opcode.Fresh or UnaryOpExpr.Opcode.Allocated }) {
           return true;
         }
         if (expr is TypeTestExpr tte && !IsTypeTestCompilable(tte)) {

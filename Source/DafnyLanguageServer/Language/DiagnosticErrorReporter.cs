@@ -30,12 +30,21 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       this.entryDocumentUri = entryDocumentUri;
     }
 
+    public IReadOnlyDictionary<DocumentUri, List<Diagnostic>> AllDiagnostics => diagnostics;
+
     public IReadOnlyList<Diagnostic> GetDiagnostics(DocumentUri documentUri) {
       rwLock.EnterReadLock();
       try {
+        // For untitled documents, the URI needs to have a "untitled" scheme
+        // to match what the client requires in the `diagnostics` dictionary.
+        // We achieve this by expanding it into a file system path and parsing it again.
+        var alternativeUntitled = documentUri.GetFileSystemPath();
         // Concurrency: Return a copy of the list not to expose a reference to an object that requires synchronization.
         // LATER: Make the Diagnostic type immutable, since we're not protecting it from concurrent accesses
-        return new List<Diagnostic>(diagnostics.GetValueOrDefault(documentUri) ?? Enumerable.Empty<Diagnostic>());
+        return new List<Diagnostic>(
+          diagnostics.GetValueOrDefault(documentUri) ??
+          diagnostics.GetValueOrDefault(alternativeUntitled) ??
+          Enumerable.Empty<Diagnostic>());
       }
       finally {
         rwLock.ExitReadLock();
@@ -56,15 +65,18 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           }
         }
       }
+
+      var uri = GetDocumentUriOrDefault(error.Tok);
+      var diagnostic = new Diagnostic {
+        Severity = DiagnosticSeverity.Error,
+        Message = error.Msg,
+        Range = error.Tok.GetLspRange(),
+        RelatedInformation = relatedInformation,
+        Source = VerifierMessageSource.ToString()
+      };
       AddDiagnosticForFile(
-        new Diagnostic {
-          Severity = DiagnosticSeverity.Error,
-          Message = error.Msg,
-          Range = error.Tok.GetLspRange(),
-          RelatedInformation = relatedInformation,
-          Source = VerifierMessageSource.ToString()
-        },
-        GetDocumentUriOrDefault(error.Tok)
+        diagnostic,
+        uri
       );
     }
 

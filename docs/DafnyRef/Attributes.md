@@ -158,6 +158,8 @@ Dafny does not perform sanity checks on the arguments---it is the user's respons
 
 One difference with [`{:axiom}`](#sec-axiom) is that the compiler will still emit code for an [`{:axiom}`](#sec-axiom), if it is a [`function method`, a `method` or a `function by method`](#sec-function-declarations) with a body.
 
+For more detail on the use of `{:extern}`, see the corresponding [section](#sec-extern-decls) in the user's guide.
+
 ## 22.2. Attributes on functions and methods
 
 ### 22.2.1. `{:autoReq}`
@@ -349,7 +351,7 @@ to be executed at runtime in order to test that the program is working as intend
 There are two different ways to dynamically test functionality in a test:
 
 1. A test can optionally return a single value to indicate success or failure.
-   If it does, this must be a [failure-compatible type](#1971-failure-compatible-types)
+   If it does, this must be a _failure-compatible_ type
    just as the [update-with-failure statement](#sec-update-failure) requires. That is,
    the returned type must define a `IsFailure()` function method. If `IsFailure()`
    evaluates to `true` on the return value, the test will be marked a failure, and this

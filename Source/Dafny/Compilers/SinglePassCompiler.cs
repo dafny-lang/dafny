@@ -1061,6 +1061,16 @@ namespace Microsoft.Dafny.Compilers {
     protected abstract ConcreteSyntaxTree CreateIIFE1(int source, Type resultType, Bpl.IToken resultTok, string bvName,
       ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts);  // Immediately Invoked Function Expression
     public enum ResolvedUnaryOp { BoolNot, BitwiseNot, Cardinality }
+
+    protected static readonly Dictionary<UnaryOpExpr.ResolvedOpcode, ResolvedUnaryOp> UnaryOpCodeMap = new() {
+      [UnaryOpExpr.ResolvedOpcode.BVNot] = ResolvedUnaryOp.BitwiseNot,
+      [UnaryOpExpr.ResolvedOpcode.BoolNot] = ResolvedUnaryOp.BoolNot,
+      [UnaryOpExpr.ResolvedOpcode.SeqLength] = ResolvedUnaryOp.Cardinality,
+      [UnaryOpExpr.ResolvedOpcode.SetCard] = ResolvedUnaryOp.Cardinality,
+      [UnaryOpExpr.ResolvedOpcode.MultiSetCard] = ResolvedUnaryOp.Cardinality,
+      [UnaryOpExpr.ResolvedOpcode.MapCard] = ResolvedUnaryOp.Cardinality
+    };
+
     protected abstract void EmitUnaryExpr(ResolvedUnaryOp op, Expression expr, bool inLetExprBody,
       ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts);
 
@@ -1487,7 +1497,7 @@ namespace Microsoft.Dafny.Compilers {
                 if (member is Method m && member.FullDafnyName == name) {
                   mainMethod = m;
                   if (!IsPermittedAsMain(mainMethod, out string reason)) {
-                    ReportError(program.reporter, mainMethod.tok, "The method \"{0}\" is not permitted as a main method ({1}).", null, name, reason);
+                    ReportError(program.Reporter, mainMethod.tok, "The method \"{0}\" is not permitted as a main method ({1}).", null, name, reason);
                     mainMethod = null;
                     return false;
                   } else {
@@ -1498,7 +1508,7 @@ namespace Microsoft.Dafny.Compilers {
             }
           }
         }
-        ReportError(program.reporter, program.DefaultModule.tok, "Could not find the method named by the -Main option: {0}", null, name);
+        ReportError(program.Reporter, program.DefaultModule.tok, "Could not find the method named by the -Main option: {0}", null, name);
       }
       foreach (var module in program.CompileModules) {
         if (module.IsAbstract) {
@@ -1516,7 +1526,7 @@ namespace Microsoft.Dafny.Compilers {
                   hasMain = true;
                 } else {
                   // more than one main in the program
-                  ReportError(program.reporter, m.tok, "More than one method is marked \"{{:main}}\". First declaration appeared at {0}.", null,
+                  ReportError(program.Reporter, m.tok, "More than one method is marked \"{{:main}}\". First declaration appeared at {0}.", null,
                     ErrorReporter.TokenToString(mainMethod.tok));
                   hasMain = false;
                 }
@@ -1527,7 +1537,7 @@ namespace Microsoft.Dafny.Compilers {
       }
       if (hasMain) {
         if (!IsPermittedAsMain(mainMethod, out string reason)) {
-          ReportError(program.reporter, mainMethod.tok, "This method marked \"{{:main}}\" is not permitted as a main method ({0}).", null, reason);
+          ReportError(program.Reporter, mainMethod.tok, "This method marked \"{{:main}}\" is not permitted as a main method ({0}).", null, reason);
           mainMethod = null;
           return false;
         } else {
@@ -1556,7 +1566,7 @@ namespace Microsoft.Dafny.Compilers {
                   hasMain = true;
                 } else {
                   // more than one main in the program
-                  ReportError(program.reporter, m.tok, "More than one method is declared as \"{0}\". First declaration appeared at {1}.", null,
+                  ReportError(program.Reporter, m.tok, "More than one method is declared as \"{0}\". First declaration appeared at {1}.", null,
                     DefaultNameMain, ErrorReporter.TokenToString(mainMethod.tok));
                   hasMain = false;
                 }
@@ -1568,7 +1578,7 @@ namespace Microsoft.Dafny.Compilers {
 
       if (hasMain) {
         if (!IsPermittedAsMain(mainMethod, out string reason)) {
-          ReportError(program.reporter, mainMethod.tok, "This method \"Main\" is not permitted as a main method ({0}).", null, reason);
+          ReportError(program.Reporter, mainMethod.tok, "This method \"Main\" is not permitted as a main method ({0}).", null, reason);
           return false;
         } else {
           return true;
@@ -4532,23 +4542,10 @@ namespace Microsoft.Dafny.Compilers {
 
       } else if (expr is UnaryOpExpr) {
         var e = (UnaryOpExpr)expr;
-        switch (e.Op) {
-          case UnaryOpExpr.Opcode.Not:
-            if (e.Type.IsBitVectorType) {
-              var bvType = e.Type.AsBitVectorType;
-              var wrTruncOperand = EmitBitvectorTruncation(bvType, false, wr);
-              EmitUnaryExpr(ResolvedUnaryOp.BitwiseNot, e.E, inLetExprBody, wrTruncOperand, wStmts);
-            } else {
-              EmitUnaryExpr(ResolvedUnaryOp.BoolNot, e.E, inLetExprBody, wr, wStmts);
-            }
-            break;
-          case UnaryOpExpr.Opcode.Cardinality:
-            EmitUnaryExpr(ResolvedUnaryOp.Cardinality, e.E, inLetExprBody, wr, wStmts);
-            break;
-          default:
-            Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary expression
+        if (e.ResolvedOp == UnaryOpExpr.ResolvedOpcode.BVNot) {
+          wr = EmitBitvectorTruncation(e.Type.AsBitVectorType, false, wr);
         }
-
+        EmitUnaryExpr(UnaryOpCodeMap[e.ResolvedOp], e.E, inLetExprBody, wr, wStmts);
       } else if (expr is ConversionExpr) {
         var e = (ConversionExpr)expr;
         Contract.Assert(e.ToType.IsRefType == e.E.Type.IsRefType);
