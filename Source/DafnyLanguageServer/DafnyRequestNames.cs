@@ -5,5 +5,7 @@
     public const string GhostDiagnostics = "dafny/ghost/diagnostics";
     public const string VerificationStatusGutter = "dafny/verification/status/gutter";
     public const string VerificationSymbolStatus = "dafny/textDocument/symbolStatus";
+    public const string VerifySymbol = "dafny/textDocument/verifySymbol";
+    public const string CancelVerifySymbol = "dafny/textDocument/cancelVerifySymbol";
   }
 }

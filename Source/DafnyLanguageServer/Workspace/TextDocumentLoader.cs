@@ -9,7 +9,6 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Reactive.Linq;
-using System.Reactive.Subjects;
 using System.Reactive.Threading.Tasks;
 using System.Threading;
 using System.Threading.Tasks;
@@ -275,7 +274,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       foreach (var task in implementationTasks) {
         var id = GetImplementationId(task.Implementation);
         if (document.ImplementationViews!.TryGetValue(id, out var existingView)) {
+#pragma warning disable VSTHRD002
           viewDictionary.TryAdd(id, existingView with { Status = StatusFromImplementationTaskAsync(task).Result });
+#pragma warning restore VSTHRD002
         }
       }
 
