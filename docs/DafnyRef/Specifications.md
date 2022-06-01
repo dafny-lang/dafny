@@ -393,7 +393,10 @@ specified. If there are no `reads` clauses the effective read set is
 empty. If `*` is given in a `reads` clause it means any memory may be
 read.
 
-TO BE WRITTEN: multiset of objects allowed in reads clauses
+If a `reads` clause refers to a sequence or multiset, that collection
+(call it `c`) is converted to a set by adding an implicit set
+comprehension of the form `set o: object | o in c` before computing the
+union of object sets from other `reads` clauses.
 
 ### 5.1.6. Modifies Clause {#sec-modifies-clause}
 
