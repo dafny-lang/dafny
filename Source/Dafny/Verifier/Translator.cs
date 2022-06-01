@@ -53,7 +53,9 @@ namespace Microsoft.Dafny {
     public Translator(ErrorReporter reporter, TranslatorFlags flags = null) {
       this.reporter = reporter;
       if (flags == null) {
-        flags = new TranslatorFlags();
+        flags = new TranslatorFlags() {
+          ReportRanges = DafnyOptions.O.ShowSnippets
+        };
       }
       this.flags = flags;
       Bpl.Program boogieProgram = ReadPrelude();
