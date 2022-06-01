@@ -35,13 +35,22 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
     }
 
     public VerificationTree RelocateVerificationTree(VerificationTree originalVerificationTree,
+      int lines,
       DidChangeTextDocumentParams changes, CancellationToken cancellationToken) {
-      var migratedChildren = new ChangeProcessor(logger, loggerSymbolTable, changes.ContentChanges, cancellationToken)
-        .MigrateVerificationTree(originalVerificationTree.Children);
+      var changeProcessor = new ChangeProcessor(logger, loggerSymbolTable, changes.ContentChanges, cancellationToken);
+      var migratedChildren = changeProcessor.MigrateVerificationTrees(originalVerificationTree.Children);
       return originalVerificationTree with {
         Children = migratedChildren.ToList(),
+        Range = DocumentVerificationTree.LinesToRange(lines),
         StatusCurrent = CurrentStatus.Obsolete
       };
+    }
+
+    public ImmutableList<Position> RelocatePositions(ImmutableList<Position> originalPositions,
+      DidChangeTextDocumentParams changes, CancellationToken cancellationToken) {
+      var migratePositions = new ChangeProcessor(logger, loggerSymbolTable, changes.ContentChanges, cancellationToken)
+        .MigratePositions(originalPositions);
+      return migratePositions;
     }
 
     private class ChangeProcessor {
@@ -77,7 +86,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
         return contentChanges.Aggregate(originalDiagnostics, MigrateDiagnostics);
       }
 
-      public List<Position> MigratePositions(List<Position> originalRanges) {
+      public ImmutableList<Position> MigratePositions(ImmutableList<Position> originalRanges) {
         return contentChanges.Aggregate(originalRanges, MigratePositions);
       }
 
@@ -88,12 +97,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
 
         return originalDiagnostics.SelectMany(diagnostic => MigrateDiagnostic(change, diagnostic)).ToList();
       }
-      private List<Position> MigratePositions(List<Position> originalRanges, TextDocumentContentChangeEvent change) {
+      private ImmutableList<Position> MigratePositions(ImmutableList<Position> originalRanges, TextDocumentContentChangeEvent change) {
         if (change.Range == null) {
-          return new List<Position> { };
+          return new List<Position> { }.ToImmutableList();
         }
 
-        return originalRanges.SelectMany(position => MigratePosition(change, position)).ToList();
+        return originalRanges.SelectMany(position => MigratePosition(change, position)).ToImmutableList();
       }
 
       // Requires changeEndOffset.change.Range to be not null
@@ -291,10 +300,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
         return null;
       }
 
-      public IEnumerable<VerificationTree> MigrateVerificationTree(IEnumerable<VerificationTree> originalDiagnostics) {
-        return contentChanges.Aggregate(originalDiagnostics, MigrateVerificationTree);
+      public IEnumerable<VerificationTree> MigrateVerificationTrees(IEnumerable<VerificationTree> originalDiagnostics) {
+        return contentChanges.Aggregate(originalDiagnostics, MigrateVerificationTrees);
       }
-      private IEnumerable<VerificationTree> MigrateVerificationTree(IEnumerable<VerificationTree> verificationTrees, TextDocumentContentChangeEvent change) {
+      private IEnumerable<VerificationTree> MigrateVerificationTrees(IEnumerable<VerificationTree> verificationTrees, TextDocumentContentChangeEvent change) {
         if (change.Range == null) {
           yield break;
         }
@@ -306,7 +315,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors {
           }
           var newNodeDiagnostic = verificationTree with {
             Range = newRange,
-            Children = MigrateVerificationTree(verificationTree.Children, change).ToList(),
+            Children = MigrateVerificationTrees(verificationTree.Children, change).ToList(),
             StatusVerification = verificationTree.StatusVerification,
             StatusCurrent = CurrentStatus.Obsolete,
             Finished = false,

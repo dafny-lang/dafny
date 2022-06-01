@@ -34,7 +34,7 @@ namespace Microsoft.Dafny.LanguageServer.Util {
         }
         absolutePosition++;
       } while (line <= position.Line && absolutePosition <= text.Length);
-      throw new ArgumentException("could not resolve the absolute position");
+      throw new ArgumentException($"could not resolve the absolute position {position} in text {text}");
     }
 
     /// <summary>

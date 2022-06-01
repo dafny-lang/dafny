@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Threading;
@@ -22,20 +21,18 @@ class SlowVerifier : IProgramVerifier {
 
   private readonly DafnyProgramVerifier verifier;
 
-  public IReadOnlyList<IImplementationTask> Verify(DafnyDocument document,
-    IVerificationProgressReporter progressReporter) {
+  public async Task<ProgramVerificationTasks> GetVerificationTasksAsync(DafnyDocument document, CancellationToken cancellationToken) {
     var program = document.Program;
     var attributes = program.Modules().SelectMany(m => {
       return m.TopLevelDecls.OfType<TopLevelDeclWithMembers>().SelectMany(d => d.Members.Select(member => member.Attributes));
     }).ToList();
 
-    var originalResult = verifier.Verify(document, progressReporter);
+    var (tasks, observer) = await verifier.GetVerificationTasksAsync(document, cancellationToken);
     if (attributes.Any(a => Attributes.Contains(a, "neverVerify"))) {
-      return new List<IImplementationTask>
-        { new NeverVerifiesImplementationTask(originalResult[0]) };
+      tasks = tasks.Select(t => new NeverVerifiesImplementationTask(t)).ToList();
     }
 
-    return originalResult;
+    return new ProgramVerificationTasks(tasks, observer);
   }
 
   class NeverVerifiesImplementationTask : IImplementationTask {
@@ -47,7 +44,7 @@ class SlowVerifier : IProgramVerifier {
       source = new TaskCompletionSource<VerificationResult>();
     }
 
-    public IObservable<VerificationStatus> ObservableStatus => Observable.Empty<VerificationStatus>();
+    public IObservable<VerificationStatus> ObservableStatus => Observable.Never<VerificationStatus>();
     public VerificationStatus CurrentStatus => VerificationStatus.Running;
     public ProcessedProgram ProcessedProgram => original.ProcessedProgram;
     public Implementation Implementation => original.Implementation;
