@@ -6145,16 +6145,22 @@ namespace Microsoft.Dafny {
     public static void ExtractSingleRange(List<QuantifiedVar> qvars, out List<BoundVar> bvars, out Expression range) {
       bvars = new List<BoundVar>();
       range = null;
+      var domainCloner = new QuantifiedVariableDomainCloner();
+      var rangeCloner = new QuantifiedVariableRangeCloner();
+      
       foreach (var qvar in qvars) {
         BoundVar bvar = new BoundVar(qvar.tok, qvar.Name, qvar.SyntacticType);
         bvars.Add(bvar);
+
         if (qvar.Domain != null) {
-          var inDomainExpr = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.In, new IdentifierExpr(bvar.tok, bvar), qvar.Domain);
-          range = range == null ? inDomainExpr : new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, range, inDomainExpr);
+          var domainWithToken = domainCloner.CloneExpr(qvar.Domain);
+          var inDomainExpr = new BinaryExpr(domainWithToken.tok, BinaryExpr.Opcode.In, new IdentifierExpr(bvar.tok, bvar), domainWithToken);
+          range = range == null ? inDomainExpr : new BinaryExpr(domainWithToken.tok, BinaryExpr.Opcode.And, range, inDomainExpr);
         }
 
         if (qvar.Range != null) {
-          range = range == null ? qvar.Range : new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, range, qvar.Range);
+          var rangeWithToken = rangeCloner.CloneExpr(qvar.Range);
+          range = range == null ? qvar.Range : new BinaryExpr(rangeWithToken.tok, BinaryExpr.Opcode.And, range, rangeWithToken);
         }
       }
 
@@ -9079,6 +9085,42 @@ namespace Microsoft.Dafny {
     public override string val {
       get { return WrappedToken.val; }
       set { WrappedToken.val = value; }
+    }
+  }
+
+  public class QuantifiedVariableDomainToken : TokenWrapper {
+    public QuantifiedVariableDomainToken(IToken wrappedToken)
+      : base(wrappedToken) {
+      Contract.Requires(wrappedToken != null);
+    }
+
+    public override string val {
+      get { return WrappedToken.val; }
+      set { WrappedToken.val = value; }
+    }
+  }
+  
+  public class QuantifiedVariableRangeToken : TokenWrapper {
+    public QuantifiedVariableRangeToken(IToken wrappedToken)
+      : base(wrappedToken) {
+      Contract.Requires(wrappedToken != null);
+    }
+
+    public override string val {
+      get { return WrappedToken.val; }
+      set { WrappedToken.val = value; }
+    }
+  }
+
+  class QuantifiedVariableDomainCloner : Cloner {
+    public override IToken Tok(IToken tok) {
+      return new QuantifiedVariableDomainToken(tok);
+    }
+  }
+  
+  class QuantifiedVariableRangeCloner : Cloner {
+    public override IToken Tok(IToken tok) {
+      return new QuantifiedVariableRangeToken(tok);
     }
   }
 
