@@ -60,10 +60,13 @@ namespace IntegrationTests {
           DefaultDafnyArguments :
           DefaultDafnyArguments.Append(extraDafnyArguments);
 
+      var repositoryRoot = Path.GetFullPath("../../../../../"); // Up from Source/IntegrationTests/bin/Debug/net6.0/
+
       var substitutions = new Dictionary<string, string> {
         { "%diff", "diff" },
         { "%binaryDir", "." },
         { "%z3", Path.Join("z3", "bin", "z3") },
+        { "%repositoryRoot", repositoryRoot.Replace(@"\", "/") },
         { "%refmanexamples", Path.Join("TestFiles", "LitTests", "LitTest", "refman", "examples") }
       };
 
@@ -152,7 +155,9 @@ namespace IntegrationTests {
 
     [FileTheory]
     [FileData(Includes = new[] { "**/*.dfy", "**/*.transcript" },
-              Excludes = new[] { "**/Inputs/**/*", "**/Output/**/*", "refman/examples/**/*" })]
+              Excludes = new[] { "**/Inputs/**/*", "**/Output/**/*", "refman/examples/**/*",
+                "tutorial/AutoExtern", // This is tested separately in the unit tests of Source/AutoExtern
+              })]
     public void LitTest(string path) {
       LitTestCase.Run(path, Config, output);
     }

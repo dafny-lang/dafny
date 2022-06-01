@@ -36,6 +36,9 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           // because it must not be null.
           return new CompilationUnit(program);
         }
+      } catch (Exception e) {
+        program.Reporter.Error(MessageSource.Resolver, program.GetFirstTopLevelToken(), $"Dafny encountered an error.  Please report it at <https://github.com/dafny-lang/dafny/issues>:\n{e}");
+        return new CompilationUnit(program);
       }
       finally {
         resolverMutex.Release();
@@ -46,7 +49,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     private bool RunDafnyResolver(TextDocumentItem document, Dafny.Program program) {
       var resolver = new Resolver(program);
       resolver.ResolveProgram(program);
-      int resolverErrors = program.reporter.ErrorCount;
+      int resolverErrors = program.Reporter.ErrorCount;
       if (resolverErrors > 0) {
         logger.LogDebug("encountered {ErrorCount} errors while resolving {DocumentUri}", resolverErrors, document.Uri);
         return false;

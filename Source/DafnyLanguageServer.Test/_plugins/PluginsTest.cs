@@ -1,3 +1,4 @@
+using System;
 using Microsoft.Dafny;
 using Microsoft.Dafny.Plugins;
 
@@ -9,6 +10,7 @@ namespace PluginsTest {
       Argument = args.Length > 0 ? args[0] : "[no argument]";
     }
     public override Rewriter[] GetRewriters(ErrorReporter errorReporter) {
+      System.Console.Out.Write("This should not crash the LSP");
       return new Rewriter[] { new ErrorRewriter(errorReporter, this) };
     }
   }

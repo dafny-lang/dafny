@@ -1,5 +1,4 @@
-﻿using Microsoft.Boogie;
-using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
+﻿using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OmniSharp.Extensions.LanguageServer.Protocol;
@@ -9,11 +8,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Reactive.Threading.Tasks;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Dafny.LanguageServer.Util;
+using Microsoft.Boogie;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
+
   /// <summary>
   /// Database that cancels pending document updates when new changes are incoming.
   /// </summary>
@@ -23,7 +24,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   public class DocumentDatabase : IDocumentDatabase {
     private readonly ILogger logger;
     private readonly DocumentOptions options;
-    private readonly Dictionary<DocumentUri, DocumentDatabase.DocumentEntry> documents = new();
+    private readonly Dictionary<DocumentUri, DocumentEntry> documents = new();
     private readonly ITextDocumentLoader documentLoader;
     private readonly ITextChangeProcessor textChangeProcessor;
     private readonly IRelocator relocator;
@@ -58,7 +59,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       if (documents.Remove(documentId.Uri, out var databaseEntry)) {
         databaseEntry.CancelPendingUpdates();
         try {
-          await databaseEntry.VerifiedDocument;
+          await databaseEntry.LastDocument;
         } catch (TaskCanceledException) {
         }
         return true;
@@ -66,23 +67,38 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return false;
     }
 
-    public IObservable<DafnyDocument> OpenDocument(TextDocumentItem document) {
+    public IObservable<DafnyDocument> OpenDocument(DocumentTextBuffer document) {
       var cancellationSource = new CancellationTokenSource();
-      var resolvedDocument = OpenAsync(document, cancellationSource.Token);
-      var verifiedDocument = VerifyAsync(resolvedDocument, VerifyOnOpen, cancellationSource.Token);
-      var databaseEntry = new DocumentEntry(
+      var resolvedDocumentTask = OpenAsync(document, cancellationSource.Token);
+
+      var translatedDocument = LoadVerificationTasksAsync(resolvedDocumentTask, cancellationSource.Token);
+      var verifiedDocuments = Verify(translatedDocument, VerifyOnOpen, cancellationSource.Token);
+
+      documents.Add(document.Uri, new DocumentEntry(
         document.Version,
-        resolvedDocument,
-        verifiedDocument,
+        resolvedDocumentTask,
+        translatedDocument,
+        verifiedDocuments,
         cancellationSource
-      );
-      documents.Add(document.Uri, databaseEntry);
-      return resolvedDocument.ToObservable().Where(d => !d.LoadCanceled).Concat(verifiedDocument.ToObservable());
+      ));
+      return resolvedDocumentTask.ToObservable().Where(d => !d.LoadCanceled).
+        Concat(translatedDocument.ToObservable()).
+        Concat(verifiedDocuments);
     }
 
-    private async Task<DafnyDocument> OpenAsync(TextDocumentItem textDocument, CancellationToken cancellationToken) {
+    private Task<DafnyDocument> LoadVerificationTasksAsync(Task<DafnyDocument> resolvedDocumentTask, CancellationToken cancellationToken) {
+
+#pragma warning disable VSTHRD003
+      return resolvedDocumentTask.SelectMany(resolvedDocument =>
+        documentLoader.PrepareVerificationTasksAsync(resolvedDocument, cancellationToken));
+#pragma warning restore VSTHRD003
+    }
+
+    private async Task<DafnyDocument> OpenAsync(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
       try {
-        return await documentLoader.LoadAsync(textDocument, cancellationToken);
+        var newDocument = await documentLoader.LoadAsync(textDocument, cancellationToken);
+        documentLoader.PublishGutterIcons(newDocument, false);
+        return newDocument;
       } catch (OperationCanceledException) {
         // We do not allow canceling the load of the placeholder document. Otherwise, other components
         // start to have to check for nullability in later stages such as change request processors.
@@ -90,14 +106,23 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
     }
 
-    private async Task<DafnyDocument> VerifyAsync(Task<DafnyDocument> documentTask, bool verify, CancellationToken cancellationToken) {
-#pragma warning disable VSTHRD003
-      var document = await documentTask;
-#pragma warning restore VSTHRD003
-      if (document.LoadCanceled || !verify || document.Errors.HasErrors) {
-        throw new TaskCanceledException();
+    private IObservable<DafnyDocument> Verify(Task<DafnyDocument> withVerificationTasks, bool verify, CancellationToken cancellationToken) {
+      if (!verify) {
+        return Observable.Empty<DafnyDocument>();
       }
-      return await documentLoader.VerifyAsync(document, cancellationToken);
+
+      return withVerificationTasks.ContinueWith(task => {
+        if (task.IsCanceled) {
+          return Observable.Empty<DafnyDocument>();
+        }
+
+        var document = task.Result;
+        if (!RequiresOnSaveVerification(document)) {
+          return Observable.Empty<DafnyDocument>();
+        }
+
+        return documentLoader.Verify(document, cancellationToken);
+      }, TaskScheduler.Current).ToObservable().Merge();
     }
 
     public IObservable<DafnyDocument> UpdateDocument(DidChangeTextDocumentParams documentChange) {
@@ -117,58 +142,104 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       databaseEntry.CancelPendingUpdates();
       var cancellationSource = new CancellationTokenSource();
-      var previousDocumentTask = databaseEntry.VerifiedDocument.IsCompletedSuccessfully ? databaseEntry.VerifiedDocument : databaseEntry.ResolvedDocument;
+      var previousDocumentTask = databaseEntry.LatestDocument;
       var resolvedDocumentTask = ApplyChangesAsync(previousDocumentTask, documentChange, cancellationSource.Token);
-      var verifiedDocument = VerifyAsync(resolvedDocumentTask, VerifyOnChange, cancellationSource.Token);
-      var updatedEntry = new DocumentEntry(
+      var translatedDocument =
+        LoadVerificationTasksAsync(previousDocumentTask, resolvedDocumentTask, cancellationSource.Token);
+      var verifiedDocuments = Verify(translatedDocument, VerifyOnChange, cancellationSource.Token);
+      documents[documentUri] = new DocumentEntry(
         documentChange.TextDocument.Version,
         resolvedDocumentTask,
-        verifiedDocument,
+        translatedDocument,
+        verifiedDocuments,
         cancellationSource
       );
-      documents[documentUri] = updatedEntry;
-      return resolvedDocumentTask.ToObservable().Concat(verifiedDocument.ToObservable());
+      return resolvedDocumentTask.ToObservable().
+        Concat(translatedDocument.ToObservable()).
+        Concat(verifiedDocuments);
     }
-
 
     private async Task<DafnyDocument> ApplyChangesAsync(Task<DafnyDocument> oldDocumentTask, DidChangeTextDocumentParams documentChange, CancellationToken cancellationToken) {
 #pragma warning disable VSTHRD003
       var oldDocument = await oldDocumentTask;
 #pragma warning restore VSTHRD003
+
       // We do not pass the cancellation token to the text change processor because the text has to be kept in sync with the LSP client.
-      var updatedText = textChangeProcessor.ApplyChange(oldDocument.Text, documentChange, CancellationToken.None);
-      var oldVerificationDiagnostics =
-        oldDocument.Errors.GetDiagnostics(oldDocument.Uri).Where(d => d.Source == MessageSource.Verifier.ToString()).
-          Concat(oldDocument.OldVerificationDiagnostics).ToList();
-      var migratedVerificationDiagnotics =
-        relocator.RelocateDiagnostics(oldVerificationDiagnostics, documentChange, CancellationToken.None);
-      logger.LogDebug($"Migrated {oldVerificationDiagnostics.Count} diagnostics into {migratedVerificationDiagnotics.Count} diagnostics.");
+      var updatedText = textChangeProcessor.ApplyChange(oldDocument.TextDocumentItem, documentChange, CancellationToken.None);
+      var oldVerificationDiagnostics = oldDocument.ImplementationViews ?? new Dictionary<ImplementationId, ImplementationView>();
+      var migratedImplementationViews = oldVerificationDiagnostics.ToDictionary(
+        kv => kv.Key with {
+          NamedVerificationTask =
+          relocator.RelocatePosition(kv.Key.NamedVerificationTask, documentChange, CancellationToken.None)
+        },
+        kv => kv.Value with {
+          Diagnostics = relocator.RelocateDiagnostics(kv.Value.Diagnostics, documentChange, CancellationToken.None)
+        });
+      var migratedVerificationTree =
+        relocator.RelocateVerificationTree(oldDocument.VerificationTree, updatedText.NumberOfLines, documentChange, CancellationToken.None);
+
+      var migratedLastTouchedPositions =
+        relocator.RelocatePositions(oldDocument.LastTouchedMethodPositions, documentChange, CancellationToken.None);
       try {
         var newDocument = await documentLoader.LoadAsync(updatedText, cancellationToken);
+        var lastChange =
+          documentChange.ContentChanges
+            .Select(contentChange => contentChange.Range)
+            .LastOrDefault(newDocument.LastChange);
+        newDocument = newDocument with { LastChange = lastChange };
         if (newDocument.SymbolTable.Resolved) {
-          return newDocument with {
-            OldVerificationDiagnostics = migratedVerificationDiagnotics
+          var resolvedDocument = newDocument with {
+            ImplementationViews = migratedImplementationViews,
+            VerificationTree = migratedVerificationTree,
+            LastTouchedMethodPositions = migratedLastTouchedPositions
           };
+          documentLoader.PublishGutterIcons(resolvedDocument, false);
+          return resolvedDocument;
         }
         // The document loader failed to create a new symbol table. Since we'd still like to provide
         // features such as code completion and lookup, we re-locate the previously resolved symbols
         // according to the change.
-        return newDocument with {
+        var failedDocument = newDocument with {
           SymbolTable = relocator.RelocateSymbols(oldDocument.SymbolTable, documentChange, CancellationToken.None),
-          OldVerificationDiagnostics = migratedVerificationDiagnotics
+          ImplementationViews = migratedImplementationViews,
+          VerificationTree = migratedVerificationTree,
+          LastTouchedMethodPositions = migratedLastTouchedPositions
         };
+        documentLoader.PublishGutterIcons(failedDocument, false);
+        return failedDocument;
       } catch (OperationCanceledException) {
         // The document load was canceled before it could complete. We migrate the document
         // to re-locate symbols that were resolved previously.
         logger.LogTrace("document loading canceled, applying migration");
         return oldDocument with {
-          Text = updatedText,
+          TextDocumentItem = updatedText,
           SymbolTable = relocator.RelocateSymbols(oldDocument.SymbolTable, documentChange, CancellationToken.None),
-          SerializedCounterExamples = null,
+          CounterExamples = Array.Empty<Counterexample>(),
+          VerificationTree = migratedVerificationTree,
           LoadCanceled = true,
-          OldVerificationDiagnostics = migratedVerificationDiagnotics
+          ImplementationViews = migratedImplementationViews,
+          LastTouchedMethodPositions = migratedLastTouchedPositions
         };
       }
+    }
+
+    private async Task<DafnyDocument> LoadVerificationTasksAsync(Task<DafnyDocument> oldDocumentTask,
+      Task<DafnyDocument> resolvedDocumentTask, CancellationToken cancellationToken) {
+#pragma warning disable VSTHRD003
+      var oldDocument = await oldDocumentTask;
+      var resolvedDocument = await resolvedDocumentTask;
+#pragma warning restore VSTHRD003
+      var withVerificationTasks = await documentLoader.PrepareVerificationTasksAsync(resolvedDocument, cancellationToken);
+      var oldViews = oldDocument.ImplementationViews ?? new Dictionary<ImplementationId, ImplementationView>();
+      return withVerificationTasks with {
+        ImplementationViews = withVerificationTasks.ImplementationViews!.ToDictionary(
+          kv => kv.Key,
+          kv =>
+            kv.Value with {
+              Diagnostics = oldViews.GetValueOrDefault(kv.Key)?.Diagnostics ?? kv.Value.Diagnostics
+            }
+        ),
+      };
     }
 
     public IObservable<DafnyDocument> SaveDocument(TextDocumentIdentifier documentId) {
@@ -180,53 +251,66 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       var cancellationSource = new CancellationTokenSource();
-      var verifiedDocumentTask = VerifyDocumentIfRequiredAsync(databaseEntry, cancellationSource.Token);
-      var updatedEntry = new DocumentEntry(
+      var verifiedDocuments = Verify(databaseEntry.TranslatedDocument, true, cancellationSource.Token);
+      documents[documentId.Uri] = new DocumentEntry(
         databaseEntry.Version,
         databaseEntry.ResolvedDocument,
-        verifiedDocumentTask,
+        databaseEntry.TranslatedDocument,
+        verifiedDocuments,
         cancellationSource
       );
-      documents[documentId.Uri] = updatedEntry;
-      return verifiedDocumentTask.ToObservable();
-    }
-
-    private async Task<DafnyDocument> VerifyDocumentIfRequiredAsync(IDocumentEntry databaseEntry, CancellationToken cancellationToken) {
-      var document = await databaseEntry.ResolvedDocument;
-      if (!RequiresOnSaveVerification(document)) {
-        throw new TaskCanceledException();
-      }
-      var verifiedDocumentTask = documentLoader.VerifyAsync(document, cancellationToken);
-      return await verifiedDocumentTask;
+      return verifiedDocuments;
     }
 
     private static bool RequiresOnSaveVerification(DafnyDocument document) {
       return document.LoadCanceled || document.SymbolTable.Resolved;
     }
 
-    public async Task<DafnyDocument?> GetDocumentAsync(TextDocumentIdentifier documentId) {
+    public Task<DafnyDocument?> GetDocumentAsync(TextDocumentIdentifier documentId) {
       if (documents.TryGetValue(documentId.Uri, out var databaseEntry)) {
-        return await databaseEntry.ResolvedDocument;
+        return databaseEntry.ResolvedDocument!;
       }
-      return null;
+      return Task.FromResult<DafnyDocument?>(null);
     }
 
-    public async Task<DafnyDocument?> GetVerifiedDocumentAsync(TextDocumentIdentifier documentId) {
+    public Task<DafnyDocument?> GetLastDocumentAsync(TextDocumentIdentifier documentId) {
       if (documents.TryGetValue(documentId.Uri, out var databaseEntry)) {
-        return await databaseEntry.VerifiedDocument;
+        return databaseEntry.LastDocument!;
       }
-      return null;
+      return Task.FromResult<DafnyDocument?>(null);
     }
 
     public IReadOnlyDictionary<DocumentUri, IDocumentEntry> Documents =>
       documents.ToDictionary(k => k.Key, v => (IDocumentEntry)v.Value);
 
-    private record DocumentEntry(int? Version, Task<DafnyDocument> ResolvedDocument,
-      Task<DafnyDocument> VerifiedDocument,
-      CancellationTokenSource CancellationSource) : IDocumentEntry {
-      public void CancelPendingUpdates() {
-        CancellationSource.Cancel();
+    private class DocumentEntry : IDocumentEntry {
+      private readonly CancellationTokenSource cancellationSource;
+      public int? Version { get; }
+      public Task<DafnyDocument> ResolvedDocument { get; }
+      public Task<DafnyDocument> TranslatedDocument { get; }
+
+      public DocumentEntry(int? version,
+        Task<DafnyDocument> resolvedDocument,
+        Task<DafnyDocument> translatedDocument,
+        IObservable<DafnyDocument> verifiedDocuments,
+        CancellationTokenSource cancellationSource) {
+        this.cancellationSource = cancellationSource;
+        TranslatedDocument = translatedDocument;
+        Version = version;
+        ResolvedDocument = resolvedDocument;
+        LatestDocument = resolvedDocument;
+        TranslatedDocument.ToObservable().Concat(verifiedDocuments).
+          Subscribe(update => LatestDocument = Task.FromResult(update), e => { });
+        LastDocument = ResolvedDocument.ToObservable().Concat(verifiedDocuments).ToTask();
       }
+
+      public void CancelPendingUpdates() {
+        cancellationSource.Cancel();
+      }
+
+      public Task<DafnyDocument> LatestDocument { get; private set; }
+
+      public Task<DafnyDocument> LastDocument { get; }
     }
   }
 }

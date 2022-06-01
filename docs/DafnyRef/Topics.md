@@ -1,4 +1,4 @@
-# 23. Advanced Topics
+# 23. Advanced Topics {#sec-advanced-topics}
 
 ## 23.1. Type Parameter Completion {#sec-type-parameter-completion}
 
@@ -8,11 +8,192 @@ TO BE WRITTEN
 
 ## 23.2. Type Inference {#sec-type-inference}
 
-TO BE WRITTEN
+Signatures of methods, functions, fields (except `const` fields with a
+RHS), and datatype constructors have to declare the types of their
+parameters. In other places, types can be omitted, in which case
+Dafny attempts to infer them. Type inference is "best effort" and may
+fail. If it fails to infer a type, the remedy is simply for the
+program to give the type explicitly.
 
-## 23.3. Ghost Inference
+Despite being just "best effort", the types of most local variables,
+bound variables, and the type parameters of calls are usually inferred
+without the need for a program to give the types explicitly. Here are
+some notes about type inference:
 
-TO BE WRITTEN
+* With some exceptions, type inference is performed across a whole
+  method body. In some cases, the information needed to infer a local
+  variable's type may be found after the variable has been declared
+  and used. For example, the nonsensical program
+
+    ```dafny
+    method M(n: nat) returns (y: int)
+    {
+      var a, b;
+      for i := 0 to n {
+        if i % 2 == 0 {
+          a := a + b;
+        }
+      }
+      y := a;
+    }
+    ```
+
+  uses `a` and `b` after their declarations. Still, their types are
+  inferred to be `int`, because of the presence of the assignment `y := a;`.
+
+  A more useful example is this:
+
+    ```dafny
+    class Cell {
+      var data: int
+    }
+    
+    method LastFive(a: array<int>) returns (r: int)
+    {
+      var u := null;
+      for i := 0 to a.Length {
+        if a[i] == 5 {
+          u := new Cell;
+          u.data := i;
+        }
+      }
+      r := if u == null then a.Length else u.data;
+    }
+    ```
+
+  Here, using only the assignment `u := null;` to infer the type of
+  `u` would not be helpful. But Dafny looks past the initial
+  assignment and infers the type of `u` to be `Cell?`.
+
+* The primary example where type inference does not inspect the entire
+  context before giving up on inference is when there is a member
+  lookup. For example,
+
+    ```dafny
+    datatype List<T> = Nil | Cons(T, List<T>)
+
+    method Tutone() {
+      assert forall pair :: pair.0 == 867 && pair.1 == 5309 ==> pair == (867, 5309); // error: members .0 and .1 not found
+      assert forall pair: (int, int) :: pair.0 == 867 && pair.1 == 5309 ==> pair == (867, 5309);
+    }
+    ```
+
+  In the first quantifier, type inference fails to infer the type of
+  `pair` before it tries to look up the members `.0` and `.1`, which
+  results in a "type of the receiver not fully determined" error. The
+  rememdy is to provide the type of `pair` explicitly, as is done in the
+  second quantifier.
+
+  (In the future, Dafny may do more type inference before giving up on the member lookup.)
+
+* If type parameters cannot be inferred, then they can be given
+  explicitly in angle brackets. For example, in
+
+    ```dafny
+    datatype Option<T> = None | Some(T)
+    
+    method M() {
+      var a: Option<int> := None;
+      var b := None; // error: type is underspecified
+      var c := Option<int>.None;
+      var d := None;
+      d := Some(400);
+    }
+    ```
+
+  the type of `b` cannot be inferred, because it is underspecified.
+  However, the types of `c` and `d` are inferred to be `Option<int>`.
+
+  Here is another example:
+
+    ```dafny
+    function EmptySet<T>(): set<T> {
+      {}
+    }
+
+    method M() {
+      var a := EmptySet(); // error: type is underspecified
+      var b := EmptySet();
+      b := b + {2, 3, 5};
+      var c := EmptySet<int>();
+    }
+    ```
+
+  The type instantiation in the initial assignment to `a` cannot
+  be inferred, because it is underspecified. However, the type
+  instantiation in the initial assignment to `b` is inferred to
+  be `int`, and the types of `b` and `c` are inferred to be
+  `set<int>`.
+
+* Even the element type of `new` is optional, if it can be inferred. For example, in
+
+    ```dafny
+    method NewArrays()
+    {
+      var a := new int[3];
+      var b: array<int> := new [3];
+      var c := new [3];
+      c[0] := 200;
+      var d := new [3] [200, 800, 77];
+      var e := new [] [200, 800, 77];
+      var f := new [3](_ => 990);
+    }
+    ```
+
+  the omitted types of local variables are all inferred as
+  `array<int>` and the omitted element type of each `new` is inferred
+  to be `int`.
+
+* In the absence of any other information, integer-looking literals
+  (like `5` and `7`) are inferred to have type `int` (and not, say,
+  `bv128` or `ORDINAL`).
+
+* Many of the types inferred can be inspected in the IDE.
+
+## 23.3. Ghost Inference {#sec-ghost-inference}
+
+After[^why-after-type-inference] [type inference](#sec-type-inference), Dafny revisits the program
+and makes a final decision about which statements are to be compiled,
+and which statements are ghost.
+The ghost statements form what is called the _ghost context_ of expressions.
+
+[^why-after-type-inference]: Ghost inference has to be performed after type inference, at least because it is not possible to determine if a member access `a.b` refers to a ghost variable until the type of `a` is determined.
+
+These statements are determined to be ghost:
+
+- [`assert`](#sec-assert-statement), [`assume`](#sec-assume-statement), [`reveal`](#sec-reveal-statement), and [`calc`](#sec-calc-statement) statements.
+- The body of the `by` of an [`assert`](#sec-assert-statement) statement.
+- Calls to ghost methods, including [lemmas](#sec-lemmas).
+- [`if`](#sec-if-statement), [`match`](#sec-match-statement), and [`while`](#sec-while-statement) statements with condition expressions or alternatives containing ghost expressions. Their bodies are also ghost.
+- [`for`](#sec-for-loops) loops whose start expression contains ghost expressions.
+- [Variable declarations](#sec-var-decl-statement) if they are explicitly ghost or if their respective right-hand side is a ghost expression.
+- [Assignments or update statement](#sec-update-and-call-statement) if all updated variables are ghost.
+- [`forall`](#sec-forall-statement) statements, unless there is exactly one assignment to an non-ghost array in its body.
+
+These statements always non-ghost:
+
+- [`expect`](#sec-expect-statement) statements.
+- [`print`](#sec-print-statement) statements.
+
+The following expressions are ghost, which is used in some of the tests above:
+
+- All [specification expressions](#sec-list-of-specification-expressions)
+- All calls to functions and predicates not marked as `method`
+- All variables, [constants](#sec-constant-field-declarations) and [fields](#sec-field-declarations) declared using the `ghost` keyword
+
+Note that inferring ghostness can uncover other errors, such as updating non-ghost variables in ghost contexts.
+For example, if `f` is a ghost function, in the presence of the following code:
+
+```dafny
+var x := 1;
+if(f(x)) {
+  x := 2;
+}
+```
+
+Dafny will infer that the entire `if` is ghost because the condition uses a ghost function,
+and will then raise the error that it's not possible to update the non-ghost variable `x` in a ghost context.
+
 
 ## 23.4. Well-founded Functions and Extreme Predicates
 
@@ -52,9 +233,9 @@ solution, such proof terms are values of an inductive datatype (that
 is, finite proof trees), and for the greatest solution, a coinductive
 datatype (that is, possibly infinite proof trees).  This means that
 one can use induction and coinduction when reasoning about these proof
-trees.  Therefore, these extreme predicates are known as,
-respectively, _inductive predicates_ and _coinductive predicates_ (or,
-_co-predicates_ for short).  Support for extreme predicates is also
+trees.  These extreme predicates are known as,
+respectively, _least predicates_ and _greatest predicates_.
+Support for extreme predicates is also
 available in the proof assistants Isabelle [@Paulson:CADE1994] and HOL
 [@Harrison:InductiveDefs].
 
@@ -66,7 +247,7 @@ verifier has at its core a first-order SMT solver, Dafny's logical
 encoding makes it possible to reason about fixpoints in an automated
 way.
 
-The encoding for coinductive predicates in Dafny was described previously
+The encoding for greatest predicates in Dafny was described previously
 [@LeinoMoskal:Coinduction] and is here described in Section
 [#sec-co-inductive-datatypes].
 
@@ -409,8 +590,8 @@ obligation includes a predicate term $g^{\downarrow}(x)$, it is sound to
 imagine that we have been given a proof tree for $g^{\downarrow}(x)$.  Such a proof tree
 would be a data structure---to be more precise, a term in an
 _inductive datatype_.
-For this reason, least solutions like $g^{\downarrow}$ have been given the
-name _inductive predicate_.
+Least solutions like $g^{\downarrow}$ have been given the
+name _least predicate_.
 
 Let's prove $g^{\downarrow}(x) \;\Longrightarrow\; 0 \leq x \;\wedge\; x \textrm{ even}$.
 We split our task into two cases, corresponding to which of the two
@@ -445,8 +626,8 @@ follows.
 We can think of a given predicate $g^{\uparrow}(x)$ as being represented
 by a proof tree---in this case a term in a _coinductive datatype_,
 since the proof may be infinite.
-For this reason, greatest solutions like $g^{\uparrow}$ have
-been given the name _coinductive predicate_, or _co-predicate_ for short.
+Greatest solutions like $g^{\uparrow}$ have
+been given the name _greatest predicate_.
 The main technique for proving something from a given proof tree, that
 is, to prove something of the form $g^{\uparrow}(x) \;\Longrightarrow\; R$, is to
 destruct the proof.  Since this is just unfolding the defining
@@ -628,12 +809,12 @@ for which `fib(k)` falls in the given range.
 
 In this previous subsection, I explained that a `predicate` declaration introduces a
 well-founded predicate.  The declarations for introducing extreme predicates are
-`inductive predicate` and `copredicate`.  Here is the definition of the least and
+`least predicate` and `greatest predicate`.  Here is the definition of the least and
 greatest solutions of $g$ from above, let's call them `g` and `G`:
 
 ```dafny
-inductive predicate g(x: int) { x == 0 || g(x-2) }
-copredicate G(x: int) { x == 0 || G(x-2) }
+least predicate g(x: int) { x == 0 || g(x-2) }
+greatest predicate G(x: int) { x == 0 || G(x-2) }
 ```
 
 When Dafny receives either of these definitions, it automatically declares the corresponding
@@ -659,8 +840,8 @@ must be monotonic, and for [#eq-least-is-exists] and [#eq-greatest-is-forall] to
 the functor must be continuous.  Dafny enforces the former of these by checking that
 recursive calls of extreme predicates are in positive positions.  The continuity
 requirement comes down to checking that they are also in _continuous positions_:
-that recursive calls to inductive predicates are
-not inside unbounded universal quantifiers and that recursive calls to co-predicates
+that recursive calls to least predicates are
+not inside unbounded universal quantifiers and that recursive calls to greatest predicates
 are not inside unbounded existential quantifiers [@Milner:CCS; @LeinoMoskal:Coinduction].
 
 ### 23.5.4. Proofs about Extreme Predicates
@@ -728,11 +909,11 @@ These shortcoming are addressed in the next subsection.
 ### 23.5.5. Nicer Proofs of Extreme Predicates {#sec-nicer-proofs-of-extremes}
 
 The proofs we just saw follow standard forms:
-use Skolemization to convert the inductive predicate into a prefix predicate for some `k`
+use Skolemization to convert the least predicate into a prefix predicate for some `k`
 and then do the proof inductively over `k`; respectively,
 by induction over `k`, prove the prefix predicate for every `k`, then use
-universal introduction to convert to the coinductive predicate.
-With the declarations `inductive lemma` and `colemma`, Dafny offers to
+universal introduction to convert to the greatest predicate.
+With the declarations `least lemma` and `greatest lemma`, Dafny offers to
 set up the proofs
 in these standard forms.  What is gained is not just fewer characters in the program
 text, but also a possible intuitive reading of the proofs.  (Okay, to be fair, the
@@ -742,12 +923,12 @@ Somewhat analogous to the creation of prefix predicates from extreme predicates,
 automatically creates a _prefix lemma_ `L#` from each "extreme lemma" `L`.  The pre-
 and postconditions of a prefix lemma are copied from those of the extreme lemma,
 except for the following replacements:
-For an inductive lemma, Dafny looks in the precondition to find calls (in positive, continuous
-positions) to inductive predicates `P(x)` and replaces these with `P#[_k](x)`.
-For a
-co-lemma, Dafny looks in the postcondition to find calls (in positive, continuous positions)
-to co-predicates `P` (including equality among coinductive datatypes, which is a built-in
-co-predicate) and replaces these with `P#[_k](x)`.
+For a least lemma, Dafny looks in the precondition to find calls (in positive, continuous
+positions) to least predicates `P(x)` and replaces these with `P#[_k](x)`.
+For a greatest lemma,
+Dafny looks in the postcondition to find calls (in positive, continuous positions)
+to greatest predicates `P` (including equality among coinductive datatypes, which is a built-in
+greatest predicate) and replaces these with `P#[_k](x)`.
 In each case, these predicates `P` are the lemma's _focal predicates_.
 
 The body of the extreme lemma is moved to the prefix lemma, but with
@@ -762,11 +943,11 @@ Let us see what effect these rewrites have on how one can write proofs.  Here ar
 of our running example:
 
 ```dafny
-inductive lemma EvenNat(x: int)
+least lemma EvenNat(x: int)
   requires g(x)
   ensures 0 <= x && x % 2 == 0
 { if x == 0 { } else { EvenNat(x-2); } }
-colemma Always(x: int)
+greatest lemma Always(x: int)
   ensures G(x)
 { Always(x-2); }
 ```
