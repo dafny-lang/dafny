@@ -2778,9 +2778,11 @@ namespace Microsoft.Dafny.Compilers {
       TrExprList(arguments, wr, inLetExprBody, wStmts);
     }
 
-    protected override ConcreteSyntaxTree EmitBetaRedex(List<string> boundVars, List<Expression> arguments, List<Type> boundTypes,
-        Type type, Bpl.IToken tok, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+    protected override ConcreteSyntaxTree EmitBetaRedex(List<string> boundVars, List<Expression> arguments,
+      List<Type> boundTypes, Type type, Bpl.IToken tok, bool inLetExprBody, ConcreteSyntaxTree wr,
+      ConcreteSyntaxTree wStmts, out ConcreteSyntaxTree wrStmts) {
       Contract.Assert(boundVars.Count == boundTypes.Count);
+      wrStmts = wStmts;
       wr.Write("(func (");
       for (int i = 0; i < boundVars.Count; i++) {
         if (i > 0) {
@@ -2822,8 +2824,10 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void CreateIIFE(string bvName, Type bvType, Bpl.IToken bvTok, Type bodyType, Bpl.IToken bodyTok,
-      ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, out ConcreteSyntaxTree wrRhs, out ConcreteSyntaxTree wrBody) {
+      ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, out ConcreteSyntaxTree wrRhs, out ConcreteSyntaxTree wrBody,
+      out ConcreteSyntaxTree wrStmts) {
       var w = wr.NewExprBlock("func ({0} {1}) {2}", bvName, TypeName(bvType, wr, bvTok), TypeName(bodyType, wr, bodyTok));
+      wrStmts = w.Fork();
       w.Write("return ");
       wrBody = w.Fork();
       w.WriteLine();
@@ -3310,7 +3314,7 @@ namespace Microsoft.Dafny.Compilers {
         // We must wrap the whole conversion in an IIFE to avoid capturing the source expression
         var bvName = idGenerator.FreshId("coer");
         // wStmts == null is fine as there should not be anything writen to it
-        CreateIIFE(bvName, fat, tok, tat, tok, wr, null, out var ans, out wr);
+        CreateIIFE(bvName, fat, tok, tat, tok, wr, null, out var ans, out wr, out _);
 
         wr.Write("func (");
         var sep = "";

@@ -2692,7 +2692,10 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override bool TargetLambdaCanUseEnclosingLocals => false;
 
-    protected override ConcreteSyntaxTree EmitBetaRedex(List<string> boundVars, List<Expression> arguments, List<Type> boundTypes, Type resultType, Bpl.IToken tok, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+    protected override ConcreteSyntaxTree EmitBetaRedex(List<string> boundVars, List<Expression> arguments,
+      List<Type> boundTypes, Type resultType, Bpl.IToken tok, bool inLetExprBody, ConcreteSyntaxTree wr,
+      ConcreteSyntaxTree wStmts, out ConcreteSyntaxTree wrStmts) {
+      wrStmts = wStmts;
       var tas = Util.Snoc(boundTypes, resultType);
       var typeArgs = TypeName_UDT(ArrowType.Arrow_FullCompileName, tas.ConvertAll(_ => TypeParameter.TPVariance.Non), tas, wr, tok);
       var result = new ConcreteSyntaxTree();
@@ -2728,9 +2731,11 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void CreateIIFE(string bvName, Type bvType, Bpl.IToken bvTok, Type bodyType, Bpl.IToken bodyTok,
-      ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, out ConcreteSyntaxTree wrRhs, out ConcreteSyntaxTree wrBody) {
+      ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, out ConcreteSyntaxTree wrRhs, out ConcreteSyntaxTree wrBody,
+      out ConcreteSyntaxTree wrStmts) {
       wrRhs = new ConcreteSyntaxTree();
       wrBody = new ConcreteSyntaxTree();
+      wrStmts = wStmts;
       wr.Format($"{DafnyHelpersClass}.Let<{TypeName(bvType, wr, bvTok)}, {TypeName(bodyType, wr, bodyTok)}>({wrRhs}, {bvName} => {wrBody})");
     }
 

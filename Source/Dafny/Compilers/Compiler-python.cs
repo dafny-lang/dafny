@@ -1013,11 +1013,14 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree EmitBetaRedex(List<string> boundVars, List<Expression> arguments,
-        List<Type> boundTypes, Type resultType, IToken resultTok, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      List<Type> boundTypes, Type resultType, IToken resultTok, bool inLetExprBody, ConcreteSyntaxTree wr,
+      ConcreteSyntaxTree wStmts, out ConcreteSyntaxTree wrStmts) {
       var functionName = ProtectedFreshId("_lambda");
       wr.Write($"{functionName}");
       TrExprList(arguments, wr, inLetExprBody, wStmts);
-      return wStmts.NewBlockPy($"def {functionName}({boundVars.Comma()}):", close: BlockStyle.Newline);
+      var wrBody = wStmts.NewBlockPy($"def {functionName}({boundVars.Comma()}):", close: BlockStyle.Newline);
+      wrStmts = wrBody.Fork();
+      return EmitReturnExpr(wrBody);
     }
 
     protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor,
@@ -1035,11 +1038,14 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void CreateIIFE(string bvName, Type bvType, IToken bvTok, Type bodyType, IToken bodyTok,
-        ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, out ConcreteSyntaxTree wrRhs, out ConcreteSyntaxTree wrBody) {
+      ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, out ConcreteSyntaxTree wrRhs, out ConcreteSyntaxTree wrBody,
+      out ConcreteSyntaxTree wrStmts) {
       wrRhs = new ConcreteSyntaxTree();
       var functionName = ProtectedFreshId("_iife");
       wr.Format($"{functionName}({wrRhs})");
       wrBody = wStmts.NewBlockPy($"def {functionName}({bvName}):");
+      wrStmts = wrBody.Fork();
+      wrBody = EmitReturnExpr(wrBody);
     }
 
     protected override ConcreteSyntaxTree CreateIIFE0(Type resultType, IToken resultTok, ConcreteSyntaxTree wr,
