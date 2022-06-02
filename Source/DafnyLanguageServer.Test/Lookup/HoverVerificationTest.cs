@@ -193,7 +193,7 @@ method f(x: int) {
     }
 
     [TestMethod, Timeout(5 * MaxTestExecutionTimeMs)]
-    public async Task IndicateSlowHints() {
+    public async Task IndicateClickableWarningSignsOnMethodHoverWhenResourceLimitReached10MThreshold() {
       var documentItem = await GetDocumentItem(@"
 lemma {:rlimit 12000} SquareRoot2NotRational(p: nat, q: nat)
   requires p > 0 && q > 0
