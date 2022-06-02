@@ -981,21 +981,19 @@ Note that the braces enclosing the ``CaseClause``s may be omitted.
 QuantifierExpression(allowLemma, allowLambda) =
     ( "forall" | "exists" ) QuantifierDomain "::"
     Expression(allowLemma, allowLambda)
-
-QuantifierDomain =
-  IdentTypeOptional { "," IdentTypeOptional } { Attribute }
-  [ "|" Expression(allowLemma: true, allowLambda: true) ]
 ````
 
 A ``QuantifierExpression`` is a boolean expression that specifies that a
 given expression (the one following the `::`) is true for all (for
 **forall**) or some (for **exists**) combination of values of the
 quantified variables, namely those in the ``QuantifierDomain``.
+See [Section 2.6.5](#sec-quantifier-domains) for more details on quantifier domains.
 
 Here are some examples:
 ```dafny
 assert forall x : nat | x <= 5 :: x * x <= 25;
 (forall n :: 2 <= n ==> (exists d :: n < d < 2*n))
+assert forall x: nat | 0 <= x < |s|, y <- s[x] :: y < x;
 ```
 
 The quantifier identifiers are _bound_ within the scope of the
@@ -1010,11 +1008,7 @@ It this is not possible, the program is in error.
 ````grammar
 SetComprehensionExpr(allowLemma, allowLambda) =
   [ "set" | "iset" ]
-  IdentTypeOptional
-  { "," IdentTypeOptional }
-  { Attribute }
-  "|"
-  Expression(allowLemma, allowLambda)
+  QuantifierDomain(allowLemma, allowLambda)
   [ "::" Expression(allowLemma, allowLambda) ]
 ````
 
@@ -1040,12 +1034,17 @@ set x : T | P(x) :: x
 For the full form
 
 ```dafny
-var S := set x1:T1, x2:T2 ... | P(x1, x2, ...) :: Q(x1, x2, ...)
+var S := set x1: T1 <- C1 | P1(x1),
+             x2: T2 <- C2 | P2(x1, x2),
+             ... 
+             :: Q(x1, x2, ...)
 ```
 
 the elements of `S` will be all values resulting from evaluation of `Q(x1, x2, ...)`
-for all combinations of quantified variables `x1, x2, ...` such that
-predicate `P(x1, x2, ...)` holds. For example,
+for all combinations of quantified variables `x1, x2, ...` (from their respective `C1, C2, ...`
+domains) such that all predicates `P1(x1), P2(x1, x2), ...` hold. 
+
+For example,
 
 ```dafny
 var S := set x:nat, y:nat | x < 2 && y < 2 :: (x, y)
@@ -1054,7 +1053,9 @@ yields `S == {(0, 0), (0, 1), (1, 0), (1,1) }`
 
 The types on the quantified variables are optional and if not given Dafny
 will attempt to infer them from the contexts in which they are used in the
-`P` or `Q` expressions.
+various expressions. The `<- C` domain expressions are also optional and default to
+`iset x: T` (i.e. all values of the variable's type), as are the `| P` expressions which
+default to `true`. See also [Section 2.6.5](#sec-quantifier-domains) for more details on quantifier domains.
 
 If a finite set was specified ("set" keyword used), Dafny must be able to prove that the
 result is finite otherwise the set comprehension expression will not be
@@ -1063,7 +1064,7 @@ accepted.
 Set comprehensions involving reference types such as
 
 ```dafny
-set o: object | true
+set o: object
 ```
 
 are allowed in ghost expressions within methods, but not in ghost functions[^set-of-objects-not-in-functions].
@@ -1073,7 +1074,7 @@ where the bound variable is of a reference type. In non-ghost contexts,
 it is not allowed, because--even though the resulting set would be
 finite--it is not pleasant or practical to compute at run time.
 
-[^set-of-objects-not-in-functions]: In order to be deterministic, the result of a function should only depend on the arguments and of the objects  it [reads](#sec-reads-clause), and Dafny does not provide a way to explicitely pass the entire heap as the argument to a function. See [this post](https://github.com/dafny-lang/dafny/issues/1366#issuecomment-906785889) for more insights.
+[^set-of-objects-not-in-functions]: In order to be deterministic, the result of a function should only depend on the arguments and of the objects  it [reads](#sec-reads-clause), and Dafny does not provide a way to explicitly pass the entire heap as the argument to a function. See [this post](https://github.com/dafny-lang/dafny/issues/1366#issuecomment-906785889) for more insights.
 
 The universe in which set comprehensions are evaluated is the set of all
 _allocated_ objects, of the appropriate type and satisfying the given predicate.
@@ -1199,19 +1200,16 @@ the whole let-or-fail expression. Typically that means that `tmp.PropagateFailur
 ````grammar
 MapComprehensionExpr(allowLemma, allowLambda) =
   ( "map" | "imap" )
-  IdentTypeOptional
-  { "," IdentTypeOptional }
-  { Attribute }
-  [ "|" Expression(allowLemma: true, allowLambda: true) ]
+  QuantifierDomain(allowLemma, allowLambda)
   "::"
   Expression(allowLemma, allowLambda)
   [ ":=" Expression(allowLemma, allowLambda) ]
 ````
 
 A ``MapComprehensionExpr`` defines a finite or infinite map value
-by defining a domain (using the ``IdentTypeOptional`` and the optional
-condition following the "|") and for each value in the domain,
+by defining a domain and for each value in the domain,
 giving the mapped value using the expression following the "::".
+See [Section 2.6.5](#sec-quantifier-domains) for more details on quantifier domains.
 
 For example:
 ```dafny

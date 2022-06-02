@@ -561,7 +561,40 @@ A ``FormalsOptionalIds`` is a formal parameter list in which the types are requi
 but the names of the parameters are optional. This is used in algebraic
 datatype definitions.
 
-### 2.6.5. Numeric Literals
+### 2.6.5. Quantifier Domains {#sec-quantifier-domains}
+````grammar
+QuantifierDomain(allowLemma, allowLambda) =
+    QuantifierVarDecl(allowLemma, allowLambda) 
+    { "," QuantifierVarDecl(allowLemma, allowLambda) }
+
+QuantifierVarDecl(allowLemma, allowLambda) =
+    IdentTypeOptional
+    [ <- Expression(allowLemma, allowLambda) ]
+    { Attribute }
+    [ | Expression(allowLemma, allowLambda) ]
+````
+
+A quantifier domain is used in several Dafny constructs to bind one or more variables
+to a range of values. For example, in the quantifier `forall x : nat | x <= 5 :: x * x <= 25`,
+the quantifier domain is the text `x : nat | x <= 5`, which binds the variable `x` to the values
+`0`, `1`, `2`, `3`, `4`, and `5`. The overall expression is hence true if the `x * x <= 5` body is true
+for each of these values (which it is in this case).
+
+The optional syntax `| E` attaches a boolean expression `E` as a *quantified variable range*,
+which restricts the bindings to values that satisfy this expression.
+In the example above `x <= 5` is the range attached to the `x` variable declaration.
+
+The optional syntax `<- C` attaches a collection expression `C` as a *quantified variable domain*.
+Here a collection is any value of a type that supports the `in` operator, namely sets, multisets, maps, and sequences.
+The domain also restricts the bindings, in this case to the elements of the collection: `x <- C` implies `x in C`.
+The example above can also be expressed as `var c := [0, 1, 2, 3, 4, 5]; forall x <- c :: x * x <= 25`.
+
+Note that a variable's domain expression may reference any variable declared before it,
+and a variable's range expression may reference the attached variable (and usually does) and any variable declared before it.
+For example, in the quantifier domain `x: nat | 0 <= x < |s|, y <- s[x] | x < y`, the expression `s[x]` is well-formed
+because the range attached to `x` ensures `x` is a valid index in the sequence `s`.
+
+### 2.6.6. Numeric Literals
 ````grammar
 Nat = ( digits | hexdigits )
 ````
@@ -571,4 +604,3 @@ A ``Nat`` represents a natural number expressed in either decimal or hexadecimal
 Dec = decimaldigits
 ````
 A ``Dec`` represents a decimal fraction literal.
-
