@@ -199,7 +199,7 @@ method f(x: int) {
       DafnyHoverHandler.RuLimitToBeOverCostly = 500000;
       try {
         var documentItem = await GetDocumentItem(@"
-lemma {:timeLimit 3} SquareRoot2NotRational(p: nat, q: nat)
+lemma {:rlimit 12000} SquareRoot2NotRational(p: nat, q: nat)
   requires p > 0 && q > 0
   ensures (p * p) !=  2 * (q * q)
 { 
