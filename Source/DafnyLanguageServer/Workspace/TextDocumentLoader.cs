@@ -220,7 +220,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       var progressReporter = document.GutterProgressReporter;
 
-      var result = implementationTasks.Select(task => Verify(document, task, cancellationToken)).Merge();  //GetVerifiedDafnyDocuments(document, implementationTasks, progressReporter, cancellationToken);
+      var result = implementationTasks.Select(task => Verify(document, task, cancellationToken)).Merge().Replay();  //GetVerifiedDafnyDocuments(document, implementationTasks, progressReporter, cancellationToken);
+      result.Connect();
 
       if (VerifierOptions.GutterStatus) {
         ReportRealtimeDiagnostics(document, result, progressReporter, cancellationToken);
@@ -236,8 +237,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var subject = WrapObservable(cancellationToken, implementationTask);
       var result = subject.SelectMany(boogieStatus => boogieStatus == VerificationStatus.Stale
         ? Observable.Empty<DafnyDocument>()
-          : HandleStatusUpdate(document, implementationTask, boogieStatus).ToObservable()).Replay();
-      result.Connect();
+          : HandleStatusUpdate(document, implementationTask, boogieStatus).ToObservable());
 
       var initial = document with {
         ImplementationViewsView = document.ImplementationViews.ToImmutableDictionary(),

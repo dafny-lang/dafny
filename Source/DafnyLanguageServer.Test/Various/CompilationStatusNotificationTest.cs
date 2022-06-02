@@ -133,7 +133,7 @@ method Abs(x: int) returns (y: int)
       await AssertProgress(documentItem, CompilationStatus.VerificationFailed);
     }
 
-    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    [TestMethod] //, Timeout(MaxTestExecutionTimeMs)]
     public async Task DocumentWithOnlyCodedVerifierTimeoutSendsCompilationSucceededVerificationStartedAndVerificationFailedStatuses() {
       var documentItem = CreateTestDocument(SlowToVerify);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
