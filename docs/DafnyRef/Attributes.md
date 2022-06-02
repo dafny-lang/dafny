@@ -320,7 +320,7 @@ refinement is described.
 `{:priority N}` assigns a positive priority 'N' to a method or function to control the order
 in which methods or functions are verified (default: N = 1).
 
-### 22.2.11: `{:rlimit}` {#sec-rlimit}
+### 22.2.11. `{:rlimit}` {#sec-rlimit}
 
 `{:rlimit N}` limits the verifier resource usage to verify the method or function at `N * 1000`.
 This is the per-method equivalent of the command-line flag `/rlimit:N`.
