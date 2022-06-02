@@ -9118,7 +9118,7 @@ namespace Microsoft.Dafny {
       set { WrappedToken.val = value; }
     }
   }
-  
+
   /// <summary>
   /// A token wrapper used to produce better type checking errors
   /// for quantified variables. See QuantifierVar.ExtractSingleRange()
@@ -9137,15 +9137,15 @@ namespace Microsoft.Dafny {
 
   class QuantifiedVariableDomainCloner : Cloner {
     public static readonly QuantifiedVariableDomainCloner Instance = new QuantifiedVariableDomainCloner();
-    private QuantifiedVariableDomainCloner() {}
+    private QuantifiedVariableDomainCloner() { }
     public override IToken Tok(IToken tok) {
       return new QuantifiedVariableDomainToken(tok);
     }
   }
-  
+
   class QuantifiedVariableRangeCloner : Cloner {
     public static readonly QuantifiedVariableRangeCloner Instance = new QuantifiedVariableRangeCloner();
-    private QuantifiedVariableRangeCloner() {}
+    private QuantifiedVariableRangeCloner() { }
     public override IToken Tok(IToken tok) {
       return new QuantifiedVariableRangeToken(tok);
     }
