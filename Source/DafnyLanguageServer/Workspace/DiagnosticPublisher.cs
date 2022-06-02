@@ -34,11 +34,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private void PublishVerificationStatus(DafnyDocument document) {
-      if (document.ImplementationViews == null) {
+      if (document.ImplementationViewsView == null) {
         return;
       }
 
-      var notification = new FileVerificationStatus(document.Uri, document.Version, GetNamedVerifiableStatuses(document.ImplementationViews));
+      var notification = new FileVerificationStatus(document.Uri, document.Version, GetNamedVerifiableStatuses(document.ImplementationViewsView));
 
       if (previouslyVerificationStatus.TryGetValue(document.Uri, out var previousParams)) {
         if (previousParams.Version > notification.Version ||

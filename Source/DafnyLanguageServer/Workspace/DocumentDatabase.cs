@@ -157,7 +157,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       // We do not pass the cancellation token to the text change processor because the text has to be kept in sync with the LSP client.
       var updatedText = textChangeProcessor.ApplyChange(oldDocument.TextDocumentItem, documentChange, CancellationToken.None);
-      var oldVerificationDiagnostics = oldDocument.ImplementationViews ?? new Dictionary<ImplementationId, ImplementationView>();
+      var oldVerificationDiagnostics = oldDocument.ImplementationViewsView ?? new Dictionary<ImplementationId, ImplementationView>();
       var migratedImplementationViews = oldVerificationDiagnostics.ToDictionary(
         kv => kv.Key with {
           NamedVerificationTask =
@@ -180,7 +180,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         newDocument = newDocument with { LastChange = lastChange };
         if (newDocument.SymbolTable.Resolved) {
           var resolvedDocument = newDocument with {
-            ImplementationViews = migratedImplementationViews,
+            ImplementationViewsView = migratedImplementationViews,
             VerificationTree = migratedVerificationTree,
             LastTouchedMethodPositions = migratedLastTouchedPositions
           };
@@ -192,7 +192,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         // according to the change.
         var failedDocument = newDocument with {
           SymbolTable = relocator.RelocateSymbols(oldDocument.SymbolTable, documentChange, CancellationToken.None),
-          ImplementationViews = migratedImplementationViews,
+          ImplementationViewsView = migratedImplementationViews,
           VerificationTree = migratedVerificationTree,
           LastTouchedMethodPositions = migratedLastTouchedPositions
         };
@@ -205,10 +205,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return oldDocument with {
           TextDocumentItem = updatedText,
           SymbolTable = relocator.RelocateSymbols(oldDocument.SymbolTable, documentChange, CancellationToken.None),
-          CounterExamples = Array.Empty<Counterexample>(),
+          CounterExamplesView = Array.Empty<Counterexample>(),
           VerificationTree = migratedVerificationTree,
           LoadCanceled = true,
-          ImplementationViews = migratedImplementationViews,
+          ImplementationViewsView = migratedImplementationViews,
           LastTouchedMethodPositions = migratedLastTouchedPositions
         };
       }
@@ -219,16 +219,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var resolvedDocument = await resolvedDocumentTask;
 #pragma warning restore VSTHRD003
       var withVerificationTasks = await documentLoader.PrepareVerificationTasksAsync(resolvedDocument, cancellationToken);
-      if (resolvedDocument.ImplementationViews == null) {
+      if (resolvedDocument.ImplementationViewsView == null) {
         return withVerificationTasks;
       }
 
       return withVerificationTasks with {
-        ImplementationViews = withVerificationTasks.ImplementationViews!.ToDictionary(
+        ImplementationViewsView = withVerificationTasks.ImplementationViewsView!.ToDictionary(
           kv => kv.Key,
           kv =>
             kv.Value with {
-              Diagnostics = resolvedDocument.ImplementationViews.GetValueOrDefault(kv.Key)?.Diagnostics ?? kv.Value.Diagnostics
+              Diagnostics = resolvedDocument.ImplementationViewsView.GetValueOrDefault(kv.Key)?.Diagnostics ?? kv.Value.Diagnostics
             }
         ),
       };
