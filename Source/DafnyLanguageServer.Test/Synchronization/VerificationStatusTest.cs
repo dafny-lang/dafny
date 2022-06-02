@@ -15,21 +15,28 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization;
 public class VerificationStatusTest : ClientBasedLanguageServerTest {
 
   [TestMethod]
-  public async Task ManualRun() {
-    var source = @"method Foo() { assert false; }";
+  public async Task ManualRunCancelRun() {
 
     await SetUp(new Dictionary<string, string> {
       { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.Never) }
     });
-    var documentItem = CreateTestDocument(source);
+    var documentItem = CreateTestDocument(SlowToVerify);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     var stale = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.AreEqual(PublishedVerificationStatus.Stale, stale.NamedVerifiables[0].Status);
     await AssertNoVerificationStatusIsComing(documentItem, CancellationToken);
 
-    client.RunSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), new Position(0,7));
+    var methodHeader = new Position(0,20);
+    client.RunSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), methodHeader);
     var verifying = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.AreEqual(PublishedVerificationStatus.Running, verifying.NamedVerifiables[0].Status);
+
+    client.CancelSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), methodHeader);
+
+    var staleAgain = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+    Assert.AreEqual(PublishedVerificationStatus.Stale, staleAgain.NamedVerifiables[0].Status);
+
+    client.RunSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), methodHeader);
     var errored = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.AreEqual(PublishedVerificationStatus.Error, errored.NamedVerifiables[0].Status);
   }

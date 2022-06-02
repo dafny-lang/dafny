@@ -27,6 +27,11 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions {
         new VerificationParams(){ TextDocument = textDocumentIdentifier, Position = position });
     }
 
+    public static void CancelSymbolVerification(this ILanguageClient client, TextDocumentIdentifier textDocumentIdentifier, Position position) {
+      client.SendNotification(DafnyRequestNames.CancelVerifySymbol,
+        new VerificationParams(){ TextDocument = textDocumentIdentifier, Position = position });
+    }
+
     public static void SaveDocument(this ILanguageClient client, TextDocumentItem documentItem) {
       client.DidSaveTextDocument(new DidSaveTextDocumentParams {
         TextDocument = documentItem

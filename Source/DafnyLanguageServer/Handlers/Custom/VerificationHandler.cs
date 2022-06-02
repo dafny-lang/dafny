@@ -47,7 +47,6 @@ public class VerificationHandler : IJsonRpcNotificationHandler<VerificationParam
 
     var translatedDocument = await documentEntry.TranslatedDocument;
     var requestPosition = request.Position;
-    // TODO move verification tasks to verifiables in the AST.
     var tasks = GetTasksAtPosition(translatedDocument, requestPosition).ToList();
     foreach (var taskToRun in tasks) {
       var verifiedDocuments = documentLoader.Verify(translatedDocument, taskToRun, CancellationToken.None);
@@ -71,7 +70,6 @@ public class VerificationHandler : IJsonRpcNotificationHandler<VerificationParam
     }
 
     var translatedDocument = await documentEntry.TranslatedDocument;
-    // TODO move verification tasks to verifiables in the AST.
     var requestPosition = request.Position;
     foreach (var taskToRun in GetTasksAtPosition(translatedDocument, requestPosition)) {
       taskToRun.Cancel();
