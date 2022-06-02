@@ -6128,6 +6128,12 @@ namespace Microsoft.Dafny {
     }
   }
 
+  /// <summary>
+  /// A QuantifiedVar is a bound variable used in a quantifier such as "forall x :: ...",
+  /// a comprehension such as "set x | 0 <= x < 10", etc.
+  /// In addition to its type, which may be inferred, it can have an optional domain collection expression
+  /// (x <- C) and an optional range boolean expressions (x | E).
+  /// </summary>
   [DebuggerDisplay("Quantified<{name}>")]
   public class QuantifiedVar : BoundVar {
     public readonly Expression Domain;
@@ -6142,6 +6148,19 @@ namespace Microsoft.Dafny {
       Range = range;
     }
 
+    /// <summary>
+    /// Map a list of quantified variables to an eqivalent list of bound variables plus a single range expression.
+    /// The transformation looks like this in general:
+    ///
+    /// x1 <- C1 | E1, ..., xN <- CN | EN
+    ///
+    /// becomes:
+    ///
+    /// x1, ... xN | x1 in C1 && E1 && ... && xN in CN && EN
+    ///
+    /// Note the result will be null rather than "true" if there are no such domains or ranges.
+    /// Some quantification contexts (such as comprehensions) will replace this with "true".
+    /// </summary>
     public static void ExtractSingleRange(List<QuantifiedVar> qvars, out List<BoundVar> bvars, out Expression range) {
       bvars = new List<BoundVar>();
       range = null;
@@ -6151,19 +6170,17 @@ namespace Microsoft.Dafny {
         bvars.Add(bvar);
 
         if (qvar.Domain != null) {
+          // Attach a token wrapper so we can produce a better error message if the domain is not a collection
           var domainWithToken = QuantifiedVariableDomainCloner.Instance.CloneExpr(qvar.Domain);
           var inDomainExpr = new BinaryExpr(domainWithToken.tok, BinaryExpr.Opcode.In, new IdentifierExpr(bvar.tok, bvar), domainWithToken);
           range = range == null ? inDomainExpr : new BinaryExpr(domainWithToken.tok, BinaryExpr.Opcode.And, range, inDomainExpr);
         }
 
         if (qvar.Range != null) {
+          // Attach a token wrapper so we can produce a better error message if the range is not a boolean expression
           var rangeWithToken = QuantifiedVariableRangeCloner.Instance.CloneExpr(qvar.Range);
           range = range == null ? qvar.Range : new BinaryExpr(rangeWithToken.tok, BinaryExpr.Opcode.And, range, rangeWithToken);
         }
-      }
-
-      if (range == null) {
-        range = LiteralExpr.CreateBoolLiteral(Token.NoToken, true);
       }
     }
   }
@@ -9086,6 +9103,10 @@ namespace Microsoft.Dafny {
     }
   }
 
+  /// <summary>
+  /// A token wrapper used to produce better type checking errors
+  /// for quantified variables. See QuantifierVar.ExtractSingleRange()
+  /// </summary>
   public class QuantifiedVariableDomainToken : TokenWrapper {
     public QuantifiedVariableDomainToken(IToken wrappedToken)
       : base(wrappedToken) {
@@ -9098,6 +9119,10 @@ namespace Microsoft.Dafny {
     }
   }
   
+  /// <summary>
+  /// A token wrapper used to produce better type checking errors
+  /// for quantified variables. See QuantifierVar.ExtractSingleRange()
+  /// </summary>
   public class QuantifiedVariableRangeToken : TokenWrapper {
     public QuantifiedVariableRangeToken(IToken wrappedToken)
       : base(wrappedToken) {
@@ -11537,7 +11562,7 @@ namespace Microsoft.Dafny {
   ///
   /// Quantifications used to only support a single range, but now each
   /// quantified variable can have a range attached.
-  /// The overall Range is now filled in by the resolver by extracting any implicit
+  /// The overall Range is now filled in by the parser by extracting any implicit
   /// "x in Domain" constraints and per-variable Range constraints into a single conjunct.
   ///
   /// The Term is optional if the expression only has one quantified variable,
