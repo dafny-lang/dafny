@@ -113,7 +113,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           return Observable.Empty<DafnyDocument>();
         }
 
-        return documentLoader.Verify(document, cancellationToken);
+        return documentLoader.VerifyAllTasks(document, cancellationToken);
       }, TaskScheduler.Current).ToObservable().Merge();
     }
 
@@ -304,5 +304,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       public Task<DafnyDocument> LastDocument { get; }
     }
+
   }
 }

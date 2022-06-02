@@ -199,7 +199,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public IObservable<DafnyDocument> Verify(DafnyDocument dafnyDocument, IImplementationTask implementationTask, CancellationToken cancellationToken) {
-      var result = GetVerifiedDafnyDocuments(dafnyDocument, implementationTask, cancellationToken);
+      var result = GetVerifiedDafnyDocuments(dafnyDocument, implementationTask, cancellationToken).Replay();
+      result.Connect();
       cancellationToken.Register(implementationTask.Cancel);
       try {
         implementationTask.Run();
@@ -213,18 +214,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return result;
     }
 
-    public IObservable<DafnyDocument> Verify(DafnyDocument document, CancellationToken cancellationToken) {
+    public IObservable<DafnyDocument> VerifyAllTasks(DafnyDocument document, CancellationToken cancellationToken) {
       notificationPublisher.SendStatusNotification(document.TextDocumentItem, CompilationStatus.VerificationStarted);
 
       var implementationTasks = document.VerificationTasks!.Tasks;
-
-      var progressReporter = document.GutterProgressReporter;
 
       var result = implementationTasks.Select(task => Verify(document, task, cancellationToken)).Merge().Replay();  //GetVerifiedDafnyDocuments(document, implementationTasks, progressReporter, cancellationToken);
       result.Connect();
 
       if (VerifierOptions.GutterStatus) {
-        ReportRealtimeDiagnostics(document, result, progressReporter, cancellationToken);
+        ReportRealtimeDiagnostics(document, result, cancellationToken);
       }
 
       var _ = NotifyStatusAsync(document.TextDocumentItem, result.DefaultIfEmpty(document), cancellationToken);
@@ -240,7 +239,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           : HandleStatusUpdate(document, implementationTask, boogieStatus).ToObservable());
 
       var initial = document with {
-        ImplementationViewsView = document.ImplementationViews.ToImmutableDictionary(),
+        ImplementationViewsView = document.ImplementationViews!.ToImmutableDictionary(),
       };
       return Observable.Return(initial).Concat(result);
     }
@@ -252,24 +251,24 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       if (boogieStatus is VerificationStatus.Completed) {
         var verificationResult = await implementationTask.ActualTask;
         foreach (var counterExample in verificationResult.Errors) {
-          document.Counterexamples.Push(counterExample);
+          document.Counterexamples!.Push(counterExample);
         }
 
         var itDiagnostics = GetDiagnosticsFromResult(document, verificationResult);
         var view = new ImplementationView(lspRange, status, itDiagnostics);
-        document.ImplementationViews.AddOrUpdate(id, view, (_, _) => view);
+        document.ImplementationViews!.AddOrUpdate(id, view, (_, _) => view);
         if (VerifierOptions.GutterStatus) {
-          document.GutterProgressReporter.ReportEndVerifyImplementation(implementationTask.Implementation, verificationResult);
+          document.GutterProgressReporter!.ReportEndVerifyImplementation(implementationTask.Implementation, verificationResult);
         }
       } else {
-        document.ImplementationViews.AddOrUpdate(id,
+        document.ImplementationViews!.AddOrUpdate(id,
           _ => new ImplementationView(lspRange, status, Array.Empty<Diagnostic>()),
           (_, previousView) => previousView with { Status = status });
       }
 
       return document with {
         ImplementationViewsView = document.ImplementationViews.ToImmutableDictionary(),
-        CounterExamplesView = document.Counterexamples.ToArray(),
+        CounterExamplesView = document.Counterexamples!.ToArray(),
       };
     }
 
@@ -285,15 +284,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return subject;
     }
 
-    private void ReportRealtimeDiagnostics(DafnyDocument document, IObservable<DafnyDocument> result,
-      IVerificationProgressReporter progressReporter, CancellationToken cancellationToken) {
+    private void ReportRealtimeDiagnostics(DafnyDocument document, IObservable<DafnyDocument> result, CancellationToken cancellationToken) {
       result.DefaultIfEmpty(document).LastAsync().Subscribe(finalDocument => {
         // All unvisited trees need to set them as "verified"
         if (!cancellationToken.IsCancellationRequested) {
           SetAllUnvisitedMethodsAsVerified(document);
         }
 
-        progressReporter.ReportRealtimeDiagnostics(true, finalDocument);
+        document.GutterProgressReporter!.ReportRealtimeDiagnostics(true, finalDocument);
       });
     }
 

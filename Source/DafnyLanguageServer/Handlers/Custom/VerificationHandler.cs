@@ -24,14 +24,20 @@ public record CancelVerificationParams : TextDocumentPositionParams, IRequest {
 
 }
 
-public class VerificationHandler : IJsonRpcNotificationHandler<VerificationParams>//, IJsonRpcNotificationHandler<CancelVerificationParams>
+public class VerificationHandler : IJsonRpcNotificationHandler<VerificationParams>, IJsonRpcNotificationHandler<CancelVerificationParams>
 {
   private readonly ILogger logger;
   private readonly IDocumentDatabase documents;
+  private readonly DafnyTextDocumentHandler documentHandler;
+  private readonly ITextDocumentLoader documentLoader;
 
-  public VerificationHandler(ILogger<VerificationHandler> logger, IDocumentDatabase documents) {
+  public VerificationHandler(ILogger<VerificationHandler> logger, IDocumentDatabase documents,
+    DafnyTextDocumentHandler documentHandler,
+    ITextDocumentLoader documentLoader) {
     this.logger = logger;
     this.documents = documents;
+    this.documentHandler = documentHandler;
+    this.documentLoader = documentLoader;
   }
 
   public async Task<Unit> Handle(VerificationParams request, CancellationToken cancellationToken) {
@@ -44,7 +50,8 @@ public class VerificationHandler : IJsonRpcNotificationHandler<VerificationParam
     // TODO move verification tasks to verifiables in the AST.
     var tasks = GetTasksAtPosition(translatedDocument, requestPosition).ToList();
     foreach (var taskToRun in tasks) {
-      taskToRun.Run();
+      var verifiedDocuments = documentLoader.Verify(translatedDocument, taskToRun, CancellationToken.None);
+      documentHandler.ForwardDiagnostics(request.TextDocument.Uri, verifiedDocuments);
     }
 
     return Unit.Value;

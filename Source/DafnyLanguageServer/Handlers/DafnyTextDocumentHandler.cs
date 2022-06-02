@@ -86,7 +86,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       return Unit.Task;
     }
 
-    private void ForwardDiagnostics(DocumentUri uri, IObservable<DafnyDocument> obs) {
+    public void ForwardDiagnostics(DocumentUri uri, IObservable<DafnyDocument> obs) {
       var observer = observers.GetOrCreate(uri, () => new DiagnosticsObserver(logger, telemetryPublisher, diagnosticPublisher));
       observer.AddUpdates(obs);
     }
