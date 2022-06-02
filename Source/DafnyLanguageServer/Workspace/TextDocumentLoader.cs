@@ -96,12 +96,20 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       var verificationTasks = await verifier.GetVerificationTasksAsync(loaded, cancellationToken);
-
       var initialViews = new ConcurrentDictionary<ImplementationId, ImplementationView>();
+
       foreach (var task in verificationTasks.Tasks) {
         var status = await StatusFromImplementationTaskAsync(task);
-        var view = new ImplementationView(task.Implementation.tok.GetLspRange(), status, Array.Empty<Diagnostic>());
-        initialViews.TryAdd(GetImplementationId(task.Implementation), view);
+        var id = GetImplementationId(task.Implementation);
+        if (loaded.ImplementationViewsView!.TryGetValue(id, out var existingView)) {
+#pragma warning disable VSTHRD002
+          initialViews.TryAdd(id, existingView with { Status = status });
+#pragma warning restore VSTHRD002
+        } else {
+          // TODO add diagnostics in cache results are cached, and then also make sure not to jump into the then branch.
+          var view = new ImplementationView(task.Implementation.tok.GetLspRange(), status, Array.Empty<Diagnostic>());
+          initialViews.TryAdd(GetImplementationId(task.Implementation), view);
+        }
       }
 
       var result = loaded with {
@@ -111,6 +119,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         ImplementationViewsView = initialViews.ToImmutableDictionary(),
       };
       var progressReporter = CreateVerificationProgressReporter(result);
+      if (VerifierOptions.GutterStatus) {
+        progressReporter.RecomputeVerificationTree();
+        progressReporter.ReportRealtimeDiagnostics(false, result);
+        progressReporter.ReportImplementationsBeforeVerification(
+          verificationTasks.Tasks.Select(t => t.Implementation).ToArray());
+      }
       verificationTasks.BatchCompletions.Subscribe(progressReporter.ReportAssertionBatchResult);
       result.GutterProgressReporter = progressReporter;
       return result;
@@ -186,7 +200,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public IObservable<DafnyDocument> Verify(DafnyDocument dafnyDocument, IImplementationTask implementationTask, CancellationToken cancellationToken) {
       var result = GetVerifiedDafnyDocuments(dafnyDocument, implementationTask, cancellationToken);
-      var progressReporter = dafnyDocument.GutterProgressReporter;
       cancellationToken.Register(implementationTask.Cancel);
       try {
         implementationTask.Run();
@@ -194,7 +207,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         // Thrown in case the task was already cancelled. Requires a Boogie fix to remove.
       }
       if (VerifierOptions.GutterStatus) {
-        progressReporter.ReportStartVerifyImplementation(implementationTask.Implementation);
+        dafnyDocument.GutterProgressReporter!.ReportStartVerifyImplementation(implementationTask.Implementation);
       }
 
       return result;
@@ -206,12 +219,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var implementationTasks = document.VerificationTasks!.Tasks;
 
       var progressReporter = document.GutterProgressReporter;
-      if (VerifierOptions.GutterStatus) {
-        progressReporter.RecomputeVerificationTree();
-        progressReporter.ReportRealtimeDiagnostics(false, document);
-        progressReporter.ReportImplementationsBeforeVerification(
-          implementationTasks.Select(t => t.Implementation).ToArray());
-      }
 
       var result = implementationTasks.Select(task => Verify(document, task, cancellationToken)).Merge();  //GetVerifiedDafnyDocuments(document, implementationTasks, progressReporter, cancellationToken);
 
@@ -288,20 +295,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
         progressReporter.ReportRealtimeDiagnostics(true, finalDocument);
       });
-    }
-
-    private ConcurrentDictionary<ImplementationId, ImplementationView> GetExistingViews(DafnyDocument document, IReadOnlyList<IImplementationTask> implementationTasks) {
-      var viewDictionary = new ConcurrentDictionary<ImplementationId, ImplementationView>();
-      foreach (var task in implementationTasks) {
-        var id = GetImplementationId(task.Implementation);
-        if (document.ImplementationViewsView!.TryGetValue(id, out var existingView)) {
-#pragma warning disable VSTHRD002
-          viewDictionary.TryAdd(id, existingView with { Status = StatusFromImplementationTaskAsync(task).Result });
-#pragma warning restore VSTHRD002
-        }
-      }
-
-      return viewDictionary;
     }
 
     private List<Diagnostic> GetDiagnosticsFromResult(DafnyDocument document, VerificationResult result) {
