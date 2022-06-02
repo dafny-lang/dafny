@@ -875,7 +875,10 @@ namespace Microsoft.Dafny {
               new ApplyExpr(e.tok, e, bexprs) {
                 Type = new SetType(true, builtIns.ObjectQ())
               }) {
-              ResolvedOp = BinaryExpr.ResolvedOpcode.InSet,
+              ResolvedOp =
+                arrTy.Result.AsMultiSetType != null ? BinaryExpr.ResolvedOpcode.InMultiSet :
+                arrTy.Result.AsSeqType != null ? BinaryExpr.ResolvedOpcode.InSeq :
+                BinaryExpr.ResolvedOpcode.InSet,
               Type = Type.Bool
             }, obj, null) {
             Type = new SetType(true, builtIns.ObjectQ())
@@ -5462,7 +5465,7 @@ namespace Microsoft.Dafny {
                   return false;  // there is not enough information
                 }
               }
-              if (t.IsRefType) {
+              if (t.IsRefType && (arrTy == null || collType != null)) {
                 resolver.ConstrainSubtypeRelation_Equal(u, t, errorMsg);
                 convertedIntoOtherTypeConstraints = true;
                 return true;
