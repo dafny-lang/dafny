@@ -4,6 +4,8 @@
 module {:options "/quantifierSyntax:4"} NewSyntax {
   method M()
   {
+    // Ensuring we get sensible errors for type mismatches,
+    // despite the current desugaring implementation.
     var _ := set x <- 5;
     var _ := set x <- [5], y <- 5 :: y;
     var _ := set x: int | 0 <= x < 10, y | "true" :: y;
@@ -33,5 +35,13 @@ module {:options "/quantifierSyntax:4"} NewSyntax {
     forall x: int | 0 <= x < 10, y | "true" {}
     forall x <- [3], y | "true" {}
     forall x, y | "true" {}
+
+
+    // Dealing with the ambiguity of "<-": we parse it as two separate tokens
+    // but shouldn't allow whitespace in between when it is used as a single token.
+    var c := [1, 2, 3];
+    var _ := set x <- c;  // Allowed
+    var _ := set x < - c; // Error: arguments to < must have a common supertype (got set<?> and seq<int>)
+                          // Error: type of unary - must be of a numeric or bitvector type (instead got seq<int>)
   }
 }

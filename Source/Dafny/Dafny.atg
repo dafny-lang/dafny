@@ -228,6 +228,7 @@ bool IsQuantifierVariableDecl(QuantifiedVar previousVar) {
   // This would previously parse as two separate arguments to the print statement, but
   // could now also be parsed as a single set comprehension argument with two quantified variables
   // (and an invalid one since it would need an explicit ":: <Term>" section).
+  //
   // Even worse:
   //
   // print set x: x | E, y <- C;
@@ -247,6 +248,14 @@ bool IsQuantifierVariableDecl(QuantifiedVar previousVar) {
   return la.kind == _comma && IsIdentifier(x.kind);
 }
 
+// Checks for "<-", which has to be parsed as two separate tokens,
+// but ensures no whitespace between them.
+bool IsFromArrow() {
+  scanner.ResetPeek();
+  IToken x = scanner.Peek();
+  return la.kind == _openAngleBracket && x.kind == _minus
+    && la.line == x.line && la.col == x.col - 1; 
+}
 
 bool IsLabel(bool allowLabel) {
   if (!allowLabel) {
@@ -529,8 +538,8 @@ bool IsNotEndOfCase() {
 
 /* The following is the largest lookahead there is. It needs to check if what follows
  * can be nothing but "<" Type { "," Type } ">".
- * If inExpressionContext == false and there is an opening '<', then
- * it is assumed, without checking, that what follows is a type parameter list
+ * If inExpressionContext == true, it also checks the token immediately after
+ * the ">" to help disambiguate some cases (see implementation comment).   
  */
 bool IsGenericInstantiation(bool inExpressionContext) {
   scanner.ResetPeek();
@@ -4751,7 +4760,9 @@ QuantifierVariableDecl<.out QuantifiedVar qvar, ref Attributes attrs, bool allow
   .)
   IdentTypeOptional<out bv>
   [ // "<-" can also appear in GenericParameters in something like "<-T>",
-    // so we parse it as two separate tokens.
+    // so we parse it as two separate tokens, but use lookahead to ensure
+    // we don't allow whitespace between them.
+    IF(IsFromArrow())
     "<" "-"
     // We can't allow bitwise ops here since otherwise we'll swallow up any
     // optional "| <Range>" suffix 
