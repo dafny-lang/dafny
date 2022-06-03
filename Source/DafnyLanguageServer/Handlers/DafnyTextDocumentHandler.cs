@@ -40,7 +40,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     private readonly IDocumentDatabase documents;
     private readonly ITelemetryPublisher telemetryPublisher;
     private readonly IDiagnosticPublisher diagnosticPublisher;
-    private readonly Dictionary<DocumentUri, RequestsUpdatesOnUriObserver> observers = new();
+    private readonly Dictionary<DocumentUri, RequestUpdatesOnUriObserver> observers = new();
 
     public DafnyTextDocumentHandler(
       ILogger<DafnyTextDocumentHandler> logger, IDocumentDatabase documents,
@@ -88,15 +88,15 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     }
 
     private void ForwardDiagnostics(DocumentUri uri, IObservable<DafnyDocument> requestUpdates) {
-      var observer = observers.GetOrCreate(uri, () => new RequestsUpdatesOnUriObserver(logger, telemetryPublisher, diagnosticPublisher));
+      var observer = observers.GetOrCreate(uri, () => new RequestUpdatesOnUriObserver(logger, telemetryPublisher, diagnosticPublisher));
       observer.OnNext(requestUpdates);
     }
 
-    private class RequestsUpdatesOnUriObserver : IObserver<IObservable<DafnyDocument>>, IDisposable {
+    private class RequestUpdatesOnUriObserver : IObserver<IObservable<DafnyDocument>>, IDisposable {
       private readonly MergeOrdered<DafnyDocument> mergeOrdered;
       private readonly IDisposable subscription;
 
-      public RequestsUpdatesOnUriObserver(ILogger logger, ITelemetryPublisher telemetryPublisher,
+      public RequestUpdatesOnUriObserver(ILogger logger, ITelemetryPublisher telemetryPublisher,
         IDiagnosticPublisher diagnosticPublisher) {
 
         mergeOrdered = new MergeOrdered<DafnyDocument>();
