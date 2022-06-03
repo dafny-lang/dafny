@@ -1394,9 +1394,8 @@ users include the following. We use the term "procedure" below to refer
 to a Dafny function, lemma, method, or predicate, following Boogie
 terminology.
 
-* `-proc:<name>` - verify only the function, lemma, method or predicate
-  named `<name>`. The name can include `*` to indicate arbitrary
-  sequences of characters.
+* `-proc:<name>` - verify only the procedure named `<name>`. The name
+  can include `*` to indicate arbitrary sequences of characters.
 
 * `-trace` - print extra information during verification, including
   timing, resource use, and outcome for each procedure incrementally, as
