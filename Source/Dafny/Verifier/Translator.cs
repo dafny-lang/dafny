@@ -7002,6 +7002,11 @@ namespace Microsoft.Dafny {
     ///       -- "type" as the element type of that set,
     ///       -- "obj" as a new identifier of type "type", and
     ///       -- "antecedent" as "obj in e".
+    ///  * If "e" denotes a multiset of references, then return
+    ///       -- "description" as the string "multiset element",
+    ///       -- "type" as the element type of that multiset,
+    ///       -- "obj" as a new identifier of type "type", and
+    ///       -- "antecedent" as "e[obj] > 0".
     ///  * If "e" denotes a sequence of references, then return
     ///       -- "description" as the string "sequence element",
     ///       -- "type" as the element type of that sequence,
@@ -7024,13 +7029,14 @@ namespace Microsoft.Dafny {
       }
 
       var isSetType = e.Type.AsSetType != null;
-      Contract.Assert(isSetType || e.Type.AsSeqType != null);
+      var isMultisetType = e.Type.AsMultiSetType != null;
+      Contract.Assert(isSetType || isMultisetType || e.Type.AsSeqType != null);
       var sType = e.Type.AsCollectionType;
       Contract.Assert(sType != null);
       type = sType.Arg;
       // var $x
       var name = CurrentIdGenerator.FreshId("$unchanged#x");
-      var xVar = new Bpl.LocalVariable(e.tok, new Bpl.TypedIdent(e.tok, name, isSetType ? TrType(type) : Bpl.Type.Int));
+      var xVar = new Bpl.LocalVariable(e.tok, new Bpl.TypedIdent(e.tok, name, isSetType || isMultisetType ? TrType(type) : Bpl.Type.Int));
       locals.Add(xVar);
       var x = new Bpl.IdentifierExpr(e.tok, xVar);
       // havoc $x
@@ -7041,6 +7047,10 @@ namespace Microsoft.Dafny {
         description = "set element";
         obj = x;
         antecedent = Bpl.Expr.SelectTok(e.tok, s, BoxIfNecessary(e.tok, x, type));
+      } else if (isMultisetType) {
+        description = "multiset element";
+        obj = x;
+        antecedent = Boogie.Expr.Gt(Bpl.Expr.SelectTok(e.tok, s, BoxIfNecessary(e.tok, x, type)), Boogie.Expr.Literal(0));
       } else {
         description = "sequence element";
         obj = UnboxIfBoxed(FunctionCall(e.tok, BuiltinFunction.SeqIndex, predef.BoxType, s, x), type);
