@@ -34,6 +34,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoExtern", "AutoExtern\Au
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoExtern.Test", "AutoExtern.Test\AutoExtern.Test.csproj", "{A47E2F45-DEA3-4700-A82F-9506FEEB199A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestDafny", "TestDafny\TestDafny.csproj", "{FBE70430-9890-405C-A282-61D33259CE30}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -92,6 +94,10 @@ Global
 		{A47E2F45-DEA3-4700-A82F-9506FEEB199A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A47E2F45-DEA3-4700-A82F-9506FEEB199A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A47E2F45-DEA3-4700-A82F-9506FEEB199A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FBE70430-9890-405C-A282-61D33259CE30}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FBE70430-9890-405C-A282-61D33259CE30}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FBE70430-9890-405C-A282-61D33259CE30}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FBE70430-9890-405C-A282-61D33259CE30}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
