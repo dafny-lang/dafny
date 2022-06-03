@@ -1,0 +1,38 @@
+git-issue-2197.dfy(10,0): Error: A postcondition might not hold on this return path.
+   |
+10 | {
+   | ^
+
+git-issue-2197.dfy(9,10): Related location: This is the postcondition that might not hold.
+  |
+9 |   ensures Test(y)
+  |           ^^^^^^^
+
+git-issue-2197.dfy(5,4): Related location
+  |
+5 |   y >= 1
+  |   ^^^^^^
+
+git-issue-2197.dfy(16,0): Error: A postcondition might not hold on this return path.
+   |
+16 | {
+   | ^
+
+git-issue-2197.dfy(15,30): Related location: This is the postcondition that might not hold.
+   |
+15 |   ensures 0 <= y < |test| ==> test[y]
+   |                               ^^^^^^^
+
+git-issue-2197.dfy(21,2): Error: A precondition for this call might not hold.
+   |
+21 |   Never();
+   |   ^^^^^^^
+
+git-issue-2197.dfy(25,11): Related location: This is the precondition that might not hold.
+   |
+25 |   requires false
+   |            ^^^^^
+
+
+
+Dafny program verifier finished with 1 verified, 3 errors
