@@ -3423,7 +3423,6 @@ namespace Microsoft.Dafny.Compilers {
         var b = (ComprehensionExpr.MapBoundedPool)bound;
         TrParenExpr(su.Substitute(b.Map), collectionWriter, inLetExprBody, wStmts);
         GetSpecialFieldInfo(SpecialField.ID.Keys, null, null, out var keyName, out _, out _);
-        // TODO: Shouldn't this be UniqueElements?
         collectionWriter.Write($".{keyName}.Elements{propertySuffix}");
         return b.CollectionElementType;
       } else if (bound is ComprehensionExpr.SeqBoundedPool) {
