@@ -50,11 +50,22 @@ namespace Microsoft.Dafny {
         Expression substExpr;
         if (substMap.TryGetValue(e.Var, out substExpr)) {
           var substIdExpr = substExpr as IdentifierExpr;
+          Expression substExprFinal;
           if (substIdExpr != null) {
             // clone it, using the source location of the original
-            substExpr = new IdentifierExpr(expr.tok, substIdExpr.Var);
+            substExprFinal = new IdentifierExpr(expr.tok, substIdExpr.Var);
+          } else {
+            if (substExpr.tok != e.RangeToken) {
+              var substExprParens = new ParensExpression(expr.RangeToken, substExpr);
+              substExprParens.Type = substExpr.Type;
+              substExprParens.ResolvedExpression = substExpr;
+              substExprFinal = substExprParens;
+            } else {
+              substExprFinal = substExpr;
+            }
           }
-          return cce.NonNull(substExpr);
+
+          return cce.NonNull(substExprFinal);
         }
       } else if (expr is DisplayExpression) {
         DisplayExpression e = (DisplayExpression)expr;
