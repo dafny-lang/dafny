@@ -1440,7 +1440,11 @@ terminology.
 * `-timeLimit:<n>` - spend at most `<n>` seconds attempting to prove any
   single SMT query.
 
-* `-rlimit:<n>` - TODO
+* `-rlimit:<n>` - set the maximum solver resource count to use while
+  proving a single SMT query. This can be a more deterministic approach
+  than setting a time limit. To choose an appropriate value, try proving
+  some representative code and comparing the time and resource count
+  values reported to calculate a correspondence.
 
 * `-print:<file>` - print the translation of the Dafny file to a Boogie file.
 
