@@ -1,4 +1,5 @@
-// RUN: %dafny /showSnippets:1 /compile:0 "%s" > "%t"
+// RUN: %baredafny /countVerificationErrors:0 /compile:0 /showSnippets:1 "%s" > "%t".raw
+// RUN: %sed 's/^.*[\/\\]//' "%t".raw > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 predicate Test(y: int) {
