@@ -223,7 +223,7 @@ bool IsQuantifierVariableDecl(QuantifiedVar previousVar) {
   // Introducing per-quantified variable ranges creates some ambiguities in the grammar,
   // since before that the range would terminate the quantifed domain. For example, the following statement:
   //
-  // print set x: x | E, y;
+  // print set x | E, y;
   //
   // This would previously parse as two separate arguments to the print statement, but
   // could now also be parsed as a single set comprehension argument with two quantified variables
@@ -231,7 +231,7 @@ bool IsQuantifierVariableDecl(QuantifiedVar previousVar) {
   //
   // Even worse:
   //
-  // print set x: x | E, y <- C;
+  // print set x | E, y <- C;
   //
   // This was a valid statement before as well, because "y <- C" would be parsed as the expression
   // "y < (-C)".
