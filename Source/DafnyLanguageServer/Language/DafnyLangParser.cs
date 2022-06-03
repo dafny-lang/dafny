@@ -39,6 +39,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           DafnyOptions.Install(DafnyOptions.Create());
           DafnyOptions.O.ApplyDefaultOptions();
           DafnyOptions.O.PrintIncludesMode = DafnyOptions.IncludesModes.None;
+          DafnyOptions.O.ShowSnippets = true;
           initialized = true;
         }
         logger.LogTrace("initialized the dafny pipeline...");

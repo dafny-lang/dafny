@@ -13254,7 +13254,7 @@ namespace Microsoft.Dafny {
           }
           Expression id = makeTemp("recv", s, codeContext, lseq.Seq);
           Expression id0 = id0 = makeTemp("idx", s, codeContext, lseq.E0);
-          lhsExtract = new SeqSelectExpr(lseq.tok, lseq.SelectOne, id, id0, null);
+          lhsExtract = new SeqSelectExpr(lseq.tok, lseq.SelectOne, id, id0, null, lseq.CloseParens);
           lhsExtract.Type = lseq.Type;
         } else if (lhsResolved is MultiSelectExpr lmulti) {
           Expression id = makeTemp("recv", s, codeContext, lmulti.Array);
