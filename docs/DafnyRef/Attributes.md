@@ -335,7 +335,7 @@ To give orders of magnitude about resource usage, here is a list of examples ind
   }
   ```
 * 10K resource usage using assertions that do not add assumptions:
-   ```dafny
+  ```dafny
   method f() {
     assert a: (a ==> b) <==> (!b ==> !a);
     assert b: (a ==> b) <==> (!b ==> !a);
@@ -360,7 +360,7 @@ To give orders of magnitude about resource usage, here is a list of examples ind
    }
    ```
 
-Note that, when using the default solver Z3, a 7K to 8K resource usage seem to always added to the set `{:rlimit}`, so if you put `{:rlimit 20}` in the last example, the total resource usage would be `27K`.
+Note that, the default solver Z3 tends to overshoot by `7K` to `8K`, so if you put `{:rlimit 20}` in the last example, the total resource usage would be `27K`.
 
 ### 22.2.12. `{:selective_checking}`
 Turn all assertions into assumptions except for the ones reachable from after the
