@@ -51,15 +51,4 @@
   <ItemGroup>
     <Compile Include="..\version.cs" />
   </ItemGroup>
-
-  <ItemGroup>
-    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntime.csproj" />
-    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntime.cs" />
-    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntime.go" />
-    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntime.h" />
-    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntime.js" />
-    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntime.py" />
-    <!-- TODO: can we guarantee this exists early on? -->
-    <EmbeddedResource Include="$(DafnyRuntimeJar)" />
-  </ItemGroup>
 </Project>
