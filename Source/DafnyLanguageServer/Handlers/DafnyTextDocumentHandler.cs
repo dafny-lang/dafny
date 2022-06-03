@@ -103,6 +103,9 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         this.diagnosticPublisher = diagnosticPublisher;
       }
 
+      /// Most of the time, allUpdates contains no `IObservable<DafnyDocument>` when `AddUpdates` is called, so this class directly subscribes to the given observable of documents
+      /// However, sometimes a save command can be sent before a change command is done executing. so this class would already be subscribed to a previous observable of document.
+      /// This method and the next ensure that notifications are sent in order.
       public void AddUpdates(IObservable<DafnyDocument> updates) {
         lock (this) {
           allUpdates.Enqueue(updates);
