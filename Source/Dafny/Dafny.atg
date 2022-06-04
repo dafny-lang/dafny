@@ -1310,7 +1310,9 @@ DatatypeMemberDecl<.List<DatatypeCtor/*!*/>/*!*/ ctors.>
   { Attribute<ref attrs> }
   DatatypeMemberName<out id>
   [ FormalsOptionalIds<formals> ]
-  (. ctors.Add(new DatatypeCtor(id, id.val, formals, attrs)); .)
+  (. var ctor = new DatatypeCtor(id, id.val, formals, attrs);
+     ctor.BodyEndTok = t; 
+     ctors.Add(ctor); .)
   .
 
 /*------------------------------------------------------------------------*/

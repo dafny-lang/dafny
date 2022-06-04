@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Boogie;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
@@ -17,7 +19,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// <returns>The unloaded dafny document.</returns>
     /// <exception cref="System.OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
-    DafnyDocument CreateUnloaded(TextDocumentItem textDocument, CancellationToken cancellationToken);
+    DafnyDocument CreateUnloaded(DocumentTextBuffer textDocument, CancellationToken cancellationToken);
 
     /// <summary>
     /// Loads the specified document item of the language server and applies the necessary steps
@@ -29,14 +31,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// <returns>The loaded dafny document.</returns>
     /// <exception cref="System.OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
-    Task<DafnyDocument> LoadAsync(TextDocumentItem textDocument, CancellationToken cancellationToken);
+    Task<DafnyDocument> LoadAsync(DocumentTextBuffer textDocument, CancellationToken cancellationToken);
+    Task<DafnyDocument> PrepareVerificationTasksAsync(DafnyDocument loaded, CancellationToken cancellationToken);
 
     /// <summary>
     /// Verifies the given document.
     /// </summary>
     /// <param name="document">The document to verify.</param>
     /// <param name="cancellationToken">A token to cancel the verification before its completion.</param>
-    /// <returns>A new document instance including the verification results.</returns>
     /// <exception cref="System.OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
     IObservable<DafnyDocument> Verify(DafnyDocument document, CancellationToken cancellationToken);
@@ -45,6 +47,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// Publishes the verification diagnostics (VerificationTree) for the given document
     /// </summary>
     /// <param name="document">The document to publish realtime diagnostics for.</param>
-    void PublishVerificationDiagnostics(DafnyDocument document, bool verificationStarted);
+    void PublishGutterIcons(DafnyDocument document, bool verificationStarted);
   }
 }
