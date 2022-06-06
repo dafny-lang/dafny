@@ -23,7 +23,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       this.logger = logger;
     }
 
-    public CompilationUnit ResolveSymbols(TextDocumentItem textDocument, Dafny.Program program, out bool CanDoVerification, CancellationToken cancellationToken) {
+    public CompilationUnit ResolveSymbols(TextDocumentItem textDocument, Dafny.Program program, out bool canDoVerification, CancellationToken cancellationToken) {
       // TODO The resolution requires mutual exclusion since it sets static variables of classes like Microsoft.Dafny.Type.
       //      Although, the variables are marked "ThreadStatic" - thus it might not be necessary. But there might be
       //      other classes as well.
@@ -34,18 +34,18 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           // access a property without potential contract violations. For example, a variable may have an
           // unresolved type represented by null. However, the contract prohibits the use of the type property
           // because it must not be null.
-          CanDoVerification = false;
+          canDoVerification = false;
           return new CompilationUnit(program);
         }
       } catch (Exception e) {
         program.Reporter.Error(MessageSource.Resolver, program.GetFirstTopLevelToken(), $"Dafny encountered an error.  Please report it at <https://github.com/dafny-lang/dafny/issues>:\n{e}");
-        CanDoVerification = false;
+        canDoVerification = false;
         return new CompilationUnit(program);
       }
       finally {
         resolverMutex.Release();
       }
-      CanDoVerification = true;
+      canDoVerification = true;
       return new SymbolDeclarationResolver(logger, cancellationToken).ProcessProgram(program);
     }
 
