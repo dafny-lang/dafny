@@ -54,7 +54,6 @@
     <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntime.py">
       <LogicalName>DafnyRuntime.py</LogicalName>
     </EmbeddedResource>
-    <!-- TODO: can we guarantee this exists early on? -->
     <EmbeddedResource Include="$(DafnyRuntimeJar)">
       <LogicalName>DafnyRuntime.jar</LogicalName>
     </EmbeddedResource>
