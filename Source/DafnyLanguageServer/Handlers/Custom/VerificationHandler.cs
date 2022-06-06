@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection.Metadata;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
@@ -43,6 +42,7 @@ public class VerificationHandler : IJsonRpcNotificationHandler<VerificationParam
   public async Task<Unit> Handle(VerificationParams request, CancellationToken cancellationToken) {
     if (!documents.Documents.TryGetValue(request.TextDocument.Uri, out var documentEntry)) {
       return Unit.Value;
+
     }
 
     var translatedDocument = await documentEntry.TranslatedDocument;
@@ -56,6 +56,7 @@ public class VerificationHandler : IJsonRpcNotificationHandler<VerificationParam
     return Unit.Value;
   }
 
+  // Change to handle anything in a range.
   private static IEnumerable<IImplementationTask> GetTasksAtPosition(DafnyDocument translatedDocument, Position requestPosition)
   {
     return translatedDocument.VerificationTasks!.Tasks.Where(t => {

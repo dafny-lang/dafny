@@ -26,10 +26,10 @@ public class VerificationStatusTest : ClientBasedLanguageServerTest {
     Assert.AreEqual(PublishedVerificationStatus.Stale, stale.NamedVerifiables[0].Status);
     await AssertNoVerificationStatusIsComing(documentItem, CancellationToken);
 
-    var methodHeader = new Position(0,20);
+    var methodHeader = new Position(0,21);
     client.RunSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), methodHeader);
-    var verifying = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-    Assert.AreEqual(PublishedVerificationStatus.Running, verifying.NamedVerifiables[0].Status);
+    var running1 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+    Assert.AreEqual(PublishedVerificationStatus.Running, running1.NamedVerifiables[0].Status);
 
     client.CancelSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), methodHeader);
 
@@ -37,6 +37,9 @@ public class VerificationStatusTest : ClientBasedLanguageServerTest {
     Assert.AreEqual(PublishedVerificationStatus.Stale, staleAgain.NamedVerifiables[0].Status);
 
     client.RunSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), methodHeader);
+    var running2 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+    Assert.AreEqual(PublishedVerificationStatus.Running, running2.NamedVerifiables[0].Status);
+
     var errored = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.AreEqual(PublishedVerificationStatus.Error, errored.NamedVerifiables[0].Status);
   }
