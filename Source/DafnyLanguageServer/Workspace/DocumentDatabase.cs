@@ -81,17 +81,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         verifiedDocuments,
         cancellationSource
       ));
-      return resolvedDocumentTask.ToObservable().Where(d => !d.LoadCanceled).
-        Concat(translatedDocument.ToObservable()).
+      return resolvedDocumentTask.ToObservableSkipCancelled().Where(d => !d.LoadCanceled).
+        Concat(translatedDocument.ToObservableSkipCancelled()).
         Concat(verifiedDocuments);
-    }
-
-    private Task<DafnyDocument> LoadVerificationTasksAsync(Task<DafnyDocument> resolvedDocumentTask, CancellationToken cancellationToken) {
-
-#pragma warning disable VSTHRD003
-      return resolvedDocumentTask.SelectMany(resolvedDocument =>
-        documentLoader.PrepareVerificationTasksAsync(resolvedDocument, cancellationToken));
-#pragma warning restore VSTHRD003
     }
 
     private async Task<DafnyDocument> OpenAsync(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
@@ -122,7 +114,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
 
         return documentLoader.Verify(document, cancellationToken);
-      }, TaskScheduler.Current).ToObservable().Merge();
+      }, TaskScheduler.Current).ToObservableSkipCancelled().Merge();
     }
 
     public IObservable<DafnyDocument> UpdateDocument(DidChangeTextDocumentParams documentChange) {
@@ -144,8 +136,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var cancellationSource = new CancellationTokenSource();
       var previousDocumentTask = databaseEntry.LatestDocument;
       var resolvedDocumentTask = ApplyChangesAsync(previousDocumentTask, documentChange, cancellationSource.Token);
-      var translatedDocument =
-        LoadVerificationTasksAsync(previousDocumentTask, resolvedDocumentTask, cancellationSource.Token);
+      var translatedDocument = LoadVerificationTasksAsync(resolvedDocumentTask, cancellationSource.Token);
       var verifiedDocuments = Verify(translatedDocument, VerifyOnChange, cancellationSource.Token);
       documents[documentUri] = new DocumentEntry(
         documentChange.TextDocument.Version,
@@ -154,8 +145,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         verifiedDocuments,
         cancellationSource
       );
-      return resolvedDocumentTask.ToObservable().
-        Concat(translatedDocument.ToObservable()).
+      return resolvedDocumentTask.ToObservableSkipCancelled().
+        Concat(translatedDocument.ToObservableSkipCancelled()).
         Concat(verifiedDocuments);
     }
 
@@ -223,20 +214,21 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
     }
 
-    private async Task<DafnyDocument> LoadVerificationTasksAsync(Task<DafnyDocument> oldDocumentTask,
-      Task<DafnyDocument> resolvedDocumentTask, CancellationToken cancellationToken) {
+    private async Task<DafnyDocument> LoadVerificationTasksAsync(Task<DafnyDocument> resolvedDocumentTask, CancellationToken cancellationToken) {
 #pragma warning disable VSTHRD003
-      var oldDocument = await oldDocumentTask;
       var resolvedDocument = await resolvedDocumentTask;
 #pragma warning restore VSTHRD003
       var withVerificationTasks = await documentLoader.PrepareVerificationTasksAsync(resolvedDocument, cancellationToken);
-      var oldViews = oldDocument.ImplementationViews ?? new Dictionary<ImplementationId, ImplementationView>();
+      if (resolvedDocument.ImplementationViews == null) {
+        return withVerificationTasks;
+      }
+
       return withVerificationTasks with {
         ImplementationViews = withVerificationTasks.ImplementationViews!.ToDictionary(
           kv => kv.Key,
           kv =>
             kv.Value with {
-              Diagnostics = oldViews.GetValueOrDefault(kv.Key)?.Diagnostics ?? kv.Value.Diagnostics
+              Diagnostics = resolvedDocument.ImplementationViews.GetValueOrDefault(kv.Key)?.Diagnostics ?? kv.Value.Diagnostics
             }
         ),
       };
@@ -299,9 +291,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         Version = version;
         ResolvedDocument = resolvedDocument;
         LatestDocument = resolvedDocument;
-        TranslatedDocument.ToObservable().Concat(verifiedDocuments).
+        TranslatedDocument.ToObservableSkipCancelled().Concat(verifiedDocuments).
           Subscribe(update => LatestDocument = Task.FromResult(update), e => { });
-        LastDocument = ResolvedDocument.ToObservable().Concat(verifiedDocuments).ToTask();
+        LastDocument = ResolvedDocument.ToObservableSkipCancelled().Concat(verifiedDocuments).ToTask();
       }
 
       public void CancelPendingUpdates() {
