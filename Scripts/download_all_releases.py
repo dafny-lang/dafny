@@ -80,7 +80,7 @@ def get_platform_glob() -> str:
     if system == 'Linux':
         return '*ubuntu*'
     if system == 'Darwin':
-        return '*mac*'
+        return '*osx*'
     if system == 'Windows':
         return '*win*'
     raise ValueError("Unknown platform")
