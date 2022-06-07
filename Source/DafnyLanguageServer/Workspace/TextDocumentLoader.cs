@@ -202,7 +202,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         dafnyDocument.GutterProgressReporter!.ReportStartVerifyImplementation(implementationTask.Implementation);
       }
 
-      var observable = implementationTask.RunAndAllowCancel();
+      var observable = implementationTask.Run();
       cancellationToken.Register(implementationTask.Cancel);
       return GetVerifiedDafnyDocuments(dafnyDocument, implementationTask, observable);
     }
