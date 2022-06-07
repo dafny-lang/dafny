@@ -23,7 +23,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       var declarations = CreateDeclarationDictionary(compilationUnit, cancellationToken);
       var designatorVisitor = new DesignatorVisitor(logger, program, declarations, compilationUnit, cancellationToken);
       var declarationLocationVisitor = new SymbolDeclarationLocationVisitor(cancellationToken);
-      var symbolsResolved = !program.Reporter.HasErrors;
+      var symbolsResolved = !program.Reporter.HasErrorsUntilResolver;
       if (symbolsResolved) {
         designatorVisitor.Visit(program);
         declarationLocationVisitor.Visit(compilationUnit);
