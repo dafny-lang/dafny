@@ -41,7 +41,7 @@ class SlowVerifier : IProgramVerifier {
 
     public NeverVerifiesImplementationTask(IImplementationTask original) {
       this.original = original;
-      source = new ();
+      source = new();
     }
 
     public IVerificationStatus CacheStatus => new Stale();

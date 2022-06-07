@@ -73,7 +73,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public int LinesCount => VerificationTree.Range.End.Line;
     public IVerificationProgressReporter? GutterProgressReporter { get; set; }
     public ConcurrentStack<Counterexample>? Counterexamples { get; set; }
-    public ConcurrentDictionary<ImplementationId,ImplementationView>? ImplementationViews { get; set; }
+    public ConcurrentDictionary<ImplementationId, ImplementationView>? ImplementationViews { get; set; }
   }
 
   public record ImplementationView(Range Range, PublishedVerificationStatus Status, IReadOnlyList<Diagnostic> Diagnostics);

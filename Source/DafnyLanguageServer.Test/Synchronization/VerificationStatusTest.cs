@@ -26,7 +26,7 @@ public class VerificationStatusTest : ClientBasedLanguageServerTest {
     Assert.AreEqual(PublishedVerificationStatus.Stale, stale.NamedVerifiables[0].Status);
     await AssertNoVerificationStatusIsComing(documentItem, CancellationToken);
 
-    var methodHeader = new Position(0,21);
+    var methodHeader = new Position(0, 21);
     client.RunSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), methodHeader);
     var running1 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.AreEqual(PublishedVerificationStatus.Running, running1.NamedVerifiables[0].Status);

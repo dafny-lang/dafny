@@ -24,8 +24,7 @@ public record CancelVerificationParams : TextDocumentPositionParams, IRequest {
 
 }
 
-public class VerificationHandler : IJsonRpcNotificationHandler<VerificationParams>, IJsonRpcNotificationHandler<CancelVerificationParams>
-{
+public class VerificationHandler : IJsonRpcNotificationHandler<VerificationParams>, IJsonRpcNotificationHandler<CancelVerificationParams> {
   private readonly ILogger logger;
   private readonly IDocumentDatabase documents;
   private readonly DafnyTextDocumentHandler documentHandler;
@@ -58,8 +57,7 @@ public class VerificationHandler : IJsonRpcNotificationHandler<VerificationParam
   }
 
   // Change to handle anything in a range.
-  private static IEnumerable<IImplementationTask> GetTasksAtPosition(DafnyDocument translatedDocument, Position requestPosition)
-  {
+  private static IEnumerable<IImplementationTask> GetTasksAtPosition(DafnyDocument translatedDocument, Position requestPosition) {
     return translatedDocument.VerificationTasks!.Tasks.Where(t => {
       var lspPosition = t.Implementation.tok.GetLspPosition();
       return lspPosition.Equals(requestPosition);
@@ -76,7 +74,7 @@ public class VerificationHandler : IJsonRpcNotificationHandler<VerificationParam
     foreach (var taskToRun in GetTasksAtPosition(translatedDocument, requestPosition)) {
       try {
         taskToRun.Cancel();
-      } catch (InvalidOperationException e)  {
+      } catch (InvalidOperationException e) {
         if (!e.Message.Contains("run")) {
           throw;
         }
