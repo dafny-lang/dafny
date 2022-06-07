@@ -8,5 +8,5 @@ datatype T = Leaf(x: int) | T(t: T) {
 }
 
 method Main() {
-  print Leaf(0).TR();
+  print Leaf(0).TR(), '\n';
 }
