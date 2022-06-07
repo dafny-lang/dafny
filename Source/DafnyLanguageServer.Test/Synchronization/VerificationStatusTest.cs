@@ -38,10 +38,9 @@ public class VerificationStatusTest : ClientBasedLanguageServerTest {
 
     client.RunSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), methodHeader);
     var running2 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-    Assert.AreEqual(PublishedVerificationStatus.Running, running2.NamedVerifiables[0].Status);
-
-    var errored = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
-    Assert.AreEqual(PublishedVerificationStatus.Error, errored.NamedVerifiables[0].Status);
+    var range = new Range(0, 21, 0, 43);
+    await WaitForStatus(range, PublishedVerificationStatus.Running, CancellationToken);
+    await WaitForStatus(range, PublishedVerificationStatus.Error, CancellationToken);
   }
 
   [TestMethod]
