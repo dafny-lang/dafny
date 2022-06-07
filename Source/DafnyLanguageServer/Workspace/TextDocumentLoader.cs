@@ -181,9 +181,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       notificationPublisher.SendStatusNotification(document.TextDocumentItem, CompilationStatus.VerificationStarted);
 
       var progressReporter = CreateVerificationProgressReporter(document);
-      var subscription = verifier.BatchCompletions.Subscribe(progressReporter.ReportAssertionBatchResult);
-      cancellationToken.Register(() => subscription.Dispose());
       var implementationTasks = document.VerificationTasks!;
+      var implementations = implementationTasks.Select(t => t.Implementation).ToHashSet();
+      var subscription = verifier.BatchCompletions.Where(c =>
+        implementations.Contains(c.Split.Implementation)).Subscribe(progressReporter.ReportAssertionBatchResult);
+      cancellationToken.Register(() => subscription.Dispose());
 
       if (VerifierOptions.GutterStatus) {
         progressReporter.RecomputeVerificationTree();
