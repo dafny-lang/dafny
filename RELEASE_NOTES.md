@@ -1,7 +1,7 @@
 # Upcoming
 
 - feat: The IDE will show verification errors for a method immediately after that method has been verified, instead of after all methods are verified.
-- feat: Dafny is now available on NuGet, installable with `dotnet tool install Dafny`.
+- feat: The Dafny verifier, language server, and C# runtime are now available on NuGet. You can install the verifier with `dotnet tool install --global Dafny`. The language server and runtime are `DafnyLanguageServer` and `DafnyRuntime`, respectively.
 - fix: No more display of previous obsolete verification diagnostics if newer are available. (https://github.com/dafny-lang/dafny/pull/2142)
 - feat: Live verification diagnostics for the language server (https://github.com/dafny-lang/dafny/pull/1942)
 - fix: Prevent the language server from crashing and not responding on resolution or ghost diagnostics errors (https://github.com/dafny-lang/dafny/pull/2080)
