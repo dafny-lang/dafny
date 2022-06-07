@@ -91,6 +91,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       engineOptions.VerifySnapshots = (int)options.VerifySnapshots;
 
       var executionEngine = new ExecutionEngine(engineOptions, cache);
+      cancellationToken.Register(() => executionEngine.Dispose());
+
       var result = translated.SelectMany(t => {
         var (_, boogieProgram) = t;
         var results = executionEngine.GetImplementationTasks(boogieProgram);
