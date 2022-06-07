@@ -390,11 +390,11 @@ namespace Microsoft.Dafny {
       Type.ResetScopes();
 
       Type.EnableScopes();
-      var origErrorCount = reporter.Count(ErrorLevel.Error); //TODO: This is used further below, but not in the >0 comparisons in the next few lines. Is that right?
+      var origErrorCount = reporter.ErrorCount; //TODO: This is used further below, but not in the >0 comparisons in the next few lines. Is that right?
       var bindings = new ModuleBindings(null);
       var b = BindModuleNames(prog.DefaultModuleDef, bindings);
       bindings.BindName(prog.DefaultModule.Name, prog.DefaultModule, b);
-      if (reporter.Count(ErrorLevel.Error) > 0) {
+      if (reporter.ErrorCount > 0) {
         return;
       } // if there were errors, then the implict ModuleBindings data structure invariant
 
@@ -407,7 +407,7 @@ namespace Microsoft.Dafny {
           "module definition contains a cycle (note: parent modules implicitly depend on submodules)");
       }
 
-      if (reporter.Count(ErrorLevel.Error) > 0) {
+      if (reporter.ErrorCount > 0) {
         return;
       } // give up on trying to resolve anything else
 
@@ -486,7 +486,7 @@ namespace Microsoft.Dafny {
           var literalDecl = (LiteralModuleDecl)decl;
           var m = literalDecl.ModuleDef;
 
-          var errorCount = reporter.Count(ErrorLevel.Error);
+          var errorCount = reporter.ErrorCount;
           if (m.RefinementQId != null) {
             ModuleDecl md = ResolveModuleQualifiedId(m.RefinementQId.Root, m.RefinementQId, reporter);
             m.RefinementQId.Set(md); // If module is not found, md is null and an error message has been emitted
@@ -501,12 +501,12 @@ namespace Microsoft.Dafny {
 
           var sig = literalDecl.Signature;
           // set up environment
-          var preResolveErrorCount = reporter.Count(ErrorLevel.Error);
+          var preResolveErrorCount = reporter.ErrorCount;
 
           ResolveModuleExport(literalDecl, sig);
           var good = ResolveModuleDefinition(m, sig);
 
-          if (good && reporter.Count(ErrorLevel.Error) == preResolveErrorCount) {
+          if (good && reporter.ErrorCount == preResolveErrorCount) {
             // Check that the module export gives a self-contained view of the module.
             CheckModuleExportConsistency(m);
           }
@@ -519,17 +519,17 @@ namespace Microsoft.Dafny {
           prog.ModuleSigs[m] = sig;
 
           foreach (var rewriter in rewriters) {
-            if (!good || reporter.Count(ErrorLevel.Error) != preResolveErrorCount) {
+            if (!good || reporter.ErrorCount != preResolveErrorCount) {
               break;
             }
             rewriter.PostResolveIntermediate(m);
           }
-          if (good && reporter.Count(ErrorLevel.Error) == errorCount) {
+          if (good && reporter.ErrorCount == errorCount) {
             m.SuccessfullyResolved = true;
           }
           Type.PopScope(tempVis);
 
-          if (reporter.Count(ErrorLevel.Error) == errorCount && !m.IsAbstract) {
+          if (reporter.ErrorCount == errorCount && !m.IsAbstract) {
             // compilation should only proceed if everything is good, including the signature (which preResolveErrorCount does not include);
             CompilationCloner cloner = new CompilationCloner(compilationModuleClones);
             var nw = cloner.CloneModuleDefinition(m, m.CompileName + "_Compile");
@@ -585,7 +585,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(decl.Signature != null);
       }
 
-      if (reporter.Count(ErrorLevel.Error) != origErrorCount) {
+      if (reporter.ErrorCount != origErrorCount) {
         // do nothing else
         return;
       }
@@ -18002,6 +18002,10 @@ namespace Microsoft.Dafny {
 
       public override int Count(ErrorLevel level) {
         return level == ErrorLevel.Error && Collected ? 1 : 0;
+      }
+
+      public override int CountExceptVerifierAndCompiler(ErrorLevel level) {
+        return Count(level);
       }
     }
 
