@@ -41,6 +41,19 @@ method Multiply(x: int, y: int) returns (product: int)
     }
 
     [TestMethod]
+    public async Task OpeningOpaqueFunctionWorks() {
+      var source = @"
+predicate method {:opaque} m() {
+  true
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+      Assert.AreEqual(0, diagnostics.Length);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
+    }
+
+    [TestMethod]
     public async Task OpeningDocumentWithSyntaxErrorReportsDiagnosticsWithParserErrors() {
       var source = @"
 method Multiply(x: int, y: int) returns (product: int
