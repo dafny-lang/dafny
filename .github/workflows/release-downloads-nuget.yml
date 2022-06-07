@@ -1,4 +1,4 @@
-name: Test Release Downloads
+name: Test NuGet Tool Installation
 
 on:
   release:
