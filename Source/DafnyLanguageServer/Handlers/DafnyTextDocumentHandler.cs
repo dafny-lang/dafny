@@ -8,10 +8,8 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server.Capabilities;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Boogie;
 
 // Justification: The handler must not await document loads. Errors are handled within the observer set up by ForwardDiagnostics.
 #pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
@@ -39,7 +37,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     private readonly IDocumentDatabase documents;
     private readonly ITelemetryPublisher telemetryPublisher;
     private readonly IDiagnosticPublisher diagnosticPublisher;
-    private readonly Dictionary<DocumentUri, DiagnosticsObserver> observers = new();
+    private readonly Dictionary<DocumentUri, RequestUpdatesOnUriObserver> observers = new();
 
     public DafnyTextDocumentHandler(
       ILogger<DafnyTextDocumentHandler> logger, IDocumentDatabase documents,
@@ -86,16 +84,43 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       return Unit.Task;
     }
 
-    public void ForwardDiagnostics(DocumentUri uri, IObservable<DafnyDocument> obs) {
-      var observer = observers.GetOrCreate(uri, () => new DiagnosticsObserver(logger, telemetryPublisher, diagnosticPublisher));
-      observer.AddUpdates(obs);
+    public void ForwardDiagnostics(DocumentUri uri, IObservable<DafnyDocument> requestUpdates) {
+      var observer = observers.GetOrCreate(uri, () => new RequestUpdatesOnUriObserver(logger, telemetryPublisher, diagnosticPublisher));
+      observer.OnNext(requestUpdates);
+    }
+
+    private class RequestUpdatesOnUriObserver : IObserver<IObservable<DafnyDocument>>, IDisposable {
+      private readonly MergeOrdered<DafnyDocument> mergeOrdered;
+      private readonly IDisposable subscription;
+
+      public RequestUpdatesOnUriObserver(ILogger logger, ITelemetryPublisher telemetryPublisher,
+        IDiagnosticPublisher diagnosticPublisher) {
+
+        mergeOrdered = new MergeOrdered<DafnyDocument>();
+        subscription = mergeOrdered.Subscribe(new DiagnosticsObserver(logger, telemetryPublisher, diagnosticPublisher));
+      }
+
+      public void Dispose() {
+        subscription.Dispose();
+      }
+
+      public void OnCompleted() {
+        mergeOrdered.OnCompleted();
+      }
+
+      public void OnError(Exception error) {
+        mergeOrdered.OnError(error);
+      }
+
+      public void OnNext(IObservable<DafnyDocument> value) {
+        mergeOrdered.OnNext(value);
+      }
     }
 
     private class DiagnosticsObserver : IObserver<DafnyDocument> {
       private readonly ILogger logger;
       private readonly ITelemetryPublisher telemetryPublisher;
       private readonly IDiagnosticPublisher diagnosticPublisher;
-      private readonly Queue<IObservable<DafnyDocument>> allUpdates = new();
 
       public DiagnosticsObserver(ILogger logger, ITelemetryPublisher telemetryPublisher, IDiagnosticPublisher diagnosticPublisher) {
         this.logger = logger;
@@ -103,23 +128,8 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         this.diagnosticPublisher = diagnosticPublisher;
       }
 
-      public void AddUpdates(IObservable<DafnyDocument> updates) {
-        lock (this) {
-          allUpdates.Enqueue(updates);
-          if (allUpdates.Count == 1) {
-            updates.Subscribe(this);
-          }
-        }
-      }
-
       public void OnCompleted() {
         telemetryPublisher.PublishUpdateComplete();
-        lock (this) {
-          allUpdates.Dequeue();
-          if (allUpdates.Any()) {
-            allUpdates.Peek().Subscribe(this);
-          }
-        }
       }
 
       public void OnError(Exception e) {
@@ -143,7 +153,10 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         logger.LogError(e, "error while closing the document");
       }
 
-      observers.Remove(documentId.Uri);
+      if (observers.TryGetValue(documentId.Uri, out var uriObserver)) {
+        uriObserver.Dispose();
+        observers.Remove(documentId.Uri);
+      }
       diagnosticPublisher.HideDiagnostics(documentId);
     }
   }

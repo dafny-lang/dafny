@@ -81,8 +81,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         verifiedDocuments,
         cancellationSource
       ));
-      return resolvedDocumentTask.ToObservable().Where(d => !d.LoadCanceled).
-        Concat(translatedDocument.ToObservable()).
+      return resolvedDocumentTask.ToObservableSkipCancelled().Where(d => !d.LoadCanceled).
+        Concat(translatedDocument.ToObservableSkipCancelled()).
         Concat(verifiedDocuments);
     }
 
@@ -114,7 +114,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
 
         return documentLoader.VerifyAllTasks(document, cancellationToken);
-      }, TaskScheduler.Current).ToObservable().Merge();
+      }, TaskScheduler.Current).ToObservableSkipCancelled().Merge();
     }
 
     public IObservable<DafnyDocument> UpdateDocument(DidChangeTextDocumentParams documentChange) {
@@ -145,8 +145,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         verifiedDocuments,
         cancellationSource
       );
-      return resolvedDocumentTask.ToObservable().
-        Concat(translatedDocument.ToObservable()).
+      return resolvedDocumentTask.ToObservableSkipCancelled().
+        Concat(translatedDocument.ToObservableSkipCancelled()).
         Concat(verifiedDocuments);
     }
 
@@ -291,9 +291,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         Version = version;
         ResolvedDocument = resolvedDocument;
         LatestDocument = resolvedDocument;
-        TranslatedDocument.ToObservable().Concat(verifiedDocuments).
+        TranslatedDocument.ToObservableSkipCancelled().Concat(verifiedDocuments).
           Subscribe(update => LatestDocument = Task.FromResult(update), e => { });
-        LastDocument = ResolvedDocument.ToObservable().Concat(verifiedDocuments).ToTask();
+        LastDocument = ResolvedDocument.ToObservableSkipCancelled().Concat(verifiedDocuments).ToTask();
       }
 
       public void CancelPendingUpdates() {
