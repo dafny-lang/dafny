@@ -398,6 +398,7 @@ namespace Microsoft.Dafny.Compilers {
       wIter.WriteLine("yield break;");
       return beforeYield;
     }
+
     private string DtTypeName(TopLevelDecl dt, bool typeVariables = true) {
       var name = "_I" + dt.CompileName;
       if (typeVariables) { name += TypeParameters(SelectNonGhost(dt, dt.TypeArgs)); }
