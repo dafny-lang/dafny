@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -73,7 +74,13 @@ public class VerificationHandler : IJsonRpcNotificationHandler<VerificationParam
     var translatedDocument = await documentEntry.TranslatedDocument;
     var requestPosition = request.Position;
     foreach (var taskToRun in GetTasksAtPosition(translatedDocument, requestPosition)) {
-      taskToRun.Cancel();
+      try {
+        taskToRun.Cancel();
+      } catch (InvalidOperationException e)  {
+        if (!e.Message.Contains("run")) {
+          throw;
+        }
+      }
     }
 
     return Unit.Value;

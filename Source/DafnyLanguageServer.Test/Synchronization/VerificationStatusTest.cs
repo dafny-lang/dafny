@@ -15,7 +15,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization;
 public class VerificationStatusTest : ClientBasedLanguageServerTest {
 
   [TestMethod]
-  public async Task ManualRunCancelRun() {
+  public async Task ManualRunCancelCancelRunRun() {
 
     await SetUp(new Dictionary<string, string> {
       { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.Never) }
@@ -32,12 +32,15 @@ public class VerificationStatusTest : ClientBasedLanguageServerTest {
     Assert.AreEqual(PublishedVerificationStatus.Running, running1.NamedVerifiables[0].Status);
 
     client.CancelSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), methodHeader);
+    // Do a second cancel to check it doesn't crash.
+    client.CancelSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), methodHeader);
 
     var staleAgain = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.AreEqual(PublishedVerificationStatus.Stale, staleAgain.NamedVerifiables[0].Status);
 
     client.RunSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), methodHeader);
-    var running2 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+    // Do a second run to check it doesn't crash.
+    client.RunSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), methodHeader);
     var range = new Range(0, 21, 0, 43);
     await WaitForStatus(range, PublishedVerificationStatus.Running, CancellationToken);
     await WaitForStatus(range, PublishedVerificationStatus.Error, CancellationToken);
