@@ -1117,7 +1117,7 @@ older versions of Dafny.
     `function`. Ghost functions are written `ghost function`. Predicates
     are always ghost and are written `predicate`.
 
-* `-functionSyntax:<version>` - select what quantifier syntax to recognize.
+* `-quantifierSyntax:<version>` - select what quantifier syntax to recognize.
     The syntax for quantification domains is changing from Dafny version 3 to version 4,
     more specifically where quantifier ranges (`| <Range>`) are allowed.
     This switch gives early access to the new syntax.

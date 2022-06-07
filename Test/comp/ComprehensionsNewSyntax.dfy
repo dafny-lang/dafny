@@ -15,8 +15,6 @@ method Main() {
   TestImplicitTypeTests.Test();
 }
 
-predicate method Thirteen(x: int) { x == 13 }
-predicate method Even(y: int) { y % 2 == 1 }
 function method FourMore(x: int): int { x + 4 }
 
 method Quantifier() {
@@ -83,7 +81,7 @@ method SetComprehension() {
 method SetComprehension0() {
   var w, x, y, z := new ClassA, new ClassA, new ClassB, new ClassB;
   var s := {w, x, y, z};
-  // The following set comprehension picks att elements in s:
+  // The following set comprehension picks all elements in s:
   var all := set o: object <- s;
   // The next set comprehension picks out 2 of the elements in s:
   var aa := set o: ClassA <- s;
@@ -102,7 +100,7 @@ method SetComprehension0() {
 method SetComprehension1() {
   var w, x, y, z := new ClassA, new ClassA, new ClassB, new ClassB;
   var s := {w, x, y, z, null};
-  // The following set comprehension picks att elements in s:
+  // The following set comprehension picks all elements in s:
   var all := set o: object <- s;
   // The next set comprehension picks out 2 of the elements in s:
   var aa := set o: ClassA <- s;
@@ -121,7 +119,7 @@ method SetComprehension1() {
 method SetComprehension2() {
   var w, x, y, z := new ClassA, new ClassA, new ClassB, new ClassB;
   var s := {w, x, y, z, null};
-  // The following set comprehension picks att elements in s:
+  // The following set comprehension picks all elements in s:
   var all := set o: object? <- s;
   // The next set comprehension picks out 2 of the elements in s:
   var aa := set o: ClassA? <- s;
@@ -142,7 +140,7 @@ predicate method True<G>(g: G) { true }
 
 method SetComprehension3() {
   var s: set<bool> := {false, true};
-  // The following set comprehension picks att elements in s:
+  // The following set comprehension picks all elements in s:
   var all := set o: bool <- s;
   var aa := set o: bool <- s | !o;
   var bb := set o: bool <- s | o;
