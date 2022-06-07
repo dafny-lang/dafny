@@ -11,7 +11,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 public class ResourceUsageTest : ClientBasedLanguageServerTest {
 
   [TestMethod]
-  public async Task TestZ3ProcessCount() {
+  public async Task SolverProcessCountDoesNotIncreaseOnEachVerification() {
     var source = @"
 method Foo()
 {
