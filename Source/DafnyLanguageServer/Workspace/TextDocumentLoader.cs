@@ -196,6 +196,26 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       );
     }
 
+    public IObservable<DafnyDocument> VerifyAllTasks(DafnyDocument document, CancellationToken cancellationToken) {
+      notificationPublisher.SendStatusNotification(document.TextDocumentItem, CompilationStatus.VerificationStarted);
+
+      var implementationTasks = document.VerificationTasks!.Tasks;
+
+      var result = implementationTasks.Select(task => Verify(document, task, cancellationToken)).Merge().
+        Where(d => implementationTasks.All(t => {
+          var taskStatus = d.ImplementationViewsView![GetImplementationId(t.Implementation)].Status;
+          return taskStatus != PublishedVerificationStatus.Stale;
+        })).Replay();
+      result.Connect();
+
+      if (VerifierOptions.GutterStatus) {
+        ReportRealtimeDiagnostics(document, result, cancellationToken);
+      }
+
+      var _ = NotifyStatusAsync(document.TextDocumentItem, result.DefaultIfEmpty(document), cancellationToken);
+      return result;
+    }
+
     public IObservable<DafnyDocument> Verify(DafnyDocument dafnyDocument, IImplementationTask implementationTask, CancellationToken cancellationToken) {
 
       if (VerifierOptions.GutterStatus) {
@@ -205,22 +225,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var observable = implementationTask.Run();
       cancellationToken.Register(implementationTask.Cancel);
       return GetVerifiedDafnyDocuments(dafnyDocument, implementationTask, observable);
-    }
-
-    public IObservable<DafnyDocument> VerifyAllTasks(DafnyDocument document, CancellationToken cancellationToken) {
-      notificationPublisher.SendStatusNotification(document.TextDocumentItem, CompilationStatus.VerificationStarted);
-
-      var implementationTasks = document.VerificationTasks!.Tasks;
-
-      var result = implementationTasks.Select(task => Verify(document, task, cancellationToken)).Merge().Replay();  //GetVerifiedDafnyDocuments(document, implementationTasks, progressReporter, cancellationToken);
-      result.Connect();
-
-      if (VerifierOptions.GutterStatus) {
-        ReportRealtimeDiagnostics(document, result, cancellationToken);
-      }
-
-      var _ = NotifyStatusAsync(document.TextDocumentItem, result.DefaultIfEmpty(document), cancellationToken);
-      return result;
     }
 
     private IObservable<DafnyDocument> GetVerifiedDafnyDocuments(DafnyDocument document, IImplementationTask implementationTask,

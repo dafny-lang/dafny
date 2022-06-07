@@ -105,7 +105,7 @@ method Bar() { assert false; }";
       status = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     } while (status.NamedVerifiables.All(v => v.Status != PublishedVerificationStatus.Running));
 
-    Assert.IsTrue(status.NamedVerifiables.All(v => v.Status != PublishedVerificationStatus.Stale));
+    Assert.IsTrue(status.NamedVerifiables.All(v => v.Status != PublishedVerificationStatus.Stale), string.Join(", ", status.NamedVerifiables));
   }
 
   [TestMethod]
