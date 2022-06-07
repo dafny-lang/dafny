@@ -1331,7 +1331,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override ConcreteSyntaxTree EmitTailCallStructure(MemberDecl member, ConcreteSyntaxTree wr) {
       Contract.Assume((member is Method m0 && m0.IsTailRecursive) || (member is Function f0 && f0.IsTailRecursive)); // precondition
       if (!member.IsStatic && !NeedsCustomReceiver(member)) {
-        var receiverType =  member.EnclosingClass is DatatypeDecl dt ?
+        var receiverType = member.EnclosingClass is DatatypeDecl dt ?
           "_I" + dt.CompileName + TypeParameters(SelectNonGhost(dt, dt.TypeArgs)) : "var";
         wr.WriteLine($"{receiverType} _this = this;");
       }
