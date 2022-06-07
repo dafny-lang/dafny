@@ -52,13 +52,13 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       }
 
       public SignatureHelp? Process() {
-        if (!symbolGuesser.TryGetSymbolBefore(document, GetOpenParenthesePosition(), cancellationToken, out var symbol)) {
+        if (!symbolGuesser.TryGetSymbolBefore(document, GetOpenParenthesisPosition(), cancellationToken, out var symbol)) {
           return null;
         }
         return CreateSignatureHelp(symbol);
       }
 
-      private Position GetOpenParenthesePosition() {
+      private Position GetOpenParenthesisPosition() {
         return new Position(request.Position.Line, request.Position.Character - 1);
       }
 

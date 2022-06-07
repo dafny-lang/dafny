@@ -1509,7 +1509,8 @@ namespace Dafny {
     // We need to deal with the special case "num == 0 && den == 0", because
     // that's what C#'s default struct constructor will produce for BigRational. :(
     // To deal with it, we ignore "den" when "num" is 0.
-    BigInteger num, den;  // invariant 1 <= den || (num == 0 && den == 0)
+    internal readonly BigInteger num, den;  // invariant 1 <= den || (num == 0 && den == 0)
+
     public override string ToString() {
       int log10;
       if (num.IsZero || den.IsOne) {
@@ -1552,10 +1553,68 @@ namespace Dafny {
       num = new BigInteger(n);
       den = BigInteger.One;
     }
+    public BigRational(uint n) {
+      num = new BigInteger(n);
+      den = BigInteger.One;
+    }
+    public BigRational(long n) {
+      num = new BigInteger(n);
+      den = BigInteger.One;
+    }
+    public BigRational(ulong n) {
+      num = new BigInteger(n);
+      den = BigInteger.One;
+    }
     public BigRational(BigInteger n, BigInteger d) {
       // requires 1 <= d
       num = n;
       den = d;
+    }
+    /// <summary>
+    /// Construct an exact rational representation of a double value.
+    /// Throw an exception on NaN or infinite values. Does not support
+    /// subnormal values, though it would be possible to extend it to.
+    /// </summary>
+    public BigRational(double n) {
+      if (Double.IsNaN(n)) {
+        throw new ArgumentException("Can't convert NaN to a rational.");
+      }
+      if (Double.IsInfinity(n)) {
+        throw new ArgumentException(
+          "Can't convert +/- infinity to a rational.");
+      }
+      if (Double.IsSubnormal(n)) {
+        throw new ArgumentException(
+          "Can't convert a subnormal value to a rational (yet).");
+      }
+
+      // Double-specific values
+      const int exptBias = 1023;
+      const ulong signMask = 0x8000000000000000;
+      const ulong exptMask = 0x7FF0000000000000;
+      const ulong mantMask = 0x000FFFFFFFFFFFFF;
+      const int mantBits = 52;
+      ulong bits = BitConverter.DoubleToUInt64Bits(n);
+
+      // Generic conversion
+      bool isNeg = (bits & signMask) != 0;
+      int expt = ((int)((bits & exptMask) >> mantBits)) - exptBias;
+      var mant = (bits & mantMask);
+      var one = BigInteger.One;
+      var negFactor = isNeg ? BigInteger.Negate(one) : one;
+      var two = new BigInteger(2);
+      var exptBI = BigInteger.Pow(two, Math.Abs(expt));
+      var twoToMantBits = BigInteger.Pow(two, mantBits);
+      var mantNum = negFactor * (twoToMantBits + new BigInteger(mant));
+      if (expt == -exptBias && mant == 0) {
+        num = den = 0;
+      } else if (expt < 0) {
+        num = mantNum;
+        den = twoToMantBits * exptBI;
+      } else {
+        num = exptBI * mantNum;
+        den = twoToMantBits;
+      }
     }
     public BigInteger ToBigInteger() {
       if (num.IsZero || den.IsOne) {

@@ -301,7 +301,10 @@ method Inner(x: nat, y: nat)
 ```
 The ingredients are simple, but the end result may seem like magic. For many users, however, there may be no magic at all -- the end result may be so natural that the user never even has to be bothered to think about that there was a need to prove termination in the first place.
 
-TODO: Should there be user-level syntax to invoke this termination ordering
+Though Dafny fixes a well-founded order that it uses when checking
+termination, Dafny does not surface this ordering directly in
+expressions. That is, syntactically, there is no single operator that
+stands for the well-founded ordering.
 
 ### 5.1.4. Framing {#sec-frame-expression}
 ````grammar
@@ -393,7 +396,46 @@ specified. If there are no `reads` clauses the effective read set is
 empty. If `*` is given in a `reads` clause it means any memory may be
 read.
 
-TO BE WRITTEN: multiset of objects allowed in reads clauses
+If a `reads` clause refers to a sequence or multiset, that collection
+(call it `c`) is converted to a set by adding an implicit set
+comprehension of the form `set o: object | o in c` before computing the
+union of object sets from other `reads` clauses.
+
+An expression in a `reads` clause is also allowed to be a function to
+a collection of references. This is converted to a set by taking the
+union of the function's image over all inputs. For example, if `F` is
+a function from `int` to `set<object>`, then `reads F` has the meaning
+
+```dafny
+set x: int, o: object | o in F(x) :: o
+```
+
+This is particularly useful when wanting to specify the reads set of
+another function. For example, function `Sum` adds up the values of
+`f(i)` where `i` ranges from `lo` to `hi`:
+
+```dafny
+function Sum(f: int ~> real, lo: int, hi: int): real
+  requires lo <= hi
+  requires forall i :: lo <= i < hi ==> f.requires(i)
+  reads f.reads
+  decreases hi - lo
+{
+  if lo == hi then 0.0 else
+    f(lo) + Sum(f, lo + 1, hi)
+}
+```
+
+Its `reads` specification says that `Sum(f, lo, hi)` may read anything
+that `f` may read on any input. Note that `f.reads` is itself a
+function, whose type is `int ~> set<object>`. (The specification
+`reads f.reads` gives an overapproximation of what `Sum` will actually
+read. More precise would be to specify that `Sum` reads only what `f`
+reads on the values from `lo` to `hi`, but the larger set denoted by
+`reads f.reads` is easier to write down and is often good enough.)
+
+Note, only `reads` clauses, not `modifies` clauses, are allowed to
+include functions as just described.
 
 ### 5.1.6. Modifies Clause {#sec-modifies-clause}
 
