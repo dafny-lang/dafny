@@ -32,7 +32,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     IReadOnlyList<Diagnostic> GhostDiagnostics,
     Dafny.Program Program,
     SymbolTable SymbolTable,
-    ProgramVerificationTasks? VerificationTasks = null,
+    IReadOnlyList<IImplementationTask>? VerificationTasks = null,
     bool LoadCanceled = false
   ) {
 
