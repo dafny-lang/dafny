@@ -32,10 +32,20 @@ public class TestDafny {
       return -1;
     }
 
+    // TODO: First just verify
+    var dafnyArgs = new List<string>(testDafnyOptions.OtherArgs);
+    dafnyArgs.Add($"/compile:0");
+    
+    
+    string expectFile = testDafnyOptions.TestFile + ".expect";
+    
     foreach(var plugin in dafnyOptions.Plugins) {
       foreach (var compiler in plugin.GetCompilers()) {
-        var dafnyArgs = new List<string>(testDafnyOptions.OtherArgs);
+        dafnyArgs = new List<string>(testDafnyOptions.OtherArgs);
+        dafnyArgs.Add($"/noVerify");
+        dafnyArgs.Add($"/compile:4");
         dafnyArgs.Add($"/compileTarget:{compiler.TargetId}");
+        
         Console.Out.WriteLine(string.Join(" ", dafnyArgs));
         // TODO: Run test, compare to sourcefile.expect
       }  
