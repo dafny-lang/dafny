@@ -98,7 +98,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var verificationTasks = await verifier.GetVerificationTasksAsync(loaded, cancellationToken);
 
       var initialViews = new Dictionary<ImplementationId, ImplementationView>();
-      foreach (var task in verificationTasks.Tasks) {
+      foreach (var task in verificationTasks) {
         var status = await StatusFromImplementationTaskAsync(task);
         var view = new ImplementationView(task.Implementation.tok.GetLspRange(), status, Array.Empty<Diagnostic>());
         initialViews.Add(GetImplementationId(task.Implementation), view);
@@ -181,8 +181,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       notificationPublisher.SendStatusNotification(document.TextDocumentItem, CompilationStatus.VerificationStarted);
 
       var progressReporter = CreateVerificationProgressReporter(document);
-      document.VerificationTasks!.BatchCompletions.Subscribe(progressReporter.ReportAssertionBatchResult);
-      var implementationTasks = document.VerificationTasks!.Tasks;
+      var subscription = verifier.BatchCompletions.Subscribe(progressReporter.ReportAssertionBatchResult);
+      cancellationToken.Register(() => subscription.Dispose());
+      var implementationTasks = document.VerificationTasks!;
 
       if (VerifierOptions.GutterStatus) {
         progressReporter.RecomputeVerificationTree();
@@ -333,7 +334,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     private async Task NotifyStatusAsync(TextDocumentItem item, IObservable<DafnyDocument> documents, CancellationToken cancellationToken) {
       var finalDocument = await documents.ToTask(cancellationToken);
-      var results = await Task.WhenAll(finalDocument.VerificationTasks!.Tasks.Select(t => t.ActualTask));
+      var results = await Task.WhenAll(finalDocument.VerificationTasks!.Select(t => t.ActualTask));
       logger.LogDebug($"Finished verification with {results.Sum(r => r.Errors.Count)} errors.");
       var verified = results.All(r => r.Outcome == ConditionGeneration.Outcome.Correct);
       var compilationStatusAfterVerification = verified
