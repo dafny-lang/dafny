@@ -50,7 +50,7 @@ jobs:
       working-directory: dafny
       run: dotnet tool run dotnet-format -w -s error --check Source/Dafny.sln --exclude Dafny/Scanner.cs --exclude Dafny/Parser.cs
     - name: Create NuGet package (just to make sure it works)
-      run: dotnet pack --no-build dafny/Source/Dafny.sln
+      run: dotnet pack --no-build Source/Dafny.sln
 
   check-deep-tests:
     uses: ./.github/workflows/check-deep-tests-reusable.yml
