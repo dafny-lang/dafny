@@ -13,6 +13,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Dafny\DafnyPipeline.csproj" />
+      <ProjectReference Include="..\XUnitExtensions\XUnitExtensions.csproj" />
     </ItemGroup>
 
 </Project>

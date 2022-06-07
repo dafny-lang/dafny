@@ -21,6 +21,7 @@ namespace IntegrationTests {
     private const bool InvokeMainMethodsDirectly = false;
 
     private static readonly Assembly DafnyDriverAssembly = typeof(DafnyDriver).Assembly;
+    private static readonly Assembly TestDafnyAssembly = typeof(TestDafny).Assembly;
     private static readonly Assembly DafnyServerAssembly = typeof(Server).Assembly;
 
     private static readonly string[] DefaultDafnyArguments = new[] {
@@ -77,6 +78,10 @@ namespace IntegrationTests {
         }, {
           "%dafny", (args, config) =>
             MainMethodLitCommand.Parse(DafnyDriverAssembly, dafnyArguments.Concat(args), config,
+              InvokeMainMethodsDirectly)
+        }, {
+          "%testdafny", (args, config) =>
+            MainMethodLitCommand.Parse(TestDafnyAssembly, dafnyArguments.Concat(args), config,
               InvokeMainMethodsDirectly)
         }, {
           "%server", (args, config) =>
