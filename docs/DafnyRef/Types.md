@@ -2282,7 +2282,7 @@ transparent all the way.
 
 But the transparency of a function is affected by
 whether the function was given the `{:opaque}` attribute (as explained
-in [Section 22.2.8](#sec-opaque)).
+in [Section 22.2.9](#sec-opaque)).
 
 The following table summarizes where the function is transparent.
 The module referenced in the table is the module in which the
