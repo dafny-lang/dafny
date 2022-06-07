@@ -70,8 +70,8 @@ public class TestDafny {
   }
 
   private static (int, string, string) RunLitCommand(IEnumerable<string> arguments) {
-    var line = string.Join(" ", arguments);
+    var line = "RUN: " + string.Join(" ", arguments);
     var command = ILitCommand.Parse(line, null);
-    return command.Execute(null, null, null, null);
+    return command!.Execute(null, null, null, null);
   }
 }
