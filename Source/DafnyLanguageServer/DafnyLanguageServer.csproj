@@ -6,9 +6,8 @@
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <Nullable>enable</Nullable>
     <RootNamespace>Microsoft.Dafny.LanguageServer</RootNamespace>
-    <OutputPath>..\..\Binaries\</OutputPath>
+    <IsPackable>false</IsPackable>
     <ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>
-    <PackageVersion>3.6.0.40511</PackageVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net6.0|AnyCPU'">
