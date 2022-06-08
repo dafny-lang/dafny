@@ -91,14 +91,17 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public async Task<DafnyDocument> PrepareVerificationTasksAsync(DafnyDocument loaded, CancellationToken cancellationToken) {
-      if (loaded.ParseAndResolutionDiagnostics.Any(d => d.Severity == DiagnosticSeverity.Error)) {
+      if (loaded.ParseAndResolutionDiagnostics.Any(d =>
+            d.Severity == DiagnosticSeverity.Error &&
+            d.Source != MessageSource.Compiler.ToString() &&
+            d.Source != MessageSource.Verifier.ToString())) {
         throw new TaskCanceledException();
       }
 
       var verificationTasks = await verifier.GetVerificationTasksAsync(loaded, cancellationToken);
 
       var initialViews = new Dictionary<ImplementationId, ImplementationView>();
-      foreach (var task in verificationTasks.Tasks) {
+      foreach (var task in verificationTasks) {
         var status = await StatusFromImplementationTaskAsync(task);
         var view = new ImplementationView(task.Implementation.tok.GetLspRange(), status, Array.Empty<Diagnostic>());
         initialViews.Add(GetImplementationId(task.Implementation), view);
@@ -125,7 +128,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return CreateDocumentWithEmptySymbolTable(loggerFactory.CreateLogger<SymbolTable>(), textDocument, errorReporter, program, loadCanceled: false);
       }
 
-      var compilationUnit = symbolResolver.ResolveSymbols(textDocument, program, cancellationToken);
+      var compilationUnit = symbolResolver.ResolveSymbols(textDocument, program, out var canDoVerification, cancellationToken);
       var symbolTable = symbolTableFactory.CreateFrom(program, compilationUnit, cancellationToken);
       if (errorReporter.HasErrors) {
         notificationPublisher.SendStatusNotification(textDocument, CompilationStatus.ResolutionFailed);
@@ -134,7 +137,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
       var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(symbolTable, cancellationToken).ToArray();
 
-      return new DafnyDocument(textDocument, errorReporter.GetDiagnostics(textDocument.Uri),
+      return new DafnyDocument(textDocument,
+        errorReporter.GetDiagnostics(textDocument.Uri),
+        canDoVerification,
         new Dictionary<ImplementationId, ImplementationView>(),
         Array.Empty<Counterexample>(),
         ghostDiagnostics, program, symbolTable);
@@ -153,9 +158,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       Dafny.Program program,
       bool loadCanceled
     ) {
+      var parseAndResolutionDiagnostics = errorReporter.GetDiagnostics(textDocument.Uri);
       return new DafnyDocument(
         textDocument,
         errorReporter.GetDiagnostics(textDocument.Uri),
+        false,
         new Dictionary<ImplementationId, ImplementationView>(),
         Array.Empty<Counterexample>(),
         Array.Empty<Diagnostic>(),
@@ -181,8 +188,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       notificationPublisher.SendStatusNotification(document.TextDocumentItem, CompilationStatus.VerificationStarted);
 
       var progressReporter = CreateVerificationProgressReporter(document);
-      document.VerificationTasks!.BatchCompletions.Subscribe(progressReporter.ReportAssertionBatchResult);
-      var implementationTasks = document.VerificationTasks!.Tasks;
+      var implementationTasks = document.VerificationTasks!;
+      var implementations = implementationTasks.Select(t => t.Implementation).ToHashSet();
+      var subscription = verifier.BatchCompletions.Where(c =>
+        implementations.Contains(c.Split.Implementation)).Subscribe(progressReporter.ReportAssertionBatchResult);
+      cancellationToken.Register(() => subscription.Dispose());
 
       if (VerifierOptions.GutterStatus) {
         progressReporter.RecomputeVerificationTree();
@@ -333,7 +343,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     private async Task NotifyStatusAsync(TextDocumentItem item, IObservable<DafnyDocument> documents, CancellationToken cancellationToken) {
       var finalDocument = await documents.ToTask(cancellationToken);
-      var results = await Task.WhenAll(finalDocument.VerificationTasks!.Tasks.Select(t => t.ActualTask));
+      var results = await Task.WhenAll(finalDocument.VerificationTasks!.Select(t => t.ActualTask));
       logger.LogDebug($"Finished verification with {results.Sum(r => r.Errors.Count)} errors.");
       var verified = results.All(r => r.Outcome == ConditionGeneration.Outcome.Correct);
       var compilationStatusAfterVerification = verified
