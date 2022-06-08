@@ -51,10 +51,12 @@ namespace DafnyServer.CounterexampleGeneration {
       return new DafnyModelType(newName, TypeArgs);
     }
 
-    public DafnyModelType ReplaceTypeVariables(string with) {
+    public DafnyModelType ReplaceTypeVariables(DafnyModelType with) {
       // Assigns the given value to all type variables
-      var newName = Name.Contains("$") ? with : Name;
-      return new(newName, TypeArgs.ConvertAll(type =>
+      if (Name.Contains("$")) {
+        return with;
+      }
+      return new(Name, TypeArgs.ConvertAll(type =>
         type.ReplaceTypeVariables(with)));
     }
 

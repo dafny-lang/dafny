@@ -26,7 +26,7 @@ namespace DafnyTestGeneration {
     // number of type parameters for the method (all will be set to defaultType)
     public readonly int NOfTypeParams = 0;
     // default type to replace any type variable with
-    private readonly string defaultType = "int";
+    private readonly DafnyModelType defaultType = new("int");
     // the DafnyModel that describes the inputs to this test method
     private DafnyModel dafnyModel;
 
@@ -104,7 +104,7 @@ namespace DafnyTestGeneration {
 
       List<string> elements = new();
       var variableType = variable.Type.ReplaceTypeVariables(defaultType);
-      if (variableType.ToString() == defaultType && variableType != variable.Type) {
+      if (variableType.Equals(defaultType) && !variableType.Equals(variable.Type)) {
         return GetADefaultTypeValue(variable);
       }
       switch (variableType.Name) {
@@ -251,7 +251,7 @@ namespace DafnyTestGeneration {
       // the method call itself:
       var typeArguments = "";
       if (NOfTypeParams > 0) {
-        typeArguments = "<" + string.Join(",", Enumerable.Repeat(defaultType, NOfTypeParams)) + ">";
+        typeArguments = "<" + string.Join(",", Enumerable.Repeat(defaultType.ToString(), NOfTypeParams)) + ">";
       }
       string methodCall;
       if (DafnyInfo.IsStatic(MethodName)) {
