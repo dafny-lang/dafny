@@ -805,9 +805,101 @@ If no legal candidate entry point is identified, `dafny` will still produce exec
 they will need to be linked with some other code in the target language that
 provides a `main` entry point.
 
-### 24.9.2. extern declarations
+### 24.9.2. `extern` declarations {#sec-extern-decls}
 
-TO BE WRITTEN
+A Dafny declaration can be marked with the [`{:extern}`](#sec-extern) attribute to
+indicate that it refers to an external definition that is already
+present in the language that the Dafny code will be compiled to (or will
+be present by the time the final target-language program is compiled or
+run).
+
+Because the [`{:extern}`](#sec-extern) attribute controls interaction with code written
+in one of many languages, it has some language-specific behavior,
+documented in the following sections. However, some aspects are
+target-language independent and documented here.
+
+The attribute can also take several forms, each defining a different
+relationship between a Dafny name and a target language name. In the
+form [`{:extern}`](#sec-extern), the name of the external definition is
+assumed to be the name of the Dafny declaration after some
+target-specific name mangling. However, because naming conventions (and
+the set of allowed identifiers) vary between languages, Dafny allows
+additional forms for the `{:extern}` attribute.
+
+The form `{:extern <s1>}` instructs Dafny to compile references to most
+declarations using the name `s1` instead of the Dafny name. For [opaque
+types](#sec-opaque-types), however, `s1` is sometimes used as a hint as
+to how to declare that type when compiling. This hint is interpreted
+differently by each compiler.
+
+Finally, the form `{:extern <s1>, <s2>}` instructs Dafny to use `s2` as
+the direct name of the declaration. Dafny will typically use a
+combination of `s1` and `s2`, such as `s1.s2`, to reference the
+declaration. It may also be the case that one of the arguments is simply
+ignored, depending on the target language.
+
+The recommended style is to prefer `{:extern}` when possible, and use
+similar names across languages. This is usually feasible because
+existing external code is expected to have the same interface as the
+code that Dafny would generate for a declaration of that form. Because
+many Dafny types compile down to custom types defined in the Dafny
+runtime library, it's typically necessary to write wrappers by hand that
+encapsulate existing external code using a compatible interface, and
+those wrappers can have names chosen for compatibility. For example,
+retrieving the list of command line arguments when compiling to C\#
+requires a wrapper such as the following:
+
+``` cs
+using icharseq = Dafny.ISequence<char>;
+using charseq = Dafny.Sequence<char>;
+
+namespace Externs_Compile {
+  public partial class __default {
+    public static Dafny.ISequence<icharseq> GetCommandLineArgs() {
+      var dafnyArgs = Environment
+                      .GetCommandLineArgs()
+                      .Select(charseq.FromString);
+      return Dafny.Sequence<icharseq>.FromArray(dafnyArgs.ToArray());
+    }
+}
+```
+
+Note that Dafny does not check the arguments to `{:extern}`, so it is
+the user's responsibility to ensure that the provided names result in
+code that is well-formed in the target language.
+
+Most declarations, including those for modules, classes, traits, member
+variables, constructors, methods, function methods, and opaque types,
+can be marked with `{:extern}`.
+
+Marking a module with `{:extern}` indicates that the declarations
+contained within can be found within the given module, namespace, or
+similar construct within the target language. Some members of the Dafny
+module may contain definitions, in which case code for those definitions
+will be generated. Whether this results in valid target code may depend
+on some target language support for something resembling "partial"
+modules, where different subsets of the contents are defined in
+different places.
+
+The story for a classes is similar. Code for the class will be generated
+if any of its members are not `{:extern}`. Depending on the target
+language, making either all or none of the members `{:extern}` may be
+the only options that result in valid target code. Traits with
+`{:extern}` can refer to existing traits or interfaces in the target
+language, or can refer to the interfaces of existing classes.
+
+Member variables marked with `{:extern}` refer to fields or properties
+in existing target-language code. Constructors, methods, and function
+methods refer to the equivalent concepts in the target language. They
+can have contracts, which are then assumed to hold for the existing
+target-language code. They can also have bodies, but the bodies will not
+be compiled in the presence of the `{:extern}` attribute. Bodies can
+still be used for reasoning, however, so may be valuable in some cases,
+especially for function methods.
+
+Types marked with `{:extern}` must be opaque. The name argument, if any,
+usually refers to the type name in the target language, but some
+compilers treat it differently.
 
 ### 24.9.3. C\#
 
