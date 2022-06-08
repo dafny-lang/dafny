@@ -14,10 +14,7 @@ namespace Microsoft.Dafny {
   }
 
   public enum MessageSource {
-    Parser, Resolver, Translator, Rewriter, Verifier,
-    RefinementTransformer,
-    Cloner,
-    Compiler
+    Parser, Cloner, RefinementTransformer, Rewriter, Resolver, Translator, Verifier, Compiler
   }
 
   public struct ErrorMessage {
@@ -31,6 +28,8 @@ namespace Microsoft.Dafny {
 
     public bool HasErrors => ErrorCount > 0;
     public int ErrorCount => Count(ErrorLevel.Error);
+    public bool HasErrorsUntilResolver => ErrorCountUntilResolver > 0;
+    public int ErrorCountUntilResolver => CountExceptVerifierAndCompiler(ErrorLevel.Error);
 
 
     public abstract bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg);
@@ -52,6 +51,7 @@ namespace Microsoft.Dafny {
     }
 
     public abstract int Count(ErrorLevel level);
+    public abstract int CountExceptVerifierAndCompiler(ErrorLevel level);
 
     // This method required by the Parser
     internal void Error(MessageSource source, string filename, int line, int col, string msg) {
@@ -169,12 +169,17 @@ namespace Microsoft.Dafny {
         // discard the message
         return false;
       }
-      AllMessages[level].Add(new ErrorMessage { token = tok, message = msg });
+      AllMessages[level].Add(new ErrorMessage { token = tok, message = msg, source = source });
       return true;
     }
 
     public override int Count(ErrorLevel level) {
       return AllMessages[level].Count;
+    }
+
+    public override int CountExceptVerifierAndCompiler(ErrorLevel level) {
+      return AllMessages[level].Count(message => message.source != MessageSource.Verifier &&
+                                                 message.source != MessageSource.Compiler);
     }
   }
 
@@ -228,6 +233,10 @@ namespace Microsoft.Dafny {
     }
 
     public override int Count(ErrorLevel level) {
+      return 0;
+    }
+
+    public override int CountExceptVerifierAndCompiler(ErrorLevel level) {
       return 0;
     }
   }
