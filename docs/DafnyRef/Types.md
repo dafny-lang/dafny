@@ -76,7 +76,7 @@ that does not allow a ``HashCall``.
 The following sections describe each of these kinds of types in more detail.
 
 <!--PDF NEWPAGE-->
-# 7. Basic types
+# 7. Basic types {#sec-basic-types}
 
 Dafny offers these basic types: `bool` for booleans, `char` for
 characters, `int` and `nat` for integers, `real` for reals,
@@ -839,7 +839,7 @@ Sequences support the following binary operator:
 Operator `+` is associative, like the arithmetic operator with the
 same name.
 
-### 10.3.4. Other Sequence Expressions
+### 10.3.4. Other Sequence Expressions {#sec-other-sequence-expressions}
 In addition, for any sequence `s` of type `seq<T>`, expression `e`
 of type `T`, integer-based numeric `i` satisfying `0 <= i < |s|`, and
 integer-based numerics `lo` and `hi` satisfying
@@ -1838,12 +1838,12 @@ An instance method has an implicit receiver parameter, `this`.
 A static method M in a class C can be invoked by `C.M(…)`.
 
 An ordinary method is declared with the `method` keyword.
-Section [#sec-constructors] explains methods that instead use the
-`constructor` keyword. Section [#sec-lemmas] discusses methods that are
+[the section about constructors](#sec-constructors) explains methods that instead use the
+`constructor` keyword. [the section about lemmas](#sec-lemmas) discusses methods that are
 declared with the `lemma` keyword. Methods declared with the
 `least lemma` or `greatest lemma` keyword phrases
 are discussed later in the context of extreme
-predicates (see section [#sec-colemmas]).
+predicates (see [the section about greatest lemmas](#sec-colemmas)).
 
 A method without a body is _abstract_. A method is allowed to be
 abstract under the following circumstances:
@@ -1906,7 +1906,7 @@ As a shorthand for writing
 c := new C;
 c.Init(args);
 ```
-where `Init` is an initialization method (see the top of Section [#sec-class-types]),
+where `Init` is an initialization method (see the top of [the section about class types](#sec-class-types)),
 one can write
 ```dafny
 c := new C.Init(args);
@@ -3450,7 +3450,7 @@ node.(left := L, right := R)
 ```
 
 
-## 18.2. Co-inductive datatypes
+## 18.2. Co-inductive datatypes {#sec-co-inductive-datatypes}
 
 TODO: This section and particularly the subsections need rewriting using
 the least and greatest terminology, and to make the text fit better into
@@ -3575,7 +3575,7 @@ invoked, there are restrictions on how a _co-inductive_ hypothesis can be
 _used_. These are, of course, taken into consideration by Dafny's verifier.
 For example, as illustrated by the second co-lemma above, invoking the
 co-inductive hypothesis in an attempt to obtain the entire proof goal is
-futile. (We explain how this works in [Section 18.3.5.2](#sec-colemmas)) Our initial experience
+futile. (We explain how this works in [the section about greatest lemmas](#sec-colemmas)) Our initial experience
 with co-induction in Dafny shows it to provide an intuitive, low-overhead
 user experience that compares favorably to even the best of today’s
 interactive proof assistants for co-induction. In addition, the
@@ -3775,7 +3775,7 @@ In the Dafny grammar this is called a ``HashCall``. The definition of
 that is, `Pos` and `Pos#` must not be in the same cluster. In other
 words, the definition of `Pos` cannot depend on `Pos#`.
 
-#### 18.3.4.1. Co-Equality
+#### 18.3.4.1. Co-Equality {#sec-co-equality}
 Equality between two values of a co-datatype is a built-in co-predicate.
 It has the usual equality syntax `s == t`, and the corresponding prefix
 equality is written `s ==#[k] t`. And similarly for `s != t`
