@@ -2196,13 +2196,13 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    private void EmitRuntimeJar(string programName) {
+    private void EmitRuntimeJar(string targetDirectory) {
       // Since DafnyRuntime.jar is binary, we can't use ReadRuntimeSystem
       var jarName = "DafnyRuntime.jar";
       var assembly = System.Reflection.Assembly.GetExecutingAssembly();
       var stream = assembly.GetManifestResourceStream(jarName);
       if (stream is not null) {
-        var fullJarName = $"{TargetBaseDir(programName)}/{jarName}";
+        var fullJarName = $"{targetDirectory}/{jarName}";
         FileStream outStream = new FileStream(fullJarName, FileMode.Create, FileAccess.Write);
         stream.CopyTo(outStream);
         outStream.Close();
@@ -2222,10 +2222,11 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
 
-      EmitRuntimeJar(dafnyProgramName);
+      var targetDirectory = Path.GetDirectoryName(targetFilename);
+      EmitRuntimeJar(targetDirectory);
 
       var files = new List<string>();
-      foreach (string file in Directory.EnumerateFiles(Path.GetDirectoryName(targetFilename), "*.java", SearchOption.AllDirectories)) {
+      foreach (string file in Directory.EnumerateFiles(targetDirectory, "*.java", SearchOption.AllDirectories)) {
         files.Add($"\"{Path.GetFullPath(file)}\"");
       }
       var classpath = GetClassPath(targetFilename);
