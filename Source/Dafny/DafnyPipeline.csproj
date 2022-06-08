@@ -15,8 +15,9 @@
     <AssemblyName>DafnyPipeline</AssemblyName>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <OutputPath>..\..\Binaries\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
-    <PackageVersion>1.1.0</PackageVersion>
+    <PackageVersion>3.6.0.40511</PackageVersion>
     <TargetFramework>net6.0</TargetFramework>
   </PropertyGroup>
 
