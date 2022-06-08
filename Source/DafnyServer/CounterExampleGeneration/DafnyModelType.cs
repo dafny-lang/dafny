@@ -58,6 +58,14 @@ namespace DafnyServer.CounterexampleGeneration {
         type.ReplaceTypeVariables(with)));
     }
 
+    public override int GetHashCode() {
+      int hash = Name.GetHashCode();
+      foreach (var typ in TypeArgs) {
+        hash = 31 * typ.GetHashCode();
+      }
+      return hash;
+    }
+
     public override bool Equals(object other) {
       if (other is not DafnyModelType typ) {
         return false;
