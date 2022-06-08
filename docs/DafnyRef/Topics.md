@@ -446,7 +446,7 @@ _inference rules_.  To designate the least solution, a single line separating th
 antecedent (on top) from conclusion (on bottom) is used:
 
 <p style="text-align: center;" id="g-ind-rule" title="the inductive rules">
-  $\frac{}{g(0)} \qquad\qquad \frac{g(x-2)}{g(x)}$
+  $$\dfrac{}{g(0)} \qquad\qquad \dfrac{g(x-2)}{g(x)}$$
 </p>
 
 Through repeated applications of such rules, one can show that the predicate holds for
@@ -460,9 +460,9 @@ When inference rules are to designate the greatest solution, a thick
 line is used:
 
 <p style="text-align: center;" id="g-coind-rule" title="the coinductive rules">
-    $\genfrac{}{}{1.2pt}0{}{g(0)}
+    $$\genfrac{}{}{1.2pt}0{}{g(0)}
   \qquad\qquad
-    \genfrac{}{}{1.2pt}0{g(x-2)}{g(x)}$
+    \genfrac{}{}{1.2pt}0{g(x-2)}{g(x)}$$
 </p>
 
 In this case, proof trees are allowed to be infinite.
@@ -595,7 +595,7 @@ general form of our proof goal:
 
 |   | $f^{\uparrow}(x) \;\Longrightarrow\; R$                                                    |
 | = | &nbsp;&nbsp;&nbsp;&nbsp; { [the least exists definition](#eq-least-is-exists) }                        |
-|   | $(\\exists k \bullet\; { {}^{\flat}\!f}_k(x)) \;\Longrightarrow\; R$                              |
+|   | $(\exists k \bullet\; { {}^{\flat}\!f}_k(x)) \;\Longrightarrow\; R$                              |
 | = | &nbsp;&nbsp;&nbsp;&nbsp; { distribute $\;\Longrightarrow\;$ over $\exists$ to the left } |
 |   | $\forall k \bullet\; ({ {}^{\flat}\!f}_k(x) \;\Longrightarrow\; R)$                              |
 
