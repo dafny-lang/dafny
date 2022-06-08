@@ -1,12 +1,7 @@
-using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Text;
 using DafnyServer.CounterexampleGeneration;
-using Microsoft.Boogie;
 using Microsoft.Dafny;
-using Action = System.Action;
 using Errors = Microsoft.Dafny.Errors;
 using Parser = Microsoft.Dafny.Parser;
 using Program = Microsoft.Dafny.Program;
@@ -37,15 +32,19 @@ namespace DafnyTestGeneration {
     /// Restore the original name of a Dafny method from its Boogie translation
     /// </summary>
     public static string GetDafnyMethodName(string boogieName) {
+      // strip the Impl$$, Call$ or CheckWellFormed$$ prefixes:
       boogieName = boogieName.Split("$").Last();
+      // convert Boogie name to Dafny name:
+      boogieName = new DafnyModelType(boogieName).InDafnyFormat().Name;
+      // Get the name of the method:
       var methodName = boogieName.Split(".").Last();
-      var classPath = new DafnyModelType(boogieName
-        .Substring(0, boogieName.Length - methodName.Length - 1))
-        .InDafnyFormat().Name
-        .Split(".")
-        .Where(m => m[0] != '_');
-      var className = string.Join(".", classPath);
-      return className.Equals("") ? methodName : $"{className}.{methodName}";
+      // Get the fully qualified name of the class\module the method is defined in:
+      var classPath = boogieName
+        .Substring(0, boogieName.Length - methodName.Length - 1);
+      // Merge everything using the dot as a separator:
+      var fullPath = classPath.Split(".")
+        .Where(m => m != "" && m[0] != '_').Append(methodName);
+      return string.Join(".", fullPath);
     }
   }
 }

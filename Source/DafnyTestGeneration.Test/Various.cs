@@ -248,7 +248,7 @@ module Module {
       Assert.IsTrue(m.DafnyInfo.IsStatic("Module.ignoreNonNullableObject"));
       Assert.AreEqual(2, m.ArgValues.Count);
       Assert.AreEqual(1, m.ObjectsToMock.Count);
-      Assert.AreEqual("Module.Value<char>", m.ObjectsToMock[0].type.Name);
+      Assert.AreEqual("Module.Value<char>", m.ObjectsToMock[0].type.ToString());
     }
 
     [TestMethod]
@@ -285,6 +285,35 @@ method m(a:int) returns (b:int)
       DafnyOptions.O.TestGenOptions.WarnDeadCode = true;
       var stats = await Main.GetDeadCodeStatistics(program).ToListAsync();
       Assert.AreEqual(1, stats.Count); // the only line with stats
+    }
+
+    [TestMethod]
+    public async Task TypePolymorphism() {
+      var source = @"
+module Test {
+  method IsEvenLength<K>(s: seq<K>) returns (isEven: bool)
+  {
+    if (|s| % 2 == 0) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+}
+".TrimStart();
+      var program = Utils.Parse(source);
+      DafnyOptions.O.TestGenOptions.TargetMethod = "Test.IsEvenLength";
+      DafnyOptions.O.TestGenOptions.SeqLengthLimit = 1;
+      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      Assert.AreEqual(2, methods.Count);
+      Assert.IsTrue(methods.All(m => m.MethodName == "Test.IsEvenLength"));
+      Assert.IsTrue(methods.All(m => m.DafnyInfo.IsStatic("Test.IsEvenLength")));
+      Assert.IsTrue(methods.All(m => m.ArgValues.Count == 1));
+      Assert.IsTrue(methods.All(m => m.ObjectsToMock.Count == 0));
+      Assert.IsTrue(methods.All(m => m.NOfTypeParams == 1));
+      Assert.IsTrue(methods.Exists(m => m.ArgValues[0] == "[]"));
+      Assert.IsTrue(methods.Exists(m =>
+        Regex.IsMatch(m.ArgValues[0], "\\[[0-9]+\\]")));
     }
 
     /// <summary>
