@@ -35,7 +35,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     }
 
     private static IProgramVerifier CreateVerifier(IServiceProvider serviceProvider) {
-      return DafnyProgramVerifier.Create(
+      return new DafnyProgramVerifier(
         serviceProvider.GetRequiredService<ILogger<DafnyProgramVerifier>>(),
         serviceProvider.GetRequiredService<IOptions<VerifierOptions>>()
       );
