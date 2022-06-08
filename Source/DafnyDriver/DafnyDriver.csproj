@@ -55,6 +55,12 @@
     <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntime.go">
       <LogicalName>DafnyRuntime.go</LogicalName>
     </EmbeddedResource>
+    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntime.h">
+      <LogicalName>DafnyRuntime.h</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeJava\build\libs\DafnyRuntime.jar">
+      <LogicalName>DafnyRuntime.jar</LogicalName>
+    </EmbeddedResource>
     <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntime.js">
       <LogicalName>DafnyRuntime.js</LogicalName>
     </EmbeddedResource>
