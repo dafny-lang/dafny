@@ -109,7 +109,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
 
         var document = task.Result;
-        if (!RequiresOnSaveVerification(document)) {
+        if (!RequiresOnSaveVerification(document) || !document.CanDoVerification) {
           return Observable.Empty<DafnyDocument>();
         }
 

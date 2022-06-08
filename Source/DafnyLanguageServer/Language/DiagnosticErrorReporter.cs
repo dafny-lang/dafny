@@ -17,6 +17,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     private readonly DocumentUri entryDocumentUri;
     private readonly Dictionary<DocumentUri, List<Diagnostic>> diagnostics = new();
     private readonly Dictionary<DiagnosticSeverity, int> counts = new();
+    private readonly Dictionary<DiagnosticSeverity, int> countsNotVerificationOrCompiler = new();
     private readonly ReaderWriterLockSlim rwLock = new();
 
     /// <summary>
@@ -76,6 +77,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       };
       AddDiagnosticForFile(
         diagnostic,
+        VerifierMessageSource,
         uri
       );
     }
@@ -120,7 +122,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         Source = source.ToString(),
         RelatedInformation = relatedInformation,
       };
-      AddDiagnosticForFile(item, GetDocumentUriOrDefault(tok));
+      AddDiagnosticForFile(item, source, GetDocumentUriOrDefault(tok));
       return true;
     }
 
@@ -134,11 +136,25 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
     }
 
-    private void AddDiagnosticForFile(Diagnostic item, DocumentUri documentUri) {
+    public override int CountExceptVerifierAndCompiler(ErrorLevel level) {
+      rwLock.EnterReadLock();
+      try {
+        return countsNotVerificationOrCompiler.GetValueOrDefault(ToSeverity(level), 0);
+      }
+      finally {
+        rwLock.ExitReadLock();
+      }
+    }
+
+    private void AddDiagnosticForFile(Diagnostic item, MessageSource messageSource, DocumentUri documentUri) {
       rwLock.EnterWriteLock();
       try {
         var severity = item.Severity!.Value; // All our diagnostics have a severity.
         counts[severity] = counts.GetValueOrDefault(severity, 0) + 1;
+        if (messageSource != MessageSource.Verifier && messageSource != MessageSource.Compiler) {
+          countsNotVerificationOrCompiler[severity] =
+            countsNotVerificationOrCompiler.GetValueOrDefault(severity, 0) + 1;
+        }
         diagnostics.GetOrCreate(documentUri, () => new List<Diagnostic>()).Add(item);
       }
       finally {

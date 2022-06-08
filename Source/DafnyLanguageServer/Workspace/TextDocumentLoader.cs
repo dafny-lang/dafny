@@ -89,14 +89,17 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public async Task<DafnyDocument> PrepareVerificationTasksAsync(DafnyDocument loaded, CancellationToken cancellationToken) {
-      if (loaded.ParseAndResolutionDiagnostics.Any(d => d.Severity == DiagnosticSeverity.Error)) {
+      if (loaded.ParseAndResolutionDiagnostics.Any(d =>
+            d.Severity == DiagnosticSeverity.Error &&
+            d.Source != MessageSource.Compiler.ToString() &&
+            d.Source != MessageSource.Verifier.ToString())) {
         throw new TaskCanceledException();
       }
 
       var verificationTasks = await verifier.GetVerificationTasksAsync(loaded, cancellationToken);
       var initialViews = new ConcurrentDictionary<ImplementationId, ImplementationView>();
 
-      foreach (var task in verificationTasks.Tasks) {
+      foreach (var task in verificationTasks) {
         var status = StatusFromBoogieStatus(task.CacheStatus);
         var id = GetImplementationId(task.Implementation);
         if (loaded.ImplementationViewsView!.TryGetValue(id, out var existingView)) {
@@ -121,9 +124,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         progressReporter.RecomputeVerificationTree();
         progressReporter.ReportRealtimeDiagnostics(false, result);
         progressReporter.ReportImplementationsBeforeVerification(
-          verificationTasks.Tasks.Select(t => t.Implementation).ToArray());
+          verificationTasks.Select(t => t.Implementation).ToArray());
       }
-      verificationTasks.BatchCompletions.Subscribe(progressReporter.ReportAssertionBatchResult);
+      var implementations = verificationTasks.Select(t => t.Implementation).ToHashSet();
+      var subscription = verifier.BatchCompletions.Where(c =>
+        implementations.Contains(c.Split.Implementation)).Subscribe(progressReporter.ReportAssertionBatchResult);
+      cancellationToken.Register(() => subscription.Dispose());
       result.GutterProgressReporter = progressReporter;
       return result;
     }
@@ -144,7 +150,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return CreateDocumentWithEmptySymbolTable(loggerFactory.CreateLogger<SymbolTable>(), textDocument, errorReporter, program, loadCanceled: false);
       }
 
-      var compilationUnit = symbolResolver.ResolveSymbols(textDocument, program, cancellationToken);
+      var compilationUnit = symbolResolver.ResolveSymbols(textDocument, program, out var canDoVerification, cancellationToken);
       var symbolTable = symbolTableFactory.CreateFrom(program, compilationUnit, cancellationToken);
       if (errorReporter.HasErrors) {
         notificationPublisher.SendStatusNotification(textDocument, CompilationStatus.ResolutionFailed);
@@ -153,7 +159,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
       var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(symbolTable, cancellationToken).ToArray();
 
-      return new DafnyDocument(textDocument, errorReporter.GetDiagnostics(textDocument.Uri),
+      return new DafnyDocument(textDocument,
+        errorReporter.GetDiagnostics(textDocument.Uri),
+        canDoVerification,
         new Dictionary<ImplementationId, ImplementationView>(),
         Array.Empty<Counterexample>(),
         ghostDiagnostics, program, symbolTable);
@@ -172,9 +180,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       Dafny.Program program,
       bool loadCanceled
     ) {
+      var parseAndResolutionDiagnostics = errorReporter.GetDiagnostics(textDocument.Uri);
       return new DafnyDocument(
         textDocument,
         errorReporter.GetDiagnostics(textDocument.Uri),
+        false,
         new Dictionary<ImplementationId, ImplementationView>(),
         Array.Empty<Counterexample>(),
         Array.Empty<Diagnostic>(),
@@ -199,7 +209,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public IObservable<DafnyDocument> VerifyAllTasks(DafnyDocument document, CancellationToken cancellationToken) {
       notificationPublisher.SendStatusNotification(document.TextDocumentItem, CompilationStatus.VerificationStarted);
 
-      var implementationTasks = document.VerificationTasks!.Tasks;
+      var implementationTasks = document.VerificationTasks!;
 
       var result = implementationTasks.Select(task => Verify(document, task, cancellationToken)).Merge().
         Where(d => implementationTasks.All(t => {

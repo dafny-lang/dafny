@@ -56,9 +56,8 @@ public class VerificationHandler : IJsonRpcNotificationHandler<VerificationParam
     return Unit.Value;
   }
 
-  // Change to handle anything in a range.
   private static IEnumerable<IImplementationTask> GetTasksAtPosition(DafnyDocument translatedDocument, Position requestPosition) {
-    return translatedDocument.VerificationTasks!.Tasks.Where(t => {
+    return translatedDocument.VerificationTasks!.Where(t => {
       var lspPosition = t.Implementation.tok.GetLspPosition();
       return lspPosition.Equals(requestPosition);
     });
