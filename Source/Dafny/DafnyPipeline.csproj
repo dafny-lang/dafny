@@ -30,6 +30,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\DafnyRuntime\DafnyRuntime.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Include="..\version.cs" />
   </ItemGroup>
   <ItemGroup>
