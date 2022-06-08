@@ -15,14 +15,17 @@ $(dafny_csharp_dir):
 	mkdir "$@"
 
 # Step 2: compile Dafny code, putting C# output in `csharp/dafny`
+dafny_files := $(wildcard *.dfy)
 $(dafny_csharp_dir)/%.cs: %.dfy | $(dafny_csharp_dir)
 	$(DAFNY_COMPILER) -spillTargetCode:3 -compile:0 "-out:$@" "$<"
 
 # Step 3: compile resulting C# project
 csproj := SimpleCompiler.csproj
 csharp_dll := $(csharp_dir)/bin/Debug/net6.0/SimpleCompiler.dll
+csharp_files :=  $(wildcard $(csharp_dir)/*)
 csharp_shared_deps := $(patsubst %,$(csharp_dir)/%,$(shared_deps))
-csharp_deps := $(csharp_shared_deps) $(csharp_dir)/Main.cs $(dafny_csharp_dir)/Compiler.cs
+csharp_dafny_deps := $(patsubst %.dfy,$(dafny_csharp_dir)/%.cs,$(dafny_files))
+csharp_deps := $(csharp_shared_deps) $(csharp_dafny_deps) $(csharp_files)
 build: $(csharp_dll)
 $(csharp_dll): $(csharp_deps)
 	dotnet build $(csharp_dir)/$(csproj)
