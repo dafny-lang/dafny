@@ -2199,7 +2199,7 @@ namespace Microsoft.Dafny.Compilers {
     private void EmitRuntimeJar(string programName) {
       // Since DafnyRuntime.jar is binary, we can't use ReadRuntimeSystem
       var jarName = "DafnyRuntime.jar";
-      var assembly = System.Reflection.Assembly.GetEntryAssembly();
+      var assembly = System.Reflection.Assembly.GetExecutingAssembly();
       var stream = assembly.GetManifestResourceStream(jarName);
       if (stream is not null) {
         var fullJarName = $"{TargetBaseDir(programName)}/{jarName}";
