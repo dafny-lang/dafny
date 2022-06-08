@@ -353,7 +353,7 @@ To give orders of magnitude about resource usage, here is a list of examples ind
     assert d: (a ==> b) <==> (!b ==> !a);
   }
   ```
-*  37K total resource usage and fails out of resource.
+*  37K total resource usage and thus fails with `out of resource`.
    ```dafny
    method {:rlimit 30} f(a: int, b: int, c: int) {
      assert ((1 + a*a)*c) / (1 + a*a) == c;
