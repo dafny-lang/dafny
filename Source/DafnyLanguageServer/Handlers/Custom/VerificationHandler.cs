@@ -15,14 +15,11 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom;
 
 [Parallel]
 [Method(DafnyRequestNames.VerifySymbol, Direction.ClientToServer)]
-public record VerificationParams : TextDocumentPositionParams, IRequest {
-}
+public record VerificationParams : TextDocumentPositionParams, IRequest;
 
 [Parallel]
 [Method(DafnyRequestNames.CancelVerifySymbol, Direction.ClientToServer)]
-public record CancelVerificationParams : TextDocumentPositionParams, IRequest {
-
-}
+public record CancelVerificationParams : TextDocumentPositionParams, IRequest;
 
 public class VerificationHandler : IJsonRpcNotificationHandler<VerificationParams>, IJsonRpcNotificationHandler<CancelVerificationParams> {
   private readonly ILogger logger;
@@ -42,7 +39,6 @@ public class VerificationHandler : IJsonRpcNotificationHandler<VerificationParam
   public async Task<Unit> Handle(VerificationParams request, CancellationToken cancellationToken) {
     if (!documents.Documents.TryGetValue(request.TextDocument.Uri, out var documentEntry)) {
       return Unit.Value;
-
     }
 
     var translatedDocument = await documentEntry.TranslatedDocument;

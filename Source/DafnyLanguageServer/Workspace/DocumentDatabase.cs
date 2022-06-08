@@ -164,6 +164,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           relocator.RelocatePosition(kv.Key.NamedVerificationTask, documentChange, CancellationToken.None)
         },
         kv => kv.Value with {
+          Range = relocator.RelocateRange(kv.Value.Range, documentChange, CancellationToken.None),
           Diagnostics = relocator.RelocateDiagnostics(kv.Value.Diagnostics, documentChange, CancellationToken.None)
         });
       var migratedVerificationTree =

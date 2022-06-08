@@ -87,6 +87,10 @@ method Bar() { assert false; }";
     await WaitForStatus(barRange, PublishedVerificationStatus.Error, CancellationToken);
   }
 
+  /// <summary>
+  /// This is important for VSCode since once it marks a test item during a run as 'skipped' (which we use for stale),
+  /// the state can not be change. This means we should only emit stale if that state will no longer change.
+  /// </summary>
   [TestMethod]
   public async Task OnceFirstIsRunningSecondShouldBeQueued() {
     var source = @"method Foo() { assert false; }
@@ -308,5 +312,21 @@ module Refinement2 refines BaseModule {
 
     Assert.AreEqual(1, status.NamedVerifiables.Count);
     Assert.AreEqual(new Range(1, 9, 1, 12), status.NamedVerifiables[0].NameRange);
+  }
+
+  [TestMethod]
+  public async Task MigrationTest() {
+    var source = @"method Foo() { assert false; }";
+    var documentItem = CreateTestDocument(source);
+    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+    await WaitUntilAllStatusAreCompleted();
+    ApplyChange(ref documentItem, new Range(0, 0, 0,0 ), "\n");
+    var migratedRange = new Range(1, 7, 1, 10);
+
+    var runningStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+    Assert.AreEqual(migratedRange, runningStatus.NamedVerifiables[0].NameRange);
+
+    var errorStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+    Assert.AreEqual(migratedRange, errorStatus.NamedVerifiables[0].NameRange);
   }
 }
