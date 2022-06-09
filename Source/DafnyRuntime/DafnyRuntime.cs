@@ -1192,8 +1192,7 @@ namespace Dafny {
             toVisit.Push(leftBuffer);
           }
         } else {
-          var sq = seq as Sequence<T>;
-          if (sq != null) {
+          if (seq is Sequence<T> sq) {
             ansBuilder.AddRange(sq.ImmutableElements); // Optimized path for ImmutableArray
           } else {
             ansBuilder.AddRange(seq); // Slower path using IEnumerable
