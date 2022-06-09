@@ -1,6 +1,7 @@
 # Upcoming
 
 - feat: The IDE will show verification errors for a method immediately after that method has been verified, instead of after all methods are verified.
+- feat: New syntax for quantified variables, allowing per-variable domains (`x <- C`) and ranges (`x | P(x), y | Q(x, y)`). See Section [2.6.5](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-quantifier-domains) of the Reference Manual.
 - fix: No more display of previous obsolete verification diagnostics if newer are available. (https://github.com/dafny-lang/dafny/pull/2142)
 - feat: Live verification diagnostics for the language server (https://github.com/dafny-lang/dafny/pull/1942)
 - fix: Prevent the language server from crashing and not responding on resolution or ghost diagnostics errors (https://github.com/dafny-lang/dafny/pull/2080)
