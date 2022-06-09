@@ -57,27 +57,26 @@ module CompilerRewriter {
       Seq.Map(f, xs)
     }
 
-    datatype Transformer'<!A, !B> =
+    datatype Transformer_<!A(!new), !B> =
       TR(f: A --> B, ghost post: B -> bool, ghost rel: (A,B) -> bool)
+    {
+      predicate HasValidPost() {
+        forall a: A | f.requires(a) :: post(f(a))
+      }
 
-    predicate HasValidPost<A(!new), B>(tr: Transformer'<A, B>) {
-      forall a: A :: tr.f.requires(a) ==> tr.post(tr.f(a))
+      predicate HasValidRel() {
+        forall a: A | f.requires(a) :: rel(a, f(a))
+      }
+
+      predicate Valid?() {
+        forall a | f.requires(a) :: HasValidPost() && HasValidRel()
+      }
     }
 
-    predicate HasValidRel<A(!new), B(0)>(tr: Transformer'<A, B>) {
-      forall a: A :: tr.f.requires(a) ==> tr.rel(a, tr.f(a))
-    }
-
-    type Transformer<!A(!new), !B(0)> = tr: Transformer'<A, B>
-      | HasValidPost(tr) && HasValidRel(tr)
+    type Transformer<!A(!new), !B> = tr: Transformer_<A, B> | tr.Valid?()
       witness *
 
     type ExprTransformer = Transformer<Expr, Expr>
-
-    lemma Map_All_TR<A(!new), B(00)>(tr: Transformer<A, B>, ts: seq<A>)
-      requires forall x | x in ts :: tr.f.requires(x)
-      ensures Seq.All(tr.post, Seq.Map(tr.f, ts))
-    {}
   }
 
   module Rewriter {
@@ -273,7 +272,7 @@ module CompilerRewriter {
       }
 
       function method Map_Expr_Transformer'(tr: BottomUpTransformer) :
-        (tr': Transformer'<Expr,Expr>)
+        (tr': Transformer_<Expr,Expr>)
       // We can write aggregated statements only in lemmas.
       // This forced me to cut this definition into pieces...
       {
@@ -283,7 +282,7 @@ module CompilerRewriter {
       }
 
       lemma Map_Expr_Transformer'_Lem(tr: BottomUpTransformer)
-        ensures HasValidRel(Map_Expr_Transformer'(tr))
+        ensures Map_Expr_Transformer'(tr).HasValidRel()
       {
         var tr' := Map_Expr_Transformer'(tr);
         forall e:Expr
@@ -313,7 +312,7 @@ module CompilerRewriter {
       // Given a bottom-up transformer `tr`, return a transformer which applies `tr` in
       // a bottom-up manner.
       {
-        var tr': Transformer'<Expr,Expr> := Map_Expr_Transformer'(tr);
+        var tr': Transformer_<Expr,Expr> := Map_Expr_Transformer'(tr);
         Map_Expr_Transformer'_Lem(tr);
         tr'
       }

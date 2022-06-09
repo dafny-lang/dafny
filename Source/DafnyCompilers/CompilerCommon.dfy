@@ -1031,8 +1031,8 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       }
 
       module NonRec refines Base {
-        // https://github.com/dafny-lang/dafny/issues/2107
-        // https://github.com/dafny-lang/dafny/issues/2109
+        // BUG(https://github.com/dafny-lang/dafny/issues/2107)
+        // BUG(https://github.com/dafny-lang/dafny/issues/2109)
         function method All_Expr(e: Expr, P: Expr -> bool) : (b: bool) {
           P(e) && forall e' | e' in e.Children() :: All_Expr(e', P)
         }
