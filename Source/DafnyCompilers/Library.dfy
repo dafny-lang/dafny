@@ -59,6 +59,14 @@ module Lib {
           case Success(value) => Success(value)
           case Failure(error) => Failure(f(error))
       }
+
+      function method Then<K>(f: T --> Result<K, R>) : Result<K, R>
+        requires Success? ==> f.requires(value)
+      {
+        match this
+          case Success(value) => f(value)
+          case Failure(err) => Failure(err)
+      }
     }
 
     datatype Outcome<E> = Pass | Fail(error: E)
