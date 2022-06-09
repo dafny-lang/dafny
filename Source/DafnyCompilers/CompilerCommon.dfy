@@ -233,13 +233,33 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         | Lazy(lOp: LazyOp)
         | Eager(eOp: EagerOp)
 
+/// Notes on AST nodes
+/// ==================
+///
+/// - AST nodes have type ``Expr``.  All subexpressions of a expression are
+/// direct children of it; there are no subexpressions hidden within
+/// ``ApplyOp``, for example).
+///
+/// - ``ApplyOp`` is split into lazy and eager operations.  This matter because
+/// the language is not pure: if ``s`` is an empty sequence ``[]``, then the
+/// expression ``false && s[0] == 1`` is a valid and reduces to ``false``,
+/// whereas the expression ``0 * s[0] == 0`` is invalid and errors out with an
+/// out-of-bounds access).
+///
+/// - ``Block`` is semantically the same as ``Bind`` with no variables.
+///
+/// - ``Bind`` is not the same as ``Apply`` on an ``Abs``, because variables are
+/// captured by value, so mutations within an ``Abs`` are not propagated to the
+/// caller's context. (In most cases, though, variables passed into an ``Abs``
+/// are not mutated at all, because dafny lambdas are pure).
+
       datatype Expr =
         | Var(name: string)
         | Literal(lit: Literal)
         | Abs(vars: seq<string>, body: Expr)
         | Apply(aop: ApplyOp, args: seq<Expr>)
-        | Block(stmts: seq<Expr>) // DISCUSS alias for bind with no vars?
-        | Bind(vars: seq<string>, vals: seq<Expr>, body: Expr) // DISCUSS: Apply + Abs?
+        | Block(stmts: seq<Expr>)
+        | Bind(vars: seq<string>, vals: seq<Expr>, body: Expr)
         | If(cond: Expr, thn: Expr, els: Expr)
       {
         function method Depth() : nat {
@@ -860,9 +880,6 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       Success(D.Method("Main", DE.Block(stmts)))
     }
 
-    // DISCUSS: It should be possible to ensure termination by checking for
-    // cycles instead of assuming that ASTHeight decreases.  Would that be
-    // enough? (Does Dafny assume that allocated memory is finite?)
     function method TranslateProgram(p: C.Program)
       : TranslationResult<D.Program>
       reads *
