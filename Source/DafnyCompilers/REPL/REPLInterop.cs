@@ -198,7 +198,7 @@ public class REPLState {
     var cloner = new Cloner();
     var defaultModule = cloner.CloneModuleDefinition(prog.DefaultModuleDef, prog.DefaultModuleDef.Name);
     var defaultModuleDecl = new LiteralModuleDecl(defaultModule, null);
-    // FIXME clone builtins to preserve arrow type decls
+    // FIXME: Clone builtins (the code below loses builtins created by the parser)
     return new Program(prog.FullName, defaultModuleDecl, new BuiltIns(), prog.reporter);
   }
 
