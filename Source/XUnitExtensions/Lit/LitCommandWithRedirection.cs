@@ -48,7 +48,7 @@ namespace XUnitExtensions.Lit {
       commandSymbol = config.ApplySubstitutions(commandSymbol);
 
       return new LitCommandWithRedirection(
-        new ShellLitCommand(config, commandSymbol, arguments, config.PassthroughEnvironmentVariables),
+        new ShellLitCommand(commandSymbol, arguments, config.PassthroughEnvironmentVariables),
         inputFile, outputFile, appendOutput, errorFile);
     }
 

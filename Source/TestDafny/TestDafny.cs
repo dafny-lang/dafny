@@ -1,4 +1,5 @@
-﻿using CommandLine;
+﻿using System.Reflection;
+using CommandLine;
 using Microsoft.Dafny;
 using XUnitExtensions;
 using XUnitExtensions.Lit;
@@ -18,6 +19,8 @@ public class TestDafnyOptions {
 
 public class TestDafny {
 
+  private static readonly Assembly DafnyDriverAssembly = typeof(DafnyDriver).Assembly;
+    
   public static int Main(string[] args) {
     TestDafnyOptions? options = null;
     var parser = new Parser(with => with.EnableDashDash = true);
@@ -34,30 +37,32 @@ public class TestDafny {
       return -1;
     }
 
-    // TODO: First just verify
     var dafnyArgs = new List<string>();
-    dafnyArgs.Add("%baredafny");
-    dafnyArgs.Add(testDafnyOptions.TestFile!);
     dafnyArgs = new List<string>(testDafnyOptions.OtherArgs);
     dafnyArgs.Add($"/compile:0");
-    var (exitCode, output, error) = RunLitCommand(dafnyArgs);
+    dafnyArgs.Add(testDafnyOptions.TestFile!);
+
+    var (exitCode, output, error) = RunDafny(dafnyArgs);
     if (exitCode != 0) {
       throw new Exception("Verification failed");
     }
     
     string expectFile = testDafnyOptions.TestFile + ".expect";
-    var expectedOutput = File.ReadAllText(expectFile);
+    var expectedOutput = "\nDafny program verifier did not attempt verification\n" +
+      File.ReadAllText(expectFile);
     
     foreach(var plugin in dafnyOptions.Plugins) {
       foreach (var compiler in plugin.GetCompilers()) {
         dafnyArgs = new List<string>();
         dafnyArgs.Add(testDafnyOptions.TestFile!);
         dafnyArgs.AddRange(testDafnyOptions.OtherArgs);
-        dafnyArgs.Add($"/noVerify");
-        dafnyArgs.Add($"/compile:4");
+        dafnyArgs.Add("/noVerify");
+        dafnyArgs.Add("/useBaseNameForFileName");
+        dafnyArgs.Add("/compileVerbose:0");
+        dafnyArgs.Add("/compile:4");
         dafnyArgs.Add($"/compileTarget:{compiler.TargetId}");
         
-        (exitCode, output, error) = RunLitCommand(dafnyArgs);
+        (exitCode, output, error) = RunDafny(dafnyArgs);
         if (exitCode != 0) {
           throw new Exception("Execution failed");
         }
@@ -69,9 +74,11 @@ public class TestDafny {
     return 0;
   }
 
-  private static (int, string, string) RunLitCommand(IEnumerable<string> arguments) {
-    var line = "RUN: " + string.Join(" ", arguments);
-    var command = ILitCommand.Parse(line, null);
+  private static (int, string, string) RunDafny(IEnumerable<string> arguments) {
+    var dotnetArguments = new[] { DafnyDriverAssembly.Location }.Concat(arguments);
+    // TODO: Refactor list of passthrough environment variables somewhere this
+    // and IntegrationTests can both reference
+    var command = new ShellLitCommand("dotnet", dotnetArguments, new[] { "PATH", "HOME", "DOTNET_NOLOGO" });
     return command!.Execute(null, null, null, null);
   }
 }

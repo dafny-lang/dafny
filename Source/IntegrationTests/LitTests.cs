@@ -141,11 +141,11 @@ namespace IntegrationTests {
       var dafnyReleaseDir = Environment.GetEnvironmentVariable("DAFNY_RELEASE");
       if (dafnyReleaseDir != null) {
         commands["%baredafny"] = (args, config) =>
-          new ShellLitCommand(config, Path.Join(dafnyReleaseDir, "dafny"), args, config.PassthroughEnvironmentVariables);
+          new ShellLitCommand(Path.Join(dafnyReleaseDir, "dafny"), args, config.PassthroughEnvironmentVariables);
         commands["%dafny"] = (args, config) =>
-          new ShellLitCommand(config, Path.Join(dafnyReleaseDir, "dafny"), dafnyArguments.Concat(args), config.PassthroughEnvironmentVariables);
+          new ShellLitCommand(Path.Join(dafnyReleaseDir, "dafny"), dafnyArguments.Concat(args), config.PassthroughEnvironmentVariables);
         commands["%server"] = (args, config) =>
-          new ShellLitCommand(config, Path.Join(dafnyReleaseDir, "DafnyServer"), args, config.PassthroughEnvironmentVariables);
+          new ShellLitCommand(Path.Join(dafnyReleaseDir, "DafnyServer"), args, config.PassthroughEnvironmentVariables);
         substitutions["%z3"] = Path.Join(dafnyReleaseDir, "z3", "bin", "z3");
       }
 

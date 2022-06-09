@@ -39,7 +39,7 @@ namespace XUnitExtensions.Lit {
 
     public ILitCommand ToShellCommand(LitTestConfiguration config) {
       var shellArguments = new[] { assembly.Location }.Concat(arguments);
-      return new ShellLitCommand(config, "dotnet", shellArguments, config.PassthroughEnvironmentVariables);
+      return new ShellLitCommand("dotnet", shellArguments, config.PassthroughEnvironmentVariables);
     }
 
     public override string ToString() {

@@ -8,13 +8,11 @@ using Xunit.Abstractions;
 
 namespace XUnitExtensions.Lit {
   public class ShellLitCommand : ILitCommand {
-    private LitTestConfiguration config;
     private string shellCommand;
     private string[] arguments;
     private string[] passthroughEnvironmentVariables;
 
-    public ShellLitCommand(LitTestConfiguration config, string shellCommand, IEnumerable<string> arguments, IEnumerable<string> passthroughEnvironmentVariables) {
-      this.config = config;
+    public ShellLitCommand(string shellCommand, IEnumerable<string> arguments, IEnumerable<string> passthroughEnvironmentVariables) {
       this.shellCommand = shellCommand;
       this.arguments = arguments.ToArray();
       this.passthroughEnvironmentVariables = passthroughEnvironmentVariables.ToArray();
