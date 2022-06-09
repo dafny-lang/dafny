@@ -244,7 +244,7 @@ class REPL {
     requires env.fuel < MAX_FUEL
   {
     var stackSize := FRAME_SIZE * env.fuel;
-    var fn := (_: ()) => Interp.InterpExpr(e, env).MapFailure(e => InterpError(e));
+    var fn := (_: ()) => Interp.Eval(e, env, Interp.State.Empty).MapFailure(e => InterpError(e));
     r := REPLInterop.Utils.RunWithCustomStack(fn, (), stackSize as System.int32);
   }
 
