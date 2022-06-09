@@ -192,7 +192,7 @@ RelOp =
 ````
 
 The relation expressions that have a ``RelOp`` compare two or more terms.
-As explained in section [#sec-basic-types], `==`, `!=`, ``<``, `>`, `<=`, and `>=`
+As explained in [the section about basic types](#sec-basic-types), `==`, `!=`, ``<``, `>`, `<=`, and `>=`
 are _chaining_.
 
 The `in` and `!in` operators apply to collection types as explained in
@@ -204,7 +204,7 @@ The `!!` represents disjointness for sets and multisets as explained in
 
 Note that `x ==#[k] y` is the prefix equality operator that compares
 co-inductive values for equality to a nesting level of k, as
-explained in section [#sec-co-equality].
+explained in [the section about co-equality](#sec-co-equality).
 
 ## 20.6. Bit Shifts
 ````grammar
@@ -751,7 +751,7 @@ seq(k, n => n+1)
 is a sequence of k elements whose values are obtained by evaluating the
 second argument (a function) on the indices 0 up to k.
 
-See section [#sec-sequences] for more information on
+See [this section](#sec-sequences) for more information on
 sequences.
 
 ## 20.28. Set Display Expression
@@ -1414,7 +1414,7 @@ A subsequence suffix applied to a sequence produces a new sequence whose
 elements are taken from a contiguous part of the original sequence. For
 example, expression `s[lo..hi]` for sequence `s`, and integer-based
 numerics `lo` and `hi` satisfying `0 <= lo <= hi <= |s|`. See
-section [#sec-other-sequence-expressions] for details.
+[the section about other sequence expressions](#sec-other-sequence-expressions) for details.
 
 ### 20.42.4. Slices By Length Suffix
 ````grammar
@@ -1430,7 +1430,7 @@ SlicesByLengthSuffix_ =
 
 Applying a ``SlicesByLengthSuffix_`` to a sequence produces a
 sequence of subsequences of the original sequence.
-See section [#sec-other-sequence-expressions] for details.
+See [the section about other sequence expressions](#sec-other-sequence-expressions) for details.
 
 ### 20.42.5. Sequence Update Suffix
 ````grammar
