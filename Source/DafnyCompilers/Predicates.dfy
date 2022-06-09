@@ -7,15 +7,7 @@ include "StrTree.dfy"
 include "AST.dfy"
 include "Translator.dfy"
 
-module {:extern "DafnyInDafny"} DafnyCompilerCommon {
-  import System
-  import CSharpDafnyASTModel
-  import opened CSharpInterop
-  import opened CSharpDafnyInterop
-  import opened Microsoft.Dafny
-  import StrTree
-
-  module Predicates {
+module DafnyCompilerCommon.Predicates {
     import opened AST
 
     module Shallow {
@@ -217,5 +209,4 @@ module {:extern "DafnyInDafny"} DafnyCompilerCommon {
     // simpler to work with.  If needed, use ``DeepImpl.Equiv.All_Expr`` to
     // switch between implementations.
     module Deep refines DeepImpl.NonRec {}
-  }
 }
