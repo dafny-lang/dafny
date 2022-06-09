@@ -1052,7 +1052,7 @@ namespace Dafny {
       if (typeof(T) == typeof(char)) {
         return string.Concat(this);
       } else {
-        return "[" + String.Join(", ", ImmutableElements.Select(Dafny.Helpers.ToString)) + "]";
+        return "[" + string.Join(", ", ImmutableElements.Select(Dafny.Helpers.ToString)) + "]";
       }
     }
 
