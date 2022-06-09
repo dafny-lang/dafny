@@ -1050,7 +1050,7 @@ namespace Dafny {
     }
     public override string ToString() {
       if (typeof(T) == typeof(char)) {
-        return String.Concat(this);
+        return string.Concat(this);
       } else {
         return "[" + String.Join(", ", ImmutableElements.Select(Dafny.Helpers.ToString)) + "]";
       }
