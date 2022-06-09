@@ -20,7 +20,9 @@ module {:compile false} {:extern "System"} System {
   }
 
   module {:compile false} {:extern "System.Collections.Generic"} Collections.Generic {
-    class {:compile false} {:extern} List<T> {}
+    class {:compile false} {:extern} List<T> {
+      // const {:extern} Count: int32; // If needed, move int32 to a `Common` submodule
+    }
     class {:compile false} {:extern} IEnumerable<T> {}
     class {:compile false} {:extern} ISet<T> {}
     class {:compile false} {:extern} HashSet<T> {}
