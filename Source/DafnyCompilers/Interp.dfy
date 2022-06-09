@@ -213,6 +213,7 @@ module Interp {
     | Invalid(e: Expr) // TODO rule out in Wf predicate?
     | OutOfIntBounds(x: int, low: Option<int>, high: Option<int>)
     | OutOfSeqBounds(collection: Value, idx: Value)
+    | OutOfMapDomain(collection: Value, idx: Value)
     | UnboundVariable(v: string)
     | SignatureMismatch(vars: seq<string>, argvs: seq<Value>)
     | DivisionByZero
@@ -223,7 +224,8 @@ module Interp {
         case TypeError(e, value, expected) => "Type mismatch"
         case Invalid(e) => "Invalid expression"
         case OutOfIntBounds(x, low, high) => "Out-of-bounds value"
-        case OutOfSeqBounds(v, i) => "Out-of-bounds index"
+        case OutOfSeqBounds(v, i) => "Index out of sequence bounds"
+        case OutOfMapDomain(v, i) => "Missing key in map"
         case UnboundVariable(v) => "Unbound variable '" + v + "'"
         case SignatureMismatch(vars, argvs) => "Wrong number of arguments in function call"
         case DivisionByZero() => "Division by zero"
@@ -756,7 +758,7 @@ module Interp {
       case MapSelect() =>
         :- Need(v0.Map?, Invalid(expr));
         :- Need(HasEqValue(v1), Invalid(expr)); // We need decidable equality
-        :- Need(v1 in v0.m, Invalid(expr));
+        :- Need(v1 in v0.m, OutOfMapDomain(v0, v1));
         Success(v0.m[v1])
   }
 
