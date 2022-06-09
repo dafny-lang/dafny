@@ -66,7 +66,7 @@ namespace Microsoft.Dafny {
         var asm = Assembly.LoadFile(filePath);
         string sourceText = null;
         foreach (var adata in asm.CustomAttributes) {
-          if (adata.Constructor.DeclaringType.Name == "DafnySourceAttribute") {
+          if (adata.Constructor.DeclaringType?.Name == "DafnySourceAttribute") {
             foreach (var args in adata.ConstructorArguments) {
               if (args.ArgumentType.FullName == "System.String") {
                 sourceText = (string)args.Value;

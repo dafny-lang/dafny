@@ -24,6 +24,12 @@ namespace Microsoft.Dafny {
     [DataMember]
     bool sourceIsFile = false;
 
+    public string[] Args => args;
+
+    public DafnyInput AsDafnyInput(DafnyEngine engine) {
+      return engine.CreateDafnyInput(filename, ProgramSource);
+    }
+
     public VerificationTask(string[] args, string filename, string source, bool sourceIsFile) {
       this.args = args;
       this.filename = filename;
@@ -33,7 +39,7 @@ namespace Microsoft.Dafny {
 
     public string ProgramSource { get { return sourceIsFile ? File.ReadAllText(source) : source; } }
 
-    internal static VerificationTask ReadTask(string b64Repr) {
+    internal static VerificationTask ReadSnapshot(string b64Repr) {
       try {
         var json = Encoding.UTF8.GetString(System.Convert.FromBase64String(b64Repr));
         using (MemoryStream ms = new MemoryStream(Encoding.Unicode.GetBytes(json))) {
@@ -43,32 +49,6 @@ namespace Microsoft.Dafny {
       } catch (Exception ex) {
         throw new ServerException("Deserialization failed: {0}.", ex.Message);
       }
-    }
-
-    internal static void SelfTest(ExecutionEngine engine) {
-      var task = new VerificationTask(new string[] { }, "<none>", "method selftest() { assert true; }", false);
-      try {
-        task.Run(engine);
-        Interaction.EOM(Interaction.SUCCESS, (string)null);
-      } catch (Exception ex) {
-        Interaction.EOM(Interaction.FAILURE, ex);
-      }
-    }
-
-    internal void Run(ExecutionEngine engine) {
-      new DafnyHelper(engine, args, filename, ProgramSource).Verify();
-    }
-
-    internal void Symbols(ExecutionEngine engine) {
-      new DafnyHelper(engine, args, filename, ProgramSource).Symbols();
-    }
-
-    public void CounterExample(ExecutionEngine engine) {
-      new DafnyHelper(engine, args, filename, ProgramSource).CounterExample();
-    }
-
-    public void DotGraph(ExecutionEngine engine) {
-      new DafnyHelper(engine, args, filename, ProgramSource).DotGraph();
     }
 
     public string EncodeProgram(out string json) {

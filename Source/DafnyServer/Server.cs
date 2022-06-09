@@ -3,6 +3,7 @@
 
 using System;
 using System.IO;
+using System.Runtime.Serialization.Json;
 using System.Text;
 using DafnyServer;
 using Microsoft.Boogie;
@@ -10,23 +11,20 @@ using Microsoft.Boogie;
 namespace Microsoft.Dafny {
   public class Server {
     private bool running;
-    private readonly ExecutionEngine engine;
+    private bool inputIsPlaintext;
+    private readonly DafnyEngine engine;
 
     static void Main(string[] args) {
-      var options = DafnyOptions.Create();
-      ServerUtils.ApplyArgs(args, options);
-      var engine = ExecutionEngine.CreateWithoutSharedCache(options);
-      Server server = new Server(engine);
+      Server server = new Server(args);
 
       // read the optional flag (only one flag is allowed)
-      bool plaintext = false;
       bool selftest = false;
       bool decode = false;
       bool encode = false;
       var n = 0;  // number of consumed args
       var arg = n < args.Length ? args[n] : null;
       if (arg == "-plaintext") {
-        plaintext = true;
+        server.inputIsPlaintext = true;
         n++;
       } else if (arg == "-selftest") {
         selftest = true;
@@ -40,7 +38,7 @@ namespace Microsoft.Dafny {
       }
 
       if (selftest) {
-        VerificationTask.SelfTest(engine);
+        server.SelfTest();
         return;
       }
 
@@ -59,7 +57,7 @@ namespace Microsoft.Dafny {
       } else if (encode) {
         server.Encode();
       } else {
-        server.Loop(plaintext);
+        server.Loop();
       }
     }
 
@@ -68,10 +66,11 @@ namespace Microsoft.Dafny {
       Console.OutputEncoding = new UTF8Encoding(false, true);
     }
 
-    public Server(ExecutionEngine engine) {
-      this.engine = engine;
-      this.running = true;
+    private Server(string[] args) {
+      engine = DafnyEngine.Init(new ConsoleErrorReporter(), Array.Empty<string>());
+      running = true;
       SetupConsole();
+      ApplyArgs(args);
     }
 
     bool EndOfPayload(out string line) {
@@ -79,7 +78,7 @@ namespace Microsoft.Dafny {
       return line == null || line == Interaction.CLIENT_EOM_TAG;
     }
 
-    string ReadPayload(bool inputIsPlaintext) {
+    string ReadPayload() {
       StringBuilder buffer = new StringBuilder();
       string line = null;
       while (!EndOfPayload(out line)) {
@@ -152,17 +151,17 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void Loop(bool inputIsPlaintext) {
+    void Loop() {
       for (int cycle = 0; running; cycle++) {
         var line = Console.ReadLine() ?? "quit";
         if (line != String.Empty && !line.StartsWith("#")) {
           var command = line.Split();
-          Respond(command, inputIsPlaintext);
+          Respond(command);
         }
       }
     }
 
-    void Respond(string[] command, bool inputIsPlaintext) {
+    void Respond(string[] command) {
       try {
         if (command.Length == 0) {
           throw new ServerException("Empty command");
@@ -171,34 +170,27 @@ namespace Microsoft.Dafny {
         var verb = command[0];
         var msg = "Verification completed successfully!";
         if (verb == "verify") {
-          ServerUtils.checkArgs(command, 0);
-          var vt = ReadVerificationTask(inputIsPlaintext);
-          vt.Run(engine);
+          ReadDafnyInput().Verify();
         } else if (verb == "counterexample") {
           ServerUtils.checkArgs(command, 0);
-          var vt = ReadVerificationTask(inputIsPlaintext);
-          vt.CounterExample(engine);
+          CounterExample(ReadDafnyInput());
         } else if (verb == "dotgraph") {
           ServerUtils.checkArgs(command, 0);
-          var vt = ReadVerificationTask(inputIsPlaintext);
-          vt.DotGraph(engine);
+          DotGraph(ReadDafnyInput());
         } else if (verb == "symbols") {
           ServerUtils.checkArgs(command, 0);
-          var vt = ReadVerificationTask(inputIsPlaintext);
-          vt.Symbols(engine);
+          Symbols(ReadDafnyInput());
         } else if (verb == "version") {
           ServerUtils.checkArgs(command, 0);
-          var _ = ReadVerificationTask(inputIsPlaintext);
+          var _ = ReadDafnyInput();
           VersionCheck.CurrentVersion();
         } else if (verb == "unmarshal") {
           ServerUtils.checkArgs(command, 0);
-          var vt = ReadVerificationTask(false);
-          vt.Unmarshal(command);
+          ReadVerificationTask(false).Unmarshal(command);
           msg = null;
         } else if (verb == "marshal") {
           ServerUtils.checkArgs(command, 0);
-          var vt = ReadVerificationTask(true);
-          vt.Marshal(command);
+          ReadVerificationTask(true).Marshal(command);
           msg = null;
         } else if (verb == "quit") {
           ServerUtils.checkArgs(command, 0);
@@ -217,13 +209,88 @@ namespace Microsoft.Dafny {
       }
     }
 
-    VerificationTask ReadVerificationTask(bool inputIsPlaintext) {
-      var payload = ReadPayload(inputIsPlaintext);
-      if (inputIsPlaintext) {
+    VerificationTask ReadVerificationTask(bool? plaintTextOverride = null) {
+      var payload = ReadPayload();
+      if (plaintTextOverride ?? inputIsPlaintext) {
         return new VerificationTask(Array.Empty<string>(), "transcript", payload, false);
       } else {
-        return VerificationTask.ReadTask(payload);
+        return VerificationTask.ReadSnapshot(payload);
       }
+    }
+
+    DafnyInput ReadDafnyInput() {
+      var snapshot = ReadVerificationTask();
+      ApplyArgs(snapshot.Args);
+      return snapshot.AsDafnyInput(engine);
+    }
+
+    internal void SelfTest() {
+      var snapshot = new VerificationTask(new string[] { }, "<none>", "method selftest() { assert true; }", false);
+      try {
+        snapshot.AsDafnyInput(engine).Verify();
+        Interaction.EOM(Interaction.SUCCESS, (string)null);
+      } catch (Exception ex) {
+        Interaction.EOM(Interaction.FAILURE, ex);
+      }
+    }
+
+    public void Symbols(DafnyInput input) {
+      if (input.Resolve() is { } resolvedProgram) {
+        var symbolTable = new SymbolTable(resolvedProgram);
+        var symbols = symbolTable.CalculateSymbols();
+        Console.WriteLine("SYMBOLS_START " + ConvertToJson(symbols) + " SYMBOLS_END");
+      } else {
+        Console.WriteLine("SYMBOLS_START [] SYMBOLS_END");
+      }
+    }
+
+    public void CounterExample(DafnyInput input) {
+      engine.Options.ModelViewFile = CounterExampleProvider.ModelBvd;
+      try {
+        if (input.Translate() is { } boogiePrograms) {
+          var counterExampleProvider = new CounterExampleProvider();
+          foreach (var (moduleName, boogieProgram) in boogiePrograms) {
+            RemoveExistingModel();
+            input.VerifyBoogieModule(moduleName, boogieProgram);
+            var model = counterExampleProvider.LoadCounterModel();
+            Console.WriteLine("COUNTEREXAMPLE_START " + ConvertToJson(model) + " COUNTEREXAMPLE_END");
+          }
+        }
+      } catch (Exception e) {
+        Console.WriteLine("Error collection models: " + e.Message);
+      }
+    }
+
+    private void RemoveExistingModel() {
+      if (File.Exists(CounterExampleProvider.ModelBvd)) {
+        File.Delete(CounterExampleProvider.ModelBvd);
+      }
+    }
+
+    public void DotGraph(DafnyInput input) {
+      if (input.Translate() is { } boogiePrograms) {
+        foreach (var (moduleName, boogieProgram) in boogiePrograms) {
+          input.VerifyBoogieModule(moduleName, boogieProgram);
+
+          foreach (var impl in boogieProgram.Implementations) {
+            using (StreamWriter sw = new StreamWriter(input.FileName + impl.Name + ".dot")) {
+              sw.Write(boogieProgram.ProcessLoops(engine.Options, impl).ToDot());
+            }
+          }
+        }
+      }
+    }
+
+    private static string ConvertToJson<T>(T data) {
+      var serializer = new DataContractJsonSerializer(typeof(T));
+      using (var ms = new MemoryStream()) {
+        serializer.WriteObject(ms, data);
+        return Encoding.Default.GetString(ms.ToArray());
+      }
+    }
+
+    private void ApplyArgs(string[] args) {
+      ServerUtils.ApplyArgs(args, engine.Options);
     }
 
     void Exit() {

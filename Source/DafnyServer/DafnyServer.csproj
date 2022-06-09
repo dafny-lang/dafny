@@ -20,6 +20,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\DafnyAPI\DafnyAPI.csproj" />
     <ProjectReference Include="..\Dafny\DafnyPipeline.csproj" />
   </ItemGroup>
 
