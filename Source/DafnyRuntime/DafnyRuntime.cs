@@ -1008,7 +1008,7 @@ namespace Dafny {
       return ImmutableElements[(int)index];
     }
     public bool Equals(ISequence<T> other) {
-      return ReferenceEquals(this, other) || Count == other.Count && EqualUntil(this, other, Count);
+      return ReferenceEquals(this, other) || (Count == other.Count && EqualUntil(this, other, Count));
     }
     public override bool Equals(object other) {
       if (other is ISequence<T>) {
