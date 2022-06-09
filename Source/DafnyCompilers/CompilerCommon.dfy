@@ -901,9 +901,21 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
           }
         }
 
-        lemma AllExprTrue(e: Expr)
-          ensures All_Expr(e, _ => true)
-        {}
+        function IsTrue(e:Expr): bool { true }
+        
+        lemma All_Expr_true(e: Expr)
+          ensures All_Expr(e, IsTrue)
+          decreases e, 1
+        {
+          AllChildren_Expr_true(e);
+        }
+
+        lemma AllChildren_Expr_true(e: Expr)
+          ensures AllChildren_Expr(e, IsTrue)
+          decreases e, 0
+        {
+          forall e' | e' in e.Children() { All_Expr_true(e'); }
+        }
 
         lemma AllImpliesChildren ... {}
 
@@ -1003,6 +1015,16 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       import opened Predicates
       import Shallow
 
+      // This predicate gives us the conditions for which, if we deeply apply `f` to all
+      // the children of an expression, then the resulting expression satisfies the pre
+      // of `f` (i.e., we can call `f` on it).
+      // 
+      // Given `e`, `e'`, if:
+      // - `e` and `e'` have the same constructor
+      // - `e` satisfies the pre of `f`
+      // - all the children of `e'` deeply satisfy the post of `f`
+      // Then:
+      // - `e'` satisfies the pre of `f`
       predicate MapChildrenPreservesPre(f: Expr --> Expr, post: Expr -> bool) {
         forall e, e' ::
           (&& Exprs.ConstructorsMatch(e, e')
@@ -1010,16 +1032,27 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
            && Deep.AllChildren_Expr(e', post)) ==> f.requires(e')
        }
 
+      // This predicate gives us the conditions for which, if we deeply apply `f` to an
+      // expression, the resulting expression satisfies the postcondition we give for `f`.
+      // 
+      // Given `e`, if:
+      // - all the children of `e` deeply satisfy the post of `f`
+      // - `e` satisfies the pre of `f`
+      // Then:
+      // - `f(e)` deeply satisfies the post of `f`
       predicate TransformerMatchesPrePost(f: Expr --> Expr, post: Expr -> bool) {
         forall e: Expr | Deep.AllChildren_Expr(e, post) && f.requires(e) ::
           Deep.All_Expr(f(e), post)
       }
 
+      // Predicate for [BottomUpTransformer]
       predicate IsBottomUpTransformer(f: Expr --> Expr, post: Expr -> bool) {
         && TransformerMatchesPrePost(f, post)
         && MapChildrenPreservesPre(f, post)
       }
 
+      // Identity bottom-up transformer: we need it only because we need a witness when
+      // defining ``BottomUpTransformer``, to prove that the type is inhabited.
       const IdentityTransformer: ExprTransformer :=
         TR(d => d, _ => true)
 
@@ -1031,11 +1064,14 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         ensures MapChildrenPreservesPre(IdentityTransformer.f, IdentityTransformer.Post)
       { }
 
+      // A bottom-up transformer, i.e.: a transformer we can recursively apply bottom-up to
+      // an expression, and get the postcondition we expect on the resulting expression.
       type BottomUpTransformer = tr: ExprTransformer | IsBottomUpTransformer(tr.f, tr.Post)
         witness (IdentityMatchesPrePost();
                  IdentityPreservesPre();
                  IdentityTransformer)
 
+      // Apply a transformer bottom-up on the children of an expression.
       function method {:vcs_split_on_every_assert} MapChildren_Expr(e: Expr, tr: BottomUpTransformer) : (e': Expr)
         decreases e, 0
         requires Deep.All_Expr(e, tr.f.requires)
@@ -1072,6 +1108,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         }
       }
 
+      // Apply a transformer bottom-up on an expression.
       function method Map_Expr(e: Expr, tr: BottomUpTransformer) : (e': Expr)
         decreases e, 1
         requires Deep.All_Expr(e, tr.f.requires)
@@ -1081,12 +1118,15 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         tr.f(MapChildren_Expr(e, tr))
       }
 
+      // Given a bottom-up transformer tr, return a transformer which applies tr in a bottom-up
+      // manner.
       function method Map_Expr_Transformer(tr: BottomUpTransformer) : (tr': ExprTransformer)
       {
         TR(e requires Deep.All_Expr(e, tr.f.requires) => Map_Expr(e, tr),
            e' => Deep.All_Expr(e', tr.Post))
       }
 
+      // Apply a transformer to a method, in a bottom-up manner.
       function method {:opaque} Map_Method(m: Method, tr: BottomUpTransformer) : (m': Method)
         requires Deep.All_Method(m, tr.f.requires)
         ensures Deep.All_Method(m', tr.Post)
@@ -1094,6 +1134,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
         Shallow.Map_Method(m, Map_Expr_Transformer(tr))
       }
 
+      // Apply a transformer to a program, in a bottom-up manner.
       function method {:opaque} Map_Program(p: Program, tr: BottomUpTransformer) : (p': Program)
         requires Deep.All_Program(p, tr.f.requires)
         ensures Deep.All_Program(p', tr.Post)
@@ -1111,7 +1152,10 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
 
     import opened Predicates
 
-    function method FlipNegatedBinop1(op: BinaryOps.BinaryOp) : (op': BinaryOps.BinaryOp)
+    // Auxiliarly function (no postcondition): flip the negated binary operations
+    // (of the form "not binop(...)") to the equivalent non-negated operations ("binop(...)").
+    // Ex.: `neq` ~~> `eq`
+    function method FlipNegatedBinop'(op: BinaryOps.BinaryOp) : (op': BinaryOps.BinaryOp)
     {
       match op {
         case Eq(NeqCommon) => BinaryOps.Eq(BinaryOps.EqCommon)
@@ -1130,11 +1174,11 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
     function method FlipNegatedBinop(op: BinaryOps.BinaryOp) : (op': BinaryOps.BinaryOp)
       ensures !IsNegatedBinop(op')
     {
-      FlipNegatedBinop1(op)
+      FlipNegatedBinop'(op)
     }
 
     predicate method IsNegatedBinop(op: BinaryOps.BinaryOp) {
-      FlipNegatedBinop1(op) != op
+      FlipNegatedBinop'(op) != op
     }
 
     predicate method IsNegatedBinopExpr(e: Exprs.T) {
@@ -1183,7 +1227,7 @@ module {:extern "DafnyInDafny.Common"} DafnyCompilerCommon {
       ensures MapChildrenPreservesPre(EliminateNegatedBinops_Expr1, NotANegatedBinopExpr)
     {}
 
-     const EliminateNegatedBinops_Expr : BottomUpTransformer :=
+    const EliminateNegatedBinops_Expr : BottomUpTransformer :=
       ( EliminateNegatedBinopsMatchesPrePost();
         EliminateNegatedBinopsPreservesPre();
         TR(EliminateNegatedBinops_Expr1, NotANegatedBinopExpr))
