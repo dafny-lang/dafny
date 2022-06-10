@@ -9,6 +9,7 @@ using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.JsonRpc;
+using OmniSharp.Extensions.JsonRpc.Server;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers.Custom;
@@ -21,7 +22,7 @@ public record VerificationParams : TextDocumentPositionParams, IRequest;
 [Method(DafnyRequestNames.CancelVerifySymbol, Direction.ClientToServer)]
 public record CancelVerificationParams : TextDocumentPositionParams, IRequest;
 
-public class VerificationHandler : IJsonRpcNotificationHandler<VerificationParams>, IJsonRpcNotificationHandler<CancelVerificationParams> {
+public class VerificationHandler : IJsonRpcRequestHandler<VerificationParams, Unit>, IJsonRpcRequestHandler<CancelVerificationParams, Unit> {
   private readonly ILogger logger;
   private readonly IDocumentDatabase documents;
   private readonly DafnyTextDocumentHandler documentHandler;
@@ -44,9 +45,25 @@ public class VerificationHandler : IJsonRpcNotificationHandler<VerificationParam
     var translatedDocument = await documentEntry.TranslatedDocument;
     var requestPosition = request.Position;
     var tasks = GetTasksAtPosition(translatedDocument, requestPosition).ToList();
+    var failedTaskRuns = 0;
+    Exception? lastException = null;
     foreach (var taskToRun in tasks) {
-      var verifiedDocuments = documentLoader.Verify(translatedDocument, taskToRun, CancellationToken.None);
-      documentHandler.ForwardDiagnostics(request.TextDocument.Uri, verifiedDocuments);
+      try {
+        var verifiedDocuments = documentLoader.Verify(translatedDocument, taskToRun, CancellationToken.None);
+        documentHandler.ForwardDiagnostics(request.TextDocument.Uri, verifiedDocuments);
+      } catch (InvalidOperationException e) {
+        if (e.Message.Contains("already completed") || e.Message.Contains("ongoing run")) {
+          failedTaskRuns++;
+          lastException = e;
+        } else {
+          throw;
+        }
+      }
+    }
+
+    if (failedTaskRuns == tasks.Count) {
+      throw new RequestException(412,
+        "No verification can be started at this position because it's already running or completed", null, lastException!);
     }
 
     return Unit.Value;
@@ -70,9 +87,12 @@ public class VerificationHandler : IJsonRpcNotificationHandler<VerificationParam
       try {
         taskToRun.Cancel();
       } catch (InvalidOperationException e) {
-        if (!e.Message.Contains("run")) {
-          throw;
+        if (e.Message.Contains("no ongoing run")) {
+          throw new RequestException(412,
+            "Verification can not be cancelled at this position because there is none running", null, e);
         }
+
+        throw;
       }
     }
 
