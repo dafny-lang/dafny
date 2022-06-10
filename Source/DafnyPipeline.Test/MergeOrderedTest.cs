@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using Microsoft.Dafny;
 using Xunit;
@@ -60,6 +61,24 @@ public class MergeOrderedTest {
     outer.OnCompleted();
     first.OnNext(1);
     first.OnCompleted();
+
+    Assert.Equal(new List<int>() { 1, -1 }, list);
+  }
+
+  [Fact]
+  public void EmptyObservable() {
+    var list = new List<int>();
+
+    var first = new ReplaySubject<int>();
+    first.OnNext(1);
+    first.OnCompleted();
+
+    var merged = new MergeOrdered<int>();
+    merged.Subscribe(value => list.Add(value), _ => { }, () => list.Add(-1));
+
+    merged.OnNext(Observable.Empty<int>());
+    merged.OnNext(first);
+    merged.OnCompleted();
 
     Assert.Equal(new List<int>() { 1, -1 }, list);
   }
