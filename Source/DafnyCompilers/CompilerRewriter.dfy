@@ -26,16 +26,50 @@ module CompilerRewriter {
       ensures Seq.All(P, Seq.Map(f, xs))
     {}
 
-    function method {:opaque} MapWithPC<T, Q>(f: T ~> Q, ghost PC: Q -> bool, ts: seq<T>) : (qs: seq<Q>)
-      reads f.reads
-      requires forall t | t in ts :: f.requires(t)
-      requires forall t | t in ts :: PC(f(t))
-      ensures |qs| == |ts|
-      ensures forall i | 0 <= i < |ts| :: qs[i] == f(ts[i])
-      ensures forall q | q in qs :: PC(q)
-      ensures Seq.All(PC, qs)
+    predicate Map_All_Rel<A(!new), B>(f: A --> B, rel: (A,B) -> bool, xs: seq<A>, ys: seq<B>)
+      requires |xs| == |ys|
+      requires forall a | a in xs :: f.requires(a)
+      requires forall a | a in xs :: rel(a, f(a))
     {
-      Seq.Map(f, ts)
+      if xs == [] then true
+      else
+        rel(xs[0], ys[0]) && Map_All_Rel(f, rel, xs[1..], ys[1..])
+    }
+
+    predicate All_Rel_Forall<A, B>(rel: (A,B) -> bool, xs: seq<A>, ys: seq<B>)
+    {
+      && |xs| == |ys|
+      && forall i | 0 <= i < |xs| :: rel(xs[i], ys[i])
+    }
+
+    // TODO: remove?
+    function method {:opaque} MapWithPost_old<A, B>(f: A ~> B, ghost post: B -> bool, xs: seq<A>) : (ys: seq<B>)
+      reads f.reads
+      requires forall a | a in xs :: f.requires(a)
+      requires forall a | a in xs :: post(f(a))
+      ensures |ys| == |xs|
+      ensures forall i | 0 <= i < |xs| :: ys[i] == f(xs[i])
+      ensures forall y | y in ys :: post(y)
+      ensures Seq.All(post, ys)
+      //ensures Map_All_Rel(f, rel, xs, ys)
+    {
+      Seq.Map(f, xs)
+    }
+
+    function method {:opaque} MapWithPost<A(!new), B>(
+      f: A ~> B, ghost post: B -> bool, ghost rel: (A,B) -> bool, xs: seq<A>) : (ys: seq<B>)
+      reads f.reads
+      requires forall a | a in xs :: f.requires(a)
+      requires forall a | a in xs :: post(f(a))
+      requires forall a | a in xs :: rel(a, f(a))
+      ensures |ys| == |xs|
+      ensures forall i | 0 <= i < |xs| :: ys[i] == f(xs[i])
+      ensures forall y | y in ys :: post(y)
+      ensures Seq.All(post, ys)
+      ensures forall i | 0 <= i < |xs| :: rel(xs[i], ys[i])
+      //ensures Map_All_Rel(f, rel, xs, ys)
+    {
+      Seq.Map(f, xs)
     }
 
     datatype Transformer'<!A, !B> =
@@ -141,8 +175,9 @@ module CompilerRewriter {
         (forall e, e' ::
            (&& Exprs.ConstructorsMatch(e, e')
             && f.requires(e')
-            && |e'.Children()| == |e.Children()|
-            && forall i:nat | i < |e.Children()| :: rel(e.Children()[i], e'.Children()[i]))
+            //&& |e'.Children()| == |e.Children()|
+            //&& forall i:nat | i < |e.Children()| :: rel(e.Children()[i], e'.Children()[i]))
+            && All_Rel_Forall(rel, e.Children(), e'.Children()))
             ==> rel(e, f(e')))
       }
       
@@ -169,7 +204,7 @@ module CompilerRewriter {
       lemma IdentityPreservesRel()
         ensures TransformerPreservesRel(IdentityTransformer.f, IdentityTransformer.rel)
       { }
-
+      
       // A bottom-up transformer, i.e.: a transformer we can recursively apply bottom-up to
       // an expression, and get the postcondition we expect on the resulting expression.
       type BottomUpTransformer = tr: ExprTransformer | IsBottomUpTransformer(tr.f, tr.post, tr.rel)
@@ -179,14 +214,14 @@ module CompilerRewriter {
                  IdentityTransformer)
 
       // Apply a transformer bottom-up on the children of an expression.
-      function method {:vcs_split_on_every_assert} MapChildren_Expr(e: Expr, tr: BottomUpTransformer) : (e': Expr)
+      function method {:vcs_split_on_every_assert} MapChildren_Expr(e: Expr, tr: BottomUpTransformer) :
+        (e': Expr)
         decreases e, 0
-        requires Deep.All_Expr(e, tr.f.requires)
+        requires Deep.AllChildren_Expr(e, tr.f.requires)
         ensures Deep.AllChildren_Expr(e', tr.post)
         ensures Exprs.ConstructorsMatch(e, e')
+        ensures All_Rel_Forall(tr.rel, e.Children(), e'.Children())
       {
-        Deep.AllImpliesChildren(e, tr.f.requires);
-
         // Not using datatype updates below to ensure that we get a warning if a
         // type gets new arguments
         match e {
@@ -225,15 +260,56 @@ module CompilerRewriter {
         tr.f(MapChildren_Expr(e, tr))
       }
 
+      // Auxiliary function
+      // TODO: remove?
+      function method MapChildren_Expr_Transformer'(tr: BottomUpTransformer) :
+        (tr': Transformer'<Expr,Expr>) {
+        TR(e requires Deep.AllChildren_Expr(e, tr.f.requires) => MapChildren_Expr(e, tr),
+           e' => Deep.AllChildren_Expr(e', tr.post),
+           tr.rel)
+      }
+
+      // We can write aggregated statements only in lemmas.
+      // This forces me to cut this definition into pieces...
+      function method Map_Expr_Transformer'(tr: BottomUpTransformer) : (tr': Transformer'<Expr,Expr>) {
+        TR(e requires Deep.All_Expr(e, tr.f.requires) => Map_Expr(e, tr),
+           e' => Deep.All_Expr(e', tr.post),
+           tr.rel)
+      }
+
+      lemma {:vcs_split_on_every_assert} Map_Expr_Transformer'_Lem(tr: BottomUpTransformer)
+        ensures HasValidRel(Map_Expr_Transformer'(tr))
+      {
+        var tr' := Map_Expr_Transformer'(tr);
+        forall e:Expr
+          ensures tr'.f.requires(e) ==> tr.rel(e, tr'.f(e)) {
+          if !(tr'.f.requires(e)) {}
+          else {
+            //var e1 := Map_
+            var e2 := tr'.f(e);
+            match e {
+              case Var(_) => {}
+              case Literal(_) => {}
+              case Abs(vars, body) =>
+                assert tr.rel(e, tr'.f(e));
+              case Apply(applyOp, args) =>
+                assert tr.rel(e, tr'.f(e));
+              case Block(stmts) =>
+                assert tr.rel(e, tr'.f(e));
+              case If(cond, thn, els) => {
+                assert tr.rel(e, tr'.f(e));
+              }
+            }
+          }
+        }
+      }
+
       // Given a bottom-up transformer tr, return a transformer which applies tr in a bottom-up
       // manner.
       function method Map_Expr_Transformer(tr: BottomUpTransformer) : (tr': ExprTransformer)
       {
-        var tr': Transformer'<Expr, Expr> :=
-          TR(e requires Deep.All_Expr(e, tr.f.requires) => Map_Expr(e, tr),
-             e' => Deep.All_Expr(e', tr.post),
-             tr.rel);
-        assume HasValidRel(tr'); // TODO: prove
+        var tr': Transformer'<Expr,Expr> := Map_Expr_Transformer'(tr);
+        Map_Expr_Transformer'_Lem(tr);
         tr'
       }
 
