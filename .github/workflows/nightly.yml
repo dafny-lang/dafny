@@ -1,5 +1,5 @@
 
-# This workflow includes more expensive tests that are unlikely to break on most changes than what is run on every PR.
+# This workflow includes more expensive tests than what is run on every PR, that are unlikely to break on most changes.
 # It also publishes a nightly release.
 name: Nightly test and release workflow
 
