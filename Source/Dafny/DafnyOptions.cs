@@ -108,6 +108,7 @@ namespace Microsoft.Dafny {
     public bool WarnShadowing = false;
     public int DefiniteAssignmentLevel = 1; // [0..4]
     public FunctionSyntaxOptions FunctionSyntax = FunctionSyntaxOptions.Version3;
+    public QuantifierSyntaxOptions QuantifierSyntax = QuantifierSyntaxOptions.Version3;
 
     public enum FunctionSyntaxOptions {
       Version3,
@@ -115,6 +116,11 @@ namespace Microsoft.Dafny {
       ExperimentalTreatUnspecifiedAsGhost,
       ExperimentalTreatUnspecifiedAsCompiled,
       ExperimentalPredicateAlwaysGhost,
+      Version4,
+    }
+
+    public enum QuantifierSyntaxOptions {
+      Version3,
       Version4,
     }
 
@@ -448,6 +454,18 @@ namespace Microsoft.Dafny {
               FunctionSyntax = FunctionSyntaxOptions.ExperimentalTreatUnspecifiedAsCompiled;
             } else if (args[ps.i] == "experimentalPredicateAlwaysGhost") {
               FunctionSyntax = FunctionSyntaxOptions.ExperimentalPredicateAlwaysGhost;
+            } else {
+              InvalidArgumentError(name, ps);
+            }
+          }
+          return true;
+
+        case "quantifierSyntax":
+          if (ps.ConfirmArgumentCount(1)) {
+            if (args[ps.i] == "3") {
+              QuantifierSyntax = QuantifierSyntaxOptions.Version3;
+            } else if (args[ps.i] == "4") {
+              QuantifierSyntax = QuantifierSyntaxOptions.Version4;
             } else {
               InvalidArgumentError(name, ps);
             }
@@ -992,6 +1010,16 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
     experimentalPredicateAlwaysGhost - Compiled functions are written `function`.
         Ghost functions are written `ghost function`. Predicates are always ghost
         and are written `predicate`.
+/quantifierSyntax:<version>
+    The syntax for quantification domains is changing from Dafny version 3 to version 4,
+    more specifically where quantifier ranges (| <Range>) are allowed.
+    This switch gives early access to the new syntax.
+    3 (default) - Ranges are only allowed after all quantified variables are declared.
+        (e.g. set x, y | 0 <= x < |s| && y in s[x] && 0 <= y :: y)
+    4 - Ranges are allowed after each quantified variable declaration.
+        (e.g. set x | 0 <= x < |s|, y <- s[x] | 0 <= y :: y)
+    Note that quantifier variable domains (<- <Domain>) are available
+    in both syntax versions.
 /disableScopes
     Treat all export sets as 'export reveal *'. i.e. don't hide function bodies
     or type definitions during translation.
@@ -1253,7 +1281,8 @@ class ErrorReportingCommandLineParseState : Bpl.CommandLineParseState {
 /// </summary>
 class DafnyAttributeOptions : DafnyOptions {
   public static readonly HashSet<string> KnownOptions = new() {
-    "functionSyntax"
+    "functionSyntax",
+    "quantifierSyntax"
   };
 
   private readonly Errors errors;
