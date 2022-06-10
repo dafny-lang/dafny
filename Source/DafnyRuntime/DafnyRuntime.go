@@ -575,6 +575,11 @@ func (seq Seq) IsProperPrefixOf(seq2 Seq) bool {
   return sliceIsProperPrefixOf(seq.contents, seq2.contents)
 }
 
+// Elements returns the sequence of elements (i.e. the sequence itself).
+func (seq Seq) Elements() Seq {
+  return seq
+}
+
 // UniqueElements returns the set of elements in the sequence.
 func (seq Seq) UniqueElements() Set {
   return (*Builder)(&seq.contents).ToSet()
