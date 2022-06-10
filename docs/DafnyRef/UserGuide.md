@@ -1356,7 +1356,7 @@ and what information it produces about the verification process.
     associativity of `*`.
 
 * `-autoTriggers:<n>` - control automatic generation of `{:trigger}`
-  annotations. See Section [#sec-trigger]. The value of `<n>` can be one
+  annotations. See [triggers](#sec-trigger). The value of `<n>` can be one
   of the following.
 
   * `0` - do not generate `{:trigger}` annotations for user-level
@@ -1366,7 +1366,7 @@ and what information it produces about the verification process.
     quantifier. Existing annotations are preserved.
 
 * `-rewriteFocalPredicates:<n>` - control rewriting of predicates in the
-  body of prefix lemmas. See Section [#sec-nicer-proofs-of-extremes].
+  body of prefix lemmas. See [the section about nicer extreme proofs](#sec-nicer-proofs-of-extremes).
   The value of `<n>` can be one of the following.
 
   * `0` - don't rewrite predicates in the body of prefix lemmas.
