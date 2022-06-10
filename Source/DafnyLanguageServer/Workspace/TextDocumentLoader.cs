@@ -121,6 +121,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     private DafnyDocument LoadInternal(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
       var errorReporter = new DiagnosticErrorReporter(textDocument.Uri);
+      notificationPublisher.SendStatusNotification(textDocument, CompilationStatus.ResolutionStarted);
       var program = parser.Parse(textDocument, errorReporter, cancellationToken);
       IncludePluginLoadErrors(errorReporter, program);
       if (errorReporter.HasErrors) {
