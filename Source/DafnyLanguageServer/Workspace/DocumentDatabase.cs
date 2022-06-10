@@ -11,6 +11,7 @@ using System.Reactive.Threading.Tasks;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
+using Microsoft.Dafny.LanguageServer.Util;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
 
@@ -229,17 +230,29 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 #pragma warning disable VSTHRD003
       var resolvedDocument = await resolvedDocumentTask;
 #pragma warning restore VSTHRD003
-      var withVerificationTasks = await documentLoader.PrepareVerificationTasksAsync(resolvedDocument, cancellationToken);
+      try {
+        var withVerificationTasks = await documentLoader.PrepareVerificationTasksAsync(resolvedDocument, cancellationToken);
 
-      return withVerificationTasks with {
-        ImplementationViewsView = withVerificationTasks.ImplementationViewsView!.ToDictionary(
-          kv => kv.Key,
-          kv =>
-            kv.Value with {
-              Diagnostics = resolvedDocument.ImplementationViewsView.GetValueOrDefault(kv.Key)?.Diagnostics ?? kv.Value.Diagnostics
-            }
-        ),
-      };
+        return withVerificationTasks with {
+          ImplementationViewsView = withVerificationTasks.ImplementationViewsView!.ToDictionary(
+            kv => kv.Key,
+            kv =>
+              kv.Value with {
+                Diagnostics = resolvedDocument.ImplementationViewsView.GetValueOrDefault(kv.Key)?.Diagnostics ?? kv.Value.Diagnostics
+              }
+          ),
+        };
+      } catch (Exception e) {
+        var internalErrorDummyToken = new Token {
+          filename = resolvedDocument.GetFilePath(),
+          line = 1,
+          col = 1,
+          pos = 0,
+          val = string.Empty
+        };
+        resolvedDocument.Program.Reporter.Error(MessageSource.Verifier, internalErrorDummyToken, "[internal error] Translator exception: " + e.Message);
+        throw new TaskCanceledException();
+      }
     }
 
     public void SaveDocument(TextDocumentIdentifier documentId) {
