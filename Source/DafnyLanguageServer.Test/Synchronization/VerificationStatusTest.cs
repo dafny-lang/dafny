@@ -320,7 +320,7 @@ module Refinement2 refines BaseModule {
     var documentItem = CreateTestDocument(source);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     await WaitUntilAllStatusAreCompleted();
-    ApplyChange(ref documentItem, new Range(0, 0, 0,0 ), "\n");
+    ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "\n");
     var migratedRange = new Range(1, 7, 1, 10);
 
     var runningStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
