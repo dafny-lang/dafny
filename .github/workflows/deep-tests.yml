@@ -17,3 +17,10 @@ jobs:
     with:
       all_platforms: true
       num_shards: 5
+  publish-release:
+    uses: ./.github/workflows/publish-release-reusable.yml
+    with:
+      sha: ${{ refs/heads/master }}
+      version: nightly-${{ refs/heads/master }}
+      draft: false
+      release_notes: "This is a automatically published nightly release. This release is not as stable as versioned releases."
