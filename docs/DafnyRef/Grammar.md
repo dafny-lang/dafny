@@ -590,12 +590,12 @@ may also include any of three optional elements:
 1. The optional syntax `: T` declares the type of the quantified variable.
    If not provided, it will be inferred from context.
 
-3. The optional syntax `<- C` attaches a collection expression `C` as a *quantified variable domain*.
+2. The optional syntax `<- C` attaches a collection expression `C` as a *quantified variable domain*.
    Here a collection is any value of a type that supports the `in` operator, namely sets, multisets, maps, and sequences.
    The domain restricts the bindings to the elements of the collection: `x <- C` implies `x in C`.
    The example above can also be expressed as `var c := [0, 1, 2, 3, 4, 5]; forall x <- c :: x * x <= 25`.
 
-2. The optional syntax `| E` attaches a boolean expression `E` as a *quantified variable range*,
+3. The optional syntax `| E` attaches a boolean expression `E` as a *quantified variable range*,
    which restricts the bindings to values that satisfy this expression.
    In the example above `x <= 5` is the range attached to the `x` variable declaration.
 
