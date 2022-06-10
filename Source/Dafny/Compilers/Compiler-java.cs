@@ -2222,7 +2222,9 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       var targetDirectory = Path.GetDirectoryName(targetFilename);
-      EmitRuntimeJar(targetDirectory);
+      if (!DafnyOptions.O.UseRuntimeLib) {
+        EmitRuntimeJar(targetDirectory);
+      }
 
       var files = new List<string>();
       foreach (string file in Directory.EnumerateFiles(targetDirectory, "*.java", SearchOption.AllDirectories)) {
