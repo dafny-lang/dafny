@@ -122,3 +122,20 @@ Plugins are typically used to report additional diagnostics such as unsupported 
 Note that all plugin errors should use the original program's expressions' token and NOT `Token.NoToken`, else no error will be displayed in the IDE.
 
 Morover, plugins should not write anything to `stdout` as it interferes with the communication protocol with the IDE.
+
+## Protocol extension
+
+The Dafny LSP server extends the LSP protocol with several verification related requests and notifications.
+
+New notifications:
+- dafny/compilation/status
+- dafny/ghost/diagnostics
+- dafny/verification/status/gutter
+- dafny/textDocument/symbolStatus
+
+New requests:
+- dafny/counterExample
+- dafny/textDocument/verifySymbol
+- dafny/textDocument/cancelVerifySymbol
+
+Please consult the codebase to learn the schema and purpose of these notifications and requests.

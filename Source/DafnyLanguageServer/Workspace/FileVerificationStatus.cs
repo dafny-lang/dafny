@@ -2,11 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using MediatR;
+using OmniSharp.Extensions.JsonRpc;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
+[Method(DafnyRequestNames.VerificationSymbolStatus, Direction.ServerToClient)]
 public record FileVerificationStatus(
   DocumentUri Uri,
   int? Version,
