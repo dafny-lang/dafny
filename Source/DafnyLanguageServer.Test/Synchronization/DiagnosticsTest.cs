@@ -971,7 +971,7 @@ method Foo() {
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics1 = await GetLastDiagnostics(documentItem, CancellationToken);
       Assert.AreEqual(0, diagnostics1.Length);
-      ApplyChange(ref documentItem, new Range(0,0,0,0), "SyntaxError");
+      ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "SyntaxError");
       var diagnostics2 = await GetLastDiagnostics(documentItem, CancellationToken);
       Assert.IsTrue(diagnostics2.Any());
     }
