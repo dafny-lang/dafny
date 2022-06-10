@@ -261,11 +261,12 @@ iterator ThatIterator(x: int) yields (y: int, z: int)
 
   [TestMethod]
   public async Task VerificationStatusNotUpdatedOnResolutionError() {
-    var source = @"method Foo() { assert false; }";
+    var source = @"method Foo() { assert false; }
+";
     var documentItem = CreateTestDocument(source);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     await WaitUntilAllStatusAreCompleted();
-    ApplyChange(ref documentItem, new Range(0, 0, 0, 1), ""); // Remove 'm'
+    ApplyChange(ref documentItem, new Range(1, 0, 1, 0), "Garbage"); // Remove 'm'
     await AssertNoVerificationStatusIsComing(documentItem, CancellationToken);
   }
 
