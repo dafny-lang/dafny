@@ -285,7 +285,6 @@ module CompilerRewriter {
           ensures tr'.f.requires(e) ==> tr.rel(e, tr'.f(e)) {
           if !(tr'.f.requires(e)) {}
           else {
-            //var e1 := Map_
             var e2 := tr'.f(e);
             match e {
               case Var(_) => {}
@@ -336,12 +335,15 @@ module CompilerRewriter {
   module EliminateNegatedBinops {
     import DCC = DafnyCompilerCommon
     import Lib
+    import Lib.Debug
     import opened DCC.AST
     import opened Lib.Datatypes
     import opened Rewriter.BottomUp
 
     import opened DCC.Predicates
     import opened Transformer
+    import opened Interp
+    import opened Values
 
     // Auxiliarly function (no postcondition): flip the negated binary operations
     // (of the form "not binop(...)") to the equivalent non-negated operations ("binop(...)").
@@ -399,19 +401,129 @@ module CompilerRewriter {
     predicate Tr_Expr_Post(e: Exprs.T) {
       NotANegatedBinopExpr(e)
     }
+    
+    // Interpretation results are "similar".
+    // We might want to be a bit more precise, especially with regards to the "out of fuel" error.
+    predicate SameResult(res: InterpResult<WV>, res': InterpResult<WV>) {
+      match (res, res') {
+        case (Success(Return(v,ctx)), Success(Return(v',ctx'))) =>
+          && v == v'
+          && ctx == ctx'
+        case (Failure(_), Failure(_)) =>
+          true
+        case _ =>
+          false
+      }
+    }
+
+    predicate SameSeq1Result(res: InterpResult<WV>, res': InterpResult<seq<WV>>) {
+      match (res, res') {
+        case (Success(Return(v,ctx)), Success(Return(sv,ctx'))) =>
+          && [v] == sv
+          && ctx == ctx'
+        case (Failure(err), Failure(err')) =>
+          err == err'
+        case _ =>
+          false
+      }
+    }
+
+    // Auxiliary lemma: evaluating a sequence of one expression is equivalent to evaluating the single expression.
+    lemma InterpExprs1_Lem(e: Expr, fuel: nat, ctx: State)
+      requires SupportsInterp(e)
+      ensures forall e' | e' in [e] :: SupportsInterp(e')
+      ensures SameSeq1Result(InterpExpr(e, fuel, ctx), InterpExprs([e], fuel, ctx))
+    {
+      var res := InterpExpr(e, fuel, ctx);
+      var sres := InterpExprs([e], fuel, ctx);
+
+      match InterpExpr(e, fuel, ctx) {
+        case Success(Return(v, ctx1)) => {
+          var s := [e];
+          var s' := s[1..];
+          assert s' == [];
+          assert InterpExprs(s', fuel, ctx1) == Success(Return([], ctx1));
+          assert [v] + [] == [v];
+        }
+        case Failure(_) => {}
+      }
+    }
 
     predicate Tr_Expr_Rel(e: Exprs.T, e': Exprs.T) {
-      true
+      SupportsInterp(e) ==>
+      (&& SupportsInterp(e')
+       && forall fuel, ctx :: SameResult(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx)))
+    }
+
+    function method FlipNegatedBinop_Expr(op: BinaryOp, args: seq<Expr>) : (e':Exprs.T)
+      requires IsNegatedBinop(op)
+    {
+      var flipped := Exprs.Apply(Exprs.Eager(Exprs.BinaryOp(FlipNegatedBinop(op))), args);
+      var e' := Exprs.Apply(Exprs.Eager(Exprs.UnaryOp(UnaryOps.BoolNot)), [flipped]);
+      e'
+    }
+
+    lemma FlipNegatedBinop_Expr_Rel_Lem(op: BinaryOp, args: seq<Expr>)
+      requires IsNegatedBinop(op)
+      ensures (
+        var e := Exprs.Apply(Exprs.Eager(Exprs.BinaryOp(op)), args);
+        var e' := FlipNegatedBinop_Expr(op, args);
+        Tr_Expr_Rel(e, e')
+      )
+    {
+      var e := Exprs.Apply(Exprs.Eager(Exprs.BinaryOp(op)), args);
+      var e' := FlipNegatedBinop_Expr(op, args);
+      if SupportsInterp(e) {
+        assert SupportsInterp(e');
+        // Prove that for every fuel and context, the interpreter returns the same result
+        forall fuel, ctx
+          ensures SameResult(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx)) {
+          // Start by proving that the flipped binary operation (not wrapped in the "not") returns exactly the
+          // opposite result of the non-flipped binary operation.
+          var flipped := Exprs.Apply(Exprs.Eager(Exprs.BinaryOp(FlipNegatedBinop(op))), args);
+
+          // Intermediate result: evaluating (the sequence of expressions) `[flipped]` is the same as evaluating (the expression) `flipped`.
+          InterpExprs1_Lem(flipped, fuel, ctx);
+          assert SameSeq1Result(InterpExpr(flipped, fuel, ctx), InterpExprs([flipped], fuel, ctx));
+
+          match (InterpExpr(e, fuel, ctx), InterpExpr(flipped, fuel, ctx)) {
+            case (Success(Return(v,ctx1)), Success(Return(v',ctx1'))) => {
+              // Check that the results are the opposite of each other
+              assert v.Bool?;
+              assert v'.Bool?;
+              assert v.b == !v'.b;
+              assert ctx1 == ctx1';
+
+              // Prove that if we add the "not", we get the expected result
+              assert InterpExpr(e', fuel, ctx) == LiftPureResult(ctx1', InterpUnaryOp(e', UnaryOps.BoolNot, v'));
+              assert InterpUnaryOp(e', UnaryOps.BoolNot, v') == Success(Bool(!v'.b));
+              assert InterpExpr(e, fuel, ctx) == InterpExpr(e', fuel, ctx);
+            }
+            case (Failure(err), Failure(err')) => {
+              // We don't have the fact that `err == err'` (investigate why)
+            }
+            case _ => {
+              assert false;
+            }
+          }
+          assert SameResult(InterpExpr(e, fuel, ctx), InterpExpr(e', fuel, ctx));
+        }
+      }
+      else {
+        assert Tr_Expr_Rel(e, e');
+      }
     }
 
     function method Tr_Expr_Shallow(e: Exprs.T) : (e': Exprs.T)
       ensures Tr_Expr_Post(e')
+      ensures Tr_Expr_Rel(e, e')
     {
       match e {
-        case Apply(Eager(BinaryOp(op)), es) =>
+        case Apply(Eager(BinaryOp(op)), args) =>
           if IsNegatedBinop(op) then
-            var flipped := Exprs.Apply(Exprs.Eager(Exprs.BinaryOp(FlipNegatedBinop(op))), es);
-            Exprs.Apply(Exprs.Eager(Exprs.UnaryOp(UnaryOps.BoolNot)), [flipped])
+            var e' := FlipNegatedBinop_Expr(op, args);
+            FlipNegatedBinop_Expr_Rel_Lem(op, args);
+            e'
           else
             e
         case _ => e
@@ -428,7 +540,18 @@ module CompilerRewriter {
 
     lemma TrPreservesRel()
       ensures TransformerPreservesRel(Tr_Expr_Shallow,Tr_Expr_Rel)
-    {}
+    {
+      var f := Tr_Expr_Shallow;
+      var rel := Tr_Expr_Rel;
+      forall e, e' |
+        && Exprs.ConstructorsMatch(e, e')
+        && f.requires(e')
+        && All_Rel_Forall(rel, e.Children(), e'.Children())
+        ensures rel(e, f(e'))
+        {
+          assume rel(e, f(e')); // TODO
+        }
+    }
 
     const Tr_Expr : BottomUpTransformer :=
       ( TrMatchesPrePost();
