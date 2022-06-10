@@ -40,7 +40,7 @@ namespace DafnyTestGeneration {
       var methodName = boogieName.Split(".").Last();
       // Get the fully qualified name of the class\module the method is defined in:
       var classPath = boogieName
-        .Substring(0, boogieName.Length - methodName.Length - 1);
+        .Substring(0, boogieName.Length - methodName.Length).TrimEnd('.');
       // Merge everything using the dot as a separator:
       var fullPath = classPath.Split(".")
         .Where(m => m != "" && m[0] != '_').Append(methodName);
