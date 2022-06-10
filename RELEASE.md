@@ -64,19 +64,22 @@
    on multiple platforms. Again you can watch for this workflow at
    https://github.com/dafny-lang/dafny/actions.
 
-8. If preparing a pre-release, stop here, as
+8. Manually trigger the "Test NuGet Tool Installation" workflow on the
+   `master` branch (following the same process as for step 3).
+
+9. If preparing a pre-release, stop here, as
    the following steps declare the release as the latest version, which
    is not the intention.
 
-9. If something goes wrong, delete the tag and release in GitHub, fix the
+10. If something goes wrong, delete the tag and release in GitHub, fix the
    problem and try again.
 
-10. Update the Homebrew formula for Dafny (see below).
+11. Update the Homebrew formula for Dafny (see below).
    Note that it is fine to leave this for the next day,
    and other members of the community may update the formula
    in the meantime anyway.
 
-11. Announce the new release to the world.
+12. Announce the new release to the world.
 
 ## Updating Dafny on Homebrew
 
