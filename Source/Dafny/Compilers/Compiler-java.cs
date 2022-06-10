@@ -16,7 +16,6 @@ using System.ComponentModel.Design;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 using System.Reflection;
-using Microsoft.Win32.SafeHandles;
 using Bpl = Microsoft.Boogie;
 using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 
