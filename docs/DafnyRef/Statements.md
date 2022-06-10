@@ -1824,7 +1824,7 @@ forall x :: P(x) ==> Q(x).
 ```
 
 The `forall` statement is also used extensively in the de-sugared forms of
-co-predicates and co-lemmas. See section [#sec-co-inductive-datatypes].
+co-predicates and co-lemmas. See [datatypes](#sec-co-inductive-datatypes).
 
 ## 19.22. Modify Statement {#sec-modify-statement}
 ````grammar
