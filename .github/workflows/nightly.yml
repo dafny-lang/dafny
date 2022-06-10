@@ -1,7 +1,7 @@
 
-# This workflow is currently identical to what is run on every PR, but will diverge in the near
-# future to include more expensive tests that are unlikely to break on most changes.
-name: Deep Integration Tests
+# This workflow includes more expensive tests that are unlikely to break on most changes than what is run on every PR.
+# It also publishes a nightly release.
+name: Nightly test and release workflow
 
 on:
   schedule:
@@ -23,4 +23,4 @@ jobs:
       sha: ${{ refs/heads/master }}
       version: nightly-${{ refs/heads/master }}
       draft: false
-      release_notes: "This is an automatically published nightly release. This release is not as stable as versioned releases."
+      release_notes: "This is an automatically published nightly release. This release is not as stable as versioned releases and does not contain release notes."
