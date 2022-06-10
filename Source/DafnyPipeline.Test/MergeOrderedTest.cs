@@ -82,4 +82,23 @@ public class MergeOrderedTest {
 
     Assert.Equal(new List<int>() { 1, -1 }, list);
   }
+
+  [Fact]
+  public void ComplicatedCase() {
+    var list = new List<int>();
+
+    var first = new ReplaySubject<int>();
+
+    var merged = new MergeOrdered<int>();
+    merged.Subscribe(value => list.Add(value), _ => { }, () => list.Add(-1));
+
+    merged.OnNext(first);
+    merged.OnNext(Observable.Empty<int>());
+    merged.OnNext(Observable.Empty<int>());
+    merged.OnCompleted();
+    first.OnNext(1);
+    first.OnCompleted();
+
+    Assert.Equal(new List<int>() { 1, -1 }, list);
+  }
 }
