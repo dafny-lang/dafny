@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using MediatR;
 using OmniSharp.Extensions.JsonRpc;
 using OmniSharp.Extensions.LanguageServer.Protocol;
@@ -8,6 +7,10 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
+/// <summary>
+/// For each symbol in the file that can be verified, where the symbol is identified by a range,
+/// contains what state its verification is in.
+/// </summary>
 [Method(DafnyRequestNames.VerificationSymbolStatus, Direction.ServerToClient)]
 public record FileVerificationStatus(
   DocumentUri Uri,

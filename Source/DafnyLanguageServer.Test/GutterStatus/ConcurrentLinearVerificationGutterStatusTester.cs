@@ -35,8 +35,7 @@ public class ConcurrentLinearVerificationGutterStatusTester : LinearVerification
     verificationStatusGutterReceiver = new();
     client = await InitializeClient(options =>
       options
-        .AddHandler(DafnyRequestNames.VerificationStatusGutter,
-          NotificationHandler.For<VerificationStatusGutter>(NotifyAllVerificationGutterStatusReceivers))
+        .AddHandler(NotificationHandler.For<VerificationStatusGutter>(NotifyAllVerificationGutterStatusReceivers))
     );
   }
 

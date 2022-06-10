@@ -31,8 +31,7 @@ public class ReorderingVerificationGutterStatusTester : LinearVerificationGutter
     verificationStatusGutterReceiver = new();
     client = await InitializeClient(options =>
         options
-          .AddHandler(DafnyRequestNames.VerificationStatusGutter,
-            NotificationHandler.For<VerificationStatusGutter>(verificationStatusGutterReceiver.NotificationReceived))
+          .AddHandler(NotificationHandler.For<VerificationStatusGutter>(verificationStatusGutterReceiver.NotificationReceived))
       , serverOptions => {
         serverOptions.Services.AddSingleton<ITextDocumentLoader>(serviceProvider => {
           textDocumentLoader = new ListeningTextDocumentLoader(

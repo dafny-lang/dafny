@@ -20,8 +20,7 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
     verificationStatusGutterReceiver = new();
     client = await InitializeClient(options =>
       options
-        .AddHandler(DafnyRequestNames.VerificationStatusGutter,
-          NotificationHandler.For<VerificationStatusGutter>(verificationStatusGutterReceiver.NotificationReceived))
+        .AddHandler(NotificationHandler.For<VerificationStatusGutter>(verificationStatusGutterReceiver.NotificationReceived))
       );
   }
 

@@ -7,7 +7,8 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
   /// <summary>
-  /// DTO used to communicate the current compilation status to the LSP client.
+  /// Contains a list of code ranges that are only used during verification,
+  /// and as such as not compiled to executable code.
   /// </summary>
   [Method(DafnyRequestNames.GhostDiagnostics, Direction.ServerToClient)]
   public class GhostDiagnosticsParams : IRequest {

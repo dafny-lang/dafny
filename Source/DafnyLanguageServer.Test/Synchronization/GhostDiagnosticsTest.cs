@@ -25,7 +25,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
       this.configuration = configuration;
       diagnosticReceiver = new();
       client = await InitializeClient(
-        options => options.AddHandler(DafnyRequestNames.GhostDiagnostics, NotificationHandler.For<GhostDiagnosticsParams>(diagnosticReceiver.NotificationReceived))
+        options => options.AddHandler(NotificationHandler.For<GhostDiagnosticsParams>(diagnosticReceiver.NotificationReceived))
       );
     }
 

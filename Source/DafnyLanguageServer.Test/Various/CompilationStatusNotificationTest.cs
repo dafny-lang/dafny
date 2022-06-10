@@ -31,7 +31,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       notificationReceiver = new();
       client = await InitializeClient(options => {
         options
-          .AddHandler(DafnyRequestNames.CompilationStatus, NotificationHandler.For<CompilationStatusParams>(notificationReceiver.NotificationReceived));
+          .AddHandler(NotificationHandler.For<CompilationStatusParams>(notificationReceiver.NotificationReceived));
       });
     }
 
