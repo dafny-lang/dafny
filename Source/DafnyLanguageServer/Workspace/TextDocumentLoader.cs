@@ -233,7 +233,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       var observable = implementationTask.Run();
-      cancellationToken.Register(implementationTask.Cancel);
+      cancellationToken.Register(() => {
+        try {
+          implementationTask.Cancel();
+        } catch (InvalidOperationException e) {
+          if (!e.Message.Contains("no ongoing run")) {
+            throw;
+          }
+        }
+      });
       return GetVerifiedDafnyDocuments(dafnyDocument, implementationTask, observable);
     }
 
