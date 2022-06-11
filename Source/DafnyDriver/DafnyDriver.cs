@@ -257,7 +257,14 @@ namespace Microsoft.Dafny {
 
         string baseName = cce.NonNull(Path.GetFileName(dafnyFileNames[^1]));
         var (verified, outcome, moduleStats) = await Boogie(baseName, boogiePrograms, programId);
-        var compiled = Compile(dafnyFileNames[0], otherFileNames, dafnyProgram, outcome, moduleStats, verified);
+        bool compiled;
+        try {
+          compiled = Compile(dafnyFileNames[0], otherFileNames, dafnyProgram, outcome, moduleStats, verified);
+        } catch (FeatureNotSupportedException e) {
+          reporter.Error(MessageSource.Compiler, e.Token, e.Message);
+          compiled = false;
+        }
+
         exitValue = verified && compiled ? ExitValue.SUCCESS : !verified ? ExitValue.VERIFICATION_ERROR : ExitValue.COMPILE_ERROR;
       }
 

@@ -28,6 +28,10 @@ namespace Microsoft.Dafny.Compilers {
 
     public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".h" };
 
+    public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
+      Feature.UnboundedIntegers
+    };
+    
     public override string TargetLanguage => "C++";
     public override string TargetExtension => "cpp";
 
@@ -186,6 +190,10 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override string GetHelperModuleName() => "_dafny";
 
+    protected Exception NotSupported(Bpl.IToken tok, Feature feature) {
+      throw new FeatureNotSupportedException(tok, feature);
+    }
+    
     protected Exception NotSupported(String msg) {
       return new Exception(String.Format("{0} is not yet supported", msg));
     }
@@ -889,7 +897,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (xType is CharType) {
         return "char";
       } else if (xType is IntType || xType is BigOrdinalType) {
-        Warn("BigInteger used", tok);
+        NotSupported(tok, Feature.UnboundedIntegers);
         return "BigNumber";
       } else if (xType is RealType) {
         Warn("BigRational used", tok);

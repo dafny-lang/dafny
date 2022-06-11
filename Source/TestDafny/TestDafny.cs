@@ -1,6 +1,7 @@
 ﻿using System.Reflection;
 using CommandLine;
 using Microsoft.Dafny;
+using Microsoft.Dafny.Plugins;
 using XUnitExtensions;
 using XUnitExtensions.Lit;
 using Parser = CommandLine.Parser;
@@ -37,10 +38,11 @@ public class TestDafny {
       return -1;
     }
 
-    var dafnyArgs = new List<string>();
-    dafnyArgs = new List<string>(testDafnyOptions.OtherArgs);
+    var dafnyArgs = new List<string>(testDafnyOptions.OtherArgs);
     dafnyArgs.Add($"/compile:0");
     dafnyArgs.Add(testDafnyOptions.TestFile!);
+
+    Console.Out.WriteLine("Verifying...");
 
     var (exitCode, output, error) = RunDafny(dafnyArgs);
     if (exitCode != 0) {
@@ -53,8 +55,8 @@ public class TestDafny {
     
     foreach(var plugin in dafnyOptions.Plugins) {
       foreach (var compiler in plugin.GetCompilers()) {
-        dafnyArgs = new List<string>();
-        dafnyArgs.Add(testDafnyOptions.TestFile!);
+        Console.Out.WriteLine($"Executing on {compiler.TargetLanguage}...");
+        dafnyArgs = new List<string> { testDafnyOptions.TestFile! };
         dafnyArgs.AddRange(testDafnyOptions.OtherArgs);
         dafnyArgs.Add("/noVerify");
         dafnyArgs.Add("/useBaseNameForFileName");
@@ -64,6 +66,12 @@ public class TestDafny {
         
         (exitCode, output, error) = RunDafny(dafnyArgs);
         if (exitCode != 0) {
+          // Check for known unsupported features for this compilation target
+          if (OnlyUnsupportedFeaturesErrors(compiler, output)) {
+            // Carry on, nothing more to see here...
+            continue;
+          }
+          
           throw new Exception("Execution failed");
         }
         
@@ -79,6 +87,38 @@ public class TestDafny {
     // TODO: Refactor list of passthrough environment variables somewhere this
     // and IntegrationTests can both reference
     var command = new ShellLitCommand("dotnet", dotnetArguments, new[] { "PATH", "HOME", "DOTNET_NOLOGO" });
-    return command!.Execute(null, null, null, null);
+    return command.Execute(null, null, null, null);
+  }
+
+  private static bool OnlyUnsupportedFeaturesErrors(Compiler compiler, string output) {
+    using (StringReader sr = new StringReader(output)) {
+      string? line;
+      while ((line = sr.ReadLine()) != null) {
+        if (!IsAllowedOutputLine(compiler, line)) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }
+
+  private static bool IsAllowedOutputLine(Compiler compiler, string line) {
+    line = line.Trim();
+    if (line.Length == 0) {
+      return true;
+    }
+    if (line == "Dafny program verifier did not attempt verification") {
+      return true;
+    }
+    
+    var prefixIndex = line.IndexOf(FeatureNotSupportedException.MessagePrefix, StringComparison.Ordinal);
+    if (prefixIndex < 0) {
+      return false;
+    }
+
+    var featureDescription = line[(prefixIndex + FeatureNotSupportedException.MessagePrefix.Length)..];
+    var feature = FeatureDescriptionAttribute.ForDescription(featureDescription);
+    return compiler.UnsupportedFeatures.Contains(feature);
   }
 }
