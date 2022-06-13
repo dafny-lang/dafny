@@ -19,45 +19,26 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   /// this verifier serializes all invocations.
   /// </remarks>
   public class DafnyProgramVerifier : IProgramVerifier {
-    private static readonly object InitializationSyncObject = new();
-    private static bool initialized;
 
-    private readonly ILogger logger;
-    private readonly VerifierOptions options;
     private readonly VerificationResultCache cache = new();
+    private readonly ExecutionEngine engine;
 
-    DafnyOptions Options => DafnyOptions.O;
-
-    private DafnyProgramVerifier(
+    public DafnyProgramVerifier(
       ILogger<DafnyProgramVerifier> logger,
-      VerifierOptions options
+      IOptions<VerifierOptions> options
       ) {
-      this.logger = logger;
-      this.options = options;
-    }
 
-    /// <summary>
-    /// Factory method to safely create a new instance of the verifier. It ensures that global/static
-    /// settings are set exactly ones.
-    /// </summary>
-    /// <param name="logger">A logger instance that may be used by this verifier instance.</param>
-    /// <param name="options">Settings for the verifier.</param>
-    /// <returns>A safely created dafny verifier instance.</returns>
-    public static DafnyProgramVerifier Create(
-      ILogger<DafnyProgramVerifier> logger, IOptions<VerifierOptions> options) {
-      lock (InitializationSyncObject) {
-        if (!initialized) {
-          // TODO This may be subject to change. See Microsoft.Boogie.Counterexample
-          //      A dash means write to the textwriter instead of a file.
-          // https://github.com/boogie-org/boogie/blob/b03dd2e4d5170757006eef94cbb07739ba50dddb/Source/VCGeneration/Couterexample.cs#L217
-          DafnyOptions.O.ModelViewFile = "-";
-          initialized = true;
-          logger.LogTrace("Initialized the boogie verifier with " +
-                          "VerifySnapshots={VerifySnapshots}.",
-                          DafnyOptions.O.VerifySnapshots);
-        }
-        return new DafnyProgramVerifier(logger, options.Value);
-      }
+      var engineOptions = DafnyOptions.O;
+      engineOptions.TimeLimit = options.Value.TimeLimit;
+      engineOptions.VerifySnapshots = (int)options.Value.VerifySnapshots;
+      // TODO This may be subject to change. See Microsoft.Boogie.Counterexample
+      //      A dash means write to the textwriter instead of a file.
+      // https://github.com/boogie-org/boogie/blob/b03dd2e4d5170757006eef94cbb07739ba50dddb/Source/VCGeneration/Couterexample.cs#L217
+      engineOptions.ModelViewFile = "-";
+      BatchObserver = new AssertionBatchCompletedObserver(logger, options.Value.GutterStatus);
+
+      engineOptions.Printer = BatchObserver;
+      engine = new ExecutionEngine(engineOptions, cache);
     }
 
     private static int GetConfiguredCoreCount(VerifierOptions options) {
@@ -68,8 +49,9 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
     private const int TranslatorMaxStackSize = 0x10000000; // 256MB
     static readonly ThreadTaskScheduler TranslatorScheduler = new(TranslatorMaxStackSize);
+    public AssertionBatchCompletedObserver BatchObserver { get; }
 
-    public async Task<ProgramVerificationTasks> GetVerificationTasksAsync(DafnyDocument document, CancellationToken cancellationToken) {
+    public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(DafnyDocument document, CancellationToken cancellationToken) {
       var program = document.Program;
       var errorReporter = (DiagnosticErrorReporter)program.Reporter;
 
@@ -82,21 +64,14 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
       cancellationToken.ThrowIfCancellationRequested();
 
-      var batchObserver = new AssertionBatchCompletedObserver(logger, options.GutterStatus);
-      // Do not set these settings within the object's construction. It will break some tests within
-      // VerificationNotificationTest and DiagnosticsTest that rely on updating these settings.
-      var engineOptions = new DafnyOptions(DafnyOptions.O);
-      engineOptions.Printer = batchObserver;
-      engineOptions.TimeLimit = options.TimeLimit;
-      engineOptions.VerifySnapshots = (int)options.VerifySnapshots;
-
-      var executionEngine = new ExecutionEngine(engineOptions, cache);
       var result = translated.SelectMany(t => {
         var (_, boogieProgram) = t;
-        var results = executionEngine.GetImplementationTasks(boogieProgram);
+        var results = engine.GetImplementationTasks(boogieProgram);
         return results;
       }).ToList();
-      return new ProgramVerificationTasks(result, batchObserver.CompletedBatches);
+      return result;
     }
+
+    public IObservable<AssertionBatchResult> BatchCompletions => BatchObserver.CompletedBatches;
   }
 }

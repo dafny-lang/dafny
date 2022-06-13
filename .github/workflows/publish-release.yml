@@ -80,3 +80,7 @@ jobs:
           dafny/Package/dafny-${{ steps.get-version.outputs.version-without-v }}*
           dafny/docs/DafnyRef/DafnyRef.pdf
         fail_on_unmatched_files: true
+    - name: Create NuGet package (for uploading)
+      run: dotnet pack --no-build dafny/Source/Dafny.sln
+    - name: Upload package to NuGet
+      run: dotnet nuget push "Binaries/Dafny*.nupkg" -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json

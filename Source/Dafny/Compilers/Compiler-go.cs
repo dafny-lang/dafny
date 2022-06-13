@@ -68,11 +68,12 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine();
       // Keep the import writers so that we can import subsequent modules into the main one
       EmitImports(wr, out RootImportWriter, out RootImportDummyWriter);
+
+      var rt = wr.NewFile("dafny/dafny.go");
+      ReadRuntimeSystem(program, "DafnyRuntime.go", rt);
     }
 
     protected override void EmitBuiltInDecls(BuiltIns builtIns, ConcreteSyntaxTree wr) {
-      var rt = wr.NewFile("dafny/dafny.go");
-      ReadRuntimeSystem("DafnyRuntime.go", rt);
     }
 
     const string DafnyTypeDescriptor = "_dafny.TypeDescriptor";

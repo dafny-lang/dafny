@@ -1402,31 +1402,36 @@ namespace Microsoft.Dafny.Compilers {
       public void Finish() { }
     }
 
-    protected void ReadRuntimeSystem(string filename, ConcreteSyntaxTree wr) {
+    protected void ReadRuntimeSystem(Program program, string filename, ConcreteSyntaxTree wr) {
       Contract.Requires(filename != null);
       Contract.Requires(wr != null);
 
       if (DafnyOptions.O.UseRuntimeLib) {
         return;
       }
-      var assemblyLocation = System.Reflection.Assembly.GetExecutingAssembly().Location;
-      Contract.Assert(assemblyLocation != null);
-      var codebase = System.IO.Path.GetDirectoryName(assemblyLocation);
-      Contract.Assert(codebase != null);
-      string path = System.IO.Path.Combine(codebase, filename);
-      WriteFromFile(path, wr.Append(new Verbatim()));
+
+      var assembly = System.Reflection.Assembly.GetExecutingAssembly();
+      var stream = assembly.GetManifestResourceStream(filename);
+      if (stream is null) {
+        ReportError(program.Reporter, program.DefaultModule.tok, $"Cannot find embedded resource: {filename}", wr);
+      } else {
+        var rd = new StreamReader(stream);
+        WriteFromStream(rd, wr.Append((new Verbatim())));
+      }
     }
 
     protected void WriteFromFile(string inputFilename, TextWriter outputWriter) {
       var rd = new StreamReader(new FileStream(inputFilename, FileMode.Open, FileAccess.Read));
-      {
-        while (true) {
-          string s = rd.ReadLine();
-          if (s == null) {
-            return;
-          }
-          outputWriter.WriteLine(s);
+      WriteFromStream(rd, outputWriter);
+    }
+
+    protected void WriteFromStream(StreamReader rd, TextWriter outputWriter) {
+      while (true) {
+        string s = rd.ReadLine();
+        if (s == null) {
+          return;
         }
+        outputWriter.WriteLine(s);
       }
     }
 

@@ -52,7 +52,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override string False { get => "False"; }
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
       wr.WriteLine($"# Dafny program {program.Name} compiled into Python");
-      ReadRuntimeSystem("DafnyRuntime.py", wr.NewFile($"{DafnyRuntimeModule}.py"));
+      ReadRuntimeSystem(program, "DafnyRuntime.py", wr.NewFile($"{DafnyRuntimeModule}.py"));
       Imports.Add(DafnyRuntimeModule);
       EmitImports(null, wr);
       wr.WriteLine();
