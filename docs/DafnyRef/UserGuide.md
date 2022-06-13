@@ -739,7 +739,7 @@ There are many great options that control various aspects of verifying dafny pro
 - Control of output: [`/dprint`](#sec-controlling-output), [`/rprint`](#sec-controlling-output), `/stats`, [`/compileVerbose`](#sec-controlling-compilation)
 - Whether to print warnings: `/proverWarnings`
 - Control of time: `/timeLimit`
-- Control of resources: `/rLimit` and `{:rlimit}`
+- Control of resources: `/rLimit` and [`{:rlimit}`](#sec-rlimit)
 - Control of the prover used: `/prover`
 - Control of how many times to _unroll_ functions: [`{:fuel}`](#sec-fuel)
 
@@ -1117,6 +1117,19 @@ older versions of Dafny.
     `function`. Ghost functions are written `ghost function`. Predicates
     are always ghost and are written `predicate`.
 
+* `-quantifierSyntax:<version>` - select what quantifier syntax to recognize.
+    The syntax for quantification domains is changing from Dafny version 3 to version 4,
+    more specifically where quantifier ranges (`| <Range>`) are allowed.
+    This switch gives early access to the new syntax.
+
+    * `3` (default) - Ranges are only allowed after all quantified variables are declared.
+        (e.g. `set x, y | 0 <= x < |s| && y in s[x] && 0 <= y :: y`)
+    * `4` - Ranges are allowed after each quantified variable declaration.
+        (e.g. `set x | 0 <= x < |s|, y <- s[x] | 0 <= y :: y`)
+
+    Note that quantifier variable domains (`<- <Domain>`) are available
+    in both syntax versions.
+
 * `-disableScopes` - treat all export sets as `export reveal *` to never
     hide function bodies or type definitions during translation.
 
@@ -1356,7 +1369,7 @@ and what information it produces about the verification process.
     associativity of `*`.
 
 * `-autoTriggers:<n>` - control automatic generation of `{:trigger}`
-  annotations. See Section [#sec-trigger]. The value of `<n>` can be one
+  annotations. See [triggers](#sec-trigger). The value of `<n>` can be one
   of the following.
 
   * `0` - do not generate `{:trigger}` annotations for user-level
@@ -1366,7 +1379,7 @@ and what information it produces about the verification process.
     quantifier. Existing annotations are preserved.
 
 * `-rewriteFocalPredicates:<n>` - control rewriting of predicates in the
-  body of prefix lemmas. See Section [#sec-nicer-proofs-of-extremes].
+  body of prefix lemmas. See [the section about nicer extreme proofs](#sec-nicer-proofs-of-extremes).
   The value of `<n>` can be one of the following.
 
   * `0` - don't rewrite predicates in the body of prefix lemmas.
