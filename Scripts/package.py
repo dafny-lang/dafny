@@ -255,11 +255,12 @@ def check_version_cs(args):
     # Checking version.cs
     fp = open(path.join(SOURCE_DIRECTORY,"version.cs"))
     lines = fp.readlines()
-    qstart = lines[2].index('"')
-    qend = lines[2].index('"', qstart+1)
-    lastdot = lines[2].rindex('.',qstart)
-    v1 = lines[2][qstart+1:lastdot]
-    v2 = lines[2][lastdot+1:qend]
+    verline = lines[5]
+    qstart = verline.index('"')
+    qend = verline.index('"', qstart+1)
+    lastdot = verline.rindex('.',qstart)
+    v1 = verline[qstart+1:lastdot]
+    v2 = verline[lastdot+1:qend]
     now = time.localtime()
     year = now[0]
     month = now[1]
@@ -276,7 +277,7 @@ def check_version_cs(args):
     if (v2 != v3 or hy != v1) and not args.trial:
         return False
     fp.close()
-    flush("Creating release files for release \"" + args.version + "\" and internal version information: "+ lines[2][qstart+1:qend])
+    flush("Creating release files for release \"" + args.version + "\" and internal version information: "+ verline[qstart+1:qend])
     return True
 
 def parse_arguments():
