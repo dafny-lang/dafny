@@ -148,8 +148,12 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string fullPrintName,
-        List<TypeParameter> typeParameters, TopLevelDecl cls, List<Type> superClasses, IToken tok, ConcreteSyntaxTree wr) {
-      var methodWriter = wr.NewBlockPy(header: $"class {IdProtect(name)}:");
+      List<TypeParameter> typeParameters, TopLevelDecl cls, List<Type> superClasses, IToken tok, ConcreteSyntaxTree wr) {
+      var realSuperClasses = superClasses?.Where(trait => !trait.IsObject).ToList() ?? new List<Type>();
+      var baseClasses = realSuperClasses.Any()
+        ? $"({realSuperClasses.Comma(trait => TypeName(trait, wr, tok))})"
+        : "";
+      var methodWriter = wr.NewBlockPy(header: $"class {IdProtect(name)}{baseClasses}:");
 
       var needsConstructor = cls is TopLevelDeclWithMembers decl
                              && decl.Members.Any(m => !m.IsGhost && ((m is Field && !m.IsStatic) || m is Constructor));
@@ -464,6 +468,10 @@ namespace Microsoft.Dafny.Compilers {
 
       var xType = type.NormalizeExpand();
 
+      if (xType.IsObjectQ) {
+        return "object";
+      }
+
       switch (xType) {
         case BoolType:
           return "bool";
@@ -508,7 +516,10 @@ namespace Microsoft.Dafny.Compilers {
                 switch (td.WitnessKind) {
                   case SubsetTypeDecl.WKind.Special:
                     Contract.Assert(ArrowType.IsPartialArrowTypeName(td.Name) || ArrowType.IsTotalArrowTypeName(td.Name) || td is NonNullTypeDecl);
-                    var rangeDefaultValue = TypeInitializationValue(udt.TypeArgs.Last(), wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
+                    if (td is NonNullTypeDecl) { return "None"; }
+                    Contract.Assert(udt.TypeArgs.Any());
+                    var rangeDefaultValue = TypeInitializationValue(udt.TypeArgs.Last(), wr, tok, usePlaceboValue,
+                      constructTypeParameterDefaultsFromTypeDescriptors);
                     var arguments = udt.TypeArgs.Comma((_, i) => $"x{i}");
                     return $"(lambda {arguments}: {rangeDefaultValue})";
                   default:
@@ -1266,7 +1277,18 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitTypeTest(string localName, Type fromType, Type toType, IToken tok, ConcreteSyntaxTree wr) {
-      throw new NotImplementedException();
+      if (!fromType.IsNonNullRefType) {
+        wr = wr.Write($"{localName} is {(toType.IsNonNullRefType ? "not None and" : "None or")} ").ForkInParens();
+      }
+
+      var toClass = toType.NormalizeExpand();
+      wr.Write($"isinstance({localName}, {TypeName(toClass, wr, tok)})");
+
+      var udtTo = (UserDefinedType)toType.NormalizeExpandKeepConstraints();
+      if (udtTo.ResolvedClass is SubsetTypeDecl and not NonNullTypeDecl) {
+        // TODO: test constraints
+        throw new NotImplementedException();
+      }
     }
 
     protected override void EmitCollectionDisplay(CollectionType ct, IToken tok, List<Expression> elements,
