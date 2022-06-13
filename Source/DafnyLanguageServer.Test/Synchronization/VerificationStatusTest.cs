@@ -15,6 +15,24 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization;
 public class VerificationStatusTest : ClientBasedLanguageServerTest {
 
   [TestMethod]
+  public async Task MigratedDiagnosticsAfterManualRun() {
+    var source = @"method Foo() { assert false; }";
+    await SetUp(new Dictionary<string, string> {
+      { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.Never) }
+    });
+    var documentItem = CreateTestDocument(source);
+    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+    var methodHeader = new Position(0, 7);
+    client.RunSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), methodHeader);
+    await WaitUntilAllStatusAreCompleted();
+
+    ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "\n");
+
+    var afterChangeDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+    Assert.AreEqual(1, afterChangeDiagnostics.Length);
+  }
+
+  [TestMethod]
   public async Task ManualRunCancelCancelRunRun() {
 
     await SetUp(new Dictionary<string, string> {
