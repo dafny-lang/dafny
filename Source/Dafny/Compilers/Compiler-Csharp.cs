@@ -89,7 +89,7 @@ namespace Microsoft.Dafny.Compilers {
         CsharpSynthesizer.EmitImports(wr);
       }
       EmitDafnySourceAttribute(program, wr);
-      ReadRuntimeSystem("DafnyRuntime.cs", wr);
+      ReadRuntimeSystem(program, "DafnyRuntime.cs", wr);
     }
 
     /// <summary>
