@@ -79,6 +79,9 @@ class Set(set):
     def __or__(self, other):
         return Set(set.union(self, other))
 
+    def __sub__(self, other):
+        return Set(super().__sub__(other))
+
 class Map(dict):
     @property
     def Elements(self):
