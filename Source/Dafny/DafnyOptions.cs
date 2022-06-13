@@ -148,6 +148,9 @@ namespace Microsoft.Dafny {
 
     public static readonly ReadOnlyCollection<Plugin> DefaultPlugins = new(new[] { Compilers.SinglePassCompiler.Plugin });
     public List<Plugin> Plugins = new(DefaultPlugins);
+    
+    public bool CompileTargetSupportRequested = false;
+
 
     /// <summary>
     /// Automatic shallow-copy constructor
@@ -580,6 +583,9 @@ namespace Microsoft.Dafny {
           }
           return true;
 
+        case "compileTargetSupport":
+          CompileTargetSupportRequested = true;
+          return true;
       }
 
       // Unless this is an option for test generation, defer to superclass
@@ -1228,6 +1234,39 @@ some Boogie options, like /loopUnroll, may not be sound for Dafny or may not
 have the same meaning for a Dafny program as it would for a similar Boogie
 program.
 ".Replace("\n", "\n  ") + base.HelpBody;
+    
+    public override bool ProcessInfoFlags() {
+      if (base.ProcessInfoFlags()) {
+        return true;
+      }
+
+      if (CompileTargetSupportRequested) {
+        GenerateCompilerTargetSupportTable();
+        return true;
+      }
+
+      return false;
+    }
+
+    private void GenerateCompilerTargetSupportTable() {
+      Console.Out.Write("| Feature |");
+      var allCompilers = Plugins.SelectMany(p => p.GetCompilers()).ToList();
+      foreach(var compiler in allCompilers) {
+        Console.Out.Write($" {compiler.TargetId} |");
+      }
+      Console.Out.WriteLine();
+      Console.Out.WriteLine("----");
+      
+      foreach(var feature in Enum.GetValues(typeof(Feature)).Cast<Feature>()) {
+        Console.Out.Write($" {FeatureDescriptionAttribute.GetDescription(feature)} |");
+        foreach(var compiler in allCompilers) {
+          var supported = !compiler.UnsupportedFeatures.Contains(feature);
+          var cell = supported ? " Yes " : " No ";
+          Console.Out.Write($" {cell} |");
+        }
+        Console.Out.WriteLine();
+      }
+    }
   }
 }
 
