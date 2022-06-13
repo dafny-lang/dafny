@@ -497,6 +497,10 @@ namespace Microsoft.Dafny.Compilers {
         bool usePlaceboValue, bool constructTypeParameterDefaultsFromTypeDescriptors) {
       var xType = type.NormalizeExpandKeepConstraints();
 
+      if (xType.IsObjectQ) {
+        return "None";
+      }
+
       switch (xType) {
         case BoolType:
           return "False";
