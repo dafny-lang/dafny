@@ -37,8 +37,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       languageServer.TextDocument.SendNotification(DafnyRequestNames.VerificationSymbolStatus, notification);
     }
 
-    private static FileVerificationStatus GetFileVerificationStatus(DafnyDocument document)
-    {
+    private static FileVerificationStatus GetFileVerificationStatus(DafnyDocument document) {
       return new FileVerificationStatus(document.Uri, document.Version, GetNamedVerifiableStatuses(document.ImplementationViewsView));
     }
 
@@ -65,8 +64,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       languageServer.TextDocument.PublishDiagnostics(diagnosticParameters);
     }
 
-    private static PublishDiagnosticsParams GetPublishDiagnosticsParams(DafnyDocument document)
-    {
+    private static PublishDiagnosticsParams GetPublishDiagnosticsParams(DafnyDocument document) {
       return new PublishDiagnosticsParams {
         Uri = document.Uri,
         Version = document.Version,
@@ -103,8 +101,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       languageServer.TextDocument.SendNotification(newParams);
     }
 
-    private static GhostDiagnosticsParams GetGhostness(DafnyDocument document)
-    {
+    private static GhostDiagnosticsParams GetGhostness(DafnyDocument document) {
       return new GhostDiagnosticsParams {
         Uri = document.Uri,
         Version = document.Version,
